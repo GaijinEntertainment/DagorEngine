@@ -115,12 +115,18 @@ else:
     print('+++ Python 3 found at {0}'.format(python_src_folder))
     make_directory_symlink(python_src_folder, python_dest_folder)
 
-    subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', '--upgrade', 'pip'])
-    subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', '--version'])
-    subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'clang==14.0.6'])
-    subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'cymbal'])
-    if not pathlib.Path(python_dest_folder+'/python3.exe').exists():
+    if 'WindowsApps' in python_src_folder:
+      print('WARNING: Detected Microsoft Store Python. Skipping pip upgrade/install due to access restrictions.')
+      print('Install official Python from python.org for full functionality.')
+  else:
+      subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', '--upgrade', 'pip'])
+      subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', '--version'])
+      subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'clang==14.0.6'])
+      subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'cymbal'])
+
+  if not pathlib.Path(python_dest_folder+'/python3.exe').exists():
       make_file_link(python_dest_folder+'/python.exe', python_dest_folder+'/python3.exe')
+
   else:
     error("Python 3 not found")
 
