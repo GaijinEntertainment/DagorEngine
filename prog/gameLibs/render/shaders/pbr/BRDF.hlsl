@@ -52,6 +52,11 @@
 #define SHEEN_SPECULAR 0
 #endif
 
+//add definition for toon BRDF
+#ifndef TOON_BRDF
+#define TOON_BRDF 0
+#endif
+
 half3 BRDF_diffuse( half3 diffuseColor, half linearRoughness, half NoV, half NoL, half VoH )
 {
 #if   BRDF_DIFFUSE == DIFFUSE_LAMBERT
@@ -173,4 +178,12 @@ half foliageSSSfast(half NoL)
   half viewDependenceAmount = .5h;
   return foliageSSSBackDiffuseAmount(NoL) * viewDependenceAmount;
 }
+
+//add toon step 
+half ToonStep(float value, float smoothness)
+{
+	smoothness = max(smoothness, 0.001f);
+	return smoothstep(-smoothness, smoothness, value);
+}
+
 #endif

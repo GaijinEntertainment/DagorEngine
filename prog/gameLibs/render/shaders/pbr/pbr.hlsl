@@ -5,7 +5,9 @@
 #define __PBR_COMMON__
   //from http://www.frostbite.com/wp-content/uploads/2014/11/course_notes_moving_frostbite_to_pbr_v2.pdf (original version had bug in code!)
   float computeSpecOcclusion ( float saturated_NdotV, float AO, float ggx_alpha)
-    { return saturate(pow( saturated_NdotV + AO, exp2(-16.0*ggx_alpha- 1.0)) - 1 + AO);}
+    { 
+      return saturate(pow( saturated_NdotV + AO, exp2(-16.0*ggx_alpha- 1.0)) - 1 + AO);
+    }
   //ggx_alpha = linearRoughness*linearRoughness
   half3 standardBRDF_NO_NOL(half NoV, half NoL, half3 baseDiffuseColor, half ggx_alpha, half linearRoughness, half3 specularColor, half specularStrength, half3 lightDir, half3 view, half3 normal,  half3 sheenColor, half translucency)
   {
@@ -23,7 +25,8 @@
       #else
         return diffuse;
       #endif
-    #endif
+     #endif
+   
   }
 
   half3 standardBRDF(half NoV, half NoL, half3 baseDiffuseColor, half ggx_alpha, half linearRoughness, half3 specularColor, half specularStrength, half3 lightDir, half3 view, half3 normal, half3 sheenColor, half translucency)
@@ -39,5 +42,37 @@
   half3 standardBRDF(half NoV, half NoL, half3 baseDiffuseColor, half ggx_alpha, half linearRoughness, half3 specularColor, half specularStrength, half3 lightDir, half3 view, half3 normal)
   {
     return standardBRDF_NO_NOL(NoV, NoL, baseDiffuseColor, ggx_alpha, linearRoughness, specularColor, specularStrength, lightDir, view, normal, 0, 0) * NoL;
+  }
+  
+  //add toon BRDF
+  half3 toonBRDF(half NoV, half NoL, half3 baseDiffuseColor, half ggx_alpha, half linearRoughness, half3 specularColor, half specularStrength, half3 lightDir, half3 view, half3 normal)
+  {
+     // 1. Calculate Half Vector (Essential for Specular)
+    half3 H = normalize(view + lightDir);
+    half NoH = saturate(dot(normal, H));
+    
+    // 2. Stylized Diffuse (Cell Shading Ramp)
+    half diffThreshold = 0.5; 
+    half diffSmoothness = 0.05;
+    half toonRamp = smoothstep(diffThreshold - diffSmoothness, diffThreshold + diffSmoothness, NoL);
+    half3 toonDiffuse = diffuseLambert(baseDiffuseColor) * (toonRamp * 0.9 + 0.1); 
+
+    #if SPECULAR_DISABLED
+        return toonDiffuse;
+    #else
+        // 3. Stylized Specular (Hard Highlight)
+        // Convert linearRoughness to a "shininess" exponent. 
+        // Lower roughness = Higher exponent = Smaller, tighter dot.
+        half shininess = (1.0 - linearRoughness) * 100.0 + 1.0;
+        half rawSpec = pow(NoH, shininess);
+        // Quantize the highlight. 
+        // If the reflection intensity is above 0.5, render it fully (Hard Edge).
+        half specCutoff = 0.5;
+        half specEdge = 0.02; // Small value for anti-aliasing the specular edge
+        half toonSpecularTerm = smoothstep(specCutoff - specEdge, specCutoff + specEdge, rawSpec);     
+        // Apply Strength and Color
+        half3 finalSpecular = specularColor * toonSpecularTerm * specularStrength;  
+        return toonDiffuse + finalSpecular;
+    #endif
   }
 #endif
