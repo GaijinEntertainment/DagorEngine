@@ -91,7 +91,7 @@
     #if SHEEN_SPECULAR
       half3 lightBRDF = standardBRDF_NO_NOL( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal, gbuffer.translucencyColor, gbuffer.sheen);
     #elif TOON_BRDF
-      half3 lightBRDF = toonBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal);
+      half3 lightBRDF = toonBRDF( NoV, NoL, gbuffer.albedo * gbuffer.translucencyColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal) ;
       #else
       half3 lightBRDF = standardBRDF_NO_NOL( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, dynamicLightsSpecularStrength, dirFromLight, view, gbuffer.normal);
     #endif
