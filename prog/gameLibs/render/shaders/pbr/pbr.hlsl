@@ -45,11 +45,29 @@
   }
   
   //add toon BRDF
+
+  half RoughnessToToonRange(half Roughness, half NoH)
+  {
+    // Offset roughness to ensure even low roughness has some visibility
+    half R = Roughness + 0.3;
+    
+    // Calculate the width of the smoothstep transition (softness of the edge)
+    half w = 0.05 * R + 0.01;
+    
+    // Calculate the size/threshold of the highlight
+    half R2 = (R * R) * w;
+    
+    // Map NoH to the toon ramp
+    // As NoH approaches 1.0 (center of highlight), we step from 0 to 1
+    return smoothstep(1.0 - w - R2, 1.0 - w + R2, NoH);
+  }
+
   half3 toonBRDF(half NoV, half NoL, half3 baseDiffuseColor, half ggx_alpha, half linearRoughness, half3 specularColor, half specularStrength, half3 lightDir, half3 view, half3 normal)
   {
      // 1. Calculate Half Vector (Essential for Specular)
     half3 H = normalize(view + lightDir);
     half NoH = saturate(dot(normal, H));
+
     
     // 2. Stylized Diffuse (Cell Shading Ramp)
     half diffThreshold = 0.5; 
@@ -60,18 +78,19 @@
     #if SPECULAR_DISABLED
         return toonDiffuse;
     #else
-        // 3. Stylized Specular (Hard Highlight)
-        // Convert linearRoughness to a "shininess" exponent. 
-        // Lower roughness = Higher exponent = Smaller, tighter dot.
-        half shininess = (1.0 - linearRoughness) * 100.0 + 1.0;
-        half rawSpec = pow(NoH, shininess);
-        // Quantize the highlight. 
-        // If the reflection intensity is above 0.5, render it fully (Hard Edge).
-        half specCutoff = 0.5;
-        half specEdge = 0.02; // Small value for anti-aliasing the specular edge
-        half toonSpecularTerm = smoothstep(specCutoff - specEdge, specCutoff + specEdge, rawSpec);     
-        // Apply Strength and Color
-        half3 finalSpecular = specularColor * toonSpecularTerm * specularStrength;  
+       // --- SPECULAR ---
+        // Use the custom function to determine the highlight shape
+        half toonShape = RoughnessToToonRange(linearRoughness, NoH);
+
+        // Apply Fresnel (NoV) to Stylize the Strength
+        // Highlights become stronger/brighter at glancing angles
+        half fresnelTerm = BRDF_fresnel(specularColor, NoV).r; // Using .r for scalar strength or standard fresnel approx
+        // Alternatively simple fresnel: half fresnelTerm = pow(1.0 - NoV, 4.0);
+        
+        // Combine: Color * Shape * Strength * (Optional Fresnel Boost)
+        // We clamp the fresnel influence so it doesn't disappear entirely at face-on angles
+        half3 finalSpecular = specularColor * toonShape * specularStrength * max(0.5, fresnelTerm * 2.0);
+
         return toonDiffuse + finalSpecular;
     #endif
   }
