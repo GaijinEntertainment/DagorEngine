@@ -23,7 +23,7 @@ half3 perform_light_brdf(half3 view, half NoV, ProcessedGbuffer gbuffer, half3 s
     #if SHEEN_SPECULAR
       half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, half3(gbuffer.normal), gbuffer.translucencyColor, gbuffer.sheen);
     #elif TOON_BRDF
-      half3 result = toonBRDF( NoV, NoL, gbuffer.albedo* gbuffer.translucencyColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, half3(gbuffer.normal));
+      half3 result = toonBRDF( NoV, NoL, gbuffer.albedo, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, half3(gbuffer.normal),gbuffer.translucencyColor, gbuffer.sheen);
     #else
       half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, half3(gbuffer.normal));
     #endif
@@ -40,7 +40,7 @@ half3 perform_light_brdf(half3 view, half NoV, ProcessedGbuffer gbuffer, half3 s
     #if SHEEN_SPECULAR
       half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, half3(gbuffer.normal), gbuffer.translucencyColor, gbuffer.sheen);
     #elif TOON_BRDF
-      half3 result = toonBRDF( NoV, NoL, gbuffer.albedo* gbuffer.translucencyColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, half3(gbuffer.normal));
+      half3 result = toonBRDF( NoV, NoL, gbuffer.albedo, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, half3(gbuffer.normal), gbuffer.translucencyColor, gbuffer.sheen);
     #else
       half3 result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, specularColor, specularStrength, dirFromLight, view, half3(gbuffer.normal));
     #endif

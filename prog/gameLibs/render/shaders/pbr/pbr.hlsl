@@ -49,7 +49,7 @@
   half RoughnessToToonRange(half Roughness, half NoH)
   {
     // Offset roughness to ensure even low roughness has some visibility
-    half R = Roughness + 0.3;
+    half R = Roughness + 0.1;
     
     // Calculate the width of the smoothstep transition (softness of the edge)
     half w = 0.05 * R + 0.01;
@@ -62,7 +62,7 @@
     return smoothstep(1.0 - w - R2, 1.0 - w + R2, NoH);
   }
 
-  half3 toonBRDF(half NoV, half NoL, half3 baseDiffuseColor, half ggx_alpha, half linearRoughness, half3 specularColor, half specularStrength, half3 lightDir, half3 view, half3 normal)
+  half3 toonBRDF(half NoV, half NoL, half3 baseDiffuseColor, half linearRoughness, half3 specularColor, half specularStrength, half3 lightDir, half3 view, half3 normal,half3 SSSColor,half SSSPower)
   {
      // 1. Calculate Half Vector (Essential for Specular)
     half3 H = normalize(view + lightDir);
@@ -73,7 +73,10 @@
     half diffThreshold = 0.5; 
     half diffSmoothness = 0.05;
     half toonRamp = smoothstep(diffThreshold - diffSmoothness, diffThreshold + diffSmoothness, NoL);
-    half3 toonDiffuse = diffuseLambert(baseDiffuseColor) * (toonRamp * 0.9 + 0.1); 
+
+    half3 SSSShadowFactor = SSSColor * SSSPower;
+    half3 rampColor = lerp(SSSShadowFactor, half3(1.0, 1.0, 1.0), toonRamp);
+    half3 toonDiffuse = diffuseLambert(baseDiffuseColor) * rampColor; 
 
     #if SPECULAR_DISABLED
         return toonDiffuse;
