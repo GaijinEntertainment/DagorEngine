@@ -1,1 +1,0 @@
-Finishes all deferred actions.

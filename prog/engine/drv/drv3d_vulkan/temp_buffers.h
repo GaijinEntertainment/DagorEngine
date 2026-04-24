@@ -113,14 +113,25 @@ public:
 class FramememBufferManager
 {
   WinCritSec writeLock;
-  Buffer *buffers[Buffer::pending_discard_frames * (uint32_t)DeviceMemoryClass::COUNT] = {};
-  dag::RelocatableFixedVector<Buffer *, Buffer::pending_discard_frames *(uint32_t)DeviceMemoryClass::COUNT> destroyQue;
+#if DAGOR_DBGLEVEL > 0
+  uint32_t lastTotalUsages[Buffer::pending_discard_frames] = {};
+  uint32_t totalUsage = 0;
+#endif
+  Buffer *buffers[TimelineLatency::replayToGPUCompletionRingBufferSize * (uint32_t)DeviceMemoryClass::COUNT] = {};
+  dag::RelocatableFixedVector<Buffer *, TimelineLatency::replayToGPUCompletionRingBufferSize *(uint32_t)DeviceMemoryClass::COUNT>
+    destroyQue;
 
   FramememBufferManager(const FramememBufferManager &);
-  uint32_t frameToRingIdx(uint32_t frame) { return frame % Buffer::pending_discard_frames; }
+  uint32_t frameToRingIdx(uint32_t frame) { return frame % TimelineLatency::replayToGPUCompletionRingBufferSize; }
   Buffer *&getBuf(DeviceMemoryClass dmc, uint32_t frame)
   {
     return buffers[frameToRingIdx(frame) * (uint32_t)DeviceMemoryClass::COUNT + (uint32_t)dmc];
+  }
+
+  uint32_t frameToNonMappedRingIdx(uint32_t frame) { return frame % GPU_TIMELINE_HISTORY_SIZE; }
+  Buffer *&getNonMappedBuf(DeviceMemoryClass dmc, uint32_t frame)
+  {
+    return buffers[frameToNonMappedRingIdx(frame) * (uint32_t)DeviceMemoryClass::COUNT + (uint32_t)dmc];
   }
 
 public:

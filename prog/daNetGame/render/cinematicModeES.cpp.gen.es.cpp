@@ -330,7 +330,8 @@ static void cinematic_mode_save_bloom_threshold_es_all_events(const ecs::Event &
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     cinematic_mode_save_bloom_threshold_es(evt
-        , ECS_RW_COMP(cinematic_mode_save_bloom_threshold_es_comps, "cinematic_mode__saved_bloom_threshold", float)
+        , components.manager()
+    , ECS_RW_COMP(cinematic_mode_save_bloom_threshold_es_comps, "cinematic_mode__saved_bloom_threshold", float)
     , ECS_RO_COMP_OR(cinematic_mode_save_bloom_threshold_es_comps, "cinematic_mode__default_bloom_threshold", float(1.0))
     );
   while (++comp != compE);
@@ -357,7 +358,8 @@ static void cinematic_mode_restore_bloom_threshold_es_all_events(const ecs::Even
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     cinematic_mode_restore_bloom_threshold_es(evt
-        , ECS_RO_COMP(cinematic_mode_restore_bloom_threshold_es_comps, "cinematic_mode__saved_bloom_threshold", float)
+        , components.manager()
+    , ECS_RO_COMP(cinematic_mode_restore_bloom_threshold_es_comps, "cinematic_mode__saved_bloom_threshold", float)
     );
   while (++comp != compE);
 }
@@ -444,9 +446,9 @@ static ecs::CompileTimeQueryDesc get_cinematic_mode_manager_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_cinematic_mode_manager_ecs_query(Callable function)
+inline void get_cinematic_mode_manager_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_cinematic_mode_manager_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_cinematic_mode_manager_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -472,9 +474,9 @@ static ecs::CompileTimeQueryDesc set_video_recording_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void set_video_recording_ecs_query(Callable function)
+inline void set_video_recording_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, set_video_recording_ecs_query_desc.getHandle(),
+  perform_query(&manager, set_video_recording_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -500,9 +502,9 @@ static ecs::CompileTimeQueryDesc get_bloom_threshold_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_bloom_threshold_ecs_query(Callable function)
+inline void get_bloom_threshold_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_bloom_threshold_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_bloom_threshold_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -528,9 +530,9 @@ static ecs::CompileTimeQueryDesc set_bloom_threshold_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void set_bloom_threshold_ecs_query(Callable function)
+inline void set_bloom_threshold_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, set_bloom_threshold_ecs_query_desc.getHandle(),
+  perform_query(&manager, set_bloom_threshold_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -558,9 +560,9 @@ static ecs::CompileTimeQueryDesc delete_color_grading_ecs_query_desc
   make_span(delete_color_grading_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void delete_color_grading_ecs_query(Callable function)
+inline void delete_color_grading_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, delete_color_grading_ecs_query_desc.getHandle(),
+  perform_query(&manager, delete_color_grading_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -586,9 +588,9 @@ static ecs::CompileTimeQueryDesc get_default_color_grade_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_default_color_grade_ecs_query(Callable function)
+inline void get_default_color_grade_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_default_color_grade_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_default_color_grade_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

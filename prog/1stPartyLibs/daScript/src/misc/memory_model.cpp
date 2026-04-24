@@ -215,6 +215,23 @@ namespace das {
         shoe.reset();
     }
 
+    void MemoryModel::shrink() {
+        if constexpr (has_shrink_to_fit<decltype(bigStuff)>::value) {
+            bigStuff.shrink_to_fit();
+        }
+#if DAS_TRACK_ALLOCATIONS
+        if constexpr (has_shrink_to_fit<decltype(bigStuffId)>::value) {
+            bigStuffId.shrink_to_fit();
+        }
+        if constexpr (has_shrink_to_fit<decltype(bigStuffAt)>::value) {
+            bigStuffAt.shrink_to_fit();
+        }
+        if constexpr (has_shrink_to_fit<decltype(bigStuffComment)>::value) {
+            bigStuffComment.shrink_to_fit();
+        }
+#endif
+    }
+
     uint64_t MemoryModel::totalAlignedMemoryAllocated() const {
         uint64_t mem = shoe.totalBytesAllocated();
         for (const auto & it : bigStuff) {
@@ -316,6 +333,14 @@ namespace das {
             chunk = nullptr;
         } else if ( chunk ) {
             chunk->offset = 0;
+        }
+    }
+
+    void LinearChunkAllocator::shrink() {
+        initialSize = unadjustedInitialSize;
+        if ( chunk && !chunk->next && chunk->offset==0 ) {
+            delete chunk;
+            chunk = nullptr;
         }
     }
 

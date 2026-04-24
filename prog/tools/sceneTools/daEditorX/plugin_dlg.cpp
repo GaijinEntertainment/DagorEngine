@@ -208,7 +208,7 @@ void PluginShowDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl 
   }
 }
 
-void PluginShowDialog::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+void PluginShowDialog::onClick(int pcb_id, PropPanel::ContainerPropertyControl *)
 {
   needRehideIdx = -1;
   if (pcb_id >= CHECKS_BASE && pcb_id < CHECKS_BASE + plugins.size())

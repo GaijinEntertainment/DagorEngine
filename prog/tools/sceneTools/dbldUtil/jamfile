@@ -56,7 +56,7 @@ UseProgLibs =
   engine/guiBase
   engine/imgui/stub
 
-  gameLibs/daECS/gameResStub
+  engine/daECS/gameResStub
   gameLibs/ecs/rendInst/stub
 ;
 if $(Platform) = linux { UseProgLibs += engine/osApiWrappers/messageBox ; }

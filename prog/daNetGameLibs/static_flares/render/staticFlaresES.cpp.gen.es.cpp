@@ -17,7 +17,8 @@ static void init_static_flares_es_all_events(const ecs::Event &__restrict evt, c
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_static_flares_es(evt
-        , ECS_RO_COMP(init_static_flares_es_comps, "static_flares__maxCount", int)
+        , components.manager()
+    , ECS_RO_COMP(init_static_flares_es_comps, "static_flares__maxCount", int)
     , ECS_RW_COMP(init_static_flares_es_comps, "static_flares__instancesBuf", UniqueBufHolder)
     , ECS_RW_COMP(init_static_flares_es_comps, "static_flares__instances", StaticFlareInstances)
     , ECS_RW_COMP(init_static_flares_es_comps, "static_flares__node", dafg::NodeHandle)
@@ -92,9 +93,9 @@ static ecs::CompileTimeQueryDesc get_static_flares_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_static_flares_ecs_query(Callable function)
+inline void get_static_flares_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_static_flares_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_static_flares_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -129,9 +130,9 @@ static ecs::CompileTimeQueryDesc add_static_flare_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void add_static_flare_ecs_query(Callable function)
+inline void add_static_flare_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, add_static_flare_ecs_query_desc.getHandle(),
+  perform_query(&manager, add_static_flare_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

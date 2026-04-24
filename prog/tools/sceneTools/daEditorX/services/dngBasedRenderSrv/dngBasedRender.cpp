@@ -1,11 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <de3_dynRenderService.h>
+#include <de3_skiesService.h>
+#include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_camera_elem.h>
 #include <EditorCore/ec_wndPublic.h>
+#include <EditorCore/ec_shaders.h>
 #include <libTools/renderViewports/cachedViewports.h>
 #include <dafxToolsHelper/dafxToolsHelper.h>
 
@@ -18,6 +21,7 @@
 #include <shaders/dag_shaderBlock.h>
 #include <shaders/dag_renderStateId.h>
 #include <3d/dag_render.h>
+#include <3d/dag_gpuConfig.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
@@ -45,6 +49,7 @@
 #include "main/gameLoad.h"
 #include "main/level.h"
 #include "main/webui.h"
+#include "main/app.h"
 #include "game/dasEvents.h"
 #include "game/gameEvents.h"
 #include "game/gameScripts.h"
@@ -57,29 +62,53 @@
 #include "camera/sceneCam.h"
 
 #include <daGame/timers.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/scripts/scripts.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include <ecs/camera/getActiveCameraSetup.h>
 #include <ecs/weather/skiesSettings.h>
+#include <ecs/render/updateStageRender.h>
 #include <render/hdrRender.h>
 #include <render/tdrGpu.h>
+#include <render/antialiasing.h>
 #include <rendInst/riexSync.h>
 #include <rendInst/rendInstGen.h>
+#include <phys/physUtils.h>
 #include <folders/folders.h>
 #include <dasModules/dasSystem.h>
-#include <quirrel/sqEventBus/sqEventBus.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <util/dag_threadPool.h>
+#include <util/dag_console.h>
+#include <util/dag_finally.h>
+#include <3d/dag_resPtr.h>
+#include <camera/camShakerEvents.h>
 
 #if _TARGET_PC_WIN
 #include <windows.h>
 #endif
 
+#if HAVE_DNGLIB_DM
+#include <dm/damageEvents.h>
+// required by ri_phys lib
+ECS_REGISTER_EVENT(CmdRendinstDamage)
+ECS_REGISTER_EVENT(EventShellExplosionShockWave)
+#endif
+
+namespace sqeventbus
+{
+void process_events(HSQUIRRELVM vm);
+}
+
 extern CachedRenderViewports *ec_cached_viewports;
 extern void ec_init_stat3d();
 extern void ec_stat3d_wait_frame_end(bool frame_start);
 extern ShaderBlockIdHolder dynamicSceneBlockId;
+extern ShaderBlockIdHolder dynamicSceneTransBlockId;
+extern ShaderBlockIdHolder dynamicDepthSceneBlockId;
+extern ShaderBlockIdHolder globalFrameBlockId;
+extern void init_fx();
 
 namespace dng_based_render
 {
@@ -90,15 +119,18 @@ static SimpleString dng_scene_fname, dng_template_fname, dng_game_params_fname;
 static IPoint2 pendingRes = {0, 0};
 static bool empty_world_created = false;
 static int last_dt_realtime_usec = 0;
+static float last_gametime_sec = 0.f;
 static UniqueTex nullTarget;
 static TexStreamingContext currentTexCtx = {0};
 static DataBlock riGenExtraConfig;
 
 static void init_dng_framework();
+static void term_dng_framework();
 
 static void act_scene();
 static bool scene_ready_for_render();
-static void before_draw_scene(int dt_realtime_usec, float dt_gametime_sec, float zn, float zf, float fov);
+static void before_draw_scene(int dt_realtime_usec, float dt_gametime_sec);
+static void before_render(const Driver3dPerspective &persp, const TMatrix4D &proj_tm, int viewport_width);
 static const ManagedTex &get_final_target();
 static void draw_scene();
 static void after_draw_scene();
@@ -109,6 +141,8 @@ using dng_based_render::rendSrv;
 static bool render_enabled = false;
 static float wireframeZBias = 0.1;
 static bool enable_wireframe = false;
+static bool prevIsOrtho = false;
+static float saved_motion_blur_strength = -1.f;
 
 // Starting with draw skipping by default. This way we ensure that before the first drawScene call actScene was called
 static bool skip_next_frame = true;
@@ -122,6 +156,12 @@ public:
   shaders::RenderStateId defaultRenderStateId;
   shaders::RenderStateId alphaWriterRenderStateId;
   shaders::RenderStateId depthMaskRenderStateId;
+  UniqueBuf coloredQuadVb;
+  struct Vertex
+  {
+    Point3 p;
+    E3DCOLOR c;
+  };
 
 public:
   DngBasedRenderScene()
@@ -140,6 +180,8 @@ public:
 
     rs.zFunc = CMPF_ALWAYS;
     alphaWriterRenderStateId = shaders::render_states::create(rs);
+
+    coloredQuadVb = dag::create_vb(sizeof(Vertex) * 4, SBCF_BIND_VERTEX | SBCF_DYNAMIC | SBCF_FRAMEMEM, "colored_quad_vb");
   }
 
   ~DngBasedRenderScene() override { shutdown(); }
@@ -205,11 +247,10 @@ public:
     if (skip_next_frame)
       return;
 
-    float zn, zf, fov;
-    getViewportRenderParams(zn, zf, fov);
+    auto *vpw = (ViewportWindow *)ec_cached_viewports->getViewportUserData(0);
+    if (vpw && render_enabled)
+      dng_based_render::before_draw_scene(dt_realtime_usec, dt_gametime_sec);
 
-    if (render_enabled)
-      dng_based_render::before_draw_scene(dt_realtime_usec, dt_gametime_sec, zn, zf, fov);
     IEditorCoreEngine::get()->beforeRenderObjects();
     d3d::set_render_target();
   }
@@ -243,17 +284,9 @@ public:
     }
     dng_based_render::after_draw_scene();
 
-#if _TARGET_PC_WIN
-    HWND hwnd = (HWND)EDITORCORE->getWndManager()->getMainWindow();
-    RECT rect;
-    GetClientRect(hwnd, &rect);
-    const int clientRectWidth = rect.right - rect.left;
-    const int clientRectHeight = rect.bottom - rect.top;
-#else
     int clientRectWidth = 0;
     int clientRectHeight = 0;
     d3d::get_screen_size(clientRectWidth, clientRectHeight);
-#endif
 
     if (::grs_draw_wire)
       d3d::setwire(0);
@@ -261,25 +294,6 @@ public:
     d3d::set_render_target();
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(0, 0, 0, 0), 0, 0);
     renderUI(clientRectWidth, clientRectHeight);
-
-#if _TARGET_PC_WIN // TODO: tools Linux porting: check_and_restore_3d_device
-    // When toggling the application's window between minimized and maximized state the client size could be 0.
-    // This is here to avoid the assert in d3d::stretch_rect.
-    if (clientRectWidth <= 0 || clientRectHeight <= 0)
-      hwnd = nullptr;
-
-    if (check_and_restore_3d_device())
-      d3d::pcwin::set_present_wnd(hwnd);
-#else
-    check_and_restore_3d_device();
-#endif
-  }
-
-  static void getViewportRenderParams(float &zn, float &zf, float &fov)
-  {
-    zn = 0.1f, zf = 1000.f, fov = 90.f;
-    if (auto *vpw = (ViewportWindow *)ec_cached_viewports->getViewportUserData(0))
-      vpw->getZnearZfar(zn, zf), fov = RadToDeg(vpw->getFov());
   }
 
   BaseTexture *getRenderBuffer() { return dng_based_render::get_final_target().getTex2D(); }
@@ -316,17 +330,25 @@ public:
         return empty_render();
 
       // G_ASSERT(!rt.tex);
-      G_ASSERT(rt.isBackBufferColor());
+      // TODO: update Driver3dRenderTarget to support not null backbuffer texture
+      G_ASSERT(rt.isColorUsed(0) && (!rt.getColor(0).tex || d3d::get_backbuffer_tex() == rt.getColor(0).tex));
 
       if (vpw->needStat3d() && dgs_app_active)
         ec_stat3d_wait_frame_end(true);
 
-      enable_wireframe = vpw->wireframeOverlayEnabled();
+      if (enable_wireframe != vpw->wireframeOverlayEnabled())
+      {
+        enable_wireframe = vpw->wireframeOverlayEnabled();
+        console::command(String(0, "render.show_wireframe_overlay %d", enable_wireframe ? 1 : 0));
+      }
 
       if (dng_based_render::scene_ready_for_render())
-        beforeRender();
+        beforeRender(vpw->getViewTm(), vpw->getPerspective(), vpw->isOrthogonal(), vpw->getW());
       d3d::set_render_target(getRenderBuffer(), 0);
-      d3d::setview(0, 0, viewportW, viewportH, 0, 1);
+      if (getRenderBuffer() == rt.getColor(0).tex)
+        d3d::setview(viewportX, viewportY, viewportW, viewportH, 0, 1);
+      else
+        d3d::setview(0, 0, viewportW, viewportH, 0, 1);
       d3d::clearview(CLEAR_TARGET, E3DCOLOR(64, 64, 64, 0), 0, 0);
 
       dng_based_render::draw_scene();
@@ -346,7 +368,8 @@ public:
     rdst.right = viewportX + viewportW;
     rdst.bottom = viewportY + viewportH;
     d3d::set_srgb_backbuffer_write(srgb_backbuf_wr);
-    d3d_err(d3d::stretch_rect(finalRt, rt.getColor(0).tex, NULL, &rdst));
+    if (finalRt != rt.getColor(0).tex)
+      d3d_err(d3d::stretch_rect(finalRt, rt.getColor(0).tex, NULL, &rdst));
     d3d::set_srgb_backbuffer_write(false);
 
     d3d_err(d3d::set_render_target(rt));
@@ -359,11 +382,6 @@ public:
       d3d::set_program(d3d::get_debug_program());
       d3d::set_vs_const(0, &TMatrix4_vec4::IDENT, 4);
 
-      struct Vertex
-      {
-        Point3 p;
-        E3DCOLOR c;
-      };
       static Vertex v[4];
       v[0].p.set(-1, -1, 0);
       v[1].p.set(+1, -1, 0);
@@ -372,7 +390,10 @@ public:
 
       shaders::render_states::set(alphaWriterRenderStateId);
       v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
-      d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
+      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+      d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
+      d3d::draw(PRIM_TRISTRIP, 0, 2);
+      d3d::setvsrc(0, nullptr, 0);
 
       d3d::set_program(BAD_PROGRAM);
       shaders::overrides::reset();
@@ -393,7 +414,7 @@ public:
     dagor_frame_no_increment();
   }
 
-  void renderScreenShot()
+  void renderScreenShot(const Driver3dPerspective &persp, bool isOrtho, [[maybe_unused]] bool force_disable_wireframe)
   {
     int viewportX, viewportY, viewportW, viewportH;
     float viewportMinZ, viewportMaxZ;
@@ -403,14 +424,16 @@ public:
     d3d::getview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
     updateBackBufSize(viewportW, viewportH);
 
-    float zn, zf, fov;
-    getViewportRenderParams(zn, zf, fov);
-    dng_based_render::before_draw_scene(1, 1e-6f, zn, zf, fov);
-    beforeRender();
+    TMatrix viewTm;
+    d3d::gettm(TM_VIEW, viewTm);
+
+    dng_based_render::before_draw_scene(1, 1e-6f);
+    beforeRender(viewTm, persp, isOrtho, viewportW);
     d3d::set_render_target(getRenderBuffer(), 0);
     d3d::setview(0, 0, viewportW, viewportH, viewportMinZ, viewportMaxZ);
     d3d::clearview(CLEAR_TARGET, E3DCOLOR(64, 64, 64, 0), 0, 0);
     dng_based_render::draw_scene();
+    dng_based_render::after_draw_scene();
 
     Texture *finalRt = getRenderBuffer();
 
@@ -432,11 +455,6 @@ public:
       d3d::set_program(d3d::get_debug_program());
       d3d::set_vs_const(0, &TMatrix4_vec4::IDENT, 4);
 
-      struct Vertex
-      {
-        Point3 p;
-        E3DCOLOR c;
-      };
       static Vertex v[4];
       v[0].p.set(-1, -1, 0);
       v[1].p.set(+1, -1, 0);
@@ -445,12 +463,15 @@ public:
 
       shaders::render_states::set(alphaWriterRenderStateId);
       v[0].c = v[1].c = v[2].c = v[3].c = 0xFFFFFFFF;
-      d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
+      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+      d3d::setvsrc(0, coloredQuadVb.getBuf(), sizeof(Vertex));
+      d3d::draw(PRIM_TRISTRIP, 0, 2);
 
       shaders::render_states::set(depthMaskRenderStateId);
       v[0].c = v[1].c = v[2].c = v[3].c = 0x00FFFFFF;
-      d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
-
+      coloredQuadVb->updateData(0, sizeof(v), v, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+      d3d::draw(PRIM_TRISTRIP, 0, 2);
+      d3d::setvsrc(0, nullptr, 0);
       d3d::set_program(BAD_PROGRAM);
       shaders::overrides::reset();
       shaders::render_states::set(defaultRenderStateId);
@@ -459,8 +480,35 @@ public:
     d3d_err(d3d::set_render_target(rt));
     d3d::setview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
   }
-  void beforeRender()
+
+  void beforeRender(const TMatrix &viewTm, const Driver3dPerspective &persp, bool isOrtho, int viewportWidth)
   {
+    if (prevIsOrtho != isOrtho)
+    {
+      if (auto *daSkies = get_daskies())
+        daSkies->setSolidColorMode(isOrtho, E3DCOLOR(0, 0, 0));
+
+      if (auto settingsEid = g_entity_mgr->getSingletonEntity(ECS_HASH("render_settings")))
+      {
+        if (isOrtho)
+        {
+          saved_motion_blur_strength = g_entity_mgr->getOr(settingsEid, ECS_HASH("render_settings__motionBlurStrength"), -1.f);
+          g_entity_mgr->set(settingsEid, ECS_HASH("render_settings__motionBlurStrength"), 0.f);
+        }
+        else if (saved_motion_blur_strength > 0.f)
+          g_entity_mgr->set(settingsEid, ECS_HASH("render_settings__motionBlurStrength"), saved_motion_blur_strength);
+      }
+
+      prevIsOrtho = isOrtho;
+    }
+
+    TMatrix4D projTm = isOrtho ? matrix_ortho_lh_reverse(2 / persp.wk, 2 / persp.hk, persp.zn, persp.zf)
+                               : dmatrix_perspective_reverse(persp.wk, persp.hk, persp.zn, persp.zf, persp.ox, persp.oy);
+
+    ::grs_cur_view.tm = viewTm;
+    ::grs_cur_view.itm = inverse(::grs_cur_view.tm);
+    ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
+    dng_based_render::before_render(persp, projTm, viewportWidth);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
     IEditorCoreEngine::get()->beforeRenderObjects();
     TIME_D3D_PROFILE_NAME(render_vsm, "before_render");
@@ -481,10 +529,7 @@ public:
     imgui_update(client_rect_width, client_rect_height);
     renderingService->updateImgui();
 
-    for (auto *srv : rendSrv)
-      srv->renderUI();
-
-    imgui_perform_registered(/*with_menu_bar = */ false);
+    editor_core_render_dag_imgui_windows();
     imgui_endframe();
     imgui_render();
   }
@@ -493,7 +538,10 @@ public:
 
   void shutdown()
   {
-    destroy_world_renderer();
+    dafx_helper_globals::ctx = {};
+    dafx_helper_globals::cull_id = {};
+    dafx_helper_globals::cull_fom_id = {};
+    dng_based_render::term_dng_framework();
     shaders::overrides::destroy(wireframeState);
     imgui_shutdown();
   }
@@ -524,6 +572,7 @@ class DngBasedRenderService : public IDynRenderService
 {
 public:
   DngBasedRenderScene *dynScene;
+  DataBlock deferredBlk;
   Tab<const char *> dbgShowTypeNm;
   Tab<int> dbgShowTypeVal;
   int dbgShowType;
@@ -553,12 +602,35 @@ public:
       dng_based_render::dng_game_params_fname = String::mk_str_cat(app_dir, params);
     app_ecs_blk = *appblk.getBlockByNameEx("ecs");
 
+    String snapshot_dir;
+    if (tools3d::get_snapshot_path(appblk, app_dir, snapshot_dir))
+      if (alefind_t fs; dd_find_first(snapshot_dir + "*.das", 0, &fs))
+        dd_set_named_mount_path("toolScripts", snapshot_dir);
+
     ec_camera_elem::freeCameraElem.demandInit();
     ec_camera_elem::maxCameraElem.demandInit();
     ec_camera_elem::fpsCameraElem.demandInit();
     ec_camera_elem::tpsCameraElem.demandInit();
     ec_camera_elem::carCameraElem.demandInit();
     ViewportWindow::render_viewport_frame = &render_viewport_frame;
+    ViewportWindow::needsOrthoCameraAdjustment = true;
+
+    if (const DataBlock *b = appblk.getBlockByName("dynamicDeferred"))
+    {
+      deferredBlk = *b;
+      if (const DataBlock *b = deferredBlk.getBlockByName("dbgShow"))
+        for (int i = 0; i < b->paramCount(); i++)
+          if (b->getParamType(i) == b->TYPE_INT)
+          {
+            if (b->getInt(i) != -1)
+            {
+              dbgShowTypeNm.push_back(b->getParamName(i));
+              dbgShowTypeVal.push_back(b->getInt(i));
+            }
+            else
+              dbgShowTypeNm[0] = b->getParamName(i);
+          }
+    }
   }
 
   void init() override
@@ -578,7 +650,18 @@ public:
 
   void enableRender(bool enable) override { render_enabled = enable; }
 
-  void selectAsGameScene() override { dagor_select_game_scene(dynScene); }
+  void selectAsGameScene() override
+  {
+    ::dagor_reset_spent_work_time();
+    while (!dng_based_render::scene_ready_for_render())
+    {
+      dagor_work_cycle();
+      dng_based_render::act_scene();
+      sleep_msec(10);
+    }
+
+    dagor_select_game_scene(dynScene);
+  }
 
   void setEnvironmentSnapshot(const char *blk_fn, bool render_cubetex_from_snapshot) override {}
   bool hasEnvironmentSnapshot() override { return false; }
@@ -619,10 +702,10 @@ public:
       d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(10, 10, 64, 0), 0, 0);
     }
   }
-  void renderScreenshot() override
+  void renderScreenshot(const Driver3dPerspective &persp, bool is_ortho, bool force_disable_wireframe = false) override
   {
     if (dynScene)
-      dynScene->renderScreenShot();
+      dynScene->renderScreenShot(persp, is_ortho, force_disable_wireframe);
   }
 
   dag::ConstSpan<int> getSupportedRenderTypes() const override { return {}; }
@@ -637,6 +720,19 @@ public:
       return false;
     dbgShowType = t;
     dynScene->dbgShowType = dbgShowTypeVal[t];
+
+    static const eastl::hash_map<eastl::string_view, eastl::string_view> modeMap = {{"diffuse", "diffuseColor"},
+      {"specular", "specularColor"}, {"normal", "normal"}, {"smoothness", "smoothness"}, {"base_color", "baseColor"},
+      {"metallness", "metalness"}, {"material", "materialType"}, {"ssao", "ssao"}, {"ao", "ao"}, {"albedo_ao", "albedo_ao"},
+      {"final_ao", "finalAO"}, {"preshadow", "preshadow"}, {"translucency", "translucency"}, {"depth", "depth"}, {"ssr", "ssr"},
+      {"ssr_strength", "ssrStrength"}};
+
+    String cmd("render.show_gbuffer");
+    if (dbgShowTypeVal[t] >= 0)
+      if (auto it = modeMap.find(dbgShowTypeNm[t]); it != modeMap.end())
+        cmd.aprintf(0, " %s", it->second);
+    console::command(cmd);
+
     return true;
   }
 
@@ -665,46 +761,102 @@ public:
   const ManagedTex &getDownsampledFarDepth() override { return nullTex; }
   void toggleVrMode() override {}
 
+  static void render_dynmodel_state(dynmodel_renderer::DynModelRenderingState &state, dynmodel_renderer::BufferType buf_type,
+    const TMatrix &vtm, int block)
+  {
+    state.prepareForRender();
+    const dynmodel_renderer::DynamicBufferHolder *buffer = state.requestBuffer(buf_type);
+    if (!buffer)
+      return;
+
+    d3d::settm(TM_VIEW, vtm);
+    state.setVars(buffer->buffer.getBufId());
+    FRAME_LAYER_GUARD(globalFrameBlockId);
+    SCENE_LAYER_GUARD(block);
+    state.render(buffer->curOffset);
+  }
+
   void renderOneDynModelInstance(DynamicRenderableSceneInstance *sceneInstance, Stage stage, int *optional_inst_seed,
     bool raw_render) override
   {
-    if (!raw_render)
+    if (raw_render)
     {
-      carray<Point4, 5> params;
-      mem_set_0(params);
-      if (optional_inst_seed)
-        memcpy(&params[4].x, optional_inst_seed, sizeof(*optional_inst_seed));
-
-      dynmodel_renderer::DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
-      int sm0 = ShaderMesh::STG_opaque, sm1 = ShaderMesh::STG_imm_decal;
-      if (stage == Stage::STG_RENDER_DYNAMIC_TRANS)
-        sm0 = sm1 = ShaderMesh::STG_trans;
+      if (stage == Stage::STG_RENDER_DYNAMIC_OPAQUE || stage == Stage::STG_RENDER_SHADOWS || stage == Stage::STG_RENDER_TO_CLIPMAP)
+        sceneInstance->render();
+      else if (stage == Stage::STG_RENDER_DYNAMIC_TRANS)
+        sceneInstance->renderTrans();
       else if (stage == Stage::STG_RENDER_DYNAMIC_DISTORTION)
-        sm0 = sm1 = ShaderMesh::STG_distortion;
-
-      // TODO: use NULL for fallback instead
-      auto additionalData = animchar_additional_data::prepare_fixed_space<AAD_RAW_INITIAL_TM__HASHVAL>(
-        make_span_const(params.data(), optional_inst_seed ? params.size() : 1));
-
-      state.process_animchar(sm0, sm1, sceneInstance, additionalData, true, nullptr, nullptr, 0, 0, false,
-        dynmodel_renderer::RenderPriority::DEFAULT, nullptr, dng_based_render::currentTexCtx);
-
-      state.prepareForRender();
-      if (const auto *buffer = state.requestBuffer(dynmodel_renderer::BufferType::OTHER))
-      {
-        state.setVars(buffer->buffer.getBufId());
-        SCENE_LAYER_GUARD(dynamicSceneBlockId);
-        state.render(buffer->curOffset);
-        return;
-      }
+        sceneInstance->renderDistortion();
+      return;
     }
 
-    if (stage == Stage::STG_RENDER_DYNAMIC_OPAQUE || stage == Stage::STG_RENDER_SHADOWS || stage == Stage::STG_RENDER_TO_CLIPMAP)
-      sceneInstance->render();
-    else if (stage == Stage::STG_RENDER_DYNAMIC_TRANS)
-      sceneInstance->renderTrans();
-    else if (stage == Stage::STG_RENDER_DYNAMIC_DISTORTION)
-      sceneInstance->renderDistortion();
+    carray<Point4, 5> params;
+    mem_set_0(params);
+    if (optional_inst_seed)
+      memcpy(&params[4].x, optional_inst_seed, sizeof(*optional_inst_seed));
+
+    dynmodel_renderer::DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
+    int sm0 = ShaderMesh::STG_opaque, sm1 = ShaderMesh::STG_imm_decal;
+    dynmodel_renderer::NeedPreviousMatrices needPrevMatrices = dynmodel_renderer::NeedPreviousMatrices::No;
+    uint32_t renderMask = UpdateStageInfoRender::RENDER_MAIN;
+    dynmodel_renderer::BufferType bufType = dynmodel_renderer::BufferType::OTHER;
+    int blockId = dynamicSceneBlockId;
+
+    switch (stage)
+    {
+      case Stage::STG_RENDER_DYNAMIC_OPAQUE:
+        needPrevMatrices = dynmodel_renderer::NeedPreviousMatrices::Yes;
+        bufType = dynmodel_renderer::BufferType::MAIN;
+        break;
+      case Stage::STG_RENDER_DYNAMIC_TRANS:
+        sm0 = sm1 = ShaderMesh::STG_trans;
+        bufType = dynmodel_renderer::BufferType::TRANSPARENT_MAIN;
+        blockId = dynamicSceneTransBlockId;
+        break;
+      case Stage::STG_RENDER_DYNAMIC_DISTORTION:
+        sm0 = sm1 = ShaderMesh::STG_distortion;
+        bufType = dynmodel_renderer::BufferType::MAIN;
+        break;
+      case Stage::STG_RENDER_SHADOWS:
+        renderMask = UpdateStageInfoRender::RENDER_SHADOW;
+        bufType = dynmodel_renderer::BufferType::DYNAMIC_SHADOW;
+        blockId = dynamicDepthSceneBlockId;
+        break;
+      case Stage::STG_RENDER_DYNAMIC_DECALS: sm0 = sm1 = ShaderMesh::STG_decal; break;
+    }
+
+    for (uint32_t i = 0; i < sceneInstance->getNodeCount(); ++i)
+    {
+      TMatrix wtm = sceneInstance->getNodeWtm(i);
+      wtm.setcol(3, wtm.getcol(3) - ::grs_cur_view.pos);
+      sceneInstance->setNodeWtm(i, wtm);
+    }
+    FINALLY([&] {
+      for (uint32_t i = 0; i < sceneInstance->getNodeCount(); ++i)
+      {
+        TMatrix wtm = sceneInstance->getNodeWtm(i);
+        wtm.setcol(3, wtm.getcol(3) + ::grs_cur_view.pos);
+        sceneInstance->setNodeWtm(i, wtm);
+      }
+    });
+
+    // TODO: use NULL for fallback instead
+    auto additionalData = animchar_additional_data::prepare_fixed_space<AAD_RAW_INITIAL_TM__HASHVAL>(
+      make_span_const(params.data(), optional_inst_seed ? params.size() : 1));
+
+    state.process_animchar(sm0, sm1, sceneInstance, additionalData, needPrevMatrices, {},
+      dynmodel_renderer::PathFilterView::NULL_FILTER, renderMask, dynmodel_renderer::RenderPriority::DEFAULT, nullptr,
+      dng_based_render::currentTexCtx);
+
+    if (state.empty())
+      return;
+
+    TMatrix oldViewTm;
+    d3d::gettm(TM_VIEW, oldViewTm);
+    TMatrix vtm = oldViewTm;
+    vtm.setcol(3, 0, 0, 0);
+    render_dynmodel_state(state, bufType, vtm, blockId);
+    d3d::settm(TM_VIEW, oldViewTm);
   }
 
   static void render_viewport_frame(ViewportWindow *vpw);
@@ -718,13 +870,14 @@ void DngBasedRenderService::render_viewport_frame(ViewportWindow *vpw) { srv.ren
 
 // internals of DNG to be used
 extern void app_start(bool register_dagor_scene);
+extern void app_close();
 extern void init_device_reset();
 
 namespace game_scene
 {
-extern double total_time;
 extern bool parallel_logic_mode;
-extern eastl::tuple<float, float, float> updateTime(); // [rtDt, dt, curTime]
+extern eastl::tuple<float, float, double> updateTime(); // [rtDt, dt, curTime]
+extern void on_scene_deselected();
 } // namespace game_scene
 
 
@@ -733,17 +886,20 @@ static void dng_update(float dt, float real_dt, float cur_time)
 {
   using namespace game_scene;
   TIME_PROFILE(dng_update);
-  total_time += dt;
 
   dump_periodic_gpu_info();
 
+  acesfx::wait_fx_managers_update_and_allow_accum_cmds();
   g_entity_mgr->tick();
   riexsync::update();
 
   if (is_level_loaded() || dng_based_render::empty_world_created)
   {
+    phys_fetch_sim_res(true);
     g_entity_mgr->update(ecs::UpdateStageInfoAct(dt, cur_time));
-    ridestr::update(dt, calc_active_camera_globtm());
+    g_entity_mgr->broadcastEventImmediate(ParallelUpdateFrameDelayed(dt, cur_time));
+    // TODO: problem with calling BulletPhysWorld::fetchSimRes from invalid thread
+    // ridestr::update(dt, cur_time, calc_active_camera_globtm());
   }
   g_entity_mgr->broadcastEventImmediate(UpdateStageGameLogic(dt, cur_time));
   if (get_world_renderer() && !sceneload::is_load_in_progress())
@@ -768,7 +924,16 @@ static void dng_create_world()
   g_entity_mgr->broadcastEventImmediate(EventDoFinishLocationDataLoad());
   wr->onSceneLoaded(nullptr);
 
-  load_daskies(DataBlock::emptyBlock, 6.f);
+  float locTime = ISkiesService::DEFAULT_LOCALTIME;
+  const DataBlock *weatherDesc = &DataBlock::emptyBlock;
+  if (auto skiesSrv = EDITORCORE->queryEditorInterface<ISkiesService>())
+  {
+    locTime = skiesSrv->getAppliedWeatherDesc().getReal("locTime", locTime);
+    weatherDesc = &skiesSrv->getAppliedWeatherDesc();
+  }
+  SkiesPanel skiesData;
+  skiesData.time = locTime;
+  load_daskies(*weatherDesc, skiesData);
   g_entity_mgr->broadcastEventImmediate(EventSkiesLoaded{});
 }
 
@@ -780,7 +945,7 @@ static void dng_based_render::act_scene()
     debug("[splash] auto stop, is_load_in_progress()=%d", sceneload::is_load_in_progress());
     stop_animated_splash_screen_in_thread();
   }
-  if (sceneload::is_scene_switch_in_progress())
+  if (sceneload::is_scene_switch_in_progress() || !acesfx::get_dafx_context())
     return;
   if (!get_world_renderer() && !is_level_loaded())
     dng_create_world();
@@ -795,7 +960,9 @@ static void dng_based_render::act_scene()
 
   gamescripts::collect_das_garbage();
 
-  float rtDt, dt, curTime;
+  set_timespeed(dagor_game_time_scale);
+  float rtDt, dt;
+  double curTime;
   eastl::tie(rtDt, dt, curTime) = updateTime();
 
   {
@@ -814,10 +981,9 @@ static void dng_based_render::act_scene()
     TIME_PROFILE(visuallog_act);
     visuallog::act(rtDt);
   }
-  acesfx::wait_fx_managers_update_job_done();
 }
 
-static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_gametime_sec, float znear, float zfar, float fov)
+static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_gametime_sec)
 {
   if (auto wr = get_world_renderer(); wr && pendingRes.x)
   {
@@ -827,6 +993,7 @@ static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_g
   }
 
   last_dt_realtime_usec = dt_realtime_usec;
+  last_gametime_sec += dt_gametime_sec;
 
   // this has to happen before setting constrained mt mode, because it calls tick between ECS entity deletion and creation
   update_delayed_weather_selection();
@@ -836,21 +1003,8 @@ static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_g
 
   before_render_daskies();
 
-  float rtDt = ::dagor_game_act_time;
-  float scaledDt = rtDt; // * time_speed;
-
   if (auto wr = get_world_renderer(); wr && (is_level_loaded() || empty_world_created))
   {
-    int w = 4, h = 4;
-    d3d::get_render_target_size(w, h, wr->getFinalTargetTex().getTex2D());
-    Driver3dPerspective curPersp = calc_camera_perspective(fov, EFM_HOR_PLUS, znear, zfar, w, h);
-    TMatrix itm = ::grs_cur_view.itm;
-    itm.setcol(0, normalize(itm.getcol(0)));
-    itm.setcol(1, normalize(itm.getcol(1)));
-    itm.setcol(2, normalize(itm.getcol(2)));
-    dng_based_render::currentTexCtx = TexStreamingContext(curPersp, w);
-    wr->beforeRender(scaledDt, rtDt, dt_realtime_usec * 1e-6, dt_gametime_sec, itm, DPoint3(::grs_cur_view.pos), curPersp);
-
     acesfx::wait_fx_managers_update_and_allow_accum_cmds();
     FxRenderTargetOverride fx_q = FX_RT_OVERRIDE_DEFAULT;
     if (dafx_helper_globals::particles_resolution_preview == 0)
@@ -858,13 +1012,39 @@ static void dng_based_render::before_draw_scene(int dt_realtime_usec, float dt_g
     else if (dafx_helper_globals::particles_resolution_preview == 2)
       fx_q = FX_RT_OVERRIDE_HIGHRES;
     if (acesfx::get_rt_override() != fx_q)
-      acesfx::set_rt_override(fx_q);
+    {
+      DataBlock blk;
+      blk.addBlock("graphics")->setStr("fxTarget", fx_q == FX_RT_OVERRIDE_HIGHRES ? "highres" : "lowres");
+      dgs_apply_config_blk(blk, false, false);
+      FastNameMap changed;
+      changed.addNameId("graphics/fxTarget");
+      wr->onSettingsChanged(changed, false);
+    }
     // set actual dafx context to be used in tools code
     dafx_helper_globals::ctx = acesfx::get_dafx_context();
     dafx_helper_globals::cull_id = acesfx::get_cull_id();
     dafx_helper_globals::cull_fom_id = acesfx::get_cull_fom_id();
+
+    phys_fetch_sim_res(true);
   }
 }
+
+static void dng_based_render::before_render(const Driver3dPerspective &persp, const TMatrix4D &proj_tm, int viewport_width)
+{
+  float rtDt = ::dagor_game_act_time;
+  float scaledDt = rtDt; // * time_speed;
+  if (auto wr = get_world_renderer(); wr && (is_level_loaded() || empty_world_created))
+  {
+    TMatrix itm = ::grs_cur_view.itm;
+    itm.setcol(0, normalize(itm.getcol(0)));
+    itm.setcol(1, normalize(itm.getcol(1)));
+    itm.setcol(2, normalize(itm.getcol(2)));
+    dng_based_render::currentTexCtx = TexStreamingContext(persp, viewport_width);
+    wr->beforeRender(scaledDt, rtDt, last_dt_realtime_usec * 1e-6, last_gametime_sec, itm, DPoint3(::grs_cur_view.pos), persp,
+      proj_tm);
+  }
+}
+
 
 static const ManagedTex &dng_based_render::get_final_target()
 {
@@ -873,9 +1053,12 @@ static const ManagedTex &dng_based_render::get_final_target()
   return nullTarget;
 }
 
+extern void reset_async_game_tasks_flags();
+
 static bool dng_based_render::scene_ready_for_render() { return get_world_renderer() && (is_level_loaded() || empty_world_created); }
 static void dng_based_render::draw_scene()
 {
+  reset_async_game_tasks_flags();
   if (auto wr = get_world_renderer(); wr && (is_level_loaded() || empty_world_created))
   {
     wr->updateFinalTargetFrame();
@@ -885,9 +1068,6 @@ static void dng_based_render::draw_scene()
     ShaderGlobal::enableAutoBlockChange(prevAutoBlockFlag);
   }
   d3d::set_render_target();
-
-  g_entity_mgr->setConstrainedMTMode(false);
-  G_ASSERT(!g_entity_mgr->isConstrainedMTMode());
 }
 
 static void dng_based_render::after_draw_scene()
@@ -906,9 +1086,27 @@ static void dng_based_render::init_dng_framework()
 
   g_entity_mgr.demandInit(); // init it early to be able to use broadcast events for init
   folders::initialize(gameproj::game_codename());
+
   initial_load_settings();
   if (auto *config = const_cast<DataBlock *>(dgs_get_settings()))
   {
+    if (auto das_entry = config->getStr("game_das_script", nullptr))
+    {
+      String dasEntryFileName(dd_get_fname(das_entry));
+      String dasEntryName(0, "%%toolScripts/%s", dasEntryFileName.c_str());
+      simplify_fname(dasEntryName);
+      config->setStr("game_das_script", dasEntryName);
+    }
+    if (auto das_entry = config->getStr("game_das_script_init", nullptr))
+    {
+      String dasEntryFileName(dd_get_fname(das_entry));
+      String dasEntryName(0, "%%toolScripts/%s", dasEntryFileName.c_str());
+      simplify_fname(dasEntryName);
+      if (dd_file_exists(dasEntryName))
+        config->setStr("game_das_script_init", dasEntryName);
+    }
+    config->setBool("limitFps", config->getBool("limitFps", true));
+    config->setInt("actRate", dagor_get_game_act_rate());
     config->setStr("scene", dng_scene_fname);
     config->setStr("entitiesPath", dng_template_fname);
     if (app_ecs_blk.paramCount() || app_ecs_blk.blockCount())
@@ -917,6 +1115,23 @@ static void dng_based_render::init_dng_framework()
     config->setBool("skipSplashScreenAnimationInThread", true);
     config->addStr("esTag", "inside_tools");
     config->removeBlock("shadersWarmup");
+    if (auto *graphics = config->getBlockByName("graphics"))
+    {
+      graphics->setStr("fxTarget", "highres");
+      graphics->setBool("hmapPatchesEnabled", false); // TODO: hmap patches conflics with hmapSrv
+      graphics->setBool("shouldRenderWaterRipples", false);
+      const auto giAlgorithm = graphics->getStr("giAlgorithm", NULL);
+      if (!giAlgorithm || String(giAlgorithm) == "high")
+        graphics->setStr("giAlgorithm", "medium"); // TODO: high gi quality has broken screen probes
+    }
+    // TODO: debug visualization flickers in TSR
+    if (auto *video = config->getBlockByName("video"))
+    {
+      const auto aaMode = render::antialiasing::get_method_from_name(video->getStr("antialiasing_mode", "off"));
+      if (aaMode == render::antialiasing::AntialiasingMethod::TSR)
+        video->setStr("antialiasing_mode", "high_fxaa");
+      video->setBool("overrideAAforAutoResolution", false); // to prevent reloading settings.blk from disk
+    }
   }
 
   hdrrender::init_globals(*::dgs_get_settings()->getBlockByNameEx("video"));
@@ -940,21 +1155,21 @@ static void dng_based_render::init_dng_framework()
     riGenExtraConfig.reset();
   rendinst::registerRIGenExtraConfig(&riGenExtraConfig);
 
+  d3d_apply_gpu_settings(*::dgs_get_settings());
   app_start(false);
 
-  ::dagor_reset_spent_work_time();
-  while (!dng_based_render::scene_ready_for_render())
-  {
-    dagor_work_cycle();
-    dng_based_render::act_scene();
-    sleep_msec(10);
-  }
-
-  if (auto *params = const_cast<DataBlock *>(dgs_get_game_params()); params && !dng_game_params_fname.empty())
-  {
-    DataBlock gameParamsCopy(dng_game_params_fname);
-    merge_data_block(*params, gameParamsCopy);
-  }
+  init_fx();
+  dafx_helper_globals::ctx = acesfx::get_dafx_context();
+  dafx_helper_globals::cull_id = acesfx::get_cull_id();
+  dafx_helper_globals::cull_fom_id = acesfx::get_cull_fom_id();
+  G_ASSERT(dafx_helper_globals::ctx);
+}
+static void dng_based_render::term_dng_framework()
+{
+  sceneload::unload_current_game();
+  game_scene::on_scene_deselected();
+  destroy_world_renderer();
+  app_close();
 }
 
 namespace webui

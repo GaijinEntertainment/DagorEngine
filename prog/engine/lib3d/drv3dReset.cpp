@@ -5,7 +5,6 @@
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_renderTarget.h>
-#include <3d/dag_gpuConfig.h>
 #include <startup/dag_restart.h>
 #include <debug/dag_debug.h>
 #include "texMgrData.h"
@@ -20,14 +19,24 @@ IDrv3DDeviceLostCB *ext_drv3d_device_lost_handler = NULL;
 
 static bool window_resizing_by_mouse = false;
 static bool window_resize_handling_in_progress = false;
+static bool window_minimized = false;
 static int window_width = 0, window_height = 0;
 
 bool is_window_resizing_by_mouse() { return window_resizing_by_mouse || window_resize_handling_in_progress; }
+bool is_window_minimized() { return window_minimized; }
 void set_window_resizing_by_mouse(bool value) { window_resizing_by_mouse = value; }
 void notify_window_resized(int w, int h)
 {
+  window_minimized = w == 0 || h == 0;
+  if (window_minimized)
+    return;
   window_width = w;
   window_height = h;
+}
+void get_unminimized_window_resolution(int &w, int &h)
+{
+  w = window_width;
+  h = window_height;
 }
 
 void
@@ -98,7 +107,7 @@ void fullscreen_state_restored()
 
 void change_driver_reset_request(bool &out_apply_after_reset_device, bool mode_reset)
 {
-#if _TARGET_PC_WIN | _TARGET_ANDROID
+#if _TARGET_PC_WIN | _TARGET_PC_LINUX | _TARGET_ANDROID
   out_apply_after_reset_device = true;
   if (mode_reset)
     dagor_d3d_force_driver_mode_reset = true;
@@ -119,6 +128,7 @@ static int restoring_3d_device = 0;
 bool is_restoring_3d_device() { return interlocked_acquire_load(restoring_3d_device) != 0; }
 bool check_and_restore_3d_device()
 {
+  TIME_PROFILE(check_and_restore_3d_device)
   static int reset_failed_count = 0;
   static bool d3dd_requires_reset = false;
 
@@ -180,6 +190,8 @@ bool check_and_restore_3d_device()
 
   if (d3d::device_lost(NULL))
     debug("Device lost again during afterReset"); // It is OK for device to be lost again at this point.
+
+  DEBUG_CTX("==== 3d device reset OK ====");
 
   reset_failed_count = 0;
   window_resize_handling_in_progress = false;

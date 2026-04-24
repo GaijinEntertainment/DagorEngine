@@ -3,6 +3,7 @@
 #include "genVisibility.h"
 #include <rendInst/visibility.h>
 #include <rendInst/gpuObjects.h>
+#include <rendInst/rendInstGenRtTools.h>
 
 #include "render/genRender.h"
 #include "riGen/genObjUtil.h"
@@ -64,26 +65,27 @@ void rendinst::setRIGenVisibilityAtestSkip(RiGenVisibility *visibility, bool ski
     skip_atest ? visibility->SKIP_ATEST : (skip_noatest ? visibility->SKIP_NO_ATEST : visibility->RENDER_ALL);
 }
 
-void rendinst::setRIGenVisibilityRendering(RiGenVisibility *visibility, VisibilityRenderingFlags v) { visibility[0].rendering = v; }
+void rendinst::setRIGenVisibilityRendering(RiGenVisibility *visibility, VisibilityRenderingFlags v)
+{
+  visibility[0].riex.rendering = v;
+}
 
-bool rendinst::prepareRIGenVisibility(const Frustum &frustum, const Point3 &vpos, RiGenVisibility *visibility, bool forShadow,
-  Occlusion *use_occlusion, bool for_visual_collision, const rendinst::VisibilityExternalFilter &external_filter)
+bool rendinst::prepareRIGenVisibility(RiGenVisibility *visibility, const Frustum &frustum, const PrepareRiGenVisibilityParams &params)
 {
   if (!RendInstGenData::renderResRequired || RendInstGenData::isLoading)
     return false;
   G_ASSERT(visibility);
   bool ret = false;
-  if (!external_filter)
+  if (!params.externalFilter)
   {
     FOR_EACH_RG_LAYER_DO (rgl)
-      if (rgl->prepareVisibility(frustum, vpos, visibility[_layer], forShadow, {}, use_occlusion, for_visual_collision))
+      if (rgl->prepareVisibility(visibility[_layer], frustum, params))
         ret = true;
   }
   else
   {
     FOR_EACH_RG_LAYER_DO (rgl)
-      if (rgl->prepareVisibility<true>(frustum, vpos, visibility[_layer], forShadow, {}, use_occlusion, for_visual_collision,
-            external_filter))
+      if (rgl->prepareVisibility<true>(visibility[_layer], frustum, params))
         ret = true;
   }
   return ret;
@@ -130,18 +132,16 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
 
   if (!visibility.vismask)
   {
-    filteredVis.resizeRanges(0, 0);
+    filteredVis.resizeRanges(0);
     filteredVis.startTreeInstances();
     filteredVis.closeTreeInstances();
     filteredVis.vismask = 0;
     return;
   }
 
-  filteredVis.resizeRanges(rtData->riRes.size(), 8);
+  filteredVis.resizeRanges(rtData->riRes.size());
   filteredVis.forcedLod = visibility.forcedLod;
-  filteredVis.riex = visibility.riex;
   filteredVis.riDistMul = visibility.riDistMul;
-  filteredVis.stride = visibility.stride;
   filteredVis.vismask = 0;
 
   Tab<uint32_t> passedInstanceIndices(tmpmem);
@@ -157,6 +157,7 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
     RenderRanges &rr = filteredVis.renderRanges[ri_idx];
     rr.vismask = 0;
 
+    filteredVis.stride = stride;
     filteredVis.startRenderRange(ri_idx);
     for (int lodI = 0; lodI < alphaFarLodNo; ++lodI)
     {
@@ -193,7 +194,8 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
             TMatrix tm;
             v_mat_43cu_from_mat44(tm.array, tm44);
 
-            if (id_filter(ri_idx, tm))
+            int pregenId = rendinst::get_pregen_id_from_layer_idx_and_ri_idx(rtData->layerIdx, ri_idx);
+            if (id_filter(pregenId, tm))
               passedInstanceIndices.push_back(instanceOfs);
           }
         }
@@ -233,7 +235,35 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
     filteredVis.vismask |= rr.vismask;
   }
 
+  carray<int, RiGenVisibility::PER_INSTANCE_LODS> perInstanceData;
+  mem_set_ff(perInstanceData);
   filteredVis.startTreeInstances();
+  for (int lod = 0; lod < RiGenVisibility::PER_INSTANCE_LODS; ++lod)
+  {
+    if (visibility.perInstanceVisibilityCells[lod].empty())
+      continue;
+
+    for (int cell = 0; cell < visibility.perInstanceVisibilityCells[lod].size() - 1; ++cell)
+    {
+      const IPoint2 &visCell = visibility.perInstanceVisibilityCells[lod][cell];
+      const int ri_idx = visCell.x;
+
+      if (!rtData->rtPoolData[ri_idx] || rtData->isHiddenId(ri_idx))
+        continue;
+
+      for (int inst = visCell.y; inst < visibility.perInstanceVisibilityCells[lod][cell + 1].y; ++inst)
+      {
+        const vec4f &v_pos = visibility.instanceData[lod][inst];
+        const Point3 pos(v_extract_x(v_pos), v_extract_y(v_pos), v_extract_z(v_pos));
+
+        TMatrix tm;
+        auto result = rendinst::get_rendinst_matrix_by_ri_idx(rtData->layerIdx, ri_idx, pos, tm);
+        int pregenId = rendinst::get_pregen_id_from_layer_idx_and_ri_idx(rtData->layerIdx, ri_idx);
+        if (result == rendinst::GetRendInstMatrixByRiIdxResult::Success && id_filter(pregenId, tm))
+          filteredVis.addTreeInstance(ri_idx, perInstanceData[lod], v_pos, lod);
+      }
+    }
+  }
   filteredVis.closeTreeInstances();
 
   // update vismask
@@ -250,11 +280,17 @@ void RendInstGenData::filterRIGenVisibilityById(const RiGenVisibility &visibilit
 }
 
 template <bool use_external_filter>
-bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &camera_pos, RiGenVisibility &visibility, bool forShadow,
-  rendinst::LayerFlags layer_flags, Occlusion *use_occlusion, bool for_visual_collision,
-  const rendinst::VisibilityExternalFilter &external_filter)
+bool RendInstGenData::prepareVisibility(RiGenVisibility &visibility, const Frustum &frustum,
+  const rendinst::PrepareRiGenVisibilityParams &__restrict params)
 {
   TIME_D3D_PROFILE(prepare_ri_visibility);
+  const rendinst::LayerFlags layer_flags = params.layerFlags;
+  const Point3 &camera_pos = params.viewPos;
+  Occlusion *use_occlusion = params.occlusion;
+  const rendinst::VisibilityExternalFilter &external_filter = params.externalFilter;
+  const bool forShadow = params.forShadow;
+  const bool for_visual_collision = params.forVisualCollision;
+
   if (rendinst::render::per_instance_visibility)
   {
     visibility.startTreeInstances();
@@ -270,24 +306,32 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
   Frustum curFrustum = frustum;
   if (!forShadow)
   {
-    float maxRIDist = rtData->get_trees_last_range(rtData->rendinstFarPlane);
+    float maxRIDist = rtData->get_trees_last_range(rtData->rendinstFarPlane) * visibility.riDistMul;
     shrink_frustum_zfar(curFrustum, curViewPos, v_splats(maxRIDist));
   }
 
+  const int forcedLod = rendinst::get_effective_forced_lod(visibility.forcedLod);
   float forcedLodDist = 0.f;
-  float forcedLodDistSq = 0.f;
-  Point3_vec4 viewPos = camera_pos;
-  if (visibility.forcedLod >= 0)
+  Point3_vec4 viewPos;
+  bbox3f fbox;
+  if (forcedLod >= 0)
   {
-    bbox3f box;
-    frustum.calcFrustumBBox(box);
-    curViewPos = v_bbox3_center(box);
+    frustum.calcFrustumBBox(fbox);
+    curViewPos = v_bbox3_center(fbox);
     v_st(&viewPos.x, curViewPos);
-
-    float rad = v_extract_x(v_bbox3_outer_rad(box));
-    forcedLodDist = rad;
-    forcedLodDistSq = forcedLodDist * forcedLodDist;
+    forcedLodDist = v_extract_x(v_bbox3_outer_rad(fbox));
   }
+  else
+  {
+    viewPos = camera_pos;
+#if DAGOR_DBGLEVEL > 0
+    v_bbox3_init_empty(fbox); // For assertion below
+#endif
+  }
+#define P3V(p) v_extract_x(p), v_extract_y(p), v_extract_z(p)
+  G_ASSERTF(!check_nan(viewPos), "Nans in viewPos=(%g,%g,%g), camPos=(%g,%g,%g) forcedLod=%d/%d fbox=(%g,%g,%g)(%g,%g,%g)",
+    P3D(viewPos), P3D(camera_pos), forcedLod, visibility.forcedLod, P3V(fbox.bmin), P3V(fbox.bmax));
+#undef P3V
   bbox3f worldBBox;
   float grid2worldcellSz = grid2world * cellSz;
 
@@ -306,7 +350,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
   v_sti(regions, regionI);
   float grid2worldcellSzDiag = grid2worldcellSz * 1.4142f;
   visibility.subCells.clear();
-  visibility.resizeRanges(rtData->riRes.size(), forShadow ? 4 : 8);
+  visibility.resizeRanges(rtData->riRes.size());
 
   ScopedLockRead lock(rtData->riRwCs);
   rendinst::VisibleCells<RendInstGenData::MAX_VISIBLE_CELLS, RendInstGenData::SUBCELL_DIV> visData;
@@ -330,7 +374,11 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
     const auto calcRiCellVisibility = [&](int cell_idx, int cell_x, int cell_z) {
       const auto cellRtData = cells[cell_idx].isReady();
       if (cellRtData)
+      {
+        if (params.tileCullBox && !v_bbox3_test_box_intersect(cellRtData->bbox[0], *params.tileCullBox))
+          return;
         visData.calcCellVisibility(cell_x, cell_z, curViewPos, curFrustum, cellRtData->bbox.data(), use_occlusion);
+      }
     };
 
     int maxRadius =
@@ -514,7 +562,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
         continue;
 
       float minDist = visData.cells[vi].distance;
-      float maxDist = visibility.forcedLod < 0 ? farLodEndRange : forcedLodDist;
+      float maxDist = forcedLod < 0 ? farLodEndRange : forcedLodDist;
       if (minDist >= maxDist)
         continue;
       int startVbOfs = crt.getCellSlice(ri_idx, 0).ofs;
@@ -523,14 +571,14 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
       mem_set_0(perInstanceDistanceCnt);
       if (auto layerForcedLod = rendinst::get_forced_lod(layer_flags);
           (!farLodNo && forShadow) || (minDist > farLodStartRangeCellDist && (minDist > 0.f || minDist <= alphaBlendOnCellRadius)) ||
-          layerForcedLod >= 0 || visibility.forcedLod >= 0)
+          layerForcedLod >= 0 || forcedLod >= 0)
       {
         // add all ranges to far lod
 
         int lodI;
-        if (visibility.forcedLod >= 0)
+        if (forcedLod >= 0)
         {
-          lodI = min(visibility.forcedLod, farLodNo);
+          lodI = min(forcedLod, farLodNo);
         }
         else if (layerForcedLod >= 0)
         {
@@ -592,7 +640,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
             const auto bboxIdx = cri + visData.SUBCELL_BBOX_OFFSET;
             float subCellDistSq = v_extract_x(v_distance_sq_to_bbox_x(crt.bbox[bboxIdx].bmin, crt.bbox[bboxIdx].bmax, curViewPos));
 
-            float maxDistSq = visibility.forcedLod < 0 ? farLodEndRangeSq : forcedLodDistSq;
+            float maxDistSq = farLodEndRangeSq;
             if (subCellDistSq >= maxDistSq)
               continue; // too far away
 
@@ -772,7 +820,7 @@ bool RendInstGenData::prepareVisibility(const Frustum &frustum, const Point3 &ca
 }
 
 // Explicit instantiation of all specialization, cuz we use them in other translation units.
-template bool RendInstGenData::prepareVisibility<true>(const Frustum &, const Point3 &, RiGenVisibility &, bool, rendinst::LayerFlags,
-  Occlusion *, bool, const rendinst::VisibilityExternalFilter &);
-template bool RendInstGenData::prepareVisibility<false>(const Frustum &, const Point3 &, RiGenVisibility &, bool, rendinst::LayerFlags,
-  Occlusion *, bool, const rendinst::VisibilityExternalFilter &);
+template bool RendInstGenData::prepareVisibility<true>(RiGenVisibility &, const Frustum &,
+  const rendinst::PrepareRiGenVisibilityParams &);
+template bool RendInstGenData::prepareVisibility<false>(RiGenVisibility &, const Frustum &,
+  const rendinst::PrepareRiGenVisibilityParams &);

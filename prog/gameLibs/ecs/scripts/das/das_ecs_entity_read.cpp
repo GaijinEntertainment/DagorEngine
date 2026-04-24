@@ -22,24 +22,8 @@ void ECS::addEntityRead(das::ModuleLibrary &lib)
   auto hasExt = ADD_EXTERN(has, das::SideEffects::accessExternal);
   hasExt->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
 
-  // get
-  //  da s::addExtern<DAS_BIND_FUN(entityGetHint_##type)>(*this, lib, "getValue_" #type,\
-  //   das::SideEffects::accessExternal, "bind_dascript::entityGetHint_" #type);\
-  // auto entityGetExt##type = das::addExtern<DAS_BIND_FUN(entityGet_##type)>(*this, lib, "getValue_" #type,\
-  //   das::SideEffects::accessExternal, "bind_dascript::entityGet_" #type);\
-  // entityGetExt##type->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast
-  //  call*/true>>()));
-#define TYPE(type)                                                                                                             \
-  auto entityGetNullable##type = das::addExtern<DAS_BIND_FUN(entityGetNullableHint_##type)>(*this, lib, "get_" #type,          \
-    das::SideEffects::accessExternal, "bind_dascript::entityGetNullableHint_" #type);                                          \
-  entityGetNullable##type->annotations.push_back(annotation_declaration(das::make_smart<EcsGetOrFunctionAnnotation<1, 3>>())); \
-  auto entityGetNullableExt##type = das::addExtern<DAS_BIND_FUN(entityGetNullable_##type)>(*this, lib, "get_" #type,           \
-    das::SideEffects::accessExternal, "bind_dascript::entityGetNullable_" #type);                                              \
-  entityGetNullableExt##type->annotations.push_back(                                                                           \
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
-  ECS_BASE_TYPE_LIST
-  ECS_LIST_TYPE_LIST
-#undef TYPE
+  addEntityReadBase(lib);
+  addEntityReadList(lib);
 
   auto entityGetStringHintExt = das::addExtern<DAS_BIND_FUN(entityGetStringHint)>(*this, lib, "get_string",
     das::SideEffects::accessExternal, "bind_dascript::entityGetStringHint");

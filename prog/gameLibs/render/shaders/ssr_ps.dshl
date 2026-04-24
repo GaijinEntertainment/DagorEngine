@@ -1,4 +1,5 @@
 include "ssr_base.dshl"
+include "dynamic_resolution.dshl"
 
 shader ssr
 {
@@ -12,6 +13,7 @@ shader ssr
   SSR_CALCULATE(ps)
   POSTFX_VS(0)
   SSR_GET_TEMPORAL_REPROJECTION_DUO(ps)
+  INIT_DYNAMIC_RESOLUTION(ps)
 
   hlsl(ps) {
     float4 ssr_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
@@ -72,14 +74,14 @@ shader ssr
       float3 oldExactUVZ = float3(oldExactUV, clamp(linearize_z(prevScreenExact.z, prev_zn_zfar.zw), prev_zn_zfar.x, prev_zn_zfar.y));
       float currentPosToPrevW = oldExactUVZ.z;
 
-      float rayLength = length(cameraToPoint);
+      float rayLength = max(1e-4f, length(cameraToPoint));
       float4 prevReflClip = mul(float4(prevViewVec*(reflectionDistance + rayLength)/rayLength, 1), prev_globtm_no_ofs_psf);
       float3 prevReflScreen = prevReflClip.w > 1e-6 ? prevReflClip.xyz/prevReflClip.w : float3(2,2,0);
       float2 prevUV = prevReflScreen.xy*float2(0.5,-0.5) + float2(0.5,0.5);
       float3 prevUVZ = float3(prevUV, clamp(linearize_z(prevReflScreen.z, prev_zn_zfar.zw), prev_zn_zfar.x, prev_zn_zfar.y));
 
       #if SSR_MOTIONREPROJ == 1
-        motion_type surface_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(curViewTc,0,0)).motion_attr;
+        motion_type surface_motion = tex2Dlod(MOTION_VECTORS_TEXTURE, float4(curViewTc * current_dynamic_resolution_scale,0,0)).motion_attr;
         #ifdef MOTION_TO_PREV_JITTERED_UV_OFS
           surface_motion.xy += MOTION_TO_PREV_JITTERED_UV_OFS;
         #endif
@@ -116,7 +118,7 @@ shader ssr
           weightMul = lerp(1.0f, static_pixel_miss_reprojection_weight.x + static_pixel_miss_reprojection_weight.y * ssrResultPrecision, saturate(scaled_prev_camera_translation/w));
         }
 
-        historyWeight = get_ssr_disocclusion_weight_sample(normal, linear_roughness, useUV, currentPosToPrevW, validateNormal, prevTarget);
+        historyWeight = get_ssr_disocclusion_weight_sample(normal, linear_roughness, useUV * prev_dynamic_resolution_scale, currentPosToPrevW, validateNormal, prevTarget);
       }
 
       //rougher surfaces should be more relaxed, to fight noise

@@ -16,7 +16,10 @@ shader rd_calc_irradiance_cache_new_cs, rd_calc_irradiance_cache_temporal_cs{
   (cs)
   {
     radiance_cache_irradiance_frame@i3 = radiance_cache_irradiance_frame;
-    radiance_cache_prev_irradiance@smp2d = radiance_cache_prev_irradiance;
+    radiance_cache_prev_irradiance@tex2d = radiance_cache_prev_irradiance;
+    radiance_cache_irradiance@uav : register(0) hlsl {
+      RWTexture2D<float3> radiance_cache_irradiance@uav;
+    }
   }
   if (shader == rd_calc_irradiance_cache_new_cs)
   {
@@ -34,7 +37,6 @@ shader rd_calc_irradiance_cache_new_cs, rd_calc_irradiance_cache_temporal_cs{
   }
   hlsl(cs) {
 
-    RWTexture2D<float3> radiance_cache_irradiance: register(u0);
     #include <octahedral_common.hlsl>
 
     groupshared float4 sharedRadiance[RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES];

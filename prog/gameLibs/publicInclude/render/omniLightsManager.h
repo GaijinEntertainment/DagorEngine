@@ -63,17 +63,17 @@ public:
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
     eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
     const StaticTab<uint16_t, MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(),
-    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE) const;
+    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE, float cutoff_dist_sq = 0.f) const;
 
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane, Occlusion *,
     bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, MAX_LIGHTS> &shadow,
     float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(),
-    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE) const;
+    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE, float cutoff_dist_sq = 0.f) const;
 
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_with_camera_inside, Tab<uint16_t> &lights_with_camera_outside,
     Occlusion *, bbox3f &inside_box, bbox3f &outside_box, const StaticTab<uint16_t, MAX_LIGHTS> &shadow,
     float markSmallLightsAsFarLimit = 0, vec3f cameraPos = v_zero(),
-    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE) const;
+    OmniLightMaskType require_any_mask = OmniLightMaskType::OMNI_LIGHT_MASK_NONE, float cutoff_dist_sq = 0.f) const;
 
   void drawDebugInfo();
   void renderDebugBboxes();
@@ -162,6 +162,7 @@ public:
     ret.boxR1 = l.boxR1;
     ret.boxR2 = l.boxR2;
     ret.posRelToOrigin_cullRadius = l.posRelToOrigin_cullRadius;
+    ret.shadowZnZf_pad = l.shadowNearFarClippingPlanesPad;
     return ret;
   }
 

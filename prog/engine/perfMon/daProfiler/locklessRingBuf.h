@@ -34,7 +34,7 @@ public:
     {
       data[tmpHead & buffer_mask] = v; // we use tmp head, instead of head++, as to be sure head is increased only after data is
                                        // written
-      std::atomic_signal_fence(std::memory_order_release); // if we can't be sure that T is atomic type, we cant use interlocked_store
+      std::atomic_thread_fence(std::memory_order_release); // if we can't be sure that T is atomic type, we cant use interlocked_store
       head.store(tmpHead + 1, std::memory_order_release);
     }
     return true;
@@ -49,7 +49,7 @@ public:
     else
     {
       to = data[tmpTail & buffer_mask]; // we use tmp tail, instead of tail++, as to be sure tail is increased only after data is read
-      std::atomic_signal_fence(std::memory_order_release); // if we can't be sure that T is atomic type, we cant use interlocked_store
+      std::atomic_thread_fence(std::memory_order_release); // if we can't be sure that T is atomic type, we cant use interlocked_store
       tail.store(tmpTail + 1, std::memory_order_release);
     }
     return true;
@@ -66,7 +66,7 @@ public:
     for (size_t i = 0; i < toRead; i++)
       buf[i] = data[tmpTail++ & buffer_mask];
 
-    std::atomic_signal_fence(std::memory_order_release);
+    std::atomic_thread_fence(std::memory_order_release);
     tail.store(tmpTail, std::memory_order_release);
 
     return toRead;

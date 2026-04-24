@@ -1,0 +1,665 @@
+hlsl {
+  #define CHOP_WATER_GEN 1
+}
+
+float chop_wind_speed = 0;
+float chop_fov = 0;
+
+include "sky_shader_global.dshl"
+//include "land_shadow.dshl"
+include "psh_derivate.dshl"
+include "vsm.dshl"
+include "viewVecVS.dshl"
+include "underwater_fog.dshl"
+include "wake.dshl"
+include "sq_clouds_shadow.dshl"
+include "sun_disk_specular.dshl"
+include "panorama.dshl"
+//include "water_foam_trail_inc.dshl"
+//include "water_geometric_decals.dshl"
+include "edge_tesselation.dshl"
+include "waveWorks.dshl"
+include "compatibility/sky_ground_color.dshl"
+include "normaldetail.dshl"
+include "water_common.dshl"
+
+//int water_render_pass = 0;
+//interval water_render_pass : normal_pass<1, depth_pass;
+
+//int underwater_render = 0;
+//interval underwater_render : no<1, yes;
+
+int chop_detail_waves_enabled = 1;
+interval chop_detail_waves_enabled : off < 0, on;
+
+texture tex_w_array;
+texture tex_foam_dissolve;
+texture tex_noise_white_64x64;
+
+float4 spectrum_domain_scale;
+float4 spectrum_domain_max_wave_height;
+float4 spectrum_domain_power;
+float4 scatterIntensityParams = (1.0, 0.5, 1.0, 0.0);
+float simulation_tile_size;
+float choppiness;
+float significant_wave_height_inv = 1.0;
+
+float foam_tile_size = 10.0;
+float foam_turbidity = 0.4;
+float foam_sharpness = 0.35;
+float foam_coverage = 0.5;
+float foam_detail_amp_mul = 1.0;
+float foam_color_intensity = 1.5;
+float chop_foam_nm_strength = 0.0;
+float foam_dissolve_uv_scale = 2.0;
+float4 q_height_mul = (0.2, 1.0, 2.0, 2.0);
+float q_height_mul4 = 4.0;
+float q_power = 20.0;
+float q_divisor = 1.0;
+float q_height_mul_tex = 0.0;
+
+hlsl {
+  #define WATER_GEOMORPHING FULL_GEOMORPH_LODS
+}
+hlsl(ps) {
+  #define NORMALIZE_FFTWATER_NORMAL 0
+}
+
+float compatibility_vertex_lerp = 0;
+
+int water_globtm_const_no = 40;
+macro USE_HARDCODED_WATER()
+  hlsl(vs) {
+    float3 water_ofs_pos : register(c40);
+  }
+endmacro
+
+float water_reflection_hdr_multiplier = 1;
+float object_reflection_distortion = 0.05;
+float water_depth_hardness = 1;//should be about 2 for tanks and 0.5 for planes
+
+float scatter_disappear_factor = 1;//we'd better use it for water_vs blend out as well
+float foam_tiling = 0.1013;
+float angle_to_roughness_scale = 0.1;
+float sun_roughness_for_water_to_cube = 0;
+
+// Reflection coefficient for light incoming parallel to the normal (F0 or fresnel bias)
+float4 water_fresnel_reflectance = (0.02, 0.5, 0.5, 0); // specular intensity, ambient reflection, Fresnel reflection
+
+float4 object_reflection_offset = (0, 0.01, 0, 0);
+float water_reflection_margin_inv = 1;
+
+texture water_reflection_tex;
+texture water_refraction_tex;
+
+float bump_dist_damp = 1500;
+float chop_uv_distort_strength = 1;
+float chop_uv_domain_scale = 1.0;
+float chopWaterDebug = 0.0;
+
+float fake_distortion_period = 6;
+hlsl (ps) {
+  #define to_sun_direction (-from_sun_direction)
+}
+
+block(frame) water_chop_block
+{
+  // Declarations pulled from shader_global.dshl due to the need to get rid of shadow_buffer_tex declaration
+  (ps) {
+    from_sun_direction@f3 = from_sun_direction;
+  }
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+
+    sun_color_0@f3 = sun_color_0;
+    sky_color@f3 = sky_color;
+    foam_tiling_bdamp_srough@f4 = (foam_tiling/(height_tiling+1), water_depth_hardness*(2-height_tiling), 1.0 / bump_dist_damp, sun_roughness_for_water_to_cube);
+    water_fresnel_reflectance@f4 = water_fresnel_reflectance;
+    depth_tex@smp2d = depth_tex;
+  }
+  INIT_HDR_STCODE()
+  SQ_INIT_CLOUDS_SHADOW()
+  INIT_ZNZFAR()
+
+  (vs) {
+    globtm@f44 = globtm;
+    inv_zfar@f1 = (1.0 / zn_zfar.y, 0.0, 0.0, 0.0);
+    world_view_pos@f3 = world_view_pos;
+    chop_uv_distort_strength@f1 = chop_uv_distort_strength;
+  }
+
+  (ps)
+  {
+    chopWaterDebug@f1 = chopWaterDebug;
+    tex_w_array@texArray = tex_w_array;
+
+    foam_tex@tex2d = foam_tex;
+    tex_foam_dissolve@tex2d = tex_foam_dissolve;
+    tex_noise_white_64x64@tex2d = tex_noise_white_64x64;
+
+    spectrum_domain_power@f4 = spectrum_domain_power;
+    scatterIntensityParams@f4 = scatterIntensityParams;
+    significant_wave_height_inv@f1 = significant_wave_height_inv;
+
+    foam_tile_size@f1 = foam_tile_size;
+    foam_turbidity@f1 = foam_turbidity;
+    foam_sharpness@f1 = foam_sharpness;
+    foam_coverage@f1 = foam_coverage;
+    foam_detail_amp_mul@f1 = foam_detail_amp_mul;
+    foam_color_intensity@f1 = foam_color_intensity;
+    chop_foam_nm_strength@f1 = chop_foam_nm_strength;
+    foam_dissolve_uv_scale@f1 = foam_dissolve_uv_scale;
+    q_height_mul@f4 = q_height_mul;
+    q_height_mul4@f1 = q_height_mul4;
+    q_power@f1 = q_power;
+    q_divisor@f1 = q_divisor;
+    q_height_mul_tex@f1 = q_height_mul_tex;
+    chop_uv_distort_strength@f1 = chop_uv_distort_strength;
+    chop_uv_domain_scale@f1 = chop_uv_domain_scale;
+    chop_wind_speed@f1 = chop_wind_speed;
+    chop_fov@f1 = chop_fov;
+  }
+
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    (ps) { water_refraction_tex@smp2d = water_refraction_tex; }
+
+    (ps) { perlin_noise@smp2d = perlin_noise; }
+
+    (ps) {
+      water_reflection_tex@smp2d = water_reflection_tex;
+      lrefl_scatter_hdr_psize@f4 = (object_reflection_distortion, scatter_disappear_factor, water_reflection_hdr_multiplier, 1./(0.01+(height_tiling+1)*water_color_noise_size));
+    }
+  }
+
+  FOG_PS_STCODE()
+  INIT_WATER_GRADIENTS(ps)
+}
+
+
+float4 water_effects_proj_tm_line_0 = (1, 0, 0, 0);
+float4 water_effects_proj_tm_line_1 = (0, 1, 0, 0);
+float4 water_effects_proj_tm_line_2 = (0, 0, 1, 0);
+float4 water_effects_proj_tm_line_3 = (0, 0, 0, 1);
+
+texture projected_on_water_effects_tex;
+float water_projection_effects_height = 0;
+
+
+macro CHOP_WATER_UV_DISTORT()
+hlsl {
+    #include "fftWater/chop_water_distort_uv.hlsli"
+}
+endmacro
+
+shader water_chop
+{
+  supports water_chop_block;
+
+  cull_mode = ccw;
+  z_write = true;
+  z_test = true;
+
+  /*if (water_render_pass == depth_pass)
+  {
+    blend_src = 1; blend_dst = 1;
+  } else*/
+  // Introduced blending to cope with Z-fighting
+  if ((compatibility_mode == compatibility_mode_off) && (water_refraction_tex == NULL))
+  {
+    blend_src = 1; blend_dst = isa;
+  }
+
+  if (chop_detail_waves_enabled == off)
+  {
+    hlsl { #define CHOP_WATER_DETAIL_NORMAL 0 }
+  }
+  else
+  {
+    hlsl { #define CHOP_WATER_DETAIL_NORMAL 1 }
+  }
+
+  USE_WATER_DISPLACEMENT(vs, 1)
+  HEIGHTMAP_DECODE_EDGE_TESSELATION()
+  INIT_WATER_WORLD_POS()
+  GET_WATER_WORLD_POS()
+  if (compatibility_mode == compatibility_mode_on && (water_vs_cascades == four || water_vs_cascades == three))
+  {
+    dont_render;
+  }
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  USE_SUN()
+  FOG_PS_NO_STCODE()
+  SQ_CLOUDS_SHADOW()
+  DECL_POSTFX_TC_VS_RT()//fixme: should depend on where we render
+  GET_WATER_COLOR()
+  INIT_SKY_UP_DIFFUSE(ps)
+  USE_SKY_UP_DIFFUSE()
+
+  INIT_UNDERWATER_FOG(ps)
+  GET_UNDERWATER_FOG_PERLIN(ps)
+  //USE_SNOISE()
+
+  INIT_VSM()
+  USE_VSM()
+  INIT_WAKE_VS(t1, s1)
+  USE_WAKE_VS()
+
+  USE_ENVI_PROBE() //USE_CLOUDS_PANORAMA()
+
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    GET_SKY_GROUND_COLOR_COMPATIBILITY()
+  }
+
+  hlsl {
+
+    // WaveWorks related structs
+    struct VS_OUTPUT
+    {
+    /*##if (water_render_pass == depth_pass)
+      float lin_z: TEXCOORD0;
+    ##else*/
+      float4 nvsf_tex_coord_cascade01: TEXCOORD0;
+      ##if (water_cascades != two)
+      float4 nvsf_tex_coord_cascade23: TEXCOORD1;
+      ##endif
+      ##if (water_cascades == five)
+      float4 nvsf_tex_coord_cascade45: TEXCOORD2;
+      ##endif
+      float4 nvsf_eye_vec: TEXCOORD3;
+      float3 pos_world_undisplaced  : TEXCOORD4;
+      ##if compatibility_mode == compatibility_mode_off
+      float4 screen_texcoord          : TEXCOORD5;
+      ##endif
+
+    ##if (shader == water_3d_decal)
+      float3 localUV_fade : TEXCOORD6;
+    ##endif
+      float2 uv_global: TEXCOORD7;
+      float4 uv_domain_0: TEXCOORD8;
+      float4 uv_domain_1: TEXCOORD9;
+    #if CHOP_WATER_DETAIL_NORMAL
+      float4 uv_domain_2: TEXCOORD10;
+    #endif
+
+    //##endif
+      VS_OUT_POSITION(pos_clip)
+    };
+  }
+
+  //=================================================================================================
+  (vs) {
+    tex_w_array@smpArray = tex_w_array;
+
+    spectrum_domain_scale@f4 = spectrum_domain_scale;
+    spectrum_domain_max_wave_height@f4 = spectrum_domain_max_wave_height;
+    simulation_tile_size@f1 = simulation_tile_size;
+    choppiness@f1 = choppiness;
+  }
+  CHOP_WATER_UV_DISTORT()
+
+  hlsl (vs) {
+    #define DEBUG_SPECTRUM 0
+
+    VS_OUTPUT water_chop_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+    {
+      VS_OUTPUT Output;
+      float3 pos_world_undisplaced;
+      float4 nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45;
+      DECODE_VERTEXID_POSXZ
+
+      float distFade;
+      bool useHeightmap;
+      float3 pos_world = float3(getWorldPosXZ(posXZ, distFade, useHeightmap USED_INSTANCE_ID), water_level_max_wave_height.x);
+
+      pos_world_undisplaced = pos_world;
+      getWaterDisplacement(pos_world, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45) + float3(0, 0, get_wake_height(pos_world.xzy)) * distFade;
+
+      // calculate uv's
+      float2 uv_global = pos_world.xy;
+      float2 uv_domain_0 = uv_global / simulation_tile_size;
+      float2 uv_domain_1 = RotateUV_Cascade1(uv_domain_0);
+      float2 uv_domain_2 = RotateUV_Cascade2(uv_domain_0);
+      float2 uv_domain_3 = RotateUV_Cascade3(uv_domain_0);
+      float2 uv_domain_0_distorted = DistortCascadeUV(uv_domain_0, chop_uv_distort_strength);
+      float2 uv_domain_1_distorted = DistortCascadeUV(uv_domain_1, chop_uv_distort_strength);
+      float2 uv_domain_2_distorted = DistortCascadeUV(uv_domain_2, chop_uv_distort_strength);
+      float2 uv_domain_3_distorted = DistortCascadeUV(uv_domain_3, chop_uv_distort_strength);
+
+      // sample waves
+      float4 w0 = tex3Dlod(tex_w_array, float4(uv_domain_0_distorted, 0, 0));
+      float4 w1 = tex3Dlod(tex_w_array, float4(uv_domain_1_distorted, 1, 0));
+      float4 w2 = tex3Dlod(tex_w_array, float4(uv_domain_2_distorted, 2, 0));
+      float4 w3 = tex3Dlod(tex_w_array, float4(uv_domain_3_distorted, 3, 0));
+
+      float cd1 = saturate(w0.z / (spectrum_domain_max_wave_height.x * 0.4));
+      float cd2 = saturate(w1.z / (spectrum_domain_max_wave_height.y * 0.4));
+      float cd3 = saturate(w2.z / (spectrum_domain_max_wave_height.z * 0.4));
+      float cd4 = saturate(w3.z / (spectrum_domain_max_wave_height.w * 0.4));
+      cd1 *= cd1;
+      cd2 *= cd2;
+      cd3 *= cd3;
+      cd4 *= cd4;
+      cd1 = 1.0 - cd1;
+      cd2 = 1.0 - cd2;
+      cd3 = 1.0 - cd3;
+      cd4 = 1.0 - cd4;
+
+      float c_gain = 1.0;
+      float c1 = choppiness;
+      float c2 = c1 * c_gain;
+      float c3 = c2 * c_gain;
+      float c4 = c3 * c_gain;
+
+      float3 wave = float3(-w0.xy * spectrum_domain_max_wave_height.x * c1 * cd1, w0.z);
+      wave += float3(-w1.xy * spectrum_domain_max_wave_height.y * c2 * cd2, w1.z);
+      wave += float3(-w2.xy * spectrum_domain_max_wave_height.z * c3 * cd3, w2.z);
+      wave += float3(-w3.xy * spectrum_domain_max_wave_height.w * c4 * cd4, w3.z);
+
+      #if CHOP_WATER_DETAIL_NORMAL
+        float2 uv_domain_4 = RotateUV_Cascade4(uv_domain_0);
+        float2 uv_domain_4_distorted = DistortCascadeUV(uv_domain_4, chop_uv_distort_strength);
+        float4 w4 = tex3Dlod(tex_w_array, float4(uv_domain_4_distorted, 4, 0));
+        wave += float3(-w4.xy * 0.1, w4.z);
+        Output.uv_domain_2.xy = uv_domain_4;
+      #endif
+
+      pos_world += wave.xyz;
+
+      Output.uv_global = uv_global;
+      Output.uv_domain_0.xy = uv_domain_0;
+      Output.uv_domain_0.zw = uv_domain_1;
+      Output.uv_domain_1.xy = uv_domain_2;
+      Output.uv_domain_1.zw = uv_domain_3;
+
+      Output.pos_clip = mul(float4(pos_world.xzy,1), globtm);
+
+
+    /*##if (water_render_pass == depth_pass)
+      Output.lin_z = Output.pos_clip.w;
+    ##else*/
+      Output.nvsf_eye_vec = float4(world_view_pos.xzy - pos_world, Output.pos_clip.w * inv_zfar);
+      Output.nvsf_tex_coord_cascade01 = nvsf_tex_coord_cascade01;
+      Output.pos_world_undisplaced  = pos_world_undisplaced;
+
+      ##if water_cascades != two
+      Output.nvsf_tex_coord_cascade23 = nvsf_tex_coord_cascade23;
+      ##endif
+
+      ##if (compatibility_mode == compatibility_mode_off)//actually, if shore is on
+      Output.screen_texcoord = float4(Output.pos_clip.xy * RT_SCALE_HALF + float2(0.50001, 0.50001) * Output.pos_clip.w, Output.pos_clip.z, Output.pos_clip.w);
+      ##endif
+    //##endif
+
+      return Output;
+    }
+  }
+
+
+//if (water_render_pass != depth_pass)
+//{
+  USE_SCREENPOS_TO_TC()
+  USE_DERIVATIVE_MAPS()
+  //INIT_WATER_FOAM_TRAIL()
+  //USE_MODULATED_FOAM()
+  //USE_WATER_FOAM_TRAIL()
+  INIT_WAKE()
+  USE_WAKE()
+  //USE_CUBE_RAIN_DROPLETS(0) there are not enough registers now, turn on when at least one sampler will be available
+  USE_WATER_GRADIENTS(ps, 1)
+  USE_WATER_CASCADES_ROUGHNESS()
+  USE_SUN_DISK_SPECULAR()
+  if (compatibility_mode == compatibility_mode_off)
+  {
+    (ps) {
+      view_vecLT@f3=view_vecLT;
+      view_vecRT@f3=view_vecRT;
+      view_vecLB@f3=view_vecLB;
+      view_vecRB@f3=view_vecRB;
+    }
+  }
+
+  USE_DEBUG_WATER()
+
+  if (shader != water_3d_decal)
+  {
+    USE_WATER_PROJECTED_EFFECTS_PS()
+  }
+
+ WATER_PS_COMMON_DEFS()
+ CHOP_WATER_UV_DISTORT()
+
+ hlsl(ps) {
+  float3 heatmap(float t, int steps = 32)
+  {
+    if(t <= 0){return 0;}
+    if(t >= 1.0){return 1.0;}
+    t = saturate(t);
+    steps = max(steps, 4); // 4 main colors to show
+    // quantize to discrete steps
+    float step_size = 1.0 / steps;
+    t = floor(t / step_size) / (steps - 1);
+    float3 color = 0;
+    if (t < 0.33)
+    {
+      // blue -> green
+      float f = t / 0.33;
+      color = lerp(float3(0.0, 0.0, 1.0), float3(0.0, 1.0, 0.0), f);
+    }else if (t < 0.66)
+    {
+      // green -> yellow
+      float f = (t - 0.33) / (0.66 - 0.33);
+      color = lerp(float3(0.0, 1.0, 0.0), float3(1.0, 1.0, 0.0), f);
+    }else if(t <= 1.0)
+    {
+      // yellow -> red
+      float f = (t - 0.66) / (1.0 - 0.66);
+      color = lerp(float3(1.0, 1.0, 0.0), float3(1.0, 0.0, 0.0), f);
+    }
+    return color;
+  }
+
+  half4 water_chop_ps(VS_OUTPUT In HW_USE_SCREEN_POS) : SV_Target0
+  {
+    float4 screenpos = GET_SCREEN_POS(In.pos_clip);
+
+    // sample waves
+    float2 uv_global = In.uv_global.xy;
+    float2 uv_domain_0 = In.uv_domain_0.xy;
+    float2 uv_domain_1 = In.uv_domain_0.zw;
+    float2 uv_domain_2 = In.uv_domain_1.xy;
+    float2 uv_domain_3 = In.uv_domain_1.zw;
+
+    float2 uv_domain_0_distorted = DistortCascadeUV(uv_domain_0, chop_uv_distort_strength);
+    float2 uv_domain_1_distorted = DistortCascadeUV(uv_domain_1, chop_uv_distort_strength);
+    float2 uv_domain_2_distorted = DistortCascadeUV(uv_domain_2, chop_uv_distort_strength);
+    float2 uv_domain_3_distorted = DistortCascadeUV(uv_domain_3, chop_uv_distort_strength);
+
+    float bias = -1.0;
+    float4 w0 = tex_w_array.SampleBias(global_linear_wrap_sampler, float3(uv_domain_0_distorted, 0), bias);
+    float4 w1 = tex_w_array.SampleBias(global_linear_wrap_sampler, float3(uv_domain_1_distorted, 1), bias);
+    float4 w2 = tex_w_array.SampleBias(global_linear_wrap_sampler, float3(uv_domain_2_distorted, 2), bias);
+    float4 w3 = tex_w_array.SampleBias(global_linear_wrap_sampler, float3(uv_domain_3_distorted, 3), bias);
+
+    #if CHOP_WATER_DETAIL_NORMAL
+      float2 uv_domain_4 = In.uv_domain_2.xy;
+      float2 uv_domain_4_distorted = DistortCascadeUV(uv_domain_4, chop_uv_distort_strength);
+      float4 w4 = tex_w_array.SampleBias(global_linear_wrap_sampler, float3(uv_domain_4_distorted, 4), bias);
+    #else
+      float2 uv_domain_4 = 0;
+      float4 w4 = 0;
+    #endif
+
+    // Chop world normal (skyquake-style nm_break), computed before calcViewData
+    float distSq = dot(In.nvsf_eye_vec.xzy, In.nvsf_eye_vec.xzy);
+    float distDetailFade = 1.0 - smoothstep(10000.0, 1000000.0, distSq);
+    float2 n0 = UnpackNormal(w0.xy).xz;
+    float2 n1 = UnpackNormal(w1.xy).xz;
+    float2 n2 = UnpackNormal(w2.xy).xz;
+    float2 n3 = UnpackNormal(w3.xy).xz * distDetailFade;
+
+    float nm_break_strength = lerp(0.01, 0.07, storminess);
+    float4 nm_break_sample_0 = (water_normal_detail.Sample(global_linear_wrap_sampler, uv_domain_0 * 0.05 * chop_uv_domain_scale) * 2.0 - 1.0);
+    float2 normal_break = nm_break_sample_0.xy;
+    n0 += normal_break * nm_break_strength;
+    normal_break += nm_break_sample_0.zw;
+    n1 += normal_break * nm_break_strength;
+    #if CHOP_WATER_DETAIL_NORMAL
+      float4 nm_break_sample_1 = (water_normal_detail.Sample(global_linear_wrap_sampler, uv_domain_1 * 0.05 * chop_uv_domain_scale) * 2.0 - 1.0);
+      normal_break += nm_break_sample_1.xy;
+    #endif
+    n2 += normal_break * nm_break_strength;
+    #if CHOP_WATER_DETAIL_NORMAL
+      normal_break += nm_break_sample_1.zw;
+    #endif
+    n3 += normal_break * nm_break_strength;
+
+    float3 chop_world_normal;
+    chop_world_normal.xz = n0 + n1 + n2 + n3;
+    #if CHOP_WATER_DETAIL_NORMAL
+      float2 n4 = UnpackNormal(w4.xy).xz * distDetailFade;
+      n4 += normal_break * nm_break_strength;
+      chop_world_normal.xz += n4;
+    #endif
+    chop_world_normal.y = 1.0;
+    chop_world_normal = normalize(chop_world_normal);
+
+    // Common view data
+    ViewData vd;
+    calcViewData(In, screenpos, vd, w0, w1, w2, w3, w4, uv_domain_0, uv_domain_1, uv_domain_2, uv_domain_3, uv_domain_4, chop_world_normal);
+
+    // Shadow factors
+    ShadowsData shadowsData;
+    getShadows(vd, shadowsData);
+
+    // Getting water depth and opacity for blending
+    DeepnessData deepnessData;
+    getDeepness(vd, deepnessData);
+
+    // Calc foam
+    FoamData foamData;
+
+    float4 foam_dissolve = tex_foam_dissolve.Sample(global_linear_wrap_sampler, uv_domain_3 * foam_dissolve_uv_scale) * 2.0 - 1.0;
+
+    float4 foam_cascades = float4(w0.a, w1.a, w2.a, w3.a);
+    float4 micro_foam_cascades = float4(w0.z, w1.z, w2.z, w3.z);
+    float detail_waves_height = 0.0;
+    #if CHOP_WATER_DETAIL_NORMAL
+      detail_waves_height = w4.z;
+    #endif
+
+    float micro_foam = saturate(
+      (dot(micro_foam_cascades, q_height_mul) + detail_waves_height * q_height_mul4 + foam_dissolve.w * q_height_mul_tex)
+      * q_divisor * 0.5 + 0.5
+    );
+    micro_foam = pow(micro_foam, q_power);
+
+    foam_dissolve.w = foam_dissolve.z;
+    foam_dissolve.z += foam_dissolve.w * 0.5;
+    foam_dissolve.y += foam_dissolve.z * 0.5;
+    foam_dissolve.x += foam_dissolve.y * 0.5;
+
+    // foam mask
+    float4 foam_amount = saturate(spectrum_domain_power * 2.0);
+    foam_amount *= foam_amount;
+
+    float4 fw = float4(1.0, 0.5, 0.25, 1.0 / 6.0);
+    float foam_turbidity_scaled = foam_turbidity * 0.1;
+    float4 f = (foam_cascades + foam_dissolve * foam_turbidity_scaled) * fw * foam_amount;
+    float f_max = dot(fw, foam_amount);
+    float f4 = 0.0;
+    #if CHOP_WATER_DETAIL_NORMAL
+      float f4w = 1.0 / 8.0;
+      f4 = (w4.a + foam_dissolve.a * foam_turbidity_scaled) * f4w * foam_amount.w * foam_detail_amp_mul;
+      f_max += f4w * foam_amount.w;
+    #endif
+
+    float foam_mask = dot(f, 1) + f4;
+    foam_mask = smoothstep(foam_sharpness * f_max, f_max, foam_mask);
+    foam_mask *= foam_mask;
+    foam_mask *= smoothstep(0.1, 0.2, storminess);
+
+    // foam coverage
+    float foam_noise_tiling = lerp(4.0, 0.2, saturate(storminess / 0.8));
+    float foam_noise_f = tex_noise_white_64x64.SampleLevel(global_linear_wrap_sampler, uv_domain_0 * foam_noise_tiling, 0).r;
+    float fc2 = lerp(1.3, -0.3, foam_coverage);
+    fc2 = smoothstep(fc2 - 0.3, fc2 + 0.3, foam_noise_f);
+
+    foam_noise_f = saturate(foam_noise_f
+      + foam_dissolve.r * 0.03
+      + foam_dissolve.g * 0.015
+      + foam_dissolve.b * 0.01
+      + foam_dissolve.a * 0.0075);
+    float fc = lerp(1.1, -0.1, foam_coverage);
+    fc = smoothstep(fc - 0.1, fc + 0.1, foam_noise_f);
+
+    foam_mask *= fc;
+    foam_mask += micro_foam * fc2;
+    foam_mask = saturate(foam_mask);
+
+    float3 foam_tex_sample = foam_tex.Sample(global_linear_wrap_sampler, uv_domain_3 * foam_tile_size);
+    vd.worldNormal.xz += (foam_tex_sample.yz * 2.0 - 1.0) * foam_mask * chop_foam_nm_strength;
+    vd.worldNormal = normalize(vd.worldNormal);
+
+    foam_mask *= smoothstep(0.0, 0.3, foam_tex_sample.r);
+    float3 foam_color = foam_tex_sample.rrr * foam_color_intensity;
+    vd.roughness = lerp(vd.roughness, 0.9, foam_mask);
+
+    calcFoam(vd, deepnessData, foamData, foam_mask, foam_noise_f);
+
+    // Caclulating reflection color
+    ReflectionsData reflectionsData;
+    {
+      // Environment reflections
+      EnvReflections envReflections;
+      getEnvReflections(vd, envReflections);
+
+      // Refleciotns from objects
+      PlanarReflections planarReflections;
+      getPlanarReflections(vd, envReflections, planarReflections);
+
+      // Calculating specular
+      SunReflections sunReflections;
+      calcSun(vd, shadowsData, planarReflections, sunReflections);
+
+      getReflections(vd, envReflections, planarReflections, sunReflections, foamData, deepnessData, reflectionsData);
+    }
+
+    // Getting final refraction color
+    RefractionsData refractionsData;
+    {
+      // Underwater
+      SeabedRefraction seabedRefraction;
+      getSeabedRefraction(deepnessData, seabedRefraction);
+
+      // Surface scattering
+      SubSurfScattering subSurfScattering;
+      float waveHeightFactor = (dot(micro_foam_cascades, 1.0) + detail_waves_height) * significant_wave_height_inv * 0.5 + 0.5;
+      getSubSurfScattering(vd, waveHeightFactor, subSurfScattering);
+
+      // Underwater scattering
+      UnderWaterScattering underWaterScattering;
+      getUnderWaterScattering(vd, deepnessData, foamData, underWaterScattering);
+
+      getRefractions(vd, shadowsData, deepnessData, seabedRefraction, subSurfScattering, underWaterScattering, refractionsData);
+    }
+
+    // Get effects
+    ProjectionEffects projectionEffects;
+    getProjectionEffects(vd, foamData, projectionEffects);
+
+    // Final color
+    float4 result = calcFinalColor(vd, shadowsData, foamData, deepnessData, refractionsData, reflectionsData, projectionEffects, foam_color);
+    if (chopWaterDebug > 0.5f)
+    {
+      result.rgb = heatmap(vd.detail_factor);
+    }
+    result.rgb = pack_hdr(result.rgb).rgb;
+    return result;
+  }}
+  compile("target_vs", "water_chop_vs");
+  compile("target_ps", "water_chop_ps");
+}

@@ -11,4 +11,5 @@ template <> struct isCloneable<ImDrawList> : false_type {};
 template <> struct isCloneable<ImFontAtlas> : false_type {};
 template <> struct isCloneable<ImFont> : false_type {};
 template <> struct isCloneable<ImGuiViewport> : false_type {};
+template <> struct isCloneable<ImTextureData> : false_type {};
 }

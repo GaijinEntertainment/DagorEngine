@@ -6,8 +6,6 @@ texture diffuse_rendinst_tex;
 
 shader rendinst_semi_trans
 {
-  ENABLE_ASSERT(ps)
-
   assume instancing_type = tm_vb;
 
   render_trans;
@@ -30,7 +28,7 @@ shader rendinst_semi_trans
     (ps) { diffuse_rendinst_tex@smp2d = diffuse_rendinst_tex; }
   }
 
-  (ps) { placing_color@f3 = placing_color; }
+  (ps) { placing_color@f4 = placing_color; }
 
   RENDINST_TRANS_BLOCK()
   RENDINST_INSTANCING()

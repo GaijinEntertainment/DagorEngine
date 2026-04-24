@@ -11,6 +11,13 @@ include "hmap_blend_inc.dshl"
 include "sky_shader_global.dshl"
 include "rendinst_heightmap_ofs.dshl"
 include "overlay_color_map_inc.dshl"
+include_optional "tree_burning.dshl"
+include "tree_burning_stub.dshl"
+include "gbuffer_mixing_tex.dshl"
+include_optional "burnt_ground/shaders/burnt_grass.dshl"
+
+define_macro_if_not_defined INIT_BURNT_GRASS_BASE_VARS(needs_perlin_noise)
+endmacro
 
 int rendinst_render_pass = 0;
 interval rendinst_render_pass : rendinst_render_pass_normal < 1, rendinst_render_pass_impostor_color < 2, rendinst_render_pass_impostor_shadow < 3, rendinst_render_pass_to_shadow < 4, rendinst_render_pass_depth < 6, rendinst_render_pass_voxelize_albedo < 8, rendinst_render_pass_grassify < 9, rendinst_render_pass_to_heightmap;
@@ -28,15 +35,16 @@ float fast_grass_placed_fade_end = 10;
 
 macro INIT_RENDINST_GRASS_OPACITY()
   (vs) {
-    grass_opacity@f2 = ((fast_grass_placed_fade_start - fast_grass_placed_fade_end),
-      -fast_grass_placed_fade_end * (fast_grass_placed_fade_start - fast_grass_placed_fade_end));
+    grass_opacity@f2 = (-1.0 / max(fast_grass_placed_fade_end - fast_grass_placed_fade_start, 1e-6),
+      fast_grass_placed_fade_end / max(fast_grass_placed_fade_end - fast_grass_placed_fade_start, 1e-6));
   }
 endmacro
 
 macro RENDINST_BLOCK()
   if (rendinst_render_pass == rendinst_render_pass_to_shadow ||
       rendinst_render_pass == rendinst_render_pass_depth ||
-      rendinst_render_pass == rendinst_render_pass_to_heightmap)
+      rendinst_render_pass == rendinst_render_pass_to_heightmap ||
+      rendinst_render_pass == rendinst_render_pass_impostor_shadow)
   {
     supports rendinst_depth_scene;
   }
@@ -77,6 +85,7 @@ block(scene) rendinst_scene
     time_scroll_param@f1 = (time_phase(1000, 0) * 1000, 0, 0, 0);
     layered_material_detail_quality@i1 = layered_material_detail_quality;
     debug_disable_new_layered_hmap_blend@i1 = debug_disable_new_layered_hmap_blend;
+    real_skies_sun_light_dir@f4 = real_skies_sun_light_dir;
   }
 
   RENDINST_SCENE_COMMON()
@@ -90,6 +99,9 @@ block(scene) rendinst_scene
   INIT_AMBIENT_WIND(vs)
   INIT_RENDINST_HEIGHTMAP_OFS(vs)
   INIT_RENDINST_GRASS_OPACITY()
+  INIT_TREE_BURNING_FOR_RI_BLOCK()
+  INIT_GBUFFER_MIXING_UAV()
+  INIT_BURNT_GRASS_BASE_VARS(false)
   if (compatibility_mode != compatibility_mode_on)
   {
     INIT_HMAP_FOR_RI_BLOCK()
@@ -99,11 +111,6 @@ block(scene) rendinst_scene
   if (fluid_wind_support_assume == on)
   {
     INIT_FLUID_WIND(vs)
-  }
-
-  if (mobile_render != off)
-  {
-    INIT_STATIC_SHADOW_PS()
   }
 }
 
@@ -117,21 +124,21 @@ block(scene) rendinst_depth_scene
     from_sun_direction_for_shadow_offset@f3 = from_sun_direction;
     disable_obstacle_interaction@i1 = disable_obstacle_interaction;
   }
+  (ps) {
+    perlin_noise3d@smp3d = perlin_noise3d;
+  }
   INIT_WORLD_HEIGHTMAP_VS()
   INIT_HMAP_HOLES(vs)
   INIT_RENDINST_HEIGHTMAP_OFS(vs)
   INIT_RENDINST_GRASS_OPACITY()
+  INIT_BURNT_GRASS_BASE_VARS(false)
   RENDINST_SCENE_COMMON()
   if (fluid_wind_support_assume == on)
   {
     INIT_FLUID_WIND(vs)
   }
   INIT_AMBIENT_WIND(vs)
-
-  if (mobile_render != off)
-  {
-    INIT_STATIC_SHADOW_PS()
-  }
+  INIT_TREE_BURNING_FOR_RI_BLOCK()
 }
 
 float4 voxelize_aspect_ratio always_referenced;
@@ -178,11 +185,6 @@ block(scene) rendinst_voxelize_scene
     INIT_HMAP_FOR_RI_BLOCK()
     INIT_HMAP_BLEND()
   }
-
-  if (mobile_render != off)
-  {
-    INIT_STATIC_SHADOW_PS()
-  }
 }
 
 macro RENDINST_IMPOSTOR_BLOCK()
@@ -211,7 +213,7 @@ macro RENDER_TO_SHADOW_PS()
     {
       dont_render;
     }
-    (ps) { diffuse_tex@static = tex; }
+    (ps) { diffuse_tex@staticSmp = tex; }
     RENDER_TO_SHADOW_PS_ATEST()
   } else
   {

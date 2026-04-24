@@ -11,3 +11,8 @@ CompileResult compileShaderMetal(const spirv::DXCContext *dxc_ctx, const char *s
   return compileShaderMetalDXC(dxc_ctx, source, profile, entry, need_disasm, hlsl2021, enable_fp16, skipValidation, optimize,
     max_constants_no, shader_name, use_ios_token, use_binary_msl, shader_variant_hash, enableBindless);
 }
+
+eastl::string disassembleShaderMetal(dag::ConstSpan<uint8_t> bytecode, dag::ConstSpan<uint8_t> metadata)
+{
+  return disassembleShaderMetalDXC(bytecode, metadata);
+}

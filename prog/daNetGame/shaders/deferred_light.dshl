@@ -16,7 +16,6 @@ shader deferredLight
   //z_test = false should be true ONLY for cascade other than [0, something]
   cull_mode = none;
 
-  ENABLE_ASSERT(ps)
   INIT_READ_DEPTH_GBUFFER()
   USE_READ_DEPTH_GBUFFER()
   USE_DECODE_DEPTH()

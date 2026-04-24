@@ -22,7 +22,7 @@ public:
   // Replace all occurrences of 'pattern' in 'text' with 'replacement'.
   const char *replace(const char *replacement, const char *text);
 
-  // Extract all occurences of 'pattern' from 'text' using 'extractTemplate'.
+  // Extract all occurrences of 'pattern' from 'text' using 'extractTemplate'.
   // \0 in template is replaced with the complete matched substring, and
   // \1 through \9 are replaced with the corresponding capture group
   void multiExtract(const char *extractTemplate, const char *text, const eastl::function<void(const char *)> cb);

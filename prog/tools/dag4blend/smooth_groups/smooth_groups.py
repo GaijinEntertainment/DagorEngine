@@ -48,7 +48,7 @@ def update_sg_current(bm):
     face = bm.faces.active
     if face is not None:
         SG = bm.faces.layers.int.get("SG")
-        if SG:
+        if SG is not None:
             bpy.context.window_manager.sg_current_value = face[SG]
     return None
 #scene update handler
@@ -65,6 +65,8 @@ def edit_object_change_handler(self,context):
     dic.clear()
     return None
 
+classes = []
+
 #operators
 class DAGOR_OT_SmoothGroupInit(bpy.types.Operator):
     bl_label = 'Init SmoothGroup'
@@ -74,6 +76,7 @@ class DAGOR_OT_SmoothGroupInit(bpy.types.Operator):
     def execute(self, context):
         objects_calc_smooth_groups([context.object])
         return {'FINISHED'}
+classes.append(DAGOR_OT_SmoothGroupInit)
 
 class DAGOR_OT_SmoothGroupsRemove(bpy.types.Operator):
     bl_label = 'Remove SmoothGroups'
@@ -86,6 +89,7 @@ class DAGOR_OT_SmoothGroupsRemove(bpy.types.Operator):
         if SG is not None:
             mesh.attributes.remove(SG)
         return {'FINISHED'}
+classes.append(DAGOR_OT_SmoothGroupsRemove)
 
 class DAGOR_OT_SmoothGroupToSharpEdges(bpy.types.Operator):
     bl_label = 'SmoothGroups to sharp edges'
@@ -96,6 +100,7 @@ class DAGOR_OT_SmoothGroupToSharpEdges(bpy.types.Operator):
         if context.mode=='EDIT_MESH':
             sg_to_sharp_edges(context.edit_object.data)
         return {'FINISHED'}
+classes.append(DAGOR_OT_SmoothGroupToSharpEdges)
 
 class DAGOR_OT_SmoothGroupSet(bpy.types.Operator):
     bl_label = 'Set SmoothGroup'
@@ -126,6 +131,7 @@ class DAGOR_OT_SmoothGroupSet(bpy.types.Operator):
         if pref.sg_live_refresh:
             bpy.ops.dt.preview_sg()
         return {'FINISHED'}
+classes.append(DAGOR_OT_SmoothGroupSet)
 
 class DAGOR_OT_SmoothGroupSelect(Operator):
     bl_label = 'Select SmoothGroup'
@@ -150,6 +156,7 @@ class DAGOR_OT_SmoothGroupSelect(Operator):
                     face.select = True
         bmesh.update_edit_mesh(obj.data)
         return {'FINISHED'}
+classes.append(DAGOR_OT_SmoothGroupSelect)
 
 class DAGOR_PT_SmoothGroupPanel(bpy.types.Panel):
     bl_label = "Smoothing Groups"
@@ -201,7 +208,7 @@ class DAGOR_PT_SmoothGroupPanel(bpy.types.Panel):
             all_active=SG_MAX_UINT-1
         #buttons state end
         SG_set=l.box()
-        draw_custom_header(SG_set, pref, 'sg_set_maximized')
+        draw_custom_header(SG_set,'Set SG', pref, 'sg_set_maximized')
         if pref.sg_set_maximized:
             SG_set.prop(pref, 'sg_live_refresh', text = "Live Update", toggle = True,
                 icon = 'CHECKBOX_HLT' if pref.sg_live_refresh else 'CHECKBOX_DEHLT')
@@ -222,7 +229,7 @@ class DAGOR_PT_SmoothGroupPanel(bpy.types.Panel):
                     text+=1
                     btn.pressed=all_pressed
         SG_select = l.box()
-        draw_custom_header(SG_select, 'Select by SG', pref, sg_select_maximized)
+        draw_custom_header(SG_select, 'Select by SG', pref, 'sg_select_maximized')
         if pref.sg_select_maximized:
             SG_select=SG_select.column(align = True)
             SG_select.operator('dt.select_smooth_group',text='0').index = -1
@@ -236,24 +243,22 @@ class DAGOR_PT_SmoothGroupPanel(bpy.types.Panel):
                     btn.index=text
                     text+=1
         return
+classes.append(DAGOR_PT_SmoothGroupPanel)
 
-classes = [DAGOR_OT_SmoothGroupSet,
-            DAGOR_OT_SmoothGroupInit,
-            DAGOR_OT_SmoothGroupsRemove,
-            DAGOR_OT_SmoothGroupToSharpEdges,
-            DAGOR_OT_SmoothGroupSelect,
-            DAGOR_PT_SmoothGroupPanel,
-            ]
 
 def register():
     for cl in classes:
         bpy.utils.register_class(cl)
     bpy.types.WindowManager.sg_current_value = IntProperty(name="DEBUG", update=update_sg)
     bpy.app.handlers.depsgraph_update_post.append(edit_object_change_handler)
+    return
 
 def unregister():
-    for cl in classes:
+    for cl in classes[::-1]:
         bpy.utils.unregister_class(cl)
+    del bpy.types.WindowManager.sg_current_value
+    bpy.app.handlers.depsgraph_update_post.remove(edit_object_change_handler)
+    return
 
 if __name__ == "__main__":
     register()

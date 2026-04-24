@@ -66,14 +66,19 @@ struct TreeInstData
     Bottom
   };
 
-  float timer = 0.0f;
-  float disappearStartTime = -1.0f;
+  float creationTimeAt = 0.0f;
+  float disappearStartTimeAt = 0.0f;
   float maxDistanceSq = 0.0f;
   int rndSeed = 0;
   Point2 impactXZ = Point2(0.0f, 0.0f);
   Point3 localImpactPos = Point3::ZERO;
   CutType cutType = CutType::None;
   uint64_t originalTmDataId = ~0ull;
+  uint64_t destructionDataId = ~0ull;
+  float bendAngle = 0.0f;
+  float bendStrength = 0.0f;
+  float bendAnglePrev = 0.0f;
+  float bendStrengthPrev = 0.0f;
   rendinstdestr::BranchDestr branchDestr;
 };
 
@@ -88,6 +93,8 @@ struct TreeInstDebugData
   Tab<Point3> impulsePositions;
   bool last_object_was_from_damage = false;
   bool useCutHeightOverride = false;
+  float bendAngle = 0.0f;
+  float bendStrength = 0.0f;
 };
 
 struct DestroyedRi
@@ -114,7 +121,7 @@ struct DestroyedRi
 DestroyedRi *doRIGenExternalControl(const RendInstDesc &desc, bool rem_rendinst = true);
 Tab<DestroyedRi *> doRIGenExternalControlMultiple(const RendInstDesc &desc, int copy_count, bool rem_rendinst = true);
 bool fillTreeInstData(const RendInstDesc &desc, bool from_damage, TreeInstData &out_data);
-void updateTreeDestrRenderData(riex_handle_t ri_handle, TreeInstData &tree_inst_data,
+uint64_t updateTreeDestrRenderData(riex_handle_t ri_handle, const TreeInstData &tree_inst_data,
   const TreeInstDebugData *tree_inst_debug_data = nullptr);
 
 bool should_clear_external_controls();

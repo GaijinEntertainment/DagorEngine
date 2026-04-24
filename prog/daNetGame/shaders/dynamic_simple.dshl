@@ -5,7 +5,6 @@ include "simple_inc.dshl"
 
 shader dynamic_simple
 {
-  ENABLE_ASSERT(ps)
   SUPPORT_MULTIDRAW(false)
   DYNAMIC_BLOCK()
   if (in_editor_assume == no) { NO_DYNSTCODE() }
@@ -37,9 +36,9 @@ shader dynamic_simple
   {
     if (atest == atestOn)
     {
-      (ps) { diffuse_tex@static = tex; }
+      (ps) { diffuse_tex@staticSmp = tex; }
     }
-    SPECIAL_RENDER_ALPHATEST_CHOOSE()
+    SPECIAL_RENDER_ALPHATEST_CHOOSE(enable_ri_disintegration_animation == enabled)
   }
   else
   {
@@ -47,6 +46,6 @@ shader dynamic_simple
       #define IS_DYNAMIC 1
     }
 
-    USE_SIMPLE_PS(true)
+    USE_SIMPLE_PS(true, GBUFFER_ORDER_DYNAMIC)
   }
 }

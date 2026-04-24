@@ -62,8 +62,6 @@ public:
       "bind_dascript::daskies_setStarsJulianDay");
     das::addExtern<DAS_BIND_FUN(daskies_currentGroundSunSkyColor)>(*this, lib, "daskies_currentGroundSunSkyColor",
       das::SideEffects::modifyArgument, "bind_dascript::daskies_currentGroundSunSkyColor");
-    das::addExtern<DAS_BIND_FUN(select_weather_preset_delayed)>(*this, lib, "select_weather_preset_delayed",
-      das::SideEffects::modifyExternal, "select_weather_preset_delayed");
     das::addExtern<DAS_BIND_FUN(das_get_current_weather_preset_name)>(*this, lib, "get_current_weather_preset_name",
       das::SideEffects::accessExternal, "::bind_dascript::das_get_current_weather_preset_name");
     compileBuiltinModule("daSkies.das", (unsigned char *)daSkies_das, sizeof(daSkies_das));

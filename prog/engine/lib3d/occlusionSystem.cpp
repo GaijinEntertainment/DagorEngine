@@ -21,6 +21,7 @@
 #include <EASTL/unique_ptr.h>
 #include <math/integer/dag_IPoint2.h>
 #include <util/dag_convar.h>
+#include <shaders/dag_dynamicResolutionStcode.h>
 
 #define debug(...) logmessage(_MAKE4C('OCCL'), __VA_ARGS__)
 
@@ -44,9 +45,9 @@ public:
   void buildMips() override;
   void prepareDebug() override;
   void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    TextureIDPair mipped_depth, Texture *depth) override;
+    Texture *mipped_depth, Texture *depth, const DynRes *dynamic_resolution = nullptr) override;
   void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index) override;
+    Texture *mipped_depth, Texture *depth, StereoIndex stereo_index, const DynRes *dynamic_resolution = nullptr) override;
   void setReprojectionUseCameraTranslatedSpace(bool enabled) override;
   bool getReprojectionUseCameraTranslatedSpace() const override;
   void initSWRasterization() override;
@@ -72,7 +73,7 @@ public:
 protected:
   template <bool ignoreVr>
   void prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index);
+    Texture *mipped_depth, Texture *depth, StereoIndex stereo_index, const DynRes *dynamic_resolution);
 
   void initVrRes();
   bool process(float *destData, uint32_t &frame);
@@ -332,22 +333,22 @@ void OcclusionSystemImpl::startRasterization(float zn)
 }
 
 void OcclusionSystemImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn,
-  float zf, TextureIDPair depth, Texture *base_depth)
+  float zf, Texture *depth, Texture *base_depth, const DynRes *dynamic_resolution)
 {
-  prepareNextFrameImpl<true>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, StereoIndex::Mono);
+  prepareNextFrameImpl<true>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, StereoIndex::Mono, dynamic_resolution);
 }
 
 void OcclusionSystemImpl::prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn,
-  float zf, TextureIDPair depth, Texture *base_depth, StereoIndex stereo_index)
+  float zf, Texture *depth, Texture *base_depth, StereoIndex stereo_index, const DynRes *dynamic_resolution)
 {
-  prepareNextFrameImpl<false>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, stereo_index);
+  prepareNextFrameImpl<false>(view_pos, view, proj, view_proj, zn, zf, depth, base_depth, stereo_index, dynamic_resolution);
 }
 
 template <bool ignoreVr>
 void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn,
-  float zf, TextureIDPair depth, Texture *base_depth, StereoIndex stereo_index)
+  float zf, Texture *depth, Texture *base_depth, StereoIndex stereo_index, const DynRes *dynamic_resolution)
 {
-  G_ASSERT_RETURN(depth.getTex2D(), );
+  G_ASSERT_RETURN(depth, );
   if (ignoreVr || stereo_index != StereoIndex::Right)
     currentTarget = ringTextures.getNewTargetAndId(lastRenderedFrame, currentTargetId);
   if (ignoreVr || stereo_index != StereoIndex::Left)
@@ -362,12 +363,13 @@ void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view,
     if (base_depth)
       d3d::resource_barrier({base_depth, RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     TextureInfo tinfo;
-    depth.getTex2D()->getinfo(tinfo, 0);
+    depth->getinfo(tinfo, 0);
 
-    const int w = tinfo.w, h = tinfo.h;
+    const int w = dynamic_resolution ? dynamic_resolution->dynamicResolution.x / 2 : tinfo.w;
+    const int h = dynamic_resolution ? dynamic_resolution->dynamicResolution.y / 2 : tinfo.h;
 
     int lod = 0;
-    while (((w >> (lod + 1)) > width || (h >> (lod + 1)) > height) && lod < depth.getTex2D()->level_count() - 1)
+    while (((w >> (lod + 1)) > width || (h >> (lod + 1)) > height) && lod < depth->level_count() - 1)
       lod++;
 
     static int depthSourceSzVarId = get_shader_variable_id("depth_source_sz", true);
@@ -391,7 +393,7 @@ void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view,
       Texture *sourceTex = base_depth;
       int srcSizeW = base_tinfo.w, srcSizeH = base_tinfo.h;
       bool finalRendered = false;
-      for (int i = 0, e = depth.getTex2D()->level_count();; i++) // current lod
+      for (int i = 0, e = depth->level_count();; i++) // current lod
       {
         int targetW = srcSizeW >> 1, targetH = srcSizeH >> 1;
         int downsampleTypeId = 0;                    // 0 = final2x2, 1 = final4x4, 2 = down2x2, 3 = down4x4
@@ -418,19 +420,19 @@ void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view,
         {
           i += downsampleTypeId;
           downsampleTypeId |= 0b10;
-          targetTex = depth.getTex2D();
+          targetTex = depth;
           renderTargetLod = i;
           G_ASSERT((tinfo.w >> renderTargetLod) == targetW && (tinfo.h >> renderTargetLod) == targetH);
         }
-        d3d::set_render_target(targetTex, renderTargetLod);
+        d3d::set_render_target({}, DepthAccess::RW, {{targetTex, static_cast<uint32_t>(renderTargetLod), 0}});
         d3d::settex(source_tex_const_no, sourceTex);
         d3d::set_sampler(STAGE_PS, source_tex_const_no, clampPointSampler);
-        sourceTex = depth.getTex2D();
+        sourceTex = depth;
 
         ShaderGlobal::set_int(downsampleTypeIdVarId, downsampleTypeId);
 
-        ShaderGlobal::set_color4(depthTargetSzVarId, targetW, targetH, 0, 0);
-        ShaderGlobal::set_color4(depthSourceSzVarId, srcSizeW, srcSizeH, 0, 0);
+        ShaderGlobal::set_float4(depthTargetSzVarId, targetW, targetH, 0, 0);
+        ShaderGlobal::set_float4(depthSourceSzVarId, srcSizeW, srcSizeH, 0, 0);
 
         downsample.render();
 
@@ -439,8 +441,8 @@ void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view,
 
         srcSizeW = tinfo.w >> i;
         srcSizeH = tinfo.h >> i;
-        depth.getTex2D()->texmiplevel(i, i);
-        d3d::resource_barrier({depth.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
+        depth->texmiplevel(i, i);
+        d3d::resource_barrier({depth, RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
       }
 
       G_ASSERT(finalRendered == true);
@@ -449,18 +451,18 @@ void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view,
     }
     else
     {
-      ShaderGlobal::set_color4(depthSourceSzVarId, tinfo.w >> lod, tinfo.h >> lod, 0, 0);
-      ShaderGlobal::set_color4(depthTargetSzVarId, width, height, 0, 0);
+      ShaderGlobal::set_float4(depthSourceSzVarId, tinfo.w >> lod, tinfo.h >> lod, 0, 0);
+      ShaderGlobal::set_float4(depthTargetSzVarId, width, height, 0, 0);
       ShaderGlobal::set_int(downsampleTypeIdVarId, 0);
 
-      depth.getTex2D()->texmiplevel(lod, lod);
-      d3d::settex(source_tex_const_no, depth.getTex2D());
+      depth->texmiplevel(lod, lod);
+      d3d::settex(source_tex_const_no, depth);
       d3d::set_sampler(STAGE_PS, source_tex_const_no, clampPointSampler);
-      d3d::set_render_target(currentTarget, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{currentTarget, 0, 0}});
 
       downsample.render();
     }
-    depth.getTex2D()->texmiplevel(-1, -1);
+    depth->texmiplevel(-1, -1);
   }
   else
   {
@@ -474,7 +476,7 @@ void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view,
 
     TIME_D3D_PROFILE(downsample_hzb);
     TextureInfo tinfo;
-    depth.getTex2D()->getinfo(tinfo, 0);
+    depth->getinfo(tinfo, 0);
 
     static int depthSourceSzVarId = get_shader_variable_id("depth_source_sz");
     static int depthTargetSzVarId = get_shader_variable_id("depth_target_sz");
@@ -484,19 +486,22 @@ void OcclusionSystemImpl::prepareNextFrameImpl(vec3f view_pos, mat44f_cref view,
 
     int widthLod = static_cast<int>(log2(float(tinfo.w) / width));
     int heightLod = static_cast<int>(log2(float(tinfo.h) / height));
-    int lod = eastl::min<int>({widthLod, heightLod, depth.getTex2D()->level_count() - 1});
+    int lod = eastl::min<int>({widthLod, heightLod, depth->level_count() - 1});
 
     {
       IPoint2 sourceSize(tinfo.w >> lod, tinfo.h >> lod);
-      ShaderGlobal::set_color4(depthSourceSzVarId, sourceSize.x, sourceSize.y, 0, 0);
-      ShaderGlobal::set_color4(depthTargetSzVarId, width, height, 0, 0);
+      ShaderGlobal::set_float4(depthSourceSzVarId, sourceSize.x, sourceSize.y, 0, 0);
+      ShaderGlobal::set_float4(depthTargetSzVarId, width, height, 0, 0);
 
       ShaderGlobal::set_int(depthLodVarId, lod);
 
-      ShaderGlobal::set_texture(depthSourceVarId, depth.getId());
+      ShaderGlobal::set_texture(depthSourceVarId, depth);
       ShaderGlobal::set_texture(depthTargetVarId, currentTargetId);
 
       downsample_vr->dispatchThreads(sourceSize.x, sourceSize.y, 1);
+
+      ShaderGlobal::set_texture(depthSourceVarId, nullptr);
+      ShaderGlobal::set_texture(depthTargetVarId, nullptr);
     }
   }
 
@@ -642,7 +647,8 @@ void OcclusionSystemImpl::prepareDebug()
   if (!reprojected.getTex2D())
   {
     uint32_t flags = TEXCF_READABLE | TEXCF_DYNAMIC | TEXCF_LINEAR_LAYOUT | TEXFMT_R32F;
-    reprojected.set(d3d::create_tex(NULL, width, height, flags, mip_chain_cnt, "hzb_reprojected"), "hzb_reprojected");
+    reprojected.set(d3d::create_tex(NULL, width, height, flags, mip_chain_cnt, "hzb_reprojected", RESTAG_OCCLUSION),
+      "hzb_reprojected");
   }
 
   uint8_t *data;
@@ -677,7 +683,7 @@ void OcclusionSystemImpl::prepareDebugSWRasterization()
   if (!masked.getTex2D())
   {
     uint32_t flags = TEXCF_READABLE | TEXCF_DYNAMIC | TEXCF_LINEAR_LAYOUT | TEXFMT_R32F;
-    masked.set(d3d::create_tex(NULL, mw, mh, flags, 1, "masked_z"), "masked_z");
+    masked.set(d3d::create_tex(NULL, mw, mh, flags, 1, "masked_z", RESTAG_OCCLUSION), "masked_z");
   }
 
   uint8_t *data;

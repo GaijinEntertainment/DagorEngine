@@ -5,7 +5,7 @@ endmacro
 
 macro USE_CHARACTER_PAINT_COLOR()
   (ps){
-    paintColorMask@static = paintColorMask;
+    paintColorMask@staticSmp = paintColorMask;
     paint_color@f4 = paint_color;
   }
   hlsl(ps) {

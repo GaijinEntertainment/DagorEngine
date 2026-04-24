@@ -39,6 +39,23 @@ public:
   virtual void fillPropPanel(int &pid, PropPanel::ContainerPropertyControl &panel) = 0;
   virtual bool getPanelArrayItemCaption(String &caption, const TunedElement &array, const TunedElement &array_item) { return false; }
   virtual void getValues(int &pid, PropPanel::ContainerPropertyControl &panel) = 0;
+  virtual void setValue(int pid, PropPanel::ContainerPropertyControl &panel) {}
+  virtual TunedElement *findById(const int pid, int &cur_pid) { return nullptr; }
+  virtual bool isArrayActionById(const int pid, int &cur_pid) { return false; }
+  virtual bool undoOperation(int pid, PropPanel::ContainerPropertyControl &panel, TunedElement *element = nullptr)
+  {
+    int num = subElemCount();
+    for (int i = 0; i < num; ++i)
+    {
+      TunedElement *e = getSubElem(i);
+      if (!e)
+        continue;
+
+      if (e->undoOperation(pid, panel, element))
+        return true;
+    }
+    return false;
+  }
 
   virtual bool onClick(int pcb_id, PropPanel::ContainerPropertyControl &panel, IPropPanelCB &ppcb)
   {
@@ -148,6 +165,30 @@ public:
         subElem[i]->getValues(pid, panel);
   }
 
+  TunedElement *findById(const int pid, int &cur_pid) override
+  {
+    for (int i = 0; i < subElem.size(); ++i)
+      if (subElem[i])
+      {
+        if (TunedElement *result = subElem[i]->findById(pid, cur_pid))
+          return result;
+      }
+
+    return nullptr;
+  }
+
+  bool isArrayActionById(const int pid, int &cur_pid) override
+  {
+    for (int i = 0; i < subElem.size(); ++i)
+      if (subElem[i])
+      {
+        if (subElem[i]->isArrayActionById(pid, cur_pid))
+          return true;
+      }
+
+    return false;
+  }
+
 
   void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) override
   {
@@ -227,6 +268,7 @@ TunedElement *create_tuned_ref_slot(const char *name, const char *type_name);
 
 TunedElement *create_tuned_array(const char *name, TunedElement *base_element);
 void set_tuned_array_member_to_show_in_caption(TunedElement &array, const char *member);
+TunedElement *create_tuned_visibility_array(const char *name, TunedElement *base_element);
 
 TunedGroup *create_tuned_struct(const char *name, int version, dag::ConstSpan<TunedElement *> elems);
 

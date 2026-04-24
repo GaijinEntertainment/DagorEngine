@@ -12,7 +12,6 @@ endmacro
 
 macro USE_NIGHT_VISION()
   hlsl(ps) {
-  ##if (mobile_render == off)
     float getFakeShadow(float2 ftc, float distZ, float lightRad)
     {
       const float offset = 2;
@@ -21,7 +20,6 @@ macro USE_NIGHT_VISION()
       float dstZ = linearize_z(readGbufferDepth(ftc), zn_zfar.zw);
       return saturate(0.8 + 10*(1-scale) + dstZ - (0.85 + 0.15*scale)*distZ);
     }
-  ##endif
 
     half3 transformLightSpectre(half3 spectre, float lighting)
     {
@@ -39,7 +37,6 @@ macro USE_NIGHT_VISION()
       half3 spectre = max3(color.r, color.g, color.b);
       if (spectre.x > 0)
       {
-      ##if (mobile_render == off)
         float lightRad = night_vision_params.x;
         float2 projectorTc = tc * 2 - 1;
         float lighting = saturate(1-length(projectorTc));
@@ -66,10 +63,6 @@ macro USE_NIGHT_VISION()
           lighting *= dot(get_volfog_with_scattering_loss(tc, tc, view, dist, dstZ), 1.0/3);
           spectre = transformLightSpectre(spectre, lighting);
         }
-      ##else
-        float lighting = 0.02;
-        spectre = transformLightSpectre(spectre, lighting);
-      ##endif
         spectre.rb *= pow2(saturate(spectre.rb));
 
       ##if night_vision_tex == NULL

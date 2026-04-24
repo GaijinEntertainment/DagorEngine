@@ -171,3 +171,5 @@ inline BBox3 bbox3(const IBBox3 &p)
 {
   return BBox3(Point3((real)p[0].x, (real)p[0].y, (real)p[0].z), Point3((real)p[1].x, (real)p[1].y, (real)p[1].z));
 }
+
+inline IBBox3 get_intersection(const IBBox3 &left, const IBBox3 &right) { return {max(left[0], right[0]), min(left[1], right[1])}; }

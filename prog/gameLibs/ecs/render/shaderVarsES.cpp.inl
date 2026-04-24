@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <math/dag_color.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/shaderVar.h>
 #include <daECS/core/coreEvents.h>
 #include "shader_var_from_component.h"
@@ -59,19 +61,19 @@ public:
     }
     else if (compRef.is<float>())
     {
-      set_real(compRef.get<float>());
+      set_float(compRef.get<float>());
     }
     else if (compRef.is<Point4>())
     {
-      set_color4(compRef.get<Point4>());
+      set_float4(compRef.get<Point4>());
     }
     else if (compRef.is<Point3>())
     {
-      set_color4(compRef.get<Point3>());
+      set_float4(compRef.get<Point3>());
     }
     else if (compRef.is<E3DCOLOR>())
     {
-      set_color4(compRef.get<E3DCOLOR>());
+      set_float4(compRef.get<E3DCOLOR>());
     }
     else
     {

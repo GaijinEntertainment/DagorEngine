@@ -29,8 +29,6 @@ DAS_BIND_VECTOR(CollResHitNodesType, CollResHitNodesType, int, " ::CollResHitNod
 
 namespace bind_dascript
 {
-inline const char *collnode_get_name(const CollisionNode *collnode) { return collnode->name.c_str(); }
-
 inline bool collres_traceray(const CollisionResource &collres, const das::float3x4 &tm, const GeomNodeTree *geom_node_tree,
   const Point3 &tracePos, const Point3 &traceDir, float &t, Point3 &norm)
 {
@@ -43,6 +41,12 @@ inline bool collres_traceray2(const CollisionResource &collres, const das::float
 {
   int outMatId, outNodeId;
   return collres.traceRay(reinterpret_cast<const TMatrix &>(tm), nullptr, from, dir, current_t, normal, outMatId, outNodeId);
+}
+
+inline bool collres_traceray3(const CollisionResource &collres, const das::float3x4 &tm, const GeomNodeTree *geom_node_tree,
+  const Point3 &tracePos, const Point3 &traceDir, float &t, Point3 &norm, int &outMatId, int &outNodeId)
+{
+  return collres.traceRay(reinterpret_cast<const TMatrix &>(tm), geom_node_tree, tracePos, traceDir, t, &norm, outMatId, outNodeId);
 }
 
 inline bool collres_traceray_out_intersections(const CollisionResource &collres, const das::float3x4 &instance_tm,
@@ -103,6 +107,26 @@ inline const CollisionNode *collres_get_node(const CollisionResource &collres, c
 
 inline int collres_get_nodesCount(const CollisionResource &collres) { return collres.getAllNodes().size(); }
 
+inline BBox3 collres_get_node_bbox(const CollisionResource &collres, int node_id) { return collres.getNodeBBox(node_id); }
+inline bool collres_get_node_capsule(const CollisionResource &collres, int node_id, Capsule &out)
+{
+  return collres.getNodeCapsule(node_id, out);
+}
+inline const char *collres_get_node_name(const CollisionResource &collres, int node_id) { return collres.getNodeName(node_id); }
+inline const TMatrix &collres_get_node_tm(const CollisionResource &collres, int node_id) { return collres.getNodeTm(node_id); }
+inline float collres_get_node_max_tm_scale(const CollisionResource &collres, int node_id)
+{
+  return collres.getNodeMaxTmScale(node_id);
+}
+inline Point3 collres_get_node_bsphere_center(const CollisionResource &collres, int node_id)
+{
+  return collres.getNodeBSphereCenter(node_id);
+}
+inline float collres_get_node_bsphere_radius(const CollisionResource &collres, int node_id)
+{
+  return collres.getNodeBSphereRadius(node_id);
+}
+
 inline void collres_get_collision_node_tm(const CollisionResource &collres, int coll_node_id, const das::float3x4 &instance_tm,
   const GeomNodeTree *geom_node_tree, das::float3x4 &out_tm, das::Context *context, das::LineInfoArg *line_info)
 {
@@ -131,33 +155,92 @@ inline bool test_collres_intersection_out_intersections(const CollisionResource 
     reinterpret_cast<const TMatrix &>(tm2), CollisionNodeFilter(), collPt1, collPt2, &nodeIndex1, &nodeIndex2,
     &intersectionNodesIndices);
   das::Array arr;
-  arr.data = (char *)intersectionNodesIndices.data();
-  arr.capacity = arr.size = uint32_t(intersectionNodesIndices.size());
-  arr.lock = 1;
+  das::array_mark_locked(arr, intersectionNodesIndices.data(), intersectionNodesIndices.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
   return ret;
 }
 
-inline void get_collnode_geom(const CollisionNode *node,
-  const das::TBlock<void, const das::TTemporary<const das::TArray<uint16_t>>, const das::TTemporary<const das::TArray<Point4>>> &block,
-  das::Context *context, das::LineInfoArg *at)
+inline BSphere3 collres_get_node_bsphere(const CollisionResource &collres, int node_idx) { return collres.getNodeBSphere(node_idx); }
+
+inline int collres_get_node_face_count(const CollisionResource &collres, int node_idx) { return collres.getNodeFaceCount(node_idx); }
+
+inline int collres_get_node_vert_count(const CollisionResource &collres, int node_idx) { return collres.getNodeVertCount(node_idx); }
+
+template <typename TT>
+inline void collres_node_iterate_faces_T(const CollisionResource &collres, int node_idx, TT &&block, das::Context *,
+  das::LineInfoArg *)
 {
-  das::Array indices;
-  indices.data = (char *)node->indices.data();
-  indices.size = uint32_t(node->indices.size());
-  indices.capacity = indices.size;
-  indices.lock = 1;
-  indices.flags = 0;
-  das::Array vertices;
-  vertices.data = (char *)node->vertices.data();
-  vertices.size = uint32_t(node->vertices.size());
-  vertices.capacity = vertices.size;
-  vertices.lock = 1;
-  vertices.flags = 0;
-  vec4f args[] = {das::cast<das::Array *>::from(&indices), das::cast<das::Array *>::from(&vertices)};
-  context->invoke(block, args, nullptr, at);
+  collres.iterateNodeFaces(node_idx, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) { block(fi, (int)i0, (int)i1, (int)i2); });
+}
+
+inline void collres_node_iterate_faces(const CollisionResource &collres, int node_idx,
+  const das::TBlock<void, int, int, int, int> &block, das::Context *context, das::LineInfoArg *at)
+{
+  vec4f args[4];
+  context->invokeEx(
+    block, args, nullptr,
+    [&](das::SimNode *code) {
+      collres.iterateNodeFaces(node_idx, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) {
+        args[0] = das::cast<int>::from(fi);
+        args[1] = das::cast<int>::from((int)i0);
+        args[2] = das::cast<int>::from((int)i1);
+        args[3] = das::cast<int>::from((int)i2);
+        code->eval(*context);
+      });
+    },
+    at);
+}
+
+template <typename TT>
+inline void collres_node_iterate_face_verts_T(const CollisionResource &collres, int node_idx, TT &&block, das::Context *,
+  das::LineInfoArg *)
+{
+  collres.iterateNodeFacesVerts(node_idx, [&](int fi, vec4f v0, vec4f v1, vec4f v2) {
+    block(fi, *reinterpret_cast<das::float3 *>(&v0), *reinterpret_cast<das::float3 *>(&v1), *reinterpret_cast<das::float3 *>(&v2));
+  });
+}
+
+inline void collres_node_iterate_face_verts(const CollisionResource &collres, int node_idx,
+  const das::TBlock<void, int, das::float3, das::float3, das::float3> &block, das::Context *context, das::LineInfoArg *at)
+{
+  vec4f args[4];
+  context->invokeEx(
+    block, args, nullptr,
+    [&](das::SimNode *code) {
+      collres.iterateNodeFacesVerts(node_idx, [&](int fi, vec4f v0, vec4f v1, vec4f v2) {
+        args[0] = das::cast<int>::from(fi);
+        args[1] = v0;
+        args[2] = v1;
+        args[3] = v2;
+        code->eval(*context);
+      });
+    },
+    at);
+}
+
+template <typename TT>
+inline void collres_node_iterate_verts_T(const CollisionResource &collres, int node_idx, TT &&block, das::Context *,
+  das::LineInfoArg *)
+{
+  collres.iterateNodeVerts(node_idx, [&](int vi, vec4f v) { block(vi, *reinterpret_cast<das::float3 *>(&v)); });
+}
+
+inline void collres_node_iterate_verts(const CollisionResource &collres, int node_idx,
+  const das::TBlock<void, int, das::float3> &block, das::Context *context, das::LineInfoArg *at)
+{
+  vec4f args[2];
+  context->invokeEx(
+    block, args, nullptr,
+    [&](das::SimNode *code) {
+      collres.iterateNodeVerts(node_idx, [&](int vi, vec4f v) {
+        args[0] = das::cast<int>::from(vi);
+        args[1] = v;
+        code->eval(*context);
+      });
+    },
+    at);
 }
 
 inline bool collres_check_grid_available(const CollisionResource &collres, uint8_t behavior_filter)

@@ -6,6 +6,7 @@
 #include "physical_device_set.h"
 #include "device_context.h"
 #include "vulkan_allocation_callbacks.h"
+#include "backend/cmd/resources.h"
 
 using namespace drv3d_vulkan;
 
@@ -56,7 +57,7 @@ void PipelineCache::load(PipelineCacheFile &src)
     if (is_null(handle))
       handle = loadedCache;
     else
-      Globals::ctx.addPipelineCache(loadedCache);
+      Globals::ctx.dispatchCmd<CmdAddPipelineCache>({loadedCache});
   }
   else if (is_null(handle))
   {

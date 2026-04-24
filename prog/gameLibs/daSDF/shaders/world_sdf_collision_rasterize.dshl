@@ -10,7 +10,6 @@ interval gi_voxelize_with_instancing:instancing<2, primitives;
 
 shader world_sdf_collision_rasterize
 {
-  ENABLE_ASSERT(ps)
   supports none;
   supports global_frame;
   cull_mode = none;

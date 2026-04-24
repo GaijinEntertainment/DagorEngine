@@ -4,7 +4,7 @@ from "math" import sqrt, floor
 let cursors = require("samples_prog/_cursors.nut")
 
 let overlay = watchElemState(@(sf) {
-  size = static [pw(80), ph(80)]
+  size = const [pw(80), ph(80)]
   pos = [pw(20), ph(20)]
   hplace = ALIGN_CENTER
   vplace = ALIGN_CENTER
@@ -34,7 +34,7 @@ let processor = @() {
   fillColor = processorState.get().devId!=null ? Color(120,240,100) : Color(160,220,120)
   borderWidth = 2
   borderColor = processorState.get().devId!=null ? Color(255,255,255) : Color(50,240,50)
-  size = static [pw(80), ph(80)]
+  size = const [pw(80), ph(80)]
   behavior = Behaviors.ProcessPointingInput
   watch = processorState
 

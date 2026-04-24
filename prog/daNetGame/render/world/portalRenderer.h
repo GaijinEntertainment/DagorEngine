@@ -29,7 +29,7 @@ struct PortalParams
 class PortalRenderer
 {
 public:
-  using RenderWaterCb = eastl::function<void(Texture *color_target, const TMatrix &itm, Texture *depth)>;
+  using RenderWaterCb = eastl::function<void(Texture *color_target, const CameraParams &camera, Texture *depth)>;
   using RenderLandmeshCb =
     eastl::function<void(mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum, const Point3 &view_pos)>;
   using RenderSkyCb = eastl::function<void(const TMatrix &view, const TMatrix4 &proj, const Driver3dPerspective &persp)>;
@@ -68,6 +68,7 @@ public:
   void freePortal(int portal_index);
   int getActivePortalCubeSlot(int portal_index) const;
   int getRenderedPortalCubeSlot(int portal_index, TMatrix &portal_tm, float &life, bool &is_bidirectional) const;
+  void afterDeviceReset();
 
 private:
   static constexpr int MAX_RENDERED_CUBES = 4;

@@ -1,6 +1,6 @@
 module sound_utils_net_events shared
 require ecs
-require danetlibs.renderer.includes.pufd_events public
+require gameLibs.pufd_events.pufd_events public
 
 [event(unicast, routing=ROUTING_SERVER_TO_CLIENT)]
 struct CmdPlayNetSound

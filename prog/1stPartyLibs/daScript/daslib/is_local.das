@@ -6,13 +6,19 @@ options strict_smart_pointers = true
 
 module is_local shared public
 
-require ast public
-require rtti
+//! Expression locality analysis.
+//!
+//! Provides ``is_temp_safe`` and related helpers that determine whether
+//! an expression can be safely treated as temporary (no hidden references
+//! escape through calls, indexing, or field access).
+
+require daslib/ast public
+require daslib/rtti
 require daslib/ast_boost
 require strings
 
 def is_temp_safe(expr : ExpressionPtr) : bool {
-    //! Returns true if the exression had no calls, [] or table [] operators of any kind.
+    //! Returns true if the expression had no calls, [] or table [] operators of any kind.
     //! This is used to check expression can be safely casted to temp type.
     if (expr is ExprVar) {
         return (expr as ExprVar).varFlags.local // local variables are ok
@@ -35,7 +41,7 @@ def is_temp_safe(expr : ExpressionPtr) : bool {
 }
 
 def is_shared_expr(expr : ExpressionPtr) {
-    //! Returns true if the expression is local to the current scope.
+    //! Returns true if the expression refers to a global shared variable.
     if (expr is ExprVar) {
         let evar = expr as ExprVar
         if (evar.variable.flags.global_shared) {
@@ -90,7 +96,7 @@ def is_local_expr(expr : ExpressionPtr) {
 }
 
 def is_local_or_global_expr(expr : ExpressionPtr) {
-    //! Returns true if expression is local the current scope or global scope.
+    //! Returns true if expression is local to the current scope or global scope.
     if (expr is ExprVar) {
         let ev = expr as ExprVar
         return ev.varFlags.local || !(ev.varFlags.argument || ev.varFlags._block)

@@ -1,0 +1,23 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/daECS/core ;
+
+TargetType  = lib ;
+Target      = engine/daECS/core.lib ;
+StrictCompile = yes ;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+#Sources = entityManagerQuery.cpp  ;
+
+if $(KernelLinkage) != dynamic { UseProgLibs = engine/baseUtil ; }
+UseProgLibs +=
+  3rdPartyLibs/eastl
+  3rdPartyLibs/regExp
+;
+
+if $(PlatformSpec) = clang
+{
+#  CPPopt = /clang:-fsave-optimization-record ;
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -79,7 +79,12 @@ BEGIN_BITFIELD_TYPE(SamplerState, uint32_t)
     result.AddressV = getV();
     result.AddressW = getW();
     result.MipLODBias = getBias();
+#if _TARGET_PC_WIN
+    result.ComparisonFunc = isCompare ? D3D12_COMPARISON_FUNC_LESS_EQUAL : D3D12_COMPARISON_FUNC_NONE;
+#else
+    // for some reason GDK has no none mode, so keeping old way for it
     result.ComparisonFunc = isCompare ? D3D12_COMPARISON_FUNC_LESS_EQUAL : D3D12_COMPARISON_FUNC_ALWAYS;
+#endif
     result.MinLOD = 0;
     result.MaxLOD = FLT_MAX;
     result.BorderColor[0] = static_cast<uint32_t>(borderColorMode) & 1 ? 1.f : 0.f;

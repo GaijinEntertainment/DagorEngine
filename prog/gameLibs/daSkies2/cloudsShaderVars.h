@@ -4,6 +4,12 @@
 #define CLOUDS_VARS_LIST                                                                  \
   VAR(cloud_volume_res, false)                                                            \
   VAR(cloud_volume_dist, false)                                                           \
+  VAR(prev_clouds_volume_transmittance, true)                                             \
+  VAR(cloud_frame_no, true)                                                               \
+  VAR(prev_skies_globtm_0, true)                                                          \
+  VAR(prev_skies_globtm_1, true)                                                          \
+  VAR(prev_skies_globtm_2, true)                                                          \
+  VAR(prev_skies_globtm_3, true)                                                          \
   VAR(clouds2_current_frame, true)                                                        \
   VAR(clouds2_dispatch_groups, false)                                                     \
   VAR(clouds2_resolution, true)                                                           \
@@ -36,7 +42,6 @@
   VAR(clouds_forward_eccentricity_weight, false)                                          \
   VAR(clouds_gen_mips_3d_one_layer, false)                                                \
   VAR(clouds_gen_mips_3d_source, false)                                                   \
-  VAR(clouds_gen_mips_3d_source_samplerstate, false)                                      \
   VAR(clouds_has_close_sequence, false)                                                   \
   VAR(clouds_height_fractions, false)                                                     \
   VAR(clouds_hole_light_dir, true)                                                        \
@@ -75,9 +80,7 @@
   VAR(clouds_target_depth_gbuf_transform, true)                                           \
   VAR(clouds_thickness2, false)                                                           \
   VAR(clouds_tile_distance, true)                                                         \
-  VAR(clouds_tile_distance_samplerstate, true)                                            \
   VAR(clouds_tile_distance_tmp, true)                                                     \
-  VAR(clouds_tile_distance_tmp_samplerstate, true)                                        \
   VAR(clouds_tiled_res, true)                                                             \
   VAR(clouds_turbulence_freq, false)                                                      \
   VAR(clouds_turbulence_scale, false)                                                     \
@@ -85,7 +88,6 @@
   VAR(clouds_wind_alt_gradient, true)                                                     \
   VAR(clouds_use_fullres, true)                                                           \
   VAR(compress_voltex_bc4_source, false)                                                  \
-  VAR(compress_voltex_bc4_source_samplerstate, false)                                     \
   VAR(dispatch_size, false)                                                               \
   VAR(global_clouds_sigma, false)                                                         \
   VAR(nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m, true) \
@@ -93,7 +95,9 @@
   VAR(nbs_clouds_start_altitude2_meters, true)                                            \
   VAR(clouds_direct_sequence, true)                                                       \
   VAR(clouds_use_blur_apply, true)                                                        \
-  VAR(clouds_ignore_close_objects, true)
+  VAR(clouds_invalidate_taa_frames, true)                                                 \
+  VAR(clouds_ignore_close_objects, true)                                                  \
+  VAR(clouds_rain_map_max_height, true)
 
 
 #define VAR(a, opt) extern int a##VarId;

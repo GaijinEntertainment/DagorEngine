@@ -13,6 +13,6 @@ void teardown() {}
 
 void turn_off() {}
 
-void render(bvh::ContextId, const TMatrix4 &, TEXTUREID, bool, const denoiser::TexMap &, Quality, bool) {}
+void render(bvh::ContextId, const TMatrix4 &, Texture *, bool, const denoiser::TexMap &, Quality, bool) {}
 
 } // namespace ptgi

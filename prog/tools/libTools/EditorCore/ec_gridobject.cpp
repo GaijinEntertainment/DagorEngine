@@ -2,6 +2,7 @@
 
 #include <EditorCore/ec_gridobject.h>
 #include <EditorCore/ec_interface.h>
+#include <EditorCore/ec_confirmation_dialog.h>
 
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
@@ -19,15 +20,34 @@
 
 #define MAJOR_LINE_COLOR E3DCOLOR(0, 0, 0, 255)
 
-static int infinite_grid_major_line_colorVarId = -1;
-static int infinite_grid_minor_line_colorVarId = -1;
-static int infinite_grid_x_axis_colorVarId = -1;
-static int infinite_grid_z_axis_colorVarId = -1;
-static int infinite_grid_major_line_widthVarId = -1;
-static int infinite_grid_minor_line_widthVarId = -1;
-static int infinite_grid_major_subdivisionsVarId = -1;
-static int infinite_grid_view_projVarId = -1;
-static int infinite_grid_y_positionVarId = -1;
+namespace
+{
+int infinite_grid_major_line_colorVarId = -1;
+int infinite_grid_minor_line_colorVarId = -1;
+int infinite_grid_x_axis_colorVarId = -1;
+int infinite_grid_z_axis_colorVarId = -1;
+int infinite_grid_major_line_widthVarId = -1;
+int infinite_grid_minor_line_widthVarId = -1;
+int infinite_grid_major_subdivisionsVarId = -1;
+int infinite_grid_view_projVarId = -1;
+int infinite_grid_y_positionVarId = -1;
+
+constexpr real DEFAULT_STEP = 0.05;
+constexpr real DEFAULT_ANGLE_STEP = 2.5;
+constexpr real DEFAULT_SCALE_STEP = 10.;
+constexpr real DEFAULT_GRID_HEIEGHT = 0.;
+constexpr bool DEFAULT_IS_MOVE_SNAP = false;
+constexpr bool DEFAULT_IS_ROTATE_SNAP = false;
+constexpr bool DEFAULT_IS_SCALE_SNAP = false;
+constexpr bool DEFAULT_IS_DRAW_MAJOR_LINES = true;
+constexpr bool DEFAULT_IS_DRAW_AXIS_LINES = true;
+constexpr bool DEFAULT_IS_USE_INFINITE_GRID = true;
+const E3DCOLOR DEFAULT_INF_GRID_MAJOR_LINE_COLOR = E3DCOLOR(0, 0, 0);
+const E3DCOLOR DEFAULT_INF_GRID_MINOR_LINE_COLOR = E3DCOLOR(150, 150, 150);
+constexpr real DEFAULT_INF_GRID_MAJOR_LINE_WIDTH = 0.05;
+constexpr real DEFAULT_INF_GRID_MINOR_LINE_WIDTH = 0.01;
+constexpr int DEFAULT_INF_GRID_MAJOR_SUBDIVS = 5;
+} // namespace
 
 GridObject::GridObject() : infiniteGridInitialized(false) { resetToDefault(); }
 
@@ -39,25 +59,25 @@ GridObject::~GridObject()
 
 void GridObject::resetToDefault()
 {
-  step = 0.05;
-  angleStep = 2.5;
-  scaleStep = 10.0;
-  gridHeight = 0;
+  step = DEFAULT_STEP;
+  angleStep = DEFAULT_ANGLE_STEP;
+  scaleStep = DEFAULT_SCALE_STEP;
+  gridHeight = DEFAULT_GRID_HEIEGHT;
 
-  isMoveSnap = false;
-  isRotateSnap = false;
-  isScaleSnap = false;
-  isDrawMajorLines = true;
-  isDrawAxisLines = true;
+  isMoveSnap = DEFAULT_IS_MOVE_SNAP;
+  isRotateSnap = DEFAULT_IS_ROTATE_SNAP;
+  isScaleSnap = DEFAULT_IS_SCALE_SNAP;
+  isDrawMajorLines = DEFAULT_IS_DRAW_MAJOR_LINES;
+  isDrawAxisLines = DEFAULT_IS_DRAW_AXIS_LINES;
 
-  isUseInfiniteGrid = true;
-  infiniteGridMajorLineColor = E3DCOLOR(0, 0, 0);
-  infiniteGridMinorLineColor = E3DCOLOR(150, 150, 150);
+  isUseInfiniteGrid = DEFAULT_IS_USE_INFINITE_GRID;
+  infiniteGridMajorLineColor = DEFAULT_INF_GRID_MAJOR_LINE_COLOR;
+  infiniteGridMinorLineColor = DEFAULT_INF_GRID_MINOR_LINE_COLOR;
   infiniteGridXAxisColor = e3dcolor_lerp(E3DCOLOR(228, 55, 80, 255), infiniteGridMinorLineColor, 0.5f);
   infiniteGridZAxisColor = e3dcolor_lerp(E3DCOLOR(46, 131, 228, 255), infiniteGridMinorLineColor, 0.5f);
-  infiniteGridMajorLineWidth = 0.05f;
-  infiniteGridMinorLineWidth = 0.01f;
-  infiniteGridMajorSubdivisions = 5;
+  infiniteGridMajorLineWidth = DEFAULT_INF_GRID_MAJOR_LINE_WIDTH;
+  infiniteGridMinorLineWidth = DEFAULT_INF_GRID_MINOR_LINE_WIDTH;
+  infiniteGridMajorSubdivisions = DEFAULT_INF_GRID_MAJOR_SUBDIVS;
 }
 
 void GridObject::renderInfiniteGrid()
@@ -100,15 +120,15 @@ void GridObject::renderInfiniteGrid()
   const TMatrix4 viewProj = TMatrix4(viewTm) * projTm;
   const bool drawMajorLines = isDrawMajorLines && infiniteGridMajorSubdivisions > 1;
 
-  ShaderGlobal::set_color4(infinite_grid_major_line_colorVarId, drawMajorLines ? infiniteGridMajorLineColor : E3DCOLOR(0, 0, 0, 0));
-  ShaderGlobal::set_color4(infinite_grid_minor_line_colorVarId, infiniteGridMinorLineColor);
-  ShaderGlobal::set_color4(infinite_grid_x_axis_colorVarId, isDrawAxisLines ? infiniteGridXAxisColor : E3DCOLOR(0, 0, 0, 0));
-  ShaderGlobal::set_color4(infinite_grid_z_axis_colorVarId, isDrawAxisLines ? infiniteGridZAxisColor : E3DCOLOR(0, 0, 0, 0));
-  ShaderGlobal::set_real(infinite_grid_major_line_widthVarId, infiniteGridMajorLineWidth);
-  ShaderGlobal::set_real(infinite_grid_minor_line_widthVarId, infiniteGridMinorLineWidth);
-  ShaderGlobal::set_real(infinite_grid_major_subdivisionsVarId, drawMajorLines ? infiniteGridMajorSubdivisions : 1);
+  ShaderGlobal::set_float4(infinite_grid_major_line_colorVarId, drawMajorLines ? infiniteGridMajorLineColor : E3DCOLOR(0, 0, 0, 0));
+  ShaderGlobal::set_float4(infinite_grid_minor_line_colorVarId, infiniteGridMinorLineColor);
+  ShaderGlobal::set_float4(infinite_grid_x_axis_colorVarId, isDrawAxisLines ? infiniteGridXAxisColor : E3DCOLOR(0, 0, 0, 0));
+  ShaderGlobal::set_float4(infinite_grid_z_axis_colorVarId, isDrawAxisLines ? infiniteGridZAxisColor : E3DCOLOR(0, 0, 0, 0));
+  ShaderGlobal::set_float(infinite_grid_major_line_widthVarId, infiniteGridMajorLineWidth);
+  ShaderGlobal::set_float(infinite_grid_minor_line_widthVarId, infiniteGridMinorLineWidth);
+  ShaderGlobal::set_float(infinite_grid_major_subdivisionsVarId, drawMajorLines ? infiniteGridMajorSubdivisions : 1);
   ShaderGlobal::set_float4x4(infinite_grid_view_projVarId, viewProj);
-  ShaderGlobal::set_real(infinite_grid_y_positionVarId, gridHeight);
+  ShaderGlobal::set_float(infinite_grid_y_positionVarId, gridHeight);
   set_viewvecs_to_shader(viewTm, projTm);
 
   if (!infiniteGridShaderElement->setStates(0, true))
@@ -321,14 +341,17 @@ enum
 };
 
 
-GridEditDialog::GridEditDialog(void *phandle, GridObject &grid, const char *caption) :
-  DialogWindow(phandle, hdpi::_pxScaled(300), hdpi::_pxScaled(300), caption), mGrid(grid)
+GridEditDialog::GridEditDialog(IGridSettingChangeEventHandler &change_event_handler, GridObject &grid, const char *caption) :
+  DialogWindow(nullptr, hdpi::_pxScaled(300), hdpi::_pxScaled(300), caption),
+  gridSettingChangeEventHandler(change_event_handler),
+  mGrid(grid)
 {
   G_ASSERT(&mGrid);
   fillPanel();
 
   PropPanel::ContainerPropertyControl *buttonsContainer = buttonsPanel->getContainer();
-  buttonsContainer->removeById(PropPanel::DIALOG_ID_CANCEL);
+  buttonsContainer->setText(PropPanel::DIALOG_ID_OK, "Revert to default");
+  buttonsContainer->setText(PropPanel::DIALOG_ID_CANCEL, "Close");
 }
 
 
@@ -340,6 +363,16 @@ void GridEditDialog::showGridEditDialog(int viewport_index)
   updateShowGridDialogControl();
   autoSize(!hasEverBeenShown());
   show();
+}
+
+
+bool GridEditDialog::onOk()
+{
+  if (ConfirmationDialog("Revert to defaults", "Are you sure you want to revert to defaults?").showDialog() == PropPanel::DIALOG_ID_OK)
+  {
+    getPanel()->applyDefaultValue();
+  }
+  return false;
 }
 
 
@@ -364,6 +397,9 @@ void GridEditDialog::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
   mGrid.setInfiniteGridMajorLineWidth(panel->getFloat(ID_INFINITE_GRID_MAJOR_LINE_WIDTH));
   mGrid.setInfiniteGridMinorLineWidth(panel->getFloat(ID_INFINITE_GRID_MINOR_LINE_WIDTH));
   mGrid.setInfiniteGridMajorSubdivisions(panel->getInt(ID_INFINITE_GRID_MAJOR_SUBDIVISIONS));
+
+  if (pcb_id == ID_MOVE_SNAP_CHK || pcb_id == ID_ROTATE_SNAP_CHK || pcb_id == ID_SCALE_SNAP_CHK)
+    gridSettingChangeEventHandler.onSnapSettingChanged();
 }
 
 
@@ -393,6 +429,23 @@ void GridEditDialog::fillPanel()
   panel->createEditFloat(ID_INFINITE_GRID_MAJOR_LINE_WIDTH, "Major line width", mGrid.getInfiniteGridMajorLineWidth());
   panel->createEditFloat(ID_INFINITE_GRID_MINOR_LINE_WIDTH, "Minor line width", mGrid.getInfiniteGridMinorLineWidth());
   panel->createEditInt(ID_INFINITE_GRID_MAJOR_SUBDIVISIONS, "Major subdivisions", mGrid.getInfiniteGridMajorSubdivisions());
+
+  panel->setDefaultValueById(ID_SHOW_VIEWPORT_CHECKBOX, PropPanel::Variant{true});
+  panel->setDefaultValueById(ID_MOVE_SNAP_CHK, PropPanel::Variant{DEFAULT_IS_MOVE_SNAP});
+  panel->setDefaultValueById(ID_MOVE_SNAP_EDIT, PropPanel::Variant{DEFAULT_STEP});
+  panel->setDefaultValueById(ID_ROTATE_SNAP_CHK, PropPanel::Variant{DEFAULT_IS_ROTATE_SNAP});
+  panel->setDefaultValueById(ID_ROTATE_SNAP_EDIT, PropPanel::Variant{DEFAULT_ANGLE_STEP});
+  panel->setDefaultValueById(ID_SCALE_SNAP_CHK, PropPanel::Variant{DEFAULT_IS_SCALE_SNAP});
+  panel->setDefaultValueById(ID_SCALE_SNAP_EDIT, PropPanel::Variant{DEFAULT_SCALE_STEP});
+  panel->setDefaultValueById(ID_DRAW_MAJOR_LINES, PropPanel::Variant{DEFAULT_IS_DRAW_MAJOR_LINES});
+  panel->setDefaultValueById(ID_DRAW_AXIS_LINES, PropPanel::Variant{DEFAULT_IS_DRAW_AXIS_LINES});
+  panel->setDefaultValueById(ID_GRID_HEIGHT, PropPanel::Variant{DEFAULT_GRID_HEIEGHT});
+  panel->setDefaultValueById(ID_USE_INFINITE_GRID, PropPanel::Variant{DEFAULT_IS_USE_INFINITE_GRID});
+  panel->setDefaultValueById(ID_INFINITE_GRID_MAJOR_LINE_COLOR, PropPanel::Variant{DEFAULT_INF_GRID_MAJOR_LINE_COLOR});
+  panel->setDefaultValueById(ID_INFINITE_GRID_MINOR_LINE_COLOR, PropPanel::Variant{DEFAULT_INF_GRID_MINOR_LINE_COLOR});
+  panel->setDefaultValueById(ID_INFINITE_GRID_MAJOR_LINE_WIDTH, PropPanel::Variant{DEFAULT_INF_GRID_MAJOR_LINE_WIDTH});
+  panel->setDefaultValueById(ID_INFINITE_GRID_MINOR_LINE_WIDTH, PropPanel::Variant{DEFAULT_INF_GRID_MINOR_LINE_WIDTH});
+  panel->setDefaultValueById(ID_INFINITE_GRID_MAJOR_SUBDIVISIONS, PropPanel::Variant{DEFAULT_INF_GRID_MAJOR_SUBDIVS});
 }
 
 
@@ -413,4 +466,22 @@ void GridEditDialog::onGridVisibilityChanged(int viewport_index)
     return;
 
   updateShowGridDialogControl();
+}
+
+
+void GridEditDialog::onSnapSettingChanged()
+{
+  PropPanel::ContainerPropertyControl *panel = getPanel();
+  panel->setBool(ID_MOVE_SNAP_CHK, mGrid.getMoveSnap());
+  panel->setBool(ID_ROTATE_SNAP_CHK, mGrid.getRotateSnap());
+  panel->setBool(ID_SCALE_SNAP_CHK, mGrid.getScaleSnap());
+}
+
+
+void GridEditDialog::updateImguiDialog()
+{
+  const bool enabled = !getPanel()->isDefaultValueSet();
+  setDialogButtonEnabled(PropPanel::DIALOG_ID_OK, enabled);
+  setDialogButtonTooltip(PropPanel::DIALOG_ID_OK, enabled ? "" : "All set to default");
+  Base::updateImguiDialog();
 }

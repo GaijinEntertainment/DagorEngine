@@ -3,7 +3,7 @@
 
 #include <bindQuirrelEx/autoBind.h>
 #include <bindQuirrelEx/autoCleanup.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 
 namespace ui

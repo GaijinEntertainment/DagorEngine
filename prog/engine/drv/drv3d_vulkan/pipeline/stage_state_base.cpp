@@ -9,11 +9,21 @@
 #include "dummy_resources.h"
 #include "backend.h"
 #include "execution_state.h"
-#include "execution_context.h"
+#include "backend/context.h"
 #include "execution_sync.h"
 #include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
+
+namespace
+{
+
+constexpr uint8_t comboSlotMask(uint8_t engine_type, uint8_t shader_type)
+{
+  return (engine_type << spirv::ResourceTypeMask::BIT_COUNT) | shader_type;
+}
+
+} // namespace
 
 PipelineStageStateBase::PipelineStageStateBase() { dtab.clear(); }
 
@@ -30,7 +40,7 @@ void PipelineStageStateBase::invalidateState()
 
 void PipelineStageStateBase::syncDepthROStateInT(Image *image, uint32_t, uint32_t, bool ro_ds)
 {
-  for (uint32_t j : LsbVisitor{tBinds.validMask()})
+  for (uint32_t j = 0; j < spirv::T_REGISTER_INDEX_MAX; ++j)
   {
     TRegister &reg = tBinds[j];
     if (reg.type != TRegister::TYPE_IMG)
@@ -46,10 +56,6 @@ void PipelineStageStateBase::syncDepthROStateInT(Image *image, uint32_t, uint32_
       isConstDepthStencil.reset(j);
     else
       continue;
-
-    VkImageLayout targetLayout = getImgLayout(isConstDepthStencil.test(j));
-    dtab.TSampledImage(j) += targetLayout;
-
     tBinds.set(j);
   }
 }
@@ -60,90 +66,47 @@ void PipelineStageStateBase::setImmediateConsts(const uint32_t *data)
   pushConstantsChanged = true;
 }
 
-void PipelineStageStateBase::setBempty(uint32_t unit)
-{
-  bBinds.clear(unit);
-  dtab.BConstBuffer(unit).clear();
-}
+void PipelineStageStateBase::setBempty(uint32_t unit) { bBinds.clear(unit); }
 
-void PipelineStageStateBase::setTempty(uint32_t unit)
-{
-  tBinds.clear(unit);
-  dtab.TBuffer(unit).clear();
-  dtab.TSampledBuffer(unit).clear();
-  dtab.TSampledImage(unit).clear();
-#if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
-  dtab.TRaytraceAS(unit).clear();
-#endif
-}
+void PipelineStageStateBase::setTempty(uint32_t unit) { tBinds.clear(unit); }
 
-void PipelineStageStateBase::setUempty(uint32_t unit)
-{
-  uBinds.clear(unit);
-  dtab.UBuffer(unit).clear();
-  dtab.USampledBuffer(unit).clear();
-  dtab.UImage(unit).clear();
-}
+void PipelineStageStateBase::setUempty(uint32_t unit) { uBinds.clear(unit); }
 
 void PipelineStageStateBase::setSempty(uint32_t unit)
 {
   sBinds.clear(unit);
-  if (dtab.TSampledImage(unit).type == VkAnyDescriptorInfo::TYPE_IMG)
-  {
-    if (applySamplersToCombinedImage(unit))
-      tBinds.set(unit);
-  }
-  applySamplers(unit);
+  if (tBinds[unit].type == TRegister::TYPE_IMG)
+    tBinds.set(unit);
 }
 
-void PipelineStageStateBase::applySamplers(uint32_t unit)
+void PipelineStageStateBase::applySamplersToCombinedImage(uint32_t unit, VkAnyDescriptorInfo &descriptor)
 {
-  const SamplerInfo *samplerInfo = sBinds[unit].si;
-  if (samplerInfo)
-  {
-    dtab.TSampler(unit) += samplerInfo->handle;
-    dtab.TSampler(unit).type = VkAnyDescriptorInfo::TYPE_SAMPLER;
-  }
+  if (sBinds[unit].si)
+    descriptor += sBinds[unit].si->handle;
   else
   {
     const auto &dummyResourceTable = Globals::dummyResources.getTable();
-    dtab.TSampler(unit).type = VkAnyDescriptorInfo::TYPE_NULL;
-    dtab.TSampler(unit).image.sampler = dummyResourceTable[spirv::MISSING_SAMPLED_IMAGE_2D_INDEX].descriptor.image.sampler;
+    descriptor.image.sampler = dummyResourceTable[spirv::MISSING_SAMPLED_IMAGE_2D_INDEX].descriptor.image.sampler;
   }
 }
 
-bool PipelineStageStateBase::applySamplersToCombinedImage(uint32_t unit)
-{
-  const SamplerInfo *samplerInfo = sBinds[unit].si;
-  VkSampler oldSmp = dtab.TSampledImage(unit).image.sampler;
-  if (samplerInfo)
-  {
-    dtab.TSampledImage(unit) += samplerInfo->handle;
-  }
-  else
-  {
-    const auto &dummyResourceTable = Globals::dummyResources.getTable();
-    dtab.TSampledImage(unit).image.sampler = dummyResourceTable[spirv::MISSING_SAMPLED_IMAGE_2D_INDEX].descriptor.image.sampler;
-  }
-  return oldSmp != dtab.TSampledImage(unit).image.sampler;
-}
-
-void PipelineStageStateBase::setTinputAttachment(uint32_t unit, Image *image, bool as_const_ds, VulkanImageViewHandle view)
+void PipelineStageStateBase::setTinputAttachment(uint32_t flat_binding_index, Image *image, bool as_const_ds,
+  VulkanImageViewHandle view)
 {
   G_UNUSED(image);
+  G_ASSERTF(image, "vulkan: obj must be valid!");
 
-  VkAnyDescriptorInfo &regRef = dtab.TInputAttachment(unit);
+  VkAnyDescriptorInfo &regRef = dtab.TInputAttachment(flat_binding_index);
   if (regRef.image.imageView == view && regRef.type == VkAnyDescriptorInfo::TYPE_IMG)
     return;
 
-  G_ASSERTF(image, "vulkan: obj must be valid!");
+  // caller code should reset state already, but better to be safe here
   lastDescriptorSet = VulkanNullHandle();
 
   regRef += VkDescriptorImageInfo{VK_NULL_HANDLE, view, getImgLayout(as_const_ds)};
 }
 
-void PipelineStageStateBase::setTtexture(uint32_t unit, Image *image, ImageViewState view_state, bool as_const_ds,
-  VulkanImageViewHandle view)
+void PipelineStageStateBase::setTtexture(uint32_t unit, Image *image, ImageViewState view_state, bool as_const_ds)
 {
   G_ASSERTF(image, "vulkan: binding empty tReg as image, should be filtered at bind point!");
   TRegister &reg = tBinds.set(unit);
@@ -151,46 +114,23 @@ void PipelineStageStateBase::setTtexture(uint32_t unit, Image *image, ImageViewS
   reg.img.ptr = image;
   reg.img.view = view_state;
   isConstDepthStencil.set(unit, as_const_ds);
-
-  dtab.TBuffer(unit).clear();
-  dtab.TSampledBuffer(unit).clear();
-#if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
-  dtab.TRaytraceAS(unit).clear();
-#endif
-
-  VkAnyDescriptorInfo::ReducedImageInfo imgInfo{view, getImgLayout(as_const_ds)};
-  dtab.TSampledImage(unit) += imgInfo;
-  applySamplersToCombinedImage(unit);
 }
 
-void PipelineStageStateBase::setUtexture(uint32_t unit, Image *image, ImageViewState view_state, VulkanImageViewHandle view)
+void PipelineStageStateBase::setUtexture(uint32_t unit, Image *image, ImageViewState view_state)
 {
-  G_ASSERTF(!is_null(view), "vulkan: obj must be valid!");
+  G_ASSERTF(image, "vulkan: obj must be valid!");
   URegister &reg = uBinds.set(unit);
   reg.image = image;
   reg.imageView = view_state;
   reg.buffer = BufferRef{};
-
-  dtab.UBuffer(unit).clear();
-  dtab.USampledBuffer(unit).clear();
-  dtab.UImage(unit) += view;
 }
 
 void PipelineStageStateBase::setTbuffer(uint32_t unit, BufferRef buffer)
 {
-  G_ASSERTF(buffer, "vulkan: obj must be valid!");
+  G_ASSERTF(buffer, "vulkan: binding empty tReg as buffer, should be filtered at bind point!");
   TRegister &reg = tBinds.set(unit);
   reg.type = TRegister::TYPE_BUF;
   reg.buf = buffer;
-
-  dtab.TSampledImage(unit).clear();
-#if VULKAN_HAS_RAYTRACING && (VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query)
-  dtab.TRaytraceAS(unit).clear();
-#endif
-
-  G_ASSERTF(buffer, "vulkan: binding empty tReg as buffer, should be filtered at bind point!");
-  dtab.TSampledBuffer(unit) += buffer.getView();
-  dtab.TBuffer(unit) += VkDescriptorBufferInfo{buffer.getHandle(), buffer.bufOffset(0), buffer.visibleDataSize};
 }
 
 void PipelineStageStateBase::setUbuffer(uint32_t unit, BufferRef buffer)
@@ -200,17 +140,11 @@ void PipelineStageStateBase::setUbuffer(uint32_t unit, BufferRef buffer)
   reg.buffer = buffer;
   reg.image = nullptr;
   reg.imageView = ImageViewState();
-
-  dtab.UImage(unit).clear();
-  dtab.USampledBuffer(unit) += buffer.getView();
-  dtab.UBuffer(unit) += VkDescriptorBufferInfo{buffer.getHandle(), buffer.bufOffset(0), buffer.visibleDataSize};
 }
 
 void PipelineStageStateBase::setBbuffer(uint32_t unit, BufferRef buffer)
 {
   G_ASSERTF(buffer, "vulkan: obj must be valid!");
-  dtab.BConstBuffer(unit) += VkDescriptorBufferInfo{buffer.getHandle(), 0, buffer.visibleDataSize};
-
   if (bBinds[unit].buffer == buffer.buffer && bBinds[unit].visibleDataSize == buffer.visibleDataSize)
   {
     bBinds[unit] = buffer;
@@ -224,12 +158,8 @@ void PipelineStageStateBase::setSSampler(uint32_t unit, const SamplerInfo *sampl
 {
   G_ASSERTF(sampler, "vulkan: obj must be valid!");
   sBinds.set(unit).si = sampler;
-  if (dtab.TSampledImage(unit).type == VkAnyDescriptorInfo::TYPE_IMG)
-  {
-    if (applySamplersToCombinedImage(unit))
-      tBinds.set(unit);
-  }
-  applySamplers(unit);
+  if (tBinds[unit].type == TRegister::TYPE_IMG)
+    tBinds.set(unit);
 }
 
 #if VULKAN_HAS_RAYTRACING
@@ -239,53 +169,12 @@ void PipelineStageStateBase::setTas(uint32_t unit, RaytraceAccelerationStructure
   TRegister &reg = tBinds.set(unit);
   reg.type = TRegister::TYPE_AS;
   reg.rtas = as;
-
-  dtab.TSampledImage(unit).clear();
-  dtab.TSampledBuffer(unit).clear();
-  dtab.TBuffer(unit).clear();
-
-#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
-  dtab.TRaytraceAS(unit) += as->getHandle();
-#endif
 }
 #endif
 
-#if VULKAN_TRACK_DEAD_RESOURCE_USAGE > 0
-
-void PipelineStageStateBase::checkForDeadResources(const spirv::ShaderHeader &hdr)
+static void sync_dummy_resource_on_missing_bind(uint8_t missing_index, ExtendedShaderStage stage)
 {
-  for (uint32_t i : LsbVisitor{tBinds.validDirtyMask() & hdr.tRegisterUseMask})
-  {
-    const auto &reg = tBinds[i];
-    switch (reg.type)
-    {
-      case TRegister::TYPE_IMG: reg.img.ptr->checkDead(); break;
-      case TRegister::TYPE_BUF: reg.buf.buffer->checkDead(); break;
-#if VULKAN_HAS_RAYTRACING
-      case TRegister::TYPE_AS: reg.rtas->checkDead(); break;
-#endif
-      default:;
-    }
-  }
-
-  for (uint32_t i : LsbVisitor{uBinds.validDirtyMask() & hdr.uRegisterUseMask})
-  {
-    const auto &reg = uBinds[i];
-    if (reg.image)
-      reg.image->checkDead();
-    else
-      reg.buffer.buffer->checkDead();
-  }
-
-  for (uint32_t i : LsbVisitor{bBinds.validDirtyMask() & hdr.bRegisterUseMask})
-    bBinds[i].buffer->checkDead();
-}
-
-#endif // VULKAN_TRACK_DEAD_RESOURCE_USAGE > 0
-
-static void sync_dummy_resource_on_missing_bind(const ResourceDummySet &dummy_resource_table, uint8_t missing_index,
-  ExtendedShaderStage stage)
-{
+  const auto &dummyResourceTable = Globals::dummyResources.getTable();
   switch (missing_index)
   {
     case spirv::MISSING_SAMPLED_IMAGE_2D_INDEX:
@@ -297,13 +186,13 @@ static void sync_dummy_resource_on_missing_bind(const ResourceDummySet &dummy_re
     case spirv::MISSING_SAMPLED_IMAGE_CUBE_ARRAY_INDEX:
     case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_CUBE_ARRAY_INDEX:
       Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::T),
-        (Image *)dummy_resource_table[missing_index].resource, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 12});
+        (Image *)dummyResourceTable[missing_index].resource, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 12});
       break;
 
     case spirv::MISSING_SAMPLED_IMAGE_3D_INDEX:
     case spirv::MISSING_SAMPLED_IMAGE_WITH_COMPARE_3D_INDEX:
       Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::T),
-        (Image *)dummy_resource_table[missing_index].resource, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 1});
+        (Image *)dummyResourceTable[missing_index].resource, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, {0, 1, 0, 1});
       break;
 
     case spirv::MISSING_STORAGE_IMAGE_2D_INDEX:
@@ -311,18 +200,18 @@ static void sync_dummy_resource_on_missing_bind(const ResourceDummySet &dummy_re
     case spirv::MISSING_STORAGE_IMAGE_CUBE_INDEX:
     case spirv::MISSING_STORAGE_IMAGE_CUBE_ARRAY_INDEX:
       Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::U),
-        (Image *)dummy_resource_table[missing_index].resource, VK_IMAGE_LAYOUT_GENERAL, {0, 1, 0, 12});
+        (Image *)dummyResourceTable[missing_index].resource, VK_IMAGE_LAYOUT_GENERAL, {0, 1, 0, 12});
       break;
 
     case spirv::MISSING_STORAGE_IMAGE_3D_INDEX:
       Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::U),
-        (Image *)dummy_resource_table[missing_index].resource, VK_IMAGE_LAYOUT_GENERAL, {0, 1, 0, 1});
+        (Image *)dummyResourceTable[missing_index].resource, VK_IMAGE_LAYOUT_GENERAL, {0, 1, 0, 1});
       break;
 
     case spirv::MISSING_BUFFER_SAMPLED_IMAGE_INDEX:
     case spirv::MISSING_BUFFER_INDEX:
     {
-      Buffer *dummyBuf = (Buffer *)dummy_resource_table[missing_index].resource;
+      Buffer *dummyBuf = (Buffer *)dummyResourceTable[missing_index].resource;
       Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::T), dummyBuf,
         {dummyBuf->bufOffsetLoc(0), dummyBuf->getBlockSize()});
     }
@@ -330,14 +219,14 @@ static void sync_dummy_resource_on_missing_bind(const ResourceDummySet &dummy_re
     case spirv::MISSING_STORAGE_BUFFER_SAMPLED_IMAGE_INDEX:
     case spirv::MISSING_STORAGE_BUFFER_INDEX:
     {
-      Buffer *dummyBuf = (Buffer *)dummy_resource_table[missing_index].resource;
+      Buffer *dummyBuf = (Buffer *)dummyResourceTable[missing_index].resource;
       Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::U), dummyBuf,
         {dummyBuf->bufOffsetLoc(0), dummyBuf->getBlockSize()});
     }
     break;
     case spirv::MISSING_CONST_BUFFER_INDEX:
     {
-      Buffer *dummyBuf = (Buffer *)dummy_resource_table[missing_index].resource;
+      Buffer *dummyBuf = (Buffer *)dummyResourceTable[missing_index].resource;
       Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::B), dummyBuf,
         {dummyBuf->bufOffsetLoc(0), dummyBuf->getBlockSize()});
     }
@@ -345,7 +234,7 @@ static void sync_dummy_resource_on_missing_bind(const ResourceDummySet &dummy_re
     case spirv::MISSING_TLAS_INDEX:
     {
 #if VULKAN_HAS_RAYTRACING
-      RaytraceAccelerationStructure *dummyTLAS = (RaytraceAccelerationStructure *)dummy_resource_table[missing_index].resource;
+      RaytraceAccelerationStructure *dummyTLAS = (RaytraceAccelerationStructure *)dummyResourceTable[missing_index].resource;
       if (dummyTLAS)
         Backend::sync.addAccelerationStructureAccess(LogicAddress::forAccelerationStructureOnExecStage(stage, RegisterType::T),
           dummyTLAS);
@@ -357,10 +246,9 @@ static void sync_dummy_resource_on_missing_bind(const ResourceDummySet &dummy_re
 }
 
 void PipelineStageStateBase::applyPushConstants(DescriptorSet &registers, VulkanPipelineLayoutHandle layout,
-  VkShaderStageFlags shader_stages, ExtendedShaderStage target_stage)
+  VkShaderStageFlags shader_stages, ExtendedShaderStage)
 {
   // pure push constants need to be set on layout change or changed values
-  // yet emulated must be binded once per change, so a bit different logic used here to fit both variants
   const spirv::ShaderHeader &hdr = registers.header;
   if (hdr.pushConstantsCount)
   {
@@ -376,51 +264,315 @@ void PipelineStageStateBase::applyPushConstants(DescriptorSet &registers, Vulkan
       pushConstantsChanged = false;
     }
   }
+}
+
+PipelineStageStateBase::ApplyStatus PipelineStageStateBase::applyTReg(const TRegister &reg, uint32_t idx,
+  const spirv::ShaderHeader &hdr)
+{
+  uint8_t absReg = hdr.engineSlotToRegister(idx, spirv::EngineSlotMapping::REG_T);
+  VkAnyDescriptorInfo &descriptor = dtab.arr[absReg];
+  switch (comboSlotMask(reg.type, hdr.resTypeMask.forTSlot(idx)))
+  {
+    case comboSlotMask(TRegister::TYPE_IMG, spirv::ResourceTypeMask::IMG):
+      descriptor +=
+        VkAnyDescriptorInfo::ReducedImageInfo{reg.img.ptr->getImageView(reg.img.view), getImgLayout(isConstDepthStencil.test(idx))};
+      applySamplersToCombinedImage(idx, descriptor);
+      break;
+    case comboSlotMask(TRegister::TYPE_BUF, spirv::ResourceTypeMask::BUF):
+      descriptor += VkDescriptorBufferInfo{reg.buf.getHandle(), reg.buf.bufOffset(0), reg.buf.visibleDataSize};
+      break;
+    case comboSlotMask(TRegister::TYPE_BUF, spirv::ResourceTypeMask::BUF_VIEW): descriptor += reg.buf.getView(); break;
+    case comboSlotMask(TRegister::TYPE_AS, spirv::ResourceTypeMask::AS):
+#if VULKAN_HAS_RAYTRACING
+#if VK_KHR_ray_tracing_pipeline || VK_KHR_ray_query
+      descriptor += reg.rtas->getHandle();
+#endif
+#endif
+      break;
+    default: descriptor.clear(); break;
+  }
+  return descriptor.type != VkAnyDescriptorInfo::TYPE_NULL ? ApplyStatus::RESOURCE : ApplyStatus::DUMMY;
+}
+
+PipelineStageStateBase::ApplyStatus PipelineStageStateBase::applyUReg(const URegister &reg, uint32_t idx,
+  const spirv::ShaderHeader &hdr)
+{
+  uint8_t absReg = hdr.engineSlotToRegister(idx, spirv::EngineSlotMapping::REG_U);
+  VkAnyDescriptorInfo &descriptor = dtab.arr[absReg];
+
+  // branchless version of
+  // uint8_t uRegTypeMask = reg.buffer ? URegister::TYPE_BUF : reg.image ? URegister::TYPE_IMG : URegister::TYPE_NULL;
+  uint8_t uRegTypeMask = (reg.image != nullptr) | ((reg.buffer.buffer != nullptr) << 1);
+
+  switch (comboSlotMask(uRegTypeMask, hdr.resTypeMask.forUSlot(idx)))
+  {
+    case comboSlotMask(URegister::TYPE_IMG, spirv::ResourceTypeMask::IMG):
+      descriptor += VkAnyDescriptorInfo::ReducedImageInfo{reg.image->getImageView(reg.imageView), VK_IMAGE_LAYOUT_GENERAL};
+      break;
+    case comboSlotMask(URegister::TYPE_BUF, spirv::ResourceTypeMask::BUF):
+      descriptor += VkDescriptorBufferInfo{reg.buffer.getHandle(), reg.buffer.bufOffset(0), reg.buffer.visibleDataSize};
+      break;
+    case comboSlotMask(URegister::TYPE_BUF, spirv::ResourceTypeMask::BUF_VIEW): descriptor += reg.buffer.getView(); break;
+    default: descriptor.clear(); break;
+  }
+  return descriptor.type != VkAnyDescriptorInfo::TYPE_NULL ? ApplyStatus::RESOURCE : ApplyStatus::DUMMY;
+}
+
+PipelineStageStateBase::ApplyStatus PipelineStageStateBase::applyBReg(const BufferRef &reg, uint32_t idx,
+  const spirv::ShaderHeader &hdr)
+{
+  uint8_t absReg = hdr.engineSlotToRegister(idx, spirv::EngineSlotMapping::REG_B);
+  VkAnyDescriptorInfo &descriptor = dtab.arr[absReg];
+
+  if (reg.buffer)
+    descriptor += VkDescriptorBufferInfo{reg.getHandle(), 0, reg.visibleDataSize};
+  else
+    descriptor.clear();
+  return descriptor.type != VkAnyDescriptorInfo::TYPE_NULL ? ApplyStatus::RESOURCE : ApplyStatus::DUMMY;
+}
+
+PipelineStageStateBase::ApplyStatus PipelineStageStateBase::applySReg(const ReducedSRegister &reg, uint32_t idx,
+  const spirv::ShaderHeader &hdr)
+{
+  uint8_t absReg = hdr.engineSlotToRegister(idx, spirv::EngineSlotMapping::REG_S);
+  VkAnyDescriptorInfo &descriptor = dtab.arr[absReg];
+  if (reg.si)
+  {
+    descriptor.type = VkAnyDescriptorInfo::TYPE_SAMPLER;
+    descriptor += reg.si->handle;
+  }
   else
   {
-    if (pushConstantsChanged)
-    {
-      setBbuffer(IMMEDAITE_CB_REGISTER_NO, Backend::immediateConstBuffers[target_stage].push(&pushConstants[0]));
-      pushConstantsChanged = false;
-    }
+    const auto &dummyResourceTable = Globals::dummyResources.getTable();
+    descriptor.type = VkAnyDescriptorInfo::TYPE_NULL;
+    descriptor.image.sampler = dummyResourceTable[spirv::MISSING_SAMPLED_IMAGE_2D_INDEX].descriptor.image.sampler;
+  }
+  return descriptor.type != VkAnyDescriptorInfo::TYPE_NULL ? ApplyStatus::RESOURCE : ApplyStatus::DUMMY;
+}
+
+void PipelineStageStateBase::syncAccessesForBOffsets(const spirv::ShaderHeader &hdr, ExtendedShaderStage stage)
+{
+  for (uint32_t i : LsbVisitor{hdr.bRegisterUseMask & bOffsetDirtyMask})
+    if (bBinds[i].buffer)
+      trackBResAccesses(i, stage);
+}
+void PipelineStageStateBase::updateDescriptorsNoTrack(const spirv::ShaderHeader &hdr)
+{
+  for (uint32_t i : LsbVisitor{hdr.tRegisterUseMask & tBinds.dirtyMask})
+    applyTReg(tBinds[i], i, hdr);
+  for (uint32_t i : LsbVisitor{hdr.uRegisterUseMask & uBinds.dirtyMask})
+    applyUReg(uBinds[i], i, hdr);
+  for (uint32_t i : LsbVisitor{hdr.bRegisterUseMask & bBinds.dirtyMask})
+    applyBReg(bBinds[i], i, hdr);
+  for (uint32_t i : LsbVisitor{hdr.sRegisterUseMask & sBinds.dirtyMask})
+    applySReg(sBinds[i], i, hdr);
+}
+
+void PipelineStageStateBase::updateDescriptors(const spirv::ShaderHeader &hdr, ExtendedShaderStage stage)
+{
+  for (uint32_t i : LsbVisitor{hdr.tRegisterUseMask & tBinds.dirtyMask})
+  {
+    if (applyTReg(tBinds[i], i, hdr) == ApplyStatus::RESOURCE)
+      trackTResAccesses(i, stage);
+    else
+      replaceAndTrackFallbackAccess(hdr, hdr.engineSlotToRegister(i, spirv::EngineSlotMapping::REG_T), stage);
+  }
+
+  for (uint32_t i : LsbVisitor{hdr.uRegisterUseMask & uBinds.dirtyMask})
+  {
+    if (applyUReg(uBinds[i], i, hdr) == ApplyStatus::RESOURCE)
+      trackUResAccesses(i, stage);
+    else
+      replaceAndTrackFallbackAccess(hdr, hdr.engineSlotToRegister(i, spirv::EngineSlotMapping::REG_U), stage);
+  }
+
+  for (uint32_t i : LsbVisitor{hdr.bRegisterUseMask & bBinds.dirtyMask})
+  {
+    if (applyBReg(bBinds[i], i, hdr) == ApplyStatus::RESOURCE)
+      trackBResAccesses(i, stage);
+    else
+      replaceAndTrackFallbackAccess(hdr, hdr.engineSlotToRegister(i, spirv::EngineSlotMapping::REG_B), stage);
+  }
+
+  for (uint32_t i : LsbVisitor{hdr.sRegisterUseMask & sBinds.dirtyMask})
+  {
+    if (applySReg(sBinds[i], i, hdr) == ApplyStatus::DUMMY)
+      replaceAndTrackFallbackAccess(hdr, hdr.engineSlotToRegister(i, spirv::EngineSlotMapping::REG_S), stage);
   }
 }
 
-void PipelineStageStateBase::checkForMissingBinds(const spirv::ShaderHeader &hdr, const ResourceDummySet &dummy_resource_table,
-  ExtendedShaderStage stage)
+void PipelineStageStateBase::syncAccessesNoDiff(const spirv::ShaderHeader &hdr, ExtendedShaderStage stage)
 {
-  // fill out the missing slots
   for (uint32_t i = 0; i < hdr.registerCount; ++i)
   {
-    uint32_t absReg = hdr.registerIndex[i];
-    VkAnyDescriptorInfo &slot = dtab.arr[absReg];
-    if (slot.type == VkAnyDescriptorInfo::TYPE_NULL)
-    {
-      // enable this to find who forget to bind resources
-      // D3D_ERROR("vulkan: empty binding for used register %u(%u) expected %u restype callsite %s", i, absReg,
-      //  hdr.missingTableIndex[i], Backend::State::exec.getExecutionContext().getCurrentCmdCaller());
-      switch (hdr.descriptorTypes[i])
-      {
-        case VK_DESCRIPTOR_TYPE_SAMPLER:
-          slot.image.sampler = dummy_resource_table[spirv::MISSING_SAMPLED_IMAGE_2D_INDEX].descriptor.image.sampler;
-          break;
-        case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
-        {
-          sync_dummy_resource_on_missing_bind(dummy_resource_table, spirv::MISSING_TLAS_INDEX, stage);
-          slot = dummy_resource_table[spirv::MISSING_TLAS_INDEX].descriptor;
-        }
-        break;
-        default:
-        {
-          G_ASSERTF(hdr.missingTableIndex[i] != spirv::MISSING_IS_FATAL_INDEX,
-            "vulkan: resource not bound for register %u(%u) of type %u at callsite %s!", i, absReg, hdr.descriptorTypes[i],
-            Backend::State::exec.getExecutionContext().getCurrentCmdCaller());
-
-          sync_dummy_resource_on_missing_bind(dummy_resource_table, hdr.missingTableIndex[i], stage);
-          slot = dummy_resource_table[hdr.missingTableIndex[i]].descriptor;
-        }
-        break;
-      }
-    }
+    if (dtab.arr[i].type != VkAnyDescriptorInfo::TYPE_NULL)
+      trackResAccess(hdr.registerToSlotMapping[i], stage);
+    else
+      replaceAndTrackFallbackAccess(hdr, i, stage);
   }
+}
+
+void PipelineStageStateBase::replaceAndTrackFallbackAccess(const spirv::ShaderHeader &hdr, uint8_t shader_reg,
+  ExtendedShaderStage stage)
+{
+  // if there was no resource fallback to dummy and track sync for it too
+
+  // enable this to find who forget to bind resources
+  // D3D_ERROR("vulkan: empty binding for used register %u expected %u restype callsite %s", shader_reg,
+  //  hdr.missingTableIndex[shader_reg], Backend::ctx.getCurrentCmdCaller());
+
+  const auto &dummyResourceTable = Globals::dummyResources.getTable();
+  VkAnyDescriptorInfo &descriptor = dtab.arr[shader_reg];
+  switch (hdr.descriptorTypes[shader_reg].value)
+  {
+    // input attachments handled as part of render pass logic
+    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: break;
+    case VK_DESCRIPTOR_TYPE_SAMPLER:
+      descriptor.image.sampler = dummyResourceTable[spirv::MISSING_SAMPLED_IMAGE_2D_INDEX].descriptor.image.sampler;
+      break;
+    case VK_COMPRESSED_DESCRIPTOR_TYPE_AS:
+    {
+      sync_dummy_resource_on_missing_bind(spirv::MISSING_TLAS_INDEX, stage);
+      descriptor = dummyResourceTable[spirv::MISSING_TLAS_INDEX].descriptor;
+    }
+    break;
+    default:
+    {
+      G_ASSERTF(hdr.missingTableIndex[shader_reg] != spirv::MISSING_IS_FATAL_INDEX,
+        "vulkan: resource not bound for register %u of type %u at callsite %s!", shader_reg, hdr.descriptorTypes[shader_reg].get(),
+        Backend::ctx.getCurrentCmdCaller());
+
+      sync_dummy_resource_on_missing_bind(hdr.missingTableIndex[shader_reg], stage);
+      descriptor = dummyResourceTable[hdr.missingTableIndex[shader_reg]].descriptor;
+    }
+    break;
+  }
+}
+
+void PipelineStageStateBase::trackResAccess(spirv::EngineSlotMapping mapped_slot, ExtendedShaderStage stage)
+{
+  switch (mapped_slot.type)
+  {
+    case spirv::EngineSlotMapping::REG_T: trackTResAccesses(mapped_slot.slot, stage); break;
+    case spirv::EngineSlotMapping::REG_U: trackUResAccesses(mapped_slot.slot, stage); break;
+    case spirv::EngineSlotMapping::REG_B: trackBResAccesses(mapped_slot.slot, stage); break;
+    case spirv::EngineSlotMapping::REG_S: break;
+    default: G_ASSERTF(0, "vulkan: unknown regMap.type = %u", mapped_slot.type); break;
+  }
+}
+
+void PipelineStageStateBase::trackTResAccesses(uint32_t slot, ExtendedShaderStage stage)
+{
+  const TRegister &reg = tBinds[slot];
+  switch (reg.type)
+  {
+    case TRegister::TYPE_IMG:
+    {
+      bool roDepth = isConstDepthStencil.test(slot);
+      VkImageLayout srvLayout = roDepth ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::T), reg.img.ptr, srvLayout,
+        {reg.img.view.getMipBase(), reg.img.view.getMipCount(), reg.img.view.getArrayBase(), reg.img.view.getArrayCount()});
+    }
+    break;
+    case TRegister::TYPE_BUF:
+      Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::T), reg.buf.buffer,
+        {reg.buf.bufOffset(0), reg.buf.visibleDataSize});
+      break;
+#if VULKAN_HAS_RAYTRACING
+    case TRegister::TYPE_AS:
+      Backend::sync.addAccelerationStructureAccess(LogicAddress::forAccelerationStructureOnExecStage(stage, RegisterType::T),
+        reg.rtas);
+      break;
+#endif
+    default: break;
+  }
+}
+
+void PipelineStageStateBase::trackUResAccesses(uint32_t slot, ExtendedShaderStage stage)
+{
+  const URegister &reg = uBinds[slot];
+  if (reg.image)
+  {
+    Backend::sync.addImageAccess(LogicAddress::forImageOnExecStage(stage, RegisterType::U), reg.image, VK_IMAGE_LAYOUT_GENERAL,
+      {reg.imageView.getMipBase(), reg.imageView.getMipCount(), reg.imageView.getArrayBase(), reg.imageView.getArrayCount()});
+  }
+  else
+  {
+    Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::U), reg.buffer.buffer,
+      {reg.buffer.bufOffset(0), reg.buffer.visibleDataSize});
+  }
+}
+
+void PipelineStageStateBase::trackBResAccesses(uint32_t slot, ExtendedShaderStage stage)
+{
+  const BufferRef &reg = bBinds[slot];
+  if (slot == GCBSlot && bGCBActive)
+    return;
+  Backend::sync.addBufferAccess(LogicAddress::forBufferOnExecStage(stage, RegisterType::B), reg.buffer,
+    {reg.bufOffset(0), reg.visibleDataSize});
+}
+
+bool PipelineStageStateBase::updateOnDemand(DescriptorSet &registers, ExtendedShaderStage stage, size_t frame_index)
+{
+  const spirv::ShaderHeader &hdr = registers.header;
+  // frequency sorted jump outs
+  for (;;)
+  {
+    if (bBinds.dirtyMask & hdr.bRegisterUseMask)
+      break;
+    if (is_null(lastDescriptorSet))
+      break;
+    if (tBinds.dirtyMask & hdr.tRegisterUseMask)
+      break;
+    if (sBinds.dirtyMask & hdr.sRegisterUseMask)
+      break;
+    if (uBinds.dirtyMask & hdr.uRegisterUseMask)
+      break;
+    if (bOffsetDirtyMask & hdr.bRegisterUseMask)
+    {
+      syncAccessesForBOffsets(hdr, stage);
+      bOffsetDirtyMask &= ~hdr.bRegisterUseMask;
+      return true;
+    }
+    return false;
+  }
+
+  updateDescriptors(hdr, stage);
+
+  lastDescriptorSet = registers.getSet(frame_index, &dtab.arr[0]);
+  clearDirty(hdr);
+  return true;
+}
+
+bool PipelineStageStateBase::updateOnDemandWithSyncStep(DescriptorSet &registers, ExtendedShaderStage stage, size_t frame_index)
+{
+  const spirv::ShaderHeader &hdr = registers.header;
+  // frequency sorted jump outs
+  for (;;)
+  {
+    if (bBinds.dirtyMask & hdr.bRegisterUseMask)
+      break;
+    if (is_null(lastDescriptorSet))
+      break;
+    if (tBinds.dirtyMask & hdr.tRegisterUseMask)
+      break;
+    if (sBinds.dirtyMask & hdr.sRegisterUseMask)
+      break;
+    if (uBinds.dirtyMask & hdr.uRegisterUseMask)
+      break;
+    if (bOffsetDirtyMask & hdr.bRegisterUseMask)
+    {
+      syncAccessesNoDiff(hdr, stage);
+      bOffsetDirtyMask &= ~hdr.bRegisterUseMask;
+      return true;
+    }
+    return false;
+  }
+
+  updateDescriptorsNoTrack(hdr);
+  syncAccessesNoDiff(hdr, stage);
+
+  lastDescriptorSet = registers.getSet(frame_index, &dtab.arr[0]);
+  clearDirty(hdr);
+  return true;
 }

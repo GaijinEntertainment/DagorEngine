@@ -64,7 +64,8 @@ static void do_rumble(const SceneConfig &config)
 
 void call_click_handler(IGuiScene *scene, Element *elem, InputDevice dev_id, bool dbl, int mouse_btn, short mx, short my)
 {
-  if (!::dgs_app_active) // quick fix for buttons pressed by joystick 'click' key when window is in background
+  if (!::dgs_app_active && dev_id == DEVID_JOYSTICK) // quick fix for buttons pressed by joystick 'click' key when window is in
+                                                     // background
     return;
 
   const Sqrat::Object *slot = dbl ? &elem->csk->onDoubleClick : &elem->csk->onClick;

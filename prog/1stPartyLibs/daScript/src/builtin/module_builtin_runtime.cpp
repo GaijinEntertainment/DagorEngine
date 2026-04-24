@@ -63,7 +63,7 @@ namespace das
         MacroFunctionAnnotation() : MarkFunctionAnnotation("_macro") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
             func->macroInit = true;
-            auto program = (*daScriptEnvironment::bound)->g_Program;
+            auto program = daScriptEnvironment::getBound()->g_Program;
             program->needMacroModule = true;
             return true;
         };
@@ -109,10 +109,10 @@ namespace das
         };
         virtual bool verifyCall ( ExprCallFunc * call, const AnnotationArgumentList & args,
             const AnnotationArgumentList & /*progArgs */, string & /*err*/ ) override {
-            DAS_ASSERT((*daScriptEnvironment::bound)->g_compilerLog);
-            (*(*daScriptEnvironment::bound)->g_compilerLog) << call->at.describe() << ": *warning* function " << call->func->name << " is deprecated\n";
+            DAS_ASSERT(daScriptEnvironment::getBound()->g_compilerLog);
+            (*daScriptEnvironment::getBound()->g_compilerLog) << call->at.describe() << ": *warning* function " << call->func->name << " is deprecated\n";
             if ( auto arg = args.find("message",Type::tString) ) {
-                (*(*daScriptEnvironment::bound)->g_compilerLog) << "\t" << arg->sValue << "\n";
+                (*daScriptEnvironment::getBound()->g_compilerLog) << "\t" << arg->sValue << "\n";
             }
             return true;
         }
@@ -121,13 +121,18 @@ namespace das
     struct TypeFunctionFunctionAnnotation : MarkFunctionAnnotation {
         TypeFunctionFunctionAnnotation() : MarkFunctionAnnotation("type_function") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string & error) override {
-            if ( !(*daScriptEnvironment::bound)->g_Program->thisModule->addTypeFunction(func->name, true) ) {
+            if ( !daScriptEnvironment::getBound()->g_Program->thisModule->addTypeFunction(func->name, true) ) {
                 error = "can't add type function. type function " + func->name + " already exists?";
                 return false;
             }
             return true;
         };
     };
+
+    void Function::notInferred() {
+        inferredSource.clear();
+        isFullyInferred = false;
+    }
 
     FunctionPtr Function::setDeprecated(const string & message) {
         deprecated = true; // this is instead of apply above
@@ -188,14 +193,6 @@ namespace das
         UnsafeDerefFunctionAnnotation() : MarkFunctionAnnotation("unsafe_deref") { }
         virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
             func->unsafeDeref = true;
-            return true;
-        };
-    };
-
-    struct SkipLockCheckFunctionAnnotation : MarkFunctionAnnotation {
-        SkipLockCheckFunctionAnnotation() : MarkFunctionAnnotation("skip_lock_check") { }
-        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
-            func->skipLockCheck = true;
             return true;
         };
     };
@@ -309,8 +306,13 @@ namespace das
 
     struct FinalizeFunctionAnnotation : MarkFunctionAnnotation {
         FinalizeFunctionAnnotation() : MarkFunctionAnnotation("finalize") { }
-        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, string &) override {
+        virtual bool apply(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList & args, string &) override {
             func->shutdown = true;
+            for ( auto & arg : args ) {
+                if ( arg.name=="late" && arg.type == Type::tBool ) {
+                    func->lateShutdown = arg.bValue;
+                }
+            }
             return true;
         };
         virtual bool finalize(const FunctionPtr & func, ModuleGroup &, const AnnotationArgumentList &, const AnnotationArgumentList &, string & errors) override {
@@ -437,6 +439,7 @@ namespace das
         virtual bool touch(const StructurePtr & ps, ModuleGroup &,
                            const AnnotationArgumentList &, string & ) override {
             ps->genCtor = true;
+            ps->noGenCtor = true;
             return true;
         }
         virtual bool look ( const StructurePtr &, ModuleGroup &,
@@ -450,20 +453,6 @@ namespace das
         virtual bool touch(const StructurePtr & ps, ModuleGroup &,
                            const AnnotationArgumentList &, string & ) override {
             ps->macroInterface = true;
-            return true;
-        }
-        virtual bool look ( const StructurePtr &, ModuleGroup &,
-                           const AnnotationArgumentList &, string & ) override {
-            return true;
-        }
-    };
-
-
-    struct SkipLockCheckStructureAnnotation : StructureAnnotation {
-        SkipLockCheckStructureAnnotation() : StructureAnnotation("skip_field_lock_check") {}
-        virtual bool touch(const StructurePtr & ps, ModuleGroup &,
-                           const AnnotationArgumentList &, string & ) override {
-            ps->skipLockCheck = true;
             return true;
         }
         virtual bool look ( const StructurePtr &, ModuleGroup &,
@@ -756,14 +745,12 @@ namespace das
 
     TSequence<int32_t> builtin_count ( int32_t start, int32_t step, Context * context, LineInfoArg * at ) {
         char * iter = context->allocateIterator(sizeof(CountIterator), "count iterator", at);
-        if ( !iter ) context->throw_out_of_memory(false, sizeof(CountIterator)+16, at);
         new (iter) CountIterator(start, step, at);
         return TSequence<int>((Iterator *)iter);
     }
 
     TSequence<uint32_t> builtin_ucount ( uint32_t start, uint32_t step, Context * context, LineInfoArg * at ) {
         char * iter = context->allocateIterator(sizeof(CountIterator), "ucount iterator", at);
-        if ( !iter ) context->throw_out_of_memory(false, sizeof(CountIterator)+16, at);
         new (iter) CountIterator(start, step, at);
         return TSequence<int>((Iterator *)iter);
     }
@@ -776,6 +763,10 @@ namespace das
 
     void builtin_print ( char * text, Context * context, LineInfoArg * at ) {
         context->to_out(at, text);
+    }
+
+    void builtin_feint ( char *, Context *, LineInfoArg * ) {
+        // this function intentionally does nothing. its a fair replacement for the print, where we don't want print
     }
 
     void builtin_error ( char * text, Context * context, LineInfoArg * at ) {
@@ -905,11 +896,19 @@ namespace das
         context->reportAnyHeap(info,true,true,false,errOnly);
     }
 
-    void builtin_table_lock ( const Table & arr, Context * context, LineInfoArg * at ) {
+    void builtin_table_lock ( Table & arr, Context * context, LineInfoArg * at ) {
+        table_lock(*context, arr, at);
+    }
+
+    void builtin_table_unlock ( Table & arr, Context * context, LineInfoArg * at ) {
+        table_unlock(*context, arr, at);
+    }
+
+    void builtin_table_lock_mutable ( const Table & arr, Context * context, LineInfoArg * at ) {
         table_lock(*context, const_cast<Table&>(arr), at);
     }
 
-    void builtin_table_unlock ( const Table & arr, Context * context, LineInfoArg * at ) {
+    void builtin_table_unlock_mutable ( const Table & arr, Context * context, LineInfoArg * at ) {
         table_unlock(*context, const_cast<Table&>(arr), at);
     }
 
@@ -969,22 +968,37 @@ namespace das
 
     void builtin_make_good_array_iterator ( Sequence & result, const Array & arr, int stride, Context * context, LineInfoArg * at ) {
         char * iter = context->allocateIterator(sizeof(GoodArrayIterator), "array<> iterator", at);
-        if ( !iter ) context->throw_out_of_memory(false, sizeof(GoodArrayIterator)+16, at);
         new (iter) GoodArrayIterator((Array *)&arr, stride, at);
         result = { (Iterator *) iter };
     }
 
     void builtin_make_fixed_array_iterator ( Sequence & result, void * data, int size, int stride, Context * context, LineInfoArg * at ) {
         char * iter = context->allocateIterator(sizeof(FixedArrayIterator), "fixed array iterator", at);
-        if ( !iter ) context->throw_out_of_memory(false, sizeof(FixedArrayIterator)+16, at);
         new (iter) FixedArrayIterator((char *)data, size, stride, at);
         result = { (Iterator *) iter };
     }
 
     void builtin_make_range_iterator ( Sequence & result, range rng, Context * context, LineInfoArg * at ) {
         char * iter = context->allocateIterator(sizeof(RangeIterator<range>), "range iterator", at);
-        if ( !iter ) context->throw_out_of_memory(false, sizeof(RangeIterator<range>)+16, at);
         new (iter) RangeIterator<range>(rng, at);
+        result = { (Iterator *) iter };
+    }
+
+    void builtin_make_urange_iterator ( Sequence & result, urange rng, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(RangeIterator<urange>), "range iterator", at);
+        new (iter) RangeIterator<urange>(rng, at);
+        result = { (Iterator *) iter };
+    }
+
+    void builtin_make_range64_iterator ( Sequence & result, range64 rng, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(RangeIterator<range64>), "range64 iterator", at);
+        new (iter) RangeIterator<range64>(rng, at);
+        result = { (Iterator *) iter };
+    }
+
+    void builtin_make_urange64_iterator ( Sequence & result, urange64 rng, Context * context, LineInfoArg * at ) {
+        char * iter = context->allocateIterator(sizeof(RangeIterator<urange64>), "urange64 iterator", at);
+        new (iter) RangeIterator<urange64>(rng, at);
         result = { (Iterator *) iter };
     }
 
@@ -1004,22 +1018,18 @@ namespace das
         switch ( tinfo->type ) {
         case Type::tEnumeration:
             iter = context.allocateIterator(sizeof(EnumIterator<int32_t>), "enum iterator", &call->debugInfo);
-            if ( !iter ) context.throw_out_of_memory(false, sizeof(EnumIterator<int32_t>)+16, &call->debugInfo);
             new (iter) EnumIterator<int32_t>(einfo, &call->debugInfo);
             break;
         case Type::tEnumeration8:
             iter = context.allocateIterator(sizeof(EnumIterator<int8_t>), "enum8 iterator", &call->debugInfo);
-            if ( !iter ) context.throw_out_of_memory(false, sizeof(EnumIterator<int8_t>)+16, &call->debugInfo);
             new (iter) EnumIterator<int8_t>(einfo, &call->debugInfo);
             break;
         case Type::tEnumeration16:
             iter = context.allocateIterator(sizeof(EnumIterator<int16_t>), "enum16 iterator", &call->debugInfo);
-            if ( !iter ) context.throw_out_of_memory(false, sizeof(EnumIterator<int16_t>)+16, &call->debugInfo);
             new (iter) EnumIterator<int16_t>(einfo, &call->debugInfo);
             break;
         case Type::tEnumeration64:
             iter = context.allocateIterator(sizeof(EnumIterator<int64_t>), "enum64 iterator", &call->debugInfo);
-            if ( !iter ) context.throw_out_of_memory(false, sizeof(EnumIterator<int64_t>)+16, &call->debugInfo);
             new (iter) EnumIterator<int64_t>(einfo, &call->debugInfo);
             break;
         default:
@@ -1032,7 +1042,6 @@ namespace das
 
     void builtin_make_string_iterator ( Sequence & result, char * str, Context * context, LineInfoArg * at ) {
         char * iter = context->allocateIterator(sizeof(StringIterator), "string iterator", at);
-        if ( !iter ) context->throw_out_of_memory(false, sizeof(StringIterator)+16, at);
         new (iter) StringIterator(str, at);
         result = { (Iterator *) iter };
     }
@@ -1048,7 +1057,6 @@ namespace das
 
     void builtin_make_nil_iterator ( Sequence & result, Context * context, LineInfoArg * at ) {
         char * iter = context->allocateIterator(sizeof(NilIterator), "nil iterator", at);
-        if ( !iter ) context->throw_out_of_memory(false, sizeof(NilIterator)+16);
         new (iter) NilIterator(at);
         result = { (Iterator *) iter };
     }
@@ -1062,6 +1070,8 @@ namespace das
             if (!simFunc) context.throw_error("invoke null function");
             aotFunc = (lambdaFunc) simFunc->aotFunction;
         }
+
+        DAS_SUPPRESS_UB
         __forceinline bool InvokeLambda ( Context & context, char * ptr ) {
             if ( aotFunc ) {
                 return (*aotFunc) ( &context, lambda.capture, ptr );
@@ -1106,7 +1116,6 @@ namespace das
 
     void builtin_make_lambda_iterator ( Sequence & result, const Lambda lambda, int stride, Context * context, LineInfoArg * at ) {
         char * iter = context->allocateIterator(sizeof(LambdaIterator), "lambda iterator", at);
-        if ( !iter ) context->throw_out_of_memory(false, sizeof(LambdaIterator)+16);
         new (iter) LambdaIterator(*context, lambda, stride, at);
         result = { (Iterator *) iter };
     }
@@ -1128,7 +1137,7 @@ namespace das
 
     void builtin_array_free ( Array & dim, int szt, Context * __context__, LineInfoArg * at ) {
         if ( dim.data ) {
-            if ( !dim.lock || dim.hopeless ) {
+            if ( !dim.isLocked() || dim.hopeless ) {
                 uint32_t oldSize = dim.capacity*szt;
                 __context__->free(dim.data, oldSize, at);
             } else {
@@ -1145,7 +1154,7 @@ namespace das
 
     void builtin_table_free ( Table & tab, int szk, int szv, Context * __context__, LineInfoArg * at ) {
         if ( tab.data ) {
-            if ( !tab.lock || tab.hopeless ) {
+            if ( !tab.isLocked() || tab.hopeless ) {
                 uint32_t oldSize = tab.capacity*(szk+szv+sizeof(TableHashKey));
                 __context__->free(tab.data, oldSize, at);
             } else {
@@ -1244,24 +1253,28 @@ namespace das
     };
 
     bool is_compiling (  ) {
-        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
-            return (*daScriptEnvironment::bound)->g_Program->isCompiling || (*daScriptEnvironment::bound)->g_Program->isSimulating;
+        if ( daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_Program ) {
+            return daScriptEnvironment::getBound()->g_Program->isCompiling || daScriptEnvironment::getBound()->g_Program->isSimulating;
         }
         return false;
 
     }
 
+    DAS_API uint64_t get_context_share_counter ( Context * context ) {
+        return (uint64_t) context->code.use_count();
+    }
+
     bool is_compiling_macros ( ) {
-        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
-            return (*daScriptEnvironment::bound)->g_Program->isCompilingMacros;
+        if ( daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_Program ) {
+            return daScriptEnvironment::getBound()->g_Program->isCompilingMacros;
         }
         return false;
     }
 
     bool is_compiling_macros_in_module ( char * name ) {
-        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
-            if ( !(*daScriptEnvironment::bound)->g_Program->isCompilingMacros ) return false;
-            if ( (*daScriptEnvironment::bound)->g_Program->thisModule->name != to_rts(name) ) return false;
+        if ( daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_Program ) {
+            if ( !daScriptEnvironment::getBound()->g_Program->isCompilingMacros ) return false;
+            if ( daScriptEnvironment::getBound()->g_Program->thisModule->name != to_rts(name) ) return false;
             if ( isInDebugAgentCreation() ) return false;
             return true;
         }
@@ -1269,8 +1282,8 @@ namespace das
     }
 
     bool is_reporting_compilation_errors ( ) {
-        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
-            return (*daScriptEnvironment::bound)->g_Program->reportingInferErrors;
+        if ( daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_Program ) {
+            return daScriptEnvironment::getBound()->g_Program->reportingInferErrors;
         }
         return false;
     }
@@ -1342,6 +1355,10 @@ namespace das
     __forceinline void i_das_ptr_set_add_uint64 ( void * & ptr, uint64_t value, int32_t stride ) { ptr = (char*) ptr + value * stride; }
     __forceinline void i_das_ptr_set_sub_uint64 ( void * & ptr, uint64_t value, int32_t stride ) { ptr = (char*) ptr - value * stride; }
 
+    void* builtin_das_aligned_alloc16(uint64_t size) {
+        return das_aligned_alloc16((size_t)size);
+    }
+
     Module_BuiltIn::~Module_BuiltIn() {
         gc0_reset();
     }
@@ -1369,7 +1386,7 @@ namespace das
     TypeDeclPtr makePrintFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "print_flags";
-        ft->argNames = { "escapeString", "namesAndDimensions", "typeQualifiers", "refAddresses", "singleLine", "fixedPoint" };
+        ft->argNames = { "escapeString", "namesAndDimensions", "typeQualifiers", "refAddresses", "singleLine", "fixedPoint", "fullTypeInfo" };
         return ft;
     }
 
@@ -1399,22 +1416,46 @@ namespace das
         return cast<char *>::from(sres);
     }
 
+    vec4f builtin_json_sscan ( Context & context, SimNode_CallBase * call, vec4f * args ) {
+        auto json = cast<char *>::to(args[0]);
+        if ( !json ) return cast<bool>::from(false);
+        auto typeInfo = call->types[1];
+        char * dst;
+        if ( typeInfo->flags & TypeInfo::flag_refType ) {
+            dst = cast<char *>::to(args[1]);
+        } else {
+            dst = (char *)&args[1];
+        }
+        uint32_t jsonLen = uint32_t(strlen(json));
+        bool ok = debug_json_scan(context, dst, typeInfo, json, jsonLen, &call->debugInfo);
+        return cast<bool>::from(ok);
+    }
+
     Array  g_CommandLineArguments;
 
     void setCommandLineArguments ( int argc, char * argv[] ) {
-        g_CommandLineArguments.data = (char *) argv;
-        g_CommandLineArguments.capacity = argc;
-        g_CommandLineArguments.size = argc;
-        g_CommandLineArguments.lock = 1;
-        g_CommandLineArguments.flags = 0;
+        array_mark_locked(g_CommandLineArguments, (char *)argv, uint32_t(argc));
     }
 
     void getCommandLineArguments( Array & arr ) {
         arr = g_CommandLineArguments;
     }
 
+    void withCommandLineArguments( const Array & arr, const TBlock<void> & body, Context * context, LineInfoArg * at ) {
+        auto prev = g_CommandLineArguments;
+        g_CommandLineArguments = arr;
+        context->invoke(body, nullptr, nullptr, at);
+        g_CommandLineArguments = prev;
+    }
+
     char * builtin_das_root ( Context * context, LineInfoArg * at ) {
         return context->allocateString(getDasRoot(), at);
+    }
+
+    char * builtin_get_das_version ( Context * context, LineInfoArg * at ) {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "%d.%d.%d", DAS_VERSION_MAJOR, DAS_VERSION_MINOR, DAS_VERSION_PATCH);
+        return context->allocateString(string(buf), at);
     }
 
     char * to_das_string(const string & str, Context * ctx, LineInfoArg * at) {
@@ -1453,20 +1494,14 @@ namespace das
 
     void builtin_temp_array ( void * data, int size, const Block & block, Context * context, LineInfoArg * at ) {
         Array arr;
-        arr.data = (char *) data;
-        arr.size = arr.capacity = size;
-        arr.lock = 1;
-        arr.flags = 0;
+        array_mark_locked(arr, (char *)data, uint32_t(size));
         vec4f args[1];
         args[0] = cast<Array &>::from(arr);
         context->invoke(block, args, nullptr, at);
     }
 
     void builtin_make_temp_array ( Array & arr, void * data, int size ) {
-        arr.data = (char *) data;
-        arr.size = arr.capacity = size;
-        arr.lock = 0;
-        arr.flags = 0;
+        array_mark_locked(arr, (char *)data, uint32_t(size));
     }
 
     void toLog ( int level, const char * text, Context * context, LineInfoArg * at ) {
@@ -1474,48 +1509,84 @@ namespace das
     }
 
     void toCompilerLog ( const char * text, Context * context, LineInfoArg * at ) {
-        if ( (*daScriptEnvironment::bound)->g_compilerLog ) {
+        if ( daScriptEnvironment::getBound()->g_compilerLog ) {
             if ( text ) {
-                (*(*daScriptEnvironment::bound)->g_compilerLog) << text;
+                (*daScriptEnvironment::getBound()->g_compilerLog) << text;
             }
         } else {
             context->throw_error_at(at, "can only write to compiler log during compilation");
         }
     }
 
+    bool das_is_dll_build() {
+        #if DAS_ENABLE_DLL
+        return true;
+        #else
+        return false;
+        #endif
+    }
+
     bool is_in_aot ( ) {
-        return *daScriptEnvironment::bound ? (*daScriptEnvironment::bound)->g_isInAot : false;
+        return daScriptEnvironment::getBound() ? daScriptEnvironment::getBound()->g_isInAot : false;
     }
 
     void set_aot ( ) {
-        assert(*daScriptEnvironment::bound);
-        (*daScriptEnvironment::bound)->g_isInAot = true;
+        assert(daScriptEnvironment::getBound());
+        daScriptEnvironment::getBound()->g_isInAot = true;
     }
     void reset_aot ( ) {
-        assert(*daScriptEnvironment::bound);
-        (*daScriptEnvironment::bound)->g_isInAot = false;
+        assert(daScriptEnvironment::getBound());
+        daScriptEnvironment::getBound()->g_isInAot = false;
     }
 
     bool is_in_completion ( ) {
-        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
-            return (*daScriptEnvironment::bound)->g_Program->policies.completion;
+        if ( daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_Program ) {
+            return daScriptEnvironment::getBound()->g_Program->policies.completion;
         }
         return false;
     }
 
     bool is_folding ( ) {
-        if ( *daScriptEnvironment::bound && (*daScriptEnvironment::bound)->g_Program ) {
-            return (*daScriptEnvironment::bound)->g_Program->folding;
+        if ( daScriptEnvironment::getBound() && daScriptEnvironment::getBound()->g_Program ) {
+            return daScriptEnvironment::getBound()->g_Program->folding;
         }
         return false;
     }
 
     const char * compiling_file_name ( ) {
-        return *daScriptEnvironment::bound ? (*daScriptEnvironment::bound)->g_compilingFileName : nullptr;
+        return daScriptEnvironment::getBound() ? daScriptEnvironment::getBound()->g_compilingFileName : nullptr;
     }
 
     const char * compiling_module_name ( ) {
-        return *daScriptEnvironment::bound ? (*daScriptEnvironment::bound)->g_compilingModuleName : nullptr;
+        return daScriptEnvironment::getBound() ? daScriptEnvironment::getBound()->g_compilingModuleName : nullptr;
+    }
+
+    const char * get_module_file_name ( const char * name, Context * context ) {
+        if ( context && context->thisProgram ) {
+            string modName = name ? name : "";
+            if ( modName.empty() ) {
+                // return the main module's file name
+                auto mod = context->thisProgram->thisModule.get();
+                if ( mod && !mod->fileName.empty() ) return mod->fileName.c_str();
+            } else {
+                // search program's library for named module
+                const char * result = nullptr;
+                context->thisProgram->library.foreach([&](Module * mod) {
+                    if ( mod->name == modName && !mod->fileName.empty() ) {
+                        result = mod->fileName.c_str();
+                        return false;
+                    }
+                    return true;
+                }, modName);
+                if ( result ) return result;
+            }
+        }
+        // fallback to global module list
+        auto mod = Module::require(name ? name : "");
+        if ( mod && !mod->fileName.empty() ) {
+            return mod->fileName.c_str();
+        }
+        return nullptr;
     }
 
 // remove define to enable emscripten version
@@ -1559,13 +1630,19 @@ namespace das
 #endif
     }
 
+    bool das_is_jit_function ( const Func func ) {
+        auto simfn = func.PTR;
+        if ( !simfn ) return false;
+        return simfn->code && simfn->code->rtti_node_isJit();
+    }
+
     bool das_jit_enabled ( Context * context, LineInfoArg * at ) {
         if ( !context->thisProgram ) context->throw_error_at(at, "can only query for jit during compilation");
-        return context->thisProgram->policies.jit;
+        return context->thisProgram->policies.jit_enabled;
     }
 
     bool das_aot_enabled ( Context * context, LineInfoArg * at ) {
-        if ( !context->thisProgram ) context->throw_error_at(at, "can only query for jit during compilation");
+        if ( !context->thisProgram ) context->throw_error_at(at, "can only query for aot during compilation");
         return context->thisProgram->policies.aot;
     }
 
@@ -1579,6 +1656,38 @@ namespace das
         idpi->noPointerCast = true;
     }
 
+    // windows, darwin, linux, etc
+    const char * das_get_platform_name() {
+        #if defined(_WIN32) || defined(_WIN64)
+            return "windows";
+        #elif defined(__APPLE__) || defined(__MACH__)
+            return "darwin";
+        #elif defined(__linux__)
+            return "linux";
+        #elif defined(__EMSCRIPTEN__)
+            return "emscripten";
+        #else
+            return "unknown";
+        #endif
+    }
+
+    // x86, arm, etc
+    const char * das_get_architecture_name() {
+        #if defined(__x86_64__) || defined(_M_X64)
+            return "x86_64";
+        #elif defined(__i386) || defined(_M_IX86)
+            return "x86";
+        #elif defined(__aarch64__)
+            return "arm64";
+        #elif defined(__arm__) || defined(_M_ARM)
+            return "arm";
+        #elif defined(__EMSCRIPTEN__)
+            return "wasm32";
+        #else
+            return "unknown";
+        #endif
+    }
+
     void Module_BuiltIn::addRuntime(ModuleLibrary & lib) {
         // printer flags
         addAlias(makePrintFlags());
@@ -1588,7 +1697,6 @@ namespace das
         addAnnotation(make_smart<CommentAnnotation>());
         addAnnotation(make_smart<NoDefaultCtorAnnotation>());
         addAnnotation(make_smart<MacroInterfaceAnnotation>());
-        addAnnotation(make_smart<SkipLockCheckStructureAnnotation>());
         addAnnotation(make_smart<MarkFunctionOrBlockAnnotation>());
         addAnnotation(make_smart<CppAlignmentAnnotation>());
         addAnnotation(make_smart<SafeWhenUninitializedAnnotation>());
@@ -1615,7 +1723,6 @@ namespace das
         addAnnotation(make_smart<FinalizeFunctionAnnotation>());
         addAnnotation(make_smart<HybridFunctionAnnotation>());
         addAnnotation(make_smart<UnsafeDerefFunctionAnnotation>());
-        addAnnotation(make_smart<SkipLockCheckFunctionAnnotation>());
         addAnnotation(make_smart<MarkUsedFunctionAnnotation>());
         addAnnotation(make_smart<LocalOnlyFunctionAnnotation>());
         addAnnotation(make_smart<PersistentStructureAnnotation>());
@@ -1642,9 +1749,15 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_das_root)>(*this, lib, "get_das_root",
             SideEffects::accessExternal,"builtin_das_root")
                 ->args({"context","at"});
+        addExtern<DAS_BIND_FUN(builtin_get_das_version)>(*this, lib, "get_das_version",
+            SideEffects::none,"builtin_get_das_version")
+                ->args({"context","at"});
         addExtern<DAS_BIND_FUN(getCommandLineArguments)>(*this, lib, "builtin_get_command_line_arguments",
             SideEffects::accessExternal,"getCommandLineArguments")
                 ->arg("arguments");
+        addExtern<DAS_BIND_FUN(withCommandLineArguments)>(*this, lib,  "with_argv",
+            SideEffects::invoke, "withArgv")
+                ->args({"new_arguments", "block","context","line"});
         // compile-time functions
         addExtern<DAS_BIND_FUN(is_compiling)>(*this, lib, "is_compiling",
             SideEffects::accessExternal, "is_compiling");
@@ -1655,6 +1768,9 @@ namespace das
                 ->args({"name"});
         addExtern<DAS_BIND_FUN(is_reporting_compilation_errors)>(*this, lib, "is_reporting_compilation_errors",
             SideEffects::accessExternal, "is_reporting_compilation_errors");
+        addExtern<DAS_BIND_FUN(get_context_share_counter)>(*this, lib, "get_context_share_counter",
+            SideEffects::accessExternal, "get_context_share_counter")
+                ->arg("context");
         // iterator functions
         addExtern<DAS_BIND_FUN(builtin_iterator_first)>(*this, lib, "_builtin_iterator_first",
             SideEffects::modifyArgumentAndExternal, "builtin_iterator_first")
@@ -1695,6 +1811,15 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_make_range_iterator)>(*this, lib,  "_builtin_make_range_iterator",
             SideEffects::modifyArgumentAndExternal, "builtin_make_range_iterator")
                 ->args({"iterator","range","context","at"});
+        addExtern<DAS_BIND_FUN(builtin_make_urange_iterator)>(*this, lib,  "_builtin_make_urange_iterator",
+            SideEffects::modifyArgumentAndExternal, "builtin_make_urange_iterator")
+                ->args({"iterator","range","context","at"});
+        addExtern<DAS_BIND_FUN(builtin_make_range64_iterator)>(*this, lib,  "_builtin_make_range64_iterator",
+            SideEffects::modifyArgumentAndExternal, "builtin_make_range64_iterator")
+                ->args({"iterator","range","context","at"});
+        addExtern<DAS_BIND_FUN(builtin_make_urange64_iterator)>(*this, lib,  "_builtin_make_urange64_iterator",
+            SideEffects::modifyArgumentAndExternal, "builtin_make_urange64_iterator")
+                ->args({"iterator","range","context","at"});
         addExtern<DAS_BIND_FUN(builtin_make_string_iterator)>(*this, lib,  "_builtin_make_string_iterator",
             SideEffects::modifyArgumentAndExternal, "builtin_make_string_iterator")
                 ->args({"iterator","string","context","at"})->setCaptureString();
@@ -1714,6 +1839,9 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_print)>(*this, lib, "print",
             SideEffects::modifyExternal, "builtin_print")
                 ->args({"text","context","at"});
+        addExtern<DAS_BIND_FUN(builtin_feint)>(*this, lib, "feint",
+            SideEffects::modifyExternal, "builtin_feint")
+                ->args({"text","context","at"});
         addExtern<DAS_BIND_FUN(builtin_error)>(*this, lib, "error",
             SideEffects::modifyExternal, "builtin_error")
                 ->args({"text","context","at"});
@@ -1723,6 +1851,9 @@ namespace das
         addInterop<builtin_json_sprint,char *,vec4f,bool>(*this, lib, "sprint_json",
             SideEffects::modifyExternal, "builtin_json_sprint")
                 ->args({"value","humanReadable"});
+        addInterop<builtin_json_sscan,bool,char *,vec4f>(*this, lib, "sscan_json",
+            SideEffects::modifyArgumentAndExternal, "builtin_json_sscan")
+                ->args({"json","value"});
         addExtern<DAS_BIND_FUN(builtin_terminate)>(*this, lib, "terminate",
             SideEffects::modifyExternal, "terminate")
                 ->args({"context","at"});
@@ -1819,20 +1950,7 @@ namespace das
         addExtern<DAS_BIND_FUN(_builtin_hash_ptr)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_ptr")->arg("value");
         addExtern<DAS_BIND_FUN(_builtin_hash_float)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_float")->arg("value");
         addExtern<DAS_BIND_FUN(_builtin_hash_double)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_double")->arg("value");
-        addExtern<DAS_BIND_FUN(_builtin_hash_das_string)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_string")->arg("value");
-        // locks
-        addInterop<builtin_verify_locks,void,vec4f>(*this, lib, "_builtin_verify_locks",
-            SideEffects::modifyArgumentAndExternal, "builtin_verify_locks")
-                ->arg("anything");
-        addExtern<DAS_BIND_FUN(builtin_set_verify_array_locks)>(*this, lib, "set_verify_array_locks",
-            SideEffects::modifyArgument, "builtin_set_verify_array_locks")
-                ->args({"array","check"})->unsafeOperation = true;
-        addExtern<DAS_BIND_FUN(builtin_set_verify_table_locks)>(*this, lib, "set_verify_table_locks",
-            SideEffects::modifyArgument, "builtin_set_verify_table_locks")
-                ->args({"table","check"})->unsafeOperation = true;
-        addExtern<DAS_BIND_FUN(builtin_set_verify_context)>(*this, lib, "set_verify_context_locks",
-            SideEffects::modifyExternal, "builtin_set_verify_context")
-                ->args({"check","context"})->unsafeOperation = true;
+        addExtern<DAS_BIND_FUN(_builtin_hash_das_string)>(*this, lib, "hash", SideEffects::none, "_builtin_hash_das_string")->arg("value");
         // table functions
         addExtern<DAS_BIND_FUN(builtin_table_clear)>(*this, lib, "_builtin_table_clear",
             SideEffects::modifyArgument, "builtin_table_clear")
@@ -1846,8 +1964,14 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_table_lock)>(*this, lib, "__builtin_table_lock",
             SideEffects::modifyArgumentAndExternal, "builtin_table_lock")
                 ->args({"table","context","at"});
+        addExtern<DAS_BIND_FUN(builtin_table_lock_mutable)>(*this, lib, "__builtin_table_lock_mutable",
+            SideEffects::modifyArgumentAndExternal, "builtin_table_lock_mutable")
+                ->args({"table","context","at"});
         addExtern<DAS_BIND_FUN(builtin_table_unlock)>(*this, lib, "__builtin_table_unlock",
             SideEffects::modifyArgumentAndExternal, "builtin_table_unlock")
+                ->args({"table","context","at"});
+        addExtern<DAS_BIND_FUN(builtin_table_unlock_mutable)>(*this, lib, "__builtin_table_unlock_mutable",
+            SideEffects::modifyArgumentAndExternal, "builtin_table_unlock_mutable")
                 ->args({"table","context","at"});
         addExtern<DAS_BIND_FUN(builtin_table_clear_lock)>(*this, lib, "__builtin_table_clear_lock",
             SideEffects::modifyArgumentAndExternal, "builtin_table_clear_lock")
@@ -1858,6 +1982,9 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_table_values)>(*this, lib, "__builtin_table_values",
             SideEffects::modifyArgumentAndExternal, "builtin_table_values")
                 ->args({"iterator","table","stride","context","at"});
+        addExtern<DAS_BIND_FUN(builtin_table_get_key)>(*this, lib, "__builtin_table_get_key",
+            SideEffects::modifyExternal, "builtin_table_get_key")
+                ->args({"result","table","value_ptr","value_stride","key_stride","context","at"});
         addInterop<builtin_table_reserve,void,vec4f,uint32_t>(*this, lib, "__builtin_table_reserve",
             SideEffects::modifyArgumentAndExternal, "builtin_table_reserve")
                 ->args({"table","size"});
@@ -1868,6 +1995,10 @@ namespace das
         addExtern<DAS_BIND_FUN(builtin_table_free)>(*this, lib, "__builtin_table_free",
             SideEffects::modifyArgumentAndExternal, "builtin_table_free")
                 ->args({"table","sizeOfKey","sizeOfValue","context","at"});
+        // local collection
+        addInterop<builtin_collect_local_and_zero,void,vec4f,uint32_t>(*this, lib, "builtin_collect_local_and_zero",
+            SideEffects::modifyArgumentAndExternal, "builtin_collect_local_and_zero")
+                ->args({"anything","sizeOfAnything"})->unsafeOperation = true;
         // table expressions
         addCall<ExprErase>("__builtin_table_erase");
         addCall<ExprSetInsert>("__builtin_table_set_insert");
@@ -1940,8 +2071,8 @@ namespace das
         addExternEx<void(*)(void *,uint4,int32_t),DAS_BIND_FUN(das_memset128u)>(*this, lib, "memset128",
             SideEffects::modifyArgumentAndExternal, "das_memset128u")
                 ->args({"left","value","count"})->unsafeOperation = true;
-        addExtern<DAS_BIND_FUN(das_aligned_alloc16)> (*this, lib, "malloc",
-            SideEffects::modifyExternal, "das_aligned_alloc16")
+        addExtern<DAS_BIND_FUN(builtin_das_aligned_alloc16)> (*this, lib, "malloc",
+            SideEffects::modifyExternal, "builtin_das_aligned_alloc16")
                 ->args({"size"})->unsafeOperation = true;
         addExtern<DAS_BIND_FUN(das_aligned_free16)> (*this, lib, "free",
             SideEffects::modifyExternal, "das_aligned_free16")
@@ -2030,6 +2161,8 @@ namespace das
                 ->args({"array","data","size"});
         bmta->unsafeOperation = true;
         // migrate data
+        addExtern<DAS_BIND_FUN(das_is_dll_build)>(*this, lib, "das_is_dll_build",
+            SideEffects::worstDefault, "das_is_dll_build");
         addExtern<DAS_BIND_FUN(is_in_aot)>(*this, lib, "is_in_aot",
             SideEffects::worstDefault, "is_in_aot");
         addExtern<DAS_BIND_FUN(set_aot)>(*this, lib, "set_aot",
@@ -2047,6 +2180,8 @@ namespace das
             SideEffects::accessExternal, "compiling_file_name");
         addExtern<DAS_BIND_FUN(compiling_module_name)>(*this, lib, "compiling_module_name",
             SideEffects::accessExternal, "compiling_module_name");
+        addExtern<DAS_BIND_FUN(get_module_file_name)>(*this, lib, "get_module_file_name",
+            SideEffects::accessExternal, "get_module_file_name")->args({"name", "context"});
         // logger
         addExtern<DAS_BIND_FUN(toLog)>(*this, lib, "to_log",
             SideEffects::modifyExternal, "toLog")->args({"level", "text", "context", "at"});
@@ -2080,6 +2215,9 @@ namespace das
             SideEffects::invoke, "builtin_main_loop")
                 ->args({"block","context","at"});
         // jit
+        addExtern<DAS_BIND_FUN(das_is_jit_function)>(*this, lib, "is_jit_function",
+                SideEffects::worstDefault, "das_is_jit_function")
+                    ->args({"function"});
         addExtern<DAS_BIND_FUN(das_jit_enabled)>(*this, lib, "jit_enabled",
             SideEffects::none, "das_jit_enabled")
                 ->args({"context","at"});
@@ -2091,5 +2229,40 @@ namespace das
         addExtern<DAS_BIND_FUN(__bit_set)>(*this, lib, "__bit_set",
             SideEffects::modifyArgument, "__bit_set")
                 ->args({"value","mask","on"});
+        addExtern<DAS_BIND_FUN(__bit_set8)>(*this, lib, "__bit_set",
+            SideEffects::modifyArgument, "__bit_set8")
+                ->args({"value","mask","on"});
+        addExtern<DAS_BIND_FUN(__bit_set16)>(*this, lib, "__bit_set",
+            SideEffects::modifyArgument, "__bit_set16")
+                ->args({"value","mask","on"});
+        addExtern<DAS_BIND_FUN(__bit_set64)>(*this, lib, "__bit_set",
+            SideEffects::modifyArgument, "__bit_set64")
+                ->args({"value","mask","on"});
+        // platform and architecture
+        addExtern<DAS_BIND_FUN(das_get_platform_name)>(*this, lib, "get_platform_name",
+            SideEffects::none, "das_get_platform_name");
+        addExtern<DAS_BIND_FUN(das_get_architecture_name)>(*this, lib, "get_architecture_name",
+            SideEffects::none, "das_get_architecture_name");
+        // fmt
+        addExtern<DAS_BIND_FUN(fmt_i8)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_i8")->args({"format","value","context","at"});
+        addExtern<DAS_BIND_FUN(fmt_u8)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_u8")->args({"format","value","context","at"});
+        addExtern<DAS_BIND_FUN(fmt_i16)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_i16")->args({"format","value","context","at"});
+        addExtern<DAS_BIND_FUN(fmt_u16)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_u16")->args({"format","value","context","at"});
+        addExtern<DAS_BIND_FUN(fmt_i32)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_i32")->args({"format","value","context","at"});
+        addExtern<DAS_BIND_FUN(fmt_u32)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_u32")->args({"format","value","context","at"});
+        addExtern<DAS_BIND_FUN(fmt_i64)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_i64")->args({"format","value","context","at"});
+        addExtern<DAS_BIND_FUN(fmt_u64)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_u64")->args({"format","value","context","at"});
+        addExtern<DAS_BIND_FUN(fmt_f)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_f")->args({"format","value","context","at"});
+        addExtern<DAS_BIND_FUN(fmt_d)>(*this, lib, "fmt",
+            SideEffects::none, "fmt_d")->args({"format","value","context","at"});
     }
 }

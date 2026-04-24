@@ -30,6 +30,6 @@ TexImage8a *load_jpeg8a(const char *fn, IMemAlloc *);
 TexImage8 *load_jpeg8(const char *fn, IMemAlloc *);
 
 // save JPG file
-bool save_jpeg32(unsigned char *ptr, int width, int height, int stride, int quality, IGenSave &cwr, const char *comments = NULL);
-bool save_jpeg32(struct TexPixel32 *pix, int w, int h, int stride, int quality, const char *fn, const char *comments = NULL);
-bool save_jpeg32(TexImage32 *im, int quality, const char *fn, const char *comments = NULL);
+bool save_jpeg32(const unsigned char *ptr, int width, int height, int stride, int quality, IGenSave &cwr, const char *comments = NULL);
+bool save_jpeg32(const TexPixel32 *pix, int w, int h, int stride, int quality, const char *fn, const char *comments = NULL);
+bool save_jpeg32(const TexImage32 *im, int quality, const char *fn, const char *comments = NULL);

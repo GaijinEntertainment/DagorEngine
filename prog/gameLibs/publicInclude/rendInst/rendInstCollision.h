@@ -20,7 +20,6 @@
 struct RendInstGenData;
 
 class CollisionResource;
-class Bitarray;
 
 namespace rendinst
 {
@@ -89,7 +88,8 @@ void testObjToRendInstIntersection(const Capsule &obj_capsule, RendInstCollision
 const char *get_rendinst_res_name_from_col_info(const CollisionInfo &col_info);
 CollisionInfo getRiGenDestrInfo(const RendInstDesc &desc);
 
-CheckBoxRIResultFlags checkBoxToRIGenIntersection(const BBox3 &box);
+CheckBoxRIResultFlags checkSphereToRIGenIntersection(const BSphere3 &sphere);
+CheckBoxRIResultFlags checkCapsuleToRIGenIntersection(const Capsule &capsule);
 void gatherRIGenCollidableInRadius(rigen_collidable_data_t &out_data, const Point3 &pos, float radius, GatherRiTypeFlags flags,
   bool ignore_immortal = false);
 
@@ -194,22 +194,22 @@ inline bool traceRayRendInstsNormalized(dag::Span<Trace> traces, bool = false, b
   return traceRayRIGenNormalized(traces, traceFlags, ray_mat_id, ri_desc, ri_cache);
 }
 
+// Warn: for RI (i.e. not RiEx) called once per pool
 using TraceDownMutiRayIgnoreCbType = eastl::fixed_function<sizeof(void *), bool(const RendInstDesc &)>;
 // Note: all rays should be down
 bool traceDownMultiRayNoCache(dag::Span<Trace> traces, bbox3f_cref rayBox, dag::Span<RendInstDesc> ri_desc, int ray_mat_id = -1,
-  TraceFlags trace_flags = TraceFlag::Destructible, TraceDownMutiRayIgnoreCbType ignore_func = {},
-  Bitarray *filter_pools = nullptr); // Note: Only supported in tools
+  TraceFlags trace_flags = TraceFlag::Destructible, TraceDownMutiRayIgnoreCbType ignore_func = {});
 bool traceDownMultiRayCached(dag::Span<Trace> traces, bbox3f_cref rayBox, dag::Span<RendInstDesc> ri_desc,
   const TraceMeshFaces &ri_cache, int ray_mat_id = -1, TraceFlags trace_flags = TraceFlag::Destructible,
   TraceDownMutiRayIgnoreCbType ignore_func = {});
 inline bool traceDownMultiRay(dag::Span<Trace> traces, bbox3f_cref rayBox, dag::Span<RendInstDesc> ri_desc,
   const TraceMeshFaces *ri_cache = {}, int ray_mat_id = -1, TraceFlags trace_flags = TraceFlag::Destructible,
-  TraceDownMutiRayIgnoreCbType ignore_func = {}, Bitarray *filter_pools = nullptr)
+  TraceDownMutiRayIgnoreCbType ignore_func = {})
 {
   if (ri_cache)
     return traceDownMultiRayCached(traces, rayBox, ri_desc, *ri_cache, ray_mat_id, trace_flags, ignore_func);
   else
-    return traceDownMultiRayNoCache(traces, rayBox, ri_desc, ray_mat_id, trace_flags, ignore_func, filter_pools);
+    return traceDownMultiRayNoCache(traces, rayBox, ri_desc, ray_mat_id, trace_flags, ignore_func);
 }
 
 bool rayhitRendInstNormalized(const Point3 &from, const Point3 &dir, float t, int ray_mat_id, const RendInstDesc &ri_desc);
@@ -227,6 +227,7 @@ struct ForeachCB
   virtual void executeForPos(RendInstGenData * /* rgl */, const RendInstDesc & /* ri_desc */, const TMatrix & /* tm */) {}
 };
 void foreachRIGenInBox(const BBox3 &box, GatherRiTypeFlags ri_types, ForeachCB &cb);
+void foreachRIGenInSphere(const BSphere3 &sphere, GatherRiTypeFlags ri_types, ForeachCB &cb);
 
 using GetTmsCallbackType = dag::FixedMoveOnlyFunction<16, void(const RendInstDesc &, const mat44f &) const>;
 void getRIGenTMsInBox(const BBox3 &box, dag::ConstSpan<int16_t> pool_ids, GetTmsCallbackType &&tm_callback);
@@ -236,6 +237,7 @@ void clipCapsuleRI(const ::Capsule &c, Point3 &lpt, Point3 &wpt, real &md, const
 
 bool checkCachedRiData(const TraceMeshFaces *ri_cache);
 bool initializeCachedRiData(TraceMeshFaces *ri_cache);
+bool initializeCachedRiData(TraceMeshFaces *ri_cache, const Capsule &capsule, bool ri_extra_only = false);
 
 } // namespace rendinst
 

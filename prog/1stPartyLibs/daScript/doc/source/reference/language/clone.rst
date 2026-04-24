@@ -5,15 +5,25 @@ Clone
 =====
 
 Clone is designed to create a deep copy of the data.
-Cloning is invoked via the clone operator ``:=``::
+
+For an overview of when to use copy (``=``), move (``<-``), and clone (``:=``),
+see :ref:`Move, Copy, and Clone <move_copy_clone>`.
+
+Cloning is invoked via the clone operator ``:=``:
+
+.. code-block:: das
 
     a := b
 
-Cloning can be also invoked via the clone initializer in a variable declaration::
+Cloning can be also invoked via the clone initializer in a variable declaration:
+
+.. code-block:: das
 
     var x := y
 
-This in turn expands into ``clone_to_move``::
+This in turn expands into ``clone_to_move``:
+
+.. code-block:: das
 
     var x <- clone_to_move(y)
 
@@ -23,11 +33,13 @@ This in turn expands into ``clone_to_move``::
 Cloning rules and implementation details
 ----------------------------------------
 
-Cloning obeys several rules.
+Cloning obeys the following rules.
 
 Certain types like blocks, lambdas, and iterators can't be cloned at all.
 
-However, if a custom clone function exists, it is immediately called regardless of the type's cloneability::
+However, if a custom clone function exists, it is immediately called regardless of the type's cloneability:
+
+.. code-block:: das
 
     struct Foo {
         a : int
@@ -45,14 +57,18 @@ However, if a custom clone function exists, it is immediately called regardless 
 
 Cloning is typically allowed between regular and temporary types (see :ref:`Temporary types <temporary>`).
 
-POD types are copied instead of cloned::
+POD types are copied instead of cloned:
+
+.. code-block:: das
 
     var a,b : int
     var c,d : int[10]
     a := b
     c := d
 
-This expands to::
+This expands to:
+
+.. code-block:: das
 
     a = b
     c = d
@@ -62,7 +78,9 @@ and appropriate ``das_clone`` C++ infrastructure (see :ref:`Handles <handles>`).
 
 For static arrays, the ``clone_dim`` generic is called,
 and for dynamic arrays, the ``clone`` generic is called.
-Those in turn clone each of the array elements::
+Those in turn clone each of the array elements:
+
+.. code-block:: das
 
     struct Foo {
         a : array<int>
@@ -74,7 +92,9 @@ Those in turn clone each of the array elements::
     var c, d : Foo[10]
     c := d
 
-This expands to::
+This expands to:
+
+.. code-block:: das
 
     def builtin`clone ( var a:array<Foo aka TT> explicit; b:array<Foo> const ) {
         resize(a,length(b))
@@ -89,12 +109,16 @@ This expands to::
         }
     }
 
-For tables, the ``clone`` generic is called, which in turn clones its values::
+For tables, the ``clone`` generic is called, which in turn clones its values:
+
+.. code-block:: das
 
     var a, b : table<string;Foo>
     b := a
 
-This expands to::
+This expands to:
+
+.. code-block:: das
 
     def builtin`clone ( var a:table<string aka KT;Foo aka VT> explicit; b:table<string;Foo> const ) {
         clear(a)
@@ -103,26 +127,34 @@ This expands to::
         }
     }
 
-For structures, the default ``clone`` function is generated, in which each element is cloned::
+For structures, the default ``clone`` function is generated, in which each element is cloned:
+
+.. code-block:: das
 
     struct Foo {
         a : array<int>
         b : int
     }
 
-This expands to::
+This expands to:
+
+.. code-block:: das
 
     def clone ( var a:Foo explicit; b:Foo const ) {
         a.a := b.a
         a.b = b.b   // note copy instead of clone
     }
 
-For tuples, each individual element is cloned::
+For tuples, each individual element is cloned:
+
+.. code-block:: das
 
     var a, b : tuple<int;array<int>;string>
     b := a
 
-This expands to::
+This expands to:
+
+.. code-block:: das
 
     def clone ( var dest:tuple<int;array<int>;string> -const; src:tuple<int;array<int>;string> const -const ) {
         dest._0 = src._0
@@ -130,12 +162,16 @@ This expands to::
         dest._2 = src._2
     }
 
-For variants, only the currently active element is cloned::
+For variants, only the currently active element is cloned:
+
+.. code-block:: das
 
     var a, b : variant<i:int;a:array<int>;s:string>
     b := a
 
-This expands to::
+This expands to:
+
+.. code-block:: das
 
     def clone ( var dest:variant<i:int;a:array<int>;s:string> -const; src:variant<i:int;a:array<int>;s:string> const -const ) {
         if ( src is i ) {
@@ -156,7 +192,9 @@ This expands to::
 clone_to_move implementation
 ----------------------------
 
-``clone_to_move`` is implemented via regular generics as part of the builtin module::
+``clone_to_move`` is implemented via regular generics as part of the builtin module:
+
+.. code-block:: das
 
     def clone_to_move(clone_src:auto(TT)) : TT -const {
         var clone_dest : TT
@@ -165,3 +203,9 @@ clone_to_move implementation
     }
 
 Note that for non-cloneable types, Daslang will not promote ``:=`` initialize into ``clone_to_move``.
+
+.. seealso::
+
+    :ref:`Move, copy, and clone <clone_to_move>` for move, copy, and assignment rules,
+    :ref:`Finalizers <finalizers>` for delete and finalization semantics,
+    :ref:`Structs <structs>` and :ref:`Variants <variants>` for custom clone expansion.

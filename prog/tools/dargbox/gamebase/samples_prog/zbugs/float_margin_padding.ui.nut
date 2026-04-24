@@ -2,7 +2,7 @@ from "%darg/ui_imports.nut" import *
 
 return {
   rendObj = ROBJ_FRAME
-  size = static [500, SIZE_TO_CONTENT]
+  size = const [500, SIZE_TO_CONTENT]
   hplace = ALIGN_CENTER
   vplace = ALIGN_CENTER
   borderWidth = 1
@@ -30,7 +30,7 @@ and internal elements.
 */
     {
       rendObj = ROBJ_TEXTAREA
-      size = static [200, SIZE_TO_CONTENT]
+      size = const [200, SIZE_TO_CONTENT]
       pos = [200, 0]
       padding = 25
       margin = 15

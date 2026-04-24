@@ -11,7 +11,7 @@ extern bool enableBindless;
 extern DebugLevel hlslDebugLevel;
 
 DLL_EXPORT bool compile_compute_shader_spirv(const char *hlsl_text, unsigned len, const char *entry, const char *profile,
-  Tab<uint32_t> &shader_bin, String &out_err)
+  Tab<uint8_t> &metadata, Tab<uint32_t> &shader_bin, String &out_err)
 {
   enableBindless = false;
   bool enableFp16 = str_ends_with_c(profile, "_half");
@@ -19,7 +19,7 @@ DLL_EXPORT bool compile_compute_shader_spirv(const char *hlsl_text, unsigned len
   dag::Vector<String> params;
   spirv::DXCContext *ctx = spirv::setupDXC("", params);
   CompileResult result = compileShaderSpirV(ctx, hlsl_text, profile, entry, false, false, enableFp16, false, true, 4096,
-    "nodeBasedShader", CompilerMode::DEFAULT, 0, enableBindless, hlslDebugLevel != DebugLevel::NONE, false);
+    "nodeBasedShader", 0, enableBindless, hlslDebugLevel != DebugLevel::NONE, false, false);
   if (!result.errors.empty())
     out_err.aprintf(0, "%s\n", result.errors.c_str());
   if (result.bytecode.empty())
@@ -30,12 +30,16 @@ DLL_EXPORT bool compile_compute_shader_spirv(const char *hlsl_text, unsigned len
 
   shader_bin.assign((result.bytecode.size() + sizeof(uint32_t) - 1) / sizeof(uint32_t), 0);
   memcpy(shader_bin.data(), result.bytecode.data(), result.bytecode.size());
+
+  metadata.assign(result.metadata.size(), 0);
+  memcpy(metadata.data(), result.metadata.data(), result.metadata.size());
+
   spirv::shutdownDXC(ctx);
   return true;
 }
 
 DLL_EXPORT bool compile_compute_shader_spirv_bindless(const char *hlsl_text, unsigned len, const char *entry, const char *profile,
-  Tab<uint32_t> &shader_bin, String &out_err)
+  Tab<uint8_t> &metadata, Tab<uint32_t> &shader_bin, String &out_err)
 {
   enableBindless = true;
   bool enableFp16 = str_ends_with_c(profile, "_half");
@@ -43,7 +47,7 @@ DLL_EXPORT bool compile_compute_shader_spirv_bindless(const char *hlsl_text, uns
   dag::Vector<String> params;
   spirv::DXCContext *ctx = spirv::setupDXC("", params);
   CompileResult result = compileShaderSpirV(ctx, hlsl_text, profile, entry, false, false, enableFp16, false, true, 4096,
-    "nodeBasedShader", CompilerMode::DEFAULT, 0, enableBindless, hlslDebugLevel != DebugLevel::NONE, false);
+    "nodeBasedShader", 0, enableBindless, hlslDebugLevel != DebugLevel::NONE, false, false);
   if (!result.errors.empty())
     out_err.aprintf(0, "%s\n", result.errors.c_str());
   if (result.bytecode.empty())
@@ -54,6 +58,10 @@ DLL_EXPORT bool compile_compute_shader_spirv_bindless(const char *hlsl_text, uns
 
   shader_bin.assign((result.bytecode.size() + sizeof(uint32_t) - 1) / sizeof(uint32_t), 0);
   memcpy(shader_bin.data(), result.bytecode.data(), result.bytecode.size());
+
+  metadata.assign(result.metadata.size(), 0);
+  memcpy(metadata.data(), result.metadata.data(), result.metadata.size());
+
   spirv::shutdownDXC(ctx);
   return true;
 }

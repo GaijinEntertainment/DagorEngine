@@ -16,7 +16,6 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_atomic.h>
-#include <osApiWrappers/dag_atomic_types.h>
 #include <osApiWrappers/dag_files.h>
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -60,7 +59,7 @@ static unsigned logsMaxSize = 0;
 
 // debug_internal::Context debug_internal::debug_context = { NULL, -1 };
 bool debug_internal::always_flush_debug = false;
-bool debug_internal::flush_debug = false;
+dag::AtomicInteger<bool> debug_internal::flush_debug = false;
 int debug_internal::debug_enabled_bits = 0;
 bool debug_internal::level_files = true;
 
@@ -273,7 +272,7 @@ static bool prepare_file_impl(const char *path, write_stream_t &fpout, int lev_b
 #define MAX_CRYPTO_LINE (4 << 10)
 
 // Returns true if ends with carriage return ('\n')
-static bool out_file(write_stream_t fp, int lc, int t, bool term, int ik, const char *format, const void *arg, int anum)
+static bool out_file(write_stream_t fp, int lc, int extra_lc, int t, bool term, int ik, const char *format, const void *arg, int anum)
 {
   if (logsMaxSize && ik != LOGLEVEL_FATAL && logFileSizes[ik].load() >= logsMaxSize)
     return false;
@@ -307,6 +306,9 @@ static bool out_file(write_stream_t fp, int lc, int t, bool term, int ik, const 
     sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, "%3d.%02d %c%c%c%c ", t / 1000, (t % 1000) / 10, _DUMP4C(lc));
   else if (lc != debug_internal::stdTags[LOGLEVEL_DEBUG])
     sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, "%c%c%c%c ", _DUMP4C(lc));
+
+  if (extra_lc)
+    sz += _snprintf(sbuf + sz, sizeof(sbuf) - sz - 1, "%c%c%c%c ", _DUMP4C(extra_lc));
 
   debug_internal::Context *ctx = &debug_internal::dbg_ctx;
   if (ctx->file)
@@ -370,7 +372,8 @@ void debug_internal::vlog(int lev, const char *fmt, const void *arg, int anum)
   if (!debug_ctors_inited || !debug_internal::on_log_handler(lev, fmt, arg, anum))
     return;
 
-  const int lc = ((uint32_t)lev <= LOGLEVEL_REMARK) ? debug_internal::stdTags[lev] : lev;
+  const int lc = ((uint32_t)lev <= LOGLEVEL_REMARK) ? debug_internal::stdTags[lev] : lev; // -V781
+  const int extraLc = (lev == _MAKE4C('D3DE')) ? debug_internal::stdTags[LOGLEVEL_ERR] : 0;
   bool term = !(&dbg_ctx)->holdLine;
 
   bool &lastHoldLine = (&dbg_ctx)->lastHoldLine;
@@ -378,10 +381,10 @@ void debug_internal::vlog(int lev, const char *fmt, const void *arg, int anum)
   lastHoldLine = !term; // <- holdLine
   if (prepare_file(dbgFilepath, dbgFile, 1 << LOGLEVEL_DEBUG))
   {
-    if (out_file(dbgFile, lc, t, term, LOGLEVEL_DEBUG, fmt, arg, anum))
+    if (out_file(dbgFile, lc, extraLc, t, term, LOGLEVEL_DEBUG, fmt, arg, anum))
       lastHoldLine = false;
 
-    if (flush_debug)
+    if (flush_debug.load(dag::mo::_Relaxed{}))
       write_stream_flush_locked(dbgFile);
   }
 #if DAGOR_DBGLEVEL > 0
@@ -412,14 +415,14 @@ void debug_internal::vlog(int lev, const char *fmt, const void *arg, int anum)
   {
     if (lev == LOGLEVEL_ERR && prepare_file(logerrFilepath, logerrFile, 1 << LOGLEVEL_ERR))
     {
-      out_file(logerrFile, lc, t, term, LOGLEVEL_ERR, fmt, arg, anum);
-      if (flush_debug)
+      out_file(logerrFile, lc, extraLc, t, term, LOGLEVEL_ERR, fmt, arg, anum);
+      if (flush_debug.load(dag::mo::_Relaxed{}))
         write_stream_flush_locked(logerrFile);
     }
     else if (lev == LOGLEVEL_WARN && prepare_file(logwarnFilepath, logwarnFile, 1 << LOGLEVEL_WARN))
     {
-      out_file(logwarnFile, lc, t, term, LOGLEVEL_WARN, fmt, arg, anum);
-      if (flush_debug)
+      out_file(logwarnFile, lc, extraLc, t, term, LOGLEVEL_WARN, fmt, arg, anum);
+      if (flush_debug.load(dag::mo::_Relaxed{}))
         write_stream_flush_locked(logwarnFile);
     }
     else if (lev == LOGLEVEL_FATAL && fatalerrFilepath[0])
@@ -427,7 +430,7 @@ void debug_internal::vlog(int lev, const char *fmt, const void *arg, int anum)
       write_stream_t fp = file2stream(fopen(fatalerrFilepath, "at"));
       if (fp)
       {
-        out_file(fp, lc, t, term, LOGLEVEL_FATAL, fmt, arg, anum);
+        out_file(fp, lc, extraLc, t, term, LOGLEVEL_FATAL, fmt, arg, anum);
         write_stream_close(fp);
       }
     }
@@ -435,7 +438,7 @@ void debug_internal::vlog(int lev, const char *fmt, const void *arg, int anum)
 
   (&dbg_ctx)->file = nullptr;
 #if DEBUG_DO_PERIODIC_FLUSHES
-  if (term && !flush_debug && get_time_msec() > next_flush_time)
+  if (term && !flush_debug.load(dag::mo::_Relaxed{}) && get_time_msec() > next_flush_time)
   {
     debug_flush(false);
     next_flush_time = get_time_msec() + DEBUG_FLUSH_PERIOD;
@@ -549,6 +552,13 @@ void start_debug_system(const char *exe_fname, const char *prefix, bool datetime
 #if DAGOR_DBGLEVEL > 0
   debug_enable_thread_ids(true);
 #endif
+
+#if DAGOR_DBGLEVEL > 0 || DAGOR_FORCE_LOGS
+  // Eagerly open the debug file to avoid a race where a background thread (e.g. splash screen)
+  // triggers the lazy file open while clearing debug_enabled_bits, causing the main thread's
+  // early log messages to be silently dropped.
+  prepare_file(dbgFilepath, dbgFile, 1 << LOGLEVEL_DEBUG);
+#endif
 }
 
 void start_classic_debug_system(const char *debug_fname, bool en_time, bool hhmmss_fmt, int hhmmss_subsec, bool append_file)
@@ -589,8 +599,7 @@ void start_classic_debug_system(const char *debug_fname, bool en_time, bool hhmm
 
   if (debug_fname && is_path_abs(debug_fname))
   {
-    strcpy(fatalerrFilepath, debug_fname);
-    strcat(fatalerrFilepath, ".fatal");
+    SNPRINTF(fatalerrFilepath, sizeof(fatalerrFilepath), "%s.fatal", debug_fname);
   }
   else
   {
@@ -619,7 +628,7 @@ void start_classic_debug_system(const char *debug_fname, bool en_time, bool hhmm
     }
     debug_enabled_bits = 1 << LOGLEVEL_DEBUG;
 
-    strncpy(dbgCrashDumpPath, debug_fname, sizeof(dbgFilepath) - 1);
+    strncpy(dbgCrashDumpPath, debug_fname, sizeof(dbgCrashDumpPath) - 1);
   }
 
   if (dbgFilepath[0])

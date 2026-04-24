@@ -75,10 +75,10 @@ Sources =
   waterFoamTrail.cpp
   commonMeshManager.cpp
   smokeTracers.cpp
-  beamTracers.cpp
   frustumClusters.cpp
   shadowSystem.cpp
   clusteredLights.cpp
+  clusteredLightsGrid.cpp
   dstReadbackLights.cpp
   temporalAA.cpp
   smaa.cpp
@@ -92,6 +92,7 @@ Sources =
   lightProbeSpecularCubesContainer.cpp
   debugBoxRenderer.cpp
   debugLightProbeShapeRenderer.cpp
+  debugCollisionDensityRenderer.cpp
   debugGbuffer.cpp
   screenDroplets.cpp
   atlasTexManager.cpp
@@ -113,6 +114,8 @@ Sources =
   motionVectorAccess.cpp
   sphereRenderer.cpp
   lightShadowParams.cpp
+  toroidalVoxelGrid.cpp
+  voxelShadows.cpp
 ;
 
 UseProgLibs +=

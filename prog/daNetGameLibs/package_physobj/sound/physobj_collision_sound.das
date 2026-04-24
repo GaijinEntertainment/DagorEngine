@@ -4,7 +4,7 @@ require soundSystem
 require math.base
 require DagorMath
 require DngPhysObj
-require danetlibs.renderer.includes.pufd_events
+require gameLibs.pufd_events.pufd_events
 
 
 [es(tag=sound, after=sound_begin_update_es, before=sound_end_update_es, REQUIRE_NOT=disableUpdate)]

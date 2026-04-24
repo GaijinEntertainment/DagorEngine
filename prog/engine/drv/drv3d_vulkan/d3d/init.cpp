@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 // driver init and shutdown implementation
+#include <osApiWrappers/dag_files.h>
 #include <drv/3d/dag_driver.h>
 #include <3d/gpuLatency.h>
 #include "driver.h"
@@ -25,13 +26,14 @@
 #include "backend.h"
 #include "device_context.h"
 #include "device_memory_report.h"
-#include "buffer_alignment.h"
-#include "execution_markers.h"
+#include "buffer_props.h"
 #include "dummy_resources.h"
+#include "global_const_buffer.h"
 #include "sampler_cache.h"
 #include <3d/tql.h>
 #include "external_resource_pools.h"
 #include <gpuConfig.h>
+#include <gpuVendor.h>
 #include <workCycle/dag_workCycle.h>
 #include "device_featureset.h"
 #include "frontend.h"
@@ -45,6 +47,8 @@
 #include "resource_upload_limit.h"
 #include "sampler_resource.h"
 #include "swapchain.h"
+#include "backend/cmd/vendor_exts.h"
+#include "resource_update_buffer.h"
 
 using namespace drv3d_vulkan;
 
@@ -53,6 +57,9 @@ namespace
 
 bool isInitialized = false;
 bool initVideoDone = false;
+bool supportQueryCached = false;
+bool isSupported = false;
+bool isPreferred = false;
 
 Driver3dInitCallback *initCallback;
 VulkanSurfaceKHRHandle surface;
@@ -79,8 +86,12 @@ struct InitCtx
   {
     Tab<VulkanPhysicalDeviceHandle> physicalDevices = Globals::VK::inst.getAllDevices();
     physicalDeviceSets.clear();
+    debug("vulkan: %u phys devices", physicalDevices.size());
     for (int i = 0; i < physicalDevices.size(); ++i)
     {
+      debug("vulkan: phys device %016llX set init", generalize(physicalDevices[i]));
+      if (is_null(physicalDevices[i]))
+        continue;
       PhysicalDeviceSet pd{};
       pd.init(Globals::VK::inst, physicalDevices[i]);
       physicalDeviceSets.push_back(pd);
@@ -99,8 +110,9 @@ struct InitCtx
     String devicesDump(32 + physicalDeviceSets.size() * 64, "vulkan: %u devices available\n", physicalDeviceSets.size());
 
     for (auto &&device : physicalDeviceSets)
-      devicesDump.aprintf(64, "vulkan: %u : %s, %s [score %u]\n", &device - &physicalDeviceSets[0], device.properties.deviceName,
-        PhysicalDeviceSet::nameOf(device.properties.deviceType), device.score);
+      devicesDump.aprintf(64, "vulkan: %u : %s, %s %0.2f TFLOPS %s uarch [score %08X]\n", &device - &physicalDeviceSets[0],
+        device.properties.deviceName, PhysicalDeviceSet::nameOf(device.properties.deviceType), device.additional.tflops,
+        device.additional.uarch, device.score);
     devicesDump.pop_back();
     debug(devicesDump);
 
@@ -204,7 +216,7 @@ struct InitCtx
     }
   }
 
-  void loadVkLib()
+  void loadVkLib(bool init_streamline)
   {
     const char *lib_names[] = {
       vkCfg->getStr("driverName", VULKAN_LIB_NAME),
@@ -217,7 +229,7 @@ struct InitCtx
     bool lib_loaded = false;
     for (const char *lib_nm : lib_names)
     {
-      lib_loaded = Globals::VK::loader.load(lib_nm, vkCfg->getBool("validateLoaderLibrary", true));
+      lib_loaded = Globals::VK::loader.load(lib_nm, vkCfg->getBool("validateLoaderLibrary", true), init_streamline);
       if (lib_loaded)
         break;
       Globals::VK::loader.unload();
@@ -235,10 +247,10 @@ struct InitCtx
     Globals::cfg.fillConfigBits(vkCfg);
   }
 
-  void createOutputWindow(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int ncmdshow, void *&mainwnd, void *renderwnd,
-    void *hicon, const char *title)
+  void createOutputWindow(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int ncmdshow, void *&mainwnd, void *hicon,
+    const char *title)
   {
-    Globals::window.set(hinst, wcname, ncmdshow, mainwnd, renderwnd, hicon, title, *(void **)&wnd_proc);
+    Globals::window.set(hinst, wcname, ncmdshow, mainwnd, hicon, title, *(void **)&wnd_proc);
     Globals::window.getRenderWindowSettings(initCallback);
 
     if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
@@ -253,7 +265,7 @@ struct InitCtx
 
   void initSurface()
   {
-    surface = init_window_surface(Globals::VK::inst);
+    surface = init_window_surface(Globals::VK::inst, Globals::window.getMainWindow());
     if (is_null(surface))
       return fail("vulkan: Unable to create surface definition of the output window");
   }
@@ -265,6 +277,10 @@ struct InitCtx
       debug("vulkan: device created");
       if (videoCfg->getBool("preferiGPU", false) && Globals::VK::phy.properties.deviceType != VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
         logwarn("vulkan: Despite the preferiGPU flag being enabled, the dedicated GPU is used!");
+
+      if (!dgs_get_settings()->getBlockByNameEx("vulkan")->getBool("allowSoftwareDevice", false) &&
+          Globals::VK::phy.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_CPU)
+        return fail("vulkan: Usage of software device is not allowed, check driver installation integrity/presence of GPU");
       return;
     }
     VULKAN_LOG_CALL(Globals::VK::inst.vkDestroySurfaceKHR(Globals::VK::inst.get(), surface, nullptr));
@@ -344,6 +360,7 @@ struct InitCtx
         for (uint32_t i = 0; i < set->queuesGlobalPriorityProperties[idx].priorityCount; ++i)
           if (set->queuesGlobalPriorityProperties[idx].priorities[i] == VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR)
             qprio.globalPriority = VK_QUEUE_GLOBAL_PRIORITY_HIGH_KHR;
+        debug("vulkan: queue %u family %u global priority %u", idx, qci[idx].queueFamilyIndex, qprio.globalPriority);
         chain_structs(qci[idx], qprio);
       }
     }
@@ -464,9 +481,6 @@ struct InitCtx
       enabledDeviceExtensions = make_span_const(VulkanDevice::ExtensionNames, VulkanDevice::ExtensionCount);
       disableExtensionsByDataBlock(extensionCfg, "global config");
       disableExtensionsByDataBlock(Globals::cfg.getPerDriverPropertyBlock("extensions"), "per driver config");
-      // re-init extensions on set to update features supported
-      if (inReset)
-        set->processExtendedFeaturesQueryResult();
       set->initExt(Globals::VK::inst);
     }
 
@@ -664,6 +678,8 @@ struct InitCtx
         bool retryOk = initDeviceWithoutStreamline();
         if (!retryOk)
           retryOk = initDeviceWithoutQueuePriority();
+        if (!retryOk && inReset)
+          return reject("can't init device in reset");
         if (!retryOk)
           retryOk = initDeviceWithFeatureDowngrade();
         if (!retryOk)
@@ -687,13 +703,14 @@ struct InitCtx
         return reject("unable to init swapchain");
 
 #if !USE_STREAMLINE_FOR_DLSS
-      Globals::dlss.Initialize(Globals::VK::inst.get(), Globals::VK::phy.device, Globals::VK::dev.get());
+      if (Globals::VK::phy.vendor == GpuVendor::NVIDIA)
+        Globals::dlss.Initialize(Globals::VK::inst.get(), Globals::VK::phy.device, Globals::VK::dev.get());
 #endif
 
       if (!inReset)
       {
         SwapchainMode swapchainMode{};
-        swapchainMode.surface = surface;
+        swapchainMode.surfaceAndWindow = {surface, Globals::window.getMainWindow()};
         swapchainMode.enableSrgb = false;
         swapchainMode.extent.width = Globals::window.settings.resolutionX;
         swapchainMode.extent.height = Globals::window.settings.resolutionY;
@@ -752,12 +769,35 @@ struct InitCtx
 
   void initBufferRelatedSystems()
   {
-    Globals::VK::bufAlign.init();
+    Globals::VK::bufProps.init();
     Globals::ctx.initTempBuffersConfiguration();
-    Backend::immediateConstBuffers.init();
-    if (Globals::cfg.bits.commandMarkers)
-      Globals::gpuExecMarkers.init();
   }
+
+#define CHECK(x) \
+  x;             \
+  if (error)     \
+  return
+
+  void setupInstance(bool silent_init = false)
+  {
+    error = nullptr;
+    // do not init streamline if device was resetted, because it does not guarantie clean exit
+    CHECK(loadVkLib(!silent_init && !dcc.inReset));
+    CHECK(initInstance());
+    Globals::Dbg::callbacks.init();
+  }
+
+  void setupSurfaceAndDevice()
+  {
+    CHECK(initSurface());
+    fillPhysicalDeviceSets();
+    dumpDevicesInfo();
+    selectDeviceIndex();
+    tryInitDeviceLoop();
+    CHECK(verifyDeviceCreated());
+  }
+
+#undef CHECK
 };
 
 InitCtx ictx;
@@ -769,8 +809,6 @@ void shutdown_device()
   if (!Globals::VK::dev.isValid())
     return;
 
-  if (Globals::cfg.bits.commandMarkers)
-    Globals::gpuExecMarkers.shutdown();
   Globals::dummyResources.shutdown(Globals::ctx);
   Globals::surveys.shutdownDataBuffers();
   Globals::ctx.shutdown();
@@ -801,7 +839,9 @@ void shutdown_device()
   Backend::cb.shutdown();
   Globals::VK::queue.shutdown();
   Globals::VK::dev.shutdown();
-  Globals::VK::bufAlign.shutdown();
+  Globals::VK::bufProps.shutdown();
+  Backend::interop.lastGPUCompleted.id = 0;
+  Backend::interop.pendingGpuWork.gpuFence = nullptr;
 }
 
 bool d3d::is_inited() { return isInitialized && initVideoDone; }
@@ -820,6 +860,11 @@ bool d3d::init_driver()
 void d3d::release_driver()
 {
   Globals::lock.acquire();
+
+  // run completion to consume pending bindless updates
+  // as they must be done before TQL shutdown, yet TQL shutdown must happen before leak check
+  Globals::ctx.processAllPendingWork();
+
   TEXQL_SHUTDOWN_TEX();
   tql::termTexStubs();
   isInitialized = false;
@@ -837,10 +882,13 @@ void d3d::release_driver()
   pipeState.reset();
   pipeState.makeDirty();
   Frontend::swapchain.shutdown();
+  Frontend::secondarySwapchains.shutdown();
 
   Globals::Res::buf.freeWithLeakCheck(
     [](GenericBufferInterface *i) { debug("vulkan: generic buffer %p %s leaked", i, i->getBufName()); });
   Globals::Res::tex.freeWithLeakCheck([](TextureInterfaceBase *i) { debug("vulkan: texture %p %s leaked", i, i->getTexName()); });
+  Globals::Res::queries.freeWithLeakCheck([](AsyncCompletionState *i) { debug("vulkan: event query %p leaked", i); });
+  Globals::Res::rub.freeWithLeakCheck([](ResUpdateBufferImp *i) { debug("vulkan: RUB %p leaked", i); });
 
   // otherwise we can crash on validation tracking optimized code in backend
   // if pending work contains some pipe rebinds
@@ -911,17 +959,6 @@ void correctStreamingDriverReserve()
     debug("vulkan: Cannot override texStreaming/driverReserveKB. Settings is not inited yet.");
 }
 
-void update_vulkan_gpu_driver_config(GpuDriverConfig &gpu_driver_config)
-{
-  auto &deviceProps = Globals::VK::phy;
-
-  gpu_driver_config.primaryVendor = deviceProps.vendor;
-  gpu_driver_config.deviceId = deviceProps.properties.deviceID;
-  gpu_driver_config.integrated = deviceProps.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
-  for (int i = 0; i < 4; ++i)
-    gpu_driver_config.driverVersion[i] = deviceProps.driverVersionDecoded[i];
-}
-
 #define ERR_CHECK(x)                                  \
   {                                                   \
     x;                                                \
@@ -933,9 +970,21 @@ void update_vulkan_gpu_driver_config(GpuDriverConfig &gpu_driver_config)
     }                                                 \
   }
 
-bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int ncmdshow, void *&mainwnd, void *renderwnd, void *hicon,
+static TwoComponentVersion to_nvidia_version_vulkan(DriverVersion version)
+{
+  // The VkPhysicalDeviceProperties::driverVersion encodes the nvidia XXX.XX driver format at first 2 components part
+  // of the 10|8|8|6 scheme.
+  return {
+    .major = version.product,
+    .minor = version.major,
+  };
+}
+
+bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int ncmdshow, void *&mainwnd, void *hicon,
   const char *title, Driver3dInitCallback *cb)
 {
+  to_nvidia_version = &to_nvidia_version_vulkan;
+
   Globals::lock.acquire();
   D3D_CONTRACT_ASSERTF(!initVideoDone, "vulkan: trying to call init_video when already inited");
   // on some systems we attach to existing window and must wait for it to be available
@@ -944,19 +993,11 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   ictx.initConfigs();
   dumpStateSizes();
 
-  ERR_CHECK(ictx.loadVkLib())
-  ERR_CHECK(ictx.initInstance())
-  Globals::Dbg::callbacks.init();
-
+  ERR_CHECK(ictx.setupInstance());
   // create draw window now, so we can determine which device
   // is able to render to the window surface
-  ERR_CHECK(ictx.createOutputWindow(hinst, wnd_proc, wcname, ncmdshow, mainwnd, renderwnd, hicon, title));
-  ERR_CHECK(ictx.initSurface());
-  ictx.fillPhysicalDeviceSets();
-  ictx.dumpDevicesInfo();
-  ictx.selectDeviceIndex();
-  ictx.tryInitDeviceLoop();
-  ERR_CHECK(ictx.verifyDeviceCreated());
+  ERR_CHECK(ictx.createOutputWindow(hinst, wnd_proc, wcname, ncmdshow, mainwnd, hicon, title));
+  ERR_CHECK(ictx.setupSurfaceAndDevice());
   ictx.initDeviceIndependentSystems();
   ictx.initBufferRelatedSystems();
   Globals::samplers.init();
@@ -968,31 +1009,24 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   Backend::interop.barrierMergeMode = Globals::cfg.barrierMergeMode;
 
   Globals::cfg.fillExternalCaps(Globals::desc);
+  Frontend::GCB.initDeviceLimits(Globals::VK::phy.properties.limits.maxUniformBufferRange);
   // must be after caps fill
   Globals::bindless.init();
   Globals::shaderProgramDatabase.init(Globals::desc.caps.hasBindless, Globals::ctx);
   if (Globals::cfg.bits.enableRenderDocLayer)
     Globals::Dbg::rdoc.init();
-  initVideoDone = true;
   Frontend::swapchain.nextFrame();
+  Frontend::currentSwapchainToPresent = &Frontend::swapchain;
 
 #if USE_STREAMLINE_FOR_DLSS
   if (Globals::VK::loader.streamlineAdapter)
   {
     Globals::VK::loader.streamlineAdapter->setVulkan();
-    Globals::ctx.initializeStreamlineDlss(Frontend::swapchain.getMode().extent.width, Frontend::swapchain.getMode().extent.height);
+    Globals::ctx.dispatchCmd<CmdInitializeStreamlineDLSS>(
+      {(int)Frontend::swapchain.getMode().extent.width, (int)Frontend::swapchain.getMode().extent.height});
   }
 #endif
   GpuLatency::create(Globals::VK::phy.vendor);
-
-  // external engine stuff
-
-  correctStreamingDriverReserve();
-  update_gpu_driver_config = update_vulkan_gpu_driver_config;
-  // tex streaming need to know that driver is inited
-  tql::initTexStubs();
-  // state inited to NULL target by default, reset to BB
-  d3d::set_render_target();
 
   if (Globals::VK::phy.hasDeviceFaultFeature)
   {
@@ -1000,6 +1034,17 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     if (dd_file_exist(Globals::cfg.getFaultVendorDumpFile()))
       dd_erase(Globals::cfg.getFaultVendorDumpFile());
   }
+
+  // state inited to NULL target by default, reset to BB
+  d3d::set_render_target();
+
+  // external engine stuff
+  correctStreamingDriverReserve();
+
+  // there is consumers of init state, so we must set init state before fully finishing method
+  initVideoDone = true;
+  // tex streaming need to know that driver is inited
+  tql::initTexStubs();
 
   debug("vulkan: init_video done");
   Globals::lock.release();
@@ -1030,11 +1075,13 @@ void delete_all_device_resources()
   Frontend::State::pipe.reset();
   Frontend::State::pipe.makeDirty();
   Frontend::swapchain.shutdown();
+  Frontend::secondarySwapchains.shutdown();
 
   {
     WinAutoLock lk(Globals::Mem::mutex);
     Globals::Res::tex.iterateAllocated([&](TextureInterfaceBase *tex) { tex->onDeviceReset(); });
     Globals::Res::buf.iterateAllocated([&](GenericBufferInterface *buff) { buff->onDeviceReset(); });
+    Globals::Res::queries.iterateAllocated([&](AsyncCompletionState *query) { query->reset(); });
   }
 
   Globals::dummyResources.shutdown(Globals::ctx);
@@ -1043,7 +1090,8 @@ void delete_all_device_resources()
   Frontend::frameMemBuffers.purge();
   // shaders will be reset by engine logic (ShadersReset proc), so all we need is to clear existing ones
   Backend::pipelineCompiler.shutdown();
-  Globals::shaderProgramDatabase.clear(Globals::ctx);
+  Globals::shaderProgramDatabase.onDeviceReset();
+  Backend::shaderModules.onDeviceReset();
   Globals::ctx.processAllPendingWork();
 
 
@@ -1068,7 +1116,7 @@ void delete_all_device_resources()
   Frontend::replay.end();
   Globals::timelines.shutdown();
 
-  Globals::pipelines.unloadAll();
+  Globals::pipelines.onDeviceReset();
   Globals::pipeCache.onDeviceReset();
   Globals::fences.resetAll();
   Globals::rtSizeQueryPool.shutdownPools();
@@ -1082,11 +1130,15 @@ void delete_all_device_resources()
 #else
   Globals::dlss.Teardown(Globals::VK::dev.get());
 #endif
+  Backend::interop.lastGPUCompleted.id = 0;
+  Backend::interop.pendingGpuWork.gpuFence = nullptr;
 }
 
 void restore_all_device_resources()
 {
   TIME_PROFILE(vulkan_dev_reset_restore_res);
+  Globals::cfg.fillExternalCaps(Globals::desc);
+  Frontend::GCB.initDeviceLimits(Globals::VK::phy.properties.limits.maxUniformBufferRange);
   ictx.loadPrimaryPipeCache();
   Globals::timelines.init();
   Frontend::replay.start();
@@ -1095,9 +1147,11 @@ void restore_all_device_resources()
   Globals::surveys.afterDeviceReset();
 
   Backend::pipelineCompiler.init();
-  Globals::shaderProgramDatabase.init(Globals::desc.caps.hasBindless, Globals::ctx);
   Globals::Mem::res.afterDeviceReset();
   Globals::bindless.afterDeviceReset();
+  Backend::shaderModules.afterDeviceReset();
+  Globals::pipelines.afterDeviceReset();
+  Globals::shaderProgramDatabase.afterDeviceReset();
   // temp buffers
 
   Globals::Mem::res.iterateAllocated<SamplerResource>(afterDeviceResetResCb<SamplerResource>);
@@ -1126,14 +1180,15 @@ void restore_all_device_resources()
   Frontend::resUploadLimit.setNoFailOnThread(false);
 
   SwapchainMode newMode(Frontend::swapchain.getMode());
-  newMode.surface = surface;
+  newMode.surfaceAndWindow = {surface, Globals::window.getMainWindow()};
   Frontend::swapchain.setMode(newMode);
 
 #if USE_STREAMLINE_FOR_DLSS
   if (Globals::VK::loader.streamlineAdapter)
   {
     Globals::VK::loader.streamlineAdapter->setVulkan();
-    Globals::ctx.initializeStreamlineDlss(Frontend::swapchain.getMode().extent.width, Frontend::swapchain.getMode().extent.height);
+    Globals::ctx.dispatchCmd<CmdInitializeStreamlineDLSS>(
+      {(int)Frontend::swapchain.getMode().extent.width, (int)Frontend::swapchain.getMode().extent.height});
   }
 #endif
   GpuLatency::create(Globals::VK::phy.vendor);
@@ -1145,17 +1200,22 @@ bool recreate_device()
   // if we miss something, validator should complain here
   Globals::VK::queue.shutdown();
   Globals::VK::dev.shutdown();
+  Globals::VK::bufProps.shutdown();
+  Globals::Dbg::callbacks.shutdown();
+  Globals::VK::inst.shutdown();
+  Globals::VK::loader.unload();
 
-#if USE_STREAMLINE_FOR_DLSS
-  // must be inited before device creation
-  Globals::VK::loader.initStreamlineAdapter();
-#endif
-  // use already configured init context
+  // here vulkan is no longer inited, so any broken state/objects are no longer in use
+
   ictx.dcc.inReset = true;
   ictx.initConfigs();
-  ERR_CHECK(ictx.initSurface());
-  ictx.tryInitDeviceLoop();
-  ERR_CHECK(ictx.verifyDeviceCreated());
+  ictx.error = nullptr;
+  ERR_CHECK(ictx.setupInstance());
+  ERR_CHECK(ictx.setupSurfaceAndDevice());
+  Globals::VK::bufProps.init();
+
+  // reset device lost state after setup to make setup logic know about device lost
+  Backend::interop.deviceLost = false;
   ictx.dcc.inReset = false;
   return true;
 }
@@ -1166,9 +1226,15 @@ void full_device_reset()
   bool usingWorker = Globals::ctx.isWorkerRunning();
   if (usingWorker)
     Globals::ctx.toggleWorkerThread();
+  for (auto &handler : Globals::ctx.getDeviceResetEventHandlers())
+    handler->preRecovery();
   delete_all_device_resources();
-  recreate_device();
+  if (!recreate_device())
+    DAG_FATAL("vulkan: can't reset device");
+
   restore_all_device_resources();
+  for (auto &handler : Globals::ctx.getDeviceResetEventHandlers())
+    handler->recovery();
   if (usingWorker)
     Globals::ctx.toggleWorkerThread();
 }
@@ -1178,7 +1244,8 @@ void full_device_reset()
 extern bool dagor_d3d_force_driver_mode_reset;
 bool d3d::device_lost(bool *can_reset_now)
 {
-  const bool deviceLost = dagor_d3d_force_driver_reset || dagor_d3d_force_driver_mode_reset;
+  const bool deviceLost = dagor_d3d_force_driver_reset || dagor_d3d_force_driver_mode_reset ||
+                          (Globals::cfg.bits.resetOnDeviceLost && Backend::interop.deviceLost.load());
 
   if (can_reset_now)
     *can_reset_now = deviceLost;
@@ -1186,6 +1253,42 @@ bool d3d::device_lost(bool *can_reset_now)
 }
 static bool device_is_being_reset = false;
 bool d3d::is_in_device_reset_now() { return /*device_is_lost != S_OK || */ device_is_being_reset; }
+
+static void closeDLSS()
+{
+#if USE_STREAMLINE_FOR_DLSS
+  if (Globals::VK::loader.streamlineAdapter)
+  {
+    Globals::ctx.dispatchCmd<CmdReleaseStreamlineDLSS>({false});
+  }
+#else
+  Globals::ctx.dispatchCmd<CmdReleaseDLSS>({});
+#endif
+  Globals::ctx.processAllPendingWork();
+}
+
+static void initDLSS()
+{
+#if USE_STREAMLINE_FOR_DLSS
+  if (Globals::VK::loader.streamlineAdapter)
+  {
+    Globals::ctx.dispatchCmd<CmdInitializeStreamlineDLSS>(
+      {(int)Frontend::swapchain.getMode().extent.width, (int)Frontend::swapchain.getMode().extent.height});
+    Globals::ctx.processAllPendingWork();
+  }
+#endif
+}
+
+// TODO: use Globals::desc.caps.hasDLSS
+static bool isDLSSSupported()
+{
+#if USE_STREAMLINE_FOR_DLSS
+  return Globals::VK::loader.streamlineAdapter &&
+         Globals::VK::loader.streamlineAdapter->isDlssSupported() == nv::SupportState::Supported;
+#else
+  return Globals::dlss.getState() == nv::DLSS::State::SUPPORTED;
+#endif
+}
 
 bool d3d::reset_device()
 {
@@ -1204,7 +1307,6 @@ bool d3d::reset_device()
   } raii_reset;
 
   debug("vulkan: reset device");
-
   os_restore_display_mode();
   void *oldWindow = Globals::window.getMainWindow();
   Globals::window.getRenderWindowSettings();
@@ -1212,7 +1314,10 @@ bool d3d::reset_device()
   if (!Globals::window.setRenderWindowParams())
     return false;
 
-  if (dagor_d3d_force_driver_reset)
+  if (isDLSSSupported())
+    closeDLSS();
+
+  if (dagor_d3d_force_driver_reset || Backend::interop.deviceLost.load())
     full_device_reset();
 
   SwapchainMode newMode(Frontend::swapchain.getMode());
@@ -1230,14 +1335,19 @@ bool d3d::reset_device()
 #endif
 
   // reset changed window, we need to update surface
-  if (oldWindow != Globals::window.getMainWindow() || is_null(newMode.surface))
+  if (oldWindow != Globals::window.getMainWindow() || is_null(newMode.surfaceAndWindow.first))
   {
-    newMode.surface = init_window_surface(Globals::VK::inst);
+    newMode.surfaceAndWindow = {
+      init_window_surface(Globals::VK::inst, Globals::window.getMainWindow()), Globals::window.getMainWindow()};
   }
 
   // empty mode change will be filtered automatically
   Frontend::swapchain.setMode(newMode);
   Frontend::swapchain.nextFrame();
+  Frontend::currentSwapchainToPresent = &Frontend::swapchain;
+
+  if (isDLSSSupported())
+    initDLSS();
 
   if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
     os_set_display_mode(Globals::window.settings.resolutionX, Globals::window.settings.resolutionY);
@@ -1260,30 +1370,90 @@ void d3d::window_destroyed(void *handle)
     {
       Globals::window.closeWindow();
       SwapchainMode newMode(Frontend::swapchain.getMode());
-      newMode.surface = VulkanNullHandle();
+      newMode.surfaceAndWindow = {VulkanSurfaceKHRHandle{}, nullptr};
       Frontend::swapchain.setMode(newMode);
     }
+    else
+      Frontend::secondarySwapchains.free(handle);
     Globals::lock.release();
   }
 }
 
-bool is_vulkan_supported()
+static bool is_vulkan_preferred()
+{
+  const DataBlock &gpuPreferences = *::dgs_get_settings()->getBlockByNameEx("vulkan")->getBlockByNameEx("gpuPreferences");
+  ictx.fillPhysicalDeviceSets();
+  if (ictx.physicalDeviceSets.empty())
+    return false;
+
+  VkPhysicalDeviceProperties &properties = ictx.physicalDeviceSets[0].properties;
+
+  dag::Vector<uint32_t> otherDiscrete;
+  for (int i = 1; i < ictx.physicalDeviceSets.size(); ++i)
+    if (ictx.physicalDeviceSets[i].properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+      otherDiscrete.push_back(ictx.physicalDeviceSets[i].properties.vendorID);
+
+  return gpu::is_preferred_device(gpuPreferences, properties.vendorID, properties.deviceID, otherDiscrete);
+}
+
+static void query_vulkan_support()
 {
   if (d3d::is_inited())
-    return true;
+  {
+    isSupported = true;
+    isPreferred = true;
+    return;
+  }
 
   ictx.initConfigs();
-  ictx.loadVkLib();
-  if (ictx.error == nullptr)
-    ictx.initInstance();
+  ictx.setupInstance(true);
+  isSupported = (ictx.error == nullptr);
 
-  bool result = (ictx.error == nullptr);
+  if (isSupported)
+    isPreferred = is_vulkan_preferred();
+
   ictx.error = nullptr;
-
   if (Globals::VK::inst.isValid())
     Globals::VK::inst.shutdown();
   if (Globals::VK::loader.isValid())
     Globals::VK::loader.unload();
+}
 
-  return result;
+bool is_vulkan_supported(bool only_when_preferred)
+{
+  // this targets support only vulkan, so no need to bother with check logic and extra init that it does internally
+#if _TARGET_ANDROID | _TARGET_PC_LINUX
+  G_UNUSED(only_when_preferred);
+  return true;
+#else
+  if (!supportQueryCached)
+  {
+    // if the driver mode is auto but there is no hint in the config how to choose the driver,
+    // then we give up with vulkan.
+    if (only_when_preferred && ::dgs_get_settings()->getBlockByNameEx("vulkan")->getBlockByNameEx("gpuPreferences")->isEmpty())
+      return false;
+    supportQueryCached = true;
+    // create file that marks enter to support query
+    // if this file is not removed - support query crashed application
+    // so we must avoid it to not crash application
+    if (dd_file_exists(Globals::cfg.getSupportQueryFailedMarkerFile()))
+    {
+      debug("vulkan: not supported, %s indicate last support query crashed, check GPU drivers!",
+        Globals::cfg.getSupportQueryFailedMarkerFile());
+      return false;
+    }
+
+    file_ptr_t f = df_open(Globals::cfg.getSupportQueryFailedMarkerFile(), DF_WRITE | DF_CREATE | DF_IGNORE_MISSING);
+    if (f)
+    {
+      uint8_t v = 1;
+      df_write(f, &v, 1);
+      df_close(f);
+    }
+    query_vulkan_support();
+    if (f)
+      dd_erase(Globals::cfg.getSupportQueryFailedMarkerFile());
+  }
+  return only_when_preferred ? isPreferred : isSupported;
+#endif
 }

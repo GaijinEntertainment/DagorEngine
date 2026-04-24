@@ -1,0 +1,19 @@
+empty pattern error: letter expected
+unfinished range error: unfinished range
+quantifier error: quantifier value too large
+true
+true
+false
+trailing backslash error: letter expected for argument of escape sequence
+incomplete \m error: balanced chars expected
+incomplete \m( error: balanced chars expected
+unclosed bracket error: unterminated character class
+search begin=1 end=3
+true
+false
+[A-\n] correctly rejected: invalid range
+[a-\z] match m: true
+long pattern error: pattern exceeds maximum allowed nesting depth
+zero-width bounded: true
+quantifier min>max error: invalid quantifier range: min > max
+large quantifier no crash: true

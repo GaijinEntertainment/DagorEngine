@@ -34,8 +34,8 @@ Usage example:
 
       (ps)
       {
-        diffuse_tex@static = diffuse;
-        normal_tex@static = normal;
+        diffuse_tex@staticSmp = diffuse;
+        normal_tex@staticSmp = normal;
       }
       // now these textures are accessible in hlsl{} blocks
     }

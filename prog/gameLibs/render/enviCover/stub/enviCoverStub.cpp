@@ -9,5 +9,5 @@ EnviCover::~EnviCover() {}
 void EnviCover::initShader(const String &) {}
 bool EnviCover::updateShaders(const String &, const DataBlock &, String &) { return false; }
 void EnviCover::initRender(EnviCoverUseType) {}
-void EnviCover::render(int, int, const eastl::array<BaseTexture *, 4> &) {}
+void EnviCover::render(int, int, const eastl::array<BaseTexture *, ENVI_COVER_MAX_RW_TARGETS> &&) {}
 void EnviCover::closeShaders() {}

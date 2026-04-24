@@ -2,6 +2,8 @@
 #pragma once
 
 #include <EASTL/unique_ptr.h>
+#include <EASTL/unordered_map.h>
+#include <osApiWrappers/dag_atomic.h>
 #include <drv/3d/dag_consts.h>
 
 #include "vulkan_device.h"
@@ -12,20 +14,6 @@ namespace drv3d_vulkan
 
 class DeviceContext;
 
-struct ShaderIdentifier
-{
-  spirv::HashValue headerHash;
-  spirv::HashValue shaderHash;
-  uint32_t shaderSize;
-};
-
-inline bool operator==(const ShaderIdentifier &l, const ShaderIdentifier &r)
-{
-  return (l.shaderSize == r.shaderSize) && (l.shaderHash == r.shaderHash) && (l.headerHash == r.headerHash);
-}
-
-inline bool operator!=(const ShaderIdentifier &l, const ShaderIdentifier &r) { return !(l == r); }
-
 struct UniqueShaderPart
 {
   uint32_t id = 0;
@@ -34,7 +22,7 @@ struct UniqueShaderPart
   UniqueShaderPart() = default;
   bool release() { return --refCount == 0; }
   void onDuplicateAddition() { ++refCount; }
-  static constexpr bool alwaysUnique() { return false; }
+  static constexpr bool alwaysUnique() { return true; }
   static uint32_t makeID(LinearStorageIndex index) { return index; }
   static bool checkID(uint32_t) { return true; }
   static LinearStorageIndex getIndexFromID(uint32_t id) { return id; }
@@ -63,15 +51,13 @@ struct UniqueShaderHeader : ShaderModuleHeader, UniqueShaderPart
 
 struct UniqueShaderModule : UniqueShaderPart
 {
-  spirv::HashValue hash{};
-  uint32_t size = 0;
   bool inRemoval = false;
 
   typedef ShaderModuleBlob CreationInfo;
 
-  UniqueShaderModule(const CreationInfo &info) : hash(info.hash), size(info.getBlobSize()) {}
+  UniqueShaderModule(const CreationInfo &) {}
 
-  bool isSame(const CreationInfo &info) const { return size == info.getBlobSize() && hash == info.hash; }
+  bool isSame(const CreationInfo &) const { return false; }
 
   void addToContext(DeviceContext &ctx, uint32_t id, const CreationInfo &info);
   void removeFromContext(DeviceContext &ctx, uint32_t id);
@@ -166,12 +152,7 @@ struct ShaderInfo
     return true;
   }
 
-  bool isSame(VkShaderStageFlags shader_stage, const spirv::HashValue &header_hash, const spirv::HashValue &shader_hash,
-    intptr_t shader_size) const
-  {
-    return (header->stage == shader_stage) && (module->size == shader_size) && (header->hash == header_hash) &&
-           (module->hash == shader_hash);
-  }
+  bool isSame(VkShaderStageFlags, const spirv::HashValue &, const spirv::HashValue &, intptr_t) const { return false; }
 
   void onDuplicateAddition()
   {
@@ -202,7 +183,7 @@ struct ShaderInfo
   void removeFromContext(DeviceContext &, ShaderID) {}
   bool release() { return --refCount == 0; }
   static constexpr bool isRemovalPending() { return false; }
-  static constexpr bool alwaysUnique() { return false; }
+  static constexpr bool alwaysUnique() { return true; }
   static ShaderID makeID(LinearStorageIndex index) { return ShaderID(index); }
   static bool checkID(ShaderID) { return true; }
   static LinearStorageIndex getIndexFromID(ShaderID id) { return id.get(); }
@@ -210,15 +191,6 @@ struct ShaderInfo
   const spirv::ShaderHeader &getHeader() const { return header->header; }
 
   VkShaderStageFlags getStage() const { return header->stage; }
-
-  ShaderIdentifier getIdentifier() const
-  {
-    ShaderIdentifier result;
-    result.headerHash = header->hash;
-    result.shaderHash = module->hash;
-    result.shaderSize = module->size;
-    return result;
-  }
 
   ShaderModuleUse getUseInfo() const
   {

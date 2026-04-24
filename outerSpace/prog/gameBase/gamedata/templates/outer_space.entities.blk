@@ -1,9 +1,11 @@
 import:t="%danetlibs/renderer/templates/render_settings.template.blk"
 import:t="%danetlibs/renderer/templates/grass_render.template.blk"
+import:t="%danetlibs/renderer/templates/dynamic_lighting.template.blk"
 import:t="%danetlibs/render_debug/templates/debug_visualization.template.blk"
 import:t="%danetlibs/frame_graph_renderer/templates/frame_graph_nodes.template.blk"
-import:t="%danetlibs/bloom/templates/bloom.template.blk"
 import:t="%danetlibs/blurred_ui/templates/blurred_ui.template.blk"
+import:t="%danetlibs/composite_entity/templates/composite_entity.templates.blk"
+import_optional:t="composite_entities/*.entities.blk"
 import:t="game_logic.blk"
 import:t="checkpoints_fx.blk"
 
@@ -216,6 +218,11 @@ level {
   _use:t=replicating;
   _singleton:b=yes
   nonCreatableObj:b=yes;
+  _group{
+    _tags:t="server"
+    server_bot_spawned:b=no
+  }
+  level__render:b=no // load render based on dngRenderIsActive tag
 }
 
 respawnBase {
@@ -223,6 +230,7 @@ respawnBase {
   transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
   team:i=0
   "respbase:tag"{_tags:t="server";}
+  "checkpoint__occupiedBy:eid"{}
 }
 
 teamRespawnBase{
@@ -266,6 +274,10 @@ player {
 quit_after_load{
   quit_after_load_time:r=10
   quitAtTime:r=-1
+}
+
+requires_trans_render{
+  "requires_trans_render:tag"{}
 }
 
 animchar{
@@ -423,6 +435,61 @@ csu_engines_fx_and_sound{
   }
 }
 
+ai_bot{
+  _use:t=replicating
+  _replicate:b=yes
+  player__score:r=0
+  player__checkpoints:i=0
+  player__last_checkpoint_time:r=0
+  name:t=""
+  "is_bot:tag"{}
+}
+
+ai_bot_combat_space_unit{
+  _use:t=replicating
+  _use:t=animchar
+  _use:t=csu_engines_fx_and_sound
+  "possessedByPlr:eid"{ _replicate:b=yes; }
+
+  ai_possessed:b=yes
+  "bot__visited_checkpoints:list<eid>"{}
+  "bot__current_target_checkpoint:eid"{}
+
+  animchar__res:t="combat_space_unit_ausf_a_animchar"
+  collres{}
+  collres__res:t="combat_space_unit_ausf_a_collision"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+
+  phys_vars{}
+  phys_obj_net_phys{}
+  "phys_state_syncer:ECSCustomPhysStateSyncer"{}
+
+  base_net_phys_ptr{}
+  collision_physMatId:i=-1
+  net__physId:i=-1
+  phys_obj_net_phys__blk:t="gamedata/units/combat_space_unit.blk"
+
+  spaceship_nozzle_pos__mainA:p3=-2,0.9,0
+  spaceship_nozzle_pos__mainD:p3=+2,0.9,0
+  spaceship_nozzle_pos__agileU:p3=0,+2.9,0
+  spaceship_nozzle_pos__agileD:p3=0,-1.1,0
+  spaceship_nozzle_pos__agileL:p3=0,0.9,-2
+  spaceship_nozzle_pos__agileR:p3=0,0.9,+2
+  spaceship__rotateView_rad:p2=0,0
+  spaceship__rotateView_base_quat:p4=0,0,0,1
+  spaceship__use_stabilization:b=true
+  spaceship__min_target_ht:r=10
+  spaceship__min_target_dHt:r=0
+
+  spaceship__center_of_mass__bound_rad:p4=0,0.9,0, 1.5
+  force_shield:p4=3.0, 0.0, 1.0, 1000.0 // outer rad, min force (at outer rad), field width, max force (at inner rad = outer rad - width)
+
+  targeting:i=0
+  thrusting:i=0
+
+  can_move:b=no
+}
+
 combat_space_unit{
   _use:t=replicating
   _use:t=animchar
@@ -535,14 +602,6 @@ depth_of_field{
     dof__bokehShape_kernelSize:r=8
     dof__minCheckDistance:r=0.3
   }
-}
-
-bloom{
-  _use:t="bloom_base"
-  bloom__threshold:r=0.8
-  bloom__radius:r=2
-  bloom__upSample:r=0.65
-  _tags:t="render"
 }
 
 ri_gpu_object{

@@ -5,6 +5,9 @@ include "clouds_sun_light.dshl"
 include "skies_special_vision.dshl"
 include "use_strata_clouds.dshl"
 include "camera_in_camera.dshl"
+include "sky_polarization_filter_term_inc.dshl"
+
+float4 experimental_cloud_color_strata_clouds = (1,1,1,1);
 
 shader strata_clouds//, strata_clouds_panorama
 {
@@ -60,6 +63,7 @@ shader strata_clouds//, strata_clouds_panorama
   (ps) {
     skies_world_view_pos@f3 = skies_world_view_pos;
     skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
+    experimental_cloud_color_strata_clouds@f3 = experimental_cloud_color_strata_clouds;
   }
   USE_STRATA_CLOUDS(ps)
 
@@ -80,9 +84,11 @@ shader strata_clouds//, strata_clouds_panorama
       float3 viewVect = input.viewVect;
 
       half4 result = get_strata_clouds(normalize(viewVect), tc);
+      result.rgb *= apply_sky_polarization_filter();
+
       clip(result.a);
       applySpecialVision(result);
-      return half4(pack_hdr(result.rgb).rgb, result.a);
+      return half4(pack_hdr(result.rgb).rgb*experimental_cloud_color_strata_clouds, result.a);
     }
   }
 

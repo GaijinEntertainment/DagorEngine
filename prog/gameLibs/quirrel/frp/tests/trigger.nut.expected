@@ -1,0 +1,5 @@
+trigger count: 1
+trigger val: 42
+arr trigger count: 1
+arr after trigger: [1, 2, 3, 4]
+multi trigger count: 1

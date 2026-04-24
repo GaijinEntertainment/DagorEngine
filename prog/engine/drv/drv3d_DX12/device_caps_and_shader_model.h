@@ -3,7 +3,8 @@
 
 #include "d3d_cap_set_xmacro.h"
 #include "driver.h"
-#include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_shaderModelVersion.h>
 
 
 struct DeviceCapsAndShaderModel
@@ -33,12 +34,12 @@ struct DeviceCapsAndShaderModel
 #undef DX12_D3D_CAP
     return true;
   }
-  bool isCompatibleTo(const Driver3dDesc &desc) const { return isCompatibleTo(desc.shaderModel) && isCompatibleTo(desc.caps); }
-  bool isPipelineCompatibleTo(const Driver3dDesc &desc) const
+  bool isCompatibleTo(const DriverDesc &desc) const { return isCompatibleTo(desc.shaderModel) && isCompatibleTo(desc.caps); }
+  bool isPipelineCompatibleTo(const DriverDesc &desc) const
   {
     return isCompatibleTo(desc.shaderModel) && isPipelineCompatibleTo(desc.caps);
   }
-  static DeviceCapsAndShaderModel fromDriverDesc(const Driver3dDesc &desc)
+  static DeviceCapsAndShaderModel fromDriverDesc(const DriverDesc &desc)
   {
     DeviceCapsAndShaderModel result;
     result.shaderModel = desc.shaderModel;

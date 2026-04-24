@@ -6,7 +6,7 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaders.h>
@@ -62,7 +62,7 @@ bool GenericTonemapLUT::init(const char *lut_name, const char *render_shader_nam
 
   lut_sizeVarId = get_shader_variable_id("lut_size", true);
 
-  lut = dag::create_voltex(lutSize, lutSize, lutSize, flag, 1, lut_name);
+  lut = dag::create_voltex(lutSize, lutSize, lutSize, flag, 1, lut_name, RESTAG_POSTFX);
   if (lut)
   {
     eastl::string samplerName(eastl::string::CtorSprintf(), "%s_samplerstate", lut_name);

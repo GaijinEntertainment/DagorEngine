@@ -4,8 +4,6 @@
 #include "guiScene.h"
 #include "picAsyncLoad.h"
 
-// To consider: move this to some public engine header
-extern void lottie_discard_animation(PICTUREID pid);
 
 namespace darg
 {

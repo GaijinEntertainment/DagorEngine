@@ -16,6 +16,7 @@
 #include "dafxSparks_decl.hlsli"
 #include "dafxSystemDesc.h"
 #include "dafxQuality.h"
+#include <EASTL/shared_ptr.h>
 
 namespace dafx_ex
 {
@@ -49,7 +50,7 @@ struct DafxSparks : BaseParticleEffect
   dafx::ContextId ctx;
   dafx::SystemId sid;
   dafx::InstanceId iid;
-  dafx::SystemDesc parentDesc;
+  eastl::shared_ptr<dafx::SystemDesc const> parentDesc;
   dafx_ex::SystemInfo sinfo;
 
   int sortOrder = 0;
@@ -107,7 +108,7 @@ struct DafxSparks : BaseParticleEffect
       return false;
     }
 
-    parentDesc = dafx::SystemDesc();
+    auto builtDesc = eastl::make_shared<dafx::SystemDesc>();
 
     DafxEmitterInfo emInfo;
     if (!emInfo.loadParamsData(g_dafx_ctx, ptr, len, load_cb))
@@ -151,6 +152,9 @@ struct DafxSparks : BaseParticleEffect
     bool collisionRelaxed = parOptionalModifiers.collision == COLLISION_RELAXED;
     sinfo.rflags |= collisionRelaxed << DAFX_SPARK_DECL_COLLISION_RELAXED_FLAG;
 
+    bool smoothFadeEnabled = parOptionalModifiers.smoothFadeEnabled;
+    sinfo.rflags |= smoothFadeEnabled << DAFX_SPARK_SMOOTH_FADE;
+
     G_STATIC_ASSERT(sizeof(ParentRenData) == sizeof(DafxSparksRenParams) + sizeof(ParentRenData::tm) + sizeof(ParentRenData::flags));
     G_STATIC_ASSERT(sizeof(ParentSimData) == sizeof(DafxSparksSimParams) + sizeof(ParentSimData::fxVelocity) +
                                                sizeof(ParentSimData::widthOverLifeCurve) + sizeof(ParentSimData::gravityTm));
@@ -167,7 +171,7 @@ struct DafxSparks : BaseParticleEffect
     desc.emitterData = emInfo.emitterData;
     desc.emitterData.minEmissionFactor = clamp(parGlobals.emission_min, 0.f, 1.f);
     desc.gameResId = gameResId;
-    parentDesc.gameResId = gameResId;
+    builtDesc->gameResId = gameResId;
 
     if (!parOptionalModifiers.allowScreenProjDiscard)
       desc.specialFlags |= dafx::SystemDesc::FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD;
@@ -191,6 +195,7 @@ struct DafxSparks : BaseParticleEffect
     GDATA(zn_zfar);
     GDATA(wind_dir);
     GDATA(wind_power);
+    GDATA(quality);
 
 #undef GDATA
 
@@ -205,49 +210,49 @@ struct DafxSparks : BaseParticleEffect
     desc.renderDescs.push_back({dafx_ex::renderTags[rtag], "sparks_ps"});
     desc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_THERMAL], "sparks_thermal"});
 
-    parentDesc.qualityFlags = fx_apply_quality_bits(parQuality, 0xffffffff);
+    builtDesc->qualityFlags = fx_apply_quality_bits(parQuality, 0xffffffff);
 
-    parentDesc.renderElemSize = DAFX_PARENT_REN_DATA_SIZE;
-    parentDesc.simulationElemSize = DAFX_PARENT_SIM_DATA_SIZE;
+    builtDesc->renderElemSize = DAFX_PARENT_REN_DATA_SIZE;
+    builtDesc->simulationElemSize = DAFX_PARENT_SIM_DATA_SIZE;
 
-    parentDesc.emitterData.type = dafx::EmitterType::FIXED;
-    parentDesc.emitterData.fixedData.count = 1;
-    parentDesc.emitterData.spawnRangeLimit = parGlobals.spawn_range_limit;
-    parentDesc.emissionData.type = dafx::EmissionType::REF_DATA;
-    parentDesc.simulationData.type = dafx::SimulationType::NONE;
+    builtDesc->emitterData.type = dafx::EmitterType::FIXED;
+    builtDesc->emitterData.fixedData.count = 1;
+    builtDesc->emitterData.spawnRangeLimit = parGlobals.spawn_range_limit;
+    builtDesc->emissionData.type = dafx::EmissionType::REF_DATA;
+    builtDesc->simulationData.type = dafx::SimulationType::NONE;
 
-    parentDesc.emissionData.renderRefData.resize(parentDesc.renderElemSize);
-    parentDesc.emissionData.simulationRefData.resize(parentDesc.simulationElemSize);
+    builtDesc->emissionData.renderRefData.resize(builtDesc->renderElemSize);
+    builtDesc->emissionData.simulationRefData.resize(builtDesc->simulationElemSize);
 
-    memcpy(parentDesc.emissionData.renderRefData.data(), &TMatrix4::IDENT, sizeof(TMatrix4));
-    memcpy(parentDesc.emissionData.renderRefData.data() + sizeof(TMatrix4), &sinfo.rflags, sizeof(uint));
-    memset(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_FX_VELOCITY * 4, 0, sizeof(float3));
-    memcpy(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_GRAVITY_TM * 4, &Matrix3::IDENT,
+    memcpy(builtDesc->emissionData.renderRefData.data(), &TMatrix4::IDENT, sizeof(TMatrix4));
+    memcpy(builtDesc->emissionData.renderRefData.data() + sizeof(TMatrix4), &sinfo.rflags, sizeof(uint));
+    memset(builtDesc->emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_FX_VELOCITY * 4, 0, sizeof(float3));
+    memcpy(builtDesc->emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_GRAVITY_TM * 4, &Matrix3::IDENT,
       sizeof(Matrix3));
 
     if (parOptionalModifiers.widthOverLife.enabled)
     {
-      memset(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_HEADER * 4, 1,
+      memset(builtDesc->emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_HEADER * 4, 1,
         sizeof(uint));
       static constexpr int stepCnt = 32;
       eastl::vector<unsigned char> refValues;
       gen_prebake_curve(refValues, parOptionalModifiers.widthOverLife.curve, stepCnt);
-      memcpy(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_BODY * 4,
+      memcpy(builtDesc->emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_BODY * 4,
         refValues.data(), stepCnt * sizeof(unsigned char));
     }
     else
     {
-      memset(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_HEADER * 4, 0,
+      memset(builtDesc->emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_OFFSET_WIDTH_OVER_LIFE_HEADER * 4, 0,
         sizeof(uint));
     }
 
-    memcpy(parentDesc.emissionData.renderRefData.data() + sizeof(TMatrix4) + sizeof(uint), &renParams, sizeof(DafxSparksRenParams));
-    memcpy(parentDesc.emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_END * 4, &simParams,
+    memcpy(builtDesc->emissionData.renderRefData.data() + sizeof(TMatrix4) + sizeof(uint), &renParams, sizeof(DafxSparksRenParams));
+    memcpy(builtDesc->emissionData.simulationRefData.data() + DAFX_PARENT_SIM_DATA_EXTRA_END * 4, &simParams,
       sizeof(DafxSparksSimParams));
 
     using ValueType = dafx_ex::SystemInfo::ValueType;
-    auto desc_bind = [this](int &ofs, const char *name, int size) -> void {
-      parentDesc.localValuesDesc.push_back(dafx::ValueBindDesc(name, ofs, size));
+    auto desc_bind = [&builtDesc](int &ofs, const char *name, int size) -> void {
+      builtDesc->localValuesDesc.push_back(dafx::ValueBindDesc(name, ofs, size));
       ofs += size;
     };
     auto sinfo_desc_bind = [this, &desc_bind](int &ofs, const char *name, int size, ValueType sinfo_valueType) -> void {
@@ -315,165 +320,131 @@ struct DafxSparks : BaseParticleEffect
     SINFO_DESC_BIND(float, "windForce", ValueType::VAL_VELOCITY_WIND_COEFF);
     DESC_BIND(float, "gravity_zone");
 
-    parentDesc.subsystems.push_back(desc);
+    builtDesc->subsystems.push_back(desc);
 
 #undef DESC_BIND
 #undef SINFO_DESC_BIND
+
+    parentDesc = eastl::move(builtDesc);
 
     return true;
   }
 
   void setParam(unsigned id, void *value) override
   {
-    if (id == _MAKE4C('PFXR'))
+    if (DAGOR_LIKELY(id != _MAKE4C('PFXR') && id != _MAKE4C('PFXE')) && !iid)
+      return;
+    switch (id)
     {
-      // context was recreated and all systems was released
-      if (ctx != g_dafx_ctx)
+      case _MAKE4C('PFXR'):
       {
-        G_ASSERT(!sid && !iid);
-        sid = dafx::SystemId();
-        iid = dafx::InstanceId();
-        ctx = g_dafx_ctx;
-      }
+        // context was recreated and all systems was released
+        if (ctx != g_dafx_ctx)
+        {
+          G_ASSERT(!sid && !iid);
+          sid = dafx::SystemId();
+          iid = dafx::InstanceId();
+          ctx = g_dafx_ctx;
+        }
 
-      if (iid)
-        dafx::destroy_instance(g_dafx_ctx, iid);
+        if (iid)
+          dafx::destroy_instance(g_dafx_ctx, iid);
 
-      eastl::string name;
-      name.append_sprintf("sparks_ps_%d", gameResId);
-      sid = dafx::get_system_by_name(g_dafx_ctx, name);
-      bool forceRecreate = value && *(bool *)value;
-      if (sid && forceRecreate)
-      {
-        dafx::release_system(g_dafx_ctx, sid);
-        sid = dafx::SystemId();
-      }
+        eastl::string name;
+        name.append_sprintf("sparks_ps_%d", gameResId);
 
-      if (!sid)
-      {
-        sid = dafx::register_system(g_dafx_ctx, parentDesc, name);
+        bool forceRecreate = value && *(bool *)value;
+        if (resLoaded && parentDesc)
+          sid = dafx::get_system_by_name(g_dafx_ctx, name, forceRecreate ? nullptr : parentDesc.get());
+        if (sid && forceRecreate)
+        {
+          dafx::release_system(g_dafx_ctx, sid);
+          sid = dafx::SystemId();
+        }
+
         if (!sid)
-          logerr("fx: modfx: failed to register system");
-      }
+        {
+          sid = dafx::register_system(g_dafx_ctx, *parentDesc, name);
+          if (!sid)
+            logerr("fx: modfx: failed to register system");
+        }
 
-      if (sid && forceRecreate)
+        if (sid && forceRecreate)
+        {
+          iid = dafx::create_instance(g_dafx_ctx, sid);
+          G_ASSERT_RETURN(iid, );
+          dafx::set_instance_status(g_dafx_ctx, iid, false);
+        }
+        break;
+      }
+      case _MAKE4C('PFXE'):
       {
-        iid = dafx::create_instance(g_dafx_ctx, sid);
-        G_ASSERT_RETURN(iid, );
-        dafx::set_instance_status(g_dafx_ctx, iid, false);
+        if (sid && !iid) // for tools
+          iid = dafx::create_instance(g_dafx_ctx, sid);
+        if (iid)
+        {
+          G_ASSERT(value);
+          BaseEffectEnabled *dafxe = static_cast<BaseEffectEnabled *>(value);
+          dafx::set_instance_status(g_dafx_ctx, iid, dafxe->enabled, dafxe->distanceToCam);
+        }
+        break;
       }
-      return;
-    }
 
-    if (sid && !iid && id == _MAKE4C('PFXE')) // for tools
-      iid = dafx::create_instance(g_dafx_ctx, sid);
-
-    if (!iid)
-      return;
-
-    if (id == HUID_TM)
-      setTm((TMatrix *)value);
-    else if (id == HUID_EMITTER_TM)
-      setEmitterTm((TMatrix *)value);
-    else if (id == HUID_SPAWN_RATE)
-      setSpawnRate((float *)value);
-    else if (id == HUID_ACES_RESET)
-      reset();
-    else if (id == HUID_VELOCITY)
-      setVelocity((Point3 *)value);
-    else if (id == _MAKE4C('PFXE'))
-    {
-      G_ASSERT(value);
-      BaseEffectEnabled *dafxe = static_cast<BaseEffectEnabled *>(value);
-      dafx::set_instance_status(g_dafx_ctx, iid, dafxe->enabled, dafxe->distanceToCam);
+      case HUID_TM: setTm((TMatrix *)value); break;
+      case HUID_EMITTER_TM: setEmitterTm((TMatrix *)value); break;
+      case HUID_SPAWN_RATE: setSpawnRate((float *)value); break;
+      case HUID_ACES_RESET: reset(); break;
+      case HUID_VELOCITY: setVelocity((Point3 *)value); break;
+      case _MAKE4C('PFXO'): sortOrder = *(int *)value; break;
+      case _MAKE4C('PFXP'):
+      {
+        Point4 pos = *(Point4 *)value;
+        pos.w -= sortOrder * 0.1f;
+        dafx::set_instance_pos(g_dafx_ctx, iid, pos);
+        break;
+      }
+      case _MAKE4C('PFXI'): ((eastl::vector<dafx::InstanceId> *)value)->push_back(iid); break;
+      case _MAKE4C('PFXV'): dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(uint32_t *)value : 0); break;
+      case _MAKE4C('PFXG'): dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0); break;
+      case _MAKE4C('GZTM'): dafx::set_instance_value(g_dafx_ctx, iid, "gravity_tm", value, sizeof(Matrix3)); break;
+      default: break;
     }
-    else if (id == _MAKE4C('PFXO'))
-      sortOrder = *(int *)value;
-    else if (id == _MAKE4C('PFXP'))
-    {
-      Point4 pos = *(Point4 *)value;
-      pos.w -= sortOrder * 0.1f;
-      dafx::set_instance_pos(g_dafx_ctx, iid, pos);
-    }
-    else if (id == _MAKE4C('PFXI'))
-    {
-      ((eastl::vector<dafx::InstanceId> *)value)->push_back(iid);
-    }
-    else if (id == _MAKE4C('PFXV'))
-      dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(uint32_t *)value : 0);
-    else if (id == _MAKE4C('PFXG'))
-      dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0);
-    else if (id == _MAKE4C('GZTM'))
-      dafx::set_instance_value(g_dafx_ctx, iid, "gravity_tm", value, sizeof(Matrix3));
   }
 
   void *getParam(unsigned id, void *value) override
   {
-    if (id == HUID_ACES_IS_ACTIVE)
+    switch (id)
     {
-      *(bool *)value = dafx::is_instance_renderable_active(g_dafx_ctx, iid);
-      return value;
-    }
-    else if (id == _MAKE4C('PFXQ'))
-    {
-      *(dafx::SystemDesc **)value = resLoaded ? &parentDesc : nullptr;
-      return value;
-    }
-    else if (id == _MAKE4C('PFVR'))
-    {
-      *(dafx_ex::SystemInfo **)value = &sinfo;
-      return value;
-    }
-    else if (id == _MAKE4C('FXLM'))
-    {
-      *(int *)value = sinfo.maxInstances;
-    }
-    else if (id == _MAKE4C('FXLP'))
-    {
-      *(int *)value = sinfo.playerReserved;
-    }
-    else if (id == _MAKE4C('FXLR'))
-    {
-      *(float *)value = parentDesc.emitterData.spawnRangeLimit;
-    }
-    else if (id == _MAKE4C('FXLX'))
-    {
-      *(Point2 *)value = Point2(sinfo.onePointNumber, sinfo.onePointRadius);
-      return value;
-    }
-    else if (id == _MAKE4C('CACH'))
-    {
-      return (void *)1; //-V566
-    }
-    else if (id == _MAKE4C('CIID'))
-    {
-      return (void *)&iid; //-V566
-    }
-    else if (id == _MAKE4C('PFXI'))
-    {
-      *(dafx::InstanceId *)value = iid;
-      return value;
-    }
-    else if (id == _MAKE4C('PFXC') && value)
-      *(bool *)value = dafx::is_instance_renderable_visible(g_dafx_ctx, iid);
-    else if (id == _MAKE4C('FXLD'))
-    {
-      if (value)
-        ((eastl::vector<dafx::SystemDesc *> *)value)->push_back(&parentDesc);
-      return value;
-    }
-    else if (id == _MAKE4C('FXIC') && value)
-    {
-      *(int *)value = dafx::get_instance_elem_count(g_dafx_ctx, iid);
-      return value;
-    }
-    else if (id == _MAKE4C('FXID') && value)
-    {
-      *(dafx::InstanceId *)value = iid;
-      return value;
+      case HUID_ACES_IS_ACTIVE: *(bool *)value = dafx::is_instance_renderable_active(g_dafx_ctx, iid); break;
+      case _MAKE4C('PFXQ'): *(dafx::SystemDesc const **)value = resLoaded ? parentDesc.get() : nullptr; break;
+      case _MAKE4C('PFVR'): *(dafx_ex::SystemInfo **)value = &sinfo; break;
+      case _MAKE4C('FXLM'): *(int *)value = sinfo.maxInstances; break;
+      case _MAKE4C('FXLP'): *(int *)value = sinfo.playerReserved; break;
+      case _MAKE4C('FXLR'): *(float *)value = parentDesc->emitterData.spawnRangeLimit; break;
+      case _MAKE4C('FXLX'): *(Point2 *)value = Point2(sinfo.onePointNumber, sinfo.onePointRadius); break;
+      case _MAKE4C('CACH'): return (void *)1;    //-V566
+      case _MAKE4C('CIID'): return (void *)&iid; //-V566
+      case _MAKE4C('PFXI'): *(dafx::InstanceId *)value = iid; break;
+      case _MAKE4C('PFXC'):
+        if (value)
+          *(bool *)value = dafx::is_instance_renderable_visible(g_dafx_ctx, iid);
+        break;
+      case _MAKE4C('FXLD'):
+        if (value)
+          ((eastl::vector<dafx::SystemDesc const *> *)value)->push_back(parentDesc.get());
+        break;
+      case _MAKE4C('FXIC'):
+        if (value)
+          *(int *)value = dafx::get_instance_elem_count(g_dafx_ctx, iid);
+        break;
+      case _MAKE4C('FXID'):
+        if (value)
+          *(dafx::InstanceId *)value = iid;
+        break;
+      default: return nullptr;
     }
 
-    return nullptr;
+    return value;
   }
 
   BaseParamScript *clone() override

@@ -51,6 +51,7 @@ struct AutoLockWritePrimaryAndExtra
 
 int getRIGenMaterialId(const RendInstDesc &desc, bool need_lock = true);
 bool getRIGenCanopyBBox(const RendInstDesc &desc, const TMatrix &tm, BBox3 &out_canopy_bbox, bool need_lock = true);
+int getRIGenCanopyShape(const RendInstDesc &desc);
 CollisionResource *getRIGenCollInfo(const RendInstDesc &desc);
 void *getCollisionResourceHandle(const RendInstDesc &desc);
 const CollisionResource *getRiGenCollisionResource(const RendInstDesc &desc);
@@ -71,6 +72,7 @@ bool isRIGenDestr(const RendInstDesc &desc);
 
 int getRIGenStrideRaw(int layer_idx, int pool_id);
 int getRIGenStride(int layer_idx, int cell_id, int pool_id);
+BBox3 getRIGenCellBBox(int layer_idx, int cell_idx);
 Point4 getRIGenBSphere(const RendInstDesc &desc);
 BBox3 getRIGenBBox(const RendInstDesc &desc);
 BBox3 getRIGenFullBBox(const RendInstDesc &desc);
@@ -100,7 +102,7 @@ RenderableInstanceLodsResource *getRIGenRes(RendInstGenData *rgl, const RendInst
 RenderableInstanceLodsResource *getRIGenRes(int layer_ix, int pool_ix);
 
 using RiGenIterator = void (*)(int layer_ix, int pool_ix, int lod_ix, int last_lod_ix, bool impostor, mat44f_cref tm,
-  const E3DCOLOR *colors, uint32_t bvh_id, void *user_data);
+  const E3DCOLOR *colors, uint32_t bvh_id, void *user_data, uint32_t palette_id);
 void foreachRiGenInstance(RiGenVisibility *visibility, RiGenIterator callback, void *user_data, const dag::Vector<uint32_t> &accel1,
   const dag::Vector<uint64_t> &accel2, volatile int &cursor1, volatile int &cursor2, bool simplified_impostor_matrix);
 void build_ri_gen_thread_accel(RiGenVisibility *visibility, dag::Vector<uint32_t> &accel1, dag::Vector<uint64_t> &accel2);

@@ -305,6 +305,26 @@ class StatefulCommandBuffer
     globalState.dirtyState.reset();
   }
 
+  static void update_root_constants(auto &mask, auto &target, const uint32_t *values, uint32_t count)
+  {
+    if (0 != count)
+    {
+      for (uint32_t i = 0; i < count; ++i)
+      {
+        or_bit(mask, i, target[i] != values[i]);
+        target[i] = values[i];
+      }
+    }
+    else
+    {
+      for (uint32_t i = 0; i < MAX_ROOT_CONSTANTS; ++i)
+      {
+        or_bit(mask, i, target[i] != 0);
+        target[i] = 0;
+      }
+    }
+  }
+
 public:
   void clearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE view, const FLOAT color[4], UINT rect_count, const D3D12_RECT *rects)
   {
@@ -315,6 +335,14 @@ public:
     DXGI_FORMAT format)
   {
     cmd.resolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
+    ++knownWrittenCommands;
+  }
+
+  void resolveSubresourceRegion(ID3D12Resource *dst_resource, UINT dst_subresource, UINT dst_x, UINT dst_y,
+    ID3D12Resource *src_resource, UINT src_subresource, D3D12_RECT *src_rect, DXGI_FORMAT format, D3D12_RESOLVE_MODE resolve_mode)
+  {
+    cmd.resolveSubresourceRegion(dst_resource, dst_subresource, dst_x, dst_y, src_resource, src_subresource, src_rect, format,
+      resolve_mode);
     ++knownWrittenCommands;
   }
   void clearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE view, D3D12_CLEAR_FLAGS flags, FLOAT d, UINT8 s, UINT rect_count,
@@ -410,6 +438,12 @@ public:
   void recordExternalCommands(T &&accessor)
   {
     accessor(cmd.get());
+    ++unknownWrittenCommands;
+  }
+  template <typename T>
+  void recordExternalCommands4(T &&accessor)
+  {
+    accessor(cmd.as<ID3D12GraphicsCommandList4>());
     ++unknownWrittenCommands;
   }
 
@@ -601,24 +635,111 @@ public:
     raytraceState.dirtyState.reset();
   }
 
+  void flushRaytraceFromCompute()
+  {
+    G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
+    flushGlobalState();
+
+    if (raytraceState.dirtyState.test(RaytraceState::DirtySet::PIPELINE))
+    {
+      cmd.setPipelineState1(raytraceState.pipeline);
+      activeEmbeddedPipeline = nullptr;
+    }
+
+    if (raytraceState.dirtyState.test(RaytraceState::DirtySet::SIGNATURE))
+    {
+      cmd.setComputeRootSignature(raytraceState.rootSignature->signature.Get());
+      // need to dirty compute and ray trace section
+      raytraceState.constBufferDirtyState.set();
+      raytraceState.rootConstantDirtyState.set();
+      raytraceState.dirtyState.set(RaytraceState::DirtySet::SAMPLER_DESCRIPTORS);
+      raytraceState.dirtyState.set(RaytraceState::DirtySet::SRV_DESCRIPTORS);
+      raytraceState.dirtyState.set(RaytraceState::DirtySet::UAV_DESCRIPTORS);
+
+      computeState.constBufferDirtyState.set();
+      computeState.rootConstantDirtyState.set();
+      computeState.dirtyState.set(ComputeState::DirtySet::SAMPLER_DESCRIPTORS);
+      computeState.dirtyState.set(ComputeState::DirtySet::SRV_DESCRIPTORS);
+      computeState.dirtyState.set(ComputeState::DirtySet::UAV_DESCRIPTORS);
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+      computeState.dirtyState.set(ComputeState::DirtySet::CBV_DESCRIPTORS);
+#endif
+
+      globalState.resetActiveBindlessAddresses();
+    }
+
+    if (computeState.rootConstantDirtyState.any())
+    {
+      raytraceState.rootSignature->updateRootConstants(cmd, computeState.computeShader.rootConstants,
+        computeState.rootConstantDirtyState);
+      computeState.rootConstantDirtyState.reset();
+    }
+#if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
+    bool cbvDescriptorsDirty = computeState.dirtyState.test(ComputeState::DirtySet::CBV_DESCRIPTORS);
+    D3D12_GPU_DESCRIPTOR_HANDLE cbvDescriptors = computeState.computeShader.cbvExtraRange;
+#else
+    constexpr bool cbvDescriptorsDirty = false;
+    constexpr D3D12_GPU_DESCRIPTOR_HANDLE cbvDescriptors{};
+#endif
+    if (computeState.constBufferDirtyState.any() || cbvDescriptorsDirty)
+    {
+      // const buffer array is not compacted (eg slots match the usage mask)
+      raytraceState.rootSignature->updateCBVRange(cmd, computeState.computeShader.cbvRange, cbvDescriptors,
+        computeState.constBufferDirtyState, cbvDescriptorsDirty, false);
+      computeState.constBufferDirtyState.reset();
+    }
+    if (computeState.dirtyState.test(ComputeState::DirtySet::SRV_DESCRIPTORS))
+    {
+      raytraceState.rootSignature->updateSRVRange(cmd, computeState.computeShader.srvRange);
+    }
+    if (computeState.dirtyState.test(ComputeState::DirtySet::UAV_DESCRIPTORS))
+    {
+      raytraceState.rootSignature->updateUAVRange(cmd, computeState.computeShader.uavRange);
+    }
+    if (computeState.dirtyState.test(ComputeState::DirtySet::SAMPLER_DESCRIPTORS))
+    {
+      raytraceState.rootSignature->updateSamplerRange(cmd, computeState.computeShader.samplerRange);
+    }
+    if (globalState.needsBindlessSamplerSet())
+    {
+      raytraceState.rootSignature->updateBindlessSamplerRange(cmd, globalState.bindlessHeapAddress[0]);
+      globalState.bindlessSamplerSetWasApplied();
+    }
+    if (globalState.needsBindlessSRVSet())
+    {
+      raytraceState.rootSignature->updateUnboundedSRVRanges(cmd, globalState.bindlessHeapAddress[1]);
+      globalState.bindlessSRVSetWasApplied();
+    }
+    computeState.dirtyState.reset();
+    // some extra flags have to be set and unset to correctly track what was applied and what was not
+    raytraceState.dirtyState.reset(RaytraceState::DirtySet::PIPELINE);
+    raytraceState.dirtyState.reset(RaytraceState::DirtySet::SIGNATURE);
+    // only one pipeline can be active at a time
+    graphicsState.dirtyState.set(GraphicsState::DirtySet::PIPELINE);
+    computeState.dirtyState.set(ComputeState::DirtySet::PIPELINE);
+    // global raytrace signature slot is the same as the compute one
+    computeState.dirtyState.set(ComputeState::DirtySet::SIGNATURE);
+  }
+
+  // TODO replace inputs with D3D12_GPU_VIRTUAL_ADDRESS_RANGE and D3D12_GPU_VIRTUAL_ADDRESS_RANGE_AND_STRIDE
+  /// Note will not automatically call flushRaytrace as there are more than one source to populate resource usage
   void traceRays(D3D12_GPU_VIRTUAL_ADDRESS ray_gen, uint32_t ray_gen_size, D3D12_GPU_VIRTUAL_ADDRESS miss, uint32_t miss_size,
     uint32_t miss_stride, D3D12_GPU_VIRTUAL_ADDRESS hit, uint32_t hit_size, uint32_t hit_stride, D3D12_GPU_VIRTUAL_ADDRESS call,
-    uint32_t call_size, uint32_t call_stride, UINT width, UINT hegiht, UINT depth)
+    uint32_t call_size, uint32_t call_stride, UINT width, UINT height, UINT depth)
   {
     D3D12_DISPATCH_RAYS_DESC def = //
       {{ray_gen, ray_gen_size}, {miss, miss_size, miss_stride}, {hit, hit_size, hit_stride}, {call, call_size, call_stride}, width,
-        hegiht, depth};
+        height, depth};
     G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
-    flushRaytrace();
     cmd.dispatchRays(&def);
     ++knownWrittenCommands;
   }
 
+  /// Note will not automatically call flushRaytrace as there are more than one source to populate resource usage
   void dispatchaysIndirect(ID3D12CommandSignature *signature, ID3D12Resource *args_buffer, uint64_t args_offset,
     ID3D12Resource *count_buffer, uint64_t count_offset, uint32_t max_count)
   {
     G_ASSERTF(cmd.is<ID3D12GraphicsCommandList4>(), "Trying to execute raytrace commands on unsupported command list version");
-    flushRaytrace();
     cmd.executeIndirect(signature, max_count, args_buffer, args_offset, count_buffer, count_offset);
     ++knownWrittenCommands;
   }
@@ -665,10 +786,9 @@ public:
     computeState.computeShader.srvRange = srvs;
   }
 
-  void updateComputeRootConstant(uint32_t offset, uint32_t value)
+  void updateComputeRootConstants(eastl::span<uint32_t> values)
   {
-    or_bit(computeState.rootConstantDirtyState, offset, computeState.computeShader.rootConstants[offset] != value);
-    computeState.computeShader.rootConstants[offset] = value;
+    update_root_constants(computeState.rootConstantDirtyState, computeState.computeShader.rootConstants, values.data(), values.size());
   }
 
   void flushCompute()
@@ -880,16 +1000,16 @@ public:
     graphicsState.pixelShader.srvRange = srvs;
   }
 
-  void updateVertexRootConstant(uint32_t offset, uint32_t value)
+  void updateVertexRootConstants(eastl::span<uint32_t> values)
   {
-    or_bit(graphicsState.vertexRootConstantDirtyState, offset, graphicsState.vertexShader.rootConstants[offset] != value);
-    graphicsState.vertexShader.rootConstants[offset] = value;
+    update_root_constants(graphicsState.vertexRootConstantDirtyState, graphicsState.vertexShader.rootConstants, values.data(),
+      values.size());
   }
 
-  void updatePixelRootConstant(uint32_t offset, uint32_t value)
+  void updatePixelRootConstants(eastl::span<uint32_t> values)
   {
-    or_bit(graphicsState.pixelRootConstantDirtyState, offset, graphicsState.pixelShader.rootConstants[offset] != value);
-    graphicsState.pixelShader.rootConstants[offset] = value;
+    update_root_constants(graphicsState.pixelRootConstantDirtyState, graphicsState.pixelShader.rootConstants, values.data(),
+      values.size());
   }
 
   void setStencilReference(uint32_t value)

@@ -18,19 +18,19 @@
 #include <render/waterProjFx.h>
 
 
-struct WwaterProjFxRenderHelper : IWwaterProjFxRenderHelper
+struct WaterProjFxSrvRenderHelper : IWwaterProjFxRenderHelper
 {
-  WwaterProjFxRenderHelper();
-  ~WwaterProjFxRenderHelper();
-  bool render_geometry(float) override;
+  WaterProjFxSrvRenderHelper();
+  ~WaterProjFxSrvRenderHelper();
+  bool render_geometry() override;
 };
 
 
-WwaterProjFxRenderHelper::WwaterProjFxRenderHelper() {}
+WaterProjFxSrvRenderHelper::WaterProjFxSrvRenderHelper() {}
 
-WwaterProjFxRenderHelper::~WwaterProjFxRenderHelper() {}
+WaterProjFxSrvRenderHelper::~WaterProjFxSrvRenderHelper() {}
 
-bool WwaterProjFxRenderHelper::render_geometry(float)
+bool WaterProjFxSrvRenderHelper::render_geometry()
 {
   IRenderingService *prefabMgr;
   IRenderingService *hmap = NULL;
@@ -64,8 +64,7 @@ bool WwaterProjFxRenderHelper::render_geometry(float)
 class WaterProjFxService : public IWaterProjFxService
 {
   WaterProjectedFx *renderer;
-  WwaterProjFxRenderHelper renderHelper;
-  int frameNo = 0;
+  WaterProjFxSrvRenderHelper renderHelper;
 
 public:
   bool srvDisabled;
@@ -82,8 +81,9 @@ public:
 
   void init() override
   {
-    WaterProjectedFx::TargetDesc targetDesc = {TEXFMT_A8R8G8B8, SimpleString("projected_on_water_effects_tex"), 0xFF000000};
-    renderer = new WaterProjectedFx(1024, 1024, dag::Span<WaterProjectedFx::TargetDesc>(&targetDesc, 1), nullptr);
+    WaterProjectedFx::TargetDesc targetDesc = {
+      TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, SimpleString("projected_on_water_effects_tex"), 0xFF000000};
+    renderer = new WaterProjectedFx(1024, 1024, dag::Span<WaterProjectedFx::TargetDesc>(&targetDesc, 1));
   }
 
   void release() { del_it(renderer); }
@@ -108,7 +108,7 @@ public:
     d3d::gettm(TM_VIEW, viewTm);
     d3d::gettm(TM_PROJ, &projTm);
     d3d::getglobtm(globTm);
-    renderer->prepare(viewTm, ::grs_cur_view.itm, projTm, globTm, waterLevel, significantWaveHeight, frameNo++, true);
+    renderer->prepare(viewTm, ::grs_cur_view.itm, projTm, globTm, waterLevel, significantWaveHeight, true);
     renderer->render(&renderHelper);
   }
 };

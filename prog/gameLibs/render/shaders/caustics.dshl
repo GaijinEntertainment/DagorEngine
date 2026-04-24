@@ -32,6 +32,16 @@ macro USE_CAUSTICS_BASE(code)
     }
   }
 
+  if (shore_distance_field_tex != NULL)
+  {
+    (code)
+    {
+      shore_distance_field_tex@smp2d = shore_distance_field_tex;
+      shore_heightmap_min_max@f4 = shore_heightmap_min_max;
+      world_to_heightmap@f4 = world_to_heightmap;
+    }
+  }
+
   hlsl(code)
   {
   #if defined(USE_CAUSTICS_RENDER)
@@ -84,6 +94,17 @@ macro USE_CAUSTICS_BASE(code)
       float3 shadowPos=worldPos-reflectedLight.xyz*(worldPos.y-water_height)/reflectedLight.y;
 
       half vsmShadow = (worldPos.y-water_height > 0.0) ? get_shadow(float4(shadowPos, 1)) : half(1.0);
+
+      // TODO workaround for not having proper terrain shadow in WT
+      ##if shore_distance_field_tex != NULL
+        float2 stc = shadowPos.xz * world_to_heightmap.xy + world_to_heightmap.zw;
+        if ((stc.x >= 0) && (stc.y >= 0) && (stc.x <= 1) && (stc.y <= 1))
+        {
+          float shoreHeight = tex2Dlod(shore_distance_field_tex, float4(stc,0,0)).r * shore_heightmap_min_max.z + shore_heightmap_min_max.w;
+          if (shoreHeight > water_height)
+            vsmShadow = half(0.0);
+        }
+      ##endif
 
       float fresnelTerm=0.7+0.3*reflectedLight.y;
 

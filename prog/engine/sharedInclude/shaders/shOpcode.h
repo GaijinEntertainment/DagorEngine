@@ -54,12 +54,12 @@ enum
   SHCOD_GET_GIVEC_TOREAL, // 2p   | load global int4 var to VEC4 reg    | p1=reg#  p2=varId
   SHCOD_GET_IVEC_TOREAL,  // 2p   | load local int4 var to VEC4 reg     | p1=reg#  p2=varId
 
-  SHCOD_TLAS,      // 3psso   | set TLAS                            | p1=stage,p2=slot p3=reg#
-  SHCOD_GET_GTLAS, // 2p      | load global TLAS to reg             | p1=reg#  p2=varId
-  SHCOD_NOP,
-  SHCOD_NOP,
-  SHCOD_NOP,
-  SHCOD_NOP,
+  SHCOD_TLAS,      // 3psso  | set TLAS                            | p1=stage,p2=slot p3=reg#
+  SHCOD_GET_GTLAS, // 2p     | load global TLAS to reg             | p1=reg#  p2=varId
+  SHCOD_RWBUF_CS,  // 2p     | set r/w buffer (UAV) to cs           | p1=ind p2=reg#
+  SHCOD_RWTEX_CS,  // 2p     | set r/w texture (UAV) to cs          | p1=ind p2=reg#
+  SHCOD_RWBUF_VS,  // 2p     | set r/w buffer (UAV) to vs           | p1=ind p2=reg#
+  SHCOD_RWTEX_VS,  // 2p     | set r/w texture (UAV) to vs          | p1=ind p2=reg#
   SHCOD_NOP,
   SHCOD_NOP,
   SHCOD_NOP,
@@ -71,18 +71,19 @@ enum
 
   SHCOD_INVERSE, // 2p      | reg# = -reg#                        | p1=reg# p2=reg_cnt
   SHCOD_NOP,
-  SHCOD_RWBUF, // 2p      | set r/w buffer (UAV)                | p1=ind p2=reg#
+  SHCOD_RWBUF_PS, // 2p     | set r/w buffer (UAV)                | p1=ind p2=reg#
 
-  SHCOD_STATIC_BLOCK, // 3p + 1d | static state block params           | p1=tex_cnt p2=vs_cnt p3=ps_cnt p4=tex_base p5=vs_base
-                      // p6=ps_base
-  SHCOD_NOP,
+  SHCOD_STATIC_BLOCK, // 1p + 2d | static state block params           | p1=const_cap
+                      // d1: vsTexBase [8], vsTexRangeExtent [8], vsSamplerBase [8], vsSmpRangeExtent [8]
+                      // d2: psTexBase [8], psTexRangeExtent [8], psSamplerBase [8], psSmpRangeExtent [8]
+  SHCOD_TEXTURE_CS,   // 2p      | set CS texture                      | p1=ind p2=reg#
 
   SHCOD_DIFFUSE,  // 0p      |                                     |
   SHCOD_EMISSIVE, // 0p      |                                     |
   SHCOD_SPECULAR, // 0p      |                                     |
   SHCOD_AMBIENT,  // 0p      |                                     |
 
-  SHCOD_RWTEX,                 // 2p      | set r/w texture (UAV)               | p1=ind p2=reg#
+  SHCOD_RWTEX_PS,              // 2p      | set r/w texture (UAV)               | p1=ind p2=reg#
   SHCOD_CS_CONST,              // 2p      | set CS const[ind] from VEC4 reg     | p1=ind p2=reg#
   SHCOD_TEXTURE_VS,            // 2p      | set VS texture                      | p1=ind p2=reg#
   SHCOD_BUFFER,                // 3psso   | set buffer                          | p1=stage,p2=slot p3=reg#

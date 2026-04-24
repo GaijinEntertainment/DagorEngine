@@ -50,7 +50,7 @@ static SQInteger squirrel_register_global_func(HSQUIRRELVM v,SQFUNCTION f,const 
     return 0;
 }
 
-static void squirrel_print_function(HSQUIRRELVM, const SQChar *format, ...) {
+static void squirrel_print_function(HSQUIRRELVM, const char *format, ...) {
     va_list args;
     char buffer[1024];
     va_start(args, format);
@@ -61,7 +61,7 @@ static void squirrel_print_function(HSQUIRRELVM, const SQChar *format, ...) {
     tout << "\n";
 }
 
-static void squirrel_error_function(HSQUIRRELVM, const SQChar *format, ...) {
+static void squirrel_error_function(HSQUIRRELVM, const char *format, ...) {
     va_list args;
     char buffer[1024];
     va_start(args, format);
@@ -72,7 +72,7 @@ static void squirrel_error_function(HSQUIRRELVM, const SQChar *format, ...) {
     tout << "\n";
 }
 
-static void squirrel_compiler_error_function(HSQUIRRELVM,SQMessageSeverity sev,const SQChar * desc,const SQChar * source,SQInteger line,SQInteger column, const SQChar *) {
+static void squirrel_compiler_error_function(HSQUIRRELVM,SQMessageSeverity sev,const char * desc,const char * source,SQInteger line,SQInteger column, const char *) {
     auto level = LogLevel::error;
     if (sev == SEV_HINT) level = LogLevel::info;
     else if (sev == SEV_WARNING) level = LogLevel::warning;

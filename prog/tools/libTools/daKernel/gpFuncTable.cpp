@@ -18,6 +18,7 @@ static void begin_event(const char *) {}
 static void end_event() {}
 static void stop_ds(DrawStatSingle &) {}
 static void start_ds(DrawStatSingle &) {}
+static bool get_gpu_thread_name(char *, const size_t) { return false; }
 
 struct GpFuncTable
 {
@@ -37,6 +38,7 @@ struct GpFuncTable
     SET_ENTRY(end_event);
     SET_ENTRY(stop_ds);
     SET_ENTRY(start_ds);
+    SET_ENTRY(get_gpu_thread_name);
 #undef SET_ENTRY
   }
 };
@@ -59,4 +61,5 @@ void begin_event(const char *n) { return ::gpf.tbl.begin_event(n); }
 void end_event() { return ::gpf.tbl.end_event(); }
 void stop_ds(DrawStatSingle &ds) { return ::gpf.tbl.stop_ds(ds); }
 void start_ds(DrawStatSingle &ds) { return ::gpf.tbl.start_ds(ds); }
+bool get_gpu_thread_name(char *buf, const size_t max_len) { return ::gpf.tbl.get_gpu_thread_name(buf, max_len); }
 } // namespace gpu_profiler

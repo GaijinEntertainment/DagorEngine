@@ -10,7 +10,7 @@ macro INIT_AND_USE_MOON()
     (ps) {
       skies_moon_dir@f3 = skies_moon_dir;
       skies_moon_color@f3 = skies_moon_color;
-      preparedMoonInscatter@smp2d = preparedMoonInscatter;
+      preparedMoonInscatter@tex2d = preparedMoonInscatter;
     }
 
     hlsl(ps) {

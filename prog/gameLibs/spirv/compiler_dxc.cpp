@@ -18,6 +18,7 @@
 #include <string>
 #include <osApiWrappers/dag_dynLib.h>
 #include <EASTL/array.h>
+#include <util/dag_globDef.h>
 
 using namespace spirv;
 
@@ -455,6 +456,56 @@ void spirv::shutdownDXC(spirv::DXCContext *ctx)
     delete ctx;
 }
 
+bool validateGlobalConstsOffsetOrder(ModuleBuilder &builder, ErrorHandler &e_handler, CompileToSpirVResult &compRes)
+{
+  bool isValid = true;
+  builder.enumerateAllNodes([&](auto node) {
+    if (!is<NodeOpTypeStruct>(node))
+      return;
+    auto globStructNode = as<NodeOpTypeStruct>(node);
+    int prevOffset = 0;
+    bool globStruct = false;
+    for (const auto &prop : globStructNode->properties)
+    {
+      if (is<PropertyName>(prop))
+      {
+        auto nameProp = as<PropertyName>(prop);
+        if (!nameProp->memberIndex.has_value())
+        {
+          if (nameProp->name == "type.$Globals")
+          {
+            globStruct = true;
+          }
+          break;
+        }
+      }
+    }
+    if (!globStruct)
+      return;
+    for (const auto &prop : globStructNode->properties)
+    {
+      if (is<PropertyOffset>(prop))
+      {
+        auto offsetProp = as<PropertyOffset>(prop);
+        if (offsetProp->memberIndex.has_value())
+        {
+          int propOffset = offsetProp->byteOffset.value;
+          if (prevOffset > propOffset)
+          {
+            String msgStr(128, "Non-increasing global const offset order: %d (reg %d), previous: %d (reg %d)", propOffset,
+              propOffset / 16, prevOffset, prevOffset / 16);
+            // Using warning because it is more efficient to gather all issues from all shaders at once
+            e_handler.onWarning(msgStr.c_str());
+            isValid = false;
+          }
+          prevOffset = propOffset;
+        }
+      }
+    }
+  });
+  return isValid;
+}
+
 CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, dag::ConstSpan<char> source, const char *entry,
   const char *profile, CompileFlags flags, const eastl::vector<eastl::string_view> &disabledOptimizaions)
 {
@@ -485,9 +536,9 @@ CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, da
   targetProfile[0] = profile[0];
   targetProfile[1] = profile[1];
   targetProfile[2] = '_';
-  targetProfile[3] = '6';
+  targetProfile[3] = max(profile[3], '6');
   targetProfile[4] = '_';
-  targetProfile[5] = meshShader ? '5' : '2';
+  targetProfile[5] = max(profile[5], meshShader ? '5' : '2');
 
 #if !_TARGET_PC_WIN
 #define _MAX_ITOSTR_BASE10_COUNT 22
@@ -588,6 +639,7 @@ CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, da
 
     IDxcBlob *compiled = nullptr;
     compileResult->GetResult(&compiled);
+    bool needSPIRVDump = false;
     if (compiled)
     {
       result.infoLog.push_back("spir-v size " + eastl::to_string(compiled->GetBufferSize()));
@@ -671,6 +723,13 @@ CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, da
           result.header = compileHeader(module, flags, errorHandler);
 
           fixDXCBugs(module, errorHandler);
+          if ((flags & CompileFlags::VALIDATE_GLOBAL_CONSTS_OFFSET_ORDER) == CompileFlags::VALIDATE_GLOBAL_CONSTS_OFFSET_ORDER)
+          {
+            if (!validateGlobalConstsOffsetOrder(module, errorHandler, result))
+            {
+              needSPIRVDump = true;
+            }
+          }
           cleanupReflectionLeftouts(module, errorHandler);
           module.disableExtension(Extension::GOOGLE_hlsl_functionality1);
           module.disableExtension(Extension::GOOGLE_user_type);
@@ -692,8 +751,9 @@ CompileToSpirVResult spirv::compileHLSL_DXC(const spirv::DXCContext *dxc_ctx, da
           // result.byteCode.assign((const unsigned *)ptr, ((const unsigned *)ptr) +
           // (compiled->GetBufferSize() + 3) / 4);
         }
-        else
+        if (errorHandler.hadFatal || needSPIRVDump)
         {
+          errorHandler.onMessage("DXC Produced the following SPIR-V Module");
           spvtools::SpirvTools tools{SPV_ENV_VULKAN_1_0};
           tools.SetMessageConsumer(
             [&](spv_message_level_t /* level */, const char * /* source */, const spv_position_t & /* position */,

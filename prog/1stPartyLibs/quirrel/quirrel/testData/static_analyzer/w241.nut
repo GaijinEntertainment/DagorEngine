@@ -5,4 +5,4 @@ if (__name__ == "__analysis__")
 
 local str1 = require("string")
 local str2 = require("string")
-::print(str1, str2)
+print(str1, str2)

@@ -23,9 +23,10 @@ public:
   virtual void onAttach(Element *) override;
   virtual void onDetach(Element *, DetachMode) override;
 
-  virtual int touchEvent(ElementTree *, Element *, InputEvent event, HumanInput::IGenPointing *pnt, int touch_idx,
-    const HumanInput::PointingRawState::Touch &touch, int /*accum_res*/) override;
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice, InputEvent event, int touch_idx, int btn_idx, Point2 pos,
+    int /*accum_res*/) override;
   virtual int onDeactivateInput(Element *, InputDevice device, int pointer_id) override;
+  virtual int onDeactivateAllInput(Element *elem) override;
 };
 
 

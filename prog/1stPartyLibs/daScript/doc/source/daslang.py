@@ -14,6 +14,11 @@
 from docutils import nodes
 from docutils.parsers.rst import directives
 
+from pygments.lexer import RegexLexer, bygroups, words, include
+from pygments.token import (
+    Comment, Keyword, Name, Number, Operator, Punctuation, String, Text, Token
+)
+
 from sphinx import version_info
 
 from sphinx import addnodes
@@ -46,6 +51,9 @@ class DASObject(ObjectDescription):
     #: added
     has_arguments = False
 
+    #: If set to ``True`` the arguments of the object are optional
+    skip_empty_arguments = False
+
     #: what is displayed right before the documentation entry
     display_prefix = None  # type: unicode
 
@@ -62,13 +70,19 @@ class DASObject(ObjectDescription):
         directives.
         """
         sig = sig.strip()
-        if '(' in sig and sig[-1:] == ')':
-            member, arglist = sig.split('(', 1)
+        sig = sig.split("/*")[0].strip()
+        open_paranteses = sig.find('(')
+        closed_paranteses = sig.rfind(')')
+        if open_paranteses > 0 and closed_paranteses > open_paranteses:
+            # take substring from open to closed paranteses
+            member, arglist = sig[:closed_paranteses + 1].split('(', 1)
             member = member.strip()
             arglist = arglist[:-1].strip()
+            retType = sig[closed_paranteses + 1:].strip()
         else:
             member = sig
             arglist = None
+            retType = None
         # If construct is nested, prefix the current prefix
         prefix = self.env.ref_context.get('das:object', None)
         mod_name = self.env.ref_context.get('das:module')
@@ -97,14 +111,17 @@ class DASObject(ObjectDescription):
                                                 self.display_prefix)
         if prefix:
             signode += addnodes.desc_addname(prefix + '.', prefix + '.')
-        elif mod_name:
-            signode += addnodes.desc_addname(mod_name + '.', mod_name + '.')
+        # elif mod_name:
+        #     signode += addnodes.desc_addname(mod_name + '::', mod_name + '::')
         signode += addnodes.desc_name(name, name)
         if self.has_arguments:
             if not arglist:
-                signode += addnodes.desc_parameterlist()
+                if not self.skip_empty_arguments:
+                    signode += addnodes.desc_parameterlist()
             else:
                 _pseudo_parse_arglist(signode, arglist)
+        if retType:
+            signode += addnodes.desc_type(retType, retType)
         return fullname, prefix
 
     def add_target_and_index(self, name_obj, sig, signode):
@@ -203,6 +220,12 @@ class DASObject(ObjectDescription):
                                              else None)
 
 
+class DASAttribute(DASObject):
+    """Description of a Daslang attribute."""
+    has_arguments = True
+    skip_empty_arguments = True
+
+
 class DASCallable(DASObject):
     """Description of a Daslang function, method or constructor."""
     has_arguments = True
@@ -220,6 +243,10 @@ class DASCallable(DASObject):
               names=('rtype',)),
     ]
 
+class DASOperator(DASCallable):
+    """Description of a Daslang function, method or constructor."""
+    has_arguments = True
+    skip_empty_arguments = True
 
 class DASConstructor(DASCallable):
     """Like a callable but with a different prefix."""
@@ -308,14 +335,16 @@ class DaslangDomain(Domain):
         'data':      ObjType(_('data'),      'data'),
         'attribute': ObjType(_('attribute'), 'attr'),
         'module':    ObjType(_('module'),    'mod'),
+        'operator':  ObjType(_('operator'),    'op'),
     }
     directives = {
         'function':  DASCallable,
         'method':    DASCallable,
         'class':     DASConstructor,
         'data':      DASObject,
-        'attribute': DASObject,
+        'attribute': DASAttribute,
         'module':    DASModule,
+        'operator':  DASOperator,
     }
     roles = {
         'func':  DASXRefRole(fix_parens=True),
@@ -324,6 +353,7 @@ class DaslangDomain(Domain):
         'data':  DASXRefRole(),
         'attr':  DASXRefRole(),
         'mod':   DASXRefRole(),
+        'op':    DASXRefRole(),
     }
     initial_data = {
         'objects': {},  # fullname -> docname, objtype
@@ -415,9 +445,100 @@ class DaslangDomain(Domain):
             return '.'.join(filter(None, [modname, prefix, target]))
 
 
+class DaslangLexer(RegexLexer):
+    """Simple Pygments lexer for the daslang (daScript) language."""
+
+    name = 'daslang'
+    aliases = ['das', 'daslang', 'dascript']
+    filenames = ['*.das']
+
+    tokens = {
+        'root': [
+            # Line comments
+            (r'//.*$', Comment.Single),
+            # Block comments
+            (r'/\*', Comment.Multiline, 'block_comment'),
+            # Strings
+            (r'"', String.Double, 'string'),
+            # Character literals
+            (r"'[^']*'", String.Char),
+            # Numbers (hex, float, int)
+            (r'0[xX][0-9a-fA-F_]+[uU]?[lL]?', Number.Hex),
+            (r'[0-9][0-9_]*\.[0-9_]*([eE][+-]?[0-9_]+)?[fFlL]?', Number.Float),
+            (r'[0-9][0-9_]*[uU]?[lL]?', Number.Integer),
+            # Keywords
+            (words((
+                'struct', 'class', 'let', 'var', 'def', 'while', 'if', 'static_if',
+                'else', 'elif', 'for', 'finally', 'in', 'is', 'as',
+                'where', 'return', 'yield', 'break', 'continue',
+                'pass', 'try', 'recover', 'delete', 'deref',
+                'new', 'typeinfo', 'type', 'array', 'table',
+                'block', 'function', 'lambda', 'generator',
+                'expect', 'override', 'abstract', 'sealed',
+                'require', 'module', 'public', 'private',
+                'options', 'operator', 'enum', 'typedef', 'variant', 'tuple',
+                'with', 'cast', 'upcast', 'reinterpret', 'aka',
+                'assume', 'unsafe', 'addr', 'label', 'goto',
+                'implicit', 'explicit', 'shared', 'smart_ptr', 'inscope',
+                'static', 'fixed_array', 'iterator', 'bitfield',
+                'move_new', 'move',
+            ), prefix=r'\b', suffix=r'\b'), Keyword),
+            # Boolean / null
+            (words(('true', 'false', 'null', 'nothing'), prefix=r'\b', suffix=r'\b'), Keyword.Constant),
+            # Built-in types
+            (words((
+                'void', 'bool', 'string', 'auto',
+                'int', 'int2', 'int3', 'int4', 'int8', 'int16', 'int64',
+                'uint', 'uint2', 'uint3', 'uint4', 'uint8', 'uint16', 'uint64',
+                'float', 'float2', 'float3', 'float4',
+                'double', 'range', 'urange', 'range64', 'urange64',
+            ), prefix=r'\b', suffix=r'\b'), Keyword.Type),
+            # Annotations
+            (r'\[[\w]+\]', Name.Decorator),
+            # Lambda/block/function pointer sigils
+            (r'@@?', Operator),
+            (r'\$', Operator),
+            # Identifiers
+            (r'[a-zA-Z_]\w*', Name),
+            # Operators
+            (r'[+\-*/%&|^~<>=!?:#]+', Operator),
+            # Punctuation
+            (r'[{}()\[\];,.]', Punctuation),
+            # Pipe operator
+            (r'\|>', Operator),
+            # Arrow / move
+            (r'<-', Operator),
+            (r'->', Operator),
+            (r'<\|', Operator),
+            (r'=>', Operator),
+            # Whitespace
+            (r'\s+', Text),
+            # Catch-all for any other character (Unicode, etc.)
+            (r'.', Text),
+        ],
+        'block_comment': [
+            (r'/\*', Comment.Multiline, '#push'),
+            (r'\*/', Comment.Multiline, '#pop'),
+            (r'[^/*]+', Comment.Multiline),
+            (r'[/*]', Comment.Multiline),
+        ],
+        'string': [
+            (r'\\[\\nrt"\'{}]', String.Escape),
+            (r'\{', String.Interpol, 'interpolation'),
+            (r'[^"\\{]+', String.Double),
+            (r'"', String.Double, '#pop'),
+        ],
+        'interpolation': [
+            (r'\}', String.Interpol, '#pop'),
+            include('root'),
+        ],
+    }
+
+
 def setup(app):
     # type: (Sphinx) -> Dict[unicode, Any]
     app.add_domain(DaslangDomain)
+    app.add_lexer('das', DaslangLexer)
 
     return {
         'version': 'builtin',

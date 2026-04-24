@@ -9,6 +9,7 @@
 #include <generic/dag_tab.h>
 
 struct Color4;
+struct ScriptedShadersBinDumpOwner;
 
 namespace functional
 {
@@ -17,7 +18,7 @@ namespace functional
 //************************************************************************
 enum FunctionId
 {
-  BF_TIME_PHASE,
+  BF_TIME_PHASE = 0,
   BF_SIN,
   BF_COS,
   BF_POW,
@@ -36,6 +37,11 @@ enum FunctionId
   BF_GET_SIZE,
   BF_EXISTS_TEX,
   BF_EXISTS_BUF,
+  BF_INT2,
+  BF_INT3,
+  BF_INT4,
+
+  BF_COUNT
 };
 
 //************************************************************************
@@ -78,7 +84,7 @@ bool getValueTypeIsInteger(FunctionId func);
 bool evaluate(FunctionId func, Color4 &res, const ArgList &args);
 
 // evaluate using registers array of exec_stcode.
-void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs);
+void callFunction(FunctionId id, int out_reg, const int *in_regs, char *regs, ScriptedShadersBinDumpOwner const *owner);
 
 // return function id by name; return false, if invalid function
 bool getFuncId(const char *name, FunctionId &ret_func);
@@ -107,6 +113,9 @@ inline const char *getFuncName(FunctionId id)
     case BF_REQUEST_SAMPLER: return "BF_REQUEST_SAMPLER";
     case BF_EXISTS_TEX: return "BF_EXISTS_TEX";
     case BF_EXISTS_BUF: return "BF_EXISTS_BUF";
+    case BF_INT2: return "BF_INT2";
+    case BF_INT3: return "BF_INT3";
+    case BF_INT4: return "BF_INT4";
     default: G_ASSERT(0);
   }
   return "<???>";

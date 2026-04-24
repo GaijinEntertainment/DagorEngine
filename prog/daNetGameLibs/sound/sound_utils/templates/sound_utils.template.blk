@@ -53,7 +53,6 @@ sound_control{
     sound_control__subtemplate:t=""
   }
   _tracked:t="sound_control__state"
-  _tracked:t="sound_control__allowSound"
 }
 
 sound_control_init_range{
@@ -84,6 +83,18 @@ sound_control_disable_timer{
     _tags:t="server"
     // setup
     sound_control_disable_timer__duration:r=60
+  }
+}
+
+limit_max_instances_under_sound_control{
+  _group{
+    _tags:t="sound"
+    limit_max_instances_under_sound_control__maxInstances:i=8
+    limit_max_instances_under_sound_control__path:t=""
+  }
+  _group{
+    _tags:t="sound"
+    sound_control__allowSound:b=no // disabled on appeared
   }
 }
 
@@ -130,8 +141,7 @@ sfx_managed_sound{
 }
 
 test_managed_sound{
-  _use:t="sound_effect"
-  _use:t="moveable_sound_effect_tag"
+  _use:t="dynamic_sound_effect"
   _use:t="base_managed_sound"
   transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
   _group{
@@ -245,5 +255,31 @@ sound_debug_positioning{
     sound_debug_positioning__path:t="env_effects/rally_point"
     sound_debug_positioning__speed:r=1.
     sound_debug_positioning__radius:r=30
+  }
+}
+
+sound_biome_puddle_queries{
+  _group{
+    _tags:t="sound"
+    sound_biome_puddle_queries__lastQueryTime:r=-1
+    // biomes
+    sound_biome_puddle_queries__biomeId:i=-1
+    sound_biome_puddle_queries__biomeQueryId:i=-1
+    // puddles
+    sound_biome_puddle_queries__puddleDepth:r=0
+    sound_biome_puddle_queries__puddleQueryId:i=-1
+
+    // input
+    sound_biome_puddle_queries_vars__speedSq:r=0
+    sound_biome_puddle_queries_vars__isOnGround:b=true
+
+    // setup
+    sound_biome_puddle_queries__farawayThreshold:r=15
+    sound_biome_puddle_queries__zeroSpeedThreshold:r=0.01
+    sound_biome_puddle_queries__heroSpeedToQueryInterval:p4=0, 4, 1, 0.2
+    sound_biome_puddle_queries__enemySpeedToQueryInterval:p4=0, 4, 1.5, 0.5
+    sound_biome_puddle_queries__heroEnemyInAirInterval:p2=0.1,0.5
+    sound_biome_puddle_queries__lmeshDiff:r=2
+    sound_biome_puddle_queries__puddleQueryToDepth:p4=0.1, 0.4, 0, 0.05
   }
 }

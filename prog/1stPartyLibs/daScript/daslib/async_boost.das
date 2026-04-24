@@ -6,6 +6,11 @@ options strict_smart_pointers = true
 
 module async_boost shared private
 
+//! Async/await coroutine macros.
+//!
+//! Provides ``[async]`` function annotation and ``await`` call macro that
+//! rewrite annotated functions into generator-based coroutines.
+
 require strings
 require daslib/ast_boost
 require daslib/templates_boost
@@ -27,8 +32,9 @@ def public await(var a : iterator<variant<res : auto(T); wait : bool>>) : T {
 
 [tag_function_macro(tag="await_tag")]
 class AwaitMacro : AstFunctionAnnotation {
+    //! Function annotation that implements coroutine await semantics.
     def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
-        errors := "result should be assigned to a variable, use 'let res <- await <| {call.arguments[0] |> describe()}'"
+        macro_error(compiling_program(), call.at, "result should be assigned to a variable, use 'let res <- await <| {call.arguments[0] |> describe()}'")
         return <- default<ExpressionPtr>
     }
 }
@@ -48,10 +54,10 @@ class AwaitCoroutineMacro : AstFunctionAnnotation {
     //!     for t in THAT
     //!         yield t
     //!
-    //! The idea is that coroutine or generator can continuesly yield from another sub-coroutine or generator.
+    //! The idea is that coroutine or generator can continuously yield from another sub-coroutine or generator.
     def override transform(var call : smart_ptr<ExprCallFunc>; var errors : das_string) : ExpressionPtr {
         let iname = make_unique_private_name("_await_coroutine", call.at)
-        var inscope res <- qmacro_block <| $() {
+        var inscope res <- qmacro_block() {
             for ($i(iname) in $e(call.arguments[0])) {
                 yield $i(iname)
             }
@@ -69,8 +75,8 @@ class AsyncMacro : AstFunctionAnnotation {
     //! use 'return false' to immediately return from the generator.
     [unused_argument(group, args)] def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         if (func.result.baseType == Type.autoinfer) {
-            errors := "async function should have explicit return type"
-            return false
+            macro_error(compiling_program(), func.at, "async function should have explicit return type")
+            return true
         }
         var inscope retT : TypeDeclPtr
         var voidRoutine = true
@@ -94,16 +100,11 @@ class AsyncMacro : AstFunctionAnnotation {
         var inscope astVisitorAdapter <- make_visitor(*astVisitor)
         visit(func.body, astVisitorAdapter)
         delete astVisitor.retType
-        errors := astVisitor.errors
         unsafe {
             delete astVisitor
         }
 
-        if (length(errors) > 0) {
-            return false
-        }
-
-        var inscope blk <- qmacro_expr <| $() {
+        var inscope blk <- qmacro_expr() {
             return <- generator<$t(retT)>() <| $() {
                 $e(func.body)
                 return false
@@ -114,8 +115,8 @@ class AsyncMacro : AstFunctionAnnotation {
         var gen = ret.subexpr as ExprMakeGenerator
         for (arg in func.arguments) {
             if (arg._type.baseType == Type.autoinfer) {
-                errors := "{errors}\nasync function argument '{arg.name}' should have explicit type"
-                return false
+                macro_error(compiling_program(), arg.at, "async function argument '{arg.name}' should have explicit type")
+                return true
             }
 
             if (!arg._type.canCopy) {
@@ -156,27 +157,30 @@ def validateAwaitFn(fn : smart_ptr<ast::Function>&; subCallName : das_string; va
 }
 
 enum AssignOp {
+    //! Assignment operation type for async field updates.
     copy
     move
     clone
 }
 
 [macro_function]
-def move_clone_copy(var expr; voidRoutine : bool; var retType : smart_ptr<TypeDecl>&; var errors : string&; assignOp : AssignOp) : ExpressionPtr {
+def move_clone_copy(var expr; voidRoutine : bool; var retType : smart_ptr<TypeDecl>&; assignOp : AssignOp) : ExpressionPtr {
     if (expr.right is ExprCall) {
         var call = expr.right as ExprCall
         if (call.name == "await") {
             if (call.arguments[0] is ExprCall) {
                 var subCall = call.arguments[0] as ExprCall
                 var inscope fn <- compiling_module() |> find_unique_function("{subCall.name}")
-                if (!validateAwaitFn(fn, subCall.name, errors)) {
+                var error = ""
+                if (!validateAwaitFn(fn, subCall.name, error)) {
+                    macro_error(compiling_program(), expr.at, error)
                     return <- expr
                 }
 
                 let name = make_unique_private_name("_async_iterator", expr.at)
                 let useMove = assignOp == AssignOp.move
                 let useClone = assignOp == AssignOp.clone
-                var inscope blk <- qmacro_block <| $() {
+                var inscope blk <- qmacro_block() {
                     for ($i(name) in $e(call.arguments[0])) {
                         if ($i(name) is res) {
                             if ($v(useMove)) {
@@ -186,12 +190,11 @@ def move_clone_copy(var expr; voidRoutine : bool; var retType : smart_ptr<TypeDe
                             } else {
                                 $e(expr.left) = $i(name) as res
                             }
+                        }
+                        if ($v(voidRoutine)) {
+                            yield true
                         } else {
-                            if ($v(voidRoutine)) {
-                                yield true
-                            } else {
-                                yield <- struct<$t(retType)>(wait = true)
-                            }
+                            yield <- variant type<$t(retType)>(wait = true)
                         }
                     }
                 }
@@ -205,9 +208,9 @@ def move_clone_copy(var expr; voidRoutine : bool; var retType : smart_ptr<TypeDe
 
 [macro_interface]
 class CollectAndReplaceIteratorFields : AstVisitor {
+    //! AST visitor that collects and replaces iterator field access in async generators.
     voidRoutine : bool
     retType : smart_ptr<TypeDecl>
-    errors : string
 
     @do_not_delete private blocksStack : array<ExprBlock?>
 
@@ -220,26 +223,26 @@ class CollectAndReplaceIteratorFields : AstVisitor {
             return <- expr
         }
         if (!retType.argTypes[0].canCopy) {
-            var inscope res <- qmacro_expr(${ yield <- struct<$t(retType)>(res <- $e(expr.subexpr)); })
+            var inscope res <- qmacro_expr(${ yield <- variant type<$t(retType)>(res <- $e(expr.subexpr)); })
             res |> force_at(expr.at)
             return <- res
         }
 
-        var inscope res <- qmacro_expr(${ yield <- struct<$t(retType)>(res = $e(expr.subexpr)); })
+        var inscope res <- qmacro_expr(${ yield <- variant type<$t(retType)>(res = $e(expr.subexpr)); })
         res |> force_at(expr.at)
         return <- res
     }
 
     def override visitExprCopy(var expr : smart_ptr<ExprCopy>) : ExpressionPtr {
-        return <- move_clone_copy(expr, voidRoutine, retType, errors, AssignOp.copy)
+        return <- move_clone_copy(expr, voidRoutine, retType, AssignOp.copy)
     }
 
     def override visitExprMove(var expr : smart_ptr<ExprMove>) : ExpressionPtr {
-        return <- move_clone_copy(expr, voidRoutine, retType, errors, AssignOp.move)
+        return <- move_clone_copy(expr, voidRoutine, retType, AssignOp.move)
     }
 
     def override visitExprClone(var expr : smart_ptr<ExprClone>) : ExpressionPtr {
-        return <- move_clone_copy(expr, voidRoutine, retType, errors, AssignOp.clone)
+        return <- move_clone_copy(expr, voidRoutine, retType, AssignOp.clone)
     }
 
     def override visitExprCall(var expr : smart_ptr<ExprCall>) : ExpressionPtr {
@@ -249,7 +252,7 @@ class CollectAndReplaceIteratorFields : AstVisitor {
                 res |> force_at(expr.at)
                 return <- res
             } else {
-                var inscope res <- qmacro_expr(${ yield <- struct<$t(retType)>(wait = true); })
+                var inscope res <- qmacro_expr(${ yield <- variant type<$t(retType)>(wait = true); })
                 res |> force_at(expr.at)
                 return <- res
             }
@@ -276,23 +279,35 @@ class CollectAndReplaceIteratorFields : AstVisitor {
                 if (call.name == "await") {
                     if (v._type == null || v._type.baseType == Type.autoinfer) {
                         if (!(call.arguments[0] is ExprCall)) {
-                            errors = "{errors}\nexpecting await(<async fn call>), got await(<non-call>)"
+                            macro_error(compiling_program(), expr.at, "expecting await(<async fn call>), got await(<non-call>)")
                             return <- expr
                         }
 
                         var subCall = call.arguments[0] as ExprCall
                         var inscope fn <- compiling_module() |> find_unique_function("{subCall.name}")
-                        if (!validateAwaitFn(fn, subCall.name, errors)) {
+                        if (fn == null) {
+                            macro_error(compiling_program(), expr.at, "expecting await(<async fn>), but function {subCall.name} is not found,\ndefine variable type explicitly: let res : <type> = await <| {subCall.name}()\nor make sure the function is defined before the coroutine")
                             return <- expr
-                        }
+                        } else {
+                            var error = ""
+                            if (!validateAwaitFn(fn, subCall.name, error)) {
+                                macro_error(compiling_program(), expr.at, error)
+                                return <- expr
+                            }
 
-                        v._type |> move_new() <| clone_type(fn.result.firstType.argTypes[0])
+                            v._type |> move_new() <| clone_type(fn.result.firstType.argTypes[0])
+                        }
+                    } else {
+                        var inscope rmConst = clone_type(v._type)
+                        rmConst.flags &= ~TypeDeclFlags.constant
+                        rmConst.flags &= ~TypeDeclFlags.removeConstant
+                        v._type |> move(rmConst)
                     }
 
                     let name = make_unique_private_name("_async_iterator", expr.at)
                     let useMove = v.flags.init_via_move
                     let useClone = v.flags.init_via_clone
-                    var inscope blk <- qmacro_block <| $() {
+                    var inscope blk <- qmacro_block() {
                         var $i(v.name) : $t(v._type)
                         for ($i(name) in $e(call.arguments[0])) {
                             if ($i(name) is res) {
@@ -303,12 +318,11 @@ class CollectAndReplaceIteratorFields : AstVisitor {
                                 } else {
                                     $i(v.name) = $i(name) as res
                                 }
+                            }
+                            if ($v(voidRoutine)) {
+                                yield true
                             } else {
-                                if ($v(voidRoutine)) {
-                                    yield true
-                                } else {
-                                    yield <- struct<$t(retType)>(wait = true)
-                                }
+                                yield <- variant type<$t(retType)>(wait = true)
                             }
                         }
                     }
@@ -328,6 +342,12 @@ class CollectAndReplaceIteratorFields : AstVisitor {
                     return <- blk
                 }
             }
+        }
+        return <- expr
+    }
+    def override visitExprReturn(var expr : smart_ptr<ExprReturn>) : ExpressionPtr {
+        if (length(blocksStack) <= 1 && expr.subexpr != null && describe(expr.subexpr) != "false") {
+            macro_error(compiling_program(), expr.at, "avoid return expression, use 'return false' to break execution, use 'yield [value]' or await_next_frame() to yield coroutine execution")
         }
         return <- expr
     }
@@ -358,4 +378,36 @@ def public async_run_all(var a : array<iterator<auto>>) {
             }
         }
     }
+}
+
+
+def public async_timeout(var a : iterator<auto>; max_frames : int) : bool {
+    //! This function runs an async function for at most `max_frames` frames.
+    //! Returns ``true`` if the async function completed within the limit,
+    //! ``false`` if it was terminated due to timeout.
+    var frames = 0
+    for (t in a) {
+        frames ++
+        if (frames >= max_frames) {
+            return false
+        }
+    }
+    return true
+}
+
+
+def public async_race(var a : iterator<auto>; var b : iterator<auto>) : int {
+    //! This function runs two async functions concurrently and returns the
+    //! index (0 or 1) of whichever finishes first. The other is abandoned.
+    var ta : bool
+    var tb : bool
+    while (true) {
+        if (!next(a, ta) || empty(a)) {
+            return 0
+        }
+        if (!next(b, tb) || empty(b)) {
+            return 1
+        }
+    }
+    return -1
 }

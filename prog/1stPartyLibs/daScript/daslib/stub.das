@@ -11,6 +11,7 @@ require daslib/templates_boost
 
 [function_macro(name="stub")]
 class TemplateMacro : AstFunctionAnnotation {
+    //! Function annotation stub for stubbed-out modules.
     def override apply(var func : FunctionPtr; var group : ModuleGroup; args : AnnotationArgumentList; var errors : das_string) : bool {
         if (func.result == null) {
             errors := "stub function must have a result type"
@@ -27,7 +28,7 @@ class TemplateMacro : AstFunctionAnnotation {
         if (!resType.flags.ref) {
             resType.flags &= ~TypeDeclFlags.constant
         }
-        var inscope qblk <- qmacro_block <| $() {
+        var inscope qblk <- qmacro_block() {
             panic("stub function called")
             unsafe {
                 var dummy : $t(resType)

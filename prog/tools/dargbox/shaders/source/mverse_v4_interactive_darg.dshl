@@ -1,0 +1,15 @@
+include "darg_shader_inc.dshl"
+
+shader mverse_v4_interactive
+{
+  DARG_PIXEL_SHADER_SETUP()
+
+  hlsl(ps) {
+    #include "mverse_v4_interactive_darg.hlsl"
+
+    float4 main_ps(VsOutput input) : SV_Target {
+      return darg_ps(input.texcoord);
+    }
+  }
+  compile("target_ps", "main_ps");
+}

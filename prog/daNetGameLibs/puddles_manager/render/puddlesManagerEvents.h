@@ -13,3 +13,10 @@ struct RemovePuddlesInRadius : public ecs::Event
   ECS_BROADCAST_EVENT_DECL(RemovePuddlesInRadius)
   RemovePuddlesInRadius(const Point3 &pos, float rad) : ECS_EVENT_CONSTRUCTOR(RemovePuddlesInRadius), position(pos), radius(rad) {}
 };
+
+struct PreparePuddles : public ecs::Event
+{
+  Point3 camPos;
+  ECS_BROADCAST_EVENT_DECL(PreparePuddles)
+  PreparePuddles(const Point3 &cam_pos) : ECS_EVENT_CONSTRUCTOR(PreparePuddles), camPos(cam_pos) {}
+};

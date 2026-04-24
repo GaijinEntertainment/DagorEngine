@@ -208,23 +208,6 @@ namespace das {
         V_END();
     }
 
-    SimNode * SimNode_Jit::visit ( SimVisitor & vis ) {
-        uint64_t fptr = (uint64_t) func;
-        V_BEGIN();
-        V_OP(Jit);
-        V_ARG(fptr);
-        V_END();
-    }
-
-
-    SimNode * SimNode_JitBlock::visit ( SimVisitor & vis ) {
-        uint64_t fptr = (uint64_t) func;
-        V_BEGIN();
-        V_OP(JitBlock);
-        V_ARG(fptr);
-        V_END();
-    }
-
     SimNode * SimNode_NOP::visit ( SimVisitor & vis ) {
         V_BEGIN();
         V_OP(NOP);
@@ -281,6 +264,16 @@ namespace das {
         char swizzle[5] = { xyzw[fields[0]], xyzw[fields[1]], xyzw[fields[2]], xyzw[fields[3]], 0 };
         V_BEGIN();
         V_OP(Swizzle);
+        V_SUB(value);
+        V_ARG(swizzle);
+        V_END();
+    }
+
+    SimNode * SimNode_Swizzle64::visit ( SimVisitor & vis ) {
+        const char * xyzw = "xyzw";
+        char swizzle[5] = { xyzw[fields[0]], xyzw[fields[1]], 0 };
+        V_BEGIN();
+        V_OP(Swizzle64);
         V_SUB(value);
         V_ARG(swizzle);
         V_END();

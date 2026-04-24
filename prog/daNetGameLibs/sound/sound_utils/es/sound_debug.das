@@ -35,6 +35,8 @@ def human_sound_debug_draw(evt : Event;
                            sound_tags : Object const?;
                            sound_event_group : SoundEventGroup const?;
                            human_voice_effect__activeEffects : Object const?;
+                           human_voice_effect__type = "";
+                           human_voice_effect__oneshotType = "";
                            @shared_comp human_voice_effect__allOrderedEffects : StringList const?;
                            sound_control__allowSound : bool = true;
                            sound_control__state : int = default_sound_control_state();
@@ -51,6 +53,11 @@ def human_sound_debug_draw(evt : Event;
   var text = ""
   if !have_sound(sound_control__state)
     text += "-no snd [allow={sound_control__allowSound}; hearable={is_hearable_sound_state(sound_control__state)}; state={sound_control__state}; templ='{getEntityTemplateName(eid)}']- "
+
+  if !empty(human_voice_effect__type)
+    text += "voice effect: '{human_voice_effect__type}' "
+  if !empty(human_voice_effect__oneshotType)
+    text += "voice oneshot: '{human_voice_effect__oneshotType}' "
 
   if human_voice_effect__allOrderedEffects != null && human_voice_effect__activeEffects != null
 
@@ -83,13 +90,16 @@ def human_sound_debug_draw(evt : Event;
 
   if human_speech__voiceIdx >= 0
     text += "voice=#{human_speech__voiceIdx} "
-    text += "member=#{squad_member__memberIdx} "
-    text += "team=#{team} "
-    text += "squad=#{squad_member__squad} "
+    if squad_member__memberIdx != -1
+      text += "member=#{squad_member__memberIdx} "
+    if team != -1
+      text += "team=#{team} "
+    if squad_member__squad != INVALID_ENTITY_ID
+      text += "squad=#{squad_member__squad} "
 
   if !empty(text)
     let color = is_watched_sound_state(sound_control__state) ? E3DCOLOR(0xFF0000FF) : E3DCOLOR(0xFF000000)
-    let pos = transform[3] + float3(0., 0.5, 0.)
+    let pos = transform[3]
     add_debug_text_mark(pos, text, -1, 0., color)
 
 
@@ -124,6 +134,18 @@ def sound_debug_console_sound_play_pos(path : string; x, y, z : float; duration 
 [console_cmd(name="snd.enum_events")]
 def sound_debug_console_enum_events()
   sound_debug_enum_events()
+
+
+[console_cmd(name="snd.debug_set_hero_watched")]
+def sound_debug_set_hero_watched_console_cmd(set_watched : bool)
+  query() <| $ [es(REQUIRE=hero)] (eid : EntityId; possessedByPlr : EntityId)
+    if set_watched
+      addSubTemplate(eid, "observed_local") <| $(var init : ComponentsInitializer)
+        init |> set("watchedByPlr", possessedByPlr)
+      sound_debug("snd.debug_set_hero_watched: added watchedByPlr to {eid}")
+    else
+      removeSubTemplate(eid, "observed_local")
+      sound_debug("snd.debug_set_hero_watched: removed watchedByPlr from {eid}")
 
 
 [ecs_template]

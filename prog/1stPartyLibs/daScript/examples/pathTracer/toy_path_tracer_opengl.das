@@ -17,7 +17,7 @@ var @in @location v_position : float2
 var @in @location v_texcoord : float2
 var @inout f_texcoord : float2
 var @uniform f_tex : sampler2D
-var @uniform@format@stage c_destTex : image2D
+var @uniform@format = rgba32f@stage c_destTex : image2D
 var @uniform c_frame : int = 0
 var @out f_FragColor : float4
 

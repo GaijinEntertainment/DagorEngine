@@ -3,6 +3,7 @@
 #include <shaders/dag_bindumpReloadListener.h>
 
 IShaderBindumpReloadListener *IShaderBindumpReloadListener::head = nullptr;
+bool IShaderBindumpReloadListener::staticInitDone = false; // literal, written into the image
 
 void IShaderBindumpReloadListener::resolveAll()
 {
@@ -18,7 +19,11 @@ void IShaderBindumpReloadListener::deleteFromLinkedList()
     {
       if (prev)
         prev->next = i->next;
+      else
+        head = i->next;
       break;
     }
   }
 }
+
+void IShaderBindumpReloadListener::reportStaticInitDone() { staticInitDone = true; }

@@ -8,7 +8,6 @@
 #include <EditorCore/ec_wndPublic.h>
 
 #include <libTools/staticGeom/geomObject.h>
-#include <coolConsole/iConsoleCmd.h>
 
 namespace PropPanel
 {
@@ -56,7 +55,6 @@ class EnvironmentPlugin : public IGenEditorPlugin,
                           public IRenderingService,
                           public IRenderOnCubeTex,
                           public IPluginAutoSave,
-                          public IConsoleCmd,
                           public PropPanel::ControlEventHandler,
                           public IWndManagerWindowHandler
 {
@@ -76,6 +74,7 @@ public:
   void unregistered() override;
   void beforeMainLoop() override { needSkiesUpdate = true; }
 
+  void registerEditorCommands(IEditorCommandSystem &command_system) override;
   void registerMenuAccelerators() override;
   bool begin(int toolbar_id, unsigned menu_id) override;
   bool end() override;
@@ -97,6 +96,7 @@ public:
 
   void selectAll() override {}
   void deselectAll() override {}
+  void invertSelection() override {}
 
   void actObjects(float dt) override;
   void beforeRenderObjects(IGenViewportWnd *vp) override;
@@ -145,9 +145,8 @@ public:
 
   void prepareCubeTex(bool renderEnvi, bool renderLit, bool renderStreamLit) override;
 
-  // IConsoleCmd
-  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override;
-  const char *onConsoleCommandHelp(const char *cmd) override;
+  bool runEnviSetCmd(dag::ConstSpan<const char *> params);
+  void runEnvSunFromTime(dag::ConstSpan<const char *> params);
 
 public:
   static ISceneLightService *ltService;

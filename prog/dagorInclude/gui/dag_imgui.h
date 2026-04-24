@@ -14,6 +14,7 @@
 #include <EASTL/functional.h>
 #include <EASTL/optional.h>
 #include <util/dag_preprocessor.h>
+#include <drv/3d/dag_resId.h>
 
 class DataBlock;
 struct ImFont;
@@ -29,6 +30,7 @@ enum class ImGuiState
 };
 
 using OnStateChangeHandlerFunc = eastl::function<void(ImGuiState, ImGuiState)>;
+using OnCaptureDrawDataFunc = eastl::function<void(int &, int &, int &, unsigned int *)>;
 
 bool imgui_init_on_demand();
 void imgui_set_override_blk(const DataBlock &imgui_blk); // call this before imgui_init_on_demand() called
@@ -43,6 +45,7 @@ void imgui_update(int display_width = 0, int display_height = 0);
 void imgui_endframe();
 void imgui_render();
 void imgui_render_drawdata_to_texture(ImDrawData *draw_data, BaseTexture *rt);
+void imgui_capture_window_drawdata(const char *window_title, OnCaptureDrawDataFunc func);
 DataBlock *imgui_get_blk();
 void imgui_save_blk();
 void imgui_window_set_visible(const char *group, const char *name, const bool visible);
@@ -55,6 +58,10 @@ void imgui_set_mono_font();
 void imgui_set_default_font();
 ImFont *imgui_get_bold_font();
 ImFont *imgui_get_mono_font();
+// name: identifier for the custom font. Pass this name to imgui_get_custom_font() to get the font.
+void imgui_add_custom_font(const char *name, const char *font_file_path, int font_size);
+ImFont *imgui_get_custom_font(const char *name);
+void imgui_apply_fonts_from_blk();
 void imgui_apply_style_from_blk();
 int imgui_get_menu_bar_height();
 void imgui_set_blk_path(const char *path); // Setting path to null or an empty string will disable blk load/save.
@@ -63,6 +70,7 @@ void imgui_set_log_path(const char *path);
 enum ImGuiKey : int;
 eastl::optional<ImGuiKey> map_dagor_key_to_imgui(int humap_key);
 int map_imgui_key_to_dagor(int imgui_key);
+void *convert_dag_res_id_to_imgui(D3DRESID res_id);
 
 typedef eastl::function<void(void)> ImGuiFuncPtr;
 

@@ -2,23 +2,20 @@
 
 #include <ecsPropPanel/ecsBasicObjectEditor.h>
 #include <ecsPropPanel/ecsOrderedTemplatesGroups.h>
+#include <ecsPropPanel/ecsEditorTemplates.h>
 #include "ecsUndoDeleteTemplate.h"
 
 #include <daECS/core/entityManager.h>
 #include <daECS/scene/scene.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/utility/ecsRecreate.h>
 
 #include <EASTL/algorithm.h>
 #include <EASTL/sort.h>
 
 static const ecs::HashedConstString EDITABLE_TEMPLATE_COMP = ECS_HASH("editableTemplate");
 
-static void removeSelectedTemplateName(eastl::string &templ_name)
-{
-  templ_name = remove_sub_template_name(templ_name.c_str(), ECS_EDITOR_SELECTED_TEMPLATE);
-}
+ECSBasicObjectEditor::ECSBasicObjectEditor() : ecsScenes{{"No Scene", ecs::Scene::C_INVALID_SCENE_ID}} {}
 
-ECSBasicObjectEditor::ECSBasicObjectEditor() {}
 ECSBasicObjectEditor::~ECSBasicObjectEditor() {}
 
 dag::Vector<String> ECSBasicObjectEditor::getEcsTemplates(const char *group_name)
@@ -33,6 +30,20 @@ dag::Vector<String> ECSBasicObjectEditor::getEcsTemplatesGroups()
   if (!orderedTemplatesGroups)
     orderedTemplatesGroups.reset(new ECSOrderedTemplatesGroups());
   return orderedTemplatesGroups->getEcsTemplatesGroups();
+}
+
+void ECSBasicObjectEditor::updateEcsScenes()
+{
+  ecsScenes.clear();
+  ecsScenes.emplace("No Scene", ecs::Scene::C_INVALID_SCENE_ID);
+  if (!ecs::g_scenes)
+    return;
+
+  const ecs::Scene::ScenesConstPtrList &scenes = ecs::g_scenes->getActiveScene().getScenes(ecs::Scene::LoadType::IMPORT);
+  for (const ecs::Scene::SceneRecord *srecord : scenes)
+  {
+    ecsScenes.emplace(srecord->path, srecord->id);
+  }
 }
 
 bool ECSBasicObjectEditor::hasTemplateComponent(const char *template_name, const char *comp_name)
@@ -58,7 +69,7 @@ bool ECSBasicObjectEditor::getSavedComponents(ecs::EntityId eid, eastl::vector<e
     return false;
   ecs::Scene &scene = ecs::g_scenes->getActiveScene();
   ecs::Scene::EntityRecord *erec = scene.findEntityRecordForModify(eid);
-  if (!erec || !erec->toBeSaved)
+  if (!erec)
     return false;
   for (const auto &comp : erec->clist)
     out_comps.push_back(comp.first);
@@ -90,8 +101,7 @@ void ECSBasicObjectEditor::resetComponent(ecs::EntityId eid, const char *comp_na
   if (it == erec->clist.end())
     return;
   erec->clist.erase(it);
-  if (erec->toBeSaved)
-    scene.setNewChangesApplied(true);
+  scene.setNewChangesApplied(erec->sceneId);
 }
 
 void ECSBasicObjectEditor::saveComponent(ecs::EntityId eid, const char *comp_name)
@@ -111,8 +121,8 @@ void ECSBasicObjectEditor::saveComponent(ecs::EntityId eid, const char *comp_nam
     it->second = eastl::move(ecs::ChildComponent(*g_entity_mgr, comp));
   else
     erec->clist.emplace_back(comp_name, ecs::ChildComponent(*g_entity_mgr, comp));
-  if (erec->toBeSaved)
-    scene.setNewChangesApplied(true);
+
+  scene.setNewChangesApplied(erec->sceneId);
 }
 
 void ECSBasicObjectEditor::saveAddTemplate(ecs::EntityId eid, const char *templ_name)
@@ -125,8 +135,7 @@ void ECSBasicObjectEditor::saveAddTemplate(ecs::EntityId eid, const char *templ_
     return;
   erec->templateName = add_sub_template_name(erec->templateName.c_str(), templ_name).c_str();
   removeSelectedTemplateName(erec->templateName);
-  if (erec->toBeSaved)
-    scene.setNewChangesApplied(true);
+  scene.setNewChangesApplied(erec->sceneId);
 }
 
 void ECSBasicObjectEditor::saveDelTemplate(ecs::EntityId eid, const char *templ_name, bool use_undo)
@@ -158,8 +167,8 @@ void ECSBasicObjectEditor::saveDelTemplate(ecs::EntityId eid, const char *templ_
     else
       ++it;
   }
-  if (erec->toBeSaved)
-    scene.setNewChangesApplied(true);
+
+  scene.setNewChangesApplied(erec->sceneId);
   if (undo)
     IEditorCoreEngine::get()->getUndoSystem()->put(undo);
 }

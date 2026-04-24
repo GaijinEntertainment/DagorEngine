@@ -98,8 +98,7 @@ void WorldRenderer::render(DagorGameScene &)
   float viewportMinZ, viewportMaxZ;
   d3d::getview(viewportX, viewportY, viewportW, viewportH, viewportMinZ, viewportMaxZ);
 
-  d3d::set_render_target(sceneRt, 0);
-  d3d::set_depth(sceneDepth, DepthAccess::RW);
+  d3d::set_render_target({sceneDepth, 0, 0}, DepthAccess::RW, {{sceneRt, 0, 0}});
   d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER | CLEAR_STENCIL, E3DCOLOR(0, 0, 0, 0), DAGOR_FAR_DEPTH, 0);
 
   {
@@ -111,8 +110,8 @@ void WorldRenderer::render(DagorGameScene &)
   {
     TMatrix4 projTm;
     d3d::gettm(TM_PROJ, &projTm);
-    postFx->apply(sceneRt, sceneRtId, postfxRt, postfxRtId, ::grs_cur_view.tm, projTm);
-    d3d::set_render_target(postfxRt, 0);
+    postFx->apply(sceneRt, postfxRt, ::grs_cur_view.tm, projTm);
+    d3d::set_render_target({}, DepthAccess::RW, {{postfxRt, 0, 0}});
     d3d_err(d3d::stretch_rect(postfxRt, rt.getColor(0).tex, NULL, NULL));
   }
   else
@@ -136,7 +135,7 @@ void WorldRenderer::prepareWaterReflection() {}
 
 void WorldRenderer::beforeRender()
 {
-  ShaderGlobal::set_color4_fast(worldViewPosGvId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
+  ShaderGlobal::set_float4(worldViewPosGvId, Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
   envSetts.applyOnRender(true);
   renderWorld->beforeRender();
 

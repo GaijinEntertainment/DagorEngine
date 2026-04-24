@@ -25,6 +25,7 @@
 #include <math/dag_TMatrix4more.h>
 #include <EASTL/type_traits.h>
 #include <debug/dag_assert.h>
+#include <math/dag_declAlign.h>
 
 // These are callbacks for cpp stcode to interact with d3d,
 // this table is passed into the dll on intialization
@@ -41,9 +42,9 @@ CB_VISIBILITY void set_sampler(int stage, uint reg, const void *handle_ptr);
 CB_VISIBILITY void set_rwtex(int stage, uint reg, const void *texptr);
 CB_VISIBILITY void set_rwbuf(int stage, uint reg, const void *bufptr);
 CB_VISIBILITY void set_tlas(int stage, uint reg, const void *ptr);
-CB_VISIBILITY void get_globtm(float4x4 *out);
-CB_VISIBILITY void get_projtm(float4x4 *out);
-CB_VISIBILITY void get_viewprojtm(float4x4 *out);
+CB_VISIBILITY void get_globtm(void *out);
+CB_VISIBILITY void get_projtm(void *out);
+CB_VISIBILITY void get_viewprojtm(void *out);
 CB_VISIBILITY void get_lview(int component, float4 *out);
 CB_VISIBILITY void get_lworld(int component, float4 *out);
 CB_VISIBILITY float4 get_tex_dim(const void *texptr, int mip);
@@ -51,13 +52,14 @@ CB_VISIBILITY int get_buf_size(const void *bufptr);
 CB_VISIBILITY float4 get_viewport();
 CB_VISIBILITY int exists_tex(const void *texptr);
 CB_VISIBILITY int exists_buf(const void *bufptr);
-CB_VISIBILITY uint64_t request_sampler(int smp_id, float4 border_color, int anisotropic_max, int mipmap_bias);
+CB_VISIBILITY uint64_t request_sampler(int smp_id, float4 border_color, float anisotropic_max, float mipmap_bias);
 CB_VISIBILITY void set_const(int stage, unsigned int id, float4 *val, int cnt);
 CB_VISIBILITY void get_shadervar_ptrs_from_dump(const ShadervarPtrInitInfo *out_data_infos, uint32_t ptr_count);
 CB_VISIBILITY void reg_bindless(void *texptr, int reg, void *ctx);
-CB_VISIBILITY void create_state(const uint *vs_tex, uint16_t vs_tex_range_packed, const uint *ps_tex, uint16_t ps_tex_range_packed,
+CB_VISIBILITY void create_state(const uint *vs_tex, uint32_t vs_tex_range_packed, const uint *ps_tex, uint32_t ps_tex_range_packed,
   const void *consts, int const_cnt, bool multidraw_cbuf, void *ctx);
 CB_VISIBILITY uint acquire_tex(void *texptr);
+CB_VISIBILITY void fatal(const char *fmt, va_list args);
 
 // @TODO: remake buffer callbacks to take Sbuffer * directly
 
@@ -89,7 +91,8 @@ const CallbackTable cb_table_impl =
   &get_shadervar_ptrs_from_dump,
   &reg_bindless,
   &create_state,
-  &acquire_tex
+  &acquire_tex,
+  &fatal
 };
 // clang-format on
 
@@ -114,11 +117,15 @@ shaders_internal::ConstSetter *custom_const_setter = nullptr;
 
 CB_VISIBILITY void set_tex(int stage, uint reg, const void *texptr)
 {
-  TEXTUREID tid = ((const shaders_internal::Tex *)texptr)->texId;
-  BaseTexture *tex = D3dResManagerData::getBaseTex(tid);
+  const auto *texData = (const shaders_internal::Tex *)texptr;
+  const auto isTexManaged = texData->isTextureManaged();
+  BaseTexture *tex = texData->tex;
 
   BEGIN_SETTER_BODY()
-  mark_managed_tex_lfu(tid, req_tex_level);
+  if (isTexManaged)
+  {
+    mark_managed_tex_lfu(texData->texId, req_tex_level);
+  }
   on_before_resource_used_cb(tex, last_resource_name);
   d3d::set_tex(stage, reg, tex);
   END_SETTER_BODY()
@@ -128,8 +135,8 @@ CB_VISIBILITY void set_tex(int stage, uint reg, const void *texptr)
 
 CB_VISIBILITY void set_buf(int stage, uint reg, const void *bufptr)
 {
-  D3DRESID bufId = ((const shaders_internal::Buf *)bufptr)->bufId;
-  Sbuffer *buf = (Sbuffer *)D3dResManagerData::getD3dRes(bufId);
+  const auto *bufData = (const shaders_internal::Buf *)bufptr;
+  Sbuffer *buf = bufData->buf;
 
   BEGIN_SETTER_BODY()
   on_before_resource_used_cb(buf, last_resource_name);
@@ -141,8 +148,8 @@ CB_VISIBILITY void set_buf(int stage, uint reg, const void *bufptr)
 
 CB_VISIBILITY void set_const_buf(int stage, uint reg, const void *bufptr)
 {
-  D3DRESID bufId = ((const shaders_internal::Buf *)bufptr)->bufId;
-  Sbuffer *buf = (Sbuffer *)D3dResManagerData::getD3dRes(bufId);
+  const auto *bufData = (const shaders_internal::Buf *)bufptr;
+  Sbuffer *buf = bufData->buf;
 
   BEGIN_SETTER_BODY()
   on_before_resource_used_cb(buf, last_resource_name);
@@ -165,8 +172,8 @@ CB_VISIBILITY void set_sampler(int stage, uint reg, const void *handle_ptr)
 
 CB_VISIBILITY void set_rwtex(int stage, uint reg, const void *texptr)
 {
-  TEXTUREID tid = ((const shaders_internal::Tex *)texptr)->texId;
-  BaseTexture *tex = D3dResManagerData::getBaseTex(tid);
+  const auto *texData = (const shaders_internal::Tex *)texptr;
+  BaseTexture *tex = texData->tex;
 
   BEGIN_SETTER_BODY()
   on_before_resource_used_cb(tex, last_resource_name);
@@ -178,8 +185,8 @@ CB_VISIBILITY void set_rwtex(int stage, uint reg, const void *texptr)
 
 CB_VISIBILITY void set_rwbuf(int stage, uint reg, const void *bufptr)
 {
-  D3DRESID bufId = ((const shaders_internal::Buf *)bufptr)->bufId;
-  Sbuffer *buf = (Sbuffer *)D3dResManagerData::getD3dRes(bufId);
+  const auto *bufData = (const shaders_internal::Buf *)bufptr;
+  Sbuffer *buf = bufData->buf;
 
   BEGIN_SETTER_BODY()
   on_before_resource_used_cb(buf, last_resource_name);
@@ -204,26 +211,38 @@ CB_VISIBILITY void set_tlas(int stage, uint reg, const void *ptr)
   stcode::dbg::record_set_tlas(stcode::dbg::RecordType::CPP, stage, reg, tlas);
 }
 
-CB_VISIBILITY void get_globtm(float4x4 *out)
+#define GET_MATRIX_REF(ptr_)            \
+  ([](void *ptr) -> TMatrix4_vec4 & {   \
+    G_ASSERT(uintptr_t(ptr) % 16 == 0); \
+    ASSUME_ALIGNED(ptr, 16);            \
+    return *(TMatrix4_vec4 *)ptr;       \
+  }(ptr_))
+
+CB_VISIBILITY void get_globtm(void *out)
 {
-  d3d::getglobtm(*out);
-  process_tm_for_drv_consts(*out);
+  auto &outTm = GET_MATRIX_REF(out);
+  d3d::getglobtm(outTm);
+  process_tm_for_drv_consts(outTm);
 }
 
-CB_VISIBILITY void get_projtm(float4x4 *out)
+CB_VISIBILITY void get_projtm(void *out)
 {
-  d3d::gettm(TM_PROJ, out);
-  process_tm_for_drv_consts(*out);
+  auto &outTm = GET_MATRIX_REF(out);
+  d3d::gettm(TM_PROJ, &outTm);
+  process_tm_for_drv_consts(outTm);
 }
 
-CB_VISIBILITY void get_viewprojtm(float4x4 *out)
+CB_VISIBILITY void get_viewprojtm(void *out)
 {
-  float4x4 v, p;
+  auto &outTm = GET_MATRIX_REF(out);
+  TMatrix4_vec4 v, p;
   d3d::gettm(TM_VIEW, &v);
   d3d::gettm(TM_PROJ, &p);
-  *out = v * p;
-  process_tm_for_drv_consts(*out);
+  outTm = v * p;
+  process_tm_for_drv_consts(outTm);
 }
+
+#undef GET_MATRIX_REF
 
 CB_VISIBILITY void get_lview(int component, float4 *out)
 {
@@ -239,8 +258,10 @@ CB_VISIBILITY void get_lworld(int component, float4 *out)
 
 CB_VISIBILITY float4 get_tex_dim(const void *texptr, int mip)
 {
-  TEXTUREID tid = ((const shaders_internal::Tex *)texptr)->texId;
-  auto tex = acquire_managed_tex(tid);
+
+  const auto *texData = (const shaders_internal::Tex *)texptr;
+  BaseTexture *tex = texData->tex;
+
   TextureInfo info;
   if (tex)
   {
@@ -261,14 +282,14 @@ CB_VISIBILITY float4 get_tex_dim(const void *texptr, int mip)
     info.w = info.h = info.d = info.mipLevels = 0; //-V1048
   }
   float4 dims(info.w, info.h, info.d, info.mipLevels);
-  release_managed_tex(tid);
   return dims;
 }
 
 CB_VISIBILITY int get_buf_size(const void *bufptr)
 {
-  D3DRESID bufId = ((const shaders_internal::Buf *)bufptr)->bufId;
-  Sbuffer *buf = (Sbuffer *)D3dResManagerData::getD3dRes(bufId);
+  const auto *bufData = (const shaders_internal::Buf *)bufptr;
+  Sbuffer *buf = bufData->buf;
+
   int size = 0;
   if (buf)
     size = buf->getNumElements();
@@ -285,27 +306,29 @@ CB_VISIBILITY float4 get_viewport()
 
 CB_VISIBILITY int exists_tex(const void *texptr)
 {
-  TEXTUREID tid = ((const shaders_internal::Tex *)texptr)->texId;
-  bool res = acquire_managed_tex(tid) != nullptr;
-  release_managed_tex(tid);
-  return res;
+  const auto *texData = (const shaders_internal::Tex *)texptr;
+  return texData->tex != nullptr;
 }
 
 CB_VISIBILITY int exists_buf(const void *bufptr)
 {
-  D3DRESID bufId = ((const shaders_internal::Buf *)bufptr)->bufId;
-  return D3dResManagerData::getD3dRes(bufId) != nullptr;
+  const auto *bufData = (const shaders_internal::Buf *)bufptr;
+  Sbuffer *buf = bufData->buf;
+  return buf != nullptr;
 }
 
-CB_VISIBILITY uint64_t request_sampler(int smp_id, float4 border_color, int anisotropic_max, int mipmap_bias)
+CB_VISIBILITY uint64_t request_sampler(int smp_id, float4 border_color, float anisotropic_max, float mipmap_bias)
 {
-  auto *dump = shBinDumpOwner().getDumpV3();
+  auto *dump = shBinDumpOwner().getDumpV3(); // @TODO: once additional dumps with cppstcode are supported, this will have to be fixed
+                                             // (intro a context for stcode exec, or store in a gvar)
   G_ASSERTF(dump, "Used incompatible version of shader dump for call 'request_sampler' intrinsic");
   d3d::SamplerInfo info = dump->samplers[smp_id];
 
-  uint32_t rgb = border_color.r || border_color.g || border_color.b ? 0xFFFFFF : 0;
-  uint32_t a = border_color.a ? 0xFF000000 : 0;
-  info.border_color = static_cast<d3d::BorderColor::Color>(a | rgb);
+  {
+    uint32_t rgb = border_color.r || border_color.g || border_color.b ? 0xFFFFFF : 0;
+    uint32_t a = border_color.a ? 0xFF000000 : 0;
+    info.border_color = static_cast<d3d::BorderColor::Color>(a | rgb);
+  }
   info.anisotropic_max = anisotropic_max;
   info.mip_map_bias = mipmap_bias;
 
@@ -329,7 +352,7 @@ CB_VISIBILITY void set_const(int stage, unsigned int id, float4 *val, int cnt)
 
 CB_VISIBILITY void get_shadervar_ptrs_from_dump(const ShadervarPtrInitInfo *out_data_infos, uint32_t ptr_count)
 {
-  for (auto &state = shBinDumpOwner().globVarsState; auto [dst, id, _] : eastl::span{out_data_infos, ptr_count})
+  for (auto &state = shGlobalData().globVarsState; auto [dst, id, _] : eastl::span{out_data_infos, ptr_count})
     *dst = state.get_raw(id);
 }
 
@@ -357,7 +380,7 @@ CB_VISIBILITY void reg_bindless(void *texptr, int reg, void *ctx)
   stcode::dbg::record_reg_bindless(dbg::RecordType::CPP, reg, tid);
 }
 
-CB_VISIBILITY void create_state(const uint *vs_tex, uint16_t vs_tex_range_packed, const uint *ps_tex, uint16_t ps_tex_range_packed,
+CB_VISIBILITY void create_state(const uint *vs_tex, uint32_t vs_tex_range_packed, const uint *ps_tex, uint32_t ps_tex_range_packed,
   const void *consts, int const_cnt, bool multidraw_cbuf, void *ctx)
 {
   StblkcodeContext &concCtx = *(StblkcodeContext *)ctx;
@@ -377,9 +400,9 @@ CB_VISIBILITY void create_state(const uint *vs_tex, uint16_t vs_tex_range_packed
   {
     const SlotTexturesRangeInfo psRng{ps_tex_range_packed};
     const SlotTexturesRangeInfo vsRng{vs_tex_range_packed};
-    for (int i = psRng.texBase; i < psRng.texBase + psRng.count; ++i)
+    for (int i = psRng.texBase; i < psRng.texBase + psRng.texCount; ++i)
       stcode::dbg::record_set_static_tex(stcode::dbg::RecordType::CPP, STAGE_PS, i, TEXTUREID(ps_tex[i - psRng.texBase]));
-    for (int i = vsRng.texBase; i < vsRng.texBase + vsRng.count; ++i)
+    for (int i = vsRng.texBase; i < vsRng.texBase + vsRng.texCount; ++i)
       stcode::dbg::record_set_static_tex(stcode::dbg::RecordType::CPP, STAGE_VS, i, TEXTUREID(vs_tex[i - vsRng.texBase]));
 
     BEGIN_SETTER_BODY()
@@ -387,6 +410,13 @@ CB_VISIBILITY void create_state(const uint *vs_tex, uint16_t vs_tex_range_packed
       const_cnt, const_cnt > 0);
     END_SETTER_BODY()
   }
+}
+
+CB_VISIBILITY void fatal(const char *fmt, va_list args)
+{
+  eastl::string msg{};
+  msg.sprintf_va_list(fmt, args);
+  DAG_FATAL("%s", msg.c_str());
 }
 
 #undef CB_VISIBILITY

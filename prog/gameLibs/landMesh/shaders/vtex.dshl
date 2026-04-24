@@ -1,4 +1,114 @@
+int clipmap_use_ri_vtex = 0 always_referenced;
+
+interval clipmap_use_ri_vtex: no < 1, yes;
+assume_if_not_assumed clipmap_use_ri_vtex = no;
 
 hlsl {
   #include <vtex.hlsli>
+
+##if (clipmap_use_ri_vtex == yes)
+  #define MAX_RI_OFFSET (MAX_RI_VTEX_CNT)
+  #define RI_VTEX_CNT_BITS (MAX_RI_VTEX_CNT_BITS)
+  #define CLIPMAP_HIST_TOTAL_ELEMENTS (CLIPMAP_HIST_WITH_RI_VTEX_ELEMENTS)
+##else
+  #define MAX_RI_OFFSET (1)
+  #define RI_VTEX_CNT_BITS (0)
+  #define CLIPMAP_HIST_TOTAL_ELEMENTS (CLIPMAP_HIST_NO_RI_VTEX_ELEMENTS)
+##endif
 }
+
+macro USE_VTEX_BASE(stage)
+hlsl(stage){
+  struct Vtex
+  {
+    half3 diffuse;
+    half3 normal;
+    half reflectance, smoothness, micro_detail, ao, emission;
+  };
+  Vtex create_vtex(){Vtex vtex; vtex.diffuse = half3(0.0, 0.0, 0.0); vtex.normal = half3(0.0, 0.0, 1.0); vtex.ao = half(1.0); vtex.emission = half(0.0); vtex.reflectance = vtex.smoothness = vtex.micro_detail = half(0.0); return vtex;}
+  void set_diffuse(inout Vtex vtex, half3 d){vtex.diffuse = d;}
+  void set_reflectance(inout Vtex vtex, half t){vtex.reflectance = t;}
+  void set_smoothness(inout Vtex vtex, half s){vtex.smoothness = s;}
+  void set_normal(inout Vtex vtex, half3 n){vtex.normal = n;}
+  void set_micro_detail(inout Vtex vtex, half d){vtex.micro_detail = d;}
+  void set_ao(inout Vtex vtex, half a){vtex.ao = a;}
+  void set_emission(inout Vtex vtex, half a){vtex.emission = a;}
+
+  void auto_set(inout Vtex vtex, float2 worldPosXZ)
+  {
+    #if DETECT_LAND_SMOOTHNESS_DEFINED
+    set_smoothness(vtex, get_land_smoothness(vtex.diffuse));
+    #endif
+
+    #if DETECT_LAND_REFLECTANCE
+    set_reflectance(vtex, get_land_reflectance(worldPosXZ, vtex.diffuse));
+    #endif
+  }
+  Vtex lerp_vtex(Vtex a, Vtex b, half t)
+  {
+    Vtex r;
+    r.diffuse = lerp(a.diffuse, b.diffuse, t);
+    r.normal = lerp(a.normal, b.normal, t);
+    r.reflectance = lerp(a.reflectance, b.reflectance, t);
+    r.smoothness = lerp(a.smoothness, b.smoothness, t);
+    r.ao = lerp(a.ao, b.ao, t);
+    r.micro_detail = t<0.5 ? a.micro_detail : b.micro_detail;
+    r.emission = t<0.5 ? a.emission : b.emission;
+    return r;
+  }
+}
+endmacro
+
+macro USE_VTEX()
+  USE_VTEX_BASE(ps)
+endmacro
+
+macro READ_PACKED_VTEX_BASE(stage)
+  if (render_with_normalmap == no_normalmap)
+  {
+    DETECT_LAND_SMOOTHNESS_BASE(stage)
+    DETECT_LAND_REFLECTANCE_BASE(stage)
+  }
+  USE_VTEX_BASE(stage)
+  hlsl(stage) {
+    Vtex unpack_vtex(half4 cache0, half2 normal, half4 cache2)
+    {
+      Vtex ret;
+      ret.diffuse = cache0.rgb;
+      ret.smoothness = cache0.a;
+
+      ret.normal = restore_normal(normal);
+      ret.ao = saturate(cache2.x * 2.5f);
+      ret.emission = saturate(2.5f * (cache2.x - 0.6f));
+      ret.reflectance = cache2.y;
+      ret.micro_detail = cache2.a;
+      return ret;
+    }
+    ##if (render_with_normalmap == no_normalmap)
+    void auto_detect_other(inout Vtex vtex, float2 worldPosXZ)
+    {
+      vtex.smoothness = get_land_smoothness(vtex.diffuse);
+      vtex.reflectance = get_land_reflectance(vtex.diffuse);
+    }
+    ##endif
+
+    ##if (render_with_normalmap == no_normalmap) || (shaderlod == low)
+    Vtex unpack_vtex(half4 cache0)
+    {
+      Vtex ret;
+      ret.diffuse = cache0.rgb;
+      ret.micro_detail = cache0.a;
+      ret.normal = half3(0,0,1);
+      ret.ao = 1;
+      ret.smoothness = 0;
+      ret.reflectance = 0;
+      ret.emission = 0;
+      return ret;
+    }
+    ##endif
+  }
+endmacro
+
+macro READ_PACKED_VTEX()
+  READ_PACKED_VTEX_BASE(ps)
+endmacro

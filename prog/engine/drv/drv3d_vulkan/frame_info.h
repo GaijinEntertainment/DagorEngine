@@ -31,6 +31,7 @@ struct FrameInfo
     VulkanCommandPoolHandle commandPool;
     Tab<VulkanCommandBufferHandle> freeCommandBuffers;
     Tab<VulkanCommandBufferHandle> pendingCommandBuffers;
+    int64_t nextMemoryReleaseTime;
 
     void init(DeviceQueueType target_queue);
     VulkanCommandBufferHandle allocateCommandBuffer();
@@ -57,7 +58,10 @@ struct FrameInfo
   QueryBlock *pendingTimestamps = nullptr;
   QueryBlock *pendingOcclusionQueries = nullptr;
   dag::Vector<eastl::unique_ptr<ShaderModule>> deletedShaderModules;
-  DeviceExecutionTracker execTracker;
+  DeviceExecutionTracker execTrackers[REPLAY_TIMELINE_HISTORY_SIZE];
+  int execTrackerId = 0;
+  DeviceExecutionTracker &execTracker() { return execTrackers[execTrackerId]; }
+  const DeviceExecutionTracker &execTracker() const { return execTrackers[execTrackerId]; }
   Tab<VulkanEventHandle> gpuEvents;
 
   void init();

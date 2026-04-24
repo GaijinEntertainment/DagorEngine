@@ -1,0 +1,1 @@
+Implements the ``[tag_structure]`` structure annotation, which attaches named boolean tags to structures for later discovery by macro code.

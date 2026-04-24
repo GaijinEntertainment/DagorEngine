@@ -35,7 +35,7 @@ public:
   void setLenseFlareIntesity(float intensity);
   void toggleLenseFlareCovering(bool use_covering);
   void initLenseFlare(const char *covering_tex_name, const char *readial_tex_name);
-  void renderLenseFlare(ManagedTexView prev_frame_tex);
+  void renderLenseFlare(Texture *prev_frame_tex);
   void setFName(const char *fname);
   void setAudioDataFName(const eastl::string &fname);
   void setBitrate(int bitrate);

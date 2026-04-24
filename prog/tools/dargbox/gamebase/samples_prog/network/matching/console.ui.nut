@@ -128,7 +128,7 @@ function onLoginButtonClick() {
 let loginButton = @() {
   rendObj = ROBJ_SOLID
   color = Color(0,25,205)
-  size = static [pw(100), SIZE_TO_CONTENT]
+  size = const [pw(100), SIZE_TO_CONTENT]
   behavior = Behaviors.Button
   valign = ALIGN_CENTER
   halign = ALIGN_CENTER
@@ -155,7 +155,7 @@ let loginInfoC = @() {
   padding = hdpx(5)
   children = loginInfo.map(@(value, key) {
     flow = FLOW_HORIZONTAL
-    size = static [hdpx(500), SIZE_TO_CONTENT]
+    size = const [hdpx(500), SIZE_TO_CONTENT]
     children = [
       autoScrollTextArea({text = key})
       autoScrollTextArea({text = value})
@@ -165,15 +165,15 @@ let loginInfoC = @() {
 
 let logsBlock = @() {
   flow = FLOW_HORIZONTAL
-  size = static [pw(100), flex()]
+  size = const [pw(100), flex()]
   watch = [lastResult, serverNotify]
   children = [
     {
       flow = FLOW_VERTICAL
-      size = static [pw(40), flex()]
+      size = const [pw(40), flex()]
       children = [
         {
-          size = static [pw(100), SIZE_TO_CONTENT]
+          size = const [pw(100), SIZE_TO_CONTENT]
           rendObj = ROBJ_TEXT
           text = "Result"
         }
@@ -181,19 +181,19 @@ let logsBlock = @() {
           rendObj = ROBJ_SOLID
           color = Color(0, 0, 0)
           size = flex()
-          children = textLog(resultLog, {size = static [pw(100), ph(100)]})
+          children = textLog(resultLog, {size = const [pw(100), ph(100)]})
         }
       ]
     }
     {
-      size = static [flex(), 0]
+      size = const [flex(), 0]
     }
     {
       flow = FLOW_VERTICAL
-      size = static [pw(40), flex()]
+      size = const [pw(40), flex()]
       children = [
         {
-          size = static [pw(100), SIZE_TO_CONTENT]
+          size = const [pw(100), SIZE_TO_CONTENT]
           rendObj = ROBJ_TEXT
           text = "Notifications"
         }
@@ -201,7 +201,7 @@ let logsBlock = @() {
           rendObj = ROBJ_SOLID
           color = Color(0, 0, 0)
           size = flex()
-          children = textLog(notifyLog, {size = static [pw(100), ph(100)]})
+          children = textLog(notifyLog, {size = const [pw(100), ph(100)]})
         }
       ]
     }
@@ -213,13 +213,13 @@ local subscribeVal = Watched("")
 let rpcForm = {
   flow = FLOW_VERTICAL
   valign = ALIGN_TOP
-  size = static [pw(100), ph(30)]
+  size = const [pw(100), ph(30)]
   gap = hdpx(6)
   children = [
     { rendObj = ROBJ_TEXT text = "Send command" }
     {
       flow = FLOW_HORIZONTAL
-      size = static [pw(100), SIZE_TO_CONTENT]
+      size = const [pw(100), SIZE_TO_CONTENT]
       gap = sh(3)
       children = [
         {
@@ -254,10 +254,10 @@ let rpcForm = {
         }
       ]
     }
-    { size = static [0, flex()] }
+    { size = const [0, flex()] }
     { rendObj = ROBJ_TEXT text = "Subscribe" }
     {
-      size = static [pw(50), SIZE_TO_CONTENT]
+      size = const [pw(50), SIZE_TO_CONTENT]
       children = textInput(subscribeVal, { onReturn = @() subscribeNotify(subscribeVal.get())
                                 margin = 0 textmargin = hdpx(2)})
     }
@@ -268,22 +268,22 @@ let rpcForm = {
 return {
   rendObj = ROBJ_SOLID
   color = Color(30,40,50)
-  size = static [pw(100), ph(100)]
+  size = const [pw(100), ph(100)]
   children = {
     flow = FLOW_VERTICAL
     pos = [pw(5), ph(5)]
-    size = static [pw(90), ph(90)]
+    size = const [pw(90), ph(90)]
     gap = sh(10)
     children = [{
         flow = FLOW_HORIZONTAL
-        size = static [pw(100), SIZE_TO_CONTENT]
+        size = const [pw(100), SIZE_TO_CONTENT]
         children = [
           {
             flow = FLOW_VERTICAL
             gap = sh(1)
             valign = ALIGN_CENTER
             halign = ALIGN_CENTER
-            size = static [pw(10), SIZE_TO_CONTENT]
+            size = const [pw(10), SIZE_TO_CONTENT]
             children = [
               loginStatus
               loginButton

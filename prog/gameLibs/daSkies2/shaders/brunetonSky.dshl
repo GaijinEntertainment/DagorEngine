@@ -1,5 +1,6 @@
 include "atmosphere.dshl"
 include_optional "skiesSettings.dshl"
+include "sky_polarization_filter_term_inc.dshl"
 
 
 float4 skies_primary_sun_light_dir = (0,0.4,0.6,0);
@@ -37,8 +38,10 @@ endmacro
 
 macro INIT_BRUNETON_FOG(stage)
   //SET_SCATTERING_CONSTANTS()
+  INIT_SKY_POLARIZATION_FILTER_TERM(stage)
+  INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(stage)
   (stage) {
-    preparedLoss@smp2d = preparedLoss;
+    preparedLoss@tex2d = preparedLoss;
     skies_frustum_scattering@smp3d = skies_frustum_scattering;
     //skies_froxels_resolution@f4 = skies_froxels_resolution;
     skies_panoramic_scattering__inv_distance@f4 = (
@@ -88,6 +91,7 @@ macro BASE_FOG_MATH(code)
 endmacro
 
 macro BASE_USE_BRUNETON_FOG(code)
+  USE_SKY_POLARIZATION_FILTER_TERM(code)
   BASE_FOG_MATH(code)
   ATMO(code)
   hlsl(code) {
@@ -96,7 +100,10 @@ macro BASE_USE_BRUNETON_FOG(code)
     #include "atmosphere/preparedScattering2.hlsl"
     half3 get_fog_prepared_tc(float2 prepared_tc)
     {
-      return (half3)GetPreparedTransmittanceUV(SamplerTexture2DFromName(preparedLoss), prepared_tc);
+      SamplerTexture2D r;
+      r.tex = preparedLoss;
+      r.tex_smp = global_linear_clamp_sampler;
+      return (half3)GetPreparedTransmittanceUV(r, prepared_tc);
     }
     float get_scattering_tc_z(float dist) {return sqrt(dist*skies_panoramic_scattering__inv_distance.y);}
 
@@ -114,6 +121,7 @@ macro BASE_USE_BRUNETON_FOG(code)
     {
       tcZ = min(get_scattering_tc_z(dist), skies_panoramic_scattering__inv_distance.w);
       half4 combined = (half4)tex3Dlod(skies_frustum_scattering, float4(texcoord, tcZ, 0));
+      combined.rgb *= apply_sky_polarization_filter();
       combined = lerp(half4(0.h,0.h,0.h,1.h), combined, (half)saturate(tcZ*skies_panoramic_scattering__inv_distance.z));
       return combined;
     }

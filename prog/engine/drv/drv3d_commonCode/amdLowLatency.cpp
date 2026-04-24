@@ -2,7 +2,7 @@
 
 #include <3d/dag_nvFeatures.h>
 #include <3d/gpuLatency.h>
-#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_info.h>
 #include <debug/dag_debug.h>
 #include <perfMon/dag_statDrv.h>
@@ -17,13 +17,12 @@
 class AMDGpuLatency : public GpuLatency
 {
 public:
-  AMDGpuLatency()
+  AMDGpuLatency(DriverCode driver_code)
   {
-    G_ASSERT(d3d::get_driver_code().is(d3d::dx11 || d3d::dx12));
+    G_ASSERT(driver_code.is(d3d::dx11 || d3d::dx12));
 
-    auto hr = d3d::get_driver_code().is(d3d::dx11)
-                ? AMD::AntiLag2DX11::Initialize(&context11)
-                : AMD::AntiLag2DX12::Initialize(&context12, static_cast<ID3D12Device *>(d3d::get_device()));
+    auto hr = driver_code.is(d3d::dx11) ? AMD::AntiLag2DX11::Initialize(&context11)
+                                        : AMD::AntiLag2DX12::Initialize(&context12, static_cast<ID3D12Device *>(d3d::get_device()));
     if (SUCCEEDED(hr))
       modes = {Mode::Off, Mode::On};
     else
@@ -115,4 +114,4 @@ private:
   int maxFps = 0;
 };
 
-GpuLatency *create_gpu_latency_amd() { return new AMDGpuLatency(); }
+GpuLatency *create_gpu_latency_amd(DriverCode driver_code) { return new AMDGpuLatency(driver_code); }

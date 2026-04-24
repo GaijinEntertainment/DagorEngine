@@ -167,7 +167,8 @@ void reset_culling(Context &ctx, bool clear_cpu)
     feedback.allocCount = 0;
     feedback.readbackIssued = false;
     feedback.queryIssued = false;
-    feedback.gpuRes.close();
+    feedback.gpuResAtomic.close();
+    feedback.gpuResStaging.close();
     feedback.eventQuery.reset(nullptr);
     feedback.frameWorkers.clear();
   }
@@ -185,6 +186,18 @@ void reset_culling(Context &ctx, bool clear_cpu)
   }
 }
 
+// only for paused simulation
+void clear_culling_visibility_flags(Context &ctx)
+{
+  InstanceGroups &stream = ctx.instances.groups;
+  for (int i = 0; i < stream.size(); ++i)
+  {
+    uint32_t &flags = stream.get<INST_FLAGS>(i);
+    if (flags & SYS_RENDER_REQ)
+      flags &= ~SYS_VISIBLE;
+  }
+}
+
 void prepare_cpu_culling(Context &ctx, bool exec_clear)
 {
   TIME_D3D_PROFILE(dafx_prepare_cpu_culling);
@@ -192,6 +205,7 @@ void prepare_cpu_culling(Context &ctx, bool exec_clear)
   if (ctx.culling.cpuWorkers.size() > ctx.culling.cpuResSize)
   {
     ctx.culling.cpuResSize = ctx.culling.cpuWorkers.size();
+    ctx.culling.cpuRes.reset();
     create_cpu_res(ctx.culling.cpuRes, DAFX_CULLING_STRIDE, ctx.culling.cpuResSize, "dafx_culling");
   }
 
@@ -237,18 +251,30 @@ bool prepare_gpu_culling(Context &ctx, bool exec_clear)
 
   if (feedback.frameWorkers.size() > feedback.allocCount)
   {
-    feedback.gpuRes.close();
+    feedback.gpuResAtomic.close();
+    feedback.gpuResStaging.close();
     feedback.allocCount = feedback.frameWorkers.size() * 2;
 
     DBG_OPT("resizing culling feedback buf, frame: %d, alloc: %d", ctx.culling.gpuFeedbackIdx, feedback.allocCount);
 
     eastl::string name;
-    name.append_sprintf("dafx_culling_rb_%d", ctx.culling.gpuFeedbackIdx);
+    name.sprintf("dafx_culling_sb_%d", ctx.culling.gpuFeedbackIdx);
+
+    const int feedbackBufferSize = feedback.allocCount * 2 * 4; // 2 lines, 4 components each
 
     // metal supports atomics only for 1 components values
-    if (!create_gpu_rb_res(feedback.gpuRes, sizeof(int), feedback.allocCount * 2 * 4, name.c_str())) // 2 lines, 4 components each
+    if (!create_gpu_sb_res(feedback.gpuResAtomic, sizeof(int), feedbackBufferSize, name.c_str()))
     {
-      logerr("dafx: can't create culling buffer");
+      logerr("dafx: can't create atomic culling buffer");
+      feedback.allocCount = 0;
+      feedback.frameWorkers.clear();
+      return false;
+    }
+
+    name.sprintf("dafx_culling_rb_%d", ctx.culling.gpuFeedbackIdx);
+    if (!create_gpu_rb_res(feedback.gpuResStaging, sizeof(int), feedbackBufferSize, name.c_str()))
+    {
+      logerr("dafx: can't create staging culling buffer");
       feedback.allocCount = 0;
       feedback.frameWorkers.clear();
       return false;
@@ -271,14 +297,14 @@ bool prepare_gpu_culling(Context &ctx, bool exec_clear)
       return false;
     }
 
-    if (!d3d::set_rwbuffer(STAGE_CS, DAFX_CULLING_DATA_UAV_SLOT, feedback.gpuRes.getBuf()))
+    if (!d3d::set_rwbuffer(STAGE_CS, DAFX_CULLING_DATA_UAV_SLOT, feedback.gpuResAtomic.getBuf()))
     {
       feedback.allocCount = 0;
       return false;
     }
 
     ctx.culling.discardShader->dispatch((feedback.frameWorkers.size() - 1) / DAFX_DEFAULT_WARP + 1, 1, 1);
-    d3d::resource_barrier({feedback.gpuRes.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+    d3d::resource_barrier({feedback.gpuResAtomic.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
     d3d::set_rwbuffer(STAGE_CS, DAFX_CULLING_DATA_UAV_SLOT, nullptr);
   }
 
@@ -295,9 +321,12 @@ void issue_culling_feedback(Context &ctx)
     return;
 
   G_ASSERT(!feedback.queryIssued && !feedback.readbackIssued);
-  G_ASSERT_RETURN(feedback.allocCount > 0 && feedback.gpuRes.getBuf() && feedback.eventQuery, );
+  G_ASSERT_RETURN(
+    feedback.allocCount > 0 && feedback.gpuResAtomic.getBuf() && feedback.gpuResStaging.getBuf() && feedback.eventQuery, );
 
-  Sbuffer *buf = feedback.gpuRes.getBuf();
+  feedback.gpuResAtomic.getBuf()->copyTo(feedback.gpuResStaging.getBuf());
+
+  Sbuffer *buf = feedback.gpuResStaging.getBuf();
   if (buf->lock(0, 0, (void **)nullptr, VBLOCK_READONLY))
     buf->unlock();
 
@@ -418,7 +447,7 @@ void process_gpu_culling(Context &ctx)
 
   G_ASSERT(feedback.eventQuery && d3d::get_event_query_status(feedback.eventQuery.get(), false));
 
-  Sbuffer *gpuBuf = feedback.gpuRes.getBuf();
+  Sbuffer *gpuBuf = feedback.gpuResStaging.getBuf();
   G_ASSERT_RETURN(gpuBuf, );
 
   unsigned char *__restrict gpuData = nullptr;
@@ -441,12 +470,23 @@ void process_gpu_culling(Context &ctx)
     if ((flags & gpuValidationFlags) != gpuValidationFlags)
       continue; // it can be already dead, because we have 1..5 frames lag
 
-    bool validBox = pull_culling_data(gpuData, cullId, flags, stream.get<INST_BBOX>(sid),
-      stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid), !(historyFlags & SYS_SKIP_SIMULATION_ON_THIS_FRAME));
-    if (validBox)
+    bool validBox = false;
+    if (flags & SYS_DISABLE_CULLING)
     {
-      alignas(vec4f) Point4 emitterPos = stream.get<INST_POSITION>(sid);
-      v_bbox3_add_pt(stream.get<INST_BBOX>(sid), bitwise_cast<vec4f>(emitterPos)); // compensates for feedback latency.
+      bbox3f &bbox = stream.get<INST_BBOX>(sid);
+      bbox.bmin = V_C_MIN_VAL;
+      bbox.bmax = V_C_MAX_VAL;
+      validBox = true;
+    }
+    else
+    {
+      validBox = pull_culling_data(gpuData, cullId, flags, stream.get<INST_BBOX>(sid), stream.getOpt<INST_RENDERABLE_TRIS, uint>(sid),
+        !(historyFlags & SYS_SKIP_SIMULATION_ON_THIS_FRAME));
+      if (validBox)
+      {
+        alignas(vec4f) Point4 emitterPos = stream.get<INST_POSITION>(sid);
+        v_bbox3_add_pt(stream.get<INST_BBOX>(sid), bitwise_cast<vec4f>(emitterPos)); // compensates for feedback latency.
+      }
     }
     flags &= ~SYS_BBOX_VALID;
     flags |= validBox ? SYS_BBOX_VALID : 0;
@@ -542,6 +582,7 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
   bool useOcclusion = occlusion_sync_wait_f && doTest && !(ctx.debugFlags & DEBUG_DISABLE_OCCLUSION);
 
   mat44f globTm;
+  v_mat44_ident(globTm); // not needed actually, just to make BS happy
   vec4f minW = v_splat_x(v_set_x(1e-7));
   vec4f maxR = v_splat_x(v_set_x(eastl::numeric_limits<float>::max()));
   eastl::array<vec4f, Config::max_render_tags> minR;
@@ -558,7 +599,14 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
       minR[i] = v_make_vec4f(v, 0, 0, 0);
     }
   }
-  bool shouldCalcProjRad = maxDiscardThreshold > 0 || ctx.simLodGenParams.enabled;
+  bool shouldCalcProjRad = maxDiscardThreshold > 0 || (glob_tm && ctx.simLodGenParams.enabled);
+  vec4f projScale = v_zero(); // precalc, so we dont do it in a loop
+  if (shouldCalcProjRad)
+  {
+    vec4f cx = globTm.col0, cy = globTm.col1, cz = globTm.col2;
+    vec4f rowLenSq = v_madd(cx, cx, v_madd(cy, cy, v_mul(cz, cz)));      // dot
+    projScale = v_splat_x(v_sqrt(v_max(rowLenSq, v_splat_y(rowLenSq)))); // max x/y length
+  }
 
   InstanceGroups &stream = ctx.instances.groups;
   for (int sid : ctx.allRenderWorkers)
@@ -586,16 +634,17 @@ void update_culling_state(Context &ctx, CullingState *cull, const Frustum &frust
 
     if (test && shouldCalcProjRad)
     {
-      vec4f bmin = v_mat44_mul_vec3p(globTm, box.bmin);
-      vec4f bmax = v_mat44_mul_vec3p(globTm, box.bmax);
+      vec4f rad;
 
-      vec4f bminW = v_max(v_splat_w(bmin), minW);
-      vec4f bmaxW = v_max(v_splat_w(bmax), minW);
 
-      bmin = v_div(bmin, bminW);
-      bmax = v_div(bmax, bmaxW);
+      vec4f center = v_bbox3_center(box);
+      vec4f halfExtent = v_sub(box.bmax, center);
+      vec4f worldRad = v_length3_x(halfExtent);
 
-      vec4f rad = v_hmax3(v_abs(v_sub(bmax, bmin)));
+      vec4f centerScreen = v_mat44_mul_vec3p(globTm, center);
+      vec4f w = v_max(v_splat_w(centerScreen), minW);
+      rad = v_div(v_mul(worldRad, projScale), w);
+
       DECLSPEC_ALIGN(16) Point4 rad4;
       v_st(&rad4.x, rad);
       float &maxRad = stream.get<INST_PROJ_SIZE_MAX>(sid);

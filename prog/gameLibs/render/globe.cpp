@@ -68,13 +68,13 @@ GlobeRenderer::GlobeRenderer(Parameters &&parameters) : params(eastl::move(param
   static int globeRotateSpeedVarId = ::get_shader_glob_var_id("globe_rotate_speed");
   static int globeRotateModeVarId = ::get_shader_glob_var_id("globe_rotate_mode");
 
-  ShaderGlobal::set_color4(globeSliceTexSizeVarId, Color4(texSize.x, texSize.y, texNumLods, 0));
-  ShaderGlobal::set_real(globeSkyLightMulVarId, params.globeSkyLightMul);
-  ShaderGlobal::set_real(globeSunLightMulVarId, params.globeSunLightMul);
-  ShaderGlobal::set_color4(globeCloudsColorVarId, params.globeCloudsColor);
-  ShaderGlobal::set_real(globeInitialAngleVarId, params.globeInitialAngle);
-  ShaderGlobal::set_color4(globeSaturateColorVarId, params.globeSaturateColor);
-  ShaderGlobal::set_real(globeRotateSpeedVarId, params.globeRotateSpeed);
+  ShaderGlobal::set_float4(globeSliceTexSizeVarId, Color4(texSize.x, texSize.y, texNumLods, 0));
+  ShaderGlobal::set_float(globeSkyLightMulVarId, params.globeSkyLightMul);
+  ShaderGlobal::set_float(globeSunLightMulVarId, params.globeSunLightMul);
+  ShaderGlobal::set_float4(globeCloudsColorVarId, params.globeCloudsColor);
+  ShaderGlobal::set_float(globeInitialAngleVarId, params.globeInitialAngle);
+  ShaderGlobal::set_float4(globeSaturateColorVarId, params.globeSaturateColor);
+  ShaderGlobal::set_float(globeRotateSpeedVarId, params.globeRotateSpeed);
   ShaderGlobal::set_int(globeRotateModeVarId, params.globeRotateClouds ? 1 : 0);
 }
 
@@ -166,7 +166,7 @@ void GlobeRenderer::render(const TMatrix view_tm, const TMatrix4 &proj_tm, const
     }
 #endif
 
-    ShaderGlobal::set_color4(globe_tsize_wk_hkVarId, targetWidthForShader, targetHeightForShader, persp.wk, persp.hk);
+    ShaderGlobal::set_float4(globe_tsize_wk_hkVarId, targetWidthForShader, targetHeightForShader, persp.wk, persp.hk);
     SCOPED_SET_TEXTURE(globeShadowsTexVarId, shadowsTex);
     SCOPED_SET_TEXTURE(globeCloudsOceanTexVarId, cloudsTex);
 
@@ -187,9 +187,9 @@ void GlobeRenderer::render(const TMatrix view_tm, const TMatrix4 &proj_tm, const
       lightDir = skies.getSunDir();
     }
     Point3 lightPos = view_pos / radiusScale + params.posOffset;
-    ShaderGlobal::set_color4(get_shader_variable_id("globe_skies_light_pos"), Color4::xyz1(lightPos));
-    ShaderGlobal::set_color4(get_shader_variable_id("globe_skies_light_dir"), lightDir.x, lightDir.z, lightDir.y, 0);
-    ShaderGlobal::set_color4(get_shader_variable_id("globe_skies_light_color"), color4(DaScattering::getBaseSunColor(), 1.0f));
+    ShaderGlobal::set_float4(get_shader_variable_id("globe_skies_light_pos"), Color4::xyz1(lightPos));
+    ShaderGlobal::set_float4(get_shader_variable_id("globe_skies_light_dir"), lightDir.x, lightDir.z, lightDir.y, 0);
+    ShaderGlobal::set_float4(get_shader_variable_id("globe_skies_light_color"), color4(DaScattering::getBaseSunColor(), 1.0f));
 
     set_viewvecs_to_shader(view_tm, proj_tm);
 
@@ -202,13 +202,13 @@ void GlobeRenderer::render(const TMatrix view_tm, const TMatrix4 &proj_tm, const
       const TextureSlice &slice = textureSlices[sliceNo];
       if (textureSlices.size() == 2)
       {
-        ShaderGlobal::set_color4(globeUVWindowVarId, 2, 1, -sliceNo, 0);
+        ShaderGlobal::set_float4(globeUVWindowVarId, 2, 1, -sliceNo, 0);
       }
       else
       {
         int tileX = sliceNo % numTiles;
         int tileY = sliceNo / numTiles;
-        ShaderGlobal::set_color4(globeUVWindowVarId, numTiles, numTiles, -tileX, -tileY);
+        ShaderGlobal::set_float4(globeUVWindowVarId, numTiles, numTiles, -tileX, -tileY);
       }
       SCOPED_SET_TEXTURE(globeColorTexVarId, slice.colorTex);
       SCOPED_SET_TEXTURE(globeNormalsTexVarId, slice.normalsTex);

@@ -13,16 +13,11 @@
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_restart.h>
+#include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_genGuiMgr.h>
 #include <workCycle/dag_workCycle.h>
 
-#include <X11/Xcursor/Xcursor.h>
-
-namespace workcycle_internal
-{
-extern Display *get_root_display();
-extern bool window_initing;
-} // namespace workcycle_internal
+#include <osApiWrappers/dag_linuxGUI.h>
 
 extern bool ec_mouse_cursor_hidden;
 
@@ -67,15 +62,16 @@ public:
     }
   }
 
-  bool init3d(const char *drv_name, const DataBlock *blkTexStreaming) override
+  bool init3d(const char *drv_name, const DataBlock *blkTexStreaming, const char *caption, const char *icon) override
   {
-    workcycle_internal::window_initing = true;
+    const bool succeeded = tools3d::init(drv_name, blkTexStreaming, caption, nullptr);
+    mainHwnd = win32_get_main_wnd();
 
-    const bool succeeded = tools3d::init(drv_name, blkTexStreaming);
-
-    // Mark window_initing complete because while it is true dgs_app_active is not updated in prog/engine/workCycle/mainWndProc.cpp,
-    // and handle_app_activity_change() in imguiImp.cpp uses dgs_app_active to send focus events.
-    workcycle_internal::window_initing = false;
+    // The only reason this is here to match the Windows version.
+    const bool oldLimitFps = dgs_limit_fps;
+    dgs_limit_fps = false;
+    dagor_work_cycle();
+    dgs_limit_fps = oldLimitFps;
 
     return succeeded;
   }
@@ -133,13 +129,7 @@ private:
       if (global_cls_drv_pnt->isMouseCursorHidden())
         global_cls_drv_pnt->hideMouseCursor(false);
 
-      // Set the cursor after hideMouseCursor() because that might have also changed the cursor.
-      Display *display = workcycle_internal::get_root_display();
-      Window window = (intptr_t)win32_get_main_wnd(); // see getWindowFromPtrHandle()
-      Cursor cursor = XcursorLibraryLoadCursor(display, cursorName);
-      if (cursor == None)
-        cursor = XcursorLibraryLoadCursor(display, arrowCursor);
-      XDefineCursor(display, window, cursor);
+      linux_GUI::set_cursor(win32_get_main_wnd(), cursorName);
 
       return false;
     }
@@ -171,15 +161,12 @@ private:
   bool cursorParamsMakeHiddenCursor = false;
 };
 
-// Used in the Linux version, not used in the Windows version.
 static void post_shutdown_handler()
 {
   if (editor_main_window_event_handler)
     editor_main_window_event_handler->onDestroy();
 
   ::shutdown_game(RESTART_ALL);
-
-  d3d::release_driver();
 
   // invoke shutdown handler installed by platform
   if (old_shutdown_handler)
@@ -188,7 +175,7 @@ static void post_shutdown_handler()
 
 IWndManager *EditorMainWindow::createWindowManager() { return new ImguiWndManagerLinux(mainHwnd); }
 
-void EditorMainWindow::run(const char *caption, const char *icon, FileDropHandler file_drop_handler, E3DCOLOR bg_color)
+void EditorMainWindow::run(FileDropHandler file_drop_handler)
 {
   editor_main_window_event_handler = &eventHandler;
 
@@ -206,10 +193,6 @@ void EditorMainWindow::run(const char *caption, const char *icon, FileDropHandle
     else
       ::dagor_idle_cycle();
 }
-
-void EditorMainWindow::close() {}
-
-void EditorMainWindow::onClose() {}
 
 // TODO: tools Linux porting: missing messages: WM_MOVE, WM_SIZE -- only needed for multi view
 // TODO: tools Linux porting: missing messages: WM_DROPFILES -- only used for ScreenshotMetaInfoLoader

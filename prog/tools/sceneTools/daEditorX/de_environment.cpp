@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "de_appwnd.h"
+#include <oldEditor/de_cm.h>
 #include <oldEditor/de_workspace.h>
 
 #include <propPanel/commonWindow/dialogWindow.h>
@@ -13,7 +14,9 @@
 #include <de3_interface.h>
 #include <de3_windService.h>
 
+#include <EditorCore/ec_modelessDialogWindowController.h>
 #include <EditorCore/ec_workspace.h>
+#include <EditorCore/ec_confirmation_dialog.h>
 #include <libTools/util/strUtil.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderDbg.h>
@@ -23,6 +26,7 @@
 #include <drv/3d/dag_driver.h>
 #include <textureUtil/textureUtil.h>
 #include <assets/asset.h>
+#include <drv/3d/dag_lock.h>
 
 static Tab<String> shadowQualityStr(inimem);
 
@@ -59,13 +63,16 @@ enum
   PID_AMB_COLOR,
   PID_AMB_BRIGHTNESS,
 
+  PID_REVERT_SUB_AMB_BUTTON,
+
   PID_RENDER_GROUP,
   PID_RENDER_TYPE,
   PID_RENDER_OPT,
-  PID_RENDER_OPT_LAST = PID_RENDER_OPT + IDynRenderService::ROPT_COUNT,
+  PID_RENDER_OPT_LAST = PID_RENDER_OPT + eastl::to_underlying(IDynRenderService::ROPT_COUNT),
   PID_GAMEOBJ_VISIBLE,
   PID_SHADOW_QUALITY,
   PID_EXPOSURE,
+  PID_REVERT_RENDER_BUTTON,
 
   PID_LTDBG_GROUP,
   PID_LTDBG_NMAP,
@@ -87,7 +94,8 @@ enum
   PID_WIND_NOISE_SPEED,
   PID_WIND_NOISE_SCALE,
   PID_WIND_NOISE_PERPENDICULAR,
-  PID_WIND_LEVEL
+  PID_WIND_LEVEL,
+  PID_REVERT_WIND_BUTTON,
 };
 
 static bool supportRenderDebug = false;
@@ -104,24 +112,7 @@ static int rdbgType = 0;
 static bool rdbgUseNmap = true, rdbgUseDtex = true, rdbgUseLt = true;
 static bool rdbgUseChrome = true;
 
-static eastl::unique_ptr<EnvSetDlg> environment_settings_dialog;
 static DataBlock de_ui_state;
-
-static E3DCOLOR color4ToE3dcolor(Color4 col, float &brightness)
-{
-  brightness = col.r;
-  if (col.g > brightness)
-    brightness = col.g;
-  if (col.b > brightness)
-    brightness = col.b;
-
-  if (brightness <= 0.0)
-    return E3DCOLOR(0, 0, 0, 0);
-
-  col *= 255.0 / brightness;
-  return E3DCOLOR(col.r, col.g, col.b, col.a);
-}
-
 
 static void detectRenderDebug()
 {
@@ -148,6 +139,7 @@ static void applyRenderDebug()
 
 static void apply_envi_snapshot()
 {
+  d3d::GpuAutoLock gpuLock;
   if (envBlkFn.empty())
   {
     EDITORCORE->queryEditorInterface<IDynRenderService>()->setEnvironmentSnapshot(NULL, false);
@@ -189,7 +181,7 @@ static void set_paint_detail_texture()
     combinedPaintTexId = register_managed_tex("paint_details_tex", combinedPaintTex);
     TextureInfo texInfo;
     combinedPaintTex->getinfo(texInfo);
-    ShaderGlobal::set_real(get_shader_variable_id("paint_details_tex_inv_h", true), safediv(1.f, (float)texInfo.h));
+    ShaderGlobal::set_float(get_shader_variable_id("paint_details_tex_inv_h", true), safediv(1.f, (float)texInfo.h));
   }
   else if (VariableMap::isGlobVariablePresent(paintDetailsVarId))
     DAEDITOR3.conError("failed to create combined painting texture (globTid=0x%x(%s) localTid=0x%x paintDetailsTexAsset='%s' var=%d)",
@@ -218,14 +210,31 @@ public:
     PropPanel::ContainerPropertyControl *_settings = _panel->createGroup(PID_SUN_GROUP, "Environment settings");
     {
       _settings->createTrackFloat(PID_SUN_AZIMUT, "sun azimut", RadToDeg(sunProps->azimuth), -180.f, 180.f, 0.1);
+      _settings->setDefaultValueById(PID_SUN_AZIMUT, SunLightProps::DEFAULT_AZIMUTH);
+
       _settings->createTrackFloat(PID_SUN_ZENITH, "sun zenith", RadToDeg(sunProps->zenith), -5.f, 90.f, 0.1);
+      _settings->setDefaultValueById(PID_SUN_ZENITH, SunLightProps::DEFAULT_ZENITH);
+
       _settings->createEditFloat(PID_SUN_ANGSIZE, "sun angSize", sunProps->angSize, 3);
+      _settings->setDefaultValueById(PID_SUN_ANGSIZE, SunLightProps::DEFAULT_ANG_SIZE);
+
       _settings->createEditFloat(PID_SUN_BRIGHTNESS, "sun integral luminocity", sunProps->calcLuminocity(), 3);
+      _settings->setDefaultValueById(PID_SUN_BRIGHTNESS,
+        SunLightProps::calcLuminocity(SunLightProps::DEFAULT_FIRST_SUN_BRIGTHNESS, sunProps->angSize));
+
       _settings->createSimpleColor(PID_SUN_COLOR, "sun color", sunProps->color);
+      _settings->setDefaultValueById(PID_SUN_COLOR, SunLightProps::DEFAULT_COLOR);
+
       ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
       SkyLightProps &sky = ltSrv->getSky();
       _settings->createSimpleColor(PID_AMB_COLOR, "ambient color", sky.color);
+      _settings->setDefaultValueById(PID_AMB_COLOR, SkyLightProps::DEFAULT_COLOR);
+
       _settings->createEditFloat(PID_AMB_BRIGHTNESS, "ambient brightness", sky.brightness, 2);
+      _settings->setDefaultValueById(PID_AMB_BRIGHTNESS, SkyLightProps::DEFAULT_BRIGHTNESS);
+
+      _settings->createButton(PID_REVERT_SUB_AMB_BUTTON, "Revert to default");
+
       _settings->setBoolValue(true);
     }
 
@@ -279,7 +288,10 @@ public:
       _render_grp->createCombo(PID_RENDER_TYPE, "render type", rtypeStr, find_value_idx(rtypes, drSrv->getRenderType()));
 
       if (auto *gameObjSrv = IDaEditor3Engine::get().findService("_goEntMgr"))
+      {
         _render_grp->createCheckBox(PID_GAMEOBJ_VISIBLE, "gameObj previews", gameObjSrv->getServiceVisible());
+        _render_grp->setDefaultValueById(PID_GAMEOBJ_VISIBLE, true);
+      }
 
       for (int i = 0; i < drSrv->ROPT_COUNT; i++)
         if (drSrv->getRenderOptSupported(i))
@@ -290,10 +302,14 @@ public:
         for (int i = 0; i < shadowQualityStr.size(); i++)
           shadowQualityStr[i] = drSrv->getShadowQualityNames()[i];
         _render_grp->createCombo(PID_SHADOW_QUALITY, "shadow quality", shadowQualityStr, drSrv->getShadowQuality());
+        _render_grp->setDefaultValueById(PID_SHADOW_QUALITY, 0);
       }
       if (drSrv->hasExposure())
+      {
         _render_grp->createTrackFloatLogarithmic(PID_EXPOSURE, "exposure (0-32 logarithmic)", drSrv->getExposure(), 0.0f, 32.0f, 0.0f,
           sqrt(32.0f));
+        _render_grp->setDefaultValueById(PID_EXPOSURE, 1.0f);
+      }
 
       rtypeStr.clear();
       rtypeStr.push_back() = "Environment BLK files|envi.blk";
@@ -304,6 +320,8 @@ public:
       _render_grp->createStatic(-1, "paint details texture");
       _render_grp->createButton(PID_PAINT_DETAILS_TEXTURE,
         paintDetailsTexAsset.empty() ? "-- no palette tex --" : paintDetailsTexAsset.str());
+
+      _render_grp->createButton(PID_REVERT_RENDER_BUTTON, "Revert to default");
     }
   }
 
@@ -319,7 +337,12 @@ public:
           set_paint_detail_texture();
         }
         break;
+      case PID_REVERT_SUB_AMB_BUTTON:
+      case PID_REVERT_WIND_BUTTON:
+      case PID_REVERT_RENDER_BUTTON: OnRevertToDfaultsButtonClicked(pcb_id); break;
     }
+
+    updateRevertButtons();
   }
 
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
@@ -355,6 +378,8 @@ public:
 
       case PID_SUN_ANGSIZE:
         sunProps->angSize = panel->getFloat(pcb_id);
+        getPanel()->setDefaultValueById(PID_SUN_BRIGHTNESS,
+          SunLightProps::calcLuminocity(SunLightProps::DEFAULT_FIRST_SUN_BRIGTHNESS, sunProps->angSize));
         updateLight();
         break;
 
@@ -469,6 +494,8 @@ public:
         }
     }
     DAGORED2->repaint();
+
+    updateRevertButtons();
   }
 
   void setAmbientWindPanel(PropPanel::ContainerPropertyControl *_panel)
@@ -497,6 +524,17 @@ public:
     _wind->createTrackFloat(PID_WIND_NOISE_PERPENDICULAR, "Noise perpendicular", 0, 0, 2, 0.1);
     _wind->createFileButton(PID_WIND_LEVEL, "Level ecs blk with wind settings");
 
+    static const IWindService::PreviewSettings defaults{};
+    _wind->setDefaultValueById(PID_WIND_DIR, defaults.windAzimuth);
+    _wind->setDefaultValueById(PID_WIND_STRENGTH, defaults.windStrength);
+    _wind->setDefaultValueById(PID_WIND_NOISE_STRENGTH, defaults.ambient.windNoiseStrength);
+    _wind->setDefaultValueById(PID_WIND_NOISE_SPEED, defaults.ambient.windNoiseSpeed);
+    _wind->setDefaultValueById(PID_WIND_NOISE_SCALE, defaults.ambient.windNoiseScale);
+    _wind->setDefaultValueById(PID_WIND_NOISE_PERPENDICULAR, defaults.ambient.windNoisePerpendicular);
+    _wind->setDefaultValueById(PID_WIND_LEVEL, defaults.levelPath);
+
+    _wind->createButton(PID_REVERT_WIND_BUTTON, "Revert to default");
+
     setAmbientWindPanel(_panel);
   }
 
@@ -515,60 +553,94 @@ public:
   }
 
 protected:
+  void updateRevertButtons()
+  {
+    updateRevertButton(PID_SUN_GROUP, PID_REVERT_SUB_AMB_BUTTON);
+    updateRevertButton(PID_WIND_GROUP, PID_REVERT_WIND_BUTTON);
+    updateRevertButton(PID_RENDER_GROUP, PID_REVERT_RENDER_BUTTON);
+  }
+
+  void updateRevertButton(int pcb_group, int pcb_id)
+  {
+    if (PropPanel::PropertyControlBase *control = getPanel()->getById(pcb_group))
+    {
+      const bool enabled = !control->isDefaultValueSet();
+      if (PropPanel::PropertyControlBase *control = getPanel()->getById(pcb_id))
+      {
+        getPanel()->setEnabledById(pcb_id, enabled);
+        getPanel()->setTooltipId(pcb_id, enabled ? "" : "All set to default");
+      }
+    }
+  }
+
+  void OnRevertToDfaultsButtonClicked(int button)
+  {
+    if (
+      ConfirmationDialog("Revert to defaults", "Are you sure you want to revert to defaults?").showDialog() == PropPanel::DIALOG_ID_OK)
+    {
+      switch (button)
+      {
+        case PID_REVERT_SUB_AMB_BUTTON: getPanel()->getById(PID_SUN_GROUP)->applyDefaultValue(); break;
+        case PID_REVERT_WIND_BUTTON: getPanel()->getById(PID_WIND_GROUP)->applyDefaultValue(); break;
+        case PID_REVERT_RENDER_BUTTON: getPanel()->getById(PID_RENDER_GROUP)->applyDefaultValue(); break;
+      }
+    }
+  }
+
   SunLightProps *sunProps;
 };
 
-void show_environment_settings(void *phandle)
+class EnvironmentSettingsDialogController : public ModelessDialogWindowController<EnvSetDlg>
 {
-  ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
-  if (ltSrv->getSunCount() == 0)
+public:
+  const char *getWindowId() const override { return WindowIds::MAIN_SETTINGS_ENVIRONMENT; }
+
+  void releaseWindow() override
   {
-    logerr("Sun count is zero. The environment dialog will not be displayed.");
-    return;
+    saveSettingsFromDialog();
+    ModelessDialogWindowController::releaseWindow();
   }
 
-  if (!environment_settings_dialog)
+  void saveSettingsFromDialog()
   {
-    SunLightProps *defSun = ltSrv->getSun(0);
-    environment_settings_dialog.reset(new EnvSetDlg(phandle, defSun));
-    environment_settings_dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Close");
-    environment_settings_dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
-    environment_settings_dialog->getPanel()->loadState(de_ui_state, /*by_name = */ true);
+    if (dialog)
+    {
+      de_ui_state.clearData();
+      dialog->getPanel()->saveState(de_ui_state, /*by_name = */ true);
+    }
+  }
 
-    if (!environment_settings_dialog->hasEverBeenShown())
-      environment_settings_dialog->setWindowSize(IPoint2(hdpi::_pxS(500), (int)(ImGui::GetIO().DisplaySize.y * 0.8f)));
+private:
+  void createDialog() override
+  {
+    ISceneLightService *ltSrv = EDITORCORE->queryEditorInterface<ISceneLightService>();
+    if (ltSrv->getSunCount() == 0)
+    {
+      logerr("Sun count is zero. The environment dialog will not be displayed.");
+      return;
+    }
+
+    SunLightProps *defSun = ltSrv->getSun(0);
+    dialog.reset(new EnvSetDlg(nullptr, defSun));
+    dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Close");
+    dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
+    dialog->getPanel()->loadState(de_ui_state, /*by_name = */ true);
+
+    if (!dialog->hasEverBeenShown())
+      dialog->setWindowSize(IPoint2(hdpi::_pxS(500), (int)(ImGui::GetIO().DisplaySize.y * 0.8f)));
 
     // ImGui scrolls to the focused item, which in this case is at the bottom and requires scrolling. Prevent that.
-    environment_settings_dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
+    dialog->setInitialFocus(PropPanel::DIALOG_ID_NONE);
   }
+};
 
-  if (environment_settings_dialog->isVisible())
-    environment_settings_dialog->hide();
-  else
-    environment_settings_dialog->show();
-}
+static EnvironmentSettingsDialogController environment_settings_dialog_controller;
 
-
-static void get_ui_state_from_dialog()
-{
-  if (environment_settings_dialog)
-  {
-    de_ui_state.clearData();
-    environment_settings_dialog->getPanel()->saveState(de_ui_state, /*by_name = */ true);
-  }
-}
-
-
-void close_environment_settings_dialog()
-{
-  get_ui_state_from_dialog();
-  environment_settings_dialog.reset();
-}
-
+IModelessWindowController *get_environment_settings_dialog_controller() { return &environment_settings_dialog_controller; }
 
 void load_settings(DataBlock &blk)
 {
-  DataBlock appblk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
   IDynRenderService *drSrv = EDITORCORE->queryEditorInterface<IDynRenderService>();
   const DataBlock &reBlk = *blk.getBlockByNameEx("render");
   drSrv->setRenderType(reBlk.getInt("renderType", drSrv->RTYPE_CLASSIC));
@@ -587,7 +659,6 @@ void load_settings(DataBlock &blk)
   envBlkFn = blk.getStr("environment_settings_fn", NULL);
   paintDetailsTexAsset = blk.getStr("paint_details_tex", NULL);
   paintDetailsTexAsset = DagorAsset::fpath2asset(paintDetailsTexAsset);
-  const DataBlock &ltData = *appblk.getBlockByNameEx("AssetLight");
 
   detectRenderDebug();
   applyRenderDebug();
@@ -633,7 +704,7 @@ void load_ui_state(const DataBlock &per_app_settings)
 
 void save_ui_state(DataBlock &per_app_settings)
 {
-  get_ui_state_from_dialog();
+  environment_settings_dialog_controller.saveSettingsFromDialog();
   per_app_settings.addNewBlock(&de_ui_state, "environmentSettingsUiState");
 }
 
@@ -646,5 +717,7 @@ bool on_asset_changed(const DagorAsset &asset)
   set_paint_detail_texture();
   return true;
 }
+
+void clear() { ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(combinedPaintTexId, combinedPaintTex); }
 
 }; // namespace environment

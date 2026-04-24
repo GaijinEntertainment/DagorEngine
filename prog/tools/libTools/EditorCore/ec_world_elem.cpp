@@ -59,12 +59,17 @@ void update_visibility_finder(VisibilityFinder &vf) // legacy
 class EditorStartupScene : public DagorGameScene
 {
 public:
+  explicit EditorStartupScene(E3DCOLOR bg_color) : bgColor(bg_color) {}
+
   void actScene() override { PropPanel::process_message_queue(); }
 
   void drawScene() override
   {
     if (!ImGui::GetCurrentContext())
+    {
+      drawSceneBackground();
       return;
+    }
 
     IWndManager *wndManager = EDITORCORE->getWndManager();
     G_ASSERT_RETURN(wndManager, );
@@ -77,7 +82,10 @@ public:
 
     // They can be zero when toggling the application's window between minimized and maximized state.
     if (clientWidth == 0 || clientHeight == 0)
+    {
+      drawSceneBackground();
       return;
+    }
 
     imgui_update(clientWidth, clientHeight);
     PropPanel::after_new_frame();
@@ -96,27 +104,30 @@ public:
     }
 
     PropPanel::render_dialogs();
-
     PropPanel::before_end_frame();
     imgui_endframe();
-
-    {
-      d3d::GpuAutoLock gpuLock;
-
-      d3d::set_render_target();
-
-      const ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_ChildBg);
-      d3d::clearview(CLEAR_TARGET, e3dcolor(Color4(color.x, color.y, color.z, color.w)), 0, 0);
-
-      imgui_render();
-
-#if _TARGET_PC_WIN
-      d3d::pcwin::set_present_wnd(wndManager->getMainWindow());
-#endif
-    }
+    drawSceneBackground();
+    imgui_render();
   }
 
   void sceneDeselected(DagorGameScene * /*new_scene*/) override { delete this; }
+
+private:
+  void drawSceneBackground()
+  {
+    E3DCOLOR clearColor = bgColor;
+    if (ImGui::GetCurrentContext())
+    {
+      const ImVec4 color = ImGui::GetStyleColorVec4(ImGuiCol_ChildBg);
+      clearColor = e3dcolor(Color4(color.x, color.y, color.z, color.w));
+    }
+
+    d3d::GpuAutoLock gpuLock;
+    d3d::set_render_target();
+    d3d::clearview(CLEAR_TARGET, clearColor, 0, 0);
+  }
+
+  const E3DCOLOR bgColor;
 };
 
 void startup_editor_core_force_startup_scene_draw()
@@ -128,9 +139,8 @@ void startup_editor_core_force_startup_scene_draw()
   d3d::update_screen();
 }
 
-void startup_editor_core_select_startup_scene()
+void startup_editor_core_select_startup_scene(E3DCOLOR bg_color)
 {
-  dagor_select_game_scene(new EditorStartupScene());
+  dagor_select_game_scene(new EditorStartupScene(bg_color));
   dagor_reset_spent_work_time();
-  startup_editor_core_force_startup_scene_draw();
 }

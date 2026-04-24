@@ -2,8 +2,8 @@ WARNING: w275 (missed-break) A 'break' statement is probably missing in a 'switc
 testData/static_analyzer/w275.nut:20:6
 
     case 4:
-      ::print("ccc")
-      ^-------------
+      print("ccc")
+      ^-----------
     default:        // <<<<<<< here
 
 

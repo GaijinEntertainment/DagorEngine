@@ -44,7 +44,7 @@ void RainDroplets::init()
   ShaderGlobal::set_texture(::get_shader_variable_id("puddle", true), puddleMapTexId);
   inited = true;
 }
-void RainDroplets::setRainRate(float rain_rate) { ShaderGlobal::set_real_fast(rain_scale_var_id, rain_rate); }
+void RainDroplets::setRainRate(float rain_rate) { ShaderGlobal::set_float(rain_scale_var_id, rain_rate); }
 void RainDroplets::close()
 {
   if (!inited)

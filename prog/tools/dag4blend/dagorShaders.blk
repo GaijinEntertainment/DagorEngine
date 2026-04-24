@@ -4,15 +4,18 @@ shader_category{
     name:t="dynamic_emissive"
     parameter{
       name:t="parameters_channel"
-      type:t="p4"
+      type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="emissive_color"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
     parameter{
       name:t="emission_albedo_mult"
-      type:t="p4"
+      type:t="r"
+      default:r=1.0
     }
   }
   shader{
@@ -20,18 +23,22 @@ shader_category{
     parameter{
       name:t="use_additive_blend"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="ablend"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="phase_shift"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="illum_scroll_scale"
       type:t="r"
+      default:r=2.0
     }
     parameter{
       name:t="atest"
@@ -44,6 +51,7 @@ shader_category{
     parameter{
       name:t="illum_scroll_speed"
       type:t="r"
+      default:r=1.0
     }
   }
   shader{
@@ -51,14 +59,17 @@ shader_category{
     parameter{
       name:t="illum_frame_count"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="illum_scroll_speed"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="use_additive_blend"
       type:t="r"
+      default:r=0.0
     }
   }
 }
@@ -69,38 +80,42 @@ shader_category{
     parameter{
       name:t="micro_detail_layer1_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer2"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer2_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="micro_detail_layer1_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer1"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer2_intensity"
       type:t="r"
-    }
-    parameter{
-      name:t="gpu_object_id"
-      type:t="i"
+      default:r=1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer2_uv_scale"
@@ -113,118 +128,157 @@ shader_category{
     parameter{
       name:t="micro_detail_layer1_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer2_v_scale"
       type:t="r"
-    }
-    parameter{
-      name:t="underwater_decal"
-      type:t="i"
+      default:r=1.0
     }
     parameter{
       name:t="paint_details"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="detail1_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_v"
       type:t="r"
-    }
-    parameter{
-      name:t="detail1_scroll_u"
-      type:t="r"
-    }
-    parameter{
-      name:t="detail1_scroll_v"
-      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_scroll_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_scroll_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_first_tile"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="atlas_last_tile"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="mask_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="mask_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="mask_gamma_start"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="mask_gamma_end"
       type:t="r"
+      default:r=2.0
     }
     parameter{
       name:t="detail2_colored"
       type:t="r"
-    }
-    parameter{
-      name:t="top_projection"
-      type:t="i"
-    }
-    parameter{
-      name:t="top_projection_from"
-      type:t="r"
-    }
-    parameter{
-      name:t="top_projection_to"
-      type:t="r"
-    }
-    parameter{
-      name:t="top_projection_detail2_modulate"
-      type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="use_painting"
       type:t="r"
     }
-    parameter{
-      name:t="painting_line"
-      type:t="i"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="underwater_decal"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="detail1_scroll_u"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="detail1_scroll_v"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="top_projection"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="top_projection_from"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="top_projection_to"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="top_projection_detail2_modulate"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="painting_line"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="paint1stdetail"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="detail2_combined_normal"
+        type:t="r"
+        default:r=0.0
+      }
     }
-    parameter{
-      name:t="paint1stdetail"
-      type:t="r"
-    }
-    parameter{
-      name:t="detail2_combined_normal"
-      type:t="r"
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="gpu_object_id"
+        type:t="i"
+        default:i=-1
+      }
     }
   }
   shader{
@@ -232,54 +286,67 @@ shader_category{
     parameter{
       name:t="micro_detail_layer1_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer2"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer2_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="micro_detail_layer1_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer1"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer2_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="gpu_object_id"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer2_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer1_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer1_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer2_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="underwater_decal"
@@ -288,22 +355,27 @@ shader_category{
     parameter{
       name:t="paint_details"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="detail1_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_scroll_u"
@@ -316,46 +388,57 @@ shader_category{
     parameter{
       name:t="detail2_scroll_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_scroll_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_first_tile"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="atlas_last_tile"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="mask_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="mask_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="mask_gamma_start"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="mask_gamma_end"
       type:t="r"
+      default:r=2.0
     }
     parameter{
       name:t="detail2_colored"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="top_projection"
@@ -375,11 +458,13 @@ shader_category{
     }
     parameter{
       name:t="use_painting"
-      type:t="r"
+      type:t="i"
+      default:i=1
     }
     parameter{
       name:t="painting_line"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="paint1stdetail"
@@ -395,197 +480,185 @@ shader_category{
     parameter{
       name:t="micro_detail_layer2"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="micro_detail_layer1"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer2_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer1_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="underwater_decal"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="blended_atest"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="detail1_atest_weight"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_atest_weight"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_scroll_u"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail1_scroll_v"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail2_scroll_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_scroll_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_first_tile"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="atlas_last_tile"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="mask_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="mask_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="mask_gamma_start"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="mask_gamma_end"
       type:t="r"
+      default:r=2.0
     }
     parameter{
       name:t="detail2_colored"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="top_projection"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="top_projection_from"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="top_projection_to"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="top_projection_detail2_modulate"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="use_painting"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="painting_line"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="paint1stdetail"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_combined_normal"
       type:t="r"
+      default:r=0.0
     }
   }
   shader{
     name:t="dynamic_masked_chrome_bump"
     parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
-    }
-    parameter{
-      name:t="maskDetail"
-      type:t="b"
-    }
-    parameter{
-      name:t="normalDetail"
-      type:t="b"
-    }
-    parameter{
       name:t="num_bones"
       type:t="i"
-    }
-    parameter{
-      name:t="hide"
-      type:t="i"
-    }
-    parameter{
-      name:t="aoTex"
-      type:t="b"
-    }
-    parameter{
-      name:t="has_burning"
-      type:t="i"
-    }
-    parameter{
-      name:t="has_wounds"
-      type:t="i"
-    }
-    parameter{
-      name:t="microDetailMask"
-      type:t="b"
-    }
-    parameter{
-      name:t="paintColorMask"
-      type:t="b"
-    }
-    parameter{
-      name:t="metallMap"
-      type:t="b"
-    }
-    parameter{
-      name:t="paint_color"
-      type:t="p4"
-    }
-    parameter{
-      name:t="not_use_fxaa"
-      type:t="i"
+      default:i=0
     }
     parameter{
       name:t="atest"
@@ -599,45 +672,121 @@ shader_category{
       name:t="texcoord_mulp"
       type:t="r"
     }
-    parameter{
-      name:t="lit_with_gun_fire"
-      type:t="i"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="maskDetail"
+        type:t="b"
+        default:b=no
+      }
+      parameter{
+        name:t="normalDetail"
+        type:t="b"
+        default:b=no
+      }
+      parameter{
+        name:t="hide"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="metallMap"
+        type:t="b"
+        default:b=no
+      }
+      parameter{
+        name:t="not_use_fxaa"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="lit_with_gun_fire"
+        type:t="i"
+        default:i=1
+      }
+      parameter{
+        name:t="use_painting"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="painting_line"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="palette_index"
+        type:t="i"
+        default:i=1
+      }
     }
-    parameter{
-      name:t="use_painting"
-      type:t="r"
-    }
-    parameter{
-      name:t="painting_line"
-      type:t="i"
-    }
-    parameter{
-      name:t="palette_index"
-      type:t="i"
-    }
-    parameter{
-      name:t="micro_detail_layer"
-      type:t="i"
-    }
-    parameter{
-      name:t="micro_detail_layer_v_scale"
-      type:t="r"
-    }
-    parameter{
-      name:t="micro_detail_layer_uv_scale"
-      type:t="r"
-    }
-    parameter{
-      name:t="micro_detail_layer_swap_uv"
-      type:t="i"
-    }
-    parameter{
-      name:t="micro_detail_layer_intensity"
-      type:t="r"
-    }
-    parameter{
-      name:t="micro_detail_layer_smooth_intensity"
-      type:t="r"
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="aoTex"
+        type:t="b"
+        default:b=no
+      }
+      parameter{
+        name:t="has_burning"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="has_wounds"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="microDetailMask"
+        type:t="b"
+        default:b=no
+      }
+      parameter{
+        name:t="paintColorMask"
+        type:t="b"
+        default:b=no
+      }
+      parameter{
+        name:t="paint_color"
+        type:t="p4"
+        default:p4=1.0, 1.0, 1.0, 0.0
+      }
+      parameter{
+        name:t="micro_detail_layer"
+        type:t="i"
+        default:i=-1
+      }
+      parameter{
+        name:t="micro_detail_layer_v_scale"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="micro_detail_layer_uv_scale"
+        type:t="r"
+        default:r=32.371
+      }
+      parameter{
+        name:t="micro_detail_layer_swap_uv"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="micro_detail_layer_intensity"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="micro_detail_layer_smooth_intensity"
+        type:t="r"
+        default:r=1.0
+      }
     }
   }
   shader{
@@ -657,6 +806,7 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="hide"
@@ -665,6 +815,7 @@ shader_category{
     parameter{
       name:t="aoTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="has_burning"
@@ -677,10 +828,12 @@ shader_category{
     parameter{
       name:t="microDetailMask"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="paintColorMask"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="metallMap"
@@ -689,6 +842,7 @@ shader_category{
     parameter{
       name:t="paint_color"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.0
     }
     parameter{
       name:t="not_use_fxaa"
@@ -717,6 +871,7 @@ shader_category{
     parameter{
       name:t="painting_line"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="palette_index"
@@ -725,61 +880,70 @@ shader_category{
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_smooth_intensity"
       type:t="r"
+      default:r=1.0
     }
   }
   shader{
     name:t="dynamic_mask_layered"
     parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
-    }
-    parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="detail_tile"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="invert_height1"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="invert_height2"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -788,18 +952,30 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="paint_details"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="paint_points"
       type:t="p4"
+      default:p4=0.0, 0.00001, 0.0, 0.00001
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -807,94 +983,120 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_const_color"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="tex2"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="emission_albedo_mult"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="emission_color"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, -1.0
     }
     parameter{
       name:t="detail0_const_color"
       type:t="p4"
-    }
-    parameter{
-      name:t="color_by_height"
-      type:t="i"
+      default:p4=0.5, 0.5, 0.5, 0.0
     }
     parameter{
       name:t="tex1"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="detail2_const_color"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.0
     }
     parameter{
       name:t="blend_normals"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, -1.0
     }
     parameter{
       name:t="invert_heights"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="mask_gamma"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.25
     }
     parameter{
       name:t="paint_details"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
       type:t="r"
+      default:r=32.371
     }
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="details_tile"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.0
     }
     parameter{
       name:t="mask_by_normal"
       type:t="p4"
+      default:p4=0.0, 1.0, 0.0, 0.0
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="paint_points_black"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="paint_points_white"
       type:t="p4"
+      default:p4=0.00001, 0.00001, 0.00001, 0.00001
+    }
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="color_by_height"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -902,30 +1104,37 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_const_color"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="tex2"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="emission_albedo_mult"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="emission_color"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, -1.0
     }
     parameter{
       name:t="detail0_const_color"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.0
     }
     parameter{
       name:t="color_by_height"
@@ -934,159 +1143,197 @@ shader_category{
     parameter{
       name:t="tex1"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="detail2_const_color"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.0
     }
     parameter{
       name:t="blend_normals"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, -1.0
     }
     parameter{
       name:t="invert_heights"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="mask_gamma"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.25
     }
     parameter{
       name:t="paint_details"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="details_tile"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.0
     }
     parameter{
       name:t="mask_by_normal"
       type:t="p4"
+      default:p4=0.0, 1.0, 0.0, 0.0
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="paint_points_black"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="paint_points_white"
       type:t="p4"
+      default:p4=0.00001, 0.00001, 0.00001, 0.00001
     }
   }
   shader{
     name:t="dynamic_parallax_ice"
     parameter{
       name:t="inner_layer_depth"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="inner_layer_mul"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="inner_layer_power"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="vcol_masked_mul"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="vcol_masked_power"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="ior"
-      type:t="b"
+      type:t="r"
+      default:r=1.309
     }
     parameter{
       name:t="inner_layer_tile_uv"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="inner_layer_u_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="inner_layer_v_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail1_tile_uv"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_u_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail1_v_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="modify_detail1_mask_uv"
-      type:t="b"
+      type:t="i"
+      default:i=1
     }
     parameter{
       name:t="detail2_tile_uv"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_u_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail2_v_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="modify_detail2_mask_uv"
-      type:t="b"
+      type:t="i"
+      default:i=1
     }
     parameter{
       name:t="mask_gamma"
-      type:t="b"
+      type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.25
     }
     parameter{
       name:t="heightmaps_invert"
-      type:t="b"
+      type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameters_group{
       name:t="GLOBAL MICRODETAILS"
       parameter{
         name:t="micro_detail_layer1"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer1_uv_scale"
         type:t="r"
+        default:r=5.17
       }
       parameter{
         name:t="micro_detail_layer2"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer2_uv_scale"
         type:t="r"
+        default:r=5.13
       }
     }
   }
@@ -1095,58 +1342,72 @@ shader_category{
     parameter{
       name:t="diffuse_tex_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="normals_tex_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="diffuse_power"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="normals_power"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="springback"
       type:t="r"
+      default:r=0.05
     }
     parameter{
       name:t="max_height"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="expand_atten"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="expand_atten_pow"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="noise_scale"
       type:t="r"
+      default:r=1.5
     }
     parameter{
       name:t="noise_power"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="crumple_rnd"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="crumple_force"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="crumple_dist"
       type:t="r"
+      default:r=0.1
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="micro_detail_layer_intensity"
@@ -1155,6 +1416,7 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="normal"
@@ -1171,10 +1433,12 @@ shader_category{
     parameter{
       name:t="use_painting"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="painting_line"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer"
@@ -1196,20 +1460,19 @@ shader_category{
   shader{
     name:t="dynamic_simple"
     parameter{
-      name:t="palette_index"
-      type:t="i"
-    }
-    parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="atest"
@@ -1220,20 +1483,14 @@ shader_category{
       description:t="Integer, but works as boolean. 0 or less -> opaque, 1 or more -> alpha mask is clipped at medium gray"
     }
     parameter{
-      name:t="use_painting"
-      type:t="r"
-    }
-    parameter{
-      name:t="painting_line"
-      type:t="i"
-    }
-    parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -1242,6 +1499,25 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
+    }
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="palette_index"
+        type:t="i"
+        default:i=1
+      }
+      parameter{
+        name:t="use_painting"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="painting_line"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -1253,14 +1529,17 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="atest"
@@ -1277,22 +1556,27 @@ shader_category{
     parameter{
       name:t="painting_line"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
   }
   shader{
@@ -1300,50 +1584,62 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="paint_mult"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="paint_details"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="paint_const_color"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.0
     }
     parameter{
       name:t="paint_white_point"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="paint_black_point"
       type:t="r"
+      default:r=0.1
     }
     parameter{
       name:t="paint_palette_row"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -1352,10 +1648,12 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="use_alpha_as_mask"
       type:t="i"
+      default:i=0
     }
   }
   shader{
@@ -1363,22 +1661,27 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="premultipled_alpha"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="transparent_mode"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="transparency_mul"
       type:t="r"
+      default:r=1.0
     }
   }
   shader{
@@ -1386,18 +1689,22 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -1406,77 +1713,90 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="details_alphatest"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="details_tile"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.0
     }
     parameter{
       name:t="invert_heights"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="paint_details"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="overlay_color_from"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.5
     }
     parameter{
       name:t="overlay_color_to"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.5
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
   }
   shader{
     name:t="dynamic_painted_by_mask"
     parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
-    }
-    parameter{
       name:t="aoTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="secondaryMaskTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="primary_color"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
     parameter{
       name:t="secondary_color"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
     parameter{
       name:t="microDetailMask"
-      type:t="p4"
+      type:t="b"
+      default:b=no
     }
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -1485,6 +1805,15 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -1500,42 +1829,52 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="use_painting"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="painting_line"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="overlay_mode"
       type:t="i"
+      default:i=0
     }
   }
 }
@@ -1551,18 +1890,22 @@ shader_category{
       parameter{
         name:t="micro_detail_layer1"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer2"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer1_uv_scale"
         type:t="r"
+        default:r=5.17
       }
       parameter{
         name:t="micro_detail_layer2_uv_scale"
         type:t="r"
+        default:r=5.13
       }
     }
     parameters_group{
@@ -1570,18 +1913,22 @@ shader_category{
       parameter{
         name:t="detail1_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail1_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_tile_v"
         type:t="r"
+        default:r=1.0
       }
     }
   }
@@ -1590,16 +1937,19 @@ shader_category{
     parameter{
       name:t="envi_reflection"
       type:t="b"
+      default:b=no
     }
     parameters_group{
       name:t="ROOM"
       parameter{
         name:t="room_depth"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="room_size"
         type:t="p4"
+        default:p4=1.0, 1.0, 0.0, 0.0
       }
     }
     parameters_group{
@@ -1607,10 +1957,12 @@ shader_category{
       parameter{
         name:t="smoothness_metalness_reflection"
         type:t="p4"
+        default:p4=0.9, 0.9, 0.4, 0.0
       }
       parameter{
         name:t="convexity_slope"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
     }
     parameters_group{
@@ -1618,10 +1970,12 @@ shader_category{
       parameter{
         name:t="tile"
         type:t="p4"
+        default:p4=1.0, 1.0, 0.0, 0.0
       }
       parameter{
         name:t="contortion_tiling"
         type:t="p4"
+        default:p4=1.0, 1.0, 1.0, 1.0
       }
     }
     parameters_group{
@@ -1629,10 +1983,12 @@ shader_category{
       parameter{
         name:t="fadeout"
         type:t="p4"
+        default:p4=5.0, 50.0, 5.0, 50.0
       }
       parameter{
         name:t="fade_color"
         type:t="p4"
+        default:p4=0.3, 0.3, 0.3, 0.0
       }
     }
     parameters_group{
@@ -1640,10 +1996,12 @@ shader_category{
       parameter{
         name:t="tile_space"
         type:t="p4"
+        default:p4=1.0, 1.0, 0.0, 0.0
       }
       parameter{
         name:t="tile_space_color"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
     }
     parameters_group{
@@ -1651,56 +2009,53 @@ shader_category{
       parameter{
         name:t="room_selfillum"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="illum_fadeout"
         type:t="p4"
+        default:p4=-1.0, 0.0, 0.0, 0.0
       }
       parameter{
         name:t="illum_only_at_night"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="illum_random"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="shadow_caster"
         type:t="i"
+        default:i=1
       }
     }
   }
   shader{
     name:t="rendinst_layered"
-    parameter{
-      name:t="draw_grass"
-      type:t="i"
-    }
-    parameter{
-      name:t="gpu_object_id"
-      type:t="i"
-    }
-    parameter{
-      name:t="underwater_decal"
-      type:t="i"
-    }
     parameters_group{
       name:t="COMBINING MASK"
       parameter{
         name:t="mask_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="mask_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="mask_gamma_start"
         type:t="r"
+        default:r=0.5
       }
       parameter{
         name:t="mask_gamma_end"
         type:t="r"
+        default:r=2.0
       }
     }
     parameters_group{
@@ -1708,38 +2063,47 @@ shader_category{
       parameter{
         name:t="detail2_combined_normal"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail1_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail1_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail1_scroll_u"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail1_scroll_v"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail2_scroll_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_scroll_v"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -1747,10 +2111,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer1"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer2"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer1_uv_scale"
@@ -1763,10 +2129,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer1_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer2_v_scale"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -1774,18 +2142,22 @@ shader_category{
       parameter{
         name:t="micro_detail_layer1_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer2_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer1_swap_uv"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="micro_detail_layer2_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -1793,18 +2165,22 @@ shader_category{
       parameter{
         name:t="atlas_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="atlas_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="atlas_first_tile"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="atlas_last_tile"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -1812,14 +2188,17 @@ shader_category{
       parameter{
         name:t="enable_hmap_blend"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="hmap_blend_height"
         type:t="r"
+        default:r=0.1
       }
       parameter{
         name:t="ri_hmap_blend_sharpness_mul"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="ri_hmap_min_angle_mul"
@@ -1832,10 +2211,12 @@ shader_category{
       parameter{
         name:t="ri_hmap_min_height_mul"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="ri_hmap_perlin_tex_scale_mul"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -1843,18 +2224,22 @@ shader_category{
       parameter{
         name:t="top_projection"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="top_projection_from"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="top_projection_to"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="top_projection_detail2_modulate"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -1866,14 +2251,17 @@ shader_category{
       parameter{
         name:t="painting_line"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="paint1stdetail"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_colored"
         type:t="r"
+        default:r=0.0
       }
     }
     parameters_group{
@@ -1881,6 +2269,7 @@ shader_category{
       parameter{
         name:t="paint_details"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
     }
     parameters_group{
@@ -1888,6 +2277,28 @@ shader_category{
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
+      }
+    }
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="draw_grass"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="underwater_decal"
+        type:t="i"
+        default:i=0
+      }
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="gpu_object_id"
+        type:t="i"
+        default:i=-1
       }
     }
   }
@@ -1896,24 +2307,29 @@ shader_category{
     parameter{
       name:t="draw_grass"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="underwater_decal"
       type:t="i"
+      default:i=0
     }
     parameters_group{
       name:t="ALPHA-TEST for details"
       parameter{
         name:t="blended_atest"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="detail1_atest_weight"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_atest_weight"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -1921,18 +2337,22 @@ shader_category{
       parameter{
         name:t="mask_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="mask_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="mask_gamma_start"
         type:t="r"
+        default:r=0.5
       }
       parameter{
         name:t="mask_gamma_end"
         type:t="r"
+        default:r=2.0
       }
     }
     parameters_group{
@@ -1940,38 +2360,47 @@ shader_category{
       parameter{
         name:t="detail2_combined_normal"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail1_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail1_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail1_scroll_u"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail1_scroll_v"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail2_scroll_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_scroll_v"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -1979,26 +2408,32 @@ shader_category{
       parameter{
         name:t="micro_detail_layer1"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer2"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer1_uv_scale"
         type:t="r"
+        default:r=5.17
       }
       parameter{
         name:t="micro_detail_layer2_uv_scale"
         type:t="r"
+        default:r=5.17
       }
       parameter{
         name:t="micro_detail_layer1_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer2_v_scale"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -2006,18 +2441,22 @@ shader_category{
       parameter{
         name:t="micro_detail_layer1_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer2_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer1_swap_uv"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="micro_detail_layer2_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2025,18 +2464,22 @@ shader_category{
       parameter{
         name:t="atlas_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="atlas_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="atlas_first_tile"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="atlas_last_tile"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2044,18 +2487,22 @@ shader_category{
       parameter{
         name:t="top_projection"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="top_projection_from"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="top_projection_to"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="top_projection_detail2_modulate"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -2063,22 +2510,27 @@ shader_category{
       parameter{
         name:t="use_painting"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="painting_line"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="paint1stdetail"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_colored"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
     }
   }
@@ -2087,28 +2539,34 @@ shader_category{
     parameter{
       name:t="draw_grass"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="underwater_decal"
       type:t="i"
+      default:i=0
     }
     parameters_group{
       name:t="COMBINING MASK"
       parameter{
         name:t="mask_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="mask_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="mask_gamma_start"
         type:t="r"
+        default:r=0.5
       }
       parameter{
         name:t="mask_gamma_end"
         type:t="r"
+        default:r=2.0
       }
     }
     parameters_group{
@@ -2116,38 +2574,47 @@ shader_category{
       parameter{
         name:t="detail2_combined_normal"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail1_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail1_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail1_scroll_u"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail1_scroll_v"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail2_scroll_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_scroll_v"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -2155,26 +2622,32 @@ shader_category{
       parameter{
         name:t="micro_detail_layer1"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer2"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer1_uv_scale"
         type:t="r"
+        default:r=5.17
       }
       parameter{
         name:t="micro_detail_layer2_uv_scale"
         type:t="r"
+        default:r=5.17
       }
       parameter{
         name:t="micro_detail_layer1_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer2_v_scale"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -2182,18 +2655,22 @@ shader_category{
       parameter{
         name:t="micro_detail_layer1_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer2_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer1_swap_uv"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="micro_detail_layer2_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2201,18 +2678,22 @@ shader_category{
       parameter{
         name:t="atlas_tile_u"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="atlas_tile_v"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="atlas_first_tile"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="atlas_last_tile"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2220,30 +2701,37 @@ shader_category{
       parameter{
         name:t="salt_sediments_opacity"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="land_blend_dist"
         type:t="r"
+        default:r=0.2
       }
       parameter{
         name:t="land_perlin_height"
         type:t="r"
+        default:r=0.1
       }
       parameter{
         name:t="land_perlin_blend"
         type:t="r"
+        default:r=5.0
       }
       parameter{
         name:t="land_perlin_scale"
         type:t="r"
+        default:r=0.25
       }
       parameter{
         name:t="land_blend_normal_start"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="land_blend_normal_end"
         type:t="r"
+        default:r=0.5
       }
     }
     parameters_group{
@@ -2251,18 +2739,22 @@ shader_category{
       parameter{
         name:t="top_projection"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="top_projection_from"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="top_projection_to"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="top_projection_detail2_modulate"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -2270,22 +2762,27 @@ shader_category{
       parameter{
         name:t="use_painting"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="painting_line"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="paint1stdetail"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="detail2_colored"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
     }
   }
@@ -2296,14 +2793,17 @@ shader_category{
       parameter{
         name:t="detail_tile"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="invert_height1"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="invert_height2"
         type:t="r"
+        default:r=0.0
       }
     }
     parameters_group{
@@ -2311,10 +2811,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_uv_scale"
@@ -2326,10 +2828,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2337,14 +2841,17 @@ shader_category{
       parameter{
         name:t="paint_details"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
       parameter{
         name:t="paint_points"
         type:t="p4"
+        default:p4=0.0, 0.00001, 0.0, 0.00001
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
     }
     parameters_group{
@@ -2352,14 +2859,17 @@ shader_category{
       parameter{
         name:t="enable_hmap_blend"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="hmap_blend_height"
         type:t="r"
+        default:r=0.1
       }
       parameter{
         name:t="ri_hmap_blend_sharpness_mul"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="ri_hmap_min_angle_mul"
@@ -2372,10 +2882,12 @@ shader_category{
       parameter{
         name:t="ri_hmap_min_height_mul"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="ri_hmap_perlin_tex_scale_mul"
         type:t="r"
+        default:r=1.0
       }
     }
   }
@@ -2383,97 +2895,120 @@ shader_category{
     name:t="rendinst_parallax_ice"
     parameter{
       name:t="inner_layer_depth"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="inner_layer_mul"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="inner_layer_power"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="vcol_masked_mul"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="vcol_masked_power"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="ior"
-      type:t="b"
+      type:t="r"
+      default:r=1.309
     }
     parameter{
       name:t="inner_layer_tile_uv"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="inner_layer_u_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="inner_layer_v_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail1_tile_uv"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_u_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail1_v_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="modify_detail1_mask_uv"
-      type:t="b"
+      type:t="i"
+      default:i=1
     }
     parameter{
       name:t="detail2_tile_uv"
-      type:t="b"
+      type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_u_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail2_v_offset"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="modify_detail2_mask_uv"
-      type:t="b"
+      type:t="i"
+      default:i=1
     }
     parameter{
       name:t="mask_gamma"
-      type:t="b"
+      type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.25
     }
     parameter{
       name:t="heightmaps_invert"
-      type:t="b"
+      type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameters_group{
       name:t="GLOBAL MICRODETAILS"
       parameter{
         name:t="micro_detail_layer1"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer1_uv_scale"
         type:t="r"
+        default:r=5.17
       }
       parameter{
         name:t="micro_detail_layer2"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer2_uv_scale"
         type:t="r"
+        default:r=5.13
       }
     }
   }
@@ -2488,50 +3023,41 @@ shader_category{
       description:t="Integer, but works as boolean. 0 or less -> opaque, 1 or more -> alpha mask is clipped at medium gray"
     }
     parameter{
-      name:t="draw_grass"
-      type:t="i"
-    }
-    parameter{
-      name:t="gpu_object_id"
-      type:t="i"
-    }
-    parameter{
       name:t="normal"
       type:t="b"
-    }
-    parameter{
-      name:t="parallax_str"
-      type:t="r"
-    }
-    parameter{
-      name:t="rendinst_additional_data"
-      type:t="i"
+      default:b=no
     }
     parameters_group{
       name:t="DETAILS"
       parameter{
         name:t="detail"
         type:t="b"
+        default:b=no
       }
       parameter{
         name:t="detail_multiplier"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail_scale_offset"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 1.0
       }
       parameter{
         name:t="secondary_detail"
         type:t="b"
+        default:b=no
       }
       parameter{
         name:t="secondary_detail_multiplier"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="secondary_detail_scale_offset"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 1.0
       }
     }
     parameters_group{
@@ -2539,10 +3065,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_uv_scale"
@@ -2554,10 +3082,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2565,14 +3095,43 @@ shader_category{
       parameter{
         name:t="use_painting"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
       parameter{
         name:t="painting_line"
         type:t="i"
+        default:i=0
+      }
+    }
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="draw_grass"
+        type:t="i"
+        default:i=0
+      }
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="gpu_object_id"
+        type:t="i"
+        default:i=-1
+      }
+      parameter{
+        name:t="parallax_str"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="rendinst_additional_data"
+        type:t="i"
+        default:i=0
       }
     }
   }
@@ -2581,40 +3140,49 @@ shader_category{
     parameter{
       name:t="gpu_object_id"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="rendinst_additional_data"
       type:t="i"
+      default:i=0
     }
     parameters_group{
       name:t="DETAILS"
       parameter{
         name:t="detail"
         type:t="b"
+        default:b=no
       }
       parameter{
         name:t="detail_multiplier"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="detail_scale_offset"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 1.0
       }
       parameter{
         name:t="secondary_detail"
         type:t="b"
+        default:b=no
       }
       parameter{
         name:t="secondary_detail_multiplier"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="secondary_detail_scale_offset"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 1.0
       }
     }
     parameters_group{
@@ -2622,14 +3190,17 @@ shader_category{
       parameter{
         name:t="micro_detail_layer"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_uv_scale"
@@ -2638,6 +3209,7 @@ shader_category{
       parameter{
         name:t="micro_detail_layer_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2645,37 +3217,44 @@ shader_category{
       parameter{
         name:t="paint_const_color"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.0
         soft_min:r=0.0
         soft_max:r=1.0
-        custom_ui:t="color"
+//        custom_ui:t="color"
       }
       parameter{
         name:t="paint_details"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
       parameter{
         name:t="paint_mult"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="paint_black_point"
         type:t="r"
+        default:r=0.1
         soft_min:r=0.0
         soft_max:r=1.0
       }
       parameter{
         name:t="paint_white_point"
         type:t="r"
+        default:r=0.5
         soft_min:r=0.0
         soft_max:r=1.0
       }
       parameter{
         name:t="paint_palette_row"
         type:t="i"
+        default:i=1
       }
     }
   }
@@ -2698,22 +3277,27 @@ shader_category{
       parameter{
         name:t="micro_detail_layer"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_uv_scale"
         type:t="r"
+        default:r=5.17
       }
       parameter{
         name:t="micro_detail_layer_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2721,56 +3305,53 @@ shader_category{
       parameter{
         name:t="use_painting"
         type:t="r"
+        default:r=0.0
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
       parameter{
         name:t="painting_line"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="overlay_mode"
         type:t="i"
+        default:i=0
       }
     }
   }
   shader{
     name:t="rendinst_perlin_layered"
     parameter{
-      name:t="gpu_object_id"
-      type:t="i"
-    }
-    parameter{
-      name:t="rendinst_additional_data"
-      type:t="i"
-    }
-    parameter{
       name:t="tex1"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="tex2"
       type:t="b"
-    }
-    parameter{
-      name:t="zBias"
-      type:t="r"
+      default:b=no
     }
     parameters_group{
       name:t="ENLISTED HEIGHTMAP_BLEND"
       parameter{
         name:t="enable_hmap_blend"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="hmap_blend_height"
         type:t="r"
+        default:r=0.1
       }
       parameter{
         name:t="ri_hmap_blend_sharpness_mul"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="ri_hmap_min_angle_mul"
@@ -2783,10 +3364,12 @@ shader_category{
       parameter{
         name:t="ri_hmap_min_height_mul"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="ri_hmap_perlin_tex_scale_mul"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -2794,13 +3377,15 @@ shader_category{
       parameter{
         name:t="emission_albedo_mult"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="emission_color"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, -1.0
         soft_min:r=0.0
         soft_max:r=1.0
-        custom_ui:t="color"
+//        custom_ui:t="color"
       }
     }
     parameters_group{
@@ -2808,14 +3393,17 @@ shader_category{
       parameter{
         name:t="micro_detail_layer"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_uv_scale"
         type:t="r"
+        default:r=32.371
         soft_min:r=0.0
       }
     }
@@ -2824,10 +3412,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2835,16 +3425,19 @@ shader_category{
       parameter{
         name:t="blend_normals"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, -1.0
       }
       parameter{
         name:t="invert_heights"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
         soft_min:r=0.0
         soft_max:r=1.0
       }
       parameter{
         name:t="mask_gamma"
         type:t="p4"
+        default:p4=1.0, 1.0, 1.0, 0.25
         soft_min:r=0.0
       }
     }
@@ -2853,6 +3446,7 @@ shader_category{
       parameter{
         name:t="details_tile"
         type:t="p4"
+        default:p4=1.0, 1.0, 1.0, 0.0
       }
     }
     parameters_group{
@@ -2860,6 +3454,7 @@ shader_category{
       parameter{
         name:t="mask_by_normal"
         type:t="p4"
+        default:p4=0.0, 1.0, 0.0, 0.0
       }
     }
     parameters_group{
@@ -2867,31 +3462,36 @@ shader_category{
       parameter{
         name:t="detail0_const_color"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.0
         soft_min:r=0.0
         soft_max:r=1.0
-        custom_ui:t="color"
+//        custom_ui:t="color"
       }
       parameter{
         name:t="detail1_const_color"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.0
         soft_min:r=0.0
         soft_max:r=1.0
-        custom_ui:t="color"
+//        custom_ui:t="color"
       }
       parameter{
         name:t="detail2_const_color"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.0
         soft_min:r=0.0
         soft_max:r=1.0
-        custom_ui:t="color"
+//        custom_ui:t="color"
       }
       parameter{
         name:t="paint_details"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
     }
     parameters_group{
@@ -2899,6 +3499,7 @@ shader_category{
       parameter{
         name:t="color_by_height"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2906,18 +3507,39 @@ shader_category{
       parameter{
         name:t="paint_points_black"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
         soft_min:r=0.0
         soft_max:r=1.0
       }
       parameter{
         name:t="paint_points_white"
         type:t="p4"
+        default:p4=0.00001, 0.00001, 0.00001, 0.00001
         soft_min:r=0.0
         soft_max:r=1.0
       }
       parameter{
         name:t="perlin_noise_offset"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
+      }
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="gpu_object_id"
+        type:t="i"
+        default:i=-1
+      }
+      parameter{
+        name:t="rendinst_additional_data"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="zBias"
+        type:t="r"
+        default:r=0.0
       }
     }
   }
@@ -2930,6 +3552,7 @@ shader_category{
     parameter{
       name:t="gpu_object_id"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="normal"
@@ -2938,20 +3561,24 @@ shader_category{
     parameter{
       name:t="rendinst_additional_data"
       type:t="i"
+      default:i=0
     }
     parameters_group{
       name:t="DETAILS"
       parameter{
         name:t="details_alphatest"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
       parameter{
         name:t="details_tile"
         type:t="p4"
+        default:p4=1.0, 1.0, 1.0, 0.0
       }
       parameter{
         name:t="invert_heights"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
     }
     parameters_group{
@@ -2959,10 +3586,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_uv_scale"
@@ -2972,10 +3601,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -2983,10 +3614,12 @@ shader_category{
       parameter{
         name:t="overlay_color_from"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.5
       }
       parameter{
         name:t="overlay_color_to"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.5
       }
     }
     parameters_group{
@@ -2994,10 +3627,12 @@ shader_category{
       parameter{
         name:t="paint_details"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
     }
   }
@@ -3010,6 +3645,7 @@ shader_category{
     parameter{
       name:t="gpu_object_id"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="normal"
@@ -3018,20 +3654,24 @@ shader_category{
     parameter{
       name:t="rendinst_additional_data"
       type:t="i"
+      default:i=0
     }
     parameters_group{
       name:t="DETAILS"
       parameter{
         name:t="details_alphatest"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
       parameter{
         name:t="details_tile"
         type:t="p4"
+        default:p4=1.0, 1.0, 1.0, 0.0
       }
       parameter{
         name:t="invert_heights"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
     }
     parameters_group{
@@ -3039,10 +3679,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_uv_scale"
@@ -3052,10 +3694,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -3063,10 +3707,12 @@ shader_category{
       parameter{
         name:t="overlay_color_from"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.5
       }
       parameter{
         name:t="overlay_color_to"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.5
       }
     }
     parameters_group{
@@ -3074,10 +3720,12 @@ shader_category{
       parameter{
         name:t="paint_details"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
     }
   }
@@ -3086,56 +3734,69 @@ shader_category{
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameters_group{
       name:t="REAL WIND"
       parameter{
         name:t="bend"
         type:t="r"
+        default:r=2.0
       }
       parameter{
         name:t="deviation"
         type:t="r"
+        default:r=4.0
       }
       parameter{
         name:t="flag_length"
         type:t="r"
+        default:r=15.0
       }
       parameter{
         name:t="flag_movement_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="flagpole_pos_0"
         type:t="p4"
+        default:p4=0.0, 0.0, -1.0, 0.0
       }
       parameter{
         name:t="flagpole_pos_1"
         type:t="p4"
+        default:p4=0.0, 0.0, 1.0, 0.0
       }
       parameter{
         name:t="stiffness"
         type:t="r"
+        default:r=0.1
       }
       parameter{
         name:t="stretch"
         type:t="r"
+        default:r=0.1
       }
       parameter{
         name:t="sway_speed"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="width_type"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="wind_strength"
         type:t="r"
+        default:r=1.1
       }
       parameter{
         name:t="wind_type"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -3147,14 +3808,17 @@ shader_category{
       parameter{
         name:t="paint_const_color"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.0
       }
       parameter{
         name:t="paint_palette_row"
         type:t="i"
+        default:i=1
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
     }
     parameters_group{
@@ -3162,18 +3826,22 @@ shader_category{
       parameter{
         name:t="paint_black_point"
         type:t="r"
+        default:r=0.1
       }
       parameter{
         name:t="paint_white_point"
         type:t="r"
+        default:r=0.5
       }
       parameter{
         name:t="paint_details"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="paint_mult"
         type:t="r"
+        default:r=1.0
       }
     }
     parameters_group{
@@ -3181,10 +3849,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_uv_scale"
@@ -3197,10 +3867,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -3208,72 +3880,83 @@ shader_category{
       parameter{
         name:t="frequency_amplitude"
         type:t="p4"
+        default:p4=1.0, 1.0, 1.0, 1.0
       }
       parameter{
         name:t="wave_length"
         type:t="r"
+        default:r=0.5
       }
       parameter{
         name:t="wind_direction"
         type:t="p4"
+        default:p4=0.0, 0.0, 1.0, 0.0
       }
     }
   }
   shader{
     name:t="rendinst_flag_layered"
-    parameter{
-      name:t="normal"
-      type:t="b"
-    }
     parameters_group{
       name:t="REAL WIND"
       parameter{
         name:t="bend"
         type:t="r"
+        default:r=2.0
       }
       parameter{
         name:t="deviation"
         type:t="r"
+        default:r=4.0
       }
       parameter{
         name:t="flag_length"
         type:t="r"
+        default:r=15.0
       }
       parameter{
         name:t="flagpole_pos_0"
         type:t="p4"
+        default:p4=0.0, 0.0, -1.0, 0.0
       }
       parameter{
         name:t="flagpole_pos_1"
         type:t="p4"
+        default:p4=0.0, 0.0, 1.0, 0.0
       }
       parameter{
         name:t="flag_movement_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="stiffness"
         type:t="r"
+        default:r=0.1
       }
       parameter{
         name:t="stretch"
         type:t="r"
+        default:r=0.1
       }
       parameter{
         name:t="sway_speed"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="width_type"
         type:t="i"
+        default:i=0
       }
       parameter{
         name:t="wind_strength"
         type:t="r"
+        default:r=1.1
       }
       parameter{
         name:t="wind_type"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -3281,14 +3964,17 @@ shader_category{
       parameter{
         name:t="details_alphatest"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
       parameter{
         name:t="details_tile"
         type:t="p4"
+        default:p4=1.0, 1.0, 1.0, 0.0
       }
       parameter{
         name:t="invert_heights"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
     }
     parameters_group{
@@ -3296,10 +3982,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer"
         type:t="i"
+        default:i=-1
       }
       parameter{
         name:t="micro_detail_layer_v_scale"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_uv_scale"
@@ -3309,10 +3997,12 @@ shader_category{
       parameter{
         name:t="micro_detail_layer_intensity"
         type:t="r"
+        default:r=1.0
       }
       parameter{
         name:t="micro_detail_layer_swap_uv"
         type:t="i"
+        default:i=0
       }
     }
     parameters_group{
@@ -3320,10 +4010,12 @@ shader_category{
       parameter{
         name:t="overlay_color_from"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.5
       }
       parameter{
         name:t="overlay_color_to"
         type:t="p4"
+        default:p4=0.5, 0.5, 0.5, 0.5
       }
     }
     parameters_group{
@@ -3331,10 +4023,12 @@ shader_category{
       parameter{
         name:t="paint_details"
         type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 0.0
       }
       parameter{
         name:t="palette_index"
         type:t="i"
+        default:i=1
       }
     }
     parameters_group{
@@ -3342,14 +4036,25 @@ shader_category{
       parameter{
         name:t="frequency_amplitude"
         type:t="p4"
+        default:p4=1.0, 1.0, 1.0, 1.0
       }
       parameter{
         name:t="wave_length"
         type:t="r"
+        default:r=0.5
       }
       parameter{
         name:t="wind_direction"
         type:t="p4"
+        default:p4=0.0, 0.0, 1.0, 0.0
+      }
+    }
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="normal"
+        type:t="b"
+        default:b=no
       }
     }
   }
@@ -3366,10 +4071,12 @@ shader_category{
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="reflectance"
       type:t="b"
+      default:b=no
     }
     parameters_group{
       name:t="DETAILS"
@@ -3388,10 +4095,12 @@ shader_category{
       parameter{
         name:t="detail_tile_u"
         type:t="r"
+        default:r=31.1
       }
       parameter{
         name:t="detail_tile_v"
         type:t="r"
+        default:r=31.1
       }
     }
     parameters_group{
@@ -3420,41 +4129,53 @@ shader_category{
   shader{
     name:t="rendinst_deferred_modulate2x_decal"
     parameter{
-      name:t="micro_detail_layer_intensity"
-      type:t="r"
-    }
-    parameter{
-      name:t="micro_detail_layer"
-      type:t="i"
-    }
-    parameter{
-      name:t="micro_detail_layer_uv_scale"
-      type:t="r"
-      soft_min:r=0.0
-    }
-    parameter{
-      name:t="micro_detail_layer_v_scale"
-      type:t="r"
-    }
-    parameter{
-      name:t="writemask"
-      type:t="i"
-    }
-    parameter{
-      name:t="micro_detail_layer_swap_uv"
-      type:t="i"
-    }
-    parameter{
       name:t="draw_order"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="intensity"
       type:t="p4"
+      default:p4=1.0, 0.0, 1.0, 0.0
     }
     parameter{
       name:t="smoothness_metalness"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="micro_detail_layer_intensity"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="micro_detail_layer"
+        type:t="i"
+        default:i=-1
+      }
+      parameter{
+        name:t="micro_detail_layer_uv_scale"
+        type:t="r"
+        default:r=32.371
+        soft_min:r=0.0
+      }
+      parameter{
+        name:t="micro_detail_layer_v_scale"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="writemask"
+        type:t="i"
+        default:i=1287
+      }
+      parameter{
+        name:t="micro_detail_layer_swap_uv"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -3462,10 +4183,12 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -3475,14 +4198,17 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="writemask"
       type:t="i"
+      default:i=1287
     }
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="draw_order"
@@ -3491,10 +4217,12 @@ shader_category{
     parameter{
       name:t="intensity"
       type:t="p4"
+      default:p4=1.0, 0.0, 1.0, 0.0
     }
     parameter{
       name:t="smoothness_metalness"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
   }
   shader{
@@ -3502,26 +4230,32 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="draw_order"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="gamma_mask"
       type:t="p4"
+      default:p4=1.0, 1.0, 0.0, 0.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -3531,13 +4265,15 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
-    name:t="paint_const_color"
-    type:t="p4"
-    soft_min:r=0.0
-    soft_max:r=1.0
-    custom_ui:t="color"
+      name:t="paint_const_color"
+      type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.0
+      soft_min:r=0.0
+      soft_max:r=1.0
+//      custom_ui:t="color"
     }
   }
   shader{
@@ -3545,10 +4281,12 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="draw_order"
@@ -3557,14 +4295,17 @@ shader_category{
     parameter{
       name:t="gamma_mask"
       type:t="p4"
+      default:p4=1.0, 1.0, 0.0, 0.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -3573,45 +4314,58 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
   }
   shader{
     name:t="rendinst_deferred_normal_decal"
     parameter{
-      name:t="nm_met_sm_gamma"
-      type:t="p4"
-    }
-    parameter{
-      name:t="micro_detail_layer_intensity"
-      type:t="r"
-    }
-    parameter{
-      name:t="micro_detail_layer"
-      type:t="i"
-    }
-    parameter{
-      name:t="micro_detail_layer_uv_scale"
-      type:t="r"
-    }
-    parameter{
-      name:t="micro_detail_layer_v_scale"
-      type:t="r"
-    }
-    parameter{
       name:t="writemask"
       type:t="i"
+      default:i=1904
     }
     parameter{
       name:t="normal"
       type:t="b"
-    }
-    parameter{
-      name:t="micro_detail_layer_swap_uv"
-      type:t="i"
+      default:b=no
     }
     parameter{
       name:t="draw_order"
       type:t="i"
+      default:i=0
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="nm_met_sm_gamma"
+        type:t="p4"
+        default:p4=1.0, 1.0, 0.0, 0.0
+      }
+      parameter{
+        name:t="micro_detail_layer_intensity"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="micro_detail_layer"
+        type:t="i"
+        default:i=-1
+      }
+      parameter{
+        name:t="micro_detail_layer_uv_scale"
+        type:t="r"
+        default:r=32.371
+      }
+      parameter{
+        name:t="micro_detail_layer_v_scale"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="micro_detail_layer_swap_uv"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -3619,34 +4373,43 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
       type:t="r"
     }
     parameter{
-      name:t="writemask"
-      type:t="i"
-    }
-    parameter{
-      name:t="normal"
-      type:t="b"
-    }
-    parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="draw_order"
       type:t="i"
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="writemask"
+        type:t="i"
+        default:i=1904
+      }
+      parameter{
+        name:t="normal"
+        type:t="b"
+        default:b=no
+      }
     }
   }
 }
@@ -3680,30 +4443,37 @@ shader_category{
     parameter{
       name:t="displacementMax"
       type:t="r"
+      default:r=0.2
     }
     parameter{
       name:t="bump_scale"
       type:t="r"
+      default:r=0.01
     }
     parameter{
       name:t="displacementMin"
       type:t="r"
+      default:r=-0.1
     }
     parameter{
       name:t="alpha_gamma"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
     parameter{
       name:t="write_vtexmask"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="detailRTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="detail1_size_ofs"
       type:t="p4"
+      default:p4=16.0, 16.0, 0.0, 0.0
     }
   }
   shader{
@@ -3711,34 +4481,42 @@ shader_category{
     parameter{
       name:t="detail1r"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="bump_scale"
       type:t="p4"
+      default:p4=0.01, 0.01, 0.01, 0.01
     }
     parameter{
       name:t="alpha_gamma"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
     parameter{
       name:t="write_vtexmask"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="detail1_size_ofs"
       type:t="p4"
+      default:p4=16.1, 16.1, 0.0, 0.0
     }
     parameter{
       name:t="detail2_size_ofs"
       type:t="p4"
+      default:p4=16.1, 16.1, 0.0, 0.0
     }
     parameter{
       name:t="detail3_size_ofs"
       type:t="p4"
+      default:p4=16.1, 16.1, 0.0, 0.0
     }
     parameter{
       name:t="detail4_size_ofs"
       type:t="p4"
+      default:p4=16.1, 16.1, 0.0, 0.0
     }
   }
   shader{
@@ -3757,18 +4535,22 @@ shader_category{
     parameter{
       name:t="displacementMax"
       type:t="r"
+      default:r=0.05
     }
     parameter{
       name:t="displacementMin"
       type:t="r"
+      default:r=-0.025
     }
     parameter{
       name:t="alpha_gamma"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
     parameter{
       name:t="write_vtexmask"
       type:t="i"
+      default:i=-1
     }
   }
   shader{
@@ -3776,30 +4558,37 @@ shader_category{
     parameter{
       name:t="displacementMax"
       type:t="r"
+      default:r=0.2
     }
     parameter{
       name:t="bump_scale"
       type:t="r"
+      default:r=0.01
     }
     parameter{
       name:t="displacementMin"
       type:t="r"
+      default:r=-0.1
     }
     parameter{
       name:t="alpha_gamma"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
     parameter{
       name:t="write_vtexmask"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="detailRTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="detail1_size_ofs"
       type:t="p4"
+      default:p4=16.0, 16.0, 0.0, 0.0
     }
   }
   shader{
@@ -3807,34 +4596,42 @@ shader_category{
     parameter{
       name:t="detail1r"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="bump_scale"
       type:t="p4"
+      default:p4=0.01, 0.01, 0.01, 0.01
     }
     parameter{
       name:t="alpha_gamma"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
     parameter{
       name:t="write_vtexmask"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="detail1_size_ofs"
       type:t="p4"
+      default:p4=16.1, 16.1, 0.0, 0.0
     }
     parameter{
       name:t="detail2_size_ofs"
       type:t="p4"
+      default:p4=16.1, 16.1, 0.0, 0.0
     }
     parameter{
       name:t="detail3_size_ofs"
       type:t="p4"
+      default:p4=16.1, 16.1, 0.0, 0.0
     }
     parameter{
       name:t="detail4_size_ofs"
       type:t="p4"
+      default:p4=16.1, 16.1, 0.0, 0.0
     }
   }
 }
@@ -3845,22 +4642,27 @@ shader_category{
     parameter{
       name:t="parameters_channel"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="emission_albedo_mult"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="use_alpha_for_emission_mask"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="emissive_color"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
   }
   shader{
@@ -3868,55 +4670,68 @@ shader_category{
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="draw_grass"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="emission_mask"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="emission_only_at_night"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="emission_fadeout"
       type:t="p4"
+      default:p4=-1.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="emission_strength"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="emission_color"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
       soft_min:r=0.0
     }
     parameter{
       name:t="painting_line"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="use_painting"
       type:t="r"
+      default:r=0.0
     }
   }
   shader{
@@ -3924,10 +4739,12 @@ shader_category{
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="phase_shift"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -3936,26 +4753,35 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
-    }
-    parameter{
-      name:t="draw_grass"
-      type:t="i"
+      default:r=1.0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="illum_scroll_scale"
       type:t="r"
+      default:r=2.0
     }
     parameter{
       name:t="illum_scroll_speed"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="use_additive_blend"
       type:t="r"
+      default:r=0.0
+    }
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="draw_grass"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -3963,130 +4789,162 @@ shader_category{
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="underwater_decal"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="detail1_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_scroll_u"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail1_scroll_v"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="detail2_scroll_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_scroll_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atlas_first_tile"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="atlas_last_tile"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="mask_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="mask_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="mask_gamma_start"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="mask_gamma_end"
       type:t="r"
+      default:r=2.0
     }
     parameter{
       name:t="draw_grass"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="detail2_colored"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="top_projection"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="top_projection_from"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="top_projection_to"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="top_projection_detail2_modulate"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="use_painting"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="painting_line"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="paint1stdetail"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_combined_normal"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="micro_detail_layer1"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer2"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer1_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer2_uv_scale"
       type:t="r"
+      default:r=5.17
     }
   }
 }
@@ -4097,6 +4955,7 @@ shader_category{
     parameter{
       name:t="opacity"
       type:t="r"
+      default:r=0.2
     }
     parameter{
       name:t="is_window"
@@ -4108,18 +4967,25 @@ shader_category{
     parameter{
       name:t="transparency_mul"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="normal"
       type:t="b"
-    }
-    parameter{
-      name:t="opacity"
-      type:t="r"
+      default:b=no
     }
     parameter{
       name:t="is_window"
       type:t="i"
+      default:i=1
+    }
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="opacity"
+        type:t="r"
+        default:r=0.2
+      }
     }
   }
   shader{
@@ -4127,34 +4993,42 @@ shader_category{
     parameter{
       name:t="transparency_mul"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="isShellTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="glassIoR"
       type:t="r"
+      default:r=1.5
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="isShell"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="min_thickness"
       type:t="r"
+      default:r=0.02
     }
     parameter{
       name:t="max_thickness"
       type:t="r"
+      default:r=0.2
     }
     parameter{
       name:t="is_window"
       type:t="i"
+      default:i=1
     }
   }
 }
@@ -4163,20 +5037,30 @@ shader_category{
   shader{
     name:t="dynamic_glass_chrome"
     parameter{
-      name:t="diff"
-      type:t="p4"
-    }
-    parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
-    parameter{
-      name:t="opacity"
-      type:t="r"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="opacity"
+        type:t="r"
+        default:r=0.2
+      }
     }
-    parameter{
-      name:t="is_window"
-      type:t="i"
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="diff"
+        type:t="p4"
+        default:p4=0.0, 0.0, 0.0, 1.0
+      }
+      parameter{
+        name:t="is_window"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -4184,10 +5068,12 @@ shader_category{
     parameter{
       name:t="diff"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="opacity"
@@ -4196,6 +5082,7 @@ shader_category{
     parameter{
       name:t="is_window"
       type:t="i"
+      default:i=0
     }
   }
   shader{
@@ -4210,18 +5097,22 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="transparency_mul"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="is_window"
       type:t="i"
+      default:i=1
     }
   }
 }
@@ -4245,61 +5136,81 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
   }
   shader{
     name:t="dynamic_masked_tank"
     parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
-    }
-    parameter{
-      name:t="burnt_tank"
-      type:t="i"
-    }
-    parameter{
-      name:t="diffuse_to_decal"
-      type:t="r"
-    }
-    parameter{
-      name:t="tank_decals_smoothness"
-      type:t="r"
-    }
-    parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="camo_skin_tex"
       type:t="b"
+      default:b=no
     }
-    parameter{
-      name:t="vehicle_decals"
-      type:t="i"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="dirt_layer"
+        type:t="i"
+        default:i=1
+      }
+      parameter{
+        name:t="camo_smoothness_influence"
+        type:t="r"
+        default:r=0.5
+      }
+      parameter{
+        name:t="camo_tile_tank"
+        type:t="r"
+        default:r=7.0
+      }
+      parameter{
+        name:t="camo_amplitude_tank"
+        type:t="r"
+        default:r=0.15
+      }
+      parameter{
+        name:t="camo_metalness_influence"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="camo_metalness"
+        type:t="r"
+        default:r=0.0
+      }
     }
-    parameter{
-      name:t="dirt_layer"
-      type:t="i"
-    }
-    parameter{
-      name:t="camo_smoothness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_tile_tank"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_amplitude_tank"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_metalness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_metalness"
-      type:t="r"
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="burnt_tank"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="diffuse_to_decal"
+        type:t="r"
+        default:r=0.01
+      }
+      parameter{
+        name:t="tank_decals_smoothness"
+        type:t="r"
+        default:r=0.4
+      }
+      parameter{
+        name:t="vehicle_decals"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -4307,164 +5218,213 @@ shader_category{
     parameter{
       name:t="camo_amplitude_tank"
       type:t="r"
+      default:r=0.15
     }
     parameter{
       name:t="camo_tile_tank"
       type:t="r"
+      default:r=7.0
     }
     parameter{
       name:t="dirt_layer"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="camo_metalness_influence"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="camo_skin_tex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="camo_smoothness_influence"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="camo_metalness"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="metalness_dirt_removal_start"
       type:t="r"
+      default:r=0.66
     }
     parameter{
       name:t="metalness_dirt_removal_end"
       type:t="r"
+      default:r=1.0
     }
   }
   shader{
     name:t="dynamic_tank_atest"
     parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
-    }
-    parameter{
-      name:t="burnt_tank"
-      type:t="i"
-    }
-    parameter{
-      name:t="diffuse_to_decal"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_amplitude_tank"
-      type:t="r"
-    }
-    parameter{
-      name:t="tank_decals_smoothness"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_tile_tank"
-      type:t="r"
-    }
-    parameter{
       name:t="num_bones"
       type:t="i"
-    }
-    parameter{
-      name:t="camo_metalness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_smoothness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_metalness"
-      type:t="r"
-    }
-    parameter{
-      name:t="vehicle_decals"
-      type:t="i"
+      default:i=0
     }
     parameter{
       name:t="texcoord_anim"
       type:t="r"
+      default:r=0.0
     }
-    parameter{
-      name:t="dirt_layer"
-      type:t="i"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="camo_amplitude_tank"
+        type:t="r"
+        default:r=0.15
+      }
+      parameter{
+        name:t="camo_tile_tank"
+        type:t="r"
+        default:r=7.0
+      }
+      parameter{
+        name:t="camo_metalness_influence"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="camo_smoothness_influence"
+        type:t="r"
+        default:r=0.5
+      }
+      parameter{
+        name:t="camo_metalness"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="dirt_layer"
+        type:t="i"
+        default:i=1
+      }
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="burnt_tank"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="diffuse_to_decal"
+        type:t="r"
+        default:r=0.01
+      }
+      parameter{
+        name:t="tank_decals_smoothness"
+        type:t="r"
+        default:r=0.4
+      }
+      parameter{
+        name:t="vehicle_decals"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
     name:t="dynamic_tank_net_atest"
     parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
-    }
-    parameter{
-      name:t="burnt_tank"
-      type:t="i"
-    }
-    parameter{
-      name:t="diffuse_to_decal"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_amplitude_tank"
-      type:t="r"
-    }
-    parameter{
-      name:t="tank_decals_smoothness"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_tile_tank"
-      type:t="r"
-    }
-    parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="camo_skin_tex"
       type:t="b"
-    }
-    parameter{
-      name:t="camo_metalness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_smoothness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_metalness"
-      type:t="r"
+      default:b=no
     }
     parameter{
       name:t="atest"
       type:t="i"
-      default:i=0
+      default:i=1
       soft_min:i=0
       soft_max:i=1
       description:t="Integer, but works as boolean. 0 or less -> opaque, 1 or more -> alpha mask is clipped at medium gray"
     }
-    parameter{
-      name:t="vehicle_decals"
-      type:t="i"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="camo_amplitude_tank"
+        type:t="r"
+        default:r=0.15
+      }
+      parameter{
+        name:t="camo_tile_tank"
+        type:t="r"
+        default:r=7.0
+      }
+      parameter{
+        name:t="camo_metalness_influence"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="camo_smoothness_influence"
+        type:t="r"
+        default:r=0.5
+      }
+      parameter{
+        name:t="camo_metalness"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="texcoord_anim"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="dirt_layer"
+        type:t="i"
+        default:i=1
+      }
     }
-    parameter{
-      name:t="texcoord_anim"
-      type:t="r"
-    }
-    parameter{
-      name:t="dirt_layer"
-      type:t="i"
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="burnt_tank"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="diffuse_to_decal"
+        type:t="r"
+        default:r=0.01
+      }
+      parameter{
+        name:t="tank_decals_smoothness"
+        type:t="r"
+        default:r=0.4
+      }
+      parameter{
+        name:t="vehicle_decals"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -4473,91 +5433,124 @@ shader_category{
   shader{
     name:t="dynamic_tank_foliage"
     parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
-    }
-    parameter{
-      name:t="tank_decals_smoothness"
-      type:t="r"
-    }
-    parameter{
-      name:t="diffuse_to_decal"
-      type:t="r"
-    }
-    parameter{
-      name:t="vehicle_decals"
-      type:t="i"
-    }
-    parameter{
-      name:t="camo_amplitude_tank"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_tile_tank"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_metalness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_smoothness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_metalness"
-      type:t="r"
-    }
-    parameter{
       name:t="texcoord_anim"
       type:t="r"
+      default:r=0.0
     }
-    parameter{
-      name:t="dirt_layer"
-      type:t="i"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="camo_amplitude_tank"
+        type:t="r"
+        default:r=0.15
+      }
+      parameter{
+        name:t="camo_tile_tank"
+        type:t="r"
+        default:r=7.0
+      }
+      parameter{
+        name:t="camo_metalness_influence"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="camo_smoothness_influence"
+        type:t="r"
+        default:r=0.5
+      }
+      parameter{
+        name:t="camo_metalness"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="dirt_layer"
+        type:t="i"
+        default:i=1
+      }
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="tank_decals_smoothness"
+        type:t="r"
+        default:r=0.4
+      }
+      parameter{
+        name:t="diffuse_to_decal"
+        type:t="r"
+        default:r=0.01
+      }
+      parameter{
+        name:t="vehicle_decals"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
     name:t="dynamic_tank_selfillum"
-    parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="camo_amplitude_tank"
+        type:t="r"
+        default:r=0.15
+      }
+      parameter{
+        name:t="camo_tile_tank"
+        type:t="r"
+        default:r=7.0
+      }
+      parameter{
+        name:t="camo_metalness_influence"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="camo_smoothness_influence"
+        type:t="r"
+        default:r=0.5
+      }
+      parameter{
+        name:t="camo_metalness"
+        type:t="r"
+        default:r=0.0
+      }
+      parameter{
+        name:t="dirt_layer"
+        type:t="i"
+        default:i=1
+      }
     }
-    parameter{
-      name:t="diffuse_to_decal"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_amplitude_tank"
-      type:t="r"
-    }
-    parameter{
-      name:t="tank_decals_smoothness"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_tile_tank"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_metalness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_smoothness_influence"
-      type:t="r"
-    }
-    parameter{
-      name:t="camo_metalness"
-      type:t="r"
-    }
-    parameter{
-      name:t="vehicle_decals"
-      type:t="i"
-    }
-    parameter{
-      name:t="dirt_layer"
-      type:t="i"
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="diffuse_to_decal"
+        type:t="r"
+        default:r=0.01
+      }
+      parameter{
+        name:t="tank_decals_smoothness"
+        type:t="r"
+        default:r=0.4
+      }
+      parameter{
+        name:t="vehicle_decals"
+        type:t="i"
+        default:i=0
+      }
     }
   }
 }
@@ -4568,20 +5561,14 @@ shader_category{
     parameter{
       name:t="wind_channel_strength"
       type:t="p4"
+      default:p4=1.0, 1.0, 0.0, 1.0
     }
     parameter{
       name:t="is_pivoted"
       type:t="i"
+      default:i=0
       soft_min:i=0
       soft_max:i=1
-    }
-    parameter{
-      name:t="interaction_strength"
-      type:t="r"
-    }
-    parameter{
-      name:t="is_colored"
-      type:t="i"
     }
     parameter{
       name:t="use_top_projection"
@@ -4594,30 +5581,30 @@ shader_category{
       soft_max:r=1.0
     }
     parameter{
-      name:t="leaves_dissolve"
-      type:t="i"
-    }
-    parameter{
       name:t="wind_noise_speed_base"
       type:t="r"
+      default:r=0.1
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_noise_speed_level_mul"
       type:t="r"
+      default:r=1.666
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_angle_rot_base"
       type:t="r"
+      default:r=5.0
       soft_min:r=0.0
       soft_max:r=180.0
     }
     parameter{
       name:t="wind_angle_rot_level_mul"
       type:t="r"
+      default:r=5.0
     }
     parameter{
       name:t="wind_angle_rot_max"
@@ -4628,36 +5615,63 @@ shader_category{
     parameter{
       name:t="wind_parent_contrib"
       type:t="r"
+      default:r=0.25
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_motion_damp_base"
       type:t="r"
+      default:r=3.0
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_motion_damp_level_mul"
       type:t="r"
+      default:r=0.8
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_per_level_angle_rot_max"
       type:t="p4"
+      default:p4=60.0, 60.0, 60.0, 60.0
       soft_min:r=0.0
       soft_max:r=180.0
     }
-    parameter{
-      name:t="interactions"
-      type:t="i"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="leaves_dissolve"
+        type:t="i"
+        default:i=0
+      }
     }
-    parameter{
-      name:t="angle_dissolve"
-      type:t="i"
-      soft_min:i=0
-      soft_max:i=1
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="interaction_strength"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="is_colored"
+        type:t="i"
+        default:i=1
+      }
+      parameter{
+        name:t="interactions"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="angle_dissolve"
+        type:t="i"
+        default:i=1
+        soft_min:i=0
+        soft_max:i=1
+      }
     }
   }
   shader{
@@ -4673,58 +5687,59 @@ shader_category{
     parameter{
       name:t="is_pivoted"
       type:t="i"
+      default:i=0
       soft_min:i=0
       soft_max:i=1
     }
     parameter{
       name:t="wind_channel_strength"
       type:t="p4"
-    }
-    parameter{
-      name:t="interaction_strength"
-      type:t="r"
+      default:p4=1.0, 1.0, 0.0, 1.0
     }
     parameter{
       name:t="is_colored"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="back_view_dep"
       type:t="r"
+      default:r=1.0
       soft_min:r=0.0
       soft_max:r=1.0
     }
     parameter{
-      name:t="interactions"
-      type:t="i"
-    }
-    parameter{
       name:t="angle_dissolve"
       type:t="i"
+      default:i=1
       soft_min:i=0
       soft_max:i=1
     }
     parameter{
       name:t="wind_noise_speed_base"
       type:t="r"
+      default:r=0.1
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_noise_speed_level_mul"
       type:t="r"
+      default:r=1.666
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_angle_rot_base"
       type:t="r"
+      default:r=5.0
       soft_min:r=0.0
       soft_max:r=180.0
     }
     parameter{
       name:t="wind_angle_rot_level_mul"
       type:t="r"
+      default:r=5.0
     }
     parameter{
       name:t="wind_angle_rot_max"
@@ -4735,26 +5750,43 @@ shader_category{
     parameter{
       name:t="wind_parent_contrib"
       type:t="r"
+      default:r=0.25
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_motion_damp_base"
       type:t="r"
+      default:r=3.0
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_motion_damp_level_mul"
       type:t="r"
+      default:r=0.8
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_per_level_angle_rot_max"
       type:t="p4"
+      default:p4=60.0, 60.0, 60.0, 60.0
       soft_min:r=0.0
       soft_max:r=180.0
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="interaction_strength"
+        type:t="r"
+        default:r=1.0
+      }
+      parameter{
+        name:t="interactions"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -4762,54 +5794,66 @@ shader_category{
     parameter{
       name:t="ground_snap_height_full"
       type:t="r"
+      default:r=0.5
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="ground_bend_normal_offset"
       type:t="r"
+      default:r=0.075
     }
     parameter{
       name:t="ground_bend_height"
       type:t="r"
+      default:r=-1.0
     }
     parameter{
       name:t="ground_snap_normal_offset"
       type:t="r"
+      default:r=0.1
     }
     parameter{
       name:t="ground_snap_height_soft"
       type:t="r"
+      default:r=-1.0
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="ground_bend_tangent_offset"
       type:t="r"
+      default:r=4.0
     }
     parameter{
       name:t="mask_gamma"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.25
     }
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="invert_heights"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 0.0
     }
     parameter{
       name:t="emission_albedo_mult"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="constant_translucency"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -4818,66 +5862,80 @@ shader_category{
     parameter{
       name:t="emission_color"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, -1.0
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="mask_by_normal"
       type:t="p4"
+      default:p4=0.0, 1.0, 0.0, 0.0
     }
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="max_tessellation_factor"
       type:t="i"
+      default:i=10
     }
     parameter{
       name:t="material_pn_triangulation"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="rendinst_displacement_min"
       type:t="p4"
+      default:p4=-0.025, -0.025, -0.025, 0.0
     }
     parameter{
       name:t="rendinst_displacement_max"
       type:t="p4"
+      default:p4=0.025, 0.025, 0.025, 0.0
     }
     parameter{
       name:t="rendinst_displacement_mod"
       type:t="p4"
+      default:p4=1.0, 1.0, 0.75, 0.25
     }
     parameter{
       name:t="is_pivoted"
       type:t="i"
+      default:i=0
       soft_min:i=0
       soft_max:i=1
     }
     parameter{
       name:t="wind_noise_speed_base"
       type:t="r"
+      default:r=0.1
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_noise_speed_level_mul"
       type:t="r"
+      default:r=1.666
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_angle_rot_base"
       type:t="r"
+      default:r=5.0
       soft_min:r=0.0
       soft_max:r=180.0
     }
     parameter{
       name:t="wind_angle_rot_level_mul"
       type:t="r"
+      default:r=5.0
     }
     parameter{
       name:t="wind_angle_rot_max"
@@ -4888,24 +5946,28 @@ shader_category{
     parameter{
       name:t="wind_parent_contrib"
       type:t="r"
+      default:r=0.25
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_motion_damp_base"
       type:t="r"
+      default:r=3.0
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_motion_damp_level_mul"
       type:t="r"
+      default:r=0.8
       soft_min:r=0.0
       soft_max:r=100.0
     }
     parameter{
       name:t="wind_per_level_angle_rot_max"
       type:t="p4"
+      default:p4=60.0, 60.0, 60.0, 60.0
       soft_min:r=0.0
       soft_max:r=180.0
     }
@@ -4929,6 +5991,7 @@ shader_category{
     parameter{
       name:t="collimator_num"
       type:t="i"
+      default:i=0
     }
   }
   shader{
@@ -4950,6 +6013,7 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="atest"
@@ -4973,6 +6037,12 @@ shader_category{
     parameter{
       name:t="ablend"
       type:t="i"
+      default:i=0
+    }
+    parameter{
+      name:t="use_color_mul"
+      type:t="i"
+      default:i=0
     }
     parameter{
       name:t="selfillum_in_cubic_reflections"
@@ -4984,10 +6054,12 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="hide"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="atest"
@@ -5003,78 +6075,100 @@ shader_category{
     parameter{
       name:t="eye_caustics_iris_radius"
       type:t="r"
+      default:r=0.18
     }
     parameter{
       name:t="eye_caustics_strength"
       type:t="r"
+      default:r=1.3
     }
     parameter{
       name:t="eye_caustics_light_lerp_factor"
       type:t="r"
+      default:r=0.1
     }
     parameter{
       name:t="eye_caustics_focal_point_offset"
       type:t="r"
-    }
-    parameter{
-      name:t="bind_pose_indicator_dummy"
-      type:t="i"
+      default:r=0.1
     }
     parameter{
       name:t="eye_caustics_falloff_strength"
       type:t="r"
+      default:r=0.6
     }
     parameter{
       name:t="eye_caustics_concavity_scale"
       type:t="r"
+      default:r=6.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="emission_albedo_mult"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="eye_iris_color_a_from"
       type:t="p4"
+      default:p4=0.075, 0.094, 0.09, 0.0
     }
     parameter{
       name:t="eye_iris_color_a_to"
       type:t="p4"
+      default:p4=0.945, 1.0, 0.894, 0.0
     }
     parameter{
       name:t="eye_iris_color_b_from"
       type:t="p4"
+      default:p4=0.31, 0.369, 0.412, 0.0
     }
     parameter{
       name:t="eye_iris_color_b_to"
       type:t="p4"
+      default:p4=1.0, 0.471, 0.0, 0.0
     }
     parameter{
       name:t="eye_sclera_color_from"
       type:t="p4"
+      default:p4=0.651, 0.565, 0.565, 0.0
     }
     parameter{
       name:t="eye_sclera_color_to"
       type:t="p4"
+      default:p4=0.369, 0.024, 0.024, 0.0
     }
     parameter{
       name:t="eye_iris_radius"
       type:t="r"
+      default:r=0.35
     }
     parameter{
       name:t="eye_reflectance"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="eye_smoothness"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="eye_parallax"
       type:t="r"
+      default:r=0.3
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="bind_pose_indicator_dummy"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -5082,10 +6176,12 @@ shader_category{
     parameter{
       name:t="transparency_mul"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="scope_length"
       type:t="r"
+      default:r=1.0
     }
   }
   shader{
@@ -5093,14 +6189,17 @@ shader_category{
     parameter{
       name:t="scope_lens_albedo"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.2
     }
     parameter{
       name:t="scope_radius"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="scope_length"
       type:t="r"
+      default:r=1.0
     }
   }
   shader{
@@ -5108,26 +6207,32 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="aoTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="paint_color_to"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.5
     }
     parameter{
       name:t="paint_color_from"
       type:t="p4"
+      default:p4=0.5, 0.5, 0.5, 0.5
     }
     parameter{
       name:t="microDetailMask"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="atest"
@@ -5140,10 +6245,12 @@ shader_category{
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -5152,6 +6259,7 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
   }
   shader{
@@ -5159,49 +6267,66 @@ shader_category{
     parameter{
       name:t="transparency_mul"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="isShellTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="glassIoR"
       type:t="r"
+      default:r=1.5
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="isShell"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="min_thickness"
       type:t="r"
+      default:r=0.02
     }
     parameter{
       name:t="max_thickness"
       type:t="r"
+      default:r=0.2
     }
   }
   shader{
     name:t="dynamic_masked_glass_chrome"
     parameter{
-      name:t="num_bones"
-      type:t="i"
-    }
-    parameter{
       name:t="opacity"
       type:t="r"
+      default:r=0.2
     }
-    parameter{
-      name:t="rain_droplets"
-      type:t="r"
+    parameters_group{
+      name:t="WT_specific"
+      parameter{
+        name:t="rain_droplets"
+        type:t="r"
+        default:r=1.0
+      }
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="num_bones"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -5209,10 +6334,12 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="opacity"
       type:t="r"
+      default:r=0.2
     }
     parameter{
       name:t="rain_droplets"
@@ -5222,52 +6349,39 @@ shader_category{
   shader{
     name:t="dynamic_masked_ship"
     parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
-    }
-    parameter{
-      name:t="burnt_tank"
-      type:t="i"
-    }
-    parameter{
-      name:t="diffuse_to_decal"
-      type:t="r"
-    }
-    parameter{
-      name:t="tank_decals_smoothness"
-      type:t="r"
-    }
-    parameter{
       name:t="detail_camo_mul"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="camo_skin_tex"
       type:t="b"
-    }
-    parameter{
-      name:t="vehicle_decals"
-      type:t="i"
+      default:b=no
     }
     parameter{
       name:t="detail_scale_x"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail_scale_y"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail_distinctness"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="camo_gamma_mul"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="atest"
@@ -5277,36 +6391,49 @@ shader_category{
       soft_max:i=1
       description:t="Integer, but works as boolean. 0 or less -> opaque, 1 or more -> alpha mask is clipped at medium gray"
     }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="burnt_tank"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="diffuse_to_decal"
+        type:t="r"
+        default:r=0.01
+      }
+      parameter{
+        name:t="tank_decals_smoothness"
+        type:t="r"
+        default:r=0.4
+      }
+      parameter{
+        name:t="vehicle_decals"
+        type:t="i"
+        default:i=0
+      }
+    }
   }
   shader{
     name:t="dynamic_masked_weapon"
-    parameter{
-      name:t="simplified_vehicle_cockpit_render"
-      type:t="i"
-    }
     parameter{
       name:t="burnt_tank"
       type:t="i"
     }
     parameter{
-      name:t="diffuse_to_decal"
-      type:t="r"
-    }
-    parameter{
-      name:t="tank_decals_smoothness"
-      type:t="r"
-    }
-    parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="camo_skin_tex"
       type:t="b"
-    }
-    parameter{
-      name:t="vehicle_decals"
-      type:t="i"
     }
     parameter{
       name:t="dirt_layer"
@@ -5332,48 +6459,71 @@ shader_category{
       name:t="camo_metalness"
       type:t="r"
     }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="simplified_vehicle_cockpit_render"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="diffuse_to_decal"
+        type:t="r"
+        default:r=0.01
+      }
+      parameter{
+        name:t="tank_decals_smoothness"
+        type:t="r"
+        default:r=0.4
+      }
+      parameter{
+        name:t="vehicle_decals"
+        type:t="i"
+        default:i=0
+      }
+    }
   }
   shader{
     name:t="dynamic_skin"
     parameter{
       name:t="dynamic_details_transform_2"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
     }
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="aoTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="dynamic_details_transform_0"
       type:t="p4"
-    }
-    parameter{
-      name:t="has_burning"
-      type:t="i"
+      default:p4=0.0, 0.0, 0.0, 1.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
-    }
-    parameter{
-      name:t="has_wounds"
-      type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="dynamic_details_transform_3"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
     }
     parameter{
       name:t="dynamic_details"
       type:t="p4"
+      default:p4=-1.0, -1.0, -1.0, -1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -5382,18 +6532,35 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="microDetailMask"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="dynamic_details_transform_1"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
     }
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="has_burning"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="has_wounds"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -5401,42 +6568,42 @@ shader_category{
     parameter{
       name:t="dynamic_details_transform_2"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
     }
     parameter{
       name:t="skin_blend"
       type:t="r"
+      default:r=0.5
     }
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="dynamic_details_transform_0"
       type:t="p4"
-    }
-    parameter{
-      name:t="has_burning"
-      type:t="i"
+      default:p4=0.0, 0.0, 0.0, 1.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
-    }
-    parameter{
-      name:t="has_wounds"
-      type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="dynamic_details"
       type:t="p4"
+      default:p4=-1.0, -1.0, -1.0, -1.0
     }
     parameter{
       name:t="dynamic_details_transform_3"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -5445,18 +6612,35 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="microDetailMask"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="dynamic_details_transform_1"
       type:t="p4"
+      default:p4=0.0, 0.0, 0.0, 1.0
     }
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="has_burning"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="has_wounds"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -5464,10 +6648,12 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="normal"
       type:t="b"
+      default:b=no
     }
   }
   shader{
@@ -5478,6 +6664,7 @@ shader_category{
     parameter{
       name:t="tex"
       type:t="b"
+      default:b=no
     }
   }
   shader{
@@ -5488,6 +6675,7 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="atest"
@@ -5503,6 +6691,7 @@ shader_category{
     parameter{
       name:t="display_index"
       type:t="r"
+      default:r=0.0
     }
   }
   shader{
@@ -5513,10 +6702,12 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="is_window"
       type:t="i"
+      default:i=0
     }
   }
   shader{
@@ -5531,6 +6722,7 @@ shader_category{
     parameter{
       name:t="displacementMax"
       type:t="r"
+      default:r=0.2
     }
     parameter{
       name:t="attenuation_from_heightmap_height"
@@ -5539,6 +6731,7 @@ shader_category{
     parameter{
       name:t="bump_scale"
       type:t="r"
+      default:r=0.08
     }
     parameter{
       name:t="r_softness"
@@ -5559,6 +6752,7 @@ shader_category{
     parameter{
       name:t="displacementMin"
       type:t="r"
+      default:r=-0.1
     }
     parameter{
       name:t="grass_decal_id_tex"
@@ -5567,6 +6761,7 @@ shader_category{
     parameter{
       name:t="alpha_gamma"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 1.0
     }
     parameter{
       name:t="normalmap"
@@ -5575,14 +6770,17 @@ shader_category{
     parameter{
       name:t="write_vtexmask"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="detailRTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="alpha_threshold"
       type:t="i"
+      default:i=10
     }
     parameter{
       name:t="diffuse_threshold"
@@ -5603,6 +6801,7 @@ shader_category{
     parameter{
       name:t="height_above"
       type:t="i"
+      default:i=0
     }
   }
   shader{
@@ -5610,34 +6809,42 @@ shader_category{
     parameter{
       name:t="micro_detail_layer2"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer1"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="micro_detail_layer1_uv_scale"
       type:t="r"
+      default:r=5.17
     }
     parameter{
       name:t="micro_detail_layer2_uv_scale"
       type:t="r"
+      default:r=5.13
     }
     parameter{
       name:t="detail1_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail1_tile_v"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_u"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="detail2_tile_v"
       type:t="r"
+      default:r=1.0
     }
   }
   shader{
@@ -5652,38 +6859,47 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
       type:t="r"
+      default:r=32.371
     }
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="aoTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="use_painting"
       type:t="r"
+      default:r=0.0
     }
     parameter{
       name:t="palette_index"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="lit_with_gun_fire"
       type:t="i"
+      default:i=1
     }
     parameter{
       name:t="maskDetail"
@@ -5692,18 +6908,22 @@ shader_category{
     parameter{
       name:t="painting_line"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="normalDetail"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="hide"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="texcoord_mulp"
@@ -5716,17 +6936,23 @@ shader_category{
     parameter{
       name:t="not_use_fxaa"
       type:t="i"
+      default:i=0
     }
   }
   shader{
     name:t="propeller_front"
     parameter{
-      name:t="num_bones"
-      type:t="i"
-    }
-    parameter{
       name:t="radial_tex"
       type:t="b"
+      default:b=no
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="num_bones"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -5740,6 +6966,7 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
   }
   shader{
@@ -5799,6 +7026,7 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
   }
   shader{
@@ -5806,22 +7034,22 @@ shader_category{
     parameter{
       name:t="cloth_wind__ambient_influence"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="cloth_wind__noise_scale_x"
       type:t="r"
-    }
-    parameter{
-      name:t="has_burning"
-      type:t="i"
+      default:r=1.0
     }
     parameter{
       name:t="cloth_wind__noise_scale_y"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="paintColorMask"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="simplified_vehicle_cockpit_render"
@@ -5830,22 +7058,27 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_swap_uv"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="cloth_wind__time_scale_min"
       type:t="r"
+      default:r=0.2
     }
     parameter{
       name:t="cloth_wind__noise_amp"
       type:t="r"
+      default:r=0.015
     }
     parameter{
       name:t="clothNoiseCombinedTex"
       type:t="b"
+      default:b=no
     }
     parameter{
       name:t="cloth_wind__time_scale_max"
       type:t="r"
+      default:r=0.4
     }
     parameter{
       name:t="atest"
@@ -5858,10 +7091,12 @@ shader_category{
     parameter{
       name:t="num_bones"
       type:t="i"
+      default:i=0
     }
     parameter{
       name:t="paint_color"
       type:t="p4"
+      default:p4=1.0, 1.0, 1.0, 0.0
     }
     parameter{
       name:t="micro_detail_layer_uv_scale"
@@ -5870,30 +7105,45 @@ shader_category{
     parameter{
       name:t="micro_detail_layer_v_scale"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="microDetailMask"
       type:t="b"
-    }
-    parameter{
-      name:t="aoTex"
-      type:t="b"
+      default:b=no
     }
     parameter{
       name:t="micro_detail_layer_intensity"
       type:t="r"
+      default:r=1.0
     }
     parameter{
       name:t="micro_detail_layer"
       type:t="i"
-    }
-    parameter{
-      name:t="has_wounds"
-      type:t="i"
+      default:i=-1
     }
     parameter{
       name:t="cloth_wind__noise_normal_amp"
       type:t="r"
+      default:r=1.0
+    }
+    parameters_group{
+      name:t="EN_specific"
+      parameter{
+        name:t="has_burning"
+        type:t="i"
+        default:i=0
+      }
+      parameter{
+        name:t="aoTex"
+        type:t="b"
+        default:b=no
+      }
+      parameter{
+        name:t="has_wounds"
+        type:t="i"
+        default:i=0
+      }
     }
   }
   shader{
@@ -5924,13 +7174,12 @@ shader_category{
     parameter{
       name:t="example_bool"
       type:t="b"
-      default:b="yes"
+      default:b=yes
       description:t="Boolean prop with custom default value"
     }
     parameters_group{
       name:t="Vectors"
       description:t="Parameters that contain more than one value"
-
       parameter{
         name:t="example_real2"
         type:t="p2"
@@ -5977,16 +7226,16 @@ shader_category{
       description:t="Parameters with not so standard UI"
       parameter{
         name:t="example_color"
-        description:t="It's like p4, but for RGBA color"
         type:t="p4"
         default:p4=1.0, 0.0, 0.0, 1.0
         custom_ui:t="color"
+        description:t="It's like p4, but for RGBA color"
       }
       parameter{
         name:t="example_matrix"
-        description:t="Matrix is not used currently, but exists in API"
         type:t="m"
         default:m=[[1.0, 0.0, 0.0] [0.0, 1.0, 0.0] [0.0, 0.0, 1.0] [0.0, 0.0, 0.0]]
+        description:t="Matrix is not used currently, but exists in API"
       }
     }
   }

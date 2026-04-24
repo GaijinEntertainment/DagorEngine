@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/anim/anim.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/anim/animchar_visbits.h>
@@ -12,6 +14,7 @@
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 static void animchar_hider_at_node_created_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   const AnimCharV20::AnimcharBaseComponent &animchar,
   const ecs::string &animchar_hider__nodeName,
@@ -20,7 +23,7 @@ static void animchar_hider_at_node_created_es_event_handler(const ecs::Event &,
   animchar_hider__nodeIdx = (int)animchar.getNodeTree().findNodeIndex(animchar_hider__nodeName.c_str());
   if (animchar_hider__nodeIdx < 0)
     logerr("Unknown animchar_hider.nodeName: '%s' in template <%s>", animchar_hider__nodeName.c_str(),
-      g_entity_mgr->getEntityTemplateName(eid));
+      manager.getEntityTemplateName(eid));
 }
 
 ECS_TAG(render)

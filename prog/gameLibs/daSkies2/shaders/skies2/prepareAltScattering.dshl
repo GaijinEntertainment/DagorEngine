@@ -93,18 +93,25 @@ shader skies_prepare_transmittance_for_altitude_ps
 
 shader skies_prepare_transmittance_for_altitude_cs
 {
-  ENABLE_ASSERT(cs)
   PREPARE_TRANSMITTANCE(cs)
   (cs) {
-    prepare_resolution@f2 = (1./prepare_resolution.x,1./prepare_resolution.y,0,0);
+    prepare_resolution@f4 = (1./prepare_resolution.x,1./prepare_resolution.y,prepare_resolution.x,prepare_resolution.y);
+    output@uav : register(0) hlsl {
+      RWTexture2D<float4> output@uav;
+    }
   }
 
   hlsl(cs) {
-    RWTexture2D<float4> output : register(u0);
     [numthreads(8, 8, 1)]
     void skies_gen_cs(uint3 dtId : SV_DispatchThreadID)
     {
-      float2 texcoord = (dtId.xy+0.5)*prepare_resolution;
+      // some mobile GPUs may launch more threads than specified
+      // avoid failing on followup UAV OOB in this case
+      BRANCH
+      if (any(dtId.xy >= prepare_resolution.zw))
+        return;
+
+      float2 texcoord = (dtId.xy+0.5)*prepare_resolution.xy;
       Length d = scattering_TcToDist_Km(texcoord.x, preparedScatteringDistToTc);
       Number mu = scattering_tcToViewZ(texcoord.y);
       texture2DAt(output, dtId.xy) = float4(getTransmittance(dtId.xy, d, mu), 0.0);
@@ -141,7 +148,6 @@ macro FROXELS_SCATTERING(code)
     skies_froxels_dist@f1 = skies_froxels_dist;
     skies_froxels_resolutionI@u3  = skies_froxels_resolution.xyz;
     skies_transmittance_texture@smp2d = skies_transmittance_texture;
-    //preparedLoss@smp2d = preparedLoss;
     skies_ms_texture@smp2d = skies_ms_texture;
     skies_primary_sun_light_dir@f3 = skies_primary_sun_light_dir;
     skies_primary_sun_color@f3 = (skies_primary_sun_color.x * skies_scattering_effect,
@@ -171,6 +177,7 @@ macro FROXELS_SCATTERING(code)
       #define RENDER_PANORAMA_SCATTERING 1
     }
   }
+  SKIES_RAINMAP(code)
   VIEW_VEC_OPTIMIZED(code)
   //INIT_SKIES_LUT(code)
   //USE_SKIES_LUT(code)
@@ -300,9 +307,13 @@ shader skies_integrate_froxel_scattering_ps
 int frustum_scattering_additional_substep_max_count = 0;
 float frustum_scattering_substep_height_threshold = 400.0;
 
+// TODO: Remove "skies_integrate_froxel_scattering_cs_use_parallel_z = no" interval when
+// parallel Z accumulation proves to be stable.
+int skies_integrate_froxel_scattering_cs_use_parallel_z = 1;
+interval skies_integrate_froxel_scattering_cs_use_parallel_z: no < 1, yes;
+
 shader skies_integrate_froxel_scattering_cs
 {
-  ENABLE_ASSERT(cs)
   USE_PS5_WAVE32_MODE()
   FROXELS_SCATTERING(cs)
   INIT_NUKE_FOG_LIGHT(cs)
@@ -311,10 +322,430 @@ shader skies_integrate_froxel_scattering_cs
   (cs) {
     additional_substep_max_count@i1 = frustum_scattering_additional_substep_max_count;
     substep_height_threshold@f1 = frustum_scattering_substep_height_threshold;
+    output@uav : register(0) hlsl {
+      RWTexture3D<float4> output@uav;
+    }
   }
 
   hlsl(cs) {
-    RWTexture3D<float4> output : register(u0);
+
+    struct ScatterRayConstData
+    {
+      Length r;
+      Length mu;
+      Position worldPos;
+      Direction viewVect;
+      float shadow_offset;
+      Number primaryNu, primaryMu_s;
+      Number secondaryNu, secondaryMu_s;
+      Number primaryRayleighPhaseValue;
+      Number primaryMiePhaseValue;
+      Number secondaryRayleighPhaseValue;
+      Number secondaryMiePhaseValue;
+
+      TransmittanceTexture transmittance_texture;
+      MultipleScatteringTexture multiple_scattering_approx;
+    };
+
+    IrradianceSpectrum scatterSlice(ScatterRayConstData c, Length d, Length dt, Length prevD, inout DimensionlessSpectrum throughput)
+    {
+      Length r_d = ClampRadius(theAtmosphere, SafeSqrt(d * d + 2.0 * c.r * c.mu * d + c.r * c.r));
+      Number primaryMu_s_d = ClampCosine((c.r * c.primaryMu_s + d * c.primaryNu) / r_d),
+            secondaryMu_s_d = ClampCosine((c.r * c.secondaryMu_s + d * c.secondaryNu) / r_d);
+
+      Position curWorldPos = c.worldPos + (prevD + c.shadow_offset * dt) * c.viewVect * 1000;
+      MediumSampleRGB medium = SampleMediumFull(theAtmosphere, r_d-theAtmosphere.bottom_radius, curWorldPos);
+
+      float3 sampleOpticalDepth = medium.extinction * dt;
+      float3 sampleTransmittance = exp(-sampleOpticalDepth);
+
+      float3 primaryTransmittanceToSun = GetTransmittanceToSun( theAtmosphere, c.transmittance_texture, r_d, primaryMu_s_d),
+              secondaryTransmittanceToSun = GetTransmittanceToSun( theAtmosphere, c.transmittance_texture, r_d, secondaryMu_s_d);
+
+
+      #if SHADOWMAP_ENABLED
+      // First evaluate opaque shadow
+        float primaryShadow = getShadow(curWorldPos, d, r_d, primaryMu_s_d);
+        float secondaryShadow = getCloudsStatisticalShadow(r_d, secondaryMu_s_d);
+        primaryTransmittanceToSun *= finalShadowFromShadowTerm(primaryShadow);
+        secondaryTransmittanceToSun *= finalShadowFromShadowTerm(secondaryShadow);
+      #endif
+
+      IrradianceSpectrum irradiance = IrradianceSpectrum(0.0f,0.0f,0.0f);
+
+      ##if nuke_in_atmosphere == on
+        irradiance += get_nuke_fog_step(curWorldPos, throughput, medium.extinction, sampleTransmittance, c.viewVect);
+      ##endif
+
+      float3 primaryPhaseTimesScattering = medium.scatteringMie * c.primaryMiePhaseValue + medium.scatteringRay * c.primaryRayleighPhaseValue;
+
+      float3 primaryMultiScatteredLuminance = GetMultipleScattering(theAtmosphere, c.multiple_scattering_approx, r_d, primaryMu_s_d) * medium.scattering;
+
+      float3 primaryS = (primaryTransmittanceToSun * primaryPhaseTimesScattering + primaryMultiScatteredLuminance);
+      primaryS *= skies_primary_sun_color.rgb;
+      float3 throughput_div_extinction = throughput / medium.extinction;
+      throughput = throughput*sampleTransmittance; // throughput change affects next slice only.
+
+      // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
+      irradiance += (primaryS - primaryS * sampleTransmittance)*throughput_div_extinction;
+      float3 secondaryPhaseTimesScattering = medium.scatteringMie * secondaryShadow * c.secondaryMiePhaseValue + medium.scatteringRay * c.secondaryRayleighPhaseValue;
+      float3 secondryMultiScatteredLuminance = GetMultipleScattering(theAtmosphere, c.multiple_scattering_approx, r_d, secondaryMu_s_d) * medium.scattering;
+      float3 secondaryS = (secondaryTransmittanceToSun * secondaryPhaseTimesScattering + secondryMultiScatteredLuminance);
+      secondaryS *= skies_secondary_sun_color.rgb;
+      irradiance += (secondaryS - secondaryS * sampleTransmittance)*throughput_div_extinction;
+
+      return irradiance;
+    }
+
+##if skies_integrate_froxel_scattering_cs_use_parallel_z == yes
+    #define GROUP_X_DIM 4
+    #define GROUP_Y_DIM 2
+
+    groupshared float4 sharedMem[2][GROUP_X_DIM][GROUP_Y_DIM][SCATTERING_PARALLEL_Z];
+    groupshared uint max_steps;
+    groupshared uint use_double_sampling;
+
+    // Implementing product and sum prefix/scan based on Hillis and Steele algorithm.
+    // If SCATTERING_PARALLEL_Z_LOG2 is even number a GroupMemoryBarrierWithGroupSync between prefixProductGetPrevious/prefixAccumulate uses is
+    // required.
+
+    float3 prefixProductGetPrevious(float3 value, inout float3 prevBatchInOut, uint3 gtId)
+    {
+      sharedMem[0][gtId.x][gtId.y][gtId.z].xyz = value;
+      GroupMemoryBarrierWithGroupSync();
+
+      UNROLL
+      for (uint k = 0; k < SCATTERING_PARALLEL_Z_LOG2; k++)
+      {
+        uint r = 1u << k;
+        if (gtId.z >= r)
+          value *= sharedMem[k%2][gtId.x][gtId.y][gtId.z - r].xyz;
+
+        sharedMem[(k+1)%2][gtId.x][gtId.y][gtId.z].xyz = value;
+        GroupMemoryBarrierWithGroupSync();
+      }
+      float3 prevProduct = gtId.z > 0 ? prevBatchInOut * sharedMem[SCATTERING_PARALLEL_Z_LOG2 % 2][gtId.x][gtId.y][gtId.z - 1].xyz : prevBatchInOut;
+      prevBatchInOut *= sharedMem[SCATTERING_PARALLEL_Z_LOG2 % 2][gtId.x][gtId.y][SCATTERING_PARALLEL_Z - 1].xyz;
+      return prevProduct;
+    }
+
+    float3 prefixAccumulate(float3 value, inout float3 prevBatchInOut, uint3 gtId)
+    {
+      sharedMem[0][gtId.x][gtId.y][gtId.z].xyz = value;
+      GroupMemoryBarrierWithGroupSync();
+
+      UNROLL
+      for (uint k = 0; k < SCATTERING_PARALLEL_Z_LOG2; k++)
+      {
+        uint r = 1u << k;
+        if (gtId.z >= r)
+          value += sharedMem[k%2][gtId.x][gtId.y][gtId.z - r].xyz;
+
+        sharedMem[(k+1)%2][gtId.x][gtId.y][gtId.z].xyz = value;
+        GroupMemoryBarrierWithGroupSync();
+      }
+      float3 sum = prevBatchInOut + value;
+      prevBatchInOut += sharedMem[SCATTERING_PARALLEL_Z_LOG2 % 2][gtId.x][gtId.y][SCATTERING_PARALLEL_Z - 1].xyz;
+      return sum;
+    }
+
+    [numthreads(GROUP_X_DIM, GROUP_Y_DIM, SCATTERING_PARALLEL_Z)]
+    void skies_gen_cs(uint2 dtId : SV_DispatchThreadID, uint3 gtId : SV_GroupThreadID)
+    {
+      float2 texcoord = (dtId+0.5)*prepare_resolution.xy;
+      ScatterRayConstData c;
+      #if RENDER_PANORAMA_SCATTERING
+        c.viewVect = get_panorama_viewvect(texcoord);
+        c.shadow_offset = 0;
+        //#define SUB_SAMPLE_RES_SHIFT 1
+        #define DOUBLE_SAMPLING 1
+        #define SUBSTEP_COUNT 1
+      #else
+        #if !_HARDWARE_METAL
+          if (all(gtId == 0))
+            use_double_sampling = 0;
+          GroupMemoryBarrierWithGroupSync();
+        #endif
+
+        uint doubleSampling = 0;
+        uint frameOver = 5;
+        c.shadow_offset = skies_continue_temporal >= 0 ? 0.5/frameOver + ((frameOver-0.5)/frameOver)*interleavedGradientNoiseFramed( dtId.xy, skies_frustum_scattering_frame%frameOver ) : 0;
+        if (skies_panoramic_scattering)//cubic
+        {
+          c.viewVect = get_panoramic_scattering_view(texcoord.xy);
+        } else
+        {
+          c.viewVect = normalize(getViewVecOptimized(texcoord.xy));
+          float4 prevClip = mul(float4(c.viewVect*1000, 0), prev_globtm_no_ofs_psf);
+          float2 prevScreen = prevClip.xy*rcp(prevClip.w);
+          if (max(abs(prevScreen.x), abs(prevScreen.y)) >= 1 || prevClip.w<=0)//off screen pixel
+          {
+            // have to disable this because it results in gpu hangs on intel macs
+            #if !_HARDWARE_METAL
+              doubleSampling = 1;
+            #endif
+            c.shadow_offset = 0;
+          }
+        }
+        // NOTE: I tried to #define DOUBLE_SAMPLING WaveActiveBitOr(doubleSampling) instead
+        // of using shared memory and it didn't change much of anything. Maybe need to try harder?
+        //todo: use dx12 merge all lanes here!
+        #if !_HARDWARE_METAL
+          if (gtId.z == 0)
+            InterlockedOr(use_double_sampling, doubleSampling);
+          GroupMemoryBarrierWithGroupSync();
+          doubleSampling = use_double_sampling;
+        #endif
+        //-todo: use dx12 merge all lanes here!
+        #define DOUBLE_SAMPLING doubleSampling
+        #if ALLOW_SKIES_SCATTERING_SUBSTEPS && !_HARDWARE_METAL
+          #define SUBSTEP_COUNT substepCount
+        #else
+          #define SUBSTEP_COUNT 1
+        #endif
+      #endif
+      c.r = use_camera_altitude + theAtmosphere.bottom_radius;
+      if (abs(c.r - theAtmosphere.top_radius) < 0.01)
+        c.r = theAtmosphere.top_radius+0.01;
+      c.mu = c.viewVect.y;
+
+      Number mu_horiz = -SafeSqrt(
+          1.0 - pow2(theAtmosphere.bottom_radius / c.r));
+      c.primaryNu = dot(c.viewVect.xzy, skies_primary_sun_light_dir);
+      c.primaryMu_s = skies_primary_sun_light_dir.z,
+      c.secondaryNu = dot(c.viewVect.xzy, skies_secondary_sun_light_dir);
+      c.secondaryMu_s = skies_secondary_sun_light_dir.z;
+
+      c.transmittance_texture = SamplerTexture2DFromName(skies_transmittance_texture);
+      c.multiple_scattering_approx = SamplerTexture2DFromName(skies_ms_texture);
+      c.worldPos = shadow_origin;
+
+      //float3 skiesScattering = sample_skies_scattering_color_camera(texcoord.xy, viewVect);
+      //===================
+      {
+      // Compute next intersection with atmosphere or ground
+      //float tMax = DistanceToNearestAtmosphereBoundary(theAtmosphere, c.r, c.mu, false);
+      //tMax = min(tMax, skies_froxels_dist/1000);
+
+      // Sample count
+      ##assert(skies_frustum_scattering_last_tz != 0.0);
+      const float tMax = skies_froxels_dist/1000/max(skies_frustum_scattering_last_tz, 0.1);
+
+      // Phase functions
+      //const Number uniformPhase = 1.0 / (4.0 * PI);
+      c.primaryRayleighPhaseValue = RayleighPhaseFunction(c.primaryNu);
+      c.primaryMiePhaseValue = c.primaryRayleighPhaseValue * MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, c.primaryNu);
+      c.secondaryRayleighPhaseValue = RayleighPhaseFunction(c.secondaryNu);
+      c.secondaryMiePhaseValue = c.secondaryRayleighPhaseValue * MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, c.secondaryNu);
+
+      IrradianceSpectrum irradiancePrevBatch = IrradianceSpectrum(0.0f,0.0f,0.0f);
+      DimensionlessSpectrum throughputPrevBatch = DimensionlessSpectrum(1.0,1.0,1.0);
+
+      ##assert(all(skies_froxels_resolutionI != 0));
+      uint sampleCount = (skies_frustum_scattering_last_tz < 1) ? max(skies_froxels_resolutionI.z, 1)-1 : skies_froxels_resolutionI.z;
+      sampleCount <<= DOUBLE_SAMPLING;
+
+      uint loops = (sampleCount + SCATTERING_PARALLEL_Z - 1) / SCATTERING_PARALLEL_Z;
+      for (uint i = 0, slice = gtId.z; i < loops; i++, slice += SCATTERING_PARALLEL_Z)
+      {
+        float texcoordZ = max(float(slice), 0.5)/float(sampleCount);
+        float prevTexcoordZ = slice != 0 ? max(float(slice - 1), 0.5)/float(sampleCount) : 0;
+        Length realD = pow2(texcoordZ)*tMax;
+        Length prevD = pow2(prevTexcoordZ)*tMax;
+        Length dt = realD - prevD;
+        Length d = realD;
+        float worldHeight = c.worldPos.y + realD * c.viewVect.y * 1000;
+
+        // substeps for fog calculation on lower layers. Problem is: raymarching can skip dense fog layer, so it leads to circular fog pattern on low heights
+        // more than 2 subteps provides almost no differece, so limit iteration count to unroll loop
+        #define MAX_SUBSTEP_COUNT 2
+        // use substeps only if we observing ground/water from above
+        uint substepCount = 1 + additional_substep_max_count * saturate (-c.viewVect.y*2) * (worldHeight > substep_height_threshold ? 0 : 1);
+
+        IrradianceSpectrum irradianceLocal = IrradianceSpectrum(0.0f,0.0f,0.0f);
+        DimensionlessSpectrum throughputLocal = DimensionlessSpectrum(1.0,1.0,1.0);
+
+        for (uint j = 0; j < min(SUBSTEP_COUNT, MAX_SUBSTEP_COUNT); j++)
+        {
+          Length substepDt = dt / SUBSTEP_COUNT;
+          Length substepD = d + substepDt * j;
+
+          // if (use_camera_altitude > 0 && mu < mu_horiz-0.01)//limit rays that significantly lower than horizon only
+          // {
+          // Length dground = DistanceToBottomAtmosphereBoundarySigned(theAtmosphere, c.r, c.mu);
+          // d = lerp(d, dground >= 0 ? min(d, dground) : d, saturate(d/40.-0.5)); //this way we fight with discontinuities (if point is below planet surface it is dark)\
+          // d = dground >= 0 ? min(d, dground) : d; //this way we fight with discontinuities (if point is below planet surface it is dark)\
+          // }
+
+          irradianceLocal += scatterSlice(c, substepD, substepDt, prevD + substepDt*j, throughputLocal);
+        }
+
+        DimensionlessSpectrum throughputPrevPrefix = prefixProductGetPrevious(throughputLocal, throughputPrevBatch, gtId);
+        irradianceLocal *= throughputPrevPrefix;
+
+        IrradianceSpectrum irradiancePrefix = prefixAccumulate(irradianceLocal, irradiancePrevBatch, gtId);
+
+        if (slice < sampleCount && (slice & DOUBLE_SAMPLING) == DOUBLE_SAMPLING)//assuming DOUBLE_SAMPLING == 1. correct one is if ((slice&(1<<DOUBLE_SAMPLING) - 1) == (1<<DOUBLE_SAMPLING) - 1)
+        {
+          uint3 writeTo = uint3(dtId, slice>>DOUBLE_SAMPLING);
+          float4 ret = float4(irradiancePrefix*theAtmosphere.solar_irradiance, dot(throughputPrevPrefix * throughputLocal, 1./3));
+
+          //bool canReproject = skies_continue_temporal > 0;
+          #if !RENDER_PANORAMA_SCATTERING
+            float3 prevUV = float3(texcoord, (writeTo.z+0.5)*prepare_resolution.z);
+            if (!skies_panoramic_scattering)
+            {
+              float3 camPos = c.viewVect*(pow2(prevUV.z)*skies_froxels_dist);
+              float prevLinearDist = length(camPos - move_world_view_pos);
+              float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
+              prevUV.z = sqrt(prevLinearUVZ);
+
+              #if 0
+              //instead of sampling with previous UV, we can make correct sampling, with linear distribution between samples
+              //basically, when previous Z are not center of froxel
+              // HW will use linear filtering
+              // and yet uvw.z is calculated with sqrt distribution
+              // so, if we need linear sampling, we should redjust, based on location of two froxels: at floor(uvw.z*resolution - 0.5) and ceil(uvw.z*resolution - 0.5)
+              // we calculate their linear UVZ params, then calc frction of linear (uvz.w-floored_pos)/(ceiled_pos-floored_pos)
+              //unfortunatele scattering distribution is rarely linear
+              float prevUVTexel = (prevUV.z*skies_froxels_resolution.z-0.5);
+              float prevUVTexelFloored = floor(prevUVTexel);
+              float flooredUVZ = (prevUVTexelFloored+0.5)*prepare_resolution.z;
+              float flooredPrevTexelPosZ = pow2(flooredUVZ);
+              //float ceilPrevTexelPosZ = pow2((prevUVTexelFloored+1.5)*prepare_resolution.z);
+              //float linearDistanceBetweenTexels = ceilPrevTexelPosZ - flooredPrevTexelPosZ;//a^2-b^2 = (a-b)*(a+b) == 2*res.z^2
+              float linearDistanceBetweenTexels = (2+2*prevUVTexelFloored);//a^2-b^2 = (a-b)*(a+b) == 2*res.z^2
+              prevUV.z = flooredUVZ + saturate((prevLinearUVZ - flooredPrevTexelPosZ)*rcp(linearDistanceBetweenTexels))*skies_froxels_resolution.z;
+              #endif
+
+              float4 prevClip = mul(float4(camPos, 1), prev_globtm_no_ofs_psf);
+              float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);
+              prevUV.xy = float2(prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5));
+              //float prevDepth = prevClip.w*length(getPrevViewVecOptimized(prevUV.xy));
+              //prevUV.z = sqrt(prevDepth/skies_froxels_dist);
+              //canReproject = max(abs(prevUV.x*2-1), abs(prevUV.y*2-1)) < skies_continue_temporal;
+            }
+            if (max(abs(prevUV.x*2-1), abs(prevUV.y*2-1)) < skies_continue_temporal)
+            {
+              //would be better blur current data, and sample unblurred previous.
+              //it would blur "new" (non-reprojected) texels as well, and hide seem on camera rotation
+              //however, it requires additional texture and additional explicit pass
+              float3 ofs = float3(prepare_resolution.xy*0.25,
+                prepare_resolution.z*0.25*pow2(prevUV.z));
+
+              prevUV.z = min(prevUV.z, skies_frustum_scattering_last_tz);
+              #define BLUR_SCREEN_ONLY 0
+              #if BLUR_SCREEN_ONLY
+              float4 old =
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV - float3(ofs.xy, 0), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(ofs.x, -ofs.y,0), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(-ofs.x, ofs.y,0), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(ofs.xy, 0), 0));
+              old *= 0.25;
+              #else
+              float4 old =
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(-ofs.xy, -ofs.z), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(ofs.x, -ofs.y, -ofs.z), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(-ofs.x, ofs.y, -ofs.z), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(ofs.xy, -ofs.z), 0));
+              ofs.z = max(0, min(ofs.z, skies_frustum_scattering_last_tz-prevUV.z));
+              old+=
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(-ofs.xy, ofs.z), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(ofs.x, -ofs.y, ofs.z), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(-ofs.x, ofs.y, ofs.z), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(ofs.xy, ofs.z), 0))
+              ;
+              old *= 0.125;
+              #endif
+              old.rgb *= old_effect;
+              ret = fp16_aware_lerp_filtered(old, ret, 0.06);
+            }
+          #endif
+          if (all(dtId < skies_froxels_resolutionI.xy))
+            texture3DAt(output, writeTo) = ret;
+        }
+      }
+      BRANCH
+      if (skies_frustum_scattering_last_tz < 1)
+      {
+        if (all(gtId == 0))
+          max_steps = 0;
+        GroupMemoryBarrierWithGroupSync();
+
+        Length startD = tMax * pow2(float(sampleCount - 1) / float(sampleCount));
+        Length dground = DistanceToBottomAtmosphereBoundarySigned(theAtmosphere, c.r, c.mu);
+        Length totalD = max(1, (dground > 0 ? min(dground*1000, 245000) : 245000) - startD);
+
+        uint steps = max(1, ceil(totalD/60000));
+        if (gtId.z == 0)
+        {
+          uint steps = max(1, ceil(totalD/60000));
+          steps = ((steps + SCATTERING_PARALLEL_Z - 1) / SCATTERING_PARALLEL_Z) * SCATTERING_PARALLEL_Z; // round up to first multiple of SCATTERING_PARALLEL_Z.
+          InterlockedMax(max_steps, steps);
+        }
+        GroupMemoryBarrierWithGroupSync();
+
+        Length dt = totalD/max_steps;
+        uint loops = max_steps / SCATTERING_PARALLEL_Z;
+        for (uint i = 0, slice = gtId.z; i < loops; i++, slice += SCATTERING_PARALLEL_Z)
+        {
+          Length d = startD + (slice + 1)*dt;
+          Length prevD = d - dt;
+
+          DimensionlessSpectrum throughputLocal = DimensionlessSpectrum(1.0,1.0,1.0);
+          IrradianceSpectrum irradianceLocal = scatterSlice(c, d, dt, prevD, throughputLocal);
+
+          DimensionlessSpectrum throughputPrevPrefix = prefixProductGetPrevious(throughputLocal, throughputPrevBatch, gtId);
+          irradianceLocal *= throughputPrevPrefix;
+
+          prefixAccumulate(irradianceLocal, irradiancePrevBatch, gtId);
+        }
+
+        if (gtId.z == 0)
+        {
+          float4 ret = float4(irradiancePrevBatch*theAtmosphere.solar_irradiance, dot(throughputPrevBatch, 1./3));
+
+          //bool canReproject = skies_continue_temporal > 0;
+          #if !RENDER_PANORAMA_SCATTERING
+            float3 prevUV = float3(texcoord, 1);
+            if (!skies_panoramic_scattering)
+            {
+              float3 camPos = c.viewVect*(pow2(prevUV.z)*skies_froxels_dist);
+              float prevLinearDist = length(camPos - move_world_view_pos);
+              float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
+              prevUV.z = sqrt(prevLinearUVZ);
+
+              float4 prevClip = mul(float4(camPos, 1), prev_globtm_no_ofs_psf);
+              float2 prevScreen = prevClip.w > 0 ? prevClip.xy/prevClip.w : float2(2, 2);
+              prevUV.xy = float2(prevScreen.xy*float2(0.5, -0.5) + float2(0.5, 0.5));
+              //float prevDepth = prevClip.w*length(getPrevViewVecOptimized(prevUV.xy));
+              //prevUV.z = sqrt(prevDepth/skies_froxels_dist);
+              //canReproject = max(abs(prevUV.x*2-1), abs(prevUV.y*2-1)) < skies_continue_temporal;
+            }
+            if (max(abs(prevUV.x*2-1), abs(prevUV.y*2-1)) < skies_continue_temporal)
+            {
+              //would be better blur current data, and sample unblurred previous.
+              //it would blur "new" (non-reprojected) texels as well, and hide seem on camera rotation
+              //however, it requires additional texture and additional explicit pass
+              float2 ofs = prepare_resolution.xy*0.25;
+
+              float4 old =
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV - float3(ofs.xy, 0), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(ofs.x, -ofs.y,0), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(-ofs.x, ofs.y,0), 0))+
+                tex3Dlod(prev_skies_frustum_scattering, float4(prevUV + float3(ofs.xy, 0), 0));
+              old *= 0.25;
+              old.rgb *= old_effect;
+              ret = fp16_aware_lerp_filtered(old, ret, 0.06);
+            }
+            #endif
+          if (all(dtId < skies_froxels_resolutionI.xy))
+            texture3DAt(output, uint3(dtId, skies_froxels_resolutionI.z-1)) = ret;
+        }
+      }
+      }//
+    }
+##else // skies_integrate_froxel_scattering_cs_use_parallel_z == no
     groupshared uint use_double_sampling;
 ##if hardware.ps5 || hardware.dx12
     [numthreads(8, 2, 1)]
@@ -324,66 +755,72 @@ shader skies_integrate_froxel_scattering_cs
     void skies_gen_cs(uint2 dtId : SV_DispatchThreadID)
     {
       float2 texcoord = (dtId+0.5)*prepare_resolution.xy;
+      ScatterRayConstData c;
       #if RENDER_PANORAMA_SCATTERING
-        float3 viewVect = get_panorama_viewvect(texcoord);
-        float shadow_offset = 0;
+        c.viewVect = get_panorama_viewvect(texcoord);
+        c.shadow_offset = 0;
         //#define SUB_SAMPLE_RES_SHIFT 1
         #define DOUBLE_SAMPLING 1
         #define SUBSTEP_COUNT 1
       #else
-        float3 viewVect;
         uint doubleSampling = 0;
         use_double_sampling = 0;
         uint frameOver = 5;
-        float shadow_offset = skies_continue_temporal >= 0 ? 0.5/frameOver + ((frameOver-0.5)/frameOver)*interleavedGradientNoiseFramed( dtId.xy, skies_frustum_scattering_frame%frameOver ) : 0;
+        c.shadow_offset = skies_continue_temporal >= 0 ? 0.5/frameOver + ((frameOver-0.5)/frameOver)*interleavedGradientNoiseFramed( dtId.xy, skies_frustum_scattering_frame%frameOver ) : 0;
         if (skies_panoramic_scattering)//cubic
         {
-          viewVect = get_panoramic_scattering_view(texcoord.xy);
+          c.viewVect = get_panoramic_scattering_view(texcoord.xy);
         } else
         {
-          viewVect = normalize(getViewVecOptimized(texcoord.xy));
-          float4 prevClip = mul(float4(viewVect*1000, 0), prev_globtm_no_ofs_psf);
+          c.viewVect = normalize(getViewVecOptimized(texcoord.xy));
+          float4 prevClip = mul(float4(c.viewVect*1000, 0), prev_globtm_no_ofs_psf);
           float2 prevScreen = prevClip.xy*rcp(prevClip.w);
           if (max(abs(prevScreen.x), abs(prevScreen.y)) >= 1 || prevClip.w<=0)//off screen pixel
           {
-            doubleSampling = 1;
-            shadow_offset = 0;
+            // have to disable this because it results in gpu hangs on intel macs
+            #if !_HARDWARE_METAL
+              doubleSampling = 1;
+            #endif
+            c.shadow_offset = 0;
           }
         }
         // NOTE: I tried to #define DOUBLE_SAMPLING WaveActiveBitOr(doubleSampling) instead
         // of using shared memory and it didn't change much of anything. Maybe need to try harder?
         //todo: use dx12 merge all lanes here!
+        #if !_HARDWARE_METAL
         InterlockedOr(use_double_sampling, doubleSampling);
         GroupMemoryBarrier();
         doubleSampling |= use_double_sampling;
+        #endif
         //-todo: use dx12 merge all lanes here!
         #define DOUBLE_SAMPLING doubleSampling
-        #if ALLOW_SKIES_SCATTERING_SUBSTEPS
+        #if ALLOW_SKIES_SCATTERING_SUBSTEPS && !_HARDWARE_METAL
           #define SUBSTEP_COUNT substepCount
         #else
           #define SUBSTEP_COUNT 1
         #endif
       #endif
-      Length r = use_camera_altitude + theAtmosphere.bottom_radius;
-      if (abs(r - theAtmosphere.top_radius) < 0.01)
-        r = theAtmosphere.top_radius+0.01;
-      Number mu = viewVect.y;
+      c.r = use_camera_altitude + theAtmosphere.bottom_radius;
+      if (abs(c.r - theAtmosphere.top_radius) < 0.01)
+        c.r = theAtmosphere.top_radius+0.01;
+      c.mu = c.viewVect.y;
 
       Number mu_horiz = -SafeSqrt(
-          1.0 - pow2(theAtmosphere.bottom_radius / r));
-      Number primaryNu = dot(viewVect.xzy, skies_primary_sun_light_dir), primaryMu_s = skies_primary_sun_light_dir.z,
-             secondaryNu = dot(viewVect.xzy, skies_secondary_sun_light_dir), secondaryMu_s = skies_secondary_sun_light_dir.z;
+          1.0 - pow2(theAtmosphere.bottom_radius / c.r));
+      c.primaryNu = dot(c.viewVect.xzy, skies_primary_sun_light_dir);
+      c.primaryMu_s = skies_primary_sun_light_dir.z,
+      c.secondaryNu = dot(c.viewVect.xzy, skies_secondary_sun_light_dir);
+      c.secondaryMu_s = skies_secondary_sun_light_dir.z;
 
-      TransmittanceTexture transmittance_texture = SamplerTexture2DFromName(skies_transmittance_texture);
-      MultipleScatteringTexture multiple_scattering_approx = SamplerTexture2DFromName(skies_ms_texture);
-      Position worldPos = shadow_origin;
-      Direction worldDir = viewVect*1000;
+      c.transmittance_texture = SamplerTexture2DFromName(skies_transmittance_texture);
+      c.multiple_scattering_approx = SamplerTexture2DFromName(skies_ms_texture);
+      c.worldPos = shadow_origin;
 
       //float3 skiesScattering = sample_skies_scattering_color_camera(texcoord.xy, viewVect);
 //===================
       {
       // Compute next intersection with atmosphere or ground
-      //float tMax = DistanceToNearestAtmosphereBoundary(theAtmosphere, r, mu, false);
+      //float tMax = DistanceToNearestAtmosphereBoundary(theAtmosphere, c.r, c.mu, false);
       //tMax = min(tMax, skies_froxels_dist/1000);
 
       // Sample count
@@ -393,10 +830,10 @@ shader skies_integrate_froxel_scattering_cs
 
       // Phase functions
       //const Number uniformPhase = 1.0 / (4.0 * PI);
-      Number primaryRayleighPhaseValue = RayleighPhaseFunction(primaryNu);
-      Number primaryMiePhaseValue = primaryRayleighPhaseValue*MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, primaryNu);
-      Number secondaryRayleighPhaseValue = RayleighPhaseFunction(secondaryNu);
-      Number secondaryMiePhaseValue = secondaryRayleighPhaseValue*MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, secondaryNu);
+      c.primaryRayleighPhaseValue = RayleighPhaseFunction(c.primaryNu);
+      c.primaryMiePhaseValue = c.primaryRayleighPhaseValue * MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, c.primaryNu);
+      c.secondaryRayleighPhaseValue = RayleighPhaseFunction(c.secondaryNu);
+      c.secondaryMiePhaseValue = c.secondaryRayleighPhaseValue * MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, c.secondaryNu);
 
       // Ray march the atmosphere to integrate optical depth
       IrradianceSpectrum L = IrradianceSpectrum(0.0f,0.0f,0.0f);
@@ -412,67 +849,26 @@ shader skies_integrate_froxel_scattering_cs
         Length realD = pow2(texcoordZ)*tMax;
         Length dt = realD - prevD;
         Length d = realD;
-        float worldHeight = worldPos.y + realD * worldDir.y;
+        float worldHeight = c.worldPos.y + realD * c.viewVect.y * 1000;
 
         // substeps for fog calculation on lower layers. Problem is: raymarching can skip dense fog layer, so it leads to circular fog pattern on low heights
         // more than 2 subteps provides almost no differece, so limit iteration count to unroll loop
         #define MAX_SUBSTEP_COUNT 2
         // use substeps only if we observing ground/water from above
-        uint substepCount = 1 + additional_substep_max_count * saturate (-viewVect.y*2) * (worldHeight > substep_height_threshold ? 0 : 1);
+        uint substepCount = 1 + additional_substep_max_count * saturate (-c.viewVect.y*2) * (worldHeight > substep_height_threshold ? 0 : 1);
         for (uint j = 0; j < min(SUBSTEP_COUNT, MAX_SUBSTEP_COUNT); j++)
         {
           Length substepDt = dt / SUBSTEP_COUNT;
           Length substepD = d + substepDt * j;
 
-          if (use_camera_altitude > 0 && mu < mu_horiz-0.01)//limit rays that significantly lower than horizon only
-          {
-            Length dground = DistanceToBottomAtmosphereBoundarySigned(theAtmosphere, r, mu);
-            //d = lerp(d, dground >= 0 ? min(d, dground) : d, saturate(d/40.-0.5)); //this way we fight with discontinuities (if point is below planet surface it is dark)\
-            //d = dground >= 0 ? min(d, dground) : d; //this way we fight with discontinuities (if point is below planet surface it is dark)\
-          }
+          // if (use_camera_altitude > 0 && mu < mu_horiz-0.01)//limit rays that significantly lower than horizon only
+          // {
+          // Length dground = DistanceToBottomAtmosphereBoundarySigned(theAtmosphere, c.r, c.mu);
+          // d = lerp(d, dground >= 0 ? min(d, dground) : d, saturate(d/40.-0.5)); //this way we fight with discontinuities (if point is below planet surface it is dark)\
+          // d = dground >= 0 ? min(d, dground) : d; //this way we fight with discontinuities (if point is below planet surface it is dark)\
+          // }
 
-          Length r_d = ClampRadius(theAtmosphere, SafeSqrt(substepD * substepD + 2.0 * r * mu * substepD + r * r));
-          Number primaryMu_s_d = ClampCosine((r * primaryMu_s + substepD * primaryNu) / r_d),
-                 secondaryMu_s_d = ClampCosine((r * secondaryMu_s + substepD * secondaryNu) / r_d);
-
-          Position curWorldPos = worldPos + (prevD + (shadow_offset + j) * substepDt) * worldDir;
-          MediumSampleRGB medium = SampleMediumFull(theAtmosphere, r_d-theAtmosphere.bottom_radius, curWorldPos);
-
-          float3 sampleOpticalDepth = medium.extinction * substepDt;
-          float3 sampleTransmittance = exp(-sampleOpticalDepth);
-
-          float3 primaryTransmittanceToSun = GetTransmittanceToSun( theAtmosphere, transmittance_texture, r_d, primaryMu_s_d),
-                 secondaryTransmittanceToSun = GetTransmittanceToSun( theAtmosphere, transmittance_texture, r_d, secondaryMu_s_d);
-
-
-          #if SHADOWMAP_ENABLED
-          // First evaluate opaque shadow
-            float primaryShadow = getShadow(curWorldPos, substepD, r_d, primaryMu_s_d);
-            float secondaryShadow = getCloudsStatisticalShadow(r_d, secondaryMu_s_d);
-            primaryTransmittanceToSun *= finalShadowFromShadowTerm(primaryShadow);
-            secondaryTransmittanceToSun *= finalShadowFromShadowTerm(secondaryShadow);
-          #endif
-
-          ##if nuke_in_atmosphere == on
-            L += get_nuke_fog_step(curWorldPos, throughput, medium.extinction, sampleTransmittance, viewVect);
-          ##endif
-
-          float3 primaryPhaseTimesScattering = medium.scatteringMie * primaryMiePhaseValue + medium.scatteringRay * primaryRayleighPhaseValue;
-
-          float3 primaryMultiScatteredLuminance = GetMultipleScattering(theAtmosphere, multiple_scattering_approx, r_d, primaryMu_s_d) * medium.scattering;
-
-          float3 primaryS = (primaryTransmittanceToSun * primaryPhaseTimesScattering + primaryMultiScatteredLuminance);
-          primaryS *= skies_primary_sun_color.rgb;
-          float3 throughput_div_extinction = throughput / medium.extinction;
-          throughput = throughput*sampleTransmittance;
-          // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
-          L += (primaryS - primaryS * sampleTransmittance)*throughput_div_extinction;
-          float3 secondaryPhaseTimesScattering = medium.scatteringMie * secondaryShadow * secondaryMiePhaseValue + medium.scatteringRay * secondaryRayleighPhaseValue;
-          float3 secondryMultiScatteredLuminance = GetMultipleScattering(theAtmosphere, multiple_scattering_approx, r_d, secondaryMu_s_d) * medium.scattering;
-          float3 secondaryS = (secondaryTransmittanceToSun * secondaryPhaseTimesScattering + secondryMultiScatteredLuminance);
-          secondaryS *= skies_secondary_sun_color.rgb;
-          L += (secondaryS - secondaryS * sampleTransmittance)*throughput_div_extinction;
-          //ret.rgb = lerp(ret.rgb, skiesScattering, saturate(texcoordZ*5-4));
+          L += scatterSlice(c, substepD, substepDt, prevD + substepDt*j, throughput);
         }
         prevD = realD;
 
@@ -490,7 +886,7 @@ shader skies_integrate_froxel_scattering_cs
             float3 prevUV = float3(texcoord, (writeTo.z+0.5)*prepare_resolution.z);
             if (!skies_panoramic_scattering)
             {
-              float3 camPos = viewVect*(pow2(prevUV.z)*skies_froxels_dist);
+              float3 camPos = c.viewVect*(pow2(prevUV.z)*skies_froxels_dist);
               float prevLinearDist = length(camPos - move_world_view_pos);
               float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
               prevUV.z = sqrt(prevLinearUVZ);
@@ -564,52 +960,17 @@ shader skies_integrate_froxel_scattering_cs
       if (skies_frustum_scattering_last_tz < 1)
       {
         Length startD = prevD;
-        Length dground = DistanceToBottomAtmosphereBoundarySigned(theAtmosphere, r, mu);
+        Length dground = DistanceToBottomAtmosphereBoundarySigned(theAtmosphere, c.r, c.mu);
         Length totalD = max(1, (dground > 0 ? min(dground*1000, 245000) : 245000) - prevD);
         uint steps = max(1, ceil(totalD/60000));
         Length dt = totalD/steps;
         Length d = startD + dt;
         for (uint i = 0; i < steps; i++, d+=dt)
         {
-          Length r_d = ClampRadius(theAtmosphere, SafeSqrt(d * d + 2.0 * r * mu * d + r * r));
-          Number primaryMu_s_d = ClampCosine((r * primaryMu_s + d * primaryNu) / r_d),
-                 secondaryMu_s_d = ClampCosine((r * secondaryMu_s + d * secondaryNu) / r_d);
-
-          Position curWorldPos = worldPos + (prevD + shadow_offset*dt) * worldDir;
+          L += scatterSlice(c, d, dt, prevD, throughput);
           prevD = d;
-          MediumSampleRGB medium = SampleMediumFull(theAtmosphere, r_d-theAtmosphere.bottom_radius, curWorldPos);
-
-          float3 sampleOpticalDepth = medium.extinction * dt;
-          float3 sampleTransmittance = exp(-sampleOpticalDepth);
-
-          float3 primaryTransmittanceToSun = GetTransmittanceToSun( theAtmosphere, transmittance_texture, r_d, primaryMu_s_d),
-                 secondaryTransmittanceToSun = GetTransmittanceToSun( theAtmosphere, transmittance_texture, r_d, secondaryMu_s_d);
-
-
-          #if SHADOWMAP_ENABLED
-          // First evaluate opaque shadow
-            float primaryShadow = getShadow(curWorldPos, d, r_d, primaryMu_s_d);
-            float secondaryShadow = getCloudsStatisticalShadow(r_d, secondaryMu_s_d);
-            primaryTransmittanceToSun *= finalShadowFromShadowTerm(primaryShadow);
-            secondaryTransmittanceToSun *= finalShadowFromShadowTerm(secondaryShadow);
-          #endif
-          float3 primaryPhaseTimesScattering = medium.scatteringMie * primaryMiePhaseValue + medium.scatteringRay * primaryRayleighPhaseValue;
-
-          float3 primaryMultiScatteredLuminance = GetMultipleScattering(theAtmosphere, multiple_scattering_approx, r_d, primaryMu_s_d) * medium.scattering;
-
-          float3 primaryS = (primaryTransmittanceToSun * primaryPhaseTimesScattering + primaryMultiScatteredLuminance);
-          primaryS *= skies_primary_sun_color.rgb;
-          float3 throughput_div_extinction = throughput / medium.extinction;
-          throughput = throughput*sampleTransmittance;
-          // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
-          L += (primaryS - primaryS * sampleTransmittance)*throughput_div_extinction;
-          float3 secondaryPhaseTimesScattering = medium.scatteringMie * secondaryShadow * secondaryMiePhaseValue + medium.scatteringRay * secondaryRayleighPhaseValue;
-          float3 secondryMultiScatteredLuminance = GetMultipleScattering(theAtmosphere, multiple_scattering_approx, r_d, secondaryMu_s_d) * medium.scattering;
-          float3 secondaryS = (secondaryTransmittanceToSun * secondaryPhaseTimesScattering + secondryMultiScatteredLuminance);
-          secondaryS *= skies_secondary_sun_color.rgb;
-          L += (secondaryS - secondaryS * sampleTransmittance)*throughput_div_extinction;
-          //ret.rgb = lerp(ret.rgb, skiesScattering, saturate(texcoordZ*5-4));
         }
+
         float4 ret = float4(L*theAtmosphere.solar_irradiance, dot(throughput, 1./3));
 
         //bool canReproject = skies_continue_temporal > 0;
@@ -617,7 +978,7 @@ shader skies_integrate_froxel_scattering_cs
           float3 prevUV = float3(texcoord, 1);
           if (!skies_panoramic_scattering)
           {
-            float3 camPos = viewVect*(pow2(prevUV.z)*skies_froxels_dist);
+            float3 camPos = c.viewVect*(pow2(prevUV.z)*skies_froxels_dist);
             float prevLinearDist = length(camPos - move_world_view_pos);
             float prevLinearUVZ = saturate(prevLinearDist*skies_froxels_prev_dist.x);
             prevUV.z = sqrt(prevLinearUVZ);

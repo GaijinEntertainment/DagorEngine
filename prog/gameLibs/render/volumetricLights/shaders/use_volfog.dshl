@@ -1,5 +1,6 @@
 include "use_downsampled_checkerboard_depth_tex.dshl"
 include "use_volfog_common.dshl"
+include "dynamic_resolution.dshl"
 
 texture view_result_inscatter;
 texture distant_fog_result_inscatter;
@@ -101,6 +102,7 @@ endmacro
 
 
 macro USE_VOLUMETRIC_LIGHT_ONLY_INC(code)
+  INIT_DYNAMIC_RESOLUTION(code)
   //(code) {
   //  distant_fog_test_params@f4 = distant_fog_test_params; // for testing
   //}
@@ -180,7 +182,7 @@ macro USE_VOLUMETRIC_LIGHT_ONLY_INC(code)
 #if !DISTANT_FOG_USE_BILINEAR_SAMPLING
       float load_distant_fog_lowres_depth(int2 pos)
       {
-        return texture2DAt(distant_fog_lowres_depth, pos).x;
+        return texture2DAt(distant_fog_lowres_depth, pos * current_dynamic_resolution_scale).x;
       }
 #endif
 

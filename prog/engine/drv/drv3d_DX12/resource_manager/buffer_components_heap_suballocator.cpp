@@ -77,9 +77,9 @@ void HeapSuballocatorImpl<MaxSignatureCount>::update(Buckets &buckets, uint32_t 
 }
 
 
-void BufferHeap::HeapSuballocator::onHeapCreated(Heap &heap)
+void BufferHeap::HeapSuballocator::onHeapCreated(Heap &heap, bool can_suballocate)
 {
-  if (!heap.canSubAllocateFrom())
+  if (!can_suballocate)
     return;
 
   heap.setSuballocator(this);
@@ -93,7 +93,7 @@ void BufferHeap::HeapSuballocator::onHeapUpdated(const Heap &heap)
 
 void BufferHeap::HeapSuballocator::onHeapDestroyed(Heap &heap)
 {
-  if (!heap.canSubAllocateFrom())
+  if (!heap.hasSuballocator())
     return;
 
   heap.setSuballocator(nullptr);
@@ -112,18 +112,18 @@ eastl::pair<BufferHeap::Heap *, ValueRange<uint64_t>> BufferHeap::HeapSuballocat
 
   Heap *selectedHeap = nullptr;
   ValueRange<uint64_t> allocationRange;
-  impl.iterateSuitableHeaps(signature, size,
+  impl.iterateSuitableHeapsInSameSizeBucketOnly(signature, size,
     [&buffer_heaps, &selectedHeap, &allocationRange, size, offset_alignment, signature](uint32_t heap_index,
       uint64_t max_free_range_size) {
       G_UNUSED(max_free_range_size);
       G_UNUSED(signature);
       Heap &heap = buffer_heaps[heap_index];
 
-      G_ASSERT(heap.canSubAllocateFrom());
+      G_ASSERT(heap.hasSuballocator());
       G_ASSERT(heap.getMaxFreeRangeSize() == max_free_range_size);
       G_ASSERT(getSignature(heap) == signature);
 
-      auto range = heap.allocate(size, offset_alignment);
+      auto range = heap.allocateExact(size, offset_alignment);
       if (range.empty())
         return false;
 
@@ -132,6 +132,30 @@ eastl::pair<BufferHeap::Heap *, ValueRange<uint64_t>> BufferHeap::HeapSuballocat
 
       return true;
     });
+
+  if (!selectedHeap)
+  {
+    impl.iterateSuitableHeapsInBufferOrder(signature, size,
+      [&buffer_heaps, &selectedHeap, &allocationRange, size, offset_alignment, signature](uint32_t heap_index,
+        uint64_t max_free_range_size) {
+        G_UNUSED(max_free_range_size);
+        G_UNUSED(signature);
+        Heap &heap = buffer_heaps[heap_index];
+
+        G_ASSERT(heap.hasSuballocator());
+        G_ASSERT(heap.getMaxFreeRangeSize() == max_free_range_size);
+        G_ASSERT(getSignature(heap) == signature);
+
+        auto range = heap.allocate(size, offset_alignment);
+        if (range.empty())
+          return false;
+
+        selectedHeap = &heap;
+        allocationRange = range;
+
+        return true;
+      });
+  }
 
   return {selectedHeap, allocationRange};
 }

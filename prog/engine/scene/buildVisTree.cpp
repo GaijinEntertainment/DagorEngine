@@ -13,8 +13,8 @@ struct VisTreeComparator
   {
     float c1 = as_point3(&o1.bbox.bmin)[use_side] + as_point3(&o1.bbox.bmax)[use_side];
     float c2 = as_point3(&o2.bbox.bmin)[use_side] + as_point3(&o2.bbox.bmax)[use_side];
-    float dif = (c1 - c2) * 0.5f;
-    if (fabsf(dif) < 0.001f)
+    float dif = c1 - c2;
+    if (dif == 0)
       return 0;
     if (dif < 0)
       return true;

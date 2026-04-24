@@ -4,7 +4,7 @@ from "math" import max
 let cursor = Cursor({ rendObj = ROBJ_IMAGE size = 32 image = Picture("!ui/atlas#cursor.svg:{0}:{0}:K".subst(hdpx(32))) })
 
 let bbb = {rendObj = ROBJ_TEXT text = "BBB"}
-let aaa = { padding = static [20,0,0,50] children = {rendObj = ROBJ_TEXT text = "AAA"}}
+let aaa = { padding = const [20,0,0,50] children = {rendObj = ROBJ_TEXT text = "AAA"}}
 let DemoBox = {
   flow    = FLOW_VERTICAL
   size    = SIZE_TO_CONTENT

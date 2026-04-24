@@ -33,11 +33,11 @@ public:
     ImGui::FocusWindow(ImGui::GetCurrentWindow()); // Bring window to the front.
     if (showFocusRectangle)
     {
-      // ImGui::NavRestoreHighlightAfterMove() almost does what we need, but we do not want hover highlight on the
+      // ImGui::SetNavCursorVisibleAfterMove() almost does what we need, but we do not want hover highlight on the
       // focused button because that would cause a color change (changing back to the non-hovered color) when the user
-      // moved the mouse. To avoid that we do not set NavDisableMouseHover to true.
-      ImGui::GetCurrentContext()->NavDisableHighlight = false;
-      ImGui::GetCurrentContext()->NavDisableMouseHover = false;
+      // moved the mouse. To avoid that we do not set NavHighlightItemUnderNav to true.
+      ImGui::GetCurrentContext()->NavCursorVisible = true;
+      ImGui::GetCurrentContext()->NavHighlightItemUnderNav = false;
       ImGui::GetCurrentContext()->NavMousePosDirty = true;
     }
 

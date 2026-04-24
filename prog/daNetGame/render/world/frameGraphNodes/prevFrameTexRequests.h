@@ -14,10 +14,12 @@ inline eastl::optional<dafg::VirtualResourceHandle<const BaseTexture, true, fals
     prevFrameSamplerName = "prev_frame_sampler";
     prevFrameTexName = "prev_frame_tex";
   }
-  else if (!renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
+  else
   {
     prevFrameSamplerName = "gbuf_sampler";
     prevFrameTexName = "gbuf_1";
+    registry.readTexture("ssao_tex").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("ssao_tex").optional();
+    registry.read("ssao_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("ssao_tex_samplerstate").optional();
   }
   registry.read(prevFrameSamplerName).blob<d3d::SamplerHandle>().bindToShaderVar("prev_frame_tex_samplerstate").optional();
   if (prevFrameTexName)

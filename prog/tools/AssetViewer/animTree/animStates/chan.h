@@ -13,4 +13,7 @@ struct AnimParamData;
 class DataBlock;
 
 void chan_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx);
+void chan_set_dependent_defaults(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
+void chan_update_dependent_fields(AnimParamData &param, dag::Vector<AnimParamData> &params,
+  PropPanel::ContainerPropertyControl *panel);
 void chan_prepare_params(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);

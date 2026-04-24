@@ -33,17 +33,32 @@ void FaultReportDump::dumpLog()
   {
     // small marker to conserve log space, but keep filterable
     // elevate error level for production significant crash dump analysis
-    if (iter.tag == TAG_GPU_EXEC_MARKER || iter.tag == TAG_CPU_EXEC_MARKER || iter.tag == TAG_GPU_JOB_HASH)
-      logwarn("VFD#%06lXv%02u-%016llX %s", idx, iter.tag, iter.id, iter.txt);
-    else
-      debug("VFD#%06lXv%02u-%016llX %s", idx, iter.tag, iter.id, iter.txt);
-    for (const ExtRef &refIter : iter.refs)
+    String buf(128, "VFD#%06lXv%02u-%016llX %s", idx, iter.tag, iter.id, iter.txt);
+
+    if (iter.refs.size() == 1)
     {
-      auto findResult = sortedData[refIter.tag].find(refIter.id);
-      if (findResult == sortedData[refIter.tag].end())
-        debug("VFD#%06lXr%02u-%016llX %02u-%016llX #broken#", idx, iter.tag, iter.id, refIter.tag, refIter.id);
+      auto findResult = sortedData[iter.refs[0].tag].find(iter.refs[0].id);
+      if (findResult == sortedData[iter.refs[0].tag].end())
+        buf += String(64, "|> r%02u-%016llX #broken#", iter.refs[0].tag, iter.refs[0].id);
       else
-        debug("VFD#%06lXr%02u-%016llX %02u-%016llX #%06lX", idx, iter.tag, iter.id, refIter.tag, refIter.id, findResult->second);
+        buf += String(64, "|> r%02u-%016llX ##%06lX", iter.refs[0].tag, iter.refs[0].id, findResult->second);
+    }
+
+    if (iter.tag == TAG_GPU_EXEC_MARKER || iter.tag == TAG_CPU_EXEC_MARKER || iter.tag == TAG_GPU_JOB_HASH)
+      logwarn("%s", buf);
+    else
+      debug("%s", buf);
+
+    if (iter.refs.size() > 1)
+    {
+      for (const ExtRef &refIter : iter.refs)
+      {
+        auto findResult = sortedData[refIter.tag].find(refIter.id);
+        if (findResult == sortedData[refIter.tag].end())
+          debug("VFD#%06lXr%02u-%016llX %02u-%016llX #broken#", idx, iter.tag, iter.id, refIter.tag, refIter.id);
+        else
+          debug("VFD#%06lXr%02u-%016llX %02u-%016llX #%06lX", idx, iter.tag, iter.id, refIter.tag, refIter.id, findResult->second);
+      }
     }
     ++idx;
   }

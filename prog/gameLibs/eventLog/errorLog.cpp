@@ -24,21 +24,38 @@ static eastl::string collection;
 
 static float fatal_probability = 0.0f;
 
-static uint32_t str_hash_fnv1_skip_digits_and_comments(const char *s)
+enum
+{
+  HASH_SKIP_NONE = 0,
+  HASH_SKIP_COMMENTS = 1 << 0,
+  HASH_SKIP_NUMBERS = 1 << 1,
+};
+
+static uint32_t str_hash_fnv1(int mode, const char *s, int len = INT_MAX)
 {
   uint32_t result = FNV1Params<32>::offset_basis;
   uint32_t c = 0;
   int pos = 0;
-  bool insideComment = false;
-  while ((c = s[pos]) != 0)
+  bool insideSkipComment = false;
+  bool insideSkipNumber = false;
+  while ((c = s[pos]) != 0 && len > 0)
   {
-    if (!insideComment && s[pos] == '/' && s[pos + 1] == '*')
-      insideComment = true;
-    else if (insideComment && pos > 2 && s[pos - 2] == '*' && s[pos - 1] == '/')
-      insideComment = false;
-    if (!insideComment && (c < '0' || c > '9') && c != '.')
+    if (mode & HASH_SKIP_COMMENTS)
+    {
+      if (!insideSkipComment && s[pos] == '/' && s[pos + 1] == '*')
+        insideSkipComment = true;
+      else if (insideSkipComment && pos > 2 && s[pos - 2] == '*' && s[pos - 1] == '/')
+        insideSkipComment = false;
+    }
+
+    if (mode & HASH_SKIP_NUMBERS)
+      insideSkipNumber = (c >= '0' && c <= '9') || c == '.';
+
+    if (!insideSkipComment && !insideSkipNumber)
       result = (result * FNV1Params<32>::prime) ^ c;
+
     pos++;
+    len--;
   }
   return result;
 }
@@ -84,14 +101,14 @@ static uint32_t calc_error_hash(const char *error_message)
   uint32_t result = 0;
   if (variablesBegin)
   {
-    result = mem_hash_fnv1(error_message, variablesBegin - error_message);
+    result = str_hash_fnv1(HASH_SKIP_COMMENTS, error_message, variablesBegin - error_message);
     const char *variablesEnd = strstr(variablesBegin, "\n\n");
     if (variablesEnd)
-      result ^= str_hash_fnv1_skip_digits_and_comments(variablesEnd);
+      result ^= str_hash_fnv1(HASH_SKIP_NUMBERS | HASH_SKIP_COMMENTS, variablesEnd);
   }
   else
   {
-    result = str_hash_fnv1_skip_digits_and_comments(error_message);
+    result = str_hash_fnv1(HASH_SKIP_NUMBERS | HASH_SKIP_COMMENTS, error_message);
   }
 
   return result;
@@ -157,7 +174,7 @@ void send_error_log(const char *error_message, ErrorLogSendParams const &params)
 
   if (params.attach_game_log)
   {
-    eventStr.append("\nGAME LOG:\n");
+    eventStr.append("\nGAME LOG (preceding the error):\n");
     append_debug_log(eventStr);
   }
 

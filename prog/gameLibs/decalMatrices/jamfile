@@ -20,6 +20,12 @@ UseProgLibs +=
   engine/lib3d
 ;
 
+SourceES =
+  decalsMatrices.cpp
+;
+
 CPPopt = ;
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

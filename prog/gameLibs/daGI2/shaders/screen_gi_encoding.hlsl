@@ -29,18 +29,26 @@
 
 void encode_gi_colors(out GI_ENCODED_TYPE color1, out GI_ENCODED_TYPE color2, half3 rgb1, half3 rgb2)
 {
-  rgb1 = pow2(rgb1);
-  rgb2 = pow2(rgb2);
+  FLATTEN
+  if (!gi_use_r9g9b9e5_tex_fmt)
+  {
+    rgb1 = pow2(rgb1);
+    rgb2 = pow2(rgb2);
+  }
   color1 = half3(rgb1.xy, rgb2.x);
   color2 = half3(rgb1.z, rgb2.zy); // may be divide by ambient?
 }
 
 void decode_gi_colors(GI_ENCODED_TYPE color1, GI_ENCODED_TYPE color2, out half3 linear_rgb1, out half3 linear_rgb2)
 {
-  // safety is not needed, as we have to write everything we read in this pass
-  // however, nans are nasty!
-  color1 = sqrt(max(0, color1));
-  color2 = sqrt(max(0, color2));
+  FLATTEN
+  if (!gi_use_r9g9b9e5_tex_fmt)
+  {
+    // safety is not needed, as we have to write everything we read in this pass
+    // however, nans are nasty!
+    color1 = sqrt(max(0, color1));
+    color2 = sqrt(max(0, color2));
+  }
   linear_rgb1 = half3(color1.xy, color2.x);
   linear_rgb2 = half3(color1.z, color2.zy);
 }
@@ -48,13 +56,33 @@ void decode_gi_colors(GI_ENCODED_TYPE color1, GI_ENCODED_TYPE color2, out half3 
 void decode_weighted_colors(half4 r1, half4 g1, half4 b1, half4 r2, half4 g2, half4 b2, out half3 linear1, out half3 linear2, float4 weights)
 {
   //safety is needed as values that are read from previous are not guaranteed to be not nans (as we never write pixels with sky)
-  linear1.x = dot(sqrt(max(0, select(weights != 0, r1, half4(0,0,0,0)))), weights);
-  linear1.y = dot(sqrt(max(0, select(weights != 0, g1, half4(0,0,0,0)))), weights);
-  linear1.z = dot(sqrt(max(0, select(weights != 0, r2, half4(0,0,0,0)))), weights);
+  r1 = max(0, select(weights != 0, r1, half4(0,0,0,0)));
+  g1 = max(0, select(weights != 0, g1, half4(0,0,0,0)));
+  b1 = max(0, select(weights != 0, b1, half4(0,0,0,0)));
 
-  linear2.x = dot(sqrt(max(0, select(weights != 0, b1, half4(0,0,0,0)))), weights);
-  linear2.y = dot(sqrt(max(0, select(weights != 0, b2, half4(0,0,0,0)))), weights);
-  linear2.z = dot(sqrt(max(0, select(weights != 0, g2, half4(0,0,0,0)))), weights);
+  r2 = max(0, select(weights != 0, r2, half4(0,0,0,0)));
+  g2 = max(0, select(weights != 0, g2, half4(0,0,0,0)));
+  b2 = max(0, select(weights != 0, b2, half4(0,0,0,0)));
+
+  FLATTEN
+  if (!gi_use_r9g9b9e5_tex_fmt)
+  {
+    r1 = sqrt(r1);
+    g1 = sqrt(g1);
+    b1 = sqrt(b1);
+
+    r2 = sqrt(r2);
+    g2 = sqrt(g2);
+    b2 = sqrt(b2);
+  }
+
+  linear1.x = dot(r1, weights);
+  linear1.y = dot(g1, weights);
+  linear1.z = dot(r2, weights);
+
+  linear2.x = dot(b1, weights);
+  linear2.y = dot(b2, weights);
+  linear2.z = dot(g2, weights);
 }
 
 #elif GI_PACK_ALGO == GI_USE_SW_RGBE

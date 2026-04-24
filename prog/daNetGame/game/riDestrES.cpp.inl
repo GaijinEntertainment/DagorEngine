@@ -8,12 +8,15 @@
 #include <daECS/core/coreEvents.h>
 
 #include <ecs/rendInst/riExtra.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/net/msgDecl.h>
 #include <ecs/anim/anim.h>
 #include <ecs/game/generic/grid.h>
 #include <daECS/net/msgSink.h>
 #include <daECS/net/replay.h>
+#include <daECS/net/time.h>
 #include <util/dag_stlqsort.h>
 
 #include <math/dag_frustum.h>
@@ -67,17 +70,19 @@ ECS_NET_IMPL_MSG(RiDestrUpdateMsg,
 // might come later than pool updates and override them. RiPoolDataUpdateMsg can be unordered
 
 template <typename Callable>
-inline void destroyable_ents_ecs_query(Callable c);
+inline void destroyable_ents_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline ecs::QueryCbResult destroyed_ladder_ecs_query(Callable c);
+inline ecs::QueryCbResult destroyed_ladder_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void players_ecs_query(Callable c);
+inline void players_ecs_query(ecs::EntityManager &manager, Callable c);
 
 namespace ridestr
 {
 static dag::Vector<rendinstdestr::DestrUpdateDesc> unsynced_destr_data;
 static uint16_t cur_ridestr_ver = 0, cached_ridestr_ver = 0, update_ridestr_ver = 0;
 static danet::BitStream cached_serialized_initial_ridestr; // Full ridestr update cached on server
+
+void increment_ridestr_version() { cur_ridestr_ver++; }
 
 static void on_ridestr_changed_server(
   const rendinst::RendInstDesc &desc, const TMatrix &ri_tm, const Point3 &pos, const Point3 &impulse, bool create_destr)
@@ -101,13 +106,13 @@ static void on_ridestr_changed_server(
     Point3_vec4 localImpPos;
     v_st(&localImpPos.x, v_mat44_mul_vec3p(itm, v_ldu(&pos.x)));
 
-    bool clamped; // clamp max value without logerr
+    bool clamped = false; // clamp max value without logerr
     rendinstdestr::DestrUpdateDesc &destrDesc = *(rendinstdestr::DestrUpdateDesc *)unsynced_destr_data.push_back_uninitialized();
     destrDesc.offs = restDesc.offs;
     destrDesc.poolIdx = uint16_t(restDesc.pool);
     destrDesc.cellIdx = int16_t(restDesc.cellIdx);
     destrDesc.riPos = ri_tm.getcol(3);
-    if (create_destr)
+    if (create_destr && !check_nan(localImpPos + impulse))
     {
       destrDesc.serializedLocalPos.packPos(localImpPos, &clamped);
       destrDesc.serializedImpulse.packPos(impulse, &clamped);
@@ -123,7 +128,7 @@ static void on_ridestr_changed_server(
     // destrDesc.serializedLocalPos.unpackPos()).length() : 0.f, (impulse - destrDesc.serializedImpulse.unpackPos()).length(),
     // P3D(localImpPos), P3D(impulse));
   }
-  cur_ridestr_ver++;
+  increment_ridestr_version();
 }
 
 static const Point3_vec4 ri_collision_check_margin = {0.16f, 0.16f, 0.16f};
@@ -166,7 +171,7 @@ static void on_ri_destroyed_destroy_and_update_ladders_around(const bbox3f &ri_b
         {
           g_entity_mgr->broadcastEventImmediate(EventLadderUpdate(tm2));
 
-          destroyed_ladder_ecs_query([idx](ecs::EntityId eid, uint32_t &ladder__sceneIndex) {
+          destroyed_ladder_ecs_query(*g_entity_mgr, [idx](ecs::EntityId eid, uint32_t &ladder__sceneIndex) {
             if (ladder__sceneIndex == idx)
             {
               ladder__sceneIndex = -1;
@@ -204,20 +209,22 @@ static void destroy_entities_in_radius(const TMatrix &tm, float check_radius)
   // It triggers on every rendinst being destroyed, not only necessary one
   // Can be refactored if we add rendinst->entity relation
   vec3f tm_pos = v_ldu(&tm.getcol(3).x), checkRadiusSq = v_splats(check_radius * check_radius);
-  destroyable_ents_ecs_query([&](ecs::EntityId eid, const TMatrix &transform ECS_REQUIRE(ecs::Tag destroyable_with_rendinst)) {
-    if (v_test_vec_x_lt(v_length3_sq(v_sub(tm_pos, v_ldu(&transform.getcol(3).x))), checkRadiusSq))
-      g_entity_mgr->destroyEntity(eid);
-  });
+  destroyable_ents_ecs_query(*g_entity_mgr,
+    [&](ecs::EntityId eid, const TMatrix &transform ECS_REQUIRE(ecs::Tag destroyable_with_rendinst)) {
+      if (v_test_vec_x_lt(v_length3_sq(v_sub(tm_pos, v_ldu(&transform.getcol(3).x))), checkRadiusSq))
+        g_entity_mgr->destroyEntity(eid);
+    });
 }
 
 
 static void destroy_entities_in_box(const bbox3f &bbox)
 {
-  destroyable_ents_ecs_query([&](ecs::EntityId eid, const TMatrix &transform ECS_REQUIRE(ecs::Tag destroyable_with_rendinst)) {
-    const vec3f pos = v_ldu(&transform.getcol(3).x);
-    if (v_bbox3_test_pt_inside(bbox, pos))
-      g_entity_mgr->destroyEntity(eid);
-  });
+  destroyable_ents_ecs_query(*g_entity_mgr,
+    [&](ecs::EntityId eid, const TMatrix &transform ECS_REQUIRE(ecs::Tag destroyable_with_rendinst)) {
+      const vec3f pos = v_ldu(&transform.getcol(3).x);
+      if (v_bbox3_test_pt_inside(bbox, pos))
+        g_entity_mgr->destroyEntity(eid);
+    });
 }
 
 
@@ -322,7 +329,7 @@ static void on_sweep_rendinst_server_cb(const rendinst::RendInstDesc &desc)
 
 
 template <typename Callable>
-inline void riextra_eid_ecs_query(ecs::EntityId eid, Callable c);
+inline void riextra_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 static void on_riex_destruction_cb(rendinst::riex_handle_t handle,
   bool /*is_dynamic*/,
@@ -333,7 +340,7 @@ static void on_riex_destruction_cb(rendinst::riex_handle_t handle,
 {
   bool isBeingReplaced = false;
 
-  riextra_eid_ecs_query(find_ri_extra_eid(handle),
+  riextra_eid_ecs_query(*g_entity_mgr, find_ri_extra_eid(handle),
     [handle, impulse, impulse_pos, create_destr_effects, &isBeingReplaced](
       const TMatrix &transform ECS_REQUIRE(ecs::Tag isRendinstDestr, eastl::false_type ri_extra__destroyed = false),
       bool ri_extra__destrFx = true, bool ri_extra__isBeingReplaced = false) {
@@ -370,12 +377,13 @@ static void net_rcv_ri_destr_update(const net::IMessage *msg)
 void init(bool have_render)
 {
   destructables::init(dgs_get_settings());
-  rendinstdestr::init(is_server() ? &on_ridestr_changed_server : nullptr, true, //
-    &rendinstdestr::create_tree_rend_inst_destr, &rendinstdestr::remove_tree_rendinst_destr, &rendinstsound::rendinst_tree_sound_cb,
-    have_render ? +[] { return get_cam_itm().getcol(3); } : nullptr);
+  rendinstdestr::init(is_server() ? &on_ridestr_changed_server : nullptr, true, false, &rendinstdestr::create_tree_rend_inst_destr,
+    &rendinstdestr::remove_tree_rendinst_destr, &rendinstsound::rendinst_tree_sound_cb,
+    have_render ? +[] { return get_cam_itm().getcol(3); } : nullptr, &get_sync_time);
 
   if (have_render)
   {
+    rendinstdestr::set_occlusion_callback(&get_main_occlusion_safe);
     rendinstdestr::set_ri_damage_effect_cb((rendinst::ri_damage_effect_cb)&ri_destr_start_effect);
     rendinstdestr::set_on_rendinst_destroyed_cb(on_ri_destroyed_render_cb);
     rendinstdestr::get_mutable_destr_settings().hasStaticShadowsInvalidationCallback = true;
@@ -408,21 +416,32 @@ void init(bool have_render)
   rendinstdestr::DestrSettings &destrSettings = rendinstdestr::get_mutable_destr_settings();
   destrSettings.isNetClient = !is_server();
   destrSettings.createDestr = have_render;
-  destrSettings.hitPointsToDestrImpulseMult = ::dgs_get_game_params()->getBlockByNameEx("riDestr")->getReal(
-    "hitPointsToDestrImpulseMult", destrSettings.hitPointsToDestrImpulseMult);
-  destrSettings.destrImpulseHitPointsMult = ::dgs_get_game_params()->getBlockByNameEx("riDestr")->getReal("destrImpulseHitPointsMult",
-    destrSettings.destrImpulseHitPointsMult);
-  destrSettings.destrImpulseSendDist =
-    ::dgs_get_game_params()->getBlockByNameEx("riDestr")->getReal("destrImpulseSendDist", destrSettings.destrImpulseSendDist);
-  destrSettings.destrImpulseSendByDefault = ::dgs_get_game_params()->getBlockByNameEx("riDestr")->getBool("destrImpulseSendByDefault",
-    destrSettings.destrImpulseSendByDefault);
-  destrSettings.destrMaxUpdateSize =
-    ::dgs_get_game_params()->getBlockByNameEx("riDestr")->getInt("destrMaxUpdateSize", destrSettings.destrMaxUpdateSize);
-  destrSettings.riMaxSimultaneousDestrs =
-    ::dgs_get_game_params()->getBlockByNameEx("riDestr")->getInt("riMaxSimultaneousDestrs", destrSettings.riMaxSimultaneousDestrs);
+  const DataBlock *riDestrBlk = ::dgs_get_game_params()->getBlockByNameEx("riDestr");
+  destrSettings.hitPointsToDestrImpulseMult =
+    riDestrBlk->getReal("hitPointsToDestrImpulseMult", destrSettings.hitPointsToDestrImpulseMult);
+  destrSettings.destrImpulseHitPointsMult = riDestrBlk->getReal("destrImpulseHitPointsMult", destrSettings.destrImpulseHitPointsMult);
+  destrSettings.destrImpulseSendDist = riDestrBlk->getReal("destrImpulseSendDist", destrSettings.destrImpulseSendDist);
+  destrSettings.destrImpulseSendByDefault = riDestrBlk->getBool("destrImpulseSendByDefault", destrSettings.destrImpulseSendByDefault);
+  destrSettings.destrMaxUpdateSize = riDestrBlk->getInt("destrMaxUpdateSize", destrSettings.destrMaxUpdateSize);
+  destrSettings.riMaxSimultaneousDestrs = riDestrBlk->getInt("riMaxSimultaneousDestrs", destrSettings.riMaxSimultaneousDestrs);
+  destrSettings.isDestrCollisionUsed = riDestrBlk->getBool("isDestrCollisionUsed", destrSettings.isDestrCollisionUsed);
+  destrSettings.destrCollisionMaxMergeXZ = riDestrBlk->getReal("destrCollisionMaxMergeXZ", destrSettings.destrCollisionMaxMergeXZ);
+  destrSettings.destrCollisionMaxMergeY = riDestrBlk->getReal("destrCollisionMaxMergeY", destrSettings.destrCollisionMaxMergeY);
+  destrSettings.destrCollisionQueueCapacity =
+    riDestrBlk->getInt("destrCollisionQueueCapacity", destrSettings.destrCollisionQueueCapacity);
+  destrSettings.destrCollisionPerFrameLimit =
+    riDestrBlk->getInt("destrCollisionPerFrameLimit", destrSettings.destrCollisionPerFrameLimit);
+  destrSettings.destrCollisionTTL = riDestrBlk->getReal("destrCollisionTTL", destrSettings.destrCollisionTTL);
+  destrSettings.destrCollisionMargin = riDestrBlk->getReal("destrCollisionMargin", destrSettings.destrCollisionMargin);
+  destrSettings.destrCollisionMergeThreshold =
+    riDestrBlk->getReal("destrCollisionMergeThreshold", destrSettings.destrCollisionMergeThreshold);
+  destrSettings.destrCollisionMaxCameraDist =
+    riDestrBlk->getReal("destrCollisionMaxCameraDist", destrSettings.destrCollisionMaxCameraDist);
+  destrSettings.destrCollisionSkipOcclusionDist =
+    riDestrBlk->getReal("destrCollisionSkipOcclusionDist", destrSettings.destrCollisionSkipOcclusionDist);
   destrSettings.destrNewUpdateMessage = true;
 
-  rendinstdestr::tree_destr_load_from_blk(*::dgs_get_game_params()->getBlockByNameEx("riDestr")->getBlockByNameEx("treeDestr"));
+  rendinstdestr::tree_destr_load_from_blk(*riDestrBlk->getBlockByNameEx("treeDestr"));
 }
 
 void update_cached_serialized_ridestr()
@@ -461,8 +480,8 @@ static void flush_ridestr_update()
   stlsort::sort_branchless(update.begin(), update.end());
   danet::BitStream bs((updateSize + 2) * 10, framemem_ptr());
 
-  players_ecs_query([&](ecs::EntityId possessed, int connid ECS_REQUIRE_NOT(ecs::Tag playerIsBot)
-                                                   ECS_REQUIRE(const ecs::auto_type &player, eastl::false_type disconnected)) {
+  players_ecs_query(*g_entity_mgr, [&](ecs::EntityId possessed, int connid ECS_REQUIRE_NOT(ecs::Tag playerIsBot) ECS_REQUIRE(
+                                                                  const ecs::auto_type &player, eastl::false_type disconnected)) {
     const TMatrix *possessedTm = ECS_GET_NULLABLE(TMatrix, possessed, transform);
     float cameraDistSq = sqr(destrSettings.destrImpulseSendDist);
     if (!possessedTm)
@@ -501,11 +520,11 @@ static void flush_dirty_ri_destr_msg()
   send_net_msg(net::get_msg_sink(), RiDestrSnapshotMsg(cached_serialized_initial_ridestr));
 }
 
-void update(float dt, const TMatrix4 &glob_tm)
+void update(float dt, float current_time, const TMatrix4 &glob_tm)
 {
   if (dedicated::is_dedicated())
   {
-    rendinstdestr::update(dt, nullptr);
+    rendinstdestr::update(dt, current_time, nullptr);
     if (rendinstdestr::get_destr_settings().destrNewUpdateMessage)
       flush_ridestr_update();
     else
@@ -514,7 +533,7 @@ void update(float dt, const TMatrix4 &glob_tm)
   else
   {
     const Frustum frustum(glob_tm);
-    rendinstdestr::update(dt, &frustum);
+    rendinstdestr::update(dt, current_time, &frustum);
     rendinstdestr::perform_delayed_destruction();
   }
   destructables::update(dt);
@@ -531,17 +550,21 @@ void shutdown()
 
 } // namespace ridestr
 
-void rendinst_destr_es_event_handler(const EventLevelLoaded &) { rendinstdestr::startSession(dacoll::get_phys_world()); }
+void rendinst_destr_es_event_handler(const EventLevelLoaded &)
+{
+  rendinstdestr::set_ri_destr_collision_enabled(rendinstdestr::get_destr_settings().isDestrCollisionUsed);
+  rendinstdestr::startSession(dacoll::get_phys_world());
+}
 
 ECS_TAG(server)
 ECS_REQUIRE(RiExtraComponent ri_extra)
 ECS_REQUIRE_NOT(ecs::Tag undestroyableRiExtra)
-void ri_extra_destroy_es_event_handler(const CmdDestroyRendinst &evt, ecs::EntityId eid)
+void ri_extra_destroy_es_event_handler(const CmdDestroyRendinst &evt, ecs::EntityManager &manager, ecs::EntityId eid)
 {
   if (sceneload::unload_in_progress)
     return;
 
   const bool destroysEntity = evt.get<1>();
   if (destroysEntity)
-    g_entity_mgr->destroyEntity(eid);
+    manager.destroyEntity(eid);
 }

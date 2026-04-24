@@ -11,3 +11,4 @@ bool imgui_handle_special_controller_combinations(const HumanInput::IGenJoystick
 
 bool imgui_in_hybrid_input_mode() { return false; }
 void imgui_use_hybrid_input_mode(bool) {}
+void imgui_switch_state() {}

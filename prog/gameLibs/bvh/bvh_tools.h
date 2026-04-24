@@ -21,6 +21,14 @@
 namespace bvh
 {
 
+enum class PerInstanceDataUse
+{
+  ALLOWED,
+  FORCE_OFF
+};
+
+void before_object_action(ContextId context_id, uint64_t object_id);
+
 extern elem_rules_fn elem_rules;
 
 extern dag::AtomicInteger<uint32_t> bvh_id_gen;
@@ -40,7 +48,8 @@ inline void decompose_relem_mesh_id(uint64_t object_id, uint32_t &res_id, uint32
 inline uint32_t make_dyn_elem_id(uint32_t mesh_no, uint32_t elem_id) { return mesh_no << 14 | elem_id; }
 
 inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const ShaderMesh::RElem &elem,
-  const BufferProcessor *vertex_processor, const Point4 &pos_mul, const Point4 &pos_add, const BSphere3 &bounding, bool is_ri,
+  eastl::optional<const BufferProcessor *> vertex_processor, const Point4 &pos_mul, const Point4 &pos_add, const BSphere3 &bounding,
+  bool is_ri, PerInstanceDataUse per_instance_data_use,
   const RenderableInstanceLodsResource::ImpostorParams *impostor_params = nullptr,
   const RenderableInstanceLodsResource::ImpostorTextures *impostor_textures = nullptr)
 {
@@ -69,50 +78,44 @@ inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const Shade
 
   bool isHeliRotor = strncmp(elem.mat->getShaderClassName(), "helicopter_rotor", 16) == 0;
   bool isTree = strncmp(elem.mat->getShaderClassName(), "rendinst_tree", 13) == 0;
-  bool isTreePerlinLayered = strncmp(elem.mat->getShaderClassName(), "rendinst_tree_perlin_layered", 28) == 0;
   bool isLeaves = strncmp(elem.mat->getShaderClassName(), "rendinst_facing_leaves", 22) == 0;
   bool isFlag = strncmp(elem.mat->getShaderClassName(), "rendinst_flag", 13) == 0;
   bool isDeformed = strcmp(elem.mat->getShaderClassName(), "dynamic_deformed") == 0;
 
-  if (isHeliRotor)
+  if (!vertex_processor.has_value())
   {
-    G_ASSERT(!vertex_processor);
-    vertex_processor = &ProcessorInstances::getHeliRotorVertexProcessor();
-  }
-  else if (isFlag)
-  {
-    G_ASSERT(!vertex_processor);
-    vertex_processor = &ProcessorInstances::getFlagVertexProcessor();
-  }
-  else if (isDeformed)
-  {
-    G_ASSERT(!vertex_processor);
-    vertex_processor = &ProcessorInstances::getDeformedVertexProcessor();
-  }
-  else if (impostor_textures && impostor_params)
-  {
-    G_ASSERT(!vertex_processor);
-    vertex_processor = &ProcessorInstances::getImpostorVertexProcessor();
-  }
-  else if (isLeaves && context_id->has(Features::RIFull))
-  {
-    G_ASSERT(!vertex_processor);
-    vertex_processor = &ProcessorInstances::getLeavesVertexProcessor();
-  }
-  else if (isTree && context_id->has(Features::RIFull))
-  {
-    G_ASSERT(!vertex_processor);
-    vertex_processor = &ProcessorInstances::getTreeVertexProcessor();
-  }
-  else if (is_ri && context_id->has(Features::RIBaked))
-  {
-    G_ASSERT(!vertex_processor);
-    vertex_processor = &ProcessorInstances::getBakeTextureToVerticesProcessor();
-  }
-  else if (!is_ri && !vertex_processor && context_id->has(Features::DynrendRigidBaked))
-  {
-    G_ASSERT(!vertex_processor);
-    vertex_processor = &ProcessorInstances::getBakeTextureToVerticesProcessor();
+    if (isHeliRotor)
+    {
+      vertex_processor = &ProcessorInstances::getHeliRotorVertexProcessor();
+    }
+    else if (isFlag)
+    {
+      vertex_processor = &ProcessorInstances::getFlagVertexProcessor();
+    }
+    else if (isDeformed)
+    {
+      vertex_processor = &ProcessorInstances::getDeformedVertexProcessor();
+    }
+    else if (impostor_textures && impostor_params)
+    {
+      vertex_processor = &ProcessorInstances::getImpostorVertexProcessor();
+    }
+    else if (isLeaves && context_id->has(Features::RIFull))
+    {
+      vertex_processor = &ProcessorInstances::getLeavesVertexProcessor();
+    }
+    else if (isTree && context_id->has(Features::RIFull))
+    {
+      vertex_processor = &ProcessorInstances::getTreeVertexProcessor();
+    }
+    else if (is_ri && context_id->has(Features::RIBaked))
+    {
+      vertex_processor = &ProcessorInstances::getBakeTextureToVerticesProcessor();
+    }
+    else if (!is_ri && context_id->has(Features::DynrendRigidBaked))
+    {
+      vertex_processor = &ProcessorInstances::getBakeTextureToVerticesProcessor();
+    }
   }
 
   auto ib = hasIndices ? elem.vertexData->getIB() : nullptr;
@@ -136,12 +139,14 @@ inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const Shade
   meshInfo.texcoordFormat = parser.texcoordFormat;
   meshInfo.texcoordOffset = parser.texcoordFormat != -1 ? parser.texcoordOffset : MeshInfo::invalidOffset;
   meshInfo.secTexcoordOffset = parser.secTexcoordFormat != -1 ? parser.secTexcoordOffset : MeshInfo::invalidOffset;
-  meshInfo.vertexProcessor = vertex_processor;
+  meshInfo.vertexProcessor = vertex_processor.value_or(nullptr);
   meshInfo.posMul = pos_mul;
   meshInfo.posAdd = pos_add;
   meshInfo.boundingSphere = bounding;
-  meshInfo.hasInstanceColor = (isTree && !isTreePerlinLayered) || impostor_params;
+  meshInfo.hasInstanceColor = (isTree || impostor_params) && per_instance_data_use == PerInstanceDataUse::ALLOWED;
   meshInfo.isHeliRotor = isHeliRotor;
+  meshInfo.ppPositionTextureId = elem.mat->get_texture(7);
+  meshInfo.ppDirectionTextureId = elem.mat->get_texture(8);
 
   if (elem_rules)
     elem_rules(elem, meshInfo, parser, impostor_params, impostor_textures);
@@ -149,8 +154,9 @@ inline eastl::optional<MeshInfo> process_relem(ContextId context_id, const Shade
   return meshInfo;
 }
 
-inline void process_relems(ContextId context_id, const dag::Span<ShaderMesh::RElem> &elems, uint32_t bvh_id, uint32_t lod_ix,
-  const BufferProcessor *vertex_processor, const Point4 &pos_mul, const Point4 &pos_add, const BSphere3 &bounding, bool is_ri,
+inline void process_relems(ContextId context_id, const char *tag, const dag::Span<ShaderMesh::RElem> &elems, uint32_t bvh_id,
+  uint32_t lod_ix, eastl::optional<const BufferProcessor *> vertex_processor, const Point4 &pos_mul, const Point4 &pos_add,
+  const BSphere3 &bounding, bool is_ri, PerInstanceDataUse per_instance_data_use,
   const RenderableInstanceLodsResource::ImpostorParams *impostor_params = nullptr,
   const RenderableInstanceLodsResource::ImpostorTextures *impostor_textures = nullptr)
 {
@@ -161,8 +167,8 @@ inline void process_relems(ContextId context_id, const dag::Span<ShaderMesh::REl
   bool isAnimated = false;
 
   for (auto [i, elem] : enumerate(elems))
-    if (auto meshInfo =
-          process_relem(context_id, elem, vertex_processor, pos_mul, pos_add, bounding, is_ri, impostor_params, impostor_textures))
+    if (auto meshInfo = process_relem(context_id, elem, vertex_processor, pos_mul, pos_add, bounding, is_ri, per_instance_data_use,
+          impostor_params, impostor_textures))
     {
       isAnimated = isAnimated || (meshInfo->vertexProcessor && !meshInfo->vertexProcessor->isOneTimeOnly());
       meshes.push_back(eastl::move(meshInfo.value()));
@@ -176,14 +182,15 @@ inline void process_relems(ContextId context_id, const dag::Span<ShaderMesh::REl
   {
     for (auto [i, info] : zip(indices, meshes))
     {
+      bool isMeshAnimated = info.vertexProcessor && !info.vertexProcessor->isOneTimeOnly();
       const auto meshId = make_relem_mesh_id(bvh_id, lod_ix, i);
-      add_object(context_id, meshId, {{info}, isAnimated});
+      add_object(context_id, meshId, {{info}, isMeshAnimated, tag});
     }
   }
   else
   {
     const auto meshId = make_relem_mesh_id(bvh_id, lod_ix, 0);
-    add_object(context_id, meshId, {{meshes.begin(), meshes.end()}, isAnimated});
+    add_object(context_id, meshId, {{meshes.begin(), meshes.end()}, isAnimated, tag});
   }
 }
 

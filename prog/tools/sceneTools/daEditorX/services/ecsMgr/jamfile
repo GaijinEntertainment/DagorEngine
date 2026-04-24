@@ -18,10 +18,9 @@ Sources =
 ;
 
 UseProgLibs =
-  gameLibs/daECS/io/datablock
-  gameLibs/daECS/core
-  gameLibs/daECS/gameResStub
-  gameLibs/daECS/utility
+  engine/daECS/io/datablock
+  engine/daECS/core
+  engine/daECS/utility
   gameLibs/ecs/render
   gameLibs/ecs/anim
   gameLibs/render/daFrameGraph

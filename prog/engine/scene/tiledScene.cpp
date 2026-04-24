@@ -84,6 +84,9 @@ void scene::TiledScene::termTiledStructures()
 
 void scene::TiledScene::term()
 {
+  // to avoid missing sync of command clear to adder threads
+  // also keep lock order same as in adders, to avoid any lockup possible
+  std::lock_guard<std::mutex> scopedLock(mDeferredSetTransformMutex);
   G_ASSERT(isInWritingThread());
   WriteLockRAII lock(*this);
 
@@ -91,7 +94,7 @@ void scene::TiledScene::term()
   termTiledStructures();
 
   mDeferredCommand.clear();
-  pendingNewNodesCount1 = pendingNewNodesCount2 = pendingNewNodesCount3 = 0;
+  clearReserves();
 }
 
 void scene::TiledScene::TileCullData::clear()
@@ -223,8 +226,7 @@ void scene::TiledScene::setTransformNoScaleChange(node_index node, mat44f_cref t
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
-    if (mDeferredCommand.empty())
-      return setTransformNoScaleChangeImm(node, transform);
+    return setTransformNoScaleChangeImm(node, transform);
   }
 
   auto prev = eastl::find_if(mDeferredCommand.begin(), mDeferredCommand.end(), [node](const DeferredCommand &c) {
@@ -312,8 +314,7 @@ void scene::TiledScene::setPoolBBox(pool_index pool, bbox3f_cref box)
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
-    if (mDeferredCommand.empty())
-      return SimpleScene::setPoolBBox(pool, box, false);
+    return SimpleScene::setPoolBBox(pool, box, false);
   }
 
   mDeferredCommand.addCmd([&](DeferredCommand &cmd) {
@@ -331,8 +332,7 @@ void scene::TiledScene::setPoolDistanceSqScale(pool_index pool, float dist_scale
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
-    if (mDeferredCommand.empty())
-      return SimpleScene::setPoolDistanceSqScale(pool, dist_scale_sq);
+    return SimpleScene::setPoolDistanceSqScale(pool, dist_scale_sq);
   }
 
   mDeferredCommand.addCmd([&](DeferredCommand &cmd) {
@@ -396,8 +396,7 @@ void scene::TiledScene::destroy(node_index node)
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
-    if (mDeferredCommand.empty())
-      return destroyImm(node);
+    return destroyImm(node);
   }
 
   mDeferredCommand.addCmd([&](DeferredCommand &cmd) {
@@ -412,8 +411,7 @@ void scene::TiledScene::reallocate(node_index node, const mat44f &transform, poo
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
-    if (mDeferredCommand.empty())
-      return reallocateImm(node, transform, pool, flags);
+    return reallocateImm(node, transform, pool, flags);
   }
 
   mDeferredCommand.addCmd([&](DeferredCommand &cmd) {
@@ -430,8 +428,7 @@ scene::node_index scene::TiledScene::allocate(const mat44f &transform, pool_inde
   if (isInWritingThread() && mDeferredCommand.empty())
   {
     WriteLockRAII lock(*this);
-    if (mDeferredCommand.empty())
-      return allocateImm(allocateOne(), transform, pool, flags);
+    return allocateImm(allocateOne(), transform, pool, flags);
   }
 
   auto node = reserveOne();
@@ -465,15 +462,15 @@ __forceinline uint32_t scene::TiledScene::selectTileIndex(uint32_t n_index, bool
   posToTile(nodes.data()[n_index].col3, tx, tz);
   if (tx < getTileX0() || tz < getTileZ0() || tx >= getTileX1() || tz >= getTileZ1())
   {
-    G_ASSERTF(allow_add, "pos=%f %f %f %f-> tile=%d,%d is outside grid (%d,%d)-(%d,%d) (node=%08X)", V4D(nodes.data()[n_index].col3),
-      tx, tz, getTileX0(), getTileZ0(), getTileX1(), getTileZ1(), n_index);
+    G_ASSERTF_LOG_ONCE_RETURN(allow_add, INVALID_INDEX, "TS:pos=%f %f %f %f-> tile=%d,%d is outside grid (%d,%d)-(%d,%d)",
+      V4D(nodes.data()[n_index].col3), tx, tz, getTileX0(), getTileZ0(), getTileX1(), getTileZ1());
     rearrange(tx, tz);
   }
   uint32_t tidx = getTileIndex(tx, tz);
   if (tidx == INVALID_INDEX)
   {
-    G_ASSERTF(allow_add, "pos=%f %f %f %f -> tile=%d,%d references invalid tile (node=%08X)", V4D(nodes.data()[n_index].col3), tx, tz,
-      n_index);
+    G_ASSERTF_LOG_ONCE_RETURN(allow_add, INVALID_INDEX, "TS:pos=%f %f %f %f -> tile=%d,%d references invalid tile",
+      V4D(nodes.data()[n_index].col3), tx, tz);
     tidx = tileGrid[getTileGridIndex(tx, tz)] = allocTile(tx - getTileX0(), tz - getTileZ0());
   }
   return tidx;
@@ -933,12 +930,14 @@ void scene::TiledScene::setTransformNoScaleChangeImm(node_index node, mat44f_cre
 
 
   int t_idx = selectTileIndex(index, false);
+  G_ASSERTF_RETURN(t_idx != INVALID_INDEX, , "node=%08X pos=%f %f %f", node, V4D(nodes.data()[index].col3));
   mat44f oldTransform = nodes.data()[index];
   vec3f move = v_sub(transform.col3, oldTransform.col3);
   SimpleScene::setTransformNoScaleChange(node, transform);
   if (t_idx != OUTER_TILE_INDEX && v_test_vec_x_gt_0(v_length3_sq(move)))
   {
     int nt_idx = selectTileIndex(index, true);
+    G_ASSERT(nt_idx != INVALID_INDEX);
     if (nt_idx != t_idx)
     {
       removeNode(getTileByIndex(t_idx), node);
@@ -964,6 +963,7 @@ void scene::TiledScene::setTransformImm(node_index node, mat44f_cref transform)
     return;
 
   int t_idx = selectTileIndex(index, false);
+  G_ASSERTF_RETURN(t_idx != INVALID_INDEX, , "node=%08X pos=%f %f %f", node, V4D(nodes.data()[index].col3));
   mat44f oldTransform = nodes.data()[index];
   vec3f move = v_sub(transform.col3, oldTransform.col3);
   SimpleScene::setTransform(node, transform);
@@ -971,6 +971,7 @@ void scene::TiledScene::setTransformImm(node_index node, mat44f_cref transform)
   if (t_idx != OUTER_TILE_INDEX && v_test_vec_x_gt_0(v_length3_sq(move)))
   {
     int nt_idx = selectTileIndex(index, true);
+    G_ASSERT(nt_idx != INVALID_INDEX);
     if (nt_idx != t_idx)
     {
       removeNode(getTileByIndex(t_idx), node);
@@ -990,7 +991,8 @@ void scene::TiledScene::setFlagsImm(node_index node, uint16_t flags)
 
   SimpleScene::setFlags(node, flags);
   uint32_t tileIdx = selectTileIndex(nodeIdx, false);
-  scheduleTileMaintenance(getTileByIndex(tileIdx), TileData::MFLG_RECALC_FLAGS);
+  if (tileIdx != INVALID_INDEX)
+    scheduleTileMaintenance(getTileByIndex(tileIdx), TileData::MFLG_RECALC_FLAGS);
 }
 
 void scene::TiledScene::unsetFlagsImm(node_index node, uint16_t flags)
@@ -1001,7 +1003,8 @@ void scene::TiledScene::unsetFlagsImm(node_index node, uint16_t flags)
 
   SimpleScene::unsetFlags(node, flags);
   uint32_t tileIdx = selectTileIndex(nodeIdx, false);
-  scheduleTileMaintenance(getTileByIndex(tileIdx), TileData::MFLG_RECALC_FLAGS);
+  if (tileIdx != INVALID_INDEX)
+    scheduleTileMaintenance(getTileByIndex(tileIdx), TileData::MFLG_RECALC_FLAGS);
 }
 
 void scene::TiledScene::destroyImm(node_index node)

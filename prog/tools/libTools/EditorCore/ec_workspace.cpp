@@ -17,6 +17,17 @@
 
 #include <winGuiWrapper/wgw_dialogs.h>
 
+const char *make_short_name(const char *fpath)
+{
+  const char *fn = dd_get_fname(fpath);
+  if (!fn || fn == fpath)
+    return fpath;
+  fn--;
+  while (fn > fpath && *(fn - 1) != '/')
+    fn--;
+  return fn;
+}
+
 //==================================================================================================
 EditorWorkspace::EditorWorkspace() : deDisabled(midmem), reDisabled(midmem), wspData(NULL), platforms(midmem), maxTraceDistance(1000.0)
 {}
@@ -84,7 +95,7 @@ void EditorWorkspace::freeWorkspaceBlk() { del_it(wspData); }
 //==================================================================================================
 void EditorWorkspace::getWspNames(Tab<String> &list) const
 {
-  G_ASSERT(wspData);
+  G_ASSERT_RETURN(wspData, );
 
   list.resize(wspData->names.size());
 
@@ -140,8 +151,11 @@ bool EditorWorkspace::loadIndirect(const char *app_blk_path)
     applicationDir = make_path_absolute(applicationDir);
     G_ASSERT(!applicationDir.empty());
     append_slash(applicationDir);
+    simplify_fname(applicationDir);
 
-    appBlk.setStr("application_path", app_blk_path);
+    String appicationBlkPath(app_blk_path);
+    simplify_fname(appicationBlkPath);
+    appBlk.setStr("application_path", appicationBlkPath);
     appBlk.setStr("application_dir", applicationDir);
 
     return loadFromBlk(appBlk);
@@ -159,30 +173,32 @@ bool EditorWorkspace::loadFromBlk(DataBlock &blk, bool *app_path_set)
   reDisabled.clear();
 
   appDir = blk.getStr("application_dir", "");
-  appPath = blk.getStr("application_path", "");
-  if (appDir.length() && !appPath.length())
-    appPath = ::make_full_path(appDir, "application.blk");
+  simplify_fname(appDir);
+  appBlkPath = blk.getStr("application_path", "");
+  if (appDir.length() && !appBlkPath.length())
+    appBlkPath = ::make_full_path(appDir, "application.blk");
 
-  if (!appPath.length() || !::dd_file_exist(appPath))
+  if (!appBlkPath.length() || !::dd_file_exist(appBlkPath))
   {
     ::debug("Application settings not exist or not specified for workspace \"%s\"", (const char *)name);
   }
-
-  String appBlkPath = appPath;
+  appBlkPath = make_path_absolute(appBlkPath);
+  simplify_fname(appBlkPath);
 
   if (!::dd_file_exist(appBlkPath))
   {
-    ::debug("Couldn't open file \"%s\"", (const char *)appBlkPath);
+    debug("Couldn't open file \"%s\"", appBlkPath);
     return false;
   }
 
-  DataBlock appBlk;
+  appBlkShortName = make_short_name(appBlkPath);
 
+  DataBlock appBlk;
   if (!appBlk.load(appBlkPath))
   {
-    ::debug("Errors while loading \"%s\"", (const char *)appBlkPath);
+    debug("Errors while loading \"%s\"", appBlkPath);
     wingw::message_box(0, "Workspace initialization failed", "Errors while loading \"%s\". Workspace initialization failed",
-      (const char *)appBlkPath);
+      appBlkPath);
 
     return false;
   }
@@ -270,6 +286,16 @@ bool EditorWorkspace::loadFromBlk(DataBlock &blk, bool *app_path_set)
   if (stricmp(collisionName, "unigine") == 0)
     collisionName = "Bullet";
 
+  sceneDir = ::make_full_path(appDir, appBlk.getBlockByNameEx("projectDefaults")
+                                        ->getBlockByNameEx("locationScene")
+                                        ->getStr("locationSceneFolder", "prog/gamebase/gamedata/scenes"));
+
+  mountPoints.clear();
+  if (const DataBlock *mnt = appBlk.getBlockByName("mountPoints"))
+  {
+    dblk::iterate_child_blocks(*mnt, [this](const DataBlock &b) { mountPoints.push_back(String{b.getBlockName()}); });
+  }
+
   if (!loadAppSpecific(appBlk))
     return false;
 
@@ -320,7 +346,7 @@ bool EditorWorkspace::save()
 
     wspSaveBlk->setStr("name", name);
     wspSaveBlk->setStr("application_dir", appDir);
-    wspSaveBlk->setStr("application_path", appPath);
+    wspSaveBlk->setStr("application_path", appBlkPath);
 
     if (!saveSpecific(*wspSaveBlk))
       return false;
@@ -358,9 +384,11 @@ void EditorWorkspace::setAppPath(const char *new_path)
 {
   if (::dd_file_exist(new_path))
   {
-    appPath = new_path;
+    appBlkPath = make_path_absolute(new_path);
     appDir = new_path;
     ::location_from_path(appDir);
+    simplify_fname(appBlkPath);
+    appBlkShortName = make_short_name(appBlkPath);
   }
 }
 

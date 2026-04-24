@@ -7,22 +7,32 @@ options strict_smart_pointers = true
 
 module profiler_boost shared private
 
-require daslib/profiler
-require daslib/apply_in_context
+//! Profiler cross-context helpers.
+//!
+//! Provides ``[apply_in_context(profiler)]`` wrappers that allow enabling
+//! and disabling the profiler from a different context.
+//! Requires the ``profiler`` module.
 
-[apply_in_context(profiler)]
-def internal_enable_profiler(var ctxId : uint64; enabled : bool) {
-    unsafe {
-        lock_debug_agent <| $() {
-            profiler::set_enable_profiler(ctxId, enabled)
-        }
-    }
-}
+require daslib/profiler
+require daslib/rtti public
 
 def public enable_profiler(var ctx : Context) {
-    internal_enable_profiler(intptr(unsafe(addr(ctx))), true)
+    //! Enables the profiler for the given context.
+    profiler::set_enable_profiler(intptr(unsafe(addr(ctx))), true)
 }
 
 def public disable_profiler(var ctx : Context) {
-    internal_enable_profiler(intptr(unsafe(addr(ctx))), false)
+    //! Disables the profiler for the given context.
+    profiler::set_enable_profiler(intptr(unsafe(addr(ctx))), false)
 }
+
+def public enable_profiler_log(var ctx : Context) {
+    //! Enables the profiler log for the given context.
+    profiler::set_enable_profiler_log(intptr(unsafe(addr(ctx))), true)
+}
+
+def public disable_profiler_log(var ctx : Context) {
+    //! Disables the profiler log for the given context.
+    profiler::set_enable_profiler_log(intptr(unsafe(addr(ctx))), false)
+}
+

@@ -13,7 +13,6 @@
 
 struct OmniLight
 {
-  static constexpr float DEFAULT_BOX_SIZE = 100000;
   alignas(16) Point4 pos_radius;
   alignas(16) Color4 color_atten;
   alignas(16) Point4 dir__tex_scale;
@@ -21,12 +20,14 @@ struct OmniLight
   alignas(16) Point4 boxR1;
   alignas(16) Point4 boxR2;
   alignas(16) Point4 posRelToOrigin_cullRadius;
+  alignas(16) Point4 shadowNearFarClippingPlanesPad;
   OmniLight() {}
   OmniLight(const Point3 &p, const Color3 &col, float rad, float att) :
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
     dir__tex_scale(0, 1, 0, 0),
-    posRelToOrigin_cullRadius(0, 0, 0, -1)
+    posRelToOrigin_cullRadius(0, 0, 0, -1),
+    shadowNearFarClippingPlanesPad(0, 0, 0, 0)
   {
     setDefaultBox();
   }
@@ -34,7 +35,8 @@ struct OmniLight
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
     dir__tex_scale(0, 1, 0, 0),
-    posRelToOrigin_cullRadius(0, 0, 0, -1)
+    posRelToOrigin_cullRadius(0, 0, 0, -1),
+    shadowNearFarClippingPlanesPad(0, 0, 0, 0)
   {
     setBox(box);
   }
@@ -42,7 +44,8 @@ struct OmniLight
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
     dir__tex_scale(0, 1, 0, 0),
-    posRelToOrigin_cullRadius(0, 0, 0, -1)
+    posRelToOrigin_cullRadius(0, 0, 0, -1),
+    shadowNearFarClippingPlanesPad(0, 0, 0, 0)
   {
     if (box != nullptr && lengthSq(box->getcol(0)) > 0)
       setBox(*box);
@@ -54,20 +57,28 @@ struct OmniLight
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
     dir__tex_scale(dir.x, dir.y, dir.z, 0),
-    posRelToOrigin_cullRadius(0, 0, 0, -1)
+    posRelToOrigin_cullRadius(0, 0, 0, -1),
+    shadowNearFarClippingPlanesPad(0, 0, 0, 0)
   {
     setDefaultBox();
     setTexture(tex, texture_scale, tex_rotation);
   }
   OmniLight(const Point3 &p, const Point3 &dir, const Color3 &col, float rad, float att, int tex, float texture_scale,
-    bool tex_rotation, const TMatrix &box) :
+    bool tex_rotation, const TMatrix &box, Point2 shadow_zn_zfar = Point2(0, 0)) :
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
     dir__tex_scale(dir.x, dir.y, dir.z, 0),
-    posRelToOrigin_cullRadius(0, 0, 0, -1)
+    posRelToOrigin_cullRadius(0, 0, 0, -1),
+    shadowNearFarClippingPlanesPad(0, 0, 0, 0)
   {
     setBox(box);
     setTexture(tex, texture_scale, tex_rotation);
+
+    if (shadow_zn_zfar.x > 0)
+      shadowNearFarClippingPlanesPad.x = shadow_zn_zfar.x;
+
+    if (shadow_zn_zfar.y > shadowNearFarClippingPlanesPad.x)
+      shadowNearFarClippingPlanesPad.y = shadow_zn_zfar.y;
   }
   void setPos(const Point3 &p)
   {
@@ -99,7 +110,8 @@ struct OmniLight
       dir__tex_scale.w = 0;
     else
     {
-      G_ASSERTF(scale >= M_SQRT1_2 && scale < TEX_ID_MULTIPLIER, "Invalid ies scale value: %f", scale);
+      G_ASSERTF(scale >= M_SQRT1_2 && scale < TEX_ID_MULTIPLIER || (tex & IES_TEX_ID_TYPE_BIT_MASK) != IES_TEX_ID_TYPE__IES,
+        "Invalid ies scale value: %f", scale);
       dir__tex_scale.w = float(tex) * TEX_ID_MULTIPLIER + scale;
       if (rotation)
         dir__tex_scale.w *= -1;
@@ -121,7 +133,12 @@ struct OmniLight
       boxR2 = Point4{0, 0, 0, 0};
     }
   }
-  void setDefaultBox() { setBoxAround(Point3{pos_radius.x, pos_radius.y, pos_radius.z}, DEFAULT_BOX_SIZE); }
+  void setDefaultBox()
+  {
+    boxR0 = Point4{0, 0, 0, 0};
+    boxR1 = Point4{0, 0, 0, 0};
+    boxR2 = Point4{0, 0, 0, 0};
+  }
   void setBoxAround(const Point3 &p, float size)
   {
     TMatrix box(size);

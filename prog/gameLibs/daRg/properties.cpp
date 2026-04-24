@@ -51,7 +51,7 @@ bool Properties::getBool(const Sqrat::Object &key, bool def, bool assert_on_type
   {
     Sqrat::Object val = scriptDesc.RawGetSlot(key);
     SQObjectType type = val.GetType();
-    if (type & (SQOBJECT_CANBEFALSE | SQOBJECT_NUMERIC))
+    if (type == OT_NULL || type == OT_BOOL || type == OT_INTEGER || type == OT_FLOAT)
       return val.Cast<bool>();
 
     if (assert_on_type)
@@ -249,9 +249,9 @@ void Properties::applyTint(const StringKeys *csk, E3DCOLOR &base_color) const
   // if tint strength (alpha) is not zero
   if ((tintColor & 0xFF000000) != 0)
   {
-    real srcAlpha = (tintColor >> 24) & 0xFF;
+    float srcAlpha = (tintColor >> 24) & 0xFF;
     srcAlpha /= 255.0;
-    real oneMinusSrcAlpha = 1.0 - srcAlpha;
+    float oneMinusSrcAlpha = 1.0 - srcAlpha;
 
 #define ALPHA_BLEND(DST, SRC, CHANNEL, SRC_ALPHA, ONE_MINUS_SRC_ALPHA) \
   floor((((DST) >> CHANNEL) & 0xFF) * (ONE_MINUS_SRC_ALPHA) + (((SRC) >> (CHANNEL)) & 0xFF) * (SRC_ALPHA))

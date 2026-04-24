@@ -51,7 +51,7 @@ namespace das {
         ft->argNames = { "isClosure", "hasReturn", "copyOnReturn", "moveOnReturn",
             "inTheLoop", "finallyBeforeBody", "finallyDisabled","aotSkipMakeBlock",
             "aotDoNotSkipAnnotationData", "isCollapseable", "needCollapse", "hasMakeBlock",
-            "hasEarlyOut", "forLoop" };
+            "hasEarlyOut", "forLoop", "hasExitByLabel", "isLambdaBlock", "isGeneratorBlock" };
         return ft;
     }
 
@@ -65,7 +65,7 @@ namespace das {
     TypeDeclPtr makeExprAtFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "ExprAtFlags";
-        ft->argNames = { "r2v", "r2cr", "write", "no_promotion" };
+        ft->argNames = { "r2v", "r2cr", "write", "no_promotion", "under_clone", "under_deref" };
         return ft;
     }
 
@@ -131,7 +131,7 @@ namespace das {
     TypeDeclPtr makeExprYieldFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "ExprYieldFlags";
-        ft->argNames = { "moveSemantics", "skipLockCheck" };
+        ft->argNames = { "moveSemantics" };
         return ft;
     }
 
@@ -139,7 +139,7 @@ namespace das {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "ExprReturnFlags";
         ft->argNames = { "moveSemantics", "returnReference", "returnInBlock", "takeOverRightStack",
-        "returnCallCMRES", "returnCMRES", "fromYield", "fromComprehension", "skipLockCheck" };
+        "returnCallCMRES", "returnCMRES", "fromYield", "fromComprehension" };
         return ft;
     }
 
@@ -175,9 +175,10 @@ namespace das {
         ft->alias = "StructureFlags";
         ft->argNames = { "isClass", "genCtor", "cppLayout", "cppLayoutNotPod",
             "generated", "persistent", "isLambda", "privateStructure",
-            "macroInterface", "_sealed", "skipLockCheck", "circular",
+            "macroInterface", "_sealed", "circular",
             "_generator", "hasStaticMembers", "hasStaticFunctions",
-            "hasInitFields", "safeWhenUninitialized", "isTemplate", "hasDefaultInitializer" };
+            "hasInitFields", "safeWhenUninitialized", "isTemplate",
+            "hasDefaultInitializer", "noGenCtor" };
         return ft;
     }
 
@@ -198,10 +199,11 @@ namespace das {
         ft->alias = "MoreFunctionFlags";
         ft->argNames = {
             "macroFunction", "needStringCast", "aotHashDeppendsOnArguments", "lateInit", "requestJit",
-            "unsafeOutsideOfFor", "skipLockCheck", "safeImplicit", "deprecated", "aliasCMRES", "neverAliasCMRES",
+            "unsafeOutsideOfFor", "safeImplicit", "deprecated", "aliasCMRES", "neverAliasCMRES",
             "addressTaken", "propertyFunction", "pinvoke", "jitOnly", "isStaticClassMethod", "requestNoJit",
             "jitContextAndLineInfo", "nodiscard", "captureString", "callCaptureString", "hasStringBuilder",
-            "recursive", "isTemplate"
+            "recursive", "isTemplate", "unsafeWhenNotCloneArray", "stub", "lateShutdown", "hasTryRecover",
+            "hasUnsafe", "isConstClassMethod"
         };
         return ft;
     }
@@ -221,7 +223,8 @@ namespace das {
         ft->argNames = { "init_via_move", "init_via_clone", "used", "aliasCMRES",
             "marked_used", "global_shared", "do_not_delete", "generated", "capture_as_ref",
             "can_shadow", "private_variable", "tag", "global", "inScope", "no_capture", "early_out",
-            "used_in_finally", "static_class_member" };
+            "used_in_finally", "static_class_member", "bitfield_constant", "pod_delete",
+            "pod_delete_gen", "single_return_via_move" };
         return ft;
     }
 
@@ -236,14 +239,14 @@ namespace das {
     TypeDeclPtr makeExprCopyFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "CopyFlags";
-        ft->argNames = { "allowCopyTemp", "takeOverRightStack", "promoteToClone" };
+        ft->argNames = { "allowCopyTemp", "takeOverRightStack", "allowConstantLValue" };
         return ft;
     }
 
     TypeDeclPtr makeExprMoveFlags() {
         auto ft = make_smart<TypeDecl>(Type::tBitfield);
         ft->alias = "MoveFlags";
-        ft->argNames = { "skipLockCheck", "takeOverRightStack" };
+        ft->argNames = { "takeOverRightStack", "allowConstantLValue", "podDelete" };
         return ft;
     }
 
@@ -292,5 +295,6 @@ namespace das {
         addAlias(makeExprCopyFlags());
         addAlias(makeExprMoveFlags());
         addAlias(makeExprIfFlags());
+        addAlias(makeExprStringBuilderFlags());
     }
 }

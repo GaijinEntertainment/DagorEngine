@@ -14,7 +14,7 @@
 #include <util/le2be.h>
 #include <ioSys/dag_roDataBlock.h>
 #include <ioSys/dag_dataBlockCommentsDef.h>
-#include <generic/dag_algorithm.h>
+#include <generic/dag_align.h>
 #include <generic/dag_relocatableFixedVector.h>
 #include <memory/dag_framemem.h>
 #include <stdio.h> // sprintf
@@ -97,7 +97,9 @@ template <bool print_with_limits>
 bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_levels) const
 {
   const char *eol = (level >= 0 && !print_with_limits) ? "\r\n" : "\n";
+  const char *compactEol = "\n";
   const uint32_t eolLen = (level >= 0 && !print_with_limits) ? 2 : 1;
+  const uint32_t compactEolLen = 1;
 
 #define CHECK_LINES_LIMIT()  \
   if (print_with_limits)     \
@@ -128,8 +130,9 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
 
     if (level > 0)
     {
+      const bool isWriteOneLineBlock = DataBlock::writeOneParamBlockCompact && paramCount() == 1 && blockCount() == 0;
       if (!skip_next_indent)
-        writeIndent(cb, level * 2);
+        writeIndent(cb, isWriteOneLineBlock ? 1 : level * 2);
       else
         skip_next_indent = false;
     }
@@ -206,7 +209,7 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
       }
       writeString(cb, buf);
     }
-    if (level < 0 && paramCount() == 1 && blockCount() == 0)
+    if ((level < 0 || DataBlock::writeOneParamBlockCompact) && paramCount() == 1 && blockCount() == 0)
       cb.write(";", 1);
     else
     {
@@ -229,6 +232,7 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
   for (uint32_t i = 0, e = blockCount(); i < e; ++i)
   {
     const DataBlock &b = *getBlock(i);
+    const bool isWriteOneLineBlock = DataBlock::writeOneParamBlockCompact && b.paramCount() == 1 && b.blockCount() == 0;
     bool isCIdent = true;
     const char *blkName = b.getName(b.getNameId());
     if (!blkName)
@@ -248,14 +252,14 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
         writeIndent(cb, level * 2);
       }
 
-      if (IS_COMMENT_PRE_C(blkName))
+      if (IS_COMMENT_C(blkName))
       {
         cb.write("/*", 2);
         writeString(cb, b.getStr(0));
         cb.write("*/", 2);
         cb.write(eol, eolLen);
       }
-      else if (IS_COMMENT_PRE_CPP(blkName))
+      else if (IS_COMMENT_CPP(blkName))
       {
         cb.write("//", 2);
         writeString(cb, b.getStr(0));
@@ -295,7 +299,7 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
       CHECK_LINES_LIMIT();
       continue;
     }
-    if (!(level < 0 && b.paramCount() == 1 && b.blockCount() == 0))
+    if (!((level < 0 || DataBlock::writeOneParamBlockCompact) && b.paramCount() == 1 && b.blockCount() == 0))
     {
       cb.write(eol, eolLen);
       CHECK_LINES_LIMIT();
@@ -305,12 +309,15 @@ bool DataBlock::writeText(IGenSave &cb, int level, int *max_lines, int max_level
       !b.writeText<print_with_limits>(cb, level >= 0 ? level + 1 : level, max_lines, print_with_limits ? max_levels - 1 : max_levels))
       return false;
     if (level > 0)
-      writeIndent(cb, level * 2);
+      writeIndent(cb, isWriteOneLineBlock ? 1 : level * 2);
     cb.write("}", 1);
-    cb.write(eol, eolLen);
+    if (!isWriteOneLineBlock)
+      cb.write(eol, eolLen);
+    else
+      cb.write(compactEol, compactEolLen);
     CHECK_LINES_LIMIT();
 
-    if (i != e - 1 && level >= 0)
+    if (i != e - 1 && level >= 0 && !isWriteOneLineBlock)
     {
       cb.write(eol, eolLen);
       CHECK_LINES_LIMIT();
@@ -980,6 +987,86 @@ void dblk::clr_flag(DataBlock &blk, dblk::ReadFlags flg_to_clr)
 DBNameMap *dblk::create_db_names() { return new DBNameMap; }
 void dblk::destroy_db_names(DBNameMap *nm) { delete nm; }
 int dblk::db_names_count(DBNameMap *nm) { return nm ? nm->nameCount() : 0; }
+
+template <size_t SIZE>
+void make_placeholder_str(int n, char (&buf)[SIZE])
+{
+  static constexpr char b64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  for (int i = 0; i < SIZE; ++i)
+  {
+    if (i && !n)
+    {
+      buf[i] = 0;
+      return;
+    }
+
+    buf[i] = b64[n & 63];
+    n >>= 6;
+  }
+
+  G_ASSERT(false);
+  buf[SIZE - 1] = 0;
+};
+
+
+DBNameMap *dblk::shrink_names_saving_order(const DBNameMap &src, const DBNameMap &order, dblk::ShrinkStats &stats)
+{
+  DBNameMap *result = dblk::create_db_names();
+  result->reserve(max(order.nameCount(), src.nameCount()));
+  int searchInSrc = 0;
+  int placeholder = 0;
+
+  for (int i = 0; i < order.nameCount(); ++i)
+  {
+    const char *name = order.getName(i);
+    if (src.getNameId(name) >= 0)
+    {
+      result->addNameId(name);
+    }
+    else
+    {
+      stats.removed++;
+
+      while (searchInSrc < src.nameCount())
+      {
+        const char *tryName = src.getName(searchInSrc++);
+        if (order.getNameId(tryName) >= 0)
+          continue;
+
+        result->addNameId(tryName);
+        stats.added++;
+        break;
+      }
+
+      if (searchInSrc >= src.nameCount())
+      {
+        char buf[16];
+        while (true)
+        {
+          make_placeholder_str(placeholder++, buf);
+          if (src.getNameId(buf) >= 0)
+            continue;
+
+          result->addNameId(buf);
+          stats.placeholders++;
+          break;
+        }
+      }
+    }
+  }
+
+  while (searchInSrc < src.nameCount())
+  {
+    const char *tryName = src.getName(searchInSrc++);
+    if (order.getNameId(tryName) >= 0)
+      continue;
+
+    result->addNameId(tryName);
+    stats.added++;
+  }
+
+  return result;
+}
 
 #define EXPORT_PULL dll_pull_iosys_datablock_serialize
 #include <supp/exportPull.h>

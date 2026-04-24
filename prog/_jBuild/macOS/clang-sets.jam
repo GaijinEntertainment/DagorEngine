@@ -4,8 +4,16 @@ _OBJ_SUFFIX  = .o ;
 
 _CLANG_BIN = $(_DEVTOOL)/mac/Toolchain/usr/bin ;
 
+local ArchArg = -arch $(PlatformArch) ;
+if $(MacUniversalBinary) = yes {
+  if $(PlatformArch) != x86_64 && $(PlatformArch) != arm64 {
+    error Unsupported base platform arch $(PlatformArch) for mac universal build ;
+  }
+  ArchArg = -arch x86_64 -arch arm64 ;
+}
+
 local _DEF_COM_CMDLINE =
-  -pipe -c -arch $(PlatformArch) -mmacosx-version-min=$(MacOSXMinVer)
+  -pipe -c $(ArchArg) -mmacosx-version-min=$(MacOSXMinVer)
   -MD -Werror
   -Wno-trigraphs -Wno-multichar -Wformat -Wno-unused-value
   -Wno-uninitialized -Wno-inline-new-delete -Wno-unknown-warning-option
@@ -14,7 +22,7 @@ local _DEF_COM_CMDLINE =
   -Wno-undefined-var-template -Wno-constant-conversion
   -Wno-inconsistent-missing-override
   -Wno-deprecated-builtins -Wno-unused-command-line-argument
-  -Wno-nan-infinity-disabled
+  -Wno-nan-infinity-disabled -Wno-nontrivial-memcall
   -ffunction-sections -fdata-sections
   -ffast-math -ffinite-math-only -mrecip=none
   -D_TARGET_PC=2 -D_TARGET_PC_MACOSX=2 -D_TARGET_APPLE=1 -D_TARGET_64BIT
@@ -47,12 +55,13 @@ if $(Rtti) != yes {
 } else {
   _DEF_CPP_CMDLINE += -frtti ;
 }
-_LINK = $(_CLANG_BIN)/clang++ -pipe -arch $(PlatformArch) -isysroot $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk -mmacosx-version-min=$(MacOSXMinVer)
+
+_LINK = $(_CLANG_BIN)/clang++ -pipe $(ArchArg) -isysroot $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk -mmacosx-version-min=$(MacOSXMinVer)
         -ObjC -framework Foundation -framework QuartzCore -framework CoreLocation -framework Cocoa -framework IOKit
         -framework CoreFoundation -framework Security -framework Carbon -framework SystemConfiguration
         -Wl,-headerpad_max_install_names
 ;
-_LINK_DLL = $(_CLANG_BIN)/clang++ -pipe -arch $(PlatformArch) -isysroot $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk
+_LINK_DLL = $(_CLANG_BIN)/clang++ -pipe $(ArchArg) -isysroot $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk
         -mmacosx-version-min=$(MacOSXMinVer)
         -ObjC -framework Foundation -framework QuartzCore -framework Cocoa
         -Wl,-headerpad_max_install_names
@@ -78,7 +87,8 @@ _C_COMPILER   = $(_CLANG_BIN)/clang -x c $(_DEF_COM_CMDLINE) $(_DEF_C_CMDLINE) ;
 _CPP_COMPILER = $(_CLANG_BIN)/clang++ -x c++ $(_DEF_COM_CMDLINE) $(_DEF_CPP_CMDLINE) ;
 _OBJC_COMPILER   = $(_CLANG_BIN)/clang -x objective-c -std=c99 $(_DEF_COM_CMDLINE) -fno-objc-exceptions ;
 _OBJCPP_COMPILER = $(_CLANG_BIN)/clang++ -x objective-c++ -std=c++$(CPPStd) $(_DEF_COM_CMDLINE) -fno-objc-exceptions ;
-_GAS_COMPILER = $(_CLANG_BIN)/clang -g -c -m64 -arch $(PlatformArch) ;
+_OBJCPP_COMPILER += -Wno-c99-designator -Wno-deprecated-enum-enum-conversion ;
+_GAS_COMPILER = $(_CLANG_BIN)/clang -g -c -m64 $(ArchArg) ;
 if $(PlatformArch) = x86_64 { _ASM_COMPILER = nasm -f macho64 ; }
 _SWIFTC_COMPILER = $(_CLANG_BIN)/swiftc -sdk $(_DEVTOOL)/mac/SDKs/MacOSX.platform/MacOSX$(MacOSXVer).sdk
   -target $(PlatformArch)-apple-macos$(MacOSXMinVer) -parse-as-library ;

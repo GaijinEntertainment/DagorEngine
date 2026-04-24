@@ -8,7 +8,12 @@
 
 ComputeShaderElement *new_compute_shader(const char *shader_name, const bool optional)
 {
-  const shaderbindump::ShaderClass *sc = shBinDump().findShaderClass(shader_name);
+  return new_compute_shader(MAIN_BINDUMP_HANDLE, shader_name, optional);
+}
+ComputeShaderElement *new_compute_shader(ShaderBindumpHandle hnd, const char *shader_name, const bool optional)
+{
+  auto const &dump = get_shaders_dump(hnd);
+  const shaderbindump::ShaderClass *sc = dump.findShaderClass(shader_name);
   if (!sc)
   {
     if (!optional)
@@ -20,7 +25,7 @@ ComputeShaderElement *new_compute_shader(const char *shader_name, const bool opt
     DAG_FATAL("Compute shader '%s' not found", shader_name);
 
   MaterialData m;
-  ShaderMaterialProperties *smp = ShaderMaterialProperties::create(sc, m);
+  ShaderMaterialProperties *smp = ShaderMaterialProperties::create(sc, m, hnd);
   ScriptedShaderMaterial *mat = ScriptedShaderMaterial::create(*smp);
   delete smp;
 
@@ -92,3 +97,5 @@ bool ComputeShaderElement::dispatch_indirect(Sbuffer *args, int ofs, GpuPipeline
 {
   return elem->dispatchComputeIndirect(args, ofs, gpu_pipeline, set_states);
 }
+
+PROGRAM ComputeShaderElement::getComputeProgram() const { return elem->getComputeProgram(); }

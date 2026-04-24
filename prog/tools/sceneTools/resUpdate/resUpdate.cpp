@@ -6,10 +6,13 @@
 #include <debug/dag_except.h>
 #include <libTools/util/progressInd.h>
 #include <util/dag_string.h>
+#include <ioSys/dag_dataBlock.h>
+#include <memory/dag_framemem.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#include <EASTL/string.h>
 
 static void print_header()
 {
@@ -86,6 +89,38 @@ int DagorWinMain(bool debugmode)
 
   for (int i = 2; i + 1 < dgs_argc; i += 2)
   {
+    if (::strstr(dgs_argv[i], ".blk") != nullptr)
+    {
+      DataBlock vromfsIndexBlk;
+      if (!dblk::load(vromfsIndexBlk, dgs_argv[i], dblk::ReadFlag::ROBUST))
+      {
+        printf("\nERR: failed to load vromfs index block %s\n", dgs_argv[i]);
+        return 1;
+      }
+
+      dblk::iterate_child_blocks(vromfsIndexBlk, [&](const DataBlock &blk) {
+        using TmpString = eastl::basic_string<char, framemem_allocator>;
+
+        TmpString oldVromfsPath{TmpString::CtorSprintf{}, "%s/%s/%s", dgs_argv[1], dgs_argv[i + 1], blk.getBlockName()};
+
+        if (patch_update_vromfs_pack(oldVromfsPath.c_str(), blk) < 0)
+          printf("\nERR: failed to patch vromfs pack: %s\n", oldVromfsPath.c_str());
+      });
+
+      continue;
+    }
+    else if (::strstr(dgs_argv[i], ".idx.bin") != nullptr)
+    {
+      using TmpString = eastl::basic_string<char, framemem_allocator>;
+
+      TmpString oldSoundPath{TmpString::CtorSprintf{}, "%s/%s", dgs_argv[1], dgs_argv[i + 1]};
+
+      if (!patch_update_sound_bank(dgs_argv[i], oldSoundPath.c_str()))
+        printf("\nERR: failed to patch sound bank: %s\n", oldSoundPath.c_str());
+
+      continue;
+    }
+
     DAGOR_TRY
     {
       int ret = patch_update_game_resources(dgs_argv[1], dgs_argv[i], dgs_argv[i + 1], &pbar, dryRun, vfs_fn, reslist_fn);

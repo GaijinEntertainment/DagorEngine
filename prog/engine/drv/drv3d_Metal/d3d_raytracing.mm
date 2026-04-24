@@ -33,7 +33,7 @@ static uint32_t getASSizeData(MTLAccelerationStructureDescriptor *desc, uint32_t
 }
 
 RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *desc, uint32_t count,
-  RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType)
 {
   MTLPrimitiveAccelerationStructureDescriptor *accDesc = acceleration_structure_descriptors::getBLASDescriptor(desc, count, flags);
   uint32_t size = getASSizeData(accDesc, build_scratch_size_in_bytes, update_scratch_size_in_bytes);
@@ -41,7 +41,7 @@ RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_st
   return (RaytraceBottomAccelerationStructure *)drv3d_metal::render.createAccelerationStructure(flags, size, true);
 }
 
-RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(uint32_t size)
+RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(uint32_t size, ResourceTagType)
 {
   G_UNUSED(size);
   D3D_CONTRACT_ASSERT_FAIL("Creating arbitrary sized BLAS-es is not yet supported on Metal.");
@@ -101,7 +101,7 @@ void d3d::write_raytrace_index_entries_to_memory(uint32_t count, const RaytraceG
 }
 
 RaytraceTopAccelerationStructure *d3d::create_raytrace_top_acceleration_structure(uint32_t elements, RaytraceBuildFlags flags,
-  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType)
 {
   MTLInstanceAccelerationStructureDescriptor *accDesc = acceleration_structure_descriptors::getTLASDescriptor(elements, flags);
   uint32_t size = getASSizeData(accDesc, build_scratch_size_in_bytes, update_scratch_size_in_bytes);
@@ -226,6 +226,8 @@ namespace
     info.sizeInBytes, false);
 }
 
+::raytrace::AnyAccelerationStructure create_as(const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &) { return {}; }
+
 ::raytrace::AccelerationStructureSizes calculate_as_sizes(const ::raytrace::TopAccelerationStructureSizeCalculcationInfo &info)
 {
   ::raytrace::AccelerationStructureSizes result;
@@ -252,6 +254,11 @@ namespace
   }
 
   return result;
+}
+
+::raytrace::AccelerationStructureSizes calculate_as_sizes(const ::raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo &)
+{
+  return {};
 }
 } // namespace
 

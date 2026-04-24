@@ -4,6 +4,7 @@
 //
 #pragma once
 
+#include <EASTL/type_traits.h>
 #include <drv/3d/dag_consts_base.h>
 #include <drv/3d/dag_samplerHandle.h>
 #include <math/dag_color.h>
@@ -92,7 +93,7 @@ struct SamplerInfo
   AddressMode address_mode_u = AddressMode::Wrap; ///< AddressMode for U coordinate
   AddressMode address_mode_v = AddressMode::Wrap; ///< AddressMode for V coordinate
   AddressMode address_mode_w = AddressMode::Wrap; ///< AddressMode for W coordinate
-  BorderColor border_color;                       ///< Border color
+  BorderColor border_color{};                     ///< Border color
   float anisotropic_max = 1.f;                    ///< Max anisotropic value. Only positive power of two values <= 16 are valid
   float mip_map_bias = 0.f;                       ///< MipMap bias
 

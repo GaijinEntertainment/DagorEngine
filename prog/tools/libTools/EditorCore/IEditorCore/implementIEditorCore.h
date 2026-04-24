@@ -306,8 +306,10 @@ public:
   void showConsole(CoolConsole &con, bool activate) const override;
   void hideConsole(const CoolConsole &con) const override;
 
-  bool registerCommand(CoolConsole &con, const char *cmd, IConsoleCmd *handler) const override;
-  bool unregisterCommand(CoolConsole &con, const char *cmd, IConsoleCmd *handler) const override;
+  void addConProc(console::ICommandProcessor *proc) override;
+  bool delConProc(console::ICommandProcessor *proc) override;
+  int conCollectorCmp(const char *arg, int ac, const char *cmd, int min_ac, int max_ac, const char *description,
+    const char *argsDescription, const char *varValue, eastl::vector<console::CommandOptions> &&cmdOptions) override;
 };
 
 
@@ -382,10 +384,6 @@ public:
   void stdTonemapperRecalc(StaticSceneBuilder::StdTonemapper &mapper) const override;
   void stdTonemapperSave(StaticSceneBuilder::StdTonemapper &mapper, DataBlock &blk) const override;
   void stdTonemapperLoad(StaticSceneBuilder::StdTonemapper &mapper, const DataBlock &blk) const override;
-
-  // resources
-  GameResource *getGameResource(GameResHandle handle, bool no_factory_fatal = true) const override;
-  void releaseGameResource(GameResource *resource) const override;
 };
 
 

@@ -254,7 +254,7 @@ bool is_custom_collider_enabled(const IDagorEdCustomCollider *collider)
 static bool editorCollUsed = true;
 static Tab<IDagorEdCustomCollider *> editorColliders(tmpmem);
 static unsigned editorFilterMask = 0;
-void set_custom_colliders(dag::ConstSpan<IDagorEdCustomCollider *> colliders, unsigned filter_mask)
+void set_custom_colliders(dag::ConstSpan<IDagorEdCustomCollider *> new_colliders, unsigned filter_mask)
 {
   if (editorCollUsed)
   {
@@ -262,7 +262,7 @@ void set_custom_colliders(dag::ConstSpan<IDagorEdCustomCollider *> colliders, un
     editorFilterMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION);
     editorCollUsed = false;
   }
-  activeColliders = colliders;
+  activeColliders = new_colliders;
   IObjEntityFilter::setSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION, filter_mask);
 }
 void restore_editor_colliders()
@@ -423,7 +423,7 @@ real DagorPhys::clip_capsule_static(Capsule &c, Point3 &cap_pt, Point3 &world_pt
     return md;
 
   int phmatid;
-  const int idx = rtdump->clipCapsule(c, cap_pt, world_pt, md, Point3(0, 0, 0), phmatid);
+  rtdump->clipCapsule(c, cap_pt, world_pt, md, Point3(0, 0, 0), phmatid);
 
   return md;
 }
@@ -437,7 +437,7 @@ real DagorPhys::clip_capsule_static(Capsule &c, Point3 &cap_pt, Point3 &world_pt
 
   int phmatid;
   real md = MAX_REAL;
-  const int idx = rtdump->clipCapsule(c, cap_pt, world_pt, md, Point3(0, 0, 0), phmatid, norm);
+  rtdump->clipCapsule(c, cap_pt, world_pt, md, Point3(0, 0, 0), phmatid, norm);
 
   return md;
 }

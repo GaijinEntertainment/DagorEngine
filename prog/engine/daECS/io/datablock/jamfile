@@ -1,0 +1,16 @@
+Root    ?= ../../../../.. ;
+local LibPath = engine/daECS/io/datablock ;
+Location = prog/$(LibPath) ;
+TargetType  = lib ;
+Target      = $(LibPath).lib ;
+StrictCompile = yes ;
+
+Sources =
+  dataBlockReader.cpp
+;
+
+UseProgLibs += engine/daECS/utility ;
+
+if $(KernelLinkage) != dynamic { UseProgLibs += engine/ioSys ; } # for datablock
+
+include $(Root)/prog/_jBuild/build.jam ;

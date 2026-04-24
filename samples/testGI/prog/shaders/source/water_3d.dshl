@@ -267,7 +267,7 @@ shader water_nv2
           }
           oceanWavesMultiplier = 0.01+0.99*saturate(1-2*sdf.x);
 
-          WaveWorks_GetDisplacedVertex(worldPos.xzy, worldPosDistance, float4(1, 1, 1, 1),
+          WaveWorks_GetDisplacedVertex(worldPos.xzy, float4(1, 1, 1, 1),
             displacement, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23);
           shoreWavesDisplacement *= worldPosDistanceWeight;
           displacement *= worldPosDistanceWeight;
@@ -289,7 +289,7 @@ shader water_nv2
           ##endif
           float shoreWavesMultiplier = 0;
           float shoreWavesDisplacement = 0;
-          WaveWorks_GetDisplacedVertex(worldPos.xzy, worldPosDistance, float4(1, 1, 1, 1), float4(1, 1, 1, 1),
+          WaveWorks_GetDisplacedVertex(worldPos.xzy, float4(1, 1, 1, 1), float4(1, 1, 1, 1),
             displacement, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45);
         ##endif
         
@@ -575,15 +575,10 @@ shader water_nv2
     float water_depth_hardness = foam_tiling.y;
     float shore_blending_coeff = saturate(realWaterDepth * water_depth_hardness);
     fresnelView *= shore_blending_coeff; // making water/terrain intersections looking smooth (fresnel is faded to 0 on depths 0.33..0m)
-
-    float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, screenTc.x), lerp(view_vecLB, view_vecRB, screenTc.x), screenTc.y);
-    float3 underWaterPos = world_view_pos + viewVect*floorZ;
     ##else
-    float3 underWaterPos = worldPos;
     float waterDepth = 10;
     float shore_blending_coeff = 1;
     ##endif
-    float water_deep_down = max(0, worldPos.y-underWaterPos.y);//
 
     //use if there is no sdf factor
     //float ocean_part = saturate(inv_river_depth * water_deep_down);
@@ -592,7 +587,7 @@ shader water_nv2
     float ocean_part = riverMultiplier;
 
     half3 underwater_loss, underwater_inscatter;
-    get_underwater_fog(worldPos, underWaterPos, pointToEyeNormalized, waterDepth, water_deep_down, ocean_part, underwater_loss, underwater_inscatter);
+    get_underwater_fog(worldPos, pointToEyeNormalized, waterDepth, ocean_part, underwater_loss, underwater_inscatter);
     ##if compatibility_mode == compatibility_mode_off
     underwater_inscatter *= shore_blending_coeff;
     #if !has_refraction

@@ -26,7 +26,6 @@ shader fxaa
     tex@smp2d = final_target_frame;
     resolution@f4 = (resolution);
     fxaa_params@f4 = fxaa_params_simple;
-    //source_depth_tex@smp2d = source_depth_tex;
   }
 
   if (fxaa_quality_lev == fxaa_quality_low || fxaa_quality_lev == fxaa_quality_none)

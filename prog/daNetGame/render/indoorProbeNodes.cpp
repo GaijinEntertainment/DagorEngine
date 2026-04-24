@@ -4,7 +4,7 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <3d/dag_render.h>
 #include <memory/dag_framemem.h>
 #include <shaders/dag_shaders.h>
@@ -43,7 +43,7 @@ void IndoorProbeNodes::registerNodes(uint32_t allProbesOnLevel, IndoorProbeManag
   auto ns = dafg::root() / "indoor_probes";
 
   tryStartUpdateNode = ns.registerNode("try_start_update_node", DAFG_PP_NODE_SRC, [owner](dafg::Registry registry) {
-    auto shouldUpdateHndl = registry.create("should_update", dafg::History::No).blob<bool>().handle();
+    auto shouldUpdateHndl = registry.create("should_update").blob<bool>().handle();
 
     return [owner, shouldUpdateHndl](dafg::multiplexing::Index multiplexing_index) {
       const bool isFirstIteration = multiplexing_index == dafg::multiplexing::Index{};
@@ -67,12 +67,9 @@ void IndoorProbeNodes::registerNodes(uint32_t allProbesOnLevel, IndoorProbeManag
 
   cpuCheckNode = ns.registerNode("cpu_check_node", DAFG_PP_NODE_SRC, [owner](dafg::Registry registry) {
     auto resources = eastl::make_tuple(registry.read("should_update").blob<bool>().handle(),
-      registry.read("current_camera").blob<CameraParams>().handle(),
-      registry.create("cpu_matrices", dafg::History::No).blob<CpuMatrices>().handle(),
-      registry.create("cpu_indices", dafg::History::No).blob<CpuIndices>().handle(),
-      registry.create("cpu_shape_types", dafg::History::No).blob<CpuIndices>().handle(),
-      registry.create("dont_use_clusterization", dafg::History::No).blob<bool>().handle(),
-      registry.create("readback_ready", dafg::History::No).blob<bool>().handle());
+      registry.read("current_camera").blob<CameraParams>().handle(), registry.create("cpu_matrices").blob<CpuMatrices>().handle(),
+      registry.create("cpu_indices").blob<CpuIndices>().handle(), registry.create("cpu_shape_types").blob<CpuIndices>().handle(),
+      registry.create("dont_use_clusterization").blob<bool>().handle(), registry.create("readback_ready").blob<bool>().handle());
 
     return [owner, resourcesPtr = eastl::make_unique<decltype(resources)>(resources)]() {
       if (!resourcesPtr)
@@ -101,7 +98,7 @@ void IndoorProbeNodes::registerNodes(uint32_t allProbesOnLevel, IndoorProbeManag
   completePreviousFrameReadbacksNode =
     ns.registerNode("complete_previous_frame_readbacks_node", DAFG_PP_NODE_SRC, [owner](dafg::Registry registry) {
       auto readbackReadyHndl = registry.read("readback_ready").blob<bool>().handle();
-      auto shouldInitiateReadbackHndl = registry.create("should_initiate_readback", dafg::History::No).blob<bool>().handle();
+      auto shouldInitiateReadbackHndl = registry.create("should_initiate_readback").blob<bool>().handle();
 
       // We don't modify these directly, but we can invalidate the stuff
       // that they represent in updateActiveProbes, so we need to
@@ -124,8 +121,8 @@ void IndoorProbeNodes::registerNodes(uint32_t allProbesOnLevel, IndoorProbeManag
     ns.registerNode("create_visible_pixels_count_node", DAFG_PP_NODE_SRC, [allProbesOnLevel](dafg::Registry registry) {
       auto shouldInitiateReadbackHndl = registry.read("should_initiate_readback").blob<bool>().handle();
 
-      auto visiblePixelsCountHndl = registry.create("visible_pixels_count", dafg::History::No)
-                                      .structuredBufferUa<uint32_t>(allProbesOnLevel)
+      auto visiblePixelsCountHndl = registry.create("visible_pixels_count")
+                                      .structuredBuffer<uint32_t>(allProbesOnLevel)
                                       .atStage(dafg::Stage::ALL_GRAPHICS)
                                       .useAs(dafg::Usage::SHADER_RESOURCE)
                                       .handle();
@@ -152,7 +149,7 @@ void IndoorProbeNodes::registerNodes(uint32_t allProbesOnLevel, IndoorProbeManag
       // so we ought to do it before it gets changed. Otherwise, when
       // looking at a reflective surface inside a house through water,
       // probes would be culled away and not used :/
-      registry.create("probes_ready_token", dafg::History::No).blob<OrderingToken>();
+      registry.create("probes_ready_token").blob<OrderingToken>();
 
       registry.requestRenderPass().depthRw("downsampled_depth");
       shaders::OverrideState state;

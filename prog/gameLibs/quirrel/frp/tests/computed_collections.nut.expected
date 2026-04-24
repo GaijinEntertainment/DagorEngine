@@ -1,0 +1,8 @@
+evens: [2, 4, 6]
+evens after change: [10, 12, 14]
+upper: [ALICE, BOB]
+total: 15
+total after change: 60
+passing: [a, c]
+passing after change: [b, c]
+readyMap: {u1=true, u2=false}

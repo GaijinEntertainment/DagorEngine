@@ -20,13 +20,12 @@
 #include <generic/dag_carray.h>
 
 #include <render/toroidal_update_regions.h>
-#define GLOBAL_VARS_LIST              \
-  VAR(world_to_trees_tex_ofs)         \
-  VAR(world_to_trees_tex_mul)         \
-  VAR(trees2d_depth_region)           \
-  VAR(trees2d_depth_samplerstate)     \
-  VAR(trees2d_depth_min_samplerstate) \
-  VAR(trees2d_samplerstate)           \
+#define GLOBAL_VARS_LIST          \
+  VAR(world_to_trees_tex_ofs)     \
+  VAR(world_to_trees_tex_mul)     \
+  VAR(trees2d_depth_region)       \
+  VAR(trees2d_depth_samplerstate) \
+  VAR(trees2d_samplerstate)       \
   VAR(trees2d_clear_regions_arr)
 
 static ShaderVariableInfo object_tess_factorVarId{"object_tess_factor", true};
@@ -120,9 +119,9 @@ void TreesAboveDepth::prepare(const Point3 &origin, float minZ, float maxZ, cons
 
     alignedOrigin = point2(trees2dHelper.curOrigin) * texelSize;
 
-    ShaderGlobal::set_color4(world_to_trees_tex_mulVarId, 1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5,
+    ShaderGlobal::set_float4(world_to_trees_tex_mulVarId, 1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5,
       -alignedOrigin.y / fullDistance + 0.5, trees2dHelper.texSize);
-    ShaderGlobal::set_color4(world_to_trees_tex_ofsVarId, (maxZ - minZ), minZ, ofs.x, ofs.y);
+    ShaderGlobal::set_float4(world_to_trees_tex_ofsVarId, (maxZ - minZ), minZ, ofs.x, ofs.y);
   }
 
   for (auto &b : regionsToClear)
@@ -189,14 +188,12 @@ void TreesAboveDepth::prepare(const Point3 &origin, float minZ, float maxZ, cons
 
     ShaderGlobal::set_int4_array(trees2d_clear_regions_arrVarId, shaderRegions.data(), shaderRegions.size());
 
-    d3d::set_render_target(nullptr, 0);
-    d3d::set_depth(trees2dDepthMin.getTex2D(), 0, DepthAccess::RW);
+    d3d::set_render_target({trees2dDepthMin.getTex2D(), 0, 0}, DepthAccess::RW, {});
 
     d3d::setview(0, 0, trees2dHelper.texSize, trees2dHelper.texSize, 0, 1);
     clearRegions.render();
 
-    d3d::set_render_target(trees2d.getTex2D(), 0);
-    d3d::set_depth(trees2dDepth.getTex2D(), 0, DepthAccess::RW);
+    d3d::set_render_target({trees2dDepth.getTex2D(), 0, 0}, DepthAccess::RW, {{trees2d.getTex2D(), 0, 0}});
 
     d3d::setview(0, 0, trees2dHelper.texSize, trees2dHelper.texSize, 0, 1);
     clearRegions.render();
@@ -220,17 +217,15 @@ void TreesAboveDepth::prepare(const Point3 &origin, float minZ, float maxZ, cons
   auto currentRegions = make_span(regionsToUpdate).last(min(MAX_REGIONS_PER_FRAME, regionsToUpdate.size()));
 
   // disable tesselation for speed as its contribution is very low
-  float oldPnTriangulation = ShaderGlobal::get_real(object_tess_factorVarId);
-  ShaderGlobal::set_real(object_tess_factorVarId, 0);
+  float oldPnTriangulation = ShaderGlobal::get_float(object_tess_factorVarId);
+  ShaderGlobal::set_float(object_tess_factorVarId, 0);
 
-  d3d::set_render_target(nullptr, 0);
-  d3d::set_depth(trees2dDepthMin.getTex2D(), 0, DepthAccess::RW);
+  d3d::set_render_target({trees2dDepthMin.getTex2D(), 0, 0}, DepthAccess::RW, {});
 
   for (auto &reg : currentRegions)
     renderRegion(reg, texelSize, minZ, maxZ, rcb, true);
 
-  d3d::set_render_target(trees2d.getTex2D(), 0);
-  d3d::set_depth(trees2dDepth.getTex2D(), 0, DepthAccess::RW);
+  d3d::set_render_target({trees2dDepth.getTex2D(), 0, 0}, DepthAccess::RW, {{trees2d.getTex2D(), 0, 0}});
 
   for (auto &reg : currentRegions)
     renderRegion(reg, texelSize, minZ, maxZ, rcb, false);
@@ -239,12 +234,12 @@ void TreesAboveDepth::prepare(const Point3 &origin, float minZ, float maxZ, cons
   d3d::resource_barrier({trees2dDepthMin.getTex2D(), RB_RO_SRV | stageAll | RB_SOURCE_STAGE_PIXEL, 0, 0});
 
   // fixme: replace with quads rendering
-  d3d::set_render_target(trees2d.getTex2D(), 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{trees2d.getTex2D(), 0, 0}});
   for (auto &reg : currentRegions)
     renderRegionAlpha(reg);
 
   d3d::resource_barrier({trees2d.getTex2D(), RB_RO_SRV | stageAll | RB_SOURCE_STAGE_PIXEL, 0, 0});
-  ShaderGlobal::set_real(object_tess_factorVarId, oldPnTriangulation);
+  ShaderGlobal::set_float(object_tess_factorVarId, oldPnTriangulation);
 
   regionsToUpdate.resize(regionsToUpdate.size() - currentRegions.size());
 }
@@ -253,9 +248,11 @@ void TreesAboveDepth::init(float half_distance, float texel_size)
 {
 #define VAR(a)     \
   if (!(a##VarId)) \
-    logerr("mandatory shader variable is missing: %s", #a);
+    a##VarId.require();
   GLOBAL_VARS_LIST
 #undef VAR
+
+  G_ASSERT(half_distance > 0 && texel_size > 0);
 
   const int trees2dDRes = get_bigger_pow2(ceilf(2.f * half_distance / texel_size));
   const float nextTrees2dDist = half_distance;
@@ -271,15 +268,17 @@ void TreesAboveDepth::init(float half_distance, float texel_size)
 
   trees2dDist = nextTrees2dDist;
   debug("init trees2d map tex %d^2, texel %f, range %f", trees2dDRes, trees2dDist * 2 / trees2dDRes, trees2dDist);
-  trees2d.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXCF_RTARGET | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1, "trees2d"),
+  trees2d.set(
+    d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXCF_RTARGET | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1, "trees2d", RESTAG_DAGI2),
     "trees2d");
   trees2d.setVar();
 
-  trees2dDepth.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, "trees2d_depth"),
+  trees2dDepth.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, "trees2d_depth", RESTAG_DAGI2),
     "trees2d_depth");
   trees2dDepth.setVar();
 
-  trees2dDepthMin.set(d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, "trees2d_depth_min"),
+  trees2dDepthMin.set(
+    d3d::create_tex(NULL, trees2dDRes, trees2dDRes, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, "trees2d_depth_min", RESTAG_DAGI2),
     "trees2d_depth_min");
   trees2dDepthMin.setVar();
 
@@ -289,7 +288,6 @@ void TreesAboveDepth::init(float half_distance, float texel_size)
     d3d::SamplerHandle sampler = d3d::request_sampler(smpInfo);
     trees2d_samplerstateVarId.set_sampler(sampler);
     trees2d_depth_samplerstateVarId.set_sampler(sampler);
-    trees2d_depth_min_samplerstateVarId.set_sampler(sampler);
   }
   trees2dHelper.curOrigin = IPoint2(-1000000, 1000000);
   trees2dHelper.texSize = trees2dDRes;

@@ -1,0 +1,597 @@
+INT_MAX = 9223372036854775807, INT_MIN = -9223372036854775808, BITS = 64
+
+==============================================================
+  SECTION 1: Shifts with local variables
+==============================================================
+
+
+[local <<] basic
+  OK   x=1  << y=0                                                    ==                    1
+  OK   x=1  << y=1                                                    ==                    2
+  OK   x=1  << y=2                                                    ==                    4
+  OK   x=1  << y=10                                                   ==                 1024
+  OK   x=3  << y=4                                                    ==                   48
+  OK   x=0xFF << y=8                                                  ==                65280
+
+[local <<] zero value
+  OK   x=0 << y=0                                                     ==                    0
+  OK   x=0 << y=1                                                     ==                    0
+  OK   x=0 << y=63                                                    ==                    0
+  OK   x=0 << y=-1                                                    ==                    0
+
+[local <<] negative shift (direction reversal)
+  OK   x=8    << y=-1                                                 ==                    4
+  OK   x=8    << y=-2                                                 ==                    2
+  OK   x=8    << y=-3                                                 ==                    1
+  OK   x=1024 << y=-10                                                ==                    1
+  OK   x=16   << y=-1                                                 ==                    8
+
+[local <<] overflow (shift >= 64)
+  OK   x=1  << y=64                                                   ==                    0
+  OK   x=1  << y=65                                                   ==                    0
+  OK   x=1  << y=192                                                  ==                    0
+  OK   x=-1 << y=64                                                   ==                    0
+  OK   x=INT_MAX << y=64                                              ==                    0
+
+[local <<] negative value
+  OK   x=-1 << y=0                                                    ==                   -1
+  OK   x=-1 << y=1                                                    ==                   -2
+  OK   x=-1 << y=63                                                   == -9223372036854775808
+
+[local <<] extreme values
+  OK   x=INT_MAX << y=0                                               ==  9223372036854775807
+  OK   x=INT_MAX << y=1                                               ==                   -2
+  OK   x=INT_MAX << y=64                                              ==                    0
+  OK   x=INT_MIN << y=0                                               == -9223372036854775808
+  OK   x=INT_MIN << y=1                                               ==                    0
+  OK   x=INT_MIN << y=64                                              ==                    0
+  OK   x=1  << y=INT_MIN                                              ==                    0
+  OK   x=-1 << y=INT_MIN                                              ==                   -1
+  OK   x=1  << y=INT_MAX                                              ==                    0
+  OK   x=-1 << y=INT_MAX                                              ==                    0
+  OK   x=INT_MAX << y=-1                                              ==  4611686018427387903
+  OK   x=INT_MIN << y=-1                                              == -4611686018427387904
+  OK   x=1 << y=-64                                                   ==                    0
+  OK   x=1 << y=-65                                                   ==                    0
+  OK   x=1 << y=-192                                                  ==                    0
+
+[local <<] boundary 31/32/33 and 63/64/65
+  OK   x=1  << y=31                                                   ==           2147483648
+  OK   x=1  << y=32                                                   ==           4294967296
+  OK   x=1  << y=33                                                   ==           8589934592
+  OK   x=1  << y=63                                                   == -9223372036854775808
+  OK   x=1  << y=64                                                   ==                    0
+  OK   x=1  << y=65                                                   ==                    0
+  OK   x=-1 << y=31                                                   ==          -2147483648
+  OK   x=-1 << y=32                                                   ==          -4294967296
+  OK   x=-1 << y=33                                                   ==          -8589934592
+  OK   x=-1 << y=63                                                   == -9223372036854775808
+  OK   x=-1 << y=64                                                   ==                    0
+  OK   x=-1 << y=65                                                   ==                    0
+  OK   x=INT_MIN << y=-31                                             ==          -4294967296
+  OK   x=INT_MIN << y=-32                                             ==          -2147483648
+  OK   x=INT_MIN << y=-33                                             ==          -1073741824
+  OK   x=INT_MIN << y=-63                                             ==                   -1
+  OK   x=INT_MIN << y=-64                                             ==                   -1
+  OK   x=INT_MIN << y=-65                                             ==                   -1
+
+[local >>] basic
+  OK   x=8    >> y=0                                                  ==                    8
+  OK   x=8    >> y=1                                                  ==                    4
+  OK   x=8    >> y=2                                                  ==                    2
+  OK   x=8    >> y=3                                                  ==                    1
+  OK   x=8    >> y=4                                                  ==                    0
+  OK   x=1024 >> y=10                                                 ==                    1
+  OK   x=0xFF00 >> y=8                                                ==                  255
+
+[local >>] zero value
+  OK   x=0 >> y=0                                                     ==                    0
+  OK   x=0 >> y=1                                                     ==                    0
+  OK   x=0 >> y=63                                                    ==                    0
+  OK   x=0 >> y=-1                                                    ==                    0
+
+[local >>] negative shift (direction reversal)
+  OK   x=1 >> y=-1                                                    ==                    2
+  OK   x=1 >> y=-2                                                    ==                    4
+  OK   x=1 >> y=-10                                                   ==                 1024
+  OK   x=3 >> y=-4                                                    ==                   48
+
+[local >>] overflow positive
+  OK   x=1       >> y=64                                              ==                    0
+  OK   x=1       >> y=65                                              ==                    0
+  OK   x=1       >> y=192                                             ==                    0
+  OK   x=INT_MAX >> y=64                                              ==                    0
+
+[local >>] overflow negative (sign fill)
+  OK   x=-1      >> y=64                                              ==                   -1
+  OK   x=-1      >> y=65                                              ==                   -1
+  OK   x=-1      >> y=192                                             ==                   -1
+  OK   x=INT_MIN >> y=64                                              ==                   -1
+  OK   x=-42     >> y=64                                              ==                   -1
+
+[local >>] negative value
+  OK   x=-1      >> y=1                                               ==                   -1
+  OK   x=-2      >> y=1                                               ==                   -1
+  OK   x=INT_MIN >> y=1                                               == -4611686018427387904
+
+[local >>] extreme values
+  OK   x=INT_MAX >> y=0                                               ==  9223372036854775807
+  OK   x=INT_MIN >> y=0                                               == -9223372036854775808
+  OK   x=1       >> y=INT_MIN                                         ==                    0
+  OK   x=-1      >> y=INT_MIN                                         ==                   -1
+  OK   x=INT_MIN >> y=INT_MIN                                         ==                   -1
+  OK   x=1       >> y=INT_MAX                                         ==                    0
+  OK   x=-1      >> y=INT_MAX                                         ==                   -1
+  OK   x=1       >> y=-1                                              ==                    2
+  OK   x=INT_MAX >> y=-1                                              ==                   -2
+  OK   x=1  >> y=-64                                                  ==                    0
+  OK   x=-1 >> y=-64                                                  ==                   -1
+  OK   x=1  >> y=-192                                                 ==                    0
+
+[local >>] boundary 31/32/33 and 63/64/65
+  OK   x=1  >> y=31                                                   ==                    0
+  OK   x=1  >> y=32                                                   ==                    0
+  OK   x=1  >> y=33                                                   ==                    0
+  OK   x=1  >> y=63                                                   ==                    0
+  OK   x=1  >> y=64                                                   ==                    0
+  OK   x=1  >> y=65                                                   ==                    0
+  OK   x=-1 >> y=31                                                   ==                   -1
+  OK   x=-1 >> y=32                                                   ==                   -1
+  OK   x=-1 >> y=33                                                   ==                   -1
+  OK   x=-1 >> y=63                                                   ==                   -1
+  OK   x=-1 >> y=64                                                   ==                   -1
+  OK   x=-1 >> y=65                                                   ==                   -1
+  OK   x=INT_MIN >> y=31                                              ==          -4294967296
+  OK   x=INT_MIN >> y=32                                              ==          -2147483648
+  OK   x=INT_MIN >> y=33                                              ==          -1073741824
+  OK   x=INT_MIN >> y=63                                              ==                   -1
+  OK   x=INT_MIN >> y=64                                              ==                   -1
+  OK   x=INT_MIN >> y=65                                              ==                   -1
+  OK   x=1  >> y=-31                                                  ==           2147483648
+  OK   x=1  >> y=-32                                                  ==           4294967296
+  OK   x=1  >> y=-33                                                  ==           8589934592
+  OK   x=1  >> y=-63                                                  == -9223372036854775808
+  OK   x=1  >> y=-64                                                  ==                    0
+  OK   x=1  >> y=-65                                                  ==                    0
+  OK   x=INT_MIN >> y=-31                                             ==                    0
+  OK   x=INT_MIN >> y=-32                                             ==                    0
+  OK   x=INT_MIN >> y=-33                                             ==                    0
+  OK   x=INT_MIN >> y=-63                                             ==                    0
+  OK   x=INT_MIN >> y=-64                                             ==                   -1
+  OK   x=INT_MIN >> y=-65                                             ==                   -1
+
+[local >>>] basic
+  OK   x=8      >>> y=0                                               ==                    8
+  OK   x=8      >>> y=1                                               ==                    4
+  OK   x=8      >>> y=2                                               ==                    2
+  OK   x=8      >>> y=3                                               ==                    1
+  OK   x=8      >>> y=4                                               ==                    0
+  OK   x=0xFF00 >>> y=8                                               ==                  255
+
+[local >>>] zero value
+  OK   x=0 >>> y=0                                                    ==                    0
+  OK   x=0 >>> y=1                                                    ==                    0
+  OK   x=0 >>> y=63                                                   ==                    0
+  OK   x=0 >>> y=-1                                                   ==                    0
+
+[local >>>] negative shift (direction reversal)
+  OK   x=1 >>> y=-1                                                   ==                    2
+  OK   x=1 >>> y=-2                                                   ==                    4
+  OK   x=1 >>> y=-10                                                  ==                 1024
+
+[local >>>] overflow (shift >= 64)
+  OK   x=1       >>> y=64                                             ==                    0
+  OK   x=1       >>> y=65                                             ==                    0
+  OK   x=-1      >>> y=64                                             ==                    0
+  OK   x=INT_MIN >>> y=64                                             ==                    0
+  OK   x=INT_MAX >>> y=64                                             ==                    0
+
+[local >>>] negative value
+  OK   x=-1      >>> y=1                                              ==  9223372036854775807
+  OK   x=INT_MIN >>> y=1                                              ==  4611686018427387904
+  OK   x=-1 >>> y=63                                                  ==                    1
+
+[local >>>] extreme values
+  OK   x=INT_MAX >>> y=0                                              ==  9223372036854775807
+  OK   x=INT_MIN >>> y=0                                              == -9223372036854775808
+  OK   x=1       >>> y=INT_MIN                                        ==                    0
+  OK   x=-1      >>> y=INT_MIN                                        ==                    0
+  OK   x=INT_MIN >>> y=INT_MIN                                        ==                    0
+  OK   x=1       >>> y=INT_MAX                                        ==                    0
+  OK   x=-1      >>> y=INT_MAX                                        ==                    0
+  OK   x=1       >>> y=-1                                             ==                    2
+  OK   x=INT_MAX >>> y=-1                                             ==                   -2
+  OK   x=1  >>> y=-64                                                 ==                    0
+  OK   x=-1 >>> y=-64                                                 ==                    0
+  OK   x=1  >>> y=-192                                                ==                    0
+
+[local >>>] boundary 31/32/33 and 63/64/65
+  OK   x=1  >>> y=31                                                  ==                    0
+  OK   x=1  >>> y=32                                                  ==                    0
+  OK   x=1  >>> y=33                                                  ==                    0
+  OK   x=1  >>> y=63                                                  ==                    0
+  OK   x=1  >>> y=64                                                  ==                    0
+  OK   x=1  >>> y=65                                                  ==                    0
+  OK   x=-1 >>> y=31                                                  ==           8589934591
+  OK   x=-1 >>> y=32                                                  ==           4294967295
+  OK   x=-1 >>> y=33                                                  ==           2147483647
+  OK   x=-1 >>> y=63                                                  ==                    1
+  OK   x=-1 >>> y=64                                                  ==                    0
+  OK   x=-1 >>> y=65                                                  ==                    0
+  OK   x=INT_MIN >>> y=31                                             ==           4294967296
+  OK   x=INT_MIN >>> y=32                                             ==           2147483648
+  OK   x=INT_MIN >>> y=33                                             ==           1073741824
+  OK   x=INT_MIN >>> y=63                                             ==                    1
+  OK   x=INT_MIN >>> y=64                                             ==                    0
+  OK   x=INT_MIN >>> y=65                                             ==                    0
+  OK   x=1  >>> y=-31                                                 ==           2147483648
+  OK   x=1  >>> y=-32                                                 ==           4294967296
+  OK   x=1  >>> y=-33                                                 ==           8589934592
+  OK   x=1  >>> y=-63                                                 == -9223372036854775808
+  OK   x=1  >>> y=-64                                                 ==                    0
+  OK   x=1  >>> y=-65                                                 ==                    0
+  OK   x=INT_MIN >>> y=-31                                            ==                    0
+  OK   x=INT_MIN >>> y=-32                                            ==                    0
+  OK   x=INT_MIN >>> y=-33                                            ==                    0
+  OK   x=INT_MIN >>> y=-63                                            ==                    0
+  OK   x=INT_MIN >>> y=-64                                            ==                    0
+  OK   x=INT_MIN >>> y=-65                                            ==                    0
+
+[local cross] left/right inverse
+  OK   (x=1  << y=10) >> y=10                                         ==                    1
+  OK   (x=42 << y=5)  >> y=5                                          ==                   42
+
+[local cross] shift by 63 (boundary)
+  OK   x=1       << y=63                                              == -9223372036854775808
+  OK   x=INT_MIN >> y=63                                              ==                   -1
+  OK   x=INT_MIN >>> y=63                                             ==                    1
+  OK   x=-1      >> y=63                                              ==                   -1
+  OK   x=-1      >>> y=63                                             ==                    1
+
+==============================================================
+  SECTION 2: Shifts with numeric constants
+==============================================================
+
+
+[const expr <<] basic
+  OK   1 << 0                                                         ==                    1
+  OK   1 << 1                                                         ==                    2
+  OK   1 << 2                                                         ==                    4
+  OK   1 << 10                                                        ==                 1024
+  OK   3 << 4                                                         ==                   48
+  OK   0xFF << 8                                                      ==                65280
+
+[const expr <<] zero value
+  OK   0 << 0                                                         ==                    0
+  OK   0 << 1                                                         ==                    0
+  OK   0 << -1                                                        ==                    0
+
+[const expr <<] negative shift
+  OK   8 << -1                                                        ==                    4
+  OK   8 << -2                                                        ==                    2
+  OK   8 << -3                                                        ==                    1
+  OK   1024 << -10                                                    ==                    1
+  OK   16 << -1                                                       ==                    8
+
+[const expr <<] negative value
+  OK   -1 << 0                                                        ==                   -1
+  OK   -1 << 1                                                        ==                   -2
+
+[const expr <<] 32-bit range
+  OK   1 << 31                                                        ==           2147483648
+  OK   1 << 32                                                        ==           4294967296
+  OK   -1 << 31                                                       ==          -2147483648
+  OK   -1 << 32                                                       ==          -4294967296
+
+[const expr <<] overflow (shift >= BITS)
+  OK   1 << 64                                                        ==                    0
+  OK   -1 << 64                                                       ==                    0
+  OK   1 << 65                                                        ==                    0
+
+[const expr <<] extreme
+  OK   1 << -32                                                       ==                    0
+  OK   1 << -33                                                       ==                    0
+  OK   1 << -100                                                      ==                    0
+  OK   INT_MAX << 0                                                   ==  9223372036854775807
+  OK   INT_MAX << 1                                                   ==                   -2
+  OK   INT_MIN << 0                                                   == -9223372036854775808
+  OK   INT_MIN << 1                                                   ==                    0
+
+[const expr <<] boundary 31/32/33 and 63/64/65
+  OK   1 << 33                                                        ==           8589934592
+  OK   1 << 63                                                        == -9223372036854775808
+  OK   1 << 64                                                        ==                    0
+  OK   1 << 65                                                        ==                    0
+  OK   -1 << 33                                                       ==          -8589934592
+  OK   -1 << 63                                                       == -9223372036854775808
+  OK   -1 << 64                                                       ==                    0
+  OK   -1 << 65                                                       ==                    0
+  OK   INT_MIN << -31                                                 ==          -4294967296
+  OK   INT_MIN << -32                                                 ==          -2147483648
+  OK   INT_MIN << -33                                                 ==          -1073741824
+  OK   INT_MIN << -63                                                 ==                   -1
+  OK   INT_MIN << -64                                                 ==                   -1
+  OK   INT_MIN << -65                                                 ==                   -1
+
+[const expr >>] basic
+  OK   8 >> 0                                                         ==                    8
+  OK   8 >> 1                                                         ==                    4
+  OK   8 >> 2                                                         ==                    2
+  OK   8 >> 3                                                         ==                    1
+  OK   8 >> 4                                                         ==                    0
+  OK   1024 >> 10                                                     ==                    1
+  OK   0xFF00 >> 8                                                    ==                  255
+
+[const expr >>] zero value
+  OK   0 >> 0                                                         ==                    0
+  OK   0 >> 1                                                         ==                    0
+  OK   0 >> -1                                                        ==                    0
+
+[const expr >>] negative shift
+  OK   1 >> -1                                                        ==                    2
+  OK   1 >> -2                                                        ==                    4
+  OK   1 >> -10                                                       ==                 1024
+  OK   3 >> -4                                                        ==                   48
+
+[const expr >>] overflow
+  OK   1       >> 64                                                  ==                    0
+  OK   1       >> 65                                                  ==                    0
+  OK   INT_MAX >> 64                                                  ==                    0
+  OK   -1      >> 64                                                  ==                   -1
+  OK   -1      >> 65                                                  ==                   -1
+  OK   INT_MIN >> 64                                                  ==                   -1
+  OK   -42     >> 64                                                  ==                   -1
+
+[const expr >>] negative value
+  OK   -1      >> 1                                                   ==                   -1
+  OK   -2      >> 1                                                   ==                   -1
+  OK   INT_MIN >> 1                                                   == -4611686018427387904
+
+[const expr >>] extreme
+  OK   1 >> -32                                                       ==           4294967296
+  OK   1 >> -100                                                      ==                    0
+  OK   INT_MAX >> 0                                                   ==  9223372036854775807
+  OK   INT_MIN >> 0                                                   == -9223372036854775808
+
+[const expr >>] boundary 31/32/33 and 63/64/65
+  OK   -1 >> 31                                                       ==                   -1
+  OK   -1 >> 32                                                       ==                   -1
+  OK   -1 >> 33                                                       ==                   -1
+  OK   -1 >> 63                                                       ==                   -1
+  OK   -1 >> 64                                                       ==                   -1
+  OK   -1 >> 65                                                       ==                   -1
+  OK   INT_MIN >> 31                                                  ==          -4294967296
+  OK   INT_MIN >> 32                                                  ==          -2147483648
+  OK   INT_MIN >> 33                                                  ==          -1073741824
+  OK   INT_MIN >> 63                                                  ==                   -1
+  OK   INT_MIN >> 64                                                  ==                   -1
+  OK   INT_MIN >> 65                                                  ==                   -1
+  OK   1 >> -31                                                       ==           2147483648
+  OK   1 >> -33                                                       ==           8589934592
+  OK   1 >> -63                                                       == -9223372036854775808
+  OK   1 >> -64                                                       ==                    0
+  OK   1 >> -65                                                       ==                    0
+  OK   INT_MIN >> -31                                                 ==                    0
+  OK   INT_MIN >> -32                                                 ==                    0
+  OK   INT_MIN >> -33                                                 ==                    0
+  OK   INT_MIN >> -63                                                 ==                    0
+  OK   INT_MIN >> -64                                                 ==                   -1
+  OK   INT_MIN >> -65                                                 ==                   -1
+
+[const expr >>>] basic
+  OK   8 >>> 0                                                        ==                    8
+  OK   8 >>> 1                                                        ==                    4
+  OK   8 >>> 2                                                        ==                    2
+  OK   8 >>> 3                                                        ==                    1
+  OK   8 >>> 4                                                        ==                    0
+  OK   0xFF00 >>> 8                                                   ==                  255
+
+[const expr >>>] zero value
+  OK   0 >>> 0                                                        ==                    0
+  OK   0 >>> 1                                                        ==                    0
+  OK   0 >>> -1                                                       ==                    0
+
+[const expr >>>] negative shift
+  OK   1 >>> -1                                                       ==                    2
+  OK   1 >>> -2                                                       ==                    4
+  OK   1 >>> -10                                                      ==                 1024
+
+[const expr >>>] overflow
+  OK   1       >>> 64                                                 ==                    0
+  OK   1       >>> 65                                                 ==                    0
+  OK   -1      >>> 64                                                 ==                    0
+  OK   INT_MIN >>> 64                                                 ==                    0
+  OK   INT_MAX >>> 64                                                 ==                    0
+
+[const expr >>>] negative value
+  OK   -1      >>> 1                                                  ==  9223372036854775807
+  OK   INT_MIN >>> 1                                                  ==  4611686018427387904
+  OK   -1 >>> 63                                                      ==                    1
+
+[const expr >>>] extreme
+  OK   1 >>> -32                                                      ==           4294967296
+  OK   1 >>> -100                                                     ==                    0
+  OK   INT_MAX >>> 0                                                  ==  9223372036854775807
+  OK   INT_MIN >>> 0                                                  == -9223372036854775808
+
+[const expr >>>] boundary 31/32/33 and 63/64/65
+  OK   -1 >>> 31                                                      ==           8589934591
+  OK   -1 >>> 32                                                      ==           4294967295
+  OK   -1 >>> 33                                                      ==           2147483647
+  OK   -1 >>> 63                                                      ==                    1
+  OK   -1 >>> 64                                                      ==                    0
+  OK   -1 >>> 65                                                      ==                    0
+  OK   INT_MIN >>> 31                                                 ==           4294967296
+  OK   INT_MIN >>> 32                                                 ==           2147483648
+  OK   INT_MIN >>> 33                                                 ==           1073741824
+  OK   INT_MIN >>> 63                                                 ==                    1
+  OK   INT_MIN >>> 64                                                 ==                    0
+  OK   INT_MIN >>> 65                                                 ==                    0
+  OK   1 >>> -31                                                      ==           2147483648
+  OK   1 >>> -33                                                      ==           8589934592
+  OK   1 >>> -63                                                      == -9223372036854775808
+  OK   1 >>> -64                                                      ==                    0
+  OK   1 >>> -65                                                      ==                    0
+  OK   INT_MIN >>> -31                                                ==                    0
+  OK   INT_MIN >>> -32                                                ==                    0
+  OK   INT_MIN >>> -33                                                ==                    0
+  OK   INT_MIN >>> -63                                                ==                    0
+  OK   INT_MIN >>> -64                                                ==                    0
+  OK   INT_MIN >>> -65                                                ==                    0
+
+[const expr cross] shift by 63
+  OK   1       << 63                                                  == -9223372036854775808
+  OK   INT_MIN >> 63                                                  ==                   -1
+  OK   INT_MIN >>> 63                                                 ==                    1
+  OK   -1      >> 63                                                  ==                   -1
+  OK   -1      >>> 63                                                 ==                    1
+
+==============================================================
+  SECTION 3: Shifts assigned to const (compile-time folding)
+==============================================================
+
+
+[const <<] basic
+  OK   const = 1 << 0                                                 ==                    1
+  OK   const = 1 << 1                                                 ==                    2
+  OK   const = 1 << 2                                                 ==                    4
+  OK   const = 1 << 10                                                ==                 1024
+  OK   const = 3 << 4                                                 ==                   48
+  OK   const = 0xFF << 8                                              ==                65280
+
+[const <<] zero value
+  OK   const = 0 << 0                                                 ==                    0
+  OK   const = 0 << 1                                                 ==                    0
+  OK   const = 0 << -1                                                ==                    0
+
+[const <<] negative shift
+  OK   const = 8 << -1                                                ==                    4
+  OK   const = 8 << -2                                                ==                    2
+  OK   const = 8 << -3                                                ==                    1
+  OK   const = 1024 << -10                                            ==                    1
+  OK   const = 16 << -1                                               ==                    8
+
+[const <<] negative value
+  OK   const = -1 << 0                                                ==                   -1
+  OK   const = -1 << 1                                                ==                   -2
+
+[const <<] 32-bit range (valid in 64-bit)
+  OK   const = 1 << 31                                                ==           2147483648
+  OK   const = 1 << 32                                                ==           4294967296
+  OK   const = -1 << 31                                               ==          -2147483648
+  OK   const = -1 << 32                                               ==          -4294967296
+
+[const <<] overflow
+  OK   const = 1 << -32                                               ==                    0
+  OK   const = 1 << -33                                               ==                    0
+  OK   const = 1 << -100                                              ==                    0
+
+[const <<] boundary 33/63/64/65
+  OK   const = 1 << 33                                                ==           8589934592
+  OK   const = 1 << 63                                                == -9223372036854775808
+  OK   const = 1 << 64                                                ==                    0
+  OK   const = 1 << 65                                                ==                    0
+  OK   const = -1 << 33                                               ==          -8589934592
+  OK   const = -1 << 63                                               == -9223372036854775808
+  OK   const = -1 << 64                                               ==                    0
+  OK   const = -1 << 65                                               ==                    0
+  OK   const = 1 << -31                                               ==                    0
+  OK   const = 1 << -63                                               ==                    0
+  OK   const = 1 << -64                                               ==                    0
+  OK   const = 1 << -65                                               ==                    0
+
+[const >>] basic
+  OK   const = 8 >> 0                                                 ==                    8
+  OK   const = 8 >> 1                                                 ==                    4
+  OK   const = 8 >> 2                                                 ==                    2
+  OK   const = 8 >> 3                                                 ==                    1
+  OK   const = 8 >> 4                                                 ==                    0
+  OK   const = 1024 >> 10                                             ==                    1
+  OK   const = 0xFF00 >> 8                                            ==                  255
+
+[const >>] zero value
+  OK   const = 0 >> 0                                                 ==                    0
+  OK   const = 0 >> 1                                                 ==                    0
+  OK   const = 0 >> -1                                                ==                    0
+
+[const >>] negative shift
+  OK   const = 1 >> -1                                                ==                    2
+  OK   const = 1 >> -2                                                ==                    4
+  OK   const = 1 >> -10                                               ==                 1024
+  OK   const = 3 >> -4                                                ==                   48
+
+[const >>] negative shift (large)
+  OK   const = 1 >> -32                                               ==           4294967296
+  OK   const = 1 >> -100                                              ==                    0
+
+[const >>] 32-bit range (valid in 64-bit)
+  OK   const = 4294967296 >> 31                                       ==                    2
+  OK   const = 4294967296 >> 32                                       ==                    1
+
+[const >>] boundary 33/63/64/65
+  OK   const = 4294967296 >> 33                                       ==                    0
+  OK   const = 8589934592 >> 31                                       ==                    4
+  OK   const = 8589934592 >> 32                                       ==                    2
+  OK   const = 8589934592 >> 33                                       ==                    1
+  OK   const = -1 >> 31                                               ==                   -1
+  OK   const = -1 >> 32                                               ==                   -1
+  OK   const = -1 >> 33                                               ==                   -1
+  OK   const = -1 >> 63                                               ==                   -1
+  OK   const = -1 >> 64                                               ==                   -1
+  OK   const = -1 >> 65                                               ==                   -1
+  OK   const = 1 >> -31                                               ==           2147483648
+  OK   const = 1 >> -33                                               ==           8589934592
+  OK   const = 1 >> -63                                               == -9223372036854775808
+  OK   const = 1 >> -64                                               ==                    0
+  OK   const = 1 >> -65                                               ==                    0
+
+[const >>>] basic
+  OK   const = 8 >>> 0                                                ==                    8
+  OK   const = 8 >>> 1                                                ==                    4
+  OK   const = 8 >>> 2                                                ==                    2
+  OK   const = 8 >>> 3                                                ==                    1
+  OK   const = 8 >>> 4                                                ==                    0
+  OK   const = 0xFF00 >>> 8                                           ==                  255
+
+[const >>>] zero value
+  OK   const = 0 >>> 0                                                ==                    0
+  OK   const = 0 >>> 1                                                ==                    0
+  OK   const = 0 >>> -1                                               ==                    0
+
+[const >>>] negative shift
+  OK   const = 1 >>> -1                                               ==                    2
+  OK   const = 1 >>> -2                                               ==                    4
+  OK   const = 1 >>> -10                                              ==                 1024
+
+[const >>>] negative shift (large)
+  OK   const = 1 >>> -32                                              ==           4294967296
+  OK   const = 1 >>> -100                                             ==                    0
+
+[const >>>] 32-bit range (valid in 64-bit)
+  OK   const = 4294967296 >>> 31                                      ==                    2
+  OK   const = 4294967296 >>> 32                                      ==                    1
+  OK   const = -1 >>> 1                                               ==  9223372036854775807
+
+[const >>>] boundary 33/63/64/65
+  OK   const = 4294967296 >>> 33                                      ==                    0
+  OK   const = 8589934592 >>> 31                                      ==                    4
+  OK   const = 8589934592 >>> 32                                      ==                    2
+  OK   const = 8589934592 >>> 33                                      ==                    1
+  OK   const = -1 >>> 31                                              ==           8589934591
+  OK   const = -1 >>> 32                                              ==           4294967295
+  OK   const = -1 >>> 33                                              ==           2147483647
+  OK   const = -1 >>> 63                                              ==                    1
+  OK   const = -1 >>> 64                                              ==                    0
+  OK   const = -1 >>> 65                                              ==                    0
+  OK   const = 1 >>> -31                                              ==           2147483648
+  OK   const = 1 >>> -33                                              ==           8589934592
+  OK   const = 1 >>> -63                                              == -9223372036854775808
+  OK   const = 1 >>> -64                                              ==                    0
+  OK   const = 1 >>> -65                                              ==                    0
+
+[const cross] basic identities
+  OK   const = (1 << 10) >> 10                                        ==                    1
+  OK   const = (42 << 5) >> 5                                         ==                   42
+
+=== Results: 444/444 passed
+ ===

@@ -5,7 +5,6 @@
 #pragma once
 
 #include <generic/dag_carray.h>
-#include <ADT/parallelWriteVector.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <math/dag_Point4.h>
 #include <osApiWrappers/dag_cpuJobs.h>
@@ -15,6 +14,7 @@
 #include <EASTL/functional.h>
 #include <3d/dag_ringDynBuf.h>
 #include <osApiWrappers/dag_critSec.h>
+#include <osApiWrappers/dag_spinlock.h>
 
 #define MAX_FX_TRACERS            2048
 #define MAX_SEGMENTS_BUFFER_QUEUE 256
@@ -40,10 +40,17 @@ class Tracer
   friend TracerManager;
 
 public:
+  enum AmplificationBehavior : uint8_t
+  {
+    NO_AMPLIFICATION,
+    OUTGOING_TRACER,
+    INGOING_TRACER,
+  };
+
   Tracer() { memset(this, 0, sizeof(*this)); }
   Tracer(TracerManager *owner, uint32_t in_idx, const Point3 &start_pos, const Point3 &in_speed, int type_no, unsigned int mesh_no,
     float tail_particle_half_size_from, float tail_particle_half_size_to, float tail_deviation, const Color4 &tail_color,
-    float in_caliber, float spawn_time, float amplify_scale);
+    float in_caliber, float spawn_time, float amplify_scale, AmplificationBehavior amplification_behavior);
 
   void setMinLen(float value);
   void setStartPos(const Point3 &value);
@@ -53,7 +60,7 @@ public:
   float getCurLifeTime() const;
 
 protected:
-  void appendToSegmentBuffer(uint32_t segment_id);
+  bool appendToSegmentBuffer(uint32_t segment_id, int max_cmd_count = 0);
   void appendToTracerBuffer(uint32_t tracer_id);
   void updateSegments();
 
@@ -89,8 +96,8 @@ protected:
   int firstSegment;
   int lastSegment;
   bool wasPrepared;
-
   bool queueSegmentAddition;
+  AmplificationBehavior amplificationBehavior;
   Point3 positionQueued;
 };
 
@@ -116,7 +123,7 @@ public:
   void finishPreparingIfNecessary();
 
   Tracer *createTracer(const Point3 &start_pos, const Point3 &speed, int tracerType, int trailType, float caliber, bool force = false,
-    bool forceNoTrail = false, float cur_life_time = 0.0f, bool amplify = false);
+    bool forceNoTrail = false, float cur_life_time = 0.0f, Tracer::AmplificationBehavior amplify = Tracer::NO_AMPLIFICATION);
 
   int getTracerTypeNoByName(const char *name);
   int getTrailTypeNoByName(const char *name);
@@ -129,7 +136,7 @@ public:
   void clear();
   void resetConfig();
   void afterResetDevice();
-  void restoreSegmentBuffers();
+  void restoreBuffers();
 
   float getTrailSizeHeuristic(int trailType);
   void setMTMode(bool mt) { isMTMode = mt; }
@@ -146,13 +153,12 @@ protected:
     void close();
     int lock(uint32_t ofs_bytes, uint32_t size_bytes, void **p, int flags);
     void unlock();
-    void append(uint32_t id, dag::ConstSpan<uint8_t> elem, int amount = 1);
+    bool append(uint32_t id, dag::ConstSpan<uint8_t> elem, int amount = 1, int max_cmd_count = 0);
     void process(ComputeShaderElement *cs, int fx_create_cmd, int element_count);
 
     inline Sbuffer *getSbuffer() const { return buf.getBuf(); }
     inline uint8_t *getData() { return data.data(); }
     inline const uint8_t *getData() const { return data.data(); }
-    inline int cmdCount() const { return cmd; }
 
   private:
     int structSize;
@@ -160,8 +166,8 @@ protected:
     UniqueBuf buf;
     UniqueBuf createCmdBuf;
     Tab<uint8_t> data;
-    ParallelWriteVector<uint8_t> cmds;
-    int cmd;
+    OSSpinlock cmdsLock;
+    dag::Vector<uint8_t> cmds DAG_TS_GUARDED_BY(cmdsLock);
   };
 
   enum
@@ -269,6 +275,8 @@ public:
     bool beam;
     float amplifyScale;
     float headTaper;
+    float enemyAmplifyScale;
+    float amplifyDistanceStart;
   };
   Tab<TracerType> tracerTypes;
   Tab<TrailType> trailTypes;

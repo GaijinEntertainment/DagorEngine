@@ -3,6 +3,7 @@
 #include "driver.h"
 #include "format_traits.h"
 #include <ioSys/dag_dataBlock.h>
+#include <drv/3d/dag_resourceTag.h>
 #include "globals.h"
 #include "device_context.h"
 
@@ -127,4 +128,10 @@ const char *drv3d_vulkan::formatShaderStage(ShaderStage stage)
     default: return "UNK";
   }
   return "UNK";
+}
+
+void d3d::visit_tagged_resources(const ResourceTypeFilter &filter, const ResourceVisitor &visitor)
+{
+  G_UNUSED(filter);
+  G_UNUSED(visitor);
 }

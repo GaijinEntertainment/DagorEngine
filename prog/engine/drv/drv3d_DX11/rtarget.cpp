@@ -1,5 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "driver.h"
+#include "drv_log_defs.h"
+#include "drv_assert_defs.h"
+
 #include <EASTL/vector_map.h>
 #include <generic/dag_tab.h>
 #include <math/dag_TMatrix.h>
@@ -7,6 +11,7 @@
 #include <debug/dag_debug.h>
 #include <math/integer/dag_IPoint2.h>
 #include <convertHelper.h>
+#include <perfMon/dag_graphStat.h>
 
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_vecMathCompatibility.h>
@@ -20,20 +25,16 @@
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_shader.h>
 #include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_platform_pc.h>
 
-#include "driver.h"
-#include "texture.h"
+#include "basetex.h"
+#include "render_state.h"
+#include "driver_state.h"
 #include "clear.h"
-#if HAS_NVAPI
-#include <nvapi.h>
-#endif
 
 using namespace drv3d_dx11;
 
-// RenderState &g_frameState = g_render_state; //ok for strict aliasing?
-// #define g_frameState g_render_state
-// #include "frameStateTM.inc.cpp"
-// #undef g_frameState
+extern bool draw_up(int prim_type, int numprim, const void *ptr, int stride_bytes);
 
 namespace drv3d_dx11
 {
@@ -71,8 +72,10 @@ ID3D11DepthStencilView *getDepthStencilView(const Driver3dRenderTarget &rtState)
 
   G_ASSERT(tex != NULL);
   bool depthReadOnly = featureLevelsSupported >= D3D_FEATURE_LEVEL_11_0 && rtState.isDepthReadOnly();
-  int slice =
-    (tex && (tex->getType() == D3DResourceType::ARRTEX || tex->getType() == D3DResourceType::CUBETEX)) ? rtState.depth.face : 0;
+  int slice = (tex && (tex->getType() == D3DResourceType::ARRTEX || tex->getType() == D3DResourceType::CUBEARRTEX ||
+                        tex->getType() == D3DResourceType::CUBETEX))
+                ? rtState.depth.face
+                : 0;
   return tex ? (ID3D11DepthStencilView *)tex->getRtView(slice, 0, 1, depthReadOnly) : NULL;
 }
 
@@ -123,10 +126,13 @@ void flush_rendertargets(RenderState &rs)
     int testHeight = 0;
     const char *prevTexName = nullptr;
 #endif
+    // Dual source blending only allows RT0; mask out RT1+ to avoid undefined behavior
+    const bool dualSourceMask = rs.dualSourceBlendActive;
+
     for (int i = 0; i < countof(color); i++)
     {
       // TODO: reset aliased bind points
-      if (rt.isColorUsed(i))
+      if (rt.isColorUsed(i) && !(dualSourceMask && i > 0))
       {
         color[i] = getRenderTargetView(rt, i);
         maxTarget = i;
@@ -177,18 +183,34 @@ void flush_rendertargets(RenderState &rs)
           last_uav = i;
         }
 
-      const bool haveUav = first_uav >= 0;
+      bool haveUav = first_uav >= 0;
       if (haveUav)
       {
         G_ASSERTF(last_uav < 8, "last_uav=%d", last_uav);
-        rs.maxUsedTarget = max(maxTarget, last_uav);
 
         // On conflict, RTs are prioritized over UAVs. So, the actual UAV slots that we will set should not intersect with RT slots.
         // This is expected to be a normal situation because of UAVs set from stcode, so no logs.
-        first_uav = max(first_uav, maxTarget + 1);
-        last_uav = max(last_uav, maxTarget + 1);
+        // We use the shader max rtv instead of the real one in order to not have uavs bleed into unbound RT slots or vice versa.
+        if (last_uav <= rs.shaderMaxRtv)
+        {
+          // If the whole uav range overlaps with shader's rtv slots, don't bind them
+          haveUav = false;
+        }
+        else
+        {
+          // Otherwise, adjust the beginning of the uav range to not overlap
+          first_uav = max(first_uav, rs.shaderMaxRtv + 1);
+          // No need to modify last_uav as it is > rs.shaderMaxRtv already due to condition
+
+          // Adjust actual max set RT to not overlap with uavs if shader uses less rts than bound
+          maxTarget = min(maxTarget, first_uav - 1);
+          // Flush the common Uav/rtv range max to the render state
+          rs.maxUsedTarget = max(maxTarget, last_uav);
+        }
       }
-      else
+
+      // If there were no uavs, or all uavs overlapped with shader rtv range, also flush uav/rtv range max to render state
+      if (!haveUav)
         rs.maxUsedTarget = maxTarget;
 
       static UINT initialCounts[MAX_UAV] = {0}; // should be -1 or 0, however, we don't use counters at all
@@ -608,7 +630,8 @@ bool d3d::clearview(int write_mask, E3DCOLOR c, float z_value, uint32_t stencil_
 
 void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea &area, const RenderPassBind &bind)
 {
-  if (!(bind.action & RP_TA_LOAD_CLEAR))
+  const bool hasClearAction = bind.action & (RP_TA_LOAD_CLEAR | RP_TA_LOAD_STENCIL_CLEAR);
+  if (!hasClearAction)
     return;
 
   TextureInfo info;
@@ -632,9 +655,17 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
 
     if (bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
     {
+      UINT clearFlags = 0;
+      if (bind.action & RP_TA_LOAD_CLEAR)
+        clearFlags |= (D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL);
+      if (bind.action & RP_TA_LOAD_STENCIL_CLEAR)
+        clearFlags |= D3D11_CLEAR_STENCIL;
+      if (bind.action & (RP_TA_LOAD_STENCIL_READ | RP_TA_LOAD_STENCIL_NO_CARE))
+        clearFlags &= ~D3D11_CLEAR_STENCIL;
+
       ContextAutoLock contextLock;
-      dx_context->ClearDepthStencilView((ID3D11DepthStencilView *)view, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
-        target.clearValue.asDepth, target.clearValue.asStencil);
+      dx_context->ClearDepthStencilView((ID3D11DepthStencilView *)view, clearFlags, target.clearValue.asDepth,
+        target.clearValue.asStencil);
     }
     else
     {
@@ -652,7 +683,13 @@ void d3d::clear_render_pass(const RenderPassTarget &target, const RenderPassArea
     if (bind.slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
     {
       d3d::set_depth(target.resource.tex, DepthAccess::RW);
-      writeMask = CLEAR_STENCIL | CLEAR_ZBUFFER;
+      writeMask = 0;
+      if (bind.action & RP_TA_LOAD_CLEAR)
+        writeMask |= (CLEAR_ZBUFFER | CLEAR_STENCIL);
+      if (bind.action & RP_TA_LOAD_STENCIL_CLEAR)
+        writeMask |= CLEAR_STENCIL;
+      if (bind.action & (RP_TA_LOAD_STENCIL_READ | RP_TA_LOAD_STENCIL_NO_CARE))
+        writeMask &= ~CLEAR_STENCIL;
     }
     else
     {
@@ -813,7 +850,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, const RectInt *from_r
       return true;
     d3d::set_render_target((Texture *)to, 0);
     stretch_prepare(from);
-    d3d::draw_up(PRIM_TRILIST, 1, fullScrTri, sizeof(fullScrTri[0]));
+    draw_up(PRIM_TRILIST, 1, fullScrTri, sizeof(fullScrTri[0]));
 
     rs.restore();
     return true;
@@ -829,7 +866,7 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, const RectInt *from_r
     }
     d3d::set_render_target();
     stretch_prepare(from);
-    d3d::draw_up(PRIM_TRILIST, 1, fullScrTri, sizeof(fullScrTri[0]));
+    draw_up(PRIM_TRILIST, 1, fullScrTri, sizeof(fullScrTri[0]));
     rs.restore();
     return true;
   }
@@ -875,10 +912,10 @@ bool d3d::stretch_rect(BaseTexture *from, BaseTexture *to, const RectInt *from_r
       quad[2] = Point4(toLT.x, toRB.y, fromLT.x, fromRB.y) * 2. - Point4(1., 1., 1., 1.);
       quad[3] = Point4(toRB.x, toRB.y, fromRB.x, fromRB.y) * 2. - Point4(1., 1., 1., 1.);
 
-      d3d::draw_up(PRIM_TRISTRIP, 2, quad, sizeof(Point4));
+      draw_up(PRIM_TRISTRIP, 2, quad, sizeof(Point4));
     }
     else
-      d3d::draw_up(PRIM_TRILIST, 1, fullScrTri, sizeof(fullScrTri[0]));
+      draw_up(PRIM_TRILIST, 1, fullScrTri, sizeof(fullScrTri[0]));
     rs.restore();
     return true;
   }

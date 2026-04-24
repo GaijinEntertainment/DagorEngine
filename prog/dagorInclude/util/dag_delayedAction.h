@@ -56,9 +56,9 @@ KRNLIMP void perform_delayed_actions();
 // sets maximum time that perform_delayed_actions() may spend on one work cycle; default is 4000000 (4 sec)
 KRNLIMP void set_delayed_action_max_quota(int quota_usec);
 
-KRNLIMP void register_regular_action_to_idle_cycle(delayed_callback cb, void *cb_arg);
+KRNLIMP void register_regular_action_to_idle_cycle(delayed_callback cb, void *cb_arg, bool perform_on_work_cycle = true);
 KRNLIMP void unregister_regular_action_to_idle_cycle(delayed_callback cb, void *cb_arg);
-KRNLIMP void perform_regular_actions_for_idle_cycle();
+KRNLIMP void perform_regular_actions_for_idle_cycle(bool is_work_cycle);
 
 template <class F>
 DelayedAction *make_delayed_action(F &&func)

@@ -36,9 +36,15 @@ bool sync_tree(const char *src_folder, const char *dst_folder, const char *mask,
 eastl::string read_file_content(const char *path);
 bool write_file_with_content(const char *path, const char *content);
 
-eastl::string join_path(std::initializer_list<const char *> parts);
-eastl::string simplify_path(const char *path);
-eastl::string normalize_path(const char *path);
+template <typename Allocator = EASTLAllocatorType>
+eastl::basic_string<char, Allocator> join_path(std::initializer_list<const char *> parts);
+
+template <typename Allocator = EASTLAllocatorType>
+eastl::basic_string<char, Allocator> simplify_path(const char *path);
+
+template <typename Allocator = EASTLAllocatorType>
+eastl::basic_string<char, Allocator> normalize_path(const char *path);
+
 const char *get_filename_relative_to_path(const eastl::string &base_path, const char *path);
 } // namespace fs
 } // namespace updater

@@ -2,6 +2,7 @@ shader_root_dir:t="."
 outDumpName:t="../../../../tools/dargbox/shaders/game"
 
 incDir:t="../../../gameLibs/render/shaders"
+incDir:t="../../../gameLibs/daRg/shaders"
 
 source
 {
@@ -18,7 +19,6 @@ Compile
   fsh:t = 4.0
   assume_vars {
     support_texture_array:i=1
-    mobile_render:i=0
   }
 }
 

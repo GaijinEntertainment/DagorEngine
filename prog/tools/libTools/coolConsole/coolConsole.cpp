@@ -1,11 +1,15 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "autocompletePopup.h"
 #include "formattedTextHandler.h"
 
 #include <generic/dag_tab.h>
 #include <coolConsole/coolConsole.h>
+#include <coolConsole/conBatch.h>
 #include <generic/dag_sort.h>
 #include <propPanel/colors.h>
+#include <propPanel/focusHelper.h>
+#include <propPanel/imguiHelper.h>
 #include <util/dag_console.h>
 #include <util/dag_delayedAction.h>
 #include <osApiWrappers/dag_localConv.h>
@@ -26,6 +30,9 @@
 
 #include <libTools/util/hash.h>
 
+#include <EASTL/unique_ptr.h>
+#include <EASTL/vector_set.h>
+
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
@@ -37,18 +44,53 @@
 
 #define DAGOR_IDLE_CYCLE_CALL_TIMEOUT 1000
 
-// #define GET_CMD_HASH(cmd) ::get_hash(_strlwr(cmd), 0)
+class CoolConsoleCommandProcessor : public console::ICommandProcessor
+{
+public:
+  // Use a higher priority to allow overriding built-in commands like "con.cmdlist".
+  explicit CoolConsoleCommandProcessor(CoolConsole &instance) :
+    ICommandProcessor(console::CONSOLE_CON_PROC_PRIORITY + 1), coolConsole(instance)
+  {}
 
-#define MAKE_CMD_HASH(cmd, hash) \
-  String temp(cmd);              \
-  hash = GET_CMD_HASH(temp.begin());
+  void destroy() override {}
 
+  bool processCommand(const char *argv[], int argc) override
+  {
+    if (argc < 1)
+      return false;
 
+    const dag::Span<const char *> params = make_span(&argv[1], argc - 1);
+    int found = 0;
+
+    CONSOLE_CHECK_NAME_EX("", "help", 1, 2,
+      "Type 'help <command name>' to take command help\nType 'list' to take available commands list", "")
+    {
+      coolConsole.runHelp(params.size() ? params[0] : "help");
+    }
+    CONSOLE_CHECK_NAME_EX("", "list", 1, 2, "List all known commands. The list can be optionally filtered.", "<search text>")
+    {
+      coolConsole.runCmdList(params.size() ? params[0] : "");
+    }
+    // Override "con.cmdlist" with "list" for colored output.
+    CONSOLE_CHECK_NAME_EX("con", "cmdlist", 1, 2, "List all known commands. The list can be optionally filtered.", "<search text>")
+    {
+      coolConsole.runCmdList(params.size() ? params[0] : "");
+    }
+    CONSOLE_CHECK_NAME_EX("", "clear", 1, 1, "Type 'clear' to completely clear console", "") { coolConsole.clearConsole(); }
+
+    return found != 0;
+  }
+
+private:
+  CoolConsole &coolConsole;
+};
+
+static CoolConsoleCommandProcessor *command_processor = nullptr;
+static eastl::unique_ptr<AutocompletePopup> autocomplete_popup;
 static FormattedTextHandler formatted_text_handler;
 static bool destroyed = false;
-static bool visible_console_exists = false;
 
-static void call_idle_cycle_seldom(bool important = false)
+static void call_idle_cycle_seldom(bool important, bool allow_redraw)
 {
   if (destroyed || is_restoring_3d_device())
     return;
@@ -65,7 +107,7 @@ static void call_idle_cycle_seldom(bool important = false)
     // messages of PropPanel. This is generally true as button clicks and other common events are sent with delayed
     // messages.)
     const ImGuiContext *context = ImGui::GetCurrentContext();
-    if (visible_console_exists && (!context || !context->WithinFrameScope) && d3d::is_inited())
+    if (allow_redraw && (!context || !context->WithinFrameScope) && d3d::is_inited())
     {
       // We intentionally not use dagor_work_cycle() here because that calls act(), which we do not want, it could change
       // the behavior of the code compared to the non-ImGui-based CoolConsole.
@@ -77,13 +119,11 @@ static void call_idle_cycle_seldom(bool important = false)
   }
 }
 
-static char *strtokLastToken = NULL;
-
 // strtok analog excluding token-delimited qouted strings from tokens search
 // for example string 'command "spaced parameter1" parameter2' will be split to
 //'command', 'spaced parameter1', 'parameter2'
 //==============================================================================
-static char *conSttrok(char *str, const char *delim)
+static char *conStrtok(char *str, const char *delim, char *&strtokLastToken)
 {
   if (!str)
     str = strtokLastToken;
@@ -136,10 +176,32 @@ static char *conSttrok(char *str, const char *delim)
   return NULL;
 }
 
+static int compare_command_struct(const console::CommandStruct *a, const console::CommandStruct *b)
+{
+  return dd_stricmp(a->str(), b->str());
+}
+
+static void get_sorted_command_list_wihout_duplicates(console::CommandList &list)
+{
+  struct ConstCharPtrLess
+  {
+    bool operator()(const char *a, const char *b) const { return dd_stricmp(a, b) < 0; }
+  };
+
+  // The commands are ordered from higher priority command processors to lower.
+  console::get_command_list(list);
+
+  // Remove duplicates. They can exist because a higher priority processor can override a command from a lower priority processor.
+  eastl::vector_set<const char *, ConstCharPtrLess> added;
+  auto newEnd = eastl::remove_if(list.begin(), list.end(),
+    [&added](const console::CommandStruct &cs) { return !added.insert(cs.command).second; });
+  list.erase(newEnd, list.end());
+
+  sort(list, compare_command_struct);
+}
+
 //==============================================================================
 CoolConsole::CoolConsole() :
-  commands(midmem),
-  cmdNames(midmem),
   progressCb(NULL),
   cmdHistoryLastUnfinished(false),
   cmdHistoryPos(0),
@@ -154,9 +216,9 @@ CoolConsole::CoolConsole() :
 {
   flags = CC_CAN_CLOSE | CC_CAN_MINIMIZE;
 
-  registerCommand("help", this);
-  registerCommand("list", this);
-  registerCommand("clear", this);
+  command_processor = new CoolConsoleCommandProcessor(*this);
+  add_con_proc(command_processor);
+
   console::set_visual_driver_raw(this);
 }
 
@@ -164,6 +226,10 @@ CoolConsole::CoolConsole() :
 //==============================================================================
 CoolConsole::~CoolConsole()
 {
+  del_con_proc(command_processor);
+  del_it(command_processor);
+
+  stop_cmd_queue_idle_cycle();
   console::set_visual_driver_raw(nullptr);
   PropPanel::remove_delayed_callback(*this);
   destroyConsole();
@@ -299,7 +365,7 @@ void CoolConsole::addMessageFmt(MessageType type, const char *fmt, const DagorSa
   msg.vprintf(0, fmt, arg, anum);
   addTextToLog(msg, color, bold);
 
-  call_idle_cycle_seldom();
+  callIdleCycleSeldom();
 }
 void CoolConsole::puts(const char *str, console::LineType type)
 {
@@ -329,13 +395,19 @@ void CoolConsole::puts(const char *str, console::LineType type)
 bool CoolConsole::initConsole()
 {
   G_ASSERT(!destroyed);
+  start_cmd_queue_idle_cycle();
+  register_cmd_queue_console_handler();
   addMessage(REMARK, ABOUT_MESSAGE);
   return true;
 }
 
 
 //==============================================================================
-void CoolConsole::destroyConsole() { destroyed = true; }
+void CoolConsole::destroyConsole()
+{
+  stop_cmd_queue_idle_cycle();
+  destroyed = true;
+}
 
 
 //==============================================================================
@@ -343,13 +415,17 @@ void CoolConsole::showConsole(bool activate)
 {
   activateOnShow = activate;
   scrollToBottomOnShow = true;
-  visible = visible_console_exists = true;
+  visible = true;
   justMadeVisible = true;
 }
 
 
 //==============================================================================
-void CoolConsole::hideConsole() { visible = visible_console_exists = false; }
+void CoolConsole::hideConsole()
+{
+  autocomplete_popup.reset();
+  visible = false;
+}
 
 
 //==============================================================================
@@ -372,7 +448,7 @@ void CoolConsole::saveToFile(const char *file_name) const
 
 
 //==============================================================================
-bool CoolConsole::runCommand(const char *cmd)
+bool CoolConsole::runCommand(const char *cmd, bool silent)
 {
   String command(cmd, tmpmem);
   if (command.empty())
@@ -392,13 +468,15 @@ bool CoolConsole::runCommand(const char *cmd)
     cmdHistory.clear();
     cmdHistoryLastUnfinished = false;
     cmdHistoryPos = cmdHistory.size();
-    addMessage(NOTE, "command history cleared!");
+    if (!silent)
+      addMessage(NOTE, "command history cleared!");
     return true;
   }
   Tab<const char *> params(tmpmem);
   const char *cmdName = NULL;
 
-  const char *token = ::conSttrok(command, " \t");
+  char *brkt = nullptr;
+  const char *token = ::conStrtok(command, " \t", brkt);
 
   while (token)
   {
@@ -410,29 +488,25 @@ bool CoolConsole::runCommand(const char *cmd)
         cmdName = token;
     }
 
-    token = ::conSttrok(NULL, " \t");
+    token = ::conStrtok(NULL, " \t", brkt);
   }
 
   if (!cmdName)
     return false;
 
-  addTextToLog(cmdName, PropPanel::ColorOverride::CONSOLE_LOG_COMMAND_TEXT, true);
-
-  for (int i = 0; i < params.size(); ++i)
+  if (!silent)
   {
-    addTextToLog(" ", PropPanel::ColorOverride::CONSOLE_LOG_PARAMETER_TEXT, true, false);
-    addTextToLog(params[i], PropPanel::ColorOverride::CONSOLE_LOG_PARAMETER_TEXT, true, false);
-  }
+    addTextToLog(cmdName, PropPanel::ColorOverride::CONSOLE_LOG_COMMAND_TEXT, true);
 
-  IConsoleCmd *handler = NULL;
-  commands.get(String(cmdName), handler);
+    for (int i = 0; i < params.size(); ++i)
+    {
+      addTextToLog(" ", PropPanel::ColorOverride::CONSOLE_LOG_PARAMETER_TEXT, true, false);
+      addTextToLog(params[i], PropPanel::ColorOverride::CONSOLE_LOG_PARAMETER_TEXT, true, false);
+    }
+  }
 
   limitOutputLinesLeft = 1024;
-  if (handler && handler->onConsoleCommand(cmdName, params))
-  {
-    limitOutputLinesLeft = -1;
-    return true;
-  }
+  command.updateSz(); // after `conStrtok`
   for (auto &p : params)
     command.aprintf(0, " %s", p);
   if (console::command(command.c_str()))
@@ -440,7 +514,8 @@ bool CoolConsole::runCommand(const char *cmd)
     limitOutputLinesLeft = -1;
     return true;
   }
-  addTextToLog(String(32, "Unknown command \"%s\"", command.c_str()), PropPanel::ColorOverride::CONSOLE_LOG_ERROR_TEXT);
+  if (!silent)
+    addTextToLog(String(32, "Unknown command \"%s\"", command.c_str()), PropPanel::ColorOverride::CONSOLE_LOG_ERROR_TEXT);
   limitOutputLinesLeft = -1;
   return false;
 }
@@ -449,16 +524,11 @@ bool CoolConsole::runCommand(const char *cmd)
 //==============================================================================
 void CoolConsole::runHelp(const char *command)
 {
-  IConsoleCmd *handler = NULL;
-
-  if (commands.get(String(command), handler))
+  console::CommandStruct info;
+  if (command && *command && console::find_console_command(command, info))
   {
-    const char *help = handler->onConsoleCommandHelp(command);
-    if (help)
-    {
-      addTextToLog(help, PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
-      return;
-    }
+    console::command(String::mk_str_cat("con.help ", command));
+    return;
   }
 
   addTextToLog(String(32, "Unknown command '%s'", command), PropPanel::ColorOverride::CONSOLE_LOG_ERROR_TEXT);
@@ -466,62 +536,38 @@ void CoolConsole::runHelp(const char *command)
 
 
 //==============================================================================
-void CoolConsole::runCmdList()
+void CoolConsole::runCmdList(const char *filter)
 {
   addTextToLog("Registered commands:", PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
 
-  for (int i = 0; i < cmdNames.size(); ++i)
-    addTextToLog(cmdNames[i], PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
-
   console::CommandList mlist;
-  console::get_command_list(mlist);
-  char cmdText[384];
+  get_sorted_command_list_wihout_duplicates(mlist);
   debug("mlist.size() = %d", mlist.size());
   for (int i = 0; i < mlist.size(); ++i)
   {
     const console::CommandStruct &cmd = mlist[i];
-    _snprintf(cmdText, sizeof(cmdText), "%s  ", cmd.command.str());
-    cmdText[sizeof(cmdText) - 1] = 0;
+    if (!dd_stristr(cmd.command, filter))
+      continue;
+
+    addTextToLog(cmd.command, PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
 
     if (!cmd.argsDescription.empty())
     {
-      int argDescLen = cmd.argsDescription.length();
-      int leftFreeSpace = sizeof(cmdText) - strlen(cmdText) - 1;
-      strncat(cmdText, cmd.argsDescription, min(argDescLen, leftFreeSpace));
+      addTextToLog(" ", PropPanel::ColorOverride::CONSOLE_LOG_REMARK_TEXT, false, false);
+      addTextToLog(cmd.argsDescription, PropPanel::ColorOverride::CONSOLE_LOG_REMARK_TEXT, false, false);
     }
     else
     {
       for (int k = 1; k < cmd.minArgs; k++)
-        strncat(cmdText, "<x> ", min(4, int(sizeof(cmdText) - strlen(cmdText) - 1)));
+        addTextToLog(" <x>", PropPanel::ColorOverride::CONSOLE_LOG_PARAMETER_TEXT, false, false);
       for (int k = cmd.minArgs; k < cmd.maxArgs; k++)
-        strncat(cmdText, "[x] ", min(4, int(sizeof(cmdText) - strlen(cmdText) - 1)));
+        addTextToLog(" [x]", PropPanel::ColorOverride::CONSOLE_LOG_PARAMETER_TEXT, false, false);
     }
     if (cmd.description.length())
     {
-      const char *separator = " -- ";
-      int sepLen = strlen(separator);
-      const char *clipEnd = "...";
-      int clipLen = strlen(clipEnd);
-
-      int descLen = cmd.description.length();
-      int textLen = strlen(cmdText);
-      int freeCells = sizeof(cmdText) - textLen - 1;
-
-      if (freeCells >= sepLen + descLen)
-      {
-        strncat(cmdText, separator, sepLen);
-        strncat(cmdText, cmd.description, descLen);
-      }
-      else if (freeCells > sepLen + clipLen)
-      {
-        strncat(cmdText, separator, sepLen);
-        int clippedLen = freeCells - sepLen - clipLen;
-        strncat(cmdText, cmd.description.c_str(), clippedLen);
-        strncat(cmdText, clipEnd, clipLen);
-      }
+      addTextToLog(" -- ", PropPanel::ColorOverride::CONSOLE_LOG_REMARK_TEXT, false, false);
+      addTextToLog(cmd.description, PropPanel::ColorOverride::CONSOLE_LOG_REMARK_TEXT, false, false);
     }
-
-    addTextToLog(cmdText, PropPanel::ColorOverride::CONSOLE_LOG_TEXT);
   }
 }
 
@@ -546,7 +592,7 @@ void CoolConsole::startProgress(IProgressCB *progress_cb)
   }
 
   showConsole(/*activate = */ false);
-  call_idle_cycle_seldom(true);
+  callIdleCycleSeldom(true);
 }
 
 
@@ -562,128 +608,7 @@ void CoolConsole::endProgress()
   if (!lastVisible)
     hideConsole();
 
-  call_idle_cycle_seldom(true);
-}
-
-
-//==============================================================================
-bool CoolConsole::registerCommand(const char *cmd, IConsoleCmd *handler)
-{
-  if (!cmd || !*cmd || !handler)
-    return false;
-
-  String command(cmd);
-  dd_strlwr((char *)command);
-
-  const bool ret = commands.add(command, handler);
-
-  if (ret)
-  {
-    cmdNames.push_back(command);
-    sort(cmdNames, &compareCmd);
-  }
-  else
-    debug("[CoolConsole] Couldn't register command \"%s\" due to hash collision.", cmd);
-
-  return ret;
-}
-
-
-//==============================================================================
-bool CoolConsole::unregisterCommand(const char *cmd, IConsoleCmd *handler)
-{
-  if (!cmd || !*cmd)
-    return false;
-
-  IConsoleCmd *regHandler = NULL;
-  String s_cmd(cmd);
-
-  if (commands.get(s_cmd, regHandler))
-  {
-    if (regHandler == handler)
-    {
-      commands.erase(s_cmd);
-      for (int i = 0; i < cmdNames.size(); ++i)
-        if (!stricmp(cmdNames[i], cmd))
-        {
-          erase_items(cmdNames, i, 1);
-          break;
-        }
-    }
-    else
-    {
-      debug("[CoolConsole] Couldn't unregister command \"%s\" due to handlers collision.", cmd);
-      return false;
-    }
-  }
-
-  return true;
-}
-
-
-//==============================================================================
-bool CoolConsole::onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params)
-{
-  if (!stricmp("help", cmd))
-  {
-    runHelp(params.size() ? params[0] : "help");
-    return true;
-  }
-  else if (!stricmp("list", cmd))
-  {
-    if (params.empty())
-    {
-      runCmdList();
-      return true;
-    }
-  }
-  else if (!stricmp("clear", cmd))
-  {
-    clearConsole();
-    return true;
-  }
-
-  return false;
-}
-
-
-//==============================================================================
-const char *CoolConsole::onConsoleCommandHelp(const char *cmd)
-{
-  if (!stricmp("help", cmd))
-    return "Type 'help <command name>' to take command help\n"
-           "Type 'list' to take available commands list";
-  else if (!stricmp("list", cmd))
-    return "Type 'list' to take list of all known commands";
-  else if (!stricmp("clear", cmd))
-    return "Type 'clear' to completely clear console";
-
-  return NULL;
-}
-
-
-//==============================================================================
-void CoolConsole::getCmds(const char *prefix, Tab<String> &cmds) const
-{
-  if (prefix)
-  {
-    const int prefLen = (int)strlen(prefix);
-    const bool startSegment = false;
-    for (int i = 0; i < cmdNames.size(); ++i)
-    {
-      if (cmdNames[i].length() >= prefLen)
-      {
-        if (!memcmp(prefix, cmdNames[i].begin(), prefLen))
-          cmds.push_back(cmdNames[i]);
-        else if (startSegment)
-          return;
-      }
-      else if (startSegment)
-        return;
-    }
-  }
-  else
-    cmds = cmdNames;
+  callIdleCycleSeldom(true);
 }
 
 
@@ -691,7 +616,7 @@ void CoolConsole::getCmds(const char *prefix, Tab<String> &cmds) const
 void CoolConsole::setActionDescFmt(const char *desc, const DagorSafeArg *arg, int anum)
 {
   addMessageFmt(NOTE, desc, arg, anum);
-  call_idle_cycle_seldom();
+  callIdleCycleSeldom();
 }
 
 
@@ -700,7 +625,7 @@ void CoolConsole::setTotal(int total_cnt)
 {
   progressMaxPosition = total_cnt;
   progressPosition = clamp(progressPosition, 0, progressMaxPosition);
-  call_idle_cycle_seldom(true);
+  callIdleCycleSeldom(true);
 }
 
 
@@ -708,7 +633,7 @@ void CoolConsole::setTotal(int total_cnt)
 void CoolConsole::setDone(int done_cnt)
 {
   progressPosition = clamp(done_cnt, 0, progressMaxPosition);
-  call_idle_cycle_seldom(done_cnt == 0);
+  callIdleCycleSeldom(done_cnt == 0);
 }
 
 
@@ -716,13 +641,63 @@ void CoolConsole::setDone(int done_cnt)
 void CoolConsole::incDone(int inc)
 {
   progressPosition = clamp(progressPosition + inc, 0, progressMaxPosition);
-  call_idle_cycle_seldom();
+  callIdleCycleSeldom();
 }
 
 
-void CoolConsole::renderLogTextUI(float height)
+//==============================================================================
+void CoolConsole::yield() { callIdleCycleSeldom(true); }
+
+void CoolConsole::callIdleCycleSeldom(bool important)
+{
+  const bool allowRedraw = visible && (!isRedrawAllowedCallback || isRedrawAllowedCallback(*this));
+  call_idle_cycle_seldom(important, allowRedraw);
+}
+
+void CoolConsole::fillAutocompletePopup(bool show_on_empty_input)
+{
+  if (!autocomplete_popup)
+    autocomplete_popup.reset(new AutocompletePopup());
+
+  autocomplete_popup->beginAddingItems();
+
+  if (show_on_empty_input || !commandInputText.empty())
+  {
+    console::CommandList commandList;
+    get_sorted_command_list_wihout_duplicates(commandList);
+    for (const console::CommandStruct &cmd : commandList)
+      if (dd_stristr(cmd.command, commandInputText))
+        autocomplete_popup->addItem(cmd.command, cmd.description);
+  }
+
+  autocomplete_popup->endAddingItems();
+}
+
+void CoolConsole::renderLogTextUI(float height, ImRect &log_window_rect)
 {
   const char *consoleOutputLabel = "##consoleOutput";
+
+  // Get the final child window name. Based on the code from ImGui::BeginChildEx().
+  ImGuiWindow *currentWindow = ImGui::GetCurrentWindow();
+  const ImGuiID outputWindowId = currentWindow->GetID(consoleOutputLabel);
+  const char *outputWindowName;
+  ImFormatStringToTempBuffer(&outputWindowName, nullptr, "%s/%s_%08X", currentWindow->Name, consoleOutputLabel, outputWindowId);
+
+  const ImGuiWindow *outputWindow = ImGui::FindWindowByName(outputWindowName);
+  const float textWrapWidth = outputWindow ? outputWindow->WorkRect.GetWidth() : ImGui::GetContentRegionAvail().x;
+  // ScrollTarget.y == FLT_MAX when there is no scroll request. Its value changes for example when the user turns the mouse wheel.
+  const bool scrollbarAtBottom =
+    !outputWindow || (outputWindow->Scroll.y >= outputWindow->ScrollMax.y && outputWindow->ScrollTarget.y == FLT_MAX);
+  const float textLinesHeight = formatted_text_handler.getTextLinesSize(textWrapWidth).y;
+
+  if (scrollbarAtBottom || scrollToBottomOnShow)
+  {
+    scrollToBottomOnShow = false;
+    ImGui::SetNextWindowScroll(ImVec2(-1.0f, textLinesHeight));
+  }
+
+  ImGui::SetNextWindowContentSize(ImVec2(0.0f, textLinesHeight));
+
   ImGui::PushStyleColor(ImGuiCol_ChildBg, PropPanel::getOverriddenColor(PropPanel::ColorOverride::CONSOLE_LOG_BACKGROUND));
   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,
     ImVec2(ImGui::GetStyle().WindowPadding.x * 0.5f, ImGui::GetStyle().WindowPadding.y * 0.5f));
@@ -730,19 +705,16 @@ void CoolConsole::renderLogTextUI(float height)
   ImGui::PopStyleVar();
   ImGui::PopStyleColor();
 
-  const bool scrollbarAtBottom = ImGui::GetScrollY() >= ImGui::GetScrollMaxY();
-  formatted_text_handler.updateImgui();
-  if (scrollToBottomOnShow || scrollbarAtBottom)
-  {
-    // Repeat it in the next frame too if the window just appeared. Otherwise it does not work in docked windows...
-    // Here we are repeating instead of just delaying scrolling to prevent possible flicker in non-docked mode.
-    if (!justMadeVisible)
-      scrollToBottomOnShow = false;
-    ImGui::SetScrollHereY(1.0f);
-  }
+  ImGuiID outputTextItemId;
+  bool outputTextItemFocused;
+  formatted_text_handler.updateImgui(textWrapWidth, outputTextItemId, outputTextItemFocused);
 
-  if (formatted_text_handler.hasSelection() && ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C))
+  if (outputTextItemFocused && formatted_text_handler.hasSelection() &&
+      (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_C, ImGuiInputFlags_None, outputTextItemId) ||
+        ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Insert, ImGuiInputFlags_None, outputTextItemId)))
+  {
     ImGui::SetClipboardText(formatted_text_handler.getSelectionAsString());
+  }
 
   if (ImGui::BeginPopupContextWindow(consoleOutputLabel))
   {
@@ -756,63 +728,107 @@ void CoolConsole::renderLogTextUI(float height)
     ImGui::EndPopup();
   }
 
+  log_window_rect = ImGui::GetCurrentWindow()->InnerRect;
   ImGui::EndChild();
 }
 
-void CoolConsole::renderCommandInputUI()
+void CoolConsole::renderCommandInputUI(const ImRect &log_window_rect)
 {
   ImGui::SetNextItemWidth(-FLT_MIN);
+  PropPanel::focus_helper.setFocusToNextImGuiControlIfRequested(&commandInputText);
 
-  const ImGuiInputTextFlags textFlags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackHistory;
-  const bool enterPressed = ImGuiDagor::InputTextWithHint(
-    "##command", "Command", &commandInputText, textFlags,
-    [](ImGuiInputTextCallbackData *data) {
-      CoolConsole *instance = static_cast<CoolConsole *>(data->UserData);
-
-      if (data->EventFlag & ImGuiInputTextFlags_CallbackHistory)
-      {
-        if (data->EventKey == ImGuiKey_UpArrow)
-        {
-          const String prevCmd = instance->onCmdArrowKey(true, instance->commandInputText);
-          if (!prevCmd.empty())
-          {
-            data->DeleteChars(0, data->BufTextLen);
-            data->InsertChars(0, prevCmd);
-          }
-        }
-        else if (data->EventKey == ImGuiKey_DownArrow)
-        {
-          data->DeleteChars(0, data->BufTextLen);
-          const String nextCmd = instance->onCmdArrowKey(false, instance->commandInputText);
-          data->InsertChars(0, nextCmd);
-        }
-      }
-      return 0;
-    },
-    this);
+  bool enterPressed;
+  if (autocomplete_popup && autocomplete_popup->isPopupOpen())
+  {
+    // Hacky but there is no saner way to do this because ImGui::Input() uses both IsKeyPressed() and Shortcut().
+    PropPanel::ImguiHelper::KeyDownHider keyDownHider(ImGuiKey_Escape);
+    enterPressed = ImGuiDagor::InputTextWithHint("##command", "Command", &commandInputText, ImGuiInputTextFlags_EnterReturnsTrue);
+  }
+  else
+  {
+    enterPressed = ImGuiDagor::InputTextWithHint("##command", "Command", &commandInputText, ImGuiInputTextFlags_EnterReturnsTrue);
+  }
 
   const ImGuiID inputId = ImGui::GetItemID();
+  const ImRect inputRect = ImGui::GetCurrentContext()->LastItemData.Rect;
+  const bool inputEdited = ImGui::IsItemEdited();
+  bool showOnEmptyInput = false;
+
+  auto setInputText = [this, inputId](const char *text) {
+    commandInputText = text;
+    if (ImGuiInputTextState *inputState = ImGui::GetInputTextState(inputId))
+      inputState->ReloadUserBufAndMoveToEnd();
+  };
 
   // Delay initial focus for one frame as a workaround for focusing not working on just opened docked windows.
   // See: https://github.com/ocornut/imgui/issues/5289
-  if ((activateOnShow || enterPressed) && !justMadeVisible)
+  if (activateOnShow && !justMadeVisible)
   {
     activateOnShow = false;
-    ImGui::SetKeyboardFocusHere(-1);
+    ImGui::ActivateItemByID(inputId);
+    ImGui::FocusItem();
+    ImGui::FocusWindow(ImGui::GetCurrentWindow());
   }
 
-  if (enterPressed) // Some commands might display PropPanel dialogs, so we can't execute the command immediately from the ImGui frame.
+  if (enterPressed)
+  {
+    // Some commands might display PropPanel dialogs, so we can't execute the command immediately from the ImGui frame.
+    commandToRun = commandInputText;
     PropPanel::request_delayed_callback(*this);
+
+    setInputText("");
+    autocomplete_popup.reset();
+
+    // Keep the input focused.
+    ImGui::SetKeyboardFocusHere(-1);
+  }
   else if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows) && isCanClose() && !isProgress() &&
            ImGui::Shortcut(ImGuiKey_Escape, ImGuiInputFlags_None, inputId))
+  {
     hideConsole();
+  }
+  else if (!autocomplete_popup || !autocomplete_popup->isPopupOpen())
+  {
+    if (ImGui::Shortcut(ImGuiKey_UpArrow, ImGuiInputFlags_Repeat, inputId))
+    {
+      const String prevCmd = onCmdArrowKey(true, commandInputText);
+      if (!prevCmd.empty())
+        setInputText(prevCmd);
+    }
+    else if (ImGui::Shortcut(ImGuiKey_DownArrow, ImGuiInputFlags_Repeat, inputId))
+    {
+      setInputText(onCmdArrowKey(false, commandInputText));
+    }
+    else if (ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_Space, ImGuiInputFlags_None, inputId))
+    {
+      showOnEmptyInput = true;
+    }
+  }
+
+  if (inputEdited || showOnEmptyInput)
+    fillAutocompletePopup(showOnEmptyInput);
+
+  if (autocomplete_popup)
+  {
+    bool selectionChanged, itemClicked;
+    autocomplete_popup->updateImgui(log_window_rect, inputRect, selectionChanged, itemClicked);
+    if (selectionChanged || itemClicked)
+    {
+      if (const char *itemText = autocomplete_popup->getSelectedItemName())
+      {
+        setInputText(itemText);
+        if (itemClicked) // The mouse click takes away the focus, we have to restore it.
+          PropPanel::focus_helper.requestFocus(&commandInputText);
+      }
+    }
+  }
 }
 
 //==============================================================================
 void CoolConsole::onImguiDelayedCallback(void *user_data)
 {
-  runCommand(commandInputText);
-  commandInputText.clear();
+  runCommand(commandToRun);
+  commandToRun.clear();
 }
 
 //==============================================================================
@@ -820,11 +836,12 @@ void CoolConsole::updateImgui()
 {
   const float separatorHeight = ImGui::GetStyle().ItemSpacing.y;
   const float inputHeight = ImGui::GetFrameHeightWithSpacing(); // the progress bar has the same height
-  const bool showProgressBar = isProgress() || progressMaxPosition > 0;
+  const bool showProgressBar = isProgressBarVisible();
   const float progressBarHeight = showProgressBar ? (separatorHeight + inputHeight) : 0.0f;
   const float height = progressBarHeight + separatorHeight + inputHeight;
 
-  renderLogTextUI(-height);
+  ImRect logWindowRect;
+  renderLogTextUI(-height, logWindowRect);
 
   if (showProgressBar)
   {
@@ -854,7 +871,7 @@ void CoolConsole::updateImgui()
   }
 
   ImGui::Separator();
-  renderCommandInputUI();
+  renderCommandInputUI(logWindowRect);
 
   justMadeVisible = false;
 }

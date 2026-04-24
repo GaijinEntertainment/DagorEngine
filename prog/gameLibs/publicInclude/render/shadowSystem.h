@@ -27,6 +27,7 @@ class ShadowSystem
 {
 public:
   void changeResolution(int atlasWidth, int max_shadow_size, int min_shadow_size, int shadow_size_step, bool dynamic_shadow_32bit);
+  void setRetainShadowSizeMul(float retain_size_mul);
 
   void setOverrideState(const shaders::OverrideState &baseState);
   void close();
@@ -58,6 +59,8 @@ public:
     uint8_t &shadow_size_srl, DynamicShadowRenderGPUObjects &render_gpu_objects) const;
   Point2 getShadowUvSize(uint32_t id) const;
   Point4 getShadowUvMinMax(uint32_t id) const;
+  uint32_t getShadowRectPacked(uint32_t id) const;
+  bool isShadowTwoSided(uint32_t id) const { return volumes[id].isTwoSided(); }
 
   void startPrepareShadows(); // increases currentFrame
   // useShadowOnFrame should be called for any light which should be called
@@ -171,11 +174,12 @@ protected:
       ONLY_STATIC = 1 << 1,
       OCTAHEDRAL = 1 << 2,
       APPROXIMATE_STATIC = 1 << 3,
+      TWO_SIDED = 1 << 4,
     };
     uint8_t flags = DYNAMIC_LIGHT;
     bool valid = false;
-    AtlasRect shadow;
-    AtlasRect dynamicShadow; // this is only not empty for static lights
+    AtlasRect shadow = {};
+    AtlasRect dynamicShadow = {}; // this is only not empty for static lights
     uint32_t lastFrameHasDynamicContent = 1;
     uint32_t lastFrameChanged = 1;
     uint32_t lastFrameUsed = 1;
@@ -198,6 +202,7 @@ protected:
     bool isDynamic() const { return flags & DYNAMIC_LIGHT; }
     bool isDynamicOrOnlyStaticCasters() const { return isDynamic() || hasOnlyStaticCasters(); }
     bool isApproximatelyTracedStaticCasters() const { return flags & APPROXIMATE_STATIC; }
+    bool isTwoSided() const { return flags & TWO_SIDED; }
 
     bool isDestroyed() const { return lastFrameUsed == 0; }
     bool isValidContent() const { return !shadow.isEmpty() && lastFrameChanged < lastFrameUpdated; }
@@ -242,6 +247,7 @@ protected:
 
   uint32_t currentFrame = 2;
   int shadowStep = 0, maxShadow = 0, minShadow = 0, maxOctahedralTempShadow = 0;
+  float retainShadowSizeMul = 1.f;
   enum
   {
     UPDATE_ENDED,
@@ -279,9 +285,10 @@ protected:
   }
   void atlasFree(AtlasRect r)
   {
-    if (r.width == 0)
-      return;
-    G_ASSERT((r.x % minShadow) == 0 && (r.y % minShadow) == 0 && (r.width % minShadow) == 0 && r.width == r.height);
+    if (!r.isEmpty())
+      G_ASSERTF(!(r.width < 0 || r.height < 0 || r.x < 0 || r.y < 0) && (r.x % minShadow) == 0 && (r.y % minShadow) == 0 &&
+                  (r.width % minShadow) == 0 && r.width == r.height,
+        "r.x=%i r.y=%i r.wd=%i r.ht=%i minShadow=%i", r.x, r.y, r.width, r.height, minShadow);
     r.x /= minShadow;
     r.y /= minShadow;
     r.width /= minShadow;

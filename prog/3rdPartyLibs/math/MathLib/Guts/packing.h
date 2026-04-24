@@ -2,14 +2,6 @@
 
 #pragma once
 
-#define UF11_M_BITS 6
-#define UF11_E_BITS 5
-#define UF11_S_MASK 0x0
-
-#define UF10_M_BITS 5
-#define UF10_E_BITS 5
-#define UF10_S_MASK 0x0
-
 namespace Packing {
 
 template <uint32_t Rbits, uint32_t Gbits, uint32_t Bbits, uint32_t Abits>
@@ -59,9 +51,9 @@ ML_INLINE uint32_t float2_to_unorm_16_16(const float2& v) {
 }
 
 ML_INLINE uint32_t float3_to_ufloat_11_11_10(const float3& v) {
-    uint32_t r = ToSmallFloat<UF11_M_BITS, UF11_E_BITS, UF11_S_MASK>(v.x);
-    r |= ToSmallFloat<UF11_M_BITS, UF11_E_BITS, UF11_S_MASK>(v.y) << 11;
-    r |= ToSmallFloat<UF10_M_BITS, UF10_E_BITS, UF10_S_MASK>(v.z) << 22;
+    uint32_t r = ToSmallFloat<fp11u>(v.x);
+    r |= ToSmallFloat<fp11u>(v.y) << 11;
+    r |= ToSmallFloat<fp10u>(v.z) << 22;
 
     return r;
 }
@@ -124,12 +116,12 @@ ML_INLINE float16_t2 float2_to_float16_t2(const float2& v) {
     float16_t2 r;
 #if (ML_INTRINSIC_LEVEL >= ML_INTRINSIC_AVX1)
     v4f t = v4f_set(v.x, v.y, 0.0f, 0.0f);
-    v4i p = v4f_to_h4(t);
+    v4i p = _mm_cvtps_ph(t, _MM_FROUND_TO_NEAREST_INT);
 
     *((int32_t*)&r) = _mm_cvtsi128_si32(p);
 #else
-    r.x = float16_t(v.x);
-    r.y = float16_t(v.y);
+    r.x = float16_t(v.x).x;
+    r.y = float16_t(v.y).x;
 #endif
 
     return r;
@@ -138,7 +130,7 @@ ML_INLINE float16_t2 float2_to_float16_t2(const float2& v) {
 ML_INLINE float16_t4 float4_to_float16_t4(const float4& v) {
     float16_t4 r;
 #if (ML_INTRINSIC_LEVEL >= ML_INTRINSIC_AVX1)
-    v4i p = v4f_to_h4(v.xmm);
+    v4i p = _mm_cvtps_ph(v.xmm, _MM_FROUND_TO_NEAREST_INT);
     *((int64_t*)&r) = _mm_extract_epi64(p, 0);
 #else
     float16_t2 xy = float2_to_float16_t2(v.xy);
@@ -193,9 +185,9 @@ ML_INLINE float4 unorm_to_float4<8, 8, 8, 8>(uint32_t p) {
 
 ML_INLINE float3 ufloat_11_11_10_to_float3(uint32_t p) {
     float3 v;
-    v.x = FromSmallFloat<UF11_M_BITS, UF11_E_BITS, UF11_S_MASK>(p & ((1 << 11) - 1));
-    v.y = FromSmallFloat<UF11_M_BITS, UF11_E_BITS, UF11_S_MASK>((p >> 11) & ((1 << 11) - 1));
-    v.z = FromSmallFloat<UF10_M_BITS, UF10_E_BITS, UF10_S_MASK>((p >> 22) & ((1 << 10) - 1));
+    v.x = FromSmallFloat<fp11u>(p & ((1 << 11) - 1));
+    v.y = FromSmallFloat<fp11u>((p >> 11) & ((1 << 11) - 1));
+    v.z = FromSmallFloat<fp10u>((p >> 22) & ((1 << 10) - 1));
 
     return v;
 }

@@ -13,6 +13,7 @@ void draw_debug_solid_mesh_buffered(const uint16_t *indices, int faces_count, co
 
 void draw_debug_solid_cube_buffered(const BBox3 &cube, const TMatrix &tm, const Color4 &color, size_t frames);
 void draw_debug_solid_triangle_buffered(Point3 a, Point3 b, Point3 c, const Color4 &color, size_t frames);
+void draw_debug_solid_tehedron_buffered(const Point3 &pos, float radius, const Color4 &color, size_t frames);
 void draw_debug_solid_quad_buffered(Point3 half_vec_i, Point3 half_vec_j, const TMatrix &tm, const Color4 &color, size_t frames);
 void draw_debug_solid_quad_buffered(Point3 top_left, Point3 bottom_left, Point3 bottom_right, Point3 top_right, const Color4 &color,
   size_t frames);

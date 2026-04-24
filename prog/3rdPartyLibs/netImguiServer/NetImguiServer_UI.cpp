@@ -1,19 +1,17 @@
-#include "NetImguiServer_App.h"
-#include "NetImguiServer_Config.h"
-#include "NetImguiServer_Network.h"
-#include "NetImguiServer_RemoteClient.h"
-#include "NetImguiServer_UI.h"
-
 #include <stdio.h>
 #include <algorithm>
-
 #include <netImgui/NetImgui_Api.h>
 #include <netImgui/source/NetImgui_CmdPackets.h>
+
+#include "NetImguiServer_App.h"
+#include "NetImguiServer_UI.h"
+#include "NetImguiServer_RemoteClient.h"
+#include "NetImguiServer_Config.h"
+#include "NetImguiServer_Network.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb/stb_image.h>
 #undef STB_IMAGE_IMPLEMENTATION
-
 
 namespace NetImguiServer { namespace UI
 {
@@ -27,11 +25,13 @@ static const ImVec4			kColorTitle							= ImVec4(0.3f,1.0f,0.3f,1.f);	// Various
 static const ImVec4			kColorContent						= ImVec4(0.7f,0.75f,0.7f,1.f);	// Various Server text content color
 static ImGuiID				gMainDockID							= 0;
 static float				gDisplayFPS							= 30.f;
-static uint32_t				gWindowDPI							= kWindowDPIDefault;
 static auto					gLastUIUpdate						= std::chrono::steady_clock::now();
-static App::ServerTexture	gBackgroundTexture;
+static App::ServerTexture*	gpBackgroundTexture;
 
-static uint32_t							gPopup_ConfirmDisconnect_ClientIdx	= kClientRemoteInvalid;
+// MODIFICATION BY GAIJIN
+// hack, to handle disconnecting client with Esc key
+uint32_t										gPopup_ConfirmDisconnect_ClientIdx	= kClientRemoteInvalid;
+
 static uint32_t							gPopup_ConfirmDelete_ConfigIdx		= NetImguiServer::Config::Client::kInvalidRuntimeID;
 static bool								gPopup_AboutNetImgui_Show			= false;
 static bool								gPopup_ServerConfig_Show			= false;
@@ -51,29 +51,31 @@ uint8_t ConvertDataAmount(uint64_t& dataSize)
 	return outUnitIdx;
 }
 
-const App::ServerTexture& GetBackgroundTexture()
+const App::ServerTexture* GetBackgroundTexture()
 {
-	return gBackgroundTexture;
+	return gpBackgroundTexture;
 }
 
 //=================================================================================================
 // Fill current window with our main background picture
 //=================================================================================================
-void DrawCenteredBackground(const App::ServerTexture& Texture, const ImVec4& Tint)
+void DrawCenteredBackground(const App::ServerTexture* Texture, const ImVec4& Tint)
 {
-	const ImVec2 savedPos	= ImGui::GetCursorPos();
-	const ImVec2 areaSize	= ImGui::GetContentRegionAvail();
-	const float ratioH		= static_cast<float>(Texture.mSize[0]) / areaSize.x;
-	const float ratioV		= static_cast<float>(Texture.mSize[1]) / areaSize.y;
-	float bgSizeX			= ratioH > ratioV ? areaSize.x : areaSize.y * static_cast<float>(Texture.mSize[0]) / static_cast<float>(Texture.mSize[1]);
-	float bgSizeY			= ratioH < ratioV ? areaSize.y : areaSize.x * static_cast<float>(Texture.mSize[1]) / static_cast<float>(Texture.mSize[0]);
-	float uvOffsetX			= (areaSize.x - bgSizeX) / 2.f;
-	float uvOffsetY			= (areaSize.y - bgSizeY) / 2.f;
-	ImGui::SetCursorPos(ImVec2(savedPos.x+uvOffsetX, savedPos.y+uvOffsetY));
-	ImGui::Dummy(ImVec2(0,0));
-	ImGui::Image(reinterpret_cast<ImTextureID>(Texture.mpHAL_Texture), ImVec2(bgSizeX, bgSizeY), ImVec2(0, 0), ImVec2(1, 1), Tint);
-	ImGui::SetCursorPos(savedPos);
-	ImGui::Dummy(ImVec2(0,0));
+	if( Texture && Texture->IsValid() )
+	{
+		const ImVec2 savedPos	= ImGui::GetCursorPos();
+		const ImVec2 areaSize	= ImGui::GetContentRegionAvail();
+		const float ratioH		= static_cast<float>(Texture->mTexData.Width) / areaSize.x;
+		const float ratioV		= static_cast<float>(Texture->mTexData.Height) / areaSize.y;
+		float bgSizeX			= ratioH > ratioV ? areaSize.x : areaSize.y * static_cast<float>(Texture->mTexData.Width) / static_cast<float>(Texture->mTexData.Height);
+		float bgSizeY			= ratioH < ratioV ? areaSize.y : areaSize.x * static_cast<float>(Texture->mTexData.Height) / static_cast<float>(Texture->mTexData.Width);
+		float uvOffsetX			= (areaSize.x - bgSizeX) / 2.f;
+		float uvOffsetY			= (areaSize.y - bgSizeY) / 2.f;
+		ImTextureRef texRef 	= const_cast<ImTextureData&>(Texture->mTexData).GetTexRef(); //Note: method does not modify object, but wasn't marked 'const'
+		ImGui::SetCursorPos(ImVec2(savedPos.x+uvOffsetX, savedPos.y+uvOffsetY));
+		ImGui::ImageWithBg(texRef, ImVec2(bgSizeX, bgSizeY), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0,0,0,0), Tint);
+		ImGui::SetCursorPos(savedPos);
+	}
 }
 
 //=================================================================================================
@@ -120,17 +122,18 @@ void Popup_ConfirmDisconnect()
 	{		
 		RemoteClient::Client& client			= RemoteClient::Client::Get(gPopup_ConfirmDisconnect_ClientIdx);
 		bool wantExit							= ImGui::IsKeyPressed(ImGuiKey_Escape);
+		static ImVec2 sPopupSize				= ImVec2(250.f,200.f);
+	
 		ImGuiWindowClass windowClass;
 		windowClass.ViewportFlagsOverrideSet	= ImGuiViewportFlags_TopMost;
 		ImGui::SetNextWindowClass(&windowClass);
 
-		static ImVec2 sPopupSize				= ImVec2(250.f,200.f);
 		ImGuiViewport* pViewport				= ImGui::GetWindowViewport();
 		ImVec2 popupPos							= pViewport->Pos;
 		popupPos.x								+= pViewport->Size.x/2.f - sPopupSize.x/2.f;
 		popupPos.y								+= pViewport->Size.y/2.f - sPopupSize.y/2.f;
 		ImGui::SetNextWindowPos(popupPos, ImGuiCond_Appearing);
-		
+	
 		ImGui::OpenPopup("Confirmation##DEL");
 		if (ImGui::BeginPopupModal("Confirmation##DEL", &pendingDisconnectOpen, ImGuiWindowFlags_AlwaysAutoResize))
 		{
@@ -175,18 +178,17 @@ void Popup_ConfirmDisconnect()
 void Popup_AboutNetImgui()
 {
 	if( gPopup_AboutNetImgui_Show )
-	{		
+	{
+		static ImVec2 sPopupSize				= ImVec2(250.f,200.f);
 		ImGuiWindowClass windowClass;
 		windowClass.ViewportFlagsOverrideSet = ImGuiViewportFlags_TopMost;
 		ImGui::SetNextWindowClass(&windowClass);
 
-		static ImVec2 sPopupSize				= ImVec2(250.f,200.f);
 		ImGuiViewport* pViewport				= ImGui::GetWindowViewport();
 		ImVec2 popupPos							= pViewport->Pos;
 		popupPos.x								+= pViewport->Size.x/2.f - sPopupSize.x/2.f;
 		popupPos.y								+= pViewport->Size.y/2.f - sPopupSize.y/2.f;
 		ImGui::SetNextWindowPos(popupPos, ImGuiCond_Appearing);
-
 		ImGui::OpenPopup("About NetImgui...");
 		if (ImGui::BeginPopupModal("About NetImgui...", &gPopup_AboutNetImgui_Show, ImGuiWindowFlags_AlwaysAutoResize))
 		{			
@@ -223,6 +225,7 @@ void Popup_ServerConfig()
 	static float sEditRefreshFPSActive		= 0;
 	static float sEditRefreshFPSInactive	= 0;
 	static bool sEditCompressionEnable		= true;
+	static int sEditServerFontSize			= 0;
 	static float sSavedDPIScalePourcentage	= 0.f;
 	if( gPopup_ServerConfig_Show )
 	{		
@@ -231,19 +234,20 @@ void Popup_ServerConfig()
 			sEditRefreshFPSActive		= NetImguiServer::Config::Server::sRefreshFPSActive;
 			sEditRefreshFPSInactive		= NetImguiServer::Config::Server::sRefreshFPSInactive;
 			sEditCompressionEnable		= NetImguiServer::Config::Server::sCompressionEnable;
+			sEditServerFontSize			= (int)NetImguiServer::Config::Server::sFontSize;
 			sSavedDPIScalePourcentage	= NetImguiServer::Config::Server::sDPIScaleRatio;
 		}
+
+		static ImVec2 sPopupSize				= ImVec2(250.f,200.f);
 		ImGuiWindowClass windowClass;
 		windowClass.ViewportFlagsOverrideSet = ImGuiViewportFlags_TopMost;
 		ImGui::SetNextWindowClass(&windowClass);
 
-		static ImVec2 sPopupSize				= ImVec2(250.f,200.f);
 		ImGuiViewport* pViewport				= ImGui::GetWindowViewport();
 		ImVec2 popupPos							= pViewport->Pos;
 		popupPos.x								+= pViewport->Size.x/2.f - sPopupSize.x/2.f;
 		popupPos.y								+= pViewport->Size.y/2.f - sPopupSize.y/2.f;
 		ImGui::SetNextWindowPos(popupPos, ImGuiCond_Appearing);
-
 		ImGui::OpenPopup("Server Configuration");
 		if (ImGui::BeginPopupModal("Server Configuration", &gPopup_ServerConfig_Show, ImGuiWindowFlags_AlwaysAutoResize))
 		{
@@ -268,6 +272,12 @@ void Popup_ServerConfig()
 			ImGui::SliderFloat("Inactive Window", &sEditRefreshFPSInactive, 0.f, 60.f, "%2.f Fps" );
 			if( ImGui::IsItemHovered() ){
 				ImGui::SetTooltip("How often we refresh content of *visible* and *unfocused* clients.\nNote: Lowering this will reduce network traffic.");
+			}
+			
+			// --- Font Size ---
+			ImGui::SliderInt("Server UI Font size", &sEditServerFontSize, 8, 32, "%2i pts" );
+			if( ImGui::IsItemHovered() ){
+				ImGui::SetTooltip("Font size for Server UI elements. This does not control the size of text of remote client content.");
 			}
 
 			// --- DPI Scale ---
@@ -301,6 +311,7 @@ void Popup_ServerConfig()
 				NetImguiServer::Config::Server::sRefreshFPSActive	= sEditRefreshFPSActive;
 				NetImguiServer::Config::Server::sRefreshFPSInactive	= sEditRefreshFPSInactive;
 				NetImguiServer::Config::Server::sCompressionEnable	= sEditCompressionEnable;
+				NetImguiServer::Config::Server::sFontSize			= (float)sEditServerFontSize;
 				NetImguiServer::Config::Client::SaveAll();
 				gPopup_ServerConfig_Show = false;
 			}
@@ -328,18 +339,17 @@ void Popup_ClientConfigEdit()
 	bool bOpenEdit(gPopup_ClientConfig_pConfig != nullptr);
 	if (bOpenEdit)
 	{
-		ImGuiWindowClass windowClass;
-		windowClass.ViewportFlagsOverrideSet = ImGuiViewportFlags_TopMost;
-		ImGui::SetNextWindowClass(&windowClass);
-
 		static ImVec2 sPopupSize		= ImVec2(250.f,200.f);
 		static bool sAnyItemWasActive	= false;	// Keep track if any item was in 'edit' mode the previous frame
 		bool bSkipEscapeKey				= false;	// Ignore 'Esc key' when it was used to revert field change/stop editing a field
+
+		ImGuiWindowClass windowClass;
+		windowClass.ViewportFlagsOverrideSet = ImGuiViewportFlags_TopMost;
+		ImGui::SetNextWindowClass(&windowClass);
 		ImGuiViewport* pViewport		= ImGui::GetWindowViewport();
 		ImVec2 popupPos					= ImVec2(	pViewport->Pos.x + pViewport->Size.x/2.f - sPopupSize.x/2.f,
 													pViewport->Pos.y + pViewport->Size.y/2.f - sPopupSize.y/2.f);
 		ImGui::SetNextWindowPos(popupPos, ImGuiCond_Appearing);
-
 		ImGui::OpenPopup("Edit Client Info");
 		if (ImGui::BeginPopupModal("Edit Client Info", &bOpenEdit, ImGuiWindowFlags_AlwaysAutoResize))
 		{
@@ -430,17 +440,16 @@ void Popup_ClientConfigDelete()
 	bool bOpenDelConfirm(NetImguiServer::Config::Client::GetConfigByID(gPopup_ConfirmDelete_ConfigIdx, config));
 	if( bOpenDelConfirm )
 	{
+		static ImVec2 sPopupSize				= ImVec2(250.f,200.f);
 		ImGuiWindowClass windowClass;
 		windowClass.ViewportFlagsOverrideSet = ImGuiViewportFlags_TopMost;
 		ImGui::SetNextWindowClass(&windowClass);
 
-		static ImVec2 sPopupSize				= ImVec2(250.f,200.f);
 		ImGuiViewport* pViewport				= ImGui::GetWindowViewport();
 		ImVec2 popupPos							= pViewport->Pos;
 		popupPos.x								+= pViewport->Size.x/2.f - sPopupSize.x/2.f;
 		popupPos.y								+= pViewport->Size.y/2.f - sPopupSize.y/2.f;
 		ImGui::SetNextWindowPos(popupPos, ImGuiCond_Appearing);
-
 		ImGui::OpenPopup("Confirmation##DEL");
 		if (ImGui::BeginPopupModal("Confirmation##DEL", &bOpenDelConfirm, ImGuiWindowFlags_AlwaysAutoResize))
 		{
@@ -506,7 +515,7 @@ void DrawImguiContent_SetupDocking()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 4.f));
 	ImGui::Begin("DockSpace", nullptr, window_flags);
 	ImGui::PopStyleVar(3);
-	DrawCenteredBackground(gBackgroundTexture, kColorBGTint);
+	DrawCenteredBackground(gpBackgroundTexture, kColorBGTint);
 	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_DockingEnable)
 	{
 		ImGui::DockSpace(gMainDockID, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_PassthruCentralNode);
@@ -552,17 +561,18 @@ void DrawImguiContent_Clients()
 			if( client.mbIsVisible )
 			{
 				// Display remote client drawing results
-				if (client.mpHAL_AreaRT && areaSize.x > 0 && areaSize.y > 0)
+				if (client.mHAL_AreaTexture.Status == ImTextureStatus::ImTextureStatus_OK && areaSize.x > 0 && areaSize.y > 0) 
 				{					
 					// Add fake button to discard mouse input (prevent window moving when draging inside client area)
 					ImVec2 savedPos			= ImGui::GetCursorPos();
-					const ImVec4 tint_col	= ImVec4(1.0f, 1.0f, 1.0f, 1.0f);
-					const ImVec4 border_col = ImVec4(1.0f, 1.0f, 1.0f, 0.0f);
 					ImGui::InvisibleButton("canvas", areaSize, ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle);
 					ImGui::SetCursorPos(savedPos);
 
 					// Display Client Context
-					ImGui::Image(reinterpret_cast<ImTextureID>(unsigned(client.mAreaTexId)), areaSize, ImVec2(0, 0), ImVec2(1, 1), tint_col, border_col);
+					ImTextureRef clientFrameTexRef;
+					clientFrameTexRef._TexData = &client.mHAL_AreaTexture;
+					ImGui::Image(clientFrameTexRef, areaSize, ImVec2(0, HAL_API_RENDERTARGET_INVERT_Y ? 1 : 0), ImVec2(1, HAL_API_RENDERTARGET_INVERT_Y ? 0 : 1));
+
 					if( ImGui::IsItemHovered() ){
 						ImGui::SetMouseCursor(client.mMouseCursor);
 					}
@@ -632,7 +642,7 @@ void DrawImguiContent_Clients()
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding , ImVec2(24.f,24.f));
 		if (ImGui::Begin("Information", nullptr, 0))
 		{
-			DrawCenteredBackground(gBackgroundTexture, ImVec4(1.f, 1.f, 1.f, 0.15f));
+			DrawCenteredBackground(gpBackgroundTexture, ImVec4(1.f, 1.f, 1.f, 0.15f));
 
 			ImGui::TextColored(kColorTitle, "%s", "Purpose:");
 			ImGui::PushStyleColor(ImGuiCol_Text, kColorContent);
@@ -651,7 +661,7 @@ void DrawImguiContent_Clients()
 			ImGui::TextColored(kColorTitle, "%s", "Note:");
 			ImGui::PushStyleColor(ImGuiCol_Text, kColorContent);
 			ImGui::TextWrapped("'Multiple clients can be connected to this server. Each client window can be undocked and moved around independently.");
-			ImGui::PopStyleColor();			
+			ImGui::PopStyleColor();
 		}
 		ImGui::End();
 		ImGui::PopStyleVar();
@@ -731,7 +741,7 @@ void DrawImguiContent_MainMenu_Clients_Entry(RemoteClient::Client* pClient, NetI
 	ImGui::EndDisabled();	
 
 	// Config: Connection
-	const float kButtonWidth = 100.f * GetFontDPIScale();
+	float kButtonWidth = ImGui::GetFont()->CalcTextSizeA(ImGui::GetFontSize(), 500.f, 0.f, " Disconnect ").x;
 	if( pClient && !pClient->mbDisconnectPending && ImGui::Button("Disconnect", ImVec2(kButtonWidth, 0)) )
 	{
 		gPopup_ConfirmDisconnect_ClientIdx = pClient->mClientIndex;
@@ -946,6 +956,7 @@ ImVec4 DrawImguiContent()
 	gLastUIUpdate				= std::chrono::steady_clock::now();
 	gDisplayFPS					= gDisplayFPS*(1.f-kHysteresis) + (1000000.f/elapsedMicroS)*kHysteresis;
 
+	ImGui::PushFont(nullptr, NetImguiServer::Config::Server::sFontSize);
 	Popup_ServerConfig();
 	Popup_ClientConfigEdit();
 	Popup_ClientConfigDelete();
@@ -956,6 +967,7 @@ ImVec4 DrawImguiContent()
 	DrawImguiContent_SetupDocking();
 	DrawImguiContent_Clients();
 	//ImGui::ShowDemoWindow();
+	ImGui::PopFont();
 
 	return kColorBGClear;
 }
@@ -971,7 +983,15 @@ bool Startup()
 	if( pBGPixels )
 	{		
 		// @Sammyfreg TODO : Support multiple format for Background
-		NetImguiServer::App::HAL_CreateTexture(uint16_t(Width), uint16_t(Height), NetImgui::eTexFormat::kTexFmtRGBA8, pBGPixels, gBackgroundTexture);
+		NetImgui::Internal::CmdTexture cmdTexture;
+		constexpr NetImgui::eTexFormat format 	= NetImgui::eTexFormat::kTexFmtRGBA8;
+		const uint32_t textureBytes				= NetImgui::GetTexture_BytePerImage(format, Width, Height);
+		cmdTexture.mTextureClientID				= 0;
+		cmdTexture.mFormat						= format;
+		cmdTexture.mWidth 						= static_cast<uint16_t>(Width);
+		cmdTexture.mHeight						= static_cast<uint16_t>(Height);
+		cmdTexture.mpTextureData.SetPtr((uint8_t*)pBGPixels);
+		gpBackgroundTexture 					= App::CreateTexture(cmdTexture, textureBytes);
 		stbi_image_free(pBGPixels);
 	}
 
@@ -985,33 +1005,14 @@ bool Startup()
 //=================================================================================================
 void Shutdown()
 {
-	NetImguiServer::App::HAL_DestroyTexture(gBackgroundTexture);	
 }
 
 //=================================================================================================
 // Return the current average FPS of UI refreshed (tied to GPU VSync setting of backend)
 //=================================================================================================
 float GetDisplayFPS()
-{	
+{
 	return gDisplayFPS;
-}
-
-//=================================================================================================
-// Store the current Server application DPI (for font upscaling)
-//=================================================================================================
-void SetWindowDPI(uint32_t dpi)
-{
-	gWindowDPI = dpi;
-}
-
-//=================================================================================================
-// Get the font scaling factor applied to handle small text on screen with high resolution
-//=================================================================================================
-float GetFontDPIScale()
-{
-	float scale = ((float)gWindowDPI / (float)kWindowDPIDefault);
-	scale		= scale > 1.f ? scale : 1.f;
-	return 1.f + (scale - 1.f) * NetImguiServer::Config::Server::sDPIScaleRatio;
 }
 
 }} // namespace NetImguiServer { namespace UI

@@ -24,6 +24,25 @@ static ecs::EntitySystemDesc reset_blood_es_es_desc
   ecs::EventSetBuilder<AfterDeviceReset>::build(),
   0
 );
+//static constexpr ecs::ComponentDesc blood_puddles_handle_render_feature_change_es_comps[] ={};
+static void blood_puddles_handle_render_feature_change_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  blood_puddles_handle_render_feature_change_es(evt
+        );
+}
+static ecs::EntitySystemDesc blood_puddles_handle_render_feature_change_es_es_desc
+(
+  "blood_puddles_handle_render_feature_change_es",
+  "prog/daNetGameLibs/blood_puddles/private/render/bloodPuddlesInitES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, blood_puddles_handle_render_feature_change_es_all_events),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<ChangeRenderFeatures>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc update_blood_puddles_group_settings_es_comps[] =
 {
 //start of 1 ro components at [0]
@@ -89,9 +108,9 @@ static ecs::CompileTimeQueryDesc get_blood_settings_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_blood_settings_ecs_query(Callable function)
+inline void get_blood_settings_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_blood_settings_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_blood_settings_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

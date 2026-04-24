@@ -2,6 +2,7 @@ shader_root_dir:t="."
 outDumpName:t="../../../../tools/dargbox/shaders/gameMTL"
 
 incDir:t="../../../gameLibs/render/shaders"
+incDir:t="../../../gameLibs/daRg/shaders"
 
 source
 {
@@ -23,7 +24,6 @@ Compile
     particles_buffer_id:i=8
     static_shadows_custom_fxaa:i=0
     grass_use_quads_index_buffer:i=0
-    mobile_render:i=0
   }
 }
 

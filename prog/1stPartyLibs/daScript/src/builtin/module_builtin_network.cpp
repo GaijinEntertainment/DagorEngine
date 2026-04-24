@@ -84,8 +84,6 @@ namespace das {
         }
     };
 
-    #include "network.das.inc"
-
     bool makeServer ( const void * pClass, const StructInfo * info, Context * context ) {
         auto server = make_smart<ServerAdapter>((char *)pClass,info,context);
         if ( !server->isValid() ) return false;
@@ -126,11 +124,11 @@ namespace das {
 
     class Module_Network : public Module {
     public:
-        Module_Network() : Module("network") {
+        Module_Network() : Module("network_core") {
             DAS_PROFILE_SECTION("Module_Network");
             ModuleLibrary lib(this);
             lib.addBuiltInModule();
-            addBuiltinDependency(lib, Module::require("rtti"));
+            addBuiltinDependency(lib, Module::require("rtti_core"));
             // sever
             addAnnotation(make_smart<ServerAnnotation>(lib));
             addExtern<DAS_BIND_FUN(makeServer)>(*this, lib,  "make_server",
@@ -154,8 +152,6 @@ namespace das {
             addExtern<DAS_BIND_FUN(server_restore)>(*this, lib,  "server_restore",
                 SideEffects::modifyArgumentAndExternal, "server_restore")
                     ->args({"server","class","info","context","at"});
-            // add builtin module
-            compileBuiltinModule("network.das",network_das,sizeof(network_das));
         }
         virtual ModuleAotType aotRequire ( TextWriter & tw ) const override {
             tw << "#include \"daScript/simulate/aot_builtin_network.h\"\n";

@@ -1,4 +1,8 @@
 include "deferred_shadow_common.dshl"
+include "classify_tiles_common.dshl"
+
+texture vrs_rate_tex;
+int variable_rate_shading_tile_size;
 
 shader deferred_shadow_classify_tiles
 {
@@ -9,7 +13,7 @@ shader deferred_shadow_classify_tiles
     dont_render;
   }
 
-  ENABLE_ASSERT(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   INIT_LOAD_GBUFFER_BASE(cs)
   USE_LOAD_GBUFFER_BASE(cs, 0)
   USE_EMISSION_DECODE_COLOR_MAP(cs)
@@ -18,9 +22,24 @@ shader deferred_shadow_classify_tiles
 
   (cs) {
     depth_bounds@f2 = depth_bounds;
-    downsampled_close_depth_tex@tex2d = downsampled_close_depth_tex;
-    downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
-    half_res@f2 = get_dimensions(downsampled_close_depth_tex, 0);
+    g_tile_counters@uav : register(0) hlsl {
+      RWByteAddressBuffer g_tile_counters@uav;
+    }
+    // make sure there is RESOLVE_GBUFFER_MAX_PERMUTATIONS buffers declared
+    g_tiles0@uav : register(1) hlsl {
+      RWByteAddressBuffer g_tiles0@uav;
+    }
+    g_tiles1@uav : register(2) hlsl {
+      RWByteAddressBuffer g_tiles1@uav;
+    }
+  }
+
+  if (vrs_rate_tex != NULL)
+  {
+    (cs) {
+      vrs_rate_tex@tex = vrs_rate_tex hlsl { Texture2D<uint> vrs_rate_tex@tex; };
+      variable_rate_shading_tile_size@i1 = (variable_rate_shading_tile_size);
+    }
   }
 
   if (dynamic_lights_count != lights_off)
@@ -32,28 +51,14 @@ shader deferred_shadow_classify_tiles
   }
 
   VIEW_VEC_OPTIMIZED(cs)
-  INIT_AND_USE_TILED_LIGHTS(cs)
+  INIT_TILED_LIGHTS(cs)
+  USE_TILED_LIGHTS_COMMON(cs)
+  CLASSIFY_TILES_COMMON(cs)
 
   hlsl(cs) {
     #include <resolve_gbuffer_compute_inc.hlsli>
 
-    RWByteAddressBuffer g_tile_counters : register(u0);
-
-    // make sure there is RESOLVE_GBUFFER_MAX_PERMUTATIONS buffers declared
-    RWByteAddressBuffer g_tiles0 : register(u1);
-    RWByteAddressBuffer g_tiles1 : register(u2);
-
     groupshared uint g_shared_feature_bits;
-
-    float2 get_raw_depth_range_2x2(uint2 conner_pix_coords)
-    {
-      uint2 halfCoord = conner_pix_coords/2;
-      if (any(halfCoord >= half_res))
-        return float2(1, 0);
-      return float2(
-        texelFetch(downsampled_close_depth_tex, halfCoord, 0).x,
-        texelFetch(downsampled_far_depth_tex, halfCoord, 0).x);
-    }
 
     uint get_feature_bits_for_range(uint2 light_tile_id, float2 rawDepthRange)
     {
@@ -72,54 +77,10 @@ shader deferred_shadow_classify_tiles
 
       float nearW = linearize_z(rawDepthRange.x, zn_zfar.zw);
       float farW = linearize_z(rawDepthRange.y, zn_zfar.zw);
-      ##if (dynamic_lights_count != lights_off)
+##if (dynamic_lights_count != lights_off)
       if (nearW <= max_lights_distance)
       {
-        bool hasLights = false;
-
-        uint2 tiledGridSize = (screen_size.xy + TILE_EDGE - 1) / TILE_EDGE;
-        uint tileOffset = (light_tile_id.x * tiledGridSize.y + light_tile_id.y) * DWORDS_PER_TILE;
-
-##if (dynamic_lights_count != lights_spot_1)
-        uint nearZbinsOmni = z_binning_lookup[depth_to_z_bin(nearW)];
-        uint farZbinsOmni = z_binning_lookup[depth_to_z_bin(farW)];
-        uint2 omniLightRange = uint2(nearZbinsOmni >> 16, farZbinsOmni & 0xFFFF);
-        uint mergedOmniBinsBegin = WAVE_MIN(omniLightRange.x);
-        uint mergedOmniBinsEnd = WAVE_MAX(omniLightRange.y);
-        uint omniLightsBegin = mergedOmniBinsBegin >> 5;
-        uint omniLightsEnd = mergedOmniBinsEnd >> 5;
-        uint omniWord = 0;
-
-##if (dynamic_lights_count != lights_omni_1 && dynamic_lights_count != lights_omnispot_1)
-        for (omniWord = omniLightsBegin; omniWord <= omniLightsEnd; ++omniWord)
-##else
-        if (omniLightsBegin <= omniLightsEnd)
-##endif
-        {
-          hasLights = hasLights || (lights_list[tileOffset + omniWord] != 0);
-        }
-##endif
-
-##if (dynamic_lights_count != lights_omni_1)
-        uint nearZbinsSpot = z_binning_lookup[depth_to_z_bin(nearW) + Z_BINS_COUNT];
-        uint farZbinsSpot = z_binning_lookup[depth_to_z_bin(farW) + Z_BINS_COUNT];
-        uint2 spotLightRange = uint2(nearZbinsSpot >> 16, farZbinsSpot & 0xFFFF);
-        uint mergedSpotBinsBegin = WAVE_MIN(spotLightRange.x);
-        uint mergedSpotBinsEnd = WAVE_MAX(spotLightRange.y);
-        uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + DWORDS_PER_TILE / 2;
-        uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
-        uint spotWord = DWORDS_PER_TILE / 2;
-
-##if (dynamic_lights_count != lights_spot_1 && dynamic_lights_count != lights_omnispot_1)
-        for (spotWord = spotLightsBegin; spotWord <= spotLightsEnd; ++spotWord)
-##else
-        if (spotLightsBegin <= spotLightsEnd)
-##endif
-        {
-          hasLights = hasLights || (lights_list[tileOffset + spotWord] != 0);
-        }
-##endif
-
+        bool hasLights = has_dynamic_lighting(light_tile_id, nearW, farW);
         FLATTEN
         if (hasLights)
           featureBits |= (1u << 1u);
@@ -151,6 +112,35 @@ shader deferred_shadow_classify_tiles
         uint mergedFeatureBits = g_shared_feature_bits;
         if (mergedFeatureBits & 1u)
         {
+          ##if vrs_rate_tex != NULL
+          uint2 vrsRate = uint2(4, 4);
+          if (variable_rate_shading_tile_size == 8)
+          {
+            for (uint y = 0; y < 2; ++y)
+            {
+              for (uint x = 0; x < 2; ++x)
+              {
+                uint2 vrsTexCoord = tileCoords * 2 + uint2(x, y);
+                uint vrsRateEncoded = texelFetch(vrs_rate_tex, vrsTexCoord, 0).x;
+                vrsRate.x = min(vrsRate.x, (vrsRateEncoded >> 2) & 0x3);
+                vrsRate.y = min(vrsRate.y, (vrsRateEncoded >> 0) & 0x3);
+              }
+            }
+          }
+          else
+          {
+            uint2 vrsTexCoord = tileCoords;
+            if (variable_rate_shading_tile_size == 32)
+              vrsTexCoord /= 2;
+            uint vrsRateEncoded = texelFetch(vrs_rate_tex, vrsTexCoord, 0).x;
+            vrsRate.x = (vrsRateEncoded >> 2) & 0x3;
+            vrsRate.y = (vrsRateEncoded >> 0) & 0x3;
+          }
+          uint encodedRate = max(vrsRate.x, 1u) | (max(vrsRate.y, 1u) << 2u);
+          ##else
+          uint encodedRate = 1u | (1u << 2u);
+          ##endif
+
           uint permutation_index = (mergedFeatureBits >> 1u);
 
           // Output tile coordinates
@@ -158,13 +148,13 @@ shader deferred_shadow_classify_tiles
           {
             uint index = 0;
             g_tile_counters.InterlockedAdd(0, 1u, index);
-            storeBuffer(g_tiles0, 4 * index, (Groupid.y << 16) | Groupid.x);
+            storeBuffer(g_tiles0, 4 * index, (encodedRate << 28) | (Groupid.y << 14) | Groupid.x);
           }
           else // if (permutation_index == 1)
           {
             uint index = 0;
             g_tile_counters.InterlockedAdd(4, 1u, index);
-            storeBuffer(g_tiles1, 4 * index, (Groupid.y << 16) | Groupid.x);
+            storeBuffer(g_tiles1, 4 * index, (encodedRate << 28) | (Groupid.y << 14) | Groupid.x);
           }
         }
       }
@@ -176,12 +166,16 @@ shader deferred_shadow_classify_tiles
 
 shader deferred_shadow_prepare_indirect_args
 {
-  ENABLE_ASSERT(cs)
+  (cs) {
+    g_tile_counters@uav : register(0) hlsl {
+      RWByteAddressBuffer g_tile_counters@uav;
+    }
+    g_indirect_arguments@uav : register(1) hlsl {
+      RWByteAddressBuffer g_indirect_arguments@uav;
+    }
+  }
   hlsl(cs) {
     #include <resolve_gbuffer_compute_inc.hlsli>
-
-    RWByteAddressBuffer g_tile_counters : register(u0);
-    RWByteAddressBuffer g_indirect_arguments : register(u1);
 
     [numthreads(1, 1, 1)]
     void deferred_shadow_prepare_indirect_args_cs()

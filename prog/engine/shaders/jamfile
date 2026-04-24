@@ -43,7 +43,6 @@ Sources =
   shFunc.cpp
   shSkinnedMesh.cpp
   dynSceneRes.cpp
-  dynSceneWithTreeRes.cpp
   objVisDebugData.cpp
   rendInstRes.cpp
   instShaderMeshRes.cpp
@@ -57,6 +56,7 @@ Sources =
   shStateBlockBindless.cpp
   shStateBlockSlotTextures.cpp
   shAssert.cpp
+  shBindumps.cpp
   bindposeBufferManager.cpp
 ;
 
@@ -79,35 +79,25 @@ AddIncludes =
 UseProgLibs +=
   3rdPartyLibs/eastl
   3rdPartyLibs/meshoptimizer
+  3rdPartyLibs/hash/BLAKE3
 ;
 
 if $(ShadersAllowAltBindump) = yes || $(BuildingTools) = yes {
   Target = $(Target:S=-2.lib) ;
   CPPopt += -DSHADERS_ALLOW_2_BINDUMP ;
 }
-if $(ShadersMeasurePerf) = yes {
-  Target = $(Target:S=-p.lib) ;
-  CPPopt += -DMEASURE_STCODE_PERF ;
-}
 
 if $(Platform)-$(PlatformArch) = windows-x86_64 && $(SSEVersion) != 4 {
   CppStcode = disable ;
 }
 
-if $(CppStcode) = enable {
-  Target = $(Target:S=-stcpp.lib) ;
-  Sources +=
-    stcode.cpp
-    stcode/stcodeCallbacksImpl.cpp
-  ;
-  CPPopt += -DCPP_STCODE ;
-} else if $(CppStcode) = both {
+if $(CppStcode) in enable both {
   Target = $(Target:S=-stboth.lib) ;
   Sources +=
     stcode.cpp
     stcode/stcodeCallbacksImpl.cpp
   ;
-  CPPopt += -DCPP_STCODE -DSTCODE_RUNTIME_CHOICE ;
+  CPPopt += -DCPP_STCODE ;
 } else if $(CppStcode) = validate {
   Target = $(Target:S=-stcpp-val.lib) ;
   Sources +=

@@ -1,0 +1,9 @@
+WARNING: w238 (named-like-should-return) Function name 'isLoggedIn' implies a return value, but its result is never used.
+testData/static_analyzer/w238_heuristic.nut:5:2
+
+function _x() {
+  ::isLoggedIn() //-undefined-global
+  ^-------------
+}
+
+

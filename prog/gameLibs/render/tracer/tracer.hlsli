@@ -1,3 +1,6 @@
+#ifndef __TRACER_HLSLI__
+#define __TRACER_HLSLI__
+
 struct TailParticle
 {
   float2 perlin;
@@ -231,3 +234,5 @@ struct GPUFXHeadProcessed
     head.tracerStartTime = hd[offset + 6].w; \
   } \
 }
+
+#endif

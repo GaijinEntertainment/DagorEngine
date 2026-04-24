@@ -20,19 +20,24 @@
 #include <debug/dag_log.h>
 #include <stdio.h> // for SNPRINTF
 
-#include "internal/delayed.h"
+#include "internal/delayed_internal.h"
 #include "internal/releasing.h"
-#include "internal/streams.h"
-#include "internal/soundSystem.h"
-#include "internal/events.h"
-#include "internal/occlusion.h"
-#include "internal/debug.h"
+#include "internal/streams_internal.h"
+#include "internal/soundSystem_internal.h"
+#include "internal/events_internal.h"
+#include "internal/occlusion_internal.h"
+#include "internal/occlusionGPU_internal.h"
+#include "internal/debug_internal.h"
 
 #include <math/random/dag_random.h>
 #include <osApiWrappers/dag_atomic_types.h>
 
 #if _TARGET_IOS
 #include "soundSystem_ios.h"
+#endif
+
+#if _TARGET_PC_WIN
+#include <objbase.h>
 #endif
 
 #if FMOD_VERSION < 0x00020100 && _TARGET_XBOX
@@ -281,6 +286,24 @@ static bool speakermode_setup()
 #endif
   return true;
 }
+
+static bool set_dsp_buffer_size(const DataBlock &blk)
+{
+#if _TARGET_C1
+
+
+#else
+  const int bufferLength = blk.getInt("dspBufferLength", 0);
+  const int numBuffers = blk.getInt("dspNumBuffers", 0);
+#endif
+  if (bufferLength > 0 && numBuffers > 0)
+  {
+    debug("[SNDSYS] setDSPBufferSize(%d, %d)", bufferLength, numBuffers);
+    SOUNDINIT_VERIFY(g_low_level_system->setDSPBufferSize(bufferLength, numBuffers));
+  }
+  return true;
+}
+
 static bool advanced_tweak(const DataBlock &blk)
 {
 #if FMOD_VERSION > 0x00020100
@@ -315,10 +338,12 @@ static bool advanced_tweak(const DataBlock &blk)
 static bool g_null_output = false;
 static bool system_init(const DataBlock &blk, bool null_output)
 {
-  if (!system_create() || !channels_setup() || !speakermode_setup() || !advanced_tweak(blk))
+  if (!system_create() || !channels_setup() || !speakermode_setup() || !set_dsp_buffer_size(blk) || !advanced_tweak(blk))
     return false;
 
-  uint32_t fmodInitFlags = FMOD_INIT_NORMAL | FMOD_INIT_VOL0_BECOMES_VIRTUAL;
+  uint32_t fmodInitFlags = FMOD_INIT_NORMAL;
+  if (settings::virtual_vol_limit > 0.f)
+    fmodInitFlags = FMOD_INIT_VOL0_BECOMES_VIRTUAL;
   if (settings::init_profile)
   {
     debug("FMOD profiling enabled");
@@ -486,6 +511,40 @@ static FMOD_RESULT F_CALLBACK fmod_debug_cb(FMOD_DEBUG_FLAGS flags, const char *
 }
 #endif
 
+#if _TARGET_PC_WIN
+static bool g_com_initialized = false;
+
+static void com_initialize()
+{
+  APTTYPE apt;
+  APTTYPEQUALIFIER aptq;
+  HRESULT hres = CoGetApartmentType(&apt, &aptq);
+  if (SUCCEEDED(hres))
+  {
+    g_com_initialized = true;
+    return;
+  }
+
+  hres = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+  if (SUCCEEDED(hres))
+  {
+    g_com_initialized = true;
+    return;
+  }
+  logerr("[acessound] Failed to initialize COM library. Error code = %0x", hres);
+}
+
+static void com_uninitialize()
+{
+  if (g_com_initialized)
+    CoUninitialize();
+  g_com_initialized = false;
+}
+#else
+static void com_initialize() {}
+static void com_uninitialize() {}
+#endif
+
 bool init(const DataBlock &blk)
 {
   SNDSYS_IS_MAIN_THREAD;
@@ -493,6 +552,8 @@ bool init(const DataBlock &blk)
   G_ASSERT(!is_inited());
   if (is_inited())
     return false;
+
+  com_initialize();
 
   ScoopedJavaThreadAttacher scoopedJavaThreadAttacher;
 
@@ -540,6 +601,9 @@ bool init(const DataBlock &blk)
   if (blk.getBool("occlusionInit", false))
     occlusion::init(blk, g_low_level_system);
 
+  else if (blk.getBool("occlusionGPUInit", false))
+    occlusion_gpu::init(blk);
+
   eastl::basic_string<char, framemem_allocator> memoryInfo;
   if (g_fixed_mem_pool)
     memoryInfo.sprintf("memory pool at 0x%p, size", g_memory_block);
@@ -574,6 +638,8 @@ void shutdown()
 
   occlusion::close();
 
+  occlusion_gpu::close();
+
   // debug fmod memory usage
   int used = 0, used_max = 0;
   FMOD::Memory_GetStats(&used, &used_max);
@@ -600,6 +666,8 @@ void shutdown()
 #if (_TARGET_C1 | _TARGET_C2) && !FMOD_SRC_VERSION
 
 #endif
+
+  com_uninitialize();
 
   g_is_inited.store(false);
 }
@@ -849,6 +917,20 @@ void flush_commands()
   SNDSYS_IS_MAIN_THREAD;
   SNDSYS_IF_NOT_INITED_RETURN;
   g_system->flushCommands();
+}
+
+void get_command_buffer_size(int &current, int &peak, int &capacity, int &stallcount, int &studio_handle_hapacity)
+{
+  FMOD_STUDIO_BUFFER_USAGE usage = {};
+  FMOD_RESULT result = g_system->getBufferUsage(&usage);
+  G_ASSERTF(FMOD_OK == result, "[SNDSYS] FMOD getBufferUsage error: %s", FMOD_ErrorString(result));
+  if (FMOD_OK != result)
+    return;
+  current = usage.studiocommandqueue.currentusage;
+  peak = usage.studiocommandqueue.peakusage;
+  capacity = usage.studiocommandqueue.capacity;
+  stallcount = usage.studiocommandqueue.stallcount;
+  studio_handle_hapacity = usage.studiohandle.capacity;
 }
 
 int get_max_channels() { return g_max_channels; }

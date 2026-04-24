@@ -18,7 +18,7 @@ struct CmdBlitImage;
 // used to represent frontend, backend & other intermediate modes
 struct SwapchainMode
 {
-  VulkanSurfaceKHRHandle surface;
+  eastl::pair<VulkanSurfaceKHRHandle, void *> surfaceAndWindow;
   VkPresentModeKHR presentMode;
   VkExtent2D extent;
   FormatStore format;
@@ -27,11 +27,15 @@ struct SwapchainMode
   uint8_t fullscreen : 1;
   bool mutableFormat : 1;
   bool mismatchedExtents : 1;
+  bool usesHdr : 1;
+  bool canUseHdr : 1;
   const char *modifySource;
 
   bool isFullscreenExclusiveAllowed();
   bool isVsyncOn() const { return VK_PRESENT_MODE_IMMEDIATE_KHR != presentMode; }
-  void setHeadless() { surface = VulkanSurfaceKHRHandle{}; }
+  void setHeadless() { surfaceAndWindow = {VulkanSurfaceKHRHandle{}, nullptr}; }
+  bool isHdr() const { return usesHdr; }
+  bool canDoHdr() const { return canUseHdr; }
 
   void setPresentModeFromConfig();
 };
@@ -65,9 +69,12 @@ struct SwapchainQueryCache
   VkSurfaceCapabilitiesKHR caps;
   PresentModeStore modes;
   FormatStore format;
+  bool canUseHDRFormat;
+  VulkanSurfaceKHRHandle cachedSurface;
 
   void init();
-  bool update(VulkanSurfaceKHRHandle surf);
+  bool updateModesAndFormats(VulkanSurfaceKHRHandle surf);
+  void updateBaseCaps(VulkanSurfaceKHRHandle surf);
   VkPresentModeKHR mode(VkPresentModeKHR requested) const;
 
 private:
@@ -165,7 +172,7 @@ public:
   Swapchain &operator=(Swapchain &&) = delete;
 
   const SwapchainMode &getMode() const { return currentMode; }
-  void setMode(const SwapchainMode &new_mode);
+  bool setMode(const SwapchainMode &new_mode);
 
   bool init();
   void shutdown();
@@ -187,6 +194,21 @@ public:
   }
 
   bool blitStillImage();
+};
+
+class SecondarySwapchainStorage
+{
+public:
+  Swapchain *find(void *window);
+  Swapchain *allocate(void *window);
+  void free(void *window);
+
+  void shutdown();
+
+private:
+  eastl::array<Swapchain, MAX_SECONDARY_SWAPCHAIN_COUNT> swapchains;
+  static_assert(MAX_SECONDARY_SWAPCHAIN_COUNT <= 32);
+  uint32_t freeSwapchainsMask = ~0u;
 };
 
 } // namespace drv3d_vulkan

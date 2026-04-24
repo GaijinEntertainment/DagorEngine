@@ -70,11 +70,10 @@ struct LMesh
           -(float)lmeshMgr->getCellOrigin().x / lmeshMgr->getNumCellsX(),
           -(float)lmeshMgr->getCellOrigin().y / lmeshMgr->getNumCellsY());
 
-        ShaderGlobal::set_color4(get_shader_variable_id("world_to_lightmap"), world_to_lightmap);
+        ShaderGlobal::set_float4(get_shader_variable_id("world_to_lightmap"), world_to_lightmap);
         LmeshMirroringParams lmeshMirror;
         lmRenderer->setMirroring(*lmeshMgr, lmeshMirror.numBorderCellsXPos, lmeshMirror.numBorderCellsXNeg,
-          lmeshMirror.numBorderCellsZPos, lmeshMirror.numBorderCellsZNeg, lmeshMirror.mirrorShrinkXPos, lmeshMirror.mirrorShrinkXNeg,
-          lmeshMirror.mirrorShrinkZPos, lmeshMirror.mirrorShrinkZNeg);
+          lmeshMirror.numBorderCellsZPos, lmeshMirror.numBorderCellsZNeg);
       }
     }
 

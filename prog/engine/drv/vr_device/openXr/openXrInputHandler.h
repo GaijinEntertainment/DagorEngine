@@ -37,15 +37,21 @@ public: // VrInput interface
   bool completeActionsInit() override;
 
   Bindings getCurrentBindings() const override { return currentBindings; }
-  HumanInput::ButtonBits getCurrentBindingsMask(ActionId a) const override;
-  ActionBindings getCurrentBindings(ActionId a) const override;
+  HumanInput::ButtonBits getCurrentBindingsMask(ActionIndex idx) const override;
+  ActionBindings getCurrentBindings(ActionIndex idx) const override;
   eastl::string getBindingName(ActionBindingId b) const override;
   eastl::string getLocalizedBindingName(ActionBindingId b) const override;
 
   DigitalAction getDigitalActionState(ActionId a) const override;
+  DigitalAction getDigitalActionStateByIdx(ActionIndex idx) const override;
   AnalogAction getAnalogActionState(ActionId a) const override;
+  AnalogAction getAnalogActionStateByIdx(ActionIndex idx) const override;
   StickAction getStickActionState(ActionId a) const override;
+  StickAction getStickActionStateByIdx(ActionIndex idx) const override;
+
   PoseAction getPoseActionState(ActionId a) const override;
+  PoseAction getPoseActionStateByIdx(ActionIndex idx) const override;
+
   Hand getTrackedHand(Hands side) const override { return lastTrackedHands[side]; }
   Controller getControllerState(Hands side) const override { return lastControllerStates[side]; }
 
@@ -69,6 +75,7 @@ private:
 
   Controller lastControllerStates[Hands::Total];
   Hand lastTrackedHands[Hands::Total];
+
 
   eastl::vector<XrAction> actions;
   eastl::vector<ActionId> actionIds;

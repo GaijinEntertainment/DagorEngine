@@ -12,8 +12,8 @@ class BhvTrackMouse : public darg::Behavior
 public:
   BhvTrackMouse();
 
-  virtual int mouseEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent event, int pointer_id, int data, short mx,
-    short my, int buttons, int /*accum_res*/) override;
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice device, InputEvent event, int pointer_id, int btn_id, Point2 pos,
+    int accum_res) override;
 
   virtual int update(UpdateStage /*stage*/, Element * /*elem*/, float /*dt*/) override;
 };

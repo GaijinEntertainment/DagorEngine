@@ -16,8 +16,12 @@
 #include <math/dag_mathBase.h>
 #include <perfMon/dag_cpuFreq.h>
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 
 #include <sqrat.h>
 
@@ -142,67 +146,8 @@ static int get_mouse_pan_button(const darg::Element *elem, const BhvMinimapInput
 }
 
 
-int BhvMinimapInput::mouseEvent(ElementTree *etree,
-  Element *elem,
-  InputDevice device,
-  InputEvent event,
-  int pointer_id,
-  int data,
-  short mx,
-  short my,
-  int /*buttons*/,
-  int accum_res)
-{
-  IGuiScene *guiScene = get_scene_from_sqvm(elem->props.scriptDesc.GetVM());
-  if (!guiScene)
-    return 0;
-
-  MinimapState *mmState = MinimapState::get_from_element(elem);
-
-  if (!mmState || !mmState->ctx)
-    return 0;
-
-  if (event == INP_EV_MOUSE_WHEEL)
-  {
-    if (elem->hitTest(mx, my) && !(accum_res & R_PROCESSED))
-    {
-      float oldVisRadius = mmState->getVisibleRadius();
-      float visRadius = oldVisRadius;
-      const float stepMul = 1.1f;
-
-      if (data > 0)
-        visRadius /= stepMul;
-      else
-        visRadius *= stepMul;
-      visRadius = mmState->setVisibleRadius(visRadius);
-
-      g_entity_mgr->broadcastEvent(EventMinimapZoomed());
-
-      keep_cursor_world_pos(elem, *mmState, mx, my, oldVisRadius, visRadius);
-
-      return R_PROCESSED;
-    }
-    return 0;
-  }
-  else
-    return pointingEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-}
-
-
-int BhvMinimapInput::touchEvent(ElementTree *etree,
-  Element *elem,
-  InputEvent event,
-  HumanInput::IGenPointing * /*pnt*/,
-  int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch,
-  int accum_res)
-{
-  return pointingEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
-}
-
-
 int BhvMinimapInput::pointingEvent(
-  ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id, const Point2 &pos, int accum_res)
+  ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id, Point2 pos, int accum_res)
 {
   auto strings = cstr.resolveVm(elem->getVM());
   G_ASSERT_RETURN(strings, 0);
@@ -214,6 +159,30 @@ int BhvMinimapInput::pointingEvent(
   MinimapState *mmState = MinimapState::get_from_element(elem);
   if (!mmState || !mmState->ctx)
     return 0;
+
+  if (event == INP_EV_MOUSE_WHEEL)
+  {
+    if (elem->hitTest(pos) && !(accum_res & R_PROCESSED))
+    {
+      float oldVisRadius = mmState->getVisibleRadius();
+      float visRadius = oldVisRadius;
+      const float stepMul = 1.1f;
+
+      int delta = button_id; // special case
+      if (delta > 0)
+        visRadius /= stepMul;
+      else
+        visRadius *= stepMul;
+      visRadius = mmState->setVisibleRadius(visRadius);
+
+      g_entity_mgr->broadcastEvent(EventMinimapZoomed());
+
+      keep_cursor_world_pos(elem, *mmState, pos.x, pos.y, oldVisRadius, visRadius);
+
+      return R_PROCESSED;
+    }
+    return 0;
+  }
 
   auto itTouch = eastl::find_if(touchData->touches.begin(), touchData->touches.end(),
     [device, pointer_id](const MinimapInputTouchData::Touch &t) { return t.deviceId == device && t.pointerId == pointer_id; });

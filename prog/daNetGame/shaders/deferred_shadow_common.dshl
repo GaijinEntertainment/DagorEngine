@@ -35,6 +35,7 @@ include "rt/rt_underwater_fade_inc.dshl"
 include "screen_gi_encoding.dshl"
 include "apply_shadow_modifications.dshl"
 include "ptgi_use.dshl"
+include "bvh_usable_inc.dshl"
 
 float4 stereo_params = (0, 0, 0, 0);
 
@@ -67,7 +68,6 @@ float tank_cockpit_fake_ambient_light_strength = 0.25;
 texture dynamic_lighting_texture;
 int has_any_dynamic_lights = 0;
 float4 hero_cockpit_vec = (0, 0, 0, 0);
-int bvh_usable = 0;
 
 macro COMMON_RESOLVE_SIMPLE(code)
   (code) {
@@ -125,7 +125,7 @@ macro COMMON_RESOLVE_EXTENDED(code)
   USE_UPSCALE_SAMPLING_BASE(code)
   INIT_SSAO_BASE(code)
   USE_SSAO_UPSCALE_BASE_WITH_SMP(code, ssao_tex_samplerstate)
-  USING_RTAO(code, 3)
+  USING_RTAO(code)
   USING_RTR(code)
   INIT_BVH_WATER_FADE_RTR_MATH(code)
   USE_BVH_WATER_FADE_RTR_MATH(code)
@@ -143,7 +143,7 @@ macro COMMON_RESOLVE_EXTENDED(code)
   if (gi_quality != off)
   {
     (code) {
-      current_ambient@smp2d = current_ambient;
+      current_ambient@tex2d = current_ambient;
       specular_tex@tex2d = specular_tex;
     }
   } else
@@ -268,8 +268,10 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
   USE_SHADOW_MODIFICATIONS(code)
   hlsl(code) {
+  ##if !hardware.scarlett
     #define __XBOX_WAVESIM_ITERATION 1
     #define __XBOX_IMPROVE_MAD 1
+  ##endif
 
     #include "noise/Perlin3D.hlsl"
 
@@ -299,15 +301,18 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       ##endif
     }
 
-    float2 resolve_caustics(float base_caustics, float3 worldPos, float water_level)
+    float get_additive_caustics(float base_caustics, float3 worldPos, float water_level)
     {
       base_caustics = pow2(base_caustics);
-      half2 caustics=half2(1, 0); // underwater and upperwater components
+      float causticScale=saturate(2*(water_level-worldPos.y+0.5));
+      return lerp(base_caustics*2, 0, causticScale);
+    }
+
+    float get_underwater_caustics(float base_caustics, float3 worldPos, float water_level)
+    {
+      base_caustics = pow2(base_caustics);
       float causticScale=saturate(water_level-worldPos.y-0.3);
-      caustics.x=lerp(1, 0.2+base_caustics*3.8, causticScale); // underwater multiplier
-      causticScale=saturate(2*(water_level-worldPos.y+0.5));
-      caustics.y=lerp(base_caustics*2, 0, causticScale);  // additive
-      return caustics;
+      return lerp(1, 0.2+base_caustics*3.8, causticScale);
     }
 
     half4 deferred_shadow_per_sample(float2 screenpos, float3 viewVect, float2 curViewTc, float3 pointToEye, float4 worldPos, float w,
@@ -327,7 +332,8 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       half cockpitFade = half(saturate(dot(float4(worldPos.xyz, 1), hero_cockpit_vec)));
 
-      if (isRTAOEnabled()  && bvh_usable)
+      ##if bvh_usable == yes
+      if (isRTAOEnabled())
       {
         float rtao = getRTAO(uint2(screenpos));
         if (gbuffer.isHeroCockpit)
@@ -338,10 +344,28 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         else
           ssao.x = rtao;
       }
+      ##endif
 
       patch_gbuffer(gbuffer, worldPos.xyz, ssao.x);
 
-      float geometryFactor = 1;
+      // We apply additional ao for a final color (except emission and fog) for eyes.
+      // This approach is not physically correct.
+      // It makes an image more realistic and eyes don't look too bright.
+      // It also could be done with additional contact shadows pass, but it is more difficult way.
+      // This effect has to be reduced at some distance, otherwise, AO due to objects at the front can make eyes appear to be black.
+      // The effect reduction happens linearly to avoid sudden change in eyes appearance.
+      // Also, to avoid sharp changes with emissive eye material (eg. for caustics), its effect is masked where the material changes.
+      half effectiveEyeSsao = 1.0f;
+      if (gbuffer.sss_profile == SSS_PROFILE_EYES)
+      {
+        // PTGI forces low SSAO qulity so that it is better to hack it with a constant.
+        effectiveEyeSsao = 0.25f;
+        ##if bvh_usable == yes
+        if (!isPTGIEnabled())
+        ##endif
+          effectiveEyeSsao = lerp(pow2(ssao.x), ssao.x, saturate(w - 0.5));
+        effectiveEyeSsao = lerp(effectiveEyeSsao, 1, sssEyeFakeShadowMask);
+      }
 
       half translucencyStrength = isTranslucentProfileValid(gbuffer.sss_profile) ? gbuffer.translucency : 0;
 
@@ -355,10 +379,6 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       float NoV = abs( NdotV ) + 1e-5;
       float ggx_alpha = gbuffer.ggx_alpha;
 
-      half enviAO = gbuffer.ao*ssao.x;//we still modulate by albedo color, so we don't need micro AO
-
-      half specularAOcclusion = computeSpecOcclusion(saturate(NdotV), enviAO, ggx_alpha);// dice spec occlusion
-      half3 specularColor = gbuffer.specularColor*specularAOcclusion;
       //SUN
       float3 lightDir = -from_sun_direction.xyz;
       half3 lightColor = sun_color_0.rgb;
@@ -398,6 +418,8 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       ##endif
 
       half shadow = apply_shadow_modifications(csmShadow, NoL);
+      half enviAO = gbuffer.ao*ssao.x;//we still modulate by albedo color, so we don't need micro AO
+      half specularAOcclusion = computeSpecOcclusion(saturate(NdotV), enviAO, ggx_alpha);// dice spec occlusion
       //if ssr disabled, envi probe reflection should be dimmed when objects are in shadow
       ##if ssr_target == NULL
         #define MIN_ENVI_SSR 0.25
@@ -405,14 +427,15 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       ##else
         half enviSSR = (1-ssrReflections.a);
       ##endif
+      enviSSR *= specularAOcclusion;
 
-      float2 caustics = resolve_caustics(base_caustics, worldPos.xyz, water_level);
+      float additive_caustics = get_additive_caustics(base_caustics, worldPos.xyz, water_level) * cloudShadow;
 
       //SUN
       BRANCH
       if (shadow > 0)
       {
-        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightColor*caustics.x;
+        result = standardBRDF( NoV, NoL, gbuffer.diffuseColor, ggx_alpha, gbuffer.linearRoughness, gbuffer.specularColor, gbuffer.extracted_albedo_ao, lightDir, view, gbuffer.normal, sheenColor, sheenStrength)*(shadow)*lightColor*get_underwater_caustics(base_caustics, worldPos.xyz, water_level);
         float lightningNoL = dot(gbuffer.normal, lightning_dir);
         BRANCH
         if (lightning_scene_illumination && lightningNoL > 0)
@@ -421,12 +444,12 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         }
       }
       ##if dynamic_lighting_texture == NULL || in_editor_assume == yes
-        result += get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w, screenpos, NoV, specularColor, curViewTc, enviAO);
+        result += get_dynamic_lighting(gbuffer, worldPos.xyz, -viewVect, w, screenpos, NoV, gbuffer.specularColor, curViewTc, enviAO);
       ##else
         if (has_any_dynamic_lights)
           result += texelFetch(dynamic_lighting_texture, screenpos, 0).rgb;
       ##endif
-      result += gbuffer.diffuseColor*caustics.y*lightColor*cloudShadow*pow3(saturate(enviAO*1.3));
+      result += gbuffer.diffuseColor*additive_caustics*lightColor*pow3(saturate(enviAO*1.3));
       //SUN-
 
       //envi
@@ -436,24 +459,30 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
 
       float3 enviLightingNormal = normalize(getDiffuseDominantDir(gbuffer.normal, view, saturated_NdotV, ggx_alpha ));
       float fake_light_strength = 0.25;
-      ##if (gi_quality != off)
-        half3 enviLight, giSpecular;
-        decode_gi_colors(texelFetch(current_ambient, screenpos, 0). GI_ENCODED_ATTR, texelFetch(specular_tex, screenpos, 0). GI_ENCODED_ATTR, enviLight, giSpecular);
-        enviLight = unpack_hdr(enviLight);
-        giSpecular = unpack_hdr(giSpecular);
-      ##endif
-      ##if (gi_quality == off)
-        half3 enviLight = GetSkySHDiffuse(enviLightingNormal);
-      ##endif
+      half3 enviLight, giSpecular;
 
       float distToTankCockpitSq = dot(tank_cockpit__bsphere.xyz - worldPos.xyz, tank_cockpit__bsphere.xyz - worldPos.xyz);
-      float fragmentNotInCockpit = float(distToTankCockpitSq >= tank_cockpit__bsphere.w);
-      enviLight *= fragmentNotInCockpit;
-      fake_light_strength *= fragmentNotInCockpit;
-      fake_light_strength += tank_cockpit_fake_ambient_light_strength * (1. - fragmentNotInCockpit);
+      BRANCH
+      if (distToTankCockpitSq < tank_cockpit__bsphere.w)
+      {
+        enviLight = 0;
+        fake_light_strength = tank_cockpit_fake_ambient_light_strength;
+      }
+      else
+      {
+        ##if (gi_quality != off)
+          decode_gi_colors(texelFetch(current_ambient, screenpos, 0). GI_ENCODED_ATTR, texelFetch(specular_tex, screenpos, 0). GI_ENCODED_ATTR, enviLight, giSpecular);
+          enviLight = unpack_hdr(enviLight);
+          giSpecular = unpack_hdr(giSpecular);
+        ##endif
+        ##if (gi_quality == off)
+          enviLight = GetSkySHDiffuse(enviLightingNormal);
+        ##endif
+        enviLight *= enviAO;
+      }
 
-      enviLight *= enviAO;
-      if (isPTGIEnabled() && bvh_usable)
+      ##if bvh_usable == yes
+      if (isPTGIEnabled())
       {
         half3 ptgi = half3(getPTGI(curViewTc, w));
         if (gbuffer.isHeroCockpit)
@@ -463,6 +492,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
           enviLight = ptgi;
         }
       }
+      ##endif
 
       half3 environmentAmbientLighting =  enviLight * gbuffer.diffuseColor;
       //use albedo instead of diffuseColor, so fake light affects metal
@@ -472,24 +502,26 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       // If we square ssao, result is also incorrect (dark places become too dark)
       //use SSGI instead.
       //half3 environmentAmbientLighting = (geometryFactor*gbuffer.ao) * MultiBounce(ssao.x, gbuffer.diffuseColor)*environmentAmbientUnoccludedLighting;
-      environmentAmbientLighting = (AB.z * geometryFactor)*environmentAmbientLighting;
+      environmentAmbientLighting = AB.z*environmentAmbientLighting;
       ##if (gi_quality != off)
-        half3 totalReflection = (giSpecular*(specularAOcclusion*enviSSR) + ssrReflections.rgb)*enviBRDF;
+        half3 totalReflection = (giSpecular*enviSSR + ssrReflections.rgb)*enviBRDF;
       ##else
         float3 roughR = getRoughReflectionVec(lightProbeReflectionVec.xyz, gbuffer.normal, ggx_alpha);
         float roughMip = ComputeReflectionCaptureMipFromRoughness(gbuffer.linearRoughness);
         half3 environmentAmbientReflection = sample_envi_probe(float4(roughR, roughMip)).rgb;
-        half3 totalReflection = (environmentAmbientReflection*enviSSR*specularAOcclusion + ssrReflections.rgb)*enviBRDF;//enviBRDF
+        half3 totalReflection = (environmentAmbientReflection*enviSSR + ssrReflections.rgb)*enviBRDF;//enviBRDF
       ##endif
 
-      if (isRTREnabled() && bvh_usable)
+      ##if bvh_usable == yes
+      if (isRTREnabled())
       {
-        half3 rtr = getRTRFiltered(uint2(screenpos)) * enviBRDF;
+        half3 rtr = getRTRFiltered(uint2(screenpos), gbuffer.linearRoughness) * enviBRDF;
         half underwaterComponent = calc_underwater_fade_rtr(worldPos.y - water_level);
         half cockpit = gbuffer.isHeroCockpit ? 1-cockpitFade : 1;
         half s = cockpit * underwaterComponent;
         totalReflection = lerp(totalReflection, rtr, s);
       }
+      ##endif
 
 
       bool isTranslucent =
@@ -522,13 +554,10 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
         ##elif (gi_quality == only_ao)
           float ofs = max(dist*0.04, 0.25*dagi_sky_vis_probe_size(0));
           float3 filteredWorldPos = worldPos.xyz + view*ofs;
-          float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, filteredWorldPos, view, max(0, dist-ofs), gbuffer.normal, 0 );
-          giAmount = 0;
-          if (all(sh1 != 1))
-          {
-            giBackAmbient = GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
-            giAmount = 1;
-          }
+          float vignette;
+          float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, filteredWorldPos, view, max(0, dist-ofs), gbuffer.normal, 0, vignette);
+          giBackAmbient = lerp(GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx), giBackAmbient, vignette);
+          giAmount = 1 - vignette;
         ##endif
         backAmbientLight = giBackAmbient * skylight_gi_weight_atten;
         environmentAmbientLighting += enviAO*backAmbientLight*gbuffer.translucencyColor;
@@ -540,21 +569,7 @@ macro USE_DEFERRED_SHADOW_PER_SAMPLE(code)
       //half3 reflection = totalReflection+environmentAmbientLighting;//correct
       result += reflection;
 
-      // We apply additional ao for a final color (except emission and fog) for eyes.
-      // This approach is not physically correct.
-      // It makes an image more realistic and eyes don't look too bright.
-      // It also could be done with additional contact shadows pass, but it is more difficult way.
-      // This effect has to be reduced at some distance, otherwise, AO due to objects at the front can make eyes appear to be black.
-      // The effect reduction happens linearly to avoid sudden change in eyes appearance.
-      // Also, to avoid sharp changes with emissive eye material (eg. for caustics), its effect is masked where the material changes.
-      if (gbuffer.sss_profile == SSS_PROFILE_EYES)
-      {
-        // PTGI forces low SSAO qulity so that it is better to hack it with a constant.
-        half effectiveEyeSsao = 0.25f;
-        if (!isPTGIEnabled())
-          effectiveEyeSsao = lerp(pow2(ssao.x), ssao.x, saturate(w - 0.5));
-        result *= lerp(effectiveEyeSsao, 1, sssEyeFakeShadowMask);
-      }
+      result *= effectiveEyeSsao;
 
       result += gbuffer.emissionColor;
 

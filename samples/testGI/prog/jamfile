@@ -24,6 +24,10 @@ if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 || $(Platform) in 
   BVHDynRend = no ;
   BVHFx = no ;
   BVHCables = no ;
+  BVHBinScene = no ;
+  BVHFFTWater = no ;
+  BVHDagdp = no ;
+  BVHGPUGrass = no ;
 }
 
 OutDir = $(Root)/$(Location)/../game ;
@@ -35,7 +39,6 @@ AddIncludes =
 
 Sources =
 #  perlinNoise.cpp
-  heightmapMetricsCulling.cpp
   level.cpp
   lmesh.cpp
   test_app.cpp
@@ -45,6 +48,7 @@ Sources =
 UseProgLibs =
   engine/osApiWrappers
   engine/kernel
+  engine/memory
   engine/ioSys
   engine/startup
   engine/baseUtil
@@ -61,6 +65,7 @@ UseProgLibs =
   engine/gameRes
   engine/perfMon
   engine/streaming
+  engine/screenShotSystem
 
   samples/commonFramework
 
@@ -142,6 +147,10 @@ if $(Platform) in windows {
   XboxTitleDisplayName = "testGI" ;
   XboxTitlePublisherDisplayName = "Gaijin Distribution Kft" ;
   XboxTitleDesc = "Test bed for GI" ;
+  XboxMsaAppId = "00000000442613FF" ;
+  XboxTitleId = "2d5a23e7" ;
+  XboxStoreId = "C3NNLTHW9T9W" ;
+
 } else if $(Platform) = android {
   UseProgLibs +=
     engine/drv/drv3d_vulkan
@@ -160,18 +169,10 @@ if $(Platform) in windows {
   Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
 }
 
-MemLib ?= memory ;
-
-if $(Sanitize) && $(Sanitize) != disabled {
-} else {
-  MemLib ?= memory/mimallocMem ;
+if $(Platform) in windows {
+  if ! $(Sanitize) || $(Sanitize) = disabled { UseMemoryAllocator ?= mimalloc ; }
 }
 
-if $(MemLib) = memory {
-  if $(Platform) in windows && $(Config) != rel && $(Sanitize) != address { UseMemoryDebugLevel ?= dbg ; }
-}
+if $(Platform) in windows && $(Config) != rel && $(Sanitize) != address { UseMemoryDebugLevel ?= dbg ; }
 
-
-if $(MemLib) { UseProgLibs += engine/$(MemLib) ; } else { UseProgLibs += engine/memory ; }
- 
 include $(Root)/prog/_jBuild/build.jam ;

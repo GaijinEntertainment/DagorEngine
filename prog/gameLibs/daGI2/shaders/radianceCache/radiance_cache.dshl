@@ -12,8 +12,12 @@ hlsl {
 shader clear_radiance_cache_clipmap_indirection_cs
 {
   RADIANCE_CACHE_CLIPMAP_MATH(cs)
+  (cs) {
+    radiance_cache_indirection_clipmap@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> radiance_cache_indirection_clipmap@uav;
+    }
+  }
   hlsl(cs) {
-    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u0);
     [numthreads(64, 1, 1)]
     void clear_radiance_cache_clipmap_indirection_cs(uint dtId : SV_DispatchThreadID)
     {
@@ -33,11 +37,19 @@ shader clear_radiance_cache_clipmap_indirection_cs
 shader clear_radiance_cache_positions_cs
 {
   RADIANCE_CACHE_ATLAS_MATH(cs)
+  (cs) {
+    radiance_cache_positions@uav : register(0) hlsl {
+      RWByteAddressBuffer radiance_cache_positions@uav;
+    }
+    free_radiance_cache_indices_list@uav : register(1) hlsl {
+      RWByteAddressBuffer free_radiance_cache_indices_list@uav;
+    }
+    radiance_cache_age@uav : register(2) hlsl {
+      RWByteAddressBuffer radiance_cache_age@uav;
+    }
+  }
   hlsl(cs) {
     #include <radiance_cache_consts.hlsl>
-    RWByteAddressBuffer radiance_cache_positions: register(u0);
-    RWByteAddressBuffer free_radiance_cache_indices_list: register(u1);
-    RWByteAddressBuffer radiance_cache_age: register(u2);
     [numthreads(64, 1, 1)]
     void clear_radiance_cache_positions_cs(uint dtId : SV_DispatchThreadID)
     {
@@ -71,6 +83,18 @@ shader radiance_cache_free_unused_after_movement_cs
   RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
   (cs) {
     radiance_cache_clipmap_lt_prev_coord@i4[] = {radiance_cache_clipmap_lt_prev_coord_0, radiance_cache_clipmap_lt_prev_coord_1, radiance_cache_clipmap_lt_prev_coord_2, radiance_cache_clipmap_lt_prev_coord_3, radiance_cache_clipmap_lt_prev_coord_4, radiance_cache_clipmap_lt_prev_coord_5, radiance_cache_clipmap_lt_prev_coord_6, radiance_cache_clipmap_lt_prev_coord_7};
+    radiance_cache_indirection_clipmap@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> radiance_cache_indirection_clipmap@uav;
+    }
+    radiance_cache_positions@uav : register(1) hlsl {
+      RWByteAddressBuffer radiance_cache_positions@uav;
+    }
+    free_radiance_cache_indices_list@uav : register(2) hlsl {
+      RWByteAddressBuffer free_radiance_cache_indices_list@uav;
+    }
+    radiance_cache_age@uav : register(3) hlsl {
+      RWByteAddressBuffer radiance_cache_age@uav;
+    }
   }
   hlsl(cs) {
     #define sample_radiance_cache_clipmap_lt_prev_coord(clip) _sample_radiance_cache_clipmap_lt_prev_coord(clip, _FILE_, __LINE__)
@@ -82,10 +106,6 @@ shader radiance_cache_free_unused_after_movement_cs
     }
 
     #include <radiance_cache_consts.hlsl>
-    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u0);
-    RWByteAddressBuffer radiance_cache_positions: register(u1);
-    RWByteAddressBuffer free_radiance_cache_indices_list: register(u2);
-    RWByteAddressBuffer radiance_cache_age: register(u3);
 
     [numthreads(64, 1, 1)]
     void fill_clipmap_from_radiance_cache_cs(uint dtId : SV_DispatchThreadID)
@@ -136,13 +156,21 @@ shader radiance_cache_toroidal_movement_cs
     radiance_cache_clipmap_update_lt_coord@i4 = radiance_cache_clipmap_update_lt_coord;
     radiance_cache_clipmap_update_sz_coord@i4 = radiance_cache_clipmap_update_sz_coord;
     radiance_cache_clipmap_update_clip_to_lt_coord@i4 = radiance_cache_clipmap_update_clip_to_lt_coord;
+    radiance_cache_indirection_clipmap@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> radiance_cache_indirection_clipmap@uav;
+    }
+    radiance_cache_positions@uav : register(1) hlsl {
+      RWByteAddressBuffer radiance_cache_positions@uav;
+    }
+    free_radiance_cache_indices_list@uav : register(2) hlsl {
+      RWByteAddressBuffer free_radiance_cache_indices_list@uav;
+    }
+    radiance_cache_age@uav : register(3) hlsl {
+      RWByteAddressBuffer radiance_cache_age@uav;
+    }
   }
   hlsl(cs) {
     #include <radiance_cache_consts.hlsl>
-    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u0);
-    RWByteAddressBuffer radiance_cache_positions: register(u1);
-    RWByteAddressBuffer free_radiance_cache_indices_list: register(u2);
-    RWByteAddressBuffer radiance_cache_age: register(u3);
 
     [numthreads(64, 1, 1)]
     void radiance_cache_toroidal_movement_cs(uint dtId : SV_DispatchThreadID)
@@ -177,9 +205,15 @@ shader radiance_cache_toroidal_movement_cs
 shader radiance_cache_clear_new_cs
 {
   RADIANCE_CACHE_CLIPMAP_MATH(cs)
+  (cs) {
+    new_radiance_cache_probes_needed@uav : register(0) hlsl {
+      RWByteAddressBuffer new_radiance_cache_probes_needed@uav;
+    }
+    radiance_cache_used_mask@uav : register(1) hlsl {
+      RWByteAddressBuffer radiance_cache_used_mask@uav;
+    }
+  }
   hlsl(cs) {
-    RWByteAddressBuffer new_radiance_cache_probes_needed: register(u0);
-    RWByteAddressBuffer radiance_cache_used_mask: register(u1);
     [numthreads(64, 1, 1)]
     void radiance_cache_clear_cs(uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
@@ -200,12 +234,18 @@ shader free_unused_radiance_cache_probes_cs
     new_radiance_cache_probes_needed@buf = new_radiance_cache_probes_needed hlsl {
       ByteAddressBuffer new_radiance_cache_probes_needed@buf;
     }
-  }
-  hlsl(cs) {
-    RWByteAddressBuffer free_radiance_cache_indices_list: register(u0);
-    RWByteAddressBuffer radiance_cache_positions: register(u1);
-    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u2);
-    RWByteAddressBuffer radiance_cache_age: register(u3);
+    free_radiance_cache_indices_list@uav : register(0) hlsl {
+      RWByteAddressBuffer free_radiance_cache_indices_list@uav;
+    }
+    radiance_cache_positions@uav : register(1) hlsl {
+      RWByteAddressBuffer radiance_cache_positions@uav;
+    }
+    radiance_cache_indirection_clipmap@uav : register(2) hlsl {
+      RWStructuredBuffer<uint> radiance_cache_indirection_clipmap@uav;
+    }
+    radiance_cache_age@uav : register(3) hlsl {
+      RWByteAddressBuffer radiance_cache_age@uav;
+    }
   }
   RADIANCE_CACHE_POSITIONS_READ(cs)
   RADIANCE_CACHE_AGE_READ(cs)
@@ -268,14 +308,22 @@ shader allocate_radiance_cache_probes_cs
       ByteAddressBuffer new_radiance_cache_probes_needed@buf;
     }
     radiance_cache_current_frame@i1 = radiance_cache_current_frame;
+    free_radiance_cache_indices_list@uav : register(0) hlsl {
+      RWByteAddressBuffer free_radiance_cache_indices_list@uav;
+    }
+    radiance_cache_positions@uav : register(1) hlsl {
+      RWByteAddressBuffer radiance_cache_positions@uav;
+    }
+    radiance_cache_indirection_clipmap@uav : register(2) hlsl {
+      RWStructuredBuffer<uint> radiance_cache_indirection_clipmap@uav;
+    }
+    radiance_cache_age@uav : register(3) hlsl {
+      RWByteAddressBuffer radiance_cache_age@uav;
+    }
   }
 
   hlsl(cs) {
     #include <radiance_cache_common_math.hlsl>
-    RWByteAddressBuffer free_radiance_cache_indices_list: register(u0);
-    RWByteAddressBuffer radiance_cache_positions: register(u1);
-    RWStructuredBuffer<uint> radiance_cache_indirection_clipmap: register(u2);
-    RWByteAddressBuffer radiance_cache_age: register(u3);
     [numthreads(RC_ALLOCATE_NEW_WARP_SIZE, 1, 1)]
     void allocate_radiance_cache_probes_cs(uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
@@ -314,7 +362,6 @@ shader allocate_radiance_cache_probes_cs
 
 shader radiance_cache_create_dispatch_indirect_cs
 {
-  ENABLE_ASSERT(cs)
   RADIANCE_CACHE_CLIPMAP_ATLAS_MATH(cs)
   (cs) {
     radiance_cache_current_frame@i1 = radiance_cache_current_frame;
@@ -324,11 +371,15 @@ shader radiance_cache_create_dispatch_indirect_cs
     free_radiance_cache_indices_list@buf = free_radiance_cache_indices_list hlsl {
       ByteAddressBuffer free_radiance_cache_indices_list@buf;
     }
+    dispatchIndirectBuffer@uav : register(0) hlsl {
+      RWByteAddressBuffer dispatchIndirectBuffer@uav;
+    }
+    radiance_cache_selected_temporal_probes@uav : register(1) hlsl {
+      RWByteAddressBuffer radiance_cache_selected_temporal_probes@uav;
+    }
   }
 
   hlsl(cs) {
-    RWByteAddressBuffer dispatchIndirectBuffer: register(u0);
-    RWByteAddressBuffer radiance_cache_selected_temporal_probes: register(u1);
     #include "radianace_cache_indirect.hlsli"
 
     [numthreads(RADIANCE_CACHE_INDIRECT_BUFFER_SIZE, 1, 1)]

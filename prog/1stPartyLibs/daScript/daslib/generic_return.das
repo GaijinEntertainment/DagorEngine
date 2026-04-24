@@ -6,13 +6,18 @@ options strict_smart_pointers = true
 
 module generic_return shared private
 
+//! Generic return-type instantiation macro.
+//!
+//! ``generic_return(func_id)`` replaces a call with the default-constructed
+//! value of the matching generic function's return type.
+
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/macro_boost
 
 [call_macro(name="generic_return")]
 class GenericReturn : AstCallMacro {
-    //! This macro convert fake_numeric(func_id) to the comprehensive faker test::
+    //! Replaces generic_return(expr) with a block that calls expr and returns its result, handling void, copyable, and movable return types.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : smart_ptr<ExprCallMacro>) : ExpressionPtr {
         if (expr.arguments |> length != 1) {
             macro_error(prog, expr.at, "generic_return expecting 1 argument")
@@ -24,16 +29,16 @@ class GenericReturn : AstCallMacro {
             return <- default<ExpressionPtr>
         }
         if (ret_expr._type.isVoid) {
-            return <- qmacro_block <| $() {
+            return <- qmacro_block() {
                 $e(ret_expr)
                 return
             }
         } elif (ret_expr._type.canCopy) {
-            return <- qmacro_block <| $() {
+            return <- qmacro_block() {
                 return $e(ret_expr)
             }
         } elif (ret_expr._type.canMove) {
-            return <- qmacro_block <| $() {
+            return <- qmacro_block() {
                 return <- $e(ret_expr)
             }
         } else {

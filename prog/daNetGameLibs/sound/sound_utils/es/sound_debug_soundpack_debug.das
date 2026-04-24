@@ -50,7 +50,7 @@ def sound_debug_soundpack_update(evt : Event;
       let name : string = string(sound_debug_soundpack__events[idx])
       let bank : string = string(sound_debug_soundpack__eventBanks[idx])
       sound_debug("sound_debug: playing    #{idx}    '{bank}'      '{name}'")
-      debug("[sound_debug_soundpack]: playing    #{idx}    '{bank}'      '{name}'")
+      print("[sound_debug_soundpack]: playing    #{idx}    '{bank}'      '{name}'")
 
       release(sound_debug_soundpack__event4)
       sound_debug_soundpack__event4 |> move(sound_debug_soundpack__event3)

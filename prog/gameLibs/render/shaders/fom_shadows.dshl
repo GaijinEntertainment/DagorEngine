@@ -7,14 +7,21 @@ texture fom_shadows_sin;
 int assume_fom_shadows = 1;
 interval assume_fom_shadows:off<1, on;
 
-int4 fom_shadows_array_index = 0;
+int4 fom_shadows_bindless_slots = (0,0,0,1); // (sin tex, cos tex, sampler_slot, fom_off)
 
-macro DO_INIT_FOM_SHADOWS(stage)
+macro DO_INIT_FOM_SHADOWS_TM(stage)
   (stage)
   {
     fom_shadows_tm_x@f4 = fom_shadows_tm_x;
     fom_shadows_tm_y@f4 = fom_shadows_tm_y;
     fom_shadows_tm_z@f4 = fom_shadows_tm_z;
+  }
+endmacro
+
+macro DO_INIT_FOM_SHADOWS(stage)
+  DO_INIT_FOM_SHADOWS_TM(stage)
+  (stage)
+  {
     fom_shadows_cos@smp2d = fom_shadows_cos;
     fom_shadows_sin@tex2d = fom_shadows_sin;
   }
@@ -28,16 +35,17 @@ macro INIT_FOM_SHADOWS(stage)
 endmacro
 
 macro DO_INIT_FOM_SHADOWS_BINDLESS(stage)
+  DO_INIT_FOM_SHADOWS_TM(stage)
   (stage)
   {
-    fom_shadows_tm_x@f4 = fom_shadows_tm_x;
-    fom_shadows_tm_y@f4 = fom_shadows_tm_y;
-    fom_shadows_tm_z@f4 = fom_shadows_tm_z;
-    fom_shadows_array_index@i4 = fom_shadows_array_index;
+    fom_shadows_bindless_slots@i4 = fom_shadows_bindless_slots;
   }
-
-  hlsl(stage) {
-    #define FOM_SHADOW_BINDLESS 1
+  hlsl(stage)
+  {
+    #define fom_shadows_cos uniformBindlessTex2D(bvh_textures, fom_shadows_bindless_slots.y)
+    #define fom_shadows_sin uniformBindlessTex2D(bvh_textures, fom_shadows_bindless_slots.x)
+    #define fom_shadows_cos_samplerstate bvh_samplers[fom_shadows_bindless_slots.z]
+    #define FOM_USES_BINDLESS 1
   }
 endmacro
 
@@ -50,42 +58,23 @@ endmacro
 
 macro DO_USE_FOM_SHADOWS(stage)
   hlsl(stage) {
-    #if FOM_SHADOW_BINDLESS
-      BINDLESS_TEX_ARRAY(Texture2D, fom_shadows_array, 1);
-      #ifndef GLOBAL_SAMPLES_ARRAY_DEFINED
-        BINDLESS_SMP_ARRAY(SamplerState, global_samplers_array, 1);
-        #define GLOBAL_SAMPLES_ARRAY_DEFINED 1
-      #endif
-
-      float4 sample_sin(float2 uv)
-      {
-        [BRANCH]
-        if (fom_shadows_array_index.x < 0)
-          return 0;
-        return fom_shadows_array[fom_shadows_array_index.x].SampleLevel(global_samplers_array[fom_shadows_array_index.z], uv, 0);
-      }
-      float4 sample_cos(float2 uv)
-      {
-        [BRANCH]
-        if (fom_shadows_array_index.y < 0)
-          return 0;
-        return fom_shadows_array[fom_shadows_array_index.y].SampleLevel(global_samplers_array[fom_shadows_array_index.w], uv, 0);
-      }
-    #else
-      float4 sample_sin(float2 uv)
-      {
-        return fom_shadows_sin.SampleLevel(fom_shadows_cos_samplerstate, uv, 0);
-      }
-      float4 sample_cos(float2 uv)
-      {
-        return fom_shadows_cos.SampleLevel(fom_shadows_cos_samplerstate, uv, 0);
-      }
-    #endif
+    float4 sample_sin(float2 uv)
+    {
+      return fom_shadows_sin.SampleLevel(fom_shadows_cos_samplerstate, uv, 0);
+    }
+    float4 sample_cos(float2 uv)
+    {
+      return fom_shadows_cos.SampleLevel(fom_shadows_cos_samplerstate, uv, 0);
+    }
 
     half getFOMShadow(float3 worldPos)
     {
+      bool invalid = fom_shadows_tm_z.w < -1e6;
+#if FOM_USES_BINDLESS
+      invalid &= fom_shadows_bindless_slots.w > 0;
+#endif
       BRANCH
-      if (fom_shadows_tm_z.w < -1e6)//uniform branch for early out, if nothing renered to fom
+      if (invalid)//uniform branch for early out, if nothing renered to fom
         return 1;
       float3 tc = float3(dot(float4(worldPos, 1), fom_shadows_tm_x), dot(float4(worldPos, 1), fom_shadows_tm_y), dot(float4(worldPos, 1), fom_shadows_tm_z));
       float4 sR_a0123 = sample_cos(tc.xy);

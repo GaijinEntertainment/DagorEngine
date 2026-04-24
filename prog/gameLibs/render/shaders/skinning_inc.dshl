@@ -21,7 +21,6 @@ macro INIT_WORLD_LOCAL_BASE(code)
 endmacro
 
 macro USE_WORLD_LOCAL_BASE(code)
-(code) { immediate_dword_count = 2; }
 hlsl(code) {
   #define SETUP_RENDER_VARS(rigid_index)                                                                                   \
     uint offsetToNodeChunk = max((int)OFFSET_TO_NODE_DATA(rigid_index), 0);                                                \

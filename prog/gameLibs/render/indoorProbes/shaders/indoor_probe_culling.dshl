@@ -12,7 +12,6 @@ interval has_uav_in_vs_capability : no < 1, yes;
 
 shader indoor_probes_gpu_culling
 {
-  ENABLE_ASSERT(ps)
   if (compatibility_mode == compatibility_mode_on)
   {
     dont_render;
@@ -51,6 +50,10 @@ shader indoor_probes_gpu_culling
         RWStructuredBuffer<uint> indoor_probe_visible_pixels_count@uav;
       }
     }
+  }
+  (ps)
+  {
+    indoor_probes_max_distance@f1 = indoor_probes_max_distance;
   }
 
   hlsl(vs)
@@ -150,7 +153,7 @@ shader indoor_probes_gpu_culling
     void indoor_probes_gpu_culling_ps(VsOutput input)
     {
       ##if depth_bounds_support == no
-        if (input.pos.w > indoor_probes_max_distance_or_disabled)
+        if (input.pos.w > indoor_probes_max_distance)
           return;
       ##endif
 
@@ -158,7 +161,7 @@ shader indoor_probes_gpu_culling
       float3 gridPos;
       int3 gridSize;
       float fadeWeight;
-      get_grid_params(worldPos, length(input.pointToEye), gridPos, gridSize, fadeWeight);
+      get_grid_params_impl(worldPos, length(input.pointToEye), indoor_probes_max_distance, gridPos, gridSize, fadeWeight);
       BRANCH
       if (fadeWeight == 0 && input.increment == 1)
         return;

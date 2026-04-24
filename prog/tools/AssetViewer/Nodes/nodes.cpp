@@ -153,7 +153,7 @@ bool NodesPlugin::begin(DagorAsset *asset)
 {
   const char *name = asset->getName();
   G_ASSERT(name);
-  geomNodeTree = (GeomNodeTree *)get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(name), GeomNodeTreeGameResClassId);
+  geomNodeTree = (GeomNodeTree *)get_game_resource_ex(name, GeomNodeTreeGameResClassId);
 
   if (geomNodeTree)
   {
@@ -184,7 +184,7 @@ bool NodesPlugin::end()
 {
   if (geomNodeTree)
   {
-    release_game_resource((GameResource *)geomNodeTree);
+    release_game_resource_ex(geomNodeTree, GeomNodeTreeGameResClassId);
     geomNodeTree = NULL;
   }
 
@@ -237,6 +237,12 @@ bool NodesPlugin::supportAssetType(const DagorAsset &asset) const { return strcm
 
 void NodesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
 {
+  if (!geomNodeTree)
+  {
+    panel.createStatic(-1, "Error loading skeleton");
+    return;
+  }
+
   panel.setEventHandler(this);
 
   panel.createCheckBox(PID_DRAW_LINKS, "draw links", drawLinks);
@@ -300,7 +306,7 @@ void NodesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
   Tab<TreeNodeIndexAndLeaf> nodes;
 
   PropPanel::TLeafHandle rootHandle = nodeTreePanel->createTreeLeaf(0, "::root", "");
-  nodeTreePanel->setBool(rootHandle, true);
+  nodeTreePanel->setExpanded(rootHandle, true);
   nodeTreePanel->setUserData(rootHandle, 0);
   nodes.push_back({dag::Index16(0), rootHandle});
 
@@ -312,7 +318,7 @@ void NodesPlugin::fillPropPanel(PropPanel::ContainerPropertyControl &panel)
       const char *nodeName = geomNodeTree->getNodeName(node);
 
       PropPanel::TLeafHandle leaf = nodeTreePanel->createTreeLeaf(nodes[i].parentLeaf, nodeName, "");
-      nodeTreePanel->setBool(leaf, true);
+      nodeTreePanel->setExpanded(leaf, true);
       nodeTreePanel->setUserData(leaf, (void *)((intptr_t)((int)node)));
       nodes.push_back({node, leaf});
     }
@@ -345,7 +351,7 @@ void NodesPlugin::onChange(int pid, PropPanel::ContainerPropertyControl *panel)
   else if (pid == PID_SELECT_NODES_TREE)
   {
     dag::Vector<PropPanel::TLeafHandle> selectedLeafs;
-    nodeTreePanel->getSelectedLeafs(selectedLeafs);
+    nodeTreePanel->getSelectedLeafs(selectedLeafs, false, false);
     if (selectedLeafs.size() > 0)
       selectNode(dag::Index16((intptr_t)nodeTreePanel->getUserData(selectedLeafs.back())));
   }

@@ -1,0 +1,3 @@
+use_libs_by_default = yes
+register_frp = yes
+mount = sq=../../../../scripts/sq

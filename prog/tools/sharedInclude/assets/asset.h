@@ -5,6 +5,7 @@
 #pragma once
 
 #include <ioSys/dag_dataBlock.h>
+#include <util/dag_string.h>
 
 
 class DagorAssetMgr;
@@ -20,6 +21,7 @@ public:
   int getNameSpaceId() const { return nspaceId; }
   bool isVirtual() const { return virtualBlk; }
   bool isGloballyUnique() const { return globUnique; }
+  unsigned getRuleIdx() const { return ruleIdx; }
 
   DagorAssetMgr &getMgr() const { return mgr; }
 
@@ -62,7 +64,7 @@ public:
   const char *getCustomPackageName(const char *target, const char *profile, bool full = true);
 
   //! returns destination pack name
-  const char *getDestPackName(bool dabuild_collapse_packs = false, bool pure_name = false, bool allow_grouping = true);
+  String getDestPackName(bool dabuild_collapse_packs = false, bool pure_name = false, bool allow_grouping = true);
 
   //! returns string where assetName is constructed from filepath reference
   //! (folder path and 3-letter extension are removed, e.g. "c:\my\tex.dds" - > "tex")
@@ -75,7 +77,8 @@ protected:
   int nameId, fileNameId;
   short folderIdx;
   short assetType;
-  short nspaceId;
+  signed char nspaceId;
+  unsigned char ruleIdx = 0xFF;
   unsigned short globUnique : 1, virtualBlk : 1, userFlags : 14;
   DagorAssetMgr &mgr;
 

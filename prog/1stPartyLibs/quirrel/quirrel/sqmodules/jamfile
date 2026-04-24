@@ -5,14 +5,22 @@ TargetType = lib ;
 Target = 1stPartyLibs/quirrel/quirrel/sqmodules.lib ;
 
 AddIncludes =
-  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
   $(Root)/prog/1stPartyLibs/eastl/include
 ;
+
+include $(Root)/prog/_jBuild/add_quirrel.jam ;
 
 Sources =
   sqmodules.cpp
   path.cpp
+  helpers.cpp
 ;
+
+if $(Platform) in windows linux macOS {
+  Sources +=
+    deffileaccess.cpp
+  ;
+}
 
 if $(Platform)-$(PlatformArch) = windows-x86_64 { CPPopt += -wd4267 ; }
 

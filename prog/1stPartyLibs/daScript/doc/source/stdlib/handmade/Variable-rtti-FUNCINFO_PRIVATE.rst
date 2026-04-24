@@ -1,0 +1,1 @@
+Bit flag constant on ``FuncInfo.flags`` indicating that the function has ``[private]`` visibility and cannot be called from other modules.

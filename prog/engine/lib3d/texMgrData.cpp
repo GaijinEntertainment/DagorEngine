@@ -232,7 +232,7 @@ bool tql::lq_not_more_than_split_bq_difftex = true;
 
 static void skip_on_tex_created(BaseTexture *) {}
 static void skip_on_tex_released(BaseTexture *) {}
-static void skip_on_buf_changed(bool, int) {}
+static void skip_on_persistent_changed(bool, int) {}
 static void skip_unload_on_drv_shutdown() {}
 static unsigned no_tex_lfu(TEXTUREID) { return 0; }
 static TexQL no_tex_cur_ql(TEXTUREID) { return TQL_base; }
@@ -240,7 +240,7 @@ static bool texture_id_always_valid(TEXTUREID) { return true; }
 
 void (*tql::on_tex_created)(BaseTexture *t) = &skip_on_tex_created;
 void (*tql::on_tex_released)(BaseTexture *t) = &skip_on_tex_released;
-void (*tql::on_buf_changed)(bool add, int delta_sz_kb) = &skip_on_buf_changed;
+void (*tql::on_persistent_changed)(bool add, int delta_sz_kb) = &skip_on_persistent_changed;
 void (*tql::unload_on_drv_shutdown)() = &skip_unload_on_drv_shutdown;
 void (*tql::on_frame_finished)() = NULL;
 unsigned (*tql::get_tex_lfu)(TEXTUREID texId) = &no_tex_lfu;

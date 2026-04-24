@@ -14,12 +14,11 @@
 #include <osApiWrappers/dag_files.h>
 #include "sceneBinaryData.h"
 #include <debug/dag_log.h>
+#include <drv/3d/dag_driverDesc.h>
 // #include <debug/dag_debug.h>
 
 
 #define DUMP_GEOM_STATS 0
-
-bool RenderScene::useSRVBuffers = false;
 
 void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bool use_vis)
 {
@@ -88,6 +87,7 @@ void RenderScene::loadBinary(IGenLoad &crd, dag::ConstSpan<TEXTUREID> texMap, bo
     G_ASSERT(sHdr.ltmapNum == 0);
 
     // read lightmaps catalog (offsets to data)
+    bool useSRVBuffers = d3d::get_driver_desc().caps.hasRayQuery;
     smvd->loadMatVdata(String(200, "%s ldBin", crd.getTargetName()).str(), cb, useSRVBuffers ? VDATA_BIND_SHADER_RES : 0);
     dagor_reset_sm_tex_load_ctx();
 

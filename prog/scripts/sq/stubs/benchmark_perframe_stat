@@ -1,0 +1,6 @@
+return {
+  function benchmark_perframe_stat_init(_) { }
+  function benchmark_perframe_stat_reset() { }
+  function benchmark_perframe_stat_add_last_frame() { }
+  function benchmark_perframe_stat_dump_to_file(_) { }
+}

@@ -41,6 +41,17 @@ void dacoll::validate_trace_cache_oobb(const TMatrix &tm, const bbox3f &oobb, co
   validate_trace_cache(aabb, expands, physmap_expands, handle);
 }
 
+void dacoll::validate_trace_cache_ri_only(TraceMeshFaces *handle)
+{
+  if (handle->isRendinstsValid && !rendinst::checkCachedRiData(handle))
+  {
+    TIME_PROFILE(validate_trace_cache_ri);
+    handle->isRendinstsValid = rendinst::initializeCachedRiData(handle);
+    TRACE_HANDLE_DEBUG_STAT(handle, numRIInvalidates++);
+    gamephys::draw_trace_handle_debug_invalidate(handle, true);
+  }
+}
+
 void dacoll::validate_trace_cache(const bbox3f &query_box, const vec3f &expands, float physmap_expands, TraceMeshFaces *handle,
   float rel_shift_threshold /* = 0.2f */)
 {
@@ -49,7 +60,7 @@ void dacoll::validate_trace_cache(const bbox3f &query_box, const vec3f &expands,
   float shiftThreshold = v_extract_x(v_length3_x(v_bbox3_size(query_box))) * rel_shift_threshold;
   vec3f queryBoxcenter = v_bbox3_center(query_box);
   vec3f cacheBoxCenter = v_bbox3_center(v_ldu_bbox3(handle->box));
-  bool validated = v_extract_x(v_length3_x(v_sub(queryBoxcenter, cacheBoxCenter))) < shiftThreshold;
+  bool validated = v_extract_x(v_length3_x(v_sub(queryBoxcenter, cacheBoxCenter))) < shiftThreshold && !handle->box.isempty();
 
   if (validated)
   {
@@ -58,13 +69,7 @@ void dacoll::validate_trace_cache(const bbox3f &query_box, const vec3f &expands,
     // Note that we're only doing it when the cache is not overflowed,
     // if it gets overflowed then it doesn't make sense, wait until next box
     // update with fewer RIs.
-    if (handle->isRendinstsValid && !rendinst::checkCachedRiData(handle))
-    {
-      TIME_PROFILE(validate_trace_cache_ri);
-      handle->isRendinstsValid = rendinst::initializeCachedRiData(handle);
-      TRACE_HANDLE_DEBUG_STAT(handle, numRIInvalidates++);
-      gamephys::draw_trace_handle_debug_invalidate(handle, true);
-    }
+    validate_trace_cache_ri_only(handle);
     return;
   }
 

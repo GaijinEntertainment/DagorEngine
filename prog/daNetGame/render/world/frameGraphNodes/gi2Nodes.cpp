@@ -13,12 +13,11 @@
 #include <render/world/frameGraphHelpers.h>
 #include <drv/3d/dag_renderTarget.h>
 
-
 dafg::NodeHandle makeGiCalcNode()
 {
   return dafg::register_node("gi_before_frame_lit", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
     registry.orderMeAfter("combine_shadows_node");
-    registry.createBlob<OrderingToken>("gi_before_frame_lit_token", dafg::History::No);
+    registry.createBlob<OrderingToken>("gi_before_frame_lit_token");
 
     // fixme: add ssao dependence
     auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
@@ -70,7 +69,7 @@ dafg::NodeHandle makeGiCalcNode()
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
       smpInfo.filter_mode = d3d::FilterMode::Point;
-      registry.create("gi_far_downsampled_depth_sampler", dafg::History::No)
+      registry.create("gi_far_downsampled_depth_sampler")
         .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
         .bindToShaderVar("downsampled_far_depth_tex_samplerstate")
         .bindToShaderVar("prev_downsampled_far_depth_tex_samplerstate");
@@ -85,8 +84,9 @@ dafg::NodeHandle makeGiCalcNode()
 
       set_inv_globtm_to_shader(currentCameraHndl.ref().viewTm, currentCameraHndl.ref().jitterProjTm, false);
 
-      if (wr.lights.hasClusteredLights() && hasAnyDynamicLights.get())
-        wr.lights.setBuffersToShader();
+      bool allowFrustumLights = hasAnyDynamicLights.ref();
+      wr.setGILightsToShader(allowFrustumLights);
+
       wr.daGI2->beforeFrameLit(wr.canChangeAltitudeUnexpectedly ? 0 : wr.giDynamicQuality);
     };
   });
@@ -111,7 +111,6 @@ dafg::NodeHandle makeGiFeedbackNode()
       if (wr.hasFeature(FeatureRenderFlags::DEFERRED_LIGHT))
       {
         registry.readTexture("current_ambient").atStage(dafg::Stage::PS_OR_CS).bindToShaderVar("current_ambient");
-        registry.read("current_ambient_sampler").blob<d3d::SamplerHandle>().bindToShaderVar("current_ambient_samplerstate");
       }
 
       if (wr.hasFeature(FeatureRenderFlags::SSAO))
@@ -145,8 +144,8 @@ dafg::NodeHandle makeGiFeedbackNode()
       const auto flags =
         wr.hasFeature(FeatureRenderFlags::FULL_DEFERRED) ? DaGI::FrameData(DaGI::FrameHasAll) : DaGI::FrameData(DaGI::FrameHasDepth);
 
-      if (flags & DaGI::FrameHasLitScene && wr.lights.hasClusteredLights() && hasAnyDynamicLights.get())
-        wr.lights.setBuffersToShader();
+      bool allowFrustumLights = hasAnyDynamicLights.ref() && (flags & DaGI::FrameHasLitScene);
+      wr.setGILightsToShader(allowFrustumLights);
 
       const bool allowUpdateFromGbuf = !camera_in_camera::is_lens_render_active();
       wr.daGI2->afterFrameRendered(flags, allowUpdateFromGbuf);
@@ -157,7 +156,9 @@ dafg::NodeHandle makeGiFeedbackNode()
 dafg::NodeHandle makeGiScreenDebugDepthNode()
 {
   return dafg::register_node("gi_screen_debug_depth_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.requestRenderPass().color({"frame_with_debug"});
+    auto debugNs = registry.root() / "debug";
+    auto colorTarget = debugNs.modifyTexture("target_for_debug");
+    registry.requestRenderPass().color({colorTarget});
     registry.readTexture("depth_for_postfx").atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
     return [] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());
@@ -171,7 +172,9 @@ dafg::NodeHandle makeGiScreenDebugDepthNode()
 dafg::NodeHandle makeGiScreenDebugNode()
 {
   return dafg::register_node("gi_screen_debug_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.requestRenderPass().color({"frame_with_debug"});
+    auto debugNs = registry.root() / "debug";
+    auto colorTarget = debugNs.modifyTexture("target_for_debug");
+    registry.requestRenderPass().color({colorTarget});
     registry.readTexture("depth_for_postfx").atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
     return [] {
       auto &wr = *static_cast<WorldRenderer *>(get_world_renderer());

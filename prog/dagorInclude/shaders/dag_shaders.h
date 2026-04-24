@@ -5,6 +5,7 @@
 #pragma once
 
 #include <EASTL/fixed_function.h>
+#include <drv/3d/dag_shaderModelVersion.h>
 #include <shaders/dag_shaderCommon.h>
 #include <shaders/dag_shaderVar.h>
 #include <shaders/dag_stcode.h>
@@ -152,7 +153,7 @@ public:
   inline const ScriptedShaderElement &native() const { return *(const ScriptedShaderElement *)this; }
 
   virtual bool setStates() const = 0;
-  inline bool setStates(int, bool) { return setStates(); }
+  inline bool setStates(int, bool) const { return setStates(); }
   virtual bool setStatesDispatch() const = 0;
   virtual void render(int minvert, int numvert, int sind, int numf, int base_vertex = 0, int prim = PRIM_TRILIST) const = 0;
 
@@ -198,6 +199,9 @@ d3d::shadermodel::Version getMaxFSHVersion();
 /// @brief Startups shaders (if shbindump_base!= NULL schedules shaders data loading).
 void startup_shaders(const char *shbindump_base, d3d::shadermodel::Version shader_model_version = d3d::smAny);
 
+/// @brief Explicitly shut down the shaders. Usually not needed to be called. Normally it is done by the restart proc system.
+void shutdown_shaders();
+
 /// @brief Direct load/unload shaders binary dump (called from shaders startup proc).
 bool load_shaders_bindump(const char *src_filename, d3d::shadermodel::Version shader_model_version, bool sec_dump_for_exp = false);
 void unload_shaders_bindump(bool sec_dump_for_exp = false);
@@ -241,7 +245,7 @@ void shaders_register_console(bool allow_reload = true, const ShaderReloadCb &af
 /// @brief Enable or disable shaders reloading depending on build configuration and settings.
 void shaders_set_reload_flags();
 
-/// @brief Shaders global time.
+/// @brief Shaders global time in seconds.
 float get_shader_global_time();
 
 void set_shader_global_time(float);

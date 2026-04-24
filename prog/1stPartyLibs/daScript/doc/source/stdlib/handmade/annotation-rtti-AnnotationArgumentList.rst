@@ -1,0 +1,1 @@
+Handled type representing an ordered list of annotation arguments and properties, providing indexed and named access to argument entries.

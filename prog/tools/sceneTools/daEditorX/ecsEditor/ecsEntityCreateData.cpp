@@ -8,11 +8,16 @@ ECSEntityCreateData::ECSEntityCreateData(ecs::EntityId e, const char *template_n
 {
   if (g_entity_mgr->has(e, ECS_HASH("transform")))
     attrs[ECS_HASH("transform")] = g_entity_mgr->get<TMatrix>(e, ECS_HASH("transform"));
-  if (const ecs::Scene::EntityRecord *erec = ecs::g_scenes->getActiveScene().findEntityRecord(e))
+  const ecs::Scene::EntityRecord *erec = nullptr;
+  if (ecs::g_scenes.get())
+    erec = ecs::g_scenes->getActiveScene().findEntityRecord(e);
+  if (erec)
   {
     for (auto &comp : erec->clist)
       attrs[ECS_HASH_SLOW(comp.first.c_str())] = ecs::ChildComponent(comp.second);
     templName = erec->templateName;
+    scene = erec->sceneId;
+    orderInScene = ecs::g_scenes->getEntityOrder(e);
   }
   else
   {

@@ -22,7 +22,7 @@ let testContent = {
     {
       hplace = ALIGN_RIGHT
       vplace = ALIGN_BOTTOM
-      size = static [sh(40), sh(22)]
+      size = const [sh(40), sh(22)]
       rendObj = ROBJ_DAS_CANVAS
       script = dasScript
       drawFunc = "draw_radar_b_scope"

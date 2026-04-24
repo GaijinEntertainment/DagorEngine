@@ -8,6 +8,7 @@
 #include <oldEditor/de_workspace.h>
 #include <de3_huid.h>
 
+#include <image/dag_loadImage.h>
 #include <generic/dag_sort.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/util/de_TextureName.h>
@@ -225,7 +226,7 @@ int StartupDlg::getSelected() const { return mSelected; }
 
 //==============================================================================
 
-void StartupDlg::onDoubleClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+void StartupDlg::onDoubleClick(int, PropPanel::ContainerPropertyControl *)
 {
   if (mPanel->getInt(ID_GROUP) != PropPanel::RADIO_SELECT_NONE)
     clickDialogButton(PropPanel::DIALOG_ID_OK);
@@ -256,7 +257,7 @@ bool StartupDlg::onDropFiles(const dag::Vector<String> &files)
     return false;
 
   String errorMessage;
-  if (!ScreenshotMetaInfoLoader::loadMetaInfo(files[0], mScreenshotMetaInfo, errorMessage) ||
+  if (!load_meta_info_from_image(files[0], mScreenshotMetaInfo, errorMessage) ||
       !ScreenshotMetaInfoLoader::getProjectPath(mScreenshotMetaInfo, wsp.getAppDir(), wsp.getLevelsDir(),
         mFilePathFromScreenshotMetaInfo, errorMessage))
   {

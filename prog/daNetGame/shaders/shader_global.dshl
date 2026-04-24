@@ -14,13 +14,15 @@ include "mulPointTm_inc.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
 include "hmd_device_inc.dshl"
 
+// Changes each frame iff TAA is enabled
+int dissolve_frame_counter = 0;
+
 int can_use_half_precision = 0;
 interval can_use_half_precision : no < 1, yes;
 
 float water_level;
-// this shader var is set to 0 by default, to not change existing levels
 // physically accurate values for clear water (for 650/550/450nm): (0.35, 0.055, 0.0095, 0)
-float4 underwater_fade = (0,0,0,0);
+float4 underwater_fade = (0.35, 0.055, 0.0095, 0);
 float scroll_time = 0;
 int special_vision = 0;
 
@@ -38,17 +40,11 @@ interval render_to_float: render_to_float_off<1, render_to_float_on;
 int in_editor=0;
 interval in_editor : no<1, yes;
 
-int in_editor_assume=0;
+int in_editor_assume=0 always_referenced;
 interval in_editor_assume : no<1, yes;
 
 int use_atest=1;
 interval use_atest: no < 1, yes;
-
-int mobile_render = 0;
-interval mobile_render: off < 1, forward < 2, deferred;
-
-int mobile_simplified_materials = 0;
-interval mobile_simplified_materials: no < 1, yes;
 
 int use_extended_global_frame_block = 0;
 interval use_extended_global_frame_block: no < 1, yes;
@@ -58,41 +54,16 @@ float air_fog_density = 0.001;
 float4 lowres_tex_size = (0, 0, 0, 0);
 
 float4 glass_specular_color = (1, 1, 1, 0);
+int packed_gbuf_normals = 0;
 
 macro USE_SUBPASS_LOADS()
-  //match VS & PS compiler modes, so there is no IO layout problems
-  hlsl(vs) {
-    ##if hardware.vulkan
-      #pragma spir-v compiler dxc
-    ##endif
-  }
   hlsl(ps) {
     ##if hardware.vulkan
-      #pragma spir-v compiler dxc
-      #if SHADER_COMPILER_DXC
-        #include "subpass_registers.hlsli"
-      #else
-        //if pragma somehow don't have needed effect
-        #error "this shader can't be compiled with HLSLcc"
-      #endif
+      #include "subpass_registers.hlsli"
     ##else
     ##endif
   }
 endmacro
-
-hlsl{
-  ##if mobile_render != off
-    //for packing >1 values in UNORM format
-    #define FORWARD_ADAPTATION_LUMA_SCALE 0.25f
-    #if PBR_FORWARD_SHADING
-      ##if use_postfx == on
-        float GetLuminanceScaled(float3 v) { return 1.0f; }
-      ##else
-        float GetLuminanceScaled(float3 v) {return dot(v, float3(0.212671, 0.715160, 0.072169) * FORWARD_ADAPTATION_LUMA_SCALE);}
-      ##endif
-    #endif
-  ##endif
-}
 
 int use_postfx = 1;
 interval use_postfx : off<1, on;
@@ -109,8 +80,6 @@ buffer emission_decode_color_map;
 texture downsampled_far_depth_tex;
 texture downsampled_close_depth_tex;
 texture downsampled_normals; // from pixels with downsampled_close_depth_tex
-
-float mip_bias = 0;
 
 macro USE_SCREENPOS_TO_TC()
   BEGIN_ONCE(use_screenpos_to_tc)
@@ -140,6 +109,41 @@ endmacro
 
 macro USE_SCREENPOS_TO_LOWRES_TC()
   USE_SCREENPOS_TO_LOWRES_TC_BASE(ps)
+endmacro
+
+macro INIT_SCREENPOS_TRANSFORMS()
+(ps) {
+  viewport_ofs_size@f4 = get_viewport();
+  viewport_invSize@f2 = (1./get_viewport().zw);
+}
+endmacro
+
+macro USE_SCREENPOS_TRANSFORMS(maybe_multiview)
+hlsl(ps) {
+  float2 get_view_local_screen_pos(float2 screenpos, out uint out_view_id)
+  {
+    screenpos -= viewport_ofs_size.xy; // on multiview get_viewport().xy is the offset of the first viewport.
+    ##if maybe_multiview
+      out_view_id = (uint)any(screenpos >= viewport_ofs_size.zw);
+      return float2((screenpos.x < viewport_ofs_size.z) ? screenpos.x : screenpos.x - viewport_ofs_size.z,
+                    (screenpos.y < viewport_ofs_size.w) ? screenpos.y : screenpos.y - viewport_ofs_size.w);
+    ##else
+      out_view_id = 0;
+      return screenpos;
+    ##endif
+  }
+
+  float2 get_view_local_screen_tc(float2 screenpos, out uint out_view_id)
+  {
+    return get_view_local_screen_pos(screenpos, out_view_id) * viewport_invSize;
+  }
+
+  float2 get_view_local_screen_tc(float2 screenpos)
+  {
+    uint _out_view_id;
+    return get_view_local_screen_tc(screenpos, _out_view_id);
+  }
+}
 endmacro
 
 macro NO_ATEST()
@@ -345,6 +349,7 @@ float pow2(float a) {return a*a;}
 float pow3(float a) {return a*a*a;}
 float pow4(float a) {return pow2(a*a);}
 float pow5(float a){float a4=a*a; a4*=a4; return a4*a;}
+float pow6(float a){float a2=a*a; float a4=a2*a2; return a4*a2;}
 float pow8(float a) {return pow4(a*a);}
 float pow16(float a){return pow8(a*a);}
 
@@ -363,6 +368,12 @@ float2 pow2_vec2(float2 a)
 float3 pow2_vec3(float3 a)
 {
   a*=a;//2
+  return a;
+}
+float3 pow4_vec3(float3 a)
+{
+  a*=a;//2
+  a*=a;//4
   return a;
 }
 float4 pow2_vec4(float4 a)
@@ -530,10 +541,13 @@ hlsl {
 }
 
 macro INIT_HDR(code)
+  BEGIN_ONCE_STAGE(init_hdr_included, code)
   INIT_EXPOSURE(code)
+  END_ONCE()
 endmacro
 
 macro USE_HDR(code)
+  BEGIN_ONCE_STAGE(use_hdr_included, code)
   USE_EXPOSURE(code)
   hlsl(code)
   {
@@ -547,6 +561,7 @@ macro USE_HDR(code)
       half3 unpack_hdr(half3 a) {return a * get_exposure_inv();}
     #endif
   }
+  END_ONCE()
 endmacro
 
 macro USE_COMPAT_HDR_WRITE_BASE(code, exposure_name)
@@ -618,14 +633,11 @@ interval support_texture_array : off<1, on;
 buffer gbuffer_resolve;
 
 macro USE_EMISSION_DECODE_COLOR_MAP(code)
-if (in_editor_assume == no)
-{
   (code) {
     emission_decode_color_map@buf = emission_decode_color_map hlsl {
       StructuredBuffer<float4> emission_decode_color_map@buf;
     };
   }
-}
 endmacro
 
 macro GLOBAL_FRAME_CONTENT()
@@ -634,7 +646,10 @@ macro GLOBAL_FRAME_CONTENT()
   // Camera.
 
   (vs) { world_view_pos@f3 = world_view_pos; }
-  (ps) { world_view_pos@f3 = world_view_pos; }
+  (ps) {
+    world_view_pos@f3 = world_view_pos;
+    packed_gbuf_normals@i1 = packed_gbuf_normals;
+  }
   if (compatibility_mode == compatibility_mode_on)
   {
     (ps) {
@@ -644,12 +659,6 @@ macro GLOBAL_FRAME_CONTENT()
       gbuffer_enviSPH1 @f4 = (enviSPH1*skylight_params.y);
       gbuffer_enviSPH2 @f4 = (enviSPH2*skylight_params.y);
       gbuffer_envi_probe_specular@smpCube = envi_probe_specular;
-    }
-    if (mobile_render != off)
-    {
-      (ps) {
-        air_fog_density@f1 = (air_fog_density);
-      }
     }
   }
   if (use_postfx == off)
@@ -661,6 +670,13 @@ endmacro
 block(frame) global_frame
 {
   GLOBAL_FRAME_CONTENT()
+  (vs) {
+    sky_color@f3 = sky_color;
+  }
+  (ps) {
+    dissolve_frame@i1 = (dissolve_frame_counter);
+    sky_color@f3 = sky_color;
+  }
 }
 
 macro  NO_COLOR_WRITE_PS()
@@ -701,19 +717,11 @@ hlsl {
 hlsl {
   #define COLOR_CORRECTION_MULTIPLIER 4.59479341998814 // it's 2^2.2
   #define COLOR_CORRECTION_MULTIPLIER_RCP (1.0 / COLOR_CORRECTION_MULTIPLIER)
-  #define DISABLE_RAY_LIGHT_INTERSECTION 1
   #define ALLOW_CLOUD_HOLE 1
 }
 
-// WARNING: this is used for branches with assumes to work. Until boolean vars are reworked, the way to alias
-//          'constexpr' expressions so that you can put assumes in them is macros, boolean vars will make the
-//          compiler ignore the branch.
-macro USE_HW_RAYTRACING()
-  ((hardware.dx12 && hardware.pc) || (hardware.vulkan && hardware.bindless) || (hardware.metal && hardware.bindless))
-endmacro
+int use_dng_mobile_optimizations = 0;
+interval use_dng_mobile_optimizations: no<1, yes;
+assume_if_not_assumed use_dng_mobile_optimizations = no;
 
-bool use_hw_raytracing = USE_HW_RAYTRACING();
-
-hlsl {
-  #define handle_if_two_sided(gbuffer)
-}
+bool use_hw_raytracing = ((hardware.dx12 && (hardware.pc || hardware.scarlett)) || (hardware.vulkan && hardware.bindless) || (hardware.metal && hardware.bindless) || hardware.ps5);

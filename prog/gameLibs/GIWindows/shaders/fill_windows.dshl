@@ -12,11 +12,14 @@ shader clear_windows_grid_range_cs
 {
   supports none;
   supports global_frame;
-  (cs) { windowsBoxRange @f4 = windowsBoxRange; }
-  ENABLE_ASSERT(cs)
+  (cs) {
+    windowsBoxRange @f4 = windowsBoxRange;
+    grid@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> grid@uav;
+    }
+  }
   hlsl(cs) {
     #include <gi_windows.hlsli>
-    RWStructuredBuffer<uint>  grid : register(u0);
     [numthreads(4, 4, 4)]
     void grid_windows_cs(uint3 tid : SV_GroupThreadID, uint3 dtId : SV_DispatchThreadID)
     {
@@ -32,7 +35,6 @@ shader clear_windows_grid_range_cs
 
 shader fill_windows_grid_range_cs, fill_windows_grid_range_fast_cs
 {
-  ENABLE_ASSERT(cs)
   supports none;
   supports global_frame;
   (cs) {
@@ -47,11 +49,15 @@ shader fill_windows_grid_range_cs, fill_windows_grid_range_fast_cs
     gridInd@buf = windows_grid_ind hlsl {
       StructuredBuffer<uint> gridInd@buf;
     }
+    grid@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> grid@uav;
+    }
+    gridCnt@uav : register(1) hlsl {
+      RWStructuredBuffer<uint> gridCnt@uav;
+    }
   }
   hlsl(cs) {
     #include <transform_box.hlsl>
-    RWStructuredBuffer<uint>  grid : register(u0);
-    RWStructuredBuffer<uint>  gridCnt : register(u1);
     #define MAX_WINDOWS 8
     #define SUB_WINDOWS 16
     #define SUBDIV_X 2

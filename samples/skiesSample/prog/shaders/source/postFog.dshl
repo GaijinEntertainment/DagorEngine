@@ -56,14 +56,6 @@ shader postFog
   (ps) {
     world_view_pos@f3 = world_view_pos;
     frame2_tex@smp2d = frame2_tex;
-    transmittanceTexture@smp2d = transmittanceTexture;
-  }
-
-  hlsl(ps) {
-    #ifndef HAS_TRANSMITTANCE_SAMPLER
-    #define HAS_TRANSMITTANCE_SAMPLER 1
-    #endif
-    #include <samplerTransmittance.hlsl>
   }
 
   BRUNETON_FOG()

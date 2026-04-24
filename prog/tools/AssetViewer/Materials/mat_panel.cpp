@@ -13,6 +13,7 @@
 
 #include <EditorCore/ec_wndPublic.h>
 #include <propPanel/control/container.h>
+#include <de3_interface.h>
 
 #include <3d/dag_materialData.h>
 
@@ -330,20 +331,19 @@ void MaterialsPlugin::onTextureChange(PropPanel::ContainerPropertyControl *panel
 {
   int type = curAsset->getMgr().getTexAssetTypeId();
 
-  SelectAssetDlg dlg(0, &curAsset->getMgr(), "Select texture", "Select texture", "Reset texture", make_span_const(&type, 1));
-  dlg.selectObj(curMat->getTexRef(param.getSlot()));
-  dlg.setManualModalSizingEnabled();
-  if (!dlg.hasEverBeenShown())
-    dlg.positionLeftToWindow("Properties", true);
+  SelectAssetDlgOptions dlgOptions;
+  dlgOptions.selectableAssetTypes.push_back(type);
+  dlgOptions.initiallySelectedAsset = curMat->getTexRef(param.getSlot());
+  dlgOptions.dialogCaption = "Select texture";
+  dlgOptions.selectButtonCaption = "Select texture";
+  dlgOptions.resetButtonCaption = "Reset texture";
+  dlgOptions.positionBesideWindow = "Properties";
 
-  int ret = dlg.showDialog();
-  if (ret == PropPanel::DIALOG_ID_CLOSE)
+  const eastl::optional<String> result = DAEDITOR3.selectAsset(dlgOptions);
+  if (!result.has_value())
     return;
 
-  if (ret == PropPanel::DIALOG_ID_OK)
-    param.texAsset = dlg.getSelObjName();
-  else
-    param.texAsset = "";
+  param.texAsset = result.value();
 
   if (param.getSlot() >= curMat->textures.size())
   {

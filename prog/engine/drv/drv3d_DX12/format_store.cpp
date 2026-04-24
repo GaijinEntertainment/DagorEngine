@@ -106,7 +106,9 @@ struct LastIs<V, IndexList<A>>
 
 template <uint32_t id, DXGI_FORMAT base, DXGI_FORMAT linear, DXGI_FORMAT srgb,
   uint32_t channel_mask = FormatTrait<linear>::channel_mask, uint32_t block_size = FormatTrait<linear>::bits,
-  uint32_t block_x = FormatTrait<linear>::block_width, uint32_t block_y = FormatTrait<linear>::block_height>
+  uint32_t block_x = FormatTrait<linear>::block_width, uint32_t block_y = FormatTrait<linear>::block_height,
+  uint32_t bits_plane_0 = FormatTrait<linear>::bits_per_plane[0], uint32_t bits_plane_1 = FormatTrait<linear>::bits_per_plane[1],
+  uint32_t bits_plane_2 = FormatTrait<linear>::bits_per_plane[2]>
 struct FormatInfo
 {
   static const uint32_t ID = id;
@@ -119,6 +121,7 @@ struct FormatInfo
   static const uint32_t BlockX = block_x;
   static const uint32_t BlockY = block_y;
   static const uint32_t ChannelMask = channel_mask;
+  static constexpr uint32_t BitsPerPlane[3] = {bits_plane_0, bits_plane_1, bits_plane_2};
 };
 
 template <DXGI_FORMAT base, DXGI_FORMAT linear, DXGI_FORMAT srgb, uint8_t plane_count, uint32_t block_size = FormatTrait<linear>::bits,
@@ -180,6 +183,7 @@ public:
   static CONST_TABLE DXGI_FORMAT srgbFormatArray[sizeof...(Formats)];
   static CONST_TABLE BlockInfo blockList[sizeof...(Formats)];
   static CONST_TABLE uint32_t channelMask[sizeof...(Formats)];
+  static CONST_TABLE uint32_t bytesPerPlane[sizeof...(Formats)][3];
 
   static uint8_t planeCount[sizeof...(Formats)];
   static FormatSupport linearFormatSupportArray[sizeof...(Formats)];
@@ -314,6 +318,13 @@ public:
     return blockList[index];
   }
 
+  static uint32_t getBytesPerPlane(uint32_t index, uint32_t plane)
+  {
+    checkTableIndex(index);
+    G_ASSERT(plane < 3);
+    return bytesPerPlane[index][plane];
+  }
+
   static uint8_t getPlaneCount(uint32_t index)
   {
     checkTableConfigured();
@@ -382,6 +393,14 @@ CONST_TABLE typename FormatInfoTable<Formats...>::BlockInfo FormatInfoTable<Form
 template <typename... Formats>
 CONST_TABLE uint32_t FormatInfoTable<Formats...>::channelMask[sizeof...(Formats)] = //
   {Formats::ChannelMask...};
+
+template <typename... Formats>
+CONST_TABLE uint32_t FormatInfoTable<Formats...>::bytesPerPlane[sizeof...(Formats)][3] = { //
+  {
+    Formats::BitsPerPlane[0] / 8,
+    Formats::BitsPerPlane[1] / 8,
+    Formats::BitsPerPlane[2] / 8,
+  }...};
 
 template <typename... Formats>
 uint8_t FormatInfoTable<Formats...>::planeCount[sizeof...(Formats)];
@@ -548,7 +567,7 @@ struct SortedFormatInfoTable<FormatInfoTable<A, N...>>
 
 // use DummyFormatInfo<index to fill with dummy> to add a dummy for unused slot to make the format table a contiguous list
 template <uint32_t F>
-using DummyFormatInfo = FormatInfo<F, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, 1, 0, 1, 1>;
+using DummyFormatInfo = FormatInfo<F, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, DXGI_FORMAT_UNKNOWN, 1, 0, 1, 1, 0, 0, 0>;
 
 // clang-format off
 // this table can be in any order, SortedFormatInfoTable will sort them by TEXFMT_
@@ -910,6 +929,19 @@ uint32_t FormatStore::getBytesPerPixelBlock(uint32_t *block_x, uint32_t *block_y
     *block_y = bi.y;
 
   return bi.size;
+}
+
+uint32_t FormatStore::getBytesPerPixelBlockPerPlane(uint32_t *block_x, uint32_t *block_y, uint32_t plane_index) const
+{
+  const auto bi = FormatInfoTableSet::getBlockInfo(linearFormat);
+
+  if (block_x)
+    *block_x = bi.x;
+  if (block_y)
+    *block_y = bi.y;
+
+  const auto bytesPerPlane = FormatInfoTableSet::getBytesPerPlane(linearFormat, plane_index);
+  return bytesPerPlane;
 }
 
 const char *FormatStore::getNameString() const { return dxgi_format_name(asDxGiFormat()); }

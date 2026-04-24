@@ -1,0 +1,198 @@
+include "shader_global.dshl"
+include "scope_lens_reflections_inc.dshl"
+include "alternate_reflections.dshl"
+include "dynamic_simple_inc.dshl"
+include "glass.dshl"
+include "skinning_inc2.dshl"
+include "unpack_unit_vector_inc.dshl"
+include "indoor_light_probes.dshl"
+include "sq_clouds_shadow.dshl"
+
+float scope_reflections_visibility_min_cos = 0.5;
+float scope_reflections_visibility_max_cos = 0.93;
+float scope_alternate_reflection_dist = 40.0;
+float4 ssr_frameNo = (0,0,0,0);
+float4 SSRParams = (0.91, -2.5, 0,0);
+
+shader scope_lens_reflections
+{
+  supports global_const_block;
+  z_write = false;
+  z_test = false;
+  cull_mode = none;
+
+  channel float3 pos = pos;
+  channel color8 norm = norm unsigned_pack;
+
+  SUPPORT_MULTIDRAW(false)
+  DYNMODEL_SHARED_DECL_IMMEDIATE()
+  DYNMODEL_SHARED_DECL()
+  INIT_NO_SKINNING()
+
+  hlsl(vs) {
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float4 normal               : NORMAL;
+      INIT_BONES_VSINPUT(TEXCOORD4, TEXCOORD5)
+    };
+  }
+
+  NO_SKINNING_VS()
+  USE_UNPACK_UNIT_VECTOR_VS()
+  INIT_AND_USE_SCOPE_LENS_REFLECTIONS_MATH(vs)
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+
+      float3 normal                : TEXCOORD0;
+      float3 pointToEye            : TEXCOORD1;
+      float4 clipPos               : TEXCOORD2;
+
+      //glass input
+      float3 fogMul                : TEXCOORD3;
+      float3 fogAdd                : TEXCOORD4;
+      //
+
+      #if SET_UP_MULTIDRAW
+      VSOUT_DRAW_ID
+      #endif
+    };
+  }
+
+  hlsl(vs) {
+    struct SkinningOut
+    {
+      float3 eyeToPoint;
+      float4 pos;
+      float3 worldNormal;
+    };
+
+    SkinningOut calcSkinning(VsInput input, float3 local_du = float3(1, 0, 0), float3 local_dv = float3(0, 0, 1))
+    {
+      SkinningOut result;
+
+      float3 eyeToPoint;
+      float3 worldDu;
+      float3 worldDv;
+      float3 worldNormal;
+      float3 localNormal = input.normal.xyz;
+
+      instance_skinning(
+        input,
+        input.pos,
+        localNormal,
+        local_du,
+        local_dv,
+        result.eyeToPoint,
+        result.pos,
+        result.worldNormal,
+        worldDu,
+        worldDv);
+
+      return result;
+    }
+
+     VsOutput scope_reflections_vs(VsInput input HW_USE_INSTANCE_ID)
+     {
+      VsOutput output;
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(get_draw_id() & MATERIAL_OFFSET_MASK);
+      #endif
+
+      input.normal.xyz = unpack_unit_vector(input.normal.xyz);
+      SkinningOut vOut = calcSkinning(input);
+
+      float3 worldNormal = normalize(vOut.worldNormal);
+      float3 pointToEye = -vOut.eyeToPoint;
+
+      output.pos.xy = get_scope_lens_reflection_ndc(input.pos.xz);
+      output.pos.z = 0.5;
+      output.pos.w = 1.0;
+      output.clipPos = output.pos;
+
+      output.pointToEye.xyz = pointToEye;
+      output.normal.xyz = worldNormal;
+      output.fogMul = 1;
+      output.fogAdd = 0;
+
+      return output;
+     }
+  }
+
+  SQ_INIT_CLOUDS_SHADOW(ps)
+  SQ_CLOUDS_SHADOW(ps)
+  INIT_STATIC_SHADOW_BASE_ONE_CASCADE(ps)
+  USE_STATIC_SHADOW_ONE_CASCADE(ps)
+
+  SKIP_INIT_AND_USE_CLOUDS_SHADOWS()
+  SKIP_INIT_AND_USE_STATIC_SHADOW()
+  (ps) {
+    SSRParams@f4 = (SSRParams.x, SSRParams.y, ssr_frameNo.z, ssr_frameNo.y);
+    alternate_reflection_dist@f1 = scope_alternate_reflection_dist;
+    scope_reflections_visibility_diff_cos@f1 = scope_reflections_visibility_max_cos - scope_reflections_visibility_min_cos;
+    scope_reflections_visibility_min_cos@f1 = scope_reflections_visibility_min_cos;
+  }
+  GET_ALTERNATE_REFLECTIONS(ps)
+
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  USE_ROUGH_TO_MIP()
+  INIT_SKY()
+  USE_SKY_DIFFUSE()
+  INIT_ENVI_SPECULAR_BASE(ps)
+  INIT_ENVI_SPECULAR_SAMPLE(ps)
+  USE_ENVI_SPECULAR_SAMPLE(ps)
+  USE_INDOOR_LIGHT_PROBES(ps, false)
+
+  hlsl(ps) {
+    #define isRefractionGlass 0
+    #define hasNormal 0
+    #define HAS_NIGHT_EMISSION 0
+    #define NO_SPECULAR 0
+    #include <pbr/BRDF.hlsl>
+    #include <phase_functions.hlsl>
+
+    #define GLASS_HAS_ENVI_PROBE_SAMPLING_FUNC
+    float3 glass_sample_envi_probe(float2 screenpos, float3 world_normal, float3 reflection_vec,
+                                   float roughness_mip, float3 e2p)
+    {
+      float3 envi = sample_envi_probe(float4(reflection_vec, roughness_mip)).rgb;
+
+      half4 alternateRefl = half4(0,0,0,0);
+    ##if has_dagi_alternate_reflections
+      float hitDist = 1000000;
+      get_alternate_reflections(alternateRefl, hitDist, screenpos, reflection_vec,
+                                e2p, world_normal, false, false, alternate_reflection_dist);
+    ##endif
+
+      return lerp(envi, alternateRefl.rgb, alternateRefl.a);
+    }
+  }
+  SKIP_SKY_POLARIZATION_FILTER_TERM_INIT()
+  GLASS_APPLY_FUNC_PS(false)
+
+  hlsl(ps) {
+    float4 scope_reflections_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
+    {
+    #if SET_UP_MULTIDRAW
+      INIT_MULTIDRAW(input);
+      SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
+    #endif
+
+      float4 screenpos = GET_SCREEN_POS(input.pos);
+
+      float VoN = abs(dot(input.normal, normalize(input.pointToEye)));
+      float reflectionsTerm = 1.0 - saturate((VoN - scope_reflections_visibility_min_cos) / scope_reflections_visibility_diff_cos);
+
+      float3 radiance = apply_glass_ps(input, screenpos, float4(0,0,0,1), 1).color.rgb;
+      return float4(radiance * reflectionsTerm, 1);
+    }
+  }
+
+  compile("target_vs", "scope_reflections_vs");
+  compile("target_ps", "scope_reflections_ps");
+}

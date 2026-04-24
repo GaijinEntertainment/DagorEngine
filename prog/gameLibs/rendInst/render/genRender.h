@@ -142,7 +142,6 @@ extern float globalLodCullDistMul;
 
 extern float settingsDistMul;
 extern float settingsMinCullDistMul;
-extern float settingsMinLodBasedCullDistMul;
 extern float lodsShiftDistMul;
 extern bool forceImpostors;
 extern bool use_color_padding;

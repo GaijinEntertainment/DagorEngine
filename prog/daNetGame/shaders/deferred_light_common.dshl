@@ -4,6 +4,7 @@ include "gbuffer.dshl"
 include "monteCarlo.dshl"
 include "roughToMip.dshl"
 include "camera_in_camera.dshl"
+include "sky_polarization_filter_term_inc.dshl"
 
 include "ssr_use.dshl"
 include "ssr_inc.dshl"
@@ -26,11 +27,11 @@ texture perlin_noise3d;
 float4 depth_bounds = float4(0, 1, 0, 0);
 float4 hero_cockpit_camera_to_point = (0, 0, 0, 0);
 
-float fake_underwater_attenuation = 0.1;
-
 macro INIT_DAGI_IRRADIANCE_GRID(code)
   hlsl {
     #define DAGI_IRRADIANCE_GRID_TYPE DAGI_IRRADIANCE_GRID_TYPE_IRRADIANCE
+    // Applied lighting will be at least half of the SH1 constant term (ambient).
+    #define DAGI_IRRADIANCE_SH1_MIN_THRESHOLD_AMBIENT_MUL 0.5
   }
   DAGI_IRRADIANCE_GRID_SAMPLE(code)
   DAGI_RAD_GRID_SAMPLE(code)
@@ -81,6 +82,8 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
   USE_SKYLIGHT_PARAMS(code)
   INIT_SKY_DIFFUSE_BASE(code)
   USE_SKY_DIFFUSE_BASE(code)
+  INIT_SKY_POLARIZATION_FILTER_TERM(code)
+  USE_SKY_POLARIZATION_FILTER_TERM(code)
   INIT_ENVI_SPECULAR_SAMPLE(code)
   USE_ENVI_SPECULAR_SAMPLE(code)
   USE_INDOOR_LIGHT_PROBES(code, false)
@@ -90,8 +93,6 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
 
   (code) {
     hero_cockpit_camera_to_point@f3 = hero_cockpit_camera_to_point;
-    water_level@f1 = water_level;
-    fake_underwater_attenuation@f1 = fake_underwater_attenuation;
   }
 
   hlsl(code) {
@@ -210,9 +211,9 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
             ##elif (gi_quality == only_ao)
               float ofs = max(dist*0.04, 0.25*dagi_sky_vis_probe_size(0));
               float3 filteredWorldPos = worldPos + view*ofs;
-              float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, filteredWorldPos, view, max(0, dist-ofs), normal, interleavedGradientNoise( viewPixcoord.xy ) );
-              if (all(sh1 != 1))
-                ambient = GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
+              float vignette;
+              float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, filteredWorldPos, view, max(0, dist-ofs), normal, interleavedGradientNoise( viewPixcoord.xy ), vignette );
+              ambient = lerp(GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx), ambient, vignette);
               #define HAS_SPECULAR 0
               #define HACK_SPECULAR_BRIGHTNESS 1
             ##endif
@@ -319,9 +320,6 @@ macro INIT_AND_USE_DEFERRED_LIGHT_COMMON(code)
           -pointToEye, viewTexcoord, rawDepth, linearize_z(rawDepth, zn_zfar.zw), outAmbient, roughSpecular, outPixelAge);
         outSpecular = lerp(roughSpecular, outSpecular, saturate(1 - 2*gbuffer.linearRoughness)*0.9);
         ##endif
-        float attenuation = worldPos.y < water_level ? fake_underwater_attenuation : 1.;
-        outAmbient *= attenuation;
-        outSpecular *= attenuation;
         outAmbient = pack_hdr(outAmbient);
         outSpecular = pack_hdr(outSpecular);
       }

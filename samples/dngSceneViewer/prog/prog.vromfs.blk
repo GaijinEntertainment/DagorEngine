@@ -118,24 +118,24 @@ folder {
 
 "@clone-last:folder"{
   "@override:path":t="../../../prog/gameLibs/das/ecs"
-  "@override:dest_path":t="das/ecs"
+  "@override:dest_path":t="gameLibs/das/ecs"
   "@delete-all:wildcard":t=""
   wildcard:t=*.das
 }
 "@clone-last:folder"{
   "@override:path":t="../../../prog/gameLibs/das/daFrameGraph"
-  "@override:dest_path":t="das/daFrameGraph"
+  "@override:dest_path":t="gameLibs/das/daFrameGraph"
   "@delete-all:wildcard":t=""
   wildcard:t=*.das
 }
 "@clone-last:folder"{
   "@override:path":t="../../../prog/gameLibs/das/math"
-  "@override:dest_path":t="das/math"
+  "@override:dest_path":t="gameLibs/das/math"
   "@delete-all:wildcard":t=""
   wildcard:t=*.das
 }
 
-include "_dng_libs_prog.vromfs.blk"
+include "_libs_prog.vromfs.blk"
 
 folder{
   output:t="dng_scene_viewer.vromfs.bin"

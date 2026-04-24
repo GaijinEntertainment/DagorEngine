@@ -15,8 +15,7 @@ Sources =
 
 
 AddIncludes =
-  $(Root)/prog/engine/dagorInclude
-  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude # FIXME_BROKEN_DEP
   $(Root)/prog/1stPartyLibs/daScript/include
 ;
 

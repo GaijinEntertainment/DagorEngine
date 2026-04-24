@@ -16,16 +16,18 @@ void set_up_show_shadows_entity(int show_shadows)
     return;
   ecs::ComponentsInitializer init;
   init[ECS_HASH("showShadowsNode")] = dafg::register_node("show_shadows", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    auto debugNs = registry.root() / "debug";
+    auto colorTarget = debugNs.modifyTexture("target_for_debug");
     registry.readTexture("far_downsampled_depth").atStage(dafg::Stage::POST_RASTER).bindToShaderVar("downsampled_far_depth_tex");
-    registry.requestRenderPass().color({"frame_with_debug"});
+    registry.requestRenderPass().color({colorTarget});
     registry.readBlob<Point4>("world_view_pos").bindToShaderVar("world_view_pos");
     registry.readTexture("depth_for_postfx").atStage(dafg::Stage::PS).bindToShaderVar("depth_gbuf");
     read_gbuffer(registry);
-    auto cameraHndl = registry.readBlob<CameraParams>("current_camera").handle();
-    return [debugShadows = PostFxRenderer("debug_shadows"), cameraHndl] {
-      set_viewvecs_to_shader(cameraHndl.ref().viewTm, cameraHndl.ref().jitterProjTm);
-      debugShadows.render();
-    };
+
+    auto camera = registry.readBlob<CameraParams>("current_camera");
+    CameraViewShvars{camera}.bindViewVecs();
+
+    return [debugShadows = PostFxRenderer("debug_shadows")] { debugShadows.render(); };
   });
   g_entity_mgr->createEntityAsync("show_shadows", eastl::move(init));
 }

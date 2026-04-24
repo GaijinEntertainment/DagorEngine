@@ -290,31 +290,6 @@ void LpIncludeExcludeFilter::drawPopup(const char *popup_id)
 
 // === Filter UI Components ===
 
-void LpFilterPopupManager::registerPopup(TableColumn table_column, const char *popup_identifier, FilterDrawCallback draw_func)
-{
-  entries.push_back({table_column, popup_identifier, draw_func});
-}
-
-void LpFilterPopupManager::open(TableColumn table_column) { columnToOpen = table_column; }
-
-void LpFilterPopupManager::drawAll()
-{
-  for (auto &entry : entries)
-  {
-    if (entry.column == columnToOpen)
-    {
-      ImGui::OpenPopup(entry.popupId);
-      columnToOpen = COLUMN_NONE; // Reset after opening
-    }
-
-    if (ImGui::BeginPopup(entry.popupId))
-    {
-      entry.drawFunction();
-      ImGui::EndPopup();
-    }
-  }
-}
-
 // === Master Filter Manager ===
 
 void TextureFilterManager::setNameSearch(const char *search_text)
@@ -381,11 +356,12 @@ bool TextureFilterManager::isTextureUsageFilterActive() const { return textureUs
 
 TextureFilterManager::TextureFilterManager() :
   // Initialize with reasonable defaults for filter ranges
-  mipRangeFilter(1, 12),           // Typical mip level range
-  sizeRangeFilter(0.0f, 100.0f),   // Size range in MB
-  lodsRangeFilter(1, 6),           // LOD levels range
-  resolutionRangeFilter(32, 4096), // Typical resolution range
-  textureUsageRangeFilter(2, 10)   // Texture Usage count range, min 2 for shared
+  mipRangeFilter(1, 12),
+  sizeRangeFilter(0.0f, 100.0f),
+  lodsRangeFilter(1, 6),
+  resolutionRangeFilter(32, 4096),
+  textureUsageRangeFilter(2, 10),
+  assetInstanceCountRangeFilter(0, 100)
 {
   isTextureUsageFilterNonRI = true;
   isTextureUsageFilterUnique = true;
@@ -394,6 +370,7 @@ TextureFilterManager::TextureFilterManager() :
   mipRangeFilter.setAbsoluteBounds(0, 16);
   sizeRangeFilter.setAbsoluteBounds(0, 128.0f);
   textureUsageRangeFilter.setAbsoluteBounds(2, 100);
+  assetInstanceCountRangeFilter.setAbsoluteBounds(0, 1000);
 }
 
 TextureFilterManager::~TextureFilterManager() {}
@@ -476,22 +453,47 @@ bool TextureFilterManager::passesAllFilters(const ProfilerString &texture_name, 
   if (isShared && !textureUsageRangeFilter.pass(textureUsage.unique))
     return false;
 
+  // Asset instance count filter (checks if ALL assets using this texture have countOnMap in range)
+  if (assetInstanceCountRangeFilter.isUsingMin() || assetInstanceCountRangeFilter.isUsingMax())
+  {
+    if (!riModule)
+      return false;
+
+    const auto &textureToAssetsMap = riModule->getTextureToAssetsMap();
+    auto it = textureToAssetsMap.find(texture_name);
+    if (it == textureToAssetsMap.end() || it->second.empty())
+      return false;
+
+    const auto &instanceCounts = riModule->getRiInstanceCounts();
+
+    for (const auto &assetName : it->second)
+    {
+      auto countIt = instanceCounts.find(assetName);
+      if (countIt != instanceCounts.end())
+      {
+        if (!assetInstanceCountRangeFilter.pass(countIt->second))
+          return false;
+      }
+    }
+  }
+
   return true;
 }
 
-bool TextureFilterManager::isColumnFilterActive(TableColumn table_column) const
+bool TextureFilterManager::isColumnFilterActive(ColumnIndex table_column) const
 {
   switch (table_column)
   {
-    case COL_NAME: return nameFilter.isActive();
-    case COL_FORMAT: return !formatFilter.getOffList().empty();
-    case COL_WIDTH: return !widthFilter.getOffList().empty();
-    case COL_HEIGHT: return !heightFilter.getOffList().empty();
-    case COL_MIPS: return mipRangeFilter.isUsingMin() || mipRangeFilter.isUsingMax();
-    case COL_MEM_SIZE: return sizeRangeFilter.isUsingMin() || sizeRangeFilter.isUsingMax();
-    case COL_TEX_USAGE:
+    case *TextureColumn::NAME: return nameFilter.isActive();
+    case *TextureColumn::FORMAT: return !formatFilter.getOffList().empty();
+    case *TextureColumn::WIDTH: return !widthFilter.getOffList().empty();
+    case *TextureColumn::HEIGHT: return !heightFilter.getOffList().empty();
+    case *TextureColumn::MIPS: return mipRangeFilter.isUsingMin() || mipRangeFilter.isUsingMax();
+    case *TextureColumn::MEM_SIZE: return sizeRangeFilter.isUsingMin() || sizeRangeFilter.isUsingMax();
+    case *TextureColumn::USAGE:
       return !isTextureUsageFilterNonRI || !isTextureUsageFilterUnique || !isTextureUsageFilterShared ||
-             textureUsageRangeFilter.isUsingMin() || textureUsageRangeFilter.isUsingMax() || textureUsageFilter.isActive();
+             textureUsageRangeFilter.isUsingMin() || textureUsageRangeFilter.isUsingMax() || textureUsageFilter.isActive() ||
+             assetInstanceCountRangeFilter.isUsingMin() || assetInstanceCountRangeFilter.isUsingMax();
     default: return false;
   }
 }
@@ -502,6 +504,7 @@ void TextureFilterManager::resetAllFilters()
   formatFilter.reset();
   widthFilter.reset();
   heightFilter.reset();
+  textureUsageFilter.reset();
 
   auto profilerUI = static_cast<TextureProfilerUI *>(ILevelProfiler::getInstance()->getTab(TEXTURE_PROFILER_TAB_INDEX)->module);
   auto textureModule = profilerUI->getTextureModule();
@@ -536,6 +539,17 @@ void TextureFilterManager::applyFilters()
   auto profilerUI = static_cast<TextureProfilerUI *>(ILevelProfiler::getInstance()->getTab(TEXTURE_PROFILER_TAB_INDEX)->module);
   auto textureModule = profilerUI->getTextureModule();
   auto riModuleInstance = profilerUI->getRIModule();
+
+  if (riModuleInstance)
+  {
+    int maxInstanceCount = riModuleInstance->getMaxAssetInstanceCount();
+    if (maxInstanceCount > 0 && static_cast<int>(assetInstanceCountRangeFilter.getAbsoluteMax()) != maxInstanceCount)
+    {
+      assetInstanceCountRangeFilter.setAbsoluteBounds(0, maxInstanceCount);
+      if (static_cast<int>(assetInstanceCountRangeFilter.getMax()) == 100)
+        assetInstanceCountRangeFilter.setRange(0, maxInstanceCount);
+    }
+  }
 
   const auto &allTextures = textureModule->getTextures();
   const auto &textureUsageMap = riModuleInstance->getTextureUsage();
@@ -588,7 +602,21 @@ void TextureFilterManager::setTextureUsageFilters(bool non_ri_flag, bool unique_
   applyFilters();
 }
 
-void TextureFilterManager::setRIModule(RIModule *module) { riModule = module; }
+void TextureFilterManager::setRIModule(RIModule *module)
+{
+  riModule = module;
+
+  if (riModule)
+  {
+    int maxInstanceCount = riModule->getMaxAssetInstanceCount();
+    if (maxInstanceCount > 0)
+    {
+      assetInstanceCountRangeFilter.setAbsoluteBounds(0, maxInstanceCount);
+      assetInstanceCountRangeFilter.reset(0, maxInstanceCount);
+      assetInstanceCountRangeFilter.setRange(0, maxInstanceCount);
+    }
+  }
+}
 
 eastl::vector<ProfilerString> TextureFilterManager::getUniqueFormats() const { return getTextureModule()->getUniqueFormats(); }
 

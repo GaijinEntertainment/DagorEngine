@@ -7,13 +7,17 @@
 #include <3d/dag_render.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_clipboard.h>
-#include <ecs/core/entityManager.h>
+#include <camTrack/camTrack.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include "camera/camTrack.h"
 #include "camera/sceneCam.h"
 #include "game/player.h"
 
 using namespace console;
 
-static bool camera_console_handler(const char *argv[], int argc) // move to other file!
+static bool camera_console_handler(const char *argv[], int argc)
 {
   if (argc < 1)
     return false;
@@ -90,6 +94,9 @@ static bool camera_console_handler(const char *argv[], int argc) // move to othe
     else
       disable_free_camera();
   }
+  CONSOLE_CHECK_NAME("camera", "record_track", 2, 2) { camtrack::record(argv[1]); }
+  CONSOLE_CHECK_NAME("camera", "stop_record", 1, 1) { camtrack::stop_record(); }
+  CONSOLE_CHECK_NAME("camera", "play_record", 2, 2) { camtrack::play(argv[1]); }
   return found;
 }
 

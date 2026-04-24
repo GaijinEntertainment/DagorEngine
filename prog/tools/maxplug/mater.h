@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#define I_DAGORMAT 0x70a066e2
+#define I_DAGORMAT (0x70a066e2)
 
 class IDagorMat
 {
@@ -34,4 +34,24 @@ public:
   virtual void set_script(const TCHAR *) = 0;
   virtual void set_texname(int, const TCHAR *) = 0;
   virtual void set_param(int, float) = 0;
+};
+
+#define I_DAGORMAT2 (0x6ffe7bae)
+
+class IDagorMat2 : public IDagorMat
+{
+public:
+  struct EnumTexCB
+  {
+    virtual int proc(const TCHAR *name, const TCHAR *path) = 0;
+  };
+
+  virtual void enumerate_textures(EnumTexCB &cb) = 0;
+
+  struct EnumParamCB
+  {
+    virtual int proc(const TCHAR *group, const TCHAR *name, int type, const TCHAR *value) = 0;
+  };
+
+  virtual void enumerate_parameters(EnumParamCB &cb) = 0;
 };

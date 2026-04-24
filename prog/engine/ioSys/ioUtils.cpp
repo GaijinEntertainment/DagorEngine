@@ -45,7 +45,9 @@ void copy_file_to_stream(file_ptr_t fp, IGenSave &cwr, int size)
   {
     len = size > BUF_SZ ? BUF_SZ : size;
     size -= len;
-    df_read(fp, buf, len);
+    int rd = df_read(fp, buf, len);
+    if (rd < len)
+      memset(buf + max(rd, 0), 0, len - max(rd, 0));
     cwr.write(buf, len);
   }
 }

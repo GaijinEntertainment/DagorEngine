@@ -8,10 +8,11 @@
 
 struct UpdatePhysEvent : public ecs::Event
 {
-  float curTime = 0.;
-  float dt = 0.;
+  float curTime; // TODO: make it double and remove `curTimeD`
+  float dt;
+  double curTimeD;
   ECS_INSIDE_EVENT_DECL(UpdatePhysEvent, ::ecs::EVCAST_BROADCAST | ::ecs::EVFLG_PROFILE)
-  UpdatePhysEvent(float _dt, float _curTime) : ECS_EVENT_CONSTRUCTOR(UpdatePhysEvent), dt(_dt), curTime(_curTime) {}
+  UpdatePhysEvent(float d, double ct) : ECS_EVENT_CONSTRUCTOR(UpdatePhysEvent), dt(d), curTime(ct), curTimeD(ct) {}
 };
 
 struct QueryPhysActorsNotCollidable : public ecs::Event

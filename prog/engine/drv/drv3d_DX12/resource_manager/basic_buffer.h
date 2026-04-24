@@ -53,11 +53,14 @@ public:
     return errorCode;
   }
 
-  void reset(ResourceMemoryHeapProvider *heap, bool update_defragmentation_generation = false)
+  void reset(ResourceMemoryHeapProvider *heap, bool is_heaps_lock_required)
   {
     if (bufferMemory && 0 == bufferMemory.heapID.isAlias)
     {
-      heap->free(bufferMemory, update_defragmentation_generation);
+      if (is_heaps_lock_required)
+        heap->free(bufferMemory);
+      else
+        heap->freeNoLock(bufferMemory, true);
       bufferMemory = {};
     }
     buffer.Reset();

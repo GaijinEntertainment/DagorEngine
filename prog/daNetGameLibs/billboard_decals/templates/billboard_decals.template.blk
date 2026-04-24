@@ -1,0 +1,10 @@
+
+billboard_decal_manager{
+  _tags:t="render"
+  "billboard_decals__mgr:BillboardDecalsPtr"{}
+  billboard_decals__maxDecals:i=10000
+  billboard_decals__diffuseTextureArray:t=""
+  billboard_decals__normalsTextureArray:t=""
+  billboard_decals__depthHardDist:r=0.02
+  billboard_decals__depthSoftnessDist:r=0.03
+}

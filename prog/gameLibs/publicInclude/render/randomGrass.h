@@ -199,6 +199,7 @@ public:
   int addLayer(GrassLayerInfo &layer_info);
   void setLayerRes(GrassLayer *layer);
   GameResource *loadLayerResource(const char *resName);
+  void releaseLayerResource(const void *res);
 
 #if DAGOR_DBGLEVEL > 0
 

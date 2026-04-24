@@ -1,0 +1,7 @@
+include "dafx_helpers.dshl"
+include "dafx_shaders.dshl"
+
+shader dafx_culling_discard
+{
+  DAFX_CULLING_DISCARD_USE()
+}

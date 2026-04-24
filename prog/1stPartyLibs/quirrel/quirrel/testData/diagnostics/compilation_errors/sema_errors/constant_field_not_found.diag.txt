@@ -1,0 +1,8 @@
+ERROR: Field 'c' not found in constant object
+testData/diagnostics/compilation_errors/sema_errors/constant_field_not_found.nut:3:10
+
+const TBL = {a = 1, b = 2}
+const X = TBL.c
+          ^----
+
+

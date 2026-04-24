@@ -110,7 +110,9 @@ function readAdditionalIncludesToString(additionalIncludesFn)
 }
 
 
-function offlineBuild(fileName, outputFile, subgraphs, additionalIncludesFn)
+function offlineBuild(
+  fileName, outputFile, subgraphs,
+  additionalIncludesFn, additionalIncludesPermTable)
 {
   offlineOutputFile = outputFile;
   var graphText = offlineReadFileToString(fileName);
@@ -125,6 +127,7 @@ function offlineBuild(fileName, outputFile, subgraphs, additionalIncludesFn)
   nodeDescriptions.replaceSubgraphDescriptions("ShadersTemp", '{"descriptions":[' + subgraphs.descriptions + "]}");
   editor.restoreDescriptions();
 
+  editor.setAdditionalIncludesPermutationTable(additionalIncludesPermTable)
   editor.parseAdditionalIncludes(additionalIncludesStr);
   editor.parseGraph(graphText.length > 2 ? graphText : editor.emptyGraphStr, true);
   editor.resetHistory();

@@ -44,6 +44,7 @@ struct BhvMarqueeData
   float initialDelay = 1.0f;
   float fadeOutDelay = 1.0f;
   bool scrollOnHover = false;
+  bool pauseOnHover = false;
 
   void resetPhase()
   {

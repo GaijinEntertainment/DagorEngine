@@ -51,6 +51,7 @@ static void update_projector_es_all(const ecs::UpdateStageInfo &__restrict info,
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     update_projector_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(update_projector_es_comps, "projector__id", int)
     , ECS_RW_COMP(update_projector_es_comps, "projector__phase", float)
     , ECS_RO_COMP(update_projector_es_comps, "projector__period", float)
@@ -87,7 +88,8 @@ static void init_manager_es_event_handler_all_events(const ecs::Event &__restric
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_manager_es_event_handler(evt
-        , ECS_RW_COMP(init_manager_es_event_handler_comps, "projectors_manager", ProjectorsManager)
+        , components.manager()
+    , ECS_RW_COMP(init_manager_es_event_handler_comps, "projectors_manager", ProjectorsManager)
     , ECS_RW_COMP(init_manager_es_event_handler_comps, "projectors_node", dafg::NodeHandle)
     , ECS_RW_COMP(init_manager_es_event_handler_comps, "projectors_manager__atmosphereMoveDir", Point3)
     , ECS_RO_COMP_OR(init_manager_es_event_handler_comps, "projectors_manager__atmosphereDensity", float(1.0f))
@@ -127,7 +129,8 @@ static void create_projector_es_event_handler_all_events(const ecs::Event &__res
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     create_projector_es_event_handler(evt
-        , ECS_RO_COMP(create_projector_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(create_projector_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP(create_projector_es_event_handler_comps, "projector__id", int)
     , ECS_RO_COMP(create_projector_es_event_handler_comps, "projector__color", Point3)
     , ECS_RO_COMP(create_projector_es_event_handler_comps, "projector__angle", float)
@@ -162,7 +165,8 @@ static void update_projector_color_changed_es_all_events(const ecs::Event &__res
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_projector_color_changed_es(evt
-        , ECS_RO_COMP(update_projector_color_changed_es_comps, "projector__id", int)
+        , components.manager()
+    , ECS_RO_COMP(update_projector_color_changed_es_comps, "projector__id", int)
     , ECS_RO_COMP(update_projector_color_changed_es_comps, "projector__color", Point3)
     );
   while (++comp != compE);
@@ -201,9 +205,9 @@ static ecs::CompileTimeQueryDesc add_projector_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void add_projector_ecs_query(Callable function)
+inline void add_projector_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, add_projector_ecs_query_desc.getHandle(),
+  perform_query(&manager, add_projector_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -237,9 +241,9 @@ static ecs::CompileTimeQueryDesc projector_update_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void projector_update_ecs_query(Callable function)
+inline void projector_update_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, projector_update_ecs_query_desc.getHandle(),
+  perform_query(&manager, projector_update_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

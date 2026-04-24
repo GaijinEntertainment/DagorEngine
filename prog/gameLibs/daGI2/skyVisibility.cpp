@@ -13,22 +13,20 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 
-#define GLOBAL_VARS_LIST                    \
-  VAR(dagi_sky_vis_sizef)                   \
-  VAR(dagi_sky_vis_clipmap_sizei)           \
-  VAR(dagi_sky_vis_clipmap_sizei_np2)       \
-  VAR(dagi_sky_vis_debug_type)              \
-  VAR(dagi_sky_vis_atlas_decode)            \
-  VAR(dagi_sky_vis_temporal_size)           \
-  VAR(dagi_sky_vis_temporal)                \
-  VAR(dagi_sky_vis_use_sim_bounce)          \
-  VAR(dagi_sky_vis_uav_load)                \
-  VAR(dagi_sky_vis_trace_dist)              \
-  VAR(dagi_sky_vis_update_lt_coord)         \
-  VAR(dagi_sky_vis_spatial_update_from)     \
-  VAR(dagi_sky_vis_update_sz_coord)         \
-  VAR(dagi_sky_visibility_sph_samplerstate) \
-  VAR(dagi_irradiance_grid_sph1_samplerstate)
+#define GLOBAL_VARS_LIST                \
+  VAR(dagi_sky_vis_sizef)               \
+  VAR(dagi_sky_vis_clipmap_sizei)       \
+  VAR(dagi_sky_vis_clipmap_sizei_np2)   \
+  VAR(dagi_sky_vis_debug_type)          \
+  VAR(dagi_sky_vis_atlas_decode)        \
+  VAR(dagi_sky_vis_temporal_size)       \
+  VAR(dagi_sky_vis_temporal)            \
+  VAR(dagi_sky_vis_use_sim_bounce)      \
+  VAR(dagi_sky_vis_uav_load)            \
+  VAR(dagi_sky_vis_trace_dist)          \
+  VAR(dagi_sky_vis_update_lt_coord)     \
+  VAR(dagi_sky_vis_spatial_update_from) \
+  VAR(dagi_sky_vis_update_sz_coord)
 
 #define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
 GLOBAL_VARS_LIST
@@ -83,26 +81,21 @@ static void set_clip_vars(int clip_no, const IPoint3 &lt, float probeSize, bool 
     set_irradiance_clip(clip_no, lt, probeSize);
 }
 
-void SkyVisibility::setClipVars(int clip_no) const
+void SkyVisibility::setClipVars(int clip_no, float probe_size) const
 {
   auto &clip = clipmap[clip_no];
-  set_clip_vars(clip_no, clip.lt, clip.probeSize, replicateToIrradiance);
+  set_clip_vars(clip_no, clip.lt, probe_size, replicateToIrradiance);
 #if DAGOR_DBGLEVEL > 0
   if (!is_pow_of2(clipW) || !is_pow_of2(clipD))
   {
     IPoint4 l = dagi_sky_vis_clipmap_sizei_np2VarId.get_int4();
-    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.y)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.y ||
-        l.w < -clip.lt.z)
+    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.z)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z ||
+        l.w < -clip.lt.y)
     {
       LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, clipW, clipD);
     }
   }
 #endif
-}
-
-inline IPoint3 SkyVisibility::getNewClipLT(uint32_t clip, const Point3 &world_pos) const
-{
-  return ipoint3(floor(Point3::xzy(world_pos) / get_probe_size(clip) + 0.5)) - IPoint3(clipW, clipW, clipD) / 2;
 }
 
 static void clear_clipmap(bool replicateToIrradiance)
@@ -115,7 +108,7 @@ SkyVisibility::~SkyVisibility()
 {
   clear_clipmap(replicateToIrradiance);
   ShaderGlobal::set_int4(dagi_sky_vis_clipmap_sizeiVarId, 0, 0, 0, 0);
-  ShaderGlobal::set_color4(dagi_sky_vis_sizefVarId, 0, 0, 0, 0);
+  ShaderGlobal::set_float4(dagi_sky_vis_sizefVarId, 0, 0, 0, 0);
   ShaderGlobal::set_int4(dagi_sky_vis_clipmap_sizei_np2VarId, 0, 0, 0, 0);
   if (replicateToIrradiance)
   {
@@ -126,16 +119,18 @@ SkyVisibility::~SkyVisibility()
 
 void SkyVisibility::setClipmapVars()
 {
-  clear_clipmap(replicateToIrradiance);
   for (int i = 0, ie = clipmap.size(); i < ie; ++i)
-    setClipVars(i);
+  {
+    clipmap[i].invalidate();
+    setClipVars(i, get_probe_size(i));
+  }
 }
 
 void SkyVisibility::initHistory()
 {
   if (validHistory)
     return;
-  clipmap.assign(clipmap.size(), Clip());
+  clipmap.assign(clipmap.size(), VoxelClip());
   setClipmapVars();
   temporalFrame = 0;
   dagi_sky_visibility_clear_temporal_cs->dispatchThreads(1, 1, 1);
@@ -152,7 +147,7 @@ void SkyVisibility::updateTemporal(bool update_clipmap)
       temporalFrame = 1;
     uint32_t clip = __bsr((temporalFrame & ((1 << clipmap.size()) - 1)));
     clip = clipmap.size() - 1 - clip;
-    for (uint32_t i = 0, ie = clipmap.size(); clipmap[clip].probeSize == 0 && i < ie; ++i)
+    for (uint32_t i = 0, ie = clipmap.size(); clipmap[clip].lt == VoxelClip::get_invalid_lt() && i < ie; ++i)
       clip = (clip + 1) % clipmap.size();
 
     const uint32_t frame = temporalFrames[clip]++;
@@ -215,18 +210,19 @@ void SkyVisibility::setTraceDist(uint32_t clip_no)
   float intersectTraceDist = maxTraceDist, airTraceDist = maxTraceDist;
   if (supportUnorderedLoad && clip_no < clipmap.size() - 1)
   {
-    intersectTraceDist = clipmap[clip_no + 1].probeSize * intersectTraceDistProbes;
-    intersectTraceDist = min(intersectTraceDist, 0.25f * get_probe_size(clip_no + 1) * clipW);
+    float nextClipProbeSize = get_probe_size(clip_no + 1);
+    intersectTraceDist = nextClipProbeSize * intersectTraceDistProbes;
+    intersectTraceDist = min(intersectTraceDist, 0.25f * nextClipProbeSize * clipW);
     intersectTraceDist = min(intersectTraceDist, maxTraceDist * 1.f / (clipmap.size() - clip_no));
     airTraceDist = intersectTraceDist * airTraceDistScale;
   }
   if (!supportUnorderedLoad)
   {
-    maxTraceDist *= 0.5;
+    intersectTraceDist *= 0.5;
     airTraceDist = intersectTraceDist * airTraceDistScale;
   }
 
-  ShaderGlobal::set_color4(dagi_sky_vis_trace_distVarId, intersectTraceDist, airTraceDist, 0, 0);
+  ShaderGlobal::set_float4(dagi_sky_vis_trace_distVarId, intersectTraceDist, airTraceDist, 0, 0);
 }
 
 uint32_t SkyVisibility::getRequiredTemporalBufferSize() const { return selectedProbesBufferSize; }
@@ -237,24 +233,18 @@ void SkyVisibility::setTemporalBuffer(const ManagedBuf &buf)
   dagi_sky_visibility_selected_probes = buf.getBuf();
 }
 
-bool SkyVisibility::updateClip(uint32_t clip_no, const IPoint3 &lt, float newProbeSize, bool updateLast)
+bool SkyVisibility::updateClip(uint32_t clip_no, const Point3 &world_pos, bool updateLast)
 {
   DA_PROFILE_GPU;
+
+  float probeSize = get_probe_size(clip_no);
   auto &clip = clipmap[clip_no];
-
-  carray<IBBox3, 6> changed;
-  const IPoint3 sz(clipW, clipW, clipD);
-  const IPoint3 oldLt = (clip.probeSize != newProbeSize) ? clip.lt - sz * 2 : clip.lt;
-  if (oldLt == lt)
+  auto changed = clip.updatePos<DAGI_SKY_VIS_MOVE_THRESHOLD>(world_pos, clipW, clipD, probeSize);
+  int changedCnt = changed.size();
+  if (changedCnt == 0)
     return false;
-  ShaderGlobal::set_int(dagi_sky_vis_use_sim_bounceVarId, clip_no < simulatedBounceCascadesCount ? 1 : 0);
-  // debug("sky clip %d: %@->%@ %f %f", clip_no, oldLt, lt, clip.probeSize, newProbeSize);
-  dag::Span<IBBox3> changedSpan(changed.data(), changed.size());
-  const int changedCnt = move_box_toroidal(lt, oldLt, sz, changedSpan);
-  clip.lt = lt;
-  clip.probeSize = newProbeSize;
 
-  setClipVars(clip_no);
+  setClipVars(clip_no, probeSize);
   setTraceDist(clip_no);
   {
     TIME_D3D_PROFILE(skyvis_interpolate);
@@ -264,7 +254,7 @@ bool SkyVisibility::updateClip(uint32_t clip_no, const IPoint3 &lt, float newPro
       ShaderGlobal::set_int4(dagi_sky_vis_update_lt_coordVarId, changed[ui][0].x, changed[ui][0].y, changed[ui][0].z, clip_no);
       const IPoint3 updateSize = changed[ui].width();
       ShaderGlobal::set_int4(dagi_sky_vis_update_sz_coordVarId, updateSize.x, updateSize.y, updateSize.z,
-        bitwise_cast<uint32_t>(clip.probeSize));
+        bitwise_cast<uint32_t>(probeSize));
       dagi_sky_visibility_toroidal_movement_interpolate_cs->dispatchThreads(updateSize.x * updateSize.y * updateSize.z, 1, 1);
       d3d::resource_barrier({dagi_sky_visibility_age.getVolTex(),
         ui < changedCnt - 1 ? RB_NONE : RB_RO_SRV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE, 0, 0});
@@ -278,7 +268,7 @@ bool SkyVisibility::updateClip(uint32_t clip_no, const IPoint3 &lt, float newPro
       ShaderGlobal::set_int4(dagi_sky_vis_update_lt_coordVarId, changed[ui][0].x, changed[ui][0].y, changed[ui][0].z, clip_no);
       const IPoint3 updateSize = changed[ui].width();
       ShaderGlobal::set_int4(dagi_sky_vis_update_sz_coordVarId, updateSize.x, updateSize.y, updateSize.z,
-        bitwise_cast<uint32_t>(clip.probeSize));
+        bitwise_cast<uint32_t>(probeSize));
       dagi_sky_visibility_toroidal_movement_trace_cs->dispatch(updateSize.x, updateSize.y, updateSize.z);
 
       d3d::resource_barrier({dagi_sky_visibility_sph.getVolTex(),
@@ -300,7 +290,7 @@ bool SkyVisibility::updateClip(uint32_t clip_no, const IPoint3 &lt, float newPro
       ShaderGlobal::set_int4(dagi_sky_vis_update_lt_coordVarId, changed[ui][0].x, changed[ui][0].y, changed[ui][0].z, clip_no);
       const IPoint3 updateSize = changed[ui].width();
       ShaderGlobal::set_int4(dagi_sky_vis_update_sz_coordVarId, updateSize.x, updateSize.y, updateSize.z,
-        bitwise_cast<uint32_t>(clip.probeSize));
+        bitwise_cast<uint32_t>(probeSize));
       const uint32_t totalSize = updateSize.x * updateSize.y * updateSize.z;
 
       const uint32_t threads = dagi_sky_visibility_toroidal_movement_spatial_filter_split_cs->getThreadGroupSizes()[0];
@@ -336,22 +326,20 @@ void SkyVisibility::initClipmap(uint32_t w_, uint32_t d_, uint32_t clips_)
     (clipW << (clips_ - 1)) * 0.5f * probeSize0);
 
   dagi_sky_visibility_sph.close();
-  dagi_sky_visibility_sph =
-    dag::create_voltex(clipW, clipW, (clipD + 2) * clips_, TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, "dagi_sky_visibility_sph");
-  dagi_sky_visibility_sph_samplerstateVarId.set_sampler(d3d::request_sampler({}));
-  dagi_irradiance_grid_sph1_samplerstateVarId.set_sampler(d3d::request_sampler({}));
+  dagi_sky_visibility_sph = dag::create_voltex(clipW, clipW, (clipD + 2) * clips_,
+    TEXCF_UNORDERED | TEXFMT_A16B16G16R16F | TEXCF_CLEAR_ON_CREATE, 1, "dagi_sky_visibility_sph", RESTAG_DAGI2);
   dagi_sky_visibility_age.close();
   dagi_sky_visibility_age =
-    dag::create_voltex(clipW, clipW, clipD * clips_, TEXCF_UNORDERED | TEXFMT_R8, 1, "dagi_sky_visibility_age");
+    dag::create_voltex(clipW, clipW, clipD * clips_, TEXCF_UNORDERED | TEXFMT_R8, 1, "dagi_sky_visibility_age", RESTAG_DAGI2);
   ShaderGlobal::set_int4(dagi_sky_vis_clipmap_sizeiVarId, clipW, clipD, clips_, clipD + 2);
-  ShaderGlobal::set_color4(dagi_sky_vis_sizefVarId, clipW, clipD, 1.f / clipW, 1.f / clipD);
+  ShaderGlobal::set_float4(dagi_sky_vis_sizefVarId, clipW, clipD, 1.f / clipW, 1.f / clipD);
   constexpr int max_pos = (1 << 30) - 1;
   ShaderGlobal::set_int4(dagi_sky_vis_clipmap_sizei_np2VarId, clipW, clipD, is_pow_of2(clipW) ? 0 : (max_pos / clipW) * clipW,
     is_pow_of2(clipD) ? 0 : (max_pos / clipD) * clipD);
   if (replicateToIrradiance)
   {
     set_irradiance_grid_params(clipW, clipD, clips_, 2);
-    set_irradiance_grid_textures(BAD_TEXTUREID, dagi_sky_visibility_sph.getTexId());
+    set_irradiance_grid_textures(dagi_sky_visibility_sph.getTexId(), dagi_sky_visibility_sph.getTexId());
   }
 }
 
@@ -372,7 +360,7 @@ void SkyVisibility::initTemporal(uint32_t frames_to_update_clip)
     if (!supportUnorderedLoad)
       debug("SkyVis: unordered load is not supported. filtering with multiplass");
     dagi_sky_visibility_probabilities = dag::create_sbuffer(sizeof(uint32_t), DAGI_MAX_SKY_VIS_CLIPS * 2 + 1,
-      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | debug_flag, 0, "dagi_sky_visibility_probabilities");
+      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | debug_flag, 0, "dagi_sky_visibility_probabilities", RESTAG_DAGI2);
     debug("SkyVis: selectedProbesBufferSize: %d", selectedProbesBufferSize);
     debug("SkyVis: dagi_sky_visibility_probabilities buffer size: %d", DAGI_MAX_SKY_VIS_CLIPS * 2 + 1);
   }
@@ -380,7 +368,7 @@ void SkyVisibility::initTemporal(uint32_t frames_to_update_clip)
   if (temporalProbesBufferSize)
   {
     dagi_sky_vis_indirect_buffer = dag::create_sbuffer(sizeof(uint32_t), 3,
-      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_UA_INDIRECT | debug_flag, 0, "dagi_sky_vis_indirect_buffer");
+      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_UA_INDIRECT | debug_flag, 0, "dagi_sky_vis_indirect_buffer", RESTAG_DAGI2);
   }
 }
 
@@ -392,7 +380,7 @@ void SkyVisibility::setReplicateToIrradiance(bool on)
   if (on && !replicateToIrradiance)
   {
     set_irradiance_grid_params(clipW, clipD, clipmap.size(), 2);
-    set_irradiance_grid_textures(BAD_TEXTUREID, dagi_sky_visibility_sph.getTexId());
+    set_irradiance_grid_textures(dagi_sky_visibility_sph.getTexId(), dagi_sky_visibility_sph.getTexId());
     setClipmapVars();
   }
   replicateToIrradiance = on;
@@ -414,7 +402,7 @@ void SkyVisibility::init(uint32_t w_, uint32_t d_, uint32_t clips_, float probe0
 {
 #define VAR(a)     \
   if (!(a##VarId)) \
-    logerr("mandatory shader variable is missing: %s", #a);
+    a##VarId.require();
   GLOBAL_VARS_LIST
 #undef VAR
 
@@ -432,7 +420,7 @@ void SkyVisibility::init(uint32_t w_, uint32_t d_, uint32_t clips_, float probe0
   const float clipInAtlasPart = float(clipD) / fullAtlasDepth;
   const float clipWithBorderInAtlasPart = float(clipD + 2) / fullAtlasDepth;
 
-  ShaderGlobal::set_color4(dagi_sky_vis_atlas_decodeVarId, clipInAtlasPart, clipWithBorderInAtlasPart, 1. / fullAtlasDepth, 0);
+  ShaderGlobal::set_float4(dagi_sky_vis_atlas_decodeVarId, clipInAtlasPart, clipWithBorderInAtlasPart, 1. / fullAtlasDepth, 0);
 }
 
 void SkyVisibility::updatePos(const Point3 &world_pos, bool update_all)
@@ -444,41 +432,18 @@ void SkyVisibility::updatePos(const Point3 &world_pos, bool update_all)
   }
   initHistory();
 
-  StaticTab<eastl::pair<int, Clip>, DAGI_MAX_SKY_VIS_CLIPS> updatedClipmaps;
+  DA_PROFILE_GPU;
+  bool updatedAny = false;
   for (int i = clipmap.size() - 1; i >= 0; --i)
   {
-    auto &clip = clipmap[i];
-    const IPoint3 lt = getNewClipLT(i, world_pos);
-    const IPoint3 move = lt - clip.lt, absMove = abs(move);
-    const float probeSize = get_probe_size(i);
-    const int maxMove = max(max(absMove.x, absMove.y), absMove.z);
-    if (maxMove > DAGI_SKY_VIS_MOVE_THRESHOLD || clip.probeSize != probeSize)
-    {
-      IPoint3 useMove{0, 0, 0};
-      const Point3 relMove = div(point3(absMove), Point3(clipW, clipW, clipD));
-      if (clip.probeSize != probeSize ||                      // everything has changed
-          max(max(relMove.x, relMove.y), relMove.z) >= 1.f || // we moved one axis in more than full direction
-          relMove.x + relMove.y + relMove.z >= 1) // trigger full update anyway, as we have moved enough. This decrease number of
-                                                  // spiked frames after teleport
-        useMove = move;
-      else if (absMove.x == maxMove)
-        useMove.x = move.x;
-      else if (absMove.y == maxMove)
-        useMove.y = move.y;
-      else
-        useMove.z = move.z;
-      updatedClipmaps.emplace_back(i, Clip{clip.lt + useMove, probeSize});
-      if (!update_all)
-        break;
-    }
+    bool updateLast = i == 0 || !update_all; // Assuming it will be used only when there's something to update.
+    updatedAny |= updateClip(i, world_pos, updateLast);
+    if (updatedAny && !update_all)
+      break;
   }
 
-  DA_PROFILE_GPU;
-  for (auto &clip : updatedClipmaps)
-    updateClip(clip.first, clip.second.lt, clip.second.probeSize, &clip == &updatedClipmaps.back());
-
   if (gi_sky_vis_update_temporal)
-    updateTemporal(updatedClipmaps.empty());
+    updateTemporal(!updatedAny);
 
   auto stageAll = RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX;
   d3d::resource_barrier({dagi_sky_visibility_sph.getVolTex(), RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | stageAll, 0, 0});

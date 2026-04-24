@@ -107,7 +107,7 @@ public:
   virtual void sendDesyncStats(const PhysDesyncStats &) {}
   virtual void prePhysUpdate(int32_t /*tick*/, float /*dt*/, bool /*is_for_real*/ = true) {}
   virtual void postPhysUpdate(int32_t /*tick*/, float /*dt*/, bool /*is_for_real*/ = true) {}
-  virtual void postPhysInterpolate(float /*at_time*/, float /*dt*/) {}
+  virtual void postPhysInterpolate(double /*at_time*/, float /*dt*/) {}
 
   virtual uint8_t getAuthorityUnitVersion() const { return 0; }
   virtual bool isUnitVersionMatching(uint8_t) const { return true; }

@@ -56,6 +56,14 @@ macro USE_CLIPMAP_VS(VS_INPUT_M, VS_OUTPUT_M, use_worldpos_from_input)
         output.objectCenterPos = params.objectCenterPos;
         output.grassifyDiscardWeight = input.vcol.r;
       #endif
+      #if USE_MIX_TEXTURES
+        output.diffuseMixTc = input.diffuseMixTc;
+        output.diffuseMixWeight = input.vcol.b;
+      #endif
+      #if HAS_DOMAIN_UV
+        output.domVertexTc = input.domVertexTc.xy;
+        output.domEdgeTc = input.domEdgeTc;
+      #endif
     }
   }
 endmacro
@@ -101,22 +109,42 @@ macro USE_CLIPMAP_PS(VS_OUTPUT, use_worldpos_from_input)
         float emission;
         sample_clipmaps(tcWorldPos.xz, worldPosGradients, result.albedo.rgb, clipNormalXY,
                         result.smoothness, result.ao, result.reflectance, emission, detailNo, smooth_mip);
+        #if BURNT_GROUND_ENABLED
+          apply_burnt_ground(worldPos, result, detailNo);
+        #endif
         half3 clipmapColor;
         half porosity, sparkles, normalWetness;
-        float wetness;
+        float wetness, waterLevel;
         calculateHeightmapDetails(result, detailNo, realWorldPos, verticalNormal, pointToEyeNorm,
-                                  clipNormalXY, clipmapColor, porosity, sparkles, normalWetness, wetness);
+                                  clipNormalXY, clipmapColor, porosity, sparkles, normalWetness, wetness, waterLevel);
         computeSnowSparkle(realWorldPos, world_view_pos.xyz, sparkles, result.normal, result.smoothness);
         calculateHeightmapMicrodetails(result, detailNo, tcWorldPos, realWorldPos, verticalNormal, clipNormalXY,
-                                        porosity, normalWetness, wetness);
+                                        porosity, normalWetness, wetness, waterLevel);
         ##if shader == rendinst_landclass
           half puddle = addLandclassPuddles(result, realWorldPos, worldPos.y, htTc, porosity, input.tcWorldPos.w);
         ##else
-          half puddle = addPuddles(result, realWorldPos, input.tcWorldPos.w, htTc, porosity, input.tcWorldPos.w);
+          half puddle = addPuddles(result, realWorldPos, input.tcWorldPos.w, htTc, porosity, input.tcWorldPos.w, waterLevel);
         ##endif
       ##else
         result.albedo.rgb = float3(0.5, 0.5, 0.5);
       ##endif
+
+      #if USE_MIX_TEXTURES
+        float4 mixColor = tex2DBindless(get_diffuse_mix_tex(), input.diffuseMixTc);
+        float alpha = get_mix_tex_alpha(mixColor.a, input.diffuseMixWeight, get_mix_tex_material_softness_scale_offset());
+        BRANCH
+        if (alpha > 0) // Possible invert on condition
+        {
+          result.albedo.rgb = lerp(result.albedo.rgb, mixColor.rgb, alpha);
+          half4 packedNormalMap = tex2DBindless(get_normal_mix_tex(), input.diffuseMixTc);
+          result.smoothness = lerp(result.smoothness, packedNormalMap.r, alpha);
+          result.reflectance  = lerp(result.reflectance, packedNormalMap.b, alpha);
+          half3 normalMap = unpack_ag_normal(packedNormalMap);
+          half3 correctedNormals = perturb_normal_precise(normalMap, worldNormal, pointToEye, input.diffuseMixTc);
+          result.normal = normalize(lerp(result.normal, correctedNormals, alpha));
+          result.ao = lerp(result.ao, 1, alpha); // Need to clear ao produced by clipmap
+        }
+      #endif
 
       #if VOXELIZE_ALBEDO_PASS
         WRITE_SCENE25D_VOXEL_DATA(realWorldPos, result.albedo.rgb, 0, 0);

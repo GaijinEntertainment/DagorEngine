@@ -15,8 +15,6 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
 {
   // be aware of quite memory hungry linear search here!
   constexpr uint32_t maxArraySizeForLinearSearch = 10;
-  if (compiledFBs.size() >= maxArraySizeForLinearSearch)
-    D3D_ERROR("vulkan: too much FB variations for RP %p[%p]<%s>, reduce them or redo search", this, getBaseHandle(), getDebugName());
 
   VulkanFramebufferHandle ret;
   uint32_t lastFreeFB = -1;
@@ -64,6 +62,8 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
   if (is_null(ret))
   {
     FbWithCreationInfo &newFB = lastFreeFB != -1 ? compiledFBs[lastFreeFB] : compiledFBs.push_back();
+    if (compiledFBs.size() >= maxArraySizeForLinearSearch)
+      D3D_ERROR("vulkan: too much FB variations for RP %p[%p]<%s>, reduce them or redo search", this, getBaseHandle(), getDebugName());
     for (uint32_t i = 0; i < desc.targetCount; ++i)
     {
       const StateFieldRenderPassTarget &tgt = state->targets.data[i];
@@ -87,31 +87,30 @@ VulkanFramebufferHandle RenderPassResource::compileOrGetFB()
       bool formatsCompatible = false;
       FormatStore expectedFormat = desc.targetFormats[i];
       VkFormat expectedVkFormat = expectedFormat.asVkFormat();
-      VkFormat attVkFormat = tgt.image->getFormat().asVkFormat();
-      const auto &formatList = bakedAttachments->formatLists[i];
+      Image::ViewFormatList formatList;
 
       if (Globals::cfg.has.imagelessFramebuffer)
       {
+        formatList = bakedAttachments->formatLists[i];
         for (uint32_t j = 0; j < formatList.size(); ++j)
           formatsCompatible |= expectedVkFormat == formatList[j];
       }
       else
-        formatsCompatible |= expectedVkFormat == attVkFormat;
+      {
+        viewFormatListFrom(tgt.image->getFormat(), tgt.image->getUsage(), formatList);
+        for (uint32_t j = 0; j < formatList.size(); ++j)
+          formatsCompatible |= expectedVkFormat == formatList[j];
+      }
 
       if (!formatsCompatible)
       {
         String actualFormats("[");
-        if (Globals::cfg.has.imagelessFramebuffer)
+        for (uint32_t j = 0; j < formatList.size(); ++j)
         {
-          for (uint32_t j = 0; j < formatList.size(); ++j)
-          {
-            actualFormats += FormatStore::fromVkFormat(formatList[j]).getNameString();
-            if (j + 1 < formatList.size())
-              actualFormats += ", ";
-          }
+          actualFormats += FormatStore::fromVkFormat(formatList[j]).getNameString();
+          if (j + 1 < formatList.size())
+            actualFormats += ", ";
         }
-        else
-          actualFormats += tgt.image->getFormat().getNameString();
         actualFormats += "]";
         DAG_FATAL("vulkan: attachment %u of RP %p[%p]<%s> expected format %s, got some of %s in image %p<%s>", i, this,
           getBaseHandle(), getDebugName(), expectedFormat.getNameString(), actualFormats, tgt.image, tgt.image->getDebugName());

@@ -9,6 +9,7 @@ int tile_change_depth_source_tex_const_no = 12 always_referenced;
 shader tile_read_depth_ps, tile_write_depth_ps
 {
   supports global_frame;
+  supports none;
   cull_mode = none;
   no_ablend;
 

@@ -2,6 +2,7 @@
 
 #include <main/water.h>
 
+#include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentType.h>
 #include <daECS/core/componentTypes.h>
@@ -15,46 +16,46 @@ static ShaderVariableInfo cpu_viewpos_water_level("cpu_viewpos_water_level", tru
 } // namespace var
 
 template <typename Callable>
-static void get_is_underwater_ecs_query(Callable);
+static void get_is_underwater_ecs_query(ecs::EntityManager &manager, Callable);
 template <typename Callable>
-static void get_waterlevel_for_camera_pos_ecs_query(Callable);
+static void get_waterlevel_for_camera_pos_ecs_query(ecs::EntityManager &manager, Callable);
 
 bool is_underwater()
 {
   bool isUnderWater = false;
-  get_is_underwater_ecs_query([&](bool is_underwater) { isUnderWater = is_underwater; });
+  get_is_underwater_ecs_query(*g_entity_mgr, [&](bool is_underwater) { isUnderWater = is_underwater; });
   return isUnderWater;
 }
 
 template <typename T>
-static inline void is_water_hidden_ecs_query(T cb);
+static inline void is_water_hidden_ecs_query(ecs::EntityManager &manager, T cb);
 
 bool is_water_hidden()
 {
   bool waterHidden = false;
-  is_water_hidden_ecs_query([&](bool water_hidden) { waterHidden = water_hidden; });
+  is_water_hidden_ecs_query(*g_entity_mgr, [&](bool water_hidden) { waterHidden = water_hidden; });
   return waterHidden;
 }
 
 float get_waterlevel_for_camera_pos()
 {
   float height = 10000;
-  get_waterlevel_for_camera_pos_ecs_query([&](float water_level) { height = water_level; });
+  get_waterlevel_for_camera_pos_ecs_query(*g_entity_mgr, [&](float water_level) { height = water_level; });
   return height;
 }
 
 template <typename Callable>
-static void retrieve_dof_entity_for_underwater_dof_ecs_query(Callable);
+static void retrieve_dof_entity_for_underwater_dof_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static void toggle_underwater_dof_ecs_query(Callable);
+static void toggle_underwater_dof_ecs_query(ecs::EntityManager &manager, Callable);
 
-static void toggle_underwater_dof(bool is_underwater)
+static void toggle_underwater_dof(ecs::EntityManager &manager, bool is_underwater)
 {
-  retrieve_dof_entity_for_underwater_dof_ecs_query(
-    [is_underwater](bool &dof__on, bool &dof__is_filmic, float &dof__nearDofStart, float &dof__nearDofEnd,
+  retrieve_dof_entity_for_underwater_dof_ecs_query(manager,
+    [is_underwater, &manager](bool &dof__on, bool &dof__is_filmic, float &dof__nearDofStart, float &dof__nearDofEnd,
       float &dof__nearDofAmountPercent, float &dof__farDofStart, float &dof__farDofEnd, float &dof__farDofAmountPercent) {
-      toggle_underwater_dof_ecs_query(
+      toggle_underwater_dof_ecs_query(manager,
         [is_underwater, &dof__on, &dof__is_filmic, &dof__nearDofStart, &dof__nearDofEnd, &dof__nearDofAmountPercent, &dof__farDofStart,
           &dof__farDofEnd, &dof__farDofAmountPercent](bool &savedDof__on, bool &savedDof__is_filmic, float &savedDof__nearDofStart,
           float &savedDof__nearDofEnd, float &savedDof__nearDofAmountPercent, float &savedDof__farDofStart, float &savedDof__farDofEnd,
@@ -99,7 +100,7 @@ static void toggle_underwater_dof(bool is_underwater)
 ECS_TAG(render)
 ECS_AFTER(animchar_before_render_es) // required to increase parallelity (start `animchar_before_render_es` as early as possible)
 static void update_water_level_values_es(
-  const UpdateStageInfoBeforeRender &evt, FFTWater &water, bool &is_underwater, float &water_level)
+  const UpdateStageInfoBeforeRender &evt, ecs::EntityManager &manager, FFTWater &water, bool &is_underwater, float &water_level)
 {
   water_level = 0;
   fft_water::setRenderParamsToPhysics(&water);
@@ -107,6 +108,6 @@ static void update_water_level_values_es(
   bool wasUnderwater = is_underwater;
   is_underwater = water_level < 0 && !is_water_hidden();
   if (wasUnderwater != is_underwater)
-    toggle_underwater_dof(is_underwater);
-  ShaderGlobal::set_real(var::cpu_viewpos_water_level, evt.camPos.y - water_level);
+    toggle_underwater_dof(manager, is_underwater);
+  ShaderGlobal::set_float(var::cpu_viewpos_water_level, evt.camPos.y - water_level);
 }

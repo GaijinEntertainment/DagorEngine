@@ -62,10 +62,7 @@ inline void scene_lods_gather_mats(const DynamicRenderableSceneLodsResource &sce
   scene_lods.gatherLodUsedMat(mats, lod);
 
   das::Array arr;
-  arr.data = (char *)mats.data();
-  arr.size = uint32_t(mats.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)mats.data(), mats.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

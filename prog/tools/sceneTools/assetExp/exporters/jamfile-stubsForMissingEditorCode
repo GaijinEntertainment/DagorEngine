@@ -1,0 +1,22 @@
+PlatformArch_windows = x86_64 ;
+Root    ?= ../../../../.. ;
+Location = prog/tools/sceneTools/assetExp/exporters ;
+
+TargetType  = lib ;
+Target      = tools/sceneTools/assetExp/exporters/ed_stubs.lib ;
+
+Sources =
+  fxExpStubs.cpp
+  landClsExpStubs.cpp
+;
+
+AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+;
+
+UseProgLibs =
+  tools/sceneTools/assetExp/exporters/scriptHelpersLt
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

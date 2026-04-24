@@ -285,6 +285,7 @@ public:
   SparkFxValueCurveOpt widthOverLife;
   bool allowScreenProjDiscard;
   int collision;
+  bool smoothFadeEnabled;
 
 
   static ScriptHelpers::TunedElement *createTunedElement(const char *name);
@@ -292,12 +293,13 @@ public:
   bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION_OPT(ptr, len, 3);
+    CHECK_FX_VERSION_OPT(ptr, len, 4);
 
     if (!widthOverLife.load(ptr, len, load_cb))
       return false;
     allowScreenProjDiscard = readType<int>(ptr, len);
     collision = readType<int>(ptr, len);
+    smoothFadeEnabled = readType<int>(ptr, len);
     return true;
   }
 };

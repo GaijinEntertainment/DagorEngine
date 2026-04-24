@@ -12,11 +12,9 @@
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_direct.h>
 
-#ifndef NO_3D_GFX
 #include <debug/dag_debug3d.h>
 #include <perfMon/dag_graphStat.h>
 #include <gui/dag_visualLog.h>
-#endif
 
 #include <math/random/dag_random.h>
 #include <math/dag_mathBase.h>
@@ -176,14 +174,10 @@ RayCar::RayCar(const char *car_name, PhysBody *body_, const TMatrix &phys_to_log
 
   wheelPhysMatId = PhysMat::getMaterialId("rubber");
 
-#ifndef NO_3D_GFX
-
 #if DEBUG_WHEEL_SLIP
   gid_slip0 = Stat3D::addGraphic("slip0", "slip0", E3DCOLOR(255, 200, 100), 1);
   gid_slip1 = Stat3D::addGraphic("slip1", "slip1", E3DCOLOR(200, 255, 100), 1);
 #endif
-
-#endif // NO_3D_GFX
 
   carMass = getMass();
 
@@ -341,13 +335,11 @@ void RayCar::detachWheel(int which, DynamicRenderableSceneLodsResource **model, 
   G_ASSERT((which >= 0) && (which < wheels.size()));
   wheels[which].visible = false;
 
-#ifndef NO_3D_GFX
   if (!wheels[which].rendObj)
     return;
 
   *model = wheels[which].rendObj->getLodsResource();
   pos = wheels[which].rendObj->getNodeWtm(0);
-#endif
 }
 
 inline double rungekutt(double x, double x1, double y, int n, double a, double b)
@@ -409,7 +401,7 @@ void RayCar::calcWheelContactForces(int wid, float norm_force, float load_rad, c
 
   if (wheels[wid].psiDt > 0)
   {
-    wheels[wid].psiP = -asinf(wheel_basis[B_SIDE] * wheels[wid].lastFwdDir) / wheels[wid].psiDt;
+    wheels[wid].psiP = -safe_asin(wheel_basis[B_SIDE] * wheels[wid].lastFwdDir) / wheels[wid].psiDt;
     wheels[wid].lastFwdDir = wheel_basis[B_FWD];
     wheels[wid].psiDt = 0;
   }
@@ -468,16 +460,12 @@ void RayCar::calcWheelContactForces(int wid, float norm_force, float load_rad, c
     wheels[wid].dampingOn, P3D(ground_vel));
   */
 
-#ifndef NO_3D_GFX
-
 #if DEBUG_WHEEL_SLIP
   if (wid == 2)
     Stat3D::setGraphicValue(gid_slip0, slip_ratio);
   else
     Stat3D::setGraphicValue(gid_slip1, slip_ratio);
 #endif
-
-#endif // NO_3D_GFX
 
   float gamma_s = (wheel_basis[B_SIDE] * wheel_basis[B_UP]), inclination;
   if (gamma_s > 1)
@@ -1197,8 +1185,6 @@ void RayCar::changeTargetCtrlVelWt(float wt, float change_strength)
   tcdVelWt = fsel(tcdVelWt, fsel(tcdVelWt - 1, 1, tcdVelWt), 0);
 }
 
-#ifndef NO_3D_GFX
-
 void RayCar::calcWheelRenderTm(TMatrix &tm, int wid, const TMatrix &car_visual_tm)
 {
   RayCarWheel &wheel = wheels[wid];
@@ -1295,8 +1281,6 @@ void RayCar::renderDebug()
   ::end_draw_cached_debug_lines();
 #endif
 }
-
-#endif // NO_3D_GFX
 
 
 Point3 RayCar::getPos()
@@ -2051,33 +2035,6 @@ void RayCar::onWheelContact(int wheel_id, int pmid, const Point3 &pos, const Poi
 
 
   const PhysMat::InteractProps &interactProps = PhysMat::getInteractProps(pmid, wheelPhysMatId);
-
-#ifndef NO_3D_GFX
-  if (wheels[wheel_id].tireEmitter)
-  {
-    for (int fxId = 0; fxId < interactProps.fx.size(); fxId++)
-    {
-      PhysMat::FXDesc *desc = interactProps.fx[fxId];
-      if (PhysMat::PMFX_TIRES == desc->type)
-      {
-        float frict = globalFrictionMul * (1.0f - globalFrictionVDecay); //== need explicit road moisture factor?
-        if (frict > desc->params.getReal(MAKE_PARAM('fric'), -1))
-        {
-          int texIndex = desc->params.getInt(MAKE_PARAM('tid '), 0);
-          float tireSlipSpeed = fabsf(wheels[wheel_id].lastSlipRatio);
-          if (tireSlipSpeed < 0.2)
-            tireSlipSpeed = 0;
-          else
-            tireSlipSpeed = 2.0 + (tireSlipSpeed - 0.2) / 0.4 * 2.0;
-
-          // wheels[wheel_id].tireEmitter->emit(norm, pos, move_dir, wheel_dir,
-          //   lighting.getDirLt().shAmb[SPHHARM_00],
-          //   tireSlipSpeed + fabs(wheels[wheel_id].lastSlipLatVel)/4.0, texIndex);
-        }
-      }
-    }
-  }
-#endif
 
   if (collisionFxCb)
   {

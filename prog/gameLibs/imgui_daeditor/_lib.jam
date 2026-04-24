@@ -1,0 +1,5 @@
+
+if $(HaveRenderer) = yes && $(HaveEditor) = yes && $(Config) != rel {
+  UseProgLibs += gameLibs/imgui_daeditor ;
+  gamePulls += gameLibs_imgui_daeditor_DAS_pull_AOT ;
+}

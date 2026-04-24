@@ -15,8 +15,9 @@ struct DecalsBuffer
   BufPtr decalInstances;
   UniqueBuf culledInstances;
   uint32_t bufferCapacity;
+  size_t instanceStructSize;
 
   DecalsBuffer() = default;
-  DecalsBuffer(uint32_t size, const char *decal_buffer_name, const char *culled_buffer_name);
+  DecalsBuffer(uint32_t size, const char *decal_buffer_name, const char *culled_buffer_name, size_t instance_struct_size);
   void resize_buffers(unsigned int size);
 };

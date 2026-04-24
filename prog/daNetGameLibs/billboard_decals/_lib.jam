@@ -1,0 +1,8 @@
+if $(HaveRenderer) = yes {
+  gamePulls +=
+    daNetGameLibs_billboard_decals_DAS_pull_AOT
+    BillboardDecalsModule_pull
+    framework_billboard_decals_pull
+  ;
+  UseProgLibs += daNetGameLibs/billboard_decals ;
+}

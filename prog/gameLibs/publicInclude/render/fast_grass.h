@@ -8,11 +8,14 @@
 #include <EASTL/string.h>
 #include <EASTL/vector.h>
 #include <generic/dag_relocatableFixedVector.h>
-#include <heightmap/heightmapRenderer.h>
 #include <3d/dag_resPtr.h>
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_computeShaders.h>
 #include <math/dag_hlsl_floatx.h>
+#include <memory/dag_framemem.h>
+#include <heightmap/lodGrid.h>
+#include <heightmap/heightmapCulling.h>
+#include <heightmap/simpleHeightmapRenderer.h>
 #include "grassInstance.hlsli"
 
 class DataBlock;
@@ -37,16 +40,29 @@ public:
     uint32_t texId = ~0u;
   };
 
+  struct PreparedData
+  {
+    TMatrix4 globtm;
+    LodGridCullData cullData;
+    bool valid = false;
+
+    PreparedData() : cullData(framemem_ptr()) {}
+  };
+
   FastGrassRenderer();
   ~FastGrassRenderer();
   void close();
-  void initOrUpdate(dag::Span<GrassTypeDesc> grass_types);
+  void initOrUpdate(dag::Span<GrassTypeDesc> grass_types, int dim_bits);
 
-  void render(const TMatrix4 &globtm, const Point3 &view_pos, float min_ht, float max_ht, float water_level, const BBox2 *clip_box);
+  void prepare(PreparedData &pd, const TMatrix4 &globtm, HeightmapHandler &handler, const HeightmapFrustumCullingInfo &fi);
+  void render(const PreparedData &pd, HeightmapHandler &handler);
 
   void driverReset();
   void invalidate();
   bool isInited() const { return isInitialized; }
+
+  int getChannelCount() const { return grassChannelData.size(); }
+  const FastGrassType &getChannel(int i) const { return grassChannelData[i]; }
 
 public:
   // Intentionally public for easy setup, call initOrUpdate() to apply
@@ -78,7 +94,7 @@ protected:
   dag::Vector<FastGrassType> grassChannelData;
   dag::Vector<int> clipmapScales;
 
-  HeightmapRenderer hmapRenderer;
+  SimpleHeightmapRenderer hmapRenderer;
   bool isInitialized = false;
   bool alreadyLoaded = false;
   bool needUpdate = true;

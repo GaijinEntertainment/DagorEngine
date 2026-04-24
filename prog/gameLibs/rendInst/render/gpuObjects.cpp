@@ -16,6 +16,7 @@
 #include <util/dag_console.h>
 #include <util/dag_convar.h>
 #include <shaders/dag_computeShaders.h>
+#include <shaders/dag_shaderBlock.h>
 
 namespace rendinst::gpuobjects
 {
@@ -116,7 +117,7 @@ void erase_inside_sphere(const Point3 &center, const float radius)
 
   manager->addBombHole(center, radius);
   d3d::GpuAutoLock gpu_al;
-  BBox2 bbox{center.x - radius, center.z + radius, center.x + radius, center.z - radius};
+  BBox2 bbox{center.x - radius, center.z - radius, center.x + radius, center.z + radius};
   manager->invalidateBBox(bbox);
 }
 
@@ -185,19 +186,23 @@ void render_optimization_depth(RenderPass render_pass, const RiGenVisibility *vi
   if (!gpuobjects::manager || gpuobjects::manager->getGpuInstancing(visibility[0].gpuObjectsCascadeId))
     return;
 
+  TIME_D3D_PROFILE(GpuObjects_DepthPrepass);
+  ShaderGlobal::set_int(useRiTrackdirtOffsetVarId, 1);
+  SCENE_LAYER_GUARD(ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE));
   rendinst::render::renderRIGenExtraFromBuffer(gpuobjects::manager->getBuffer(visibility[0].gpuObjectsCascadeId, LayerFlag::Opaque),
     manager->getObjectsOffsetsAndCount(visibility[0].gpuObjectsCascadeId, LayerFlag::Opaque),
     manager->getObjectsIds(visibility[0].gpuObjectsCascadeId, LayerFlag::Opaque),
     manager->getObjectsLodOffsets(visibility[0].gpuObjectsCascadeId, LayerFlag::Opaque), render_pass, OptimizeDepthPass::Yes,
     OptimizeDepthPrepass::Yes, ignore_optimization_instances_limits, LayerFlag::Opaque, nullptr, instance_count_mul);
+  ShaderGlobal::set_int(useRiTrackdirtOffsetVarId, 0);
 }
 
 void render_layer(RenderPass render_pass, const RiGenVisibility *visibility, LayerFlags layer_flags, LayerFlag layer)
 {
   if (manager && visibility[0].gpuObjectsCascadeId != -1 && gpu_objects_enable.get())
   {
-    bool oldRiDepthPrepass = rendinst::render::useRiDepthPrepass(false);
     ShaderGlobal::set_int(useRiTrackdirtOffsetVarId, 1);
+    SCENE_LAYER_GUARD(ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE));
     // TODO: this seems nonsensical, why would we need both layer flags and some particular layer?
     // Possibly some obscure corner-case is involved.
     rendinst::render::renderRIGenExtraFromBuffer(manager->getBuffer(visibility[0].gpuObjectsCascadeId, layer),
@@ -209,7 +214,6 @@ void render_layer(RenderPass render_pass, const RiGenVisibility *visibility, Lay
       manager->getGpuInstancing(visibility[0].gpuObjectsCascadeId), manager->getIndirectionBuffer(visibility[0].gpuObjectsCascadeId),
       manager->getOffsetsBuffer(visibility[0].gpuObjectsCascadeId));
     ShaderGlobal::set_int(useRiTrackdirtOffsetVarId, 0);
-    rendinst::render::useRiDepthPrepass(oldRiDepthPrepass);
   }
 }
 

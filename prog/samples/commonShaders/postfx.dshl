@@ -44,8 +44,8 @@ shader postfx
 
   (ps) {
     frame_tex@smp2d = frame_tex;
-    //raycast_envi_cube@smpCube = raycast_envi_cube;
-    //raycast_local_cube@smpCube = raycast_local_cube;
+    //raycast_envi_cube@texCube = raycast_envi_cube;
+    //raycast_local_cube@texCube = raycast_local_cube;
     exposure@f3 = (exposure,pre_exposure,exposure/pre_exposure,0);
   }
 

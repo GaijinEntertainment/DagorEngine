@@ -9,9 +9,9 @@
   }
 
 
-  half getDistanceAtt ( half sqrDist, half invSqrAttRadius )
+  float getDistanceAtt ( half sqrDist, half invSqrAttRadius )
   {
-    half attenuation = rcp(max(sqrDist, 0.0001h));
+    float attenuation = rcp(max(float(sqrDist), 0.0001));
     attenuation = saturate(attenuation * smoothDistanceAtt ( sqrDist, invSqrAttRadius ));
     return attenuation;
   }
@@ -86,7 +86,7 @@ half illuminanceDiskAttenuation ( half3 worldNormal, half3 dirToLight, half3 pla
   return illuminance;
 }
 
-void spot_light_params(float3 worldPos, float4 pos_and_radius, half3 light_direction, half lightAngleScale, half lightAngleOffset, out half geomAttenuation, out half3 dirFromLight, out half3 point2light)
+void spot_light_params(float3 worldPos, float4 pos_and_radius, half3 light_direction, half lightAngleScale, half lightAngleOffset, out float geomAttenuation, out half3 dirFromLight, out half3 point2light)
 {
   point2light = half3(pos_and_radius.xyz-worldPos.xyz);
   half distSqFromLight = dot(point2light, point2light);

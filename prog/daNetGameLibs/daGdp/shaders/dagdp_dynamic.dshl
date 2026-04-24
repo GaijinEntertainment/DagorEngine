@@ -13,8 +13,6 @@ hlsl {
 
 shader dagdp_dynamic_recount
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     dyn_allocs@uav = dagdp__dyn_allocs hlsl {
       #include "dagdp_common.hlsli"

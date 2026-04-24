@@ -35,9 +35,6 @@ namespace das {
 }
 #endif
 
-#include <fmt/format.h>
-#include <fmt/core.h>
-
 #if DAS_SKA_HASH
 #ifdef _MSC_VER
 #pragma warning(disable:4503)    // decorated name length exceeded, name was truncated
@@ -117,6 +114,14 @@ using das_safe_set = std::set<K,C>;
 #define DAS_PRINT_VEC_SEPARATROR ","
 #endif
 
+
+#ifndef DAS_USE_BASE_CRASH_HANDLER
+#if defined(_WIN32) || ((defined(__linux__) || defined(__APPLE__)) && !defined(__EMSCRIPTEN__))
+#define DAS_USE_BASE_CRASH_HANDLER 1
+#else
+#define DAS_USE_BASE_CRASH_HANDLER 0
+#endif
+#endif
 
 #ifndef das_to_stdout_level_prefix_text
 #define das_to_stdout_level_prefix_text(level, prefix, text) { if (level >= LogLevel::error) { fprintf(stderr, "%s", text); fflush(stderr); } else { fprintf(stdout, "%s%s", prefix, text); fflush(stdout); } }

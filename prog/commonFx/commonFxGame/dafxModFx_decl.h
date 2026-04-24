@@ -317,6 +317,26 @@ public:
   }
 };
 
+class FxRainMapUsage
+{
+public:
+  bool enabled;
+  real min_cloud_density;
+
+
+  static ScriptHelpers::TunedElement *createTunedElement(const char *name);
+
+  bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
+  {
+    G_UNREFERENCED(load_cb);
+    CHECK_FX_VERSION_OPT(ptr, len, 1);
+
+    enabled = readType<int>(ptr, len);
+    min_cloud_density = readType<real>(ptr, len);
+    return true;
+  }
+};
+
 class FxInitGpuPlacement
 {
 public:
@@ -381,6 +401,7 @@ public:
   FxInitPosBox box;
   FxInitPosSphereSector sphere_sector;
   FxInitGpuPlacement gpu_placement;
+  FxRainMapUsage rain_map_based_density;
   FxPosHeightLimit height_limit;
 
 
@@ -389,7 +410,7 @@ public:
   bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION_OPT(ptr, len, 7);
+    CHECK_FX_VERSION_OPT(ptr, len, 8);
 
     enabled = readType<int>(ptr, len);
     attach_last_part_to_emitter = readType<int>(ptr, len);
@@ -407,6 +428,8 @@ public:
     if (!sphere_sector.load(ptr, len, load_cb))
       return false;
     if (!gpu_placement.load(ptr, len, load_cb))
+      return false;
+    if (!rain_map_based_density.load(ptr, len, load_cb))
       return false;
     if (!height_limit.load(ptr, len, load_cb))
       return false;
@@ -1372,7 +1395,6 @@ public:
   bool specular_enabled;
   real specular_power;
   real specular_strength;
-  bool ambient_enabled;
   bool external_lights_enabled;
   FxTranslucency translucency;
 
@@ -1391,7 +1413,6 @@ public:
     specular_enabled = readType<int>(ptr, len);
     specular_power = readType<real>(ptr, len);
     specular_strength = readType<real>(ptr, len);
-    ambient_enabled = readType<int>(ptr, len);
     external_lights_enabled = readType<int>(ptr, len);
     if (!translucency.load(ptr, len, load_cb))
       return false;
@@ -1676,13 +1697,13 @@ public:
   bool reverse_part_order;
   bool shadow_caster;
   bool allow_screen_proj_discard;
+  bool has_distortion_as_a_component;
   int shader;
   FxRenderShaderDummy modfx_bboard_render;
   FxRenderShaderDummy modfx_bboard_render_atest;
   FxRenderShaderDistortion modfx_bboard_distortion;
   FxRenderShaderVolShape modfx_bboard_vol_shape;
   FxRenderShaderDummy modfx_bboard_rain;
-  FxRenderShaderDistortion modfx_bboard_rain_distortion;
   FxRenderShaderXray modfx_bbboard_render_xray;
   FxRenderShaderWater modfx_bboard_water_fx;
 
@@ -1692,11 +1713,12 @@ public:
   bool load(const char *&ptr, int &len, BaseParamScriptLoadCB *load_cb)
   {
     G_UNREFERENCED(load_cb);
-    CHECK_FX_VERSION_OPT(ptr, len, 14);
+    CHECK_FX_VERSION_OPT(ptr, len, 16);
 
     reverse_part_order = readType<int>(ptr, len);
     shadow_caster = readType<int>(ptr, len);
     allow_screen_proj_discard = readType<int>(ptr, len);
+    has_distortion_as_a_component = readType<int>(ptr, len);
     shader = readType<int>(ptr, len);
     if (!modfx_bboard_render.load(ptr, len, load_cb))
       return false;
@@ -1707,8 +1729,6 @@ public:
     if (!modfx_bboard_vol_shape.load(ptr, len, load_cb))
       return false;
     if (!modfx_bboard_rain.load(ptr, len, load_cb))
-      return false;
-    if (!modfx_bboard_rain_distortion.load(ptr, len, load_cb))
       return false;
     if (!modfx_bbboard_render_xray.load(ptr, len, load_cb))
       return false;

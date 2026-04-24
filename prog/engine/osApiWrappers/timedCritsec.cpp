@@ -33,6 +33,11 @@ bool try_timed_enter_critical_section(void *p, int timeout_ms, const char *waite
   clock_gettime(CLOCK_REALTIME, &ts);
   ts.tv_sec += timeout_ms / 1000;              // seconds
   ts.tv_nsec += (timeout_ms % 1000) * 1000000; // nanoseconds
+  if (ts.tv_nsec >= 1000000000)
+  {
+    ts.tv_nsec -= 1000000000;
+    ++ts.tv_sec;
+  }
 
   int result = pthread_mutex_timedlock(cc, &ts);
 #elif _TARGET_C1 || _TARGET_C2

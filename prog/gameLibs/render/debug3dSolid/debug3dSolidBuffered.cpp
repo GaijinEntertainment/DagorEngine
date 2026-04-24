@@ -201,6 +201,28 @@ void draw_debug_solid_cone_buffered(const Point3 pos, Point3 norm, float radius,
     frames);
 }
 
+void draw_debug_solid_tehedron_buffered(const Point3 &pos, float radius, const Color4 &color, size_t frames)
+{
+  // Regular tetrahedron inscribed in sphere of given radius
+  static const float s2d3 = sqrtf(8.f / 9.f); // 2*sqrt(2)/3
+  static const float s1d3 = sqrtf(2.f / 9.f); // sqrt(2)/3
+  static const float s6d3 = sqrtf(2.f / 3.f); // sqrt(6)/3
+  static const float third = 1.f / 3.f;
+
+  Point3 vertices[4] = {
+    pos + Point3(0, 0, 1) * radius,
+    pos + Point3(s2d3, 0, -third) * radius,
+    pos + Point3(-s1d3, s6d3, -third) * radius,
+    pos + Point3(-s1d3, -s6d3, -third) * radius,
+  };
+
+  // 4 faces, double-sided
+  static const uint16_t indices[24] = {0, 1, 2, 0, 2, 1, 0, 1, 3, 0, 3, 1, 0, 2, 3, 0, 3, 2, 1, 2, 3, 1, 3, 2};
+
+  draw_debug_solid_mesh_buffered(indices, countof(indices) / 3, &vertices[0].x, sizeof(Point3), countof(vertices), TMatrix::IDENT,
+    color, frames);
+}
+
 void draw_debug_solid_quad_buffered(Point3 half_vec_i, Point3 half_vec_j, const TMatrix &tm, const Color4 &color, size_t frames)
 {
   Point3 vertices[4] = {-half_vec_i - half_vec_j, half_vec_i - half_vec_j, -half_vec_i + half_vec_j, half_vec_i + half_vec_j};

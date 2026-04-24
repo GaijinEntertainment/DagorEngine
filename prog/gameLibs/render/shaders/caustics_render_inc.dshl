@@ -6,19 +6,22 @@ include "static_shadow.dshl"
 include "water_heightmap.dshl"
 
 
-float4 caustics_texture_size;
 texture water_heightmap_lowres;
+
+texture shore_distance_field_tex;
+float4 shore_heightmap_min_max = (0, 0, 0, 0);
+float4 world_to_heightmap = (1/32, 1/32, 0.5, 0.5);
+
+texture depth_for_caustics;
+texture normals_for_caustics;
 
 macro CAUSTICS_RENDER_CORE(code)
   INIT_ZNZFAR_STAGE(code)
 
   (code) {
     world_view_pos@f3 = world_view_pos;
-    downsampled_close_depth_tex@smp2d = downsampled_close_depth_tex;
-
-    downsampled_normals@smp2d = downsampled_normals;
-
-    inv_caustics_texture_size@f2 = (1.0/caustics_texture_size.x, 1.0/caustics_texture_size.y);
+    depth_for_caustics@smp2d = depth_for_caustics;
+    normals_for_caustics@smp2d = normals_for_caustics;
   }
   if (water_heightmap_lowres != NULL)
   {
@@ -58,7 +61,7 @@ macro CAUSTICS_RENDER_CORE(code)
   hlsl(code) {
     half4 caustics(float2 texcoord, float3 viewVect)
     {
-      float rawDepth = tex2Dlod(downsampled_close_depth_tex, float4(texcoord, 0, 0)).x;
+      float rawDepth = tex2Dlod(depth_for_caustics, float4(texcoord, 0, 0)).x;
       float w = linearize_z(rawDepth, zn_zfar.zw);
 
       BRANCH
@@ -66,7 +69,7 @@ macro CAUSTICS_RENDER_CORE(code)
         return 0;
 
       half3 normal;
-      half4 normal_smoothness = tex2Dlod(downsampled_normals, float4(texcoord,0,0));
+      half4 normal_smoothness = tex2Dlod(normals_for_caustics, float4(texcoord,0,0));
       normal = normal_smoothness.xyz*2-1;
 
       float3 cameraToPoint = viewVect.xyz * w;

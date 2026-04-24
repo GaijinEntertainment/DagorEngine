@@ -12,7 +12,7 @@ function item(text) {
       {
         rendObj = ROBJ_SOLID
         color = Color(20, 20, 180)
-        size = static [pw(100), ph(100)]
+        size = const [pw(100), ph(100)]
       }
       {
         margin = 5

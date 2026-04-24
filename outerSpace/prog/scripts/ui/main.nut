@@ -4,10 +4,9 @@ from "%darg/ui_imports.nut" import *
 from "%scripts/ui/widgets/simpleComponents.nut" import normalCursor
 from "%scripts/ui/widgets/msgbox.nut" import msgboxComponent, hasMsgBoxes
 import "console" as console
-from "frp" import warn_on_deprecated_methods //set_nested_observable_debug, set_subscriber_validation
+from "frp" import warn_on_deprecated_methods
 from "dagor.system" import DBGLEVEL
 
-//set_nested_observable_debug( DBGLEVEL>0)
 //set_subscriber_validation( DBGLEVEL>0)
 warn_on_deprecated_methods( DBGLEVEL>0)
 
@@ -46,9 +45,11 @@ return function(){
   let backgroundComp = isInMainMenu.get() ? background : null
   let children = isLoadingState.get()
     ? [loadingUi]
-    : isInMainMenu.get()
-      ? [sessionResult.get() ? debriefing : mainMenu ]
-      : [ mkHud() ]
+    : showLicense.get()
+      ? [licenseUi]
+      : isInMainMenu.get()
+        ? [sessionResult.get() ? debriefing : mainMenu ]
+        : [ mkHud() ]
   if (showControlsMenu.get())
     children.replace([backgroundComp, controlsMenuUi])
   if (showSettingsMenu.get())
@@ -59,8 +60,6 @@ return function(){
       children.clear()
     children.append(editor)
   }
-  if (showLicense.get())
-    children.append(licenseUi)
 
   let showCursor = isInMainMenu.get() || hasMsgBoxes.get() || showGameMenu.get() || showControlsMenu.get() || showSettingsMenu.get() || showLicense.get()
   return {

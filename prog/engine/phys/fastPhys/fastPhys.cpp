@@ -1295,8 +1295,29 @@ public:
   virtual void init(FastPhysSystem &sys, GeomNodeTree &nodeTree)
   {
     boneLength = length(sys.points[p2Index].pos - sys.points[p1Index].pos);
-    referenceDir = normalize(sys.points[p2Index].pos - sys.points[p1Index].pos);
+    Point3 worldRef = referenceDir = normalize(sys.points[p2Index].pos - sys.points[p1Index].pos);
     nodeWtm = resolve_node_wtm(nodeTree, nodeName, &nodeParentWtm);
+
+    if (nodeWtm && nodeParentWtm)
+    {
+      mat44f invParent;
+      v_mat44_inverse43(invParent, *nodeParentWtm);
+
+      Point3_vec4 refLocalv;
+      v_st(&refLocalv, v_mat44_mul_vec3v(invParent, v_ldu(&worldRef.x)));
+      referenceDir = Point3(refLocalv);
+
+      referenceDir = referenceDir - hingeAxis * (hingeAxis * referenceDir);
+      real rlsq = lengthSq(referenceDir);
+      if (float_nonzero(rlsq))
+        referenceDir *= 1.0f / sqrtf(rlsq);
+      else
+      {
+        referenceDir = normalize(cross(hingeAxis, Point3(1, 0, 0)));
+        if (!float_nonzero(lengthSq(referenceDir)))
+          referenceDir = normalize(cross(hingeAxis, Point3(0, 1, 0)));
+      }
+    }
   }
 
   virtual void perform(FastPhysSystem &sys)
@@ -1310,22 +1331,44 @@ public:
     if (!float_nonzero(len))
       return;
 
-    Point3_vec4 axis = hingeAxis;
-    Point3_vec4 ref = referenceDir;
-    if (nodeWtm && nodeParentWtm)
-      v_st(&axis, v_norm3(v_mat44_mul_vec3v(*nodeParentWtm, v_ldu(&hingeAxis.x))));
+    // world hinge axis from parent
+    Point3 axis = hingeAxis;
+    Point3 ref = referenceDir;
+    if (nodeParentWtm)
+    {
+      const vec3f zero = v_zero();
+      TMatrix parentTm = makeNodeWTM(const_cast<mat44f *>(nodeParentWtm), &zero);
+      axis = normalize(parentTm % hingeAxis);
+      ref = parentTm % referenceDir;
+    }
 
-    // enforce hinge
-    Point3 nd = dir / len;
-    Point3 perpd = normalize(nd - axis * (axis * nd));
+    ref = ref - axis * (axis * ref);
+    real rlsq = lengthSq(ref);
+    if (float_nonzero(rlsq))
+      ref *= 1.0f / sqrtf(rlsq);
+    else
+    {
+      ref = normalize(cross(axis, Point3(1, 0, 0)));
+      if (!float_nonzero(lengthSq(ref)))
+        ref = normalize(cross(axis, Point3(0, 1, 0)));
+    }
 
-    // clamp rotation around hinge
+    // current direction projected to hinge plane
+    Point3 nd = dir * (1.0f / len);
+    Point3 perpd = nd - axis * (axis * nd);
+    real ppsq = lengthSq(perpd);
+    if (float_nonzero(ppsq))
+      perpd *= 1.0f / sqrtf(ppsq);
+    else
+      perpd = ref;
+
+    // clamp around hinge
     if (limitCos < 1.0f)
     {
       real d = clamp(ref * perpd, -1.0f, 1.0f);
       if (d < limitCos)
       {
-        real sign = cross(ref, perpd) * axis >= 0.0f ? 1.0f : -1.0f;
+        real sign = (cross(ref, perpd) * axis) >= 0.0f ? 1.0f : -1.0f;
         Point3 perpRef = normalize(cross(axis, ref));
         perpd = normalize(ref * limitCos + perpRef * (sign * limitSin));
       }
@@ -1363,11 +1406,24 @@ public:
     E3DCOLOR limitColor(255, 0, 0);
 
     Point3 pos = as_point3(&nodeWtm->col3);
-    Point3 refDir = referenceDir;
-    Point3_vec4 worldAxis;
-    v_st(&worldAxis, v_norm3(v_mat44_mul_vec3v(*nodeParentWtm, v_ldu(&hingeAxis.x))));
 
-    float length = boneLength;
+    const vec3f zero = v_zero();
+    TMatrix parentTm = makeNodeWTM(const_cast<mat44f *>(nodeParentWtm), &zero);
+    Point3 worldAxis = normalize(parentTm % hingeAxis);
+    Point3 refDir = parentTm % referenceDir;
+
+    refDir = refDir - worldAxis * (worldAxis * refDir);
+    real rlsq = lengthSq(refDir);
+    if (float_nonzero(rlsq))
+      refDir *= 1.0f / sqrtf(rlsq);
+    else
+    {
+      refDir = normalize(cross(worldAxis, Point3(1, 0, 0)));
+      if (!float_nonzero(lengthSq(refDir)))
+        refDir = normalize(cross(worldAxis, Point3(0, 1, 0)));
+    }
+
+    float length = boneLength * 2.0f;
     draw_cached_debug_line(pos, pos + worldAxis * length, axisColor);
     draw_cached_debug_line(pos, pos + refDir * length, refDirColor);
 

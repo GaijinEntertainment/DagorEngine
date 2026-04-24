@@ -39,10 +39,14 @@ bool save_exr(const char *filename, uint8_t **pixels, int width, int height, int
 
   // const of `comments` is cast away, however implementation never modifies the string
   // in EXIF length is described in 2-bytes, resulting in a limit of 2^16, the same limit is used here as well
-  EXRAttribute commentAttribute{
-    "comments", "string", (uint8_t *)comments, static_cast<int>(strnlen(comments, eastl::numeric_limits<uint16_t>::max()))};
-  header.custom_attributes = &commentAttribute;
-  header.num_custom_attributes = 1;
+  EXRAttribute commentAttribute{};
+  if (comments)
+  {
+    commentAttribute = {
+      "comments", "string", (uint8_t *)comments, static_cast<int>(strnlen(comments, eastl::numeric_limits<uint16_t>::max()))};
+    header.custom_attributes = &commentAttribute;
+    header.num_custom_attributes = 1;
+  }
 
   const char *error = nullptr;
   int retVal = SaveEXRImageToFile(&image, &header, filename, &error);

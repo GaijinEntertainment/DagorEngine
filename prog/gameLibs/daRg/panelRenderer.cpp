@@ -31,6 +31,7 @@ enum ShaderTarget
   FrameBufferWithoutDepth,
   Depth,
   GBuffer,
+  ReactiveMask,
 
   Count
 };
@@ -47,6 +48,8 @@ static ShaderTarget to_shader_target(RenderPass render_pass)
 
     case RenderPass::GBuffer: return ShaderTarget::GBuffer;
 
+    case RenderPass::ReactiveMask: return ShaderTarget::ReactiveMask;
+
     default:
       G_ASSERTF(false, "Implement finding the shader for this render pass! %d", int(render_pass));
       return ShaderTarget::FrameBuffer;
@@ -59,12 +62,6 @@ static d3d::SamplerHandle panel_sampler = d3d::INVALID_SAMPLER_HANDLE;
 static int panel_textureVarId = -1;
 static int panel_samplerVarId = -1;
 static int panel_brightnessVarId = -1;
-static int panel_pointer_texture1VarId = -1;
-static int panel_pointer_uv_tl_iwih1VarId = -1;
-static int panel_pointer_color1VarId = -1;
-static int panel_pointer_texture2VarId = -1;
-static int panel_pointer_uv_tl_iwih2VarId = -1;
-static int panel_pointer_color2VarId = -1;
 
 static int panel_smoothnessVarId = -1;
 static int panel_reflectanceVarId = -1;
@@ -98,9 +95,9 @@ static const PanelVertex rectVertices[4] = {
 };
 
 template <typename Func, typename T, size_t count>
-static bool buildBuffer(Func createFunc, UniqueBuf &buffer, const T (&data)[count], const char *name)
+static bool buildBuffer(Func createFunc, UniqueBuf &buffer, const T (&data)[count], const char *name, ResourceTagType tag = nullptr)
 {
-  buffer = createFunc(sizeof(data), SBCF_CPU_ACCESS_WRITE, name);
+  buffer = createFunc(sizeof(data), SBCF_CPU_ACCESS_WRITE, name, tag);
   G_ASSERT_RETURN(buffer.getBuf(), false);
   G_ASSERT_RETURN(buffer.getBuf()->updateData(0, sizeof(data), data, VBLOCK_WRITEONLY), false);
   return true;
@@ -119,6 +116,8 @@ static bool initialize_rendering_resources()
       "darg_panel_frame_buffer_no_depth", true);
     panel_shaders[ShaderTarget::Depth].init("darg_panel_depth", channels, countof(channels), "darg_panel_depth", true);
     panel_shaders[ShaderTarget::GBuffer].init("darg_panel_gbuffer", channels, countof(channels), "darg_panel_gbuffer", true);
+    panel_shaders[ShaderTarget::ReactiveMask].init("darg_panel_reactive_mask", channels, countof(channels), "darg_panel_reactive_mask",
+      true);
 
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
@@ -127,12 +126,6 @@ static bool initialize_rendering_resources()
     panel_textureVarId = ::get_shader_glob_var_id("panel_texture", true);
     panel_samplerVarId = ::get_shader_variable_id("panel_texture_samplerstate", true);
     panel_brightnessVarId = ::get_shader_glob_var_id("panel_brightness", true);
-    panel_pointer_texture1VarId = ::get_shader_glob_var_id("panel_pointer_texture1", true);
-    panel_pointer_uv_tl_iwih1VarId = ::get_shader_glob_var_id("panel_pointer_uv_tl_iwih1", true);
-    panel_pointer_color1VarId = ::get_shader_glob_var_id("panel_pointer_color1", true);
-    panel_pointer_texture2VarId = ::get_shader_glob_var_id("panel_pointer_texture2", true);
-    panel_pointer_uv_tl_iwih2VarId = ::get_shader_glob_var_id("panel_pointer_uv_tl_iwih2", true);
-    panel_pointer_color2VarId = ::get_shader_glob_var_id("panel_pointer_color2", true);
     panel_smoothnessVarId = ::get_shader_glob_var_id("panel_smoothness", true);
     panel_reflectanceVarId = ::get_shader_glob_var_id("panel_reflectance", true);
     panel_metalnessVarId = ::get_shader_glob_var_id("panel_metalness", true);
@@ -150,9 +143,10 @@ static bool initialize_rendering_resources()
 
   int geomIndex = int(darg::PanelGeometry::Rectangle);
   if (!panel_vertex_buffers[geomIndex].getBuf())
-    G_ASSERT_RETURN(buildBuffer(dag::create_vb, panel_vertex_buffers[geomIndex], rectVertices, "darg_panel_rect_vb"), false);
+    G_ASSERT_RETURN(buildBuffer(dag::create_vb, panel_vertex_buffers[geomIndex], rectVertices, "darg_panel_rect_vb", RESTAG_GUI),
+      false);
   if (!panel_index_buffers[geomIndex].getBuf())
-    G_ASSERT_RETURN(buildBuffer(dag::create_ib, panel_index_buffers[geomIndex], rectIndices, "darg_panel_rect_ib"), false);
+    G_ASSERT_RETURN(buildBuffer(dag::create_ib, panel_index_buffers[geomIndex], rectIndices, "darg_panel_rect_ib", RESTAG_GUI), false);
   panel_triangle_counts[geomIndex] = countof(rectIndices) / 3;
 
   return true;
@@ -207,7 +201,7 @@ TMatrix orient_toward(const Point3 &point, const Point3 &size, const Point3 &pos
   return result;
 };
 
-static BBox3 calculate_aabb(darg::PanelSpatialInfo &info, const TMatrix &transform)
+static BBox3 calculate_aabb(const darg::PanelSpatialInfo &info, const TMatrix &transform)
 {
   switch (info.geometry)
   {
@@ -304,7 +298,8 @@ void panel_spatial_resolver(const darg::IGuiScene::SpatialSceneData &scene_data,
 }
 
 void render_panels_in_world(const darg::IGuiScene &scene_, RenderPass render_pass, const Point3 &view_point, const TMatrix &view_tm,
-  const TMatrix *prev_view_tm, const TMatrix4 *prev_proj_current_jitter, int view_index)
+  const TMatrix *prev_view_tm, const TMatrix4 *prev_proj_current_jitter, int view_index, const Frustum *frustum,
+  const TMatrix *camera_itm)
 {
   using namespace darg;
 
@@ -316,16 +311,24 @@ void render_panels_in_world(const darg::IGuiScene &scene_, RenderPass render_pas
 
   TIME_D3D_PROFILE(render_panels_in_world);
 
-  eastl::vector_multimap<float, const PanelData *, eastl::less<float>, framemem_allocator> sortedPanels;
+  eastl::vector_multimap<float, const Panel *, eastl::less<float>, framemem_allocator> sortedPanels;
 
   // sort panels and calculate their transforms
-  for (const auto &itPanelData : panels)
+  for (const auto &itPanel : panels)
   {
-    const PanelData *panelData = itPanelData.second.get();
-    if (panelData->panel->spatialInfo.visible && panelData->isInThisPass(render_pass) && panelData->panel->renderInfo.isValid)
+    const Panel *panel = itPanel.second.get();
+
+    bool shadowVisible = false;
+    if (render_pass == RenderPass::Shadow && frustum && camera_itm)
     {
-      float distSq = (view_point - panelData->panel->renderInfo.transform.getcol(3)).lengthSq();
-      sortedPanels.insert({distSq, panelData});
+      BBox3 bounding = calculate_aabb(panel->spatialInfo, *camera_itm * panel->renderInfo.transform /* play space to world space */);
+      shadowVisible = bounding.width().length() > 0.001 && frustum->testBox(bounding) != Frustum::OUTSIDE;
+    }
+
+    if ((panel->spatialInfo.visible || shadowVisible) && panel->isInThisPass(render_pass) && panel->renderInfo.isValid)
+    {
+      float distSq = (view_point - panel->renderInfo.transform.getcol(3)).lengthSq();
+      sortedPanels.insert({distSq, panel});
     }
   }
 
@@ -382,9 +385,9 @@ void render_panels_in_world(const darg::IGuiScene &scene_, RenderPass render_pas
   {
     TIME_D3D_PROFILE(render_one_panel);
 
-    const PanelData &panelData = *iter->second;
-    const PanelSpatialInfo &spatialInfo = panelData.panel->spatialInfo;
-    const PanelRenderInfo &renderInfo = panelData.panel->renderInfo;
+    const Panel &panel = *iter->second;
+    const PanelSpatialInfo &spatialInfo = panel.spatialInfo;
+    const PanelRenderInfo &renderInfo = panel.renderInfo;
     int geomIndex = int(spatialInfo.geometry);
 
     G_ASSERTF_CONTINUE(geomIndex >= 0 && geomIndex < countof(panel_vertex_buffers),
@@ -409,22 +412,14 @@ void render_panels_in_world(const darg::IGuiScene &scene_, RenderPass render_pas
 
     ShaderGlobal::set_texture(panel_textureVarId, renderInfo.texture);
     ShaderGlobal::set_sampler(panel_samplerVarId, panel_sampler);
-    ShaderGlobal::set_real(panel_brightnessVarId, renderInfo.brightness);
-    ShaderGlobal::set_texture(panel_pointer_texture1VarId, renderInfo.pointerTexture[0]);
-    ShaderGlobal::set_color4(panel_pointer_color1VarId, renderInfo.pointerColor[0]);
-    ShaderGlobal::set_color4(panel_pointer_uv_tl_iwih1VarId, renderInfo.pointerUVLeftTop[0].x, renderInfo.pointerUVLeftTop[0].y,
-      renderInfo.pointerUVInvSize[0].x, renderInfo.pointerUVInvSize[0].y);
-    ShaderGlobal::set_texture(panel_pointer_texture2VarId, renderInfo.pointerTexture[1]);
-    ShaderGlobal::set_color4(panel_pointer_color2VarId, renderInfo.pointerColor[1]);
-    ShaderGlobal::set_color4(panel_pointer_uv_tl_iwih2VarId, renderInfo.pointerUVLeftTop[1].x, renderInfo.pointerUVLeftTop[1].y,
-      renderInfo.pointerUVInvSize[1].x, renderInfo.pointerUVInvSize[1].y);
+    ShaderGlobal::set_float(panel_brightnessVarId, renderInfo.brightness);
 
     TMatrix4 worldTm(adjustedTm);
     TMatrix4 worldNormalTm(adjustedNormalTm);
 
-    ShaderGlobal::set_real(panel_smoothnessVarId, renderInfo.smoothness);
-    ShaderGlobal::set_real(panel_reflectanceVarId, renderInfo.reflectance);
-    ShaderGlobal::set_real(panel_metalnessVarId, renderInfo.metalness);
+    ShaderGlobal::set_float(panel_smoothnessVarId, renderInfo.smoothness);
+    ShaderGlobal::set_float(panel_reflectanceVarId, renderInfo.reflectance);
+    ShaderGlobal::set_float(panel_metalnessVarId, renderInfo.metalness);
     ShaderGlobal::set_float4x4(panel_worldVarId, worldTm);
     ShaderGlobal::set_float4x4(panel_world_normalVarId, worldNormalTm);
 
@@ -452,6 +447,13 @@ void render_panels_in_world(const darg::IGuiScene &scene_, RenderPass render_pas
     if (oldOverride)
       shaders::overrides::set(oldOverride);
   }
+}
+
+bool has_panels_to_render(const darg::IGuiScene &scene)
+{
+  const darg::GuiScene &guiScene = static_cast<const darg::GuiScene &>(scene);
+  const auto &panels = guiScene.getPanels();
+  return !panels.empty();
 }
 
 void clean_up()

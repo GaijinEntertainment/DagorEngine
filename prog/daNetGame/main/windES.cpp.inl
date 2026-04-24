@@ -1,17 +1,23 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <util/dag_console.h>
 #include <gamePhys/props/atmosphere.h>
 #include <render/wind/ambientWind.h>
 #include <render/fx/fx.h>
+#include "render/renderEvent.h"
 ECS_DECLARE_RELOCATABLE_TYPE(AmbientWind);
 ECS_REGISTER_RELOCATABLE_TYPE(AmbientWind, nullptr);
 
 ECS_NO_ORDER
 ECS_TAG(render)
+ECS_TAG(dngRenderIsActive) // needed to omit this es in non-dng mode in tools
 static inline void wind_update_es(const ecs::UpdateStageInfoAct &, AmbientWind &ambient_wind, float wind__dir = 0)
 {
   ambient_wind.update();
@@ -20,6 +26,7 @@ static inline void wind_update_es(const ecs::UpdateStageInfoAct &, AmbientWind &
 }
 
 ECS_NO_ORDER
+ECS_TAG(dngRenderIsActive) // needed to omit this es in non-dng mode in tools
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(wind__strength,
   wind__noiseStrength,
@@ -49,6 +56,13 @@ static inline void wind_es_event_handler(const ecs::Event &,
   ambient_wind.setWindParameters(wind__left_top_right_bottom, Point2(cosf(DegToRad(wind__dir)), sinf(DegToRad(wind__dir))),
     wind__strength, wind__noiseStrength, wind__noiseSpeed, wind__noiseScale, wind__noisePerpendicular);
   ambient_wind.setWindTextures(textureName);
+}
+
+ECS_TAG(render)
+ECS_ON_EVENT(AfterDeviceReset)
+static inline void wind_after_device_reset_es_event_handler(const ecs::Event &, AmbientWind &ambient_wind)
+{
+  ambient_wind.afterDeviceReset();
 }
 
 ECS_REQUIRE(float wind__strength)

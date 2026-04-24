@@ -96,6 +96,27 @@ int os_event_set(os_event_t *e)
   return ret;
 }
 
+int os_event_set_strict(os_event_t *e)
+{
+#if !defined(__GNUC__) || _TARGET_C1 || _TARGET_C2
+  return os_event_set(e);
+#else
+  if (!e)
+    return -1;
+  int ret = pthread_mutex_lock(&e->mutex);
+  if (ret == 0)
+  {
+    if (!e->raised)
+    {
+      e->raised = 1;
+      ret = pthread_cond_signal(&e->event);
+    }
+    pthread_mutex_unlock(&e->mutex);
+  }
+  return ret;
+#endif
+}
+
 int os_event_reset(os_event_t *e)
 {
   int ret;
@@ -123,7 +144,7 @@ static int os_event_wait_impl(os_event_t *e, unsigned timeout_ms, bool auto_rese
     return -1;
 #if _TARGET_PC_WIN | _TARGET_XBOX
   G_UNUSED(auto_reset); // Used the one specified on creation
-  ret = WaitForSingleObjectEx(*e, timeout_ms, TRUE);
+  ret = WaitForSingleObjectEx(*e, timeout_ms, FALSE);
 #elif _TARGET_C1 | _TARGET_C2
 
 #elif defined(__GNUC__)

@@ -1,0 +1,145 @@
+
+testCppComponent {
+  "some_component2:SomeComponent"{}
+}
+
+a {
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  int_variable:i=10
+}
+
+testEntity {
+  "ecs_array_int_float_point2_1_2_21:array"{
+    a:i = 1
+    b:r = 2
+    c:p2 = 2,1
+  }
+  "ecs_object_int_float_point2_1_2_21:object"{
+    int:i = 1
+    float:r = 2
+    point2:p2 = 2,1
+  }
+  "shared_str:shared:t"{value:t=sample_shared_str;}
+}
+
+ballistics {
+  pos:p3= 0,0,0
+  vel:p3= 1,0,1
+}
+ballistics2 {
+  _use:t = ballistics
+  no_int_value:i =101
+}
+
+testDasEvent {
+  ev_pos:p3= 0,0,0
+  ev_vel:p3= 1,0,1
+  ev_val:i=0
+}
+
+justInt {
+  just_int_variable:i = 0
+}
+
+testReCreate1 {
+  some_int_var1:i = 0
+  "ecs_array_int_1:array"{
+    a:i = 1
+    _track:b=yes
+  }
+  _tracked:t="some_int_var1"
+}
+
+testReCreate2 {
+  _use:t=testReCreate1
+  some_int_var2:i = 0
+}
+
+testReCreateMemLeak {
+  _use:t=testReCreate2
+  string_variable:t="11i2hoshisdhsidhksjdhksdjhkadhkjhdsikabhskdhakdh"
+}
+
+testReCreateInit1
+{
+  _group {
+    some_int_var2:i = 0
+    _track:b=yes
+  }
+  //_tracked:t="some_int_var2"
+}
+
+testReCreateInit2
+{
+  _use:t=testReCreateInit1
+  some_int_var3:i = 0
+}
+
+testTrackable
+{
+  trackable:b=false
+  _tracked:t="trackable"
+}
+
+testTrackable2
+{
+  trackable2:b=true
+  _tracked:t="trackable2"
+}
+
+checkUnicastTwice {
+  "some:SomeComponent"{}
+  "checkUnicastTwice:tag" {}
+}
+
+unicastAfterCreateEntity
+{
+  some_int_var:i = 0
+  "unicastAfterCreateEntity:tag" {}
+}
+
+entityWith_tracked_int_var1 {
+  tracked_int_var1:i = 0
+ _tracked:t="tracked_int_var1"
+}
+
+entityWith_tracked_int_var1_and_2 {
+  _use:t = entityWith_tracked_int_var1
+  not_tracked_int_var2:i = 0
+}
+
+bloom_ab {
+  bloom_a:i=0
+  bloom_b:i=0
+}
+
+just_nope {
+  bloom_test_nope:i=0
+}
+
+testSafeListOps {
+  "test_int_list:list<i>"{ a:i=10; b:i=20 }
+  "test_ipoint2_list:list<ip2>"{ a:ip2=1,2 }
+  "test_ipoint3_list:list<ip3>"{ a:ip3=1,2,3 }
+  "test_ipoint4_list:list<ip4>"{ a:ip4=1,2,3,4 }
+  "test_float_list:list<r>"{ a:r=1.5; b:r=2.5 }
+  "test_point2_list:list<p2>"{ a:p2=1.0,2.0 }
+  "test_point3_list:list<p3>"{ a:p3=1.0,2.0,3.0 }
+  "test_point4_list:list<p4>"{ a:p4=1.0,2.0,3.0,4.0 }
+  "test_string_list:list<t>"{ a:t="hello"; b:t="world" }
+  "test_eid_list:list<eid>"{}
+  "test_bool_list:list<b>"{ a:b=yes; b:b=no }
+  "test_object_with_lists:object"{
+    "int_list:list<i>"{ a:i=42 }
+    "ipoint2_list:list<ip2>"{ a:ip2=5,6 }
+    "ipoint3_list:list<ip3>"{ a:ip3=5,6,7 }
+    "ipoint4_list:list<ip4>"{ a:ip4=5,6,7,8 }
+    "float_list:list<r>"{ a:r=3.14 }
+    "point2_list:list<p2>"{ a:p2=5.0,6.0 }
+    "point3_list:list<p3>"{ a:p3=5.0,6.0,7.0 }
+    "point4_list:list<p4>"{ a:p4=5.0,6.0,7.0,8.0 }
+    "string_list:list<t>"{ a:t="test" }
+    "eid_list:list<eid>"{}
+    "bool_list:list<b>"{ a:b=yes }
+  }
+}

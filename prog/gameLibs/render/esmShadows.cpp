@@ -15,8 +15,8 @@ static int esm_blur_srcVarId = -1;
 void EsmShadows::init(int w, int h, int slices, float esm_exp)
 {
   int fmt = TEXFMT_G16R16F | TEXCF_RTARGET;
-  esmShadowArray = dag::create_array_tex(w, h, slices, fmt, 1, "esm_shadows");
-  esmShadowBlurTmp = dag::create_tex(NULL, w, h, fmt, 1, "esm_temp");
+  esmShadowArray = dag::create_array_tex(w, h, slices, fmt, 1, "esm_shadows", RESTAG_SHADOW);
+  esmShadowBlurTmp = dag::create_tex(NULL, w, h, fmt, 1, "esm_temp", RESTAG_SHADOW);
   esmBlurRenderer.init("esm_blur");
 
   float esmKExp = pow(2.0f, esm_exp);
@@ -31,7 +31,7 @@ void EsmShadows::init(int w, int h, int slices, float esm_exp)
     ShaderGlobal::set_sampler(get_shader_variable_id("esm_blur_src_samplerstate"), sampler);
     ShaderGlobal::set_sampler(get_shader_variable_id("esm_shadows_samplerstate"), sampler);
   }
-  ShaderGlobal::set_color4(get_shader_variable_id("esm_params"), w, h, esm_exp, esmKExp);
+  ShaderGlobal::set_float4(get_shader_variable_id("esm_params"), w, h, esm_exp, esmKExp);
 
   initEsmShadowsStateId();
   esmDepthShader.init("esm_depth", nullptr, 0, "esm_depth", false);

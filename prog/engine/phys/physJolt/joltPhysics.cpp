@@ -44,6 +44,7 @@
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_statDrv.h>
+#include <util/dag_compilerDefs.h>
 
 namespace layers
 {
@@ -201,7 +202,7 @@ public:
     }
     JobImpl *prevInBarrier = nullptr;
     // Don't execute non jolt jobs on active wait as it causing lock-order-inversion on e.g. Jolt rw locks & rendinst rw-locks
-#ifdef __SANITIZE_THREAD__
+#ifdef DAGOR_THREAD_SANITIZER
     static constexpr threadpool::JobPriority tprio = threadpool::PRIO_HIGH;
 #else
     // Low prio in order to avoid interference with neighbouring parallel-for jobs
@@ -499,6 +500,13 @@ PhysBody::PhysBody(PhysWorld *w, float mass, const PhysCollision *coll, const TM
       s.autoInertia ? JPH::EOverrideMassProperties::CalculateInertia : JPH::EOverrideMassProperties::MassAndInertiaProvided;
     body.mMassPropertiesOverride.mMass = (body.mMotionType == JPH::EMotionType::Kinematic) ? 1.0f : mass;
     body.mMassPropertiesOverride.mInertia = JPH::Mat44::sScale(to_jVec3(s.momentOfInertia));
+    if (isDynamic && !s.autoInertia)
+      G_ASSERTF(
+        [&] {
+          vec3f vmj = v_perm_xyzz(v_ldu(&s.momentOfInertia.x));
+          return v_test_all_bits_zeros(v_cmp_lt(vmj, v_zero()));
+        }(),
+        "Negative momj=(%g,%g,%g)! mass=%g", P3D(s.momentOfInertia), mass);
   }
   body.mPosition = to_jVec3(tm.getcol(3));
   body.mRotation = to_jQuat(tm);
@@ -554,6 +562,21 @@ void PhysBody::setTm(const TMatrix &wtm)
     auto act = b.IsInBroadPhase() ? JPH::EActivation::Activate : JPH::EActivation::DontActivate;
     jolt_api::physicsSystem->GetBodyInterfaceNoLock().SetPositionAndRotation(bodyId, to_jVec3(wtm.getcol(3)), to_jQuat(wtm), act);
   });
+}
+
+void PhysBody::setTmWhenChanged(const TMatrix &wtm)
+{
+  // Similar to `SetPositionAndRotationWhenChanged` but with lower eps and ro lock on up-to-date code path
+  bool changed = true;
+  lockRO([&](const JPH::Body &b) {
+    if ((b.GetPosition() - to_jVec3(wtm.getcol(3))).LengthSq() > 1e-6f)
+      return;
+    if ((b.GetRotation().GetXYZW() - to_jQuat(wtm).GetXYZW()).LengthSq() > 1e-6f)
+      return;
+    changed = false;
+  });
+  if (changed)
+    setTm(wtm);
 }
 
 void PhysBody::getTm(TMatrix &wtm) const
@@ -625,7 +648,7 @@ struct JoltPhysNativeShape : public PhysCollision
 };
 void PhysCollision::clearNativeShapeData(PhysCollision &c) { static_cast<JoltPhysNativeShape &>(c).shape = nullptr; }
 
-JPH::Ref<JPH::Shape> check_and_return_shape(JPH::ShapeSettings::ShapeResult res, int ln)
+static JPH::Ref<JPH::Shape> check_and_return_shape(JPH::ShapeSettings::ShapeResult res, int ln)
 {
   if (DAGOR_UNLIKELY(res.HasError()))
   {
@@ -654,26 +677,31 @@ JPH::RefConst<JPH::Shape> PhysBody::create_jolt_collision_shape(const PhysCollis
     case PhysCollision::TYPE_SPHERE:
     {
       auto sphereColl = static_cast<const PhysSphereCollision *>(c);
-      return zeroDensityIfStatic(new JPH::SphereShape(sphereColl->radius));
+      auto sphereShape = check_and_return_shape(JPH::SphereShapeSettings(sphereColl->radius).Create(), __LINE__);
+      return zeroDensityIfStatic(sphereShape);
     }
     break;
+
     case PhysCollision::TYPE_BOX:
     {
       auto boxColl = static_cast<const PhysBoxCollision *>(c);
-      return zeroDensityIfStatic(new JPH::BoxShape(to_jVec3(boxColl->size / 2), jolt_api::min_convex_rad_for_box(boxColl->size)));
+      JPH::BoxShapeSettings boxSett(to_jVec3(boxColl->size / 2), jolt_api::min_convex_rad_for_box(boxColl->size));
+      return zeroDensityIfStatic(check_and_return_shape(boxSett.Create(), __LINE__));
     }
     break;
 
     case PhysCollision::TYPE_CAPSULE:
     {
       auto capsuleColl = static_cast<const PhysCapsuleCollision *>(c);
-      if (capsuleColl->height <= 0.f) // sphere is degenerate capsule
+      if (DAGOR_UNLIKELY(capsuleColl->height <= 0.f)) // sphere is degenerate capsule
       {
         if (capsuleColl->height < 0)
           logerr("%s attempt to create capsule with height %.12f, fallback to sphere", __FUNCTION__, capsuleColl->height);
-        return zeroDensityIfStatic(new JPH::SphereShape(capsuleColl->radius));
+        auto sphereShape = check_and_return_shape(JPH::SphereShapeSettings(capsuleColl->radius).Create(), __LINE__);
+        return zeroDensityIfStatic(sphereShape);
       }
-      auto shape = zeroDensityIfStatic(new JPH::CapsuleShape(capsuleColl->height * 0.5f, capsuleColl->radius));
+      JPH::CapsuleShapeSettings capSet(capsuleColl->height * 0.5f, capsuleColl->radius);
+      auto shape = zeroDensityIfStatic(check_and_return_shape(capSet.Create(), __LINE__));
       switch (capsuleColl->dirIdx)
       {
         case 0: return new JPH::RotatedTranslatedShape(JPH::Vec3::sZero(), JPH::Quat(0, 0, M_SQRT1_2, M_SQRT1_2), shape);
@@ -1405,7 +1433,7 @@ struct JoltSimJob final : public cpujobs::IJob
   {
     if (maxSubSteps > 0)
     {
-      int numSubSteps = int(time / fixedTimeStep);
+      int numSubSteps = int(double(time) / fixedTimeStep);
       time -= numSubSteps * fixedTimeStep;
       numSubSteps = min(numSubSteps, (int)maxSubSteps);
       if (numSubSteps || !allowVariable)
@@ -1572,25 +1600,25 @@ void PhysWorld::shapeQuery(const PhysCollision &shape, const TMatrix &from, cons
 void PhysSystemInstance::phys_jolt_setup_collision_groups_for_joints(int grpId, Tab<PhysSystemInstance::Body> &b, PhysicsResource *r)
 {
   JPH::Ref<JPH::GroupFilterTable> group_filter = new JPH::GroupFilterTable(b.size());
-  for (const auto &jnt : r->rdBallJoints)
+  for (const auto &jnt : r->getRdBallJoints())
   {
     group_filter->DisableCollision(jnt.body2, jnt.body1);
     b[jnt.body1].body->lockRW([&](JPH::Body &b) { b.GetCollisionGroup().SetGroupFilter(group_filter); });
     b[jnt.body2].body->lockRW([&](JPH::Body &b) { b.GetCollisionGroup().SetGroupFilter(group_filter); });
   }
-  for (const auto &jnt : r->rdHingeJoints)
+  for (const auto &jnt : r->getRdHingeJoints())
   {
     group_filter->DisableCollision(jnt.body2, jnt.body1);
     b[jnt.body1].body->lockRW([&](JPH::Body &b) { b.GetCollisionGroup().SetGroupFilter(group_filter); });
     b[jnt.body2].body->lockRW([&](JPH::Body &b) { b.GetCollisionGroup().SetGroupFilter(group_filter); });
   }
-  for (const auto &jnt : r->revoluteJoints)
+  for (const auto &jnt : r->getRevoluteJoints())
   {
     group_filter->DisableCollision(jnt.body2, jnt.body1);
     b[jnt.body1].body->lockRW([&](JPH::Body &b) { b.GetCollisionGroup().SetGroupFilter(group_filter); });
     b[jnt.body2].body->lockRW([&](JPH::Body &b) { b.GetCollisionGroup().SetGroupFilter(group_filter); });
   }
-  for (const auto &jnt : r->sphericalJoints)
+  for (const auto &jnt : r->getSphericalJoints())
   {
     group_filter->DisableCollision(jnt.body2, jnt.body1);
     b[jnt.body1].body->lockRW([&](JPH::Body &b) { b.GetCollisionGroup().SetGroupFilter(group_filter); });

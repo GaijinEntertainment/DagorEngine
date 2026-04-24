@@ -12,6 +12,7 @@
 #include <generic/dag_carray.h>
 #include <3d/dag_texMgr.h>
 #include <util/dag_console.h>
+#include <util/dag_idManager.h>
 #include <osApiWrappers/dag_critSec.h>
 #include <3d/dag_gpuConfig.h>
 
@@ -39,43 +40,6 @@ struct AtlasElem
   Point4 uv;
   bool pendingUpdate;
   int refCount;
-};
-
-class IdManager
-{
-  int32_t lastAllocatedId = -1;
-  dag::Vector<int32_t> freeIds;
-
-public:
-  int32_t allocate()
-  {
-    int32_t id;
-    if (freeIds.size())
-    {
-      id = freeIds.back();
-      freeIds.pop_back();
-    }
-    else
-    {
-      id = ++lastAllocatedId;
-    }
-    return id;
-  }
-
-  void free(int32_t id)
-  {
-    G_ASSERT(id <= lastAllocatedId);
-    if (id == lastAllocatedId)
-      lastAllocatedId--;
-    else
-      freeIds.push_back(id);
-  }
-
-  void clear()
-  {
-    lastAllocatedId = -1;
-    freeIds.clear();
-  }
 };
 
 static void init_atlas(unsigned tex_fmt);
@@ -230,11 +194,11 @@ void init(const DataBlock &blk)
   noiseScale = blk.getReal("noiseScale", 0.2f);
   dyn_decals_paramsId = get_shader_variable_id("dyn_decals_params");
 
-  ShaderGlobal::set_color4(get_shader_variable_id("dyn_decals_cutting_color"),
+  ShaderGlobal::set_float4(get_shader_variable_id("dyn_decals_cutting_color"),
     Color4::xyz1(blk.getPoint3("cutting_color", Point3(0.4f, 0.4f, 0.4f))));
 
-  ShaderGlobal::set_real(get_shader_variable_id("dyn_decals_smoothness"), blk.getReal("smoothness", 0.3f));
-  ShaderGlobal::set_real(get_shader_variable_id("dyn_decals_metalness"), blk.getReal("metallness", 0.6f));
+  ShaderGlobal::set_float(get_shader_variable_id("dyn_decals_smoothness"), blk.getReal("smoothness", 0.3f));
+  ShaderGlobal::set_float(get_shader_variable_id("dyn_decals_metalness"), blk.getReal("metallness", 0.6f));
 
   dynDecalsSteelHoleNoiseVarId = get_shader_variable_id("dyn_decals_steel_hole_noise", true);
   dynDecalsWoodHoleNoiseVarId = get_shader_variable_id("dyn_decals_wood_hole_noise", true);
@@ -253,22 +217,22 @@ void init(const DataBlock &blk)
   rimDistMul = blk.getReal("rimDistMul", 3.0f);
   rimDistMul2 = blk.getReal("rimDistMul2", 10.0f);
 
-  ShaderGlobal::set_color4(dynDecalsSteelHoleNoiseVarId, steelHoleNoise);
-  ShaderGlobal::set_color4(dynDecalsWoodHoleNoiseVarId, woodHoleNoise);
-  ShaderGlobal::set_color4(dynDecalsFabricHoleNoiseVarId, fabricHoleNoise);
-  ShaderGlobal::set_color4(dynDecalsSteelWreckageNoiseVarId, steelWreackageNoise);
-  ShaderGlobal::set_color4(dynDecalsWoodWreckageNoiseVarId, woodWreackageNoise);
-  ShaderGlobal::set_color4(dynDecalsFabricWreckageNoiseVarId, fabricWreackageNoise);
-  ShaderGlobal::set_color4(dynDecalsHoleBurnMarkNoiseVarId, holeBurnMarkNoise);
-  ShaderGlobal::set_color4(dynDecalsBurnMarkColorVarId, burnMarkColor);
-  ShaderGlobal::set_color4(dynDecalsBulletMarkNoiseVarId, bulletMarkNoise);
+  ShaderGlobal::set_float4(dynDecalsSteelHoleNoiseVarId, steelHoleNoise);
+  ShaderGlobal::set_float4(dynDecalsWoodHoleNoiseVarId, woodHoleNoise);
+  ShaderGlobal::set_float4(dynDecalsFabricHoleNoiseVarId, fabricHoleNoise);
+  ShaderGlobal::set_float4(dynDecalsSteelWreckageNoiseVarId, steelWreackageNoise);
+  ShaderGlobal::set_float4(dynDecalsWoodWreckageNoiseVarId, woodWreackageNoise);
+  ShaderGlobal::set_float4(dynDecalsFabricWreckageNoiseVarId, fabricWreackageNoise);
+  ShaderGlobal::set_float4(dynDecalsHoleBurnMarkNoiseVarId, holeBurnMarkNoise);
+  ShaderGlobal::set_float4(dynDecalsBurnMarkColorVarId, burnMarkColor);
+  ShaderGlobal::set_float4(dynDecalsBulletMarkNoiseVarId, bulletMarkNoise);
 
-  ShaderGlobal::set_color4(dynDecalsBurnMarkParamsId, burnMarkParams);
-  ShaderGlobal::set_color4(dynDecalsDiffMarkParamsId, diffMarkParams);
-  ShaderGlobal::set_color4(dynDecalsBulletDiffMarkParamsId, bulletDiffMarkParams);
+  ShaderGlobal::set_float4(dynDecalsBurnMarkParamsId, burnMarkParams);
+  ShaderGlobal::set_float4(dynDecalsDiffMarkParamsId, diffMarkParams);
+  ShaderGlobal::set_float4(dynDecalsBulletDiffMarkParamsId, bulletDiffMarkParams);
 
-  ShaderGlobal::set_color4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
-  ShaderGlobal::set_color4(dyn_decals_params2Id, Color4(rimDistMul, rimDistMul2, burnMarkParams.x, diffMarkParams.x));
+  ShaderGlobal::set_float4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
+  ShaderGlobal::set_float4(dyn_decals_params2Id, Color4(rimDistMul, rimDistMul2, burnMarkParams.x, diffMarkParams.x));
 #endif
 }
 
@@ -343,7 +307,7 @@ int allocate_buffer()
     // SBCF_CPU_ACCESS_WRITE | SBCF_BIND_CONSTANT combo doesn't seem to work on dx10 hardware like old Intel igpus
     planarDecalsShaderParamsBufs.push_back(dag::create_sbuffer(sizeof(PlanarDecalsParamsSet), 1,
       useDynamicConstBuf ? SBCF_CB_PERSISTENT : SBCF_CPU_ACCESS_WRITE | SBCF_BIND_CONSTANT, 0,
-      String(0, "planar_decals_params_cbuf_%d", setId)));
+      String(0, "planar_decals_params_cbuf_%d", setId), RESTAG_DECALS));
     planarDecalsShaderParamsNeedUpdate.push_back(true);
     planarDecalCounts.push_back(0);
   }
@@ -592,7 +556,8 @@ void set_planar_decals(int decals_param_set_id, dynrend::PerInstanceRenderData &
   interval.varId = planar_decal_countVarId.get_var_id();
   interval.setValue = planarDecalCounts[setId];
 
-  render_data.constDataBuf = planarDecalsShaderParamsBufs[setId].getBufId();
+  render_data.constDataId = planarDecalsShaderParamsBufs[setId].getBufId();
+  render_data.constDataBuf = planarDecalsShaderParamsBufs[setId].getBuf();
 }
 
 void set_dyn_decals(const DynDecals &decals, Tab<Point4> &out_params)
@@ -607,6 +572,15 @@ void set_dyn_decals(const DynDecals &decals, int start_params, dynrend::PerInsta
   set_dyn_decals(decals, render_data.params.data() + start_params);
 }
 
+bool has_any_pending_updates()
+{
+  WinAutoLock lock(atlasMutex);
+  for (auto &elem : atlas_elements)
+    if (elem.second.pendingUpdate)
+      return true;
+  return false;
+}
+
 bool update()
 {
   WinAutoLock lock(atlasMutex);
@@ -616,8 +590,17 @@ bool update()
     TEXTUREID texId = elem.first;
     if (!elem.second.pendingUpdate || !prefetch_and_check_managed_texture_loaded(texId, true))
       continue;
+
+    Texture *texture = (Texture *)acquire_managed_tex(texId);
+    if (texture && texture->getSize() == 0) // isStub
+    {
+      release_managed_tex(texId);
+      continue;
+    }
+
     elem.second.pendingUpdate = false;
     WriteTextureToAtlasResult result = write_texture_to_atlas(texId, elem.second.uv);
+    release_managed_tex(texId);
     if (result == WriteTextureToAtlasResult::NotEnoughSpace)
     {
       wasEnlarged = true;
@@ -712,109 +695,109 @@ static WriteTextureToAtlasResult write_texture_to_atlas(TEXTUREID tex_id, Point4
 void set_dyn_decals_steel_hole_noise(const Point4 &noise)
 {
   steelHoleNoise = noise;
-  ShaderGlobal::set_color4(dynDecalsSteelHoleNoiseVarId, steelHoleNoise);
+  ShaderGlobal::set_float4(dynDecalsSteelHoleNoiseVarId, steelHoleNoise);
 }
 
 void set_dyn_decals_wood_hole_noise(const Point4 &noise)
 {
   woodHoleNoise = noise;
-  ShaderGlobal::set_color4(dynDecalsWoodHoleNoiseVarId, woodHoleNoise);
+  ShaderGlobal::set_float4(dynDecalsWoodHoleNoiseVarId, woodHoleNoise);
 }
 
 void set_dyn_decals_fabric_hole_noise(const Point4 &noise)
 {
   fabricHoleNoise = noise;
-  ShaderGlobal::set_color4(dynDecalsFabricHoleNoiseVarId, fabricHoleNoise);
+  ShaderGlobal::set_float4(dynDecalsFabricHoleNoiseVarId, fabricHoleNoise);
 }
 
 void set_dyn_decals_steel_wrecking_noise(const Point4 &noise)
 {
   steelWreackageNoise = noise;
-  ShaderGlobal::set_color4(dynDecalsSteelWreckageNoiseVarId, steelWreackageNoise);
+  ShaderGlobal::set_float4(dynDecalsSteelWreckageNoiseVarId, steelWreackageNoise);
 }
 
 void set_dyn_decals_wood_wrecking_noise(const Point4 &noise)
 {
   woodWreackageNoise = noise;
-  ShaderGlobal::set_color4(dynDecalsWoodWreckageNoiseVarId, woodWreackageNoise);
+  ShaderGlobal::set_float4(dynDecalsWoodWreckageNoiseVarId, woodWreackageNoise);
 }
 
 void set_dyn_decals_fabric_wrecking_noise(const Point4 &noise)
 {
   fabricWreackageNoise = noise;
-  ShaderGlobal::set_color4(dynDecalsFabricWreckageNoiseVarId, fabricWreackageNoise);
+  ShaderGlobal::set_float4(dynDecalsFabricWreckageNoiseVarId, fabricWreackageNoise);
 }
 
 void set_dyn_decals_hole_burn_mark_noise(const Point4 &noise)
 {
   holeBurnMarkNoise = noise;
-  ShaderGlobal::set_color4(dynDecalsHoleBurnMarkNoiseVarId, holeBurnMarkNoise);
+  ShaderGlobal::set_float4(dynDecalsHoleBurnMarkNoiseVarId, holeBurnMarkNoise);
 }
 
 void set_dyn_decals_burn_mark_color(const Point4 &color)
 {
   burnMarkColor = color;
-  ShaderGlobal::set_color4(dynDecalsBurnMarkColorVarId, burnMarkColor);
+  ShaderGlobal::set_float4(dynDecalsBurnMarkColorVarId, burnMarkColor);
 }
 
 void set_dyn_decals_bullet_mark_noise(const Point4 &noise)
 {
   bulletMarkNoise = noise;
-  ShaderGlobal::set_color4(dynDecalsBulletMarkNoiseVarId, bulletMarkNoise);
+  ShaderGlobal::set_float4(dynDecalsBulletMarkNoiseVarId, bulletMarkNoise);
 }
 
 void set_dyn_decals_burn_mark_params(const Point4 &params)
 {
   burnMarkParams = params;
-  ShaderGlobal::set_color4(dynDecalsBurnMarkParamsId, burnMarkParams);
+  ShaderGlobal::set_float4(dynDecalsBurnMarkParamsId, burnMarkParams);
 }
 
 void set_dyn_decals_diff_mark_params(const Point4 &params)
 {
   diffMarkParams = params;
-  ShaderGlobal::set_color4(dynDecalsDiffMarkParamsId, diffMarkParams);
+  ShaderGlobal::set_float4(dynDecalsDiffMarkParamsId, diffMarkParams);
 }
 
 void set_dyn_decals_bullet_diff_mark_params(const Point4 &params)
 {
   bulletDiffMarkParams = params;
-  ShaderGlobal::set_color4(dynDecalsBulletDiffMarkParamsId, bulletDiffMarkParams);
+  ShaderGlobal::set_float4(dynDecalsBulletDiffMarkParamsId, bulletDiffMarkParams);
 }
 
 void set_dyn_decals_rim_scale(float scale)
 {
   rimScale = scale;
-  ShaderGlobal::set_color4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
+  ShaderGlobal::set_float4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
 }
 
 void set_dyn_decals_color_dist_mult(float mult)
 {
   colorDistMul = mult;
-  ShaderGlobal::set_color4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
+  ShaderGlobal::set_float4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
 }
 
 void set_dyn_decals_noise_uv_mul(float mult)
 {
   noiseUvMul = mult;
-  ShaderGlobal::set_color4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
+  ShaderGlobal::set_float4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
 }
 
 void set_dyn_decals_noise_scale(float scale)
 {
   noiseScale = scale;
-  ShaderGlobal::set_color4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
+  ShaderGlobal::set_float4(dyn_decals_paramsId, Color4(rimScale, colorDistMul, noiseUvMul, noiseScale));
 }
 
 void set_dyn_decals_rim_dist_mul(float mult)
 {
   rimDistMul = mult;
-  ShaderGlobal::set_color4(dyn_decals_params2Id, Color4(rimDistMul, rimDistMul2, burnMarkParams.x, diffMarkParams.x));
+  ShaderGlobal::set_float4(dyn_decals_params2Id, Color4(rimDistMul, rimDistMul2, burnMarkParams.x, diffMarkParams.x));
 }
 
 void set_dyn_decals_rim_dist_mul2(float mult)
 {
   rimDistMul2 = mult;
-  ShaderGlobal::set_color4(dyn_decals_params2Id, Color4(rimDistMul, rimDistMul2, burnMarkParams.x, diffMarkParams.x));
+  ShaderGlobal::set_float4(dyn_decals_params2Id, Color4(rimDistMul, rimDistMul2, burnMarkParams.x, diffMarkParams.x));
 }
 
 bool dyn_decals_console(int found, const char *argv[], int argc)

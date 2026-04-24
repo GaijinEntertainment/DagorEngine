@@ -135,7 +135,8 @@ struct DirectJsonWriter
     write(buf + pos, sizeof(buf) - pos);
   }
 
-  void writeDouble(double val)
+  template <typename T>
+  void writeReal(T val)
   {
     if (!isfinite(val)) // act like JSON writer in browsers
     {
@@ -144,7 +145,11 @@ struct DirectJsonWriter
     }
 
     char buf[32];
-    int len = snprintf(buf, sizeof(buf) - 2, "%.17g", val);
+    int len = 0;
+    if constexpr (sizeof(T) == 4)
+      len = snprintf(buf, sizeof(buf) - 2, "%.9g", val);
+    else
+      len = snprintf(buf, sizeof(buf) - 2, "%.17g", val);
 
     for (int i = len - 2; i >= 0; i--)
       if (buf[i] == '.' || buf[i] == 'e' || buf[i] == 'E')
@@ -188,7 +193,15 @@ struct DirectJsonWriter
     {
       case OT_STRING: writeEscapedString(_stringval(obj), _string(obj)->_len); break;
       case OT_INTEGER: writeInt(obj._unVal.nInteger); break;
-      case OT_FLOAT: writeDouble(obj._unVal.fFloat); break;
+      case OT_FLOAT:
+      {
+        if constexpr (sizeof(obj._unVal.fFloat) == 4)
+          writeReal<float>(obj._unVal.fFloat);
+        else
+          writeReal<double>(double(obj._unVal.fFloat));
+      }
+      break;
+
       case OT_BOOL: writeBool(obj._unVal.nInteger != 0); break;
       case OT_NULL: writeNull(); break;
       case OT_TABLE:

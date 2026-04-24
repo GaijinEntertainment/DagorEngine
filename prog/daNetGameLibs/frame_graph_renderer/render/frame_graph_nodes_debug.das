@@ -25,7 +25,7 @@ def register_gbuffer_override_node(var handle : NodeHandle& | #; name : string; 
     let eid = getSingletonEntity(entity)
     return <- @ <| capture(= eid)
       query(eid) <| $ [es] (debug_fill_gbuffer : PostFxRenderer; debug_fill_color : float4)
-        set_color4(get_shader_variable_id("gbuffer_fix_color", true), debug_fill_color)
+        set_float4(get_shader_variable_id("gbuffer_fix_color", true), debug_fill_color)
         set_int(get_shader_variable_id("debug_fix_gbuffer", true), 0)
         debug_fill_gbuffer |> render
 

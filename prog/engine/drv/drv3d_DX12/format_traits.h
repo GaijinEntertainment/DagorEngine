@@ -91,6 +91,7 @@ enum class PlanarType
   P422,
   P444,
   LINEAR,
+  DS_LINEAR
 };
 
 template <PlanarType>
@@ -148,6 +149,19 @@ struct PlanarTraits<PlanarType::LINEAR>
   static constexpr unsigned plane2_height_divider = 1;
 };
 
+template <>
+struct PlanarTraits<PlanarType::DS_LINEAR>
+{
+  static constexpr bool is_planar = true;
+  static constexpr unsigned plane_block_size = 1;
+  static constexpr unsigned plane0_width_divider = 1;
+  static constexpr unsigned plane0_height_divider = 1;
+  static constexpr unsigned plane1_width_divider = 1;
+  static constexpr unsigned plane1_height_divider = 1;
+  static constexpr unsigned plane2_width_divider = 1;
+  static constexpr unsigned plane2_height_divider = 1;
+};
+
 template <FormatClass>
 struct FormatClassTraits;
 
@@ -181,14 +195,11 @@ struct FormatClassTraitPlanar : PlanarTraits<PT>
   static constexpr unsigned block_width = is_planar ? plane_block_size : BlockX;
   static constexpr unsigned block_height = is_planar ? plane_block_size : BlockY;
   static constexpr unsigned block_depth = is_planar ? plane_block_size : BlockZ;
-  static constexpr unsigned bits = !is_planar ? plane0_bits
-                                   : Planes == 2
-                                     ? calc_plane_size(plane0_bits, plane_block_size, plane0_width_divider, plane0_height_divider) +
-                                         calc_plane_size(plane1_bits, plane_block_size, plane1_width_divider, plane1_height_divider)
-                                     : calc_plane_size(plane0_bits, plane_block_size, plane0_width_divider, plane0_height_divider) +
-                                         calc_plane_size(plane1_bits, plane_block_size, plane1_width_divider, plane1_height_divider) +
-                                         calc_plane_size(plane2_bits, plane_block_size, plane2_width_divider, plane2_height_divider);
-  static constexpr unsigned bytes = bits / 8;
+  static constexpr unsigned bits_per_plane[3] = {
+    calc_plane_size(plane0_bits, plane_block_size, plane0_width_divider, plane0_height_divider),
+    calc_plane_size(plane1_bits, plane_block_size, plane1_width_divider, plane1_height_divider),
+    calc_plane_size(plane2_bits, plane_block_size, plane2_width_divider, plane2_height_divider)};
+  static constexpr unsigned bits = bits_per_plane[0] + bits_per_plane[1] + bits_per_plane[2];
 };
 
 template <FormatClass C, unsigned B, unsigned X, unsigned Y, unsigned Z>
@@ -376,13 +387,16 @@ template <>
 struct FormatClassTraits<FormatClass::S8> : FormatClassTraitLinear<FormatClass::S8, 8>
 {};
 template <>
-struct FormatClassTraits<FormatClass::D16S8> : FormatClassTraitLinear<FormatClass::D16S8, 24>
+struct FormatClassTraits<FormatClass::D16S8> : FormatClassTraitPlanar<FormatClass::D16S8, 2, PlanarType::DS_LINEAR, 16, 8>
+{};
+// https://microsoft.github.io/DirectX-Specs/d3d/PlanarDepthStencilDDISpec.html
+// DXGI_FORMAT_R24G8_TYPELESS -> DXGI_FORMAT_R32_TYPELESS depth (24 bits + 8 unused) + DXGI_FORMAT_R8_TYPELESS stencil
+// DXGI_FORMAT_R32G8X24_TYPELESS -> DXGI_FORMAT_R32_TYPELESS depth + DXGI_FORMAT_R8_TYPELESS stencil
+template <>
+struct FormatClassTraits<FormatClass::D24S8> : FormatClassTraitPlanar<FormatClass::D24S8, 2, PlanarType::DS_LINEAR, 32, 8>
 {};
 template <>
-struct FormatClassTraits<FormatClass::D24S8> : FormatClassTraitLinear<FormatClass::D24S8, 32>
-{};
-template <>
-struct FormatClassTraits<FormatClass::D32S8> : FormatClassTraitLinear<FormatClass::D32S8, 40>
+struct FormatClassTraits<FormatClass::D32S8> : FormatClassTraitPlanar<FormatClass::D32S8, 2, PlanarType::DS_LINEAR, 32, 8>
 {};
 template <>
 struct FormatClassTraits<FormatClass::BIT_8_3_PLANE_420>
@@ -418,51 +432,51 @@ struct FormatClassTraits<FormatClass::BIT_10_3_PLANE_422>
 {};
 template <> // strange format type, only uses upper 10 bits of each 16 bit value...
 struct FormatClassTraits<FormatClass::BIT_10_2_PLANE_422>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_422, 2, PlanarType::P422, 16, 32>
+  : FormatClassTraitPlanar<FormatClass::BIT_10_2_PLANE_422, 2, PlanarType::P422, 16, 32>
 {};
 template <> // strange format type, only uses upper 10 bits of each 16 bit value...
 struct FormatClassTraits<FormatClass::BIT_10_3_PLANE_444>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_444, 3, PlanarType::P422, 16, 16, 16>
+  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_444, 3, PlanarType::P444, 16, 16, 16>
 {};
 template <> // strange format type, only uses upper 12 bits of each 16 bit value...
 struct FormatClassTraits<FormatClass::BIT_12_3_PLANE_420>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_420, 3, PlanarType::P422, 16, 16, 16>
+  : FormatClassTraitPlanar<FormatClass::BIT_12_3_PLANE_420, 3, PlanarType::P420, 16, 16, 16>
 {};
 template <> // strange format type, only uses upper 12 bits of each 16 bit value...
 struct FormatClassTraits<FormatClass::BIT_12_2_PLANE_420>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_2_PLANE_420, 2, PlanarType::P420, 16, 32>
+  : FormatClassTraitPlanar<FormatClass::BIT_12_2_PLANE_420, 2, PlanarType::P420, 16, 32>
 {};
 template <> // strange format type, only uses upper 12 bits of each 16 bit value...
 struct FormatClassTraits<FormatClass::BIT_12_3_PLANE_422>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_422, 3, PlanarType::P422, 16, 16, 16>
+  : FormatClassTraitPlanar<FormatClass::BIT_12_3_PLANE_422, 3, PlanarType::P422, 16, 16, 16>
 {};
 template <> // strange format type, only uses upper 12 bits of each 16 bit value...
 struct FormatClassTraits<FormatClass::BIT_12_2_PLANE_422>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_422, 2, PlanarType::P422, 16, 32>
+  : FormatClassTraitPlanar<FormatClass::BIT_12_2_PLANE_422, 2, PlanarType::P422, 16, 32>
 {};
 template <> // strange format type, only uses upper 12 bits of each 16 bit value...
 struct FormatClassTraits<FormatClass::BIT_12_3_PLANE_444>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_444, 3, PlanarType::P422, 16, 16, 16>
+  : FormatClassTraitPlanar<FormatClass::BIT_12_3_PLANE_444, 3, PlanarType::P444, 16, 16, 16>
 {};
 template <>
 struct FormatClassTraits<FormatClass::BIT_16_3_PLANE_420>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_420, 3, PlanarType::P422, 16, 16, 16>
+  : FormatClassTraitPlanar<FormatClass::BIT_16_3_PLANE_420, 3, PlanarType::P420, 16, 16, 16>
 {};
 template <>
 struct FormatClassTraits<FormatClass::BIT_16_2_PLANE_420>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_2_PLANE_420, 2, PlanarType::P420, 16, 32>
+  : FormatClassTraitPlanar<FormatClass::BIT_16_2_PLANE_420, 2, PlanarType::P420, 16, 32>
 {};
 template <>
 struct FormatClassTraits<FormatClass::BIT_16_3_PLANE_422>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_422, 3, PlanarType::P422, 16, 16, 16>
+  : FormatClassTraitPlanar<FormatClass::BIT_16_3_PLANE_422, 3, PlanarType::P422, 16, 16, 16>
 {};
 template <>
 struct FormatClassTraits<FormatClass::BIT_16_2_PLANE_422>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_422, 2, PlanarType::P422, 16, 32>
+  : FormatClassTraitPlanar<FormatClass::BIT_16_2_PLANE_422, 2, PlanarType::P422, 16, 32>
 {};
 template <>
 struct FormatClassTraits<FormatClass::BIT_16_3_PLANE_444>
-  : FormatClassTraitPlanar<FormatClass::BIT_10_3_PLANE_444, 3, PlanarType::P422, 16, 16, 16>
+  : FormatClassTraitPlanar<FormatClass::BIT_16_3_PLANE_444, 3, PlanarType::P444, 16, 16, 16>
 {};
 
 template <DXGI_FORMAT>

@@ -35,7 +35,7 @@ void GrassTranslucency::setGrassAmount(int grass_amount)
   G_ASSERT(grass_tex_size > 0);
   recreateTex(grassAmount == NO ? 1 : grass_tex_size);
 
-  ShaderGlobal::set_real(translucency_vignetteVarId, grassAmount == GRASSY ? 1 : 0);
+  ShaderGlobal::set_float(translucency_vignetteVarId, grassAmount == GRASSY ? 1 : 0);
 }
 
 void GrassTranslucency::recreateTex(int sz)
@@ -50,7 +50,8 @@ void GrassTranslucency::recreateTex(int sz)
 
   grass_color_tex.close();
   grass_mask_tex.close();
-  grass_color_tex.set(d3d::create_tex(NULL, sz, sz, TEXCF_SRGBWRITE | TEXCF_SRGBREAD | TEXCF_RTARGET, 1, "grass_color_tex"),
+  grass_color_tex.set(
+    d3d::create_tex(NULL, sz, sz, TEXCF_SRGBWRITE | TEXCF_SRGBREAD | TEXCF_RTARGET, 1, "grass_color_tex", RESTAG_GRASS),
     "grass_color_tex");
   ShaderGlobal::set_sampler(get_shader_variable_id("grass_color_tex_samplerstate", true), d3d::request_sampler({}));
 
@@ -59,7 +60,7 @@ void GrassTranslucency::recreateTex(int sz)
     uint32_t r8fmt = TEXFMT_R8;
     if (!(d3d::get_texformat_usage(r8fmt) & d3d::USAGE_RTARGET))
       r8fmt = 0;
-    grass_mask_tex.set(d3d::create_tex(NULL, sz, sz, r8fmt | TEXCF_RTARGET, 1, "grass_mask_tex"), "grass_mask_tex");
+    grass_mask_tex.set(d3d::create_tex(NULL, sz, sz, r8fmt | TEXCF_RTARGET, 1, "grass_mask_tex", RESTAG_GRASS), "grass_mask_tex");
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
     ShaderGlobal::set_sampler(get_shader_variable_id("grass_mask_tex_samplerstate", true), d3d::request_sampler(smpInfo));
@@ -155,10 +156,10 @@ bool GrassTranslucency::update(const Point3 &view_pos, float half_size, GrassTra
   static int world_to_grass_color_ofsVarId = get_shader_variable_id("world_to_grass_color_ofs");
   static int grass_mask_tex_viewportVarId = get_shader_variable_id("grass_mask_tex_viewport");
 
-  ShaderGlobal::set_color4(world_to_grass_colorVarId, 1.0 / fullBox.width().x, 1.0 / fullBox.width().z,
+  ShaderGlobal::set_float4(world_to_grass_colorVarId, 1.0 / fullBox.width().x, 1.0 / fullBox.width().z,
     -fullBox[0].x / fullBox.width().x, -fullBox[0].z / fullBox.width().z);
 
-  ShaderGlobal::set_color4(world_to_grass_color_ofsVarId, -ofs.x, -ofs.y, 0, 0);
+  ShaderGlobal::set_float4(world_to_grass_color_ofsVarId, -ofs.x, -ofs.y, 0, 0);
 
   float invTexSize = safeinv((float)grass_tex_size);
 
@@ -170,7 +171,7 @@ bool GrassTranslucency::update(const Point3 &view_pos, float half_size, GrassTra
     BBox3 box3(Point3::xVy(box[0], -1000), Point3::xVy(box[1], +1000));
     TMatrix4 proj = matrix_ortho_off_center_lh(box3[0].x, box3[1].x, box3[1].z, box3[0].z, box3[0].y, box3[1].y);
 
-    ShaderGlobal::set_color4(grass_mask_tex_viewportVarId, reg.lt.x * invTexSize, reg.lt.y * invTexSize, reg.wd.x * invTexSize,
+    ShaderGlobal::set_float4(grass_mask_tex_viewportVarId, reg.lt.x * invTexSize, reg.lt.y * invTexSize, reg.wd.x * invTexSize,
       reg.wd.y * invTexSize);
 
     d3d::settm(TM_PROJ, &proj);

@@ -56,23 +56,23 @@ static inline D3DRESID get_res_id(ManagedBufView tex) { return tex.getBufId(); }
 #define MANAGED_TEX(TYPE, suf)                                                                              \
   inline void create_tex##suf(TYPE &val, int w, int h, int flg, int levels, const char *name)               \
   {                                                                                                         \
-    val = dag::create_tex(nullptr, w, h, flg, levels, name);                                                \
+    val = dag::create_tex(nullptr, w, h, flg, levels, name, RESTAG_DASRES);                                 \
   }                                                                                                         \
   inline void create_cubetex##suf(TYPE &val, int size, int flg, int levels, const char *name)               \
   {                                                                                                         \
-    val = dag::create_cubetex(size, flg, levels, name);                                                     \
+    val = dag::create_cubetex(size, flg, levels, name, RESTAG_DASRES);                                      \
   }                                                                                                         \
   inline void create_voltex##suf(TYPE &val, int w, int h, int d, int flg, int levels, const char *name)     \
   {                                                                                                         \
-    val = dag::create_voltex(w, h, d, flg, levels, name);                                                   \
+    val = dag::create_voltex(w, h, d, flg, levels, name, RESTAG_DASRES);                                    \
   }                                                                                                         \
   inline void create_array_tex##suf(TYPE &val, int w, int h, int d, int flg, int levels, const char *name)  \
   {                                                                                                         \
-    val = dag::create_array_tex(w, h, d, flg, levels, name);                                                \
+    val = dag::create_array_tex(w, h, d, flg, levels, name, RESTAG_DASRES);                                 \
   }                                                                                                         \
   inline void create_cube_array_tex##suf(TYPE &val, int side, int d, int flg, int levels, const char *name) \
   {                                                                                                         \
-    val = dag::create_cube_array_tex(side, d, flg, levels, name);                                           \
+    val = dag::create_cube_array_tex(side, d, flg, levels, name, RESTAG_DASRES);                            \
   }
 
 #define MANAGED_BUF_TYPES         \
@@ -82,15 +82,15 @@ static inline D3DRESID get_res_id(ManagedBufView tex) { return tex.getBufId(); }
 #define MANAGED_BUF(TYPE, suf)                                                                                                 \
   inline void create_vb##suf(TYPE &val, int size_bytes, int flags, const char *name)                                           \
   {                                                                                                                            \
-    val = dag::create_vb(size_bytes, flags, name);                                                                             \
+    val = dag::create_vb(size_bytes, flags, name, RESTAG_DASRES);                                                              \
   }                                                                                                                            \
   inline void create_ib##suf(TYPE &val, int size_bytes, int flags, const char *name)                                           \
   {                                                                                                                            \
-    val = dag::create_ib(size_bytes, flags, name);                                                                             \
+    val = dag::create_ib(size_bytes, flags, name, RESTAG_DASRES);                                                              \
   }                                                                                                                            \
   inline void create_sbuffer##suf(TYPE &val, int struct_size, int elements, unsigned flags, unsigned texfmt, const char *name) \
   {                                                                                                                            \
-    val = dag::create_sbuffer(struct_size, elements, flags, texfmt, name);                                                     \
+    val = dag::create_sbuffer(struct_size, elements, flags, texfmt, name, RESTAG_DASRES);                                      \
   }
 
 MANAGED_TEX_TYPES

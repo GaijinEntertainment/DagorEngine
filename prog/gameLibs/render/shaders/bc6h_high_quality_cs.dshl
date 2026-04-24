@@ -1,5 +1,6 @@
-include "bc6h_compression_inc.dshl"
 include "shader_global.dshl"
+include "bc6h_compression_inc.dshl"
+include "bc_compression_inc.dshl"
 
 float bc6h_cs_src_mip;
 float bc6h_cs_src_face;
@@ -9,7 +10,12 @@ shader bc6h_high_quality_cs
 {
   (cs) {
     src_mip_face@f2 = (bc6h_cs_src_mip, bc6h_cs_src_face, 0, 0);
-    src_tex@smpCube = bc6h_cs_src_tex;
+    src_tex@texCube = bc6h_cs_src_tex;
+    src_tex_samplerstate@sampler = CompressionInputTexSampler;
+
+    CompressedTexture@uav : register(0) hlsl {
+      RWTexture2DArray<uint4> CompressedTexture@uav;
+    }
   }
 
   USE_BC6H_COMPRESSION(cs)
@@ -17,8 +23,6 @@ shader bc6h_high_quality_cs
   hlsl(cs) {
     #include <get_cubemap_vector.hlsl>
     static const int ENCODING_VARIANTS_COUNT = 32;
-
-    RWTexture2DArray<uint4> CompressedTexture : register(u0);
 
     groupshared uint4 encodedVariants[ENCODING_VARIANTS_COUNT];
     groupshared float4 variantsMSLE[ENCODING_VARIANTS_COUNT];

@@ -55,21 +55,37 @@ void LooseGrid::unlockRead() const
 }
 #endif
 
+static unsigned pos_to_cell(const carray<int, GLEV_MAX> &bitShifts, const Point3 &pos, bool is_large)
+{
+  const int gridLevel = is_large ? GLEV_LARGE_OBJECTS : GLEV_SMALL_OBJECTS;
+  int bitShift = bitShifts[gridLevel];
+  int x = ((int)pos.x >> bitShift) & GRID_SIZE_MASK;
+  int z = ((int)pos.z >> bitShift) & GRID_SIZE_MASK;
+  return (unsigned int)(z * GRID_SIZE_CELLS + x + gridLevel * NUM_CELLS_LEVEL);
+}
+
+
 void LooseGrid::update(LooseGridObject *object, const Point3 &pos)
 {
-  lockWrite();
+  // fast path if cell is not changed
+  if (object->gridCurCellIdx == int(pos_to_cell(bitShift, pos, false)))
+    return;
 
+  lockWrite();
   if (object->isInGrid())
     remove(object);
   add(object, pos);
-
   unlockWrite();
 }
 
 void LooseGrid::update(LooseGridObject *object, const Point3 &pos, float radius)
 {
-  lockWrite();
+  // fast path if cell is not changed
+  const bool isLarge = radius >= cellSizeSmall;
+  if (object->gridCurCellIdx == int(pos_to_cell(bitShift, pos, isLarge)))
+    return;
 
+  lockWrite();
   if (object->isInGrid())
     remove(object);
   add(object, pos, radius);
@@ -77,24 +93,17 @@ void LooseGrid::update(LooseGridObject *object, const Point3 &pos, float radius)
   unlockWrite();
 }
 
-static inline unsigned pos_to_cell(const Point3 &pos, int bitShift, int gridLevel)
-{
-  int x = ((int)pos.x >> bitShift) & GRID_SIZE_MASK;
-  int z = ((int)pos.z >> bitShift) & GRID_SIZE_MASK;
-  return (unsigned int)(z * GRID_SIZE_CELLS + x + gridLevel * NUM_CELLS_LEVEL);
-}
-
 void LooseGrid::add(LooseGridObject *object, const Point3 &pos, float radius)
 {
-  if (radius < cellSizeSmall)
+  const bool isLarge = radius >= cellSizeSmall;
+  addObjectToCell(object, pos_to_cell(bitShift, pos, isLarge));
+  if (!isLarge)
   {
-    addObjectToCell(object, pos_to_cell(pos, bitShift[0], GLEV_SMALL_OBJECTS));
     object->setLarge(false);
   }
   else
   {
     G_ASSERT(radius < float(1 << bitShift[1]));
-    addObjectToCell(object, pos_to_cell(pos, bitShift[1], GLEV_LARGE_OBJECTS));
     object->setLarge(true);
     largeObjectsCount++;
   }
@@ -102,13 +111,14 @@ void LooseGrid::add(LooseGridObject *object, const Point3 &pos, float radius)
 
 void LooseGrid::add(LooseGridObject *object, const Point3 &pos)
 {
-  addObjectToCell(object, pos_to_cell(pos, bitShift[0], GLEV_SMALL_OBJECTS));
+  addObjectToCell(object, pos_to_cell(bitShift, pos, /* isLarge */ false));
 }
 
 void LooseGrid::addObjectToCell(LooseGridObject *object, unsigned cell_no)
 {
   G_ASSERT(!object->prevInCell);
   G_ASSERT(!object->nextInCell);
+  G_ASSERT(object->gridCurCellIdx < 0);
 
   LooseGridObjectNextHolder &cell = cells[cell_no];
 
@@ -132,10 +142,12 @@ void LooseGrid::addObjectToCell(LooseGridObject *object, unsigned cell_no)
 
   // mark this cell in bitmap as well
   cellsBitMap[cell_no / CBT_SIZE] |= uintptr_t(1) << (cell_no & CBT_MASK);
+  object->gridCurCellIdx = int(cell_no);
 }
 
 void LooseGrid::remove(LooseGridObject *object)
 {
+  G_ASSERT(object->gridCurCellIdx >= 0);
   G_ASSERT(object->prevInCell);
   G_ASSERT(object->prevInCell->nextInCell == object);
   object->prevInCell->nextInCell = object->nextInCell;
@@ -149,6 +161,7 @@ void LooseGrid::remove(LooseGridObject *object)
   if (object->nextInCell == NULL && object->prevInCell >= cells.cbegin() && object->prevInCell < cells.cend())
   {
     unsigned cellIndex = object->prevInCell - cells.data();
+    G_ASSERT(object->gridCurCellIdx == int(cellIndex));
     G_ASSERT(cellsBitMap[cellIndex / CBT_SIZE] & (uintptr_t(1) << (cellIndex & CBT_MASK)));
     cellsBitMap[cellIndex / CBT_SIZE] &= ~(uintptr_t(1) << (cellIndex & CBT_MASK)); // clear bit (cell is now empty)
   }
@@ -162,6 +175,7 @@ void LooseGrid::remove(LooseGridObject *object)
     largeObjectsCount--;
   }
   object->setLarge(false);
+  object->gridCurCellIdx = -1;
 }
 
 LooseGridObject::~LooseGridObject()

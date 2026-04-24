@@ -2,10 +2,7 @@ include "layered_inc.dshl"
 include_optional "hmap_blend_use_inc.dshl"
 include "translucent_inc.dshl"
 
-define_macro_if_not_defined USE_HMAP_BLEND()
-endmacro
-
-define_macro_if_not_defined USE_METAL_MIP_BIAS()
+define_macro_if_not_defined USE_HMAP_BLEND(pass_to_frame)
 endmacro
 
 macro VCOLOR_LAYERED_WEIGHT_BLENDING(stage)
@@ -93,8 +90,7 @@ macro USE_VCOLOR_LAYERED(stage)
 endmacro
 
 // If use_translucency is set to true, translucent_inc.dshl:INIT_TRANSLUCENCY_SETTING(ps) should be called before
-macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_translucency, has_char_microdetail_sampler, always_use_normal_details)
-  USE_METAL_MIP_BIAS()
+macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_translucency, has_char_microdetail_sampler, always_use_normal_details, order)
   USE_LAYERED_PS(always_use_normal_details)
   USE_PIXEL_TANGENT_SPACE()
   if (is_writing_gbuffer)
@@ -109,19 +105,22 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
 
   if (is_writing_gbuffer && is_blending_hmap)
   {
-    USE_HMAP_BLEND()
+    USE_HMAP_BLEND(true)
   }
   if (shader == rendinst_cliff)
   {
     if (leaks_tex != NULL)
     {
-      (ps){leaks_tex@static = leaks_tex;}
+      (ps){leaks_tex@staticSmp = leaks_tex;}
     }
   }
 
   hlsl(ps) {
     #ifndef SAMPLE_TEX
       #define SAMPLE_TEX(tex, tc) tex2DBindless(tex, tc)
+    #endif
+    #ifndef SAMPLE_TEX_SAMPLER
+      #define SAMPLE_TEX_SAMPLER(tex, smp, tc) tex2DBindlessSampler(tex, smp, tc)
     #endif
 
     ##if (atest == atestOff)
@@ -133,7 +132,11 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
     #if VOXELIZE_ALBEDO_PASS
       void vcolor_layered_ps(VsOutput input INPUT_VFACE)
     #else
-      GBUFFER_OUTPUT vcolor_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
+      GBUFFER_OUTPUT vcolor_layered_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS
+        ##if is_blending_hmap
+          HW_USE_READ_SHADING_RATE
+        ##endif
+        )
     #endif
     {
       #if SET_UP_MULTIDRAW
@@ -145,16 +148,13 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
       #ifndef IS_DYNAMIC
         #define IS_DYNAMIC 0
       #endif
-      #ifndef FORCE_AUTO_MOTION_VECTOR
-        #define FORCE_AUTO_MOTION_VECTOR 0
-      #endif
 
       input.normal.xyz = MUL_VFACE(input.normal.xyz);
       float2 texCoord = input.diffuseTexcoord.xy;
       float3 worldPos = world_view_pos.xyz-input.pointToEye.xyz;
       half4 diffuseColor = SAMPLE_TEX(get_diffuse_tex(), texCoord * get_details_tile().x);
-      half4 diffuseColor1 = SAMPLE_TEX(get_diffuse_tex1(), texCoord * get_details_tile().y);
-      half4 diffuseColor2 = SAMPLE_TEX(get_diffuse_tex2(), texCoord * get_details_tile().z);
+      half4 diffuseColor1 = SAMPLE_TEX_SAMPLER(get_diffuse_tex1(), get_diffuse_tex().smp, texCoord * get_details_tile().y);
+      half4 diffuseColor2 = SAMPLE_TEX_SAMPLER(get_diffuse_tex2(), get_diffuse_tex().smp, texCoord * get_details_tile().z);
       float2 by_normal_params = float2(0, 0);
       ##if (shader == rendinst_cliff)
         by_normal_params = float2(max(dot(get_mask_by_normal().xyz, input.normal.xyz), 0), get_mask_by_normal().w);
@@ -184,8 +184,8 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
       #else
         ##if always_use_normal_details || ((normal != NULL) && (compatibility_mode == compatibility_mode_off))
           half4 packedNormalMap = SAMPLE_TEX(get_normal_tex(), texCoord * get_details_tile().x);
-          half4 packedNormalMap1 = SAMPLE_TEX(get_normal_tex1(), texCoord * get_details_tile().y);
-          half4 packedNormalMap2 = SAMPLE_TEX(get_normal_tex2(), texCoord * get_details_tile().z);
+          half4 packedNormalMap1 = SAMPLE_TEX_SAMPLER(get_normal_tex1(), get_normal_tex().smp, texCoord * get_details_tile().y);
+          half4 packedNormalMap2 = SAMPLE_TEX_SAMPLER(get_normal_tex2(), get_normal_tex().smp, texCoord * get_details_tile().z);
           half3 normalMap;
 
           packedNormalMap = packedNormalMap * weights.x + packedNormalMap1 * weights.y + packedNormalMap2 * weights.z;
@@ -269,9 +269,8 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
 
         init_dynamic(gbuffer,IS_DYNAMIC);
         init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
-        init_auto_motion_vector(gbuffer, FORCE_AUTO_MOTION_VECTOR);
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
           init_motion_vector(gbuffer, motion);
         #endif
         init_ao(gbuffer, ao);
@@ -286,7 +285,8 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
         float4 screenpos = GET_SCREEN_POS(input.pos);
 
         ##if is_blending_hmap
-          blend_with_landscape(gbuffer, screenpos, worldPos, normalize(input.normal.xyz), input.pointToEye.xyz, input.riHmapBlend);
+          blend_with_landscape(gbuffer, screenpos, worldPos, normalize(input.normal.xyz), input.pointToEye.xyz,
+            input.riHmapBlend, GET_SHADING_RATE);
         ##endif
 
         #ifdef PLOD_PS_GEN
@@ -304,6 +304,6 @@ macro VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_transluce
   compile("target_ps", "vcolor_layered_ps");
 endmacro
 
-macro VCOLOR_LAYERED_PS(is_writing_gbuffer, is_blending_hmap, use_translucency)
-  VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_translucency, true, true)
+macro VCOLOR_LAYERED_PS(is_writing_gbuffer, is_blending_hmap, use_translucency, order)
+  VCOLOR_LAYERED_PS_IMPL(is_writing_gbuffer, is_blending_hmap, use_translucency, true, true, order)
 endmacro

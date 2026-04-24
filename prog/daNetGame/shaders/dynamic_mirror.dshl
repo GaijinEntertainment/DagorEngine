@@ -6,7 +6,6 @@ include "psh_tangent.dshl"
 
 shader dynamic_mirror
 {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
 
   texture normal = material.texture[2];
@@ -49,7 +48,7 @@ shader dynamic_mirror
   //---------------------------------------------------
   if (dyn_model_render_pass != render_pass_normal)
   {
-    SPECIAL_RENDER_NOALPHATEST()
+    SPECIAL_RENDER_NOALPHATEST(false)
   }
   else
   {
@@ -58,7 +57,7 @@ shader dynamic_mirror
 
     (ps)
     {
-      normal_tex@static = normal;
+      normal_tex@staticSmp = normal;
     }
     hlsl(ps) {
       GBUFFER_OUTPUT dynamic_mirror_ps(VsOutput input HW_USE_SCREEN_POS)
@@ -93,7 +92,7 @@ shader dynamic_mirror
         init_dynamic(gbuffer, 1);
         init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
           init_motion_vector(gbuffer, motion);
         #endif
         return encode_gbuffer(gbuffer, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));

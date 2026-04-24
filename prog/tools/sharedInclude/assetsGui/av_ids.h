@@ -11,6 +11,7 @@ enum
   AllPage,
   FavoritesPage,
   RecentlyUsedPage,
+  TagManager,
 
   AddToFavoritesMenuItem,
   RemoveFromFavoritesMenuItem,
@@ -19,6 +20,7 @@ enum
   CopyAssetFilePathMenuItem,
   CopyAssetFolderPathMenuItem,
   CopyAssetNameMenuItem,
+  CopyAssetTagsMenuItem,
   RevealInExplorerMenuItem,
   ExpandChildrenMenuItem,
   CollapseChildrenMenuItem,

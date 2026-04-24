@@ -1,0 +1,8 @@
+ERROR: expression of type 'int' cannot be assigned to type 'string'
+testData/diagnostics/compilation_errors/type_inference/test_assignment_chain.nut:4:0
+
+let z = 120 * y
+let s: string = z
+^----------------
+
+

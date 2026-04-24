@@ -1,5 +1,5 @@
 Short mention when to update spir-v tooling:
-- DXC / glsang (for HLSLcc path) generate shaders with new spir-v spec
+- DXC generate shaders with new spir-v spec
 - render backend needs new spir-v spec support for some reason
 - Otherwise update is not required as neither can the new features be produced nor consumed
 

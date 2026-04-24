@@ -1,5 +1,5 @@
 WARNING: w226 (return-different-types) Function can return different types.
-testData/static_analyzer/w226.nut:7:4
+testData/static_analyzer/w226.nut:6:4
 
 let function x(y) {
     ^

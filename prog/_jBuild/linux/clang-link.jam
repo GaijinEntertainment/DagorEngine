@@ -37,6 +37,7 @@ rule ProcessLinkTarget
     _LINK = $(_LINK_DLL) ;
     $(Target)__LINK     = $(_LINK) ;
     $(Target)__LINK_OPT = $(LINKopt) -lpthread ;
+    on $(Target) if $(need_buildstamp) = yes { LinkExeSetBuildStamp $(Target) ; }
   }
 
   local _ADD_LIBS = $(1) ;

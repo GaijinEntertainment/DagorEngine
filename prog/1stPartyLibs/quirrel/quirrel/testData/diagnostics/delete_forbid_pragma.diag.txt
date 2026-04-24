@@ -1,4 +1,4 @@
-ERROR: Usage of 'delete' operator if forbidden. Use 'o.rawdelete("key")' instead
+ERROR: Usage of 'delete' operator is forbidden. Use 'o.rawdelete("key")' instead
 testData/diagnostics/delete_forbid_pragma.nut.txt:10:0
 
 delete t.a // FP 1

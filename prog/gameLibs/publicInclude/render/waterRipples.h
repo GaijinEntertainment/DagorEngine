@@ -11,18 +11,30 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <generic/dag_tab.h>
 
+union WaterRipplesDrop
+{
+  struct
+  {
+    float posX, posY;
+    float radius;
+    uint32_t strength;
+  };
+  Point4 data;
+};
+
 class WaterRipples
 {
 public:
-  WaterRipples(float world_size, int simulation_tex_size, float water_displacement_max = 0.125f, bool use_flowmap = false);
+  WaterRipples(float world_size, int simulation_tex_size, float water_displacement_max = 0.125f, bool use_flowmap = false,
+    bool use_distortion = false);
   ~WaterRipples();
 
-  void placeDrop(const Point2 &pos, float strength, float radius);
+  void placeDrop(const Point2 &pos, float strength, float distortion, float radius);
   void placeSolidBox(const Point2 &pos, const Point2 &size, const Point2 &local_x, const Point2 &local_y, float strength,
-    float radius);
-  void placeDropCorrected(const Point2 &pos, float strength, float radius);
+    float distortion, float radius);
+  void placeDropCorrected(const Point2 &pos, float strength, float distortion, float radius);
   void placeSolidBoxCorrected(const Point2 &pos, const Point2 &size, const Point2 &local_x, const Point2 &local_y, float strength,
-    float radius);
+    float distortion, float radius);
   void reset();
 
   float getWorldSize() const { return worldSize; }
@@ -44,21 +56,29 @@ private:
   int waterRipplesT1_samplerstateVarId;
   int waterRipplesT2VarId;
   int waterRipplesT2_samplerstateVarId;
+
+  int waterRipplesDistortT1VarId;
+  int waterRipplesDistortT1_samplerstateVarId;
+
   int waterRipplesDropsVarId;
   int waterRipplesFrameNoVarId;
   int waterRipplesFlowmapVarId;
   int waterRipplesFlowmapFrameCountVarId;
+  int waterRipplesGenDistortionVarId;
+  int waterRipplesResolveModeVarId;
 
   int frameNo = 0;
   int flowmapFrameCount = 120;
 
   bool firstStep = true;
   int curBuffer = 0;
-  Tab<Point4> drops;
+  int curDistortionBuffer = 0;
+  Tab<WaterRipplesDrop> drops;
   Tab<int> dropsInst;
   float dropsAliveTime = 0.0f;
   bool inSleep = true;
   bool useFlowmap = false;
+  bool useDistortion = false;
   carray<Point2, 2> lastStepOrigin;
   float worldSize;
   int texSize;
@@ -71,7 +91,9 @@ private:
   carray<float, 30> steps;
 
   carray<UniqueTex, 3> texBuffers;
+  carray<UniqueTex, 2> distortionTexBuffers;
   UniqueTexHolder heightNormalTexture;
+  UniqueTexHolder distortionTexture;
   PostFxRenderer updateRenderer;
   PostFxRenderer resolveRenderer;
   UniqueBuf dropsBuf;

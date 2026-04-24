@@ -15,7 +15,6 @@ int dagi_accelerationStructure_const_no = 23;
 
 shader octahedral_distances_cs
 {
-  ENABLE_ASSERT(cs)
   INIT_VOXELS(cs)
   USE_VOXELS(cs)
   SSGI_USE_VOLMAP_GI_COORD(cs)

@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <generic/dag_algorithm.h>
+#include <generic/dag_align.h>
 
 namespace da_profiler
 {
@@ -25,7 +25,14 @@ static uintptr_t rewrite_pointer_if_in_stack(const uint8_t *original_stack_botto
   return stack_copy_bottom_uint + (pointer - original_stack_bottom_uint);
 }
 
-static const uint8_t *copy_stack_and_rewrite_pointers(const uint8_t *original_stack_bottom, const uintptr_t *original_stack_top,
+// no_sanitize_address: intentionally reads raw stack bytes of another thread, including ASan-poisoned alloca redzones
+#if defined(__clang__) || defined(__GNUC__)
+__attribute__((no_sanitize("address")))
+#elif defined(_MSC_VER)
+__declspec(no_sanitize_address)
+#endif
+static const uint8_t *
+copy_stack_and_rewrite_pointers(const uint8_t *original_stack_bottom, const uintptr_t *original_stack_top,
   size_t platform_stack_alignment, uintptr_t *stack_buffer_bottom)
 {
   const uint8_t *byte_src = original_stack_bottom;

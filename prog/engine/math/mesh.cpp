@@ -58,6 +58,7 @@ bool MeshData::ExtraChannel::resize_verts(int n, int t)
     case CHT_FLOAT3: vsize = sizeof(float) * 3; break;
     case CHT_FLOAT4: vsize = sizeof(float) * 4; break;
     case CHT_E3DCOLOR: vsize = sizeof(E3DCOLOR); break;
+    case CHT_SHORT4: vsize = sizeof(int16_t) * 4; break;
     case CHT_UNKNOWN: vsize = 0; break;
     default: vsize = 0; LOGERR_CTX("unknown mesh channel type %d", t);
   }
@@ -984,6 +985,9 @@ bool MeshData::optimize_extra(int id, float sqThreshold)
     case CHT_E3DCOLOR:
       ::optimize_tface_base<GetTFaceVert>(nv, map, vfm, channel.fc, (E3DCOLOR *)&channel.vt[0], channel.numverts(), sqThreshold);
       break;
+    case CHT_SHORT4:
+      ::optimize_tface_base<GetTFaceVert>(nv, map, vfm, channel.fc, (BoneIndices *)&channel.vt[0], channel.numverts(), sqThreshold);
+      break;
     default: return false;
   }
   channel.resize_verts(nv.size());
@@ -1006,9 +1010,9 @@ struct RemoveDegenerate
     if (f.v[0] == f.v[1] || f.v[0] == f.v[2] || f.v[1] == f.v[2])
       return true;
 
-    vec3f v0 = v_ldu(&verts[f.v[0]].x);
-    vec3f v1 = v_ldu(&verts[f.v[1]].x);
-    vec3f v2 = v_ldu(&verts[f.v[2]].x);
+    vec3f v0 = v_ldu_p3_safe(&verts[f.v[0]].x);
+    vec3f v1 = v_ldu_p3_safe(&verts[f.v[1]].x);
+    vec3f v2 = v_ldu_p3_safe(&verts[f.v[2]].x);
     vec3f fa = v_cross3(v_sub(v1, v0), v_sub(v2, v0));
     if (DAGOR_UNLIKELY(v_extract_x(v_length3_sq_x(fa)) < faceAreaThres))
       return true;
@@ -1095,9 +1099,9 @@ void MeshData::kill_bad_faces2(float fa_thresh, float fa_to_check_thresh, float 
       if (f.v[0] == f.v[1] || f.v[0] == f.v[2] || f.v[1] == f.v[2])
         return true;
 
-      vec3f v0 = v_ldu(&verts[f.v[0]].x);
-      vec3f v1 = v_ldu(&verts[f.v[1]].x);
-      vec3f v2 = v_ldu(&verts[f.v[2]].x);
+      vec3f v0 = v_ldu_p3_safe(&verts[f.v[0]].x);
+      vec3f v1 = v_ldu_p3_safe(&verts[f.v[1]].x);
+      vec3f v2 = v_ldu_p3_safe(&verts[f.v[2]].x);
       vec3f v10 = v_sub(v1, v0);
       vec3f v20 = v_sub(v2, v0);
       vec3f vfa2 = v_length3_sq_x(v_cross3(v10, v20));

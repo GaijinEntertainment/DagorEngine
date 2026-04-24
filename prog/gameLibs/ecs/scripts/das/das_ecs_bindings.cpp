@@ -50,6 +50,11 @@ struct EntityIdAnnotation final : das::ManagedValueAnnotation<ecs::EntityId>
   EntityIdAnnotation(das::ModuleLibrary &ml) : ManagedValueAnnotation(ml, "EntityId", " ::ecs::EntityId") {}
   virtual void walk(das::DataWalker &walker, void *data) override
   {
+    if (walker.collecting)
+    {
+      das::ManagedValueAnnotation<ecs::EntityId>::walk(walker, data);
+      return;
+    }
     if (!walker.reading)
     {
       const ecs::EntityId *t = (ecs::EntityId *)data;
@@ -130,6 +135,7 @@ ECS::ECS() : das::Module("ecs")
   addES(lib);
   addContainerAnnotations(lib);
   addList(lib);
+  addSharedList(lib);
   addListFn(lib);
   addChildComponent(lib);
   addArray(lib);
@@ -214,6 +220,9 @@ ECS::ECS() : das::Module("ecs")
     "bind_dascript::find_loaded_das");
 #endif
 
+  das::addExtern<DAS_BIND_FUN(shrink_heap_memory)>(*this, lib, "shrink_heap_memory", das::SideEffects::modifyExternal,
+    "bind_dascript::shrink_heap_memory");
+
   // ecs enums API
   das::addExtern<DAS_BIND_FUN(ecs::is_type_ecs_enum)>(*this, lib, "is_type_ecs_enum", das::SideEffects::accessExternal,
     "ecs::is_type_ecs_enum");
@@ -226,6 +235,9 @@ ECS::ECS() : das::Module("ecs")
 
   das::addExtern<DAS_BIND_FUN(ecs::find_enum_idx)>(*this, lib, "find_enum_idx", das::SideEffects::modifyArgumentAndAccessExternal,
     "ecs::find_enum_idx");
+
+  das::addExtern<DAS_BIND_FUN(das_set_keep_file_names)>(*this, lib, "set_keep_file_names", das::SideEffects::modifyExternal,
+    "bind_dascript::das_set_keep_file_names");
 
   // and builtin module
   compileBuiltinModule("ecs.das", (unsigned char *)ecs_das, sizeof(ecs_das));

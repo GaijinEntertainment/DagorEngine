@@ -1,0 +1,1 @@
+Walks a daslang data structure using the provided `DataWalker`.  The walker receives typed callbacks for each value encountered.  Overloaded for raw data+`StructInfo`, `float4`+`TypeInfo`, and `void?`+`TypeInfo`.

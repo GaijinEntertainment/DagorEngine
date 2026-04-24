@@ -1,9 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "blendNodes/blendNodeType.h"
+#include "controllers/ctrlType.h"
+
 #include <dag/dag_vector.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
+#include <math/dag_Point4.h>
+#include <math/dag_TMatrix.h>
 #include <generic/dag_span.h>
 #include <propPanel/c_common.h>
 #include <EASTL/string_view.h>
@@ -15,6 +20,7 @@ class ControlEventHandler;
 } // namespace PropPanel
 
 struct AnimParamData;
+struct DependentParamData;
 struct AnimCtrlData;
 struct BlendNodeData;
 struct AnimStatesData;
@@ -25,7 +31,7 @@ class DagorAssetMgr;
 
 bool is_include_ctrl(const AnimCtrlData &data);
 
-const AnimParamData *find_param_by_name(const dag::Vector<AnimParamData> &params, const char *name);
+const AnimParamData *find_param_by_name(dag::ConstSpan<AnimParamData> params, const char *name);
 AnimParamData *find_param_by_name(dag::Vector<AnimParamData> &params, const char *name);
 template <typename T>
 T *find_data_by_handle(dag::Vector<T> &data_vec, PropPanel::TLeafHandle handle)
@@ -49,6 +55,17 @@ Data *find_data_by_type(dag::Vector<Data> &data_vec, Type type)
     return nullptr;
 }
 
+// Returns nullptr if not found
+template <typename Data, typename Type>
+const Data *find_data_by_type(dag::ConstSpan<Data> data_vec, Type type)
+{
+  const Data *data = eastl::find_if(data_vec.begin(), data_vec.end(), [type](const Data &data) { return data.type == type; });
+  if (data != data_vec.end())
+    return data;
+  else
+    return nullptr;
+}
+
 bool add_edit_box_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
   const char *name, const char *default_value = "");
 bool add_edit_float_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
@@ -59,8 +76,12 @@ bool add_edit_point2_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel
   const char *name, Point2 default_value = Point2(0.f, 0.f));
 bool add_edit_point3_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
   const char *name, Point3 default_value = Point3(0.f, 0.f, 0.f));
+bool add_edit_point4_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
+  const char *name, Point4 default_value = Point4(0.f, 0.f, 0.f, 0.f));
 bool add_edit_bool_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
   const char *name, bool default_value = false);
+bool add_edit_matrix_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
+  const char *name, const TMatrix &default_value = TMatrix::IDENT);
 void add_target_node(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
 // Add for each target node targetNodeWtN if not exists
 void add_params_target_node_wt(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid);
@@ -90,14 +111,25 @@ void remove_param_if_default_point2(dag::Vector<AnimParamData> &params, PropPane
   Point2 default_value = Point2(0.f, 0.f));
 void remove_param_if_default_point3(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
   Point3 default_value = Point3(0.f, 0.f, 0.f));
+void remove_param_if_default_point4(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
+  Point4 default_value = Point4(0.f, 0.f, 0.f, 0.f));
 void remove_param_if_default_bool(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
   bool default_value = false);
+void remove_param_if_default_matrix(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
+  TMatrix default_value = TMatrix::IDENT);
 void remove_params_if_default_target_node_wt(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
 
 void remove_fields(PropPanel::ContainerPropertyControl *panel, int field_start, int field_end, bool break_if_not_found = false);
 void remove_nodes_fields(PropPanel::ContainerPropertyControl *panel);
 void remove_ctrls_fields(PropPanel::ContainerPropertyControl *panel, int last_param_pid);
 void remove_target_node(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel);
+
+void update_dependent_param_value_by_name(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<AnimParamData> base_params,
+  const DependentParamData &param, const char *param_name);
+void update_dependent_param_value_by_pid(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<DependentParamData> params,
+  AnimParamData &param, int pid);
+void update_dependent_param_state(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<AnimParamData> params,
+  DependentParamData &param, const char *parent_name);
 
 DataBlock *find_block_by_name(DataBlock *props, const String &name, bool should_exist = true);
 DataBlock *find_block_by_block_name(DataBlock *props, const String &name, bool should_exist = true);
@@ -124,6 +156,8 @@ struct CtrlChildSearchResult
 {
   int id;
   const char *iconName;
+  BlendNodeType blendNodeType;
+  CtrlType ctrlType;
 };
 
 eastl::string_view name_without_node_mask_suffix(eastl::string_view str);
@@ -136,10 +170,14 @@ int find_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel
   dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name);
 int find_state_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel::TLeafHandle parent_handle,
   dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name);
+int find_init_fifo3_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel::TLeafHandle parent_handle,
+  dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name);
 int add_ctrl_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data,
   dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name);
 void check_ctrl_child_idx(int idx, const char *ctrl_name, const char *child_name, bool is_optional = false);
 void check_state_child_idx(int idx, const char *state_name, const char *child_name);
+void check_init_anim_state_child_idx(int idx, const char *block_name, const char *child_name);
+void check_fifo3_ctrl_child_idx(int idx, const char *fifo3_name);
 
 float get_default_anim_time(const char *a2d_name, const DagorAssetMgr &mgr);
 void focus_selected_node(PropPanel::ControlEventHandler *plugin_event_handler, PropPanel::ContainerPropertyControl *plugin_panel,
@@ -149,8 +187,17 @@ bool get_updated_child_name(const char *new_name, const String &old_name, const 
 eastl::string_view get_node_mask_suffix_from_name(eastl::string_view name);
 
 int get_child_block_idx_by_list_idx(const DataBlock *settings, int list_idx);
+int get_param_name_idx_by_list_name(const DataBlock &settings, const SimpleString &list_name, int selected_idx);
 
 void fill_child_names(Tab<String> &child_names, PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<BlendNodeData> blend_nodes,
   dag::ConstSpan<AnimCtrlData> controllers);
+void fill_param_names_without_comments(Tab<String> &names, const DataBlock &settings);
 // names must have empty string as 0 element
 int get_selected_name_idx_combo(Tab<String> &names, const char *name);
+// Special wrap function for ImGui combobox "##" mean empty value
+SimpleString get_text_from_combo(PropPanel::ContainerPropertyControl *panel, int pid);
+
+void move_param_blk(DataBlock &blk, int from, int to);
+void move_block_blk(DataBlock &blk, int from, int to);
+
+bool is_comp_op_needs_p1(const char *op);

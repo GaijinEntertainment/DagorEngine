@@ -54,6 +54,9 @@ namespace das
         tEnumeration16,
         tEnumeration64,
         tBitfield,
+        tBitfield8,
+        tBitfield16,
+        tBitfield64,
         tPointer,
         tFunction,
         tLambda,
@@ -105,7 +108,7 @@ namespace das
         string      cppName;
     };
 
-    struct FileInfo {
+    struct DAS_API FileInfo {
     public:
         virtual void freeSourceData() { }
         virtual ~FileInfo() { freeSourceData(); }
@@ -121,7 +124,7 @@ namespace das
     };
     typedef unique_ptr<FileInfo> FileInfoPtr;
 
-    class TextFileInfo : public FileInfo {
+    class DAS_API TextFileInfo : public FileInfo {
     public:
         TextFileInfo ( ) = default;
         TextFileInfo ( const char * src, uint32_t len, bool own )
@@ -140,33 +143,59 @@ namespace das
         string  moduleName;
         string  fileName;
         string  importName;
+        bool extraDepModule = false;
     };
 
-    struct RequireRecord {
+    struct BaseRequireRecord {
         string              name;
+        int32_t             line;
         vector<FileInfo *>  chain;
     };
 
-    struct MissingRecord : RequireRecord {
+    struct RequireRecord : BaseRequireRecord {
+        bool                isPublic;
+    };
+
+    enum class MissingHint {
+        ModuleInfoNotFound,
+        WrongModuleName,
+        FileNotFound,
+        DuplicateModule,
+    };
+
+    struct MissingRecord : BaseRequireRecord {
+        MissingHint         hintType;
         string              hintName;
+        string              hintName2;
     };
 
     struct NamelessModuleReq {
+        string              name;
         string              moduleName;
         string              fileName;
+        string              fromFile;
     };
 
     struct NamelessMismatch {
-        string              moduleName;
-        string              fileName;
-        string              moduleName2;
+        vector<FileInfo *>  chain;
+        int32_t             line;
+        string              name1;
+        string              fileName1;
+        string              fromFile1;
+        string              name2;
         string              fileName2;
+        string              fromFile2;
     };
 
     typedef smart_ptr<class FileAccess> FileAccessPtr;
-    class FileAccess : public ptr_ref_count {
+    class DAS_API FileAccess : public ptr_ref_count {
     public:
+        FileAccess() {}
         virtual ~FileAccess() {}
+
+        FileAccess& operator=(const FileAccess&) = delete;
+        FileAccess(const FileAccess&) = delete;
+
         void reset() { files.clear(); }
         FileInfo * setFileInfo ( const string & fileName, FileInfoPtr && info );
         FileInfo * getFileInfo ( const string & fileName );
@@ -176,9 +205,11 @@ namespace das
         virtual int64_t getFileMtime ( const string & fileName ) const;
         FileInfoPtr letGoOfFileInfo ( const string & fileName );
         virtual ModuleInfo getModuleInfo ( const string & req, const string & from ) const;
+        virtual string getDynModulesFolder () const { return ""; }
+        virtual bool isPodInScopeAllowed ( const string & /*moduleName*/, const string & /*fileName*/ ) const { return true; };
         virtual bool isModuleAllowed ( const string &, const string & ) const { return true; };
         virtual bool canModuleBeUnsafe ( const string &, const string & ) const { return true; };
-        virtual bool canBeRequired ( const string &, const string & ) const { return true; };
+        virtual bool canBeRequired ( const string &, const string &, bool ) const { return true; };
         virtual bool addFsRoot ( const string & , const string & ) { return false; }
         virtual void serialize ( AstSerializer & ser );
         virtual bool isSameFileName ( const string & f1, const string & f2 ) const;
@@ -193,31 +224,41 @@ namespace das
             return false;
         }
 
+        void addExtraModule ( const string & modName, const string & modFile ) { extraModules.emplace_back(modName, modFile); }
+        const vector<pair<string,string>> & getExtraModules () const { return extraModules; }
+
+        void lock() { locked = true; }
+        void unlock() { locked = false; }
+        bool isLocked() const { return locked; }
     protected:
         virtual FileInfo * getNewFileInfo ( const string & ) { return nullptr; }
     protected:
         das_hash_map<string, FileInfoPtr>    files;
+        vector<pair<string,string>>          extraModules;
+        bool    locked = false;
     };
     template <> struct isCloneable<FileAccess> : false_type {};
 
     struct SimFunction;
     class Context;
 
-    class ModuleFileAccess : public FileAccess {
+    class DAS_API ModuleFileAccess : public FileAccess {
     public:
         ModuleFileAccess();
         ModuleFileAccess ( const string & pak, const FileAccessPtr & access );
         virtual ~ModuleFileAccess();
         bool failed() const { return !context || !modGet; }
         virtual ModuleInfo getModuleInfo ( const string & req, const string & from ) const override;
+        virtual string getDynModulesFolder () const override;
         virtual string getIncludeFileName ( const string & fileName, const string & incFileName ) const override;
         virtual bool isModuleAllowed ( const string &, const string & ) const override;
         virtual bool canModuleBeUnsafe ( const string &, const string & ) const override;
-        virtual bool canBeRequired ( const string &, const string & ) const override;
+        virtual bool canBeRequired ( const string &, const string &, bool ) const override;
         virtual void serialize ( AstSerializer & ser ) override;
         virtual bool isSameFileName ( const string & f1, const string & f2 ) const override;
         virtual bool isOptionAllowed ( const string & opt, const string & from ) const override;
         virtual bool isAnnotationAllowed ( const string & /*ann*/, const string & /*from*/ ) const override;
+        virtual bool isPodInScopeAllowed ( const string & /*moduleName*/, const string & /*fileName*/ ) const override;
     protected:
         Context *           context = nullptr;
         SimFunction *       modGet = nullptr;
@@ -228,10 +269,12 @@ namespace das
         SimFunction *       sameFileName = nullptr;
         SimFunction *       optionAllowed = nullptr;
         SimFunction *       annotationAllowed = nullptr;
+        SimFunction *       podInScopeAllowed = nullptr;
+        SimFunction *       dynModulesFolderGet = nullptr;
     };
     template <> struct isCloneable<ModuleFileAccess> : false_type {};
 
-    struct LineInfo {
+    struct DAS_API LineInfo {
         LineInfo() = default;
         LineInfo(FileInfo * fi, int c, int l, int lc, int ll)
             : fileInfo(fi)
@@ -251,7 +294,7 @@ namespace das
 
     struct LineInfoArg : LineInfo {};
 
-    struct TypeInfo {
+    struct DAS_API TypeInfo {
         enum {
             flag_ref = 1<<0,
             flag_refType = 1<<1,
@@ -268,8 +311,7 @@ namespace das
             flag_isHandled = 1<<12,
             flag_heapGC = 1<<13,
             flag_stringHeapGC = 1<<14,
-            flag_lockCheck = 1<<15,
-            flag_private = 1<<16,
+            flag_private = 1<<15,
         };
         union {
             StructInfo *                structType;
@@ -316,6 +358,50 @@ namespace das
         __forceinline bool isTemp() const { return flags & flag_isTemp; }
         __forceinline bool isImplicit() const { return flags & flag_isImplicit; }
         __forceinline bool isSmartPtr() const { return flags & flag_isSmartPtr; }
+        __forceinline static bool isSimpleBaseType(Type t) {
+            switch ( t ) {
+                case Type::tString:
+                case Type::tStructure:
+                case Type::tHandle:
+                case Type::tTuple:
+                case Type::tVariant:
+                case Type::tArray:
+                case Type::tTable:
+                case Type::tLambda:
+                case Type::tIterator:
+                case Type::tBlock:
+                case Type::tPointer:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+        __forceinline bool isSimpleType() const {
+            return dimSize == 0 && isSimpleBaseType(type);
+        }
+        __forceinline bool isDimOfSimpleType() const {
+            return dimSize == 1 && isSimpleBaseType(type);
+        }
+        __forceinline bool isArrayOfSimpleType() const {
+            return firstType && firstType->isSimpleType();
+        }
+        __forceinline bool isTableOfSimpleTypes() const {
+            return firstType && secondType
+                && firstType->isSimpleType()
+                && secondType->isSimpleType();
+        }
+        __forceinline bool isTupleOfSimpleTypes() const {
+            for ( uint32_t i=0, is=argCount; i!=is; ++i ) {
+                if ( !argTypes[i]->isSimpleType() ) return false;
+            }
+            return true;
+        }
+        __forceinline bool isVariantOfSimpleTypes() const {
+            for ( uint32_t i=0, is=argCount; i!=is; ++i ) {
+                if ( !argTypes[i]->isSimpleType() ) return false;
+            }
+            return true;
+        }
         TypeAnnotation * getAnnotation() const;
         StructInfo * getStructType() const;
         EnumInfo * getEnumType() const;
@@ -352,7 +438,6 @@ namespace das
         ,   flag_lambda =       (1<<1)
         ,   flag_heapGC =       (1<<2)
         ,   flag_stringHeapGC = (1<<3)
-        ,   flag_lockCheck =    (1<<4)
         };
         const char* name;
         const char* module_name;
@@ -413,6 +498,7 @@ namespace das
         ,   flag_private = (1<<2)
         ,   flag_shutdown = (1<<3)
         ,   flag_late_init = (1<<5)
+        ,   flag_late_shutdown = (1<<6)
         };
         const char *            name;
         const char *            cppName;
@@ -444,22 +530,22 @@ namespace das
         }
     };
 
-    string das_to_string ( Type t );
-    Type nameToBasicType(const string & name);
+    DAS_API string das_to_string ( Type t );
+    DAS_API Type nameToBasicType(const string & name);
 
-    int getTypeBaseSize ( Type type );
-    int getTypeBaseAlign ( Type type );
-    int getTypeBaseSize ( TypeInfo * info );
-    int getDimSize ( TypeInfo * info );
-    int getTypeSize ( TypeInfo * info );
-    int getTypeAlign ( TypeInfo * info );
-    int getTupleFieldOffset ( TypeInfo * info, int index );
-    int getVariantFieldOffset ( TypeInfo * info, int index );
+    DAS_API int getTypeBaseSize ( Type type );
+    DAS_API int getTypeBaseAlign ( Type type );
+    DAS_API int getTypeBaseSize ( TypeInfo * info );
+    DAS_API int getDimSize ( TypeInfo * info );
+    DAS_API int getTypeSize ( TypeInfo * info );
+    DAS_API int getTypeAlign ( TypeInfo * info );
+    DAS_API int getTupleFieldOffset ( TypeInfo * info, int index );
+    DAS_API int getVariantFieldOffset ( TypeInfo * info, int index );
 
-    bool isSameType ( const TypeInfo * THIS, const TypeInfo * decl, RefMatters refMatters, ConstMatters constMatters, TemporaryMatters temporaryMatters, bool topLevel );
-    bool isCompatibleCast ( const StructInfo * THIS, const StructInfo * castS );
-    bool isValidArgumentType ( TypeInfo * argType, TypeInfo * passType );
-    bool isMatchingArgumentType ( TypeInfo * argType, TypeInfo * passType);
+    DAS_API bool isSameType ( const TypeInfo * THIS, const TypeInfo * decl, RefMatters refMatters, ConstMatters constMatters, TemporaryMatters temporaryMatters, bool topLevel );
+    DAS_API bool isCompatibleCast ( const StructInfo * THIS, const StructInfo * castS );
+    DAS_API bool isValidArgumentType ( TypeInfo * argType, TypeInfo * passType );
+    DAS_API bool isMatchingArgumentType ( TypeInfo * argType, TypeInfo * passType);
 
     enum class PrintFlags : uint32_t {
         none =                  0
@@ -469,6 +555,7 @@ namespace das
     ,   refAddresses =          (1<<3)
     ,   singleLine =            (1<<4)
     ,   fixedFloatingPoint =    (1<<5)
+    ,   fullTypeInfo =          (1<<6)
 
     ,   string_builder  =   PrintFlags::none
     ,   debugger        =   PrintFlags::escapeString | PrintFlags::namesAndDimensions
@@ -477,6 +564,6 @@ namespace das
             | PrintFlags::typeQualifiers | PrintFlags::fixedFloatingPoint
     };
 
-    string debug_type ( const TypeInfo * info );
-    string getTypeInfoMangledName ( TypeInfo * info );
+    DAS_API string debug_type ( const TypeInfo * info );
+    DAS_API string getTypeInfoMangledName ( TypeInfo * info );
 }

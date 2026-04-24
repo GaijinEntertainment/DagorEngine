@@ -1,0 +1,1 @@
+An ``AstVariantMacro`` that replaces ``is``, ``as``, and ``?as`` variant operations on ``Expression`` subclasses with runtime ``__rtti`` string checks and casts.

@@ -109,9 +109,7 @@ RaytracePipeline::RaytracePipeline(ProgramID prog, VulkanPipelineCacheHandle cac
     VULKAN_EXIT_ON_FAIL(dev.vkCreateRayTracingPipelinesNV(dev.get(), cache, 1, &rpci, VKALLOC(pipeline), ptr(handle)));
   }
 
-#if VULKAN_LOG_PIPELINE_ACTIVITY < 1
-  if (compilationTime > PIPELINE_COMPILATION_LONG_THRESHOLD)
-#endif
+  if (compilationTime > PIPELINE_COMPILATION_LONG_THRESHOLD_US || Globals::cfg.bits.logPipelineCompile)
   {
     debug("vulkan: pipeline [raytrace:%u] compiled in %u us", prog.get(), compilationTime);
 #if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
@@ -125,8 +123,9 @@ RaytracePipeline::RaytracePipeline(ProgramID prog, VulkanPipelineCacheHandle cac
 
 VulkanPipelineHandle RaytracePipeline::getHandleForUse()
 {
-#if VULKAN_LOG_PIPELINE_ACTIVITY > 1
-  debug("vulkan: bind raytrace prog %i", program.get());
+#if VULKAN_LOG_PIPELINE_ACTIVITY
+  if (Globals::cfg.bits.logPipelineBinds)
+    debug("vulkan: bind raytrace prog %i", program.get());
 #endif
   return getHandle();
 }

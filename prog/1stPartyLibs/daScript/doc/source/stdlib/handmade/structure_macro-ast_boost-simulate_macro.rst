@@ -1,0 +1,1 @@
+The ``[simulate_macro]`` structure annotation — registers an ``AstSimulateMacro`` subclass as a named macro invoked during the simulation (code generation) phase.

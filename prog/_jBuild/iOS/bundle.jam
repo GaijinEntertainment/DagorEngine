@@ -90,6 +90,24 @@ rule ProcessEmbeddedFrameworks
   if $(1[2]) { ProcessEmbeddedFrameworks $(1[2-]) ; }
 }
 
+rule ProcessBundleFrameworks
+{
+  local srcFramework = $(1[1]) ;
+  local dstFramework = $(OutDir)/Frameworks/$(srcFramework:B).framework ;
+
+  LINKopt += -Wl,-rpath,@executable_path/Frameworks/$(srcFramework:B).framework ;
+
+  if $(SignTarget) { Depends $(SignTarget) : $(dstFramework) ; } else { Depends all : $(dstFramework) ; }
+
+  Depends $(dstFramework) : $(srcFramework) ;
+
+  src on $(dstFramework) = $(srcFramework) ;
+  dst on $(dstFramework) = $(OutDir)/Frameworks/$(srcFramework:B).framework ;
+  copy_framework $(dstFramework) ;
+
+  if $(1[2]) { ProcessBundleFrameworks $(1[2-]) ; }
+}
+
 rule MakeAndSignFramework
 {
   local build_as_framework = $(BuildAsFramework) ;

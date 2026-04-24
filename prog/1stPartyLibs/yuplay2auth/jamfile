@@ -1,0 +1,147 @@
+Root            ?= ../../.. ;
+Location         = prog/1stPartyLibs/yuplay2auth ;
+
+Yuplay2UseGnome   ?= no ; #Set to yes in jamfile of app using webLogin on Linux
+Yuplay2NoCurlInit ?= no ;
+Yuplay2UseXcurl   ?= $(UseGDK) ;
+
+UseZlibVer        ?= ng ;
+
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+
+TargetType        = lib ;
+Target            = 1stPartyLibs/yuplay2auth.lib ;
+
+if $(Yuplay2UseGnome) = yes {
+  Target          = 1stPartyLibs/yuplay2auth-gnome.lib ;
+}
+
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/$(Location)/include
+  $(Root)/$(Location)/session
+  $(Root)/prog/1stPartyLibs/yuplay2
+  $(Root)/prog/1stPartyLibs/yuplay2/include
+  $(Root)/prog/3rdPartyLibs/Tencent
+;
+
+if $(Platform) = nswitch {
+  #  nintendo used system curl library
+} else if $(Yuplay2UseXcurl) = yes {
+  AddIncludes += $(GDK_XCURL_INC_PATH) ;
+} else if $(UseSystemLibcurl) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/libcurl/include ;
+}
+
+
+if $(Platform) = linux && $(Yuplay2UseGnome) = yes {
+  AddIncludes +=
+    /usr/include/gtk-3.0
+    /usr/include/glib-2.0
+    /usr/lib64/glib-2.0/include
+    /usr/include/pango-1.0
+    /usr/include/cairo
+    /usr/include/gdk-pixbuf-2.0
+    /usr/include/atk-1.0
+  ;
+}
+
+
+Sources =
+  yu_friends.cpp
+  yu_itemInfo.cpp
+  yu_syncCb.cpp
+  yu_userInfo.cpp
+
+  yuplay2_core.cpp
+  yuplay2_test.cpp
+
+  session/yu_session.cpp
+  session/yu_sessionAction.cpp
+  session/yu_sessionFallback.cpp
+  session/yu_sessionHttp.cpp
+  session/yu_sessionLoginBase.cpp
+  session/yu_sessionProc.cpp
+  session/yuplay2_session.cpp
+;
+
+
+UseProgLibs =
+  3rdPartyLibs/eastl
+  3rdPartyLibs/arc/zlib-$(UseZlibVer)
+  1stPartyLibs/yuplay2
+;
+
+
+if $(Platform) = nswitch {
+  # nswitch using system curl library
+} else if $(Yuplay2UseXcurl) != yes && $(UseSystemLibcurl) != yes {
+  UseProgLibs += 3rdPartyLibs/libcurl ;
+}
+
+
+if $(UseSystemOpenSSL) != yes {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
+  UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
+}
+
+
+CPPopt =
+  -DCURL_STATICLIB
+  -DOPENSSL_SUPPRESS_DEPRECATED
+;
+
+
+if $(Yuplay2NoCurlInit) = yes {
+  CPPOpt +=
+    -DYUPLAY2_NO_CURL_INIT
+  ;
+}
+
+if $(Yuplay2UseXcurl) = yes {
+  CPPopt +=
+    -DYUPLAY2_USE_XCURL
+  ;
+}
+
+
+if $(Platform) = linux {
+  CPPopt +=
+    -Wno-unused-parameter
+  ;
+}
+
+if $(Yuplay2UseGnome) = yes {
+  CPPopt +=
+    -DYUPLAY2_USE_GNOME
+  ;
+}
+
+
+if $(Platform) in windows {
+  AddLibs =
+    user32.lib
+    shlwapi.lib
+    shell32.lib
+    version.lib
+  ;
+} else if $(Platform) = macOS {
+  AddLibs =
+    -liconv
+  ;
+} else if $(Yuplay2UseGnome) = yes {
+  AddLibs =
+    -lgio-2.0
+  ;
+}
+
+
+if $(TargetType) = dll && $(Platform) in windows {
+  LINKopt = -def:$(Root)/$(Location)/yuplay2auth.def ;
+}
+
+
+include $(Root)/prog/_jBuild/build.jam ;

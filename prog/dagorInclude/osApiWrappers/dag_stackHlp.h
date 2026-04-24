@@ -21,16 +21,20 @@ KRNLIMP unsigned stackhlp_fill_stack_exact(void **stack, unsigned max_size, cons
 //! returns pointer out_buf filled with decoded call stack
 KRNLIMP const char *stackhlp_get_call_stack(char *out_buf, int out_buf_sz, const void *const *stack, unsigned max_size);
 
+//! returns pointer out_buf filled with decoded call stack of one frame
+KRNLIMP const char *stackhlp_get_call_stack(char *out_buf, int out_buf_sz, uintptr_t stk_addr);
+
+
 //! returns string filled with decoded call stack
 KRNLIMP String stackhlp_get_call_stack_str(const void *const *stack, unsigned max_size);
 
 KRNLIMP void *stackhlp_get_bp();
 
 //! callstack of the specified thread.
-void dump_thread_callstack(intptr_t thread_id);
+KRNLIMP void dump_thread_callstack(intptr_t thread_id);
 
 //! callstacks of all the threads of the current process.
-void dump_all_thread_callstacks();
+KRNLIMP void dump_all_thread_callstacks();
 
 namespace stackhelp
 {
@@ -81,10 +85,17 @@ struct CallStackCaptureStore
 
 namespace ext
 {
+// How many pointers from stack were consumed and how many chars were written
+struct ResolvedRecord
+{
+  unsigned writtenChars = 0;
+  unsigned consumedStack = 0;
+};
+
 // Writes the given state of 'stack' as a text into 'buf'. Where 'max_buf' denotes the max
 // length of that text. The returned value is the number of characters written to 'buf', excluding
 // a mandatory null terminator.
-using CallStackResolverCallback = unsigned (*)(char *buf, unsigned max_buf, CallStackInfo stack);
+using CallStackResolverCallback = ResolvedRecord (*)(char *buf, unsigned max_buf, CallStackInfo stack);
 
 // A pair of a resolver callback pointer and written size. It is used as a return value by the
 // 'CallStackCaptureCallback' function pointer. The resolver is supposed to be used afterwards
@@ -145,13 +156,13 @@ struct CallStackInfo
   CallStackInfo(CallStackResolverCallbackAndSizePair r, CallStackInfo b) : resolver{r.resolver}, stack{b.stack}, stackSize{r.size} {}
   CallStackInfo(const CallStackInfo &) = default;
 
-  unsigned operator()(char *buf, unsigned max_buf) const
+  ResolvedRecord operator()(char *buf, unsigned max_buf) const
   {
     if (resolver)
     {
       return resolver(buf, max_buf, {stack, stackSize});
     }
-    return 0;
+    return {};
   }
 };
 
@@ -180,7 +191,9 @@ struct CallStackCaptureStore
 
 // Simple scoped helper to set the given callback context as the current one and preserves the previous set values.
 // On destruction it will restore previous values.
-// Allows easy chaining with 'invokePrev' method.
+// Allows easy chaining with:
+// - 'invokePrev' call previous capture instead of current
+// - 'invokeChain' call chain of previous captures after current one
 class ScopedCallStackContext
 {
   CallStackContext prev;
@@ -192,6 +205,41 @@ public:
   {}
   ~ScopedCallStackContext() { set_extended_call_stack_capture_context(prev); }
   CallStackResolverCallbackAndSizePair invokePrev(stackhelp::CallStackInfo stack) const { return prev(stack); }
+
+  template <CallStackResolverCallback resolver>
+  CallStackResolverCallbackAndSizePair invokeChain(stackhelp::CallStackInfo stack, unsigned consumed_stack) const
+  {
+    if (consumed_stack + 1 >= stack.stackSize)
+      return {resolver, consumed_stack};
+
+    CallStackResolverCallback *prevResolve = reinterpret_cast<CallStackResolverCallback *>(stack.stack + consumed_stack);
+    stack.stack += consumed_stack + 1;
+    stack.stackSize -= consumed_stack + 1;
+
+    CallStackResolverCallbackAndSizePair prevCallback = prev(stack);
+    if (!prevCallback.resolver)
+      return {resolver, consumed_stack};
+    *prevResolve = prevCallback.resolver;
+
+    return {resolveChain<resolver>, consumed_stack + 1 + prevCallback.size};
+  }
+
+  template <CallStackResolverCallback resolver>
+  static ResolvedRecord resolveChain(char *buf, unsigned max_buf, stackhelp::CallStackInfo stack)
+  {
+    ResolvedRecord rec = resolver(buf, max_buf, stack);
+    if (rec.consumedStack >= stack.stackSize)
+      return rec;
+
+    CallStackResolverCallback prevResolve = reinterpret_cast<CallStackResolverCallback>(stack.stack[rec.consumedStack]);
+    stack.stack += rec.consumedStack + 1;
+    stack.stackSize -= rec.consumedStack + 1;
+    buf += rec.writtenChars;
+    max_buf -= rec.writtenChars;
+
+    ResolvedRecord prevRec = prevResolve(buf, max_buf, stack);
+    return {rec.writtenChars + prevRec.writtenChars, rec.consumedStack + prevRec.consumedStack};
+  }
 };
 
 // Generates a text representation of both the call stack state 'stack' and the extended call stack state 'ext_stack'.

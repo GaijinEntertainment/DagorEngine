@@ -1,0 +1,13 @@
+options gen2
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("node-editor-example")
+    package_description("Node editor example using dasImguiNodeEditor")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("dasImguiNodeEditor")
+}

@@ -4,8 +4,9 @@
 //
 #pragma once
 
+#include <drv/3d/dag_driverCode.h>
 #include <drv/3d/dag_consts.h>
-#include <drv/3d/dag_decl.h>
+#include <util/dag_string.h>
 #include <EASTL/vector.h>
 
 class DataBlock;
@@ -18,8 +19,9 @@ struct GpuVideoSettings
   bool ignoreOutdatedDriver = false;
   bool configCompatibilityMode = false;
   bool allowDx10Fallback = false;
-  eastl::vector<String> oldHardwareList;
   bool adjustVideoSettings = false;
+  bool vulkanNVnativePresent = false;
+  eastl::vector<String> oldHardwareList;
   int lowVideoMemMb = 0;
   int ultraLowVideoMemMb = 0;
   int lowSystemMemAtMb = 0;
@@ -29,12 +31,9 @@ struct GpuVideoSettings
 struct GpuUserConfig
 {
   GpuVendor primaryVendor = GpuVendor::UNKNOWN;
-  uint32_t physicalFrameBufferSize = 0;
   uint32_t deviceId = 0;
-  bool vendorAAisOn = false;
   bool outdatedDriver = false;
   bool fallbackToCompatibilty = false;
-  bool disableUav = false;
   union
   {
     bool integrated;
@@ -42,11 +41,7 @@ struct GpuUserConfig
   };
   bool usedSlowIntegratedSwitchableGpu = false;
   bool gradientWorkaroud = false;
-  bool disableTexArrayCompression = false;
   bool disableSbuffers = false;
-  bool disableMeshStreaming = false;
-  bool disableDepthCopyResource = false;
-  bool multipleCopySubresourceWorkaround = false;
   bool forceDx10 = false;
   bool hardwareDx10 = false;
   bool oldHardware = false;
@@ -58,8 +53,6 @@ struct GpuUserConfig
   int freePhysMemMb = 0;
   int64_t freeVirtualMemMb = 0;
   int64_t totalVirtualMemMb = 0;
-
-  String generateDriverVersionString() const;
 };
 
 void d3d_read_gpu_video_settings(const DataBlock &blk, GpuVideoSettings &out_video);

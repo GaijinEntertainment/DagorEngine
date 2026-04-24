@@ -50,7 +50,7 @@ void AnimV20::LegsIKCtrl::advance(IPureAnimStateHolder &st, real dt)
 }
 void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTree &tree, AnimPostBlendCtrl::Context &ctx)
 {
-  if (wt < 1e-3f || tree.empty())
+  if (wt < 1e-3f || tree.empty() || rec.size() == 0)
     return;
 
   TIME_PROFILE_DEV(LegsIKCtrl);
@@ -231,6 +231,8 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
       else
         foot_wtm.col3 = v_perm_xyzd(v_madd(vup, v_splats(nodes[i].dy), move_foot ? foot_p1 : foot_wtm.col3), V_C_UNIT_0001);
       vec3f flex_direction = v_cross3(v_sub(foot_wtm.col3, leg_wtm.col3), leg_wtm.col2);
+      if (rec[i].reverseFlexDirection)
+        flex_direction = v_neg(flex_direction);
       solve_2bones_ik(leg_wtm, knee_wtm, foot_wtm, foot_wtm, len0, len1, flex_direction);
       if (ctx.acScale)
       {
@@ -263,7 +265,8 @@ void AnimV20::LegsIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomNodeTre
 void AnimV20::LegsIKCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 {
   const char *name = blk.getStr("name", NULL);
-  G_ASSERTF_AND_DO(name != NULL, return, "not found '%s' param", "name");
+  if (!isAnimNodeNameValid(name))
+    return;
 
   LegsIKCtrl *node = new LegsIKCtrl(graph);
   const DataBlock &def = *blk.getBlockByNameEx("def");
@@ -295,12 +298,12 @@ void AnimV20::LegsIKCtrl::createNode(AnimationGraph &graph, const DataBlock &blk
       r.maxDaRate = DEG_TO_RAD * GET_PROP(Real, "maxDaRate", 60); // deg/s
 
       r.useAnimcharUpDir = GET_PROP(Bool, "useAnimcharUpDir", false);
+      r.reverseFlexDirection = GET_PROP(Bool, "reverseFlexDirection", false);
 
       G_ASSERTF_AND_DO(!r.foot.empty() && !r.knee.empty() && !r.leg.empty(), node->rec.pop_back(), "foot=<%s> knee=<%s> leg=<%s>",
         r.foot, r.knee, r.leg);
 #undef GET_PROP
     }
-  G_ASSERTF(node->rec.size(), "no legs?");
 
   node->alwaysSolve = blk.getBool("alwaysSolve", false);
   node->isCrawl = blk.getBool("isCrawl", false);

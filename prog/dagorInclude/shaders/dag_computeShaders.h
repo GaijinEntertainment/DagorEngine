@@ -53,6 +53,7 @@ public:
   }
   bool dispatch_indirect(Sbuffer *args, int ofs, GpuPipeline gpu_pipeline = GpuPipeline::GRAPHICS, bool set_states = true) const;
   bool setStates() const;
+  PROGRAM getComputeProgram() const;
 
 protected:
   ScriptedShaderMaterial *mat;
@@ -68,11 +69,15 @@ class ComputeShader
 
 public:
   ComputeShader() = default;
-  ComputeShader(const char *shader_name) : elem(shader_name ? new_compute_shader(shader_name) : nullptr) {}
+  ComputeShader(const char *shader_name, bool optional = false) :
+    elem(shader_name ? new_compute_shader(shader_name, optional) : nullptr)
+  {}
   bool dispatchThreads(int threads_x, int threads_y, int threads_z) const
   {
     return elem->dispatchThreads(threads_x, threads_y, threads_z);
   }
   bool dispatchGroups(int groups_x, int groups_y, int groups_z) const { return elem->dispatch(groups_x, groups_y, groups_z); }
   bool dispatchIndirect(Sbuffer *args, int ofs) const { return elem->dispatch_indirect(args, ofs); }
+  PROGRAM getComputeProgram() const { return elem->getComputeProgram(); }
+  explicit operator bool() const { return elem != nullptr; }
 };

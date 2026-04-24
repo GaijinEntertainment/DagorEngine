@@ -1,34 +1,31 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_res.h>
+#include <3d/dag_ICrashFallback.h>
 #include <ioSys/dag_dataBlock.h>
-#include <generic/dag_carray.h>
-#include <generic/dag_staticTab.h>
+#include <util/dag_finally.h>
 #include <util/dag_localization.h>
 #include <util/dag_string.h>
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_messageBox.h>
+#include <osApiWrappers/dag_winVersionQuery.h>
 #include <drv_utils.h>
+#include <gpuVendor.h>
 #if _TARGET_PC_WIN
-#include <windows.h>
+#include <Windows.h>
+#include <setupapi.h>
+#include <devguid.h>
+#pragma comment(lib, "setupapi.lib")
 #endif
 #include <stdio.h>
-#include "gpuConfig.h"
-#include <3d/dag_ICrashFallback.h>
+#include <EASTL/bitset.h>
+#include <EASTL/string_view.h>
+#include <EASTL/type_traits.h>
+#include <EASTL/unordered_map.h>
 
-enum
-{
-  API_NONE = -1,
-  API_DX11 = 0,
-  API_STUB,
-  API_VULKAN,
-  API_METAL,
-  API_DX12,
-  API_COUNT
-};
 
 #if USE_MULTI_D3D_DX11
 namespace d3d_multi_dx11
@@ -49,7 +46,7 @@ namespace d3d_multi_vulkan
 {
 #include "d3d_api.inc.h"
 }
-extern bool is_vulkan_supported();
+bool is_vulkan_supported(bool only_when_preferred);
 #endif
 
 #if USE_MULTI_D3D_Metal
@@ -57,7 +54,7 @@ namespace d3d_multi_metal
 {
 #include "d3d_api.inc.h"
 }
-extern bool isMetalAvailable();
+bool isMetalAvailable();
 #endif
 
 #if USE_MULTI_D3D_DX12
@@ -65,59 +62,50 @@ namespace d3d_multi_dx12
 {
 #include "d3d_api.inc.h"
 }
-APISupport get_dx12_support_status(bool use_any_device = true);
+APISupport get_dx12_support_status(bool use_any_device);
 #endif
-
-
-static const carray<DriverCode, API_COUNT> api_drv_codes = {
-  DriverCode::make(d3d::dx11),   // API_DX11
-  DriverCode::make(d3d::stub),   // API_STUB
-  DriverCode::make(d3d::vulkan), // API_VULKAN
-  DriverCode::make(d3d::metal),  // API_METAL
-  DriverCode::make(d3d::dx12),   // API_DX12
-};
 
 D3dInterfaceTable d3di;
 
-static int active_api = API_NONE;
-
 #if USE_MULTI_D3D_DX11
-static inline void select_api_dx11() { d3d_multi_dx11::fill_interface_table(d3di); }
+static void select_api_dx11() { d3d_multi_dx11::fill_interface_table(d3di); }
 #endif
 
 #if USE_MULTI_D3D_stub
-static inline void select_api_stub() { d3d_multi_stub::fill_interface_table(d3di); }
+static void select_api_stub() { d3d_multi_stub::fill_interface_table(d3di); }
 #endif
 
 #if USE_MULTI_D3D_vulkan
-static inline void select_api_vulkan() { d3d_multi_vulkan::fill_interface_table(d3di); }
+static void select_api_vulkan() { d3d_multi_vulkan::fill_interface_table(d3di); }
 #endif
 
 #if USE_MULTI_D3D_Metal
-static inline int select_api_metal()
+static DriverCode select_api_metal()
 {
   d3d_multi_metal::fill_interface_table(d3di);
-  return API_METAL;
+  return DriverCode::make(d3d::metal);
 }
 #endif
 #if USE_MULTI_D3D_DX12
-static inline void select_api_dx12() { d3d_multi_dx12::fill_interface_table(d3di); }
+static void select_api_dx12() { d3d_multi_dx12::fill_interface_table(d3di); }
 #endif
 
 #if USE_MULTI_D3D_DX11
 static bool is_dx11_supported_by_os()
 {
 #if _TARGET_PC_WIN
-  OSVERSIONINFOEXW osvi;
-  ZeroMemory(&osvi, sizeof(osvi));
-  osvi.dwOSVersionInfoSize = sizeof(osvi);
+  const char *arch = [] {
+    SYSTEM_INFO si;
+    GetNativeSystemInfo(&si);
+    switch (si.wProcessorArchitecture)
+    {
+      case PROCESSOR_ARCHITECTURE_AMD64: return "x64";
+      case PROCESSOR_ARCHITECTURE_ARM64: return "arm64";
+      default: return "x86";
+    }
+  }();
 
-  SYSTEM_INFO si;
-  GetNativeSystemInfo(&si);
-  const char *arch = (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64) ? "x64" : "x86";
-  if (si.wProcessorArchitecture == PROCESSOR_ARCHITECTURE_ARM64)
-    arch = "arm64";
-
+  OSVERSIONINFOEXW osvi{.dwOSVersionInfoSize = sizeof(osvi)};
   if (get_version_ex(&osvi))
     debug("detected Windows %s v%d.%d, %s", osvi.wProductType == VER_NT_WORKSTATION ? "Workstation" : "Server", osvi.dwMajorVersion,
       osvi.dwMinorVersion, arch);
@@ -143,7 +131,6 @@ static bool is_dx11_supported_by_os()
   return false;
 }
 
-
 static void message_box_os_compatibility_mode()
 {
   static bool show = true;
@@ -155,300 +142,394 @@ static void message_box_os_compatibility_mode()
 }
 #endif
 
-#if _TARGET_PC_WIN | _TARGET_PC_MACOSX
-dag::ConstSpan<DriverCode> d3d::pcwin::get_supported_graphics_apis()
+/**
+ * Enumerates GPU devices in a driver-agnostic manner using the Windows SetupAPI
+ * (SetupDiGetClassDevs and related functions). This avoids relying on any
+ * graphics‑API‑specific enumeration such as DXGI or Vulkan.
+ *
+ * Two tiers of GPU preference are supported in dx12/gpuPreferences:
+ *  - forcedFamily:  always overrides to DX12, even when the user explicitly
+ *                   selected DX11 (e.g. Intel Arc and newer).
+ *  - preferredFamily: only promotes to DX12 when the driver mode is "auto"
+ *                   (e.g. NVIDIA Ampere and newer).
+ *
+ * If only Intel GPUs are present - with no NVIDIA, AMD, or other vendors - and
+ * none of the Intel devices are Arc-class or newer, we assume the GPUs are
+ * integrated UHD/HD or older models that typically perform poorly with DX12.
+ * In this case, the driver preference is overridden to DX11.
+ */
+static DriverCode update_driver_preference(DriverCode candidate_api, bool auto_driver_mode)
 {
-  static StaticTab<DriverCode, 3> supportedApis;
-  if (!supportedApis.empty())
-    return supportedApis;
+  bool ignoreGpuPreferences = dgs_get_settings()->getBlockByNameEx("video")->getBool("ignoreGpuPreferences", false);
+  if (ignoreGpuPreferences || (candidate_api != d3d::dx11 && candidate_api != d3d::dx12))
+    return candidate_api;
 
+#if _TARGET_PC_WIN
+  HDEVINFO devInfo = SetupDiGetClassDevs(&GUID_DEVCLASS_DISPLAY, nullptr, nullptr, DIGCF_PRESENT);
+  if (devInfo == INVALID_HANDLE_VALUE)
+    return candidate_api;
+
+  FINALLY([=] { SetupDiDestroyDeviceInfoList(devInfo); });
+
+  dag::Vector<wchar_t> hwId;
+  eastl::bitset<GPU_VENDOR_COUNT> vendors;
+  SP_DEVINFO_DATA devData{.cbSize = sizeof(SP_DEVINFO_DATA)};
+  auto &gpuCfg = *::dgs_get_settings()->getBlockByNameEx("dx12")->getBlockByNameEx("gpuPreferences");
+  for (DWORD i = 0; SetupDiEnumDeviceInfo(devInfo, i, &devData); ++i)
+  {
+    DWORD bufSize = 0;
+    SetupDiGetDeviceRegistryPropertyW(devInfo, &devData, SPDRP_HARDWAREID, nullptr, nullptr, 0, &bufSize);
+    hwId.resize_noinit(bufSize / sizeof(wchar_t));
+    SetupDiGetDeviceRegistryPropertyW(devInfo, &devData, SPDRP_HARDWAREID, nullptr, reinterpret_cast<PBYTE>(hwId.data()), bufSize,
+      nullptr);
+
+    uint32_t vendorId, deviceId;
+    swscanf_s(hwId.data(), L"PCI\\VEN_%X&DEV_%X", &vendorId, &deviceId);
+
+    // forcedFamily always overrides (e.g. Intel Arc must use DX12 even if DX11 was explicitly set)
+    if (gpu::is_forced_device(gpuCfg, vendorId, deviceId, {}))
+      return DriverCode::make(d3d::dx12);
+
+    // preferredFamily only promotes to DX12 when driver mode is auto
+    if (auto_driver_mode && gpu::is_preferred_device(gpuCfg, vendorId, deviceId, {}))
+      return DriverCode::make(d3d::dx12);
+
+    vendors.set(eastl::to_underlying(d3d_get_vendor(vendorId)));
+  }
+
+  // If only Intel GPUs were found, but none of them are Arc, then assume HD/UDH and prefer DX11
+  if (vendors.test(eastl::to_underlying(GpuVendor::INTEL)) && vendors.count() == 1)
+  {
+    return DriverCode::make(d3d::dx11);
+  }
+#endif
+  return candidate_api;
+}
+
+static DriverCode detect_api()
+{
+  eastl::unordered_map<eastl::string_view, DriverCode> codes{
 #if USE_MULTI_D3D_DX11
-  if (d3d_multi_dx11::is_inited() || is_dx11_supported_by_os())
-    supportedApis.push_back(DriverCode::make(d3d::dx11));
+    {"dx11", DriverCode::make(d3d::dx11)},
 #endif
-#if USE_MULTI_D3D_Metal
-  if (d3d_multi_metal::is_inited() || isMetalAvailable())
-    supportedApis.push_back(DriverCode::make(d3d::metal));
-#endif
-#if USE_MULTI_D3D_DX12 && _TARGET_64BIT
-  if (d3d_multi_dx12::is_inited() || get_dx12_support_status() == APISupport::FULL_SUPPORT)
-    supportedApis.push_back(DriverCode::make(d3d::dx12));
+#if USE_MULTI_D3D_stub
+    {"stub", DriverCode::make(d3d::stub)},
 #endif
 #if USE_MULTI_D3D_vulkan
-  if (d3d_multi_vulkan::is_inited() || is_vulkan_supported())
-    supportedApis.push_back(DriverCode::make(d3d::vulkan));
+    {"vulkan", DriverCode::make(d3d::vulkan)},
 #endif
-#if USE_MULTI_D3D_DX11
-  if (supportedApis.empty() && detect_os_compatibility_mode())
-    supportedApis.push_back(DriverCode::make(d3d::dx11));
+#if USE_MULTI_D3D_Metal
+    {"metal", DriverCode::make(d3d::metal)},
 #endif
-
-  return supportedApis;
-}
-#endif // _TARGET_PC_WIN | _TARGET_PC_MACOSX
-
-static int detect_api(const char *drv)
-{
 #if USE_MULTI_D3D_DX12
-  if (bool dx12Requested = strcmp(drv, "dx12") == 0; dx12Requested || strcmp(drv, "auto") == 0)
+    {"dx12", DriverCode::make(d3d::dx12)},
+#endif
+  };
+
+  const char *driverName = ::dgs_get_argv("driver");
+  if (driverName && *driverName)
   {
-#if _TARGET_64BIT
-    static bool messageShown = dgs_execute_quiet;
-    if (!crash_fallback_helper || !crash_fallback_helper->previousStartupFailed())
+    DataBlock *videoDrvBlk = const_cast<DataBlock *>(::dgs_get_settings())->addBlock("video");
+    if (!(stricmp(driverName, "vulkan") == 0 || stricmp(driverName, "dx11") == 0 || stricmp(driverName, "dx12") == 0))
+      logerr("unknown driver <%s>, setting anyway!", driverName);
+    debug("command line forced <%s> driver", driverName);
+    videoDrvBlk->setStr("driver", driverName);
+  }
+
+  auto &video = *::dgs_get_settings()->getBlockByNameEx("video");
+  auto driver = video.getStr("driver", "auto");
+  auto autoDriverMode = strcmp(driver, "auto") == 0;
+  auto it = codes.find(eastl::string_view{autoDriverMode ? video.getStr("autoDriver", "") : video.getStr("driver", "auto")});
+  auto candidateApi = it == codes.end() ? DriverCode::make(d3d::undefined) : update_driver_preference(it->second, autoDriverMode);
+
+  for (int i = 0; i < 2; i++)
+  {
+#if USE_MULTI_D3D_DX12
+    if (candidateApi == d3d::dx12 || autoDriverMode)
     {
-      if (crash_fallback_helper)
-        crash_fallback_helper->beforeStartup();
-      // this is divergent behavior compared to any other driver, but this was specifically
-      // requested to test proper support even when explicitly requested.
-      const APISupport status = get_dx12_support_status(dx12Requested);
-      switch (status)
+#if _TARGET_64BIT
+      if (!crash_fallback_helper || !crash_fallback_helper->previousStartupFailed())
       {
-        case APISupport::FULL_SUPPORT: return API_DX12;
-        case APISupport::OUTDATED_DRIVER:
-        case APISupport::BLACKLISTED_DRIVER: // TODO: add separate message for blacklisted driver.
-          if (::dgs_execute_quiet)
+        if (crash_fallback_helper)
+          crash_fallback_helper->beforeStartup();
+        // this is divergent behavior compared to any other driver, but this was specifically
+        // requested to test proper support even when explicitly requested.
+        bool dx12Requested = candidateApi == d3d::dx12 && !autoDriverMode;
+        const APISupport status = get_dx12_support_status(dx12Requested);
+        switch (status)
+        {
+          case APISupport::FULL_SUPPORT: return DriverCode::make(d3d::dx12);
+          case APISupport::OUTDATED_DRIVER:
+          case APISupport::BLACKLISTED_DRIVER: // TODO: add separate message for blacklisted driver.
           {
-            debug_flush(false);
-            _exit(1);
-          }
-          if (!messageShown)
-          {
-            messageShown = true;
+            if (::dgs_execute_quiet)
+            {
+              debug_flush(false);
+              _exit(1);
+            }
+
             const char *address = "https://support.gaijin.net/hc/articles/4405867465489";
             String message(1024, "%s\n<a href=\"%s\">%s</a>", get_localized_text("video/outdated_driver"), address, address);
             drv_message_box(message.data(), get_localized_text("video/outdated_driver_hdr"), GUI_MB_OK | GUI_MB_ICON_ERROR);
           }
           break;
-        case APISupport::INSUFFICIENT_DEVICE:
-          if (dx12Requested)
-          {
-            if (crash_fallback_helper)
-              crash_fallback_helper->setSettingToAuto();
-            if (!messageShown)
+          case APISupport::INSUFFICIENT_DEVICE:
+            if (dx12Requested)
             {
-              messageShown = true;
-              drv_message_box(get_localized_text("video/d3d12_not_full_support_text"),
-                get_localized_text("video/d3d12_not_full_support_caption"), GUI_MB_OK);
+              if (crash_fallback_helper)
+                crash_fallback_helper->setSettingToAuto();
+              if (!::dgs_execute_quiet)
+              {
+                drv_message_box(get_localized_text("video/d3d12_not_full_support_text"),
+                  get_localized_text("video/d3d12_not_full_support_caption"), GUI_MB_OK);
+              }
             }
-          }
-          break;
-        default: break;
-      }
-    }
-    else if (crash_fallback_helper)
-    {
-      crash_fallback_helper->setSettingToAuto();
-      if (!messageShown)
-      {
-        messageShown = true;
-        drv_message_box(get_localized_text("video/previous_run_failed_text"), get_localized_text("video/previous_run_failed_caption"),
-          GUI_MB_OK);
-      }
-    }
-#endif
-    // if we fail, behave like auto was selected
-    drv = "auto";
-  }
-#endif
+            break;
+          default: break;
+        }
+
 #if USE_MULTI_D3D_vulkan
-  if (strcmp(drv, "vulkan") == 0)
-    return API_VULKAN;
+        if (is_vulkan_supported(true /*only_when_preferred*/))
+          return DriverCode::make(d3d::vulkan);
 #endif
-  if (strcmp(drv, "metal") == 0)
-  {
+      }
+      else if (crash_fallback_helper)
+      {
+        crash_fallback_helper->setSettingToAuto();
+        if (!::dgs_execute_quiet)
+        {
+          drv_message_box(get_localized_text("video/previous_run_failed_text"),
+            get_localized_text("video/previous_run_failed_caption"), GUI_MB_OK);
+        }
+      }
+#endif
+      // if we fail, behave like auto was selected
+      autoDriverMode = true;
+    }
+#endif
+
+#if USE_MULTI_D3D_vulkan
+    if (candidateApi == d3d::vulkan)
+      return candidateApi;
+#endif
+
+    if (candidateApi == d3d::metal)
+    {
+#if USE_MULTI_D3D_Metal
+      if (isMetalAvailable())
+        return select_api_metal();
+#endif
+
+      drv_message_box(get_localized_text("video/incompatible_mac"), get_localized_text("video/outdated_driver_hdr"), GUI_MB_OK);
+      exit(1);
+    }
+
+#if USE_MULTI_D3D_DX11
+    if (candidateApi == d3d::dx11)
+      return candidateApi;
+#endif
+
+#if USE_MULTI_D3D_stub
+    if (candidateApi == d3d::stub)
+      return candidateApi;
+#endif
+
+    if (!autoDriverMode)
+      logwarn("ignore unsupported driver:t=%s and switching to auto", video.getStr("driver", ""));
+
+#if USE_MULTI_D3D_DX11
+    if (is_dx11_supported_by_os())
+      return DriverCode::make(d3d::dx11);
+    else if (detect_os_compatibility_mode())
+    {
+      message_box_os_compatibility_mode();
+      return DriverCode::make(d3d::dx11);
+    }
+#endif
+
 #if USE_MULTI_D3D_Metal
     if (isMetalAvailable())
+    {
       return select_api_metal();
+    }
+    else
+    {
+      os_message_box(get_localized_text("video/incompatible_mac"), get_localized_text("video/outdated_driver_hdr"), GUI_MB_OK);
+      exit(1);
+    }
 #endif
-
-    drv_message_box(get_localized_text("video/incompatible_mac"), get_localized_text("video/outdated_driver_hdr"), GUI_MB_OK);
-    exit(1);
   }
-#if USE_MULTI_D3D_DX11
-  if (strcmp(drv, "dx11") == 0)
-    return API_DX11;
-#endif
-#if USE_MULTI_D3D_stub
-  if (strcmp(drv, "stub") == 0)
-    return API_STUB;
-#endif
 
-  if (strcmp(drv, "auto") != 0)
-    logwarn("ignore unsupported driver:t=%s and switching to auto", drv);
-
-#if USE_MULTI_D3D_DX11
-  if (is_dx11_supported_by_os())
-    return API_DX11;
-  else if (detect_os_compatibility_mode())
-  {
-    message_box_os_compatibility_mode();
-    return API_DX11;
-  }
-#endif
-
-#if USE_MULTI_D3D_Metal
-  if (isMetalAvailable())
-  {
-    return select_api_metal();
-  }
-  else
-  {
-    os_message_box(get_localized_text("video/incompatible_mac"), get_localized_text("video/outdated_driver_hdr"), GUI_MB_OK);
-    exit(1);
-  }
-#endif
-
-#if USE_MULTI_D3D_vulkan && !_TARGET_PC_WIN // Do not select Vulkan on Windows automatically, players do not have the shader binary.
-  return API_VULKAN;
+#if USE_MULTI_D3D_vulkan
+  return DriverCode::make(d3d::vulkan);
 #elif USE_MULTI_D3D_stub
-  return API_STUB;
+  return DriverCode::make(d3d::stub);
 #endif
-  return API_NONE;
+  return DriverCode::make(d3d::undefined);
 }
 
+static DriverCode active_api = DriverCode::make(d3d::undefined);
 
-static inline int get_selected_api()
+static DriverCode get_selected_api()
 {
-  if (active_api > API_NONE)
-    return active_api;
-
-  const char *drv = ::dgs_get_settings()->getBlockByNameEx("video")->getStr("driver", "auto");
-
-  const bool enableNonAutoDriver = ::dgs_get_settings()->getBlockByNameEx("video")->getBool("enableNonAutoDriver", true);
-  if (!enableNonAutoDriver)
+  if (active_api == d3d::undefined)
   {
-    if (strcmp(drv, "auto") != 0)
-    {
-      debug("If it is required for debug purposes add video { enableNonAutoDriver:b=yes; } in settings");
-      logerr("Only auto driver is allowed! Got %s instead", drv);
-    }
-    drv = "auto";
+    active_api = detect_api();
+    if (active_api == d3d::undefined)
+      DAG_FATAL("D3D API not selected, settings.blk: video { driver:t=\"%s\" }",
+        ::dgs_get_settings()->getBlockByNameEx("video")->getStr("driver", ""));
   }
-  active_api = detect_api(drv);
-  if (active_api == API_NONE) //-V547
-    DAG_FATAL("D3D API not selected, settings.blk: video { driver:t=\"%s\" }", drv);
 
   return active_api;
 }
 
+#if !DAGOR_HOSTED_INTERNAL_SERVER
 DriverCode d3d::get_driver_code()
 {
   if (is_inited())
     return d3di.driverCode;
-  int api = detect_api(::dgs_get_settings()->getBlockByNameEx("video")->getStr("driver", "auto"));
-  return api >= 0 && api < API_COUNT ? api_drv_codes[api] : DriverCode::make(d3d::undefined); //-V560
+
+  return get_selected_api();
+}
+#endif
+
+bool d3d::is_inited()
+{
+  return get_selected_api()
+    .map<bool>()
+#if USE_MULTI_D3D_DX11
+    .map(d3d::dx11, [] { return d3d_multi_dx11::is_inited(); })
+#endif
+#if USE_MULTI_D3D_stub
+    .map(d3d::stub, [] { return d3d_multi_stub::is_inited(); })
+#endif
+#if USE_MULTI_D3D_vulkan
+    .map(d3d::vulkan, [] { return d3d_multi_vulkan::is_inited(); })
+#endif
+#if USE_MULTI_D3D_Metal
+    .map(d3d::metal, [] { return d3d_multi_metal::is_inited(); })
+#endif
+#if USE_MULTI_D3D_DX12
+    .map(d3d::dx12, [] { return d3d_multi_dx12::is_inited(); })
+#endif
+    .map(d3d::any, false);
+}
+
+bool d3d::init_video(void *hinst, main_wnd_f *f, const char *wcname, int ncmdshow, void *&mainwnd, void *hicon, const char *title,
+  Driver3dInitCallback *cb)
+{
+  return get_selected_api()
+    .map<bool>()
+#if USE_MULTI_D3D_DX11
+    .map(d3d::dx11,
+      [&] {
+        if (d3d_multi_dx11::init_video(hinst, f, wcname, ncmdshow, mainwnd, hicon, title, cb))
+        {
+          d3d_multi_dx11::fill_interface_table(d3di);
+          memcpy(&d3di.drvDesc, &d3d_multi_dx11::get_driver_desc(), sizeof(d3di.drvDesc));
+          return true;
+        }
+
+        if (detect_os_compatibility_mode())
+          message_box_os_compatibility_mode();
+
+        drv_message_box(
+          get_localized_text("msgbox/dx9_gpu", "The game requires videocard with DirectX 10 or higher hardware support. "),
+          "Initialization error", GUI_MB_OK | GUI_MB_ICON_ERROR);
+
+        return false;
+      })
+#endif
+#if USE_MULTI_D3D_stub
+    .map(d3d::stub,
+      [&] {
+        if (d3d_multi_stub::init_video(hinst, f, wcname, ncmdshow, mainwnd, hicon, title, cb))
+        {
+          memcpy(&d3di.drvDesc, &d3d_multi_stub::get_driver_desc(), sizeof(d3di.drvDesc));
+          return true;
+        }
+        return false;
+      })
+#endif
+#if USE_MULTI_D3D_vulkan
+    .map(d3d::vulkan,
+      [&] {
+        if (d3d_multi_vulkan::init_video(hinst, f, wcname, ncmdshow, mainwnd, hicon, title, cb))
+        {
+          d3d_multi_vulkan::fill_interface_table(d3di);
+          memcpy(&d3di.drvDesc, &d3d_multi_vulkan::get_driver_desc(), sizeof(d3di.drvDesc));
+          return true;
+        }
+        return false;
+      })
+#endif
+#if USE_MULTI_D3D_Metal
+    .map(d3d::metal,
+      [&] {
+        if (d3d_multi_metal::init_video(hinst, f, wcname, ncmdshow, mainwnd, hicon, title, cb))
+        {
+          d3d_multi_metal::fill_interface_table(d3di);
+          memcpy(&d3di.drvDesc, &d3d_multi_metal::get_driver_desc(), sizeof(d3di.drvDesc));
+          return true;
+        }
+        return false;
+      })
+#endif
+#if USE_MULTI_D3D_DX12
+    .map(d3d::dx12,
+      [&] {
+        if (d3d_multi_dx12::init_video(hinst, f, wcname, ncmdshow, mainwnd, hicon, title, cb))
+        {
+          d3d_multi_dx12::fill_interface_table(d3di);
+          memcpy(&d3di.drvDesc, &d3d_multi_dx12::get_driver_desc(), sizeof(d3di.drvDesc));
+          return true;
+        }
+        return false;
+      })
+#endif
+    .map(d3d::any, false);
 }
 
 bool d3d::init_driver()
 {
-  switch (get_selected_api())
-  {
+  return get_selected_api()
+    .map<bool>()
 #if USE_MULTI_D3D_DX11
-    case API_DX11: select_api_dx11(); return d3d_multi_dx11::init_driver();
+    .map(d3d::dx11,
+      [] {
+        select_api_dx11();
+        return d3d_multi_dx11::init_driver();
+      })
 #endif
 #if USE_MULTI_D3D_stub
-    case API_STUB: select_api_stub(); return d3d_multi_stub::init_driver();
+    .map(d3d::stub,
+      [] {
+        select_api_stub();
+        return d3d_multi_stub::init_driver();
+      })
 #endif
 #if USE_MULTI_D3D_vulkan
-    case API_VULKAN: select_api_vulkan(); return d3d_multi_vulkan::init_driver();
+    .map(d3d::vulkan,
+      [] {
+        select_api_vulkan();
+        return d3d_multi_vulkan::init_driver();
+      })
 #endif
 #if USE_MULTI_D3D_Metal
-    case API_METAL: select_api_metal(); return d3d_multi_metal::init_driver();
+    .map(d3d::metal,
+      [] {
+        select_api_metal();
+        return d3d_multi_metal::init_driver();
+      })
 #endif
 #if USE_MULTI_D3D_DX12
-    case API_DX12: select_api_dx12(); return d3d_multi_dx12::init_driver();
+    .map(d3d::dx12,
+      [] {
+        select_api_dx12();
+        return d3d_multi_dx12::init_driver();
+      })
 #endif
-  }
-  return false;
-}
-bool d3d::is_inited()
-{
-  if (active_api == API_NONE)
-    return false;
-  switch (get_selected_api())
-  {
-#if USE_MULTI_D3D_DX11
-    case API_DX11: return d3d_multi_dx11::is_inited();
-#endif
-#if USE_MULTI_D3D_stub
-    case API_STUB: return d3d_multi_stub::is_inited();
-#endif
-#if USE_MULTI_D3D_vulkan
-    case API_VULKAN: return d3d_multi_vulkan::is_inited();
-#endif
-#if USE_MULTI_D3D_Metal
-    case API_METAL: return d3d_multi_metal::is_inited();
-#endif
-#if USE_MULTI_D3D_DX12
-    case API_DX12: return d3d_multi_dx12::is_inited();
-#endif
-  }
-  return false;
-}
-
-bool d3d::init_video(void *hinst, main_wnd_f *f, const char *wcname, int ncmdshow, void *&mainwnd, void *renderwnd, void *hicon,
-  const char *title, Driver3dInitCallback *cb)
-{
-  switch (get_selected_api())
-  {
-#if USE_MULTI_D3D_DX11
-    case API_DX11:
-      if (d3d_multi_dx11::init_video(hinst, f, wcname, ncmdshow, mainwnd, renderwnd, hicon, title, cb))
-      {
-        d3d_multi_dx11::fill_interface_table(d3di);
-        memcpy(&d3di.drvDesc, &d3d_multi_dx11::get_driver_desc(), sizeof(d3di.drvDesc));
-        return true;
-      }
-
-      if (detect_os_compatibility_mode())
-        message_box_os_compatibility_mode();
-
-      drv_message_box(get_localized_text("msgbox/dx9_gpu", "The game requires videocard with DirectX 10 or higher hardware support. "),
-        "Initialization error", GUI_MB_OK | GUI_MB_ICON_ERROR);
-
-      break;
-#endif
-#if USE_MULTI_D3D_stub
-    case API_STUB:
-      if (d3d_multi_stub::init_video(hinst, f, wcname, ncmdshow, mainwnd, renderwnd, hicon, title, cb))
-      {
-        memcpy(&d3di.drvDesc, &d3d_multi_stub::get_driver_desc(), sizeof(d3di.drvDesc));
-        return true;
-      }
-      break;
-#endif
-#if USE_MULTI_D3D_vulkan
-    case API_VULKAN:
-      if (d3d_multi_vulkan::init_video(hinst, f, wcname, ncmdshow, mainwnd, renderwnd, hicon, title, cb))
-      {
-        d3d_multi_vulkan::fill_interface_table(d3di);
-        memcpy(&d3di.drvDesc, &d3d_multi_vulkan::get_driver_desc(), sizeof(d3di.drvDesc));
-        return true;
-      }
-      break;
-#endif
-#if USE_MULTI_D3D_Metal
-    case API_METAL:
-      if (d3d_multi_metal::init_video(hinst, f, wcname, ncmdshow, mainwnd, renderwnd, hicon, title, cb))
-      {
-        d3d_multi_metal::fill_interface_table(d3di);
-        memcpy(&d3di.drvDesc, &d3d_multi_metal::get_driver_desc(), sizeof(d3di.drvDesc));
-        return true;
-      }
-      break;
-#endif
-#if USE_MULTI_D3D_DX12
-    case API_DX12:
-      if (d3d_multi_dx12::init_video(hinst, f, wcname, ncmdshow, mainwnd, renderwnd, hicon, title, cb))
-      {
-        d3d_multi_dx12::fill_interface_table(d3di);
-        memcpy(&d3di.drvDesc, &d3d_multi_dx12::get_driver_desc(), sizeof(d3di.drvDesc));
-        return true;
-      }
-      break;
-#endif
-  }
-  return false;
+    .map(d3d::any, false);
 }
 
 void d3d::release_driver()
@@ -459,152 +540,153 @@ void d3d::release_driver()
     crash_fallback_helper.reset();
   }
 
-  switch (get_selected_api())
-  {
+  get_selected_api()
 #if USE_MULTI_D3D_DX11
-    case API_DX11: d3d_multi_dx11::release_driver(); break;
+    .match(d3d::dx11, [] { d3d_multi_dx11::release_driver(); })
 #endif
 #if USE_MULTI_D3D_stub
-    case API_STUB: d3d_multi_stub::release_driver(); break;
+    .match(d3d::stub, [] { d3d_multi_stub::release_driver(); })
 #endif
 #if USE_MULTI_D3D_vulkan
-    case API_VULKAN: d3d_multi_vulkan::release_driver(); break;
+    .match(d3d::vulkan, [] { d3d_multi_vulkan::release_driver(); })
 #endif
 #if USE_MULTI_D3D_Metal
-    case API_METAL: d3d_multi_metal::release_driver(); break;
+    .match(d3d::metal, [] { d3d_multi_metal::release_driver(); })
 #endif
 #if USE_MULTI_D3D_DX12
-    case API_DX12: d3d_multi_dx12::release_driver(); break;
+    .match(d3d::dx12, [] { d3d_multi_dx12::release_driver(); })
 #endif
-  }
-  active_api = API_NONE;
+    ;
 }
+
 bool d3d::fill_interface_table(D3dInterfaceTable &d3dit)
 {
-  switch (get_selected_api())
-  {
+  return get_selected_api()
+    .map<bool>()
 #if USE_MULTI_D3D_DX11
-    case API_DX11: return d3d_multi_dx11::fill_interface_table(d3dit);
+    .map(d3d::dx11, [&] { return d3d_multi_dx11::fill_interface_table(d3dit); })
 #endif
 #if USE_MULTI_D3D_stub
-    case API_STUB: return d3d_multi_stub::fill_interface_table(d3dit);
+    .map(d3d::stub, [&] { return d3d_multi_stub::fill_interface_table(d3dit); })
 #endif
 #if USE_MULTI_D3D_vulkan
-    case API_VULKAN: return d3d_multi_vulkan::fill_interface_table(d3dit);
+    .map(d3d::vulkan, [&] { return d3d_multi_vulkan::fill_interface_table(d3dit); })
 #endif
 #if USE_MULTI_D3D_Metal
-    case API_METAL: return d3d_multi_metal::fill_interface_table(d3dit);
+    .map(d3d::metal, [&] { return d3d_multi_metal::fill_interface_table(d3dit); })
 #endif
 #if USE_MULTI_D3D_DX12
-    case API_DX12: return d3d_multi_dx12::fill_interface_table(d3dit);
+    .map(d3d::dx12, [&] { return d3d_multi_dx12::fill_interface_table(d3dit); })
 #endif
-  }
-  return false;
+    .map(d3d::any, false);
 }
 
 void d3d::prepare_for_destroy()
 {
-  switch (get_selected_api())
-  {
+  get_selected_api()
 #if USE_MULTI_D3D_DX11
-    case API_DX11: return d3d_multi_dx11::prepare_for_destroy();
-#endif
-#if USE_MULTI_D3D_DX12
-    case API_DX12: return d3d_multi_dx12::prepare_for_destroy();
+    .match(d3d::dx11, [] { d3d_multi_dx11::prepare_for_destroy(); })
 #endif
 #if USE_MULTI_D3D_vulkan
-    case API_VULKAN: return d3d_multi_vulkan::prepare_for_destroy();
+    .match(d3d::vulkan, [] { d3d_multi_vulkan::prepare_for_destroy(); })
 #endif
-    case API_STUB: return;
-    default: return;
-  }
+#if USE_MULTI_D3D_DX12
+    .match(d3d::dx12, [] { d3d_multi_dx12::prepare_for_destroy(); })
+#endif
+    ;
 }
 
 void d3d::window_destroyed(void *hwnd)
 {
-  switch (get_selected_api())
-  {
+  get_selected_api()
 #if USE_MULTI_D3D_DX11
-    case API_DX11: return d3d_multi_dx11::window_destroyed(hwnd);
+    .match(d3d::dx11, [=] { d3d_multi_dx11::window_destroyed(hwnd); })
 #endif
 #if USE_MULTI_D3D_stub
-    case API_STUB: return d3d_multi_stub::window_destroyed(hwnd);
+    .match(d3d::stub, [=] { d3d_multi_stub::window_destroyed(hwnd); })
 #endif
 #if USE_MULTI_D3D_vulkan
-    case API_VULKAN: return d3d_multi_vulkan::window_destroyed(hwnd);
+    .match(d3d::vulkan, [=] { d3d_multi_vulkan::window_destroyed(hwnd); })
 #endif
 #if USE_MULTI_D3D_Metal
-    case API_METAL: return d3d_multi_metal::window_destroyed(hwnd);
+    .match(d3d::metal, [=] { d3d_multi_metal::window_destroyed(hwnd); })
 #endif
 #if USE_MULTI_D3D_DX12
-    case API_DX12: return d3d_multi_dx12::window_destroyed(hwnd);
+    .match(d3d::dx12, [=] { d3d_multi_dx12::window_destroyed(hwnd); })
 #endif
-  }
+    ;
 }
 
 void d3d::reserve_res_entries(bool strict_max, int max_tex, int max_vs, int max_ps, int max_vdecl, int max_vb, int max_ib, int m)
 {
-  switch (get_selected_api())
-  {
+  get_selected_api()
 #if USE_MULTI_D3D_DX11
-    case API_DX11: return d3d_multi_dx11::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m);
+    .match(d3d::dx11, [&] { d3d_multi_dx11::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m); })
 #endif
 #if USE_MULTI_D3D_stub
-    case API_STUB: return d3d_multi_stub::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m);
+    .match(d3d::stub, [&] { d3d_multi_stub::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m); })
 #endif
 #if USE_MULTI_D3D_vulkan
-    case API_VULKAN: return d3d_multi_vulkan::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m);
+    .match(d3d::vulkan,
+      [&] { d3d_multi_vulkan::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m); })
 #endif
 #if USE_MULTI_D3D_Metal
-    case API_METAL: return d3d_multi_metal::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m);
+    .match(d3d::metal,
+      [&] { d3d_multi_metal::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m); })
 #endif
 #if USE_MULTI_D3D_DX12
-    case API_DX12: return d3d_multi_dx12::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m);
+    .match(d3d::dx12, [&] { d3d_multi_dx12::reserve_res_entries(strict_max, max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, m); })
 #endif
-  }
+    ;
 }
+
 void d3d::get_max_used_res_entries(int &max_tex, int &max_vs, int &max_ps, int &max_vdecl, int &max_vb, int &max_ib, int &max_stblk)
 {
-  switch (get_selected_api())
-  {
+  get_selected_api()
 #if USE_MULTI_D3D_DX11
-    case API_DX11: return d3d_multi_dx11::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::dx11, [&] { d3d_multi_dx11::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
 #if USE_MULTI_D3D_stub
-    case API_STUB: return d3d_multi_stub::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::stub, [&] { d3d_multi_stub::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
 #if USE_MULTI_D3D_vulkan
-    case API_VULKAN: return d3d_multi_vulkan::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::vulkan,
+      [&] { d3d_multi_vulkan::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
 #if USE_MULTI_D3D_Metal
-    case API_METAL: return d3d_multi_metal::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::metal,
+      [&] { d3d_multi_metal::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
 #if USE_MULTI_D3D_DX12
-    case API_DX12: return d3d_multi_dx12::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::dx12, [&] { d3d_multi_dx12::get_max_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
-  }
+    ;
+
   max_tex = max_vs = max_ps = max_vdecl = max_vb = max_ib = max_stblk = 0;
 }
+
 void d3d::get_cur_used_res_entries(int &max_tex, int &max_vs, int &max_ps, int &max_vdecl, int &max_vb, int &max_ib, int &max_stblk)
 {
-  switch (get_selected_api())
-  {
+  get_selected_api()
 #if USE_MULTI_D3D_DX11
-    case API_DX11: return d3d_multi_dx11::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::dx11, [&] { d3d_multi_dx11::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
 #if USE_MULTI_D3D_stub
-    case API_STUB: return d3d_multi_stub::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::stub, [&] { d3d_multi_stub::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
 #if USE_MULTI_D3D_vulkan
-    case API_VULKAN: return d3d_multi_vulkan::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::vulkan,
+      [&] { d3d_multi_vulkan::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
 #if USE_MULTI_D3D_Metal
-    case API_METAL: return d3d_multi_metal::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::metal,
+      [&] { d3d_multi_metal::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
 #if USE_MULTI_D3D_DX12
-    case API_DX12: return d3d_multi_dx12::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk);
+    .match(d3d::dx12, [&] { d3d_multi_dx12::get_cur_used_res_entries(max_tex, max_vs, max_ps, max_vdecl, max_vb, max_ib, max_stblk); })
 #endif
-  }
+    ;
+
   max_tex = max_vs = max_ps = max_vdecl = max_vb = max_ib = max_stblk = 0;
 }
 
@@ -621,7 +703,7 @@ public:
     void (**funcTbl)() = (void (**)()) & d3di; // -V580
     for (int i = 0; i < sizeof(d3di) / sizeof(*funcTbl); i++)
       funcTbl[i] = &na_func;
-    d3di.driverCode = DriverCode::make(d3d::null); // matches what was done in the past, but correct would be undefined
+    d3di.driverCode = DriverCode::make(d3d::undefined);
     d3di.driverName = "n/a";
     d3di.driverVer = "n/a";
     d3di.deviceName = "n/a";
@@ -632,4 +714,8 @@ public:
 
 #if _TARGET_PC_MACOSX && !USE_MULTI_D3D_Metal
 void destroy_cached_window_data(void *) {}
+#if !DAGOR_HOSTED_INTERNAL_SERVER
+GpuVendor d3d::guess_gpu_vendor(String *, uint32_t *, DagorDateTime *, uint32_t *) { return {}; }
+unsigned d3d::get_dedicated_gpu_memory_size_kb() { return 0; }
+#endif
 #endif

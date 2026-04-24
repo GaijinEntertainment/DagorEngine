@@ -1,0 +1,87 @@
+include "world_sdf.dshl"
+
+macro SND_OCC_TRACE(code)
+  READ_WORLD_SDF(code)
+  WORLD_SDF_STEP_OUT(code)
+  hlsl(code) {
+    #ifndef SND_OCC_TRACE_INCLUDED
+    #define SND_OCC_TRACE_INCLUDED 1
+
+    // Single back-forth SDF shadow trace between two points.
+    // Traces from listener toward surface first; if occluded, confirms with
+    // a forward trace from the surface toward listener using SDF gradient bias.
+    // Returns shadow value in [0,1]: 1 = fully visible, 0 = fully occluded.
+    float snd_occ_trace_back_forth(float3 surfacePos, float3 listenerPos, float k)
+    {
+      float3 toListener = listenerPos - surfacePos;
+      float totalDist = length(toListener);
+      if (totalDist < 0.001)
+        return 1;
+      float3 dirToListener = toListener / totalDist;
+
+      uint outerClip = world_sdf_num_cascades() - 1;
+
+      // Bias surfacePos away from surface using SDF gradient + ray direction
+      uint endClip = min(world_sdf_find_clip(surfacePos), outerClip);
+      float endVoxelSize = endClip < MAX_WORLD_SDF_CLIPS ? sample_world_sdf_lt(endClip).w : 0.5;
+      float stepToListenerSize = 1., stepToNormal = 1.;
+      float3 tracePos = surfacePos + dirToListener * min(stepToListenerSize * endVoxelSize, totalDist * 0.1);
+      float3 endGrad = endClip < MAX_WORLD_SDF_CLIPS ? world_sdf_sample_gradient(endClip, tracePos) : float3(0, 0, 0);
+      float endGradLen = length(endGrad);
+      float3 endNormal = endGradLen > 1e-6 ? -endGrad.xzy / endGradLen : float3(0, 0, 0);
+
+      float3 biasedStart = tracePos + endNormal * (stepToNormal * endVoxelSize);
+      float biasedDist = length(listenerPos - biasedStart);
+      float3 biasedDir = (listenerPos - biasedStart) / max(biasedDist, 0.001);
+
+      // Back trace: from listener end toward biased surface
+      float borderVoxels = 0.5;
+      float t = 0;
+      float shadow = 1;
+      uint startClip = world_sdf_find_clip(listenerPos + (biasedStart - surfacePos));
+
+      if (startClip < MAX_WORLD_SDF_CLIPS)
+        shadow = world_sdf_trace_softshadow(startClip, listenerPos, endNormal, -biasedDir, biasedDist, t, 1., 0, k, borderVoxels);
+
+      // Forth trace: if back trace shows occlusion, confirm from surface toward listener
+      if (shadow < 1)
+      {
+        endClip = world_sdf_find_clip(surfacePos);
+        if (endClip < MAX_WORLD_SDF_CLIPS)
+          shadow = max(shadow, world_sdf_trace_softshadow(endClip, surfacePos, endNormal, dirToListener, totalDist, t, stepToNormal, 0, k, borderVoxels));
+      }
+
+      return shadow;
+    }
+
+    // 5-ray occlusion trace: center + 4 pole points on a sphere around listenerPos.
+    // Returns max shadow across all 5 rays (most visible path wins).
+    // shadow in [0,1]: 1 = fully visible, 0 = fully occluded.
+    float snd_occ_trace_5ray(float3 surfacePos, float3 listenerPos, float listenerRadius, float k)
+    {
+      // Center ray
+      float shadow = snd_occ_trace_back_forth(surfacePos, listenerPos, k);
+      if (shadow >= 1)
+        return 1;
+
+      // 4 pole points: +X, -X, +Y, -Y (axis-aligned offsets)
+      float3 offsets[4] = {
+        float3(listenerRadius, 0, 0),
+        float3(-listenerRadius, 0, 0),
+        float3(0, listenerRadius, 0),
+        float3(0, -listenerRadius, 0)
+      };
+
+      for (int i = 0; i < 4; i++)
+      {
+        shadow = max(shadow, snd_occ_trace_back_forth(surfacePos, listenerPos + offsets[i], k));
+        if (shadow >= 1)
+          return 1;
+      }
+
+      return shadow;
+    }
+
+    #endif
+  }
+endmacro

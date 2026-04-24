@@ -16,7 +16,7 @@ void AnimV20::FootLockerIKCtrl::init(IPureAnimStateHolder &st, const GeomNodeTre
   dag::Index16 hipParent;
   for (int legNo = 0, numLegs = legsNodeNames.size(); legNo < numLegs; legNo++)
   {
-    const LegNodeNames &legNames = legsNodeNames[legNo];
+    const LegStaticData &legNames = legsNodeNames[legNo];
     LegData &leg = legsData[legNo];
     leg.hipNodeId = tree.findINodeIndex(legNames.hip);
     leg.kneeNodeId = tree.findINodeIndex(legNames.knee);
@@ -102,6 +102,9 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
   TIME_PROFILE_DEV(FootLockerIKCtrl);
 
   int numLegs = legsNodeNames.size();
+  if (!numLegs)
+    return;
+
   LegData *legsData = static_cast<LegData *>(st.getInlinePtr(legsDataVarId));
   if (wt < 1e-3f)
   {
@@ -127,6 +130,11 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
   traces.resize(numLegs * 2);
   memset(traces.data(), 0, sizeof(AnimCharV20::LegsIkRay) * traces.size());
 
+  const bool isProceduralStepAllowed = allowProceduralStepVarId >= 0 && st.getParamInt(allowProceduralStepVarId) > 0;
+  const bool isProceduralStepReady = isProceduralStepAllowed && st.getParam(proceduralStepTimerVarId) > proceduralStepCooldown;
+  float proceduralStepDistance = 0.f;
+  int proceduralStepLeg = -1;
+
   constexpr float TOE_UNDER_HIP_LIMIT = 0.2f;
   float dt = st.getParam(AnimationGraph::PID_GLOBAL_LAST_DT);
   for (int legNo = 0; legNo < numLegs; legNo++)
@@ -137,6 +145,16 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
     vec3f toePos = tree.getNodeWtmRel(leg.toeNodeId).col3;
     vec3f anklePos = tree.getNodeWtmRel(leg.ankleNodeId).col3;
     vec3f hipPos = tree.getNodeWtmRel(leg.hipNodeId).col3;
+    if (leg.isProceduralStepActive)
+    {
+      // Forbid step for other legs
+      st.setParam(proceduralStepTimerVarId, 0.f);
+      proceduralStepDistance = FLT_MAX;
+      proceduralStepLeg = -1;
+
+      if (!isProceduralStepAllowed)
+        leg.isProceduralStepActive = false;
+    }
     if (!leg.isLocked)
     {
       // Do not allow to move the foot too high, close to the hip
@@ -157,8 +175,19 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
     {
       traces[toeTraceIdx].t = -1.f;
       traces[ankleTraceIdx].t = -1.f;
+      if (isProceduralStepReady)
+      {
+        vec3f lockedPosRel = v_sub(v_ldu(&leg.lockedPosition.x), worldOffset);
+        float dist = v_extract_x(v_length3_x(v_and(v_sub(lockedPosRel, toePos), V_CI_MASK1010)));
+        // Choose farthest leg first
+        if (dist > proceduralStepMinDistance && dist > proceduralStepDistance)
+          proceduralStepLeg = legNo;
+      }
     }
   }
+
+  if (proceduralStepLeg >= 0)
+    legsData[proceduralStepLeg].isProceduralStepActive = true;
 
   intptr_t traceRes = ctx.irq(GIRQT_TraceFootStepMultiRay, (intptr_t)traces.data(), traces.size(), (intptr_t) true /*isTraceDown*/);
   float hipTargetMove = 0.f;
@@ -166,6 +195,10 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
   for (int legNo = 0; legNo < numLegs; legNo++)
   {
     LegData &leg = legsData[legNo];
+
+    const bool needLock = legsNodeNames[legNo].needLockParamId == -1
+                            ? leg.needLock
+                            : st.getParam(legsNodeNames[legNo].needLockParamId) > legsNodeNames[legNo].needLockParamThreshold;
 
     mat44f &hip = tree.getNodeWtmRel(leg.hipNodeId);
     mat44f &knee = tree.getNodeWtmRel(leg.kneeNodeId);
@@ -204,14 +237,37 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
       ankleMoveUp -= leg.ankleVerticalMove;
 
       footVerticalMove += max(toeMoveUp, ankleMoveUp);
-      // When `footVerticalMove` is positive it means that leg is under the ground and we want to raise it faster
-      // than lock/unlock cases.
-      if (footVerticalMove > 0.f)
-        leg.posOffset.y = move_to(leg.posOffset.y, footVerticalMove, dt, footRaisingSpeed);
+      if (!leg.isProceduralStepActive)
+      {
+        // When `footVerticalMove` is positive it means that leg is under the ground and we want to raise it faster
+        // than lock/unlock cases.
+        if (footVerticalMove > 0.f)
+          leg.posOffset.y = move_to(leg.posOffset.y, footVerticalMove, dt, footRaisingSpeed);
+        else
+          leg.posOffset.y = approach(leg.posOffset.y, footVerticalMove, dt, unlockViscosity);
+        leg.posOffset.x = approach(leg.posOffset.x, 0.f, dt, unlockViscosity);
+        leg.posOffset.z = approach(leg.posOffset.z, 0.f, dt, unlockViscosity);
+      }
       else
-        leg.posOffset.y = approach(leg.posOffset.y, footVerticalMove, dt, unlockViscosity);
-      leg.posOffset.x = approach(leg.posOffset.x, 0.f, dt, unlockViscosity);
-      leg.posOffset.z = approach(leg.posOffset.z, 0.f, dt, unlockViscosity);
+      {
+        float remainingDistance = Point2::xz(leg.posOffset).length();
+        if (remainingDistance > min(proceduralStepDistance, proceduralStepHeight))
+          footVerticalMove += proceduralStepHeight;
+        leg.posOffset.y = move_to(leg.posOffset.y, footVerticalMove, dt, proceduralStepSpeed);
+        float nextDistance = max(remainingDistance - proceduralStepSpeed * dt, 0.f);
+        if (nextDistance > 0.f)
+        {
+          float posOffsetXZMul = nextDistance / remainingDistance;
+          leg.posOffset.x *= posOffsetXZMul;
+          leg.posOffset.z *= posOffsetXZMul;
+        }
+        else
+        {
+          leg.isProceduralStepActive = false;
+          leg.posOffset.x = 0.f;
+          leg.posOffset.z = 0.f;
+        }
+      }
     }
     else // if (leg.isLocked)
     {
@@ -221,8 +277,8 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
     leg.ankleVerticalMove = approach(leg.ankleVerticalMove, leg.ankleTargetMove, dt, footInclineViscosity);
 
     // Do not lock when we didn't find ground or we are standing on ground only with heel
-    bool lockAllowed = toeTraceValid && leg.ankleTargetMove < maxToeMoveDown - 0.01f;
-    if (!leg.isLocked && leg.needLock && lockAllowed)
+    bool lockAllowed = toeTraceValid && leg.ankleTargetMove < maxToeMoveDown - 0.01f && !leg.isProceduralStepActive;
+    if (!leg.isLocked && needLock && lockAllowed)
     {
       leg.isLocked = true;
       vec3f lockedPos = v_madd(V_C_UNIT_0100, v_splats(toeNodeHeight - traces[toeTraceIdx].t), v_ldu(&traces[toeTraceIdx].pos.x));
@@ -239,7 +295,8 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
       float horzDist = v_extract_x(v_length3_x(v_and(v_sub(lockedPosRel, toe.col3), V_CI_MASK1010)));
       float unreachableDist = v_extract_x(v_length3_x(v_sub(lockedPosRel, hip.col3))) - (len0 + len1 + len2);
       bool toeTooHigh = v_extract_y(v_sub(lockedPosRel, hip.col3)) > -TOE_UNDER_HIP_LIMIT;
-      if (!leg.needLock || horzDist > unlockRadius || unreachableDist > unlockWhenUnreachableRadius || toeTooHigh)
+      if (!needLock || horzDist > unlockRadius || unreachableDist > unlockWhenUnreachableRadius || toeTooHigh ||
+          leg.isProceduralStepActive)
       {
         leg.isLocked = false;
         v_stu_p3(&leg.posOffset.x, v_sub(v_add(lockedPosRel, v_ldu(&leg.posOffset.x)), toe.col3));
@@ -249,7 +306,7 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
     vec3f targetPos = v_add(leg.isLocked ? v_sub(v_ldu(&leg.lockedPosition.x), worldOffset) : toe.col3, v_ldu(&leg.posOffset.x));
     vec3f toeToAnkle = v_norm3(v_madd(V_C_UNIT_0100, v_splats(leg.ankleVerticalMove), v_sub(ankle.col3, toe.col3)));
     vec3f ankleTargetPos = v_add(targetPos, v_mul(toeToAnkle, v_splats(len2)));
-    if (hipMoveDownVarId >= 0)
+    if (hipMoveDownVarId >= 0 && leg.isLocked)
     {
       float maxIKLen = (len0 + len1) * maxReachScale;
       vec3f targetToHip = v_sub(hip.col3, ankleTargetPos);
@@ -317,25 +374,28 @@ void AnimV20::FootLockerIKCtrl::process(IPureAnimStateHolder &st, real wt, GeomN
 void AnimV20::FootLockerIKCtrl::createNode(AnimationGraph &graph, const DataBlock &blk)
 {
   const char *name = blk.getStr("name", nullptr);
-  G_ASSERTF_RETURN(name, , "not found 'name' param");
+  if (!isAnimNodeNameValid(name))
+    return;
 
   FootLockerIKCtrl *node = new FootLockerIKCtrl(graph);
   for (int i = 0, leg_nid = blk.getNameId("leg"); i < blk.blockCount(); i++)
     if (blk.getBlock(i)->getBlockNameId() == leg_nid)
     {
       const DataBlock &legBlk = *blk.getBlock(i);
-      LegNodeNames &legNodes = node->legsNodeNames.push_back();
+      LegStaticData &legNodes = node->legsNodeNames.push_back();
       legNodes.hip = legBlk.getStr("hip", nullptr);
       legNodes.knee = legBlk.getStr("knee", nullptr);
       legNodes.ankle = legBlk.getStr("ankle", nullptr);
       legNodes.toe = legBlk.getStr("toe", nullptr);
+      legNodes.needLockParamThreshold = legBlk.getReal("needLockParamThreshold", legNodes.needLockParamThreshold);
+      const char *needLockParamName = legBlk.getStr("needLockParamName", nullptr);
+      legNodes.needLockParamId = graph.addParamIdEx(needLockParamName, IPureAnimStateHolder::PT_ScalarParam);
 
       G_ASSERTF_AND_DO(!legNodes.hip.empty() && !legNodes.knee.empty() && !legNodes.ankle.empty() && !legNodes.toe.empty(),
         node->legsNodeNames.pop_back(), "hip=<%s> knee=<%s> ankle=<%s> toe=<%s>", legNodes.hip, legNodes.knee, legNodes.ankle,
         legNodes.toe);
     }
   int numLegs = node->legsNodeNames.size();
-  G_ASSERTF(numLegs > 0, "no legs?");
   node->legsNodeNames.shrink_to_fit();
 
   node->unlockViscosity = blk.getReal("unlockViscosity", 0.1f / M_LN2);
@@ -353,9 +413,18 @@ void AnimV20::FootLockerIKCtrl::createNode(AnimationGraph &graph, const DataBloc
   node->maxAnkleAnlgeCos = cosf(DegToRad(blk.getReal("maxAnkleAnlge", 60.f)));
   node->hipMoveViscosity = blk.getReal("hipMoveViscosity", 0.1f);
   node->maxHipMoveDown = blk.getReal("maxHipMoveDown", 0.15f);
+  node->proceduralStepHeight = blk.getReal("proceduralStepHeight", 0.02f);
+  node->proceduralStepMinDistance = blk.getReal("proceduralStepMinDistance", 0.02f);
+  node->proceduralStepSpeed = blk.getReal("proceduralStepSpeed", 0.5f);
+  node->proceduralStepCooldown = blk.getReal("proceduralStepCooldown", 0.3f);
   node->legsDataVarId =
     graph.addInlinePtrParamId(String(0, "$%s", name), sizeof(LegData) * numLegs, IPureAnimStateHolder::PT_InlinePtr);
   if (const char *paramName = blk.getStr("hipMoveParamName", nullptr))
     node->hipMoveDownVarId = graph.addParamId(paramName, IPureAnimStateHolder::PT_ScalarParam);
+  if (const char *paramName = blk.getStr("allowProceduralStepParamName", nullptr))
+  {
+    node->allowProceduralStepVarId = graph.addParamId(paramName, IPureAnimStateHolder::PT_ScalarParamInt);
+    node->proceduralStepTimerVarId = graph.addParamId(String(0, "$%s_step_timer", name), IPureAnimStateHolder::PT_TimeParam);
+  }
   graph.registerBlendNode(node, name);
 }

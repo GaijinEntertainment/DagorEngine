@@ -27,8 +27,7 @@ public:
   Antialiasing();
   ~Antialiasing();
 
-  void apply(TEXTUREID source_color_tex_id, TEXTUREID source_depth_tex_id,
-    const Point4 &tc_scale_offset = Point4(1.0f, 1.0f, 0.0f, 0.0f));
+  void apply(Texture *source_color_tex, Texture *source_depth_tex, const Point4 &tc_scale_offset = Point4(1.0f, 1.0f, 0.0f, 0.0f));
 
   void setType(FxaaType type);
   void setColorMul(const Color4 &color);

@@ -84,6 +84,8 @@ public:
   void enableGyroscope(bool enable) override;
   static void cleanupAndroidResources();
 
+  virtual bool isDeviceGyro() const override { return true; }
+
 private:
   void registerSensor();
   void disableGyroscope();
@@ -110,8 +112,8 @@ private:
 
   bool failState;
 
-  SensorsPollingData sensorsPollingData;
-
+  static SensorsPollingData sensorsPollingData; // Shared data with polling thread. Locking can be avoided while keeping devices
+                                                // refresh thread-safe.
   struct LogicalAxis
   {
     int *val;

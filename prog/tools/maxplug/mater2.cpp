@@ -6,6 +6,7 @@
 #include <memory>
 #include <sstream>
 #include <algorithm>
+#include <locale>
 
 #include <max.h>
 #include <stdmat.h>
@@ -13,16 +14,20 @@
 #include <iparamb2.h>
 
 #include "dagor.h"
+#include "dagfmt.h"
 #include "mater.h"
 #include "texmaps.h"
 #include "resource.h"
-#include "cfg.h"
+#include "datablk.h"
 #include "debug.h"
+#include "common.h"
+#include "ci.h"
+#include "layout.h"
+#include "enumnode.h"
 
 #include <d3dx9.h>
 #include <d3d9types.h>
 #include <ihardwarematerial.h>
-#include "dag_auto_ptr.h"
 
 std::string wideToStr(const TCHAR *sw);
 M_STD_STRING strToWide(const char *sz);
@@ -33,51 +38,551 @@ M_STD_STRING strToWide(const char *sz);
 #define TX_ALPHABLEND 1
 #define BMIDATA(x)    ((UBYTE *)((BYTE *)(x) + sizeof(BITMAPINFOHEADER)))
 
-static const TSTR default_shader_name(_T("gi_black"));
-static const TSTR dagor_shaders_config(_T("DagorShaders.cfg"));
-static const TCHAR *real_two_sided(_T("real_two_sided"));
+static const TSTR DEFAULT_SHADER_NAME(_T("gi_black"));
+static const TSTR DAGOR_SHADERS_CONFIG(_T("dagorShaders.blk"));
+static const TCHAR *REAL_TWO_SIDED(_T("real_two_sided"));
 
-class MaterDlg2;
+/////////////////////////////////////////////////////////////////////////////////
 
-class MaterParNew2
+static const std::unordered_map<std::string, DataBlock::ParamType, CaseInsensitiveHash, CaseInsensitiveEqual> &type_map()
+{
+  // old C++ doesn't recognize the static initializer list for complex containers
+  static std::unordered_map<std::string, DataBlock::ParamType, CaseInsensitiveHash, CaseInsensitiveEqual> tmap;
+  if (tmap.empty())
+  {
+    tmap.emplace("text", DataBlock::ParamType::TYPE_STRING);
+    tmap.emplace("int", DataBlock::ParamType::TYPE_INT);
+    tmap.emplace("bool", DataBlock::ParamType::TYPE_BOOL);
+    tmap.emplace("color", DataBlock::ParamType::TYPE_E3DCOLOR);
+    tmap.emplace("real", DataBlock::ParamType::TYPE_REAL);
+    //
+    tmap.emplace("t", DataBlock::ParamType::TYPE_STRING);
+    tmap.emplace("i", DataBlock::ParamType::TYPE_INT);
+    tmap.emplace("b", DataBlock::ParamType::TYPE_BOOL);
+    tmap.emplace("c", DataBlock::ParamType::TYPE_E3DCOLOR);
+    tmap.emplace("r", DataBlock::ParamType::TYPE_REAL);
+    tmap.emplace("m", DataBlock::ParamType::TYPE_MATRIX);
+    tmap.emplace("p2", DataBlock::ParamType::TYPE_POINT2);
+    tmap.emplace("p3", DataBlock::ParamType::TYPE_POINT3);
+    tmap.emplace("p4", DataBlock::ParamType::TYPE_POINT4);
+    tmap.emplace("ip2", DataBlock::ParamType::TYPE_IPOINT2);
+    tmap.emplace("ip3", DataBlock::ParamType::TYPE_IPOINT3);
+  }
+  return tmap;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+static const char *blk_tex_name(int i)
+{
+#if __cplusplus >= 201703L || (defined(_MSVC_LANG) && _MSVC_LANG >= 201703) // C++17
+  static_assert(DAGTEXNUM == 16);
+#endif
+  static const char *s[DAGTEXNUM] = {"tex0", "tex1", "tex2", "tex3", "tex4", "tex5", "tex6", "tex7", "tex8", "tex9", "tex10", "tex11",
+    "tex12", "tex13", "tex14", "tex15"};
+  return s[(i >= 0 && i < DAGTEXNUM) ? i : 0];
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+static std::wstring mangled_category_name(unsigned depth, const std::wstring &name)
+{
+  std::wstring prefix;
+  while (depth-- > 0)
+    prefix += _T("--- ");
+  return prefix + name;
+}
+
+std::unique_ptr<DataBlock> get_blk()
+{
+  std::wstring filename = get_cfg_filename(DAGOR_SHADERS_CONFIG);
+  DataBlock *dataBlk = new DataBlock(std::make_shared<NameMap>());
+  dataBlk->load(filename);
+  return std::unique_ptr<DataBlock>(dataBlk);
+}
+
+
+static std::vector<std::wstring> get_blk_shader_list_of_category(unsigned depth, const DataBlock *categoryBlk)
+{
+  std::vector<std::wstring> shader_list;
+
+  if (!categoryBlk)
+    return shader_list;
+
+  int category_name_i = categoryBlk->findParam("name");
+  if (category_name_i != -1 && depth)
+  {
+    const std::wstring category_name = mangled_category_name(depth, strToWide(categoryBlk->getStr(category_name_i)));
+    shader_list.emplace_back(category_name);
+  }
+
+  for (int i = 0; i < categoryBlk->blockCount(); ++i)
+  {
+    DataBlock *blk = categoryBlk->getBlock(i);
+    if (!blk)
+      continue;
+
+    if (!stricmp(blk->getBlockName(), "shader_category"))
+    {
+      std::vector<std::wstring> shaders = get_blk_shader_list_of_category(depth + 1, blk);
+      shader_list.insert(shader_list.end(), shaders.begin(), shaders.end());
+      continue;
+    }
+
+    int name_i = blk->findParam("name");
+    if (name_i == -1)
+      continue;
+
+    const std::wstring name = strToWide(blk->getStr(name_i));
+    shader_list.emplace_back(name);
+  }
+
+  return shader_list;
+}
+
+
+std::vector<std::wstring> get_blk_shader_list(const DataBlock *dataBlk) { return get_blk_shader_list_of_category(0, dataBlk); }
+
+
+static const DataBlock *get_blk_shader(const DataBlock *dataBlk, const std::wstring &shader_name)
+{
+  if (!dataBlk)
+    return nullptr;
+
+  // categories
+  for (int c_i = 0; c_i < dataBlk->blockCount(); ++c_i)
+  {
+    DataBlock *category_blk = dataBlk->getBlock(c_i);
+    if (!category_blk)
+      continue;
+
+    // shaders
+    for (int s_i = 0; s_i < category_blk->blockCount(); ++s_i)
+    {
+      DataBlock *shader_blk = category_blk->getBlock(s_i);
+      if (!shader_blk)
+        continue;
+
+      int shader_name_i = shader_blk->findParam("name");
+      if (shader_name_i == -1)
+        continue;
+
+      if (iequal(strToWide(shader_blk->getStr(shader_name_i)), shader_name))
+        return shader_blk;
+    }
+  }
+
+  return nullptr;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+static DataBlock::ParamType deserialize_param_type(const std::string &s)
+{
+  auto it = type_map().find(s);
+  if (it == type_map().end())
+    return DataBlock::ParamType::TYPE_NONE;
+
+  return it->second;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+struct ParamInfo
+{
+  DataBlock::ParamType type;
+  std::wstring name, description, custom_ui, value, def, parent;
+  float soft_min, soft_max;
+  bool is_group;
+  bool def_enabled;
+  bool soft_min_enabled;
+  bool soft_max_enabled;
+
+  ParamInfo() :
+    type(DataBlock::ParamType::TYPE_NONE),
+    soft_min(0),
+    soft_max(0),
+    is_group(false),
+    def_enabled(false),
+    soft_min_enabled(false),
+    soft_max_enabled(false)
+  {}
+
+  bool isInt() const
+  {
+    return type == DataBlock::ParamType::TYPE_INT || type == DataBlock::ParamType::TYPE_IPOINT2 ||
+           type == DataBlock::ParamType::TYPE_IPOINT3;
+  }
+};
+
+static const TCHAR *get_default_param_value(DataBlock::ParamType type)
+{
+  switch (type)
+  {
+    case DataBlock::ParamType::TYPE_BOOL: return L"no";
+
+    case DataBlock::ParamType::TYPE_INT: return L"0";
+    case DataBlock::ParamType::TYPE_REAL: return L"0.0";
+
+    case DataBlock::ParamType::TYPE_IPOINT2: return L"0, 0";
+    case DataBlock::ParamType::TYPE_POINT2: return L"0.0, 0.0";
+
+    case DataBlock::ParamType::TYPE_IPOINT3: return L"0, 0, 0";
+    case DataBlock::ParamType::TYPE_POINT3: return L"0.0, 0.0, 0.0";
+
+    case DataBlock::ParamType::TYPE_E3DCOLOR: return L"0, 0, 0, 0";
+    case DataBlock::ParamType::TYPE_POINT4: return L"0.0, 0.0, 0.0, 0.0";
+
+    default: break;
+  }
+  return L"";
+}
+
+static std::wstring get_param_value_as_string(const DataBlock *blk, int name_id)
+{
+  if (!blk || name_id == -1)
+    return std::wstring();
+
+  const DataBlock::Param *p = blk->getParam(name_id);
+  if (!p)
+    return std::wstring();
+
+  std::wstringstream os;
+  os.imbue(std::locale::classic());
+
+  switch (p->type)
+  {
+    case DataBlock::ParamType::TYPE_STRING: return strToWide(p->as_c_str());
+    case DataBlock::ParamType::TYPE_BOOL: return p->as_bool() ? L"yes" : L"no";
+
+    case DataBlock::ParamType::TYPE_INT: os << p->as_int(); break;
+    case DataBlock::ParamType::TYPE_REAL: os << p->as_real(); break;
+
+    case DataBlock::ParamType::TYPE_POINT2: os << p->as_pt2().x << ", " << p->as_pt2().y; break;
+    case DataBlock::ParamType::TYPE_POINT3: os << p->as_pt3().x << ", " << p->as_pt3().y << ", " << p->as_pt3().z; break;
+    case DataBlock::ParamType::TYPE_POINT4:
+      os << p->as_pt4().x << ", " << p->as_pt4().y << ", " << p->as_pt4().z << ", " << p->as_pt4().w;
+      break;
+
+    case DataBlock::ParamType::TYPE_IPOINT2: os << p->as_ipt2().x << ", " << p->as_ipt2().y; break;
+    case DataBlock::ParamType::TYPE_IPOINT3: os << p->as_ipt3().x << ", " << p->as_ipt3().y << ", " << p->as_ipt3().z; break;
+
+    case DataBlock::ParamType::TYPE_E3DCOLOR:
+      os << p->as_color().r << ", " << p->as_color().g << ", " << p->as_color().b << ", " << p->as_color().a;
+      break;
+
+    case DataBlock::ParamType::TYPE_MATRIX:
+    {
+      os << "[";
+      os << "[" << p->as_tm().getcol(0).x << ", " << p->as_tm().getcol(0).y << ", " << p->as_tm().getcol(0).z << "]";
+      os << "[" << p->as_tm().getcol(1).x << ", " << p->as_tm().getcol(1).y << ", " << p->as_tm().getcol(1).z << "]";
+      os << "[" << p->as_tm().getcol(2).x << ", " << p->as_tm().getcol(2).y << ", " << p->as_tm().getcol(2).z << "]";
+      os << "[" << p->as_tm().getcol(3).x << ", " << p->as_tm().getcol(3).y << ", " << p->as_tm().getcol(3).z << "]";
+      os << "]";
+      break;
+    }
+
+    default: debug("unknown type"); break;
+  }
+
+  return os.str();
+}
+
+static float get_param_value_as_float(const DataBlock *blk, int name_id, float def)
+{
+  if (!blk || name_id == -1)
+    return def;
+
+  const DataBlock::Param *p = blk->getParam(name_id);
+  if (!p)
+    return def;
+
+  if (p->type == DataBlock::ParamType::TYPE_INT)
+    return p->as_int();
+
+  if (p->type == DataBlock::ParamType::TYPE_REAL)
+    return p->as_real();
+
+  return def;
+}
+
+static std::vector<ParamInfo> get_blk_shader_params_of_group(const DataBlock *groupBlk, const std::wstring &parent)
+{
+  std::vector<ParamInfo> shader_params;
+
+  if (!groupBlk)
+    return shader_params;
+
+  for (int i = 0; i < groupBlk->blockCount(); ++i)
+  {
+    DataBlock *blk = groupBlk->getBlock(i);
+    if (!blk)
+      continue;
+
+    if (!_stricmp(blk->getBlockName(), "parameters_group"))
+    {
+      ParamInfo group;
+      group.parent = parent;
+      group.is_group = true;
+      int group_name_i = blk->findParam("name");
+      if (group_name_i != -1)
+        group.name = strToWide(blk->getStr(group_name_i));
+      shader_params.emplace_back(group);
+
+      std::vector<ParamInfo> params = get_blk_shader_params_of_group(blk, group.name);
+      shader_params.insert(shader_params.end(), params.begin(), params.end());
+      continue;
+    }
+
+    int param_name_i = blk->findParam("name");
+    if (param_name_i == -1)
+      continue;
+
+    ParamInfo param;
+    param.parent = parent;
+    param.name = strToWide(blk->getStr(param_name_i));
+
+    int param_type_i = blk->findParam("type");
+    if (param_type_i != -1)
+      param.type = deserialize_param_type(blk->getStr(param_type_i));
+    else
+      param.type = DataBlock::ParamType::TYPE_STRING;
+
+    int param_description_i = blk->findParam("description");
+    if (param_description_i != -1)
+      param.description = strToWide(blk->getStr(param_description_i));
+
+    int custom_ui_i = blk->findParam("custom_ui");
+    if (custom_ui_i != -1)
+      param.custom_ui = strToWide(blk->getStr(custom_ui_i));
+
+    if (iequal(param.custom_ui, L"color"))
+    {
+      param.soft_min = 0.0;
+      param.soft_max = 1.0;
+      param.soft_min_enabled = param.soft_max_enabled = true;
+    }
+
+    int default_i = blk->findParam("default");
+    if (default_i != -1)
+    {
+      param.def = param.value = get_param_value_as_string(blk, default_i);
+      param.def_enabled = true;
+    }
+    else
+      param.value = get_default_param_value(param.type);
+
+    int soft_min_i = blk->findParam("soft_min");
+    if (soft_min_i != -1)
+    {
+      param.soft_min = get_param_value_as_float(blk, soft_min_i, -FLT_MAX);
+      param.soft_min_enabled = true;
+    }
+
+    int soft_max_i = blk->findParam("soft_max");
+    if (soft_max_i != -1)
+    {
+      param.soft_max = get_param_value_as_float(blk, soft_max_i, +FLT_MAX);
+      param.soft_max_enabled = true;
+    }
+
+    shader_params.emplace_back(param);
+  }
+
+  return shader_params;
+}
+
+
+static std::vector<ParamInfo> get_blk_shader_params(const DataBlock *shaderBlk)
+{
+  // shader is the root group
+  return get_blk_shader_params_of_group(shaderBlk, std::wstring());
+}
+
+
+static ParamInfo get_param_info(const DataBlock *dataBlk, const std::wstring classname, const std::wstring param_name)
+{
+  if (!dataBlk || classname.empty() || param_name.empty())
+    return ParamInfo();
+
+  ParamInfo param;
+  param.type = DataBlock::ParamType::TYPE_STRING;
+  param.name = param_name;
+
+  const DataBlock *shader_blk = get_blk_shader(dataBlk, classname);
+  if (!shader_blk)
+    return param;
+
+  std::vector<ParamInfo> params = get_blk_shader_params(shader_blk);
+  auto it = std::find_if(params.begin(), params.end(),
+    [&param_name](const ParamInfo &p_i) { return !p_i.is_group && iequal(p_i.name, param_name); });
+  if (it == params.end())
+    return param;
+
+  return *it;
+}
+
+static DataBlock::ParamType guess_blk_type_by_value(const std::wstring &value)
+{
+  if (iequal(value, L"yes") || iequal(value, L"true") || iequal(value, L"no") || iequal(value, L"false"))
+    return DataBlock::ParamType::TYPE_BOOL;
+
+  int ix, iy, iz, consumed;
+  if (3 == swscanf(value.data(), L"%i, %i, %i%n", &ix, &iy, &iz, &consumed) && consumed == value.length())
+    return DataBlock::ParamType::TYPE_IPOINT3;
+  if (2 == swscanf(value.data(), L"%i, %i%n", &ix, &iy, &consumed) && consumed == value.length())
+    return DataBlock::ParamType::TYPE_IPOINT2;
+  if (1 == swscanf(value.data(), L"%i%n", &ix, &consumed) && consumed == value.length())
+    return DataBlock::ParamType::TYPE_INT;
+
+  float x, y, z, w;
+  if (4 == swscanf(value.data(), L"%f, %f, %f, %f", &x, &y, &z, &w))
+    return DataBlock::ParamType::TYPE_POINT4;
+  if (3 == swscanf(value.data(), L"%f, %f, %f", &x, &y, &z))
+    return DataBlock::ParamType::TYPE_POINT3;
+  if (2 == swscanf(value.data(), L"%f, %f", &x, &y))
+    return DataBlock::ParamType::TYPE_POINT2;
+  if (1 == swscanf(value.data(), L"%f", &x))
+    return DataBlock::ParamType::TYPE_REAL;
+
+  return DataBlock::ParamType::TYPE_STRING;
+}
+
+static ParamInfo get_blk_param_info_value(const DataBlock *dataBlk, const std::wstring &line, const std::wstring &classname)
+{
+  ParamInfo res;
+
+  // split the line into name and value: atest=1 --> { atest, 1 }
+  std::vector<std::wstring> tokens = split(line, L'=');
+  if (tokens.size() != 2)
+    return res; // invalid input
+
+  res.name = tokens[0];
+  if (res.name.empty())
+    return res;
+
+  // backup value
+  std::wstring value = tokens[1];
+
+  // name itself might contain type: atest:f --> { atest, f }
+  tokens = split(res.name, L':');
+  if (tokens.size() == 2)
+  {
+    // use specified type
+    res.type = DataBlock::deserialize_param_type(wideToStr(tokens[1].data()));
+    res.name = tokens[0]; // type stripped
+  }
+  else // read type from the config
+    res = get_param_info(dataBlk, classname, res.name);
+
+  // override value
+  res.value = value;
+
+  // special case
+  if (res.name == REAL_TWO_SIDED)
+    res.type = DataBlock::ParamType::TYPE_BOOL;
+
+  if (res.type == DataBlock::ParamType::TYPE_NONE)
+    res.type = guess_blk_type_by_value(res.value);
+
+  return res;
+}
+
+static std::vector<ParamInfo> get_blk_params(const DataBlock *dataBlk, const std::wstring &_script, const std::wstring &classname)
+{
+  std::vector<std::wstring> lines = split(simplifyRN(_script), L'\n');
+
+  std::vector<ParamInfo> params;
+  params.reserve(lines.size());
+
+  bool has_real_two_sided = false;
+
+  for (std::wstring &line : lines)
+  {
+    if (line.empty())
+      continue;
+
+    auto param = get_blk_param_info_value(dataBlk, line, classname);
+    if (param.name.empty())
+      continue;
+
+    if (param.name == REAL_TWO_SIDED)
+      has_real_two_sided = true;
+
+    params.emplace_back(param);
+  }
+
+  if (!has_real_two_sided)
+  {
+    ParamInfo param;
+    param.name = REAL_TWO_SIDED;
+    param.type = DataBlock::ParamType::TYPE_BOOL;
+    param.value = L"no";
+    params.emplace_back(param);
+  }
+
+  return params;
+}
+
+/////////////////////////////////////////////////////////////////////////////////
+
+class Dagormat2Dialog;
+
+class NewParameterDialog
 {
 public:
-  MaterParNew2(MaterDlg2 *p, M_STD_STRING &shdr);
-  virtual ~MaterParNew2();
+  NewParameterDialog(Dagormat2Dialog *p, M_STD_STRING &shdr);
+  virtual ~NewParameterDialog();
 
-  M_STD_STRING GetNewParamName() const { return param_name; }
+  const std::vector<std::wstring> &GetNewParamNames() const { return selected_names; }
 
   int DoModal();
   BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 private:
-  M_STD_STRING GetParamName();
+  std::vector<std::wstring> GetSelectedNames() const;
+  bool GetAndVerifyParamName();
 
   HWND hWnd;
-  MaterDlg2 *parent;
+  Dagormat2Dialog *parent;
   M_STD_STRING shader;
-  M_STD_STRING param_name;
+  std::vector<std::wstring> selected_names;
 };
 
-
-class MaterPar2 : public ParamDlg
+class ShaderClassDialog
 {
 public:
-  //////////////////////////
+  ShaderClassDialog(Dagormat2Dialog *p);
+  virtual ~ShaderClassDialog();
 
+  const std::wstring &GetShaderClassName() const { return shader_class_name; }
+
+  int DoModal();
+  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+private:
+  bool GetName();
+
+  HWND hWnd;
+  Dagormat2Dialog *parent;
+
+  std::wstring shader_class_name;
+};
+
+/////////////////////////////////////////////////////////////////////////////////
+
+class AbstractWidget : public ParamDlg
+{
+public:
   HWND hPanel;
   HWND hSType;
   BOOL creating;
 
-  M_STD_STRING name;
-  M_STD_STRING value;
+  ParamInfo param;
+  RECT screen_rc; // screen (not dialog!) coordinates relative to the parent window
 
-  //////////////////////////
-
-  MaterPar2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
-  ~MaterPar2() override;
-
-  //////////////////////////
+  AbstractWidget(const ParamInfo &pinfo, Dagormat2Dialog *p);
+  ~AbstractWidget() override;
 
   void ReloadDialog() override {}
   Class_ID ClassID() override { return DagorMat2_CID; }
@@ -87,144 +592,133 @@ public:
   void SetTime(TimeValue t) override {}
   void ActivateDlg(BOOL onOff) override {}
 
-  //////////////////////////
-
   virtual const TCHAR *GetType() const = 0;
+  virtual bool IsGroup() const { return false; }
 
 protected:
-  MaterDlg2 *parent;
+  Dagormat2Dialog *parent;
 };
 
-class MaterParText2 : public MaterPar2
+class WidgetText : public AbstractWidget
 {
 public:
-  MaterParText2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
-  ~MaterParText2() override;
+  WidgetText(const ParamInfo &pinfo, Dagormat2Dialog *p);
+  ~WidgetText() override;
 
-  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  INT_PTR WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
   const TCHAR *GetType() const override { return _T("t"); }
 
 private:
   void GetValue();
-  void SetValue(const M_STD_STRING v);
+  void SetValue(const M_STD_STRING &v);
 
   ICustEdit *edit;
 };
 
-class MaterParReal2 : public MaterPar2
+class WidgetColor : public AbstractWidget
 {
 public:
-  MaterParReal2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
-  ~MaterParReal2() override;
+  WidgetColor(const ParamInfo &pinfo, Dagormat2Dialog *p);
+  ~WidgetColor() override;
 
-  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-  const TCHAR *GetType() const override { return _T("r"); }
-
-private:
-  void GetValue();
-  void SetValue(const M_STD_STRING v);
-
-  ISpinnerControl *spinner;
-};
-
-class MaterParEnum2 : public MaterPar2
-{
-public:
-  MaterParEnum2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
-  ~MaterParEnum2() override;
-
-  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
-  const TCHAR *GetType() const override { return _T("e"); }
-
-  int GetCount();
-
-  TCHAR *GetRadioName(int at);
-  int GetRadioState(int at);
-
-  int GetRadioSelected();
-
-private:
-  void GetValue();
-  void SetValue(const M_STD_STRING v);
-
-  int count;
-};
-
-class MaterParColor2 : public MaterPar2
-{
-public:
-  MaterParColor2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
-  ~MaterParColor2() override;
-
-  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  INT_PTR WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
   const TCHAR *GetType() const override { return _T("c"); }
 
 private:
   void GetValue();
-  void SetValue(const M_STD_STRING v);
+  void SetValue(const M_STD_STRING &v);
 
   IColorSwatch *col;
 };
 
-class MaterParBool2 : public MaterPar2
+class WidgetBool : public AbstractWidget
 {
 public:
-  MaterParBool2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
-  ~MaterParBool2() override;
+  WidgetBool(const ParamInfo &pinfo, Dagormat2Dialog *p);
+  ~WidgetBool() override;
 
-  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  INT_PTR WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
   const TCHAR *GetType() const override { return _T("b"); }
 
 private:
   void GetValue();
-  void SetValue(const M_STD_STRING v);
+  void SetValue(const M_STD_STRING &v);
 };
 
-class MaterParInt2 : public MaterPar2
+class WidgetNumeric : public AbstractWidget
 {
 public:
-  MaterParInt2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p);
-  ~MaterParInt2() override;
+  WidgetNumeric(const ParamInfo &pinfo, Dagormat2Dialog *p);
+  ~WidgetNumeric() override;
 
-  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+  INT_PTR WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-  const TCHAR *GetType() const override { return _T("i"); }
+  const TCHAR *GetType() const override
+  {
+    static const TCHAR *t[2][5] = {{0, L"i", L"ip2", L"ip3", L"ip4"}, {0, L"r", L"p2", L"p3", L"p4"}};
+    return t[is_float][size];
+  }
+
+  bool isOutOfRange() const;
 
 private:
   void GetValue();
-  void SetValue(const M_STD_STRING v);
+  void SetValue(const M_STD_STRING &v);
+  void UpdateColorSwatch(float f[4]);
 
-  ISpinnerControl *spinner;
+  bool is_float;
+  bool is_color_ui;
+  bool is_spinner_used;
+  int size;
+  ISpinnerControl *spinner[4];
+  IColorSwatch *col;
+  HPEN hFramePen;
+};
+
+class WidgetGroup : public AbstractWidget
+{
+public:
+  WidgetGroup(const ParamInfo &pinfo, Dagormat2Dialog *p);
+  ~WidgetGroup() override;
+
+  INT_PTR WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+  const TCHAR *GetType() const override { return _T("~"); }
+  bool IsGroup() const override { return true; }
 };
 
 ///////////////////////////////////////////////////////////////////////////
 
-class MaterDlg2 : public ParamDlg
+class Dagormat2Dialog : public ParamDlg
 {
 public:
   void DialogsReposition();
   HWND hwmedit;
   IMtlParams *ip;
   class DagorMat2 *theMtl;
-  HWND hPanel;
-  BOOL valid;
-  BOOL isActive;
+  HWND hShader, hPhong, hTex, hParam, hProxy;
+  bool valid;
+  bool isActive;
   IColorSwatch *csa, *csd, *css, *cse;
-  BOOL creating;
+  bool creating;
   TexDADMgr dadmgr;
 
   std::array<ICustButton *, NUMTEXMAPS> texbut;
   POINT paramOrg;
+  HPEN hFramePen;
 
-  std::vector<std::unique_ptr<MaterPar2>> parameters;
+  std::vector<std::unique_ptr<AbstractWidget>> parameters;
+  std::unique_ptr<DataBlock> blk;
 
-  MaterDlg2(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m);
-  ~MaterDlg2() override;
+  WStr proxyPath;
+  FilterList filterList;
+  static const TCHAR *defaultExtension;
+
+  Dagormat2Dialog(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m);
+  ~Dagormat2Dialog() override;
 
   void RestoreParams();
   void SaveParams();
@@ -232,15 +726,16 @@ public:
   void FillSlotNames();
 
   M_STD_STRING GetShaderName();
-  void UpdateShaderName();
+  void UpdateShaderNameWidget();
   void ChangeShaderName();
-  void UpdateEnum2Sided();
-  void AddParam(int type, M_STD_STRING name, M_STD_STRING value = M_STD_STRING());
-  MaterPar2 *GetParam(M_STD_STRING name);
-  void RemParam(M_STD_STRING name);
-  void MarkUnknownParams(CfgShader &cfg);
+  void Update2SidedWidget();
+  void AddParam(ParamInfo param);
+  AbstractWidget *GetParam(const M_STD_STRING &name);
+  void RemParam(const M_STD_STRING &name);
+  void RemParamGroup(const M_STD_STRING &group_name);
+  void MarkUnknownParams(const DataBlock *dataBlk);
+  std::vector<RECT> GetParamGroupRectangles() const;
 
-  BOOL WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
   void Invalidate();
   void UpdateMtlDisplay() { ip->MtlChanged(); }
   void UpdateTexDisplay(int i);
@@ -263,10 +758,13 @@ public:
   }
 
   HWND AppendDialog(const TCHAR *paramName, long Resource, DLGPROC lpDialogProc, LPARAM param);
+
+  void ImportProxymat();
+  void ExportProxymat();
 };
 
 static const size_t MAX_PARAM_DLGS = 20;
-static const int PARAM_DLG_GAP = 5;
+static const int PARAM_DLG_GAP = 7;
 
 //////////////////////////////////////////////////////////////////////////////////
 
@@ -281,10 +779,10 @@ public:
 };
 
 
-class DagorMat2 : public Mtl, public IDagorMat
+class DagorMat2 : public Mtl, public IDagorMat2
 {
 public:
-  class MaterDlg2 *dlg;
+  class Dagormat2Dialog *dlg;
   IParamBlock *pblock;
   Texmaps *texmaps;
   std::array<TexHandle *, NUMTEXMAPS> texHandle;
@@ -326,6 +824,10 @@ public:
   void set_script(const TCHAR *) override;
   void set_texname(int, const TCHAR *) override;
   void set_param(int, float) override;
+
+  // From IDagorMat2
+  void enumerate_textures(EnumTexCB &) override;
+  void enumerate_parameters(EnumParamCB &) override;
 
   // From MtlBase and Mtl
   int NumSubTexmaps() override;
@@ -400,6 +902,16 @@ public:
 
 ToolTipExtender DagorMat2::tooltip;
 
+static void setToolTip(HWND hWnd, const std::wstring &hint, HWND hExclude)
+{
+  if (hWnd == hExclude)
+    return;
+
+  DagorMat2::tooltip.SetToolTip(hWnd, hint.data());
+  for (HWND hChild = GetWindow(hWnd, GW_CHILD); hChild; hChild = GetWindow(hChild, GW_HWNDNEXT))
+    setToolTip(hChild, hint, hExclude);
+}
+
 #define PB_REF  0
 #define TEX_REF 9
 
@@ -469,493 +981,259 @@ static const int texidc[NUMTEXMAPS] = {
   IDC_TEX15,
 };
 
-static INT_PTR CALLBACK PanelDlgProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK ShaderDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-  MaterDlg2 *dlg;
+  Dagormat2Dialog *dlg = 0;
   if (msg == WM_INITDIALOG)
   {
-    dlg = (MaterDlg2 *)lParam;
+    dlg = (Dagormat2Dialog *)lParam;
     SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
-    dlg->hPanel = hWnd;
+    dlg->hShader = hWnd;
   }
-  else
-  {
-    if ((dlg = (MaterDlg2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
-      return FALSE;
-  }
-  dlg->isActive = TRUE;
-  int res = dlg->WndProc(hWnd, msg, wParam, lParam);
-  dlg->isActive = FALSE;
-  return res;
-}
+  else if ((dlg = (Dagormat2Dialog *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+    return FALSE;
 
+  Autotoggle guard(dlg->isActive);
 
-MaterDlg2::MaterDlg2(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m)
-{
-  dadmgr.Init(this);
-  hwmedit = hwMtlEdit;
-  ip = imp;
-  theMtl = m;
-  valid = FALSE;
-  creating = TRUE;
-  std::fill(texbut.begin(), texbut.end(), nullptr);
-  hPanel = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_DAGORMAT2), PanelDlgProc2, GetString(IDS_DAGORMAT_LONG), (LPARAM)this);
-  creating = FALSE;
-}
-
-MaterDlg2::~MaterDlg2()
-{
-  SaveParams();
-  ReleaseIColorSwatch(csa);
-  ReleaseIColorSwatch(csd);
-  ReleaseIColorSwatch(css);
-  ReleaseIColorSwatch(cse);
-  for (ICustButton *cb : texbut)
-    ReleaseICustButton(cb);
-  SetWindowLongPtr(hPanel, GWLP_USERDATA, NULL);
-}
-
-void MaterDlg2::MarkUnknownParams(CfgShader &cfg)
-{
-  M_STD_STRING sh = GetShaderName();
-  if (sh.empty())
-    return;
-
-  cfg.GetShaderParams(sh);
-
-  for (size_t i = 0; i < parameters.size(); ++i)
-  {
-    MaterPar2 *p = parameters[i].get();
-    if (p->name.empty())
-      continue;
-
-    // mark unknown parameter
-    if (std::find(cfg.shader_params.begin(), cfg.shader_params.end(), p->name) == cfg.shader_params.end())
-    {
-      if (p->hSType)
-        ::SetWindowText(p->hSType, (_T("*") + p->name).data());
-
-      std::wstringstream ss;
-      ss << p->name << _T("\n*not specified in the shader\n") << sh;
-      DagorMat2::tooltip.SetToolTip(p->hPanel, ss.str().data());
-    }
-    else
-      DagorMat2::tooltip.SetToolTip(p->hPanel, p->name.data());
-  }
-}
-
-static M_STD_STRING simplifyRN(const M_STD_STRING &from)
-{
-  M_STD_STRING s = from;
-  size_t pos = 0;
-  while ((pos = s.find(_T("\r\n"), pos)) != std::string::npos)
-    s.replace(pos, 2, _T("\n"));
-  return s;
-}
-
-static int deserialize_param_type(const std::wstring &s)
-{
-  if (s == _T("t"))
-    return CFG_TEXT;
-
-  if (s == _T("b"))
-    return CFG_BOOL;
-
-  if (s == _T("i"))
-    return CFG_INT;
-
-  if (s == _T("r"))
-    return CFG_REAL;
-
-  if (s == _T("c"))
-    return CFG_COLOR;
-
-  if (s == _T("e"))
-    return CFG_ENUM;
-
-  return CFG_UNKNOWN;
-}
-
-static std::vector<std::wstring> split(const std::wstring &text, const wchar_t delim)
-{
-  std::vector<std::wstring> tokens;
-  std::wistringstream iss(text + delim);
-  std::wstring tok;
-  while (std::getline(iss, tok, delim))
-    tokens.push_back(tok);
-  return tokens;
-}
-
-static bool get_param_type(CfgShader cfg, const std::wstring classname, const std::wstring name, const std::wstring value, int &type)
-{
-  type = CFG_UNKNOWN;
-
-  if (!classname.empty())
-  {
-    type = cfg.GetParamType(classname, name);
-    if (type != CFG_UNKNOWN)
-      return true;
-  }
-
-  type = cfg.GetParamType(CFG_GLOBAL_NAME, name);
-  if (type != CFG_UNKNOWN)
-    return true;
-
-  type = CFG_TEXT;
-  return true;
-}
-
-static bool get_param_name_value_type(CfgShader cfg, const std::wstring &line, const std::wstring &classname, std::wstring &name,
-  std::wstring &value, int &type)
-{
-  // split the line into name and value
-  std::vector<std::wstring> tokens = split(line, _T('='));
-  if (tokens.size() != 2)
-    return false;
-
-  if (tokens[0].empty())
-    return false;
-
-  name = tokens[0];
-  value = tokens[1];
-  type = CFG_UNKNOWN;
-
-  if (!get_param_type(cfg, classname, name, value, type))
-    return false;
-
-  return type != CFG_UNKNOWN;
-}
-
-void MaterDlg2::RestoreParams()
-{
-  parameters.clear();
-  DagorMat2::tooltip.RemoveToolTips();
-
-  TCHAR filename[MAX_PATH];
-  CfgShader::GetCfgFilename(dagor_shaders_config, filename);
-  CfgShader cfg(filename);
-
-  M_STD_STRING script = simplifyRN(M_STD_STRING(theMtl->script));
-
-  // cut the script into lines
-  std::vector<std::wstring> lines = split(script, _T('\n'));
-
-  for (std::wstring &line : lines)
-    if (!line.empty())
-    {
-      // split each line into name, value and type (if any)
-      int type = CFG_UNKNOWN;
-      std::wstring param_name, param_value;
-      if (!get_param_name_value_type(cfg, line, theMtl->classname.data(), param_name, param_value, type))
-        continue; // invalid name or type
-
-      // "real_two_sided" is treated as a dropdown enum
-      if (param_name == real_two_sided)
-      {
-        ::SendMessage(GetDlgItem(hPanel, IDC_ENUM_2SIDED), CB_SETCURSEL,
-          WPARAM(param_value == _T("yes") ? IDagorMat::Sides::RealDoubleSided : IDagorMat::Sides::OneSided), NULL);
-        continue;
-      }
-
-      AddParam(type, param_name, param_value);
-      SaveParams();
-    }
-
-  DialogsReposition();
-  MarkUnknownParams(cfg);
-}
-
-void MaterDlg2::SaveParams()
-{
-  M_STD_STRING buffer;
-
-  for (size_t i = 0; i < parameters.size(); ++i)
-  {
-    MaterPar2 *p = parameters[i].get();
-
-    if (!p->name.empty())
-    {
-      buffer += p->name;
-      buffer += _T('=');
-      buffer += p->value;
-      buffer += _T("\r\n");
-    }
-  }
-
-  if (::SendMessage(GetDlgItem(hPanel, IDC_ENUM_2SIDED), CB_GETCURSEL, 0, 0) == int(IDagorMat::Sides::RealDoubleSided))
-    buffer += _T("real_two_sided=yes\r\n");
-  else
-    buffer += _T("real_two_sided=no\r\n");
-
-  theMtl->script = buffer.c_str();
-  theMtl->NotifyChanged();
-}
-
-int MaterDlg2::FindSubTexFromHWND(HWND hw)
-{
-  for (size_t i = 0; i < texbut.size(); ++i)
-    if (texbut[i])
-      if (texbut[i]->GetHwnd() == hw)
-        return int(i);
-  return -1;
-}
-
-M_STD_STRING MaterDlg2::GetShaderName()
-{
-  HWND hName = ::GetDlgItem(hPanel, IDC_CLASSNAME);
-  long index = ::SendMessage(hName, CB_GETCURSEL, 0, 0);
-  long length = ::SendMessage(hName, CB_GETLBTEXTLEN, (WPARAM)index, NULL);
-  M_STD_STRING name;
-  if (length > 0)
-  {
-    name.resize(length);
-    ::SendMessage(hName, CB_GETLBTEXT, index, (LPARAM)name.c_str());
-  }
-  return name;
-}
-
-void MaterDlg2::UpdateShaderName()
-{
-  HWND hCmb = ::GetDlgItem(hPanel, IDC_CLASSNAME);
-  int iclass = ::SendMessage(hCmb, CB_FINDSTRINGEXACT, 0, (LPARAM)theMtl->classname.data());
-  ::SendMessage(hCmb, CB_SETCURSEL, iclass, NULL);
-}
-
-void MaterDlg2::ChangeShaderName()
-{
-  M_STD_STRING str = GetShaderName();
-  if (str.substr(0, 1) == _T("-"))
-  {
-    TSTR msg;
-    msg.printf(_T("\"%s\" category cannot be set as shader class. Revert to \"%s\"."), TSTR(str.data()), theMtl->classname);
-    MessageBox(NULL, msg, _T("Class selection error"), MB_ICONERROR | MB_OK);
-    UpdateShaderName();
-    return;
-  }
-  theMtl->classname = str.c_str();
-  UpdateShaderName();
-  theMtl->NotifyChanged();
-  SaveParams();
-  RestoreParams();
-  FillSlotNames();
-  DialogsReposition();
-}
-
-void MaterDlg2::UpdateEnum2Sided()
-{
-  HWND hw = ::GetDlgItem(hPanel, IDC_ENUM_2SIDED);
-  ::SendMessage(hw, CB_SETCURSEL, WPARAM(theMtl->twosided), NULL);
-}
-
-void MaterDlg2::AddParam(int type, M_STD_STRING name, M_STD_STRING value)
-{
-  if (name.empty())
-    return;
-
-  MaterPar2 *par = nullptr;
-  switch (type)
-  {
-    case CFG_TEXT: par = new MaterParText2(name, value, this); break;
-    case CFG_BOOL: par = new MaterParBool2(name, value, this); break;
-    case CFG_INT: par = new MaterParInt2(name, value, this); break;
-    case CFG_REAL: par = new MaterParReal2(name, value, this); break;
-    case CFG_ENUM: par = new MaterParEnum2(name, value, this); break;
-    case CFG_COLOR: par = new MaterParColor2(name, value, this); break;
-    default: return;
-  }
-
-  parameters.emplace_back(std::unique_ptr<MaterPar2>(par));
-}
-
-MaterPar2 *MaterDlg2::GetParam(M_STD_STRING name)
-{
-  for (auto &p : parameters)
-    if (p->name == name)
-      return p.get();
-  return nullptr;
-}
-
-void MaterDlg2::RemParam(M_STD_STRING name)
-{
-  auto it = std::find_if(parameters.begin(), parameters.end(), [&name](std::unique_ptr<MaterPar2> &p) { return p->name == name; });
-  if (it == parameters.end())
-    return;
-
-  parameters.erase(it);
-  SaveParams();
-}
-
-HWND MaterDlg2::AppendDialog(const TCHAR *paramName, long Resource, DLGPROC lpDialogProc, LPARAM param)
-{
-  HWND result = ::CreateDialogParam(hInstance, MAKEINTRESOURCE(Resource), hPanel, lpDialogProc, param);
-
-  MaterPar2 *dlg = (MaterParText2 *)GetWindowLongPtr(result, GWLP_USERDATA);
-
-  ::SetWindowText(result, paramName);
-  dlg->hSType = ::FindWindowEx(result, NULL, _T("STATIC"), _T("StaticType"));
-  if (dlg->hSType)
-    ::SetWindowText(dlg->hSType, paramName);
-  ::ShowWindow(result, SW_SHOW);
-
-  dlg->creating = false;
-  return result;
-}
-
-BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
   switch (msg)
   {
     case WM_INITDIALOG:
     {
-      HWND h2sided = ::GetDlgItem(hWnd, IDC_ENUM_2SIDED);
-      ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("1 sided"));
-      ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("2 sided"));
-      ::SendMessage(h2sided, CB_INSERTSTRING, -1, (LPARAM) _T("Real 2 sided"));
-      UpdateEnum2Sided();
-
-      csa = GetIColorSwatch(GetDlgItem(hWnd, IDC_AMB), theMtl->cola, GetString(IDS_AMB_COLOR));
-      assert(csa);
-      csd = GetIColorSwatch(GetDlgItem(hWnd, IDC_DIFF), theMtl->cold, GetString(IDS_DIFF_COLOR));
-      assert(csd);
-      css = GetIColorSwatch(GetDlgItem(hWnd, IDC_SPEC), theMtl->cols, GetString(IDS_SPEC_COLOR));
-      assert(css);
-      cse = GetIColorSwatch(GetDlgItem(hWnd, IDC_EMIS), theMtl->cole, GetString(IDS_EMIS_COLOR));
-      assert(cse);
-
-      HWND hCmb = ::GetDlgItem(hWnd, IDC_CLASSNAME);
-
-      TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(dagor_shaders_config, filename);
-      CfgShader cfg(filename);
-
-      cfg.GetShaderNames();
-
-      for (int pos = 0; pos < cfg.shader_names.size(); ++pos)
-        ::SendMessage(hCmb, CB_INSERTSTRING, -1, (LPARAM)cfg.shader_names.at(pos).c_str());
-
-      UpdateShaderName();
-      theMtl->NotifyChanged();
-
-      for (size_t i = 0; i < texbut.size(); ++i)
-      {
-        texbut[i] = GetICustButton(GetDlgItem(hWnd, texidc[i]));
-        texbut[i]->SetDADMgr(&dadmgr);
-      }
-
-      FillSlotNames();
-
-      RECT rc;
-      GetWindowRect(GetDlgItem(hWnd, IDC_PARAM_START), &rc);
-      paramOrg.x = rc.left;
-      paramOrg.y = rc.top;
-      ScreenToClient(hWnd, &paramOrg);
-      DialogsReposition();
-      break;
+      dlg->Update2SidedWidget();
+      dlg->UpdateShaderNameWidget();
+      dlg->theMtl->NotifyChanged();
     }
-    case WM_SHOWWINDOW:
-      if (wParam)
-        RestoreParams();
-      else
-        SaveParams();
-      break;
+    break;
 
     case WM_PAINT:
-      if (!valid)
+      if (!dlg->valid)
       {
-        valid = TRUE;
-        ReloadDialog();
+        dlg->valid = TRUE;
+        dlg->ReloadDialog();
       }
       return FALSE;
 
     case WM_COMMAND:
-    {
+      if (wParam == MAKEWPARAM(IDC_BACKFACE_1, BN_CLICKED))
+      {
+        dlg->theMtl->twosided = IDagorMat::Sides::OneSided;
+        dlg->theMtl->NotifyChanged();
+        dlg->SaveParams();
+        dlg->UpdateMtlDisplay();
+      }
+
+      else if (wParam == MAKEWPARAM(IDC_BACKFACE_2, BN_CLICKED))
+      {
+        dlg->theMtl->twosided = IDagorMat::Sides::DoubleSided;
+        dlg->theMtl->NotifyChanged();
+        dlg->SaveParams();
+        dlg->UpdateMtlDisplay();
+      }
+
+      else if (wParam == MAKEWPARAM(IDC_BACKFACE_REAL2, BN_CLICKED))
+      {
+        dlg->theMtl->twosided = IDagorMat::Sides::RealDoubleSided;
+        dlg->theMtl->NotifyChanged();
+        dlg->SaveParams();
+        dlg->UpdateMtlDisplay();
+      }
+
+      else if (wParam == MAKEWPARAM(IDC_CLASSNAME, BN_CLICKED))
+      {
+        ShaderClassDialog shader_class_dlg(dlg);
+        if (shader_class_dlg.DoModal() == IDOK)
+        {
+          std::wstring name = shader_class_dlg.GetShaderClassName();
+          SetWindowText(GetDlgItem(hWnd, IDC_CLASSNAME), name.c_str());
+          dlg->ChangeShaderName();
+        }
+      }
+
+      break;
+
+    default: return FALSE;
+  }
+
+  return TRUE;
+}
+
+static INT_PTR CALLBACK TexDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  Dagormat2Dialog *dlg = 0;
+  if (msg == WM_INITDIALOG)
+  {
+    dlg = (Dagormat2Dialog *)lParam;
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
+    dlg->hTex = hWnd;
+  }
+  else if ((dlg = (Dagormat2Dialog *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+    return FALSE;
+
+  Autotoggle guard(dlg->isActive);
+
+  switch (msg)
+  {
+    case WM_INITDIALOG:
+      for (size_t i = 0; i < dlg->texbut.size(); ++i)
+      {
+        dlg->texbut[i] = GetICustButton(GetDlgItem(hWnd, texidc[i]));
+        dlg->texbut[i]->SetDADMgr(&dlg->dadmgr);
+      }
+      dlg->FillSlotNames();
+      break;
+
+    case WM_PAINT:
+      if (!dlg->valid)
+      {
+        dlg->valid = TRUE;
+        dlg->ReloadDialog();
+      }
+      return FALSE;
+
+    case WM_COMMAND:
       for (size_t i = 0; i < NUMTEXMAPS; ++i)
         if (LOWORD(wParam) == texidc[i])
-          PostMessage(hwmedit, WM_TEXMAP_BUTTON, i, (LPARAM)theMtl);
+          PostMessage(dlg->hwmedit, WM_TEXMAP_BUTTON, i, (LPARAM)dlg->theMtl);
+      break;
 
-      switch (LOWORD(wParam))
-      {
-        case IDC_ENUM_2SIDED:
-          if (HIWORD(wParam) == CBN_SELCHANGE)
-          {
-            if (creating)
-              break;
+    default: return FALSE;
+  }
 
-            theMtl->twosided = IDagorMat::Sides(::SendMessage(GetDlgItem(hWnd, IDC_ENUM_2SIDED), CB_GETCURSEL, 0, 0));
-            theMtl->NotifyChanged();
-            SaveParams();
-            UpdateMtlDisplay();
-          }
-          break;
-        case IDC_CLASSNAME:
-        {
-          if (creating)
-            break;
-          if (HIWORD(wParam) == CBN_SELCHANGE)
-            ChangeShaderName();
-        }
-        break;
-        case IDC_SCRIPT:
-        {
-          switch (HIWORD(wParam))
-          {
-            case EN_SETFOCUS: DisableAccelerators(); break;
-            case EN_KILLFOCUS: EnableAccelerators(); break;
-            case EN_CHANGE:
-            {
-              if (creating)
-                break;
-              HWND hw = (HWND)lParam;
-              int l = GetWindowTextLength(hw);
-              TSTR s;
-              s.Resize(l + 1);
-              GetWindowText(hw, STR_DEST(s), l + 1);
-              theMtl->script = s;
-              theMtl->NotifyChanged();
-            }
-            break;
-          }
-        }
-        break;
-        case IDC_PARAM_NEW:
-        {
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED:
-            {
-              M_STD_STRING shader = GetShaderName();
-              MaterParNew2 new_par(this, shader);
-              if (new_par.DoModal() == IDOK)
-              {
-                M_STD_STRING name = new_par.GetNewParamName();
+  return TRUE;
+}
 
-                TCHAR filename[MAX_PATH];
-                CfgShader::GetCfgFilename(dagor_shaders_config, filename);
-                CfgShader cfg(filename);
+static INT_PTR CALLBACK ParamDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  Dagormat2Dialog *dlg = 0;
+  if (msg == WM_INITDIALOG)
+  {
+    dlg = (Dagormat2Dialog *)lParam;
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
+    dlg->hParam = hWnd;
+  }
+  else if ((dlg = (Dagormat2Dialog *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+    return FALSE;
 
-                int type = cfg.GetParamType(shader, name); // recognize as local
-                if (type == CFG_UNKNOWN)
-                {
-                  type = cfg.GetParamType(CFG_GLOBAL_NAME, name); // try as global
-                  if (type == CFG_UNKNOWN)
-                    type = CFG_TEXT; // treat unknown as text
-                }
+  Autotoggle guard(dlg->isActive);
 
-                AddParam(type, name);
-                SaveParams();
-                DialogsReposition();
-                MarkUnknownParams(cfg);
-              }
-            }
-            break;
-          }
-        }
-        break;
-      }
+  switch (msg)
+  {
+    case WM_INITDIALOG:
+    {
+      RECT rc;
+      GetWindowRect(GetDlgItem(hWnd, IDC_PARAM_START), &rc);
+      dlg->paramOrg.x = rc.left;
+      dlg->paramOrg.y = rc.top;
+      ScreenToClient(hWnd, &dlg->paramOrg);
+      dlg->DialogsReposition();
     }
     break;
 
+    case WM_SHOWWINDOW:
+      if (wParam)
+        dlg->RestoreParams();
+      else
+        dlg->SaveParams();
+      break;
+
+    case WM_PAINT:
+      if (!dlg->valid)
+      {
+        dlg->valid = TRUE;
+        dlg->ReloadDialog();
+      }
+      {
+        std::vector<RECT> rect = dlg->GetParamGroupRectangles();
+        if (!rect.empty())
+        {
+          PAINTSTRUCT ps;
+          HDC hdc = BeginPaint(hWnd, &ps);
+          float kx = float(GetDeviceCaps(hdc, LOGPIXELSX)) / 96.0f;
+          float ky = float(GetDeviceCaps(hdc, LOGPIXELSY)) / 96.0f;
+          HPEN hOldPen = (HPEN)SelectObject(hdc, dlg->hFramePen);
+          HBRUSH hBrush = (HBRUSH)GetStockObject(NULL_BRUSH);
+          HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+
+          for (RECT &rc : rect)
+          {
+            static const int GAP_X = 2, GAP_Y = 2;
+            Rectangle(hdc, rc.left - GAP_X * kx, rc.top - GAP_Y * ky, rc.right + GAP_X * kx, rc.bottom + GAP_Y * ky);
+          }
+
+          SelectObject(hdc, hOldPen);
+          SelectObject(hdc, hOldBrush);
+          EndPaint(hWnd, &ps);
+        }
+      }
+      return FALSE;
+
+    case WM_COMMAND:
+      if (wParam == MAKEWPARAM(IDC_PARAM_NEW, BN_CLICKED))
+      {
+        M_STD_STRING shader = dlg->GetShaderName();
+        NewParameterDialog new_par(dlg, shader);
+        if (new_par.DoModal() == IDOK)
+        {
+          const auto &names = new_par.GetNewParamNames();
+          for (const auto &name : names)
+          {
+            ParamInfo param = get_param_info(dlg->blk.get(), shader, name);
+            dlg->theMtl->script += param.name.data();
+            dlg->theMtl->script += L"=";
+            dlg->theMtl->script += param.value.data();
+            dlg->theMtl->script += L"\r\n";
+          }
+          dlg->RestoreParams();
+        }
+      }
+      else if (wParam == MAKEWPARAM(IDC_PARAM_DELETE_ALL, BN_CLICKED) &&
+               MessageBox(hWnd, L"Delete all parameters? Are you sure?", L"Delete all", MB_ICONQUESTION | MB_YESNO) == IDYES)
+      {
+        dlg->parameters.clear();
+        dlg->SaveParams();
+        dlg->RestoreParams();
+      }
+      break;
+
+    default: return FALSE;
+  }
+
+  return TRUE;
+}
+
+static INT_PTR CALLBACK PhongDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  Dagormat2Dialog *dlg = 0;
+  if (msg == WM_INITDIALOG)
+  {
+    dlg = (Dagormat2Dialog *)lParam;
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
+    dlg->hPhong = hWnd;
+  }
+  else if ((dlg = (Dagormat2Dialog *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+    return FALSE;
+
+  Autotoggle guard(dlg->isActive);
+
+  switch (msg)
+  {
+    case WM_INITDIALOG:
+      dlg->csa = GetIColorSwatch(GetDlgItem(hWnd, IDC_AMB), dlg->theMtl->cola, GetString(IDS_AMB_COLOR));
+      dlg->csd = GetIColorSwatch(GetDlgItem(hWnd, IDC_DIFF), dlg->theMtl->cold, GetString(IDS_DIFF_COLOR));
+      dlg->css = GetIColorSwatch(GetDlgItem(hWnd, IDC_SPEC), dlg->theMtl->cols, GetString(IDS_SPEC_COLOR));
+      dlg->cse = GetIColorSwatch(GetDlgItem(hWnd, IDC_EMIS), dlg->theMtl->cole, GetString(IDS_EMIS_COLOR));
+      break;
+
+    case WM_PAINT:
+      if (!dlg->valid)
+      {
+        dlg->valid = TRUE;
+        dlg->ReloadDialog();
+      }
+      return FALSE;
+
     case CC_COLOR_BUTTONDOWN: theHold.Begin(); break;
+
     case CC_COLOR_BUTTONUP:
       if (HIWORD(wParam))
         theHold.Accept(GetString(IDS_COLOR_CHANGE));
@@ -970,34 +1248,37 @@ BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
       switch (id)
       {
         case IDC_AMB:
-          cs = csa;
+          cs = dlg->csa;
           pbid = PB_AMB;
           break;
+
         case IDC_DIFF:
-          cs = csd;
+          cs = dlg->csd;
           pbid = PB_DIFF;
           break;
+
         case IDC_SPEC:
-          cs = css;
+          cs = dlg->css;
           pbid = PB_SPEC;
           break;
+
         case IDC_EMIS:
-          cs = cse;
+          cs = dlg->cse;
           pbid = PB_EMIS;
           break;
+
+        default: return TRUE;
       }
-      if (!cs)
-        break;
       int buttonUp = HIWORD(wParam);
       if (buttonUp)
         theHold.Begin();
-      theMtl->pblock->SetValue(pbid, ip->GetTime(), (Color &)Color(cs->GetColor()));
-      cs->SetKeyBrackets(KeyAtCurTime(pbid));
+      dlg->theMtl->pblock->SetValue(pbid, dlg->ip->GetTime(), (Color &)Color(cs->GetColor()));
+      cs->SetKeyBrackets(dlg->KeyAtCurTime(pbid));
       if (buttonUp)
       {
         theHold.Accept(GetString(IDS_COLOR_CHANGE));
-        UpdateMtlDisplay();
-        theMtl->NotifyChanged();
+        dlg->UpdateMtlDisplay();
+        dlg->theMtl->NotifyChanged();
       }
     }
     break;
@@ -1005,18 +1286,16 @@ BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case CC_SPINNER_CHANGE:
       if (!theHold.Holding())
         theHold.Begin();
-      switch (LOWORD(wParam))
+      if (LOWORD(wParam) == IDC_SHIN_S)
       {
-        case IDC_SHIN_S:
-        {
-          ISpinnerControl *spin = (ISpinnerControl *)lParam;
-          theMtl->pblock->SetValue(PB_SHIN, ip->GetTime(), spin->GetFVal());
-          spin->SetKeyBrackets(KeyAtCurTime(PB_SHIN));
-        }
-        break;
+        ISpinnerControl *spin = (ISpinnerControl *)lParam;
+        dlg->theMtl->pblock->SetValue(PB_SHIN, dlg->ip->GetTime(), spin->GetFVal());
+        spin->SetKeyBrackets(dlg->KeyAtCurTime(PB_SHIN));
       }
       break;
+
     case CC_SPINNER_BUTTONDOWN: theHold.Begin(); break;
+
     case WM_CUSTEDIT_ENTER:
     case CC_SPINNER_BUTTONUP:
       if (HIWORD(wParam) || msg == WM_CUSTEDIT_ENTER)
@@ -1031,22 +1310,577 @@ BOOL MaterDlg2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return TRUE;
 }
 
-void MaterDlg2::FillSlotNames()
+static INT_PTR CALLBACK ProxyDlgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  Dagormat2Dialog *dlg = 0;
+  if (msg == WM_INITDIALOG)
+  {
+    dlg = (Dagormat2Dialog *)lParam;
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
+    dlg->hProxy = hWnd;
+  }
+  else if ((dlg = (Dagormat2Dialog *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+    return FALSE;
+
+  Autotoggle guard(dlg->isActive);
+
+  switch (msg)
+  {
+    case WM_PAINT:
+      if (!dlg->valid)
+      {
+        dlg->valid = TRUE;
+        dlg->ReloadDialog();
+      }
+      return FALSE;
+
+    case WM_COMMAND:
+      if (wParam == MAKEWPARAM(IDC_PROXY_IMPORT, BN_CLICKED))
+      {
+        if (get_open_filename(dlg->hProxy, L"Import from proxymat...", dlg->filterList, dlg->defaultExtension, dlg->proxyPath))
+          dlg->ImportProxymat();
+      }
+      else if (wParam == MAKEWPARAM(IDC_PROXY_EXPORT, BN_CLICKED))
+      {
+        if (get_save_filename(dlg->hProxy, L"Export to proxymat...", dlg->filterList, dlg->defaultExtension, dlg->proxyPath, false))
+          dlg->ExportProxymat();
+      }
+      break;
+
+    default: return FALSE;
+  }
+
+  return TRUE;
+}
+
+const TCHAR *Dagormat2Dialog::defaultExtension = L"proxymat.blk";
+
+Dagormat2Dialog::Dagormat2Dialog(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m) : isActive(false), csa(0), csd(0), css(0), cse(0)
+{
+  dadmgr.Init(this);
+  hwmedit = hwMtlEdit;
+  ip = imp;
+  theMtl = m;
+  valid = FALSE;
+  paramOrg.x = paramOrg.y = 0;
+
+  blk = get_blk();
+
+  filterList.Append(_T("Proxymat (proxymat.blk)"));
+  filterList.Append(_T("*.proxymat.blk"));
+
+  creating = TRUE;
+  std::fill(texbut.begin(), texbut.end(), nullptr);
+  hShader = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_DAGORMAT2_SHADER), ShaderDlgProc, L"Shader class", (LPARAM)this);
+  hPhong = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_DAGORMAT2_PHONG), PhongDlgProc, L"Phong parameters", (LPARAM)this);
+  hTex = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_DAGORMAT2_TEX), TexDlgProc, L"Texture slots", (LPARAM)this);
+  hParam = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_DAGORMAT2_PARAM), ParamDlgProc, L"Shader parameters", (LPARAM)this);
+  hProxy = ip->AddRollupPage(hInstance, MAKEINTRESOURCE(IDD_DAGORMAT2_PROXY), ProxyDlgProc, L"Proxymat import/export", (LPARAM)this);
+  creating = FALSE;
+
+  hFramePen = (HPEN)CreatePen(PS_SOLID, 2, RGB(56, 56, 56));
+}
+
+Dagormat2Dialog::~Dagormat2Dialog()
+{
+  SaveParams();
+  ReleaseIColorSwatch(csa);
+  ReleaseIColorSwatch(csd);
+  ReleaseIColorSwatch(css);
+  ReleaseIColorSwatch(cse);
+  for (ICustButton *cb : texbut)
+    ReleaseICustButton(cb);
+  SetWindowLongPtr(hShader, GWLP_USERDATA, NULL);
+  SetWindowLongPtr(hTex, GWLP_USERDATA, NULL);
+  SetWindowLongPtr(hParam, GWLP_USERDATA, NULL);
+  SetWindowLongPtr(hPhong, GWLP_USERDATA, NULL);
+
+  DeleteObject(hFramePen);
+}
+
+void Dagormat2Dialog::MarkUnknownParams(const DataBlock *dataBlk)
+{
+  if (!dataBlk)
+    return;
+
+  M_STD_STRING shader_name = GetShaderName();
+  if (shader_name.empty())
+    return;
+
+  const DataBlock *shader_blk = get_blk_shader(dataBlk, shader_name);
+  if (!shader_blk)
+    return;
+
+  std::vector<ParamInfo> params = get_blk_shader_params(shader_blk);
+
+  for (auto &p : parameters)
+  {
+    HWND hDel = GetDlgItem(p->hPanel, IDC_PARAM_DELETE);
+
+    if (p->param.is_group)
+    {
+      DagorMat2::tooltip.SetToolTip(hDel, (L"Delete group " + p->param.name).data());
+      continue;
+    }
+    else
+      DagorMat2::tooltip.SetToolTip(hDel, (L"Delete parameter " + p->param.name).data());
+
+    auto it = std::find_if(params.begin(), params.end(), [&p](ParamInfo &p_i) { return iequal(p_i.name, p->param.name); });
+
+    // known parameter
+    if (it != params.end())
+    {
+      std::wstring hint = it->name;
+
+      if (!it->description.empty())
+      {
+        hint += L"\n";
+        hint += it->description;
+      }
+
+      if (it->def_enabled)
+      {
+        hint += L"\nDefault: ";
+        hint += it->def;
+      }
+      else
+        hint += L"\nDefault is unknown";
+
+      if (it->soft_min_enabled || it->soft_max_enabled)
+      {
+        hint += L"\nExpected range: [";
+
+        if (it->soft_min_enabled)
+        {
+          if (it->isInt())
+            hint += std::to_wstring(int(it->soft_min));
+          else
+            hint += std::to_wstring(it->soft_min);
+        }
+
+        hint += L"..";
+
+        if (it->soft_max_enabled)
+        {
+          if (it->isInt())
+            hint += std::to_wstring(int(it->soft_max));
+          else
+            hint += std::to_wstring(it->soft_max);
+        }
+
+        hint += L"]";
+
+        WidgetNumeric *wn = dynamic_cast<WidgetNumeric *>(p.get());
+        if (wn && wn->isOutOfRange())
+          hint += L"\nOUT OF RANGE!";
+      }
+
+      setToolTip(p->hPanel, hint, hDel);
+      continue;
+    }
+
+    // unknown parameter
+    if (p->hSType)
+      ::SetWindowText(p->hSType, (L'*' + p->param.name).data());
+
+    std::wstringstream ss;
+    ss << p->param.name << _T("\n*not specified in the shader\n") << shader_name;
+    setToolTip(p->hPanel, ss.str(), hDel);
+  }
+}
+
+
+std::vector<RECT> Dagormat2Dialog::GetParamGroupRectangles() const
+{
+  std::vector<RECT> rect;
+  rect.reserve(parameters.size()); // rough estimation
+
+  RECT rc;
+  bool collect_vertical_size = false;
+
+  for (int i = 0;;)
+  {
+    if (collect_vertical_size)
+    {
+      if (i >= parameters.size())
+      {
+        rect.emplace_back(rc);
+        break;
+      }
+
+      AbstractWidget *w = parameters[i].get();
+      if (w->IsGroup())
+      {
+        rect.emplace_back(rc);
+        collect_vertical_size = false;
+      }
+      else
+      {
+        rc.bottom = w->screen_rc.bottom;
+        ++i;
+      }
+    }
+    else // search next group widget
+    {
+      if (i >= parameters.size())
+        break;
+
+      AbstractWidget *w = parameters[i].get();
+      if (w->IsGroup())
+      {
+        rc = w->screen_rc;
+        collect_vertical_size = true;
+      }
+
+      ++i;
+    }
+  }
+
+  return rect;
+}
+
+
+struct FindParamInfo
+{
+  ParamInfo pinfo;
+  bool found;
+};
+
+static FindParamInfo find_param_info(std::vector<ParamInfo> &params, const std::wstring &name)
+{
+  FindParamInfo res;
+  auto it = std::find_if(params.begin(), params.end(), [&name](const ParamInfo &p) { return !p.is_group && p.name == name; });
+  res.found = it != params.end();
+  if (res.found)
+    res.pinfo = *it;
+  return res;
+}
+
+void Dagormat2Dialog::RestoreParams()
+{
+  parameters.clear();
+  DagorMat2::tooltip.RemoveToolTips();
+
+  M_STD_STRING shader_name = theMtl->classname.data();
+  if (shader_name.empty())
+    return;
+
+  // get list of shader parameters (including group names)
+  const DataBlock *shader_blk = get_blk_shader(blk.get(), shader_name);
+  std::vector<ParamInfo> all_params = get_blk_shader_params(shader_blk);
+
+  // collect user-specified params
+  std::vector<ParamInfo> user_params;
+  M_STD_STRING script = simplifyRN(M_STD_STRING(theMtl->script));
+  std::vector<std::wstring> lines = split(script, L'\n');
+  for (std::wstring &line : lines)
+    if (!line.empty())
+      user_params.emplace_back(get_blk_param_info_value(blk.get(), line, shader_name));
+
+  // find uncategorized parameters (those that do not have a parent group)
+  std::vector<ParamInfo> uncategorized_params;
+  for (const ParamInfo &param : all_params)
+    if (!param.is_group && param.parent.empty())
+    {
+      auto res = find_param_info(user_params, param.name);
+      if (res.found)
+        uncategorized_params.emplace_back(res.pinfo);
+    }
+
+  if (!uncategorized_params.empty())
+  {
+    ParamInfo group;
+    group.is_group = true;
+    group.name = L"Uncategorized";
+    parameters.emplace_back(std::unique_ptr<WidgetGroup>(new WidgetGroup(group, this)));
+    for (ParamInfo param : uncategorized_params)
+    {
+      param.parent = group.name; // override empty parent group
+      AddParam(param);
+    }
+  }
+
+  // create widgets (if any) in the same order as defined in .blk
+  for (const ParamInfo &p : all_params)
+  {
+    if (!p.is_group)
+      continue;
+
+    std::vector<ParamInfo> grouped_params;
+    for (const ParamInfo &param : all_params)
+      if (!param.is_group && param.parent == p.name)
+      {
+        auto res = find_param_info(user_params, param.name);
+        if (res.found)
+          grouped_params.emplace_back(res.pinfo);
+      }
+
+    if (!grouped_params.empty())
+    {
+      parameters.emplace_back(std::unique_ptr<WidgetGroup>(new WidgetGroup(p, this)));
+      for (const ParamInfo &param : grouped_params)
+        AddParam(param);
+    }
+  }
+
+  // "real_two_sided" is treated as a radio button
+  for (const ParamInfo &param : user_params)
+    if (iequal(param.name, REAL_TWO_SIDED))
+    {
+      if (iequal(param.value, L"yes"))
+        theMtl->twosided = IDagorMat::Sides::RealDoubleSided;
+      Update2SidedWidget();
+      break;
+    }
+
+  // collect unknown parameters
+  std::vector<ParamInfo> unknown_params;
+  for (const ParamInfo &param : user_params)
+  {
+    // skip real_two_sided
+    if (iequal(param.name, REAL_TWO_SIDED))
+      continue;
+
+    // find parameter among pre-defined
+    auto res = find_param_info(all_params, param.name);
+    if (!res.found)
+      unknown_params.emplace_back(param);
+  }
+
+  // make a new group and add the unknown parameters
+  if (!unknown_params.empty())
+  {
+    ParamInfo group;
+    group.is_group = true;
+    group.name = L"Unknown";
+    parameters.emplace_back(std::unique_ptr<WidgetGroup>(new WidgetGroup(group, this)));
+
+    for (ParamInfo param : unknown_params)
+    {
+      param.parent = group.name; // override empty parent group
+      AddParam(param);
+    }
+  }
+
+  SaveParams();
+  DialogsReposition();
+  MarkUnknownParams(blk.get());
+}
+
+void Dagormat2Dialog::SaveParams()
+{
+  M_STD_STRING buffer;
+
+  for (size_t i = 0; i < parameters.size(); ++i)
+  {
+    AbstractWidget *p = parameters[i].get();
+
+    if (!p || p->param.is_group || p->param.name.empty())
+      continue;
+
+    buffer += p->param.name;
+    buffer += _T('=');
+    buffer += p->param.value;
+    buffer += _T("\r\n");
+  }
+
+  if (IsDlgButtonChecked(hShader, IDC_BACKFACE_REAL2))
+    buffer += _T("real_two_sided=yes\r\n");
+  else
+    buffer += _T("real_two_sided=no\r\n");
+
+  theMtl->script = buffer.c_str();
+  theMtl->NotifyChanged();
+}
+
+int Dagormat2Dialog::FindSubTexFromHWND(HWND hw)
+{
+  for (size_t i = 0; i < texbut.size(); ++i)
+    if (texbut[i])
+      if (texbut[i]->GetHwnd() == hw)
+        return int(i);
+  return -1;
+}
+
+M_STD_STRING Dagormat2Dialog::GetShaderName()
+{
+  M_STD_STRING name;
+  HWND hwnd = GetDlgItem(hShader, IDC_CLASSNAME);
+  long length = GetWindowTextLength(hwnd);
+  if (length > 0)
+  {
+    name.resize(length);
+    GetWindowText(hwnd, (TCHAR *)name.c_str(), length + 1);
+  }
+  return name;
+}
+
+void Dagormat2Dialog::UpdateShaderNameWidget() { SetWindowText(GetDlgItem(hShader, IDC_CLASSNAME), theMtl->classname.data()); }
+
+void Dagormat2Dialog::ChangeShaderName()
+{
+  M_STD_STRING str = GetShaderName();
+  theMtl->classname = str.c_str();
+  UpdateShaderNameWidget();
+  theMtl->NotifyChanged();
+  SaveParams();
+  RestoreParams();
+  FillSlotNames();
+  DialogsReposition();
+}
+
+void Dagormat2Dialog::Update2SidedWidget()
+{
+  CheckDlgButton(hShader, IDC_BACKFACE_1, theMtl->twosided == IDagorMat::Sides::OneSided);
+  CheckDlgButton(hShader, IDC_BACKFACE_2, theMtl->twosided == IDagorMat::Sides::DoubleSided);
+  CheckDlgButton(hShader, IDC_BACKFACE_REAL2, theMtl->twosided == IDagorMat::Sides::RealDoubleSided);
+}
+
+static std::wstring fix_empty_param(DataBlock::ParamType type, const std::wstring &value)
+{
+  return value.empty() ? get_default_param_value(type) : value;
+}
+
+void Dagormat2Dialog::AddParam(ParamInfo param)
+{
+  if (param.name.empty())
+    return;
+
+  param.value = fix_empty_param(param.type, param.value);
+
+  AbstractWidget *par = nullptr;
+  switch (param.type)
+  {
+    case DataBlock::ParamType::TYPE_BOOL: par = new WidgetBool(param, this); break;
+    case DataBlock::ParamType::TYPE_E3DCOLOR: par = new WidgetColor(param, this); break;
+
+    case DataBlock::ParamType::TYPE_INT:
+    case DataBlock::ParamType::TYPE_REAL:
+    case DataBlock::ParamType::TYPE_IPOINT2:
+    case DataBlock::ParamType::TYPE_IPOINT3:
+    case DataBlock::ParamType::TYPE_POINT2:
+    case DataBlock::ParamType::TYPE_POINT3:
+    case DataBlock::ParamType::TYPE_POINT4: par = new WidgetNumeric(param, this); break;
+
+    default: par = new WidgetText(param, this); break;
+  }
+
+  parameters.emplace_back(std::unique_ptr<AbstractWidget>(par));
+}
+
+AbstractWidget *Dagormat2Dialog::GetParam(const M_STD_STRING &name)
+{
+  for (auto &p : parameters)
+    if (iequal(p->param.name, name))
+      return p.get();
+  return nullptr;
+}
+
+void Dagormat2Dialog::RemParam(const M_STD_STRING &name)
+{
+  M_STD_STRING script = simplifyRN(M_STD_STRING(theMtl->script));
+
+  // cut the script into lines
+  std::vector<std::wstring> lines = split(script, L'\n');
+
+  script.clear();
+
+  for (const std::wstring &line : lines)
+  {
+    // fetch param name
+    std::vector<std::wstring> tokens = split(line, L'=');
+    if (tokens.size() != 2)
+      continue; // invalid input
+
+    std::wstring param_name = tokens[0];
+    std::wstring param_value = tokens[1];
+    tokens = split(param_name, L':');
+    param_name = tokens[0];
+
+    // ignore specified parameter
+    if (iequal(param_name, name))
+      continue;
+
+    script += param_name;
+    script += L'=';
+    script += param_value;
+    script += L"\r\n";
+  }
+
+  theMtl->script = script.data();
+  theMtl->NotifyChanged();
+  RestoreParams();
+}
+
+void Dagormat2Dialog::RemParamGroup(const M_STD_STRING &group_name)
+{
+  M_STD_STRING script = simplifyRN(M_STD_STRING(theMtl->script));
+
+  // cut the script into lines
+  std::vector<std::wstring> lines = split(script, L'\n');
+
+  script.clear();
+
+  for (const std::wstring &line : lines)
+  {
+    // fetch param name
+    std::vector<std::wstring> tokens = split(line, L'=');
+    if (tokens.size() != 2)
+      continue; // invalid input
+
+    std::wstring param_name = tokens[0];
+    std::wstring param_value = tokens[1];
+    tokens = split(param_name, L':');
+    param_name = tokens[0];
+
+    auto it = std::find_if(parameters.begin(), parameters.end(),
+      [&param_name](const std::unique_ptr<AbstractWidget> &w) { return !w->param.is_group && w->param.name == param_name; });
+    if (it != parameters.end() && (*it)->param.parent == group_name)
+      continue;
+
+    script += param_name;
+    script += L'=';
+    script += param_value;
+    script += L"\r\n";
+  }
+
+  theMtl->script = script.data();
+  theMtl->NotifyChanged();
+  RestoreParams();
+}
+
+HWND Dagormat2Dialog::AppendDialog(const TCHAR *paramName, long Resource, DLGPROC lpDialogProc, LPARAM param)
+{
+  HWND result = ::CreateDialogParam(hInstance, MAKEINTRESOURCE(Resource), hParam, lpDialogProc, param);
+
+  AbstractWidget *dlg = (WidgetText *)GetWindowLongPtr(result, GWLP_USERDATA);
+
+  ::SetWindowText(result, paramName);
+  dlg->hSType = ::FindWindowEx(result, NULL, _T("STATIC"), _T("StaticType"));
+  if (dlg->hSType)
+    ::SetWindowText(dlg->hSType, paramName);
+  ::ShowWindow(result, SW_SHOW);
+
+  dlg->creating = false;
+  return result;
+}
+
+void Dagormat2Dialog::FillSlotNames()
 {
   // reserved for future update
 }
 
-void MaterDlg2::Invalidate()
+void Dagormat2Dialog::Invalidate()
 {
   valid = FALSE;
   isActive = FALSE;
   Rect rect;
   rect.left = rect.top = 0;
   rect.right = rect.bottom = 10;
-  InvalidateRect(hPanel, &rect, FALSE);
+  InvalidateRect(hParam, &rect, FALSE);
 }
 
-void MaterDlg2::SetThing(ReferenceTarget *m)
+void Dagormat2Dialog::SetThing(ReferenceTarget *m)
 {
   theMtl = (DagorMat2 *)m;
   if (theMtl)
@@ -1054,9 +1888,9 @@ void MaterDlg2::SetThing(ReferenceTarget *m)
   ReloadDialog();
 }
 
-BOOL MaterDlg2::KeyAtCurTime(int id) { return theMtl->pblock->KeyFrameAtTime(id, ip->GetTime()); }
+BOOL Dagormat2Dialog::KeyAtCurTime(int id) { return theMtl->pblock->KeyFrameAtTime(id, ip->GetTime()); }
 
-void MaterDlg2::UpdateTexDisplay(int i)
+void Dagormat2Dialog::UpdateTexDisplay(int i)
 {
   Texmap *t = theMtl->texmaps->gettex(i);
   TSTR nm;
@@ -1071,7 +1905,7 @@ void MaterDlg2::UpdateTexDisplay(int i)
   texbut[i]->SetText(nm);
 }
 
-void MaterDlg2::ReloadDialog()
+void Dagormat2Dialog::ReloadDialog()
 {
   Interval valid;
   TimeValue time = ip->GetTime();
@@ -1084,12 +1918,73 @@ void MaterDlg2::ReloadDialog()
   css->SetKeyBrackets(KeyAtCurTime(PB_SPEC));
   cse->SetColor(theMtl->cole);
   cse->SetKeyBrackets(KeyAtCurTime(PB_EMIS));
-  UpdateEnum2Sided();
-  SetDlgItemText(hPanel, IDC_SCRIPT, theMtl->script);
+  Update2SidedWidget();
   for (int i = 0; i < NUMTEXMAPS; ++i)
     UpdateTexDisplay(i);
 
-  UpdateShaderName();
+  UpdateShaderNameWidget();
+}
+
+void Dagormat2Dialog::ImportProxymat()
+{
+  DataBlock proxyBlk(std::make_shared<NameMap>());
+  if (!proxyBlk.load(proxyPath.data()))
+    return;
+
+  int classname_i = proxyBlk.findParam("class");
+  if (classname_i != -1)
+  {
+    theMtl->classname = strToWide(proxyBlk.getStr(classname_i)).data();
+    UpdateShaderNameWidget();
+  }
+
+  int twosided_i = proxyBlk.findParam("twosided");
+  if (twosided_i != -1)
+    theMtl->twosided = proxyBlk.getBool(twosided_i, false) ? IDagorMat::Sides::DoubleSided : IDagorMat::Sides::OneSided;
+
+  std::wstring script;
+  for (int script_i = -1; (script_i = proxyBlk.findParam("script", script_i)) != -1;)
+    script += (strToWide(proxyBlk.getStr(script_i)) + L"\r\n");
+
+  if (!script.empty())
+    theMtl->script = script.data();
+
+  for (int i = 0; i < DAGTEXNUM; ++i)
+  {
+    int tex_i = proxyBlk.findParam(blk_tex_name(i));
+    if (tex_i != -1)
+    {
+      theMtl->set_texname(i, strToWide(proxyBlk.getStr(tex_i)).data());
+      UpdateTexDisplay(i);
+    }
+  }
+
+  theMtl->NotifyChanged();
+  RestoreParams();
+  UpdateMtlDisplay();
+}
+
+void Dagormat2Dialog::ExportProxymat()
+{
+  DataBlock proxyBlk(std::make_shared<NameMap>());
+
+  proxyBlk.addStr("class", wideToStr(theMtl->classname.data()).data());
+  proxyBlk.addBool("tex16support", true);
+  proxyBlk.addBool("twosided", theMtl->twosided == IDagorMat::Sides::DoubleSided);
+
+  for (int i = 0; i < DAGTEXNUM; ++i)
+  {
+    const TCHAR *tex = theMtl->get_texname(i);
+    if (tex)
+      proxyBlk.addStr(blk_tex_name(i), wideToStr(tex).data());
+  }
+
+  std::vector<std::wstring> lines = split(simplifyRN(theMtl->script.data()), L'\n');
+  for (auto const &s : lines)
+    if (!s.empty())
+      proxyBlk.addStr("script", wideToStr(s.data()).data());
+
+  proxyBlk.saveToTextFile(proxyPath.data());
 }
 
 //--- DagorMat2 -------------------------------------------------
@@ -1157,14 +2052,14 @@ void DagorMat2::Reset()
   pblock->SetValue(PB_EMIS, 0, cole = Color(0, 0, 0));
   pblock->SetValue(PB_SHIN, 0, shin = 30.0f);
   twosided = Sides::OneSided;
-  classname = default_shader_name;
+  classname = DEFAULT_SHADER_NAME;
   script = _T("");
   updateViewportTexturesState();
 }
 
 ParamDlg *DagorMat2::CreateParamDlg(HWND hwMtlEdit, IMtlParams *imp)
 {
-  dlg = new MaterDlg2(hwMtlEdit, imp, this);
+  dlg = new Dagormat2Dialog(hwMtlEdit, imp, this);
   return dlg;
 }
 
@@ -1530,7 +2425,7 @@ RefTargetHandle DagorMat2::Clone(RemapDir &remap)
   mtl->ReplaceReference(PB_REF, remap.CloneRef(pblock));
   mtl->ReplaceReference(TEX_REF, remap.CloneRef(texmaps));
   mtl->twosided = twosided;
-  mtl->classname = (classname ? classname : default_shader_name);
+  mtl->classname = (!classname.isNull() ? classname : DEFAULT_SHADER_NAME);
   mtl->script = script;
 #if MAX_RELEASE >= 4000
   BaseClone(this, mtl, remap);
@@ -1645,7 +2540,7 @@ IOResult DagorMat2::Load(ILoad *iload)
         TCHAR *s;
         res = iload->ReadCStringChunk(&s);
         if (res == IO_OK)
-          classname = (s ? s : default_shader_name);
+          classname = (s ? s : DEFAULT_SHADER_NAME);
         ivalid.SetEmpty();
       }
       break;
@@ -1784,12 +2679,101 @@ const TCHAR *DagorMat2::get_texname(int i)
 
 float DagorMat2::get_param(int i) { return 0; }
 
+void DagorMat2::enumerate_textures(EnumTexCB &cb)
+{
+  for (int i = 0; i < NUMTEXMAPS; ++i)
+  {
+    const TCHAR *texname = get_texname(i);
+    if (texname && cb.proc(strToWide(blk_tex_name(i)).data(), texname) == ECB_STOP)
+      return;
+  }
+}
+
+void DagorMat2::enumerate_parameters(EnumParamCB &cb)
+{
+  M_STD_STRING shader_name = classname.data();
+  if (shader_name.empty())
+    return;
+
+  auto blk = get_blk();
+
+  // get list of shader parameters (including group names)
+  const DataBlock *shader_blk = get_blk_shader(blk.get(), shader_name);
+  std::vector<ParamInfo> all_params = get_blk_shader_params(shader_blk);
+
+  // collect user-specified params
+  std::vector<ParamInfo> user_params;
+  M_STD_STRING s = simplifyRN(M_STD_STRING(script));
+  std::vector<std::wstring> lines = split(s, L'\n');
+  for (std::wstring &line : lines)
+    if (!line.empty())
+      user_params.emplace_back(get_blk_param_info_value(blk.get(), line, shader_name));
+
+  // find uncategorized parameters (those that do not have a parent group)
+  std::vector<ParamInfo> uncategorized_params;
+  for (const ParamInfo &param : all_params)
+    if (!param.is_group && param.parent.empty())
+    {
+      auto res = find_param_info(user_params, param.name);
+      if (res.found)
+        uncategorized_params.emplace_back(res.pinfo);
+    }
+
+  if (!uncategorized_params.empty())
+    for (ParamInfo param : uncategorized_params)
+      if (cb.proc(L"Uncategorized", param.name.data(), int(param.type), param.value.data()) == ECB_STOP)
+        return;
+
+  // create widgets (if any) in the same order as defined in .blk
+  for (const ParamInfo &p : all_params)
+  {
+    if (!p.is_group)
+      continue;
+
+    std::vector<ParamInfo> grouped_params;
+    for (const ParamInfo &param : all_params)
+      if (!param.is_group && param.parent == p.name)
+      {
+        auto res = find_param_info(user_params, param.name);
+        if (res.found)
+          grouped_params.emplace_back(res.pinfo);
+      }
+
+    if (!grouped_params.empty())
+      for (ParamInfo param : grouped_params)
+        if (cb.proc(param.parent.data(), param.name.data(), int(param.type), param.value.data()) == ECB_STOP)
+          return;
+  }
+
+  // collect unknown parameters
+  std::vector<ParamInfo> unknown_params;
+  for (const ParamInfo &param : user_params)
+  {
+    // skip real_two_sided
+    if (iequal(param.name, REAL_TWO_SIDED))
+      continue;
+
+    // find parameter among pre-defined
+    auto res = find_param_info(all_params, param.name);
+    if (!res.found)
+      unknown_params.emplace_back(param);
+  }
+
+  // make a new group and add the unknown parameters
+  if (!unknown_params.empty())
+  {
+    for (ParamInfo param : unknown_params)
+      if (cb.proc(L"Uncategorized", param.name.data(), int(param.type), param.value.data()) == ECB_STOP)
+        return;
+  }
+}
+
 void *DagorMat2::GetInterface(ULONG id)
 {
   if (id == I_DAGORMAT)
-  {
     return (IDagorMat *)this;
-  }
+  else if (id == I_DAGORMAT2)
+    return (IDagorMat2 *)this;
   else
     return Mtl::GetInterface(id);
 }
@@ -1846,7 +2830,7 @@ void DagorMat2::set_classname(const TCHAR *s)
   if (s)
     classname = s;
   else
-    classname = default_shader_name;
+    classname = DEFAULT_SHADER_NAME;
   NotifyChanged();
 }
 
@@ -1886,64 +2870,79 @@ void DagorMat2::set_param(int i, float p) {}
 
 ////////////////////////////////////////////////////////////////
 
-static INT_PTR CALLBACK MaterParNewProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK NewParameterDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-  MaterParNew2 *dlg;
+  NewParameterDialog *dlg;
   if (msg == WM_INITDIALOG)
   {
-    dlg = (MaterParNew2 *)lParam;
+    dlg = (NewParameterDialog *)lParam;
     SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
   }
   else
   {
-    if ((dlg = (MaterParNew2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+    if ((dlg = (NewParameterDialog *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
       return FALSE;
   }
 
   return dlg->WndProc(hWnd, msg, wParam, lParam);
 }
 
-MaterParNew2::MaterParNew2(MaterDlg2 *p, M_STD_STRING &shdr) : parent(p), hWnd(NULL), param_name(), shader(shdr) {}
+NewParameterDialog::NewParameterDialog(Dagormat2Dialog *p, M_STD_STRING &shdr) : parent(p), hWnd(NULL), shader(shdr) {}
 
-MaterParNew2::~MaterParNew2() {}
+NewParameterDialog::~NewParameterDialog() {}
 
-int MaterParNew2::DoModal()
+int NewParameterDialog::DoModal()
 {
-  return ::DialogBoxParam(hInstance, (const TCHAR *)IDD_DAGORPAR_NEW, NULL, MaterParNewProc2, (LPARAM)this);
+  return ::DialogBoxParam(hInstance, (const TCHAR *)IDD_DAGORPAR_NEW, parent->hParam, NewParameterDialogProc, (LPARAM)this);
 }
 
 static bool is_parameter_name_valid(const M_STD_STRING &name)
 {
-  return std::all_of(name.begin(), name.end(), [](TCHAR c) { return isalnum(c) || c == '_'; });
+  return std::all_of(name.begin(), name.end(),
+    [](wchar_t c) { return ('A' <= c && c <= 'Z') || ('a' <= c && c <= 'z') || ('0' <= c && c <= '9') || (c == '_'); });
 }
 
-BOOL MaterParNew2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+BOOL NewParameterDialog::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch (msg)
   {
     case WM_INITDIALOG:
     {
       this->hWnd = hWnd;
+      attach_layout_to_dialog(this->hWnd, MAKEINTRESOURCE(IDD_DAGORPAR_NEW));
 
-      HWND hCmbName = ::GetDlgItem(hWnd, IDC_PARAM_NAME);
+      HWND lb = ::GetDlgItem(hWnd, IDC_PARAM_NAME);
+      ListBox_SetColumnWidth(lb, 512); // FIXME
 
-      TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(dagor_shaders_config, filename);
-      CfgShader cfg(filename);
+      auto dataBlk = get_blk();
 
-      ::SendMessage(hCmbName, CB_RESETCONTENT, 0, 0);
-
-      cfg.GetGlobalParams();
-      for (M_STD_STRING &param : cfg.global_params)
-        if (!parent->GetParam(param) && param != real_two_sided)
-          ::SendMessage(hCmbName, CB_INSERTSTRING, -1, (LPARAM)param.data());
-
-      if (!shader.empty())
+      const DataBlock *shader_blk = get_blk_shader(dataBlk.get(), shader);
+      if (shader_blk)
       {
-        cfg.GetShaderParams(shader);
-        for (M_STD_STRING &param : cfg.shader_params)
-          if (!parent->GetParam(param))
-            ::SendMessage(hCmbName, CB_INSERTSTRING, -1, (LPARAM)param.data());
+        std::vector<ParamInfo> shader_params = get_blk_shader_params(shader_blk);
+
+        // root parameters
+        for (const auto &param : shader_params)
+          if (param.parent.empty() && !param.is_group && !parent->GetParam(param.name))
+            ListBox_InsertString(lb, -1, param.name.data());
+
+        // grouped parameters
+        std::vector<std::wstring> names;
+        for (const auto &param : shader_params)
+          if (param.is_group)
+          {
+            names.clear();
+            for (const auto &p : shader_params)
+              if (p.parent == param.name && !parent->GetParam(p.name))
+                names.emplace_back(p.name);
+
+            if (!names.empty())
+            {
+              ListBox_InsertString(lb, -1, mangled_category_name(1, param.name).data());
+              for (const auto &n : names)
+                ListBox_InsertString(lb, -1, n.data());
+            }
+          }
       }
     }
     break;
@@ -1953,65 +2952,26 @@ BOOL MaterParNew2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
       switch (LOWORD(wParam))
       {
         case IDOK:
-        {
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED:
-            {
-              GetParamName();
-
-              const TCHAR *err = nullptr;
-
-              if (param_name.empty())
-                err = _T("Name is empty");
-
-              if (!is_parameter_name_valid(param_name))
-                err = _T("Name must contain characters: 'A'..'Z', 'a'..'z', '_'");
-
-              if (parent->GetParam(param_name))
-                err = _T("Name already exists");
-
-              if (err)
-              {
-                MessageBox(hWnd, err, _T("Error"), MB_OK | MB_ICONSTOP);
-                return TRUE;
-              }
-
-              ::EndDialog(hWnd, IDOK);
-            }
-            break;
-          };
-        }
-        break;
+          if (HIWORD(wParam) == BN_CLICKED && GetAndVerifyParamName())
+            ::EndDialog(hWnd, IDOK);
+          break;
 
         case IDCANCEL:
-        {
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED: ::EndDialog(hWnd, IDCANCEL); break;
-          };
-        }
-        break;
+          if (HIWORD(wParam) == BN_CLICKED)
+            ::EndDialog(hWnd, IDCANCEL);
+          break;
 
         case IDC_PARAM_NAME:
-        {
-          switch (HIWORD(wParam))
-          {
-            case CBN_DBLCLK:
-            {
-              GetParamName();
-              ::EndDialog(hWnd, IDOK);
-              break;
-            }
-          }
+          if (HIWORD(wParam) == LBN_DBLCLK && GetAndVerifyParamName())
+            ::EndDialog(hWnd, IDOK);
           break;
-        }
-        break;
 
         default: break;
       }
     }
     break;
+
+    case WM_SIZE: update_layout(hWnd, lParam); return 0;
 
     default: return FALSE;
   }
@@ -2019,63 +2979,157 @@ BOOL MaterParNew2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   return TRUE;
 }
 
-M_STD_STRING MaterParNew2::GetParamName()
+std::vector<std::wstring> NewParameterDialog::GetSelectedNames() const
 {
-  HWND hCmbName = ::GetDlgItem(hWnd, IDC_PARAM_NAME);
-  int len = ::GetWindowTextLength(hCmbName);
+  std::vector<std::wstring> selected;
 
-  if (len > 0)
+  HWND lb = GetDlgItem(hWnd, IDC_PARAM_NAME);
+  if (!lb)
+    return selected;
+
+  int n = ListBox_GetSelCount(lb);
+  if (!n)
+    return selected;
+
+  selected.reserve(n);
+
+  std::vector<int> sel_items;
+  sel_items.resize(n);
+  ListBox_GetSelItems(lb, n, &sel_items[0]);
+
+  for (int i = 0; i < n; ++i)
   {
-    param_name.resize(len);
-    ::GetWindowText(hCmbName, (TCHAR *)param_name.c_str(), len + 1);
+    static wchar_t buf[1024]; // FIXME
+    ListBox_GetText(lb, sel_items[i], buf);
+    selected.emplace_back(buf);
   }
 
-  return param_name;
+  return selected;
+}
+
+bool NewParameterDialog::GetAndVerifyParamName()
+{
+  std::vector<std::wstring> selected = GetSelectedNames();
+
+  if (selected.empty())
+  {
+    // no selection, check the edit field
+
+    const TCHAR *err = nullptr;
+
+    std::wstring name;
+    HWND ed = GetDlgItem(hWnd, IDC_PARAM_NAME_EDIT);
+    long length = GetWindowTextLength(ed);
+    if (length > 0)
+    {
+      name.resize(length);
+      GetWindowText(ed, (TCHAR *)name.c_str(), length + 1);
+    }
+
+    if (name.empty())
+      err = _T("Name is empty");
+
+    if (!is_parameter_name_valid(name))
+      err = _T("Can't assign parameter,\nit contains non-supported characters.\n\nAllowed characters: ")
+            _T("'A'..'Z', 'a'..'z', '_'");
+
+    if (parent->GetParam(name))
+      err = _T("Name already exists");
+
+    if (err)
+    {
+      MessageBox(hWnd, err, _T("Error"), MB_OK | MB_ICONSTOP);
+      return false;
+    }
+
+    selected_names.clear();
+    selected_names.push_back(name);
+    return true;
+  }
+
+  auto is_selected = [&selected](const std::wstring &name) -> bool {
+    auto it = std::find_if(selected.begin(), selected.end(), [&name](const std::wstring &n) { return n == name; });
+    return it != selected.end();
+  };
+
+  auto dataBlk = get_blk();
+  const DataBlock *shader_blk = get_blk_shader(dataBlk.get(), shader);
+  if (!shader_blk)
+    return false;
+  std::vector<ParamInfo> shader_params = get_blk_shader_params(shader_blk);
+
+  std::vector<std::wstring> verified;
+  verified.reserve(selected.size());
+
+  // any selected parameters
+  for (const auto &param : shader_params)
+    if (!param.is_group && is_selected(param.name) && !parent->GetParam(param.name))
+      verified.emplace_back(param.name);
+
+  // override with grouped parameters
+  for (const auto &param : shader_params)
+    if (param.is_group && is_selected(mangled_category_name(1, param.name)))
+      for (const auto &p : shader_params)
+        if (p.parent == param.name && !parent->GetParam(p.name))
+          verified.emplace_back(p.name);
+
+  if (verified.empty())
+    return true;
+
+  selected_names.assign(verified.begin(), verified.end());
+  return true;
 }
 
 ////////////////////////////////////////////////////////////////
 
-MaterPar2::MaterPar2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) :
-  parent(p), hPanel(NULL), hSType(NULL), creating(TRUE), name(n), value(v)
-{}
-
-MaterPar2::~MaterPar2() { ::DestroyWindow(hPanel); }
-
-//////////////////////////////////////////////////////////////////////
-
-static INT_PTR CALLBACK MaterParTextProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static INT_PTR CALLBACK ShaderClassDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-  MaterParText2 *dlg;
+  ShaderClassDialog *dlg;
   if (msg == WM_INITDIALOG)
   {
-    dlg = (MaterParText2 *)lParam;
+    dlg = (ShaderClassDialog *)lParam;
     SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
   }
   else
   {
-    if ((dlg = (MaterParText2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
+    if ((dlg = (ShaderClassDialog *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
       return FALSE;
   }
+
   return dlg->WndProc(hWnd, msg, wParam, lParam);
 }
 
-MaterParText2::MaterParText2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), edit(NULL)
+ShaderClassDialog::ShaderClassDialog(Dagormat2Dialog *p) : parent(p), hWnd(NULL) {}
+
+ShaderClassDialog::~ShaderClassDialog() {}
+
+int ShaderClassDialog::DoModal()
 {
-  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_TEXT, MaterParTextProc2, (LPARAM)this);
+  return ::DialogBoxParam(hInstance, (const TCHAR *)IDD_DAGORPAR_SHADER_SELECTOR, parent->hShader, ShaderClassDialogProc,
+    (LPARAM)this);
 }
 
-MaterParText2::~MaterParText2() {}
-
-BOOL MaterParText2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+BOOL ShaderClassDialog::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch (msg)
   {
     case WM_INITDIALOG:
     {
-      edit = ::GetICustEdit(GetDlgItem(hWnd, IDC_PAR_TEXT_VALUE));
-      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
-      if (!value.empty())
-        SetValue(value);
+      this->hWnd = hWnd;
+      attach_layout_to_dialog(this->hWnd, MAKEINTRESOURCE(IDD_DAGORPAR_SHADER_SELECTOR));
+
+      HWND hCmb = ::GetDlgItem(hWnd, IDC_SHADER_CLASS_LIST);
+
+      std::vector<std::wstring> shader_list = get_blk_shader_list(get_blk().get());
+      for (auto const &sh : shader_list)
+        ComboBox_InsertString(hCmb, -1, sh.data());
+
+      const wchar_t *name = parent->theMtl->classname.data();
+      int i = ComboBox_FindStringExact(hCmb, 0, (LPARAM)name);
+      if (i != CB_ERR)
+        ComboBox_SetCurSel(hCmb, i);
+      else
+        ComboBox_SetText(hCmb, name);
     }
     break;
 
@@ -2083,207 +3137,144 @@ BOOL MaterParText2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     {
       switch (LOWORD(wParam))
       {
-        case IDC_PAR_TEXT_VALUE:
-        {
-          if (creating)
-            break;
-          if (HIWORD(wParam) == EN_CHANGE)
-          {
-            GetValue();
-          }
-        }
-        break;
+        case IDOK:
+          if (HIWORD(wParam) == BN_CLICKED && GetName())
+            ::EndDialog(hWnd, IDOK);
+          break;
 
-        case IDC_PARAM_DELETE:
-        {
-          if (creating)
-            break;
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED:
-            {
-              parent->RemParam(name);
-              parent->DialogsReposition();
-              return FALSE;
-            }
-            break;
-          };
-        }
-        break;
-        default:
-        {
-        }
-        break;
+        case IDCANCEL:
+          if (HIWORD(wParam) == BN_CLICKED)
+            ::EndDialog(hWnd, IDCANCEL);
+          break;
+
+        case IDC_SHADER_CLASS_LIST:
+          if (HIWORD(wParam) == CBN_DBLCLK && GetName())
+            ::EndDialog(hWnd, IDOK);
+          break;
+
+        default: break;
       }
     }
     break;
 
-    default:
-    {
-      return FALSE;
-    }
-    break;
+    case WM_SIZE: update_layout(this->hWnd, lParam); return 0;
+
+    default: return FALSE;
   }
 
   return TRUE;
 }
 
-void MaterParText2::GetValue()
+bool ShaderClassDialog::GetName()
+{
+  HWND hCmbName = ::GetDlgItem(hWnd, IDC_SHADER_CLASS_LIST);
+  int len = ::GetWindowTextLength(hCmbName);
+
+  if (len <= 0)
+  {
+    MessageBox(hWnd, _T("Empty shader class is not allowed"), _T("Class selection error"), MB_ICONERROR | MB_OK);
+    return false;
+  }
+
+  std::wstring s;
+  s.resize(len);
+  ::GetWindowText(hCmbName, (TCHAR *)s.c_str(), len + 1);
+
+  if (s.substr(0, 1) == _T("-"))
+  {
+    TSTR msg;
+    msg.printf(_T("\"%s\" category cannot be set as shader class."), TSTR(s.data()));
+    MessageBox(hWnd, msg, _T("Class selection error"), MB_ICONERROR | MB_OK);
+    return false;
+  }
+
+  shader_class_name = s;
+  return true;
+}
+
+////////////////////////////////////////////////////////////////
+
+AbstractWidget::AbstractWidget(const ParamInfo &pinfo_, Dagormat2Dialog *p) :
+  hPanel(NULL), hSType(NULL), creating(TRUE), param(pinfo_), parent(p)
+{}
+
+AbstractWidget::~AbstractWidget() { ::DestroyWindow(hPanel); }
+
+template <typename T>
+static INT_PTR CALLBACK widget_dlg_proc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  if (msg == WM_INITDIALOG)
+    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
+  else
+    lParam = GetWindowLongPtr(hWnd, GWLP_USERDATA);
+
+  T *dlg = reinterpret_cast<T *>(lParam);
+  if (!dlg)
+    return FALSE;
+
+  dlg->hPanel = hWnd;
+  return dlg->WndProc(hWnd, msg, wParam, lParam);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+WidgetText::WidgetText(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWidget(param, p), edit(NULL)
+{
+  hPanel = p->AppendDialog(param.name.c_str(), IDD_DAGORPAR_TEXT, widget_dlg_proc<WidgetText>, (LPARAM)this);
+}
+
+WidgetText::~WidgetText() {}
+
+INT_PTR WidgetText::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  switch (msg)
+  {
+    case WM_INITDIALOG:
+      edit = ::GetICustEdit(GetDlgItem(hWnd, IDC_PAR_TEXT_VALUE));
+      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
+      SetValue(param.value);
+      break;
+
+    case WM_COMMAND:
+      if (wParam == MAKEWPARAM(IDC_PARAM_DELETE, BN_CLICKED))
+      {
+        parent->RemParam(param.name);
+        return FALSE;
+      }
+      if (wParam == MAKEWPARAM(IDC_PAR_TEXT_VALUE, EN_CHANGE) && !creating)
+        GetValue();
+      break;
+
+    default: return FALSE;
+  }
+
+  return TRUE;
+}
+
+void WidgetText::GetValue()
 {
   TSTR buf;
   edit->GetText(buf);
-  value = buf.data();
+  param.value = buf.data();
   parent->SaveParams();
 }
 
-void MaterParText2::SetValue(const M_STD_STRING v)
+void WidgetText::SetValue(const M_STD_STRING &v)
 {
-  edit->SetText((TCHAR *)v.c_str());
-  value = v;
+  edit->SetText(v.c_str());
+  param.value = v;
 }
 
 //////////////////////////////////////////////////////////////////////
 
-static INT_PTR CALLBACK MaterParRealProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+WidgetColor::WidgetColor(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWidget(param, p), col(NULL)
 {
-  MaterParReal2 *dlg;
-  if (msg == WM_INITDIALOG)
-  {
-    dlg = (MaterParReal2 *)lParam;
-    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
-  }
-  else
-  {
-    if ((dlg = (MaterParReal2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
-      return FALSE;
-  }
-  return dlg->WndProc(hWnd, msg, wParam, lParam);
+  hPanel = p->AppendDialog(param.name.c_str(), IDD_DAGORPAR_COLOR, widget_dlg_proc<WidgetColor>, (LPARAM)this);
 }
 
-MaterParReal2::MaterParReal2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), spinner(NULL)
-{
-  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_REAL, MaterParRealProc2, (LPARAM)this);
-}
+WidgetColor::~WidgetColor() { ReleaseIColorSwatch(col); }
 
-MaterParReal2::~MaterParReal2() {}
-
-BOOL MaterParReal2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  switch (msg)
-  {
-    case WM_INITDIALOG:
-    {
-      spinner = ::SetupFloatSpinner(hWnd, IDC_PAR_REAL_VALUE_SPINNER, IDC_PAR_REAL_VALUE, -2147483648.0f, 2147483648.0f, 0.0f, 1.0f);
-      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
-      if (!value.empty())
-        SetValue(value);
-    }
-    break;
-
-    case WM_COMMAND:
-    {
-      switch (LOWORD(wParam))
-      {
-        case IDC_PARAM_DELETE:
-        {
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED:
-            {
-              parent->RemParam(name);
-              parent->DialogsReposition();
-              return FALSE;
-            }
-            break;
-          };
-        }
-        break;
-        default:
-        {
-        }
-        break;
-      }
-    }
-    break;
-
-    case CC_SPINNER_CHANGE:
-      if (!theHold.Holding())
-        theHold.Begin();
-      switch (LOWORD(wParam))
-      {
-        case IDC_PAR_REAL_VALUE_SPINNER:
-        {
-          GetValue();
-        }
-        break;
-      }
-      break;
-    case CC_SPINNER_BUTTONDOWN: theHold.Begin(); break;
-    case WM_CUSTEDIT_ENTER:
-    case CC_SPINNER_BUTTONUP:
-      if (HIWORD(wParam) || msg == WM_CUSTEDIT_ENTER)
-        theHold.Accept(GetString(IDS_PARAM_CHANGE));
-      else
-        theHold.Cancel();
-      break;
-
-    default:
-    {
-      return FALSE;
-    }
-    break;
-  }
-
-  return TRUE;
-}
-
-void MaterParReal2::GetValue()
-{
-  float f = spinner->GetFVal();
-
-  M_STD_OSTRINGSTREAM str;
-  str << f;
-
-  value = str.str();
-  parent->SaveParams();
-}
-
-void MaterParReal2::SetValue(const M_STD_STRING v)
-{
-  M_STD_ISTRINGSTREAM str(v);
-  float f;
-  str >> f;
-  spinner->SetValue(f, TRUE);
-
-  value = v;
-}
-
-//////////////////////////////////////////////////////////////////////
-
-static INT_PTR CALLBACK MaterParColorProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  MaterParColor2 *dlg;
-  if (msg == WM_INITDIALOG)
-  {
-    dlg = (MaterParColor2 *)lParam;
-    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
-  }
-  else
-  {
-    if ((dlg = (MaterParColor2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
-      return FALSE;
-  }
-  return dlg->WndProc(hWnd, msg, wParam, lParam);
-}
-
-MaterParColor2::MaterParColor2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), col(NULL)
-{
-  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_COLOR, MaterParColorProc2, (LPARAM)this);
-}
-
-MaterParColor2::~MaterParColor2() { ReleaseIColorSwatch(col); }
-
-BOOL MaterParColor2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR WidgetColor::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch (msg)
   {
@@ -2292,8 +3283,7 @@ BOOL MaterParColor2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
       AColor c;
       col = GetIColorSwatch(GetDlgItem(hWnd, IDC_PAR_COLOR_VALUE), c, _T("Color4 parameter"));
       ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
-      if (!value.empty())
-        SetValue(value);
+      SetValue(param.value);
       GetValue();
     }
     break;
@@ -2310,52 +3300,30 @@ BOOL MaterParColor2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
     break;
 
     case WM_COMMAND:
-    {
-      switch (LOWORD(wParam))
+      if (wParam == MAKEWPARAM(IDC_PARAM_DELETE, BN_CLICKED))
       {
-        case IDC_PARAM_DELETE:
-        {
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED:
-            {
-              parent->RemParam(name);
-              parent->DialogsReposition();
-              return FALSE;
-            }
-            break;
-          };
-        }
-        break;
-        default:
-        {
-        }
-        break;
+        parent->RemParam(param.name);
+        return FALSE;
       }
-    }
-    break;
+      break;
 
-    default:
-    {
-      return FALSE;
-    }
-    break;
+    default: return FALSE;
   }
 
   return TRUE;
 }
 
-void MaterParColor2::GetValue()
+void WidgetColor::GetValue()
 {
   AColor c = col->GetAColor();
   TCHAR buf[128];
   _stprintf(buf, _T("%.3f,%.3f,%.3f,%.3f"), c.r, c.g, c.b, c.a);
 
-  value = buf;
+  param.value = buf;
   parent->SaveParams();
 }
 
-void MaterParColor2::SetValue(const M_STD_STRING v)
+void WidgetColor::SetValue(const M_STD_STRING &v)
 {
   float r = 0, g = 0, b = 0, a = 0;
   int res = _stscanf(v.c_str(), _T(" %f , %f , %f , %f"), &r, &g, &b, &a);
@@ -2364,360 +3332,358 @@ void MaterParColor2::SetValue(const M_STD_STRING v)
   else
     col->SetAColor(AColor(r, g, b, a), TRUE);
 
-  value = v;
+  param.value = v;
 }
 
 //////////////////////////////////////////////////////////////////////
 
-static INT_PTR CALLBACK MaterParEnumProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+WidgetBool::WidgetBool(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWidget(param, p)
 {
-  MaterParEnum2 *dlg;
-  if (msg == WM_INITDIALOG)
-  {
-    dlg = (MaterParEnum2 *)lParam;
-    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
-  }
-  else
-  {
-    if ((dlg = (MaterParEnum2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
-      return FALSE;
-  }
-  return dlg->WndProc(hWnd, msg, wParam, lParam);
+  hPanel = p->AppendDialog(param.name.c_str(), IDD_DAGORPAR_BOOL, widget_dlg_proc<WidgetBool>, (LPARAM)this);
 }
 
-MaterParEnum2::MaterParEnum2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), count(0)
-{
-  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_ENUM, MaterParEnumProc2, (LPARAM)this);
-}
+WidgetBool::~WidgetBool() {}
 
-MaterParEnum2::~MaterParEnum2() {}
-
-BOOL MaterParEnum2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR WidgetBool::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch (msg)
   {
     case WM_INITDIALOG:
-    {
-#if 0
-      TCHAR filename[MAX_PATH];
-      CfgShader::GetCfgFilename(dagor_shaders_config, filename);
-      CfgShader cfg(filename);
-
-
-      StringVector buttons = cfg.GetParamData(owner, name);
-      count = (int)buttons.size();
-
-      for (int pos = 0; pos < count; ++pos)
-      {
-        int col = pos % 4;
-        int row = pos / 4;
-
-        HMENU hID = (HMENU)(intptr_t)(IDC_PAR_ENUM_RADIO + (row * 4) + col);
-
-        HWND hRadioNew = ::CreateWindowEx(0, _T("BUTTON"), _T(""), BS_AUTORADIOBUTTON | WS_VISIBLE | WS_CHILD | WS_TABSTOP,
-          67 + 67 * col, 15 * row, 67, 15, hWnd, hID, ::hInstance, NULL);
-        ::SetWindowText(hRadioNew, buttons.at((row * 4) + col).c_str());
-      }
-#endif
-
       ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
-      if (!value.empty())
-        SetValue(value);
-    }
-    break;
+      SetValue(param.value);
+      break;
 
     case WM_COMMAND:
-    {
-      if (LOWORD(wParam) >= IDC_PAR_ENUM_RADIO && LOWORD(wParam) < IDC_PAR_ENUM_RADIO + count)
+      if (wParam == MAKEWPARAM(IDC_PARAM_DELETE, BN_CLICKED))
       {
-        if (creating)
-          break;
+        parent->RemParam(param.name);
+        return FALSE;
+      }
+      if (LOWORD(wParam) == IDC_PAR_BOOL_VALUE)
         GetValue();
-      }
-      switch (LOWORD(wParam))
-      {
-        case IDC_PARAM_DELETE:
-        {
-          if (creating)
-            break;
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED:
-            {
-              parent->RemParam(name);
-              parent->DialogsReposition();
-              return FALSE;
-            }
-            break;
-          };
-        }
-        break;
+      break;
 
-        default:
-        {
-        }
-        break;
-      }
-    }
-    break;
-
-    default:
-    {
-      return FALSE;
-    }
-    break;
+    default: return FALSE;
   }
 
   return TRUE;
 }
 
-void MaterParEnum2::GetValue()
+void WidgetBool::GetValue()
 {
-  for (int pos = 0; pos < count; ++pos)
-  {
-    int id = (IDC_PAR_ENUM_RADIO + pos);
-    int state = ::SendMessage(::GetDlgItem(hPanel, id), BM_GETCHECK, 0, NULL);
-    if (state)
-    {
-      int length = ::GetWindowTextLength(::GetDlgItem(hPanel, id));
-      value.resize(length);
-      ::GetWindowText(::GetDlgItem(hPanel, id), (TCHAR *)value.c_str(), length + 1);
-      break;
-    }
-  }
+  param.value = IsDlgButtonChecked(hPanel, IDC_PAR_BOOL_VALUE) ? _T("yes") : _T("no");
   parent->SaveParams();
 }
 
-void MaterParEnum2::SetValue(const M_STD_STRING v)
+void WidgetBool::SetValue(const M_STD_STRING &v)
 {
-  for (int pos = 0; pos < count; ++pos)
-  {
-    int id = (IDC_PAR_ENUM_RADIO + pos);
-    M_STD_STRING str;
-    int length = ::GetWindowTextLength(::GetDlgItem(hPanel, id));
-    str.resize(length);
-    ::GetWindowText(::GetDlgItem(hPanel, id), (TCHAR *)str.c_str(), length + 1);
-    ::SendMessage(::GetDlgItem(hPanel, id), BM_SETCHECK, str == v, NULL);
-  }
-}
-
-int MaterParEnum2::GetCount() { return (int)(count / 2); }
-
-TCHAR *MaterParEnum2::GetRadioName(int at) { return NULL; }
-
-int MaterParEnum2::GetRadioState(int at) { return 0; }
-
-int MaterParEnum2::GetRadioSelected() { return 0; }
-
-//////////////////////////////////////////////////////////////////////
-
-static INT_PTR CALLBACK MaterParBoolProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  MaterParBool2 *dlg;
-  if (msg == WM_INITDIALOG)
-  {
-    dlg = (MaterParBool2 *)lParam;
-    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
-  }
-  else
-  {
-    if ((dlg = (MaterParBool2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
-      return FALSE;
-  }
-  return dlg->WndProc(hWnd, msg, wParam, lParam);
-}
-
-MaterParBool2::MaterParBool2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p)
-{
-  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_BOOL, MaterParBoolProc2, (LPARAM)this);
-}
-
-MaterParBool2::~MaterParBool2() {}
-
-BOOL MaterParBool2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-  switch (msg)
-  {
-    case WM_INITDIALOG:
-    {
-      hPanel = hWnd;
-      ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
-      if (!value.empty())
-        SetValue(value);
-    }
-    break;
-
-    case WM_COMMAND:
-    {
-      switch (LOWORD(wParam))
-      {
-        case IDC_PARAM_DELETE:
-        {
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED:
-            {
-              parent->RemParam(name);
-              parent->DialogsReposition();
-              return FALSE;
-            }
-            break;
-          };
-        }
-        break;
-
-        case IDC_PAR_BOOL_VALUE: GetValue(); break;
-
-        default: break;
-      }
-      break;
-    }
-    break;
-
-    default:
-    {
-      return FALSE;
-    }
-    break;
-  }
-
-  return TRUE;
-}
-
-void MaterParBool2::GetValue()
-{
-  value = IsDlgButtonChecked(hPanel, IDC_PAR_BOOL_VALUE) ? _T("yes") : _T("no");
-  parent->SaveParams();
-}
-
-void MaterParBool2::SetValue(const M_STD_STRING v)
-{
-  CheckDlgButton(hPanel, IDC_PAR_BOOL_VALUE, v == _T("yes") || v == _T("true"));
-  value = v;
+  CheckDlgButton(hPanel, IDC_PAR_BOOL_VALUE, iequal(v, L"yes") || iequal(v, L"true"));
+  param.value = v;
 }
 
 //////////////////////////////////////////////////////////////////////
 
-static INT_PTR CALLBACK MaterParIntProc2(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static long widget_p4_idc[4][2] = {
+  {IDC_PAR_POINT_VALUE_SPINNER_0, IDC_PAR_POINT_VALUE_0},
+  {IDC_PAR_POINT_VALUE_SPINNER_1, IDC_PAR_POINT_VALUE_1},
+  {IDC_PAR_POINT_VALUE_SPINNER_2, IDC_PAR_POINT_VALUE_2},
+  {IDC_PAR_POINT_VALUE_SPINNER_3, IDC_PAR_POINT_VALUE_3},
+};
+
+WidgetNumeric::WidgetNumeric(const ParamInfo &param, Dagormat2Dialog *p) :
+  AbstractWidget(param, p), is_float(true), is_color_ui(false), is_spinner_used(false), size(4), col(0)
 {
-  MaterParInt2 *dlg;
-  if (msg == WM_INITDIALOG)
+  memset(spinner, 0, 4 * sizeof(*spinner));
+
+  long idd = 0;
+
+  if (param.type == DataBlock::ParamType::TYPE_POINT4)
   {
-    dlg = (MaterParInt2 *)lParam;
-    SetWindowLongPtr(hWnd, GWLP_USERDATA, lParam);
+    is_color_ui = iequal(param.custom_ui, L"color");
+    size = 4;
+    idd = is_color_ui ? IDD_DAGORPAR_POINT4_COLOR : IDD_DAGORPAR_POINT4;
   }
-  else
+  else if (param.type == DataBlock::ParamType::TYPE_POINT3)
   {
-    if ((dlg = (MaterParInt2 *)GetWindowLongPtr(hWnd, GWLP_USERDATA)) == NULL)
-      return FALSE;
+    size = 3;
+    idd = IDD_DAGORPAR_POINT3;
   }
-  return dlg->WndProc(hWnd, msg, wParam, lParam);
+  else if (param.type == DataBlock::ParamType::TYPE_POINT2)
+  {
+    size = 2;
+    idd = IDD_DAGORPAR_POINT2;
+  }
+  else if (param.type == DataBlock::ParamType::TYPE_REAL)
+  {
+    size = 1;
+    idd = IDD_DAGORPAR_REAL;
+  }
+  else if (param.type == DataBlock::ParamType::TYPE_IPOINT3)
+  {
+    is_float = false;
+    size = 3;
+    idd = IDD_DAGORPAR_POINT3;
+  }
+  else if (param.type == DataBlock::ParamType::TYPE_IPOINT2)
+  {
+    is_float = false;
+    size = 2;
+    idd = IDD_DAGORPAR_POINT2;
+  }
+  else if (param.type == DataBlock::ParamType::TYPE_INT)
+  {
+    is_float = false;
+    size = 1;
+    idd = IDD_DAGORPAR_REAL;
+  }
+  assert(idd);
+  hPanel = p->AppendDialog(param.name.c_str(), idd, widget_dlg_proc<WidgetNumeric>, (LPARAM)this);
+
+  hFramePen = (HPEN)CreatePen(PS_SOLID, 2, RGB(255, 0, 0));
 }
 
-MaterParInt2::MaterParInt2(M_STD_STRING n, M_STD_STRING v, MaterDlg2 *p) : MaterPar2(n, v, p), spinner(NULL)
+WidgetNumeric::~WidgetNumeric()
 {
-  hPanel = p->AppendDialog(name.c_str(), IDD_DAGORPAR_REAL, MaterParIntProc2, (LPARAM)this);
+  if (is_color_ui && col)
+    ReleaseIColorSwatch(col);
+  DeleteObject(hFramePen);
 }
 
-MaterParInt2::~MaterParInt2() {}
+bool WidgetNumeric::isOutOfRange() const
+{
+  for (int i = 0; i < size; ++i)
+  {
+    float f = is_float ? spinner[i]->GetFVal() : spinner[i]->GetIVal();
+    if ((param.soft_min_enabled && f < param.soft_min) || (param.soft_max_enabled && f > param.soft_max))
+      return true;
+  }
+  return false;
+}
 
-BOOL MaterParInt2::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+INT_PTR WidgetNumeric::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch (msg)
   {
     case WM_INITDIALOG:
-    {
-      spinner = ::SetupIntSpinner(hWnd, IDC_PAR_REAL_VALUE_SPINNER, IDC_PAR_REAL_VALUE, -INT_MAX, INT_MAX, 0);
+      if (is_color_ui)
+      {
+        AColor c;
+        col = GetIColorSwatch(GetDlgItem(hWnd, IDC_PAR_COLOR_VALUE), c, _T("Color4 parameter"));
+      }
+      for (int i = 0; i < size; ++i)
+      {
+        long idc_spin = widget_p4_idc[i][0];
+        long idc_edit = widget_p4_idc[i][1];
+        if (is_float)
+          spinner[i] = ::SetupFloatSpinner(hWnd, idc_spin, idc_edit, -FLT_MAX, +FLT_MAX, 0);
+        else
+          spinner[i] = ::SetupIntSpinner(hWnd, idc_spin, idc_edit, -INT_MAX, +INT_MAX, 0);
+      }
       ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE);
-      if (!value.empty())
-        SetValue(value);
-    }
-    break;
+      SetValue(param.value);
+      InvalidateRect(hWnd, NULL, TRUE);
+      UpdateWindow(hWnd);
+      parent->MarkUnknownParams(parent->blk.get());
+      break;
 
     case WM_COMMAND:
-    {
-      switch (LOWORD(wParam))
+      if (wParam == MAKEWPARAM(IDC_PARAM_DELETE, BN_CLICKED))
       {
-        case IDC_PARAM_DELETE:
-        {
-          switch (HIWORD(wParam))
-          {
-            case BN_CLICKED:
-            {
-              parent->RemParam(name);
-              parent->DialogsReposition();
-              return FALSE;
-            }
-            break;
-          };
-        }
-        break;
-        default:
-        {
-        }
-        break;
+        parent->RemParam(param.name);
+        return FALSE;
       }
-    }
-    break;
+      break;
 
     case CC_SPINNER_CHANGE:
       if (!theHold.Holding())
         theHold.Begin();
-      switch (LOWORD(wParam))
+      if (LOWORD(wParam) == IDC_PAR_POINT_VALUE_SPINNER_0 || LOWORD(wParam) == IDC_PAR_POINT_VALUE_SPINNER_1 ||
+          LOWORD(wParam) == IDC_PAR_POINT_VALUE_SPINNER_2 || LOWORD(wParam) == IDC_PAR_POINT_VALUE_SPINNER_3)
       {
-        case IDC_PAR_REAL_VALUE_SPINNER:
+        size_t i = 0;
+        for (; i < 4; ++i)
+          if (LOWORD(wParam) == widget_p4_idc[i][0])
+            break;
+
+        if (is_spinner_used)
         {
-          GetValue();
+          float f = is_float ? spinner[i]->GetFVal() : spinner[i]->GetIVal();
+
+          if (param.soft_min_enabled && f < param.soft_min)
+            f = param.soft_min;
+
+          if (param.soft_max_enabled && f > param.soft_max)
+            f = param.soft_max;
+
+          if (is_float)
+            spinner[i]->SetValue(f, true);
+          else
+            spinner[i]->SetValue(int(f), true);
         }
-        break;
+        GetValue();
+        InvalidateRect(hWnd, NULL, TRUE);
+        UpdateWindow(hWnd);
+        parent->MarkUnknownParams(parent->blk.get());
       }
       break;
-    case CC_SPINNER_BUTTONDOWN: theHold.Begin(); break;
+
+    case CC_SPINNER_BUTTONDOWN:
+      is_spinner_used = true;
+      theHold.Begin();
+      break;
+
     case WM_CUSTEDIT_ENTER:
     case CC_SPINNER_BUTTONUP:
+      is_spinner_used = false;
       if (HIWORD(wParam) || msg == WM_CUSTEDIT_ENTER)
         theHold.Accept(GetString(IDS_PARAM_CHANGE));
       else
         theHold.Cancel();
       break;
 
-    default:
+    case CC_COLOR_CHANGE:
     {
-      return FALSE;
+      int buttonUp = HIWORD(wParam);
+      if (buttonUp)
+        theHold.Begin();
+      AColor c = col->GetAColor();
+      spinner[0]->SetValue(c.r, FALSE);
+      spinner[1]->SetValue(c.g, FALSE);
+      spinner[2]->SetValue(c.b, FALSE);
+      spinner[3]->SetValue(c.a, TRUE);
+      GetValue();
+      if (buttonUp)
+        theHold.Accept(GetString(IDS_COLOR_CHANGE));
     }
     break;
+
+    case WM_PAINT:
+    {
+      if (isOutOfRange())
+      {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        float kx = float(GetDeviceCaps(hdc, LOGPIXELSX)) / 96.0f;
+        float ky = float(GetDeviceCaps(hdc, LOGPIXELSY)) / 96.0f;
+        RECT rc;
+        GetWindowRect(hWnd, &rc);
+        HPEN hOldPen = (HPEN)SelectObject(hdc, hFramePen);
+        HBRUSH hBrush = (HBRUSH)GetStockObject(NULL_BRUSH);
+        HBRUSH hOldBrush = (HBRUSH)SelectObject(hdc, hBrush);
+        Rectangle(hdc, kx, ky, rc.right - rc.left - kx, rc.bottom - rc.top - 2 * ky);
+        SelectObject(hdc, hOldPen);
+        SelectObject(hdc, hOldBrush);
+        EndPaint(hWnd, &ps);
+      }
+    }
+      return 0;
+
+    default: return FALSE;
   }
 
   return TRUE;
 }
 
-void MaterParInt2::GetValue()
+void WidgetNumeric::GetValue()
 {
-  int i = spinner->GetIVal();
-
+  float f[4] = {};
   M_STD_OSTRINGSTREAM str;
-  str << i;
+  str.imbue(std::locale::classic());
+  for (int i = 0; i < size; ++i)
+  {
+    if (is_float)
+      str << (f[i] = spinner[i]->GetFVal());
+    else
+      str << spinner[i]->GetIVal();
 
-  value = str.str();
+    if (i < size - 1)
+      str << ", ";
+  }
+  param.value = str.str();
   parent->SaveParams();
+  if (is_color_ui)
+    UpdateColorSwatch(f);
 }
 
-void MaterParInt2::SetValue(const M_STD_STRING v)
+void WidgetNumeric::SetValue(const M_STD_STRING &v)
 {
+  float f[4] = {};
   M_STD_ISTRINGSTREAM str(v);
-  int i;
-  str >> i;
-  spinner->SetValue(i, TRUE);
+  str.imbue(std::locale::classic());
+  for (int i = 0; i < size; ++i)
+  {
+    if (is_float)
+    {
+      str >> f[i];
+      spinner[i]->SetValue(f[i], TRUE);
+    }
+    else
+    {
+      int d;
+      str >> d;
+      spinner[i]->SetValue(d, TRUE);
+    }
+    while (str.peek() == L' ' || str.peek() == L',')
+      str.ignore();
+  }
+  if (is_color_ui)
+    UpdateColorSwatch(f);
+  param.value = v;
+}
 
-  value = v;
+void WidgetNumeric::UpdateColorSwatch(float f[4])
+{
+  float k = 0.f;
+  k = std::max(k, f[0]);
+  k = std::max(k, f[1]);
+  k = std::max(k, f[2]);
+  k = std::max(k, f[3]);
+  if (k == 0.f)
+    k = 1.f;
+
+  AColor c;
+  c.r = clamp(f[0] / k, 0.f, 1.f);
+  c.g = clamp(f[1] / k, 0.f, 1.f);
+  c.b = clamp(f[2] / k, 0.f, 1.f);
+  c.a = clamp(f[3] / k, 0.f, 1.f);
+  col->SetAColor(c, FALSE);
 }
 
 //////////////////////////////////////////////////////////////////////
 
-void MaterDlg2::DialogsReposition()
+WidgetGroup::WidgetGroup(const ParamInfo &param, Dagormat2Dialog *p) : AbstractWidget(param, p)
+{
+  hPanel = p->AppendDialog(param.name.c_str(), IDD_DAGORPAR_GROUP, widget_dlg_proc<WidgetGroup>, (LPARAM)this);
+}
+
+WidgetGroup::~WidgetGroup() {}
+
+INT_PTR WidgetGroup::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  switch (msg)
+  {
+    case WM_INITDIALOG: ::EnableWindow(::GetDlgItem(hWnd, IDC_PARAM_DELETE), TRUE); break;
+
+    case WM_COMMAND:
+      if (wParam == MAKEWPARAM(IDC_PARAM_DELETE, BN_CLICKED))
+      {
+        parent->RemParamGroup(param.name);
+        return FALSE;
+      }
+      break;
+
+    default: return FALSE;
+  }
+
+  return TRUE;
+}
+
+//////////////////////////////////////////////////////////////////////
+
+void Dagormat2Dialog::DialogsReposition()
 {
   IRollupWindow *irw = ip->GetMtlEditorRollup();
-  int ind = irw->GetPanelIndex(hPanel);
+  int ind = irw->GetPanelIndex(hParam);
 
   if (parameters.empty())
   {
@@ -2727,28 +3693,119 @@ void MaterDlg2::DialogsReposition()
     return;
   }
 
-  RECT rct;
+  RECT param_rc;
+  GetWindowRect(hParam, &param_rc);
+
   POINT pt = paramOrg;
-
-  // 0th parameter
-  HWND par = parameters.front()->hPanel;
-  ::SetWindowPos(par, HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
-  ::GetWindowRect(par, &rct);
-  pt.x = rct.left;
-  pt.y = rct.bottom + PARAM_DLG_GAP;
-  ::ScreenToClient(hPanel, &pt);
-
-  // other parameters
-  for (size_t i = 1; i < parameters.size(); ++i)
+  for (size_t i = 0; i < parameters.size(); ++i)
   {
-    par = parameters[i]->hPanel;
-    ::SetWindowPos(par, HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
-    ::GetWindowRect(par, &rct);
-    pt.x = rct.left;
-    pt.y = rct.bottom + PARAM_DLG_GAP;
-    ::ScreenToClient(hPanel, &pt);
+    auto &par = *parameters[i];
+    ::SetWindowPos(par.hPanel, HWND_TOP, pt.x, pt.y, 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
+
+    ::GetWindowRect(par.hPanel, &par.screen_rc);
+    pt.x = par.screen_rc.left;
+    pt.y = par.screen_rc.bottom + PARAM_DLG_GAP;
+    ::ScreenToClient(hParam, &pt);
+
+    par.screen_rc.left -= param_rc.left;
+    par.screen_rc.top -= param_rc.top;
+    par.screen_rc.right -= param_rc.left;
+    par.screen_rc.bottom -= param_rc.top;
   }
 
   if (ind >= 0)
     irw->SetPageDlgHeight(ind, pt.y + PARAM_DLG_GAP);
+}
+
+//////////////////////////////////////////////////////////////////////
+
+std::wstring fix_param_values(const std::wstring &script, const std::wstring &classname,
+  std::wstring (*fix)(DataBlock::ParamType, const std::wstring &))
+{
+  std::wstring buffer;
+  auto params = get_blk_params(get_blk().get(), script, classname);
+  for (auto &param : params)
+  {
+    buffer += param.name;
+    buffer += _T('=');
+    buffer += fix(param.type, param.value);
+    buffer += _T("\r\n");
+  }
+  return buffer;
+}
+
+template <typename T>
+std::wstring normalize_value(const std::wstring &v)
+{
+  std::wistringstream iss(v);
+  iss.imbue(std::locale::classic());
+
+  std::wostringstream oss;
+  oss.imbue(std::locale::classic());
+
+  for (T t; iss >> t;)
+  {
+    oss << t;
+
+    while (iss.peek() == L' ')
+      iss.ignore();
+
+    if (iss.peek() == L',')
+    {
+      iss.ignore();
+      oss << L',';
+    }
+  }
+  return oss.str();
+}
+
+static std::wstring normalize_param(DataBlock::ParamType type, const std::wstring &value)
+{
+  std::wstring v = fix_empty_param(type, value);
+  trim(v);
+
+  // guess type for type:t="text
+  if (type == DataBlock::ParamType::TYPE_STRING)
+  {
+    if (std::find(value.begin(), value.end(), L'.') != value.end())
+      type = DataBlock::ParamType::TYPE_POINT4;
+    else
+      type = DataBlock::ParamType::TYPE_IPOINT3;
+  }
+
+  switch (type)
+  {
+    case DataBlock::ParamType::TYPE_BOOL:
+    {
+      if (iequal(v, L"no") || iequal(v, L"false") || v == L"0")
+        return L"no";
+      if (iequal(v, L"yes") || iequal(v, L"true") || v == L"1")
+        return L"yes";
+      return value; // cannot recognize the value, return as is
+    }
+
+    case DataBlock::ParamType::TYPE_INT:
+    case DataBlock::ParamType::TYPE_IPOINT2:
+    case DataBlock::ParamType::TYPE_IPOINT3:
+    case DataBlock::ParamType::TYPE_E3DCOLOR: return normalize_value<int>(value);
+
+    case DataBlock::ParamType::TYPE_REAL:
+    case DataBlock::ParamType::TYPE_POINT2:
+    case DataBlock::ParamType::TYPE_POINT3:
+    case DataBlock::ParamType::TYPE_POINT4: return normalize_value<float>(value);
+
+    default: break;
+  }
+
+  return value; // unknown type, return as is
+}
+
+std::wstring fix_empty_param_values(const std::wstring &script, const std::wstring &classname)
+{
+  return fix_param_values(script, classname, fix_empty_param);
+}
+
+std::wstring normalize_param_values(const std::wstring &script, const std::wstring &classname)
+{
+  return fix_param_values(script, classname, normalize_param);
 }

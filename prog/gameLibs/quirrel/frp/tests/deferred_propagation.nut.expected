@@ -1,0 +1,7 @@
+initial: 10
+after update: 20
+final value: 3
+sub called: 1
+sub value: 3
+watched sub calls: 1
+no-change sub calls: 0

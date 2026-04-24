@@ -3,21 +3,13 @@
 #include <osApiWrappers/dag_progGlobals.h>
 #include <supp/_platform.h>
 #include <debug/dag_fatal.h>
+#include <osApiWrappers/dag_linuxGUI.h>
 
-namespace workcycle_internal
-{
-void set_title(const char *title, bool utf8);
-void set_title_tooltip(const char *title, const char *tooltip, bool utf8);
-} // namespace workcycle_internal
+void win32_set_window_title(const char *title) { linux_GUI::set_title(title); }
 
-void win32_set_window_title(const char *title) { workcycle_internal::set_title(title, false); }
+void win32_set_window_title_utf8(const char *title) { linux_GUI::set_title_utf8(title); }
 
-void win32_set_window_title_utf8(const char *title) { workcycle_internal::set_title(title, true); }
-
-void win32_set_window_title_tooltip_utf8(const char *title, const char *tooltip)
-{
-  workcycle_internal::set_title_tooltip(title, tooltip, true);
-}
+void win32_set_window_title_tooltip_utf8(const char *title, const char *tooltip) { linux_GUI::set_title_utf8(title, tooltip); }
 
 #define EXPORT_PULL dll_pull_osapiwrappers_setTitle
 #include <supp/exportPull.h>

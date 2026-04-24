@@ -1,1 +1,0 @@
-reduce value, any invokable

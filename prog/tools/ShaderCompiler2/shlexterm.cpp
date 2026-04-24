@@ -29,10 +29,6 @@
 using namespace ShaderTerminal;
 
 IMemAlloc *sh_symbolsmem = NULL;
-static Tab<SimpleString> inc_base(inimem);
-
-void reset_shaders_inc_base() { inc_base.clear(); }
-void add_shaders_inc_base(const char *base) { inc_base.push_back() = base; }
 
 static char compiler_cwd[DAGOR_MAX_PATH] = {0};
 static const char *get_cwd()
@@ -46,60 +42,20 @@ static const char *get_cwd()
   return compiler_cwd;
 }
 
-// parse include statement
-static bool process_include(String &inc_fpath, const char *inc_fn, int inc_fn_len)
+static bool parseInclude(Lexer *_this, const char *inc_fn, bool optional = false)
 {
-  for (int i = 0; i < inc_base.size(); i++)
-  {
-    inc_fpath.printf(260, "%s%s/%.*s", get_cwd(), inc_base[i].str(), inc_fn_len, inc_fn);
-    if (dd_file_exists(inc_fpath))
-      return true;
-  }
-  return false;
-}
+  auto inc_fpath = shc::search_include_with_pathes(inc_fn);
 
-static bool parseInclude(Lexer *_this, bool optional = false)
-{
+  sh_debug(SHLOG_INFO, "including <%s>", inc_fpath.c_str());
+
   InputFile *concInputFile = (InputFile *)_this->__input_stream();
-
-  if (_this->get_token() != SHADER_TOKENS::SHTOK_string)
-  {
-    //_this->make_error("expected include file name");
-    sh_debug(SHLOG_FATAL, "expected include file name at line(%d)pos(%d)", _this->get_cur_line(), _this->get_cur_column());
-    return false;
-  }
-
-  const char *inc_fn = _this->get_lexeme() + 1;
-  int inc_fn_len = _this->get_lexeme_length() - 2;
-  String inc_fpath;
-
-  if (!process_include(inc_fpath, inc_fn, inc_fn_len))
-  {
-    char fn[1024];
-    ::dd_get_fname_location(fn, concInputFile->get_filename(_this->get_cur_file()));
-    if (!fn[0])
-      strcpy(fn, ".");
-    ::dd_append_slash_c(fn);
-    inc_fpath.printf(260, "%s/%.*s", fn, inc_fn_len, inc_fn);
-  }
-
-  ::dd_simplify_fname_c(inc_fpath);
-  inc_fpath.resize(strlen(inc_fpath) + 1);
-
-  sh_debug(SHLOG_INFO, "including <%s>", inc_fpath.str());
-  _this->__clear_lexeme();
   int fn1 = concInputFile->get_include_file_index(inc_fpath);
 
   if (fn1 < 0)
   {
-    auto incFn = shc::search_include_with_pathes(String(0, "%.*s", inc_fn_len, inc_fn));
-    fn1 = concInputFile->get_include_file_index(incFn);
-  }
-  if (fn1 < 0)
-  {
     if (!optional)
     {
-      String include_file_stack(0, "can't open file %.*s (or %s)\n", inc_fn_len, inc_fn, inc_fpath);
+      String include_file_stack(0, "can't open file %s (or %s)\n", inc_fn, inc_fpath);
       for (auto it = concInputFile->incstk.rbegin(); it != concInputFile->incstk.rend(); ++it)
       {
         include_file_stack.aprintf(0, "included from '%s'\n", concInputFile->get_filename(it->file));
@@ -119,12 +75,27 @@ static bool parseInclude(Lexer *_this, bool optional = false)
   {
     if (!optional)
     {
-      _this->set_error(String(0, "can't open file %.*s (or %s)", inc_fn_len, inc_fn, inc_fpath));
+      _this->set_error(String(0, "can't open file %s (or %s)", inc_fn, inc_fpath));
       sh_debug(SHLOG_FATAL, "can't include shader script '%s'", inc_fpath.str());
     }
     return false;
   }
   return true;
+}
+
+static bool parseInclude(Lexer *_this, bool optional = false)
+{
+  if (_this->get_token() != SHADER_TOKENS::SHTOK_string)
+  {
+    //_this->make_error("expected include file name");
+    sh_debug(SHLOG_FATAL, "expected include file name at line(%d)pos(%d)", _this->get_cur_line(), _this->get_cur_column());
+    return false;
+  }
+
+  String inc_fn = String(0, "%.*s", _this->get_lexeme_length() - 2, _this->get_lexeme() + 1);
+  _this->__clear_lexeme();
+
+  return parseInclude(_this, inc_fn, optional);
 }
 
 int get_token(ShaderParser::TokenInfo &tok, Lexer &__this)
@@ -246,9 +217,16 @@ static InputFile open_input_file(const char *fn)
 
   String inc_fpath;
   if (dd_file_exists(fn))
-    inc_fpath.setStrCat(get_cwd(), fn);
-  else if (!process_include(inc_fpath, fn, (int)strlen(fn)))
-    inc_fpath = fn;
+  {
+    if (path_is_abs(fn))
+      inc_fpath.setStr(fn);
+    else
+      inc_fpath.setStrCat(get_cwd(), fn);
+  }
+  else
+  {
+    inc_fpath = shc::search_include_with_pathes(fn);
+  }
 
   if (!input.include_alefile(inc_fpath))
   {
@@ -259,7 +237,7 @@ static InputFile open_input_file(const char *fn)
 }
 
 SourceFileParseState::SourceFileParseState(const char *fn, shc::TargetContext &a_ctx) :
-  input{open_input_file(fn)}, lexer{&input, macroMgr}, parser{lexer, a_ctx}
+  input{open_input_file(fn)}, lexer{&input, macroMgr, true}, parser{lexer, a_ctx}
 {}
 
 // clang-format off
@@ -273,7 +251,12 @@ void Parser::add_global_assume_if_not_assumed(assume_if_not_assumed_stat &a) { S
 void Parser::add_global_bool(bool_decl &d)                                   { ShaderParser::add_global_bool(d, *this, ctx); }
 void Parser::add_hlsl(hlsl_global_decl_class &d)                             { ShaderParser::add_hlsl(d, *this, ctx); }
 
+Lexer::Lexer(InputStream *s, ShaderMacroManager &macro_mgr, bool add_assert) : GeneratedLexer(s), macroMgr{macro_mgr}
+{
+  if (add_assert)
+    parseInclude(this, "assert.dshl", false);
 
+}
 void Lexer::set_error(const char *txt)                                       { error(txt); }
 void Lexer::set_error(int file, int ln, int col, const char *txt)            { diag_message(DIAG_SYNTAX_ERROR, file, ln, col, txt); }
 void Lexer::set_warning(const char *txt)                                     { warning(txt); }
@@ -381,6 +364,8 @@ void Lexer::register_symbol(int name_id, SymbolType type, Terminal *symbol)
   const SymbolLocation &existed = pair.first->second;
   bool is_equal = symbol->file_start == existed.file && symbol->line_start == existed.line && symbol->col_start == existed.column;
   if (is_equal)
+    return;
+  else if (shc::config().dependencyDumpMode)
     return;
 
   eastl::string existed_loc = get_symbol_location(name_id, type);
@@ -510,10 +495,12 @@ NonterminalS *parse_shader_string(const String &source, const char *file_name, i
     BaseParNamespace::symbolsmem = sh_symbolsmem;
   }
 
+  ctx.sourceParseState().macroMgr.saveStack();
   InputString inp(source, file_name);
   StringLexer lex(&inp, file_name, line, ctx);
   GeneratedParser syn(lex);
   NonterminalS *result = syn.parse();
+  ctx.sourceParseState().macroMgr.restoreStack();
 
   if (alloc)
   {

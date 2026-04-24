@@ -1,4 +1,3 @@
-from "modules" import get_native_module_names
 from "dagor.system" import get_arg_value_by_name, get_all_arg_values_by_name
 from "dagor.fs" import scan_folder
 from "json.nut" import saveJson
@@ -64,7 +63,7 @@ function get_all_exports_in_folder(root = ".", res=null){
       fpath = fpath.slice(1)
     //let fname = fpath[fpath.len()-1]
     fpath = "/".join(fpath)
-    if (fpath in res || __file__.indexof(fpath)!=null)
+    if (fpath in res || __file__.contains(fpath))
       continue
     try{
       let info = get_all_exports_for_file(fpath)
@@ -97,8 +96,7 @@ if (__name__ == "__main__"){
         println($"File:'{f}'\n{info}\n")
       }
     }
-//    foreach(nm in get_native_module_names())
-//      res[nm] <- make_module_description(require(nm))
+
     if (outFname) {
       if (replacePath) {
         assert (replacePath.split(";").len() == 2, @() $"{replacePath} is incorrect format, should be '<replace_prefix>';<replace_with>, like 'ui/;ui/' ")

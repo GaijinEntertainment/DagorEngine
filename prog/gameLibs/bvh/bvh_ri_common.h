@@ -28,19 +28,34 @@ inline bool is_flag(ContextId context_id, ShaderMesh::RElem &elem)
   return context_id->has(Features::RIFull) && strncmp(elem.mat->getShaderClassName(), "rendinst_flag", 13) == 0;
 }
 
-using map_tree_fn = ReferencedTransformData *(ContextId, uint64_t, vec4f, rendinst::riex_handle_t, int, void *, bool &);
+using map_tree_fn = ReferencedTransformData *(ContextId, uint64_t, vec4f, rendinst::riex_handle_t, int, void *, bool &, int &);
 
 template <map_tree_fn mapper>
 inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t object_id, int lod_ix, bool is_pos_inst,
   mat44f_cref tm, vec4f_const originalPos, const E3DCOLOR *colors, rendinst::riex_handle_t handle,
-  eastl::optional<TMatrix4> &inv_world_tm, TreeInfo &treeInfo, MeshMetaAllocator::AllocId &metaAllocId, void *user_data)
+  eastl::optional<TMatrix4> &inv_world_tm, TreeInfo &treeInfo, MeshMetaAllocator::AllocId &metaAllocId, void *user_data,
+  bool stationary, bool is_burning, uint32_t palette_id)
 {
   if (!inv_world_tm.has_value())
     inv_world_tm = make_packed_precise_itm(tm);
 
-  auto data = mapper(context_id, object_id, tm.col3, handle, lod_ix, user_data, treeInfo.recycled);
+  auto data = mapper(context_id, object_id, tm.col3, handle, lod_ix, user_data, treeInfo.recycled, treeInfo.animIndex);
 
-  if (!data)
+  treeInfo.stationary = stationary;
+
+  if (stationary)
+  {
+    auto buffers = context_id->stationaryTreeBuffers.find(object_id);
+    if (buffers == context_id->stationaryTreeBuffers.end())
+      return false;
+
+    treeInfo.recycled = false;
+    treeInfo.stationary = true;
+    data = &buffers->second;
+
+    G_ASSERT(data->metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID);
+  }
+  else if (!data)
     return false;
 
   if (data->metaAllocId == MeshMetaAllocator::INVALID_ALLOC_ID)
@@ -53,12 +68,8 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
   treeInfo.transformedBlas = &data->blas;
 
   static int is_pivotedVarId = VariableMap::getVariableId("is_pivoted");
+  static int small_plantVarId = VariableMap::getVariableId("small_plant");
   static int wind_channel_strengthVarId = VariableMap::getVariableId("wind_channel_strength");
-  static int tree_wind_branch_ampVarId = VariableMap::getVariableId("tree_wind_branch_amp");
-  static int tree_wind_detail_ampVarId = VariableMap::getVariableId("tree_wind_detail_amp");
-  static int tree_wind_speedVarId = VariableMap::getVariableId("tree_wind_speed");
-  static int tree_wind_timeVarId = VariableMap::getVariableId("tree_wind_time");
-  static int tree_wind_blend_params1VarId = VariableMap::getVariableId("tree_wind_blend_params1");
   static int wind_noise_speed_baseVarId = VariableMap::getVariableId("wind_noise_speed_base");
   static int wind_noise_speed_level_mulVarId = VariableMap::getVariableId("wind_noise_speed_level_mul");
   static int wind_angle_rot_baseVarId = VariableMap::getVariableId("wind_angle_rot_base");
@@ -69,12 +80,24 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
   static int wind_motion_damp_level_mulVarId = VariableMap::getVariableId("wind_motion_damp_level_mul");
   static int AnimWindScaleVarId = VariableMap::getVariableId("AnimWindScale");
   static int atestVarId = VariableMap::getVariableId("atest");
+  static int ground_snap_height_softVarId = VariableMap::getVariableId("ground_snap_height_soft");
+  static int ground_snap_height_fullVarId = VariableMap::getVariableId("ground_snap_height_full");
+  static int ground_snap_normal_offsetVarId = VariableMap::getVariableId("ground_snap_normal_offset");
+  static int ground_snap_limitVarId = VariableMap::getVariableId("ground_snap_limit");
+  static int ground_bend_heightVarId = VariableMap::getVariableId("ground_bend_height");
+  static int ground_bend_normal_offsetVarId = VariableMap::getVariableId("ground_bend_normal_offset");
+  static int ground_bend_tangent_offsetVarId = VariableMap::getVariableId("ground_bend_tangent_offset");
 
-  treeInfo.data.windBranchAmp = ShaderGlobal::get_real(tree_wind_branch_ampVarId);
-  treeInfo.data.windDetailAmp = ShaderGlobal::get_real(tree_wind_detail_ampVarId);
-  treeInfo.data.windSpeed = ShaderGlobal::get_real(tree_wind_speedVarId);
-  treeInfo.data.windTime = ShaderGlobal::get_real(tree_wind_timeVarId);
-  treeInfo.data.windBlendParams = Point4::rgba(ShaderGlobal::get_color4(tree_wind_blend_params1VarId));
+  int atest = 0;
+  elem.mat->getIntVariable(atestVarId, atest);
+  bool isTrunk = atest == 0; // rendinst_tree_perlin_layered doesn't have this shadervar
+
+  if (is_burning && !isTrunk)
+    return false; // Just drop all burning tree leaves from BVH, eventually they'll disappear entirely anyway
+
+  int smallPlant = 0;
+  if (elem.mat->getIntVariable(small_plantVarId, smallPlant) && smallPlant > 0)
+    return false;
 
   int isPivoted;
   if (!elem.mat->getIntVariable(is_pivotedVarId, isPivoted))
@@ -100,18 +123,34 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
     treeInfo.data.ppWindMotionDampLevelMul = 0.8;
   if (!elem.mat->getRealVariable(AnimWindScaleVarId, treeInfo.data.AnimWindScale))
     treeInfo.data.AnimWindScale = 0.25;
-  int atest = 0;
-  elem.mat->getIntVariable(atestVarId, atest);
-  treeInfo.data.apply_tree_wind = atest > 0 && strncmp(elem.mat->getShaderClassName(), "rendinst_tree_perlin_layered", 28) != 0;
+  if (!elem.mat->getRealVariable(ground_snap_height_softVarId, treeInfo.data.groundSnapHeightSoft))
+    treeInfo.data.groundSnapHeightSoft = -1;
+  if (!elem.mat->getRealVariable(ground_snap_height_fullVarId, treeInfo.data.groundSnapHeightFull))
+    treeInfo.data.groundSnapHeightFull = 0.5;
+  if (!elem.mat->getRealVariable(ground_snap_normal_offsetVarId, treeInfo.data.groundSnapNormalOffset))
+    treeInfo.data.groundSnapNormalOffset = 0.1;
+  if (!elem.mat->getRealVariable(ground_snap_limitVarId, treeInfo.data.groundSnapLimit))
+    treeInfo.data.groundSnapLimit = 1.0;
+  if (!elem.mat->getRealVariable(ground_bend_heightVarId, treeInfo.data.groundBendHeight))
+    treeInfo.data.groundBendHeight = -1;
+  if (!elem.mat->getRealVariable(ground_bend_normal_offsetVarId, treeInfo.data.groundBendNormalOffset))
+    treeInfo.data.groundBendNormalOffset = 0.075;
+  if (!elem.mat->getRealVariable(ground_bend_tangent_offsetVarId, treeInfo.data.groundBendTangentOffset))
+    treeInfo.data.groundBendTangentOffset = 4;
+  treeInfo.data.apply_tree_wind = !isTrunk;
 
-  // Using this instead of acquire_managed_tex to avoid increasing reference count, but this might return nullptr
-  treeInfo.data.ppPosition = D3dResManagerData::getBaseTex(elem.mat->get_texture(7));
-  treeInfo.data.ppDirection = D3dResManagerData::getBaseTex(elem.mat->get_texture(8));
+  // It will be filled later from mesh!
+  treeInfo.data.ppPositionBindless = 0xFFFFFFFFU;
+  treeInfo.data.ppDirectionBindless = 0xFFFFFFFFU;
 
   treeInfo.data.isPivoted = !!isPivoted;
   treeInfo.data.isPosInstance = is_pos_inst;
 
-  treeInfo.data.color = colors ? random_color_from_pos(originalPos, 0, colors[0], colors[1]) : E3DCOLOR(0x40404040U);
+  const E3DCOLOR WHITE = E3DCOLOR(0x40404040U);
+  if (isTrunk)
+    treeInfo.data.color = is_burning ? E3DCOLOR(0x10101010U) : WHITE;
+  else
+    treeInfo.data.color = colors ? random_color_from_pos(originalPos, palette_id, colors[0], colors[1]) : WHITE;
   if (treeInfo.data.isPivoted && !treeInfo.data.isPosInstance)
     treeInfo.data.perInstanceRenderAdditionalData = rendinst::getRiExtraPerInstanceRenderEncodedAdditionalData(handle);
   else
@@ -119,5 +158,9 @@ inline bool handle_tree(ContextId context_id, ShaderMesh::RElem &elem, uint64_t 
 
   return true;
 }
+
+float get_ri_lod_dist_bias();
+
+void debug_update();
 
 } // namespace bvh::ri

@@ -1,0 +1,1 @@
+Smart pointer to a `CommentReader` object. Used for registering and managing custom comment parsing macros.

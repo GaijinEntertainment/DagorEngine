@@ -1,0 +1,4 @@
+local R = prog/gameLibs/dasModules/localization ;
+Sources +=
+  $(R)/localization.cpp
+;

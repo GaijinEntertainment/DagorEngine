@@ -1,5 +1,6 @@
 include "hardware_defines.dshl"
 include "shader_global.dshl"
+include "gbuffer.dshl"
 
 texture vrs_rate_tex;
 
@@ -7,21 +8,25 @@ texture tile_motion_x_sum;
 texture tile_motion_y_sum;
 texture tile_luma_sum;
 texture tile_luma_squares_sum;
+texture tile_luma_min;
+texture tile_luma_max;
 texture tile_motion_sample_count;
 
 texture prev_close_depth;
+texture prev_downsampled_motion_vecs;
 texture final_frame;
 texture downsampled_luminance;
 texture prev_downsampled_luminance;
 
 
 int has_variable_rate_shading_by_4;
-interval has_variable_rate_shading_by_4: yes < 1, no;
+interval has_variable_rate_shading_by_4: no < 1, yes;
 int variable_rate_shading_tile_size;
 interval variable_rate_shading_tile_size: size8 < 9, size16 < 17, size32;
 
 float4x4 prev_frame_uvz_to_uvz;
 float motion_vrs_strength = 10.0;
+float frame_upscale_factor = 1.0;
 float motion_vrs_reduction_by_luma_variance = 2000.0;
 
 //
@@ -77,26 +82,6 @@ hlsl(stage)
   #define TILE_HALFRES_SIZE (32 / 2)
   ##endif
 
-  // Encode x/y VRS rates into the format that a VRS rate texture expects.
-  uint encode_rate(uint rateX, uint rateY)
-  {
-    #define R(x, y) ((firstbithigh(x) << 2) | firstbithigh(y))
-    static uint lut[4][4] = {
-      { R(1, 1), R(1, 2), R(1, 2), R(1, 2) },
-      { R(2, 1), R(2, 2), R(2, 2), R(2, 4) },
-      { R(2, 1), R(2, 2), R(2, 2), R(2, 4) },
-      { R(2, 1), R(4, 2), R(4, 2), R(4, 4) },
-    };
-    #undef R
-
-    ##if has_variable_rate_shading_by_4 == yes
-    const uint clampTo = 0x3;
-    ##else
-    const uint clampTo = 0x1;
-    ##endif
-    return lut[min(rateX, clampTo)][min(rateY, clampTo)];
-  }
-
   // Motion can be basically anything, so the choice here is arbitrary.
   #define MOTION_FIXED_PRECISION (256 / (TILE_HALFRES_SIZE*TILE_HALFRES_SIZE))
   // These values are in 0-1 range so basically leave enough precision
@@ -108,13 +93,12 @@ endmacro
 
 shader gen_downsampled_luminance
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
-    downsampled_luminance@uav = downsampled_luminance hlsl { RWTexture2D<float> downsampled_luminance@uav; };
+    downsampled_luminance@uav = downsampled_luminance hlsl { RWTexture2D<float4> downsampled_luminance@uav; };
     final_frame@tex = final_frame hlsl { Texture2D<float4> final_frame@tex; };
 
     resolution@f2 = get_dimensions(final_frame, 0);
+    target_resolution@f2 = get_dimensions(downsampled_luminance, 0);
   }
 
   hlsl(cs) {
@@ -125,31 +109,45 @@ shader gen_downsampled_luminance
         return;
 
       float luma = 0;
-      UNROLL for (int i = 0; i < 2; ++i)
-        UNROLL for (int j = 0; j < 2; ++j)
-          if (all(2*dtId + int2(i, j) < resolution))
-            luma += luminance(texelFetch(final_frame, 2*dtId + int2(i, j), 0).rgb);
-      downsampled_luminance[dtId] = luma / 4.0f;
+      float luma_sq = 0;
+      float lumaMin = 1e10;
+      float lumaMax = -1e10;
+      uint scaleTiling = resolution.x / target_resolution.x;
+      for (int i = 0; i < scaleTiling; ++i)
+        for (int j = 0; j < scaleTiling; ++j)
+          if (all(scaleTiling*dtId + int2(i, j) < resolution))
+          {
+            float curr_luma = luminance(texelFetch(final_frame, scaleTiling*dtId + int2(i, j), 0).rgb);
+            luma += curr_luma;
+            luma_sq += curr_luma * curr_luma;
+            lumaMin = min(lumaMin, curr_luma);
+            lumaMax = max(lumaMax, curr_luma);
+          }
+      downsampled_luminance[dtId] = float4(luma / float(scaleTiling * scaleTiling), luma_sq / float(scaleTiling * scaleTiling), lumaMin, lumaMax);
     }
   }
 
   compile("target_cs", "main");
 }
 
+texture debug_vrs;
+
 shader gen_motion_statistics
 {
-  ENABLE_ASSERT(cs)
   VRS_DEFINES(cs)
 
   (cs) {
     prev_close_depth@tex = prev_close_depth hlsl { Texture2D<float> prev_close_depth@tex; };
-    prev_downsampled_luminance@tex = prev_downsampled_luminance hlsl { Texture2D<float> prev_downsampled_luminance@tex; };
+    prev_downsampled_luminance@tex = prev_downsampled_luminance hlsl { Texture2D<float4> prev_downsampled_luminance@tex; };
+    prev_downsampled_motion_vecs@tex = prev_downsampled_motion_vecs hlsl { Texture2D<float4> prev_downsampled_motion_vecs@tex; };
     resolution@f2 = get_dimensions(prev_close_depth, 0);
 
     tile_motion_x_sum@uav = tile_motion_x_sum hlsl { RWTexture2D<int> tile_motion_x_sum@uav; };
     tile_motion_y_sum@uav = tile_motion_y_sum hlsl { RWTexture2D<int> tile_motion_y_sum@uav; };
     tile_luma_sum@uav = tile_luma_sum hlsl { RWTexture2D<uint> tile_luma_sum@uav; };
     tile_luma_squares_sum@uav = tile_luma_squares_sum hlsl { RWTexture2D<uint> tile_luma_squares_sum@uav; };
+    tile_luma_min@uav = tile_luma_min hlsl { RWTexture2D<uint> tile_luma_min@uav; };
+    tile_luma_max@uav = tile_luma_max hlsl { RWTexture2D<uint> tile_luma_max@uav; };
     tile_motion_sample_count@uav = tile_motion_sample_count hlsl { RWTexture2D<uint> tile_motion_sample_count@uav; };
 
     prev_frame_uvz_to_uvz@f44 = prev_frame_uvz_to_uvz;
@@ -167,18 +165,15 @@ shader gen_motion_statistics
 
       depth = uvz.z;
 
+      ##if prev_downsampled_motion_vecs != NULL
+      return texelFetch(prev_downsampled_motion_vecs, pixel_coords, 0).xy * resolution;
+      ##else
       // Velocity in "pixels per frame"
       return (uvz - prevUvz).xy * resolution;
+      ##endif
     }
 
-    #define GROUPSIZE 32
-    #define TILES_PER_GROUP (GROUPSIZE / TILE_HALFRES_SIZE)
-
-    groupshared int tile_motion_x_sum_cache[TILES_PER_GROUP][TILES_PER_GROUP];
-    groupshared int tile_motion_y_sum_cache[TILES_PER_GROUP][TILES_PER_GROUP];
-    groupshared uint tile_luma_sum_cache[TILES_PER_GROUP][TILES_PER_GROUP];
-    groupshared uint tile_luma_squares_sum_cache[TILES_PER_GROUP][TILES_PER_GROUP];
-    groupshared uint tile_motion_sample_count_cache[TILES_PER_GROUP][TILES_PER_GROUP];
+    #define GROUPSIZE 16
 
     [numthreads(GROUPSIZE, GROUPSIZE, 1)]
     void main(uint2 dtId : SV_DispatchThreadID, uint2 gId : SV_GroupID, uint2 gtId : SV_GroupThreadID)
@@ -186,78 +181,51 @@ shader gen_motion_statistics
       if (any(dtId >= resolution))
         return;
 
-      const uint2 groupBaseTile = gId * TILES_PER_GROUP;
-
-      if (all(gtId % TILE_HALFRES_SIZE == 0))
-      {
-        const uint2 bucket = gtId / TILE_HALFRES_SIZE;
-        tile_motion_x_sum_cache[bucket.x][bucket.y] = 0;
-        tile_motion_y_sum_cache[bucket.x][bucket.y] = 0;
-        tile_luma_sum_cache[bucket.x][bucket.y] = 0;
-        tile_luma_squares_sum_cache[bucket.x][bucket.y] = 0;
-        tile_motion_sample_count_cache[bucket.x][bucket.y] = 0;
-      }
-
-      GroupMemoryBarrierWithGroupSync();
-
-      // For each tile, aggregate per-coordinate statistics across all
-      // geometry samples that have "moved" into the tile since last frame.
-      // We assume that these samples aren't going to change much on this frame
-      // frame and so these statistics are correlated with what will be
-      // contained in the tile on the currently rendered frame.
-
       const float luma = texelFetch(prev_downsampled_luminance, dtId, 0).x;
+      const float luma_sq = texelFetch(prev_downsampled_luminance, dtId, 0).y;
+      const float luma_min = texelFetch(prev_downsampled_luminance, dtId, 0).z;
+      const float luma_max = texelFetch(prev_downsampled_luminance, dtId, 0).w;
 
       float depth;
       const float2 motion = calc_fragment_motion(dtId, depth);
       const float2 predictedPos = float2(dtId) + motion;
-      if (depth > 0 && all(predictedPos > 0 && predictedPos < resolution))
+      const uint2 resultResolution = (resolution + TILE_HALFRES_SIZE - 1) / TILE_HALFRES_SIZE;
+      const bool valid = all(predictedPos > 0 && predictedPos < resolution);
+
+      const uint2 targetTile = uint2(predictedPos / TILE_HALFRES_SIZE);
+      const uint maxIndex = resultResolution.x * resultResolution.y;
+      uint targetIndex = valid ? targetTile.y * resultResolution.x + targetTile.x : maxIndex;
+
+      const int2 encodedMotion = int2(motion * MOTION_FIXED_PRECISION);
+
+      const uint encodedLuma = uint(luma * LUMA_FIXED_PRECISION);
+      const uint encodedLumaSquared = uint(luma_sq * LUMA_FIXED_PRECISION);
+      const uint encodedLumaMin = uint(luma_min * LUMA_FIXED_PRECISION);
+      const uint encodedLumaMax = uint(luma_max * LUMA_FIXED_PRECISION);
+      uint currentIndex = WaveActiveMin(targetIndex);
+      while (currentIndex < maxIndex)
       {
-        const uint2 targetTile = uint2(predictedPos / TILE_HALFRES_SIZE);
-
-        const int2 encodedMotion = int2(motion * MOTION_FIXED_PRECISION);
-
-        const uint encodedLuma = uint(luma * LUMA_FIXED_PRECISION);
-        const uint encodedLumaSquared = uint(luma * luma * LUMA_FIXED_PRECISION);
-
-        const int2 targetCacheBucket = int2(targetTile) - int2(groupBaseTile);
-        if (all(targetCacheBucket > 0 && targetCacheBucket <= TILES_PER_GROUP))
+        bool isActiveLane = (currentIndex == targetIndex) && valid;
+        const int2 motionToAdd = WaveActiveSum(isActiveLane ? encodedMotion : 0);
+        const uint lumaToAdd = WaveActiveSum(isActiveLane ? encodedLuma : 0);
+        const uint lumaSquaredToAdd = WaveActiveSum(isActiveLane ? encodedLumaSquared : 0);
+        const uint lumaMinToAdd = WaveActiveMin(isActiveLane ? encodedLumaMin : 0xFFFFFFFF);
+        const uint lumaMaxToAdd = WaveActiveMax(isActiveLane ? encodedLumaMax : 0);
+        const uint samplesToAdd = WaveActiveCountBits(isActiveLane);
+        const uint2 targetTexel = uint2(currentIndex % resultResolution.x, currentIndex / resultResolution.x);
+        if (WaveIsFirstLane())
         {
-          uint old;
-          InterlockedAdd(tile_motion_x_sum_cache[targetCacheBucket.x][targetCacheBucket.y], encodedMotion.x);
-          InterlockedAdd(tile_motion_y_sum_cache[targetCacheBucket.x][targetCacheBucket.y], encodedMotion.y);
-          InterlockedAdd(tile_luma_sum_cache[targetCacheBucket.x][targetCacheBucket.y], encodedLuma);
-          InterlockedAdd(tile_luma_squares_sum_cache[targetCacheBucket.x][targetCacheBucket.y], encodedLumaSquared);
-          InterlockedAdd(tile_motion_sample_count_cache[targetCacheBucket.x][targetCacheBucket.y], 1);
+          InterlockedAdd(tile_motion_x_sum[targetTexel], motionToAdd.x);
+          InterlockedAdd(tile_motion_y_sum[targetTexel], motionToAdd.y);
+          InterlockedAdd(tile_luma_sum[targetTexel], lumaToAdd);
+          InterlockedAdd(tile_luma_squares_sum[targetTexel], lumaSquaredToAdd);
+          InterlockedMin(tile_luma_min[targetTexel], lumaMinToAdd);
+          InterlockedMax(tile_luma_max[targetTexel], lumaMaxToAdd);
+          InterlockedAdd(tile_motion_sample_count[targetTexel], samplesToAdd);
         }
-        else
-        {
-          uint old;
-          InterlockedAdd(tile_motion_x_sum[targetTile], encodedMotion.x, old);
-          InterlockedAdd(tile_motion_y_sum[targetTile], encodedMotion.y, old);
-          InterlockedAdd(tile_luma_sum[targetTile], encodedLuma, old);
-          InterlockedAdd(tile_luma_squares_sum[targetTile], encodedLumaSquared, old);
-          InterlockedAdd(tile_motion_sample_count[targetTile], 1, old);
-        }
-      }
-
-      GroupMemoryBarrierWithGroupSync();
-
-      if (all(gtId % TILE_HALFRES_SIZE == 0))
-      {
-        const uint2 bucket = gtId / TILE_HALFRES_SIZE;
-
-        const uint samples = tile_motion_sample_count_cache[bucket.x][bucket.y];
-        if (samples > 0)
-        {
-          const uint2 targetTile = groupBaseTile + bucket;
-          uint old;
-          InterlockedAdd(tile_motion_x_sum[targetTile], tile_motion_x_sum_cache[bucket.x][bucket.y], old);
-          InterlockedAdd(tile_motion_y_sum[targetTile], tile_motion_y_sum_cache[bucket.x][bucket.y], old);
-          InterlockedAdd(tile_luma_sum[targetTile], tile_luma_sum_cache[bucket.x][bucket.y], old);
-          InterlockedAdd(tile_luma_squares_sum[targetTile], tile_luma_squares_sum_cache[bucket.x][bucket.y], old);
-          InterlockedAdd(tile_motion_sample_count[targetTile], samples, old);
-        }
+        if (isActiveLane)
+          targetIndex = maxIndex;
+        currentIndex = WaveActiveMin(targetIndex);
       }
     }
   }
@@ -265,9 +233,10 @@ shader gen_motion_statistics
   compile("target_cs", "main");
 }
 
+float motion_vrs_luma_range_size_threshold = 0.05;
+
 shader gen_motion_vrs
 {
-  ENABLE_ASSERT(cs)
   VRS_DEFINES(cs)
   INIT_ZNZFAR_STAGE(cs)
 
@@ -277,12 +246,16 @@ shader gen_motion_vrs
     tile_luma_sum@tex = tile_luma_sum hlsl { Texture2D<uint> tile_luma_sum@tex; };
     tile_luma_squares_sum@tex = tile_luma_squares_sum hlsl { Texture2D<uint> tile_luma_squares_sum@tex; };
     tile_motion_sample_count@tex = tile_motion_sample_count hlsl { Texture2D<uint> tile_motion_sample_count@tex; };
+    tile_luma_min@tex = tile_luma_min hlsl { Texture2D<uint> tile_luma_min@tex; };
+    tile_luma_max@tex = tile_luma_max hlsl { Texture2D<uint> tile_luma_max@tex; };
 
     vrs_rate_tex@uav = vrs_rate_tex hlsl { RWTexture2D<uint> vrs_rate_tex@uav; };
     resolution@f2 = get_dimensions(vrs_rate_tex, 0);
 
-    strength@f1 = motion_vrs_strength;
+    strength@f1 = motion_vrs_strength * frame_upscale_factor * frame_upscale_factor;
     reduction_by_luma_variance@f1 = motion_vrs_reduction_by_luma_variance;
+    gbuffer_view_size@i2 = gbuffer_view_size;
+    luma_range_size_threshold@f1 = motion_vrs_luma_range_size_threshold;
   }
 
   hlsl(cs) {
@@ -301,15 +274,37 @@ shader gen_motion_vrs
       const uint intLumaSum = texelFetch(tile_luma_sum, dtId, 0).r;
       const uint intLumaSquaredSum = texelFetch(tile_luma_squares_sum, dtId, 0).r;
 
+      // Avoid OOB texture texture loads in shaders when gbuffer is odd
+      bool isOnEdge = any(and(dtId == resolution - 1, gbuffer_view_size % 4 != 0));
+
+      ##if has_variable_rate_shading_by_4 == yes
+      const bool enablex4 = true;
+      ##else
+      const bool enablex4 = false;
+      ##endif
+
+      if (isOnEdge)
+      {
+        vrs_rate_tex[dtId] = encode_vrs_rate(1, 1, false);
+        return;
+      }
+
       if (sampleCount == 0)
       {
-        vrs_rate_tex[dtId] = encode_rate(0, 0);
+        vrs_rate_tex[dtId] = encode_vrs_rate(4, 4, enablex4);
         return;
       }
 
       const float2 motionMean = float2(intMotionXSum, intMotionYSum) / MOTION_FIXED_PRECISION / sampleCount;
       const float lumaMean = float(intLumaSum) / LUMA_FIXED_PRECISION / sampleCount;
       const float lumaSquaredMean = float(intLumaSquaredSum) / LUMA_FIXED_PRECISION / sampleCount;
+      const float minLuma = float(texelFetch(tile_luma_min, dtId, 0).r) / LUMA_FIXED_PRECISION;
+      const float maxLuma = float(texelFetch(tile_luma_max, dtId, 0).r) / LUMA_FIXED_PRECISION;
+      if (maxLuma - minLuma > luma_range_size_threshold)
+      {
+        vrs_rate_tex[dtId] = encode_vrs_rate(1, 1, enablex4);
+        return;
+      }
 
       const float lumaVariance = max(lumaSquaredMean - lumaMean * lumaMean, 0);
 
@@ -318,10 +313,11 @@ shader gen_motion_vrs
       // Second, lumaVariance is scene brightness-dependent.
       // Is that acceptable, or should we scale by max mean brightness
       // across the screen?
-      float2 rate = abs(motionMean)
+      float2 rate = 1 + abs(motionMean)
         / (1 + reduction_by_luma_variance * lumaVariance)
         * strength;
-      vrs_rate_tex[dtId] = encode_rate(rate.x, rate.y);
+
+      vrs_rate_tex[dtId] = encode_vrs_rate(rate.x, rate.y, enablex4);
     }
   }
 

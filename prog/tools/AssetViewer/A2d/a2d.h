@@ -41,6 +41,7 @@ private:
     void reload(const SimpleString &model_name, DagorAsset *asset);
     void reset();
     void updateNodeTree(const dag::Vector<AnimNode> &animNodes, bool additive);
+    void updateTreeNodeFromAnimNode(const AnimNode &animNode, bool additive);
     bool ready() const { return entity && origTree && ctrl; }
   };
 
@@ -49,17 +50,26 @@ private:
   AnimV20::AnimData *a2d;
   RefDynmodel ref;
   dag::Vector<AnimNode> animNodes; // nodes in a2d
+  dag::Vector<TMatrix> selectedNodeTrajectory;
   int selectedNode = -1;
 
   float currAnimProgress; // 0.f - 1.f
   float animTimeMul;
   int animTimeMin;
   int animTimeMax;
+  int selectedNodeTrajectoryTimeMin;
+  int selectedNodeTrajectoryTimeMax;
+  int selectedNodeTrajectoryTimeStep;
+  int selectedNodeTrajectoryAlpha;
+  int selectedNodeTrajectoryDrawFlags;
+  float selectedNodeTrajectoryAxisSize;
 
   bool loopedPlay;
   bool drawSkeleton;
   bool drawA2dnodes;
   bool disableAdditivity;
+  bool drawSelectedNodeTrajectory;
+  bool drawSelectedNodeTrajectoryIsWorld;
 
   bool isAnimInProgress() const { return (currAnimProgress < 1.f) && (currAnimProgress >= 0.f); }
   void resetAnimProgress(float defined_progress);
@@ -70,6 +80,7 @@ private:
   void setPoseFromTrackLabel(int key_label_idx);
   void updateAnimNodes(int a2d_time);
   void selectAnimNode(const Point3 &p, const Point3 &dir);
+  void updateSelectedNodeTrajectory();
 
 public:
   A2dPlugin();

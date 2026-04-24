@@ -1,8 +1,8 @@
 options indenting = 2
 module jsonrpc_rtti shared
 
-require debugapi
-require rtti
+require daslib/debugger
+require daslib/rtti
 
 require remote.jsonrpc_call
 

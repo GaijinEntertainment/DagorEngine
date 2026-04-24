@@ -8,6 +8,7 @@
 #include <drv/shadersMetaData/dxil/utility.h>
 
 #include <generic/dag_smallTab.h>
+#include <generic/dag_align.h>
 
 #include <perfMon/dag_autoFuncProf.h>
 
@@ -62,7 +63,7 @@ namespace
 
 eastl::vector<uint8_t> create_shader_container(eastl::vector<uint8_t> &&data, dxil::ShaderContainerType type)
 {
-  bindump::MemoryWriter writer;
+  bindump::ReservingMemoryWriter writer;
   bindump::Master<dxil::ShaderContainer> container;
   container.type = type;
   container.dataHash = dxil::HashValue::calculate(data.data(), data.size());
@@ -70,20 +71,19 @@ eastl::vector<uint8_t> create_shader_container(eastl::vector<uint8_t> &&data, dx
 
   bindump::streamWrite(container, writer);
   writer.mData.resize((writer.mData.size() + 3) & ~3);
-  return writer.mData;
+  return eastl::move(writer.mData);
 }
 
 eastl::vector<uint8_t> create_shader_with_stream_output(eastl::vector<uint8_t> &&data,
   dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_components)
 {
-  bindump::MemoryWriter writer;
+  bindump::ReservingMemoryWriter writer;
   bindump::Master<dxil::ShaderWithStreamOutput> shader;
   shader.data = eastl::move(data);
   shader.streamOutputComponents = stream_output_components;
 
   bindump::streamWrite(shader, writer);
-  writer.mData.resize(writer.mData.size());
-  return writer.mData;
+  return eastl::move(writer.mData);
 }
 
 bindump::Master<dxil::Shader> pack_shader_layout(const eastl::vector<uint8_t> &dxil_blob, const eastl::vector<char> &shader_source,
@@ -92,10 +92,9 @@ bindump::Master<dxil::Shader> pack_shader_layout(const eastl::vector<uint8_t> &d
   bindump::Master<dxil::Shader> shader;
   shader.shaderHeader = header;
 
-  if (!dxil_blob.empty())
-  {
-    shader.bytecode = dxil_blob;
-  }
+  shader.bytecodeOffset = 0;
+  shader.bytecodeSize = dxil_blob.size();
+
   if (!shader_source.empty())
   {
     int level = 18;
@@ -115,7 +114,7 @@ eastl::vector<uint8_t> pack_shader_without_stream_output(const eastl::vector<uin
   const eastl::vector<char> &shader_source, const ::dxil::ShaderHeader &header)
 {
   bindump::Master<dxil::Shader> shader = pack_shader_layout(dxil_blob, shader_source, header);
-  bindump::MemoryWriter writer;
+  bindump::ReservingMemoryWriter writer;
   bindump::streamWrite(shader, writer);
   return create_shader_container(eastl::move(writer.mData), {dxil::StoredShaderType::singleShader, false});
 }
@@ -125,7 +124,7 @@ eastl::vector<uint8_t> pack_shader_with_stream_output(const eastl::vector<uint8_
   dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_components)
 {
   bindump::Master<dxil::Shader> shader = pack_shader_layout(dxil_blob, shader_source, header);
-  bindump::MemoryWriter writer;
+  bindump::ReservingMemoryWriter writer;
   bindump::streamWrite(shader, writer);
 
   auto shaderWithStreamOutput = create_shader_with_stream_output(eastl::move(writer.mData), stream_output_components);
@@ -159,13 +158,13 @@ dag::ConstSpan<uint8_t> extract_stream_output_desc_and_get_shader(const bindump:
   return shaderWithStreamOutput->data;
 }
 
-DecodedShaderContainer decode_shader_container(dag::ConstSpan<unsigned> container, bool decompress_source)
+DecodedShaderContainer decode_shader_container(dag::ConstSpan<uint8_t> container, bool decompress_source)
 {
   DecodedShaderContainer result;
   if (container.empty())
     return result;
 
-  auto *shaderContainer = bindump::map<dxil::ShaderContainer>((const uint8_t *)container.data());
+  auto *shaderContainer = bindump::map<dxil::ShaderContainer>(container.data());
   G_ASSERT(shaderContainer);
   G_ASSERT(shaderContainer->type.shaderType == dxil::StoredShaderType::singleShader);
 
@@ -249,7 +248,8 @@ public:
 };
 
 // this is a signature generator for compute
-eastl::wstring generate_root_signature_string(bool has_acceleration_structure, const ::dxil::ShaderResourceUsageTable &header)
+eastl::wstring generate_root_signature_string(dxil::ComputeRootSignatureExtraProperties properties,
+  const ::dxil::ShaderResourceUsageTable &header)
 {
   struct GeneratorCallback
   {
@@ -275,6 +275,18 @@ eastl::wstring generate_root_signature_string(bool has_acceleration_structure, c
     // no extensions on GDK
     void nvidiaExtension(uint32_t, uint32_t) {}
     void amdExtension(uint32_t, uint32_t) {}
+    void useResourceDescriptorHeapIndexing()
+    {
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED";
+    }
+    void useSamplerDescriptorHeapIndexing()
+    {
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"SAMPLER_HEAP_DIRECTLY_INDEXED";
+    }
     void rootConstantBuffer(uint32_t space, uint32_t index, uint32_t dwords)
     {
       result += L", RootConstants(num32BitConstants = ";
@@ -368,13 +380,13 @@ eastl::wstring generate_root_signature_string(bool has_acceleration_structure, c
     }
   };
   GeneratorCallback generator;
-  decode_compute_root_signature(has_acceleration_structure, header, generator);
+  decode_compute_root_signature(properties, header, generator);
   return generator.result;
 }
 
-eastl::wstring generate_root_signature_string(bool has_acceleration_structure, uint32_t vertex_shader_input_mask,
-  bool has_stream_output, const ::dxil::ShaderResourceUsageTable &vs, const ::dxil::ShaderResourceUsageTable &hs,
-  const ::dxil::ShaderResourceUsageTable &ds, const ::dxil::ShaderResourceUsageTable &gs, const ::dxil::ShaderResourceUsageTable &ps)
+eastl::wstring generate_root_signature_string(dxil::GraphicsRootSignatureExtraProperties properties,
+  const ::dxil::ShaderResourceUsageTable &vs, const ::dxil::ShaderResourceUsageTable &hs, const ::dxil::ShaderResourceUsageTable &ds,
+  const ::dxil::ShaderResourceUsageTable &gs, const ::dxil::ShaderResourceUsageTable &ps)
 {
   struct GeneratorCallback
   {
@@ -489,6 +501,18 @@ eastl::wstring generate_root_signature_string(bool has_acceleration_structure, u
     // no extensions on GDK
     void nvidiaExtension(uint32_t, uint32_t) {}
     void amdExtension(uint32_t, uint32_t) {}
+    void useResourceDescriptorHeapIndexing()
+    {
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED";
+    }
+    void useSamplerDescriptorHeapIndexing()
+    {
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"SAMPLER_HEAP_DIRECTLY_INDEXED";
+    }
     void beginConstantBuffers() {}
     void endConstantBuffers() {}
     void constantBuffer(uint32_t space, uint32_t slot, uint32_t linear_index)
@@ -653,13 +677,12 @@ eastl::wstring generate_root_signature_string(bool has_acceleration_structure, u
     }
   };
   GeneratorCallback generator;
-  decode_graphics_root_signature(0 != vertex_shader_input_mask, has_acceleration_structure, vs, ps, hs, ds, gs, has_stream_output,
-    generator);
+  decode_graphics_root_signature(properties, vs, ps, hs, ds, gs, generator);
   return generator.result;
 }
 
-eastl::wstring generate_mesh_root_signature_string(bool has_acceleration_structure, bool has_amplification_stage,
-  bool has_stream_output, const ::dxil::ShaderResourceUsageTable &ms, const ::dxil::ShaderResourceUsageTable &as,
+eastl::wstring generate_mesh_root_signature_string(dxil::GraphicsMeshRootSignatureExtraProperties properties,
+  bool has_amplification_stage, const ::dxil::ShaderResourceUsageTable &ms, const ::dxil::ShaderResourceUsageTable &as,
   const ::dxil::ShaderResourceUsageTable &ps)
 {
   struct GeneratorCallback
@@ -761,6 +784,18 @@ eastl::wstring generate_mesh_root_signature_string(bool has_acceleration_structu
     // no extensions on GDK
     void nvidiaExtension(uint32_t, uint32_t) {}
     void amdExtension(uint32_t, uint32_t) {}
+    void useResourceDescriptorHeapIndexing()
+    {
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"CBV_SRV_UAV_HEAP_DIRECTLY_INDEXED";
+    }
+    void useSamplerDescriptorHeapIndexing()
+    {
+      if (result.back() != L'(')
+        result += L" | ";
+      result += L"SAMPLER_HEAP_DIRECTLY_INDEXED";
+    }
     void beginConstantBuffers() {}
     void endConstantBuffers() {}
     void constantBuffer(uint32_t space, uint32_t slot, uint32_t linear_index)
@@ -925,8 +960,7 @@ eastl::wstring generate_mesh_root_signature_string(bool has_acceleration_structu
     }
   };
   GeneratorCallback generator;
-  decode_graphics_mesh_root_signature(has_acceleration_structure, ms, ps, has_amplification_stage ? &as : nullptr, has_stream_output,
-    generator);
+  decode_graphics_mesh_root_signature(properties, ms, ps, has_amplification_stage ? &as : nullptr, generator);
   return generator.result;
 }
 
@@ -951,6 +985,7 @@ struct ShaderCompileResult
     case 'd': return ::dxil::ShaderStage::DOMAIN; break;
     case 'm': return ::dxil::ShaderStage::MESH;
     case 'a': return ::dxil::ShaderStage::AMPLIFICATION;
+    case 'l': return ::dxil::ShaderStage::LIBRARY;
     default: return ::dxil::ShaderStage::VERTEX;
   }
 }
@@ -1087,6 +1122,7 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   defines.emplace_back(L"__HLSL_VERSION", hlsl2021 ? L"2021" : L"2018");
   defines.emplace_back(L"NV_SHADER_EXTN_SLOT", L"u0");
   defines.emplace_back(L"NV_SHADER_EXTN_REGISTER_SPACE", L"space99");
+  defines.emplace_back(L"REGISTER(name, space)", L"register(name,space)");
 
   if (enableFp16)
     defines.emplace_back(L"SHADER_COMPILER_FP16_ENABLED", L"1");
@@ -1129,7 +1165,7 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   // shaders through PDBs. Ideally we don't want to do that, or at least format the preprocessing
   // result to make it look not that awful.
 
-  auto ppResult = ::dxil::preprocessHLSLWithDXC(source, defines, pinDxcLib.get());
+  auto ppResult = ::dxil::preprocessHLSLWithDXC(profile, source, defines, pinDxcLib.get());
 
   // empty pp result is correct (empty in -> empty out) so lets just
   // fail on any pp error/warning whatsoever
@@ -1208,10 +1244,10 @@ ShaderCompileResult compileShader(dag::ConstSpan<char> source, const char *profi
   return result;
 }
 
-eastl::vector<uint8_t> recompile_shader(const char *encoded_shader_source, const ::dxil::ShaderHeader &header,
-  dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_desc, const eastl::wstring &root_signature_def,
-  ::dx12::dxil::Platform platform, bool pipeline_has_ts, bool pipeline_has_gs, wchar_t *pdb_dir, DebugLevel debug_level,
-  bool embed_source, bool pipeline_has_stream_output)
+eastl::tuple<eastl::vector<uint8_t>, eastl::vector<uint8_t>> recompile_shader(const char *encoded_shader_source,
+  const ::dxil::ShaderHeader &header, dag::ConstSpan<dxil::StreamOutputComponentInfo> stream_output_desc,
+  const eastl::wstring &root_signature_def, ::dx12::dxil::Platform platform, bool pipeline_has_ts, bool pipeline_has_gs,
+  wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source, bool pipeline_has_stream_output)
 {
   bool skipValidation = encoded_shader_source[encoded_bits::SkipValidation] > '0';
   bool optimize = encoded_shader_source[encoded_bits::Optimize] > '0';
@@ -1233,14 +1269,9 @@ eastl::vector<uint8_t> recompile_shader(const char *encoded_shader_source, const
     debug("recompile_shader failed: %s", compileResult.errorLog.c_str());
     return {};
   }
-  return pack_shader(compileResult.dxil, {}, header, stream_output_desc);
+  return eastl::make_tuple(pack_shader(compileResult.dxil, {}, header, stream_output_desc), compileResult.dxil);
 }
-} // namespace
 
-#define REPLACE_REGISTER_WITH_MACRO 0
-
-namespace
-{
 bool has_acceleration_structure(const dxil::ShaderHeader &header)
 {
   for (int i = 0; i < dxil::MAX_T_REGISTERS; ++i)
@@ -1248,15 +1279,250 @@ bool has_acceleration_structure(const dxil::ShaderHeader &header)
       return true;
   return false;
 }
-} // namespace
 
-CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char *profile, const char *entry, bool need_disasm,
-  bool hlsl2021, bool enableFp16, bool skipValidation, bool optimize, bool debug_info, wchar_t *pdb_dir, int max_constants_no,
-  const char *name, Platform platform, bool scarlett_w32, bool warnings_as_errors, DebugLevel debug_level, bool embed_source,
-  dag::ConstSpan<::dxil::StreamOutputComponentInfo> stream_output_components)
+#ifndef D3D_SHADER_REQUIRES_RESOURCE_DESCRIPTOR_HEAP_INDEXING
+#define D3D_SHADER_REQUIRES_RESOURCE_DESCRIPTOR_HEAP_INDEXING 0x02000000
+#endif
+
+#ifndef D3D_SHADER_REQUIRES_SAMPLER_DESCRIPTOR_HEAP_INDEXING
+#define D3D_SHADER_REQUIRES_SAMPLER_DESCRIPTOR_HEAP_INDEXING 0x04000000
+#endif
+
+bool uses_resource_descriptor_heap_indexing(const dxil::ShaderHeader &header)
 {
-  auto compileResult = ::compileShader(source, profile, entry, hlsl2021, enableFp16, skipValidation, optimize, debug_info, pdb_dir,
-    platform, {}, 1, true, true, scarlett_w32, warnings_as_errors, debug_level, embed_source, !stream_output_components.empty());
+  const uint64_t featureFlags = static_cast<uint64_t>(header.deviceRequirement.shaderFeatureFlagsLow) |
+                                (static_cast<uint64_t>(header.deviceRequirement.shaderFeatureFlagsHigh) << 32u);
+  return 0 != (D3D_SHADER_REQUIRES_RESOURCE_DESCRIPTOR_HEAP_INDEXING & featureFlags);
+}
+
+bool uses_sampler_descriptor_heap_indexing(const dxil::ShaderHeader &header)
+{
+  const uint64_t featureFlags = static_cast<uint64_t>(header.deviceRequirement.shaderFeatureFlagsLow) |
+                                (static_cast<uint64_t>(header.deviceRequirement.shaderFeatureFlagsHigh) << 32u);
+  return 0 != (D3D_SHADER_REQUIRES_SAMPLER_DESCRIPTOR_HEAP_INDEXING & featureFlags);
+}
+
+CompileResult build_shader_libray_as_shader([[maybe_unused]] const dx12::dxil::CompileInputs &inputs,
+  const ShaderCompileResult &compile_result)
+{
+  auto libHeaderCompileResult = ::dxil::compileLibraryShaderPropertiesFromReflectionData(
+    0, [](::dxil::ShaderStage, const eastl::string &) -> ::dxil::FunctionExtraInfo { return {}; }, compile_result.reflectionData,
+    pinDxcLib.get());
+
+  CompileResult result;
+
+  result.errors = eastl::move(libHeaderCompileResult.logMessage);
+
+  if (!libHeaderCompileResult.isOk)
+  {
+    return result;
+  }
+
+  uint32_t rayGenCount = 0;
+  uint32_t anyHitCount = 0;
+  uint32_t closestHitCount = 0;
+  uint32_t missCount = 0;
+  bool hadError = false;
+  const ::dxil::LibraryShaderProperties *rayGenProperties = nullptr;
+  const ::dxil::LibraryShaderProperties *anyHitProperties = nullptr;
+  const ::dxil::LibraryShaderProperties *closestHitProperties = nullptr;
+  const ::dxil::LibraryShaderProperties *missProperties = nullptr;
+  for (auto &property : libHeaderCompileResult.properties)
+  {
+    switch (static_cast<::dxil::ShaderStage>(property.shaderType))
+    {
+      default:
+        result.errors.append_sprintf("Shader library contains unexpected shader <%s> of type %u\n",
+          libHeaderCompileResult.names[&property - libHeaderCompileResult.properties.data()].c_str(), property.shaderType);
+        hadError = true;
+        break;
+      case ::dxil::ShaderStage::RAY_GEN:
+        ++rayGenCount;
+        rayGenProperties = &property;
+        break;
+      case ::dxil::ShaderStage::ANY_HIT:
+        ++anyHitCount;
+        anyHitProperties = &property;
+        break;
+      case ::dxil::ShaderStage::CLOSEST_HIT:
+        ++closestHitCount;
+        closestHitProperties = &property;
+        break;
+      case ::dxil::ShaderStage::MISS:
+        ++missCount;
+        missProperties = &property;
+        break;
+    }
+  }
+
+  if (rayGenCount != 1)
+  {
+    result.errors.append_sprintf("Found %u ray gen shaders, a library has to have exactly one\n", rayGenCount);
+    hadError = true;
+  }
+  if (anyHitCount > 1)
+  {
+    result.errors.append_sprintf("Found %u any hit shaders, only up to one is allowed\n", anyHitCount);
+    hadError = true;
+  }
+  if (closestHitCount > 1)
+  {
+    result.errors.append_sprintf("Found %u closest hit shaders, only up to one is allowed\n", closestHitCount);
+    hadError = true;
+  }
+  if (missCount > 1)
+  {
+    result.errors.append_sprintf("Found %u miss shaders, only up to one is allowed\n", missCount);
+    hadError = true;
+  }
+  if (hadError)
+  {
+    return result;
+  }
+
+  auto entryWithVendorExt = eastl::find_if(libHeaderCompileResult.properties.begin(), libHeaderCompileResult.properties.end(),
+    [](auto &props) { return ::dxil::ExtensionVendor::NoExtensionsUsed != props.deviceRequirement.extensionVendor; });
+  if (entryWithVendorExt != libHeaderCompileResult.properties.end())
+  {
+    auto dxilAsm = ::dxil::disassemble(compile_result.dxil, pinDxcLib.get());
+    if (dxilAsm.empty())
+    {
+      result.errors += "Failed to disassemble DXIL to inspect for used vendor extensions\n";
+      return result;
+    }
+
+    uint16_t vendorExtensionMask = 0;
+    if (::dxil::ExtensionVendor::NVIDIA == entryWithVendorExt->deviceRequirement.extensionVendor)
+    {
+      auto extensionMask = ::dxil::parse_NVIDIA_extension_use(dxilAsm, result.errors);
+      // when the mask is empty then we failed to figure out which op code sets where used, the driver can not correctly handle this
+      // and so this is a compilation error
+      if (0 == extensionMask)
+      {
+        result.errors.append_sprintf(
+          "Detected use of NVIDIA HLSL extensions, but used extension op codes could not be determined, compiler "
+          "may needs to be updated, to properly detect the used extensions\n");
+        result.errors.append_sprintf("DXIL:\n%s", dxilAsm.c_str());
+        return result;
+      }
+      vendorExtensionMask = extensionMask;
+      libHeaderCompileResult.libInfo.resourceUsageTable.specialConstantsMask |= dxil::SC_NVIDIA_EXTENSION;
+    }
+    else if (::dxil::ExtensionVendor::AMD == entryWithVendorExt->deviceRequirement.extensionVendor)
+    {
+      auto extensionMask = ::dxil::parse_AMD_extension_use(dxilAsm, result.errors);
+      // when the mask is empty then we failed to figure out which op code sets where used, the driver can not correctly handle this
+      // and so this is a compilation error
+      if (0 == extensionMask)
+      {
+        result.errors.append_sprintf(
+          "Detected use of AMD HLSL extensions, but used extension op codes could not be determined, compiler may "
+          "needs to be updated, to properly detect the used extensions\n");
+        result.errors.append_sprintf("DXIL:\n%s", dxilAsm.c_str());
+        return result;
+      }
+      vendorExtensionMask = extensionMask;
+      libHeaderCompileResult.libInfo.resourceUsageTable.specialConstantsMask |= dxil::SC_AMD_EXTENSION;
+    }
+    else
+    {
+      result.errors.append_sprintf("Missing implementation for a vendor (%u) to handle vendor extensions\n",
+        (uint32_t)entryWithVendorExt->deviceRequirement.extensionVendor);
+    }
+
+    for (auto &entryProperties : libHeaderCompileResult.properties)
+    {
+      if (::dxil::ExtensionVendor::NoExtensionsUsed == entryProperties.deviceRequirement.extensionVendor)
+      {
+        continue;
+      }
+      if (entryProperties.deviceRequirement.extensionVendor != entryWithVendorExt->deviceRequirement.extensionVendor)
+      {
+        result.errors.append_sprintf("Uses of different vendor extensions detected, this is unsupported\n");
+        return result;
+      }
+      entryProperties.deviceRequirement.vendorExtensionMask = vendorExtensionMask;
+    }
+  }
+
+  // This packages a ShaderLibraryContainer container, that is also used for full blown RT libraries, into
+  // a ShaderLibraryContainerAsShader wrapping container. This wrapper stores the name table we need.
+  // Then this is stored as bytecode in a ShaderContainer of type shaderLibraryContainerAsShader.
+  // This layout makes it easier to reuse code and avoid special handling for this kind of container and
+  // resulting pipeline object.
+
+  bindump::Master<dxil::ShaderLibraryContainer> dx12LibContainer;
+  dx12LibContainer.resourceUsageInfo = libHeaderCompileResult.libInfo;
+  dx12LibContainer.shaderProperties = libHeaderCompileResult.properties;
+  dx12LibContainer.dxilBinary = compile_result.dxil;
+  dx12LibContainer.binaryHash = ShaderHashValue::calculate(compile_result.dxil.data(), compile_result.dxil.size());
+
+  bindump::ReservingMemoryWriter dx12LibContainerWriter;
+  bindump::streamWrite(dx12LibContainer, dx12LibContainerWriter);
+
+  bindump::Master<dxil::ShaderLibraryContainerAsShader> shaderLibAsShader;
+  shaderLibAsShader.nameTable.resize(libHeaderCompileResult.names.size());
+  eastl::copy(eastl::begin(libHeaderCompileResult.names), eastl::end(libHeaderCompileResult.names),
+    eastl::begin(shaderLibAsShader.nameTable));
+  shaderLibAsShader.libBinary = eastl::move(dx12LibContainerWriter.mData);
+  if (anyHitProperties || closestHitProperties)
+  {
+    shaderLibAsShader.hitGroups.resize(1);
+    shaderLibAsShader.hitGroups[0].anyHitIndex =
+      anyHitProperties ? (anyHitProperties - libHeaderCompileResult.properties.data()) : ~0u;
+    shaderLibAsShader.hitGroups[0].closestHitIndex =
+      closestHitProperties ? (closestHitProperties - libHeaderCompileResult.properties.data()) : ~0u;
+  }
+  if (missProperties)
+  {
+    shaderLibAsShader.missGroups.resize(1);
+    shaderLibAsShader.missGroups[0].missIndex = missProperties - libHeaderCompileResult.properties.data();
+  }
+  shaderLibAsShader.rayGenGroup.rayGenIndex = rayGenProperties - libHeaderCompileResult.properties.data();
+
+  bindump::ReservingMemoryWriter shaderLibAsShaderWriter;
+  bindump::streamWrite(shaderLibAsShader, shaderLibAsShaderWriter);
+
+  ::dxil::ShaderHeader header{
+    .maxConstantCount = 0,
+    .bonesConstantsUsed = 0,
+    .resourceUsageTable = libHeaderCompileResult.libInfo.resourceUsageTable,
+    .sRegisterCompareUseMask = libHeaderCompileResult.libInfo.sRegisterCompareUseMask,
+    .inOutSemanticMask = 0,
+    .shaderType = static_cast<uint8_t>(::dxil::ShaderStage::LIBRARY),
+    .inputPrimitive = 0,
+    .deviceRequirement = libHeaderCompileResult.properties[0].deviceRequirement,
+  };
+
+  eastl::copy(eastl::begin(libHeaderCompileResult.libInfo.tRegisterTypes), eastl::end(libHeaderCompileResult.libInfo.tRegisterTypes),
+    eastl::begin(header.tRegisterTypes));
+  eastl::copy(eastl::begin(libHeaderCompileResult.libInfo.uRegisterTypes), eastl::end(libHeaderCompileResult.libInfo.uRegisterTypes),
+    eastl::begin(header.uRegisterTypes));
+
+  bindump::Master<dxil::Shader> wrappedShader = pack_shader_layout(shaderLibAsShaderWriter.mData, {}, header);
+
+  bindump::ReservingMemoryWriter wrappedShaderWriter;
+  bindump::streamWrite(wrappedShader, wrappedShaderWriter);
+
+  result.metadata = create_shader_container(eastl::move(wrappedShaderWriter.mData),
+    {
+      .shaderType = ::dxil::StoredShaderType::shaderLibraryContainerAsShader,
+      .hasStreamOutput = 0,
+    });
+  result.bytecode = shaderLibAsShaderWriter.mData;
+  //  ray gen is always 1 x 1 x 1
+  result.computeShaderInfo = {.threadGroupSizeX = 1, .threadGroupSizeY = 1, .threadGroupSizeZ = 1, .scarlettWave32 = false};
+  return result;
+}
+} // namespace
+#define REPLACE_REGISTER_WITH_MACRO 0
+
+CompileResult dx12::dxil::compileShader(const CompileInputs &inputs)
+{
+  auto compileResult = ::compileShader(inputs.source, inputs.profile, inputs.entry, inputs.compilationOptions.hlsl2021,
+    inputs.compilationOptions.enableFp16, inputs.compilationOptions.skipValidation, inputs.compilationOptions.optimize,
+    inputs.compilationOptions.debugInfo, inputs.PDBDir, inputs.platform, {}, 1, true, true, inputs.compilationOptions.scarlettW32,
+    inputs.warningsAsErrors, inputs.debugLevel, inputs.embedSource, !inputs.streamOutputComponents.empty());
 
   CompileResult result;
   result.logs = eastl::move(compileResult.messageLog);
@@ -1267,9 +1533,13 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
     return result;
   }
 
-  auto stage = get_shader_stage_from_profile(profile);
-  auto headerCompileResult = ::dxil::compileHeaderFromReflectionData(stage, compileResult.reflectionData, max_constants_no,
-    stream_output_components, pinDxcLib.get());
+  auto stage = get_shader_stage_from_profile(inputs.profile);
+  if (::dxil::ShaderStage::LIBRARY == stage)
+  {
+    return build_shader_libray_as_shader(inputs, compileResult);
+  }
+  auto headerCompileResult = ::dxil::compileHeaderFromReflectionData(stage, compileResult.reflectionData, inputs.maxConstantsNo,
+    inputs.streamOutputComponents, pinDxcLib.get());
 
   if (!headerCompileResult.isOk)
   {
@@ -1283,7 +1553,7 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
     result.computeShaderInfo.threadGroupSizeY = headerCompileResult.computeShaderInfo.threadGroupSizeY;
     result.computeShaderInfo.threadGroupSizeZ = headerCompileResult.computeShaderInfo.threadGroupSizeZ;
 #if _CROSS_TARGET_DX12
-    result.computeShaderInfo.scarlettWave32 = scarlett_w32;
+    result.computeShaderInfo.scarlettWave32 = inputs.compilationOptions.scarlettW32;
 #endif
   }
 
@@ -1334,20 +1604,27 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
   }
 
   eastl::vector<char> shaderSource;
-  if (::dx12::dxil::Platform::PC != platform)
+  if (::dx12::dxil::Platform::PC != inputs.platform)
   {
     // for xbox we either recompile with root signature now compute shaders, or store source
     // and some metadata for later recompile when all shaders used by the shader pass are
     // finished and can be recompiled with combined root signature.
     if (::dxil::ShaderStage::COMPUTE == stage)
     {
-      bool hasAccelerationStructure = has_acceleration_structure(headerCompileResult.header);
       // compute is on its own, so we can compile phase two right now
-      auto rootSignatureDefine =
-        generate_root_signature_string(hasAccelerationStructure, headerCompileResult.header.resourceUsageTable);
-      compileResult = ::compileShader(source, profile, entry, hlsl2021, enableFp16, skipValidation, optimize, debug_info, pdb_dir,
-        platform, rootSignatureDefine, 2, false, false, scarlett_w32, warnings_as_errors, debug_level, embed_source,
-        !stream_output_components.empty());
+      auto rootSignatureDefine = generate_root_signature_string(
+        ::dxil::ComputeRootSignatureExtraProperties{
+          .hasAccelerationStructure = has_acceleration_structure(headerCompileResult.header),
+          .useResourceDescriptorHeapIndexing = uses_resource_descriptor_heap_indexing(headerCompileResult.header),
+          .useSamplerDescriptorHeapIndexing = uses_sampler_descriptor_heap_indexing(headerCompileResult.header),
+        },
+        headerCompileResult.header.resourceUsageTable);
+
+      compileResult = ::compileShader(inputs.source, inputs.profile, inputs.entry, inputs.compilationOptions.hlsl2021,
+        inputs.compilationOptions.enableFp16, inputs.compilationOptions.skipValidation, inputs.compilationOptions.optimize,
+        inputs.compilationOptions.debugInfo, inputs.PDBDir, inputs.platform, rootSignatureDefine, 2, false, false,
+        inputs.compilationOptions.scarlettW32, inputs.warningsAsErrors, inputs.debugLevel, inputs.embedSource,
+        !inputs.streamOutputComponents.empty());
       result.logs += compileResult.messageLog;
       if (compileResult.dxil.empty())
       {
@@ -1360,22 +1637,22 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
     else
     {
       // On xbox phase two we also store the source
-      auto entryLength = strlen(entry);
+      auto entryLength = strlen(inputs.entry);
       // <compression><skipValidation><optimize><debug_info><scarlett_w32><hlsl2021><enableFp16><profile><entry>\0<source>\0
-      shaderSource.reserve(encoded_bits::BitCount + encoded_bits::ExtraBytes + entryLength + source.size() + 1);
+      shaderSource.reserve(encoded_bits::BitCount + encoded_bits::ExtraBytes + entryLength + inputs.source.size() + 1);
       shaderSource.resize(encoded_bits::BitCount);
-      shaderSource[encoded_bits::SkipValidation] = '0' + skipValidation; // ends up being either '0' or '1'
-      shaderSource[encoded_bits::Optimize] = '0' + optimize;             // ends up being either '0' or '1'
-      shaderSource[encoded_bits::DebugInfo] = '0' + debug_info;          // ends up being either '0' or '1'
-      shaderSource[encoded_bits::ScarlettW32] = '0' + scarlett_w32;      // ends up being either '0' or '1'
-      shaderSource[encoded_bits::HLSL2021] = '0' + hlsl2021;             // ends up being either '0' or '1'
-      shaderSource[encoded_bits::EnableFp16] = '0' + enableFp16;         // ends up being either '0' or '1'
-      shaderSource.insert(shaderSource.end(), profile, profile + encoded_bits::ProfileLength);
-      shaderSource.insert(shaderSource.end(), entry, entry + entryLength);
+      shaderSource[encoded_bits::SkipValidation] = '0' + inputs.compilationOptions.skipValidation; // ends up being either '0' or '1'
+      shaderSource[encoded_bits::Optimize] = '0' + inputs.compilationOptions.optimize;             // ends up being either '0' or '1'
+      shaderSource[encoded_bits::DebugInfo] = '0' + inputs.compilationOptions.debugInfo;           // ends up being either '0' or '1'
+      shaderSource[encoded_bits::ScarlettW32] = '0' + inputs.compilationOptions.scarlettW32;       // ends up being either '0' or '1'
+      shaderSource[encoded_bits::HLSL2021] = '0' + inputs.compilationOptions.hlsl2021;             // ends up being either '0' or '1'
+      shaderSource[encoded_bits::EnableFp16] = '0' + inputs.compilationOptions.enableFp16;         // ends up being either '0' or '1'
+      shaderSource.insert(shaderSource.end(), inputs.profile, inputs.profile + encoded_bits::ProfileLength);
+      shaderSource.insert(shaderSource.end(), inputs.entry, inputs.entry + entryLength);
       // we insert here a null terminator for ease of use later, consumer will know that source will
       // start after that
       shaderSource.push_back('\0');
-      shaderSource.insert(shaderSource.end(), source.data(), source.data() + source.size());
+      shaderSource.insert(shaderSource.end(), inputs.source.data(), inputs.source.data() + inputs.source.size());
       // make sure we are null terminated properly, somewhere inside DXC it is expected to be null
       // terminated, even when it is querying the size of the string...
       shaderSource.push_back('\0');
@@ -1384,29 +1661,40 @@ CompileResult dx12::dxil::compileShader(dag::ConstSpan<char> source, const char 
 
   result.errors = eastl::move(compileResult.errorLog);
   // only provide name in debug builds
-  result.bytecode =
+  result.bytecode = compileResult.dxil;
+  result.metadata =
     pack_shader(compileResult.dxil, shaderSource, headerCompileResult.header, headerCompileResult.streamOutputComponents);
   return result;
 }
 
-void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs,
-  dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, unsigned id)
+void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &meta, SmallTab<unsigned, TmpmemAlloc> &bytecode,
+  const ShaderStageData &vs, const ShaderStageData &hs, const ShaderStageData &ds, const ShaderStageData &gs, unsigned id)
 {
-  bindump::MemoryWriter writer;
+  bindump::ReservingMemoryWriter writer;
   ::dxil::StoredShaderType type = ::dxil::StoredShaderType::combinedVertexShader;
   dag::ConstSpan<::dxil::StreamOutputComponentInfo> streamOutputComponents;
 
-  auto vertex_shader = decode_shader_container(vs, false);
+  auto vertex_shader = decode_shader_container(vs.metadata, false);
   if (!vertex_shader.streamOutputComponents.empty())
     streamOutputComponents = vertex_shader.streamOutputComponents;
+  vertex_shader.shader.bytecodeOffset = 0;
+  vertex_shader.shader.bytecodeSize = data_size(vs.bytecode);
   if (vertex_shader.shader.shaderHeader.shaderType == (uint16_t)::dxil::ShaderStage::MESH)
   {
+    uint32_t ms_size = dag::align_up(data_size(vs.bytecode), sizeof(unsigned));
+    uint32_t as_size = dag::align_up(data_size(gs.bytecode), sizeof(unsigned));
+    bytecode.resize((ms_size + as_size) / sizeof(unsigned));
+
     bindump::Master<::dxil::MeshShaderPipeline> layout;
     *layout.meshShader = vertex_shader.shader;
+    memcpy(&bytecode[0], vs.bytecode.data(), data_size(vs.bytecode));
     if (!gs.empty())
     {
       layout.amplificationShader.create();
-      *layout.amplificationShader = decode_shader_container(gs, false).shader;
+      *layout.amplificationShader = decode_shader_container(gs.metadata, false).shader;
+      layout.amplificationShader->bytecodeOffset = ms_size;
+      layout.amplificationShader->bytecodeSize = data_size(gs.bytecode);
+      memcpy(&bytecode[ms_size / sizeof(unsigned)], gs.bytecode.data(), data_size(gs.bytecode));
       G_ASSERT(layout.amplificationShader->shaderHeader.shaderType == (uint16_t)::dxil::ShaderStage::AMPLIFICATION);
     }
     G_ASSERT(ds.empty() && hs.empty());
@@ -1415,12 +1703,30 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::Co
   }
   else
   {
+    uint32_t vs_size = dag::align_up(data_size(vs.bytecode), sizeof(unsigned));
+    uint32_t hs_size = dag::align_up(data_size(hs.bytecode), sizeof(unsigned));
+    uint32_t ds_size = dag::align_up(data_size(ds.bytecode), sizeof(unsigned));
+    uint32_t gs_size = dag::align_up(data_size(gs.bytecode), sizeof(unsigned));
+
+    uint32_t offset = 0;
+    bytecode.resize((vs_size + hs_size + ds_size + gs_size) / sizeof(unsigned));
+
     bindump::Master<::dxil::VertexShaderPipeline> layout;
     *layout.vertexShader = vertex_shader.shader;
+
+    G_ASSERT(offset + data_size(vs.bytecode) <= bytecode.size() * sizeof(unsigned));
+    memcpy(&bytecode[offset / sizeof(unsigned)], vs.bytecode.data(), data_size(vs.bytecode));
+    offset += vs_size;
+
     if (!hs.empty())
     {
       layout.hullShader.create();
-      auto hull_shader = decode_shader_container(hs, false);
+      auto hull_shader = decode_shader_container(hs.metadata, false);
+      hull_shader.shader.bytecodeOffset = offset;
+      hull_shader.shader.bytecodeSize = data_size(hs.bytecode);
+      G_ASSERT(offset + data_size(hs.bytecode) <= bytecode.size() * sizeof(unsigned));
+      memcpy(&bytecode[offset / sizeof(unsigned)], hs.bytecode.data(), data_size(hs.bytecode));
+      offset += hs_size;
       if (!hull_shader.streamOutputComponents.empty())
         streamOutputComponents = hull_shader.streamOutputComponents;
       *layout.hullShader = hull_shader.shader;
@@ -1428,16 +1734,27 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::Co
     if (!ds.empty())
     {
       layout.domainShader.create();
-      *layout.domainShader = decode_shader_container(ds, false).shader;
+      *layout.domainShader = decode_shader_container(ds.metadata, false).shader;
+      layout.domainShader->bytecodeOffset = offset;
+      layout.domainShader->bytecodeSize = data_size(ds.bytecode);
+      G_ASSERT(offset + data_size(ds.bytecode) <= bytecode.size() * sizeof(unsigned));
+      memcpy(&bytecode[offset / sizeof(unsigned)], ds.bytecode.data(), data_size(ds.bytecode));
+      offset += ds_size;
     }
     if (!gs.empty())
     {
       layout.geometryShader.create();
-      auto geometry_shader = decode_shader_container(gs, false);
+      auto geometry_shader = decode_shader_container(gs.metadata, false);
       if (!geometry_shader.streamOutputComponents.empty())
         streamOutputComponents = geometry_shader.streamOutputComponents;
       *layout.geometryShader = geometry_shader.shader;
+      layout.geometryShader->bytecodeOffset = offset;
+      layout.geometryShader->bytecodeSize = data_size(gs.bytecode);
+      G_ASSERT(offset + data_size(gs.bytecode) <= bytecode.size() * sizeof(unsigned));
+      memcpy(&bytecode[offset / sizeof(unsigned)], gs.bytecode.data(), data_size(gs.bytecode));
+      offset += gs_size;
     }
+    G_ASSERT(offset == bytecode.size() * sizeof(unsigned));
     bindump::streamWrite(layout, writer);
   }
 
@@ -1450,61 +1767,80 @@ void dx12::dxil::combineShaders(SmallTab<unsigned, TmpmemAlloc> &target, dag::Co
     packed = create_shader_container(eastl::move(programWithStreamOutput), {type, true});
   }
 
-  const size_t dwordsToFitPacked = (packed.size() - 1) / elem_size(target) + 1;
-  target.resize(dwordsToFitPacked + 1); // +1 for id at the beginning
+  const size_t dwordsToFitPacked = (packed.size() - 1) / elem_size(meta) + 1;
+  meta.resize(dwordsToFitPacked + 1); // +1 for id at the beginning
 
-  target[0] = id;
-  eastl::copy(packed.begin(), packed.end(), (uint8_t *)&target[1]);
+  meta[0] = id;
+  eastl::copy(packed.begin(), packed.end(), (uint8_t *)&meta[1]);
 }
 
-dx12::dxil::RootSignatureStore dx12::dxil::generateRootSignatureDefinition(dag::ConstSpan<unsigned> vs, dag::ConstSpan<unsigned> hs,
-  dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, dag::ConstSpan<unsigned> ps)
+dx12::dxil::RootSignatureStore dx12::dxil::generateRootSignatureDefinition(dag::ConstSpan<uint8_t> vs_metadata,
+  dag::ConstSpan<uint8_t> hs_metadata, dag::ConstSpan<uint8_t> ds_metadata, dag::ConstSpan<uint8_t> gs_metadata,
+  dag::ConstSpan<uint8_t> ps_metadata)
 {
   dx12::dxil::RootSignatureStore result{};
 
-  DecodedShaderContainer vsDecoded = decode_shader_container(vs, ps.size() == 0);
+  DecodedShaderContainer vsDecoded = decode_shader_container(vs_metadata, ps_metadata.size() == 0);
   result.hasVertexInput = 0 != vsDecoded.shader.shaderHeader.inOutSemanticMask;
   result.isMesh = ::dxil::ShaderStage::MESH == static_cast<::dxil::ShaderStage>(vsDecoded.shader.shaderHeader.shaderType);
-  result.hasAmplificationStage = result.isMesh && (gs.size() > 0);
+  result.hasAmplificationStage = result.isMesh && (gs_metadata.size() > 0);
   result.vsResources = vsDecoded.shader.shaderHeader.resourceUsageTable;
   result.hasAccelerationStructure = has_acceleration_structure(vsDecoded.shader.shaderHeader);
   result.hasStreamOutput = !vsDecoded.streamOutputComponents.empty();
+  result.useResourceDescriptorHeapIndexing = uses_resource_descriptor_heap_indexing(vsDecoded.shader.shaderHeader);
+  result.useSamplerDescriptorHeapIndexing = uses_sampler_descriptor_heap_indexing(vsDecoded.shader.shaderHeader);
 
-  if (hs.empty() != ds.empty())
+  if (hs_metadata.empty() != ds_metadata.empty())
   {
     debug("Tessellation stage incomplete");
     return {};
   }
 
-  if (hs.size())
+  if (hs_metadata.size())
   {
-    auto hsDecoded = decode_shader_container(hs, false);
+    auto hsDecoded = decode_shader_container(hs_metadata, false);
     result.hsResources = hsDecoded.shader.shaderHeader.resourceUsageTable;
     result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(hsDecoded.shader.shaderHeader);
     result.hasStreamOutput |= !hsDecoded.streamOutputComponents.empty();
+    result.useResourceDescriptorHeapIndexing =
+      result.useResourceDescriptorHeapIndexing || uses_resource_descriptor_heap_indexing(hsDecoded.shader.shaderHeader);
+    result.useSamplerDescriptorHeapIndexing =
+      result.useSamplerDescriptorHeapIndexing || uses_sampler_descriptor_heap_indexing(hsDecoded.shader.shaderHeader);
   }
 
-  if (ds.size())
+  if (ds_metadata.size())
   {
-    auto dsDecoded = decode_shader_container(ds, false);
+    auto dsDecoded = decode_shader_container(ds_metadata, false);
     result.dsResources = dsDecoded.shader.shaderHeader.resourceUsageTable;
     result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(dsDecoded.shader.shaderHeader);
     result.hasStreamOutput |= !dsDecoded.streamOutputComponents.empty();
+    result.useResourceDescriptorHeapIndexing =
+      result.useResourceDescriptorHeapIndexing || uses_resource_descriptor_heap_indexing(dsDecoded.shader.shaderHeader);
+    result.useSamplerDescriptorHeapIndexing =
+      result.useSamplerDescriptorHeapIndexing || uses_sampler_descriptor_heap_indexing(dsDecoded.shader.shaderHeader);
   }
 
-  if (gs.size())
+  if (gs_metadata.size())
   {
-    auto gsDecoded = decode_shader_container(gs, false);
+    auto gsDecoded = decode_shader_container(gs_metadata, false);
     result.gsResources = gsDecoded.shader.shaderHeader.resourceUsageTable;
     result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(gsDecoded.shader.shaderHeader);
     result.hasStreamOutput |= !gsDecoded.streamOutputComponents.empty();
+    result.useResourceDescriptorHeapIndexing =
+      result.useResourceDescriptorHeapIndexing || uses_resource_descriptor_heap_indexing(gsDecoded.shader.shaderHeader);
+    result.useSamplerDescriptorHeapIndexing =
+      result.useSamplerDescriptorHeapIndexing || uses_sampler_descriptor_heap_indexing(gsDecoded.shader.shaderHeader);
   }
 
-  if (!ps.empty())
+  if (!ps_metadata.empty())
   {
-    auto psDecoded = decode_shader_container(ps, false);
+    auto psDecoded = decode_shader_container(ps_metadata, false);
     result.psResources = psDecoded.shader.shaderHeader.resourceUsageTable;
     result.hasAccelerationStructure = result.hasAccelerationStructure || has_acceleration_structure(psDecoded.shader.shaderHeader);
+    result.useResourceDescriptorHeapIndexing =
+      result.useResourceDescriptorHeapIndexing || uses_resource_descriptor_heap_indexing(psDecoded.shader.shaderHeader);
+    result.useSamplerDescriptorHeapIndexing =
+      result.useSamplerDescriptorHeapIndexing || uses_sampler_descriptor_heap_indexing(psDecoded.shader.shaderHeader);
   }
 
   return result;
@@ -1519,23 +1855,36 @@ constexpr uint32_t COMPILATION_FLAG_HAS_HD_DS = 1u << 5;
 constexpr uint32_t COMPILATION_FLAG_HLSL2021 = 1u << 6;
 constexpr uint32_t COMPILATION_FLAG_ENABLEFP16 = 1u << 7;
 
-BINDUMP_BEGIN_LAYOUT(VertexProgramPhaseOne)
+BINDUMP_BEGIN_LAYOUT(VertexProgramPhaseOneMetadata)
   BINDUMP_USING_EXTENSION()
   uint32_t magic = 0;
-  VecHolder<uint32_t> vertexShader;
-  VecHolder<uint32_t> hullShader;
-  VecHolder<uint32_t> domainShader;
-  VecHolder<uint32_t> geomentryShader;
+  VecHolder<uint8_t> vertexShaderMetadata;
+  VecHolder<uint8_t> hullShaderMetadata;
+  VecHolder<uint8_t> domainShaderMetadata;
+  VecHolder<uint8_t> geomentryShaderMetadata;
   uint32_t compilationFlags;
   dx12::dxil::RootSignatureStore rootSignature;
 BINDUMP_END_LAYOUT()
 
-BINDUMP_BEGIN_LAYOUT(PixelShaderPhaseOne)
+BINDUMP_BEGIN_LAYOUT(VertexProgramPhaseOneBytecode)
+  BINDUMP_USING_EXTENSION()
+  VecHolder<uint32_t> vertexShaderBytecode;
+  VecHolder<uint32_t> hullShaderBytecode;
+  VecHolder<uint32_t> domainShaderBytecode;
+  VecHolder<uint32_t> geomentryShaderBytecode;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_LAYOUT(PixelShaderPhaseOneMetadata)
   BINDUMP_USING_EXTENSION()
   uint32_t magic = 0;
-  VecHolder<uint32_t> pixelShader;
+  VecHolder<uint8_t> pixelShaderMetadata;
   uint32_t compilationFlags;
   dx12::dxil::RootSignatureStore rootSignature;
+BINDUMP_END_LAYOUT()
+
+BINDUMP_BEGIN_LAYOUT(PixelShaderPhaseOneBytecode)
+  BINDUMP_USING_EXTENSION()
+  VecHolder<uint32_t> pixelShaderBytecode;
 BINDUMP_END_LAYOUT()
 
 namespace
@@ -1549,153 +1898,195 @@ bool operator==(const dx12::dxil::RootSignatureStore &l, const dx12::dxil::RootS
 }
 
 bool operator!=(const dx12::dxil::RootSignatureStore &l, const dx12::dxil::RootSignatureStore &r) { return !(l == r); }
+
+bool operator==(const auto &lhs, const auto &rhs)
+{
+  return lhs.size() == rhs.size() && (lhs.data() == rhs.data() || mem_eq(rhs, lhs.data()));
+}
 } // namespace
 
-bool dx12::dxil::comparePhaseOneVertexProgram(dag::ConstSpan<unsigned> combined_vprog, dag::ConstSpan<unsigned> vs,
-  dag::ConstSpan<unsigned> hs, dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, const RootSignatureStore &signature)
+bool dx12::dxil::comparePhaseOneVertexProgram(CombinedShaderData combined_vprog, const ShaderStageData &vs, const ShaderStageData &hs,
+  const ShaderStageData &ds, const ShaderStageData &gs, const RootSignatureStore &signature)
 {
-  auto *header = bindump::map<VertexProgramPhaseOne>((const uint8_t *)combined_vprog.data());
-  if (!header)
+  auto *combinedMetadata = bindump::map<VertexProgramPhaseOneMetadata>(combined_vprog.metadata.data());
+  if (!combinedMetadata)
   {
     return false;
   }
 
-  if (header->rootSignature != signature)
+  if (combinedMetadata->rootSignature != signature)
   {
     return false;
   }
 
   // check if presence of optional embedded shaders are matching
-  if (hs.empty() != header->hullShader.empty())
+  if (hs.metadata.empty() != combinedMetadata->hullShaderMetadata.empty())
   {
     return false;
   }
-  if (ds.empty() != header->domainShader.empty())
+  if (ds.metadata.empty() != combinedMetadata->domainShaderMetadata.empty())
   {
     return false;
   }
-  if (gs.empty() != header->geomentryShader.empty())
+  if (gs.metadata.empty() != combinedMetadata->geomentryShaderMetadata.empty())
+  {
+    return false;
+  }
+
+  auto *combinedBytecode = bindump::map<VertexProgramPhaseOneBytecode>((const uint8_t *)combined_vprog.bytecode.data());
+  if (!combinedBytecode)
   {
     return false;
   }
 
   if (!hs.empty())
   {
-    auto headerHS = decode_shader_container(header->hullShader, false);
-    auto decodedHS = decode_shader_container(hs, false);
-    if (decodedHS.shader.bytecode.content() != headerHS.shader.bytecode.content())
+    dag::ConstSpan<unsigned> combinedHSBytecode = combinedBytecode->hullShaderBytecode;
+    if (hs.bytecode != combinedHSBytecode)
     {
       return false;
     }
   }
   if (!ds.empty())
   {
-    auto headerDS = decode_shader_container(header->domainShader, false);
-    auto decodedDS = decode_shader_container(ds, false);
-    if (decodedDS.shader.bytecode.content() != headerDS.shader.bytecode.content())
+    dag::ConstSpan<unsigned> combinedDSBytecode = combinedBytecode->domainShaderBytecode;
+    if (ds.bytecode != combinedDSBytecode)
     {
       return false;
     }
   }
   if (!gs.empty())
   {
-    auto headerGS = decode_shader_container(header->geomentryShader, false);
-    auto decodedGS = decode_shader_container(gs, false);
-    if (decodedGS.shader.bytecode.content() != headerGS.shader.bytecode.content())
+    dag::ConstSpan<unsigned> combinedGSBytecode = combinedBytecode->geomentryShaderBytecode;
+    if (gs.bytecode != combinedGSBytecode)
     {
       return false;
     }
   }
 
-  auto headerVS = decode_shader_container(header->vertexShader, false);
-  auto decodedVS = decode_shader_container(vs, false);
-  return decodedVS.shader.bytecode.content() == headerVS.shader.bytecode.content();
+  dag::ConstSpan<unsigned> combinedVSBytecode = combinedBytecode->vertexShaderBytecode;
+  return vs.bytecode == combinedVSBytecode;
 }
 
-bool dx12::dxil::comparePhaseOnePixelShader(dag::ConstSpan<unsigned> combined_psh, dag::ConstSpan<unsigned> ps,
+bool dx12::dxil::comparePhaseOnePixelShader(CombinedShaderData combined_psh, const ShaderStageData &ps,
   const RootSignatureStore &signature)
 {
-  auto *header = bindump::map<PixelShaderPhaseOne>((const uint8_t *)combined_psh.data());
-  if (!header)
+  auto *combinedMetadata = bindump::map<PixelShaderPhaseOneMetadata>(combined_psh.metadata.data());
+  if (!combinedMetadata || combinedMetadata->rootSignature != signature)
   {
     return false;
   }
 
-  if (header->rootSignature != signature)
+  auto *combinedBytecode = bindump::map<PixelShaderPhaseOneBytecode>((const uint8_t *)combined_psh.bytecode.data());
+  if (!combinedBytecode)
   {
     return false;
   }
 
-  auto decodedA = decode_shader_container(header->pixelShader, false);
-  auto decodedB = decode_shader_container(ps, false);
-  return decodedA.shader.bytecode.content() == decodedB.shader.bytecode.content();
+  dag::ConstSpan<unsigned> combinedPSBytecode = combinedBytecode->pixelShaderBytecode;
+  return combinedPSBytecode == ps.bytecode;
 }
 
-eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> dx12::dxil::combinePhaseOneVertexProgram(dag::ConstSpan<unsigned> vs,
-  dag::ConstSpan<unsigned> hs, dag::ConstSpan<unsigned> ds, dag::ConstSpan<unsigned> gs, const RootSignatureStore &signature,
-  unsigned id, CompilationOptions options)
+auto dx12::dxil::combinePhaseOneVertexProgram(const ShaderStageData &vs, const ShaderStageData &hs, const ShaderStageData &ds,
+  const ShaderStageData &gs, const RootSignatureStore &signature, unsigned id, CompilationOptions options) -> CombinedShaderStorage
 {
-  bindump::Master<VertexProgramPhaseOne> header;
-  header.magic = id;
-  header.compilationFlags = 0;
-  header.compilationFlags |= gs.empty() ? 0 : COMPILATION_FLAG_HAS_GS;
-  header.compilationFlags |= (hs.empty() || ds.empty()) ? 0 : COMPILATION_FLAG_HAS_HD_DS;
-  header.compilationFlags |= options.optimize ? COMPILATION_FLAG_OPTIMIZE : 0;
-  header.compilationFlags |= options.skipValidation ? COMPILATION_FLAG_SKIP_VALIDATION : 0;
-  header.compilationFlags |= options.scarlettW32 ? COMPILATION_FLAG_SCARLETT_W32 : 0;
-  header.compilationFlags |= options.debugInfo ? COMPILATION_FLAG_DEBUG_INFO : 0;
-  header.compilationFlags |= options.hlsl2021 ? COMPILATION_FLAG_HLSL2021 : 0;
-  header.compilationFlags |= options.enableFp16 ? COMPILATION_FLAG_ENABLEFP16 : 0;
-  header.rootSignature = signature;
+  CombinedShaderStorage result{
+    eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>(), eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>()};
 
-  header.vertexShader = vs;
-  header.hullShader = hs;
-  header.domainShader = ds;
-  header.geomentryShader = gs;
+  bindump::Master<VertexProgramPhaseOneMetadata> combinedMetadata;
+  combinedMetadata.magic = id;
+  combinedMetadata.compilationFlags = 0;
+  combinedMetadata.compilationFlags |= gs.empty() ? 0 : COMPILATION_FLAG_HAS_GS;
+  combinedMetadata.compilationFlags |= (hs.empty() || ds.empty()) ? 0 : COMPILATION_FLAG_HAS_HD_DS;
+  combinedMetadata.compilationFlags |= options.optimize ? COMPILATION_FLAG_OPTIMIZE : 0;
+  combinedMetadata.compilationFlags |= options.skipValidation ? COMPILATION_FLAG_SKIP_VALIDATION : 0;
+  combinedMetadata.compilationFlags |= options.scarlettW32 ? COMPILATION_FLAG_SCARLETT_W32 : 0;
+  combinedMetadata.compilationFlags |= options.debugInfo ? COMPILATION_FLAG_DEBUG_INFO : 0;
+  combinedMetadata.compilationFlags |= options.hlsl2021 ? COMPILATION_FLAG_HLSL2021 : 0;
+  combinedMetadata.compilationFlags |= options.enableFp16 ? COMPILATION_FLAG_ENABLEFP16 : 0;
+  combinedMetadata.rootSignature = signature;
 
-  bindump::MemoryWriter writer;
-  bindump::streamWrite(header, writer);
+  combinedMetadata.vertexShaderMetadata = vs.metadata;
+  combinedMetadata.hullShaderMetadata = hs.metadata;
+  combinedMetadata.domainShaderMetadata = ds.metadata;
+  combinedMetadata.geomentryShaderMetadata = gs.metadata;
 
-  auto target = eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>();
-  target->resize((writer.mData.size() + elem_size(*target)) / elem_size(*target));
-  eastl::copy(writer.mData.begin(), writer.mData.end(), (uint8_t *)target->data());
-  return target;
-}
-
-eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>> dx12::dxil::combinePhaseOnePixelShader(dag::ConstSpan<unsigned> ps,
-  const RootSignatureStore &signature, unsigned id, bool has_gs, bool has_ts, CompilationOptions options)
-{
-  bindump::Master<PixelShaderPhaseOne> header;
-  header.magic = id;
-  header.compilationFlags = 0;
-  header.compilationFlags |= has_gs ? COMPILATION_FLAG_HAS_GS : 0;
-  header.compilationFlags |= has_ts ? COMPILATION_FLAG_HAS_HD_DS : 0;
-  header.compilationFlags |= options.optimize ? COMPILATION_FLAG_OPTIMIZE : 0;
-  header.compilationFlags |= options.skipValidation ? COMPILATION_FLAG_SKIP_VALIDATION : 0;
-  header.compilationFlags |= options.scarlettW32 ? COMPILATION_FLAG_SCARLETT_W32 : 0;
-  header.compilationFlags |= options.debugInfo ? COMPILATION_FLAG_DEBUG_INFO : 0;
-  header.compilationFlags |= options.hlsl2021 ? COMPILATION_FLAG_HLSL2021 : 0;
-  header.compilationFlags |= options.enableFp16 ? COMPILATION_FLAG_ENABLEFP16 : 0;
-  header.rootSignature = signature;
-
-  header.pixelShader = ps;
-
-  bindump::MemoryWriter writer;
-  bindump::streamWrite(header, writer);
-
-  auto target = eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>();
-  target->resize((writer.mData.size() + elem_size(*target)) / elem_size(*target));
-  eastl::copy(writer.mData.begin(), writer.mData.end(), (uint8_t *)target->data());
-  return target;
-}
-
-eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::recompileVertexProgram(dag::ConstSpan<unsigned> source,
-  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source)
-{
-  auto *header = bindump::map<VertexProgramPhaseOne>((const uint8_t *)source.data());
-  if (!header)
   {
-    return eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>();
+    bindump::ReservingMemoryWriter writer;
+    bindump::streamWrite(combinedMetadata, writer);
+    G_ASSERT(memcmp(writer.mData.data(), &id, sizeof(id)) == 0);
+    result.metadata->resize((writer.mData.size() + elem_size(*result.metadata) - 1) / elem_size(*result.metadata));
+    eastl::copy(writer.mData.begin(), writer.mData.end(), (uint8_t *)result.metadata->data());
+    G_ASSERT(memcmp(result.metadata->data(), &id, sizeof(id)) == 0);
+  }
+
+  bindump::Master<VertexProgramPhaseOneBytecode> combinedBytecode;
+  combinedBytecode.vertexShaderBytecode = vs.bytecode;
+  combinedBytecode.hullShaderBytecode = hs.bytecode;
+  combinedBytecode.domainShaderBytecode = ds.bytecode;
+  combinedBytecode.geomentryShaderBytecode = gs.bytecode;
+
+  {
+    bindump::ReservingMemoryWriter writer;
+    bindump::streamWrite(combinedBytecode, writer);
+
+    result.bytecode->resize((writer.mData.size() + elem_size(*result.bytecode) - 1) / elem_size(*result.bytecode));
+    eastl::copy(writer.mData.begin(), writer.mData.end(), (uint8_t *)result.bytecode->data());
+  }
+
+  return result;
+}
+
+auto dx12::dxil::combinePhaseOnePixelShader(const ShaderStageData &ps, const RootSignatureStore &signature, unsigned id, bool has_gs,
+  bool has_ts, CompilationOptions options) -> CombinedShaderStorage
+{
+  CombinedShaderStorage result{
+    eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>(), eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>()};
+
+  bindump::Master<PixelShaderPhaseOneMetadata> combinedMetadata;
+  combinedMetadata.magic = id;
+  combinedMetadata.compilationFlags = 0;
+  combinedMetadata.compilationFlags |= has_gs ? COMPILATION_FLAG_HAS_GS : 0;
+  combinedMetadata.compilationFlags |= has_ts ? COMPILATION_FLAG_HAS_HD_DS : 0;
+  combinedMetadata.compilationFlags |= options.optimize ? COMPILATION_FLAG_OPTIMIZE : 0;
+  combinedMetadata.compilationFlags |= options.skipValidation ? COMPILATION_FLAG_SKIP_VALIDATION : 0;
+  combinedMetadata.compilationFlags |= options.scarlettW32 ? COMPILATION_FLAG_SCARLETT_W32 : 0;
+  combinedMetadata.compilationFlags |= options.debugInfo ? COMPILATION_FLAG_DEBUG_INFO : 0;
+  combinedMetadata.compilationFlags |= options.hlsl2021 ? COMPILATION_FLAG_HLSL2021 : 0;
+  combinedMetadata.compilationFlags |= options.enableFp16 ? COMPILATION_FLAG_ENABLEFP16 : 0;
+  combinedMetadata.rootSignature = signature;
+
+  combinedMetadata.pixelShaderMetadata = ps.metadata;
+
+  {
+    bindump::ReservingMemoryWriter writer;
+    bindump::streamWrite(combinedMetadata, writer);
+
+    result.metadata->resize((writer.mData.size() + elem_size(*result.metadata) - 1) / elem_size(*result.metadata));
+    eastl::copy(writer.mData.begin(), writer.mData.end(), (uint8_t *)result.metadata->data());
+  }
+
+  bindump::Master<PixelShaderPhaseOneBytecode> combinedBytecode;
+  combinedBytecode.pixelShaderBytecode = ps.bytecode;
+
+  {
+    bindump::ReservingMemoryWriter writer;
+    bindump::streamWrite(combinedBytecode, writer);
+
+    result.bytecode->resize((writer.mData.size() + elem_size(*result.bytecode) - 1) / elem_size(*result.bytecode));
+    eastl::copy(writer.mData.begin(), writer.mData.end(), (uint8_t *)result.bytecode->data());
+  }
+
+  return result;
+}
+
+auto dx12::dxil::recompileVertexProgram(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir, DebugLevel debug_level,
+  bool embed_source) -> eastl::optional<CombinedShaderStorage>
+{
+  auto *metadata = bindump::map<VertexProgramPhaseOneMetadata>((const uint8_t *)source.data());
+  if (!metadata)
+  {
+    return CombinedShaderStorage{};
   }
 
 #if REPORT_PERFORMANCE_METRICS
@@ -1703,100 +2094,124 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
 #endif
 
   eastl::wstring progSignature;
-  if (header->rootSignature.isMesh)
+  if (metadata->rootSignature.isMesh)
   {
-    progSignature = generate_mesh_root_signature_string(header->rootSignature.hasAccelerationStructure,
-      header->rootSignature.hasAmplificationStage, header->rootSignature.hasStreamOutput, header->rootSignature.vsResources,
-      header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature = generate_mesh_root_signature_string(
+      ::dxil::GraphicsMeshRootSignatureExtraProperties{
+        .hasStreamOutput = metadata->rootSignature.hasStreamOutput,
+        .hasAccelerationStructure = metadata->rootSignature.hasAccelerationStructure,
+        .useResourceDescriptorHeapIndexing = metadata->rootSignature.useResourceDescriptorHeapIndexing,
+        .useSamplerDescriptorHeapIndexing = metadata->rootSignature.useSamplerDescriptorHeapIndexing,
+      },
+      metadata->rootSignature.hasAmplificationStage, metadata->rootSignature.vsResources, metadata->rootSignature.gsResources,
+      metadata->rootSignature.psResources);
   }
   else
   {
-    progSignature =
-      generate_root_signature_string(header->rootSignature.hasAccelerationStructure, header->rootSignature.hasVertexInput,
-        header->rootSignature.hasStreamOutput, header->rootSignature.vsResources, header->rootSignature.hsResources,
-        header->rootSignature.dsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature = generate_root_signature_string(
+      ::dxil::GraphicsRootSignatureExtraProperties{
+        .hasVertexInputs = metadata->rootSignature.hasVertexInput,
+        .hasStreamOutput = metadata->rootSignature.hasStreamOutput,
+        .hasAccelerationStructure = metadata->rootSignature.hasAccelerationStructure,
+        .useResourceDescriptorHeapIndexing = metadata->rootSignature.useResourceDescriptorHeapIndexing,
+        .useSamplerDescriptorHeapIndexing = metadata->rootSignature.useSamplerDescriptorHeapIndexing,
+      },
+      metadata->rootSignature.vsResources, metadata->rootSignature.hsResources, metadata->rootSignature.dsResources,
+      metadata->rootSignature.gsResources, metadata->rootSignature.psResources);
   }
 
-  auto vsDecoded = decode_shader_container(header->vertexShader, true);
-  auto hsDecoded = decode_shader_container(header->hullShader, true);
-  auto dsDecoded = decode_shader_container(header->domainShader, true);
-  auto gsDecoded = decode_shader_container(header->geomentryShader, true);
+  auto vsDecodedMetadata = decode_shader_container(metadata->vertexShaderMetadata, true);
+  auto hsDecodedMetadata = decode_shader_container(metadata->hullShaderMetadata, true);
+  auto dsDecodedMetadata = decode_shader_container(metadata->domainShaderMetadata, true);
+  auto gsDecodedMetadata = decode_shader_container(metadata->geomentryShaderMetadata, true);
 
-  auto rebuildVS = recompile_shader(vsDecoded.source.data(), vsDecoded.shader.shaderHeader, vsDecoded.streamOutputComponents,
-    progSignature, platform, hsDecoded.source.size() && dsDecoded.source.size(), gsDecoded.source.size(), pdb_dir, debug_level,
-    embed_source, header->rootSignature.hasStreamOutput);
+  auto [rebuildVSMetadata, rebuildVSBytecode] =
+    recompile_shader(vsDecodedMetadata.source.data(), vsDecodedMetadata.shader.shaderHeader, vsDecodedMetadata.streamOutputComponents,
+      progSignature, platform, hsDecodedMetadata.source.size() && dsDecodedMetadata.source.size(), gsDecodedMetadata.source.size(),
+      pdb_dir, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
 
-  if (rebuildVS.empty())
+  if (rebuildVSMetadata.empty() || rebuildVSBytecode.empty())
   {
     return eastl::nullopt;
   }
 
-  eastl::vector<uint8_t> rebuildHS;
-  if (hsDecoded.source.size())
+  eastl::vector<uint8_t> rebuildHSMetadata, rebuildHSBytecode;
+  if (hsDecodedMetadata.source.size())
   {
-    rebuildHS =
-      recompile_shader(hsDecoded.source.data(), hsDecoded.shader.shaderHeader, hsDecoded.streamOutputComponents, progSignature,
-        platform, true, gsDecoded.source.size(), pdb_dir, debug_level, embed_source, header->rootSignature.hasStreamOutput);
-    if (rebuildHS.empty())
+    eastl::tie(rebuildHSMetadata, rebuildHSBytecode) = recompile_shader(hsDecodedMetadata.source.data(),
+      hsDecodedMetadata.shader.shaderHeader, hsDecodedMetadata.streamOutputComponents, progSignature, platform, true,
+      gsDecodedMetadata.source.size(), pdb_dir, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
+    if (rebuildHSMetadata.empty() || rebuildHSBytecode.empty())
     {
       return eastl::nullopt;
     }
   }
 
-  eastl::vector<uint8_t> rebuildDS;
-  if (dsDecoded.source.size())
+  eastl::vector<uint8_t> rebuildDSMetadata, rebuildDSBytecode;
+  if (dsDecodedMetadata.source.size())
   {
-    rebuildDS = recompile_shader(dsDecoded.source.data(), dsDecoded.shader.shaderHeader, {}, progSignature, platform, true,
-      gsDecoded.source.size(), pdb_dir, debug_level, embed_source, header->rootSignature.hasStreamOutput);
-    if (rebuildDS.empty())
+    eastl::tie(rebuildDSMetadata, rebuildDSBytecode) =
+      recompile_shader(dsDecodedMetadata.source.data(), dsDecodedMetadata.shader.shaderHeader, {}, progSignature, platform, true,
+        gsDecodedMetadata.source.size(), pdb_dir, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
+    if (rebuildDSMetadata.empty() || rebuildDSBytecode.empty())
     {
       return eastl::nullopt;
     }
   }
 
-  eastl::vector<uint8_t> rebuildGS;
-  if (gsDecoded.source.size())
+  eastl::vector<uint8_t> rebuildGSMetadata, rebuildGSBytecode;
+  if (gsDecodedMetadata.source.size())
   {
-    rebuildGS = recompile_shader(gsDecoded.source.data(), gsDecoded.shader.shaderHeader, gsDecoded.streamOutputComponents,
-      progSignature, platform, hsDecoded.source.size() && dsDecoded.source.size(), true, pdb_dir, debug_level, embed_source,
-      header->rootSignature.hasStreamOutput);
-    if (rebuildGS.empty())
+    eastl::tie(rebuildGSMetadata, rebuildGSBytecode) = recompile_shader(gsDecodedMetadata.source.data(),
+      gsDecodedMetadata.shader.shaderHeader, gsDecodedMetadata.streamOutputComponents, progSignature, platform,
+      hsDecodedMetadata.source.size() && dsDecodedMetadata.source.size(), true, pdb_dir, debug_level, embed_source,
+      metadata->rootSignature.hasStreamOutput);
+    if (rebuildGSMetadata.empty() || rebuildGSBytecode.empty())
     {
       return eastl::nullopt;
     }
   }
 
-  auto vsSlice = make_span(reinterpret_cast<unsigned *>(rebuildVS.data()), rebuildVS.size() / sizeof(unsigned));
-  auto newProg = eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>();
-  if (!rebuildHS.empty() || !rebuildDS.empty() || !rebuildGS.empty())
+  ShaderStageData vs{
+    rebuildVSMetadata, make_span(reinterpret_cast<unsigned *>(rebuildVSBytecode.data()), rebuildVSBytecode.size() / sizeof(unsigned))};
+  CombinedShaderStorage newProg = {
+    eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>(), eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>()};
+  if (!rebuildHSMetadata.empty() || !rebuildDSMetadata.empty() || !rebuildGSMetadata.empty())
   {
-    dag::ConstSpan<unsigned> hsSlice, dsSlice, gsSlice;
-    if (!rebuildHS.empty())
-      hsSlice.set(reinterpret_cast<unsigned *>(rebuildHS.data()), rebuildHS.size() / sizeof(unsigned));
-    if (!rebuildDS.empty())
-      dsSlice.set(reinterpret_cast<unsigned *>(rebuildDS.data()), rebuildDS.size() / sizeof(unsigned));
-    if (!rebuildGS.empty())
-      gsSlice.set(reinterpret_cast<unsigned *>(rebuildGS.data()), rebuildGS.size() / sizeof(unsigned));
+    ShaderStageData hs, ds, gs;
+    if (!rebuildHSMetadata.empty())
+      hs = {rebuildHSMetadata,
+        make_span(reinterpret_cast<unsigned *>(rebuildHSBytecode.data()), rebuildHSBytecode.size() / sizeof(unsigned))};
+    ;
+    if (!rebuildDSMetadata.empty())
+      ds = {rebuildDSMetadata,
+        make_span(reinterpret_cast<unsigned *>(rebuildDSBytecode.data()), rebuildDSBytecode.size() / sizeof(unsigned))};
+    if (!rebuildGSMetadata.empty())
+      gs = {rebuildGSMetadata,
+        make_span(reinterpret_cast<unsigned *>(rebuildGSBytecode.data()), rebuildGSBytecode.size() / sizeof(unsigned))};
 
-    combineShaders(*newProg, vsSlice, hsSlice, dsSlice, gsSlice, header->magic);
+    combineShaders(*newProg.metadata, *newProg.bytecode, vs, hs, ds, gs, metadata->magic);
   }
   else
   {
-    clear_and_resize(*newProg, vsSlice.size() + 1);
-    (*newProg)[0] = header->magic;
-    mem_copy_from(make_span(*newProg).subspan(1), vsSlice.data());
+    clear_and_resize(*newProg.metadata, data_size(vs.metadata) / sizeof(unsigned) + 1);
+    (*newProg.metadata)[0] = metadata->magic;
+    mem_copy_from(make_span(*newProg.metadata).subspan(1), vs.metadata.data());
+
+    clear_and_resize(*newProg.bytecode, data_size(vs.bytecode) / sizeof(unsigned));
+    mem_copy_from(make_span(*newProg.bytecode), vs.bytecode.data());
   }
 
   return newProg;
 }
 
-eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::recompilePixelSader(dag::ConstSpan<unsigned> source,
-  Platform platform, wchar_t *pdb_dir, DebugLevel debug_level, bool embed_source)
+auto dx12::dxil::recompilePixelShader(dag::ConstSpan<uint8_t> source, Platform platform, wchar_t *pdb_dir, DebugLevel debug_level,
+  bool embed_source) -> eastl::optional<CombinedShaderStorage>
 {
-  auto *header = bindump::map<PixelShaderPhaseOne>((const uint8_t *)source.data());
-  if (!header)
+  auto *metadata = bindump::map<PixelShaderPhaseOneMetadata>((const uint8_t *)source.data());
+  if (!metadata)
   {
-    return eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>{};
+    return CombinedShaderStorage{};
   }
 
 #if REPORT_PERFORMANCE_METRICS
@@ -1804,55 +2219,70 @@ eastl::optional<eastl::unique_ptr<SmallTab<unsigned, TmpmemAlloc>>> dx12::dxil::
 #endif
 
   eastl::wstring progSignature;
-  if (header->rootSignature.isMesh)
+  if (metadata->rootSignature.isMesh)
   {
-    progSignature = generate_mesh_root_signature_string(header->rootSignature.hasAccelerationStructure,
-      header->rootSignature.hasAmplificationStage, header->rootSignature.hasStreamOutput, header->rootSignature.vsResources,
-      header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature = generate_mesh_root_signature_string(
+      ::dxil::GraphicsMeshRootSignatureExtraProperties{
+        .hasStreamOutput = metadata->rootSignature.hasStreamOutput,
+        .hasAccelerationStructure = metadata->rootSignature.hasAccelerationStructure,
+        .useResourceDescriptorHeapIndexing = metadata->rootSignature.useResourceDescriptorHeapIndexing,
+        .useSamplerDescriptorHeapIndexing = metadata->rootSignature.useSamplerDescriptorHeapIndexing,
+      },
+      metadata->rootSignature.hasAmplificationStage, metadata->rootSignature.vsResources, metadata->rootSignature.gsResources,
+      metadata->rootSignature.psResources);
   }
   else
   {
-    progSignature =
-      generate_root_signature_string(header->rootSignature.hasAccelerationStructure, header->rootSignature.hasVertexInput,
-        header->rootSignature.hasStreamOutput, header->rootSignature.vsResources, header->rootSignature.hsResources,
-        header->rootSignature.dsResources, header->rootSignature.gsResources, header->rootSignature.psResources);
+    progSignature = generate_root_signature_string(
+      ::dxil::GraphicsRootSignatureExtraProperties{
+        .hasVertexInputs = metadata->rootSignature.hasVertexInput,
+        .hasStreamOutput = metadata->rootSignature.hasStreamOutput,
+        .hasAccelerationStructure = metadata->rootSignature.hasAccelerationStructure,
+        .useResourceDescriptorHeapIndexing = metadata->rootSignature.useResourceDescriptorHeapIndexing,
+        .useSamplerDescriptorHeapIndexing = metadata->rootSignature.useSamplerDescriptorHeapIndexing,
+      },
+      metadata->rootSignature.vsResources, metadata->rootSignature.hsResources, metadata->rootSignature.dsResources,
+      metadata->rootSignature.gsResources, metadata->rootSignature.psResources);
   }
 
   DecodedShaderContainer psDecoded;
   // null shader check, we only store signature
   char nullShaderStore[64];
   ::dxil::ShaderHeader defaultShaderHeader = {};
-  if (header->pixelShader.empty())
+  if (metadata->pixelShaderMetadata.empty())
   {
-    bool skipValidation = 0 != (header->compilationFlags & COMPILATION_FLAG_SKIP_VALIDATION);
-    bool optimize = 0 != (header->compilationFlags & COMPILATION_FLAG_OPTIMIZE);
-    bool debugInfo = 0 != (header->compilationFlags & COMPILATION_FLAG_DEBUG_INFO);
-    bool scarlettW32 = 0 != (header->compilationFlags & COMPILATION_FLAG_SCARLETT_W32);
-    bool hlsl2021 = 0 != (header->compilationFlags & COMPILATION_FLAG_HLSL2021);
-    bool enableFp16 = 0 != (header->compilationFlags & COMPILATION_FLAG_ENABLEFP16);
+    bool skipValidation = 0 != (metadata->compilationFlags & COMPILATION_FLAG_SKIP_VALIDATION);
+    bool optimize = 0 != (metadata->compilationFlags & COMPILATION_FLAG_OPTIMIZE);
+    bool debugInfo = 0 != (metadata->compilationFlags & COMPILATION_FLAG_DEBUG_INFO);
+    bool scarlettW32 = 0 != (metadata->compilationFlags & COMPILATION_FLAG_SCARLETT_W32);
+    bool hlsl2021 = 0 != (metadata->compilationFlags & COMPILATION_FLAG_HLSL2021);
+    bool enableFp16 = 0 != (metadata->compilationFlags & COMPILATION_FLAG_ENABLEFP16);
     psDecoded = get_null_shader_container(defaultShaderHeader, hlsl2021, enableFp16, skipValidation, optimize, debugInfo, scarlettW32,
       nullShaderStore, sizeof(nullShaderStore));
   }
   else
   {
-    psDecoded = decode_shader_container(header->pixelShader, true);
+    psDecoded = decode_shader_container(metadata->pixelShaderMetadata, true);
   }
 
-  bool hasTS = 0 != (header->compilationFlags & COMPILATION_FLAG_HAS_HD_DS);
-  bool hasGS = 0 != (header->compilationFlags & COMPILATION_FLAG_HAS_GS);
-  auto rebuildPS = recompile_shader(psDecoded.source.data(), psDecoded.shader.shaderHeader, {}, progSignature, platform, hasTS, hasGS,
-    pdb_dir, debug_level, embed_source, header->rootSignature.hasStreamOutput);
+  bool hasTS = 0 != (metadata->compilationFlags & COMPILATION_FLAG_HAS_HD_DS);
+  bool hasGS = 0 != (metadata->compilationFlags & COMPILATION_FLAG_HAS_GS);
+  auto [rebuildPSMetadata, rebuildPSBytecode] = recompile_shader(psDecoded.source.data(), psDecoded.shader.shaderHeader, {},
+    progSignature, platform, hasTS, hasGS, pdb_dir, debug_level, embed_source, metadata->rootSignature.hasStreamOutput);
 
-  if (rebuildPS.empty())
+  if (rebuildPSMetadata.empty() || rebuildPSBytecode.empty())
   {
     return eastl::nullopt;
   }
 
-  auto psSlice = make_span(reinterpret_cast<unsigned *>(rebuildPS.data()), rebuildPS.size() / sizeof(unsigned));
-  auto newProg = eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>();
-  clear_and_resize(*newProg, psSlice.size() + 1);
-  (*newProg)[0] = header->magic;
-  mem_copy_from(make_span(*newProg).subspan(1), psSlice.data());
+  CombinedShaderStorage newProg{
+    eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>(), eastl::make_unique<SmallTab<unsigned, TmpmemAlloc>>()};
+  clear_and_resize(*newProg.metadata, rebuildPSMetadata.size() / sizeof(unsigned) + 1);
+  (*newProg.metadata)[0] = metadata->magic;
+  mem_copy_from(make_span(*newProg.metadata).subspan(1), rebuildPSMetadata.data());
+
+  clear_and_resize(*newProg.bytecode, rebuildPSBytecode.size() / sizeof(unsigned));
+  mem_copy_from(make_span(*newProg.bytecode), rebuildPSBytecode.data());
 
   return newProg;
 }

@@ -25,6 +25,7 @@
 
 #include "elementTree.h"
 #include "guiScene.h"
+#include "kbFocus.h"
 #include "textUtil.h"
 #include "stdRendObj.h"
 #include "dargDebugUtils.h"
@@ -91,9 +92,10 @@ int BhvTextInput::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, 
 
   if (event == INP_EV_PRESS)
   {
-    if (etree->guiScene->config.kbCursorControl && (key_idx == DKEY_UP || key_idx == DKEY_DOWN) && !etree->hasCapturedKbFocus())
+    if (etree->guiScene->config.kbCursorControl && (key_idx == DKEY_UP || key_idx == DKEY_DOWN) &&
+        !etree->guiScene->kbFocus.hasCapturedFocus())
     {
-      etree->setKbFocus(nullptr);
+      etree->guiScene->kbFocus.setFocus(nullptr);
       return R_PROCESSED;
     }
 
@@ -310,7 +312,6 @@ void BhvTextInput::apply_new_value(Element *elem, const char *new_value)
                                 //< Maybe it makes sense to return resulting text from
                                 //< script handler
   discard_text_cache(elem->robjParams);
-  elem->textSizeCache = Point2(-1, -1);
 
   Sqrat::Function onChange = elem->props.scriptDesc.GetFunction(elem->csk->onChange);
   if (!onChange.IsNull())
@@ -331,7 +332,7 @@ void BhvTextInput::scroll_to_cursor(Element *elem)
 
   cursorPos = clamp(cursorPos, 0, wlen);
   Point2 tsz = calc_text_size_u(wtext.data(), cursorPos, params->fontId, params->spacing, params->monoWidth, params->fontHt);
-  float visWidth = elem->screenCoord.size.x - elem->layout.padding.left() - elem->layout.padding.right();
+  float visWidth = elem->screenCoord.size.x - elem->layout.padding().l - elem->layout.padding().r;
   float minVisX = elem->screenCoord.scrollOffs.x;
   float maxVisX = elem->screenCoord.scrollOffs.x + visWidth;
 
@@ -393,8 +394,8 @@ int BhvTextInput::text_width_to_char_idx_u(Element *elem, int width_px, Tab<wcha
   return res;
 }
 
-int BhvTextInput::mouseEvent(ElementTree *etree, Element *elem, InputDevice /*device*/, InputEvent event, int /*pointer_id*/,
-  int /*data*/, short mx, short my, int /*buttons*/, int accum_res)
+int BhvTextInput::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/,
+  int /*data*/, Point2 pos, int accum_res)
 {
   if (event == INP_EV_MOUSE_WHEEL || event == INP_EV_POINTER_MOVE)
     return 0;
@@ -402,31 +403,30 @@ int BhvTextInput::mouseEvent(ElementTree *etree, Element *elem, InputDevice /*de
   if (elem->rendObjType != rendobj_text_id)
     return 0;
 
-  if (event == INP_EV_RELEASE && elem->hitTest(mx, my))
-    return R_PROCESSED;
+  // old logic, to be reviewed
 
-  if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTest(mx, my) && !etree->hasCapturedKbFocus())
+  if (device == DEVID_TOUCH)
   {
-    etree->setKbFocus(elem);
-    position_cursor_on_click(elem, Point2(mx, my));
-    return R_PROCESSED;
+    if (event == INP_EV_RELEASE && !(accum_res & R_PROCESSED) && elem->hitTest(pos) && !etree->guiScene->kbFocus.hasCapturedFocus())
+    {
+      etree->guiScene->kbFocus.setFocus(elem);
+      position_cursor_on_click(elem, pos);
+      return R_PROCESSED;
+    }
   }
-  return 0;
-}
-
-
-int BhvTextInput::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/,
-  int /*touch_idx*/, const HumanInput::PointingRawState::Touch &touch, int accum_res)
-{
-  if (elem->rendObjType != rendobj_text_id)
-    return 0;
-
-  if (event == INP_EV_RELEASE && !(accum_res & R_PROCESSED) && elem->hitTest(touch.x, touch.y) && !etree->hasCapturedKbFocus())
+  else
   {
-    etree->setKbFocus(elem);
-    position_cursor_on_click(elem, Point2(touch.x, touch.y));
-    return R_PROCESSED;
+    if (event == INP_EV_RELEASE && elem->hitTest(pos))
+      return R_PROCESSED;
+
+    if (event == INP_EV_PRESS && !(accum_res & R_PROCESSED) && elem->hitTest(pos) && !etree->guiScene->kbFocus.hasCapturedFocus())
+    {
+      etree->guiScene->kbFocus.setFocus(elem);
+      position_cursor_on_click(elem, pos);
+      return R_PROCESSED;
+    }
   }
+
   return 0;
 }
 
@@ -434,7 +434,7 @@ int BhvTextInput::touchEvent(ElementTree *etree, Element *elem, InputEvent event
 int BhvTextInput::joystickBtnEvent(ElementTree *etree, Element *elem, const HumanInput::IGenJoystick *, InputEvent event, int btn_idx,
   int /*device_number*/, const HumanInput::ButtonBits & /*buttons*/, int accum_res)
 {
-  if (::dgs_app_active && event == INP_EV_RELEASE && elem == etree->kbFocus && !(accum_res & R_PROCESSED))
+  if (::dgs_app_active && event == INP_EV_RELEASE && elem == etree->guiScene->kbFocus.focus && !(accum_res & R_PROCESSED))
   {
     int imeOpenJoyBtn = JOY_XINPUT_REAL_BTN_L_TRIGGER;
 
@@ -468,6 +468,19 @@ void BhvTextInput::onAttach(Element *elem)
 void BhvTextInput::onDetach(Element *elem, DetachMode) { close_ime(elem); }
 
 
+void BhvTextInput::onKbFocusChange(Element *elem, bool focused)
+{
+  bool imeOnFocus = elem->props.scriptDesc.RawGetSlotValue<bool>("imeOnFocus", false);
+  if (imeOnFocus)
+  {
+    if (focused)
+      open_ime(elem);
+    else
+      close_ime(elem);
+  }
+}
+
+
 #if _TARGET_HAS_IME
 
 void BhvTextInput::on_ime_finish(void *ud, const char *str, int cursor, int status)
@@ -475,7 +488,7 @@ void BhvTextInput::on_ime_finish(void *ud, const char *str, int cursor, int stat
   if (status < 0)
     return;
 
-  bool applied = (status == 1);
+  bool applied = (status == HumanInput::IME_STATUS_UPDATED || status == HumanInput::IME_STATUS_CLOSED);
 
   Element *elem = (Element *)ud;
   if (applied)
@@ -512,16 +525,23 @@ void BhvTextInput::on_ime_finish(void *ud, const char *str, int cursor, int stat
 
     apply_new_value(elem, str);
 
-    elem->props.storage.SetValue(elem->csk->cursorPos, cursor < 0 ? elem->props.text.length() : cursor);
+    int prevCursorPos = elem->props.storage.RawGetSlotValue(elem->csk->cursorPos, -999);
+    int cursorPos = cursor >= 0 ? cursor : elem->props.text.length();
+    elem->props.storage.SetValue(elem->csk->cursorPos, cursorPos);
 
-    close_ime(elem);
+    if (cursorPos != prevCursorPos)
+      scroll_to_cursor(elem);
   }
 
-  Sqrat::Object cbFunc = elem->props.scriptDesc.RawGetSlot("onImeFinish");
-  if (!cbFunc.IsNull())
+  if (status == HumanInput::IME_STATUS_CLOSED)
   {
-    Sqrat::Function f(cbFunc.GetVM(), Sqrat::Object(cbFunc.GetVM()), cbFunc);
-    GuiScene::get_from_elem(elem)->queueScriptHandler(new ScriptHandlerSqFunc<bool>(f, applied));
+    close_ime(elem);
+    Sqrat::Object cbFunc = elem->props.scriptDesc.RawGetSlot("onImeFinish");
+    if (!cbFunc.IsNull())
+    {
+      Sqrat::Function f(cbFunc.GetVM(), Sqrat::Object(cbFunc.GetVM()), cbFunc);
+      GuiScene::get_from_elem(elem)->queueScriptHandler(new ScriptHandlerSqFunc<bool>(f, applied));
+    }
   }
 }
 
@@ -540,10 +560,10 @@ void BhvTextInput::open_ime(Element *elem)
     DataBlock params;
     Sqrat::Object title = elem->props.getObject(elem->csk->title);
     if (title.GetType() == OT_STRING)
-      params.setStr("title", title.GetVar<const SQChar *>().value);
+      params.setStr("title", title.GetVar<const char *>().value);
     Sqrat::Object hint = elem->props.getObject(elem->csk->hint);
     if (hint.GetType() == OT_STRING)
-      params.setStr("hint", hint.GetVar<const SQChar *>().value);
+      params.setStr("hint", hint.GetVar<const char *>().value);
 
     params.setStr("str", elem->props.text.c_str());
     params.setInt("maxChars", elem->props.getInt(elem->csk->maxChars, 512));
@@ -557,7 +577,7 @@ void BhvTextInput::open_ime(Element *elem)
 
     Sqrat::Object inputType = elem->props.getObject(elem->csk->inputType);
     if (inputType.GetType() == OT_STRING)
-      params.setStr("type", inputType.GetVar<const SQChar *>().value);
+      params.setStr("type", inputType.GetVar<const char *>().value);
     else if (inputType.GetType() != OT_NULL)
       darg_assert_trace_var("inputType must be string", elem->props.scriptDesc, elem->csk->inputType);
 

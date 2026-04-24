@@ -2,7 +2,9 @@
 #pragma once
 
 #include <propPanel/control/propertyControlBase.h>
+#include <propPanel/control/dragAndDropHandler.h>
 #include <propPanel/imguiHelper.h>
+#include "../c_constants.h"
 #include "../scopedImguiBeginDisabled.h"
 #include <gui/dag_imguiUtil.h>
 #include <imgui/imgui_internal.h>
@@ -15,9 +17,15 @@ class EditBoxPropertyControl : public PropertyControlBase
 {
 public:
   EditBoxPropertyControl(int id, ControlEventHandler *event_handler, ContainerPropertyControl *parent, int x, int y, hdpi::Px w,
-    hdpi::Px h, const char caption[], bool multiline = false) :
-    PropertyControlBase(id, event_handler, parent, x, y, w, h), controlCaption(caption), controlMultiline(multiline)
-  {}
+    hdpi::Px h, const char caption[], bool multiline = false, bool auto_height = false) :
+    PropertyControlBase(id, event_handler, parent, x, y, w, h),
+    controlCaption(caption),
+    controlMultiline(multiline),
+    autoHeight(auto_height)
+  {
+    if (autoHeight && controlMultiline)
+      recalcAutoHeight();
+  }
 
   ~EditBoxPropertyControl() override
   {
@@ -38,6 +46,9 @@ public:
 
     controlValue = value;
 
+    if (autoHeight && controlMultiline)
+      recalcAutoHeight();
+
     if (textInputFocused)
       focusedTextInputChangedByCode = true;
 
@@ -47,6 +58,14 @@ public:
   void setCaptionValue(const char value[]) override { controlCaption = value; }
 
   void setBoolValue(bool value) override { needColorIndicate = value; }
+
+  void setDragSourceHandlerValue(IDragSourceHandler *handler) override { controlDragHandler = handler; }
+
+  void setDropTargetHandler(IDropTargetHandler *handler) override { controlDropTargetHandler = handler; }
+
+  void setValueHighlight(ColorOverride::ColorIndex color) override { valueHighlightColor = color; }
+
+  void setShowTooltipAlways(bool show) override { showTooltipAlways = show; }
 
   int getTextValue(char *buffer, int buflen) const override
   {
@@ -59,16 +78,32 @@ public:
 
   void updateImgui() override
   {
+    const float controlScreenTopY = ImGui::GetCursorScreenPos().y;
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
-    ImguiHelper::separateLineLabel(controlCaption);
+    separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
+
+    // Drag source is anchored to the caption label (rendered just above), not to the text input.
+    // This avoids conflict with text selection inside the input field.
+    if (controlDragHandler && !controlCaption.empty())
+    {
+      if (ImGui::BeginDragDropSource(controlDragHandler->getDragDropFlags() | ImGuiDragDropFlags_SourceAllowNullID))
+      {
+        controlDragHandler->onBeginDrag(mId);
+        ImGui::EndDragDropSource();
+      }
+    }
+
     setFocusToNextImGuiControlIfRequested();
 
-    const bool useIndicatorColor = needColorIndicate;
+    const bool useValueHighlight = valueHighlightColor != ColorOverride::NONE;
+    const bool useIndicatorColor = !useValueHighlight && needColorIndicate;
 
     // Override the background color of the edit box.
-    if (useIndicatorColor)
-      ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(0, 255, 0, 255));
+    if (useValueHighlight)
+      ImGui::PushStyleColor(ImGuiCol_FrameBg, getOverriddenColor(valueHighlightColor));
+    else if (useIndicatorColor)
+      ImGui::PushStyleColor(ImGuiCol_FrameBg, getOverriddenColor(ColorOverride::EDIT_BOX_INDICATOR_BACKGROUND));
 
     // Workaround needed to be able to set text of a focused text input.
     // See: https://github.com/ocornut/imgui/issues/7482
@@ -85,6 +120,26 @@ public:
     bool textChanged;
     if (controlMultiline)
     {
+      if (autoHeight && textInputFocused)
+      {
+        // ImGui appends text to controlValue inside InputTextMultiline, so recalcAutoHeight() after the call
+        // will always be one frame late. Pre-expand height before the call to avoid a one-frame scrollbar flash.
+        if (ImGui::IsKeyPressed(ImGuiKey_Enter))
+          recalcAutoHeight(/*extra_lines*/ 1);
+        else if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_V))
+        {
+          // For paste, read the clipboard to know how many lines will be added.
+          // recalcAutoHeight() after the call will correct the exact value (e.g. if pasted text replaced a selection).
+          int pastedLines = 0;
+          if (const char *clipboard = ImGui::GetClipboardText())
+            for (const char *p = clipboard; *p; ++p)
+              if (*p == '\n')
+                ++pastedLines;
+          if (pastedLines > 0)
+            recalcAutoHeight(/*extra_lines*/ pastedLines);
+        }
+      }
+
       // Use full width by default.
       const ImVec2 size(mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : -FLT_MIN, mH > 0 ? mH : 0.0f);
 
@@ -100,13 +155,42 @@ public:
 
     textInputFocused = ImGui::IsItemFocused();
 
-    if (useIndicatorColor)
+    if (useValueHighlight || useIndicatorColor)
       ImGui::PopStyleColor();
 
-    setPreviousImguiControlTooltip();
+    if (showTooltipAlways)
+    {
+      const char *tooltip = getTooltip();
+      if (tooltip && *tooltip)
+      {
+        // Anchor the hint above the input field
+        // Use a regular window, not tooltip layer for avoid render on top of other windows
+        const ImVec2 fieldTopLeft = ImGui::GetItemRectMin();
+        const float displayWidth = ImGui::GetIO().DisplaySize.x;
+        const float hintX = ImClamp(fieldTopLeft.x, 0.0f, ImMax(0.0f, displayWidth - hintWindowSize.x));
+        ImGui::SetNextWindowPos(ImVec2(hintX, fieldTopLeft.y), ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+        ImGui::SetNextWindowBgAlpha(ImGui::GetStyle().Colors[ImGuiCol_PopupBg].w);
+        const ImGuiWindowFlags hintFlags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoMove |
+                                           ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking |
+                                           ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing;
+        const String windowId(0, "##editbox_hint_%d", mId);
+        if (ImGui::Begin(windowId.c_str(), nullptr, hintFlags))
+        {
+          ImGui::TextUnformatted(tooltip);
+          hintWindowSize = ImGui::GetWindowSize();
+        }
+        ImGui::End();
+      }
+    }
+    else
+      setPreviousImguiControlTooltip();
 
     if (textChanged)
+    {
+      if (autoHeight && controlMultiline)
+        recalcAutoHeight();
       onWcChange(nullptr);
+    }
 
     if (textInputFocused && !controlMultiline)
     {
@@ -136,6 +220,21 @@ public:
         onWcKeyDown(nullptr, wingw::V_DOWN);
       }
     }
+
+    if (controlDropTargetHandler)
+    {
+      const ImGuiID dropTargetId = ImGui::GetItemID();
+      const float halfSpacing =
+        (mParent ? (float)mParent->getVerticalSpaceBetweenControls() : hdpi::_pxS(Constants::DEFAULT_CONTROLS_INTERVAL)) * 0.5f;
+      const ImVec2 rectMin(ImGui::GetItemRectMin().x, controlScreenTopY - halfSpacing);
+      const ImVec2 rectMax(ImGui::GetItemRectMax().x, ImGui::GetItemRectMax().y + halfSpacing);
+      if (dropTargetId != 0 && ImGui::BeginDragDropTargetCustom(ImRect(rectMin, rectMax), dropTargetId))
+      {
+        const DragAndDropResult result = controlDropTargetHandler->handleDropTarget(mId, mParent);
+        handleDragAndDropNotAllowed(result);
+        ImGui::EndDragDropTarget();
+      }
+    }
   }
 
 private:
@@ -154,12 +253,23 @@ private:
     ImGuiContext *context = ImGui::GetCurrentContext();
     if (context)
     {
-      // ImGui::IsItemDeactivatedAfterEdit() checks these two variables.
-      context->ActiveIdPreviousFrameHasBeenEditedBefore = false;
-      context->ActiveIdHasBeenEditedBefore = false;
+      // ImGui::IsItemDeactivatedAfterEdit() checks this variable.
+      context->DeactivatedItemData.HasBeenEditedBefore = false;
     }
   }
 
+  void recalcAutoHeight(int extra_lines = 0)
+  {
+    int lineCount = 1;
+    for (char c : controlValue)
+      if (c == '\n')
+        ++lineCount;
+    int height = (lineCount + extra_lines) * ImGui::GetFontSize() + ImGui::GetStyle().FramePadding.y * 2.0f;
+    setHeight(hdpi::_pxActual(height));
+  }
+
+  IDragSourceHandler *controlDragHandler = nullptr;
+  IDropTargetHandler *controlDropTargetHandler = nullptr;
   String controlCaption;
   String controlValue;
   bool controlEnabled = true;
@@ -167,6 +277,10 @@ private:
   bool needColorIndicate = false;
   bool textInputFocused = false;
   bool focusedTextInputChangedByCode = false;
+  ColorOverride::ColorIndex valueHighlightColor = ColorOverride::NONE;
+  bool showTooltipAlways = false;
+  bool autoHeight = false;
+  ImVec2 hintWindowSize = ImVec2(0.0f, 0.0f);
 };
 
 } // namespace PropPanel

@@ -1,10 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <gamePhys/phys/rendinstFloating.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/props/atmosphere.h>
@@ -53,19 +57,19 @@ ECS_REGISTER_EVENT(EventMoveRiEx);
 ECS_DECLARE_BOXED_TYPE(FFTWater);
 
 template <typename Callable>
-inline void get_camera_pos_ecs_query(Callable c);
+inline void get_camera_pos_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void get_obstacles_ecs_query(Callable c);
+inline void get_obstacles_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-static void find_floatable_group_for_res_ecs_query(Callable c);
+static void find_floatable_group_for_res_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void update_floating_rendinst_instances_ecs_query(Callable c);
+inline void update_floating_rendinst_instances_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void construct_floating_volumes_ecs_query(Callable c);
+inline void construct_floating_volumes_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void draw_rendinst_floating_volumes_ecs_query(Callable c);
+inline void draw_rendinst_floating_volumes_ecs_query(ecs::EntityManager &manager, Callable c);
 template <typename Callable>
-inline void draw_floating_phys_ripples_ecs_query(Callable c);
+inline void draw_floating_phys_ripples_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static float frac(float v) { return v - floorf(v); }
 
@@ -90,12 +94,12 @@ static Point3 calculate_center_of_gravity(BSphere3 *volumes, int count)
   return centerOfGravity;
 }
 
-static dag::Vector<Obstacle, framemem_allocator> get_obstacles(vec3f cam_pos, float max_dist_sq)
+static dag::Vector<Obstacle, framemem_allocator> get_obstacles(ecs::EntityManager &manager, vec3f cam_pos, float max_dist_sq)
 {
   static int reserveCnt = 0; // TODO: move to floating_rendinst_res_group component
   dag::Vector<Obstacle, framemem_allocator> obstacles;
   obstacles.reserve(reserveCnt); // Reduce number of allocations by reserving a maximum between frames.
-  get_obstacles_ecs_query([&](const TMatrix &transform, const Point3 &deform_bbox__bmin, const Point3 &deform_bbox__bmax) {
+  get_obstacles_ecs_query(manager, [&](const TMatrix &transform, const Point3 &deform_bbox__bmin, const Point3 &deform_bbox__bmax) {
     if (v_test_vec_x_gt(v_length3_sq_x(v_sub(cam_pos, v_ldu(transform.m[3]))), v_set_x(max_dist_sq)))
       return;
 
@@ -117,11 +121,11 @@ static float get_water_ripples_noise(Point3 pos)
   return 2.0f * perlin_noise::noise3(&pos.x); // noise3() returns values in about [-0.5, 0.5] range.
 }
 
-static inline vec3f get_camera_pos()
+static inline vec3f get_camera_pos(ecs::EntityManager &manager)
 {
   bool found = false;
   vec3f ret;
-  get_camera_pos_ecs_query([&](const TMatrix &transform ECS_REQUIRE(eastl::true_type camera__active, ecs::Tag camera_view)) {
+  get_camera_pos_ecs_query(manager, [&](const TMatrix &transform ECS_REQUIRE(eastl::true_type camera__active, ecs::Tag camera_view)) {
     ret = v_ldu(transform.m[3]);
     found = true;
   });
@@ -431,10 +435,11 @@ static void update_floating_phys(float at_time, int &cur_tick, int interaction_t
   phys.visualLoc = loc;
 }
 
-static ecs::EntityId find_floatable_group_for_res(const char *res_name, ecs::EntityId exclude_eid = ecs::INVALID_ENTITY_ID)
+static ecs::EntityId find_floatable_group_for_res(ecs::EntityManager &manager, const char *res_name,
+  ecs::EntityId exclude_eid = ecs::INVALID_ENTITY_ID)
 {
   ecs::EntityId result = ecs::INVALID_ENTITY_ID;
-  find_floatable_group_for_res_ecs_query([&](ecs::EntityId eid, const ecs::string &floatingRiGroup__resName) {
+  find_floatable_group_for_res_ecs_query(manager, [&](ecs::EntityId eid, const ecs::string &floatingRiGroup__resName) {
     if (eid != exclude_eid && floatingRiGroup__resName == res_name)
       result = eid;
   });
@@ -462,10 +467,10 @@ static inline void for_each_floatable_ri_blk(const DataBlock &ri_config, bool us
   }
 }
 
-static void init_floating_ri_res_groups_impl(const DataBlock &ri_config, bool use_subblock_name)
+static void init_floating_ri_res_groups_impl(ecs::EntityManager &mgr, const DataBlock &ri_config, bool use_subblock_name)
 {
   for_each_floatable_ri_blk(ri_config, use_subblock_name, [&](const char *riResName, const DataBlock *b) {
-    if (find_floatable_group_for_res(riResName) != ecs::INVALID_ENTITY_ID)
+    if (find_floatable_group_for_res(mgr, riResName) != ecs::INVALID_ENTITY_ID)
       return true; // Floating groups, created through level entities, have higher priority.
 
     int interactionType = b->getInt("interactionType", 0);
@@ -489,7 +494,7 @@ static void init_floating_ri_res_groups_impl(const DataBlock &ri_config, bool us
     ECS_INIT(attrs, floatingRiGroup__viscosity, max(0.0f, b->getReal("viscosity", 0.57f)));
     ECS_INIT(attrs, floatingRiGroup__minDistToGround, b->getReal("minDistToGround", -1e6f));
 
-    g_entity_mgr->createEntitySync("floating_rendinst_res_group", eastl::move(attrs));
+    mgr.createEntitySync("floating_rendinst_res_group", eastl::move(attrs));
 
     return true;
   });
@@ -502,7 +507,8 @@ void rendinstfloating::init_floating_ri_res_groups(const DataBlock *ri_config, b
 
   for_each_floatable_ri_blk(*ri_config, use_subblock_name, [&](const char *, const DataBlock *) {
     DataBlock cfg = *ri_config;
-    delayed_call([cfg = eastl::move(cfg), use_subblock_name]() { init_floating_ri_res_groups_impl(cfg, use_subblock_name); });
+    delayed_call(
+      [cfg = eastl::move(cfg), use_subblock_name]() { init_floating_ri_res_groups_impl(*g_entity_mgr, cfg, use_subblock_name); });
     return false;
   });
 }
@@ -510,7 +516,9 @@ void rendinstfloating::init_floating_ri_res_groups(const DataBlock *ri_config, b
 ECS_TAG(gameClient)
 static void move_floating_rendinsts_es(const EventMoveRiEx &evt)
 {
-  if (rendinst::isRiExtraLoaded()) // Could be false if this event is executing during scene unload where RIs already unloaded
+  // check if we are in scene unloading or if RI was destroyed
+  // to consider: don't use this event at all, as in theory handle could be re-used between it is sent and received
+  if (rendinst::isRiExtraLoaded() && rendinst::isRiGenDescValid(rendinst::RendInstDesc(evt.get<0>())))
   {
     mat44f m4;
     v_mat44_make_from_43cu(m4, evt.get<1>().array);
@@ -519,14 +527,15 @@ static void move_floating_rendinsts_es(const EventMoveRiEx &evt)
 }
 
 ECS_TAG(gameClient)
-static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info, float floatingRiSystem__randomWavesAmplitude,
-  float floatingRiSystem__randomWavesLength, float floatingRiSystem__randomWavesPeriod, Point2 floatingRiSystem__randomWavesVelocity)
+static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info, ecs::EntityManager &manager,
+  float floatingRiSystem__randomWavesAmplitude, float floatingRiSystem__randomWavesLength, float floatingRiSystem__randomWavesPeriod,
+  Point2 floatingRiSystem__randomWavesVelocity)
 {
   if (!dacoll::get_water())
     return;
 
   bool prepared = false;
-  vec3f viewPos = get_camera_pos();
+  vec3f viewPos = get_camera_pos(manager);
   static float maxUpdateDistSq = 0.0f; // Will be one frame delay, but it's ok. TODO: move to floating_rendinst_res_group component
   dag::Vector<Obstacle, framemem_allocator> obstacles;
   float wavesAmplitude = 0.0f, wavesInvLength = 1.0f, wavesInvPeriod = 1.0f, waterLevel = 0.0f;
@@ -534,12 +543,12 @@ static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info,
 
   constexpr float MIN_ANGLE_DIFF_SQ = PI * 1e-6f;
   constexpr float MIN_POS_DIFF_SQ = 1e-6f;
-  update_floating_rendinst_instances_ecs_query([&](float floatingRiGroup__wreckageFloatDuration, float floatingRiGroup__updateDistSq,
-                                                 int floatingRiGroup__interactionType, float floatingRiGroup__interactionDistSq,
-                                                 float floatingRiGroup__elasticity, float floatingRiGroup__physUpdateDt,
-                                                 float floatingRiGroup__maxShiftDist, float floatingRiGroup__viscosity,
-                                                 float floatingRiGroup__minDistToGround,
-                                                 rendinstfloating::PhysFloatingModel &floatingRiGroup__riPhysFloatingModel) {
+  update_floating_rendinst_instances_ecs_query(manager, [&](float floatingRiGroup__wreckageFloatDuration,
+                                                          float floatingRiGroup__updateDistSq, int floatingRiGroup__interactionType,
+                                                          float floatingRiGroup__interactionDistSq, float floatingRiGroup__elasticity,
+                                                          float floatingRiGroup__physUpdateDt, float floatingRiGroup__maxShiftDist,
+                                                          float floatingRiGroup__viscosity, float floatingRiGroup__minDistToGround,
+                                                          rendinstfloating::PhysFloatingModel &floatingRiGroup__riPhysFloatingModel) {
     int resIdx = floatingRiGroup__riPhysFloatingModel.resIdx;
     if (resIdx < 0)
       return;
@@ -591,7 +600,7 @@ static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info,
 
     if (DAGOR_UNLIKELY(!prepared))
     {
-      obstacles = get_obstacles(viewPos, maxUpdateDistSq);
+      obstacles = get_obstacles(manager, viewPos, maxUpdateDistSq);
       waterLevel = get_water_level();
 
       wavesAmplitude = floatingRiSystem__randomWavesAmplitude;
@@ -651,7 +660,7 @@ static void update_floating_rendinsts_es(const ParallelUpdateFrameDelayed &info,
       if (rendinst::moveRIGenExtra44(rendinst::make_handle(resIdx, riInstId), m4, /*moved*/ true, /*do_not_wait*/ true))
         ; // Lock succeed
       else
-        g_entity_mgr->broadcastEvent(EventMoveRiEx(rendinst::make_handle(resIdx, riInstId), tm));
+        manager.broadcastEvent(EventMoveRiEx(rendinst::make_handle(resIdx, riInstId), tm));
       riFloatingPhys.prevVisualLoc = riFloatingPhys.visualLoc;
     }
 
@@ -696,15 +705,16 @@ ECS_ON_EVENT(on_appear)
 ECS_TRACK(floatingRiGroup__resName, floatingRiGroup__inertiaMult, floatingRiGroup__volumesCount, floatingRiGroup__volumePresetName,
   floatingRiGroup__density, floatingRiGroup__densityRandRange, floatingRiGroup__useBoxInertia)
 ECS_TAG(gameClient)
-static __forceinline void init_floating_rendinst_res_group_es_event_handler(const ecs::Event &, ecs::EntityId eid,
-  const ecs::string &floatingRiGroup__resName, const Point3 &floatingRiGroup__inertiaMult, int floatingRiGroup__volumesCount,
-  ecs::string floatingRiGroup__volumePresetName, float floatingRiGroup__density, float floatingRiGroup__densityRandRange,
-  bool floatingRiGroup__useBoxInertia, rendinstfloating::PhysFloatingModel &floatingRiGroup__riPhysFloatingModel)
+static __forceinline void init_floating_rendinst_res_group_es_event_handler(const ecs::Event &, ecs::EntityManager &manager,
+  ecs::EntityId eid, const ecs::string &floatingRiGroup__resName, const Point3 &floatingRiGroup__inertiaMult,
+  int floatingRiGroup__volumesCount, ecs::string floatingRiGroup__volumePresetName, float floatingRiGroup__density,
+  float floatingRiGroup__densityRandRange, bool floatingRiGroup__useBoxInertia,
+  rendinstfloating::PhysFloatingModel &floatingRiGroup__riPhysFloatingModel)
 {
-  if (ecs::EntityId otherEid = find_floatable_group_for_res(floatingRiGroup__resName.c_str(), eid))
-    g_entity_mgr->destroyEntity(otherEid); // There must be no more than one group for each resource.
+  if (ecs::EntityId otherEid = find_floatable_group_for_res(manager, floatingRiGroup__resName.c_str(), eid))
+    manager.destroyEntity(otherEid); // There must be no more than one group for each resource.
 
-  g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH("floating_rendinst_system"));
+  manager.getOrCreateSingletonEntity(ECS_HASH("floating_rendinst_system"));
 
   int resIdx = rendinst::getRIGenExtraResIdx(floatingRiGroup__resName.c_str());
   if (resIdx < 0)
@@ -714,7 +724,7 @@ static __forceinline void init_floating_rendinst_res_group_es_event_handler(cons
     if (resIdx < 0)
     {
       logerr("Failed to create floating rendinst group, rendinst with name %s isn't presented", floatingRiGroup__resName.c_str());
-      g_entity_mgr->destroyEntity(eid);
+      manager.destroyEntity(eid);
       return;
     }
   }
@@ -737,7 +747,7 @@ static __forceinline void init_floating_rendinst_res_group_es_event_handler(cons
   }
   floatingRiGroup__riPhysFloatingModel.physBbox = box;
 
-  construct_floating_volumes_ecs_query([&](const ecs::Object &floatingRiSystem__volumePresets) {
+  construct_floating_volumes_ecs_query(manager, [&](const ecs::Object &floatingRiSystem__volumePresets) {
     floatingRiGroup__riPhysFloatingModel.spheresCoords =
       extract_sphere_coords(floatingRiSystem__volumePresets, floatingRiGroup__volumesCount, floatingRiGroup__volumePresetName);
   });
@@ -806,91 +816,93 @@ static void init_floating_volume_presets_es_event_handler(const ecs::Event &, ec
 
 ECS_NO_ORDER
 ECS_TAG(render, dev)
-static __forceinline void rendinst_floating_render_debug_es(const ecs::UpdateStageInfoRenderDebug &)
+static __forceinline void rendinst_floating_render_debug_es(const ecs::UpdateStageInfoRenderDebug &, ecs::EntityManager &manager)
 {
   if (!render_debug_floating_volumes.get())
     return;
 
   begin_draw_cached_debug_lines();
-  draw_rendinst_floating_volumes_ecs_query([&](const rendinstfloating::PhysFloatingModel &floatingRiGroup__riPhysFloatingModel) {
-    int resIdx = floatingRiGroup__riPhysFloatingModel.resIdx;
-    if (resIdx < 0)
-      return;
+  draw_rendinst_floating_volumes_ecs_query(manager,
+    [&](const rendinstfloating::PhysFloatingModel &floatingRiGroup__riPhysFloatingModel) {
+      int resIdx = floatingRiGroup__riPhysFloatingModel.resIdx;
+      if (resIdx < 0)
+        return;
 
-    BSphere3 volumes[gamephys::floating_volumes::MAX_VOLUMES];
-    for (const auto &instance : floatingRiGroup__riPhysFloatingModel.instances)
-    {
-      TMatrix tm;
-      instance.visualLoc.toTM(tm);
+      BSphere3 volumes[gamephys::floating_volumes::MAX_VOLUMES];
+      for (const auto &instance : floatingRiGroup__riPhysFloatingModel.instances)
+      {
+        TMatrix tm;
+        instance.visualLoc.toTM(tm);
 
-      restore_floating_volumes(floatingRiGroup__riPhysFloatingModel.spheresCoords, floatingRiGroup__riPhysFloatingModel.spheresRad,
-        floatingRiGroup__riPhysFloatingModel.physBbox, instance, volumes);
+        restore_floating_volumes(floatingRiGroup__riPhysFloatingModel.spheresCoords, floatingRiGroup__riPhysFloatingModel.spheresRad,
+          floatingRiGroup__riPhysFloatingModel.physBbox, instance, volumes);
 
-      for (const auto &volume : volumes)
-        draw_cached_debug_sphere(tm * volume.c, volume.r, E3DCOLOR_MAKE(0, 128, 255, 255));
+        for (const auto &volume : volumes)
+          draw_cached_debug_sphere(tm * volume.c, volume.r, E3DCOLOR_MAKE(0, 128, 255, 255));
 
-      Point3 boxSize = floatingRiGroup__riPhysFloatingModel.physBbox.width();
-      Point3 boxOrigin = tm * floatingRiGroup__riPhysFloatingModel.physBbox.boxMin();
-      Point3 boxAx = tm.getcol(0) * boxSize.x;
-      Point3 boxAy = tm.getcol(1) * boxSize.y;
-      Point3 boxAz = tm.getcol(2) * boxSize.z;
-      draw_cached_debug_box(boxOrigin, boxAx, boxAy, boxAz, E3DCOLOR_MAKE(128, 128, 128, 255));
-    }
-  });
+        Point3 boxSize = floatingRiGroup__riPhysFloatingModel.physBbox.width();
+        Point3 boxOrigin = tm * floatingRiGroup__riPhysFloatingModel.physBbox.boxMin();
+        Point3 boxAx = tm.getcol(0) * boxSize.x;
+        Point3 boxAy = tm.getcol(1) * boxSize.y;
+        Point3 boxAz = tm.getcol(2) * boxSize.z;
+        draw_cached_debug_box(boxOrigin, boxAx, boxAy, boxAz, E3DCOLOR_MAKE(128, 128, 128, 255));
+      }
+    });
   end_draw_cached_debug_lines();
 }
 
 ECS_NO_ORDER
 ECS_TAG(render, dev)
-static __forceinline void floating_phys_ripples_render_debug_es(const ecs::UpdateStageInfoRenderDebug &)
+static __forceinline void floating_phys_ripples_render_debug_es(const ecs::UpdateStageInfoRenderDebug &, ecs::EntityManager &manager)
 {
   if (!render_debug_floating_phys_ripples.get())
     return;
 
   begin_draw_cached_debug_lines();
-  draw_floating_phys_ripples_ecs_query([&](float floatingRiSystem__randomWavesAmplitude, float floatingRiSystem__randomWavesLength,
-                                         float floatingRiSystem__randomWavesPeriod, Point2 floatingRiSystem__randomWavesVelocity) {
-    float curTime = float(get_time_msec()) * 1e-3f;
-    vec3f vViewPos = get_camera_pos();
-    float waterLevel = get_water_level();
+  draw_floating_phys_ripples_ecs_query(manager,
+    [&](float floatingRiSystem__randomWavesAmplitude, float floatingRiSystem__randomWavesLength,
+      float floatingRiSystem__randomWavesPeriod, Point2 floatingRiSystem__randomWavesVelocity) {
+      float curTime = float(get_time_msec()) * 1e-3f;
+      vec3f vViewPos = get_camera_pos(manager);
+      float waterLevel = get_water_level();
 
-    float amplitude = floatingRiSystem__randomWavesAmplitude;
-    float invLength = 1.0f / floatingRiSystem__randomWavesLength;
-    float invPeriod = 1.0f / floatingRiSystem__randomWavesPeriod;
+      float amplitude = floatingRiSystem__randomWavesAmplitude;
+      float invLength = 1.0f / floatingRiSystem__randomWavesLength;
+      float invPeriod = 1.0f / floatingRiSystem__randomWavesPeriod;
 
-    constexpr float dist = 10.0f;
-    constexpr int nPoints = 100;
-    constexpr float step = dist / float(nPoints);
+      constexpr float dist = 10.0f;
+      constexpr int nPoints = 100;
+      constexpr float step = dist / float(nPoints);
 
-    Point2 shiftXZ = floatingRiSystem__randomWavesVelocity * curTime;
-    Point2 subShiftXZ = Point2(frac(shiftXZ.x / step), frac(shiftXZ.y / step)) * step;
-    Point2 centerXZ = Point2(floor(v_extract_x(vViewPos) / step) * step, floor(v_extract_z(vViewPos) / step) * step) - subShiftXZ;
+      Point2 shiftXZ = floatingRiSystem__randomWavesVelocity * curTime;
+      Point2 subShiftXZ = Point2(frac(shiftXZ.x / step), frac(shiftXZ.y / step)) * step;
+      Point2 centerXZ = Point2(floor(v_extract_x(vViewPos) / step) * step, floor(v_extract_z(vViewPos) / step) * step) - subShiftXZ;
 
-    for (int x = -nPoints; x <= nPoints; ++x)
-    {
-      for (int y = -nPoints; y <= nPoints; ++y)
+      for (int x = -nPoints; x <= nPoints; ++x)
       {
-        Point2 p0 = centerXZ + Point2(x, y) * step;
-        float noise0 =
-          get_water_ripples_noise(Point3((p0.x + shiftXZ.x) * invLength, (p0.y + shiftXZ.y) * invLength, curTime * invPeriod));
-        if (x < nPoints)
+        for (int y = -nPoints; y <= nPoints; ++y)
         {
-          Point2 p1 = centerXZ + Point2(x + 1, y) * step;
-          float noise1 =
-            get_water_ripples_noise(Point3((p1.x + shiftXZ.x) * invLength, (p1.y + shiftXZ.y) * invLength, curTime * invPeriod));
-          draw_cached_debug_line(Point3(p0.x, waterLevel + noise0 * amplitude, p0.y),
-            Point3(p1.x, waterLevel + noise1 * amplitude, p1.y), E3DCOLOR_MAKE(0, 255, 128, 255));
-        }
-        if (y < nPoints)
-        {
-          Point2 p2 = centerXZ + Point2(x, y + 1) * step;
-          float noise2 =
-            get_water_ripples_noise(Point3((p2.x + shiftXZ.x) * invLength, (p2.y + shiftXZ.y) * invLength, curTime * invPeriod));
-          draw_cached_debug_line(Point3(p0.x, waterLevel + noise0 * amplitude, p0.y),
-            Point3(p2.x, waterLevel + noise2 * amplitude, p2.y), E3DCOLOR_MAKE(0, 255, 128, 255));
+          Point2 p0 = centerXZ + Point2(x, y) * step;
+          float noise0 =
+            get_water_ripples_noise(Point3((p0.x + shiftXZ.x) * invLength, (p0.y + shiftXZ.y) * invLength, curTime * invPeriod));
+          if (x < nPoints)
+          {
+            Point2 p1 = centerXZ + Point2(x + 1, y) * step;
+            float noise1 =
+              get_water_ripples_noise(Point3((p1.x + shiftXZ.x) * invLength, (p1.y + shiftXZ.y) * invLength, curTime * invPeriod));
+            draw_cached_debug_line(Point3(p0.x, waterLevel + noise0 * amplitude, p0.y),
+              Point3(p1.x, waterLevel + noise1 * amplitude, p1.y), E3DCOLOR_MAKE(0, 255, 128, 255));
+          }
+          if (y < nPoints)
+          {
+            Point2 p2 = centerXZ + Point2(x, y + 1) * step;
+            float noise2 =
+              get_water_ripples_noise(Point3((p2.x + shiftXZ.x) * invLength, (p2.y + shiftXZ.y) * invLength, curTime * invPeriod));
+            draw_cached_debug_line(Point3(p0.x, waterLevel + noise0 * amplitude, p0.y),
+              Point3(p2.x, waterLevel + noise2 * amplitude, p2.y), E3DCOLOR_MAKE(0, 255, 128, 255));
+          }
         }
       }
-    }
-  });
+    });
   end_draw_cached_debug_lines();
 }

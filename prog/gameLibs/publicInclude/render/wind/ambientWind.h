@@ -44,6 +44,7 @@ public:
   void close();
   void enable();
   void disable();
+  void afterDeviceReset();
 
   AmbientWind() { init(); };
   ~AmbientWind() { close(); };
@@ -88,3 +89,4 @@ void enable_ambient_wind();
 void disable_ambient_wind();
 void close_ambient_wind();
 void update_ambient_wind();
+void after_device_reset_ambient_wind();

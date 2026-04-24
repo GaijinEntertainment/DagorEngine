@@ -37,8 +37,7 @@ void random_switch_init_block_settings(PropPanel::ContainerPropertyControl *pane
   const int defaultMaxRepeat = maxrepeats ? maxrepeats->getInt(defaultName, 1) : 1;
   Tab<String> names;
   if (weights)
-    for (int i = 0; i < weights->paramCount(); ++i)
-      names.emplace_back(weights->getParamName(i));
+    fill_param_names_without_comments(names, *weights);
 
   bool isEditable = !names.empty();
   panel->createList(PID_CTRLS_NODES_LIST, "Nodes", names, 0);
@@ -62,7 +61,7 @@ void AnimTreePlugin::randomSwitchSaveBlockSettings(PropPanel::ContainerPropertyC
 
   if (weights && listName != fieldName)
   {
-    weights->changeParamName(selectedIdx, fieldName.c_str());
+    weights->changeParamName(get_param_name_idx_by_list_name(*weights, listName, selectedIdx), fieldName.c_str());
     data.childs[selectedIdx] = find_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, fieldName.c_str());
     check_ctrl_child_idx(data.childs[selectedIdx], settings->getStr("name"), fieldName);
   }

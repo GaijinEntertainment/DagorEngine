@@ -17,8 +17,9 @@ namespace ecs
 
 bool load_gameres_list(const gameres_list_t &reslist)
 {
-  bool ret = set_required_res_list_restriction(&reslist.begin()->first, &reslist.end()->first, RRL_setAndPreloadAndReset,
-    sizeof(gameres_list_t::value_type));
+  auto rrl = create_res_restriction_list(reslist.size(), [keys = reslist.data()](unsigned idx) { return keys[idx].first.c_str(); });
+  bool ret = preload_all_required_res(rrl);
+  free_res_restriction_list(rrl);
   if (!is_managed_textures_streaming_load_on_demand())
     ddsx::tex_pack2_perform_delayed_data_loading();
   return ret;
@@ -29,9 +30,7 @@ bool filter_out_loaded_gameres(gameres_list_t &reslist, unsigned spins)
   WinCritSec &gameres_main_cs = get_gameres_main_cs();
   auto do_filter_out = [&]() {
     reslist.erase(eastl::remove_if(reslist.begin(), reslist.end(),
-                    [](const gameres_list_t::value_type &kv) {
-                      return is_game_resource_loaded_nolock(GAMERES_HANDLE_FROM_STRING(kv.first.c_str()), kv.second);
-                    }),
+                    [](const gameres_list_t::value_type &kv) { return is_game_resource_loaded_nolock(kv.first.c_str(), kv.second); }),
       reslist.end());
   };
   if (!spins)
@@ -52,6 +51,25 @@ bool filter_out_loaded_gameres(gameres_list_t &reslist, unsigned spins)
       cpu_yield();
     }
   return !reslist.empty();
+}
+
+eastl::string format_not_loaded_gameres_message(ecs::EntityId, const gameres_list_t &resources)
+{
+  eastl::string msg;
+  msg.sprintf("as some (%i) resources are missing:", int(resources.size()));
+  constexpr int MAX_MSG_SIZE = 192;
+  for (const auto &[name, type] : resources)
+  {
+    if (msg.size() < MAX_MSG_SIZE)
+    {
+      msg.append(" <").append(name).append(">");
+      if (msg.size() > MAX_MSG_SIZE)
+        msg.append("...");
+    }
+    else
+      debug("  missing res <%s>", name);
+  }
+  return msg;
 }
 
 struct LoadGameResJob final : public cpujobs::IJob

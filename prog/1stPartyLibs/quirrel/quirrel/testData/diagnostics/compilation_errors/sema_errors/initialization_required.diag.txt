@@ -1,0 +1,8 @@
+ERROR: Initialization required
+testData/diagnostics/compilation_errors/sema_errors/initialization_required.nut:2:11
+
+// EXPECT_ERROR: "Initialization required"
+if (local x; x < 10; x++) {}
+           ^
+
+

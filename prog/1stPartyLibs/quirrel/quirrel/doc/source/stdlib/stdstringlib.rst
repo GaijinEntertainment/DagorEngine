@@ -7,7 +7,7 @@ The String library
 the string lib implements string formatting and regular expression matching routines.
 
 --------------
-Squirrel API
+Quirrel API
 --------------
 
 ++++++++++++++
@@ -40,7 +40,7 @@ Global Symbols
         sq> printf("%s %d 0x%02X\n","this is a test :",123,10);
         this is a test : 123 0x0A
 
-.. note::  The following functions are also available as string :ref:`default delegates <default_delegates>`.
+.. note::  The following functions are also available as string :ref:`type methods <builtin_type_classes>`.
 
 .. sq:function:: lstrip(str)
 
@@ -238,12 +238,12 @@ C API
 Formatting
 +++++++++++++
 
-.. c:function:: SQRESULT sqstd_format(HSQUIRRELVM v, SQInteger nformatstringidx, SQInteger* outlen, SQChar** output)
+.. c:function:: SQRESULT sqstd_format(HSQUIRRELVM v, SQInteger nformatstringidx, SQInteger* outlen, char** output)
 
     :param HSQUIRRELVM v: the target VM
     :param SQInteger nformatstringidx: index in the stack of the format string
     :param SQInteger* outlen: a pointer to an integer that will be filled with the length of the newly created string
-    :param SQChar** output: a pointer to a string pointer that will receive the newly created string
+    :param char** output: a pointer to a string pointer that will receive the newly created string
     :returns: an SQRESULT
     :remarks: the newly created string is allocated in the scratchpad memory.
 
@@ -256,11 +256,11 @@ Formatting
 Regular Expessions
 ++++++++++++++++++
 
-.. c:function:: SQRex* sqstd_rex_compile(SQAllocCtx alloc_ctx, const SQChar *pattern, const SQChar ** error)
+.. c:function:: SQRex* sqstd_rex_compile(SQAllocCtx alloc_ctx, const char *pattern, const char ** error)
 
     :param SQAllocCtx alloc_ctx VM memory allocation context handle
-    :param SQChar* pattern: a pointer to a zero terminated string containing the pattern that has to be compiled.
-    :param SQChar** error: a pointer to a string pointer that will be set with an error string in case of failure.
+    :param char* pattern: a pointer to a zero terminated string containing the pattern that has to be compiled.
+    :param char** error: a pointer to a string pointer that will be set with an error string in case of failure.
     :returns: a pointer to the compiled pattern
 
     compiles an expression and returns a pointer to the compiled version.
@@ -273,34 +273,34 @@ Regular Expessions
 
     deletes a expression structure created with sqstd_rex_compile()
 
-.. c:function:: SQBool sqstd_rex_match(SQRex * exp,const SQChar * text)
+.. c:function:: SQBool sqstd_rex_match(SQRex * exp,const char * text)
 
     :param SQRex* exp: a compiled expression
-    :param SQChar* text: the string that has to be tested
+    :param char* text: the string that has to be tested
     :returns: SQTrue if successful otherwise SQFalse
 
     returns SQTrue if the string specified in the parameter text is an
     exact match of the expression, otherwise returns SQFalse.
 
-.. c:function:: SQBool sqstd_rex_search(SQRex * exp, const SQChar * text, const SQChar ** out_begin, const SQChar ** out_end)
+.. c:function:: SQBool sqstd_rex_search(SQRex * exp, const char * text, const char ** out_begin, const char ** out_end)
 
     :param SQRex* exp: a compiled expression
-    :param SQChar* text: the string that has to be tested
-    :param SQChar** out_begin: a pointer to a string pointer that will be set with the beginning of the match
-    :param SQChar** out_end: a pointer to a string pointer that will be set with the end of the match
+    :param char* text: the string that has to be tested
+    :param char** out_begin: a pointer to a string pointer that will be set with the beginning of the match
+    :param char** out_end: a pointer to a string pointer that will be set with the end of the match
     :returns: SQTrue if successful otherwise SQFalse
 
     searches the first match of the expression in the string specified in the parameter text.
     if the match is found returns SQTrue and the sets out_begin to the beginning of the
     match and out_end at the end of the match; otherwise returns SQFalse.
 
-.. c:function:: SQBool sqstd_rex_searchrange(SQRex * exp, const SQChar * text_begin, const SQChar * text_end, const SQChar ** out_begin, const SQChar ** out_end)
+.. c:function:: SQBool sqstd_rex_searchrange(SQRex * exp, const char * text_begin, const char * text_end, const char ** out_begin, const char ** out_end)
 
     :param SQRex* exp: a compiled expression
-    :param SQChar* text_begin:  a pointer to the beginnning of the string that has to be tested
-    :param SQChar* text_end: a pointer to the end of the string that has to be tested
-    :param SQChar** out_begin: a pointer to a string pointer that will be set with the beginning of the match
-    :param SQChar** out_end: a pointer to a string pointer that will be set with the end of the match
+    :param char* text_begin:  a pointer to the beginnning of the string that has to be tested
+    :param char* text_end: a pointer to the end of the string that has to be tested
+    :param char** out_begin: a pointer to a string pointer that will be set with the beginning of the match
+    :param char** out_end: a pointer to a string pointer that will be set with the end of the match
     :returns: SQTrue if successful otherwise SQFalse
 
     searches the first match of the expression in the string delimited

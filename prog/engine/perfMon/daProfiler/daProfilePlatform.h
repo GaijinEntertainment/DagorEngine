@@ -10,6 +10,7 @@
 #include "daProfilerDefines.h"
 
 //! signals to the processor that the thread is doing nothing. Not relevant to OS thread scheduling.
+#ifndef cpu_yield
 #if _TARGET_SIMD_SSE
 #include <emmintrin.h> // _mm_pause
 #define cpu_yield _mm_pause
@@ -17,6 +18,7 @@
 #define cpu_yield() __asm__ __volatile__("yield")
 #else
 #define cpu_yield() ((void)0)
+#endif
 #endif
 
 #define SPINS_BEFORE_SLEEP 8192
@@ -78,7 +80,7 @@ inline T clamp(const T &v, const T &mn, const T &mx)
 }
 } // namespace da_profiler
 
-#if _TARGET_XBOX
+#if _TARGET_PC_WIN || _TARGET_XBOX
 
 #define PLATFORM_EVENT_START(enabled, label) \
   {                                          \

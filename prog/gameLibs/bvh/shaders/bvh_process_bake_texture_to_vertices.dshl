@@ -3,6 +3,7 @@ include "shader_global.dshl"
 include "bvh.dshl"
 
 int bvh_process_target_offset;
+int bvh_process_source_offset;
 int bvh_process_bake_texture_to_vertices_start;
 int bvh_process_bake_texture_to_vertices_stride;
 int bvh_process_bake_texture_to_vertices_count;
@@ -33,6 +34,7 @@ shader bvh_process_bake_texture_to_vertices
   }
   (cs) {
     target_offset@u1 = bvh_process_target_offset;
+    source_offset@u1 = bvh_process_source_offset;
     start_vertex@i1 = bvh_process_bake_texture_to_vertices_start;
     vertex_stride@i1 = bvh_process_bake_texture_to_vertices_stride;
     vertex_count@i1 = bvh_process_bake_texture_to_vertices_count;
@@ -48,8 +50,6 @@ shader bvh_process_bake_texture_to_vertices
     texture_to_vertices_position_size@i1 = bvh_process_bake_texture_to_vertices_position_size;
     texture_to_vertices_texcoord_size@i1 = bvh_process_bake_texture_to_vertices_texcoord_size;
   }
-
-  ENABLE_ASSERT(cs)
 
   USE_BVH_ATTRIBUTE_FUNCTIONS(cs)
 
@@ -68,7 +68,7 @@ shader bvh_process_bake_texture_to_vertices
       if (vertexId >= vertex_count)
         return;
 
-      int vertexStart = (start_vertex + vertexId) * vertex_stride;
+      int vertexStart = source_offset + (start_vertex + vertexId) * vertex_stride;
 
       uint4 position;
 

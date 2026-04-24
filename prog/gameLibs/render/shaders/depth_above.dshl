@@ -76,6 +76,12 @@ macro USE_DEPTH_ABOVE(code, tex)
       #define get_depth_above(worldPos, prec, vignette_effect)\
       get_depth_above_impl(worldPos, prec, tex, tex##_samplerstate, vignette_effect)
 
+      #define get_depth_above_normal_by_unclamped_tc(tc, lod)\
+      get_depth_above_normal_by_unclamped_tc_impl(tc, lod, tex, tex##_samplerstate)
+
+      #define get_depth_above_normal(worldPos, lod)\
+      get_depth_above_normal_impl(worldPos, lod, tex, tex##_samplerstate)
+
       #define use_depth_above_impl
     #else
       #error ERROR: implementation for depth above has been already included, duplicate macro: USE_DEPTH_ABOVE(...)

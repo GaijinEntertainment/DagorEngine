@@ -145,7 +145,7 @@ void spawn_module_velocity_bias_pos(SPAWN_MODULE_CONTEXT)
 #endif
 
 DAFX_INLINE
-float4 dafx_emission_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref ldata, GlobalData_cref gparams )
+DAFX_CULLING_RET_TYPE dafx_emission_shader_cb( ComputeCallDesc_cref cdesc, BufferData_ref ldata, GlobalData_cref gparams )
 {
   ParentRenData rparams = unpack_parent_ren_data( ldata, cdesc.parentRenOffset );
   ParentSimData sparams = unpack_parent_sim_data( ldata, cdesc.parentSimOffset );

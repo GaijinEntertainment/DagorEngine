@@ -35,3 +35,40 @@ void mouse_api_SetCapture(void *w) { ::SetCapture((HWND)w); }
 void mouse_api_ReleaseCapture() { ::ReleaseCapture(); }
 void mouse_api_hide_cursor(bool) {}
 void mouse_api_SetSystemCursorPosChangeAllowed(bool allowed) { system_cursor_pos_change_allowed = allowed; }
+
+void *mouse_api_create_mouse_cursor(int cursorWidth, int cursorHeight, uint32_t *rgba)
+{
+  // default cursor size, 32x32 on windows assuming no scaling
+  // but we render our cursors ourselves so we use our own resolution
+  // https://devblogs.microsoft.com/oldnewthing/20210819-00/?p=105572
+  // const int cursorWidth = GetSystemMetrics(SM_CXCURSOR);
+  // const int cursorHeight = GetSystemMetrics(SM_CYCURSOR);
+
+  HCURSOR resultCursor = nullptr;
+
+  uint8_t maskBits[64 * 64 / 8];
+  memset(maskBits, 0xFF, sizeof(maskBits));
+  HBITMAP hMask = CreateBitmap(cursorWidth, cursorHeight, 1, 1, maskBits);
+  if (hMask)
+  {
+    HBITMAP hBitmap = CreateBitmap(cursorWidth, cursorHeight, 1, 32, rgba);
+    if (hBitmap)
+    {
+      ICONINFO iconInfo = {
+        .fIcon = false,
+        .xHotspot = 0,
+        .yHotspot = 0,
+        .hbmMask = hMask,
+        .hbmColor = hBitmap,
+      };
+
+      resultCursor = CreateIconIndirect(&iconInfo);
+
+      DeleteObject(hMask);
+    }
+
+    DeleteObject(hBitmap);
+  }
+
+  return resultCursor;
+}

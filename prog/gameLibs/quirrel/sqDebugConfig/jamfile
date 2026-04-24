@@ -2,7 +2,7 @@
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/quirrel/sqDebugConfig ;
 StrictCompile = yes ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/sqDebugConfig.lib ;

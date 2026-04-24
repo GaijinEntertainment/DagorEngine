@@ -54,11 +54,12 @@ private:
       Alpha = 16384
     };
 
-    void setTexEx(const Point2 &target_size_, TEXTUREID texId, const Point2 &offset, const Point2 &size, const carray<Point4, 4> &swz,
-      const carray<Point2, 4> &mod, int mip, int face, int num_slices = 0, int filter = 0);
+    void setTexEx(const Point2 &target_size_, TEXTUREID texId, BaseTexture *texPtr, const Point2 &offset, const Point2 &size,
+      const carray<Point4, 4> &swz, const carray<Point2, 4> &mod, int mip, int face, int num_slices = 0, int filter = 0);
     void fixAspectRatio(const Point2 &targetSize);
 
     TEXTUREID texId;
+    BaseTexture *texPtr;
     int varId = -1;
     bool needToReleaseTex = false;
     bool flipX = false;

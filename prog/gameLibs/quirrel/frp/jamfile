@@ -1,8 +1,8 @@
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/quirrel/frp ;
 StrictCompile = yes ;
-UseQuirrel = sq3r ;
-ProjectUseQuirrel ?= sq3r ;
+UseQuirrel = yes ;
+UseQuirrel ?= yes ;
 
 TargetType  = lib ;
 local TargetLib = gameLibs/quirrel/frp ;

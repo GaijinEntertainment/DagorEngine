@@ -9,20 +9,46 @@
 
 #include <dxgi_utils.h>
 #include <ioSys/dag_dataBlock.h>
-#include <math/random/dag_random.h>
 #include <util/dag_finally.h>
 #include <gpuVendor.h>
+#include <gpuVendorNvidia.h>
 
 #include <3d/gpuLatency.h>
+#include <osApiWrappers/dag_winVersionQuery.h>
 
-#if HAS_NVAPI
-#include <gpuVendorNvidia.h>
-#endif
 
 using namespace drv3d_dx12;
 
 namespace
 {
+#if DX12_HAS_OMM_INTERFACE
+D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT to_dx12(::raytrace::OpacityMicroMapFormat format)
+{
+  switch (format)
+  {
+    case ::raytrace::OpacityMicroMapFormat::OpacityCompression1_2State: return D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT_OC1_2_STATE;
+    case ::raytrace::OpacityMicroMapFormat::OpacityCompression1_4State: return D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT_OC1_4_STATE;
+  }
+  // TODO: fatal?
+  return D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT_OC1_2_STATE;
+}
+#endif
+
+#if HAS_NVAPI
+NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT to_nvidia(::raytrace::OpacityMicroMapFormat format)
+{
+  switch (format)
+  {
+    case ::raytrace::OpacityMicroMapFormat::OpacityCompression1_2State:
+      return NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT_OC1_2_STATE;
+    case ::raytrace::OpacityMicroMapFormat::OpacityCompression1_4State:
+      return NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT_OC1_4_STATE;
+  }
+  // TODO: fatal?
+  return NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_FORMAT_OC1_2_STATE;
+}
+#endif
+
 const char *as_yesno(bool boolean) { return boolean ? "Yes" : "No"; }
 } // namespace
 
@@ -165,9 +191,12 @@ void to_debuglog(const dxil::ShaderDeviceRequirement &avail, const dxil::ShaderD
     static_cast<uint64_t>(avail.shaderFeatureFlagsLow) | (static_cast<uint64_t>(avail.shaderFeatureFlagsHigh) << 32);
   for (auto &e : table)
   {
-    const char *indicator = ((e.mask == (e.mask & combined)) && !(e.mask == (e.mask & combinedAvail))) ? " !" : "";
-    logdbg("DX12: ShaderDeviceRequirement:%s = %s vs %s%s", e.name, as_yesno(e.mask == (e.mask & combined)),
-      as_yesno(e.mask == (e.mask & combinedAvail)), indicator);
+    // if either the feature is not needed or supported, then there is nothing to report.
+    if (!(e.mask == (e.mask & combined)) || (e.mask == (e.mask & combinedAvail)))
+    {
+      continue;
+    }
+    logdbg("DX12: ShaderDeviceRequirement missing: %s", e.name);
   }
   struct ExtensionTableEntry
   {
@@ -294,8 +323,35 @@ raytraceGeometryDescriptionToGeometryDescAABBs(const RaytraceGeometryDescription
   return {desc, refs};
 }
 
+DXGI_FORMAT map_index_format(Sbuffer *buffer, RaytraceGeometryDescription::IndexFormat format)
+{
+  switch (format)
+  {
+      /// Pulls index format from buffer
+    case RaytraceGeometryDescription::IndexFormat::UseBuffer: return get_index_format((GenericBufferInterface *)buffer);
+    case RaytraceGeometryDescription::IndexFormat::U8: return DXGI_FORMAT_R8_UINT;
+    case RaytraceGeometryDescription::IndexFormat::U16: return DXGI_FORMAT_R16_UINT;
+    case RaytraceGeometryDescription::IndexFormat::U32: return DXGI_FORMAT_R32_UINT;
+  }
+  DAG_FATAL("DX12: Unexpected value for RaytraceGeometryDescription::IndexFormat: %u", static_cast<uint32_t>(format));
+  return DXGI_FORMAT_UNKNOWN;
+}
+
+uint32_t get_index_format_unit_size(DXGI_FORMAT format)
+{
+  switch (format)
+  {
+    case DXGI_FORMAT_R8_UINT: return 1;
+    case DXGI_FORMAT_R16_UINT: return 2;
+    case DXGI_FORMAT_R32_UINT: return 4;
+  }
+  DAG_FATAL("DX12: get_index_format_unit_size unexpected input format %u", static_cast<uint32_t>(format));
+  return 1;
+}
+
 eastl::pair<D3D12_RAYTRACING_GEOMETRY_DESC, RaytraceGeometryDescriptionBufferResourceReferenceSet>
-raytraceGeometryDescriptionToGeometryDescTriangles(const RaytraceGeometryDescription::TrianglesInfo &info)
+raytrace_geometry_description_to_geometry_desc_triangles(const RaytraceGeometryDescription::TrianglesInfo &info,
+  [[maybe_unused]] const RaytraceGeometryDescription::OpacityMicroMapLinkage *omm_info)
 {
   auto vbuf = (GenericBufferInterface *)info.vertexBuffer;
   auto ibuf = (GenericBufferInterface *)info.indexBuffer;
@@ -337,22 +393,51 @@ raytraceGeometryDescriptionToGeometryDescTriangles(const RaytraceGeometryDescrip
   {
     desc.Triangles.IndexFormat = DXGI_FORMAT_UNKNOWN;
   }
-  desc.Triangles.Transform3x4 = devTbuf.gpuPointer + info.transformOffset * sizeof(float) * 3 * 4;
+  desc.Triangles.Transform3x4 = devTbuf.gpuPointer;
+  if (tbuf)
+  {
+    desc.Triangles.Transform3x4 += info.transformOffset * sizeof(float) * 3 * 4;
+  }
   desc.Triangles.VertexFormat = VSDTToDXGIFormat(info.vertexFormat);
   desc.Triangles.VertexCount = info.vertexCount;
   desc.Triangles.VertexBuffer.StartAddress = devVbuf.gpuPointer + info.vertexStride * info.vertexOffset + info.vertexOffsetExtraBytes;
   desc.Triangles.VertexBuffer.StrideInBytes = info.vertexStride;
   desc.Flags = toGeometryFlags(info.flags);
 
+#if DX12_HAS_OMM_INTERFACE
+  // When OMM is available and enabled, we just update everything
+  if (omm_info)
+  {
+    // we have to store the triangle info in the extra data set so that the root description can point to it
+    refs.ommTriangleDesc = desc.Triangles;
+    if (omm_info->indexBuffer)
+    {
+      refs.ommLinkageDesc.OpacityMicromapIndexFormat = map_index_format(omm_info->indexBuffer, omm_info->indexFormat);
+      auto indexUnitSize = get_index_format_unit_size(refs.ommLinkageDesc.OpacityMicromapIndexFormat);
+      auto indexBufferRef = get_any_buffer_ref(omm_info->indexBuffer);
+      refs.ommIndexBuffer = indexBufferRef;
+      refs.ommLinkageDesc.OpacityMicromapIndexBuffer = {
+        .StartAddress = indexBufferRef.gpuPointer() + (indexUnitSize * omm_info->indexBufferOffsetInIndexUnits),
+        .StrideInBytes = (indexUnitSize * omm_info->indexBufferStrideInIndexUnits),
+      };
+    }
+    refs.ommLinkageDesc.OpacityMicromapBaseLocation = omm_info->triangleArrayOffset;
+    refs.ommTriangleArray = reinterpret_cast<RaytraceAccelerationStructure *>(omm_info->triangleArray)->asHeapResource;
+    refs.ommLinkageDesc.OpacityMicromapArray = reinterpret_cast<RaytraceAccelerationStructure *>(omm_info->triangleArray)->gpuAddress;
+
+    // need to update triangle type
+    desc.Type = D3D12_RAYTRACING_GEOMETRY_TYPE_OMM_TRIANGLES;
+  }
+#endif
+
   return {desc, refs};
 }
-
 } // namespace
 
 namespace drv3d_dx12
 {
 
-D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS toAccelerationStructureBuildFlags(RaytraceBuildFlags flags)
+D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS to_acceleration_structure_build_flags(RaytraceBuildFlags flags, bool do_update)
 {
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS result = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_NONE;
   if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::ALLOW_UPDATE))
@@ -365,16 +450,151 @@ D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS toAccelerationStructureBuild
     result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD;
   if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::LOW_MEMORY))
     result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_MINIMIZE_MEMORY;
-  // TODO:: D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE
+#if DX12_HAS_OMM_INTERFACE
+  if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::OMM_LINKAGE_UPDATE))
+    result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_OMM_UPDATE;
+  if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::OMM_DISABLE))
+    result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_DISABLE_OMMS;
+#endif
+  if (do_update)
+  {
+    result |= D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE;
+  }
   return result;
 }
+
+#if HAS_NVAPI
+NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS_EX to_acceleration_structure_build_flags_nvidia(RaytraceBuildFlags flags,
+  bool do_update)
+{
+  uint32_t result = 0;
+  if (RaytraceBuildFlags::NONE != (RaytraceBuildFlags::ALLOW_UPDATE & flags))
+  {
+    result |= NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE_EX;
+  }
+  if (RaytraceBuildFlags::NONE != (RaytraceBuildFlags::ALLOW_COMPACTION & flags))
+  {
+    result |= NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_COMPACTION_EX;
+  }
+  if (RaytraceBuildFlags::NONE != (RaytraceBuildFlags::FAST_TRACE & flags))
+  {
+    result |= NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE_EX;
+  }
+  if (RaytraceBuildFlags::NONE != (RaytraceBuildFlags::FAST_BUILD & flags))
+  {
+    result |= NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD_EX;
+  }
+  if (RaytraceBuildFlags::NONE != (RaytraceBuildFlags::LOW_MEMORY & flags))
+  {
+    result |= NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_MINIMIZE_MEMORY_EX;
+  }
+  if (RaytraceBuildFlags::NONE != (RaytraceBuildFlags::OMM_LINKAGE_UPDATE & flags))
+  {
+    result |= NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_OMM_UPDATE_EX;
+    result |= NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_OMM_OPACITY_STATES_UPDATE_EX;
+  }
+  if (RaytraceBuildFlags::NONE != (RaytraceBuildFlags::OMM_DISABLE & flags))
+  {
+    result |= NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_DISABLE_OMMS_EX;
+  }
+  if (do_update)
+  {
+    result |= NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE_EX;
+  }
+  return static_cast<NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS_EX>(result);
+}
+
+eastl::pair<NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX, RaytraceGeometryDescriptionBufferResourceReferenceSet> convert_to_nvidia(
+  const RaytraceGeometryDescription &desc, dag::ConstSpan<NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_USAGE_COUNT> omm_descs)
+{
+  if (RaytraceGeometryDescription::Type::TRIANGLES == desc.type)
+  {
+    // Only get the basic translation, if omm is needed we handle it explicitly here, because OMM in core may not be in the build. So
+    // it may do not handle OMM anyways and we would need to handle it here too, so to keep things simple do the handling always here
+    // manually
+    auto [baseDesc, baseResourceSet] = raytrace_geometry_description_to_geometry_desc_triangles(desc.data.triangles, nullptr);
+    if (!desc.extraDataAvailableMask.hasOpacityMicroMapLinkage)
+    {
+      return {NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX{
+                .type = NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_TRIANGLES_EX,
+                .flags = baseDesc.Flags,
+                .triangles = baseDesc.Triangles,
+              },
+        baseResourceSet};
+    }
+    else
+    {
+      D3D12_GPU_VIRTUAL_ADDRESS_AND_STRIDE ommIndexBuffer{};
+      DXGI_FORMAT ommIndexFormat = DXGI_FORMAT_UNKNOWN;
+      if (desc.ommLinkage.indexBuffer)
+      {
+        ommIndexFormat = map_index_format(desc.ommLinkage.indexBuffer, desc.ommLinkage.indexFormat);
+        auto indexUnitSize = get_index_format_unit_size(ommIndexFormat);
+        auto indexBufferRef = get_any_buffer_ref(desc.ommLinkage.indexBuffer);
+        baseResourceSet.ommIndexBuffer = indexBufferRef;
+        ommIndexBuffer = {
+          .StartAddress = indexBufferRef.gpuPointer() + (indexUnitSize * desc.ommLinkage.indexBufferOffsetInIndexUnits),
+          .StrideInBytes = (indexUnitSize * desc.ommLinkage.indexBufferStrideInIndexUnits),
+        };
+      }
+
+      baseResourceSet.ommTriangleArray =
+        reinterpret_cast<RaytraceAccelerationStructure *>(desc.ommLinkage.triangleArray)->asHeapResource;
+
+      return {
+        NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX{.type = NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_OMM_TRIANGLES_EX,
+          .flags = baseDesc.Flags,
+          .ommTriangles = {.triangles = baseDesc.Triangles,
+            .ommAttachment =
+              {
+                .opacityMicromapIndexBuffer = ommIndexBuffer,
+                .opacityMicromapIndexFormat = ommIndexFormat,
+                .opacityMicromapBaseLocation = desc.ommLinkage.triangleArrayOffset,
+                .opacityMicromapArray = reinterpret_cast<RaytraceAccelerationStructure *>(desc.ommLinkage.triangleArray)->gpuAddress,
+                .numOMMUsageCounts = omm_descs.size(),
+                .pOMMUsageCounts = omm_descs.data(),
+              }}},
+        baseResourceSet};
+    }
+  }
+  else if (RaytraceGeometryDescription::Type::AABBS == desc.type)
+  {
+    auto [baseDesc, baseResourceSet] = raytraceGeometryDescriptionToGeometryDescAABBs(desc.data.aabbs);
+    return {
+      NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX{
+        .type = NVAPI_D3D12_RAYTRACING_GEOMETRY_TYPE_PROCEDURAL_PRIMITIVE_AABBS_EX, .flags = baseDesc.Flags, .aabbs = baseDesc.AABBs},
+      baseResourceSet};
+  }
+  else
+  {
+    G_ASSERT(false);
+    return {};
+  }
+}
+
+NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_ARRAY_BUILD_FLAGS to_nvidia(RaytraceBuildFlags flags)
+{
+  uint32_t result = NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_ARRAY_BUILD_FLAG_NONE;
+  if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::FAST_TRACE))
+  {
+    result |= NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_ARRAY_BUILD_FLAG_PREFER_FAST_TRACE;
+  }
+  if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::FAST_BUILD))
+  {
+    result |= NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_ARRAY_BUILD_FLAG_PREFER_FAST_BUILD;
+  }
+  return static_cast<NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_ARRAY_BUILD_FLAGS>(result);
+}
+#endif
 
 eastl::pair<D3D12_RAYTRACING_GEOMETRY_DESC, RaytraceGeometryDescriptionBufferResourceReferenceSet>
 raytraceGeometryDescriptionToGeometryDesc(const RaytraceGeometryDescription &desc)
 {
   switch (desc.type)
   {
-    case RaytraceGeometryDescription::Type::TRIANGLES: return raytraceGeometryDescriptionToGeometryDescTriangles(desc.data.triangles);
+    case RaytraceGeometryDescription::Type::TRIANGLES:
+      return raytrace_geometry_description_to_geometry_desc_triangles(desc.data.triangles,
+        desc.extraDataAvailableMask.hasOpacityMicroMapLinkage ? &desc.ommLinkage : nullptr);
     case RaytraceGeometryDescription::Type::AABBS: return raytraceGeometryDescriptionToGeometryDescAABBs(desc.data.aabbs);
   }
   G_ASSERT(false);
@@ -391,6 +611,64 @@ raytraceGeometryDescriptionToGeometryDesc(const RaytraceGeometryDescription &des
 
 namespace
 {
+
+#if _TARGET_PC_WIN
+
+uint64_t pack_adapter_luid(const LUID &adapter_luid)
+{
+  return static_cast<uint64_t>(adapter_luid.LowPart) | (static_cast<uint64_t>(adapter_luid.HighPart) << 32ul);
+}
+
+const char *to_string(DXGI_GRAPHICS_PREEMPTION_GRANULARITY granularity)
+{
+  switch (granularity)
+  {
+    case DXGI_GRAPHICS_PREEMPTION_DMA_BUFFER_BOUNDARY: return "DMA buffer";
+    case DXGI_GRAPHICS_PREEMPTION_PRIMITIVE_BOUNDARY: return "Primitive";
+    case DXGI_GRAPHICS_PREEMPTION_TRIANGLE_BOUNDARY: return "Triangle";
+    case DXGI_GRAPHICS_PREEMPTION_PIXEL_BOUNDARY: return "Pixel";
+    case DXGI_GRAPHICS_PREEMPTION_INSTRUCTION_BOUNDARY: return "Instruction";
+  }
+
+  return "??";
+}
+
+const char *to_string(DXGI_COMPUTE_PREEMPTION_GRANULARITY granularity)
+{
+  switch (granularity)
+  {
+    case DXGI_COMPUTE_PREEMPTION_DMA_BUFFER_BOUNDARY: return "DMA buffer";
+    case DXGI_COMPUTE_PREEMPTION_DISPATCH_BOUNDARY: return "Dispatch";
+    case DXGI_COMPUTE_PREEMPTION_THREAD_GROUP_BOUNDARY: return "Threadgroup";
+    case DXGI_COMPUTE_PREEMPTION_THREAD_BOUNDARY: return "Thread";
+    case DXGI_COMPUTE_PREEMPTION_INSTRUCTION_BOUNDARY: return "Instruction";
+  }
+
+  return "??";
+}
+
+void to_debuglog(DXGIAdapter *adapter)
+{
+  DXGI_ADAPTER_DESC3 info3 = {};
+  adapter->GetDesc3(&info3);
+
+  logdbg("DX12: Raw adapter 0x%p info:", adapter);
+  logdbg("DX12: -> Adapter luid: 0x%lx", pack_adapter_luid(info3.AdapterLuid));
+  logdbg("DX12: -> Description: %s", info3.Description);
+  logdbg("DX12: -> VendorId: 0x%x", info3.VendorId);
+  logdbg("DX12: -> DeviceId: 0x%x", info3.DeviceId);
+  logdbg("DX12: -> SubSysId: 0x%x", info3.SubSysId);
+  logdbg("DX12: -> Revision: 0x%x", info3.Revision);
+  logdbg("DX12: -> Dedicated video memory: %lu MB", info3.DedicatedVideoMemory / (1024 * 1024));
+  logdbg("DX12: -> Dedicated system memory: %lu MB", info3.DedicatedSystemMemory / (1024 * 1024));
+  logdbg("DX12: -> Dedicated shared memory: %lu MB", info3.SharedSystemMemory / (1024 * 1024));
+  logdbg("DX12: -> Flags: 0x%x", info3.Flags);
+  logdbg("DX12: -> Graphics preemption granularity: %s", to_string(info3.GraphicsPreemptionGranularity));
+  logdbg("DX12: -> Compute preemption granularity: %s", to_string(info3.ComputePreemptionGranularity));
+}
+
+#endif //_TARGET_PC_WIN
+
 template <typename T>
 T block_count(T value, T block_size)
 {
@@ -406,6 +684,34 @@ void load_config_into_memory_setup(ResourceMemoryHeap::SetupInfo &setup, const D
   {
     return;
   }
+
+#if _TARGET_PC_WIN
+  auto uploadHeapConfig = config->getBlockByNameEx("uploadHeapsGPU");
+
+  if (uploadHeapConfig)
+  {
+    setup.disableUploadHeapsGPU = uploadHeapConfig->getBool("disable", false);
+
+    setup.gpuHeapMemoryMappingConfig.mapRenderTargetTextureMSAAMemory =
+      uploadHeapConfig->getBool("mapRenderTargetTextureMSAAMemory", false);
+    setup.gpuHeapMemoryMappingConfig.mapRenderTargetTextureMemory = uploadHeapConfig->getBool("mapRenderTargetTextureMemory", true);
+    setup.gpuHeapMemoryMappingConfig.mapTextureMemory = uploadHeapConfig->getBool("mapTextureMemory", true);
+    setup.gpuHeapMemoryMappingConfig.mapDeviceResidentBufferMemory = uploadHeapConfig->getBool("mapDeviceResidentBufferMemory", true);
+    setup.gpuHeapMemoryMappingConfig.mapHostResidentHostReadOnlyBufferMemory =
+      uploadHeapConfig->getBool("mapHostResidentHostReadOnlyBufferMemory", false);
+    setup.gpuHeapMemoryMappingConfig.mapHostResidentHostReadWriteBufferMemory =
+      uploadHeapConfig->getBool("mapHostResidentHostReadWriteBufferMemory", false);
+    setup.gpuHeapMemoryMappingConfig.mapReadBackBufferMemory = uploadHeapConfig->getBool("mapReadBackBufferMemory", false);
+    setup.gpuHeapMemoryMappingConfig.mapBidirectionalBufferMemory = uploadHeapConfig->getBool("mapBidirectionalBufferMemory", false);
+    setup.gpuHeapMemoryMappingConfig.mapTemporaryUploadBufferMemory =
+      uploadHeapConfig->getBool("mapTemporaryUploadBufferMemory", false);
+    setup.gpuHeapMemoryMappingConfig.mapHostResidentHostWriteOnlyBufferMemory =
+      uploadHeapConfig->getBool("mapHostResidentHostWriteOnlyBufferMemory", false);
+    setup.gpuHeapMemoryMappingConfig.mapPushRingBufferMemory = uploadHeapConfig->getBool("mapPushRingBufferMemory", true);
+    setup.gpuHeapMemoryMappingConfig.mapDeviceResidentHostWriteOnlyBufferMemory =
+      uploadHeapConfig->getBool("mapDeviceResidentHostWriteOnlyBufferMemory", true);
+  }
+#endif
 
   auto metricsConfig = config->getBlockByNameEx("metrics");
   if (!metricsConfig)
@@ -457,14 +763,22 @@ bool is_threaded_command_execution(const char *name)
 }
 } // namespace
 
-TextureSubresourceInfo drv3d_dx12::calculate_texture_region_info(Extent3D ext, FormatStore fmt)
+TextureSubresourceInfo drv3d_dx12::calculate_texture_region_info(Extent3D ext, FormatStore fmt, FormatPlaneIndex plane_index)
 {
   TextureSubresourceInfo result{};
   uint32_t blockX = 1, blockY = 1;
-  auto blockBytes = fmt.getBytesPerPixelBlock(&blockX, &blockY);
+  auto blockBytesPerPlane = fmt.getBytesPerPixelBlockPerPlane(&blockX, &blockY, plane_index.index());
   result.rowCount = block_count(ext.height, blockY);
-  result.rowByteSize = block_count(ext.width, blockX) * blockBytes;
+  result.rowByteSize = block_count(ext.width, blockX) * blockBytesPerPlane;
   result.footprint.Format = fmt.asDxGiFormat();
+  if (fmt == FormatStore::fromDXGIDepthFormat(DXGI_FORMAT_D24_UNORM_S8_UINT) ||
+      fmt == FormatStore::fromDXGIDepthFormat(DXGI_FORMAT_D32_FLOAT_S8X24_UINT))
+  {
+    // https://microsoft.github.io/DirectX-Specs/d3d/PlanarDepthStencilDDISpec.html
+    // DXGI_FORMAT_R24G8_TYPELESS -> DXGI_FORMAT_R32_TYPELESS depth (24 bits + 8 unused) + DXGI_FORMAT_R8_TYPELESS stencil
+    // DXGI_FORMAT_R32G8X24_TYPELESS -> DXGI_FORMAT_R32_TYPELESS depth + DXGI_FORMAT_R8_TYPELESS stencil
+    result.footprint.Format = plane_index.index() == 0 ? DXGI_FORMAT_R32_TYPELESS : DXGI_FORMAT_R8_TYPELESS;
+  }
   // width and height has to be aligned to block size, otherwise we crash the device and fail
   // validation.
   result.footprint.Width = align_value<uint32_t>(ext.width, blockX);
@@ -474,6 +788,34 @@ TextureSubresourceInfo drv3d_dx12::calculate_texture_region_info(Extent3D ext, F
   result.totalByteSize =
     align_value<uint32_t>(result.rowCount * result.footprint.RowPitch * ext.depth, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT);
   return result;
+}
+
+TextureSubresourceInfo drv3d_dx12::calculate_texture_subresource_info(const Image &texture, SubresourceIndex subres_index)
+{
+  const auto subresourceInfo =
+    calculate_texture_mip_info(texture, texture.stateIndexToMipIndex(subres_index), texture.stateIndexToPlaneIndex(subres_index));
+#if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0
+  // There were issues with GetCopyableFootprints returning wrong values on GDK
+  // So we just validate our implementation on PC in dev builds.
+  const auto desc = texture.getHandle()->GetDesc();
+  D3D12_PLACED_SUBRESOURCE_FOOTPRINT referenceFootprint = {};
+  uint32_t referenceRowCount = {};
+  uint64_t referenceRowPitch = {};
+  uint64_t referenceTotalBytesSize = {};
+  get_device().getDevice()->GetCopyableFootprints(&desc, subres_index.index(), 1, 0, &referenceFootprint, &referenceRowCount,
+    &referenceRowPitch, &referenceTotalBytesSize);
+  G_ASSERT(FormatStore::fromDXGIFormat(referenceFootprint.Footprint.Format).asDxGiBaseFormat() ==
+           FormatStore::fromDXGIFormat(subresourceInfo.footprint.Format).asDxGiBaseFormat());
+  G_ASSERT(referenceFootprint.Footprint.Width == subresourceInfo.footprint.Width);
+  G_ASSERT(referenceFootprint.Footprint.Height == subresourceInfo.footprint.Height);
+  G_ASSERT(referenceFootprint.Footprint.Depth == subresourceInfo.footprint.Depth);
+  G_ASSERT(referenceFootprint.Footprint.RowPitch == subresourceInfo.footprint.RowPitch);
+  G_ASSERT(referenceRowCount == subresourceInfo.rowCount);
+  G_ASSERT(referenceRowPitch == subresourceInfo.rowByteSize);
+  // GetCopyableFootprints does not align the total size.
+  G_ASSERT(align_value<uint32_t>(referenceTotalBytesSize, D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT) == subresourceInfo.totalByteSize);
+#endif
+  return subresourceInfo;
 }
 
 uint64_t drv3d_dx12::calculate_texture_staging_buffer_size(Extent3D size, MipMapCount mips, FormatStore format,
@@ -500,80 +842,84 @@ D3D12_CPU_DESCRIPTOR_HANDLE Device::getNonRecentImageViews(Image *img, ImageView
 {
   auto iter = eastl::find_if(begin(img->getOldViews()), end(img->getOldViews()),
     [state](const Image::ViewInfo &view) { return view.state == state; });
-  if (iter == img->getOldViews().end())
+  if (iter != img->getOldViews().end()) [[likely]]
   {
-    if (isInErrorState())
+    img->updateRecentView(iter);
+    return img->getRecentView().handle;
+  }
+
+  using enum ImageViewState::Type;
+
+  if (isInErrorState()) [[unlikely]]
+  {
+    switch (state.getType())
     {
-      if (state.isDSV())
-        return {};
-      if (state.isRTV())
-        return nullResourceTable.table[NullResourceTable::RENDER_TARGET_VIEW];
-      if (state.isUAV())
-        return nullResourceTable.get(D3D_SIT_UAV_RWTYPED, img->getSRVDimension());
-      if (state.isSRV())
-        return nullResourceTable.get(D3D_SIT_TEXTURE, img->getSRVDimension());
+      case SRV: return nullResourceTable.get(D3D_SIT_TEXTURE, img->getSRVDimension());
+      case UAV: return nullResourceTable.get(D3D_SIT_UAV_RWTYPED, img->getSRVDimension());
+      case RTV: return nullResourceTable.table[NullResourceTable::RENDER_TARGET_VIEW];
+      case DSV_RW:
+      case DSV_CONST: return {};
     }
-    Image::ViewInfo viewInfo;
-    viewInfo.state = state;
-    if (state.isSRV())
-    {
-      viewInfo.handle = resources.allocateTextureSRVDescriptor(device.get());
-    }
-    else if (state.isUAV())
-    {
-      viewInfo.handle = resources.allocateTextureSRVDescriptor(device.get());
-    }
-    else if (state.isRTV())
-    {
-      viewInfo.handle = resources.allocateTextureRTVDescriptor(device.get());
-    }
-    else if (state.isDSV())
-    {
-      viewInfo.handle = resources.allocateTextureDSVDescriptor(device.get());
-    }
-    if (!is_swapchain_color_image(img))
-    {
-      if (state.isSRV())
-      {
-        D3D12_SHADER_RESOURCE_VIEW_DESC desc = state.asSRVDesc(img->getType(), img->isMultisampled());
-        device->CreateShaderResourceView(img->getHandle(), &desc, viewInfo.handle);
-      }
-      else if (state.isUAV())
-      {
-        D3D12_UNORDERED_ACCESS_VIEW_DESC desc = state.asUAVDesc(img->getType());
-        device->CreateUnorderedAccessView(img->getHandle(), nullptr, &desc, viewInfo.handle);
-      }
-      else if (state.isRTV())
-      {
-        D3D12_RENDER_TARGET_VIEW_DESC desc = state.asRTVDesc(img->getType(), img->isMultisampled());
-        device->CreateRenderTargetView(img->getHandle(), &desc, viewInfo.handle);
-      }
-      else if (state.isDSV())
-      {
-        D3D12_DEPTH_STENCIL_VIEW_DESC desc = state.asDSVDesc(img->getType(), img->isMultisampled());
-        viewInfo.handle = resources.allocateTextureDSVDescriptor(device.get());
-        device->CreateDepthStencilView(img->getHandle(), &desc, viewInfo.handle);
-      }
-    }
-    else
-    {
-      // for swapchain the backend will create the views and update the descriptor
-      context.addSwapchainView(img, viewInfo);
-    }
-    img->addView(viewInfo);
+  }
+
+  D3D12_CPU_DESCRIPTOR_HANDLE handle{};
+
+  switch (state.getType())
+  {
+    case SRV:
+    case UAV: handle = resources.allocateTextureSRVDescriptor(device.get()); break;
+    case RTV: handle = resources.allocateTextureRTVDescriptor(device.get()); break;
+    case DSV_RW:
+    case DSV_CONST: handle = resources.allocateTextureDSVDescriptor(device.get()); break;
+  }
+
+  if (is_swapchain_color_image(img))
+  {
+    // for swapchain the backend will create the views and update the descriptor
+    context.addSwapchainView(img, {.handle = handle, .state = state});
   }
   else
   {
-    img->updateRecentView(iter);
+    switch (state.getType())
+    {
+      case SRV:
+      {
+        D3D12_SHADER_RESOURCE_VIEW_DESC desc = state.asSRVDesc(img->getType(), img->isMultisampled());
+        device->CreateShaderResourceView(img->getHandle(), &desc, handle);
+        break;
+      }
+      case UAV:
+      {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC desc = state.asUAVDesc(img->getType());
+        device->CreateUnorderedAccessView(img->getHandle(), nullptr, &desc, handle);
+        break;
+      }
+      case RTV:
+      {
+        D3D12_RENDER_TARGET_VIEW_DESC desc = state.asRTVDesc(img->getType(), img->isMultisampled());
+        device->CreateRenderTargetView(img->getHandle(), &desc, handle);
+        break;
+      }
+      case DSV_RW:
+      case DSV_CONST:
+      {
+        D3D12_DEPTH_STENCIL_VIEW_DESC desc = state.asDSVDesc(img->getType(), img->isMultisampled());
+        device->CreateDepthStencilView(img->getHandle(), &desc, handle);
+        break;
+      }
+    }
   }
 
-  return img->getRecentView().handle;
+  img->addView({.handle = handle, .state = state});
+  return handle;
 }
 
 Device::~Device() { shutdown({}); }
 
 void Device::setupNullViews()
 {
+  if (isIll())
+    return;
   {
     D3D12_SHADER_RESOURCE_VIEW_DESC desc;
     desc.Format = DXGI_FORMAT_UNKNOWN;
@@ -700,24 +1046,12 @@ void Device::setupNullViews()
     auto mem = allocateTemporaryUploadMemory(max_const_buffer_width, 1);
     memset(mem.cpuPointer(), 0, max_const_buffer_width);
     mem.flush();
-    context.uploadToBuffer(nullBuffer, mem, 0);
+    {
+      ScopedCommitLock lock{context};
+      context.uploadToBufferNoLock(nullBuffer, mem, 0);
+    }
     context.freeMemory(mem);
-#if !DX12_USE_AUTO_PROMOTE_AND_DECAY
-    // Only needed when auto promote / decay is disabled, as the default state is copy-src / copy-dst and not
-    // read all.
-    D3D12_RESOURCE_STATES nullBufferState =
-      D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER | D3D12_RESOURCE_STATE_INDEX_BUFFER | D3D12_RESOURCE_STATE_COPY_SOURCE;
-    context.transitionBuffer(nullBuffer, nullBufferState);
-#endif
   }
-}
-
-void Device::configureFeatureCaps()
-{
-  caps.reset();
-  D3D12_FEATURE_DATA_D3D12_OPTIONS2 opt2 = {};
-  device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, &opt2, sizeof(opt2));
-  caps.set(Caps::DEPTH_BOUNDS_TEST, opt2.DepthBoundsTestSupported != FALSE);
 }
 
 #if DX12_USE_ESRAM
@@ -772,6 +1106,9 @@ bool Device::deviceUsesSoftwareRaytracing(const D3D12_FEATURE_DATA_D3D12_OPTIONS
 bool Device::createD3d12DeviceWithCheck(const Direct3D12Enviroment &d3d_env, D3D_FEATURE_LEVEL feature_level)
 {
   return device.autoQuery([&d3d_env, this, feature_level](auto uuid, auto ptr) {
+    ::to_debuglog(this->adapter.Get());
+    logdbg("DX12: Feature level = %s", to_string(feature_level));
+
     const auto hr = d3d_env.D3D12CreateDevice(this->adapter.Get(), feature_level, uuid, ptr);
     if (FAILED(hr))
       logdbg("DX12: D3D12CreateDevice returned: %s (HRESULT: 0x%x)", dxgi_error_code_to_string(hr), hr);
@@ -780,7 +1117,8 @@ bool Device::createD3d12DeviceWithCheck(const Direct3D12Enviroment &d3d_env, D3D
 }
 
 bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, ComPtr<DXGIFactory> &factory,
-  AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg)
+  AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg,
+  eastl::fixed_function<8, void()> caps_init)
 {
   adapter = eastl::move(adapter_info.adapter);
 
@@ -810,10 +1148,15 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
   }
   logdbg("DX12: ...Device has been successfully created");
 
-  if (gpu::VENDOR_ID_NVIDIA == adapter_info.info.VendorId)
+  if (caps_init)
+    caps_init();
+
+  const auto vendor = d3d_get_vendor(adapter_info.info.VendorId);
+
+  if (GpuVendor::NVIDIA == vendor)
   {
 #if HAS_NVAPI
-    if (gpu::init_nvapi())
+    if (NvAPI_Status initStatus = NvAPI_Initialize(); initStatus == NVAPI_OK)
     {
       auto opTable = dxil::get_nvidia_extension_op_code_to_extension_bit_table();
       pipelineManagerSetup.hlslVendorExtension.vendorExtensionMask = 0;
@@ -840,11 +1183,36 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
       {
         logdbg("DX12: Was looking for NVIDIA HLSL extensions, but none where reported as supported");
       }
+      isNvapiInitialized = true;
     }
     else
 #endif
     {
       logwarn("DX12: Detected NVIDIA device, but no NV API was available, no HLSL extensions available");
+#if HAS_NVAPI
+      logwarn("DX12: NvAPI_Initialize returned with %d", initStatus);
+      if (debug_state.configuration().enableNVRTValidation)
+      {
+        D3D_ERROR("DX12: NV RT Validation layer was requested, but NVAPI init failed.");
+      }
+      debug_state.configuration().enableNVRTValidation = false;
+#endif
+    }
+  }
+  else if (debug_state.configuration().enableNVRTValidation)
+  {
+    logwarn("DX12: NV RT Validation layer is not supported by non-NVIDIA GPUs, disabling this feature");
+    debug_state.configuration().enableNVRTValidation = false;
+  }
+
+  if (GpuVendor::AMD == vendor)
+  {
+    auto driverDate = gpu::get_driver_date(adapter_info.info.VendorId, adapter_info.info.DeviceId);
+    if (driverDate.year <= 2022)
+    {
+      config.features.set(DeviceFeaturesConfig::DISABLE_PIPELINE_LIBRARY_CACHE);
+      logwarn("DX12: Old AMD driver detected (%02d.%02d.%04d), disabling pipeline library cache as it might cause crashes",
+        driverDate.day, driverDate.month, driverDate.year);
     }
   }
 
@@ -854,7 +1222,30 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
       adapter_info.integrated = data.UMA;
   }
 
+  {
+    const char *rebarStatus = "unknown";
+    // Win11 starts with BuildNumber 22000. On Win10 ReBAR is only supported with SDK older than 613
+    if (!(get_windows_version(true)->build < 22000 && Direct3D12Enviroment::getD3D12SdkVersion() >= 613))
+    {
+      auto op16 = check_feature_support<D3D12_FEATURE_DATA_D3D12_OPTIONS16>(device.get());
+      rebarStatus = op16.GPUUploadHeapSupported ? "enabled" : "disabled";
+    }
+    logdbg("DX12: ReBAR is %s", rebarStatus);
+  }
+
   config = cfg;
+  psoSlowThresholdUsec = ::dgs_get_settings()->getBlockByNameEx("dx12")->getInt("psoSlowThresholdMsec", 1000) * 1000;
+
+#if _TARGET_PC_WIN
+  {
+    const bool isNvidia = (GpuVendor::NVIDIA == d3d_get_vendor(adapter_info.info.VendorId));
+    const bool blkSkip = ::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("skipPreloadRaytracingPipelinesOnNvidia", false);
+    allowRaytracePipelinePreload = !(isNvidia && blkSkip);
+    if (!allowRaytracePipelinePreload)
+      logdbg("DX12: Raytracing pipeline preload disabled as NVIDIA driver crash workaround"
+             " (skipPreloadRaytracingPipelinesOnNvidia)");
+  }
+#endif
 
   const bool validationLayerAvailable = debug::DeviceState::setup(debug_state, device.get(), d3d_env);
 
@@ -889,9 +1280,13 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 #endif
   }
 
+#if USE_DLSS_WITHOUT_STREAMLINE
+  context.dlssInterface.Initialize(device.get(), adapter.Get());
+#else
   // initStreamline will hook the factory in order to inject it's own swapchain
   // which means this have to precede swapchain setup
   context.initStreamline(factory, adapter.Get());
+#endif
 
   logdbg("DX12: Creating queues...");
   if (!queues.init(device.get(), *this))
@@ -903,22 +1298,17 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 
   logdbg("DX12: Creating swapchain...");
   if (!context.back.swapchain.setup(*this, context.front.swapchain, factory.Get(), queues[DeviceQueueType::GRAPHICS].getHandle(),
-        eastl::move(swapchain_create_info), 0))
+        eastl::move(swapchain_create_info), 0, !::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("disableLowLatency", false)))
   {
     logdbg("DX12: Failed...");
     shutdown({});
     return false;
   }
 
-  driverVersion = get_driver_version_from_registry(adapter_info.info.AdapterLuid);
+  driverVersion = get_driver_version_from_adapter(adapter.Get());
 
-  DXGI_ADAPTER_DESC2 adapterDesc = {};
-  adapter->GetDesc2(&adapterDesc);
   // Format table need some adjustments depending on hardware layout and features
-  FormatStore::configureFormatTable(device.get(), adapterDesc.VendorId);
-  vendorID = adapterDesc.VendorId;
-
-  configureFeatureCaps();
+  FormatStore::configureFormatTable(device.get(), adapter_info.info.VendorId);
 
   auto resourceMemoryHeapSetup = cfg.memorySetup;
   resourceMemoryHeapSetup.adapter = adapter.Get();
@@ -958,11 +1348,11 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
   pipelineCacheSetup.device = device.get();
   pipelineCacheSetup.allowedModes = cacheModes;
   pipelineCacheSetup.fileName = CACHE_FILE_NAME;
-  pipelineCacheSetup.deviceVendorID = adapterDesc.VendorId;
-  pipelineCacheSetup.deviceID = adapterDesc.DeviceId;
-  pipelineCacheSetup.subSystemID = adapterDesc.SubSysId;
-  pipelineCacheSetup.revisionID = adapterDesc.Revision;
-  pipelineCacheSetup.rawDriverVersion = driverVersion.raw;
+  pipelineCacheSetup.deviceVendorID = adapter_info.info.VendorId;
+  pipelineCacheSetup.deviceID = adapter_info.info.DeviceId;
+  pipelineCacheSetup.subSystemID = adapter_info.info.SubSysId;
+  pipelineCacheSetup.revisionID = adapter_info.info.Revision;
+  pipelineCacheSetup.rawDriverVersion = driverVersion.raw();
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
   pipelineCacheSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
 #endif
@@ -978,6 +1368,12 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 #endif
 
   pipeMan.init(pipelineManagerSetup);
+
+#if _TARGET_PC_WIN
+  pipeMan.asyncPipelineCompiler.init(*this,
+    get_recover_behavior_from_cfg(config.features.test(DeviceFeaturesConfig::PIPELINE_COMPILATION_ERROR_IS_FATAL),
+      config.features.test(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR)));
+#endif
 
 #if !DX12_FIXED_EXECUTION_MODE
   CommandExecutionMode execMode = CommandExecutionMode::IMMEDIATE;
@@ -1000,12 +1396,15 @@ bool Device::init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug
 
   context.initFsr2();
 
-  GpuLatency::create(d3d_get_vendor(getAdapterInfo().info.VendorId));
+  if (!::dgs_get_settings()->getBlockByNameEx("dx12")->getBool("disableLowLatency", false))
+  {
+    GpuLatency::create(vendor);
+  }
 
   // create null views to allow empty slots
   setupNullViews();
 
-  dummyUavBuffer = newBufferObject(16, 1, SBCF_UA_STRUCTURED, 0, "dummy_buf");
+  dummyUavBuffer = newBufferObject(16, 1, SBCF_UA_STRUCTURED, 0, "dummy_buf", nullptr);
 
   return true;
 }
@@ -1025,7 +1424,8 @@ uint32_t Device::ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIF
 
   if (!context.back.swapchain.getVirtualColorImage(0))
   {
-    auto virtualBackbuffer = createVirtualBackbuffer(context.back.swapchain.getColorImage(0));
+    context.waitForCommandFence(); // another present might be queued, which may lead to the uninitialized virtual backbuffer usage
+    auto virtualBackbuffer = createVirtualBackbuffer(context.back.swapchain.getColorImage(0), "virtual_backbuffer_0");
     context.copyImage(context.back.swapchain.getColorImage(0), virtualBackbuffer, make_whole_resource_copy_info());
     context.finishFrame(0, true); // we need to finish frame and present to avoid several swapchains usage in one frame
     OSSpinlockScopedLock resourceBindingLock(get_resource_binding_guard());
@@ -1037,7 +1437,7 @@ uint32_t Device::ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIF
 
   SwapchainCreateInfo sci = {
     .window = window,
-    .presentMode = context.back.swapchain.getPresentationMode(),
+    .presentInterval = context.back.swapchain.getPresentationInterval(),
   };
   set_hdr_config(sci);
   const uint32_t newIndex = context.front.swapchain.allocateSwapchainIndex();
@@ -1046,7 +1446,8 @@ uint32_t Device::ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIF
 
   {
     OSSpinlockScopedLock resourceBindingLock(get_resource_binding_guard());
-    auto virtualBackbuffer = createVirtualBackbuffer(context.back.swapchain.getColorImage(newIndex));
+    auto virtualBackbuffer = createVirtualBackbuffer(context.back.swapchain.getColorImage(newIndex),
+      eastl::string{eastl::string::CtorSprintf{}, "virtual_backbuffer_%u", newIndex}.c_str());
     context.back.swapchain.setupVirtualBackbuffers(newIndex, context.front.swapchain.getColorTexture(newIndex), virtualBackbuffer);
   }
 
@@ -1089,6 +1490,19 @@ void Device::shutdown(const DeviceCapsAndShaderModel &features)
   if (!isInitialized())
     return;
 
+#if _TARGET_PC_WIN
+  pipeMan.asyncPipelineCompiler.shutdown();
+#endif
+
+#if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0
+  Finally deviceRefCountChecker{[dev = StreamlineAdapter::unhook(device.get())] {
+    const auto deviceRefCount = dev->Release();
+    if (deviceRefCount != 0)
+      logdbg("DX12: Object leak! Device's refcount after shutdown: %d", deviceRefCount);
+    // G_ASSERTF(deviceRefCount == 0, "DX12: Object leak! Device's refcount after shutdown: %d", deviceRefCount);
+  }};
+#endif
+
   context.destroyBuffer(eastl::move(nullBuffer));
 
   frontendQueryManager.shutdownPredicate(context);
@@ -1111,6 +1525,10 @@ void Device::shutdown(const DeviceCapsAndShaderModel &features)
 
   pipeMan.unloadAll();
 
+#if USE_DLSS_WITHOUT_STREAMLINE
+  context.dlssInterface.Teardown(device.get());
+#endif
+
 #if _TARGET_PC_WIN
   DXGI_ADAPTER_DESC2 adapterDesc = {};
   adapter->GetDesc2(&adapterDesc);
@@ -1121,7 +1539,7 @@ void Device::shutdown(const DeviceCapsAndShaderModel &features)
   pipelineCacheSetup.deviceID = adapterDesc.DeviceId;
   pipelineCacheSetup.subSystemID = adapterDesc.SubSysId;
   pipelineCacheSetup.revisionID = adapterDesc.Revision;
-  pipelineCacheSetup.rawDriverVersion = driverVersion.raw;
+  pipelineCacheSetup.rawDriverVersion = driverVersion.raw();
 #if DX12_ENABLE_CONST_BUFFER_DESCRIPTORS
   pipelineCacheSetup.rootSignaturesUsesCBVDescriptorRanges = rootSignaturesUsesCBVDescriptorRanges();
 #endif
@@ -1148,6 +1566,14 @@ void Device::shutdown(const DeviceCapsAndShaderModel &features)
   debug::DeviceState::teardown();
   queues.shutdown();
 
+#if HAS_NVAPI
+  if (isNvapiInitialized)
+  {
+    NvAPI_Unload();
+    isNvapiInitialized = false;
+  }
+#endif
+
 #if _TARGET_PC_WIN
   stopDeviceErrorObserver(enterDeviceErrorObserverInShutdownMode());
 #endif
@@ -1166,21 +1592,21 @@ void Device::initializeBindlessManager(bool enable_types_validation)
     &nullResourceTable, enable_types_validation);
 }
 
-namespace gpu
-{
-uint32_t get_video_nvidia_version();
-}
-
-void Device::adjustCaps(Driver3dDesc &capabilities)
+void Device::adjustCaps(DriverDesc &capabilities)
 {
   capabilities.info = {};
   capabilities.caps = {};
   capabilities.issues = {};
 
+  D3D12_FEATURE_DATA_D3D12_OPTIONS2 opt2 = {};
+  device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS2, &opt2, sizeof(opt2));
+  caps.set(Caps::DEPTH_BOUNDS_TEST, opt2.DepthBoundsTestSupported != FALSE);
 
 #if _TARGET_PC_WIN
   auto info = getAdapterInfo();
   capabilities.info.isUMA = info.integrated;
+  capabilities.info.driverVersion = driverVersion;
+  capabilities.info.driverDate = gpu::get_driver_date(info.info.VendorId, info.info.DeviceId);
   gpu::update_device_attributes(info.info.VendorId, info.info.DeviceId, capabilities.info);
 
   capabilities.caps.hasDepthReadOnly = true;
@@ -1194,7 +1620,7 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.caps.hasDepthBoundsTest = hasDepthBoundsTest();
   capabilities.caps.hasConditionalRender = true;
   capabilities.caps.hasResourceCopyConversion = true;
-  capabilities.caps.hasReadMultisampledDepth = false;
+  capabilities.caps.hasReadMultisampledDepth = true;
   capabilities.caps.hasInstanceID = true;
   capabilities.caps.hasQuadTessellation = true;
   capabilities.caps.hasGather4 = true;
@@ -1211,18 +1637,40 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.caps.hasRenderPassDepthResolve = false;
   capabilities.caps.hasUAVOnEveryStage = true;
   capabilities.caps.hasStreamOutput = true;
+  capabilities.caps.hasProperUAVSupport = true;
+
+  if (GpuVendor::NVIDIA == capabilities.info.vendor)
+  {
+    // This is a bloody workaround for broken terrain tessellation.
+    // All versions newer than 460.79 are affected.
+    // TODO: remove this code snippet when those nvidia driver versions aren't supported anymore.
+    const auto version = to_nvidia_version(capabilities.info.driverVersion);
+    if (version >= TwoComponentVersion{.major = 460, .minor = 79} && version < TwoComponentVersion{.major = 461, .minor = 40})
+    {
+      capabilities.caps.hasQuadTessellation = false;
+    }
+    if (version >= TwoComponentVersion{.major = 572, .minor = 00} && version < TwoComponentVersion{.major = 572, .minor = 99})
+    {
+      capabilities.issues.hasBrokenNvApiGetSleepStatus = true;
+    }
 
 #if HAS_NVAPI
-  // This is a bloody workaround for broken terrain tessellation.
-  // All versions newer than 460.79 are affected.
-  // TODO: remove this code snippet when those nvidia driver versions aren't supported anymore.
-  const uint32_t version = gpu::get_video_nvidia_version();
-  if (version >= 46079 && version < 46140)
-  {
-    capabilities.caps.hasQuadTessellation = false;
-  }
-  capabilities.issues.hasBrokenNvApiGetSleepStatus = version >= 57200 && version < 57299;
+    if (isNvapiInitialized)
+    {
+      capabilities.caps.hasNVApi = true;
+      NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAPS nvOmmCaps{};
+      NvAPI_D3D12_GetRaytracingCaps(device.get(), NVAPI_D3D12_RAYTRACING_CAPS_TYPE_OPACITY_MICROMAP, &nvOmmCaps, sizeof(nvOmmCaps));
+      caps.set(Caps::RAY_TRACING_OMM_NV,
+        NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAP_NONE != (NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_CAP_STANDARD & nvOmmCaps));
+
+      NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAPS nvSerCaps{};
+      NvAPI_D3D12_GetRaytracingCaps(device.get(), NVAPI_D3D12_RAYTRACING_CAPS_TYPE_THREAD_REORDERING, &nvSerCaps, sizeof(nvSerCaps));
+      caps.set(Caps::RAY_TRACING_SER_NV,
+        NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAP_NONE != (NVAPI_D3D12_RAYTRACING_THREAD_REORDERING_CAP_STANDARD & nvSerCaps));
+    }
 #endif
+  }
+  capabilities.issues.hasBrokenUAVOnlyPasses = false;
 
   auto op0 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS>();
   auto op1 = checkFeatureSupport<D3D12_FEATURE_DATA_D3D12_OPTIONS1>();
@@ -1238,6 +1686,17 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
 
   capabilities.shaderModel = shader_model_from_dx(sm.HighestShaderModel);
   logdbg("DX12: GPU has support for Shader Model %u.%u", capabilities.shaderModel.major, capabilities.shaderModel.minor);
+  if (capabilities.shaderModel >= 6.6_sm)
+  {
+    // according to https://d3d12infodb.boolka.dev/FeatureTable.html there is no DX12 HW that actually supports sm 6.6+ and has
+    // resource binding tier lower than 3, so this should never happen, but this just ensures we never allow this unusual combination
+    // of features
+    if (op0.ResourceBindingTier < D3D12_RESOURCE_BINDING_TIER_3)
+    {
+      capabilities.shaderModel = 6.5_sm;
+      logwarn("DX12: Downgrading shader model to 6.5 as the device has no resource binding tier 3 or higher");
+    }
+  }
 
   capabilities.caps.hasConservativeRassterization =
     D3D12_CONSERVATIVE_RASTERIZATION_TIER_NOT_SUPPORTED != op0.ConservativeRasterizationTier;
@@ -1268,6 +1727,12 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
 
   caps.set(Caps::RAY_TRACING, D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier);
   caps.set(Caps::RAY_TRACING_T1_1, D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier);
+#if DX12_HAS_OMM_INTERFACE
+  caps.set(Caps::RAY_TRACING_T1_2, D3D12_RAYTRACING_TIER_1_2 <= op5.RaytracingTier);
+#else
+  caps.set(Caps::RAY_TRACING_T1_2, false);
+#endif
+
   capabilities.caps.hasRayAccelerationStructure = D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier;
   capabilities.caps.hasRayQuery = D3D12_RAYTRACING_TIER_1_1 <= op5.RaytracingTier && (capabilities.shaderModel >= 6.5_sm);
   capabilities.caps.hasRayDispatch = D3D12_RAYTRACING_TIER_1_0 <= op5.RaytracingTier;
@@ -1287,6 +1752,8 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
     {
       caps.set(Caps::RAY_TRACING, false);
       caps.set(Caps::RAY_TRACING_T1_1, false);
+      caps.set(Caps::RAY_TRACING_T1_2, false);
+      caps.set(Caps::RAY_TRACING_OMM_NV, false);
       capabilities.caps.hasRayAccelerationStructure = false;
       capabilities.caps.hasRayQuery = false;
       capabilities.caps.hasRayDispatch = false;
@@ -1311,13 +1778,20 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.caps.hasVariableRateShadingBy4 = FALSE != op6.AdditionalShadingRatesSupported;
 
   capabilities.caps.hasMeshShader = D3D12_MESH_SHADER_TIER_1 <= op7.MeshShaderTier;
+  capabilities.caps.hasMeshShaderIndirectCount = capabilities.caps.hasMeshShader;
 
   capabilities.caps.hasShader64BitIntegerResources =
     (FALSE != op9.AtomicInt64OnTypedResourceSupported) && (capabilities.shaderModel >= 6.6_sm);
+  capabilities.caps.hasAtomicInt64OnGroupShared =
+    (FALSE != op9.AtomicInt64OnGroupSharedSupported) && (capabilities.shaderModel >= 6.6_sm);
 
   capabilities.caps.hasDLSS =
     getContext().streamlineAdapter && getContext().streamlineAdapter->isDlssSupported() == nv::SupportState::Supported;
   capabilities.caps.hasXESS = getContext().getXessState() >= XessState::SUPPORTED;
+
+  auto tightAlignment = checkFeatureSupport<D3D12_FEATURE_DATA_TIGHT_ALIGNMENT>();
+  caps.set(Caps::TIGHT_BUFFER_ALIGNMENT, D3D12_TIGHT_ALIGNMENT_TIER_1 <= tightAlignment.SupportTier);
+
 #else
   xbox_adjust_caps<Caps>(capabilities, caps, config);
 #endif
@@ -1346,6 +1820,18 @@ void Device::adjustCaps(Driver3dDesc &capabilities)
   capabilities.raytrace.accelerationStructurePoolSizeAlignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
   capabilities.raytrace.accelerationStructurePoolOffsetAlignment = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BYTE_ALIGNMENT;
 #endif
+
+#if _TARGET_PC_WIN
+  capabilities.caps.hasRayTraceOpacityMicroMapTriangleArrays = FeatureImplementation::Core == getOpacityMicroMapAvailability();
+  capabilities.caps.hasNvidiaRayTraceOpacityMicroMapTriangleArrays = FeatureImplementation::Nvidia == getOpacityMicroMapAvailability();
+  logdbg("DX12: Opacity micro map support implemented by %s", as_string(getOpacityMicroMapAvailability()));
+
+  capabilities.caps.hasRayTraceShaderExecutionReorder = caps.test(Caps::RAY_TRACING_T1_2);
+  capabilities.caps.hasNvidiaRayTraceShaderExecutionReorder = caps.test(Caps::RAY_TRACING_SER_NV);
+  capabilities.caps.hasBarrierNone = true;
+#endif
+
+  capabilities.raytrace.opacityMicroMapInputBufferAlignment = getOpacityMicroMapInputBufferAlignment();
 }
 
 uint64_t Device::getGpuTimestampFrequency()
@@ -1392,13 +1878,14 @@ Image *Device::createImage(const ImageInfo &ii, Image *base_image, const char *n
 }
 
 #if _TARGET_PC_WIN
-Image *Device::createVirtualBackbuffer(Image *base)
+Image *Device::createVirtualBackbuffer(Image *base, const char *name)
 {
-  auto rt = resources.cloneRenderTarget(getDXGIAdapter(), device.get(), base);
-
+  auto rt = resources.cloneRenderTarget(getDXGIAdapter(), *this, base);
+  rt->setDebugName(name);
+  nameResource(rt->getHandle(), name);
   context.back.sharedContextState.resourceStates.setTextureState(context.back.sharedContextState.initialResourceStateSet,
     rt->getGlobalSubResourceIdBase(), 1, D3D12_RESOURCE_STATE_RENDER_TARGET);
-
+  context.discardTextureInternal(rt, rt->getFormat().asTexFlags() | TEXCF_RTARGET);
   return rt;
 }
 #endif
@@ -1423,7 +1910,7 @@ Texture *Device::wrapD3DTex(ID3D12Resource *tex_res, ResourceBarrier current_sta
 
   auto layers = image->getArrayLayers();
 
-  BaseTex *tex = newTextureObject(layers.count() > 1 ? D3DResourceType::ARRTEX : D3DResourceType::TEX, flg);
+  BaseTex *tex = newTextureObject(layers.count() > 1 ? D3DResourceType::ARRTEX : D3DResourceType::TEX, flg, nullptr);
   tex->image = image;
   G_ASSERT(1 << tex->image->getMsaaLevel() == get_sample_count(tex->cflg));
 
@@ -1526,28 +2013,36 @@ ID3D12CommandQueue *drv3d_dx12::Device::getGraphicsCommandQueue() const { return
 
 D3DDevice *drv3d_dx12::Device::getDevice() { return device.get(); }
 
+#if !_TARGET_XBOXONE
+ID3D12Device7 *Device::tryGetDevice7()
+{
+  if (!device.is<ID3D12Device7>())
+    return nullptr;
+  return device.as<ID3D12Device7>();
+}
+#endif
+
 template <typename F>
 bool Device::processDefragmentation(const F &defragmentation_call, const char *defragmentation_method_name)
 {
+  ScopedCommitLock ctxLock{context};
+
   if (!isHealthy())
-    return false;
-
-  if (!is_main_thread())
-    return false;
-
-  logwarn("DX12: %s defragmentation, wait for current work finish", defragmentation_method_name);
-
   {
-    // Resources must be flushed to remove deleted resources from backend
-    ScopedCommitLock ctxLock{context};
-    get_frontend_state().flushGraphics(*this, FrontendState::GraphicsMode::DRAW_OR_DRAW_INDEXED);
-    get_frontend_state().flushCompute(context);
+    logdbg("DX12: Defragmentation is skipped due to the error driver state");
+    return false;
   }
+
+  logdbg("DX12: %s defragmentation, wait for current work finish", defragmentation_method_name);
 
   context.wait();
   context.updateFenceProgress();
 
-  logwarn("DX12: %s defragmentation is started", defragmentation_method_name);
+  logdbg("DX12: %s defragmentation is started", defragmentation_method_name);
+
+  eastl::array<eastl::pair<uint64_t, float>, ResourceMemoryHeap::get_memory_groups_count()> groupsFreeSizeFragmentation;
+  for (auto [groupIdx, elem] : enumerate(groupsFreeSizeFragmentation))
+    elem = resources.getFreeMemorySizeAndFragmentation(groupIdx);
 
   defragmentation_call();
 
@@ -1556,59 +2051,190 @@ bool Device::processDefragmentation(const F &defragmentation_call, const char *d
 
   logdbg("DX12: %s defragmentation has been finished", defragmentation_method_name);
 
+  for (auto [groupIdx, elem] : enumerate(groupsFreeSizeFragmentation))
+  {
+    const auto [newFreeSize, newFragmentation] = resources.getFreeMemorySizeAndFragmentation(groupIdx);
+    static constexpr float eps = 1e-3f;
+    if (elem.first != newFreeSize || abs(elem.second - newFragmentation) > eps)
+    {
+      logdbg("DX12: %s defragmentation group stats %d: free size %u -> %u, fragmentation %.2f%% -> %.2f%%",
+        defragmentation_method_name, groupIdx, elem.first, newFreeSize, elem.second * 100.0f, newFragmentation * 100.0f);
+    }
+  }
+
   return true;
 }
 
-void Device::processEmergencyDefragmentation(uint32_t heap_group, bool is_alternate_heap_allowed, bool is_uav, bool is_rtv)
+void Device::processEmergencyDefragmentation(uint32_t requested_group, bool is_alternate_heap_allowed, bool is_uav, bool is_rtv,
+  uint64_t requested_size, bool is_dedicated_heap)
 {
-  processDefragmentation(
-    [this, heap_group, is_alternate_heap_allowed, is_uav, is_rtv]() {
-      resources.processEmergencyDefragmentation(*this, getDXGIAdapter(), bindlessManager, heap_group, is_alternate_heap_allowed,
-        is_uav, is_rtv);
-    },
-    "Emergency");
+  TIME_D3D_PROFILE_NAME(EmergencyDefragmentation, "EmergencyDefragmentation");
+
+  ScopedCommitLock ctxLock{context};
+
+  if (!context.noActiveQueriesNoLock())
+  {
+    logdbg("DX12: Emergency defragmentation is skipped due to active queries");
+    return;
+  }
+
+  logdbg("DX12: Emergency defragmentation, wait for current work finish");
+
+  context.wait();
+  context.updateFenceProgress();
+
+  if (!isEmergencyDefragmentationEnabled())
+    return;
+
+  bool isWaitRequired = false;
+
+  for (uint32_t group = 0; group < resource_manager::HeapFragmentationManager::get_memory_groups_count(); group++)
+  {
+    if (!resources.isDefragmentationRequiredOom(group, false, requested_group, is_alternate_heap_allowed, is_uav, is_rtv,
+          requested_size, is_dedicated_heap))
+      continue;
+
+    if (isRecompositionEmergencyDefragmentation())
+    {
+      resources.processDefragmentationForGroup(*this, getDXGIAdapter(), bindlessManager, group);
+      isWaitRequired = true;
+      continue;
+    }
+
+    TIME_D3D_PROFILE_NAME(EmergencyDefragmentationGroup, String(64, "EmergencyDefragmentation_group_%d", group));
+
+    logdbg("DX12: Emergency defragmentation is started (group %d)", group);
+
+    resources.beforeEmergencyDefragmentation(group);
+
+    static constexpr int maxIterCount = 64;
+    int numIterationsDone = 0;
+    for (int iterIdx = 0; iterIdx < maxIterCount; iterIdx++)
+    {
+      if (!resources.isDefragmentationRequiredOom(group, true, requested_group, is_alternate_heap_allowed, is_uav, is_rtv,
+            requested_size, is_dedicated_heap))
+      {
+        break;
+      }
+
+      const auto defragmentationStatus =
+        resources.tryDefragmentHeap(context, getDXGIAdapter(), device.get(), bindlessManager, group, true);
+      numIterationsDone++;
+      if (!defragmentationStatus.isInProgress)
+        break;
+
+      if (defragmentationStatus.wasMemoryUpdated)
+      {
+        context.wait();
+        context.updateFenceProgress();
+      }
+    }
+
+    if (isWaitRequired)
+    {
+      context.wait();
+      context.updateFenceProgress();
+    }
+
+    resources.afterEmergencyDefragmentation(group);
+
+    logdbg("DX12: Emergency defragmentation has been finished in %d iterations (group %d)", numIterationsDone, group);
+  }
 }
 
 bool Device::processDefragmentationForAllGroups()
 {
+  TIME_D3D_PROFILE_NAME(CommonDefragmentation, "RequestedDefragmentation");
   return processDefragmentation([this]() { resources.processDefragmentationForAllGroups(*this, getDXGIAdapter(), bindlessManager); },
     "Common");
 }
 
+
 #if D3D_HAS_RAY_TRACING
 RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(RaytraceGeometryDescription *desc, uint32_t count,
-  RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType tag)
 {
-  dag::Vector<D3D12_RAYTRACING_GEOMETRY_DESC, framemem_allocator> geometryDesc;
-  geometryDesc.reserve(count);
-  for (uint32_t i = 0; i < count; ++i)
+  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO prebuildInfo = {};
+#if HAS_NVAPI
+  if (FeatureImplementation::Nvidia == getOpacityMicroMapAvailability())
   {
-    geometryDesc.push_back(raytraceGeometryDescriptionToGeometryDesc(desc[i]).first);
+    dag::Vector<NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX, framemem_allocator> geometryDesc;
+    geometryDesc.reserve(count);
+
+    for (auto &e : make_span(desc, count))
+    {
+      dag::ConstSpan<NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_USAGE_COUNT> ommDescRange;
+      if (e.extraDataAvailableMask.hasOpacityMicroMapLinkage)
+      {
+        ommDescRange =
+          make_span(reinterpret_cast<const NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_USAGE_COUNT *>(e.ommLinkage.ommDesc.data()),
+            e.ommLinkage.ommDesc.size());
+      }
+      auto [geoDesc, extra] = convert_to_nvidia(e, ommDescRange);
+      geometryDesc.push_back(geoDesc);
+    }
+
+    const NVAPI_D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS_EX inputDesc = {
+      .type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL,
+      .flags = to_acceleration_structure_build_flags_nvidia(flags, false),
+      .numDescs = geometryDesc.size(),
+      .descsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY,
+      .geometryDescStrideInBytes = sizeof(NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX),
+      .pGeometryDescs = geometryDesc.data()};
+
+    NVAPI_GET_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO_EX_PARAMS preBuildInfoParams = {
+      .version = NVAPI_GET_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO_EX_PARAMS_VER, .pDesc = &inputDesc, .pInfo = &prebuildInfo};
+
+    NvAPI_D3D12_GetRaytracingAccelerationStructurePrebuildInfoEx(device.get(), &preBuildInfoParams);
   }
+  else
+#endif
+  {
+    /// TODO nvidia OMM implementation
 
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottomLevelInputs = {};
-  bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
-  bottomLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
-  bottomLevelInputs.NumDescs = geometryDesc.size();
-  bottomLevelInputs.pGeometryDescs = geometryDesc.data();
-  bottomLevelInputs.Flags = toAccelerationStructureBuildFlags(flags);
-
-  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO bottomLevelPrebuildInfo = {};
-  device.as<ID3D12Device5>()->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &bottomLevelPrebuildInfo);
-  G_ASSERT(bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes > 0);
-
-  const bool updateable = !!(bottomLevelInputs.Flags & D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE);
-
-#if _TARGET_SCARLETT
-  scarlett_update_bottom_level_prebuild_info(device, bottomLevelInputs, bottomLevelPrebuildInfo);
+#if DX12_HAS_OMM_INTERFACE
+    dag::Vector<eastl::pair<D3D12_RAYTRACING_GEOMETRY_TRIANGLES_DESC, D3D12_RAYTRACING_GEOMETRY_OMM_LINKAGE_DESC>> extraData;
+    extraData.reserve(count);
 #endif
 
-  build_scratch_size_in_bytes = bottomLevelPrebuildInfo.ScratchDataSizeInBytes;
+    dag::Vector<D3D12_RAYTRACING_GEOMETRY_DESC, framemem_allocator> geometryDesc;
+    geometryDesc.reserve(count);
+    for (uint32_t i = 0; i < count; ++i)
+    {
+      auto [geoDesc, extra] = raytraceGeometryDescriptionToGeometryDesc(desc[i]);
+#if DX12_HAS_OMM_INTERFACE
+      extraData.push_back(eastl::make_pair(extra.ommTriangleDesc, extra.ommLinkageDesc));
+      if (D3D12_RAYTRACING_GEOMETRY_TYPE_OMM_TRIANGLES == geoDesc.Type)
+      {
+        geoDesc.OmmTriangles.pTriangles = &extraData.back().first;
+        geoDesc.OmmTriangles.pOmmLinkage = &extraData.back().second;
+      }
+#endif
+      geometryDesc.push_back(geoDesc);
+    }
+
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS bottomLevelInputs = {};
+    bottomLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL;
+    bottomLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
+    bottomLevelInputs.NumDescs = geometryDesc.size();
+    bottomLevelInputs.pGeometryDescs = geometryDesc.data();
+    bottomLevelInputs.Flags = to_acceleration_structure_build_flags(flags, false);
+
+    device.as<ID3D12Device5>()->GetRaytracingAccelerationStructurePrebuildInfo(&bottomLevelInputs, &prebuildInfo);
+    G_ASSERT(prebuildInfo.ResultDataMaxSizeInBytes > 0);
+
+
+#if _TARGET_SCARLETT
+    scarlett_update_bottom_level_prebuild_info(device, bottomLevelInputs, prebuildInfo);
+#endif
+  }
+
+  build_scratch_size_in_bytes = prebuildInfo.ScratchDataSizeInBytes;
   if (update_scratch_size_in_bytes)
   {
-    if (updateable)
+    if (RaytraceBuildFlags::NONE != (flags & RaytraceBuildFlags::ALLOW_UPDATE))
     {
-      *update_scratch_size_in_bytes = bottomLevelPrebuildInfo.UpdateScratchDataSizeInBytes;
+      *update_scratch_size_in_bytes = prebuildInfo.UpdateScratchDataSizeInBytes;
     }
     else
     {
@@ -1616,22 +2242,22 @@ RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(Raytr
     }
   }
 
-  return resources.newRaytraceBottomAccelerationStructure(*this, bottomLevelPrebuildInfo.ResultDataMaxSizeInBytes);
+  return resources.newRaytraceBottomAccelerationStructure(*this, prebuildInfo.ResultDataMaxSizeInBytes, tag);
 }
 
-RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint32_t size)
+RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint32_t size, ResourceTagType tag)
 {
-  return resources.newRaytraceBottomAccelerationStructure(*this, size);
+  return resources.newRaytraceBottomAccelerationStructure(*this, size, tag);
 }
 
 RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint32_t elements, RaytraceBuildFlags flags,
-  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType tag)
 {
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS topLevelInputs = {};
   topLevelInputs.Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL;
   topLevelInputs.DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY;
   topLevelInputs.NumDescs = elements;
-  topLevelInputs.Flags = toAccelerationStructureBuildFlags(flags);
+  topLevelInputs.Flags = to_acceleration_structure_build_flags(flags, false);
 
   D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO topLevelPrebuildInfo = {};
   device.as<ID3D12Device5>()->GetRaytracingAccelerationStructurePrebuildInfo(&topLevelInputs, &topLevelPrebuildInfo);
@@ -1652,14 +2278,14 @@ RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint3
     }
   }
 
-  return resources.newRaytraceTopAccelerationStructure(*this, topLevelPrebuildInfo.ResultDataMaxSizeInBytes);
+  return resources.newRaytraceTopAccelerationStructure(*this, topLevelPrebuildInfo.ResultDataMaxSizeInBytes, tag);
 }
 
 ::raytrace::TopAccelerationStructure *Device::createRaytraceAccelerationStructure(
   const ::raytrace::TopAccelerationStructurePlacementInfo &top_info)
 {
   return reinterpret_cast<::raytrace::TopAccelerationStructure *>(
-    resources.newRaytraceTopAccelerationStructure(*this, top_info.sizeInBytes));
+    resources.newRaytraceTopAccelerationStructure(*this, top_info.sizeInBytes, nullptr));
 }
 
 ::raytrace::TopAccelerationStructure *Device::createRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool,
@@ -1672,7 +2298,7 @@ RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint3
   const ::raytrace::BottomAccelerationStructurePlacementInfo &bottom_info)
 {
   return reinterpret_cast<::raytrace::BottomAccelerationStructure *>(
-    resources.newRaytraceBottomAccelerationStructure(*this, bottom_info.sizeInBytes));
+    resources.newRaytraceBottomAccelerationStructure(*this, bottom_info.sizeInBytes, nullptr));
 }
 
 ::raytrace::BottomAccelerationStructure *Device::createRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool,
@@ -1681,17 +2307,37 @@ RaytraceAccelerationStructure *Device::createRaytraceAccelerationStructure(uint3
   return reinterpret_cast<::raytrace::BottomAccelerationStructure *>(resources.createAccelerationStructure(pool, bottom_info));
 }
 
+::raytrace::OpacityMicroMapTriangleArray *Device::createRaytraceAccelerationStructure(
+  const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &omm_info)
+{
+  if (FeatureImplementation::None != getOpacityMicroMapAvailability())
+  {
+    return reinterpret_cast<::raytrace::OpacityMicroMapTriangleArray *>(
+      resources.createOpacityMicroMapTriangleArray(*this, omm_info.sizeInBytes, nullptr));
+  }
+  return nullptr;
+}
+::raytrace::OpacityMicroMapTriangleArray *Device::createRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool,
+  const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &omm_info)
+{
+  if (FeatureImplementation::None != getOpacityMicroMapAvailability())
+  {
+    return reinterpret_cast<::raytrace::OpacityMicroMapTriangleArray *>(resources.createAccelerationStructure(pool, omm_info));
+  }
+  return nullptr;
+}
+
 #if _TARGET_PC_WIN
 uint64_t Device::getAdapterLuid()
 {
   DXGI_ADAPTER_DESC3 info3 = {};
   adapter->GetDesc3(&info3);
-  return static_cast<uint64_t>(info3.AdapterLuid.LowPart) | (static_cast<uint64_t>(info3.AdapterLuid.HighPart) << 32ul);
+  return pack_adapter_luid(info3.AdapterLuid);
 }
 
 Device::AdapterInfo Device::getAdapterInfo()
 {
-  Device::AdapterInfo info{};
+  Device::AdapterInfo info{.adapter = adapter};
   adapter->GetDesc1(&info.info);
 
   D3D12_FEATURE_DATA_ARCHITECTURE data = {};
@@ -1808,9 +2454,20 @@ HRESULT Device::findClosestMatchingMode(DXGI_MODE_DESC *out_desc)
 #if _TARGET_PC_WIN
 LUID Device::preRecovery()
 {
-  device->AddRef();
+  pipeMan.asyncPipelineCompiler.cancelAllCompilations();
+
   // For approximating is there any resource leak during preRecovery
-  Finally printDeviceRefCount{[dev = device.get()] { logdbg("DX12: device's refcount after preRecovery: %d", dev->Release()); }};
+  Finally cleanupDevice{[dev = StreamlineAdapter::unhook(device.get())] {
+    ULONG refCount = dev->Release();
+    if (refCount == 0)
+      logdbg("DX12: device doesn't have references after preRecovery");
+    else
+    {
+      logdbg("DX12: device's refcount after preRecovery: %d. Force device release applied", refCount);
+      while (dev->Release() != 0)
+        ;
+    }
+  }};
 
   const auto adapterLuid = [&] {
     DXGI_ADAPTER_DESC desc;
@@ -1818,6 +2475,7 @@ LUID Device::preRecovery()
     return desc.AdapterLuid;
   }();
 
+  const bool wasDeviceLost = isInErrorState();
   // ensure we are in error state, might not be if the engine requested a reset.
   enterErrorState();
   resources.waitForTemporaryUsesToFinish();
@@ -1826,7 +2484,7 @@ LUID Device::preRecovery()
   auto errorObserverShutdownToken = enterDeviceErrorObserverInShutdownMode();
   // also shuts down the swapchain
   GpuLatency::teardown();
-  context.preRecovery();
+  context.preRecovery(wasDeviceLost);
   for (auto &handler : deviceResetEventHandlers)
     handler->preRecovery();
   resources.resetTqlStatsForRecovery();
@@ -1845,9 +2503,14 @@ LUID Device::preRecovery()
 }
 
 bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, ComPtr<DXGIAdapter> &&input_adapter,
-  D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&sci, HWND wnd)
+  D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&sci, HWND wnd, eastl::fixed_function<8, void()> caps_init)
 {
-  enterRecoveringState();
+  logdbg("DX12: Attempting to enter recovering state...");
+  if (!enterRecoveringState())
+  {
+    enterErrorState();
+    return false;
+  }
   logdbg("DX12: Entering recovering state...");
 
   adapter = eastl::move(input_adapter);
@@ -1862,6 +2525,9 @@ bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, 
   logdbg("DX12: ...Device has been successfully recreated");
 
   context.recoverStreamline(adapter.Get());
+
+  if (caps_init)
+    caps_init();
 
   debug::DeviceState::recover(device.get(), d3d_env);
   startDeviceErrorObserver(device.get());
@@ -1896,7 +2562,7 @@ bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, 
   logdbg("DX12: Creating swapchain...");
   // reconstruct from current state
   sci.window = wnd;
-  sci.presentMode = context.front.swapchain.getPresentationMode();
+  sci.presentInterval = context.front.swapchain.getPresentationInterval();
   if (!context.back.swapchain.setup(*this, context.front.swapchain, factory, queues[DeviceQueueType::GRAPHICS].getHandle(),
         eastl::move(sci), 0))
   {
@@ -1906,12 +2572,8 @@ bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, 
   }
 
   // debugState.setup(debug_state, device.get());
-  DXGI_ADAPTER_DESC2 adapterDesc = {};
-  adapter->GetDesc2(&adapterDesc);
-  FormatStore::configureFormatTable(device.get(), adapterDesc.VendorId);
-  vendorID = adapterDesc.VendorId;
 
-  configureFeatureCaps();
+  FormatStore::configureFormatTable(device.get(), d3d::get_driver_desc().info.vendorId);
 
   ResourceMemoryHeap::SetupInfo resourceMemoryHeapSetup;
   resourceMemoryHeapSetup.adapter = adapter.Get();
@@ -1944,7 +2606,10 @@ bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, 
 
   D3D12_SHADER_CACHE_SUPPORT_FLAGS cacheModes = D3D12_SHADER_CACHE_SUPPORT_NONE;
   cacheModes |= D3D12_SHADER_CACHE_SUPPORT_SINGLE_PSO;
-  cacheModes |= D3D12_SHADER_CACHE_SUPPORT_LIBRARY;
+  if (!config.features.test(DeviceFeaturesConfig::DISABLE_PIPELINE_LIBRARY_CACHE))
+  {
+    cacheModes |= D3D12_SHADER_CACHE_SUPPORT_LIBRARY;
+  }
   // those modes are toggle able with configuration, because devices/drivers that report
   // support for those features seem to either not using it or the cache is pretty bad
   if (config.features.test(DeviceFeaturesConfig::ALLOW_OS_MANAGED_SHADER_CACHE))
@@ -1962,7 +2627,7 @@ bool Device::recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, 
   context.recover(unboundedTable);
   frontendQueryManager.postRecovery(*this, device.get());
 
-  GpuLatency::create(d3d_get_vendor(getAdapterInfo().info.VendorId));
+  GpuLatency::create(d3d::get_driver_desc().info.vendor);
 
   for (auto &handler : deviceResetEventHandlers)
     handler->recovery();
@@ -2019,7 +2684,10 @@ void Device::updateTextureBindlessReferencesNoLock(BaseTex *tex, Image *old_imag
 BufferState Device::placeBufferInHeap(::ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
   const ResourceAllocationProperties &alloc_info, const char *name)
 {
-  return resources.placeBufferInHeap(getDXGIAdapter(), device.get(), heap, desc, offset, alloc_info, name);
+  auto buffer = resources.placeBufferInHeap(getDXGIAdapter(), device.get(), heap, desc, offset, alloc_info, name);
+  if (buffer)
+    nameResource(buffer.buffer, name);
+  return buffer;
 }
 
 Image *Device::placeTextureInHeap(::ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
@@ -2065,7 +2733,25 @@ Device::Config drv3d_dx12::get_device_config(const DataBlock *cfg)
   result.features.set(DeviceFeaturesConfig::ASSERT_ON_PIPELINE_COMPILATION_ERROR,
     cfg->getBool("AssertOnPipelineCompilationError", false));
 
-  result.features.set(DeviceFeaturesConfig::ENABLE_DEFRAGMENTATION, cfg->getBool("enableDefragmentation", false));
+  bool enableDefragmentation = cfg->getBool("enableDefragmentation", false);
+  if (get_platform_id() == TP_XBOXONE)
+    enableDefragmentation = true;
+  logdbg("DX12: Memory defragmentation %s", enableDefragmentation ? "enabled" : "disabled");
+  result.features.set(DeviceFeaturesConfig::ENABLE_DEFRAGMENTATION, enableDefragmentation);
+  const bool enablePanicDefragmentation = cfg->getBool("enablePanicBudgetDefragmentation", true);
+  logdbg("DX12: Panic budget memory defragmentation %s", enablePanicDefragmentation ? "enabled" : "disabled");
+  result.features.set(DeviceFeaturesConfig::ENABLE_DEFRAGMENTATION_ON_PANIC_BUDGET, enablePanicDefragmentation);
+  const bool enableEmergencyDefragmentation = cfg->getBool("enableEmergencyDefragmentation", true);
+  logdbg("DX12: Emergency memory defragmentation %s", enableEmergencyDefragmentation ? "enabled" : "disabled");
+  result.features.set(DeviceFeaturesConfig::ENABLE_EMERGENCY_DEFRAGMENTATION, enableEmergencyDefragmentation);
+  const bool useRecompositionEmergencyDefragmentation = cfg->getBool("useRecompositionEmergencyDefragmentation", false);
+  logdbg("DX12: Recomposition emergency memory defragmentation %s", useRecompositionEmergencyDefragmentation ? "enabled" : "disabled");
+  result.features.set(DeviceFeaturesConfig::USE_RECOMPOSITION_EMERGENCY_DEFRAGMENTATION, useRecompositionEmergencyDefragmentation);
+
+  result.features.set(DeviceFeaturesConfig::ALLOW_ASYNC_PSO_COMPILATION, cfg->getBool("allowAsyncPsoCompilation", true));
+
+  result.features.set(DeviceFeaturesConfig::FORCE_SHARED_HEAPS_USER_ALIAS_RESOURCES,
+    cfg->getBool("forceSharedHeapsUserAliasResources", false));
 
   // measurements resulted in no benefit using it, pipeline library is always faster.
   result.features.set(DeviceFeaturesConfig::ALLOW_OS_MANAGED_SHADER_CACHE, cfg->getBool("allowOsManagedShaderCache", false));
@@ -2117,6 +2803,15 @@ Device::Config drv3d_dx12::get_device_config(const DataBlock *cfg)
 
   result.features.set(DeviceFeaturesConfig::IGNORE_PREDICATION, cfg->getBool("ignorePredication", false));
 
+  result.features.set(DeviceFeaturesConfig::VALIDATE_IMPLICIT_CB_SIZE, cfg->getBool("validateImplicitCbSize", true));
+
+#if DX12_DEBUG_RESOURCE_ALLOCATOR_ENABLED
+  result.memorySetup.debugAllocationGroup = cfg->getInt("debugMemoryAllocationGroup", 0);
+  result.memorySetup.debugAllocationSizeMb = cfg->getInt("debugAllocationSizeMb", 0);
+#endif
+
+  result.features.set(DeviceFeaturesConfig::RECORD_CONTEXT_RING_BUFFER, cfg->getBool("recordContextRingBuffer", true));
+
   return result;
 }
 
@@ -2127,7 +2822,7 @@ uint32_t Device::getGpuMemUsageStats(uint64_t additionalVramUsageInBytes, uint32
   uint64_t budget = 0;
   uint64_t available_budget = 0;
 
-  if (resources.isUMASystem())
+  if (resources.getFeatureSet().isUMA)
   {
     budget = resources.getDeviceLocalBudget() + resources.getHostLocalBudget();
     available_budget = resources.getDeviceLocalAvailablePoolBudget() + resources.getHostLocalAvailablePoolBudget();
@@ -2139,6 +2834,7 @@ uint32_t Device::getGpuMemUsageStats(uint64_t additionalVramUsageInBytes, uint32
   }
   if (available_budget > additionalVramUsageInBytes)
     available_budget -= additionalVramUsageInBytes;
+  available_budget += resources.getDeviceResidentImageMemoryFreeRangesTotalSize();
 
   if (out_mem_size)
     *out_mem_size = uint32_t(budget >> 10);
@@ -2263,7 +2959,7 @@ RayTracePipeline *Device::expandPipeline(RayTracePipeline *base, const ::raytrac
 
   D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS desc = {
     .Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL,
-    .Flags = toAccelerationStructureBuildFlags(info.flags),
+    .Flags = to_acceleration_structure_build_flags(info.flags, false),
     .NumDescs = info.elementCount,
     .DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY,
   };
@@ -2283,46 +2979,163 @@ RayTracePipeline *Device::expandPipeline(RayTracePipeline *base, const ::raytrac
 ::raytrace::AccelerationStructureSizes Device::calculateAccelerationStructureSizes(
   const ::raytrace::BottomAccelerationStructureSizeCalculcationInfo &info)
 {
+  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO preInfo{};
 
-  // currently we never use more than 2 descs to describe a BLAS
-  static constexpr uint32_t smallGeometryDescCount = 3;
-  D3D12_RAYTRACING_GEOMETRY_DESC smallGeometryDesc[smallGeometryDescCount];
-  dag::Vector<D3D12_RAYTRACING_GEOMETRY_DESC, framemem_allocator> geometryDesc;
-  D3D12_RAYTRACING_GEOMETRY_DESC *targetDesc = nullptr;
-  if (info.geometryDesc.size() <= smallGeometryDescCount)
+#if HAS_NVAPI
+  if (FeatureImplementation::Nvidia == getOpacityMicroMapAvailability())
   {
-    targetDesc = smallGeometryDesc;
+    dag::Vector<NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX, framemem_allocator> geometryDesc;
+    geometryDesc.reserve(info.geometryDesc.size());
+
+    for (auto &desc : info.geometryDesc)
+    {
+      dag::ConstSpan<NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_USAGE_COUNT> ommDescRange;
+      if (desc.extraDataAvailableMask.hasOpacityMicroMapLinkage)
+      {
+        ommDescRange =
+          make_span(reinterpret_cast<const NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_USAGE_COUNT *>(desc.ommLinkage.ommDesc.data()),
+            desc.ommLinkage.ommDesc.size());
+      }
+      auto [geoDesc, extra] = convert_to_nvidia(desc, ommDescRange);
+      geometryDesc.push_back(geoDesc);
+    }
+
+    const NVAPI_D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS_EX desc = {
+      .type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL,
+      .flags = to_acceleration_structure_build_flags_nvidia(info.flags, false),
+      .numDescs = geometryDesc.size(),
+      .descsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY,
+      .geometryDescStrideInBytes = sizeof(NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX),
+      .pGeometryDescs = geometryDesc.data()};
+
+    NVAPI_GET_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO_EX_PARAMS preBuildInfoParams = {
+      .version = NVAPI_GET_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO_EX_PARAMS_VER, .pDesc = &desc, .pInfo = &preInfo};
+
+    NvAPI_D3D12_GetRaytracingAccelerationStructurePrebuildInfoEx(device.get(), &preBuildInfoParams);
   }
   else
+#endif
   {
-    // log this case so that we may increase smallGeometryDescCount if needed.
-    logdbg("DX12: calculateAccelerationStructureSizes with count %u > %u, frame mem used", geometryDesc.size(),
-      smallGeometryDescCount);
-    geometryDesc.resize(info.geometryDesc.size());
-    targetDesc = geometryDesc.data();
+    // currently we never use more than 2 descs to describe a BLAS
+    static constexpr uint32_t smallGeometryDescCount = 3;
+    D3D12_RAYTRACING_GEOMETRY_DESC smallGeometryDesc[smallGeometryDescCount];
+    dag::Vector<D3D12_RAYTRACING_GEOMETRY_DESC, framemem_allocator> geometryDesc;
+    D3D12_RAYTRACING_GEOMETRY_DESC *targetDesc = nullptr;
+    if (info.geometryDesc.size() <= smallGeometryDescCount)
+    {
+      targetDesc = smallGeometryDesc;
+    }
+    else
+    {
+      // log this case so that we may increase smallGeometryDescCount if needed.
+      logdbg("DX12: calculateAccelerationStructureSizes with count %u > %u, frame mem used", geometryDesc.size(),
+        smallGeometryDescCount);
+      geometryDesc.resize(info.geometryDesc.size());
+      targetDesc = geometryDesc.data();
+    }
+
+#if DX12_HAS_OMM_INTERFACE
+    dag::Vector<eastl::pair<D3D12_RAYTRACING_GEOMETRY_TRIANGLES_DESC, D3D12_RAYTRACING_GEOMETRY_OMM_LINKAGE_DESC>> extraData;
+    extraData.reserve(info.geometryDesc.size());
+#endif
+
+    for (auto &desc : info.geometryDesc)
+    {
+      auto [geoDesc, extra] = raytraceGeometryDescriptionToGeometryDesc(desc);
+#if DX12_HAS_OMM_INTERFACE
+      extraData.push_back(eastl::make_pair(extra.ommTriangleDesc, extra.ommLinkageDesc));
+      if (D3D12_RAYTRACING_GEOMETRY_TYPE_OMM_TRIANGLES == geoDesc.Type)
+      {
+        geoDesc.OmmTriangles.pTriangles = &extraData.back().first;
+        geoDesc.OmmTriangles.pOmmLinkage = &extraData.back().second;
+      }
+#endif
+      *targetDesc++ = geoDesc;
+    }
+
+    D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS desc = {
+      .Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL,
+      .Flags = to_acceleration_structure_build_flags(info.flags, false),
+      .NumDescs = geometryDesc.size(),
+      .DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY,
+      .pGeometryDescs = targetDesc,
+    };
+
+    device->GetRaytracingAccelerationStructurePrebuildInfo(&desc, &preInfo);
   }
 
-  eastl::transform(info.geometryDesc.begin(), info.geometryDesc.end(), targetDesc,
-    [](auto &desc) { return raytraceGeometryDescriptionToGeometryDesc(desc).first; });
-
-  D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS desc = {
-    .Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL,
-    .Flags = toAccelerationStructureBuildFlags(info.flags),
-    .NumDescs = geometryDesc.size(),
-    .DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY,
-    .pGeometryDescs = targetDesc,
-  };
-
-  D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO preInfo{};
-  device->GetRaytracingAccelerationStructurePrebuildInfo(&desc, &preInfo);
-
-  ::raytrace::AccelerationStructureSizes result = {
+  return {
     .structureSizeInBytes = static_cast<uint32_t>(preInfo.ResultDataMaxSizeInBytes),
     .buildScratchBufferSizeInBytes = static_cast<uint32_t>(preInfo.ScratchDataSizeInBytes),
     .updateScratchBufferSizeInBytes = static_cast<uint32_t>(preInfo.UpdateScratchDataSizeInBytes),
   };
+}
 
-  return result;
+::raytrace::AccelerationStructureSizes Device::calculateAccelerationStructureSizes(
+  [[maybe_unused]] const ::raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo &info)
+{
+  D3D_CONTRACT_ASSERTF_RETURN(FeatureImplementation::None != getOpacityMicroMapAvailability(), {},
+    "DX12: Can not calculate OMM size without device support");
+
+  D3D_CONTRACT_ASSERTF_RETURN(info.ommDesc.size() > 0, {},
+    "DX12: raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo::ommDesc member can not be a empty range");
+
+#if DX12_HAS_OMM_INTERFACE
+  if (FeatureImplementation::Core == getOpacityMicroMapAvailability())
+  {
+    const D3D12_RAYTRACING_OPACITY_MICROMAP_ARRAY_DESC ommDesc = {.NumOmmHistogramEntries = static_cast<UINT>(info.ommDesc.size()),
+      .pOmmHistogram = reinterpret_cast<const D3D12_RAYTRACING_OPACITY_MICROMAP_HISTOGRAM_ENTRY *>(info.ommDesc.data()),
+      // buffers are not used for size calculation
+      .InputBuffer = 0,
+      .PerOmmDescs = {.StartAddress = 0, .StrideInBytes = 0}};
+
+    const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS desc = {
+      .Type = D3D12_RAYTRACING_ACCELERATION_STRUCTURE_TYPE_OPACITY_MICROMAP_ARRAY,
+      .Flags = to_acceleration_structure_build_flags(info.flags, false),
+      // has to be 1, array option is in ommDesc
+      .NumDescs = 1,
+      .DescsLayout = D3D12_ELEMENTS_LAYOUT_ARRAY,
+      .pOpacityMicromapArrayDesc = &ommDesc,
+    };
+
+    D3D12_RAYTRACING_ACCELERATION_STRUCTURE_PREBUILD_INFO preInfo{};
+    device->GetRaytracingAccelerationStructurePrebuildInfo(
+      reinterpret_cast<const D3D12_BUILD_RAYTRACING_ACCELERATION_STRUCTURE_INPUTS *>(&desc), &preInfo);
+
+    return {
+      .structureSizeInBytes = static_cast<uint32_t>(preInfo.ResultDataMaxSizeInBytes),
+      .buildScratchBufferSizeInBytes = static_cast<uint32_t>(preInfo.ScratchDataSizeInBytes),
+      .updateScratchBufferSizeInBytes = static_cast<uint32_t>(preInfo.UpdateScratchDataSizeInBytes),
+    };
+  }
+#endif
+#if HAS_NVAPI
+  if (FeatureImplementation::Nvidia == getOpacityMicroMapAvailability())
+  {
+    const NVAPI_D3D12_BUILD_RAYTRACING_OPACITY_MICROMAP_ARRAY_INPUTS arrayDesc = {.flags = to_nvidia(info.flags),
+      .numOMMUsageCounts = static_cast<UINT>(info.ommDesc.size()),
+      .pOMMUsageCounts = reinterpret_cast<const NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_USAGE_COUNT *>(info.ommDesc.data()),
+      .inputBuffer = 0,
+      .perOMMDescs = {.StartAddress = 0, .StrideInBytes = 0}};
+
+    NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_ARRAY_PREBUILD_INFO preInfo{};
+
+    NVAPI_GET_RAYTRACING_OPACITY_MICROMAP_ARRAY_PREBUILD_INFO_PARAMS infoParams = {
+      .version = NVAPI_GET_RAYTRACING_OPACITY_MICROMAP_ARRAY_PREBUILD_INFO_PARAMS_VER,
+      .pDesc = &arrayDesc,
+      .pInfo = &preInfo,
+    };
+
+    NvAPI_D3D12_GetRaytracingOpacityMicromapArrayPrebuildInfo(device.get(), &infoParams);
+
+    return {
+      .structureSizeInBytes = static_cast<uint32_t>(preInfo.resultDataMaxSizeInBytes),
+      .buildScratchBufferSizeInBytes = static_cast<uint32_t>(preInfo.scratchDataSizeInBytes),
+      .updateScratchBufferSizeInBytes = 0,
+    };
+  }
+#endif
+  return {};
 }
 
 ::raytrace::AccelerationStructurePool Device::createAccelerationStructurePool(

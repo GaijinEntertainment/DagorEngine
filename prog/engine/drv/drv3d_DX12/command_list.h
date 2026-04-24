@@ -5,15 +5,9 @@
 #include "extents.h"
 #include "debug/command_list_logger.h"
 
-#include <dag/dag_vector.h>
-#include <debug/dag_log.h>
 #include <drv/3d/rayTrace/dag_drvRayTrace.h>
 #include <drv_log_defs.h>
-#include <drv_assert_defs.h>
-#include <EASTL/optional.h>
 #include <EASTL/string.h>
-#include <EASTL/tuple.h>
-#include <EASTL/variant.h>
 #include <supp/dag_comPtr.h>
 
 #if _TARGET_XBOX
@@ -421,12 +415,17 @@ public:
   }
   explicit operator bool() const { return static_cast<bool>(list); }
 
-  template <typename T>
+  template <typename U>
   bool is() const
   {
-    return list.template is<T>();
+    return list.template is<U>();
   }
   auto get() { return list.get(); }
+  template <typename U>
+  auto as()
+  {
+    return list.template as<U>();
+  }
 
   void copyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION *dst, UINT x, UINT y, UINT z, const D3D12_TEXTURE_COPY_LOCATION *src,
     const D3D12_BOX *src_box)
@@ -677,61 +676,53 @@ protected:
   {
     // same format can always be copied
     if (from == to)
-    {
       return true;
-    }
-
-    // same base format can also be copied
-    if (getBaseFormat(from) == getBaseFormat(to))
-    {
-      return true;
-    }
 
     // this cuts down on possibilities if we have ordering of parameters
-    auto first = min(from, to);
-    auto second = max(from, to);
+    const auto fromBase = getBaseFormat(from);
+    const auto toBase = getBaseFormat(to);
 
-    // DXGI_FORMAT_R32_UINT - 42
-    // DXGI_FORMAT_R32_SINT - 43
+    // same base format can also be copied
+    if (fromBase == toBase)
+      return true;
+
+    const auto minBase = min(fromBase, toBase);
+    const auto maxBase = max(fromBase, toBase);
+
+    // DXGI_FORMAT_R24G8_TYPELESS - 44
+    // DXGI_FORMAT_R32G8X24_TYPELESS - 19
+    // DXGI_FORMAT_R32_TYPELESS - 39
+    // DXGI_FORMAT_R8_TYPELESS - 60
+    // special case for depth-stencil copies by planes
+    if (((minBase == DXGI_FORMAT_R24G8_TYPELESS || minBase == DXGI_FORMAT_R32G8X24_TYPELESS) &&
+          (maxBase == DXGI_FORMAT_R32_TYPELESS || maxBase == DXGI_FORMAT_R8_TYPELESS)) ||
+        (maxBase == DXGI_FORMAT_R24G8_TYPELESS && minBase == DXGI_FORMAT_R32_TYPELESS))
+    {
+      return true;
+    }
+
+    // DXGI_FORMAT_R32_TYPELESS - 39
     // DXGI_FORMAT_R9G9B9E5_SHAREDEXP - 67
-    if ((DXGI_FORMAT_R32_UINT == first) || (DXGI_FORMAT_R32_SINT == first))
-    {
-      return DXGI_FORMAT_R9G9B9E5_SHAREDEXP == second;
-    }
+    if (DXGI_FORMAT_R32_TYPELESS == minBase)
+      return DXGI_FORMAT_R9G9B9E5_SHAREDEXP == maxBase;
 
-    // DXGI_FORMAT_R16G16B16A16_UINT - 12
-    // DXGI_FORMAT_R16G16B16A16_SINT - 14
-    // DXGI_FORMAT_R32G32_UINT - 17
-    // DXGI_FORMAT_R32G32_SINT - 18
-    // DXGI_FORMAT_BC1_UNORM - 71
-    // DXGI_FORMAT_BC1_UNORM_SRGB - 72
-    // DXGI_FORMAT_BC4_UNORM - 80
-    // DXGI_FORMAT_BC4_SNORM - 81
-    if ((DXGI_FORMAT_R16G16B16A16_UINT == first) || (DXGI_FORMAT_R16G16B16A16_SINT == first) || (DXGI_FORMAT_R32G32_UINT == first) ||
-        (DXGI_FORMAT_R32G32_SINT == first))
-    {
-      return (DXGI_FORMAT_BC1_UNORM == second) || (DXGI_FORMAT_BC1_UNORM_SRGB == second) || (DXGI_FORMAT_BC4_UNORM == second) ||
-             (DXGI_FORMAT_BC4_SNORM == second);
-    }
+    // DXGI_FORMAT_R16G16B16A16_TYPELESS - 9
+    // DXGI_FORMAT_R32G32_TYPELESS - 15
+    // DXGI_FORMAT_BC1_TYPELESS - 70
+    // DXGI_FORMAT_BC4_TYPELESS - 79
+    if (DXGI_FORMAT_R16G16B16A16_TYPELESS == minBase || DXGI_FORMAT_R32G32_TYPELESS == minBase)
+      return DXGI_FORMAT_BC1_TYPELESS == maxBase || DXGI_FORMAT_BC4_TYPELESS == maxBase;
 
-    // DXGI_FORMAT_R32G32B32A32_UINT - 3
-    // DXGI_FORMAT_R32G32B32A32_SINT - 4
-    // DXGI_FORMAT_BC2_UNORM - 74
-    // DXGI_FORMAT_BC2_UNORM_SRGB - 75
-    // DXGI_FORMAT_BC3_UNORM - 77
-    // DXGI_FORMAT_BC3_UNORM_SRGB - 78
-    // DXGI_FORMAT_BC5_UNORM - 83
-    // DXGI_FORMAT_BC5_SNORM - 84
-    // DXGI_FORMAT_BC6H_UF16 - 95
-    // DXGI_FORMAT_BC6H_SF16 - 96
-    // DXGI_FORMAT_BC7_UNORM - 98
-    // DXGI_FORMAT_BC7_UNORM_SRGB - 99
-    if ((DXGI_FORMAT_R32G32B32A32_UINT == first) || (DXGI_FORMAT_R32G32B32A32_SINT == first))
+    // DXGI_FORMAT_R32G32B32A32_TYPELESS - 1
+    // DXGI_FORMAT_BC2_TYPELESS - 73
+    // DXGI_FORMAT_BC3_TYPELESS - 76
+    // DXGI_FORMAT_BC5_TYPELESS - 82
+    // DXGI_FORMAT_BC6H_TYPELESS - 94
+    // DXGI_FORMAT_BC7_TYPELESS - 97
+    if (DXGI_FORMAT_R32G32B32A32_TYPELESS == minBase)
     {
-      return (DXGI_FORMAT_BC2_UNORM == second) || (DXGI_FORMAT_BC2_UNORM_SRGB == second) || (DXGI_FORMAT_BC3_UNORM == second) ||
-             (DXGI_FORMAT_BC3_UNORM_SRGB == second) || (DXGI_FORMAT_BC5_UNORM == second) || (DXGI_FORMAT_BC5_SNORM == second) ||
-             (DXGI_FORMAT_BC6H_UF16 == second) || (DXGI_FORMAT_BC6H_SF16 == second) || (DXGI_FORMAT_BC7_UNORM == second) ||
-             (DXGI_FORMAT_BC7_UNORM_SRGB == second);
+      return DXGI_FORMAT_BC2_TYPELESS == maxBase || DXGI_FORMAT_BC3_TYPELESS == maxBase || DXGI_FORMAT_BC5_TYPELESS == maxBase ||
+             DXGI_FORMAT_BC6H_TYPELESS == maxBase || DXGI_FORMAT_BC7_TYPELESS == maxBase;
     }
 
     return false;
@@ -930,14 +921,14 @@ public:
 
         DX12_VALIDATE_CONDITION(src_box->left == align_value(src_box->left, srcSizeAlign.width),
           "src_box->left %u is not aligned to the formats block size %u", src_box->left, srcSizeAlign.width);
-        DX12_VALIDATE_CONDITION(src_box->right == align_value(src_box->right, srcSizeAlign.height),
-          "src_box->right %u is not aligned to the formats block size %u", src_box->right, srcSizeAlign.height);
-        DX12_VALIDATE_CONDITION(src_box->top == align_value(src_box->top, srcSizeAlign.depth),
-          "src_box->top %u is not aligned to the formats block size %u", src_box->top, srcSizeAlign.depth);
-        DX12_VALIDATE_CONDITION(src_box->bottom == align_value(src_box->bottom, srcSizeAlign.width),
-          "src_box->bottom %u is not aligned to the formats block size %u", src_box->bottom, srcSizeAlign.width);
-        DX12_VALIDATE_CONDITION(src_box->front == align_value(src_box->front, srcSizeAlign.height),
-          "src_box->front %u is not aligned to the formats block size %u", src_box->front, srcSizeAlign.height);
+        DX12_VALIDATE_CONDITION(src_box->right == align_value(src_box->right, srcSizeAlign.width),
+          "src_box->right %u is not aligned to the formats block size %u", src_box->right, srcSizeAlign.width);
+        DX12_VALIDATE_CONDITION(src_box->top == align_value(src_box->top, srcSizeAlign.height),
+          "src_box->top %u is not aligned to the formats block size %u", src_box->top, srcSizeAlign.height);
+        DX12_VALIDATE_CONDITION(src_box->bottom == align_value(src_box->bottom, srcSizeAlign.height),
+          "src_box->bottom %u is not aligned to the formats block size %u", src_box->bottom, srcSizeAlign.height);
+        DX12_VALIDATE_CONDITION(src_box->front == align_value(src_box->front, srcSizeAlign.depth),
+          "src_box->front %u is not aligned to the formats block size %u", src_box->front, srcSizeAlign.depth);
         DX12_VALIDATE_CONDITION(src_box->back == align_value(src_box->back, srcSizeAlign.depth),
           "src_box->depth %u is not aligned to the formats block size %u", src_box->back, srcSizeAlign.depth);
 
@@ -1024,7 +1015,7 @@ public:
       DX12_VALIDATE_CONDITION(size > 0, "dst is not a buffer");
       DX12_VALIDATE_CONDITION(dst_offset < size, "dst_offset %u is out of range %u", dst_offset, size);
       DX12_VALIDATE_CONDITION(dst_offset + num_bytes <= size, "dst_offset %u + num_bytes %u = %u is out of range %u", dst_offset,
-        num_bytes, dst_offset, num_bytes, size);
+        num_bytes, dst_offset + num_bytes, size);
     }
 
     if (src)
@@ -1034,8 +1025,8 @@ public:
       // buffers can not have a size of 0
       DX12_VALIDATE_CONDITION(size > 0, "src is not a buffer");
       DX12_VALIDATE_CONDITION(src_offset < size, "src_offset %u is out of range %u", src_offset, size);
-      DX12_VALIDATE_CONDITION(src_offset + num_bytes <= size, "src_offset %u + num_bytes %u = %u is out of range %u",
-        src_offset + num_bytes, src_offset + num_bytes, size);
+      DX12_VALIDATE_CONDITION(src_offset + num_bytes <= size, "src_offset %u + num_bytes %u = %u is out of range %u", src_offset,
+        num_bytes, src_offset + num_bytes, size);
     }
 
     DX12_FINALIZE_VALIDATION();
@@ -1783,8 +1774,8 @@ public:
       DX12_VALIDATE_CONDITION(0 == (desc->MissShaderTable.StartAddress % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
         "desc.MissShaderTable.StartAddress (%u) has to be aligned to %u", desc->MissShaderTable.StartAddress,
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
-      DX12_VALIDATE_CONDITION(4096 >= desc->MissShaderTable.SizeInBytes,
-        "desc.MissShaderTable.SizeInBytes (%u) has to be less or equal to 4096", desc->MissShaderTable.SizeInBytes);
+      DX12_VALIDATE_CONDITION(4096 >= desc->MissShaderTable.StrideInBytes,
+        "desc.MissShaderTable.StrideInBytes (%u) has to be less or equal to 4096", desc->MissShaderTable.StrideInBytes);
       DX12_VALIDATE_CONDITION(0 == (desc->MissShaderTable.StrideInBytes % D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
         "desc.MissShaderTable.StrideInBytes (%u) has to be aligned to %u", desc->MissShaderTable.StrideInBytes,
         D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
@@ -1792,8 +1783,8 @@ public:
       DX12_VALIDATE_CONDITION(0 == (desc->HitGroupTable.StartAddress % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
         "desc.HitGroupTable.StartAddress (%u) has to be aligned to %u", desc->HitGroupTable.StartAddress,
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
-      DX12_VALIDATE_CONDITION(4096 >= desc->HitGroupTable.SizeInBytes,
-        "desc.HitGroupTable.SizeInBytes (%u) has to be less or equal to 4096", desc->HitGroupTable.SizeInBytes);
+      DX12_VALIDATE_CONDITION(4096 >= desc->HitGroupTable.StrideInBytes,
+        "desc.HitGroupTable.StrideInBytes (%u) has to be less or equal to 4096", desc->HitGroupTable.StrideInBytes);
       DX12_VALIDATE_CONDITION(0 == (desc->HitGroupTable.StrideInBytes % D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
         "desc.HitGroupTable.StrideInBytes (%u) has to be aligned to %u", desc->HitGroupTable.StrideInBytes,
         D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
@@ -1801,8 +1792,8 @@ public:
       DX12_VALIDATE_CONDITION(0 == (desc->CallableShaderTable.StartAddress % D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT),
         "desc.CallableShaderTable.StartAddress (%u) has to be aligned to %u", desc->CallableShaderTable.StartAddress,
         D3D12_RAYTRACING_SHADER_TABLE_BYTE_ALIGNMENT);
-      DX12_VALIDATE_CONDITION(4096 >= desc->CallableShaderTable.SizeInBytes,
-        "desc.CallableShaderTable.SizeInBytes (%u) has to be less or equal to 4096", desc->CallableShaderTable.SizeInBytes);
+      DX12_VALIDATE_CONDITION(4096 >= desc->CallableShaderTable.StrideInBytes,
+        "desc.CallableShaderTable.StrideInBytes (%u) has to be less or equal to 4096", desc->CallableShaderTable.StrideInBytes);
       DX12_VALIDATE_CONDITION(0 == (desc->CallableShaderTable.StrideInBytes % D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT),
         "desc.CallableShaderTable.StrideInBytes (%u) has to be aligned to %u", desc->CallableShaderTable.StrideInBytes,
         D3D12_RAYTRACING_SHADER_RECORD_BYTE_ALIGNMENT);
@@ -1861,6 +1852,15 @@ public:
   {
     this->list->ResolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
     CommandListLogger::resolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
+  }
+
+  void resolveSubresourceRegion(ID3D12Resource *dst_resource, UINT dst_subresource, UINT dst_x, UINT dst_y,
+    ID3D12Resource *src_resource, UINT src_subresource, D3D12_RECT *src_rect, DXGI_FORMAT format, D3D12_RESOLVE_MODE resolve_mode)
+  {
+    this->list.template as<ID3D12GraphicsCommandList1>()->ResolveSubresourceRegion(dst_resource, dst_subresource, dst_x, dst_y,
+      src_resource, src_subresource, src_rect, format, resolve_mode);
+    CommandListLogger::resolveSubresourceRegion(dst_resource, dst_subresource, dst_x, dst_y, src_resource, src_subresource, src_rect,
+      format, resolve_mode);
   }
 
   void clearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view, D3D12_CLEAR_FLAGS clear_flags, FLOAT depth, UINT8 stencil,
@@ -2058,6 +2058,23 @@ public:
 #undef DX12_VALIDATION_CONTEXT
     this->list->ResolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
     CommandListLogger::resolveSubresource(dst_resource, dst_subresource, src_resource, src_subresource, format);
+  }
+
+  // It validates the following properties of the inputs:
+  // - If resources is not 0
+  void resolveSubresourceRegion(ID3D12Resource *dst_resource, UINT dst_subresource, UINT dst_x, UINT dst_y,
+    ID3D12Resource *src_resource, UINT src_subresource, D3D12_RECT *src_rect, DXGI_FORMAT format, D3D12_RESOLVE_MODE resolve_mode)
+  {
+#define DX12_VALIDATION_CONTEXT "resolveSubresourceRegion"
+    DX12_BEGIN_VALIDATION();
+    DX12_VALIDATE_CONDITION(dst_resource != nullptr, "dst resource can not be 0");
+    DX12_VALIDATE_CONDITION(src_resource != nullptr, "src resource can not be 0");
+    DX12_FINALIZE_VALIDATION();
+#undef DX12_VALIDATION_CONTEXT
+    this->list->ResolveSubresourceRegion(dst_resource, dst_subresource, dst_x, dst_y, src_resource, src_subresource, src_rect, format,
+      resolve_mode);
+    BaseType::resolveSubresourceRegion(dst_resource, dst_subresource, dst_x, dst_y, src_resource, src_subresource, src_rect, format,
+      resolve_mode);
   }
 
   // It validates the following properties of the inputs:

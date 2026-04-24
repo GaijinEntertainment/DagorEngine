@@ -5,6 +5,7 @@
 EditableObject *EntityObjEditor::cloneObject(EditableObject *, bool) { G_ASSERT_RETURN(false, nullptr); }
 void EntityObjEditor::addEntityEx(ecs::EntityId, bool) { G_ASSERT(0); }
 void EntityObjEditor::saveComponent(ecs::EntityId, const char *) { G_ASSERT(0); }
+void EntityObjEditor::getChangedComponentsToDataBlock(ecs::EntityId, DataBlock &) { G_ASSERT(0); }
 void EntityObjEditor::saveAddTemplate(ecs::EntityId, const char *) { G_ASSERT(0); }
 void EntityObjEditor::saveDelTemplate(ecs::EntityId, const char *, bool) { G_ASSERT(0); }
 EditableObject *EntityObjEditor::getObjectByEid(ecs::EntityId) const { G_ASSERT_RETURN(false, nullptr); }

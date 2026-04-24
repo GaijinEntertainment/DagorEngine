@@ -14,6 +14,13 @@ static Point3 FOAM_ALBEDO(0.75f, 0.75f, 0.75f);
 
 CONSOLE_BOOL_VAL("render", water_foam_distorted_on, false);
 
+static d3d::SamplerHandle get_sampler_default_mipbias(TEXTUREID tid)
+{
+  if (tid == BAD_TEXTUREID)
+    return {};
+
+  return d3d::request_sampler(get_sampler_info(get_texture_meta_data(tid)));
+}
 
 ShipWakeFx::ShipWakeFx(const Settings &in_settings) : settings(in_settings)
 {
@@ -21,21 +28,23 @@ ShipWakeFx::ShipWakeFx(const Settings &in_settings) : settings(in_settings)
 
   ParticleSystem::MainParams psWakeParams;
   psWakeParams.diffuseTexId = settings.wakeTexId;
-  psWakeParams.diffuseSampler = get_texture_separate_sampler(psWakeParams.diffuseTexId);
+  psWakeParams.diffuseSampler = get_sampler_default_mipbias(psWakeParams.diffuseTexId);
   psWakeParams.renderType = ParticleSystem::RENDER_HEIGHT;
   psWake = effectManager->addPSystem(psWakeParams);
   psWake->reserveEmitters(DEFAULT_NUM_SHIPS * 2);
 
   ParticleSystem::MainParams psWakeTrailParams;
   psWakeTrailParams.diffuseTexId = settings.wakeTrailTexId;
-  psWakeTrailParams.diffuseSampler = get_texture_separate_sampler(psWakeTrailParams.diffuseTexId);
+  psWakeTrailParams.diffuseSampler = get_sampler_default_mipbias(psWakeTrailParams.diffuseTexId);
   psWakeTrailParams.renderType = ParticleSystem::RENDER_HEIGHT;
   psWakeTrail = effectManager->addPSystem(psWakeTrailParams);
   psWakeTrail->reserveEmitters(DEFAULT_NUM_SHIPS * 3);
 
   ParticleSystem::MainParams psFoamParams;
   psFoamParams.diffuseTexId = settings.foamTexId;
-  psFoamParams.diffuseSampler = get_texture_separate_sampler(psFoamParams.diffuseTexId);
+  psFoamParams.diffuseMVTexId = settings.foamMVTexId;
+  psFoamParams.diffuseMVScale = settings.foamMVScale;
+  psFoamParams.diffuseSampler = get_sampler_default_mipbias(psFoamParams.diffuseTexId);
   psFoamParams.renderType = ParticleSystem::RENDER_FOAM;
   psFoam = effectManager->addPSystem(psFoamParams);
   psFoam->reserveEmitters(DEFAULT_NUM_SHIPS * 6);
@@ -44,14 +53,18 @@ ShipWakeFx::ShipWakeFx(const Settings &in_settings) : settings(in_settings)
   {
     ParticleSystem::MainParams psFoamHeadParams;
     psFoamHeadParams.diffuseTexId = settings.foamHeadTexId;
-    psFoamHeadParams.diffuseSampler = get_texture_separate_sampler(psFoamHeadParams.diffuseTexId);
+    psFoamHeadParams.diffuseMVTexId = settings.foamHeadMVTexId;
+    psFoamHeadParams.diffuseMVScale = settings.foamHeadMVScale;
+    psFoamHeadParams.diffuseSampler = get_sampler_default_mipbias(psFoamHeadParams.diffuseTexId);
     psFoamHeadParams.renderType = ParticleSystem::RENDER_FOAM;
     psFoamHead = effectManager->addPSystem(psFoamHeadParams);
     psFoamHead->reserveEmitters(DEFAULT_NUM_SHIPS * 2);
 
     ParticleSystem::MainParams psFoamTurboParams;
     psFoamTurboParams.diffuseTexId = settings.foamTurboTexId;
-    psFoamTurboParams.diffuseSampler = get_texture_separate_sampler(psFoamTurboParams.diffuseTexId);
+    psFoamTurboParams.diffuseMVTexId = settings.foamTurboMVTexId;
+    psFoamTurboParams.diffuseMVScale = settings.foamTurboMVScale;
+    psFoamTurboParams.diffuseSampler = get_sampler_default_mipbias(psFoamTurboParams.diffuseTexId);
     psFoamTurboParams.renderType = ParticleSystem::RENDER_FOAM;
     psFoamTurbo = effectManager->addPSystem(psFoamTurboParams);
     psFoamTurbo->reserveEmitters(DEFAULT_NUM_SHIPS * 2);
@@ -64,7 +77,9 @@ ShipWakeFx::ShipWakeFx(const Settings &in_settings) : settings(in_settings)
 
   ParticleSystem::MainParams psFoamTrailParams;
   psFoamTrailParams.diffuseTexId = settings.foamTrailTexId;
-  psFoamTrailParams.diffuseSampler = get_texture_separate_sampler(psFoamTrailParams.diffuseTexId);
+  psFoamTrailParams.diffuseMVTexId = settings.foamTrailMVTexId;
+  psFoamTrailParams.diffuseMVScale = settings.foamTrailMVScale;
+  psFoamTrailParams.diffuseSampler = get_sampler_default_mipbias(psFoamTrailParams.diffuseTexId);
   psFoamTrailParams.renderType = ParticleSystem::RENDER_FOAM;
   psFoamTrail = effectManager->addPSystem(psFoamTrailParams);
   psFoamTrail->reserveEmitters(DEFAULT_NUM_SHIPS);
@@ -74,22 +89,22 @@ ShipWakeFx::ShipWakeFx(const Settings &in_settings) : settings(in_settings)
   {
     ParticleSystem::MainParams psFoamDistortedParams;
     psFoamDistortedParams.diffuseTexId = settings.foamDistortedTileTexId;
-    psFoamDistortedParams.diffuseSampler = get_texture_separate_sampler(psFoamDistortedParams.diffuseTexId);
+    psFoamDistortedParams.diffuseSampler = get_sampler_default_mipbias(psFoamDistortedParams.diffuseTexId);
     psFoamDistortedParams.distortionTexId = settings.foamDistortedParticleTexId;
-    psFoamDistortedParams.distortionSampler = get_texture_separate_sampler(psFoamDistortedParams.distortionTexId);
+    psFoamDistortedParams.distortionSampler = get_sampler_default_mipbias(psFoamDistortedParams.distortionTexId);
     psFoamDistortedParams.gradientTexId = settings.foamDistortedGradientTexId;
-    psFoamDistortedParams.gradientSampler = get_texture_separate_sampler(psFoamDistortedParams.gradientTexId);
+    psFoamDistortedParams.gradientSampler = get_sampler_default_mipbias(psFoamDistortedParams.gradientTexId);
     psFoamDistortedParams.renderType = ParticleSystem::RENDER_FOAM_DISTORTED;
     psFoamDistorted = effectManager->addPSystem(psFoamDistortedParams);
     psFoamDistorted->reserveEmitters(DEFAULT_NUM_SHIPS);
 
     ParticleSystem::MainParams psFoamMaskParams;
     psFoamMaskParams.diffuseTexId = settings.foamDistortedTileTexId;
-    psFoamMaskParams.diffuseSampler = get_texture_separate_sampler(psFoamMaskParams.diffuseTexId);
+    psFoamMaskParams.diffuseSampler = get_sampler_default_mipbias(psFoamMaskParams.diffuseTexId);
     psFoamMaskParams.distortionTexId = settings.foamDistortedParticleTexId;
-    psFoamMaskParams.distortionSampler = get_texture_separate_sampler(psFoamMaskParams.distortionTexId);
+    psFoamMaskParams.distortionSampler = get_sampler_default_mipbias(psFoamMaskParams.distortionTexId);
     psFoamMaskParams.gradientTexId = settings.foamDistortedGradientTexId;
-    psFoamMaskParams.gradientSampler = get_texture_separate_sampler(psFoamMaskParams.gradientTexId);
+    psFoamMaskParams.gradientSampler = get_sampler_default_mipbias(psFoamMaskParams.gradientTexId);
     psFoamMaskParams.renderType = ParticleSystem::RENDER_FOAM_MASK;
     psFoamMask = effectManager->addPSystem(psFoamMaskParams);
     psFoamMask->reserveEmitters(DEFAULT_NUM_SHIPS);
@@ -783,18 +798,20 @@ void ShipWakeFx::resetShipSpawnCounters(uint32_t index, bool jump)
 
 void ShipWakeFx::update(float dt) { effectManager->update(dt); }
 
-void ShipWakeFx::render()
+bool ShipWakeFx::render()
 {
   TIME_D3D_PROFILE(ShipWakeFx_render);
-  effectManager->render(ParticleSystem::RENDER_HEIGHT);
+  bool renderedAnything = false;
+  renderedAnything |= effectManager->render(ParticleSystem::RENDER_HEIGHT);
 
   if (water_foam_distorted_on.get())
   {
     if (psFoamDistorted)
       psFoamDistorted->setRenderType(ParticleSystem::RENDER_HEIGHT_DISTORTED);
 
-    effectManager->render(ParticleSystem::RENDER_HEIGHT_DISTORTED);
+    renderedAnything |= effectManager->render(ParticleSystem::RENDER_HEIGHT_DISTORTED);
   }
+  return renderedAnything;
 }
 
 bool ShipWakeFx::renderFoam()

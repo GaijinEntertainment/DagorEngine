@@ -12,6 +12,7 @@ class DataBlock;
 #include <supp/dag_define_KRNLIMP.h>
 
 extern KRNLIMP bool dgs_execute_quiet;
+extern KRNLIMP void (*dgs_on_memory_leak_detected_handler)(const char *);
 
 extern KRNLIMP void (*dgs_post_shutdown_handler)();
 extern KRNLIMP void (*dgs_pre_shutdown_handler)();
@@ -83,6 +84,11 @@ extern KRNLIMP int dagor_frame_no_int; // should not be accessed directly!
 inline unsigned int dagor_frame_no() { return interlocked_relaxed_load(dagor_frame_no_int); }
 inline void dagor_frame_no_increment() { interlocked_increment(dagor_frame_no_int); }
 inline void dagor_frame_no_add(int x) { interlocked_add(dagor_frame_no_int, x); }
+
+// Counter of presented frames, can be more than rendered frames when frame generation used
+extern KRNLIMP int dagor_frames_presented_int; // should not be accessed directly!
+inline unsigned int dagor_frames_presented() { return interlocked_relaxed_load(dagor_frames_presented_int); }
+inline void dagor_frames_presented_add(int x) { interlocked_add(dagor_frames_presented_int, x); }
 
 //! returns current global frame id
 //! This is the frame id that is used for rendering and simulation.

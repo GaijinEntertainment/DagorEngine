@@ -70,7 +70,8 @@ void GI3D::initSceneVoxelsCommon()
     scene_voxels_toroidal_ofsVarId[si] = get_shader_variable_id(String(128, "scene_voxels_toroidal_ofs%d", si));
   }
 
-  invalidBoxesSB = dag::buffers::create_ua_sr_structured(sizeof(bbox3f), MAX_BOXES_INV_PER_FRAME, "invalidBoxes");
+  invalidBoxesSB = dag::buffers::create_ua_sr_structured(sizeof(bbox3f), MAX_BOXES_INV_PER_FRAME, "invalidBoxes",
+    d3d::buffers::Init::No, RESTAG_DAGI);
 }
 
 void GI3D::closeSceneVoxels()
@@ -99,7 +100,7 @@ void GI3D::initSceneVoxels()
   if (getQuality() != ONLY_AO)
   {
     sceneVoxelsColor = dag::create_voltex(VOXELS_RES_X, VOXELS_RES_Y, VOXELS_RES_Z * sceneCascades.size(), sceneFmt | TEXCF_UNORDERED,
-      1, "scene_voxels_data");
+      1, "scene_voxels_data", RESTAG_DAGI);
     d3d::clear_rwtexf(sceneVoxelsColor.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
@@ -109,15 +110,16 @@ void GI3D::initSceneVoxels()
 
 #if SCENE_VOXELS_COLOR == SCENE_VOXELS_R11G11B10
   sceneVoxelsAlpha = dag::create_voltex(VOXELS_RES_X, VOXELS_RES_Y, VOXELS_RES_Z * sceneCascades.size(), TEXFMT_R8 | TEXCF_UNORDERED,
-    1, "scene_voxels_alpha");
+    1, "scene_voxels_alpha", RESTAG_DAGI);
   d3d::clear_rwtexf(sceneVoxelsAlpha.getVolTex(), ResourceClearValue{}.asFloat, 0, 0);
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
   ShaderGlobal::set_sampler(::get_shader_variable_id("scene_voxels_alpha_samplerstate"), d3d::request_sampler(smpInfo));
   d3d::resource_barrier({sceneVoxelsAlpha.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
 #endif
-  selectedGbufVoxelsCount = dag::create_sbuffer(4, 4, SBCF_UA_INDIRECT, 0, "voxelsCount");
-  selectedGbufVoxels = dag::buffers::create_ua_sr_structured(sizeof(GBUF_VOXEL), MAX_MARKED_SCENE_VOXELS, "selectedGbufVoxels");
+  selectedGbufVoxelsCount = dag::create_sbuffer(4, 4, SBCF_UA_INDIRECT, 0, "voxelsCount", RESTAG_DAGI);
+  selectedGbufVoxels = dag::buffers::create_ua_sr_structured(sizeof(GBUF_VOXEL), MAX_MARKED_SCENE_VOXELS, "selectedGbufVoxels",
+    d3d::buffers::Init::No, RESTAG_DAGI);
   sceneVoxelsAlpha.setVar();
   sceneVoxelsColor.setVar();
   invalidateVoxelScene();
@@ -138,7 +140,7 @@ void GI3D::updateVoxelMinSize(float voxel_resolution)
   {
     invalidateVoxelScene();
     sceneVoxelSize = Point3(voxel_resolution, voxel_resolution, voxel_resolution);
-    ShaderGlobal::set_color4(scene_voxels_sizeVarId, sceneVoxelSize.x, sceneVoxelSize.y, 1.f / (sceneCascades.size() * VOXELS_RES_Z),
+    ShaderGlobal::set_float4(scene_voxels_sizeVarId, sceneVoxelSize.x, sceneVoxelSize.y, 1.f / (sceneCascades.size() * VOXELS_RES_Z),
       sceneCascades.size());
   }
   setSceneVoxelVars();
@@ -151,11 +153,11 @@ void GI3D::setSceneVoxelVars()
     auto &s = sceneCascades[si];
     const Point3 voxelSize = sceneVoxelSize * s.scale;
     s.origin = mul(voxelSize, Point3(s.toroidalOrigin - IPoint3::xzy(VOXEL_RESOLUTION / 2)));
-    ShaderGlobal::set_color4(scene_voxels_originVarId[si], s.origin.x, s.origin.y, s.origin.z, s.scale);
+    ShaderGlobal::set_float4(scene_voxels_originVarId[si], s.origin.x, s.origin.y, s.origin.z, s.scale);
     const Point3 bmax = s.origin + mul(voxelSize, Point3(IPoint3::xzy(VOXEL_RESOLUTION)));
-    ShaderGlobal::set_color4(scene_voxels_bmaxVarId[si], bmax.x, bmax.y, bmax.z, voxelSize.x * 0.95);
+    ShaderGlobal::set_float4(scene_voxels_bmaxVarId[si], bmax.x, bmax.y, bmax.z, voxelSize.x * 0.95);
     IPoint3 ofs = s.toroidalOrigin;
-    ShaderGlobal::set_color4(scene_voxels_toroidal_ofsVarId[si], ofs.x, ofs.y, ofs.z, 0);
+    ShaderGlobal::set_float4(scene_voxels_toroidal_ofsVarId[si], ofs.x, ofs.y, ofs.z, 0);
   }
   // todo: set voxel_origin and size, and others from updateVoxelSceneBox
 }
@@ -189,8 +191,8 @@ void GI3D::fillRestrictedUpdateBox(TMatrix4 globtm)
   bbox3f resultBbox = get_restricted_update_bbox_cb(cascade_bbox, frustum, true);
   bool hasPhysObjInCascade = !v_bbox3_is_empty(resultBbox);
   ShaderGlobal::set_int(has_physobj_in_cascadeVarId, hasPhysObjInCascade);
-  ShaderGlobal::set_color4(ssgi_restricted_update_bbox_minVarId, resultBbox.bmin);
-  ShaderGlobal::set_color4(ssgi_restricted_update_bbox_maxVarId, resultBbox.bmax);
+  ShaderGlobal::set_float4(ssgi_restricted_update_bbox_minVarId, resultBbox.bmin);
+  ShaderGlobal::set_float4(ssgi_restricted_update_bbox_maxVarId, resultBbox.bmax);
   lastHasPhysObjInCascade = hasPhysObjInCascade;
   lastRestrictedUpdateGiBox = resultBbox;
 }
@@ -210,10 +212,10 @@ void GI3D::markVoxelsFromRT(const TMatrix4 &globtm, float speed)
   fillRestrictedUpdateBox(globtm);
 
   TMatrix4 globtmTransposed = globtm.transpose();
-  ShaderGlobal::set_color4(globtm_psf_0VarId, Color4(globtmTransposed[0]));
-  ShaderGlobal::set_color4(globtm_psf_1VarId, Color4(globtmTransposed[1]));
-  ShaderGlobal::set_color4(globtm_psf_2VarId, Color4(globtmTransposed[2]));
-  ShaderGlobal::set_color4(globtm_psf_3VarId, Color4(globtmTransposed[3]));
+  ShaderGlobal::set_float4(globtm_psf_0VarId, Color4(globtmTransposed[0]));
+  ShaderGlobal::set_float4(globtm_psf_1VarId, Color4(globtmTransposed[1]));
+  ShaderGlobal::set_float4(globtm_psf_2VarId, Color4(globtmTransposed[2]));
+  ShaderGlobal::set_float4(globtm_psf_3VarId, Color4(globtmTransposed[3]));
   const uint32_t groups =
     clamp((uint32_t)(speed * MAX_MARKED_SCENE_VOXELS_GROUPS), (uint32_t)1, (uint32_t)MAX_MARKED_SCENE_VOXELS_GROUPS);
   ShaderGlobal::set_int(ssgi_total_scene_mark_dipatchVarId, groups * MARK_VOXELS_WARP_SIZE);
@@ -374,12 +376,12 @@ GI3D::SceneCascade::STATUS GI3D::updateOriginScene(int scene, const Point3 &base
   const IPoint3 stInvalid = sceneCascades[scene].lastStInvalid, res = sceneCascades[scene].lastRes;
 
   // debug("toroidalSceneOrigin = %@, res = %@, stInvalid = %@", sceneCascades[scene].toroidalOrigin, res, stInvalid);
-  // ShaderGlobal::set_color4(scene_voxels_originVarId[si], s.origin.x, s.origin.y, s.origin.z, s.scale);
+  // ShaderGlobal::set_float4(scene_voxels_originVarId[si], s.origin.x, s.origin.y, s.origin.z, s.scale);
 
   const IPoint3 unLt = stInvalid - (sceneCascades[scene].toroidalOrigin - realRes / 2);
-  ShaderGlobal::set_color4(scene_voxels_unwrapped_invalid_startVarId, unLt.x, unLt.y, unLt.z, scene);
-  ShaderGlobal::set_color4(scene_voxels_invalid_startVarId, stInvalid.x, stInvalid.y, stInvalid.z, scene);
-  ShaderGlobal::set_color4(scene_voxels_invalid_widthVarId, res.x, res.y, res.z, res.x * res.y * res.z);
+  ShaderGlobal::set_float4(scene_voxels_unwrapped_invalid_startVarId, unLt.x, unLt.y, unLt.z, scene);
+  ShaderGlobal::set_float4(scene_voxels_invalid_startVarId, stInvalid.x, stInvalid.y, stInvalid.z, scene);
+  ShaderGlobal::set_float4(scene_voxels_invalid_widthVarId, res.x, res.y, res.z, res.x * res.y * res.z);
   BBox3 sceneBox;
   sceneBox[0] = mul(point3(stInvalid), voxelSize);
   sceneBox[1] = sceneBox[0] + mul(point3(res), voxelSize);
@@ -392,8 +394,8 @@ GI3D::SceneCascade::STATUS GI3D::updateOriginScene(int scene, const Point3 &base
                                                                                 // clipping
     Point3 mult = 2. * div(voxelize_aspect_ratio, voxelize_box_sz);
     Point3 add = -mul(voxelize_box0, mult) - voxelize_aspect_ratio;
-    ShaderGlobal::set_color4(voxelize_world_to_rasterize_space_mulVarId, P3D(mult), 0);
-    ShaderGlobal::set_color4(voxelize_world_to_rasterize_space_addVarId, P3D(add), 0);
+    ShaderGlobal::set_float4(voxelize_world_to_rasterize_space_mulVarId, P3D(mult), 0);
+    ShaderGlobal::set_float4(voxelize_world_to_rasterize_space_addVarId, P3D(add), 0);
   }
 
   preclear_cb(sceneBox, voxelSize);

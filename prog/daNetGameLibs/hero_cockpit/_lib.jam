@@ -1,4 +1,0 @@
-if $(HaveRenderer) = yes {
-  gamePulls += framework_hero_cockpit_pull daNetGameLibs_hero_cockpit_DAS_pull_AOT ;
-  UseProgLibs += daNetGameLibs/hero_cockpit ;
-}

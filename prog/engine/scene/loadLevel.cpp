@@ -90,9 +90,7 @@ static TEXTUREID load_tex(BinaryDump &bin_dump, IGenLoad &crd)
 static bool load_binary_dump(BinaryDump &bin_dump, String originalName, IGenLoad &crd, Tab<TEXTUREID> &texMap,
   IBinaryDumpLoaderClient &client, unsigned bindump_id)
 {
-#ifndef NO_3D_GFX
   RenderScene *scn = NULL;
-#endif
   String nm;
   int tag;
   FATAL_CONTEXT_AUTO_SCOPE(originalName);
@@ -120,7 +118,6 @@ static bool load_binary_dump(BinaryDump &bin_dump, String originalName, IGenLoad
 
     if (tag == _MAKE4C('TEX'))
     { // textures, handled specifically
-#ifndef NO_3D_GFX
       tagTimer.go();
       if (!client.bdlConfirmLoading(bindump_id, tag))
         texMap.push_back(BAD_TEXTUREID);
@@ -128,14 +125,12 @@ static bool load_binary_dump(BinaryDump &bin_dump, String originalName, IGenLoad
         texMap.push_back(load_tex(bin_dump, crd));
       tagTimer.stop();
       debug("[BIN] 'TEX' loaded in %.2f ms", (float)(tagTimer.getTotalUsec()) / 1000.f);
-#endif
     }
     else if (client.bdlConfirmLoading(bindump_id, tag))
     {
       tagTimer.go();
       switch (tag)
       {
-#ifndef NO_3D_GFX
         case _MAKE4C('TEX.'):
         {
           client.bdlTextureMap(bindump_id, texMap);
@@ -297,7 +292,6 @@ static bool load_binary_dump(BinaryDump &bin_dump, String originalName, IGenLoad
         break;
 
         case _MAKE4C('PORT'): break;
-#endif // NO_3D_GFX
 
         case _MAKE4C('eVER'):
         {
@@ -694,8 +688,6 @@ BinaryDump *load_binary_dump_async(const char *fname, IBinaryDumpLoaderClient &c
 
 static void free_binary_dump(BinaryDump *bin_dump)
 {
-#ifndef NO_3D_GFX
-
   for (int i = 0; i < bin_dump->envi.size(); ++i)
     delete bin_dump->envi[i];
   clear_and_shrink(bin_dump->envi);
@@ -726,7 +718,6 @@ static void free_binary_dump(BinaryDump *bin_dump)
       p = pp;
     }
   }
-#endif // NO_3D_GFX
 
   delete bin_dump;
 }

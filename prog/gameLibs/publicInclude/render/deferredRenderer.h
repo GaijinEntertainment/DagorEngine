@@ -10,7 +10,6 @@
 #include <shaders/dag_postFxRenderer.h>
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <render/deferredRT.h>
-#include <EASTL/array.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/unique_ptr.h>
 
@@ -93,7 +92,7 @@ public:
     const RectInt *resolve_area = nullptr);
   void setVar() { renderTargets.setVar(); }
   void changeResolution(const int w, const int h) { renderTargets.changeResolution(w, h); }
-  void debugRender(int show_gbuffer = USE_DEBUG_GBUFFER_MODE);
+  void debugRender(BaseTexture *depth = nullptr, int show_gbuffer = USE_DEBUG_GBUFFER_MODE);
   void debugRenderVectors(int show_gbuffer = USE_DEBUG_GBUFFER_MODE, int vec_count = -1, int vec_scale = 0.f);
   // returns true if 32 bit depth buffer was created
   uint32_t recreateDepth(uint32_t fmt) { return renderTargets.recreateDepth(fmt); }

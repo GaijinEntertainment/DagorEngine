@@ -36,6 +36,7 @@ public:
   public:
     TabInt() : Tab<int>(midmem_ptr()) {}
     TabInt(const TabInt &from) : Tab<int>(from) {}
+    TabInt &operator=(const TabInt &from) = default;
   };
 
   DeWorkspace();

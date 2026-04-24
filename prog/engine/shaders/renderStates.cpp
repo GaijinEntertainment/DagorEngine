@@ -8,7 +8,7 @@
 #include <hash/xxh3.h>
 
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <shaders/dag_overrideStates.h>
 #include <shaders/dag_renderStateId.h>
 #include "concurrentElementPool.h"

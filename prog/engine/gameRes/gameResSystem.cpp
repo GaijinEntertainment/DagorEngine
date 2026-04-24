@@ -46,9 +46,9 @@
 #include <debug/dag_debug.h>
 #include <util/dag_fastNameMapTS.h>
 
-#if _TARGET_PC_WIN
+#if _TARGET_PC_WIN || _TARGET_XBOX
+#include <windows.h> // CRITICAL_SECTION, GetLastError, GetCurrentThreadId
 #include <direct.h>
-extern "C" __declspec(dllimport) unsigned long /*DWORD*/ __stdcall /*WINAPI*/ GetLastError();
 #elif _TARGET_PC
 #include <unistd.h>
 #endif
@@ -70,8 +70,22 @@ static inline void TRACE(const char *, ...) {}
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
-static Bitarray resRestrictionList;
-static FastIntList requiredResList;
+class GameResRestrictionList
+{
+public:
+  GameResRestrictionList(unsigned reserve_max, unsigned reserve_list)
+  {
+    mask.resize(int(reserve_max));
+    mask.reset();
+    list.reserve(reserve_list);
+  }
+  bool shouldSkipResId(uint32_t res_id) const { return mask.size() && (res_id >= uint32_t(mask.size()) || !mask.get(res_id)); }
+  bool hasResId(uint32_t res_id) const { return (res_id < mask.size()) ? mask.get(res_id) : list.hasInt(res_id); }
+
+  Bitarray mask;
+  FastIntList list;
+  unsigned missingCount = 0;
+};
 static Tab<GameResourceFactory *> factories(inimem_ptr());
 static OAHashNameMap<true> *avail_res_files = NULL;
 
@@ -86,8 +100,6 @@ static WinCritSec gameres_load_cs;
 
 WinCritSec &get_gameres_main_cs() { return gameres_cs; }
 
-static bool gameres_finer_load_enabled = false;
-
 static bool noFactoryFatal = true;
 struct SetScopeNoFactoryFatal
 {
@@ -97,20 +109,10 @@ struct SetScopeNoFactoryFatal
 };
 static int8_t gameres_undefined_res_loglevel = LOGLEVEL_WARN;
 static int now_loading_res_id = -1;
-static enum { OGLE_ALWAYS, OGLE_ONE_ENABLED, OGLE_NOT_ENABLED } one_grp_load_enabled = OGLE_ALWAYS;
 static bool ignoreUnavailableResources = false;
 static bool loggingMissingResources = true;
 
 bool is_ignoring_unavailable_resources() { return ignoreUnavailableResources; }
-
-static int gameresSysVer = 2;
-
-void set_gameres_sys_ver(int ver)
-{
-  G_ASSERT(ver == 2);
-  gameresSysVer = ver;
-}
-int get_gameres_sys_ver() { return gameresSysVer; }
 
 namespace gameresprivate
 {
@@ -226,14 +228,13 @@ struct GameResPackInfo
 {
   SimpleString fileName;
   gamerespackbin::GrpData *grData;
-  int refCount;
   bool surelyLoaded;
 
-  GameResPackInfo() : grData(NULL), refCount(0), surelyLoaded(false) {}
+  GameResPackInfo() : grData(NULL), surelyLoaded(false) {}
 
-  bool processGrData();
+  bool processGrData(gameres_rrl_cptr_t rrl);
 
-  void loadPack();
+  void loadPack(gameres_rrl_cptr_t rrl);
 
   void endLoading()
   {
@@ -331,12 +332,12 @@ static inline GameResInfo *getGameResInfo(int res_id)
   return idx >= 0 ? &grInfo[idx] : NULL;
 }
 
-static int gameResHandleToId(GameResHandle handle, unsigned class_id)
+static int gameResHandleToId(const char *resname, unsigned class_id)
 {
   int id = -1;
-  if (gamereshooks::resolve_res_handle && gamereshooks::resolve_res_handle(handle, class_id, id))
+  if (gamereshooks::resolve_res_handle && gamereshooks::resolve_res_handle(resname, class_id, id))
     return id;
-  id = ::addGameResId((const char *)handle);
+  id = ::addGameResId(resname);
   if (class_id && class_id != 0xFFFFFFFFU)
   {
     GameResInfo *info = getGameResInfo(id);
@@ -347,7 +348,7 @@ static int gameResHandleToId(GameResHandle handle, unsigned class_id)
   return id;
 }
 
-int gamereshooks::aux_game_res_handle_to_id(GameResHandle h, unsigned cid) { return gameResHandleToId(h, cid); }
+int gamereshooks::aux_game_res_handle_to_id(const char *resname, unsigned cid) { return gameResHandleToId(resname, cid); }
 
 void iterate_gameres_names_by_class(unsigned class_id, const eastl::function<void(const char *)> &cb)
 {
@@ -691,7 +692,7 @@ DataBlock *gameresprivate::getDestBlock(const char *filename, bool grp)
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
 
 
-bool GameResPackInfo::processGrData()
+bool GameResPackInfo::processGrData(gameres_rrl_cptr_t rrl)
 {
   using namespace gamerespackbin;
 
@@ -711,7 +712,7 @@ bool GameResPackInfo::processGrData()
     if (!info)
       continue;
 
-    if (resRestrictionList.size() && !resRestrictionList.get(resId))
+    if (rrl && rrl->shouldSkipResId(resId))
       continue;
     if (info->packId != this_packId)
       continue;
@@ -736,15 +737,9 @@ bool GameResPackInfo::processGrData()
 
     fatal_context_push(String(0, "%s : %s", resName, fac->getResClassName()));
     now_loading_res_id = resId;
-    fac->createGameResource(resId, info->refNum ? &grInfoRefs[info->refStartIdx] : NULL, info->refNum);
+    fac->createGameResource(rrl, resId, info->refNum ? &grInfoRefs[info->refStartIdx] : NULL, info->refNum);
     now_loading_res_id = -1;
     fatal_context_pop();
-    if (gameres_finer_load_enabled)
-    {
-      int cnt = gameres_cs.fullUnlock();
-      sleep_msec(0);
-      gameres_cs.reLock(cnt);
-    }
 
     if (!grData)
     {
@@ -784,11 +779,8 @@ void GameResPackInfo::addRefResIds(int res_id, Tab<int> &res_ids)
   }
 }
 
-void GameResPackInfo::loadPack()
+void GameResPackInfo::loadPack(gameres_rrl_cptr_t rrl)
 {
-  if (!refCount)
-    TRACE("===+ load extraneous GRP: %s\n", fileName.str());
-
   int64_t reft = profile_ref_ticks();
   using namespace gamerespackbin;
   FastSeqReadCB seq_cb;
@@ -802,7 +794,7 @@ void GameResPackInfo::loadPack()
     int errn = -1;
     const char *errs = NULL, *cwd = NULL;
 #if _TARGET_PC
-#if _TARGET_PC_WIN
+#if _TARGET_PC_WIN || _TARGET_XBOX
     errn = GetLastError();
 #else
     errn = errno;
@@ -881,7 +873,7 @@ void GameResPackInfo::loadPack()
       if (rre->offset == 0)
         continue;
       int gdni = gdNameId[rre->resId];
-      if (resRestrictionList.size() && ((uint32_t)gdni >= (uint32_t)resRestrictionList.size() || !resRestrictionList.get(gdni)))
+      if (rrl && rrl->shouldSkipResId(gdni))
         continue;
       if (resId_to_packId[gdni] != this_packId)
         continue;
@@ -926,7 +918,7 @@ void GameResPackInfo::loadPack()
         continue;
 
       int gdni = gdNameId[rre->resId];
-      if (resRestrictionList.size() && ((uint32_t)gdni >= (uint32_t)resRestrictionList.size() || !resRestrictionList.get(gdni)))
+      if (rrl && rrl->shouldSkipResId(gdni))
         continue;
 
       // debug("read %s at %d", ::resNameMap.getName(gdNameId[rre->resId]), rre->offset);
@@ -952,12 +944,6 @@ void GameResPackInfo::loadPack()
       }
 
       fac->loadGameResourceData(gdNameId[rre->resId], cb);
-      if (gameres_finer_load_enabled)
-      {
-        int cnt = gameres_cs.fullUnlock();
-        sleep_msec(0);
-        gameres_cs.reLock(cnt);
-      }
     }
 
     // DEBUG_CTX("loaded real-res from GRP %s", (char*)fileName);
@@ -985,42 +971,30 @@ void GameResPackInfo::loadPack()
   G_UNUSED(t0);
 
   // process loaded res-data
-  processGrData();
+  processGrData(rrl);
   surelyLoaded = true;
 }
 
 
-static void loadGameResPack(int pack_id, int res_id)
+static void loadGameResPack(gameres_rrl_cptr_t rrl, int pack_id, int /*res_id*/)
 {
   if (pack_id < 0)
     return;
 
   debug("loadGameResPack(%s) start", packInfo[pack_id].fileName.str());
 
-  if (packInfo[pack_id].processGrData())
-    goto end_;
+  if (packInfo[pack_id].processGrData(rrl))
+    return;
 
   for (int i = 0; i < loadedPacks.size(); ++i)
     if (loadedPacks[i] == pack_id)
-      goto end_;
-
-  if (one_grp_load_enabled == OGLE_NOT_ENABLED)
-  {
-    if (!ignoreUnavailableResources)
-      DAG_FATAL("(!one_grp_load_enabled) loading of <%s> is not allowed, required for res=<%s>", packInfo[pack_id].fileName.str(),
-        res_id < 0 ? "NULL" : ::resNameMap.getName(res_id));
-    goto end_;
-  }
-  if (one_grp_load_enabled == OGLE_ONE_ENABLED)
-    one_grp_load_enabled = OGLE_NOT_ENABLED;
+      return;
 
   loadedPacks.push_back(pack_id);
 
-  packInfo[pack_id].loadPack();
+  packInfo[pack_id].loadPack(rrl);
 
   debug("loadGameResPack(%s) end", packInfo[pack_id].fileName.str());
-
-end_:;
 }
 
 
@@ -1044,7 +1018,7 @@ int validate_game_res_id(int res_id)
 }
 
 
-int get_game_res_class_id(int res_id)
+unsigned get_game_res_class_id(int res_id)
 {
   if (gamereshooks::on_get_game_res_class_id)
   {
@@ -1061,7 +1035,7 @@ int get_game_res_class_id(int res_id)
 }
 
 
-GameResource *get_game_resource(int res_id)
+GameResource *GameResourceFactory::get_game_resource(int res_id, gameres_rrl_cptr_t rrl)
 {
   if (res_id == NULL_GAMERES_ID)
     return NULL;
@@ -1069,7 +1043,7 @@ GameResource *get_game_resource(int res_id)
   if (gamereshooks::on_get_game_resource)
   {
     GameResource *gr = NULL;
-    if (gamereshooks::on_get_game_resource(res_id, make_span(factories), gr))
+    if (gamereshooks::on_get_game_resource(res_id, rrl, make_span(factories), gr))
       return gr;
   }
 
@@ -1095,11 +1069,11 @@ GameResource *get_game_resource(int res_id)
     return NULL;
   }
 
-  return fac->getGameResource(res_id);
+  return fac->getGameResource(rrl, res_id);
 }
 
 
-void release_game_resource(int res_id)
+void GameResourceFactory::release_game_resource_nolock(int res_id)
 {
   if (gamereshooks::on_release_game_resource && gamereshooks::on_release_game_resource(res_id, make_span(factories)))
     return;
@@ -1123,11 +1097,11 @@ struct LoadResPackEntryCnt
 };
 int LoadResPackEntryCnt::count = 0;
 
-void load_game_resource_pack(int res_id)
+void GameResourceFactory::load_game_resource_pack(int res_id, gameres_rrl_cptr_t rrl)
 {
   LoadResPackEntryCnt entry_count_check;
   G_ASSERTF_RETURN(entry_count_check.entryCount() < 64, , "%s: reentry=%d RRL.size=%d", __FUNCTION__, entry_count_check.entryCount(),
-    resRestrictionList.size());
+    rrl ? rrl->mask.size() : 0);
   // DEBUG_CTX("load pack for game-res %d", res_id);
   if (gamereshooks::on_load_game_resource_pack && gamereshooks::on_load_game_resource_pack(res_id, make_span(factories)))
     return;
@@ -1154,6 +1128,11 @@ void load_game_resource_pack(int res_id)
     return;
 
   int resPackId = info->packId;
+#if 0 // check for RRL used correctly and always
+  if (!rrl)
+    logerr("load_game_resource_pack(res_id=%d{%s}, rrl=%p) will load whole %s", //
+      res_id, ::resNameMap.getName(res_id), rrl, packInfo[resPackId].fileName);
+#endif
 
   d3d::LoadingAutoLock loadingLock;
 
@@ -1161,7 +1140,7 @@ void load_game_resource_pack(int res_id)
   int gameres_cs_cnt = gameres_cs.fullUnlock() - 1;
   gameres_load_cs.lock();
 
-  if (resRestrictionList.size() && !resRestrictionList.get(res_id))
+  if (rrl && rrl->shouldSkipResId(res_id))
   {
     String logStr(120, "res_id=%d <%s> is not present in res restriction list", res_id, resNameMap.getName(res_id));
     if (::is_ignoring_unavailable_resources())
@@ -1171,8 +1150,10 @@ void load_game_resource_pack(int res_id)
     }
     else
       logerr(logStr.c_str());
-    resRestrictionList.set(res_id); // for the case when we ignore next fatal in fatal handler
-    resRestrictionList.set(grMap[info->grMapIdx].id.resId);
+    // mark entry as allowed to be loaded (after RRL violation reported) to continue loading
+    if (unsigned(res_id) < unsigned(rrl->mask.size()))
+      const_cast<gameres_rrl_ptr_t>(rrl)->mask.set(res_id);
+    const_cast<gameres_rrl_ptr_t>(rrl)->mask.set(grMap[info->grMapIdx].id.resId);
     clearLoadedPacksList();
   }
 
@@ -1181,7 +1162,7 @@ void load_game_resource_pack(int res_id)
   bool isFirst = !inLoading;
   inLoading = true;
 
-  ::loadGameResPack(resPackId, res_id);
+  ::loadGameResPack(rrl, resPackId, res_id);
 
   if (isFirst)
   {
@@ -1192,6 +1173,22 @@ void load_game_resource_pack(int res_id)
   gameres_load_cs.unlock();
   if (gameres_cs_cnt)
     gameres_cs.reLock(gameres_cs_cnt);
+}
+
+void GameResourceFactory::load_game_resource_pack_gameres_main_cs_locked(int res_id, gameres_rrl_cptr_t rrl)
+{
+  // Check that `gameres_cs` is owned by this thread
+#if _TARGET_PC_WIN || _TARGET_XBOX
+  // To consider: make portable osapi wrapper? Or just winapi only one?
+  static_assert(sizeof(WinCritSec) >= sizeof(CRITICAL_SECTION)); // Assume CS implementation
+  G_ASSERT(((CRITICAL_SECTION *)&gameres_cs)->OwningThread == (HANDLE)(ULONG_PTR)GetCurrentThreadId());
+#else
+  // Note: can't distinguish "I own it" from "nobody owns it"
+  G_ASSERT([] { return gameres_cs.tryLock() ? (gameres_cs.unlock(), true) : false; }());
+#endif
+  gameres_cs.unlock();
+  load_game_resource_pack(res_id, rrl);
+  gameres_cs.lock(); // Relock for unlock above
 }
 
 bool is_game_resource_pack_loaded(const char *fname)
@@ -1207,179 +1204,73 @@ bool is_game_resource_pack_loaded(const char *fname)
   return false;
 }
 
-void load_game_resource_pack_by_name(const char *fname, bool only_one_gameres_pack /*= false*/)
-{
-  Tab<int> grp_id(tmpmem);
-  bool name_found = false;
-
-  for (int i = 0; i < packInfo.size(); i++)
-  {
-    if (dd_stricmp(dd_get_fname(packInfo[i].fileName), fname) == 0)
-    {
-      name_found = true;
-      if (packInfo[i].surelyLoaded)
-        continue;
-      debug(" + %s", packInfo[i].fileName.str());
-      grp_id.push_back(i);
-    }
-  }
-  if (!name_found)
-  {
-    debug("no such GRPs: %s", fname);
-    TRACE("no such GRPs: %s\n", fname);
-  }
-
-  if (!grp_id.size())
-    return;
-
-  debug("load_game_resource_pack_by_name(%s)", fname);
-  TRACE("load_game_resource_pack_by_name(%s)\n", fname);
-  if (only_one_gameres_pack)
-    ::enable_one_gameres_pack_loading(true);
-  for (int i = 0; i < grInfo.size(); i++)
-    for (int j = grp_id.size() - 1; j >= 0; j--)
-      if (grInfo[i].packId == grp_id[j])
-      {
-        WinAutoLock lock(gameres_cs);
-        debug("preload <%s>", ::resNameMap.getName(grInfo[i].resId));
-        release_game_resource(get_game_resource(grInfo[i].resId));
-        if (packInfo[grp_id[j]].surelyLoaded)
-          erase_items(grp_id, j, 1);
-        break;
-      }
-  if (only_one_gameres_pack)
-    ::enable_one_gameres_pack_loading(false, false);
-  TRACE("load_game_resource_pack_by_name  finished\n");
-}
-
-// ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
-
 
 void set_no_gameres_factory_fatal(bool no_factory_fatal) { noFactoryFatal = no_factory_fatal; }
 void set_gameres_undefined_res_loglevel(int8_t level) { gameres_undefined_res_loglevel = level; }
 
 
-GameResource *get_game_resource(GameResHandle handle)
-{
-  WinAutoLock lock(gameres_cs);
-  return ::get_game_resource(::gameResHandleToId(handle, 0));
-}
-
-GameResource *get_game_resource(GameResHandle handle, bool no_factory_fatal)
-{
-  WinAutoLock lock(gameres_cs);
-#ifdef NO_3D_GFX
-  SetScopeNoFactoryFatal nffGuard(false);
-#else
-  SetScopeNoFactoryFatal nffGuard(no_factory_fatal);
-#endif
-  return ::get_game_resource(::gameResHandleToId(handle, 0));
-}
-
-
-void game_resource_add_ref(GameResource *resource)
-{
-  if (!resource || intptr_t(resource) == -1)
-    return;
-
-  if (gameresSysVer == 2 && is_managed_texture_id_valid(D3DRESID(unsigned(uintptr_t(resource))), false))
-  {
-    TEXTUREID tid = (TEXTUREID)(uintptr_t)resource;
-    const char *tex_name = ::get_managed_texture_name(tid);
-    const char *asterisk = tex_name ? strchr(tex_name, '*') : NULL;
-    if (asterisk && (asterisk[1] == 0 || asterisk[1] == '?'))
-    {
-      acquire_managed_tex(tid);
-      return;
-    }
-    else
-      debug("strange game_resource_add_ref(%p), name=%s", resource, tex_name);
-  }
-
-
-  WinAutoLock lock(gameres_cs);
-  for (int i = 0; i < factories.size(); ++i)
-    if (factories[i]->addRefGameResource(resource))
-      return;
-#if DAGOR_DBGLEVEL > 0
-  DAG_FATAL("res %p is not recognized by factories in game_resource_add_ref()", resource);
-#endif
-}
-
-
-void release_gameres_or_texres(GameResource *resource)
-{
-  if (!resource || intptr_t(resource) == -1)
-    return;
-
-  if (gameresSysVer == 2 && is_managed_texture_id_valid(D3DRESID(unsigned(uintptr_t(resource))), false))
-  {
-    TEXTUREID tid = (TEXTUREID)(uintptr_t)resource;
-    const char *tex_name = ::get_managed_texture_name(tid);
-    const char *asterisk = tex_name ? strchr(tex_name, '*') : NULL;
-    if (asterisk && (asterisk[1] == 0 || asterisk[1] == '?'))
-    {
-      int ref_c = ::get_managed_texture_refcount(tid);
-      if (ref_c > 0)
-        release_managed_tex(tid);
-      else
-        debug("trying to release_game_resource(%p), tex=%s, refCount=%d", resource, tex_name, ref_c);
-      return;
-    }
-    else
-      debug("strange release_game_resource(%p), name=%s", resource, tex_name);
-  }
-
-
-  WinAutoLock lock(gameres_cs);
-  for (int i = 0; i < factories.size(); ++i)
-    if (factories[i]->releaseGameResource(resource))
-      return;
-#if DAGOR_DBGLEVEL > 0
-  DAG_FATAL("res %p is not recognized by factories in release_gameres_or_texres()", resource);
-#endif
-}
-
-void release_game_resource(GameResource *resource)
+void game_resource_add_ref_ex(const void *resource, unsigned type_id)
 {
   if (!resource)
     return;
   WinAutoLock lock(gameres_cs);
-  for (int i = 0; i < factories.size(); ++i)
-    if (factories[i]->releaseGameResource(resource))
+  if (type_id)
+  {
+    GameResourceFactory *fac = ::getFactoryByClassId(type_id);
+    if (fac && fac->addRefGameResource((GameResource *)resource))
       return;
 #if DAGOR_DBGLEVEL > 0
-  DAG_FATAL("res %p is not recognized by factories in release_game_resource()", resource);
+    DAG_FATAL("res %p is not recognized by %s(class=0x%X) factory in %s()", //
+      resource, fac ? fac->getResClassName() : "?", type_id, __FUNCTION__);
+#endif
+  }
+
+  for (int i = 0; i < factories.size(); ++i)
+    if (factories[i]->addRefGameResource((GameResource *)resource))
+      return;
+#if DAGOR_DBGLEVEL > 0
+  DAG_FATAL("res %p is not recognized by factories in %s()", resource, __FUNCTION__);
 #endif
 }
 
-void release_game_resource(GameResHandle handle)
-{
-  WinAutoLock lock(gameres_cs);
-  if (gamereshooks::on_release_game_res2 && gamereshooks::on_release_game_res2(handle, make_span(factories)))
-    return;
 
-  ::release_game_resource(::gameResHandleToId(handle, 0));
+void release_game_resource_ex(const void *resource, unsigned type_id)
+{
+  if (!resource)
+    return;
+  WinAutoLock lock(gameres_cs);
+  if (type_id)
+  {
+    GameResourceFactory *fac = ::getFactoryByClassId(type_id);
+    if (fac && fac->releaseGameResource((GameResource *)resource))
+      return;
+#if DAGOR_DBGLEVEL > 0
+    logerr("res %p is not recognized by %s(class=0x%X) factory in %s()", //
+      resource, fac ? fac->getResClassName() : "?", type_id, __FUNCTION__);
+#endif
+  }
+
+  for (int i = 0; i < factories.size(); ++i)
+    if (factories[i]->releaseGameResource((GameResource *)resource))
+      return;
+#if DAGOR_DBGLEVEL > 0
+  DAG_FATAL("res %p is not recognized by factories in %s()", resource, __FUNCTION__);
+#endif
 }
 
-
-static bool free_unused_game_resources(bool forced, bool once = false)
+static bool free_unused_game_resources(gameres_rrl_cptr_t rrl, bool forced, bool once = false)
 {
   WinAutoLock lock_load(gameres_load_cs);
   WinAutoLock lock(gameres_cs);
-  bool needRepeat = false;
 #if TRACE_RES_MANAGEMENT
   bool was_released = false;
   size_t sys_mem = dagor_memory_stat::get_memory_allocated();
 #endif
 
   // check first whether unloadable packs present
+  bool needRepeat = !packInfo.empty();
   for (int i = 0; i < packInfo.size(); i++)
-    if (packInfo[i].refCount < 1)
-    {
-      packInfo[i].surelyLoaded = false;
-      needRepeat = true;
-    }
+    packInfo[i].surelyLoaded = false;
 
 #if _TARGET_PC_WIN
   // mainly to support tools (when assetBuildCache is used in the absence of resources from GRP
@@ -1391,7 +1282,7 @@ static bool free_unused_game_resources(bool forced, bool once = false)
   {
     needRepeat = false;
     for (int i = factories.size() - 1; i >= 0; --i)
-      if (factories[i]->freeUnusedResources(forced, once))
+      if (factories[i]->freeUnusedResources(rrl, forced, once))
       {
         needRepeat = true;
         if (once)
@@ -1421,71 +1312,43 @@ void dump_game_resources_refcount(unsigned cls)
       factories[i]->dumpResourcesRefCount();
 }
 
-void free_unused_game_resources() { free_unused_game_resources(false); }
-void free_unused_game_resources_mt()
-{
-  debug("GRP unload - start");
-  unsigned int startFrame = ::dagor_frame_no();
-  int64_t startTime = profile_ref_ticks();
-
-  while (free_unused_game_resources(false, true))
-  {
-    // repeat
-    sleep_msec(30);
-  }
-
-  int elapsed = profile_time_usec(startTime) / 1000;
-  if (elapsed > 0) // unloaded this time
-  {
-    int frames = ::dagor_frame_no() - startFrame + 1;
-    debug("GRP unloaded: %i ms, %i frame%s (%i ms per frame)", elapsed, frames, frames > 1 ? "s" : "",
-      int(elapsed / float(frames) + 0.5f));
-    G_UNUSED(frames);
-  }
-  else
-    debug("GRP unload - end");
-}
+void free_unused_game_resources(gameres_rrl_cptr_t rrl) { free_unused_game_resources(rrl, false); }
 
 TEXTUREID get_tex_gameres(const char *resname, bool add_ref_tex)
 {
-  if (gameresSysVer == 2)
-  {
-    char tmp[512];
-    _snprintf(tmp, 511, "%s*", resname);
-    tmp[511] = 0;
+  char tmp[512];
+  _snprintf(tmp, 511, "%s*", resname);
+  tmp[511] = 0;
 
-    TEXTUREID tid = ::get_managed_texture_id(tmp);
-    if (tid == BAD_TEXTUREID)
+  TEXTUREID tid = ::get_managed_texture_id(tmp);
+  if (tid == BAD_TEXTUREID)
+  {
+    if (gamereshooks::on_get_game_res_class_id && gamereshooks::on_get_game_resource)
     {
-      if (gamereshooks::on_get_game_res_class_id && gamereshooks::on_get_game_resource)
-      {
-        int res_id = ::gameResHandleToId(GAMERES_HANDLE_FROM_STRING(resname), 0);
-        unsigned class_id = 0;
-        GameResource *gr = NULL;
-        if (gamereshooks::on_get_game_res_class_id(res_id, class_id))
-          if (class_id == 0 && gamereshooks::on_get_game_resource(res_id, make_span(factories), gr))
-            return (TEXTUREID)(uintptr_t)gr;
-      }
-      return tid;
+      int res_id = ::gameResHandleToId(resname, 0);
+      unsigned class_id = 0;
+      GameResource *gr = NULL;
+      if (gamereshooks::on_get_game_res_class_id(res_id, class_id))
+        if (class_id == 0 && gamereshooks::on_get_game_resource(res_id, nullptr, make_span(factories), gr))
+          return (TEXTUREID)(uintptr_t)gr;
     }
-    if (add_ref_tex)
-      acquire_managed_tex(tid);
     return tid;
   }
-
-  return BAD_TEXTUREID;
+  if (add_ref_tex)
+    acquire_managed_tex(tid);
+  return tid;
 }
 
-GameResource *get_game_resource_ex(GameResHandle handle, unsigned type_id)
+GameResource *get_game_resource_ex(const char *resname, unsigned type_id, gameres_rrl_cptr_t rrl)
 {
   WinAutoLock lock(gameres_cs);
   SetScopeNoFactoryFatal nffGuard(false);
 
-  int res_id = ::gameResHandleToId(handle, type_id);
+  int res_id = ::gameResHandleToId(resname, type_id);
   if (gamereshooks::on_get_game_resource)
   {
     GameResource *gr = NULL;
-    if (gamereshooks::on_get_game_resource(res_id, make_span(factories), gr))
+    if (gamereshooks::on_get_game_resource(res_id, rrl, make_span(factories), gr))
       return gr;
   }
 
@@ -1494,17 +1357,17 @@ GameResource *get_game_resource_ex(GameResHandle handle, unsigned type_id)
     return NULL;
 
   GameResourceFactory *fac = ::getFactoryByClassId(type_id);
-  return fac ? fac->getGameResource(res_id) : NULL;
+  return fac ? fac->getGameResource(rrl, res_id) : NULL;
 }
 
-GameResource *get_one_game_resource_ex(GameResHandle handle, unsigned type_id)
+GameResource *get_one_game_resource_ex(const char *resname, unsigned type_id)
 {
   WinAutoLock lock(gameres_cs);
 
-  if (is_game_resource_loaded(handle, type_id))
-    return get_game_resource_ex(handle, type_id);
+  if (is_game_resource_loaded(resname, type_id))
+    return get_game_resource_ex(resname, type_id, nullptr);
 
-  int res_id = ::gameResHandleToId(handle, type_id);
+  int res_id = ::gameResHandleToId(resname, type_id);
   if (res_id < 0)
     return NULL;
 
@@ -1524,33 +1387,26 @@ GameResource *get_one_game_resource_ex(GameResHandle handle, unsigned type_id)
 #else
     ll = LOGLEVEL_ERR;
 #endif
-    logmessage(ll, "Attempt to load game resource '%s' of type %#x in main thread", (const char *)handle, type_id);
+    logmessage(ll, "Attempt to load game resource '%s' of type %#x in main thread", resname, type_id);
   }
 #endif
 
   lock.unlockFinal();
 
+  GameResRestrictionList rrl(resNameMap.nameCount(), 1);
+  if (res_id < rrl.mask.size())
+    rrl.mask.set(res_id); // mark res itself regardless of subsequent addReqResListReferences() result!
+  addReqResListReferences(res_id, rrl.mask, rrl.list);
+
   WinAutoLock lock_load(gameres_load_cs);
-  if (res_id >= resRestrictionList.size())
-    resRestrictionList.resize(resNameMap.nameCount());
-  if (res_id < resRestrictionList.size())
-    resRestrictionList.set(res_id);
-  addReqResListReferences(res_id, resRestrictionList, requiredResList);
-
-  GameResource *res = get_game_resource_ex(handle, type_id);
-
-  if (res_id < resRestrictionList.size())
-    resRestrictionList.reset(res_id); // don't keep reference in 'resRestrictionList' to requested resource, or it won't be freed (no
-                                      // side effects)
-
-  return res;
+  return get_game_resource_ex(resname, type_id, &rrl);
 }
 
-bool is_game_resource_loaded_nolock(GameResHandle handle, unsigned type_id)
+bool is_game_resource_loaded_nolock(const char *resname, unsigned type_id)
 {
-  const int res_id = ::gameResHandleToId(handle, type_id);
+  const int res_id = ::gameResHandleToId(resname, type_id);
   const int class_id = get_game_res_class_id(res_id);
-  if (type_id != NULL_GAMERES_CLASS_ID)
+  if (type_id)
   {
     if (class_id != type_id)
       return false;
@@ -1565,17 +1421,17 @@ bool is_game_resource_loaded_nolock(GameResHandle handle, unsigned type_id)
   return false;
 }
 
-bool is_game_resource_loaded(GameResHandle handle, unsigned type_id)
+bool is_game_resource_loaded(const char *resname, unsigned type_id)
 {
   WinAutoLock lock(gameres_cs);
-  return is_game_resource_loaded_nolock(handle, type_id);
+  return is_game_resource_loaded_nolock(resname, type_id);
 }
 
-bool is_game_resource_loaded_trylock(GameResHandle handle, unsigned type_id)
+bool is_game_resource_loaded_trylock(const char *resname, unsigned type_id)
 {
   if (!gameres_cs.tryLock())
     return false;
-  bool ret = is_game_resource_loaded_nolock(handle, type_id);
+  bool ret = is_game_resource_loaded_nolock(resname, type_id);
   gameres_cs.unlock();
   return ret;
 }
@@ -1588,9 +1444,6 @@ bool is_game_resource_valid(GameResource *res)
       return true;
   return false;
 }
-
-
-void load_game_resource_pack(GameResHandle handle) { ::load_game_resource_pack(::gameResHandleToId(handle, 0)); }
 
 
 // ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ//
@@ -1683,8 +1536,6 @@ void reset_game_resources()
 {
   WinAutoLock lock_load(gameres_load_cs);
   WinAutoLock lock(gameres_cs);
-  for (int i = 0; i < packInfo.size(); i++)
-    packInfo[i].refCount = 0;
   free_unused_game_resources();
 
   // reset in reverse order, assuming that basic factories go first
@@ -1703,10 +1554,6 @@ void reset_game_resources()
   resId_to_packId.clear();
 
   resNameMap.reset();
-
-  resRestrictionList.clear();
-  requiredResList.reset(true);
-  one_grp_load_enabled = OGLE_ALWAYS;
 }
 
 
@@ -1725,7 +1572,7 @@ void get_loaded_game_resource_names(Tab<String> &names)
 //=================================================================================
 unsigned get_resource_type_id(const char *res)
 {
-  int id = gameResHandleToId(GAMERES_HANDLE_FROM_STRING(res), 0xFFFFFFFFU);
+  int id = gameResHandleToId(res, 0xFFFFFFFFU);
   return id == -1 ? 0 : get_game_res_class_id(id);
 }
 
@@ -1740,9 +1587,9 @@ const char *get_resource_type_name(unsigned id)
   return NULL;
 }
 
-int get_game_resource_pack_id_by_resource(GameResHandle handle)
+int get_game_resource_pack_id_by_resource(const char *resname)
 {
-  int res_id = ::gameResHandleToId(handle, 0);
+  int res_id = ::gameResHandleToId(resname, 0);
   if (res_id < 0)
     return -1;
 
@@ -1766,48 +1613,6 @@ const char *get_game_resource_pack_fname(int res_pack_id)
   return packInfo[res_pack_id].fileName;
 }
 
-
-void addref_game_resource_pack(int res_pack_id)
-{
-  if (res_pack_id < 0)
-    return;
-  TRACE("addRef, pack <%s>  refCount=%d->%d\n", packInfo[res_pack_id].fileName.str(), packInfo[res_pack_id].refCount,
-    packInfo[res_pack_id].refCount + 1);
-  packInfo[res_pack_id].refCount++;
-}
-void delref_game_resource_pack(int res_pack_id)
-{
-  if (res_pack_id < 0)
-    return;
-  G_ASSERT(packInfo[res_pack_id].refCount > 0);
-  TRACE("delRef, pack <%s>  refCount=%d->%d\n", packInfo[res_pack_id].fileName.str(), packInfo[res_pack_id].refCount,
-    packInfo[res_pack_id].refCount - 1);
-  packInfo[res_pack_id].refCount--;
-}
-int get_refcount_game_resource_pack(int res_pack_id)
-{
-  if (res_pack_id < 0)
-    return 0;
-  return packInfo[res_pack_id].refCount;
-}
-
-int get_refcount_game_resource_pack_by_resid(int res_id)
-{
-  if (res_id < resRestrictionList.size() && resRestrictionList.get(res_id))
-    return 1;
-
-  if (res_id < 0 || res_id >= resId_to_packId.size())
-    return 0;
-
-  int i = resId_to_packId[res_id];
-  G_ASSERT(res_id == grMap[resId_to_grMap[res_id]].id.resId);
-  G_ASSERT(i == grMap[resId_to_grMap[res_id]].packId);
-
-  if (i < 0)
-    return 0;
-
-  return packInfo[i].refCount;
-}
 
 void get_used_gameres_packs(dag::ConstSpan<const char *> needed_res, bool check_ref, Tab<String> &out_grp_filenames)
 {
@@ -1834,7 +1639,7 @@ void get_used_gameres_packs(dag::ConstSpan<const char *> needed_res, bool check_
 
       if (check_ref)
       {
-        loadGameResPack(gri->packId, gri->resId);
+        loadGameResPack(nullptr, gri->packId, gri->resId);
         packInfo[gri->packId].addRefResIds(rid, needed_resid);
       }
     }
@@ -1861,45 +1666,13 @@ void gamerespackbin::GrpData::patchData()
     rd->refResIdPtr.patchNonNull(base);
 }
 
-bool enable_gameres_finer_load(bool en)
-{
-  WinAutoLock lock(gameres_cs);
-  bool prev = gameres_finer_load_enabled;
-  gameres_finer_load_enabled = en;
-  return prev;
-}
-
-void enable_one_gameres_pack_loading(bool en, bool check /*= true*/)
-{
-  G_UNUSED(check);
-  if (en)
-  {
-    G_ASSERT(one_grp_load_enabled == OGLE_NOT_ENABLED || !check); // not OGLE_ALWAYS
-    one_grp_load_enabled = OGLE_ONE_ENABLED;
-  }
-  else
-  {
-    G_ASSERT(one_grp_load_enabled != OGLE_NOT_ENABLED || !check);
-    one_grp_load_enabled = OGLE_NOT_ENABLED;
-  }
-}
-void debug_enable_free_gameres_pack_loading()
-{
-  G_ASSERT(one_grp_load_enabled == OGLE_NOT_ENABLED);
-  one_grp_load_enabled = OGLE_ALWAYS;
-}
-void debug_disable_free_gameres_pack_loading()
-{
-  G_ASSERT(one_grp_load_enabled == OGLE_ALWAYS);
-  one_grp_load_enabled = OGLE_NOT_ENABLED;
-}
 void ignore_unavailable_resources(bool ignore) { ignoreUnavailableResources = ignore; }
 
 void logging_missing_resources(bool logging) { loggingMissingResources = logging; }
 
 static bool addReqResListReferences(int res_id, Bitarray &restr_list, FastIntList &req_list, int parent_cls)
 {
-  if (res_id >= restr_list.size())
+  if (res_id >= restr_list.size()) // build-on-demand case
   {
     Tab<int> refs;
     if (gamereshooks::get_res_refs && gamereshooks::get_res_refs(res_id, refs))
@@ -1919,7 +1692,8 @@ static bool addReqResListReferences(int res_id, Bitarray &restr_list, FastIntLis
 
         if (!addReqResListReferences(rrid, restr_list, req_list, parent_cls))
         {
-          restr_list.reset(rrid);
+          if (rrid < restr_list.size())
+            restr_list.reset(rrid);
           return false;
         }
       }
@@ -1933,6 +1707,7 @@ static bool addReqResListReferences(int res_id, Bitarray &restr_list, FastIntLis
   if (!info)
   {
     int unused_resolved_res_id = 0;
+    // check build-on-demand case
     if (gamereshooks::on_validate_game_res_id && gamereshooks::on_validate_game_res_id(res_id, unused_resolved_res_id))
     {
       unsigned cls = 0;
@@ -1943,7 +1718,7 @@ static bool addReqResListReferences(int res_id, Bitarray &restr_list, FastIntLis
       G_UNUSED(unused_resolved_res_id);
       return true;
     }
-    if (get_gameres_sys_ver() == 2 && parent_cls == EffectGameResClassId)
+    if (parent_cls == EffectGameResClassId)
     {
       ::get_game_resource_name(res_id, tmpStr);
       tmpStr += "*";
@@ -1968,7 +1743,7 @@ static bool addReqResListReferences(int res_id, Bitarray &restr_list, FastIntLis
     if (restr_list.get(rrid))
       continue;
 
-    if (get_gameres_sys_ver() == 2 && (unsigned)grMap[info->grMapIdx].id.classId == EffectGameResClassId)
+    if ((unsigned)grMap[info->grMapIdx].id.classId == EffectGameResClassId)
     {
       // for effects we need hack, to check res as texture first
       tmpStr.printf(64, "%s*", resNameMap.getName(rrid));
@@ -2021,159 +1796,118 @@ static void add_rendinst_implicit_ref(int res_id, Bitarray &restr_list, FastIntL
   }
 }
 
-// receives list of ids, loads resources and fills list with pointers
-static bool load_resource_list_impl(dag::Span<GameResource *> in_out_list)
+static inline int extend_rrl(GameResRestrictionList &rrl, int res_id, const char *name)
 {
-  bool ok = true;
-  for (int i = 0; i < in_out_list.size(); i++)
+  if (gamereshooks::resolve_res_handle)
+    gamereshooks::resolve_res_handle(name, 0xFFFFFFFFu, res_id);
+  if (res_id < 0)
   {
-    const int id = int(intptr_t(in_out_list[i]));
-    in_out_list[i] = get_game_resource(id);
-    if (!in_out_list[i])
+    rrl.missingCount++;
+    if (loggingMissingResources)
+      LOGWARN_CTX("missing req res <%s>", name);
+  }
+  else
+  {
+    if (rrl.hasResId(res_id))
+      return res_id;
+    rrl.list.addInt(res_id);
+    if (res_id < rrl.mask.size())
+      rrl.mask.set(res_id);
+    if (addReqResListReferences(res_id, rrl.mask, rrl.list))
+      return res_id;
+
+    rrl.missingCount++;
+    if (res_id < rrl.mask.size())
+      rrl.mask.reset(res_id);
+    if (loggingMissingResources)
+      LOGWARN_CTX("one or more missing refs for req res <%s>", name);
+  }
+  return -1;
+}
+
+gameres_rrl_ptr_t create_res_restriction_list(const char *resname, unsigned reserve_total_cnt, gameres_rrl_ptr_t reuse_rrl)
+{
+  if (!reuse_rrl)
+    reuse_rrl = new GameResRestrictionList(resNameMap.nameCount(), reserve_total_cnt);
+  else
+  {
+    reuse_rrl->mask.reset();
+    reuse_rrl->list.reset();
+    reuse_rrl->list.reserve(reserve_total_cnt);
+  }
+  if (resname)
+    extend_res_restriction_list(reuse_rrl, resname);
+  return reuse_rrl;
+}
+int extend_res_restriction_list(gameres_rrl_ptr_t rrl, const char *resname)
+{
+  int res_id = resNameMap.getNameId(resname);
+  return rrl ? extend_rrl(*rrl, res_id, resname) : res_id;
+}
+void free_res_restriction_list(gameres_rrl_ptr_t &rrl) { del_it(rrl); }
+bool split_res_restriction_list(gameres_rrl_ptr_t src_rrl, gameres_rrl_ptr_t &sep_rrl, dag::ConstSpan<unsigned> sep_types)
+{
+  unsigned left_src_count = 0;
+  for (unsigned id = 0; id < src_rrl->mask.size(); id++)
+    if (!src_rrl->mask[id])
+      continue;
+    else if (find_value_idx(sep_types, get_game_res_class_id(id)) >= 0)
+    {
+      if (sep_rrl)
+        extend_rrl(*sep_rrl, id, resNameMap.getName(id));
+      else
+        sep_rrl = create_res_restriction_list(resNameMap.getName(id), src_rrl->list.size(), nullptr);
+      src_rrl->mask.reset(id);
+    }
+    else
+      left_src_count++;
+  return left_src_count > 0;
+}
+
+bool is_res_required(gameres_rrl_cptr_t rrl, int res_id) { return rrl ? !rrl->shouldSkipResId(res_id) : false; }
+
+bool load_game_resources(dag::Span<GameResource *> inout_resId_gameRes, gameres_rrl_cptr_t rrl)
+{
+  if (gamereshooks::on_preload_all_required_res)
+    gamereshooks::on_preload_all_required_res(const_cast<gameres_rrl_ptr_t>(rrl));
+  WinAutoLock lock_load(gameres_load_cs);
+  bool ok = true;
+  for (auto &entry : inout_resId_gameRes)
+  {
+    const int res_id = (int)(intptr_t)(void *)entry;
+    entry = GameResourceFactory::get_game_resource(res_id, rrl);
+    if (!entry)
     {
       ok = false;
-      if (id != -1)
-        LOGWARN_CTX("cannot preload res: <%s>", resNameMap.getName(id));
+      if (res_id != -1)
+        LOGWARN_CTX("cannot preload res: <%s>", resNameMap.getName(res_id));
     }
   }
   return ok;
 }
 
-template <typename GetListElement>
-inline bool set_required_res_list_restriction(GetListElement list, int count, ReqResListOpt opt,
-  dag::Span<GameResource *> out_resource_list)
+bool preload_all_required_res(gameres_rrl_cptr_t rrl)
 {
-  bool ret = true;
-  WinAutoLock lock(gameres_cs);
-
-  Bitarray restrictionListTemp;
-  FastIntList requiredListTemp;
-  restrictionListTemp.resize(int(resNameMap.nameCount()));
-  restrictionListTemp.reset();
-  requiredListTemp.reset();
-  requiredListTemp.reserve(int(resNameMap.nameCount()));
-
-  G_ASSERT_AND_DO(out_resource_list.empty() || int(out_resource_list.size()) == count, { out_resource_list = {}; });
-  if (!out_resource_list.empty())
-    mem_set_ff(out_resource_list); // fill with -1
-
-  for (int i = 0; i < count; i++)
-  {
-    const char *name = list(i);
-    int res_id = resNameMap.getNameId(name);
-    if (gamereshooks::resolve_res_handle)
-      gamereshooks::resolve_res_handle(GAMERES_HANDLE_FROM_STRING(name), 0xFFFFFFFFu, res_id);
-    if (res_id < 0)
-    {
-      if (loggingMissingResources)
-        LOGWARN_CTX("missing req res <%s>", name);
-      ret = false;
-    }
-    else
-    {
-      if (res_id < restrictionListTemp.size())
-        restrictionListTemp.set(res_id);
-      if (!addReqResListReferences(res_id, restrictionListTemp, requiredListTemp))
-      {
-        if (res_id < restrictionListTemp.size())
-          restrictionListTemp.reset(res_id);
-        if (loggingMissingResources)
-          LOGWARN_CTX("one or more missing refs for req res <%s>", name);
-        ret = false;
-      }
-      else
-      {
-        requiredListTemp.addInt(res_id);
-        // use output span as pointers to write required ids in order and load them later, see load_resource_list_impl
-        if (!out_resource_list.empty())
-          out_resource_list[i] = reinterpret_cast<GameResource *>(intptr_t(res_id));
-      }
-    }
-  }
-  lock.unlock();
-
-  WinAutoLock lock_load(gameres_load_cs);
-  lock.lock();
-  eastl::swap(resRestrictionList, restrictionListTemp);
-  eastl::swap(requiredResList, requiredListTemp);
-
-  if (!out_resource_list.empty())
-  {
-    load_resource_list_impl(out_resource_list);
-    eastl::swap(resRestrictionList, restrictionListTemp);
-    eastl::swap(requiredResList, requiredListTemp);
-  }
-  else if (opt == RRL_setAndPreload || opt == RRL_setAndPreloadAndReset)
-  {
-    preload_all_required_res();
-    if (opt == RRL_setAndPreloadAndReset)
-      reset_required_res_list_restriction();
-  }
-  return ret;
-}
-
-bool set_required_res_list_restriction(const FastNameMap &list, ReqResListOpt opt)
-{
-  return set_required_res_list_restriction([&list](int i) { return list.getName(i); }, list.nameCount(), opt, {});
-}
-
-bool set_required_res_list_restriction(const eastl::string *begin, const eastl::string *end, ReqResListOpt opt, size_t str_stride)
-{
-  if (str_stride == 0)
-    str_stride = sizeof(eastl::string);
-  size_t sz = (ptrdiff_t(end) - ptrdiff_t(begin)) / str_stride;
-  return set_required_res_list_restriction(
-    [begin, str_stride](int i) { return reinterpret_cast<const eastl::string *>((char *)begin + (str_stride * i))->c_str(); }, (int)sz,
-    opt, {});
-}
-
-bool load_game_resource_list(const FastNameMap &list, dag::Span<GameResource *> out_resources)
-{
-  return set_required_res_list_restriction([&list](int i) { return list.getStringDataUnsafe(i); }, list.nameCount(),
-    RRL_setAndPreloadAndReset, out_resources);
-}
-
-bool load_game_resource_list(const eastl::basic_string<char, eastl::allocator> *begin,
-  const eastl::basic_string<char, eastl::allocator> *end, size_t str_stride, dag::Span<GameResource *> out_resources)
-{
-  if (str_stride == 0)
-    str_stride = sizeof(eastl::string);
-  const size_t sz = (ptrdiff_t(end) - ptrdiff_t(begin)) / str_stride;
-  const char *data = reinterpret_cast<const char *>(begin);
-  return set_required_res_list_restriction(
-    [data, str_stride](int i) { return reinterpret_cast<const eastl::string *>(data + (str_stride * i))->c_str(); }, int(sz),
-    RRL_setAndPreloadAndReset, out_resources);
-}
-
-void reset_required_res_list_restriction()
-{
-  WinAutoLock lock(gameres_load_cs);
-  resRestrictionList.clear();
-  requiredResList.reset();
-}
-
-bool preload_all_required_res()
-{
+  if (!rrl)
+    return false;
+  if (gamereshooks::on_preload_all_required_res && !gamereshooks::on_preload_all_required_res(const_cast<gameres_rrl_ptr_t>(rrl)))
+    return !rrl->missingCount;
   WinAutoLock lock_load(gameres_load_cs);
   bool ok = true;
-  for (const int id : requiredResList.getList())
+  for (const int id : rrl->list.getList())
   {
-    GameResource *r = get_game_resource(id);
-    if (r)
-      release_game_resource(r);
+    if (GameResourceFactory::get_game_resource(id, rrl))
+    {
+      WinAutoLock lock(gameres_cs);
+      GameResourceFactory::release_game_resource_nolock(id);
+    }
     else
     {
       ok = false;
       LOGWARN_CTX("cannot preload res: <%s>", resNameMap.getName(id));
     }
   }
-  return ok;
-}
-
-bool release_all_not_required_res()
-{
-  free_unused_game_resources();
-  return true; //== cannot detect hanging resources for now, just return OK
+  return ok && !rrl->missingCount;
 }
 
 void reset_gameres_available_files_list() { del_it(avail_res_files); }

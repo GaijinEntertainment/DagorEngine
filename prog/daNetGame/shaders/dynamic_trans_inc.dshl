@@ -5,17 +5,18 @@ include "sq_clouds_shadow.dshl"
 include "refraction.dshl"
 include "csm.dshl"
 include "use_gi.dshl"
+include "sky_polarization_filter_term_inc.dshl"
 
 block(scene) dynamic_trans_scene
 {
-  DYNAMIC_SIMPLE_VS_SHARED_DECL()
+  DYNMODEL_SHARED_DECL()
   REFRACTION_INIT()
   INIT_CSM_SHADOW(ps)
   INIT_IN_FRUSTUM_GI(ps)
   INIT_ZNZFAR_STAGE(ps)
 }
 
-macro DYNAMIC_BLOCK_TRANS()
+macro DYNAMIC_BLOCK_TRANS_BASE()
   if (in_editor_assume == yes)
   {
     supports __static_cbuf;
@@ -25,4 +26,9 @@ macro DYNAMIC_BLOCK_TRANS()
   {
     supports dynamic_trans_scene;
   }
+endmacro
+
+macro DYNAMIC_BLOCK_TRANS()
+  DYNMODEL_SHARED_DECL_IMMEDIATE()
+  DYNAMIC_BLOCK_TRANS_BASE()
 endmacro

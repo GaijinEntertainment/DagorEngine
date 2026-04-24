@@ -5,12 +5,11 @@ include "rendinst_hmap_inc.dshl"
 shader rendinst_cliff
 {
   RENDINST_OVERLAY_COLOR_MAP(vs, shader == rendinst_cliff, get_paint_palette_row_index().x)
-  ENABLE_ASSERT(ps)
 
   INIT_COMMON_RENDINST_TESSELLATION_VARS()
   COMMON_RENDINST_VCOLOR_INIT(pn_triangulation_enabled, true)
   INIT_COMMON_RENDINST_TESSELLATION()
-  COMMON_RENDINST_INIT_HMAP()
+  COMMON_RENDINST_INIT_HMAP(true)
   INIT_COMMON_RENDINST_TESSELLATION_CHANNELS()
 
   COMMON_RENDINST_VS_IO_DEFINES()

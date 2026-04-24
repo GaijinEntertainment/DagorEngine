@@ -155,7 +155,7 @@ public:
       ProxyObject *proxy = obj->proxy();
       datacache::EntryHolder entry(webcache->get(fname, &err, on_movie_loaded, proxy));
       if (err != datacache::ERR_PENDING)
-        ProxyObject::onRelease(proxy, 0);
+        ProxyObject::onRelease(nullptr, proxy, 0);
       if (entry)
         realFname = entry->getPath();
       else if (err == datacache::ERR_PENDING)
@@ -361,7 +361,7 @@ static void on_movie_loaded(const char *key, datacache::ErrorCode, datacache::En
       bhv.doCmd(obj);
     }
   }
-  dagui::ProxyObject::onRelease(proxy, 0);
+  dagui::ProxyObject::onRelease(nullptr, proxy, 0);
   if (entry)
     entry->free();
 }

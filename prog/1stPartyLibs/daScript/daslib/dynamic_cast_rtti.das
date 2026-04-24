@@ -6,7 +6,12 @@ options strict_smart_pointers = true
 
 module dynamic_cast_rtti shared private
 
-require rtti
+//! Runtime dynamic type checks for classes.
+//!
+//! Provides ``is_instance_of`` and ``as_instance_of`` functions that test
+//! and cast a class pointer to a derived type using RTTI at runtime.
+
+require daslib/rtti
 require daslib/contracts
 require daslib/templates
 require daslib/templates_boost
@@ -15,6 +20,7 @@ require daslib/type_traits
 
 [expect_class(instance), template(otherclass), unused_argument(otherclass)]
 def public is_instance_of(instance : auto(TCLS)?; otherclass : auto(TT)) {
+    //! Returns true if the class instance is an instance of the specified class using RTTI.
     if (instance == null) {
         return false
     }
@@ -37,6 +43,7 @@ def public is_instance_of(instance : auto(TCLS)?; otherclass : auto(TT)) {
 
 [expect_class(instance), template(otherclass), unused_argument(otherclass)]
 def public dynamic_type_cast(instance; otherclass : auto(TT)) : TT -const? {
+    //! Casts a class instance to the target type using RTTI, returns null if the cast fails.
     if (instance == null) {
         return null
     }
@@ -59,6 +66,7 @@ def public dynamic_type_cast(instance; otherclass : auto(TT)) : TT -const? {
 
 [expect_class(instance), template(otherclass), unused_argument(otherclass)]
 def public force_dynamic_type_cast(instance; otherclass : auto(TT)) : TT -const? {
+    //! Casts a class instance to the target type using RTTI, panics if the cast fails.
     if (instance == null) {
         panic("null pointer cast")
     }
@@ -83,6 +91,7 @@ def public force_dynamic_type_cast(instance; otherclass : auto(TT)) : TT -const?
 
 [variant_macro(name="ClassAsIs")]
 class ClassAsIs : AstVariantMacro {
+    //! Variant macro that implements class dynamic casting via `is` and `as`.
     def override visitExprIsVariant(prog : ProgramPtr; mod : Module?; expr : smart_ptr<ExprIsVariant>) : ExpressionPtr {
         assume vtype = expr.value._type
         if (!(vtype.isPointer && vtype.firstType != null && vtype.firstType.isStructure && vtype.firstType.structType.flags.isClass)) {

@@ -7,17 +7,18 @@ include "masked_paint_color.dshl"
 include "masked_micro_detail.dshl"
 include "projective_wounds.dshl"
 include "emissive.dshl"
+include "dynamic_destr_disappear_inc.dshl"
 
 shader dynamic_painted_by_mask
 {
-  ENABLE_ASSERT(ps)
   DECLARE_DYNAMIC_MATERIAL_PARAMS()
   DYNAMIC_BLOCK()
   SUPPORT_MULTIDRAW(false)
   USE_SIMPLIFIED_RENDERING()
   INIT_EMISSIVE_ANIMCHAR_DYNMAT_SIMPLE_PARAMS()
+  DYNAMIC_DESTR_DISAPPEAR_INIT()
 
-  if (compatibility_mode != compatibility_mode_on && mobile_render == off && in_editor_assume == no){ NO_DYNSTCODE() }
+  if (compatibility_mode != compatibility_mode_on && in_editor_assume == no){ NO_DYNSTCODE() }
 
   texture tex = material.texture.diffuse;
 
@@ -44,7 +45,7 @@ shader dynamic_painted_by_mask
   texture primaryMaskTex = material.texture[4];
   texture secondaryMaskTex = material.texture[5];
 
-  (ps) { diffuse_tex@static = tex; }
+  (ps) { diffuse_tex@staticSmp = tex; }
 
   INIT_MASKED_MICRODETAIL()
   WOUNDS_AND_BURNING_INIT()
@@ -67,7 +68,7 @@ shader dynamic_painted_by_mask
       #define NEED_TC 1
       struct VsOutput
       {
-        VS_OUT_POSITION(pos)
+        PRECISE VS_OUT_POSITION(pos)
         float2 diffuseTexcoord                  : TEXCOORD0;
         float3 pointToEye                       : TEXCOORD1;
         float3 normal                           : TEXCOORD2;
@@ -89,8 +90,11 @@ shader dynamic_painted_by_mask
         float3 fragPos                          : TEXCOORD10;
         float3 fragNormal                       : TEXCOORD11;
         #endif
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+        float4 destr_params                     : TEXCOORD12;
+        #endif
         #if HAS_TORN_WOUNDS_DEBUG
-        float4 debugColor                       : TEXCOORD12;
+        float4 debugColor                       : TEXCOORD13;
         #endif
         #if SET_UP_MULTIDRAW
         VSOUT_DRAW_ID
@@ -100,6 +104,7 @@ shader dynamic_painted_by_mask
   }
 
   DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  DYNAMIC_DESTR_DISAPPEAR_USE()
   WOUNDS_AND_BURNING_USE(get_diffuse_tex().smp)
 
   hlsl(vs) {
@@ -122,7 +127,7 @@ shader dynamic_painted_by_mask
     }
     else
     {
-      SPECIAL_RENDER_NOALPHATEST()
+      SPECIAL_RENDER_NOALPHATEST(enable_ri_disintegration_animation == enabled)
     }
   }
   else
@@ -132,15 +137,15 @@ shader dynamic_painted_by_mask
     USE_PROJECTIVE_WOUNDS()
 
     (ps){
-      normalmap_tex@static = normalMap;
-      primary_mask_tex@static = primaryMaskTex;
+      normalmap_tex@staticSmp = normalMap;
+      primary_mask_tex@staticSmp = primaryMaskTex;
     }
     if (secondaryMaskTex != NULL) {
-      (ps){ secondary_mask_tex@static = secondaryMaskTex; }
+      (ps){ secondary_mask_tex@staticSmp = secondaryMaskTex; }
     }
     if (aoTex != NULL)
     {
-      (ps){ aoTex@static = aoTex; }
+      (ps){ aoTex@staticSmp = aoTex; }
     }
 
     hlsl(ps) {
@@ -233,7 +238,7 @@ shader dynamic_painted_by_mask
           init_emission_color(result, float4(emissiveColor.rgb, emissionAlbedoMult));
         }
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
           init_motion_vector(result, motion);
         #endif
 

@@ -18,7 +18,7 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_commands.h>
 #include <3d/dag_textureIDHolder.h>
 #include <3d/dag_texPackMgr2.h>
@@ -36,6 +36,7 @@
 #include <3d/dag_createTex.h>
 #include <osApiWrappers/dag_direct.h>
 #include <drv/3d/dag_variableRateShading.h>
+#include <render/antialiasing.h>
 #include <render/shaderCacheWarmup/shaderCacheWarmup.h>
 
 #include "renderer.h"
@@ -43,10 +44,11 @@
 CONSOLE_INT_VAL("app", splashId, -1, -1, 1000);
 CONSOLE_BOOL_VAL("render", splashScreenFullRes, false);
 CONSOLE_BOOL_VAL("app", useTitleLogoForSplash, false);
+CONSOLE_FLOAT_VAL("app", splashDtSkipThreshold, 10);
 
 extern bool grs_draw_wire;
 
-static uint32_t splash_start_time = 0;
+static float splash_time = 0;
 static int8_t splash_id = -1;
 static bool splash_started = false;
 static PostFxRenderer loadingSplash;
@@ -124,6 +126,8 @@ void animated_splash_screen_start(bool do_encode)
   if (splash_started)
     return;
 
+  splashDtSkipThreshold.set(dgs_get_settings()->getReal("splashDtSkipThreshold", 10.0f));
+
   useTitleLogoForSplash.set(dgs_get_settings()->getBool("useTitleLogoForSplash", false));
 #if _TARGET_PC
   splashScreenFullRes.set(dgs_get_settings()->getBool("splashScreenFullRes", false));
@@ -156,7 +160,7 @@ void animated_splash_screen_start(bool do_encode)
     int minIndex1 = dgs_get_settings()->getInt("splashMinIndex", 0);
     int maxIndex = max(minIndex1, maxIndex1), minIndex = min(minIndex1, maxIndex1);
     splash_id = dgs_get_settings()->getInt("splashId", minIndex + grnd() % max((int)1, maxIndex - minIndex + 1));
-    splash_start_time = get_time_msec();
+    splash_time = 0;
   }
   splash_started = true;
 
@@ -189,11 +193,13 @@ void animated_splash_screen_stop()
 
 void animated_splash_screen_draw()
 {
-  interlocked_release_store(last_splash_draw_msec, (int)get_time_msec());
+  uint32_t currentTimeMs = get_time_msec();
+  float splash_dt = (currentTimeMs - interlocked_exchange(last_splash_draw_msec, currentTimeMs)) * 1e-3;
   if (::grs_draw_wire)
     d3d::setwire(0);
 
-  float splash_time = (get_time_msec() - splash_start_time) * 1e-3;
+  // cut out laggy frames to avoid fast progress on animation
+  splash_time += min(splashDtSkipThreshold.get(), splash_dt);
 
   if (!loadingSplash.getElem())
   {
@@ -228,7 +234,7 @@ void animated_splash_screen_draw()
     if (halfResRt)
     {
       d3d::get_render_target(outputRt);
-      d3d::set_render_target(halfResRt, 0);
+      d3d::set_render_target({}, DepthAccess::RW, {{halfResRt, 0, 0}});
     }
 
     d3d::get_target_size(w, h);
@@ -243,8 +249,11 @@ void animated_splash_screen_draw()
     d3d::set_sampler(STAGE_PS, loading_splash_noise_128_tex_hash_const_no.get_int(), smp);
     if (titleLogo)
     {
+      d3d::SamplerInfo smpInfo;
+      smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
+      d3d::SamplerHandle logoSmp = d3d::request_sampler(smpInfo);
       d3d::set_tex(STAGE_PS, loading_splash_title_logo_const_no.get_int(), titleLogo);
-      d3d::set_sampler(STAGE_PS, loading_splash_title_logo_const_no.get_int(), smp);
+      d3d::set_sampler(STAGE_PS, loading_splash_title_logo_const_no.get_int(), logoSmp);
     }
     if (!splash_render_func_exclusive)
     {
@@ -293,8 +302,6 @@ void debug_animated_splash_screen()
     animated_splash_screen_draw();
     splash_id = prev_splash_id;
   }
-  else
-    splash_start_time = get_time_msec();
 #endif
 }
 
@@ -315,6 +322,9 @@ class SplashThread;
 
 static eastl::unique_ptr<SplashThread> splash_thread = nullptr;
 d3d::BeforeWindowDestroyedCookie *splash_cookie = nullptr;
+#if _TARGET_SCARLETT
+static bool splash_vsync_was_enabled = false;
+#endif
 
 class SplashThread final : public DaThread
 {
@@ -325,10 +335,7 @@ class SplashThread final : public DaThread
       const uint32_t lastDraw = (uint32_t)interlocked_relaxed_load(last_splash_draw_msec);
       if (get_time_msec() > lastDraw + 33)
       {
-#if _TARGET_PC_WIN
-        if (dgs_get_window_mode() != WindowMode::FULLSCREEN_EXCLUSIVE)
-#endif
-          splash_render();
+        splash_render();
         if (interlocked_acquire_load(allow_watchdog_kick))
           watchdog_kick();
       }
@@ -340,9 +347,9 @@ public:
   SplashThread() :
     DaThread("SplashRenderThread",
 #if _TARGET_PC_WIN // For Fraps and other 3rd parties that hook d3d present
-      512 << 10,
+      256 << 10,
 #else
-      192 << 10,
+      128 << 10,
 #endif
       // we increase priority by one step to match main thread priority
       cpujobs::DEFAULT_THREAD_PRIORITY - cpujobs::THREAD_PRIORITY_LOWER_STEP,
@@ -358,19 +365,18 @@ void start_animated_splash_screen_in_thread()
       dgs_get_settings()->getBool("skipSplashScreenAnimationInThread", false))
     return;
 
+  render::antialiasing::enable_frame_generation(false);
+
 #if _TARGET_PC_WIN
-  if (dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE)
+  if (is_main_thread())
   {
-    if (is_main_thread())
-    {
-      // render single splash frame when called from main thread in full-screen
-      bool was_started = is_animated_splash_screen_started();
-      if (!was_started)
-        animated_splash_screen_start();
-      splash_render();
-      if (!was_started)
-        animated_splash_screen_stop();
-    }
+    // render single splash frame when called from main thread in full-screen
+    bool was_started = is_animated_splash_screen_started();
+    if (!was_started)
+      animated_splash_screen_start();
+    splash_render();
+    if (!was_started)
+      animated_splash_screen_stop();
   }
 #endif
   debug("[splash] start_animated_splash_screen_in_thread: splash_thread=%p splash_started=%d", splash_thread.get(), splash_started);
@@ -379,6 +385,10 @@ void start_animated_splash_screen_in_thread()
     // It's enough to register only once and don't unregister, because the stop_animated_splash_screen_in_thread can be called anyway
     if (!splash_cookie)
       splash_cookie = d3d::register_before_window_destroyed_callback(stop_animated_splash_screen_in_thread);
+#if _TARGET_SCARLETT
+    splash_vsync_was_enabled = d3d::get_vsync_enabled();
+    d3d::enable_vsync(false);
+#endif
     splash_thread.reset(new SplashThread());
     splash_thread->start();
   }
@@ -392,6 +402,9 @@ void stop_animated_splash_screen_in_thread()
     splash_thread->terminate(true, -1);
     splash_thread.reset();
     animated_splash_screen_stop();
+#if _TARGET_SCARLETT
+    d3d::enable_vsync(splash_vsync_was_enabled);
+#endif
   }
 }
 

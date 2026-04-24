@@ -21,6 +21,7 @@ struct DagorAssetMgr::ClassidToAssetMap
 
 bool DagorAssetMgr::mountBuiltGameResEx(const DataBlock &list, const DataBlock &skip_types)
 {
+  WriteGuard guard(mutex);
   if (!folders.size())
   {
     folders.push_back(new DagorAssetFolder(-1, "Root", NULL));
@@ -109,6 +110,7 @@ bool DagorAssetMgr::mountBuiltGameResEx(const DataBlock &list, const DataBlock &
 
 void DagorAssetMgr::fillGameResFolder(int pfidx, int nsid, const DataBlock &folderBlk, dag::ConstSpan<ClassidToAssetMap> map)
 {
+  WriteGuard guard(mutex);
   DagorAssetPrivate *ca = NULL;
 
   assets.reserve(folderBlk.paramCount());
@@ -130,7 +132,7 @@ void DagorAssetMgr::fillGameResFolder(int pfidx, int nsid, const DataBlock &fold
     if (!ca)
       ca = new DagorAssetPrivate(*this);
 
-    ca->setNames(assetNames.addNameId(folderBlk.getParamName(i)), nsid, true);
+    ca->setNames(addAssetNameId(folderBlk.getParamName(i)), nsid, true);
     if (perTypeNameIds[atype].addInt(ca->getNameId()))
     {
       ca->setAssetData(pfidx, -1, atype);

@@ -41,9 +41,9 @@
 #endif
 
 #if (defined(__clang__) || __GNUC__ >= 7)
-#define ASSUME_ALIGNED(ptr, sz) (__builtin_assume_aligned((const void *)ptr, sz))
+#define ASSUME_ALIGNED(ptr, sz) (__builtin_assume_aligned((const void *)(ptr), sz))
 #elif defined(_MSC_VER)
-#define ASSUME_ALIGNED(ptr, sz) (__assume((((const char *)ptr) - ((const char *)0)) % (sz) == 0), (ptr))
+#define ASSUME_ALIGNED(ptr, sz) (__assume((((const char *)(ptr)) - ((const char *)0)) % (sz) == 0), (ptr))
 #else
 #define ASSUME_ALIGNED(ptr, sz) (ptr)
 #endif

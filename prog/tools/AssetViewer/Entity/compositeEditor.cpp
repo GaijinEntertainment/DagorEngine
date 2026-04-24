@@ -12,6 +12,7 @@
 #include <de3_interface.h>
 #include <EditorCore/ec_cm.h>
 #include <assets/assetUtils.h>
+#include <assetsGui/av_assetTreeDragHandler.h>
 #include <libTools/util/strUtil.h>
 #include <osApiWrappers/dag_clipboard.h>
 #include <propPanel/control/treeInterface.h>
@@ -19,6 +20,7 @@
 #include <util/dag_delayedAction.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 
+using PropPanel::DragAndDropResult;
 using PropPanel::ROOT_MENU_ITEM;
 
 extern void rimgr_set_force_lod_no(int lod_no);
@@ -65,6 +67,9 @@ bool CompositeEditor::begin(DagorAsset *asset, IObjEntity *entity)
   updateToolbarVisibility();
   updateGizmo();
   rimgr_set_force_lod_no(-1);
+
+  treeDropHandler.reset(new EntityTreeDropHandler(*this));
+  childDropHandler.reset(new ChildEntityDragAndDropHandler(*this));
 
   return true;
 }
@@ -119,12 +124,19 @@ void CompositeEditor::onCompositeEditorVisibilityChanged(bool shown)
   updateGizmo();
 }
 
+void CompositeEditor::onSnapSettingChanged()
+{
+  if (toolbar.isInited())
+    toolbar.updateSnapToolbarButtons();
+}
+
 void CompositeEditor::fillCompositeTreeInternal(bool keepExpansionState)
 {
   G_ASSERT(!ignoreTreeSelectionChangePanelRefresh);
   ignoreTreeSelectionChangePanelRefresh = true;
 
   compositeTreeView->fill(treeData, selectedTreeDataNode, keepExpansionState);
+  compositeTreeView->setDropHandler(treeDropHandler.get());
 
   G_ASSERT(ignoreTreeSelectionChangePanelRefresh);
   ignoreTreeSelectionChangePanelRefresh = false;
@@ -157,7 +169,7 @@ void CompositeEditor::fillCompositeTree()
 void CompositeEditor::fillCompositePropPanel()
 {
   if (compositePropPanel)
-    compositePropPanel->fill(treeData, selectedTreeDataNode);
+    compositePropPanel->fill(treeData, selectedTreeDataNode, childDropHandler.get());
 }
 
 const CompositeEditorTreeDataNode *CompositeEditor::getSelectedTreeDataNode() const
@@ -280,6 +292,7 @@ void CompositeEditor::onDelayedRefresh(const DagorAsset *asset, CompositeEditorR
   if (asset != editedAsset)
     return;
 
+  DagorAssetMgr::WriteGuard wg(asset->getMgr().mutex);
   ReloadHelper reloadHelper(*this, *asset, refreshType);
   get_app().getAssetMgr().callAssetChangeNotifications(*asset, asset->getNameId(), asset->getType());
 }
@@ -373,7 +386,131 @@ void CompositeEditor::toggleSnapMode(int pcb_id)
   else
     G_ASSERT(false);
 
-  toolbar.updateSnapToolbarButtons();
+  get_app().onSnapSettingChanged();
+}
+
+DragAndDropResult EntityTreeDropHandler::onDropTargetDirect(PropPanel::TLeafHandle leaf)
+{
+  CompositeEditorTree *compositeTreeView = editor.compositeTreeView.get();
+  if (!compositeTreeView)
+    return DragAndDropResult::NONE;
+
+  auto treeDataNode = (CompositeEditorTreeDataNode *)compositeTreeView->getItemData(leaf);
+  if (!leaf || !treeDataNode)
+    return DragAndDropResult::NONE;
+
+  auto rootNodeHandle = compositeTreeView->getRoot();
+  auto rootTreeDataNode = (CompositeEditorTreeDataNode *)compositeTreeView->getItemData(rootNodeHandle);
+  if (treeDataNode == rootTreeDataNode || !treeDataNode->canEditAssetName(false))
+    return DragAndDropResult::NOT_ALLOWED;
+
+  const ImGuiPayload *dragAndDropPayload = PropPanel::acceptDragDropPayloadBeforeDelivery(ASSET_DRAG_AND_DROP_TYPE);
+  if (!dragAndDropPayload)
+    return DragAndDropResult::NONE;
+
+  AssetDragData dragData;
+  PropPanel::getDragAndDropPayloadData<AssetDragData>(dragAndDropPayload, &dragData);
+
+  // Only allow dropping into the same asset type.
+  DagorAsset *asset = dragData.asset;
+  if (asset != nullptr)
+  {
+    const int type = asset->getType();
+    dag::ConstSpan<int> allowedTypes = DAEDITOR3.getGenObjAssetTypes();
+    if (eastl::find(allowedTypes.begin(), allowedTypes.end(), type) != allowedTypes.end())
+    {
+      if (dragAndDropPayload->IsDelivery())
+      {
+        const char *assetName = asset->getName();
+        if (!assetName)
+          return DragAndDropResult::NONE;
+
+        editor.beginUndo();
+        editor.endUndo("Composit Editor: Property editing");
+
+        if (*assetName)
+          treeDataNode->params.setStr("name", assetName);
+        else
+          treeDataNode->params.removeParam("name");
+
+        // Remove the unused type parameter from old .blk files.
+        treeDataNode->params.removeParam("type");
+
+        PropPanel::request_delayed_callback(editor, (void *)CompositeEditorRefreshType::EntityAndCompositeEditor);
+
+        return DragAndDropResult::ACCEPTED;
+      }
+      return DragAndDropResult::NONE;
+    }
+  }
+
+  return DragAndDropResult::NOT_ALLOWED;
+}
+
+DragAndDropResult ChildEntityDragAndDropHandler::handleDropTarget(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+{
+  CompositeEditorPanel *compositePropPanel = editor.compositePropPanel.get();
+  CompositeEditorTree *compositeTreeView = editor.compositeTreeView.get();
+  CompositeEditorTreeDataNode *selectedTreeDataNode = editor.selectedTreeDataNode;
+  if (!compositePropPanel || !compositeTreeView || !selectedTreeDataNode)
+    return DragAndDropResult::NONE;
+
+  // Only allow dropping into active composite edit buttons
+  auto rootNode = compositeTreeView->getRoot();
+  auto rootTreeDataNode = (CompositeEditorTreeDataNode *)compositeTreeView->getItemData(rootNode);
+  const bool isRootNode = (selectedTreeDataNode == rootTreeDataNode);
+
+  // Only allow dropping into the 'selector' and '+' entity/child buttons
+  if (pcb_id == ID_COMPOSITE_EDITOR_ENTITIES_ADD ||
+      (pcb_id >= ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_SELECTOR_FIRST && pcb_id <= ID_COMPOSITE_EDITOR_ENTITIES_ENTITY_SELECTOR_LAST))
+  {
+    if (!selectedTreeDataNode->canEditRandomEntities(isRootNode))
+      return DragAndDropResult::NONE;
+  }
+  else if (pcb_id == ID_COMPOSITE_EDITOR_CHILDREN_ADD)
+  {
+    if (!selectedTreeDataNode->canEditChildren())
+      return DragAndDropResult::NONE;
+  }
+  else if (pcb_id >= ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST && pcb_id <= ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_LAST)
+  {
+    const int childIndex = pcb_id - ID_COMPOSITE_EDITOR_CHILDREN_ENTITY_SELECTOR_FIRST;
+    if (!selectedTreeDataNode->nodes[childIndex]->canEditAssetName(false))
+      return DragAndDropResult::NONE;
+  }
+  else if (pcb_id != ID_COMPOSITE_EDITOR_ENTITY_SELECTOR)
+  {
+    return DragAndDropResult::NONE;
+  }
+
+  const ImGuiPayload *dragAndDropPayload = PropPanel::acceptDragDropPayloadBeforeDelivery(ASSET_DRAG_AND_DROP_TYPE);
+  if (!dragAndDropPayload)
+    return DragAndDropResult::NONE;
+
+  AssetDragData dragData;
+  PropPanel::getDragAndDropPayloadData<AssetDragData>(dragAndDropPayload, &dragData);
+
+  // Only allow dropping into the same asset type.
+  DagorAsset *asset = dragData.asset;
+  if (asset != nullptr)
+  {
+    const int type = asset->getType();
+    dag::ConstSpan<int> allowedTypes = DAEDITOR3.getGenObjAssetTypes();
+    if (eastl::find(allowedTypes.begin(), allowedTypes.end(), type) != allowedTypes.end())
+    {
+      if (dragAndDropPayload->IsDelivery())
+      {
+        const CompositeEditorRefreshType refreshType = compositePropPanel->onDragAndDropAsset(*selectedTreeDataNode, pcb_id, asset);
+
+        PropPanel::request_delayed_callback(editor, (void *)refreshType);
+
+        return DragAndDropResult::ACCEPTED;
+      }
+      return DragAndDropResult::NONE;
+    }
+  }
+
+  return DragAndDropResult::NOT_ALLOWED;
 }
 
 void CompositeEditor::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
@@ -621,6 +758,16 @@ bool CompositeEditor::onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_windo
   return true;
 }
 
+void CompositeEditor::onImguiDelayedCallback(void *user_data)
+{
+  auto refreshType = CompositeEditorRefreshType::Nothing;
+
+  if (user_data)
+    refreshType = (CompositeEditorRefreshType)((intptr_t)user_data);
+
+  updateAssetFromTree(refreshType);
+}
+
 void CompositeEditor::updateSelectedNodeTransform(const TMatrix &tm)
 {
   G_ASSERT(selectedTreeDataNode);
@@ -733,7 +880,7 @@ void CompositeEditor::focusViewport()
     viewport->activate();
 }
 
-void CompositeEditor::beginUndo()
+void CompositeEditor::beginUndo(bool save_selection)
 {
   UndoSystem *undoSystem = get_app().getUndoSystem();
   G_ASSERT(undoSystem);
@@ -741,7 +888,7 @@ void CompositeEditor::beginUndo()
     return;
 
   CompositeEditorUndoParams *undoParams = new CompositeEditorUndoParams();
-  undoParams->saveUndo();
+  undoParams->saveUndo(save_selection);
 
   undoSystem->begin();
   undoSystem->put(undoParams);
@@ -760,18 +907,16 @@ void CompositeEditor::endUndo(const char *operation_name, bool accept)
     undoSystem->cancel();
 }
 
-void CompositeEditor::saveForUndo(DataBlock &dataBlock) { treeData.convertTreeDataToDataBlock(treeData.rootNode, dataBlock); }
+void CompositeEditor::saveForUndo(DataBlock &dataBlock) const { treeData.convertTreeDataToDataBlock(treeData.rootNode, dataBlock); }
 
-void CompositeEditor::loadFromUndo(const DataBlock &dataBlock)
+void CompositeEditor::loadFromUndo(const DataBlock &dataBlock, unsigned selected_tree_node_data_block_id)
 {
-  const unsigned selectedDataBlockId = getSelectedTreeNodeDataBlockId();
-
   G_ASSERT(editedAsset);
   treeData.convertAssetToTreeData(editedAsset, &dataBlock);
 
   selectedTreeDataNode = nullptr;
-  if (selectedDataBlockId != IDataBlockIdHolder::invalid_id)
-    selectedTreeDataNode = CompositeEditorTreeData::getTreeDataNodeByDataBlockId(treeData.rootNode, selectedDataBlockId);
+  if (selected_tree_node_data_block_id != IDataBlockIdHolder::invalid_id)
+    selectedTreeDataNode = CompositeEditorTreeData::getTreeDataNodeByDataBlockId(treeData.rootNode, selected_tree_node_data_block_id);
 
   updateAssetFromTree(CompositeEditorRefreshType::EntityAndCompositeEditor);
 }

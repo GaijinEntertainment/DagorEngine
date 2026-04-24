@@ -9,6 +9,7 @@
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_resource.h>
 #include <drv/3d/dag_d3dResource.h>
+#include <drv/3d/dag_resourceTag.h>
 
 class Sbuffer;
 class BaseTexture;
@@ -417,10 +418,12 @@ ResourceAllocationProperties get_resource_allocation_properties(const ResourceDe
  * @param heap_group The resource heap group.
  * @param size The size of the resource heap in bytes. A value of 0 is invalid and results in undefined behavior.
  * @param flags The flags for creating the resource heap.
+ * @param tag Optional resource tag for memory tracking and reporting.
  * @return A pointer to the created resource heap. May be nullptr on error, like out of memory or invalid
  * inputs.
  */
-ResourceHeap *create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags);
+ResourceHeap *create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags,
+  ResourceTagType tag = nullptr);
 
 /**
  * @brief Destroys a resource heap.
@@ -536,9 +539,10 @@ inline ResourceAllocationProperties get_resource_allocation_properties(const Res
 {
   return d3di.get_resource_allocation_properties(desc);
 }
-inline ResourceHeap *create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags)
+inline ResourceHeap *create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags,
+  ResourceTagType tag)
 {
-  return d3di.create_resource_heap(heap_group, size, flags);
+  return d3di.create_resource_heap(heap_group, size, flags, tag);
 }
 inline void destroy_resource_heap(ResourceHeap *heap) { d3di.destroy_resource_heap(heap); }
 inline Sbuffer *place_buffer_in_resource_heap(ResourceHeap *heap, const ResourceDescription &desc, size_t offset,

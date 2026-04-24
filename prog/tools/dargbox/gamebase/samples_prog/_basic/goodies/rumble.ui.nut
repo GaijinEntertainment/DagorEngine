@@ -13,7 +13,7 @@ function slider(rumble_field) {
   let minVal = 0.0
   let maxVal = 1.0
 
-  let knob = static {
+  let knob = const {
     size  = [hdpx(10), flex()]
     rendObj = ROBJ_SOLID
     pos = [-hdpx(10),0]
@@ -41,7 +41,7 @@ function slider(rumble_field) {
       max = maxVal
       unit = 0.02
       orientation = O_HORIZONTAL
-      size = static [flex(), sh(5)]
+      size = const [flex(), sh(5)]
       color = Color(0, 10, 20)
       flow = FLOW_HORIZONTAL
 

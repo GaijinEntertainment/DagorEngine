@@ -1,0 +1,17 @@
+Root    ?= ../../.. ;
+Location = prog/gameLibs/gpuMemoryInspector ;
+
+TargetType  = lib ;
+Target      = gameLibs/gpuMemoryInspector.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/imgui
+  $(Root)/$(Location)
+;
+
+Sources =
+  gpuMemoryInspector.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

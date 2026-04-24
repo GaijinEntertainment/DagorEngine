@@ -76,10 +76,7 @@ int dag_builtin_df_load(const DagFile *fp, int32_t len,
   char *buf = (char *)malloc(len);
   int rlen = df_read((file_ptr_t)fp, buf, len);
   das::Array arr;
-  arr.data = buf;
-  arr.size = rlen;
-  arr.capacity = rlen;
-  arr.lock = 1;
+  das::array_mark_locked(arr, buf, rlen);
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

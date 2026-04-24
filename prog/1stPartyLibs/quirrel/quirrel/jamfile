@@ -7,13 +7,13 @@ if $(SqVarTrace) = yes { TargetLib = $(TargetLib)~vt ; }
 Target = $(TargetLib).lib ;
 
 AddIncludes =
-  $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
   $(Root)/prog/1stPartyLibs/eastl/include
-  $(Root)/prog/1stPartyLibs/quirrel/quirrel
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/squirrel
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/internal
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/helpers
 ;
+
+include $(Root)/prog/_jBuild/add_quirrel.jam ;
 
 Sources =
   squirrel/sqapi.cpp
@@ -24,14 +24,11 @@ Sources =
   squirrel/sqstate.cpp
   squirrel/sqtable.cpp
   squirrel/sqvm.cpp
-  squirrel/memtrace.cpp
   squirrel/sqdedupshrinker.cpp
   squirrel/sqstringlib.cpp
-  squirrel/sqtypeparser.cpp
 
   # custom extensions
   squirrel/sqext.cpp
-  squirrel/sqdirect.cpp
 
   sqstdlib/sqstdrex.cpp
   sqstdlib/sqstdaux.cpp
@@ -39,6 +36,7 @@ Sources =
   sqstdlib/sqstdstring.cpp
   sqstdlib/sqstdblob.cpp
   sqstdlib/sqstddebug.cpp
+  sqstdlib/sqstdhash.cpp
   sqstdlib/sqstdio.cpp
   sqstdlib/sqstdstream.cpp
   sqstdlib/sqstdsystem.cpp
@@ -51,16 +49,8 @@ UseProgLibs +=
   1stPartyLibs/quirrel/quirrel/squirrel/compiler
 ;
 
-SqUseDefaultMemory ?= no ;
-
-if $(SqUseDefaultMemory) = yes {
-  Sources += squirrel/sqmem.cpp ;
-} else {
-  if $(SqVarTrace) = yes {
-    CPPopt += -DENABLE_FIXED_ALLOC ;
-  }
-  Sources += squirrel/sqmemdagor.cpp ;
-}
+Sources += squirrel/sqmem.cpp ;
+CPPopt += -DSQ_EXCLUDE_DEFAULT_MEMFUNCTIONS ;
 
 if $(SqVarTrace) = yes {
   CPPopt += -DSQ_VAR_TRACE_ENABLED ;
@@ -71,6 +61,8 @@ if $(SqVarTrace) = yes {
 
 if $(Config) != rel && $(Config) != irel {
   CPPopt += -DSQ_CHECK_THREAD ;
+} else {
+  CPPopt += -DSQ_RUNTIME_TYPE_CHECK=0 ;
 }
 
 if $(Config) in rel irel {

@@ -1,10 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "genericBuffer.h"
+#include "driver_defs.h"
+#include <util/dag_stdint.h>
 
 namespace drv3d_dx11
 {
+class GenericBuffer;
+
 struct VertexStream
 {
   GenericBuffer *source = nullptr;

@@ -5,13 +5,17 @@
 #include <scriptPanelWrapper/spw_main.h>
 #include <scriptPanelWrapper/spw_param.h>
 
-#include <sqplus.h>
+#include <sqrat.h>
 #include <sqstdio.h>
+#include <sqstdmath.h>
+#include <sqstdstring.h>
+#include <sqstdaux.h>
 #include <osApiWrappers/dag_direct.h>
 
 #include <debug/dag_debug.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
+#include <bindQuirrelEx/sqModulesDagor.h>
 
 #include "spw_script.inc.cpp"
 
@@ -23,12 +27,27 @@ enum
 
 Tab<CSQPanelWrapper::GlobalConst> CSQPanelWrapper::globalConsts(midmem);
 
+static void script_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
+{
+  va_list vl;
+  va_start(vl, s);
+  cvlogmessage(_MAKE4C('SQRL'), s, vl);
+  va_end(vl);
+}
+
+
+static void script_err_print_func(HSQUIRRELVM v, const char *s, ...)
+{
+  va_list vl;
+  va_start(vl, s);
+  cvlogmessage(LOGLEVEL_ERR, s, vl);
+  va_end(vl);
+}
+
 
 CSQPanelWrapper::CSQPanelWrapper(PropPanel::ContainerPropertyControl *panel) :
   mPanel(panel), mScriptFilename(""), mDataBlock(NULL), mPanelContainer(NULL), objCB(NULL), mHandler(NULL), mPostEventCounter(0)
 {
-  sysVM = createCleanVM();
-  curVM = createCleanVM();
   init();
 }
 
@@ -40,63 +59,43 @@ void CSQPanelWrapper::init()
     mPanel->setEventHandler(this);
   }
 
-  if (SquirrelVM::IsInitialized())
-    SquirrelVM::GetVMSys(*sysVM);
+  HSQUIRRELVM v = sq_open(1280);
+  sqstd_seterrorhandlers(v);
+  sq_setprintfunc(v, script_print_func, script_err_print_func);
 
-  SquirrelVM::SetVMSys(*curVM);
-  SquirrelVM::Init();
+  // Bind std libs to root table for compatibility only, would better use modules
+  sq_pushroottable(v);
+  sqstd_register_iolib(v);
+  sqstd_register_mathlib(v);
+  sqstd_register_stringlib(v);
+  sq_pop(v, 1);
 
-  setSystemVM();
-  if (HSQUIRRELVM v = SquirrelVM::GetVMPtr())
-  {
-    // TODO: is this is foreign VM owned by another code, we
-    // probably don't want to modify it!
-    sq_pushroottable(v);
-    sqstd_register_iolib(v);
-    sq_pop(v, 1);
-  }
+  moduleMgr = new SqModules(v, &sq_modules_dagor_file_access);
+  moduleMgr->registerMathLib();
+  moduleMgr->registerStringLib();
+  moduleMgr->registerIoStreamLib();
+  moduleMgr->registerIoLib();
+  moduleMgr->registerSystemLib();
+  moduleMgr->registerDateTimeLib();
 
-  setCurrentVM();
-  if (HSQUIRRELVM v = SquirrelVM::GetVMPtr())
-  {
-    sq_pushroottable(v);
-    sqstd_register_iolib(v);
-    sq_pop(v, 1);
+  bindquirrel::register_reg_exp(moduleMgr);
+  bindquirrel::register_utf8(moduleMgr);
 
-    moduleMgr = new SqModules(v);
-    moduleMgr->registerMathLib();
-    moduleMgr->registerStringLib();
-    moduleMgr->registerIoStreamLib();
-    moduleMgr->registerIoLib();
-    moduleMgr->registerSystemLib();
-    moduleMgr->registerDateTimeLib();
+  bindquirrel::sqrat_bind_dagor_math(moduleMgr);
+  bindquirrel::bind_dagor_workcycle(moduleMgr, true, "scriptPanelWrapper");
+  bindquirrel::bind_dagor_time(moduleMgr);
+  bindquirrel::register_iso8601_time(moduleMgr);
+  bindquirrel::register_platform_module(moduleMgr);
 
-    bindquirrel::register_reg_exp(moduleMgr);
-    bindquirrel::register_utf8(moduleMgr);
-
-    bindquirrel::sqrat_bind_dagor_math(moduleMgr);
-    bindquirrel::bind_dagor_workcycle(moduleMgr, true, "scriptPanelWrapper");
-    bindquirrel::bind_dagor_time(moduleMgr);
-    bindquirrel::register_iso8601_time(moduleMgr);
-    bindquirrel::register_platform_module(moduleMgr);
-
-    bindquirrel::register_dagor_fs_module(moduleMgr);
-    bindquirrel::register_dagor_clipboard(moduleMgr);
-    bindquirrel::sqrat_bind_datablock(moduleMgr);
-  }
-
-  setSystemVM();
+  bindquirrel::register_dagor_fs_module(moduleMgr);
+  bindquirrel::register_dagor_clipboard(moduleMgr);
+  bindquirrel::sqrat_bind_datablock(moduleMgr);
 }
 
 
 int CSQPanelWrapper::getPidByName(const char *name) { return mPanelContainer->findPidByName(name); }
 
-void CSQPanelWrapper::sendMessage(int pid, int msg, void *param)
-{
-  setCurrentVM();
-  mPanelContainer->sendMessage(pid, msg, param);
-  setSystemVM();
-}
+void CSQPanelWrapper::sendMessage(int pid, int msg, void *param) { mPanelContainer->sendMessage(pid, msg, param); }
 
 CSQPanelWrapper::~CSQPanelWrapper()
 {
@@ -110,36 +109,9 @@ CSQPanelWrapper::~CSQPanelWrapper()
   if (mPanel)
     mPanel->clear();
 
-  setCurrentVM();
+  HSQUIRRELVM vm = moduleMgr->getVM();
   delete moduleMgr;
-  SquirrelVM::Shutdown();
-  SquirrelVM::SetVMSys(*sysVM);
-  delete sysVM;
-  delete curVM;
-}
-
-
-SquirrelVMSys *CSQPanelWrapper::createCleanVM()
-{
-  SquirrelVMSys *vm = new SquirrelVMSys();
-  vm->_VM = NULL;
-  vm->_root = NULL;
-  vm->_nativeClassesTable = NULL;
-  return vm;
-}
-
-
-void CSQPanelWrapper::setSystemVM()
-{
-  SquirrelVM::GetVMSys(*curVM);
-  SquirrelVM::SetVMSys(*sysVM);
-}
-
-
-void CSQPanelWrapper::setCurrentVM()
-{
-  SquirrelVM::GetVMSys(*sysVM);
-  SquirrelVM::SetVMSys(*curVM);
+  sq_close(vm);
 }
 
 
@@ -158,55 +130,60 @@ bool CSQPanelWrapper::bindScript(const char script_fn[])
     delete mPanelContainer;
 
   mPanelContainer = new ScriptPanelContainer(this, NULL, "", "");
-  setCurrentVM();
-  SquirrelObject sqInst, ret;
 
-  try
+  // generate, build and run init script
   {
     String initScript = prepareVariables() + defScript;
     Sqrat::Table bindingsTbl(moduleMgr->getVM());
     HSQOBJECT bindings = bindingsTbl;
     moduleMgr->bindBaseLib(bindings);
     moduleMgr->bindRequireApi(bindings);
-    if (!SquirrelVM::CompileBuffer(initScript.str(), sqInst, &bindings))
-      throw SquirrelError();
-    if (!SquirrelVM::RunScript(sqInst, ret))
-      throw SquirrelError();
-  }
-  catch (SquirrelError e)
-  {
-    logerr("Panel script error: %s [in %s]", e.desc, script_fn);
-    setSystemVM();
-    return false;
+
+    bool initScriptSucceeded = false;
+    HSQUIRRELVM vm = moduleMgr->getVM();
+    if (SQ_FAILED(sq_compile(vm, initScript.str(), initScript.length(), "<init_script>", true, &bindings)))
+      logerr("Panel init script compilation failed");
+    else
+    {
+      sq_pushroottable(vm); // for compatibility, would better use null here
+      if (SQ_SUCCEEDED(sq_call(vm, 1, false, true)))
+        initScriptSucceeded = true;
+      else
+        logerr("Panel script failed to execute");
+      sq_pop(vm, 1);
+    }
+
+    if (!initScriptSucceeded)
+      return false;
   }
 
   Sqrat::Object exports;
-  String errMsg;
+  Sqrat::string errMsg;
   if (!moduleMgr->requireModule(mScriptFilename, true, mScriptFilename, exports, errMsg))
   {
     logerr("Panel script error: %s [in %s]", errMsg.c_str(), script_fn);
-    setSystemVM();
     return false;
   }
 
-  SquirrelObject root = SquirrelVM::GetRootTable();
-  SquirrelObject root_item = (root.Exists("scheme")) ? root.GetValue("scheme") : SquirrelObject();
+  Sqrat::RootTable root(moduleMgr->getVM());
+  Sqrat::Object root_item = root.GetSlot("scheme");
 
   if (mPanelContainer && root_item.GetType() == OT_TABLE)
   {
     mPid = START_PID;
-    SquirrelObject controls = root_item.GetValue("controls");
+    Sqrat::Object controls = root_item.GetSlot("controls");
     mPanelContainer->fillParams(mPanel, mPid, controls);
     mPanelContainer->callChangeScript(false);
     setScriptUpdateFlag();
-    setSystemVM();
     return true;
   }
 
   logerr("missing ::%s in %s (or bad mPanelContainer=%p)", "scheme", script_fn, mPanelContainer);
-  setSystemVM();
   return false;
 }
+
+
+HSQUIRRELVM CSQPanelWrapper::getScriptVm() const { return moduleMgr->getVM(); }
 
 
 void CSQPanelWrapper::addGlobalConst(const char *_name, const char *_value, bool is_str)
@@ -253,12 +230,10 @@ bool CSQPanelWrapper::setDataBlock(DataBlock *blk)
   mDataBlock = blk;
   if (mDataBlock && mPanelContainer)
   {
-    setCurrentVM();
     mPanelContainer->load(*mDataBlock);
     mPanelContainer->callChangeScript(false);
     setScriptUpdateFlag();
     mPanelContainer->save(*mDataBlock);
-    setSystemVM();
     return true;
   }
 
@@ -285,22 +260,14 @@ void CSQPanelWrapper::setScriptUpdateFlag()
 void CSQPanelWrapper::updateDataBlock()
 {
   if (mDataBlock && mPanelContainer)
-  {
-    setCurrentVM();
     mPanelContainer->save(*mDataBlock);
-    setSystemVM();
-  }
 }
 
 
 void CSQPanelWrapper::onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (mPanelContainer)
-  {
-    setCurrentVM();
     mPanelContainer->onChange(pcb_id, *panel);
-    setSystemVM();
-  }
 
   if (mPostEventCounter == 0 && mHandler)
     mHandler->onScriptPanelChange();
@@ -311,11 +278,7 @@ long CSQPanelWrapper::onChanging(int pcb_id, PropPanel::ContainerPropertyControl
 {
   long result = 0;
   if (mPanelContainer)
-  {
-    setCurrentVM();
     result = mPanelContainer->onChanging(pcb_id, *panel);
-    setSystemVM();
-  }
   return result;
 }
 
@@ -323,11 +286,7 @@ long CSQPanelWrapper::onChanging(int pcb_id, PropPanel::ContainerPropertyControl
 void CSQPanelWrapper::onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
   if (mPanelContainer)
-  {
-    setCurrentVM();
     mPanelContainer->onClick(pcb_id, *panel);
-    setSystemVM();
-  }
 
   if (mPostEventCounter == 0 && mHandler)
     mHandler->onScriptPanelChange();
@@ -336,7 +295,6 @@ void CSQPanelWrapper::onClick(int pcb_id, PropPanel::ContainerPropertyControl *p
 
 void CSQPanelWrapper::onPostEvent(int pcb_id, PropPanel::ContainerPropertyControl *panel)
 {
-  setCurrentVM();
   if (pcb_id == START_PID)
   {
     mPanelContainer->updateParams();
@@ -344,7 +302,6 @@ void CSQPanelWrapper::onPostEvent(int pcb_id, PropPanel::ContainerPropertyContro
   }
   else if (mPanelContainer && panel)
     mPanelContainer->onPostEvent(pcb_id, *panel);
-  setSystemVM();
 
   if (mHandler)
     mHandler->onScriptPanelChange();
@@ -353,9 +310,7 @@ void CSQPanelWrapper::onPostEvent(int pcb_id, PropPanel::ContainerPropertyContro
 
 void CSQPanelWrapper::validateTargets()
 {
-  setCurrentVM();
   mPanelContainer->validate();
-  setSystemVM();
 
   if (mHandler)
     mHandler->onScriptPanelChange();

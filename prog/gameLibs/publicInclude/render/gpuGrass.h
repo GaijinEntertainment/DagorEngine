@@ -95,14 +95,14 @@ struct GPUGrassGenerationCtx
     tmpName.reserve(128);
 
     tmpName.sprintf("grass_instances_indirect_%d", ctxId);
-    grassInstancesIndirect = dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, 1, tmpName.c_str());
+    grassInstancesIndirect = dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, 1, tmpName.c_str(), RESTAG_GRASS);
 
     tmpName.sprintf("grass_instances_indirect_color_after_vis_%d", ctxId);
     grassInstancesIndirectColorAfterVisibility =
-      dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, 1, tmpName.c_str());
+      dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, 1, tmpName.c_str(), RESTAG_GRASS);
 
     tmpName.sprintf("grass_instances_count_readback_%d", ctxId);
-    grassInstancesCountRB = dag::buffers::create_ua_byte_address_readback(1, tmpName.c_str());
+    grassInstancesCountRB = dag::buffers::create_ua_byte_address_readback(1, tmpName.c_str(), d3d::buffers::Init::No, RESTAG_GRASS);
 
     readbackQuery.reset(d3d::create_event_query());
     generated = false;
@@ -159,11 +159,12 @@ public:
   };
   void renderGrassLods(RenderGrassLodCallback renderGrassLod) const { renderGrassLods(GrassView::Main, eastl::move(renderGrassLod)); }
 
-  void generate(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &view_dir,
+  void generate(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &prev_pos, const Point3 &view_dir,
     const frustum_heights_cb_t &cb);
-  void generate(const Frustum &cull_frustum, const Point3 &pos, const Point3 &view_dir, const frustum_heights_cb_t &cb)
+  void generate(const Frustum &cull_frustum, const Point3 &pos, const Point3 &prev_pos, const Point3 &view_dir,
+    const frustum_heights_cb_t &cb)
   {
-    generate(GrassView::Main, cull_frustum, pos, view_dir, cb);
+    generate(GrassView::Main, cull_frustum, pos, prev_pos, view_dir, cb);
   }
 
   enum RenderType
@@ -200,15 +201,26 @@ public:
     ctx.close();
     return true;
   }
+  struct TextureNames
+  {
+    dag::Vector<eastl::string> diffuse, normal, alpha;
+  };
+  const TextureNames &getTextureNames() const { return textureNames; }
+  int mapTextureIndexToType(int tex_index) const;
+
+  int getChannelCount() const { return grassChannels.size(); }
+  const GrassChannel &getChannel(int i) const { return grassChannels[i]; }
 
 protected:
   void loadGrassTypes(const DataBlock &grassSettings, const eastl::hash_map<eastl::string, int> &grassTypesUsed);
   void updateGrassColors();
   void updateGrassTypes();
-  void generateGrass(GPUGrassGenerationCtx &gen_ctx, const Frustum &cull_frustum, const Point2 &next_pos, const Point3 &view_dir,
-    float min_ht, float max_ht, const frustum_heights_cb_t &cb);
+  void generateGrass(GPUGrassGenerationCtx &gen_ctx, const Frustum &cull_frustum, const Point2 &pos, const Point2 &prev_pos,
+    const Point3 &view_dir, float min_ht, float max_ht, const frustum_heights_cb_t &cb);
   void renderGrassLods(const GPUGrassGenerationCtx &gen_ctx, RenderGrassLodCallback renderGrassLod) const;
   bool visibilityOptimizationEnabled() const { return grass_supports_visibility_prepass() && compactInstanceIndices; }
+
+  TextureNames textureNames;
 
   eastl::array<GPUGrassGenerationCtx, (int)GrassView::Count> genContexts;
   eastl::unique_ptr<ComputeShaderElement> createIndirect;
@@ -320,13 +332,14 @@ public:
   void applyAnisotropy();
 
   void generatePerCamera(const Point3 &pos, IRandomGrassRenderHelper &cb);
-  void generatePerView(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &view_dir,
+  void generatePerView(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &prev_pos,
+    const Point3 &view_dir, IRandomGrassRenderHelper &cb);
+  void generate(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &prev_pos, const Point3 &view_dir,
     IRandomGrassRenderHelper &cb);
-  void generate(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &view_dir,
-    IRandomGrassRenderHelper &cb);
-  void generate(const Frustum &cull_frustum, const Point3 &pos, const Point3 &view_dir, IRandomGrassRenderHelper &cb)
+  void generate(const Frustum &cull_frustum, const Point3 &pos, const Point3 &prev_pos, const Point3 &view_dir,
+    IRandomGrassRenderHelper &cb)
   {
-    generate(GrassView::Main, cull_frustum, pos, view_dir, cb);
+    generate(GrassView::Main, cull_frustum, pos, prev_pos, view_dir, cb);
   };
 
   enum RenderType

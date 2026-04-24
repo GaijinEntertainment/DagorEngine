@@ -4,9 +4,12 @@
 
 #include <assets/asset.h>
 #include <assets/assetMgr.h>
+#include <assets/assetHlp.h>
 #include <assets/assetFolder.h>
 #include <assetsGui/av_assetSelectorCommon.h>
+#include <assetsGui/av_assetTreeDragHandler.h>
 #include <generic/dag_sort.h>
+#include <propPanel/control/treeNode.h>
 #include <propPanel/propPanel.h>
 #include <util/dag_string.h>
 
@@ -30,7 +33,10 @@ static PropPanel::IconId folder_textureId = PropPanel::IconId::Invalid;
 
 AllAssetsTree::AllAssetsTree(PropPanel::ITreeViewEventHandler *event_handler) :
   TreeBaseWindow(event_handler, nullptr, 0, 0, hdpi::_pxActual(0), hdpi::_pxActual(0), "", /*icons_show = */ true)
-{}
+{
+  setDragHandler(&dragHandler);
+  dragHandler.tree = this;
+}
 
 void AllAssetsTree::fill(DagorAssetMgr &asset_mgr, const DataBlock *expansion_state)
 {
@@ -44,11 +50,7 @@ void AllAssetsTree::fill(DagorAssetMgr &asset_mgr, const DataBlock *expansion_st
     firstSel = addGroup(0, nullptr, expansion_state);
 }
 
-void AllAssetsTree::refilter()
-{
-  startFilter();
-  setMessage(getRoot() ? "" : "No results found");
-}
+void AllAssetsTree::refilter() { startFilter(); }
 
 PropPanel::TLeafHandle AllAssetsTree::addGroup(int folder_idx, PropPanel::TLeafHandle parent, const DataBlock *blk)
 {
@@ -119,33 +121,42 @@ PropPanel::TLeafHandle AllAssetsTree::addEntry(const DagorAsset *asset, PropPane
   return ret;
 }
 
-void AllAssetsTree::saveTreeData(DataBlock &blk)
-{
-  updateUnfilteredExpansionStateFromFilteredTree();
-  saveTreeExpansionState(getUnfilteredRootNode(), &blk);
-}
+void AllAssetsTree::saveTreeData(DataBlock &blk) { saveTreeExpansionState(getRootNode(), &blk); }
 
-void AllAssetsTree::saveTreeExpansionState(const PropPanel::TTreeNode &parent, DataBlock *blk)
+void AllAssetsTree::saveTreeExpansionState(const PropPanel::TreeNode &parent, DataBlock *blk)
 {
-  for (const PropPanel::TTreeNode *child : parent.nodes)
-    if (!child->nodes.empty() && child->isExpand)
+  for (int i = 0; i < parent.getChildCount(); ++i)
+  {
+    const PropPanel::TreeNode &child = parent.getChild(i);
+    if (child.getChildCount() != 0 && child.getFlagValue(PropPanel::TreeNode::EXPANDED))
     {
-      DataBlock *subBlk = blk->addBlock(child->name);
-      saveTreeExpansionState(*child, subBlk);
+      DataBlock *subBlk = blk->addBlock(child.getTitle());
+      saveTreeExpansionState(child, subBlk);
     }
+  }
 }
 
-bool AllAssetsTree::handleNodeFilter(const PropPanel::TTreeNode &node)
+bool AllAssetsTree::handleNodeFilter(const PropPanel::TreeNode &node)
 {
-  if (get_dagor_asset_folder(node.userData))
+  if (get_dagor_asset_folder(node.getUserData()))
     return false;
 
-  const DagorAsset &asset = *reinterpret_cast<DagorAsset *>(node.userData);
+  const DagorAsset &asset = *reinterpret_cast<DagorAsset *>(node.getUserData());
 
   if (!shownTypes[asset.getType()])
     return false;
 
-  return textFilter.matchesFilter(node.name);
+  if (!textFilter.matchesFilter(node.getTitle()))
+    return false;
+
+  if (!tagFilter.empty() && assetMgr != nullptr)
+  {
+    const FastIntList &tagIds = assettags::getTagIds(asset);
+    if (!tagIds.hasAll(tagFilter))
+      return false;
+  }
+
+  return true;
 }
 
 void AllAssetsTree::selectNextItem(bool forward)
@@ -211,6 +222,25 @@ DagorAssetFolder *AllAssetsTree::getSelectedAssetFolder() const
   return get_dagor_asset_folder(itemData);
 }
 
+void AllAssetsTree::getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const
+{
+  PropPanel::TLeafHandle selectedFolder = getSelectedItem();
+  if (!isFolder(selectedFolder))
+    selectedFolder = getParent(selectedFolder);
+
+  const int childrenCount = getChildrenCount(selectedFolder);
+  for (int i = 0; i < childrenCount; ++i)
+  {
+    PropPanel::TLeafHandle child = getChild(selectedFolder, i);
+    if (getItemNode(child)->getFlagValue(PropPanel::TreeNode::FILTERED_IN))
+    {
+      void *childItemData = getItemData(child);
+      if (!get_dagor_asset_folder(childItemData))
+        assets.push_back(reinterpret_cast<DagorAsset *>(childItemData));
+    }
+  }
+}
+
 void AllAssetsTree::setShownTypes(dag::ConstSpan<bool> new_shown_types)
 {
   G_ASSERT(new_shown_types.size() == shownTypes.size());
@@ -220,6 +250,12 @@ void AllAssetsTree::setShownTypes(dag::ConstSpan<bool> new_shown_types)
 }
 
 void AllAssetsTree::setSearchText(const char *text) { textFilter.setSearchText(text); }
+
+void AllAssetsTree::setTagFilter(const FastIntList &tags)
+{
+  tagFilter.reset();
+  tagFilter.addIntList(tags);
+}
 
 bool AllAssetsTree::isFolder(PropPanel::TLeafHandle node) const
 {

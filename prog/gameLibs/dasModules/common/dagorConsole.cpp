@@ -11,7 +11,7 @@
 #include "daScript/ast/ast.h"
 #include "dagorConsoleProcessor.h"
 
-DAS_BASE_BIND_ENUM(ConVarType, ConVarType, CVT_BOOL, CVT_INT, CVT_FLOAT)
+DAS_BASE_BIND_ENUM(ConVarType, ConVarType, CVT_BOOL, CVT_INT, CVT_FLOAT, CVT_STRING)
 
 namespace bind_dascript
 {

@@ -101,6 +101,11 @@ struct EventOnCheckpointVisited
   byPlayer : EntityId
 
 [event(broadcast)]
+struct EventOnBotVisitedCheckpoint
+  byBot : EntityId
+  checkpoint : EntityId
+
+[event(broadcast)]
 struct EventSetMusic
   music : string
 

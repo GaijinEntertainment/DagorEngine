@@ -58,6 +58,7 @@ enum
   CM_COPY_ASSET_FILEPATH,
   CM_COPY_ASSET_PROPS_BLK,
   CM_COPY_ASSET_NAME,
+  CM_COPY_ASSET_TAGS,
   CM_COPY_LOD_ASSET_PROPS_BLK,
   CM_COPY_FOLDER_ASSETS_PROPS_BLK,
   CM_COPY_FOLDER_LOD_ASSETS_PROPS_BLK,
@@ -66,6 +67,7 @@ enum
   CM_SHOW_ASSET_BACK_REFS,
   CM_REVEAL_IN_EXPLORER,
   CM_CREATE_NEW_COMPOSITE_ASSET,
+  CM_SEARCH_FOR_SUBOPTIMAL_ASSETS,
   CM_ADD_ASSET_TO_FAVORITES,
 
   CM_OPTIONS_SET_ACT_RATE,
@@ -84,6 +86,7 @@ enum
   CM_PREFERENCES,
   CM_PREFERENCES_ASSET_TREE,
   CM_PREFERENCES_ASSET_TREE_COPY_SUBMENU,
+  CM_OPTIONS_EDIT_PREFERENCES,
 
   CM_WINDOW,
   CM_LOAD_DEFAULT_LAYOUT,
@@ -91,14 +94,17 @@ enum
   CM_SAVE_LAYOUT,
   CM_WINDOW_TOOLBAR,
   CM_WINDOW_TREE,
+  CM_WINDOW_TAGMANAGER,
   CM_WINDOW_PPANEL,
   CM_WINDOW_PPANEL_ACCELERATOR,
   CM_WINDOW_VIEWPORT,
   CM_WINDOW_COMPOSITE_EDITOR,
   CM_WINDOW_COMPOSITE_EDITOR_ACCELERATOR,
+  CM_WINDOW_DABUILD,
   CM_VIEW_DEVELOPER_TOOLS,
   CM_VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES,
   CM_VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER,
+  CM_VIEW_DEVELOPER_TOOLS_TOAST_MANAGER,
   CM_VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG,
   CM_VIEW_DEVELOPER_TOOLS_NODE_DEPS,
 
@@ -133,12 +139,16 @@ enum
   CM_COMPOSITE_EDITOR_CANCEL_GIZMO_TRANSFORM,
 
   CM_FX_EDITOR_RESET_EFFECTS,
+
+  CM_EXPORT_AS_COMPOSITE_ENTITY,
 };
 
 enum
 {
   ID_COMMON_GRP = 1024,
   ID_NAME,
+  ID_COPY_NAME,
+  ID_REVEAL_IN_EXPLORER,
   ID_RUN_EDIT,
 
   ID_SPEC_GRP,
@@ -184,6 +194,7 @@ enum
   ID_COMPOSITE_EDITOR_NODE_PARAMETERS_SCALE_Y,
   ID_COMPOSITE_EDITOR_NODE_PARAMETERS_PLACE_TYPE,
   ID_COMPOSITE_EDITOR_NODE_PARAMETERS_ABOVE_HT,
+  ID_COMPOSITE_EDITOR_NODE_PARAMETERS_IGNORE_PARENT_INST_SEED,
   ID_COMPOSITE_EDITOR_NODE_PARAMETERS_WARNING_GRP,
   ID_COMPOSITE_EDITOR_NODE_PARAMETERS_WARNING_LINE1,
   ID_COMPOSITE_EDITOR_NODE_PARAMETERS_WARNING_LINE2,
@@ -199,3 +210,70 @@ enum
 
   ID_COMPOSITE_EDITOR_DELETE_NODE,
 };
+
+namespace EditorCommandIds
+{
+
+static constexpr const char *COLLISION_PREVIEW = "Main.CollisionPreview";
+static constexpr const char *RENDER_GEOMETRY = "Main.RenderGeometry";
+static constexpr const char *AUTO_ZOOM_N_CENTER = "Main.AutoZoomAndCenter";
+static constexpr const char *DISCARD_ASSET_TEX = "Main.DiscardAssetTextures";
+static constexpr const char *DEBUG_FLUSH = "Main.DebugFlush";
+
+static constexpr const char *SAVE_CUR_ASSET = "Main.SaveCurrentAsset";
+static constexpr const char *SAVE_ASSET_BASE = "Main.SaveAssetBase";
+static constexpr const char *CHECK_ASSET_BASE = "Main.CheckAssetBase";
+static constexpr const char *RELOAD_SHADERS = "Main.ReloadShaders";
+
+static constexpr const char *LOAD_DEFAULT_LAYOUT = "Main.LoadDefaultLayout";
+static constexpr const char *LOAD_LAYOUT = "Main.LoadLayout";
+static constexpr const char *SAVE_LAYOUT = "Main.SaveLayout";
+static constexpr const char *TOGGLE_TAG_MANAGER = "Main.ToggleTagManager";
+static constexpr const char *TOGGLE_PROPERTY_PANEL = "Main.TogglePropertiesPanel";
+static constexpr const char *COMPOSITE_EDITOR = "Main.CompositeEditor";
+
+static constexpr const char *NEXT_ASSET = "Main.NextAsset";
+static constexpr const char *PREV_ASSET = "Main.PreviousAsset";
+
+static constexpr const char *UNDO = "Main.Undo";
+static constexpr const char *REDO = "Main.Redo";
+
+static constexpr const char *EXPORT_CURRENT_IMPOSTOR = "Main.Generate.CurrentImpostor";
+static constexpr const char *EXPORT_IMPOSTORS_CURRENT_PACK = "Main.Generate.ImpostorsFromCurrentPack";
+static constexpr const char *EXPORT_ALL_IMPOSTORS = "Main.Generate.AllImpostors";
+static constexpr const char *CLEAR_UNUSED_IMPOSTORS = "Main.ClearUnusedImpostors";
+static constexpr const char *EXPORT_CURRENT_POINT_CLOUD = "Main.Generate.CurrentPointCloud";
+static constexpr const char *BUILD_RESOURCES = "Main.Export.GameRes.PC";
+static constexpr const char *BUILD_TEXTURES = "Main.Export.TexPack.PC";
+static constexpr const char *BUILD_ALL = "Main.Export.All.PC";
+static constexpr const char *BUILD_CLEAR_CACHE = "Main.ClearCache.PC";
+
+static constexpr const char *BUILD_ALL_PLATFORM_RES = "Main.Export.GameResForAllPlatforms";
+static constexpr const char *BUILD_ALL_PLATFORM_TEX = "Main.Export.TexPackForAllPlatforms";
+static constexpr const char *BUILD_ALL_PLATFORM = "Main.Export.AllForAllPlatforms";
+static constexpr const char *BUILD_CLEAR_CACHE_ALL = "Main.ClearCacheForAllPlatforms";
+
+static constexpr const char *OPTIONS_SET_ACT_RATE = "Main.Settings.WorkCycleActRate";
+static constexpr const char *CAMERAS = "Main.Settings.Camera";
+static constexpr const char *SCREENSHOT = "Main.Settings.Screenshot";
+static constexpr const char *OPTIONS_STAT_DISPLAY_SETTINGS = "Main.Settings.Stats";
+static constexpr const char *OPTIONS_EDIT_PREFERENCES = "Main.Settings.EditPreferences";
+
+static constexpr const char *VIEW_DEVELOPER_TOOLS_CONSOLE_COMMANDS_AND_VARIABLES = "Main.View.ConsoleCommandsAndVariables";
+static constexpr const char *VIEW_DEVELOPER_TOOLS_IMGUI_DEBUGGER = "Main.View.ImguiDebugger";
+static constexpr const char *VIEW_DEVELOPER_TOOLS_TOAST_MANAGER = "Main.View.ToastManager";
+static constexpr const char *VIEW_DEVELOPER_TOOLS_TEXTURE_DEBUG = "Main.View.TextureDebug";
+static constexpr const char *VIEW_DEVELOPER_TOOLS_NODE_DEPS = "Main.View.NodeDependencies";
+
+static constexpr const char *FX_EDITOR_RESET_EFFECTS = "Plugin.FxEditor.ResetEffects";
+
+} // namespace EditorCommandIds
+
+namespace WindowIds
+{
+
+static constexpr const char *MAIN_SETTINGS_ENVIRONMENT = "Main.Settings.Environment";
+static constexpr const char *MAIN_SETTINGS_EDIT_PREFERENCES = "Main.Settings.EditPreferences";
+static constexpr const char *MAIN_SETTINGS_SET_ACT_RATE = "Main.Settings.WorkCycleActRate";
+
+} // namespace WindowIds

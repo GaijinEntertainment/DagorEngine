@@ -372,7 +372,7 @@ bool dacoll::tracedown_hmap_cache_multiray(dag::Span<Trace> traces, const TraceM
   Point3_vec4 *norm = v_out_norm;
   int i = 0;
   bool res = false;
-  LandMeshHolesManager *holes = get_lmesh()->getHolesManager();
+  LandMeshHolesManager *holes = get_lmesh() ? get_lmesh()->getHolesManager() : nullptr;
   for (Point3_vec4 *endPos = posT + traces.size(); posT != endPos; ++posT, ++norm, ++i)
   {
     vec4f vpt = v_mul(v_sub(v_perm_xzxz(v_ld(&posT->x)), v_ldu_half(&handle->heightmap.gridOffset.x)), v_splats(invElemSize));
@@ -477,7 +477,12 @@ bool dacoll::traceray_normalized_contact(const Point3 &from, const Point3 &to, T
 
 static dacoll::trace_game_objects_cb trace_game_objs_cb = nullptr;
 
-void dacoll::set_trace_game_objects_cb(trace_game_objects_cb cb) { trace_game_objs_cb = cb; }
+dacoll::trace_game_objects_cb dacoll::set_trace_game_objects_cb(trace_game_objects_cb cb)
+{
+  auto prev_cb = trace_game_objs_cb;
+  trace_game_objs_cb = cb;
+  return prev_cb;
+}
 
 bool dacoll::trace_game_objects(const Point3 &from, const Point3 &dir, float &t, Point3 &out_vel, int ignore_game_obj_id,
   int ray_mat_id)
@@ -590,7 +595,7 @@ float dacoll::traceht_hmap(const Point2 &pos)
 bool dacoll::traceht_water(const Point3 &pos, float &t)
 {
   FFTWater *water = get_water();
-  if (!water)
+  if (!water || check_nan(pos))
     return false;
   float res = 1e9f;
   if (!fft_water::getHeightAboveWater(water, pos, res))

@@ -2,6 +2,7 @@
 
 #include <propPanel/control/propertyControlBase.h>
 #include <propPanel/control/container.h>
+#include <propPanel/imguiHelper.h>
 #include "../tooltipHelper.h"
 
 namespace PropPanel
@@ -145,6 +146,22 @@ ContainerPropertyControl *PropertyControlBase::getParent() { return mParent; }
 void PropertyControlBase::setPreviousImguiControlTooltip()
 {
   if (controlTooltip.empty())
+    return;
+
+  tooltip_helper.setPreviousImguiControlTooltip(this, controlTooltip.begin(), controlTooltip.end());
+}
+
+void PropertyControlBase::labelWithTooltip(const char *label, const char *label_end, bool use_text_width)
+{
+  if (!ImguiHelper::labelOnly(label, label_end, use_text_width))
+    return;
+
+  tooltip_helper.setPreviousImguiControlTooltip(this, controlTooltip.begin(), controlTooltip.end());
+}
+
+void PropertyControlBase::separateLineLabelWithTooltip(const char *label, const char *label_end)
+{
+  if (!ImguiHelper::separateLineLabel(label, label_end))
     return;
 
   tooltip_helper.setPreviousImguiControlTooltip(this, controlTooltip.begin(), controlTooltip.end());

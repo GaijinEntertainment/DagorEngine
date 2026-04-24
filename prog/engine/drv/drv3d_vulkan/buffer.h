@@ -97,6 +97,7 @@ class GenericBufferInterface final : public D3dResourceNameImpl<Sbuffer>
   }
 
   void afterBufferResourceAllocated();
+  void discard();
 
 public:
   GenericBufferInterface(uint32_t struct_size, uint32_t element_count, uint32_t flags, FormatStore format, bool managed,

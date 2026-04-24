@@ -4,15 +4,21 @@
 
 #include "imguiRenderer.h"
 
+#include <gui/dag_imguiUtil.h>
 #include <imgui/imgui.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_renderTarget.h>
+#include <drv/3d/dag_resUpdateBuffer.h>
 #include <3d/dag_render.h>
 #include <shaders/dag_overrideStates.h>
+#include <shaders/dag_shaderVar.h>
 #include <image/dag_texPixel.h>
 #include <memory/dag_memBase.h>
+
+#include <EASTL/fixed_string.h>
 
 #if HAS_MULTIPLE_VIEWPORTS
 #include <drv/3d/dag_platform_pc.h>
@@ -24,6 +30,7 @@ constexpr size_t INDEX_BUF_ADDITIONAL_SIZE = 10000;
 
 static int imgui_mvp_VarIds[4];
 static int imgui_texVarId = -1;
+static int imgui_texture_name_unique_id = 0;
 
 DagImGuiRenderer::DagImGuiRenderer()
 {
@@ -57,7 +64,7 @@ void DagImGuiRenderer::setBackendFlags(ImGuiIO &io)
   io.BackendRendererName = "imgui_impl_dagor";
 
   // We can honor the ImDrawCmd::VtxOffset field, allowing for large meshes.
-  io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset;
+  io.BackendFlags |= ImGuiBackendFlags_RendererHasVtxOffset | ImGuiBackendFlags_RendererHasTextures;
 
 #if HAS_MULTIPLE_VIEWPORTS
   if (d3d::pcwin::can_render_to_window())
@@ -65,23 +72,10 @@ void DagImGuiRenderer::setBackendFlags(ImGuiIO &io)
 #endif
 }
 
-void DagImGuiRenderer::createAndSetFontTexture(ImGuiIO &io)
-{
-  unsigned char *pixels;
-  int width, height;
-  io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-  TexImage32 *img = TexImage32::create(width, height, tmpmem);
-  memcpy(img->getPixels(), pixels, width * height * 4);
-  fontTex = dag::create_tex(img, width, height, TEXFMT_R8G8B8A8, 1, "imgui_font");
-  memfree(img, tmpmem);
-  io.Fonts->TexID = (ImTextureID)(uintptr_t) unsigned(fontTex.getTexId());
-}
-
 void DagImGuiRenderer::render(ImGuiPlatformIO &platform_io)
 {
   G_ASSERT(vDecl != BAD_VDECL);
   G_ASSERT(renderer.shader.get());
-  G_ASSERT(fontTex.getTex2D());
 
   uint32_t totalVtx = 0, totalIdx = 0;
   for (auto viewport : platform_io.Viewports)
@@ -92,6 +86,11 @@ void DagImGuiRenderer::render(ImGuiPlatformIO &platform_io)
     auto draw_data = viewport->DrawData;
     if (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f)
       continue;
+
+    if (draw_data->Textures)
+      for (ImTextureData *td : *draw_data->Textures)
+        if (td->Status != ImTextureStatus_OK)
+          updateTextureData(*td);
 
     totalVtx += draw_data->TotalVtxCount;
     totalIdx += draw_data->TotalIdxCount;
@@ -148,7 +147,7 @@ void DagImGuiRenderer::render(ImGuiPlatformIO &platform_io)
     {
 #if HAS_MULTIPLE_VIEWPORTS
       if (auto rt = d3d::pcwin::get_swapchain_for_window(viewport->PlatformHandle))
-        d3d::set_render_target(0, rt, 0);
+        d3d::set_render_target({}, DepthAccess::RW, {{rt, 0, 0}});
       else
         continue;
 #endif
@@ -165,7 +164,7 @@ void DagImGuiRenderer::render(ImGuiPlatformIO &platform_io)
       {(R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f},
     };
     for (int i = 0; i < 4; i++)
-      ShaderGlobal::set_color4(imgui_mvp_VarIds[i], mvp[i][0], mvp[i][1], mvp[i][2], mvp[i][3]);
+      ShaderGlobal::set_float4(imgui_mvp_VarIds[i], mvp[i][0], mvp[i][1], mvp[i][2], mvp[i][3]);
 
     d3d::setview(0, 0, draw_data->DisplaySize.x, draw_data->DisplaySize.y, 0.0f, 1.0f);
     if (viewport != mainViewport)
@@ -190,7 +189,6 @@ void DagImGuiRenderer::renderDrawDataToTexture(const ImDrawData *draw_data, Base
 {
   G_ASSERT(vDecl != BAD_VDECL);
   G_ASSERT(renderer.shader.get());
-  G_ASSERT(fontTex.getTex2D());
 
   if (!draw_data || !rt)
     return;
@@ -223,7 +221,7 @@ void DagImGuiRenderer::renderDrawDataToTexture(const ImDrawData *draw_data, Base
   d3d::setind(ib.getBuf());
   shaders::overrides::set(overrideStateId);
 
-  d3d::set_render_target(0, rt, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{rt, 0, 0}});
 
   int globalIdxOffset = 0;
   int globalVtxOffset = 0;
@@ -239,7 +237,7 @@ void DagImGuiRenderer::renderDrawDataToTexture(const ImDrawData *draw_data, Base
     {(R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f},
   };
   for (int i = 0; i < 4; i++)
-    ShaderGlobal::set_color4(imgui_mvp_VarIds[i], mvp[i][0], mvp[i][1], mvp[i][2], mvp[i][3]);
+    ShaderGlobal::set_float4(imgui_mvp_VarIds[i], mvp[i][0], mvp[i][1], mvp[i][2], mvp[i][3]);
 
   d3d::setview(0, 0, draw_data->DisplaySize.x, draw_data->DisplaySize.y, 0.0f, 1.0f);
   d3d::clearview(CLEAR_TARGET, E3DCOLOR(120, 120, 120, 255), 0, 0);
@@ -254,13 +252,13 @@ void DagImGuiRenderer::resizeBuffers(const uint32_t vtx_count, const uint32_t id
   if (!vb.getBuf() || vbSize < vtx_count)
   {
     vbSize = vtx_count + VERTEX_BUF_ADDITIONAL_SIZE;
-    vb = dag::create_vb(sizeof(ImDrawVert) * vbSize, SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE, "imgui_vb");
+    vb = dag::create_vb(sizeof(ImDrawVert) * vbSize, SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE, "imgui_vb", RESTAG_IMGUI);
     G_ASSERT(vb.getBuf());
   }
   if (!ib.getBuf() || ibSize < idx_count)
   {
     ibSize = idx_count + INDEX_BUF_ADDITIONAL_SIZE;
-    ib = dag::create_ib(sizeof(ImDrawIdx) * ibSize, SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE, "imgui_ib");
+    ib = dag::create_ib(sizeof(ImDrawIdx) * ibSize, SBCF_DYNAMIC | SBCF_CPU_ACCESS_WRITE, "imgui_ib", RESTAG_IMGUI);
     G_ASSERT(ib.getBuf());
   }
 }
@@ -283,6 +281,8 @@ void DagImGuiRenderer::unlockBuffers()
 
 bool DagImGuiRenderer::copyDrawData(const ImDrawData *draw_data, ImDrawVert *&vbdata, ImDrawIdx *&ibdata)
 {
+  if (vbdata == nullptr || ibdata == nullptr)
+    return false;
   bool res = false;
   for (int n = 0; n < draw_data->CmdListsCount; n++)
   {
@@ -313,7 +313,7 @@ void DagImGuiRenderer::processDrawDataToRT(const ImDrawData *draw_data, int &glo
         if (pcmd->UserCallback != ImDrawCallback_ResetRenderState)
           pcmd->UserCallback(cmdList, pcmd);
       }
-      else
+      else if (pcmd->ElemCount > 0)
       {
         RectInt scissorRect;
         scissorRect.left = pcmd->ClipRect.x - clipOff.x;
@@ -331,17 +331,104 @@ void DagImGuiRenderer::processDrawDataToRT(const ImDrawData *draw_data, int &glo
         {
           d3d::setscissor(scissorRect.left, scissorRect.top, w, h);
 
-          TEXTUREID tid = (TEXTUREID)(intptr_t)pcmd->TextureId;
-          if (get_managed_texture_refcount(tid) < 1)
-            tid = BAD_TEXTUREID;
-          ShaderGlobal::set_texture(imgui_texVarId, tid);
+          BaseTexture *tPtr = reinterpret_cast<BaseTexture *>(pcmd->GetTexID());
+
+          ShaderGlobal::set_texture(imgui_texVarId, tPtr);
+
           renderer.shader->setStates();
 
           d3d::drawind(PRIM_TRILIST, pcmd->IdxOffset + global_idx_offset, pcmd->ElemCount / 3, pcmd->VtxOffset + global_vtx_offset);
+
+          ShaderGlobal::set_texture(imgui_texVarId, nullptr);
         }
       }
     }
     global_idx_offset += cmdList->IdxBuffer.Size;
     global_vtx_offset += cmdList->VtxBuffer.Size;
   }
+}
+
+void DagImGuiRenderer::afterDeviceReset() { releaseAllTextureData(); }
+
+void DagImGuiRenderer::updateTextureData(ImTextureData &td)
+{
+  if (td.Status == ImTextureStatus_WantCreate)
+  {
+    G_ASSERT(td.TexID == ImTextureID_Invalid);
+    G_ASSERT(td.BackendUserData == nullptr);
+    G_ASSERT(td.Format == ImTextureFormat_RGBA32);
+
+    ++imgui_texture_name_unique_id;
+    using TmpName = eastl::fixed_string<char, 32>;
+    const TmpName name(TmpName::CtorSprintf{}, "imgui_tex_%d", imgui_texture_name_unique_id);
+
+    // Create and upload new texture to graphics system
+    TexImage32 *img = TexImage32::create(td.Width, td.Height, tmpmem);
+    memcpy(img->getPixels(), td.GetPixels(), td.Width * td.Height * 4);
+    Texture *texture = d3d::create_tex(img, td.Width, td.Height, TEXFMT_R8G8B8A8, 1, name.c_str(), RESTAG_IMGUI);
+    memfree(img, tmpmem);
+
+    if (texture)
+    {
+      const TEXTUREID textureId = register_managed_tex(name.c_str(), texture);
+
+      // Store identifiers
+      td.SetTexID(ImGuiDagor::EncodeTexturePtr(texture));
+      td.SetStatus(ImTextureStatus_OK);
+      td.BackendUserData = (void *)(uintptr_t)(((unsigned)textureId));
+    }
+    else
+    {
+      logerr("Failed to create ImGui texture \"%s\" (%dx%d).", name.c_str(), td.Width, td.Height);
+    }
+  }
+  else if (td.Status == ImTextureStatus_WantUpdates)
+  {
+    if (Texture *texture = (Texture *)td.GetTexID())
+    {
+      const ImTextureRect &ur = td.UpdateRect;
+      if (d3d::ResUpdateBuffer *rub = d3d::allocate_update_buffer_for_tex_region(texture, 0, 0, ur.x, ur.y, 0, ur.w, ur.h, 1))
+      {
+        const uint8_t *src = (const uint8_t *)td.GetPixelsAt(ur.x, ur.y);
+        const int srcPitch = td.GetPitch();
+        uint8_t *dst = (uint8_t *)d3d::get_update_buffer_addr_for_write(rub);
+        const size_t dstPitch = d3d::get_update_buffer_pitch(rub);
+        const int bytesPerLineToCopy = ur.w * td.BytesPerPixel;
+        for (int y = 0; y < ur.h; ++y, src += srcPitch, dst += dstPitch)
+          memcpy(dst, src, bytesPerLineToCopy);
+
+        d3d::update_texture_and_release_update_buffer(rub);
+        td.SetStatus(ImTextureStatus_OK);
+      }
+    }
+  }
+  else if (td.Status == ImTextureStatus_WantDestroy && td.UnusedFrames > 0)
+  {
+    releaseTextureData(td);
+  }
+}
+
+void DagImGuiRenderer::releaseTextureData(ImTextureData &td)
+{
+  if (!td.BackendUserData)
+    return;
+
+  Texture *texture = (Texture *)td.GetTexID();
+  TEXTUREID textureId = (TEXTUREID)((uintptr_t)td.BackendUserData);
+  ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(textureId, texture);
+
+  // Clear identifiers and mark as destroyed.
+  td.SetTexID(ImTextureID_Invalid);
+  td.SetStatus(ImTextureStatus_Destroyed);
+  td.BackendUserData = nullptr;
+}
+
+void DagImGuiRenderer::releaseAllTextureData()
+{
+  if (!ImGui::GetCurrentContext())
+    return;
+
+  for (ImTextureData *td : ImGui::GetPlatformIO().Textures)
+    if (td->RefCount == 1)
+      releaseTextureData(*td);
 }

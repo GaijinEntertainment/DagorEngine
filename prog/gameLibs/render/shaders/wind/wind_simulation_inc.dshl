@@ -1,5 +1,8 @@
 int fluid_wind_status = 0;
-interval fluid_wind_status: fluid_wind_off < 1, fluid_wind_on;
+
+int allow_fluid_wind = 0;
+interval allow_fluid_wind : no < 1, yes;
+assume_if_not_assumed allow_fluid_wind = yes;
 
 texture fluid_wind_tex;
 float4 fluid_wind_origin_delta = float4(0, 0, 0, 0);
@@ -22,6 +25,7 @@ macro INIT_FLUID_WIND(stage)
       fluid_wind_origin@f4 = fluid_wind_origin;
       fluid_wind_world_size@f4 = fluid_wind_world_size;
       fluid_wind_multiplier@f1 = (fluid_wind_multiplier);
+      fluid_wind_status@f1 = fluid_wind_status;
   }
 endmacro
 
@@ -43,10 +47,9 @@ macro INIT_AMBIENT_WIND(stage)
 endmacro
 
 macro USE_FLUID_WIND(stage)
-  if (fluid_wind_status == fluid_wind_on)
+  if (allow_fluid_wind == yes)
   {
     hlsl(stage) {
-      #define FLUID_WIND_ON 1
       float3 sampleFluidWind(float3 pos)
       {
         float3 tcSpeed = (pos.xyz - fluid_wind_origin.xyz) / fluid_wind_world_size.xyz + 0.5;
@@ -120,7 +123,7 @@ macro INIT_USE_COMBINED_WIND(stage)
 endmacro
 
 macro INIT_COMBINED_WIND(stage)
-  if (fluid_wind_status == fluid_wind_on)
+  if (allow_fluid_wind == yes)
   {
     INIT_FLUID_WIND(stage)
   }
@@ -137,9 +140,12 @@ macro USE_COMBINED_WIND(stage)
     {
       noise_params.x *= noise_speed_mult;
       float3 wind = sampleAmbientWind(pos, noise_params, time) - velocity;
-    #if FLUID_WIND_ON
-      wind += fluid_wind_multiplier * sampleFluidWind(pos);
-    #endif
+
+      ##if allow_fluid_wind == yes
+        if (fluid_wind_status > 0)
+          wind += fluid_wind_multiplier * sampleFluidWind(pos);
+      ##endif
+
       return disable_wind ? 0 : wind;
     }
 

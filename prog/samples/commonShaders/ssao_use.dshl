@@ -14,17 +14,17 @@ interval use_contact_shadows: no_shadows < 1, use_shadows;
 assume use_contact_shadows = use_shadows;
 bool ssao_contact_shadows = use_contact_shadows != no_shadows;
 
+bool ssao_has_green = ssao_contact_shadows;
+bool ssao_has_blue = false;
 hlsl {
-  #define SSAO_CONTACT_SHADOWS 1
-  #if SSAO_CONTACT_SHADOWS
+  ##if ssao_contact_shadows
     #define SSAO_TYPE half2
     #define SSAO_ATTRS xy
     #define CONTACT_SHADOWS_ATTR y
-    #define SSAO_HAS_GREEN 1
-  #else
+  ##else
     #define SSAO_TYPE half
     #define SSAO_ATTRS x
-  #endif
+  ##endif
 }
 
 macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
@@ -35,10 +35,10 @@ macro USE_SSAO_UPSCALE_BASE_WITH_SMP(code, _samplerstate)
       float4 ssaoValue = ssao_tex.GatherRed(_samplerstate, ssaotc);
       SSAO_TYPE ao = 1;
       ao.x = dot(ssaoValue, weights);
-      #if SSAO_HAS_GREEN
-      float4 contactShadowValue = ssao_tex.GatherGreen(_samplerstate, ssaotc);
-      ao.CONTACT_SHADOWS_ATTR = dot(contactShadowValue, weights);
-      #endif
+      ##if ssao_has_green
+        float4 contactShadowValue = ssao_tex.GatherGreen(_samplerstate, ssaotc);
+        ao.CONTACT_SHADOWS_ATTR = dot(contactShadowValue, weights);
+      ##endif
       return ao;
     }
 

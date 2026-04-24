@@ -41,42 +41,48 @@
   uint bucketSize = get_immediate_dword_0();
   uint dispatchStart = get_immediate_dword_1();
 
-  uint bucketId = t_id.x / bucketSize;
-  uint localId = t_id.x % bucketSize;
+  uint bucketId = dtId / bucketSize;
+  uint localId = dtId % bucketSize;
 
   DispatchDesc ddesc = dafx_dispatch_descs[dispatchStart + bucketId];
   uint start = ddesc.startAndCount & 0xffff;
   uint count = ddesc.startAndCount >> 16;
-  if ( localId >= count )
-    return;
 
-  DataHead head;
-  uint headOffset = ddesc.headOffsetAndLodOfs & 0xffffff;
-  dafx_fill_data_head( headOffset / DAFX_ELEM_STRIDE, head );
+  DAFX_CULLING_RET_TYPE v = (DAFX_CULLING_RET_TYPE)0;
+  uint cullingId = DAFX_INVALID_CULLING_ID;
+  BRANCH if ( localId < count )
+  {
+    DataHead head;
+    uint headOffset = ddesc.headOffsetAndLodOfs & 0xffffff;
+    dafx_fill_data_head( headOffset / DAFX_ELEM_STRIDE, head );
 
-  ComputeCallDesc cdesc;
-  dafx_fill_cdesc( head, ddesc, cdesc );
+    ComputeCallDesc cdesc;
+    dafx_fill_cdesc( head, ddesc, cdesc );
 
-#if DAFX_PRELOAD_PARENT_DATA
-    DAFX_PRELOAD_PARENT_REN_STRUCT parentRenData;
-    DAFX_PRELOAD_PARENT_SIM_STRUCT parentSimData;
-    dafx_preload_parent_ren_data( 0, cdesc.parentRenOffset, parentRenData );
-    dafx_preload_parent_sim_data( 0, cdesc.parentSimOffset, parentSimData );
-#endif
+    #if DAFX_PRELOAD_PARENT_DATA
+      DAFX_PRELOAD_PARENT_REN_STRUCT parentRenData;
+      DAFX_PRELOAD_PARENT_SIM_STRUCT parentSimData;
+      dafx_preload_parent_ren_data( 0, cdesc.parentRenOffset, parentRenData );
+      dafx_preload_parent_sim_data( 0, cdesc.parentSimOffset, parentSimData );
+    #endif
 
-  cdesc.start = start;
-  cdesc.count = count;
-  cdesc.gid = ( localId + start ) % head.elemLimit;
-  cdesc.idx = localId;
+    cdesc.start = start;
+    cdesc.count = count;
+    cdesc.gid = ( localId + start ) % head.elemLimit;
+    cdesc.idx = localId;
 
-  cdesc.dataRenOffsetRelative = ( cdesc.gid * head.dataRenStride ) / DAFX_ELEM_STRIDE;
-  cdesc.dataSimOffsetRelative = ( cdesc.gid * head.dataSimStride ) / DAFX_ELEM_STRIDE;
+    cdesc.dataRenOffsetRelative = ( cdesc.gid * head.dataRenStride ) / DAFX_ELEM_STRIDE;
+    cdesc.dataSimOffsetRelative = ( cdesc.gid * head.dataSimStride ) / DAFX_ELEM_STRIDE;
 
-  cdesc.dataRenOffsetCurrent = cdesc.dataRenOffsetStart + cdesc.dataRenOffsetRelative;
-  cdesc.dataSimOffsetCurrent = cdesc.dataSimOffsetStart + cdesc.dataSimOffsetRelative;
+    cdesc.dataRenOffsetCurrent = cdesc.dataRenOffsetStart + cdesc.dataRenOffsetRelative;
+    cdesc.dataSimOffsetCurrent = cdesc.dataSimOffsetStart + cdesc.dataSimOffsetRelative;
 
-  GlobalData globalData = global_data_load();
+    GlobalData globalData = global_data_load();
 
-  update_culling_data( cdesc.cullingId, DAFX_SHADER_INC_CALL );
+    v = DAFX_SHADER_INC_CALL;
+    cullingId = cdesc.cullingId;
+  }
+
+  update_culling_data( tid, cullingId, v );
 }
 #endif

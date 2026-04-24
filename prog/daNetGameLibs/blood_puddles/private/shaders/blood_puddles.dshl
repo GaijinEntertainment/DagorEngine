@@ -2,6 +2,7 @@ include "shader_global.dshl"
 include "gbuffer.dshl"
 include "projectiveDecals/projective_decals_common.dshl"
 include "fake_static_shadow.dshl"
+include "gbuffer_with_mixing.dshl"
 
 interval special_vision : special_vision_off<1, thermal_vision;
 
@@ -25,6 +26,9 @@ buffer blood_puddle_matrices;
 
 texture blood_acc_buf0;
 texture blood_acc_normal;
+
+float blood_cooling_sec = 60;
+float blood_max_warm_term = 0.035;
 
 macro BLOOD_PUDDLES_VS()
   hlsl{
@@ -133,16 +137,19 @@ endmacro
 
 macro BLOOD_PUDDLES_COMMON_PS()
   PROJECTIVE_DECALS_PS_COMMON()
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
 
   (ps) {
     atlas_size@f2 = (blood_decals_atlas_size);
     blood_puddle_start_size@f1 = (blood_puddle_start_size);
     perlin_noise3d@smp3d = perlin_noise3d;
-    blood_puddle_tex@smp2d = blood_puddle_tex;
+    blood_puddle_tex@tex2d = blood_puddle_tex;
     blood_puddle_flowmap_tex@smp2d = blood_puddle_flowmap_tex;
+    blood_cooling_sec@f1 = blood_cooling_sec;
   }
 
   hlsl(ps){
+    #define blood_puddle_tex_samplerstate global_linear_wrap_sampler
     #include <psh_tangent.hlsl>
     #include <normaldetail.hlsl>
 
@@ -151,12 +158,28 @@ macro BLOOD_PUDDLES_COMMON_PS()
       return (1 - pow3(1.0 - x));
     }
 
+    bool areDepthBasedDiffValid(uint2 tc)
+    {
+      uint2 gradCellBase = tc & 0xFFFFFFFE;
+
+      float depthBase = loadGbufferDepth(tc);
+      float depthDiffMax = 0;
+
+      UNROLL
+      for (uint i = 0; i < 2; i++)
+        for(uint j = 0; j < 2; j++)
+          depthDiffMax = max(depthDiffMax, abs(depthBase - loadGbufferDepth(gradCellBase + uint2(i, j))));
+
+      const float depthDiffThreshold = 0.0005;
+      return depthDiffMax < depthDiffThreshold;
+    }
+
     float4 get_blood_params(float2 decal_tc)
     {
       float4 bloodParams;
       //atlas: [Nx, intensity, Ny]
-      float flow = tex2D(blood_puddle_flowmap_tex, decal_tc.xy).r;
-      float3 atlas = tex2D(blood_puddle_tex, decal_tc.xy).rgb;
+      float flow = tex2Dlod(blood_puddle_flowmap_tex, float4(decal_tc.xy, 0, 0)).r;
+      float3 atlas = tex2Dlod(blood_puddle_tex, float4(decal_tc.xy, 0, 0)).rgb;
       bloodParams = float4(flow, atlas.xyz);
       return bloodParams;
     }
@@ -190,18 +213,25 @@ macro BLOOD_PUDDLES_COMMON_PS()
 
       const float3 eyeToPoint = get_decal_eye_to_point(screen);
       const float3 pointToEye = -eyeToPoint;
-      const float3 surfaceNormal = normalize(cross(normalize(ddx(pointToEye)), normalize(ddy(pointToEye))));
-
       const float3 worldPos = world_view_pos + eyeToPoint;
       float3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.patchCenter__inv_size.xyz, worldNormal, input.tang_shrink.xyz);
 
-      const float angularBorderBetweenDecalAndSurfaceNormals = is_landscape ? 0.4 : 0.2;
-      const float heightBorderBetweenDecalAndSurface = is_landscape ? 0.05 : 0.15;
+      // This check is for a 1 pixel wide discarded outline along the cockpit
+      // due to incorrect ddx and ddy eyeToPoint as depth difference causes
+      // incorrect estimated surfaceNormals
+      bool isNormalAngleInvalid = false;
+      BRANCH
+      if (areDepthBasedDiffValid(uint2(screen.xy)))
+      {
+        const float3 surfaceNormal = normalize(cross(normalize(ddx(pointToEye)), normalize(ddy(pointToEye))));
+        const float angularBorderBetweenDecalAndSurfaceNormals = is_landscape ? 0.4 : 0.2;
+        isNormalAngleInvalid = dot(surfaceNormal, worldNormal) < angularBorderBetweenDecalAndSurfaceNormals;
+      }
 
-      const bool surfaceNormalNotWithinValidRange = dot(surfaceNormal, worldNormal) < angularBorderBetweenDecalAndSurfaceNormals;
-      if (surfaceNormalNotWithinValidRange || abs(decalTC.z) >= 1.0)
+      if (isNormalAngleInvalid || abs(decalTC.z) >= 1.0)
         discard;
 
+      const float heightBorderBetweenDecalAndSurface = is_landscape ? 0.05 : 0.15;
       const float edgeClosenessHeightBase = is_landscape ? -decalTC.z*0.7 : decalTC.z*0.5;
       float edgeClosenessHeightScale = 1.0 - saturate(edgeClosenessHeightBase / heightBorderBetweenDecalAndSurface);
       float alphaHeightScale = is_landscape ? 1.0 : edgeClosenessHeightScale * edgeClosenessHeightScale;
@@ -245,6 +275,13 @@ macro BLOOD_PUDDLES_COMMON_PS()
       float edgeWidthScale = float(perGroupParams[decal_type].bloodNormalDominanceTerm_edgeWidthScale >> 8)/255.0;
       float edgeClosenessScale = lerp(16.0, 1.0, edgeWidthScale);
       edge_closeness = 1.0 - saturate((flow_value - timeThreshold - cuttingOffset) * edgeClosenessScale) * edgeClosenessHeightScale;
+
+      ##if special_vision == thermal_vision
+        float coolingTerm = 1.0 - saturate(linearTime / blood_cooling_sec);
+        const float valueToAvoidDiscard = 0.01;
+        alpha = max(valueToAvoidDiscard, coolingTerm);
+        normal = worldNormal;
+      ##endif
     }
  }
 endmacro
@@ -260,12 +297,34 @@ macro BLOOD_PUDDLES_RESOLVE_COMMON_PS()
     blood_puddle_landscape_reflectance@f1 = (blood_puddle_landscape_reflectance);
     blood_puddle_landscape_smoothness_edge@f1 = (blood_puddle_landscape_smoothness_edge);
     blood_puddle_center_albedo_darkening@f1 = (blood_puddle_center_albedo_darkening);
+
+    blood_max_warm_term@f1 = blood_max_warm_term;
   }
 
   hlsl(ps) {
     GBUFFER_OUTPUT apply_blood_puddle_resolve_ps(uint decal_type, bool is_landscape,
-      float thickness, float edgeCloseness, float3 normal, float alpha)
+      float thickness, float edgeCloseness, float3 normal, float alpha, float2 screen_pos)
     {
+  ##if special_vision == thermal_vision
+      #if FILTER_DYNAMIC
+        filterDynamic(screen_pos);
+      #endif
+
+      float invCoolingTerm = alpha;
+
+      UnpackedGbuffer output;
+      init_gbuffer(output);
+      init_reflectance(output, 1.0);
+      init_metalness(output, 0.0);
+      init_smoothness(output, 1.0);
+      init_normal(output, normal);
+      init_albedo(output,  blood_max_warm_term * invCoolingTerm);
+      init_material(output, SHADING_SELFILLUM);
+      init_emission(output, MAX_EMISSION);
+      init_emission_color(output, half4(255, 255, 255, 255.0f));
+      GBUFFER_OUTPUT gbuf = encode_gbuffer(output, 0, screen_pos);
+      return gbuf;
+  ##else
       float reflectance;
       float smoothness;
       float bloodNormalBlend;
@@ -307,6 +366,10 @@ macro BLOOD_PUDDLES_RESOLVE_COMMON_PS()
       float srcMulDstDominance = lerp(1.0, 0.96, alpha3);
       float srcDominance = (1.0/srcMulDstDominance - 1.0);
 
+      #if FILTER_DYNAMIC
+        filterDynamic(screen_pos);
+      #endif
+
       UnpackedGbuffer output;
       init_gbuffer(output);
       init_albedo(output,  diffuse * srcMulDstDominance);
@@ -314,16 +377,11 @@ macro BLOOD_PUDDLES_RESOLVE_COMMON_PS()
       init_metalness(output, 0.0);
       init_smoothness(output, smoothness);
       init_normal(output, normal);
-      ##if special_vision == thermal_vision
-        init_material(output, SHADING_SELFILLUM);
-        init_emission(output, MAX_EMISSION);
-        init_emission_color(output, half4(255, 255, 255, 255.0f));
-        output.smoothness = 0;
-      ##endif
 
       half3 blendingAlpha = half3(srcDominance,  bloodNormalBlend * alpha3, 0.9 * alpha3);
-      GBUFFER_OUTPUT gbuf = encode_gbuffer_alpha3(output, blendingAlpha, 0, GET_SCREEN_POS(input.pos));
+      GBUFFER_OUTPUT gbuf = encode_gbuffer_alpha3(output, blendingAlpha, 0, screen_pos);
       return gbuf;
+    ##endif
     }
   }
 endmacro
@@ -349,7 +407,6 @@ shader blood_puddles_accumulation
   USE_GBUFFER_PACK_UNPACK(ps)
   INIT_PER_GROUP_PARAMS(ps)
   BLOOD_PUDDLES_COMMON_PS()
-  ENABLE_ASSERT(ps)
 
   hlsl(ps) {
 
@@ -392,11 +449,19 @@ shader blood_puddles_resolve
   supports global_frame;
   USE_ATEST_1()
 
-  blend_src = sa; blend_dst = isa;
-  blend_asrc = 0; blend_adst = 1;
-  blend_src[0] = sa; blend_dst[0] = sc;
-  blend_asrc[0] = 0; blend_adst[0] = 1;
-  color_write = rgb;
+  if (special_vision == thermal_vision)
+  {
+    blend_src = 1; blend_dst = 0;
+    blend_asrc = 1; blend_adst = 0;
+  }
+  else
+  {
+    blend_src = sa; blend_dst = isa;
+    blend_asrc = 0; blend_adst = 1;
+    blend_src[0] = sa; blend_dst[0] = sc;
+    blend_asrc[0] = 0; blend_adst[0] = 1;
+    color_write = rgb;
+  }
 
   z_write=false;
   z_test=false;
@@ -421,11 +486,8 @@ shader blood_puddles_resolve
     }
   }
 
-  hlsl(ps) {
-    #define BLEND_GBUFFER 1
-  }
-  WRITE_GBUFFER()
-  ENABLE_ASSERT(ps)
+  WRITE_GBUFFER_WITH_MIXING(special_vision == special_vision_off, true, true)
+  DYNAMIC_FILTER_FOR_MIXING(false, true)
   INIT_PER_GROUP_PARAMS(ps)
   INIT_VIEW_VEC_STAGE(ps)
   BLOOD_PUDDLES_RESOLVE_COMMON_PS()
@@ -459,7 +521,7 @@ shader blood_puddles_resolve
       float alpha = (1.0 - invAlpha);
 
       return apply_blood_puddle_resolve_ps(decalType, isLandscape, thickness, edgeCloseness,
-       normal, alpha);
+       normal, alpha, GET_SCREEN_POS(input.pos).xy);
     }
   }
 
@@ -477,32 +539,37 @@ shader blood_puddles_forward
   z_write = false;
   USE_ATEST_1()
 
-  blend_src = sa; blend_dst = isa;
-  blend_asrc = 0; blend_adst = 1;
-  blend_src[0] = sa; blend_dst[0] = sc;
-  blend_asrc[0] = 0; blend_adst[0] = 1;
-  color_write = rgb;
+  if (special_vision == thermal_vision)
+  {
+    blend_src = 1; blend_dst = 0;
+    blend_asrc = 1; blend_adst = 0;
+  }
+  else
+  {
+    blend_src = sa; blend_dst = isa;
+    blend_asrc = 0; blend_adst = 1;
+    blend_src[0] = sa; blend_dst[0] = sc;
+    blend_asrc[0] = 0; blend_adst[0] = 1;
+    color_write = rgb;
+  }
 
   BLOOD_PUDDLES_VS()
 
-  REDUCE_GBUFFER_MRT_MOBILE()
   hlsl(ps) {
     #define BLEND_GBUFFER 1
   }
-  WRITE_GBUFFER()
+  WRITE_GBUFFER_WITH_MIXING(special_vision == special_vision_off, true, true)
+  DYNAMIC_FILTER_FOR_MIXING(false, true)
   INIT_PER_GROUP_PARAMS(ps)
   BLOOD_PUDDLES_COMMON_PS()
   BLOOD_PUDDLES_RESOLVE_COMMON_PS()
-  ENABLE_ASSERT(ps)
 
   hlsl(ps) {
 
+    [earlydepthstencil]
     GBUFFER_OUTPUT blood_puddles_forward_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       float4 screen = GET_SCREEN_POS(input.pos);
-    ##if mobile_render == deferred
-      clip_by_static_opaque_mask(screen.xy);
-    ##endif
 
       float3 normal;
       float intensity, edgeCloseness, alpha, stub;
@@ -513,7 +580,7 @@ shader blood_puddles_forward
       float thickness = min(1.0 - intensity - edgeCloseness, 0.93);
 
       return apply_blood_puddle_resolve_ps(decalType, isLandscape, thickness,
-        edgeCloseness, normal, alpha);
+        edgeCloseness, normal, alpha, GET_SCREEN_POS(input.pos).xy);
     }
   }
   compile("target_vs", "blood_puddles_vs");
@@ -530,7 +597,6 @@ shader blood_puddles_debug
   BLOOD_PUDDLES_VS()
   INIT_PER_GROUP_PARAMS(ps)
   BLOOD_PUDDLES_COMMON_PS()
-  ENABLE_ASSERT(ps)
 
   hlsl(ps) {
 
@@ -559,7 +625,6 @@ shader blood_puddles_resolve_debug
   z_test=false;
   cull_mode=none;
 
-  ENABLE_ASSERT(ps)
   USE_POSTFX_VERTEX_POSITIONS()
   hlsl {
     struct VsOutput
@@ -609,7 +674,6 @@ shader blood_puddles_bbox_debug
   z_write = false;
 
   BLOOD_PUDDLES_VS()
-  ENABLE_ASSERT(ps)
 
   hlsl(ps) {
 

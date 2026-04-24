@@ -5,6 +5,7 @@
 #include <string.h>
 #define ENET_BUILDING_LIB 1
 #include "enet/enet.h"
+#include "enet/enet_dagor.h"
 
 /** @defgroup peer ENet peer functions 
     @{
@@ -453,26 +454,6 @@ enet_peer_ping (ENetPeer * peer)
     enet_peer_queue_outgoing_command (peer, & command, NULL, 0, 0);
 }
 
-/** Sends a ping_target request to a peer.
-    @param peer destination for the ping request
-    @param port destination for the answer unreliable message
-    @remarks meant for relay NAT punchthrough, it asks remote peer to send message to target port on this host
-*/
-void
-enet_peer_ping_target_request (ENetPeer * peer, enet_uint16 port)
-{
-    ENetProtocol command;
-
-    if (peer -> state != ENET_PEER_STATE_CONNECTED)
-      return;
-
-    command.header.command = ENET_PROTOCOL_COMMAND_PING_TARGET_PORT_FOR_RELAY;
-    command.header.channelID = 0xFF;
-    command.pingTargetPortForRelay.port = port;
-
-    enet_peer_queue_outgoing_command (peer, & command, NULL, 0, 0);
-}
-
 /** Sets the interval at which pings will be sent to a peer. 
     
     Pings are used both to monitor the liveness of the connection and also to dynamically
@@ -737,7 +718,9 @@ enet_peer_dispatch_incoming_unreliable_commands (ENetPeer * peer, ENetChannel * 
     {
        ENetIncomingCommand * incomingCommand = (ENetIncomingCommand *) currentCommand;
 
-       if ((incomingCommand -> command.header.command & ENET_PROTOCOL_COMMAND_MASK) == ENET_PROTOCOL_COMMAND_SEND_UNSEQUENCED)
+       if ((incomingCommand -> command.header.command & ENET_PROTOCOL_COMMAND_MASK) == ENET_PROTOCOL_COMMAND_SEND_UNSEQUENCED
+           _DAGOR_ENET_EXTRA_UNSEQUENCED_DISPATCH_SKIP(incomingCommand -> command.header.command)
+          )
          continue;
 
        if (incomingCommand -> reliableSequenceNumber == channel -> incomingReliableSequenceNumber)
@@ -863,7 +846,9 @@ enet_peer_queue_incoming_command (ENetPeer * peer, const ENetProtocol * command,
     if (peer -> state == ENET_PEER_STATE_DISCONNECT_LATER)
       goto discardCommand;
 
-    if ((command -> header.command & ENET_PROTOCOL_COMMAND_MASK) != ENET_PROTOCOL_COMMAND_SEND_UNSEQUENCED)
+    if ((command -> header.command & ENET_PROTOCOL_COMMAND_MASK) != ENET_PROTOCOL_COMMAND_SEND_UNSEQUENCED
+        _DAGOR_ENET_EXTRA_SEQUENCED_COMMANDS_CHECK(command -> header.command)
+       )
     {
         reliableSequenceNumber = command -> header.reliableSequenceNumber;
         reliableWindow = reliableSequenceNumber / ENET_PEER_RELIABLE_WINDOW_SIZE;
@@ -953,6 +938,7 @@ enet_peer_queue_incoming_command (ENetPeer * peer, const ENetProtocol * command,
     case ENET_PROTOCOL_COMMAND_SEND_UNSEQUENCED:
        currentCommand = enet_list_end (& channel -> incomingUnreliableCommands);
        break;
+    _DAGOR_ENET_INJECT_QUEUE_INCOMING_UNCONNECTED_CASE
 
     default:
        goto discardCommand;

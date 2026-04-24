@@ -41,7 +41,7 @@ function set_setting_by_blk_path(path, val) {
 }
 
 return {
-  save_settings = @() null
+  save_settings = @(_apply_settings=false) null
   save_changed_settings = @(_settings) null
   get_setting_by_blk_path
   set_setting_by_blk_path

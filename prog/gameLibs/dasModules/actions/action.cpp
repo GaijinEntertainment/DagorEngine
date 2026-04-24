@@ -26,6 +26,7 @@ struct EntityActionAnnotation : das::ManagedStructureAnnotation<EntityAction, fa
     addField<DAS_BIND_MANAGED_FIELD(propsId)>("propsId");
     addField<DAS_BIND_MANAGED_FIELD(varId)>("varId");
     addField<DAS_BIND_MANAGED_FIELD(blocksSprint)>("blocksSprint");
+    addField<DAS_BIND_MANAGED_FIELD(isAnimStateFullBody)>("isAnimStateFullBody");
     addField<DAS_BIND_MANAGED_FIELD(name)>("name");
     addField<DAS_BIND_MANAGED_FIELD(classHash)>("classHash");
   }

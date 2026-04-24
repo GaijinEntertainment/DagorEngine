@@ -25,6 +25,8 @@ void ban_player_in_room(matching::UserId user_id);
 void on_level_loaded();
 int get_room_members_count();
 const char *get_player_custom_info(matching::UserId uid);
+matching::RoomId get_current_room_id();
+eastl::string get_current_cluster();
 
 const eastl::unordered_map<matching::UserId, Json::Value> &get_session_players();
 

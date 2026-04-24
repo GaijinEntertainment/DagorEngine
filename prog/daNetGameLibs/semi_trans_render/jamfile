@@ -9,6 +9,8 @@ AddIncludes =
   $(Root)/prog/daNetGameLibs
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/daNetGame
+  $(Root)/prog/engine
+  $(Root)/prog/engine/sharedInclude
 ;
 
 

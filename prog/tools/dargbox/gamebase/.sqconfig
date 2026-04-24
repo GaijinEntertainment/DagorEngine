@@ -2,6 +2,7 @@
 mount = sqstd=../../../scripts/sq/std
 mount = darg=../../../scripts/sq/daRg
 base_path = ../../../scripts/sq/stubs/
+base_path = ../stubs/
 base_path = .
 
 use_real_root = no

@@ -50,7 +50,7 @@ BhvProjection::BhvProjection() : Behavior(darg::Behavior::STAGE_BEFORE_RENDER, 0
 
 
 template <typename Callable>
-static void visibility_ecs_query(ecs::EntityId eid, Callable c);
+static void visibility_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 
 int BhvProjection::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt*/)
@@ -142,10 +142,11 @@ int BhvProjection::update(UpdateStage /*stage*/, darg::Element *elem, float /*dt
 
     bool itemVisible = false;
     bool animcharVisible = false;
-    visibility_ecs_query(eid, [&](const bool *item__visibleCached, const bool *item__visible, bool animchar__visible = true) {
-      itemVisible = item__visibleCached ? *item__visibleCached : item__visible ? *item__visible : true;
-      animcharVisible = animchar__visible;
-    });
+    visibility_ecs_query(*g_entity_mgr, eid,
+      [&](const bool *item__visibleCached, const bool *item__visible, bool animchar__visible = true) {
+        itemVisible = item__visibleCached ? *item__visibleCached : item__visible ? *item__visible : true;
+        animcharVisible = animchar__visible;
+      });
 
     if (eid == ecs::INVALID_ENTITY_ID || alwaysVisible || itemVisible)
     {

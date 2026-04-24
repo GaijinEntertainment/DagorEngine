@@ -7,6 +7,7 @@ return {
   YU2_UPDATE = "YU2_UPDATE"
   YU2_WRONG_PAYMENT = "YU2_WRONG_PAYMENT"
   YU2_ALREADY = "YU2_ALREADY"
+  YU2_TIMEOUT = "YU2_TIMEOUT"
 
   status_string = @(...) ""
   status_string_full = @(i) assert(type(i) == "integer") ?? ""
@@ -35,4 +36,9 @@ return {
   login_2step = @(params, id) assert(type(params)=="table" && type(id)=="string")
   login = @(params, id) assert(type(params)=="table" && type(id)=="string")
   login_guest = @(...) null
+  get_web_login_session_id = @(id) type(id)=="string"
+  login_web = @(params, id) assert(type(params)=="table" && type(id)=="string")
+  set_login_web_timeout = @(delay) assert(type(delay) == "integer" || type(delay) == "float")
+  get_2step_external = @() { external = false, gj_pass = false, wt_assist = false, email = false }
+  get_2step_external_code = @(eventId) assert(type(eventId)=="string")
 }

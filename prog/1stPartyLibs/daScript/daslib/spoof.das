@@ -6,6 +6,12 @@ options strict_smart_pointers = true
 
 module spoof shared private
 
+//! String-based macro invocation framework.
+//!
+//! ``spoof`` parses a string-encoded function invocation and generates
+//! the corresponding AST at compile time. Enables dynamic dispatch
+//! patterns where call targets are assembled from strings.
+
 require daslib/ast_boost
 require peg/peg
 require strings
@@ -16,43 +22,43 @@ let SPOOF_SPEFICAL = '%'
 def spoof_args(invocation : string; blk : block<(var res : array<tuple<string; string>>; errors : array<ParsingError>) : void>) {
     parse(invocation) {
         var element_list : array<tuple<string; string>>
-        rule(WS, "(", WS, *comma_separated_elements as els, WS, element as last, WS, ")") <| $() {
+        rule(WS, "(", WS, *comma_separated_elements as els, WS, element as last, WS, ")") {
             els |> push <| last
             return <- els
         }
         var comma_separated_elements : tuple<string; string>
-        rule(WS, element as e, WS, ",") <| $() {
+        rule(WS, element as e, WS, ",") {
             return e
         }
         var element : tuple<string; string>
-        rule(ident_ as e, WS, "=", WS, element_value as v) <| $() {
+        rule(ident_ as e, WS, "=", WS, element_value as v) {
             return (e, v)
         }
-        rule(ident_ as e) <| $() {
+        rule(ident_ as e) {
             return (e, "")
         }
         var sub_element : string
-        rule("\\", "{set(0..255)}" as Ch) <| $() {    // escape
+        rule("\\", "{set(0..255)}" as Ch) {    // escape
             return string(Ch)
         }
-        rule("#", string_ as e, commit) <| $() {      // contents of the string (do we need unescape?)
+        rule("#", string_ as e, commit) {      // contents of the string (do we need unescape?)
             return e
         }
-        rule(string_ as e, commit) <| $() {           // "e"
+        rule(string_ as e, commit) {           // "e"
             return "\"{e}\""
         }
-        rule("(", element as e, ")") <| $() {         // (e)
+        rule("(", element as e, ")") {         // (e)
             return "({e})"
         }
-        rule("{not_set(')',',')}" as e) <| $() {      // any character except ')' and ','
+        rule("{not_set(')',',')}" as e) {      // any character except ')' and ','
             return e
         }
         var element_value : string
-        rule(sub_element as head, *sub_element as tail) <| $() {
+        rule(sub_element as head, *sub_element as tail) {
             return head + tail |> join("")
         }
         var ident_ : string
-        rule("{set('a'..'z','A'..'Z','_')}" as fc, "{*set('a'..'z','A'..'Z','_','0'..'9')}" as tail) <| $() {
+        rule("{set('a'..'z','A'..'Z','_')}" as fc, "{*set('a'..'z','A'..'Z','_','0'..'9')}" as tail) {
             return fc + tail
         }
     }
@@ -78,7 +84,7 @@ def next_ident(var it : iterator<int>; var Ch : int&; var ident : string&) : boo
 def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<result : string; ok : bool> {
     var args : array<tuple<argName : string; init : string>>
     var error = "no arguments found"
-    spoof_args(temp) <| $(res, errors) {
+    spoof_args(temp) $(res, errors) {
         if (errors |> length > 0) {
             error = errors |> join("\n")
         } else {
@@ -124,10 +130,11 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
         if (Ch == SPOOF_SPEFICAL) {
             var ident : string
             if (next_ident(it, Ch, ident)) {
-                var index = args |> find_index_if <| $(k) {
+                var index = args |> find_index_if() $(k) {
                     return k.argName == ident
                 }
                 if (index != -1) {
+                    result |> reserve(length(result) + length(instance_arguments[index]))
                     for (c in instance_arguments[index]) {
                         result |> push(uint8(c))
                     }
@@ -153,6 +160,7 @@ def instance_spoof(temp : string; passed_arguments : array<string>) : tuple<resu
 
 [reader_macro(name="spoof_template")]
 class SpoofTemplateReader : AstReaderMacro {
+    //! Reader macro that parses spoof template definitions.
     def override accept(prog : ProgramPtr; mod : Module?; var expr : ExprReader?; ch : int; info : LineInfo) : bool {
         if (ch != '\r') {
             append(expr.sequence, ch)
@@ -172,6 +180,7 @@ class SpoofTemplateReader : AstReaderMacro {
 }
 
 struct SpoofInvocation {
+    //! Describes a spoof template invocation with arguments.
     varName : string
     args : array<string>
 }
@@ -179,50 +188,50 @@ struct SpoofInvocation {
 def instance_args(invocation : string; blk : block<(var res : SpoofInvocation; errors : array<ParsingError>) : void>) {
     parse(invocation) {
         var macro_invocation : SpoofInvocation
-        rule(WS, class_name as cn, WS, "(", element_list as el, WS, ")") <| $() {
+        rule(WS, class_name as cn, WS, "(", element_list as el, WS, ")") {
             return <- SpoofInvocation(varName = cn, args <- el)
         }
-        rule(WS, class_name as cn, WS, "(", WS, ")") <| $() {
+        rule(WS, class_name as cn, WS, "(", WS, ")") {
             return <- SpoofInvocation(varName = cn)
         }
         var element_list : array<string>
-        rule(*comma_separated_elements as els, WS, element as last) <| $() {
+        rule(*comma_separated_elements as els, WS, element as last) {
             els |> push <| last
             return <- els
         }
         var comma_separated_elements : string
-        rule(WS, element as e, ",") <| $() {
+        rule(WS, element as e, ",") {
             return e
         }
         var sub_element : string
-        rule("\\", "{set(0..255)}" as Ch) <| $() {    // escape
+        rule("\\", "{set(0..255)}" as Ch) {    // escape
             return string(Ch)
         }
-        rule("#", string_ as e, commit) <| $() {      // contents of the string (do we need unescape?)
+        rule("#", string_ as e, commit) {      // contents of the string (do we need unescape?)
             return e
         }
-        rule(string_ as e, commit) <| $() {           // "e"
+        rule(string_ as e, commit) {           // "e"
             return "\"{e}\""
         }
-        rule("(", element as e, ")") <| $() {         // (e)
+        rule("(", element as e, ")") {         // (e)
             return "({e})"
         }
-        rule("{not_set(')',',')}" as e) <| $() {      // any character except ')' and ','
+        rule("{not_set(')',',')}" as e) {      // any character except ')' and ','
             return e
         }
         var element : string
-        rule(sub_element as head, *sub_element as tail) <| $() {
+        rule(sub_element as head, *sub_element as tail) {
             return head + tail |> join("")
         }
         var class_name : string
-        rule(WS, "{ident_}" as scope, "::", "{ident_}" as id) <| $() {
+        rule(WS, "{ident_}" as scope, "::", "{ident_}" as id) {
             return scope + "::" + id
         }
-        rule(WS, ident_ as id) <| $() {
+        rule(WS, ident_ as id) {
             return id
         }
         var ident_ : string
-        rule("{set('a'..'z','A'..'Z','_')}" as fc, "{*set('a'..'z','A'..'Z','_','0'..'9')}" as tail) <| $() {
+        rule("{set('a'..'z','A'..'Z','_')}" as fc, "{*set('a'..'z','A'..'Z','_','0'..'9')}" as tail) {
             return fc + tail
         }
     }
@@ -230,6 +239,7 @@ def instance_args(invocation : string; blk : block<(var res : SpoofInvocation; e
 
 [reader_macro(name="spoof_instance")]
 class SpoofInstanceReader : AstReaderMacro {
+    //! Reader macro that instantiates a spoof template.
     def override accept(prog : ProgramPtr; mod : Module?; var expr : ExprReader?; ch : int; info : LineInfo) : bool {
         if (ch != '\r') {
             append(expr.sequence, ch)
@@ -247,7 +257,7 @@ class SpoofInstanceReader : AstReaderMacro {
         outLine = int(info.line)
         var iargs : SpoofInvocation
         var failed = false
-        instance_args(string(expr.sequence)) <| $(res, errors) {
+        instance_args(string(expr.sequence)) $(res, errors) {
             if (errors |> length > 0) {
                 let all_errors = errors |> join("\n")
                 prog |> macro_error(info, all_errors)
@@ -259,7 +269,7 @@ class SpoofInstanceReader : AstReaderMacro {
         return "" if (failed)
         // lets find the variable for the template
         var inscope vptr : VariablePtr
-        find_matching_variable(get_ptr(prog), null, iargs.varName, false) <| $(vars) {
+        find_matching_variable(get_ptr(prog), null, iargs.varName, false) $(vars) {
             if (vars |> length == 0) {
                 prog |> macro_error(info, "no matching variable found for {iargs.varName}")
                 return

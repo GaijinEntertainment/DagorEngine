@@ -4,11 +4,14 @@ require DagorMath
 require soundEvent
 require soundSystem
 require gpuReadbackQuery
-require danetlibs.renderer.includes.pufd_events
+require gameLibs.pufd_events.pufd_events
 
 
 def invalid_query_id()
   return -1
+
+def is_valid_query_id(query_id : int)
+  return query_id != invalid_query_id()
 
 
 [es(tag=sound, on_appear)]
@@ -43,7 +46,7 @@ def biome_sound_query_update(info : ParallelUpdateFrameDelayed;
     biome_sound_query__id = biome_query_start(get_listener_pos(), biome_sound_query__range)
     biome_sound_query__nextQueryTime = info.curTime + biome_sound_query__period
 
-  if biome_sound_query__id >= 0
+  if is_valid_query_id(biome_sound_query__id)
     var result = BiomeQueryResult()
     let state = biome_query_result(biome_sound_query__id, result)
 

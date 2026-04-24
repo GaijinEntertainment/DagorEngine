@@ -1,18 +1,25 @@
 #pragma once
 
+#include "daScript/misc/platform.h"
 namespace das {
 
     class Context;
     struct LineInfo;
 
     // todo: support hex
-    struct StringWriterTag {};
-    extern StringWriterTag HEX;
-    extern StringWriterTag DEC;
-    extern StringWriterTag FIXEDFP;
-    extern StringWriterTag SCIENTIFIC;
+    struct StringWriterTag {
+        StringWriterTag() = default;
+        StringWriterTag(const StringWriterTag&) = delete;
+        StringWriterTag& operator=(const StringWriterTag&) = delete;
+        StringWriterTag(StringWriterTag&&) = delete;
+        StringWriterTag& operator=(StringWriterTag&&) = delete;
+    };
+    DAS_API extern StringWriterTag HEX;
+    DAS_API extern StringWriterTag DEC;
+    DAS_API extern StringWriterTag FIXEDFP;
+    DAS_API extern StringWriterTag SCIENTIFIC;
 
-    class StringWriter {
+    class DAS_API StringWriter {
     public:
         virtual ~StringWriter() {}
         virtual string str() const = 0;
@@ -49,7 +56,7 @@ namespace das {
     #define DAS_SMALL_BUFFER_SIZE   4096
     #endif
 
-    class FixedBufferTextWriter : public StringWriter {
+    class DAS_API FixedBufferTextWriter : public StringWriter {
     public:
         virtual string str() const override;
         virtual uint64_t tellp() const override;
@@ -65,7 +72,7 @@ namespace das {
     #define DAS_STRING_BUILDER_BUFFER_SIZE   256
     #endif
 
-    class TextWriter : public StringWriter {
+    class DAS_API TextWriter : public StringWriter {
     public:
         TextWriter() {}
 
@@ -97,7 +104,7 @@ namespace das {
         int32_t capacity = DAS_STRING_BUILDER_BUFFER_SIZE;
     };
 
-    class TextPrinter : public TextWriter {
+    class DAS_API TextPrinter : public TextWriter {
     public:
         TextPrinter() {}
         virtual void output() override;
@@ -130,27 +137,17 @@ namespace das {
         debug       = 10000,
         defaultPrint = debug,
 
-        // TRACE - information useful for developers of subsystems, libraries, daScript etc.
+        // TRACE - information useful for developers of subsystems, libraries, daslang etc.
         // For example: application activation/deactivation, key pressed, texture loaded from a file, sound file loaded.
         trace       = 0,
     };
 
     const char * getLogMarker(int level);
-    void logger ( int level, const char *marker, const char * text, Context * context, LineInfo * at );
 
-    class LOG : public TextWriter {
+    class DAS_API LOG : public TextWriter {
     public:
         LOG ( int level = LogLevel::debug ) : logLevel(level) {}
-        virtual void output() override {
-            auto newPos = tellp();
-            if (newPos != pos) {
-                string st(data() + pos, newPos - pos);
-                logger(logLevel, useMarker ? getLogMarker(logLevel) : "", st.c_str(), /*ctx*/nullptr, /*at*/nullptr);
-                useMarker = false;
-                clear();
-                pos = newPos = 0;
-            }
-        }
+        virtual void output() override;
     protected:
         uint64_t pos = 0;
         int logLevel = LogLevel::debug;

@@ -4,7 +4,9 @@
 //
 #pragma once
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/entityId.h>
 #include <daECS/core/event.h>
 

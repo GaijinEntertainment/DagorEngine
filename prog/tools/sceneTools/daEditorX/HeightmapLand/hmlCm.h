@@ -102,6 +102,87 @@ enum
   CM_MOVE_TO_LAYER_LAST = CM_MOVE_TO_LAYER_FIRST + 100,
 };
 
+namespace EditorCommandIds
+{
+
+static constexpr const char *SPLINE_REGEN = "Plugin.Landscape.SplineRegen";
+static constexpr const char *SPLINE_REGEN_CTRL = "Plugin.Landscape.SplineRegenCtrl";
+static constexpr const char *REBUILD_SPLINES_BITMASK = "Plugin.Landscape.RebuildSplinesBitmask";
+static constexpr const char *SELECT_PT = "Plugin.Landscape.Select.Points";
+static constexpr const char *SELECT_SPLINES = "Plugin.Landscape.Select.Splines";
+static constexpr const char *SELECT_ENT = "Plugin.Landscape.Select.Entities";
+static constexpr const char *SELECT_LT = "Plugin.Landscape.Select.Lights";
+static constexpr const char *SELECT_SNOW = "Plugin.Landscape.Select.Snow";
+static constexpr const char *SELECT_NONE = "Plugin.Landscape.Select.None";
+static constexpr const char *SELECT_SPL_ENT = "Plugin.Landscape.Select.SplinesAndEntities";
+static constexpr const char *HIDE_SPLINES = "Plugin.Landscape.HideSplines";
+static constexpr const char *SHOW_PHYSMAT = "Plugin.Landscape.ShowPhysmat";
+static constexpr const char *SHOW_PHYSMAT_COLORS = "Plugin.Landscape.ShowPhysmatColor";
+static constexpr const char *USE_PIXEL_PERFECT_SELECTION = "Plugin.Landscape.UsePixelPerfectSelection";
+static constexpr const char *SELECT_ONLY_IF_ENTIRE_OBJECT_IN_RECT = "Plugin.Landscape.SelectOnlyIfEntireObjectInRectangle";
+static constexpr const char *CREATE_ENTITY = "Plugin.Landscape.Create.Entity";
+static constexpr const char *ROTATION_NONE = "Plugin.Landscape.NoRotation";
+static constexpr const char *ROTATION_X = "Plugin.Landscape.XToNormal";
+static constexpr const char *ROTATION_Y = "Plugin.Landscape.YToNormal";
+static constexpr const char *ROTATION_Z = "Plugin.Landscape.ZToNormal";
+static constexpr const char *CREATE_SPLINE = "Plugin.Landscape.Create.Spline";
+static constexpr const char *CREATE_POLYGON = "Plugin.Landscape.Create.Polygon";
+static constexpr const char *CREATE_SNOW_SOURCE = "Plugin.Landscape.Create.SnowSource";
+static constexpr const char *REFINE_SPLINE = "Plugin.Landscape.RefineSpline";
+static constexpr const char *SPLIT_SPLINE = "Plugin.Landscape.SplitSpline";
+static constexpr const char *SPLIT_POLY = "Plugin.Landscape.SplitPoly";
+static constexpr const char *REVERSE_SPLINE = "Plugin.Landscape.ReverseSpline";
+static constexpr const char *CLOSE_SPLINE = "Plugin.Landscape.CloseSelectedSpline";
+static constexpr const char *OPEN_SPLINE = "Plugin.Landscape.OpenSplineAtSelectedPoint";
+static constexpr const char *MANUAL_SPLINE_REGEN_MODE = "Plugin.Landscape.UseManualObjGeomUpdateForSplinePoly";
+
+static constexpr const char *CREATE_HEIGHTMAP = "Plugin.Landscape.CreateHeightmap";
+static constexpr const char *IMPORT_HEIGHTMAP = "Plugin.Landscape.ImportHeightmap";
+static constexpr const char *ERASE_HEIGHTMAP = "Plugin.Landscape.EraseHeightmap";
+static constexpr const char *IMPORT_WATER_DET_HMAP = "Plugin.Landscape.ImportWaterDetHmap";
+static constexpr const char *IMPORT_WATER_MAIN_HMAP = "Plugin.Landscape.ImportWaterMainHmap";
+static constexpr const char *ERASE_WATER_HEIGHTMAPS = "Plugin.Landscape.EraseWaterHeightmaps";
+static constexpr const char *REIMPORT = "Plugin.Landscape.Reimport";
+static constexpr const char *RESCALE_HMAP = "Plugin.Landscape.RescaleHeightmap";
+static constexpr const char *MOVE_OBJECTS = "Plugin.Landscape.MoveObjects";
+static constexpr const char *BUILD_COLORMAP = "Plugin.Landscape.BuildColormap";
+static constexpr const char *BUILD_LIGHTMAP = "Plugin.Landscape.RebuildLighting";
+static constexpr const char *REBUILD_RIVERS = "Plugin.Landscape.RebuildRivers";
+static constexpr const char *EXPORT_AS_COMPOSIT = "Plugin.Landscape.ExportAsComposit";
+static constexpr const char *SPLIT_COMPOSIT = "Plugin.Landscape.SplitComposit";
+static constexpr const char *INSTANTIATE_GENOBJ_INTO_ENTITIES = "Plugin.Landscape.InstantiateGenObjectsIntoEntities";
+static constexpr const char *EXPORT_LAND_TO_GAME = "Plugin.Landscape.ExportLandToGame";
+static constexpr const char *EXPORT_HEIGHTMAP = "Plugin.Landscape.ExportHeightmap";
+static constexpr const char *EXPORT_COLORMAP = "Plugin.Landscape.ExportColormap";
+static constexpr const char *EXPORT_LAYERS = "Plugin.Landscape.ExportLandClassLayers";
+static constexpr const char *EXPORT_LOFT_MASKS = "Plugin.Landscape.ExportLoftMasks";
+static constexpr const char *SPLINE_IMPORT_FROM_DAG = "Plugin.Landscape.ImportFromDag";
+static constexpr const char *SPLINE_EXPORT_TO_DAG = "Plugin.Landscape.ExportToDag";
+static constexpr const char *UNIFY_OBJ_NAMES = "Plugin.Landscape.UnifyObjectNames";
+static constexpr const char *SET_PT_VIS_DIST = "Plugin.Landscape.SetSplinePointsVisibilityRange";
+static constexpr const char *AUTO_ATACH = "Plugin.Landscape.AutoAttachSplines";
+static constexpr const char *MAKE_SPLINES_CROSSES = "Plugin.Landscape.MakeCrosspointsForSplines";
+static constexpr const char *MAKE_BOTTOM_SPLINES = "Plugin.Landscape.MakeBottomSplinesForPolygons";
+
+static constexpr const char *TOGGLE_PROPERTIES_AND_OBJECT_PROPERTIES = "Plugin.Landscape.TogglePropertiesAndObjectProperties";
+
+static constexpr const char *DECREASE_BRUSH_SIZE = "Plugin.Landscape.DecreaseBrushSize";
+static constexpr const char *INCREASE_BRUSH_SIZE = "Plugin.Landscape.IncreaseBrushSize";
+static constexpr const char *COMMIT_HM_CHANGES = "Plugin.Landscape.SaveHeightmapChanges";
+static constexpr const char *RESTORE_HM_BACKUP = "Plugin.Landscape.RevertHeightmapChanges";
+static constexpr const char *HIDE_UNSELECTED_SPLINES = "Plugin.Landscape.HideUnselectedSplines";
+static constexpr const char *UNHIDE_ALL_SPLINES = "Plugin.Landscape.UnhideAllSplines";
+static constexpr const char *COLLAPSE_MODIFIERS = "Plugin.Landscape.CollapseModifiers";
+static constexpr const char *REBUILD = "Plugin.Landscape.Rebuild";
+static constexpr const char *HILL_UP = "Plugin.Landscape.HillUp";
+static constexpr const char *HILL_DOWN = "Plugin.Landscape.HillDown";
+static constexpr const char *ALIGN = "Plugin.Landscape.Align";
+static constexpr const char *SMOOTH = "Plugin.Landscape.Smooth";
+static constexpr const char *SHADOWS = "Plugin.Landscape.Shadows";
+static constexpr const char *SCRIPT = "Plugin.Landscape.Script";
+
+} // namespace EditorCommandIds
+
 // settings
 enum
 {
@@ -277,6 +358,8 @@ enum
   PID_RENDER_RADIOGROUP_HM,
   PID_RENDER_INITIAL_HM,
   PID_RENDER_FINAL_HM,
+  PID_RENDER_HM_METRICS,
+  PID_RENDER_HM_MIRROR,
   PID_RENDER_DEBUG_LINES,
   PID_RENDER_ALL_SPLINES_ALWAYS,
   PID_RENDER_SEL_SPLINES_ALWAYS,
@@ -345,9 +428,6 @@ enum
   PID_CANYON_FADE_ANGLE,
 
   PID_SCRIPT_PARAMS_GRP,
-  PID_SCRIPT_FILE,
-  PID_RESET_SCRIPT,
-  PID_RELOAD_SCRIPT,
   PID_GENERATE_COLORMAP,
   PID_IMPORT_SCRIPT_IMAGE,
   PID_CREATE_MASK,

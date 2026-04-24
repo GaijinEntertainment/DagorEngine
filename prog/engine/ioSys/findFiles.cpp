@@ -14,31 +14,25 @@ static void find_real_files_in_folder(Tab<SimpleString> &out_list, const char *d
   bool subdirs)
 {
   String tmpPath(0, "%s%s*%s", dir_path, *dir_path ? "/" : "", file_suffix_to_match);
-  alefind_t ff;
-  if (::dd_find_first(tmpPath, 0, &ff))
+
+  for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_FILE))
   {
-    do
-      out_list.push_back() = String(0, "%s/%s", *dir_path ? dir_path : ".", ff.name);
-    while (dd_find_next(&ff));
-    dd_find_close(&ff);
+    out_list.push_back() = String(0, "%s/%s", *dir_path ? dir_path : ".", ff.name);
   }
 
   if (subdirs)
   {
     tmpPath.printf(0, "%s%s*", dir_path, *dir_path ? "/" : "");
-    if (::dd_find_first(tmpPath, DA_SUBDIR, &ff))
+    for (const alefind_t &ff : dd_find_iterator(tmpPath, DA_SUBDIR))
     {
-      do
-        if (ff.attr & DA_SUBDIR)
-        {
-          if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0 || dd_stricmp(ff.name, ".git") == 0 ||
-              dd_stricmp(ff.name, ".") == 0 || dd_stricmp(ff.name, "..") == 0)
-            continue;
+      if (ff.attr & DA_SUBDIR)
+      {
+        if (dd_stricmp(ff.name, "cvs") == 0 || dd_stricmp(ff.name, ".svn") == 0 || dd_stricmp(ff.name, ".git") == 0 ||
+            dd_stricmp(ff.name, ".") == 0 || dd_stricmp(ff.name, "..") == 0)
+          continue;
 
-          find_real_files_in_folder(out_list, String(0, "%s/%s", dir_path, ff.name), file_suffix_to_match, true);
-        }
-      while (dd_find_next(&ff));
-      dd_find_close(&ff);
+        find_real_files_in_folder(out_list, String(0, "%s/%s", dir_path, ff.name), file_suffix_to_match, true);
+      }
     }
   }
 }

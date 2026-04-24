@@ -1,0 +1,1 @@
+Smart pointer to a `ForLoopMacro` object. Used for registering and managing custom for-loop macros.

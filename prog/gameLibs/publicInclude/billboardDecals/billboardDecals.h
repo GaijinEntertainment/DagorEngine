@@ -61,6 +61,7 @@ protected:
   Ptr<ComputeShaderElement> holesGenerator;
   Ptr<ComputeShaderElement> clearSphereShader;
   UniqueBuf holesInstances;
+  Sbuffer *holesToUpdateBuf = nullptr;
   StaticTab<BillboardToUpdate, MAX_DECALS_TO_UPDATE> holesToUpdate;
   dag::RelocatableFixedVector<Point4, MAX_SPHERES_TO_CLEAR> spheresToClear; // (pos.xyz, radius)
 

@@ -1,8 +1,9 @@
 #pragma once
 
 #include "daScript/ast/ast_typefactory.h"
+#include "daScript/simulate/jit_abi.h"
 #include "daScript/misc/free_list.h"
-#include <limits.h> // ULLONG_MAX
+#include <limits.h> // ULONG_MAX
 
 namespace das {
 
@@ -37,7 +38,7 @@ namespace das {
 
     struct AstSerializer;
 
-    struct TypeDecl : ptr_ref_count {
+    struct DAS_API TypeDecl : ptr_ref_count {
         enum {
             dimAuto = -1,
             dimConst = -2,
@@ -125,20 +126,27 @@ namespace das {
         __forceinline bool isMoveableValue() const;
         int getSizeOf() const;
         uint64_t getSizeOf64() const;
+        uint64_t getSizeOf64(bool & failed) const;
         int getCountOf() const;
         uint64_t getCountOf64() const;
         int getAlignOf() const;
+        int getAlignOfFailed(bool & failed) const;
         int getBaseSizeOf() const;
         uint64_t getBaseSizeOf64() const;
+        uint64_t getBaseSizeOf64(bool & failed) const;
         int getStride() const;
         uint64_t getStride64() const;
         int getTupleSize() const;
         uint64_t getTupleSize64() const;
+        uint64_t getTupleSize64(bool & failed) const;
         int getTupleAlign() const;
+        int getTupleAlignFailed(bool & failed) const;
         int getTupleFieldOffset ( int index ) const;
         int getVariantSize() const;
         uint64_t getVariantSize64() const;
+        uint64_t getVariantSize64(bool & failed) const;
         int getVariantAlign() const;
+        int getVariantAlignFailed(bool & failed) const;
         int getVariantFieldOffset ( int index ) const;
         int getVariantUniqueFieldIndex ( const TypeDeclPtr & uniqueType ) const;
         int getVectorFieldOffset ( int index ) const;
@@ -185,8 +193,6 @@ namespace das {
         bool hasClasses( das_set<Structure*> & dep ) const;
         int32_t gcFlags() const;
         int32_t gcFlags( das_set<Structure *> & dep, das_set<Annotation *> & depA ) const;
-        bool lockCheck() const;
-        bool lockCheck( das_set<Structure *> & dep ) const;
         bool hasNonTrivialCtor() const;
         bool hasNonTrivialCtor( das_set<Structure*> & dep ) const;
         bool hasNonTrivialDtor() const;
@@ -222,7 +228,7 @@ namespace das {
         int variantFieldIndex( const string & name ) const;
         __forceinline int bitFieldIndex( const string & name ) const;
         void addVariant(const string & name, const TypeDeclPtr & tt);
-        string findBitfieldName ( uint32_t value ) const;
+        string findBitfieldName ( uint64_t value ) const;
         void collectAliasing ( TypeAliasMap & aliases, das_set<Structure *> & dep, bool viaPointer ) const;
         void collectContainerAliasing ( TypeAliasMap & aliases, das_set<Structure *> & dep, bool viaPointer ) const;
         void serialize ( AstSerializer & ser );
@@ -235,6 +241,8 @@ namespace das {
         void getLookupHash(uint64_t & hash) const;
         static void clone ( TypeDeclPtr & dest, const TypeDeclPtr & src );
         Type getR2VType() const;
+        int maxBitfieldBits() const;
+        LineInfo getDeclarationLocation() const;
     public:
         Type                    baseType = Type::tVoid;
         Structure *             structType = nullptr;
@@ -295,6 +303,9 @@ namespace das {
     };
 
     template<> struct ToBasicType<Bitfield>     { enum { type = Type::tBitfield }; };
+    template<> struct ToBasicType<Bitfield8>    { enum { type = Type::tBitfield8 }; };
+    template<> struct ToBasicType<Bitfield16>   { enum { type = Type::tBitfield16 }; };
+    template<> struct ToBasicType<Bitfield64>   { enum { type = Type::tBitfield64 }; };
     template<> struct ToBasicType<EnumStub>     { enum { type = Type::tEnumeration }; };
     template<> struct ToBasicType<EnumStub8>    { enum { type = Type::tEnumeration8 }; };
     template<> struct ToBasicType<EnumStub16>   { enum { type = Type::tEnumeration16 }; };
@@ -328,7 +339,7 @@ namespace das {
     template<> struct ToBasicType<long double>      { enum { type = Type::tDouble }; };
     template<> struct ToBasicType<wchar_t>          { enum { type = Type::tUInt16 }; };
 #endif
-#if !defined(_MSC_VER) && !defined(__APPLE__) && !defined(_EMSCRIPTEN_VER) && defined(ULLONG_MAX) && ULLONG_MAX == 0xffffffffffffffffULL
+#if !defined(_MSC_VER) && !defined(__APPLE__) && !defined(_EMSCRIPTEN_VER) && defined(ULONG_MAX) && ULONG_MAX == UINT64_MAX
     template<> struct ToBasicType<long long int>      { enum { type = Type::tInt64 }; };
     template<> struct ToBasicType<unsigned long long int>     { enum { type = Type::tUInt64 }; };
 #endif
@@ -658,7 +669,7 @@ namespace das {
         return tt;
     }
 
-    das::TypeDeclPtr makeHandleType(const das::ModuleLibrary & library, const char * typeName);
+    das::TypeDeclPtr DAS_API makeHandleType(const das::ModuleLibrary & library, const char * typeName);
 
     bool splitTypeName ( const string & name, string & moduleName, string & funcName );
 
@@ -672,7 +683,7 @@ namespace das {
     enum class CpptRedundantConst { no, yes };
     enum class ChooseSmartPtr { no, yes };
 
-    string describeCppType(const smart_ptr_raw<TypeDecl> & type,
+    string DAS_API describeCppType(const smart_ptr_raw<TypeDecl> & type,
                            CpptSubstitureRef substituteRef = CpptSubstitureRef::no,
                            CpptSkipRef skipRef = CpptSkipRef::no,
                            CpptSkipConst skipConst = CpptSkipConst::no,
@@ -800,7 +811,9 @@ namespace das {
     }
 
     __forceinline bool TypeDecl::isBitfield() const {
-        return (baseType==Type::tBitfield) && (dim.size()==0);
+        return ((baseType==Type::tBitfield) || (baseType==Type::tBitfield8) ||
+                (baseType==Type::tBitfield16) || (baseType==Type::tBitfield64))
+            && (dim.size()==0);
     }
 
     __forceinline bool TypeDecl::isIterator() const {

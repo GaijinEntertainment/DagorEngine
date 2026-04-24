@@ -103,7 +103,7 @@ namespace das
         const LineInfo * getLineInfo() const;
     };
 
-    struct SimNode {
+    struct DAS_API SimNode {
         SimNode ( const LineInfo & at ) : debugInfo(at) {}
         virtual SimNode * copyNode ( Context & context, NodeAllocator * code );
         DAS_EVAL_ABI virtual vec4f eval ( Context & ) = 0;
@@ -149,6 +149,13 @@ namespace das
                 const char * fileName;
                 LineInfo *   functionLine;
                 int32_t      stackSize;
+                union {
+                    uint32_t flags;
+                    // By default it's AOT Prologue.
+                    struct {
+                        bool is_jit : 1;
+                    };
+                };
             };
             struct {
                 vec4f *     arguments;
@@ -204,7 +211,6 @@ namespace das
         goto loopend; \
     } }
 
-#if DAS_ENABLE_EXCEPTIONS
     class dasException final : public std::exception {
     public:
         dasException ( const char * why, const LineInfo & at )
@@ -216,9 +222,8 @@ namespace das
         LineInfo exceptionAt;
         das::string exceptionWhat;
     };
-#endif
 
-    struct SimVisitor {
+    struct DAS_API SimVisitor {
         virtual void preVisit ( SimNode * ) { }
         virtual void cr () {}
         virtual void op ( const char * /* name */, uint32_t /* sz */ = 0, const string & /* TT */ = string() ) {}
@@ -242,7 +247,7 @@ namespace das
     void printSimNode ( TextWriter & ss, Context * context, SimNode * node, bool debugHash=false );
     class Function;
     void printSimFunction ( TextWriter & ss, Context * context, Function * fun, SimNode * node, bool debugHash=false );
-    uint64_t getSemanticHash ( SimNode * node, Context * context );
+    DAS_API uint64_t getSemanticHash ( SimNode * node, Context * context );
 
     class DebugAgent : public ptr_ref_count {
     public:
@@ -280,6 +285,7 @@ namespace das
         virtual bool canWalkOutOfScopeVariables() { return true; }
         virtual void onBeforeCall ( Prologue *, char * ) { }
         virtual void onCallAOT ( Prologue *, const char * ) { }
+        virtual void onCallJIT ( Prologue *, const char * ) { }
         virtual void onCallAt ( Prologue *, FuncInfo *, LineInfo * ) { }
         virtual void onCall ( Prologue *, FuncInfo * ) { }
         virtual void onAfterPrologue ( Prologue *, char * ) { }
@@ -287,6 +293,7 @@ namespace das
         virtual void onBeforeVariables ( ) { }
         virtual void onVariable ( FuncInfo *, LocalVariableInfo *, void *, bool ) { }
         virtual bool onAfterCall ( Prologue * ) { return true; }
+        virtual void onCorruptStack ( Prologue * ) { }
     };
     typedef smart_ptr<StackWalker> StackWalkerPtr;
 
@@ -308,7 +315,7 @@ namespace das
     struct CodeOfPolicies;
     struct AnnotationArgumentList;
 
-    class Context : public ptr_ref_count, public enable_shared_from_this<Context> {
+    class DAS_API Context : public ptr_ref_count, public enable_shared_from_this<Context> {
         template <typename TT> friend struct SimNode_GetGlobalR2V;
         friend struct SimNode_GetGlobal;
         template <typename TT> friend struct SimNode_GetSharedR2V;
@@ -324,6 +331,8 @@ namespace das
             uint32_t stackSize = 0;
         };
 
+        static constexpr uint32_t CONTEXT_MAGIC = 0xDA514C09;  // "das" + "ctx" + version
+        uint32_t context_magic = CONTEXT_MAGIC;
         Context(uint32_t stackSize = 16*1024, bool ph = false);
         Context(const Context &, uint32_t category_);
         Context(const Context & ctx, const CopyOptions & opts);
@@ -351,13 +360,10 @@ namespace das
         void onFree ( void * ptr, const LineInfo & at );
 
         __forceinline char * allocateIterator ( uint32_t size, const char * iterName, const LineInfo * at ) {
-            if ( instrumentAllocations ) {
-                auto aptr = heap->impl_allocateIterator(size, iterName);
-                onAllocate(aptr - 16, size + 16, at ? *at : LineInfo());
-                return aptr;
-            } else {
-                return heap->impl_allocateIterator(size, iterName);
-            }
+            auto aptr = heap->impl_allocateIterator(size, iterName);
+            if ( !aptr ) throw_out_of_memory(false, size + 16, at);
+            if ( instrumentAllocations ) onAllocate(aptr - 16, size + 16, at ? *at : LineInfo());
+            return aptr;
         }
 
         __forceinline void freeIterator ( char * ptr, const LineInfo * at ) {
@@ -366,23 +372,17 @@ namespace das
         }
 
         __forceinline char * allocate ( uint32_t size, const LineInfo * at = nullptr ) {
-            if ( instrumentAllocations ) {
-                auto aptr = heap->impl_allocate(size);
-                onAllocate(aptr, size, at ? *at : LineInfo());
-                return aptr;
-            } else {
-                return heap->impl_allocate(size);
-            }
+            auto aptr = heap->impl_allocate(size);
+            if ( !aptr && size ) throw_out_of_memory(false, size, at);
+            if ( instrumentAllocations ) onAllocate(aptr, size, at ? *at : LineInfo());
+            return aptr;
         }
 
         __forceinline char * reallocate ( char * ptr, uint32_t oldSize, uint32_t size, const LineInfo * at ) {
-            if ( instrumentAllocations ) {
-                auto aptr = heap->impl_reallocate(ptr, oldSize, size);
-                onReallocate(ptr, oldSize, aptr, size, at ? *at : LineInfo());
-                return aptr;
-            } else {
-                return heap->impl_reallocate(ptr, oldSize, size);
-            }
+            auto aptr = heap->impl_reallocate(ptr, oldSize, size);
+            if ( !aptr && size ) throw_out_of_memory(false, size, at);
+            if ( instrumentAllocations ) onReallocate(ptr, oldSize, aptr, size, at ? *at : LineInfo());
+            return aptr;
         }
 
         __forceinline void free ( char * ptr, uint32_t size, const LineInfo * at = nullptr ) {
@@ -391,23 +391,17 @@ namespace das
         }
 
         __forceinline char * allocateString ( const char * text, uint32_t length, const LineInfo * at, bool tempString = false ) {
-            if ( instrumentAllocations ) {
-                auto astr = stringHeap->impl_allocateString(this, text, length, at);
-                onAllocateString(astr, length, tempString, at ? *at : LineInfo());
-                return astr;
-            } else {
-                return stringHeap->impl_allocateString(this, text, length, at);
-            }
+            auto astr = stringHeap->impl_allocateString(this, text, length, at);
+            if ( !astr && length ) throw_out_of_memory(true, length+1, at);
+            if ( instrumentAllocations ) onAllocateString(astr, length, tempString, at ? *at : LineInfo());
+            return astr;
         }
 
         __forceinline char * allocateString ( const string & str, const LineInfo * at, bool tempString = false ) {
-            if ( instrumentAllocations ) {
-                auto astr = stringHeap->impl_allocateString(this, str.c_str(), uint32_t(str.size()), at);
-                onAllocateString(astr, str.size(), tempString, at ? *at : LineInfo());
-                return astr;
-            } else {
-                return stringHeap->impl_allocateString(this, str.c_str(), uint32_t(str.size()), at);
-            }
+            auto astr = stringHeap->impl_allocateString(this, str.c_str(), uint32_t(str.size()), at);
+            if ( !astr && str.size() ) throw_out_of_memory(true, uint32_t(str.size()+1), at);
+            if ( instrumentAllocations ) onAllocateString(astr, str.size(), tempString, at ? *at : LineInfo());
+            return astr;
         }
 
         __forceinline char * allocateTempString ( const char * text, uint32_t length, const LineInfo * at ) {
@@ -442,6 +436,10 @@ namespace das
 
         __forceinline VarInfo * getVariableInfo( int index ) const {
             return (uint32_t(index)<uint32_t(totalVariables)) ? globalVariables[index].debugInfo  : nullptr;;
+        }
+
+        __forceinline const GlobalVariable getGlobalVariable( int index ) const {
+            return globalVariables[index];
         }
 
         __forceinline void simEnd() {
@@ -830,6 +828,7 @@ namespace das
         bool                            gcEnabled = false;
         bool                            failed = false;
         bool                            verySafeContext = false;    // when true, array and table reserves don't free memory
+        bool                            sharedPtrContext = false;   // there is a shared ptr to this context
     public:
         string                          name;
         Bitfield                        category = 0;
@@ -857,13 +856,15 @@ namespace das
         bool    sharedOwner = true;
     public:
         SimNode * aotInitScript = nullptr;
-        bool skipLockChecks = false;
+        typedef void ( * JitInitScriptFn ) ( void * context );
+        JitInitScriptFn jitInitScript = nullptr;
     protected:
         void *          hwBpAddress = nullptr;
         const LineInfo * singleStepAt = nullptr;
         int32_t         hwBpIndex = -1;
-        bool            debugger = false;
         volatile bool   singleStepMode = false;
+    public:
+        bool            debugger = false;
     public:
         shared_ptr<das_hash_map<uint64_t,SimFunction *>> tabMnLookup;
         shared_ptr<das_hash_map<uint64_t,uint32_t>> tabGMnLookup;
@@ -885,31 +886,44 @@ namespace das
 #if DAS_ENABLE_SMART_PTR_TRACKING
         static vector<smart_ptr<ptr_ref_count>> sptrAllocations;
 #endif
+        // It's better to use shared memory + finalize for things like this.
+        struct JitContext {
+            void *shared_lib;
+            void *llvm_ee;
+            void *llvm_context;
+        };
+        JitContext deleteJITOnFinish = {};
         vector<FileInfo*>  deleteUponFinish;
     };
 
     struct DebugAgentInstance {
-        DebugAgentPtr   debugAgent;
         ContextPtr      debugAgentContext;
+        DebugAgentPtr   debugAgent;
+        ~DebugAgentInstance() {
+            // agent lives on the context heap, so it must be released before the context
+            debugAgent.reset();
+            debugAgentContext.reset();
+        }
     };
 
-    void tickDebugAgent ( );
-    void collectDebugAgentState ( Context & ctx, const LineInfo & at );
-    void onBreakpointsReset ( const char * file, int breakpointsNum );
-    void tickSpecificDebugAgent ( const char * name );
-    void installDebugAgent ( DebugAgentPtr newAgent, const char * category, LineInfoArg * at, Context * context );
-    void installThreadLocalDebugAgent ( DebugAgentPtr newAgent, LineInfoArg * at, Context * context );
-    void shutdownDebugAgent();
-    void shutdownThreadLocalDebugAgent();
-    void forkDebugAgentContext ( Func exFn, Context * context, LineInfoArg * lineinfo );
-    bool isInDebugAgentCreation();
-    bool hasDebugAgentContext ( const char * category, LineInfoArg * at, Context * context );
-    void lockDebugAgent ( const TBlock<void> & blk, Context * context, LineInfoArg * line );
-    Context & getDebugAgentContext ( const char * category, LineInfoArg * at, Context * context );
-    void onCreateCppDebugAgent ( const char * category, function<void (Context *)> && );
-    void onDestroyCppDebugAgent ( const char * category, function<void (Context *)> && );
-    void onLogCppDebugAgent ( const char * category, function<bool(Context *, const LineInfo * at, int, const char *)> && lmb );
-    void uninstallCppDebugAgent ( const char * category );
+    DAS_API void tickDebugAgent ( );
+    DAS_API void collectDebugAgentState ( Context & ctx, const LineInfo & at );
+    DAS_API void onBreakpointsReset ( const char * file, int breakpointsNum );
+    DAS_API void tickSpecificDebugAgent ( const char * name );
+    DAS_API void installDebugAgent ( DebugAgentPtr newAgent, const char * category, LineInfoArg * at, Context * context );
+    DAS_API void installThreadLocalDebugAgent ( DebugAgentPtr newAgent, LineInfoArg * at, Context * context );
+    DAS_API void shutdownDebugAgent();
+    DAS_API void shutdownThreadLocalDebugAgent();
+    DAS_API void deleteDebugAgent ( const char * category, LineInfoArg * at, Context * context );
+    DAS_API void forkDebugAgentContext ( Func exFn, Context * context, LineInfoArg * lineinfo );
+    DAS_API bool isInDebugAgentCreation();
+    DAS_API bool hasDebugAgentContext ( const char * category, LineInfoArg * at, Context * context );
+    DAS_API void lockDebugAgent ( const TBlock<void> & blk, Context * context, LineInfoArg * line );
+    DAS_API Context & getDebugAgentContext ( const char * category, LineInfoArg * at, Context * context );
+    DAS_API void onCreateCppDebugAgent ( const char * category, function<void (Context *)> && );
+    DAS_API void onDestroyCppDebugAgent ( const char * category, function<void (Context *)> && );
+    DAS_API void onLogCppDebugAgent ( const char * category, function<bool(Context *, const LineInfo * at, int, const char *)> && lmb );
+    DAS_API void uninstallCppDebugAgent ( const char * category );
 
     class SharedStackGuard {
     public:
@@ -935,7 +949,7 @@ namespace das
 
     struct DataWalker;
 
-    struct Iterator {
+    struct DAS_API Iterator {
         Iterator(LineInfo * at) : debugInfo(at) {}
         virtual ~Iterator() {}
         virtual bool first ( Context & context, char * value ) = 0;
@@ -1030,7 +1044,7 @@ __forceinline void profileNode ( SimNode * node ) {
 
 #if DAS_ENABLE_KEEPALIVE
 
-    struct SimNode_KeepAlive : SimNode {
+    struct DAS_API SimNode_KeepAlive : SimNode {
         SimNode_KeepAlive ( const LineInfo & at, SimNode * res ) : SimNode(at), value(res) {}
         virtual bool rtti_node_isKeepAlive() const override { return true; }
         virtual SimNode * visit ( SimVisitor & vis ) override;
@@ -1051,7 +1065,7 @@ __forceinline void profileNode ( SimNode * node ) {
 #endif
 
     // ERROR MESSAGE
-    struct SimNode_WithErrorMessage : SimNode {
+    struct DAS_API SimNode_WithErrorMessage : SimNode {
         SimNode_WithErrorMessage ( const LineInfo & at, const char * em )
             : SimNode(at), errorMessage(em) {}
         virtual bool rtti_node_isErrorMessage() const override { return true; }
@@ -1060,7 +1074,7 @@ __forceinline void profileNode ( SimNode * node ) {
     };
 
     // FUNCTION CALL
-    struct SimNode_CallBase : SimNode_WithErrorMessage {
+    struct DAS_API SimNode_CallBase : SimNode_WithErrorMessage {
         SimNode_CallBase ( const LineInfo & at, const char * msg ) : SimNode_WithErrorMessage(at,msg) {}
         virtual bool rtti_node_isCallBase() const override { return true; }
         virtual SimNode * copyNode ( Context & context, NodeAllocator * code ) override;
@@ -1088,7 +1102,7 @@ __forceinline void profileNode ( SimNode * node ) {
         // uint32_t stackTop = 0;
     };
 
-    struct SimNode_Final : SimNode {
+    struct DAS_API SimNode_Final : SimNode {
         SimNode_Final ( const LineInfo & a ) : SimNode(a) {}
         virtual SimNode * copyNode ( Context & context, NodeAllocator * code ) override;
         void visitFinal ( SimVisitor & vis );
@@ -1125,7 +1139,7 @@ __forceinline void profileNode ( SimNode * node ) {
         uint32_t totalFinal = 0;
     };
 
-    struct SimNode_Block : SimNode_Final {
+    struct DAS_API SimNode_Block : SimNode_Final {
         SimNode_Block ( const LineInfo & at ) : SimNode_Final(at) {}
         virtual bool rtti_node_isBlock() const override { return true; }
         virtual SimNode * copyNode ( Context & context, NodeAllocator * code ) override;
@@ -1140,33 +1154,39 @@ __forceinline void profileNode ( SimNode * node ) {
         uint32_t    totalLabels = 0;
     };
 
+#if DAS_DEBUGGER
     struct SimNodeDebug_Block : SimNode_Block {
         SimNodeDebug_Block ( const LineInfo & at ) : SimNode_Block(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
     };
+#endif
 
-    struct SimNode_BlockNF : SimNode_Block {
+    struct DAS_API SimNode_BlockNF : SimNode_Block {
         SimNode_BlockNF ( const LineInfo & at ) : SimNode_Block(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
     };
 
-    struct SimNodeDebug_BlockNF : SimNode_BlockNF {
+#if DAS_DEBUGGER
+    struct DAS_API SimNodeDebug_BlockNF : SimNode_BlockNF {
         SimNodeDebug_BlockNF ( const LineInfo & at ) : SimNode_BlockNF(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
     };
+#endif
 
-    struct SimNode_BlockWithLabels : SimNode_Block {
+    struct DAS_API SimNode_BlockWithLabels : SimNode_Block {
         SimNode_BlockWithLabels ( const LineInfo & at ) : SimNode_Block(at) {}
         virtual SimNode * visit ( SimVisitor & vis ) override;
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
     };
 
-    struct SimNodeDebug_BlockWithLabels : SimNode_BlockWithLabels {
+#if DAS_DEBUGGER
+    struct DAS_API SimNodeDebug_BlockWithLabels : SimNode_BlockWithLabels {
         SimNodeDebug_BlockWithLabels ( const LineInfo & at ) : SimNode_BlockWithLabels(at) {}
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
     };
+#endif
 
-    struct SimNode_ForBase : SimNode_Block {
+    struct DAS_API SimNode_ForBase : SimNode_Block {
         SimNode_ForBase ( const LineInfo & at ) : SimNode_Block(at) {}
         SimNode * visitFor ( SimVisitor & vis, int total, const char * loopName );
         void allocateFor ( NodeAllocator * code, uint32_t t );
@@ -1178,7 +1198,7 @@ __forceinline void profileNode ( SimNode * node ) {
         uint32_t    totalSources;
     };
 
-    struct SimNode_Delete : SimNode_WithErrorMessage {
+    struct DAS_API SimNode_Delete : SimNode_WithErrorMessage {
         SimNode_Delete ( const LineInfo & a, SimNode * s, uint32_t t, const char * em )
             : SimNode_WithErrorMessage(a,em), subexpr(s), total(t) {}
         virtual SimNode * visit ( SimVisitor & vis ) override;
@@ -1186,7 +1206,7 @@ __forceinline void profileNode ( SimNode * node ) {
         uint32_t    total;
     };
 
-    struct SimNode_ClosureBlock : SimNode_Block {
+    struct DAS_API SimNode_ClosureBlock : SimNode_Block {
         SimNode_ClosureBlock ( const LineInfo & at, bool nr, bool c0, uint64_t ad )
             : SimNode_Block(at), annotationData(ad), flags(0) {
                 this->needResult = nr;
@@ -1204,11 +1224,13 @@ __forceinline void profileNode ( SimNode * node ) {
         };
     };
 
-    struct SimNodeDebug_ClosureBlock : SimNode_ClosureBlock {
+#if DAS_DEBUGGER
+    struct DAS_API SimNodeDebug_ClosureBlock : SimNode_ClosureBlock {
         SimNodeDebug_ClosureBlock ( const LineInfo & at, bool nr, bool c0, uint64_t ad )
             : SimNode_ClosureBlock(at,nr,c0,ad) { }
         DAS_EVAL_ABI virtual vec4f eval ( Context & context ) override;
     };
+#endif
 
 #ifdef _MSC_VER
 #pragma warning(push)

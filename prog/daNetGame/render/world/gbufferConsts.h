@@ -19,31 +19,10 @@ static constexpr const int NO_MOTION_GBUFFER_RT_COUNT = 3;
 static constexpr const int FULL_GBUFFER_RT_COUNT = NO_MOTION_GBUFFER_RT_COUNT + 1;
 static constexpr eastl::array<unsigned, FULL_GBUFFER_RT_COUNT> FULL_GBUFFER_FORMATS = {
   TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE,
-  TEXFMT_A2B10G10R10,
+  TEXFMT_A2B10G10R10 | TEXCF_UNORDERED,
   TEXFMT_A8R8G8B8,
   TEXFMT_A16B16G16R16F,
 };
-
-static constexpr const int MOBILE_GBUFFER_RT_COUNT = 3;
-static constexpr eastl::array<unsigned, MOBILE_GBUFFER_RT_COUNT> MOBILE_GBUFFER_FORMATS = {
-  TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_TRANSIENT,
-  TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_TRANSIENT,
-  TEXFMT_R8G8 | TEXCF_RTARGET | TEXCF_TRANSIENT,
-};
-
-static constexpr const int MOBILE_SIMPLIFIED_GBUFFER_RT_COUNT = 2;
-static constexpr eastl::array<unsigned, MOBILE_GBUFFER_RT_COUNT> MOBILE_SIMPLIFIED_GBUFFER_FORMATS = {
-  TEXFMT_R8G8B8A8 | TEXCF_RTARGET | TEXCF_TRANSIENT,
-  TEXFMT_R8G8 | TEXCF_RTARGET | TEXCF_TRANSIENT,
-};
-
-static constexpr const eastl::array<const char *, MOBILE_SIMPLIFIED_GBUFFER_RT_COUNT> MOBILE_SIMPLIFIED_GBUFFER_RT_NAMES = {
-  "mobile_deferred_mrt0",
-  "mobile_deferred_mrt1",
-};
-
-static constexpr const eastl::array<const char *, MOBILE_GBUFFER_RT_COUNT> MOBILE_GBUFFER_RT_NAMES = {
-  "mobile_deferred_mrt0", "mobile_deferred_mrt1", "mobile_deferred_mrt2"};
 
 enum
 {

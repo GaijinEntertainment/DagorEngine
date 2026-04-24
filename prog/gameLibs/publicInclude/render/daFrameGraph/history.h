@@ -4,6 +4,8 @@
 //
 #pragma once
 
+#include <util/dag_inttypes.h>
+
 namespace dafg
 {
 

@@ -1,12 +1,52 @@
 include "dynamic_trans_inc.dshl"
 include "indoor_light_probes.dshl"
 include "gbuffer.dshl"
+include "rt_glass_apply.dshl"
+include "scope_lens_reflections_inc.dshl"
+
+int use_scope_lens_alternate_reflections = 1 always_referenced;
+interval use_scope_lens_alternate_reflections: no <1, yes;
+assume_if_not_assumed use_scope_lens_alternate_reflections = no;
+
+int is_hero_cockpit = 0;
+interval is_hero_cockpit : no<1, yes;
+
+macro SAMPLE_ENVI_PROBE_REFLECTIONS()
+  USE_ROUGH_TO_MIP()
+  USE_SKY_DIFFUSE()
+  USE_INDOOR_LIGHT_PROBES(ps, false)
+  GLASS_APPLY_FUNC_PS(false)
+
+  hlsl(ps) {
+    half3 sample_scope_lens_reflections(VsOutput input, float4 screenpos,
+                                        float2 lens_input_plane_coord, float4 lens_diffuse_color)
+    {
+      return apply_glass_ps(input, screenpos, lens_diffuse_color, 1).color.rgb;
+    }
+  }
+endmacro
+
+macro PROJECT_SCOPE_LENS_REFLECTIONS()
+  if (use_scope_lens_alternate_reflections == yes && (is_hero_cockpit == yes || lens_detail_level == full)) {
+    INIT_AND_USE_SCOPE_LENS_REFLECTIONS(ps)
+  }
+  else {
+    SAMPLE_ENVI_PROBE_REFLECTIONS()
+  }
+endmacro
 
 include "scope/scope_lens_inc.dshl"
-include "rt_glass_apply.dshl"
+
+texture scope_lens_reflections;
 
 shader scope_lens, dynamic_crosshair
 {
+  if (shader == dynamic_crosshair) {
+    hlsl{
+      #define CROSSHAIR_PREMULT_ALPHA 1
+    }
+  }
+
   if (lens_detail_level != full_night_vision && special_vision != thermal_vision)
   {
     INIT_GLASS_HOLE_MASK(ps)
@@ -21,7 +61,6 @@ float4 scope_reticle_world_tm_2;
 
 shader scope_reticle
 {
-  ENABLE_ASSERT(ps)
   supports global_frame;
 
   blend_src = sa;

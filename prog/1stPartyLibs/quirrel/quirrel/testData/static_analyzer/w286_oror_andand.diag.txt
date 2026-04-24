@@ -1,51 +1,17 @@
-WARNING: w233 (const-in-bool-expr) Constant in a boolean expression.
-testData/static_analyzer/w286_oror_andand.nut:5:9
-
-let _p = t?.x || {}
-         ^
-let _x = {} || t?.y
-
-
 WARNING: w286 (decl-in-expression) Declaration used in arith expression as operand.
-testData/static_analyzer/w286_oror_andand.nut:6:9
-
-let _p = t?.x || {}
-let _x = {} || t?.y
-         ^----
-let _y = t?.z && []
-
-
-WARNING: w233 (const-in-bool-expr) Constant in a boolean expression.
-testData/static_analyzer/w286_oror_andand.nut:6:9
-
-let _p = t?.x || {}
-let _x = {} || t?.y
-         ^---------
-let _y = t?.z && []
-
-
-WARNING: w233 (const-in-bool-expr) Constant in a boolean expression.
 testData/static_analyzer/w286_oror_andand.nut:7:9
 
+let _p = t?.x || {}
 let _x = {} || t?.y
+         ^-
 let _y = t?.z && []
-         ^---------
-let _z = [] && t?.g
 
 
 WARNING: w286 (decl-in-expression) Declaration used in arith expression as operand.
-testData/static_analyzer/w286_oror_andand.nut:8:9
+testData/static_analyzer/w286_oror_andand.nut:9:9
 
 let _y = t?.z && []
 let _z = [] && t?.g
          ^-
-
-
-WARNING: w233 (const-in-bool-expr) Constant in a boolean expression.
-testData/static_analyzer/w286_oror_andand.nut:8:9
-
-let _y = t?.z && []
-let _z = [] && t?.g
-         ^---------
 
 

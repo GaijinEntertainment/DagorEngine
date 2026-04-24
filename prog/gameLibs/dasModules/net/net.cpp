@@ -3,7 +3,7 @@
 #include <dasModules/aotNet.h>
 #include <dasModules/dasDataBlock.h>
 #include <daScript/daScript.h>
-#include <daECS/net/dasEvents.h>
+#include <ecs/net/dasEvents.h>
 #include <dasModules/dasEvent.h>
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/dasSystem.h>
@@ -24,6 +24,11 @@ struct ConnectionIdAnnotation : das::ManagedValueAnnotation<net::ConnectionId>
 
   virtual void walk(das::DataWalker &walker, void *data) override
   {
+    if (walker.collecting)
+    {
+      das::ManagedValueAnnotation<net::ConnectionId>::walk(walker, data);
+      return;
+    }
     if (!walker.reading)
     {
       const net::ConnectionId *t = (net::ConnectionId *)data;
@@ -49,6 +54,7 @@ struct NetObjectAnnotation final : das::ManagedStructureAnnotation<net::Object, 
     cppName = " ::net::Object";
     addProperty<DAS_BIND_MANAGED_PROP(getCreationOrder)>("creationOrder", "getCreationOrder");
     addProperty<DAS_BIND_MANAGED_PROP(getEid)>("eid", "getEid");
+    addProperty<DAS_BIND_MANAGED_PROP(isReplica)>("isReplica", "isReplica");
   }
 };
 

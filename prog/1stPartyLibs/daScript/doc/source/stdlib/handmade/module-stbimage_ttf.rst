@@ -1,0 +1,1 @@
+High-level TrueType font loading and text rendering API. Loads fonts via stb_truetype packing API, stores atlas as ``Image``, and provides software text rendering with alpha blending. Built on ``stbimage_boost`` and ``stbtruetype``.

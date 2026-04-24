@@ -111,7 +111,9 @@ extern "C" {
 #  undef SIXTY_FOUR_BIT_LONG
 #  undef SIXTY_FOUR_BIT
 #  undef THIRTY_TWO_BIT
-#  if defined(_TARGET_64BIT)
+#  if defined(__SIZEOF_LONG__) && __SIZEOF_LONG__ == 8
+     #define SIXTY_FOUR_BIT_LONG
+#  elif defined(__x86_64__) || defined(_M_X64) || defined(_M_ARM64) || defined(__aarch64__) || defined(__arm64__)
 #    define SIXTY_FOUR_BIT
 #  else
 #    define THIRTY_TWO_BIT

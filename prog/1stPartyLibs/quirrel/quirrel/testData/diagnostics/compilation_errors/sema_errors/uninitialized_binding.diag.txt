@@ -1,0 +1,8 @@
+ERROR: Binding 'x' must be initialized
+testData/diagnostics/compilation_errors/sema_errors/uninitialized_binding.nut:2:4
+
+// EXPECT_ERROR: "must be initialized"
+let x
+    ^
+
+

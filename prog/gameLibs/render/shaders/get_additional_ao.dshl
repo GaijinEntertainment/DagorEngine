@@ -2,6 +2,7 @@ include "heightmap_common.dshl"
 include "depth_above.dshl"
 include "capsuledAO.dshl"
 include "dagi_quality.dshl"
+include "dynamic_resolution.dshl"
 
 texture esm_ao_target_tex; 
 
@@ -10,6 +11,10 @@ endmacro
 
 define_macro_if_not_defined  USE_HERO_AO(stage)
 endmacro
+
+int additional_ao_use_full_occlusion = 1;
+interval additional_ao_use_full_occlusion: no<1, yes;
+assume_if_not_assumed additional_ao_use_full_occlusion = yes;
 
 macro APPLY_ADDITIONAL_AO(code)
   if (in_editor_assume == no)
@@ -21,6 +26,7 @@ macro APPLY_ADDITIONAL_AO(code)
     INIT_HERO_AO(code)
     USE_HERO_AO(code)
   }
+  INIT_DYNAMIC_RESOLUTION(code)
   if (esm_ao_target_tex != NULL)
   {
     (code) { esm_ao_target_tex@smp2d = esm_ao_target_tex; }
@@ -31,11 +37,11 @@ macro APPLY_ADDITIONAL_AO(code)
       ##if in_editor_assume == no && gi_quality == off
         ao *= 0.5 + 0.5 * get_depth_above_ao(worldPos);
       ##endif
-      #if !MOBILE_DEVICE
+      ##if additional_ao_use_full_occlusion == yes
         ##if in_editor_assume == no
           ao = getCapsulesOcclusion(ao, worldPos, worldNormal);
           ##if esm_ao_target_tex != NULL
-            ao = min(ao, tex2Dlod(esm_ao_target_tex, float4(screenTc, 0, 0)).r);
+            ao = min(ao, tex2Dlod(esm_ao_target_tex, float4(screenTc * current_dynamic_resolution_scale, 0, 0)).r);
           ##endif
 
           #if USE_HERO_AO
@@ -53,7 +59,7 @@ macro APPLY_ADDITIONAL_AO(code)
             }
           #endif
         ##endif
-      #endif
+      ##endif
       return ao;
     }
   }

@@ -1,6 +1,8 @@
 include "rendinst_opaque_inc.dshl"
 include "normaldetail.dshl"
 include "projectiveDecals/projective_decals_common.dshl"
+include "gbuffer.dshl"
+include "gbuffer_with_mixing.dshl"
 
 shader rendinst_projective_decal
 {
@@ -25,21 +27,22 @@ shader rendinst_projective_decal
   texture tex = material.texture.diffuse;
   texture normal = material.texture[2];
   (ps) {
-    diffuse_tex@static = tex;
-    normal_tex@static = normal;
+    diffuse_tex@staticSmp = tex;
+    normal_tex@staticSmp = normal;
     decal_tc@f4 = (decal_tc.x, decal_tc.y, decal_tc.z - decal_tc.x, decal_tc.w - decal_tc.y);
   }
 
   hlsl {
     #define BLEND_GBUFFER 1
   }
+  supports rendinst_scene;
+
   USE_PIXEL_TANGENT_SPACE()
-  WRITE_GBUFFER()
+  WRITE_GBUFFER_WITH_MIXING(true, true, false)
 
   channel float3 pos = pos;
   channel color8 norm = norm unsigned_pack; // not used actually, but need it because RI limitation (assert when no normals)
 
-  supports rendinst_scene;
 
   ENABLE_MULTI_DRAW(false)
   RENDINST_INSTANCING()

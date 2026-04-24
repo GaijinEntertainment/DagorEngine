@@ -211,6 +211,7 @@ struct DirectJsonParser
       {
         endOfInput = true;
         token = eastl::string_view();
+        return;
       }
       else
       {
@@ -589,7 +590,7 @@ struct DirectJsonParser
     if (parseValue())
     {
       nextToken();
-      if (token.size())
+      if (!endOfInput)
         error("Garbage after end of JSON");
     }
     G_ASSERT(sq_gettop(vm) == prevTop + 1);
@@ -646,14 +647,16 @@ bool update_stream_cb(const char **start, const char **end, const char **pos, co
   }
 
   *start -= ZSTD_STREAM_BUFFER_SIZE;
-  *end = streamData->streamBuffer.data() + ZSTD_STREAM_BUFFER_SIZE * 2;
   *pos -= ZSTD_STREAM_BUFFER_SIZE;
-  *triggerPos = streamData->streamBuffer.data() + ZSTD_STREAM_BUFFER_SIZE;
-  if (ret == 0)
+  if (ret == 0) // end of stream
   {
     *end = streamData->streamBuffer.data() + ZSTD_STREAM_BUFFER_SIZE + streamData->out.pos;
     *triggerPos = *end;
-    return true;
+  }
+  else
+  {
+    *end = streamData->streamBuffer.data() + ZSTD_STREAM_BUFFER_SIZE * 2;
+    *triggerPos = streamData->streamBuffer.data() + ZSTD_STREAM_BUFFER_SIZE;
   }
 
   return true;

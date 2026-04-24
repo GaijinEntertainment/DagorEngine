@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <memory/dag_framemem.h>
 #include <sqrat.h>

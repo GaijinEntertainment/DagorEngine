@@ -9,14 +9,18 @@
 #include <util/dag_stdint.h>
 #include <3d/dag_stereoIndex.h>
 
+#include <EASTL/optional.h>
+
 class DagorAsset;
 class IAssetBaseViewClient;
+class AssetTagManager;
 
 class IEditorService;
 class IObjEntity;
 class IObjEntityMgr;
 class ILogWriter;
 class DataBlock;
+struct SelectAssetDlgOptions;
 
 namespace Outliner
 {
@@ -43,7 +47,7 @@ public:
   // generic version compatibility check
   inline bool checkVersion() const { return (daEditor3InterfaceVer == DAEDITOR3_VERSION); }
 
-  virtual bool initAssetBase(const char *app_dir) = 0;
+  virtual bool initAssetBase(const char *app_dir, const DataBlock &app_blk) = 0;
 
   virtual const char *getBuildString() = 0;
   virtual bool registerService(IEditorService *srv) = 0;
@@ -78,6 +82,11 @@ public:
 
   virtual const char *selectAsset(const char *asset, const char *caption, dag::ConstSpan<int> types, const char *filter_str = nullptr,
     bool open_all_grp = false) = 0;
+  // Returns:
+  //   - value() contains the name of the selected asset
+  //   - value() is an empty string if reset has been selected
+  //   - !has_value() if the dialog has been closed
+  virtual eastl::optional<String> selectAsset(const SelectAssetDlgOptions &options) = 0;
   virtual void showAssetWindow(bool show, const char *caption, IAssetBaseViewClient *cli, dag::ConstSpan<int> types) = 0;
   virtual void addAssetToRecentlyUsed(const char *asset) = 0;
 
@@ -118,7 +127,15 @@ public:
 
   inline DagorAsset *getGenObjAssetByName(const char *asset_name) { return getAssetByName(asset_name, getGenObjAssetTypes()); }
 
+  virtual AssetTagManager *getVisibleTagManagerWindow() = 0;
+  virtual void showTagManagerWindow(bool show) = 0;
+
+  virtual bool saveAssetsTags() = 0;
+
   virtual Outliner::OutlinerWindow *createOutlinerWindow() = 0;
+
+  // Show the specified path in an external application. On Windows this application is the File Explorer.
+  virtual void revealInExplorer(const char *path) = 0;
 
 #define DSA_OVERLOADS_PARAM_DECL
 #define DSA_OVERLOADS_PARAM_PASS

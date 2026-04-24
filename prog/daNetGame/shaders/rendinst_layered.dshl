@@ -16,7 +16,6 @@ shader rendinst_layered
     dont_render;
   }
 
-  ENABLE_ASSERT(ps)
   SETUP_TOP_PROJECTION()
 
   PLOD_GBUF_GEN_INIT(rendinst_render_pass == rendinst_render_pass_normal)
@@ -202,9 +201,7 @@ shader rendinst_layered
       USE_HEIGHTMAP_COMMON_PS()
       PACK_UNPACK_GBUFFER()
 
-      USE_HMAP_BLEND()
-
-      (ps) { perlin_noise3d@smp3d = perlin_noise3d; }
+      USE_HMAP_BLEND(false)
 
       LAYERED_HEIGHTMAP_PS()
     }
@@ -213,14 +210,14 @@ shader rendinst_layered
       if (rendinst_render_pass == rendinst_render_pass_normal)
       {
         WRITE_GBUFFER()
-        USE_HMAP_BLEND()
+        USE_HMAP_BLEND(true)
       }
 
       USE_CHARACTER_TWO_MICRODETAILS()
 
       USE_LAYERED_PS(true)
       (ps) {
-        mask_tex@static  = mask_tex;
+        mask_tex@staticSmp = mask_tex;
         paint_details@f3 = paint_details;
       }
       USE_NORMAL_DETAIL()
@@ -271,7 +268,6 @@ shader rendinst_mask_layered
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
   RENDINST_INSTANCING()
-  ENABLE_ASSERT(ps)
   INIT_RANDOMIZED_TC(vs)
   INIT_PAINT_DETAILS_STATIC()
 
@@ -417,9 +413,9 @@ shader rendinst_mask_layered
       if ((rendinst_render_pass == rendinst_render_pass_normal))
       {
         WRITE_GBUFFER()
-        USE_HMAP_BLEND()
+        USE_HMAP_BLEND(true)
       }
-      MASK_LAYERED_PS(true)
+      MASK_LAYERED_PS(true, false)
     }
     COMPILE_RI_VS_TARGET("simple_vs")
   }

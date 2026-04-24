@@ -20,6 +20,17 @@
 
 #include <perfMon/dag_statDrv.h>
 #include <render/toroidal_update_regions.h>
+#include <3d/dag_lockTexture.h>
+
+#include <util/dag_convar.h>
+
+
+CONSOLE_FLOAT_VAL_MINMAX("depth_above", always_update_range, 0.0f, 0.0f, 300.0f);
+CONSOLE_BOOL_VAL("depth_above", disable_tile_refresh, false);
+CONSOLE_BOOL_VAL("depth_above", trigger_refresh_tiles, false);
+CONSOLE_BOOL_VAL("depth_above", enable_debug_tex, false);
+CONSOLE_BOOL_VAL("depth_above", debug_clear_outdated_regions, false);
+
 
 #define GLOBAL_VARS_LIST         \
   VAR(world_to_depth_ao)         \
@@ -62,18 +73,26 @@ static void init_shader_vars()
 #undef VAR
 }
 
+const uint32_t MAX_BLUR_QUADS = 9;
+
 
 DepthAOAboveRenderer::DepthAOAboveRenderer(const int tex_size, const float depth_around_distance, bool render_transparent,
   bool use_extra_cascade, float extra_cascade_mult) :
-  texSize(tex_size), sceneMinMaxZ(0, 0), renderTransparent(render_transparent), extraCascadeMult(extra_cascade_mult)
+  texSize(tex_size),
+  refreshTileSize(texSize / CascadeDependantData::REFRESH_TILE_DIM),
+  sceneMinMaxZ(0, 0),
+  renderTransparent(render_transparent),
+  extraCascadeMult(extra_cascade_mult)
 {
+  G_ASSERT(texSize % CascadeDependantData::REFRESH_TILE_DIM == 0);
+
   init_shader_vars();
 
   const int numCascades = use_extra_cascade ? 2 : 1;
   ShaderGlobal::set_int(depth_ao_extra_enabledVarId, use_extra_cascade ? 1 : 0);
 
   worldAODepth.close();
-  worldAODepth = dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "depth_around");
+  worldAODepth = dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "depth_around", RESTAG_AO);
   if (worldAODepth.getTexId() == BAD_TEXTUREID)
     logerr("DepthAOAboveRenderer: Failed to create 'depth_around' texture");
   else
@@ -87,7 +106,7 @@ DepthAOAboveRenderer::DepthAOAboveRenderer(const int tex_size, const float depth
   }
 
   blurredDepth.close();
-  blurredDepth = dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_L16, 1, "blurred_depth");
+  blurredDepth = dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_L16, 1, "blurred_depth", RESTAG_AO);
   if (blurredDepth.getTexId() == BAD_TEXTUREID)
     logerr("DepthAOAboveRenderer: Failed to create 'blurred_depth' texture");
 
@@ -97,13 +116,13 @@ DepthAOAboveRenderer::DepthAOAboveRenderer(const int tex_size, const float depth
 
     worldAODepthWithTransparency.close();
     worldAODepthWithTransparency =
-      dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "depth_around_transparent");
+      dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "depth_around_transparent", RESTAG_AO);
     if (worldAODepthWithTransparency.getTexId() == BAD_TEXTUREID)
       logerr("DepthAOAboveRenderer: Failed to create 'depth_around_transparent' texture");
 
     blurredDepthWithTransparency.close();
     blurredDepthWithTransparency =
-      dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_L16, 1, "blurred_depth_transparent");
+      dag::create_array_tex(texSize, texSize, numCascades, TEXCF_RTARGET | TEXFMT_L16, 1, "blurred_depth_transparent", RESTAG_AO);
     if (blurredDepthWithTransparency.getTexId() == BAD_TEXTUREID)
       logerr("DepthAOAboveRenderer: Failed to create 'blurred_depth_transparent' texture");
   }
@@ -187,9 +206,52 @@ DepthAOAboveRenderer::BlurDepthRenderer::BlurDepthRenderer()
   blurDepth.reset(nullptr);
   blurDepth = eastl::make_unique<DynamicShaderHelper>();
   blurDepth->init("single_pass_blur11", channels, countof(channels), 0, false);
+  const uint32_t VERTICES_PER_QUADS = 6;
+  quadsBuffer = dag::create_vb(MAX_BLUR_QUADS * VERTICES_PER_QUADS * sizeof(Vertex), SBCF_BIND_VERTEX | SBCF_DYNAMIC | SBCF_FRAMEMEM,
+    "depth_ao_blur_quads");
 }
 
 DepthAOAboveRenderer::BlurDepthRenderer::~BlurDepthRenderer() = default;
+
+void DepthAOAboveRenderer::fill_tile_map(CascadeDependantData::TileMap &tile_map, IBBox2 region, bool set_value)
+{
+  auto clampRegionDim = [](int &val) { val = clamp(val, 0, CascadeDependantData::REFRESH_TILE_DIM - 1); };
+  clampRegionDim(region.lim[0].x);
+  clampRegionDim(region.lim[0].y);
+  clampRegionDim(region.lim[1].x);
+  clampRegionDim(region.lim[1].y);
+  if (set_value)
+  {
+    for (int y = region.lim[0].y; y <= region.lim[1].y; ++y)
+      for (int x = region.lim[0].x; x <= region.lim[1].x; ++x)
+        tile_map.set(x + y * CascadeDependantData::REFRESH_TILE_DIM);
+  }
+  else
+  {
+    for (int y = region.lim[0].y; y <= region.lim[1].y; ++y)
+      for (int x = region.lim[0].x; x <= region.lim[1].x; ++x)
+        tile_map.reset(x + y * CascadeDependantData::REFRESH_TILE_DIM);
+  }
+}
+
+void DepthAOAboveRenderer::fillRefreshTiles(int cascade_no, IBBox2 region, bool set_value)
+{
+  TIME_PROFILE(fillRefreshTiles);
+  CascadeDependantData &cascadeData = cascadeDependantData[cascade_no];
+  if (!set_value)
+  {
+    // We can only remove whole tiles from refresh if the region is within a full tile border, where all texels are guaranteed to be
+    // fully loaded. It is only an optimization to avoid refreshing tiles that are already fully loaded without the tile refresher.
+    IPoint2 offset = IPoint2(refreshTileSize, refreshTileSize);
+    region.lim[0] = region.lim[0] + offset;
+    region.lim[1] = region.lim[1] - offset;
+  }
+  if (region.isEmpty())
+    return;
+  region.lim[0] = region.lim[0] / refreshTileSize;
+  region.lim[1] = region.lim[1] / refreshTileSize;
+  fill_tile_map(cascadeData.refreshTileMap, region, set_value);
+}
 
 
 void DepthAOAboveRenderer::BlurDepthRenderer::render(BaseTexture *target, TEXTUREID depth_tid, ToroidalHelper &worldAODepthData,
@@ -198,11 +260,14 @@ void DepthAOAboveRenderer::BlurDepthRenderer::render(BaseTexture *target, TEXTUR
 
   d3d::set_render_target((Texture *)target, cascade_no, 0);
   ShaderGlobal::set_texture(depth_ao_tex_to_blurVarId, depth_tid);
-  ShaderGlobal::set_real(depth_ao_texture_sizeVarId, worldAODepthData.texSize);
-  ShaderGlobal::set_real(depth_ao_texture_size_invVarId, 1.0f / worldAODepthData.texSize);
+  ShaderGlobal::set_float(depth_ao_texture_sizeVarId, worldAODepthData.texSize);
+  ShaderGlobal::set_float(depth_ao_texture_size_invVarId, 1.0f / worldAODepthData.texSize);
   ShaderGlobal::set_int(depth_above_blur_layerVarId, cascade_no);
+  quadsBuffer->updateData(0, data_size(tris), tris.data(), VBLOCK_DISCARD | VBLOCK_WRITEONLY);
   blurDepth->shader->setStates(0, true);
-  d3d::draw_up(PRIM_TRILIST, tris.size() / 3, tris.data(), elem_size(tris));
+  d3d::setvsrc(0, quadsBuffer.getBuf(), elem_size(tris));
+  d3d::draw(PRIM_TRILIST, 0, tris.size() / 3);
+  d3d::setvsrc(0, nullptr, 0);
   d3d::resource_barrier({target, RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
 }
 
@@ -226,9 +291,21 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
     const RegionToRender &region = regions[i];
     if (region.reg.wd.x <= 0 || region.reg.wd.y <= 0)
       continue;
+
+    const bool loadOutdatedResources = region.isRefreshTile; // avoid high mesh streaming pressure
+    IRenderDepthAOCB::RenderRegionState state = renderDepthCb.prepareRegionToRender(i, loadOutdatedResources);
+
     const IPoint2 &lt = region.reg.lt;
     const IPoint2 &wd = region.reg.wd;
     const IPoint2 viewLt(lt.x, texSize - lt.y - wd.y);
+
+    IBBox2 refreshTile{viewLt, viewLt + wd - IPoint2(1, 1)}; // inclusive bounds
+    fillRefreshTiles(cascade_no, refreshTile, state != IRenderDepthAOCB::RenderRegionState::FullyLoaded);
+
+    // if the region is not fully loaded, but it is a refresh tile, we can skip rendering, as it is already rendered with lower lods
+    if (!debug_clear_outdated_regions && state != IRenderDepthAOCB::RenderRegionState::FullyLoaded && region.isRefreshTile)
+      continue;
+
     const IPoint2 &texelsFrom = region.reg.texelsFrom;
     BBox2 reg(point2(texelsFrom) * texelSize, point2(texelsFrom + wd) * texelSize);
     d3d::setglobtm((mat44f_cref)region.cullViewProj);
@@ -236,6 +313,10 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
     d3d::setview(viewLt.x, viewLt.y, wd.x, wd.y, 0, 1);
     if (clear_mode == RenderDepthAOClearFirst::Yes)
       d3d::clearview(CLEAR_ZBUFFER, 0, 0.0f, 0);
+
+    // with debug clear, we erase everything that is not fully loaded
+    if (debug_clear_outdated_regions && state != IRenderDepthAOCB::RenderRegionState::FullyLoaded)
+      continue;
 
     if (type & RenderDepthAOType::Transparent)
       shaders::overrides::set(zWriteOnStateId);
@@ -295,7 +376,7 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
   SCOPE_RENDER_TARGET;
   SCOPE_VIEW_PROJ_MATRIX;
   const float dimensions = (sceneMinMaxZ.y - sceneMinMaxZ.x);
-  ShaderGlobal::set_color4(heightmap_min_maxVarId, 1.f / dimensions, -sceneMinMaxZ.x / dimensions, dimensions, 0);
+  ShaderGlobal::set_float4(heightmap_min_maxVarId, 1.f / dimensions, -sceneMinMaxZ.x / dimensions, dimensions, 0);
 
   CascadeDependantData &cascadeData = cascadeDependantData[cascade_no];
 
@@ -325,7 +406,7 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
 
     // if unclamped (blurLt, blurWd) is out of texture, we actually have to render these (wrapped) regions either!
     // split quads
-    StaticTab<IBBox2, 9> blurQuads;
+    StaticTab<IBBox2, MAX_BLUR_QUADS> blurQuads;
     wrap_quads(IBBox2(fblurLt, fblurRb), texSize, blurQuads);
     for (int j = 0; j < blurQuads.size(); ++j)
       add_non_intersected_box(blurBoxes, IBBox2(blurQuads[j][0], blurQuads[j][1] - IPoint2(1, 1))); // we add inclusive ibbox2, so we
@@ -355,8 +436,99 @@ void DepthAOAboveRenderer::renderAODepthQuads(dag::ConstSpan<RegionToRender> reg
 
 void DepthAOAboveRenderer::prepareRenderRegions(const Point3 &origin, float scene_min_z, float scene_max_z, float splitThreshold)
 {
+  if (always_update_range > 0)
+    invalidateAO(BBox3(origin, always_update_range));
+
   for (int i = 0; i < cascadeDependantData.size(); ++i)
     prepareRenderRegionsForCascade(origin, scene_min_z, scene_max_z, splitThreshold, i);
+}
+
+void DepthAOAboveRenderer::updateInvalidRegionsToRender(CascadeDependantData &cascadeData, float splitThreshold)
+{
+  int id = get_closest_region_and_split(cascadeData.worldAODepthData, cascadeData.invalidAORegions);
+  if (id < 0)
+    return;
+
+  // split region if it is too big, along it's longest axis
+  IBBox2 restRegion[4];
+  int rest = 0;
+
+  if (splitThreshold != -1.0f)
+  {
+    int desiredSide = sqrtf(texSize * texSize * splitThreshold);
+    rest += split_region_to_size_linear(desiredSide, cascadeData.invalidAORegions[id], cascadeData.invalidAORegions[id], restRegion,
+      cascadeData.worldAODepthData.curOrigin);
+    rest += split_region_to_size_linear(desiredSide, cascadeData.invalidAORegions[id], cascadeData.invalidAORegions[id],
+      &restRegion[rest], cascadeData.worldAODepthData.curOrigin);
+  }
+  else
+  {
+    rest += split_region_to_size(THRESHOLD * texSize, cascadeData.invalidAORegions[id], cascadeData.invalidAORegions[id], restRegion,
+      cascadeData.worldAODepthData.curOrigin);
+  }
+  if (rest)
+    append_items(cascadeData.invalidAORegions, rest, restRegion);
+
+  // finally, update chosen invalid region.
+  ToroidalQuadRegion quad(transform_point_to_viewport(cascadeData.invalidAORegions[id][0], cascadeData.worldAODepthData),
+    cascadeData.invalidAORegions[id].width() + IPoint2(1, 1), cascadeData.invalidAORegions[id][0]);
+  cascadeData.regionsToRender.emplace_back(quad);
+
+  // and remove it from update list
+  erase_items(cascadeData.invalidAORegions, id, 1);
+}
+
+IBBox2 DepthAOAboveRenderer::get_refresh_tile_region(int cycle_id, int tex_size)
+{
+  const int refreshTileSize = tex_size / CascadeDependantData::REFRESH_TILE_DIM;
+  IPoint2 refreshTileStart =
+    IPoint2(cycle_id % CascadeDependantData::REFRESH_TILE_DIM, cycle_id / CascadeDependantData::REFRESH_TILE_DIM);
+  IBBox2 refreshRegion;
+  refreshRegion.lim[0] = refreshTileStart * refreshTileSize;
+  refreshRegion.lim[1] = refreshRegion.lim[0] + IPoint2(refreshTileSize - 1, refreshTileSize - 1);
+
+  // flip y for texture space
+  IPoint2 width = refreshRegion.width();
+  refreshRegion.lim[0].y = tex_size - refreshRegion.lim[1].y - 1;
+  refreshRegion.lim[1].y = refreshRegion.lim[0].y + width.y;
+  return refreshRegion;
+}
+
+void DepthAOAboveRenderer::updateRefreshTilesToRender(CascadeDependantData &cascadeData)
+{
+  G_ASSERT_RETURN(cascadeData.cycleId >= 0 && cascadeData.cycleId < CascadeDependantData::REFRESH_TILE_DIM_SQ, );
+
+  for (int i = 1; i < CascadeDependantData::REFRESH_TILE_DIM_SQ; ++i)
+  {
+    // find the first tile that needs refresh
+    if (cascadeData.refreshTileMap[cascadeData.cycleId])
+      break;
+    cascadeData.cycleId = (cascadeData.cycleId + 1) % CascadeDependantData::REFRESH_TILE_DIM_SQ;
+  }
+
+  // everything is up to date
+  if (!cascadeData.refreshTileMap[cascadeData.cycleId])
+    return;
+
+  // mark tile as up to date: before render, when visibility is ready, it will be reverted if the tile is not fully loaded
+  cascadeData.refreshTileMap.reset(cascadeData.cycleId);
+
+  IBBox2 refreshRegion = get_refresh_tile_region(cascadeData.cycleId, cascadeData.worldAODepthData.texSize);
+  G_ASSERT(!refreshRegion.isEmpty());
+
+  // potentially split tile region into up to 4 regions if it intersects with toroidal borders
+  IBBox2 splitBoxes[4];
+  int splitBoxesCnt = 0;
+  split_toroidal_texture_space(refreshRegion, cascadeData.worldAODepthData, splitBoxes, splitBoxesCnt);
+
+  for (int i = 0; i < splitBoxesCnt; ++i)
+  {
+    IPoint2 viewportLT = splitBoxes[i].lim[0];
+    IPoint2 regionTexelFrom = transform_viewport_point_to_world(viewportLT, cascadeData.worldAODepthData);
+    ToroidalQuadRegion toroidalRegion(viewportLT, splitBoxes[i].width() + IPoint2(1, 1), regionTexelFrom);
+    cascadeData.regionsToRender.emplace_back(toroidalRegion);
+    cascadeData.regionsToRender.back().isRefreshTile = true;
+  }
 }
 
 void DepthAOAboveRenderer::prepareRenderRegionsForCascade(const Point3 &origin, float scene_min_z, float scene_max_z,
@@ -372,14 +544,19 @@ void DepthAOAboveRenderer::prepareRenderRegionsForCascade(const Point3 &origin, 
   CascadeDependantData &cascadeData = cascadeDependantData[cascade_no];
   cascadeData.regionsToRender.clear();
 
+  if (trigger_refresh_tiles.pullValueChange())
+  {
+    trigger_refresh_tiles = false;
+    for (int i = 0; i < CascadeDependantData::REFRESH_TILE_DIM_SQ; ++i)
+      cascadeData.refreshTileMap.set(i);
+  }
+
   Point2 alignedOrigin = Point2::xz(origin);
   const float fullDistance = 2.0f * cascadeData.depthAroundDistance;
   float texelSize = (fullDistance / texSize);
-  static constexpr int TEXEL_ALIGN = 4;
   IPoint2 newTexelsOrigin = (ipoint2(floor(alignedOrigin / (texelSize))) + IPoint2(TEXEL_ALIGN / 2, TEXEL_ALIGN / 2));
   newTexelsOrigin = newTexelsOrigin - (newTexelsOrigin % TEXEL_ALIGN);
 
-  static constexpr int THRESHOLD = TEXEL_ALIGN * 4;
   IPoint2 move = abs(cascadeData.worldAODepthData.curOrigin - newTexelsOrigin);
   if (move.x >= THRESHOLD || move.y >= THRESHOLD)
   {
@@ -404,10 +581,10 @@ void DepthAOAboveRenderer::prepareRenderRegionsForCascade(const Point3 &origin, 
 
     int worldToAoVarId = cascade_no == 0 ? world_to_depth_aoVarId : world_to_depth_ao_extraVarId;
     int depthAoHeightsVarId = cascade_no == 0 ? depth_ao_heightsVarId : depth_ao_heights_extraVarId;
-    ShaderGlobal::set_color4(worldToAoVarId, 1.0f / fullDistance, -1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5,
+    ShaderGlobal::set_float4(worldToAoVarId, 1.0f / fullDistance, -1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5,
       alignedOrigin.y / fullDistance + 0.5);
 
-    ShaderGlobal::set_color4(depthAoHeightsVarId, sceneMinMaxZ.y - sceneMinMaxZ.x, sceneMinMaxZ.x, ofs.x, -ofs.y);
+    ShaderGlobal::set_float4(depthAoHeightsVarId, sceneMinMaxZ.y - sceneMinMaxZ.x, sceneMinMaxZ.x, ofs.x, -ofs.y);
 
     bool bigUpdate = texelsUpdated > texSize * texSize * splitThreshold;
     if (splitThreshold != -1.0f && bigUpdate && !forcedUpdate)
@@ -426,40 +603,10 @@ void DepthAOAboveRenderer::prepareRenderRegionsForCascade(const Point3 &origin, 
     }
   }
 
-  if (cascadeData.regionsToRender.empty())
-  {
-    int id = get_closest_region_and_split(cascadeData.worldAODepthData, cascadeData.invalidAORegions);
-    if (id >= 0)
-    {
-      // split region if it is too big, along it's longest axis
-      IBBox2 restRegion[4];
-      int rest = 0;
-
-      if (splitThreshold != -1.0f)
-      {
-        int desiredSide = sqrtf(texSize * texSize * splitThreshold);
-        rest += split_region_to_size_linear(desiredSide, cascadeData.invalidAORegions[id], cascadeData.invalidAORegions[id],
-          restRegion, cascadeData.worldAODepthData.curOrigin);
-        rest += split_region_to_size_linear(desiredSide, cascadeData.invalidAORegions[id], cascadeData.invalidAORegions[id],
-          &restRegion[rest], cascadeData.worldAODepthData.curOrigin);
-      }
-      else
-      {
-        rest += split_region_to_size(THRESHOLD * texSize, cascadeData.invalidAORegions[id], cascadeData.invalidAORegions[id],
-          restRegion, cascadeData.worldAODepthData.curOrigin);
-      }
-      if (rest)
-        append_items(cascadeData.invalidAORegions, rest, restRegion);
-
-      // finally, update chosen invalid region.
-      ToroidalQuadRegion quad(transform_point_to_viewport(cascadeData.invalidAORegions[id][0], cascadeData.worldAODepthData),
-        cascadeData.invalidAORegions[id].width() + IPoint2(1, 1), cascadeData.invalidAORegions[id][0]);
-      cascadeData.regionsToRender.emplace_back(quad);
-
-      // and remove it from update list
-      erase_items(cascadeData.invalidAORegions, id, 1);
-    }
-  }
+  if (cascadeData.regionsToRender.empty() && !cascadeData.invalidAORegions.empty())
+    updateInvalidRegionsToRender(cascadeData, splitThreshold);
+  else if (!disable_tile_refresh && cascadeData.regionsToRender.empty())
+    updateRefreshTilesToRender(cascadeData);
 
   if (cascadeData.regionsToRender.empty())
     return;
@@ -477,9 +624,7 @@ void DepthAOAboveRenderer::prepareRenderRegionsForCascade(const Point3 &origin, 
   {
     if (i.reg.wd.x <= 0 || i.reg.wd.y <= 0)
       continue;
-    const IPoint2 &lt = i.reg.lt;
     const IPoint2 &wd = i.reg.wd;
-    const IPoint2 viewLt(lt.x, texSize - lt.y - wd.y);
     const IPoint2 &texelsFrom = i.reg.texelsFrom;
 
     BBox2 region(point2(texelsFrom) * texelSize, point2(texelsFrom + wd) * texelSize);
@@ -490,16 +635,42 @@ void DepthAOAboveRenderer::prepareRenderRegionsForCascade(const Point3 &origin, 
   }
 }
 
+void DepthAOAboveRenderer::refreshDebugRegionMap(int cascade_no)
+{
+  G_ASSERT_RETURN(cascade_no < cascadeDependantData.size(), );
+
+  if (!enable_debug_tex)
+    return;
+
+  if (!debugRegionMap)
+  {
+    debugRegionMap.close();
+    debugRegionMap = dag::create_array_tex(CascadeDependantData::REFRESH_TILE_DIM, CascadeDependantData::REFRESH_TILE_DIM,
+      cascadeDependantData.size(), TEXCF_WRITEONLY | TEXFMT_R8, 1, "depth_around_debug_regionmap", RESTAG_AO);
+  }
+
+  if (auto lockedTex = lock_texture<uint8_t>(debugRegionMap.getArrayTex(), cascade_no, 0, TEXLOCK_WRITE))
+  {
+    for (int j = 0; j < CascadeDependantData::REFRESH_TILE_DIM; ++j)
+      for (int i = 0; i < CascadeDependantData::REFRESH_TILE_DIM; ++i)
+        lockedTex.at(i, j) = cascadeDependantData[cascade_no].refreshTileMap[i + j * CascadeDependantData::REFRESH_TILE_DIM] ? 255 : 0;
+  }
+}
+
 void DepthAOAboveRenderer::renderPreparedRegions(IRenderDepthAOCB &renderDepthCb)
 {
   for (int i = 0; i < cascadeDependantData.size(); ++i)
+  {
     renderAODepthQuads(cascadeDependantData[i].regionsToRender, renderDepthCb, i);
+    refreshDebugRegionMap(i);
+  }
 }
 
 void DepthAOAboveRenderer::renderPreparedRegionsForCascade(IRenderDepthAOCB &renderDepthCb, int cascade_no)
 {
   G_ASSERT(cascade_no < cascadeDependantData.size());
   renderAODepthQuads(cascadeDependantData[cascade_no].regionsToRender, renderDepthCb, cascade_no);
+  refreshDebugRegionMap(cascade_no);
 }
 
 void DepthAOAboveRenderer::invalidateAO(bool force)
@@ -571,8 +742,8 @@ void DepthAOAboveRenderer::setVars()
     ShaderGlobal::set_texture(depth_around_transparentVarId, worldAODepth);
     ShaderGlobal::set_texture(blurred_depth_transparentVarId, blurredDepth);
   }
-  ShaderGlobal::set_real(depth_ao_texture_sizeVarId, texSize);
-  ShaderGlobal::set_real(depth_ao_texture_size_invVarId, 1.0f / texSize);
+  ShaderGlobal::set_float(depth_ao_texture_sizeVarId, texSize);
+  ShaderGlobal::set_float(depth_ao_texture_size_invVarId, 1.0f / texSize);
 }
 
 bool DepthAOAboveRenderer::isValid() const

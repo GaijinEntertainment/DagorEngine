@@ -17,6 +17,8 @@
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/collision/contactData.h>
 
+#include <3d/dag_texIdSet.h>
+
 namespace vr
 {
 
@@ -91,19 +93,17 @@ void VrHands::setAnimPhysVarVal(VrInput::Hands side, int var_id, float val)
   physVars[side]->setVar(var_id, val);
 }
 
+void VrHands::reqTexReload() { shouldWaitAndPrefetchTextures = true; }
+
 void VrHands::initHand(const char *model_name, VrInput::Hands side)
 {
   String animcharResName(model_name);
   animcharResName += "_char";
-  GameResHandle animcharHandle = GAMERES_HANDLE_FROM_STRING(animcharResName);
 
-  AnimCharV20::IAnimCharacter2 *resAnimChar =
-    (AnimCharV20::IAnimCharacter2 *)::get_one_game_resource_ex(animcharHandle, CharacterGameResClassId);
-
-  if (resAnimChar)
+  if (auto *res = (AnimCharV20::IAnimCharacter2 *)::get_one_game_resource_ex(animcharResName, CharacterGameResClassId))
   {
-    animChar[side] = resAnimChar->clone();
-    ::release_game_resource((GameResource *)resAnimChar);
+    animChar[side] = res->clone();
+    ::release_game_resource_ex(res, CharacterGameResClassId);
   }
 }
 
@@ -816,6 +816,7 @@ void VrHands::update(float dt, const TMatrix &local_ref_space_tm, HandsState &&h
 
       TMatrix handTm;
       updateHand(refRotTm, side, ac, handTm);
+      handTm = handTm * TMatrix(state.scale);
       mat44f tm4; // construct matrix manually to avoid losing precision/perfomance to orthonormalization
       v_mat44_make_from_43cu_unsafe(tm4, handTm.array);
       tree.setRootTm(tm4, wofs);
@@ -1133,6 +1134,12 @@ void VrHands::beforeRender(const Point3 &playspace_to_cam_vec, const Point3 &cam
   vec4f offset = v_ldu(&playspace_to_cam_vec.x);
   for (auto side : {VrInput::Hands::Left, VrInput::Hands::Right})
   {
+    if (shouldWaitAndPrefetchTextures && animChar[side])
+    {
+      TextureIdSet usedTextures;
+      animChar[side]->getSceneInstance()->getLodsResource()->gatherUsedTex(usedTextures);
+      shouldWaitAndPrefetchTextures = !prefetch_and_check_managed_textures_loaded(make_span(usedTextures), true);
+    }
     if (handsState[side].isActive && animChar[side])
     {
       auto scene = animChar[side]->getSceneInstance();

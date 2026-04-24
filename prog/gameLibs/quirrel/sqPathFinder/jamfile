@@ -1,8 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/quirrel/sqPathFinder ;
 StrictCompile = yes ;
-UseQuirrel = sq3+ sq3r sq3r+ ;
-ProjectUseQuirrel ?= sq3r+ ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/quirrel/sqPathFinder.lib ;
@@ -20,12 +19,7 @@ if $(Platform) in ps4 ps5 {
 }
 
 Sources =
+  sqPathFinder.cpp
 ;
-
-if $(ProjectUseQuirrel) in sq3r sq3r+ {
-  Sources +=
-    sqPathFinder.cpp
-  ;
-}
 
 include $(Root)/prog/_jBuild/build.jam ;

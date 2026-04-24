@@ -8,8 +8,9 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes = 
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/3rdPartyLibs/Detour/Include
-  $(Root)/prog/3rdPartyLibs/Recast/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/Detour/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/DetourTileCache/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/Recast/Include
   $(Root)/$(Location)
 ;
 
@@ -25,8 +26,9 @@ Sources =
 ;
 
 UseProgLibs +=
-  3rdPartyLibs/Detour
-  3rdPartyLibs/Recast
+  3rdPartyLibs/recastnavigation/Detour
+  3rdPartyLibs/recastnavigation/DetourTileCache
+  3rdPartyLibs/recastnavigation/Recast
   gameLibs/gameMath
 ;
 

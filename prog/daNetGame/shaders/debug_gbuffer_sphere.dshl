@@ -11,8 +11,6 @@ float debug_gbuffer_sphere_reflectance = 0;
 
 shader debug_gbuffer_sphere
 {
-  ENABLE_ASSERT(ps)
-
   if (compatibility_mode == compatibility_mode_on)
   {
     dont_render;

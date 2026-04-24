@@ -8,7 +8,9 @@
 #define __SCRIPTSMAT_H
 
 #include "shadersBinaryData.h"
+#include "shBindumpsPrivate.h"
 #include <shaders/dag_shaders.h>
+#include <shaders/dag_shBindumps.h>
 #include <shaders/dag_shaderMatData.h>
 #include <3d/dag_materialData.h>
 #include <generic/dag_ptrTab.h>
@@ -30,18 +32,17 @@ struct ShaderMaterialProperties
 
   PatchableTab<ShaderMatData::VarValue> stvar;
 
-  uint32_t legacy; // to be removed, unfortunately still
+  ShaderBindumpHandle dumpHandle = MAIN_BINDUMP_HANDLE;
 
   int16_t matflags;
   int8_t legacy2;
-
-private:
-  bool secondDump = false;
+  int8_t legacy3 = 0;
 
 public:
   ShaderMaterialProperties() {}
 
-  static ShaderMaterialProperties *create(const shaderbindump::ShaderClass *sc, const MaterialData &m, bool sec_dump_for_exp = false);
+  static ShaderMaterialProperties *create(const shaderbindump::ShaderClass *sc, const MaterialData &m,
+    ShaderBindumpHandle dump_handle = MAIN_BINDUMP_HANDLE);
 
   void patchNonSharedData(void *base, dag::Span<TEXTUREID> texMap);
   void recreateMat();
@@ -53,11 +54,15 @@ public:
 
   int execInitCode();
 
-  __forceinline const ScriptedShadersBinDump &shBinDump() const { return ::shBinDumpEx(!secondDump); }
-  __forceinline const ScriptedShadersBinDumpOwner &shBinDumpOwner() const { return ::shBinDumpExOwner(!secondDump); }
+  __forceinline const ScriptedShadersBinDump &shBinDump() const { return get_shaders_dump(dumpHandle); }
+  __forceinline const ScriptedShadersBinDumpOwner &shBinDumpOwner() const { return get_shaders_dump_owner(dumpHandle); }
+  __forceinline const ScriptedShadersGlobalData &shGlobalData() const
+  {
+    return ::shGlobalDataEx(dumpHandle != SEC_EXP_BINDUMP_HANDLE);
+  }
 
 protected:
-  ShaderMaterialProperties(const shaderbindump::ShaderClass *sc, const MaterialData &m, bool sec_dump_for_exp);
+  ShaderMaterialProperties(const shaderbindump::ShaderClass *sc, const MaterialData &m, ShaderBindumpHandle dump_handle);
 };
 
 
@@ -159,6 +164,8 @@ private:
 
   friend bool shader_mats_are_equal(ShaderMaterial *m1, ShaderMaterial *m2);
   __forceinline const ScriptedShadersBinDump &shBinDump() const { return props.shBinDump(); }
+
+  const char *attribName(int name_id) const { return (const char *)props.shBinDump().varMap[name_id]; }
 };
 
 

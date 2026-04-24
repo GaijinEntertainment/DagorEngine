@@ -59,23 +59,13 @@ public:
   IEditorCoreEngine::BasisType getGizmoBasisTypeForMode(IEditorCoreEngine::ModeType tp) const;
   //@}
 
-
-  //*******************************************************
-  ///@name Functions called by editor core
-  //@{
-  /// Push / pull 'Move snap toggle' button.
-  virtual void setMoveSnap();
-
-  /// Push / pull 'Scale snap toggle' button.
-  virtual void setScaleSnap();
-
-  /// Push / pull 'Rotate snap toggle' button.
-  virtual void setRotateSnap();
-
   //@}
 
   /// Editor should call onChange in toolbar collback
   bool onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel);
+
+  /// Called when the snap settings have changed, and the toolbar must be updated.
+  void onSnapSettingChanged();
 
 protected:
   int tbId;

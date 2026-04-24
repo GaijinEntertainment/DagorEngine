@@ -31,6 +31,7 @@ void sqrat_bind_dagor_logsys(SqModules *module_mgr, bool console_mode = false);
 void sqrat_bind_datablock(SqModules *module_mgr, bool allow_file_access = true);
 void register_random(SqModules *module_mgr);
 void register_hash(SqModules *module_mgr);
+void register_zip_archive(SqModules *module_mgr);
 
 void register_dagor_system(SqModules *module_mgr);
 
@@ -44,6 +45,7 @@ void register_dagor_folders_module(SqModules *module_mgr);
 void register_dagor_clipboard(SqModules *module_mgr);
 void register_dagor_localization_module(SqModules *module_mgr);
 void register_platform_module(SqModules *module_mgr);
+void register_cpuinfo(SqModules *module_mgr);
 
 void register_iso8601_time(SqModules *module_mgr);
 

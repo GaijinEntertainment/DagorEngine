@@ -1,9 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#ifndef NO_3D_GFX
 #include <shaders/dag_dynSceneRes.h>
-#endif
 
 namespace tires0
 {
@@ -12,9 +10,7 @@ class ITrackEmitter;
 
 struct RayCarWheel
 {
-#ifndef NO_3D_GFX
   DynamicRenderableSceneInstance *rendObj;
-#endif
   bool powered, controlled, front, left;
   int brakeId;
   tires0::ITrackEmitter *tireEmitter;
@@ -31,9 +27,7 @@ struct RayCarWheel
 
   void reset(bool f, bool l, float m)
   {
-#ifndef NO_3D_GFX
     rendObj = NULL;
-#endif
     front = f;
     left = l;
     powered = controlled = false;
@@ -46,13 +40,11 @@ struct RayCarWheel
     resetDiffEq();
   }
 
-#ifndef NO_3D_GFX
   void setupModel(DynamicRenderableSceneLodsResource *res)
   {
     rendObj = new DynamicRenderableSceneInstance(res);
     brakeId = rendObj->getNodeId("suspension");
   }
-#endif // NO_3D_GFX
 
   void resetDiffEq()
   {

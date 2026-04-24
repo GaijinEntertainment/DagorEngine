@@ -99,7 +99,7 @@ struct LandMeshCullingState
   void cullDataWithBbox(LandMeshCullingData &dest_data, const LandMeshCullingData &src_data, const BBox2 &bbox);
 
   void cullCell(LandMeshManager &provider, int borderX, int borderY, int x0, int y0, int x1, int y1, const Frustum &frustum,
-    const Occlusion *occlusion, LandMeshCullingData &data);
+    const vec3f *frustumPoints, const bbox3f &frustumBox, const Occlusion *occlusion, LandMeshCullingData &data);
 
   void frustumCulling(LandMeshManager &provider, LandMeshCullingData &data, const IBBox2 *regions, int regions_count,
     const HeightmapFrustumCullingInfo &fi);

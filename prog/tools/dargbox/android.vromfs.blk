@@ -28,7 +28,7 @@ folder {
 
 
 folder {
-  path:t="../../../tools/dargbox/browser"
+  path:t="gamebase/browser"
   dest_path:t="browser"
   scan_folder:b=true
   scan_subfolders:b=true

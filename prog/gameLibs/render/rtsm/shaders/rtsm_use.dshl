@@ -45,12 +45,11 @@ macro USING_RTSM(stage)
 
       #include <rt_texture_outputs.inc.hlsli>
 
-      #include <Include/NRDEncoding.hlsli>
-      #include <Include/NRD.hlsli>
+      #include <NRD.hlsli>
 
       half3 getRTSM(uint2 tci)
       {
-        half4 shadowTexel = half4(texture2DAt(rt_texture_outputs[rtsm_bindless_slot], tci));
+        half4 shadowTexel = half4(texture2DAt(uniformBindlessTex2D(rt_texture_outputs, rtsm_bindless_slot), tci));
         half4 shadowData = half4(SIGMA_BackEnd_UnpackShadow(shadowTexel));
 
         if (!rtsm_is_translucent)

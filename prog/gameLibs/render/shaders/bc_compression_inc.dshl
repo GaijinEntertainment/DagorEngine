@@ -1,5 +1,35 @@
 include "shader_global.dshl"
 
+bool find_base_colors_with_pca = compatibility_mode == compatibility_mode_off;
+
+int use_bc_legacy_endpoints_bias = 0;
+interval use_bc_legacy_endpoints_bias: no < 1, yes;
+
+sampler CompressionInputTexSampler
+{
+  mipmap_mode = point;
+  filter = point;
+};
+
+macro USE_BC_LEGACY_ENDPOINTS_ERROR(code)
+  hlsl(code)
+  {
+  ##if use_bc_legacy_endpoints_bias == yes
+    // Mimic the error of a fixed BC3 encoder bug. TODO remove me.
+    #define ADD_BC_LEGACY_ENDPOINTS_BIAS_ITERATION \
+      texels[i].rgb = saturate(texels[i].rgb - float3(4./255., 2./255., 4./255.));
+
+    #define ADD_BC_LEGACY_ENDPOINTS_BIAS \
+      UNROLL \
+      for (int i = 0; i < 16; ++i) \
+        ADD_BC_LEGACY_ENDPOINTS_BIAS_ITERATION
+  ##else
+    #define ADD_BC_LEGACY_ENDPOINTS_BIAS_ITERATION
+    #define ADD_BC_LEGACY_ENDPOINTS_BIAS
+  ##endif
+  }
+endmacro
+
 macro INIT_BC_COMPRESSION()
 
   cull_mode  = none;
@@ -74,9 +104,9 @@ macro INIT_BC_COMPRESSION_GET_HELPER()
   #endif
 #else
   #ifdef BC_COMPRESSION_USE_MIPS
-        #define GET_TEXEL(x, y) texels[y * 4 + x] = tex2Dlod( src_tex, float4( texTc.xy + float2( x, y ) * src_texel_size, 0, src_mip ) );
+        #define GET_TEXEL(x, y) texels[y * 4 + x] = tex2Dlod( src_tex, float4( texTc.xy + (float2( x, y ) + 0.5) * src_texel_size, 0, src_mip ) );
   #else
-        #define GET_TEXEL(x, y) texels[y * 4 + x] = tex2D( src_tex, texTc.xy + float2( x, y ) * src_texel_size );
+        #define GET_TEXEL(x, y) texels[y * 4 + x] = tex2D( src_tex, texTc.xy + (float2( x, y ) + 0.5) * src_texel_size );
   #endif
 #endif
       GET_TEXEL(0,0);GET_TEXEL(1,0);GET_TEXEL(2,0);GET_TEXEL(3,0);
@@ -495,15 +525,16 @@ macro COMMON_BC_SHADER(rg_channels, srgb)
 
   if (src_face != src_single_face)
   {
-    (ps) { src_tex@smpCube = src_tex; }
+    (ps) { src_tex@texCube = src_tex; }
     hlsl {
       #define BC_COMPRESSION_FOR_CUBE 1
     }
   }
   else
   {
-    (ps) { src_tex@smp2d = src_tex; }
+    (ps) { src_tex@tex2d = src_tex; }
   }
+  (ps) { src_tex_samplerstate@sampler = CompressionInputTexSampler; }
 
   INIT_BC_COMPRESSION()
   INIT_BC_COMPRESSION_GET_HELPER()

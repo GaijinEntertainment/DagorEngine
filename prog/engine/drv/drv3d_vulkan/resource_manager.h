@@ -1,6 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <atomic>
+#include <generic/dag_objectPool.h>
+#include <perfMon/dag_daProfileMemory.h>
+
 #include "driver.h"
 #include "device_memory.h"
 #include "device_resource.h"
@@ -11,15 +15,11 @@
 #include "sampler_resource.h"
 #include "render_pass_resource.h"
 #include "memory_heap_resource.h"
-#include <atomic>
-#include <generic/dag_objectPool.h>
 #include "physical_device_set.h"
 #include "buffer_resource.h"
 
 namespace drv3d_vulkan
 {
-
-class ExecutionContext;
 
 enum class AllocationMethodName
 {
@@ -69,6 +69,14 @@ struct ResourceMemory
   AllocationMethodName allocator;
   uint32_t memType;
   VkDeviceSize originalSize;
+#if DAGOR_DBGLEVEL > 0
+  da_profiler::profile_mem_data_t profilerData;
+  void profilerOnAllocation();
+  void profilerOnFree();
+#else
+  void profilerOnAllocation() {}
+  void profilerOnFree() {}
+#endif
 
   bool isValid() const { return handle != 0; }
   void invalidate() { handle = 0; }
@@ -470,6 +478,7 @@ class ResourceManager
   Tab<ResourceMemoryId> hotMemPools[hotMemPoolCount];
   uint32_t hotMemPushIdx;
   uint32_t hotMemClearIdx();
+  void clearHotMem();
   void processHotMem();
   void shutdownMemory(ResourceMemoryId memory_id);
   ResourceMemoryId allocFromHotMem(const AllocationDesc &desc, const AllocationMethodPriorityList &prio);
@@ -497,7 +506,7 @@ class ResourceManager
   } resPools;
 
 public:
-  bool evictResourcesFor(ExecutionContext &ctx, VkDeviceSize desired_size, bool evict_used);
+  bool evictResourcesFor(VkDeviceSize desired_size, bool evict_used);
   void processPendingEvictions();
 
   //////////

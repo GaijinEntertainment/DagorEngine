@@ -36,3 +36,11 @@
     G_ASSERT_FAIL(D3D_CONTRACT_FAILED_FMT(fmt), ##__VA_ARGS__); \
     return returnValue;                                         \
   }
+
+#define D3D_CONTRACT_ASSERT_LOG(expression, fmt, ...) G_ASSERT_LOG(expression, D3D_CONTRACT_FAILED_FMT(fmt), ##__VA_ARGS__)
+#define D3D_CONTRACT_ASSERT_DO_AND_LOG(expression, action, fmt, ...) \
+  G_ASSERT_DO_AND_LOG(expression, action, D3D_CONTRACT_FAILED_FMT(fmt), ##__VA_ARGS__)
+#define D3D_CONTRACT_ASSERT_LOG_ONCE_AND_DO(expression, action, fmt, ...) \
+  G_ASSERT_LOG_ONCE_AND_DO(expression, action, D3D_CONTRACT_FAILED_FMT(fmt), ##__VA_ARGS__)
+#define D3D_CONTRACT_ASSERTF_LOG_ONCE_RETURN(expr, returnValue, fmt, ...) \
+  G_ASSERTF_LOG_ONCE_RETURN(expr, returnValue, D3D_CONTRACT_FAILED_FMT(fmt), ##__VA_ARGS__)

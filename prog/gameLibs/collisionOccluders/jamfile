@@ -1,0 +1,20 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/collisionOccluders ;
+
+TargetType  = lib ;
+Target      = gameLibs/collisionOccluders.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  collisionOccluders_legacy.cpp
+;
+
+CPPopt = ;
+
+include $(Root)/prog/_jBuild/build.jam ;

@@ -18,7 +18,7 @@ namespace tire_tracks
 
 // returns true if a new track node has been created, false otherwise
 bool emit(int id, const Point3 &norm, const Point3 &pos, const Point3 &movedir, real opacity, int tex_id, float additional_width,
-  float omnidirectional_tex_blend, bool correct_previous_node = false);
+  float omnidirectional_tex_blend, bool correct_previous_node = false, bool direction_changed = false);
 
 // init system. load settings from blk-file
 void init(const char *blk_file, bool has_normalmap, bool stub_render_mode);

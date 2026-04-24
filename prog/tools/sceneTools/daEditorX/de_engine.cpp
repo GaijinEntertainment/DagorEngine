@@ -14,6 +14,7 @@
 #include <de3_entityFilter.h>
 #include <de3_editorEvents.h>
 #include <de3_dynRenderService.h>
+#include <de3_gpuGrassService.h>
 #include <render/debugTexOverlay.h>
 #include <generic/dag_sort.h>
 
@@ -44,6 +45,7 @@
 #include <fx/dag_hdrRender.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
+#include <gameRes/dag_gameResHooks.h>
 #include <scene/dag_visibility.h>
 
 #include <3d/dag_render.h>
@@ -54,12 +56,14 @@
 #include <perfMon/dag_graphStat.h>
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>
+#include <perfMon/dag_visClipMesh.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_shaderBlock.h>
 
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
 #include <propPanel/control/panelWindow.h>
+#include <propPanel/control/toolbarContainer.h>
 #include <propPanel/messageQueue.h>
 #include <propPanel/commonWindow/dialogWindow.h>
 #include <propPanel/control/menu.h>
@@ -73,8 +77,8 @@ using hdpi::_pxActual;
 
 namespace environment
 {
-void close_environment_settings_dialog();
 void load_ui_state(const DataBlock &per_app_settings);
+void clear();
 } // namespace environment
 
 extern void terminate_interface_de3();
@@ -85,12 +89,15 @@ extern void services_render();
 extern void services_render_trans();
 extern bool services_catch_event(unsigned event_huid, void *user_data);
 
+extern void release_generic_grass_service();
 extern void reset_colliders_data();
 extern void init3d();
 extern bool src_assets_scan_allowed;
 extern OAHashNameMap<true> cmdline_force_enabled_plugins, cmdline_force_disabled_plugins;
 extern InitOnDemand<DebugTexOverlay> de3_show_tex_helper;
 extern bool minimize_dabuild_usage;
+
+static bool disable_gameres_loading(const char *, bool) { return false; }
 
 //==============================================================================
 const char *hotkey_names[HOTKEY_COUNT] = {
@@ -271,7 +278,8 @@ bool DagorEdAppWindow::registerPlugin(IGenEditorPlugin *p)
     return true;
   }
 
-  debug("\"%s\" (\"%s\") plugin disabled due to \"application.blk\" settings", p->getMenuCommandName(), p->getInternalName());
+  debug("\"%s\" (\"%s\") plugin disabled due to settings in %s", p->getMenuCommandName(), p->getInternalName(),
+    getWorkspace()->getAppBlkShortName());
 
   return false;
 }
@@ -340,7 +348,7 @@ DataBlock de3scannedResBlk;
 void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataBlock &per_app_settings)
 {
   // detect new gameres system model and setup engine support for it
-  DataBlock appblk(String(260, "%s/application.blk", wsp->getAppDir()));
+  DataBlock appblk(wsp->getAppBlkPath());
 
   if (const DataBlock *mnt = appblk.getBlockByName("mountPoints"))
   {
@@ -356,8 +364,6 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
   const DataBlock &blk = *appblk.getBlockByNameEx("assets");
   const DataBlock *exp_blk = appblk.getBlockByNameEx("assets")->getBlockByName("export");
   bool loadDDSxPacks = appblk.getBlockByNameEx("assets")->getStr("ddsxPacks", NULL) != NULL || minimize_dabuild_usage;
-  if (exp_blk)
-    ::set_gameres_sys_ver(2);
 
 
   // scan game resources
@@ -521,11 +527,11 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
           if (vrom)
           {
             DAEDITOR3.conNote("loading resource package: %s", ff_name);
-            ::add_vromfs(vrom, false, mntPoint.str());
-            mntPoint.resize(strlen(mntPoint) + 1); // required to compensate \0-pos changes
+            String mnt(mntPoint);
+            ::add_vromfs(vrom, false, mnt.str());
 
             ::load_res_packs_from_list(mntPoint + packlist, true, loadDDSxPacks, mntPoint);
-            G_VERIFY(::remove_vromfs(vrom) == mntPoint.str());
+            G_VERIFY(::remove_vromfs(vrom) == mnt.str());
             tmpmem->free(vrom);
 
             if (!ri_desc_fn.empty())
@@ -571,12 +577,14 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
       }
   }
   set_gameres_scan_recorder(NULL, NULL, NULL);
+
+  gamereshooks::on_gameres_pack_load_confirm = &disable_gameres_loading;
   // de3scannedResBlk.saveToTextFile("res_list_de3.blk");
   gameres_final_optimize_desc(gameres_rendinst_desc, "riDesc");
   gameres_final_optimize_desc(gameres_dynmodel_desc, "dynModelDesc");
 
   // init asset base
-  DAEDITOR3.initAssetBase(wsp->getAppDir());
+  DAEDITOR3.initAssetBase(wsp->getAppDir(), appblk);
 
   String phmat_fn(wsp->getPhysmatPath());
   if (::dd_file_exist(phmat_fn))
@@ -604,10 +612,10 @@ void DagorEdAppWindow::initPlugins(const DataBlock &global_settings, const DataB
   const DataBlock &globalPluginsRootSettings = *global_settings.getBlockByNameEx("plugins");
   const DataBlock &perAppPluginsRootSettings = *per_app_settings.getBlockByNameEx("plugins");
   for (int i = 0; i < getPluginCount(); ++i)
-    if (IGenEditorPlugin *plugin = getPlugin(i))
+    if (IGenEditorPlugin *p = getPlugin(i))
     {
-      const char *pluginName = plugin->getInternalName();
-      plugin->loadSettings(*globalPluginsRootSettings.getBlockByNameEx(pluginName),
+      const char *pluginName = p->getInternalName();
+      p->loadSettings(*globalPluginsRootSettings.getBlockByNameEx(pluginName),
         *perAppPluginsRootSettings.getBlockByNameEx(pluginName));
     }
 
@@ -651,8 +659,14 @@ void DagorEdAppWindow::preparePluginsListmenu()
 
   sort(plugins, &::sortPluginsByName);
 
+  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
   for (i = 0; i < plugins.size(); ++i)
-    _menu->addItem(CM_PLUGINS_MENU, CM_PLUGINS_MENU_1ST + plugins[i].idx, plugins[i].name);
+  {
+    const IGenEditorPlugin *p = plugin[plugins[i].idx].p;
+    commandSystem->addMenuItem(*_menu, CM_PLUGINS_MENU, CM_PLUGINS_MENU_1ST + plugins[i].idx, getSwitchToPluginEditorCommandId(*p),
+      plugins[i].name);
+  }
 
   if (curPluginId != -1)
     _menu->setRadioById(CM_PLUGINS_MENU_1ST + curPluginId, CM_PLUGINS_MENU_1ST, CM_PLUGINS_MENU_1ST + plugin.size());
@@ -669,12 +683,12 @@ void DagorEdAppWindow::fillPluginSettings()
 
   sort(plugins, &::sortPluginsByName);
 
-  PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
+  PropPanel::IMenu *menu = DAGORED2->getMainMenu();
   for (auto p : plugins)
   {
-    const int baseId = mainMenu->getItemCount(CM_OPTIONS_PREFERENCES);
-    if (IGenEditorPlugin *plugin = getPlugin(p.idx))
-      plugin->registerMenuSettings(CM_OPTIONS_PREFERENCES, baseId);
+    const int baseId = menu->getItemCount(CM_OPTIONS_PREFERENCES);
+    if (IGenEditorPlugin *genPlugin = getPlugin(p.idx))
+      genPlugin->registerMenuSettings(CM_OPTIONS_PREFERENCES, baseId);
   }
 }
 
@@ -742,19 +756,6 @@ void DagorEdAppWindow::switchPluginTab(bool next)
   switchToPlugin(plugins[_index].idx);
 }
 
-
-void DagorEdAppWindow::resetModelessWindows(ModelessWindowResetReason reset_reason)
-{
-  environment::close_environment_settings_dialog();
-
-  if (reset_reason == ModelessWindowResetReason::ResettingLayout)
-  {
-    close_camera_objects_config_dialog();
-    closeScreenshotSettingsDialog();
-  }
-}
-
-
 //==============================================================================
 
 void DagorEdAppWindow::resetCore()
@@ -777,8 +778,6 @@ void DagorEdAppWindow::resetCore()
   clear_and_shrink(plugin);
   reset_colliders_data();
   ShaderGlobal::reset_textures();
-  free_unused_game_resources();
-  reset_game_resources();
 }
 
 //==============================================================================
@@ -786,8 +785,19 @@ void DagorEdAppWindow::terminateInterface()
 {
   console->destroyConsole(); // Prevent the console from issuing draw commands during shut down.
   de3_show_tex_helper.demandDestroy();
-  resetModelessWindows(ModelessWindowResetReason::ExitingApplication);
+  environment::clear();
+  getModelessWindowControllers().releaseAllWindows();
   resetCore();
+
+  // This must be before reset_game_resources(), otherwise it would assert because it cannot find the game resource
+  // in RandomGrass::releaseLayerResource().
+  release_generic_grass_service();
+
+  if (IGPUGrassService *service = queryEditorInterface<IGPUGrassService>())
+    service->closeGrass();
+
+  delete_visclipmesh();
+  reset_game_resources();
   terminate_interface_de3();
   IDagorEd2Engine::set(NULL);
 }
@@ -826,7 +836,8 @@ bool DagorEdAppWindow::selectWorkspace(const char *app_blk_path)
 
     resetCore();
     init3d();
-    editor_core_initialize_imgui(nullptr);
+    editor_core_initialize_imgui();
+    setDocTitle();
 
     const String settingsPath = ::make_full_path(sgg::get_exe_path_full(), "../.local/de3_settings.blk");
     DataBlock settingsBlk(settingsPath);
@@ -1023,17 +1034,17 @@ final_add:
 
 
 //==============================================================================
-String DagorEdAppWindow::getPluginFilePath(const IGenEditorPlugin *plugin, const char *fname) const
+String DagorEdAppWindow::getPluginFilePath(const IGenEditorPlugin *p, const char *fname) const
 {
   String dir;
-  getPluginProjectPath(plugin, dir);
+  getPluginProjectPath(p, dir);
 
   return ::make_full_path(dir, fname);
 }
 
 
 //==============================================================================
-bool DagorEdAppWindow::copyFileToProject(const char *from_filename, const char *to_filename, bool overwrite, bool add_to_cvs)
+bool DagorEdAppWindow::copyFileToProject(const char *from_filename, const char *to_filename, bool, bool add_to_cvs)
 {
   //== check that to_filename is inside project?
   // TODO: remove overwrite parameter because it is not used
@@ -1061,7 +1072,7 @@ bool DagorEdAppWindow::copyFileToProject(const char *from_filename, const char *
 
 
 //==============================================================================
-bool DagorEdAppWindow::addFileToProject(const char *filename)
+bool DagorEdAppWindow::addFileToProject(const char *)
 {
   //== check that it's inside project?
   //== check that it exists?
@@ -1160,6 +1171,15 @@ PropPanel::DialogWindow *DagorEdAppWindow::createDialog(hdpi::Px w, hdpi::Px h, 
 void DagorEdAppWindow::deleteDialog(PropPanel::DialogWindow *dlg) { delete dlg; }
 
 
+eastl::unique_ptr<PropPanel::IMenu> DagorEdAppWindow::createContextMenu()
+{
+  return eastl::unique_ptr<PropPanel::IMenu>(PropPanel::create_context_menu());
+}
+
+
+bool DagorEdAppWindow::renderContextMenu(PropPanel::IMenu &menu) { return PropPanel::render_context_menu(menu); }
+
+
 //==============================================================================
 void DagorEdAppWindow::switchToPlugin(int plgId)
 {
@@ -1186,8 +1206,8 @@ void DagorEdAppWindow::switchToPlugin(int plgId)
   //-------------------------------------------
   // clear menu, toolbar, their eh
 
-  if (PropPanel::IMenu *mainMenu = getMainMenu())
-    mainMenu->clearMenu(CM_PLUGIN_PRIVATE_MENU);
+  if (PropPanel::IMenu *menu = getMainMenu())
+    menu->clearMenu(CM_PLUGIN_PRIVATE_MENU);
 
   if (mPlugTools)
   {
@@ -1219,8 +1239,7 @@ void DagorEdAppWindow::switchToPlugin(int plgId)
 
     // select all
     //::appWnd.enableMenuItem(CM_SELECT_ALL, next->showSelectAll());
-    if (CCameraElem::getCamera() == CCameraElem::MAX_CAMERA)
-      addEditorAccelerators();
+    addEditorAccelerators();
   }
 
   // event handler setup
@@ -1792,12 +1811,12 @@ void DagorEdAppWindow::setUiCursorProps(float size, bool always_xz)
   cursor.xz_based = always_xz;
 }
 
-void DagorEdAppWindow::screenshotRender(bool skip_debug_objects)
+void DagorEdAppWindow::screenshotRender(const Driver3dPerspective &persp, bool is_ortho, bool skip_debug_objects)
 {
   const bool lastSkipDebugObjects = skipRenderObjects;
 
   skipRenderObjects = skip_debug_objects;
-  queryEditorInterface<IDynRenderService>()->renderScreenshot();
+  queryEditorInterface<IDynRenderService>()->renderScreenshot(persp, is_ortho, skipRenderObjects);
   skipRenderObjects = lastSkipDebugObjects;
 }
 
@@ -1809,7 +1828,6 @@ void DagorEdAppWindow::actObjects(float dt)
 
   ged.act(dt);
   act_camera_objects_config_dialog();
-  ViewportWindow *activeViewportWindow = ged.getActiveViewport();
 
   /*
   if (gridDlg)
@@ -1855,7 +1873,8 @@ extern CachedRenderViewports *ec_cached_viewports;
 
 void DagorEdAppWindow::beforeRenderObjects()
 {
-  ddsx::tex_pack2_perform_delayed_data_loading();
+  if (!is_managed_textures_streaming_load_on_demand())
+    ddsx::tex_pack2_perform_delayed_data_loading();
   ViewportWindow *vpw = ged.getRenderViewport();
   if (!vpw)
   {
@@ -1941,8 +1960,6 @@ void DagorEdAppWindow::renderGrid()
 {
   Tab<Point3> pt(tmpmem);
   Tab<Point3> dirs(tmpmem);
-
-  Point3 center;
 
   const int gridConersNum = 4;
   const int gridDirectionsNum = 2;

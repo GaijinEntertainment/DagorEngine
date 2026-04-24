@@ -57,7 +57,7 @@ void *alloc_phys_mem(size_t size, size_t alignment, uint32_t prot_flags, bool cp
   blk.addr = mmap(0, size, ((prot_flags & PM_PROT_CPU_READ) ? PROT_READ : 0) | ((prot_flags & PM_PROT_CPU_WRITE) ? PROT_WRITE : 0),
     MAP_PRIVATE | MAP_ANON, -1, 0);
 
-  if (blk.addr == NULL)
+  if (blk.addr == MAP_FAILED)
     return NULL;
 #endif
   phys_map.lock();

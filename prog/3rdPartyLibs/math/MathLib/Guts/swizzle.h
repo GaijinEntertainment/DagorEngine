@@ -2,10 +2,10 @@
 
 #pragma once
 
-#define _X 0
-#define _Y 1
-#define _Z 2
-#define _W 3
+#define ML_X 0
+#define ML_Y 1
+#define ML_Z 2
+#define ML_W 3
 
 template <class C, typename T, uint32_t... Indices>
 class swizzle {
@@ -436,383 +436,383 @@ public:
 // swizzles
 
 #define ML_SWIZZLE_2(C, T) \
-    swizzle<C, T, _X, _X> xx; \
-    swizzle<C, T, _X, _Y> xy; \
-    swizzle<C, T, _Y, _X> yx; \
-    swizzle<C, T, _Y, _Y> yy
+    swizzle<C, T, ML_X, ML_X> xx; \
+    swizzle<C, T, ML_X, ML_Y> xy; \
+    swizzle<C, T, ML_Y, ML_X> yx; \
+    swizzle<C, T, ML_Y, ML_Y> yy
 
 #define ML_SWIZZLE_3(S2, C2, S3, C3) \
-    S2<C2, _X, _X> xx; \
-    S2<C2, _X, _Y> xy; \
-    S2<C2, _X, _Z> xz; \
-    S2<C2, _Y, _X> yx; \
-    S2<C2, _Y, _Y> yy; \
-    S2<C2, _Y, _Z> yz; \
-    S2<C2, _Z, _X> zx; \
-    S2<C2, _Z, _Y> zy; \
-    S2<C2, _Z, _Z> zz; \
-    S3<C3, _X, _X, _X> xxx; \
-    S3<C3, _X, _X, _Y> xxy; \
-    S3<C3, _X, _X, _Z> xxz; \
-    S3<C3, _X, _Y, _X> xyx; \
-    S3<C3, _X, _Y, _Y> xyy; \
-    S3<C3, _X, _Y, _Z> xyz; \
-    S3<C3, _X, _Z, _X> xzx; \
-    S3<C3, _X, _Z, _Y> xzy; \
-    S3<C3, _X, _Z, _Z> xzz; \
-    S3<C3, _Y, _X, _X> yxx; \
-    S3<C3, _Y, _X, _Y> yxy; \
-    S3<C3, _Y, _X, _Z> yxz; \
-    S3<C3, _Y, _Y, _X> yyx; \
-    S3<C3, _Y, _Y, _Y> yyy; \
-    S3<C3, _Y, _Y, _Z> yyz; \
-    S3<C3, _Y, _Z, _X> yzx; \
-    S3<C3, _Y, _Z, _Y> yzy; \
-    S3<C3, _Y, _Z, _Z> yzz; \
-    S3<C3, _Z, _X, _X> zxx; \
-    S3<C3, _Z, _X, _Y> zxy; \
-    S3<C3, _Z, _X, _Z> zxz; \
-    S3<C3, _Z, _Y, _X> zyx; \
-    S3<C3, _Z, _Y, _Y> zyy; \
-    S3<C3, _Z, _Y, _Z> zyz; \
-    S3<C3, _Z, _Z, _X> zzx; \
-    S3<C3, _Z, _Z, _Y> zzy; \
-    S3<C3, _Z, _Z, _Z> zzz
+    S2<C2, ML_X, ML_X> xx; \
+    S2<C2, ML_X, ML_Y> xy; \
+    S2<C2, ML_X, ML_Z> xz; \
+    S2<C2, ML_Y, ML_X> yx; \
+    S2<C2, ML_Y, ML_Y> yy; \
+    S2<C2, ML_Y, ML_Z> yz; \
+    S2<C2, ML_Z, ML_X> zx; \
+    S2<C2, ML_Z, ML_Y> zy; \
+    S2<C2, ML_Z, ML_Z> zz; \
+    S3<C3, ML_X, ML_X, ML_X> xxx; \
+    S3<C3, ML_X, ML_X, ML_Y> xxy; \
+    S3<C3, ML_X, ML_X, ML_Z> xxz; \
+    S3<C3, ML_X, ML_Y, ML_X> xyx; \
+    S3<C3, ML_X, ML_Y, ML_Y> xyy; \
+    S3<C3, ML_X, ML_Y, ML_Z> xyz; \
+    S3<C3, ML_X, ML_Z, ML_X> xzx; \
+    S3<C3, ML_X, ML_Z, ML_Y> xzy; \
+    S3<C3, ML_X, ML_Z, ML_Z> xzz; \
+    S3<C3, ML_Y, ML_X, ML_X> yxx; \
+    S3<C3, ML_Y, ML_X, ML_Y> yxy; \
+    S3<C3, ML_Y, ML_X, ML_Z> yxz; \
+    S3<C3, ML_Y, ML_Y, ML_X> yyx; \
+    S3<C3, ML_Y, ML_Y, ML_Y> yyy; \
+    S3<C3, ML_Y, ML_Y, ML_Z> yyz; \
+    S3<C3, ML_Y, ML_Z, ML_X> yzx; \
+    S3<C3, ML_Y, ML_Z, ML_Y> yzy; \
+    S3<C3, ML_Y, ML_Z, ML_Z> yzz; \
+    S3<C3, ML_Z, ML_X, ML_X> zxx; \
+    S3<C3, ML_Z, ML_X, ML_Y> zxy; \
+    S3<C3, ML_Z, ML_X, ML_Z> zxz; \
+    S3<C3, ML_Z, ML_Y, ML_X> zyx; \
+    S3<C3, ML_Z, ML_Y, ML_Y> zyy; \
+    S3<C3, ML_Z, ML_Y, ML_Z> zyz; \
+    S3<C3, ML_Z, ML_Z, ML_X> zzx; \
+    S3<C3, ML_Z, ML_Z, ML_Y> zzy; \
+    S3<C3, ML_Z, ML_Z, ML_Z> zzz
 
 #define ML_SWIZZLE_4(S2, C2, S3, C3, S4, C4) \
-    S2<C2, _X, _X> xx; \
-    S2<C2, _X, _Y> xy; \
-    S2<C2, _X, _Z> xz; \
-    S2<C2, _X, _W> xw; \
-    S2<C2, _Y, _X> yx; \
-    S2<C2, _Y, _Y> yy; \
-    S2<C2, _Y, _Z> yz; \
-    S2<C2, _Y, _W> yw; \
-    S2<C2, _Z, _X> zx; \
-    S2<C2, _Z, _Y> zy; \
-    S2<C2, _Z, _Z> zz; \
-    S2<C2, _Z, _W> zw; \
-    S2<C2, _W, _X> wx; \
-    S2<C2, _W, _Y> wy; \
-    S2<C2, _W, _Z> wz; \
-    S2<C2, _W, _W> ww; \
-    S3<C3, _X, _X, _X> xxx; \
-    S3<C3, _X, _X, _Y> xxy; \
-    S3<C3, _X, _X, _Z> xxz; \
-    S3<C3, _X, _X, _W> xxw; \
-    S3<C3, _X, _Y, _X> xyx; \
-    S3<C3, _X, _Y, _Y> xyy; \
-    S3<C3, _X, _Y, _Z> xyz; \
-    S3<C3, _X, _Y, _W> xyw; \
-    S3<C3, _X, _Z, _X> xzx; \
-    S3<C3, _X, _Z, _Y> xzy; \
-    S3<C3, _X, _Z, _Z> xzz; \
-    S3<C3, _X, _Z, _W> xzw; \
-    S3<C3, _X, _W, _X> xwx; \
-    S3<C3, _X, _W, _Y> xwy; \
-    S3<C3, _X, _W, _Z> xwz; \
-    S3<C3, _X, _W, _W> xww; \
-    S3<C3, _Y, _X, _X> yxx; \
-    S3<C3, _Y, _X, _Y> yxy; \
-    S3<C3, _Y, _X, _Z> yxz; \
-    S3<C3, _Y, _X, _W> yxw; \
-    S3<C3, _Y, _Y, _X> yyx; \
-    S3<C3, _Y, _Y, _Y> yyy; \
-    S3<C3, _Y, _Y, _Z> yyz; \
-    S3<C3, _Y, _Y, _W> yyw; \
-    S3<C3, _Y, _Z, _X> yzx; \
-    S3<C3, _Y, _Z, _Y> yzy; \
-    S3<C3, _Y, _Z, _Z> yzz; \
-    S3<C3, _Y, _Z, _W> yzw; \
-    S3<C3, _Y, _W, _X> ywx; \
-    S3<C3, _Y, _W, _Y> ywy; \
-    S3<C3, _Y, _W, _Z> ywz; \
-    S3<C3, _Y, _W, _W> yww; \
-    S3<C3, _Z, _X, _X> zxx; \
-    S3<C3, _Z, _X, _Y> zxy; \
-    S3<C3, _Z, _X, _Z> zxz; \
-    S3<C3, _Z, _X, _W> zxw; \
-    S3<C3, _Z, _Y, _X> zyx; \
-    S3<C3, _Z, _Y, _Y> zyy; \
-    S3<C3, _Z, _Y, _Z> zyz; \
-    S3<C3, _Z, _Y, _W> zyw; \
-    S3<C3, _Z, _Z, _X> zzx; \
-    S3<C3, _Z, _Z, _Y> zzy; \
-    S3<C3, _Z, _Z, _Z> zzz; \
-    S3<C3, _Z, _Z, _W> zzw; \
-    S3<C3, _Z, _W, _X> zwx; \
-    S3<C3, _Z, _W, _Y> zwy; \
-    S3<C3, _Z, _W, _Z> zwz; \
-    S3<C3, _Z, _W, _W> zww; \
-    S3<C3, _W, _X, _X> wxx; \
-    S3<C3, _W, _X, _Y> wxy; \
-    S3<C3, _W, _X, _Z> wxz; \
-    S3<C3, _W, _X, _W> wxw; \
-    S3<C3, _W, _Y, _X> wyx; \
-    S3<C3, _W, _Y, _Y> wyy; \
-    S3<C3, _W, _Y, _Z> wyz; \
-    S3<C3, _W, _Y, _W> wyw; \
-    S3<C3, _W, _Z, _X> wzx; \
-    S3<C3, _W, _Z, _Y> wzy; \
-    S3<C3, _W, _Z, _Z> wzz; \
-    S3<C3, _W, _Z, _W> wzw; \
-    S3<C3, _W, _W, _X> wwx; \
-    S3<C3, _W, _W, _Y> wwy; \
-    S3<C3, _W, _W, _Z> wwz; \
-    S3<C3, _W, _W, _W> www; \
-    S4<C4, _X, _X, _X, _X> xxxx; \
-    S4<C4, _X, _X, _X, _Y> xxxy; \
-    S4<C4, _X, _X, _X, _Z> xxxz; \
-    S4<C4, _X, _X, _X, _W> xxxw; \
-    S4<C4, _X, _X, _Y, _X> xxyx; \
-    S4<C4, _X, _X, _Y, _Y> xxyy; \
-    S4<C4, _X, _X, _Y, _Z> xxyz; \
-    S4<C4, _X, _X, _Y, _W> xxyw; \
-    S4<C4, _X, _X, _Z, _X> xxzx; \
-    S4<C4, _X, _X, _Z, _Y> xxzy; \
-    S4<C4, _X, _X, _Z, _Z> xxzz; \
-    S4<C4, _X, _X, _Z, _W> xxzw; \
-    S4<C4, _X, _X, _W, _X> xxwx; \
-    S4<C4, _X, _X, _W, _Y> xxwy; \
-    S4<C4, _X, _X, _W, _Z> xxwz; \
-    S4<C4, _X, _X, _W, _W> xxww; \
-    S4<C4, _X, _Y, _X, _X> xyxx; \
-    S4<C4, _X, _Y, _X, _Y> xyxy; \
-    S4<C4, _X, _Y, _X, _Z> xyxz; \
-    S4<C4, _X, _Y, _X, _W> xyxw; \
-    S4<C4, _X, _Y, _Y, _X> xyyx; \
-    S4<C4, _X, _Y, _Y, _Y> xyyy; \
-    S4<C4, _X, _Y, _Y, _Z> xyyz; \
-    S4<C4, _X, _Y, _Y, _W> xyyw; \
-    S4<C4, _X, _Y, _Z, _X> xyzx; \
-    S4<C4, _X, _Y, _Z, _Y> xyzy; \
-    S4<C4, _X, _Y, _Z, _Z> xyzz; \
-    S4<C4, _X, _Y, _Z, _W> xyzw; \
-    S4<C4, _X, _Y, _W, _X> xywx; \
-    S4<C4, _X, _Y, _W, _Y> xywy; \
-    S4<C4, _X, _Y, _W, _Z> xywz; \
-    S4<C4, _X, _Y, _W, _W> xyww; \
-    S4<C4, _X, _Z, _X, _X> xzxx; \
-    S4<C4, _X, _Z, _X, _Y> xzxy; \
-    S4<C4, _X, _Z, _X, _Z> xzxz; \
-    S4<C4, _X, _Z, _X, _W> xzxw; \
-    S4<C4, _X, _Z, _Y, _X> xzyx; \
-    S4<C4, _X, _Z, _Y, _Y> xzyy; \
-    S4<C4, _X, _Z, _Y, _Z> xzyz; \
-    S4<C4, _X, _Z, _Y, _W> xzyw; \
-    S4<C4, _X, _Z, _Z, _X> xzzx; \
-    S4<C4, _X, _Z, _Z, _Y> xzzy; \
-    S4<C4, _X, _Z, _Z, _Z> xzzz; \
-    S4<C4, _X, _Z, _Z, _W> xzzw; \
-    S4<C4, _X, _Z, _W, _X> xzwx; \
-    S4<C4, _X, _Z, _W, _Y> xzwy; \
-    S4<C4, _X, _Z, _W, _Z> xzwz; \
-    S4<C4, _X, _Z, _W, _W> xzww; \
-    S4<C4, _X, _W, _X, _X> xwxx; \
-    S4<C4, _X, _W, _X, _Y> xwxy; \
-    S4<C4, _X, _W, _X, _Z> xwxz; \
-    S4<C4, _X, _W, _X, _W> xwxw; \
-    S4<C4, _X, _W, _Y, _X> xwyx; \
-    S4<C4, _X, _W, _Y, _Y> xwyy; \
-    S4<C4, _X, _W, _Y, _Z> xwyz; \
-    S4<C4, _X, _W, _Y, _W> xwyw; \
-    S4<C4, _X, _W, _Z, _X> xwzx; \
-    S4<C4, _X, _W, _Z, _Y> xwzy; \
-    S4<C4, _X, _W, _Z, _Z> xwzz; \
-    S4<C4, _X, _W, _Z, _W> xwzw; \
-    S4<C4, _X, _W, _W, _X> xwwx; \
-    S4<C4, _X, _W, _W, _Y> xwwy; \
-    S4<C4, _X, _W, _W, _Z> xwwz; \
-    S4<C4, _X, _W, _W, _W> xwww; \
-    S4<C4, _Y, _X, _X, _X> yxxx; \
-    S4<C4, _Y, _X, _X, _Y> yxxy; \
-    S4<C4, _Y, _X, _X, _Z> yxxz; \
-    S4<C4, _Y, _X, _X, _W> yxxw; \
-    S4<C4, _Y, _X, _Y, _X> yxyx; \
-    S4<C4, _Y, _X, _Y, _Y> yxyy; \
-    S4<C4, _Y, _X, _Y, _Z> yxyz; \
-    S4<C4, _Y, _X, _Y, _W> yxyw; \
-    S4<C4, _Y, _X, _Z, _X> yxzx; \
-    S4<C4, _Y, _X, _Z, _Y> yxzy; \
-    S4<C4, _Y, _X, _Z, _Z> yxzz; \
-    S4<C4, _Y, _X, _Z, _W> yxzw; \
-    S4<C4, _Y, _X, _W, _X> yxwx; \
-    S4<C4, _Y, _X, _W, _Y> yxwy; \
-    S4<C4, _Y, _X, _W, _Z> yxwz; \
-    S4<C4, _Y, _X, _W, _W> yxww; \
-    S4<C4, _Y, _Y, _X, _X> yyxx; \
-    S4<C4, _Y, _Y, _X, _Y> yyxy; \
-    S4<C4, _Y, _Y, _X, _Z> yyxz; \
-    S4<C4, _Y, _Y, _X, _W> yyxw; \
-    S4<C4, _Y, _Y, _Y, _X> yyyx; \
-    S4<C4, _Y, _Y, _Y, _Y> yyyy; \
-    S4<C4, _Y, _Y, _Y, _Z> yyyz; \
-    S4<C4, _Y, _Y, _Y, _W> yyyw; \
-    S4<C4, _Y, _Y, _Z, _X> yyzx; \
-    S4<C4, _Y, _Y, _Z, _Y> yyzy; \
-    S4<C4, _Y, _Y, _Z, _Z> yyzz; \
-    S4<C4, _Y, _Y, _Z, _W> yyzw; \
-    S4<C4, _Y, _Y, _W, _X> yywx; \
-    S4<C4, _Y, _Y, _W, _Y> yywy; \
-    S4<C4, _Y, _Y, _W, _Z> yywz; \
-    S4<C4, _Y, _Y, _W, _W> yyww; \
-    S4<C4, _Y, _Z, _X, _X> yzxx; \
-    S4<C4, _Y, _Z, _X, _Y> yzxy; \
-    S4<C4, _Y, _Z, _X, _Z> yzxz; \
-    S4<C4, _Y, _Z, _X, _W> yzxw; \
-    S4<C4, _Y, _Z, _Y, _X> yzyx; \
-    S4<C4, _Y, _Z, _Y, _Y> yzyy; \
-    S4<C4, _Y, _Z, _Y, _Z> yzyz; \
-    S4<C4, _Y, _Z, _Y, _W> yzyw; \
-    S4<C4, _Y, _Z, _Z, _X> yzzx; \
-    S4<C4, _Y, _Z, _Z, _Y> yzzy; \
-    S4<C4, _Y, _Z, _Z, _Z> yzzz; \
-    S4<C4, _Y, _Z, _Z, _W> yzzw; \
-    S4<C4, _Y, _Z, _W, _X> yzwx; \
-    S4<C4, _Y, _Z, _W, _Y> yzwy; \
-    S4<C4, _Y, _Z, _W, _Z> yzwz; \
-    S4<C4, _Y, _Z, _W, _W> yzww; \
-    S4<C4, _Y, _W, _X, _X> ywxx; \
-    S4<C4, _Y, _W, _X, _Y> ywxy; \
-    S4<C4, _Y, _W, _X, _Z> ywxz; \
-    S4<C4, _Y, _W, _X, _W> ywxw; \
-    S4<C4, _Y, _W, _Y, _X> ywyx; \
-    S4<C4, _Y, _W, _Y, _Y> ywyy; \
-    S4<C4, _Y, _W, _Y, _Z> ywyz; \
-    S4<C4, _Y, _W, _Y, _W> ywyw; \
-    S4<C4, _Y, _W, _Z, _X> ywzx; \
-    S4<C4, _Y, _W, _Z, _Y> ywzy; \
-    S4<C4, _Y, _W, _Z, _Z> ywzz; \
-    S4<C4, _Y, _W, _Z, _W> ywzw; \
-    S4<C4, _Y, _W, _W, _X> ywwx; \
-    S4<C4, _Y, _W, _W, _Y> ywwy; \
-    S4<C4, _Y, _W, _W, _Z> ywwz; \
-    S4<C4, _Y, _W, _W, _W> ywww; \
-    S4<C4, _Z, _X, _X, _X> zxxx; \
-    S4<C4, _Z, _X, _X, _Y> zxxy; \
-    S4<C4, _Z, _X, _X, _Z> zxxz; \
-    S4<C4, _Z, _X, _X, _W> zxxw; \
-    S4<C4, _Z, _X, _Y, _X> zxyx; \
-    S4<C4, _Z, _X, _Y, _Y> zxyy; \
-    S4<C4, _Z, _X, _Y, _Z> zxyz; \
-    S4<C4, _Z, _X, _Y, _W> zxyw; \
-    S4<C4, _Z, _X, _Z, _X> zxzx; \
-    S4<C4, _Z, _X, _Z, _Y> zxzy; \
-    S4<C4, _Z, _X, _Z, _Z> zxzz; \
-    S4<C4, _Z, _X, _Z, _W> zxzw; \
-    S4<C4, _Z, _X, _W, _X> zxwx; \
-    S4<C4, _Z, _X, _W, _Y> zxwy; \
-    S4<C4, _Z, _X, _W, _Z> zxwz; \
-    S4<C4, _Z, _X, _W, _W> zxww; \
-    S4<C4, _Z, _Y, _X, _X> zyxx; \
-    S4<C4, _Z, _Y, _X, _Y> zyxy; \
-    S4<C4, _Z, _Y, _X, _Z> zyxz; \
-    S4<C4, _Z, _Y, _X, _W> zyxw; \
-    S4<C4, _Z, _Y, _Y, _X> zyyx; \
-    S4<C4, _Z, _Y, _Y, _Y> zyyy; \
-    S4<C4, _Z, _Y, _Y, _Z> zyyz; \
-    S4<C4, _Z, _Y, _Y, _W> zyyw; \
-    S4<C4, _Z, _Y, _Z, _X> zyzx; \
-    S4<C4, _Z, _Y, _Z, _Y> zyzy; \
-    S4<C4, _Z, _Y, _Z, _Z> zyzz; \
-    S4<C4, _Z, _Y, _Z, _W> zyzw; \
-    S4<C4, _Z, _Y, _W, _X> zywx; \
-    S4<C4, _Z, _Y, _W, _Y> zywy; \
-    S4<C4, _Z, _Y, _W, _Z> zywz; \
-    S4<C4, _Z, _Y, _W, _W> zyww; \
-    S4<C4, _Z, _Z, _X, _X> zzxx; \
-    S4<C4, _Z, _Z, _X, _Y> zzxy; \
-    S4<C4, _Z, _Z, _X, _Z> zzxz; \
-    S4<C4, _Z, _Z, _X, _W> zzxw; \
-    S4<C4, _Z, _Z, _Y, _X> zzyx; \
-    S4<C4, _Z, _Z, _Y, _Y> zzyy; \
-    S4<C4, _Z, _Z, _Y, _Z> zzyz; \
-    S4<C4, _Z, _Z, _Y, _W> zzyw; \
-    S4<C4, _Z, _Z, _Z, _X> zzzx; \
-    S4<C4, _Z, _Z, _Z, _Y> zzzy; \
-    S4<C4, _Z, _Z, _Z, _Z> zzzz; \
-    S4<C4, _Z, _Z, _Z, _W> zzzw; \
-    S4<C4, _Z, _Z, _W, _X> zzwx; \
-    S4<C4, _Z, _Z, _W, _Y> zzwy; \
-    S4<C4, _Z, _Z, _W, _Z> zzwz; \
-    S4<C4, _Z, _Z, _W, _W> zzww; \
-    S4<C4, _Z, _W, _X, _X> zwxx; \
-    S4<C4, _Z, _W, _X, _Y> zwxy; \
-    S4<C4, _Z, _W, _X, _Z> zwxz; \
-    S4<C4, _Z, _W, _X, _W> zwxw; \
-    S4<C4, _Z, _W, _Y, _X> zwyx; \
-    S4<C4, _Z, _W, _Y, _Y> zwyy; \
-    S4<C4, _Z, _W, _Y, _Z> zwyz; \
-    S4<C4, _Z, _W, _Y, _W> zwyw; \
-    S4<C4, _Z, _W, _Z, _X> zwzx; \
-    S4<C4, _Z, _W, _Z, _Y> zwzy; \
-    S4<C4, _Z, _W, _Z, _Z> zwzz; \
-    S4<C4, _Z, _W, _Z, _W> zwzw; \
-    S4<C4, _Z, _W, _W, _X> zwwx; \
-    S4<C4, _Z, _W, _W, _Y> zwwy; \
-    S4<C4, _Z, _W, _W, _Z> zwwz; \
-    S4<C4, _Z, _W, _W, _W> zwww; \
-    S4<C4, _W, _X, _X, _X> wxxx; \
-    S4<C4, _W, _X, _X, _Y> wxxy; \
-    S4<C4, _W, _X, _X, _Z> wxxz; \
-    S4<C4, _W, _X, _X, _W> wxxw; \
-    S4<C4, _W, _X, _Y, _X> wxyx; \
-    S4<C4, _W, _X, _Y, _Y> wxyy; \
-    S4<C4, _W, _X, _Y, _Z> wxyz; \
-    S4<C4, _W, _X, _Y, _W> wxyw; \
-    S4<C4, _W, _X, _Z, _X> wxzx; \
-    S4<C4, _W, _X, _Z, _Y> wxzy; \
-    S4<C4, _W, _X, _Z, _Z> wxzz; \
-    S4<C4, _W, _X, _Z, _W> wxzw; \
-    S4<C4, _W, _X, _W, _X> wxwx; \
-    S4<C4, _W, _X, _W, _Y> wxwy; \
-    S4<C4, _W, _X, _W, _Z> wxwz; \
-    S4<C4, _W, _X, _W, _W> wxww; \
-    S4<C4, _W, _Y, _X, _X> wyxx; \
-    S4<C4, _W, _Y, _X, _Y> wyxy; \
-    S4<C4, _W, _Y, _X, _Z> wyxz; \
-    S4<C4, _W, _Y, _X, _W> wyxw; \
-    S4<C4, _W, _Y, _Y, _X> wyyx; \
-    S4<C4, _W, _Y, _Y, _Y> wyyy; \
-    S4<C4, _W, _Y, _Y, _Z> wyyz; \
-    S4<C4, _W, _Y, _Y, _W> wyyw; \
-    S4<C4, _W, _Y, _Z, _X> wyzx; \
-    S4<C4, _W, _Y, _Z, _Y> wyzy; \
-    S4<C4, _W, _Y, _Z, _Z> wyzz; \
-    S4<C4, _W, _Y, _Z, _W> wyzw; \
-    S4<C4, _W, _Y, _W, _X> wywx; \
-    S4<C4, _W, _Y, _W, _Y> wywy; \
-    S4<C4, _W, _Y, _W, _Z> wywz; \
-    S4<C4, _W, _Y, _W, _W> wyww; \
-    S4<C4, _W, _Z, _X, _X> wzxx; \
-    S4<C4, _W, _Z, _X, _Y> wzxy; \
-    S4<C4, _W, _Z, _X, _Z> wzxz; \
-    S4<C4, _W, _Z, _X, _W> wzxw; \
-    S4<C4, _W, _Z, _Y, _X> wzyx; \
-    S4<C4, _W, _Z, _Y, _Y> wzyy; \
-    S4<C4, _W, _Z, _Y, _Z> wzyz; \
-    S4<C4, _W, _Z, _Y, _W> wzyw; \
-    S4<C4, _W, _Z, _Z, _X> wzzx; \
-    S4<C4, _W, _Z, _Z, _Y> wzzy; \
-    S4<C4, _W, _Z, _Z, _Z> wzzz; \
-    S4<C4, _W, _Z, _Z, _W> wzzw; \
-    S4<C4, _W, _Z, _W, _X> wzwx; \
-    S4<C4, _W, _Z, _W, _Y> wzwy; \
-    S4<C4, _W, _Z, _W, _Z> wzwz; \
-    S4<C4, _W, _Z, _W, _W> wzww; \
-    S4<C4, _W, _W, _X, _X> wwxx; \
-    S4<C4, _W, _W, _X, _Y> wwxy; \
-    S4<C4, _W, _W, _X, _Z> wwxz; \
-    S4<C4, _W, _W, _X, _W> wwxw; \
-    S4<C4, _W, _W, _Y, _X> wwyx; \
-    S4<C4, _W, _W, _Y, _Y> wwyy; \
-    S4<C4, _W, _W, _Y, _Z> wwyz; \
-    S4<C4, _W, _W, _Y, _W> wwyw; \
-    S4<C4, _W, _W, _Z, _X> wwzx; \
-    S4<C4, _W, _W, _Z, _Y> wwzy; \
-    S4<C4, _W, _W, _Z, _Z> wwzz; \
-    S4<C4, _W, _W, _Z, _W> wwzw; \
-    S4<C4, _W, _W, _W, _X> wwwx; \
-    S4<C4, _W, _W, _W, _Y> wwwy; \
-    S4<C4, _W, _W, _W, _Z> wwwz; \
-    S4<C4, _W, _W, _W, _W> wwww
+    S2<C2, ML_X, ML_X> xx; \
+    S2<C2, ML_X, ML_Y> xy; \
+    S2<C2, ML_X, ML_Z> xz; \
+    S2<C2, ML_X, ML_W> xw; \
+    S2<C2, ML_Y, ML_X> yx; \
+    S2<C2, ML_Y, ML_Y> yy; \
+    S2<C2, ML_Y, ML_Z> yz; \
+    S2<C2, ML_Y, ML_W> yw; \
+    S2<C2, ML_Z, ML_X> zx; \
+    S2<C2, ML_Z, ML_Y> zy; \
+    S2<C2, ML_Z, ML_Z> zz; \
+    S2<C2, ML_Z, ML_W> zw; \
+    S2<C2, ML_W, ML_X> wx; \
+    S2<C2, ML_W, ML_Y> wy; \
+    S2<C2, ML_W, ML_Z> wz; \
+    S2<C2, ML_W, ML_W> ww; \
+    S3<C3, ML_X, ML_X, ML_X> xxx; \
+    S3<C3, ML_X, ML_X, ML_Y> xxy; \
+    S3<C3, ML_X, ML_X, ML_Z> xxz; \
+    S3<C3, ML_X, ML_X, ML_W> xxw; \
+    S3<C3, ML_X, ML_Y, ML_X> xyx; \
+    S3<C3, ML_X, ML_Y, ML_Y> xyy; \
+    S3<C3, ML_X, ML_Y, ML_Z> xyz; \
+    S3<C3, ML_X, ML_Y, ML_W> xyw; \
+    S3<C3, ML_X, ML_Z, ML_X> xzx; \
+    S3<C3, ML_X, ML_Z, ML_Y> xzy; \
+    S3<C3, ML_X, ML_Z, ML_Z> xzz; \
+    S3<C3, ML_X, ML_Z, ML_W> xzw; \
+    S3<C3, ML_X, ML_W, ML_X> xwx; \
+    S3<C3, ML_X, ML_W, ML_Y> xwy; \
+    S3<C3, ML_X, ML_W, ML_Z> xwz; \
+    S3<C3, ML_X, ML_W, ML_W> xww; \
+    S3<C3, ML_Y, ML_X, ML_X> yxx; \
+    S3<C3, ML_Y, ML_X, ML_Y> yxy; \
+    S3<C3, ML_Y, ML_X, ML_Z> yxz; \
+    S3<C3, ML_Y, ML_X, ML_W> yxw; \
+    S3<C3, ML_Y, ML_Y, ML_X> yyx; \
+    S3<C3, ML_Y, ML_Y, ML_Y> yyy; \
+    S3<C3, ML_Y, ML_Y, ML_Z> yyz; \
+    S3<C3, ML_Y, ML_Y, ML_W> yyw; \
+    S3<C3, ML_Y, ML_Z, ML_X> yzx; \
+    S3<C3, ML_Y, ML_Z, ML_Y> yzy; \
+    S3<C3, ML_Y, ML_Z, ML_Z> yzz; \
+    S3<C3, ML_Y, ML_Z, ML_W> yzw; \
+    S3<C3, ML_Y, ML_W, ML_X> ywx; \
+    S3<C3, ML_Y, ML_W, ML_Y> ywy; \
+    S3<C3, ML_Y, ML_W, ML_Z> ywz; \
+    S3<C3, ML_Y, ML_W, ML_W> yww; \
+    S3<C3, ML_Z, ML_X, ML_X> zxx; \
+    S3<C3, ML_Z, ML_X, ML_Y> zxy; \
+    S3<C3, ML_Z, ML_X, ML_Z> zxz; \
+    S3<C3, ML_Z, ML_X, ML_W> zxw; \
+    S3<C3, ML_Z, ML_Y, ML_X> zyx; \
+    S3<C3, ML_Z, ML_Y, ML_Y> zyy; \
+    S3<C3, ML_Z, ML_Y, ML_Z> zyz; \
+    S3<C3, ML_Z, ML_Y, ML_W> zyw; \
+    S3<C3, ML_Z, ML_Z, ML_X> zzx; \
+    S3<C3, ML_Z, ML_Z, ML_Y> zzy; \
+    S3<C3, ML_Z, ML_Z, ML_Z> zzz; \
+    S3<C3, ML_Z, ML_Z, ML_W> zzw; \
+    S3<C3, ML_Z, ML_W, ML_X> zwx; \
+    S3<C3, ML_Z, ML_W, ML_Y> zwy; \
+    S3<C3, ML_Z, ML_W, ML_Z> zwz; \
+    S3<C3, ML_Z, ML_W, ML_W> zww; \
+    S3<C3, ML_W, ML_X, ML_X> wxx; \
+    S3<C3, ML_W, ML_X, ML_Y> wxy; \
+    S3<C3, ML_W, ML_X, ML_Z> wxz; \
+    S3<C3, ML_W, ML_X, ML_W> wxw; \
+    S3<C3, ML_W, ML_Y, ML_X> wyx; \
+    S3<C3, ML_W, ML_Y, ML_Y> wyy; \
+    S3<C3, ML_W, ML_Y, ML_Z> wyz; \
+    S3<C3, ML_W, ML_Y, ML_W> wyw; \
+    S3<C3, ML_W, ML_Z, ML_X> wzx; \
+    S3<C3, ML_W, ML_Z, ML_Y> wzy; \
+    S3<C3, ML_W, ML_Z, ML_Z> wzz; \
+    S3<C3, ML_W, ML_Z, ML_W> wzw; \
+    S3<C3, ML_W, ML_W, ML_X> wwx; \
+    S3<C3, ML_W, ML_W, ML_Y> wwy; \
+    S3<C3, ML_W, ML_W, ML_Z> wwz; \
+    S3<C3, ML_W, ML_W, ML_W> www; \
+    S4<C4, ML_X, ML_X, ML_X, ML_X> xxxx; \
+    S4<C4, ML_X, ML_X, ML_X, ML_Y> xxxy; \
+    S4<C4, ML_X, ML_X, ML_X, ML_Z> xxxz; \
+    S4<C4, ML_X, ML_X, ML_X, ML_W> xxxw; \
+    S4<C4, ML_X, ML_X, ML_Y, ML_X> xxyx; \
+    S4<C4, ML_X, ML_X, ML_Y, ML_Y> xxyy; \
+    S4<C4, ML_X, ML_X, ML_Y, ML_Z> xxyz; \
+    S4<C4, ML_X, ML_X, ML_Y, ML_W> xxyw; \
+    S4<C4, ML_X, ML_X, ML_Z, ML_X> xxzx; \
+    S4<C4, ML_X, ML_X, ML_Z, ML_Y> xxzy; \
+    S4<C4, ML_X, ML_X, ML_Z, ML_Z> xxzz; \
+    S4<C4, ML_X, ML_X, ML_Z, ML_W> xxzw; \
+    S4<C4, ML_X, ML_X, ML_W, ML_X> xxwx; \
+    S4<C4, ML_X, ML_X, ML_W, ML_Y> xxwy; \
+    S4<C4, ML_X, ML_X, ML_W, ML_Z> xxwz; \
+    S4<C4, ML_X, ML_X, ML_W, ML_W> xxww; \
+    S4<C4, ML_X, ML_Y, ML_X, ML_X> xyxx; \
+    S4<C4, ML_X, ML_Y, ML_X, ML_Y> xyxy; \
+    S4<C4, ML_X, ML_Y, ML_X, ML_Z> xyxz; \
+    S4<C4, ML_X, ML_Y, ML_X, ML_W> xyxw; \
+    S4<C4, ML_X, ML_Y, ML_Y, ML_X> xyyx; \
+    S4<C4, ML_X, ML_Y, ML_Y, ML_Y> xyyy; \
+    S4<C4, ML_X, ML_Y, ML_Y, ML_Z> xyyz; \
+    S4<C4, ML_X, ML_Y, ML_Y, ML_W> xyyw; \
+    S4<C4, ML_X, ML_Y, ML_Z, ML_X> xyzx; \
+    S4<C4, ML_X, ML_Y, ML_Z, ML_Y> xyzy; \
+    S4<C4, ML_X, ML_Y, ML_Z, ML_Z> xyzz; \
+    S4<C4, ML_X, ML_Y, ML_Z, ML_W> xyzw; \
+    S4<C4, ML_X, ML_Y, ML_W, ML_X> xywx; \
+    S4<C4, ML_X, ML_Y, ML_W, ML_Y> xywy; \
+    S4<C4, ML_X, ML_Y, ML_W, ML_Z> xywz; \
+    S4<C4, ML_X, ML_Y, ML_W, ML_W> xyww; \
+    S4<C4, ML_X, ML_Z, ML_X, ML_X> xzxx; \
+    S4<C4, ML_X, ML_Z, ML_X, ML_Y> xzxy; \
+    S4<C4, ML_X, ML_Z, ML_X, ML_Z> xzxz; \
+    S4<C4, ML_X, ML_Z, ML_X, ML_W> xzxw; \
+    S4<C4, ML_X, ML_Z, ML_Y, ML_X> xzyx; \
+    S4<C4, ML_X, ML_Z, ML_Y, ML_Y> xzyy; \
+    S4<C4, ML_X, ML_Z, ML_Y, ML_Z> xzyz; \
+    S4<C4, ML_X, ML_Z, ML_Y, ML_W> xzyw; \
+    S4<C4, ML_X, ML_Z, ML_Z, ML_X> xzzx; \
+    S4<C4, ML_X, ML_Z, ML_Z, ML_Y> xzzy; \
+    S4<C4, ML_X, ML_Z, ML_Z, ML_Z> xzzz; \
+    S4<C4, ML_X, ML_Z, ML_Z, ML_W> xzzw; \
+    S4<C4, ML_X, ML_Z, ML_W, ML_X> xzwx; \
+    S4<C4, ML_X, ML_Z, ML_W, ML_Y> xzwy; \
+    S4<C4, ML_X, ML_Z, ML_W, ML_Z> xzwz; \
+    S4<C4, ML_X, ML_Z, ML_W, ML_W> xzww; \
+    S4<C4, ML_X, ML_W, ML_X, ML_X> xwxx; \
+    S4<C4, ML_X, ML_W, ML_X, ML_Y> xwxy; \
+    S4<C4, ML_X, ML_W, ML_X, ML_Z> xwxz; \
+    S4<C4, ML_X, ML_W, ML_X, ML_W> xwxw; \
+    S4<C4, ML_X, ML_W, ML_Y, ML_X> xwyx; \
+    S4<C4, ML_X, ML_W, ML_Y, ML_Y> xwyy; \
+    S4<C4, ML_X, ML_W, ML_Y, ML_Z> xwyz; \
+    S4<C4, ML_X, ML_W, ML_Y, ML_W> xwyw; \
+    S4<C4, ML_X, ML_W, ML_Z, ML_X> xwzx; \
+    S4<C4, ML_X, ML_W, ML_Z, ML_Y> xwzy; \
+    S4<C4, ML_X, ML_W, ML_Z, ML_Z> xwzz; \
+    S4<C4, ML_X, ML_W, ML_Z, ML_W> xwzw; \
+    S4<C4, ML_X, ML_W, ML_W, ML_X> xwwx; \
+    S4<C4, ML_X, ML_W, ML_W, ML_Y> xwwy; \
+    S4<C4, ML_X, ML_W, ML_W, ML_Z> xwwz; \
+    S4<C4, ML_X, ML_W, ML_W, ML_W> xwww; \
+    S4<C4, ML_Y, ML_X, ML_X, ML_X> yxxx; \
+    S4<C4, ML_Y, ML_X, ML_X, ML_Y> yxxy; \
+    S4<C4, ML_Y, ML_X, ML_X, ML_Z> yxxz; \
+    S4<C4, ML_Y, ML_X, ML_X, ML_W> yxxw; \
+    S4<C4, ML_Y, ML_X, ML_Y, ML_X> yxyx; \
+    S4<C4, ML_Y, ML_X, ML_Y, ML_Y> yxyy; \
+    S4<C4, ML_Y, ML_X, ML_Y, ML_Z> yxyz; \
+    S4<C4, ML_Y, ML_X, ML_Y, ML_W> yxyw; \
+    S4<C4, ML_Y, ML_X, ML_Z, ML_X> yxzx; \
+    S4<C4, ML_Y, ML_X, ML_Z, ML_Y> yxzy; \
+    S4<C4, ML_Y, ML_X, ML_Z, ML_Z> yxzz; \
+    S4<C4, ML_Y, ML_X, ML_Z, ML_W> yxzw; \
+    S4<C4, ML_Y, ML_X, ML_W, ML_X> yxwx; \
+    S4<C4, ML_Y, ML_X, ML_W, ML_Y> yxwy; \
+    S4<C4, ML_Y, ML_X, ML_W, ML_Z> yxwz; \
+    S4<C4, ML_Y, ML_X, ML_W, ML_W> yxww; \
+    S4<C4, ML_Y, ML_Y, ML_X, ML_X> yyxx; \
+    S4<C4, ML_Y, ML_Y, ML_X, ML_Y> yyxy; \
+    S4<C4, ML_Y, ML_Y, ML_X, ML_Z> yyxz; \
+    S4<C4, ML_Y, ML_Y, ML_X, ML_W> yyxw; \
+    S4<C4, ML_Y, ML_Y, ML_Y, ML_X> yyyx; \
+    S4<C4, ML_Y, ML_Y, ML_Y, ML_Y> yyyy; \
+    S4<C4, ML_Y, ML_Y, ML_Y, ML_Z> yyyz; \
+    S4<C4, ML_Y, ML_Y, ML_Y, ML_W> yyyw; \
+    S4<C4, ML_Y, ML_Y, ML_Z, ML_X> yyzx; \
+    S4<C4, ML_Y, ML_Y, ML_Z, ML_Y> yyzy; \
+    S4<C4, ML_Y, ML_Y, ML_Z, ML_Z> yyzz; \
+    S4<C4, ML_Y, ML_Y, ML_Z, ML_W> yyzw; \
+    S4<C4, ML_Y, ML_Y, ML_W, ML_X> yywx; \
+    S4<C4, ML_Y, ML_Y, ML_W, ML_Y> yywy; \
+    S4<C4, ML_Y, ML_Y, ML_W, ML_Z> yywz; \
+    S4<C4, ML_Y, ML_Y, ML_W, ML_W> yyww; \
+    S4<C4, ML_Y, ML_Z, ML_X, ML_X> yzxx; \
+    S4<C4, ML_Y, ML_Z, ML_X, ML_Y> yzxy; \
+    S4<C4, ML_Y, ML_Z, ML_X, ML_Z> yzxz; \
+    S4<C4, ML_Y, ML_Z, ML_X, ML_W> yzxw; \
+    S4<C4, ML_Y, ML_Z, ML_Y, ML_X> yzyx; \
+    S4<C4, ML_Y, ML_Z, ML_Y, ML_Y> yzyy; \
+    S4<C4, ML_Y, ML_Z, ML_Y, ML_Z> yzyz; \
+    S4<C4, ML_Y, ML_Z, ML_Y, ML_W> yzyw; \
+    S4<C4, ML_Y, ML_Z, ML_Z, ML_X> yzzx; \
+    S4<C4, ML_Y, ML_Z, ML_Z, ML_Y> yzzy; \
+    S4<C4, ML_Y, ML_Z, ML_Z, ML_Z> yzzz; \
+    S4<C4, ML_Y, ML_Z, ML_Z, ML_W> yzzw; \
+    S4<C4, ML_Y, ML_Z, ML_W, ML_X> yzwx; \
+    S4<C4, ML_Y, ML_Z, ML_W, ML_Y> yzwy; \
+    S4<C4, ML_Y, ML_Z, ML_W, ML_Z> yzwz; \
+    S4<C4, ML_Y, ML_Z, ML_W, ML_W> yzww; \
+    S4<C4, ML_Y, ML_W, ML_X, ML_X> ywxx; \
+    S4<C4, ML_Y, ML_W, ML_X, ML_Y> ywxy; \
+    S4<C4, ML_Y, ML_W, ML_X, ML_Z> ywxz; \
+    S4<C4, ML_Y, ML_W, ML_X, ML_W> ywxw; \
+    S4<C4, ML_Y, ML_W, ML_Y, ML_X> ywyx; \
+    S4<C4, ML_Y, ML_W, ML_Y, ML_Y> ywyy; \
+    S4<C4, ML_Y, ML_W, ML_Y, ML_Z> ywyz; \
+    S4<C4, ML_Y, ML_W, ML_Y, ML_W> ywyw; \
+    S4<C4, ML_Y, ML_W, ML_Z, ML_X> ywzx; \
+    S4<C4, ML_Y, ML_W, ML_Z, ML_Y> ywzy; \
+    S4<C4, ML_Y, ML_W, ML_Z, ML_Z> ywzz; \
+    S4<C4, ML_Y, ML_W, ML_Z, ML_W> ywzw; \
+    S4<C4, ML_Y, ML_W, ML_W, ML_X> ywwx; \
+    S4<C4, ML_Y, ML_W, ML_W, ML_Y> ywwy; \
+    S4<C4, ML_Y, ML_W, ML_W, ML_Z> ywwz; \
+    S4<C4, ML_Y, ML_W, ML_W, ML_W> ywww; \
+    S4<C4, ML_Z, ML_X, ML_X, ML_X> zxxx; \
+    S4<C4, ML_Z, ML_X, ML_X, ML_Y> zxxy; \
+    S4<C4, ML_Z, ML_X, ML_X, ML_Z> zxxz; \
+    S4<C4, ML_Z, ML_X, ML_X, ML_W> zxxw; \
+    S4<C4, ML_Z, ML_X, ML_Y, ML_X> zxyx; \
+    S4<C4, ML_Z, ML_X, ML_Y, ML_Y> zxyy; \
+    S4<C4, ML_Z, ML_X, ML_Y, ML_Z> zxyz; \
+    S4<C4, ML_Z, ML_X, ML_Y, ML_W> zxyw; \
+    S4<C4, ML_Z, ML_X, ML_Z, ML_X> zxzx; \
+    S4<C4, ML_Z, ML_X, ML_Z, ML_Y> zxzy; \
+    S4<C4, ML_Z, ML_X, ML_Z, ML_Z> zxzz; \
+    S4<C4, ML_Z, ML_X, ML_Z, ML_W> zxzw; \
+    S4<C4, ML_Z, ML_X, ML_W, ML_X> zxwx; \
+    S4<C4, ML_Z, ML_X, ML_W, ML_Y> zxwy; \
+    S4<C4, ML_Z, ML_X, ML_W, ML_Z> zxwz; \
+    S4<C4, ML_Z, ML_X, ML_W, ML_W> zxww; \
+    S4<C4, ML_Z, ML_Y, ML_X, ML_X> zyxx; \
+    S4<C4, ML_Z, ML_Y, ML_X, ML_Y> zyxy; \
+    S4<C4, ML_Z, ML_Y, ML_X, ML_Z> zyxz; \
+    S4<C4, ML_Z, ML_Y, ML_X, ML_W> zyxw; \
+    S4<C4, ML_Z, ML_Y, ML_Y, ML_X> zyyx; \
+    S4<C4, ML_Z, ML_Y, ML_Y, ML_Y> zyyy; \
+    S4<C4, ML_Z, ML_Y, ML_Y, ML_Z> zyyz; \
+    S4<C4, ML_Z, ML_Y, ML_Y, ML_W> zyyw; \
+    S4<C4, ML_Z, ML_Y, ML_Z, ML_X> zyzx; \
+    S4<C4, ML_Z, ML_Y, ML_Z, ML_Y> zyzy; \
+    S4<C4, ML_Z, ML_Y, ML_Z, ML_Z> zyzz; \
+    S4<C4, ML_Z, ML_Y, ML_Z, ML_W> zyzw; \
+    S4<C4, ML_Z, ML_Y, ML_W, ML_X> zywx; \
+    S4<C4, ML_Z, ML_Y, ML_W, ML_Y> zywy; \
+    S4<C4, ML_Z, ML_Y, ML_W, ML_Z> zywz; \
+    S4<C4, ML_Z, ML_Y, ML_W, ML_W> zyww; \
+    S4<C4, ML_Z, ML_Z, ML_X, ML_X> zzxx; \
+    S4<C4, ML_Z, ML_Z, ML_X, ML_Y> zzxy; \
+    S4<C4, ML_Z, ML_Z, ML_X, ML_Z> zzxz; \
+    S4<C4, ML_Z, ML_Z, ML_X, ML_W> zzxw; \
+    S4<C4, ML_Z, ML_Z, ML_Y, ML_X> zzyx; \
+    S4<C4, ML_Z, ML_Z, ML_Y, ML_Y> zzyy; \
+    S4<C4, ML_Z, ML_Z, ML_Y, ML_Z> zzyz; \
+    S4<C4, ML_Z, ML_Z, ML_Y, ML_W> zzyw; \
+    S4<C4, ML_Z, ML_Z, ML_Z, ML_X> zzzx; \
+    S4<C4, ML_Z, ML_Z, ML_Z, ML_Y> zzzy; \
+    S4<C4, ML_Z, ML_Z, ML_Z, ML_Z> zzzz; \
+    S4<C4, ML_Z, ML_Z, ML_Z, ML_W> zzzw; \
+    S4<C4, ML_Z, ML_Z, ML_W, ML_X> zzwx; \
+    S4<C4, ML_Z, ML_Z, ML_W, ML_Y> zzwy; \
+    S4<C4, ML_Z, ML_Z, ML_W, ML_Z> zzwz; \
+    S4<C4, ML_Z, ML_Z, ML_W, ML_W> zzww; \
+    S4<C4, ML_Z, ML_W, ML_X, ML_X> zwxx; \
+    S4<C4, ML_Z, ML_W, ML_X, ML_Y> zwxy; \
+    S4<C4, ML_Z, ML_W, ML_X, ML_Z> zwxz; \
+    S4<C4, ML_Z, ML_W, ML_X, ML_W> zwxw; \
+    S4<C4, ML_Z, ML_W, ML_Y, ML_X> zwyx; \
+    S4<C4, ML_Z, ML_W, ML_Y, ML_Y> zwyy; \
+    S4<C4, ML_Z, ML_W, ML_Y, ML_Z> zwyz; \
+    S4<C4, ML_Z, ML_W, ML_Y, ML_W> zwyw; \
+    S4<C4, ML_Z, ML_W, ML_Z, ML_X> zwzx; \
+    S4<C4, ML_Z, ML_W, ML_Z, ML_Y> zwzy; \
+    S4<C4, ML_Z, ML_W, ML_Z, ML_Z> zwzz; \
+    S4<C4, ML_Z, ML_W, ML_Z, ML_W> zwzw; \
+    S4<C4, ML_Z, ML_W, ML_W, ML_X> zwwx; \
+    S4<C4, ML_Z, ML_W, ML_W, ML_Y> zwwy; \
+    S4<C4, ML_Z, ML_W, ML_W, ML_Z> zwwz; \
+    S4<C4, ML_Z, ML_W, ML_W, ML_W> zwww; \
+    S4<C4, ML_W, ML_X, ML_X, ML_X> wxxx; \
+    S4<C4, ML_W, ML_X, ML_X, ML_Y> wxxy; \
+    S4<C4, ML_W, ML_X, ML_X, ML_Z> wxxz; \
+    S4<C4, ML_W, ML_X, ML_X, ML_W> wxxw; \
+    S4<C4, ML_W, ML_X, ML_Y, ML_X> wxyx; \
+    S4<C4, ML_W, ML_X, ML_Y, ML_Y> wxyy; \
+    S4<C4, ML_W, ML_X, ML_Y, ML_Z> wxyz; \
+    S4<C4, ML_W, ML_X, ML_Y, ML_W> wxyw; \
+    S4<C4, ML_W, ML_X, ML_Z, ML_X> wxzx; \
+    S4<C4, ML_W, ML_X, ML_Z, ML_Y> wxzy; \
+    S4<C4, ML_W, ML_X, ML_Z, ML_Z> wxzz; \
+    S4<C4, ML_W, ML_X, ML_Z, ML_W> wxzw; \
+    S4<C4, ML_W, ML_X, ML_W, ML_X> wxwx; \
+    S4<C4, ML_W, ML_X, ML_W, ML_Y> wxwy; \
+    S4<C4, ML_W, ML_X, ML_W, ML_Z> wxwz; \
+    S4<C4, ML_W, ML_X, ML_W, ML_W> wxww; \
+    S4<C4, ML_W, ML_Y, ML_X, ML_X> wyxx; \
+    S4<C4, ML_W, ML_Y, ML_X, ML_Y> wyxy; \
+    S4<C4, ML_W, ML_Y, ML_X, ML_Z> wyxz; \
+    S4<C4, ML_W, ML_Y, ML_X, ML_W> wyxw; \
+    S4<C4, ML_W, ML_Y, ML_Y, ML_X> wyyx; \
+    S4<C4, ML_W, ML_Y, ML_Y, ML_Y> wyyy; \
+    S4<C4, ML_W, ML_Y, ML_Y, ML_Z> wyyz; \
+    S4<C4, ML_W, ML_Y, ML_Y, ML_W> wyyw; \
+    S4<C4, ML_W, ML_Y, ML_Z, ML_X> wyzx; \
+    S4<C4, ML_W, ML_Y, ML_Z, ML_Y> wyzy; \
+    S4<C4, ML_W, ML_Y, ML_Z, ML_Z> wyzz; \
+    S4<C4, ML_W, ML_Y, ML_Z, ML_W> wyzw; \
+    S4<C4, ML_W, ML_Y, ML_W, ML_X> wywx; \
+    S4<C4, ML_W, ML_Y, ML_W, ML_Y> wywy; \
+    S4<C4, ML_W, ML_Y, ML_W, ML_Z> wywz; \
+    S4<C4, ML_W, ML_Y, ML_W, ML_W> wyww; \
+    S4<C4, ML_W, ML_Z, ML_X, ML_X> wzxx; \
+    S4<C4, ML_W, ML_Z, ML_X, ML_Y> wzxy; \
+    S4<C4, ML_W, ML_Z, ML_X, ML_Z> wzxz; \
+    S4<C4, ML_W, ML_Z, ML_X, ML_W> wzxw; \
+    S4<C4, ML_W, ML_Z, ML_Y, ML_X> wzyx; \
+    S4<C4, ML_W, ML_Z, ML_Y, ML_Y> wzyy; \
+    S4<C4, ML_W, ML_Z, ML_Y, ML_Z> wzyz; \
+    S4<C4, ML_W, ML_Z, ML_Y, ML_W> wzyw; \
+    S4<C4, ML_W, ML_Z, ML_Z, ML_X> wzzx; \
+    S4<C4, ML_W, ML_Z, ML_Z, ML_Y> wzzy; \
+    S4<C4, ML_W, ML_Z, ML_Z, ML_Z> wzzz; \
+    S4<C4, ML_W, ML_Z, ML_Z, ML_W> wzzw; \
+    S4<C4, ML_W, ML_Z, ML_W, ML_X> wzwx; \
+    S4<C4, ML_W, ML_Z, ML_W, ML_Y> wzwy; \
+    S4<C4, ML_W, ML_Z, ML_W, ML_Z> wzwz; \
+    S4<C4, ML_W, ML_Z, ML_W, ML_W> wzww; \
+    S4<C4, ML_W, ML_W, ML_X, ML_X> wwxx; \
+    S4<C4, ML_W, ML_W, ML_X, ML_Y> wwxy; \
+    S4<C4, ML_W, ML_W, ML_X, ML_Z> wwxz; \
+    S4<C4, ML_W, ML_W, ML_X, ML_W> wwxw; \
+    S4<C4, ML_W, ML_W, ML_Y, ML_X> wwyx; \
+    S4<C4, ML_W, ML_W, ML_Y, ML_Y> wwyy; \
+    S4<C4, ML_W, ML_W, ML_Y, ML_Z> wwyz; \
+    S4<C4, ML_W, ML_W, ML_Y, ML_W> wwyw; \
+    S4<C4, ML_W, ML_W, ML_Z, ML_X> wwzx; \
+    S4<C4, ML_W, ML_W, ML_Z, ML_Y> wwzy; \
+    S4<C4, ML_W, ML_W, ML_Z, ML_Z> wwzz; \
+    S4<C4, ML_W, ML_W, ML_Z, ML_W> wwzw; \
+    S4<C4, ML_W, ML_W, ML_W, ML_X> wwwx; \
+    S4<C4, ML_W, ML_W, ML_W, ML_Y> wwwy; \
+    S4<C4, ML_W, ML_W, ML_W, ML_Z> wwwz; \
+    S4<C4, ML_W, ML_W, ML_W, ML_W> wwww

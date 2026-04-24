@@ -5,6 +5,8 @@
 #include <propPanel/control/container.h>
 #include <workCycle/dag_workCycle.h>
 
+class IModelessWindowController;
+
 class WorkCycleActRateDialog : public PropPanel::DialogWindow
 {
 public:
@@ -26,3 +28,5 @@ private:
 
   static const int CONTROL_ID = 1;
 };
+
+IModelessWindowController *get_work_cycle_act_rate_dialog_controller();

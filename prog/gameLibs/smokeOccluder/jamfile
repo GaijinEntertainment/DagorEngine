@@ -18,7 +18,7 @@ SourceES =
 for s in $(SourceES) { GenESSourceFile $(s) ; }
 
 UseProgLibs +=
-  gameLibs/daECS/core
+  engine/daECS/core
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

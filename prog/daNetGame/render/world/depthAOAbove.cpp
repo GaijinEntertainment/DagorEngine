@@ -13,6 +13,7 @@
 #include <shaders/dag_shaderBlock.h>
 #include <rendInst/visibility.h>
 #include <rendInst/rendInstGenRender.h>
+#include <drv/3d/dag_shaderConstants.h>
 
 #define INSIDE_RENDERER 1
 #include "private_worldRenderer.h"
@@ -29,6 +30,20 @@ class RenderDepthAOCB : public IRenderDepthAOCB
 
 public:
   RenderDepthAOCB(DepthAOAboveContext &ctx, WorldRenderer &wr, const TMatrix view_itm) : ctx(ctx), wr(wr), viewItm(view_itm) {}
+
+  RenderRegionState prepareRegionToRender(int reg, bool load_outdated_resources)
+  {
+    G_ASSERT_RETURN(reg < ctx.cullJobs.size() && ctx.cullJobs[reg].visibility, RenderRegionState::DontCare);
+    threadpool::wait(&ctx.cullJobs[reg]);
+
+    if (rendinst::isRiGenVisibilityForcedLodLoaded(ctx.cullJobs[reg].visibility))
+      return RenderRegionState::FullyLoaded;
+
+    if (load_outdated_resources)
+      rendinst::riGenVisibilityScheduleForcedLodLoading(ctx.cullJobs[reg].visibility);
+
+    return RenderRegionState::DontCare;
+  }
 
   void renderDepthAO(
     const Point3 &origin, mat44f_cref culling_view_proj, const float distace_around, int reg, RenderDepthAOType type, int)
@@ -72,6 +87,8 @@ public:
       const float oldInvGeomDist = wr.lmeshRenderer->getInvGeomLodDist();
       const float heightmap_size = 4096;
       wr.lmeshRenderer->setInvGeomLodDist(0.5 / heightmap_size);
+      const int HEIGTHMAP_VS_CONST_BUFFFER_SIZE = 522;
+      d3d::set_vs_constbuffer_register_count(HEIGTHMAP_VS_CONST_BUFFFER_SIZE);
 
       BBox3 box(Point3::xVz(origin, 0), 2 * distace_around);
       wr.lmeshRenderer->prepare(*wr.lmeshMgr, Point3::xVz(origin, 0), 0);
@@ -84,6 +101,7 @@ public:
       wr.lmeshRenderer->setRenderInBBox(BBox3());
 
       wr.lmeshRenderer->setInvGeomLodDist(oldInvGeomDist);
+      d3d::set_vs_constbuffer_register_count(0);
     }
   }
 

@@ -58,18 +58,16 @@ public:
   bool isResLoaded(int res_id) override { return findRes(::validate_game_res_id(res_id)) >= 0; }
   bool checkResPtr(GameResource *res) override { return findAnim2Data((AnimV20::AnimData *)res) >= 0; }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
-    // get real-res id
     if (::validate_game_res_id(res_id) == NULL_GAMERES_ID)
       return (GameResource *)NULL;
 
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
-
-    // no data - load pack
     if (id < 0)
     {
-      ::load_game_resource_pack(res_id);
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
       id = findRes(res_id);
       if (id < 0)
         return (GameResource *)NULL;
@@ -116,12 +114,12 @@ public:
   }
 
 
-  bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/) override
   {
     bool ret = false;
     for (int i = a2dData.size() - 1; i >= 0; --i)
     {
-      if (!a2dData[i].anim || get_refcount_game_resource_pack_by_resid(a2dData[i].resId) > 0)
+      if (!a2dData[i].anim || (rrl && is_res_required(rrl, a2dData[i].resId)))
         continue;
       if (a2dData[i].refCount)
       {
@@ -182,7 +180,7 @@ public:
       logerr("Error loading Anim2Data resource %s", name);
     }
   }
-  void createGameResource(int /*res_id*/, const int * /*reference_ids*/, int /*num_refs*/) override {}
+  void createGameResource(RRL, int, const int *, int) override {}
 
   void reset() override { a2dData.clear(); }
 

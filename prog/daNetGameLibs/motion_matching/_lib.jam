@@ -1,4 +1,0 @@
-if $(HaveRenderer) = yes {
-  gamePulls += framework_motion_matching_pull daNetGameLibs_motion_matching_DAS_pull_AOT MotionMatchingModule_pull ;
-  UseProgLibs += daNetGameLibs/motion_matching ;
-}

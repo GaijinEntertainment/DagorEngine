@@ -11,6 +11,7 @@
 
 #include <EASTL/optional.h>
 #include <3d/dag_textureIDHolder.h>
+#include <drv/3d/dag_decl.h>
 #include <util/dag_simpleString.h>
 #include <util/dag_stdint.h>
 #include <dag/dag_vector.h>
@@ -23,12 +24,15 @@ namespace PropPanel
 {
 class IMenu;
 }
-class GridEditDialog;
 class RenderViewport;
+class IEditorCommandSystem;
 class IMenu;
+class IModelessWindowController;
 class IWndManager;
+class ModelessWindowControllerList;
+class ViewportWindowGridSettingsDialogController;
 class ViewportWindowStatSettingsDialog;
-class GizmoSettingsDialog;
+class ViewportWindowStatSettingsDialogController;
 
 typedef unsigned int ImGuiID;
 
@@ -46,6 +50,7 @@ class ViewportWindow : public IGenViewportWnd, public PropPanel::IMenuEventHandl
 {
 public:
   static bool showDagorUiCursor;
+  static bool needsOrthoCameraAdjustment;
   static void (*render_viewport_frame)(ViewportWindow *vpw);
 
   ViewportWindow();
@@ -78,6 +83,8 @@ public:
   /// @param[in] far_plane - z-far, a distance to  the farthest visible parts
   ///          of scene (all parts more distant from camera will be invisible)
   void setProjection(bool orthogonal, real fov, real near_plane, real far_plane) override;
+
+  Driver3dPerspective getPerspective() const;
 
   /// Set camera's FOV (<b>F</b>ield <b>O</b>f <b>V</b>iew).
   /// @param[in] fov - camera's angle of view (in radians)
@@ -303,7 +310,7 @@ public:
   ///@name Stat3D routine
   //@{
   /// Returns true if viewport have to show its 3D statistics
-  bool needStat3d() const { return showStats && calcStat3d; }
+  bool needStat3d() const { return shownStats.rootStats && shownStats._3dStats; }
   /// Draws statistics in viewport window
   void drawStat3d();
   //@}
@@ -319,6 +326,10 @@ public:
   /// Retrieves the custom context menu of the viewport if it's active/open.
   PropPanel::IMenu *getContextMenu() override { return selectionMenu; }
 
+  /// Retrieves the popup context menu of the viewport if it's active/open.
+  /// This is the context menu that can be opened by clicking on the left top corner of the viewport.
+  PropPanel::IMenu *getPopupMenu() { return popupMenu; }
+
   /// Render viewport gui
   virtual void paint(int w, int h);
 
@@ -330,8 +341,13 @@ public:
   void showStatSettingsDialog();
   void showGizmoSettingsDialog();
 
+  ViewportWindowStatSettingsDialog *createStatSettingsDialog();
+
   /// ViewportWindowStatSettingsDialog uses this to forward its onChange notification.
   virtual void handleStatSettingsDialogChange(int pcb_id, bool value);
+
+  /// Called when the snap settings have changed, and the grid settings dialog must be updated.
+  static void onSnapSettingChanged();
 
   static unsigned restoreFlags;
   static Tab<ViewportParams> viewportsParams;
@@ -349,10 +365,13 @@ public:
 
   const Input &getInput() const { return input; }
 
+  static void registerEditorCommands(IEditorCommandSystem &command_system);
   void registerViewportAccelerators(IWndManager &wnd_manager);
 
   // Returns with true if the command has been handled.
   bool handleViewportAcceleratorCommand(unsigned id);
+
+  void getModelessWindowControllers(ModelessWindowControllerList &controllers);
 
   bool isViewportTextureReady() const;
   void copyTextureToViewportTexture(BaseTexture &source_texture, int source_width, int source_height);
@@ -363,11 +382,20 @@ public:
   void resetScreenshotMode() override { screenshotSize.reset(); }
 
 protected:
-  virtual void fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog);
+  // include_camera_distance: if set to false then the camera distance statistics will not be displayed in the
+  //   statistics dialog. Set it false from the override.
+  virtual void fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog, bool include_camera_distance = true);
 
   void onImguiDelayedCallback(void *user_data) override;
 
   class ViewportClippingDlg;
+
+  struct CameraSaveState
+  {
+    bool hasCapture;
+    bool isCursorVisible;
+    IPoint2 lastPosition;
+  };
 
   int32_t prevMousePositionX;
   int32_t prevMousePositionY;
@@ -403,22 +431,27 @@ protected:
     EcRect sel;
   } rectSelect;
 
+  struct ShownStats
+  {
+    bool rootStats = true;
+    bool _3dStats = true;
+    bool cameraStats = true;
+    bool cameraPos = true;
+    bool cameraDist = true;
+    bool cameraFov = false;
+    bool flyCameraStats = true;
+    bool flyCameraSpeed = true;
+    bool flyCameraTurboSpeed = true;
+  };
+
   IGenEventHandler *curEH;
   IMenuEventHandler *curMEH;
   RenderViewport *viewport;
   int vpId;
   SimpleString viewText;
   hdpi::Px nextStat3dLineY;
-  bool showStats;
-  bool calcStat3d, opaqueStat3d;
-  bool showCameraStats;
-  bool showCameraPos;
-  bool showCameraDist;
-  bool showCameraFov;
-  bool showCameraSpeed;
-  bool showCameraTurboSpeed;
-  ViewportWindowStatSettingsDialog *statSettingsDialog;
-  static GizmoSettingsDialog *gizmoSettingsDialog;
+  bool opaqueStat3d;
+  ShownStats shownStats;
 
   IPoint2 restoreCursorAt = IPoint2(0, 0);
 
@@ -443,7 +476,7 @@ protected:
   void clientToZeroLevelPlane(int x, int y, Point3 &world);
 
   virtual void fillPopupMenu(PropPanel::IMenu &menu);
-  void fillStat3dStatSettings(ViewportWindowStatSettingsDialog &dialog);
+  void fillStat3dStatSettings(ViewportWindowStatSettingsDialog &dialog, bool show_3d_stats_default);
   void handleStat3dStatSettingsDialogChange(int pcb_id, bool value);
 
   virtual bool canStartInteractionWithViewport();
@@ -453,6 +486,7 @@ protected:
   void handleViewportAxisMouseLButtonUp();
   void processViewportAxisCameraRotation(int mouse_x, int mouse_y);
   void setViewportAxisTransitionEndDirection(const Point3 &forward, const Point3 &up);
+  void adjustCameraForOrthoProjection();
 
   void processCameraMouseMove(CCameraElem *camera_elem, int mouse_x, int mouse_y);
   void processCameraMouseWheel(CCameraElem *camera_elem, int delta);
@@ -479,6 +513,8 @@ protected:
   Point3 getCameraPanAnchorPoint();
   virtual BaseTexture *getDepthBuffer() { return nullptr; }
 
+  void processCameraStateOnFocusChange();
+
   struct DelayedMouseEvent
   {
     int x;
@@ -488,7 +524,6 @@ protected:
     int modifierKeys;
   };
 
-  bool mIsCursorVisible;
   bool active = false;
 
   TextureIDHolder viewportTexture;
@@ -500,15 +535,16 @@ protected:
 
   IPoint2 lastMousePosition = IPoint2(0, 0);
 
-  // Grid settings are shared among the viewports, so do not allow multiple dialogs.
-  static GridEditDialog *gridSettingsDialog;
-
   dag::Vector<DelayedMouseEvent *> delayedMouseEvents;
 
   eastl::optional<Point3> lastValidCamPanAnchorPoint;
   eastl::optional<Point3> cameraPanAnchorPoint;
 
   eastl::optional<Point2> screenshotSize;
+  eastl::optional<CameraSaveState> cameraStateOnFocusLost;
+
+  ViewportWindowGridSettingsDialogController *grid_settings_dialog_controller;
+  ViewportWindowStatSettingsDialogController *stat_settings_dialog_controller;
 };
 
 
@@ -521,13 +557,8 @@ void save_camera_objects(DataBlock &blk);
 /// @param[in] blk - Data Block that contains data to load (see #DataBlock)
 void load_camera_objects(const DataBlock &blk);
 
-/// Toggles the display of the Camera settings dialog for all cameras.
-/// @param[in] parent - pointer to parent window
-void show_camera_objects_config_dialog(void *parent);
-
-/// Closes and deallocates the Camera settings dialog.
-void close_camera_objects_config_dialog();
-
 /// Act (tick/update) camera settings dialog.
 void act_camera_objects_config_dialog();
+
+IModelessWindowController *get_camera_object_config_modeless_dialog_handler();
 //@}

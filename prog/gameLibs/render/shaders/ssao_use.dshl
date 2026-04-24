@@ -10,14 +10,12 @@ interval use_contact_shadows: no_shadows < 1, use_shadows;
 bool ssao_wsao = ssao_use_wsao == yes;
 bool ssao_contact_shadows = use_contact_shadows != no_shadows;
 
+bool ssao_has_green = true;
+bool ssao_has_blue = !(ssao_contact_shadows && !ssao_wsao);
 hlsl {
   #define SSAO_ATTRS xyz
   #define WSAO_ATTR y
   #define CONTACT_SHADOWS_ATTR z
-  #define SSAO_HAS_GREEN 1
-  ##if !(ssao_contact_shadows && !ssao_wsao)
-  #define SSAO_HAS_BLUE 1
-  ##endif
 }
 
 macro USE_PACK_SSAO_BASE(code)
@@ -46,10 +44,9 @@ endmacro
 macro USE_SSAO_SIMPLE_BASE_WITH_SMP(code, _samplerstate)
   USE_SCREENPOS_TO_LOWRES_TC_BASE(code)
   hlsl(code) {
-    SSAO_TYPE getSSAOSimple(float linear_depth, float2 screenpos)
+    SSAO_TYPE getSSAOSimpleWithTc(float2 ssaotc)
     {
       SSAO_TYPE ao = 1;
-      float2 ssaotc = screen_pos_to_lowres_tc(screenpos);
       float4 ssao = ssao_tex.SampleLevel(_samplerstate, ssaotc, 0);
       ao.x = ssao.x;
       ##if ssao_wsao
@@ -62,6 +59,11 @@ macro USE_SSAO_SIMPLE_BASE_WITH_SMP(code, _samplerstate)
       ao.CONTACT_SHADOWS_ATTR = ssao.z;
       ##endif
       return ao;
+    }
+    SSAO_TYPE getSSAOSimple(float linear_depth, float2 screenpos)
+    {
+      float2 ssaotc = screen_pos_to_lowres_tc(screenpos);
+      return getSSAOSimpleWithTc(ssaotc);
     }
   }
 endmacro

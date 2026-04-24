@@ -12,11 +12,11 @@ include "gbuffer_to_temperature.dshl"
 shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
 {
   IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
-  ENABLE_ASSERT(ps)
-  if (dyn_model_render_pass != render_pass_normal)
+  if (dyn_model_render_pass != render_pass_normal || rendinst_transparent_gbuffer_pass == generate)
   {
     dont_render;
   }
+
   SUPPORT_MULTIDRAW(false)
   USE_THERMAL_SIGNATURE()
   DYNAMIC_BLOCK_TRANS()
@@ -25,11 +25,11 @@ shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
   }
   if (shader == dynamic_refraction)
   {
-    INIT_REFRACTION_GLASS()
+    INIT_REFRACTION_GLASS(false)
   }
   else
   {
-    INIT_SIMPLE_GLASS()
+    INIT_SIMPLE_GLASS(false)
     INIT_GLASS_HOLE_MASK(ps)
   }
 
@@ -65,7 +65,7 @@ shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
   OPTIONAL_SKINNING_SHADER()
   USE_UNPACK_UNIT_VECTOR_VS()
 
-  if (render_to_icon == yes && glass_normal_pass != no) {
+  if (render_to_icon == yes && rendinst_transparent_gbuffer_pass > off) {
     dont_render;
   }
   INIT_AND_USE_GLASS_ICON_RENDER(ps)
@@ -125,7 +125,7 @@ shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
   compile("target_vs", "glass_vs");
   if (render_to_icon == no)
   {
-    USE_CSM_SHADOW_DEF_NUM()
+    USE_CSM_SHADOW_DEF_NUM_DEFAULT()
     hlsl (ps) {
       #define USE_CSM_SHADOWS 1
       float getCSMShadow(float3 pointToEye)
@@ -166,5 +166,6 @@ shader dynamic_simple_glass, dynamic_refraction, dynamic_simple_transparent
     }
   }
   RT_GLASS_APPLY(ps)
+  INIT_GLASS_TRANSP()
   GLASS_PS()
 }

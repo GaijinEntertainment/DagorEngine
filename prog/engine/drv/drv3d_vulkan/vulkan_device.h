@@ -14,6 +14,7 @@
 #include "vulkan_loader.h"
 #include "vk_entry_points.h"
 #include "vulkan_allocation_callbacks.h"
+#include "util/unsafe_call.h"
 
 // No need to have raytracing extension if we can not use it.
 #if !VULKAN_HAS_RAYTRACING
@@ -144,6 +145,14 @@ VULKAN_END_EXTENSION_FUCTION_PACK(DescriptorIndexingEXT);
 VULKAN_DECLARE_EXTENSION(DescriptorIndexingEXT, EXT_DESCRIPTOR_INDEXING);
 
 #endif // VK_EXT_descriptor_indexing
+
+#if VK_EXT_swapchain_colorspace
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(SwapchainColorSpaceExt);
+
+VULKAN_DECLARE_EXTENSION(SwapchainColorSpaceExt, EXT_SWAPCHAIN_COLOR_SPACE);
+#endif
 
 #if VK_KHR_maintenance3 // required by VK_EXT_descriptor_indexing
 
@@ -560,6 +569,64 @@ VULKAN_END_EXTENSION_FUCTION_PACK(TileMemoryHeapQCOM);
 VULKAN_DECLARE_EXTENSION(TileMemoryHeapQCOM, QCOM_TILE_MEMORY_HEAP);
 #endif
 
+#if VK_KHR_format_feature_flags2
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(FormatFeatureFlags2KHR);
+VULKAN_DECLARE_EXTENSION(FormatFeatureFlags2KHR, KHR_FORMAT_FEATURE_FLAGS_2);
+#endif
+
+#if VK_AMD_anti_lag
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkAntiLagUpdateAMD)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkAntiLagUpdateAMD)
+VULKAN_END_EXTENSION_FUCTION_PACK(AntiLagAMD);
+VULKAN_DECLARE_EXTENSION(AntiLagAMD, AMD_ANTI_LAG);
+#endif
+
+#if VK_AMD_device_coherent_memory
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(DeviceCoherentMemoryAMD);
+VULKAN_DECLARE_EXTENSION(DeviceCoherentMemoryAMD, AMD_DEVICE_COHERENT_MEMORY);
+#endif
+
+#if VK_KHR_external_memory
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(ExternalMemoryKHR);
+VULKAN_DECLARE_EXTENSION(ExternalMemoryKHR, KHR_EXTERNAL_MEMORY);
+#endif
+
+#if VK_KHR_external_memory_win32
+
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetMemoryWin32HandleKHR)
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkGetMemoryWin32HandlePropertiesKHR)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetMemoryWin32HandleKHR)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetMemoryWin32HandlePropertiesKHR)
+VULKAN_END_EXTENSION_FUCTION_PACK(ExternalMemoryWin32KHR);
+VULKAN_DECLARE_EXTENSION(ExternalMemoryWin32KHR, KHR_EXTERNAL_MEMORY_WIN32);
+#endif
+
+#if VK_KHR_fragment_shading_rate
+
+VULKAN_MAKE_EXTENSION_FUNCTION_DEF(vkCmdSetFragmentShadingRateKHR)
+VULKAN_MAKE_INSTANCE_EXTENSION_FUNCTION_DEF(vkGetPhysicalDeviceFragmentShadingRatesKHR)
+
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkCmdSetFragmentShadingRateKHR)
+VULKAN_EXTENSION_FUNCTION_PACK_ENTRY(vkGetPhysicalDeviceFragmentShadingRatesKHR)
+VULKAN_END_EXTENSION_FUCTION_PACK(FragmentShadingRateKHR);
+VULKAN_DECLARE_EXTENSION(FragmentShadingRateKHR, KHR_FRAGMENT_SHADING_RATE);
+#endif
+
+#if VK_KHR_maintenance7
+VULKAN_BEGIN_EXTENSION_FUNCTION_PACK
+VULKAN_END_EXTENSION_FUCTION_PACK(Maintenance7KHR);
+
+VULKAN_DECLARE_EXTENSION(Maintenance7KHR, KHR_MAINTENANCE_7);
+#endif
+
 template <typename... Extensions>
 class VulkanDeviceCore : public Extensions...
 {
@@ -603,8 +670,13 @@ private:
     if (extRef != listEnd)
     {
       loaded = true;
-      this->T::enumerateFunctions([this, &loaded](const char *f_name, PFN_vkVoidFunction &function) {
-        function = VULKAN_LOG_CALL_R(Globals::VK::loader.vkGetDeviceProcAddr(device, f_name));
+      this->T::enumerateFunctions([this, &loaded](const char *f_name, PFN_vkVoidFunction &function, bool is_instance_function) {
+        if (!is_instance_function)
+        {
+          function = VULKAN_LOG_CALL_R(Globals::VK::loader.vkGetDeviceProcAddr(device, f_name));
+        }
+        else
+          function = nullptr;
 
         // try to find function in instance, if it is not device tied
         if (!function)
@@ -630,7 +702,7 @@ private:
   {
     if (extensionEnabled.test(TypeIndexOf<T, ExtensionTypePack>::value))
     {
-      this->T::enumerateFunctions([](const char *, PFN_vkVoidFunction &function) { function = nullptr; });
+      this->T::enumerateFunctions([](const char *, PFN_vkVoidFunction &function, bool) { function = nullptr; });
       extensionEnabled.reset(TypeIndexOf<T, ExtensionTypePack>::value);
     }
   }
@@ -650,9 +722,31 @@ private:
   }
 
 public:
+  struct CreateDeviceParams
+  {
+    VulkanPhysicalDeviceHandle pd;
+    const VkDeviceCreateInfo &dci;
+    VkAllocationCallbacks *allocCb;
+    VkDevice *retPtr;
+    VkResult &rc;
+  };
+
+  static void create_device_unsafe(void *raw_params)
+  {
+    CreateDeviceParams *params = (CreateDeviceParams *)raw_params;
+    params->rc = Globals::VK::inst.vkCreateDevice(params->pd, &params->dci, params->allocCb, params->retPtr);
+  }
+
   bool init(VulkanPhysicalDeviceHandle pd, const VkDeviceCreateInfo &dci)
   {
-    VkResult rc = Globals::VK::inst.vkCreateDevice(pd, &dci, VKALLOC(device), ptr(device));
+    VkResult rc;
+    CreateDeviceParams callParams{pd, dci, VKALLOC(device), ptr(device), rc};
+    if (!execute_unsafe(&create_device_unsafe, &callParams))
+    {
+      logwarn("vulkan: device create crashed");
+      return false;
+    }
+
     if (VULKAN_CHECK_FAIL(rc))
     {
       logwarn("vulkan: device create failed with error %08lX:%s", rc, vulkan_error_string(rc));
@@ -923,6 +1017,38 @@ class VulkanDevice : public VulkanDeviceCore<SwapchainKHR
 #if VK_QCOM_tile_memory_heap
                        ,
                        TileMemoryHeapQCOM
+#endif
+#if VK_KHR_format_feature_flags2
+                       ,
+                       FormatFeatureFlags2KHR
+#endif
+#if VK_EXT_swapchain_colorspace
+                       ,
+                       SwapchainColorSpaceExt
+#endif
+#if VK_AMD_anti_lag
+                       ,
+                       AntiLagAMD
+#endif
+#if VK_AMD_device_coherent_memory
+                       ,
+                       DeviceCoherentMemoryAMD
+#endif
+#if VK_KHR_external_memory
+                       ,
+                       ExternalMemoryKHR
+#endif
+#if VK_KHR_external_memory_win32
+                       ,
+                       ExternalMemoryWin32KHR
+#endif
+#if VK_KHR_fragment_shading_rate
+                       ,
+                       FragmentShadingRateKHR
+#endif
+#if VK_KHR_maintenance7
+                       ,
+                       Maintenance7KHR
 #endif
                        >
 {

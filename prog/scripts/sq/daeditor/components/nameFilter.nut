@@ -16,7 +16,7 @@ function nameFilter(watched_text, params) {
     }
   }
 
-  let canClear = function() {
+  function canClear() {
     if (params?.onClear == null)
       return false
     if (stateFlags.get() & S_KB_FOCUS)
@@ -37,7 +37,7 @@ function nameFilter(watched_text, params) {
       color = (stateFlags.get() & S_KB_FOCUS) ? colors.FrameActive : colors.FrameDefault
       group = group
       flow = FLOW_HORIZONTAL
-
+      valign = ALIGN_CENTER
       children = [
         {
           rendObj = ROBJ_TEXT
@@ -51,6 +51,7 @@ function nameFilter(watched_text, params) {
           onChange = params?.onChange
           onEscape = params?.onEscape
           onReturn = params?.onReturn
+          onAttach = params?.onAttach
           onElemState = @(sf) stateFlags.set(sf)
 
           children = watched_text.get().len() ? null : placeholder
@@ -58,13 +59,22 @@ function nameFilter(watched_text, params) {
         canClear() ? {
           rendObj = ROBJ_TEXT
           size = SIZE_TO_CONTENT
-          margin = fsh(0.5)
+          margin = params?.additionalChildren == null ? fsh(0.5) : 0
           text = "   X"
-          transform = { scale = [1, 0.75], translate = [hdpx(-2), 0] }
+          transform = { scale = [1, 0.75]}
           color = (stateFlagsClear.get() & S_HOVER) ? Color(250, 250, 250) : Color(120, 120, 120)
           behavior = Behaviors.Button
           onElemState = @(sf) stateFlagsClear.set(sf)
           onClick = params?.onClear
+        } : null
+        params?.additionalChildren ? {
+          rendObj = ROBJ_BOX
+          size = SIZE_TO_CONTENT
+          valign = ALIGN_CENTER
+          halign = ALIGN_CENTER
+          flow = FLOW_HORIZONTAL
+          margin = fsh(0.5)
+          children = params.additionalChildren
         } : null
       ]
     }

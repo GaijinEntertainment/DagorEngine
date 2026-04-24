@@ -1,0 +1,185 @@
+# ast-grep rules for migrating insert+get_value patterns to compound assignment
+# Pattern: table.insert(key, table.get_value(key) OP expr) → table[key] OP= expr
+#
+# Rules are applied in order. Simple patterns (direct OP) are rewritten automatically.
+# Compound patterns (get_value buried in larger expression) are detected but not auto-rewritten.
+
+# === Method call syntax: tab.insert(key, tab.get_value(key) OP val) ===
+
+id: method-insert-add
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A.insert(#B, #A.get_value(#B) + #C) }'
+    selector: expression_statement
+fix: '$A[$B] += $C'
+---
+id: method-insert-sub
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A.insert(#B, #A.get_value(#B) - #C) }'
+    selector: expression_statement
+fix: '$A[$B] -= $C'
+---
+id: method-insert-mul
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A.insert(#B, #A.get_value(#B) * #C) }'
+    selector: expression_statement
+fix: '$A[$B] *= $C'
+---
+id: method-insert-div
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A.insert(#B, #A.get_value(#B) / #C) }'
+    selector: expression_statement
+fix: '$A[$B] /= $C'
+
+# === Reversed operand (commutative ops only): tab.insert(key, val OP tab.get_value(key)) ===
+---
+id: method-insert-add-reversed
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A.insert(#B, #C + #A.get_value(#B)) }'
+    selector: expression_statement
+fix: '$A[$B] += $C'
+---
+id: method-insert-mul-reversed
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A.insert(#B, #C * #A.get_value(#B)) }'
+    selector: expression_statement
+fix: '$A[$B] *= $C'
+
+# === Pipe syntax: tab |> insert(key, tab |> get_value(key) OP val) ===
+---
+id: pipe-insert-add
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A |> insert(#B, #A |> get_value(#B) + #C) }'
+    selector: expression_statement
+fix: '$A[$B] += $C'
+---
+id: pipe-insert-sub
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A |> insert(#B, #A |> get_value(#B) - #C) }'
+    selector: expression_statement
+fix: '$A[$B] -= $C'
+---
+id: pipe-insert-mul
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A |> insert(#B, #A |> get_value(#B) * #C) }'
+    selector: expression_statement
+fix: '$A[$B] *= $C'
+---
+id: pipe-insert-div
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { #A |> insert(#B, #A |> get_value(#B) / #C) }'
+    selector: expression_statement
+fix: '$A[$B] /= $C'
+
+# === Free function syntax: insert(tab, key, get_value(tab, key) OP val) ===
+---
+id: free-insert-add
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, get_value(#A, #B) + #C) }'
+    selector: expression_statement
+fix: '$A[$B] += $C'
+---
+id: free-insert-sub
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, get_value(#A, #B) - #C) }'
+    selector: expression_statement
+fix: '$A[$B] -= $C'
+---
+id: free-insert-mul
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, get_value(#A, #B) * #C) }'
+    selector: expression_statement
+fix: '$A[$B] *= $C'
+---
+id: free-insert-div
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, get_value(#A, #B) / #C) }'
+    selector: expression_statement
+fix: '$A[$B] /= $C'
+
+# === Free function bitwise ops ===
+---
+id: free-insert-bitor
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, get_value(#A, #B) | #C) }'
+    selector: expression_statement
+fix: '$A[$B] |= $C'
+---
+id: free-insert-bitand
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, get_value(#A, #B) & #C) }'
+    selector: expression_statement
+fix: '$A[$B] &= $C'
+---
+id: free-insert-bitxor
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, get_value(#A, #B) ^ #C) }'
+    selector: expression_statement
+fix: '$A[$B] ^= $C'
+---
+id: free-insert-shl
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, get_value(#A, #B) << #C) }'
+    selector: expression_statement
+fix: '$A[$B] <<= $C'
+---
+id: free-insert-shr
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, get_value(#A, #B) >> #C) }'
+    selector: expression_statement
+fix: '$A[$B] >>= $C'
+
+# === Free function reversed (commutative) ===
+---
+id: free-insert-add-reversed
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, #C + get_value(#A, #B)) }'
+    selector: expression_statement
+fix: '$A[$B] += $C'
+---
+id: free-insert-mul-reversed
+language: daslang
+rule:
+  pattern:
+    context: 'def _() { insert(#A, #B, #C * get_value(#A, #B)) }'
+    selector: expression_statement
+fix: '$A[$B] *= $C'

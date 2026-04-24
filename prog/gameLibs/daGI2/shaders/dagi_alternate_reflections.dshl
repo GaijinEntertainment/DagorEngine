@@ -29,7 +29,8 @@ macro GET_TRANSLUCENT_ALTERNATE_REFLECTIONS(code)
 endmacro
 
 macro GET_ALTERNATE_REFLECTIONS(code)
-  if (gi_quality >= colored)
+  bool has_dagi_alternate_reflections = gi_quality >= colored;
+  if (has_dagi_alternate_reflections)
   {
     READ_WORLD_SDF(code)
     WORLD_SDF_STEP_OUT(code)
@@ -41,9 +42,9 @@ macro GET_ALTERNATE_REFLECTIONS(code)
       #define ALTERNATE_REFLECTIONS 1
       #include <interleavedGradientNoise.hlsl>
       //opaque only
-      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar)
+      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar, float max_dist = 200)
       {
-        float maxT = 200;//?
+        float maxT = max_dist;
         rayHitDist = maxT;
         BRANCH
         if (!hit)
@@ -69,7 +70,7 @@ macro GET_ALTERNATE_REFLECTIONS(code)
             {
               float3 albedo = DAGI_MISSED_ALBEDO;
               dagi_sample_albedo_best(worldPos, albedo);
-              newTarget.rgb = project_get_lit_color_at_trace_hit(worldPos, hitNorm, albedo);
+              newTarget.rgb = project_get_lit_color_at_trace_hit(worldPos, hitNorm, albedo, float4(-rayDir, t));
             }
             newTarget.a = 1;
           } else
@@ -84,7 +85,7 @@ macro GET_ALTERNATE_REFLECTIONS(code)
   else
   {
     hlsl(code) {
-      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar){}
+      void get_alternate_reflections(inout half4 newTarget, inout float rayHitDist, uint2 pixelPos, float3 rayDir, float3 cameraToPoint, float3 normal, bool hit, bool hit_not_zfar, float max_dist = 200){}
     }
   }
 endmacro

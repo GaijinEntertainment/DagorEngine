@@ -1,11 +1,15 @@
 include "psh_tangent.dshl"
 //reference!
 
-macro USE_NORMAL_DETAIL()
+macro USE_NORMAL_DETAIL_BASE(code)
 //http://blog.selfshadow.com/publications/blending-in-detail/
-hlsl(ps) {
+hlsl(code) {
   //#define PERTURB_NORMAL_PRECISE_FAST 1
   #include <psh_tangent.hlsl>
   #include <normaldetail.hlsl>
 }
+endmacro
+
+macro USE_NORMAL_DETAIL()
+  USE_NORMAL_DETAIL_BASE(ps)
 endmacro

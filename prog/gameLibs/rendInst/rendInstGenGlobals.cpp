@@ -18,14 +18,18 @@ dag::ConstSpan<const TMatrix *> rendinst::gen::SingleEntityPool::sweep_boxes_itm
 dag::ConstSpan<E3DCOLOR> rendinst::gen::SingleEntityPool::ri_col_pair;
 int rendinst::gen::SingleEntityPool::cur_cell_id = 0;
 int rendinst::gen::SingleEntityPool::cur_ri_extra_ord = 0;
-int rendinst::gen::SingleEntityPool::per_inst_data_dwords = 0;
+int rendinst::gen::SingleEntityPool::ri_extra_counter = 0;
+bool rendinst::gen::SingleEntityPool::persistent_ri_extra_instances = true;
 
-#if _TARGET_PC_TOOLS_BUILD
 namespace rendinst
 {
+#if _TARGET_PC_TOOLS_BUILD
 bool forceRiExtra = false;
-}
+bool enableRiExtra = true;
 #endif
+bool persistentRiExtraInstances = true;
+bool allowOptimizeCollResOnLoad = true;
+} // namespace rendinst
 
 // TODO: eliminate these globals, e.g. by extracting them into a struct and passing it explicitly.
 StaticTab<RendInstGenData *, 16> rendinst::rgLayer;

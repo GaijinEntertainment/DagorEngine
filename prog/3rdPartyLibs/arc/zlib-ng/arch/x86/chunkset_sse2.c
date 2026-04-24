@@ -34,7 +34,7 @@ static inline void chunkmemset_4(uint8_t *from, chunk_t *chunk) {
 
 static inline void chunkmemset_8(uint8_t *from, chunk_t *chunk) {
     int64_t tmp;
-    zmemcpy_8(&tmp, from);
+    memcpy(&tmp, from, sizeof(tmp));
     *chunk = _mm_set1_epi64x(tmp);
 }
 

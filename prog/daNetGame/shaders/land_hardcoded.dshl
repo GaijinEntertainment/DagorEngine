@@ -1,6 +1,6 @@
 int lmesh_vs_const__mul_offset_base     = 50; // 4 mul + 4 offset parameters: 228-235, 236 maptexcoord
 int lmesh_vs_weight_params = 59 always_referenced;
-int lmesh_ps_weight_params = 64 always_referenced;
+int lmesh_ps_weight_params = 65 always_referenced;
 
 // detail textures take samplers from 7
 //float4 details_size_ofs = (16, 16, 0, 0);
@@ -21,188 +21,217 @@ macro INIT_HARDCODED_INV_TEX_SIZES()
   }
 endmacro
 
+int land_detail_map_n0_const_no = 6;
+int land_detail_map_n1_const_no = 7;
+int land_detail_tex_n0_const_no = 8;
+int land_detail_tex_n1_const_no = 9;
+int land_detail_tex_n2_const_no = 10;
+int land_detail_tex_n3_const_no = 11;
+int land_detail_tex_n4_const_no = 12;
+int land_detail_tex_n5_const_no = 13;
+int land_detail_tex_n6_const_no = 14;
+
+int land_detail_mul12_const_no = 50;
+int land_detail_mul34_const_no = 51;
+int land_detail_mul56_const_no = 52;
+int land_detail_mul78_const_no = 53;
+int land_detail_offset12_const_no = 54;
+int land_detail_offset34_const_no = 55;
+int land_detail_offset56_const_no = 56;
+int land_detail_offset78_const_no = 57;
+int land_detail_map_tc_const_no = 58;
+
 macro INIT_HARDCODED_TEX_INFO()
-  hlsl(ps) {
-    Texture2D land_detail_map_n0 : register(t6);
-    Texture2D land_detail_map_n1 : register(t7);
-    Texture2D land_detail_tex_n0 : register(t8);
-    Texture2D land_detail_tex_n1 : register(t9);
-    Texture2D land_detail_tex_n2 : register(t10);
-    Texture2D land_detail_tex_n3 : register(t11);
-    Texture2D land_detail_tex_n4 : register(t12);
-    Texture2D land_detail_tex_n5 : register(t13);
-    Texture2D land_detail_tex_n6 : register(t14);
+  (ps) {
+    land_detail_map_n0@tex2d : register(land_detail_map_n0_const_no);
+    land_detail_map_n1@tex2d : register(land_detail_map_n1_const_no);
+    land_detail_tex_n0@tex2d : register(land_detail_tex_n0_const_no);
+    land_detail_tex_n1@tex2d : register(land_detail_tex_n1_const_no);
+    land_detail_tex_n2@tex2d : register(land_detail_tex_n2_const_no);
+    land_detail_tex_n3@tex2d : register(land_detail_tex_n3_const_no);
+    land_detail_tex_n4@tex2d : register(land_detail_tex_n4_const_no);
+    land_detail_tex_n5@tex2d : register(land_detail_tex_n5_const_no);
+    land_detail_tex_n6@tex2d : register(land_detail_tex_n6_const_no);
 
-    SamplerState land_detail_map_n0_samplerstate : register(s6);
-    SamplerState land_detail_map_n1_samplerstate : register(s7);
-    SamplerState land_detail_tex_n0_samplerstate : register(s8);
-    SamplerState land_detail_tex_n1_samplerstate : register(s9);
-    SamplerState land_detail_tex_n2_samplerstate : register(s10);
-    SamplerState land_detail_tex_n3_samplerstate : register(s11);
-    SamplerState land_detail_tex_n4_samplerstate : register(s12);
-    SamplerState land_detail_tex_n5_samplerstate : register(s13);
-    SamplerState land_detail_tex_n6_samplerstate : register(s14);
+    land_detail_map_n0_samplerstate@sampler : register(land_detail_map_n0_const_no);
+    land_detail_map_n1_samplerstate@sampler : register(land_detail_map_n1_const_no);
+    land_detail_tex_n0_samplerstate@sampler : register(land_detail_tex_n0_const_no);
+    land_detail_tex_n1_samplerstate@sampler : register(land_detail_tex_n1_const_no);
+    land_detail_tex_n2_samplerstate@sampler : register(land_detail_tex_n2_const_no);
+    land_detail_tex_n3_samplerstate@sampler : register(land_detail_tex_n3_const_no);
+    land_detail_tex_n4_samplerstate@sampler : register(land_detail_tex_n4_const_no);
+    land_detail_tex_n5_samplerstate@sampler : register(land_detail_tex_n5_const_no);
+    land_detail_tex_n6_samplerstate@sampler : register(land_detail_tex_n6_const_no);
   }
-  hlsl(vs) {
-    float4 land_detail_mul12 : register(c50);
-    float4 land_detail_mul34 : register(c51);
-    float4 land_detail_mul56 : register(c52);
-    float4 land_detail_mul78 : register(c53);
-    float4 land_detail_offset12 : register(c54);
-    float4 land_detail_offset34 : register(c55);
-    float4 land_detail_offset56 : register(c56);
-    float4 land_detail_offset78 : register(c57);
-    float4 land_detail_map_tc : register(c58);
+  (vs) {
+    land_detail_mul12@f4 : register(land_detail_mul12_const_no);
+    land_detail_mul34@f4 : register(land_detail_mul34_const_no);
+    land_detail_mul56@f4 : register(land_detail_mul56_const_no);
+    land_detail_mul78@f4 : register(land_detail_mul78_const_no);
+    land_detail_offset12@f4 : register(land_detail_offset12_const_no);
+    land_detail_offset34@f4 : register(land_detail_offset34_const_no);
+    land_detail_offset56@f4 : register(land_detail_offset56_const_no);
+    land_detail_offset78@f4 : register(land_detail_offset78_const_no);
+    land_detail_map_tc@f4 : register(land_detail_map_tc_const_no);
   }
-
-
 endmacro
 
-macro INIT_HARDCODED_TEX_INFO_ONE_LC()
-  hlsl(ps) {
-    Texture2D land_detail_map_n0 : register(t6);
-    Texture2D land_detail_map_n1 : register(t7);
-    Texture2D colormapTex : register(t8);
+int colormapTex_const_no = 8;
+int detailTex_const_no = 9;
+int normalmapTex_const_no = 10;
+int land_weightmap_noise_scale_const_no = 65;
+int land_weightmap_mul_offset_const_no = 59;
+int land_detail_mul_offset_const_no = 50;
+int land_detail_detail_mul_const_no = 51;
 
-    SamplerState land_detail_map_n0_samplerstate : register(s6);
-    SamplerState land_detail_map_n1_samplerstate : register(s7);
-    SamplerState colormapTex_samplerstate : register(s8);
-    ##if shader == landmesh_indexed_landclass_weightmap
-      float4 land_weightmap_noise_scale : register(c64); //Only the first float is used the rest are empty
-    ##endif
+macro INIT_HARDCODED_TEX_INFO_ONE_LC()
+  (ps) {
+    land_detail_map_n0@tex2d : register(land_detail_map_n0_const_no);
+    land_detail_map_n1@tex2d : register(land_detail_map_n1_const_no);
+    land_detail_map_n0_samplerstate@sampler : register(land_detail_map_n0_const_no);
+    land_detail_map_n1_samplerstate@sampler : register(land_detail_map_n1_const_no);
+
+    colormapTex@tex2d : register(colormapTex_const_no);
+    colormapTex_samplerstate@sampler : register(colormapTex_const_no);
   }
-  hlsl(vs) {
-    float4 land_detail_map_tc : register(c58);
-    float4 land_detail_mul_offset : register(c50);
-    ##if shader == landmesh_indexed_landclass_weightmap
-      float4 land_weightmap_mul_offset : register(c59);
-    ##endif
+  (vs) {
+    land_detail_map_tc@f4 : register(land_detail_map_tc_const_no);
+    land_detail_mul_offset@f4 : register(land_detail_mul_offset_const_no);
+  }
+
+  if (shader == landmesh_indexed_landclass_weightmap)
+  {
+    //Only the first float is used the rest are empty
+    (ps) { land_weightmap_noise_scale@f4 : register(land_weightmap_noise_scale_const_no); }
+    (vs) { land_weightmap_mul_offset@f4 : register(land_weightmap_mul_offset_const_no); }
   }
 endmacro
 
 macro INIT_HARDCODED_TEX_INFO_ONE_LC_DETAILED()
-  hlsl(ps) {
-    Texture2D detailTex : register(t9);
-    //Texture2D normalmapTex : register(t10);
-    SamplerState detailTex_samplerstate : register(s9);
-    //SamplerState normalmapTex_samplerstate : register(s10);
+  (ps) {
+    detailTex@tex2d : register(detailTex_const_no);
+    detailTex_samplerstate@sampler : register(detailTex_const_no);
   }
-  hlsl(vs) {
-    float4 land_detail_detail_mul : register(c51);
+  (vs) {
+    land_detail_detail_mul@f4 : register(land_detail_detail_mul_const_no);
   }
 endmacro
 
 int lmesh_sampler__land_detail_array1 = 13;
+int lmesh_sampler__land_detail_array2 = 14;
+int lmesh_sampler__land_detail_array3 = 15;
 int lmesh_ps_const_land_detail_array_slices = 37;
 
 macro INIT_DETAIL_ARRAY()
-  hlsl(ps) {
-    Texture2DArray detailAlbedoTex   : register(t13);
-    SamplerState detailAlbedoTex_samplerstate    : register(s13);
-
-    Texture2DArray detailNormalTex   : register(t14);
-    SamplerState detailNormalTex_samplerstate    : register(s14);
-
-    Texture2DArray detailReflectanceTex   : register(t15);
-    SamplerState detailReflectanceTex_samplerstate    : register(s15);
-
-  }
   (ps) {
+    detailAlbedoTex@texArray : register(lmesh_sampler__land_detail_array1);
+    detailAlbedoTex_samplerstate@sampler : register(lmesh_sampler__land_detail_array1);
+
+    detailNormalTex@texArray : register(lmesh_sampler__land_detail_array2);
+    detailNormalTex_samplerstate@sampler : register(lmesh_sampler__land_detail_array2);
+
+    detailReflectanceTex@texArray : register(lmesh_sampler__land_detail_array3);
+    detailReflectanceTex_samplerstate@sampler : register(lmesh_sampler__land_detail_array3);
+
     detailArraySlices@i4 : register(lmesh_ps_const_land_detail_array_slices);
   }
 endmacro
 
 macro INIT_HARDCODED_TEX_INFO_ONE_LC_MEGA()
   INIT_DETAIL_ARRAY()
-  hlsl(ps) {
-    Texture2D detailmapTex : register(t9);
-    Texture2D normalmapTex : register(t10);
-    SamplerState detailmapTex_samplerstate  : register(s9);
-    SamplerState normalmapTex_samplerstate  : register(s10);
+  (ps) {
+    detailTex@tex2d : register(detailTex_const_no);
+    detailTex_samplerstate@sampler : register(detailTex_const_no);
+    normalmapTex@tex2d : register(normalmapTex_const_no);
+    normalmapTex_samplerstate@sampler : register(normalmapTex_const_no);
   }
-  hlsl(vs) {
-    float4 land_detail_detail_mul : register(c51);
+  (vs) {
+    land_detail_detail_mul@f4 : register(land_detail_detail_mul_const_no);
   }
 endmacro
 
 int biome_lc_ofs_to_detail_info_cnt = 15 always_referenced;
 
+int details_cbuf_const_no = 1;
+
 macro DEFINE_DETAILS(stage)
- hlsl(stage){
-    //size of struct in floats must be equal to lmesh_hc_floats_per_detail
-    struct DetailInfo
-    {
-      uint2 tex_indices;
-      float2 randomRotate;
-      float2 bump_scale;
-      float2 bump_offset;
-      float2 invert_height;
-      uint grassRemovalMicroDetail;
-      uint pad0;
-      float2 detail_weights_mul;
-      uint resv;
-      uint details_cnt; // only valid for the first element in details[]
-    };
+  (stage) {
+    Details@cbuf : register(details_cbuf_const_no) hlsl {
+      //size of struct in floats must be equal to lmesh_hc_floats_per_detail
+      struct DetailInfo
+      {
+        uint2 tex_indices;
+        float2 randomRotate;
+        float2 bump_scale;
+        float2 bump_offset;
+        float2 invert_height;
+        uint grassRemovalMicroDetail;
+        uint pad0;
+        float2 detail_weights_mul;
+        uint resv;
+        uint details_cnt; // only valid for the first element in details[]
+      };
 
-    cbuffer Details:register(b1)
-    {
-      float2 detailMul;
-      float randomRotatePeriod;
-      float randomVariationPeriod;
-      //lmesh_hc_detail_array_elements
-      DetailInfo details[96];
-    };
+      cbuffer Details@cbuf
+      {
+        float2 detailMul;
+        float randomRotatePeriod;
+        float randomVariationPeriod;
+        //lmesh_hc_detail_array_elements
+        DetailInfo details[96];
+      };
 
-    uint get_details_cnt()
-    {
-      return clamp(details[0].details_cnt, 0, 96);
-    }
+      uint get_details_cnt()
+      {
+        return clamp(details[0].details_cnt, 0, 96);
+      }
 
-    uint4 grass_removal_micro_details(uint4 index0)
-    {
-      return uint4(details[index0.x].grassRemovalMicroDetail, details[index0.y].grassRemovalMicroDetail, details[index0.z].grassRemovalMicroDetail, details[index0.w].grassRemovalMicroDetail);
+      uint4 grass_removal_micro_details(uint4 index0)
+      {
+        return uint4(details[index0.x].grassRemovalMicroDetail, details[index0.y].grassRemovalMicroDetail, details[index0.z].grassRemovalMicroDetail, details[index0.w].grassRemovalMicroDetail);
+      }
+      uint4 remap_index4_0(uint4 index0)
+      {
+        return uint4(details[index0.x].tex_indices.x, details[index0.y].tex_indices.x, details[index0.z].tex_indices.x, details[index0.w].tex_indices.x);
+      }
+      uint4 remap_index4_1(uint4 index0)
+      {
+        return uint4(details[index0.x].tex_indices.y, details[index0.y].tex_indices.y, details[index0.z].tex_indices.y, details[index0.w].tex_indices.y);
+      }
+      float4 bump_offset_index4_0(uint4 index0)
+      {
+        return float4(details[index0.x].bump_offset.x, details[index0.y].bump_offset.x, details[index0.z].bump_offset.x, details[index0.w].bump_offset.x);
+      }
+      float4 bump_offset_index4_1(uint4 index0)
+      {
+        return float4(details[index0.x].bump_offset.y, details[index0.y].bump_offset.y, details[index0.z].bump_offset.y, details[index0.w].bump_offset.y);
+      }
+      float4 bump_scale_index4_0(uint4 index0)
+      {
+        return float4(details[index0.x].bump_scale.x, details[index0.y].bump_scale.x, details[index0.z].bump_scale.x, details[index0.w].bump_scale.x);
+      }
+      float4 bump_scale_index4_1(uint4 index0)
+      {
+        return float4(details[index0.x].bump_scale.y, details[index0.y].bump_scale.y, details[index0.z].bump_scale.y, details[index0.w].bump_scale.y);
+      }
+      float4 invert_ht_index4_0(uint4 index0)
+      {
+        return float4(details[index0.x].invert_height.x, details[index0.y].invert_height.x, details[index0.z].invert_height.x, details[index0.w].invert_height.x);
+      }
+      float4 invert_ht_index4_1(uint4 index0)
+      {
+        return float4(details[index0.x].invert_height.y, details[index0.y].invert_height.y, details[index0.z].invert_height.y, details[index0.w].invert_height.y);
+      }
+      float4 detail_weights_mul_index4_0(uint4 indices)
+      {
+        return float4(details[indices.x].detail_weights_mul.x, details[indices.y].detail_weights_mul.x,
+                      details[indices.z].detail_weights_mul.x, details[indices.w].detail_weights_mul.x);
+      }
+      float4 detail_weights_mul_index4_1(uint4 indices)
+      {
+        return float4(details[indices.x].detail_weights_mul.y, details[indices.y].detail_weights_mul.y,
+                      details[indices.z].detail_weights_mul.y, details[indices.w].detail_weights_mul.y);
+      }
     }
-    uint4 remap_index4_0(uint4 index0)
-    {
-      return uint4(details[index0.x].tex_indices.x, details[index0.y].tex_indices.x, details[index0.z].tex_indices.x, details[index0.w].tex_indices.x);
-    }
-    uint4 remap_index4_1(uint4 index0)
-    {
-      return uint4(details[index0.x].tex_indices.y, details[index0.y].tex_indices.y, details[index0.z].tex_indices.y, details[index0.w].tex_indices.y);
-    }
-    float4 bump_offset_index4_0(uint4 index0)
-    {
-      return float4(details[index0.x].bump_offset.x, details[index0.y].bump_offset.x, details[index0.z].bump_offset.x, details[index0.w].bump_offset.x);
-    }
-    float4 bump_offset_index4_1(uint4 index0)
-    {
-      return float4(details[index0.x].bump_offset.y, details[index0.y].bump_offset.y, details[index0.z].bump_offset.y, details[index0.w].bump_offset.y);
-    }
-    float4 bump_scale_index4_0(uint4 index0)
-    {
-      return float4(details[index0.x].bump_scale.x, details[index0.y].bump_scale.x, details[index0.z].bump_scale.x, details[index0.w].bump_scale.x);
-    }
-    float4 bump_scale_index4_1(uint4 index0)
-    {
-      return float4(details[index0.x].bump_scale.y, details[index0.y].bump_scale.y, details[index0.z].bump_scale.y, details[index0.w].bump_scale.y);
-    }
-    float4 invert_ht_index4_0(uint4 index0)
-    {
-      return float4(details[index0.x].invert_height.x, details[index0.y].invert_height.x, details[index0.z].invert_height.x, details[index0.w].invert_height.x);
-    }
-    float4 invert_ht_index4_1(uint4 index0)
-    {
-      return float4(details[index0.x].invert_height.y, details[index0.y].invert_height.y, details[index0.z].invert_height.y, details[index0.w].invert_height.y);
-    }
-    float4 detail_weights_mul_index4_0(uint4 indices)
-    {
-      return float4(details[indices.x].detail_weights_mul.x, details[indices.y].detail_weights_mul.x,
-                    details[indices.z].detail_weights_mul.x, details[indices.w].detail_weights_mul.x);
-    }
-    float4 detail_weights_mul_index4_1(uint4 indices)
-    {
-      return float4(details[indices.x].detail_weights_mul.y, details[indices.y].detail_weights_mul.y,
-                    details[indices.z].detail_weights_mul.y, details[indices.w].detail_weights_mul.y);
-    }
- }
+  }
 endmacro

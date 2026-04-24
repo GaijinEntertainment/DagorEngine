@@ -30,9 +30,13 @@ shader update_h0_cs, update_h0_cs_android
     DISABLE_FFT_COMPRESSION()
   }
 
-  ENABLE_ASSERT(cs)
   USE_FFT_COMPRESSION()
   CBUFFER()
+  (cs) {
+    g_gauss_input@buf : register(0) hlsl {
+      StructuredBuffer<float2> g_gauss_input@buf;
+    }
+  }
   hlsl(cs) {
     #include "fft_spectrum.hlsli"
 ##if fft_spectrum == phillips
@@ -41,7 +45,7 @@ shader update_h0_cs, update_h0_cs_android
     #define calcSpectrum calcUnifiedDirectional
 ##endif
 
-    StructuredBuffer<float2> g_gauss_input : register(t0);
+    // TODO: fixme macro/declaration order to get proper type
     RWStructuredBuffer<h0_type> g_h0_output : register(u0);
 
     // update H0 from Gauss (one CTA per row)
@@ -85,10 +89,17 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
   if (shader == fftH_cs_android || shader == fftV_cs_android) {
     DISABLE_FFT_COMPRESSION()
   }
-  ENABLE_ASSERT(cs)
 
   USE_FFT_COMPRESSION()
   CBUFFER()
+  (cs) {
+    g_omega_input@buf : register(1) hlsl {
+      StructuredBuffer<float> g_omega_input@buf;
+    }
+    g_displacement_output@uav : register(0) hlsl {
+      RWTexture2DArray<float4> g_displacement_output@uav;
+    }
+  }
   hlsl(cs) {
     groupshared float2 uData[CS_MAX_FFT_RESOLUTION/2];
     groupshared float2 vData[CS_MAX_FFT_RESOLUTION/2];
@@ -262,8 +273,8 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
       }
     }
 
+    // TODO: fixme macro/declaration order to get proper type
     StructuredBuffer<h0_type> g_h0_input : register(t0);
-    StructuredBuffer<float> g_omega_input : register(t1);
 
     RWStructuredBuffer<ht_type> g_ht_output : register(u0);
     RWStructuredBuffer<dt_type> g_dt_output : register(u1);
@@ -338,10 +349,9 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
       }
     }
 
+    // TODO: fixme macro/declaration order to get proper type
     StructuredBuffer<ht_type> g_ht_input : register(t0);
     StructuredBuffer<dt_type> g_dt_input : register(t1);
-
-    RWTexture2DArray<float4> g_displacement_output : register(u0);
 
     // do fourier transform per row of Ht, Dt_x, Dt_y, write displacement texture (one CTA per column)
     [numthreads(CS_MAX_FFT_RESOLUTION/2, 1, 1)]
@@ -391,8 +401,10 @@ shader fftH_cs, fftV_cs, fftH_cs_android, fftV_cs_android
     compile("cs_5_0", "ComputeRows");
   } else
   {
-    hlsl {
-      #define __XBOX_REGALLOC_VGPR_LIMIT 32//found by pix
+    if (!hardware.scarlett) {
+      hlsl {
+        #define __XBOX_REGALLOC_VGPR_LIMIT 32//found by pix
+      }
     }
     compile("cs_5_0", "ComputeColumns");
   }

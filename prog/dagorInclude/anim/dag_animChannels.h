@@ -139,14 +139,14 @@ public:
     AnimDataChan originLinVel, originAngVel;
     void setup(DumpData &d);
   } anim;
-  int resId = -1;
 
 public:
   AnimData(int res_id = -1) : resId(res_id), dump(NULL), extraData(NULL)
   {
     memset(&anim, 0, sizeof(anim));
     memset(&dumpData, 0, sizeof(dumpData));
-    animAdditive = false;
+    initialA2dSize = 0;
+    animAdditive = 0;
   }
   // creates alias of other AnimData and uses only nodes specified
   AnimData(AnimData *src_anim, const NameMap &node_list, IMemAlloc *ma);
@@ -157,6 +157,7 @@ public:
 
   int getLabelTime(const char *name, bool fatal_err = true);
   bool isAdditive() const { return animAdditive; }
+  unsigned getA2dDataSize() const { return initialA2dSize; }
   AnimData *getSourceAnimData() const { return src; }
 
 protected:
@@ -171,7 +172,10 @@ protected:
 private:
   void *dump;
   void *extraData;
-  bool animAdditive;
+  unsigned initialA2dSize : 31, animAdditive : 1;
+
+public:
+  int resId = -1;
 };
 
 struct PrsAnimNodeRef

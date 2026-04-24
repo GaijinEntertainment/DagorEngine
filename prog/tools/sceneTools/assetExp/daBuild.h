@@ -9,6 +9,7 @@ class String;
 class DataBlock;
 class ILogWriter;
 class IGenericProgressIndicator;
+struct DaBuildProgressShm;
 namespace mkbindump
 {
 class BinDumpSaveCB;
@@ -65,6 +66,8 @@ bool checkDdsxTexPackUpToDate(unsigned tc, const char *profile, bool be, dag::Co
 bool checkGameResPackUpToDate(dag::ConstSpan<DagorAsset *> assets, AssetExportCache &c4, const char *pack_fname, int ch_bit);
 
 bool isAssetExportable(DagorAssetMgr &mgr, DagorAsset *asset, dag::ConstSpan<bool> exp_types_mask);
+bool detect_valid_patch(const DataBlock &expblk, const char *pkg_name, const char *app_dir, const char *target_str,
+  const char *profile, char *out_md5 = nullptr);
 
 void preparePacks(DagorAssetMgr &mgr, dag::ConstSpan<DagorAsset *> assets, dag::ConstSpan<bool> exp_types_mask,
   const DataBlock &expblk, Tab<AssetPack *> &tex_pack, Tab<AssetPack *> &grp_pack, FastNameMapEx &addPackages, ILogWriter &log,
@@ -78,6 +81,7 @@ void dabuild_list_packs(const char *app_dir, const DataBlock &appblk, DagorAsset
 
 bool cmp_data_eq(mkbindump::BinDumpSaveCB &cwr, const char *pack_fname);
 bool cmp_data_eq(const void *data, int len, const char *pack_fname);
+bool cmp_data_eq(const char *pack1_fname, const char *pack2_fname);
 
 int64_t get_file_sz(const char *fn);
 
@@ -97,11 +101,16 @@ extern bool dabuild_skip_any_build;
 extern bool dabuild_force_dxp_rebuild;
 extern bool dabuild_build_tex_separate;
 
+extern bool dabuild_allow_patch_build;
+// Enables removing packs in patch build that are idential to base packs
+extern bool dabuild_remove_pack_duplications;
+
 extern int dabuild_dxp_write_ver;
 extern int dabuild_grp_write_ver;
 bool setup_dxp_grp_write_ver(const DataBlock &build_blk, ILogWriter &log);
 
 extern String dabuild_progress_prefix_text;
+extern DaBuildProgressShm *dabuild_progress_shm;
 
 void make_cache_fname(String &cache_fname, const char *cache_base, const char *pkg_name, const char *pack_name, const char *target_str,
   const char *profile);

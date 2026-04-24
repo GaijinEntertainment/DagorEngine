@@ -5,6 +5,7 @@
 #include <math/random/dag_random.h>
 #include <debug/dag_debug.h>
 #include "FFT_CPU_Simulation.h"
+#include <fftWater/chopWaterGen.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_hlsl_floatx.h>
 #include "../shaders/fft_spectrum.hlsli"
@@ -1167,4 +1168,16 @@ void calc_wave_height(const NVWaveWorks_FFT_CPU_Simulation::Params *fft, int num
   }
   // Use the max wave height there because a significant is not precise enough anymore but the max height quite close to the truth
   out_significant_wave_height = out_max_wave_height;
+}
+
+void calc_wave_height_chop(const ChopWaterGenerator &chopGen, int num_cascades, float &out_significant_wave_height,
+  float &out_max_wave_height, float *out_max_wave_size)
+{
+  out_significant_wave_height = chopGen.getSignificantWaveHeight() * 0.5f; // *0.5 since Chop stores total waveH [-Max, +Max]
+  out_max_wave_height = chopGen.getMaxWaveHeight() * 0.5f;
+  if (out_max_wave_size)
+  {
+    for (int i = 0; i < num_cascades; ++i)
+      out_max_wave_size[i] = chopGen.getMaxWaveHeightCascade(i) * 0.5f;
+  }
 }

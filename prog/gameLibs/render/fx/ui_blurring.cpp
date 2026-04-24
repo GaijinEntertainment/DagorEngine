@@ -16,14 +16,13 @@
 #include <dag/dag_vector.h>
 #include <memory/dag_framemem.h>
 
-#define GLOBAL_VARS_LIST                \
-  VAR(blur_src_tex)                     \
-  VAR(blur_src_tex_samplerstate)        \
-  VAR(blur_pixel_offset)                \
-  VAR(blur_src_tex_size)                \
-  VAR(blur_dst_tex_size)                \
-  VAR(blur_background_tex)              \
-  VAR(blur_background_tex_samplerstate) \
+#define GLOBAL_VARS_LIST         \
+  VAR(blur_src_tex)              \
+  VAR(blur_src_tex_samplerstate) \
+  VAR(blur_pixel_offset)         \
+  VAR(blur_src_tex_size)         \
+  VAR(blur_dst_tex_size)         \
+  VAR(blur_background_tex)       \
   VAR(blur_bw)
 
 #define VAR(a) static int a##VarId = -1;
@@ -33,6 +32,7 @@ GLOBAL_VARS_LIST
 const int FIRST_GAUSS_SIZE = 3, SECOND_GAUSS_SIZE = 3 * 7 + 1;
 constexpr int FIRST_REG = 16; // same as in shader
 constexpr int CB_SIZE = 4096 - FIRST_REG;
+constexpr int VS_CB_SIZE = 4094;
 d3d::SamplerHandle clamp_sampler;
 
 static void init_blur_shader_vars()
@@ -45,7 +45,6 @@ static void init_blur_shader_vars()
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     clamp_sampler = d3d::request_sampler(smpInfo);
-    ShaderGlobal::set_sampler(blur_background_tex_samplerstateVarId, clamp_sampler);
     ShaderGlobal::set_sampler(blur_src_tex_samplerstateVarId, clamp_sampler);
   }
 }
@@ -78,7 +77,7 @@ static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_
   interm_texture.getTex2D()->texmiplevel(interm_texture_mip, interm_texture_mip);
   ShaderGlobal::set_sampler(blur_src_tex_samplerstateVarId, clamp_sampler);
   ShaderGlobal::set_texture(blur_src_texVarId, tex.getId());
-  ShaderGlobal::set_color4(blur_pixel_offsetVarId, 1.0f / w, 0, 0, 0);
+  ShaderGlobal::set_float4(blur_pixel_offsetVarId, 1.0f / w, 0, 0, 0);
   tex.getTex2D()->texmiplevel(tex_mip, tex_mip);
 
   int4 *quad = quad_buffer;
@@ -92,14 +91,14 @@ static void blur_mip(int tex_mip, TextureIDHolder &tex, TextureIDHolder &interm_
 
   blur.getElem()->setStates();
   const uint32_t quadCount = quad - quad_buffer;
-  d3d::set_vs_constbuffer_size(quadCount + FIRST_REG);
+  d3d::set_vs_constbuffer_register_count(VS_CB_SIZE);
   d3d::set_vs_const(FIRST_REG, quad_buffer, quadCount);
   d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
 
   d3d::set_render_target(tex.getTex2D(), tex_mip);
   d3d::resource_barrier({interm_texture.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(interm_texture_mip), 1});
   ShaderGlobal::set_texture(blur_src_texVarId, interm_texture.getId());
-  ShaderGlobal::set_color4(blur_pixel_offsetVarId, 0, 1.0f / h, 0, 0);
+  ShaderGlobal::set_float4(blur_pixel_offsetVarId, 0, 1.0f / h, 0, 0);
 
   blur.getElem()->setStates();
   d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
@@ -161,12 +160,12 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
     TIME_D3D_PROFILE(downsample_and_blend);
 
     d3d::set_render_target(intermediate.getTex2D(), downsampled_frame_mip);
-    ShaderGlobal::set_color4(blur_src_tex_sizeVarId, 1.0f / src_info.w, 1.0f / src_info.h, 0, 0);
+    ShaderGlobal::set_float4(blur_src_tex_sizeVarId, 1.0f / src_info.w, 1.0f / src_info.h, 0, 0);
     ShaderGlobal::set_sampler(blur_src_tex_samplerstateVarId, clamp_sampler);
     ShaderGlobal::set_texture(blur_src_texVarId, src.getTex() ? src.getId() : background.getId());
-    ShaderGlobal::set_color4(blur_dst_tex_sizeVarId, 1.0f / dinfo.w, 1.0f / dinfo.h, 0, 0);
+    ShaderGlobal::set_float4(blur_dst_tex_sizeVarId, 1.0f / dinfo.w, 1.0f / dinfo.h, 0, 0);
     ShaderGlobal::set_texture(blur_background_texVarId, background.getId());
-    ShaderGlobal::set_real(blur_bwVarId, bw ? 1.f : 0.f);
+    ShaderGlobal::set_float(blur_bwVarId, bw ? 1.f : 0.f);
     if (!src.getTex())
       d3d::resource_barrier({background.getTex(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
 
@@ -191,7 +190,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
     if (quadCount > 0)
     {
       downsample_first_step.getElem()->setStates();
-      d3d::set_vs_constbuffer_size(quadCount + FIRST_REG);
+      d3d::set_vs_constbuffer_register_count(VS_CB_SIZE);
       d3d::set_vs_const(FIRST_REG, quadBuffer, quadCount);
       d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
     }
@@ -210,8 +209,8 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
       const int srcW = uiMipI == 0 ? dinfo.w : (ui_info.w >> (uiMipI - 1)), srcH = uiMipI == 0 ? dinfo.h : (ui_info.h >> (uiMipI - 1));
 
       d3d::set_render_target(ui_mip.getTex2D(), uiMipI);
-      ShaderGlobal::set_color4(blur_src_tex_sizeVarId, 1.0f / srcW, 1.0f / srcH, uiMipI, 0);
-      ShaderGlobal::set_color4(blur_dst_tex_sizeVarId, 1.0f / tex_info.w, 1.0f / tex_info.h, 0, 0);
+      ShaderGlobal::set_float4(blur_src_tex_sizeVarId, 1.0f / srcW, 1.0f / srcH, uiMipI, 0);
+      ShaderGlobal::set_float4(blur_dst_tex_sizeVarId, 1.0f / tex_info.w, 1.0f / tex_info.h, 0, 0);
 
       if (uiMipI != startUiMip)
       {
@@ -256,7 +255,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
       if (quadCount > 0)
       {
         downsample_4.getElem()->setStates();
-        d3d::set_vs_constbuffer_size(quadCount + FIRST_REG);
+        d3d::set_vs_constbuffer_register_count(VS_CB_SIZE);
         d3d::set_vs_const(FIRST_REG, quadBuffer, quadCount);
         d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, quadCount);
       }
@@ -282,7 +281,7 @@ void update_blurred_from(const TextureIDPair &src, const TextureIDPair &backgrou
     d3d::resource_barrier({ui_mip.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(max_ui_mip - 1), 1});
     intermediate.getTex2D()->texmiplevel(-1, -1);
     ui_mip.getTex2D()->texmiplevel(-1, -1);
-    d3d::set_vs_constbuffer_size(0);
+    d3d::set_vs_constbuffer_register_count(0);
   }
   shaders::overrides::reset();
   ShaderElement::invalidate_cached_state_block();

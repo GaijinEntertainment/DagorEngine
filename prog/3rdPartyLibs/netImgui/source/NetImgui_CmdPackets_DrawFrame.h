@@ -2,7 +2,6 @@
 
 #include "NetImgui_Shared.h"
 
-
 namespace NetImgui { namespace Internal
 {
 
@@ -17,12 +16,12 @@ struct ImguiVert
 
 struct ImguiDraw
 {
-	uint64_t	mTextureId;
-	uint32_t	mIdxCount;		// Drawcall number of indices (3 indices per triangles)
-	uint32_t	mVtxOffset;		// Drawcall start position in vertices buffer (considered index 0)
-	uint32_t	mIdxOffset;		// Drawcall start position in indices buffer
-	float		mClipRect[4];
-	uint8_t		PADDING[4]={};
+	ClientTextureID	mClientTexId;	// TextureID used by client to identify the texture
+	uint32_t		mIdxCount;		// Drawcall number of indices (3 indices per triangles)
+	uint32_t		mVtxOffset;		// Drawcall start position in vertices buffer (considered index 0)
+	uint32_t		mIdxOffset;		// Drawcall start position in indices buffer
+	float			mClipRect[4];
+	uint8_t			PADDING[4]={};
 };
 
 // Each DearImgui window has its own vertex/index buffers with multiple drawcalls

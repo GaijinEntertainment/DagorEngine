@@ -1,7 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "bvh/bvh.h"
+#include "splineGenGeometryPointers.h"
 #include "splineGenGeometryAsset.h"
+#include "splineGenGeometryShapeManager.h"
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_computeShaders.h>
 #include <3d/dag_resPtr.h>
@@ -12,7 +15,7 @@
 #include <EASTL/vector.h>
 #include <generic/dag_carray.h>
 #include <EASTL/string.h>
-#include <EASTL/unique_ptr.h>
+#include <util/dag_bitArray.h>
 
 class SplineGenGeometryIb;
 class framemem_allocator;
@@ -28,6 +31,8 @@ class framemem_allocator;
 // It's stored in SplineGenGeometryRepository
 // Buffers don't shrink to reduce number of allocations
 // No individual vertex / normal data is stored, as that is generated in the vertex shader.
+// (Unless 'vertex_gen_phase_exists convar' is true, or raytracing is enabled, in which
+// case we generate the vertices before the frame starts, and store them in vertexBuffers).
 // Reactivates inactive instances if the buffers are reallocated.
 class SplineGenGeometryManager
 {
@@ -42,8 +47,10 @@ public:
     const eastl::string &asset_name,
     const eastl::string &shader_type,
     uint32_t asset_lod);
+  ~SplineGenGeometryManager();
   InstanceId registerInstance();
-  void unregisterInstance(InstanceId id, bool active);
+  void eraseInstanceId(InstanceId id);
+  void unregisterInstance(InstanceId id);
   void makeInstanceActive(InstanceId id);
   void makeInstanceInactive(InstanceId id);
   void updateBuffers();
@@ -54,21 +61,27 @@ public:
   // Also attaches objects if hasObj
   void generate();
   void attachObjects();
-  void uploadCullData(int cascade);
-  void cull(int cascade);
-  // Also renders objects if hasObj
-  void render(int cascade);
+  void cullForCamera();
+  void uploadCameraCullData();
+  void cullForShadow();
+  void uploadShadowCullData();
+  void renderOpaque(int cascade);
+  void renderTransparent();
   const IPoint2 &getDisplacementTexSize() const;
   bool hasObj() const;
   SplineGenGeometryAsset &getAsset() const;
+  SplineGenGeometryShapeManager &getShapeManager() const;
   void reactivateAllInstances();
   bool isReactivationInProcess() const;
+  void addInstancesToBVH(bvh::ContextId context_id);
+  void removeBVHContext();
 
   enum class SplineGenType
   {
     REGULAR_SPLINE_GEN = 0,
     EMISSIVE_SPLINE_GEN = 1,
-    SKIN_SPLINE_GEN = 2
+    SKIN_SPLINE_GEN = 2,
+    REFRACTIVE_SPLINE_GEN = 3,
   };
   SplineGenType getType() const { return type; }
 
@@ -76,6 +89,7 @@ public:
   const eastl::string templateName;
   const uint32_t slices;  // x around
   const uint32_t stripes; // y lenth of the spline
+  const uint32_t splineEntrySize;
   const eastl::string diffuseName;
   const eastl::string normalName;
   const uint32_t assetLod;
@@ -84,41 +98,57 @@ public:
   {
     CASCADE_COLOR = 0,
     CASCADE_SHADOW = 1,
-    CASCADE_COUNT = 2
+    CASCADE_TRANSPARENT = 2,
+    CASCADE_COUNT = 3
   };
 
 private:
-  SplineGenGeometryIb *ibPtr = nullptr;
-  SplineGenGeometryAsset *assetPtr = nullptr;
+  SplineGenGeometryIbPtr ibPtr;
+  SplineGenGeometryAssetPtr assetPtr;
+  SplineGenGeometryShapeManagerPtr shapeManagerPtr;
 
   int getAllocatedInstanceCount() const;
   int getCurrentInstanceCount() const;
   int getActiveInstanceCount() const;
   int getInactiveInstanceCount() const;
   void makeMoreSpots();
+  int getAdditionalTexVarId() const;
+  // Also renders objects if hasObj
+  void render(int cascade);
+  void cull(int cascade);
+  void uploadCullData(int cascade);
 
   eastl::vector<InstanceId> freeSpots;
   eastl::vector<InstanceId> usedSpots;
   eastl::vector<InstanceId> inactiveSpots;
-  bool invalidatePrevSb = false;
+  bool invalidatePrevBuffer = false;
   bool needsAllocation = false;
+  bool needsVertexGeneration = false;
   bool reactivationInProcess = false;
   UniqueBuf instancingStagingBuffer;
   UniqueBuf instancingBuffer;
+  Bitarray splineBufferDirtyMask;
+  bool splineBufferDirty = false;
+  UniqueBuf splineStagingBuffer;
   carray<UniqueBuf, 2> splineBuffer;
-  int currentSBIndex = 0;
+  carray<UniqueBuf, 2> vertexBuffer;
+  int currentBufferIndex = 0;
   UniqueBuf indirectionBuffer;
   UniqueBuf objBatchIdBuffer;
   eastl::vector<BatchId> objBatchIdData;
   uint32_t attachmentMaxNo = 0;
   uint32_t maxBatchesCount = 0;
+  uint32_t drawIndirectArgsNr = 0;
+  uint32_t bvhId = 0;
+  bvh::ContextId bvhContextId = nullptr;
 
   uint32_t getInstanceTriangleCount() const;
   uint32_t getInstanceVertexCount() const;
 
   void allocateBuffers();
   void uploadIndirectionBuffer();
-  void uploadObjBatchIdBufer();
+  void uploadObjBatchIdBuffer();
+  void uploadSplineBuffer();
 
   SplineGenType type = SplineGenType::REGULAR_SPLINE_GEN;
 
@@ -129,6 +159,8 @@ private:
   void uploadIndirectParams(const eastl::vector<DrawIndexedIndirectArgs, framemem_allocator> &params_data, int cascade);
 
   Ptr<ComputeShaderElement> cullerCs;
+  Ptr<ComputeShaderElement> generatorCs;
+  Ptr<ComputeShaderElement> normalCs;
   UniqueBuf culledBuffer[CASCADE_COUNT];
   UniqueBuf paramsBuffer[CASCADE_COUNT];
   int maxParamsCount[CASCADE_COUNT] = {};

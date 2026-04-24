@@ -531,10 +531,16 @@ public:
     parent.assign(index, eastl::move(u));
   }
 
+  template <>
+  void assign(ElementProxy &&u)
+  {
+    u.visit([this](auto &&v) { assign(eastl::move(v)); });
+  }
+
   template <typename U>
   ElementProxy &operator=(U &&u)
   {
-    parent.assign(index, eastl::move(u));
+    assign(eastl::move(u));
     return *this;
   }
 

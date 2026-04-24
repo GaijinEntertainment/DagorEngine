@@ -1,0 +1,9 @@
+ERROR: expression of type 'string' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/type_inference/test_literal_string_to_int.nut:2:0
+
+// EXPECTED: compile-time error - string literal assigned to int variable
+local x: int = "hello"
+^---------------------
+return x
+
+

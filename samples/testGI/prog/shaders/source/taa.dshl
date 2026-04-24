@@ -67,7 +67,7 @@ shader taa
     reprojectionMatrix@f44 = {reproject_psf_0, reproject_psf_1, reproject_psf_2, reproject_psf_3};
     sceneTex@smp2d = taa_frame_tex;
     historyTex@smp2d = taa_history_tex;
-    //taa_was_dynamic@smp2d = taa_was_dynamic;
+    //taa_was_dynamic@tex2d = taa_was_dynamic;
     taa_filter0@f4 = taa_filter0;
     taa_filter1@f4 = taa_filter1;
     taa_filter2@f4 = (taa_filter2, taa_motion_difference_max_inv, taa_motion_difference_max_weight, taa_restart_temporal);

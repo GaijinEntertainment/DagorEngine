@@ -1,6 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <generic/dag_enumerate.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <vecmath/dag_vecMath.h>
 #include <math/dag_vecMathCompatibility.h>
 #include <daECS/core/coreEvents.h>
@@ -37,36 +40,37 @@ CONSOLE_BOOL_VAL("dagdp", debug_volumes, false);
 #define VOLUME_COLOR       E3DCOLOR_MAKE(255, 64, 255, 255)
 
 template <typename Callable>
-static inline void on_mesh_placers_ecs_query(Callable);
+static inline void on_mesh_placers_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void on_ri_placers_ecs_query(Callable);
+static inline void on_ri_placers_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void around_ri_placers_ecs_query(Callable);
+static inline void around_ri_placers_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void volume_boxes_ecs_query(Callable);
+static inline void volume_boxes_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void volume_cylinders_ecs_query(Callable);
+static inline void volume_cylinders_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void volume_spheres_ecs_query(Callable);
+static inline void volume_spheres_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void local_volume_box_ecs_query(const ecs::EntityId, Callable);
+static inline void local_volume_box_ecs_query(ecs::EntityManager &manager, const ecs::EntityId, Callable);
 
 template <typename Callable>
-static inline void local_volume_cylinder_ecs_query(const ecs::EntityId, Callable);
+static inline void local_volume_cylinder_ecs_query(ecs::EntityManager &manager, const ecs::EntityId, Callable);
 
 template <typename Callable>
-static inline void local_volume_sphere_ecs_query(const ecs::EntityId, Callable);
+static inline void local_volume_sphere_ecs_query(ecs::EntityManager &manager, const ecs::EntityId, Callable);
 
 static int totalMissingRendInst, totalUsedRendInst;
 
 ECS_NO_ORDER
-static inline void volume_view_process_es(const dagdp::EventViewProcess &evt, dagdp::VolumeManager &dagdp__volume_manager)
+static inline void volume_view_process_es(
+  const dagdp::EventViewProcess &evt, ecs::EntityManager &manager, dagdp::VolumeManager &dagdp__volume_manager)
 {
   const auto &rulesBuilder = evt.get<0>();
   auto &builder = dagdp__volume_manager.currentBuilder;
@@ -74,7 +78,7 @@ static inline void volume_view_process_es(const dagdp::EventViewProcess &evt, da
   totalMissingRendInst = 0;
   totalUsedRendInst = 0;
 
-  on_mesh_placers_ecs_query(
+  on_mesh_placers_ecs_query(manager,
     [&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_meshes) ecs::EntityId eid, float dagdp__density, float dagdp__volume_min_triangle_area,
       const ecs::string &dagdp__name, const Point3 &dagdp__volume_axis, bool dagdp__volume_axis_local, bool dagdp__volume_axis_abs,
       const Point2 &dagdp__distance_based_scale, float dagdp__distance_based_range, const Point3 &dagdp__distance_based_center,
@@ -224,6 +228,9 @@ void gather(const VolumeMapping &volume_mapping,
   v_bbox3_init_by_bsph(rangeBox, v_make_vec3f(viewport.worldPos.x, viewport.worldPos.y, viewport.worldPos.z), range);
   frustumBox = v_bbox3_get_box_intersection(frustumBox, rangeBox);
 
+  if (!v_test_xyz_finite(frustumBox.bmin) || !v_test_xyz_finite(frustumBox.bmax))
+    return;
+
   const auto addVolume = [&](const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform, float scale,
                            int volume_type) {
     const auto iter = volume_mapping.find(dagdp_internal__volume_placer_eid);
@@ -333,25 +340,41 @@ void gather(const VolumeMapping &volume_mapping,
     processMeshes(out_handles, volumeIndex, variant.targetMeshLod);
   };
 
-  volume_boxes_ecs_query(
-    [&](ECS_REQUIRE(ecs::Tag dagdp_volume_box) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform) {
+  volume_boxes_ecs_query(*g_entity_mgr,
+    [&](ECS_REQUIRE(ecs::Tag dagdp_volume_box) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform,
+      int dagdp__csm_cascade_count) {
+      if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
+        return;
+
       addVolume(dagdp_internal__volume_placer_eid, transform, 0.5f, VOLUME_TYPE_BOX);
     });
 
-  volume_cylinders_ecs_query(
-    [&](ECS_REQUIRE(ecs::Tag dagdp_volume_cylinder) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform) {
+  volume_cylinders_ecs_query(*g_entity_mgr,
+    [&](ECS_REQUIRE(ecs::Tag dagdp_volume_cylinder) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform,
+      int dagdp__csm_cascade_count) {
+      if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
+        return;
+
       addVolume(dagdp_internal__volume_placer_eid, transform, 0.5f, VOLUME_TYPE_CYLINDER);
     });
 
-  volume_spheres_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_volume_sphere) const ecs::EntityId dagdp_internal__volume_placer_eid,
-                             const TMatrix &transform, float sphere_zone__radius) {
-    if (sphere_zone__radius <= FLT_EPSILON)
+  volume_spheres_ecs_query(*g_entity_mgr,
+    [&](ECS_REQUIRE(ecs::Tag dagdp_volume_sphere) const ecs::EntityId dagdp_internal__volume_placer_eid, const TMatrix &transform,
+      float sphere_zone__radius, int dagdp__csm_cascade_count) {
+      if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
+        return;
+
+      if (sphere_zone__radius <= FLT_EPSILON)
+        return;
+
+      addVolume(dagdp_internal__volume_placer_eid, transform, sphere_zone__radius, VOLUME_TYPE_ELLIPSOID);
+    });
+
+  on_ri_placers_ecs_query(*g_entity_mgr, [&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_ri) ecs::EntityId eid,
+                                           const ecs::IntList &dagdp__resource_ids, int dagdp__csm_cascade_count) {
+    if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
       return;
 
-    addVolume(dagdp_internal__volume_placer_eid, transform, sphere_zone__radius, VOLUME_TYPE_ELLIPSOID);
-  });
-
-  on_ri_placers_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_placer_on_ri) ecs::EntityId eid, const ecs::IntList &dagdp__resource_ids) {
     const auto iter = volume_mapping.find(eid);
     if (iter == volume_mapping.end())
       return;
@@ -381,97 +404,105 @@ void gather(const VolumeMapping &volume_mapping,
     processMeshes(out_handles, volumeIndex, variant.targetMeshLod);
   });
 
-  around_ri_placers_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_placer_around_ri) ecs::EntityId eid,
-                                const ecs::IntList &dagdp__resource_ids, const ecs::EidList &dagdp__volume_box_eids,
-                                const ecs::EidList &dagdp__volume_cylinder_eids, const ecs::EidList &dagdp__volume_sphere_eids) {
-    // find maximum local volume radius
-    float maxLocalRad = 0;
+  around_ri_placers_ecs_query(*g_entity_mgr,
+    [&](ECS_REQUIRE(ecs::Tag dagdp_placer_around_ri) ecs::EntityId eid, const ecs::IntList &dagdp__resource_ids,
+      const ecs::EidList &dagdp__volume_box_eids, const ecs::EidList &dagdp__volume_cylinder_eids,
+      const ecs::EidList &dagdp__volume_sphere_eids, int dagdp__csm_cascade_count) {
+      if (dagdp__csm_cascade_count >= 0 && viewport.csmCascade >= dagdp__csm_cascade_count)
+        return;
 
-    for (auto volume_eid : dagdp__volume_box_eids)
-      local_volume_box_ecs_query(volume_eid, [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_box) const TMatrix &transform) {
-        float r = sqrtf(transform.col[0].lengthSq() + transform.col[1].lengthSq() + transform.col[2].lengthSq()) * 0.5f;
-        r += transform.col[3].length();
-        maxLocalRad = max(maxLocalRad, r);
-      });
+      // find maximum local volume radius
+      float maxLocalRad = 0;
 
-    for (auto volume_eid : dagdp__volume_cylinder_eids)
-      local_volume_cylinder_ecs_query(volume_eid, [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_cylinder) const TMatrix &transform) {
-        float r = sqrtf(max(transform.col[0].lengthSq(), transform.col[2].lengthSq()) + transform.col[1].lengthSq()) * 0.5f;
-        r += transform.col[3].length();
-        maxLocalRad = max(maxLocalRad, r);
-      });
+      for (auto volume_eid : dagdp__volume_box_eids)
+        local_volume_box_ecs_query(*g_entity_mgr, volume_eid,
+          [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_box) const TMatrix &transform) {
+            float r = sqrtf(transform.col[0].lengthSq() + transform.col[1].lengthSq() + transform.col[2].lengthSq()) * 0.5f;
+            r += transform.col[3].length();
+            maxLocalRad = max(maxLocalRad, r);
+          });
 
-    for (auto volume_eid : dagdp__volume_sphere_eids)
-      local_volume_sphere_ecs_query(volume_eid,
-        [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_sphere) const TMatrix &transform, float sphere_zone__radius) {
-          float r = sqrtf(max(max(transform.col[0].lengthSq(), transform.col[1].lengthSq()), transform.col[2].lengthSq())) *
-                    sphere_zone__radius;
-          r += transform.col[3].length();
-          maxLocalRad = max(maxLocalRad, r);
-        });
+      for (auto volume_eid : dagdp__volume_cylinder_eids)
+        local_volume_cylinder_ecs_query(*g_entity_mgr, volume_eid,
+          [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_cylinder) const TMatrix &transform) {
+            float r = sqrtf(max(transform.col[0].lengthSq(), transform.col[2].lengthSq()) + transform.col[1].lengthSq()) * 0.5f;
+            r += transform.col[3].length();
+            maxLocalRad = max(maxLocalRad, r);
+          });
 
-    // Enlarge frustum box.
-    // To be precise we need either maximum instance scale, or to test our local-space bound instead of RI bounding box for each
-    // instance. Instead, we fudge it with a scale factor. Remember, we're still hitting instance boxes with this enlarged volume.
-    bbox3f fbox = frustumBox;
-    const float RAD_SCALE_FACTOR = 1.5f;
-    v_bbox3_extend(fbox, v_splats(maxLocalRad * RAD_SCALE_FACTOR));
+      for (auto volume_eid : dagdp__volume_sphere_eids)
+        local_volume_sphere_ecs_query(*g_entity_mgr, volume_eid,
+          [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_sphere) const TMatrix &transform, float sphere_zone__radius) {
+            float r = sqrtf(max(max(transform.col[0].lengthSq(), transform.col[1].lengthSq()), transform.col[2].lengthSq())) *
+                      sphere_zone__radius;
+            r += transform.col[3].length();
+            maxLocalRad = max(maxLocalRad, r);
+          });
 
-    // ri gen
-    eastl::fixed_vector<int16_t, 32> riGenPools;
-    for (auto id : dagdp__resource_ids)
-      if (int pool = rendinst::getRIExtraPoolRef(id); pool >= 0)
-        riGenPools.push_back(pool);
+      // Enlarge frustum box.
+      // To be precise we need either maximum instance scale, or to test our local-space bound instead of RI bounding box for each
+      // instance. Instead, we fudge it with a scale factor. Remember, we're still hitting instance boxes with this enlarged volume.
+      bbox3f fbox = frustumBox;
+      const float RAD_SCALE_FACTOR = 1.5f;
+      v_bbox3_extend(fbox, v_splats(maxLocalRad * RAD_SCALE_FACTOR));
 
-    BBox3 box;
-    v_stu_bbox3(box, fbox);
+      // ri gen
+      eastl::fixed_vector<int16_t, 32> riGenPools;
+      for (auto id : dagdp__resource_ids)
+        if (int pool = rendinst::getRIExtraPoolRef(id); pool >= 0)
+          riGenPools.push_back(pool);
 
-    dag::Vector<mat44f, framemem_allocator> sources;
-    rendinst::getRIGenTMsInBox(box, make_span_const(riGenPools),
-      [&sources](const rendinst::RendInstDesc & /* desc */, const mat44f &m44) { sources.push_back(m44); });
+      BBox3 box;
+      v_stu_bbox3(box, fbox);
 
-    // ri extra
-    Tab<rendinst::riex_handle_t> ri_handles;
-    for (int resIdx : dagdp__resource_ids)
-    {
-      rendinst::getRiGenExtraInstances(ri_handles, resIdx, fbox);
-      for (auto h : ri_handles)
-        rendinst::getRIGenExtra44(h, sources.push_back());
-      ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
-    }
+      dag::Vector<mat44f, framemem_allocator> sources;
+      rendinst::getRIGenTMsInBox(box, make_span_const(riGenPools),
+        [&sources](const rendinst::RendInstDesc & /* desc */, const mat44f &m44) { sources.push_back(m44); });
 
-    if (sources.empty())
-      return;
-
-    const auto addLocalVolume = [&, eid](const TMatrix &transform, float scale, int volume_type) {
-      DECL_ALIGN16(TMatrix, tm);
-      for (const auto &m44 : sources)
+      // ri extra
+      Tab<rendinst::riex_handle_t> ri_handles;
+      for (int resIdx : dagdp__resource_ids)
       {
-        v_mat_43ca_from_mat44(&tm[0][0], m44);
-        addVolume(eid, tm * transform, scale, volume_type);
+        rendinst::getRiGenExtraInstances(ri_handles, resIdx, fbox);
+        for (auto h : ri_handles)
+          rendinst::getRIGenExtra44(h, sources.push_back());
+        ri_handles.clear(); // just to make sure, getRiGenExtraInstances() clears anyway
       }
-    };
 
-    for (auto volume_eid : dagdp__volume_box_eids)
-      local_volume_box_ecs_query(volume_eid, [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_box) const TMatrix &transform) {
-        addLocalVolume(transform, 0.5f, VOLUME_TYPE_BOX);
-      });
+      if (sources.empty())
+        return;
 
-    for (auto volume_eid : dagdp__volume_cylinder_eids)
-      local_volume_cylinder_ecs_query(volume_eid, [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_cylinder) const TMatrix &transform) {
-        addLocalVolume(transform, 0.5f, VOLUME_TYPE_CYLINDER);
-      });
+      const auto addLocalVolume = [&, eid](const TMatrix &transform, float scale, int volume_type) {
+        DECL_ALIGN16(TMatrix, tm);
+        for (const auto &m44 : sources)
+        {
+          v_mat_43ca_from_mat44(&tm[0][0], m44);
+          addVolume(eid, tm * transform, scale, volume_type);
+        }
+      };
 
-    for (auto volume_eid : dagdp__volume_sphere_eids)
-      local_volume_sphere_ecs_query(volume_eid,
-        [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_sphere) const TMatrix &transform, float sphere_zone__radius) {
-          addLocalVolume(transform, sphere_zone__radius, VOLUME_TYPE_ELLIPSOID);
-        });
-  });
+      for (auto volume_eid : dagdp__volume_box_eids)
+        local_volume_box_ecs_query(*g_entity_mgr, volume_eid,
+          [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_box) const TMatrix &transform) {
+            addLocalVolume(transform, 0.5f, VOLUME_TYPE_BOX);
+          });
+
+      for (auto volume_eid : dagdp__volume_cylinder_eids)
+        local_volume_cylinder_ecs_query(*g_entity_mgr, volume_eid,
+          [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_cylinder) const TMatrix &transform) {
+            addLocalVolume(transform, 0.5f, VOLUME_TYPE_CYLINDER);
+          });
+
+      for (auto volume_eid : dagdp__volume_sphere_eids)
+        local_volume_sphere_ecs_query(*g_entity_mgr, volume_eid,
+          [&](ECS_REQUIRE(ecs::Tag dagdp_local_volume_sphere) const TMatrix &transform, float sphere_zone__radius) {
+            addLocalVolume(transform, sphere_zone__radius, VOLUME_TYPE_ELLIPSOID);
+          });
+    });
 }
 
 template <typename Callable>
-static inline void manager_ecs_query(Callable);
+static inline void manager_ecs_query(ecs::EntityManager &manager, Callable);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
@@ -498,10 +529,10 @@ ECS_REQUIRE(ecs::Tag dagdp_placer_on_meshes,
   float dagdp__distance_based_range,
   const Point3 &dagdp__distance_based_center,
   int dagdp__target_mesh_lod)
-static void dagdp_placer_volume_changed_es(const ecs::Event &, float dagdp__sample_range = -1)
+static void dagdp_placer_volume_changed_es(const ecs::Event &, ecs::EntityManager &manager, float dagdp__sample_range = -1)
 {
   G_UNUSED(dagdp__sample_range);
-  manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
+  manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
 }
 
 ECS_TAG(render)
@@ -527,15 +558,16 @@ static inline void dagdp_placer_on_meshes_resource_link_es(
 }
 
 template <typename Callable>
-static inline void volumes_link_ecs_query(Callable);
+static inline void volumes_link_ecs_query(ecs::EntityManager &manager, Callable);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(dagdp__name)
 ECS_REQUIRE(ecs::Tag dagdp_placer_volume)
-static void dagdp_placer_volume_link_es(const ecs::Event &, ecs::EntityId eid, const ecs::string &dagdp__name)
+static void dagdp_placer_volume_link_es(
+  const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid, const ecs::string &dagdp__name)
 {
-  volumes_link_ecs_query([&](const ecs::string &dagdp__volume_placer_name, ecs::EntityId &dagdp_internal__volume_placer_eid) {
+  volumes_link_ecs_query(manager, [&](const ecs::string &dagdp__volume_placer_name, ecs::EntityId &dagdp_internal__volume_placer_eid) {
     if (dagdp__name == dagdp__volume_placer_name)
       dagdp_internal__volume_placer_eid = eid;
   });
@@ -544,9 +576,9 @@ static void dagdp_placer_volume_link_es(const ecs::Event &, ecs::EntityId eid, c
 ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(ecs::Tag dagdp_placer_volume)
-static void dagdp_placer_volume_unlink_es(const ecs::Event &, const ecs::string &dagdp__name)
+static void dagdp_placer_volume_unlink_es(const ecs::Event &, ecs::EntityManager &manager, const ecs::string &dagdp__name)
 {
-  volumes_link_ecs_query([&](const ecs::string &dagdp__volume_placer_name, ecs::EntityId &dagdp_internal__volume_placer_eid) {
+  volumes_link_ecs_query(manager, [&](const ecs::string &dagdp__volume_placer_name, ecs::EntityId &dagdp_internal__volume_placer_eid) {
     if (dagdp__name == dagdp__volume_placer_name)
       dagdp_internal__volume_placer_eid = ecs::INVALID_ENTITY_ID;
   });
@@ -556,50 +588,53 @@ static void dagdp_placer_volume_unlink_es(const ecs::Event &, const ecs::string 
 // However, this is a dev-only scenario, and probably a rare one, so it's not implemented for now.
 
 template <typename Callable>
-static inline void volume_placers_link_ecs_query(Callable);
+static inline void volume_placers_link_ecs_query(ecs::EntityManager &manager, Callable);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(dagdp__volume_placer_name)
 ECS_REQUIRE(ecs::Tag dagdp_volume)
-static void dagdp_volume__link_es(
-  const ecs::Event &, const ecs::string &dagdp__volume_placer_name, ecs::EntityId &dagdp_internal__volume_placer_eid)
+static void dagdp_volume__link_es(const ecs::Event &,
+  ecs::EntityManager &manager,
+  const ecs::string &dagdp__volume_placer_name,
+  ecs::EntityId &dagdp_internal__volume_placer_eid)
 {
-  volume_placers_link_ecs_query([&](ecs::EntityId eid, const ecs::string &dagdp__name) {
+  volume_placers_link_ecs_query(manager, [&](ecs::EntityId eid, const ecs::string &dagdp__name) {
     if (dagdp__name == dagdp__volume_placer_name)
       dagdp_internal__volume_placer_eid = eid;
   });
 }
 
 template <typename Callable>
-static inline void local_volume_boxes_ecs_query(Callable);
+static inline void local_volume_boxes_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void local_volume_cylinders_ecs_query(Callable);
+static inline void local_volume_cylinders_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void local_volume_spheres_ecs_query(Callable);
+static inline void local_volume_spheres_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void local_volume_placers_link_box_ecs_query(Callable);
+static inline void local_volume_placers_link_box_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void local_volume_placers_link_cylinder_ecs_query(Callable);
+static inline void local_volume_placers_link_cylinder_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void local_volume_placers_link_sphere_ecs_query(Callable);
+static inline void local_volume_placers_link_sphere_ecs_query(ecs::EntityManager &manager, Callable);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(dagdp__volume_placer_name)
 ECS_REQUIRE(ecs::Tag dagdp_local_volume_box)
 static void dagdp_local_volume_box__link_es(const ecs::Event &,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   const ecs::string &dagdp__volume_placer_name,
   ecs::EntityId &dagdp_internal__volume_placer_eid)
 {
   auto volumeEid = eid;
-  local_volume_placers_link_box_ecs_query(
+  local_volume_placers_link_box_ecs_query(manager,
     [&](ecs::EntityId eid, const ecs::string &dagdp__name, ecs::EidList &dagdp__volume_box_eids) {
       if (dagdp__name == dagdp__volume_placer_name)
       {
@@ -614,12 +649,13 @@ ECS_ON_EVENT(on_appear)
 ECS_TRACK(dagdp__volume_placer_name)
 ECS_REQUIRE(ecs::Tag dagdp_local_volume_cylinder)
 static void dagdp_local_volume_cylinder__link_es(const ecs::Event &,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   const ecs::string &dagdp__volume_placer_name,
   ecs::EntityId &dagdp_internal__volume_placer_eid)
 {
   auto volumeEid = eid;
-  local_volume_placers_link_cylinder_ecs_query(
+  local_volume_placers_link_cylinder_ecs_query(manager,
     [&](ecs::EntityId eid, const ecs::string &dagdp__name, ecs::EidList &dagdp__volume_cylinder_eids) {
       if (dagdp__name == dagdp__volume_placer_name)
       {
@@ -634,12 +670,13 @@ ECS_ON_EVENT(on_appear)
 ECS_TRACK(dagdp__volume_placer_name)
 ECS_REQUIRE(ecs::Tag dagdp_local_volume_sphere)
 static void dagdp_local_volume_sphere__link_es(const ecs::Event &,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   const ecs::string &dagdp__volume_placer_name,
   ecs::EntityId &dagdp_internal__volume_placer_eid)
 {
   auto volumeEid = eid;
-  local_volume_placers_link_sphere_ecs_query(
+  local_volume_placers_link_sphere_ecs_query(manager,
     [&](ecs::EntityId eid, const ecs::string &dagdp__name, ecs::EidList &dagdp__volume_sphere_eids) {
       if (dagdp__name == dagdp__volume_placer_name)
       {

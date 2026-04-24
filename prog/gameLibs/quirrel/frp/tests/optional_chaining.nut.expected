@@ -1,0 +1,12 @@
+null data: none
+with name: Alice
+no name field: none
+deep null: -1
+deep set: 42
+partial: -1
+fallback id: 99
+primary id: 5
+back to fallback: 77
+lookup b: 20
+lookup c: 30
+lookup missing: 0

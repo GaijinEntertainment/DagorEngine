@@ -1,7 +1,6 @@
 include "shader_global.dshl"
 include "heightmap_common.dshl"
 include "land_micro_detail.dshl"
-include "vertical.dshl"
 include "clipmap.dshl"
 include "land_block_inc.dshl"
 include "sparkles.dshl"

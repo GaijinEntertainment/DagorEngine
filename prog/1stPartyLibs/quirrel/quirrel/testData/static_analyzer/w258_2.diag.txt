@@ -1,8 +1,8 @@
 WARNING: w258 (similar-function) Function bodies are very similar. Consider functions 'updateEventLb' and 'updateEventLbSelfRow'.
-testData/static_analyzer/w258_2.nut:47:34
+testData/static_analyzer/w258_2.nut:47:4
 
     function updateEventLbSelfRow(requestData, id) {
-                                  ^
+    ^
       local requestAction = (@(requestData, id) function () {
 
 

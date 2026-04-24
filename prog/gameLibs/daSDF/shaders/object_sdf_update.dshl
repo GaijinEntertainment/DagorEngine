@@ -19,10 +19,11 @@ shader sdf_indirection_update_cs {
       #include "objects_sdf.hlsli"
       StructuredBuffer<IndirectionCommand> sdf_indirection_update_commands_buf@buf;
     }
+    object_sdf_mips_indirection_lut@uav : register(0) hlsl {
+      RWByteAddressBuffer object_sdf_mips_indirection_lut@uav;
+    }
   }
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
-    RWByteAddressBuffer object_sdf_mips_indirection_lut : register(u0);
     //run 8 groups with loops unrolled with 8
     #define SIMD_SIZE 8
     [numthreads(SIMD_SIZE, 8, 1)]
@@ -65,11 +66,12 @@ shader sdf_info_update_cs {
       struct PackedMip{float4 a1, a2, a3;};
       StructuredBuffer<PackedMip> sdf_info_update_commands_buf@buf;
     }
+    object_sdf_mips@uav : register(0) hlsl {
+      RWStructuredBuffer<float4> object_sdf_mips@uav;
+    }
   }
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #include "objects_sdf.hlsli"
-    RWStructuredBuffer<float4> object_sdf_mips : register(u0);
     [numthreads(64, 1, 1)]
     void sdf_info_update_cs(uint from: SV_DispatchThreadID)
     {
@@ -91,11 +93,12 @@ int object_sdf_mips_count;
 shader sdf_info_clear_cs {
   (cs) {
     object_sdf_mips_count@i1 = object_sdf_mips_count;
+    object_sdf_mips@uav : register(0) hlsl {
+      RWStructuredBuffer<float4> object_sdf_mips@uav;
+    }
   }
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #include "objects_sdf.hlsli"
-    RWStructuredBuffer<float4> object_sdf_mips : register(u0);
     [numthreads(64, 1, 1)]
     void sdf_info_clear_cs(uint to: SV_DispatchThreadID)
     {
@@ -119,11 +122,12 @@ shader sdf_blocks_update_cs {
     sdf_block_update_commands_buf@buf = sdf_block_update_commands_buf hlsl {
       ByteAddressBuffer sdf_block_update_commands_buf@buf;
     }
+    object_sdf_mip_atlas@uav : register(0) hlsl {
+      RWTexture3D<float> object_sdf_mip_atlas@uav;
+    }
   }
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #include "objects_sdf.hlsli"
-    RWTexture3D<float> object_sdf_mip_atlas : register(u0);
     #define BLOCK_UPDATE_COMMAND_SIZE (SDF_BLOCK_VOLUME+4)
     //todo: increase parallelizm. Read only one uint in one thread, i.e. z can be partially in a group
     [numthreads(1, SDF_BLOCK_SIZE, SDF_BLOCK_SIZE)]

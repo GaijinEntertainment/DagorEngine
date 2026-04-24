@@ -103,7 +103,7 @@ bool setCreatingTemplateTyped(CreatingTemplate &map, das::Bitfield flags, const 
 
 void ECS::addTemplates(das::ModuleLibrary &lib)
 {
-  addBuiltinDependency(lib, require("rtti"));
+  addBuiltinDependency(lib, require("rtti_core"));
   addAnnotation(das::make_smart<TemplateAnnotation>(lib));
   addAnnotation(das::make_smart<das::DummyTypeAnnotation>("CreatingTemplate", " ::bind_dascript::CreatingTemplate", 1, 1));
 

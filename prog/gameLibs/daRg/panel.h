@@ -5,6 +5,7 @@
 #include "renderList.h"
 #include "inputStack.h"
 #include "touchPointers.h"
+#include <daRg/dag_guiScene.h>
 #include <3d/dag_textureIDHolder.h>
 #include <math/dag_TMatrix4.h>
 #include <render/viewDependentResource.h>
@@ -66,13 +67,6 @@ struct PanelRenderInfo
   float reflectance = def_reflectance;
   float metalness = def_metalness;
   int worldRenderFeatures = 0;
-
-  TEXTUREID pointerTexture[2] = {BAD_TEXTUREID, BAD_TEXTUREID};
-  Point2 pointerUVLeftTop[2] = {Point2(-1, -1), Point2(-1, -1)};
-  Point2 pointerUVInvSize[2] = {Point2(0, 0), Point2(0, 0)};
-  E3DCOLOR pointerColor[2] = {E3DCOLOR(0, 0, 0, 0), E3DCOLOR(0, 0, 0, 0)};
-
-  void resetPointer();
 };
 
 
@@ -86,6 +80,8 @@ struct PanelSpatialInfo
   bool canBeTouched = false;
   bool visible = false;
   bool renderRedirection = false;
+  bool shouldBlockVrHandInteractions = false;
+  bool allowDisplayCursorProjection = false;
 
   Point3 position = Point3(0, 0, 0);
   Point3 angles = Point3(0, 0, 0);
@@ -110,20 +106,35 @@ struct PanelPointer
 
 class Panel
 {
-public:
-  Panel(GuiScene *scene_);
-  ~Panel();
+private:
+  Panel(const Panel &) = delete;
+  Panel &operator=(const Panel &) = delete;
+  Panel(Panel &&) = delete;
+  Panel &operator=(Panel &&) = delete;
 
-  void init(int screen_id, const Sqrat::Object &markup);
+public:
+  Panel(GuiScene &scene, const Sqrat::Object &object, int panelIndex);
+  ~Panel();
 
   void rebuildStacks();
   void clear();
   void update(float dt);
-  void updateSpatialInfoFromScript();
-  void updateRenderInfoParamsFromScript();
+  void updatePanelParamsFromScript(const Sqrat::Table &desc);
   void updateHover();
   void updateActiveCursors();
+  bool hasActiveCursors() const;
   void onRemoveCursor(Cursor *cursor);
+  void setCursorState(int hand, bool enabled, Point2 pos = {-100, -100});
+
+  bool needRenderInWorld() const;
+  bool getCanvasSize(IPoint2 &size) const;
+  void syncCanvas();
+  void updateTexture(GuiScene &gui_scene, BaseTexture *target);
+  bool isAutoUpdated() const;
+  bool isInThisPass(darg_panel_renderer::RenderPass render_pass) const;
+
+private:
+  void init(int screen_id, const Sqrat::Object &markup);
 
 public:
   GuiScene *scene = nullptr;
@@ -132,44 +143,14 @@ public:
   PanelSpatialInfo spatialInfo;
   PanelRenderInfo renderInfo;
 
-  static constexpr int MAX_POINTERS = 3;
+  static constexpr int MAX_POINTERS = IGuiScene::SpatialSceneData::AimOrigin::Total;
 
   PanelPointer pointers[MAX_POINTERS];
   TouchPointers touchPointers;
-};
 
-
-struct PanelData
-{
-  PanelData(GuiScene &scene, const Sqrat::Object &object, int panelIndex);
-  PanelData(const PanelData &) = delete;
-  PanelData &operator=(const PanelData &) = delete;
-  PanelData(PanelData &&) = delete;
-  PanelData &operator=(PanelData &&) = delete;
-  ~PanelData() = default;
-
-  eastl::unique_ptr<Panel> panel;
   eastl::unique_ptr<TextureIDHolder> canvas;
-  TEXTUREID pointerTex = BAD_TEXTUREID;
   int index = -1;
-  eastl::string pointerPath;
-
   bool isDirty = true;
-
-  bool needRenderInWorld() const;
-  bool getCanvasSize(IPoint2 &size) const;
-  void syncCanvas();
-
-  void updateTexture(GuiScene &scene, BaseTexture *target);
-
-  eastl::string getPointerPath() const;
-  Point2 getPointerSize() const;
-  E3DCOLOR getPointerColor() const;
-  bool isAutoUpdated() const;
-
-  bool isInThisPass(darg_panel_renderer::RenderPass render_pass) const;
-
-  void setCursorStatus(int hand, bool enabled);
 };
 
 } // namespace darg

@@ -1,5 +1,7 @@
 #pragma once
 
+#include "daScript/misc/platform.h"
+
 namespace das {
-    char * safe_pass_string ( const char * str );
+    DAS_API char * safe_pass_string ( const char * str );
 }

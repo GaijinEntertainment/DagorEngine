@@ -207,6 +207,7 @@ ModfxDeclMotionVectors ModfxDeclMotionVectors_load( BufferData_cref buf, uint of
 #else
   ModfxDeclMotionVectors pp;
   pp.motion_vectors_strength = dafx_load_1f( buf, ofs );
+  pp.quality_mask = dafx_load_1ui( buf, ofs );
   return pp;
 #endif
 }

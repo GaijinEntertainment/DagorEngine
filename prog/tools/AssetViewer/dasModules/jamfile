@@ -6,6 +6,9 @@ TargetType  = lib ;
 Target      = tools/AssetViewer/dasModules.lib ;
 
 AddIncludes =
+  $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/tools/sceneTools/daEditorX/include
+  $(Root)/prog/engine/sharedInclude
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/1stPartyLibs/daScript/include
 ;

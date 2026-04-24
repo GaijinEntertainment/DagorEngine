@@ -77,13 +77,15 @@ static void game_objects_events_es_event_handler_all_events(const ecs::Event &__
 if (evt.is<EventGameObjectsOptimize>()) {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
       game_objects_events_es_event_handler(static_cast<const EventGameObjectsOptimize&>(evt)
-            , ECS_RW_COMP(game_objects_events_es_event_handler_comps, "game_objects", GameObjects)
+            , components.manager()
+      , ECS_RW_COMP(game_objects_events_es_event_handler_comps, "game_objects", GameObjects)
       );
     while (++comp != compE);
   } else if (evt.is<EventGameObjectsCreated>()) {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
       game_objects_events_es_event_handler(static_cast<const EventGameObjectsCreated&>(evt)
-            , ECS_RW_COMP(game_objects_events_es_event_handler_comps, "game_objects", GameObjects)
+            , components.manager()
+      , ECS_RW_COMP(game_objects_events_es_event_handler_comps, "game_objects", GameObjects)
       , ECS_RO_COMP_PTR(game_objects_events_es_event_handler_comps, "game_objects__seed", int)
       , ECS_RO_COMP_PTR(game_objects_events_es_event_handler_comps, "game_objects__syncCreation", ecs::Object)
       , ECS_RO_COMP(game_objects_events_es_event_handler_comps, "game_objects__createChance", ecs::Object)
@@ -114,7 +116,8 @@ static void game_objects_client_events_es_event_handler_all_events(const ecs::Ev
   G_FAST_ASSERT(evt.is<EventGameObjectsOptimize>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     game_objects_client_events_es_event_handler(static_cast<const EventGameObjectsOptimize&>(evt)
-        , ECS_RW_COMP(game_objects_client_events_es_event_handler_comps, "game_objects", GameObjects)
+        , components.manager()
+    , ECS_RW_COMP(game_objects_client_events_es_event_handler_comps, "game_objects", GameObjects)
     );
   while (++comp != compE);
 }

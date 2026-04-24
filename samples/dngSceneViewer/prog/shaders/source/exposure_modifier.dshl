@@ -1,1 +1,1 @@
-include "adaptation\shaders\exposure_access.dshl"
+include "adaptation/shaders/exposure_access.dshl"

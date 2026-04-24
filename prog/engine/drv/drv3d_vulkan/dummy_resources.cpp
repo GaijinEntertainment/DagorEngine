@@ -1,12 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <drv/3d/dag_buffers.h>
 #include "dummy_resources.h"
 #include "driver.h"
 #include "globals.h"
 #include "resource_manager.h"
 #include "sampler_cache.h"
 #include "device_context.h"
-#include <drv/3d/dag_buffers.h>
+#include "backend/cmd/resources.h"
 
 using namespace drv3d_vulkan;
 
@@ -107,7 +108,7 @@ void DummyResources::uploadZeroContent()
   ctx.uploadBuffer(BufferRef{stage}, BufferRef{buf.srv}, 0, 0, dummySize);
   ctx.uploadBuffer(BufferRef{stage}, BufferRef{buf.uav}, 0, 0, dummySize);
 
-  ctx.destroyBuffer(stage);
+  ctx.dispatchCmd<CmdDestroyBuffer>({stage});
 }
 
 void DummyResources::fillTableImg(uint32_t idx, Image *image, ImageViewState ivs, VkImageLayout layout,
@@ -288,8 +289,17 @@ Image *DummyResources::createImage(const Image::Description::TrimmedCreateInfo &
   {
     ici.format = fmt.asVkFormat();
     if (Image::checkImageCreate(ici, fmt))
+    {
+      static const char *image_type_name[] = {"1D", "2D", "3D"};
+      static const char *image_tiling_name[] = {"optimal", "linear"};
+      debug("vulkan: image create check passed for dummy image w=%u, h=%u, d=%u, fmt=%s, type=%s, tilling=%s, usage=[%s], flags=%u, "
+            "samples = %u",
+        ici.extent.width, ici.extent.height, ici.extent.depth, fmt.getNameString(), image_type_name[ici.imageType],
+        image_tiling_name[ici.tiling], formatImageUsageFlags(ici.usage), ici.flags, ici.samples);
+
       return Globals::Mem::res.alloc<Image>({ii, Image::MEM_NOT_EVICTABLE | Image::MEM_DEDICATE_ALLOC, fmt, VK_IMAGE_LAYOUT_UNDEFINED},
         true);
+    }
   }
   // fallback to non compare format if compare one is not available
   if (needCompare)
@@ -300,14 +310,14 @@ Image *DummyResources::createImage(const Image::Description::TrimmedCreateInfo &
 
 void DummyResources::shutdown(DeviceContext &ctx)
 {
-  ctx.destroyBuffer(buf.srv);
-  ctx.destroyBuffer(buf.uav);
-  ctx.destroyImage(img.srv2D);
-  ctx.destroyImage(img.srv2Dcompare);
-  ctx.destroyImage(img.srv3D);
-  ctx.destroyImage(img.srv3Dcompare);
-  ctx.destroyImage(img.uav2D);
-  ctx.destroyImage(img.uav3D);
+  ctx.dispatchCmd<CmdDestroyBuffer>({buf.srv});
+  ctx.dispatchCmd<CmdDestroyBuffer>({buf.uav});
+  ctx.dispatchCmd<CmdDestroyImage>({img.srv2D});
+  ctx.dispatchCmd<CmdDestroyImage>({img.srv2Dcompare});
+  ctx.dispatchCmd<CmdDestroyImage>({img.srv3D});
+  ctx.dispatchCmd<CmdDestroyImage>({img.srv3Dcompare});
+  ctx.dispatchCmd<CmdDestroyImage>({img.uav2D});
+  ctx.dispatchCmd<CmdDestroyImage>({img.uav3D});
 #if VULKAN_HAS_RAYTRACING
   if (tlas)
   {

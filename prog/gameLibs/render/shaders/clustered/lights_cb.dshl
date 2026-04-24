@@ -38,9 +38,10 @@ macro USE_PHOTOMETRY_TEXTURES(code)
     #ifndef M_PI
     #define M_PI (3.14159265358979323846)
     #endif
+    #define COS_PI_4 (0.707106781186548) // = cos(M_PI/4)
 
     half2 getPhotometryTexCoords(half3 lightDir, half3 dir, half zoom, bool rotate) {
-      half3 side = abs(lightDir.x) < 0.707106781186548 // = cos(M_PI/4)
+      half3 side = abs(lightDir.x) < COS_PI_4
         ? half3(1, 0, 0)
         : half3(0, 0, 1);
       half3 forward = normalize(cross(side, lightDir));
@@ -56,11 +57,47 @@ macro USE_PHOTOMETRY_TEXTURES(code)
       return tc;
     }
 
+    half2 getPhotometryTexCoords(half3 lightDir, half normalized_roll_angle, half3 dir, half zoom, bool rotate) {
+      half3 side = abs(lightDir.x) < COS_PI_4
+                     ? half3(1, 0, 0)
+                     : half3(0, 0, 1);
+      half3 forward = normalize(cross(side, lightDir));
+      side = cross(lightDir, forward);
+      float sn, cs;
+      sincos(normalized_roll_angle * 2.0 * M_PI, sn, cs);
+      half3 rotatedSide = cs * side + sn * forward;
+      half3 rotatedForward = (-sn) * side + cs * forward;
+
+#if USE_OCTAHEDRAL_MAPPING
+      // --- octahedral mapping ---
+      half2 tc = octahedral_mapping(half3(dot(rotatedSide, dir), dot(lightDir, dir), dot(rotatedForward, dir)), zoom, rotate);
+#else
+      // --- spherical mapping ---
+      half phi = atan2Fast4(dot(rotatedForward, dir), dot(rotatedSide, dir));
+      half2 tc = half2(phi/(2*M_PI), acosFast4(dot(lightDir, dir))/M_PI * zoom);
+#endif
+      return tc;
+    }
+
+    half2 getProjectionTexCoords(half3 lightDir, half zoom, half normalized_roll_angle, half3 dir) {
+      half3 side = abs(lightDir.x) < COS_PI_4
+                     ? half3(1, 0, 0)
+                     : half3(0, 0, 1);
+      half3 up = normalize(cross(side, lightDir));
+      side = cross(lightDir, up);
+      float sn, cs;
+      sincos(normalized_roll_angle * 2.0 * M_PI, sn, cs);
+      half3 rotatedSide = cs * side + sn * up;
+      half3 rotatedUp = (-sn) * side + cs * up;
+      half2 tc = half2(dot(dir, rotatedSide), dot(dir, rotatedUp)) * zoom;
+      return tc*0.5 + 0.5;
+    }
+
     half getPhotometryValue(half3 light_dir, half3 dir, half zoom, bool rotated, half texId)
     {
       half2 tc = getPhotometryTexCoords(light_dir, dir, zoom, rotated);
       BRANCH
-      if (any(or(tc < 0, tc > 1)))
+      if (any(tc != saturate(tc)))
         return 0;
       float4 photometry = tex3Dlod(
         photometry_textures_tex,
@@ -68,18 +105,80 @@ macro USE_PHOTOMETRY_TEXTURES(code)
       return half(RemoveSRGBCurve_Fast(photometry.r).r);
     }
 
+    half getPhotometryValue(half3 light_dir, half normalized_roll_angle, half3 dir, half zoom, bool rotated, half texId)
+    {
+      half2 tc = getPhotometryTexCoords(light_dir, normalized_roll_angle, dir, zoom, rotated);
+      BRANCH
+      if (any(tc != saturate(tc)))
+        return 0;
+      float4 photometry = tex3Dlod(
+        photometry_textures_tex,
+        half4(tc, texId, 0));
+      return half(RemoveSRGBCurve_Fast(photometry.r).r);
+    }
+
+    half getProjectedTexture(half3 light_dir, half zoom, half normalized_roll_angle, half3 dir, half texId)
+    {
+      half2 tc = getProjectionTexCoords(light_dir, zoom, normalized_roll_angle, dir);
+      BRANCH
+      if (any(tc != saturate(tc)))
+        return 0;
+      half intensity = tex3Dlod(
+        photometry_textures_tex,
+        half4(tc, texId, 0)).r;
+      return half(RemoveSRGBCurve_Fast(intensity).r);
+    }
+
     // returns ies_intensity * currentAttenuation
     // early exit is used in case currentAttenuation is already 0
     half applyPhotometryIntensity(half3 lightToWorldDir, half3 lightDir, half texId, half texScale_rotation, half currentAttenuation) {
       ##if photometry_textures_tex != NULL
-      bool rotated = texScale_rotation < 0;
-      half zoom = abs(texScale_rotation);
-      BRANCH
-      if (texId < 0 || currentAttenuation < 0.0001h)
-        return currentAttenuation;
-      return getPhotometryValue(lightDir, lightToWorldDir, zoom, rotated, texId) * currentAttenuation;
+        bool rotated = texScale_rotation < 0;
+        half zoom = abs(texScale_rotation);
+        BRANCH
+        if (texId < 0 || currentAttenuation < 0.000001h)
+          return currentAttenuation;
+        half decodedTexId = texId*0.5h; // Assumed to be an IES texture
+        return getPhotometryValue(lightDir, lightToWorldDir, zoom, rotated, decodedTexId) * currentAttenuation;
       ##else
-      return currentAttenuation;
+        return currentAttenuation;
+      ##endif
+    }
+
+    half applyPhotometryIntensity(half3 lightToWorldDir, half3 lightDir, half normalized_roll_angle, half texId, half texScale_rotation, half currentAttenuation) {
+      ##if photometry_textures_tex != NULL
+        bool rotated = texScale_rotation < 0;
+        half zoom = abs(texScale_rotation);
+        BRANCH
+        if (texId < 0 || currentAttenuation < 0.000001h)
+          return currentAttenuation;
+        half decodedTexId = texId*0.5h; // Assumed to be an IES texture
+        return getPhotometryValue(lightDir, normalized_roll_angle, lightToWorldDir, zoom, rotated, decodedTexId) * currentAttenuation;
+      ##else
+        return currentAttenuation;
+      ##endif
+    }
+
+    float applySpotLightPhotometry(half3 lightToWorldDir, half3 lightDir, half normalized_roll_angle, half texId, half texScale_rotation, float currentAttenuation)
+    {
+      ##if photometry_textures_tex != NULL
+        BRANCH
+        if (texId < 0 || currentAttenuation < 0.000001h)
+          return currentAttenuation;
+        bool rotated = texScale_rotation < 0;
+        half zoom = abs(texScale_rotation);
+        if ((uint(texId) & IES_TEX_ID_TYPE_BIT_MASK) == IES_TEX_ID_TYPE__IES)
+        {
+          half decodedTexId = texId*0.5h; // IES texture
+          return getPhotometryValue(lightDir, normalized_roll_angle, lightToWorldDir, zoom, rotated, decodedTexId) * currentAttenuation;
+        }
+        else
+        {
+          half decodedTexId = (texId - 1.0h)*0.5h; // Projected texture
+          return getProjectedTexture(lightDir, texScale_rotation, normalized_roll_angle, lightToWorldDir, decodedTexId) * currentAttenuation;
+        }
+      ##else
+        return currentAttenuation;
       ##endif
     }
   }
@@ -171,6 +270,17 @@ macro USE_OMNI_LIGHTS_CB(code)
     half4 getFinalColor(RenderOmniLight ol, float3 worldPos) {
       return half4(get_omni_light_color(ol)) * getOmniLightFade(ol, worldPos) * getOmniLightIntensity(ol, worldPos);
     }
+  }
+endmacro
+
+macro USE_OMNI_LIGHTS_BOUNDS(code)
+  hlsl(code) {
+    float getOmniLightBoundingSphereRadius(RenderOmniLight l) {
+      return l.posRelToOrigin_cullRadius.w > 0.0f ? l.posRelToOrigin_cullRadius.w : l.posRadius.w;
+    };
+    float4 getOmniLightBoundingSphere(RenderOmniLight l) {
+      return float4(l.posRadius.xyz, getOmniLightBoundingSphereRadius(l));
+    };
   }
 endmacro
 
@@ -284,7 +394,7 @@ macro USE_LIGHT_SHADOWS(code)
       return shadowTcToAtlas.xy + octahedralTc * shadowTcToAtlas.zw;
     }
 
-    half getOmniShadow(half4 shadowTcToAtlas, float4 posRadius, float3 worldPos, half NoL, half2 screenpos)
+    half getOmniShadow(half4 shadowTcToAtlas, float4 posRadius, float3 worldPos, half NoL, half2 screenpos, float2 zn_zfar)
     {
       float3 lightToPos = worldPos - posRadius.xyz;
       #if OMNI_SHADOWS
@@ -292,7 +402,9 @@ macro USE_LIGHT_SHADOWS(code)
         if (shadowTcToAtlas.z < 0.0001h)
           return 1.0h;
         half2 tc = getOmniShadowTc(shadowTcToAtlas, half3(lightToPos));
-        float2 zn_zfar = get_light_shadow_zn_zf(posRadius.w);
+        float2 alt_zn_zfar = get_light_shadow_zn_zf(posRadius.w);
+        zn_zfar.x = zn_zfar.x > 0 ? zn_zfar.x : alt_zn_zfar.x;
+        zn_zfar.y = zn_zfar.y > 0 ? zn_zfar.y : alt_zn_zfar.y;
         float3 absLightToPos = abs(lightToPos);
         float linearZ = max(absLightToPos.x, max(absLightToPos.y, absLightToPos.z));
         float3 shadowViewDir = sign(lightToPos) * select(absLightToPos < float3(linearZ, linearZ, linearZ), float3(0, 0, 0), float3(1, 1, 1));
@@ -375,6 +487,44 @@ macro INIT_SPOT_LIGHTS_CB(code)
   }
 endmacro
 
+macro USE_SPOT_LIGHTS_BOUNDS(code)
+  hlsl(code) {
+  //returns .x = radius, .y = offset
+    float2 getSpotLightBoundingSphereDescription(float sin_half_angle, float cos_half_angle)
+    {
+      const float COS_PI_4 = 0.70710678118654752440084436210485;
+      float angleBelow45Radius = 1. / (2.f * cos_half_angle);
+      // angle/2 < 45 degrees:
+      //   use circumcircle of the spot light cone
+      //   the light position is on the surface of the bounding sphere
+
+      // else only consider the spherical sector
+      // the light position is inside of the bounding sphere
+      return ((cos_half_angle > COS_PI_4) ? float2(angleBelow45Radius, angleBelow45Radius) : float2(sin_half_angle, cos_half_angle));
+    };
+
+    float4 getSpotLightBoundingSphere(float3 position, float3 direction, float lightRadius, float sinHalfAngle, float cosHalfAngle)
+    {
+      float2 boundingDesc = lightRadius*getSpotLightBoundingSphereDescription(sinHalfAngle, cosHalfAngle);
+      return float4(direction*boundingDesc.y + position, boundingDesc.x);
+    };
+
+    float getSpotLightBoundingSphereRadius(RenderSpotLight l) {
+      float2 radii = decode_spot_light_radius_and_culling_radius(l);
+      return radii.y < 0.0f ? radii.x : radii.y;
+    };
+
+    float4 getSpotLightBoundingSphere(RenderSpotLight l){
+      float3 position = l.lightPos_halfRadius_halfCullRadius.xyz;
+      float4 lightDirectionAngleOffset = l.lightDirectionAngleOffset;
+      float cosHalfAngle = -lightDirectionAngleOffset.w / l.lightColorAngleScale.w;
+      float sinHalfAngle = sqrt(saturate(1 - cosHalfAngle*cosHalfAngle));
+      float lightRadius = getSpotLightBoundingSphereRadius(l);
+      return getSpotLightBoundingSphere(position, lightDirectionAngleOffset.xyz, lightRadius, sinHalfAngle, cosHalfAngle);
+    };
+  }
+endmacro
+
 buffer lights_full_grid always_referenced;
 
 macro INIT_LIGHTS_CLUSTERED_CB(code)
@@ -398,7 +548,7 @@ macro USE_LIGHTS_CLUSTERED_CB(code)
     }
     uint getClusterIndex(half2 tc, uint sliceId)
     {
-      uint2 gridCoord = uint2(tc*half2(CLUSTERS_W, CLUSTERS_H));
+      uint2 gridCoord = min(uint2(saturate(tc)*half2(CLUSTERS_W, CLUSTERS_H)), uint2(CLUSTERS_W-1, CLUSTERS_H-1));
       return gridCoord.x+gridCoord.y*CLUSTERS_W + sliceId*CLUSTERS_W*CLUSTERS_H;
     }
   }

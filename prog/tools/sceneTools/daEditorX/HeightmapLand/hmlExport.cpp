@@ -647,8 +647,8 @@ bool aces_export_detail_maps(mkbindump::BinDumpSaveCB &cb, int mapSizeX, int map
 
   int customLandClassesCount = 0; // with LandClassType::LC_CUSTOM type
   DataBlock app_blk;
-  if (!app_blk.load(DAGORED2->getWorkspace().getAppPath()))
-    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
+  if (!app_blk.load(DAGORED2->getWorkspace().getAppBlkPath()))
+    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppBlkPath());
   int customLandClassesLimit = app_blk.getBlockByNameEx("heightMap")->getInt("customLandClassesLimit", -1);
 
   for (int i = 0, ie = HmapLandPlugin::self->getNumDetailTextures(); i < ie; ++i)

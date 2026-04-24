@@ -74,6 +74,9 @@ namespace das
     addFunction ( make_smart<BuiltInFn<SimNode_Cast<CTYPE,int32_t>,CTYPE,int32_t>>(#TYPE,lib,#CTYPE,false) );      \
     addFunction ( make_smart<BuiltInFn<SimNode_Cast<CTYPE,uint32_t>,CTYPE,uint32_t>>(#TYPE,lib,#CTYPE,false) );    \
     addFunction ( make_smart<BuiltInFn<SimNode_Cast<CTYPE,Bitfield>,CTYPE,Bitfield>>(#TYPE,lib,#CTYPE,false) );    \
+    addFunction ( make_smart<BuiltInFn<SimNode_Cast<CTYPE,Bitfield8>,CTYPE,Bitfield8>>(#TYPE,lib,#CTYPE,false) );    \
+    addFunction ( make_smart<BuiltInFn<SimNode_Cast<CTYPE,Bitfield16>,CTYPE,Bitfield16>>(#TYPE,lib,#CTYPE,false) );    \
+    addFunction ( make_smart<BuiltInFn<SimNode_Cast<CTYPE,Bitfield64>,CTYPE,Bitfield64>>(#TYPE,lib,#CTYPE,false) );    \
     addFunction ( make_smart<BuiltInFn<SimNode_Cast<CTYPE,int8_t>,CTYPE,int8_t>>(#TYPE,lib,#CTYPE,false) );        \
     addFunction ( make_smart<BuiltInFn<SimNode_Cast<CTYPE,uint8_t>,CTYPE,uint8_t>>(#TYPE,lib,#CTYPE,false) );      \
     addFunction ( make_smart<BuiltInFn<SimNode_Cast<CTYPE,int16_t>,CTYPE,int16_t>>(#TYPE,lib,#CTYPE,false) );      \
@@ -141,6 +144,67 @@ namespace das
         ADD_NUMERIC_CASTS(bitfield, Bitfield);
         addFunctionBasic<Bitfield,uint32_t>(*this,lib);
         addFunctionBitLogic<Bitfield,uint32_t>(*this,lib);
+        ADD_NUMERIC_CASTS(bitfield8, Bitfield8);
+        ADD_NUMERIC_CASTS(bitfield16, Bitfield16);
+        ADD_NUMERIC_CASTS(bitfield64, Bitfield64);
+        addFunctionBasic<Bitfield64,uint64_t>(*this,lib);
+        addFunctionBitLogic<Bitfield64,uint64_t>(*this,lib);
+        // bitfield 8 operations
+        addExtern<DAS_BIND_FUN(__bitfield8_eq)>(*this, lib, "==",
+            SideEffects::none, "__bitfield8_eq")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield8_neq)>(*this, lib, "!=",
+            SideEffects::none, "__bitfield8_neq")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield8_not)>(*this, lib, "~",
+            SideEffects::none, "__bitfield8_not")
+                ->args({"value"});
+        addExtern<DAS_BIND_FUN(__bitfield8_and)>(*this, lib, "&",
+            SideEffects::none, "__bitfield8_and")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield8_or)>(*this, lib, "|",
+            SideEffects::none, "__bitfield8_or")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield8_xor)>(*this, lib, "^",
+            SideEffects::none, "__bitfield8_xor")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield8_setand)>(*this, lib, "&=",
+            SideEffects::modifyArgument, "__bitfield8_setand")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield8_setor)>(*this, lib, "|=",
+            SideEffects::modifyArgument, "__bitfield8_setor")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield8_setxor)>(*this, lib, "^=",
+            SideEffects::modifyArgument, "__bitfield8_setxor")
+                ->args({"left","right"});
+        // bitfield 16 operations
+        addExtern<DAS_BIND_FUN(__bitfield16_eq)>(*this, lib, "==",
+            SideEffects::none, "__bitfield16_eq")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield16_neq)>(*this, lib, "!=",
+            SideEffects::none, "__bitfield16_neq")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield16_not)>(*this, lib, "~",
+            SideEffects::none, "__bitfield16_not")
+                ->args({"value"});
+        addExtern<DAS_BIND_FUN(__bitfield16_and)>(*this, lib, "&",
+            SideEffects::none, "__bitfield16_and")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield16_or)>(*this, lib, "|",
+            SideEffects::none, "__bitfield16_or")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield16_xor)>(*this, lib, "^",
+            SideEffects::none, "__bitfield16_xor")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield16_setand)>(*this, lib, "&=",
+            SideEffects::modifyArgument, "__bitfield16_setand")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield16_setor)>(*this, lib, "|=",
+            SideEffects::modifyArgument, "__bitfield16_setor")
+                ->args({"left","right"});
+        addExtern<DAS_BIND_FUN(__bitfield16_setxor)>(*this, lib, "^=",
+            SideEffects::modifyArgument, "__bitfield16_setxor")
+                ->args({"left","right"});
         // int64
         addFunctionBasic<int64_t>(*this,lib);
         addFunctionNumericWithMod<int64_t>(*this,lib);
@@ -188,8 +252,6 @@ namespace das
         addRuntimeSort(lib);
         // TIME
         addTime(lib);
-        // NOW, for the builtin module
-        appendCompiledFunctions();
         // lets verify options (it is here because its the builtin module)
         verifyOptions();
         // lets verify all names

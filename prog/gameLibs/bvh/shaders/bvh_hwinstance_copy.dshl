@@ -12,11 +12,10 @@ int bvh_hwinstance_copy_output_uav_no = 0;
 
 shader bvh_hwinstance_copy
 {
-  if (compatibility_mode == compatibility_mode_on)
+  if (compatibility_mode == compatibility_mode_on || hardware.ps5 || hardware.metal)
   {
     dont_render;
   }
-  ENABLE_ASSERT(cs)
 
   (cs) {
     start_instance@i1 = bvh_hwinstance_copy_start_instance;

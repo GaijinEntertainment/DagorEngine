@@ -1,7 +1,7 @@
 Root    ?= ../../../../.. ;
 Location = prog/gameLibs/webui/plugins/quirrel ;
 StrictCompile = yes ;
-UseQuirrel = sq3r+ ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/webui/plugins/quirrel.lib ;
@@ -12,11 +12,9 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/gameLibs/publicInclude/quirrel
   $(Root)/prog/dagorInclude
-  $(Root)/prog/1stPartyLibs/quirrel/sqrat/include
 ;
 
 Sources =
-  quirrelPlugin.cpp
   sqDebuggerPlugin.cpp
 ;
 

@@ -4,7 +4,7 @@ endmacro
 macro USE_MOTION_VEC_ENCODE(stage)
 hlsl(stage) {
   float2 encode_motion_vector(float2 motion) { return 0; }
-  float2 encode_motion_vector(float4 out_pos, float4 out_pos_prev) { return 0; }
+  float2 encode_motion_vector(float3 out_pos, float3 out_pos_prev) { return 0; }
 }
 endmacro
 
@@ -12,4 +12,21 @@ macro USE_MOTION_VEC_MASK_ONLY()
 hlsl(ps) {
   float2 encode_motion_mask() { return 0; }
 }
+endmacro
+
+macro MOTION_MASK_NOJITTER(stage)
+  hlsl(stage)
+  {
+    #define FP16_MIN -65504.0
+    #define FP16_MAX 65504.0
+    float3 encode_motion_mask_no_jitter()
+    {
+      return float3(FP16_MIN, FP16_MAX, 0);
+    }
+
+    bool is_motion_mask_no_jitter(float2 motionVector)
+    {
+      return all(motionVector.xy == float2(FP16_MIN, FP16_MAX));
+    }
+  }
 endmacro

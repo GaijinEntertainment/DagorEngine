@@ -1,0 +1,24 @@
+Root    ?= ../../.. ;
+Location            = prog/gameLibs/sepClientInstance ;
+TargetType          = lib ;
+Target              = gameLibs/sepClientInstance.lib ;
+StrictCompile       = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+;
+
+local AllSrcFolder_CPP =
+  .
+;
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp : Sources ;
+
+UseProgLibs =
+  gameLibs/sepClient
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

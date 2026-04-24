@@ -4,10 +4,14 @@
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/template.h>
 #include <daECS/core/internal/eventsDb.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <math/dag_e3dColor.h>
 #include <ecs/scripts/sqBindEvent.h>
 #include "squirrelEvent.h"
@@ -24,7 +28,7 @@
 #include <perfMon/dag_statDrv.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqCrossCall/sqCrossCall.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <util/dag_string.h>
 #include <memory/dag_framemem.h>
 #include <ecs/scripts/sqAttrMap.h>
@@ -310,6 +314,7 @@ struct CompListTypeInfo
   ecs::type_index_t typeId = ecs::INVALID_COMPONENT_TYPE_INDEX;
   uint16_t size = 0;
 };
+
 struct CompListDescHolder
 {
   Tab<ecs::ComponentDesc> esCompsRw, esCompsRo, esCompsRq, esCompsNo;
@@ -317,6 +322,7 @@ struct CompListDescHolder
   Tab<CompListTypeInfo> componentTypeInfo;
   ecs::component_index_t lastComponentsCount = 0;
   bool componentTypeInfoResolved = false;
+
   CompListDescHolder(IMemAlloc *m = tmpmem_ptr()) :
     esCompsRw(m),
     esCompsRo(m),
@@ -328,6 +334,21 @@ struct CompListDescHolder
     componentsNo(m),
     componentTypeInfo(m)
   {}
+
+  void resetScriptRefs()
+  {
+    // This is to avoid trying to release Squirrel objects after the VM is in
+    // the process of shutting down and its state is no longer valid.
+    Tab<ScriptCompDesc> *compLists[] = {&componentsRw, &componentsRo, &componentsRq, &componentsNo};
+    for (Tab<ScriptCompDesc> *cl : compLists)
+    {
+      for (auto &c : *cl)
+      {
+        c.key.Release();
+        c.defVal.Release();
+      }
+    }
+  }
 };
 
 
@@ -486,7 +507,7 @@ public:
 
       sq_pushobject(vm, comp_tbl.GetObject());
       sq_pushobject(vm, desc.key.GetObject());
-      if (SQ_FAILED(sq_rawget_noerr(vm, -2)))
+      if (SQ_FAILED(sq_rawget(vm, -2)))
       {
         sq_pop(vm, 1);
       }
@@ -592,7 +613,7 @@ struct CompInstancesGuardHelper<First, Rest...>
   static inline void collectNumInstances(void **class_data, int *num_instances, HSQUIRRELVM vm, int i = 0)
   {
     Sqrat::ClassData<First> *cd = Sqrat::ClassType<First>::getClassData(vm);
-    num_instances[i] = cd->instances->size();
+    num_instances[i] = (cd && cd->instances) ? (int)cd->instances->size() : 0;
     class_data[i] = cd;
     CompInstancesGuardHelper<Rest...>::collectNumInstances(class_data, num_instances, vm, i + 1);
   }
@@ -600,10 +621,10 @@ struct CompInstancesGuardHelper<First, Rest...>
     const ecs::Event *evt, int i = 0)
   {
     auto cd = (const Sqrat::ClassData<First> *)class_data[i];
-    if (prev_instances[i] != cd->instances->size())
+    if (cd && cd->instances && prev_instances[i] != (int)cd->instances->size())
       logerr("Quirrel instances leak detected (%d->%d) of class '%s' while handling %s in ES '%s'.\n"
              "Perhaps you have captured components or components table. Consider adding .getAll() call.",
-        prev_instances[i], cd->instances->size(), cd->staticData->className.c_str(), evt ? evt->getName() : "(update)", es_name);
+        prev_instances[i], (int)cd->instances->size(), cd->className.c_str(), evt ? evt->getName() : "(update)", es_name);
     CompInstancesGuardHelper<Rest...>::compareNumInstances(class_data, prev_instances, es_name, evt, i + 1);
   }
 };
@@ -1103,9 +1124,12 @@ inline void get_event_mask(const char *es, HSQUIRRELVM vm, EventSet &evtMask, co
     ecs::event_type_t evtClassType = 0;
     if (keyType == OT_CLASS)
     {
-      const Sqrat::AbstractStaticClassData *ascd = Sqrat::AbstractStaticClassData::FromObject(&key.GetObject());
-      if (ascd && ascd->className != "DasEvent") // skip base DasEvent instance, see SqDasEventClass
-        evClassName = ascd->className.c_str();
+      Sqrat::TypeTagBase *typeTag = nullptr;
+      sq_getobjtypetag(&key.GetObject(), (SQUserPointer *)&typeTag);
+      if (!Sqrat::TypeTagBase::isSqratTypeTag(typeTag))
+        typeTag = nullptr;
+      if (typeTag && typeTag->className && strcmp(typeTag->className, "DasEvent") != 0) // skip base DasEvent, see SqDasEventClass
+        evClassName = typeTag->className;
       else
         evtClassType = key.RawGetSlotValue<int>("eventType", evtClassType); // DascriptEvent::eventType, see SqDasEventClass
     }
@@ -1586,7 +1610,7 @@ static bool pop_component_val(HSQUIRRELVM vm, SQInteger idx, EntityComponentRef 
       SQBool val = 0;
       if (SQ_FAILED(sq_getbool(vm, idx, &val)))
         return sqGetErr("bool");
-      comp = bool(val);
+      comp = bool(val); //-V601
       return true;
     }
 
@@ -1761,7 +1785,10 @@ static bool pop_comp_val(HSQUIRRELVM vm, SQInteger idx, ChildComponent &comp, co
     switch (type)
     {
       case ecs::ComponentTypeInfo<ecs::Array>::type: comp = ecs::Array(); break;
-      case ecs::ComponentTypeInfo<ecs::Object>::type: comp = ecs::Object(); break;
+      case ecs::ComponentTypeInfo<ecs::Object>::type:
+        comp = ecs::Object();
+        break;
+//-V:DECL_LIST_TYPE:601
 #define DECL_LIST_TYPE(lt, t)                              \
   case ecs::ComponentTypeInfo<t>::type: comp = t(); break; \
   case ecs::ComponentTypeInfo<ecs::lt>::type: comp = lt(); break;
@@ -1970,14 +1997,15 @@ static ecs::component_type_t ecs_type_from_sq_obj(const Sqrat::Object &obj, cons
   if (tp == OT_INSTANCE)
   {
     HSQOBJECT hObj = obj.GetObject();
-    Sqrat::AbstractStaticClassData *ascd = Sqrat::AbstractStaticClassData::FromObject(&hObj);
-    G_ASSERT(ascd);
+    Sqrat::TypeTagBase *typeTag = nullptr;
+    sq_getobjtypetag(&hObj, (SQUserPointer *)&typeTag);
+    G_ASSERT(typeTag);
 
-#define CHECK(tp)                                                      \
-  if (ascd == Sqrat::ClassType<tp>::getStaticClassData().lock().get()) \
+#define CHECK(tp)                           \
+  if (typeTag == Sqrat::TypeTag<tp>::get()) \
     return ecs::ComponentTypeInfo<tp>::type;
-#define CHECK_RO(tp)                                                       \
-  if (ascd == Sqrat::ClassType<tp##RO>::getStaticClassData().lock().get()) \
+#define CHECK_RO(tp)                            \
+  if (typeTag == Sqrat::TypeTag<tp##RO>::get()) \
     return ecs::ComponentTypeInfo<tp>::type;
 
     CHECK(TMatrix)
@@ -2003,7 +2031,8 @@ static ecs::component_type_t ecs_type_from_sq_obj(const Sqrat::Object &obj, cons
 #undef CHECK
 #undef CHECK_RO
 
-    G_ASSERTF(0, "Unsupported script component class %s", ascd->className.c_str());
+    G_ASSERTF(0, "Unsupported script component class %s",
+      Sqrat::TypeTagBase::isSqratTypeTag(typeTag) && typeTag->className ? typeTag->className : "unknown");
     return TYPE_NULL;
   }
 
@@ -2952,6 +2981,10 @@ static const ecs::Template *tpldb_get_template_by_name(const ecs::TemplateDB *db
 {
   return db->getTemplateByName(name);
 }
+static const ecs::Template *tpldb_build_template_by_name(ecs::TemplateDB *db, const char *name)
+{
+  return db->buildTemplateByName(name);
+}
 static uint32_t tpldb_get_size(const ecs::TemplateDB *db) { return db->size(); }
 
 static const DataBlock *tpldb_get_template_meta_info(const ecs::TemplateDB *db, const char *templ_name)
@@ -2989,7 +3022,7 @@ static SQInteger create_template(HSQUIRRELVM vm)
 
   Sqrat::Var<bool> isSingletone(vm, 4);
 
-  const SQChar *extends = nullptr; //== probably list of extends?
+  const char *extends = nullptr; //== probably list of extends?
   SQInteger sz = 0;
   if (sq_gettop(vm) >= 5)
     sq_getstringandsize(vm, 5, &extends, &sz);
@@ -3136,7 +3169,19 @@ public:
   ~SqQuery()
   {
     G_ASSERT_RETURN(g_entity_mgr, );
-    g_entity_mgr->destroyQuery(qid);
+    if (g_entity_mgr->isConstrainedMTMode())
+    {
+      WinAutoLock lock(all_queries_cs);
+      pending_destroy_qids.push_back(qid);
+    }
+    else
+    {
+      flush_pending_destroy_qids();
+      g_entity_mgr->destroyQuery(qid);
+    }
+
+    WinAutoLock lock(all_queries_cs);
+    all_queries.erase_first(this);
   }
 
   template <int args_start>
@@ -3152,24 +3197,49 @@ public:
 #endif
   }
 
+  static void on_script_shutdown(HSQUIRRELVM vm);
+
+  static void flush_pending_destroy_qids()
+  {
+    WinAutoLock lock(all_queries_cs);
+    if (pending_destroy_qids.empty())
+      return;
+    G_ASSERT(g_entity_mgr);
+    G_ASSERT(!g_entity_mgr->isConstrainedMTMode());
+    for (QueryId id : pending_destroy_qids)
+      g_entity_mgr->destroyQuery(id);
+    pending_destroy_qids.clear();
+  }
+
 private:
   bool parseFilter();
 
 private:
   QueryId qid;
   CompListDescHolder compListDesc;
+  HSQUIRRELVM vm = nullptr;
 
   eastl::string filterString;
   ExpressionTree filterExpr;
   bool filterParsed = false;
+
+  static eastl::vector<SqQuery *> all_queries;
+  static eastl::vector<QueryId> pending_destroy_qids;
+  static WinCritSec all_queries_cs;
 };
 
 
-SqQuery::SqQuery(const Sqrat::Object &qname, const Sqrat::Object &comps_desc, const char *filter_string)
+eastl::vector<SqQuery *> SqQuery::all_queries;
+eastl::vector<QueryId> SqQuery::pending_destroy_qids;
+WinCritSec SqQuery::all_queries_cs;
+
+
+SqQuery::SqQuery(const Sqrat::Object &qname, const Sqrat::Object &comps_desc, const char *filter_string) :
+  compListDesc(midmem_ptr()), vm(comps_desc.GetVM())
 {
   const char *sqname;
   if (DAGOR_LIKELY(qname.GetType() == OT_STRING))
-    sqname = qname.GetVar<const SQChar *>().value; // Note: string ref is held by calling code
+    sqname = qname.GetVar<const char *>().value; // Note: string ref is held by calling code
   else
   {
     sqname = "script_func";
@@ -3208,6 +3278,9 @@ SqQuery::SqQuery(const Sqrat::Object &qname, const Sqrat::Object &comps_desc, co
     filterString = filter_string;
 
   filterParsed = false;
+
+  WinAutoLock lock(all_queries_cs);
+  all_queries.push_back(this);
 }
 
 bool SqQuery::parseFilter()
@@ -3220,7 +3293,7 @@ bool SqQuery::parseFilter()
 
 
 template <int args_start>
-SQInteger SqQuery::perform(HSQUIRRELVM vm)
+SQInteger SqQuery::perform(HSQUIRRELVM vm) //-V688
 {
   if (!Sqrat::check_signature<SqQuery *>(vm))
     return SQ_ERROR;
@@ -3286,10 +3359,11 @@ SQInteger SqQuery::perform(HSQUIRRELVM vm)
       return ecs::QueryCbResult::Stop;
 
     auto cb = [&qd](ecs::EntityId eid, Sqrat::Table &compTbl) -> CallbackResult {
-      bool success = qd.func.Evaluate(eid, compTbl, qd.scriptRes);
-      G_UNUSED(success);
+      auto evalRes = qd.func.template Eval<Sqrat::Object>(eid, compTbl);
+      if (evalRes)
+        qd.scriptRes = SQRAT_STD::move(evalRes.value());
 #if DAECS_EXTENSIVE_CHECKS
-      if (!success)
+      else
       {
         static bool shooted = false;
         if (!shooted)
@@ -3402,6 +3476,7 @@ template <typename CT, typename T, typename ItemType, bool readonly = false>
 static void bind_list_class(HSQUIRRELVM vm, Sqrat::Table &tbl, const char *type_name)
 {
   CT sqListClass(vm, type_name);
+  // instances map is created automatically on first use
   ///@class ecs/BaseList
   /* qdox
     **This is not real class. Just all List classes has this methods!**
@@ -3492,7 +3567,8 @@ static SQInteger eid_ctor(HSQUIRRELVM vm)
   SQInteger eidVal = ecs::ECS_INVALID_ENTITY_ID_VAL;
   if (sq_gettop(vm) > 1)
     sq_getinteger(vm, 2, &eidVal);
-  Sqrat::ClassType<ecs::EntityId>::SetManagedInstance(vm, 1, new ecs::EntityId(eidVal));
+  ecs::EntityId *eid = Sqrat::ClassType<ecs::EntityId>::AllocInstanceData(vm, 1);
+  *eid = ecs::EntityId(eidVal);
   return 0;
 }
 
@@ -3515,6 +3591,7 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
   tblEcs.SetValue("COMP_FLAG_REPLICATED", (const SQInteger)ecs::FLAG_REPLICATED);
   tblEcs.SetValue("COMP_FLAG_CHANGE_EVENT", (const SQInteger)ecs::FLAG_CHANGE_EVENT);
   tblEcs.SetValue("INVALID_ENTITY_ID", ECS_INVALID_ENTITY_ID_VAL);
+  tblEcs.SetValue("INVALID_SCENE_ID", ecs::Scene::C_INVALID_SCENE_ID);
   tblEcs.SetValue("EVCAST_UNICAST", EVCAST_UNICAST);
   tblEcs.SetValue("EVCAST_BROADCAST", EVCAST_BROADCAST);
 
@@ -3556,6 +3633,7 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
   Sqrat::Class<TemplateDB, Sqrat::NoConstructor<TemplateDB>> sqTemplateDB(vm, "TemplateDB");
   sqTemplateDB //
     .GlobalFunc("getTemplateByName", &tpldb_get_template_by_name)
+    .GlobalFunc("buildTemplateByName", &tpldb_build_template_by_name)
     .GlobalFunc("size", &tpldb_get_size)
     .GlobalFunc("getTemplateMetaInfo", &tpldb_get_template_meta_info)
     .GlobalFunc("getComponentMetaInfo", &tpldb_get_component_meta_info)
@@ -3696,7 +3774,7 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
 
   ///@class ecs/EntityId
   Sqrat::Class<ecs::EntityId> sqEntityId(vm, "EntityId");
-  sqEntityId.SquirrelCtor(eid_ctor, -1, "xi");
+  sqEntityId.UseInlineUserdata().SquirrelCtor(eid_ctor, -1, "xi");
 
   Sqrat::DerivedClass<EventDataGetter, ecs::Event, Sqrat::NoConstructor<EventDataGetter>> sqEventGetterProxy(vm, "EventDataGetter");
   ///@skipline
@@ -3839,6 +3917,17 @@ void ecs_register_sq_binding(SqModules *module_mgr, bool create_systems, bool cr
   module_mgr->addNativeModule("ecs", tblEcs);
 }
 
+
+void SqQuery::on_script_shutdown(HSQUIRRELVM vm)
+{
+  WinAutoLock lock(all_queries_cs);
+
+  for (SqQuery *q : all_queries)
+    if (q->vm == vm)
+      q->compListDesc.resetScriptRefs();
+}
+
+
 void shutdown_ecs_sq_script(HSQUIRRELVM vm)
 {
   G_ASSERT(vm);
@@ -3865,6 +3954,9 @@ void shutdown_ecs_sq_script(HSQUIRRELVM vm)
       g_entity_mgr->resetEsOrder();
     ecs::sq::shutdown_timers(vm);
   }
+
+  SqQuery::on_script_shutdown(vm);
+  SqQuery::flush_pending_destroy_qids();
 
   vm_extra_data.erase(itExtra);
 }

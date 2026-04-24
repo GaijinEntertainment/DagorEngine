@@ -22,7 +22,7 @@ static ecs::EntitySystemDesc puddle_query_on_level_loaded_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<OnLevelLoaded>::build(),
   0
-,"render");
+,"not_inside_tools,render");
 //static constexpr ecs::ComponentDesc puddle_query_on_level_unloaded_es_comps[] ={};
 static void puddle_query_on_level_unloaded_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -41,7 +41,7 @@ static ecs::EntitySystemDesc puddle_query_on_level_unloaded_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<UnloadLevel>::build(),
   0
-,"render");
+,"not_inside_tools,render");
 //static constexpr ecs::ComponentDesc puddle_query_update_es_comps[] ={};
 static void puddle_query_update_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
@@ -60,4 +60,4 @@ static ecs::EntitySystemDesc puddle_query_update_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"render");
+,"not_inside_tools,render");

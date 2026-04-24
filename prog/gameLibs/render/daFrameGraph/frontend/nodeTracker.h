@@ -4,6 +4,7 @@
 #include <EASTL/optional.h>
 #include <dag/dag_vectorSet.h>
 #include <dag/dag_vectorMap.h>
+#include <memory/dag_framemem.h>
 #include <generic/dag_fixedVectorSet.h>
 
 #include <render/daFrameGraph/detail/daFG.h>
@@ -11,6 +12,8 @@
 #include <render/daFrameGraph/detail/resNameId.h>
 #include <render/daFrameGraph/detail/nameSpaceNameId.h>
 #include <common/graphDumper.h>
+#include <common/cycAlloc.h>
+#include <id/idIndexedFlags.h>
 #include <id/idIndexedMapping.h>
 
 
@@ -25,7 +28,7 @@ struct FrontendRecompilationData;
 class NodeTracker final : public IGraphDumper
 {
 public:
-  NodeTracker(InternalRegistry &reg, const DependencyData &deps, FrontendRecompilationData &recompData);
+  NodeTracker(InternalRegistry &reg);
 
 public:
   static NameSpaceNameId pre_register_name_space(NameSpaceNameId parent, const char *name);
@@ -47,8 +50,16 @@ public:
   // Note that nullopt is returned when context was not used by any node.
   eastl::optional<ResourceWipeSet> wipeContextNodes(void *context);
 
+  using NodesChanged = IdIndexedFlags<NodeNameId, framemem_allocator>;
+  using ResourcesChanged = IdIndexedFlags<ResNameId, framemem_allocator>;
+
   // Lazily initializes nodes
-  void updateNodeDeclarations();
+  struct Changes
+  {
+    NodesChanged nodesChanged;
+    ResourcesChanged resourcesChanged;
+  };
+  Changes updateNodeDeclarations();
 
   void scheduleAllNodeRedeclaration();
 
@@ -64,10 +75,10 @@ public:
   bool isLocked() const { return nodeChangesLocked; }
   void unlock() { nodeChangesLocked = false; }
 
+  using Alloc = CycAlloc<NodeTracker>;
+
 private:
   InternalRegistry &registry;
-  const DependencyData &depData;
-  FrontendRecompilationData &frontendRecompilationData;
 
   dag::VectorSet<NodeNameId> unregisteredNodes;
 
@@ -87,6 +98,8 @@ private:
 
   void collectCreatedBlobs(NodeNameId node_id, ResourceWipeSet &into) const;
   void updateNodeDeclaration(NodeNameId node_id);
+
+  void cleanupNodeContextDependentData(NodeNameId nodeId);
 
 private:
   struct PreRegisteredNameSpace

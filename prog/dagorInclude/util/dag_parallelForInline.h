@@ -88,9 +88,11 @@ inline void parallel_for_inline(uint32_t begin, uint32_t end, uint32_t quant, Cb
   uint32_t queue_pos;
   ParallelForJob *lastJob;
   alignas(ParallelForJob) char staticJobsStorage[threadpool::MAX_WORKER_COUNT * stack_per_job];
+  // stride is stack_per_job (pads for false-sharing); alloca must match the stride, not
+  // sizeof(ParallelForJob), or slot 1+ overruns the allocation into the caller's stack.
   char *jobsStorage = DAGOR_LIKELY(add_jobs_count <= threadpool::MAX_WORKER_COUNT)
                         ? staticJobsStorage
-                        : (char *)alloca(add_jobs_count * sizeof(ParallelForJob)), // To consider: framemem?
+                        : (char *)alloca(add_jobs_count * stack_per_job), // To consider: framemem?
     *jobStorage = jobsStorage;
 
   static uint32_t def_desc = 0;

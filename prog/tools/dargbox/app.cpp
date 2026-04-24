@@ -14,9 +14,9 @@
 #include <daRg/dag_renderObject.h>
 #include <daRg/dag_uiSound.h>
 #include <daRg/dag_panelRenderer.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/sqConsole/sqConsole.h>
-#include <squirrel/memtrace.h>
+#include <quirrel/quirrelHost/memtrace.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sound/dag_genAudio.h>
@@ -72,10 +72,10 @@
 
 #include <webui/httpserver.h>
 #include <webui/helpers.h>
+#include <webui/dargMcpPlugin.h>
 #include <webui/sqDebuggerPlugin.h>
 #include <quirrel/sqDebugger/sqDebugger.h>
 #include <quirrel/sqDebugger/scriptProfiler.h>
-#include <quirrel/lastInputMonitor/lastInputMonitor.h>
 #if HAS_MATCHING_MODULE
 #include <quirrel/matchingModule/matchingModule.h>
 #endif
@@ -177,7 +177,7 @@ static struct GuiSceneCb : public darg::IGuiSceneCallback
     unbind_dargbox_script_api(vm);
 
 #if DAGOR_DBGLEVEL > 0
-    dag_sq_debuggers.shutdownDebugger(0);
+    webui::shutdown_quirrel_debugger(darg_scene->getModuleMgr());
 #endif
   }
 } gui_scene_cb;
@@ -189,15 +189,13 @@ static void init_webui(const DataBlock *debug_block)
     debug_block = dgs_get_settings()->getBlockByNameEx("debug");
   if (debug_block->getBool("http_server", true))
   {
-    static webui::HttpPlugin test_http_plugins[] = {webui::profiler_http_plugin, webui::shader_http_plugin,
-      webui::color_pipette_http_plugin, webui::colorpicker_http_plugin,
-      {"sqdebug_darg", "squirrel debugger (daRg)", NULL, webui::on_sqdebug<0>}, NULL};
+    static webui::HttpPlugin test_http_plugins[] = {
+      webui::profiler_http_plugin, webui::shader_http_plugin, webui::color_pipette_http_plugin, webui::colorpicker_http_plugin, NULL};
     // webui::plugin_lists[1] = aces_http_plugins;
     webui::plugin_lists[0] = webui::dagor_http_plugins;
     webui::plugin_lists[1] = test_http_plugins;
-
-    if (scripts_used)
-      webui::plugin_lists[2] = webui::squirrel_http_plugins;
+    webui::plugin_lists[2] = webui::darg_mcp_http_plugins;
+    webui::set_darg_mcp_scene_provider(get_ui_scene);
 
     webui::Config cfg;
     memset(&cfg, 0, sizeof(cfg));
@@ -326,14 +324,7 @@ public:
     if (ftime)
       delete (ftime);
 
-      // shutdownWebcache();
-#if _TARGET_PC_WIN && !_TARGET_64BIT
-    if (dgs_get_settings()->getBool("dumpMemLeaksAfterScene", false))
-    {
-      DEBUG_CTX("%s: dump leaks", __FUNCTION__);
-      DagDbgMem::dump_leaks(true);
-    }
-#endif
+    // shutdownWebcache();
   }
 
 
@@ -384,24 +375,17 @@ public:
     HSQUIRRELVM vm = darg_scene->getScriptVM();
     SqModules *moduleMgr = darg_scene->getModuleMgr();
 
-    sq_enabledebuginfo(vm, true);
     sq_enablevartrace(vm, true);
-
 
 #if DAGOR_DBGLEVEL > 0
-    sq_enabledebuginfo(vm, true);
-    sq_enablevartrace(vm, true);
-    dag_sq_debuggers.initDebugger(0, moduleMgr, "daRg Scripts");
+    webui::register_quirrel_debugger(moduleMgr, "sqdebug_darg", "quirrel debugger - daRg");
     scriptprofile::register_profiler_module(vm, moduleMgr);
-
     const bool varTraceOn = sq_isvartracesupported();
 #else
     const bool varTraceOn = false;
 #endif
 
     Sqrat::Table(Sqrat::ConstTable(vm)).SetValue("VAR_TRACE_ENABLED", varTraceOn);
-
-    darg::bind_lottie_animation(moduleMgr);
 
     bind_dargbox_script_api(moduleMgr);
     create_script_console_processor(moduleMgr, "sq.exec");
@@ -623,6 +607,7 @@ public:
     if (darg_scene)
     {
       gamelib::input::process_pending_joystick_btn_stack(darg_scene->getScriptVM());
+      sqeventbus::process_events(darg_scene->getScriptVM());
 
       d3d::GpuAutoLock lock;
 
@@ -715,7 +700,6 @@ public:
   void beforeDrawScene(int /*realtime_elapsed_usec*/, float /*gametime_elapsed_sec*/) override
   {
     PictureManager::per_frame_update();
-    inputmonitor::notify_input_devices_used();
 
     if (darg_scene)
       darg_scene->mainThreadBeforeRender();
@@ -767,8 +751,6 @@ public:
     reattachDevices(true);
 
     // initWebcache();
-
-    DagDbgMem::next_generation();
 
     loadScene();
   }
@@ -945,9 +927,12 @@ static class ScriptConsole : public console::ICommandProcessor
     CONSOLE_CHECK_NAME("scripts", "hard_reload", 1, 1) { delayed_reload_scripts(true); }
     CONSOLE_CHECK_NAME("scripts", "soft_reload", 1, 1) { delayed_reload_scripts(false); }
     CONSOLE_CHECK_NAME("sq_memtrace", "reset_all", 1, 1) { sqmemtrace::reset_all(); }
-    CONSOLE_CHECK_NAME("sq_memtrace", "dump_all", 1, 2)
+    CONSOLE_CHECK_NAME_EX("sq_memtrace", "dump_all", 1, 3, "dumps script memory allocations with callstacks",
+      "<out_file_name> <first_n_records>")
     {
-      sqmemtrace::dump_all(argc > 1 ? console::to_int(argv[1]) : -1);
+      const char *fname = argc > 1 ? argv[1] : nullptr;
+      int firstNRecords = argc > 2 ? console::to_int(argv[2]) : -1;
+      sqmemtrace::dump_all(fname, firstNRecords);
       flush_debug_file();
     }
 

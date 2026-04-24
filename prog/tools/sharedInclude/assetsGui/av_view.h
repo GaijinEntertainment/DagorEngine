@@ -6,6 +6,7 @@
 #include <propPanel/propPanel.h>
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
+#include <util/dag_fastIntList.h>
 #include <EASTL/unique_ptr.h>
 
 namespace PropPanel
@@ -15,10 +16,23 @@ class IMenu;
 class AllAssetsTree;
 class AssetTypeFilterControl;
 class DagorAssetMgr;
+class AssetTagManager;
+class IAssetBrowserHost;
 
 #ifndef ImTextureID
 typedef void *ImTextureID;
 #endif
+
+//==============================================================================
+// IAssetTagsView
+//==============================================================================
+
+class IAssetTagsView
+{
+public:
+  virtual AssetTagManager *getVisibleTagManager() = 0;
+  virtual void showTagManager(bool show) = 0;
+};
 
 //==============================================================================
 // AssetBaseView
@@ -27,12 +41,14 @@ typedef void *ImTextureID;
 class AssetBaseView : public PropPanel::ITreeViewEventHandler
 {
 public:
-  AssetBaseView(IAssetBaseViewClient *client, IAssetSelectorContextMenuHandler *menu_event_handler);
+  AssetBaseView(IAssetBaseViewClient *client, IAssetSelectorContextMenuHandler *menu_event_handler,
+    IAssetBrowserHost &asset_browser_host);
   ~AssetBaseView();
 
   DagorAsset *getSelectedAsset() const;
   DagorAssetFolder *getSelectedAssetFolder() const;
   const char *getSelObjName();
+  void getFilteredAssetsFromTheCurrentFolder(dag::Vector<DagorAsset *> &assets) const;
 
   DagorAssetMgr *getCurAssetBase() { return curMgr; }
 
@@ -65,19 +81,27 @@ public:
   void onTvDClick(PropPanel::TreeBaseWindow &tree, PropPanel::TLeafHandle node) override;
   bool onTvContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
 
+  IAssetTagsView *getAssetTagsView() const { return assetTagsView; }
+  void setAssetTagsView(IAssetTagsView *asset_tags_view);
+
+  bool getTagsToggled() const { return tagsToggled; }
+  void setTagsToggled(bool toggled);
+
   // If control_height is 0 then it will use the entire available height.
   void updateImgui(float control_height = 0.0f);
 
-  static void addCommonMenuItems(PropPanel::IMenu &menu);
+  static void addCommonMenuItems(PropPanel::IMenu &menu, bool add_tags = false);
 
 private:
   Tab<int> filter;
   Tab<int> curFilter;
   Tab<bool> allowedTypes;
   Tab<bool> shownTypes;
+  FastIntList tagFilter;
 
   IAssetBaseViewClient *eh;
   IAssetSelectorContextMenuHandler *menuEventHandler;
+  IAssetBrowserHost &assetBrowserHost;
   DagorAssetMgr *curMgr;
 
   eastl::unique_ptr<AllAssetsTree> assetsTree;
@@ -87,8 +111,7 @@ private:
 
   void fill(const DataBlock *expansion_state);
 
-  void fillObjects(PropPanel::TLeafHandle parent);
-
+  void refilterAssetsTree();
   void onShownTypeFilterChanged();
   void showSettingsPanel(const char *popup_id);
 
@@ -98,6 +121,12 @@ private:
   PropPanel::IconId searchIcon = PropPanel::IconId::Invalid;
   PropPanel::IconId settingsIcon = PropPanel::IconId::Invalid;
   PropPanel::IconId settingsOpenIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId tagsToggleIcon = PropPanel::IconId::Invalid;
+  PropPanel::IconId assetBrowserToggleIcon = PropPanel::IconId::Invalid;
   const bool searchInputFocusId = false; // Only the address of this member is used.
   bool settingsPanelOpen = false;
+
+  IAssetTagsView *assetTagsView = nullptr;
+  bool tagsToggled = false;
+  int tagsVersion = 0;
 };

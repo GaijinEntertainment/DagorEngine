@@ -5,6 +5,7 @@ include "screenspace_probes_common.dshl"
 include "screenspace_probes_reprojection.dshl"
 include "project_is_dynamic_point.dshl"
 include "gbuffer.dshl"
+include "frustum.dshl"
 
 hlsl {
   #include <sp_calc_common.hlsl>
@@ -37,31 +38,56 @@ macro SP_GET_DEPTH_MIN_MAX(code)
   }
 endmacro
 
-hlsl {
-  #define SP_EXPLICIT_LIST 1
-}
+macro SP_TEMPORAL_SELECT(code)
+  hlsl(code) {
+    #include "screenspace_probes_temporal_list_add.hlsl"
+
+    uint sp_temporal_select_probe(uint encoded_normalized_w, uint screen_probe_index, uint2 screen_tile_coord, float3 scene_normal)
+    {
+      float normalizedW = sp_decodeProbeInfo(encoded_normalized_w).normalizedW;
+      float3 camPos = sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord)) * normalizedW;
+
+      uint revAge = sp_is_valid_history() ? sample_history_rev_age(normalizedW * sp_zn_zfar.y, camPos, scene_normal) : SP_NEWBORN_REV_AGE;
+
+      bool onlyHistoryProbe = revAge != SP_NEWBORN_REV_AGE && sp_history_only_probe(screen_probe_index);
+      add_screenspace_probes_list(screen_probe_index, onlyHistoryProbe);
+
+      bool isQuickUpdateEnd = revAge == SP_MIN_QUICK_UPDATE_REV_AGE;
+      revAge = onlyHistoryProbe ? revAge : (isQuickUpdateEnd ? 0 : max(0, int(revAge) - 1));
+
+      return sp_encodeTagRevAge(revAge);
+    }
+  }
+endmacro
 
 shader initial_probes_placement_cs
 {
-  ENABLE_ASSERT(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   HISTORY_ONLY_PROBE(cs)
-  hlsl(cs) {
-    RWByteAddressBuffer screenspace_probe_pos: register(u0);
-    RWByteAddressBuffer screenspace_tile_classificator: register(u1);
-    RWByteAddressBuffer linked_list_additional_screenspace_probes: register(u2);
-    RWByteAddressBuffer screenspace_probes_list: register(u3);
-  }
   (cs) {
     sp_globtm_from_campos@f44 = sp_globtm_from_campos;
+    screenspace_probe_pos@uav : register(0) hlsl {
+      RWByteAddressBuffer screenspace_probe_pos@uav;
+    }
+    screenspace_tile_classificator@uav : register(1) hlsl {
+      RWByteAddressBuffer screenspace_tile_classificator@uav;
+    }
+    linked_list_additional_screenspace_probes@uav : register(2) hlsl {
+      RWByteAddressBuffer linked_list_additional_screenspace_probes@uav;
+    }
+    screenspace_probes_list@uav : register(3) hlsl {
+      RWByteAddressBuffer screenspace_probes_list@uav;
+    }
   }
   SCREENSPACE_PROBES_POSITIONS_COMMON(cs)
   SAMPLE_PREV_AGE_SP(cs)
   SP_GET_DEPTH_MIN_MAX(cs)
   PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
+  SP_TEMPORAL_SELECT(cs)
+
   hlsl(cs) {
-    #include "screenspace_probes_temporal_list_add.hlsl"
 
     float wFromCenter(int2 fromCenter)
     {
@@ -203,22 +229,8 @@ shader initial_probes_placement_cs
         uint encodedNormal = encodeProbeNormalAndOfs(sceneNormal, coord_ofs);
         sceneNormal = decodeProbeNormal(encodedNormal);
         store = sp_encodeNormalizedW(baseProbe.normalizedW);
-        baseProbe.normalizedW = sp_decodeProbeInfo(store).normalizedW;
 
-        float probeLinearW = baseProbe.normalizedW*sp_zn_zfar.y;
-        float3 camPos = sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord))*baseProbe.normalizedW;
-
-        uint revAge = sp_is_valid_history() ? sample_history_rev_age(probeLinearW, camPos, sceneNormal) : SP_TAG_BORN_HISTORY_AGE;
-
-        #if SP_EXPLICIT_LIST
-        uint onlyHistoryProbe = revAge != SP_TAG_BORN_HISTORY_AGE && sp_history_only_probe(screen_probe_index);
-        revAge = onlyHistoryProbe ? revAge : max(0, int(revAge) - 1);
-        uint listAt = add_screenspace_probes_list(screen_probe_index, onlyHistoryProbe);
-        #else
-        revAge = max(0, int(revAge) - 1);
-        #endif
-
-        uint tagAge = sp_encodeTagRevAge(revAge);
+        uint tagAge = sp_temporal_select_probe(store, screen_probe_index, screen_tile_coord, sceneNormal);
 
         store |= sp_encodeTag(tagAge|sp_encodeTagMoving(isDynamic));
         if (exp2(depth_exp_precision(SP_DEFAULT_BILINEAR_DEPTH_EXP, linearDepthCenter, sp_zn_zfar.y)*max(pow2(1-farthestDepthW/linearDepthCenter), pow2(1-veryCloseW/linearDepthCenter))) < 0.01)//not effective, but rather cheap check if we need to place additional probes in this tile at all
@@ -239,27 +251,34 @@ shader initial_probes_placement_cs
 int4 sp_placement_iteration;
 shader additional_probes_placement_cs
 {
-  ENABLE_ASSERT(cs)
   HISTORY_ONLY_PROBE(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   PROJECT_DO_NOT_UPDATE_FROM_POINT(cs)
-  hlsl(cs) {
-    RWByteAddressBuffer screenspace_probe_pos: register(u0);
-    RWByteAddressBuffer screenspace_tile_classificator: register(u1);
-
-    RWByteAddressBuffer linked_list_additional_screenspace_probes: register(u2);
-    RWByteAddressBuffer screenspace_probes_list: register(u3);
-  }
   SCREENSPACE_PROBES_POSITIONS_COMMON(cs)
   SAMPLE_PREV_AGE_SP(cs)
   SP_GET_DEPTH_MIN_MAX(cs)
   (cs) {
     sp_placement_iteration@i2 = sp_placement_iteration;
     downsampled_normals@tex2d = downsampled_normals;
+    screenspace_probe_pos@uav : register(0) hlsl {
+      RWByteAddressBuffer screenspace_probe_pos@uav;
+    }
+    screenspace_tile_classificator@uav : register(1) hlsl {
+      RWByteAddressBuffer screenspace_tile_classificator@uav;
+    }
+    linked_list_additional_screenspace_probes@uav : register(2) hlsl {
+      RWByteAddressBuffer linked_list_additional_screenspace_probes@uav;
+    }
+    screenspace_probes_list@uav : register(3) hlsl {
+      RWByteAddressBuffer screenspace_probes_list@uav;
+    }
   }
+
+  SP_TEMPORAL_SELECT(cs)
+
   hlsl(cs) {
-    #include "screenspace_probes_temporal_list_add.hlsl"
 
     float calc_upsample_weights_threshold(RWByteAddressBuffer linkedList, UAVBufferInfo srvInfo, ViewInfo vInfo, UpsamplePointInfo pointInfo, float depth_exp, uint skip_iteration, float threshold)
     {
@@ -329,12 +348,27 @@ shader additional_probes_placement_cs
             uint addProbeIndex = (addProbeIndexAndIteration&SP_ADDITIONAL_PROBE_INDEX_MASK) - 1;
             if (addProbeIndex == ~0u)
               break;
-            uint2 nextAndProbe = loadBuffer2(linkedList, sp_getNumScreenProbes()*4 + 4 + addProbeIndex*4*3);
+
+            uint index = sp_getNumScreenProbes()*4 + 4 + addProbeIndex*4*3;
+            #if DEBUG_ENABLE_BOUNDS_CHECKS && !_HARDWARE_METAL
+            uint bufferSize;
+            linkedList.GetDimensions(bufferSize);
+            ##assert(index + 8 < bufferSize, "Linked list buffer overrun. NumScreenProbes: %.f, addProbeIndex: %.f, bufferSize: %.f, addProbeIndexAndIteration: %.f, screenProbeIndex: %.f, sampleProbeCoord.x: %.f, sampleProbeCoord.y: %.f, screenspace_probe_res: %.f", sp_getNumScreenProbes(), addProbeIndex, bufferSize, addProbeIndexAndIteration, screenProbeIndex, sampleProbeCoord.x, sampleProbeCoord.y, screenspace_probe_res.x);
+            #endif
+            uint2 nextAndProbe = loadBuffer2(linkedList, index);
             DecodedProbe additionalProbe = sp_decodeProbeInfo(nextAndProbe.y);
 
             uint probeIterationIndex = addProbeIndexAndIteration>>SP_ADDITIONAL_ITERATION_INDEX_SHIFT;
             if (probeIterationIndex != skip_iteration)
-              processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp, corners, i);
+            {
+              ProcessedAdditionalProbe addProbeProcessed = processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp);
+              if (addProbeProcessed.depthWeight > corners.depthWeights[i])
+              {
+                corners.relDepth[i] = addProbeProcessed.relativeDepthDifference;
+                corners.depthWeights[i] = addProbeProcessed.depthWeight;
+                corners.normalizedLinearDepth[i] = addProbeProcessed.normalizedW;
+              }
+            }
             addProbeIndexAndIteration = nextAndProbe.x;
           }
         }
@@ -344,6 +378,19 @@ shader additional_probes_placement_cs
       return dot(corners.cornerDepthBilWeights, 1);
     }
 
+    // to check for OOB on odd mip sizes (returns special COORD_OUT_OF_BOUNDS if it happened)
+    #define COORD_OUT_OF_BOUNDS_VAL (uint2(uint(-1), uint(-1)))
+    #define COORD_IS_VALID(coord) ((coord).x != uint(-1))
+    uint2 map_screen_coord_to_downsampled_texture_mip(uint2 screen_coord, uint mip)
+    {
+      uint2 sampleCoord = screen_coord >> (mip + 1);
+      uint scaleCoeff = (1U << (mip + 1));
+      if (all(or(gbuffer_depth_size_load % scaleCoeff == 0, (sampleCoord + 1) * scaleCoeff < gbuffer_depth_size_load)))
+        return sampleCoord;
+      else
+        return COORD_OUT_OF_BOUNDS_VAL;
+    }
+
     #define TILE_SIZE 8
     float getCloseDepth(uint2 screenCoord)
     {
@@ -351,7 +398,9 @@ shader additional_probes_placement_cs
       if (sp_placement_iteration.x == 0 && uint(screenspace_probe_res.z) > TILE_SIZE)//one constant, fixme
       {
         uint downsampled_mip = 0;//log2(screenspace_probe_res.z * 1. / TILE_SIZE);//one constant, fixme
-        return texelFetch(downsampled_close_depth_tex, screenCoord >> (downsampled_mip + 1), downsampled_mip).x;
+        uint2 sampleCoord = map_screen_coord_to_downsampled_texture_mip(screenCoord, downsampled_mip);
+        if (COORD_IS_VALID(sampleCoord))
+          return texelFetch(downsampled_close_depth_tex, sampleCoord, downsampled_mip).x;
       }
       return loadGbufferDepth(screenCoord);
     }
@@ -437,9 +486,10 @@ shader additional_probes_placement_cs
       pointInfo.screenCoord = screenCoord + 0.5;
       if (rawDepthCenter != 0 && exp2(-1000*pow2(1-linearize_z(rawDepthCenter, sp_zn_zfar.zw)/pointInfo.sceneLinearDepth)) > 0.1)//if we dont clear normal, even sky will have reasonable (smudged) normal, so we can always do that
       {
+        uint2 sampleCoord = map_screen_coord_to_downsampled_texture_mip(screenCoord, 0);
         BRANCH
-        if (sp_placement_iteration.x == 0 && uint(screenspace_probe_res.z) > TILE_SIZE)//one constant, fixme
-          pointInfo.worldNormal = normalize(texelFetch(downsampled_normals, screenCoord >> 1, 0).xyz * 2 - 1);
+        if (sp_placement_iteration.x == 0 && uint(screenspace_probe_res.z) > TILE_SIZE && COORD_IS_VALID(sampleCoord))//one constant, fixme
+          pointInfo.worldNormal = normalize(texelFetch(downsampled_normals, sampleCoord, 0).xyz * 2 - 1);
         else
           loadPackedGbufferNormal(screenCoord, pointInfo.worldNormal);
         //FLATTEN
@@ -486,7 +536,6 @@ shader additional_probes_placement_cs
       bestProbe.allTag = 0;//we check age later, when adding (one probe)
       bestProbe.normalizedW = pointInfo.sceneLinearDepth/sp_zn_zfar.y;
       uint2 coord_ofs = screenCoord - screen_tile_coord*screenspace_probe_res.z;
-      float3 bestProbeCamPos = bestProbe.normalizedW*sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
 
       uint2 bestProbeAndNormal = uint2(sp_encodeProbeInfo(bestProbe), encodeProbeNormalAndOfs(pointInfo.worldNormal, coord_ofs));
 
@@ -500,17 +549,7 @@ shader additional_probes_placement_cs
         {
           //for (uint ai = 0; ai < additionalCount; ++ai)
           uint addedProbeIndex = sp_getNumScreenProbes() + additionalAt;
-
-          uint revAge = sp_is_valid_history() ? sample_history_rev_age(sp_decodeProbeInfo(bestProbeAndNormal.x).normalizedW*sp_zn_zfar.y, bestProbeCamPos, pointInfo.worldNormal) : SP_TAG_BORN_HISTORY_AGE;
-
-          #if SP_EXPLICIT_LIST
-          uint onlyHistoryProbe = revAge != SP_TAG_BORN_HISTORY_AGE && sp_history_only_probe(addedProbeIndex);
-          revAge = onlyHistoryProbe ? revAge : max(0, int(revAge) - 1);
-          uint listAt = add_screenspace_probes_list(addedProbeIndex, onlyHistoryProbe);
-          #else
-          revAge = max(0, int(revAge) - 1);
-          #endif
-          uint tagAge = sp_encodeTagRevAge(revAge);
+          uint tagAge = sp_temporal_select_probe(bestProbeAndNormal.x, addedProbeIndex, screen_tile_coord, pointInfo.worldNormal);
 
           bestProbeAndNormal.x |= sp_encodeTag(tagAge|sp_encodeTagMoving(tileSharedDynamic));
 
@@ -592,16 +631,17 @@ buffer linked_list_additional_screenspace_probes;
 
 shader rearrange_additional_probes_placement_cs
 {
-  ENABLE_ASSERT(cs)
   INIT_SCREENSPACE_PROBES_RES(cs)
   (cs) {
     linked_list_additional_screenspace_probes@buf = linked_list_additional_screenspace_probes hlsl {
       ByteAddressBuffer linked_list_additional_screenspace_probes@buf;
     }
-  }
-  hlsl(cs) {
-    RWByteAddressBuffer screenspace_probe_pos: register(u0);
-    RWByteAddressBuffer screenspace_tile_classificator: register(u1);
+    screenspace_probe_pos@uav : register(0) hlsl {
+      RWByteAddressBuffer screenspace_probe_pos@uav;
+    }
+    screenspace_tile_classificator@uav : register(1) hlsl {
+      RWByteAddressBuffer screenspace_tile_classificator@uav;
+    }
   }
   hlsl(cs) {
     #include <screenprobes_consts.hlsli>
@@ -655,13 +695,22 @@ buffer screenspace_tile_classificator;
 
 shader clear_additional_screenspace_probes_count_cs
 {
-  ENABLE_ASSERT(cs)
   INIT_SCREENSPACE_PROBES_RES(cs)
+  (cs) {
+    screenspace_probe_pos@uav : register(2) hlsl {
+      RWByteAddressBuffer screenspace_probe_pos@uav;
+    }
+    screenspace_tile_classificator@uav : register(0) hlsl {
+      RWByteAddressBuffer screenspace_tile_classificator@uav;
+    }
+    linked_list_additional_screenspace_probes@uav : register(1) hlsl {
+      RWByteAddressBuffer linked_list_additional_screenspace_probes@uav;
+    }
+    screenspace_probes_list@uav : register(3) hlsl {
+      RWByteAddressBuffer screenspace_probes_list@uav;
+    }
+  }
   hlsl(cs) {
-    RWByteAddressBuffer screenspace_tile_classificator: register(u0);
-    RWByteAddressBuffer linked_list_additional_screenspace_probes: register(u1);
-    RWByteAddressBuffer screenspace_probe_pos: register(u2);
-    RWByteAddressBuffer screenspace_probes_list: register(u3);
     [numthreads(64, 1, 1)]
     void clear_additional_screenspace_probes_count_cs(uint2 gtId : SV_GroupThreadID, uint2 gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
@@ -689,3 +738,68 @@ shader clear_additional_screenspace_probes_count_cs
   }
   compile("target_cs", "clear_additional_screenspace_probes_count_cs");
 }
+
+shader screenspace_probes_invalidate_cs
+{
+  SCREENSPACE_PROBES_POSITIONS_COMMON(cs)
+  INIT_AND_USE_FRUSTUM_PLANES(cs)
+
+  (cs) {
+    screenspace_probe_pos@uav = screenspace_probe_pos hlsl {
+      RWByteAddressBuffer screenspace_probe_pos@uav;
+    }
+    screenspace_tile_classificator@buf = screenspace_tile_classificator hlsl {
+      ByteAddressBuffer screenspace_tile_classificator@buf;
+    }
+    sp_max_quick_update_frames@f1 = sp_max_quick_update_frames;
+  }
+
+  hlsl(cs) {
+    #include "dagi_invalidation_frustum_dist.hlsl"
+
+    [numthreads(64, 1, 1)]
+    void screenprobes_invalidate_cs(uint dtId : SV_DispatchThreadID)
+    {
+      // TODO: We can rasterize invalid box and discard based on downsampled far depth.
+
+      uint screen_probe_index = dtId;
+      bool isAdditionalProbe = screen_probe_index >= sp_getNumScreenProbes();
+      uint additionalProbeIndex = screen_probe_index - sp_getNumScreenProbes();
+      if (isAdditionalProbe && additionalProbeIndex >= sp_getNumAdaptiveProbes())
+        return;
+
+      uint encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, screen_probe_index);
+      if (!encodedProbe)
+        return;
+
+      uint atlasProbeIndex = screen_probe_index;
+      if (isAdditionalProbe)
+        atlasProbeIndex = loadBuffer(screenspace_tile_classificator, (sp_getScreenTileClassificatorOffsetDwords() + additionalProbeIndex) * 4);
+      uint2 screen_tile_coord = uint2(atlasProbeIndex % uint(screenspace_probe_res.x), atlasProbeIndex / uint(screenspace_probe_res.x));
+
+      DecodedProbe probe = sp_decodeProbeInfo(encodedProbe);
+
+      float3 probeCamPos = probe.normalizedW * sp_getViewVecOptimizedNormalized(getScreenProbeCenterScreenUV(screen_tile_coord));
+      float3 worldPos = sp_world_view_pos + probeCamPos;
+
+      float frustumDistanceNorm = getInvalidFrustumOuterDistanceNorm(worldPos, frustumPlanes);
+      if (frustumDistanceNorm >= 1.0)
+        return;
+
+      // On invalidation new probes will become quickly updating ones - it's not very correct, but simple and reliable.
+      // We could actually approximately compute amount of the current probe remaining after revAge reaches 0 and
+      // select old or new age based on that, but these are not so trivial computations.
+      uint revAge = sp_decodeTagRevAge(probe.allTag);
+      float freshness = saturate(float(revAge) / SP_MAX_REV_AGE);
+      float invalidationAmount = max(1.0 - frustumDistanceNorm, freshness);
+
+      uint newRevAge = uint(invalidationAmount * sp_max_quick_update_frames + 0.5) + SP_MIN_QUICK_UPDATE_REV_AGE;
+      uint invalidatedRevAge = max(revAge, newRevAge);
+
+      probe.allTag = sp_encodeTagRevAge(invalidatedRevAge) | (probe.allTag & ~SP_TAG_AGE_MASK);
+      storeBuffer(screenspace_probe_pos, screen_probe_index * 4, sp_encodeProbeInfo(probe));
+    }
+  }
+  compile("target_cs", "screenprobes_invalidate_cs");
+}
+

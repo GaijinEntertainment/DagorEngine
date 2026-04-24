@@ -14,7 +14,8 @@ static void riex_object_group_process_es_all_events(const ecs::Event &__restrict
   G_FAST_ASSERT(evt.is<dagdp::EventObjectGroupProcess>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     dagdp::riex_object_group_process_es(static_cast<const dagdp::EventObjectGroupProcess&>(evt)
-        , ECS_RW_COMP(riex_object_group_process_es_comps, "dagdp__riex_manager", dagdp::RiexManager)
+        , components.manager()
+    , ECS_RW_COMP(riex_object_group_process_es_comps, "dagdp__riex_manager", dagdp::RiexManager)
     );
   while (++comp != compE);
 }
@@ -118,9 +119,9 @@ static constexpr ecs::ComponentDesc dagdp_object_group_riex_changed_es_comps[] =
 };
 static void dagdp_object_group_riex_changed_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   dagdp::dagdp_object_group_riex_changed_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc dagdp_object_group_riex_changed_es_es_desc
 (
@@ -154,9 +155,9 @@ static ecs::CompileTimeQueryDesc riex_object_group_ecs_query_desc
   make_span(riex_object_group_ecs_query_comps+3, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void dagdp::riex_object_group_ecs_query(Callable function)
+inline void dagdp::riex_object_group_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, riex_object_group_ecs_query_desc.getHandle(),
+  perform_query(&manager, riex_object_group_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -184,9 +185,9 @@ static ecs::CompileTimeQueryDesc manager_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void dagdp::manager_ecs_query(Callable function)
+inline void dagdp::manager_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, manager_ecs_query_desc.getHandle(),
+  perform_query(&manager, manager_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

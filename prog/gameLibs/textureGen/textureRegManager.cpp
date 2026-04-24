@@ -351,38 +351,23 @@ void TextureRegManager::getRelativeTexName(const char *name, String &texname, St
     return;
   }
 
-  int len = strlen(name);
-  if (
-    len > 4 && (stricmp(name + len - 4, ".raw") == 0 || stricmp(name + len - 4, ".r16") == 0 || stricmp(name + len - 4, ".r32") == 0))
+  if (strstr(name, "name:t="))
   {
     texWithParams = name;
     if (!textureRootDir.empty())
       texWithParams.replaceAll("name:t=", String(128, "name:t=%s/", textureRootDir.str()));
     const char *namePos = strstr(texWithParams, "name:t=");
-    if (namePos)
-    {
-      texname = namePos + strlen("name:t=");
-    }
-    else
-    {
-      logger->log(LOGLEVEL_ERR,
-        String(128, "RAW texture '%s' has no params. You should use node 'raw texture'.", texWithParams.str()));
-      return;
-    }
+    texname = namePos + strlen("name:t=");
   }
   else
   {
     if (textureRootDir.empty())
-    {
       texname = name;
-      texWithParams = texname;
-    }
     else
       texname.printf(128, "%s/%s", textureRootDir.str(), name);
 
     texWithParams = texname;
   }
-
 
   return;
 }
@@ -457,7 +442,7 @@ int TextureRegManager::createTexture(const char *name, uint32_t fmt, int w, int 
     {
       gradientStr += strlen(GRADIENT_STR);
       fmt = TEXFMT_A16B16G16R16;
-      tex = d3d::create_tex(NULL, GRADIENT_TEXTURE_WIDTH, 1, fmt, 1, name); //|TEXCF_UNORDERED
+      tex = d3d::create_tex(NULL, GRADIENT_TEXTURE_WIDTH, 1, fmt, 1, name, RESTAG_TEXGEN); //|TEXCF_UNORDERED
       owned = true;
       if (tex)
       {
@@ -469,7 +454,7 @@ int TextureRegManager::createTexture(const char *name, uint32_t fmt, int w, int 
     {
       curveStr += strlen(CURVE_STR);
       fmt = TEXFMT_A16B16G16R16;
-      tex = d3d::create_tex(NULL, GRADIENT_TEXTURE_WIDTH, 1, fmt, 1, name); //|TEXCF_UNORDERED
+      tex = d3d::create_tex(NULL, GRADIENT_TEXTURE_WIDTH, 1, fmt, 1, name, RESTAG_TEXGEN); //|TEXCF_UNORDERED
       owned = true;
       if (tex)
       {
@@ -481,7 +466,7 @@ int TextureRegManager::createTexture(const char *name, uint32_t fmt, int w, int 
     {
       constStr += strlen(CONST_STR);
       fmt = TEXFMT_A32B32G32R32F;
-      tex = d3d::create_tex(NULL, 1, 1, fmt, 1, name); //|TEXCF_UNORDERED
+      tex = d3d::create_tex(NULL, 1, 1, fmt, 1, name, RESTAG_TEXGEN); //|TEXCF_UNORDERED
       owned = true;
       if (tex)
       {
@@ -493,7 +478,7 @@ int TextureRegManager::createTexture(const char *name, uint32_t fmt, int w, int 
     {
       colorStr += strlen(COLOR_STR);
       fmt = TEXFMT_A32B32G32R32F;
-      tex = d3d::create_tex(NULL, 2, 2, fmt, 1, name); //|TEXCF_UNORDERED
+      tex = d3d::create_tex(NULL, 2, 2, fmt, 1, name, RESTAG_TEXGEN); //|TEXCF_UNORDERED
       owned = true;
       if (tex)
       {
@@ -584,7 +569,7 @@ int TextureRegManager::createTexture(const char *name, uint32_t fmt, int w, int 
   else
   {
     String texName(128, "texgen_%s", name);
-    tex = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | fmt, 1, texName); //|TEXCF_UNORDERED
+    tex = d3d::create_tex(NULL, w, h, TEXCF_RTARGET | fmt, 1, texName, RESTAG_TEXGEN); //|TEXCF_UNORDERED
     owned = true;
     if (tex)
       texId = register_managed_tex(texName, tex);
@@ -595,11 +580,8 @@ int TextureRegManager::createTexture(const char *name, uint32_t fmt, int w, int 
     return -1;
   }
 
-  if (tex)
-  {
-    currentMemSize += tex->getSize();
-    maxMemSize = max(maxMemSize, currentMemSize);
-  }
+  currentMemSize += tex->getSize();
+  maxMemSize = max(maxMemSize, currentMemSize);
 
   if (regNo < 0)
     regNo = append_items(textureRegs, 1);
@@ -672,10 +654,8 @@ int TextureRegManager::createParticlesBuffer(const char *name, int max_count, in
     textureRegs[regNo].close(logger);
   }
   Sbuffer *particles = 0;
-  bool owned = false;
   String texName(128, "texgen_%s", name);
-  particles = d3d::buffers::create_ua_sr_structured(PARTICLE_SIZE, max_count, texName.str()); //
-  owned = true;
+  particles = d3d::buffers::create_ua_sr_structured(PARTICLE_SIZE, max_count, texName.str(), d3d::buffers::Init::No, RESTAG_TEXGEN); //
   if (particles)
   {
     currentMemSize += particles->getSize();
@@ -699,7 +679,7 @@ int TextureRegManager::createParticlesBuffer(const char *name, int max_count, in
   textureRegs[regNo].tex = particles;
   textureRegs[regNo].useCount = use_count;
   textureRegs[regNo].texId = BAD_TEXTUREID;
-  textureRegs[regNo].owned = owned;
+  textureRegs[regNo].owned = true;
   return regNo;
 }
 

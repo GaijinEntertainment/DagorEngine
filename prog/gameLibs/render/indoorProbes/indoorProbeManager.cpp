@@ -4,7 +4,7 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <3d/dag_render.h>
 #include <memory/dag_framemem.h>
 #include <render/lightProbe.h>
@@ -24,6 +24,7 @@
 #include <drv/3d/dag_variableRateShading.h>
 #include <util/dag_finally.h>
 #include <render/indoorProbeScenes.h>
+#include <generic/dag_sort.h>
 
 G_STATIC_ASSERT(MAX_ACTIVE_PROBES == LightProbeSpecularCubesContainer::INDOOR_PROBES);
 
@@ -31,6 +32,7 @@ static const uint32_t UPDATE_PROBE_THRESHOLD = 100;
 static int indoor_probes_to_useVarId = -1;
 static int indoor_probes_grid_y_centerVarId = -1;
 static int indoor_probes_grid_xz_centerVarId = -1;
+static int indoor_probes_max_distanceVarId = -1;
 static int indoor_probes_max_distance_or_disabledVarId = -1; // if negative, indoor probes are disabled
 
 CONSOLE_BOOL_VAL("render", indoor_probes, true);
@@ -38,7 +40,7 @@ CONSOLE_FLOAT_VAL("render", indoor_probes_max_distance, 70.0f);
 CONSOLE_BOOL_VAL("indoor_probe", use_occlsuion, false);
 CONSOLE_BOOL_VAL("indoor_probe", force_clusterization, false);
 
-IndoorProbeManager::~IndoorProbeManager() { ShaderGlobal::set_real(indoor_probes_max_distance_or_disabledVarId, -1); }
+IndoorProbeManager::~IndoorProbeManager() { ShaderGlobal::set_float(indoor_probes_max_distance_or_disabledVarId, -1); }
 
 IndoorProbeManager::IndoorProbeManager(LightProbeSpecularCubesContainer *container, IIndoorProbeNodes *nodes)
 {
@@ -50,6 +52,7 @@ IndoorProbeManager::IndoorProbeManager(LightProbeSpecularCubesContainer *contain
   indoor_probes_to_useVarId = get_shader_variable_id("indoor_probes_to_use", true);
   indoor_probes_grid_y_centerVarId = get_shader_variable_id("indoor_probes_grid_y_center", true);
   indoor_probes_grid_xz_centerVarId = get_shader_variable_id("indoor_probes_grid_xz_center", true);
+  indoor_probes_max_distanceVarId = get_shader_variable_id("indoor_probes_max_distance", true);
   indoor_probes_max_distance_or_disabledVarId = get_shader_variable_id("indoor_probes_max_distance_or_disabled", true);
 
   if (d3d::get_driver_desc().caps.hasVariableRateShadingBy4)
@@ -67,16 +70,16 @@ IndoorProbeManager::IndoorProbeManager(LightProbeSpecularCubesContainer *contain
 
 void IndoorProbeManager::initBuffers()
 {
-  indoorActiveProbesData =
-    dag::buffers::create_persistent_cb(MAX_ACTIVE_PROBES * 4 + QUARTER_OF_ACTIVE_PROBES, "indoor_active_probes_data");
-  indoorVisibleProbesData =
-    dag::buffers::create_persistent_cb(NON_CELL_PROBES_COUNT * 4 + NON_CELL_PROBES_COUNT / 4, "indoor_visible_probes_data");
-  cellClusters =
-    dag::buffers::create_ua_sr_structured(sizeof(uint32_t) * 4, GRID_SIDE * GRID_SIDE * GRID_HEIGHT, "indoor_probe_cells_clusters");
+  indoorActiveProbesData = dag::buffers::create_persistent_cb(MAX_ACTIVE_PROBES * 4 + QUARTER_OF_ACTIVE_PROBES,
+    "indoor_active_probes_data", RESTAG_INDOOR_PROBES);
+  indoorVisibleProbesData = dag::buffers::create_persistent_cb(NON_CELL_PROBES_COUNT * 4 + NON_CELL_PROBES_COUNT / 4,
+    "indoor_visible_probes_data", RESTAG_INDOOR_PROBES);
+  cellClusters = dag::buffers::create_ua_sr_structured(sizeof(uint32_t) * 4, GRID_SIDE * GRID_SIDE * GRID_HEIGHT,
+    "indoor_probe_cells_clusters", d3d::buffers::Init::No, RESTAG_INDOOR_PROBES);
   cellClusters.setVar();
   clusterizator.reset(new_compute_shader("light_probes_clusterization_cs", true));
-  indoorActiveProbesStaging = dag::create_sbuffer(sizeof(uint32_t) * 4, MAX_ACTIVE_PROBES * 4 + QUARTER_OF_ACTIVE_PROBES,
-    SBCF_STAGING_BUFFER, 0, "indoor_active_probes_staging"); // our dx11 drv create staging only if it RW
+  indoorActiveProbesStaging = dag::buffers::create_one_frame_cb(MAX_ACTIVE_PROBES * 4 + QUARTER_OF_ACTIVE_PROBES,
+    "indoor_active_probes_staging", RESTAG_INDOOR_PROBES);
 }
 
 void IndoorProbeManager::fillCellsBuffer()
@@ -111,7 +114,8 @@ void IndoorProbeManager::fillCellsBuffer()
 
   Point4LocalVector dataToShader = packMatricesAndProbesData(activeProbesIndices, matrices, shapeTypes, MAX_ACTIVE_PROBES);
 
-  indoorActiveProbesStaging->updateData(0, dataToShader.size() * sizeof(dataToShader[0]), dataToShader.data(), 0);
+  indoorActiveProbesStaging->updateData(0, dataToShader.size() * sizeof(dataToShader[0]), dataToShader.data(),
+    VBLOCK_WRITEONLY | VBLOCK_DISCARD);
   indoorActiveProbesStaging->copyTo(indoorActiveProbesData.getBuf(), 0, 0, dataToShader.size() * sizeof(dataToShader[0]));
 
   d3d::resource_barrier({indoorActiveProbesData.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
@@ -151,11 +155,12 @@ void IndoorProbeManager::initLightProbes()
   }
 
   uint32_t allProbesOnLevel = shapesContainer->getAllNodesCount();
-  allIndoorProbeBoxes = dag::buffers::create_persistent_sr_structured(sizeof(Point4), allProbesOnLevel * 3, "all_indoor_probe_boxes");
+  allIndoorProbeBoxes = dag::buffers::create_persistent_sr_structured(sizeof(Point4), allProbesOnLevel * 3, "all_indoor_probe_boxes",
+    d3d::buffers::Init::No, RESTAG_INDOOR_PROBES);
   dag::Vector<Point4> allIndoorProbeBoxesData;
   allIndoorProbeBoxesData.reserve(allProbesOnLevel * 3);
-  allIndoorProbePosAndCubes =
-    dag::buffers::create_persistent_sr_structured(sizeof(Point4), allProbesOnLevel, "all_indoor_probe_pos_and_cubes");
+  allIndoorProbePosAndCubes = dag::buffers::create_persistent_sr_structured(sizeof(Point4), allProbesOnLevel,
+    "all_indoor_probe_pos_and_cubes", d3d::buffers::Init::No, RESTAG_INDOOR_PROBES);
   dag::Vector<Point4> allIndoorProbePosAndCubesData;
   allIndoorProbePosAndCubesData.reserve(allProbesOnLevel);
 
@@ -185,8 +190,8 @@ void IndoorProbeManager::initLightProbes()
   allIndoorProbeBoxes->updateData(0, data_size(allIndoorProbeBoxesData), allIndoorProbeBoxesData.data(), VBLOCK_WRITEONLY);
   allIndoorProbePosAndCubes->updateData(0, data_size(allIndoorProbePosAndCubesData), allIndoorProbePosAndCubesData.data(),
     VBLOCK_WRITEONLY);
-  readbackBuffer =
-    dag::buffers::create_ua_structured_readback(sizeof(uint32_t), allProbesOnLevel, "indoor_probe_readback", d3d::buffers::Init::Zero);
+  readbackBuffer = dag::buffers::create_ua_structured_readback(sizeof(uint32_t), allProbesOnLevel, "indoor_probe_readback",
+    d3d::buffers::Init::Zero, RESTAG_INDOOR_PROBES);
   needsToReadBackCulling = false;
   framesSinceLastCulling = GPU_CULLING_FREQUENCY;
 
@@ -309,8 +314,10 @@ void IndoorProbeManager::ensureDebugBuffersExist()
   if (indoorProbeVisibilityMask)
     return;
   uint32_t allProbesOnLevel = shapesContainer->getAllNodesCount();
-  indoorProbeVisibilityMask =
-    dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), (allProbesOnLevel + 31) / 32, "indoor_probe_visibility_mask");
+  indoorProbeVisibilityMask = dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), (allProbesOnLevel + 31) / 32,
+    "indoor_probe_visibility_mask", RESTAG_INDOOR_PROBES);
+  debug("[FRAMEMEM] Allocated buffer for indoor probes: 'indoor_probe_visibility_mask': %d",
+    sizeof(uint32_t) * (allProbesOnLevel + 31) / 32);
 }
 
 IndoorProbeManager::Point4LocalVector IndoorProbeManager::packMatricesAndProbesData(dag::ConstSpan<uint32_t> probe_indices,
@@ -386,7 +393,7 @@ bool IndoorProbeManager::tryToActivateProbe(const uint32_t probe_index)
   return false;
 }
 
-void IndoorProbeManager::updateActiveProbes(const UintLocalVector &probe_indices)
+void IndoorProbeManager::updateActiveProbes(dag::ConstSpan<uint32_t> probe_indices)
 {
   for (const uint32_t probeIndex : probe_indices)
   {
@@ -408,9 +415,9 @@ void IndoorProbeManager::update(const Point3 &new_origin)
   ToroidalGatherCallback toroidalCb(regions);
   toroidal_update(IPoint2(new_origin.x / GRID_CELL_SIZE, new_origin.z / GRID_CELL_SIZE), toroidalInfo, 3, toroidalCb);
   const float currentY = static_cast<int>(new_origin.y / GRID_CELL_HEIGHT) * GRID_CELL_HEIGHT;
-  ShaderGlobal::set_color4_fast(indoor_probes_grid_xz_centerVarId, (float)toroidalInfo.curOrigin.x * GRID_CELL_SIZE,
+  ShaderGlobal::set_float4(indoor_probes_grid_xz_centerVarId, (float)toroidalInfo.curOrigin.x * GRID_CELL_SIZE,
     (float)toroidalInfo.curOrigin.y * GRID_CELL_SIZE, 0, 0);
-  ShaderGlobal::set_real_fast(indoor_probes_grid_y_centerVarId, currentY);
+  ShaderGlobal::set_float(indoor_probes_grid_y_centerVarId, currentY);
 
   bool probesActiveStatusChanged = false;
   for (int i = 0; i < activeProbesState.size(); ++i)
@@ -486,14 +493,15 @@ eastl::tuple<CpuMatrices, CpuIndices, CpuIndices, bool> IndoorProbeManager::cpuC
 
     ShaderGlobal::set_int_fast(indoor_probes_to_useVarId, useClusterization);
   }
-  ShaderGlobal::set_real(indoor_probes_max_distance_or_disabledVarId,
+  ShaderGlobal::set_float(indoor_probes_max_distanceVarId, indoor_probes_max_distance);
+  ShaderGlobal::set_float(indoor_probes_max_distance_or_disabledVarId,
     cpuMatrices.size() > 0 && indoor_probes.get() ? indoor_probes_max_distance : -1.0f);
 
   return eastl::tuple<CpuMatrices, CpuIndices, CpuIndices, bool>{
     eastl::move(cpuMatrices), eastl::move(cpuIndices), eastl::move(cpuShapeTypes), useClusterization};
 }
 
-void IndoorProbeManager::completeCullingReadback()
+void IndoorProbeManager::completeCullingReadback(dag::ConstSpan<uint32_t> force_probe_indices)
 {
   if (!needsToReadBackCulling)
     return;
@@ -518,6 +526,9 @@ void IndoorProbeManager::completeCullingReadback()
     return;
   }
   stlsort::sort(readBackDataToSort.begin(), readBackDataToSort.end(), [](auto a, auto b) { return a.count > b.count; });
+
+  if (!force_probe_indices.empty())
+    updateActiveProbes(force_probe_indices);
 
   {
     UintLocalVector cubeIndices;
@@ -556,6 +567,16 @@ void IndoorProbeManager::completeCullingReadback()
   }
 
   needsToReadBackCulling = false;
+}
+
+uint32_t IndoorProbeManager::getProbeState(uint32_t probe_index) const
+{
+  if (auto it = eastl::find(activeProbeIds.begin(), activeProbeIds.end(), probe_index); it != activeProbeIds.end())
+  {
+    const uint32_t activeSlot = eastl::distance(activeProbeIds.begin(), it);
+    return activeProbesState[activeSlot];
+  }
+  return PROBE_IN_PROGRESS;
 }
 
 void IndoorProbeManager::invalidate()

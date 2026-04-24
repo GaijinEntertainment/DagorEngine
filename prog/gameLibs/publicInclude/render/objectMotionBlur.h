@@ -31,7 +31,7 @@ struct MotionBlurSettings
   float rampStrength = 1.0f; // how much to increase or decrease the velocity
   float rampCutoff = 1.0f;   // velocities greater than this will be increased, smaller will be decreased
   bool cancelCameraMotion = false;
-  bool externalTextures = false;
+  bool useAllSamples = false;
 };
 
 bool is_enabled();
@@ -43,9 +43,8 @@ bool is_frozen_in_pause();
 
 void teardown();
 
-void on_render_resolution_changed(const IPoint2 &rendering_resolution, int format);
+void apply(BaseTexture *source_target_ptr, BaseTexture *resultTex, float current_frame_rate);
 
-void apply(Texture *source_tex, TEXTUREID source_id, float current_frame_rate);
-void apply(Texture *source_tex, TEXTUREID source_id, ManagedTexView resultTex, float current_frame_rate);
+void set_save_config_callback(bool (*fn_save_config)(const MotionBlurSettings &));
 
 } // namespace objectmotionblur

@@ -3,7 +3,9 @@
 
 #include <daScript/daScript.h>
 #include <daScript/ast/ast_typedecl.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/scripts/dasEcsEntity.h>
 #include <ecs/game/generic/grid.h>
 #include <dasModules/aotEcs.h>
@@ -11,6 +13,7 @@
 #include <dasModules/dasManagedTab.h>
 #include <dasModules/aotDagorMath.h>
 #include <dasModules/collisionTraces.h>
+#include "daScript/misc/arraytype.h"
 #include "phys/gridCollision.h"
 
 DAS_BIND_ENUM_CAST(GridHideFlag);
@@ -31,10 +34,7 @@ inline bool das_trace_entities_in_grid(uint32_t grid_name_hash,
   const bool res = ::trace_entities_in_grid(grid_name_hash, from, dir, t, ignore_eid, entities, do_sort);
 
   das::Array arr;
-  arr.data = (char *)entities.data();
-  arr.size = uint32_t(entities.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, entities.data(), entities.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -58,10 +58,7 @@ inline bool das_query_entities_intersections_in_grid(uint32_t grid_name_hash,
   const bool res = ::query_entities_intersections_in_grid(grid_name_hash, planes, tm, rad, rayhit, entities, do_sort);
 
   das::Array arr;
-  arr.data = (char *)entities.data();
-  arr.size = uint32_t(entities.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, entities.data(), entities.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

@@ -32,10 +32,11 @@ static void dump_collision_triangles_to_csv(eastl::string &csv_dump, const Colli
   dag::ConstSpan<CollisionNode> allNodes = coll_res->getAllNodes();
   for (const CollisionNode &cNode : allNodes)
   {
+    const int tris = coll_res->getNodeFaceCount(cNode.nodeIndex);
     if (cNode.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-      physTrianges += CollisionResource::get_node_tris_count(cNode);
+      physTrianges += tris;
     if (cNode.checkBehaviorFlags(CollisionNode::TRACEABLE))
-      traceTriangles += CollisionResource::get_node_tris_count(cNode);
+      traceTriangles += tris;
   }
   csv_dump.append_sprintf("%d;%d;", physTrianges, traceTriangles);
 }

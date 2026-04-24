@@ -59,9 +59,6 @@ static inline uint32_t str_hash_fnv1(const char *fn)
 }
 }; // namespace atlas_tex_manager
 
-static uint8_t clear_value_astc4[16] = {
-  0xFC, 0xFD, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-
 static bool check_format_supported(uint32_t tex_fmt)
 {
   switch (tex_fmt)
@@ -72,53 +69,6 @@ static bool check_format_supported(uint32_t tex_fmt)
     case TEXFMT_ASTC12: return false;
   }
   return true;
-}
-
-static bool need_clear_texture_from_cpu(uint32_t tex_fmt)
-{
-  switch (tex_fmt)
-  {
-    case TEXFMT_ASTC4:
-    case TEXFMT_ASTC8:
-    case TEXFMT_ASTC12: return true;
-  }
-  return false;
-}
-
-static void clear_texture_from_cpu(Texture *tex)
-{
-  if (!tex)
-    return;
-
-  TextureInfo texInfo;
-  tex->getinfo(texInfo);
-
-  uint8_t zeroValue = 0;
-  int clearValueSize = 1;
-  const void *clearValuePtr = &zeroValue;
-  int blockHeight = 1;
-  switch (texInfo.cflg & TEXFMT_MASK)
-  {
-    case TEXFMT_ASTC4:
-      clearValueSize = sizeof(clear_value_astc4);
-      clearValuePtr = clear_value_astc4;
-      blockHeight = 4;
-      break;
-  }
-
-  for (int mip = 0; mip < texInfo.mipLevels; ++mip)
-  {
-    uint8_t *data;
-    int strideBytes;
-    if (tex->lockimg((void **)&data, strideBytes, mip, TEXLOCK_WRITE))
-    {
-      int nBlocksH = texInfo.h / (blockHeight << mip);
-      for (int offset = 0; offset < nBlocksH * strideBytes; offset += clearValueSize)
-        memcpy(data + offset, clearValuePtr, clearValueSize);
-
-      tex->unlockimg();
-    }
-  }
 }
 
 bool atlas_tex_manager::TexRec::initAtlas(int tex_count, dag::ConstSpan<unsigned> tex_fmt, const char *tex_name, IPoint2 tex_size,
@@ -158,11 +108,7 @@ bool atlas_tex_manager::TexRec::initAtlas(int tex_count, dag::ConstSpan<unsigned
   {
     String texName;
     texName.printf(0, "%s_%d", tex_name, i);
-    bool clearFromCpu = need_clear_texture_from_cpu(tex_fmt[i] & TEXFMT_MASK);
-    int initFlag = clearFromCpu ? TEXCF_LOADONCE : TEXCF_CLEAR_ON_CREATE;
-    atlasTex[i] = dag::create_tex(NULL, tex_size.x, tex_size.y, tex_fmt[i] | initFlag, mipCount, texName);
-    if (clearFromCpu)
-      clear_texture_from_cpu(atlasTex[i].getTex2D());
+    atlasTex[i] = dag::create_tex(NULL, tex_size.x, tex_size.y, tex_fmt[i] | TEXCF_CLEAR_ON_CREATE, mipCount, texName, RESTAG_ATLAS);
     atlasTexFmt[i] = tex_fmt[i];
   }
 
@@ -172,6 +118,19 @@ bool atlas_tex_manager::TexRec::initAtlas(int tex_count, dag::ConstSpan<unsigned
 
 void atlas_tex_manager::TexRec::resetAtlas()
 {
+  for (int i = 0; i < atlasTex.size(); ++i)
+  {
+    TEXTUREID texId = atlasTex[i].getTexId();
+    if (texId != BAD_TEXTUREID)
+    {
+      // Release shader variable references.
+      ShaderGlobal::reset_from_vars(texId);
+      // Force-release any remaining external references (e.g. BVH)
+      int extraRefs = get_managed_texture_refcount(texId) - 1;
+      for (int j = 0; j < extraRefs; ++j)
+        release_managed_tex(texId);
+    }
+  }
   atlasTex.clear();
   atlasTexFmt.clear();
   if (ad)
@@ -208,6 +167,13 @@ bool atlas_tex_manager::TexRec::writeTextureToAtlas(Texture *tex, int atlas_inde
       atlas_index, ti.cflg & TEXFMT_MASK, atlasTexFmt[layer] & TEXFMT_MASK);
     return false;
   }
+
+  if (tex->getSize() == 0)
+  {
+    logwarn("Stub texture '%s' in writeTextureToAtlas", tex->getName());
+    return false;
+  }
+
   DynamicTexAtlas::ItemData *d = ad->itemData[atlas_index];
 
   if (d)

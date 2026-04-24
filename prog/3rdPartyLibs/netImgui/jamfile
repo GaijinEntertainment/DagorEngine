@@ -13,6 +13,7 @@ AddIncludes =
 
   $(Root)/prog/3rdPartyLibs/imgui
   $(Root)/prog/3rdPartyLibs/stb
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
 ;
 
 Sources =
@@ -21,10 +22,18 @@ Sources =
   source/NetImgui_CmdPackets_DrawFrame.cpp
   quicklz/quicklz.cpp
 ;
-if $(Platform) in windows { Sources += source/NetImgui_NetworkWin32.cpp ; }
+if $(Platform) in windows xboxOne scarlett {
+  Sources += source/NetImgui_NetworkWin32.cpp ;
+  CPPopt += -DNETIMGUI_WINSOCKET_ENABLED ;
+}
+if $(Platform) in linux macOS android ios {
+  Sources += source/NetImgui_NetworkPosix.cpp ;
+  CPPopt += -DNETIMGUI_POSIX_SOCKETS_ENABLED ;
+}
 
 UseProgLibs =
   3rdPartyLibs/imgui
+  3rdPartyLibs/arc/zstd-$(ZstdVer)
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

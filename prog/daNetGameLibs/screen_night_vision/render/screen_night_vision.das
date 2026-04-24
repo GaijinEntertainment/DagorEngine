@@ -1,7 +1,7 @@
 options persistent_heap
 
 require ecs
-require danetlibs.renderer.includes.render_events
+require gameLibs.render_events.render_events
 require DagorMath
 require DagorShaders
 require DagorSystem
@@ -72,7 +72,7 @@ def screen_night_vision_attach(var screenNightVision : NodeHandleWithSlotsAccess
 
   screenNightVision <- root() |> registerAccess("screen_night_vision", SlotActions(update <- [Update(slot="postfx_input_slot", resource="screen_night_vision_tex", priority=100)])) <| @(slots_state; var registry : Registry)
 
-    registry |> create(slots_state |> resourceToCreateFor("postfx_input_slot"), History.No) |> texture(
+    registry |> create(slots_state |> resourceToCreateFor("postfx_input_slot")) |> texture(
       Texture2dCreateInfo(
         creationFlags = TEXFMT_R11G11B10F | TEXCF_RTARGET,
         resolution = TextureResolution2(autoRes = registry |> getResolution`2("post_fx"))

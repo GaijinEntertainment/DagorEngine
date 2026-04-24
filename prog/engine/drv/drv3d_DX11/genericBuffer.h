@@ -1,7 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "driver_defs.h"
 #include <3d/tql.h>
+#include <d3d11.h>
+#include <drv/3d/dag_buffers.h>
 #include <resourceName.h>
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_query.h>
@@ -14,12 +17,12 @@ framemem flag mandatory for dynamic buffers and the validation could be removed.
 */
 // #define ADDITIONAL_DYNAMIC_BUFFERS_VALIDATION
 
-// check that updates of buffers do not generate GPU waits
-// #define VALIDATE_FOR_BLOCKING_UPDATES 1
+// places marker in profiler when blocking locks are happening
+// set 2 to dump each blocking log as error
+#define DETECT_AND_PROFILE_BLOCKING_LOCK 1
 
 namespace drv3d_dx11
 {
-static constexpr int VBLOCK_DELAYED = 0x10000;
 
 class GenericBuffer final : public D3dResourceNameImpl<Sbuffer>
 {
@@ -28,29 +31,10 @@ public:
   ID3D11Buffer *stagingBuffer = nullptr; // non-null if allocated
   ID3D11UnorderedAccessView *uav = nullptr;
   ID3D11ShaderResourceView *srv = nullptr;
-  char *sysMemBuf = nullptr;
   Sbuffer::IReloadData *rld = nullptr;
-  char *systemCopy = nullptr;
   int handle = -1;
 #ifdef ADDITIONAL_DYNAMIC_BUFFERS_VALIDATION
   bool updated = false;
-#endif
-#ifdef VALIDATE_FOR_BLOCKING_UPDATES
-  struct UpdateHistoryElement
-  {
-    bool completed;
-    bool write;
-    d3d::EventQuery *completion;
-    size_t offset;
-    size_t size;
-  };
-  dag::Vector<UpdateHistoryElement> updateHistory;
-  int activeLockFlags;
-  void checkBlockingUpdate(size_t offset, size_t size, bool write);
-  void trackUpdate(size_t offset, size_t size, bool write);
-#else
-  void checkBlockingUpdate(size_t, size_t, bool) {}
-  void trackUpdate(size_t, size_t, bool) {}
 #endif
 
   enum BufferState
@@ -95,8 +79,15 @@ public:
   bool copyTo(Sbuffer *dest) override;
   bool copyTo(Sbuffer *dest, uint32_t dst_ofs_bytes, uint32_t src_ofs_bytes, uint32_t size_bytes) override;
 
+  D3D11_MAP mapTypeFromFlags(int flags);
+  bool ensureStagingBuffer();
+  void releaseStagingBuffer();
+  void copyInternal(ID3D11Buffer *dst, ID3D11Buffer *src);
+  bool ensureBufferCreated();
+  void unmapBuffer(ID3D11Buffer *target_buf);
+  bool isCPUWritable();
+
   int lock(unsigned ofs_bytes, unsigned size_bytes, void **ptr, int flags) override;
-  void *lock(uint32_t ofs_bytes, uint32_t size_bytes, int flags);
   int unlock() override;
   bool updateData(uint32_t ofs_bytes, uint32_t size_bytes, const void *__restrict src, uint32_t lockFlags) override;
 

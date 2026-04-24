@@ -21,6 +21,7 @@
 #include <memory.h>
 #include <string.h>
 
+#include <memory/dag_mem.h>
 #include <memory/dag_fixedBlockChunk.h>
 
 #define FBA_MIN_BLOCKS 2u // minimum block size should allow storing free block index
@@ -29,13 +30,11 @@
 
 #if DAGOR_DBGLEVEL > 0 && _DEBUG_TAB_
 #if defined(_M_IX86_FP) && _M_IX86_FP == 0
-#define FBA_MIN4K(x) x
+#define FBA_MIN4K(x) min<unsigned>(x, 65536u)
 #else
 #define FBA_MIN4K(x) min<unsigned>(x, 4096u)
 #endif
-#define FBA_DEBUG_FILL_MEM(p, sz, ptrn)                                   \
-  for (int *i = (int *)(p), *e = i + FBA_MIN4K(sz / sizeof(int)); i < e;) \
-  *i++ = ptrn
+#define FBA_DEBUG_FILL_MEM(p, sz, ptrn) memset_dw(p, ptrn, FBA_MIN4K(sz) / sizeof(int))
 #else
 #define FBA_DEBUG_FILL_MEM(p, sz, ptrn)
 #endif

@@ -16,7 +16,7 @@ class VariantContext
   const ShaderVariant::VariantInfo mVariant;
   ShaderSemCode &mParsedSemcodeRef;
   ShaderSemCode::PassTab *mParsedPassRef;
-  NamedConstBlock mNamedConstsTable{};
+  NamedConstBlock mNamedConstsTable;
   BoolVarTable mBoolVarTable;
   LocalVarTable mLocVars;
   StcodeBytecodeAccumulator mStcodeBytecode;

@@ -1,0 +1,26 @@
+Root    ?= ../../../../.. ;
+StrictCompile = yes ;
+UseQuirrel = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/webui/plugins/dargMcp ;
+
+TargetType  = lib ;
+Target      = gameLibs/webui/plugins/dargMcp.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/dagorInclude
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+UseProgLibs =
+  3rdPartyLibs/image/libpng-1.4.22
+;
+
+Sources =
+  dargMcpPlugin.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

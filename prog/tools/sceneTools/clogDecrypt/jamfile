@@ -1,4 +1,5 @@
 PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows ?= clang ;
 Config     = rel ;
 ConsoleExe = yes ;
 

@@ -85,7 +85,7 @@ ECS_DECLARE_RELOCATABLE_TYPE(DynamicDetailsTextureManager);
 ECS_REGISTER_RELOCATABLE_TYPE(DynamicDetailsTextureManager, nullptr);
 
 template <typename Callable>
-static void create_dynamic_details_ecs_query(ecs::EntityId, Callable);
+static void create_dynamic_details_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 ECS_TAG(render)
 static void create_dynamic_details_es(const BeforeLoadLevel &, ecs::EntityManager &manager)
@@ -93,7 +93,7 @@ static void create_dynamic_details_es(const BeforeLoadLevel &, ecs::EntityManage
   if (!manager.getTemplateDB().getTemplateByName("dynamic_details"))
     return;
 
-  create_dynamic_details_ecs_query(manager.getOrCreateSingletonEntity(ECS_HASH("dynamic_details")),
+  create_dynamic_details_ecs_query(manager, manager.getOrCreateSingletonEntity(ECS_HASH("dynamic_details")),
     [](DynamicDetailsTextureManager &dynamic_details_mgr, const ecs::StringList &dynamicDetails) {
       for (const ecs::string &texName : dynamicDetails)
         dynamic_details_mgr.details_names.addNameId(texName.c_str());
@@ -167,7 +167,7 @@ static int get_detail_id_by_name(const char *name, const FastNameMap &details_na
 }
 
 template <typename Callable>
-static void get_dynamic_details_indices_ecs_query(Callable c);
+static void get_dynamic_details_indices_ecs_query(ecs::EntityManager &manager, Callable c);
 
 struct DynamicDetails
 {
@@ -180,7 +180,7 @@ DynamicDetails get_dynamic_details_indices(
   int seed, const ecs::Object &dynamic_details__groups, const ecs::Array &dynamic_details__presets)
 {
   DynamicDetails result;
-  get_dynamic_details_indices_ecs_query([&](const DynamicDetailsTextureManager &dynamic_details_mgr) {
+  get_dynamic_details_indices_ecs_query(*g_entity_mgr, [&](const DynamicDetailsTextureManager &dynamic_details_mgr) {
     if (dynamic_details__presets.empty())
       return;
 
@@ -270,7 +270,7 @@ DynamicDetails get_dynamic_details_indices(
 static DynamicDetails apply_dynamic_details_preset(const ecs::Array &dynamic_details_preset)
 {
   DynamicDetails result;
-  get_dynamic_details_indices_ecs_query([&](const DynamicDetailsTextureManager &dynamic_details_mgr) {
+  get_dynamic_details_indices_ecs_query(*g_entity_mgr, [&](const DynamicDetailsTextureManager &dynamic_details_mgr) {
     int count = dynamic_details_preset.size();
     if (count > D_CPT)
     {
@@ -340,13 +340,13 @@ static void dynamic_detials_after_reset_es(const AfterDeviceReset &, DynamicDeta
 }
 
 template <typename Callable>
-static void reset_dynamic_details_all_ecs_query(Callable c);
+static void reset_dynamic_details_all_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void reset_dynamic_details_selected_ecs_query(Callable c);
+static void reset_dynamic_details_selected_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void info_dynamic_details_selected_ecs_query(Callable c);
+static void info_dynamic_details_selected_ecs_query(ecs::EntityManager &manager, Callable c);
 
 
 static bool dynamic_details_write_debug_info(
@@ -392,8 +392,8 @@ static bool dynamic_details_console_handler(const char *argv[], int argc)
   int found = 0;
   CONSOLE_CHECK_NAME("dynamic_details", "info", 1, 1)
   {
-    get_dynamic_details_indices_ecs_query([&](const DynamicDetailsTextureManager &dynamic_details_mgr) {
-      info_dynamic_details_selected_ecs_query(
+    get_dynamic_details_indices_ecs_query(*g_entity_mgr, [&](const DynamicDetailsTextureManager &dynamic_details_mgr) {
+      info_dynamic_details_selected_ecs_query(*g_entity_mgr,
         [&](ecs::EntityId eid,
           AnimV20::AnimcharRendComponent &animchar_render ECS_REQUIRE(const AnimV20::AnimcharBaseComponent &animchar,
             const ecs::Object &dynamic_details__groups, const ecs::Array &dynamic_details__presets, bool skeleton_attach__attached,

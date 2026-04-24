@@ -2,10 +2,12 @@
 #pragma once
 
 #include "shsyn.h"
+#include "shExpr.h"
 #include "commonUtils.h"
 #include "nameMap.h"
 
 #include <drv/3d/dag_consts.h>
+#include <generic/dag_functionRef.h>
 
 #include <EASTL/vector.h>
 #include <EASTL/string.h>
@@ -15,21 +17,17 @@
 #include <EASTL/optional.h>
 #include <EASTL/bitvector.h>
 
-namespace shc
-{
-class TargetContext;
-}
+struct PreshaderStat;
+struct LocalVar;
 
 namespace ShaderParser
 {
-
-class AssembleShaderEvalCB;
 
 struct VariablesMerger
 {
   enum
   {
-    TYPE_FLOAT,
+    TYPE_FLOAT = 0,
     TYPE_INT,
     TYPE_UINT,
 
@@ -68,6 +66,13 @@ struct VariablesMerger
   using MergedVarsMap = ska::flat_hash_map<eastl::string, MergedVars>;
   using MergedVarsMapsPerStage = eastl::array<MergedVarsMap, (int)ShaderStage::STAGE_MAX>;
 
+  struct Callbacks
+  {
+    dag::FunctionRef<void(const PreshaderStat &) const> compileStat;
+    dag::FunctionRef<int(const ShaderTerminal::local_var_decl &) const> compileLocalVar;
+    dag::FunctionRef<void(int) const> releaseRegister;
+  };
+
   MergeableStateBlocksPerStage constBlocks;
   MergedVarsMapsPerStage constVarsMaps;
   MergeableStateBlocks bufferedBlocks;
@@ -78,33 +83,21 @@ struct VariablesMerger
   SCFastNameMap bufferedStatsNames;
   eastl::bitvector<> bufferedDeclaredInVs, bufferedDeclaredInPsOrCs;
 
-  shc::TargetContext &ctx;
-
-  explicit VariablesMerger(shc::TargetContext &a_ctx) : ctx{a_ctx} {}
-
   void addConstStat(ShaderTerminal::state_block_stat &state_block, ShaderStage stage)
   {
     constBlocks[stage].emplace_back(&state_block);
   }
   void addBufferedStat(ShaderTerminal::state_block_stat &state_block, ShaderStage stage);
 
-  void mergeAllVars(AssembleShaderEvalCB *ascb)
+  void mergeAllVars(const Callbacks &callbacks)
   {
     for (ShaderStage stage : {STAGE_CS, STAGE_PS, STAGE_VS})
-      mergeVars(ascb, constBlocks[stage], constVarsMaps[stage], stage);
-    mergeVars(ascb, bufferedBlocks, bufferedVarsMap, STAGE_PS); // Both STAGE_PS and STAGE_VS are ok here -- static cbuf is shared
+      mergeVars(constBlocks[stage], constVarsMaps[stage], stage, callbacks);
+    // Both STAGE_PS and STAGE_VS are ok here -- static cbuf is shared
+    mergeVars(bufferedBlocks, bufferedVarsMap, STAGE_PS, callbacks);
   }
 
-  const MergedVars *findOriginalConstVarsInfo(const eastl::string merged_var_name, ShaderStage stage) const
-  {
-    return findOriginalVarsInfo(merged_var_name, constVarsMaps[stage]);
-  }
-  const MergedVars *findOriginalBufferedVarsInfo(const eastl::string merged_var_name) const
-  {
-    return findOriginalVarsInfo(merged_var_name, bufferedVarsMap);
-  }
-
-  void mergeVars(AssembleShaderEvalCB *ascb, MergeableStateBlocks &blocks, MergedVarsMap &var_map, ShaderStage stage);
+  void mergeVars(MergeableStateBlocks &blocks, MergedVarsMap &var_map, ShaderStage stage, const Callbacks &callbacks);
   static const MergedVars *findOriginalVarsInfo(const eastl::string merged_var_name, const MergedVarsMap &map)
   {
     auto found = map.find(merged_var_name);

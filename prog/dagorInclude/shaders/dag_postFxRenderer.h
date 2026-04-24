@@ -31,13 +31,11 @@ public:
   const ShaderMaterial *getMat() const { return shmat; }
   const ShaderElement *getElem() const { return shElem; }
 
-  void render() const { drawInternal(1); }                            // draw optimal
-  void renderTiled(int num_tiles) const { drawInternal(num_tiles); }; // With Flush between tiles.
+  void render() const;
+
 protected:
   Ptr<ShaderMaterial> shmat;
   Ptr<ShaderElement> shElem;
-
-  void drawInternal(int num_tiles) const;
 };
 
 

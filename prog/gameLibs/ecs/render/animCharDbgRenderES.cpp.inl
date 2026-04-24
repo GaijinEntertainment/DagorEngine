@@ -1,6 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 #include <shaders/dag_dynSceneRes.h>
 #include <daECS/core/updateStage.h>
 #include <ecs/anim/anim.h>
@@ -12,7 +18,7 @@ CONSOLE_BOOL_VAL("anim", render_debug_bounds, false);
 CONSOLE_BOOL_VAL("anim", render_skeleton, false);
 
 template <typename Callable>
-inline void animchar_bounds_debug_render_ecs_query(Callable c);
+inline void animchar_bounds_debug_render_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static void drawSkeletonLinks(const GeomNodeTree &tree, dag::Index16 n, const DynamicRenderableSceneInstance *scn,
   const AnimcharNodesMat44 &animchar_node_wtm)
@@ -34,13 +40,13 @@ static void drawSkeletonLinks(const GeomNodeTree &tree, dag::Index16 n, const Dy
 
 ECS_NO_ORDER
 ECS_TAG(render, dev)
-static __forceinline void animchar_render_debug_es(const ecs::UpdateStageInfoRenderDebug &)
+static __forceinline void animchar_render_debug_es(const ecs::UpdateStageInfoRenderDebug &, ecs::EntityManager &manager)
 {
   if (!render_debug_bounds.get() && !render_skeleton.get())
     return;
 
   begin_draw_cached_debug_lines();
-  animchar_bounds_debug_render_ecs_query(
+  animchar_bounds_debug_render_ecs_query(manager,
     [&](const AnimV20::AnimcharBaseComponent &animchar, const AnimV20::AnimcharRendComponent &animchar_render,
       const AnimcharNodesMat44 &animchar_node_wtm, const vec4f &animchar_bsph, const bbox3f &animchar_bbox,
       const animchar_visbits_t animchar_visbits ECS_REQUIRE(eastl::true_type animchar_render__enabled)) {

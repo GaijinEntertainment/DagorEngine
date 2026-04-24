@@ -22,7 +22,7 @@ enum class PerfDisplayMode
 
 class FrameTimeMetricsAggregator
 {
-  eastl::fixed_string<char, 64> fpsText;
+  eastl::fixed_string<char, 128> fpsText;
   eastl::string latencyText;
   // This ensures that all instances refresh in sync
   int lastPeriod = 0;
@@ -41,8 +41,11 @@ class FrameTimeMetricsAggregator
   float lastAverageLatencyR = 0.f;
   PerfDisplayMode displayMode = PerfDisplayMode::OFF;
   bool achtung = false;
+  bool isBackgroundShadersProcessingInProgress = false;
   eastl::optional<bool> isPixCapturerLoaded;
   eastl::optional<IPoint2> renderingResolution;
+  eastl::optional<IPoint2> dynamicResolution;
+  eastl::optional<float> dynamicResolutionRate;
 
 public:
   void update(float current_time_msec, uint32_t frame_no, float dt, PerfDisplayMode display_mode, uint32_t last_frame_count = 1);
@@ -59,6 +62,7 @@ public:
   PerfDisplayMode getDisplayMode() const { return displayMode; }
   uint32_t getColorForFpsInfo() const;
   void setRenderingResolution(const eastl::optional<IPoint2> &resolution) { renderingResolution = resolution; }
+  void setDynamicResolution(bool enabled, const IPoint2 &resolution, float rate);
 };
 
 enum QualityColors
@@ -66,7 +70,8 @@ enum QualityColors
   EPIC = 0xffb080ffu,
   GOOD = 0xff00ff00u,
   OKAY = 0xffffa500u, // OKAY is worse then OK
-  POOR = 0xffff0000u
+  POOR = 0xffff0000u,
+  BACKGROUND_SHADERS_PROCESSING = 0xff0000ffu,
 };
 
 const uint32_t SYSTEM_TEXT_BORDER_X = 4;

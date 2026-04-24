@@ -1,0 +1,23 @@
+
+Test: instanceof with built-in types
+  5 instanceof Integer: true
+  3.14 instanceof Float: true
+  true instanceof Bool: true
+  "hello" instanceof String: true
+  [1,2,3] instanceof Array: true
+  {a=1} instanceof Table: true
+  null instanceof Null: true
+
+Test: Cross-type checks (should be false)
+  5 instanceof String: false
+  "hello" instanceof Integer: false
+
+Test: classof() function
+  classof(5)==Integer: true
+  classof("hi")==String: true
+  classof(true)==Bool: true
+  classof([])==Array: true
+
+Test: Type methods still work
+  "hello".len(): 5
+  [1,2,3].len(): 3

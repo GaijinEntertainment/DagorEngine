@@ -54,8 +54,8 @@ public:
   bool updateSettings(const DataBlock *level_settings, const DataBlock *game_settings);
 
   TEXTUREID downsample(Texture *input_tex, TEXTUREID input_id);
-  void apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTUREID targtexId, const TMatrix &view_tm,
-    const TMatrix4 &proj_tm, bool force_disable_motion_blur = false);
+  void apply(Texture *source, Texture *target, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+    bool force_disable_motion_blur = false);
 
   DemonPostFx *getDemonPostFx() { return demonPostFx; }
   PostFxRenderer *getGenPostFx() { return genPostFx; }

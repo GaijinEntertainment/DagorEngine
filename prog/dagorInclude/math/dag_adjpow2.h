@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <supp/dag_math.h>
 #include <math/dag_bits.h>
+#include <util/dag_bitwise_cast.h>
 
 // Round up to the next highest power of 2 (for 768 - it will be 1024)
 inline int get_bigger_pow2(int a)
@@ -142,4 +143,18 @@ template <typename T>
 static constexpr bool is_pow2(T value)
 {
   return (value & (value - 1)) == 0;
+}
+
+inline float get_bigger_or_equal_pow2f(float x)
+{
+  if (x <= 0.0f)
+    return 0.0f;
+  uint32_t u = bitwise_cast<int, float>(x);
+  uint32_t exp = (u >> 23) & 0xFF;
+  uint32_t mant = u & 0x7FFFFF;
+  if (mant == 0)
+    return x;
+  exp++;
+  u = exp << 23;
+  return bitwise_cast<float, int>(u);
 }

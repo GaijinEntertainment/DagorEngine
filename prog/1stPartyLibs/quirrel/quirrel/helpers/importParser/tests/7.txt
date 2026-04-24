@@ -1,1 +1,0 @@
-from file as file3 import a.var2.*

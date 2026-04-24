@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  gamePulls += framework_initial_transform_cache_pull ;
+  UseProgLibs += daNetGameLibs/initial_transform_cache ;
+}

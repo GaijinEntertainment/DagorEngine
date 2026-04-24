@@ -1,0 +1,27 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("test-pkg")
+    package_author("Test Author")
+    package_description("A test package")
+    package_source("https://github.com/test/test-pkg")
+}
+
+[export]
+def resolve(sdk_version, version : string) {
+    download_tag("v{version}")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("https://github.com/test/dep-a", ">=1.0")
+    require_package("https://github.com/test/dep-b")
+}
+
+[export]
+def build() {
+    cmake_build()
+}

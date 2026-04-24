@@ -13,6 +13,7 @@
 #include <debug/dag_debug.h>
 #include <unistd.h>
 #include <locale.h>
+#include <signal.h>
 #include "dag_addBasePathDef.h"
 #include "dag_loadSettings.h"
 
@@ -40,6 +41,9 @@ int main(int argc, char *argv[])
   bool noeh = dgs_get_argv("noeh");
   if (!noeh)
     DagorHwException::setHandler("main");
+
+  // writing to a socket closed by the peer leads to SIGPIPE, process will exit if it is not ignored
+  signal(SIGPIPE, SIG_IGN);
 
   default_crt_init_kernel_lib();
 

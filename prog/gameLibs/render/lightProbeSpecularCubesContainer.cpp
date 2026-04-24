@@ -67,7 +67,6 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
 
     compressor =
       eastl::make_unique<BcCompressor>(BcCompressor::COMPRESSION_BC6H, compressedMips, cubeSize, cubeSize, 1, "bc6h_compressor");
-    sampler = d3d::request_sampler({});
 
     if (!compressor->isValid())
     {
@@ -80,7 +79,8 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
   uint32_t cube_format = compressionAvailable ? TEXFMT_BC6H | TEXCF_UPDATE_DESTINATION : texture_format;
 
   const char *texName = "light_probe_specular_cubes";
-  cubesArray = dag::create_cube_array_tex(cubeSize, CAPACITY, cube_format | TEXCF_CLEAR_ON_CREATE, specularMips, texName);
+  cubesArray =
+    dag::create_cube_array_tex(cubeSize, CAPACITY, cube_format | TEXCF_CLEAR_ON_CREATE, specularMips, texName, RESTAG_LIGHTS);
   ShaderGlobal::set_sampler(get_shader_variable_id("light_probe_specular_cubes_samplerstate", true), d3d::request_sampler({}));
 
   rtCube.reset(light_probe::create("light_probe_rt_cube", cubeSize, texture_format));
@@ -102,7 +102,7 @@ void LightProbeSpecularCubesContainer::init(const int cube_size, uint32_t textur
   const char *lastMipsFaceTexName = "bc6h_high_quality_compression_target";
   bc6hHighQualityCompressor = eastl::unique_ptr<ComputeShaderElement>(new_compute_shader("bc6h_high_quality_cs", true));
   lastMipsBc6HTarget = dag::create_array_tex(sizeInCompressedBlocks, sizeInCompressedBlocks, 6,
-    TEXFMT_A32B32G32R32UI | TEXCF_UNORDERED, compressedMips, lastMipsFaceTexName);
+    TEXFMT_A32B32G32R32UI | TEXCF_UNORDERED, compressedMips, lastMipsFaceTexName, RESTAG_LIGHTS);
 
   ShaderGlobal::set_int_fast(bc6h_compression_modeVarId, 0);
 }
@@ -282,7 +282,7 @@ void LightProbeSpecularCubesContainer::compressMips(int cube_index, int face_sta
     const int cubeMipSide = sizeInCompressedBlocks >> min(mip, compressedMips - 1);
     if (mip > 2)
     {
-      ShaderGlobal::set_real_fast(bc6h_src_mipVarId, mip);
+      ShaderGlobal::set_float(bc6h_src_mipVarId, mip);
       ShaderGlobal::set_texture(bc6h_src_texVarId, *light_probe::getManagedTex(rtCube.get()));
       d3d::set_rwtex(STAGE_CS, 0, lastMipsBc6HTarget.getArrayTex(), 0, min(mip, compressedMips - 1));
       bc6hHighQualityCompressor->dispatch(cubeMipSide, cubeMipSide, 6);
@@ -293,7 +293,7 @@ void LightProbeSpecularCubesContainer::compressMips(int cube_index, int face_sta
       const int destCubeFace = mip + specularMips * (faceNumber + cube_index * 6);
       if (mip <= 2)
       {
-        compressor->updateFromFaceMip(light_probe::getManagedTex(rtCube.get())->getTexId(), sampler, faceNumber, mip,
+        compressor->updateFromFaceMip(light_probe::getManagedTex(rtCube.get())->getTexId(), faceNumber, mip,
           min(mip, compressedMips - 1));
         compressor->copyToMip(arrayTex, destCubeFace, 0, 0, min(mip, compressedMips - 1));
       }

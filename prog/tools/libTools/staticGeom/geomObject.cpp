@@ -535,7 +535,7 @@ void GeomObject::render()
 
   // BBox3 bbox = getBoundBox();
 
-  //    ShaderGlobal::set_color4(worldViewPosId,
+  //    ShaderGlobal::set_float4(worldViewPosId,
   //      Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
 
   for (int i = 0; i < shMesh.size(); ++i)
@@ -588,7 +588,7 @@ void GeomObject::renderTrans()
 
   // BBox3 bbox = getBoundBox();
 
-  //    ShaderGlobal::set_color4(worldViewPosId,
+  //    ShaderGlobal::set_float4(worldViewPosId,
   //      Color4(::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f));
 
   for (int i = 0; i < shMesh.size(); ++i)
@@ -1286,7 +1286,7 @@ const char *filter_class_name = NULL;
 
 void GeomObject::RenderObject::render()
 {
-  ShaderGlobal::set_real(hdrLightmapScaleId, LIGHTMAP_SCALE);
+  ShaderGlobal::set_float(hdrLightmapScaleId, LIGHTMAP_SCALE);
 
   beforeRenderCheck();
   static int lmesh_vs_const__pos_to_worldVarId = ::get_shader_variable_id("lmesh_vs_const__pos_to_world", true);
@@ -1346,7 +1346,7 @@ void GeomObject::RenderObject::renderTrans()
     d3d::set_vs_const1(lmesh_vs_const__pos_to_world + 1, lods[curLod].pos_to_world_ofs.x, lods[curLod].pos_to_world_ofs.y,
       lods[curLod].pos_to_world_ofs.z, 1);
   }
-  ShaderGlobal::set_real(hdrLightmapScaleId, LIGHTMAP_SCALE);
+  ShaderGlobal::set_float(hdrLightmapScaleId, LIGHTMAP_SCALE);
 
   lods[curLod].mesh->render_trans();
   if (lmesh_vs_const__pos_to_world >= 0 && lods[curLod].hasLandmesh)

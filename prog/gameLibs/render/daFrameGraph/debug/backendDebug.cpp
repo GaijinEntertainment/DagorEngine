@@ -26,9 +26,9 @@ void debug_clear_resource_placements() { Runtime::get().getVisualizerPtr()->clea
 
 void debug_clear_resource_barriers() { Runtime::get().getVisualizerPtr()->clearResourceBarriers(); }
 
-void debug_rec_resource_placement(ResNameId id, int frame, int heap, int offset, int size)
+void debug_rec_resource_placement(ResNameId id, int frame, int heap, int offset, int size, bool is_cpu)
 {
-  Runtime::get().getVisualizerPtr()->recResourcePlacement(id, frame, heap, offset, size);
+  Runtime::get().getVisualizerPtr()->recResourcePlacement(id, frame, heap, offset, size, is_cpu);
 }
 
 void debug_rec_resource_barrier(ResNameId res_id, int res_frame, int exec_time, int exec_frame, ResourceBarrier barrier)

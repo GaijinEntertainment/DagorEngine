@@ -6,6 +6,9 @@ include "outline_xray_inc.dshl"
 include "taa_inc.dshl"
 include "paint_details_inc.dshl"
 include "unpack_unit_vector_inc.dshl"
+include "dynamic_destr_disappear_inc.dshl"
+
+float4 params_validation_debug_color = (1,0,1,16);
 
 hlsl {
   #define VERTEX_TANGENT 0
@@ -170,6 +173,9 @@ macro DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
         #if NEED_POINT_TO_EYE
         float3 pointToEye                       : TEXCOORD7;
         #endif
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+        float4 destr_params                     : TEXCOORD8;
+        #endif
         #if HAS_TORN_WOUNDS_DEBUG
         float4 debugColor                       : TEXCOORD12;
         #endif
@@ -179,13 +185,16 @@ macro DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
       };
       #endif
     }
-    hlsl(vs) {
+    hlsl {
       #if !(ATEST_IS_ON || SUPPORT_DEFORM_INFO)
       struct VsOutput
       {
         PRECISE VS_OUT_POSITION(pos)
         #if NEED_POINT_TO_EYE
         float3 pointToEye                       : TEXCOORD2;
+        #endif
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+        float4 destr_params                     : TEXCOORD3;
         #endif
         #if SET_UP_MULTIDRAW
         VSOUT_DRAW_ID
@@ -230,8 +239,11 @@ macro DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
         float4 out_pos                          : TEXCOORD4;
         float4 out_pos_prev                     : TEXCOORD5;
         #endif
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+        float4 destr_params                     : TEXCOORD14;
+        #endif
         #if HAS_TORN_WOUNDS_DEBUG
-        float4 debugColor                       : TEXCOORD14;
+        float4 debugColor                       : TEXCOORD15;
         #endif
         #if SET_UP_MULTIDRAW
         VSOUT_DRAW_ID
@@ -339,20 +351,38 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
       output.pointToEye.xyz = -eyeToPoint;
     #endif
 
-##if dyn_model_render_pass == render_pass_normal
+    #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+      output.destr_params = generate_destr_params(input.pos);
+    #endif
 
+    float4 prevPos = float4(0, 0, 0, 0);
+##if dyn_model_render_pass == render_pass_normal
      worldNormal = normalize(worldNormal);
     #ifndef NEED_POINT_TO_EYE
       output.pointToEye.xyz = -eyeToPoint;
     #endif
       output.normal.xyz = worldNormal;
     #ifdef MOTION_VECTORS_ENABLED
-      output.out_pos_prev = get_prevframe_output_pos(input, input.pos);
-      output.out_pos = output.pos;
+      prevPos = get_prevframe_output_pos(input, input.pos);
+      // Initialize out_pos, out_pos_prev to make compiler happy. Proper values are set after vs_post_function.
+      output.out_pos = float4(0, 0, 0, 0);
+      output.out_pos_prev = float4(0, 0, 0, 0);
+    #endif
+##endif
+
+    #if POST_FUNCTION_MODIFIES_POSITION
+      vs_post_function(input, output, prevPos);
+    #else
+      vs_post_function(input, output);
     #endif
 
-##endif //renderModelForShadow != renderModelForShadowMask
-      vs_post_function(input, output);
+##if dyn_model_render_pass == render_pass_normal
+    #ifdef MOTION_VECTORS_ENABLED
+      output.out_pos = output.pos;
+      output.out_pos_prev = prevPos;
+    #endif
+##endif
+
       return output;
     }
   }
@@ -361,7 +391,9 @@ macro DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
 endmacro
 
 macro DYNAMIC_SIMPLE_VS_BASE()
+DYNAMIC_DESTR_DISAPPEAR_INIT()
 DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+DYNAMIC_DESTR_DISAPPEAR_USE()
 hlsl(vs) {
   void vs_post_function(VsInput input, inout VsOutput output)
   {
@@ -379,29 +411,4 @@ endmacro
 
 macro DYNAMIC_SIMPLE_VS_NOATEST()
   DYNAMIC_SIMPLE_VS_BASE()
-endmacro
-
-macro DYNAMIC_SIMPLE_SHARED_DECL(code)
-
-  if (small_sampled_buffers == no)
-  {
-    (code) {
-      instance_data_buffer@buf = instance_data_buffer hlsl { Buffer<float4> instance_data_buffer@buf; }
-    }
-  } else
-  {
-    (code) {
-      instance_data_buffer@buf = instance_data_buffer hlsl { StructuredBuffer<float4> instance_data_buffer@buf; }
-    }
-  }
-
-endmacro
-
-macro DYNAMIC_SIMPLE_VS_SHARED_DECL()
-  supports global_frame;
-  DYNAMIC_SIMPLE_SHARED_DECL(vs)
-  (vs) {
-    viewProjTm@f44 = viewprojtm;
-    matrices_stride@i1 = (matrices_stride);
-  }
 endmacro

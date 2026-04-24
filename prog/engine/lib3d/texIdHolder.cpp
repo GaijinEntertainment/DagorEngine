@@ -1,12 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <drv/3d/dag_texture.h>
-#include <drv/3d/dag_tex3d.h>
 #include <3d/dag_textureIDHolder.h>
 #include <shaders/dag_shaders.h>
-#include <drv/3d/dag_driver.h>
-#include <EASTL/string.h>
-#include <math/dag_adjpow2.h>
 
 bool TextureIDPair::is_voltex() const { return !tex || tex->getType() == D3DResourceType::VOLTEX; }
 bool TextureIDPair::is_arrtex() const
@@ -98,79 +94,3 @@ void TextureIDHolderWithVar::close()
 }
 
 void TextureIDHolderWithVar::setVar() const { ShaderGlobal::set_texture(varId, texId); }
-
-void ResizableTextureIDHolder::resize(int w, int h)
-{
-  if (!tex)
-  {
-    logerr("resizing non initialized tex");
-    return;
-  }
-  TextureInfo currentTexInfo;
-  tex->getinfo(currentTexInfo);
-  TextureRecord currentTexRec = {tex, texId};
-  if (aliases.empty() && !currentTexInfo.isCommitted) // if texture is committed, we can't alias it
-  {
-    aliases.insert({getKey(currentTexInfo.w, currentTexInfo.h), currentTexRec});
-  }
-  TexRecKey key = getKey(w, h);
-  auto iter = aliases.find(key);
-  TextureRecord texRec;
-  if (iter != aliases.end())
-  {
-    texRec = iter->second;
-    if (tex == texRec.tex)
-      return;
-  }
-  else
-  {
-    // base texture always has largest size
-    const TextureRecord &baseTexRec = aliases.empty() ? currentTexRec : aliases.rbegin()->second;
-    TextureInfo baseTexInfo;
-    baseTexRec.tex->getinfo(baseTexInfo);
-    int maxMips = min(get_log2w(w), get_log2w(h)) + 1;
-    int mipLevels = min(baseTexRec.tex->level_count(), maxMips);
-    if (w > baseTexInfo.w || h > baseTexInfo.h || currentTexInfo.isCommitted)
-    {
-      debug("Resizing %s to larger size than it has. This texture will be recreated", get_managed_res_name(baseTexRec.texId));
-      eastl::string baseTexName(get_managed_res_name(baseTexRec.texId));
-      eastl::string shaderVarName(VariableMap::getVariableName(varId));
-      close();
-      set(d3d::create_tex(nullptr, w, h, baseTexInfo.cflg, mipLevels, baseTexName.data()), baseTexName.data(), shaderVarName.data());
-      setVar();
-      return;
-    }
-    eastl::string aliasTexName;
-    aliasTexName.sprintf("alias%d_%s", aliases.size(), get_managed_res_name(baseTexRec.texId));
-    texRec.tex = d3d::alias_tex(baseTexRec.tex, nullptr, w, h, baseTexInfo.cflg, mipLevels, aliasTexName.data());
-    if (!texRec.tex)
-    {
-      logerr("d3d::alias_tex() not supported");
-      return;
-    }
-    texRec.texId = register_managed_tex(aliasTexName.data(), texRec.tex);
-    aliases.insert({getKey(w, h), texRec}); // aliased texture also can be aliased, we don't need to check here
-    // todo: copy sampler state from base to alias
-    // todo: we also can remove registry every alias if enhance tex manager api. We need to replace
-    //  old d3dRes with new alias and guarantee that previous tex not used anywhere (refcount == 1)
-    //  and don't forget to delete all aliases in close() by ourselves
-  }
-  ShaderGlobal::reset_from_vars(texId); // most heavy part
-  G_ASSERT(get_managed_texture_refcount(texId) == 1);
-  d3d::resource_barrier({{tex, texRec.tex}, {RB_ALIAS_FROM, RB_ALIAS_TO_AND_DISCARD}, {0, 0}, {0, 0}});
-  tex = texRec.tex;
-  texId = texRec.texId;
-  setVar();
-}
-
-void ResizableTextureIDHolder::close()
-{
-  for (eastl::pair<TexRecKey, TextureRecord> &pair : aliases)
-  {
-    TextureRecord &texRec = pair.second;
-    if (texRec.tex != tex)
-      release_managed_tex_verified(texRec.texId, texRec.tex);
-  }
-  aliases.clear();
-  TextureIDHolderWithVar::close();
-}

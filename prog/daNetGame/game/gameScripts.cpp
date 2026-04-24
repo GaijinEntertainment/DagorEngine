@@ -1,9 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "gameScripts.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
-#include <daECS/net/dasEvents.h>
+#include <ecs/net/dasEvents.h>
 #include <ecs/scripts/scripts.h>
 #include <ecs/scripts/dascripts.h>
 #include <ecs/scripts/netBindSq.h>
@@ -27,12 +29,13 @@
 #include <sqstdstring.h>
 
 #include <util/dag_watchdog.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <ioSys/dag_findFiles.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_zstdIo.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <bindQuirrelEx/autoBind.h>
+#include <bindQuirrelEx/sqModulesDagor.h>
 #include <quirrel/http/sqHttpClient.h>
 #include <quirrel/quirrel_json/quirrel_json.h>
 #include <quirrel/yupfile_parse/yupfile_parse.h>
@@ -50,6 +53,7 @@
 #include <quirrel/base64/base64.h>
 #include <quirrel/nestdb/nestdb.h>
 #include <quirrel/sqStackChecker.h>
+#include <quirrel/sqPerFrameStat/perFrameStat.h>
 #include <sqstdaux.h>
 #include <ecs/scripts/dasEs.h>
 #include <daScript/daScript.h>
@@ -58,6 +62,9 @@
 #include <dasModules/aotDagorConsole.h>
 #include <perfMon/dag_autoFuncProf.h>
 #include "ui/overlay.h"
+
+#include <webui/httpserver.h>
+#include <webui/sqDebuggerPlugin.h>
 
 #include <eventLog/errorLog.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
@@ -142,7 +149,7 @@ HSQUIRRELVM get_vm() { return sqvm.get(); }
 SqModules *get_module_mgr() { return moduleMgr.get(); }
 
 
-static void script_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
+static void script_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
@@ -150,7 +157,7 @@ static void script_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
   va_end(vl);
 }
 
-static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
+static void script_err_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
@@ -163,15 +170,10 @@ static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
   logerr("[SQ] %s", str.str());
 }
 
-static void compile_error_handler(HSQUIRRELVM /*v*/,
-  SQMessageSeverity severity,
-  const SQChar *desc,
-  const SQChar *source,
-  SQInteger line,
-  SQInteger column,
-  const SQChar *)
+static void compile_error_handler(
+  HSQUIRRELVM /*v*/, SQMessageSeverity severity, const char *desc, const char *source, SQInteger line, SQInteger column, const char *)
 {
-  const SQChar *sevName = "error";
+  const char *sevName = "error";
   if (severity == SEV_HINT)
     sevName = "hint";
   else if (severity == SEV_WARNING)
@@ -275,11 +277,14 @@ void global_init_das()
   const bool enableAot = NEED_DAS_AOT_COMPILE || debugBlk->getBool("das_aot", false);
   const bool enableAotErrorsLog = debugBlk->getBool("das_log_aot_errors", DAGOR_DBGLEVEL > 0);
   const bool gen2MakeSyntax = ::dgs_get_settings()->getBool("game_das_gen_2_make_syntax", false);
+  const bool version2Syntax = ::dgs_get_settings()->getBool("game_das_version_2_syntax", false);
 
   bind_dascript::init_das(enableAot ? bind_dascript::AotMode::AOT : bind_dascript::AotMode::NO_AOT,
     auto_hot_reload ? bind_dascript::HotReload::ENABLED : bind_dascript::HotReload::DISABLED,
     enableAotErrorsLog ? bind_dascript::LogAotErrors::YES : bind_dascript::LogAotErrors::NO,
-    gen2MakeSyntax ? bind_dascript::DasSyntax::V1_5 : bind_dascript::DasSyntax::V1_0);
+    version2Syntax   ? bind_dascript::DasSyntax::V2_0
+    : gen2MakeSyntax ? bind_dascript::DasSyntax::V1_5
+                     : bind_dascript::DasSyntax::V1_0);
 
   const Tab<const char *> ecsTags = ecs_get_global_tags_context();
   const auto devTagPos = eastl::find_if(ecsTags.begin(), ecsTags.end(), [](const char *tag) { return strcmp(tag, "dev") == 0; });
@@ -312,28 +317,33 @@ HSQUIRRELVM init()
   HSQUIRRELVM vm = sqvm.get();
   sq_limitthreadaccess(vm, ::get_current_thread_id()); // InitialLoadingThread
 
-  moduleMgr.reset(new SqModules(vm));
+  moduleMgr.reset(new SqModules(vm, &sq_modules_dagor_file_access));
 
   bindquirrel::apply_compiler_options_from_game_settings(moduleMgr.get());
 
 #if DAGOR_DBGLEVEL > 0 || _TARGET_PC
+  // FIXME: This changes global state! Why is this in gameScripts???
+
   const DataBlock *debugBlk = dgs_get_settings()->getBlockByNameEx("debug");
   bool useAddonVromSrc = debugBlk->getBool("useAddonVromSrc", false);
   // we allow loading from real fs if useAddonVromSrc is on, otherwise it won't even work
-  SqModules::tryOpenFilesFromRealFS = useAddonVromSrc;
+  SqModulesDagorFileAccess::tryOpenFilesFromRealFS = useAddonVromSrc;
   // on PC or in in dev mode on non-PC platforms we allow scripts 'modding'.
   // we also allow loading from real fs if useAddonVromSrc is on
-  SqModules::tryOpenFilesFromRealFS |= debugBlk->getBool("allowScriptsModding", false);
+  SqModulesDagorFileAccess::tryOpenFilesFromRealFS |= debugBlk->getBool("allowScriptsModding", false);
 #endif
 
 
 #if DAGOR_DBGLEVEL > 0
-  sq_enabledebuginfo(vm, true);
   sq_enablevartrace(vm, false);
   sq_set_thread_id_function(vm, get_thread_id_func);
-  dag_sq_debuggers.initDebugger(SQ_DEBUGGER_GAME_SCRIPTS, moduleMgr.get(), "DaNetGame In-game Scripts");
-  scriptprofile::register_profiler_module(vm, moduleMgr.get());
+
+#if _TARGET_PC_WIN
+  webui::register_quirrel_debugger(moduleMgr.get(), "sqdebug_game", "quirrel debugger - DaNetGame In-game Scripts");
 #endif
+
+  scriptprofile::register_profiler_module(vm, moduleMgr.get());
+#endif // DAGOR_DBGLEVEL
 
   SqStackChecker stackCheck(vm);
 
@@ -345,7 +355,7 @@ HSQUIRRELVM init()
 
   stackCheck.check();
 
-  sqeventbus::bind(moduleMgr.get(), "game", sqeventbus::ProcessingMode::MANUAL_PUMP);
+  sqeventbus::bind_ex(moduleMgr.get(), "game", /*freeze_wevt_tables*/ true);
   moduleMgr->registerMathLib();
   moduleMgr->registerStringLib();
   moduleMgr->registerIoStreamLib();
@@ -385,8 +395,10 @@ HSQUIRRELVM init()
 #endif
   bindquirrel::bind_base64_utils(moduleMgr.get());
 
+  bindquirrel::register_benchmark_perframe_stat(moduleMgr.get());
+
   sqfrp::bind_frp_classes(moduleMgr.get());
-  frp_graph.reset(new sqfrp::ObservablesGraph(vm, "gamescripts", 16));
+  frp_graph.reset(new sqfrp::ObservablesGraph(vm, "gamescripts"));
 
   create_script_console_processor(moduleMgr.get(), "sqgame.exec");
   nestdb::bind_api(moduleMgr.get());
@@ -408,9 +420,9 @@ HSQUIRRELVM init()
 
 const char *get_serialized_data_filename(char buf[DAGOR_MAX_PATH])
 {
-#if defined(__x86_64__) || defined(_M_X64)
+#if (defined(__x86_64__) && defined(__LP64__)) || defined(_M_X64)
   const char *arch = "x64";
-#elif defined(__i386__) || defined(_M_IX86)
+#elif defined(__i386__) || defined(_M_IX86) || defined(__ILP32__)
   const char *arch = "x32";
 #elif defined(__aarch64__) || defined(_M_ARM64) || defined(__arm__) || defined(_M_ARM)
   const char *arch = "arm";
@@ -516,7 +528,7 @@ uint32_t initialize_deserializer(const char *name)
 void load_sq_module(const char *fn, bool is_entrypoint)
 {
   Sqrat::Object exports;
-  String errMsg;
+  Sqrat::string errMsg;
   const char *name = is_entrypoint ? SqModules::__main__ : SqModules::__fn__;
   if (!moduleMgr->requireModule(fn, false, name, exports, errMsg))
     logerr("Failed to run script '%s': %s", fn, errMsg.c_str());
@@ -725,8 +737,7 @@ void update_deferred()
 {
   if (frp_graph)
   {
-    String errMsg;
-    frp_graph->updateDeferred(errMsg);
+    frp_graph->updateDeferred();
   }
 }
 
@@ -809,7 +820,7 @@ bool reload_sq_modules(ReloadMode mode)
   debug("Reload SQ: %s -> %s", wasVersion.to_string(), curVersion.to_string());
 
   Sqrat::Object exports;
-  String errMsg;
+  Sqrat::string errMsg;
   // library reload may be added if needed
   start_es_loading(); // prevents calls to es_reset_order during es registrations
 
@@ -936,7 +947,7 @@ void shutdown()
   scriptprofile::shutdown(sqvm.get());
 
 #if DAGOR_DBGLEVEL > 0
-  dag_sq_debuggers.shutdownDebugger(SQ_DEBUGGER_GAME_SCRIPTS);
+  webui::shutdown_quirrel_debugger(moduleMgr.get());
 #endif
 
   moduleMgr.reset();
@@ -944,7 +955,7 @@ void shutdown()
   sq_collectgarbage(sqvm.get());
   sqvm.reset();
 
-  G_ASSERT(frp_graph->allObservables.empty());
+  G_ASSERT(frp_graph->nodeCount() == 0);
   frp_graph.reset();
 }
 

@@ -1,0 +1,18 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/daECS/gameResStub ;
+
+TargetType  = lib ;
+Target      = engine/daECS/gameResStub.lib ;
+StrictCompile = yes ;
+
+Sources =
+  gameResStub.cpp
+;
+
+UseProgLibs +=
+  #engine/daECS/gameres
+  engine/daECS/core
+  3rdPartyLibs/eastl
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

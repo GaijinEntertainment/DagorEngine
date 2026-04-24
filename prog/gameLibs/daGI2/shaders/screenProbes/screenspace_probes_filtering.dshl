@@ -9,6 +9,8 @@ include "sp_spatial_filter_probes.dshl"
 include "screen_gi_encoding.dshl"
 buffer screenspace_tile_classificator;
 
+interval gi_use_r9g9b9e5_tex_fmt: no<1, yes;
+
 texture prev_screenspace_radiance;
 
 macro SAMPLE_PREV_RADIANCE_SP(code)
@@ -59,6 +61,9 @@ macro COMMON_RADIANCE_FILTER(code)
     }
     sp_radiance_area@i1 = sp_radiance_area;
     sp_radiance_tc_decode@f4 = (1./screenspace_probe_res.w, 0.5/screenspace_probe_res.w, 2./screenspace_probe_res.w, 1/screenspace_probe_res.w - 1);
+    radiance_sp@uav : register(0) hlsl {
+      RWTexture2D<float4> radiance_sp@uav;
+    }
   }
   hlsl(code) {
     float3 Round_R11G11B10_FLOAT( float3 rgb, uint3 round = 15)//use rounding when convert to r11g11b10. HW uses truncation, causing yellowish picture
@@ -68,24 +73,42 @@ macro COMMON_RADIANCE_FILTER(code)
       return float3(f16tof32((f32tof16(rgb) + round) & 0x7FE0)); //trunc with rounding as 11bit
     }
 
-    RWTexture2D<float4> radiance_sp: register(u0);
+    // Based on pack/unpack implementation from PixelPacking_RGBE.hlsl
+    float3 Round_R9G9B9E5_FLOAT(float3 rgb)
+    {
+      const float kMaxVal = asfloat(0x477F8000); // 1.FF x 2^+15
+      const float kMinVal = asfloat(0x37800000); // 1.00 x 2^-16
+      rgb = clamp(rgb, 0, kMaxVal);
+      float MaxChannel = max(max(kMinVal, rgb.r), max(rgb.g, rgb.b));
+      float Bias = asfloat((asuint(MaxChannel) + 0x07804000) & 0x7F800000);
+      uint3 RGB = asuint(rgb + Bias);
+      uint E = (asuint(Bias) << 4) + 0x10000000;
+      return ldexp(float3(RGB & 0x1FF), (int)(E >> 27) - 24);
+    }
+
     void write_texture_encoded_radiance_distance(float4 rad, float exposure, uint probe_index, uint2 crd)
     {
-      //use rounding when convert to r11g11b10. HW uses truncation, causing yellowish picture
+      //use rounding when convert to r11g11b10 or rgb9e5. HW uses truncation, causing yellowish or blueish picture
       ##if dagi_sp_has_exposure_assume == can_be_r11g11b10
-        rad.xyz = Round_R11G11B10_FLOAT(rad.xyz, rad.xyz*exposure < 1 ? 16 : 15);
+        ##if gi_use_r9g9b9e5_tex_fmt == yes
+          rad.xyz = Round_R9G9B9E5_FLOAT(rad.xyz);
+        ##else
+          rad.xyz = Round_R11G11B10_FLOAT(rad.xyz, rad.xyz*exposure < 1 ? 16 : 15);
+        ##endif
+      ##elif dagi_sp_has_exposure_assume == always_rgbe
+        rad.xyz = Round_R9G9B9E5_FLOAT(rad.xyz);
       ##endif
       texture2DAt(radiance_sp, crd) = rad;
     }
 
 
-    #if SP_RADIANCE_SIZE_IS_WARP
+    #if SP_RADIANCE_SIZE_IS_GROUP
     groupshared uint sharedEncodedProbe;
-    #define SP_FILTER_WARP_X SP_RADIANCE_OCT_W
-    #define SP_FILTER_WARP_Y SP_RADIANCE_OCT_W
+    #define SP_FILTER_GROUP_X SP_RADIANCE_OCT_W
+    #define SP_FILTER_GROUP_Y SP_RADIANCE_OCT_W
     #else
-    #define SP_FILTER_WARP_X SP_FILTER_WARP_SIZE
-    #define SP_FILTER_WARP_Y 1
+    #define SP_FILTER_GROUP_X SP_FILTER_GROUP_SIZE
+    #define SP_FILTER_GROUP_Y 1
     #endif
   }
 endmacro
@@ -109,7 +132,7 @@ macro CURRENT_RADIANCE_SAMPLE(code)
   }
   hlsl(code) {
     #include <monteCarlo.hlsl>
-    float4 sample_hemisphere_radiance_distance(uint2 atlasProbeCoord, uint2 octCoord, float3 probeNormal, uint encodedBackColor, inout float w)
+    float4 sample_hemisphere_radiance_distance(uint2 atlasProbeCoord, uint2 octCoord, float3 probeNormal, uint encodedBackColor)
     {
       float2 octRadianceUV = octCoord*sp_radiance_tc_decode.z + sp_radiance_tc_decode.w;
       #if SP_USE_HEMISPHERE_TRACE
@@ -120,7 +143,6 @@ macro CURRENT_RADIANCE_SAMPLE(code)
         float3 localDir = mul(tm, rayDir); // inverse == transpose, so just use other matrix mul
         if (localDir.z <= 0)
         {
-          w *= 0.125; // since the data is unknown, significantly reduce weight
           float distToPlane = 0; // fixme: this should be solved using plane solution
           return float4(decodeProbeColor(encodedBackColor), distToPlane);
         }
@@ -145,7 +167,6 @@ texture prev_screenspace_radiance_distance;
 shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace_radiance_cs
 {
   //SP_JITTER_POS(cs)
-  ENABLE_ASSERT(cs)
   HISTORY_ONLY_PROBE(cs)
   COMMON_RADIANCE_FILTER(cs)
   if (shader == temporal_filter_screenspace_radiance_cs)
@@ -170,8 +191,12 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
 
   if (shader == temporal_only_filter_screenspace_radiance_cs)
   {
+    (cs) {
+      screenspace_probes_list@uav : register(3) hlsl {
+        RWByteAddressBuffer screenspace_probes_list@uav;
+      }
+    }
     hlsl(cs) {
-      RWByteAddressBuffer screenspace_probes_list: register(u3);
       #include "screenspace_probes_temporal_list_add.hlsl"
       #include "screenspace_probes_temporal_list_get.hlsl"
       uint get_history_probe_unsafe(uint i)
@@ -195,13 +220,19 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
   (cs) {
     gi_prev_downsampled_close_depth_tex@smp2d = gi_prev_downsampled_close_depth_tex;
     gi_hero_cockpit_distance@f1 = gi_hero_cockpit_distance;
+    radiance_distance_sp@uav : register(1) hlsl {
+      RWTexture2D<float> radiance_distance_sp@uav;
+    }
+
+    quick_update_inv_max_age@f1 = 1.0 / max(sp_max_quick_update_frames - 1.0, 1.0);
+    quick_update_min_inv_weight@f1 = 1.0 / max(sp_quick_update_min_weight, 1e-3);
+    quick_update_max_inv_weight@f1 = 1.0 / max(sp_quick_update_max_weight, 1e-3);
   }
   hlsl(cs) {
-    RWTexture2D<float> radiance_distance_sp: register(u1);
-    [numthreads(SP_FILTER_WARP_X, SP_FILTER_WARP_Y, 1)]
+    [numthreads(SP_FILTER_GROUP_X, SP_FILTER_GROUP_Y, 1)]
     void filter_radiance_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
-      #if SP_RADIANCE_SIZE_IS_WARP
+      #if SP_RADIANCE_SIZE_IS_GROUP
         uint atlasProbeIndex = get_history_probe_unsafe(gId);
         uint2 octCoord = gtId;
         if (tid == 0)
@@ -323,10 +354,20 @@ shader temporal_filter_screenspace_radiance_cs, temporal_only_filter_screenspace
         }
       ##else
         uint revAge = sp_decodeTagRevAge(probe.allTag);
-        float ageW = revAge ? 1./(SP_TAG_MAX_AGE + 1 - revAge) : 0.025;
+        float ageW = 0.025;
+        if (revAge >= SP_MIN_QUICK_UPDATE_REV_AGE)
+        {
+          float weight = (revAge - SP_MIN_QUICK_UPDATE_REV_AGE) * quick_update_inv_max_age;
+          ageW = max(1.0 / lerp(quick_update_min_inv_weight, quick_update_max_inv_weight, weight), ageW);
+        }
+        else if (revAge > 0)
+        {
+          ageW = 1.0 / (SP_MAX_REV_AGE + 1 - revAge);
+        }
+
         float w = sp_is_moving_tag(probe.allTag|historyMovingTag) ? 0.125 : ageW;//moving probes to use less of history
         float3 encodedHistory = prevRadianceDistance.xyz;
-        float4 encodedRadianceDistance = sample_hemisphere_radiance_distance(atlasProbeCoord, octCoord, probeNormal, encodedProbeNormal.y, w);
+        float4 encodedRadianceDistance = sample_hemisphere_radiance_distance(atlasProbeCoord, octCoord, probeNormal, encodedProbeNormal.y);
         #if TEMPORAL_PROBES_FRAMES > 1
         //if (onlyHistoryProbe)
         //  encodedRadiance = float3(1,!isScreenProbe,0);
@@ -374,7 +415,6 @@ hlsl {
 shader filter_screenspace_radiance_cs
 {
   //SP_JITTER_POS(cs)
-  ENABLE_ASSERT(cs)
   CURRENT_RADIANCE_READ(cs)
   COMMON_RADIANCE_FILTER(cs)
   hlsl(cs) {
@@ -388,10 +428,10 @@ shader filter_screenspace_radiance_cs
   hlsl(cs) {
     uint get_history_probe_unsafe(uint i) {return i;}
     bool get_history_probe_safe(inout uint i) {return i < sp_getNumTotalProbes();}
-    [numthreads(SP_FILTER_WARP_X, SP_FILTER_WARP_Y, 1)]
+    [numthreads(SP_FILTER_GROUP_X, SP_FILTER_GROUP_Y, 1)]
     void filter_radiance_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
-      #if SP_RADIANCE_SIZE_IS_WARP
+      #if SP_RADIANCE_SIZE_IS_GROUP
         uint atlasProbeIndex = get_history_probe_unsafe(gId);
         uint2 octCoord = gtId;
         if (tid == 0)

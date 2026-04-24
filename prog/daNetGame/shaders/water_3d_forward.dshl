@@ -8,14 +8,13 @@ include "heightmap_common.dshl"
 shader water_nv2
 {
   z_write = false;
-  if (mobile_render == deferred) {
-    z_test = false;
-  }
 
   if (water_refraction_tex == NULL)
   {
     blend_src = 1; blend_dst = isa;
   }
+
+  cull_mode = none;
 
   bool colorPass = true;
   WATER_3D_COMMON()
@@ -58,30 +57,26 @@ shader water_nv2
   }
 
   hlsl(vs) {
-    PS_INPUT calc_ps_input_from_world_position(float3 worldPos, float distFade)
+    PsInput calc_ps_input_from_world_position(float3 worldPos, float distFade)
     {
-      float3 eyeVec                = world_view_pos.xyz - worldPos.xyz;
-      float  worldPosDistance      = length(eyeVec);
-      float3 pos_world_undisplaced = worldPos.xzy;
+      float3 eyeVec = world_view_pos.xyz - worldPos;
+      float3 worldPosUndisplaced = worldPos;
 
       float3 displacement;
       float4 nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45;
 
-      PS_INPUT Output;
+      PsInput output;
 
-      WaveWorks_GetDisplacedVertex(worldPos.xzy, worldPosDistance, float4(1, 1, 1, 1), float4(1, 1, 1, 1),
+      WaveWorks_GetDisplacedVertex(worldPos, float4(1, 1, 1, 1), float4(1, 1, 1, 1),
         displacement, nvsf_tex_coord_cascade01, nvsf_tex_coord_cascade23, nvsf_tex_coord_cascade45);
 
-      Output.pos_world_undisplaced    = pos_world_undisplaced;
+      output.worldPosUndisplaced = worldPosUndisplaced;
+      output.screenPos = mul(float4(worldPosUndisplaced, 1), globtm);
 
-      float3 pos_world = Output.pos_world_undisplaced;
-
-      Output.pos_clip = mul(float4(pos_world.xzy,1), globtm);
-
-      return Output;
+      return output;
     }
 
-    PS_INPUT water_fw_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
+    PsInput water_fw_vs(INPUT_VERTEXID_POSXZ USE_INSTANCE_ID)
     {
       DECODE_VERTEXID_POSXZ
       float distFade;
@@ -89,12 +84,6 @@ shader water_nv2
       float3 worldPos = float3(getWorldPosXZ(posXZ, distFade, useHeightmap USED_INSTANCE_ID), water_level_max_wave_height.x).xzy;
       return calc_ps_input_from_world_position(worldPos, distFade);
     }
-  }
-
-  if (mobile_render == deferred) {
-    USE_SUBPASS_LOADS()
-    INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_PANORAMA_REG_DEPTH, SP_PANORAMA_IA_DEPTH)
-    USE_SUBPASS_LOAD_DEPTH_GBUFFER()
   }
 
   hlsl(ps) {
@@ -113,18 +102,12 @@ shader water_nv2
       return color*fogColor.a+fogColor.rgb;
     }
 
-    float4 water_fw_ps(PS_INPUT In INPUT_VFACE) : SV_Target0
+    float4 water_fw_ps(PsInput input INPUT_VFACE) : SV_Target0
     {
-      float4 screenpos  = GET_SCREEN_POS(In.pos_clip);
+      float4 screenPos  = GET_SCREEN_POS(input.screenPos);
 
-    ##if mobile_render == deferred
-      float depth = loadGbufferDepth(screenpos.xy);
-      if (depth >= In.pos_clip.z)
-        discard;
-    ##endif
-
-      float2 screenTc   = screen_pos_to_tc(screenpos.xy);
-      float3 pointToEye = getPointToEye(screenpos.xy, screenpos.w);
+      float2 screenTc   = screen_pos_to_tc(screenPos.xy);
+      float3 pointToEye = getPointToEye(screenPos.xy, screenPos.w);
       float3 worldPos   = world_view_pos.xyz - pointToEye.xyz;
       float  distSq     = dot(pointToEye, pointToEye);
       float  invDist    = rsqrt(distSq);
@@ -136,18 +119,17 @@ shader water_nv2
       float3 pointToEyeNormalized = pointToEye * invDist;
 
       CascadesTex csc;
-      ##if water_flowmap_tex == NULL || mobile_render != off
-        get_cascades(In.pos_world_undisplaced.xy, csc.nvsf_tex_coord_cascade01, csc.nvsf_tex_coord_cascade23, csc.nvsf_tex_coord_cascade45);
+      ##if !has_water_flowmap
+        get_cascades(input.worldPosUndisplaced.xz, csc.nvsf_tex_coord_cascade01, csc.nvsf_tex_coord_cascade23, csc.nvsf_tex_coord_cascade45);
       ##else
-        get_cascades(In.worldPosXZ_a, csc.nvsf_tex_coord_cascade01_a, csc.nvsf_tex_coord_cascade23_a, csc.nvsf_tex_coord_cascade45_a);
-        get_cascades(In.worldPosXZ_b, csc.nvsf_tex_coord_cascade01_b, csc.nvsf_tex_coord_cascade23_b, csc.nvsf_tex_coord_cascade45_b);
+        get_cascades(input.worldPosXZ_a, csc.nvsf_tex_coord_cascade01_a, csc.nvsf_tex_coord_cascade23_a, csc.nvsf_tex_coord_cascade45_a);
+        get_cascades(input.worldPosXZ_b, csc.nvsf_tex_coord_cascade01_b, csc.nvsf_tex_coord_cascade23_b, csc.nvsf_tex_coord_cascade45_b);
       ##endif
       float4 nvsf_blendfactors0123 = 1;
       float4 nvsf_blendfactors4567 = 1;
-      GFSDK_WAVEWORKS_SURFACE_ATTRIBUTES surfaceAttributes = GFSDK_WaveWorks_GetSurfaceAttributes(In, csc, nvsf_blendfactors0123,
-                                                                                                  nvsf_blendfactors4567, pointToEyeNormalized);
+      GradientsData surfaceAttributes = GFSDK_WaveWorks_GetSurfaceAttributes(input, csc, nvsf_blendfactors0123, nvsf_blendfactors4567);
 
-      half3 worldNormal = surfaceAttributes.normal.xzy;
+      half3 worldNormal = surfaceAttributes.normal;
       worldNormal.y = MUL_VFACE(worldNormal.y);
 
       float3 reflectDirNormalized = reflect(-pointToEyeNormalized, worldNormal);
@@ -178,7 +160,7 @@ shader water_nv2
 
       // Getting water depth and opacity for blending
       float fakeFloorZ = 4.0;
-      float realWaterDepth = fakeFloorZ - screenpos.w;
+      float realWaterDepth = fakeFloorZ - screenPos.w;
       float waterDepth = abs(realWaterDepth);
 
       float4 oceanColor = get_ocean_color(worldPos.xz, 0);

@@ -1,0 +1,9 @@
+ERROR: expression of type 'float' cannot be assigned to type 'string'
+testData/diagnostics/compilation_errors/type_inference/test_complex_call_chain.nut:8:0
+
+}
+local result: string = double_it(to_float(42))
+^---------------------------------------------
+return result
+
+

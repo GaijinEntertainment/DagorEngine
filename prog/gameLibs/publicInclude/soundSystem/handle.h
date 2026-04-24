@@ -19,13 +19,14 @@ enum PoolType
 {
   POOLTYPE_EVENT = 0,
   POOLTYPE_STREAM,
+  POOLTYPE_OCCLUSION_BLOB,
   POOLTYPE_TYPES_COUNT
 };
 
-struct SoundHandle
+struct Handle
 {
-  SoundHandle() = default;
-  explicit SoundHandle(sound_handle_t h) : handle(h) {}
+  Handle() = default;
+  explicit Handle(sound_handle_t h) : handle(h) {}
   void reset() { handle = INVALID_SOUND_HANDLE; }
   explicit operator sound_handle_t() const { return handle; }
   explicit operator bool() const { return handle != INVALID_SOUND_HANDLE; }
@@ -34,21 +35,29 @@ protected:
   sndsys::sound_handle_t handle = INVALID_SOUND_HANDLE;
 };
 
-struct EventHandle final : public SoundHandle
+struct EventHandle final : public Handle
 {
   EventHandle() = default;
-  EventHandle(sound_handle_t h) : SoundHandle(h) {}
+  EventHandle(sound_handle_t h) : Handle(h) {}
   operator sound_handle_t() const { return handle; }
   bool operator==(const EventHandle &rhs) const { return handle == rhs.handle; }
   bool operator!=(const EventHandle &rhs) const { return handle != rhs.handle; }
 };
 
-struct StreamHandle final : public SoundHandle
+struct StreamHandle final : public Handle
 {
   StreamHandle() = default;
-  explicit StreamHandle(sound_handle_t h) : SoundHandle(h) {}
+  explicit StreamHandle(sound_handle_t h) : Handle(h) {}
   bool operator==(const StreamHandle &rhs) const { return handle == rhs.handle; }
   bool operator!=(const StreamHandle &rhs) const { return handle != rhs.handle; }
+};
+
+struct OcclusionBlobHandle final : public Handle
+{
+  OcclusionBlobHandle() = default;
+  explicit OcclusionBlobHandle(sound_handle_t h) : Handle(h) {}
+  bool operator==(const OcclusionBlobHandle &rhs) const { return handle == rhs.handle; }
+  bool operator!=(const OcclusionBlobHandle &rhs) const { return handle != rhs.handle; }
 };
 
 struct FMODGUID

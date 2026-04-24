@@ -64,9 +64,7 @@ int BhvScrollEvent::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
 
     if (elem->scrollHandler)
     {
-      String errMsg;
-      if (!elem->scrollHandler->triggerRoot(errMsg))
-        darg_immediate_error(vm, errMsg);
+      elem->scrollHandler->graph->trigger(elem->scrollHandler->id);
     }
 
     resultFlags |= R_PROCESSED;

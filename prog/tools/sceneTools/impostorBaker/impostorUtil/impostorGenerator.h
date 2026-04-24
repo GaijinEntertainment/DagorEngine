@@ -42,9 +42,9 @@ public:
   dag::Vector<DagorAsset *> gatherListForBaking(bool forceRebake = false);
   dag::Vector<DagorAsset *> gatherListForBakingWithPacks(const eastl::set<eastl::string> &packs, bool forceRebake = false);
   dag::Vector<DagorAsset *> gatherListForBakingFromArgs(const eastl::vector<eastl::string> &assetsToBuild);
-  bool hasAssetChanged(DagorAsset *asset) const;
+  bool hasAssetChanged(DagorAsset *asset);
   // returns true if all data was gathered successfully (including baked textures)
-  bool riDataBlock(DagorAsset *asset, DataBlock &blk) const;
+  bool riDataBlock(DagorAsset *asset, DataBlock &blk, bool compute_md5) const;
   void gatherSourceFiles(DagorAsset *asset, eastl::set<String, ImpostorBaker::StrLess> &files) const;
   bool generateQualitySummary(const char *filename) const noexcept;
   bool logSkippedAssets() const;
@@ -61,10 +61,14 @@ private:
   const DataBlock *assetsBlk = nullptr;
   eastl::vector<TexturePackingProfilingInfo> qualitySummary;
 
-  TEXTUREID characterMicrodetailsId = BAD_TEXTUREID;
+  struct CharacterMicrodetails
+  {
+    TEXTUREID tid = BAD_TEXTUREID;
+    d3d::SamplerHandle ss = d3d::INVALID_SAMPLER_HANDLE;
+    int count = 0;
+  } microdetails;
 
   bool process(DagorAsset *asset);
-  bool initAssetBase(const char *app_dir);
 
   static GenerateResponse asset_export_callback(const ImpostorBaker *impostor_baker, DagorAsset *asset, unsigned int ind,
     unsigned int count);

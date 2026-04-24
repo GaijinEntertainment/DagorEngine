@@ -1,3 +1,4 @@
+// No always-true-or-false warning here
 
 function foo() {}
 
@@ -16,5 +17,5 @@ if (type(w) == "table") {
 
 
 if (vv) {
-    foo()
+  foo()
 }

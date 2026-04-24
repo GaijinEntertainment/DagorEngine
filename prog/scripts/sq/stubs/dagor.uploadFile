@@ -1,0 +1,7 @@
+function upload(a) {
+  assert(["table"].contains(type(a)), @() $"type of argument should be one of: 'table'")
+}
+
+return {
+  uploadFile = upload
+}

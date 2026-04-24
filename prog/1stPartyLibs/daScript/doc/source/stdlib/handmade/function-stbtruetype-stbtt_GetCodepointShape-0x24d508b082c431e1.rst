@@ -1,0 +1,1 @@
+Iterates over the vertices of a glyph outline for the given Unicode codepoint, invoking the block for each vertex. Each vertex describes a move, line, quadratic curve, or cubic curve segment.

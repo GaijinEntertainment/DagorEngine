@@ -39,8 +39,8 @@ inline int blocked_socket_recvfrom(os_socket_t s, char *buf, int len)
   for (int lenLeft = len, iter = 0; lenLeft > 0; iter++)
   {
     int read = os_socket_recvfrom(s, buf, lenLeft, 0, NULL, NULL);
-    if (read < 0)
-      return read;
+    if (read <= 0)
+      return read ? read : -1;
     lenLeft -= read;
     buf += read;
     if (lenLeft)

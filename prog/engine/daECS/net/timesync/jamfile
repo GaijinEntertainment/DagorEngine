@@ -1,0 +1,11 @@
+Root    ?= ../../../../.. ;
+Location = prog/engine/daECS/net/timesync ;
+
+TargetType  = lib ;
+Target      = engine/daECS/net/timesync.lib ;
+StrictCompile = yes ;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+
+include $(Root)/prog/_jBuild/build.jam ;

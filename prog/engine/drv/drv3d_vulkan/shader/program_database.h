@@ -188,6 +188,10 @@ public:
     shaderDesc.layouts.clear(ctx);
   }
 
+  void onDeviceReset() {}
+
+  void afterDeviceReset();
+
   // ----- programs
 
   void reuseId(ProgramID prog)
@@ -274,9 +278,10 @@ public:
     return *shaderDesc.layouts.get(id);
   }
 
-  ShaderID newShader(DeviceContext &ctx, VkShaderStageFlagBits stage, Tab<spirv::ChunkHeader> &chunks, Tab<uint8_t> &chunk_data);
+  ShaderID newShader(DeviceContext &ctx, VkShaderStageFlagBits stage, Tab<spirv::ChunkHeader> &chunks, Tab<uint8_t> &chunk_data,
+    const ShaderSource &source);
   ShaderID newShader(DeviceContext &ctx, dag::Vector<VkShaderStageFlagBits> stage, dag::Vector<Tab<spirv::ChunkHeader>> chunks,
-    dag::Vector<Tab<uint8_t>> chunk_data);
+    dag::Vector<Tab<uint8_t>> chunk_data, dag::Vector<ShaderProgramData> bytecode, const ShaderSource &source);
 
   void deleteShader(DeviceContext &ctx, ShaderID shader);
   ShaderID getNullFragmentShader() { return nullFragmentShader; }
@@ -315,6 +320,7 @@ private:
     {
       Tab<spirv::ChunkHeader> *headers = nullptr;
       Tab<uint8_t> *data = nullptr;
+      ShaderProgramData *bytecode = nullptr;
     };
 
     Pair vs;
@@ -324,9 +330,11 @@ private:
   };
 
   bool extractShaderModules(const VkShaderStageFlagBits stage, const Tab<spirv::ChunkHeader> &chunk_header,
-    const Tab<uint8_t> &chunk_data, ShaderModuleHeader &shader_header, ShaderModuleBlob &shader_blob);
+    const Tab<uint8_t> &chunk_data, const ShaderSource &source, const ShaderProgramData &bytecode, ShaderModuleHeader &shader_header,
+    ShaderModuleBlob &shader_blob);
 
-  eastl::optional<ShaderInfo::CreationInfo> getShaderCreationInfo(DeviceContext &ctx, const CombinedChunkModules &modules);
+  eastl::optional<ShaderInfo::CreationInfo> getShaderCreationInfo(DeviceContext &ctx, const CombinedChunkModules &modules,
+    const ShaderSource &source);
 
   void initDebugProg(bool has_bindless, DeviceContext &dc);
   void initRotateProg(bool has_bindless, DeviceContext &dc);

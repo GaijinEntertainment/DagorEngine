@@ -3,6 +3,8 @@ incDir:t="../../../prog/daNetGameLibs"
 "@override:source" {
   file:t = "../loading.dshl"
   file:t = "flow_map.dshl"
+  file:t = "../dynamic_emissive.dshl"
+  file:t = "../dynamic_glass.dshl"
 }
 
 "@override:Compile" {

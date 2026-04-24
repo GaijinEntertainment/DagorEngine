@@ -12,6 +12,7 @@
 class BaseTexture;
 typedef BaseTexture Texture;
 class MaskedOcclusionCulling;
+struct DynRes;
 
 enum CockpitReprojectionMode
 {
@@ -46,9 +47,9 @@ public:
   virtual void buildMips() = 0;
   virtual void prepareDebug() = 0;
   virtual void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    TextureIDPair mipped_depth, Texture *depth = nullptr) = 0;
+    Texture *mipped_depth, Texture *depth = nullptr, const DynRes *dynamic_resolution = nullptr) = 0;
   virtual void prepareNextFrame(vec3f view_pos, mat44f_cref view, mat44f_cref proj, mat44f_cref view_proj, float zn, float zf,
-    TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index) = 0;
+    Texture *mipped_depth, Texture *depth, StereoIndex stereo_index, const DynRes *dynamic_resolution = nullptr) = 0;
   virtual void setReprojectionUseCameraTranslatedSpace(bool enabled) = 0;
   virtual bool getReprojectionUseCameraTranslatedSpace() const = 0;
 

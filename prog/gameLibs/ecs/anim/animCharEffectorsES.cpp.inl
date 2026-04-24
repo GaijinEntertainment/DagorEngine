@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/anim/anim.h>
 #include <anim/dag_animStateHolder.h>
@@ -23,7 +25,7 @@ static void reset_ik_attnode(AnimV20::AnimcharBaseComponent &animchar, int wtm_i
 }
 
 ECS_ON_EVENT(on_appear, InvalidateEffectorData)
-static void animchar_effectors_init_es_event_handler(const ecs::Event &, ecs::EntityId eid,
+static void animchar_effectors_init_es_event_handler(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid,
   const AnimV20::AnimcharBaseComponent &animchar, const ecs::Array &animchar_effectors__effectorsList,
   ecs::Object &animchar_effectors__effectorsState)
 {
@@ -40,7 +42,7 @@ static void animchar_effectors_init_es_event_handler(const ecs::Event &, ecs::En
     if (DAGOR_UNLIKELY(effId < 0))
     {
       logerr("Effector name '%s' not found in animgraph of animchar '%s' entity '%s'", effName.c_str(),
-        animchar.getCreateInfo()->resName.c_str(), g_entity_mgr->getEntityTemplateName(eid));
+        animchar.getCreateInfo()->resName.c_str(), manager.getEntityTemplateName(eid));
       continue;
     }
 

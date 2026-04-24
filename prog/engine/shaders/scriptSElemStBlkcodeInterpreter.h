@@ -24,7 +24,7 @@
 #endif
 
 static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(const int *__restrict &codp,
-  const int *__restrict codp_end, const char *context, const uint8_t *vars, int stcode_id)
+  const int *__restrict codp_end, const char *context, const uint8_t *vars, int max_reg_size, int stcode_id)
 {
   ShaderStateBlock result;
   G_UNUSED(context);
@@ -38,23 +38,22 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
   STBLKCODE_PROFILE_BEGIN();
   FINALLY([] { STBLKCODE_PROFILE_END(); });
 
-  char *regs = POW2_ALIGN_PTR(alloca(shBinDump().maxRegSize * 4 + 16), 16, char);
+  char *regs = POW2_ALIGN_PTR(alloca(max_reg_size * 4 + 16), 16, char);
 
   bool multidrawCbuf = getOp(opc_) == SHCOD_STATIC_MULTIDRAW_BLOCK;
   int constCnt = getOp1p1(opc_);
-  auto [vsTexBase, vsSamplerBaseAndExtentPacked, psTexBase, psSamplerBaseAndExtentPacked] = unpackData4(codp[1]);
-  codp += 2;
+  auto [vsTexBase, vsTexRangeExtent, vsSamplerBase, vsSmpRangeExtent] = unpackData4(codp[1]);
+  auto [psTexBase, psTexRangeExtent, psSamplerBase, psSmpRangeExtent] = unpackData4(codp[2]);
+  codp += 3;
 
   stcode::dbg::record_multidraw_support(stcode::dbg::RecordType::REFERENCE, multidrawCbuf);
 
-  auto vsSlotRange =
-    SlotTexturesRangeInfo{vsTexBase, uint8_t(vsSamplerBaseAndExtentPacked >> 4), uint8_t(vsSamplerBaseAndExtentPacked & 0xF)};
-  auto psSlotRange =
-    SlotTexturesRangeInfo{psTexBase, uint8_t(psSamplerBaseAndExtentPacked >> 4), uint8_t(psSamplerBaseAndExtentPacked & 0xF)};
+  auto vsSlotRange = SlotTexturesRangeInfo{vsTexBase, vsSamplerBase, vsTexRangeExtent, vsSmpRangeExtent};
+  auto psSlotRange = SlotTexturesRangeInfo{psTexBase, psSamplerBase, psTexRangeExtent, psSmpRangeExtent};
 
-  TEXTUREID *psTex = (TEXTUREID *)alloca(psSlotRange.count * sizeof(TEXTUREID)), //-V630 (alloca for classes)
-    *vsTex = (TEXTUREID *)alloca(vsSlotRange.count * sizeof(TEXTUREID));         //-V630 (alloca for classes)
-  Point4 *consts = (Point4 *)alloca(constCnt * sizeof(Point4));                  //-V630 (alloca for classes)
+  TEXTUREID *psTex = (TEXTUREID *)alloca(psSlotRange.texCount * sizeof(TEXTUREID)), //-V630 (alloca for classes)
+    *vsTex = (TEXTUREID *)alloca(vsSlotRange.texCount * sizeof(TEXTUREID));         //-V630 (alloca for classes)
+  Point4 *consts = (Point4 *)alloca(constCnt * sizeof(Point4));                     //-V630 (alloca for classes)
 
   BindlessStblkcodeContext bindlessCtx{};
 
@@ -80,10 +79,12 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
         const uint32_t ind = getOp2p1(opc);
         const uint32_t ofs = getOp2p2(opc);
         G_ASSERT(ind >= 0 && ind < constCnt);
-        BindlessTexId texId = find_or_add_bindless_tex(tex_reg(regs, ofs), bindlessCtx.addedBindlessTextures);
+        const auto texData = get_tex_reg(regs, ofs);
+        const auto texRegId = eastl::get<TEXTUREID>(texData);
+        BindlessTexId texId = find_or_add_bindless_tex(texRegId, bindlessCtx.addedBindlessTextures);
         bindlessCtx.bindlessResources.push_back(BindlessConstParams{ind, texId});
         consts[ind] = Point4(bitwise_cast<float, int>(-1), bitwise_cast<float, int>(-1), 0, 0);
-        stcode::dbg::record_reg_bindless(stcode::dbg::RecordType::REFERENCE, ind, tex_reg(regs, ofs));
+        stcode::dbg::record_reg_bindless(stcode::dbg::RecordType::REFERENCE, ind, texRegId);
         stcode::dbg::record_set_const(stcode::dbg::RecordType::REFERENCE,
           STAGE_VS /* arbitrary, but has to match stcodeCallbacksImpl.cpp */, ind, &consts[ind], 1);
       }
@@ -92,8 +93,10 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
       {
         const uint32_t ind = getOp2p1(opc);
         const uint32_t ofs = getOp2p2(opc);
-        G_ASSERT(ind >= psSlotRange.texBase && ind < psSlotRange.texBase + psSlotRange.count);
-        psTex[ind - psSlotRange.texBase] = tex_reg(regs, ofs);
+        G_ASSERT(ind >= psSlotRange.texBase && ind < psSlotRange.texBase + psSlotRange.texCount);
+        const auto texData = get_tex_reg(regs, ofs);
+        const auto texId = eastl::get<TEXTUREID>(texData);
+        psTex[ind - psSlotRange.texBase] = texId;
         stcode::dbg::record_set_static_tex(stcode::dbg::RecordType::REFERENCE, STAGE_PS, ind, psTex[ind - psSlotRange.texBase]);
       }
       break;
@@ -101,8 +104,10 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
       {
         const uint32_t ind = getOp2p1(opc);
         const uint32_t ofs = getOp2p2(opc);
-        G_ASSERT(ind >= vsSlotRange.texBase && ind < vsSlotRange.texBase + vsSlotRange.count);
-        vsTex[ind - vsSlotRange.texBase] = tex_reg(regs, ofs);
+        G_ASSERT(ind >= vsSlotRange.texBase && ind < vsSlotRange.texBase + vsSlotRange.texCount);
+        const auto texData = get_tex_reg(regs, ofs);
+        const auto texId = eastl::get<TEXTUREID>(texData);
+        vsTex[ind - vsSlotRange.texBase] = texId;
         stcode::dbg::record_set_static_tex(stcode::dbg::RecordType::REFERENCE, STAGE_VS, ind, vsTex[ind - vsSlotRange.texBase]);
       }
       break;
@@ -176,10 +181,10 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
         break;
       case SHCOD_CALL_FUNCTION:
       {
-        int functionName = getOp3p1(opc);
-        int rOut = getOp3p2(opc);
-        int paramCount = getOp3p3(opc);
-        functional::callFunction((functional::FunctionId)functionName, rOut, codp + 1, regs);
+        int functionName = getOpFunctionCall_FuncId(opc);
+        int rOut = getOpFunctionCall_OutReg(opc);
+        int paramCount = getOpFunctionCall_ArgCount(opc);
+        functional::callFunction((functional::FunctionId)functionName, rOut, codp + 1, regs, nullptr);
         codp += paramCount;
       }
       break;
@@ -244,7 +249,16 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
         const uint32_t reg = getOp2p1(opc);
         const uint32_t ofs = getOp2p2(opc);
         shaders_internal::Tex &t = *(shaders_internal::Tex *)&vars[ofs];
-        tex_reg(regs, reg) = t.texId == D3DRESID(D3DRESID::INVALID_ID2) ? BAD_TEXTUREID : t.texId;
+
+        if (t.isTextureManaged())
+        {
+          set_tex_reg(t.texId == D3DRESID(D3DRESID::INVALID_ID2) ? BAD_TEXTUREID : t.texId, regs, reg);
+        }
+        else
+        {
+          set_tex_reg(t.tex, regs, reg);
+        }
+
         t.get();
       }
       break;
@@ -282,9 +296,9 @@ static __forceinline eastl::optional<ShaderStateBlock> execute_st_block_code(con
         const uint32_t ofs = getOp2p2(opc);
         real *reg = get_reg_ptr<real>(regs, ro);
         reg[0] = *(int *)&vars[ofs];
-        reg[1] = *(int *)&vars[ofs + 1];
-        reg[2] = *(int *)&vars[ofs + 2];
-        reg[3] = *(int *)&vars[ofs + 3];
+        reg[1] = *(int *)&vars[ofs + 4];
+        reg[2] = *(int *)&vars[ofs + 8];
+        reg[3] = *(int *)&vars[ofs + 12];
       }
       break;
 

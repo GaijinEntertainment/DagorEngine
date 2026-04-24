@@ -13,4 +13,5 @@ namespace inputmonitor
 void register_input_handler();
 void notify_input_devices_used();
 void register_sq_module(SqModules *module_manager);
+bool is_gamepad_used();
 } // namespace inputmonitor

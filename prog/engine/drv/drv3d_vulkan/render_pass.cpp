@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "driver_config.h"
 #include "vulkan_allocation_callbacks.h"
+#include "render_pass_resource.h"
 
 using namespace drv3d_vulkan;
 
@@ -19,7 +20,7 @@ using namespace drv3d_vulkan;
 
 uint64_t RenderPassClass::Identifier::getHash() const
 {
-  static_assert(VERSION == 7, "update hash calculation when structure is changed");
+  static_assert(VERSION == 8, "update hash calculation when structure is changed");
 
   uint64_t ret = FNV1Params<64>::offset_basis;
   for (const FormatStore &i : colorFormats)
@@ -32,6 +33,9 @@ uint64_t RenderPassClass::Identifier::getHash() const
 
   ret = fnv1a_step<64>(colorTargetMask, ret);
   ret = fnv1a_step<64>(depthState, ret);
+  ret = fnv1a_step<64>(shadingRateAttachment, ret);
+  ret = fnv1a_step<64>(shadingRateAttachmentFormat, ret);
+  ret = fnv1a_step<64>(shadingRateAttachmentSamples, ret);
   return ret;
 }
 
@@ -43,7 +47,7 @@ VkExtent2D RenderPassClass::FramebufferDescription::makeDrawArea(VkExtent2D def 
   if (colorAttachments[0].img)
     return colorAttachments[0].img->getMipExtents2D(colorAttachments[0].view.getMipBase());
 
-  for (int i = 1; i < array_size(colorAttachments); ++i)
+  for (int i = 1; i < eastl::size(colorAttachments); ++i)
     if (colorAttachments[i].img)
       return colorAttachments[i].img->getMipExtents2D(colorAttachments[i].view.getMipBase());
 
@@ -172,10 +176,11 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(int clear_mask)
   selfDept.dstAccessMask = 0;
   selfDept.dependencyFlags = 0;
 
-  StaticTab<VkAttachmentDescription, Driver3dRenderTarget::MAX_SIMRT + 1> attachmentDefs;
+  StaticTab<VkAttachmentDescription, Driver3dRenderTarget::MAX_SIMRT + MRT_EXTRA_SLOTS> attachmentDefs;
   StaticTab<VkAttachmentReference, Driver3dRenderTarget::MAX_SIMRT> colorRef;
   StaticTab<VkAttachmentReference, Driver3dRenderTarget::MAX_SIMRT> resolveRef;
   VkAttachmentReference depthStencilRef;
+  VkAttachmentReference shadingRateRef;
 
   VkSubpassDescription subPass;
   subPass.flags = 0;
@@ -292,6 +297,7 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(int clear_mask)
     {
       desc.loadOp = depthLoadOp;
       desc.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+      desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     }
     else
     {
@@ -300,18 +306,22 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(int clear_mask)
       {
 #if VK_EXT_load_store_op_none
         desc.storeOp = VK_ATTACHMENT_STORE_OP_NONE;
+        desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_NONE;
 #elif VK_QCOM_render_pass_store_ops
         desc.storeOp = VK_ATTACHMENT_STORE_OP_NONE_QCOM;
+        desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_NONE_QCOM;
 #else
         ;
 #endif
       }
       else
+      {
         desc.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+      }
     }
 
     desc.stencilLoadOp = stencilLoadOp;
-    desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
     desc.initialLayout = depthStencilRef.layout;
     desc.finalLayout = depthStencilRef.layout;
     PASS_BUILD_INFO("using depth stencil attachment with format %s", identifier.depthStencilFormat.getNameString());
@@ -321,6 +331,25 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(int clear_mask)
     subPass.pDepthStencilAttachment = nullptr;
     PASS_BUILD_INFO("with no depth stencil attachment");
   }
+
+#if VK_KHR_fragment_shading_rate
+  if (identifier.shadingRateAttachment)
+  {
+    shadingRateRef.attachment = attachmentDefs.size();
+    shadingRateRef.layout = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+    VkAttachmentDescription &desc = attachmentDefs.push_back();
+    desc.flags = 0;
+    desc.format = identifier.shadingRateAttachmentFormat.asVkFormat();
+    desc.samples = VkSampleCountFlagBits(identifier.shadingRateAttachmentSamples);
+
+    desc.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    desc.storeOp = useNoStoreOp ? VK_ATTACHMENT_STORE_OP_NONE : VK_ATTACHMENT_STORE_OP_STORE;
+    desc.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    desc.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    desc.initialLayout = shadingRateRef.layout;
+    desc.finalLayout = shadingRateRef.layout;
+  }
+#endif
 
   VkRenderPassCreateInfo rpci = {VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};
   rpci.attachmentCount = attachmentDefs.size();
@@ -334,7 +363,27 @@ VulkanRenderPassHandle RenderPassClass::compileVariant(int clear_mask)
 
   uint32_t index = encode_variant(clear_mask);
 
-  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkCreateRenderPass(Globals::VK::dev.get(), &rpci, VKALLOC(render_pass), ptr(variants[index])));
+  if (identifier.shadingRateAttachment)
+  {
+    Tab<VkAttachmentReference> flattAttRefs;
+    flattAttRefs.reserve(Driver3dRenderTarget::MAX_SIMRT + MRT_EXTRA_SLOTS);
+
+    for (const VkAttachmentReference &i : colorRef)
+      flattAttRefs.push_back(i);
+    for (const VkAttachmentReference &i : resolveRef)
+      flattAttRefs.push_back(i);
+    flattAttRefs.push_back(depthStencilRef);
+    flattAttRefs.push_back(shadingRateRef);
+
+    Tab<SubpassExtensions> exts;
+    exts.push_back({-1, int(flattAttRefs.size() - 1)});
+
+    VULKAN_EXIT_ON_FAIL(RenderPassResource::convertAndCreateRenderPass2(ptr(variants[index]), rpci, flattAttRefs, exts));
+  }
+  else
+    VULKAN_EXIT_ON_FAIL(
+      Globals::VK::dev.vkCreateRenderPass(Globals::VK::dev.get(), &rpci, VKALLOC(render_pass), ptr(variants[index])));
+
   PASS_BUILD_INFO("pass handle is %X", generalize(variants[index]));
   return variants[index];
 }
@@ -353,18 +402,19 @@ VulkanFramebufferHandle RenderPassClass::compileFrameBuffer(const FramebufferDes
   uint32_t minLayers = UINT32_MAX;
 
   // referenced in VkFramebufferCreateInfo by adress so defined in this scope
-  StaticTab<VulkanImageViewHandle, Driver3dRenderTarget::MAX_SIMRT + 1> attachmentSet;
+  StaticTab<VulkanImageViewHandle, Driver3dRenderTarget::MAX_SIMRT + MRT_EXTRA_SLOTS> attachmentSet;
 #if VK_KHR_imageless_framebuffer
   VkFramebufferAttachmentsCreateInfoKHR fbaci = {VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENTS_CREATE_INFO_KHR, nullptr};
-  StaticTab<VkFramebufferAttachmentImageInfoKHR, Driver3dRenderTarget::MAX_SIMRT + 1> fbaiis;
-  StaticTab<Image::ViewFormatList, Driver3dRenderTarget::MAX_SIMRT + 1> viewFormats;
+  StaticTab<VkFramebufferAttachmentImageInfoKHR, Driver3dRenderTarget::MAX_SIMRT + MRT_EXTRA_SLOTS> fbaiis;
+  StaticTab<Image::ViewFormatList, Driver3dRenderTarget::MAX_SIMRT + MRT_EXTRA_SLOTS> viewFormats;
 
   if (Globals::cfg.has.imagelessFramebuffer)
   {
     fbci.flags |= VK_FRAMEBUFFER_CREATE_IMAGELESS_BIT_KHR;
 
-    fbaiis = identifier.squash<VkFramebufferAttachmentImageInfoKHR>(array_size(info.colorAttachments), info.colorAttachments,
-      info.depthStencilAttachment, [&minLayers, &viewFormats](const FramebufferDescription::AttachmentInfo &attachment) {
+    fbaiis = identifier.squash<VkFramebufferAttachmentImageInfoKHR>(eastl::size(info.colorAttachments), info.colorAttachments,
+      info.depthStencilAttachment, info.shadingRateAttachment,
+      [&minLayers, &viewFormats](const FramebufferDescription::AttachmentInfo &attachment) {
         minLayers = min<uint32_t>(attachment.imageInfo.layers, minLayers);
 
         VkFramebufferAttachmentImageInfoKHR fbaii = {VK_STRUCTURE_TYPE_FRAMEBUFFER_ATTACHMENT_IMAGE_INFO_KHR, nullptr};
@@ -393,8 +443,8 @@ VulkanFramebufferHandle RenderPassClass::compileFrameBuffer(const FramebufferDes
   else
 #endif
   {
-    attachmentSet = identifier.squash<VulkanImageViewHandle>(array_size(info.colorAttachments), info.colorAttachments,
-      info.depthStencilAttachment, [&minLayers](const FramebufferDescription::AttachmentInfo &attachment) {
+    attachmentSet = identifier.squash<VulkanImageViewHandle>(eastl::size(info.colorAttachments), info.colorAttachments,
+      info.depthStencilAttachment, info.shadingRateAttachment, [&minLayers](const FramebufferDescription::AttachmentInfo &attachment) {
         PASS_BUILD_INFO("vulkan: new FB: attachment view %p", generalize(attachment.imageView));
         minLayers = min<uint32_t>(attachment.imageInfo.layers, minLayers);
         return attachment.viewHandle;

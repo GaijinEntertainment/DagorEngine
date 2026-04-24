@@ -37,6 +37,7 @@
 
 #include <math/dag_occlusionTest.h>
 #include <3d/dag_maskedOcclusionCulling.h>
+#include <daBVH/dag_swBLAS_ray.h>
 
 #ifndef MOC_SINGLE_IMPLEMENTATION
 

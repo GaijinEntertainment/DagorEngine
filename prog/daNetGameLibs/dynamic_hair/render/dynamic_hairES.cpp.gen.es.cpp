@@ -15,7 +15,8 @@ static void detect_hair_es_all_events(const ecs::Event &__restrict evt, const ec
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     detect_hair_es(evt
-        , ECS_RW_COMP(detect_hair_es_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+        , components.manager()
+    , ECS_RW_COMP(detect_hair_es_comps, "animchar_render", AnimV20::AnimcharRendComponent)
     , ECS_RO_COMP(detect_hair_es_comps, "eid", ecs::EntityId)
     );
   while (++comp != compE);
@@ -44,7 +45,8 @@ static void remove_hair_on_destroy_es_all_events(const ecs::Event &__restrict ev
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     remove_hair_on_destroy_es(evt
-        , ECS_RO_COMP(remove_hair_on_destroy_es_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(remove_hair_on_destroy_es_comps, "eid", ecs::EntityId)
     );
   while (++comp != compE);
 }
@@ -128,9 +130,9 @@ static ecs::CompileTimeQueryDesc add_entity_with_hair_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void add_entity_with_hair_ecs_query(ecs::EntityId eid, Callable function)
+inline void add_entity_with_hair_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, add_entity_with_hair_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, add_entity_with_hair_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -161,9 +163,9 @@ static ecs::CompileTimeQueryDesc remove_entity_with_hair_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void remove_entity_with_hair_ecs_query(ecs::EntityId eid, Callable function)
+inline void remove_entity_with_hair_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, remove_entity_with_hair_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, remove_entity_with_hair_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -195,9 +197,9 @@ static ecs::CompileTimeQueryDesc render_hair_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void render_hair_ecs_query(ecs::EntityId eid, Callable function)
+inline void render_hair_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, render_hair_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, render_hair_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -227,9 +229,9 @@ static ecs::CompileTimeQueryDesc gather_hair_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gather_hair_ecs_query(ecs::EntityId eid, Callable function)
+inline void gather_hair_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, gather_hair_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, gather_hair_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

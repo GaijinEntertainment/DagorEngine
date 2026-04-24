@@ -11,18 +11,8 @@ namespace bind_dascript
 {
 void ECS::addArray(das::ModuleLibrary &lib)
 {
-#define TYPE(type)                                                                                                                    \
-  das::addExtern<DAS_BIND_FUN(setArray##type)>(*this, lib, "set", das::SideEffects::modifyArgument, "bind_dascript::setArray" #type); \
-  das::addExtern<DAS_BIND_FUN(getArray##type)>(*this, lib, "get_" #type, das::SideEffects::none, "bind_dascript::getArray" #type);    \
-  das::addExtern<DAS_BIND_FUN(getArrayRW##type)>(*this, lib, "getRW_" #type, das::SideEffects::modifyArgument,                        \
-    "bind_dascript::getArrayRW" #type);                                                                                               \
-  das::addExtern<DAS_BIND_FUN(pushArray##type)>(*this, lib, "push", das::SideEffects::modifyArgument,                                 \
-    "bind_dascript::pushArray" #type);                                                                                                \
-  das::addExtern<DAS_BIND_FUN(pushAtArray##type)>(*this, lib, "push", das::SideEffects::modifyArgument,                               \
-    "bind_dascript::pushAtArray" #type);
-  ECS_BASE_TYPE_LIST
-  ECS_LIST_TYPE_LIST
-#undef TYPE
+  addArrayBase(lib);
+  addArrayList(lib);
 
   das::addUsing<ecs::Array>(*this, lib, " ::ecs::Array");
   das::addExtern<DAS_BIND_FUN(is_array_empty)>(*this, lib, "empty", das::SideEffects::none, "bind_dascript::is_array_empty");

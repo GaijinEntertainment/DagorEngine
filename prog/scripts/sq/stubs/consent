@@ -1,4 +1,3 @@
-
 return {
   isConsentAcceptedForAll = @() false
   isConsentAllowedForVendor = @(_) false
@@ -8,7 +7,7 @@ return {
   isAllVendorsAllowed = @() false
   isGDPR = @() false
   isConsentGiven = @() false
-  isConsentInited = @(_) false
+  isConsentInited = @() false
   showConsentForm = @() null
   initConsent = @() null
   isConsentAllowedForPurposes = @(_) false
@@ -17,4 +16,44 @@ return {
   CONSENT_NOT_REQUIRED = 1
   CONSENT_NOT_INITED = 2
   CONSENT_FAIL = 3
+  isVendorDataLoaded = @() false
+  loadVendorData = @(_, __) null
+  unloadVendorData = @() null
+  getAllIABVendors = @() ""
+  getIABVendorById = @(_) ""
+  getAllGoogleVendors = @() ""
+  getGoogleVendorById = @(_) ""
+  getAllCustomVendors = @() ""
+  setConsentForAll = @(_) null
+  saveConsentData = @() null
+  getAllPurposes = @() ""
+  getPurposeById = @(_) ""
+  getAllSpecialPurposes = @() ""
+  getSpecialPurposeById = @(_) ""
+  getAllFeatures = @() ""
+  getFeatureById = @(_) ""
+  hasConsentForPurpose = @(_) false
+  setConsentForPurpose = @(_, __) null
+  hasPurposeLIT = @(_) false
+  setPurposeLIT = @(_, __) null
+  isAbleConsentForIABVendor = @(_) false
+  hasConsentForIABVendor = @(_) false
+  setConsentForIABVendor = @(_, __) null
+  isAbleConsentForGoogleVendor = @(_) false
+  hasConsentForGoogleVendor = @(_) false
+  setConsentForGoogleVendor = @(_, __) null
+  isAbleLITForIABVendor = @(_) false
+  hasVendorLIT = @(_) false
+  setVendorLIT = @(_, __) null
+  setConsentForAllIABVendors = @(_) null
+  setConsentForAllIABVendorLIT = @(_) null
+  setConsentForAllGoogleVendors = @(_) null
+  getVendorListByPurposeId = @(_) ""
+  getVendorListBySpecialPurposeId = @(_) ""
+  getVendorListByFeatureId = @(_) ""
+  getAllConsentStatus = @() ""
+  setConsentForAllPurposes = @(_) null
+  setConsentForAllPurposeLIT = @(_) null
+  getAllDataCategories = @() ""
+  getDataCategoryById = @(_) ""
 }

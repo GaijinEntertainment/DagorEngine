@@ -10,6 +10,7 @@ sound_effect{
     _tags:t="sound"
     sound_effect__path:t=""
     sound_effect__localOffset:p3=0, 0, 0
+    sound_effect__occlusionRadius:r=0
     sound_effect__abandonOnReset:b=no
     sound_effect__autoRange:b=yes
     "sound_effect__event:SoundEvent"{}
@@ -21,7 +22,7 @@ sound_effect_with_transform{
   transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
 }
 
-replicated_sound_effect{
+replicated_sound_effect_with_transform{
   _use:t="sound_effect_with_transform"
   _use:t="replicating"
   replicated_sound_effect__path:t=""
@@ -31,12 +32,13 @@ disable_sound_effect{
   _use:t="disable_sound_control"
 }
 
-moveable_sound_effect_tag{
-  "movableSoundEffect:tag"{_tags:t="sound";}
+dynamic_sound_effect_tag{
+  "dynamicSoundEffect:tag"{_tags:t="sound";}
 }
 
-watchable_sound_effect_tag{
-  "watchableSoundEffect:tag"{_tags:t="sound";}
+dynamic_sound_effect{
+  _use:t="sound_effect"
+  _use:t="dynamic_sound_effect_tag"
 }
 
 test_sound_effect{

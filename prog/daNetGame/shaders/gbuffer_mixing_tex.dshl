@@ -1,0 +1,8 @@
+int packed_gbuf_1_uav_no = 7 always_referenced; // Must match NBSGbufExtraBits register
+
+macro INIT_GBUFFER_MIXING_UAV()
+  BEGIN_ONCE(packed_gbuf_1_uav_defined)
+  (ps) { packed_gbuf_1@uav : register(packed_gbuf_1_uav_no) hlsl{
+    RWTexture2D<unorm float4> packed_gbuf_1@uav; } }
+  END_ONCE()
+endmacro

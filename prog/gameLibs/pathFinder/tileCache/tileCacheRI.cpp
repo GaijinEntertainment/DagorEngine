@@ -10,6 +10,8 @@
 #include <math/dag_math3d.h>
 #include <math/dag_mathAng.h>
 #include <ioSys/dag_dataBlock.h>
+#include <util/dag_delayedAction.h>
+#include <EASTL/sort.h>
 
 namespace pathfinder
 {
@@ -18,7 +20,8 @@ static Point2 riPadding;
 static float riCellSize;
 static float riWalkableClimb;
 static tile_check_cb_t riTileCheckCb;
-static ska::flat_hash_set<uint32_t, eastl::hash<uint32_t>, eastl::equal_to<uint32_t>> riResourceIds;
+// Note: assumed to be immutable after `tilecache_ri_start` started (accessed in thread)
+static ska::flat_hash_set<uint32_t> riResourceIds;
 
 static rendinst::obstacle_settings_t riObstacleSettings;
 
@@ -38,11 +41,14 @@ static void on_ri_invalidate_cb(rendinst::riex_handle_t handle)
 bool tilecache_ri_is_blocking(rendinst::riex_handle_t handle)
 {
   const int resIdx = rendinst::handle_to_ri_type(handle);
-  const auto setup = riObstacleSettings.find(resIdx);
+  const auto setup = riObstacleSettings.findRiEx(resIdx);
   if (!setup || !setup->overrideType)
     return false;
   return setup->overrideTypeValue == 1;
 }
+
+void tilecache_log_obstacle(rendinst::riex_handle_t handle);
+void tilecache_log_final();
 
 static void tilecache_ri_start_try_add_obstacle(rendinst::riex_handle_t handle, float walkable_climb, float horPadding,
   tile_check_cb_t tile_check_cb)
@@ -61,6 +67,9 @@ static void tilecache_ri_start_try_add_obstacle(rendinst::riex_handle_t handle, 
   if (tilecache_ri_obstacle_too_low(ext.y * 2.0f, walkable_climb))
     return;
 
+  if (riObstacleSettings.logObstacles)
+    tilecache_log_obstacle(handle);
+
   const bool block = tilecache_ri_is_blocking(handle);
   riHandle2obstacle[handle].obstacle_handle = tilecache_obstacle_add(tm, oobb, Point2(horPadding, riPadding.y), block, true);
   // WARNING: Do not try to remove these added obstacles right after adding them here to get rid of
@@ -70,18 +79,28 @@ static void tilecache_ri_start_try_add_obstacle(rendinst::riex_handle_t handle, 
 
 static float calc_obstacle_hor_padding(uint32_t res_idx)
 {
-  const auto setup = riObstacleSettings.find(res_idx);
+  const auto setup = riObstacleSettings.findRiEx(res_idx);
   return setup && setup->overridePadding ? setup->overridePaddingValue : riPadding.x;
 }
 
-static void on_ri_extra_added_from_gen_data(rendinst::riex_handle_t handle)
+static void tilecache_ri_start_try_add_obstacle(rendinst::riex_handle_t handle)
 {
-  const uint32_t resIdx = rendinst::handle_to_ri_type(handle);
-  if (riResourceIds.count(resIdx) == 0 || riHandle2obstacle.count(handle) > 0)
-    return;
-  const float horPadding = calc_obstacle_hor_padding(resIdx);
+  if (!riHandle2obstacle.count(handle))
+  {
+    const float horPadding = calc_obstacle_hor_padding(rendinst::handle_to_ri_type(handle));
+    tilecache_ri_start_try_add_obstacle(handle, riWalkableClimb, horPadding, riTileCheckCb);
+  }
+}
 
-  tilecache_ri_start_try_add_obstacle(handle, riWalkableClimb, horPadding, riTileCheckCb);
+static void on_ri_extra_added_from_gen_data_in_thread(rendinst::riex_handle_t handle)
+{
+  if (riResourceIds.count(rendinst::handle_to_ri_type(handle)))
+  {
+    if constexpr (sizeof(void *) >= sizeof(handle))
+      add_delayed_callback([](void *p) { tilecache_ri_start_try_add_obstacle((rendinst::riex_handle_t)p); }, (void *)handle);
+    else
+      delayed_call([=] { tilecache_ri_start_try_add_obstacle(handle); });
+  }
 }
 
 void tilecache_ri_start(const ska::flat_hash_set<uint32_t> &res_name_hashes, float cell_size, float walkable_climb,
@@ -94,35 +113,24 @@ void tilecache_ri_start(const ska::flat_hash_set<uint32_t> &res_name_hashes, flo
   riWalkableClimb = walkable_climb;
   riTileCheckCb = tile_check_cb;
 
-  rendinst::walkRIGenResourceNames([&res_name_hashes](const char *res_name) {
-    if (res_name_hashes.count(str_hash_fnv1(res_name)) > 0)
+  Tab<rendinst::riex_handle_t> handles(framemem_ptr());
+  rendinst::iterateRIExtraMap([&](int resIdx, const char *riex_name) {
+    if (!res_name_hashes.count(str_hash_fnv1(riex_name)))
+      return;
+    riResourceIds.insert(resIdx); // In case if it would be loaded later
+    handles.clear();
+    if (rendinst::getRiGenExtraInstances(handles, resIdx))
     {
-      int resId = rendinst::getRIGenExtraResIdx(res_name);
-      if (resId < 0)
-        logerr("%s: res_idx is not registered for riExtra <%s>", __FUNCTION__, res_name);
-      else
-        riResourceIds.insert(resId);
+      const float horPadding = calc_obstacle_hor_padding(resIdx);
+      for (rendinst::riex_handle_t handle : handles)
+        tilecache_ri_start_try_add_obstacle(handle, walkable_climb, horPadding, tile_check_cb);
     }
   });
 
-  Tab<rendinst::riex_handle_t> handles(framemem_ptr());
+  debug("tile cache: %d stationary obstacles registered (%d/%d/%d hashes/resIds/riExtra)", riHandle2obstacle.size(),
+    res_name_hashes.size(), riResourceIds.size(), rendinst::getRIExtraMapSize());
 
-  for (uint32_t resIdx : riResourceIds)
-  {
-    clear_and_shrink(handles);
-    rendinst::getRiGenExtraInstances(handles, resIdx);
-
-    const float horPadding = calc_obstacle_hor_padding(resIdx);
-
-    for (rendinst::riex_handle_t handle : handles)
-    {
-      tilecache_ri_start_try_add_obstacle(handle, walkable_climb, horPadding, tile_check_cb);
-    }
-  }
-
-  debug("tile cache: %d stationary obstacles registered", (int)riHandle2obstacle.size());
-
-  rendinst::registerRiExtraAddedFromGenDataCb(on_ri_extra_added_from_gen_data);
+  G_VERIFY(!rendinst::setRiExtraAddedFromGenDataCb(on_ri_extra_added_from_gen_data_in_thread)); // No prev CBs supported
   rendinst::registerRIGenExtraInvalidateHandleCb(on_ri_invalidate_cb);
 
   timeSinceStarted = 0.f;
@@ -170,8 +178,14 @@ void tilecache_ri_update(float dt)
 
 void tilecache_ri_stop()
 {
+  if (riObstacleSettings.logObstacles)
+    tilecache_log_final();
+
+  // Warn: potentially `riGenJobId` might still be running (reads `riResourceIds`)
+  if (auto pcb = rendinst::setRiExtraAddedFromGenDataCb(nullptr); pcb && pcb != &on_ri_extra_added_from_gen_data_in_thread)
+    rendinst::setRiExtraAddedFromGenDataCb(pcb);
+
   G_VERIFY(rendinst::unregisterRIGenExtraInvalidateHandleCb(on_ri_invalidate_cb));
-  G_VERIFY(rendinst::unregisterRiExtraAddedFromGenDataCb(on_ri_extra_added_from_gen_data));
   riHandle2obstacle.clear();
   riResourceIds.clear();
 
@@ -247,5 +261,36 @@ bool tilecache_ri_obstacle_remove(rendinst::riex_handle_t ri_handle, bool sync)
   if (res)
     riHandle2obstacle.erase(it);
   return res;
+}
+
+void tilecache_log_obstacle(rendinst::riex_handle_t handle)
+{
+  const uint32_t poolIdx = rendinst::handle_to_ri_type(handle);
+  const char *riName = rendinst::getRIGenExtraName(poolIdx);
+  riObstacleSettings.logCounts[poolIdx] += 1;
+  riObstacleSettings.logNames[poolIdx] = riName;
+  ++riObstacleSettings.logNumAddedObstacles;
+}
+
+void tilecache_log_final()
+{
+  eastl::vector<uint32_t> poolIdxs;
+  eastl::vector<int> counts;
+  eastl::vector<int> order;
+  for (auto &it : riObstacleSettings.logCounts)
+  {
+    poolIdxs.push_back(it.first);
+    counts.push_back(it.second);
+    order.push_back((int)order.size());
+  }
+  eastl::sort(order.begin(), order.end(), [&](int a, int b) { return counts[a] > counts[b]; });
+  logdbg("Total obstacles: %d", riObstacleSettings.logNumAddedObstacles);
+  for (int i = 0; i < (int)order.size(); ++i)
+  {
+    uint32_t poolIdx = poolIdxs[order[i]];
+    // NOTE: rendinst::getRIGenExtraName(poolIdx) may be invalid here (returns <null>)
+    const char *riName = riObstacleSettings.logNames[poolIdx].c_str();
+    logdbg("Sorted obstacle: %-50s num: %d", riName, counts[order[i]]);
+  }
 }
 } // namespace pathfinder

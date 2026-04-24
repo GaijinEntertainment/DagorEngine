@@ -83,7 +83,8 @@ static void shooter_cam_init_es_event_handler_all_events(const ecs::Event &__res
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     shooter_cam_init_es_event_handler(evt
-        , ECS_RO_COMP(shooter_cam_init_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(shooter_cam_init_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(shooter_cam_init_es_event_handler_comps, "shooter_cam__blk", ecs::string)
     , ECS_RO_COMP_PTR(shooter_cam_init_es_event_handler_comps, "shooter_cam__alt_blk", ecs::string)
     , ECS_RO_COMP(shooter_cam_init_es_event_handler_comps, "shooter_cam__alternative_settings", bool)

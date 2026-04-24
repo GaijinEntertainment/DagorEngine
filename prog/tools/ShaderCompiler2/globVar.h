@@ -50,13 +50,18 @@ public:
   StVarValue value;
   NameId<VarMapAdapter> nameId;
   uint8_t type;
-  bool isAlwaysReferenced, shouldIgnoreValue;
+  bool isAlwaysReferenced;
   bool isImplicitlyReferenced;
+  bool definesValue;
+  bool isLiteral;
   bindump::string fileName;
   int array_size = 0;
   int index = 0;
 
-  Var() : isAlwaysReferenced(false), shouldIgnoreValue(false), isImplicitlyReferenced(false) { memset(&value, 0, sizeof(value)); }
+  Var() : isAlwaysReferenced(false), isImplicitlyReferenced(false), definesValue(false), isLiteral(false)
+  {
+    memset(&value, 0, sizeof(value));
+  }
 
   bool operator==(const Var &right) const;
   bool operator!=(const Var &right) const { return !(operator==(right)); }
@@ -68,7 +73,6 @@ class VarTable
 {
   Tab<int> variableByNameId{midmem_ptr()};
   Tab<Var> variableList{midmem_ptr()};
-  int variableByNameIdLastBuilt = -1;
   IntervalList intervals;
   const VarNameMap &varNameMap;
   const HashStrings &intervalNameMap;
@@ -93,16 +97,12 @@ public:
   const char *getVarName(int internal_index) const { return getVarName(getVar(internal_index)); }
 
   // find id by id
-  int getVarInternalIndex(const int variable_id);
+  int getVarInternalIndex(int variable_id) const;
 
   // delete all variables
   void clear();
 
-  // dump all variables && it's values to console
-  void dumpToConsole() const;
-
-  // set variable value from string
-  bool setVarValue(int internal_index, const char *str);
+  void updateVarNameIdMapping(int var_id);
 
   // get interval list
   const IntervalList &getIntervalList() const;
@@ -112,6 +112,11 @@ public:
 
   void link(const Tab<Var> &variables, const IntervalList &interval_list, Tab<int> &global_var_link_table,
     Tab<ShaderVariant::ExtType> &interval_link_table);
+
+  friend void validate_linked_gvar_collection(const shc::TargetContext &ctx);
 };
+
+// Call after all linking operations to validate that there are no dangling weak refs
+void validate_linked_gvar_collection(const shc::TargetContext &ctx);
 
 }; // namespace ShaderGlobal

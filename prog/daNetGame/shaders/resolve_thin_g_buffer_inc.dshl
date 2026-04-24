@@ -1,0 +1,11 @@
+
+float darkest_wsao_influence = 0.01;
+
+macro CALC_COMPATIBILITY_AO()
+  (ps) { darkest_wsao_influence@f1 = darkest_wsao_influence; }
+  hlsl(ps) {
+    float calc_compatibility_ao(SSAO_TYPE ssao) {
+      return ssao.x * lerp(darkest_wsao_influence, 1, ssao.WSAO_ATTR);
+    }
+  }
+endmacro

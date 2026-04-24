@@ -1,16 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "d3d12_debug_names.h"
 #include "d3d12_error_handling.h"
 #include "debug/device_state.h"
 
+#include <atomic>
 #include <dag/dag_vector.h>
-#include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_tiledResource.h>
-#include <EASTL/utility.h>
-#include <EASTL/vector.h>
-#include <osApiWrappers/dag_lockProfiler.h>
 
 
 #if _TARGET_PC_WIN
@@ -119,10 +115,12 @@ private:
 #else
 #define AP_DEBUG(...)
 #endif
+
+template <typename ProgessStoreType>
 class AsyncProgress
 {
   ComPtr<ID3D12Fence> fence;
-  uint64_t progress = 0;
+  ProgessStoreType progress = 0;
 
 public:
   AsyncProgress() = default;
@@ -216,9 +214,9 @@ public:
 class DeviceQueueGroup
 {
   DeviceQueue group[uint32_t(DeviceQueueType::COUNT)];
-  AsyncProgress uploadProgress;
-  AsyncProgress graphicsProgress;
-  AsyncProgress frameProgress;
+  AsyncProgress<uint64_t> uploadProgress;
+  AsyncProgress<uint64_t> graphicsProgress;
+  AsyncProgress<std::atomic_uint64_t> frameProgress;
 
 public:
   bool init(ID3D12Device *device, debug::DeviceState &debug);

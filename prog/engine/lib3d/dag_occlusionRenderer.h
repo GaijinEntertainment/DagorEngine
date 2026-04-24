@@ -259,9 +259,8 @@ public:
           vec4f notInBounds;
           notInBounds = v_cmp_gt(znear, screenPosW);                   // replace with eps?
           notInBounds = v_or(notInBounds, v_cmp_ge(screenPosW, zfar)); // replace with eps?
-#if _TARGET_SIMD_SSE && OCCLUSION_OPTIMIZE_OUTDOOR_EARLYEXIT
-          int movemask = v_signmask(notInBounds); // v_cmp_ge(depth, zfar));
-          if (movemask == 15)                     // early exit
+#if OCCLUSION_OPTIMIZE_OUTDOOR_EARLYEXIT
+          if (v_check_xyzw_all_true(notInBounds)) // early exit
             continue;
 #endif
           vec4f invW = v_rcp(screenPosW);
@@ -472,7 +471,7 @@ public:
       for (; vecX < pitchX;) // todo, fix edge cases
       {
         vec4f vSrcIsInf = DEPTH_VGE_PROCINF(srcCenter);
-        if (v_signmask(vSrcIsInf) != 0)
+        if (v_check_xyzw_any_true(vSrcIsInf))
         {
           vec4f vDst;
           // 0

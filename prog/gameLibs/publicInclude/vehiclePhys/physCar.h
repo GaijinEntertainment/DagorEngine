@@ -214,9 +214,7 @@ public:
     DAG_FATAL("unsupported physics!");
 #endif
   }
-#ifndef NO_3D_GFX
   virtual void renderDebug() = 0;
-#endif
 };
 
 
@@ -231,7 +229,6 @@ public:
   virtual ILightingCB *getLightingCb() const = 0;
   virtual void getLogicToRender(TMatrix &tm) const = 0;
 
-#ifndef NO_3D_GFX
   virtual void setWheelsModel(const char *model) = 0;
   virtual DynamicRenderableSceneInstance *getModel() = 0;
   virtual DynamicRenderableSceneInstance *getWheelModel(int id) = 0;
@@ -249,7 +246,6 @@ public:
   virtual void render(int parts_flags) = 0;
   virtual void renderTrans(int parts_flags) = 0;
   virtual bool getRenderWtms(TMatrix &wtm_body, TMatrix *wtm_wheels, const VisibilityFinder &vf) = 0;
-#endif
 };
 
 //=======================================================================

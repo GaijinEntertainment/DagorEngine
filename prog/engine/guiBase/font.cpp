@@ -239,6 +239,14 @@ void DagorFontBinDump::reqCharGen(wchar_t ch, unsigned font_ht)
   if (wcharToBuild->addInt((font_ht << 16) | ch))
     DagorFontBinDump::reqCharGenChanged = true;
 }
+
+static struct
+{
+  int ttfNameId = -1;
+  FT_Face face = nullptr;
+  unsigned glyphId = 0;
+} glyph_error_info;
+
 bool DagorFontBinDump::updateGen(int64_t reft, bool allow_raster_glyphs, bool allow_load_ttfs)
 {
   if (!wcharToBuild || wcharToBuild->size() == 0)
@@ -284,6 +292,7 @@ bool DagorFontBinDump::updateGen(int64_t reft, bool allow_raster_glyphs, bool al
     copy_rects.reserve(list.size());
 
   bool added_glyph = false;
+  glyph_error_info = {};
   {
     ScopedLockReadTemplate<decltype(fontRwLock)> rl(isFullyDynamicFont() ? &fontRwLock : nullptr);
     for (int i = 0; i < list.size(); i++)
@@ -336,6 +345,8 @@ bool DagorFontBinDump::updateGen(int64_t reft, bool allow_raster_glyphs, bool al
       // debug("  %4X %s %d", wc_to_gen, ttfNames.getName(ttfNid), ttfNid);
 
       DagorFreeTypeFontRec &frec = ttfRec[ttfNid];
+      glyph_error_info.ttfNameId = ttfNid;
+      glyph_error_info.face = frec.face;
       if (frec.curHt < -1)
         continue;
       if (profile_usec_passed(reft, quotaPerFrameUsecOverride))
@@ -385,6 +396,7 @@ bool DagorFontBinDump::updateGen(int64_t reft, bool allow_raster_glyphs, bool al
           return true;
         }
 
+        glyph_error_info.glyphId = gidx_to_gen;
         const FT_GlyphSlot slot = frec.renderGlyph(gidx_to_gen);
         if (!slot)
           continue;
@@ -482,6 +494,7 @@ bool DagorFontBinDump::updateGen(int64_t reft, bool allow_raster_glyphs, bool al
           continue;
         }
       }
+      glyph_error_info.glyphId = gidx_to_gen;
       const FT_GlyphSlot slot = frec.renderGlyph(gidx_to_gen);
       if (!slot)
         continue;
@@ -600,12 +613,15 @@ int DagorFontBinDump::compute_str_width_u(const wchar_t *str, int len, float sca
         if (frec)
           frec->resizeFont(floorf(dgd->pixHt * scale), dgd->flags & dgd->FLG_FORCE_AUTOHINT);
       }
+      glyph_error_info.ttfNameId = frec ? dgd->ttfNid : -1;
+      glyph_error_info.face = frec ? frec->face : nullptr;
     }
 
     if (frec)
     {
       FT_UInt g0idx = frec->getWcharGlyphIdx(str[0]);
       FT_UInt g1idx = frec->getWcharGlyphIdx(str[1]);
+      glyph_error_info.glyphId = g0idx;
       const FT_GlyphSlot slot = frec->renderGlyph(g0idx);
       FT_Vector pk;
       if (mono_w || FT_Get_Kerning(frec->face, g0idx, g1idx, FT_KERNING_DEFAULT, &pk) != 0)
@@ -650,6 +666,7 @@ bool DagorFontBinDump::rasterize_str_u(const DagorFontBinDump::InscriptionData &
   int cx = cr.x0 + margin_ofs - g.xBaseOfs, xbs = xBase * scale;
   int cy = cr.y0 + margin_ofs - g.yBaseOfs, ybs = yBase * scale;
 
+  glyph_error_info = {};
   if (isFullyDynamicFont())
   {
     int pixHt = floorf(dfont.pixHt * scale);
@@ -668,12 +685,15 @@ bool DagorFontBinDump::rasterize_str_u(const DagorFontBinDump::InscriptionData &
         continue;
       hb_glyph_info_t *glyph_info = hb_buffer_get_glyph_infos(buf, &glyph_count);
       int ttfNid = f->dfont.ttfNid;
-      ttfRec[ttfNid].resizeFont(pixHt, f->dfont.forceAutoHint);
-
+      DagorFreeTypeFontRec &frec = ttfRec[ttfNid];
+      frec.resizeFont(pixHt, f->dfont.forceAutoHint);
+      glyph_error_info.ttfNameId = ttfNid;
+      glyph_error_info.face = frec.face;
       for (int i = 0; i < glyph_count; i++, glyph_info++, glyph_pos++)
       {
         hb_codepoint_t gidx = glyph_info->codepoint;
-        if (const FT_GlyphSlot slot = ttfRec[ttfNid].renderGlyph(gidx))
+        glyph_error_info.glyphId = gidx;
+        if (const FT_GlyphSlot slot = frec.renderGlyph(gidx))
           gen_sys_tex.copyData(slot->bitmap.buffer, slot->bitmap.width, slot->bitmap.rows, dest, dest_stride,
             cx + (cursor_x + glyph_pos->x_offset + 32) / 64 + slot->bitmap_left,
             cy + (cursor_y + glyph_pos->y_offset + 32) / 64 - slot->bitmap_top);
@@ -744,12 +764,15 @@ bool DagorFontBinDump::rasterize_str_u(const DagorFontBinDump::InscriptionData &
           if (frec)
             frec->resizeFont(floorf(dgd->pixHt * scale), dgd->flags & dgd->FLG_FORCE_AUTOHINT);
         }
+        glyph_error_info.ttfNameId = frec ? dgd->ttfNid : -1;
+        glyph_error_info.face = frec ? frec->face : nullptr;
       }
 
       if (frec)
       {
         FT_UInt g0idx = frec->getWcharGlyphIdx(str[0]);
         FT_UInt g1idx = frec->getWcharGlyphIdx(str[1]);
+        glyph_error_info.glyphId = g0idx;
         const FT_GlyphSlot slot = frec->renderGlyph(g0idx);
         FT_Vector pk;
         if (mono_w || FT_Get_Kerning(frec->face, g0idx, g1idx, FT_KERNING_DEFAULT, &pk) != 0)
@@ -847,7 +870,7 @@ void DagorFontBinDump::dynfont_prepare_str(DagorFontBinDump::ScopeHBuf &buf, int
 
   {
     TIME_PROFILE_DEV(harfbuzz_shape);
-    hb_shape(ttf.font, buf, NULL, 0);
+    hb_shape(ttf.font, buf, fontFeatureSettingsList.data(), fontFeatureSettingsList.size());
   }
   if (!out_fgidx)
     return;
@@ -1167,24 +1190,25 @@ void DagorFontBinDump::DynamicFontAtlas::prepareTex(int idx)
 {
   if (tex)
     return;
-  tex = (Texture *)d3d::create_tex(NULL, hist.size(), hist.size(), TEXFMT_R8 | TEXCF_UPDATE_DESTINATION, 1, "dynFontAtlas");
+  const int texcf = TEXFMT_R8 | TEXCF_UPDATE_DESTINATION | TEXCF_CLEAR_ON_CREATE;
+  tex = (Texture *)d3d::create_tex(NULL, hist.size(), hist.size(), texcf, 1, "dynFontAtlas", RESTAG_GUI);
   texId = register_managed_tex(String(0, "dynFontAtlas%d", idx), tex);
-  if (d3d::is_stub_driver()) // we don't want doing useless concurrent lock along with gen_sys_tex
-    return;
-
-  unsigned texLockFlags = TEXLOCK_WRITE | TEXLOCK_DELSYSMEMCOPY;
-  uint8_t *imgPtr;
-  int stride;
-  if (tex->lockimg((void **)&imgPtr, stride, 0, texLockFlags))
-  {
-    for (int y = 0; y < hist.size(); y++, imgPtr += stride)
-      memset(imgPtr, 0, stride);
-    tex->unlockimg();
-  }
 }
 
 extern "C" void (*freetype_logerr)(const char *);
-void freetype_logerr_impl(const char *err) { logwarn("freetype error: '%s'", err); }
+void freetype_logerr_impl(const char *err)
+{
+  if (glyph_error_info.ttfNameId == -1)
+  {
+    logwarn("freetype error: %s", err);
+    return;
+  }
+
+  char buf[64];
+  FT_Error error = FT_Get_Glyph_Name(glyph_error_info.face, glyph_error_info.glyphId, buf, 64);
+  if (!error)
+    logwarn("freetype error: Font:%s Glyph:%s Error:%s", ttfNames.getName(glyph_error_info.ttfNameId), buf, err);
+}
 
 void DagorFontBinDump::initDynFonts(int tex_cnt, int tex_sz, const char *path_prefix)
 {
@@ -1275,7 +1299,8 @@ void DagorFontBinDump::InscriptionsAtlas::init(const DataBlock &b)
   new (&ctx(), _NEW_INPLACE) StdGuiRender::GuiContext();
   if (blurShader.init("gui_blur_gui", false))
   {
-    texBlurred.set(d3d::create_tex(NULL, texSz.x / 4, texSz.y / 4, TEXFMT_R8 | TEXCF_RTARGET, 1, "inscriptionsAtlasBlurred"),
+    texBlurred.set(
+      d3d::create_tex(NULL, texSz.x / 4, texSz.y / 4, TEXFMT_R8 | TEXCF_RTARGET, 1, "inscriptionsAtlasBlurred", RESTAG_GUI),
       "$inscriptionsAtlasBlurred");
     texBlurredSampler = d3d::request_sampler({});
     ctx().createBuffer(0, &blurShader, qpf_max, 0, "inscr.buf.blur");
@@ -1558,6 +1583,15 @@ void DagorFontBinDump::FontData::loadBaseFontData(const DataBlock &desc)
           i * RNG_SUBDIV);
   */
 }
+
+void DagorFontBinDump::loadFontFeatureSettingsList(const DataBlock &font_desc)
+{
+  dblk::iterate_params_by_name_and_type(font_desc, "fontFeatureSettings", DataBlock::TYPE_STRING, [&](int idx) {
+    fontFeatureSettingsList.push_back(
+      {hb_tag_from_string(font_desc.getStr(idx), -1), 1, HB_FEATURE_GLOBAL_START, HB_FEATURE_GLOBAL_END});
+  });
+}
+
 void DagorFontBinDump::loadDynFonts(FontArray &fonts, const DataBlock &desc, int scr_ht)
 {
   G_STATIC_ASSERT(sizeof(GlyphPlace) == 12);
@@ -1617,7 +1651,9 @@ void DagorFontBinDump::loadDynFonts(FontArray &fonts, const DataBlock &desc, int
       }
       bin.dfont.initialPixHt = (unsigned)bin.dfont.pixHt;
 
-      bin.dfont.loadBaseFontData(*bfBlk[b2.getInt("baseFontData")]);
+      const DataBlock &baseFontDataBlk = *bfBlk[b2.getInt("baseFontData")];
+      bin.dfont.loadBaseFontData(baseFontDataBlk);
+      bin.loadFontFeatureSettingsList(baseFontDataBlk);
     }
 
   if (ttfRec.size() < ttfNames.nameCount())
@@ -1871,6 +1907,7 @@ void DagorFontBinDump::clear()
         }
       }
   clear_and_shrink(texCopy);
+  clear_and_shrink(fontFeatureSettingsList);
   init();
 }
 

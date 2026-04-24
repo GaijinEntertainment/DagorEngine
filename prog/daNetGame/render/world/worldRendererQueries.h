@@ -26,5 +26,5 @@ bool needs_water_heightmap(Color4 underwaterFade);
 OcclusionData gather_occlusion_data();
 bool use_foam_tex();
 bool use_wfx_textures();
-bool is_camera_inside_custom_gi_zone();
-BBox3 get_custom_gi_zone_bbox();
+
+float get_sky_polarization_filter_term();

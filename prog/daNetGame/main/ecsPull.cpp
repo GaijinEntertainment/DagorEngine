@@ -1,6 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 
 #define REG_SYS               \
   RS(keyTrackAnim)            \
@@ -17,6 +23,7 @@
   RS(animCharFastPhysDebug)   \
   RS(action)                  \
   RS(rendinst)                \
+  RS(rendinstDestrCollision)  \
   RS(particle_phys)           \
   RS(animState)               \
   RS(randomAnimStarter)       \
@@ -25,7 +32,6 @@
   RS(animCharEffectors)       \
   RS(soundComponent)          \
   RS(animcharSound)           \
-  RS(ecs_debug)               \
   RS(animIrq)                 \
   RS(animCharCameraTarget)    \
   RS(transformSerializer)     \
@@ -33,7 +39,8 @@
   RS(rendinstSound)           \
   RS(netEvents)               \
   RS(instantiateDependencies) \
-  RS(deferToAct)
+  RS(deferToAct)              \
+  RS(cloudsRainMap)
 
 #define REG_SQM          \
   RS(bind_anim_events)   \

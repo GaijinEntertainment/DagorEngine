@@ -31,16 +31,13 @@
 #if DAGOR_DBGLEVEL > 0 && _DEBUG_TAB_
 #define FBA_POISON_MEMORY 1
 #if defined(_M_IX86_FP) && _M_IX86_FP == 0
-#define FBA_MIN4K(x) x
+#define FBA_MIN4K(x) min<unsigned>(x, 65536u)
 #else
 #define FBA_MIN4K(x) min<unsigned>(x, 4096u)
 #endif
-#define FBA_DEBUG_FILL_MEM(p, sz, ptrn)                                   \
-  for (int *i = (int *)(p), *e = i + FBA_MIN4K(sz / sizeof(int)); i < e;) \
-  *i++ = ptrn
+#define FBA_DEBUG_FILL_MEM(p, sz, ptrn) memset_dw(p, ptrn, FBA_MIN4K(sz) / sizeof(int))
 #else
 #define FBA_DEBUG_FILL_MEM(p, sz, ptrn)
-#define FBA_POISON_MEMORY 0
 #endif
 
 struct FixedBlockAllocatorIndexed
@@ -49,7 +46,8 @@ protected:
   typedef FixedBlockChunk Chunk;
 
 public:
-  uint32_t allocateOneBlock();   // of block size
+  uint32_t allocateOneBlock();        // of block size
+  void *allocateOneBlock(uint32_t &); // of block size
   bool freeOneBlock(uint32_t b); // return false, if block doesn't belong to allocator. Warning, double delete isn't checked in dev
                                  // build (would require iteration)
   uint32_t allocateContiguousBlocks(uint16_t block_cnt);     // of block size * block_cnt total
@@ -75,16 +73,20 @@ public:
   static constexpr uint32_t align_to_if_bigger(uint32_t block, uint32_t alignment);
 
   FixedBlockAllocatorIndexed() = default; // If this ctor is used then init() has to be called before first allocation
-  FixedBlockAllocatorIndexed(uint32_t block_size, uint16_t min_chunk_size_in_blocks);
+  FixedBlockAllocatorIndexed(uint32_t block_size, uint16_t min_chunk_size_in_blocks,
+    uint8_t max_chunk_size_in_shift = BLOCK_INDEX_BITS);
   FixedBlockAllocatorIndexed(FixedBlockAllocatorIndexed &&);
   FixedBlockAllocatorIndexed &operator=(FixedBlockAllocatorIndexed &&);
   FixedBlockAllocatorIndexed(const FixedBlockAllocatorIndexed &) = delete;
   FixedBlockAllocatorIndexed &operator=(const FixedBlockAllocatorIndexed &) = delete;
   ~FixedBlockAllocatorIndexed();
 
-  void init(uint32_t block_size, uint16_t min_chunk_size_in_blocks); // Need to be called if default ctor is used. Warn: can be called
-                                                                     // only before first allocation
-  bool isInited() const { return getBlockSize() != 0u; }             // return false if init or non default ctor wasn't called
+  // Need to be called if default ctor is used. Warn: can be called
+  // only before first allocation
+  void init(uint32_t block_size, uint16_t min_chunk_size_in_blocks, uint8_t max_chunk_size_in_shift = BLOCK_INDEX_BITS);
+  bool isInited() const { return getBlockSize() != 0u; } // return false if init or non default ctor wasn't called
+  uint32_t getFreeBlocksLeft() const { return freeBlocksLeft; }
+  uint32_t getChunksCount() const { return chunks.size(); }
 
 
 protected:
@@ -93,7 +95,8 @@ protected:
   uint32_t allocatingHead = ~0u;
   uint32_t freeBlocksLeft = 0;
   uint16_t minChunkSize = 0;
-  // we have free 16 bits of padding
+  uint8_t blockIndexBits = 15;
+  // we have free 8 bits of padding
 
   Chunk &validateAllocatingHead(uint16_t block_cnt)
   {
@@ -126,7 +129,6 @@ protected:
   {
     G_FAST_ASSERT(!chunks.empty());
     G_ASSERT(chunks.back().getUsedSize() == 0);
-    freeBlocksLeft -= chunks.back().getChunkSize();
     chunks.pop_back();
     allocatingHead = chunks.size() - 1;
   }
@@ -136,15 +138,15 @@ protected:
     freeBlocksLeft += sz;
     chunks.push_back(Chunk(blockSize, sz));
     allocatingHead = chunks.size() - 1;
-    G_ASSERT(allocatingHead < MAX_CHUNKS);
+    G_ASSERT(allocatingHead < getMaxChunks());
     return chunks.back();
   }
 
   uint32_t getNextSize(uint16_t block_cnt) const
   {
-    G_FAST_ASSERT(block_cnt <= MAX_BLOCK_SIZE);
+    G_FAST_ASSERT(block_cnt <= maxBlockSize());
     G_STATIC_ASSERT(MAX_BLOCK_SIZE <= Chunk::MAX_CHUNK_SIZE);
-    return max<uint32_t>(chunks.empty() ? minChunkSize : min<uint32_t>(chunks.back().getChunkSize() * 2, MAX_BLOCK_SIZE), block_cnt);
+    return max<uint32_t>(chunks.empty() ? minChunkSize : min<uint32_t>(chunks.back().getChunkSize() * 2, maxBlockSize()), block_cnt);
   }
 
   DAGOR_NOINLINE
@@ -166,23 +168,23 @@ protected:
     Chunk &chunk = addChunk(getNextSize(block_cnt));
     return chunk.allocateBlocks(blockSize, block_cnt);
   }
-
+  uint16_t maxBlockSize() const { return 1 << blockIndexBits; }
+  uint16_t getBlockMask() const { return maxBlockSize() - 1; }
+  uint32_t getMaxChunks() const { return 1 << (32 - blockIndexBits); }
   enum
   {
     BLOCK_INDEX_BITS = 15,
     MAX_BLOCK_SIZE = (1 << BLOCK_INDEX_BITS),
-    BLOCK_MASK = MAX_BLOCK_SIZE - 1,
-    MAX_CHUNKS = 1 << (32 - BLOCK_INDEX_BITS)
   };
-  static uint32_t make_index(uint16_t block_index, uint32_t chunk_index)
+  uint32_t make_index(uint16_t block_index, uint32_t chunk_index) const
   {
-    G_FAST_ASSERT(block_index <= BLOCK_MASK);
-    return block_index | (chunk_index << BLOCK_INDEX_BITS);
+    G_FAST_ASSERT(block_index <= getBlockMask());
+    return block_index | (chunk_index << blockIndexBits);
   }
-  static void decompose_index(uint32_t index, uint16_t &block_index, uint32_t &chunk_index)
+  void decompose_index(uint32_t index, uint16_t &block_index, uint32_t &chunk_index) const
   {
-    block_index = index & BLOCK_MASK;
-    chunk_index = index >> BLOCK_INDEX_BITS;
+    block_index = index & getBlockMask();
+    chunk_index = index >> blockIndexBits;
   }
 };
 
@@ -214,6 +216,19 @@ inline uint32_t FixedBlockAllocatorIndexed::allocateOneBlock() // of block size
   FBA_DEBUG_FILL_MEM(chunk.blocks + block * blockSize, blockSize, 0x7ffdcdcd);
   freeBlocksLeft--;
   return make_index(block, allocatingHead);
+}
+
+inline void *FixedBlockAllocatorIndexed::allocateOneBlock(uint32_t &id) // of block size
+{
+  G_FAST_ASSERT(isInited());
+  auto &chunk = validateAllocatingHead(1);
+  G_FAST_ASSERT(&chunk - chunks.begin() == allocatingHead);
+  const uint32_t block = chunk.allocateOne(blockSize);
+  auto ptr = chunk.blocks + block * blockSize;
+  FBA_DEBUG_FILL_MEM(ptr, blockSize, 0x7ffdcdcd);
+  freeBlocksLeft--;
+  id = make_index(block, allocatingHead);
+  return ptr;
 }
 
 inline uint32_t FixedBlockAllocatorIndexed::allocateContiguousBlocks(uint16_t block_cnt) // of block size * block_cnt total
@@ -297,6 +312,7 @@ inline bool FixedBlockAllocatorIndexed::freeContiguousBlocks(uint32_t b, uint16_
   G_ASSERT_RETURN(blockId < chunk.getChunkSize() && block_cnt <= chunk.getUsedSize(), false);
   const uintptr_t blockPtr = blockId;
   FBA_DEBUG_FILL_MEM(chunk.blocks + blockId * blockSize, blockSize * block_cnt, 0x7ffddddd);
+  freeBlocksLeft += block_cnt;
   if (DAGOR_LIKELY(!chunk.freeBlocks(blockId, blockSize, block_cnt)))
     return false;
   // chunk is empty removed.
@@ -315,6 +331,7 @@ inline bool FixedBlockAllocatorIndexed::freeOneBlock(uint32_t b)
   G_ASSERT_RETURN(blockId < chunk.getChunkSize() && chunk.getUsedSize(), false);
 
   FBA_DEBUG_FILL_MEM(chunk.blocks + blockId * blockSize, blockSize, 0x7ffddddd);
+  freeBlocksLeft++;
   if (DAGOR_LIKELY(!chunk.freeOneBlock(blockId, blockSize)))
     return false;
   // chunk is empty removed.
@@ -323,13 +340,17 @@ inline bool FixedBlockAllocatorIndexed::freeOneBlock(uint32_t b)
   return true;
 }
 
-inline FixedBlockAllocatorIndexed::FixedBlockAllocatorIndexed(uint32_t block_size, uint16_t min_chunk_size) :
-  blockSize(max<uint32_t>(block_size, sizeof(Chunk::freeBlock))), minChunkSize(max<uint16_t>(min_chunk_size, 1))
+inline FixedBlockAllocatorIndexed::FixedBlockAllocatorIndexed(uint32_t block_size, uint16_t min_chunk_size,
+  uint8_t max_chunk_size_in_shift) :
+  blockSize(max<uint32_t>(block_size, sizeof(Chunk::freeBlock))),
+  minChunkSize(max<uint16_t>(min_chunk_size, 1)),
+  blockIndexBits(min<uint8_t>(max_chunk_size_in_shift, BLOCK_INDEX_BITS))
 {}
 
-inline void FixedBlockAllocatorIndexed::init(uint32_t block_size, uint16_t min_chunk_size)
+inline void FixedBlockAllocatorIndexed::init(uint32_t block_size, uint16_t min_chunk_size, uint8_t max_chunk_size_in_shift)
 {
   G_ASSERTF(!blockSize, "%s should be called before first allocation", __FUNCTION__);
+  blockIndexBits = min<uint8_t>(max_chunk_size_in_shift, BLOCK_INDEX_BITS);
   blockSize = max<uint32_t>(block_size, sizeof(Chunk::freeBlock));
   minChunkSize = max<uint16_t>(min_chunk_size, 1);
 }

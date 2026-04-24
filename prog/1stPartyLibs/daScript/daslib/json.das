@@ -7,37 +7,46 @@ options strict_smart_pointers = true
 
 module json shared public
 
+//! JSON parsing, serialization, and value manipulation.
+//!
+//! Implements a full JSON parser/writer. ``JsValue`` is the variant type
+//! representing any JSON element. Provides ``read_json``, ``write_json``,
+//! and helper accessors for objects, arrays, strings, numbers, and booleans.
+//! See also ``json_boost`` for automatic struct ↔ JSON conversion.
+
 require daslib/strings_boost
 
 variant JsValue {
     //! Single JSON element.
-    _object : table<string; JsonValue?>
-    _array  : array<JsonValue?>
-    _string : string
-    _number : double
-    _bool   : bool
-    _null   : void?
+    _object  : table<string; JsonValue?>    //! JSON object
+    _array   : array<JsonValue?>           //! JSON array
+    _string  : string                      //! JSON string
+    _number  : double                      //! JSON number
+    _longint : int64                       //! extension, not part of JSON standard (represents long integer numbers)
+    _bool    : bool                        //! JSON boolean
+    _null    : void?                       //! JSON null
 }
 
 struct JsonValue {
     //! JSON value, wraps any JSON element.
-    value : JsValue
+    value : JsValue                         //! value of the JSON element
 }
 
 variant Token {
     //! JSON input stream token.
-    _string : string
-    _number : double
-    _bool   : bool
-    _null   : void?
-    _symbol : int
-    _error  : string
+    _string  : string                       //! string token
+    _number  : double                       //! number token
+    _longint : int64                        //! extension, not part of JSON standard (represents long integer numbers)
+    _bool    : bool                         //! boolean token
+    _null    : void?                        //! null token
+    _symbol  : int                          //! symbol token (one of []{}:,)
+    _error   : string                       //! error token
 }
 
 struct TokenAt {
     //! JSON parsing token. Contains token and its position.
-    value : Token
-    line, row : int
+    value : Token                           //! token value
+    line, row : int                         //! token position in the input stream
 }
 
 let private {
@@ -45,44 +54,115 @@ let private {
     Token_symbol = typeinfo variant_index<_symbol>(type<Token>)
 }
 
-def JV(v : string) {
-    //! Creates `JsonValue` out of value.
-    return new JsonValue(value <- JsValue(_string = v))
-}
-
-def JV(v : double) {
-    return new JsonValue(value <- JsValue(_number = v))
-}
-
-def JV(v : bool) {
-    return new JsonValue(value <- JsValue(_bool = v))
-}
-
 def JVNull {
     //! Creates `JsonValue` representing `null`.
     return new JsonValue(value <- JsValue(_null = null))
 }
 
+def JV(v : string) {
+    //! Creates `JsonValue` out of string value.
+    return new JsonValue(value <- JsValue(_string = v))
+}
+
+def JV(v : double) {
+    //! Creates `JsonValue` out of double value.
+    return new JsonValue(value <- JsValue(_number = v))
+}
+
+def JV(v : bool) {
+    //! Creates `JsonValue` out of boolean value.
+    return new JsonValue(value <- JsValue(_bool = v))
+}
+
 def JV(var v : table<string; JsonValue?>) {
+    //! Creates `JsonValue` out of object (table string->JsonValue?) value.
     return new JsonValue(value <- JsValue(_object <- v))
 }
 
 def JV(var v : array<JsonValue?>) {
+    //! Creates `JsonValue` out of array of `JsonValue?` value.
     return new JsonValue(value <- JsValue(_array <- v))
 }
 
+def JV(v : float) {
+    //! Creates `JsonValue` out of float value.
+    return new JsonValue(value <- JsValue(_number = double(v)))
+}
+
+def JV(v : int) {
+    //! Creates `JsonValue` out of int value.
+    return new JsonValue(value <- JsValue(_longint = int64(v)))
+}
+
+def JV(v : bitfield) {
+    //! Creates `JsonValue` out of bitfield value.
+    return new JsonValue(value <- JsValue(_longint = int64(v)))
+}
+
+def JV(v : bitfield : uint8 < >) {
+    //! Creates `JsonValue` out of bitfield8 value.
+    return new JsonValue(value <- JsValue(_longint = int64(v)))
+}
+
+def JV(v : bitfield : uint16 < >) {
+    //! Creates `JsonValue` out of bitfield16 value.
+    return new JsonValue(value <- JsValue(_longint = int64(v)))
+}
+
+def JV(v : bitfield : uint64 < >) {
+    //! Creates `JsonValue` out of bitfield64 value.
+    return new JsonValue(value <- JsValue(_longint = int64(v)))
+}
+
+def JV(val : int8) : JsonValue? {
+    //! Creates `JsonValue` out of int8 value.
+    return new JsonValue(value <- JsValue(_longint = int64(val)))
+}
+
+def JV(val : uint8) : JsonValue? {
+    //! Creates `JsonValue` out of uint8 value.
+    return new JsonValue(value <- JsValue(_longint = int64(val)))
+}
+
+def JV(val : int16) : JsonValue? {
+    //! Creates `JsonValue` out of int16 value.
+    return new JsonValue(value <- JsValue(_longint = int64(val)))
+}
+
+def JV(val : uint16) : JsonValue? {
+    //! Creates `JsonValue` out of uint16 value.
+    return new JsonValue(value <- JsValue(_longint = int64(val)))
+}
+
+def JV(val : uint) : JsonValue? {
+    //! Creates `JsonValue` out of uint value.
+    return new JsonValue(value <- JsValue(_longint = int64(val)))
+}
+
+def JV(val : int64) : JsonValue? {
+    //! Creates `JsonValue` out of int64 value.
+    return new JsonValue(value <- JsValue(_longint = val))
+}
+
+def JV(val : uint64) : JsonValue? {
+    //! Creates `JsonValue` out of uint64 value.
+    return new JsonValue(value <- JsValue(_longint = int64(val)))
+}
+
 def private lexer(text : string) {
+    //! creates a lexer generator from the input `text` string.
     let stext = clone_string(text)
     return <- _lexer(stext)
 }
 
 def private lexer(text : array<uint8>) {
+    //! creates a lexer generator from the input `text` array of uint8.
     let stext = string(text)
     return <- _lexer(stext)
 }
 
 def private next(var text : iterator<int>; var character, line, row : int&) : bool {
-
+    //! advances the `text` iterator, updates `character`, `line` and `row`.
     if (next(text, character)) {
         if (is_new_line(character)) {
             line++
@@ -96,6 +176,7 @@ def private next(var text : iterator<int>; var character, line, row : int&) : bo
 }
 
 def private _lexer(var stext : string implicit) {
+    //! creates a lexer generator from the input `stext` string.
     return <- generator<TokenAt>() <| $() {
         var tin : iterator<int>
         unsafe {
@@ -129,8 +210,58 @@ def private _lexer(var stext : string implicit) {
                                 ahead = '\r'
                             } elif (ahead == 't') {
                                 ahead = '\t'
+                            } elif (ahead == '/') {
+                                ahead = '/'
                             } elif (ahead == 'u') {
-                                ahead = int(0x5c)
+                                var hex_str : array<uint8>
+                                var valid_hex = true
+                                for (_ in range(4)) {
+                                    if (!next(tin, ahead, line, row)) {
+                                        yield TokenAt(value = Token(_error = "incomplete \\u escape"), line = line, row = row)
+                                        return false
+                                    }
+                                    if (!is_hex(ahead)) {
+                                        valid_hex = false
+                                        break
+                                    }
+                                    push(hex_str, uint8(ahead))
+                                }
+                                if (valid_hex && length(hex_str) == 4) {
+                                    var codepoint = uint(0)
+                                    for (hb in hex_str) {
+                                        codepoint = codepoint << uint(4)
+                                        let c = int(hb)
+                                        if (c >= '0' && c <= '9') {
+                                            codepoint += uint(c - '0')
+                                        } elif (c >= 'a' && c <= 'f') {
+                                            codepoint += uint(c - 'a' + 10)
+                                        } elif (c >= 'A' && c <= 'F') {
+                                            codepoint += uint(c - 'A' + 10)
+                                        }
+                                    }
+                                    // encode codepoint as UTF-8
+                                    if (codepoint <= uint(0x7F)) {
+                                        push(str, uint8(codepoint))
+                                    } elif (codepoint <= uint(0x7FF)) {
+                                        push(str, uint8(uint(0xC0) | (codepoint >> uint(6))))
+                                        push(str, uint8(uint(0x80) | (codepoint & uint(0x3F))))
+                                    } elif (codepoint <= uint(0xFFFF)) {
+                                        push(str, uint8(uint(0xE0) | (codepoint >> uint(12))))
+                                        push(str, uint8(uint(0x80) | ((codepoint >> uint(6)) & uint(0x3F))))
+                                        push(str, uint8(uint(0x80) | (codepoint & uint(0x3F))))
+                                    }
+                                } else {
+                                    // invalid hex sequence, preserve as-is
+                                    push(str, uint8('\\'))
+                                    push(str, uint8('u'))
+                                    for (b in hex_str) {
+                                        push(str, b) // nolint:PERF006 hex_str is 4 bytes max
+                                    }
+                                    if (!valid_hex) {
+                                        push(str, uint8(ahead))
+                                    }
+                                }
+                                continue
                             }
                             push(str, uint8(ahead))
                         } else {
@@ -149,13 +280,16 @@ def private _lexer(var stext : string implicit) {
                 clear(str)
                 next(tin, ahead)
             } elif (ahead == '+' || ahead == '-' || is_number(ahead)) {
+                var is_negative = (ahead == '-')
                 push(str, uint8(ahead))
                 var anyNumbers = is_number(ahead)
                 while (next(tin, ahead, line, row) && is_number(ahead)) {
                     push(str, uint8(ahead))
                     anyNumbers = true
                 }
+                var is_integer = true
                 if (!empty(tin) && ahead == '.') {
+                    is_integer = false
                     push(str, uint8(ahead))
                     while (next(tin, ahead, line, row) && is_number(ahead)) {
                         push(str, uint8(ahead))
@@ -163,6 +297,7 @@ def private _lexer(var stext : string implicit) {
                     }
                 }
                 if (!empty(tin) && (ahead == 'e' || ahead == 'E')) {
+                    is_integer = false
                     push(str, uint8(ahead))
                     next(tin, ahead, line, row)
                     if (ahead == '+' || ahead == '-' || is_number(ahead)) {
@@ -178,7 +313,13 @@ def private _lexer(var stext : string implicit) {
                     yield TokenAt(value = Token(_error = "invalid number {num}"), line = line, row = row)
                     return false
                 }
-                yield TokenAt(value = Token(_number = double(num)), line = line, row = row)
+                if (is_integer) {
+                    // we can have big unsigned numbers, which overflow int64 but fit in uint64
+                    var ival = is_negative ? int64(num) : int64(uint64(num))
+                    yield TokenAt(value = Token(_longint = ival), line = line, row = row)
+                } else {
+                    yield TokenAt(value = Token(_number = double(num)), line = line, row = row)
+                }
                 clear(str)
                 unsafe {
                     delete_string(num)
@@ -217,6 +358,7 @@ def private _lexer(var stext : string implicit) {
 }
 
 def private expect_token(var itv : iterator<TokenAt>; var ahead : TokenAt; vindex : int; var error : string&) : bool {
+    //! expects the next token to be of variant index `vindex`.
     if (!next(itv, ahead)) {
         error = "unexected eos"
         return false
@@ -229,6 +371,7 @@ def private expect_token(var itv : iterator<TokenAt>; var ahead : TokenAt; vinde
 }
 
 def private expect_symbol(var itv : iterator<TokenAt>; var ahead : TokenAt; sym : int; var error : string&) : bool {
+    //! expects the next token to be symbol `sym`.
     if (!next(itv, ahead)) {
         error = "unexected eos"
         return false
@@ -237,13 +380,14 @@ def private expect_symbol(var itv : iterator<TokenAt>; var ahead : TokenAt; sym 
         return false
     } elif (!(ahead.value as _symbol == sym)) {
         error = "unexpected {ahead.value}, expecting symbol `{to_char(sym)}` aka ASCII {sym} at {ahead.line}:{ahead.row}"
-        return true
+        return false
     } else {
         return true
     }
 }
 
 def private parse_value(var itv : iterator<TokenAt>; var error : string&) : JsonValue? {
+    //! parses a JSON value from the token iterator `itv`.
     var ahead : TokenAt
     if (!next(itv, ahead)) {
         return null
@@ -273,7 +417,7 @@ def private parse_value(var itv : iterator<TokenAt>; var error : string&) : Json
                 if (sepsym == ']') {
                     break;
                 } elif (sepsym != ',') {
-                    error = "unsepected array seaprator symbol `{to_char(sepsym)}` aka ASCII {sepsym} at {ahead.line}:{ahead.row}";
+                    error = "unexpected array separator symbol `{to_char(sepsym)}` aka ASCII {sepsym} at {ahead.line}:{ahead.row}";
                     return null;
                 }
             }
@@ -312,7 +456,7 @@ def private parse_value(var itv : iterator<TokenAt>; var error : string&) : Json
                 if (sepsym == '}') {
                     break;
                 } elif (sepsym != ',') {
-                    error = "unsepected object seaprator symbol `{to_char(sepsym)}` aka ASCII {sepsym} at {ahead.line}:{ahead.row}";
+                    error = "unexpected object separator symbol `{to_char(sepsym)}` aka ASCII {sepsym} at {ahead.line}:{ahead.row}";
                     return null;
                 }
             }
@@ -329,6 +473,8 @@ def private parse_value(var itv : iterator<TokenAt>; var error : string&) : Json
         return JV(ahead.value as _string);
     } elif (ahead.value is _number) {
         return JV(ahead.value as _number);
+    } elif (ahead.value is _longint) {
+        return JV(ahead.value as _longint)
     } elif (ahead.value is _bool) {
         return JV(ahead.value as _bool);
     } elif (ahead.value is _null) {
@@ -350,6 +496,8 @@ def read_json(text : string implicit; var error : string&) : JsonValue? {
 }
 
 def read_json(text : array<uint8>; var error : string&) : JsonValue? {
+    //! reads JSON from the `text` array of uint8.
+    //! if `error` is not empty, it contains the parsing error message.
     error = ""
     var lex <- lexer(text)
     var res = parse_value(lex, error)
@@ -386,6 +534,7 @@ def set_allow_duplicate_keys(value : bool) {
 
 // note - we use StringBuilderWriter for performance reasons here
 def private write_value(var writer : StringBuilderWriter; jsv : JsonValue?; depth : int) {
+    //! writes JSON value `jsv` into the `writer` at indentation `depth`.
     if (jsv == null) {
         write(writer, "null")
     } elif (jsv.value is _string) {
@@ -398,6 +547,8 @@ def private write_value(var writer : StringBuilderWriter; jsv : JsonValue?; dept
         } else {
             write(writer, jsv.value as _number)
         }
+    } elif (jsv.value is _longint) {
+        write(writer, jsv.value as _longint)
     } elif (jsv.value is _array) {
         if (length(jsv.value as _array) == 0) {
             write(writer, "[]")
@@ -461,7 +612,7 @@ def private write_value(var writer : StringBuilderWriter; jsv : JsonValue?; dept
 
 def write_json(val : JsonValue?) : string {
     //! returns JSON (textual) representation of JsonValue as a string.
-    let st = build_string() <| $(var writer) {
+    let st = build_string() $(var writer) {
         write_value(writer, val, 0)
     }
     return st
@@ -476,12 +627,12 @@ def write_json(val : JsonValue?#) : string {
 
 def try_fixing_broken_json(var bad : string) {
     //! fixes broken json. so far supported
-    //! 1. "string" + "string" string concatination
+    //! 1. "string" + "string" string concatenation
     //! 2. "text "nested text" text" nested quotes
     //! 3. extra , at the end of object or array
     //! 4. /uXXXXXX sequences in the middle of white space
-    return build_string <| $(writer) {
-        peek_data(bad) <| $(str) {
+    return build_string() $(writer) {
+        peek_data(bad) $(str) {
             var i = 0
             let lstr = length(str)
             while (i < lstr) {

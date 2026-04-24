@@ -1,0 +1,42 @@
+macro INIT_AND_USE_WATER_3D_GI_SAMPLING(stage)
+  INIT_SKY_DIFFUSE_BASE(stage)
+  USE_SKY_DIFFUSE_BASE(stage)
+  if (gi_quality == only_ao)
+  {
+    DAGI_SKY_VIS_SAMPLE_INIT(stage)
+    DAGI_SKY_VIS_SAMPLE_USE(stage)
+  }
+  else
+  {
+    hlsl { #define DO_NOT_FILTER_GI_AMBIENT_BY_NORMAL_WEIGHT 1 }
+    DAGI_IRRADIANCE_GRID_SAMPLE_INIT(stage)
+    DAGI_IRRADIANCE_GRID_SAMPLE_USE(stage)
+  }
+
+  if (gi_quality != off)
+  {
+    hlsl { #define WATER_GI_ENABLED 1 }
+    hlsl(stage) {
+      ##if (gi_quality == only_ao)
+        #include <sh3_function.hlsl>
+      ##endif
+
+      half3 get_gi_ambient(float3 worldPos, half3 diffuseNormal, half3 normal, half3 enviLight, float dist, half3 view)
+      {
+        half3 ambient = enviLight;
+        ##if (gi_quality != off)
+          ##if (gi_quality == only_ao)
+            float vignette;
+            float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, worldPos, 0, 0, diffuseNormal, 0, vignette);
+            ambient = lerp(GetSHFunctionValueSimple(diffuseNormal, enviSPH0 * sh1.wyzx, enviSPH1 * sh1.wyzx, enviSPH2 * sh1.wyzx), ambient, vignette);
+          ##else
+              float ofs = max(dist * 0.04, 0.25 * dagi_irrad_grid_probe_size(0));
+              float3 filteredWorldPos = worldPos.xyz + view * ofs;
+              dagi_irrad_grid_diffuse_biased_smooth(world_view_pos.xyz, filteredWorldPos, diffuseNormal, view, max(0, dist-ofs), normal, 0, ambient);
+          ##endif
+        ##endif
+        return ambient;
+      }
+    }
+  }
+endmacro

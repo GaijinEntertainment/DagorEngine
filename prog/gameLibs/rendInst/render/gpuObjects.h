@@ -21,7 +21,6 @@ struct GpuObjectsEntry
 void startup();
 void init_r();
 void shutdown();
-void after_device_reset();
 
 void clear_all();
 

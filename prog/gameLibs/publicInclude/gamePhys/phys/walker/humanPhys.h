@@ -7,7 +7,7 @@
 #include <gamePhys/phys/commonPhysBase.h>
 #include <EASTL/unique_ptr.h>
 #include <gamePhys/collision/collisionObject.h>
-#include <gamePhys/collision/contactData.h>
+#include <gamePhys/collision/contactData.h> // CollisionContactDataMin
 #include <generic/dag_carray.h>
 #include <util/dag_simpleString.h>
 #include <gamePhys/collision/collisionLinks.h>
@@ -31,6 +31,7 @@ struct CollisionContactData;
 };
 
 class GeomNodeTree;
+struct PhysShapeQueryResult;
 struct PrecomputedWeaponPositions;
 class ECSCustomPhysStateSyncer;
 
@@ -141,6 +142,8 @@ struct HumanSerializableState //-V730
   float maxStaminaMult = 1.f;
   float restoreStaminaMult = 1.f;
   float staminaBoostMult = 1.f;
+  float walkSpeedMult = 1.f;
+  float runSpeedMult = 1.f;
   float sprintSpeedMult = 1.f;
   float sprintLerpSpeedMult = 1.f; // 0.f means use run speed and disallow sprint, while 1.f means - do nothing.
   float breathAmplitudeMult = 1.f;
@@ -282,7 +285,6 @@ struct HumanPhysState : public HumanSerializableState
     static constexpr const float posThresholdSq = 1e-8f;      // 0.1 mm (10% of 1 mm)
     static constexpr const float velDiffThresholdSq = 0.01f;  // 10cm (0.1m) per sec
     static constexpr float cosDirThreshold = 0.999998476913f; // cos of 0.1 degrees
-    static constexpr const float orientThresholdDegrees = 0.1f;
 
     if (lengthSq(location.P - a.location.P) > posThresholdSq)
       return false;
@@ -295,24 +297,20 @@ struct HumanPhysState : public HumanSerializableState
     if (velSq > 1e-12f && (velocity / sqrtf(velSq)) * (a.velocity * safeinv(sqrtf(aVelSq))) < cosDirThreshold)
       return false;
 
-    const Point3 &ypr = location.O.getYPR();
-    const Point3 &aYpr = a.location.O.getYPR();
+    if (lengthSq(location.O.getQuatAsP4() - a.location.O.getQuatAsP4()) > 1e-6f)
+      return false;
 
-    return fabsf(ypr[0] - aYpr[0]) < orientThresholdDegrees && fabsf(ypr[1] - aYpr[1]) < orientThresholdDegrees &&
-           fabsf(ypr[2] - aYpr[2]) < orientThresholdDegrees && (gunDir * a.gunDir) > cosDirThreshold &&
-           (headDir * a.headDir) > cosDirThreshold && fabsf(height - a.height) < 1e-6f;
+    return (gunDir * a.gunDir) > cosDirThreshold && (headDir * a.headDir) > cosDirThreshold && fabsf(height - a.height) < 1e-6f;
   }
 
   bool hasLargeDifferenceWith(const HumanPhysState &a) const
   {
-    const Point3 &ypr = location.O.getYPR();
-    const Point3 &aYpr = a.location.O.getYPR();
+    if (lengthSq(location.P - a.location.P) > 0.01f)
+      return true;
+    if (lengthSq(location.O.getQuatAsP4() - a.location.O.getQuatAsP4()) > 1e-5f)
+      return true;
 
-    const float ANGLE_THRESHOLD = 0.002f;
-
-    bool isLargeDifference = lengthSq(location.P - a.location.P) > 0.01f || fabsf(ypr[0] - aYpr[0]) > ANGLE_THRESHOLD ||
-                             fabsf(ypr[1] - aYpr[1]) > ANGLE_THRESHOLD || fabsf(ypr[2] - aYpr[2]) > ANGLE_THRESHOLD ||
-                             lengthSq(velocity - a.velocity) > 0.01f || lengthSq(gunDir - a.gunDir) > 0.001f ||
+    bool isLargeDifference = lengthSq(velocity - a.velocity) > 0.01f || lengthSq(gunDir - a.gunDir) > 0.001f ||
                              lengthSq(headDir - a.headDir) > 0.001f || (heightCurVel - a.heightCurVel) > 0.01f ||
                              (height - a.height) > 0.01f;
     return isLargeDifference;
@@ -347,6 +345,16 @@ struct HumanPhysState : public HumanSerializableState
       return ESS_CLIMB_LADDER;
     return ESS_STAND;
   }
+
+  float getSpeedMultForMoveState(HUMoveState move_state) const
+  {
+    switch (move_state)
+    {
+      case EMS_SPRINT: return sprintSpeedMult;
+      case EMS_RUN: return runSpeedMult;
+      default: return walkSpeedMult;
+    }
+  }
 };
 DAG_DECLARE_RELOCATABLE(HumanPhysState);
 
@@ -376,9 +384,9 @@ class HumanPhys final : public PhysicsBase<HumanPhysState, HumanControlState, Co
 
   DPoint3 ccdMove = {0.0, 0.0, 0.0};
   carray<carray<float, EMS_NUM>, ESS_NUM> walkSpeeds;
-  carray<float, ESS_NUM> rotateSpeeds;
 
 public:
+  carray<float, ESS_NUM> rotateSpeeds;
   carray<float, ESS_NUM> alignSpeeds;
 
   carray<Point2, ESS_NUM> rotateAngles;
@@ -399,6 +407,9 @@ public:
 
   float minWalkControl = 0.3f;
 
+  bool useRotateAnglesInLean = false;
+  Point2 rotateAnglesInLean = Point2(-30.f, 30.f);
+
   Point2 waterFrictionResistance = Point2(0.5f, 0.75f);
   Point2 waterJumpingResistance = Point2(0.25f, 0.9f);
   carray<carray<float, EMS_NUM>, ESS_NUM> wishVertJumpSpeed;
@@ -410,8 +421,12 @@ public:
   bool canWallJump = false;
   bool climber = false;
   bool isInertMovement = false;
+  float minCosInertMovement = 0.8;
+  float minWishInertSpdMult = 0.3;
   bool canStartSprintWithResistance = false;
   bool additionalHeightCheck = false;
+  bool haveFrictionWhileJumping = true;
+  bool isInSprintLeap = false;
 
   float ladderClimbSpeed = 1.f;
   float ladderQuickMoveUpSpeedMult = -1.0f;
@@ -497,6 +512,7 @@ public:
   float climbTimeout = 2.f;
   float climbDistance = 1.f;
   float climbOverDistance = 1.7f;
+  float climbFinishDistance = 0.05f;
   float climbAngleCos = 0.f;
   float climbMinHorzSize = 0.65f;
   float climbOnMinVertSize = 1.1f;
@@ -588,6 +604,9 @@ public:
 
   WalkQueryResults queryWalkPosition(const Point3 &pos, float from_ht, float down_ht, bool ignore_slide, bool is_crawl, float walk_rad,
     const Point3 &coll_norm) const;
+  void processShapeCastWalkResult(const PhysShapeQueryResult &shape_query, const Point3 &pos, const Point3 &up_dir,
+    const Point3 &cur_max_pos, const Point3 &cur_min_pos, float from_ht, float down_ht, float slide_threshold, bool ignore_slide,
+    const Point3 &coll_norm, TraceMeshFaces *handle, int &mat_id, bool &forced_sliding, WalkQueryResults &res) const;
 
   struct TorsoCollisionResults
   {
@@ -619,8 +638,10 @@ public:
   float crouchHeight = 1.1f;
   float standingHeight = 1.8f;
   float walkRad = 0.2f;
+  float collRadForLadder = -1.f; // Use to calculate the distance to the ladder instead of collRad if collRadForLadder > 0.f
   float collRad = 0.2f;
   float ccdRad = 0.2f;
+  bool ccdSolveByNormal = false;
   float collideRiPosMinDiff = -1.f;
   float maxStamina = 100.f;
   int rayMatId = -1;
@@ -662,6 +683,7 @@ public:
   bool canSwitchWeapon = true;
   bool isSimplifiedPhys = false;
   bool isSimplifiedQueryWalkPosition = false;
+  bool useTraceCapsuleCastForWalk = false;
   bool forcedSlidingIfWalkTraceFailed = false;
   bool forcedIsInAir = false;
   bool hasGuns = true; // TODO: as above, move to a separate thing when we'll separate it into ecsphys
@@ -683,7 +705,7 @@ public:
   void loadFromBlk(const DataBlock *blk, const CollisionResource *collision, const char *unit_name, bool is_player);
 
   void validateTraceCache() override;
-  virtual void updatePhys(float at_time, float dt, bool is_for_real) override final;
+  void updatePhys(double at_time, float dt, bool is_for_real);
   void updatePhysInWorld(const TMatrix &tm) override;
   int getCollisionMatId() const { return humanCollision->collObjUd.matId; }
   void setCollisionMatId(int mat_id) { humanCollision->collObjUd.matId = mat_id; }
@@ -699,7 +721,7 @@ public:
     applyPseudoVelOmegaDeltaImpl(add_pos, add_ori, &ccdMove);
   }
   gamephys::Loc lerpVisualLoc(const PhysStateBase &prevState, const PhysStateBase &curState, float time_step,
-    float at_time) override final
+    double at_time) override final
   {
     // Note: human's velocity is unreliable in case of collision
     return lerpVisualLocImpl(prevState, curState, time_step, at_time, /*lerp_vel*/ false);

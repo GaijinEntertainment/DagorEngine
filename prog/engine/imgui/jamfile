@@ -3,7 +3,6 @@ Location              = prog/engine/imgui ;
 
 TargetType            = lib ;
 Target                = engine/imgui.lib ;
-EnableNetImguiClient ?= yes ;
 
 Sources =
   imguiImpl.cpp
@@ -22,10 +21,6 @@ UseProgLibs =
   3rdPartyLibs/imgui
 ;
 
-if $(Platform) in windows && $(EnableNetImguiClient) = yes {
-  CPPopt += -DENABLE_NET_IMGUI ;
-  UseProgLibs += 3rdPartyLibs/netImgui ;
-}
-
+include $(Root)/$(Location)/addNetImgui.jam ;
 
 include $(Root)/prog/_jBuild/build.jam ;

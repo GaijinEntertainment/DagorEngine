@@ -72,12 +72,13 @@ static void plugin_command(uint16_t, uint32_t len, IGenLoad &load_cb, IGenSave &
     int pluginLen = load_cb.readInt();
     read += sizeof(int);
     char buf[512];
-    if (pluginLen >= sizeof(buf))
+    if (pluginLen <= 0 || pluginLen >= (int)sizeof(buf) - 1)
     {
       skip(load_cb, len - read);
       return;
     }
     load_cb.read(buf, pluginLen);
+    buf[pluginLen] = '\0';
     set_plugin_enabled(buf, load_cb.readIntP<1>() != 0);
     read += pluginLen + 1;
   }

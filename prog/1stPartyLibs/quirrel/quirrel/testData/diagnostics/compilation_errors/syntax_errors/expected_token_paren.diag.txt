@@ -1,0 +1,8 @@
+ERROR: expected ')'
+testData/diagnostics/compilation_errors/syntax_errors/expected_token_paren.nut:2:9
+
+// EXPECT_ERROR: "expected ')'"
+if (true {
+         ^
+
+

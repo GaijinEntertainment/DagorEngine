@@ -17,6 +17,7 @@ namespace rendinst
 struct RendInstDesc;
 };
 
+class Occlusion;
 struct ApexDmgInfo;
 struct CollisionObject;
 struct CachedCollisionObjectInfo;
@@ -37,16 +38,19 @@ typedef rendinst::RendInstDesc (*create_tree_rend_inst_destr_cb)(const rendinst:
 typedef void (*remove_tree_rendinst_destr_cb)(const rendinst::RendInstDesc &desc);
 typedef void (*remove_physx_collision_object_callback)(const rendinst::RendInstDesc &desc);
 typedef int (*create_apex_actors_callback)(const char *name, const TMatrix &normalized_tm, const Point3 &scale, const Point3 &pos,
-  const Point3 &impulse, int index, ApexDmgInfo *apex_dmg_info, int ri_idx, const BBox3 &ri_bbox, bool is_collision);
+  uint32_t hashVal, const Point3 &impulse, int index, ApexDmgInfo *apex_dmg_info, int ri_idx, const BBox3 &ri_bbox, bool is_collision);
 typedef void (*apex_force_remove_actor_callback)(const int);
 typedef void (*on_destr_changed_callback)(const rendinst::RendInstDesc &desc, const TMatrix &ri_tm, const Point3 &pos,
   const Point3 &impulse, bool create_destr);
 typedef void (*on_rendinst_destroyed_callback)(rendinst::riex_handle_t riex_handle, const TMatrix &tm, const BBox3 &box);
+typedef void (*on_tree_destr_created_callback)(const rendinst::RendInstDesc &old_desc, rendinst::riex_handle_t tree_destr_riex_handle);
 typedef eastl::function<void(const rendinst::riex_handle_t)> on_riextra_destroyed_callback;
 typedef eastl::function<void(const rendinst::RendInstDesc &)> on_destr_callback;
 typedef eastl::function<bool(rendinst::riex_handle_t)> riextra_should_damage;
 typedef bool (*restorable_rendinst_callback)(const rendinst::RendInstDesc &desc, RestorableRendinstState state);
 typedef eastl::function<Point3()> get_camera_pos;
+typedef float (*get_current_time_callback)();
+typedef Occlusion *(*get_occlusion_callback)();
 
 struct QuantizedDestrImpulsePosScale
 {
@@ -65,6 +69,7 @@ struct DestrSettings
 {
   bool isNetClient = false;
   bool createDestr = true;
+  bool createTreeDestr = true;
   bool hasSound = false;
   bool hasStaticShadowsInvalidationCallback = false;
 
@@ -77,6 +82,17 @@ struct DestrSettings
   uint32_t destrMaxUpdateSize = 140;
   int riMaxSimultaneousDestrs = 64;
   bool destrNewUpdateMessage = false;
+
+  bool isDestrCollisionUsed = false;
+  float destrCollisionMaxMergeXZ = 30.f;
+  float destrCollisionMaxMergeY = 15.f;
+  int destrCollisionQueueCapacity = 8;
+  int destrCollisionPerFrameLimit = 4;
+  float destrCollisionTTL = 3.f;
+  float destrCollisionMargin = 2.f;
+  float destrCollisionMergeThreshold = 1.5f;
+  float destrCollisionMaxCameraDist = 150.f;
+  float destrCollisionSkipOcclusionDist = 15.f;
 };
 
 DestrSettings &get_mutable_destr_settings();
@@ -84,12 +100,15 @@ const DestrSettings &get_destr_settings();
 
 void init_ex(on_destr_changed_callback on_destr_cb, create_tree_rend_inst_destr_cb create_tree_cb,
   remove_tree_rendinst_destr_cb rem_tree_cb, ri_tree_sound_cb tree_sound_cb, get_camera_pos get_current_camera_pos_,
+  get_current_time_callback get_current_time_cb, bool enable_branch_destruction,
   remove_physx_collision_object_callback remove_physx_obj_cb = NULL, create_apex_actors_callback create_apex_actors_cb = NULL,
   apex_force_remove_actor_callback apex_remove_actor_cb = NULL);
 // apply_pending - apply destrs received before level load
-void init(on_destr_changed_callback on_destr_cb, bool apply_pending, create_tree_rend_inst_destr_cb create_tree_destr_cb = nullptr,
-  remove_tree_rendinst_destr_cb rem_tree_destr_cb = nullptr, ri_tree_sound_cb tree_sound_cb = nullptr,
-  get_camera_pos get_camera_pos_cb = nullptr);
+void init(on_destr_changed_callback on_destr_cb, bool apply_pending, bool enable_branch_destruction,
+  create_tree_rend_inst_destr_cb create_tree_destr_cb = nullptr, remove_tree_rendinst_destr_cb rem_tree_destr_cb = nullptr,
+  ri_tree_sound_cb tree_sound_cb = nullptr, get_camera_pos get_camera_pos_cb = nullptr,
+  get_current_time_callback get_current_time_cb = nullptr);
+void set_occlusion_callback(get_occlusion_callback cb);
 void clear();
 void shutdown();
 
@@ -136,16 +155,28 @@ struct DestrUpdateDesc
   }
 };
 
+inline bool can_sync_ri_destr(const rendinst::RendInstDesc &desc)
+{
+  // guard against RI with very large cell idx, as for now the whole sync code is designed around cell index 16 bit
+  return (desc.isRiExtra() || desc.layer == 0) && desc.cellIdx == int16_t(desc.cellIdx);
+}
+
 bool serialize_destr_data(danet::BitStream &bs); // return true if there is some destruction data
 bool deserialize_destr_data(const danet::BitStream &bs, int apply_flags = 0, int max_simultaneous_destrs = 20);
 void serialize_destr_update(danet::BitStream &bs, const Point3 *camera_pos, float camera_rad,
   dag::ConstSpan<DestrUpdateDesc> update_data, bool send_by_default, int max_impulses);
 bool deserialize_destr_update(const danet::BitStream &bs);
 
+bool serialize_client_destr_requests(danet::BitStream &bs, float ttl_min, float ttl_max);
+void deserialize_client_destr_requests(const danet::BitStream &bs,
+  dag::FixedMoveOnlyFunction<32, void(const rendinst::RendInstDesc &, bool, const Point3 &, const Point3 &)> cb);
+
 void startSession(void *phys_wld);
 void endSession();
 void setApexEnabled(bool enabled);
 void resetApexDestructedRIList();
+
+void set_ri_destr_collision_enabled(bool enabled);
 
 void remove_restorable_by_destructable_id(destructables::id_t id);
 void testObjToRestorablesIntersection(const BBox3 &obj_box, const TMatrix &obj_tm, rendinst::RendInstCollisionCB *coll_cb,
@@ -157,8 +188,8 @@ rendinst::RendInstDesc destroyRendinst(rendinst::RendInstDesc desc, bool add_res
   rendinst::DestrOptionFlags flags = rendinst::DestrOptionFlag::AddDestroyedRi | rendinst::DestrOptionFlag::ForceDestroy);
 void destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, bool create_destr_effects, const Point3 &impulse,
   const Point3 &impulse_pos, rendinst::DestrOptionFlags flags = {});
-void update(float dt, const Frustum *frustum);
-void update_paused(const Frustum *frustum);
+void update(float dt, float current_time, const Frustum *frustum);
+void update_paused(float current_time, const Frustum *frustum);
 void fill_ri_destructable_params(destructables::DestructableCreationParams &params, const rendinst::RendInstDesc &desc,
   DynamicPhysObjectData *po_data, const TMatrix &tm, rendinst::DestrOptionFlags flags);
 
@@ -173,6 +204,7 @@ void set_on_rendinst_destroyed_cb(on_rendinst_destroyed_callback cb);
 void call_on_rendinst_destroyed_cb(rendinst::riex_handle_t riex_handle, const TMatrix &tm, const BBox3 &box);
 rendinst::ri_damage_effect_cb get_ri_damage_effect_cb();
 void set_ri_damage_effect_cb(rendinst::ri_damage_effect_cb effect_cb);
+void set_on_tree_destr_created_cb(on_tree_destr_created_callback cb);
 void register_restorable_rendinst_cb(restorable_rendinst_callback cb);
 bool unregister_restorable_rendinst_cb(restorable_rendinst_callback cb);
 
@@ -229,4 +261,8 @@ inline void doRendinstDamage(const BBox3 &box, bool, uint32_t frameNo, float at_
 }
 
 void remove_ri_without_collision_in_radius(const Point3 &pos, float radius);
+
+int process_ri_collision_queue();
 }; // namespace rendinstdestr
+
+DAG_DECLARE_RELOCATABLE(rendinstdestr::DestrUpdateDesc);

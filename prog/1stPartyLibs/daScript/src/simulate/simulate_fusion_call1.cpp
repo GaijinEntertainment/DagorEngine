@@ -12,6 +12,7 @@
 #include "daScript/ast/ast.h"
 #include "daScript/simulate/simulate_fusion_op1.h"
 #include "daScript/simulate/simulate_visit_op.h"
+#include "vecmath/dag_vecMathDecl.h"
 
 namespace das {
 
@@ -86,7 +87,7 @@ __forceinline SimNode * safeArg1 ( SimNode * node, int index ) {
 #undef IMPLEMENT_ANY_OP1_NODE
 #define IMPLEMENT_ANY_OP1_NODE(INLINE,OPNAME,TYPE,CTYPE,RCTYPE,COMPUTE) \
     struct SimNode_Op1##COMPUTE : SimNode_Op1Call1 { \
-        INLINE vec4f compute(Context & context) { \
+        NO_ASAN_INLINE vec4f compute(Context & context) { \
             DAS_PROFILE_NODE \
             vec4f argValues[1]; \
             argValues[0] = v_ldu((const float *)subexpr.compute##COMPUTE(context)); \
@@ -113,7 +114,7 @@ __forceinline SimNode * safeArg1 ( SimNode * node, int index ) {
 #undef IMPLEMENT_ANY_OP1_NODE
 #define IMPLEMENT_ANY_OP1_NODE(INLINE,OPNAME,TYPE,CTYPE,RCTYPE,COMPUTE) \
     struct SimNode_Op1##COMPUTE : SimNode_Op1Call1 { \
-        INLINE vec4f compute(Context & context) { \
+        NO_ASAN_INLINE vec4f compute(Context & context) { \
             DAS_PROFILE_NODE \
             vec4f argValues[1]; \
             argValues[0] = v_ldu((const float *)subexpr.compute##COMPUTE(context)); \
@@ -132,8 +133,8 @@ __forceinline SimNode * safeArg1 ( SimNode * node, int index ) {
 
     void createFusionEngine_call1()
     {
-        (**g_fusionEngine)["FastCall"].emplace_back(new Op1FusionPoint_FastCall_vec4f());
-        (**g_fusionEngine)["Call"].emplace_back(new Op1FusionPoint_Call_vec4f());
+        (*getFusionEngine())["FastCall"].emplace_back(new Op1FusionPoint_FastCall_vec4f());
+        (*getFusionEngine())["Call"].emplace_back(new Op1FusionPoint_Call_vec4f());
     }
 }
 

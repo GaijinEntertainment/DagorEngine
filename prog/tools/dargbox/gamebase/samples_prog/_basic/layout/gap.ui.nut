@@ -36,7 +36,7 @@ let panel2 = {
     valign = ALIGN_CENTER
     // it can even have children!
     children = {
-      size = static [flex(), 5]
+      size = const [flex(), 5]
       rendObj = ROBJ_SOLID
       color = Color(0,0,0)
     }

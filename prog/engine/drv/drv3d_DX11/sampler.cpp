@@ -1,9 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "sampler.h"
+
 #include <drv/3d/dag_sampler.h>
 #include "driver.h"
-#include "sampler.h"
-#include "texture.h"
+#include "validation.h"
 
 using namespace drv3d_dx11;
 
@@ -11,12 +12,14 @@ namespace drv3d_dx11
 {
 
 dag::RelocatableFixedVector<SamplerKey, SAMPLER_KEYS_INPLACE_COUNT> g_sampler_keys;
-WinCritSec g_sampler_keys_cs;
+OSSpinlock g_sampler_keys_mtx;
 
 void close_samplers()
 {
-  if (!resetting_device_now)
-    g_sampler_keys.clear();
+  if (resetting_device_now)
+    return;
+  SamplerKeysAutoLock l;
+  g_sampler_keys.clear();
 }
 
 } // namespace drv3d_dx11
@@ -39,29 +42,25 @@ static SamplerKey makeKey(const d3d::SamplerInfo &sampler_info)
   return key;
 }
 
-d3d::SamplerHandle d3d::request_sampler(const d3d::SamplerInfo &sampler_info)
+NO_UBSAN d3d::SamplerHandle d3d::request_sampler(const d3d::SamplerInfo &sampler_info)
 {
   SamplerKey samplerKey = makeKey(sampler_info);
-  SamplerKey *ptr = nullptr;
 
   SamplerKeysAutoLock lock;
+  auto toHandle = [](SamplerKey *k) {
+    return SamplerHandle(eastl::distance(g_sampler_keys.begin(), k) + (uint64_t(INVALID_SAMPLER_HANDLE) == 0));
+  };
+
   for (auto &key : g_sampler_keys)
     if (key == samplerKey)
-    {
-      ptr = &key;
-      break;
-    }
+      return toHandle(&key);
 
-  if (!ptr)
+  auto nk = &g_sampler_keys.push_back(samplerKey);
+  if (DAGOR_UNLIKELY(g_sampler_keys.size() == SAMPLER_KEYS_INPLACE_COUNT))
   {
-    ptr = &g_sampler_keys.push_back(samplerKey);
-    if (DAGOR_UNLIKELY(g_sampler_keys.size() == SAMPLER_KEYS_INPLACE_COUNT))
-    {
-      // We don't expect the number of unique samplers to be large. It is technically supported, but should not happen with real-world
-      // use, unless there's some bug.
-      logerr("DX11: created %" PRIu32 " unique samplers. This probably indicates a problem.", g_sampler_keys.size());
-    }
+    // We don't expect the number of unique samplers to be large. It is technically supported, but should not happen with real-world
+    // use, unless there's some bug.
+    logerr("DX11: created %u unique samplers. This likely indicates a problem.", g_sampler_keys.size());
   }
-
-  return SamplerHandle(ptr - g_sampler_keys.begin() + 1);
+  return toHandle(nk);
 }

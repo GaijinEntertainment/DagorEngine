@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "math/dag_Point2.h"
 #include <render/gpuGrass.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameRes.h>
@@ -18,6 +19,7 @@
 #include <util/dag_stlqsort.h>
 #include <shaders/dag_computeShaders.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
 #include <math/dag_frustum.h>
@@ -41,6 +43,7 @@
 #include <shaders/dag_overrideStates.h>
 #include <frustumCulling/frustumPlanes.h>
 #include <gui/dag_visualLog.h>
+#include <generic/dag_align.h>
 
 #define USE_QUADS_INDEX_BUFFER 0
 #define GRASS_USE_QUADS        D3D_HAS_QUADS // xbox one & ps4
@@ -60,6 +63,7 @@ enum
   VAR_OPT(world_to_far_grass_ofs)                           \
   VAR_OPT(grass_eraser_culling_rect)                        \
   VAR(world_to_grass_position)                              \
+  VAR(prev_world_to_grass_position)                         \
   VAR(grass_inv_vis_distance)                               \
   VAR(grass_gen_lod)                                        \
   VAR_OPT(grass_gen_lod_index)                              \
@@ -67,6 +71,7 @@ enum
   VAR(grass_grid_params)                                    \
   VAR(grass_draw_instances_buffer)                          \
   VAR(grass_draw_instances_indirect_buffer)                 \
+  VAR_OPT(grass_draw_instances_indirect_buffer_for_bvh)     \
   VAR(grass_insts_buf)                                      \
   VAR(grass_instances_count_readback)                       \
   VAR_OPT(grass_update_readback_count)                      \
@@ -91,8 +96,8 @@ CONSOLE_FLOAT_VAL("grass", grassGridSizeMultiplier, 1.0f);
 
 bool grass_supports_visibility_prepass()
 {
-  return dgs_get_settings()->getBlockByNameEx("graphics")->getBool("grassHasVisibilityPrepass", true) &&
-         d3d::get_driver_code().is(d3d::dx12 && !d3d::anyXbox);
+  static bool grassHasVisibilityPrepass = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("grassHasVisibilityPrepass", true);
+  return grassHasVisibilityPrepass && d3d::get_driver_code().is(d3d::dx12 && !d3d::anyXbox);
 }
 
 void GPUGrassBase::close()
@@ -157,6 +162,16 @@ static void debug_grass_inctances_count(Sbuffer *readback_buffer, int max_instan
 static void debug_grass_inctances_count(Sbuffer *, int, int) {}
 #endif
 
+int GPUGrassBase::mapTextureIndexToType(int tex_index) const
+{
+  for (int i = 0; i < grassColors.size(); i++)
+  {
+    if (grassColors[i].grassTextureType == tex_index)
+      return i;
+  }
+  G_ASSERTF_RETURN(0, 0, "Mapping grass texture with index %d to grass type failed!", tex_index);
+}
+
 void GPUGrassBase::loadGrassTypes(const DataBlock &grassSettings, const eastl::hash_map<eastl::string, int> &grassTypesUsed)
 {
   G_ASSERT(grassDescriptions.empty());
@@ -194,7 +209,7 @@ void GPUGrassBase::loadGrassTypes(const DataBlock &grassSettings, const eastl::h
 
     G_ASSERT(id >= 0);
     G_ASSERT(id < grasses.size());
-    if (id < 0 || id > grasses.size())
+    if (id < 0 || id >= grasses.size())
       continue;
     const char *diffuseName = grassType->getStr("diffuse", NULL);
     const char *normalName = grassType->getStr("normal", NULL);
@@ -335,6 +350,13 @@ void GPUGrassBase::loadGrassTypes(const DataBlock &grassSettings, const eastl::h
     smpInfo.anisotropic_max = 1;
     ShaderGlobal::set_sampler(get_shader_variable_id("grass_texture_n_samplerstate"), d3d::request_sampler(smpInfo));
   }
+
+  for (auto name : diffuseList)
+    textureNames.diffuse.push_back(name);
+  for (auto name : normalList)
+    textureNames.normal.push_back(name);
+  for (auto name : alphaList)
+    textureNames.alpha.push_back(name);
 }
 
 void GPUGrassBase::updateGrassColors()
@@ -407,9 +429,10 @@ void GPUGrassBase::init(const DataBlock &grassSettings, const bool has_cam_in_ca
     extraGrassInstances = true; // Needs more grass instances for this feature
 
   G_STATIC_ASSERT(sizeof(GrassChannel) % 16 == 0 && sizeof(GrassType) % 16 == 0);
-  grassRandomTypesCB = dag::buffers::create_persistent_cb(dag::buffers::cb_struct_reg_count<GrassTypesCB>(), "grass_rnd_types_buf");
-  grassColorsVSCB =
-    dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<GrassColorVS>(GRASS_MAX_TYPES), "grass_colors_buf");
+  grassRandomTypesCB =
+    dag::buffers::create_persistent_cb(dag::buffers::cb_struct_reg_count<GrassTypesCB>(), "grass_rnd_types_buf", RESTAG_GRASS);
+  grassColorsVSCB = dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<GrassColorVS>(GRASS_MAX_TYPES),
+    "grass_colors_buf", RESTAG_GRASS);
 
   bool ctxInited = true;
   ctxInited &= genContexts[(int)GrassView::Main].init(GrassView::Main);
@@ -548,7 +571,8 @@ void GPUGrassBase::init(const DataBlock &grassSettings, const bool has_cam_in_ca
 
     float sumWeight = 0;
     float randomWeights[MAX_TYPES_PER_CHANNEL] = {0};
-    uint8_t randomTypes[MAX_TYPES_PER_CHANNEL] = {0xFF};
+    uint8_t randomTypes[MAX_TYPES_PER_CHANNEL];
+    memset(randomTypes, 0xFF, sizeof(randomTypes));
     for (int ri = 0; ri < channelGrasses.size() && ri < MAX_TYPES_PER_CHANNEL; ++ri)
     {
       sumWeight += channelGrasses[ri].second;
@@ -624,12 +648,22 @@ void GPUGrassBase::updateGrassTypes()
     grass.fit_range = grassDesc.fit_range.value;
     grass.porosity = grassDesc.porosity.value;
 
-    G_ASSERTF(grass.height_from_weight_add >= 0.f && is_equal_float(grass.height_from_weight_mul + grass.height_from_weight_add, 1.0f),
-      "height_from_weight_add + height_from_weight_mul should be 1");
-    G_ASSERTF(((grass.density_from_weight_mul + grass.density_from_weight_add) > 0.0f || grass.density_from_weight_add > 0.0) &&
-                ((grass.density_from_weight_mul + grass.density_from_weight_add) < 1.0f || grass.density_from_weight_add < 1.0f),
-      "density_from_weight_add=%f + mask*density_from_weight_mul=%f should be at least sometimes between 0 and 1",
-      grass.density_from_weight_add, grass.density_from_weight_mul);
+
+    if (!(grass.height_from_weight_add >= 0.f && is_equal_float(grass.height_from_weight_mul + grass.height_from_weight_add, 1.0f)))
+    {
+      logerr("GPUGrassBase::updateGrassTypes: height_from_weight_add + height_from_weight_mul should be 1");
+      grass.height_from_weight_add = max(grass.height_from_weight_add, 0.0f);
+      grass.height_from_weight_mul = 1.0f - grass.height_from_weight_add;
+    }
+
+    if (!(((grass.density_from_weight_mul + grass.density_from_weight_add) > 0.0f || grass.density_from_weight_add > 0.0) &&
+          ((grass.density_from_weight_mul + grass.density_from_weight_add) < 1.0f || grass.density_from_weight_add < 1.0f)))
+    {
+      logerr("GPUGrassBase::updateGrassTypes: density_from_weight_add=%f + mask*density_from_weight_mul=%f should be at least "
+             "sometimes between 0 and 1",
+        grass.density_from_weight_add, grass.density_from_weight_mul);
+      grass.density_from_weight_add = clamp(grass.density_from_weight_add, 0.00001f, 0.99999f);
+    }
 
     grass.hor_size *= hor_size_mul;
     grass.hor_size_rnd_add *= hor_size_mul;
@@ -707,8 +741,8 @@ void GPUGrassBase::renderGrassLods(const GPUGrassGenerationCtx &gen_ctx, RenderG
 
   const float lod0StartDisappearing = 0.75; // 25% for disappearing
   const Point2 disappearTo = calcLinearLod(1.0f, lod0StartDisappearing);
-  ShaderGlobal::set_color4(grass_gen_lodVarId, 0, 0, disappearTo.x / currentGrassDistance, disappearTo.y);
-  ShaderGlobal::set_real(grass_gen_lod_indexVarId, 0);
+  ShaderGlobal::set_float4(grass_gen_lodVarId, 0, 0, disappearTo.x / currentGrassDistance, disappearTo.y);
+  ShaderGlobal::set_float(grass_gen_lod_indexVarId, 0);
   renderGrassLod(currentGridSize, currentGrassDistance);
 
   // todo: generation can be even faster, if we rely on 2d frustum to cull definetly not visible groups.
@@ -722,14 +756,14 @@ void GPUGrassBase::renderGrassLods(const GPUGrassGenerationCtx &gen_ctx, RenderG
     currentGridSize *= nextLodGridMul;
     prevLodDistancePart = min(1.f, prevLodDistancePart * nextLodDistMul);
     currentGrassDistance = lod == lodCount ? grassDistance : grassDistance * prevLodDistancePart; //?
-    // ShaderGlobal::set_color4(grass_gen_lodVarId,
+    // ShaderGlobal::set_float4(grass_gen_lodVarId,
     //   10*lodEquationA/currentGrassDistance, 10*lodEquationB - 9.4, 4./currentGrassDistance, -3);
 
     const Point2 appearFrom = calcLinearLod(lodStartDistancePart, lodFullDistancePart);
     // 10 percent for disappearing if there is other lod
     const Point2 disappearTo = calcLinearLod(currentGrassDistance, currentGrassDistance * ((lod == lodCount) ? 0.75 : 0.9));
-    ShaderGlobal::set_color4(grass_gen_lodVarId, appearFrom.x, appearFrom.y, disappearTo.x, disappearTo.y);
-    ShaderGlobal::set_real(grass_gen_lod_indexVarId, lod);
+    ShaderGlobal::set_float4(grass_gen_lodVarId, appearFrom.x, appearFrom.y, disappearTo.x, disappearTo.y);
+    ShaderGlobal::set_float(grass_gen_lod_indexVarId, lod);
     d3d::resource_barrier({{gen_ctx.grassInstancesIndirect.getBuf(), gen_ctx.grassInstances.getBuf()}, {RB_NONE, RB_NONE}});
     renderGrassLod(currentGridSize, currentGrassDistance);
     if (currentGrassDistance == grassDistance)
@@ -738,7 +772,7 @@ void GPUGrassBase::renderGrassLods(const GPUGrassGenerationCtx &gen_ctx, RenderG
 }
 
 void GPUGrassBase::generateGrass(GPUGrassGenerationCtx &gen_ctx, const Frustum &cull_frustum, const Point2 &pos,
-  const Point3 &view_dir, float min_ht_, float max_ht_, const frustum_heights_cb_t &cb)
+  const Point2 &prev_pos, const Point3 &view_dir, float min_ht_, float max_ht_, const frustum_heights_cb_t &cb)
 {
   TIME_D3D_PROFILE(genGrass)
   G_ASSERT(gen_ctx.inited);
@@ -747,11 +781,20 @@ void GPUGrassBase::generateGrass(GPUGrassGenerationCtx &gen_ctx, const Frustum &
   const float grassDistanceMultiplied = getDistanceEffective();
   const float alignSize = alignTo(); // align to cs grid size
   const float distance = getDistanceWithBorder();
-  const Point2 next_pos = floor(pos / (2 * alignSize) + Point2(0.5f, 0.5f)) * (2 * alignSize);
-  const float fullDistance = 2 * distance;
+  const float grid = 2 * alignSize;
+  const Point2 next_pos = floor(pos / grid + Point2(0.5f, 0.5f)) * grid;
+  Point2 prev_next_pos = floor(prev_pos / grid + Point2(0.5f, 0.5f)) * grid;
 
-  ShaderGlobal::set_color4(world_to_grass_positionVarId, 1.0f / fullDistance, 1.0f / fullDistance, -next_pos.x / fullDistance + 0.5f,
-    -next_pos.y / fullDistance + 0.5);
+  // Make sure prev_next_pos uses the same snapped grid as next_pos.
+  prev_next_pos -= round((prev_next_pos - next_pos) / grid) * grid;
+
+  const float invFullDistance = 0.5 / distance;
+
+  ShaderGlobal::set_float4(world_to_grass_positionVarId, invFullDistance, invFullDistance, -next_pos.x * invFullDistance + 0.5f,
+    -next_pos.y * invFullDistance + 0.5);
+
+  ShaderGlobal::set_float4(prev_world_to_grass_positionVarId, invFullDistance, invFullDistance,
+    -prev_next_pos.x * invFullDistance + 0.5f, -prev_next_pos.y * invFullDistance + 0.5);
 
   ShaderGlobal::set_buffer(grass_insts_bufVarId, gen_ctx.grassInstances);
 
@@ -820,17 +863,18 @@ void GPUGrassBase::generateGrass(GPUGrassGenerationCtx &gen_ctx, const Frustum &
 
       using TmpName = eastl::fixed_string<char, 64, false, framemem_allocator>;
       TmpName grassInstancesResName(TmpName::CtorSprintf(), "grass_insts_buf_%d", (int)gen_ctx.view);
-      gen_ctx.grassInstances =
-        dag::buffers::create_ua_sr_structured(sizeof(GrassInstance), gen_ctx.allocatedInstances, grassInstancesResName.c_str());
+      gen_ctx.grassInstances = dag::buffers::create_ua_sr_structured(sizeof(GrassInstance), gen_ctx.allocatedInstances,
+        grassInstancesResName.c_str(), d3d::buffers::Init::No, RESTAG_GRASS);
       if (visibilityOptimizationEnabled())
       {
         using TmpName = eastl::fixed_string<char, 64, false, framemem_allocator>;
         TmpName grassVisibilityResName(TmpName::CtorSprintf(), "grass_visibility_buf_%d", (int)gen_ctx.view);
-        gen_ctx.instanceVisibility = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), (gen_ctx.allocatedInstances + 31) / 32,
-          grassVisibilityResName.c_str());
+        gen_ctx.instanceVisibility = dag::buffers::create_ua_sr_structured(sizeof(uint32_t),
+          dag::align_up(gen_ctx.allocatedInstances, compactInstanceIndices->getThreadGroupSizes()[0]), grassVisibilityResName.c_str(),
+          d3d::buffers::Init::No, RESTAG_GRASS);
         TmpName instanceIndicesResName(TmpName::CtorSprintf(), "grass_instance_indices_buf_%d", (int)gen_ctx.view);
-        gen_ctx.instanceIndices =
-          dag::buffers::create_ua_sr_structured(sizeof(uint32_t), gen_ctx.allocatedInstances, instanceIndicesResName.c_str());
+        gen_ctx.instanceIndices = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), gen_ctx.allocatedInstances,
+          instanceIndicesResName.c_str(), d3d::buffers::Init::No, RESTAG_GRASS);
       }
     }
     ShaderGlobal::set_int(grass_max_instance_countVarId, gen_ctx.allocatedInstances);
@@ -846,10 +890,11 @@ void GPUGrassBase::generateGrass(GPUGrassGenerationCtx &gen_ctx, const Frustum &
     set_frustum_planes(cull_frustum);
     Point2 alignedCenterPos = next_pos;
     Point2 view_XZ = normalize(Point2::xz(view_dir));
-    ShaderGlobal::set_real(grass_inv_vis_distanceVarId, 1. / grassDistance);
-    ShaderGlobal::set_color4(grass_gen_orderVarId, fabsf(view_XZ.x) > fabsf(view_XZ.y) ? 1 : 0, view_XZ.x < 0 ? 1 : 0,
+    ShaderGlobal::set_float(grass_inv_vis_distanceVarId, 1. / grassDistance);
+    ShaderGlobal::set_float4(grass_gen_orderVarId, fabsf(view_XZ.x) > fabsf(view_XZ.y) ? 1 : 0, view_XZ.x < 0 ? 1 : 0,
       view_XZ.y < 0 ? 1 : 0, 0);
     ShaderGlobal::set_buffer(grass_draw_instances_indirect_bufferVarId, gen_ctx.grassInstancesIndirect.getBufId());
+    ShaderGlobal::set_buffer(grass_draw_instances_indirect_buffer_for_bvhVarId, gen_ctx.grassInstancesIndirect.getBufId());
     ShaderGlobal::set_buffer(grass_draw_instances_bufferVarId, gen_ctx.grassInstances.getBufId());
     if (gen_ctx.generated && !gen_ctx.readbackQueryIssued)
     {
@@ -873,13 +918,13 @@ void GPUGrassBase::generateGrass(GPUGrassGenerationCtx &gen_ctx, const Frustum &
       cb(BBox2(alignedCenterPos - Point2(currentGrassDistance, currentGrassDistance),
            alignedCenterPos + Point2(currentGrassDistance, currentGrassDistance)),
         min_ht, max_ht);
-      ShaderGlobal::set_color4(grass_average_ht__ht_extent__avg_hor__hor_extentVarId,
+      ShaderGlobal::set_float4(grass_average_ht__ht_extent__avg_hor__hor_extentVarId,
         0.5 * (max_ht + maxGrassHeightSize + min_ht), // average grass Ht
         0.5 * (max_ht + maxGrassHeightSize - min_ht), // grass Ht extents
         currentGridSize * 0.5,                        // average grid extents
         currentGridSize * 0.5 + maxGrassHorSize       // max hor extents
       );
-      ShaderGlobal::set_color4(grass_grid_paramsVarId, alignedCenterPos.x, alignedCenterPos.y, currentGridSize, quadSize);
+      ShaderGlobal::set_float4(grass_grid_paramsVarId, alignedCenterPos.x, alignedCenterPos.y, currentGridSize, quadSize);
       grassGenerator->dispatch((2 * quadSize + GRASS_WARP_SIZE_X - 1) / GRASS_WARP_SIZE_X,
         (2 * quadSize + GRASS_WARP_SIZE_Y - 1) / GRASS_WARP_SIZE_Y, 1);
     };
@@ -895,12 +940,13 @@ void GPUGrassBase::generateGrass(GPUGrassGenerationCtx &gen_ctx, const Frustum &
   gen_ctx.generated = true;
 }
 
-void GPUGrassBase::generate(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &view_dir,
-  const frustum_heights_cb_t &cb)
+void GPUGrassBase::generate(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &prev_pos,
+  const Point3 &view_dir, const frustum_heights_cb_t &cb)
 {
   if (!isInited())
     return;
-  generateGrass(genContexts[(int)view], cull_frustum, Point2::xz(pos), view_dir, pos.y - 1000.f, pos.y + 1000.f, cb);
+  generateGrass(genContexts[(int)view], cull_frustum, Point2::xz(pos), Point2::xz(prev_pos), view_dir, pos.y - 1000.f, pos.y + 1000.f,
+    cb);
 }
 
 void GPUGrassBase::render(const GrassView view, RenderType rtype)
@@ -979,7 +1025,10 @@ void GPUGrassBase::resolveVisibility(const GrassView view)
 void GPUGrassBase::invalidate()
 {
   for (auto &genContext : genContexts)
+  {
     genContext.generated = false;
+    genContext.readbackQueryIssued = false;
+  }
 }
 
 GPUGrassBase::~GPUGrassBase() { close(); }
@@ -1010,20 +1059,21 @@ void GPUGrass::init(const DataBlock &grassSettings, const bool has_cam_in_cam)
   maskTexHelper.texSize = maskResolution;
   farMaskTexHelper.texSize = farMaskResolution;
 
-  maskTex.set(d3d::create_tex(NULL, maskResolution, maskResolution, TEXCF_RTARGET, 1, "grass_mask_tex"), "grass_mask_tex");
+  maskTex.set(d3d::create_tex(NULL, maskResolution, maskResolution, TEXCF_RTARGET, 1, "grass_mask_tex", RESTAG_GRASS),
+    "grass_mask_tex");
   if (useFarGrass)
-    farMaskTex.set(d3d::create_tex(NULL, farMaskResolution, farMaskResolution, TEXCF_RTARGET, 1, "grass_far_mask_tex"),
+    farMaskTex.set(d3d::create_tex(NULL, farMaskResolution, farMaskResolution, TEXCF_RTARGET, 1, "grass_far_mask_tex", RESTAG_GRASS),
       "grass_far_mask_tex");
   else
     ShaderGlobal::set_texture(get_shader_variable_id("grass_far_mask_tex", true), BAD_TEXTUREID);
   ShaderGlobal::set_sampler(get_shader_variable_id("grass_mask_tex_samplerstate"), d3d::request_sampler({}));
 
-  colorTex.set(
-    d3d::create_tex(NULL, maskResolution, maskResolution, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1, "grass_color_tex"),
+  colorTex.set(d3d::create_tex(NULL, maskResolution, maskResolution, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1,
+                 "grass_color_tex", RESTAG_GRASS),
     "grass_color_tex");
   if (useFarGrass)
     farColorTex.set(d3d::create_tex(NULL, farMaskResolution, farMaskResolution, TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_RTARGET, 1,
-                      "grass_far_color_tex"),
+                      "grass_far_color_tex", RESTAG_GRASS),
       "grass_far_color_tex");
   {
     d3d::SamplerInfo smpInfo;
@@ -1066,15 +1116,14 @@ void MaskRenderCallback::renderQuad(const IPoint2 &lt, const IPoint2 &wd, const 
 
   cm.beginRender(Point3::xVy(box.center(), 0), bbox3, TMatrix4(viewTm) * proj, proj);
 
-  d3d::set_render_target(colorTex, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{colorTex, 0, 0}});
   d3d::setview(lt.x, lt.y, wd.x, wd.y, 0, 1);
   d3d::clearview(CLEAR_TARGET, 0, 0, 0);
   cm.renderColor();
 
-  d3d::set_render_target(maskTex, 0);
-  d3d::set_render_target(1, colorTex, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {{maskTex, 0, 0}, {colorTex, 0, 0}});
   d3d::setview(lt.x, lt.y, wd.x, wd.y, 0, 1);
-  ShaderGlobal::set_color4(grass_eraser_culling_rectVarId, box.center().x, box.center().y, box.width().x / 2, box.width().y / 2);
+  ShaderGlobal::set_float4(grass_eraser_culling_rectVarId, box.center().x, box.center().y, box.width().x / 2, box.width().y / 2);
   if (copy_grass_decals)
     copy_grass_decals->render();
   // d3d::clearview(CLEAR_TARGET, 0, 0, 0);
@@ -1146,11 +1195,11 @@ void GPUGrass::updateGrassMaps(const Point3 &pos, float grass_distance, float al
     alignedOrigin = point2(tex_helper.curOrigin) * texelSize;
 
     if (coord_var_id)
-      ShaderGlobal::set_color4(coord_var_id, 1.0f / fullDistance, 1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5f - ofs.x,
+      ShaderGlobal::set_float4(coord_var_id, 1.0f / fullDistance, 1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5f - ofs.x,
         -alignedOrigin.y / fullDistance + 0.5 - ofs.y);
 
     if (coord_ofs_var_id)
-      ShaderGlobal::set_color4(coord_ofs_var_id, 1.0f / fullDistance, 1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5f,
+      ShaderGlobal::set_float4(coord_ofs_var_id, 1.0f / fullDistance, 1.0f / fullDistance, -alignedOrigin.x / fullDistance + 0.5f,
         -alignedOrigin.y / fullDistance + 0.5);
 
     color_tex.setVar();
@@ -1170,21 +1219,21 @@ void GPUGrass::generatePerCamera(const Point3 &pos, IRandomGrassRenderHelper &cb
       world_to_far_grass_ofsVarId);
   boxesForInvalidation.clear();
 }
-void GPUGrass::generatePerView(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &view_dir,
-  IRandomGrassRenderHelper &cb)
+void GPUGrass::generatePerView(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &prev_pos,
+  const Point3 &view_dir, IRandomGrassRenderHelper &cb)
 {
   if (!base.isInited())
     return;
 
-  base.generate(view, cull_frustum, pos, view_dir,
+  base.generate(view, cull_frustum, pos, prev_pos, view_dir,
     [&](const BBox2 &box, float &mn, float &mx) { return cb.getMinMaxHt(box, mn, mx); });
 }
 
-void GPUGrass::generate(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &view_dir,
-  IRandomGrassRenderHelper &cb)
+void GPUGrass::generate(const GrassView view, const Frustum &cull_frustum, const Point3 &pos, const Point3 &prev_pos,
+  const Point3 &view_dir, IRandomGrassRenderHelper &cb)
 {
   generatePerCamera(pos, cb);
-  generatePerView(view, cull_frustum, pos, view_dir, cb);
+  generatePerView(view, cull_frustum, pos, prev_pos, view_dir, cb);
 }
 
 BBox2 GPUGrass::getGrassWorldBox() const

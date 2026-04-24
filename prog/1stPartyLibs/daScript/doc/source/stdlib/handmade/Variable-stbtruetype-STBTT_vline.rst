@@ -1,0 +1,1 @@
+Vertex type constant for a line-to command (straight line segment).

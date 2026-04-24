@@ -21,15 +21,24 @@ namespace debug::pc
 class DeviceContextState : public break_point::Controller
 {
 public:
-  void debugBeginCommandBuffer(DeviceState &dds, D3DDevice *device, D3DGraphicsCommandList *cmd)
+  void debugBeginCommandBuffer(DeviceState &dds, D3DDevice *device, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
   {
-    dds.beginCommandBuffer(device, cmd);
+    dds.beginCommandBuffer(device, cmd_id, cmd);
   }
-  void debugEndCommandBuffer(DeviceState &dds, D3DGraphicsCommandList *cmd) { dds.endCommandBuffer(cmd); }
+  void debugEndCommandBuffer(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
+  {
+    dds.endCommandBuffer(cmd_id, cmd);
+  }
   void debugFramePresent(DeviceState &dds) { dds.handlePresentToPresentCapture(); }
-  void debugEventBegin(DeviceState &dds, D3DGraphicsCommandList *cmd, eastl::string_view name) { dds.beginSection(cmd, name); }
-  void debugEventEnd(DeviceState &dds, D3DGraphicsCommandList *cmd) { dds.endSection(cmd); }
-  void debugMarkerSet(DeviceState &dds, D3DGraphicsCommandList *cmd, eastl::string_view name) { dds.marker(cmd, name); }
+  void debugEventBegin(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, eastl::string_view name)
+  {
+    dds.beginSection(cmd_id, cmd, name);
+  }
+  void debugEventEnd(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd) { dds.endSection(cmd_id, cmd); }
+  void debugMarkerSet(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, eastl::string_view name)
+  {
+    dds.marker(cmd_id, cmd, name);
+  }
 
   void debugFrameCaptureBegin(DeviceState &dds, ID3D12CommandQueue *, uint32_t, eastl::span<const wchar_t> name)
   {
@@ -42,67 +51,71 @@ public:
     dds.captureNextFrames(filename.data(), frame_count);
   }
 
-  void debugRecordDraw(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
+  void debugRecordDraw(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
     uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
   {
-    dds.draw(getCommandData(), cmd, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance, topology);
+    dds.draw(getCommandData(), cmd_id, cmd, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance, topology);
   }
-  void debugRecordDrawIndexed(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
-    uint32_t index_start, int32_t vertex_base, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
+  void debugRecordDrawIndexed(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+    uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance,
+    D3D12_PRIMITIVE_TOPOLOGY topology)
   {
-    dds.drawIndexed(getCommandData(), cmd, vs, ps, pipeline_base, pipeline, count, instance_count, index_start, vertex_base,
+    dds.drawIndexed(getCommandData(), cmd_id, cmd, vs, ps, pipeline_base, pipeline, count, instance_count, index_start, vertex_base,
       first_instance, topology);
   }
-  void debugDrawIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
+  void debugDrawIndirect(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
     const BufferResourceReferenceAndOffset &buffer)
   {
-    dds.drawIndirect(getCommandData(), cmd, vs, ps, pipeline_base, pipeline, buffer);
+    dds.drawIndirect(getCommandData(), cmd_id, cmd, vs, ps, pipeline_base, pipeline, buffer);
   }
-  void debugDrawIndexedIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  void debugDrawIndexedIndirect(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
     const BufferResourceReferenceAndOffset &buffer)
   {
-    dds.drawIndexedIndirect(getCommandData(), cmd, vs, ps, pipeline_base, pipeline, buffer);
+    dds.drawIndexedIndirect(getCommandData(), cmd_id, cmd, vs, ps, pipeline_base, pipeline, buffer);
   }
-  void debugDispatchIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
-    ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
+  void debugDispatchIndirect(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &state, ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
   {
-    dds.dispatchIndirect(getCommandData(), cmd, state, pipeline, buffer);
+    dds.dispatchIndirect(getCommandData(), cmd_id, cmd, state, pipeline, buffer);
   }
-  void debugDispatch(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state, ComputePipeline &pipeline,
-    uint32_t x, uint32_t y, uint32_t z)
+  void debugDispatch(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
+    ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
   {
-    dds.dispatch(getCommandData(), cmd, state, pipeline, x, y, z);
+    dds.dispatch(getCommandData(), cmd_id, cmd, state, pipeline, x, y, z);
   }
 
-  void debugDispatchMesh(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
+  void debugDispatchMesh(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
     const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t x, uint32_t y, uint32_t z)
   {
-    dds.dispatchMesh(getCommandData(), cmd, vs, ps, pipeline_base, pipeline, x, y, z);
+    dds.dispatchMesh(getCommandData(), cmd_id, cmd, vs, ps, pipeline_base, pipeline, x, y, z);
   }
 
-  void debugDispatchMeshIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-    const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  void debugDispatchMeshIndirect(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
     const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
   {
-    dds.dispatchMeshIndirect(getCommandData(), cmd, vs, ps, pipeline_base, pipeline, args, count, max_count);
+    dds.dispatchMeshIndirect(getCommandData(), cmd_id, cmd, vs, ps, pipeline_base, pipeline, args, count, max_count);
   }
 
-  void debugBlit(DeviceState &dds, D3DGraphicsCommandList *cmd) { dds.blit(getCommandData(), cmd); }
+  void debugBlit(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
+  {
+    dds.blit(getCommandData(), cmd_id, cmd);
+  }
 
 #if D3D_HAS_RAY_TRACING
-  void debugDispatchRays(DeviceState &dds, D3DGraphicsCommandList *cmd, const RayDispatchBasicParameters &dispatch_parameters,
-    const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
+  void debugDispatchRays(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
   {
-    dds.dispatchRays(getCommandData(), cmd, dispatch_parameters, rbt, rdp);
+    dds.dispatchRays(getCommandData(), cmd_id, cmd, dispatch_parameters, rbt, rdp);
   }
-  void debugDispatchRaysIndirect(DeviceState &dds, D3DGraphicsCommandList *cmd, const RayDispatchBasicParameters &dispatch_parameters,
-    const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
+  void debugDispatchRaysIndirect(DeviceState &dds, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+    const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
   {
-    dds.dispatchRaysIndirect(getCommandData(), cmd, dispatch_parameters, rbt, rdip);
+    dds.dispatchRaysIndirect(getCommandData(), cmd_id, cmd, dispatch_parameters, rbt, rdip);
   }
 #endif
 
@@ -111,6 +124,11 @@ public:
   void nameResource(DeviceState &dds, ID3D12Resource *resource, eastl::string_view name) { dds.nameResource(resource, name); }
 
   void nameResource(DeviceState &dds, ID3D12Resource *resource, eastl::wstring_view name) { dds.nameResource(resource, name); }
+
+  void debugSetPostmortemTraceEnabled(DeviceState &dds, CommandListIdentifier cmd_id, bool is_enabled)
+  {
+    dds.setPostmortemTraceEnabled(cmd_id, is_enabled);
+  }
 };
 } // namespace debug::pc
 } // namespace drv3d_dx12

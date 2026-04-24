@@ -3,6 +3,7 @@ include "viewVecVS.dshl"
 include "globtm.dshl"
 include "prev_screen_tc.dshl"
 include "csm.dshl"
+include "esm.dshl"
 include "static_shadow.dshl"
 include "fom_shadows.dshl"
 include "skies_shadows.dshl"
@@ -71,8 +72,6 @@ float volfog_multi_scatter_ao_weight = 1.0;
 float skies_scattering_effect = 1.; // it's only purpose is cuisine royale eclipse.
 
 int4 channel_swizzle_indices = (1, 0, 0, 0);
-
-float volfog_gi_amount_weight = 0.9;
 
 
 texture prev_initial_inscatter;
@@ -147,10 +146,11 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
             return false;
         #endif
         RenderSpotLight sl = spot_lights_cb[spot_light_index];
-        float4 lightPosRadius = sl.lightPosRadius;
+        float4 lightPosRadius = decode_spot_light_pos_radius(sl);
         half4 lightColor = half4(sl.lightColorAngleScale);
         half4 lightDirection = half4(sl.lightDirectionAngleOffset);
-        half2 texId_scale = half2(sl.texId_scale_illuminatingplane_shadow_contactshadow.xy);
+        half2 texId_scale = half2(sl.texId_scale_illuminatingplane_packedDataBits.xy);
+        float lightRollAngle = decode_light_roll_angle(sl);
 
         half lightAngleScale = lightColor.a;
         half lightAngleOffset = lightDirection.a;
@@ -175,8 +175,7 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
 
         //shlick phase can result in temporal changes, but overall looking better
         half phase = half(phaseSchlickTwoLobe(dot(dirFromLight, jitteredView), mieG0*1.5h, mieG1*1.5h));
-        half intensity = applyPhotometryIntensity(-dirFromLight, lightDirection.xyz, texId_scale.x,
-                                                  texId_scale.y, phase *attenuation *lightsEffect);
+        half intensity = applySpotLightPhotometry(-dirFromLight, lightDirection.xyz, lightRollAngle, texId_scale.x, texId_scale.y, phase * attenuation * lightsEffect);
         dynamicLighting += intensity * lightColor.xyz;
 
         return true;
@@ -190,6 +189,7 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
         #endif
         RenderOmniLight ol = omni_lights_cb[omni_light_index];
         float4 pos_and_radius = ol.posRadius;
+        float2 shadowZnZfar = ol.shadowZnZf_pad.xy;
         half4 color_and_specular = getFinalColor(ol, worldPos);
         half3 point2light = half3(pos_and_radius.xyz-worldPos.xyz);
         half distSqFromLight = dot(point2light,point2light);
@@ -203,7 +203,7 @@ macro VOLFOG_USE_DYNAMIC_LIGHTS(stage)
         half attenuation = getDistanceAtt( distSqFromLight, invSqrRad );
 
         #if OMNI_SHADOWS
-          attenuation *= getOmniShadow(getOmniLightShadowData(omni_light_index), pos_and_radius, worldPos, 1, half2(0, 0));
+          attenuation *= getOmniShadow(getOmniLightShadowData(omni_light_index), pos_and_radius, worldPos, 1, half2(0, 0), shadowZnZfar);
         #endif
 
         //ambient phase. shlick phase is heavier and will cause to much temporal difference
@@ -335,7 +335,6 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
     initial_media@smp3d = initial_media;
     volfog_occlusion@tex2d = volfog_occlusion;
     prev_volfog_weight@smp3d = prev_volfog_weight;
-    volfog_gi_amount_weight@f1 = volfog_gi_amount_weight;
 
     volfog_froxel_range@f1 = volfog_froxel_range_params.x;
     channel_swizzle_indices@i2 = (channel_swizzle_indices.x, channel_swizzle_indices.y, 0, 0);
@@ -408,9 +407,15 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
     #define NUM_CASCADES 3
   }
 
-  INIT_CSM_SHADOW_STCODE(stage)
+  INIT_CSM_SHADOW_STCODE_BASE(stage)
   VOLUME_DEPTH_CONVERSION(stage)
   VOLFOG_USE_DYNAMIC_LIGHTS(stage)
+
+  if (shadows_quality == high)
+  {
+    INIT_CSM_OFFSET_TO_CULLING_NEAR_PLANE(stage)
+    USE_CSM_OFFSET_TO_CULLING_NEAR_PLANE(stage)
+  }
 
   if (use_improved_light_leak_offset)
   {
@@ -484,16 +489,16 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
     {
       float3 staticShadowPointToEye = world_view_pos.xyz - world_pos;
 
-      float shadowEffect = 0;
       uint cascade_id;
-      float3 shadowTc = get_csm_shadow_tc(staticShadowPointToEye, cascade_id, shadowEffect);
+      float3 shadowTc = get_csm_shadow_tc(staticShadowPointToEye, cascade_id);
 
       half shadow = 1;
       ##if shadows_quality == high
         shadow = get_downsampled_shadows(shadowTc);
-        BRANCH
-        if (cascade_id > 2)
-          shadow *= getStaticShadow(world_pos);
+        float3 staticShadowPos = world_pos;
+        if (cascade_id < 3)
+          staticShadowPos = projectToShadowFrustumNearPlane(world_pos, cascade_id);
+        shadow *= getStaticShadow(staticShadowPos);
       ##else
         shadow = getStaticShadow(world_pos);
         #if HAS_DOWNSAMPLED_SHADOWS
@@ -537,9 +542,10 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
       }
 ##endif
 
+##if !hardware.scarlett
     #define __XBOX_REGALLOC_VGPR_LIMIT 48
     #define __XBOX_ENABLE_LIFETIME_SHORTENING 1
-
+##endif
 
     void calc_impl(uint3 dtId, uint3 tid, uint baseFlatId)
     {
@@ -777,8 +783,7 @@ macro VOLFOG_INITIAL_COMMON(stage, warp_size_z)
       shadow *= selfShadow;
 ##endif
 
-      #define VOLFOG_NIGHT_SUN_COS 0.046f // at this magic value it seems to be consistent with surface shadows // TODO: make it make sense!
-      const half shadowMul = from_sun_direction.y > -VOLFOG_NIGHT_SUN_COS ? 0 : 1;
+      const half shadowMul = -from_sun_direction.y < NIGHT_SUN_COS ? 0 : 1;
       shadow *= shadowMul;
       shadowForScattering *= shadowMul;
 
@@ -1004,7 +1009,6 @@ shader froxel_fog_light_calc_propagate_cs
     ##endif
   }
 
-  ENABLE_ASSERT(cs)
   if (froxel_fog_dispatch_mode == merged_parallel)
   {
     VOLFOG_INITIAL_COMMON(cs, 4)
@@ -1057,7 +1061,6 @@ shader froxel_fog_light_calc_propagate_ps
 
   supports global_frame; // needed for world_view_pos
 
-  ENABLE_ASSERT(ps)
   VOLFOG_INITIAL_COMMON(ps, 1)
 
   hlsl

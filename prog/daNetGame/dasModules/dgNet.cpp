@@ -2,12 +2,14 @@
 
 #include "dasModules/net.h"
 #include <daScript/daScript.h>
+#include <daScript/daScriptBind.h>
 #include <daScriptModules/rapidjson/rapidjson.h>
 #include <dasModules/dasEvent.h>
 #include <dasModules/dasModulesCommon.h>
 #include <daECS/net/component_replication_filter.h>
 #include <dasModules/aotEcsEvents.h>
 #include <dasModules/aotBitStream.h>
+#include <main/gameProjConfig.h>
 
 #include "net/protoVersion.h"
 
@@ -108,10 +110,11 @@ public:
 
     das::addExtern<DAS_BIND_FUN(net::update_component_filter_event)>(*this, lib, "update_component_filter_event",
       das::SideEffects::modifyExternal, "::net::update_component_filter_event");
-    das::addExtern<DAS_BIND_FUN(net::find_component_filter)>(*this, lib, "find_component_filter", das::SideEffects::none,
-      "::net::find_component_filter");
+    DAS_ADD_FUN_BIND("find_component_filter", accessExternal, net::find_component_filter);
     das::addExtern<DAS_BIND_FUN(::is_true_net_server)>(*this, lib, "is_true_net_server", das::SideEffects::accessExternal,
       "::is_true_net_server");
+    das::addExtern<DAS_BIND_FUN(dedicated::is_hosted_server_instance)>(*this, lib, "is_p2p_net_server",
+      das::SideEffects::accessExternal, "dedicated::is_hosted_server_instance");
     das::addExtern<DAS_BIND_FUN(dedicated::is_dedicated)>(*this, lib, "is_dedicated", das::SideEffects::accessExternal,
       "dedicated::is_dedicated");
     das::addExtern<DAS_BIND_FUN(bind_dascript::das_get_dasevent_net_version)>(*this, lib, "get_dasevent_net_version",
@@ -151,6 +154,7 @@ public:
     tw << "#include <dasModules/aotEcsEvents.h>\n";
     tw << "#include <daECS/net/component_replication_filter.h>\n";
     tw << "#include <dasModules/aotBitStream.h>\n";
+    tw << "#include \"main/gameProjConfig.h\" \n ";
     return das::ModuleAotType::cpp;
   }
 };

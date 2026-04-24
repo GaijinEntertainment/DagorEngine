@@ -16,8 +16,8 @@ bool FormatUtil::support(VkFormat format, VkImageType type, VkImageTiling tiling
     return false;
 
   VkImageFormatProperties properties;
-  VkResult result = VULKAN_CHECK_RESULT(Globals::VK::inst.vkGetPhysicalDeviceImageFormatProperties(Globals::VK::phy.device, format,
-    type, tiling, usage, flags, &properties));
+  VkResult result = Globals::VK::inst.vkGetPhysicalDeviceImageFormatProperties(Globals::VK::phy.device, format, type, tiling, usage,
+    flags, &properties);
   if (VULKAN_FAIL(result))
     return false;
   // needed ?
@@ -45,8 +45,8 @@ VkFormatFeatureFlags FormatUtil::buffer_features(VkFormat format)
 VkSampleCountFlags FormatUtil::samples(VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage)
 {
   VkImageFormatProperties properties;
-  VkResult result = VULKAN_CHECK_RESULT(
-    Globals::VK::inst.vkGetPhysicalDeviceImageFormatProperties(Globals::VK::phy.device, format, type, tiling, usage, 0, &properties));
+  VkResult result =
+    Globals::VK::inst.vkGetPhysicalDeviceImageFormatProperties(Globals::VK::phy.device, format, type, tiling, usage, 0, &properties);
 
   return VULKAN_OK(result) ? properties.sampleCounts : 0;
 }

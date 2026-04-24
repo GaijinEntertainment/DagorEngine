@@ -1,12 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/anim/anim.h>
 #include <ecs/phys/collRes.h>
 #include <ecs/phys/ragdoll.h>
 #include <ecs/phys/physEvents.h>
 #include <gamePhys/collision/collisionLib.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include <phys/dag_physDecl.h>
 #include <phys/dag_physics.h>
 #include <daECS/net/time.h>
@@ -86,7 +88,7 @@ static void add_collision_nodes(const CollisionResource &collres, PhysRagdoll &r
   }
   for (int nodeId = 0; nodeId < allNodes.size(); ++nodeId)
   {
-    const char *name = allNodes[nodeId].name;
+    const char *name = collres.getNodeName(nodeId);
     for (int i = 0; i < bodies.size(); i++)
     {
       if (!strcmp(name, bodies[i].name))

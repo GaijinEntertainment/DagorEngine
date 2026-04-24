@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <rendInst/rendInstExtra.h>
 #include <daECS/core/coreEvents.h>
 #include <gameRes/dag_stdGameRes.h>
@@ -25,7 +27,7 @@ struct RiPreviewResPreload
       if (resIdx < 0)
       {
         logerr("Failed to add ri_preview.name=<%s>(%d) while creating entity %d<%s>", name, resIdx, (ecs::entity_id_t)eid,
-          g_entity_mgr->getEntityTemplateName(eid));
+          mgr.getEntityTemplateName(eid));
         return false;
       }
       addRiGenExtraDebris(resIdx, 0);

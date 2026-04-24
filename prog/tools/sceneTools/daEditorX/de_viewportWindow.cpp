@@ -1,14 +1,33 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "de_viewportWindow.h"
+#include "de_appwnd.h"
 #include "de_screenshotMetaInfoLoader.h"
 #include "de3_dynRenderService.h"
 
 #include <EditorCore/ec_brush.h>
+#include <EditorCore/ec_cm.h>
+#include <image/dag_loadImage.h>
 #include <ioSys/dag_dataBlock.h>
 #include <oldEditor/de_interface.h>
 #include <util/dag_string.h>
 #include <winGuiWrapper/wgw_dialogs.h>
+
+int DagorEdViewportWindow::onMenuItemClick(unsigned id)
+{
+  switch (id)
+  {
+    case CM_CAMERAS_FREE:
+    case CM_CAMERAS_FPS:
+    case CM_CAMERAS_TPS:
+    case CM_CAMERAS_CAR:
+      DagorEdAppWindow *appWindow = (DagorEdAppWindow *)DAGORED2;
+      static_cast<PropPanel::IMenuEventHandler *>(appWindow)->onMenuItemClick(id);
+      break;
+  }
+
+  return ViewportWindow::onMenuItemClick(id);
+}
 
 bool DagorEdViewportWindow::onDropFiles(const dag::Vector<String> &files)
 {
@@ -17,7 +36,7 @@ bool DagorEdViewportWindow::onDropFiles(const dag::Vector<String> &files)
 
   DataBlock metaInfo;
   String errorMessage;
-  if (ScreenshotMetaInfoLoader::loadMetaInfo(files[0], metaInfo, errorMessage))
+  if (load_meta_info_from_image(files[0], metaInfo, errorMessage))
     ScreenshotMetaInfoLoader::applyCameraSettings(metaInfo, *this);
   else
     wingw::message_box(wingw::MBS_EXCL, "Error", "Error loading camera position from screenshot\n\"%s\"\n\n%s", files[0].c_str(),
@@ -52,4 +71,9 @@ BaseTexture *DagorEdViewportWindow::getDepthBuffer()
   }
 
   return nullptr;
+}
+
+void DagorEdViewportWindow::fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog, bool include_camera_distance)
+{
+  ViewportWindow::fillStatSettingsDialog(dialog, false);
 }

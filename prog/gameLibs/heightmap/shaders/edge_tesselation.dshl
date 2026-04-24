@@ -47,17 +47,17 @@ macro DECODE_EDGE_TESSELATION()
   }
 endmacro
 
-int heightmap_scale_offset = 70 always_referenced;
+int heightmap_scale_offset = 80 always_referenced;
 
-macro BASE_HEIGHTMAP_DECODE_EDGE_TESSELATION()
+macro BASE_HEIGHTMAP_DEFINES()
   hlsl(vs) {
+    uint4 hmapPatchesInfo: register(c78);
     struct {
       float x;
       uint y;
       float z;
       uint w;
-    } patchDim_patchDimPlus1_cellSize: register(c69);
-    uint4 hmapPatchesInfo: register(c68);
+    } patchDim_patchDimPlus1_cellSize: register(c79);
 
     #define HMAP_INSTANCE_OFS (hmapPatchesInfo.x)
     #define HMAP_QUAD_DOUBLE_SHIFT (hmapPatchesInfo.y)
@@ -66,9 +66,13 @@ macro BASE_HEIGHTMAP_DECODE_EDGE_TESSELATION()
     #define oneCellSize float(patchDim_patchDimPlus1_cellSize.z)
     #define HMAP_QUAD_SHIFT uint(patchDim_patchDimPlus1_cellSize.w)
     #define HMAP_QUAD_MASK uint(patchDim_patchDimPlus1_cellSize.y - 2)//hmapPatchesInfo.z
-
-    float4 heightmap_scale_offset[440]: register(c70);
-    uint4 lastreg:register(c511);
+   }
+endmacro
+macro BASE_HEIGHTMAP_DECODE_EDGE_TESSELATION()
+  BASE_HEIGHTMAP_DEFINES()
+  hlsl(vs) {
+    float4 heightmap_scale_offset[440]: register(c80);
+    uint4 lastreg:register(c521);
     #define input_used_instance_id ,uint instance_id
     #define used_instance_id ,instance_id
     #define USED_INSTANCE_ID ,instance_id
@@ -83,73 +87,4 @@ endmacro
 macro HEIGHTMAP_DECODE_EDGE_TESSELATION()
   HEIGHTMAP_CHANNELS()
   BASE_HEIGHTMAP_DECODE_EDGE_TESSELATION()
-endmacro
-
-macro PATCH_CONSTANT_DATA_CALCULATION()
-hlsl(hs) {
-  uint4 decodeTessFactor(uint encoded)
-  {
-    return uint4(encoded >> 24, (encoded >> 16) & 0xFF, (encoded >> 8) & 0xFF, encoded & 0xFF);
-  }
-
-  HsPatchData HullShaderPatchConstantCommon(OutputPatch<HsControlPoint, 4> controlPoints, float maxDisplacement)
-  {
-    HsPatchData patch;
-    float3 worldNormal = float3(0,1,0);
-    float3 positions[4] = {
-      restoreWorldPos(controlPoints[0].pos),
-      restoreWorldPos(controlPoints[1].pos),
-      restoreWorldPos(controlPoints[2].pos),
-      restoreWorldPos(controlPoints[3].pos)
-    };
-    float3 minPoint = min(min(positions[0], positions[1]), min(positions[2], positions[3]));
-    float3 maxPoint = max(max(positions[0], positions[1]), max(positions[2], positions[3]));
-    minPoint -= maxDisplacement.xxx;
-    maxPoint += maxDisplacement.xxx;
-
-    float4 dists = float4(
-      length((positions[3] + positions[0]) * 0.5 - world_view_pos),
-      length((positions[0] + positions[1]) * 0.5 - world_view_pos),
-      length((positions[1] + positions[2]) * 0.5 - world_view_pos),
-      length((positions[2] + positions[3]) * 0.5 - world_view_pos)
-    );
-
-    float max_dist = oneCellSize * patchDim * 3;
-    dists = saturate(dists / max_dist);
-    float4 distFade = lerp(1, hmap_tess_factor, pow2(float4(1,1,1,1) - dists));
-#if CHECK_LOD0_VIGNETTE
-    float3 centerPos = positions[0] + positions[1] + positions[2] + positions[3];
-    distFade = lerp(1, distFade, float4(calc_lod0_vignette((positions[3] + positions[0]) * 0.5),
-                                        calc_lod0_vignette((positions[0] + positions[1]) * 0.5),
-                                        calc_lod0_vignette((positions[1] + positions[2]) * 0.5),
-                                        calc_lod0_vignette((positions[2] + positions[3]) * 0.5)));
-#endif
-
-    float tessFactor = testBoxB(minPoint, maxPoint) ? hmap_tess_factor : 0;
-#if FORCE_MIN_TESS_FACTOR_ON_EDGES
-    uint4 patchTessFactor[4] = {
-      decodeTessFactor(controlPoints[0].patchTessFactor),
-      decodeTessFactor(controlPoints[1].patchTessFactor),
-      decodeTessFactor(controlPoints[2].patchTessFactor),
-      decodeTessFactor(controlPoints[3].patchTessFactor),
-    };
-
-    float4 minTessFactor = min(
-      min(patchTessFactor[0], patchTessFactor[1]),
-      min(patchTessFactor[2], patchTessFactor[3]));
-#else
-    float4 minTessFactor = hmap_tess_factor.xxxx;
-#endif
-
-    minTessFactor = min(min(tessFactor.xxxx, distFade), minTessFactor);
-
-    patch.edges[0] = minTessFactor.x;
-    patch.edges[1] = minTessFactor.y;
-    patch.edges[2] = minTessFactor.z;
-    patch.edges[3] = minTessFactor.w;
-    patch.inside[0] = min(min(patch.edges[0], patch.edges[1]), min(patch.edges[2], patch.edges[3]));
-    patch.inside[1] = patch.inside[0];
-    return patch;
-  }
-}
 endmacro

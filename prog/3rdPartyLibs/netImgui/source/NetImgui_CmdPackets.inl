@@ -1,3 +1,4 @@
+#include "NetImgui_CmdPackets.h"
 
 namespace NetImgui { namespace Internal
 {

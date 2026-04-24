@@ -1,7 +1,6 @@
 include "caustics_render_inc.dshl"
 include "frustum.dshl"
-
-
+include "dynamic_resolution.dshl"
 
 shader caustics_render
 {
@@ -15,9 +14,12 @@ shader caustics_render
   USE_AND_INIT_VIEW_VEC_VS()
   POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
 
+  INIT_DYNAMIC_RESOLUTION(ps)
+
   hlsl(ps) {
     float4 caustics_ps(VsOutput input) : SV_Target
     {
+      input.texcoord.xy = input.texcoord.xy * current_dynamic_resolution_scale;
       return caustics(input.texcoord, input.viewVect);
     }
   }

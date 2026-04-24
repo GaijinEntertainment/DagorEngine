@@ -37,7 +37,6 @@ shader debug_render_volmap_25d
   //INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(vs)
   RAY_CAST_VOXELS_25D(ps)
   SAMPLE_VOLMAP_25D(ps)
-  ENABLE_ASSERT(ps)
 
   hlsl {
     struct VsOutput

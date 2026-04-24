@@ -1,0 +1,25 @@
+Root    ?= ../../.. ;
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+Location = prog/gameLibs/soundOcclusionGPU ;
+
+TargetType  = lib ;
+Target      = gameLibs/soundOcclusionGPU.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/$(Location)
+;
+
+Sources =
+  soundOcclusionGPU.cpp
+  soundOcclusionGPUDebug.cpp
+;
+
+UseProgLibs +=
+  engine/lib3d
+  gameLibs/daSDF
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

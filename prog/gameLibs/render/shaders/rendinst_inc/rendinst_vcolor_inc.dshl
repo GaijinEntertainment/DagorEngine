@@ -29,7 +29,7 @@ macro COMMON_RENDINST_VCOLOR_PS(is_blending_hmap, has_sampler)
 
   if (!rendinst_render_is_shadow_or_depth)
   {
-    VCOLOR_LAYERED_PS_IMPL((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), is_blending_hmap, false, has_sampler, true)
+    VCOLOR_LAYERED_PS_IMPL((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), is_blending_hmap, false, has_sampler, true, GBUFFER_ORDER_STATIC)
   }
 endmacro
 

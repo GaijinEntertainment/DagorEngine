@@ -3,41 +3,24 @@
 #include "hmlSplineObject.h"
 #include "hmlSplinePoint.h"
 #include "hmlPlugin.h"
-
-static inline real distance_point_to_line_segment(const Point2 &pt, const Point2 &p1, const Point2 &p2, float &out_t)
-{
-  Point2 dp = pt - p1;
-  Point2 dir = p2 - p1;
-  real len2 = lengthSq(dir);
-
-  if (len2 == 0)
-  {
-    out_t = 0;
-    return length(dp);
-  }
-
-  real t = (dp * dir) / len2;
-
-  if (t <= 0)
-  {
-    out_t = 0;
-    return length(dp);
-  }
-  if (t >= 1)
-  {
-    out_t = 1;
-    return length(pt - p2);
-  }
-
-  out_t = t;
-  return rabs(dp * Point2(dir.y, -dir.x)) / sqrtf(len2);
-}
+#include <math/dag_math2d.h>
 
 void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float hm_cell_size, IBBox2 &dirty, const IBBox2 &dirty_clip,
   HmapBitmap *bmp)
 {
   if (!points.size() || (props.modifParams.width <= 0 && props.modifParams.smooth <= 0))
     return;
+
+  // Early bbox rejection: skip splines that don't overlap the dirty region
+  float addr = (props.modifParams.width + props.modifParams.smooth) * props.modifParams.maxWidthScale;
+  {
+    int splMinX = (int)floorf((splBox[0].x - addr - hm_ofs.x) / hm_cell_size);
+    int splMaxX = (int)ceilf((splBox[1].x + addr - hm_ofs.x) / hm_cell_size);
+    int splMinY = (int)floorf((splBox[0].z - addr - hm_ofs.y) / hm_cell_size);
+    int splMaxY = (int)ceilf((splBox[1].z + addr - hm_ofs.y) / hm_cell_size);
+    if (splMinX > dirty_clip[1].x || splMaxX < dirty_clip[0].x || splMinY > dirty_clip[1].y || splMaxY < dirty_clip[0].y)
+      return;
+  }
 
   float maxLen = bezierSpline.getLength();
 
@@ -67,7 +50,10 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
 
   float splineWidth = props.modifParams.width / hm_cell_size;
   float splineSmooth = props.modifParams.smooth / hm_cell_size;
-  float maxSizeFloat = splineWidth + splineSmooth;
+  bool usePerPointWidth = props.modifParams.usePerPointWidth;
+  float maxWidthScale = props.modifParams.maxWidthScale;
+  float maxScale = usePerPointWidth ? maxWidthScale : 1.0f;
+  float maxSizeFloat = (splineWidth + splineSmooth) * maxScale;
   Point3 updir = Point3(0, 1, 0);
   float step = maxSizeFloat / 2;
   if (step < hm_cell_size / 4)
@@ -75,11 +61,23 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
   if (step > maxLen)
     step = maxLen;
   int maxSize = ceilf(maxSizeFloat + step / 2);
+  float maxSizeFloatSq = maxSizeFloat * maxSizeFloat;
 
   // debug("maxLen=%.3f maxSizeFloat=%.3f poly=%d hm_cell_size=%.3f step=%.3f", maxLen, maxSizeFloat, poly, hm_cell_size, step);
+  auto getScaleWAt = [&](int bezSegId, float locT) -> float {
+    int numPts = points.size();
+    if (bezSegId < 0 || bezSegId >= numPts)
+      return 1.0f;
+    float s0 = max(points[bezSegId]->getProps().attr.scale_w, 1e-3f);
+    int nextPtIdx = min(bezSegId + 1, numPts - 1);
+    float s1 = max(points[nextPtIdx]->getProps().attr.scale_w, 1e-3f);
+    return s0 + (s1 - s0) * locT;
+  };
+
   Point3 pt = bezierSpline.segs[0].point(0) - Point3::x0y(hm_ofs);
   Point3 tang = normalize(bezierSpline.segs[0].tang(0));
   int segId = 0;
+  float prevScaleW = usePerPointWidth ? getScaleWAt(0, 0.0f) : 1.0f;
   pt.x /= hm_cell_size;
   pt.z /= hm_cell_size;
   for (float len = step; len <= maxLen; len += step)
@@ -90,51 +88,50 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
     pt_next.x /= hm_cell_size;
     pt_next.z /= hm_cell_size;
 
-    for (int ys = int(floorf((pt.z + pt_next.z) / 2)) - maxSize, ye = int(ceil((pt.z + pt_next.z) / 2)) + maxSize; ys <= ye; ys++)
+    float nextScaleW = usePerPointWidth ? getScaleWAt(next_segId, locT) : 1.0f;
+
+    Point3 side = updir % tang;
+    side.normalize();
+    float sideX = side.x, sideY = side.y, sideZ = side.z;
+
+    int xsStart = max(int(floorf((pt.x + pt_next.x) / 2)) - maxSize, 0);
+    int xsEnd = min(int(ceilf((pt.x + pt_next.x) / 2)) + maxSize, xSize * elemSize - 1);
+    int ysStart = max(int(floorf((pt.z + pt_next.z) / 2)) - maxSize, 0);
+    int ysEnd = min(int(ceilf((pt.z + pt_next.z) / 2)) + maxSize, ySize * elemSize - 1);
+    for (int ys = ysStart; ys <= ysEnd; ys++)
     {
-      if (ys < 0)
-        continue;
       int yElems = ys / elemSize;
-      if (yElems >= ySize)
-        continue;
-      for (int xs = int(floorf((pt.x + pt_next.x) / 2)) - maxSize, xe = int(ceil((pt.x + pt_next.x) / 2)) + maxSize; xs <= xe; xs++)
+      for (int xs = xsStart; xs <= xsEnd; xs++)
       {
-        if (xs < 0)
-          continue;
-        int xElems = xs / elemSize;
-        if (xElems >= xSize)
-          continue;
-
         real line_t;
-        real distance = distance_point_to_line_segment(Point2(xs, ys), Point2(pt.x, pt.z), Point2(pt_next.x, pt_next.z), line_t);
-        if (distance > maxSizeFloat)
+        real distSq = sq_distance_point_to_line_segment(Point2(xs, ys), Point2::xz(pt), Point2::xz(pt_next), line_t);
+        if (distSq > maxSizeFloatSq)
           continue;
 
+        int xElems = xs / elemSize;
         int elemId = xElems + yElems * xSize;
         if (!heightmapDistance[elemId].size())
         {
           clear_and_resize(heightmapDistance[elemId], elemSize * elemSize);
           for (int j = 0; j < heightmapDistance[elemId].size(); ++j)
-            heightmapDistance[elemId][j].x = 1e6;
+            heightmapDistance[elemId][j].x = 1.1e12f;
         }
         int subIndex = xs - xElems * elemSize + (ys - yElems * elemSize) * elemSize;
-        if (heightmapDistance[elemId][subIndex].x <= distance)
+        if (heightmapDistance[elemId][subIndex].x <= distSq)
           continue;
-        heightmapDistance[elemId][subIndex].x = distance;
+        heightmapDistance[elemId][subIndex].x = distSq;
 
-        Point3 side = updir % tang;
-        side.normalize();
-        real k = Point2(xs - pt.x * (1 - line_t) - pt_next.x * line_t, ys - pt.z * (1 - line_t) - pt_next.z * line_t) *
-                 Point2(side.x, side.z);
-        side *= k;
+        real k =
+          Point2(xs - pt.x * (1 - line_t) - pt_next.x * line_t, ys - pt.z * (1 - line_t) - pt_next.z * line_t) * Point2(sideX, sideZ);
 
-        heightmapDistance[elemId][subIndex].y = (poly ? minY : pt.y * (1 - line_t) + pt_next.y * line_t) + side.y * 2;
-        heightmapDistance[elemId][subIndex].z = segId;
+        heightmapDistance[elemId][subIndex].y = (poly ? minY : pt.y * (1 - line_t) + pt_next.y * line_t) + k * sideY * 2;
+        heightmapDistance[elemId][subIndex].z = prevScaleW + (nextScaleW - prevScaleW) * line_t;
       }
     }
     tang = normalize(bezierSpline.segs[next_segId].tang(locT));
     pt = pt_next;
     segId = next_segId;
+    prevScaleW = nextScaleW;
   }
 
   if (poly)
@@ -152,38 +149,34 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
       pt_next.x /= hm_cell_size;
       pt_next.z /= hm_cell_size;
 
-      for (int ys = int(floorf((pt.z + pt_next.z) / 2)) - maxSize, ye = int(ceil((pt.z + pt_next.z) / 2)) + maxSize; ys <= ye; ys++)
+      int xsStart2 = max(int(floorf((pt.x + pt_next.x) / 2)) - maxSize, 0);
+      int xsEnd2 = min(int(ceilf((pt.x + pt_next.x) / 2)) + maxSize, xSize * elemSize - 1);
+      int ysStart2 = max(int(floorf((pt.z + pt_next.z) / 2)) - maxSize, 0);
+      int ysEnd2 = min(int(ceilf((pt.z + pt_next.z) / 2)) + maxSize, ySize * elemSize - 1);
+      for (int ys = ysStart2; ys <= ysEnd2; ys++)
       {
-        if (ys < 0)
-          continue;
         int yElems = ys / elemSize;
-        if (yElems >= ySize)
-          continue;
-        for (int xs = int(floorf((pt.x + pt_next.x) / 2)) - maxSize, xe = int(ceil((pt.x + pt_next.x) / 2)) + maxSize; xs <= xe; xs++)
+        for (int xs = xsStart2; xs <= xsEnd2; xs++)
         {
-          if (xs < 0)
-            continue;
           int xElems = xs / elemSize;
-          if (xElems >= xSize)
-            continue;
           int elemId = xElems + yElems * xSize;
           real line_t;
-          real distance = distance_point_to_line_segment(Point2(xs, ys), Point2(pt.x, pt.z), Point2(pt_next.x, pt_next.z), line_t);
+          real distSq = sq_distance_point_to_line_segment(Point2(xs, ys), Point2::xz(pt), Point2::xz(pt_next), line_t);
 
-          if (distance >= maxSizeFloat)
+          if (distSq >= maxSizeFloatSq)
             continue;
           if (!heightmapDistance[elemId].size())
           {
             clear_and_resize(heightmapDistance[elemId], elemSize * elemSize);
             for (int j = 0; j < heightmapDistance[elemId].size(); ++j)
-              heightmapDistance[elemId][j].x = 1e6;
+              heightmapDistance[elemId][j].x = 1.1e12f;
           }
           int subIndex = xs - xElems * elemSize + (ys - yElems * elemSize) * elemSize;
-          if (heightmapDistance[elemId][subIndex].x <= distance)
+          if (heightmapDistance[elemId][subIndex].x <= distSq)
             continue;
-          heightmapDistance[elemId][subIndex].x = distance;
+          heightmapDistance[elemId][subIndex].x = distSq;
           heightmapDistance[elemId][subIndex].y = minY;
-          heightmapDistance[elemId][subIndex].z = -1;
+          heightmapDistance[elemId][subIndex].z = 1.0f;
         }
       }
       pt = pt_next;
@@ -213,21 +206,30 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
           if (!(dirty_clip & IPoint2(xs, ys)))
             continue;
 
-          float dist = heightmapDistance[elemId][subId].x;
+          float distSq = heightmapDistance[elemId][subId].x;
 
-          if (dist >= 1e6)
+          if (distSq >= 1e12f)
             continue;
 
+          float dist = sqrtf(distSq);
+
           float ht = heightmapDistance[elemId][subId].y;
+          float scaleW = heightmapDistance[elemId][subId].z;
+          float effSplineWidth = splineWidth * scaleW;
+          float effSplineSmooth = splineSmooth * scaleW;
+          float effMaxSize = effSplineWidth + effSplineSmooth;
           dirty += IPoint2(xs, ys);
 
           if (bmp)
             bmp->set(xs, ys);
 
-          if (dist > splineWidth)
+          if (dist > effMaxSize)
+            continue;
+
+          if (dist > effSplineWidth)
           {
             ht += props.modifParams.offset[1];
-            float strength = (dist - splineWidth) / splineSmooth;
+            float strength = (effSplineSmooth > 1e-9f) ? (dist - effSplineWidth) / effSplineSmooth : 1.0f;
             float tx = xs * hm_cell_size + hm_ofs.x;
             float ty = ys * hm_cell_size + hm_ofs.y;
             if (poly && pointInsidePoly(Point2(tx, ty)))
@@ -243,7 +245,7 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
           {
             if (props.modifParams.additive)
               ht = hm.getFinalData(xs, ys) + dY;
-            float interp = powf(dist / splineWidth, props.modifParams.offsetPow);
+            float interp = (effSplineWidth > 1e-9f) ? powf(dist / effSplineWidth, props.modifParams.offsetPow) : 0.0f;
             ht += props.modifParams.offset[0] * (1.0f - interp) + props.modifParams.offset[1] * interp;
             hm.setFinalData(xs, ys, ht);
           }
@@ -274,7 +276,7 @@ void SplineObject::applyHmapModifier(HeightMapStorage &hm, Point2 hm_ofs, float 
             if (hmd_idx >= 0 && hmd_idx < heightmapDistance.size())
             {
               dag::ConstSpan<Point3> hmd = heightmapDistance[hmd_idx];
-              if (hmd.size() && hmd[(ys % elemSize) * elemSize + (xs % elemSize)].x < 5e5)
+              if (hmd.size() && hmd[(ys % elemSize) * elemSize + (xs % elemSize)].x < 1e12f)
                 continue;
             }
             hm.setFinalData(xs, ys, hm.getFinalData(xs, ys) + dY);

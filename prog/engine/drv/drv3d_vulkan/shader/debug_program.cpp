@@ -217,33 +217,26 @@ void ShaderProgramDatabase::initDebugProg(bool has_bindless, DeviceContext &dc)
     // - output on 1
     ShaderModuleHeader smh = {};
     spirv::ShaderHeader &spvHeader = smh.header;
-    spvHeader.descriptorTypes[0] = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-    spvHeader.imageViewTypes[0] = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-    spvHeader.descriptorCounts[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    spvHeader.descriptorTypes[0].set(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
+    spvHeader.descriptorCounts[0].type.set(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
     spvHeader.descriptorCounts[0].descriptorCount = 1;
     spvHeader.maxConstantCount = 4 * 4;
-    spvHeader.bonesConstantsUsed = -1; // @TODO: remove
     spvHeader.bRegisterUseMask = 1;
     spvHeader.inputMask = (1ul << 0) | (1ul << 3);
     spvHeader.outputMask = 1ul << 0;
-    spvHeader.registerIndex[0] = spirv::B_CONST_BUFFER_OFFSET + 0;
-    spvHeader.constBufferCheckIndices[0] = 0;
     spvHeader.missingTableIndex[0] = spirv::FALLBACK_TO_C_GLOBAL_BUFFER;
-    spvHeader.constBufferCount = 1;
     spvHeader.descriptorCountsCount = 1;
     spvHeader.registerCount = 1;
+    spvHeader.slotToRegisterMapping[spirv::REGISTER_MAPPING_B_OFFSET] = 0;
+    spvHeader.registerToSlotMapping[0] = {0, spirv::EngineSlotMapping::REG_B};
 
     smh.hash = spirv::HashValue::calculate(&spvHeader, 1);
     smh.stage = VK_SHADER_STAGE_VERTEX_BIT;
 
-    ShaderModuleBlob smb = {};
-    // needs to typecast or insert will extend each element from u8 to u32
     const uint8_t *vertDump = has_bindless ? debug_vert_program_bindless : debug_vert_program;
     size_t vertDumpSz = has_bindless ? sizeof(debug_vert_program_bindless) : sizeof(debug_vert_program);
-    auto from = reinterpret_cast<const uint32_t *>(vertDump);
-    auto to = reinterpret_cast<const uint32_t *>(vertDump + vertDumpSz);
-    smb.blob.insert(end(smb.blob), from, to);
-    smb.hash = spirv::HashValue::calculate(smb.blob.data(), smb.blob.size());
+
+    ShaderModuleBlob smb(vertDump, vertDump + vertDumpSz);
 
     vs = newShader(dc, smh, smb);
 
@@ -267,12 +260,7 @@ void ShaderProgramDatabase::initDebugProg(bool has_bindless, DeviceContext &dc)
     smh.hash = spirv::HashValue::calculate(&spvHeader, 1);
     smh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-    ShaderModuleBlob smb = {};
-    // needs to typecast or insert will extend each element from u8 to u32
-    auto from = reinterpret_cast<const uint32_t *>(debug_frag_program);
-    auto to = reinterpret_cast<const uint32_t *>(debug_frag_program + sizeof(debug_frag_program));
-    smb.blob.insert(end(smb.blob), from, to);
-    smb.hash = spirv::HashValue::calculate(smb.blob.data(), smb.blob.size());
+    ShaderModuleBlob smb(debug_frag_program, debug_frag_program + sizeof(debug_frag_program));
 
     fs = newShader(dc, smh, smb);
 

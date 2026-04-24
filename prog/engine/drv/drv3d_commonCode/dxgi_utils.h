@@ -3,14 +3,16 @@
 
 #if _TARGET_PC_WIN
 
-#include <supp/dag_comPtr.h>
+#include <dxgi1_6.h>
 
 #include <EASTL/utility.h>
 #include <EASTL/optional.h>
 
-class String;
-struct IDXGIOutput;
-struct IDXGIFactory1;
+#include <supp/dag_comPtr.h>
+#include <util/dag_string.h>
+
+#include <osApiWrappers/dag_versionQuery.h>
+
 
 String get_monitor_name_from_output(IDXGIOutput *pOutput);
 
@@ -29,5 +31,9 @@ ComPtr<IDXGIOutput> get_default_monitor(IDXGIFactory1 *factory);
 bool resolutions_have_same_ratio(eastl::pair<uint32_t, uint32_t> l_res, eastl::pair<uint32_t, uint32_t> r_res);
 
 eastl::optional<eastl::pair<uint32_t, uint32_t>> get_recommended_resolution(IDXGIOutput *dxgi_output);
+
+DriverVersion get_driver_version_from_adapter(IDXGIAdapter *adapter);
+
+DXGI_GPU_PREFERENCE get_gpu_preference_from_registry();
 
 #endif

@@ -1,4 +1,5 @@
 from "%darg/ui_imports.nut" import *
+from "%sqstd/underscore.nut" import getSubTable
 
 const JOY_XBOX_REAL_AXIS_L_THUMB_H = 0
 const JOY_XBOX_REAL_AXIS_L_THUMB_V = 1
@@ -12,31 +13,35 @@ const AXIS_MODIFIEER_LT = 0x100
 const AXIS_MODIFIEER_RT = 0x200
 
 
-let btnSize = static [hdpx(200), hdpx(40)]
-let gap = hdpx(10)
-let borderWidth = hdpx(2)
-let pressedOffset = static [0, hdpx(2)]
-let vSliderSize = static [btnSize[1], btnSize[1] * 3 + gap * 2]
-let hSliderSize = static [vSliderSize[1], vSliderSize[0]]
-let markWidth = hdpx(5)
+const btnSize = [hdpx(200), hdpx(40)]
+const gap = hdpx(10)
+const borderWidth = hdpx(2)
+const pressedOffset = [0, hdpx(2)]
+const vSliderSize = [btnSize[1], btnSize[1] * 3 + gap * 2]
+const hSliderSize = [vSliderSize[1], vSliderSize[0]]
+const markWidth = hdpx(5)
 
 let isAxisShortcuts = Watched(false)
-let stateFlagsLT = Watched(0)
-let stateFlagsRT = Watched(0)
-let isModActiveLT = Computed(@() (stateFlagsLT.get() & S_ACTIVE) != 0)
-let isModActiveRT = Computed(@() (stateFlagsRT.get() & S_ACTIVE) != 0)
-let axisModifiers = Computed(@() {
-  [AXIS_MODIFIEER_LT] = isModActiveLT.get(),
-  [AXIS_MODIFIEER_RT] = isModActiveRT.get(),
-})
 let axisModifierName = {
   [AXIS_MODIFIEER_LT] = "LT",
   [AXIS_MODIFIEER_RT] = "RT",
 }
+let axisModifiers = Watched(axisModifierName.map(@(_) false))
 let axisModListeners = Watched({})
+let axisModByBtnId = axisModifierName
+  .reduce(
+    function(res, name, modId) {
+      let info = resolve_button($"J:{name}")
+      if (info != null) {
+        let { btnId, devId } = info
+        getSubTable(res, devId)[btnId] <- modId
+      }
+      return res
+    },
+    {})
 
-function button(hotkey, stateFlagsExt = null) {
-  let stateFlags = stateFlagsExt ?? Watched(0)
+function button(hotkey) {
+  let stateFlags = Watched(0)
   return @() {
     watch = stateFlags
     size = btnSize
@@ -168,11 +173,30 @@ function axisToggleButton() {
   }
 }
 
+let modsMonitor = {
+  behavior = Behaviors.ProcessKeyInput
+  function onKeyPress(evt) {
+    let modId = axisModByBtnId?[evt.devId][evt.btnId]
+    if (modId != null && !axisModifiers.get()[modId])
+      axisModifiers.mutate(@(v) v.rawset(modId, true))
+    return 0
+  }
+  function onKeyRelease(evt) {
+    let modId = axisModByBtnId?[evt.devId][evt.btnId]
+    if (modId != null && axisModifiers.get()[modId])
+      axisModifiers.mutate(@(v) v.rawset(modId, false))
+    return 0
+  }
+  onDetach = @() axisModifiers.get().findvalue(@(v) v) == null ? null
+    : axisModifiers.set(axisModifiers.get().map(@(_) false))
+}
+
 return @() {
   watch = isAxisShortcuts
   children = columnsRows([
     [
       axisToggleButton()
+      modsMonitor
     ],
     [
       button("^J:A")
@@ -187,8 +211,8 @@ return @() {
       button("^J:Back")
       button("^J:LB")
       button("^J:RB")
-      button("^J:LT", stateFlagsLT)
-      button("^J:RT", stateFlagsRT)
+      button("^J:LT")
+      button("^J:RT")
       button("^J:LS")
       button("^J:RS")
     ],

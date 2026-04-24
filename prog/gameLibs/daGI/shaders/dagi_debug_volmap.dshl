@@ -14,8 +14,6 @@ int create_debug_render_cs_drawIndirectBuffer_uav_no = 0;
 
 shader create_debug_render_cs
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     frustum_visible_ambient_voxels_count@buf : register(create_debug_render_cs_frustum_visible_ambient_voxels_count_const_no) hlsl {
       StructuredBuffer<uint> frustum_visible_ambient_voxels_count@buf;
@@ -59,7 +57,6 @@ shader debug_render_volmap
 
   SSGI_USE_VOLMAP_GI_COORD(vs)
   SSGI_USE_VOLMAP_GI(ps)
-  ENABLE_ASSERT(ps)
 
   hlsl {
     struct VsOutput
@@ -189,7 +186,7 @@ shader debug_render_all_volmap
   }
 
   (ps) {
-    ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+    ssgi_ambient_volmap_temporal@tex3d = ssgi_ambient_volmap_temporal;
     debug_volmap_type@f2 = (debug_volmap_type, debug_cascade, 0, 0);
   }
 

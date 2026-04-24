@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <sqrat.h>
-#include <sqModules/sqModules.h>
+#include <quirrel/bindQuirrelEx/sqModulesDagor.h>
 #include <util/dag_string.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
@@ -9,7 +9,7 @@
 #include "scriptBindings.h"
 
 
-static void script_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
+static void script_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
@@ -18,7 +18,7 @@ static void script_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
 }
 
 
-static void script_err_print_func(HSQUIRRELVM v, const SQChar *s, ...)
+static void script_err_print_func(HSQUIRRELVM v, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
@@ -27,10 +27,10 @@ static void script_err_print_func(HSQUIRRELVM v, const SQChar *s, ...)
 }
 
 
-static void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity sev, const SQChar *desc, const SQChar *source, SQInteger line,
-  SQInteger column, const SQChar *)
+static void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity sev, const char *desc, const char *source, SQInteger line,
+  SQInteger column, const char *)
 {
-  const SQChar *sevName = "error";
+  const char *sevName = "error";
   if (sev == SEV_HINT)
     sevName = "hint";
   else if (sev == SEV_WARNING)
@@ -71,7 +71,8 @@ void run_init_script(const char *scriptKey)
 
 
   {
-    SqModules moduleMgr(sqvm);
+    SqModulesDagorFileAccess fileAccess(false);
+    SqModules moduleMgr(sqvm, &fileAccess);
     bindquirrel::apply_compiler_options_from_game_settings(&moduleMgr);
 
     sq_setprintfunc(sqvm, script_print_func, script_err_print_func);
@@ -82,7 +83,7 @@ void run_init_script(const char *scriptKey)
 
     bind_dargbox_script_api(&moduleMgr);
 
-    String errMsg;
+    Sqrat::string errMsg;
     Sqrat::Object initScriptExports;
     if (!moduleMgr.reloadModule(scriptFn, true, SqModules::__main__, initScriptExports, errMsg))
     {

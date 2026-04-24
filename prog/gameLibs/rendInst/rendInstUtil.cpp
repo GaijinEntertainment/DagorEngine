@@ -89,10 +89,11 @@ bool riutil::world_version_check_slow(int &version, const BBox3 &query_aabb)
 int16_t *riutil::get_data_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell)
 {
   G_ASSERT(!desc.isRiExtra());
-  if (!get_cell_by_desc(desc, cell))
+  const RendInstGenData::CellRtData *pcrt = get_cell_rtdata_by_desc(desc, &cell);
+  if (!pcrt)
     return nullptr;
 
-  RendInstGenData::CellRtData &crt = *cell->rtData;
+  const RendInstGenData::CellRtData &crt = *pcrt;
   G_ASSERTF(!crt.scsRemap.empty(), "Please make full dump");
   if (crt.scsRemap.empty())
     return nullptr;
@@ -157,34 +158,36 @@ bool riutil::get_rendinst_matrix(const rendinst::RendInstDesc &desc, RendInstGen
   }
 }
 
-bool riutil::get_cell_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell)
+RendInstGenData::CellRtData *riutil::get_cell_rtdata_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell **pcell)
 {
   if (desc.isRiExtra())
-    return false;
+    return nullptr;
+
   RendInstGenData *rgl = rendinst::getRgLayer(desc.layer);
   if (!rgl || !rgl->rtData)
-    return false;
+    return nullptr;
 
-  if (desc.cellIdx < 0 || desc.cellIdx >= rgl->cells.size())
-    return false;
+  if ((unsigned)desc.cellIdx >= rgl->cells.size())
+    return nullptr;
 
-  cell = &rgl->cells[desc.cellIdx];
-  if (!cell->isReady())
-    return false;
+  auto cellRtData = rgl->cells[desc.cellIdx].isReady();
+  if (!cellRtData)
+    return nullptr;
 
-  if (desc.pool < 0 || desc.pool >= rgl->rtData->riPosInst.size())
-    return false;
+  if (pcell)
+    *pcell = &rgl->cells[desc.cellIdx];
 
-  return true;
+  return ((unsigned)desc.pool < rgl->rtData->riPosInst.size()) ? cellRtData : nullptr;
 }
 
 int16_t *riutil::get_data_by_desc_no_subcell(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell)
 {
   G_ASSERT(!desc.isRiExtra());
-  if (!riutil::get_cell_by_desc(desc, cell))
+  const RendInstGenData::CellRtData *pcrt = get_cell_rtdata_by_desc(desc, &cell);
+  if (!pcrt)
     return nullptr;
 
-  RendInstGenData::CellRtData &crt = *cell->rtData;
+  const RendInstGenData::CellRtData &crt = *pcrt;
   const RendInstGenData::CellRtData::SubCellSlice &firstScs = crt.getCellSlice(desc.pool, 0);
   const RendInstGenData::CellRtData::SubCellSlice &lastScs =
     crt.getCellSlice(desc.pool, RendInstGenData::SUBCELL_DIV * RendInstGenData::SUBCELL_DIV - 1);
@@ -198,13 +201,12 @@ int16_t *riutil::get_data_by_desc_no_subcell(const rendinst::RendInstDesc &desc,
 int riutil::get_data_offs_from_start(const rendinst::RendInstDesc &desc)
 {
   G_ASSERT(!desc.isRiExtra());
-  RendInstGenData::Cell *cell = nullptr;
-  if (!riutil::get_cell_by_desc(desc, cell))
+  const RendInstGenData::CellRtData *pcrt = get_cell_rtdata_by_desc(desc);
+  if (!pcrt)
     return -1;
 
-  RendInstGenData::CellRtData &crt = *cell->rtData;
-  const RendInstGenData::CellRtData::SubCellSlice &firstScs = crt.getCellSlice(desc.pool, 0);
-  const RendInstGenData::CellRtData::SubCellSlice &scs = crt.getCellSlice(desc.pool, desc.idx);
+  const RendInstGenData::CellRtData::SubCellSlice &firstScs = pcrt->getCellSlice(desc.pool, 0);
+  const RendInstGenData::CellRtData::SubCellSlice &scs = pcrt->getCellSlice(desc.pool, desc.idx);
   return desc.offs + scs.ofs - firstScs.ofs;
 }
 

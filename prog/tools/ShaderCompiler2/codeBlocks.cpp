@@ -688,6 +688,42 @@ bool CodeSourceBlocks::ppDirective(char *s, int len, char *dtext, int fnameId, i
     if (have_message != (end_quote < s + len))
       return false;
 
+    auto checkMessageFormatSpecifiers = [](eastl::string_view message, eastl::string &out_error) {
+      for (size_t pos = message.find('%'); pos != eastl::string_view::npos; pos = message.find('%', pos + 1))
+      {
+        if (pos == message.length() - 1)
+        {
+          out_error = "Trailing format '%%'";
+          return false;
+        }
+
+        char specifier = message[pos + 1];
+
+        // Allowing %.X to not break older code
+        if (pos < message.length() - 2 && specifier == '.' && message[pos + 2] != 's')
+          specifier = message[pos + 2];
+
+        if (!strchr("sfdiux", specifier))
+        {
+          out_error.sprintf("Invalid format specifier '%%%c'", specifier);
+          return false;
+        }
+      }
+
+      return true;
+    };
+
+    if (have_message)
+    {
+      eastl::string_view message{begin_quote + 1, size_t(end_quote - begin_quote - 1)};
+      eastl::string err;
+      if (!checkMessageFormatSpecifiers(message, err))
+      {
+        sh_debug(SHLOG_ERROR, "Invalid assertion message '%.*s': %s", message.length(), message.data(), err.c_str());
+        return false;
+      }
+    }
+
     eastl::string_view expr(begin_expr, have_message ? begin_quote - begin_expr : s + len - begin_expr);
     char *end_expr = begin_expr + expr.rfind(have_message ? ',' : ')');
 
@@ -779,8 +815,7 @@ static void distill_code(dag::Span<CodeSourceBlocks::Fragment> p, ShaderParser::
     if (p[i].cond)
     {
       if (p[i].cond->onIf.constExprVal != CodeSourceBlocks::ExprValue::ConstFalse)
-        if (p[i].cond->onIf.constExprVal == CodeSourceBlocks::ExprValue::ConstTrue ||
-            ShaderParser::eval_shader_bool(*p[i].cond->onIf.expr, c).value)
+        if (p[i].cond->onIf.constExprVal == CodeSourceBlocks::ExprValue::ConstTrue || c.eval_expr(*p[i].cond->onIf.expr).value)
         {
           distill_code(make_span(p[i].cond->onIf.onTrue), c);
           continue;
@@ -788,8 +823,8 @@ static void distill_code(dag::Span<CodeSourceBlocks::Fragment> p, ShaderParser::
 
       bool on_elif = false;
       for (int j = 0; j < p[i].cond->onElif.size(); j++)
-        if (p[i].cond->onElif[j].constExprVal == CodeSourceBlocks::ExprValue::ConstTrue ||
-            ShaderParser::eval_shader_bool(*p[i].cond->onElif[j].expr, c).value)
+        if (
+          p[i].cond->onElif[j].constExprVal == CodeSourceBlocks::ExprValue::ConstTrue || c.eval_expr(*p[i].cond->onElif[j].expr).value)
         {
           distill_code(make_span(p[i].cond->onElif[j].onTrue), c);
           on_elif = true;

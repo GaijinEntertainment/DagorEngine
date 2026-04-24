@@ -2,6 +2,8 @@ int rtao_bindless_slot = -1;
 int rtao_bindless_sampler_slot = -1;
 int rtao_res_mul = 1;
 int4 rtao_resolutionI = (1,1,1,1);
+int4 rtao_texture_resolution = (1,1,1,1);
+float4 rtao_uv_max;
 
 macro CHECKING_RTAO(stage)
   if (use_hw_raytracing)
@@ -29,15 +31,14 @@ macro CHECKING_RTAO(stage)
   }
 endmacro
 
-macro USING_RTAO(stage, rtao_tex_space)
+macro USING_RTAO(stage)
   CHECKING_RTAO(stage)
 
   if (use_hw_raytracing)
   {
     (stage) {
-      inv_output_resolution@f2 = (1.0 / (rtao_resolutionI.x * rtao_res_mul), 1.0 / (rtao_resolutionI.y * rtao_res_mul));
-      output_resolutionF@f2 = rtao_resolutionI.xy;
-      output_resolutionI@u2 = rtao_resolutionI.xy;
+      inv_output_resolution@f2 = (1.0 / (rtao_texture_resolution.x * rtao_res_mul), 1.0 / (rtao_texture_resolution.y * rtao_res_mul));
+      rtao_uv_max@f2 = rtao_uv_max;
     }
 
     hlsl (stage) {
@@ -47,8 +48,8 @@ macro USING_RTAO(stage, rtao_tex_space)
 
       float getRTAO(uint2 tci)
       {
-        float2 uv = (tci.xy + 0.5) * inv_output_resolution;
-        return rt_texture_outputs[rtao_bindless_slot].SampleLevel(global_samplers_array[rtao_bindless_sampler_slot], uv, 0).r;
+        float2 uv = min(rtao_uv_max, (tci.xy + 0.5) * inv_output_resolution);
+        return uniformBindlessTex2D(rt_texture_outputs, rtao_bindless_slot).SampleLevel(global_samplers_array[rtao_bindless_sampler_slot], uv, 0).r;
       }
     }
   }

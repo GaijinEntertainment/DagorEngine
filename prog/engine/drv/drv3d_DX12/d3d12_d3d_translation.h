@@ -5,7 +5,6 @@
 
 #include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_sampler.h>
-#include <drv/3d/dag_variableRateShading.h>
 
 
 namespace drv3d_dx12

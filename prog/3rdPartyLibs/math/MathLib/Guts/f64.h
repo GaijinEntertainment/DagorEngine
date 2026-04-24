@@ -847,69 +847,58 @@ ML_INLINE double4 Slerp(const double4& a, const double4& b, double x) {
 
 // IMPORTANT: store - "column-major", math - "row-major" (vector is column)
 union double4x4 {
-#if defined(__GNUC__)
+    // Column array
     struct {
-        v4d col0;
-        v4d col1;
-        v4d col2;
-        v4d col3;
-    };
-#else
-    struct {
-        double4 col0;
-        double4 col1;
-        double4 col2;
-        double4 col3;
-    };
-#endif
+        double4 ca[4];
 
-    struct {
-        double4 cols[4];
+        /*
+        TODO: at least older GCC version don't allow this:
+
+        float4 c0;
+        float4 c1;
+        float4 c2;
+        float4 c3;
+
+        because of this errors:
+         - member with constructor not allowed in anonymous aggregate
+         - member with copy assignment operator not allowed in anonymous aggregate
+        */
     };
 
+    // Element array
     struct {
         double a[16];
     };
 
+    // Elements aXY, where X - row, Y - column
     struct {
-        struct {
-            double a00, a10, a20, a30;
-        };
-
-        struct {
-            double a01, a11, a21, a31;
-        };
-
-        struct {
-            double a02, a12, a22, a32;
-        };
-
-        struct {
-            double a03, a13, a23, a33;
-        };
+        double a00, a10, a20, a30;
+        double a01, a11, a21, a31;
+        double a02, a12, a22, a32;
+        double a03, a13, a23, a33;
     };
 
 public:
     ML_INLINE double4x4() {
-        col0 = _mm256_setzero_pd();
-        col1 = _mm256_setzero_pd();
-        col2 = _mm256_setzero_pd();
-        col3 = _mm256_setzero_pd();
+        ca[0] = _mm256_setzero_pd();
+        ca[1] = _mm256_setzero_pd();
+        ca[2] = _mm256_setzero_pd();
+        ca[3] = _mm256_setzero_pd();
     }
 
     ML_INLINE double4x4(double m00, double m01, double m02, double m03, double m10, double m11, double m12, double m13, double m20, double m21, double m22, double m23, double m30,
         double m31, double m32, double m33) {
-        col0 = v4d_set(m00, m10, m20, m30);
-        col1 = v4d_set(m01, m11, m21, m31);
-        col2 = v4d_set(m02, m12, m22, m32);
-        col3 = v4d_set(m03, m13, m23, m33);
+        ca[0] = v4d_set(m00, m10, m20, m30);
+        ca[1] = v4d_set(m01, m11, m21, m31);
+        ca[2] = v4d_set(m02, m12, m22, m32);
+        ca[3] = v4d_set(m03, m13, m23, m33);
     }
 
     ML_INLINE double4x4(const double4& c0, const double4& c1, const double4& c2, const double4& c3) {
-        col0 = c0.ymm;
-        col1 = c1.ymm;
-        col2 = c2.ymm;
-        col3 = c3.ymm;
+        ca[0] = c0.ymm;
+        ca[1] = c1.ymm;
+        ca[2] = c2.ymm;
+        ca[3] = c3.ymm;
     }
 
     ML_INLINE double4x4(const double4x4& m) = default;
@@ -917,10 +906,10 @@ public:
     // Set
 
     ML_INLINE void operator=(const double4x4& m) {
-        col0 = m.col0;
-        col1 = m.col1;
-        col2 = m.col2;
-        col3 = m.col3;
+        ca[0] = m.ca[0];
+        ca[1] = m.ca[1];
+        ca[2] = m.ca[2];
+        ca[3] = m.ca[3];
     }
 
     // Conversion
@@ -930,11 +919,11 @@ public:
     // Compare
 
     ML_INLINE bool operator==(const double4x4& m) const {
-        return all(double4(col0) == double4(m.col0)) && all(double4(col1) == double4(m.col1)) && all(double4(col2) == double4(m.col2)) && all(double4(col3) == double4(m.col3));
+        return all(ca[0] == m.ca[0]) && all(ca[1] == m.ca[1]) && all(ca[2] == m.ca[2]) && all(ca[3] == m.ca[3]);
     }
 
     ML_INLINE bool operator!=(const double4x4& m) const {
-        return any(double4(col0) != double4(m.col0)) || any(double4(col1) != double4(m.col1)) || any(double4(col2) != double4(m.col2)) || any(double4(col3) != double4(m.col3));
+        return any(ca[0] != m.ca[0]) || any(ca[1] != m.ca[1]) || any(ca[2] != m.ca[2]) || any(ca[3] != m.ca[3]);
     }
 
     // NOTE: *
@@ -942,84 +931,84 @@ public:
     ML_INLINE double4x4 operator*(const double4x4& m) const {
         double4x4 r;
 
-        v4d r1 = _mm256_mul_pd(v4d_swizzle(m.col0, 0, 0, 0, 0), col0);
-        v4d r2 = _mm256_mul_pd(v4d_swizzle(m.col1, 0, 0, 0, 0), col0);
+        v4d r1 = _mm256_mul_pd(v4d_swizzle(m.ca[0], 0, 0, 0, 0), ca[0]);
+        v4d r2 = _mm256_mul_pd(v4d_swizzle(m.ca[1], 0, 0, 0, 0), ca[0]);
 
-        r1 = _mm256_fmadd_pd(v4d_swizzle(m.col0, 1, 1, 1, 1), col1, r1);
-        r2 = _mm256_fmadd_pd(v4d_swizzle(m.col1, 1, 1, 1, 1), col1, r2);
-        r1 = _mm256_fmadd_pd(v4d_swizzle(m.col0, 2, 2, 2, 2), col2, r1);
-        r2 = _mm256_fmadd_pd(v4d_swizzle(m.col1, 2, 2, 2, 2), col2, r2);
-        r1 = _mm256_fmadd_pd(v4d_swizzle(m.col0, 3, 3, 3, 3), col3, r1);
-        r2 = _mm256_fmadd_pd(v4d_swizzle(m.col1, 3, 3, 3, 3), col3, r2);
+        r1 = _mm256_fmadd_pd(v4d_swizzle(m.ca[0], 1, 1, 1, 1), ca[1], r1);
+        r2 = _mm256_fmadd_pd(v4d_swizzle(m.ca[1], 1, 1, 1, 1), ca[1], r2);
+        r1 = _mm256_fmadd_pd(v4d_swizzle(m.ca[0], 2, 2, 2, 2), ca[2], r1);
+        r2 = _mm256_fmadd_pd(v4d_swizzle(m.ca[1], 2, 2, 2, 2), ca[2], r2);
+        r1 = _mm256_fmadd_pd(v4d_swizzle(m.ca[0], 3, 3, 3, 3), ca[3], r1);
+        r2 = _mm256_fmadd_pd(v4d_swizzle(m.ca[1], 3, 3, 3, 3), ca[3], r2);
 
-        r.col0 = r1;
-        r.col1 = r2;
+        r.ca[0] = r1;
+        r.ca[1] = r2;
 
-        r1 = _mm256_mul_pd(v4d_swizzle(m.col2, 0, 0, 0, 0), col0);
-        r2 = _mm256_mul_pd(v4d_swizzle(m.col3, 0, 0, 0, 0), col0);
+        r1 = _mm256_mul_pd(v4d_swizzle(m.ca[2], 0, 0, 0, 0), ca[0]);
+        r2 = _mm256_mul_pd(v4d_swizzle(m.ca[3], 0, 0, 0, 0), ca[0]);
 
-        r1 = _mm256_fmadd_pd(v4d_swizzle(m.col2, 1, 1, 1, 1), col1, r1);
-        r2 = _mm256_fmadd_pd(v4d_swizzle(m.col3, 1, 1, 1, 1), col1, r2);
-        r1 = _mm256_fmadd_pd(v4d_swizzle(m.col2, 2, 2, 2, 2), col2, r1);
-        r2 = _mm256_fmadd_pd(v4d_swizzle(m.col3, 2, 2, 2, 2), col2, r2);
-        r1 = _mm256_fmadd_pd(v4d_swizzle(m.col2, 3, 3, 3, 3), col3, r1);
-        r2 = _mm256_fmadd_pd(v4d_swizzle(m.col3, 3, 3, 3, 3), col3, r2);
+        r1 = _mm256_fmadd_pd(v4d_swizzle(m.ca[2], 1, 1, 1, 1), ca[1], r1);
+        r2 = _mm256_fmadd_pd(v4d_swizzle(m.ca[3], 1, 1, 1, 1), ca[1], r2);
+        r1 = _mm256_fmadd_pd(v4d_swizzle(m.ca[2], 2, 2, 2, 2), ca[2], r1);
+        r2 = _mm256_fmadd_pd(v4d_swizzle(m.ca[3], 2, 2, 2, 2), ca[2], r2);
+        r1 = _mm256_fmadd_pd(v4d_swizzle(m.ca[2], 3, 3, 3, 3), ca[3], r1);
+        r2 = _mm256_fmadd_pd(v4d_swizzle(m.ca[3], 3, 3, 3, 3), ca[3], r2);
 
-        r.col2 = r1;
-        r.col3 = r2;
+        r.ca[2] = r1;
+        r.ca[3] = r2;
 
         return r;
     }
 
     ML_INLINE double4 operator*(const double4& v) const {
-        v4d r = _mm256_mul_pd(v4d_swizzle(v.ymm, 0, 0, 0, 0), col0);
-        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 1, 1, 1, 1), col1, r);
-        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 2, 2, 2, 2), col2, r);
-        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 3, 3, 3, 3), col3, r);
+        v4d r = _mm256_mul_pd(v4d_swizzle(v.ymm, 0, 0, 0, 0), ca[0]);
+        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 1, 1, 1, 1), ca[1], r);
+        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 2, 2, 2, 2), ca[2], r);
+        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 3, 3, 3, 3), ca[3], r);
 
         return r;
     }
 
     ML_INLINE double3 operator*(const double3& v) const {
-        v4d r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 0, 0, 0, 0), col0, col3);
-        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 1, 1, 1, 1), col1, r);
-        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 2, 2, 2, 2), col2, r);
+        v4d r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 0, 0, 0, 0), ca[0], ca[3]);
+        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 1, 1, 1, 1), ca[1], r);
+        r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 2, 2, 2, 2), ca[2], r);
 
         return r;
+    }
+
+    // Columns and rows
+
+    double4& Col(uint32_t column) {
+        ML_Assert(column < COORD_4D);
+
+        return ca[column];
+    }
+
+    const double4& Col(uint32_t column) const {
+        ML_Assert(column < COORD_4D);
+
+        return ca[column];
+    }
+
+    double4& operator[](uint32_t column) {
+        return Col(column);
+    }
+
+    const double4& operator[](uint32_t column) const {
+        return Col(column);
+    }
+
+    ML_INLINE double4 Row(uint32_t row) const {
+        ML_Assert(row < COORD_4D);
+
+        return double4(a[row], a[COORD_4D + row], a[COORD_4D * 2 + row], a[COORD_4D * 3 + row]);
     }
 
     // NOTE: other
 
     static ML_INLINE double4x4 Identity() {
         return double4x4(1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
-    }
-
-    double4& operator[](uint32_t col) {
-        ML_Assert(col < 4);
-
-        return cols[col];
-    }
-
-    const double4& operator[](uint32_t col) const {
-        ML_Assert(col < 4);
-
-        return cols[col];
-    }
-
-    ML_INLINE double4 GetRow0() const {
-        return double4(a00, a01, a02, a03);
-    }
-
-    ML_INLINE double4 GetRow1() const {
-        return double4(a10, a11, a12, a13);
-    }
-
-    ML_INLINE double4 GetRow2() const {
-        return double4(a20, a21, a22, a23);
-    }
-
-    ML_INLINE double4 GetRow3() const {
-        return double4(a30, a31, a32, a33);
     }
 
     ML_INLINE double GetNdcDepth(double z) const {
@@ -1066,25 +1055,25 @@ public:
     }
 
     ML_INLINE double3 GetScale() const {
-        double3 scale = double3(_mm256_cvtsd_f64(v4d_length(col0)), _mm256_cvtsd_f64(v4d_length(col1)), _mm256_cvtsd_f64(v4d_length(col2)));
+        double3 scale = double3(_mm256_cvtsd_f64(v4d_length(ca[0])), _mm256_cvtsd_f64(v4d_length(ca[1])), _mm256_cvtsd_f64(v4d_length(ca[2])));
 
         return scale;
     }
 
     ML_INLINE void SetTranslation(const double3& p) {
-        col3 = v4d_setw1(p.ymm);
+        ca[3] = v4d_setw1(p.ymm);
     }
 
     ML_INLINE void AddTranslation(const double3& p) {
-        col3 = _mm256_add_pd(col3, v4d_setw0(p.ymm));
+        ca[3] = _mm256_add_pd(ca[3], v4d_setw0(p.ymm));
     }
 
     ML_INLINE void PreTranslation(const double3& p);
 
     ML_INLINE void AddScale(const double3& scale) {
-        col0 = _mm256_mul_pd(col0, scale.ymm);
-        col1 = _mm256_mul_pd(col1, scale.ymm);
-        col2 = _mm256_mul_pd(col2, scale.ymm);
+        ca[0] = _mm256_mul_pd(ca[0], scale.ymm);
+        ca[1] = _mm256_mul_pd(ca[1], scale.ymm);
+        ca[2] = _mm256_mul_pd(ca[2], scale.ymm);
     }
 
     ML_INLINE void WorldToView(uint32_t uiProjFlags = 0) {
@@ -1095,10 +1084,10 @@ public:
         InvertOrtho();
         */
 
-        Swap(col1, col2);
+        Swap(ca[1], ca[2]);
 
         if ((uiProjFlags & PROJ_LEFT_HANDED) == 0)
-            col2 = v4d_negate(col2);
+            ca[2] = v4d_negate(ca[2]);
 
         Transpose3x4();
     }
@@ -1107,50 +1096,50 @@ public:
         Transpose3x4();
 
         if ((uiProjFlags & PROJ_LEFT_HANDED) == 0)
-            col2 = v4d_negate(col2);
+            ca[2] = v4d_negate(ca[2]);
 
-        Swap(col1, col2);
+        Swap(ca[1], ca[2]);
     }
 
     ML_INLINE bool IsLeftHanded() const {
-        double3 v1 = cross(double3(col0), double3(col1));
+        double3 v1 = cross(double3(ca[0]), double3(ca[1]));
 
-        return dot(v1, double3(col2)) < 0.0;
+        return dot(v1, double3(ca[2])) < 0.0;
     }
 
     ML_INLINE void TransposeTo(double4x4& m) const {
-        v4d ymm0 = v4d_Ax_Bx_Az_Bz(col0, col1);
-        v4d ymm1 = v4d_Ax_Bx_Az_Bz(col2, col3);
-        v4d ymm2 = v4d_Ay_By_Aw_Bw(col0, col1);
-        v4d ymm3 = v4d_Ay_By_Aw_Bw(col2, col3);
+        v4d ymm0 = v4d_Ax_Bx_Az_Bz(ca[0], ca[1]);
+        v4d ymm1 = v4d_Ax_Bx_Az_Bz(ca[2], ca[3]);
+        v4d ymm2 = v4d_Ay_By_Aw_Bw(ca[0], ca[1]);
+        v4d ymm3 = v4d_Ay_By_Aw_Bw(ca[2], ca[3]);
 
-        m.col0 = v4d_Axy_Bxy(ymm0, ymm1);
-        m.col1 = v4d_Axy_Bxy(ymm2, ymm3);
-        m.col2 = v4d_Azw_Bzw(ymm1, ymm0);
-        m.col3 = v4d_Azw_Bzw(ymm3, ymm2);
+        m.ca[0] = v4d_Axy_Bxy(ymm0, ymm1);
+        m.ca[1] = v4d_Axy_Bxy(ymm2, ymm3);
+        m.ca[2] = v4d_Azw_Bzw(ymm1, ymm0);
+        m.ca[3] = v4d_Azw_Bzw(ymm3, ymm2);
     }
 
     ML_INLINE void Transpose() {
-        v4d ymm0 = v4d_Ax_Bx_Az_Bz(col0, col1);
-        v4d ymm1 = v4d_Ax_Bx_Az_Bz(col2, col3);
-        v4d ymm2 = v4d_Ay_By_Aw_Bw(col0, col1);
-        v4d ymm3 = v4d_Ay_By_Aw_Bw(col2, col3);
+        v4d ymm0 = v4d_Ax_Bx_Az_Bz(ca[0], ca[1]);
+        v4d ymm1 = v4d_Ax_Bx_Az_Bz(ca[2], ca[3]);
+        v4d ymm2 = v4d_Ay_By_Aw_Bw(ca[0], ca[1]);
+        v4d ymm3 = v4d_Ay_By_Aw_Bw(ca[2], ca[3]);
 
-        col0 = v4d_Axy_Bxy(ymm0, ymm1);
-        col1 = v4d_Axy_Bxy(ymm2, ymm3);
-        col2 = v4d_Azw_Bzw(ymm1, ymm0);
-        col3 = v4d_Azw_Bzw(ymm3, ymm2);
+        ca[0] = v4d_Axy_Bxy(ymm0, ymm1);
+        ca[1] = v4d_Axy_Bxy(ymm2, ymm3);
+        ca[2] = v4d_Azw_Bzw(ymm1, ymm0);
+        ca[3] = v4d_Azw_Bzw(ymm3, ymm2);
     }
 
     ML_INLINE void Transpose3x4() {
-        v4d ymm0 = v4d_Ax_Bx_Az_Bz(col0, col1);
-        v4d ymm1 = v4d_Ax_Bx_Az_Bz(col2, col3);
-        v4d ymm2 = v4d_Ay_By_Aw_Bw(col0, col1);
-        v4d ymm3 = v4d_Ay_By_Aw_Bw(col2, col3);
+        v4d ymm0 = v4d_Ax_Bx_Az_Bz(ca[0], ca[1]);
+        v4d ymm1 = v4d_Ax_Bx_Az_Bz(ca[2], ca[3]);
+        v4d ymm2 = v4d_Ay_By_Aw_Bw(ca[0], ca[1]);
+        v4d ymm3 = v4d_Ay_By_Aw_Bw(ca[2], ca[3]);
 
-        col0 = v4d_Axy_Bxy(ymm0, ymm1);
-        col1 = v4d_Axy_Bxy(ymm2, ymm3);
-        col2 = v4d_Azw_Bzw(ymm1, ymm0);
+        ca[0] = v4d_Axy_Bxy(ymm0, ymm1);
+        ca[1] = v4d_Axy_Bxy(ymm2, ymm3);
+        ca[2] = v4d_Azw_Bzw(ymm1, ymm0);
     }
 
     ML_INLINE void Invert() {
@@ -1158,13 +1147,13 @@ public:
 
         v4d Fac0;
         {
-            v4d Swp0a = v4d_shuffle(col3, col2, 3, 3, 3, 3);
-            v4d Swp0b = v4d_shuffle(col3, col2, 2, 2, 2, 2);
+            v4d Swp0a = v4d_shuffle(ca[3], ca[2], 3, 3, 3, 3);
+            v4d Swp0b = v4d_shuffle(ca[3], ca[2], 2, 2, 2, 2);
 
-            v4d Swp00 = v4d_shuffle(col2, col1, 2, 2, 2, 2);
+            v4d Swp00 = v4d_shuffle(ca[2], ca[1], 2, 2, 2, 2);
             v4d Swp01 = v4d_swizzle(Swp0a, 0, 0, 0, 2);
             v4d Swp02 = v4d_swizzle(Swp0b, 0, 0, 0, 2);
-            v4d Swp03 = v4d_shuffle(col2, col1, 3, 3, 3, 3);
+            v4d Swp03 = v4d_shuffle(ca[2], ca[1], 3, 3, 3, 3);
 
             v4d Mul00 = _mm256_mul_pd(Swp00, Swp01);
 
@@ -1173,13 +1162,13 @@ public:
 
         v4d Fac1;
         {
-            v4d Swp0a = v4d_shuffle(col3, col2, 3, 3, 3, 3);
-            v4d Swp0b = v4d_shuffle(col3, col2, 1, 1, 1, 1);
+            v4d Swp0a = v4d_shuffle(ca[3], ca[2], 3, 3, 3, 3);
+            v4d Swp0b = v4d_shuffle(ca[3], ca[2], 1, 1, 1, 1);
 
-            v4d Swp00 = v4d_shuffle(col2, col1, 1, 1, 1, 1);
+            v4d Swp00 = v4d_shuffle(ca[2], ca[1], 1, 1, 1, 1);
             v4d Swp01 = v4d_swizzle(Swp0a, 0, 0, 0, 2);
             v4d Swp02 = v4d_swizzle(Swp0b, 0, 0, 0, 2);
-            v4d Swp03 = v4d_shuffle(col2, col1, 3, 3, 3, 3);
+            v4d Swp03 = v4d_shuffle(ca[2], ca[1], 3, 3, 3, 3);
 
             v4d Mul00 = _mm256_mul_pd(Swp00, Swp01);
 
@@ -1188,13 +1177,13 @@ public:
 
         v4d Fac2;
         {
-            v4d Swp0a = v4d_shuffle(col3, col2, 2, 2, 2, 2);
-            v4d Swp0b = v4d_shuffle(col3, col2, 1, 1, 1, 1);
+            v4d Swp0a = v4d_shuffle(ca[3], ca[2], 2, 2, 2, 2);
+            v4d Swp0b = v4d_shuffle(ca[3], ca[2], 1, 1, 1, 1);
 
-            v4d Swp00 = v4d_shuffle(col2, col1, 1, 1, 1, 1);
+            v4d Swp00 = v4d_shuffle(ca[2], ca[1], 1, 1, 1, 1);
             v4d Swp01 = v4d_swizzle(Swp0a, 0, 0, 0, 2);
             v4d Swp02 = v4d_swizzle(Swp0b, 0, 0, 0, 2);
-            v4d Swp03 = v4d_shuffle(col2, col1, 2, 2, 2, 2);
+            v4d Swp03 = v4d_shuffle(ca[2], ca[1], 2, 2, 2, 2);
 
             v4d Mul00 = _mm256_mul_pd(Swp00, Swp01);
 
@@ -1203,13 +1192,13 @@ public:
 
         v4d Fac3;
         {
-            v4d Swp0a = v4d_shuffle(col3, col2, 3, 3, 3, 3);
-            v4d Swp0b = v4d_shuffle(col3, col2, 0, 0, 0, 0);
+            v4d Swp0a = v4d_shuffle(ca[3], ca[2], 3, 3, 3, 3);
+            v4d Swp0b = v4d_shuffle(ca[3], ca[2], 0, 0, 0, 0);
 
-            v4d Swp00 = v4d_shuffle(col2, col1, 0, 0, 0, 0);
+            v4d Swp00 = v4d_shuffle(ca[2], ca[1], 0, 0, 0, 0);
             v4d Swp01 = v4d_swizzle(Swp0a, 0, 0, 0, 2);
             v4d Swp02 = v4d_swizzle(Swp0b, 0, 0, 0, 2);
-            v4d Swp03 = v4d_shuffle(col2, col1, 3, 3, 3, 3);
+            v4d Swp03 = v4d_shuffle(ca[2], ca[1], 3, 3, 3, 3);
 
             v4d Mul00 = _mm256_mul_pd(Swp00, Swp01);
 
@@ -1218,13 +1207,13 @@ public:
 
         v4d Fac4;
         {
-            v4d Swp0a = v4d_shuffle(col3, col2, 2, 2, 2, 2);
-            v4d Swp0b = v4d_shuffle(col3, col2, 0, 0, 0, 0);
+            v4d Swp0a = v4d_shuffle(ca[3], ca[2], 2, 2, 2, 2);
+            v4d Swp0b = v4d_shuffle(ca[3], ca[2], 0, 0, 0, 0);
 
-            v4d Swp00 = v4d_shuffle(col2, col1, 0, 0, 0, 0);
+            v4d Swp00 = v4d_shuffle(ca[2], ca[1], 0, 0, 0, 0);
             v4d Swp01 = v4d_swizzle(Swp0a, 0, 0, 0, 2);
             v4d Swp02 = v4d_swizzle(Swp0b, 0, 0, 0, 2);
-            v4d Swp03 = v4d_shuffle(col2, col1, 2, 2, 2, 2);
+            v4d Swp03 = v4d_shuffle(ca[2], ca[1], 2, 2, 2, 2);
 
             v4d Mul00 = _mm256_mul_pd(Swp00, Swp01);
 
@@ -1233,13 +1222,13 @@ public:
 
         v4d Fac5;
         {
-            v4d Swp0a = v4d_shuffle(col3, col2, 1, 1, 1, 1);
-            v4d Swp0b = v4d_shuffle(col3, col2, 0, 0, 0, 0);
+            v4d Swp0a = v4d_shuffle(ca[3], ca[2], 1, 1, 1, 1);
+            v4d Swp0b = v4d_shuffle(ca[3], ca[2], 0, 0, 0, 0);
 
-            v4d Swp00 = v4d_shuffle(col2, col1, 0, 0, 0, 0);
+            v4d Swp00 = v4d_shuffle(ca[2], ca[1], 0, 0, 0, 0);
             v4d Swp01 = v4d_swizzle(Swp0a, 0, 0, 0, 2);
             v4d Swp02 = v4d_swizzle(Swp0b, 0, 0, 0, 2);
-            v4d Swp03 = v4d_shuffle(col2, col1, 1, 1, 1, 1);
+            v4d Swp03 = v4d_shuffle(ca[2], ca[1], 1, 1, 1, 1);
 
             v4d Mul00 = _mm256_mul_pd(Swp00, Swp01);
 
@@ -1249,16 +1238,16 @@ public:
         v4d SignA = _mm256_set_pd(1.0f, -1.0f, 1.0f, -1.0f);
         v4d SignB = _mm256_set_pd(-1.0f, 1.0f, -1.0f, 1.0f);
 
-        v4d Temp0 = v4d_shuffle(col1, col0, 0, 0, 0, 0);
+        v4d Temp0 = v4d_shuffle(ca[1], ca[0], 0, 0, 0, 0);
         v4d Vec0 = v4d_swizzle(Temp0, 0, 2, 2, 2);
 
-        v4d Temp1 = v4d_shuffle(col1, col0, 1, 1, 1, 1);
+        v4d Temp1 = v4d_shuffle(ca[1], ca[0], 1, 1, 1, 1);
         v4d Vec1 = v4d_swizzle(Temp1, 0, 2, 2, 2);
 
-        v4d Temp2 = v4d_shuffle(col1, col0, 2, 2, 2, 2);
+        v4d Temp2 = v4d_shuffle(ca[1], ca[0], 2, 2, 2, 2);
         v4d Vec2 = v4d_swizzle(Temp2, 0, 2, 2, 2);
 
-        v4d Temp3 = v4d_shuffle(col1, col0, 3, 3, 3, 3);
+        v4d Temp3 = v4d_shuffle(ca[1], ca[0], 3, 3, 3, 3);
         v4d Vec3 = v4d_swizzle(Temp3, 0, 2, 2, 2);
 
         v4d Mul0 = _mm256_mul_pd(Vec1, Fac0);
@@ -1285,13 +1274,13 @@ public:
         v4d Row1 = v4d_shuffle(Inv2, Inv3, 0, 0, 0, 0);
         v4d Row2 = v4d_shuffle(Row0, Row1, 0, 2, 0, 2);
 
-        v4d Det0 = v4d_dot44(col0, Row2);
+        v4d Det0 = v4d_dot44(ca[0], Row2);
         v4d Rcp0 = v4d_rcp(Det0);
 
-        col0 = _mm256_mul_pd(Inv0, Rcp0);
-        col1 = _mm256_mul_pd(Inv1, Rcp0);
-        col2 = _mm256_mul_pd(Inv2, Rcp0);
-        col3 = _mm256_mul_pd(Inv3, Rcp0);
+        ca[0] = _mm256_mul_pd(Inv0, Rcp0);
+        ca[1] = _mm256_mul_pd(Inv1, Rcp0);
+        ca[2] = _mm256_mul_pd(Inv2, Rcp0);
+        ca[3] = _mm256_mul_pd(Inv3, Rcp0);
     }
 
     ML_INLINE void InvertOrtho();
@@ -1313,40 +1302,40 @@ public:
         double wy2 = q.w * y2;
         double wz2 = q.w * z2;
 
-        col0 = double4(1.0f - (yy2 + zz2), xy2 + wz2, xz2 - wy2, 0.0).ymm;
-        col1 = double4(xy2 - wz2, 1.0f - (xx2 + zz2), yz2 + wx2, 0.0).ymm;
-        col2 = double4(xz2 + wy2, yz2 - wx2, 1.0f - (xx2 + yy2), 0.0).ymm;
-        col3 = c_v4d_0001;
+        ca[0] = double4(1.0f - (yy2 + zz2), xy2 + wz2, xz2 - wy2, 0.0).ymm;
+        ca[1] = double4(xy2 - wz2, 1.0f - (xx2 + zz2), yz2 + wx2, 0.0).ymm;
+        ca[2] = double4(xz2 + wy2, yz2 - wx2, 1.0f - (xx2 + yy2), 0.0).ymm;
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByRotationX(double angleX) {
         double ct = cos(angleX);
         double st = sin(angleX);
 
-        col0 = double4(1.0, 0.0, 0.0, 0.0);
-        col1 = double4(0.0, ct, st, 0.0);
-        col2 = double4(0.0, -st, ct, 0.0);
-        col3 = c_v4d_0001;
+        ca[0] = double4(1.0, 0.0, 0.0, 0.0);
+        ca[1] = double4(0.0, ct, st, 0.0);
+        ca[2] = double4(0.0, -st, ct, 0.0);
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByRotationY(double angleY) {
         double ct = cos(angleY);
         double st = sin(angleY);
 
-        col0 = double4(ct, 0.0, -st, 0.0);
-        col1 = double4(0.0, 1.0, 0.0, 0.0);
-        col2 = double4(st, 0.0, ct, 0.0);
-        col3 = c_v4d_0001;
+        ca[0] = double4(ct, 0.0, -st, 0.0);
+        ca[1] = double4(0.0, 1.0, 0.0, 0.0);
+        ca[2] = double4(st, 0.0, ct, 0.0);
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByRotationZ(double angleZ) {
         double ct = cos(angleZ);
         double st = sin(angleZ);
 
-        col0 = double4(ct, st, 0.0, 0.0);
-        col1 = double4(-st, ct, 0.0, 0.0);
-        col2 = double4(0.0, 0.0, 1.0, 0.0);
-        col3 = c_v4d_0001;
+        ca[0] = double4(ct, st, 0.0, 0.0);
+        ca[1] = double4(-st, ct, 0.0, 0.0);
+        ca[2] = double4(0.0, 0.0, 1.0, 0.0);
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByRotationYPR(double fYaw, double fPitch, double fRoll) {
@@ -1385,7 +1374,7 @@ public:
         a22 = c.y * c.z;
         a32 = 0.0;
 
-        col3 = c_v4d_0001;
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByRotation(double theta, const double3& v) {
@@ -1425,7 +1414,7 @@ public:
         a31 = 0.0;
         a32 = 0.0;
 
-        col3 = c_v4d_0001;
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByRotation(const double3& z, const double3& d) {
@@ -1462,21 +1451,21 @@ public:
         a31 = 0.0;
         a32 = 0.0;
 
-        col3 = c_v4d_0001;
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByTranslation(const double3& p) {
-        col0 = double4(1.0, 0.0, 0.0, 0.0);
-        col1 = double4(0.0, 1.0, 0.0, 0.0);
-        col2 = double4(0.0, 0.0, 1.0, 0.0);
-        col3 = v4d_setw1(p);
+        ca[0] = double4(1.0, 0.0, 0.0, 0.0);
+        ca[1] = double4(0.0, 1.0, 0.0, 0.0);
+        ca[2] = double4(0.0, 0.0, 1.0, 0.0);
+        ca[3] = v4d_setw1(p);
     }
 
     ML_INLINE void SetupByScale(const double3& scale) {
-        col0 = double4(scale.x, 0.0, 0.0, 0.0);
-        col1 = double4(0.0, scale.y, 0.0, 0.0);
-        col2 = double4(0.0, 0.0, scale.z, 0.0);
-        col3 = c_v4d_0001;
+        ca[0] = double4(scale.x, 0.0, 0.0, 0.0);
+        ca[1] = double4(0.0, scale.y, 0.0, 0.0);
+        ca[2] = double4(0.0, 0.0, scale.z, 0.0);
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByLookAt(const double3& vForward) {
@@ -1484,10 +1473,10 @@ public:
         double3 z = GetPerpendicularVector(y);
         double3 x = cross(y, z);
 
-        col0 = v4d_setw0(x);
-        col1 = v4d_setw0(y);
-        col2 = v4d_setw0(z);
-        col3 = c_v4d_0001;
+        ca[0] = v4d_setw0(x);
+        ca[1] = v4d_setw0(y);
+        ca[2] = v4d_setw0(z);
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByLookAt(const double3& vForward, const double3& vRight) {
@@ -1495,10 +1484,10 @@ public:
         double3 z = normalize(cross(vRight, y));
         double3 x = cross(y, z);
 
-        col0 = v4d_setw0(x);
-        col1 = v4d_setw0(y);
-        col2 = v4d_setw0(z);
-        col3 = c_v4d_0001;
+        ca[0] = v4d_setw0(x);
+        ca[1] = v4d_setw0(y);
+        ca[2] = v4d_setw0(z);
+        ca[3] = c_v4d_0001;
     }
 
     ML_INLINE void SetupByOrthoProjection(double left, double right, double bottom, double top, double zNear, double zFar, uint32_t uiProjFlags = 0) {
@@ -1535,7 +1524,7 @@ public:
         a23 = ML_ModifyProjZ(bReverseZ, a23, a33);
 
         if (uiProjFlags & PROJ_LEFT_HANDED)
-            col2 = v4d_negate(col2);
+            ca[2] = v4d_negate(ca[2]);
     }
 
     ML_INLINE void SetupByFrustum(double left, double right, double bottom, double top, double zNear, double zFar, uint32_t uiProjFlags = 0) {
@@ -1572,7 +1561,7 @@ public:
         a23 = ML_ModifyProjZ(bReverseZ, a23, a33);
 
         if (uiProjFlags & PROJ_LEFT_HANDED)
-            col2 = v4d_negate(col2);
+            ca[2] = v4d_negate(ca[2]);
     }
 
     ML_INLINE void SetupByFrustumInf(double left, double right, double bottom, double top, double zNear, uint32_t uiProjFlags = 0) {
@@ -1608,7 +1597,7 @@ public:
         a23 = ML_ModifyProjZ(bReverseZ, a23, a33);
 
         if (uiProjFlags & PROJ_LEFT_HANDED)
-            col2 = v4d_negate(col2);
+            ca[2] = v4d_negate(ca[2]);
     }
 
     ML_INLINE void SetupByHalfFovy(double halfFovy, double aspect, double zNear, double zFar, uint32_t uiProjFlags = 0) {
@@ -1686,18 +1675,18 @@ ML_INLINE double4x4 transpose(const double4x4& m) {
 // non-HLSL
 
 ML_INLINE double3 Rotate(const double4x4& m, const double3& v) {
-    v4d r = _mm256_mul_pd(v4d_swizzle(v.ymm, 0, 0, 0, 0), m.col0);
-    r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 1, 1, 1, 1), m.col1, r);
-    r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 2, 2, 2, 2), m.col2, r);
+    v4d r = _mm256_mul_pd(v4d_swizzle(v.ymm, 0, 0, 0, 0), m.ca[0]);
+    r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 1, 1, 1, 1), m.ca[1], r);
+    r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 2, 2, 2, 2), m.ca[2], r);
     r = v4d_setw0(r);
 
     return r;
 }
 
 ML_INLINE double3 RotateAbs(const double4x4& m, const double3& v) {
-    v4d col0_abs = v4d_abs(m.col0);
-    v4d col1_abs = v4d_abs(m.col1);
-    v4d col2_abs = v4d_abs(m.col2);
+    v4d col0_abs = v4d_abs(m.ca[0]);
+    v4d col1_abs = v4d_abs(m.ca[1]);
+    v4d col2_abs = v4d_abs(m.ca[2]);
 
     v4d r = _mm256_mul_pd(v4d_swizzle(v.ymm, 0, 0, 0, 0), col0_abs);
     r = _mm256_fmadd_pd(v4d_swizzle(v.ymm, 1, 1, 1, 1), col1_abs, r);
@@ -1715,19 +1704,19 @@ ML_INLINE double3 Project(const double3& v, const double4x4& m) {
 
 ML_INLINE void double4x4::PreTranslation(const double3& p) {
     v4d r = Rotate(*this, p.ymm).ymm;
-    col3 = _mm256_add_pd(col3, r);
+    ca[3] = _mm256_add_pd(ca[3], r);
 }
 
 ML_INLINE void double4x4::InvertOrtho() {
     Transpose3x4();
 
-    col3 = Rotate(*this, double3(col3)).ymm;
-    col3 = v4d_negate(col3);
+    ca[3] = Rotate(*this, double3(ca[3])).ymm;
+    ca[3] = v4d_negate(ca[3]);
 
-    col0 = v4d_setw0(col0);
-    col1 = v4d_setw0(col1);
-    col2 = v4d_setw0(col2);
-    col3 = v4d_setw1(col3);
+    ca[0] = v4d_setw0(ca[0]);
+    ca[1] = v4d_setw0(ca[1]);
+    ca[2] = v4d_setw0(ca[2]);
+    ca[3] = v4d_setw1(ca[3]);
 }
 
 //======================================================================================================================
@@ -1892,12 +1881,12 @@ public:
         v4d vmax = _mm256_max_pd(t1, t2);
 
         // NOTE: hmax.xxx
-        v4d tmin = _mm256_max_pd(vmin, v4d_swizzle(vmin, _Y, _Z, _X, 0));
-        tmin = _mm256_max_pd(tmin, v4d_swizzle(vmin, _Z, _X, _Y, 0));
+        v4d tmin = _mm256_max_pd(vmin, v4d_swizzle(vmin, ML_Y, ML_Z, ML_X, 0));
+        tmin = _mm256_max_pd(tmin, v4d_swizzle(vmin, ML_Z, ML_X, ML_Y, 0));
 
         // NOTE: hmin.xxx
-        v4d tmax = _mm256_min_pd(vmax, v4d_swizzle(vmax, _Y, _Z, _X, 0));
-        tmax = _mm256_min_pd(tmax, v4d_swizzle(vmax, _Z, _X, _Y, 0));
+        v4d tmax = _mm256_min_pd(vmax, v4d_swizzle(vmax, ML_Y, ML_Z, ML_X, 0));
+        tmax = _mm256_min_pd(tmax, v4d_swizzle(vmax, ML_Z, ML_X, ML_Y, 0));
 
         v4d_store_x(out_fTmin, tmin);
         v4d_store_x(out_fTmax, tmax);

@@ -6,6 +6,7 @@
 
 #include <effectManager/effectManager.h>
 #include "dafxCompound_decl.h"
+#include <math/dag_hlsl_floatx.h>
 
 struct EffectManager::SoundEffect
 {
@@ -60,6 +61,7 @@ struct EffectManager::PendingData
   Matrix3 gravityTm = Matrix3::IDENT;
   TMatrix lightBox = TMatrix::ZERO;
   Point3 fakeBrightnessBackgroundPos = Point3(0, 0, 0);
+  TMatrix4 splineGenData = TMatrix4::ZERO;
 
   PendingData() = delete;
   explicit PendingData(AcesEffect::FxId fx_id) : fxId(fx_id) {}

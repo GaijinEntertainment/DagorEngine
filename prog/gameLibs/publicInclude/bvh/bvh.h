@@ -5,13 +5,17 @@
 #pragma once
 
 #include <drv/3d/dag_driver.h>
-#include <3d/dag_resPtr.h>
 #include <math/dag_boundingSphere.h>
+#include <memory/dag_linearHeapAllocator.h>
 #include <bvh/bvh_heightProvider.h>
 #include <shaders/dag_shaderMesh.h>
 #include <shaders/dag_rendInstRes.h>
+#include <shaders/dag_linearSbufferAllocator.h>
 #include <math/dag_Point4.h>
 #include <util/dag_threadPool.h>
+#include <EASTL/unique_ptr.h>
+#include <EASTL/shared_ptr.h>
+#include <bvh/bvh_instanceMapper.h>
 
 class Sbuffer;
 class LandMeshManager;
@@ -22,13 +26,32 @@ struct RaytraceGeometryDescription;
 struct RaytraceBottomAccelerationStructure;
 struct RiGenVisibility;
 struct BVHConnection;
+struct BVHBufferReference;
+struct UniqueOrReferencedBVHBuffer;
 class DynamicRenderableSceneResource;
+class BaseStreamingSceneHolder;
+class FFTWater;
 enum class RaytraceBuildFlags : uint32_t;
+class GPUGrassBase;
 
 namespace bvh
 {
 struct Context;
 using ContextId = Context *;
+static inline constexpr ContextId InvalidContextId = nullptr;
+extern bool use_batched_skinned_vertex_processor;
+
+static constexpr size_t hardware_destructive_interference_size =
+#if defined(__x86_64__) || defined(_M_X64)
+  128;
+#else
+  64;
+#endif
+
+template <typename T>
+struct alignas(hardware_destructive_interference_size) Padded : T
+{};
+
 } // namespace bvh
 
 namespace dynrend
@@ -111,7 +134,7 @@ struct UniqueAS
       as.gpuAddress = d3d::get_raytrace_acceleration_structure_gpu_handle(as.as).handle;
       as.asSize = d3d::get_raytrace_acceleration_structure_size(as.as);
       as.scratchBuffer.reset(d3d::create_sbuffer(1, as.buildScratchSize, SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE, 0,
-        String(0, "tlas_scratch_%s", name)));
+        String(0, "tlas_scratch_%s", name), RESTAG_BVH));
     }
 #endif
     return as;
@@ -161,8 +184,13 @@ struct UniqueAS
   // So play along with that now.
   // uint32_t getBuildScratchSize() const { return buildScratchSize; }
   // uint32_t getUpdateScratchSize() const { return updateScratchSize; }
+#if _TARGET_C2
+
+
+#else
   uint32_t getBuildScratchSize() const { return max(buildScratchSize, updateScratchSize); }
   uint32_t getUpdateScratchSize() const { return max(buildScratchSize, updateScratchSize); }
+#endif
 
   void reset()
   {
@@ -229,36 +257,22 @@ struct UniqueBVHBufferWithOffset
   }
 };
 
-struct BVHBufferReference
+struct BVHGeometryBufferWithOffset
 {
-  Sbuffer *buffer = nullptr;
-  uint32_t offset = 0;
-  uint32_t allocator = 0;
+  int heapIndex = -1;
+  int bindlessIndex = -1;
+  LinearHeapAllocatorSbuffer::RegionId bufferRegion;
+  UniqueBVHBuffer processedVertexBuffer;
+  uint32_t ibOffset = 0;
+  uint32_t vbOffset = 0;
 
-  operator bool() const { return buffer != nullptr; }
-  bool operator!() const { return buffer == nullptr; }
+  operator bool() const { return heapIndex > -1; }
+  bool operator!() const { return heapIndex < 0; }
 
-  Sbuffer *get() const { return buffer; }
-  uint32_t size() const { return buffer ? buffer->getSize() : 0; }
-};
+  Sbuffer *getIndexBuffer(bvh::ContextId context_id) const;
+  Sbuffer *getVertexBuffer(bvh::ContextId context_id) const;
 
-struct UniqueOrReferencedBVHBuffer
-{
-  UniqueBVHBuffer *unique = nullptr;
-  BVHBufferReference *referenced = nullptr;
-
-  UniqueOrReferencedBVHBuffer() = default;
-  UniqueOrReferencedBVHBuffer(UniqueBVHBuffer &unique) : unique(&unique) {}
-  UniqueOrReferencedBVHBuffer(BVHBufferReference &referenced) : referenced(&referenced) {}
-
-  bool operator!() const { return !unique && !referenced; }
-  operator bool() const { return unique || referenced; }
-
-  Sbuffer *get() const { return unique ? unique->get() : referenced ? referenced->get() : nullptr; }
-  uint32_t getOffset() const { return referenced ? referenced->offset : 0; }
-
-  bool needAllocation() const { return unique && !*unique || referenced && !*referenced; }
-  bool isAllocated() const { return unique && *unique || referenced && referenced->buffer; }
+  void close(bvh::ContextId context_id);
 };
 
 namespace bvh
@@ -291,18 +305,20 @@ struct DeformedInfo
   UniqueBLAS *transformedBlas = nullptr;
 };
 
+struct SplineGenInfo
+{
+  eastl::function<Sbuffer *(uint32_t &)> getSplineDataFn;
+  BVHBufferReference *transformedBuffer = nullptr;
+  UniqueBLAS *transformedBlas = nullptr;
+};
+
 struct TreeData
 {
   bool isPivoted;
   bool isPosInstance;
-  float windBranchAmp;
-  float windDetailAmp;
-  float windSpeed;
-  float windTime;
   Point4 windChannelStrength;
-  Point4 windBlendParams;
-  Texture *ppPosition;
-  Texture *ppDirection;
+  uint32_t ppPositionBindless;
+  uint32_t ppDirectionBindless;
   Point4 ppWindPerLevelAngleRotMax;
   float ppWindNoiseSpeedBase;
   float ppWindNoiseSpeedLevelMul;
@@ -315,6 +331,13 @@ struct TreeData
   bool apply_tree_wind;
   E3DCOLOR color;
   uint32_t perInstanceRenderAdditionalData;
+  float groundSnapHeightSoft;
+  float groundSnapHeightFull;
+  float groundSnapNormalOffset;
+  float groundSnapLimit;
+  float groundBendHeight;
+  float groundBendNormalOffset;
+  float groundBendTangentOffset;
 };
 
 struct TreeInfo
@@ -323,6 +346,8 @@ struct TreeInfo
   BVHBufferReference *transformedBuffer;
   UniqueBLAS *transformedBlas;
   bool recycled;
+  bool stationary;
+  int animIndex;
 
   TreeData data;
 };
@@ -333,6 +358,7 @@ struct LeavesInfo
   BVHBufferReference *transformedBuffer;
   UniqueBLAS *transformedBlas;
   bool recycled;
+  bool stationary;
 };
 
 struct FlagData
@@ -402,6 +428,8 @@ struct MeshInfo
   TEXTUREID alphaTextureId = BAD_TEXTUREID;
   TEXTUREID normalTextureId = BAD_TEXTUREID;
   TEXTUREID extraTextureId = BAD_TEXTUREID;
+  TEXTUREID ppPositionTextureId = BAD_TEXTUREID;
+  TEXTUREID ppDirectionTextureId = BAD_TEXTUREID;
   bool alphaTest = false;
   // ~Only needed for meshes with textures
 
@@ -429,6 +457,10 @@ struct MeshInfo
   bool isHeliRotor = false;
   bool isEmissive = false;
 
+  bool isRiLandclass = false;
+  Point4 landclassMapping = Point4(1.0, 1.0, 0, 0);
+  int32_t riLandclassIndex = 0;
+
   bool painted = false;
   Point4 paintData;
   Point4 colorOverride = Point4(0.5, 0.5, 0.5, 0);
@@ -437,6 +469,7 @@ struct MeshInfo
   uint32_t detailsData3 = 0;
   uint32_t detailsData4 = 0;
 
+  Point4 monochromeData = Point4(0, 0, 0.5, 0); // x - metalness, y - smoothness, z - reflectance
 
   bool useAtlas = false;
   float atlasTileU = 1.0;
@@ -444,9 +477,14 @@ struct MeshInfo
   uint32_t atlasFirstTile = 0;
   uint32_t atlasLastTile = 0;
 
+  bool isMonochrome = false;
   bool isLayered = false;
   bool isPerlinLayered = false;
   bool isEye = false;
+  bool forceNonMetal = false;
+  bool hasColorMod = false;
+  bool hasAnimcharDecals = false;
+
   float maskGammaStart = 0.5;
   float maskGammaEnd = 2;
   float maskTileU = 1;
@@ -463,19 +501,17 @@ struct ObjectInfo
 {
   dag::Vector<MeshInfo> meshes;
   bool isAnimated = false;
+  const char *tag = "untagged";
 };
 
-struct Context;
-using ContextId = Context *;
-static inline constexpr ContextId InvalidContextId = nullptr;
-
 static constexpr uint32_t bvhGroupTerrain = 1 << 0;
-static constexpr uint32_t bvhGroupRiGen = 1 << 1;
-static constexpr uint32_t bvhGroupRiExtra = 1 << 2;
+static constexpr uint32_t bvhGroupGPUFoliage = 1 << 1;
+static constexpr uint32_t bvhGroupRi = 1 << 2;
 static constexpr uint32_t bvhGroupDynrend = 1 << 3;
 static constexpr uint32_t bvhGroupGrass = 1 << 4;
 static constexpr uint32_t bvhGroupImpostor = 1 << 5;
 static constexpr uint32_t bvhGroupNoShadow = 1 << 6;
+static constexpr uint32_t bvhGroupWater = 1 << 7;
 
 enum Features
 {
@@ -487,12 +523,20 @@ enum Features
                                // used.
   DynrendSkinnedFull = 1 << 5, // Dynrend skinned parts are enabled with the original mesh.
   GpuObjects = 1 << 6,         // GpuObjects are enabled. Only works if and of the RI is enabled.
-  Grass = 1 << 7,              // Grass is enabled.
+  Grass = 1 << 7,              // RandomGrass is enabled.
   Fx = 1 << 8,                 // Particle effects are enabled.
   Cable = 1 << 9,              // Cable rendering is enabled
+  BinScene = 1 << 10,          // Static scene is enabled
+  FftWater = 1 << 11,          // Water with heightmap enabled
+  Dagdp = 1 << 12,             // Dagdp Only works if and of the RI is enabled.
+  GPUGrass = 1 << 13,          // GPUGrass is enabled.
+  Splinegen = 1 << 14,         // SplineGen is enabled.
 
-  ForRendering = Terrain | RIFull | DynrendRigidFull | DynrendSkinnedFull | GpuObjects | Grass | Fx | Cable,
+  ForRendering = Terrain | RIFull | DynrendRigidFull | DynrendSkinnedFull | GpuObjects | Grass | Fx | Cable | BinScene,
   ForGI = Terrain | RIBaked | GpuObjects,
+
+  AnyRI = RIFull | RIBaked,
+  AnyDynrend = DynrendRigidFull | DynrendRigidBaked | DynrendSkinnedFull,
 };
 
 
@@ -507,6 +551,8 @@ struct ChannelParser : public ShaderChannelsEnumCB
   uint32_t secTexcoordOffset = 0;
   uint32_t thirdTexcoordFormat = -1;
   uint32_t thirdTexcoordOffset = 0;
+  uint32_t fourthTexcoordFormat = -1;
+  uint32_t fourthTexcoordOffset = 0;
   uint32_t normalFormat = -1;
   uint32_t normalOffset = 0;
   uint32_t colorFormat = -1;
@@ -526,14 +572,39 @@ void set_enable(bool enable);
 
 bool is_available();
 
+enum class BvhAvailabilityCode
+{
+  AVAILABLE = 0,
+  VR_ENABLED = 1,
+  NOT_SUPPORTED = 2,
+  NOT_ENOUGH_MEMORY = 3,
+  BLACKLISTED_GPU = 4,
+  STUB = 5
+};
+BvhAvailabilityCode is_available_verbose();
+
 using elem_rules_fn = void (*)(const ShaderMesh::RElem &, MeshInfo &, const ChannelParser &,
   const RenderableInstanceLodsResource::ImpostorParams *, const RenderableInstanceLodsResource::ImpostorTextures *);
 
-void init(elem_rules_fn elem_rules = nullptr);
+using screenshot_fn = void (*)();
 
-void teardown();
+struct AdditionalSettings
+{
+  bool batchedSkinning = false;
+  float riLodDistBias = 0.0f;
+  bool prioritizeCompactions = false;
+  bool discardDestrAssets = false;
+  int singleLodFilterMaxFaces = 0;   // 0 means no filtering
+  float singleLodFilterMaxRange = 0; // 0 means no filtering
+  bool use_fast_tlas_build = false;
+};
+
+void init(elem_rules_fn elem_rules = nullptr, screenshot_fn screenshot = nullptr, AdditionalSettings settings = {});
+
+void teardown(bool device_reset, bool zero_bvh_ids);
 
 ContextId create_context(const char *name, Features features = Features::ForRendering);
+bool has_features(ContextId context_id, uint32_t features);
 
 void teardown(ContextId &context_id);
 
@@ -545,6 +616,10 @@ void remove_terrain(ContextId context_id);
 
 void update_terrain(ContextId context_id, const Point2 &location);
 
+void add_bin_scene(ContextId context_id, BaseStreamingSceneHolder &bin_scene);
+
+void add_water(ContextId context_id, FFTWater &water);
+
 void set_for_gpu_objects(ContextId context_id);
 
 void prepare_ri_extra_instances();
@@ -553,11 +628,11 @@ void set_ri_dist_mul(float mul);
 
 void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc);
 
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Frustum &bvh_frustum, const Frustum &view_frustum,
-  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
-  threadpool::JobPriority prio);
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Frustum &bvh_frustum, const Frustum &view_frustum,
-  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const Frustum &bvh_frustum,
+  const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id,
+  RiGenVisibility *ri_gen_visibility, threadpool::JobPriority prio);
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const Frustum &bvh_frustum,
+  const Frustum &view_frustum, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
   threadpool::JobPriority prio);
 
 // The upper 32 bits of the object_id are reserved for RI
@@ -566,6 +641,8 @@ void add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &info
 void add_instance(ContextId context_id, uint64_t object_id, mat43f_cref transform);
 
 void remove_object(ContextId context_id, uint64_t object_id);
+
+void enable_dynamic_planar_decals(bool enable);
 
 enum class BuildBudget
 {
@@ -576,13 +653,16 @@ enum class BuildBudget
 
 void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, const Point3 &camera_pos, const Point3 &light_direction);
 
+void set_rigen_cpu_budget(int budget_us);
+
 void process_meshes(ContextId context_id, BuildBudget budget = BuildBudget::High);
 
-void bind_resources(ContextId context_id, int render_width);
+void bind_gbuffer_textures(ContextId context_id, Texture *gbuffer_albedo, Texture *gbuffer_normal, Texture *gbuffer_material,
+  Texture *gbuffer_motion, Texture *gbuffer_depth);
 
-// ps5 specific functions. Currently ps5 doesn't support tlas shader vars
-void bind_tlas_stage(ContextId context_id, ShaderStage stage);
-void unbind_tlas_stage(ShaderStage stage);
+void bind_fom_textures(ContextId context_id, Texture *fom_sin, Texture *fom_cos, const d3d::SamplerHandle *fom_sampler);
+
+void bind_resources(ContextId context_id, int render_width);
 
 void on_load_scene(ContextId context_id);
 
@@ -610,7 +690,19 @@ bool is_building(ContextId context_id);
 
 void set_grass_range(ContextId context_id, float range);
 
+void set_grass_fraction_to_keep(ContextId context_id, float fraction);
+
 void set_debug_view_min_t(float min_t);
 
 void enable_per_frame_processing(bool enable);
+
+using dagdp_connect_callback = void (*)(BVHInstanceMapper *);
+void connect_dagdp(ContextId context_id, dagdp_connect_callback callback);
+
+void gpu_grass_make_meta(ContextId context_id, const GPUGrassBase &grass);
+void generate_gpu_grass_instances(ContextId context_id, bool has_grass);
+
+void gather_splinegen_instances(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &meshes,
+  uint32_t instance_vertex_count, uint32_t &bvh_id);
+void remove_spline_gen_instances(ContextId context_id);
 } // namespace bvh

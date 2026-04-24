@@ -7,11 +7,15 @@
 #include "buffer_resource.h"
 #include "render_pass_resource.h"
 
+#include <osApiWrappers/dag_ttas_spinlock.h>
+
 #if VULKAN_HAS_RAYTRACING
 #include "raytrace_as_resource.h"
 #endif
 
 using namespace drv3d_vulkan;
+
+volatile int DebugNaming::setObjectNameLock = 0;
 
 void DebugNaming::setVkObjectDebugName(VulkanHandle handle, VkDebugReportObjectTypeEXT type1, VkObjectType type2, const char *name)
 {
@@ -29,7 +33,9 @@ void DebugNaming::setVkObjectDebugName(VulkanHandle handle, VkDebugReportObjectT
     info.objectType = type2;
     info.objectHandle = handle;
     info.pObjectName = name;
+    ttas_spinlock_lock(setObjectNameLock);
     VULKAN_LOG_CALL(instance.vkSetDebugUtilsObjectNameEXT(Globals::VK::dev.get(), &info));
+    ttas_spinlock_unlock(setObjectNameLock);
     // if we have VK_EXT_debug_utils & VK_EXT_debug_marker are mutually exclusive via dependency
     return;
   }
@@ -43,7 +49,9 @@ void DebugNaming::setVkObjectDebugName(VulkanHandle handle, VkDebugReportObjectT
     info.objectType = type1;
     info.object = handle;
     info.pObjectName = name;
+    ttas_spinlock_lock(setObjectNameLock);
     VULKAN_LOG_CALL(Globals::VK::dev.vkDebugMarkerSetObjectNameEXT(Globals::VK::dev.get(), &info));
+    ttas_spinlock_unlock(setObjectNameLock);
   }
 #endif
 }

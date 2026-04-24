@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ioSys/dag_dataBlock.h>
-#include <sqplus.h>
+#include <sqrat.h>
 #include <propPanel/control/container.h>
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <libTools/util/blkUtil.h>
@@ -47,19 +47,19 @@ void ScriptExtContainer::createControl()
 }
 
 
-void ScriptExtContainer::getValueFromScript(SquirrelObject param)
+void ScriptExtContainer::getValueFromScript(Sqrat::Table param)
 {
-  SquirrelObject itemsCount = param.GetValue("itemsCount");
+  Sqrat::Array itemsCount = param.GetSlot("itemsCount");
   itemsCountMin = 0;
   itemsCountMax = 16;
-  if (!itemsCount.IsNull() && itemsCount.GetType() == OT_ARRAY && itemsCount.Len() == 2)
+  if (!itemsCount.IsNull() && itemsCount.GetType() == OT_ARRAY && itemsCount.Length() == 2)
   {
-    itemsCountMin = itemsCount.GetInt(SQInteger(0));
-    itemsCountMax = itemsCount.GetInt(1);
+    itemsCountMin = itemsCount.GetSlotValue<int>(SQInteger(0), 0);
+    itemsCountMax = itemsCount.GetSlotValue<int>(1, 0);
   }
 
-  if (param.Exists("remove_confirm"))
-    removeConfirm = param.GetBool("remove_confirm");
+  if (param.HasKey("remove_confirm"))
+    removeConfirm = param.GetSlotValue<bool>("remove_confirm", false);
 }
 
 
@@ -277,30 +277,29 @@ void ScriptExtContainer::clear()
 }
 
 
-bool ScriptExtContainer::scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param) { return false; }
+bool ScriptExtContainer::scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table param) { return false; }
 
 
 void ScriptExtContainer::updateParams() {}
 
-void ScriptExtContainer::setDefValues(SquirrelObject so)
+void ScriptExtContainer::setDefValues(Sqrat::Table so)
 {
-  SquirrelObject def = so.GetValue("def");
-  if (!so.IsNull())
+  Sqrat::Object def = so.GetSlot("def");
+  if (!def.IsNull())
     so.SetValue("value", def);
 
-  SquirrelObject controls = so.GetValue("controls");
-  if (!controls.IsNull() && controls.GetType() == OT_ARRAY && controls.BeginIteration())
+  Sqrat::Array controls = so.GetSlot("controls");
+  if (!controls.IsNull() && controls.GetType() == OT_ARRAY)
   {
-    SquirrelObject control, key;
-
-    while (controls.Next(key, control))
+    SQInteger len = controls.Length();
+    for (SQInteger i = 0; i < len; ++i)
+    {
+      Sqrat::Object control = controls.GetSlot(i);
       if (control.GetType() == OT_TABLE)
         setDefValues(control);
-
-    controls.EndIteration();
+    }
   }
 }
-
 
 void ScriptExtContainer::updateMenuFlags()
 {
@@ -332,7 +331,7 @@ void ScriptExtContainer::setVisible(bool visible)
 }
 
 
-bool ScriptExtContainer::getParamVisible(SquirrelObject param) { return mVisible; }
+bool ScriptExtContainer::getParamVisible(Sqrat::Table param) { return mVisible; }
 
 
 void ScriptExtContainer::setEnabled(bool enabled)
@@ -434,11 +433,11 @@ ScriptExtGroup::ScriptExtGroup(CSQPanelWrapper *wrapper, ScriptPanelContainer *p
 }
 
 
-void ScriptExtGroup::getValueFromScript(SquirrelObject param)
+void ScriptExtGroup::getValueFromScript(Sqrat::Table param)
 {
   ScriptExtContainer::getValueFromScript(param);
-  if (param.Exists("is_renameble"))
-    isRenameble = param.GetBool("is_renameble");
+  if (param.HasKey("is_renameble"))
+    isRenameble = param.GetSlotValue<bool>("is_renameble", false);
 }
 
 

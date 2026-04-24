@@ -15,6 +15,7 @@
 #include <gui/dag_imguiUtil.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/dag_color.h>
+#include <osApiWrappers/dag_localConv.h>
 
 static const int RUN_BUTTON_WIDTH = 70;
 static const int CLEAR_BUTTON_WIDTH = RUN_BUTTON_WIDTH;
@@ -443,7 +444,7 @@ static void convar_all(eastl::vector<eastl::string> &favourite_convars, bool &fa
     ConVarIterator cit;
     while (ConVarBase *cv = cit.nextVar())
     {
-      if (strstr(cv->getName(), convarSearchText.c_str()))
+      if (dd_stristr(cv->getName(), convarSearchText.c_str()))
       {
         uniqueLabel.sprintf("Pin##%s", cv->getName());
         if (ImGui::Button(uniqueLabel.c_str()))
@@ -489,37 +490,53 @@ static void console_variables_tab(DataBlock *blk)
   }
 }
 
-static void shadervar_widget(const char *var_name, const char *widget_label)
+static bool is_shadervar_type_supported(int var_type)
 {
-  const int varId = VariableMap::getVariableId(var_name);
+  switch (var_type)
+  {
+    case SHVT_INT:
+    case SHVT_REAL:
+    case SHVT_COLOR4:
+    case SHVT_TEXTURE:
+    case SHVT_BUFFER:
+    case SHVT_INT4: return true;
 
-  switch (ShaderGlobal::get_var_type(varId))
+    default: return false;
+  }
+}
+
+// NOTE: the widgets must have the same height because of the usage of ImGuiListClipper.
+static void shadervar_widget(int var_id, int var_type, const char *var_name, const char *widget_label)
+{
+  // The expected item count was provided to ImGuiListClipper, and it uses the first item to measure the height, so this
+  // function must only be called with supported widgets.
+  G_ASSERT(is_shadervar_type_supported(var_type));
+
+  switch (var_type)
   {
     case SHVT_INT:
     {
-      int i = ShaderGlobal::get_int(varId);
+      int i = ShaderGlobal::get_int(var_id);
       if (ImGui::InputInt(widget_label, &i))
-        ShaderGlobal::set_int(varId, i);
+        ShaderGlobal::set_int(var_id, i);
       break;
     }
     case SHVT_REAL:
     {
-      float r = ShaderGlobal::get_real(varId);
+      float r = ShaderGlobal::get_float(var_id);
       if (ImGui::DragFloat(widget_label, &r))
-        ShaderGlobal::set_real(varId, r);
+        ShaderGlobal::set_float(var_id, r);
       break;
     }
     case SHVT_COLOR4:
     {
-      Color4 c = ShaderGlobal::get_color4(varId);
+      Color4 c = ShaderGlobal::get_float4(var_id);
       if (ImGui::DragFloat4(widget_label, &c.r))
-        ShaderGlobal::set_color4(varId, c);
+        ShaderGlobal::set_float4(var_id, c);
       break;
     }
     case SHVT_TEXTURE:
     {
-      TEXTUREID tid = ShaderGlobal::get_tex(varId);
-      const char *texName = get_managed_texture_name(tid);
       float currentItemWidth = ImGui::CalcItemWidth();
       float currentCursorPos = ImGui::GetCursorPos().x;
       eastl::string showButtonLabel;
@@ -527,31 +544,51 @@ static void shadervar_widget(const char *var_name, const char *widget_label)
       if (ImGui::Button(showButtonLabel.c_str()))
       {
         eastl::string showTexCmd;
-        showTexCmd.sprintf("render.show_tex %s", texName);
+        showTexCmd.sprintf("render.show_tex %s", var_name);
         execute_console_command(showTexCmd.c_str(), NO_ECHO, DONT_ADD_TO_HISTORY);
       }
       ImGui::SameLine();
       ImGui::SetNextItemWidth(currentItemWidth - (ImGui::GetCursorPos().x - currentCursorPos));
-      ImGui::LabelText(widget_label, "[texture, name: %s, TEXTUREID: 0x%x]", texName, unsigned(tid));
+
+      TEXTUREID tid = ShaderGlobal::get_tex(var_id);
+      BaseTexture *tptr = ShaderGlobal::get_tex_ptr(var_id);
+
+      if (tid == BAD_TEXTUREID && tptr)
+      {
+        ImGui::LabelText(widget_label, "[texture, ptr: %p]", tptr);
+      }
+      else
+      {
+        const char *texName = get_managed_texture_name(tid);
+        ImGui::LabelText(widget_label, "[texture, name: %s, TEXTUREID: 0x%x]", texName, unsigned(tid));
+      }
       break;
     }
     case SHVT_BUFFER:
     {
-      D3DRESID bid = ShaderGlobal::get_buf(varId);
-      const char *bufName = get_managed_res_name(bid);
-      ImGui::LabelText(widget_label, "[buffer, name: %s, D3DRESID: 0x%x]", bufName, unsigned(bid));
+      D3DRESID bid = ShaderGlobal::get_buf(var_id);
+      Sbuffer *bptr = ShaderGlobal::get_buf_ptr(var_id);
+      if (bid == BAD_D3DRESID && bptr)
+      {
+        ImGui::LabelText(widget_label, "[buffer, ptr: %p]", bptr);
+      }
+      else
+      {
+        const char *bufName = get_managed_res_name(bid);
+        ImGui::LabelText(widget_label, "[buffer, name: %s, D3DRESID: 0x%x]", bufName, unsigned(bid));
+      }
       break;
     }
     case SHVT_INT4:
     {
-      IPoint4 p = ShaderGlobal::get_int4(varId);
+      IPoint4 p = ShaderGlobal::get_int4(var_id);
       if (ImGui::DragInt4(widget_label, &p.x))
       {
-        ShaderGlobal::set_int4(varId, p);
+        ShaderGlobal::set_int4(var_id, p);
       }
       break;
     }
-    default: break;
+    default: G_ASSERT(false); break;
   }
 }
 
@@ -564,6 +601,11 @@ static void shadervar_favourites(eastl::vector<eastl::string> &favourite_shvars,
     int indexToRemove = -1;
     for (int i = 0; i < favourite_shvars.size(); i++)
     {
+      const int varId = VariableMap::getVariableId(favourite_shvars[i].c_str());
+      const int varType = ShaderGlobal::get_var_type(varId);
+      if (!is_shadervar_type_supported(varType))
+        continue;
+
       uniqueLabel.sprintf("Unpin##%d", i);
       if (ImGui::Button(uniqueLabel.c_str()))
         indexToRemove = i;
@@ -581,7 +623,7 @@ static void shadervar_favourites(eastl::vector<eastl::string> &favourite_shvars,
       const float contentRegionMaxX = ImGui::GetContentRegionAvail().x + ImGui::GetCursorScreenPos().x - ImGui::GetWindowPos().x;
       ImGui::SetNextItemWidth(contentRegionMaxX * 0.6f - ImGui::GetCursorPosX());
       uniqueLabel.sprintf("%s##fav", favourite_shvars[i].c_str());
-      shadervar_widget(favourite_shvars[i].c_str(), uniqueLabel.c_str());
+      shadervar_widget(varId, varType, favourite_shvars[i].c_str(), uniqueLabel.c_str());
     }
     if (indexToRemove >= 0)
     {
@@ -594,6 +636,7 @@ static void shadervar_favourites(eastl::vector<eastl::string> &favourite_shvars,
 static void shadervar_all(eastl::vector<eastl::string> &favourite_shvars, bool &favourites_changed)
 {
   static eastl::string uniqueLabel;
+  static eastl::vector<int> filteredVariableIds;
 
   if (ImGui::CollapsingHeader("All", ImGuiTreeNodeFlags_DefaultOpen))
   {
@@ -607,28 +650,44 @@ static void shadervar_all(eastl::vector<eastl::string> &favourite_shvars, bool &
 
     ImGui::BeginChild("AllShaderVarPanel");
 
-    for (int i = 0, ie = VariableMap::getGlobalVariablesCount(); i < ie; i++)
+    filteredVariableIds.clear();
+    for (int i = 0, ie = VariableMap::getGlobalVariablesCount(); i < ie; ++i)
     {
       const char *varName = VariableMap::getGlobalVariableName(i);
-      if (!varName || !strstr(varName, shaderVarSearchText.c_str()))
-        continue;
-
-      int id = VariableMap::getVariableId(varName);
-      uniqueLabel.sprintf("Pin##%d", id);
-      if (ImGui::Button(uniqueLabel.c_str()))
+      if (varName && dd_stristr(varName, shaderVarSearchText.c_str()))
       {
-        if (eastl::find(favourite_shvars.begin(), favourite_shvars.end(), varName) == favourite_shvars.end())
-        {
-          favourite_shvars.push_back(varName);
-          favourites_changed = true;
-        }
+        const int varId = VariableMap::getVariableId(varName);
+        const int varType = ShaderGlobal::get_var_type(varId);
+        if (is_shadervar_type_supported(varType))
+          filteredVariableIds.push_back(varId);
       }
+    }
 
-      ImGui::SameLine();
-      const float contentRegionMaxX = ImGui::GetContentRegionAvail().x + ImGui::GetCursorScreenPos().x - ImGui::GetWindowPos().x;
-      ImGui::SetNextItemWidth(contentRegionMaxX * 0.6f - ImGui::GetCursorPosX());
-      uniqueLabel.sprintf("%s##all", varName);
-      shadervar_widget(varName, uniqueLabel.c_str());
+    ImGuiListClipper clipper;
+    clipper.Begin(filteredVariableIds.size());
+    while (clipper.Step())
+    {
+      for (int filteredIndex = clipper.DisplayStart; filteredIndex < clipper.DisplayEnd; ++filteredIndex)
+      {
+        const int varId = filteredVariableIds[filteredIndex];
+        const int varType = ShaderGlobal::get_var_type(varId);
+        const char *varName = VariableMap::getVariableName(varId);
+        uniqueLabel.sprintf("Pin##%d", varId);
+        if (ImGui::Button(uniqueLabel.c_str()))
+        {
+          if (eastl::find(favourite_shvars.begin(), favourite_shvars.end(), varName) == favourite_shvars.end())
+          {
+            favourite_shvars.push_back(varName);
+            favourites_changed = true;
+          }
+        }
+
+        ImGui::SameLine();
+        const float contentRegionMaxX = ImGui::GetContentRegionAvail().x + ImGui::GetCursorScreenPos().x - ImGui::GetWindowPos().x;
+        ImGui::SetNextItemWidth(contentRegionMaxX * 0.6f - ImGui::GetCursorPosX());
+        uniqueLabel.sprintf("%s##all", varName);
+        shadervar_widget(varId, varType, varName, uniqueLabel.c_str());
+      }
     }
 
     ImGui::EndChild();

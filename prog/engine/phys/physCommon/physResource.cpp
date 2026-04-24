@@ -2,7 +2,9 @@
 
 #include <generic/dag_initOnDemand.h>
 #include <debug/dag_log.h>
+#include <math/dag_bounds3.h>
 #include <phys/dag_physResource.h>
+#include <phys/dag_physCollision.h>
 #include <ioSys/dag_genIo.h>
 #include <osApiWrappers/dag_localConv.h>
 
@@ -133,11 +135,11 @@ void PhysicsResource::load(IGenLoad &cb, int load_flags)
 }
 
 
-bool PhysicsResource::getBodyTm(const char *name, TMatrix &tm)
+bool PhysicsResource::getBodyTm(const char *name, TMatrix &tm) const
 {
   for (int i = 0; i < bodies.size(); ++i)
   {
-    Body &b = bodies[i];
+    const Body &b = bodies[i];
     if (dd_stricmp(b.name, name) != 0)
       continue;
     tm = b.tm;
@@ -148,11 +150,11 @@ bool PhysicsResource::getBodyTm(const char *name, TMatrix &tm)
 }
 
 
-bool PhysicsResource::getTmHelperWtm(const char *name, TMatrix &wtm)
+bool PhysicsResource::getTmHelperWtm(const char *name, TMatrix &wtm) const
 {
   for (int i = 0; i < bodies.size(); ++i)
   {
-    Body &b = bodies[i];
+    const Body &b = bodies[i];
     int id = b.findTmHelper(name);
     if (id < 0)
       continue;
@@ -196,6 +198,8 @@ void PhysicsResource::Body::load(IGenLoad &cb)
       cb.read(&coll.size, sizeof(coll.size));
       if (cb.getBlockRest())
         cb.readString(coll.materialName);
+
+      PhysCollision::normalizeBox(coll.size, coll.tm);
     }
     else if (id == MAKE4C('C', 'c', 'a', 'p'))
     {
@@ -232,7 +236,7 @@ void PhysicsResource::Body::load(IGenLoad &cb)
 }
 
 
-int PhysicsResource::Body::findTmHelper(const char *helper_name)
+int PhysicsResource::Body::findTmHelper(const char *helper_name) const
 {
   for (int i = 0; i < tmHelpers.size(); ++i)
     if (strcmp(tmHelpers[i].name, helper_name) == 0)

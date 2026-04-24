@@ -3,15 +3,19 @@
 #include <osApiWrappers/dag_critSec.h>
 #include <daECS/core/componentType.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ecs/anim/anim.h>
 #include <ecs/sound/soundGroup.h>
 #include <animChar/dag_animCharacter2.h>
 #include <soundSystem/events.h>
 #include <soundSystem/fmodApi.h>
 #include <soundSystem/debug.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 
 static WinCritSec g_group_cs;
 #define SOUND_GROUP_BLOCK WinAutoLock groupLock(g_group_cs);
@@ -281,26 +285,28 @@ SoundEventGroup::~SoundEventGroup() { release_all_sounds(*this); }
 
 
 template <typename Callable>
-static inline void sound_group_with_animchar_ecs_query(Callable c);
+static inline void sound_group_with_animchar_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static inline void sound_group_with_transform_ecs_query(Callable c);
+static inline void sound_group_with_transform_ecs_query(ecs::EntityManager &manager, Callable c);
 
 
 ECS_TAG(sound)
-static inline void update_sound_group_using_animchar_es(const ParallelUpdateFrameDelayed &)
+static inline void update_sound_group_using_animchar_es(const ParallelUpdateFrameDelayed &, ecs::EntityManager &manager)
 {
   SOUND_GROUP_BLOCK;
-  sound_group_with_animchar_ecs_query([](SoundEventGroup &sound_event_group,
-                                        const AnimV20::AnimcharBaseComponent &animchar ECS_REQUIRE(
-                                          ecs::Tag sound_group_with_animchar)) { update_sounds_impl(sound_event_group, animchar); });
+  sound_group_with_animchar_ecs_query(manager,
+    [](SoundEventGroup &sound_event_group,
+      const AnimV20::AnimcharBaseComponent &animchar ECS_REQUIRE(ecs::Tag sound_group_with_animchar)) {
+      update_sounds_impl(sound_event_group, animchar);
+    });
 }
 
 ECS_TAG(sound)
-static inline void update_sound_group_using_transform_es(const ParallelUpdateFrameDelayed &)
+static inline void update_sound_group_using_transform_es(const ParallelUpdateFrameDelayed &, ecs::EntityManager &manager)
 {
   SOUND_GROUP_BLOCK;
-  sound_group_with_transform_ecs_query(
+  sound_group_with_transform_ecs_query(manager,
     [](SoundEventGroup &sound_event_group, const TMatrix &transform ECS_REQUIRE_NOT(ecs::Tag sound_group_with_animchar)) {
       update_sounds_impl(sound_event_group, transform);
     });

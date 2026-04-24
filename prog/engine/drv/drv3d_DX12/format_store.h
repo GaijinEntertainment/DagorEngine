@@ -6,7 +6,6 @@
 #include "tagged_types.h"
 
 #include <drv/3d/dag_tex3d.h>
-#include <util/dag_globDef.h>
 
 
 namespace drv3d_dx12
@@ -133,6 +132,7 @@ BEGIN_BITFIELD_TYPE(FormatStore, uint8_t)
   bool isStencil() const;
   bool isBlockCompressed() const;
   uint32_t getBytesPerPixelBlock(uint32_t *block_x = NULL, uint32_t *block_y = NULL) const;
+  uint32_t getBytesPerPixelBlockPerPlane(uint32_t * block_x, uint32_t * block_y, uint32_t plane_index) const;
   const char *getNameString() const;
   // returns true if the format can be represented with this storage
   static bool canBeStored(DXGI_FORMAT fmt);

@@ -57,8 +57,6 @@ inline bool compare_shader(ShaderTerminal::bool_value &e, const shc::ShaderConte
 }
 
 void initialize_debug_mode(shc::ShaderContext &ctx);
-
-bool parse_hlsl_source_to_blocks(const PerHlslStage<CodeSourceBlocks *> &dst, ShaderParser::ShaderBoolEvalCB &boolCb,
-  shc::ShaderContext &ctx);
+bool parse_hlsl_source_to_blocks(shc::ShaderContext &ctx, ShaderParser::ShaderBoolEvalCB &boolCb);
 
 } // namespace semantic

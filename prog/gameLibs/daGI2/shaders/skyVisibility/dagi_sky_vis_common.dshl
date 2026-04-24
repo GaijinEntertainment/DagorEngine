@@ -120,7 +120,7 @@ endmacro
 
 macro DAGI_SKY_VIS_SRV(code)
   (code) {
-    dagi_sky_visibility_sph@smp3d = dagi_sky_visibility_sph;
+    dagi_sky_visibility_sph@tex3d = dagi_sky_visibility_sph;
   }
 endmacro
 
@@ -157,7 +157,7 @@ macro DAGI_SKY_VIS_ATLAS(code)
 endmacro
 
 macro DAGI_SKY_VIS_SAMPLE_INIT(code)
-  DAGI_SKY_VIS_SRV(code);
+  DAGI_SKY_VIS_SRV(code)
   DAGI_SKY_VIS_CLIPMAP_MATH_INIT(code)
   DAGI_SKY_VIS_ATLAS_INIT(code)
 endmacro
@@ -165,13 +165,18 @@ endmacro
 macro DAGI_SKY_VIS_SAMPLE_USE(code)
   DAGI_SKY_VIS_CLIPMAP_MATH_USE(code)
   DAGI_SKY_VIS_ATLAS_USE(code)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   hlsl(code) {
+    #define dagi_sky_visibility_sph_samplerstate global_linear_wrap_sampler
     float4 dagi_get_sky_visibility_sh1_uvw(float3 atlasUVW)
     {
       return tex3Dlod(dagi_sky_visibility_sph, float4(atlasUVW, 0));
     }
-    float4 dagi_get_sky_visibility_smooth_sh1(float3 worldViewPos, float3 worldPos, float3 toCameraDir, float maxCameraDist, float3 bias_normal, float dither, float4 sh1 = 1)
+
+    float4 dagi_get_sky_visibility_smooth_vignette(float3 worldViewPos, float3 worldPos, float3 toCameraDir, float maxCameraDist, float3 bias_normal, float dither, out float vignette)
     {
+      float4 sh1 = 1;
+      vignette = 1;
       float3 coordF;
       int4 lt;
       // absolutely safe border would be 0.5 + sqrt(3) (0.5 for trilinear filtering) + normal offsetting = sqrt(3)
@@ -193,7 +198,7 @@ macro DAGI_SKY_VIS_SAMPLE_USE(code)
         dither = 0;
       float3 ditherMul = float3(3, 0.125, 2 + 0.125);
       float3 sz = saturate(fromC*(ditherMul.x + ditherMul.y*dither) - ditherMul.z);
-      float vignette = saturate(dot(sz,sz));
+      vignette = saturate(dot(sz,sz));
       if (vignette == 1 && lastCascade)
         return sh1;
       FLATTEN
@@ -226,8 +231,19 @@ macro DAGI_SKY_VIS_SAMPLE_USE(code)
       coordF = coordF*0.5 - nextLt;
       BRANCH
       if (all(and(coordF > 0, coordF < dagi_sky_vis_get_clip_size().xxy)) && vignette > 0)
+      {
         nextSH1 = dagi_get_sky_visibility_sh1_uvw(dagi_get_sky_visibility_abs_coord_to_atlas_tc(cascade+1, nextLt + clamp(coordF, 0.5, dagi_sky_vis_get_clip_size().xxy - 0.5)));
-      return lerp(sh1, nextSH1, vignette);
+        sh1 = lerp(sh1, nextSH1, vignette);
+        vignette = 0;
+      }
+      return sh1;
+    }
+
+    float4 dagi_get_sky_visibility_smooth_sh1(float3 worldViewPos, float3 worldPos, float3 toCameraDir, float maxCameraDist, float3 bias_normal, float dither, float4 sh1 = 1)
+    {
+      float vignette;
+      float4 sh1Sampled = dagi_get_sky_visibility_smooth_vignette(worldViewPos, worldPos, toCameraDir, maxCameraDist, bias_normal, dither, vignette);
+      return lerp(sh1Sampled, sh1, vignette);
     }
 
     float4 dagi_get_sky_visibility_sh1(float3 worldPos, float3 worldNormalForBias, float dither = 0, float4 default_sh1 = 1)

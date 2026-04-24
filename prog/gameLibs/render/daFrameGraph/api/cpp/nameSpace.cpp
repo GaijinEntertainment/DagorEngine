@@ -46,7 +46,8 @@ void NameSpace::setResolution(const char *type_name, T value)
       values && values->staticResolution == value && values->dynamicResolution == value)
     return;
 
-  Runtime::get().onStaticResolutionChange();
+  Runtime::get().onStaticResolutionChange(id);
+  registry.autoResTypesChanged.set(id, true);
   resData.values = ResolutionValues<T>{value, value, value};
   resData.dynamicResolutionCountdown = 0;
 }
@@ -98,7 +99,7 @@ void NameSpace::setDynamicResolution(const char *type_name, T value)
   // We can't immediately change resolution for all textures because history textures will lose
   // their data. So update counter here and decrease it by one when change resolution only for
   // current frame textures.
-  resData.dynamicResolutionCountdown = ResourceScheduler::SCHEDULE_FRAME_WINDOW;
+  resData.dynamicResolutionCountdown = dafg::SCHEDULE_FRAME_WINDOW;
 }
 
 template void NameSpace::setDynamicResolution<IPoint2>(const char *, IPoint2);

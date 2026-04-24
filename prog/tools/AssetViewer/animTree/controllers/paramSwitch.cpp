@@ -9,6 +9,22 @@
 static const bool DEFAULT_SPLIT_CHANS = true;
 static const float DEFAULT_MORPH_TIME = 0.15f;
 
+static void check_param_switch_child(BlendNodeType child_type, CtrlType param_switch_type, const char *param_switch_name,
+  const char *name)
+{
+  if (child_type == BlendNodeType::SINGLE && param_switch_type == ctrl_type_paramSwitch)
+    logerr("paramSwitch <%s> has single blend node <%s>, but tuned for continuous mode. Use paramSwitchS", param_switch_name, name);
+}
+
+static void param_switch_add_child_by_name(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data,
+  dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name, const char *param_switch_name)
+{
+  CtrlChildSearchResult result = find_child_idx_and_icon_by_name(panel, data.handle, controllers, blend_nodes, name);
+  data.childs.emplace_back(result.id);
+  check_param_switch_child(result.blendNodeType, data.type, param_switch_name, name);
+  check_ctrl_child_idx(result.id, param_switch_name, name);
+}
+
 void param_switch_init_panel(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int field_idx)
 {
   add_edit_box_if_not_exists(params, panel, field_idx, "name");
@@ -156,8 +172,7 @@ void AnimTreePlugin::paramSwitchFindChilds(PropPanel::ContainerPropertyControl *
           nodeName = nameTemplate;
           nodeName.replace("$1", enumItemName);
         }
-        add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, nodeName);
-        check_ctrl_child_idx(data.childs[i], settings.getStr("name"), nodeName);
+        param_switch_add_child_by_name(panel, data, controllersData, blendNodesData, nodeName, settings.getStr("name"));
       }
     }
   }
@@ -168,10 +183,7 @@ void AnimTreePlugin::paramSwitchFindChilds(PropPanel::ContainerPropertyControl *
       const DataBlock *childBlock = nodes->getBlock(i);
       const char *childName = childBlock->getStr("name", nullptr);
       if (childName)
-      {
-        add_ctrl_child_idx_by_name(panel, data, controllersData, blendNodesData, childName);
-        check_ctrl_child_idx(data.childs[i], settings.getStr("name"), childName, childBlock->getBool("optional", false));
-      }
+        param_switch_add_child_by_name(panel, data, controllersData, blendNodesData, childName, settings.getStr("name"));
     }
   }
 }
@@ -391,7 +403,11 @@ void AnimTreePlugin::paramSwitchSaveBlockSettings(PropPanel::ContainerPropertyCo
     if (!enumItem)
       enumItem = nodes->addNewBlock(enumItemName.c_str());
     if (nodeName != enumItem->getStr("name", "") || data.childs[selectedIdx] == AnimCtrlData::NOT_FOUND_CHILD)
-      data.childs[selectedIdx] = find_child_idx_by_name(panel, data.handle, controllersData, blendNodesData, nodeName.c_str());
+    {
+      CtrlChildSearchResult result = find_child_idx_and_icon_by_name(panel, data.handle, controllersData, blendNodesData, nodeName);
+      data.childs[selectedIdx] = result.id;
+      check_param_switch_child(result.blendNodeType, data.type, settings->getStr("name"), nodeName);
+    }
 
     check_ctrl_child_idx(data.childs[selectedIdx], settings->getStr("name"), nodeName, optional);
 

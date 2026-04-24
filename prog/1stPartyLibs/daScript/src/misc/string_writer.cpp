@@ -3,10 +3,10 @@
 #include "misc/include_fmt.h"
 
 namespace das {
-    StringWriterTag HEX;
-    StringWriterTag DEC;
-    StringWriterTag FIXEDFP;
-    StringWriterTag SCIENTIFIC;
+    DAS_API StringWriterTag HEX;
+    DAS_API StringWriterTag DEC;
+    DAS_API StringWriterTag FIXEDFP;
+    DAS_API StringWriterTag SCIENTIFIC;
 
     mutex TextPrinter::pmut;
 
@@ -187,10 +187,33 @@ namespace das {
         lock_guard<mutex> guard(pmut);
         uint64_t newPos = tellp();
         if (newPos != pos) {
-            string st(data() + pos, newPos - pos);
+            string st(data() + pos, size_t(newPos - pos));
             printf("%s", st.c_str());
             fflush(stdout);
             pos = newPos;
+        }
+    }
+
+    const char * getLogMarker(int level)
+    {
+        if ( level >= LogLevel::error )
+            return "[E] ";
+        else if ( level >= LogLevel::warning )
+            return "[W] ";
+        else if ( level >= LogLevel::info )
+            return "[I] ";
+        else
+            return "";
+    }
+
+    void LOG::output() {
+        auto newPos = tellp();
+        if (newPos != pos) {
+            string st(data() + pos, size_t(newPos - pos));
+            das_to_stdout_level_prefix_text(logLevel, useMarker ? getLogMarker(logLevel) : "", st.c_str());
+            useMarker = false;
+            clear();
+            pos = newPos = 0;
         }
     }
 }

@@ -16,7 +16,9 @@
 #include <util/dag_stdint.h>
 #include <util/dag_globDef.h>
 #include <drv/3d/dag_resetDevice.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
+#include <util/dag_compilerDefs.h>
 
 #include "concurrentElementPool.h"
 #include "shStateBlk.h"
@@ -116,8 +118,11 @@ struct ShaderStateBlock
     shaders_internal::BlockAutoLock autoLock;
     ShaderStateBlock &b = blocks[id];
     if (b.refCount == 0)
+    {
       logmessage(DAGOR_DBGLEVEL > 0 ? LOGLEVEL_ERR : LOGLEVEL_WARN, "trying to remove deleted/broken state block, refCount = %d",
         b.refCount);
+      return;
+    }
     else if (--b.refCount)
       return;
     deleted_blocks++;
@@ -130,7 +135,7 @@ public:
   void apply(int tex_level = 15)
   {
     texLevel = tex_level;
-#ifndef __SANITIZE_THREAD__ // we might inc. this refCount in other thread right now, benign data race, don't complain about it
+#ifndef DAGOR_THREAD_SANITIZER // we might inc. this refCount in other thread right now, benign data race, don't complain about it
     G_FAST_ASSERT(refCount > 0);
 #endif
     if (PLATFORM_HAS_BINDLESS)

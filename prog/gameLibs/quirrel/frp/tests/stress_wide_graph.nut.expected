@@ -1,0 +1,5 @@
+initial correct: true
+c[0]=1, c[99]=100
+after change correct: true
+c[0]=1000, c[99]=1099
+subscriber count: 100

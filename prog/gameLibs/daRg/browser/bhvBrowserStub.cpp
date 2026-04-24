@@ -18,8 +18,8 @@ BhvBrowser::BhvBrowser() : Behavior(STAGE_BEFORE_RENDER, F_HANDLE_KEYBOARD | F_H
 void BhvBrowser::onAttach(darg::Element *) {}
 void BhvBrowser::onDetach(darg::Element *, DetachMode) {}
 int BhvBrowser::update(UpdateStage, Element *, float) { return 0; }
-int BhvBrowser::mouseEvent(ElementTree *, Element *, InputDevice, InputEvent, int /*pointer_id*/, int /*btn_idx*/, short /*mx*/,
-  short /*my*/, int /*buttons*/, int /*accum_res*/)
+int BhvBrowser::pointingEvent(ElementTree *, Element *, InputDevice, InputEvent, int /*pointer_id*/, int /*btn_id*/, Point2 /*pos*/,
+  int /*accum_res*/)
 {
   return 0;
 }

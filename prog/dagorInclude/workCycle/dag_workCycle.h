@@ -23,8 +23,9 @@ bool dagor_work_cycle_is_need_to_draw();
 void dagor_process_sys_messages(bool input_only = false);
 
 //! executes one idle cycle (execute regular actions, dispatch OS events and optionally issue Sleep when inactive)
-//! NOTE: it is called also from dagor_work_cycle()
-void dagor_idle_cycle(bool input_only = false);
+//! param 'is_work_cycle' determines if function was called as part of a complete work cycle.
+//! NOTE: it is called also from dagor_work_cycle() with is_work_cycle = true if thread is not idling, false otherwise.
+void dagor_idle_cycle(bool input_only = false, bool is_work_cycle = false);
 
 //! renders current game scene and Gui
 //! NOTE: it is called also from dagor_work_cycle()
@@ -90,3 +91,10 @@ extern unsigned int dagor_workcycle_depth;
 
 // act time is limited by 0.1s
 extern bool dagor_game_act_time_limited;
+
+//! gets/sets fixed number of acts per frame (0 = not fixed)
+int dagor_get_fixed_act_per_frame();
+void dagor_set_fixed_act_per_frame(int acts_per_frame);
+
+//! resets current frame act counter to 0
+void dagor_reset_frame_acts();

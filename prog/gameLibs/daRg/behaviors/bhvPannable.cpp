@@ -76,15 +76,9 @@ void BhvPannable::onDetach(Element *elem, DetachMode)
   }
 }
 
-int BhvPannable::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int data,
-  short mx, short my, int /*buttons*/, int accum_res)
-{
-  return pointingEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-}
-
 
 int BhvPannable::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
-  const Point2 &pos, int accum_res)
+  Point2 pos, int accum_res)
 {
   BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(dataSlotName, nullptr);
   if (!bhvData)
@@ -172,19 +166,25 @@ int BhvPannable::pointingEvent(ElementTree *etree, Element *elem, InputDevice de
 }
 
 
-int BhvPannable::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing *, int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch, int accum_res)
-{
-  return pointingEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
-}
-
-
 int BhvPannable::onDeactivateInput(Element *elem, InputDevice device, int pointer_id)
 {
   BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(dataSlotName, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isActivatedBy(device, pointer_id))
+  {
+    elem->clearGroupStateFlags(active_state_flags_for_device(bhvData->activeDevice));
+    bhvData->finish();
+  }
+  return 0;
+}
+
+int BhvPannable::onDeactivateAllInput(Element *elem)
+{
+  BhvPannableData *bhvData = elem->props.storage.RawGetSlotValue<BhvPannableData *>(dataSlotName, nullptr);
+  G_ASSERT_RETURN(bhvData, 0);
+
+  if (bhvData->isActive())
   {
     elem->clearGroupStateFlags(active_state_flags_for_device(bhvData->activeDevice));
     bhvData->finish();

@@ -14,6 +14,7 @@ public:
   void update(float) {}
   inline void invalidate() { resetGen = 0; }
   CloudsChangeFlags render(const Point3 &main_light_dir, const Point3 &second_light_dir);
+  bool isRendered() const;
 
 private:
   UniqueTexHolder clouds_light_color;

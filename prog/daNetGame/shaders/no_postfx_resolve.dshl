@@ -18,7 +18,6 @@ shader deferred_no_postfx_resolve
     #define USE_TEXCOORD tc
   }
   POSTFX_VS(1)
-  ENABLE_ASSERT(ps)
 
   hlsl(ps) {
     #include <pixelPacking/ColorSpaceUtility.hlsl>

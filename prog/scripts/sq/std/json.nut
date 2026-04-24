@@ -25,7 +25,7 @@ function save(file_path, data, params = defParamsSave) {
   assert(isCallable(save_text_file), "save_text_file should be Callable")
   assert(type(file_path)=="string", "file_path should be string")
   assert(logger== null || isCallable(logger), @() $"logger should be Callable or null, got {type(logger)}")
-  assert(type(data) not in static {"function":1,"class":1,"instance":1,"generator":1}, @() $"unexpected data in json: {type(data)}")
+  assert(type(data) not in const {"function":1,"class":1,"instance":1,"generator":1}, @() $"unexpected data in json: {type(data)}")
   try {
     data = object_to_json_string(data, pretty_print)
     let res = save_text_file(file_path, data)

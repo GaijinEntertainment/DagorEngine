@@ -8,6 +8,7 @@
 #include <propPanel/constants.h>
 #include <util/dag_string.h>
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 
 namespace PropPanel
 {
@@ -17,6 +18,38 @@ enum class IconId : int;
 class ImguiHelper
 {
 public:
+  // Helper to hide key down state from controls that do not use ImGui's shortcut API. For example: ImGui::Input().
+  class KeyDownHider
+  {
+  public:
+    // If key is ImGuiKey_None then nothing will be done.
+    explicit KeyDownHider(ImGuiKey key)
+    {
+      keyData = key == ImGuiKey_None ? nullptr : ImGui::GetKeyData(key);
+      if (keyData && keyData->Down)
+      {
+        originalKeyData = *keyData;
+        keyData->Down = false;
+        keyData->DownDuration = -1.0f;
+        keyData->DownDurationPrev = -1.0f;
+      }
+      else
+      {
+        originalKeyData.Down = false;
+      }
+    }
+
+    ~KeyDownHider()
+    {
+      if (originalKeyData.Down)
+        *keyData = originalKeyData;
+    }
+
+  private:
+    ImGuiKeyData *keyData;
+    ImGuiKeyData originalKeyData;
+  };
+
   struct TreeNodeWithSpecialHoverBehaviorEndData
   {
     // Set to true if the tree node has been drawn. In this case you must call treeNodeWithSpecialHoverBehaviorEnd.
@@ -33,8 +66,16 @@ public:
     ImGuiTreeNodeFlags flags; //-V730_NOINIT
     ImVec2 labelSize;
     ImVec2 textPos;
+    ImVec2 textOffset;
+    ImRect frameBB;
+    ImVec2 padding;
     bool storeTreeNodeStackData; //-V730_NOINIT
     bool isOpen;                 //-V730_NOINIT
+    bool isMultiSelect;          //-V730_NOINIT
+    bool displayFrame;           //-V730_NOINIT
+    bool held;                   //-V730_NOINIT
+    bool selected;               //-V730_NOINIT
+    bool spanAllColumns;         //-V730_NOINIT
   };
 
   // Internal function for PropPanel.
@@ -64,6 +105,11 @@ public:
   // first checkbox while holding the left mouse button.
   static bool checkboxWithDragSelection(const char *label, bool *value);
 
+  // Similar to the ToolbarToggleButton or to ImGui::Checkbox, but looks like a regular button (text instead of icons)
+  // and also supports toggling multiple buttons at once by dragging the mouse cursor from the
+  // first toggle button while holding the left mouse button.
+  static bool toggleButtonWithDragSelection(const char *label, bool *value, float hovered_border_size, ImU32 col_text_active);
+
   // The default ImGui text input control reacts to Enter by making it inactive, or if ConfigInputTextEnterKeepActive
   // is set to true then it keeps active but selects the whole text.
   // We prevent that behaviour by not letting it know about Enter presses...
@@ -75,23 +121,34 @@ public:
   // Feature requests: https://github.com/ocornut/imgui/issues/6170 and https://github.com/ocornut/imgui/issues/1037.
   static bool collapsingHeaderWidth(const char *label, float width, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_None);
 
-  // Same as LabelText but without the text.
-  // (Almost the same as TextUnformatted but this sets the baseline, so it looks correct beside other controls.)
+  // Draw the left bottom of the frame with an optionally rounded corner.
+  static void drawHalfFrame(float line_left_x, float line_top_y, float line_right_x, float line_bottom_y);
+
+  // Display a label.
+  // The label show ellipsis at the end of the visible text if the entire text cannot be displayed.
+  // It sets the baseline, so it looks correct beside other controls (unlike ImGui::TextUnformatted()).
+  // Thsi function is similar to ImGui::LabelText() but instead of label + text, this draws only the label.
   // use_text_width: if true then the control will be as wide as required by the text
   //   if false then it uses the width returned by ImGui::CalcItemWidth() (so either the default item width or the
   //   width set by PushItemWidth() or SetNextItemWidth())
-  static void labelOnly(const char *label, const char *label_end = nullptr, bool use_text_width = false);
+  // returns true if the item has been added
+  static bool labelOnly(const char *label, const char *label_end = nullptr, bool use_text_width = false);
 
   // Simple helper method for the cases where the label is in a separate line than the control.
-  static void separateLineLabel(const char *label, const char *label_end = nullptr)
+  // returns true if the item has been added
+  static bool separateLineLabel(const char *label, const char *label_end = nullptr)
   {
     if (label && *label)
     {
       const float verticalSpace = hdpi::_pxS(Constants::SPACE_BETWEEN_SEPARATE_LINE_LABEL_AND_CONTROL);
       ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x, verticalSpace));
-      labelOnly(label, label_end, true);
+      const bool itemAdded = labelOnly(label, label_end, true);
       ImGui::PopStyleVar();
+
+      return itemAdded;
     }
+
+    return false;
   }
 
   // Changes compared to ImGui::TreeNodeBehavior:
@@ -103,7 +160,7 @@ public:
   //
   // You have to call TreeNodeWithSpecialHoverBehaviorEnd if end_data.draw is set to true. That function does the label
   // drawing, so if you want to add an icon before the label you can do it.
-  // If you do additional drawing you have make sure that the horizontal scrollbar iscorrectly sized (for example by
+  // If you do additional drawing you have to make sure that the horizontal scrollbar is correctly sized (for example by
   // collecting the maximum length of the labels and using ImGui::SetCursorScreenPos and ImGui::Dummy).
   //
   // end_data: output parameter
@@ -112,9 +169,11 @@ public:
   // show_arrow: show the open/close arrow. Set it to false if you want to draw your own open/close icon.
   //   Hierarchy lines and the opcen/close icon can be drawn with TreeHierarchyLineDrawer.
   static bool treeNodeWithSpecialHoverBehaviorStart(ImGuiID id, ImGuiTreeNodeFlags flags, const char *label, const char *label_end,
-    TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover = true, bool show_arrow = true);
+    TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover = true);
   static bool treeNodeWithSpecialHoverBehaviorStart(const char *label, ImGuiTreeNodeFlags flags,
-    TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover = true, bool show_arrow = true);
+    TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool allow_blocked_hover = true);
+
+  static void treeNodeWithSpecialHoverBehaviorRender(TreeNodeWithSpecialHoverBehaviorEndData &end_data, bool show_arrow = true);
 
   // This uses LastItemData, so do not add new widgets between calling TreeNodeWithSpecialHoverBehaviorStart and
   // TreeNodeWithSpecialHoverBehaviorEnd.
@@ -154,6 +213,8 @@ public:
 
   static ImVec2 getImageButtonFramelessFullSize(const ImVec2 &image_size) { return image_size; }
 
+  static ImVec2 getImageButtonSize(const ImVec2 &image_size);
+
   // A toggle image button.
   static bool imageCheckButtonWithBackground(const char *str_id, ImTextureID texture_id, const ImVec2 &image_size, bool checked,
     const char *tooltip);
@@ -184,8 +245,10 @@ public:
 
   // Same as ImGui::MenuItemEx but the checkmark is rendered before the label just like in Windows.
   // This also can draw bullets instead of checkmarks (for radio button-like menu items).
+  // menu_item_selected: if true then draw a highlight the same way as if the menu item had a sub-menu opened. This can
+  //   used when opening a context menu for a menu item.
   static bool menuItemExWithLeftSideCheckmark(const char *label, const char *icon, const char *shortcut = nullptr,
-    bool selected = false, bool enabled = true, bool bullet = false);
+    bool selected = false, bool enabled = true, bool bullet = false, bool menu_item_selected = false);
 
   static float getDefaultRightSideEditWidth();
 
@@ -206,11 +269,20 @@ public:
   static void setPointSampler();
   static void setDefaultSampler();
 
+  // This is a more convenient version of pre-registering all owned keys and then checking them with ImGui::IsKeyChordPressed.
+  static bool isKeyChordPressedOwned(ImGuiKeyChord key_chord, ImGuiID canvas_id);
+
+  // Reset all window settings (position, size, dock state, ImGuiCond_FirstUseEver, etc.) stored by ImGui.
+  static void resetWindowLayout();
+
 private:
   static ImVec2 getImageButtonWithDownArrowSizeInternal(const ImVec2 &image_size, float &default_height, ImVec2 &arrow_half_size);
 
   static bool checkboxDragSelectionInProgress;
   static bool checkboxDragSelectionValue;
+
+  static bool buttonDragSelectionInProgress;
+  static bool buttonDragSelectionValue;
 };
 
 } // namespace PropPanel

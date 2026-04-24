@@ -33,7 +33,7 @@ Texture *create_phys_map_ht_tex(PhysMapTexData *data)
 {
   if (!data)
     return NULL;
-  Texture *tex = d3d::create_tex(NULL, TEXSIZE, TEXSIZE, data->texFmt, 1, "physMatHt");
+  Texture *tex = d3d::create_tex(NULL, TEXSIZE, TEXSIZE, data->texFmt, 1, "physMatHt", RESTAG_PHYSMAP);
   if (!tex)
   {
     logerr("can not create physmatht texture");

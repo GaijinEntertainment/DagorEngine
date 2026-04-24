@@ -3,7 +3,13 @@ include "punctualLights.dshl"
 include "clustered/lights_cb.dshl"
 include "dynamic_lights_count.dshl"
 
+float use_dynlight_contact_shadows = 1;
+
 macro INIT_CLUSTERED_VIEW_LIGHTS(code)
+  (code)
+  {
+    use_dynlight_contact_shadows@f1 = (use_dynlight_contact_shadows, 0, 0, 0);
+  }
   INIT_PHOTOMETRY_TEXTURES(code)
   INIT_CLUSTERED_LIGHTS(code)
   INIT_OMNI_LIGHTS_CB(code)
@@ -65,7 +71,7 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
           #if OMNI_CONTACT_SHADOWS
           #define OMNI_CONTACT_SHADOWS_CALC \
             BRANCH\
-            if (color_and_specular.w > 0 && max(omniLight.r, omniLight.g)/(max3(color_and_specular.r, color_and_specular.g, 1e-6))>0.001)\
+            if (use_dynlight_contact_shadows && color_and_specular.w > 0 && max(omniLight.r, omniLight.g)/(max3(color_and_specular.r, color_and_specular.g, 1e-6))>0.001)\
             {\
               float2 hitUV;\
               float contactShadow = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate,\
@@ -79,7 +85,7 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
           #if SPOT_CONTACT_SHADOWS
             #define SPOT_CONTACT_SHADOWS_CALC \
               BRANCH\
-              if (needsContactShadows)\
+              if (use_dynlight_contact_shadows && needsContactShadows)\
               {\
                 float2 hitUV;\
                 float contactShadow = contactShadowRayCast(downsampled_far_depth_tex, downsampled_far_depth_tex_samplerstate, contactStartCameraToPoint, normalize(lightPosRadius.xyz-worldPos.xyz),\
@@ -125,12 +131,13 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               RenderOmniLight ol = omni_lights_cb[omni_light_index];
               float4 pos_and_radius = ol.posRadius;
               float4 color_and_specular = getFinalColor(ol, worldPos);
+              float2 shadowZnZfar = ol.shadowZnZf_pad.xy;
               #if OMNI_SHADOWS
                 float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
               #else
                 float4 shadowTcToAtlas = float4(0, 0, 0, 0);
               #endif
-              half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, pos_and_radius, color_and_specular, shadowTcToAtlas, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
+              half3 omniLight = perform_point_light(worldPos.xyz, view, NoV, gbuffer, specularColor, dynamicLightsSpecularStrength, dynamicAO, pos_and_radius, color_and_specular, shadowTcToAtlas, shadowZnZfar, screenpos);//use gbuffer.specularColor for equality with point_lights.dshl
 
               OMNI_CONTACT_SHADOWS_CALC
 
@@ -154,14 +161,16 @@ macro USE_CLUSTERED_VIEW_LIGHTS(code)
               #endif
 
               RenderSpotLight sl = spot_lights_cb[spot_light_index];
-              float4 lightPosRadius = sl.lightPosRadius;
+              float4 lightPosRadius = decode_spot_light_pos_radius(sl);
               float4 lightColor = sl.lightColorAngleScale;
               float4 lightDirection = sl.lightDirectionAngleOffset;
-              float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+              float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
               float ao = dynamicAO;
-              float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_shadow_contactshadow.z;
-              uint shadowContactShadowsBits = asuint(sl.texId_scale_illuminatingplane_shadow_contactshadow.w);
-              bool needsContactShadows = shadowContactShadowsBits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
+              float lightRollAngle = decode_light_roll_angle(sl);
+              float illuminatingPlaneOffset = sl.texId_scale_illuminatingplane_packedDataBits.z;
+              uint shadowDataBits = asuint(sl.texId_scale_illuminatingplane_packedDataBits.w);
+              bool needsContactShadows = shadowDataBits & SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK;
+              uint shadowAtlasRectBits = (shadowDataBits >> SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_OFFSET) & SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_MASK;
 
               #define EXIT_STATEMENT continue
               #ifndef SPOT_SHADOWS

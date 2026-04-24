@@ -1,0 +1,13 @@
+options gen2
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("graphics-example")
+    package_description("Graphics example using dasImgui")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("dasImgui")
+}

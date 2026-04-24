@@ -3,7 +3,9 @@
 
 #include <daScript/daScript.h>
 #include <daScript/ast/ast_typedecl.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/scripts/dasEcsEntity.h>
 #include <dasModules/dasModulesCommon.h>
 #include <dasModules/dasManagedTab.h>
@@ -38,10 +40,7 @@ inline void das_get_points_on_road_splines(const Point3 &start_path_pos,
 {
   Tab<TMatrix> path = get_points_on_road_route(start_path_pos, end_path_pos, points_count, points_distance, roads_search_rad);
   das::Array arr;
-  arr.data = (char *)path.data();
-  arr.size = uint32_t(path.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, path.data(), path.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

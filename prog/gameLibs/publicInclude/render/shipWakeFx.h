@@ -42,7 +42,7 @@ public:
   void resetShipSpawnCounters(uint32_t index, bool jump = false);
 
   void update(float dt);
-  void render();
+  bool render();
   bool renderFoam();
   void renderFoamMask();
   void reset();
@@ -54,12 +54,21 @@ public:
     TEXTUREID wakeTexId = BAD_TEXTUREID;
     TEXTUREID wakeTrailTexId = BAD_TEXTUREID;
     TEXTUREID foamTexId = BAD_TEXTUREID;
+    TEXTUREID foamMVTexId = BAD_TEXTUREID;
+    float foamMVScale = 0.f;
     TEXTUREID foamHeadTexId = BAD_TEXTUREID;
+    TEXTUREID foamHeadMVTexId = BAD_TEXTUREID;
+    float foamHeadMVScale = 0.f;
     TEXTUREID foamTurboTexId = BAD_TEXTUREID;
+    TEXTUREID foamTurboMVTexId = BAD_TEXTUREID;
+    float foamTurboMVScale = 0.f;
     TEXTUREID foamTrailTexId = BAD_TEXTUREID;
+    TEXTUREID foamTrailMVTexId = BAD_TEXTUREID;
+    float foamTrailMVScale = 0.f;
     TEXTUREID foamDistortedTileTexId = BAD_TEXTUREID;
     TEXTUREID foamDistortedParticleTexId = BAD_TEXTUREID;
     TEXTUREID foamDistortedGradientTexId = BAD_TEXTUREID;
+
     bool reduceFoam = false;
   };
 

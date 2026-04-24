@@ -2,8 +2,10 @@
 // all user modifications will be lost after this file is re-generated
 
 MAKE_EXTERNAL_TYPE_FACTORY(ImDrawListSharedData,ImDrawListSharedData);
-MAKE_EXTERNAL_TYPE_FACTORY(ImFontBuilderIO,ImFontBuilderIO);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontAtlasBuilder,ImFontAtlasBuilder);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontLoader,ImFontLoader);
 MAKE_EXTERNAL_TYPE_FACTORY(ImGuiContext,ImGuiContext);
+MAKE_EXTERNAL_TYPE_FACTORY(ImTextureRef,ImTextureRef);
 MAKE_EXTERNAL_TYPE_FACTORY(ImGuiTableSortSpecs,ImGuiTableSortSpecs);
 MAKE_EXTERNAL_TYPE_FACTORY(ImGuiTableColumnSortSpecs,ImGuiTableColumnSortSpecs);
 MAKE_EXTERNAL_TYPE_FACTORY(ImNewWrapper,ImNewWrapper);
@@ -32,11 +34,14 @@ MAKE_EXTERNAL_TYPE_FACTORY(ImDrawChannel,ImDrawChannel);
 MAKE_EXTERNAL_TYPE_FACTORY(ImDrawListSplitter,ImDrawListSplitter);
 MAKE_EXTERNAL_TYPE_FACTORY(ImDrawList,ImDrawList);
 MAKE_EXTERNAL_TYPE_FACTORY(ImDrawData,ImDrawData);
+MAKE_EXTERNAL_TYPE_FACTORY(ImTextureRect,ImTextureRect);
+MAKE_EXTERNAL_TYPE_FACTORY(ImTextureData,ImTextureData);
 MAKE_EXTERNAL_TYPE_FACTORY(ImFontConfig,ImFontConfig);
 MAKE_EXTERNAL_TYPE_FACTORY(ImFontGlyph,ImFontGlyph);
 MAKE_EXTERNAL_TYPE_FACTORY(ImFontGlyphRangesBuilder,ImFontGlyphRangesBuilder);
-MAKE_EXTERNAL_TYPE_FACTORY(ImFontAtlasCustomRect,ImFontAtlasCustomRect);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontAtlasRect,ImFontAtlasRect);
 MAKE_EXTERNAL_TYPE_FACTORY(ImFontAtlas,ImFontAtlas);
+MAKE_EXTERNAL_TYPE_FACTORY(ImFontBaked,ImFontBaked);
 MAKE_EXTERNAL_TYPE_FACTORY(ImFont,ImFont);
 MAKE_EXTERNAL_TYPE_FACTORY(ImGuiViewport,ImGuiViewport);
 MAKE_EXTERNAL_TYPE_FACTORY(ImGuiPlatformIO,ImGuiPlatformIO);

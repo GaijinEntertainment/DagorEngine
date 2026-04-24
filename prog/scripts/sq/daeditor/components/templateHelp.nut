@@ -198,7 +198,7 @@ function getTemplateCompsDescs(templ, addedTempls, addedComps, valueComps) {
 
 
 let categories = {}
-let getCategoryTemplates = function(category) {
+function getCategoryTemplates(category) {
   if (categories?[category] != null)
     return categories[category]
 
@@ -318,7 +318,7 @@ function requestSliceLongText(inText, rowLen, cb) {
   local text = clone inText
   while (text.len() >= rowLen) {
     local sliceLen = rowLen
-    while (sliceLen < text.len() && (text[sliceLen] != ' ' || text[sliceLen+1] == '}'))
+    while (sliceLen < text.len() && (text[sliceLen] != ' ' || (sliceLen+1 < text.len() && text[sliceLen+1] == '}')))
       ++sliceLen
     cb(firstRow, text.slice(0, sliceLen))
     text = text.slice(sliceLen)
@@ -360,7 +360,7 @@ function mkTemplateTooltip(templName, sceneText="") {
   let descTexts = []
   local gotDescs = false
   local wasComps = false
-  templInfo.descs.map(function(desc) {
+  templInfo.descs.each(function(desc) {
     if (desc.type == "template") {
       if (wasComps) {
         wasComps = false

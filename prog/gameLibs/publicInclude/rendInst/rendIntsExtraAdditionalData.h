@@ -30,6 +30,7 @@ enum class RiExtraPerInstanceDataType
   INITIAL_TM_POS = RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_POS__FLAG,
   INITIAL_TM_3X3 = RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__FLAG,
   DESTR_RENDER_DATA = RIEXTRA_PER_INSTANCE_RENDER_DATA__DESTR_RENDER_DATA__FLAG,
+  TREE_BURNING = RIEXTRA_PER_INSTANCE_RENDER_DATA__TREE_BURNING__FLAG,
 };
 
 enum class RiExtraPerInstanceDataPersistence
@@ -63,7 +64,8 @@ public:
    *    - gaps are left open, because the same instance might get data again in the next frame
    */
 
-  static constexpr uint32_t MAX_SLOT_COUNT = 1024;
+  static constexpr uint32_t DEFAULT_MAX_SLOT_COUNT = 1024;
+  static constexpr uint32_t STAGING_BUFFER_SLOT_COUNT = 256;
 
   using InstanceId = uint32_t; // scene id + node id
   static constexpr InstanceId INVALID_INSTANCE = 0xFFFFFFFF;
@@ -73,6 +75,7 @@ public:
   using InitialTmPosData = eastl::array<rendinst::RiExtraPerInstanceGpuItem, RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_POS__SIZE>;
   using InitialTm3x3Data = eastl::array<rendinst::RiExtraPerInstanceGpuItem, RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__SIZE>;
   using DestrRenderData = eastl::array<rendinst::RiExtraPerInstanceGpuItem, RIEXTRA_PER_INSTANCE_RENDER_DATA__DESTR_RENDER_DATA__SIZE>;
+  using TreeBurningData = eastl::array<rendinst::RiExtraPerInstanceGpuItem, RIEXTRA_PER_INSTANCE_RENDER_DATA__TREE_BURNING__SIZE>;
 
   static constexpr rendinst::RiExtraPerInstanceDataPersistence PERSISTENCE_PREV_TM_DATA =
     rendinst::RiExtraPerInstanceDataPersistence::SINGLE_FRAME;
@@ -81,8 +84,12 @@ public:
   static constexpr rendinst::RiExtraPerInstanceDataPersistence PERSISTENCE_INITIAL_TM_3X3 =
     rendinst::RiExtraPerInstanceDataPersistence::PERSISTENT;
   static constexpr rendinst::RiExtraPerInstanceDataPersistence PERSISTENCE_DESTR_RENDER_DATA =
-    rendinst::RiExtraPerInstanceDataPersistence::SINGLE_FRAME;
+    rendinst::RiExtraPerInstanceDataPersistence::PERSISTENT;
+  static constexpr rendinst::RiExtraPerInstanceDataPersistence PERSISTENCE_TREE_BURNING_DATA =
+    rendinst::RiExtraPerInstanceDataPersistence::PERSISTENT;
 
+  RiExtraAdditionalDataManager();
+  void beforeClearAll();
   void clearAll();
   static InstanceId get_instance_id(uint32_t scene_id, uint32_t node_id);
   void transfer(InstanceId old_instance, InstanceId new_instance);
@@ -103,7 +110,9 @@ public:
     uint32_t gpu_data_count);
   void removeAdditionalData(uint64_t data_id, rendinst::RiExtraPerInstanceDataType type);
 
-  void prepareAndUploadBuffer();
+  void prepareInstances();
+  void uploadBuffer();
+  void afterDeviceReset();
 
 private:
   struct RIInfo
@@ -128,6 +137,8 @@ private:
         requiredSlots += RIEXTRA_PER_INSTANCE_RENDER_DATA__INITIAL_TM_3X3__SIZE;
       if (usedDataTypes & static_cast<uint32_t>(rendinst::RiExtraPerInstanceDataType::PREV_TM_DATA))
         requiredSlots += RIEXTRA_PER_INSTANCE_RENDER_DATA__PREV_TRANSFORM__SIZE;
+      if (usedDataTypes & static_cast<uint32_t>(rendinst::RiExtraPerInstanceDataType::TREE_BURNING))
+        requiredSlots += RIEXTRA_PER_INSTANCE_RENDER_DATA__TREE_BURNING__SIZE;
       return requiredSlots;
     }
 
@@ -152,8 +163,10 @@ private:
   eastl::vector_map<InstanceId, InitialTmPosData> initialTmPosData;
   eastl::vector_map<InstanceId, InitialTm3x3Data> initialTm3x3Data;
   eastl::vector_map<InstanceId, DestrRenderData> destrRenderData;
+  eastl::vector_map<InstanceId, TreeBurningData> treeBurningData;
   eastl::vector<DeferredDataRequest> deferredDataRequests;
   eastl::vector<rendinst::RiExtraPerInstanceGpuItem> deferredDataItems;
+  IPoint2 updateEntryRange = IPoint2(0, 0);
 
   uint64_t nextDataId = 0;
   uint32_t lastProcessFrameId = 0; // This is only set if actually processing takes place
@@ -161,13 +174,16 @@ private:
   bool isDirty = false;
   bool hasEntriesToClear = false;
   bool hasSingleFrameEntries = false;
+  bool logerrOnBufferOverflow = false;
 
   // used for debug checks
   // increments when the encoded data is set on an ri
   // decrements when the encoded data is unset from an ri
   uint32_t instanceWithDataCounter = 0;
 
+  uint32_t additionalDataBufferSize = 0;
   UniqueBufHolder additionalDataBuffer;
+  UniqueBuf additionalDataStagingBuffer;
 
   mutable WinCritSec mutex;
 

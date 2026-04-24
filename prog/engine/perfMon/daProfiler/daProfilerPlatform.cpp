@@ -12,7 +12,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#define DA_PROFILE_SYMBOLS_AVAILABLE (DAPROFILER_DEBUGLEVEL > 0) // in release builds there are usually no pdb available
+#define DA_PROFILE_SYMBOLS_AVAILABLE (DAPROFILER_DEBUGLEVEL != 0) // in release builds there are usually no pdb available
 
 extern char *os_gethostname(char *buf, size_t blen, const char *def = NULL);
 extern const char *get_log_directory();
@@ -60,12 +60,12 @@ const char *get_current_thread_name() { return DaThread::getCurrentThreadName();
 const char *get_current_platform_name() { return get_platform_string_id(); }
 const char *get_executable_name() { return dgs_argv[0]; }
 const char *get_cpu_name() { return dgs_cpu_name; }
-#if DAPROFILER_DEBUGLEVEL > 0 || DAGOR_FORCE_LOGS
+#if DAPROFILER_DEBUGLEVEL != 0 || DAGOR_FORCE_LOGS
 const char *get_default_file_dir() { return get_log_directory(); }
 #else
 const char *get_default_file_dir() { return nullptr; }
 #endif
-#if DAPROFILER_DEBUGLEVEL > 0
+#if DAPROFILER_DEBUGLEVEL != 0
 const char *get_current_host_name()
 {
   static char buf[256];
@@ -90,17 +90,19 @@ bool support_sample_other_threads() { return ::can_unwind_callstack_for_other_th
 // sampling helper function
 namespace da_profiler
 {
-bool can_resolve_symbols()
-{
 #if DA_PROFILE_SYMBOLS_AVAILABLE
-  return true;
+static bool da_profiler_symbols_enabled = true;
+void set_resolve_symbols(bool on) { da_profiler_symbols_enabled = on; }
+#else
+static constexpr bool da_profiler_symbols_enabled = false;
+void set_resolve_symbols(bool) {}
 #endif
-  return false;
-}
+bool can_resolve_symbols() { return da_profiler_symbols_enabled; }
 } // namespace da_profiler
 #else
 namespace da_profiler
 {
 bool can_resolve_symbols() { return false; }
+void set_resolve_symbols(bool) {}
 } // namespace da_profiler
 #endif

@@ -11,10 +11,12 @@
 #include "controllers/animCtrlData.h"
 #include "controllers/ctrlTreeEventHandler.h"
 #include "controllers/ctrlListSettingsEventHandler.h"
+#include "controllers/paramsCtrlDragDropHandlers.h"
 #include "childsDialog.h"
 #include "nodeMasks/nodeMaskData.h"
 #include "nodeMasks/nodeMaskTreeEventHandler.h"
 #include "animTreeAnimationPlayer.h"
+#include "animTreeDragListHandler.h"
 
 #include <EditorCore/ec_interface.h>
 
@@ -22,6 +24,9 @@
 #include <assets/asset.h>
 #include <math/dag_geomTree.h>
 #include <anim/dag_simpleNodeAnim.h>
+
+#include <EASTL/unordered_map.h>
+#include <EASTL/memory.h>
 
 using PropPanel::TLeafHandle;
 
@@ -36,7 +41,7 @@ class AnimTreePlugin : public IGenEditorPlugin, public PropPanel::ControlEventHa
 {
 public:
   AnimTreePlugin();
-  ~AnimTreePlugin() override { AnimTreePlugin::end(); }
+  ~AnimTreePlugin() override;
 
   const char *getInternalName() const override { return "animTree"; }
 
@@ -66,13 +71,22 @@ public:
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override;
 
+  void saveProps(DataBlock &props, const String &path);
+  DataBlock getPropsAnimStates(PropPanel::ContainerPropertyControl *panel, const AnimStatesData &data, String &full_path,
+    bool only_includes = false);
+  void saveParamsCtrlAfterIfMathReorder(PropPanel::ContainerPropertyControl *panel, int src_idx, int insert_idx);
+
 protected:
+  class TreeFilter;
+
   DagorAsset *curAsset = nullptr;
 
   AnimTreeAnimationPlayer animPlayer;
   dag::Vector<AnimParamData> ctrlParams;
   dag::Vector<AnimParamData> animBnlParams;
   dag::Vector<AnimParamData> stateParams;
+  dag::Vector<DependentParamData> ctrlDependentParams;
+  dag::Vector<DependentParamData> stateDependentParams;
 
   int curCtrlAndBlendNodeUniqueIdx = 0;
   TLeafHandle enumsRootLeaf = nullptr;
@@ -90,11 +104,18 @@ protected:
   AnimStatesTreeEventHandler animStatesTreeEventHandler;
   StateListSettingsEventHandler stateListSettingsEventHandler;
 
+  AnimTreeListDragHandler statesListDragHandler;
+  AnimTreeListDropHandler statesListDropHandler;
+
+  IfMathDragHandler ifMathDragHandler;
+  IfMathDropHandler ifMathDropHandler;
+
+  eastl::unordered_map<int, eastl::unique_ptr<TreeFilter>> treeFilters;
+
   void addController(TLeafHandle handle, CtrlType type);
   void addBlendNode(TLeafHandle handle, BlendNodeType type);
   void clearData();
 
-  void saveProps(DataBlock &props, const String &path);
   TLeafHandle getEnumsRootLeaf(PropPanel::ContainerPropertyControl *tree);
   bool isEnumOrEnumItem(TLeafHandle leaf, PropPanel::ContainerPropertyControl *tree);
   void fillTreePanels(PropPanel::ContainerPropertyControl *panel);
@@ -114,10 +135,18 @@ protected:
   void paramSwitchFillBlockSettings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings);
   void fillParamSwitchEnumGen(PropPanel::ContainerPropertyControl *panel, const DataBlock *nodes);
   void changeParamSwitchType(PropPanel::ContainerPropertyControl *panel);
+  void changeMultiChainFABRIKBlockType(PropPanel::ContainerPropertyControl *panel);
+  void changeParamsCtrlBlockType(PropPanel::ContainerPropertyControl *panel);
+  void paramsCtrlRemoveIfMath(PropPanel::ContainerPropertyControl *panel);
+  void paramsCtrlAddIfMath(PropPanel::ContainerPropertyControl *panel);
+  void paramsCtrlInitBlockSettings(PropPanel::ContainerPropertyControl *panel, const DataBlock *settings);
   void setSelectedCtrlNodeListSettings(PropPanel::ContainerPropertyControl *panel);
   void addNodeCtrlList(PropPanel::ContainerPropertyControl *panel);
   void removeNodeCtrlList(PropPanel::ContainerPropertyControl *panel);
   void fillStatesChilds(PropPanel::ContainerPropertyControl *panel);
+  void fillInitAnimStateChilds(PropPanel::ContainerPropertyControl *panel);
+
+  void setStatesDragAndDropHandlers(PropPanel::ContainerPropertyControl *panel, AnimStatesType type);
 
   bool checkIncludeBeforeSave(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, const SimpleString &file_name,
     const SimpleString &new_path, const DataBlock &props);
@@ -130,6 +159,7 @@ protected:
 
   void setTreeFilter(PropPanel::ContainerPropertyControl *panel, int tree_pid, int filter_pid);
   void addIncludeLeaf(PropPanel::ContainerPropertyControl *panel, int main_pid, TLeafHandle main_parent, const String &parent_name);
+  void selectIncludeFileDialog(PropPanel::ContainerPropertyControl *panel, int pid);
 
   void addEnumToAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
   void addItemToAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
@@ -137,8 +167,9 @@ protected:
   void saveSettingsAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
   void saveStatesParamsSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimStatesType type,
     const DataBlock &props);
-  DataBlock getPropsAnimStates(PropPanel::ContainerPropertyControl *tree, const AnimStatesData &data, String &full_path,
-    bool only_includes = false);
+  void updateStateFields(PropPanel::ContainerPropertyControl *panel, int pid);
+  void updateStateDependentStatus(PropPanel::ContainerPropertyControl *panel, int pid);
+
   void selectedChangedAnimStatesTree(PropPanel::ContainerPropertyControl *panel);
   void changeStateDescType(PropPanel::ContainerPropertyControl *panel);
   void addStateDescItem(PropPanel::ContainerPropertyControl *panel, AnimStatesType type, const char *name);
@@ -153,6 +184,8 @@ protected:
   void addIncludeToCtrlTree(PropPanel::ContainerPropertyControl *panel, int type_pid);
   void removeNodeFromCtrlsTree(PropPanel::ContainerPropertyControl *panel);
   void changeCtrlType(PropPanel::ContainerPropertyControl *panel);
+  void updateCtrlFields(PropPanel::ContainerPropertyControl *panel, int pid);
+  void updateCtrlDependentStatus(PropPanel::ContainerPropertyControl *panel, int pid);
 
   void addMaskToNodeMasksTree(PropPanel::ContainerPropertyControl *panel);
   void addNodeToNodeMasksTree(PropPanel::ContainerPropertyControl *panel);
@@ -169,6 +202,7 @@ protected:
   void irqTypeSelected(PropPanel::ContainerPropertyControl *panel);
   void changeAnimNodeType(PropPanel::ContainerPropertyControl *panel);
   void updateAnimNodeFields(PropPanel::ContainerPropertyControl *panel, int pid);
+  void initIfMathFields(PropPanel::ContainerPropertyControl *panel, const DataBlock &settings);
   void addLeafToBlendNodesTree(PropPanel::ContainerPropertyControl *tree, DataBlock &props);
   void addBlendNodeToTree(PropPanel::ContainerPropertyControl *tree, const DataBlock *node, int idx, TLeafHandle parent);
   void removeBlendNodeOrA2d(PropPanel::ContainerPropertyControl *tree, TLeafHandle leaf, DataBlock *props);
@@ -190,6 +224,8 @@ protected:
   void randomSwitchSaveBlockSettings(PropPanel::ContainerPropertyControl *panel, DataBlock *settings, AnimCtrlData &data);
   void stateSaveBlockSettings(PropPanel::ContainerPropertyControl *panel, DataBlock &settings, AnimStatesData &data,
     const DataBlock &state_desc);
+  void postBlendCtrlOrderSaveBlockSettings(PropPanel::ContainerPropertyControl *panel, DataBlock &settings, AnimStatesData &data);
+  void initFifo3SaveBlockSettings(PropPanel::ContainerPropertyControl *panel, DataBlock &settings, AnimStatesData &data);
 
   // Find childs for controllers
   void paramSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings,
@@ -197,4 +233,6 @@ protected:
   void hubFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
   void linearPolyFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
   void randomSwitchFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
+  void aliasFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
+  void animateNodeFindChilds(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data, const DataBlock &settings);
 };

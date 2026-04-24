@@ -6,9 +6,9 @@
 
 #include <generic/dag_tab.h>
 #include <math/dag_frustum.h>
-#include <detourTileCache.h>
-#include <detourTileCacheBuilder.h>
-#include <detourNavMeshBuilder.h>
+#include <DetourTileCache.h>
+#include <DetourTileCacheBuilder.h>
+#include <DetourNavMeshBuilder.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
 struct ZSTD_DCtx_s;
@@ -24,9 +24,13 @@ namespace pathfinder
 {
 struct TileCacheCompressor : public dtTileCacheCompressor
 {
-  ~TileCacheCompressor();
+  TileCacheCompressor() = default;
+  TileCacheCompressor(const TileCacheCompressor &) = delete;
+  ~TileCacheCompressor() { reset(); }
 
-  void reset(bool isZSTD, const Tab<char> &zstdDictBuff = Tab<char>());
+  void reset();
+
+  void initDict(dag::ConstSpan<char> zstdDictBuff);
 
   int maxCompressedSize(const int bufferSize) override;
 

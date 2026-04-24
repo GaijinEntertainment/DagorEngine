@@ -9,16 +9,12 @@ int clouds_direct_sequence = 0;
 interval clouds_direct_sequence: auto < 1, first < 2, second < 3, third;
 assume clouds_direct_sequence = auto;
 
+int deferred_msaa_subpass = 0;
+interval deferred_msaa_subpass: no < 1, yes;
+assume deferred_msaa_subpass = no;
+
 float4 real_skies_sun_light_dir;
 macro USE_SUBPASS_LOADS()
-  //match VS & PS compiler modes, so there is no IO layout problems
-  hlsl(vs) {
-    ##if hardware.vulkan
-      #pragma spir-v compiler dxc
-    ##endif
-  }
-  hlsl(ps) {
-  }
 endmacro
 
 macro INIT_SUBPASS_LOAD_DEPTH_GBUFFER(reg, iatt_idx)

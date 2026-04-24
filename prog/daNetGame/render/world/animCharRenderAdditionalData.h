@@ -72,8 +72,6 @@ class AnimcharAdditionalDataView : public dag::ConstSpan<Point4>
 private:
   static const Point4 NULL_METADATA_RAW[];
   static const AnimcharAdditionalDataView NULL_METADATA;
-  static const Point4 ZERO_METADATA_RAW[];
-  static const AnimcharAdditionalDataView ZERO_METADATA;
 
 public:
   // we make it explicit to avoid accidental conversion from raw data, without metadata
@@ -86,6 +84,8 @@ public:
   AnimcharAdditionalDataView(const AnimcharAdditionalDataVec &data) :
     AnimcharAdditionalDataView(static_cast<const dag::ConstSpan<Point4>>(data))
   {}
+
+  bool is_null() const { return this == &NULL_METADATA; }
 
   // null is when only metadata exists, no real additional data
   static AnimcharAdditionalDataView get_null() { return NULL_METADATA; }

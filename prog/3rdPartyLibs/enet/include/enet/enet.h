@@ -410,6 +410,7 @@ typedef struct _ENetHost
    size_t               duplicatePeers;              /**< optional number of allowed peers from duplicate IPs, defaults to ENET_PROTOCOL_MAXIMUM_PEER_ID */
    size_t               maximumPacketSize;           /**< the maximum allowable packet size that may be sent or received on a peer */
    size_t               maximumWaitingData;          /**< the maximum aggregate amount of buffer space a peer may use waiting for packets to be delivered */
+   _DAGOR_ENET_EXTEND_HOST_STRUCT
 } ENetHost;
 
 /**
@@ -441,12 +442,7 @@ typedef enum _ENetEventType
      * enet_packet_destroy after use.
      */
    ENET_EVENT_TYPE_RECEIVE    = 3,
-
-
-   /** a packet has been received and intecepted via host->intecept callback
-     * interceptor states that enet should not process as whatever meaning it had has already been processed
-     */
-   ENET_EVENT_TYPE_INTERCEPTED = 4
+   _DAGOR_ENET_INJECT_EVENTS
 } ENetEventType;
 
 /**
@@ -461,6 +457,7 @@ typedef struct _ENetEvent
    enet_uint8           channelID; /**< channel on the peer that generated the event, if appropriate */
    enet_uint32          data;      /**< data associated with the event, if appropriate */
    ENetPacket *         packet;    /**< packet associated with the event, if appropriate */
+   _DAGOR_ENET_EXTEND_EVENT_STRUCT
 } ENetEvent;
 
 /** @defgroup global ENet global functions
@@ -572,10 +569,8 @@ ENET_API enet_uint32  ENET_CALLBACK enet_crc32 (const ENetBuffer *, size_t);
 ENET_API ENetHost * enet_host_create (const ENetAddress *, size_t, size_t, enet_uint32, enet_uint32);
 ENET_API void       enet_host_destroy (ENetHost *);
 ENET_API ENetPeer * enet_host_connect (ENetHost *, const ENetAddress *, size_t, enet_uint32);
-ENET_API ENetPeer * enet_host_connect_peer_from_the_end (ENetHost *, const ENetAddress *, size_t, enet_uint32);
 ENET_API int        enet_host_check_events (ENetHost *, ENetEvent *);
 ENET_API int        enet_host_service (ENetHost *, ENetEvent *, enet_uint32);
-ENET_API int        enet_host_service_only_incoming_commands (ENetHost *, ENetEvent *, enet_uint32);
 ENET_API void       enet_host_flush (ENetHost *);
 ENET_API void       enet_host_broadcast (ENetHost *, enet_uint8, ENetPacket *);
 ENET_API void       enet_host_compress (ENetHost *, const ENetCompressor *);
@@ -589,7 +584,6 @@ extern  enet_uint32 enet_host_random (ENetHost *);
 ENET_API int                 enet_peer_send (ENetPeer *, enet_uint8, ENetPacket *);
 ENET_API ENetPacket *        enet_peer_receive (ENetPeer *, enet_uint8 * channelID);
 ENET_API void                enet_peer_ping (ENetPeer *);
-ENET_API void                enet_peer_ping_target_request (ENetPeer *, enet_uint16);
 ENET_API void                enet_peer_ping_interval (ENetPeer *, enet_uint32);
 ENET_API void                enet_peer_timeout (ENetPeer *, enet_uint32, enet_uint32, enet_uint32);
 ENET_API void                enet_peer_reset (ENetPeer *);

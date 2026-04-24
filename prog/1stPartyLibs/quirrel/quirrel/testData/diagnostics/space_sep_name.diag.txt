@@ -1,4 +1,4 @@
-ERROR: Separate access operator '.' with it's following name is forbidden
+ERROR: Separate access operator '.' with its following name is forbidden
 testData/diagnostics/space_sep_name.nut.txt:10:0
 
 a1.

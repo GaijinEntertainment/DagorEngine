@@ -1,6 +1,6 @@
 // © 2021 NVIDIA Corporation
 
-#define Test_Eps 0.00001
+#define Test_Eps         0.00001
 #define Test_ConstantEps 0.001 // hack for "fmod"
 
 #define TestEqual_x2(C, T) ML_Assert(all(C((T)x1, (T)y1) == C((T)x1, (T)y1)))

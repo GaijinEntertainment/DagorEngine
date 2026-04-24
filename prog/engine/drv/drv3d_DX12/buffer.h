@@ -49,10 +49,7 @@ struct BufferInterfaceConfigCommon
   constexpr static uint32_t INITIAL_DISCARD_COUNT_DYNAMIC_CONST_BUFFER = DYNAMIC_CONST_BUFFER_DISCARD_BASE_COUNT;
   constexpr static uint32_t INITIAL_DISCARD_COUNT_DYNAMIC_BUFFER = DYNAMIC_BUFFER_DISCARD_BASE_COUNT;
   constexpr static uint32_t INITIAL_DISCARD_COUNT_DEFAULT = DEFAULT_BUFFER_DISCARD_BASE_COUNT;
-  // staging buffers are written to mostly only once per frame, but set discard count to two
-  // to allow the buffer allocator to expand to a bigger discard count should the extra memory,
-  // due to alignment, allow it.
-  constexpr static uint32_t INITIAL_DISCARD_COUNT_STAGING_BUFFER = 2;
+  constexpr static uint32_t INITIAL_DISCARD_COUNT_STAGING_BUFFER = 1;
 
   using ViewFormatType = FormatStore;
 
@@ -60,6 +57,7 @@ struct BufferInterfaceConfigCommon
 
   static ViewFormatType viewFormatFromFormatFlags(uint32_t flags) { return FormatStore::fromCreateFlags(flags); }
 
+  static void frontendSyncFence();
   static bool isValidBuffer(BufferConstReferenceType buffer) { return buffer.buffer != nullptr; }
   static void deleteBuffer(BufferReferenceType buffer);
   static void addRawResourceView(BufferReferenceType buffer);
@@ -71,9 +69,7 @@ struct BufferInterfaceConfigCommon
   static void onDestroyRequest(GenericBufferInterface *self);
   static HostDeviceSharedMemoryRegion allocateTemporaryUploadMemory(uint32_t size);
   static bool isValidMemory(HostDeviceSharedMemoryRegion mem) { return static_cast<bool>(mem); }
-  static uint8_t *getMemoryPointer(HostDeviceSharedMemoryRegion mem, uint32_t offset) { return mem.cpuPointer() + offset; }
-  static void updateBuffer(HostDeviceSharedMemoryRegion mem, GenericBufferInterface *self, uint32_t buf_flags,
-    BufferReferenceType buffer, uint32_t dst_offset);
+  static void updateBuffer(HostDeviceSharedMemoryRegion mem, GenericBufferInterface *self, uint32_t buf_flags, uint32_t dst_offset);
   static void copyBuffer(GenericBufferInterface *src_buf, uint32_t src_flags, BufferReferenceType src, TemporaryMemoryType src_stream,
     bool src_is_stream, GenericBufferInterface *dst_buf, uint32_t dst_flags, BufferReferenceType dst, TemporaryMemoryType dst_stream,
     bool dst_is_stream, uint32_t src_offset, uint32_t dst_offset, uint32_t size);
@@ -94,6 +90,7 @@ struct BufferInterfaceConfigCommon
   static StagingMemoryType allocateReadOnlyStagingMemory(uint32_t size);
   static StagingMemoryType allocateWriteOnlyStagingMemory(uint32_t size);
   static const char *getBufferName(BufferReferenceType) { return "<buffer name not stored>"; }
+  static void setBufferApiName(BufferConstReferenceType buffer, const char *name);
   static StagingMemoryType discardReadWriteStagingMemory(StagingMemoryType mem, uint32_t size)
   {
     freeMemory(mem);
@@ -112,8 +109,7 @@ struct BufferInterfaceConfigCommon
   static void addGenericView(BufferReferenceType, uint32_t, ViewFormatType) {}
   static uint32_t getBufferSize(BufferConstReferenceType buffer);
   static uint32_t minBufferSize(uint32_t cflags);
-  static void pushBufferUpdate(GenericBufferInterface *self, uint32_t buf_flags, BufferReferenceType buffer, uint32_t offset,
-    const void *src, uint32_t size);
+  static void pushBufferUpdate(GenericBufferInterface *self, uint32_t buf_flags, uint32_t offset, const void *src, uint32_t size);
   static TemporaryMemoryType discardStreamMememory(GenericBufferInterface *self, uint32_t size, uint32_t struct_size, uint32_t flags,
     TemporaryMemoryType prev_memory, const char *name);
   static bool allowsStreamBuffer(uint32_t flags);
@@ -143,6 +139,10 @@ struct PlatformBufferInterfaceConfig : BufferInterfaceConfigCommon
     uint32_t buf_flags, const char *name);
   static BufferType discardBuffer(GenericBufferInterface *self, BufferReferenceType current_buffer, uint32_t size,
     uint32_t structure_size, MemoryClass memory_class, FormatStore view_format, uint32_t buf_flags, const char *name);
+  static uint8_t *getMemoryPointer(HostDeviceSharedMemoryRegion mem, uint32_t offset)
+  {
+    return mem.cpuPointer() ? mem.cpuPointer() + offset : nullptr;
+  }
 };
 #else
 struct PlatformBufferInterfaceConfig : BufferInterfaceConfigCommon
@@ -177,6 +177,7 @@ struct PlatformBufferInterfaceConfig : BufferInterfaceConfigCommon
     uint32_t buf_flags, const char *name);
   static BufferType discardBuffer(GenericBufferInterface *self, BufferReferenceType current_buffer, uint32_t size,
     uint32_t structure_size, MemoryClass memory_class, FormatStore view_format, uint32_t buf_flags, const char *name);
+  static uint8_t *getMemoryPointer(HostDeviceSharedMemoryRegion mem, uint32_t offset) { return mem.cpuPointer() + offset; }
 };
 #endif
 
@@ -195,5 +196,25 @@ inline BufferReference get_any_buffer_ref(GenericBufferInterface *buf)
   {
     return BufferReference{buf->getStreamBuffer()};
   }
+}
+
+inline BufferReference get_any_buffer_ref(Sbuffer *buf) { return get_any_buffer_ref(static_cast<GenericBufferInterface *>(buf)); }
+
+inline BufferReference get_any_optional_buffer_ref(GenericBufferInterface *buf)
+{
+  if (buf)
+  {
+    return get_any_buffer_ref(buf);
+  }
+  return {};
+}
+
+inline BufferReference get_any_optional_buffer_ref(Sbuffer *buf)
+{
+  if (buf)
+  {
+    return get_any_buffer_ref(buf);
+  }
+  return {};
 }
 } // namespace drv3d_dx12

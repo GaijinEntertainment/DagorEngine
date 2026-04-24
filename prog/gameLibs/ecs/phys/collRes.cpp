@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <gameRes/dag_collisionResource.h>
 #include <gameRes/dag_gameResources.h>
 #include <ecs/anim/anim.h>
@@ -9,6 +11,7 @@
 
 CollisionResource *get_collres_from_riextra(ecs::EntityManager &mgr, ecs::EntityId eid);
 CollisionResource *create_collres_from_ecs_object(ecs::EntityManager &mgr, ecs::EntityId eid);
+void add_collres_nodes_from_ecs_object(CollisionResource *collres, const ecs::Array &desc);
 
 class CollResCTM final : public ecs::ComponentTypeManager
 {
@@ -42,22 +45,18 @@ public:
   {
     *(ecs::PtrComponentType<CollisionResource>::ptr_type(d)) = nullptr; // just in case
     const char *collResName = mgr.getOr(eid, ECS_HASH("collres__res"), ecs::nullstr);
-    GameResHandle crhandle = collResName ? GAMERES_HANDLE_FROM_STRING(collResName) : nullptr;
-    if (DAGOR_UNLIKELY(collResName && !is_game_resource_loaded(crhandle, CollisionGameResClassId)))
+    if (DAGOR_UNLIKELY(collResName && !is_game_resource_loaded(collResName, CollisionGameResClassId)))
       logerr("<%s> is expected to be loaded in %s while creating %d<%s>", collResName, __FUNCTION__, (ecs::entity_id_t)eid,
         mgr.getEntityTemplateName(eid)); // Note: `requestResources` shall ensure that
-    auto collRes = crhandle ? (CollisionResource *)get_game_resource_ex(crhandle, CollisionGameResClassId) : nullptr; // automatically
-                                                                                                                      // add ref
+    auto collRes = collResName ? (CollisionResource *)get_game_resource_ex(collResName, CollisionGameResClassId) : nullptr; // adds ref
     if (!collRes)
     {
-      CollisionResource *ecsCollRes = create_collres_from_ecs_object(mgr, eid);
-      CollisionResource *riCollRes = get_collres_from_riextra(mgr, eid);
-      if (ecsCollRes)
+      if (CollisionResource *ecsCollRes = create_collres_from_ecs_object(mgr, eid))
       {
         collRes = ecsCollRes;
         allocatedComps.push_back(collRes);
       }
-      else if (riCollRes)
+      else if (CollisionResource *riCollRes = get_collres_from_riextra(mgr, eid))
       {
         collRes = riCollRes;
         collRes->addRef(); // add ref manually as we're borrowing this collRes from the riextra
@@ -67,6 +66,13 @@ public:
         logerr("Failed to load collres <%s> for entity %d<%s>", collResName, (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid));
         return;
       }
+    }
+
+    if (auto addDesc = mgr.getNullable<ecs::Array>(eid, ECS_HASH("collres__desc_add")))
+    {
+      if (collResName)
+        allocatedComps.push_back(collRes = collRes->deepCopy());
+      add_collres_nodes_from_ecs_object(collRes, *addDesc);
     }
 
     *(ecs::PtrComponentType<CollisionResource>::ptr_type(d)) = collRes;

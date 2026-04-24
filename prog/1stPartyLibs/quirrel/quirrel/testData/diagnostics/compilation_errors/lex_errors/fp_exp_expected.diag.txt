@@ -1,0 +1,8 @@
+ERROR: exponent expected
+testData/diagnostics/compilation_errors/lex_errors/fp_exp_expected.nut:2:8
+
+// EXPECT_ERROR: "exponent expected"
+let x = 1.0e
+        ^---
+
+

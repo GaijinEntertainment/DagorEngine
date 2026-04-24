@@ -1,0 +1,8 @@
+ERROR: expected 'identifier'
+testData/diagnostics/import_04.nut:2:1
+
+import "a" as
+
+ ^
+
+

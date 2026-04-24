@@ -8,7 +8,9 @@
 #include <drv/3d/dag_info.h>
 #include <windows.h>
 #include <osApiWrappers/dag_direct.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/sharedComponent.h>
 #include "cinematicMode.h"

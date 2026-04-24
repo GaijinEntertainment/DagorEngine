@@ -61,3 +61,10 @@ inline void for_each_set_bit(uint32_t m, F f)
     f(i);
   }
 }
+
+inline constexpr D3D12_BOX make_full_region_meta_box() { return {}; }
+
+inline constexpr bool is_full_region_meta_box(const D3D12_BOX &box)
+{
+  return 0 == (box.left | box.top | box.front | box.right | box.bottom | box.back);
+}

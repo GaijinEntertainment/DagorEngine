@@ -5,7 +5,9 @@
 #include <drv/3d/dag_renderStates.h>
 
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <render/daFrameGraph/daFG.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 
@@ -21,7 +23,9 @@ dafg::NodeHandle create_show_edge_node()
   auto ns = dafg::root() / "opaque" / "statics";
 
   return ns.registerNode("blood_puddles_debug", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.requestRenderPass().depthRoAndBindToShaderVars("depth_for_postfx", {"depth_gbuf"}).color({"frame_with_debug"});
+    auto debugNs = registry.root() / "debug";
+    auto colorTarget = debugNs.modifyTexture("target_for_debug");
+    registry.requestRenderPass().depthRoAndBindToShaderVars("depth_for_postfx", {"depth_gbuf"}).color({colorTarget});
 
     DynamicShaderHelper shHolder;
     shHolder.init("blood_puddles_debug", nullptr, 0, "blood_puddles_debug", false);
@@ -52,7 +56,9 @@ static dafg::NodeHandle create_show_bbox_node()
   auto ns = dafg::root() / "opaque" / "statics";
 
   return ns.registerNode("blood_puddles_bbox_debug", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    registry.requestRenderPass().depthRoAndBindToShaderVars("depth_for_postfx", {"depth_gbuf"}).color({"frame_with_debug"});
+    auto debugNs = registry.root() / "debug";
+    auto colorTarget = debugNs.modifyTexture("target_for_debug");
+    registry.requestRenderPass().depthRoAndBindToShaderVars("depth_for_postfx", {"depth_gbuf"}).color({colorTarget});
 
     DynamicShaderHelper shHolder;
     shHolder.init("blood_puddles_bbox_debug", nullptr, 0, "blood_puddles_bbox_debug", false);

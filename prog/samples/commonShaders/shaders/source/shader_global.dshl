@@ -209,9 +209,6 @@ half linearSmoothnessToLinearRoughness(half linearSmoothness) {return 1-linearSm
 int compatibility_mode = 0;
 interval compatibility_mode:compatibility_mode_off<1, compatibility_mode_on;
 
-int mobile_render = 0;
-interval mobile_render: off < 1, forward < 2, deferred;
-
 macro USE_MSAA()
   hlsl(ps) {
     #define NUM_MSAA_SAMPLES 0
@@ -227,7 +224,7 @@ endmacro
 
 block(frame) global_frame {}
 texture downsampled_far_depth_tex;
-int in_editor_assume=0;
+int in_editor_assume=0 always_referenced;
 interval in_editor_assume : no<1, yes;
 int support_texture_array = 0;//should be assumed
 interval support_texture_array : off<1, on;

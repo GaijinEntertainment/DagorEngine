@@ -116,7 +116,6 @@ shader distant_fog_raymarch_cs
   INIT_AND_USE_VOLFOG_MODIFIERS(cs)
   GET_MEDIA_HARDCODED(cs)
   USE_BASE_AMBIENT_COLOR(cs)
-  ENABLE_ASSERT(cs)
 
   USE_FOG_SHADOWS(cs)
 
@@ -125,9 +124,8 @@ shader distant_fog_raymarch_cs
     #define FASTEST_STATIC_SHADOW_PCF 1
   }
 
-  INIT_STATIC_SHADOW_BASE_ONE_CASCADE(cs)
-  INIT_STATIC_SHADOW_BASE_SECOND_CASCADE_STCODE(cs)
-  USE_STATIC_SHADOW_BASE_NUM(cs, 2)
+  INIT_STATIC_SHADOW_BASE(cs)
+  USE_STATIC_SHADOW_BASE(cs)
 
   if (distant_fog_use_smart_raymarching_pattern == off)
   {

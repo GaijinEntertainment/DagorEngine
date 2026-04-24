@@ -1,0 +1,64 @@
+// cdp/project.das_project — Module resolver with custom "profile" routing
+//
+// This project demonstrates a module resolver that overrides the default path
+// resolution for a specific module. When "profile" is required from a
+// non-root context (i.e., the requiring file has a directory), the resolver
+// returns DAS_PAK_ROOT + "profile.das" instead of the normal relative path.
+// This simulates a real-world pattern where certain modules (like configuration
+// or profile files) are always loaded from the project root, regardless of
+// which subdirectory the requiring file lives in.
+//
+// Also exports module_allowed() which permits all modules — this is called by
+// the compiler for each `require` to check if the module is allowed in the
+// current context.
+
+options gen2
+require strings
+require daslib/strings_boost
+
+typedef module_info = tuple<string; string; string> const
+
+
+var {
+    DAS_PAK_ROOT = "./"
+}
+
+var {
+    modules : array< function<(req, from : string) : module_info> >
+}
+
+def module_default(req, from : string) : module_info {
+    let rs <- split_by_chars(req, "./")
+    var fr <- split_by_chars(from, "/")
+    let mod_name = rs[length(rs) - 1]
+    if (length(fr) == 0) {
+        return (mod_name, req + ".das", "")
+    } else {
+        if (mod_name == "profile") {
+            return (mod_name, DAS_PAK_ROOT + "profile.das", "")
+        }
+        pop(fr)
+        for (se in rs) {
+            push(fr, se)
+        }
+        let path_name = join(fr, "/") + ".das"
+        return (mod_name, path_name, "")
+    }
+}
+
+[export]
+def module_get(req, from : string) : module_info {
+    for (mod in modules) {
+        let res = invoke(mod, req, from)
+        if (res._0 != "") {
+            return res
+        }
+    }
+    return module_default(req, from)
+}
+
+[export]
+def module_allowed(mod : string#; fname : string#) {
+    print("is `{mod}` allowed in `{fname}`? yes\n")
+    return true // false is not
+}

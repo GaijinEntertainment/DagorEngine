@@ -44,8 +44,12 @@ public:
     tm *t = localtime(&rawtime);
     const int dumpType = min((uint32_t)dump.type, (uint32_t)countof(names) - 1);
     if (!dump.appendToCurrent || lastPaths[dumpType].empty())
-      lastPaths[dumpType].sprintf("%s%s-%04d.%02d.%02d-%02d.%02d.%02d.dap", path.c_str(), names[dumpType], 1900 + t->tm_year,
-        t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+    {
+      const auto pathView = eastl::string_view(path);
+      const char *pathSeparator = pathView.ends_with("/") || pathView.ends_with("\\") ? "" : "/";
+      lastPaths[dumpType].sprintf("%s%s%s-%04d.%02d.%02d-%02d.%02d.%02d.dap", path.c_str(), pathSeparator, names[dumpType],
+        1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+    }
 
     FullFileSaveCB cb(lastPaths[dumpType].c_str(), DF_APPEND);
     if (!cb.fileHandle) // cant' open file

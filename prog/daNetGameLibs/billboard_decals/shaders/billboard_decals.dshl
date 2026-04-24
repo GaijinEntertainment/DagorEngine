@@ -1,0 +1,316 @@
+include "shader_global.dshl"
+include "static_shadow.dshl"
+include "gbuffer.dshl"
+include "gbuffer_with_mixing.dshl"
+include "csm.dshl"
+include "clouds_shadow.dshl"
+include "use_volfog.dshl"
+include "use_gi.dshl"
+include "indoor_light_probes.dshl"
+
+buffer billboard_decal_matrices;
+
+hlsl{
+  #include <billboardDecals/billboard_decals.hlsli>
+  #include <billboardDecals/billboard_decals_const.hlsli>
+  #include <decalMatrices/decal_matrices_const.hlsli>
+  #include <pixelPacking/Half2ToUint.hlsl>
+}
+
+int billboard_decals_nextHole__holesToUpdate__maxHoles_const_no = 0;
+int billboard_decals_generator_holes_uav_no = 0;
+
+shader billboard_decals_generator
+{
+  (cs) {
+    nextHole__holesToUpdate__maxHoles@u4 : register(billboard_decals_nextHole__holesToUpdate__maxHoles_const_no);
+    holes@uav : register(billboard_decals_generator_holes_uav_no) hlsl {
+      #include <billboardDecals/billboard_decals.hlsli>
+      RWStructuredBuffer<BillboardDecalInstance> holes@uav;
+    };
+    holesToUpdateBuf@cbuf : register(1) hlsl {
+      cbuffer holesToUpdateBuf@cbuf
+      {
+        #include <billboardDecals/billboard_decals_const.hlsli>
+        BillboardToUpdate holesToUpdate[MAX_DECALS_TO_UPDATE];
+      };
+    }
+  }
+
+  hlsl(cs) {
+    float rand(float co)
+    {
+      return frac(sin(co*12.9898) * 43758.5453);
+    }
+
+    [numthreads( DECALS_WARP_X, DECALS_WARP_X, 1 )]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint id = dtId.x+dtId.y*DECALS_WARP_X;
+      if (id>=min(nextHole__holesToUpdate__maxHoles.y, MAX_DECALS_TO_UPDATE))
+        return;
+      uint destId = holesToUpdate[id].id;
+      holes[destId].pos_size = holesToUpdate[id].pos_size;
+      holes[destId].normal_id = packHalf2ToUint(float4(holesToUpdate[id].normal, holesToUpdate[id].texture_id));
+      float seed = destId;
+      float3 down = normalize(float3(rand(seed), rand(seed+3.1), rand(seed+1.3))*2-float3(1,1,1));
+      float3 du = normalize(cross(down, holesToUpdate[id].normal.xyz));
+      holes[destId].du_matrixId = packHalf2ToUint(float4(du, holesToUpdate[id].matrix_id));//holesToUpdate[id].param is not used
+    }
+  }
+  compile("target_cs", "main");
+}
+
+int billboard_decals_clear_sphere_numHoles_numSpheres_const_no = 0;
+int billboard_decals_clear_sphere_spheresToClear_const_no = 1;
+int billboard_decals_clear_sphere_holes_uav_no = 0;
+int MAX_SPHERES_TO_CLEAR_REG_COUNT = 15; // see MAX_SPHERES_TO_CLEAR
+
+shader billboard_decals_clear_sphere
+{
+  (cs) {
+    numHoles_numSpheres@u4 : register(billboard_decals_clear_sphere_numHoles_numSpheres_const_no);
+    spheresToClear@f4[MAX_SPHERES_TO_CLEAR_REG_COUNT] : register(billboard_decals_clear_sphere_spheresToClear_const_no);
+    holes@uav : register(billboard_decals_clear_sphere_holes_uav_no) hlsl {
+      #include <billboardDecals/billboard_decals.hlsli>
+      RWStructuredBuffer<BillboardDecalInstance> holes@uav;
+    };
+  }
+  hlsl(cs) {
+    [numthreads( DECALS_WARP_X, DECALS_WARP_X, 1 )]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint id = dtId.x+dtId.y*DECALS_WARP_X;
+      if (id >= numHoles_numSpheres.x)
+        return;
+      // It doesn't make sense to remove bullet holes with dynamic mat id, based on a static area
+      if ((int)unpackHalf2FromUint(holes[id].du_matrixId).w > 0)
+        return;
+      // Already an empty instance
+      if (holes[id].pos_size.w < 0.000001)
+        return;
+      for (uint i = 0; i < numHoles_numSpheres.y; ++i)
+      {
+        float4 sphere = spheresToClear[i];
+        if (lengthSq(holes[id].pos_size.xyz - sphere.xyz) < pow2(holes[id].pos_size.w + sphere.w))
+        {
+          holes[id].pos_size = float4(0, 0, 0, 0);
+          holes[id].normal_id = packHalf2ToUint(float4(0, 0, 0, 0));
+          holes[id].du_matrixId = packHalf2ToUint(float4(0, 0, 0, 0));
+        }
+      }
+    }
+  }
+  compile("target_cs", "main");
+}
+
+texture billboard_decals_diff_tex;
+texture billboard_decals_bump_tex;
+float4 billboard_decals_depth_mask = (3, 3, 0, 0);    // 1 / delta, 1 / smoothness.
+
+int billboard_decals_holes_const_no = 0;
+
+
+float billboard_decals_hole_alpha_threshold = 0.85;
+float billboard_decals_hole_alpha_mult = 4.0;
+float billboard_decals_hole_alpha_offset = 3.0;
+float billboard_decals_hole_bullet_size = 0.21;
+float billboard_decals_parallax_str = 0.77;
+
+shader billboard_decals
+{
+  supports global_frame;
+  cull_mode = none;
+
+  // -0.1 * 2e-5/3e-10
+  z_bias = -6666.6666;
+
+  USE_ATEST_1()
+
+  blend_src = sa; blend_dst = isa;
+  blend_asrc = 0; blend_adst = 1;
+  color_write = rgb;
+  z_write = false;
+
+  hlsl {
+    #define BLEND_GBUFFER 1
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float3 texcoord : TEXCOORD0;
+      float3 normal : TEXCOORD1;
+      float3 du : TEXCOORD2;
+      float3 dv : TEXCOORD3;
+      float4 pointToEye : TEXCOORD4;
+      float3 viewDir:TEXCOORD5;
+      float4 clipPos : TEXCOORD6;
+    };
+  }
+
+  (vs) {
+    globtm@f44 = globtm;
+    AllMatrices@cbuf = billboard_decal_matrices hlsl {
+      cbuffer AllMatrices@cbuf
+      {
+        #include <decalMatrices/decal_matrices_const.hlsli>
+        float4 matrices[BILLBOARD_DECALS_MAX_MATRICES_COUNT*3];
+      };
+    }
+    holes@buf : register(billboard_decals_holes_const_no) hlsl {
+      #include <billboardDecals/billboard_decals.hlsli>
+      StructuredBuffer<BillboardDecalInstance> holes@buf;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput billboard_decals_vs(/*uint iId : SV_InstanceID, */uint vertexId : SV_VertexID)
+    {
+      VsOutput output;
+      uint holeId = vertexId/4/*+iId*/;
+      float3 holePos = holes[holeId].pos_size.xyz;
+      float holeSize = holes[holeId].pos_size.w;
+      uint subVertexId = vertexId%4;
+      float2 cornerPos = float2(subVertexId % 3 != 0, subVertexId / 2);
+      float4 normal_id = unpackHalf2FromUint(holes[holeId].normal_id);
+      float4 du_matrixId = unpackHalf2FromUint(holes[holeId].du_matrixId);
+      float3 normal = normal_id.xyz;
+      float3 du = du_matrixId.xyz;
+      int matrixId = (int)du_matrixId.w;
+
+      float3 wtm_x = float3(1,0,0);
+      float3 wtm_y = float3(0,1,0);
+      float3 wtm_z = float3(0,0,1);
+      float3 wtm_pos = float3(0,0,0);
+
+      BRANCH
+      if (matrixId > 0)
+      {
+        int useMatrixId = matrixId * 3 - 3;
+
+        wtm_x = matrices[useMatrixId+0].xyz;
+        wtm_y = matrices[useMatrixId+1].xyz;
+        wtm_z = matrices[useMatrixId+2].xyz;
+        wtm_pos = float3(matrices[useMatrixId+0].w, matrices[useMatrixId+1].w, matrices[useMatrixId+2].w);
+      }
+
+      float3 worldNormal = normalize(normal.x * wtm_x + normal.y * wtm_y + normal.z * wtm_z);
+      float3 worldDu = normalize(du.x * wtm_x + du.y * wtm_y + du.z * wtm_z);
+
+      float3 worldDv = normalize(cross(worldNormal, worldDu));
+
+      float2 tangentPos = (cornerPos*2-float2(1,1))*holeSize;
+      float3 worldHolePos  = holePos.x * wtm_x + holePos.y * wtm_y + holePos.z * wtm_z + wtm_pos;
+
+      float3 worldPos = worldHolePos + tangentPos.x*worldDu + tangentPos.y*worldDv;
+
+      output.pos = mul(float4(worldPos, 1), globtm);
+
+      output.pointToEye.xyz = world_view_pos - worldPos;
+      output.pointToEye.w = output.pos.w;
+      float id = normal_id.w;
+      output.normal = worldNormal;
+      output.du = worldDu;
+      output.dv = worldDv;
+      output.viewDir.x = dot(output.pointToEye.xyz, output.du);
+      output.viewDir.y = dot(output.pointToEye.xyz, output.dv);
+      output.viewDir.z = dot(output.pointToEye.xyz, output.normal);
+
+      output.texcoord = float3(cornerPos, id);//fixme: add array tex id
+      output.clipPos = output.pos;
+
+      return output;
+    }
+  }
+  compile("target_vs", "billboard_decals_vs");
+
+  //WRITE_GBUFFER_ALBEDO_NORMAL_DECAL()
+  INIT_STATIC_SHADOW_PS()
+  WRITE_GBUFFER_WITH_MIXING(true, true, true)
+  INIT_ZNZFAR();
+  USE_DECODE_DEPTH()
+  USE_SCREENPOS_TO_TC()
+
+  INIT_LOAD_DEPTH_GBUFFER()
+  USE_LOAD_DEPTH_GBUFFER()
+
+  (ps) {
+    billboard_decals_diff_tex@smpArray = billboard_decals_diff_tex;
+    billboard_decals_bump_tex@smpArray = billboard_decals_bump_tex;
+    billboard_decals_depth_mask__size@f4 = billboard_decals_depth_mask;
+    billboard_decals_hole_alpha_mult@f1=billboard_decals_hole_alpha_mult;
+    billboard_decals_hole_alpha_offset@f1=billboard_decals_hole_alpha_offset;
+    billboard_decals_parallax_str@f1 = billboard_decals_parallax_str;
+  }
+
+  hlsl(ps) {
+    #define parallax_tex_sampler(sample, tex, tc) sample = tex3Dlod(tex, tc)
+    #define PARALLAX_TEX billboard_decals_diff_tex
+    #define PARALLAX_ATTR a
+    #include <parallax.hlsl>
+  }
+
+  hlsl(ps) {
+    float depthMaskCalculation(float rawDepth, int2 tci, float w)
+    {
+      float linearDepth = linearize_z(rawDepth, zn_zfar.zw);
+      float delta = linearDepth  - w;
+      float depthMask = saturate(billboard_decals_depth_mask__size.x + billboard_decals_depth_mask__size.y * abs(delta));
+      return depthMask;
+    }
+
+    half calculateAlphaForHoleMask(float input_alpha, float mult, float offset)
+    {
+      return pow8(saturate(input_alpha*mult-offset));
+    }
+  }
+
+  hlsl(ps) {
+    GBUFFER_OUTPUT billboard_decals_ps(VsOutput input HW_USE_SCREEN_POS)
+    {
+      float4 screen = GET_SCREEN_POS(input.pos);
+      // Depth mask.
+
+      int2 tci = screen.xy;
+      float rawDepth = loadGbufferDepth(tci);
+      float depthMask = depthMaskCalculation(rawDepth, tci, input.pointToEye.w);
+
+      //float2 tc = get_uv(input.normal, input.du, input.dv, normalize(input.pointToEye), 1, input.texcoord);
+      //half4 diffuseColor = h4tex2D(billboard_decals_diff_tex, tc);
+      //half3x3 tangent = cotangent_frame(input.norm, IN.worldPos, IN.texcoord);
+      float2 texDim = billboard_decals_depth_mask__size.zw;
+      half4 diffuseColor;
+      float2 tc =
+        ParallaxOcclusionMap(
+          float4( input.texcoord,
+            ComputeTextureLOD(texDim, ddx(input.texcoord.xy), ddy(input.texcoord.xy))),
+          normalize(input.viewDir.xyz),
+          5,
+          5,
+          billboard_decals_parallax_str,
+          diffuseColor
+        );
+      // Diffuse.
+      half diffuseAlpha = 1-calculateAlphaForHoleMask(diffuseColor.w, billboard_decals_hole_alpha_mult, billboard_decals_hole_alpha_offset);
+      half alpha = diffuseAlpha * depthMask;
+      clip_alpha(alpha);
+
+      // Normal.
+      half4 packedNormalMap = tex3D(billboard_decals_bump_tex, float3(tc, input.texcoord.z));
+
+      half smoothness = packedNormalMap.r;
+      half3 normalMap = unpack_ag_normal(packedNormalMap);
+
+      half3 worldNormal = normalize(normalMap.x * input.du + normalMap.y * input.dv + normalMap.z * input.normal);
+
+      UnpackedGbuffer result;
+      init_gbuffer(result);
+      init_albedo(result, diffuseColor.rgb);
+      init_smoothness(result, smoothness);
+      init_normal(result, worldNormal);
+      init_metalness(result, packedNormalMap.b);
+      //return encode_gbuffer_albedo_normal_decal(result, tci, alpha);;
+      return encode_gbuffer_alpha(result, alpha, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+    }
+  }
+  compile("target_ps", "billboard_decals_ps");
+}

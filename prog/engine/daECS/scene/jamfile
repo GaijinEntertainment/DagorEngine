@@ -1,0 +1,19 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/daECS/scene ;
+
+TargetType  = lib ;
+Target      = engine/daECS/scene.lib ;
+StrictCompile = yes ;
+
+Sources =
+  scene.cpp
+;
+
+UseProgLibs +=
+  #engine/daECS/gameres
+  engine/daECS/io/datablock
+  engine/daECS/core
+  3rdPartyLibs/eastl
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

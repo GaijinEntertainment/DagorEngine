@@ -46,7 +46,6 @@ private:
   void renderObjects(Sbuffer *params_buffer, uint32_t lod);
 
   DynamicRenderableSceneLodsResourcePtr res;
-  GameResHandle objHandle;
   float objectDiameter = 0.0f;
 
   BatchId registerBatch();

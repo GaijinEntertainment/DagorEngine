@@ -12,16 +12,32 @@
 #include <util/dag_watchdog.h>
 #include <thread>
 #include <EASTL/string.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 
 namespace drv3d_metal
 {
-  extern Driver3dDesc g_device_desc;
+  extern DriverDesc g_device_desc;
 
-  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.12');
+  static const uint32_t PRECACHE_VERSION = _MAKE4C('2.15');
 
   std::thread g_saver;
   std::thread g_compiler;
+
+  static uint32_t report_memory_size(auto object)
+  {
+    #if MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
+    if (@available(iOS 18.0, macos 15.0, *))
+    {
+      return object.allocatedSize;
+    }
+    else
+    {
+      return 0;
+    }
+    #else
+    return 0u;
+    #endif
+  }
 
   static MTLRenderPipelineDescriptor* buildPipelineDescriptor(id<MTLFunction> vshader, id<MTLFunction> pshader,
                                       MTLVertexDescriptor* vertexDescriptor, const Program::RenderState& rstate, bool discard, uint32_t output_mask)
@@ -70,21 +86,19 @@ namespace drv3d_metal
       pipelineStateDescriptor.colorAttachments[i].writeMask = metal_mask;
 
       MTLRenderPipelineColorAttachmentDescriptor *renderbufferAttachment = pipelineStateDescriptor.colorAttachments[i];
-      if (i < shaders::RenderState::NumIndependentBlendParameters && rstate.raster_state.blend[i].ablend && rstate.pixelFormat[i] != 0)
+      const auto &blend = rstate.raster_state.blend[i < shaders::RenderState::NumIndependentBlendParameters ? i : 0];
+      if (blend.ablend && rstate.pixelFormat[i] != 0)
       {
         renderbufferAttachment.blendingEnabled = true;
 
-        renderbufferAttachment.alphaBlendOperation = rstate.raster_state.blend[i].sepblend ?
-                (MTLBlendOperation)rstate.raster_state.blend[i].ablendOp : (MTLBlendOperation)rstate.raster_state.blend[i].rgbblendOp;
-        renderbufferAttachment.rgbBlendOperation = (MTLBlendOperation)rstate.raster_state.blend[i].rgbblendOp;
+        renderbufferAttachment.alphaBlendOperation = blend.sepblend ? (MTLBlendOperation)blend.ablendOp : (MTLBlendOperation)blend.rgbblendOp;
+        renderbufferAttachment.rgbBlendOperation = (MTLBlendOperation)blend.rgbblendOp;
 
-        renderbufferAttachment.sourceAlphaBlendFactor = rstate.raster_state.blend[i].sepblend ?
-                (MTLBlendFactor)rstate.raster_state.blend[i].ablendScr : (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendScr;
-        renderbufferAttachment.sourceRGBBlendFactor = (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendScr;
+        renderbufferAttachment.sourceAlphaBlendFactor = blend.sepblend ? (MTLBlendFactor)blend.ablendScr : (MTLBlendFactor)blend.rgbblendScr;
+        renderbufferAttachment.sourceRGBBlendFactor = (MTLBlendFactor)blend.rgbblendScr;
 
-        renderbufferAttachment.destinationAlphaBlendFactor = rstate.raster_state.blend[i].sepblend ?
-                (MTLBlendFactor)rstate.raster_state.blend[i].ablendDst : (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendDst;
-        renderbufferAttachment.destinationRGBBlendFactor = (MTLBlendFactor)rstate.raster_state.blend[i].rgbblendDst;
+        renderbufferAttachment.destinationAlphaBlendFactor = blend.sepblend ? (MTLBlendFactor)blend.ablendDst : (MTLBlendFactor)blend.rgbblendDst;
+        renderbufferAttachment.destinationRGBBlendFactor = (MTLBlendFactor)blend.rgbblendDst;
       }
       else
       {
@@ -186,22 +200,18 @@ namespace drv3d_metal
 
   static inline void clearCache(const String &path, const String &current_cache)
   {
-    alefind_t fd;
-    for (bool ok = ::dd_find_first(path + "/*", DA_SUBDIR, &fd); ok; ok = ::dd_find_next(&fd))
+    for (const alefind_t &fd : dd_find_iterator(path + "/*", DA_SUBDIR))
     {
       if (fd.name == current_cache)
         continue;
 
       String local_path = path + "/" + fd.name;
 
-      alefind_t ff;
-      for (bool ok = ::dd_find_first(local_path + "/*", DA_FILE, &ff); ok; ok = ::dd_find_next(&ff))
+      for (const alefind_t &ff : dd_find_iterator(local_path + "/*", DA_FILE))
         ::dd_erase(local_path + "/" + ff.name);
-      ::dd_find_close(&ff);
 
       ::dd_rmdir(local_path);
     }
-    ::dd_find_close(&fd);
   }
 
   void ShadersPreCache::saverThread()
@@ -399,6 +409,8 @@ namespace drv3d_metal
             }
             df_close(fl_shd);
 
+            shd.name = Shader::getName((const char *)shd.data.data());
+
             @autoreleasepool
             {
               compileShader(shd);
@@ -538,7 +550,11 @@ namespace drv3d_metal
               if (res == nullptr)
                 pso_cache_objects.freeOneBlock(pso);
               else
+              {
                 pso_cache[hash] = pso;
+
+                TEXQL_ON_PERSISTENT_ALLOC_SZ(report_memory_size(pso->pso));
+              }
             }
             if (start == 0)
               watchdog_kick();
@@ -745,6 +761,13 @@ namespace drv3d_metal
     saveCSOs(cso_cache);
   }
 
+  void ShadersPreCache::unloadShaders()
+  {
+    std::unique_lock<std::mutex> l(g_compiler_mutex);
+    shader_compiler_cache.clear();
+    pso_compiler_cache.clear();
+  }
+
   void ShadersPreCache::tickCache()
   {
     {
@@ -755,6 +778,7 @@ namespace drv3d_metal
         if (pso.second->pso)
         {
           pso_cache[pso.first] = pso.second;
+          TEXQL_ON_PERSISTENT_ALLOC_SZ(report_memory_size(pso.second->pso));
           g_cache_dirty = true;
         }
         else
@@ -799,10 +823,7 @@ namespace drv3d_metal
   {
     bool is_binary = shader.data.size() > 4 && memcmp(shader.data.data(), "MTLB", 4) == 0;
 #if DAGOR_DBGLEVEL > 0
-    auto newline = eastl::find(shader.data.begin(), shader.data.end(), '\n');
-    eastl::string name = is_binary || newline == shader.data.end() ? shader.entry
-      : eastl::string((char*)shader.data.data(), eastl::distance(shader.data.begin(), newline));
-    TIME_PROFILE_NAME(compile_shader, name.c_str());
+    TIME_PROFILE_NAME(compile_shader, shader.name.c_str());
 
     if (!shaderLogMask.empty() && !is_binary && strstr((char*)shader.data.data(), shaderLogMask.c_str()))
       debug("%s\n\n", shader.data.data());
@@ -857,13 +878,13 @@ namespace drv3d_metal
         [func retain];
 
 #if DAGOR_DBGLEVEL > 0
-        func.label = [NSString stringWithUTF8String : name.c_str()];
+        func.label = [NSString stringWithUTF8String : shader.name.c_str()];
 #endif
       }
       else
       {
 #if DAGOR_DBGLEVEL > 0
-        debug("Failed to compile shader %s", name.c_str());
+        debug("Failed to compile shader %s", shader.name.c_str());
 #endif
         D3D_ERROR("Error, shader (%llu) not contain function, error %s", shader.hash, [[err localizedDescription] UTF8String]);
         return nil;
@@ -873,7 +894,7 @@ namespace drv3d_metal
     if (func == nil)
     {
 #if DAGOR_DBGLEVEL > 0
-      debug("Failed to compile shader %s", name.c_str());
+      debug("Failed to compile shader %s", shader.name.c_str());
 #endif
       D3D_ERROR("Failed to compile shader (%llu), error %s", shader.hash, [[err localizedDescription] UTF8String]);
       return nil;
@@ -897,8 +918,10 @@ namespace drv3d_metal
     return func;
   }
 
-  id <MTLFunction> ShadersPreCache::getShader(uint64_t shader_hash, const char* entry, const char* shader_data, int shader_size, bool async)
+  id <MTLFunction> ShadersPreCache::getShader(Shader *shader, const char* shader_data, int shader_size, bool async)
   {
+    G_ASSERT(shader);
+    uint64_t shader_hash = shader->shader_hash;
     {
       std::unique_lock<std::mutex> l(g_saver_mutex);
 
@@ -909,7 +932,8 @@ namespace drv3d_metal
 
     QueuedShader shd;
     shd.hash = shader_hash;
-    memcpy(shd.entry, entry, 96);
+    shd.name = shader->name;
+    memcpy(shd.entry, shader->entry, 96);
     shd.data.insert(shd.data.end(), shader_data, shader_data + shader_size);
 
     {
@@ -1091,6 +1115,8 @@ namespace drv3d_metal
     {
       std::unique_lock<std::mutex> l(g_saver_mutex);
       pso_cache[hash] = pso;
+
+      TEXQL_ON_PERSISTENT_ALLOC_SZ(report_memory_size(pso->pso));
     }
 
     return pipelineState;
@@ -1152,6 +1178,8 @@ namespace drv3d_metal
     {
       std::unique_lock<std::mutex> l(g_saver_mutex);
       pso_cache[hash] = pso;
+
+      TEXQL_ON_PERSISTENT_ALLOC_SZ(report_memory_size(pso->pso));
     }
 
     [pipelineStateDescriptor release];
@@ -1288,6 +1316,8 @@ namespace drv3d_metal
       cso->cso = csPipeline;
       cso_cache[hash] = cso;
       g_cache_dirty = true;
+
+      TEXQL_ON_PERSISTENT_ALLOC_SZ(report_memory_size(cso->cso));
     }
 
     return csPipeline;
@@ -1322,6 +1352,7 @@ namespace drv3d_metal
 
         if (!shader_compiler_cache.empty())
         {
+          // TODO if we are to use compressed data here we should be uncompressing and store it in shader
           auto it = shader_compiler_cache.begin();
           shader_hash = it->first;
           shader = eastl::move(it->second);
@@ -1386,14 +1417,20 @@ namespace drv3d_metal
     for (auto & [key, value] : pso_cache)
     {
       if (value->pso)
+      {
+        TEXQL_ON_PERSISTENT_RELEASE_SZ(report_memory_size(value->pso));
         [value->pso release];
+      }
     }
     pso_cache.clear();
 
     for (auto & [key, value] : cso_cache)
     {
       if (value->cso)
+      {
+        TEXQL_ON_PERSISTENT_RELEASE_SZ(report_memory_size(value->cso));
         [value->cso release];
+      }
     }
     cso_cache.clear();
   }

@@ -129,96 +129,71 @@ public:
 
   virtual void setParam(unsigned id, void *value)
   {
-    if (id == HUID_EMITTER_TM || id == HUID_TM)
+    switch (id)
     {
-      setTm(static_cast<TMatrix *>(value));
-    }
-    else if (id == HUID_LIGHT_PARAMS)
-    {
-      time = 0.f;
-      globalTime = 0.f;
-      output = *static_cast<Color4 *>(value);
-    }
-    else if (id == _MAKE4C('LFXL'))
-    {
-      lifetime = *static_cast<float *>(value);
-    }
-    else if (id == _MAKE4C('LFXF'))
-    {
-      if (fadeoutMax == 0)
-        fadeoutMax = *static_cast<float *>(value);
-    }
-    else if (id == _MAKE4C('LFXU'))
-    {
-      unsetEmitter = *static_cast<bool *>(value);
-      if (unsetEmitter && (fadeoutMax == 0.0f))
-        fadeoutMax = 1.0f;
-    }
-    else if (id == _MAKE4C('LFXS'))
-    {
-      colorScale = value ? *(float *)value : 0;
-    }
-    else if (id == _MAKE4C('LFXR'))
-    {
-      radiusScale = value ? *(float *)value : 0;
-    }
-    else if (id == _MAKE4C('LFXO'))
-    {
-      par.color.allow_game_override = value ? *(bool *)value : false;
-    }
-    else if (id == _MAKE4C('FXSH'))
-    {
-      par.shadow = value ? *(LightfxShadowParams *)value : LightfxShadowParams();
-    }
-    else if (id == HUID_COLOR4_MULT)
-    {
-      setColor4Mult((Color4 *)value);
-    }
-    else if (id == HUID_ACES_RESET)
-    {
-      time = 0;
-      globalTime = 0;
-      fadeoutCur = 0;
-      fadeoutMax = 0;
-      unsetEmitter = false;
+      case HUID_EMITTER_TM:
+      case HUID_TM: setTm(static_cast<TMatrix *>(value)); break;
+      case HUID_LIGHT_PARAMS:
+        time = 0.f;
+        globalTime = 0.f;
+        output = *static_cast<Color4 *>(value);
+        break;
+      case _MAKE4C('LFXL'): lifetime = *static_cast<float *>(value); break;
+      case _MAKE4C('LFXF'):
+        if (fadeoutMax == 0)
+          fadeoutMax = *static_cast<float *>(value);
+        break;
+      case _MAKE4C('LFXU'):
+        unsetEmitter = *static_cast<bool *>(value);
+        if (unsetEmitter && (fadeoutMax == 0.0f))
+          fadeoutMax = 1.0f;
+        break;
+      case _MAKE4C('LFXS'): colorScale = value ? *(float *)value : 0; break;
+      case _MAKE4C('LFXR'): radiusScale = value ? *(float *)value : 0; break;
+      case _MAKE4C('LFXO'): par.color.allow_game_override = value ? *(bool *)value : false; break;
+      case _MAKE4C('FXSH'): par.shadow = value ? *(LightfxShadowParams *)value : LightfxShadowParams(); break;
+      case HUID_COLOR4_MULT: setColor4Mult((Color4 *)value); break;
+      case HUID_ACES_RESET:
+        time = 0;
+        globalTime = 0;
+        fadeoutCur = 0;
+        fadeoutMax = 0;
+        unsetEmitter = false;
+        break;
+      default: break;
     }
   }
 
   virtual void *getParam(unsigned id, void *value)
   {
-    if (id == HUID_LIGHT_PARAMS)
-      return &output;
-    else if (id == HUID_LIGHT_POS)
-      return &position;
-    else if (id == HUID_EMITTER_TM || id == HUID_TM)
+    switch (id)
     {
-      TMatrix *tm = (TMatrix *)value;
-      *tm = TMatrix::IDENT;
-      tm->setcol(3, position);
-      return value;
+      case HUID_LIGHT_PARAMS: return &output;
+      case HUID_LIGHT_POS: return &position;
+      case HUID_EMITTER_TM:
+      case HUID_TM:
+      {
+        TMatrix *tm = (TMatrix *)value;
+        *tm = TMatrix::IDENT;
+        tm->setcol(3, position);
+        return value;
+      }
+      case _MAKE4C('CACH'): // Does no rendering so is shader cache friendly.
+        return (void *)1;   //-V566
+      case _MAKE4C('LFXS'):
+        if (value)
+          *((float *)value) = par.color.scale * colorScale;
+        return value;
+      case _MAKE4C('LFXC'):
+        if (value)
+          *((bool *)value) = par.cloudLight;
+        return value;
+      case _MAKE4C('FXSH'):
+        G_ASSERT_RETURN(value, nullptr);
+        *((LightfxShadowParams *)value) = par.shadow;
+        return value;
+      default: return nullptr;
     }
-    else if (id == _MAKE4C('CACH')) // Does no rendering so is shader cache friendly.
-    {
-      return (void *)1; //-V566
-    }
-    else if (id == _MAKE4C('LFXS') && value)
-    {
-      *((float *)value) = par.color.scale * colorScale;
-      return value;
-    }
-    else if (id == _MAKE4C('LFXC') && value)
-    {
-      *((bool *)value) = par.cloudLight;
-      return value;
-    }
-    else if (id == _MAKE4C('FXSH'))
-    {
-      G_ASSERT_RETURN(value, nullptr);
-      *((LightfxShadowParams *)value) = par.shadow;
-      return value;
-    }
-    else
-      return NULL;
   }
 
 private:

@@ -8,8 +8,11 @@ assume_if_not_assumed allow_vr_multiview = no; // Multiview variants are disable
 int use_vr_multiview = 0 always_referenced;
 interval use_vr_multiview : no < 1, yes;
 
+float4 vr_multiview_right_offset = (0, 0, 0, 0);
+
 macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
-  if (allow_vr_multiview == yes && (hardware.dx12 || (hardware.ps5 && use_vr_multiview == yes && (enable))))
+  bool multiview_maybe_enabled = allow_vr_multiview == yes && (hardware.dx12 || (hardware.ps5 && use_vr_multiview == yes && (enable)));
+  if (multiview_maybe_enabled)
   {
     if (use_dynstcode)
     {
@@ -27,12 +30,20 @@ macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
       hlsl {
         #define USE_VIEW_ID , uint viewId : SV_ViewID
         #define VR_MULTIVIEW_REPROJECT(pos) { if (viewId == 1) (pos) = mul((pos), vrReprojectionMatrix); }
-        #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
+        #define VR_MULTIVIEW_PREPARE_PREV_POS_ATTRIBUTE(output, prev_pos) \
         { \
-          output.out_pos = output.pos; \
           float4 prev_pos_reproj = (prev_pos); \
           VR_MULTIVIEW_REPROJECT(prev_pos_reproj); \
           output.out_pos_prev = prev_pos_reproj; \
+        }
+        #define VR_MULTIVIEW_PREPARE_CURRENT_POS_ATTRIBUTE(output) \
+        { \
+          output.out_pos = output.pos; \
+        }
+        #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
+        { \
+          VR_MULTIVIEW_PREPARE_CURRENT_POS_ATTRIBUTE(output) \
+          VR_MULTIVIEW_PREPARE_PREV_POS_ATTRIBUTE(output, prev_pos) \
         }
       }
     }
@@ -47,10 +58,18 @@ macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
         // Right eye has a small error but insignificant since eyes Z-vectors are parallel.
         // If we want to fix that error, we can pass an additional float VS->PS attribute with .x reprojection
         // and swizzle according to view, or reproject out_pos/out_pos_prev on Pixel Shader.
-        #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
+        #define VR_MULTIVIEW_PREPARE_PREV_POS_ATTRIBUTE(output, prev_pos) \
+        { \
+          output.out_pos_prev = (prev_pos); \
+        }
+        #define VR_MULTIVIEW_PREPARE_CURRENT_POS_ATTRIBUTE(output) \
         { \
           output.out_pos = output.pos; \
-          output.out_pos_prev = (prev_pos); \
+        }
+        #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
+        { \
+          VR_MULTIVIEW_PREPARE_CURRENT_POS_ATTRIBUTE(output) \
+          VR_MULTIVIEW_PREPARE_PREV_POS_ATTRIBUTE(output, prev_pos) \
         }
       }
     }
@@ -63,10 +82,18 @@ macro VR_MULTIVIEW_RENDERING(enable, use_dynstcode)
     hlsl {
       #define USE_VIEW_ID
       #define VR_MULTIVIEW_REPROJECT(pos)
-      #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
+      #define VR_MULTIVIEW_PREPARE_PREV_POS_ATTRIBUTE(output, prev_pos) \
+      { \
+        output.out_pos_prev = (prev_pos); \
+      }
+      #define VR_MULTIVIEW_PREPARE_CURRENT_POS_ATTRIBUTE(output) \
       { \
         output.out_pos = output.pos; \
-        output.out_pos_prev = (prev_pos); \
+      }
+      #define VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, prev_pos) \
+      { \
+        VR_MULTIVIEW_PREPARE_CURRENT_POS_ATTRIBUTE(output) \
+        VR_MULTIVIEW_PREPARE_PREV_POS_ATTRIBUTE(output, prev_pos) \
       }
     }
   }

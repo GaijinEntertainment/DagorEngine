@@ -10,8 +10,8 @@ hlsl {
   #define SP_IRRADIANCE_SIZE_IS_CONST 1
   #define SP_IRRADIANCE_RES 6
   #define SP_IRRADIANCE_RES_WITH_BORDER (SP_IRRADIANCE_RES+2)
-  #define SP_IRRADIANCE_WARP_SIZE (SP_IRRADIANCE_RES_WITH_BORDER*SP_IRRADIANCE_RES_WITH_BORDER)
-  #define SP_ONE_IRRADIANCE_PROBE_PER_WARP 1
+  #define SP_IRRADIANCE_GROUP_SIZE (SP_IRRADIANCE_RES_WITH_BORDER*SP_IRRADIANCE_RES_WITH_BORDER)
+  #define SP_ONE_IRRADIANCE_PROBE_PER_GROUP 1
   ##if sp_irradiance_oct_quality == radiance_downsample
     #define SP_RADIANCE_DOWNSAMPLE 1
     #define SP_RADIANCE_RES_UP_USE 8
@@ -20,7 +20,7 @@ hlsl {
     #define SP_RADIANCE_SIZE_IS_CONST 1
   ##endif
 ##else
-  #define SP_IRRADIANCE_WARP_SIZE 64
+  #define SP_IRRADIANCE_GROUP_SIZE 64
   ##if sp_irradiance_oct_quality == irradiance_3x3_rad_4x4
     #define SP_IRRADIANCE_TO_RADIANCE_MUL 2
     #define IRRADIANCE_RES_LOWEST 3
@@ -101,8 +101,10 @@ shader calc_screenspace_irradiance_cs
     sp_downsampled_irradiance_res_decode@f4 = (1./(sp_irradiance_resf+2), 0.5/(sp_irradiance_resf+2), 2./sp_irradiance_resf, 1./sp_irradiance_resf - 1.);
     sp_radiance_res_clamp@f2 = (0.5/screenspace_probe_res.w, 1 - 0.5/screenspace_probe_res.w,0,0);
     sp_radiance_area@i1 = sp_radiance_area;
+    sp_irradiance@uav : register(0) hlsl {
+      RWTexture2D<float3> sp_irradiance@uav;
+    }
   }
-  ENABLE_ASSERT(cs)
   SCREENSPACE_PROBES_POSITIONS(cs)
   SREENSPACE_PROBES_OCTAHEDRAL(cs)
   //SAMPLE_GRID_IRRADIANCE(cs)
@@ -116,14 +118,13 @@ shader calc_screenspace_irradiance_cs
 
   hlsl(cs) {
     #pragma hlsl2021
-    RWTexture2D<float3> sp_irradiance: register(u0);
     //depending on what occupancy is better, we choose SP_IRRADIANCE_RES_WITH_BORDER or SP_IRRADIANCE_RES
     //write now, we have irradiance of 6(+2 border), so 8x8 is better
     // if we would have irradiance of 7..8 or 5x5(+2 border), SP_IRRADIANCE_RES would be better
     // however, preprocessor is incapable
     // todo: interval in c++ (we can also use warp size cap there)
     groupshared uint sharedEncodedProbe;
-    #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+    #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
       #if !SP_RADIANCE_DOWNSAMPLE
         #define SHARED_RAD_SIZE (SP_RADIANCE_OCT_W*SP_RADIANCE_OCT_W)
       #else
@@ -132,20 +133,20 @@ shader calc_screenspace_irradiance_cs
       #endif
     #else
       #define SP_RADIANCE_RES_UP_USE_AREA (SP_RADIANCE_RES_UP_USE*SP_RADIANCE_RES_UP_USE)
-      #define MAX_PROBES_PER_WARP (SP_IRRADIANCE_WARP_SIZE/(IRRADIANCE_RES_LOWEST*IRRADIANCE_RES_LOWEST))
-      #define SHARED_RAD_SIZE SP_RADIANCE_RES_UP_USE_AREA*MAX_PROBES_PER_WARP
+      #define MAX_PROBES_PER_GROUP (SP_IRRADIANCE_GROUP_SIZE/(IRRADIANCE_RES_LOWEST*IRRADIANCE_RES_LOWEST))
+      #define SHARED_RAD_SIZE SP_RADIANCE_RES_UP_USE_AREA*MAX_PROBES_PER_GROUP
     #endif
 
     #define SHARED_RAD_DIRS_SIZE (SP_RADIANCE_RES_UP_USE*SP_RADIANCE_RES_UP_USE)
     groupshared float4 shared_radiance_dirs[SHARED_RAD_DIRS_SIZE];
     groupshared float4 sharedRadiance[SHARED_RAD_SIZE]; // if solid angle is equal, .w is not used. however, making it array of float3 made the shader 6x times slower!
 
-    #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
-      #define SP_IRR_WARP_X SP_IRRADIANCE_RES_WITH_BORDER
-      #define SP_IRR_WARP_Y SP_IRRADIANCE_RES_WITH_BORDER
+    #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
+      #define SP_IRR_GROUP_X SP_IRRADIANCE_RES_WITH_BORDER
+      #define SP_IRR_GROUP_Y SP_IRRADIANCE_RES_WITH_BORDER
     #else
-      #define SP_IRR_WARP_X SP_IRRADIANCE_WARP_SIZE
-      #define SP_IRR_WARP_Y 1
+      #define SP_IRR_GROUP_X SP_IRRADIANCE_GROUP_SIZE
+      #define SP_IRR_GROUP_Y 1
     #endif
     float sp_getRadianceResf() {return screenspace_probe_resf.w;}
     float3 sample_texture_radiance(uint2 tci, float2 uv)
@@ -166,10 +167,10 @@ shader calc_screenspace_irradiance_cs
     }
 
 
-    [numthreads(SP_IRR_WARP_X, SP_IRR_WARP_Y, 1)]
+    [numthreads(SP_IRR_GROUP_X, SP_IRR_GROUP_Y, 1)]
     void calc_grid_irradiance(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
-      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
         uint atlasProbeIndex = gId;
         if (tid == 0)
           sharedEncodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
@@ -181,11 +182,11 @@ shader calc_screenspace_irradiance_cs
         sharedEncodedProbe = 0;
         GroupMemoryBarrierWithGroupSync();
         uint encodedProbe = 0;
-        uint probesPerWarp = SP_IRRADIANCE_WARP_SIZE/uint(sp_irradiance_res.z);
+        uint probesPerGroup = SP_IRRADIANCE_GROUP_SIZE/uint(sp_irradiance_res.z);
         uint probeInWarp = tid/uint(sp_irradiance_res.z);
         uint tidInProbe = tid - probeInWarp*uint(sp_irradiance_res.z);
-        uint atlasProbeIndex = gId*probesPerWarp + probeInWarp;
-        if (atlasProbeIndex < sp_getNumTotalProbes() && probeInWarp < probesPerWarp)
+        uint atlasProbeIndex = gId*probesPerGroup + probeInWarp;
+        if (atlasProbeIndex < sp_getNumTotalProbes() && probeInWarp < probesPerGroup)
           encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
         InterlockedOr(sharedEncodedProbe, encodedProbe);
         GroupMemoryBarrierWithGroupSync();
@@ -234,7 +235,7 @@ shader calc_screenspace_irradiance_cs
         #endif
       }
 
-      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
         uint2 irradianceTargetCoord = gtId;
         uint2 irradianceTexelCoord = octahedral_map_border_to_octhedral(irradianceTargetCoord, irradianceProbeResolutionWithBorder);
       #else
@@ -247,7 +248,7 @@ shader calc_screenspace_irradiance_cs
 
       float3 irradiance = 0;
       float totalWeight = 0;
-      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP && !SP_RADIANCE_DOWNSAMPLE
+      #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP && !SP_RADIANCE_DOWNSAMPLE
       {
         uint2 rCoord = irradianceTargetCoord;
 
@@ -310,10 +311,10 @@ shader calc_screenspace_irradiance_cs
       irradiance = select(irradiance >= minIradiance, irradiance, minIradiance);//do not allow 0 or NaN in irradiance!
       uint2 irradianceProbeAtlasCoord = atlasProbeCoord*irradianceProbeResolutionWithBorder;
 
-      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
         texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + irradianceTargetCoord) = irradiance;
       #else
-        if (tidInProbe < uint(sp_irradiance_res.z) && encodedProbe && probeInWarp < probesPerWarp)
+        if (tidInProbe < uint(sp_irradiance_res.z) && encodedProbe && probeInWarp < probesPerGroup)
         {
           texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + irradianceTexelCoord + 1) = irradiance;
           //fixme: that's incorrect
@@ -351,8 +352,10 @@ shader calc_screenspace_irradiance_sph3_cs
     sp_radiance_res_clamp@f2 = (0.5/screenspace_probe_res.w, 1 - 0.5/screenspace_probe_res.w,0,0);
     sp_radiance_area@i1 = sp_radiance_area;
     sp_fixed_solid_angle@f2 = ((4.*PI)/(screenspace_probe_res.w*screenspace_probe_res.w),4./(screenspace_probe_res.w*screenspace_probe_res.w),0,0);
+    sp_irradiance@uav : register(0) hlsl {
+      RWTexture2D<float3> sp_irradiance@uav;
+    }
   }
-  ENABLE_ASSERT(cs)
   SCREENSPACE_PROBES_POSITIONS(cs)
   SREENSPACE_PROBES_OCTAHEDRAL(cs)
   //SAMPLE_GRID_IRRADIANCE(cs)
@@ -364,12 +367,12 @@ shader calc_screenspace_irradiance_sph3_cs
   }
 
   hlsl(cs) {
-    #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
-      #define SP_IRR_WARP_X SP_IRRADIANCE_RES_WITH_BORDER
-      #define SP_IRR_WARP_Y SP_IRRADIANCE_RES_WITH_BORDER
+    #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
+      #define SP_IRR_GROUP_X SP_IRRADIANCE_RES_WITH_BORDER
+      #define SP_IRR_GROUP_Y SP_IRRADIANCE_RES_WITH_BORDER
     #else
-      #define SP_IRR_WARP_X SP_IRRADIANCE_WARP_SIZE
-      #define SP_IRR_WARP_Y 1
+      #define SP_IRR_GROUP_X SP_IRRADIANCE_GROUP_SIZE
+      #define SP_IRR_GROUP_Y 1
     #endif
 
     ##if dagi_warp64_irradiance == on
@@ -377,22 +380,20 @@ shader calc_screenspace_irradiance_sph3_cs
     ##endif
 
     ##if (sp_irradiance_oct_quality == same_as_radiance_8 || sp_irradiance_oct_quality == radiance_downsample)
-      #define MAX_PROBES_PER_WARP 1
-      #if !SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #define MAX_PROBES_PER_GROUP 1
+      #if !SP_ONE_IRRADIANCE_PROBE_PER_GROUP
         #error unsupported
       #endif
       #define RADIANCE_DOWNSAMPLED_RES 8
     ##else
       #undef DAGI_IRRADIANCE_ONE_WARP // not nessessarily needed. we can calculate n probes in n waves. and for 4x4 and 5x5 and 32 warp we can do 32 warps with 1..2 probes per warp
-      #define MAX_PROBES_PER_WARP (SP_IRRADIANCE_WARP_SIZE/(IRRADIANCE_RES_LOWEST*IRRADIANCE_RES_LOWEST))
+      #define MAX_PROBES_PER_GROUP (SP_IRRADIANCE_GROUP_SIZE/(IRRADIANCE_RES_LOWEST*IRRADIANCE_RES_LOWEST))
       #define SHARED_RAD_DIRS_SIZE (SP_RADIANCE_RES_UP_USE*SP_RADIANCE_RES_UP_USE)
       groupshared float4 shared_radiance_dirs[SHARED_RAD_DIRS_SIZE];
     ##endif
     #if !WAVE_INTRINSICS
       #undef DAGI_IRRADIANCE_ONE_WARP
     #endif
-
-    RWTexture2D<float3> sp_irradiance: register(u0);
 
     float3 sample_texture_radiance(uint2 tci, float2 uv)
     {
@@ -452,9 +453,9 @@ shader calc_screenspace_irradiance_sph3_cs
     #define INTERLOCKED_ADD4(a, bv) {int4 b = bv; InterlockedAdd(a .x, b .x);InterlockedAdd(a .y, b .y);InterlockedAdd(a .z, b .z);InterlockedAdd(a .w, b .w);}
     #define INTERLOCKED_ADD3(a, bv) {int3 b = bv; InterlockedAdd(a .x, b .x);InterlockedAdd(a .y, b .y);InterlockedAdd(a .z, b .z);}
     //groupshared uint shared_sh3_radiance_min;
-    groupshared uint shared_sh3_radiance_max[MAX_PROBES_PER_WARP];
-    groupshared int4 shared_sh3_v0_r[MAX_PROBES_PER_WARP], shared_sh3_v1_r[MAX_PROBES_PER_WARP], shared_sh3_v0_g[MAX_PROBES_PER_WARP], shared_sh3_v1_g[MAX_PROBES_PER_WARP], shared_sh3_v0_b[MAX_PROBES_PER_WARP], shared_sh3_v1_b[MAX_PROBES_PER_WARP];
-    groupshared int4 shared_sh3_v2[MAX_PROBES_PER_WARP];
+    groupshared uint shared_sh3_radiance_max[MAX_PROBES_PER_GROUP];
+    groupshared int4 shared_sh3_v0_r[MAX_PROBES_PER_GROUP], shared_sh3_v1_r[MAX_PROBES_PER_GROUP], shared_sh3_v0_g[MAX_PROBES_PER_GROUP], shared_sh3_v1_g[MAX_PROBES_PER_GROUP], shared_sh3_v0_b[MAX_PROBES_PER_GROUP], shared_sh3_v1_b[MAX_PROBES_PER_GROUP];
+    groupshared int4 shared_sh3_v2[MAX_PROBES_PER_GROUP];
 
     static const float SH3_SHARED_MASK = 1<<23;//fixed point. Up to 16x16 radiance will work correctly with that
     int4 to_sh3_normalized_f4(float4 vec, float4 maxV)
@@ -468,7 +469,7 @@ shader calc_screenspace_irradiance_sph3_cs
     void init_common_shared_vars()
     {
       UNROLL
-      for (uint i = 0; i < MAX_PROBES_PER_WARP; ++i)
+      for (uint i = 0; i < MAX_PROBES_PER_GROUP; ++i)
       {
         shared_sh3_radiance_max[i] = 0;
         //shared_sh3_radiance_min = asuint(1e12f);
@@ -531,14 +532,14 @@ shader calc_screenspace_irradiance_sph3_cs
 #endif
     #pragma hlsl2021
 
-    [numthreads(SP_IRR_WARP_X, SP_IRR_WARP_Y, 1)]
+    [numthreads(SP_IRR_GROUP_X, SP_IRR_GROUP_Y, 1)]
     void calc_screenspace_irradiance_sph3_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint2 dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
       if (tid == 0)
       {
         init_common_shared_vars();
       }
-      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
         uint atlasProbeIndex = gId;
         if (tid == 0)
         {
@@ -547,18 +548,18 @@ shader calc_screenspace_irradiance_sph3_cs
         GroupMemoryBarrierWithGroupSync();
         uint encodedProbe = sharedEncodedProbe;
         const uint probeInWarp = 0;
-        const uint probesPerWarp = 1;
+        const uint probesPerGroup = 1;
         if (!encodedProbe)
           return;
       #else
         sharedEncodedProbe = 0;
         GroupMemoryBarrierWithGroupSync();
         uint encodedProbe = 0;
-        uint probesPerWarp = SP_IRRADIANCE_WARP_SIZE/uint(sp_irradiance_res.z);
+        uint probesPerGroup = SP_IRRADIANCE_GROUP_SIZE/uint(sp_irradiance_res.z);
         uint probeInWarp = tid/uint(sp_irradiance_res.z);
         uint tidInProbe = tid - probeInWarp*uint(sp_irradiance_res.z);
-        uint atlasProbeIndex = gId*probesPerWarp + probeInWarp;
-        if (atlasProbeIndex < sp_getNumTotalProbes() && probeInWarp < probesPerWarp)
+        uint atlasProbeIndex = gId*probesPerGroup + probeInWarp;
+        if (atlasProbeIndex < sp_getNumTotalProbes() && probeInWarp < probesPerGroup)
           encodedProbe = sp_loadEncodedProbe(screenspace_probe_pos, atlasProbeIndex);
         InterlockedOr(sharedEncodedProbe, encodedProbe);
         GroupMemoryBarrierWithGroupSync();
@@ -593,7 +594,7 @@ shader calc_screenspace_irradiance_sph3_cs
       float fixed_solid_angle = sp_fixed_solid_angle.y;
       #endif
 
-      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
         uint2 irradianceTargetCoord = gtId;
         uint2 irradianceTexelCoord = octahedral_map_border_to_octhedral(irradianceTargetCoord, irradianceProbeResolutionWithBorder);
       #else
@@ -602,7 +603,7 @@ shader calc_screenspace_irradiance_sph3_cs
         irradianceTexelCoord.x = tidInProbe - irradianceTexelCoord.y*uint(sp_irradiance_res.x);
       #endif
 
-      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
         float3 readRadiance;
         float2 radiance_res_dir_decode = screenspace_probe_radiance_res_decode.zw;
         #if !SP_RADIANCE_DOWNSAMPLE
@@ -647,7 +648,7 @@ shader calc_screenspace_irradiance_sph3_cs
         #if SP_IRRADIANCE_TO_RADIANCE_MUL == 2
           float3 rad0 = readSharedRadiance(tidInProbe*2, atlasProbeCoordOfs, sourceRadianceRes);
           float3 rad1 = readSharedRadiance(tidInProbe*2 + 1, atlasProbeCoordOfs, sourceRadianceRes);
-          float normalization = dagi_calc_normalization_shared(probeInWarp, probesPerWarp, rad0.xyz + rad1.xyz );
+          float normalization = dagi_calc_normalization_shared(probeInWarp, probesPerGroup, rad0.xyz + rad1.xyz );
           //normalization = 1;
           float invNorm = rcp(normalization);
           rad0.xyz *= invNorm;
@@ -672,7 +673,7 @@ shader calc_screenspace_irradiance_sph3_cs
           float3 rad0 = readSharedRadiance(tidInProbe*3, atlasProbeCoordOfs, sourceRadianceRes);
           float3 rad1 = readSharedRadiance(tidInProbe*3 + 1, atlasProbeCoordOfs, sourceRadianceRes);
           float3 rad2 = readSharedRadiance(tidInProbe*3 + 2, atlasProbeCoordOfs, sourceRadianceRes);
-          float normalization = dagi_calc_normalization_shared(probeInWarp, probesPerWarp, rad0.xyz + rad1.xyz + rad2.xyz );
+          float normalization = dagi_calc_normalization_shared(probeInWarp, probesPerGroup, rad0.xyz + rad1.xyz + rad2.xyz );
           float invNorm = rcp(normalization);
           rad0.xyz *= invNorm;
           rad1.xyz *= invNorm;
@@ -703,7 +704,7 @@ shader calc_screenspace_irradiance_sph3_cs
           }
           sampleSH3 = add_sh3(sampleSH3, mul_sh3(sh3_basis(radianceDir2), rad2.xyz));
         #endif
-        SH3RGB radianceSH3 = dagi_calc_sh3_shared(probeInWarp, probesPerWarp, sampleSH3);
+        SH3RGB radianceSH3 = dagi_calc_sh3_shared(probeInWarp, probesPerGroup, sampleSH3);
       #endif
       float3 irradianceDirection = screenspace_probe_dir_decode(irradianceTexelCoord*sp_downsampled_irradiance_res_decode.z + sp_downsampled_irradiance_res_decode.w);
 
@@ -723,10 +724,10 @@ shader calc_screenspace_irradiance_sph3_cs
       irradiance = select(irradiance >= minIradiance, irradiance, minIradiance);//do not allow 0 or NaN in irradiance!
       uint2 irradianceProbeAtlasCoord = atlasProbeCoord*irradianceProbeResolutionWithBorder;
 
-      #if SP_ONE_IRRADIANCE_PROBE_PER_WARP
+      #if SP_ONE_IRRADIANCE_PROBE_PER_GROUP
         texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + irradianceTargetCoord) = irradiance;
       #else
-        if (tidInProbe < uint(sp_irradiance_res.z) && encodedProbe && probeInWarp < probesPerWarp)
+        if (tidInProbe < uint(sp_irradiance_res.z) && encodedProbe && probeInWarp < probesPerGroup)
         {
           texture2DAt(sp_irradiance, irradianceProbeAtlasCoord + irradianceTexelCoord + 1) = irradiance;
           uint2 clampedCoord = select(irradianceTexelCoord == 0, uint2(0,0), irradianceProbeResolution + 1u);

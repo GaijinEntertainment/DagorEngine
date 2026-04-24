@@ -65,7 +65,7 @@ WatchedFolderMonitorData *add_folder_monitor(const char *foldername, int sleep_i
   HANDLE hDir = CreateFile(foldername, GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE | FILE_LIST_DIRECTORY,
     NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
 
-  if (!hDir)
+  if (hDir == INVALID_HANDLE_VALUE)
     return nullptr;
 
   WatchedFolderMonitorData *d = new WatchedFolderMonitorData;

@@ -3,7 +3,9 @@
 #include <main/weatherPreset.h>
 #include <main/level.h>
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <math/random/dag_random.h>
 #include <util/dag_string.h>
 
@@ -56,6 +58,60 @@ const ecs::Object::value_type *get_preset_by_seed(ecs::EntityManager &mgr, ecs::
   return nullptr;
 }
 
+#if DAGOR_DBGLEVEL > 0
+// Check that either all presets have wind entity or none of them
+void validate_wind_entity_in_weather_presets(ecs::EntityManager &mgr, ecs::EntityId level_eid)
+{
+  const ecs::Object &weatherChoice = mgr.get<ecs::Object>(level_eid, ECS_HASH("level__weatherChoice"));
+  bool hasWindEntity = false;
+  for (auto &w : weatherChoice)
+  {
+    if (w.second.is<float>())
+      continue;
+    if (const ecs::Array *entities = w.second.get<ecs::Object>().getNullable<ecs::Array>(ECS_HASH("entities")))
+    {
+      for (auto &entity : *entities)
+      {
+        if (!strcmp(entity.get<ecs::Object>()[ECS_HASH("template")].getOr(""), "wind"))
+        {
+          hasWindEntity = true;
+          break;
+        }
+      }
+      if (hasWindEntity)
+        break;
+    }
+  }
+  if (!hasWindEntity)
+    return;
+  for (auto &w : weatherChoice)
+  {
+    auto printLogerr = [&]() {
+      logerr("Weather preset '%s' in level template '%s' doesn't have entity with 'template:t=\"wind\"', but other presets have it. "
+             "Please add wind entity to weather preset or remove it from all presets and add it directly to scene blk",
+        w.first, mgr.getEntityTemplateName(level_eid));
+    };
+    if (w.second.is<float>())
+      printLogerr();
+    else
+    {
+      bool windEntityFound = false;
+      if (const ecs::Array *entities = w.second.get<ecs::Object>().getNullable<ecs::Array>(ECS_HASH("entities")))
+        for (auto &entity : *entities)
+          if (!strcmp(entity.get<ecs::Object>()[ECS_HASH("template")].getOr(""), "wind"))
+          {
+            windEntityFound = true;
+            break;
+          }
+      if (!windEntityFound)
+        printLogerr();
+    }
+  }
+}
+#else
+void validate_wind_entity_in_weather_presets(ecs::EntityManager &, ecs::EntityId) {}
+#endif
+
 void create_weather_choice_entity(ecs::EntityManager &mgr, const ecs::ChildComponent &effect, ecs::EntityId eid)
 {
   const ecs::Object &f = effect.get<ecs::Object>();
@@ -97,11 +153,11 @@ void get_weather_preset_list(ecs::StringList &list)
 }
 
 template <typename Callable>
-static void query_rain_entity_ecs_query(Callable c);
+static void query_rain_entity_ecs_query(ecs::EntityManager &manager, Callable c);
 bool has_any_rain_entity()
 {
   bool found = false;
-  query_rain_entity_ecs_query([&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag rain_tag)) {
+  query_rain_entity_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag rain_tag)) {
     G_UNUSED(eid);
     found = true;
   });
@@ -110,11 +166,11 @@ bool has_any_rain_entity()
 }
 
 template <typename Callable>
-static void query_snow_entity_ecs_query(Callable c);
+static void query_snow_entity_ecs_query(ecs::EntityManager &manager, Callable c);
 bool has_any_snow_entity()
 {
   bool found = false;
-  query_snow_entity_ecs_query([&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag snow_tag)) {
+  query_snow_entity_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag snow_tag)) {
     G_UNUSED(eid);
     found = true;
   });
@@ -123,11 +179,11 @@ bool has_any_snow_entity()
 }
 
 template <typename Callable>
-static void query_lightning_entity_ecs_query(Callable c);
+static void query_lightning_entity_ecs_query(ecs::EntityManager &manager, Callable c);
 bool has_any_lightning_entity()
 {
   bool found = false;
-  query_lightning_entity_ecs_query([&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag lightning_tag)) {
+  query_lightning_entity_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag lightning_tag)) {
     G_UNUSED(eid);
     found = true;
   });
@@ -168,24 +224,26 @@ static void create_weather_entities_by_template_name_substring(const char *templ
 }
 
 template <typename Callable>
-static void delete_rain_entities_ecs_query(Callable c);
+static void delete_rain_entities_ecs_query(ecs::EntityManager &manager, Callable c);
 void delete_rain_entities()
 {
-  delete_rain_entities_ecs_query([&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag rain_tag)) { g_entity_mgr->destroyEntity(eid); });
+  delete_rain_entities_ecs_query(*g_entity_mgr,
+    [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag rain_tag)) { g_entity_mgr->destroyEntity(eid); });
 }
 
 template <typename Callable>
-static void delete_snow_entities_ecs_query(Callable c);
+static void delete_snow_entities_ecs_query(ecs::EntityManager &manager, Callable c);
 void delete_snow_entities()
 {
-  delete_snow_entities_ecs_query([&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag snow_tag)) { g_entity_mgr->destroyEntity(eid); });
+  delete_snow_entities_ecs_query(*g_entity_mgr,
+    [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag snow_tag)) { g_entity_mgr->destroyEntity(eid); });
 }
 
 template <typename Callable>
-static void delete_lightning_entities_ecs_query(Callable c);
+static void delete_lightning_entities_ecs_query(ecs::EntityManager &manager, Callable c);
 void delete_lightning_entities()
 {
-  delete_lightning_entities_ecs_query(
+  delete_lightning_entities_ecs_query(*g_entity_mgr,
     [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag lightning_tag)) { g_entity_mgr->destroyEntity(eid); });
 }
 

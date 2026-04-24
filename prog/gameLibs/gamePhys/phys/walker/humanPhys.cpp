@@ -83,6 +83,7 @@ static const float VERT_DIR_COS_EPS = cos(DegToRad(1.f));
 static constexpr int CLIMB_RAYS_INITIAL = 3;
 static constexpr int CLIMB_RAYS_FORWARD = 5;
 static constexpr int CLIMB_RAYS_SIDEWAYS = 2;
+static constexpr int WALK_TRACE_CAPSULE_RAYS = 4;
 
 
 HumanPhysState::HumanPhysState()
@@ -263,8 +264,10 @@ void HumanPhys::loadFromBlk(const DataBlock *blk, const CollisionResource * /*co
   setCollisionMatId(PhysMat::getMaterialId(blk->getStr("collisionMat", "walker")));
   float invScale = safeinv(scale);
   collRad = blk->getReal("collisionRadius", 0.2f) * scale;
+  collRadForLadder = blk->getReal("collisionRadiusForLadder", -1.f) * scale;
   walkRad = blk->getReal("walkSphereCastRadius", collRad * 0.8f * invScale) * scale;
   ccdRad = blk->getReal("ccdRadius", collRad * 0.8f * invScale) * scale;
+  ccdSolveByNormal = blk->getBool("ccdSolveByNormal", ccdSolveByNormal);
 
   collideRiPosMinDiff = blk->getReal("collideRiPosMinDiff", -1);
   zoomSpeed = blk->getReal("zoomSpeed", zoomSpeed);
@@ -352,6 +355,9 @@ void HumanPhys::loadFromBlk(const DataBlock *blk, const CollisionResource * /*co
   climbHorzBrake = blk->getReal("climbHorzBrake", climbHorzBrake);
   climbBrakeHeight = blk->getReal("climbBrakeHeight", climbBrakeHeight);
   climbTimeout = blk->getReal("climbTimeout", climbTimeout);
+  climbDistance = blk->getReal("climbDistance", climbDistance);
+  climbOverDistance = blk->getReal("climbOverDistance", climbOverDistance);
+  climbFinishDistance = blk->getReal("climbFinishDistance", climbFinishDistance);
   climbAngleCos = cosf(DegToRad(blk->getReal("climbAngle", 45.f)));
   climbMinHorzSize = blk->getReal("climbMinHorzSize", climbMinHorzSize);
   climbOnMinVertSize = blk->getReal("climbOnMinVertSize", climbOnMinVertSize);
@@ -380,6 +386,9 @@ void HumanPhys::loadFromBlk(const DataBlock *blk, const CollisionResource * /*co
   vertDirChangeTau = blk->getReal("vertDirChangeTau", vertDirChangeTau);
 
   isInertMovement = blk->getBool("isInertMovement", isInertMovement);
+  minCosInertMovement = cosf(DegToRad(blk->getReal("minAngleInertSpdMult", 60.f)));
+  minWishInertSpdMult = blk->getReal("minWishInertSpdMult", 0.3f);
+
   climber = blk->getBool("climber", climber);
   canCrawl = blk->getBool("canCrawl", canCrawl);
   canCrouch = blk->getBool("canCrouch", canCrouch);
@@ -405,6 +414,7 @@ void HumanPhys::loadFromBlk(const DataBlock *blk, const CollisionResource * /*co
   acceleration = blk->getReal("acceleration", acceleration);
   frictionGroundCoeff = blk->getReal("frictionGroundCoeff", frictionGroundCoeff);
   frictionThresSpdMult = blk->getReal("frictionThresSpdMult", frictionThresSpdMult);
+  haveFrictionWhileJumping = blk->getBool("haveFrictionWhileJumping", haveFrictionWhileJumping);
 
   for (int i = 0; i < EMS_NUM; ++i)
   {
@@ -427,6 +437,9 @@ void HumanPhys::loadFromBlk(const DataBlock *blk, const CollisionResource * /*co
   stepAccel = blk->getReal("stepAccel", stepAccel);
 
   crawlStepSpeed = blk->getReal("crawlStepSpeed", crawlStepSpeed);
+
+  useRotateAnglesInLean = blk->getBool("useRotateAnglesInLean", useRotateAnglesInLean);
+  rotateAnglesInLean = DEG_TO_RAD * blk->getPoint2("rotateAnglesInLean", rotateAnglesInLean);
 
   static const char *essNames[] = {"standState", "crouchState", "crawlState", "downedState", "swimState", "swimUnderwaterState",
     "climbState", "climbThroughState", "climbOverObstacleState", "climbLadderState", "externallyControlledState"};
@@ -547,9 +560,12 @@ inline T move_to_vec(const T &from, const T &to, float dt, float vel)
 
 Point3 HumanPhys::calcGunPos(const TMatrix &tm, float gun_angles, float lean_pos, float height, PrecomputedPresetMode mode) const
 {
-  float bodyYaw = dir_to_yaw(currentState.bodyOrientDir);
-  Point2 fwd = Point2::xz(currentState.location.O.getQuat().getForward());
-  float persCourse = renorm_ang(dir_to_yaw(fwd), bodyYaw);
+  Point3 rootDir = get_some_normal(currentState.vertDirection);
+  Point3 sideDir = normalize(cross(rootDir, currentState.vertDirection));
+  Point3 absoluteBodyDir = relative_2d_dir_to_absolute_3d_dir(currentState.bodyOrientDir, rootDir, sideDir);
+  float bodyYaw = basis_aware_dir_to_angles(absoluteBodyDir, currentState.vertDirection, rootDir).x;
+  Point3 fwd = currentState.location.O.getQuat().getForward();
+  float persCourse = renorm_ang(basis_aware_dir_to_angles(fwd, currentState.vertDirection, rootDir).x, bodyYaw);
   float bodyDir = RadToDeg(bodyYaw - persCourse);
   TMatrix rotTm = makeTM(Point3(0.0, 0.0, 1.0), gun_angles);
   return tm * (get_weapon_pos(precompWeaponPos, mode, height, RadToDeg(gun_angles), lean_pos, bodyDir) + rotTm % gunOffset);
@@ -636,6 +652,8 @@ bool HumanPhys::processCcdOffset(TMatrix &tm, const Point3 &to_pos, const Point3
   {
     // Allow unrestricted offset, this is always safe, since we've sphere casted it.
     Point3 overMovement = offset * (1.f - shapeQuery.t);
+    if (ccdSolveByNormal && shapeQuery.t == 0.f) // inside collision
+      overMovement = ccdRad * shapeQuery.norm;
     applyOffset(-overMovement);
     currentState.location.toTM(tm);
 
@@ -809,6 +827,60 @@ float HumanPhys::updateSwimmingState()
   return waterLevel;
 }
 
+void HumanPhys::processShapeCastWalkResult(const PhysShapeQueryResult &shapeQuery, const Point3 &pos, const Point3 &up_dir,
+  const Point3 &cur_max_pos, const Point3 &cur_min_pos, float from_ht, float down_ht, float slide_threshold, bool ignore_slide,
+  const Point3 &coll_norm, TraceMeshFaces *handle, int &mat_id, bool &forced_sliding, WalkQueryResults &res) const
+{
+  float shapeNormDotUp = shapeQuery.norm * up_dir;
+
+  Point3 norm = normalize(clip_dir(shapeQuery.norm, coll_norm));
+  if (dot(norm, up_dir) < shapeNormDotUp)
+    norm = shapeQuery.norm; // prefer more 'walkable' normal
+  if (!(ignore_slide ? up_dir * norm >= slide_threshold : true))
+    return;
+
+  res.haveResults = true;
+  res.footstep = cur_max_pos + up_dir * (up_dir * (shapeQuery.res - cur_max_pos));
+  res.walkNormal = norm;
+  res.standingVel = shapeQuery.vel;
+  float t = from_ht + down_ht;
+  if (dacoll::traceray_normalized(cur_max_pos, currentState.gravDirection, t, &mat_id, &norm, WALK_TRACE_FLAGS, nullptr, rayMatId,
+        handle))
+  {
+    norm = normalize(clip_dir(norm, coll_norm));
+    if (dot(up_dir, norm) > dot(up_dir, res.walkNormal))
+      res.walkNormal = norm;
+    if (res.walkMatId == PHYSMAT_DEFAULT) // if nothing were hit previously
+      res.walkMatId = mat_id;
+
+    if (mat_id > 0)
+    {
+      const physmat::PhysContactProps *contactProps = physmat::PhysContactProps::get_props(mat_id);
+      if (contactProps && contactProps->forcedSliding)
+        forced_sliding = true;
+    }
+  }
+  else
+  {
+    if (forcedSlidingIfWalkTraceFailed)
+    {
+      Point3 gameObjVel = ZERO<Point3>();
+      if (!dacoll::trace_game_objects(cur_max_pos, currentState.gravDirection, t, gameObjVel, 0, rayMatId))
+        forced_sliding = true;
+    }
+  }
+
+  res.isSliding = forced_sliding || (!isSimplifiedQueryWalkPosition && up_dir * res.walkNormal < slide_threshold);
+
+  if (!res.isSliding && shapeNormDotUp >= maxStepAngle)
+    res.stepSize = (shapeQuery.res - pos) * up_dir;
+  res.contactStrength = cvt(shapeQuery.res * up_dir, cur_min_pos * up_dir, cur_max_pos * up_dir, 0.f, 2.f);
+
+  const bool belowGround = dot(up_dir, shapeQuery.res) >= dot(up_dir, pos);
+  const bool wasInAir = currentState.isInAirHistory & 2;
+  res.isInAir = wasInAir && !belowGround;
+}
+
 HumanPhys::WalkQueryResults HumanPhys::queryWalkPosition(const Point3 &pos, float from_ht, float down_ht, bool ignore_slide,
   bool is_crawl, float walk_rad, const Point3 &coll_norm) const
 {
@@ -828,6 +900,8 @@ HumanPhys::WalkQueryResults HumanPhys::queryWalkPosition(const Point3 &pos, floa
   float traceHitY = 0.f;
 
   const bool useTrace = isSimplifiedPhys || (!is_crawl && isSimplifiedQueryWalkPosition);
+  const bool useTraceCapsuleCast = !useTrace && !is_crawl && useTraceCapsuleCastForWalk;
+  const bool useFullSphereCast = !useTrace && !useTraceCapsuleCast;
 
   bool forcedSliding = false;
 
@@ -872,7 +946,16 @@ HumanPhys::WalkQueryResults HumanPhys::queryWalkPosition(const Point3 &pos, floa
     }
   }
 
-  if (!useTrace || currentState.fallbackToSphereCastTimer > 0.f)
+  if (useTraceCapsuleCast)
+  {
+    dacoll::ShapeQueryOutput shapeQuery;
+    if (dacoll::trace_sphere_cast_ex(curMaxPos, curMinPos, walk_rad, WALK_TRACE_CAPSULE_RAYS, shapeQuery, rayMatId,
+          getActor()->getId(), handle, WALK_TRACE_FLAGS))
+      processShapeCastWalkResult(shapeQuery, pos, upDir, curMaxPos, curMinPos, from_ht, down_ht, slideThreshold, ignore_slide,
+        coll_norm, handle, matId, forcedSliding, res);
+  }
+
+  if (useFullSphereCast || currentState.fallbackToSphereCastTimer > 0.f)
   {
     dacoll::ShapeQueryOutput shapeQuery;
     if (dacoll::sphere_cast_ex(curMaxPos, curMinPos, walk_rad, shapeQuery, rayMatId, make_span_const(&torsoCollision, 1), handle))
@@ -881,64 +964,24 @@ HumanPhys::WalkQueryResults HumanPhys::queryWalkPosition(const Point3 &pos, floa
           (!isTraceHit || rabs(shapeQuery.res * upDir - traceHitY) > FALLBACK_TO_SPHERE_TRACE_THRESHOLD))
         res.shouldFallbackToSphereCast = true;
 
-      float shapeNormDotUp = shapeQuery.norm * upDir;
+      processShapeCastWalkResult(shapeQuery, pos, upDir, curMaxPos, curMinPos, from_ht, down_ht, slideThreshold, ignore_slide,
+        coll_norm, handle, matId, forcedSliding, res);
 
-      Point3 norm = normalize(clip_dir(shapeQuery.norm, coll_norm));
-      if (dot(norm, upDir) < shapeNormDotUp)
-        norm = shapeQuery.norm; // prefer more 'walkable' normal
-      if (ignore_slide ? upDir * norm >= slideThreshold : true)
+      // Wider sphere cast refines walk normal on slopes near the sliding boundary.
+      // Skip it on nearly flat surfaces where the primary cast already gives an accurate normal.
+      constexpr float flatSurfaceThreshold = 0.95f;
+      bool isOnSteepSurface = dot(upDir, res.walkNormal) < flatSurfaceThreshold;
+      if (!is_crawl && !isSimplifiedPhys && isOnSteepSurface)
       {
-        res.haveResults = true;
-        res.footstep = curMaxPos + upDir * (upDir * (shapeQuery.res - curMaxPos));
-        res.walkNormal = norm;
-        res.standingVel = shapeQuery.vel;
-        float t = from_ht + down_ht;
-        if (dacoll::traceray_normalized(curMaxPos, currentState.gravDirection, t, &matId, &norm, WALK_TRACE_FLAGS, nullptr, rayMatId,
+        dacoll::ShapeQueryOutput walkShapeQuery;
+        if (dacoll::sphere_cast_ex(curMaxPos, curMinPos, walk_rad * 2.f, walkShapeQuery, rayMatId, make_span_const(&torsoCollision, 1),
               handle))
         {
-          norm = normalize(clip_dir(norm, coll_norm));
-          if (dot(upDir, norm) > dot(upDir, res.walkNormal))
-            res.walkNormal = norm;
-          if (res.walkMatId == PHYSMAT_DEFAULT) // if nothing were hit previously
-            res.walkMatId = matId;
-
-          if (matId > 0)
-          {
-            const physmat::PhysContactProps *contactProps = physmat::PhysContactProps::get_props(matId);
-            if (contactProps && contactProps->forcedSliding)
-              forcedSliding = true;
-          }
+          if (dot(upDir, walkShapeQuery.norm) > dot(upDir, res.walkNormal))
+            res.walkNormal = walkShapeQuery.norm;
         }
-        else
-        {
-          if (forcedSlidingIfWalkTraceFailed)
-          {
-            Point3 gameObjVel = ZERO<Point3>();
-            if (!dacoll::trace_game_objects(curMaxPos, currentState.gravDirection, t, gameObjVel, 0, rayMatId))
-              forcedSliding = true;
-          }
-        }
-
-        if (!is_crawl && !isSimplifiedPhys)
-        {
-          dacoll::ShapeQueryOutput walkShapeQuery;
-          if (dacoll::sphere_cast_ex(curMaxPos, curMinPos, walk_rad * 2.f, walkShapeQuery, rayMatId,
-                make_span_const(&torsoCollision, 1), handle))
-          {
-            if (dot(upDir, walkShapeQuery.norm) > dot(upDir, res.walkNormal))
-              res.walkNormal = walkShapeQuery.norm;
-          }
-        }
-        res.isSliding = forcedSliding || (!isSimplifiedQueryWalkPosition && upDir * res.walkNormal < slideThreshold);
-
-        if (!res.isSliding && shapeNormDotUp >= maxStepAngle)
-          res.stepSize = (shapeQuery.res - pos) * upDir;
-        res.contactStrength = cvt(shapeQuery.res * upDir, curMinPos * upDir, curMaxPos * upDir, 0.f, 2.f);
-
-        const bool belowGround = dot(upDir, shapeQuery.res) >= dot(upDir, pos);
-        const bool wasInAir = currentState.isInAirHistory & 2;
-        res.isInAir = wasInAir && !belowGround;
       }
+      res.isSliding = forcedSliding || (!isSimplifiedQueryWalkPosition && upDir * res.walkNormal < slideThreshold);
     }
   }
 
@@ -1435,7 +1478,7 @@ bool HumanPhys::testClimbingIteration(int front_pos, int horz_pos, bool need_min
   if (climbRes.canClimb && (need_min_pos || !climbRes.minPos || only_one_climb_pos))
   {
     float dotProduct = normalize(climbRes.climbToPos - gun_node_proj) * appliedCT.getWishLookDir();
-    if (dotProduct < climbAngleCos && !isSimplifiedPhys && !currentState.attachedToLadder)
+    if (dotProduct < climbAngleCos && !isSimplifiedPhys && !currentState.attachedToLadder && !currentState.isSwimming)
       return false;
     have_min_pos |= climbRes.minPos;
     have_max_pos |= !climbRes.minPos;
@@ -1716,8 +1759,8 @@ HumanPhys::TorsoCollisionResults HumanPhys::processTorsoCollision(TMatrix &tm, i
           }
           if (!hasMatId && res.torsoContacts.size() < res.torsoContacts.capacity())
             res.torsoContacts.push_back(contact);
-          if (contact.riPool >= 0)
-            res.rendinstPool = contact.riPool;
+          if (contact.riDesc.isValid() && !contact.riDesc.isRiExtra())
+            res.rendinstPool = contact.riDesc.pool;
         }
         if (softProps)
         {
@@ -1866,6 +1909,8 @@ void HumanPhys::updateClimbing(float at_time, float dt, const TMatrix &tm, const
       {
         currentState.isClimbing = false;
         currentState.climbThrough = false;
+        if ((appliedCT.getWalkDir() * appliedCT.getWalkSpeed()).x < 0.1f)
+          currentState.velocity = Point3::ZERO;
       }
     }
   }
@@ -1905,10 +1950,13 @@ void HumanPhys::updateClimbing(float at_time, float dt, const TMatrix &tm, const
 
   float maxClimbDistance = currentState.isClimbingOverObstacle ? climbOverDistance : climbDistance;
   if (at_time > currentState.climbStartAtTime + climbTimeout ||
-      basis_aware_x0z(currentState.climbContactPos - curClimbPos, vert_dir).lengthSq() > sqr(maxClimbDistance))
+      basis_aware_x0z(currentState.climbContactPos - curClimbPos, vert_dir).lengthSq() > sqr(maxClimbDistance) ||
+      basis_aware_x0z(currentState.climbToPos - curClimbPos, vert_dir).lengthSq() < sqr(climbFinishDistance))
   {
     currentState.isClimbing = false;
     currentState.climbThrough = false;
+    if ((appliedCT.getWalkDir() * appliedCT.getWalkSpeed()).x < 0.1f)
+      currentState.velocity = Point3::ZERO;
   }
   currentState.isInAirHistory = -1;
 
@@ -1994,10 +2042,10 @@ void HumanPhys::updateHeight(const TMatrix &tm, float dt, float wishHeight, bool
         }
         if (!forbidStateChange && additionalHeightCheck)
         {
-          float t = lerp(crouchHeight, standingHeight, saturate(currentState.height)) - collRad;
+          float t = lerp(crouchHeight, standingHeight, saturate(currentState.height)) - 2 * collRad;
           Point3 norm;
-          if (dacoll::traceray_normalized(tm.getcol(3), -currentState.gravDirection, t, nullptr, &norm, dacoll::ETF_DEFAULT, nullptr,
-                rayMatId, getTraceHandle()))
+          if (dacoll::traceray_normalized(tm.getcol(3) - currentState.gravDirection * collRad, -currentState.gravDirection, t, nullptr,
+                &norm, dacoll::ETF_DEFAULT, nullptr, rayMatId, getTraceHandle()))
             forbidStateChange = dot(currentState.gravDirection, norm) < 0.5f;
         }
       }
@@ -2035,11 +2083,11 @@ static float calc_state_speed(HUStandState stand_state, HUMoveState move_state,
   const carray<carray<float, EMS_NUM>, ESS_NUM> &walk_speeds, const HumanPhysState &cur_state, float min_spd)
 {
   float baseSpeed = walk_speeds[stand_state][move_state];
-  float mult = cur_state.moveSpeedMult * (move_state == EMS_SPRINT ? cur_state.sprintSpeedMult : 1.f);
+  float mult = cur_state.moveSpeedMult * cur_state.getSpeedMultForMoveState(move_state);
   float resSpeed = baseSpeed * mult;
   if (move_state == EMS_SPRINT && cur_state.sprintLerpSpeedMult != 1.f)
   {
-    float wishRunSpeed = max(min_spd, walk_speeds[stand_state][EMS_RUN]) * cur_state.moveSpeedMult;
+    float wishRunSpeed = max(min_spd, walk_speeds[stand_state][EMS_RUN]) * cur_state.moveSpeedMult * cur_state.runSpeedMult;
     resSpeed = lerp(wishRunSpeed, resSpeed, cur_state.sprintLerpSpeedMult);
   }
   return resSpeed;
@@ -2076,7 +2124,7 @@ static Quat calc_human_wish_orient(const HumanPhysState &state, const TMatrix &t
   return gunOrient;
 }
 
-void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
+void HumanPhys::updatePhys(double at_time, float dt, bool /*is_for_real*/)
 {
   currentState.location.P -= ccdMove; // for initial tm, prevCcdPos, prevWorldCcdPos
 
@@ -2551,9 +2599,8 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
       jumpMult = wishMult;
     }
     float wishVertSpeed = wishVertJumpSpeed[standState][wishMoveState] * jumpMult;
-    float wishHorzSpeed = wishHorzJumpSpeed[standState][wishMoveState] * jumpMult;
-    if (wishMoveState == EMS_SPRINT)
-      wishHorzSpeed *= currentState.sprintSpeedMult;
+    float wishHorzSpeed =
+      wishHorzJumpSpeed[standState][wishMoveState] * jumpMult * currentState.getSpeedMultForMoveState(wishMoveState);
     const Point3 upDir = -currentState.gravDirection;
     float deltaVertSpeed = max(wishVertSpeed - upDir * (currentState.velocity - currentState.standingVelocity), 0.f);
     deltaVertSpeed *= 1.0f - get_water_resistance(waterJumpingResistance, waterLevel);
@@ -2670,16 +2717,13 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
   if (currentState.isClimbing)
     wishSpeed = 0.f;
   float speedMult = (isCrouching || isCrawling || isDowned) ? currentState.crawlCrouchSpeedMult : currentState.moveSpeedMult;
-  wishSpeed *= speedMult;
+  wishSpeed *= speedMult * currentState.getSpeedMultForMoveState(wishMoveState);
   frictionSpeedBase *= speedMult;
-  if (wishMoveState == EMS_SPRINT) //-V1051 false error. We don't need to check the value of the wishSpeed variable here
+  if (wishMoveState == EMS_SPRINT && currentState.sprintLerpSpeedMult != 1.f)
   {
-    wishSpeed *= currentState.sprintSpeedMult;
-    if (currentState.sprintLerpSpeedMult != 1.f)
-    {
-      float wishRunSpeed = clamp(walkSpeeds[standState][EMS_RUN], minAllowedSpeed, maxAllowedSpeed) * currentState.moveSpeedMult;
-      wishSpeed = lerp(wishRunSpeed, wishSpeed, currentState.sprintLerpSpeedMult);
-    }
+    float wishRunSpeed = clamp(walkSpeeds[standState][EMS_RUN], minAllowedSpeed, maxAllowedSpeed) * currentState.moveSpeedMult *
+                         currentState.runSpeedMult;
+    wishSpeed = lerp(wishRunSpeed, wishSpeed, currentState.sprintLerpSpeedMult);
   }
   if (currentState.isSwimming)
   {
@@ -2714,38 +2758,39 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
       if (isInertMovement)
       {
         const Point3 wishDir = normalize(wishVel);
-        const float currentSpeedSq = currentState.velocity.lengthSq();
         const float walkSpeed = calc_state_speed(standState, EMS_WALK, walkSpeeds, currentState, minAllowedSpeed);
         const float runSpeed = calc_state_speed(standState, EMS_RUN, walkSpeeds, currentState, minAllowedSpeed);
-        const HUMoveState accState = isCrouching                       ? EMS_WALK
-                                     : currentState.height <= -1.f     ? EMS_RUN
-                                     : currentSpeedSq > sqr(runSpeed)  ? EMS_SPRINT
-                                     : currentSpeedSq > sqr(walkSpeed) ? EMS_RUN
-                                                                       : EMS_WALK;
-        const float slidingFriction = min(1.f, frictionViscosityMult * currentState.frictionMult);
-        const float externalDecceleration = max(0.f, frictionViscosityMult * currentState.frictionMult - 1.f);
-
-        const float stateAcceleration = accelerationByState[accState] * currentState.accelerationMult;
-        const float stateDecceleration = stateAcceleration * slidingFriction;
-
         for (int i = 0; i < accelSubframes; ++i)
         {
+          const float currentSpeed = currentState.velocity.length();
+          const HUMoveState accState = isCrouching                   ? EMS_WALK
+                                       : currentState.height <= -1.f ? EMS_RUN
+                                       : currentSpeed > runSpeed     ? EMS_SPRINT
+                                       : currentSpeed > walkSpeed    ? EMS_RUN
+                                                                     : EMS_WALK;
+          const float slidingFriction = min(1.f, frictionViscosityMult * currentState.frictionMult);
+          const float externalDecceleration = max(0.f, frictionViscosityMult * currentState.frictionMult - 1.f);
+
+          const float stateAcceleration = accelerationByState[accState] * currentState.accelerationMult;
+          const float stateDecceleration = stateAcceleration * slidingFriction;
+
           const Point3 horzVel = project_dir(currentState.velocity, currentState.gravDirection);
           const float fricSpd = length(currentState.isSwimming ? currentState.velocity : horzVel);
 
-          const float controlFriction = gamephys::calc_friction_mult(fricSpd, frictionThresSpdMult * frictionSpeedBase,
-            fricitonByState[accState] * slidingFriction, subDt);
+          const float controlFriction = (isJumping && !haveFrictionWhileJumping) || isInSprintLeap
+                                          ? 1.f
+                                          : gamephys::calc_friction_mult(fricSpd, frictionThresSpdMult * frictionSpeedBase,
+                                              fricitonByState[accState] * slidingFriction, subDt);
 
-          const float curForwardSpeed = currentState.velocity * wishDir;
-          const Point3 curSideVelocity = currentState.velocity - wishDir * curForwardSpeed;
-
-          const float forwardSpeedAfterFriction = curForwardSpeed < 0.f ? (curForwardSpeed * controlFriction) : curForwardSpeed;
-          const float forwardSpeedDiff = wishResSpd - forwardSpeedAfterFriction;
+          Point3 curVelDir = currentState.velocity * safeinv(currentSpeed);
+          Point3 newWishDir = wishResSpd > 0.f ? lerp(curVelDir, wishDir, float(i + 1) / accelSubframes) : curVelDir;
+          const float wishSubResSpd = wishResSpd * cvt(curVelDir * wishDir, minCosInertMovement, 1.f - 1e-4, minWishInertSpdMult, 1.f);
+          const float forwardSpeedAfterFriction =
+            (currentSpeed - wishSubResSpd > 1e-4) ? (currentSpeed * controlFriction) : currentSpeed;
+          const float forwardSpeedDiff = wishSubResSpd - forwardSpeedAfterFriction;
           const float acc = forwardSpeedDiff > 0 ? stateAcceleration : -stateDecceleration;
-          const float forwardAcceleration = min(acc * subDt, abs(forwardSpeedDiff));
-          const Point3 forwardVelocity = wishDir * (forwardSpeedAfterFriction + forwardAcceleration);
-          const Point3 sideVelocity = curSideVelocity * controlFriction;
-          currentState.velocity = forwardVelocity + sideVelocity;
+          const float forwardAcceleration = sign(acc) * min(abs(acc * subDt), abs(forwardSpeedDiff));
+          currentState.velocity = newWishDir * (forwardSpeedAfterFriction + forwardAcceleration);
           const float speed = length(currentState.velocity);
           const float frictionAcc = speed * externalFrictionPerSpeedMult * externalDecceleration;
           currentState.velocity -= (currentState.velocity * safeinv(speed)) * min(frictionAcc * subDt, speed);
@@ -2770,7 +2815,8 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
       prevVertSpd = ladderUp * currentState.velocity;
       TMatrix ladderItm = inverse(orthoLadderTm);
       Point3 localPos = ladderItm * tm.getcol(3);
-      const float ladderOffset = collRad + length(currentState.ladderTm.getcol(0));
+      const float collisionRadius = collRadForLadder < 0.f ? collRad : collRadForLadder;
+      const float ladderOffset = collisionRadius + length(currentState.ladderTm.getcol(0));
       const float ladderStrength = 10.f;
       Point3 localDir = Point3(sign(localPos.x) * ladderOffset, 0.f, 0.f) - localPos;
       Point3 dir = orthoLadderTm % (localDir * ladderStrength);
@@ -2931,8 +2977,8 @@ void HumanPhys::updatePhys(float at_time, float dt, bool /*is_for_real*/)
       Point3 absoluteBodyDir = relative_2d_dir_to_absolute_3d_dir(currentState.bodyOrientDir, rootDir, sideDir);
       Point2 curBodyAngles = basis_aware_dir_to_angles(absoluteBodyDir, currentState.vertDirection, rootDir);
       float walkYaw = renorm_ang(-curBodyAngles.x, wishShootYaw);
-      float minDiff = rotateAngles[standState].x;
-      float maxDiff = rotateAngles[standState].y;
+      float minDiff = (useRotateAnglesInLean && currentState.leanPosition != 0.f) ? rotateAnglesInLean.x : rotateAngles[standState].x;
+      float maxDiff = (useRotateAnglesInLean && currentState.leanPosition != 0.f) ? rotateAnglesInLean.y : rotateAngles[standState].y;
       if (walkYaw < wishShootYaw + minDiff || walkYaw > wishShootYaw + maxDiff)
         currentState.moveState = walkYaw < wishShootYaw ? EMS_ROTATE_LEFT : EMS_ROTATE_RIGHT;
       bool rotating = currentState.moveState == EMS_ROTATE_LEFT || currentState.moveState == EMS_ROTATE_RIGHT;
@@ -3162,8 +3208,8 @@ void HumanPhys::drawDebug()
   if (draw_gun_angles)
   {
     Point2 wishShootAngles = dir_to_angles(normalize(appliedCT.getWishShootDir()));
-    String str(128, "gunAngles (%f, %f)", RadToDeg(currentState.gunAngles.x), RadToDeg(currentState.gunAngles.y));
-    String strwish(128, "wishAngle (%f, %f)", RadToDeg(renorm_ang(wishShootAngles.x, currentState.gunAngles.x)),
+    String str(0, framemem_ptr(), "gunAngles (%f, %f)", RadToDeg(currentState.gunAngles.x), RadToDeg(currentState.gunAngles.y));
+    String strwish(0, framemem_ptr(), "wishAngle (%f, %f)", RadToDeg(renorm_ang(wishShootAngles.x, currentState.gunAngles.x)),
       RadToDeg(wishShootAngles.y));
     add_debug_text_mark(tm.getcol(3) + Point3(0.f, 1.f, 0.f), str.str());
     add_debug_text_mark(tm.getcol(3) + Point3(0.f, 1.f, 0.f), strwish.str(), -1, 1);
@@ -3206,8 +3252,8 @@ void HumanPhys::drawDebug()
 
   if (draw_gun_debug)
   {
-    String str(128, "curweap %d wishweap %d state %d, canswitch: %s", appliedCT.getChosenWeapon(), currentState.weapEquipState.curSlot,
-      currentState.weapEquipState.curState, canSwitchWeapon ? "yes" : "no");
+    String str(0, framemem_ptr(), "curweap %d wishweap %d state %d, canswitch: %s", appliedCT.getChosenWeapon(),
+      currentState.weapEquipState.curSlot, currentState.weapEquipState.curState, canSwitchWeapon ? "yes" : "no");
     add_debug_text_mark(tm.getcol(3) + Point3(0.f, 1.f, 0.f), str.str());
   }
 
@@ -3221,7 +3267,7 @@ void HumanPhys::drawDebug()
       const float rad = obj.haveCollision ? collRad : 0.001f;
       if (obj.scale.y <= 0.0f)
       {
-        String str(128, "Zero sized coll link: %s", dacoll::get_link_name(obj.nameId));
+        String str(0, framemem_ptr(), "Zero sized coll link: %s", dacoll::get_link_name(obj.nameId));
         add_debug_text_mark(obj.tm.getcol(3), str.str());
         continue;
       }
@@ -3264,28 +3310,28 @@ void HumanPhys::drawDebug()
   {
     float bodyYaw = RadToDeg(dir_to_yaw(currentState.bodyOrientDir));
     float walkYaw = RadToDeg(dir_to_yaw(currentState.walkDir));
-    String str(128, "walkYaw %f, bodyYaw %f", walkYaw, bodyYaw);
+    String str(0, framemem_ptr(), "walkYaw %f, bodyYaw %f", walkYaw, bodyYaw);
     add_debug_text_mark(tm.getcol(3) + Point3(0.f, 1.f, 0.f), str.str());
   }
   if (draw_standing_spd)
   {
-    String spdText(128, "spd = %f m/s", length(currentState.standingVelocity));
+    String spdText(0, framemem_ptr(), "spd = %f m/s", length(currentState.standingVelocity));
     add_debug_text_mark(tm.getcol(3) + Point3(0.f, 1.f, 0.f), spdText.str(), -1, 1);
   }
   if (draw_spd)
   {
-    String spdText(128, "spd = %f m/s with wish %f", length(currentState.velocity), appliedCT.getWalkSpeed());
+    String spdText(0, framemem_ptr(), "spd = %f m/s with wish %f", length(currentState.velocity), appliedCT.getWalkSpeed());
     add_debug_text_mark(tm.getcol(3) + Point3(0.f, 1.f, 0.f), spdText.str(), -1, 1);
   }
   if (draw_ladder_state)
   {
-    String ladderText(128, "ladder = %s", currentState.attachedToLadder ? "attached" : "nope");
+    String ladderText(0, framemem_ptr(), "ladder = %s", currentState.attachedToLadder ? "attached" : "nope");
     add_debug_text_mark(tm.getcol(3) + Point3(0.f, 1.5f, 0.f), ladderText.str(), -1, 1);
   }
 
   if (draw_height_state)
   {
-    String heightText(128, "height = %f", currentState.height);
+    String heightText(0, framemem_ptr(), "height = %f", currentState.height);
     add_debug_text_mark(tm.getcol(3) + Point3(0.f, 0.5f, 0.f), heightText.str(), -1, 1);
   }
 
@@ -3300,7 +3346,7 @@ void HumanPhys::drawDebug()
       queryWalkPosition(walkQueryPos, obstacle_ht, obstacle_ht, false, false, walkRad, Point3(0.f, 0.f, 0.f));
     if (walkQuery.haveResults)
     {
-      String str(0, "step %f, velocity %f, isSliding %d, isInAir %d", walkQuery.stepSize,
+      String str(0, framemem_ptr(), "step %f, velocity %f, isSliding %d, isInAir %d", walkQuery.stepSize,
         dot(currentState.velocity, -currentState.gravDirection), walkQuery.isSliding, walkQuery.isInAir);
       add_debug_text_mark(tm * Point3(0.f, 1.5f, 0.f), str.str());
     }
@@ -3394,7 +3440,7 @@ void HumanPhys::drawDebug()
     for (int i = 0; i < 8; ++i)
       if (currentState.isInAirHistory & (1 << i))
       {
-        String airStr(0, "Was in air %d frames ago", i);
+        String airStr(0, framemem_ptr(), "Was in air %d frames ago", i);
         add_debug_text_mark(tm.getcol(3) + Point3(0.f, 1.6f, 0.f), airStr.str(), -1, curPos++);
       }
   }
@@ -3404,7 +3450,7 @@ void HumanPhys::drawDebug()
     for (int i = 0; i < 10; ++i)
       climbQuery(Point3(0.f, 0.f, 0.f), rayMatId, true, true, true, false, false, getTraceHandle());
     int resTime = get_time_usec(startTime);
-    String timeText(128, "time = %d usec", resTime);
+    String timeText(0, framemem_ptr(), "time = %d usec", resTime);
     add_debug_text_mark(tm.getcol(3) + Point3(0.f, 1.3f, 0.f), timeText.str(), -1, 1);
   }
 }

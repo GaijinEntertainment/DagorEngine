@@ -1,7 +1,7 @@
 let block = {
   rendObj = ROBJ_SOLID
   color = 0xFFCC33
-  size = static [100, 20]
+  size = const [100, 20]
 }
 
 let empty = @() {

@@ -114,6 +114,7 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
 
   ::measure_cpu_freq();
   ::dgs_dont_use_cpu_in_background = false;
+  ::dgs_execute_quiet = ::dgs_get_argv("quiet");
   //::dgs_limit_fps = true;
   ::dgs_post_shutdown_handler = post_shutdown_handler;
 

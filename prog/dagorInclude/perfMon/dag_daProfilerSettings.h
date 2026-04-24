@@ -11,6 +11,7 @@ class DataBlock;
 namespace da_profiler
 {
 void set_profiling_settings(const DataBlock &);
+void set_resolve_symbols(bool enabled);
 uint32_t find_profiler_mode(const char *m);
 const char *profiler_mode_name(uint32_t mode);
 uint32_t profiler_modes_count();

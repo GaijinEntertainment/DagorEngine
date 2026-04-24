@@ -92,35 +92,6 @@ inline bool drawind(int type, int startind, int numprim, int base_vertex)
 }
 
 /**
- * @brief Draw primitives from a user pointer (rather slow).
- *
- * @deprecated Remove this method. It uncontrollably allocates memory in driver.
- *
- * @param type The type of primitives to draw. One of PRIM_XXX enum.
- * @param numprim The number of primitives to draw.
- * @param ptr The pointer to the vertex data.
- * @param stride_bytes The stride between vertices in bytes.
- * @return True if the draw operation was successful, false otherwise.
- */
-bool draw_up(int type, int numprim, const void *ptr, int stride_bytes);
-
-/**
- * @brief Draw indexed primitives from a user pointer (rather slow).
- *
- * @deprecated Remove this method. It uncontrollably allocates memory in driver.
- *
- * @param type The type of primitives to draw. One of PRIM_XXX enum.
- * @param minvert The minimum vertex index.
- * @param numvert The number of vertices.
- * @param numprim The number of primitives to draw.
- * @param ind The pointer to the index data.
- * @param ptr The pointer to the vertex data.
- * @param stride_bytes The stride between vertices in bytes.
- * @return True if the draw operation was successful, false otherwise.
- */
-bool drawind_up(int type, int minvert, int numvert, int numprim, const uint16_t *ind, const void *ptr, int stride_bytes);
-
-/**
  * @brief Draw primitives using indirect parameters.
  *
  * @param type The type of primitives to draw. One of PRIM_XXX enum.
@@ -176,14 +147,6 @@ inline bool draw_base(int type, int start, int numprim, uint32_t num_instances, 
 inline bool drawind_base(int type, int startind, int numprim, int base_vertex, uint32_t num_instances, uint32_t start_instance)
 {
   return d3di.drawind_base(type, startind, numprim, base_vertex, num_instances, start_instance);
-}
-inline bool draw_up(int type, int numprim, const void *ptr, int stride_bytes)
-{
-  return d3di.draw_up(type, numprim, ptr, stride_bytes);
-}
-inline bool drawind_up(int type, int minvert, int numvert, int numprim, const uint16_t *ind, const void *ptr, int stride_bytes)
-{
-  return d3di.drawind_up(type, minvert, numvert, numprim, ind, ptr, stride_bytes);
 }
 inline bool draw_indirect(int type, Sbuffer *args, uint32_t byte_offset) { return d3di.draw_indirect(type, args, byte_offset); }
 inline bool draw_indexed_indirect(int type, Sbuffer *args, uint32_t byte_offset)

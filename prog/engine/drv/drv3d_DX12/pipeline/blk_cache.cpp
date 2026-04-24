@@ -2,6 +2,7 @@
 
 #include "blk_cache.h"
 #include <device.h>
+#include <shaders/psoCacheVersion.h>
 
 
 using namespace drv3d_dx12;
@@ -522,10 +523,16 @@ bool drv3d_dx12::pipeline::SignatueHashDeEncoder::decode(const DataBlock &blk, c
   auto stampParamIndex = blk.findParam("stamp");
   if (DataBlock::TYPE_INT64 != blk.getParamType(stampParamIndex))
     return false;
+  auto psoCacheVersionParamIndex = blk.findParam("psoCacheVersion");
+  if (psoCacheVersionParamIndex >= 0 && DataBlock::TYPE_INT != blk.getParamType(psoCacheVersionParamIndex))
+    return false;
 
   target.name = blk.getBlockName();
   target.hash = blk.getStr(hashParamIndex);
   target.timestamp = blk.getInt64(stampParamIndex);
+  // set psoCacheVersion 0 by default to avoid breaking changes and invalidation of existing PSO cache
+  target.psoCacheVersion = blk.getInt("psoCacheVersion", 0);
+
   return true;
 }
 
@@ -536,16 +543,19 @@ bool drv3d_dx12::pipeline::SignatueHashDeEncoder::encode(DataBlock &blk, const c
     return false;
   subBlk->setStr("hash", source.hash.c_str());
   subBlk->setInt64("stamp", source.timestamp);
+  subBlk->setInt("psoCacheVersion", source.psoCacheVersion);
   return true;
 }
 
-bool drv3d_dx12::pipeline::SignatueHashDeEncoder::encode(DataBlock &blk, const char *name, const char *hash, int64_t timestamp) const
+bool drv3d_dx12::pipeline::SignatueHashDeEncoder::encode(DataBlock &blk, const char *name, const char *hash, int64_t timestamp,
+  int32_t psoCacheVersion) const
 {
   auto subBlk = blk.addNewBlock(name);
   if (!subBlk)
     return false;
   subBlk->setStr("hash", hash);
   subBlk->setInt64("stamp", timestamp);
+  subBlk->setInt("psoCacheVersion", psoCacheVersion);
   return true;
 }
 

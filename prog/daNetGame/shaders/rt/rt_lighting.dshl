@@ -1,3 +1,4 @@
+include "rt_landclass_inc.dshl"
 include "land_block_inc.dshl"
 include "clipmap.dshl"
 include "shader_global.dshl"
@@ -12,19 +13,38 @@ include "perlin_layered_inc.dshl"
 include "indoor_light_probes.dshl"
 include "bvh_common_includes.dshl"
 include "clustered/gi_dynamic_lights.dshl"
+include "project_prev_frame_sample_radiance.dshl"
+include "prev_screen_tc.dshl"
+include "reprojected_motion_vectors.dshl"
+include "rtr_probes_use.dshl"
+include "grass_generate_inc.dshl"
+include "skinning_inc2.dshl"
+include "underwater_fog.dshl"
 
 int bvh_paint_details_tex_slot;
 int bvh_paint_details_smp_slot;
 
 int rtr_shadow = 1;
 interval rtr_shadow: off < 1, on;
+
+int glass_rtr_shadow = 1;
+interval glass_rtr_shadow: off < 1, on;
+
 int rtr_use_csm = 0;
-interval rtr_use_csm: no < 1, yes;
 
 float4 bvh_eye_sclera_color = (0.651, 0.565, 0.565, 0);
 float4 bvh_eye_iris_color = (0.075, 0.094, 0.09, 0);
 
 float rtr_sky_probe_ray_length_threshold = 200;
+float4 texcoord_scale_offset = (1.0, 1.0, 0.0, 0.0);
+float rtr_probe_weight_offset_factor = -0.2;
+
+texture perlin_noise3d;
+
+int bvh_dynamic_decals_atlas_tex_slot;
+int bvh_dynamic_decals_atlas_smp_slot;
+int bvh_instance_data_buffer_cur_offset;
+buffer bvh_instance_data_buffer;
 
 macro INIT_DAGI_IN_RT(stage)
   if (gi_quality == only_ao)
@@ -52,9 +72,9 @@ macro USE_DAGI_IN_RT(stage)
     {
       half3 ambient = enviLight;
       ##if (gi_quality == only_ao)
-        float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, worldPos, 0, 0, diffuseNormal, 0);
-        if (all(sh1 != 1))
-          ambient = GetSHFunctionValueSimple(diffuseNormal, enviSPH0 * sh1.wyzx, enviSPH1 * sh1.wyzx, enviSPH2 * sh1.wyzx);
+        float vignette;
+        float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, worldPos, 0, 0, diffuseNormal, 0, vignette);
+        ambient = lerp(GetSHFunctionValueSimple(diffuseNormal, enviSPH0 * sh1.wyzx, enviSPH1 * sh1.wyzx, enviSPH2 * sh1.wyzx), ambient, vignette);
       ##else
           float ofs = max(dist * 0.04, 0.25 * dagi_irrad_grid_probe_size(0));
           float3 filteredWorldPos = worldPos.xyz + view * ofs;
@@ -65,10 +85,121 @@ macro USE_DAGI_IN_RT(stage)
   }
 endmacro
 
+macro INIT_BVH_DECALS(stage)
+  (stage)
+  {
+    bvh_dynamic_decals_atlas_tex_slot@i1 = bvh_dynamic_decals_atlas_tex_slot;
+    bvh_dynamic_decals_atlas_smp_slot@i1 = bvh_dynamic_decals_atlas_smp_slot;
+    bvh_instance_data_buffer_cur_offset@i1 = bvh_instance_data_buffer_cur_offset;
+  }
+  if (small_sampled_buffers == no)
+  {
+    (stage) {
+      instance_data_buffer@buf = bvh_instance_data_buffer hlsl { Buffer<float4> instance_data_buffer@buf; }
+    }
+  } else
+  {
+    (stage) {
+      instance_data_buffer@buf = bvh_instance_data_buffer hlsl { StructuredBuffer<float4> instance_data_buffer@buf; }
+    }
+  }
+endmacro
+
+macro USE_BVH_DECALS(stage)
+  hlsl(stage)
+  {
+    // Hard coded values, to not need to pass them in material parameter
+    static const float tank_decals_smoothness = 0.4;
+    static const float diffuse_to_decal = 0.01;
+    float4 get_decal_depth_rcp__diff_mul__decal_smoothness()
+    {
+      return float4(0, 0, 1. / (diffuse_to_decal * diffuse_to_decal + 1e-6), tank_decals_smoothness);
+    }
+    #define vehicle_decals_atlas uniformBindlessTex2D(bvh_textures, bvh_dynamic_decals_atlas_tex_slot)
+    #define vehicle_decals_atlas_samplerstate bvh_samplers[bvh_dynamic_decals_atlas_smp_slot]
+
+    static int instance_offset_for_decal = 0;
+    #define INST_OFFSET_GETTER instance_offset_for_decal
+  }
+  INIT_PER_INSTANCE_DATA(stage)
+  hlsl(stage) {
+    // Copy pasted from vehicle_decals.dshl, but mip level is an input parameter, to avoid derivates
+    float GetInfluence(float influence)
+    {
+      float minAng80 = 0.174;
+      float maxAng45 = 0.707;
+      return saturate((influence - minAng80) / (maxAng45 - minAng80));
+    }
+
+    half apply_decals_impl(inout float3 diffuseColor, float3 model_pos, float3 model_normal, float mipLevel)
+    {
+      // Can't rely on daNetGameLibs directly, so copy pasted
+      // #include "vehicle_decals.hlsli"
+      const int DECALS_SIZE = 4;
+      const int MAX_DECALS = 8;//one sided
+
+      const uint MAX_DECALS_SIZE = MAX_DECALS * DECALS_SIZE;
+      uint2 offset_count = get_offset_count_additional_data(AAD_DECALS_TYPE);
+
+      half diffMul = saturate(luminance(diffuseColor.rgb) * get_decal_depth_rcp__diff_mul__decal_smoothness().z);
+      float4 modelPos4 = float4(model_pos, 1);
+      float underDecalEffect = 1;
+
+      for (int i = 0, n = min(MAX_DECALS_SIZE, offset_count.y); i < n; i += DECALS_SIZE)
+      {
+        float2 uv;
+        float4 depthProjection = get_additional_data_unsafe(offset_count, i + 0);
+        float decDepth = dot(modelPos4, depthProjection);
+        float decTexInfluence = GetInfluence(dot(model_normal, depthProjection.xyz));
+        uv.x = dot(modelPos4, get_additional_data_unsafe(offset_count, i + 1));
+        uv.y = dot(modelPos4, get_additional_data_unsafe(offset_count, i + 2));
+
+        if (all(and(0.0 <= uv, uv <= 1.0)))
+        {
+          float4 uvOffsetScale = get_additional_data_unsafe(offset_count, i + 3);
+          uv = uv * uvOffsetScale.zw + uvOffsetScale.xy;
+          float4 decal = vehicle_decals_atlas.SampleLevel(vehicle_decals_atlas_samplerstate, uv, mipLevel);
+
+          float decalEffect = decTexInfluence * (abs(decDepth) < 1) * decal.a;
+          diffuseColor.rgb = lerp(diffuseColor.rgb, diffMul * decal.rgb, decalEffect);
+          underDecalEffect *= (1-decalEffect);
+        }
+      }
+      return saturate(underDecalEffect);
+    }
+
+    void apply_decals(float3 modelPos, float3 modelNorm, inout float3 diffuseColor, inout float smoothness, inout float metallness, float mipLevel)
+    {
+      float4 decalsColor = float4(diffuseColor.rgb, 1);
+      decalsColor.a = apply_decals_impl(decalsColor.rgb, modelPos, modelNorm, mipLevel);
+      diffuseColor.rgb = lerp(decalsColor.rgb, diffuseColor.rgb, decalsColor.a);
+      smoothness = lerp(get_decal_depth_rcp__diff_mul__decal_smoothness().w, smoothness, decalsColor.a);
+      metallness = lerp(0, metallness, decalsColor.a);
+    }
+
+    void apply_node_transformation_to_model(inout HitInfo hitInfo)
+    {
+      uint nodeId = hitInfo.packed_normal_w;
+      uint2 tm_st_pos = get_offset_count_additional_data(AAD_MODEL_TM);
+      const int POINT4_FOR_MATRIX = 3;
+      uint tmOffset = tm_st_pos.y - nodeId * POINT4_FOR_MATRIX;
+      float3x4 mat = float3x4(
+        get_additional_data(tm_st_pos, tmOffset - 1),
+        get_additional_data(tm_st_pos, tmOffset - 2),
+        get_additional_data(tm_st_pos, tmOffset - 3)
+      );
+
+      hitInfo.modelPosition = mul(mat, float4(hitInfo.modelPosition, 1));
+      hitInfo.modelNormal = mul(mat, float4(hitInfo.modelNormal, 0));
+    }
+  }
+endmacro
+
 macro INIT_RT_SURFACE_PARAMS(stage)
   INIT_CLIPMAP_NORMAL_BASE(stage, true)
   INIT_WORLD_HEIGHTMAP_BASE(stage)
   RANDOM_UV_OFFSET(stage)
+  INIT_GRASS_COLORS_CBUF(stage)
   (stage)
   {
     paint_details_tex_slot@i1 = bvh_paint_details_tex_slot;
@@ -76,27 +207,41 @@ macro INIT_RT_SURFACE_PARAMS(stage)
     perlin_noise3d@smp3d = perlin_noise3d;
     bvh_eye_sclera_color@f3 = (pow(bvh_eye_sclera_color.x, 2.2), pow(bvh_eye_sclera_color.y, 2.2), pow(bvh_eye_sclera_color.z, 2.2), 0);
     bvh_eye_iris_color@f3 = (pow(bvh_eye_iris_color.x, 2.2), pow(bvh_eye_iris_color.y, 2.2), pow(bvh_eye_iris_color.z, 2.2), 0);
-    rtr_sky_probe_ray_length_threshold@f1 = rtr_sky_probe_ray_length_threshold;
+    bvh_water_color@f3 = (sRGBRead(ocean0)); // Probably good enough
+  }
+  if (bvh_decals == yes)
+  {
+    INIT_BVH_DECALS(stage)
   }
 endmacro
 
 macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
+  if (bvh_decals == yes && !fast_mode)
+  {
+    USE_BVH_DECALS(stage)
+  }
   hlsl(stage)
   {
     #define NO_GRADIENTS_IN_SHADER 1
     #include <psh_tangent.hlsl>
     #include <normaldetail.hlsl>
 
-    #define paint_details_tex bvh_textures[bvh_textures_range_start + paint_details_tex_slot]
+    #define paint_details_tex uniformBindlessTex2D(bvh_textures, paint_details_tex_slot)
     #define paint_details_tex_samplerstate bvh_samplers[paint_details_smp_slot]
   }
+  (stage)
+  {
+    texcoord_scale_offset@f4 = texcoord_scale_offset;
+  }
   USE_CLIPMAP_BINDLESS_TEXTURE_DECLARATIONS(stage)
-  USE_CLIPMAP_NORMAL_BASE(stage)
+  USE_CLIPMAP_NORMAL_BASE(stage, true)
+  INIT_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, true)
   USE_HEIGHTMAP_COMMON_BASE(stage)
   USE_ROUGH_TO_MIP()
   USE_PERLIN_LAYERED(stage)
   DETAIL_WEIGHTS_BLENDING(stage)
   WETNESS_FOR_SPEC_BRDF(stage)
+  USE_LANDSCAPE_TC_TO_WORLD(stage)
   hlsl(stage)
   {
     // copy pasted from shader_global, that only had a ps version
@@ -120,12 +265,12 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
       half reflectance, smoothness, ao, emission;
       DetailDesc detailNo;
     };
-    Vtex sample_clipmaps(float3 worldPos, float4 world_pos_xz_gradients, half smooth_mip, DetailDesc microdetail_desc)
+    Vtex sample_clipmaps(float3 worldPos, float4 world_pos_xz_gradients, half smooth_mip, DetailDesc microdetail_desc, int inderection_offset)
     {
       Vtex vtex = (Vtex)0;
       sample_clipmaps(worldPos.xz, world_pos_xz_gradients,
         vtex.diffuse, vtex.normal_xy, vtex.smoothness, vtex.ao,
-        vtex.reflectance, vtex.emission, vtex.detailNo, smooth_mip);
+        vtex.reflectance, vtex.emission, vtex.detailNo, smooth_mip, inderection_offset);
       return vtex;
     }
 
@@ -185,20 +330,23 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
 
     half3 calc_perling_layers(HitInfo hitInfo, float mip_level)
     {
+      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.albedoSamplerIndex == 0xFFFFU)
+        return 0;
+
       float4 invertHeights = float4(f16tof32(asuint(hitInfo.rawLayerData.z)), f16tof32(asuint(hitInfo.rawLayerData.z >> 16)), f16tof32(asuint(hitInfo.rawLayerData.w)), f16tof32(asuint(hitInfo.rawLayerData.w >> 16)));
       float4 mask_gamma = float4(f16tof32(asuint(hitInfo.rawLayerData.x)), f16tof32(asuint(hitInfo.rawLayerData.x >> 16)), f16tof32(asuint(hitInfo.rawLayerData.y)), f16tof32(asuint(hitInfo.rawLayerData.y >> 16)));
 
       SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
 
-      half4 diffuseColor0 = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.albedoTextureIndex)].SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
+      half4 diffuseColor0 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
       half4 diffuseColor1 = 0;
       if (hitInfo.alphaTextureIndex != 0xFFFFU)
-        diffuseColor1 = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.alphaTextureIndex)].SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
+        diffuseColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
       else
         invertHeights.y = 0;
       half4 diffuseColor2 = 0;
       if (hitInfo.extraTextureIndex != 0xFFFFU)
-        diffuseColor2 = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.extraTextureIndex)].SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
+        diffuseColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
       else
         invertHeights.z = 0;
 
@@ -248,10 +396,13 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
 
     half3 calc_layers(HitInfo hitInfo, float mip_level)
     {
+      if (hitInfo.albedoTextureIndex == 0xFFFFU || hitInfo.alphaTextureIndex == 0xFFFFU || hitInfo.extraTextureIndex == 0xFFFFU || hitInfo.albedoSamplerIndex == 0xFFFFU)
+        return 0;
+
       SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-      half4 baseColor = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.albedoTextureIndex)].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
-      half4 detailColor1 = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.alphaTextureIndex)].SampleLevel(bvh_sampler,hitInfo.texcoord, 0);
-      half4 detailColor2 = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.extraTextureIndex)].SampleLevel(bvh_sampler,hitInfo.texcoord, 0);
+      half4 baseColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mip_level);
+      half4 detailColor1 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.alphaTextureIndex).SampleLevel(bvh_sampler,hitInfo.texcoord, mip_level);
+      half4 detailColor2 = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_sampler,hitInfo.texcoord, mip_level);
 
       float2 invert_heights = float2(f16tof32(asuint(hitInfo.materialData2.x)), f16tof32(asuint(hitInfo.materialData2.x) >> 16));
       float2 paintDetails = float2(f16tof32(asuint(hitInfo.materialData2.y)), f16tof32(asuint(hitInfo.materialData2.y) >> 16));
@@ -271,7 +422,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
 
       half4 detailColor = detailColor1*weights.x + detailColor2*weights.y;
       half3 diffuseColor = baseColor.rgb * detailColor.rgb;
-      return diffuseColor * COLOR_CORRECTION_MULTIPLIER;
+      return saturate(diffuseColor * COLOR_CORRECTION_MULTIPLIER);
     }
 
     float4 get_camo_params(HitInfo hitInfo)
@@ -328,8 +479,6 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
       half3 emission;
       bool isWater;
       bool isImpostor;
-      bool isTwoSided;
-      bool isUnstable;
       bool isFoliage;
     };
 
@@ -348,20 +497,37 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
       sp.surfaceToCamera = surfaceToCamera;
       sp.albedo = 1;
       sp.normal = hitInfo.normal;
-      sp.isTwoSided = false; // Can we figure this out?
-      sp.isUnstable = false; // Can we figure this out?
       sp.isFoliage = false; // Can we figure this out?
 
       float mipLevel = w <= 0 ? abs(w) : calc_mip_level(w + hitInfo.t, hitInfo.isImpostor);
 
-      if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
+      if (get_material_type(hitInfo.material) == bvhMaterialTerrain ||
+          get_material_type(hitInfo.material) == bvhMaterialLandclass)
       {
         float totalRayT = w + hitInfo.t;
         float calculatedDx = totalRayT / 1000;
+
+        bool isLandclass = get_material_type(hitInfo.material) == bvhMaterialLandclass;
+
+        float3 tcWorldPos = worldPos;
+        int indirectionOffset = 0;
+        if (isLandclass)
+        {
+          float2 texcoord = hitInfo.texcoord * hitInfo.materialData1.xy + hitInfo.materialData1.zw;
+          float2 spoofedWorldPosXZ = texcoord * ri_landscape_tc_to_world.xy + ri_landscape_tc_to_world.zw;
+          tcWorldPos = float3(spoofedWorldPosXZ.x, worldPos.y, spoofedWorldPosXZ.y);
+          indirectionOffset = get_clipmap_indirection_offset_by_index(asint(hitInfo.materialData2.x));
+        }
+
         DetailDesc microdetail_desc;
-        Vtex textures = sample_clipmaps(worldPos, calculatedDx, 0, microdetail_desc);
+        Vtex textures = sample_clipmaps(tcWorldPos, calculatedDx, 0, microdetail_desc, indirectionOffset);
+
+        float3 terrainNormal = getNormalLow(tcWorldPos.xz);
+        if (isLandclass)
+          terrainNormal.xzy = RNM_ndetail_normalized(hitInfo.normal.xzy, terrainNormal.xzy); // Not quite correct, but better than nothing
+
         sp.albedo = textures.diffuse;
-        sp.normal = getNormalLow(worldPos.xz);
+        sp.normal = terrainNormal;
         ##if !fast_mode
           sp.normal.xzy = RNM_ndetail_normalized(sp.normal.xzy, restore_normal(textures.normal_xy));
         ##endif
@@ -379,10 +545,10 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
         {
           sp.albedo = calc_layers(hitInfo, mipLevel);
         }
-        else if (hitInfo.albedoTextureIndex != 0xFFFF)
+        else if (hitInfo.albedoTextureIndex != 0xFFFFU && hitInfo.albedoSamplerIndex != 0xFFFFU)
         {
           SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-          half4 texel = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.albedoTextureIndex)].SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.albedoTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
           sp.albedo = texel.rgb;
           texelAlpha = texel.a;
           apply_painting(hitInfo, texel.a, sp.albedo);
@@ -392,20 +558,32 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
             sp.albedo = lerp(bvh_eye_sclera_color, bvh_eye_iris_color, saturate((eyeLerpParam - 0.03) * 24)) * (1 - saturate((eyeLerpParam - 0.5) * 4));
           }
 
-          if (hitInfo.extraTextureIndex != 0xFFFF)
+          if (hitInfo.hasColorMod)
           {
-            SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-            half4 texel = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.extraTextureIndex)].SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
-            sp.albedo.rgb *= texel.rgb;
+            half4 fillColor = half4(1, 1, 1, 1);
+            if (hitInfo.extraTextureIndex != 0xFFFF)
+            {
+              // camouflage_scale_and_offset is ignored
+              fillColor = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.extraTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+            }
+            else
+            {
+              fillColor = (half4((hitInfo.perInstanceDataCompressed.xxxx >> uint4(16, 8, 0, 24)) & 255) / 255.0h);
+              fillColor = half4(pow((fillColor.rgb + 0.055) / 1.055, 2.4), fillColor.a);
+              fillColor.rgb = fillColor.rgb * fillColor.a + sp.albedo * (1. - fillColor.a);
+            }
+
+            half colorMul  = half(hitInfo.perInstanceDataCompressed.y / 255.0);
+            sp.albedo = sp.albedo * texelAlpha + min(sp.albedo * fillColor.rgb * colorMul, 1.xxx) * (1 - texelAlpha);
           }
         }
 
-        if (hitInfo.normalTextureIndex != 0xFFFF && !hitInfo.isLayered)
+        if (hitInfo.normalTextureIndex != 0xFFFFU && hitInfo.normalSamplerIndex != 0xFFFFU && !hitInfo.isLayered)
         {
           SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.normalSamplerIndex)];
-          half4 texel = (half4) bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + hitInfo.normalTextureIndex)].SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+          half4 texel = (half4)nonUniformBindlessTex2D(bvh_textures, hitInfo.normalTextureIndex).SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
           sp.smoothness = texel.r;
-          sp.metalness = texel.b;
+          sp.metalness = texel.b  * (hitInfo.isNonMetal ? 0 : 1);
         }
         else
         {
@@ -421,7 +599,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
           {
             uint camoTexPacked = asuint(hitInfo.perInstanceDataCompressed.x);
             uint camoTexIndex = camoTexPacked >> 16;
-            if (camoTexIndex < 0xFFFFU)
+            if (camoTexIndex != 0xFFFFU && hitInfo.albedoSamplerIndex != 0xFFFFU)
             {
               float4 camoParams = get_camo_params(hitInfo);
               float2 camoTexcoord = camoParams.xy;
@@ -429,13 +607,13 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
               float invCondition = 1.0 / condition;
 
               SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
-              half4 camoTexture = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + camoTexIndex)].SampleLevel(bvh_sampler, camoTexcoord, mipLevel);
+              half4 camoTexture = (half4)nonUniformBindlessTex2D(bvh_textures, camoTexIndex).SampleLevel(bvh_sampler, camoTexcoord, mipLevel);
 
               half camouflagePart = texelAlpha;
               uint camoSkinTex = camoTexPacked & 0xFFFFU;
               if (camoSkinTex < 0xFFFFU)
               {
-                half4 skinColor = (half4)bvh_textures[NonUniformResourceIndex(bvh_textures_range_start + camoSkinTex)].SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
+                half4 skinColor = (half4)nonUniformBindlessTex2D(bvh_textures, camoSkinTex).SampleLevel(bvh_sampler, hitInfo.texcoord, mipLevel);
                 camoTexture.rgb = lerp(camoTexture.rgb, skinColor.rgb, skinColor.a);
                 camouflagePart = lerp(camouflagePart, 1.0, skinColor.a);
               }
@@ -446,7 +624,48 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
               sp.metalness = lerp(sp.metalness, 0, pow4(camouflagePart));//camoTexture.a*camoTexture.a
             }
           }
+          else if (hitInfo.isGrass)
+          {
+            uint grassType = hitInfo.materialData1.x;
+            float randV = 0.5; // No per instance data support on GPU placed instances (yet)
+            // VS
+            half3 mask_r = lerp( grass_colors_vs[grassType].mask_r_color0.rgb, grass_colors_vs[grassType].mask_r_color1.rgb, randV );
+            half3 mask_b = lerp( grass_colors_vs[grassType].mask_b_color0.rgb, grass_colors_vs[grassType].mask_b_color1.rgb, randV );
+            half3 color_mask_g_from = grass_colors_vs[grassType].mask_g_color0.rgb;
+            half3 color_mask_g_to = grass_colors_vs[grassType].mask_g_color1.rgb;
+            // PS
+            half3 grassAlbedo = sp.albedo;
+            half3 landColor = sample_lastclip_lod(worldPos, 0);
+            half3 color = lerp( landColor, mask_r, grassAlbedo.r );
+            color = lerp( color.rgb, mask_b, grassAlbedo.b );
+            color = color * lerp( color_mask_g_from, color_mask_g_to.rgb, grassAlbedo.g ) * COLOR_CORRECTION_MULTIPLIER;
+            sp.albedo = saturate(color);
+            sp.isFoliage = true;
+          }
+          ##if bvh_decals == yes
+          if (hitInfo.hasAnimcharDecals)
+          {
+            instance_offset_for_decal = hitInfo.perInstanceDataCompressed.z + bvh_instance_data_buffer_cur_offset;
+            apply_node_transformation_to_model(hitInfo);
+            apply_decals(hitInfo.modelPosition, hitInfo.modelNormal, sp.albedo, sp.smoothness, sp.metalness, mipLevel);
+          }
+          ##endif
         ##endif
+      }
+      else if (get_material_type(hitInfo.material) == bvhMaterialWater)
+      {
+        sp.isWater = true;
+        sp.albedo = bvh_water_color;
+        sp.reflectance = 1;
+        sp.smoothness = 1;
+        sp.metalness = 0;
+      }
+      else if (get_material_type(hitInfo.material) == bvhMaterialMonochrome)
+      {
+        sp.albedo = hitInfo.materialData1.xyz;
+        sp.metalness = hitInfo.materialData2.x;
+        sp.smoothness = hitInfo.materialData2.y;
+        sp.reflectance = hitInfo.materialData2.z;
       }
 
       if (has_instance_color(hitInfo.material))
@@ -462,7 +681,7 @@ macro USE_RT_SURFACE_PARAMS(stage, fast_mode)
 endmacro
 
 // use_cockpit_lights is Skyquake specific
-macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows, use_dagi, shadow_use_rt, shadow_use_csm, use_rt_probes)
+macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows, use_dagi, shadow_use_rt, shadow_use_csm_unused, use_probes)
   INIT_RT_SURFACE_PARAMS(stage)
   INIT_SKY_DIFFUSE_BASE(stage)
   INIT_ENVI_SPECULAR_BASE(stage)
@@ -495,21 +714,26 @@ macro INIT_RT_LIGHTING(stage, use_cockpit_lights, use_sampler_for_cloud_shadows,
       #define RT_USE_STATIC_SHADOW 1
     }
 
-    if (shadow_use_csm)
-    {
-      INIT_CSM_SHADOW(stage)
-      BASE_USE_CSM_SHADOW_DEF_NUM(stage)
+    INIT_CSM_SHADOW(stage)
+    BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(stage)
 
-      hlsl(stage) {
-        #define RT_USE_CSM_SHADOW 1
-      }
+    hlsl(stage) {
+      #define RT_USE_CSM_SHADOW 1
     }
   }
 
+  if (use_probes)
+  {
+    INIT_RTR_PROBES(stage, true)
+    USE_RTR_PROBES(stage)
+  }
+
   SQ_INIT_CLOUDS_SHADOW(stage)
-  INIT_FOM_SHADOWS(stage)
+  DO_INIT_FOM_SHADOWS_BINDLESS(stage)
   (stage) {
     clouds_shadow_influence@f1 = clouds_shadow_influence;
+    rtr_sky_probe_ray_length_threshold@f1 = rtr_sky_probe_ray_length_threshold;
+    rtr_probe_weight_offset_factor@f1 = rtr_probe_weight_offset_factor;
   }
   endmacro
 
@@ -546,7 +770,7 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
       return getGiDynamicLighting(gbuffer, worldPos, 0, 0, 0);
     }
 
-    half3 calc_environment_specular_reflection(float3 worldPos, float3 normalh, float linearRoughness, float3 surfaceToCamera, float viewDist, float3 ambientLum)
+    half3 calc_environment_specular_reflection(float3 worldPos, float3 normalh, float linearRoughness, float3 surfaceToCamera, float viewDist, float3 ambientLum, out float indoor_probe_weight)
     {
         half ggx_alpha = max(1e-4, linearRoughness * linearRoughness);
         half NdotV = dot(normalh, surfaceToCamera);
@@ -559,6 +783,7 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
 
         if (indoorReflectionLocalWeight.w > 0)
           environmentSpecularReflection += sample_envi_probe(float4(roughR, roughMip)).rgb * indoorReflectionLocalWeight.w;
+        indoor_probe_weight = saturate(indoorReflectionLocalWeight.w * 1000);
 
         float mipForTrick = linearRoughness*NUM_PROBE_MIPS;
         float maximumSpecValue = max3(
@@ -619,30 +844,104 @@ macro USE_RT_LIGHTING(stage, use_cockpit_lights, fast_mode)
       half extractedAlbedoAo = decode_albedo_ao(surface.albedo);
       half3 diffuseColor = surface.albedo - surface.metalness * surface.albedo;
 
-      half specularAOcclusion = 1;
-      half3 specularColor = surfaceSpecularColor * (specularAOcclusion * extractedAlbedoAo);
-      half enviSSR = 1;
+      half3 specularColor = surfaceSpecularColor * extractedAlbedoAo;
       half sheenColor = 0, sheenStrength = 0;
 
-      half3 litPixel = standardBRDF( NoV, saturate(NoL), diffuseColor, ggx_alpha, linearRoughness, specularColor, enviSSR*extractedAlbedoAo, toSun, surface.surfaceToCamera, normalh, sheenColor, sheenStrength)*(shadow)*lightColor;
+      half3 litPixel = standardBRDF( NoV, saturate(NoL), diffuseColor, ggx_alpha, linearRoughness, specularColor, extractedAlbedoAo, toSun, surface.surfaceToCamera, normalh, sheenColor, sheenStrength)*(shadow)*lightColor;
       litPixel += calc_dynamic_lights(surface, worldPos, diffuseColor);
       litPixel += surface.emission;
       float3 ambient = calc_environment_ambient_unoccluded_lighting(worldPos, normalh, linearRoughness, surface.surfaceToCamera, w);
       litPixel += ambient * diffuseColor;
 
       float3 enviBRDF = EnvBRDFApprox(specularColor, linearRoughness, NoV);
-      litPixel += calc_environment_specular_reflection(worldPos, normalh, linearRoughness, surface.surfaceToCamera, length(surface.position), luminance(ambient)) * enviBRDF;
+      float indoorProbeWeight; // 0 = fully inside, 1 = fully outside
+      float3 specularComponent = calc_environment_specular_reflection(worldPos, normalh, linearRoughness, surface.surfaceToCamera, length(surface.position), luminance(ambient), indoorProbeWeight);
+
+      // Specular hack to avoid excessive sky glow
+      // Increase multiplier when we have indoor probes
+      // Metallic objects don't get lit diffusely, so we can allow them to be brighter
+      half hackLerpS = indoorProbeWeight * (1-surface.metalness);
+      half MIN_ENVI_SSR = lerp(0.25, 0.1, hackLerpS);
+      half enviSSR = MIN_ENVI_SSR + shadow * (1 - MIN_ENVI_SSR);
+      half specularAOcclusion = lerp(0.5, 0.1, hackLerpS);
+      enviSSR *= specularAOcclusion;
+      specularComponent *= enviSSR;
+
+      if (surface.isWater)
+      {
+        float Fc = pow5(1.- NoV);
+        half fresnelView = Fc+0.02*(1-Fc);
+        litPixel = litPixel*(1-fresnelView) + specularComponent*enviBRDF;
+      }
+      else
+      {
+        litPixel += specularComponent * enviBRDF;
+      }
 
       return litPixel;
     }
 
+    #if rtr_use_probes
+      static const int borderCount = 2;
+      float calc_probe_weight(float distance, float w)
+      {
+        const float minW = 2; // To accept probes near camera
+        w = max(w, minW);
+        float weightOffset = 1.0 / (rtr_probe_weight_offset_factor * w);
+        const float resolutionFactor = 1.0 / 40.0; // Probes are further away from each other on low resolution
+        weightOffset *= usable_probe_count.x * resolutionFactor;
+        const float minDistance = 1e-5;
+        return max(0, weightOffset + 1.0 / max(distance, minDistance));
+      }
+    #endif
+
+
     half3 calc_direct_surface_reflection(float3 worldPos, float3 normal, float roughness, float3 surfaceToCamera, float w, float viewDist, float3 sampleDir, float maxReflectionDistance, uint2 tci, inout float depth)
     {
       if (maxReflectionDistance > rtr_sky_probe_ray_length_threshold)
-        return texCUBElod(envi_probe_specular, float4(sampleDir, 0)).rgb;
+        return texCUBElod(envi_probe_specular, float4(sampleDir, 0)).rgb * apply_sky_polarization_filter();
+
+      #if rtr_use_probes
+        if (rtr_probes_bindless_enabled())
+        {
+          int2 probeIndex = tci / PROBE_AREA;
+          int2 probeCountI = usable_probe_count;
+          float3 colorAccum = 0;
+          float depthAccum = 0;
+          float weightSum = 0;
+          for (int y = max(probeIndex.y - borderCount, 0); y < min(probeIndex.y + borderCount + 1, probeCountI.y); ++y)
+          {
+            for (int x = max(probeIndex.x - borderCount, 0); x < min(probeIndex.x + borderCount + 1, probeCountI.x); ++x)
+            {
+              uint localProbeIndex = x + y * probe_count.x;
+              float4 probeData = asfloat(loadBuffer4(probe_locations, localProbeIndex*16));
+
+              BRANCH
+              if (probeData.w != 0)
+              {
+                float probeDistance = distance(worldPos, probeData.xyz);
+                float probeWeight = calc_probe_weight(probeDistance, w);
+                float4 probeSample = sample_probe(uint2(x, y), sampleDir);
+                weightSum += probeWeight;
+                colorAccum += probeSample.rgb * probeWeight;
+                depthAccum += probeSample.a * probeWeight;
+              }
+            }
+          }
+
+          if (weightSum > 0)
+          {
+            colorAccum /= weightSum;
+            depthAccum /= weightSum;
+            depth = depthAccum;
+            return colorAccum;
+          }
+        }
+      #endif
 
       float3 ambient = calc_environment_ambient_unoccluded_lighting(worldPos, normal, roughness, surfaceToCamera, w);
-      return calc_environment_specular_reflection(worldPos, normal, roughness, surfaceToCamera, viewDist, luminance(ambient));
+      float indoorProbeWeight;
+      return calc_environment_specular_reflection(worldPos, normal, roughness, surfaceToCamera, viewDist, luminance(ambient), indoorProbeWeight);
     }
   }
 endmacro
@@ -654,5 +953,36 @@ macro GET_SCATTERED_REFLECTION_VECTOR(stage)
     {
       return cosine_sample_hemisphere(reflection_vector, seed, pow2(roughness));
     }
+  }
+endmacro
+
+macro RT_PREV_FRAME_SAMPLE(stage, struct_name)
+  (stage)
+  {
+    prev_globtm_psf@f44 = { prev_globtm_psf_0, prev_globtm_psf_1, prev_globtm_psf_2, prev_globtm_psf_3 };
+    sp_prev_zn_zfar@f4 = (prev_zn_zfar.x, prev_zn_zfar.y, 1/(prev_zn_zfar.y), (prev_zn_zfar.y-prev_zn_zfar.x)/(prev_zn_zfar.x * prev_zn_zfar.y));
+  }
+  hlsl(stage)
+  {
+    #define RT_CALC_VIEWVECT 1
+  }
+  PROJECT_PREV_FRAME_SAMPLE_REPROJECT(stage)
+  hlsl(stage)
+  {
+    struct struct_name
+    {
+      static bool get_screen_sample(float3 worldPos, float3 rayDir, out float3 radiance)
+      {
+        float4 prevNDC = mul(float4(worldPos, 1), prev_globtm_psf);
+        float3 prevUVW = float3(prevNDC.xy / prevNDC.w, prevNDC.w);
+        prevUVW.xy = float2(prevUVW.x, -prevUVW.y) * 0.5 + 0.5;
+        float3 currentUVW = 0; // dummy
+        float3 camPos = 0; // dummy
+        bool allow_uncertaincy = true;
+        radiance = 0;
+
+        return sample_prev_frame_radiance(prevUVW, currentUVW, camPos, rayDir, allow_uncertaincy, radiance);
+      }
+    };
   }
 endmacro

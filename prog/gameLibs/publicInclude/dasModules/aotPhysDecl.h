@@ -33,10 +33,7 @@ inline void projectile_impulse_get_data(const ProjectileImpulse &impulse,
     pairs.push_back(das::ProjectileImpulseDataPair{pair.first, &pair.second});
 
   das::Array arr;
-  arr.data = (char *)pairs.data();
-  arr.size = pairs.size();
-  arr.capacity = pairs.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, pairs.data(), pairs.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

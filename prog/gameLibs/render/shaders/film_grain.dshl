@@ -1,0 +1,22 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+include "film_grain_inc.dshl"
+
+shader film_grain
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+  color_write = rgb;
+  POSTFX_VS_TEXCOORD(0, tc)
+  INIT_FILM_GRAIN(false)
+  USE_FILM_GRAIN()
+  hlsl(ps) {
+    float3 film_grain_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      return get_film_grain(GET_SCREEN_POS(input.pos).xy);
+    }
+  }
+  compile("target_ps", "film_grain_ps");
+}
+

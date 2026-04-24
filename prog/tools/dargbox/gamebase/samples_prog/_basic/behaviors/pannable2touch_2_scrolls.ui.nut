@@ -39,7 +39,7 @@ function makeCells() {
   }
 
   let container = {
-    size = static [sw(80), sh(80)]
+    size = const [sw(80), sh(80)]
     rendObj = ROBJ_FRAME
     color = Color(220, 220, 0)
     borderWidth = 4

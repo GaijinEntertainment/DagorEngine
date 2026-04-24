@@ -4,7 +4,7 @@
 #include <drv/3d/dag_driver.h>
 #include <EASTL/tuple.h>
 #include <generic/dag_smallTab.h>
-#include <resourceName.h>
+#include "resourceName.h"
 
 
 class BaseTextureImpl : public D3dResourceNameImpl<BaseTexture>

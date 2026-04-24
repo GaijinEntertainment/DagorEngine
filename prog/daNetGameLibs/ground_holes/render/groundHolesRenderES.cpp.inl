@@ -1,7 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
 #include <daECS/core/entityComponent.h>
 #include <daECS/core/coreEvents.h>
 #include <ecs/render/updateStageRender.h>
@@ -86,12 +89,15 @@ static void ground_hole_render_es(const UpdateStageInfoRender &,
 }
 
 template <typename Callable>
-static void spawn_hole_ecs_query(Callable c);
+static void spawn_hole_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
 ECS_AFTER(animchar_before_render_es) // require for execute animchar_before_render_es as early as possible
-void ground_holes_before_render_es(
-  const UpdateStageInfoBeforeRender &, ecs::Point4List &holes, ecs::Point3List &invalidate_bboxes, bool should_render_ground_holes)
+void ground_holes_before_render_es(const UpdateStageInfoBeforeRender &,
+  ecs::EntityManager &manager,
+  ecs::Point4List &holes,
+  ecs::Point3List &invalidate_bboxes,
+  bool should_render_ground_holes)
 {
   // A `ground_hole` can initialize after `EventLevelLoaded` event.
   // TODO: Render hmapHolesTex only once.
@@ -102,7 +108,7 @@ void ground_holes_before_render_es(
   invalidate_bboxes.clear();
   if (!ground_holes::get_debug_hide())
   {
-    spawn_hole_ecs_query([&](const TMatrix &transform, bool ground_hole_sphere_shape, bool ground_hole_shape_intersection) {
+    spawn_hole_ecs_query(manager, [&](const TMatrix &transform, bool ground_hole_sphere_shape, bool ground_hole_shape_intersection) {
       ground_holes::spawn_hole(holes, transform, ground_hole_sphere_shape, ground_hole_shape_intersection);
       ground_holes::get_invalidation_bbox(invalidate_bboxes, transform, ground_hole_shape_intersection);
     });
@@ -127,14 +133,15 @@ static void ground_holes_render_when_event_es(const ecs::Event &, bool &should_r
 void get_underground_zones_data(Tab<Point3_vec4> &bboxes);
 
 template <typename Callable>
-static void get_underground_zones_buf_ecs_query(Callable c);
+static void get_underground_zones_buf_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
 ECS_REQUIRE(ecs::Tag underground_zone)
 ECS_ON_EVENT(on_appear, on_disappear)
-static void ground_hole_zone_on_appear_es(const ecs::Event &)
+static void ground_hole_zone_on_appear_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  get_underground_zones_buf_ecs_query([&](bool &should_update_ground_holes_zones) { should_update_ground_holes_zones = true; });
+  get_underground_zones_buf_ecs_query(manager,
+    [&](bool &should_update_ground_holes_zones) { should_update_ground_holes_zones = true; });
 }
 
 ECS_TAG(render)

@@ -1,5 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "driver.h"
+
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_tiledResource.h>
@@ -11,13 +13,20 @@
 #include <drv/3d/dag_query.h>
 #include <drv/3d/dag_res.h>
 #include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_resourceTag.h>
 #include <math/dag_Point2.h>
 #include <generic/dag_span.h>
 #include <generic/dag_tabWithLock.h>
 #include <util/dag_string.h>
 #include <math/dag_half.h>
+
 #include "driver.h"
+#include "drv_assert_defs.h"
 #include "texture.h"
+#include "render_state.h"
+#include "driver_state.h"
 #include "predicates.h"
 #include "../drv3d_commonCode/drv_utils.h"
 #include <3d/gpuLatency.h>
@@ -65,11 +74,9 @@ using namespace drv3d_dx11;
 
 #include <EASTL/finally.h>
 
-#if HAS_NVAPI
-#include <nvapi.h>
-#endif
-
+#include "drv_log_defs.h"
 #include "helpers.h"
+#include "render_state.h"
 #include "../drv3d_commonCode/dxgi_utils.h"
 #include <resUpdateBufferGeneric.h>
 #include <resourceActivationGeneric.h>
@@ -77,7 +84,7 @@ using namespace drv3d_dx11;
 #if _TARGET_PC_WIN
 #include <3d/gpuLatency.h>
 GpuLatency *create_gpu_latency_nvidia();
-GpuLatency *create_gpu_latency_amd();
+GpuLatency *create_gpu_latency_amd(DriverCode driver_code);
 #endif
 
 enum LocalTm
@@ -100,6 +107,12 @@ static constexpr int SWAPCHAIN_WAIT_TIMEOUT = 1000;
 
 namespace drv3d_dx11
 {
+extern int vsync_interval;
+extern IDXGIOutput *target_output;
+extern void clear_pools_garbage();
+extern Tab<d3d::EventQuery *> pending_frame_queries;
+extern int current_pending_frame_query;
+
 eastl::vector<FrameEvents *> frontEndFrameCallbacks;
 eastl::vector<FrameEvents *> backEndFrameCallbacks;
 eastl::vector<DeviceResetEventHandler *> deviceResetEventHandlers;
@@ -108,9 +121,10 @@ int get_present_dest_idx() { return present_dest_idx; }
 
 struct DX11Query
 {
-  D3D11_QUERY type;
+  static constexpr auto Invalid = eastl::numeric_limits<eastl::underlying_type_t<D3D11_QUERY>>::max();
   ID3D11Query *query;
-  DX11Query() : query(NULL) {} //-V730
+  eastl::underlying_type_t<D3D11_QUERY> type;
+  DX11Query() : query(NULL), type(Invalid) {}
   DX11Query(ID3D11Query *query_ptr, D3D11_QUERY query_type) : query(query_ptr), type(query_type) {}
 };
 
@@ -137,7 +151,7 @@ static int create_query(D3D11_QUERY query_type)
   all_queries.lock();
   for (int i = 1; i < all_queries.size(); ++i)
   {
-    if (all_queries[i].type == (D3D11_QUERY)0xFFFFFFFF) // -V1016 //-V1084
+    if (all_queries[i].type == DX11Query::Invalid)
     {
       G_ASSERT(!all_queries[i].query);
       all_queries[i] = query;
@@ -162,7 +176,7 @@ static void release_query(int query)
     all_queries[query].query->Release();
   all_queries[query].query = NULL;
   static_assert(sizeof(D3D11_QUERY) == 4, "D3D11_QUERY size is not 32 bit!");
-  all_queries[query].type = (D3D11_QUERY)0xFFFFFFFF; // -V1016 -V1084_TURN_OFF_ON_MSVC
+  all_queries[query].type = DX11Query::Invalid;
   all_queries.unlock();
 }
 
@@ -172,11 +186,11 @@ void recreate_all_queries()
   for (int i = 1; i < all_queries.size(); ++i)
   {
     static_assert(sizeof(D3D11_QUERY) == 4, "D3D11_QUERY size is not 32 bit!");
-    if (all_queries[i].type == (D3D11_QUERY)0xFFFFFFFF) // -V1016 //-V1084 -V1084_TURN_OFF_ON_MSVC
+    if (all_queries[i].type == DX11Query::Invalid)
       continue;
     G_ASSERT(all_queries[i].query);
     D3D11_QUERY_DESC desc;
-    desc.Query = all_queries[i].type;
+    desc.Query = static_cast<D3D11_QUERY>(all_queries[i].type);
     desc.MiscFlags = 0;
     if (dx_device->CreateQuery(&desc, &all_queries[i].query) != S_OK)
       D3D_ERROR("can not recreate query");
@@ -193,6 +207,93 @@ void reset_timestamp_frequency()
   timestampDisjointQuery = 0;
   timestampDisjointQueryPending = false;
   timestampFrequency = 0;
+}
+
+bool init_all(int imm_vb_size)
+{
+  RenderState &rs = g_render_state;
+  rs.init();
+  bool res = true;
+
+  res &= init_rendertargets(rs);
+  res &= init_buffers(rs, imm_vb_size);
+  res &= init_shaders(rs);
+  res &= init_states(rs);
+  init_textures();
+
+  rs.resetFrame();
+  return res;
+}
+
+bool flush_states(FlushStages last_stage, bool should_flush_buffers)
+{
+  if (dagor_d3d_force_driver_reset)
+    return false;
+  RenderState &rs = g_render_state;
+  if (!rs.modified)
+    return true;
+
+  // It must be a first flush before all other resources because setups a current shader set (which of
+  // vs, ds, hs, gs are actually used and so on) which the rest resources will be passed to
+  flush_shaders(rs, should_flush_buffers);
+  if (last_stage == FlushStages::Shaders)
+    return true;
+  if (dagor_d3d_force_driver_reset)
+    return false;
+  flush_null_rendertargets(rs); // Should be called before flush_samplers to reset RT targets to be bound to shaders.
+  if (last_stage == FlushStages::NullRTs)
+    return true;
+  if (dagor_d3d_force_driver_reset)
+    return false;
+  flush_cs_objects(rs, /*async*/ false);
+  if (last_stage == FlushStages::CsObjects)
+    return true;
+  if (dagor_d3d_force_driver_reset)
+    return false;
+  flush_samplers(rs); // Should be called before flush_rendertargets to reset RT bound textures.
+  if (last_stage == FlushStages::Samplers)
+    return true;
+  if (dagor_d3d_force_driver_reset)
+    return false;
+  flush_rendertargets(rs);
+  if (last_stage == FlushStages::RTs)
+    return true;
+  if (dagor_d3d_force_driver_reset)
+    return false;
+  flush_buffers(rs);
+  if (last_stage == FlushStages::Buffers)
+    return true;
+  if (dagor_d3d_force_driver_reset)
+    return false;
+  flush_states(rs); // depends on rendertargets
+  G_ASSERT(last_stage == FlushStages::States);
+
+  if (dagor_d3d_force_driver_reset)
+    return false;
+
+  rs.modified = false;
+  rs.currentFrameDip++;
+  return true;
+}
+
+bool flush_cs_all(bool should_flush_buffers, bool async)
+{
+  if (dagor_d3d_force_driver_reset)
+    return false;
+  RenderState &rs = g_render_state;
+  flush_null_cs_rendertargets(rs); // Should be called before flush_samplers to reset RT targets to be bound to shaders. For some
+                                   // reason still a case for compute
+  flush_cs_objects(rs, async);     // always before flushing ps/vs's srv
+  if (dagor_d3d_force_driver_reset)
+    return false;
+
+  flush_cs_shaders(rs, should_flush_buffers, async);
+
+  if (dagor_d3d_force_driver_reset)
+    return false;
+
+  rs.currentFrameDip++;
+  return true;
 }
 
 void reset_all_queries()
@@ -588,7 +689,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 
     case Drv3dCommand::GET_VSYNC_REFRESH_RATE:
     {
-      *(double *)par1 = *(double *)&vsync_refresh_rate;
+      *(double *)par1 = *(double *)&vsync_refresh_rate / (drv3d_dx11::vsync_interval ? drv3d_dx11::vsync_interval : 1);
       return 1;
     }
 
@@ -696,7 +797,12 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
         ContextAutoLock lock;
         dx_context->Flush();
       }
-      while (!get_event_query_status(query, true)) {}
+      while (!get_event_query_status(query, true))
+      {
+        // if device is lost query will never return data
+        if (dx_device->GetDeviceRemovedReason() != S_OK)
+          break;
+      }
       release_event_query(query);
       return 1;
     }
@@ -710,6 +816,12 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::SET_PS_DEBUG_INFO:
     {
       set_pixel_shader_debug_info(*(FSHADER *)par1, (const char *)par2);
+      return 1;
+    }
+
+    case Drv3dCommand::SET_CS_DEBUG_INFO:
+    {
+      set_compute_shader_debug_info(*(PROGRAM *)par1, (const char *)par2);
       return 1;
     }
 
@@ -828,7 +940,19 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
     case Drv3dCommand::PIX_GPU_CAPTURE_NEXT_FRAMES:
     {
       if (docAPI)
+      {
+        if (const wchar_t *name = reinterpret_cast<const wchar_t *>(par2))
+        {
+          char path[MAX_PATH];
+          GetCurrentDirectoryA(sizeof(path), path);
+          strcat_s(path, "\\GpuCaptures\\");
+          CreateDirectoryA(path, nullptr);
+          size_t pathLen = strlen(path);
+          WideCharToMultiByte(CP_UTF8, 0, name, -1, path + pathLen, sizeof(path) - (int)pathLen, nullptr, nullptr);
+          docAPI->SetCaptureFilePathTemplate(path);
+        }
         docAPI->TriggerMultiFrameCapture(reinterpret_cast<uintptr_t>(par3));
+      }
       return 0;
     }
 
@@ -847,8 +971,13 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
 
     case Drv3dCommand::GET_STREAMLINE:
     {
-      *static_cast<nv::Streamline **>(par1) = streamlineAdapter ? &streamlineAdapter.value() : nullptr;
-      return 1;
+      auto &sl = *static_cast<nv::Streamline **>(par1);
+      if (streamlineAdapter)
+      {
+        sl = &streamlineAdapter.value();
+        return 1;
+      }
+      return 0;
     }
 
 #if _TARGET_PC_WIN
@@ -857,7 +986,7 @@ int d3d::driver_command(Drv3dCommand command, void *par1, void *par2, [[maybe_un
       switch (*(GpuVendor *)par1)
       {
         case GpuVendor::NVIDIA: *(GpuLatency **)par2 = create_gpu_latency_nvidia(); break;
-        case GpuVendor::AMD: *(GpuLatency **)par2 = create_gpu_latency_amd(); break;
+        case GpuVendor::AMD: *(GpuLatency **)par2 = create_gpu_latency_amd(DriverCode::make(d3d::dx11)); break;
         default: *(GpuLatency **)par2 = nullptr; return 0;
       }
 
@@ -988,15 +1117,6 @@ static const float MEASUREMENT_TIME = 0.2f;
 static const int MIN_STATISTICS_HISTORY = 6;
 static const int MAX_STATISTICS_HISTORY = 30;
 
-namespace drv3d_dx11
-{
-extern bool vsync;
-extern IDXGIOutput *target_output;
-extern void clear_pools_garbage();
-extern Tab<d3d::EventQuery *> pending_frame_queries;
-extern int current_pending_frame_query;
-} // namespace drv3d_dx11
-
 bool d3d::update_screen(uint32_t frame_id, bool app_active)
 {
   for (FrameEvents *callback : frontEndFrameCallbacks)
@@ -1054,8 +1174,7 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
         dagor_d3d_force_driver_reset = true;
         return true;
       }
-      const bool useVsync = get_vsync_enabled();
-      presentHr = swap_chain->Present(useVsync ? 1 : 0, !useVsync && use_tearing ? DXGI_PRESENT_ALLOW_TEARING : 0);
+      presentHr = swap_chain->Present(vsync_interval, !vsync_interval && use_tearing ? DXGI_PRESENT_ALLOW_TEARING : 0);
 
       if (SUCCEEDED(presentHr) && !app_active && is_swapchain_window_occluded())
         presentHr = DXGI_STATUS_OCCLUDED;
@@ -1066,11 +1185,6 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
 
   if (device_should_reset(presentHr, "Present"))
     return true;
-
-  /*todo:Windows8 only
-  HRESULT hr = swap_chain->Present(_no_vsync ? 0 : 1, wait ? 0 : DXGI_PRESENT_DO_NOT_WAIT);
-  if (hr == DXGI_ERROR_WAS_STILL_DRAWING)
-    return false;*/
 
   if (::dgs_on_swap_callback)
     ::dgs_on_swap_callback();
@@ -1139,8 +1253,6 @@ bool d3d::update_screen(uint32_t frame_id, bool app_active)
 
   return true;
 }
-
-void d3d::wait_for_async_present(bool) {}
 
 void d3d::begin_frame(uint32_t frame_id, bool allow_wait)
 {
@@ -1586,10 +1698,10 @@ void d3d::end_conditional_render(int id)
 }
 
 bool d3d::get_vrr_supported() { return use_tearing; }
-bool d3d::get_vsync_enabled() { return vsync; }
+bool d3d::get_vsync_enabled() { return !!vsync_interval; }
 bool d3d::enable_vsync(bool enable)
 {
-  vsync = enable;
+  vsync_interval = enable ? max(get_presentation_interval_from_settings(), 1) : 0;
   return true;
 }
 
@@ -1833,11 +1945,12 @@ ResourceAllocationProperties d3d::get_resource_allocation_properties(const Resou
   G_UNUSED(desc);
   return {};
 }
-ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags)
+ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags, ResourceTagType tag)
 {
   G_UNUSED(heap_group);
   G_UNUSED(size);
   G_UNUSED(flags);
+  G_UNUSED(tag);
   return nullptr;
 }
 void d3d::destroy_resource_heap(ResourceHeap *heap) { G_UNUSED(heap); }
@@ -1882,3 +1995,9 @@ TextureTilingInfo d3d::get_texture_tiling_info(BaseTexture *tex, size_t subresou
 
 IMPLEMENT_D3D_RESOURCE_ACTIVATION_API_USING_GENERIC()
 IMPLEMENT_D3D_RUB_API_USING_GENERIC()
+
+void d3d::visit_tagged_resources(const ResourceTypeFilter &filter, const ResourceVisitor &visitor)
+{
+  G_UNUSED(filter);
+  G_UNUSED(visitor);
+}

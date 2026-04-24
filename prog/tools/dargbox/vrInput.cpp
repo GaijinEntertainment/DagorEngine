@@ -138,8 +138,6 @@ void handle_controller_input()
     return;
 
   darg::IGuiScene *darg_scene = get_ui_scene();
-  if (darg_scene)
-    darg_scene->ignoreDeviceCursorPos(true);
 
   for (int side = 0; side < NUM_HANDS; ++side)
   {

@@ -55,7 +55,7 @@ public:
       Entry() = default;
       Entry(float _MSE);
       float MSE = 0;
-      float PSNR = +INFINITY;
+      float PSNR = eastl::numeric_limits<float>::infinity();
     };
 
     Entry r, g, b, a;
@@ -65,7 +65,7 @@ public:
 
 public:
   BcCompressor(ECompressionType compr_type, unsigned int buffer_mips, unsigned int buffer_width, unsigned int buffer_height,
-    int htiles, const char *bc_shader, const char *sqError_shader = nullptr);
+    int htiles, const char *bc_shader, bool use_own_buffer = true, const char *sqError_shader = nullptr);
   ~BcCompressor();
   BcCompressor(const BcCompressor &) = delete;
   BcCompressor &operator=(const BcCompressor &) = delete;
@@ -74,25 +74,31 @@ public:
 
   bool resetBuffer(unsigned int mips, unsigned int width, unsigned int height, int htiles); // uncompressed dimensions. recreate buffer
                                                                                             // texture
-  void update(TEXTUREID src_id, d3d::SamplerHandle sampler, int htiles = -1);               // draw src to bc-target
-  void updateFromMip(TEXTUREID src_id, d3d::SamplerHandle sampler, int src_mip, int dst_mip, int htiles = -1);
-  void updateFromFaceMip(TEXTUREID src_id, d3d::SamplerHandle sampler, int src_face, int src_mip, int dst_mip, int htiles = -1);
+  void update(TEXTUREID src_id, int htiles = -1, Texture *external_buffer = nullptr);       // draw src to bc-target
+  void updateFromMip(TEXTUREID src_id, int src_mip, int dst_mip, int htiles = -1, Texture *external_buffer = nullptr);
+  void updateFromFaceMip(TEXTUREID src_id, int src_face, int src_mip, int dst_mip, int htiles = -1,
+    Texture *external_buffer = nullptr);
 
-  ErrorStats getErrorStats(TEXTUREID src_id, int src_face, int src_mip, int dst_mip, int tiles); // We calculate MSE/PSNR in linear
-                                                                                                 // space.
+  ErrorStats getErrorStats(TEXTUREID src_id, int src_face, int src_mip, int dst_mip, int tiles,
+    Texture *external_buffer = nullptr); // We calculate MSE/PSNR in linear
+                                         // space.
 
-  void copyTo(Texture *dest_tex, int dest_x, int dest_y, int src_x = 0, int src_y = 0, int width = -1, int height = -1);
-
+  void copyTo(Texture *dest_tex, int dest_x, int dest_y, int src_x = 0, int src_y = 0, int width = -1, int height = -1,
+    Texture *external_buffer = nullptr);
   void copyToMip(Texture *dest_tex, int dest_mip, int dest_x, int dest_y, int src_mip = 0, int src_x = 0, int src_y = 0,
-    int width = -1, int height = -1);
+    int width = -1, int height = -1, Texture *external_buffer = nullptr);
+
   void releaseBuffer(); // destroy buffer texture
 
   ECompressionType getCompressionType() const;
   bool isValid() const;
+  uint32_t getBufferFlags() const;
 
   static bool isAvailable(ECompressionType format);
 
 private:
+  bool useOwnBuffer;
+  uint32_t bufferFlags = 0;
   UniqueTex bufferTex;
 
   unsigned int bufferMips;

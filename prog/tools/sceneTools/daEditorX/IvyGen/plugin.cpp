@@ -113,6 +113,8 @@ void *IvyGenPlugin::queryInterfacePtr(unsigned huid)
 
 void IvyGenPlugin::handleViewportAcceleratorCommand(unsigned id) { objEd.onClick(id, nullptr); }
 
+void IvyGenPlugin::registerEditorCommands(IEditorCommandSystem &command_system) { objEd.registerEditorCommands(command_system); }
+
 void IvyGenPlugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *DAGORED2->getWndManager();

@@ -15,29 +15,30 @@ biome_query{
   _tracked:t="biome_query__state"
 }
 
-hit_fx_readback_info{
+biome_fx_readback_info{
   _use:t="biome_query"
   _group{
     _tags:t="render"
     biome_query__desiredBiomeName:t=""
   }
-  hit_fx_name:t=""
+  fx_name_to_spawn:t=""
 }
 
 burning_grass_readback_info{
-  _use:t="hit_fx_readback_info"
+  _use:t="biome_fx_readback_info"
   _group{
     _tags:t="render"
     biome_query__radius:r=0.3
     biome_query__desiredBiomeName:t="grass"
   }
-  hit_fx_name:t="envir_misc_floating_ashes_2m_up_effect"
+  fx_name_to_spawn:t="envir_misc_floating_ashes_2m_up_effect"
 }
 
 biome_fx_color_replacement{
   "biome_query__biomeReplaceNameList:list<t>"{
     value:t="grass"
     value:t="forest"
+    value:t="forest_leaves"
   }
   "biome_query__biomeReplaceIdList:list<i>"{}
   biome_query__mudBiomeColor:p4 = 0.06, 0.04, 0.02, 1.0

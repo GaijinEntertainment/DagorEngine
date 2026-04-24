@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "asmShaderSpirV.h"
+#include <sstream>
 #include "../fast_isalnum.h"
 #include "../debugSpitfile.h"
 #include "HLSL2SpirVCommon.h"
@@ -19,16 +20,9 @@
 #include <spirv/compiler.h>
 #include <supp/dag_comPtr.h>
 
-#if _TARGET_PC_WIN
-#include <D3Dcompiler.h>
-#endif
-
-#include <SPIRV/disassemble.h>
 #include <spirv.hpp>
 
 #include <smolv.h>
-
-#include <hlslcc.h>
 
 #include <spirv-tools/libspirv.hpp>
 #include <spirv-tools/optimizer.hpp>
@@ -43,7 +37,9 @@
 
 using namespace std;
 
-static void fix_varaible_names(String &glsl) { glsl.replaceAll("__", "_"); }
+static constexpr char const *SPIRV_CHUNK_TYPE_NAMES[] = {"SHADER_HEADER", "SMOL_V", "MARK_V", "SPIR_V", "SPIR_V_DISASSEMBLY",
+  "HLSL_DISASSEMBLY", "RECONSTRUCTED_GLSL", "RECONSTRUCTED_HLSL_DISASSEMBLY", "HLSL_AND_RECONSTRUCTED_HLSL_XDIF", "UNPROCESSED_HLSL",
+  "SHADER_NAME"};
 
 eastl::vector<uint8_t> get_SpirV_bytecode(const Tab<spirv::ChunkHeader> &chunks, const Tab<uint8_t> &chunk_store,
   bool write_compressed = false)
@@ -90,141 +86,6 @@ ostream &operator<<(ostream &os, const spv_position_t &position)
   return os;
 }
 
-static constexpr uint32_t B_REGISTER_SET = 0;
-static constexpr uint32_t T_REGISTER_SET = 1;
-static constexpr uint32_t U_REGISTER_SET = 2;
-
-class GLSLCrossDependencyDataVulkan final : public GLSLCrossDependencyDataInterface
-{
-public:
-  struct InterpolationInfo
-  {
-    uint32_t reg;
-    INTERPOLATION_MODE mode;
-  };
-  vector<InterpolationInfo> interpolationData;
-  TESSELLATOR_PARTITIONING tessPartitioning = TESSELLATOR_PARTITIONING_UNDEFINED;
-  TESSELLATOR_OUTPUT_PRIMITIVE tessOutPrimitive = TESSELLATOR_OUTPUT_TRIANGLE_CW;
-  uint32_t inputsCounter = 0;
-  uint32_t outputCounter = 0;
-
-  GLSLCrossDependencyDataVulkan() = default;
-
-  void FragmentColorTarget(const char *name, uint32_t location, uint32_t index) override {}
-
-  uint32_t GetVaryingLocation(const string &name, SHADER_TYPE eShaderType, bool isInput) override
-  {
-    if (isInput)
-      return inputsCounter++;
-    if (eShaderType != PIXEL_SHADER)
-      return outputCounter++;
-    return -1;
-  }
-  VulkanResourceBinding GetVulkanResourceBinding(string &name, SHADER_TYPE eShaderType, const ResourceBinding &binding,
-    bool isDepthSampler, bool allocRoomForCounter = false, uint32_t preferredSet = 0, uint32_t constBufferSize = 0) override
-  {
-    // still need to put the bindings in separate sets to produce valid vulkan glsl
-    uint32_t registerId = -1;
-    if (binding.eType == RTYPE_CBUFFER)
-    {
-      registerId = B_REGISTER_SET;
-    }
-    else if ((binding.eType == RTYPE_TEXTURE) || (binding.eType == RTYPE_SAMPLER) || (binding.eType == RTYPE_STRUCTURED) ||
-             (binding.eType == RTYPE_BYTEADDRESS))
-    {
-      registerId = T_REGISTER_SET;
-    }
-    else if ((binding.eType == RTYPE_UAV_RWTYPED) || (binding.eType == RTYPE_UAV_RWSTRUCTURED) ||
-             (binding.eType == RTYPE_UAV_RWBYTEADDRESS) || (binding.eType == RTYPE_UAV_APPEND_STRUCTURED) ||
-             (binding.eType == RTYPE_UAV_CONSUME_STRUCTURED) || (binding.eType == RTYPE_UAV_RWSTRUCTURED_WITH_COUNTER))
-    {
-      registerId = U_REGISTER_SET;
-    }
-
-    return {registerId, binding.ui32BindPoint};
-  }
-  INTERPOLATION_MODE GetInterpolationMode(uint32_t regNo) override
-  {
-    auto at =
-      find_if(begin(interpolationData), end(interpolationData), [=](const InterpolationInfo &info) { return info.reg == regNo; });
-    if (at != end(interpolationData))
-      return at->mode;
-    return INTERPOLATION_UNDEFINED;
-  }
-  void SetInterpolationMode(uint32_t regNo, INTERPOLATION_MODE mode) override
-  {
-    auto at =
-      find_if(begin(interpolationData), end(interpolationData), [=](const InterpolationInfo &info) { return info.reg == regNo; });
-    if (at == end(interpolationData))
-      interpolationData.emplace_back(InterpolationInfo{regNo, mode});
-  }
-  void ClearCrossDependencyData() override {}
-  void setTessPartitioning(TESSELLATOR_PARTITIONING tp) override { tessPartitioning = tp; }
-  TESSELLATOR_PARTITIONING getTessPartitioning() override { return tessPartitioning; }
-  void setTessOutPrimitive(TESSELLATOR_OUTPUT_PRIMITIVE top) override { tessOutPrimitive = top; }
-  TESSELLATOR_OUTPUT_PRIMITIVE getTessOutPrimitive() override { return tessOutPrimitive; }
-  uint32_t getProgramStagesMask() override { return PS_FLAG_VERTEX_SHADER | PS_FLAG_PIXEL_SHADER; }
-};
-
-static const EShLanguage EShLangInvalid = EShLangCount;
-static EShLanguage profile_to_stage(const char *profile)
-{
-  switch (profile[0])
-  {
-    case 'c': return EShLangCompute;
-    case 'v': return EShLangVertex;
-    case 'p': return EShLangFragment;
-    case 'g': return EShLangGeometry;
-    case 'd': return EShLangTessEvaluation;
-    case 'h': return EShLangTessControl;
-    default: return EShLangInvalid;
-  }
-}
-
-#if _TARGET_PC_WIN
-string disassemble_dxbc(ComPtr<ID3DBlob> &blob)
-{
-  stringstream result;
-
-  ComPtr<ID3DBlob> dasm;
-  D3DDisassemble(blob->GetBufferPointer(), blob->GetBufferSize(), 0, NULL, &dasm);
-  if (dasm)
-  {
-    result << reinterpret_cast<const char *>(dasm->GetBufferPointer());
-  }
-
-  return result.str();
-}
-#endif
-
-CompilerMode detectMode(const char *source, CompilerMode mode)
-{
-  PragmaScanner scanner{source};
-  while (auto pragma = scanner())
-  {
-    using namespace std::string_view_literals;
-    auto from = pragma.tokens();
-
-    if (*from == "spir-v"sv)
-    {
-      ++from;
-      if (*from == "compiler"sv)
-      {
-        ++from;
-        if (*from == "hlslcc"sv)
-        {
-          mode = CompilerMode::HLSLCC;
-        }
-        else if (*from == "dxc"sv)
-        {
-          mode = CompilerMode::DXC;
-        }
-      }
-    }
-  }
-  return mode;
-}
-
 bool useBaseVertexPatch(const char *source)
 {
   PragmaScanner scanner{source};
@@ -245,54 +106,12 @@ bool useBaseVertexPatch(const char *source)
 
 CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *source, const char *profile, const char *entry,
   bool need_disasm, bool hlsl2021, bool enable_fp16, bool skipValidation, bool optimize, int max_constants_no, const char *shader_name,
-  CompilerMode mode, uint64_t shader_variant_hash, bool enable_bindless, bool embed_debug_data, bool dump_spirv_only)
+  uint64_t shader_variant_hash, bool enable_bindless, bool embed_debug_data, bool dump_spirv_only,
+  bool validate_global_consts_offset_order)
 {
   CompileResult result;
-
-  if (enable_bindless)
-  {
-    if (mode != CompilerMode::DXC)
-    {
-      result.errors.sprintf("Bindless resource are only supported with DXC compiler backend.\n");
-      return result;
-    }
-  }
-  else
-  {
-#if _TARGET_PC_WIN
-    mode = detectMode(source, mode);
-#endif
-  }
-#if !_TARGET_PC_WIN
-  if (mode != CompilerMode::DXC)
-  {
-    result.errors.sprintf("HLSLCC available only on windows.");
-    return result;
-  }
-#endif
   // just to have it for debugging
   (void)need_disasm;
-
-  // test_dxc(source, profile, entry);
-
-  const EShLanguage targetStage = profile_to_stage(profile);
-  if (targetStage == EShLangInvalid)
-  {
-    result.errors.sprintf("unknown target profile %s", profile);
-    return result;
-  }
-  if (enable_fp16 && mode != CompilerMode::DXC)
-  {
-    result.errors.sprintf("Profiles with half specialization are currently suppored only by DXC path.\n"
-                          "For switching to DXC please use #pragma spir-v compiler dxc\n");
-    return result;
-  }
-  if (hlsl2021 && mode != CompilerMode::DXC)
-  {
-    result.errors.sprintf("HLSL21 is currently suppored only by DXC path.\n"
-                          "For switching to DXC please use #pragma spir-v compiler dxc\n");
-    return result;
-  }
 
 #if DAGOR_DBGLEVEL > 1
   optimize = false;
@@ -306,223 +125,96 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
   if (embed_debug_data)
     add_chunk(chunks, chunkStore, spirv::ChunkType::UNPROCESSED_HLSL, 0, source, static_cast<uint32_t>(strlen(source)));
 
-  if (CompilerMode::HLSLCC == mode)
+  string codeCopy(source);
+
+  // code preprocess to fix SV_VertexID disparity between DX and vulkan
+  if (useBaseVertexPatch(source))
   {
-#if _TARGET_PC_WIN
-    String shaderCode;
-    ComPtr<ID3DBlob> byteCode;
-    {
-      ComPtr<ID3DBlob> errors;
-
-      if (embed_debug_data)
-        add_chunk(chunks, chunkStore, spirv::ChunkType::UNPROCESSED_HLSL, 0, source, static_cast<uint32_t>(strlen(source)));
-
-      const D3D_SHADER_MACRO macros[] = //
-        {{"SHADER_COMPILER_HLSLCC", "1"}, {"half", "float"}, {"half1", "float1"}, {"half2", "float2"}, {"half3", "float3"},
-          {"half4", "float4"}, {"HW_VERTEX_ID", "uint vertexId: SV_VertexID;"},
-          {"HW_BASE_VERTEX_ID", "error! not supported on this compiler/API"}, {"HW_BASE_VERTEX_ID_OPTIONAL", ""}, {nullptr, nullptr}};
-
-      HRESULT hr = D3DCompile(source, strlen(source), NULL, macros, NULL, entry, profile,
-        (skipValidation ? D3DCOMPILE_SKIP_VALIDATION : 0) |
-          // all other optimization levels may crash hlslcc
-          D3DCOMPILE_OPTIMIZATION_LEVEL3 | D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR,
-        0, &byteCode, &errors);
-
-      if (FAILED(hr))
-      {
-        if (errors)
-          result.errors.sprintf("D3DCompile failed:\n%s", errors->GetBufferPointer());
-        else
-          result.errors.sprintf("D3DCompile failed with %u and no error log", hr);
-        return result;
-      }
-
-      GlExtensions ext = {};
-
-      HLSLccSamplerPrecisionInfo spci;
-      HLSLccReflection rc;
-      GLSLCrossDependencyDataVulkan mapping;
-      GLSLShader glslShader;
-
-      stringstream infoLog;
-
-      if (embed_debug_data)
-      {
-        auto dxbcDisas = disassemble_dxbc(byteCode);
-        add_chunk(chunks, chunkStore, spirv::ChunkType::HLSL_DISASSEMBLY, 0, dxbcDisas.data(),
-          static_cast<uint32_t>(dxbcDisas.length()));
-      }
-
-      int errorCode = TranslateHLSLFromMem((const char *)byteCode->GetBufferPointer(),
-        HLSLCC_FLAG_VULKAN_BINDINGS | HLSLCC_FLAG_SEPARABLE_SHADER_OBJECTS | HLSLCC_FLAG_UNIFORM_BUFFER_OBJECT |
-          HLSLCC_FLAG_GLSL_EXPLICIT_UNIFORM_OFFSET | HLSLCC_FLAG_GLSL_EMBEDED_ATOMIC_COUNTER | HLSLCC_FLAG_GLSL_CHECK_DATA_LAYOUT |
-          HLSLCC_FLAG_MAP_CONST_BUFFER_TO_REGISTER_ARRAY,
-        LANG_440, &ext, &mapping, spci, rc, infoLog, &glslShader);
-
-      if (!errorCode)
-      {
-        if (!infoLog.str().empty())
-          result.errors.sprintf("TranslateHLSLFromMem failed!\n%s", infoLog.str().c_str());
-        else
-          result.errors.sprintf("TranslateHLSLFromMem failed!");
-        return result;
-      }
-
-      shaderCode = glslShader.sourceCode.c_str();
-      if (need_disasm)
-        result.disassembly = shaderCode;
-    }
-
-    fix_varaible_names(shaderCode);
-    if (embed_debug_data)
-      add_chunk(chunks, chunkStore, spirv::ChunkType::RECONSTRUCTED_GLSL, 0, shaderCode.data(), shaderCode.length());
-
-    const spirv::CompileFlags glslCompileFlags = optimize ? spirv::CompileFlags::NONE : spirv::CompileFlags::DEBUG_BUILD;
-    const char *ptr = shaderCode.str();
-    spirv::CompileToSpirVResult finalSpirV = spirv::compileGLSL(make_span(&ptr, 1), targetStage, glslCompileFlags);
-    if (finalSpirV.byteCode.empty())
-    {
-      eastl::string errorMessage;
-      for (auto &&msg : finalSpirV.infoLog)
-      {
-        errorMessage += msg;
-        errorMessage += '\n';
-      }
-      result.errors.sprintf("GLSL to Spir-V compilation failed:\n %s \n GLSL source: %s", errorMessage.c_str(), ptr);
+    if (!fix_vertex_id_for_DXC(codeCopy, result))
       return result;
-    }
-    else if (!finalSpirV.infoLog.empty())
-    {
-      for (auto &&msg : finalSpirV.infoLog)
-        debug(msg.c_str());
-    }
+  }
 
-    spirv = eastl::move(finalSpirV.byteCode);
-    header = finalSpirV.header;
+  eastl::vector<eastl::string_view> disabledSpirvOptims = scanDisabledSpirvOptimizations(source);
 
-    if (profile[0] == 'c')
-    {
-      ComPtr<ID3D11ShaderReflection> reflector;
-      HRESULT hr = D3DReflect(byteCode->GetBufferPointer(), byteCode->GetBufferSize(), IID_PPV_ARGS(&reflector));
-      G_ASSERTF(SUCCEEDED(hr), "Unable to reflect the compute shader");
-      reflector->GetThreadGroupSize(&result.computeShaderInfo.threadGroupSizeX, &result.computeShaderInfo.threadGroupSizeY,
-        &result.computeShaderInfo.threadGroupSizeZ);
-    }
+  string macros = "#define SHADER_COMPILER_DXC 1\n"
+                  "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
+                  "#define HW_BASE_VERTEX_ID [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n"
+                  "#define HW_BASE_VERTEX_ID_OPTIONAL [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n";
+  if (enable_bindless)
+  {
+    macros += "#define BINDLESS_TEXTURE_SET_META_ID " + std::to_string(spirv::bindless::TEXTURE_DESCRIPTOR_SET_META_INDEX) + "\n";
+    macros += "#define BINDLESS_SAMPLER_SET_META_ID " + std::to_string(spirv::bindless::SAMPLER_DESCRIPTOR_SET_META_INDEX) + "\n";
+    macros += "#define BINDLESS_BUFFER_SET_META_ID " + std::to_string(spirv::bindless::BUFFER_DESCRIPTOR_SET_META_INDEX) + "\n";
+  }
 
-    // run a spir-v tools optimize pass over it to have overall better shaders
-    if (optimize)
-    {
-      spvtools::Optimizer optimizer{SPV_ENV_VULKAN_1_0};
-      stringstream infoStream;
-      optimizer.SetMessageConsumer([&infoStream](spv_message_level_t level, const char * /* source */, const spv_position_t &position,
-                                     const char *message) //
-        {
-          infoStream << "[" << level << "][" << position << "] " << message << endl;
-          ;
-        });
-
-      optimizer.RegisterPerformancePasses();
-
-      vector<uint32_t> optimized;
-      if (optimizer.Run(spirv.data(), spirv.size(), &optimized))
-      {
-        swap(optimized, spirv);
-      }
-      else
-      {
-        debug("Spir-V optimization failed, using unoptimized version");
-      }
-      string infoMessage = infoStream.str();
-      if (!infoMessage.empty())
-      {
-        debug("Spir-V Optimizer log: %s", infoMessage.c_str());
-      }
-    }
-#endif
+  if (enable_fp16)
+  {
+    macros += "#define SHADER_COMPILER_FP16_ENABLED 1\n";
   }
   else
   {
-    string codeCopy(source);
-
-    // code preprocess to fix SV_VertexID disparity between DX and vulkan
-    if (useBaseVertexPatch(source))
-    {
-      if (!fix_vertex_id_for_DXC(codeCopy, result))
-        return result;
-    }
-
-    eastl::vector<eastl::string_view> disabledSpirvOptims = scanDisabledSpirvOptimizations(source);
-
-    string macros =
-      "#define SHADER_COMPILER_DXC 1\n"
-      "#define HW_VERTEX_ID uint vertexId: SV_VertexID;\n"
-      "#define HW_BASE_VERTEX_ID [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n"
-      "#define HW_BASE_VERTEX_ID_OPTIONAL [[vk::builtin(\"BaseVertex\")]] uint baseVertexId : DXC_SPIRV_BASE_VERTEX_ID;\n";
-    if (enable_bindless)
-    {
-      macros += "#define BINDLESS_TEXTURE_SET_META_ID " + std::to_string(spirv::bindless::TEXTURE_DESCRIPTOR_SET_META_INDEX) + "\n";
-      macros += "#define BINDLESS_SAMPLER_SET_META_ID " + std::to_string(spirv::bindless::SAMPLER_DESCRIPTOR_SET_META_INDEX) + "\n";
-      macros += "#define BINDLESS_BUFFER_SET_META_ID " + std::to_string(spirv::bindless::BUFFER_DESCRIPTOR_SET_META_INDEX) + "\n";
-    }
-    if (enable_fp16)
-    {
-      macros += "#define SHADER_COMPILER_FP16_ENABLED 1\n";
-    }
-    else
-    {
-      // there is a bug(?) in DXC: it can't map half[] -> float[] correctly with disabled 16-bit types flag
-      macros += "#define half float\n"
-                "#define half1 float1\n"
-                "#define half2 float2\n"
-                "#define half3 float3\n"
-                "#define half4 float4\n";
-    }
-    codeCopy = macros + codeCopy;
-
-    auto sourceRange = make_span(codeCopy.c_str(), codeCopy.size());
-
-    auto flags = enable_bindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
-    flags |= enable_fp16 ? spirv::CompileFlags::ENABLE_HALFS : spirv::CompileFlags::NONE;
-    flags |= hlsl2021 ? spirv::CompileFlags::ENABLE_HLSL21 : spirv::CompileFlags::NONE;
-
-    auto finalSpirV = spirv::compileHLSL_DXC(dxc_ctx, sourceRange, entry, profile, flags, disabledSpirvOptims);
-    spirv = eastl::move(finalSpirV.byteCode);
-    header = finalSpirV.header;
-
-    eastl::string flatLogString;
-    bool errorOrWarningFound = false;
-    for (auto &&msg : finalSpirV.infoLog)
-    {
-      flatLogString += "DXC_SPV: ";
-      flatLogString += msg;
-      flatLogString += "\n";
-      errorOrWarningFound |= msg.compare(0, 8, "Warning:") == 0;
-    }
-    errorOrWarningFound |= spirv.empty(); // assume error will surely fail spirv dump generation
-
-    if (errorOrWarningFound)
-    {
-      flatLogString += "DXC_SPV: Problematic shader dump:\n";
-      flatLogString += "======= dump begin\n";
-      flatLogString += codeCopy.c_str();
-      flatLogString += "======= dump end\n";
-    }
-
-    if (spirv.empty())
-    {
-      result.errors.sprintf("HLSL to Spir-V compilation failed:\n %s", flatLogString.c_str());
-      return result;
-    }
-    else if (flatLogString.length())
-      debug("%s", flatLogString.c_str());
-
-    if (profile[0] == 'c')
-    {
-      result.computeShaderInfo.threadGroupSizeX = finalSpirV.computeShaderInfo.threadGroupSizeX;
-      result.computeShaderInfo.threadGroupSizeY = finalSpirV.computeShaderInfo.threadGroupSizeY;
-      result.computeShaderInfo.threadGroupSizeZ = finalSpirV.computeShaderInfo.threadGroupSizeZ;
-    }
+    // there is a bug(?) in DXC: it can't map half[] -> float[] correctly with disabled 16-bit types flag
+    macros += "#define half float\n"
+              "#define half1 float1\n"
+              "#define half2 float2\n"
+              "#define half3 float3\n"
+              "#define half4 float4\n";
   }
+
+  // format for profile is *s_X_Y
+  bool allowWaveIntrisics = strlen(profile) > 3 && profile[3] >= '6';
+  if (allowWaveIntrisics)
+  {
+    macros += "#define WAVE_INTRINSICS 1\n";
+  }
+  codeCopy = macros + codeCopy;
+
+  auto sourceRange = make_span(codeCopy.c_str(), codeCopy.size());
+
+  auto flags = enable_bindless ? spirv::CompileFlags::ENABLE_BINDLESS_SUPPORT : spirv::CompileFlags::NONE;
+  flags |= enable_fp16 ? spirv::CompileFlags::ENABLE_HALFS : spirv::CompileFlags::NONE;
+  flags |= hlsl2021 ? spirv::CompileFlags::ENABLE_HLSL21 : spirv::CompileFlags::NONE;
+  flags |= allowWaveIntrisics ? spirv::CompileFlags::ENABLE_WAVE_INTRINSICS : spirv::CompileFlags::NONE;
+  flags |= validate_global_consts_offset_order ? spirv::CompileFlags::VALIDATE_GLOBAL_CONSTS_OFFSET_ORDER : spirv::CompileFlags::NONE;
+
+  auto finalSpirV = spirv::compileHLSL_DXC(dxc_ctx, sourceRange, entry, profile, flags, disabledSpirvOptims);
+  spirv = eastl::move(finalSpirV.byteCode);
+  header = finalSpirV.header;
+
+  eastl::string flatLogString;
+  bool errorOrWarningFound = false;
+  for (auto &&msg : finalSpirV.infoLog)
+  {
+    flatLogString += "DXC_SPV: ";
+    flatLogString += msg;
+    flatLogString += "\n";
+    errorOrWarningFound |= msg.compare(0, 8, "Warning:") == 0;
+  }
+  errorOrWarningFound |= spirv.empty(); // assume error will surely fail spirv dump generation
+
+  if (errorOrWarningFound)
+  {
+    flatLogString += "DXC_SPV: Problematic shader dump:\n";
+    flatLogString += "======= dump begin\n";
+    flatLogString += codeCopy.c_str();
+    flatLogString += "======= dump end\n";
+  }
+
+  if (spirv.empty())
+  {
+    result.errors.sprintf("HLSL to Spir-V compilation failed:\n %s", flatLogString.c_str());
+    return result;
+  }
+  else if (flatLogString.length())
+    debug("%s", flatLogString.c_str());
+
+  if (profile[0] == 'c')
+  {
+    result.computeShaderInfo.threadGroupSizeX = finalSpirV.computeShaderInfo.threadGroupSizeX;
+    result.computeShaderInfo.threadGroupSizeY = finalSpirV.computeShaderInfo.threadGroupSizeY;
+    result.computeShaderInfo.threadGroupSizeZ = finalSpirV.computeShaderInfo.threadGroupSizeZ;
+  }
+
 #if 0
   if (!skipValidation)
   {
@@ -599,7 +291,7 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
     string spirvDisas;
     tools.Disassemble(spirv, &spirvDisas, SPV_BINARY_TO_TEXT_OPTION_FRIENDLY_NAMES);
 
-    const String name = String(-1, "%s_%.2s", (mode == CompilerMode::HLSLCC) ? "spirv_hlslcc" : "spirv_dxc", profile);
+    const String name = String(-1, "%s_%.2s", "spirv_dxc", profile);
     if (!dump_spirv_only)
       spitfile(shader_name, entry, name, shader_variant_hash, (void *)spirvDisas.data(), (int)data_size(spirvDisas));
     spitfile(shader_name, entry, name + "_raw", shader_variant_hash, (void *)spirv.data(), (int)data_size(spirv));
@@ -607,23 +299,230 @@ CompileResult compileShaderSpirV(const spirv::DXCContext *dxc_ctx, const char *s
 
   header.verMagic = spirv::HEADER_MAGIC_VER;
   header.maxConstantCount = max_constants_no;
-  header.bonesConstantsUsed = -1; // @TODO: remove
 
   smolv::ByteArray smol;
   smolv::Encode(spirv.data(), spirv.size() * sizeof(unsigned int), smol, 0);
   if (smol.empty())
-  {
     debug("Smol-V compression failed, exporting uncompressed spir-v");
-    add_chunk(chunks, chunkStore, spirv::ChunkType::SPIR_V, 0, spirv.data(), static_cast<uint32_t>(spirv.size()));
-  }
-  else
-  {
-    add_chunk(chunks, chunkStore, spirv::ChunkType::SMOL_V, 0, smol.data(), static_cast<uint32_t>(smol.size()));
-  }
 
+  header.smolvSize = uint32_t(smol.size());
   add_chunk(chunks, chunkStore, spirv::ChunkType::SHADER_HEADER, 0, &header, 1);
   add_chunk(chunks, chunkStore, spirv::ChunkType::SHADER_NAME, 0, shader_name, static_cast<uint32_t>(strlen(shader_name)));
 
-  result.bytecode = get_SpirV_bytecode(chunks, chunkStore);
+  result.metadata = get_SpirV_bytecode(chunks, chunkStore);
+
+  if (header.smolvSize)
+  {
+    result.bytecode = {smol.data(), smol.data() + smol.size()};
+    G_ASSERT(result.bytecode.size() == smol.size());
+  }
+  else
+    result.bytecode = {(const uint8_t *)spirv.data(), (const uint8_t *)spirv.data() + spirv.size() * sizeof(unsigned int)};
   return result;
+}
+
+eastl::string disassembleShaderSpirV(dag::ConstSpan<uint8_t> bytecode, dag::ConstSpan<uint8_t> metadata)
+{
+#define FORMAT_FAIL(fmt_, ...)                                            \
+  do                                                                      \
+  {                                                                       \
+    logerr("Invalid SpirV shader blob format: " fmt_ ".", ##__VA_ARGS__); \
+    return {};                                                            \
+  } while (0)
+
+  Tab<spirv::ChunkHeader> chunks{};
+  Tab<uint8_t> storage{};
+
+  {
+    InPlaceMemLoadCB reader{metadata.data(), int(metadata.size())};
+
+    int const blobIdent = reader.readInt();
+    if (blobIdent != spirv::SPIR_V_BLOB_IDENT && blobIdent != spirv::SPIR_V_BLOB_IDENT_UNCOMPRESSED)
+      FORMAT_FAIL("invalid blob ident %d", blobIdent);
+    bool const readCompressed = blobIdent == spirv::SPIR_V_BLOB_IDENT;
+
+    int const dataSize = reader.beginBlock();
+
+    if (readCompressed)
+    {
+      ZlibLoadCB compressedReader{reader, dataSize};
+      compressedReader.readTab(chunks);
+      compressedReader.readTab(storage);
+    }
+    else
+    {
+      reader.readTab(chunks);
+      reader.readTab(storage);
+    }
+
+    reader.endBlock();
+  }
+
+  // @TODO: disasm more information
+  eastl::string existingChunksDisasm{};
+  eastl::string headerDisasm{};
+  eastl::string spirvDisasm{};
+  eastl::string unprocessedHlsl{};
+  eastl::string shaderName{};
+  eastl::string warnings{};
+  bool hasEmbeddedDisasm = false;
+
+  auto disasmSpirv = [](dag::ConstSpan<uint32_t> spirv, eastl::string &out) {
+    spvtools::SpirvTools tools{SPV_ENV_VULKAN_1_0};
+
+    std::stringstream infoStream;
+    tools.SetMessageConsumer([&infoStream](spv_message_level_t level, const char *, const spv_position_t &position,
+                               const char *message) { infoStream << "[" << level << "][" << position << "] " << message << endl; });
+
+    std::vector<uint32_t> data(spirv.size());
+    memcpy(data.data(), spirv.data(), spirv.size() * elem_size(spirv));
+    std::string disas;
+
+    if (tools.Disassemble(data, &disas, SPV_BINARY_TO_TEXT_OPTION_INDENT))
+    {
+      out.resize(disas.size());
+      strncpy(out.data(), disas.data(), out.size());
+    }
+
+    string infoMessage = infoStream.str();
+    if (!infoMessage.empty())
+    {
+      debug("Spir-V Disassemble log: %s", infoMessage.c_str());
+    }
+  };
+
+  spirv::ShaderHeader header;
+
+  for (auto const &chunkHeader : chunks)
+  {
+    if (!existingChunksDisasm.empty())
+      existingChunksDisasm.append(" ");
+    existingChunksDisasm.append(SPIRV_CHUNK_TYPE_NAMES[uint32_t(chunkHeader.type)]);
+
+    switch (chunkHeader.type)
+    {
+      case spirv::ChunkType::SHADER_HEADER:
+      {
+        if (chunkHeader.size != sizeof(spirv::ShaderHeader))
+          FORMAT_FAIL("invalid shader header");
+        memcpy(&header, storage.data() + chunkHeader.offset, sizeof(header));
+        // @TODO: this would benefit greatly from some struct printing lib functionality (friend injection or wait for c++26
+        // reflection).
+        headerDisasm.append("\n");
+        if (header.verMagic != spirv::HEADER_MAGIC_VER)
+        {
+          warnings.append_sprintf("\n  WARNING: header version mismatch, %d in blob, %d in exe", header.verMagic,
+            spirv::HEADER_MAGIC_VER);
+        }
+        headerDisasm.append_sprintf("  magic=%u\n", header.verMagic);
+        headerDisasm.append_sprintf("  inputAttachmentCount=%u\n", header.inputAttachmentCount);
+        headerDisasm.append_sprintf("  descriptorCountsCount=%u\n", header.descriptorCountsCount);
+        headerDisasm.append_sprintf("  registerCount=%u\n", header.registerCount);
+        headerDisasm.append_sprintf("  pushConstantsCount=%u\n", header.pushConstantsCount);
+        headerDisasm.append_sprintf("  bindlessSetsUsed=%u\n", header.bindlessSetsUsed);
+        headerDisasm.append_sprintf("  maxConstantCount=%u\n", header.maxConstantCount);
+        headerDisasm.append_sprintf("  tRegisterUseMask=0x%x\n", header.tRegisterUseMask);
+        headerDisasm.append_sprintf("  uRegisterUseMask=0x%x\n", header.uRegisterUseMask);
+        headerDisasm.append_sprintf("  bRegisterUseMask=0x%x\n", header.bRegisterUseMask);
+        headerDisasm.append_sprintf("  sRegisterUseMask=0x%x\n", header.sRegisterUseMask);
+        headerDisasm.append_sprintf("  inputMask=0x%x\n", header.inputMask);
+        headerDisasm.append_sprintf("  outputMask=0x%x\n", header.sRegisterUseMask);
+        headerDisasm.append_sprintf("  smolvSize=%u\n", header.smolvSize);
+        headerDisasm.append_sprintf("  resTypeMask.u=0x%x\n", header.resTypeMask.u);
+        headerDisasm.append_sprintf("  resTypeMask.t=0x%llx\n", header.resTypeMask.t);
+        headerDisasm.append("  inputAttachmentIndexRegPairs=[");
+        for (auto [index, flatBinding] : header.inputAttachmentIndexRegPairs)
+          headerDisasm.append_sprintf(" {index=%d, flatBinding=%d}", index, flatBinding);
+        headerDisasm.append(" ]\n");
+        headerDisasm.append("  registerToSlotMapping=[");
+        for (auto [slot, type] : header.registerToSlotMapping)
+          headerDisasm.append_sprintf(" {slot=%d, type=%d}", slot, type);
+        headerDisasm.append(" ]\n");
+        headerDisasm.append("  slotToRegisterMapping=[");
+        for (uint8_t reg : header.slotToRegisterMapping)
+          headerDisasm.append_sprintf(" %d", reg);
+        headerDisasm.append(" ]\n");
+        headerDisasm.append("  missingTableIndex=[");
+        for (uint8_t id : header.missingTableIndex)
+          headerDisasm.append_sprintf(" %d", id);
+        headerDisasm.append(" ]\n");
+        headerDisasm.append("  descriptorTypes=[");
+        for (auto type : header.descriptorTypes)
+          headerDisasm.append_sprintf(" %d", type.value);
+        headerDisasm.append(" ]\n");
+        headerDisasm.append("  descriptorCounts=[");
+        for (auto [type, count] : header.descriptorCounts)
+          headerDisasm.append_sprintf(" {type=%d, count=%d}", type.value, count);
+        headerDisasm.append(" ]\n");
+        break;
+      }
+      case spirv::ChunkType::SMOL_V:
+      case spirv::ChunkType::MARK_V:
+      case spirv::ChunkType::SPIR_V: break;
+      case spirv::ChunkType::SPIR_V_DISASSEMBLY:
+      {
+        hasEmbeddedDisasm = true;
+        spirvDisasm.assign((char const *)storage.data() + chunkHeader.offset, chunkHeader.size);
+
+        break;
+      }
+      case spirv::ChunkType::UNPROCESSED_HLSL:
+      {
+        if (!unprocessedHlsl.empty())
+          break;
+
+        unprocessedHlsl.assign((char const *)storage.data() + chunkHeader.offset, chunkHeader.size);
+
+        break;
+      }
+      case spirv::ChunkType::SHADER_NAME:
+      {
+        if (!shaderName.empty())
+          break;
+
+        shaderName.assign((char const *)storage.data() + chunkHeader.offset, chunkHeader.size);
+
+        break;
+      }
+
+      default:
+      {
+        // @TODO: disasm more chunk types
+        break;
+      }
+    }
+  }
+
+  if (!hasEmbeddedDisasm)
+  {
+    if (headerDisasm.empty())
+    {
+      FORMAT_FAIL("shader header not found");
+    }
+
+    if (header.smolvSize)
+    {
+      Tab<uint32_t> spirv(smolv::GetDecodedBufferSize(bytecode.data(), bytecode.size()) / sizeof(uint32_t));
+      smolv::Decode(bytecode.data(), bytecode.size(), spirv.data(), spirv.size() * sizeof(uint32_t));
+
+      disasmSpirv(spirv, spirvDisasm);
+    }
+    else
+    {
+      disasmSpirv(dag::ConstSpan<uint32_t>{(uint32_t const *)bytecode.data(), intptr_t(bytecode.size() / sizeof(uint32_t))},
+        spirvDisasm);
+    }
+  }
+
+  auto optStr = [](auto const &str) -> char const * { return str.empty() ? "<not present>" : str.c_str(); };
+
+  return eastl::string{eastl::string::CtorSprintf{},
+    "Found chunks: %s\n"
+    "Shader: %s\n"
+    "Warnings: %s\n"
+    "Header: %s\n"
+    "Disasm%s: %s\n"
+    "Hlsl: %s\n", //
+    optStr(existingChunksDisasm), optStr(shaderName), optStr(warnings), optStr(headerDisasm), hasEmbeddedDisasm ? " (embedded)" : "",
+    optStr(spirvDisasm), optStr(unprocessedHlsl)};
 }

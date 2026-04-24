@@ -6,7 +6,7 @@
 #include <util/dag_string.h>
 #include <EASTL/string.h>
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 
 namespace bindquirrel
@@ -180,9 +180,6 @@ static bool deleteRegKey(int root, const char *path)
     return false;
 
   *(keyName++) = 0;
-
-  if (!keyName)
-    return false;
 
   if (::RegOpenKeyEx((HKEY)root, keyPath, 0, KEY_SET_VALUE, &key) == ERROR_SUCCESS)
   {

@@ -4,39 +4,45 @@
 #include <image/dag_texPixel.h>
 #include <ioSys/dag_fileIo.h>
 #include <image/libpng-1.4.22/png.h>
-#include <osApiWrappers/dag_files.h>
-#include <image/dag_texPixel.h>
-#include <util/dag_string.h>
-#include <EASTL/vector.h>
 #include <EASTL/unique_ptr.h>
 
-static void PNGAPI user_write_file(png_structp png_ptr, png_bytep data, png_size_t length)
+static void PNGAPI user_write_stream(png_structp png_ptr, png_bytep data, png_size_t length)
 {
-  file_ptr_t *file_ptr = (file_ptr_t *)png_get_io_ptr(png_ptr);
-  int res = df_write(*file_ptr, data, length);
-  if (res == -1)
+  IGenSave *cwr = (IGenSave *)png_get_io_ptr(png_ptr);
+  if (cwr->tryWrite(data, (int)length) != (int)length)
   {
-    debug("UserWriteFile error!");
-    png_error(png_ptr, "File write error");
+    debug("savePng: stream write error!");
+    png_error(png_ptr, "Stream write error");
   }
 }
 
 static void PNGAPI user_log_fn(png_structp png_ptr, const char *message) { debug("savePng: %s", message); }
 
-bool save_png32(const char *fn, TexPixel32 *ptr, int wd, int ht, int stride, unsigned char *text_data, unsigned int text_data_len,
-  bool save_alpha)
+bool save_png32(const char *fn, const TexPixel32 *ptr, int wd, int ht, int stride, unsigned char *text_data,
+  unsigned int text_data_len, bool save_alpha)
+{
+  FullFileSaveCB cwr(fn);
+  if (!cwr.fileHandle)
+    return false;
+  return save_png32(ptr, wd, ht, stride, cwr, save_alpha, text_data, text_data_len);
+}
+
+bool save_png32(const TexPixel32 *ptr, int wd, int ht, int stride, IGenSave &cwr, bool save_alpha, unsigned char *text_data,
+  unsigned int text_data_len)
 {
   const uint32_t buf_size = (save_alpha ? 4 : 3) * wd;
   auto buf = eastl::make_unique<png_byte[]>(buf_size);
-  eastl::unique_ptr<void, DagorFileCloser> file(df_open(fn, DF_WRITE | DF_CREATE));
-
-  if (!file)
-  {
-    return false;
-  }
 
   png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+  if (!png_ptr)
+    return false;
+
   png_infop png_info = png_create_info_struct(png_ptr);
+  if (!png_info)
+  {
+    png_destroy_write_struct(&png_ptr, nullptr);
+    return false;
+  }
 
   if (setjmp(png_jmpbuf(png_ptr)))
   {
@@ -47,7 +53,7 @@ bool save_png32(const char *fn, TexPixel32 *ptr, int wd, int ht, int stride, uns
   const int format = save_alpha ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB;
 
   png_set_error_fn(png_ptr, nullptr, user_log_fn, nullptr);
-  png_set_write_fn(png_ptr, &file, user_write_file, nullptr);
+  png_set_write_fn(png_ptr, &cwr, user_write_stream, nullptr);
   png_set_IHDR(png_ptr, png_info, (uint32_t)wd, (uint32_t)ht, 8, format, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
     PNG_FILTER_TYPE_DEFAULT);
 
@@ -64,7 +70,7 @@ bool save_png32(const char *fn, TexPixel32 *ptr, int wd, int ht, int stride, uns
   }
 
   png_write_info(png_ptr, png_info);
-  png_byte *pix_ptr = (png_byte *)ptr;
+  const png_byte *pix_ptr = (const png_byte *)ptr;
 
   for (int y = 0; y < ht; y++)
   {

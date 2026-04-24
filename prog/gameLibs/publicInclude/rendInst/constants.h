@@ -14,7 +14,13 @@ enum
   RI_EXTRA_VB_CTX_MAIN,
   RI_EXTRA_VB_CTX_ASYNC,
   RI_EXTRA_VB_CTX_CAMCAM_ASYNC,
-  RI_EXTRA_VB_CTX_CNT,
+  RI_EXTRA_VB_CTX_WATER_REFL,
+  RI_EXTRA_VB_CTX_LIGHT_PROBE,
+  RI_EXTRA_VB_CTX_SHADOW_CASCADE_0,
+  RI_EXTRA_VB_CTX_SHADOW_CASCADE_MAX = RI_EXTRA_VB_CTX_SHADOW_CASCADE_0 + 6,
+  RI_EXTRA_VB_CTX_STATIC_SHADOW_0,
+  RI_EXTRA_VB_CTX_STATIC_SHADOW_MAX = RI_EXTRA_VB_CTX_STATIC_SHADOW_0 + 16, // 2 cascades * 8 regions
+  RI_EXTRA_VB_CTX_CNT = RI_EXTRA_VB_CTX_STATIC_SHADOW_MAX,
 };
 
 namespace rendinst
@@ -33,6 +39,7 @@ enum class GatherRiTypeFlag : uint32_t
   RiGenTmOnly = 1 << 0,
   RiGenPosOnly = 1 << 1,
   RiExtraOnly = 1 << 2,
+  RiGenCanopy = 1 << 3,
   RiGenOnly = RiGenTmOnly | RiGenPosOnly,
   RiGenTmAndExtra = RiGenTmOnly | RiExtraOnly,
   RiGenAndExtra = RiGenOnly | RiExtraOnly
@@ -85,6 +92,13 @@ using DestrOptionFlags = BitFlagsMask<DestrOptionFlag>;
 BITMASK_DECLARE_FLAGS_OPERATORS(DestrOptionFlag);
 
 enum class SceneSelection
+{
+  OnlyStatic,
+  OnlyDynamic,
+  All
+};
+
+enum class RiExtraRenderingSubset
 {
   OnlyStatic,
   OnlyDynamic,

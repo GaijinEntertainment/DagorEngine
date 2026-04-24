@@ -209,19 +209,18 @@ shader rendinst_liana
     USE_PIXEL_TANGENT_SPACE()
     WRITE_GBUFFER()
     (ps) {
-      diffuse_tex@static = tex;
-      normal_tex@static = normal;
+      diffuse_tex@staticSmp = tex;
+      normal_tex@staticSmp = normal;
     }
 
     USE_CHARACTER_MICRODETAIL()
-    ENABLE_ASSERT(ps)
 
     hlsl(ps) {
 
-      #define parallax_tex_sampler(tex, tc) tex2DBindless(tex, tc.xy)
+      #define parallax_tex_sampler(sample, tex, tc) sample = tex2DBindless(tex, tc.xy)
       #define PARALLAX_TEX get_diffuse_tex()
       #define PARALLAX_ATTR a
-      #include "./parallax.hlsl"
+      #include <parallax.hlsl>
       GBUFFER_OUTPUT simple_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)//, out float depth : SV_DepthLessEqual)
       {
         #if SET_UP_MULTIDRAW

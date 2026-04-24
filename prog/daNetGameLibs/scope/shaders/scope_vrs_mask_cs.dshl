@@ -16,14 +16,13 @@ shader scope_vrs_mask_cs
 
   (cs) {
     step_x__step_y__rate@f3 = (scope_vrs_mask_tile_x, scope_vrs_mask_tile_y, scope_vrs_mask_rate, 0);
-    scope_mask@smp2d = scope_mask;
+    scope_mask@tex2d = scope_mask;
     scope_lens_mask@smp2d = scope_lens_mask;
     scope_mask_tex_size@f2 = get_dimensions(scope_mask, 0);
     scopeVRSMaskTex@uav : register(scope_vrs_mask_tex_uav_no) hlsl {
       RWTexture2D<uint> scopeVRSMaskTex@uav;
     };
   }
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     #include "scope_mask_common.hlsli"
 

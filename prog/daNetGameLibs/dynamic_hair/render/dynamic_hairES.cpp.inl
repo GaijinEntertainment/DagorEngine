@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <daECS/core/entityManager.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentType.h>
 #include <daECS/core/componentTypes.h>
@@ -9,37 +10,37 @@
 #include <ecs/anim/animchar_visbits.h>
 #include <ecs/render/updateStageRender.h>
 #include <ecs/render/postfx_renderer.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <render/renderSettings.h>
 #include <render/renderEvent.h>
+#include <render/clusteredLights.h>
 #include <render/daFrameGraph/daFG.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <render/world/dynModelRenderPass.h>
 #include <render/world/dynModelRenderer.h>
 #include <render/world/cameraParams.h>
 #include <render/world/frameGraphHelpers.h>
+#include <render/world/wrDispatcher.h>
 #include <shaders/dag_shaderBlock.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
-#include "render/renderLibsAllowed.h"
 
 template <typename Callable>
-static void render_hair_ecs_query(ecs::EntityId, Callable c);
+static void render_hair_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static void gather_hair_ecs_query(ecs::EntityId, Callable c);
+static void gather_hair_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static void add_entity_with_hair_ecs_query(ecs::EntityId, Callable c);
+static void add_entity_with_hair_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static void remove_entity_with_hair_ecs_query(ecs::EntityId, Callable c);
+static void remove_entity_with_hair_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 extern ShaderBlockIdHolder dynamicSceneTransBlockId, dynamicSceneBlockId, dynamicDepthSceneBlockId;
 
-static const char *LIB_NAME = "dynamic_hair";
-static ShaderVariableInfo dyn_model_render_passVarId("dyn_model_render_pass", false, LIB_NAME);
-static ShaderVariableInfo hair_transparent_passVarId("hair_transparent_pass", false, LIB_NAME);
-static ShaderVariableInfo dynamic_hair_atest_valueVarId("dynamic_hair_atest_value", false, LIB_NAME);
+static ShaderVariableInfo dyn_model_render_passVarId("dyn_model_render_pass");
+static ShaderVariableInfo hair_transparent_passVarId("hair_transparent_pass");
+static ShaderVariableInfo dynamic_hair_atest_valueVarId("dynamic_hair_atest_value");
 
 #if DAGOR_DBGLEVEL > 0
 CONSOLE_BOOL_VAL("render", transparentHairsEnable, true);
@@ -52,18 +53,10 @@ static const bool opaqueHairsEnable = true;
 static const char *HAIR_SHADER_NAME = "dynamic_hair";
 static float hairsAtestValue = 1.0f / 255.0f;
 
-inline bool is_lib_allowed()
-{
-  static const bool allowed = is_render_lib_allowed(LIB_NAME);
-  return allowed;
-}
-
 ECS_ON_EVENT(on_appear)
-static void detect_hair_es(const ecs::Event &, AnimV20::AnimcharRendComponent &animchar_render, ecs::EntityId eid)
+static void detect_hair_es(
+  const ecs::Event &, ecs::EntityManager &manager, AnimV20::AnimcharRendComponent &animchar_render, ecs::EntityId eid)
 {
-  if (!is_lib_allowed())
-    return;
-
   DynamicRenderableSceneInstance *sceneInstance = animchar_render.getSceneInstance();
   G_ASSERT_RETURN(sceneInstance && sceneInstance->getLodsResource(), );
   dag::VectorSet<int, eastl::less<int>, framemem_allocator> dynamicHairNodes;
@@ -82,7 +75,7 @@ static void detect_hair_es(const ecs::Event &, AnimV20::AnimcharRendComponent &a
 
   add_sub_template_async(eid, "dynamic_hair_render_tag");
 
-  add_entity_with_hair_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("dynamic_hair_renderer")),
+  add_entity_with_hair_ecs_query(manager, manager.getSingletonEntity(ECS_HASH("dynamic_hair_renderer")),
     [&](int &dynamic_hair__max_nodes_count, ecs::EidList &dynamic_hair__entities, ecs::IntList &dynamic_hair__nodeMaskOffsets,
       ecs::UInt8List &dynamic_hair__nodeMasks) {
       dynamic_hair__entities.push_back(eid);
@@ -98,12 +91,9 @@ static void detect_hair_es(const ecs::Event &, AnimV20::AnimcharRendComponent &a
 
 ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(ecs::Tag dynamic_hair_render)
-static void remove_hair_on_destroy_es(const ecs::Event &, ecs::EntityId eid)
+static void remove_hair_on_destroy_es(const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid)
 {
-  if (!is_lib_allowed())
-    return;
-
-  remove_entity_with_hair_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("dynamic_hair_renderer")),
+  remove_entity_with_hair_ecs_query(manager, manager.getSingletonEntity(ECS_HASH("dynamic_hair_renderer")),
     [eid](ecs::EidList &dynamic_hair__entities, ecs::IntList &dynamic_hair__nodeMaskOffsets, ecs::UInt8List &dynamic_hair__nodeMasks) {
       int idx = find_value_idx(dynamic_hair__entities, eid);
       if (idx < 0)
@@ -130,16 +120,21 @@ static dafg::NodeHandle makeDynamicHairRenderNode()
                                                                            // decompression on barrier
                                                                            // while switch to RO
     registry.setPriority(TRANSPARENCY_NODE_PRIORITY_HAIRS);
+    registry.allowAsyncPipelines();
 
     use_rot_view_camera_in_camera(registry);
     auto texCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
 
     registry.requestState().setFrameBlock("global_frame");
+    auto hasDynLightsHndl = registry.readBlob<bool>("has_any_dynamic_lights").handle();
 
-    return [texCtxHndl](const dafg::multiplexing::Index &multiplexing_index) {
+    return [texCtxHndl, hasDynLightsHndl](const dafg::multiplexing::Index &multiplexing_index) {
       camera_in_camera::ApplyMasterState camcam{multiplexing_index};
+      const auto &lights = WRDispatcher::getClusteredLights();
+      if (lights.hasClusteredLights() && hasDynLightsHndl.ref())
+        lights.setInsideOfFrustumLightsToShader();
 
-      render_hair_ecs_query(g_entity_mgr->getSingletonEntity(ECS_HASH("dynamic_hair_renderer")),
+      render_hair_ecs_query(*g_entity_mgr, g_entity_mgr->getSingletonEntity(ECS_HASH("dynamic_hair_renderer")),
         [texCtxHndl](int &dynamic_hair__max_nodes_count, const ecs::EidList &dynamic_hair__entities,
           const ecs::IntList &dynamic_hair__nodeMaskOffsets, const ecs::UInt8List &dynamic_hair__nodeMasks) {
           if (!transparentHairsEnable)
@@ -147,7 +142,7 @@ static dafg::NodeHandle makeDynamicHairRenderNode()
 
           ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
           ShaderGlobal::set_int(hair_transparent_passVarId, 1);
-          ShaderGlobal::set_real(dynamic_hair_atest_valueVarId, hairsAtestValue);
+          ShaderGlobal::set_float(dynamic_hair_atest_valueVarId, hairsAtestValue);
 
           dynmodel_renderer::DynModelRenderingState &state = dynmodel_renderer::get_immediate_state();
           SmallTab<uint8_t, framemem_allocator> nodeMask;
@@ -155,7 +150,7 @@ static dafg::NodeHandle makeDynamicHairRenderNode()
 
           for (int i = 0, ie = dynamic_hair__entities.size(); i < ie; ++i)
           {
-            gather_hair_ecs_query(dynamic_hair__entities[i],
+            gather_hair_ecs_query(*g_entity_mgr, dynamic_hair__entities[i],
               [&](const AnimV20::AnimcharRendComponent &animchar_render, animchar_visbits_t animchar_visbits) {
                 if (!(animchar_visbits & VISFLG_MAIN_VISIBLE))
                   return;
@@ -173,9 +168,10 @@ static dafg::NodeHandle makeDynamicHairRenderNode()
                     nodeMask[nodeId] = (nodeMaskBegin[nodeId] != 0) && !sceneInstance->isNodeHidden(nodeId) ? 0xff : 0;
                 }
 
+                auto filter = dynmodel_renderer::PathFilterView(nodeMask.begin(), nodeCount);
                 state.process_animchar(ShaderMesh::STG_atest, ShaderMesh::STG_atest, sceneInstance, dynRes,
-                  animchar_additional_data::get_null_data(), false, nullptr, nodeMask.begin(), nodeCount,
-                  UpdateStageInfoRender::RENDER_MAIN, false, dynmodel_renderer::RenderPriority::HIGH, nullptr, texCtxHndl.ref());
+                  animchar_additional_data::get_null_data(), dynmodel_renderer::NeedPreviousMatrices::No, {}, filter,
+                  UpdateStageInfoRender::RENDER_MAIN, dynmodel_renderer::RenderPriority::HIGH, nullptr, texCtxHndl.ref());
               });
           }
           state.prepareForRender();
@@ -189,7 +185,7 @@ static dafg::NodeHandle makeDynamicHairRenderNode()
         });
 
       ShaderGlobal::set_int(hair_transparent_passVarId, 0);
-      ShaderGlobal::set_real(dynamic_hair_atest_valueVarId, opaqueHairsEnable ? hairsAtestValue : 1.0f);
+      ShaderGlobal::set_float(dynamic_hair_atest_valueVarId, opaqueHairsEnable ? hairsAtestValue : 1.0f);
     };
   });
 }
@@ -198,17 +194,14 @@ ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady)
 static void init_dynamic_hair_es_event_handler(const ecs::Event &, dafg::NodeHandle &dynamic_hair__render_node)
 {
-  if (!is_lib_allowed())
-    return;
   dynamic_hair__render_node = makeDynamicHairRenderNode();
 }
-
 ECS_TAG(render)
 ECS_ON_EVENT(ChangeRenderFeatures)
 static void dynamic_hair_on_feature_change_es_event_handler(const ChangeRenderFeatures &evt,
   dafg::NodeHandle &dynamic_hair__render_node)
 {
-  if (!evt.isFeatureChanged(CAMERA_IN_CAMERA) || !is_lib_allowed())
+  if (!evt.isFeatureChanged(CAMERA_IN_CAMERA))
     return;
 
   dynamic_hair__render_node = makeDynamicHairRenderNode();

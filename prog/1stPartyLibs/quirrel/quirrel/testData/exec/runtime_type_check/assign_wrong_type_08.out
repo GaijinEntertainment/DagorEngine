@@ -1,0 +1,12 @@
+
+AN ERROR HAS OCCURRED [type 'float' differs from the declared type 'string|null']
+
+CALLSTACK
+*FUNCTION [__main__()] testData/exec/runtime_type_check/assign_wrong_type_08.nut:2
+
+LOCALS
+[x] 4
+[tab] TABLE={x=4}
+[vargv] ARRAY=[]
+[this] NULL
+Error [Failed to run script testData/exec/runtime_type_check/assign_wrong_type_08.nut (testData/exec/runtime_type_check/assign_wrong_type_08.nut)]

@@ -3,13 +3,33 @@
 #include "daScript/misc/vectypes.h"
 #include "daScript/misc/arraytype.h"
 #include "daScript/misc/rangetype.h"
-#include <limits.h> // ULLONG_MAX
+#include <limits.h> // ULONG_MAX
 
 namespace das
 {
     template <typename TT> struct WrapType { enum { value = false }; typedef TT type; typedef TT rettype; };
+    template <typename TT> struct JitConstRefByValue { enum { value = false }; };
     template <typename TT> struct WrapArgType { typedef TT type; };
     template <typename TT> struct WrapRetType { typedef TT type; };
+
+    // gcc fails to deduce auto field type. We should manually add it
+    template <typename T, typename Element, Element T::*BaseField = &T::x>
+    struct WrapVec2Arg : T {
+        WrapVec2Arg(vec4f t) : T(vec_extract<Element>::x(t), vec_extract<Element>::y(t)) {}
+        operator vec4f() const { return das::vec_loadu(&(this->*BaseField)); }
+    };
+
+    template <typename T, typename Element, Element T::*BaseField = &T::x>
+    struct WrapVec3Arg : T {
+        WrapVec3Arg(vec4f t) : T(vec_extract<Element>::x(t), vec_extract<Element>::y(t), vec_extract<Element>::z(t)) {}
+        operator vec4f() const { return das::vec_loadu(&(this->*BaseField)); }
+    };
+
+    template <typename T, typename Element, Element T::*BaseField = &T::x>
+    struct WrapVec4Arg : T {
+        WrapVec4Arg(vec4f t) : T(vec_extract<Element>::x(t), vec_extract<Element>::y(t), vec_extract<Element>::z(t), vec_extract<Element>::w(t)) {}
+        operator vec4f() const { return das::vec_loadu(&(this->*BaseField)); }
+    };
 
     template <typename TT>
     struct das_alias;
@@ -233,6 +253,24 @@ namespace das
 
 
     template <>
+    struct cast <Bitfield8> {
+        static __forceinline Bitfield8 to ( vec4f x )           { return v_extract_xi(v_cast_vec4i(x)); }
+        static __forceinline vec4f from ( Bitfield8 x )         { return v_cast_vec4f(v_seti_x(x.value)); }
+    };
+
+    template <>
+    struct cast <Bitfield16> {
+        static __forceinline Bitfield16 to ( vec4f x )           { return v_extract_xi(v_cast_vec4i(x)); }
+        static __forceinline vec4f from ( Bitfield16 x )         { return v_cast_vec4f(v_seti_x(x.value)); }
+    };
+
+    template <>
+    struct cast <Bitfield64> {
+        static __forceinline Bitfield64 to ( vec4f x )           { return v_extract_xi64(v_cast_vec4i(x)); }
+        static __forceinline vec4f from ( Bitfield64 x )         { return v_cast_vec4f(v_ldui_half(&x)); }
+    };
+
+    template <>
     struct cast <int64_t> {
         static __forceinline int64_t to ( vec4f x )            { return v_extract_xi64(v_cast_vec4i(x)); }
         static __forceinline vec4f from ( int64_t x )          { return v_cast_vec4f(v_ldui_half(&x)); }
@@ -300,7 +338,7 @@ namespace das
         static __forceinline vec4f from ( uint64_t x )         { return v_cast_vec4f(v_ldui_half(&x)); }
     };
 
-#if !defined(_MSC_VER) && !defined(__APPLE__) && !defined(_EMSCRIPTEN_VER) && defined(ULLONG_MAX) && ULLONG_MAX == 0xffffffffffffffffULL
+#if !defined(_MSC_VER) && !defined(__APPLE__) && !defined(_EMSCRIPTEN_VER) && defined(ULONG_MAX) && ULONG_MAX == UINT64_MAX
     template <>
     struct cast <long long int> {
         static __forceinline long long int to ( vec4f x )            { return v_extract_xi64(v_cast_vec4i(x)); }

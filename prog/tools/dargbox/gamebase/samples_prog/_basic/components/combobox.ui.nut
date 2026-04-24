@@ -42,7 +42,7 @@ return {
     halign  = ALIGN_CENTER
     flow    = FLOW_VERTICAL
     gap  = sh(2)
-    size = static [sh(40), sh(20)]
+    size = const [sh(40), sh(20)]
 
     children = [
       toggleButton

@@ -2,12 +2,13 @@
 #pragma once
 
 #include "trace_id.h"
+#include "command_list_identifier.h"
 
 namespace drv3d_dx12::debug
 {
 struct TraceCheckpoint
 {
-  ID3D12GraphicsCommandList *commandList = nullptr;
+  CommandListIdentifier commandList = nullptr;
   TraceID progress = null_trace_value;
 
   static constexpr TraceCheckpoint make_invalid() { return {.commandList = nullptr, .progress = invalid_trace_value}; }

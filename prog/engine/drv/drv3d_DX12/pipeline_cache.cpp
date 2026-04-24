@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "pipeline_cache.h"
-#include "const_register_type.h"
 #include "d3d12_error_handling.h"
 #include "pipeline/blk_cache.h"
 
@@ -58,7 +57,7 @@ enum CacheFileFlags
 };
 
 constexpr uint32_t CACHE_FILE_MAGIC = _MAKE4C('CX12');
-constexpr uint32_t CACHE_FILE_VERSION = 29;
+constexpr uint32_t CACHE_FILE_VERSION = 32;
 constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *));
 // Version history:
 // 1 - initial
@@ -92,6 +91,9 @@ constexpr uint32_t EXPECTED_POINTER_SIZE = static_cast<uint32_t>(sizeof(void *))
 // 27 - FramebufferLayout data structure updated, fixed padding issues, fixed issues with uninitialized bits
 // 28 - Dual source blending support
 // 29 - Stream output support
+// 30 - Dual source blending fix
+// 31 - Add useResourceDescriptorHeapIndexing and useSamplerDescriptorHeapIndexing in root signature definitions
+// 32 - Bit packing of root signature definitions
 } // namespace
 
 void PipelineCache::init(const SetupParameters &params)
@@ -362,6 +364,8 @@ void PipelineCache::shutdown(const ShutdownParameters &params)
 
 GraphicsPipelineBaseCacheId PipelineCache::getGraphicsPipeline(const BasePipelineIdentifier &ident)
 {
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
+
   auto ref =
     eastl::find_if(begin(graphicsCache), end(graphicsCache), [=](const GraphicsPipeline &pipe) { return pipe.ident == ident; });
 
@@ -376,6 +380,8 @@ GraphicsPipelineBaseCacheId PipelineCache::getGraphicsPipeline(const BasePipelin
 
 bool PipelineCache::containsGraphicsPipeline(const BasePipelineIdentifier &ident)
 {
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
+
   auto ref =
     eastl::find_if(begin(graphicsCache), end(graphicsCache), [=](const GraphicsPipeline &pipe) { return pipe.ident == ident; });
 
@@ -384,6 +390,7 @@ bool PipelineCache::containsGraphicsPipeline(const BasePipelineIdentifier &ident
 
 size_t PipelineCache::getGraphicsPipelineVariantCount(GraphicsPipelineBaseCacheId base_id)
 {
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
   return graphicsCache[base_id.get()].variantCache.size();
 }
 
@@ -399,6 +406,8 @@ size_t PipelineCache::addGraphicsPipelineVariant(GraphicsPipelineBaseCacheId bas
   G_UNUSED(fb_layout);
   G_UNUSED(pipeline);
 #if _TARGET_PC_WIN
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
+
   auto &base = graphicsCache[base_id.get()];
   auto inputLayoutIndex = getInputLayoutIndex(input_layout);
   auto staticRenderStateIndex = getStaticRenderStateIndex(static_state);
@@ -447,6 +456,8 @@ size_t PipelineCache::addGraphicsMeshPipelineVariant(GraphicsPipelineBaseCacheId
   const RenderStateSystem::StaticState &static_state, const FramebufferLayout &fb_layout, ID3D12PipelineState *pipeline)
 {
 #if _TARGET_PC_WIN
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
+
   // Uses vertex pipeline entries for now, topology is set to undefined and input layout index to 0.
   auto &base = graphicsCache[base_id.get()];
   auto staticRenderStateIndex = getStaticRenderStateIndex(static_state);
@@ -500,6 +511,8 @@ size_t PipelineCache::addGraphicsMeshPipelineVariant(GraphicsPipelineBaseCacheId
 
 size_t PipelineCache::removeGraphicsPipelineVariant(GraphicsPipelineBaseCacheId base_id, size_t index)
 {
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
+
   auto &base = graphicsCache[base_id.get()];
   auto &variants = base.variantCache;
   variants.erase(begin(variants) + index);
@@ -525,6 +538,10 @@ ComPtr<ID3D12PipelineState> PipelineCache::loadGraphicsPipelineVariant(GraphicsP
   G_UNUSED(desc);
   G_UNUSED(blob_target);
 #if _TARGET_PC_WIN
+  // The pipeline library is thread-safe except for loading the same pipeline concurrently. So we might exclude LoadPipeline from the
+  // lock scope.
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
+
   ComPtr<ID3D12PipelineState> result;
   auto &base = graphicsCache[base_id.get()];
   auto inputLayoutIndex = getInputLayoutIndex(input_layout);
@@ -580,6 +597,8 @@ ComPtr<ID3D12PipelineState> PipelineCache::loadGraphicsMeshPipelineVariant(Graph
   D3D12_CACHED_PIPELINE_STATE &blob_target)
 {
 #if _TARGET_PC_WIN
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
+
   ComPtr<ID3D12PipelineState> result;
   auto &base = graphicsCache[base_id.get()];
   auto staticRenderStateIndex = getStaticRenderStateIndex(static_state);
@@ -639,8 +658,9 @@ ComPtr<ID3D12PipelineState> PipelineCache::loadGraphicsMeshPipelineVariant(Graph
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE
 PipelineCache::getGraphicsPipelineVariantDesc(GraphicsPipelineBaseCacheId base_id, size_t index, InputLayout &input_layout,
-  bool &is_wire_frame, RenderStateSystem::StaticState &static_state, FramebufferLayout &fb_layout) const
+  bool &is_wire_frame, RenderStateSystem::StaticState &static_state, FramebufferLayout &fb_layout)
 {
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
   auto &base = graphicsCache[base_id.get()];
   auto &variant = base.variantCache[index];
   fb_layout = framebufferLayouts[variant.framebufferLayoutIndex];
@@ -658,6 +678,7 @@ ComPtr<ID3D12PipelineState> PipelineCache::loadGraphicsPipelineVariantFromIndex(
   G_UNUSED(desc);
   G_UNUSED(blob_target);
 #if _TARGET_PC_WIN
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
   ComPtr<ID3D12PipelineState> result;
   auto &base = graphicsCache[base_id.get()];
   auto &variant = base.variantCache[index];
@@ -699,6 +720,7 @@ void PipelineCache::addCompute(const dxil::HashValue &shader, ID3D12PipelineStat
   G_UNUSED(shader);
   G_UNUSED(pipeline);
 #if _TARGET_PC_WIN
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
   if (usePSOBlobs())
   {
     ComPtr<ID3DBlob> blob;
@@ -742,6 +764,7 @@ ComPtr<ID3D12PipelineState> PipelineCache::loadCompute(const dxil::HashValue &sh
   G_UNUSED(desc);
   G_UNUSED(blob_target);
 #if _TARGET_PC_WIN
+  OSSpinlockScopedLock lock(pipelineCacheGuard);
   ComPtr<ID3D12PipelineState> result;
   if (usePSOBlobs())
   {

@@ -33,6 +33,9 @@ protected:
 
   ToroidalGatherCallback::RegionTab regions[NUM_CLIPMAP_SHADOW_CASCADES];
   Tab<ToroidalQuadRegion> quadRegions[NUM_CLIPMAP_SHADOW_CASCADES];
+
+  TMatrix lookDownVtm = TMatrix::IDENT;
+
   void setUpSampler() const;
 
 public:

@@ -1,8 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
 #include <startup/dag_globalSettings.h>
+#include <workCycle/dag_gameSettings.h>
 #include <debug/dag_logSys.h>
 #include <osApiWrappers/dag_messageBox.h>
 #include <osApiWrappers/dag_progGlobals.h>
@@ -65,19 +66,19 @@ static SQInteger get_primary_screen_info(HSQUIRRELVM vm)
 #elif _TARGET_PC_MACOSX
   return macosx_get_primary_screen_info(vm);
 #else
-  return sq_throwerror(vm, "Not implemented on this platform");
+  return sq_throwerror(vm, "get_primary_screen_info not implemented on this platform");
 #endif
 }
 
 
 static SQInteger message_box(HSQUIRRELVM vm)
 {
-  const char *text, *caption;
+  const char *text = nullptr, *caption = nullptr;
   SQInteger flags = 0;
-  G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 2, &text)));
-  G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 3, &caption)));
+  sq_getstring(vm, 2, &text);
+  sq_getstring(vm, 3, &caption);
   if (sq_gettop(vm) > 3)
-    G_VERIFY(SQ_SUCCEEDED(sq_getinteger(vm, 4, &flags)));
+    sq_getinteger(vm, 4, &flags);
   int res = os_message_box(text, caption, flags);
   sq_pushinteger(vm, res);
   return 1;
@@ -92,6 +93,10 @@ static void set_app_window_title(const char *title)
 #endif
 }
 
+static void set_run_in_background(bool value) { ::dgs_dont_use_cpu_in_background = !value; }
+
+static bool get_run_in_background() { return !::dgs_dont_use_cpu_in_background; }
+
 
 void register_dagor_system(SqModules *module_mgr)
 {
@@ -100,6 +105,7 @@ void register_dagor_system(SqModules *module_mgr)
   Sqrat::Array argv(vm);
   for (int i = 0; i < ::dgs_argc; i++)
     argv.Append(::dgs_argv[i]);
+  argv.FreezeSelf();
 
 #if defined(_TARGET_64BIT)
   const int targetArch = 64;
@@ -119,17 +125,22 @@ void register_dagor_system(SqModules *module_mgr)
     ///@param name s : return commandline named argument value if provied (-name:value)
 
     .Func("get_log_directory", get_log_directory)
-    .SquirrelFunc("get_all_arg_values_by_name", get_all_arg_values_by_name, 2, ".s")
+    .SquirrelFuncDeclString(get_all_arg_values_by_name, "get_all_arg_values_by_name(name: string): array|null",
+      "returns null or list [value1, value2,...] of all command line arguments provided in -name:value1 -name2:value2")
     ///@param name s
     ///@return a|null : returns null or list [value1, value2,...] of all command line arguments provided in -name:value1 -name2:value2
     /// format
-    .SquirrelFunc("get_primary_screen_info", get_primary_screen_info, 1)
-    .SquirrelFunc("message_box", message_box, -2, ".ssi")
+    .SquirrelFuncDeclString(get_primary_screen_info, "get_primary_screen_info(): table")
+    .SquirrelFuncDeclString(message_box, "message_box(text: string, caption: string, [flags: int]): int")
     ///@param mbx_title s
     ///@param mbx_text s
     ///@param mbx_level i : can be error, warning, info level
     .Func("set_app_window_title", set_app_window_title)
     ///@param s : title
+    .Func("set_run_in_background", set_run_in_background)
+    ///@param value b : if true, the app will use CPU when in background
+    .Func("get_run_in_background", get_run_in_background)
+    ///@return b : true if the app is set to use CPU when in background
 
     /// @skipline
     .SetValue("argv", argv)

@@ -1,0 +1,14 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("daspkg-version-1")
+    package_description("Example: install version 1.0 of a package")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("github.com/borisbat/daspkg-test-versions@1.0")
+}

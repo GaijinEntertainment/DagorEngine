@@ -35,6 +35,7 @@ enum
   FS_DIALOG_DIRECTORY = 0x03,
 
   EXT_BUTTON_NONE = 0,
+  EXT_BUTTON_SINGLE_ACTION, // The button has only one action, and it gets executed when pressing the button.
   EXT_BUTTON_INSERT,
   EXT_BUTTON_APPEND,
   EXT_BUTTON_REMOVE,

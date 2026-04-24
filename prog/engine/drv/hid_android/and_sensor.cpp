@@ -27,6 +27,8 @@ extern ALooper *dagor_command_thread_looper;
 
 namespace HumanInput
 {
+SensorsPollingData AndroidSensor::sensorsPollingData;
+
 namespace
 {
 struct AndroidResources

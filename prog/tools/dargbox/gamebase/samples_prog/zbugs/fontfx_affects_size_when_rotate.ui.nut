@@ -1,16 +1,16 @@
 from "%darg/ui_imports.nut" import *
 from "math" import PI, sin, cos
 
-let text = {
+let text = const {
   rendObj = ROBJ_TEXT
   text = 1
-  transform = {}
+  transform = true
 }
 
-let buggedText = {
+let buggedText = const {
   rendObj = ROBJ_TEXT
   text = 1
-  transform = {}
+  transform = true
   fontFx = FFT_GLOW
 }
 

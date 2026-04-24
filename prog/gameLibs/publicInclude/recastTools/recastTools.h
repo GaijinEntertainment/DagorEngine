@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <recast.h>
+#include <Recast.h>
 
 #include <generic/dag_tab.h>
 #include <math/dag_Point3.h>

@@ -53,6 +53,11 @@ void GPUGrassService::createGrass(DataBlock &grass_settings)
   closeGrass();
   grass = eastl::make_unique<GPUGrass>();
   grass->init(grass_settings);
+
+  static int unitBBInfoForGrassVarId = get_shader_variable_id("unitBBInfoForGrass", true);
+  ShaderGlobal::set_float4(unitBBInfoForGrassVarId, Color4(-100000.0f, -100000.0f, -100000.0f, 1.0f)); // turn off unit bbox grass
+                                                                                                       // bending
+
   enumerateGrassTypes(grass_settings);
   enumerateGrassDecals(grass_settings);
 }
@@ -86,7 +91,11 @@ void GPUGrassService::beforeRender(Stage stage)
   mat44f globtm;
   d3d::getglobtm(globtm);
   Frustum frustum(globtm);
-  grass->generate(frustum, itm.getcol(3), itm.getcol(2), grassHelper);
+  const auto &currentPos = itm.getcol(3);
+  if (smallGrass)
+    grass->generatePerView(GrassView::Main, frustum, currentPos, currentPos, itm.getcol(2), grassHelper);
+  else
+    grass->generate(frustum, currentPos, currentPos, itm.getcol(2), grassHelper);
 }
 
 void GPUGrassService::renderGeometry(Stage stage)
@@ -247,6 +256,10 @@ void GPUGrassService::invalidate()
   if (grass)
     grass->invalidate();
 }
+
+void GPUGrassService::setIsSmallGrass(bool flag) { smallGrass = flag; }
+
+bool GPUGrassService::isSmallGrass() const { return smallGrass; }
 
 static GPUGrassService srv;
 

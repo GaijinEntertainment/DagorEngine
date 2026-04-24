@@ -34,6 +34,7 @@
 #endif
 
 #include <3d/dag_maskedOcclusionCulling.h>
+#include <daBVH/dag_swBLAS_ray.h>
 #if DAGOR_DBGLEVEL > 0
 #define OCCLUSION_ASSERT assert
 #else
@@ -215,6 +216,12 @@ typedef int32x4_t __m128i;
 #define _mm_setr_epi32 _mmw_setr_epi32
 
 #define _mm_loadu_ps vld1q_f32
+
+// float unpack/interleave for AoS-to-SoA transpose
+FORCE_INLINE __m128 _mm_unpacklo_ps(__m128 a, __m128 b) { return vzip1q_f32(a, b); }
+FORCE_INLINE __m128 _mm_unpackhi_ps(__m128 a, __m128 b) { return vzip2q_f32(a, b); }
+FORCE_INLINE __m128 _mm_movelh_ps(__m128 a, __m128 b) { return vcombine_f32(vget_low_f32(a), vget_low_f32(b)); }
+FORCE_INLINE __m128 _mm_movehl_ps(__m128 a, __m128 b) { return vcombine_f32(vget_high_f32(b), vget_high_f32(a)); }
 
 #define _mm_movemask_ps _mmw_movemask_ps
 #define _mm_xor_ps      _mmw_xor_ps
@@ -444,6 +451,13 @@ MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderTriangles(co
   int nTris, const float *modelToClipMatrix, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask)
 {
   return MOC_STATIC_UPCAST(this)->RenderTriangles(inVtx, inTris, nTris, modelToClipMatrix, bfWinding, clipPlaneMask);
+}
+
+MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd,
+  const float *rawToClipMatrix, unsigned short *cacheIndices, int *cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding)
+{
+  return MOC_STATIC_UPCAST(this)->RenderBLAS(blasData, treeStart, treeEnd, rawToClipMatrix, cacheIndices, cacheTriCount, cacheMode,
+    bfWinding);
 }
 
 MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::TestRect(float xmin, float ymin, float xmax, float ymax,

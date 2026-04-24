@@ -7,11 +7,11 @@
 
 #include <util/dag_stdint.h>
 #include <util/dag_compilerDefs.h>
+#include <drv/3d/dag_consts.h>
 
 class String;
 
 #define INLINE_VB_SIZE (1024 << 10)
-#define INLINE_IB_SIZE (1024 << 10)
 
 #define FALLBACK_SCREEN_WIDTH  1280
 #define FALLBACK_SCREEN_HEIGHT 720
@@ -50,7 +50,6 @@ struct RenderWindowParams
   const char *wcname;
   int ncmdshow;
   void *hwnd;
-  void *rwnd;
   void *icon;
   const char *title;
   void *mainProc;
@@ -81,3 +80,7 @@ const char *get_monitor_name_from_settings();
 const char *resolve_monitor_name(const char *displayName);
 
 int drv_message_box(const char *utf8_text, const char *utf8_caption, int flags = 0);
+
+const char *to_string(ShaderStage stage);
+
+int get_presentation_interval_from_settings();

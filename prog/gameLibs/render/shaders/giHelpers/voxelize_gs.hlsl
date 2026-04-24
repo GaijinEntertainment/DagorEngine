@@ -44,9 +44,9 @@ void voxelize_gs(triangle VsOutput input[3], inout TriangleStream<GsOutput> triS
     p[1].v.pos.xy = angle == 1 ? boxPos1.xz : boxPos1.yx;
     p[2].v.pos.xy = angle == 1 ? boxPos2.xz : boxPos2.yx;
   }
-  //p[0].v.pos = float4(boxPos0[u],boxPos0[v],0.5,1);//won't work on vulkan!! HLSLcc bug
-  //p[1].v.pos = float4(boxPos1[u],boxPos1[v],0.5,1);//won't work on vulkan!! HLSLcc bug
-  //p[2].v.pos = float4(boxPos2[u],boxPos2[v],0.5,1);//won't work on vulkan!! HLSLcc bug
+  //p[0].v.pos = float4(boxPos0[u],boxPos0[v],0.5,1);
+  //p[1].v.pos = float4(boxPos1[u],boxPos1[v],0.5,1);
+  //p[2].v.pos = float4(boxPos2[u],boxPos2[v],0.5,1);
 
   // voxel space to NDC space
   const float voxel_to_ndc = voxelize_box1.w;

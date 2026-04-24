@@ -49,7 +49,7 @@ macro GI_VOLUMETRIC_IRRADIANCE_USE(code)
   GI_VOLUMETRIC_COMMON_USE(code)
   hlsl (code) {
     #define gi_froxels_sph0_samplerstate gi_froxels_sph1_samplerstate
-    #include <sh1.hlsl>
+    #include <sh1_encode_luminance.hlsl>
     SH1 get_volumetric_gi_get_irradiance_uvw(float3 uvw)
     {
       half3 ambient = half3(tex3Dlod(gi_froxels_sph0, float4(uvw, 0)).xyz);

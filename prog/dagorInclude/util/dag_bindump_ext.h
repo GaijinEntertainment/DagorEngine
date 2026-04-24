@@ -30,7 +30,7 @@ struct SizeMetter : IWriter
 };
 
 template <typename Cont>
-struct MemoryWriterBase : IWriter
+struct MemoryWriterImpl : IWriter
 {
   Cont mData;
 
@@ -50,9 +50,42 @@ struct MemoryWriterBase : IWriter
   }
 };
 
+template <typename Cont>
+struct ReservingMemoryWriterImpl : MemoryWriterImpl<Cont>
+{
+  SizeMetter mSizer;
+
+  // Must be called with the same layout before 'writeLayout'. Available separately to reject too large layouts.
+  template <typename LayoutType>
+  void prepareLayoutSize(const LayoutType &layout)
+  {
+    bindump::streamWrite(layout, mSizer);
+  }
+
+  template <typename LayoutType>
+  void writeLayout(const LayoutType &layout)
+  {
+    if (!mSizer.mSize)
+      prepareLayoutSize(layout);
+    MemoryWriterImpl<Cont>::mData.reserve(mSizer.mSize);
+    bindump::streamWrite(layout, *static_cast<IWriter *>(this));
+  }
+};
+
+
 // TODO: Should be removed as soon as we switch to `dag::Vector` in all places where the `MemoryWriter` is used
-using MemoryWriter = MemoryWriterBase<eastl::vector<uint8_t>>;
-using VectorWriter = MemoryWriterBase<dag::Vector<uint8_t>>;
+using MemoryWriter = MemoryWriterImpl<eastl::vector<uint8_t>>;
+using VectorWriter = MemoryWriterImpl<dag::Vector<uint8_t>>;
+
+using ReservingMemoryWriter = ReservingMemoryWriterImpl<eastl::vector<uint8_t>>;
+using ReservingVectorWriter = ReservingMemoryWriterImpl<dag::Vector<uint8_t>>;
+
+// Override for reserving writers (use methods when you need size first)
+template <typename LayoutType, typename Cont>
+void streamWrite(const LayoutType &layout, ReservingMemoryWriterImpl<Cont> &writer)
+{
+  writer.writeLayout(layout);
+}
 
 class FileWriter : public IWriter
 {
@@ -127,11 +160,7 @@ bool writeToFileFast(const LayoutType &layout, const char *filename)
   if (!saver.fileHandle)
     return false;
 
-  SizeMetter size_metter;
-  streamWrite(layout, size_metter);
-
-  MemoryWriter mem_writer;
-  mem_writer.mData.reserve(size_metter.mSize);
+  ReservingMemoryWriter mem_writer;
   streamWrite(layout, mem_writer);
 
   saver.write(mem_writer.mData.data(), mem_writer.mData.size());
@@ -319,7 +348,11 @@ struct Compressed
     {
       static_assert(eastl::is_base_of_v<DataType, DataTypeEx>, "DataTypeEx must be derived from DataType");
       static_assert(target == MASTER, "Unable to call compress() method on Mapper side");
-      MemoryWriter writer;
+
+      // This particular case requires streamWriteLayout, so we unrolled the actions
+      ReservingMemoryWriter writer;
+      writer.prepareLayoutSize(data);
+      writer.mData.reserve(writer.mSizer.mSize);
       streamWriteLayout(data, writer);
 
       if (level < 0)

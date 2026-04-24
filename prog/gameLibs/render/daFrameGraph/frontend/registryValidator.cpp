@@ -9,6 +9,7 @@
 #include "common/genericPoint.h"
 #include <common/resourceUsage.h>
 
+#include <EASTL/algorithm.h>
 #include <memory/dag_framemem.h>
 #include <dag/dag_vectorSet.h>
 
@@ -39,11 +40,7 @@ void RegistryValidator::validateLifetimes(ValidityInfo &validity) const
       validity.resourceValid.set(resId, false);
     }
 
-    dag::RelocatableFixedVector<NodeNameId, 32> sortedReaders;
-    sortedReaders.assign(lifetime.readers.begin(), lifetime.readers.end());
-    eastl::sort(sortedReaders.begin(), sortedReaders.end());
-
-    if (eastl::binary_search(sortedReaders.begin(), sortedReaders.end(), lifetime.introducedBy))
+    if (eastl::find(lifetime.readers.begin(), lifetime.readers.end(), lifetime.introducedBy) != lifetime.readers.end())
     {
       logerr("daFG: Resource '%s' was both read and introduced by node '%s'! "
              "This is impossible to satisfy, disabling the resource! ",
@@ -52,7 +49,7 @@ void RegistryValidator::validateLifetimes(ValidityInfo &validity) const
       validity.resourceValid.set(resId, false);
     }
 
-    if (eastl::binary_search(sortedReaders.begin(), sortedReaders.end(), lifetime.consumedBy))
+    if (eastl::find(lifetime.readers.begin(), lifetime.readers.end(), lifetime.consumedBy) != lifetime.readers.end())
     {
       logerr("daFG: Resource '%s' was both read and consumed by node '%s'! "
              "This is impossible to satisfy, disabling the node! ",
@@ -61,13 +58,10 @@ void RegistryValidator::validateLifetimes(ValidityInfo &validity) const
       validity.nodeValid.set(lifetime.consumedBy, false);
     }
 
-    dag::RelocatableFixedVector<NodeNameId, 32> sortedModifiers;
-    sortedModifiers.assign(lifetime.modificationChain.begin(), lifetime.modificationChain.end());
-    eastl::sort(sortedModifiers.begin(), sortedModifiers.end());
-
     dag::RelocatableFixedVector<NodeNameId, 8> conflicts;
-    eastl::set_intersection(sortedReaders.begin(), sortedReaders.end(), sortedModifiers.begin(), sortedModifiers.end(),
-      eastl::back_insert_iterator<decltype(conflicts)>(conflicts));
+    for (auto r : lifetime.readers)
+      if (eastl::find(lifetime.modificationChain.begin(), lifetime.modificationChain.end(), r) != lifetime.modificationChain.end())
+        conflicts.push_back(r);
 
     if (!conflicts.empty())
     {
@@ -89,17 +83,56 @@ void RegistryValidator::validateLifetimes(ValidityInfo &validity) const
   }
 }
 
+void RegistryValidator::buildCreatedResourceDataCache()
+{
+  createdResourceDataCache.clear();
+  createdResourceDataCache.resize(registry.knownNames.nameCount<ResNameId>(), nullptr);
+  for (const auto resId : registry.resources.keys())
+  {
+    const auto representative = depData.renamingRepresentatives[nameResolver.resolve(resId)];
+    const auto &maybeData = registry.resources[representative].createdResData;
+    createdResourceDataCache[resId] = maybeData.has_value() ? &*maybeData : nullptr;
+  }
+}
+
 bool RegistryValidator::validateResource(ResNameId resId) const
 {
+  // Validate created, renamed registered and slot resources
+
   const auto &lifetime = depData.resourceLifetimes[resId];
 
-  const bool wasIntroduced = lifetime.introducedBy != NodeNameId::Invalid;
+  // Valid virtual resource must be inroduced
+  if (lifetime.introducedBy == NodeNameId::Invalid)
+    return false;
+
+  if (lifetime.consumedBy == lifetime.introducedBy)
+    return false;
+
+  // Slot is ALWAYS invalid, but we need to make sure that resId was not created/registered/renamed
   const bool isASlot = registry.resourceSlots[resId].has_value();
-  if (isASlot && wasIntroduced)
+  if (isASlot)
+  {
     logerr("daFG: The name '%s' was both used to create/register/rename "
            "a resource in node '%s' and was filled as a resource slot. "
            "Please, use a different name for one of those!",
       registry.knownNames.getName(resId), registry.knownNames.getName(lifetime.introducedBy));
+    return false;
+  }
+
+  // Resource without created data is valid at this point.
+  // We expect a renamed optional resource,
+  // otherwise it will be invalidated later and you'll get logerr
+  if (!createdResourceDataCache[resId])
+    return true;
+
+  const auto &createdResData = *createdResourceDataCache[resId];
+
+  bool isInvalidBuffer = false;
+  if (auto desc = eastl::get_if<BufferCreateInfo>(&createdResData.creationInfo); desc && desc->elementCount == 0)
+  {
+    isInvalidBuffer = true;
+    logerr("daFG: Buffer '%s' was created with element count of 0, which is not valid!", registry.knownNames.getName(resId));
+  }
 
   const auto checkResolution = [this](AutoResTypeNameId unresolvedAutoResId) {
     const auto autoResId = nameResolver.resolve(unresolvedAutoResId);
@@ -116,30 +149,24 @@ bool RegistryValidator::validateResource(ResNameId resId) const
     return positive;
   };
 
-  bool isInvalidBuffer = false;
-  if (auto desc = eastl::get_if<BufferCreateInfo>(&registry.resources[resId].creationInfo); desc && desc->elementCount == 0)
-  {
-    isInvalidBuffer = true;
-    logerr("daFG: Buffer '%s' was created with element count of 0, which is not valid!", registry.knownNames.getName(resId));
-  }
-
-  const bool autoResValid =
-    !registry.resources[resId].resolution.has_value() || checkResolution(registry.resources[resId].resolution->id);
+  const auto &maybeAutoResolution = createdResData.resolution;
+  const bool autoResValid = !maybeAutoResolution.has_value() || checkResolution(maybeAutoResolution->id);
 
   if (!autoResValid)
     logerr("daFG: Resource '%s' was created with auto-resolution '%s', "
            "but this resolution was either set to an invalid value or "
            "not set at all!",
-      registry.knownNames.getName(resId), registry.knownNames.getName(registry.resources[resId].resolution->id));
+      registry.knownNames.getName(resId), registry.knownNames.getName(maybeAutoResolution->id));
 
-  // Slots stay marked as invalid cuz they don't represent real resources.
-  // Things that had a conflict are invalid.
-  return wasIntroduced && !isASlot && !isInvalidBuffer && autoResValid;
+  return !isInvalidBuffer && autoResValid;
 }
 
 bool RegistryValidator::validateNode(NodeNameId nodeId) const
 {
   const auto &nodeData = registry.nodes[nodeId];
+
+  if (!nodeData.execute)
+    return false;
 
   bool anyUnfilledSlotRequests = false;
   for (const auto &[resId, req] : nodeData.resourceRequests)
@@ -155,6 +182,41 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
       anyUnfilledSlotRequests = true;
     }
 
+  bool noErronousIntroductions = true;
+  bool noErronousConsumptions = true;
+
+  for (const auto resId : nodeData.createdResources)
+    if (depData.resourceLifetimes[resId].erroneousIntroducers.count(nodeId) > 0)
+    {
+      logerr("daFG: Resource '%s' was created multiple times! "
+             "Node '%s' was chosen as the true introducer, but '%s' also creates it! Disabling the latter node!",
+        registry.knownNames.getName(resId), registry.knownNames.getName(depData.resourceLifetimes[resId].introducedBy),
+        registry.knownNames.getName(nodeId));
+      noErronousIntroductions = false;
+    }
+
+  for (const auto [toResId, unresolvedFromResId] : nodeData.renamedResources)
+  {
+    if (depData.resourceLifetimes[toResId].erroneousIntroducers.count(nodeId) > 0)
+    {
+      logerr("daFG: Resource '%s' was created multiple times! "
+             "Node '%s' was chosen as the true introducer, but '%s' also creates it! Disabling the latter node!",
+        registry.knownNames.getName(toResId), registry.knownNames.getName(depData.resourceLifetimes[toResId].introducedBy),
+        registry.knownNames.getName(nodeId));
+      noErronousIntroductions = false;
+    }
+
+    const auto fromResId = nameResolver.resolve(unresolvedFromResId);
+    if (depData.resourceLifetimes[fromResId].erroneousConsumers.count(nodeId) > 0)
+    {
+      logerr("daFG: Resource '%s' was consumed multiple times! "
+             "Node '%s' was chosen as the true consumer, but '%s' also consumes it! Disabling the latter node!",
+        registry.knownNames.getName(fromResId), registry.knownNames.getName(depData.resourceLifetimes[fromResId].consumedBy),
+        registry.knownNames.getName(nodeId));
+      noErronousConsumptions = false;
+    }
+  }
+
   bool anyBindingTypeMismatches = false;
   for (const auto &[bindId, req] : nodeData.bindings)
   {
@@ -162,7 +224,6 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
     if (req.type != BindingType::ShaderVar)
       continue;
 
-    const auto resType = resourceDataFor(req.resource).type;
     const auto svType = ShaderGlobal::get_var_type(bindId);
 
     const auto resIt = nodeData.resourceRequests.find(req.resource);
@@ -182,8 +243,13 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
              " Either the programmers messed up, or the shader dump is out of date!",
         registry.knownNames.getName(nodeId), res_type_str, registry.knownNames.getName(resId), VariableMap::getVariableName(svId),
         SHVT_MESSAGES[1 + svType]);
-      anyBindingTypeMismatches = false;
+      anyBindingTypeMismatches = true;
     };
+
+    if (!createdResourceDataCache[req.resource])
+      continue;
+
+    const auto resType = createdResourceDataCache[req.resource]->type;
 
     switch (resType)
     {
@@ -249,8 +315,23 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
 
   nameResolver.iterateInverseMapping(nodeId, checkResIdRequest);
 
+  bool anyFaultyHistoryRequests = false;
+  for (auto &[unresolvedResId, _] : nodeData.historyResourceReadRequests)
+  {
+    const auto resId = nameResolver.resolve(unresolvedResId);
+    if (depData.resourceLifetimes[resId].introducedBy != NodeNameId::Invalid && registry.resources[resId].history == History::No)
+    {
+      logerr("daFG: Node '%s' requested history for resource '%s', but the"
+             " resource was created with no history enabled. Please"
+             " specify a history behavior in the resource creation call! Disabling this node!",
+        registry.knownNames.getName(nodeId), registry.knownNames.getName(resId));
+      anyFaultyHistoryRequests = true;
+    }
+  }
+
   const auto isBackbuffer = [this](ResNameId resId) {
-    return eastl::holds_alternative<DriverDeferredTexture>(resourceDataFor(resId).creationInfo);
+    const auto *data = createdResourceDataCache[resId];
+    return data && eastl::holds_alternative<DriverDeferredTexture>(data->creationInfo);
   };
 
   bool anyInvalidBackbufferRequests = false;
@@ -358,27 +439,33 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
       {
         // TODO: add same checks for resources with ExternalResourceProvider creation info
 
-        const auto &fromResData = resourceDataFor(from);
-        if (const auto *info = eastl::get_if<Texture2dCreateInfo>(&fromResData.creationInfo))
+        if (createdResourceDataCache[from])
         {
-          if (!(info->creationFlags & TEXCF_SAMPLECOUNT_MASK))
+          const auto &fromResData = *createdResourceDataCache[from];
+          if (const auto *info = eastl::get_if<Texture2dCreateInfo>(&fromResData.creationInfo))
           {
-            logerr("daFG: The node '%s' requested single-sampled resource '%s' to be resolved to '%s'!"
-                   "This is impossible to satisfy, disabling this node!",
-              registry.knownNames.getName(nodeId), registry.knownNames.getName(from), registry.knownNames.getName(to));
-            anyFramebufferUsageMismatches = true;
+            if (!(info->creationFlags & TEXCF_SAMPLECOUNT_MASK))
+            {
+              logerr("daFG: The node '%s' requested single-sampled resource '%s' to be resolved to '%s'!"
+                     "This is impossible to satisfy, disabling this node!",
+                registry.knownNames.getName(nodeId), registry.knownNames.getName(from), registry.knownNames.getName(to));
+              anyFramebufferUsageMismatches = true;
+            }
           }
         }
 
-        const auto &toResData = resourceDataFor(to);
-        if (const auto *info = eastl::get_if<Texture2dCreateInfo>(&toResData.creationInfo))
+        if (createdResourceDataCache[to])
         {
-          if (info->creationFlags & TEXCF_SAMPLECOUNT_MASK)
+          const auto &toResData = *createdResourceDataCache[to];
+          if (const auto *info = eastl::get_if<Texture2dCreateInfo>(&toResData.creationInfo))
           {
-            logerr("daFG: The node '%s' requested resource '%s' to be resolved to multisampled resource '%s'!"
-                   "This is impossible to satisfy, disabling this node!",
-              registry.knownNames.getName(nodeId), registry.knownNames.getName(from), registry.knownNames.getName(to));
-            anyFramebufferUsageMismatches = true;
+            if (info->creationFlags & TEXCF_SAMPLECOUNT_MASK)
+            {
+              logerr("daFG: The node '%s' requested resource '%s' to be resolved to multisampled resource '%s'!"
+                     "This is impossible to satisfy, disabling this node!",
+                registry.knownNames.getName(nodeId), registry.knownNames.getName(from), registry.knownNames.getName(to));
+              anyFramebufferUsageMismatches = true;
+            }
           }
         }
       }
@@ -407,11 +494,13 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
   bool anySubtypeTagMismatches = false;
 
   const auto checkRequestSubtypeTag = [this, nodeId, &anySubtypeTagMismatches](ResNameId resId, const ResourceRequest &req) {
-    const auto &resData = resourceDataFor(resId);
-    if (resData.type != ResourceType::Blob)
+    if (!createdResourceDataCache[resId])
+      return;
+    const auto &createdResData = *createdResourceDataCache[resId];
+    if (createdResData.type != ResourceType::Blob)
       return;
 
-    const auto &info = eastl::get<BlobDescription>(resData.creationInfo);
+    const auto &info = eastl::get<BlobDescription>(createdResData.creationInfo);
     if (!resourceTagsMatch(info.typeTag, req.subtypeTag))
     {
       logerr("daFG: Detected a blob type mismatch on node '%s'! "
@@ -429,14 +518,30 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
   bool usagesValid = true;
   for (const auto &[resId, req] : nodeData.resourceRequests)
   {
-    const auto &resData = resourceDataFor(resId);
-    if ((resData.type == ResourceType::Blob) || (resData.type == ResourceType::Invalid))
+    if (!createdResourceDataCache[resId])
+      continue;
+    const auto &createdResData = *createdResourceDataCache[resId];
+    if ((createdResData.type == ResourceType::Blob) || (createdResData.type == ResourceType::Invalid))
       continue;
 
-    if (eastl::holds_alternative<ExternalResourceProvider>(resData.creationInfo))
+    if (eastl::holds_alternative<ExternalResourceProvider>(createdResData.creationInfo))
       continue;
 
-    ValidateUsageResult validateUsageRes = validate_usage(req.usage, resData.type, resData.history);
+    DesiredActivationBehaviour desiredActivationAction = !eastl::holds_alternative<eastl::monostate>(createdResData.clearValue)
+                                                           ? DesiredActivationBehaviour::Clear
+                                                           : DesiredActivationBehaviour::Discard;
+    bool is_int = true;
+    if (auto tex2d = eastl::get_if<Texture2dCreateInfo>(&createdResData.creationInfo))
+    {
+      const auto channels = get_tex_format_desc(tex2d->creationFlags & TEXFMT_MASK).mainChannelsType;
+      is_int = channels == ChannelDType::UINT || channels == ChannelDType::SINT;
+    }
+    else if (auto tex3d = eastl::get_if<Texture3dCreateInfo>(&createdResData.creationInfo))
+    {
+      const auto channels = get_tex_format_desc(tex3d->creationFlags & TEXFMT_MASK).mainChannelsType;
+      is_int = channels == ChannelDType::UINT || channels == ChannelDType::SINT;
+    }
+    ValidateUsageResult validateUsageRes = validate_usage(req.usage, createdResData.type, desiredActivationAction, is_int);
     switch (validateUsageRes)
     {
       case ValidateUsageResult::Invalid:
@@ -462,9 +567,9 @@ bool RegistryValidator::validateNode(NodeNameId nodeId) const
     }
   }
 
-  return nodeData.execute && !anyUnfilledSlotRequests && !anyBindingTypeMismatches && !anyUsageConflictsAfterNameResolution &&
-         !anyFramebufferUsageMismatches && !anyInvalidBackbufferRequests && !invalidBackbufferPass && !anySubtypeTagMismatches &&
-         usagesValid;
+  return noErronousIntroductions && noErronousConsumptions && !anyUnfilledSlotRequests && !anyBindingTypeMismatches &&
+         !anyUsageConflictsAfterNameResolution && !anyFaultyHistoryRequests && !anyFramebufferUsageMismatches &&
+         !anyInvalidBackbufferRequests && !invalidBackbufferPass && !anySubtypeTagMismatches && usagesValid;
 }
 
 void RegistryValidator::validateRegistry()
@@ -474,6 +579,8 @@ void RegistryValidator::validateRegistry()
 
   auto &resourceValid = validityInfo.resourceValid;
   auto &nodeValid = validityInfo.nodeValid;
+
+  buildCreatedResourceDataCache();
 
   resourceValid.clear();
   resourceValid.resize(registry.knownNames.nameCount<ResNameId>(), false);
@@ -498,6 +605,9 @@ void RegistryValidator::validateRegistry()
         resourceValid[toId] = false;
     }
 
+  // Skip the expensive BFS setup when everything is valid (the common case).
+  if (nodeValid.all() && resourceValid.all())
+    return;
 
   IdIndexedMapping<ResNameId, size_t, framemem_allocator> nodesDependentOnResourceCount(resourceValid.size(), 0);
 
@@ -539,9 +649,14 @@ void RegistryValidator::validateRegistry()
 
     for (const auto &[to, unresolvedFrom] : nodeData.renamedResources)
     {
-      auto &dep = resourceRenamingDependencies[nameResolver.resolve(unresolvedFrom)];
-      G_ASSERT(!dep.has_value());
-      dep = to;
+      const auto from = nameResolver.resolve(unresolvedFrom);
+
+      // Only account for the rename that we chose to be the true consumer,
+      // all other nodes are already invalidated anyways
+      if (depData.resourceLifetimes[from].consumedBy != nodeId)
+        continue;
+
+      resourceRenamingDependencies[from] = to;
     }
   }
 
@@ -626,11 +741,5 @@ void RegistryValidator::validateRegistry()
   if (swaps % 2)
     eastl::swap(wave, nextWave);
 }
-
-const ResourceData &RegistryValidator::resourceDataFor(ResNameId resId) const
-{
-  return registry.resources[depData.renamingRepresentatives[nameResolver.resolve(resId)]];
-}
-
 
 } // namespace dafg

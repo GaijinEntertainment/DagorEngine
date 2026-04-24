@@ -422,6 +422,9 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
   else
   {
     (&dbg_ctx)->threadId = interlocked_increment(next_thread_id);
+#if DAGOR_HOSTED_INTERNAL_SERVER
+    PFUN("{HIS} ");
+#endif
     PFUN("---$%02X %s ---\n", (&dbg_ctx)->threadId - 1, (&dbg_ctx)->threadName);
   }
 #endif
@@ -437,6 +440,9 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
 #endif
   bool addSlashN = !(&dbg_ctx)->holdLine;
   bool new_debug_line = !(&dbg_ctx)->nextSameLine;
+#if DAGOR_HOSTED_INTERNAL_SERVER
+  PFUN("{HIS} ");
+#endif
   if (thread_id > 0)
   {
     if ((&dbg_ctx)->file)
@@ -487,8 +493,7 @@ void debug_internal::vlog(int tag, const char *format, const void *arg, int anum
   }
 
   (&dbg_ctx)->nextSameLine = !term;
-  if (!term)
-    (&dbg_ctx)->holdLine = false;
+  (&dbg_ctx)->holdLine = false;
 }
 
 #undef PFUN
@@ -583,8 +588,10 @@ bool debug_internal::on_log_handler(int tag, const char *fmt, const void *arg, i
 
 ret_l:
 
-  if (r && dgs_on_promoted_log_tag && feq(tag, promoted_tags, countof(promoted_tags)))
-    (*dgs_on_promoted_log_tag)(tag, fmt, arg, anum);
+  if (r)
+    if (auto *func = interlocked_relaxed_load_ptr(dgs_on_promoted_log_tag))
+      if (feq(tag, promoted_tags, countof(promoted_tags)))
+        (*func)(tag, fmt, arg, anum);
 
   if (debug_log_callback_t cb = interlocked_relaxed_load_ptr(debug_internal::log_callback))
     r = cb(tag, fmt, arg, anum, (&dbg_ctx)->file, (&dbg_ctx)->line) > 0;
@@ -690,7 +697,7 @@ void close_debug_files()
 void debug_flush(bool df)
 {
   flush_debug_file();
-  debug_internal::flush_debug = df || debug_internal::always_flush_debug;
+  debug_internal::flush_debug.store(df || debug_internal::always_flush_debug, dag::mo::_Release{});
 }
 
 void force_debug_flush(bool df)

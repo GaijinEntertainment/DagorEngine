@@ -8,6 +8,9 @@
 #include "driver_config.h"
 #include "command.h"
 #include "physical_device_set.h"
+#include "backend/cmd/sync.h"
+#include "buffer.h"
+#include "texture.h"
 
 using namespace drv3d_vulkan;
 
@@ -52,19 +55,63 @@ struct PrefixedFenceHandle
 
 } // anonymous namespace
 
-// TODO: move implementation out of device context class
-
-void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline gpu_pipeline /*= GpuPipeline::GRAPHICS*/)
+void d3d::resource_barrier(const ResourceBarrierDesc &desc, GpuPipeline /*gpu_pipeline = GpuPipeline::GRAPHICS*/)
 {
   if (Globals::lock.isAcquired() && Globals::VK::phy.hasBindless)
-    Globals::ctx.resourceBarrier(desc, gpu_pipeline);
+  {
+    OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+
+    desc.enumerateTextureBarriers([](BaseTexture *tex, ResourceBarrier state, unsigned res_index, unsigned res_range) {
+      G_ASSERT(tex);
+      // ignore split barrier flags for now, process only end part
+      if (state & RB_FLAG_SPLIT_BARRIER_BEGIN)
+        return;
+
+      Image *image = cast_to_texture_base(tex)->image;
+      uint32_t stop_index = (res_range == 0) ? image->getMipLevels() * image->getArrayLayers() : res_range + res_index;
+      G_UNUSED(stop_index);
+      G_ASSERTF((image->getMipLevels() * image->getArrayLayers()) >= stop_index,
+        "Out of bound subresource index range (%d, %d+%d) in resource barrier for image %s (0, %d)", res_index, res_index, res_range,
+        image->getDebugName(), image->getMipLevels() * image->getArrayLayers());
+
+      Globals::ctx.dispatchCmdNoLock<CmdImageBarrier>({image, state, res_index, res_range});
+    });
+
+    desc.enumerateBufferBarriers([](Sbuffer *buf, ResourceBarrier state) {
+      // ignore global UAV write flushes
+      // they will not work properly in current sync logic and should be already tracked
+      // only REAL acceses can be processed properly/without risk, not dummy/assumed global ones
+      // reasons:
+      //  1. drivers are buggy on global memory barriers (even validator can simply ignore them)
+      //  2. execution on GPU can be async task based, not linear FIFO, giving different results on "wide" barriers
+      if (!buf && (state & RB_FLUSH_UAV))
+        return;
+      // RB_NONE is "hack" to skip next sync
+      // but it is non efficient as we must track src op for proper sync on vulkan
+      // and also sync step must be reordered/delayed, as other operations must be RB_NONE-d too
+      // yet if it is done, no RB_NONE is NOT needed at all
+      // because if operations can be batch completed, reordered/delayed sync step will verify it and
+      // make proper batch-fashion barriers
+      if (state == RB_NONE)
+        return;
+
+      // ignore split barrier flags for now, process only end part
+      if (state & RB_FLAG_SPLIT_BARRIER_BEGIN)
+        return;
+
+      G_ASSERT(buf);
+      auto gbuf = (GenericBufferInterface *)buf;
+      G_ASSERT(gbuf->getBufferRef().buffer);
+      Globals::ctx.dispatchCmdNoLock<CmdBufferBarrier>({gbuf->getBufferRef(), state}); //-V522
+    });
+  }
 }
 
 void drv3d_vulkan::d3d_command_change_queue(GpuPipeline gpu_pipeline)
 {
   VERIFY_GLOBAL_LOCK_ACQUIRED();
 
-  Globals::ctx.dispatchCommand<CmdQueueSwitch>({(int)gpu_pipeline_to_device_queue_type(gpu_pipeline)});
+  Globals::ctx.dispatchCmd<CmdQueueSwitch>({(int)gpu_pipeline_to_device_queue_type(gpu_pipeline)});
 }
 
 GPUFENCEHANDLE d3d::insert_fence(GpuPipeline gpu_pipeline)
@@ -75,7 +122,7 @@ GPUFENCEHANDLE d3d::insert_fence(GpuPipeline gpu_pipeline)
     return BAD_GPUFENCEHANDLE;
 
   uint32_t rawSignalIdx = Frontend::replay->userSignalCount++;
-  Globals::ctx.dispatchCommand<CmdQueueSignal>({rawSignalIdx, (int)gpu_pipeline_to_device_queue_type(gpu_pipeline)});
+  Globals::ctx.dispatchCmd<CmdQueueSignal>({rawSignalIdx, (int)gpu_pipeline_to_device_queue_type(gpu_pipeline)});
   return PrefixedFenceHandle{rawSignalIdx}.toDriver();
 }
 
@@ -90,5 +137,5 @@ void d3d::insert_wait_on_fence(GPUFENCEHANDLE &fence, GpuPipeline gpu_pipeline) 
   // old signal from different job!
   if (!userFence.verify())
     return;
-  Globals::ctx.dispatchCommand<CmdQueueWait>({userFence.toIdx(), (int)gpu_pipeline_to_device_queue_type(gpu_pipeline)});
+  Globals::ctx.dispatchCmd<CmdQueueWait>({userFence.toIdx(), (int)gpu_pipeline_to_device_queue_type(gpu_pipeline)});
 }

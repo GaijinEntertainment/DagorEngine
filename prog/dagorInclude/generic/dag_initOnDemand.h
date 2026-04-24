@@ -7,6 +7,7 @@
 #include <debug/dag_assert.h>
 #include <EASTL/utility.h>
 #include <osApiWrappers/dag_atomic.h>
+#include <memory/dag_mem.h> // memset_dw
 #include <supp/dag_define_KRNLIMP.h>
 
 
@@ -44,6 +45,8 @@ private:
 };
 
 
+#if !DAGOR_PREFER_HEAP_ALLOCATION
+
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(push)
 #pragma warning(disable : 4582 4583) // warning C4582: 'InitOnDemand<...>::obj': constructor|destructor is not implicitly called
@@ -53,7 +56,11 @@ template <typename T, typename B>
 struct InitOnDemand<T, false, B>
 {
 public:
+#if DAGOR_DBGLEVEL > 0 && defined(_DEBUG_TAB_)
+  InitOnDemand() { memset_dw(objBuf, 0x7ffdcdcd, sizeof(objBuf) / sizeof(int)); }
+#else
   InitOnDemand() {}
+#endif
   InitOnDemand(const InitOnDemand &) = delete;
   ~InitOnDemand() { demandDestroy(); }
 
@@ -63,24 +70,24 @@ public:
   operator T *() const
   {
     G_FAST_ASSERT(inited);
-    return getObj();
+    return &obj;
   }
   T &operator*() const
   {
     G_FAST_ASSERT(inited);
-    return *getObj();
+    return obj;
   }
   T *operator->() const
   {
     G_FAST_ASSERT(inited);
-    return getObj();
+    return &obj;
   }
 #else
-  operator T *() const { return getObj(); }
-  T &operator*() const { return *getObj(); }
-  T *operator->() const { return getObj(); }
+  operator T *() const { return &obj; }
+  T &operator*() const { return obj; }
+  T *operator->() const { return &obj; }
 #endif
-  T *get() const { return ((bool)*this) ? getObj() : nullptr; }
+  T *get() const { return ((bool)*this) ? &obj : nullptr; }
   explicit operator bool() const
   {
     if constexpr (eastl::is_volatile_v<B>)
@@ -100,7 +107,7 @@ public:
       else
         inited = true;
     }
-    return getObj();
+    return &obj;
   }
   void demandDestroy()
   {
@@ -108,23 +115,25 @@ public:
     {
       if (!interlocked_exchange(inited, false))
         return;
-      getObj()->~T();
+      obj.~T();
     }
     else if (inited)
     {
-      getObj()->~T();
+      obj.~T();
       inited = false;
     }
+    else
+      return;
+#if DAGOR_DBGLEVEL > 0 && defined(_DEBUG_TAB_)
+    memset_dw(objBuf, 0x7ffddddd, sizeof(objBuf) / sizeof(int));
+#endif
   }
-
-private:
-  T *getObj() const { return const_cast<T *>(&obj); }
 
 private:
   union
   {
     alignas(T) char objBuf[sizeof(T)];
-    T obj;
+    mutable T obj;
   };
   B inited = false;
 };
@@ -132,5 +141,7 @@ private:
 #if defined(_MSC_VER) && !defined(__clang__)
 #pragma warning(pop)
 #endif
+
+#endif //! DAGOR_PREFER_HEAP_ALLOCATION
 
 #include <supp/dag_undef_KRNLIMP.h>

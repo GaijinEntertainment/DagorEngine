@@ -31,11 +31,15 @@
 #include <main/level.h>
 #include <landMesh/lmeshManager.h>
 #include <render/renderEvent.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 #include <daECS/core/coreEvents.h>
 
 #include "puddlesManagerEvents.h"
+#include <render/world/frameGraphHelpers.h>
+#include <render/world/cameraParams.h>
 
 #define GLOBAL_VARS_LIST        \
   VAR(world_to_puddles_tex_ofs) \
@@ -116,7 +120,7 @@ void PuddlesManager::preparePuddles(const Point3 &origin)
     alignedOrigin = point2(puddlesHelper.curOrigin) * texelSize;
     d3d::set_render_target(puddles.getTex2D(), 0);
     // todo: we'd better align to hmap world pos ofs
-    ShaderGlobal::set_color4(world_to_puddles_ofsVarId, 1.0f / fullDistance, puddleLod, -alignedOrigin.x / fullDistance + 0.5,
+    ShaderGlobal::set_float4(world_to_puddles_ofsVarId, 1.0f / fullDistance, puddleLod, -alignedOrigin.x / fullDistance + 0.5,
       -alignedOrigin.y / fullDistance + 0.5);
     TMatrix vtm;
     if (puddlesScene)
@@ -129,7 +133,7 @@ void PuddlesManager::preparePuddles(const Point3 &origin)
     }
     for (auto &reg : tab)
     {
-      ShaderGlobal::set_color4(world_to_puddles_tex_ofsVarId, texelSize * (reg.texelsFrom.x - reg.lt.x),
+      ShaderGlobal::set_float4(world_to_puddles_tex_ofsVarId, texelSize * (reg.texelsFrom.x - reg.lt.x),
         texelSize * (reg.texelsFrom.y - reg.lt.y), puddleLod, texelSize);
       d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
       puddlesRenderer.render();
@@ -153,13 +157,13 @@ void PuddlesManager::preparePuddles(const Point3 &origin)
       }
       if (removedPuddlesActualSize > 0)
       {
-        ShaderGlobal::set_color4(puddle_toroidal_viewVarId, reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y);
+        ShaderGlobal::set_float4(puddle_toroidal_viewVarId, reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y);
         d3d::setvsrc(0, 0, 0);
         puddlesRemover.shader->setStates();
         d3d::draw_instanced(PRIM_TRISTRIP, 0, 2, removedPuddlesActualSize);
       }
     }
-    ShaderGlobal::set_color4(world_to_puddles_tex_ofsVarId, ofs.x, ofs.y, 1. / puddlesHelper.texSize, puddleLod);
+    ShaderGlobal::set_float4(world_to_puddles_tex_ofsVarId, ofs.x, ofs.y, 1. / puddlesHelper.texSize, puddleLod);
     d3d::resource_barrier({puddles.getTex2D(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
   }
 
@@ -219,13 +223,23 @@ void PuddlesManager::init(const LandMeshManager *lmesh_mgr, const DataBlock &set
     removedPuddlesActualSize = 0;
   }
   else
-    ShaderGlobal::set_color4(world_to_puddles_ofsVarId, 0, 10, 0, 0);
+    ShaderGlobal::set_float4(world_to_puddles_ofsVarId, 0, 10, 0, 0);
 
 
   shaders::OverrideState state;
   state.set(shaders::OverrideState::BLEND_OP);
   state.blendOp = BLENDOP_MAX;
   blendMaxState = shaders::overrides::create(state);
+  puddleNode = dafg::register_node("delayed_prepare_puddles_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.setPriority(dafg::PRIO_AS_LATE_AS_POSSIBLE);
+    registry.readBlob<OrderingToken>("depth_above_rendered");
+    registry.multiplex(dafg::multiplexing::Mode::None);
+    registry.executionHas(dafg::SideEffects::External);
+
+    auto cameraHndl = registry.readBlob<CameraParamsUnified>("current_camera_unified").handle();
+
+    return [cameraHndl]() { g_entity_mgr->broadcastEventImmediate(PreparePuddles{cameraHndl.get()->cameraWorldPos}); };
+  });
 }
 
 void PuddlesManager::reinit_same_settings(const LandMeshManager *lmesh_mgr, int forced_max_resolution)

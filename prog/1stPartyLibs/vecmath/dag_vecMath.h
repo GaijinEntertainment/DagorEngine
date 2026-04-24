@@ -73,6 +73,7 @@ VECTORCALL VECMATH_FINLINE vec4i v_make_vec4i(int x, int y, int z, int w);
 
 //! .xyz = {x y z}
 VECTORCALL VECMATH_FINLINE vec4f v_make_vec3f(float x, float y, float z);
+VECTORCALL VECMATH_FINLINE vec4i v_make_vec3i(int x, int y, int z);
 //! .xyz = {x y z}, where .x component of each source vector used
 VECTORCALL VECMATH_FINLINE vec4f v_make_vec3f(vec4f x, vec4f y, vec4f z);
 
@@ -114,6 +115,9 @@ VECTORCALL VECMATH_FINLINE void v_sti(void *m, vec4i v);
 VECTORCALL VECMATH_FINLINE void v_stui(void *m, vec4i v);
 //! store low 64 bits of vector (.xy) to unaligned memory
 VECTORCALL VECMATH_FINLINE void v_stui_half(void *m, vec4i v);
+//! store 3-d vector (.xyz) to unaligned memory
+VECTORCALL VECMATH_FINLINE void v_stu_p3(float *p3, vec3f v);
+VECTORCALL VECMATH_FINLINE void v_stui_p3(int *p3, vec3f v);
 
 //! merge high words: .xyzw = {a.x, b.x, a.y, b.y}
 VECTORCALL VECMATH_FINLINE vec4f v_merge_hw(vec4f a, vec4f b);
@@ -131,6 +135,7 @@ VECTORCALL VECMATH_FINLINE bool v_test_any_bit_set(vec4f a);
 //! component-wise check that ALL selected components set to true (0xFFFFFFFF), not to false (0). Result for values between is UB!
 VECTORCALL VECMATH_FINLINE bool v_check_xyzw_all_true(vec4f a);
 VECTORCALL VECMATH_FINLINE bool v_check_xyz_all_true(vec4f a);
+VECTORCALL VECMATH_FINLINE bool v_check_xz_all_true(vec4f a);
 VECTORCALL VECMATH_FINLINE bool v_check_xy_all_true(vec4f a);
 
 //! component-wise check that ANY of selected components set to true (0xFFFFFFFF), not to false (0). Result for values between is UB!
@@ -154,6 +159,11 @@ VECTORCALL VECMATH_FINLINE vec4i v_cmp_eqi(vec4i a, vec4i b);
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_ge(vec4f a, vec4f b);
 //! component-wise comparison: for C={xyzw}  .C = a.C>b.C ? 0xFFFFFFFF : 0
 VECTORCALL VECMATH_FINLINE vec4f v_cmp_gt(vec4f a, vec4f b);
+//! component-wise comparison: for C={xyzw}  .C = a.C<=b.C ? 0xFFFFFFFF : 0
+VECTORCALL VECMATH_FINLINE vec4f v_cmp_le(vec4f a, vec4f b);
+//! component-wise comparison: for C={xyzw}  .C = a.C<b.C ? 0xFFFFFFFF : 0
+VECTORCALL VECMATH_FINLINE vec4f v_cmp_lt(vec4f a, vec4f b);
+
 VECTORCALL VECMATH_FINLINE vec4i v_cmp_gti(vec4i a, vec4i b);
 VECTORCALL VECMATH_FINLINE vec4i v_cmp_lti(vec4i a, vec4i b);
 
@@ -370,12 +380,29 @@ VECTORCALL VECMATH_FINLINE vec4i v_subi(vec4i a, vec4i b);
 //! (a * b), signed integers. result is only correctly defined if both operands and result is within [-1<<31, 1<<31) range
 VECTORCALL VECMATH_FINLINE vec4i v_muli(vec4i a, vec4i b);
 
-//! shift left (unsigned integer). bits is immediate value
+//! 8x16-bit packed integer addition
+VECTORCALL VECMATH_FINLINE vec4i v_addi16(vec4i a, vec4i b);
+//! 8x16-bit packed integer subtraction
+VECTORCALL VECMATH_FINLINE vec4i v_subi16(vec4i a, vec4i b);
+//! 8x16-bit packed signed multiply, returns low 16 bits of each product
+VECTORCALL VECMATH_FINLINE vec4i v_muli16(vec4i a, vec4i b);
+//! 8x16-bit packed signed multiply, returns high 16 bits of each product
+VECTORCALL VECMATH_FINLINE vec4i v_mulhi16(vec4i a, vec4i b);
+//! 8x16-bit multiply pairs and pairwise add: {a0*b0+a1*b1, a2*b2+a3*b3, ...} -> 4x int32
+VECTORCALL VECMATH_FINLINE vec4i v_madd_i16(vec4i a, vec4i b);
+//! broadcast int16 value to all 8 16-bit lanes within vec4i
+VECTORCALL VECMATH_FINLINE vec4i v_splatsi16(int v);
+
+//! shift left (unsigned integer, 32-bit lanes). bits is immediate value
 VECTORCALL VECMATH_FINLINE vec4i v_slli(vec4i v, int bits);
-//! shift right (unsigned integer). bits is immediate value
+//! shift right (unsigned integer, 32-bit lanes). bits is immediate value
 VECTORCALL VECMATH_FINLINE vec4i v_srli(vec4i v, int bits);
-//! shift right (signed integer). bits is immediate value
+//! shift right (signed integer, 32-bit lanes). bits is immediate value
 VECTORCALL VECMATH_FINLINE vec4i v_srai(vec4i v, int bits);
+//! shift left (unsigned integer, 64-bit lanes). bits is immediate value
+VECTORCALL VECMATH_FINLINE vec4i v_slli_64(vec4i v, int bits);
+//! shift right (unsigned integer, 64-bit lanes). bits is immediate value
+VECTORCALL VECMATH_FINLINE vec4i v_srli_64(vec4i v, int bits);
 //! shift left (unsigned integer). bits is variative value
 VECTORCALL VECMATH_FINLINE vec4i v_slli_n(vec4i v, int bits);
 //! shift right (unsigned integer). bits is variative value
@@ -417,12 +444,16 @@ VECTORCALL VECMATH_FINLINE vec4f v_hadd4_x(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_hadd3_x(vec3f a);
 //! return min of .xyzw
 VECTORCALL VECMATH_FINLINE vec4f v_hmin(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_hmini(vec4i a);
 //! return max of .xyzw
 VECTORCALL VECMATH_FINLINE vec4f v_hmax(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_hmaxi(vec4i a);
 //! return min of .xyz
 VECTORCALL VECMATH_FINLINE vec4f v_hmin3(vec3f a);
+VECTORCALL VECMATH_FINLINE vec4i v_hmini3(vec4i a);
 //! return max of .xyz
 VECTORCALL VECMATH_FINLINE vec4f v_hmax3(vec3f a);
+VECTORCALL VECMATH_FINLINE vec4i v_hmaxi3(vec4i a);
 //! return x*y*z*w
 VECTORCALL VECMATH_FINLINE vec4f v_hmul(vec4f a);
 //! return x*y*z
@@ -462,9 +493,11 @@ VECTORCALL VECMATH_FINLINE vec4f v_perm_wxyz(vec4f a); //< alias for v_rot_3()
 VECTORCALL VECMATH_FINLINE vec4f v_perm_yzxw(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_zxyw(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xzxz(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_zxzx(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xxyy(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_zzww(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xxzz(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4f v_perm_wwyy(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_yyww(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_xyxy(vec4f a);
 VECTORCALL VECMATH_FINLINE vec4f v_perm_yzxx(vec4f a);
@@ -493,6 +526,11 @@ VECTORCALL VECMATH_FINLINE vec4i v_permi_xzxz(vec4i xyzw);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_ywyw(vec4i xyzw);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_xyxy(vec4i xyzw);
 VECTORCALL VECMATH_FINLINE vec4i v_permi_zwzw(vec4i xyzw);
+VECTORCALL VECMATH_FINLINE vec4i v_permi_xxyy(vec4i xyzw);
+VECTORCALL VECMATH_FINLINE vec4i v_permi_zzww(vec4i xyzw);
+VECTORCALL VECMATH_FINLINE vec4i v_permi_xxzz(vec4i xyzw);
+VECTORCALL VECMATH_FINLINE vec4i v_permi_yyww(vec4i xyzw);
+VECTORCALL VECMATH_FINLINE vec4i v_permi_wwyy(vec4i xyzw);
 
 #define v_perm_xyXY v_perm_xyab
 #define v_perm_zwZW v_perm_zwcd
@@ -519,6 +557,23 @@ VECTORCALL VECMATH_FINLINE vec4i v_packus(vec4i a);
 VECTORCALL VECMATH_FINLINE vec4i v_packus16(vec4i a, vec4i b);
 //! pack 16x 16-bit ints into 16x unsigned 8-bit ints
 VECTORCALL VECMATH_FINLINE vec4i v_packus16(vec4i a);
+
+//! interleave low 8 bytes from a,b: {a0,b0,a1,b1,...,a7,b7}
+VECTORCALL VECMATH_FINLINE vec4i v_interleave_lo_i8(vec4i a, vec4i b);
+//! interleave high 8 bytes from a,b: {a8,b8,a9,b9,...,a15,b15}
+VECTORCALL VECMATH_FINLINE vec4i v_interleave_hi_i8(vec4i a, vec4i b);
+//! interleave low 4 shorts from a,b: {a0,b0,a1,b1,a2,b2,a3,b3}
+VECTORCALL VECMATH_FINLINE vec4i v_interleave_lo_i16(vec4i a, vec4i b);
+//! interleave high 4 shorts from a,b: {a4,b4,a5,b5,a6,b6,a7,b7}
+VECTORCALL VECMATH_FINLINE vec4i v_interleave_hi_i16(vec4i a, vec4i b);
+//! interleave low 2 ints from a,b: {a0,b0,a1,b1}
+VECTORCALL VECMATH_FINLINE vec4i v_interleave_lo_i32(vec4i a, vec4i b);
+//! interleave high 2 ints from a,b: {a2,b2,a3,b3}
+VECTORCALL VECMATH_FINLINE vec4i v_interleave_hi_i32(vec4i a, vec4i b);
+//! interleave low int64 from a,b: {a0,b0}
+VECTORCALL VECMATH_FINLINE vec4i v_interleave_lo_i64(vec4i a, vec4i b);
+//! interleave high int64 from a,b: {a1,b1}
+VECTORCALL VECMATH_FINLINE vec4i v_interleave_hi_i64(vec4i a, vec4i b);
 
 
 //
@@ -849,6 +904,10 @@ VECTORCALL VECMATH_FINLINE void v_bbox3_init_empty(bbox3f &b);
 VECTORCALL VECMATH_FINLINE void v_bbox3_init_ident(bbox3f &b);
 //! init with point
 VECTORCALL VECMATH_FINLINE void v_bbox3_init(bbox3f &b, vec3f p);
+//! init with bb2 rotated/scaled by 3 column vectors (no translation)
+VECTORCALL VECMATH_FINLINE void v_bbox3_rotate_init(bbox3f &b, vec3f col0, vec3f col1, vec3f col2, bbox3f_cref bb2);
+//! init with bb2 transformed with 3x3 matrix m (rotation/scale only, no translation)
+VECTORCALL VECMATH_FINLINE void v_bbox3_init(bbox3f &b, mat33f_cref m, bbox3f bb2);
 //! init with bb2 transformed with 4x4 matrix m
 VECTORCALL VECMATH_FINLINE void v_bbox3_init(bbox3f &b, mat44f_cref m, bbox3f bb2);
 //! init with bsph
@@ -1211,6 +1270,18 @@ VECTORCALL VECMATH_INLINE  vec4f v_log2_est_p4(vec4f x);
 VECTORCALL VECMATH_INLINE  vec4f v_log2_est_p5(vec4f x);//polynom of 5
 
 VECTORCALL VECMATH_FINLINE vec4f v_pow_est(vec4f x, vec4f y);////exp_polynom_of_4(log_polynom_of_5(x)*y)
+
+// uv sampling
+//
+// addr will contain addresses in assumption that data is (1<<size_bits)&2, linearily in memory)
+// addr = {LT.x+(LT.y<<size_bits), RT.x+(RT.y<<size_bits), LB.x+(LB.y<<size_bits), RB.x+(RB.y<<size_bits)}
+// uv_frac will contain fractional part of texel coord
+// center_ofs = V_C_HALF will make typical HW filtering (center in 0.5,0.5 of pixel coordinate)
+VECTORCALL VECMATH_INLINE void v_get_bilinear_wrap_addr_pow2(vec4i &addr, vec4f &uv_frac, vec4f uv_wrap, int size_bits, vec4f center_ofs = v_zero());
+
+// this works with non-pow-of-2 textures.
+// addr = {LT.x+(LT.y*size), RT.x+(RT.y*size), LB.x+(LB.y*size), RB.x+(RB.y*size)}
+VECTORCALL VECMATH_INLINE void v_get_bilinear_wrap_addr(vec4i &addr, vec4f &uv_frac, vec4f uv_wrap, int size, vec4f center_ofs = v_zero());
 //
 // vector -> scalar transformation (often incurs penalty!)
 //
@@ -1223,6 +1294,9 @@ VECTORCALL VECMATH_FINLINE float v_extract_y(vec4f v);
 VECTORCALL VECMATH_FINLINE float v_extract_z(vec4f v);
 //! extracts fp32 w-component of float[4]
 VECTORCALL VECMATH_FINLINE float v_extract_w(vec4f v);
+
+//! extract N element
+VECTORCALL VECMATH_FINLINE float v_extract(vec4f v, int idx);
 
 //! extracts i16 x-component of short[8]
 VECTORCALL VECMATH_FINLINE short v_extract_xi16(vec4i v);
@@ -1245,10 +1319,7 @@ VECTORCALL VECMATH_FINLINE int v_extract_zi(vec4i v);
 VECTORCALL VECMATH_FINLINE int v_extract_wi(vec4i v);
 
 //! insert scalar to vector by index
-VECTORCALL VECMATH_FINLINE vec4f v_insert(float s, vec4f v, int i);
-
-//! promote put scalar to specified place in vector; other elements undefined
-VECTORCALL VECMATH_FINLINE vec4f v_promote(float s, int i);
+VECTORCALL VECMATH_FINLINE vec4f v_insert(vec4f v, float x, int idx);
 
 // sign extend
 VECTORCALL VECMATH_FINLINE vec4f is_neg_special(vec4f a);
@@ -1283,6 +1354,69 @@ VECTORCALL VECMATH_FINLINE int v_test_vec_x_lt_0(vec3f v);
 //! (v.x <= 0) ? 1 : 0
 VECTORCALL VECMATH_FINLINE int v_test_vec_x_le_0(vec3f v);
 
+//
+// Float16 SUPPORT
+//
+// Native F16C is supported on the vast majority of modern x86-64 platforms (>96%) including XBox One and PS4.
+// Not every processor with AVX supports F16C, but every processor with F16C support also has AVX. AVX2 implies F16C support.
+// Default Dagor builds using SSE4 or AVX will fall back to software-emulated Float16 conversions unless F16C is explicitly
+// enabled for a specific *.cpp in jamfile. If you want use HW acceleration, manual check for F16C flag support and fallback
+// to software emulated code also required.
+// On ARM (AArch64), all processors supported by vecmath library provide fast native half-to-float and float-to-half (RTNE)
+// conversions. Other rounding modes are partially emulated in software.
+// All hw-accelerated v_fc16_* functions handles Inf and NaN values.
+
+//! convert 4 float32 to 4 float16 using different rounding modes, results stored in low halfs of .xyzw
+//! 'specials' version handles infs/nans, others doesn't
+//! HW-accelerated RTNE version recommended for best performance and compatibility
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_trunc(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_specials(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_rtne(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_up(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_down(vec4f a);
+
+//! same as previous, but 4 results packed in low 64-bit part (.xy) of vec4i
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_trunc_lo(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_specials_lo(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_rtne_lo(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_up_lo(vec4f a);
+VECTORCALL VECMATH_FINLINE vec4i v_float_to_half_down_lo(vec4f a);
+
+//! convert 4 float16 to 4 float32, source elements should be located in low halfs of .xyzw, NaN and inf NOT handled
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float(vec4i a);
+//! convert 4 float16 to 4 float32, source elements should be located in low halfs of .xyzw, NaN and inf handled
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_specials(vec4i a);
+//! convert 4 float16 to 4 float32, source elements should be located in low 64-bits (.xy) of vec4i, NaN and inf NOT handled
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_lo(vec4i a);
+//! convert 4 float16 to 4 float32, source elements should be located in low 64-bits (.xy) of vec4i, NaN and inf handled
+VECTORCALL VECMATH_FINLINE vec4f v_half_to_float_specials_lo(vec4i a);
+
+// All listed functions will use fastest HW-accelerated version automatically when available.
+// Also explicit HW and Software versions present with 'v_fc16' or 'v_sw' prefix:
+VECTORCALL VECMATH_FINLINE vec4f v_fc16_half_to_float_lo(vec4i v);
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_rtne_lo(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_down_lo(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_up_lo(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_trunc_lo(vec4f v);
+
+VECTORCALL VECMATH_FINLINE vec4f v_fc16_half_to_float(vec4i v);
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_rtne(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_down(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_up(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_fc16_float_to_half_trunc(vec4f v);
+
+VECTORCALL VECMATH_FINLINE vec4f v_sw_half_to_float_lo(vec4i v);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_rtne_lo(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_down_lo(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_up_lo(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_trunc_lo(vec4f v);
+
+VECTORCALL VECMATH_FINLINE vec4f v_sw_half_to_float(vec4i v);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_rtne(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_down(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_up(vec4f v);
+VECTORCALL VECMATH_FINLINE vec4i v_sw_float_to_half_trunc(vec4f v);
 
 #include "dag_vecMath_const.h"
 

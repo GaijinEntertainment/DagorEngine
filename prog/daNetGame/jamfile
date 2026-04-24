@@ -6,7 +6,7 @@ Location = prog/daNetGame ;
 
 TargetType  = lib ;
 TargetCodeName = daNetGame.framework ; # code name is used to form TmpDir (base folder inside _Output/)
-if $(Dedicated) = yes { Target = daNetGame-server ; } else { Target = daNetGame-client ; }
+if $(Dedicated) = yes { Target = daNetGame-server.lib ; } else { Target = daNetGame-client.lib ; }
 
 include $(Root)/$(Location)/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
 
@@ -40,7 +40,16 @@ local AllSrcFolder_ES =
 local AllSrcFolder_DAS =
   scripts/das/debug
 ;
+
+HaveEcsDebugLib ?= yes ; # just add gameLibs/ecs/debug
+
 if $(HaveRenderer) = yes && $(Config) != rel {
+  HaveImgui ?= yes ;
+} else {
+  HaveImgui ?= no ;
+}
+
+if $(HaveImgui) = yes {
   AllSrcFolder_DAS +=
     scripts/das/imgui
   ;
@@ -100,6 +109,7 @@ if $(Dedicated) = yes {
 
   HaveOverlayUI = no ;
   HaveDngInput  = no ;
+  UseGpu = no ; # for engine/perfMon/jamfile to skip using gpuProfiler.cpp
 } else {
   AllSrcFolder_CPP +=
     net/dedicated/stub
@@ -107,6 +117,7 @@ if $(Dedicated) = yes {
   ;
   AllSrcFolder_ES +=
     camera
+    main/client
   ;
 
   AllSrcFolder_CPP +=
@@ -123,6 +134,7 @@ if $(HaveRenderer) = yes {
     render/animchar
     render/weather
     render/world
+    render/world/frameGraphNodes
     render/grass
     render
   ;
@@ -141,8 +153,6 @@ if $(HaveRenderer) = yes {
     render/stub/billboardStub.cpp
     render/stub/wind.cpp
     render/stub/cinematicModeStub.cpp
-    render/dasModules/renderLibsAllowed.cpp
-    render/renderLibsAllowed.cpp
   ;
 }
 
@@ -161,6 +171,7 @@ if $(HaveEditor) = yes {
     editor/embeddedEditor.cpp
     editor/de4entityEditor.cpp
     editor/de4entityObj.cpp
+    editor/de4sceneObj.cpp
     editor/editorDasModules.cpp
   ;
   AllSrcFolder_ES +=
@@ -170,7 +181,7 @@ if $(HaveEditor) = yes {
   Sources += editor/embeddedEditorStub.cpp ;
 }
 
-if $(HaveRenderer) = yes && ( $(Platform)-$(PlatformArch) = windows-x86_64 ||  $(Platform) in linux scarlett ) {
+if $(HaveRenderer) = yes && ( $(Platform)-$(PlatformArch) = windows-x86_64 ||  $(Platform) in linux scarlett ps5 ) {
   # disable BVH on windows x86_64 min CPU build
   if $(Platform) = windows && $(SSEVersion) < 4 {
     BVHSupport = no ;
@@ -185,7 +196,7 @@ if $(BVHSupport) = yes {
   BVHRi = yes ;
   BVHCables = yes ;
   BVHRandomGrass = no ;
-  BVHGpuObjects = no ;
+  BVHGpuObjects = yes ;
   BVHDynRend = yes ;
 }
 
@@ -213,6 +224,8 @@ UseProgLibs +=
   engine/animChar
   engine/anim
   engine/phys/fastPhys
+  engine/ADT
+  engine/crypto
 
   engine/gameRes
   engine/perfMon
@@ -228,7 +241,7 @@ UseProgLibs +=
   gameLibs/yup_parse
   gameLibs/fftWater
   gameLibs/heightmap
-  gameLibs/daNet
+  engine/daNet
   gameLibs/daPhys
   gameLibs/physMap
   gameLibs/gamePhys/collision/collision-common
@@ -237,13 +250,13 @@ UseProgLibs +=
   gameLibs/gamePhys/props
   gameLibs/gamePhys/phys
   gameLibs/gamePhys/common
+  gameLibs/sepClientInstance
 
   gameLibs/gameMath
   gameLibs/grid
   gameLibs/lagCatcher
   gameLibs/landMesh
   gameLibs/rendInst
-  gameLibs/crypto
   gameLibs/memoryProfiler
   gameLibs/camera
   gameLibs/camTrack
@@ -255,9 +268,9 @@ UseProgLibs +=
   gameLibs/jsonUtils
   gameLibs/video360
   gameLibs/streaming
-  gameLibs/types
   gameLibs/smokeOccluder
   gameLibs/hudprim
+  gameLibs/perFrameStat
 
   engine/consoleProc
   engine/imgui
@@ -265,7 +278,6 @@ UseProgLibs +=
   gameLibs/daGame
   gameLibs/daGame/timers
   gameLibs/quirrel/bindQuirrelEx
-  gameLibs/quirrel/sqModules
   gameLibs/quirrel/sqCrossCall
   gameLibs/quirrel/quirrel_json
   gameLibs/quirrel/sqConsole
@@ -276,10 +288,13 @@ UseProgLibs +=
   gameLibs/quirrel/sqDataCache
   gameLibs/quirrel/nestdb
   gameLibs/quirrel/sqSysInfo
+  gameLibs/quirrel/lastInputMonitor
+  gameLibs/quirrel/sqPerFrameStat
 
   gameLibs/ecs/scripts/das
   gameLibs/ecs/scripts/dasSq
   gameLibs/dasModules/common
+  gameLibs/dasModules/appTime
   gameLibs/dasModules/quirrel
   gameLibs/dasModules/phys
   gameLibs/dasModules/generic
@@ -297,18 +312,19 @@ UseProgLibs +=
   gameLibs/dasModules/landMesh
   gameLibs/dasModules/systemInfo
   gameLibs/dasModules/compressionUtils
+  gameLibs/dasModules/perFrameStat
 
   gameLibs/das/ecs
   gameLibs/das/math
 
   gameLibs/propsRegistry
 
-  gameLibs/daECS/core
-  gameLibs/daECS/net
-  gameLibs/daECS/net/timesync
-  gameLibs/daECS/net/replay
-  gameLibs/daECS/scene
-  gameLibs/daECS/utility
+  engine/daECS/core
+  engine/daECS/net
+  engine/daECS/net/timesync
+  engine/daECS/net/replay
+  engine/daECS/scene
+  engine/daECS/utility
   gameLibs/ecs/phys
   gameLibs/ecs/anim
   gameLibs/ecs/gameres
@@ -317,11 +333,10 @@ UseProgLibs +=
   gameLibs/ecs/game/zones
   gameLibs/ecs/game/actions
   gameLibs/ecs/rendInst
-  gameLibs/ecs/debug
   gameLibs/ecs/os
   gameLibs/ecs/deferToAct
-  gameLibs/ecs/hierarchyTransform
-  gameLibs/daECS/net/dasevents
+  engine/daECS/hierarchyTransform
+  gameLibs/ecs/net/dasevents
   gameLibs/userSystemInfo
   gameLibs/statsd
   3rdPartyLibs/libb64
@@ -346,12 +361,19 @@ UseProgLibs +=
   gameLibs/render/rtr
   gameLibs/render/rtao
   gameLibs/render/ptgi
+  gameLibs/render/quirrel
   gameLibs/render/objectMotionBlur
   gameLibs/render/indoorProbes
 
   gameLibs/gpuMemoryDumper
   gameLibs/resourcePool
+  gameLibs/render/autoGraphics
+  gameLibs/gpuMemoryInspector
 ;
+
+if $(HaveEcsDebugLib) = yes {
+  UseProgLibs += gameLibs/ecs/debug ;
+}
 
 if $(HaveDngInput) = yes {
   AllSrcFolder_CPP +=
@@ -367,7 +389,7 @@ if $(HaveDngInput) = yes {
     gameLibs/daInput
     gameLibs/ecs/input
   ;
-  if $(HaveRenderer) = yes && $(Config) != rel {
+  if $(HaveImgui) = yes {
     UseProgLibs += gameLibs/imguiInput ;
   } else {
     UseProgLibs += gameLibs/imguiInput/stub ;
@@ -397,7 +419,6 @@ if $(HaveOverlayUI) = yes {
   UseProgLibs +=
     gameLibs/quirrel/sqEventBus
   ;
-  if $(Platform) in windows { AddLibs += Iphlpapi.lib ; }
 } else {
   Sources +=
     ui/stub/uiStub.cpp
@@ -406,25 +427,25 @@ if $(HaveOverlayUI) = yes {
 }
 
 if $(Sanitize) && $(Sanitize) != disabled {
-  MemLib ?= memory ;
+  UseMemoryAllocator = def ;
   UseMemoryDebugLevel ?= off ;
 } else if $(Platform) in windows xboxOne scarlett {
   if $(Config) != rel && $(Platform) in windows {
-    MemLib ?= memory ;
-    if $(MemLib) = memory { UseMemoryDebugLevel ?= dbg ; }
+    UseMemoryAllocator ?= def ;
+    UseMemoryDebugLevel ?= dbg ;
   } else if $(PlatformArch) != x86 {
-    MemLib ?= memory/rtlStdMemory ;
+    UseMemoryAllocator ?= RTL ;
   }
 } else if $(Platform) in ps4 ps5 {
-  MemLib ?= memory/mimallocMem ;
+  UseMemoryAllocator ?= mimalloc ;
 } else if $(Platform) = linux && $(Dedicated) = yes { # linux dev is for production
-  MemLib ?= memory ;
+  UseMemoryAllocator ?= def ;
   UseMemoryDebugLevel ?= off ;
 }
 if $(KernelLinkage) != dynamic {
-  if $(MemLib) { UseProgLibs += engine/$(MemLib) ; } else { UseProgLibs += engine/memory ; }
+  UseProgLibs += engine/memory ;
 }
-if ( $(MemLib) && $(MemLib) in memory memory/rtlStdMemory ) && ( ! $(UseMemoryDebugLevel) in off def ) {
+if ! $(UseMemoryDebugLevel) in off def {
   Sources += main/opt/memleakDetector.cpp ;
 } else {
   Sources += main/opt/memleakDetectorStub.cpp ;
@@ -434,10 +455,14 @@ if $(Platform) in windows linux {
   UseProgLibs +=
     gameLibs/webui/websocket
   ;
+
+  Sources += render/autoGraphics/autoGraphics.cpp ;
 } else {
   UseProgLibs +=
     gameLibs/webui/websocket/stub
   ;
+
+  Sources += render/stub/autoGraphicsStub.cpp ;
 }
 if $(Platform) in windows linux macOS && $(Config) != rel {
   UseProgLibs += 3rdPartyLibs/mongoose ;
@@ -508,12 +533,13 @@ if $(HaveRenderer) = yes {
     3rdPartyLibs/image/psdRead
     3rdPartyLibs/image/tinyexr-1.0.8
     engine/screenShotSystem
-    engine/aviWriter
+    gameLibs/aviWriter
     engine/videoPlayer
-    engine/videoEncoder
+    gameLibs/videoEncoder
     gameLibs/profileEventsGUI
     gameLibs/render
     gameLibs/render/occlusion
+    gameLibs/collisionOccluders
     gameLibs/render/outline
     gameLibs/render/camouflage
     gameLibs/render/tracer
@@ -533,16 +559,15 @@ if $(HaveRenderer) = yes {
     gameLibs/render/levelProfiler
     gameLibs/daGI
     gameLibs/daGI2
-    gameLibs/latencyFlash
     gameLibs/ecs/render
     gameLibs/ecs/render/weather_effects
     gameLibs/ecs/camera
     gameLibs/ecs/weather
+    gameLibs/ecs/lights
     gameLibs/rendInst/riFx
     gameLibs/projectiveDecals
     gameLibs/billboardDecals
     gameLibs/render/dof
-    gameLibs/daSkies2
     gameLibs/render/volumetricLights
     gameLibs/render/enviCover
     gameLibs/render/nodeBasedShader
@@ -554,6 +579,7 @@ if $(HaveRenderer) = yes {
     gameLibs/das/daFrameGraph
     gameLibs/render/resourceSlot
     gameLibs/render/shaderCacheWarmup
+    gameLibs/render/antialiasing
 
     gameLibs/dasModules/shaders
     gameLibs/dasModules/render
@@ -573,7 +599,16 @@ if $(HaveRenderer) = yes {
     gameLibs/render/enviCover/stub
     gameLibs/render/volumetricLights/stub
     gameLibs/render/nodeBasedShader/stub
+    gameLibs/render/antialiasing/stub
   ;
+}
+
+if $(HaveRenderer) = yes {
+  UseProgLibs += gameLibs/daSkies2 ;
+} else {
+  # Stub ECS pull for daSkies
+  stub_daSkies2_ecs_pull = extern const size_t ecs_pull_cloudsRainMap \= \(size_t\)\(\&ecs_pull_cloudsRainMap\) \; ;
+  Sources += stub_daSkies2_ecs_pull.jamvar ;
 }
 
 DAFG_ENABLE_DAS_INTEGRATION = yes ;
@@ -583,7 +618,7 @@ if $(DAS_AOT_COMPILER) {
   gamePulls += daslib_DAS_pull_AOT ;
 }
 
-if $(HaveRenderer) = yes && $(Config) != rel {
+if $(HaveImgui) = yes {
   UseProgLibs +=
     1stPartyLibs/daScript/modules/dasImgui
     gameLibs/dasModules/imgui
@@ -603,12 +638,19 @@ UseProgLibs += engine/imgui/util
                gameLibs/vr
 ;
 
+if $(HaveRenderer) = yes && ( $(Config) != rel || $(HaveAssetManager) = yes ) && $(Platform) in windows {
+  UseProgLibs += 1stPartyLibs/daScript/modules/dasStdDlg ;
+} else {
+  UseProgLibs += 1stPartyLibs/daScript/modules/dasStdDlg/stub ;
+}
+
 if $(UseSystemOpenSSL) = yes {
   AddLibs += -lssl -lcrypto ; # this option implicitly assumes Linux right now
 } else {
   AddIncludes += $(Root)/prog/3rdPartyLibs/openssl-$(OpenSSLVer)/include ;
   UseProgLibs += 3rdPartyLibs/openssl-$(OpenSSLVer) ;
 }
+if $(UseSystemLibcurl) = yes && $(Platform) in linux { AddLibs += -lcurl ; }
 
 AddIncludes +=
   $(Root)/prog/engine/sharedInclude
@@ -639,12 +681,15 @@ if $(Dedicated) = yes {
     gameLibs/daRg/stub
   ;
   if $(UseD3DMulti) = yes { UseProgLibs += engine/drv/drv3d_pc_multi ; } else { UseProgLibs += engine/drv/drv3d_stub ; }
+  if $(Platform) in ps4 ps5 { UseProgLibs += daNetGame/platform/sony/dedSrv ; }
+  else if $(UseGDK) = yes { UseProgLibs += daNetGame/platform/gdk/dedSrv ; }
 } else
 {
   UseProgLibs +=
     commonFx/commonFxGame
     gameLibs/daRg
     gameLibs/dasModules/clientNet
+    gameLibs/dasModules/auth
     gameLibs/forceFeedback
   ;
 
@@ -655,6 +700,13 @@ if $(Dedicated) = yes {
   }
 
   if $(HaveConsole) = yes && $(Config) != rel && $(Platform) in windows linux {
+    HaveConsoleKeyBindings ?= yes ;
+  } else {
+    HaveConsoleKeyBindings ?= no ;
+  }
+
+
+  if $(HaveConsoleKeyBindings) = yes {
     UseProgLibs += gameLibs/consoleKeyBindings ;
   } else {
     UseProgLibs += gameLibs/consoleKeyBindings/consoleKeyBindingsStub ;
@@ -699,7 +751,8 @@ if $(Dedicated) = yes {
         gameLibs/ios/ads
         gameLibs/quirrel/ios/ads
         gameLibs/quirrel/appsFlyer
-        gameLibs/quirrel/clevertap
+        gameLibs/quirrel/android/platform
+        gameLibs/android/platform/stub
       ;
 
       if $(UseFacebook) = yes {
@@ -711,9 +764,6 @@ if $(Dedicated) = yes {
       Sources +=
         platform/ios/scripts_binding.cpp
       ;
-
-      if $(UseCleverTap) = yes { UseProgLibs += gameLibs/clevertap ; }
-      else { UseProgLibs += gameLibs/clevertap/stub ; }
 
       if $(IOSUseCrashlytics) = yes { UseProgLibs += gameLibs/crashlytics ; }
       else { UseProgLibs += gameLibs/crashlytics/stub ; }
@@ -747,16 +797,12 @@ if $(Dedicated) = yes {
       gameLibs/quirrel/android/account/firebaseguest
       gameLibs/quirrel/android/localnotifications
       gameLibs/quirrel/appsFlyer
-      gameLibs/quirrel/clevertap
       gameLibs/quirrel/android/webview
     ;
 
 
     if $(UseAppsFlyer) = yes { UseProgLibs += gameLibs/appsFlyer ; }
     else { UseProgLibs += gameLibs/appsFlyer/stub ; }
-
-    if $(UseCleverTap) = yes { UseProgLibs += gameLibs/clevertap ; }
-    else { UseProgLibs += gameLibs/clevertap/stub ; }
 
     if $(AndroidUploadCrashlyticsSymbols) = yes { UseProgLibs += gameLibs/crashlytics ; }
     else { UseProgLibs += gameLibs/crashlytics/stub ; }
@@ -822,7 +868,7 @@ if $(Dedicated) = yes {
     ;
   }
 
-  if $(UseGDK) != no {
+  if $(UseGDK) = yes {
     UseProgLibs +=
       gameLibs/quirrel/gdk
       gameLibs/gdk
@@ -865,6 +911,12 @@ if $(Dedicated) = yes {
       UseProgLibs += engine/drv/hid_nulldrv ;
     }
   }
+}
+
+if $(Platform) in windows && $(PlatformArch) in x86_64 && $(Dedicated) != yes {
+  UseProgLibs += gameLibs/nvCacheTracker ;
+} else {
+  UseProgLibs += gameLibs/nvCacheTracker/stub ;
 }
 
 if $(Platform) in xboxOne scarlett {
@@ -959,7 +1011,7 @@ if $(EnableBreakpad) = yes {
   UseProgLibs += gameLibs/breakpad/stub ;
 }
 
-if $(UseGDK) != no {
+if $(UseGDK) = yes {
   AllSrcFolder_ES +=
     platform/gdk
   ;
@@ -969,6 +1021,9 @@ if $(UseGDK) != no {
 }
 
 ExcludeDNGSourcesPattern ?= main/(main|version)\\.cpp ; # exclude main/main.cpp and version.cpp
+
+if $(Platform) != ps5 { ExcludeDNGSourcesPattern += _ps5\\.cpp ; }
+if $(Platform) != ps4 { ExcludeDNGSourcesPattern += _ps4\\.cpp ; }
 
 AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp       : Sources : $(ExcludeDNGSourcesPattern) ;
 if $(DAS_AOT_COMPILER) { AutoscanBuildLists $(AllSrcFolder_DAS) : *.das : Sources ; }
@@ -983,6 +1038,10 @@ $(Target)_es_pull = daECS/core/componentType.h framework_es_pulls ;
 for s in $(SourceES) {
   local pullvar = [ MATCH "(.+)ES.cpp.inl$" : $(s:D=) ] ;
   $(Target)_es_pull += $(pullvar) ;
+}
+
+if $(HaveEcsDebugLib) = yes {
+  $(Target)_es_pull += ecsDebug ;
 }
 
 $(Target)_es_pull_action = make_es_pull_cpp ;
@@ -1006,5 +1065,7 @@ UseSyncDebugLib = no ;
 NOCARE $(Root)/$(Location)/gaijin.jam ;
 include $(Root)/$(Location)/gaijin.jam ;
 if $(UseSyncDebugLib) = no { CPPopt += -DDISABLE_SYNC_DEBUG ; }
+
+if $(BuildingTools) = yes { CPPopt += -D_TARGET_PC_TOOLS_BUILD ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

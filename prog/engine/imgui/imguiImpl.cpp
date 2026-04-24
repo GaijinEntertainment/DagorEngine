@@ -15,22 +15,44 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_resetDevice.h>
+#include <3d/dag_lockTexture.h>
 #include <drv/hid/dag_hiKeybIds.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <ioSys/dag_fileIo.h>
+#include <osApiWrappers/dag_clipboard.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_threads.h>
 
-#ifdef ENABLE_NET_IMGUI
+#ifdef ADD_NET_IMGUI
 #include <netImgui/NetImgui_Api.h>
 #endif
 
 extern bool ImGui_Multiview_Init();
 extern void ImGui_Multiview_Shutdown();
 extern void ImGui_Multiview_NewFrame();
+
+namespace
+{
+
+struct CustomFont
+{
+  String name;
+  String fontFilePath;
+  ImFont *font;
+  int fontSize;
+  eastl::unique_ptr<ImFontConfig> fontConfig;
+};
+
+struct CaptureArgs
+{
+  String windowTitle;
+  OnCaptureDrawDataFunc func;
+};
+
+} // namespace
 
 static ImGuiState imgui_state = ImGuiState::OFF;
 static ImGuiState requested_state = ImGuiState::OFF;
@@ -41,6 +63,7 @@ static bool is_initialized = false;
 static bool is_bold_font_set = false;
 static bool is_mono_font_set = false;
 static eastl::unique_ptr<DagImGuiRenderer> renderer;
+static eastl::vector<::CaptureArgs> captureArgs;
 static eastl::unique_ptr<DataBlock> imgui_blk;
 static eastl::unique_ptr<DataBlock> override_imgui_blk;
 static const char *imgui_blk_path = "imgui.blk";
@@ -61,6 +84,7 @@ static ImFont *imgui_mono_font = nullptr;
 static eastl::unique_ptr<ImFontConfig> requested_font_cfg;
 static eastl::unique_ptr<ImFontConfig> requested_bold_font_cfg;
 static eastl::unique_ptr<ImFontConfig> requested_mono_font_cfg;
+static eastl::vector<CustomFont> custom_fonts;
 static constexpr float MIN_SCALE = 1.0f;
 static constexpr float MAX_SCALE = 4.0f;
 static bool frameEnded = true;
@@ -95,6 +119,43 @@ static float get_default_scale()
   return clamp(scale, MIN_SCALE, MAX_SCALE);
 }
 
+void imgui_apply_fonts_from_blk()
+{
+  float imguiScale = imgui_blk->getReal("imgui_scale", get_default_scale());
+  imguiScale = clamp(imguiScale, MIN_SCALE, MAX_SCALE);
+
+  unsigned int fontBuilderFlags = 0;
+  if (imgui_blk->getBool("imgui_light_font_hinting", false))
+    fontBuilderFlags = ImGuiFreeTypeLoaderFlags_LightHinting;
+
+  requested_font_cfg = eastl::make_unique<ImFontConfig>();
+  requested_font_cfg->OversampleH = requested_font_cfg->OversampleV = 1;
+  requested_font_cfg->PixelSnapH = true; // some fonts are blurry without this
+  requested_font_cfg->SizePixels = floor(imgui_blk->getReal("imgui_font_size", 13.0f) * imguiScale);
+  requested_font_cfg->FontLoaderFlags = fontBuilderFlags;
+
+  requested_bold_font_cfg = eastl::make_unique<ImFontConfig>();
+  requested_bold_font_cfg->OversampleH = requested_bold_font_cfg->OversampleV = 1;
+  requested_bold_font_cfg->PixelSnapH = true; // some fonts are blurry without this
+  requested_bold_font_cfg->SizePixels = floor(imgui_blk->getReal("imgui_bold_font_size", 13.0f) * imguiScale);
+  requested_bold_font_cfg->FontLoaderFlags = fontBuilderFlags;
+
+  requested_mono_font_cfg = eastl::make_unique<ImFontConfig>();
+  requested_mono_font_cfg->OversampleH = requested_mono_font_cfg->OversampleV = 1;
+  requested_mono_font_cfg->PixelSnapH = true; // some fonts are blurry without this
+  requested_mono_font_cfg->SizePixels = floor(imgui_blk->getReal("imgui_mono_font_size", 15.0f) * imguiScale);
+  requested_mono_font_cfg->FontLoaderFlags = fontBuilderFlags;
+
+  for (CustomFont &customFont : custom_fonts)
+  {
+    customFont.fontConfig = eastl::make_unique<ImFontConfig>();
+    customFont.fontConfig->OversampleH = customFont.fontConfig->OversampleV = 1;
+    customFont.fontConfig->PixelSnapH = true; // some fonts are blurry without this
+    customFont.fontConfig->SizePixels = floor(customFont.fontSize * imguiScale);
+    customFont.fontConfig->FontLoaderFlags = fontBuilderFlags;
+  }
+}
+
 void imgui_apply_style_from_blk()
 {
   float imguiScale = imgui_blk->getReal("imgui_scale", get_default_scale());
@@ -108,30 +169,31 @@ void imgui_apply_style_from_blk()
   active_window_bg_alpha = imgui_blk->getReal("active_window_bg_alpha", ImGui::GetStyle().Colors[ImGuiCol_WindowBg].w);
   overlay_window_bg_alpha = active_window_bg_alpha * 0.5f;
 
-  unsigned int fontBuilderFlags = 0;
-  if (imgui_blk->getBool("imgui_light_font_hinting", false))
-    fontBuilderFlags = ImGuiFreeTypeBuilderFlags_LightHinting;
+  imgui_apply_fonts_from_blk();
+}
 
-  requested_font_cfg = eastl::make_unique<ImFontConfig>();
-  requested_font_cfg->OversampleH = requested_font_cfg->OversampleV = 1;
-  requested_font_cfg->PixelSnapH = true; // some fonts are blurry without this
-  requested_font_cfg->SizePixels = floor(imgui_blk->getReal("imgui_font_size", 13.0f) * imguiScale);
-  requested_font_cfg->GlyphRanges = ImGui::GetIO().Fonts->GetGlyphRangesCyrillic();
-  requested_font_cfg->FontBuilderFlags = fontBuilderFlags;
+void imgui_add_custom_font(const char *name, const char *font_file_path, int font_size)
+{
+  G_ASSERT(name);
+  G_ASSERT(font_file_path);
+  G_ASSERT(font_size > 0);
+  G_ASSERT(eastl::find_if(custom_fonts.begin(), custom_fonts.end(),
+             [name](const CustomFont &f) { return strcmp(f.name, name) == 0; }) == custom_fonts.end());
 
-  requested_bold_font_cfg = eastl::make_unique<ImFontConfig>();
-  requested_bold_font_cfg->OversampleH = requested_bold_font_cfg->OversampleV = 1;
-  requested_bold_font_cfg->PixelSnapH = true; // some fonts are blurry without this
-  requested_bold_font_cfg->SizePixels = floor(imgui_blk->getReal("imgui_bold_font_size", 13.0f) * imguiScale);
-  requested_bold_font_cfg->GlyphRanges = ImGui::GetIO().Fonts->GetGlyphRangesCyrillic();
-  requested_bold_font_cfg->FontBuilderFlags = fontBuilderFlags;
+  CustomFont &customFont = custom_fonts.push_back();
+  customFont.name = name;
+  customFont.fontFilePath = font_file_path;
+  customFont.fontSize = font_size;
+}
 
-  requested_mono_font_cfg = eastl::make_unique<ImFontConfig>();
-  requested_mono_font_cfg->OversampleH = requested_mono_font_cfg->OversampleV = 1;
-  requested_mono_font_cfg->PixelSnapH = true; // some fonts are blurry without this
-  requested_mono_font_cfg->SizePixels = floor(imgui_blk->getReal("imgui_mono_font_size", 15.0f) * imguiScale);
-  requested_mono_font_cfg->GlyphRanges = ImGui::GetIO().Fonts->GetGlyphRangesCyrillic();
-  requested_mono_font_cfg->FontBuilderFlags = fontBuilderFlags;
+ImFont *imgui_get_custom_font(const char *name)
+{
+  G_ASSERT(name);
+
+  for (const CustomFont &customFont : custom_fonts)
+    if (strcmp(customFont.name, name) == 0)
+      return customFont.font;
+  return nullptr;
 }
 
 void imgui_set_blk_path(const char *path) { custom_blk_path = String(path); }
@@ -145,11 +207,6 @@ static bool init()
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
   ImPlot::CreateContext();
-
-#ifdef ENABLE_NET_IMGUI
-  NetImgui::Startup();
-  NetImgui::ConnectFromApp("NetImGuiClient");
-#endif
 
   ImGuiIO &io = ImGui::GetIO();
 
@@ -179,6 +236,11 @@ static bool init()
 
   imgui_apply_style_from_blk();
 
+#ifdef ADD_NET_IMGUI
+  NetImgui::Startup();
+  NetImgui::ConnectFromApp("NetImGuiClient");
+#endif
+
   io.IniFilename = full_ini_path.c_str();
   io.LogFilename = full_log_path.c_str();
 
@@ -200,6 +262,19 @@ static bool init()
   if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     if (!ImGui_Multiview_Init())
       return false;
+
+#if _TARGET_PC_LINUX
+  // ImGui's Linux clipboard implementation only works within the application, so use a better one.
+  ImGuiPlatformIO &platformIO = ImGui::GetPlatformIO();
+  platformIO.Platform_SetClipboardTextFn = [](ImGuiContext *, const char *text) { clipboard::set_clipboard_utf8_text(text); };
+  platformIO.Platform_GetClipboardTextFn = [](ImGuiContext *ctx) -> const char * {
+    ctx->ClipboardHandlerData.resize(50000);
+    if (clipboard::get_clipboard_utf8_text(ctx->ClipboardHandlerData.data(), ctx->ClipboardHandlerData.size()))
+      return ctx->ClipboardHandlerData.Data;
+    else
+      return nullptr;
+  };
+#endif
 
   is_initialized = true;
   return true;
@@ -248,13 +323,14 @@ void imgui_shutdown()
 {
   if (is_initialized)
   {
-#ifdef ENABLE_NET_IMGUI
+#ifdef ADD_NET_IMGUI
     NetImgui::Shutdown();
 #endif
 
     if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
       ImGui_Multiview_Shutdown();
     ImPlot::DestroyContext();
+    DagImGuiRenderer::releaseAllTextureData();
     ImGui::DestroyContext();
   }
 
@@ -266,6 +342,7 @@ void imgui_shutdown()
   imgui_blk.reset();
   override_imgui_blk.reset();
   requested_font_cfg.reset();
+  custom_fonts.clear();
   on_state_change_functions.reset();
 }
 
@@ -297,7 +374,7 @@ void imgui_set_bold_font()
 
   imgui_set_default_font();
 
-  ImGui::PushFont(imgui_bold_font);
+  ImGui::PushFont(imgui_bold_font, 0.0f);
   is_bold_font_set = true;
 }
 
@@ -308,7 +385,7 @@ void imgui_set_mono_font()
 
   imgui_set_default_font();
 
-  ImGui::PushFont(imgui_mono_font);
+  ImGui::PushFont(imgui_mono_font, 0.0f);
   is_mono_font_set = true;
 }
 
@@ -394,7 +471,14 @@ void imgui_update(int display_width, int display_height)
     if (!imgui_mono_font)
       imgui_mono_font = io.FontDefault;
 
-    renderer->createAndSetFontTexture(io);
+    for (CustomFont &customFont : custom_fonts)
+    {
+      customFont.font = add_imgui_font(customFont.fontFilePath, customFont.fontConfig.get());
+      if (!customFont.font)
+        customFont.font = io.FontDefault;
+      customFont.fontConfig.reset();
+    }
+
     requested_font_cfg.reset();
     requested_bold_font_cfg.reset();
     requested_mono_font_cfg.reset();
@@ -431,6 +515,64 @@ void imgui_endframe()
   }
 }
 
+static bool capture_window_drawdata(const char *window_title, int &w, int &h, int &stride, unsigned int *&pixels_rgba)
+{
+  if (!renderer)
+    return false;
+
+  int x = 0;
+  int y = 0;
+  w = h = 0;
+  ImGuiWindow *window = window_title ? ImGui::FindWindowByName(window_title) : nullptr;
+  if (window)
+  {
+    x = window->Pos.x;
+    y = window->Pos.y - window->TitleBarHeight;
+    w = window->Size.x;
+    h = window->Size.y;
+  }
+  else
+  {
+    ImGuiViewport *vp = ImGui::GetMainViewport();
+    if (vp)
+    {
+      w = vp->Size.x;
+      h = vp->Size.y;
+    }
+  }
+
+  if (w == 0 || h == 0)
+    return false;
+
+  ImGuiIO &io = ImGui::GetIO();
+  int rtWidth = (int)io.DisplaySize.x;
+  int rtHeight = (int)io.DisplaySize.y;
+  Texture *tex = d3d::create_tex(NULL, rtWidth, rtHeight, TEXFMT_A8R8G8B8 | TEXCF_RTARGET, 1);
+  if (!tex)
+    return false;
+
+  renderer->renderDrawDataToTexture(ImGui::GetDrawData(), tex);
+
+  pixels_rgba = new unsigned int[w * h];
+  if (auto lockedTex = lock_texture<const uint32_t>(tex, 0, TEXLOCK_READ))
+  {
+    const uint8_t *p = lockedTex.get();
+    const uint32_t stride_bytes = lockedTex.getByteStride();
+    uint8_t *dst = (unsigned char *)pixels_rgba;
+    const int dst_stride_bytes = w * 4;
+    for (int row = 0; row < h; row++)
+    {
+      const uint8_t *src_row = p + (y + row) * stride_bytes + x * 4;
+      uint8_t *dst_row = dst + row * dst_stride_bytes;
+
+      memcpy(dst_row, src_row, w * 4);
+    }
+  }
+  stride = w * 4;
+
+  return true;
+}
+
 void imgui_render()
 {
   if (!frameEnded)
@@ -441,9 +583,27 @@ void imgui_render()
   }
   ImGui::Render();
   renderer->render(ImGui::GetPlatformIO());
+
+  for (::CaptureArgs &args : captureArgs)
+  {
+    int w, h;
+    int stride;
+    unsigned int *pixels_rgba;
+    if (capture_window_drawdata(args.windowTitle.c_str(), w, h, stride, pixels_rgba))
+      args.func(w, h, stride, pixels_rgba);
+  }
+  captureArgs.clear();
 }
 
 void imgui_render_drawdata_to_texture(ImDrawData *draw_data, BaseTexture *rt) { renderer->renderDrawDataToTexture(draw_data, rt); }
+
+void imgui_capture_window_drawdata(const char *window_title, OnCaptureDrawDataFunc func)
+{
+  ::CaptureArgs args;
+  args.windowTitle = String(window_title);
+  args.func = func;
+  captureArgs.push_back(args);
+}
 
 DataBlock *imgui_get_blk() { return imgui_blk.get(); }
 
@@ -552,10 +712,34 @@ eastl::optional<ImGuiKey> map_dagor_key_to_imgui(int humap_key)
     case HumanInput::DKEY_LSHIFT: return ImGuiKey_LeftShift;
     case HumanInput::DKEY_LCONTROL: return ImGuiKey_LeftCtrl;
     case HumanInput::DKEY_LALT: return ImGuiKey_LeftAlt;
+    case HumanInput::DKEY_LWIN: return ImGuiKey_LeftSuper;
     case HumanInput::DKEY_RSHIFT: return ImGuiKey_RightShift;
     case HumanInput::DKEY_RCONTROL: return ImGuiKey_RightCtrl;
     case HumanInput::DKEY_RALT: return ImGuiKey_RightAlt;
+    case HumanInput::DKEY_RWIN: return ImGuiKey_RightSuper;
     case HumanInput::DKEY_SLASH: return ImGuiKey_Slash;
+    case HumanInput::DKEY_GRAVE: return ImGuiKey_GraveAccent;
+    case HumanInput::DKEY_LBRACKET: return ImGuiKey_LeftBracket;
+    case HumanInput::DKEY_RBRACKET: return ImGuiKey_RightBracket;
+    case HumanInput::DKEY_APPS: return ImGuiKey_Menu;
+    case HumanInput::DKEY_APOSTROPHE: return ImGuiKey_Apostrophe;
+    case HumanInput::DKEY_COMMA: return ImGuiKey_Comma;
+    case HumanInput::DKEY_MINUS: return ImGuiKey_Minus;
+    case HumanInput::DKEY_PERIOD: return ImGuiKey_Period;
+    case HumanInput::DKEY_SEMICOLON: return ImGuiKey_Semicolon;
+    case HumanInput::DKEY_EQUALS: return ImGuiKey_Equal;
+    case HumanInput::DKEY_BACKSLASH: return ImGuiKey_Backslash;
+    case HumanInput::DKEY_CAPITAL: return ImGuiKey_CapsLock;
+    case HumanInput::DKEY_SCROLL: return ImGuiKey_ScrollLock;
+    case HumanInput::DKEY_NUMLOCK: return ImGuiKey_NumLock;
+    case HumanInput::DKEY_PAUSE: return ImGuiKey_Pause;
+    case HumanInput::DKEY_DECIMAL: return ImGuiKey_KeypadDecimal;
+    case HumanInput::DKEY_DIVIDE: return ImGuiKey_KeypadDivide;
+    case HumanInput::DKEY_MULTIPLY: return ImGuiKey_KeypadMultiply;
+    case HumanInput::DKEY_SUBTRACT: return ImGuiKey_KeypadSubtract;
+    case HumanInput::DKEY_ADD: return ImGuiKey_KeypadAdd;
+    case HumanInput::DKEY_WEBBACK: return ImGuiKey_AppBack;
+    case HumanInput::DKEY_WEBFORWARD: return ImGuiKey_AppForward;
     case HumanInput::DKEY_A: return ImGuiKey_A;
     case HumanInput::DKEY_B: return ImGuiKey_B;
     case HumanInput::DKEY_C: return ImGuiKey_C;
@@ -632,10 +816,34 @@ int map_imgui_key_to_dagor(int imgui_key)
     case ImGuiKey_LeftShift: return HumanInput::DKEY_LSHIFT;
     case ImGuiKey_LeftCtrl: return HumanInput::DKEY_LCONTROL;
     case ImGuiKey_LeftAlt: return HumanInput::DKEY_LALT;
+    case ImGuiKey_LeftSuper: return HumanInput::DKEY_LWIN;
     case ImGuiKey_RightShift: return HumanInput::DKEY_RSHIFT;
     case ImGuiKey_RightCtrl: return HumanInput::DKEY_RCONTROL;
     case ImGuiKey_RightAlt: return HumanInput::DKEY_RALT;
+    case ImGuiKey_RightSuper: return HumanInput::DKEY_RWIN;
     case ImGuiKey_Slash: return HumanInput::DKEY_SLASH;
+    case ImGuiKey_GraveAccent: return HumanInput::DKEY_GRAVE;
+    case ImGuiKey_LeftBracket: return HumanInput::DKEY_LBRACKET;
+    case ImGuiKey_RightBracket: return HumanInput::DKEY_RBRACKET;
+    case ImGuiKey_Menu: return HumanInput::DKEY_APPS;
+    case ImGuiKey_Apostrophe: return HumanInput::DKEY_APOSTROPHE;
+    case ImGuiKey_Comma: return HumanInput::DKEY_COMMA;
+    case ImGuiKey_Minus: return HumanInput::DKEY_MINUS;
+    case ImGuiKey_Period: return HumanInput::DKEY_PERIOD;
+    case ImGuiKey_Semicolon: return HumanInput::DKEY_SEMICOLON;
+    case ImGuiKey_Equal: return HumanInput::DKEY_EQUALS;
+    case ImGuiKey_Backslash: return HumanInput::DKEY_BACKSLASH;
+    case ImGuiKey_CapsLock: return HumanInput::DKEY_CAPITAL;
+    case ImGuiKey_ScrollLock: return HumanInput::DKEY_SCROLL;
+    case ImGuiKey_NumLock: return HumanInput::DKEY_NUMLOCK;
+    case ImGuiKey_Pause: return HumanInput::DKEY_PAUSE;
+    case ImGuiKey_KeypadDecimal: return HumanInput::DKEY_DECIMAL;
+    case ImGuiKey_KeypadDivide: return HumanInput::DKEY_DIVIDE;
+    case ImGuiKey_KeypadMultiply: return HumanInput::DKEY_MULTIPLY;
+    case ImGuiKey_KeypadSubtract: return HumanInput::DKEY_SUBTRACT;
+    case ImGuiKey_KeypadAdd: return HumanInput::DKEY_ADD;
+    case ImGuiKey_AppBack: return HumanInput::DKEY_WEBBACK;
+    case ImGuiKey_AppForward: return HumanInput::DKEY_WEBFORWARD;
     case ImGuiKey_A: return HumanInput::DKEY_A;
     case ImGuiKey_B: return HumanInput::DKEY_B;
     case ImGuiKey_C: return HumanInput::DKEY_C;
@@ -711,8 +919,17 @@ static int menu_bar_height = 0;
 
 int imgui_get_menu_bar_height() { return menu_bar_height; }
 
+static void sort_imgui_queue(ImGuiFunctionQueue *&head);
+static bool queues_dirty = false;
+
 void imgui_perform_registered(bool with_menu_bar)
 {
+  if (queues_dirty)
+  {
+    sort_imgui_queue(ImGuiFunctionQueue::windowHead);
+    sort_imgui_queue(ImGuiFunctionQueue::functionHead);
+    queues_dirty = false;
+  }
   // Construct main menu bar
   if (with_menu_bar && ImGui::BeginMainMenuBar())
   {
@@ -813,10 +1030,11 @@ void imgui_perform_registered(bool with_menu_bar)
     {
       G_ASSERTF_CONTINUE(q->function, "Registered ImGui window function is null: %s/%s", q->group, q->name);
       bool oldOpened = true; // q->opened == true here
-      ImGui::Begin(q->name, &q->opened, q->flags);
+      const bool renderContents = ImGui::Begin(q->name, &q->opened, q->flags);
       if (q->opened != oldOpened)
         save_window_opened(q->name, q->opened);
-      q->function();
+      if (renderContents)
+        q->function();
       ImGui::End();
     }
   }
@@ -825,39 +1043,59 @@ void imgui_perform_registered(bool with_menu_bar)
 ImGuiFunctionQueue *ImGuiFunctionQueue::windowHead = nullptr;
 ImGuiFunctionQueue *ImGuiFunctionQueue::functionHead = nullptr;
 
+static bool operator<(const ImGuiFunctionQueue &a, const ImGuiFunctionQueue &b)
+{
+  const int cmp = stricmp(a.group, b.group);
+  if (cmp != 0)
+    return cmp < 0;
+
+  if (a.priority != b.priority)
+    return a.priority < b.priority;
+
+  return stricmp(a.name, b.name) < 0;
+}
+
 ImGuiFunctionQueue::ImGuiFunctionQueue(const char *group_, const char *name_, const char *hotkey_, int priority_, int flags_,
   ImGuiFuncPtr func, bool is_window) :
   group(group_), name(name_), hotkey(hotkey_), priority(priority_), flags(flags_), function(func)
 {
+  // Prepend only -- no reads from other ImGuiFunctionQueue objects to avoid
+  // ASan init-order-fiasco when called from a static initializer.
+  // Sorting is deferred to imgui_perform_registered via queues_dirty.
   ImGuiFunctionQueue **head = is_window ? &windowHead : &functionHead;
-  if (*head == nullptr)
-  {
-    *head = this;
-    return;
-  }
+  next = *head;
+  *head = this;
+  queues_dirty = true;
+}
 
-  ImGuiFunctionQueue *n = *head, *p = nullptr;
-  for (; n; p = n, n = n->next)
+static void sort_imgui_queue(ImGuiFunctionQueue *&head)
+{
+  if (!head || !head->next)
+    return;
+  ImGuiFunctionQueue *sorted = nullptr;
+  for (ImGuiFunctionQueue *cur = head; cur;)
   {
-    int cmp = stricmp(group, n->group);
-    if (cmp < 0 || (cmp == 0 && priority < n->priority))
-    {
-      // insert before
-      next = n;
-      if (p)
-        p->next = this;
-      else
-        *head = this;
-      return;
-    }
+    ImGuiFunctionQueue *n = cur->next;
+    ImGuiFunctionQueue **pos = &sorted;
+    while (*pos && !(*cur < **pos))
+      pos = &(*pos)->next;
+    cur->next = *pos;
+    *pos = cur;
+    cur = n;
   }
-  p->next = this;
+  head = sorted;
 }
 
 static void after_device_reset(bool full_reset)
 {
   if (full_reset && renderer)
-    renderer->createAndSetFontTexture(ImGui::GetIO());
+    renderer->afterDeviceReset();
+}
+
+void *convert_dag_res_id_to_imgui(D3DRESID res_id)
+{
+  auto texPtr = D3dResManagerData::getD3dRes(res_id);
+  return texPtr;
 }
 
 REGISTER_D3D_AFTER_RESET_FUNC(after_device_reset);

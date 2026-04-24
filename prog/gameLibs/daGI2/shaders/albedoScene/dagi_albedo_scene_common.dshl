@@ -19,7 +19,6 @@ int4 dagi_albedo_clipmap_update_lt_coord;
 int4 dagi_albedo_clipmap_update_sz_coord;
 int4 dagi_albedo_clipmap_update_box_lt;
 int4 dagi_albedo_clipmap_update_box_sz;
-int4 dagi_albedo_clipmap_update_old_lt;
 
 hlsl {
   #include <dagi_albedo_scene.hlsli>
@@ -205,16 +204,18 @@ int dagi_albedo_atlas_reg_no = 5 always_referenced;
 int dagi_albedo_indirection__free_indices_list_reg_no = 4 always_referenced;
 
 macro DAGI_ALBEDO_TEXTURE_WRITE(code)
-  hlsl(code) {
-    #if !_HARDWARE_PS5 && !_HARDWARE_PS4 && !_HARDWARE_XBOX && !_HARDWARE_SCARLETT // consoles have typed uav load
-    #define ALBEDO_UAV_UINT 1
-    #endif
-    #if ALBEDO_UAV_UINT
-    #define ALBEDO_UAV_TYPE uint
-    #else
-    #define ALBEDO_UAV_TYPE float4
-    #endif
-    RWTexture3D<ALBEDO_UAV_TYPE> dagi_albedo_atlas:register(u5);
+  (code) {
+    dagi_albedo_atlas@uav : register(5) hlsl {
+      #if !_HARDWARE_PS5 && !_HARDWARE_PS4 && !_HARDWARE_XBOX && !_HARDWARE_SCARLETT // consoles have typed uav load
+      #define ALBEDO_UAV_UINT 1
+      #endif
+      #if ALBEDO_UAV_UINT
+      #define ALBEDO_UAV_TYPE uint
+      #else
+      #define ALBEDO_UAV_TYPE float4
+      #endif
+      RWTexture3D<ALBEDO_UAV_TYPE> dagi_albedo_atlas@uav;
+    }
   }
 /*  (code) {
     dagi_albedo_atlas@uav = dagi_albedo_atlas hlsl {
@@ -257,7 +258,8 @@ macro DAGI_ALBEDO_FREE_BLOCK_USE(code)
       dagi_albedo_indirection__free_indices_list.InterlockedAdd(dagi_albedo_get_free_list_ofs(), 1, freeIndexAt);
       if (freeIndexAt < dagi_albedo_get_total_atlas_size())// false could not be happening, safety
       {
-        storeBuffer(dagi_albedo_indirection__free_indices_list, dagi_albedo_get_free_list_ofs() + freeIndexAt*4 + 4, blockIndex);
+        // Keep the declared buffer coherency on this path; storeBuffer() decays to plain RWByteAddressBuffer.
+        dagi_albedo_indirection__free_indices_list.Store(dagi_albedo_get_free_list_ofs() + freeIndexAt*4 + 4, blockIndex);
       }
     }
   }
@@ -340,6 +342,18 @@ macro DAGI_ALBEDO_WRITE_USE(code)
     float4 decode_uav_color(float4 a) {return a;}
     float3 decode_uav_color_rgb(float4 a) {return a.xyz;}
     #endif
+    void dagi_albedo_release_unpublished_block(uint blockIndex)
+    {
+      if (blockIndex >= INVALID_DAGI_ALBEDO_BLOCK_INDEX - 1)
+        return;
+      uint freeIndexAt;
+      dagi_albedo_indirection__free_indices_list.InterlockedAdd(dagi_albedo_get_free_list_ofs(), 1, freeIndexAt);
+      if (freeIndexAt < dagi_albedo_get_total_atlas_size())
+      {
+        // Same as dagi_albedo_free_block(): preserve DAGI_ALBEDO_COHERENCY on the actual buffer object.
+        dagi_albedo_indirection__free_indices_list.Store(dagi_albedo_get_free_list_ofs() + freeIndexAt*4 + 4, blockIndex);
+      }
+    }
     bool dagi_write_albedo_unsafe(float3 worldPos, float3 albedo, uint i, float oldW = 0)
     {
       int4 lt = sample_dagi_albedo_clipmap_lt_coord(i);
@@ -348,9 +362,9 @@ macro DAGI_ALBEDO_WRITE_USE(code)
       if (all(uint3(blockCoord - lt.xyz) < dagi_albedo_get_clip_size().xxy))
       {
         uint wrappedAddr = dagi_albedo_get_buffer_addr(dagi_albedo_wrapped_coord_from_abs_coord(blockCoord), i);
-        uint blockIndex;
         const uint TOKEN = INVALID_DAGI_ALBEDO_BLOCK_INDEX - 1;
-        uint prevAddress = INVALID_DAGI_ALBEDO_BLOCK_INDEX;
+        uint blockIndex = INVALID_DAGI_ALBEDO_BLOCK_INDEX;
+
         dagi_albedo_indirection__free_indices_list.InterlockedCompareExchange(wrappedAddr*4, INVALID_DAGI_ALBEDO_BLOCK_INDEX, TOKEN, blockIndex);
 
         //todo: check active threads with same wrappedAddr, and perform allocation and CAS only on first active thread!
@@ -358,16 +372,40 @@ macro DAGI_ALBEDO_WRITE_USE(code)
         BRANCH
         if (blockIndex == INVALID_DAGI_ALBEDO_BLOCK_INDEX) // we obtained token, token is written
         {
-          dagi_albedo_allocate_new_block(blockIndex);
+          if (!dagi_albedo_allocate_new_block(blockIndex))
+            blockIndex = INVALID_DAGI_ALBEDO_BLOCK_INDEX;
+
           uint originalValue;
-          dagi_albedo_indirection__free_indices_list.InterlockedExchange(wrappedAddr*4, blockIndex, originalValue);
-          //assert(originalValue == TOKEN);
+          // Publish the allocated block only while we still own TOKEN. If TOKEN was already cleared, recycle the block.
+          dagi_albedo_indirection__free_indices_list.InterlockedCompareExchange(wrappedAddr*4, TOKEN, blockIndex, originalValue);
+          if (originalValue != TOKEN)
+          {
+            dagi_albedo_release_unpublished_block(blockIndex);
+            blockIndex = originalValue;
+          }
         }
 
-        [loop] [fastopt] [allow_uav_condition]
-        for (int i = 0; i < 32 && blockIndex != TOKEN; ++i) {
-          dagi_albedo_indirection__free_indices_list.InterlockedCompareExchange(wrappedAddr*4, INVALID_DAGI_ALBEDO_BLOCK_INDEX, INVALID_DAGI_ALBEDO_BLOCK_INDEX, blockIndex);
-        };
+        // Keep the polling loop iteration count unconditional to avoid wave-progress hazards around TOKEN waits.
+        [loop] [fastopt]
+        for (int spin = 0; spin < 32; ++spin)
+        {
+          BRANCH
+          if (blockIndex == TOKEN)
+          {
+            dagi_albedo_indirection__free_indices_list.InterlockedCompareExchange(wrappedAddr*4, INVALID_DAGI_ALBEDO_BLOCK_INDEX, INVALID_DAGI_ALBEDO_BLOCK_INDEX, blockIndex);
+          }
+        }
+
+        if (blockIndex == TOKEN)
+        {
+          uint originalValue;
+          // Recover from a stranded TOKEN instead of leaving the wrapped slot permanently poisoned.
+          dagi_albedo_indirection__free_indices_list.InterlockedCompareExchange(wrappedAddr*4, TOKEN, INVALID_DAGI_ALBEDO_BLOCK_INDEX, originalValue);
+          if (originalValue == TOKEN)
+            blockIndex = INVALID_DAGI_ALBEDO_BLOCK_INDEX;
+          else
+            blockIndex = originalValue;
+        }
 
         if (blockIndex >= TOKEN)// could not allocate
           return false;
@@ -402,7 +440,7 @@ macro DAGI_ALBEDO_WRITE_USE(code)
     }
     bool dagi_write_updated_albedo(float3 worldPos, float3 albedo, float oldW = 0)
     {
-      return dagi_write_albedo_unsafe(worldPos, albedo, dagi_albedo_clipmap_update_box_lt.w, oldW);
+      return dagi_write_albedo(worldPos, albedo, dagi_albedo_clipmap_update_box_lt.w, oldW);
     }
     bool dagi_is_writing_albedo_legacy()
     {
@@ -433,10 +471,12 @@ macro DAGI_ALBEDO_SAMPLE(code)
   DAGI_ALBEDO_CLIPMAP_MATH(code)
   DAGI_ALBEDO_ATLAS_MATH(code)
   DAGI_ALBEDO_INDIRECTION_SRV(code)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   (code) {
-    dagi_albedo_atlas@smp3d = dagi_albedo_atlas;
+    dagi_albedo_atlas@tex3d = dagi_albedo_atlas;
   }
   hlsl(code) {
+    #define dagi_albedo_atlas_samplerstate global_linear_wrap_sampler
     //#include <pcg_hash.hlsl>
     bool dagi_sample_albedo_coord(float3 blockCoordF, uint cascade, int4 lt, inout float3 albedo)
     {

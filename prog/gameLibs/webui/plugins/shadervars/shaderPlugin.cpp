@@ -48,10 +48,10 @@ static const char *get_sh_var_value(const String &name, int var_id, ShaderVarTyp
       SNPRINTF(buf, b_size, "(%d, %d, %d, %d)", p.x, p.y, p.z, p.w);
     }
     break;
-    case SHVT_REAL: SNPRINTF(buf, b_size, "%.3f", ShaderGlobal::get_real(var_id)); break;
+    case SHVT_REAL: SNPRINTF(buf, b_size, "%.3f", ShaderGlobal::get_float(var_id)); break;
     case SHVT_COLOR4:
     {
-      const Color4 &c = ShaderGlobal::get_color4(var_id);
+      const Color4 &c = ShaderGlobal::get_float4(var_id);
       SNPRINTF(buf, b_size, "(%.3f, %.3f, %.3f, %.3f)", c.r, c.g, c.b, c.a);
     }
     break;
@@ -148,8 +148,8 @@ static bool parse_float_color(const char *scolor, Color4 &c)
 static void on_shader_vars(RequestInfo *params)
 {
   YAMemSave buf;
-  char stack_buf[256];
-  char stack_buf2[256];
+  char stackBuf[256];
+  char stackBuf2[256];
   const char *tn[] = {"INT", "REAL", "COL4", "TEX", "BUF", "INT4", "MAT", "SMP"};
   const char *hs[] = {
     "#",
@@ -191,7 +191,7 @@ static void on_shader_vars(RequestInfo *params)
         double val = strtod(*(params->params + 1), NULL);
         if (errno != 0)
           return html_response(params->conn, NULL, HTTP_BAD_REQUEST);
-        ShaderGlobal::set_real(id, val);
+        ShaderGlobal::set_float(id, val);
       }
       break;
       case 2: // color4
@@ -209,7 +209,7 @@ static void on_shader_vars(RequestInfo *params)
         Color4 new_color;
         if (!parse_float_color(*(params->params + 1), new_color))
           return html_response(params->conn, NULL, HTTP_BAD_REQUEST);
-        ShaderGlobal::set_color4(id, new_color);
+        ShaderGlobal::set_float4(id, new_color);
       }
       break;
       default: return html_response(params->conn, NULL, HTTP_NOT_FOUND);
@@ -242,30 +242,29 @@ static void on_shader_vars(RequestInfo *params)
     TCOL("%s", varName);
     TCOL("%s", type < countof(tn) ? tn[type] : "unknown");
     buf.printf("<td id='sh_val_%d'>%s</td>", varId,
-      get_sh_var_value(varName, varId, static_cast<ShaderVarType>(type), stack_buf, sizeof(stack_buf)));
+      get_sh_var_value(varName, varId, static_cast<ShaderVarType>(type), stackBuf, sizeof(stackBuf)));
     if (ShaderGlobal::has_associated_interval(varId))
-      TCOL("%s",
-        ShaderGlobal::is_var_assumed(varId) ? "assumed" : get_sh_interval_ranges(varName, varId, stack_buf, sizeof(stack_buf)));
+      TCOL("%s", ShaderGlobal::is_var_assumed(varId) ? "assumed" : get_sh_interval_ranges(varName, varId, stackBuf, sizeof(stackBuf)));
     else
       TCOL("");
     if (type == SHVT_COLOR4)
       TCOL("<button style=\"background:%s; width:50;\" name=\"%s\" "
            "onclick=\"show_color_picker(this,%d,shadervars_color_cb)\">&nbsp;</button>",
-        str_color4_html(stack_buf, sizeof(stack_buf), ShaderGlobal::get_color4(varId)),
-        str_color4_float(stack_buf2, sizeof(stack_buf2), ShaderGlobal::get_color4(varId)), varId);
+        str_color4_html(stackBuf, sizeof(stackBuf), ShaderGlobal::get_float4(varId)),
+        str_color4_float(stackBuf2, sizeof(stackBuf2), ShaderGlobal::get_float4(varId)), varId);
     else
       TCOL("n/a");
     if (type == SHVT_REAL)
     {
-      float cur_val = ShaderGlobal::get_real(varId);
-      float abs_cur_val = fabsf(cur_val);
-      float norm_cur_val = abs_cur_val < 1e-6f ? 1.f : abs_cur_val;
-      float min_val = cur_val - norm_cur_val;
-      float max_val = cur_val + norm_cur_val;
-      float step = abs_cur_val < 1e-6f ? 0.01f : abs_cur_val / 100.f;
+      float curVal = ShaderGlobal::get_float(varId);
+      float absCurVal = fabsf(curVal);
+      float normCurVal = absCurVal < 1e-6f ? 1.f : absCurVal;
+      float minVal = curVal - normCurVal;
+      float maxVal = curVal + normCurVal;
+      float step = absCurVal < 1e-6f ? 0.01f : absCurVal / 100.f;
       TCOL("<input id='edit_box_%d' type='text' value='%.04f' onchange='on_edit_box(%d)'>"
            "<input id='slider_%d' type='range' min='%.04f' max='%.04f' value='%.04f' step='%.04f' onchange='on_slider(%d)'>",
-        varId, cur_val, varId, varId, min_val, max_val, cur_val, step, varId);
+        varId, curVal, varId, varId, minVal, maxVal, curVal, step, varId);
     }
     else
       TCOL("n/a");

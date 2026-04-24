@@ -56,7 +56,7 @@ SelWindow::SelWindow(void *phandle, IObjectsList *obj, const char *obj_list_owne
   objects(obj),
   objListName(obj_list_owner_name),
   typeNames(tmpmem),
-  DialogWindow(phandle, _pxActual(max(scr_width() / 3, hdpi::_pxS(600))), _pxScaled(426), "Select objects")
+  DialogWindow(phandle, _pxActual(max(scr_width() / 3, hdpi::_pxS(600))), _pxScaled(424), "Select objects")
 {
   ctorInit();
 }

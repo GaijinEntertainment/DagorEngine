@@ -74,10 +74,11 @@ macro RADIANCE_CACHE_TRACE_PROBE(code)
 
       //world_sdf_trace_stepOut(worldPos, max(0.125*voxelSize, 0.01), 0.5, startClip);
       uint sdfStartClip = 0, sdfClip;
+      float distAtRayStart;
       if (//startClip < MAX_WORLD_SDF_CLIPS &&
         //world_sdf_step_out(worldPos, sdfStartClip, 0.05, 0.5) &&
         world_sdf_trace_stepOut(worldPos, max(0.125*probeSize, 0.01), 0.5, sdfStartClip) &&
-        world_sdf_trace_start(sdfStartClip, worldPos, rayDir, maxT, t, sdfClip))
+        world_sdf_trace_start(sdfStartClip, worldPos, rayDir, maxT, t, distAtRayStart, sdfClip))
       {
         float3 worldPosAt = worldPos + rayDir*t;
         float3 gradient = world_sdf_sample_gradient(sdfClip, worldPosAt);
@@ -87,7 +88,7 @@ macro RADIANCE_CACHE_TRACE_PROBE(code)
         if (dot(worldNormal, rayDir) > 0)
           worldNormal = -rayDir;
         //radiance = dagi_get_radiance_at(worldPosAt - rayDir*min(t, world_sdf_voxel_size(sdfClip)*0.5), worldNormal);
-        radiance = dagi_get_radiance_at(worldPosAt, worldNormal);
+        radiance = dagi_get_radiance_at(worldPosAt, worldNormal, float4(-rayDir, t + distAtRayStart));
         occluder_distance = t;
       } else
       {

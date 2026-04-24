@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <EASTL/optional.h>
 #include <propPanel/control/propertyControlBase.h>
 #include "listBoxStandalone.h"
 #include "../scopedImguiBeginDisabled.h"
@@ -41,6 +42,9 @@ public:
   void setCaptionValue(const char value[]) override { controlCaption = value; }
   void setTextValue(const char value[]) override { listBox.setSelectedValue(value); }
   void setListBoxEventHandlerValue(IListBoxControlEventHandler *handler) override { listBoxEventHandler = handler; }
+  void setListDragHandlerValue(IListDragHandler *handler) override { listBox.setDragEventHandler(handler); }
+  void setListDropHandlerValue(IListDropHandler *handler) override { listBox.setDropEventHandler(handler); }
+  int getStringsValue(Tab<String> &vals) override { return listBox.getValues(vals); }
 
   int addStringValue(const char *value) override { return listBox.addValue(value); }
   void removeStringValue(int idx) override { listBox.removeValueByIndex(idx); }
@@ -54,11 +58,29 @@ public:
 
   void setEnabled(bool enabled) override { listBox.setEnabled(enabled); }
 
+  bool isDefaultValueSet() const override { return defaultValue ? *defaultValue == getIntValue() : true; }
+
+  void applyDefaultValue() override
+  {
+    if (isDefaultValueSet())
+    {
+      return;
+    }
+
+    if (defaultValue)
+    {
+      setIntValue(*defaultValue);
+      onWcChange(nullptr);
+    }
+  }
+
+  void setDefaultValue(Variant var) override { defaultValue = var.convert<int>(); }
+
   void updateImgui() override
   {
     ScopedImguiBeginDisabled scopedDisabled(!listBox.isEnabled());
 
-    ImguiHelper::separateLineLabel(controlCaption);
+    separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
     setFocusToNextImGuiControlIfRequested();
 
     listBox.updateImgui(mW, mH);
@@ -74,6 +96,7 @@ private:
   String controlCaption;
   ListBoxControlStandalone listBox;
   IListBoxControlEventHandler *listBoxEventHandler = nullptr;
+  eastl::optional<int> defaultValue;
 };
 
 } // namespace PropPanel

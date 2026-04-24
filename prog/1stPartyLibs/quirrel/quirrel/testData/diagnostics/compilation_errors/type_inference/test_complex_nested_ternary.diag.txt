@@ -1,0 +1,9 @@
+ERROR: expression of type 'number|string' cannot be assigned to type 'number'
+testData/diagnostics/compilation_errors/type_inference/test_complex_nested_ternary.nut:8:0
+
+local flag2 = false
+local x: int|float = flag1 ? (flag2 ? 42 : 3.14) : "oops"
+^--------------------------------------------------------
+return x
+
+

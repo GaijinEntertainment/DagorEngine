@@ -152,7 +152,8 @@ void loadObjects(IGenLoad &cb, IGenSave &scb, float density)
     Point3 sz = m.box.width();
     float vol = max(sz.x, 1.0f) * max(sz.y, 1.0f) * max(sz.z, 1.0f);
     int facesCount = m.indices.size() / 3;
-    float density = facesCount / vol;
+    float faceDensity = facesCount / vol;
+    G_UNUSED(faceDensity);
     float maxSz = max(max(sz.x, sz.y), sz.z);
     float maxLeaf = min(1.0f, maxSz / 4.0f); // if object in max dimension is smaller than 4 meters, than use it max axis/4 as biggest
     sz = Point3(max(sz.x / 8.0f, maxLeaf), max(sz.y / 3.0f, maxLeaf), max(sz.z / 8.0f, maxLeaf));
@@ -176,7 +177,7 @@ void loadObjects(IGenLoad &cb, IGenSave &scb, float density)
     //   continue;
     MippedMeshSDF meshSDF;
     generate_sdf(*m.tr, meshSDF, density, 512);
-    if (c > maxCnt)
+    if (c >= maxCnt)
       break;
     scb.write(&meshSDF.mipCountTwoSided, sizeof(meshSDF.mipCountTwoSided));
     scb.write(&meshSDF.localBounds, sizeof(meshSDF.localBounds));

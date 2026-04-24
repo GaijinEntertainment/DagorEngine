@@ -46,7 +46,7 @@ public:
   bool beforeRender();                  // Use this function if you set pixel scale to shaders in another place
   bool beforeRender(float pixel_scale); // Use this function if there are no pixel scale variable in project
   void render(int render_pass);
-  void afterReset();
+  void markAllCablesDirty();
 
   void gatherRIExtra(bool inside_rendinst_loading_block = false);
   void onRIExtraDestroyed(const TMatrix &tm, const BBox3 &box);

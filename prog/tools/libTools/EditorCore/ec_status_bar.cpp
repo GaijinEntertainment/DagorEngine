@@ -2,6 +2,7 @@
 
 #include <EditorCore/ec_status_bar.h>
 #include <EditorCore/ec_cm.h>
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_gridobject.h>
 #include <EditorCore/ec_camera_elem.h>
 
@@ -47,6 +48,9 @@ void ToolBarManager::init(int toolbar_id)
   PropPanel::ContainerPropertyControl *tool = EDITORCORE->getCustomPanel(tbId);
   G_ASSERT(tool);
 
+  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
+
   PropPanel::ContainerPropertyControl *tb1 = tool->createToolbarPanel(0, "");
 
   Tab<String> temp(tmpmem);
@@ -67,59 +71,57 @@ void ToolBarManager::init(int toolbar_id)
   PropPanel::ContainerPropertyControl *tb2 = tool->createToolbarPanel(0, "");
   tb2->createSeparator();
 
-  tb2->createCheckBox(CM_VIEW_GRID_MOVE_SNAP, "Move snap (S)");
+  commandSystem->createToolbarToggleButton(*tb2, CM_VIEW_GRID_MOVE_SNAP, EditorCommandIds::VIEW_GRID_MOVE_SNAP, "Move snap");
   tb2->setButtonPictures(CM_VIEW_GRID_MOVE_SNAP, "snap_move");
-  tb2->createCheckBox(CM_VIEW_GRID_ANGLE_SNAP, "Rotate snap (A)");
+  commandSystem->createToolbarToggleButton(*tb2, CM_VIEW_GRID_ANGLE_SNAP, EditorCommandIds::VIEW_GRID_ANGLE_SNAP, "Rotate snap");
   tb2->setButtonPictures(CM_VIEW_GRID_ANGLE_SNAP, "snap_rotate");
-  tb2->createCheckBox(CM_VIEW_GRID_SCALE_SNAP, "Scale snap (Shift + 5)");
+  commandSystem->createToolbarToggleButton(*tb2, CM_VIEW_GRID_SCALE_SNAP, EditorCommandIds::VIEW_GRID_SCALE_SNAP, "Scale snap");
   tb2->setButtonPictures(CM_VIEW_GRID_SCALE_SNAP, "snap_scale");
   tb2->createSeparator();
 
-  GridObject &grid = IEditorCoreEngine::get()->getGrid();
-  tb2->setBool(CM_VIEW_GRID_MOVE_SNAP, grid.getMoveSnap());
-  tb2->setBool(CM_VIEW_GRID_ANGLE_SNAP, grid.getRotateSnap());
-  tb2->setBool(CM_VIEW_GRID_SCALE_SNAP, grid.getScaleSnap());
+  onSnapSettingChanged();
 
-  tb2->createButton(CM_ZOOM_AND_CENTER, "Zoom and center (Z or Ctrl+Shift+Z)");
+  commandSystem->createToolbarButton(*tb2, CM_ZOOM_AND_CENTER, EditorCommandIds::ZOOM_AND_CENTER, "Zoom and center");
   tb2->setButtonPictures(CM_ZOOM_AND_CENTER, "zoom_and_center");
 
-  tb2->createButton(CM_NAVIGATE, "Navigate");
+  commandSystem->createToolbarButton(*tb2, CM_NAVIGATE, EditorCommandIds::NAVIGATE, "Navigate");
   tb2->setButtonPictures(CM_NAVIGATE, "navigate");
   tb2->createSeparator();
 
-  tb2->createRadio(CM_CAMERAS_FREE, "Fly mode (Spacebar)");
+  commandSystem->createToolbarRadioButton(*tb2, CM_CAMERAS_FREE, EditorCommandIds::CAMERAS_FREE, "Fly mode");
   tb2->setButtonPictures(CM_CAMERAS_FREE, "freecam");
-  tb2->createRadio(CM_CAMERAS_FPS, "FPS mode (Ctrl+Spacebar)");
+  commandSystem->createToolbarRadioButton(*tb2, CM_CAMERAS_FPS, EditorCommandIds::CAMERAS_FPS, "FPS mode");
   tb2->setButtonPictures(CM_CAMERAS_FPS, "fpscam");
-  tb2->createRadio(CM_CAMERAS_TPS, "TPS mode (Ctrl+Shift+Spacebar)");
+  commandSystem->createToolbarRadioButton(*tb2, CM_CAMERAS_TPS, EditorCommandIds::CAMERAS_TPS, "TPS mode");
   tb2->setButtonPictures(CM_CAMERAS_TPS, "tpscam");
-  tb2->createRadio(CM_CAMERAS_CAR, "Car mode (Shift+Spacebar)");
+  commandSystem->createToolbarRadioButton(*tb2, CM_CAMERAS_CAR, EditorCommandIds::CAMERAS_CAR, "Car mode");
   tb2->setButtonPictures(CM_CAMERAS_CAR, "asset_vehicle");
   tb2->createSeparator();
 
-  tb2->createButton(CM_STATS, "Show level statistics");
+  commandSystem->createToolbarButton(*tb2, CM_STATS, EditorCommandIds::STATS, "Show level statistics");
   tb2->setButtonPictures(CM_STATS, "stats");
   tb2->createSeparator();
 
-  tb2->createButton(CM_CHANGE_VIEWPORT, "Viewport layout 1/4 (Alt+W)");
+  commandSystem->createToolbarButton(*tb2, CM_CHANGE_VIEWPORT, EditorCommandIds::CHANGE_VIEWPORT, "Viewport layout 1/4");
   tb2->setButtonPictures(CM_CHANGE_VIEWPORT, "change_viewport");
 
-  tb2->createButton(CM_CHANGE_FOV, "Change FOV");
+  commandSystem->createToolbarButton(*tb2, CM_CHANGE_FOV, EditorCommandIds::CHANGE_FOV, "Change FOV");
   tb2->setButtonPictures(CM_CHANGE_FOV, "change_fov");
   tb2->createSeparator();
 
-  tb2->createButton(CM_CREATE_SCREENSHOT, "Create screenshot (Ctrl+P)");
+  commandSystem->createToolbarButton(*tb2, CM_CREATE_SCREENSHOT, EditorCommandIds::CREATE_SCREENSHOT, "Create screenshot");
   tb2->setButtonPictures(CM_CREATE_SCREENSHOT, "screenshot");
 
-  tb2->createButton(CM_CREATE_CUBE_SCREENSHOT, "Create cube screenshot (Ctrl+Shift+P)");
+  commandSystem->createToolbarButton(*tb2, CM_CREATE_CUBE_SCREENSHOT, EditorCommandIds::CREATE_CUBE_SCREENSHOT,
+    "Create cube screenshot");
   tb2->setButtonPictures(CM_CREATE_CUBE_SCREENSHOT, "screenshot_cube");
   tb2->createSeparator();
 
-  tb2->createButton(CM_ENVIRONMENT_SETTINGS, "Environment settings");
+  commandSystem->createToolbarButton(*tb2, CM_ENVIRONMENT_SETTINGS, EditorCommandIds::ENVIRONMENT_SETTINGS, "Environment settings");
   tb2->setButtonPictures(CM_ENVIRONMENT_SETTINGS, "environment_settings");
   tb2->createSeparator();
 
-  tb2->createCheckBox(CM_CONSOLE, "Show/hide console\tCtrl+`");
+  commandSystem->createToolbarToggleButton(*tb2, CM_CONSOLE, EditorCommandIds::CONSOLE, "Show/hide console");
   tb2->setButtonPictures(CM_CONSOLE, "console");
 
   setEnabled(false);
@@ -415,45 +417,6 @@ void ToolBarManager::act()
 }
 
 
-void ToolBarManager::setMoveSnap()
-{
-  GridObject &grid = IEditorCoreEngine::get()->getGrid();
-  bool press = !grid.getMoveSnap();
-
-  grid.setMoveSnap(press);
-
-  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
-  if (tb)
-    tb->setBool(CM_VIEW_GRID_MOVE_SNAP, press);
-}
-
-
-void ToolBarManager::setScaleSnap()
-{
-  GridObject &grid = IEditorCoreEngine::get()->getGrid();
-  bool press = !grid.getScaleSnap();
-
-  grid.setScaleSnap(press);
-
-  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
-  if (tb)
-    tb->setBool(CM_VIEW_GRID_SCALE_SNAP, press);
-}
-
-
-void ToolBarManager::setRotateSnap()
-{
-  GridObject &grid = IEditorCoreEngine::get()->getGrid();
-  bool press = !grid.getRotateSnap();
-
-  grid.setRotateSnap(press);
-
-  PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId);
-  if (tb)
-    tb->setBool(CM_VIEW_GRID_ANGLE_SNAP, press);
-}
-
-
 //==============================================================================
 void ToolBarManager::refillTypes()
 {
@@ -690,4 +653,15 @@ bool ToolBarManager::onChange(int pcb_id, PropPanel::ContainerPropertyControl *p
   }
 
   return false;
+}
+
+void ToolBarManager::onSnapSettingChanged()
+{
+  if (PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(tbId))
+  {
+    GridObject &grid = IEditorCoreEngine::get()->getGrid();
+    tb->setBool(CM_VIEW_GRID_MOVE_SNAP, grid.getMoveSnap());
+    tb->setBool(CM_VIEW_GRID_ANGLE_SNAP, grid.getRotateSnap());
+    tb->setBool(CM_VIEW_GRID_SCALE_SNAP, grid.getScaleSnap());
+  }
 }

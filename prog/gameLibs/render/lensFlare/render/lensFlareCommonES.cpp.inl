@@ -9,8 +9,10 @@
 #include <render/daFrameGraph/nodeHandle.h>
 #include <render/daFrameGraph/ecs/frameGraphNode.h>
 #include <ecs/render/updateStageRender.h>
+#include <ecs/render/renderEvent.h>
 #include <EASTL/vector_set.h>
 #include <generic/dag_enumerate.h>
+#include <scene/dag_occlusion.h>
 
 #include "lensFlareNodesCommon.h"
 
@@ -59,42 +61,63 @@ static void point_light_flare_provider_invalidate_es(const ecs::Event &, int &dy
 }
 
 template <typename Callable>
-static void prepare_sun_flares_ecs_query(Callable);
+static void prepare_sun_flares_ecs_query(ecs::EntityManager &manager, Callable);
 template <typename Callable>
-static void prepare_point_flares_ecs_query(Callable);
+static void prepare_point_flares_ecs_query(ecs::EntityManager &manager, Callable);
 template <typename Callable>
-static void prepare_point_light_flares_ecs_query(Callable);
+static void prepare_point_light_flares_ecs_query(ecs::EntityManager &manager, Callable);
 
-void LensFlareRenderer::collectAndPrepareECSFlares_Sun(const Point3 &camera_dir, const TMatrix4 &view_proj, const Point3 &sun_dir,
-  const Point3 &sun_color)
+constexpr float FLARE_RADIUS = 0.01f;
+
+void LensFlareRenderer::collectAndPrepareECSFlares_Sun(const TMatrix &view_itm, const TMatrix4 &view_proj, const Point3 &sun_dir,
+  const Point3 &sun_color, const Occlusion *occlusion)
 {
+  const Point3 cameraDir = view_itm.getcol(2);
+
+  if (!optionalProvidersProcessingEnabled)
+    return;
+
   if (lensFlares.empty())
     return; // if there are no lens flare configs, no need to look for entities that use them
 
-  prepare_sun_flares_ecs_query([&, this](bool enabled, const ecs::string &sun_flare_provider__flare_config,
-                                 int &sun_flare_provider__cached_id, int &sun_flare_provider__cached_flare_config_id) {
-    if (!enabled)
-      return;
+  prepare_sun_flares_ecs_query(*g_entity_mgr,
+    [&, this](bool sun_flare_provider__enabled, const ecs::string &sun_flare_provider__flare_config,
+      int &sun_flare_provider__cached_id, int &sun_flare_provider__cached_flare_config_id) {
+      if (!sun_flare_provider__enabled)
+        return;
 
-    if (dot(camera_dir, Point3::xyz(sun_dir)) <= 0)
-      return;
-    Point4 projectedLightPos = Point4::xyz0(sun_dir) * view_proj;
-    if (fabsf(projectedLightPos.w) < 0.0000001f)
-      return;
-    projectedLightPos /= projectedLightPos.w;
-    if (max(fabsf(projectedLightPos.x), fabsf(projectedLightPos.y)) >= 1.f)
-      return;
+      if (occlusion)
+      {
+        const Point3 sunPos = view_itm.getcol(3) + sun_dir;
+        const vec3f vSunPos = v_ldu_p3(&sunPos.x);
+        const vec4f radius = v_splats(FLARE_RADIUS);
+        if (!occlusion->isVisibleSphere(vSunPos, radius))
+          return;
+      }
+      else
+      {
+        if (dot(cameraDir, Point3::xyz(sun_dir)) <= 0)
+          return;
 
-    CachedFlareId cachedFlareId = {sun_flare_provider__cached_id, sun_flare_provider__cached_flare_config_id};
-    if (!isCachedFlareIdValid(cachedFlareId))
-    {
-      cachedFlareId = cacheFlareId(sun_flare_provider__flare_config.c_str());
-      sun_flare_provider__cached_id = cachedFlareId.cacheId;
-      sun_flare_provider__cached_flare_config_id = cachedFlareId.flareConfigId;
-    }
-    if (cachedFlareId.isValid())
-      prepareManualFlare(cachedFlareId, Point4::xyz0(sun_dir), sun_color, true);
-  });
+        Point4 projectedLightPos = Point4::xyz0(sun_dir) * view_proj;
+        if (fabsf(projectedLightPos.w) < 0.0000001f)
+          return;
+
+        projectedLightPos /= projectedLightPos.w;
+        if (max(fabsf(projectedLightPos.x), fabsf(projectedLightPos.y)) >= 1.f)
+          return;
+      }
+
+      CachedFlareId cachedFlareId = {sun_flare_provider__cached_id, sun_flare_provider__cached_flare_config_id};
+      if (!isCachedFlareIdValid(cachedFlareId))
+      {
+        cachedFlareId = cacheFlareId(sun_flare_provider__flare_config.c_str());
+        sun_flare_provider__cached_id = cachedFlareId.cacheId;
+        sun_flare_provider__cached_flare_config_id = cachedFlareId.flareConfigId;
+      }
+      if (cachedFlareId.isValid())
+        prepareManualFlare(cachedFlareId, Point4::xyz0(sun_dir), sun_color, true);
+    });
 }
 
 ECS_TAG(render)
@@ -111,28 +134,30 @@ static void point_lens_flare_provider_changed_es(const ecs::Event &, Point2 &poi
 
 
 void LensFlareRenderer::collectAndPrepareECSFlares_PointFlares(const Point3 &camera_pos, const Point3 &camera_dir,
-  const Frustum &frustum)
+  const Frustum &frustum, const Occlusion *occlusion)
 {
   if (lensFlares.empty())
     return; // if there are no lens flare configs, no need to look for entities that use them
 
-  prepare_point_flares_ecs_query(
-    [&, this](bool enabled, const TMatrix &transform, const ecs::string &point_lens_flare_provider__flare_config,
-      int &point_lens_flare_provider__cached_id, int &point_lens_flare_provider__cached_flare_config_id,
-      const E3DCOLOR &point_lens_flare_provider__color, float point_lens_flare_provider__intensity,
-      bool point_lens_flare_provider__distance_attenuation, float point_lens_flare_provider__distance_offset,
-      float point_lens_flare_provider__distance_cutoff, bool point_lens_flare_provider__angle_attenuation,
-      const Point2 &point_lens_flare_provider__cached_params, const Point3 &point_lens_flare_provider__dir) {
-      if (!enabled)
+  prepare_point_flares_ecs_query(*g_entity_mgr,
+    [&, this](bool point_lens_flare_provider__enabled, const TMatrix &transform,
+      const ecs::string &point_lens_flare_provider__flare_config, int &point_lens_flare_provider__cached_id,
+      int &point_lens_flare_provider__cached_flare_config_id, const E3DCOLOR &point_lens_flare_provider__color,
+      float point_lens_flare_provider__intensity, bool point_lens_flare_provider__distance_attenuation,
+      float point_lens_flare_provider__distance_offset, float point_lens_flare_provider__distance_cutoff,
+      bool point_lens_flare_provider__angle_attenuation, const Point2 &point_lens_flare_provider__cached_params,
+      const Point3 &point_lens_flare_provider__dir, const ecs::Tag *lensFlareNonOptionalProvider = nullptr) {
+      if (!point_lens_flare_provider__enabled)
         return;
+
+      if (!optionalProvidersProcessingEnabled && !lensFlareNonOptionalProvider)
+        return;
+
       const Point3 &position = transform.getcol(3);
       const Point3 cameraToFlare = position - camera_pos;
       const float sqDistance = cameraToFlare.lengthSq();
       const float sqCutoffDist = point_lens_flare_provider__distance_cutoff * point_lens_flare_provider__distance_cutoff;
       if (sqDistance >= sqCutoffDist || dot(cameraToFlare, camera_dir) < 0)
-        return;
-
-      if (!frustum.testSphere(position, 0.01))
         return;
 
       float intensity = point_lens_flare_provider__intensity;
@@ -148,6 +173,16 @@ void LensFlareRenderer::collectAndPrepareECSFlares_PointFlares(const Point3 &cam
       }
 
       if (intensity <= 0)
+        return;
+
+      if (occlusion)
+      {
+        vec3f sunPos = v_ldu_p3(&position.x);
+        vec4f radius = v_splats(FLARE_RADIUS);
+        if (!occlusion->isVisibleSphere(sunPos, radius))
+          return;
+      }
+      else if (!frustum.testSphere(position, FLARE_RADIUS))
         return;
 
       if (point_lens_flare_provider__angle_attenuation)
@@ -181,10 +216,13 @@ void LensFlareRenderer::collectAndPrepareECSFlares_PointFlares(const Point3 &cam
 
 void LensFlareRenderer::collectAndPrepareECSFlares_DynamicLights()
 {
+  if (!optionalProvidersProcessingEnabled)
+    return;
+
   if (lensFlares.empty())
     return; // if there are no lens flare configs, no need to look for entities that use them
 
-  prepare_point_light_flares_ecs_query(
+  prepare_point_light_flares_ecs_query(*g_entity_mgr,
     [&, this](const ecs::string &dynamic_light_lens_flare__flare_config, int &dynamic_light_lens_flare__cached_id,
       int &dynamic_light_lens_flare__cached_flare_config_id) {
       CachedFlareId cachedFlareId = {dynamic_light_lens_flare__cached_id, dynamic_light_lens_flare__cached_flare_config_id};
@@ -200,7 +238,7 @@ void LensFlareRenderer::collectAndPrepareECSFlares_DynamicLights()
 }
 
 template <typename Callable>
-static void gather_flare_configs_ecs_query(Callable);
+static void gather_flare_configs_ecs_query(ecs::EntityManager &manager, Callable);
 
 static const eastl::vector_set<eastl::string> ACCEPTED_FLARE_COMPONENT_PROPS = {"flare_component__enabled",
   "flare_component__gradient__falloff", "flare_component__gradient__gradient", "flare_component__gradient__inverted",
@@ -214,7 +252,7 @@ static const eastl::vector_set<eastl::string> ACCEPTED_FLARE_COMPONENT_PROPS = {
 void LensFlareRenderer::updateConfigsFromECS()
 {
   eastl::vector<LensFlareConfig> configs;
-  gather_flare_configs_ecs_query(
+  gather_flare_configs_ecs_query(*g_entity_mgr,
     [&configs](const ecs::string &lens_flare_config__name, const float &lens_flare_config__smooth_screen_fadeout_distance,
       const Point2 &lens_flare_config__scale, const float &lens_flare_config__intensity, bool lens_flare_config__use_occlusion,
       const float &lens_flare_config__depth_bias, const float &lens_flare_config__spotlight_cone_angle_deg,
@@ -299,11 +337,12 @@ void LensFlareRenderer::updateConfigsFromECS()
 }
 
 template <typename Callable>
-static void schedule_update_flares_renderer_ecs_query(Callable);
+static void schedule_update_flares_renderer_ecs_query(ecs::EntityManager &manager, Callable);
 
 static void schedule_flares_update()
 {
-  schedule_update_flares_renderer_ecs_query([](LensFlareRenderer &lens_flare_renderer) { lens_flare_renderer.markConfigsDirty(); });
+  schedule_update_flares_renderer_ecs_query(*g_entity_mgr,
+    [](LensFlareRenderer &lens_flare_renderer) { lens_flare_renderer.markConfigsDirty(); });
 }
 
 ECS_TAG(render)
@@ -321,3 +360,11 @@ ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(const ecs::string &lens_flare_config__name)
 static void lens_flare_config_on_disappear_es(const ecs::Event &) { schedule_flares_update(); }
+
+ECS_TAG(render)
+ECS_REQUIRE(const ecs::string &lens_flare_config__name, const float &lens_flare_config__smooth_screen_fadeout_distance,
+  const float &lens_flare_config__exposure_reduction, const Point2 &lens_flare_config__scale,
+  const float &lens_flare_config__intensity, bool lens_flare_config__use_occlusion, const float &lens_flare_config__depth_bias,
+  const float &lens_flare_config__spotlight_cone_angle_deg, const ecs::Array &lens_flare_config__elements)
+ECS_ON_EVENT(AfterDeviceReset)
+static void lens_flare_after_device_reset_es(const ecs::Event &) { schedule_flares_update(); }

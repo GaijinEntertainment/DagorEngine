@@ -7,10 +7,6 @@
 
 using namespace gamephys;
 
-/** Polynomials */
-static float Density[5] = {1.f, -9.59387e-05f, 3.53118e-09f, -5.83556e-14f, 2.28719e-19f};
-static float Pressure[5] = {1.f, -0.000118441f, 5.6763e-09f, -1.3738e-13f, 1.60373e-18f};
-static float Temperature[5] = {1.f, -2.27712e-05f, 2.18069e-10f, -5.71104e-14f, 3.97306e-18f};
 
 static Point3 wind_vel = Point3(0.f, 0.f, 0.f);
 
@@ -52,16 +48,16 @@ void atmosphere::reset()
 }
 
 /** Get Pressure( H [meters] ) , [ Pa ] */
-float atmosphere::pressure(float h) { return P0() * poly(Pressure, min(h, hMax())) * (hMax() / max(hMax(), h)); }
+float atmosphere::pressure(float h) { return P0() * poly(PRESSURE_COEFFS, min(h, hMax())) * (hMax() / max(hMax(), h)); }
 
 /** Get Temperature( H [meters] ) , [ K ] */
-float atmosphere::temperature(float h) { return T0() * poly(Temperature, min(h, hMax())); }
+float atmosphere::temperature(float h) { return T0() * poly(TEMPERATURE_COEFFS, min(h, hMax())); }
 
 /** Get Sonic Speed( H [meters] ) , [ m/s ] */
 float atmosphere::sonicSpeed(float h) { return 20.1f * sqrtf(temperature(h)); }
 
 /** Get Density( H [meters] ) [kg*sec2/m4]  */
-float atmosphere::density(float h) { return ro0() * poly(Density, min(h, hMax())) * (hMax() / max(hMax(), h)); }
+float atmosphere::density(float h) { return ro0() * poly(DENSITY_COEFFS, min(h, hMax())) * (hMax() / max(hMax(), h)); }
 
 /** Get {Dynamic Turbulent} viscosity( H [meters] ) , [ Pa*sec ] */
 float atmosphere::viscosity(float h) { return Mu0() * powf(temperature(h) / T0(), 0.76); }
@@ -79,10 +75,14 @@ struct CalcAirDensityByAltitude
 {
   CalcAirDensityByAltitude(float air_density) : airDensity(air_density) { ; }
   float airDensity;
-  inline float operator()(float alt) const { return gamephys::atmosphere::ro0() * poly(Density, alt) - airDensity; }
+  inline float operator()(float alt) const
+  {
+    return gamephys::atmosphere::ro0() * poly(gamephys::atmosphere::DENSITY_COEFFS, alt) - airDensity;
+  }
 };
 
-static const float densityAtHmax = gamephys::atmosphere::ro0() * poly(Density, gamephys::atmosphere::hMax());
+static const float densityAtHmax =
+  gamephys::atmosphere::ro0() * poly(gamephys::atmosphere::DENSITY_COEFFS, gamephys::atmosphere::hMax());
 
 float atmosphere::getAltitudeByAirDensity(float air_density, float tolerance, float start_altitude)
 {
@@ -101,10 +101,14 @@ struct CalcAirPressureByAltitude
 {
   CalcAirPressureByAltitude(float air_pressure) : airPressure(air_pressure) { ; }
   float airPressure;
-  inline float operator()(float alt) const { return gamephys::atmosphere::P0() * poly(Pressure, alt) - airPressure; }
+  inline float operator()(float alt) const
+  {
+    return gamephys::atmosphere::P0() * poly(gamephys::atmosphere::PRESSURE_COEFFS, alt) - airPressure;
+  }
 };
 
-static const float pressureAtHMax = gamephys::atmosphere::P0() * poly(Pressure, gamephys::atmosphere::hMax());
+static const float pressureAtHMax =
+  gamephys::atmosphere::P0() * poly(gamephys::atmosphere::PRESSURE_COEFFS, gamephys::atmosphere::hMax());
 
 float atmosphere::getAltitudeByAirPressure(float air_pressure, float tolerance, float start_altitude)
 {

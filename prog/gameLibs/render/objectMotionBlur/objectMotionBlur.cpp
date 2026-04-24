@@ -22,16 +22,12 @@
 #include <imgui/imgui.h>
 #include <gui/dag_imgui.h>
 
+#if DAGOR_DBGLEVEL > 0
+#define MOTION_BLUR_DEBUG_WINDOW 1
+#endif
+
 namespace objectmotionblur
 {
-struct ResContext
-{
-  UniqueTexHolder tileMaxTex;
-  UniqueTexHolder neightborMaxTex;
-  UniqueTexHolder resultTex;
-  UniqueTexHolder flattenedVelocityTex;
-};
-
 struct Context
 {
   Context();
@@ -64,14 +60,10 @@ struct Context
   bool cancelCameraMotion = false;
 
   const float target_frame_rate = 60.0f;
-
-  eastl::unique_ptr<ResContext> resCtx;
 };
 
 static eastl::unique_ptr<Context> g_ctx;
 static MotionBlurSettings settingsFromConfig;
-static IPoint2 renderingResolution = IPoint2(0, 0);
-static int targetFormat = 0;
 
 Context::Context()
 {
@@ -110,12 +102,13 @@ static void update_context_settings()
     g_ctx->vignetteStrength = settingsFromConfig.vignetteStrength;
     g_ctx->blurAmount = settingsFromConfig.strength;
     g_ctx->cancelCameraMotion = settingsFromConfig.cancelCameraMotion;
+    g_ctx->useAllSamples = settingsFromConfig.useAllSamples;
   }
 }
 
 static void initialize()
 {
-  if (!is_enabled() || (!settingsFromConfig.externalTextures && renderingResolution == IPoint2(0, 0)))
+  if (!is_enabled())
   {
     g_ctx.reset();
     return;
@@ -132,56 +125,7 @@ static void initialize()
     g_ctx.reset();
     return;
   }
-
-  if (!settingsFromConfig.externalTextures)
-  {
-    if (!g_ctx->resCtx)
-      g_ctx->resCtx = eastl::make_unique<ResContext>();
-
-    int width = renderingResolution.x;
-    int height = renderingResolution.y;
-
-    int tileCountX = ceilf((float)width / TILE_SIZE);
-    int tileCountY = ceilf((float)height / TILE_SIZE);
-
-    if (g_ctx->resCtx->tileMaxTex)
-      g_ctx->resCtx->tileMaxTex.close();
-
-    if (g_ctx->resCtx->neightborMaxTex)
-      g_ctx->resCtx->neightborMaxTex.close();
-
-    if (g_ctx->resCtx->resultTex)
-      g_ctx->resCtx->resultTex.close();
-
-    if (g_ctx->resCtx->flattenedVelocityTex)
-      g_ctx->resCtx->flattenedVelocityTex.close();
-
-    g_ctx->resCtx->tileMaxTex =
-      dag::create_tex(nullptr, tileCountX, tileCountY, TEXCF_UNORDERED | TEXFMT_G16R16F, 1, "object_motion_blur_tile_max_tex");
-    g_ctx->resCtx->neightborMaxTex =
-      dag::create_tex(nullptr, tileCountX, tileCountY, TEXCF_UNORDERED | TEXFMT_G16R16F, 1, "object_motion_blur_neighbor_max");
-    g_ctx->resCtx->resultTex =
-      dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | targetFormat, 1, "object_motion_blur_out_tex");
-
-    g_ctx->resCtx->flattenedVelocityTex =
-      dag::create_tex(nullptr, width, height, TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "object_motion_blur_flattened_vel_tex");
-    {
-      d3d::SamplerInfo smpInfo;
-      smpInfo.filter_mode = d3d::FilterMode::Point;
-      ShaderGlobal::set_sampler(::get_shader_variable_id("object_motion_blur_flattened_vel_tex_samplerstate", true),
-        d3d::request_sampler(smpInfo));
-    }
-
-    if (!g_ctx->resCtx->tileMaxTex || !g_ctx->resCtx->neightborMaxTex || !g_ctx->resCtx->resultTex ||
-        !g_ctx->resCtx->flattenedVelocityTex)
-    {
-      logerr("Failed to create object motion blur textures!");
-      g_ctx.reset();
-      return;
-    }
-  }
 }
-
 
 static bool should_apply()
 {
@@ -192,6 +136,9 @@ static bool should_apply()
 
   return true;
 }
+
+static bool (*save_config_callback)(const MotionBlurSettings &settings) = nullptr;
+void set_save_config_callback(bool (*fn_save_config)(const MotionBlurSettings &settings)) { save_config_callback = fn_save_config; }
 
 bool is_enabled() { return settingsFromConfig.strength > 0.0f; }
 void on_settings_changed(const MotionBlurSettings &settings)
@@ -223,41 +170,7 @@ void teardown()
   g_ctx.reset();
 }
 
-void on_render_resolution_changed(const IPoint2 &rendering_resolution, int format)
-{
-  renderingResolution = rendering_resolution;
-  targetFormat = format;
-  initialize();
-  update_context_settings();
-}
-
-void apply(Texture *source_tex, TEXTUREID source_id, float current_frame_rate)
-{
-  if (!g_ctx || !g_ctx->resCtx || !source_tex)
-    return;
-
-  if (g_ctx->resCtx->resultTex)
-  {
-    TextureInfo sourceTextureInfo;
-    source_tex->getinfo(sourceTextureInfo);
-
-    TextureInfo resultTextureInfo;
-    g_ctx->resCtx->resultTex->getinfo(resultTextureInfo);
-    if (sourceTextureInfo.w != resultTextureInfo.w || sourceTextureInfo.h != resultTextureInfo.h ||
-        (sourceTextureInfo.cflg & TEXFMT_MASK) != (resultTextureInfo.cflg & TEXFMT_MASK))
-    {
-      // Ensure that the result texture has the same size and format as the source texture
-      targetFormat = sourceTextureInfo.cflg & TEXFMT_MASK;
-      renderingResolution = IPoint2(sourceTextureInfo.w, sourceTextureInfo.h);
-
-      initialize();
-    }
-  }
-
-  apply(source_tex, source_id, g_ctx->resCtx->resultTex, current_frame_rate);
-}
-
-void apply(Texture *source_tex, TEXTUREID source_id, ManagedTexView resultTex, float current_frame_rate)
+void apply(BaseTexture *source_target_ptr, BaseTexture *resultTex, float current_frame_rate)
 {
   if (!should_apply())
   {
@@ -269,18 +182,21 @@ void apply(Texture *source_tex, TEXTUREID source_id, ManagedTexView resultTex, f
 
   TIME_D3D_PROFILE(objectmotionblur::apply);
 
-  ShaderGlobal::set_texture(g_ctx->inTexVarId, source_id);
-  ShaderGlobal::set_real(g_ctx->velocityMulVarId, g_ctx->blurAmount);
-  ShaderGlobal::set_real(g_ctx->maxVelPxVarId, g_ctx->maxBlurPx);
+  ShaderGlobal::set_texture(g_ctx->inTexVarId, source_target_ptr);
+  ShaderGlobal::set_float(g_ctx->velocityMulVarId, g_ctx->blurAmount);
+  ShaderGlobal::set_float(g_ctx->maxVelPxVarId, g_ctx->maxBlurPx);
   ShaderGlobal::set_int(g_ctx->maxSamplesVarId, ((g_ctx->maxSamples + 3) / 4) * 4);
-  ShaderGlobal::set_real(g_ctx->frameRateMulVarId, frame_time_mul);
-  ShaderGlobal::set_color4(g_ctx->rampingPowVarId, g_ctx->rampStrength, g_ctx->rampCutoff);
-  ShaderGlobal::set_real(g_ctx->vignetteStrengthVarId, g_ctx->vignetteStrength);
-  ShaderGlobal::set_real(g_ctx->useAllSamplesVarId, g_ctx->useAllSamples ? 1.0f : 0.0f);
+  ShaderGlobal::set_float(g_ctx->frameRateMulVarId, frame_time_mul);
+  ShaderGlobal::set_float4(g_ctx->rampingPowVarId, g_ctx->rampStrength, g_ctx->rampCutoff);
+  ShaderGlobal::set_float(g_ctx->vignetteStrengthVarId, g_ctx->vignetteStrength);
+  ShaderGlobal::set_float(g_ctx->useAllSamplesVarId, g_ctx->useAllSamples ? 1.0f : 0.0f);
   ShaderGlobal::set_int(g_ctx->cancelCameraMotionVarId, g_ctx->cancelCameraMotion ? 1 : 0);
 
-  TextureInfo resultTi;
-  resultTex->getinfo(resultTi);
+  TextureInfo resultTi{};
+  if (resultTex)
+  {
+    resultTex->getinfo(resultTi);
+  }
 
   {
     TIME_D3D_PROFILE(objectmotionblur::tileMax);
@@ -297,11 +213,16 @@ void apply(Texture *source_tex, TEXTUREID source_id, ManagedTexView resultTex, f
     g_ctx->motionBlurCs->dispatchThreads(resultTi.w, resultTi.h, 1);
   }
 
-  if (source_tex && resultTex)
-    source_tex->update(resultTex.getTex2D());
+  ShaderGlobal::set_texture(g_ctx->inTexVarId, nullptr);
 }
+} // namespace objectmotionblur
 
-#if DAGOR_DBGLEVEL > 0
+#if MOTION_BLUR_DEBUG_WINDOW
+#include <startup/dag_loadSettings.h>
+#include <memory/dag_framemem.h>
+
+namespace objectmotionblur
+{
 static void imguiWindow()
 {
   if (!g_ctx)
@@ -364,9 +285,43 @@ static void imguiWindow()
   {
     ImGui::SetTooltip("Pausing the game will maintain the motion vectors, so the frozen frame will have motion blur applied");
   }
+
+  if (ImGui::Button("Reset settings"))
+  {
+    settingsFromConfig = MotionBlurSettings();
+    update_context_settings();
+  }
+
+  if (save_config_callback)
+  {
+    static double saveResultTime = -1.0;
+    static bool lastSaveResult = false;
+    if (ImGui::Button("Save settings"))
+    {
+      MotionBlurSettings settingsToSave;
+      settingsToSave.maxBlurPx = g_ctx->maxBlurPx;
+      settingsToSave.maxSamples = g_ctx->maxSamples;
+      settingsToSave.strength = g_ctx->blurAmount;
+      settingsToSave.rampCutoff = g_ctx->rampCutoff;
+      settingsToSave.rampStrength = g_ctx->rampStrength;
+      settingsToSave.vignetteStrength = g_ctx->vignetteStrength;
+      settingsToSave.cancelCameraMotion = g_ctx->cancelCameraMotion;
+      settingsToSave.useAllSamples = g_ctx->useAllSamples;
+
+      lastSaveResult = save_config_callback(settingsToSave);
+      saveResultTime = ImGui::GetTime();
+    }
+
+    if (saveResultTime > 0.0f && ImGui::GetTime() - saveResultTime < 2.0f)
+    {
+      ImGui::SameLine();
+      ImGui::Text("Settings saved to config blk");
+    }
+    else
+      saveResultTime = -1.0;
+  }
 }
 
 REGISTER_IMGUI_WINDOW("Render", "Motion Blur", imguiWindow);
-#endif // DAGOR_DBGLEVEL > 0
-
 } // namespace objectmotionblur
+#endif // MOTION_BLUR_DEBUG_WINDOW

@@ -4,7 +4,6 @@
 
 // for ECS events
 #include "render/renderEvent.h"
-#include "render/renderLibsAllowed.h"
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/core/coreEvents.h>
@@ -29,13 +28,13 @@
 GLOBAL_VARS_BLOOM
 #undef VAR
 
-static bool is_supported() { return is_render_lib_allowed("bloom") && renderer_has_feature(FeatureRenderFlags::BLOOM); }
+static const auto bloomNodesNamespace = dafg::root() / "bloom";
 
 template <typename Callable>
-static void init_bloom_ecs_query(ecs::EntityId, Callable);
+static void init_bloom_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 template <typename Callable>
-static void disable_bloom_ecs_query(ecs::EntityId, Callable);
+static void disable_bloom_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 ECS_TAG(render)
 static void reset_bloom_es(const ChangeRenderFeatures &evt, ecs::EntityManager &manager)
@@ -43,7 +42,7 @@ static void reset_bloom_es(const ChangeRenderFeatures &evt, ecs::EntityManager &
   if (!evt.changedFeatureFlags.test(FeatureRenderFlags::BLOOM))
     return;
   if (!evt.newFeatureFlags.test(FeatureRenderFlags::BLOOM))
-    disable_bloom_ecs_query(manager.getSingletonEntity(ECS_HASH("bloom")),
+    disable_bloom_ecs_query(manager, manager.getSingletonEntity(ECS_HASH("bloom")),
       [](dag::Vector<dafg::NodeHandle> &bloom__downsample_chain, dag::Vector<dafg::NodeHandle> &bloom__upsample_chain) {
         bloom__downsample_chain.clear();
         bloom__upsample_chain.clear();
@@ -55,16 +54,16 @@ static void resize_bloom_es(const SetResolutionEvent &evt, ecs::EntityManager &m
 {
   if (evt.type != SetResolutionEvent::Type::SETTINGS_CHANGED)
     return;
-  if (!is_supported())
+  if (!renderer_has_feature(FeatureRenderFlags::BLOOM))
     return;
-  init_bloom_ecs_query(manager.getSingletonEntity(ECS_HASH("bloom")),
+  init_bloom_ecs_query(manager, manager.getSingletonEntity(ECS_HASH("bloom")),
     [postfx_resolution = evt.postFxResolution](dag::Vector<dafg::NodeHandle> &bloom__downsample_chain,
       dag::Vector<dafg::NodeHandle> &bloom__upsample_chain, float bloom__upSample,
       E3DCOLOR bloom__halation_color = E3DCOLOR(255, 0, 0, 0), float bloom__halation_brightness = 2,
       float bloom__halation_mip_factor = 2, int bloom__halation_end_mip = 1) {
       const uint32_t mipsCount = bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y);
-      bloom::regenerate_downsample_chain(bloom__downsample_chain, mipsCount);
-      bloom::regenerate_upsample_chain(bloom__upsample_chain, mipsCount, bloom__upSample,
+      bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCount);
+      bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCount, bloom__upSample,
         color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),
         max(0, bloom__halation_end_mip));
     });
@@ -74,17 +73,17 @@ ECS_TAG(render)
 ECS_ON_EVENT(OnLevelLoaded)
 static void init_bloom_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  ecs::EntityId eid = manager.getOrCreateSingletonEntity(ECS_HASH("bloom"));
-  if (!is_supported())
+  if (!renderer_has_feature(FeatureRenderFlags::BLOOM))
     return;
-  init_bloom_ecs_query(eid,
+  ecs::EntityId eid = manager.getOrCreateSingletonEntity(ECS_HASH("bloom"));
+  init_bloom_ecs_query(manager, eid,
     [](dag::Vector<dafg::NodeHandle> &bloom__downsample_chain, dag::Vector<dafg::NodeHandle> &bloom__upsample_chain,
       float bloom__upSample, E3DCOLOR bloom__halation_color = E3DCOLOR(255, 0, 0, 0), float bloom__halation_brightness = 2,
       float bloom__halation_mip_factor = 2, int bloom__halation_end_mip = 1) {
       IPoint2 postfx_resolution = get_postfx_resolution();
       const uint32_t mipsCount = bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y);
-      bloom::regenerate_downsample_chain(bloom__downsample_chain, mipsCount);
-      bloom::regenerate_upsample_chain(bloom__upsample_chain, mipsCount, bloom__upSample,
+      bloom::regenerate_downsample_chain(bloomNodesNamespace, bloom__downsample_chain, mipsCount);
+      bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCount, bloom__upSample,
         color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),
         max(0, bloom__halation_end_mip));
     });
@@ -102,7 +101,7 @@ static void change_bloom_params_with_fg_change_es(const ecs::Event &,
 {
   IPoint2 postfx_resolution = get_postfx_resolution();
   const uint32_t mipsCount = bloom::calculate_bloom_mips(postfx_resolution.x, postfx_resolution.y);
-  bloom::regenerate_upsample_chain(bloom__upsample_chain, mipsCount, bloom__upSample,
+  bloom::regenerate_upsample_chain(bloomNodesNamespace, bloom__upsample_chain, mipsCount, bloom__upSample,
     color3(bloom__halation_color) * max(0.f, bloom__halation_brightness), max(0.f, bloom__halation_mip_factor),
     max(0, bloom__halation_end_mip));
 }
@@ -113,9 +112,9 @@ ECS_TRACK(bloom__threshold, bloom__radius, bloom__mul)
 ECS_ON_EVENT(on_appear)
 static void change_bloom_shader_vars_es(const ecs::Event &, float bloom__radius, float bloom__threshold = 1, float bloom__mul = 0.1)
 {
-  ShaderGlobal::set_real(bloom_radiusVarId, bloom__radius);
-  ShaderGlobal::set_real(bloom_thresholdVarId, bloom__threshold);
-  ShaderGlobal::set_real(bloom_mulVarId, bloom__mul);
+  ShaderGlobal::set_float(bloom_radiusVarId, bloom__radius);
+  ShaderGlobal::set_float(bloom_thresholdVarId, bloom__threshold);
+  ShaderGlobal::set_float(bloom_mulVarId, bloom__mul);
 }
 
 ECS_TAG(render)
@@ -124,7 +123,7 @@ static void init_bloom_nodes_es(const ecs::Event &, resource_slot::NodeHandleWit
 {
   bloom__downsample_node = resource_slot::register_access("bloom_downsample", DAFG_PP_NODE_SRC,
     {resource_slot::Read{"postfx_input_slot"}}, [](resource_slot::State slotsState, dafg::Registry registry) {
-      registry.create("downsampled_color", dafg::History::No)
+      registry.create("downsampled_color")
         .texture({TEXCF_RTARGET | TEXFMT_R11G11B10F | TEXCF_ESRAM_ONLY, registry.getResolution<2>("post_fx", 0.5f)});
       registry.requestRenderPass().color({"downsampled_color"});
       registry.read(slotsState.resourceToReadFrom("postfx_input_slot"))
@@ -133,14 +132,12 @@ static void init_bloom_nodes_es(const ecs::Event &, resource_slot::NodeHandleWit
         .bindToShaderVar("blur_src_tex");
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-      registry.create("bloom_clamp_sampler", dafg::History::No)
+      registry.create("bloom_clamp_sampler")
         .blob<d3d::SamplerHandle>(d3d::request_sampler(smpInfo))
         .bindToShaderVar("blur_src_tex_samplerstate");
 
       // @TODO: fix local tonemapping dependency on this node and disable it when bloom is not enabled
       //        now this node is the one that produces downsampled_color, which is the source for local tonemapping on low q
-      return [renderer = is_render_lib_allowed("bloom") ? PostFxRenderer("frame_bloom_downsample") : PostFxRenderer()]() {
-        renderer.render();
-      };
+      return [renderer = PostFxRenderer("frame_bloom_downsample")] { renderer.render(); };
     });
 }

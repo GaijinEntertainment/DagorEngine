@@ -18,10 +18,12 @@
 #include <gameRes/dag_gameResources.h> // get_game_resource_ex
 #include <gameRes/dag_stdGameResId.h>  // Anim2DataGameResClassId
 #include <propPanel/imguiHelper.h>     // getStringIndexInTab
+#include <util/dag_lookup.h>           // lup
+#include <ioSys/dag_dataBlockCommentsDef.h>
 
 bool is_include_ctrl(const AnimCtrlData &data) { return data.type == ctrl_type_include || data.type == ctrl_type_inner_include; }
 
-const AnimParamData *find_param_by_name(const dag::Vector<AnimParamData> &params, const char *name)
+const AnimParamData *find_param_by_name(dag::ConstSpan<AnimParamData> params, const char *name)
 {
   return eastl::find_if(params.begin(), params.end(), [name](const AnimParamData &value) { return value.name == name; });
 }
@@ -116,6 +118,23 @@ bool add_edit_point3_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel
   return false;
 }
 
+bool add_edit_point4_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
+  const char *name, Point4 default_value)
+{
+  auto param = find_param_by_name(params, name);
+  if (param == params.end())
+  {
+    panel->createPoint4(pid, name, default_value);
+    params.emplace_back(AnimParamData{pid, DataBlock::TYPE_POINT4, String(name)});
+    ++pid;
+    return true;
+  }
+  else
+    panel->moveById(param->pid);
+
+  return false;
+}
+
 bool add_edit_bool_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
   const char *name, bool default_value)
 {
@@ -133,29 +152,60 @@ bool add_edit_bool_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::
   return false;
 }
 
+bool add_edit_matrix_if_not_exists(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, int &pid,
+  const char *name, const TMatrix &default_value)
+{
+  auto param = find_param_by_name(params, name);
+  if (param == params.end())
+  {
+    panel->createMatrix(pid, name, default_value);
+    params.emplace_back(AnimParamData{pid, DataBlock::TYPE_MATRIX, String(name)});
+    ++pid;
+    return true;
+  }
+  else
+    panel->moveById(param->pid);
+
+  return false;
+}
+
 void add_target_node(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
 {
   const char *targetNodeParam = "targetNode";
   const float defaultTargetNodeWt = 1.f;
   const float targetNodeWtValue = get_float_param_by_name_optional(params, panel, "targetNodeWt", defaultTargetNodeWt);
+  SimpleString nodeTypeName = panel->getText(PID_CTRLS_TYPE_COMBO_SELECT);
+  CtrlType type = static_cast<CtrlType>(lup(nodeTypeName.c_str(), ctrl_type, ctrl_type_not_found));
+  if (type == ctrl_type_twistCtrl)
+    targetNodeParam = "twistNode"; // Replace param name for twistCtrl with same logic
   PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
   int freePid = params.back().pid + 1;
   int targetNodeCount = 0;
-  for (const AnimParamData &param : params)
+  AnimParamData *lastNodeForMove = nullptr;
+  for (AnimParamData &param : params)
     if (param.name == targetNodeParam)
+    {
       ++targetNodeCount;
+      lastNodeForMove = &param; // Save last targetNode param for add new one in lookat ctrl
+    }
 
-  auto targetNodeWtLast = find_param_by_name(params, String(0, "targetNodeWt%d", targetNodeCount));
-  G_ASSERTF(targetNodeWtLast != params.end(), "Can't find node <targetNodeWt%d> for move new node", targetNodeCount);
+  if (type != ctrl_type_lookat && type != ctrl_type_twistCtrl)
+  {
+    lastNodeForMove = find_param_by_name(params, String(0, "targetNodeWt%d", targetNodeCount));
+    G_ASSERTF(lastNodeForMove != params.end(), "Can't find node <targetNodeWt%d> for move new node", targetNodeCount);
+  }
 
   group->createEditBox(freePid, targetNodeParam);
   params.emplace_back(AnimParamData{freePid, DataBlock::TYPE_STRING, String(targetNodeParam)});
-  group->moveById(freePid, targetNodeWtLast->pid, /*after*/ true);
+  group->moveById(freePid, lastNodeForMove->pid, /*after*/ true);
 
-  freePid = freePid + 1;
-  group->createEditFloat(freePid, String(0, "targetNodeWt%d", targetNodeCount + 1), targetNodeWtValue);
-  params.emplace_back(AnimParamData{freePid, DataBlock::TYPE_REAL, String(0, "targetNodeWt%d", targetNodeCount + 1)});
-  group->moveById(freePid, freePid - 1, /*after*/ true);
+  if (type != ctrl_type_lookat && type != ctrl_type_twistCtrl)
+  {
+    freePid = freePid + 1;
+    group->createEditFloat(freePid, String(0, "targetNodeWt%d", targetNodeCount + 1), targetNodeWtValue);
+    params.emplace_back(AnimParamData{freePid, DataBlock::TYPE_REAL, String(0, "targetNodeWt%d", targetNodeCount + 1)});
+    group->moveById(freePid, freePid - 1, /*after*/ true);
+  }
 
   if (targetNodeCount == 1)
     group->setEnabledById(PID_CTRLS_TARGET_NODE_REMOVE, true);
@@ -332,6 +382,18 @@ void remove_param_if_default_point3(dag::Vector<AnimParamData> &params, PropPane
   }
 }
 
+void remove_param_if_default_point4(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
+  Point4 default_value)
+{
+  auto param = find_param_by_name(params, name);
+  if (param != params.end())
+  {
+    const Point4 value = panel->getPoint4(param->pid);
+    if (value == default_value)
+      params.erase(param);
+  }
+}
+
 void remove_param_if_default_bool(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
   bool default_value)
 {
@@ -339,6 +401,18 @@ void remove_param_if_default_bool(dag::Vector<AnimParamData> &params, PropPanel:
   if (param != params.end())
   {
     const bool value = panel->getBool(param->pid);
+    if (value == default_value)
+      params.erase(param);
+  }
+}
+
+void remove_param_if_default_matrix(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel, const char *name,
+  TMatrix default_value)
+{
+  auto param = find_param_by_name(params, name);
+  if (param != params.end())
+  {
+    const TMatrix value = panel->getMatrix(param->pid);
     if (value == default_value)
       params.erase(param);
   }
@@ -384,6 +458,10 @@ void remove_ctrls_fields(PropPanel::ContainerPropertyControl *panel, int last_pa
 void remove_target_node(dag::Vector<AnimParamData> &params, PropPanel::ContainerPropertyControl *panel)
 {
   const char *targetNodeParam = "targetNode";
+  SimpleString nodeTypeName = panel->getText(PID_CTRLS_TYPE_COMBO_SELECT);
+  CtrlType type = static_cast<CtrlType>(lup(nodeTypeName.c_str(), ctrl_type, ctrl_type_not_found));
+  if (type == ctrl_type_twistCtrl)
+    targetNodeParam = "twistNode"; // Replace param name for twistCtrl with same logic
   PropPanel::ContainerPropertyControl *group = panel->getById(PID_ANIM_BLEND_CTRLS_SETTINGS_GROUP)->getContainer();
   int targetNodeCount = 0;
   int targetNodeLastIdx = -1;
@@ -396,18 +474,100 @@ void remove_target_node(dag::Vector<AnimParamData> &params, PropPanel::Container
     }
   }
 
-  G_ASSERTF(targetNodeLastIdx != -1, "Not found any <targetNode> param");
+  G_ASSERTF(targetNodeLastIdx != -1, "Not found any <%s> param", targetNodeParam);
 
   group->removeById(params[targetNodeLastIdx].pid);
   params.erase(params.begin() + targetNodeLastIdx);
 
-  auto targetNodeWtLast = find_param_by_name(params, String(0, "targetNodeWt%d", targetNodeCount));
-  G_ASSERTF(targetNodeWtLast != params.end(), "Can't find node <targetNodeWt%d> for remove", targetNodeCount);
-  group->removeById(targetNodeWtLast->pid);
-  params.erase(targetNodeWtLast);
+  if (type != ctrl_type_lookat && type != ctrl_type_twistCtrl)
+  {
+    auto targetNodeWtLast = find_param_by_name(params, String(0, "targetNodeWt%d", targetNodeCount));
+    G_ASSERTF(targetNodeWtLast != params.end(), "Can't find node <targetNodeWt%d> for remove", targetNodeCount);
+    group->removeById(targetNodeWtLast->pid);
+    params.erase(targetNodeWtLast);
+  }
 
   if (targetNodeCount == 2)
     group->setEnabledById(PID_CTRLS_TARGET_NODE_REMOVE, false);
+}
+
+void update_dependent_param_value(PropPanel::ContainerPropertyControl *panel, const AnimParamData &param, int dependent_pid)
+{
+  if (param.type == DataBlock::TYPE_STRING)
+  {
+    const SimpleString value = panel->getText(param.pid);
+    panel->setText(dependent_pid, value);
+  }
+  else if (param.type == DataBlock::TYPE_BOOL)
+  {
+    const bool value = panel->getBool(param.pid);
+    panel->setBool(dependent_pid, value);
+  }
+  else if (param.type == DataBlock::TYPE_REAL)
+  {
+    const float value = panel->getFloat(param.pid);
+    panel->setFloat(dependent_pid, value);
+  }
+  else if (param.type == DataBlock::TYPE_INT)
+  {
+    const int value = panel->getInt(param.pid);
+    panel->setInt(dependent_pid, value);
+  }
+}
+
+void update_dependent_param_value_by_name(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<AnimParamData> base_params,
+  const DependentParamData &param, const char *param_name)
+{
+  if (param.dependent)
+  {
+    const AnimParamData *baseParam = find_param_by_name(base_params, param_name);
+    if (baseParam == base_params.end())
+      return;
+
+    update_dependent_param_value(panel, *baseParam, param.pid);
+  }
+}
+
+void update_dependent_param_value_by_pid(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<DependentParamData> params,
+  AnimParamData &param, int pid)
+{
+  const DependentParamData *dependentParam =
+    eastl::find_if(params.begin(), params.end(), [pid](const DependentParamData &value) { return value.dependentParamPid == pid; });
+  if (dependentParam != params.end() && dependentParam->dependent)
+    update_dependent_param_value(panel, param, dependentParam->pid);
+}
+
+void update_dependent_param_state(PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<AnimParamData> params,
+  DependentParamData &param, const char *parent_name)
+{
+  const AnimParamData *parentParam = find_param_by_name(params, parent_name);
+  if (parentParam != params.end())
+  {
+    if (parentParam->type == DataBlock::TYPE_STRING)
+    {
+      const SimpleString parentValue = panel->getText(parentParam->pid);
+      const SimpleString value = panel->getText(param.pid);
+      param.dependent = parentValue == value;
+    }
+    else if (parentParam->type == DataBlock::TYPE_BOOL)
+    {
+      const bool parentValue = panel->getBool(parentParam->pid);
+      const bool value = panel->getBool(param.pid);
+      param.dependent = parentValue == value;
+    }
+    else if (parentParam->type == DataBlock::TYPE_REAL)
+    {
+      const float parentValue = panel->getFloat(parentParam->pid);
+      const float value = panel->getFloat(param.pid);
+      param.dependent = is_equal_float(parentValue, value);
+    }
+    else if (parentParam->type == DataBlock::TYPE_INT)
+    {
+      const int parentValue = panel->getInt(parentParam->pid);
+      const int value = panel->getInt(param.pid);
+      param.dependent = parentValue == value;
+    }
+  }
 }
 
 DataBlock *find_block_by_name(DataBlock *props, const String &name, bool should_exist)
@@ -673,11 +833,11 @@ CtrlChildSearchResult find_child_idx_and_icon_by_name(PropPanel::ContainerProper
       if (childIdx == parentIdx)
       {
         logerr("Controller <%s> can't use self as child", ctrls_tree->getCaption(parent_handle));
-        return {AnimCtrlData::CHILD_AS_SELF, nullptr};
+        return {AnimCtrlData::CHILD_AS_SELF, nullptr, BlendNodeType::UNSET, childCtrl->type};
       }
     }
 
-    return {childCtrl->id, get_ctrl_icon_name(childCtrl->type)};
+    return {childCtrl->id, get_ctrl_icon_name(childCtrl->type), BlendNodeType::UNSET, childCtrl->type};
   }
   else
   {
@@ -686,10 +846,10 @@ CtrlChildSearchResult find_child_idx_and_icon_by_name(PropPanel::ContainerProper
         return name_without_node_mask_suffix(nodes_tree->getCaption(data.handle).c_str()) == name_without_node_mask_suffix(name);
       });
     if (childNode != blend_nodes.end())
-      return {childNode->id, get_blend_node_icon_name(childNode->type)};
+      return {childNode->id, get_blend_node_icon_name(childNode->type), childNode->type, ctrl_type_not_found};
   }
 
-  return {AnimCtrlData::NOT_FOUND_CHILD, nullptr};
+  return {AnimCtrlData::NOT_FOUND_CHILD, nullptr, BlendNodeType::UNSET, ctrl_type_not_found};
 }
 
 CtrlChildSearchResult find_child_idx_and_icon_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel::TLeafHandle parent_handle,
@@ -717,6 +877,15 @@ int find_state_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, Pro
     return find_child_idx_by_name(panel, parent_handle, controllers, blend_nodes, name);
 }
 
+int find_init_fifo3_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, PropPanel::TLeafHandle parent_handle,
+  dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name)
+{
+  if (!strcmp(name, "default"))
+    return AnimStatesData::DEFAULT_INIT_FIFO3;
+  else
+    return find_child_idx_by_name(panel, parent_handle, controllers, blend_nodes, name);
+}
+
 int add_ctrl_child_idx_by_name(PropPanel::ContainerPropertyControl *panel, AnimCtrlData &data,
   dag::ConstSpan<AnimCtrlData> controllers, dag::ConstSpan<BlendNodeData> blend_nodes, const char *name)
 {
@@ -735,13 +904,25 @@ void check_state_child_idx(int idx, const char *state_name, const char *child_na
     logerr("can't find child idx for state <%s>, child <%s>", state_name, child_name);
 }
 
+void check_init_anim_state_child_idx(int idx, const char *block_name, const char *child_name)
+{
+  if (idx == AnimStatesData::NOT_FOUND_CHILD)
+    logerr("can't find child idx for <%s> in initAnimState block, child <%s>", block_name, child_name);
+}
+
+void check_fifo3_ctrl_child_idx(int idx, const char *fifo3_name)
+{
+  if (idx == AnimStatesData::NOT_FOUND_CHILD)
+    logerr("can't find fifo3 ctrl child idx for fifo3 in initAnimState block, child <%s>", fifo3_name);
+}
+
 float get_default_anim_time(const char *a2d_name, const DagorAssetMgr &mgr)
 {
   if (!strcmp(a2d_name, "") || mgr.getAssetNameId(DagorAsset::fpath2asset(a2d_name)) == -1)
     return 1.0f;
 
-  AnimV20::AnimData *animData = (AnimV20::AnimData *)::get_game_resource_ex(
-    GAMERES_HANDLE_FROM_STRING(DagorAsset::fpath2asset(a2d_name)), Anim2DataGameResClassId);
+  AnimV20::AnimData *animData =
+    (AnimV20::AnimData *)::get_game_resource_ex(DagorAsset::fpath2asset(a2d_name), Anim2DataGameResClassId);
   int a2dTicks = 0;
   if (animData)
     a2dTicks = getAnimMaxTime(animData->anim);
@@ -774,8 +955,8 @@ void focus_selected_node(PropPanel::ControlEventHandler *plugin_event_handler, P
   SimpleString filter = plugin_panel->getText(filterPid);
   if (!filter.empty() && !strstr(tree->getCaption(selected_leaf), filter))
   {
-    plugin_panel->setText(tree_pid, "");
     plugin_panel->setText(filterPid, "");
+    plugin_event_handler->onChange(filterPid, plugin_panel);
   }
   tree->setSelLeaf(selected_leaf);
   PropPanel::focus_helper.requestFocus(plugin_panel->getById(focus_panel_pid)->getContainer());
@@ -832,6 +1013,15 @@ int get_child_block_idx_by_list_idx(const DataBlock *settings, int list_idx)
   return -1;
 }
 
+int get_param_name_idx_by_list_name(const DataBlock &settings, const SimpleString &list_name, int selected_idx)
+{
+  for (int i = selected_idx; i < settings.paramCount(); ++i)
+    if (list_name == settings.getParamName(i))
+      return i;
+
+  return -1;
+}
+
 void fill_child_names(Tab<String> &child_names, PropPanel::ContainerPropertyControl *panel, dag::ConstSpan<BlendNodeData> blend_nodes,
   dag::ConstSpan<AnimCtrlData> controllers)
 {
@@ -851,6 +1041,14 @@ void fill_child_names(Tab<String> &child_names, PropPanel::ContainerPropertyCont
       addChildName(ctrlsTree, data.handle);
 }
 
+void fill_param_names_without_comments(Tab<String> &names, const DataBlock &settings)
+{
+  names.reserve(settings.paramCount());
+  for (int i = 0; i < settings.paramCount(); ++i)
+    if (!CHECK_COMMENT_PREFIX(settings.getParamName(i)))
+      names.emplace_back(settings.getParamName(i));
+}
+
 int get_selected_name_idx_combo(Tab<String> &names, const char *name)
 {
   int index = PropPanel::ImguiHelper::getStringIndexInTab(names, name);
@@ -863,3 +1061,39 @@ int get_selected_name_idx_combo(Tab<String> &names, const char *name)
   }
   return index;
 }
+
+SimpleString get_text_from_combo(PropPanel::ContainerPropertyControl *panel, int pid)
+{
+  SimpleString value = panel->getText(pid);
+  if (value == "##")
+    return SimpleString("");
+
+  return value;
+}
+
+template <typename SwapFunc>
+void move_item_blk(DataBlock &blk, int from, int to, SwapFunc swapFunc)
+{
+  if (from == to)
+    return;
+
+  int curPos = from;
+  while (curPos != to)
+  {
+    int nextPos = curPos < to ? curPos + 1 : curPos - 1;
+    swapFunc(blk, curPos, nextPos);
+    curPos = nextPos;
+  }
+}
+
+void move_param_blk(DataBlock &blk, int from, int to)
+{
+  move_item_blk(blk, from, to, [](DataBlock &b, int from, int to) { b.swapParams(from, to); });
+}
+
+void move_block_blk(DataBlock &blk, int from, int to)
+{
+  move_item_blk(blk, from, to, [](DataBlock &b, int from, int to) { b.swapBlocks(from, to); });
+}
+
+bool is_comp_op_needs_p1(const char *op) { return strcmp(op, "inside") == 0 || strcmp(op, "outside") == 0 || strcmp(op, "dist") == 0; }

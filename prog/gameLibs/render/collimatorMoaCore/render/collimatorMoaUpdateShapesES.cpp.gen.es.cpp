@@ -42,6 +42,35 @@ static ecs::EntitySystemDesc collimator_moa_track_selected_image_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
 ,"render",nullptr,"*");
+static constexpr ecs::ComponentDesc collimator_moa_on_device_reset_es_event_handler_comps[] =
+{
+//start of 3 rw components at [0]
+  {ECS_HASH("collimator_moa_render__active_image_eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+  {ECS_HASH("collimator_moa_render__shapes_buf_reg_count"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("collimator_moa_render__current_shapes_buf"), ecs::ComponentTypeInfo<UniqueBufHolder>()}
+};
+static void collimator_moa_on_device_reset_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    collimator_moa_on_device_reset_es_event_handler(evt
+        , ECS_RW_COMP(collimator_moa_on_device_reset_es_event_handler_comps, "collimator_moa_render__active_image_eid", ecs::EntityId)
+    , ECS_RW_COMP(collimator_moa_on_device_reset_es_event_handler_comps, "collimator_moa_render__shapes_buf_reg_count", int)
+    , ECS_RW_COMP(collimator_moa_on_device_reset_es_event_handler_comps, "collimator_moa_render__current_shapes_buf", UniqueBufHolder)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc collimator_moa_on_device_reset_es_event_handler_es_desc
+(
+  "collimator_moa_on_device_reset_es",
+  "prog/gameLibs/render/collimatorMoaCore/render/collimatorMoaUpdateShapesES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, collimator_moa_on_device_reset_es_event_handler_all_events),
+  make_span(collimator_moa_on_device_reset_es_event_handler_comps+0, 3)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<AfterDeviceReset>::build(),
+  0
+,"render",nullptr,"*");
 static constexpr ecs::ComponentDesc collimator_moa_image_validation_es_event_handler_comps[] =
 {
 //start of 1 rw components at [0]
@@ -54,7 +83,8 @@ static void collimator_moa_image_validation_es_event_handler_all_events(const ec
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     collimator_moa_image_validation_es_event_handler(evt
-        , ECS_RO_COMP(collimator_moa_image_validation_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(collimator_moa_image_validation_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(collimator_moa_image_validation_es_event_handler_comps, "collimator_moa_image__shapes", ecs::Array)
     , ECS_RW_COMP(collimator_moa_image_validation_es_event_handler_comps, "collimator_moa_image__valid", bool)
     );
@@ -84,7 +114,8 @@ static void gunmod_track_collimator_moa_img_eid_es_event_handler_all_events(cons
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     gunmod_track_collimator_moa_img_eid_es_event_handler(evt
-        , ECS_RO_COMP(gunmod_track_collimator_moa_img_eid_es_event_handler_comps, "gunmod__collimator_moa_img_template", ecs::string)
+        , components.manager()
+    , ECS_RO_COMP(gunmod_track_collimator_moa_img_eid_es_event_handler_comps, "gunmod__collimator_moa_img_template", ecs::string)
     , ECS_RW_COMP(gunmod_track_collimator_moa_img_eid_es_event_handler_comps, "gunmod__collimator_moa_img_eid", ecs::EntityId)
     );
   while (++comp != compE);
@@ -116,9 +147,9 @@ static ecs::CompileTimeQueryDesc gather_gun_mode_collimator_moa_shapes_ecs_query
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gather_gun_mode_collimator_moa_shapes_ecs_query(ecs::EntityId eid, Callable function)
+inline void gather_gun_mode_collimator_moa_shapes_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, gather_gun_mode_collimator_moa_shapes_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, gather_gun_mode_collimator_moa_shapes_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

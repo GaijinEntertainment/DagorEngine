@@ -6,7 +6,7 @@
 #include <osApiWrappers/dag_direct.h>
 
 
-String get_template_text_src_fog(uint32_t variant_id)
+String get_template_text_src_fog(uint32_t variant_id, NodeBasedShaderQuality nbs_quality)
 {
   Tab<String> templateNames;
 
@@ -15,7 +15,9 @@ String get_template_text_src_fog(uint32_t variant_id)
   templateNames.push_back(String("fogDefines.hlsli"));
   templateNames.push_back(String("../../../daSDF/shaders/world_sdf.hlsli")); // Needs to be before globalHlsl
   templateNames.push_back(String("../../../publicInclude/render/grav_zones_gpu/gravity_zones_def.hlsli"));
+  templateNames.push_back(String("../../../publicInclude/render/nbs_spheres.hlsli"));
   templateNames.push_back(String("globalHlslFunctions.hlsl"));
+  templateNames.push_back(String("../../../daSkies2/shaders/clouds2/clouds_rain_map.hlsl"));
   templateNames.push_back(String("../../../publicInclude/render/light_consts.hlsli"));
   templateNames.push_back(String("../../../render/shaders/camera_in_camera.hlsl"));
   templateNames.push_back(String("../../../render/shaders/pcg_hash.hlsl"));
@@ -59,7 +61,12 @@ String get_template_text_src_fog(uint32_t variant_id)
     default: G_ASSERTF(false, "error: node based shader variant #%d is invalid", variant_id); break;
   }
 
-  return collect_template_files(find_shader_editors_path(), templateNames);
+  return add_nbs_quality_definition(nbs_quality) + collect_template_files(find_shader_editors_path(), templateNames);
+}
+
+String get_dshl_template_text_src_fog()
+{
+  return collect_template_files(find_shader_editors_path(), {String("fogShaderTemplate.dshl")});
 }
 
 class FogShaderEditor : public ShaderGraphRecompiler

@@ -162,14 +162,19 @@ static void do_files_include_re(std::vector<TSTR> &result, const std::vector<TST
 {
   try
   {
+    std::unordered_set<std::wstring> tmp_files;
+
     std::wregex reg(re, std::regex_constants::icase);
     for (const TSTR &f : files)
     {
       TSTR filename, ext;
       SplitFilename(f, 0, &filename, &ext);
       if (std::regex_match(filename.data(), reg) || std::regex_match((filename + ext).data(), reg))
-        result.push_back(f);
+        tmp_files.insert(f.data());
     }
+
+    for (const std::wstring &f : tmp_files)
+      result.push_back(f.data());
   }
   catch (std::regex_error &e)
   {
@@ -183,6 +188,8 @@ static void do_files_exclude_re(std::vector<TSTR> &result, const std::vector<TST
 {
   try
   {
+    std::unordered_set<std::wstring> tmp_files;
+
     std::wregex reg(re, std::regex_constants::icase);
     for (const TSTR &f : files)
     {
@@ -190,8 +197,11 @@ static void do_files_exclude_re(std::vector<TSTR> &result, const std::vector<TST
       SplitFilename(f, 0, &filename, &ext);
       if (std::regex_match(filename.data(), reg) || std::regex_match((filename + ext).data(), reg))
         continue;
-      result.push_back(f);
+      tmp_files.insert(f.data());
     }
+
+    for (const std::wstring &f : tmp_files)
+      result.push_back(f.data());
   }
   catch (std::regex_error &e)
   {
@@ -228,15 +238,6 @@ static bool probe_match_re(const std::vector<TSTR> &files, const TSTR &re)
       return true;
   }
   return false;
-}
-
-static std::wstring replace_all(std::wstring str, const std::wstring &from, const std::wstring &to)
-{
-  if (from.empty())
-    return str;
-  for (size_t pos = 0; (pos = str.find(from, pos)) != std::wstring::npos; pos += to.size())
-    str.replace(pos, from.size(), to);
-  return str;
 }
 
 static std::wstring fnmatch_to_regex(const std::wstring &wildcard)
@@ -300,7 +301,7 @@ static std::wstring fnmatch_to_regex(const std::wstring &wildcard)
       continue;
     }
 
-    if (isalnum(c))
+    if (iswalnum(c))
     {
       result += c;
       continue;
@@ -375,9 +376,10 @@ public:
     bool destr;
     bool dp;
     bool dmg;
+    bool dm;
 
-    bool any() const { return lod || destr || dp || dmg; }
-    void enableAll() { lod = destr = dp = dmg = true; };
+    bool any() const { return lod || destr || dp || dmg || dm; }
+    void enableAll() { lod = destr = dp = dmg = dm = true; };
   };
 
   static struct Categories checked;
@@ -507,6 +509,7 @@ void ImpUtil::updateUi() const
       CheckDlgButton(hTabVisible, IDC_IMPORT_DP, DagImp::checked.dp);
       CheckDlgButton(hTabVisible, IDC_IMPORT_DMG, DagImp::checked.dmg);
       CheckDlgButton(hTabVisible, IDC_IMPORT_DESTR, DagImp::checked.destr);
+      CheckDlgButton(hTabVisible, IDC_IMPORT_DM, DagImp::checked.dm);
       CheckDlgButton(hTabVisible, (!DagImp::reimportExisting ? IDC_RENAME_NEW_LAYER : IDC_REPLACE_EXISTING_LAYER), true);
       CheckDlgButton(hTabVisible, (DagImp::reimportExisting ? IDC_RENAME_NEW_LAYER : IDC_REPLACE_EXISTING_LAYER), false);
       break;
@@ -595,7 +598,7 @@ void ImpUtil::updateTab() const
 
   RECT rct;
   GetWindowRect(hTabVisible, &rct);
-  update_layout(hTabVisible, MAKELPARAM(rc.right - rc.left, rct.bottom - rct.top));
+  // update_layout(hTabVisible, MAKELPARAM(rc.right - rc.left, rct.bottom - rct.top));
 
   // hack: force repaint ALL the area of the panel
   ShowWindow(hTabVisible, SW_HIDE);
@@ -618,7 +621,7 @@ void ImpUtil::onTabChanged(HWND hDlg)
   DagImp::useLegacyImport = (selectedTab == 0);
 
   hTabVisible = CreateDialogParam(hInstance, tabResourceName(), hDlg, tabDlgProc(), tabInitParam());
-  attach_layout_to_dialog(hTabVisible, tabResourceName());
+  // attach_layout_to_dialog(hTabVisible, tabResourceName());
   updateTab();
 
   SetWindowText(GetDlgItem(hImpHelp, IDC_STATIC1), tabHelp());
@@ -773,7 +776,7 @@ private:
   COLORREF ruleColor(TSTR rule);
 };
 
-WListView::WListView(HWND hw_, bool isWildcard_, std::vector<TSTR> &rules_) : hw(hw_), isWildcard(isWildcard), rules(rules_)
+WListView::WListView(HWND hw_, bool isWildcard_, std::vector<TSTR> &rules_) : hw(hw_), isWildcard(isWildcard_), rules(rules_)
 {
   ListView_SetExtendedListViewStyle(hw, LVS_EX_FULLROWSELECT);
 
@@ -951,12 +954,14 @@ static INT_PTR CALLBACK standard_dlg_proc(HWND hDlg, UINT message, WPARAM wParam
       CheckDlgButton(hDlg, IDC_IMPORT_DP, DagImp::checked.dp);
       CheckDlgButton(hDlg, IDC_IMPORT_DMG, DagImp::checked.dmg);
       CheckDlgButton(hDlg, IDC_IMPORT_DESTR, DagImp::checked.destr);
+      CheckDlgButton(hDlg, IDC_IMPORT_DM, DagImp::checked.dm);
       Autotoggle guard(prevent_enchange, true);
       update_path_edit_control(hDlg, IDC_DAGORPATH, util.filePath);
       util.tooltipExtender.SetToolTip(GetDlgItem(hDlg, IDC_IMPORT_LOD), TSTR(_T("Search for other levels of detail")));
       util.tooltipExtender.SetToolTip(GetDlgItem(hDlg, IDC_IMPORT_DP), TSTR(_T("Search for related Damage Parts")));
       util.tooltipExtender.SetToolTip(GetDlgItem(hDlg, IDC_IMPORT_DMG), TSTR(_T("Search for Damaged versions")));
       util.tooltipExtender.SetToolTip(GetDlgItem(hDlg, IDC_IMPORT_DESTR), TSTR(_T("Search for dynamic destr asset")));
+      util.tooltipExtender.SetToolTip(GetDlgItem(hDlg, IDC_IMPORT_DM), TSTR(_T("Search for Damage Model")));
       util.tooltipExtender.SetToolTip(GetDlgItem(hDlg, IDC_DAGORPATH), TSTR(_T("Path to file that should be imported")));
       util.tooltipExtender.SetToolTip(GetDlgItem(hDlg, IDC_SET_DAGORPATH), TSTR(_T("Open a file browser")));
     }
@@ -969,6 +974,7 @@ static INT_PTR CALLBACK standard_dlg_proc(HWND hDlg, UINT message, WPARAM wParam
         DagImp::checked.dp = IsDlgButtonChecked(hDlg, IDC_IMPORT_DP);
         DagImp::checked.dmg = IsDlgButtonChecked(hDlg, IDC_IMPORT_DMG);
         DagImp::checked.destr = IsDlgButtonChecked(hDlg, IDC_IMPORT_DESTR);
+        DagImp::checked.dm = IsDlgButtonChecked(hDlg, IDC_IMPORT_DM);
       }
       switch (LOWORD(wParam))
       {
@@ -1095,7 +1101,7 @@ static INT_PTR CALLBACK regex_dlg_proc(HWND hDlg, UINT message, WPARAM wParam, L
                   filename += ext;
 
                   Autotoggle eguard(prevent_enchange);
-                  update_path_edit_control(hDlg, IDC_DAGORPATH, new_path);
+                  update_path_edit_control(hDlg, IDC_DAGORPATH, dir);
 
                   util.dirPath = dir;
 
@@ -1721,7 +1727,8 @@ static int load_node(INode *pnode, FILE *h, ImpInterface *ii, Interface *ip, Tab
       if (l > 0)
       {
         TCHAR *s = ReadCharString(l, h);
-        n->SetUserPropBuffer(s);
+        std::wstring trimmed = trim_params(s);
+        n->SetUserPropBuffer(trimmed.data());
         free(s);
       }
       DebugPrint(_T("   node script ok\n"));
@@ -2335,8 +2342,8 @@ bool DagImp::reimportExisting = false;
 bool DagImp::nonInteractive = false;
 bool DagImp::calledFromBatchImport = false;
 
-DagImp::Categories DagImp::checked = {true, true, true, true};
-DagImp::Categories DagImp::detected = {false, false, false, false};
+DagImp::Categories DagImp::checked = {true, true, true, true, true};
+DagImp::Categories DagImp::detected = {false, false, false, false, false};
 ToolTipExtender DagImp::tooltipExtender;
 
 std::vector<TSTR> DagImp::batchImportFiles;
@@ -2362,6 +2369,9 @@ static BOOL CALLBACK ImportOptDlgProc(HWND hwndDlg, UINT message, WPARAM wParam,
       CheckDlgButton(hwndDlg, IDC_IMPORT_DESTR, DagImp::checked.destr);
       EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DESTR), !DagImp::useLegacyImport && DagImp::detected.destr);
 
+      CheckDlgButton(hwndDlg, IDC_IMPORT_DM, DagImp::checked.dm);
+      EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DM), !DagImp::useLegacyImport && DagImp::detected.dm);
+
       CheckDlgButton(hwndDlg, (DagImp::reimportExisting ? IDC_REPLACE_EXISTING_LAYER : IDC_RENAME_NEW_LAYER), true);
       EnableWindow(GetDlgItem(hwndDlg, IDC_RENAME_NEW_LAYER), !DagImp::useLegacyImport);
       EnableWindow(GetDlgItem(hwndDlg, IDC_REPLACE_EXISTING_LAYER), !DagImp::useLegacyImport);
@@ -2370,6 +2380,7 @@ static BOOL CALLBACK ImportOptDlgProc(HWND hwndDlg, UINT message, WPARAM wParam,
       DagImp::tooltipExtender.SetToolTip(GetDlgItem(hwndDlg, IDC_USE_LEGACY_IMPORT), TSTR(_T("The previous import method.")));
       DagImp::tooltipExtender.SetToolTip(GetDlgItem(hwndDlg, IDC_IMPORT_LOD), TSTR(_T("Import \"*.lodNN.dag\" files.")));
       DagImp::tooltipExtender.SetToolTip(GetDlgItem(hwndDlg, IDC_IMPORT_DP), TSTR(_T("Import \"*_dp_NN.lodNN.dag\" files.")));
+      DagImp::tooltipExtender.SetToolTip(GetDlgItem(hwndDlg, IDC_IMPORT_DM), TSTR(_T("Import \"*_dm.dag\" files.")));
       DagImp::tooltipExtender.SetToolTip(GetDlgItem(hwndDlg, IDC_IMPORT_DMG),
         TSTR(_T("Import \"*_dmg.lodNN.dag\" and \"*_dp_NN_dmg.lodNN.dag\" files.")));
       DagImp::tooltipExtender.SetToolTip(GetDlgItem(hwndDlg, IDC_IMPORT_DESTR),
@@ -2397,6 +2408,7 @@ static BOOL CALLBACK ImportOptDlgProc(HWND hwndDlg, UINT message, WPARAM wParam,
           EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DP), !DagImp::useLegacyImport && DagImp::detected.dp);
           EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DMG), !DagImp::useLegacyImport && DagImp::detected.dmg);
           EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DESTR), !DagImp::useLegacyImport && DagImp::detected.destr);
+          EnableWindow(GetDlgItem(hwndDlg, IDC_IMPORT_DM), !DagImp::useLegacyImport && DagImp::detected.dm);
           EnableWindow(GetDlgItem(hwndDlg, IDC_RENAME_NEW_LAYER), !DagImp::useLegacyImport);
           EnableWindow(GetDlgItem(hwndDlg, IDC_REPLACE_EXISTING_LAYER), !DagImp::useLegacyImport);
           update_export_mode(DagImp::useLegacyImport);
@@ -2407,6 +2419,7 @@ static BOOL CALLBACK ImportOptDlgProc(HWND hwndDlg, UINT message, WPARAM wParam,
           DagImp::checked.dp = IsDlgButtonChecked(hwndDlg, IDC_IMPORT_DP);
           DagImp::checked.dmg = IsDlgButtonChecked(hwndDlg, IDC_IMPORT_DMG);
           DagImp::checked.destr = IsDlgButtonChecked(hwndDlg, IDC_IMPORT_DESTR);
+          DagImp::checked.dm = IsDlgButtonChecked(hwndDlg, IDC_IMPORT_DM);
           DagImp::reimportExisting = IsDlgButtonChecked(hwndDlg, IDC_REPLACE_EXISTING_LAYER);
           EndDialog(hwndDlg, wParam);
           return TRUE;
@@ -2426,7 +2439,8 @@ static BOOL CALLBACK ImportOptDlgProc(HWND hwndDlg, UINT message, WPARAM wParam,
   return FALSE;
 }
 
-static TSTR filenameToRegex(const TSTR &filename, bool dp, bool lods, bool destr, bool dmg, TSTR &base_name, bool &exact_match)
+static TSTR filenameToRegex(const TSTR &filename, bool dp, bool lods, bool destr, bool dmg, bool dm, TSTR &base_name,
+  bool &exact_match)
 {
   static const int dag_length = 4; // ".dag"
 
@@ -2454,6 +2468,10 @@ static TSTR filenameToRegex(const TSTR &filename, bool dp, bool lods, bool destr
 
   TSTR variants_re;
   variants_re.printf(_T("^%s%s%s%s\\.dag$"), base_name, dp_re, dmg_re, lods_re);
+
+  if (dm)
+    variants_re.printf(_T("(%s)|(^%s_dm\\.dag$)"), variants_re, base_name);
+
   if (!destr)
     return variants_re;
 
@@ -2598,7 +2616,6 @@ void DagImp::makeHierLayer(const std::vector<TSTR> &fnames, ImpInterface *ii, In
       DebugPrint(_T("import error '%s'\n"), fn);
     }
   }
-  manager->SetCurrentLayer();
 }
 
 void DagImp::makeHierLayer(const TSTR &fname, ImpInterface *ii, Interface *ip, bool nomsg)
@@ -2619,8 +2636,6 @@ void DagImp::makeHierLayer(const TSTR &fname, ImpInterface *ii, Interface *ip, b
     manager->DeleteLayer(layerName);
     DebugPrint(_T("import error '%s'\n"), fname);
   }
-
-  manager->SetCurrentLayer();
 }
 
 int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, bool nomsg)
@@ -2636,7 +2651,7 @@ int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, boo
   // investigate all files to hilite UI options
   TSTR basename;
   bool exact_match;
-  TSTR rex = filenameToRegex(filename, true, true, true, true, basename, exact_match);
+  TSTR rex = filenameToRegex(filename, true, true, true, true, true, basename, exact_match);
   std::vector<TSTR> files = files_include_re(glob(dir, searchInSubfolders), rex);
 
   TSTR lod_re;
@@ -2663,6 +2678,10 @@ int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, boo
   dp_destr_re.printf(_T("^%s_dp_\\d\\d_destr\\.lod\\d\\d\\.dag$"), basename);
   detected.destr |= probe_match_re(files, dp_destr_re);
 
+  TSTR dm_re;
+  dm_re.printf(_T("^%s_dm\\.dag$"), basename);
+  detected.dm = probe_match_re(files, dm_re);
+
   if (!nomsg)
   {
     DagImp::useLegacyImport = false;
@@ -2673,7 +2692,7 @@ int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, boo
     return 0;
 
   // get proper list of files based on actual user's choice
-  rex = filenameToRegex(filename, checked.dp, checked.lod, checked.destr, checked.dmg, basename, exact_match);
+  rex = filenameToRegex(filename, checked.dp, checked.lod, checked.destr, checked.dmg, checked.dm, basename, exact_match);
   files = files_include_re(glob(dir, searchInSubfolders), rex);
 
   if (exact_match)
@@ -2698,6 +2717,10 @@ int DagImp::doHierImport(const TSTR &fname, ImpInterface *ii, Interface *ip, boo
   }
   if (!layer_files.empty())
     makeHierLayer(layer_files, ii, ip, nomsg);
+
+  layer_files = files_include_re(files, dm_re);
+  if (!layer_files.empty())
+    makeHierLayer(layer_files.front(), ii, ip, nomsg);
 
   layer_files = files_include_re(files, dmg_re);
   if (!layer_files.empty())
@@ -3131,11 +3154,11 @@ class IDagorImportUtil : public FPStaticInterface
 {
 public:
   DECLARE_DESCRIPTOR(IDagorImportUtil)
-  BEGIN_FUNCTION_MAP FN_9(fun_import, TYPE_BOOL, import_dag, TYPE_STRING, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL,
-    TYPE_BOOL, TYPE_BOOL, TYPE_BOOL) END_FUNCTION_MAP
+  BEGIN_FUNCTION_MAP FN_10(fun_import, TYPE_BOOL, import_dag, TYPE_STRING, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL,
+    TYPE_BOOL, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL) END_FUNCTION_MAP
 
     BOOL import_dag(const TCHAR *fn, bool separateLayers, bool suppressPrompts, bool renameLayerCollision, bool useLegacyImport,
-      bool importLod, bool importDestr, bool importDp, bool importDmg)
+      bool importLod, bool importDestr, bool importDp, bool importDmg, bool importDm)
   {
     DagImp::Categories bkChecked = DagImp::checked;
     bool bkLegacy = DagImp::useLegacyImport;
@@ -3150,6 +3173,7 @@ public:
     DagImp::checked.destr = importDestr;
     DagImp::checked.dp = importDp;
     DagImp::checked.dmg = importDmg;
+    DagImp::checked.dm = importDm;
 
     Autotoggle guard(DagImp::nonInteractive);
     BOOL result = GetCOREInterface()->ImportFromFile(fn, suppressPrompts);
@@ -3163,17 +3187,27 @@ public:
   }
 };
 
-static IDagorImportUtil dagorimputiliface(Interface_ID(0x20906172, 0x435c11e0), _T("dagorImport"), IDS_DAGOR_IMPORT_IFACE, NULL,
-  FP_CORE, fun_import, _T("import"), -1, TYPE_BOOL, 0, 9, _T("filename"), -1, TYPE_STRING,
+// clang-format off
+static IDagorImportUtil dagorimputiliface(Interface_ID(0x20906172, 0x435c11e0),
+  _T("dagorImport"), IDS_DAGOR_IMPORT_IFACE, NULL, FP_CORE, fun_import,
+  _T("import"), -1, TYPE_BOOL, 0,
+  10,
+  _T("filename"), -1, TYPE_STRING,
   // f_keyArgDefault marks an optional keyArg param. The value
   // after that is its default value.
-  _T("separateLayers"), -1, TYPE_BOOL, f_keyArgDefault, true, _T("suppressPrompts"), -1, TYPE_BOOL, f_keyArgDefault, false,
-  _T("renameLayerCollision"), -1, TYPE_BOOL, f_keyArgDefault, true, _T("useLegacyImport"), -1, TYPE_BOOL, f_keyArgDefault, true,
-  _T("importLod"), -1, TYPE_BOOL, f_keyArgDefault, true, _T("importDestr"), -1, TYPE_BOOL, f_keyArgDefault, true, _T("importDp"), -1,
-  TYPE_BOOL, f_keyArgDefault, true, _T("importDmg"), -1, TYPE_BOOL, f_keyArgDefault, true,
+  _T("separateLayers"), -1, TYPE_BOOL, f_keyArgDefault, true,
+  _T("suppressPrompts"), -1, TYPE_BOOL, f_keyArgDefault, false,
+  _T("renameLayerCollision"), -1, TYPE_BOOL, f_keyArgDefault, true,
+  _T("useLegacyImport"), -1, TYPE_BOOL, f_keyArgDefault, true,
+  _T("importLod"), -1, TYPE_BOOL, f_keyArgDefault, true,
+  _T("importDestr"), -1, TYPE_BOOL, f_keyArgDefault, true,
+  _T("importDp"), -1, TYPE_BOOL, f_keyArgDefault, true,
+  _T("importDmg"), -1, TYPE_BOOL, f_keyArgDefault, true,
+  _T("importDm"), -1, TYPE_BOOL, f_keyArgDefault, true,
 #if defined(MAX_RELEASE_R15) && MAX_RELEASE >= MAX_RELEASE_R15
   p_end
 #else
   end
 #endif
 );
+// clang-format on

@@ -3,9 +3,12 @@ include "dynamic_opaque_inc.dshl"
 include "normaldetail.dshl"
 include "emissive.dshl"
 
+float dynamic_screen_mip_bias = -0.5;
+int dynamic_screen_debug = 0;
+interval dynamic_screen_debug: no < 1, yes;
+
 shader dynamic_screen
 {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
   DECLARE_DYNAMIC_MATERIAL_PARAMS()
   texture normal = material.texture[2];
@@ -20,6 +23,7 @@ shader dynamic_screen
   (ps) {
     lcd_pattern_opacity@f1 = (lcd_pattern_opacity);
     lcd_pattern_tile@f1 = (lcd_pattern_tile);
+    dynamic_screen_mip_bias@f1 = (dynamic_screen_mip_bias);
   }
 
   hlsl(ps) {
@@ -29,7 +33,6 @@ shader dynamic_screen
 
   INIT_EMISSIVE_ANIMCHAR_DYNMAT_PARAMS()
   NO_DEFORM_HMAP()
-  supports global_const_block;
 
   static int num_bones = 0;
   interval num_bones: no_bones<1, four_bones;
@@ -47,7 +50,7 @@ shader dynamic_screen
 
   if (dyn_model_render_pass != render_pass_normal)
   {
-    SPECIAL_RENDER_NOALPHATEST()
+    SPECIAL_RENDER_NOALPHATEST(false)
   }
   else
   {
@@ -55,6 +58,7 @@ shader dynamic_screen
       #include "pixelPacking/ColorSpaceUtility.hlsl"
 
       #define IS_DYNAMIC 1
+      #define DYNAMIC_EMISSIVE_REACTIVE 1
       ##if lcd_pattern != NULL
         float4 mixScreenColor(float3 ui_color, float2 uv)
         {
@@ -68,8 +72,8 @@ shader dynamic_screen
           return float4(RemoveSRGBCurve_Fast(ui_color),1);
         }
       ##endif
-      ##if in_editor_assume == no
-        #define DYNAMIC_EMISSIVE_DIFFUSE_SRC(input_tc) mixScreenColor(tex2D(dynamic_screen_tex, input_tc).rgb, input_tc)
+      ##if dynamic_screen_debug == no && in_editor_assume == no
+        #define DYNAMIC_EMISSIVE_DIFFUSE_SRC(input_tc) mixScreenColor(tex2Dbias(dynamic_screen_tex, input_tc.xy, dynamic_screen_mip_bias).rgb, input_tc)
       ##else
         // for artists to properly setup things and check visually without much effort
         float3 testScreen(float2 tc)
@@ -97,10 +101,9 @@ shader dynamic_screen
     (ps)
     {
       dynamic_screen_tex@smp2d = dynamic_screen_tex;
-      normal_tex@static = normal;
-      lcd_pattern_tex@static = lcd_pattern;
+      normal_tex@staticSmp = normal;
+      lcd_pattern_tex@staticSmp = lcd_pattern;
       nightly@i1 = nightly;
-      real_skies_sun_light_dir@f4 = real_skies_sun_light_dir;
     }
     USE_PIXEL_TANGENT_SPACE()
     WRITE_GBUFFER()

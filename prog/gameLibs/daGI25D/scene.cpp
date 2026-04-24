@@ -47,7 +47,8 @@ void Scene::init(bool scalar_ao, float xz_size, float y_size)
     required_size += VOXEL_25D_RESOLUTION_X * VOXEL_25D_RESOLUTION_Z * VOXEL_25D_RESOLUTION_Y * 4; // color
   required_size += VOXEL_25D_RESOLUTION_X * VOXEL_25D_RESOLUTION_Z * 4;                            // floor HT
 
-  sceneAlpha = dag::buffers::create_ua_sr_byte_address((required_size + 3) / sizeof(uint), "scene_25d_buf");
+  sceneAlpha =
+    dag::buffers::create_ua_sr_byte_address((required_size + 3) / sizeof(uint), "scene_25d_buf", d3d::buffers::Init::No, RESTAG_DAGI);
   invalidate();
   setVars();
 }
@@ -73,11 +74,11 @@ void Scene::debugRayCast(SceneDebugType debug_scene)
 void Scene::setVars()
 {
   sceneAlpha.setVar();
-  ShaderGlobal::set_color4(scene_25d_voxels_sizeVarId, voxelSizeXZ, voxelSizeY, 0, voxelSizeXZ * 0.9 * 0.5);
-  const IPoint2 fullRes(VOXEL_25D_RESOLUTION_X, VOXEL_25D_RESOLUTION_Z);
+  ShaderGlobal::set_float4(scene_25d_voxels_sizeVarId, voxelSizeXZ, voxelSizeY, 0, voxelSizeXZ * 0.9 * 0.5);
+  // const IPoint2 fullRes(VOXEL_25D_RESOLUTION_X, VOXEL_25D_RESOLUTION_Z);
   const IPoint2 ofs = toroidalOrigin; //(fullRes + toroidalOrigin%VOXEL_25D_RESOLUTION_X)%VOXEL_25D_RESOLUTION_X;
   Point2 origin = voxelSizeXZ * Point2(toroidalOrigin - IPoint2(VOXEL_25D_RESOLUTION_X, VOXEL_25D_RESOLUTION_X) / 2);
-  ShaderGlobal::set_color4(scene_25d_voxels_originVarId, origin.x, origin.y, ofs.x, ofs.y);
+  ShaderGlobal::set_float4(scene_25d_voxels_originVarId, origin.x, origin.y, ofs.x, ofs.y);
 }
 
 static constexpr int MOVE_THRESHOLD = 4;
@@ -135,9 +136,9 @@ UpdateResult Scene::updateOrigin(const Point3 &baseOrigin, const voxelize_scene_
     TIME_D3D_PROFILE(ssgi_clear_scene_25d_full);
     STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), sceneAlpha.getBuf());
     const IPoint2 invalidLT = stInvalid - lt;
-    ShaderGlobal::set_color4(scene_25d_voxels_invalid_coord_boxVarId, invalidLT.x, invalidLT.y, invalidLT.x + res.x,
+    ShaderGlobal::set_float4(scene_25d_voxels_invalid_coord_boxVarId, invalidLT.x, invalidLT.y, invalidLT.x + res.x,
       invalidLT.y + res.y);
-    ShaderGlobal::set_color4(scene_25d_voxels_invalid_start_widthVarId, stInvalid.x, stInvalid.y, res.x, res.y);
+    ShaderGlobal::set_float4(scene_25d_voxels_invalid_start_widthVarId, stInvalid.x, stInvalid.y, res.x, res.y);
     ssgi_clear_scene_25d_full_cs->dispatch((res.x + 7) / 8, (res.y + 7) / 8, VOXEL_25D_RESOLUTION_Y); // clear
   }
   else
@@ -157,9 +158,9 @@ UpdateResult Scene::updateOrigin(const Point3 &baseOrigin, const voxelize_scene_
     //                                         scene_25d_voxels_invalid_start_width.w - scene_25d_voxels_origin.w + 128);//128 is
     //                                         VOXEL_25D_RESOLUTION_X/2
     const IPoint2 invalidLT = stInvalid - lt;
-    ShaderGlobal::set_color4(scene_25d_voxels_invalid_coord_boxVarId, invalidLT.x, invalidLT.y, invalidLT.x + res.x,
+    ShaderGlobal::set_float4(scene_25d_voxels_invalid_coord_boxVarId, invalidLT.x, invalidLT.y, invalidLT.x + res.x,
       invalidLT.y + res.y);
-    ShaderGlobal::set_color4(scene_25d_voxels_invalid_start_widthVarId, stInvalid.x, stInvalid.y, res.x, res.y);
+    ShaderGlobal::set_float4(scene_25d_voxels_invalid_start_widthVarId, stInvalid.x, stInvalid.y, res.x, res.y);
     {
       TIME_D3D_PROFILE(ssgi_clear_scene_25d_w);
       STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, 0, VALUE), sceneAlpha.getBuf());

@@ -1,0 +1,9 @@
+ERROR: expression of type 'float' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/type_inference/test_return_float_to_int.nut:3:4
+
+function fn(): int {
+    return 3.14
+    ^----------
+}
+
+

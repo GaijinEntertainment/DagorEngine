@@ -10,7 +10,7 @@ AddIncludes =
 ;
 
 Sources =
-  ecsEditableObjectPropertyPanel.cpp
+  ecsEntityObjectPropertyPanel.cpp
   ecsBasicObjectEditor.cpp
   ecsOrderedTemplatesGroups.cpp
   ecsPropertyPanelMapping.cpp

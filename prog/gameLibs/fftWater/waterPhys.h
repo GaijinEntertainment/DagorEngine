@@ -111,7 +111,7 @@ public:
     fifo2 = (fifo1 + 1);
 
     fifo2Part = fifoT - fifoFloored;
-    if (fifo1 < firstTick)
+    if (fifo1 < firstTick) //-V1051
     {
       fifo2 = fifo1 = firstTick;
       fifo2Part = 0;

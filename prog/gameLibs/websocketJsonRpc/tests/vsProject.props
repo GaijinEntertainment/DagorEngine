@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    This file is used by `charServer` repo
+    for generating MS Visual Studio solution
+    including unit tests for this library.
+-->
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <A_exe_base_name>websocketJsonRpc-tests</A_exe_base_name>
+  </PropertyGroup>
+  <PropertyGroup>
+    <NMakeIncludeSearchPath>$(A_repo_dagor_root)\prog\gameLibs\websocketJsonRpc;$(A_repo_dagor_root)\prog\gameLibs\websocketJsonRpc\tests;$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup />
+  <ItemGroup>
+    <BuildMacro Include="A_exe_base_name">
+      <Value>$(A_exe_base_name)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

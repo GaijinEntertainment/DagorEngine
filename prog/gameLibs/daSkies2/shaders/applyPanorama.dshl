@@ -20,11 +20,11 @@ float render_sun = 1;
 int tonemap_on = 1;
 interval tonemap_on:off<1, on;
 
-int panorama_discard_by_subpass_depth = 0;
-interval panorama_discard_by_subpass_depth: no<1, yes;
-
 int sky_panorama_patch = 1;
 interval sky_panorama_patch: off < 1, on;
+
+int special_vision;
+interval special_vision: special_vision_off < 1, thermal_vision;
 
 float skies_panorama_mobile_blendup_range = 200;
 float skies_panorama_mobile_blendup_coef = 0.0001;
@@ -51,7 +51,6 @@ shader applyCloudsPanorama
   }
 
   USE_AND_INIT_VIEW_VEC_VS()
-  ENABLE_ASSERT(ps)
   POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
 
 
@@ -69,7 +68,7 @@ shader applyCloudsPanorama
   if (uav_depth_texture != NULL)
   {
     (ps) {
-      uav_depth_texture@smp2d = uav_depth_texture;
+      uav_depth_texture@tex2d = uav_depth_texture;
     }
   }
 
@@ -96,22 +95,6 @@ shader applyCloudsPanorama
   INIT_PANORAMA_LIGHTNING_FLASH()
   USE_PANORAMA_LIGHTNING_FLASH()
   USE_DEF_RGBM_SH()
-
-  if (mobile_render == deferred &&
-    panorama_discard_by_subpass_depth == yes) {
-    USE_SUBPASS_LOADS()
-    INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_PANORAMA_REG_DEPTH, SP_PANORAMA_IA_DEPTH)
-    USE_SUBPASS_LOAD_DEPTH_GBUFFER()
-
-    blend_src = sa;
-    blend_dst = isa;
-    color_write = 7;
-
-    (ps) {
-      skies_panorama_mobile_blendup_range@f1 = (skies_panorama_mobile_blendup_range);
-      skies_panorama_mobile_blendup_coef@f1 = (skies_panorama_mobile_blendup_coef);
-    }
-  }
 
   hlsl(ps) {
     ##if clouds_panorama_use_biquadratic == yes
@@ -200,9 +183,7 @@ shader applyCloudsPanorama
     {
       float4 screenpos = GET_SCREEN_POS(input.pos);
 
-      ##if mobile_render == deferred && panorama_discard_by_subpass_depth == yes
-        float depth = loadGbufferDepth(screenpos.xy);
-      ##elif uav_depth_texture != NULL
+      ##if uav_depth_texture != NULL
         float depth = texelFetch(uav_depth_texture, screenpos.xy, 0).r;
       ##endif
 
@@ -214,17 +195,6 @@ shader applyCloudsPanorama
           discard;
           return 0;
         }
-      ##endif
-
-      ##if (mobile_render == deferred && panorama_discard_by_subpass_depth == yes)
-        //fake distant fog/lightning
-        float w = linearize_z(depth, zn_zfar.zw) - skies_panorama_mobile_blendup_range;
-        if (w < 0)
-        {
-          discard;
-          return 0;
-        }
-        retAlpha = saturate(w*skies_panorama_mobile_blendup_coef);
       ##endif
 
       float3 viewDirection = normalize(input.viewVect);
@@ -277,8 +247,10 @@ shader applyCloudsPanorama
 
       apply_lightning_flash(sky_uv, viewDirection, originalViewDirection, panorama.rgb);
 
-      float2 jitteredVolfogTc = get_volfog_dithered_screen_tc(screenpos.xy, input.texcoord.xy);
-      apply_sky_custom_fog(panorama.rgb, input.texcoord.xy, jitteredVolfogTc);
+      ##if special_vision == special_vision_off
+        float2 jitteredVolfogTc = get_volfog_dithered_screen_tc(screenpos.xy, input.texcoord.xy);
+        apply_sky_custom_fog(panorama.rgb, input.texcoord.xy, jitteredVolfogTc);
+      ##endif
 
       applySpecialVision(panorama);
 
@@ -287,11 +259,6 @@ shader applyCloudsPanorama
 
         result.rgb=half3(pack_hdr(panorama.rgb).rgb);
         result.a = GetLuminanceScaled(result.rgb);
-        //hide tonemap_on interval usage under assumed interval
-        //to avoid extra variants
-        ##if mobile_render != off && tonemap_on == on && use_postfx == off
-          result.rgb = performLUTTonemap(result.rgb);
-        ##endif
         result.a = retAlpha;
       #else
         half4 result=half4(pack_hdr(panorama.rgb).rgb, retAlpha);
@@ -402,7 +369,7 @@ shader clouds_panorama_update_subpixel
 {
   WRITE_TO_TEX2D()
   (ps) {
-    clouds_panorama_temp_tex@smp2d = clouds_panorama_temp_tex;
+    clouds_panorama_temp_tex@tex2d = clouds_panorama_temp_tex;
     clouds_panorama_subpixel@f4 = clouds_panorama_subpixel;
     //clouds_panorama_tex_res@f4 = (clouds_panorama_tex_res.x,clouds_panorama_tex_res.y, 1/clouds_panorama_tex_res.x,1/clouds_panorama_tex_res.y);
   }

@@ -92,7 +92,7 @@ private:
   };
   struct MaterialDesc
   {
-    PatchableTab<uint8_t> boneIndices;
+    PatchableTab<int16_t> boneIndices;
   };
 
   PatchableTab<TMatrix> boneOrgTm;

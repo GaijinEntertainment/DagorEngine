@@ -64,7 +64,7 @@ namespace das {
         }
     };
 
-    struct AstSerializer {
+    struct DAS_API AstSerializer {
         ~AstSerializer ();
         AstSerializer ( SerializationStorage * storage, bool isWriting );
 
@@ -111,7 +111,7 @@ namespace das {
         vector<pair<Structure **,uint64_t>>         structureRefs;
         vector<pair<Enumeration **,uint64_t>>       enumerationRefs;
         // fieldRefs tuple contains: fieldptr, module, structname, fieldname
-        vector<tuple<const Structure::FieldDeclaration **, Module *, string, string>>       fieldRefs;
+        vector<tuple<Structure::FieldDeclarationRef*, Module *, string, string>>       fieldRefs;
         // parseModule tuple contains: moduleName, mtime, thisModule, thisModule
         vector<tuple<string, uint64_t, ProgramPtr, Module*>> parsedModules;
     // tracking for shared modules

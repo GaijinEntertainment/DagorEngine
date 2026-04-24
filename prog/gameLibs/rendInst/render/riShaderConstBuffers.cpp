@@ -3,6 +3,7 @@
 #include <rendInst/riShaderConstBuffers.h>
 #include "render/riShaderConstBuffers.h"
 #include "render/genRender.h"
+#include "riGen/riGenRenderer.h"
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
 
@@ -17,8 +18,13 @@ static carray<Sbuffer *, INST_BINS> instancesCB = {0};
 void endRenderInstancing()
 {
   d3d::set_buffer(STAGE_VS, instancingTexRegNo, 0);
+#if _TARGET_C1 || _TARGET_C2
+
+
+#else
   d3d::set_const_buffer(STAGE_VS, perinstBuffNo, nullptr);
   d3d::set_const_buffer(STAGE_VS, instanceBuffNo, nullptr);
+#endif
   d3d::set_immediate_const(STAGE_VS, nullptr, 0);
 }
 
@@ -27,6 +33,9 @@ void startRenderInstancing()
 #if !(_TARGET_C1 | _TARGET_C2)
   d3d::set_const_buffer(STAGE_VS, perinstBuffNo, rendinst::render::perDrawCB); // fixme: set only once
 #endif
+  // TODO: Change this -> it comes from the fact that shadervars can set buffer slot 15 without resetting it properly,
+  // thus triggering debug layer errors because of inproper flags. This is a workaround to ensure that nothing is bound.
+  d3d::set_buffer(STAGE_VS, rendinst::render::additionalInstancingTexRegNo, nullptr);
 }
 
 bool setPerDrawData(const UniqueBuf &buf)
@@ -41,9 +50,9 @@ bool setPerDrawData(const UniqueBuf &buf)
 void init_instances_tb()
 {
   for (int i = 0; i < instancesCB.size(); ++i)
-    instancesCB[i] = d3d::buffers::create_one_frame_cb(MIN_INST_COUNT << i, "perInstanceData");
+    instancesCB[i] = d3d::buffers::create_one_frame_cb(MIN_INST_COUNT << i, "perInstanceData", RESTAG_RENDINST);
   // instancesTB[i] = d3d::create_sbuffer(16, MIN_INST_COUNT<<i,
-  //     SBCF_DYNAMIC|SBCF_BIND_SHADER_RES|SBCF_CPU_ACCESS_WRITE, TEXFMT_A32B32G32R32F, "perInstanceData");
+  //     SBCF_DYNAMIC|SBCF_BIND_SHADER_RES|SBCF_CPU_ACCESS_WRITE, TEXFMT_A32B32G32R32F, "perInstanceData", RESTAG_RENDINST);
   // on my 1070 ConstBuffer is proven to work faster than TB. We can actually handle a lot of instances in one CB. It may be worth
   // switching to CB only instancing... however, in synthetic tests both TB and SB were faster than CB when fetch 3 float4. I guess,
   // the difference is that we sample just ONE float4 for trees, and cache prefetching doesn't help us (like it does in TB/SB)
@@ -67,7 +76,6 @@ RiShaderConstBuffers::RiShaderConstBuffers()
 
 void RiShaderConstBuffers::setInstancing(uint32_t ofs, uint32_t stride, uint32_t flags, uint32_t impostor_data_offset)
 {
-  // flags 1: useCbufferParams 2: hashVal
   consts.bbox[2] = v_cast_vec4f(v_make_vec4i(ofs, stride, flags, impostor_data_offset));
 }
 
@@ -180,6 +188,44 @@ void RiShaderConstBuffers::setInstancePositions(const float *data, int vec4_coun
 void RiShaderConstBuffers::setPLODRadius(float radius)
 {
   consts.optional_data.plod_data.radius = v_make_vec4f(radius, 0.0f, 0.0f, 0.0f);
+}
+
+void updateRiColorByName(const char *ri_res_name, const E3DCOLOR &color_from, const E3DCOLOR &color_to, E3DCOLOR *prev_color_from,
+  E3DCOLOR *prev_color_to)
+{
+  TIME_PROFILE_DEV(ri_color_override)
+  int riExtraPoolIdx = rendinst::getRIGenExtraResIdx(ri_res_name);
+  if (riExtraPoolIdx < 0)
+  {
+    logerr("updateRiColorByName: can't find rendinst '%s'", ri_res_name);
+    return;
+  }
+  if (prev_color_from)
+    *prev_color_from = riExtra[riExtraPoolIdx].poolColors[0];
+  if (prev_color_to)
+    *prev_color_to = riExtra[riExtraPoolIdx].poolColors[1];
+  riExtra[riExtraPoolIdx].poolColors[0] = color_from;
+  riExtra[riExtraPoolIdx].poolColors[1] = color_to;
+  rendinst::render::update_per_draw_gathered_data(riExtraPoolIdx);
+
+  int riGenLayer = riExtra[riExtraPoolIdx].riPoolRefLayer;
+  int riGenPool = riExtra[riExtraPoolIdx].riPoolRef;
+  RendInstGenData *rgl = rendinst::getRgLayer(riGenLayer);
+  if (rgl && riGenPool >= 0 && riGenPool < rgl->rtData->riRes.size())
+  {
+    G_ASSERT(!strcmp(rgl->rtData->riResName[riGenPool], ri_res_name));
+    E3DCOLOR &riGenColorFrom = rgl->rtData->riColPair[riGenPool * 2 + 0];
+    E3DCOLOR &riGenColorTo = rgl->rtData->riColPair[riGenPool * 2 + 1];
+    if (prev_color_from && *prev_color_from != riGenColorFrom)
+      logerr("updateRiColorByName: riExtra and riGen '%s' had different colorFrom (%08X != %08X)", ri_res_name, *prev_color_from,
+        riGenColorFrom);
+    if (prev_color_to && *prev_color_to != riGenColorTo)
+      logerr("updateRiColorByName: riExtra and riGen '%s' had different colorTo (%08X != %08X)", ri_res_name, *prev_color_to,
+        riGenColorTo);
+    riGenColorFrom = color_from;
+    riGenColorTo = color_to;
+    rendinst::render::RiGenRenderer::updatePerDrawDataAtIdx(*rgl->rtData, rgl->perInstDataDwords, riGenPool);
+  }
 }
 
 } // namespace rendinst::render

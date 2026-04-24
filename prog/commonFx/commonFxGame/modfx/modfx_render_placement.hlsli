@@ -23,7 +23,11 @@ BBox modfx_apply_placement_to_culling( DAFX_CREF(ModfxParentRenData) parent_rdat
   bbox.bmin = float3(v.x - v.w, v.y - v.w, v.z - v.w);
   bbox.bmax = float3(v.x + v.w, v.y + v.w, v.z + v.w);
 
-  if ( parent_rdata.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS] )
+  if (FLAG_ENABLED( parent_rdata.flags, MODFX_RFLAG_SKIP_CULLING ))
+  {
+    bbox.bmin = bbox.bmax = float3(0,0,0); // must be handled on the cpp side as well, otherwise it simply won't be rendered
+  }
+  else if ( parent_rdata.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS] )
   {
     ModfxDeclRenderPlacementParams pp = ModfxDeclRenderPlacementParams_load(buf, parent_rdata.mods_offsets[MODFX_RMOD_RENDER_PLACEMENT_PARAMS]);
     if ( pp.placement_threshold > 0 )

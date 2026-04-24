@@ -126,7 +126,7 @@ extern "C" void dag_qsort(void *p, intptr_t n, int w, int (*f)(const void *, con
 
   if (w == 4)
     __sort<tabsorted::Swap<uint32_t>>((char *)p, n, w, f);
-  else if ((w & 0x7) == 0)
+  else if ((w & 0x7) == 0 && (uintptr_t(p) & 0x7) == 0)
     __sort<tabsorted::SwapX<uint64_t>>((char *)p, n, w, f);
   else if ((w & 0x3) == 0)
     __sort<tabsorted::SwapX<uint32_t>>((char *)p, n, w, f);

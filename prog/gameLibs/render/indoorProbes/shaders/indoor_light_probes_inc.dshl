@@ -9,7 +9,7 @@ macro USE_INDOOR_PROBE_CELL(code)
   }
   hlsl(code){
     #include <indoor_probes_const.hlsli>
-    void get_grid_params(float3 world_pos, float viewDist, out float3 gridPos, out int3 gridSize, out float fadeWeight)
+    void get_grid_params_impl(float3 world_pos, float viewDist, float max_distance, out float3 gridPos, out int3 gridSize, out float fadeWeight)
     {
       float3 cellSize = float3(GRID_CELL_SIZE, GRID_CELL_HEIGHT, GRID_CELL_SIZE);
       gridPos = (world_pos - indoor_probes_grid_center) / cellSize;
@@ -18,7 +18,11 @@ macro USE_INDOOR_PROBE_CELL(code)
       float maxCoord = max3(absGridPos.x, absGridPos.y, absGridPos.z);
       fadeWeight = saturate((0.5 - maxCoord) / SKY_PROBE_FADE_DIST);
       // additional fadeout based on camera distance (we do not gather probes further than certain distance)
-      fadeWeight *= saturate((indoor_probes_max_distance_or_disabled - viewDist) / SKY_PROBE_FADE_DIST_WS);
+      fadeWeight *= saturate((max_distance - viewDist) / SKY_PROBE_FADE_DIST_WS);
+    }
+    void get_grid_params(float3 world_pos, float viewDist, out float3 gridPos, out int3 gridSize, out float fadeWeight)
+    {
+      get_grid_params_impl(world_pos, viewDist, indoor_probes_max_distance_or_disabled, gridPos, gridSize, fadeWeight);
     }
   }
 endmacro

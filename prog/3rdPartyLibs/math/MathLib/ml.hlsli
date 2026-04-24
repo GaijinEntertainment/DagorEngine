@@ -616,7 +616,7 @@ namespace Geometry
     {
         float3 p;
         p.xy = uv * cameraFrustum.zw + cameraFrustum.xy;
-        p.xy *= viewZ * ( 1.0f - abs( orthoMode ) ) + orthoMode;
+        p.xy *= orthoMode == 0.0f ? viewZ : orthoMode;
         p.z = viewZ;
 
         return p;
@@ -3017,6 +3017,7 @@ namespace Text
 
     ML_INLINE void Print_ui( uint x, ML_INOUT( uint4 ) state )
     {
+        [unroll] // FXC: avoid "X3557: loop only executes for N iteration(s), forcing loop to unroll"
         while( x )
         {
             uint a = x / 10;

@@ -23,6 +23,9 @@ float4 sp_view_vecRB;
 int4 dagi_screenspace_probe_trace_res;
 float4 dagi_sp_oct_to_trace_radiance_atlas_clamp;
 
+float sp_max_quick_update_frames = 58;
+float sp_quick_update_min_weight = 0.1;
+float sp_quick_update_max_weight = 0.3;
 
 hlsl {
   #define SCREENPROBES_BIAS_TO_CAMERA 0.97

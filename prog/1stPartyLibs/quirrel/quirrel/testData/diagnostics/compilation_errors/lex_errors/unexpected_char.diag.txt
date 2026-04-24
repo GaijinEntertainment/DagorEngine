@@ -1,0 +1,8 @@
+ERROR: unexpected character '(control)'
+testData/diagnostics/compilation_errors/lex_errors/unexpected_char.nut:2:8
+
+// EXPECT_ERROR: "unexpected character"
+let x = 
+        ^
+
+

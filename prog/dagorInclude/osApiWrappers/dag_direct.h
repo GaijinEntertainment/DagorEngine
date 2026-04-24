@@ -121,18 +121,18 @@ private:
   bool firstSearchIsSuccessful;
 
 public:
-  struct dd_iterator_iml
+  struct dd_iterator_impl
   {
   private:
     friend dd_find_iterator;
     alefind_t &result_ref;
     bool canContinue;
-    dd_iterator_iml(alefind_t &result, bool can_continue) : result_ref(result), canContinue(can_continue) {}
+    dd_iterator_impl(alefind_t &result, bool can_continue) : result_ref(result), canContinue(can_continue) {}
 
   public:
     const alefind_t &operator*() { return result_ref; }
     void operator++() { canContinue = ::dd_find_next(&result_ref); }
-    bool operator!=(const dd_iterator_iml &other) { return this->canContinue != other.canContinue; }
+    bool operator!=(const dd_iterator_impl &other) { return this->canContinue != other.canContinue; }
   };
 
   // mask and attributes the same as in 'dd_find_first'
@@ -144,8 +144,8 @@ public:
   dd_find_iterator &operator=(const dd_find_iterator &) = delete;
   dd_find_iterator &operator=(dd_find_iterator &&) = delete;
 
-  dd_iterator_iml begin() { return dd_iterator_iml(result, firstSearchIsSuccessful); }
-  dd_iterator_iml end() { return dd_iterator_iml(result, false); }
+  dd_iterator_impl begin() { return dd_iterator_impl(result, firstSearchIsSuccessful); }
+  dd_iterator_impl end() { return dd_iterator_impl(result, false); }
 };
 
 #endif

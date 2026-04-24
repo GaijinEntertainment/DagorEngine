@@ -46,5 +46,5 @@ generators can also be iterated using the foreach statement. When a generator is
 by ``foreach``, the generator will be resumed for each iteration until it returns. The value
 returned by the ``return`` statement will be ignored.
 
-.. note:: A suspended generator will hold a strong reference to all the values stored in it's local variables except the ``this``
-        object that is only a weak reference. A running generator hold a strong reference also to the ``this`` object.
+.. note:: A suspended generator will hold a strong reference to all the values stored in its local variables except the ``this``
+        object that is only a weak reference. A running generator holds a strong reference also to the ``this`` object.

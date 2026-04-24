@@ -52,7 +52,14 @@ ViewInfo sp_getScreenViewInfo()
   return vInfo;
 }
 
-bool processAdditionalProbe(DecodedProbe additionalProbe, ViewInfo vInfo, uint2 tile_coord, float sceneLinearDepth, float4 scenePlane, float depth_exp, inout UpsampleCornerWeights corners, uint i)
+struct ProcessedAdditionalProbe
+{
+  float relativeDepthDifference;
+  float depthWeight;
+  float normalizedW;
+};
+
+ProcessedAdditionalProbe processAdditionalProbe(DecodedProbe additionalProbe, ViewInfo vInfo, uint2 tile_coord, float sceneLinearDepth, float4 scenePlane, float depth_exp)
 {
   float2 uv = getScreenProbeCenterScreenUV(tile_coord, vInfo.tile_to_center, vInfo.screen_limit);
   //uv = screenICoordToScreenUV(tile_coord*screenspace_probe_res.z + additionalProbe.coord_ofs);
@@ -60,12 +67,13 @@ bool processAdditionalProbe(DecodedProbe additionalProbe, ViewInfo vInfo, uint2 
   float newRelativeDepthDifference = pow2(dot(float4(otherProbeCamPos, -1), scenePlane));
   newRelativeDepthDifference += sp_get_additional_rel_depth_sample(additionalProbe.normalizedW*vInfo.zn_zfar.y, sceneLinearDepth, depth_exp);
   float newDepthWeight = exp2(depth_exp*newRelativeDepthDifference);
-  if (newDepthWeight <= corners.depthWeights[i])
-    return false;
-  corners.relDepth[i] = newRelativeDepthDifference;
-  corners.depthWeights[i] = newDepthWeight;
-  corners.normalizedLinearDepth[i] = additionalProbe.normalizedW;
-  return true;
+
+  ProcessedAdditionalProbe res = (ProcessedAdditionalProbe)0;
+  res.relativeDepthDifference = newRelativeDepthDifference;
+  res.depthWeight = newDepthWeight;
+  res.normalizedW = additionalProbe.normalizedW;
+
+  return res;
 }
 #define UseBufferInfo SRVBufferInfo
 #include "sp_upsample_weights_inc.hlsl"
@@ -78,7 +86,8 @@ bool processAdditionalProbe(DecodedProbe additionalProbe, ViewInfo vInfo, uint2 
 UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInfo, UpsamplePointInfo pointInfo, float depth_exp = -100, bool processAdditional = true)
 {
   float2 probeCoord2DF = pointInfo.screenCoord.xy*vInfo.screenspace_probe_screen_coord_to_probe_coord.x + vInfo.screenspace_probe_screen_coord_to_probe_coord.y;
-  uint2 probeCoord2D = uint2(clamp(probeCoord2DF, 0, vInfo.screenspace_probe_res.xy - 2));
+  // max after min is used to avoid uint2(-2.0f) conversion, which can lead to gpu hang later on memory access
+  uint2 probeCoord2D = uint2(max(min(probeCoord2DF, vInfo.screenspace_probe_res.xy - 2), 0));
   //uint2 probeCoord2D = uint2(max(probeCoord2DF, 0));
   float2 probeCoordFract = saturate(probeCoord2DF - float2(probeCoord2D));
   //bilinear weights enhanced a bit, to avoid being 0
@@ -115,12 +124,13 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
     {
       DecodedProbe baseProbe = sp_decodeProbeInfo(encodedProbe);
       float3 probeCamPos = baseProbe.normalizedW*getViewVecFromTc(getScreenProbeCenterScreenUV(sampleProbeCoord, vInfo.tile_to_center, vInfo.screen_limit), vInfo.lt, vInfo.hor, vInfo.ver);
-      corners.relDepth[i] = pow2(dot(float4(probeCamPos, -1), scenePlane));
-      corners.relDepth[i] += sp_get_additional_rel_depth_sample(baseProbe.normalizedW*vInfo.zn_zfar.y, pointInfo.sceneLinearDepth, depth_exp);
-      corners.depthWeights[i] = exp2(depth_exp*corners.relDepth[i]);
-      corners.normalizedLinearDepth[i] = baseProbe.normalizedW;
-      corners.atlasSampleProbeCoord[i] = atlasSampleProbeCoord;
-      corners.encodedProbes[i] = encodedProbe;
+
+      float bestRelDepth = pow2(dot(float4(probeCamPos, -1), scenePlane))
+                         + sp_get_additional_rel_depth_sample(baseProbe.normalizedW*vInfo.zn_zfar.y, pointInfo.sceneLinearDepth, depth_exp);
+      float bestDepthWeight = exp2(depth_exp*bestRelDepth);
+      float bestNormalizedLinearDepth = baseProbe.normalizedW;
+      uint bestEncodedProbe = encodedProbe;
+      uint2 bestAtlasSampleProbeCoord = atlasSampleProbeCoord;
 
       if (processAdditional && sp_has_additinal_probes(baseProbe.allTag))//we can also use it as count
       {
@@ -134,13 +144,26 @@ UpsampleCornerWeights calc_upsample_weights(SRVBufferInfo srvInfo, ViewInfo vInf
           uint additionalEncodedProbe = sp_loadEncodedProbe(srvInfo.posBuffer, addProbeIndex);
           DecodedProbe additionalProbe = sp_decodeProbeInfo(additionalEncodedProbe);
 
-          if (processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp, corners, i))
+          ProcessedAdditionalProbe addProbeProcessed = processAdditionalProbe(additionalProbe, vInfo, sampleProbeCoord, pointInfo.sceneLinearDepth, scenePlane, depth_exp);
+          if (addProbeProcessed.depthWeight > bestDepthWeight)
           {
-            corners.encodedProbes[i] = additionalEncodedProbe;
-            corners.atlasSampleProbeCoord[i] = uint2(addProbeIndex%uint(vInfo.screenspace_probe_res.x), addProbeIndex/uint(vInfo.screenspace_probe_res.x));
+            bestRelDepth = addProbeProcessed.relativeDepthDifference;
+            bestDepthWeight = addProbeProcessed.depthWeight;
+            bestNormalizedLinearDepth = addProbeProcessed.normalizedW;
+            bestEncodedProbe = additionalEncodedProbe;
+
+            const uint ssProbeRes = uint(vInfo.screenspace_probe_res.x);
+            bestAtlasSampleProbeCoord = uint2(addProbeIndex % ssProbeRes, addProbeIndex / ssProbeRes);
           }
         }
       }
+
+      corners.relDepth[i] = bestRelDepth;
+      corners.depthWeights[i] = bestDepthWeight;
+      corners.normalizedLinearDepth[i] = bestNormalizedLinearDepth;
+      corners.atlasSampleProbeCoord[i] = bestAtlasSampleProbeCoord;
+      corners.encodedProbes[i] = bestEncodedProbe;
+
     }
   }
 

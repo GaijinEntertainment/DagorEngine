@@ -1,0 +1,8 @@
+ERROR: Unknown variable [undefined_var]
+testData/diagnostics/compilation_errors/sema_errors/unknown_symbol.nut:2:8
+
+// EXPECT_ERROR: "Unknown variable"
+let x = undefined_var
+        ^------------
+
+

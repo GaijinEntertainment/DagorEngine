@@ -9,23 +9,14 @@
 
 
 template <>
-SimplePhysObject::SimplePhysObjectClass() :
-  body(NULL),
-  nodeTree(NULL)
-#ifndef NO_3D_GFX
-  ,
-  model(NULL),
-  extRenderTm(NULL)
-#endif
+SimplePhysObject::SimplePhysObjectClass() : body(NULL), nodeTree(NULL), model(NULL), extRenderTm(NULL)
 {}
 
 
 template <>
 SimplePhysObject::~SimplePhysObjectClass()
 {
-#ifndef NO_3D_GFX
   del_it(model);
-#endif
   del_it(body);
   del_it(nodeTree);
 }
@@ -120,7 +111,6 @@ void SimplePhysObject::init(const DynamicPhysObjectData *data, PhysWorld *w)
   if (data->nodeTree)
     nodeTree = new GeomNodeTree(*data->nodeTree);
 
-#ifndef NO_3D_GFX
   model = new DynamicRenderableSceneInstance(data->models[0]);
   extRenderTm = NULL;
 
@@ -138,11 +128,9 @@ void SimplePhysObject::init(const DynamicPhysObjectData *data, PhysWorld *w)
       }
     });
   }
-#endif // NO_3D_GFX
 }
 
 
-#ifndef NO_3D_GFX
 template <>
 void SimplePhysObject::updateModelTms()
 {
@@ -160,5 +148,3 @@ void SimplePhysObject::updateModelTms()
   for (int i = 0; i < treeHelpers.size(); ++i)
     model->setNodeWtm(i + 1, nodeTree->getNodeWtmRel(treeHelpers[i]));
 }
-
-#endif // NO_3D_GFX

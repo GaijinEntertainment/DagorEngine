@@ -2,7 +2,6 @@
 
 #include "entityMatFileResource.h"
 
-#include <obsolete/dag_cfg.h>
 #include <shaders/dag_shMaterialUtils.h>
 #include <de3_interface.h>
 #include "../av_appwnd.h"
@@ -184,7 +183,7 @@ DagMatFileResourcesHandler::DagMatFileResourcesHandler(const char *dag_file_name
   dagFileName = dag_file_name;
   load_scene(dag_file_name, dagData);
 
-  DataBlock appBlk = DataBlock(::get_app().getWorkspace().getAppPath());
+  DataBlock appBlk = DataBlock(::get_app().getWorkspace().getAppBlkPath());
   const DataBlock *curTypeBlk = appBlk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx(asset->getTypeStr());
   shRemapBlk = *curTypeBlk->getBlockByNameEx("remapShaders");
 

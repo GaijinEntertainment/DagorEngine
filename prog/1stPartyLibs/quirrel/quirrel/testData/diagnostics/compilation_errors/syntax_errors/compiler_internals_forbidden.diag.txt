@@ -1,0 +1,8 @@
+ERROR: Access to compiler internals is forbidden
+testData/diagnostics/compilation_errors/syntax_errors/compiler_internals_forbidden.nut:2:8
+
+// EXPECT_ERROR: "Access to compiler internals is forbidden"
+let x = $${return 42}
+        ^--
+
+

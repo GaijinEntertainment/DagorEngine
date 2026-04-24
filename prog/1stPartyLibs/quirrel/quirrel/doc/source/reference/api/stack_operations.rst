@@ -99,9 +99,9 @@ ensure that the stack space left is at least of a specified size.If the stack is
 
 .. _sq_settop:
 
-.. c:function:: void sq_settop(HSQUIRRELVM v, SQInteger v)
+.. c:function:: void sq_settop(HSQUIRRELVM v, SQInteger newtop)
 
     :param HSQUIRRELVM v: the target VM
-    :param SQInteger v: the new top index
+    :param SQInteger newtop: the new top index
 
 resize the stack. If new top is bigger then the current top the function will push nulls.

@@ -4,12 +4,13 @@ include "normaldetail.dshl"
 include "mask_layered_inc.dshl"
 include "simplified_rendering_inc.dshl"
 include "random_color.dshl"
+include "dynamic_destr_disappear_inc.dshl"
 
 shader dynamic_mask_layered
 {
-  ENABLE_ASSERT(ps)
   SUPPORT_MULTIDRAW(dyn_model_render_pass != render_pass_normal)
   DYNAMIC_BLOCK()
+  DYNAMIC_DESTR_DISAPPEAR_INIT()
   USE_SIMPLIFIED_RENDERING()
   INIT_MASK_LAYERED(dyn_model_render_pass == render_pass_normal)
   INIT_RANDOMIZED_TC(vs)
@@ -50,7 +51,7 @@ shader dynamic_mask_layered
       #define USE_INITIAL_POS 1
       struct VsOutput
       {
-        VS_OUT_POSITION(pos)
+        PRECISE VS_OUT_POSITION(pos)
         float4 pointToEye                       : TEXCOORD0;
         float3 normal                           : TEXCOORD1;
         float2 uv12                             : TEXCOORD2;
@@ -60,6 +61,9 @@ shader dynamic_mask_layered
         #ifdef MOTION_VECTORS_ENABLED
         float4 out_pos                          : TEXCOORD4;
         float4 out_pos_prev                     : TEXCOORD5;
+        #endif
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+        float4 destr_params                     : TEXCOORD6;
         #endif
         #if SET_UP_MULTIDRAW
         VSOUT_DRAW_ID
@@ -76,10 +80,13 @@ shader dynamic_mask_layered
   USE_DIFFUSE_TC()
   if (dyn_model_render_pass != render_pass_normal)
   {
-    hlsl(vs) {
+    hlsl {
       struct VsOutput
       {
-        VS_OUT_POSITION(pos)
+        PRECISE VS_OUT_POSITION(pos)
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+          float4 destr_params : TEXCOORD0;
+        #endif
       };
     }
   }
@@ -103,6 +110,8 @@ shader dynamic_mask_layered
     };
   }
   OPTIONAL_SKINNING_SHADER()
+  USE_INITIAL_TM_HASHVAL(vs)
+  DYNAMIC_DESTR_DISAPPEAR_USE()
 
   if (dyn_model_render_pass == render_pass_normal) {
     hlsl(vs) {
@@ -127,7 +136,7 @@ shader dynamic_mask_layered
   if (dyn_model_render_pass != render_pass_normal)
   {
     if (in_editor_assume == no) { NO_DYNSTCODE() }
-    SPECIAL_RENDER_NOALPHATEST()
+    SPECIAL_RENDER_NOALPHATEST(enable_ri_disintegration_animation == enabled)
   }
   else
   {
@@ -135,6 +144,6 @@ shader dynamic_mask_layered
       #define IS_DYNAMIC 1
     }
     WRITE_GBUFFER()
-    MASK_LAYERED_PS(true)
+    MASK_LAYERED_PS(true, true)
   }
 }

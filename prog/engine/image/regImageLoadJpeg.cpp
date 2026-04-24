@@ -83,7 +83,7 @@ public:
     if (!cacheBuf)
       return FullFileLoadCB::seekrel(w);
     uint32_t a = min<uint32_t>(curOffs + (uint32_t)w, fileLen);
-    uint32_t b = (uint32_t)max<int>(0, (int)curOffs - w);
+    uint32_t b = (uint32_t)max<int>(0, (int)curOffs + w);
     curOffs = w >= 0 ? a : b;
   }
 };

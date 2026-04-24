@@ -1,2 +1,0 @@
-skip functions
-skip void?

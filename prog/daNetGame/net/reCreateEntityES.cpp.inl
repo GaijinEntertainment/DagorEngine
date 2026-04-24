@@ -2,9 +2,11 @@
 
 #include "net/reCreateEntity.h"
 #include <daECS/net/netEvents.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <daECS/net/netbase.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 
 static constexpr char TNAME_ADD_REM_SEPARATOR = '|'; // Any char that cannot be in valid template name
 
@@ -114,7 +116,7 @@ static void remote_recreate_es(const CmdRemoteRecreate &evt, ecs::EntityId eid, 
   ECS_DEFAULT_RECREATE_STR_T newTemplName;
   if (char *tsep = strchr(tname.c_str(), TNAME_ADD_REM_SEPARATOR)) // Add/Remove?
   {
-    newTemplName = g_entity_mgr->getEntityFutureTemplateName(eid);
+    newTemplName = manager.getEntityFutureTemplateName(eid);
     if (tsep != tname.c_str()) // Has remove?
     {
       *tsep = '\0';

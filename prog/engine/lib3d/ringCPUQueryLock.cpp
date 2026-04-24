@@ -33,9 +33,9 @@ void RingCPUBufferLock::init(uint32_t element_size, uint32_t elements, int buffe
     char cname[64];
     SNPRINTF(cname, countof(cname), "%s%d", name, i);
     if (is_texture)
-      buffers[i].gpu = d3d::create_tex(NULL, element_size, elements, texfmt, 1, cname);
+      buffers[i].gpu = d3d::create_tex(NULL, element_size, elements, texfmt, 1, cname, RESTAG_RING_CPU_BUFFER_LOCK);
     else
-      buffers[i].gpu = d3d::create_sbuffer(element_size, elements, flags, texfmt, name);
+      buffers[i].gpu = d3d::create_sbuffer(element_size, elements, flags, texfmt, name, RESTAG_RING_CPU_BUFFER_LOCK);
     buffers[i].event = d3d::create_event_query();
     buffers[i].id = register_managed_res(cname, buffers[i].gpu);
   }

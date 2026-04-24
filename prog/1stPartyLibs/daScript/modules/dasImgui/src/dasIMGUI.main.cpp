@@ -145,7 +145,7 @@ namespace das {
         drawList.AddText(pos, col, text);
     }
 
-    void AddText2( ImDrawList & drawList, const ImFont* font, float font_size, const ImVec2& pos, ImU32 col,
+    void AddText2( ImDrawList & drawList, ImFont* font, float font_size, const ImVec2& pos, ImU32 col,
         const char* text_begin, float wrap_width, const ImVec4* cpu_fine_clip_rect) {
         drawList.AddText(font,font_size,pos,col,text_begin,nullptr,wrap_width,cpu_fine_clip_rect);
     }

@@ -5,6 +5,7 @@
 #pragma once
 
 #include <vecmath/dag_vecMath.h>
+#include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Point4.h>
 #include <math/dag_color.h>
@@ -17,10 +18,28 @@ struct SpotLight
   alignas(16) Color4 color_atten;
   alignas(16) Point4 dir_tanHalfAngle; // .xyz: normalized dir, w: tan(angle/2)
   alignas(16) Point4 texId_scale_illuminatingPlane;
+  float normalizedRollAngle = 0; // [0,1)
   float culling_radius;
+  float shadowTanHalfAngle = -1.f;
+  float shadowFrustumOffset = 0.f;
+  Point2 shadowNearFarClippingPlanes = Point2::ZERO;
   bool shadows = false;
   bool contactShadows = false;
   bool requiresCullRadiusOptimization = true;
+
+  static float get_normalized_roll_angle(const Point3 &dir, const Point3 &up_dir)
+  {
+    if (lengthSq(up_dir) < 0.001)
+      return 0;
+    Point3 side = fabsf(dir.x) < 0.707106781186548 // = cos(M_PI/4)
+                    ? Point3(1, 0, 0)
+                    : Point3(0, 0, 1);
+    Point3 reference_up = normalize(cross(side, dir));
+    side = cross(dir, reference_up);
+    float angle = atan2f(dot(up_dir, reference_up), dot(up_dir, side));
+    return (angle + M_PI) / (2 * M_PI);
+  }
+
   SpotLight() : culling_radius(-1.0f), texId_scale_illuminatingPlane(-1, 0, 0, 0) {}
   SpotLight(const Point3 &p, const Color3 &col, float rad, float att, const Point3 &dir, float angle, bool contact_shadows,
     bool shadows) :
@@ -32,11 +51,12 @@ struct SpotLight
     shadows(shadows),
     contactShadows(contact_shadows)
   {}
-  SpotLight(const Point3 &p, const Color3 &col, float rad, float att, const Point3 &dir, float angle, bool contact_shadows,
-    bool shadows, int tex, float texture_scale, bool tex_rotation, float illuminating_plane_offset = 0) :
+  SpotLight(const Point3 &p, const Color3 &col, float rad, float att, const Point3 &dir, const Point3 &up_dir, float angle,
+    bool contact_shadows, bool shadows, int tex, float texture_scale, bool tex_rotation, float illuminating_plane_offset = 0) :
     pos_radius(p.x, p.y, p.z, rad),
     color_atten(col.r, col.g, col.b, att),
     dir_tanHalfAngle(dir.x, dir.y, dir.z, angle),
+    normalizedRollAngle(get_normalized_roll_angle(dir, up_dir)),
     culling_radius(-1.0f),
     shadows(shadows),
     contactShadows(contact_shadows)
@@ -66,6 +86,7 @@ struct SpotLight
     pos_radius = Point4(0, 0, 0, 0);
     color_atten = Color4(0, 0, 0, 0);
     dir_tanHalfAngle = Point4(0, 0, 1, 1);
+    normalizedRollAngle = 0;
     texId_scale_illuminatingPlane = Point4(-1, 0, 0, 0);
   }
   static SpotLight create_empty()
@@ -112,4 +133,5 @@ struct SpotLight
   }
   // cone bounding sphere
   vec4f getBoundingSphere() const { return getBoundingSphere(getCosHalfAngle()); }
+  float getShadowTanHalfAngle() const { return shadowTanHalfAngle > 0.f ? shadowTanHalfAngle : dir_tanHalfAngle.w; }
 };

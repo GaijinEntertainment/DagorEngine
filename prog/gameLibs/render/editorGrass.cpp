@@ -102,7 +102,7 @@ void EditorGrass::removeAllLayers()
   for (unsigned int layerNo = 0; layerNo < layers.size(); layerNo++)
   {
     GrassLayer *layer = layers[layerNo];
-    ::release_game_resource((GameResource *)layer->resource);
+    releaseLayerResource(layer->resource);
 
     delete layer;
   }
@@ -149,7 +149,7 @@ bool EditorGrass::changeLayerResource(int layer_i, const char *resName)
   GrassLayer &layer = *layers[layer_i];
 
   // clear layer
-  ::release_game_resource((GameResource *)layer.resource);
+  releaseLayerResource(layer.resource);
 
   GameResource *res = loadLayerResource(resName);
   layer.resource = (RenderableInstanceLodsResource *)res;

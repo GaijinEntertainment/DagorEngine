@@ -4,7 +4,7 @@ require DagorMaterials
 require DagorShaders
 require DagorMath
 require DagorSystem
-require danetlibs.renderer.includes.render_events
+require gameLibs.render_events.render_events
 
 let paintColorVarId = get_shader_variable_id("paint_color", true)
 def set_paint_color(paintColor : float4; var animchar_render : AnimcharRendComponent&)

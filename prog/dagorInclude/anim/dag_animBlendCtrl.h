@@ -44,7 +44,7 @@ public:
   virtual void destroy() {}
 
   virtual void buildBlendingList(BlendCtx & /*bctx*/, real /*w*/) {}
-  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
 
   const char *class_name() const override { return "AnimBlendNodeNull"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendNodeNullCID || IAnimBlendNode::isSubOf(id); }
@@ -74,7 +74,7 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual real getAvgSpeed(IPureAnimStateHolder &st) { return slice.size() ? slice[0].node->getAvgSpeed(st) : 0; }
@@ -110,10 +110,10 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
 
   // run-time routines
-  void enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time, real max_lag = 0.1);
+  void enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time);
   void resetQueue(IPureAnimStateHolder &st, bool leave_cur_state);
   bool isEnqueued(IPureAnimStateHolder &st, IAnimBlendNode *n);
 
@@ -138,8 +138,9 @@ public:
   };
 
 protected:
-  Tab<RandomAnim> list;
+  dag::Vector<RandomAnim> list;
   int paramId, repParamId;
+  volatile int rndSeed;
 
 public:
   AnimBlendCtrl_RandomSwitcher(AnimationGraph &graph, const char *param_name);
@@ -147,7 +148,7 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
@@ -195,23 +196,29 @@ public:
     real baseVal;
   };
 
-protected:
-  real morphTime;
+  struct MorphTimeOverride
+  {
+    IAnimBlendNode *from;
+    IAnimBlendNode *to;
+    real morphTime;
+  };
+
   Tab<ItemAnim> list;
   Tab<int> rewindBitmapParamsIds;
+  Tab<MorphTimeOverride> morphTimeOverride;
+  real morphTime;
   int paramId;
   int residualParamId;
   int lastAnimParamId;
   int fifoParamId;
   bool continuousAnimMode;
 
-public:
   AnimBlendCtrl_ParametricSwitcher(AnimationGraph &graph, const char *param_name, const char *res_pname = NULL);
 
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
   virtual void resume(IPureAnimStateHolder &st, bool rewind);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
@@ -252,7 +259,7 @@ class AnimBlendCtrl_Hub : public IAnimBlendNode
 protected:
   PtrTab<IAnimBlendNode> nodes;
   int paramId = -1;
-  Tab<float> defNodeWt; // default properties; applied on reset
+  Tab<float> defNodeWt; // default properties; applied on setDefaultState
 
 public:
   void finalizeInit(AnimationGraph &graph, const char *param_name);
@@ -261,7 +268,7 @@ public:
 
   // general blending interface
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
@@ -324,7 +331,7 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
@@ -376,7 +383,7 @@ public:
 
   // general blending interface
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
 
@@ -428,7 +435,7 @@ public:
   virtual void destroy();
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
   virtual bool validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n);
   virtual void collectUsedBlendNodes(AnimationGraph &g, used_blend_nodes_t &nodes_set);
   virtual bool isAliasOf(IPureAnimStateHolder &st, IAnimBlendNode *n);
@@ -469,7 +476,7 @@ public:
   static constexpr int MAX_TAGS_COUNT = 64;
   virtual void destroy() {}
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
   const char *class_name() const override { return "AnimBlendCtrl_SetMotionMatchingTag"; }
   virtual bool isSubOf(DClassID id) { return id == AnimBlendCtrl_SetMotionMatchingTagCID || IAnimBlendNode::isSubOf(id); }
   static void createNode(AnimationGraph &graph, const DataBlock &blk, const char *nm_suffix);
@@ -520,7 +527,7 @@ public:
   virtual void seekToSyncTime(IPureAnimStateHolder &st, real offset);
   virtual void pause(IPureAnimStateHolder &st);
   virtual void resume(IPureAnimStateHolder &st, bool rewind);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
   virtual void seek(IPureAnimStateHolder &st, real rel_pos);
   virtual real tell(IPureAnimStateHolder &st);
 
@@ -533,7 +540,6 @@ public:
   // creation-time routines
   void setAnim(AnimData *a);
   void setRange(int tStart, int tEnd, real anim_time, float move_dist, const char *name);
-  int getKeyTime(const char *key);
   void setSyncTime(const char *syncKey);
   void setSyncTime(real stime);
   void setEndOfAnimIrq(bool on);
@@ -573,7 +579,7 @@ public:
   AnimBlendNodeStillLeaf(AnimationGraph &graph, AnimData *a, int ct) : AnimBlendNodeLeaf(graph, a) { ctPos = ct; }
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder & /*st*/) {}
+  virtual void setDefaultState(IPureAnimStateHolder & /*st*/) {}
   virtual real getAvgSpeed(IPureAnimStateHolder & /*st*/) { return 0; }
 
   // creation-time routines
@@ -599,13 +605,14 @@ public:
   real paramMulK, paramAddK;
   bool looping;
   bool updateOnParamChanged;
+  bool eoaIrq;
 
   Tab<IrqPos> irqs;
 
   AnimBlendNodeParametricLeaf(AnimationGraph &graph, AnimData *a, const char *param_name, bool upd_pc);
 
   virtual void buildBlendingList(BlendCtx &bctx, real w);
-  virtual void reset(IPureAnimStateHolder &st);
+  virtual void setDefaultState(IPureAnimStateHolder &st);
 
   virtual bool isInRange(IPureAnimStateHolder &st, int rangeId);
   virtual real getDuration(IPureAnimStateHolder & /*st*/) { return 0.0; }
@@ -617,12 +624,7 @@ public:
   void setRange(const char *keyStart, const char *keyEnd, real p0, real p1, const char *name);
   void setParamKoef(real mulk, real addk);
   void setLooping(bool loop);
-  void setupIrq(const DataBlock &blk, const char *anim_suffix)
-  {
-    IrqPos::setupIrqs(irqs, anim, t0, dt, blk, anim_suffix);
-    if (irqs.size() && paramLastId < 0)
-      paramLastId = graph.addParamId(String(0, ":%s:p", graph.getParamName(paramId)), IPureAnimStateHolder::PT_ScalarParamInt);
-  }
+  void setupIrq(const DataBlock &blk, const char *anim_suffix);
   void debugSetIrqPos(const char *irq_name, float rel_pos) override { IrqPos::debug_set_irq_pos(irq_name, rel_pos, irqs, t0, dt); }
 
   const char *class_name() const override { return "AnimBlendNodeParametricLeaf"; }

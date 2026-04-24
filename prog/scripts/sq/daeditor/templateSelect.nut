@@ -2,7 +2,7 @@ import "daEditorEmbedded" as daEditor
 from "%darg/ui_imports.nut" import *
 
 let entity_editor = require_optional("entity_editor")
-let { showTemplateSelect, editorIsActive, showDebugButtons, selectedTemplatesGroup, addEntityCreatedCallback } = require("state.nut")
+let { showTemplateSelect, editorIsActive, showDebugButtons, selectedTemplatesGroup, addEntityCreatedCallback, allScenesWatcher, getAllScenes } = require("state.nut")
 let { colors } = require("components/style.nut")
 let txt = require("%daeditor/components/text.nut").dtext
 
@@ -13,12 +13,12 @@ let combobox = require("%daeditor/components/combobox.nut")
 let { makeVertScroll } = require("%daeditor/components/scrollbar.nut")
 let { mkTemplateTooltip } = require("components/templateHelp.nut")
 
-let { getSceneLoadTypeText } = require("%daeditor/daeditor_es.nut")
-let { defaultScenesSortMode } = require("components/mkSortSceneModeButton.nut")
+let { sceneToComboboxEntry, canSceneBeModified } = require("%daeditor/daeditor_es.nut")
+let { sortScenesByLoadType } = require("components/sceneSorting.nut")
 let {DE4_MODE_SELECT} = daEditor
 
 const noSceneSelected = "UNKNOWN:0"
-let allScenes = Watched([])
+let allModifiableScenes = Watched([])
 let allSceneTexts = Watched([noSceneSelected])
 let selectedScene = Watched(noSceneSelected)
 let selectedItem = Watched(null)
@@ -31,7 +31,7 @@ addEntityCreatedCallback(@(_eid) set_kb_focus(null))
 
 function scrollByName(text) {
   scrollHandler.scrollToChildren(function(desc) {
-    return ("tpl_name" in desc) && desc.tpl_name.indexof(text)!=null
+    return ("tpl_name" in desc) && desc.tpl_name.contains(text)
   }, 2, false, true)
 }
 
@@ -51,8 +51,7 @@ function doSelectTemplate(tpl_name) {
 
 let filter = nameFilter(filterText, {
   placeholder = "Filter by name"
-
-  function onChange(text) {
+  onChange = function(text) {
     filterText.set(text)
 
     if (selectedItem.get() && text.len()>0 && selectedItem.get().tolower().contains(text.tolower()))
@@ -62,16 +61,10 @@ let filter = nameFilter(filterText, {
     else
       scrollBySelection()
   }
-
-  function onEscape() {
-    set_kb_focus(null)
-  }
-
-  function onReturn() {
-    set_kb_focus(null)
-  }
-
-  function onClear() {
+  onEscape = @() set_kb_focus(null)
+  onReturn = @() set_kb_focus(null)
+  onAttach = @(elem) set_kb_focus(elem)
+  onClear = function() {
     filterText.set("")
     set_kb_focus(null)
   }
@@ -79,20 +72,10 @@ let filter = nameFilter(filterText, {
 
 let templPostfix = nameFilter(templatePostfixText, {
   placeholder = "Template postfix"
-
-  function onChange(text) {
-    templatePostfixText.set(text)
-  }
-
-  function onEscape() {
-    set_kb_focus(null)
-  }
-
-  function onReturn() {
-    set_kb_focus(null)
-  }
-
-  function onClear() {
+  onChange = @(text) templatePostfixText.set(text)
+  onEscape = @() set_kb_focus(null)
+  onReturn = @() set_kb_focus(null)
+  onClear = function() {
     templatePostfixText.set("")
     set_kb_focus(null)
   }
@@ -207,67 +190,45 @@ function doValidateTemplates(idx) {
 }
 doRepeatValidateTemplates = doValidateTemplates
 
-function sceneToText(scene) {
-  if (scene.importDepth != 0) {
-    local loadType = getSceneLoadTypeText(scene)
-    return $"{loadType}:{scene.index}"
-  }
-  return "MAIN"
-}
-
-allScenes.subscribe_with_nasty_disregard_of_frp_update(function(v) {
-  allSceneTexts.set(v.map(@(scene, _idx) sceneToText(scene)))
+allModifiableScenes.subscribe_with_nasty_disregard_of_frp_update(function(v) {
+  allSceneTexts.set(v.filter(@(scene) canSceneBeModified(scene)).map(@(scene, _idx) sceneToComboboxEntry(scene)))
   allSceneTexts.get().append(noSceneSelected)
   local scene = entity_editor?.get_instance().getTargetScene()
-  if (scene != null && ("loadType" in scene) && ("index" in scene)) {
-    selectedScene.set(sceneToText(scene))
+  let sceneText = (scene != null && ("loadType" in scene) && ("id" in scene)) ? sceneToComboboxEntry(scene) : null
+  if (sceneText != null && allSceneTexts.get().contains(sceneText)) {
+    selectedScene.set(sceneText)
   } else {
     selectedScene.set(noSceneSelected)
   }
 })
 
-selectedScene.subscribe(function(v) {
-  local loadType = 0
-  local index = 0
-  if (v != noSceneSelected) {
-    local selectedSceneIndex = allSceneTexts.get().indexof(v)
-    if (selectedSceneIndex != null) {
-      local scene = allScenes.get()[selectedSceneIndex]
-      loadType = scene.loadType
-      index = scene.index
-    }
-  }
-  entity_editor?.get_instance().setTargetScene(loadType, index)
-})
-
-
 function dialogRoot() {
   let templatesGroups = entity_editor?.get_instance().getEcsTemplatesGroups()
   let maxTemplatesInList = 1000
 
-  local scenes = entity_editor?.get_instance().getSceneImports() ?? []
-  scenes.sort(defaultScenesSortMode.func)
-  allScenes.set(scenes)
+  local scenes = getAllScenes().map(function (item, ind) {
+      item.index <- ind
+      return item
+      }) ?? [] // get a copy to avoid sorting allScenes
+  scenes.sort(sortScenesByLoadType)
+  allModifiableScenes.set(scenes.filter(@(scene) canSceneBeModified(scene)))
   let selectedSceneIndex = selectedScene.get() != noSceneSelected ? allSceneTexts.get().indexof(selectedScene.get()) : null
   let sceneInfo = selectedSceneIndex != null ? scenes[selectedSceneIndex] : null
   let sceneTitleStyle = { fontSize = hdpx(17), color=Color(150,150,150,120) }
   let sceneInfoStyle = { fontSize = hdpx(17), color=Color(180,180,180,120) }
-  let sceneTooltip = function() {
-    return {
-      rendObj = ROBJ_BOX
-      fillColor = Color(30, 30, 30, 220)
-      borderColor = Color(50, 50, 50, 110)
-      size = SIZE_TO_CONTENT
-      borderWidth = hdpx(1)
-      padding = fsh(1)
-      flow = FLOW_VERTICAL
-      children = [
-        txt("Select target scene to create entity in", sceneTitleStyle)
-        txt(selectedScene.get(), sceneInfoStyle)
-        sceneInfo != null ? txt($"{sceneInfo.path}", sceneInfoStyle) : null
-      ]
-
-    }
+  let sceneTooltip = @() {
+    rendObj = ROBJ_BOX
+    fillColor = Color(30, 30, 30, 220)
+    borderColor = Color(50, 50, 50, 110)
+    size = SIZE_TO_CONTENT
+    borderWidth = hdpx(1)
+    padding = fsh(1)
+    flow = FLOW_VERTICAL
+    children = [
+      txt("Select target scene to create entity in", sceneTitleStyle)
+      txt(selectedScene.get(), sceneInfoStyle)
+      sceneInfo != null ? txt($"{sceneInfo.path}", sceneInfoStyle) : null
+    ]
   }
 
   function listContent() {
@@ -301,15 +262,13 @@ function dialogRoot() {
     scrollHandler
     rootBase = {
       size = flex()
-      function onAttach() {
-        scrollBySelection()
-      }
+      onAttach = @() scrollBySelection()
     }
   })
 
 
   function doClose() {
-    showTemplateSelect(false)
+    showTemplateSelect.set(false)
     filterText.set("")
     daEditor.setEditMode(DE4_MODE_SELECT)
   }
@@ -327,7 +286,7 @@ function dialogRoot() {
     size = [flex(), flex()]
     flow = FLOW_HORIZONTAL
 
-    watch = [filteredTemplatesCount, selectedGroupTemplatesCount, showDebugButtons, templateTooltip, selectedScene]
+    watch = [filteredTemplatesCount, selectedGroupTemplatesCount, showDebugButtons, templateTooltip, selectedScene, allScenesWatcher]
 
     children = [
       {
@@ -357,10 +316,23 @@ function dialogRoot() {
               closeButton(doClose)
             ]
           }
-
           {
             size = [flex(),fontH(100)]
-            children = combobox(selectedScene, allSceneTexts, sceneTooltip)
+            children = combobox({
+              value = selectedScene
+              update = function(v) {
+                local id = -1
+                if (v != noSceneSelected) {
+                  local selectedBoxItem = allSceneTexts.get().indexof(v)
+                  if (selectedBoxItem != null) {
+                    local scene = allModifiableScenes.get()[selectedBoxItem]
+                    id = scene.id
+                  }
+                }
+                entity_editor?.get_instance().setTargetScene(id)
+                selectedScene.set(v)
+              }
+            }, allSceneTexts, sceneTooltip)
           }
 
           {

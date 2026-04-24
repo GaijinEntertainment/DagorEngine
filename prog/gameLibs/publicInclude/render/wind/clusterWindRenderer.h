@@ -14,6 +14,7 @@ class ClusterWindCascade;
 class ClusterWindRenderer
 {
   void updateSecondClusterWindGridsDesc();
+  bool fillClusterGPUBuffer();
 
 public:
   void updateClusterBuffer(const void *clusters, int num); // avoid circular definition
@@ -27,7 +28,7 @@ public:
   carray<Tab<ClusterCascadeDescGpu>, 2u> cascadeDescArr;
   carray<Tab<uint4>, 2u> gridsIdArr;
 
-
+  void afterResetDevice();
   void updateCurrentRendererIndex();
   bool getClusterDescForCpuSim(int num, ClusterDescGpu &outputClusterDescGpu);
   ClusterCascadeDescGpu getClusterCascadeDescForCpuSim(int num) { return cascadeDescArr[(currentClusterIndex + 1u) % 2u][num]; };

@@ -8,19 +8,19 @@
 #include <extents.h>
 #include <format_store.h>
 #include <image_view_state.h>
-#include <resource_memory.h>
 #include <texture.h>
-#include <texture_subresource_util.h>
 
 #include <dag/dag_vector.h>
 #include <generic/dag_objectPool.h>
 #include <math/dag_adjpow2.h>
 #include <osApiWrappers/dag_spinlock.h>
-#include <supp/dag_comPtr.h>
+
+#include <EASTL/sort.h>
 
 
 namespace drv3d_dx12
 {
+extern bool ignore_resource_leaks_on_exit;
 
 inline uint64_t calculate_texture_alignment(uint64_t width, uint32_t height, uint32_t depth, uint32_t samples,
   D3D12_TEXTURE_LAYOUT layout, D3D12_RESOURCE_FLAGS flags, drv3d_dx12::FormatStore format)
@@ -154,7 +154,8 @@ protected:
 #if DAGOR_DBGLEVEL > 0
     bufferPool.iterateAllocated([](auto buffer) { logwarn("DX12: Buffer <%s> still alive!", buffer->getBufName()); });
 #endif
-    G_ASSERTF(0 == sz, "DX12: Shutdown without destroying all buffers, there are still %u buffers alive!", sz);
+    if (!drv3d_dx12::ignore_resource_leaks_on_exit)
+      G_ASSERTF(0 == sz, "DX12: Shutdown without destroying all buffers, there are still %u buffers alive!", sz);
     G_UNUSED(sz);
     bufferPool.freeAll();
 
@@ -230,7 +231,8 @@ protected:
     dag::Vector<TextureInterfaceBase *> freedTextureObjects;
   };
 
-  ContainerMutexWrapper<ObjectPool<TextureInterfaceBase>, OSSpinlock> texturePool;
+  using TexturePoolWrapper = ContainerMutexWrapper<ObjectPool<TextureInterfaceBase>, OSSpinlock>;
+  TexturePoolWrapper texturePool;
 
   void shutdown()
   {
@@ -316,7 +318,8 @@ class ImageObjectProvider : public TextureObjectProvider
   using BaseType = TextureObjectProvider;
 
 protected:
-  ContainerMutexWrapper<ObjectPool<Image>, OSSpinlock> imageObjectPool;
+  using ImagePoolState = ContainerMutexWrapper<ObjectPool<Image>, OSSpinlock>;
+  ImagePoolState imageObjectPool;
 
   ImageObjectProvider() = default;
   ~ImageObjectProvider() = default;
@@ -341,6 +344,12 @@ protected:
   Image *newImageObject(Args &&...args)
   {
     return imageObjectPool.access()->allocate(eastl::forward<Args>(args)...);
+  }
+
+  template <typename... Args>
+  Image *newImageObjectNoLock(ImagePoolState::AccessToken &access, Args &&...args)
+  {
+    return access->allocate(eastl::forward<Args>(args)...);
   }
 
   void deleteImageObject(Image *image) { imageObjectPool.access()->free(image); }

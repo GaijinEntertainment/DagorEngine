@@ -52,6 +52,7 @@ private:
   float externalValue; // The value, which is known externally (either sent through onWcChange() or set externally).
   int precision;
   bool textInputFocused = false;
+  bool textInputActive = false;
   SpinnerButtonId draggedSpinnerButton = SpinnerButtonId::Nothing;
 };
 

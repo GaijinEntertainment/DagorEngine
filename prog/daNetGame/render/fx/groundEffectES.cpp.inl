@@ -1,7 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <daECS/core/updateStage.h>
 #include <daECS/core/coreEvents.h>
 
@@ -41,7 +45,7 @@ __forceinline float unoise2D(int x, int y, uint32_t seed, float min, float max)
 }
 
 template <typename Callable>
-inline void ground_fx_stop_ecs_query(ecs::EntityId, Callable c);
+inline void ground_fx_stop_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 class GroundEffectManager
 {
@@ -226,7 +230,7 @@ protected:
   void updateCellProcessed(int x, int y, bool active, float spawnRate)
   {
     unsigned id = getCellId(x, y);
-    ground_fx_stop_ecs_query(fxPool[id], [](TheEffect &effect) {
+    ground_fx_stop_ecs_query(*g_entity_mgr, fxPool[id], [](TheEffect &effect) {
       for (auto &fx : effect.getEffects())
         acesfx::kill_effect(fx.fx);
     });
@@ -316,16 +320,17 @@ ECS_AUTO_REGISTER_COMPONENT(GroundEffectManager, "ground_effect__manager", nullp
 
 
 template <typename Callable>
-void get_camera_position_ecs_query(ecs::EntityId, Callable);
+void get_camera_position_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 ECS_AFTER(camera_animator_update_es)
 ECS_TAG(render)
-static void update_ground_effects_es(const ecs::UpdateStageInfoAct &, ecs::EntityId eid, GroundEffectManager &ground_effect__manager)
+static void update_ground_effects_es(
+  const ecs::UpdateStageInfoAct &, ecs::EntityManager &manager, ecs::EntityId eid, GroundEffectManager &ground_effect__manager)
 {
   Point3 camPos(0, 0, 0);
-  get_camera_position_ecs_query(get_cur_cam_entity(), [&](const TMatrix &transform) { camPos = transform.getcol(3); });
+  get_camera_position_ecs_query(manager, get_cur_cam_entity(), [&](const TMatrix &transform) { camPos = transform.getcol(3); });
   if (!ground_effect__manager.isValid() || !ground_effect__manager.update(camPos))
-    g_entity_mgr->destroyEntity(eid);
+    manager.destroyEntity(eid);
 }
 
 ECS_TAG(render)

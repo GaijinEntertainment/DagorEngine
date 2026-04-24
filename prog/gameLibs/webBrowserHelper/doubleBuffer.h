@@ -97,7 +97,7 @@ private:
     {
       const char *texName = getNextTexName();
       TextureBuffer &b = this->buffers[i];
-      b.data = d3d::create_tex(nullptr, (int)w, (int)h, flags, 1, texName);
+      b.data = d3d::create_tex(nullptr, (int)w, (int)h, flags, 1, texName, RESTAG_GUI);
       if (!b.data)
         return false;
 

@@ -5,11 +5,13 @@ BuildingTools = yes ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 UseD3DMulti = yes ;
-UseD3DMultiList_windows = DX11 stub ;
-UseD3DMultiList_linux   = vulkan stub ;
+if ! $(UseD3DMultiList) {
+  UseD3DMultiList_windows = DX11 DX12 vulkan stub ;
+  UseD3DMultiList_linux   = vulkan stub ;
+}
 
 TargetType  = exe ;
-Target = tools/sceneTools/daEditorX/daEditor3x.exe ;
+Target = tools/sceneTools/daEditorX/daEditor3x ;
 include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
@@ -39,10 +41,10 @@ Sources =
   plugin_dlg.cpp
   de_startdlg.cpp
   de_workspace.cpp
+  de_preferencesDialog.cpp
   de_ProjectSettings.cpp
   de_screenshotMetaInfoLoader.cpp
   de_viewportWindow.cpp
-  de_batch.cpp
   de_environment.cpp
   de_ecsPull.cpp
   car_camera_elem.cpp
@@ -60,7 +62,6 @@ if $(Platform) = windows {
 }
 
 UseProgLibs =
-  engine/memory/rtlOverride
   engine/startup
   engine/math
   engine/lib3d
@@ -177,10 +178,11 @@ UseProgLibs =
   gameLibs/render/nodeBasedShader
   gameLibs/render/fx
   gameLibs/nodeBasedShaderManager/stub
-  gameLibs/ecs/hierarchyTransform
+  engine/daECS/hierarchyTransform
   gameLibs/ecs/rendInst/stub
-  gameLibs/daECS/scene
-  gameLibs/daECS
+  engine/daECS/gameResStub
+  engine/daECS/scene
+  engine/daECS
   gameLibs/daFx
   gameLibs/eventLog
 
@@ -218,19 +220,15 @@ Sources += gamePulls.jamvar ;
 
 ImportProgLibs = tools/libTools/daKernel ;
 
-if $(KernelLinkage) != dynamic {
-  local memory_lib = memory ;
-  if $(PlatformSpec) = clang && $(Sanitize) = address { memory_lib = memory/rtlStdMemory ; }
-
-  UseProgLibs =
-    engine/osApiWrappers
-    engine/kernel
-    engine/$(memory_lib)
-    engine/ioSys
-    engine/baseUtil
-    $(UseProgLibs)
+if $(KernelLinkage) = dynamic {
+  ImportsRelativeDir = . ;
+}
+else {
+  include $(Root)/prog/tools/sceneTools/assetExp/dabuild_static.jam ;
+  UseProgLibs +=
     tools/libTools/ObjectEditor
     tools/libTools/util
+    tools/libTools/scriptHelpers
 
     tools/sceneTools/daEditorX/HeightmapLand
     tools/sceneTools/daEditorX/IvyGen
@@ -238,9 +236,10 @@ if $(KernelLinkage) != dynamic {
     tools/sceneTools/daEditorX/StaticGeom
     tools/sceneTools/daEditorX/csg
   ;
+  Dependencies += $(Root)/prog/tools/sceneTools/assetExp/jamfile-lib.jam ;
 
   if [ GLOB $(Root)/skyquake/prog/tools : * ] { # FIXME_BROKEN_DEP
-    ProjectUseQuirrel = sq3r+ ;
+    UseQuirrel = yes ;
     ProjectAllowsOodle = yes ;
     UseRootLibs =
       skyquake/prog/tools/daEditorX/missionEd2    # FIXME_BROKEN_DEP

@@ -166,10 +166,10 @@ macro SAMPLE_PREV_AGE_SP(code)
     {
       float3 oldUv_w;
       if (!reproject_probe_uv_campos(curCamPos, oldUv_w))
-        return SP_TAG_BORN_HISTORY_AGE;
+        return SP_NEWBORN_REV_AGE;
       float4 cornerW; uint2 probe_coords[4]; uint4 encodedProbes;
       if (!sample_bilinear_prev_radiance_info(curCamPos + sp_prev_camera_pos_movement, sceneNormal, sceneLinearDepth, oldUv_w.xy, oldUv_w.z, cornerW, probe_coords, encodedProbes))
-        return SP_TAG_BORN_HISTORY_AGE;
+        return SP_NEWBORN_REV_AGE;
       //youngest used
       float4 revAge4 = encodedProbes>>(SP_TAG_BITS_SHIFT + SP_TAG_AGE_SHIFT);
       return uint(dot(revAge4, cornerW) + 0.4999);//round

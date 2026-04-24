@@ -11,7 +11,7 @@ let showGameMenu = mkWatched(persist, "showGameMenu", false)
 let closeMenu = @() showGameMenu.set(false)
 let gameMenu = @() {
   size = flex() rendObj = ROBJ_WORLD_BLUR fillColor = Color(0,0,0,220)
-  padding = static [sh(30),0,0,sw(30)]
+  padding = const [sh(30),0,0,sw(30)]
   behavior = DngBhv.ActivateActionSet
   actionSet = "StopInput"
   hotkeys = [["@HUD.GameMenu", closeMenu]]

@@ -34,7 +34,8 @@ static void prepare_aim_occlusion_es_all_events(const ecs::Event &__restrict evt
     if ( !(ECS_RO_COMP(prepare_aim_occlusion_es_comps, "camera__active", bool)) )
       continue;
     prepare_aim_occlusion_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-          , ECS_RO_COMP(prepare_aim_occlusion_es_comps, "aim_data__gunEid", ecs::EntityId)
+          , components.manager()
+      , ECS_RO_COMP(prepare_aim_occlusion_es_comps, "aim_data__gunEid", ecs::EntityId)
       , ECS_RO_COMP(prepare_aim_occlusion_es_comps, "aim_data__isAiming", bool)
       );
   } while (++comp != compE);
@@ -60,7 +61,8 @@ static void scope_quality_render_features_changed_es_all_events(const ecs::Event
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     scope_quality_render_features_changed_es(evt
-        , ECS_RO_COMP(scope_quality_render_features_changed_es_comps, "render_settings__scopeImageQuality", int)
+        , components.manager()
+    , ECS_RO_COMP(scope_quality_render_features_changed_es_comps, "render_settings__scopeImageQuality", int)
     );
   while (++comp != compE);
 }
@@ -138,9 +140,9 @@ static ecs::CompileTimeQueryDesc nightvision_lens_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void nightvision_lens_ecs_query(ecs::EntityId eid, Callable function)
+inline void nightvision_lens_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, nightvision_lens_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, nightvision_lens_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -166,9 +168,9 @@ static ecs::CompileTimeQueryDesc set_scope_lens_phys_params_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void set_scope_lens_phys_params_ecs_query(ecs::EntityId eid, Callable function)
+inline void set_scope_lens_phys_params_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, set_scope_lens_phys_params_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, set_scope_lens_phys_params_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -196,9 +198,9 @@ static ecs::CompileTimeQueryDesc in_vehicle_cockpit_ecs_query_desc
   make_span(in_vehicle_cockpit_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void in_vehicle_cockpit_ecs_query(Callable function)
+inline void in_vehicle_cockpit_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, in_vehicle_cockpit_ecs_query_desc.getHandle(),
+  perform_query(&manager, in_vehicle_cockpit_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -226,9 +228,9 @@ static ecs::CompileTimeQueryDesc get_hero_cockpit_entities_with_prepass_flag_ecs
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_hero_cockpit_entities_with_prepass_flag_ecs_query(Callable function)
+inline void get_hero_cockpit_entities_with_prepass_flag_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_hero_cockpit_entities_with_prepass_flag_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_hero_cockpit_entities_with_prepass_flag_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -256,9 +258,9 @@ static ecs::CompileTimeQueryDesc reprojection_cockpit_data_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void reprojection_cockpit_data_ecs_query(ecs::EntityId eid, Callable function)
+inline void reprojection_cockpit_data_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, reprojection_cockpit_data_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, reprojection_cockpit_data_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -287,9 +289,9 @@ static ecs::CompileTimeQueryDesc put_into_occlusion_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void put_into_occlusion_ecs_query(Callable function)
+inline void put_into_occlusion_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, put_into_occlusion_ecs_query_desc.getHandle(),
+  perform_query(&manager, put_into_occlusion_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -321,9 +323,9 @@ static ecs::CompileTimeQueryDesc process_animchar_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void process_animchar_ecs_query(ecs::EntityId eid, Callable function)
+inline void process_animchar_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, process_animchar_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, process_animchar_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -362,9 +364,9 @@ static ecs::CompileTimeQueryDesc render_scope_reticle_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void render_scope_reticle_ecs_query(ecs::EntityId eid, Callable function)
+inline void render_scope_reticle_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, render_scope_reticle_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, render_scope_reticle_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -401,15 +403,99 @@ static ecs::CompileTimeQueryDesc render_scope_trans_ecs_query_desc
   make_span(render_scope_trans_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void render_scope_trans_ecs_query(ecs::EntityId eid, Callable function)
+inline void render_scope_trans_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, render_scope_trans_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, render_scope_trans_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
         {
           function(
               ECS_RW_COMP(render_scope_trans_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+            );
+
+        }
+    }
+  );
+}
+static constexpr ecs::ComponentDesc scope_should_hide_crosshair_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("scopeHideCrosshair"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL}
+};
+static ecs::CompileTimeQueryDesc scope_should_hide_crosshair_ecs_query_desc
+(
+  "scope_should_hide_crosshair_ecs_query",
+  empty_span(),
+  make_span(scope_should_hide_crosshair_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void scope_should_hide_crosshair_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
+{
+  perform_query(&manager, eid, scope_should_hide_crosshair_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RO_COMP_PTR(scope_should_hide_crosshair_ecs_query_comps, "scopeHideCrosshair", ecs::Tag)
+            );
+
+        }
+    }
+  );
+}
+static constexpr ecs::ComponentDesc scope_has_std_gui_crosshair_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("scopeHasGuiCrosshair"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL}
+};
+static ecs::CompileTimeQueryDesc scope_has_std_gui_crosshair_ecs_query_desc
+(
+  "scope_has_std_gui_crosshair_ecs_query",
+  empty_span(),
+  make_span(scope_has_std_gui_crosshair_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void scope_has_std_gui_crosshair_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
+{
+  perform_query(&manager, eid, scope_has_std_gui_crosshair_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RO_COMP_PTR(scope_has_std_gui_crosshair_ecs_query_comps, "scopeHasGuiCrosshair", ecs::Tag)
+            );
+
+        }
+    }
+  );
+}
+static constexpr ecs::ComponentDesc get_scope_wtm_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()}
+};
+static ecs::CompileTimeQueryDesc get_scope_wtm_ecs_query_desc
+(
+  "get_scope_wtm_ecs_query",
+  empty_span(),
+  make_span(get_scope_wtm_ecs_query_comps+0, 1)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void get_scope_wtm_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
+{
+  perform_query(&manager, eid, get_scope_wtm_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RO_COMP(get_scope_wtm_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
             );
 
         }
@@ -429,9 +515,9 @@ static ecs::CompileTimeQueryDesc get_dof_entity_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_dof_entity_ecs_query(Callable function)
+inline void get_dof_entity_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_dof_entity_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_dof_entity_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -446,22 +532,23 @@ inline void get_dof_entity_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc get_aim_dof_scope_ecs_query_comps[] =
 {
-//start of 3 ro components at [0]
+//start of 4 ro components at [0]
   {ECS_HASH("gunmod__focusPlaneShift"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("gunmod__dofNearAmountPercent"), ecs::ComponentTypeInfo<float>()},
-  {ECS_HASH("gunmod__dofFarAmountPercent"), ecs::ComponentTypeInfo<float>()}
+  {ECS_HASH("gunmod__dofFarAmountPercent"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("gunmod__realZoomDofFarAmountPercent"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL}
 };
 static ecs::CompileTimeQueryDesc get_aim_dof_scope_ecs_query_desc
 (
   "get_aim_dof_scope_ecs_query",
   empty_span(),
-  make_span(get_aim_dof_scope_ecs_query_comps+0, 3)/*ro*/,
+  make_span(get_aim_dof_scope_ecs_query_comps+0, 4)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
-inline bool get_aim_dof_scope_ecs_query(ecs::EntityId eid, Callable function)
+inline bool get_aim_dof_scope_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  return perform_query(g_entity_mgr, eid, get_aim_dof_scope_ecs_query_desc.getHandle(),
+  return perform_query(&manager, eid, get_aim_dof_scope_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -470,6 +557,7 @@ inline bool get_aim_dof_scope_ecs_query(ecs::EntityId eid, Callable function)
               ECS_RO_COMP(get_aim_dof_scope_ecs_query_comps, "gunmod__focusPlaneShift", float)
             , ECS_RO_COMP(get_aim_dof_scope_ecs_query_comps, "gunmod__dofNearAmountPercent", float)
             , ECS_RO_COMP(get_aim_dof_scope_ecs_query_comps, "gunmod__dofFarAmountPercent", float)
+            , ECS_RO_COMP_OR(get_aim_dof_scope_ecs_query_comps, "gunmod__realZoomDofFarAmountPercent", float(0.18))
             );
 
         }
@@ -489,9 +577,9 @@ static ecs::CompileTimeQueryDesc get_rearsight_dist_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline bool get_rearsight_dist_ecs_query(ecs::EntityId eid, Callable function)
+inline bool get_rearsight_dist_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  return perform_query(g_entity_mgr, eid, get_rearsight_dist_ecs_query_desc.getHandle(),
+  return perform_query(&manager, eid, get_rearsight_dist_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -518,9 +606,9 @@ static ecs::CompileTimeQueryDesc get_aim_dof_weap_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline bool get_aim_dof_weap_ecs_query(ecs::EntityId eid, Callable function)
+inline bool get_aim_dof_weap_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  return perform_query(g_entity_mgr, eid, get_aim_dof_weap_ecs_query_desc.getHandle(),
+  return perform_query(&manager, eid, get_aim_dof_weap_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -547,9 +635,9 @@ static ecs::CompileTimeQueryDesc enable_scope_lod_change_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void enable_scope_lod_change_ecs_query(ecs::EntityId eid, Callable function)
+inline void enable_scope_lod_change_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, enable_scope_lod_change_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, enable_scope_lod_change_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -575,9 +663,9 @@ static ecs::CompileTimeQueryDesc enable_scope_ri_lod_change_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void enable_scope_ri_lod_change_ecs_query(ecs::EntityId eid, Callable function)
+inline void enable_scope_ri_lod_change_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, enable_scope_ri_lod_change_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, enable_scope_ri_lod_change_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -592,7 +680,7 @@ inline void enable_scope_ri_lod_change_ecs_query(ecs::EntityId eid, Callable fun
 }
 static constexpr ecs::ComponentDesc prepare_scope_aim_rendering_data_ecs_query_comps[] =
 {
-//start of 13 ro components at [0]
+//start of 15 ro components at [0]
   {ECS_HASH("aim_data__lensNodeId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__lensCollisionNodeId"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("aim_data__crosshairNodeId"), ecs::ComponentTypeInfo<int>()},
@@ -604,20 +692,22 @@ static constexpr ecs::ComponentDesc prepare_scope_aim_rendering_data_ecs_query_c
   {ECS_HASH("aim_data__nightVision"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aim_data__nearDofEnabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("aim_data__simplifiedAimDof"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("aim_data__scopeWeaponLensZoomFactor"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("aim_data__legacyScopeWeaponLensZoomFactor"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("aim_data__crosshairFfpNodeId"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("aim_data__firstFocalPlaneZoomFactor"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("camera__active"), ecs::ComponentTypeInfo<bool>()}
 };
 static ecs::CompileTimeQueryDesc prepare_scope_aim_rendering_data_ecs_query_desc
 (
   "prepare_scope_aim_rendering_data_ecs_query",
   empty_span(),
-  make_span(prepare_scope_aim_rendering_data_ecs_query_comps+0, 13)/*ro*/,
+  make_span(prepare_scope_aim_rendering_data_ecs_query_comps+0, 15)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void prepare_scope_aim_rendering_data_ecs_query(Callable function)
+inline void prepare_scope_aim_rendering_data_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, prepare_scope_aim_rendering_data_ecs_query_desc.getHandle(),
+  perform_query(&manager, prepare_scope_aim_rendering_data_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -636,11 +726,47 @@ inline void prepare_scope_aim_rendering_data_ecs_query(Callable function)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__nightVision", bool)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__nearDofEnabled", bool)
             , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__simplifiedAimDof", bool)
-            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__scopeWeaponLensZoomFactor", float)
+            , ECS_RO_COMP(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__legacyScopeWeaponLensZoomFactor", float)
+            , ECS_RO_COMP_OR(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__crosshairFfpNodeId", int(-1))
+            , ECS_RO_COMP_OR(prepare_scope_aim_rendering_data_ecs_query_comps, "aim_data__firstFocalPlaneZoomFactor", float(1.0f))
             );
 
         }while (++comp != compE);
       }
+  );
+}
+static constexpr ecs::ComponentDesc get_dbg_scope_lens_ecs_query_comps[] =
+{
+//start of 4 ro components at [0]
+  {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
+  {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
+  {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("animchar_render__root_pos"), ecs::ComponentTypeInfo<vec3f>(), ecs::CDF_OPTIONAL}
+};
+static ecs::CompileTimeQueryDesc get_dbg_scope_lens_ecs_query_desc
+(
+  "get_dbg_scope_lens_ecs_query",
+  empty_span(),
+  make_span(get_dbg_scope_lens_ecs_query_comps+0, 4)/*ro*/,
+  empty_span(),
+  empty_span());
+template<typename Callable>
+inline void get_dbg_scope_lens_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
+{
+  perform_query(&manager, eid, get_dbg_scope_lens_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        constexpr size_t comp = 0;
+        {
+          function(
+              ECS_RO_COMP(get_dbg_scope_lens_ecs_query_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+            , ECS_RO_COMP(get_dbg_scope_lens_ecs_query_comps, "animchar_visbits", animchar_visbits_t)
+            , ECS_RO_COMP(get_dbg_scope_lens_ecs_query_comps, "animchar_render__enabled", bool)
+            , ECS_RO_COMP_OR(get_dbg_scope_lens_ecs_query_comps, "animchar_render__root_pos", vec3f(v_make_vec3f(333.0f, 444.0f, 555.0f)))
+            );
+
+        }
+    }
   );
 }
 static constexpr ecs::component_t bindedCamera_get_type(){return ecs::ComponentTypeInfo<ecs::EntityId>::type; }

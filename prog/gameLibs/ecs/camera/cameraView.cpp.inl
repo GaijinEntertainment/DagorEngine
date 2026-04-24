@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ecs/camera/getActiveCameraSetup.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <drv/3d/dag_viewScissor.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
@@ -103,7 +105,7 @@ CameraSetup get_active_camera_setup(ecs::EntityManager &manager)
   else // all good
     return camSetup;
   // bad camera's tm (not (ortho)normalized basis)
-  ECS_SET(camSetup.camEid, transform, camSetup.transform); // correct camera entity transform comp as well
+  ECS_SET_MGR(manager, camSetup.camEid, transform, camSetup.transform); // correct camera entity transform comp as well
   return camSetup;
 }
 

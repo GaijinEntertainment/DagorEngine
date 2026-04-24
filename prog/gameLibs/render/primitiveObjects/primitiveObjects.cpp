@@ -13,6 +13,8 @@
 #define MAX_SPHERE_SLICES 64
 #define MAX_SPHERE_STACKS 64
 
+#define MAX_CYLINDER_SLICES 256
+#define MAX_CYLINDER_STACKS 64
 
 void calc_sphere_vertex_face_count(uint32_t slices, uint32_t stacks, bool /*hemisphere*/, uint32_t &out_vertex_count,
   uint32_t &out_face_count)
@@ -43,10 +45,11 @@ void create_sphere_mesh(dag::Span<uint8_t> pVertex, dag::Span<uint8_t> pwFace, f
   uint32_t vert = 0;
   uint32_t texOffset = norm ? 24 : 12;
 
-#define SET_POS(a, b)                         \
-  do                                          \
-  {                                           \
-    (*((Point3 *)(&a[vert * stride])) = (b)); \
+#define SET_POS(a, b)                           \
+  do                                            \
+  {                                             \
+    if (stride > 0)                             \
+      (*((Point3 *)(&a[vert * stride])) = (b)); \
   } while (0)
 #define SET_NORM(a, b)                               \
   do                                                 \
@@ -139,17 +142,18 @@ void calc_cylinder_vertex_face_count(uint32_t slices, uint32_t stacks, uint32_t 
 void create_cylinder_mesh(dag::Span<uint8_t> pVertex, dag::Span<uint8_t> pwFace, float radius, float height, uint32_t slices,
   uint32_t stacks, uint32_t stride, bool norm, bool tex, bool use_32_instead_of_16_indices)
 {
-  G_ASSERT(stacks >= 3 && stacks <= MAX_SPHERE_STACKS);
-  G_ASSERT(slices >= 2 && slices <= MAX_SPHERE_SLICES);
+  G_ASSERT(stacks >= 3 && stacks <= MAX_CYLINDER_STACKS);
+  G_ASSERT(slices >= 2 && slices <= MAX_CYLINDER_SLICES);
 
   // Generate vertices
   uint32_t vert = 0;
   uint32_t texOffset = norm ? 24 : 12;
 
-#define SET_POS(a, b)                         \
-  do                                          \
-  {                                           \
-    (*((Point3 *)(&a[vert * stride])) = (b)); \
+#define SET_POS(a, b)                           \
+  do                                            \
+  {                                             \
+    if (stride > 0)                             \
+      (*((Point3 *)(&a[vert * stride])) = (b)); \
   } while (0)
 #define SET_NORM(a, b)                               \
   do                                                 \

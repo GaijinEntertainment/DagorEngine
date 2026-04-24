@@ -4,7 +4,7 @@ testData/static_analyzer/w263.nut:4:0
 for (local i = 0; i < 5; i++) // EXPECTED
 {
 ^
-  ::print(i)
+  print(i)
 
 
 WARNING: w263 (egyptian-braces) Indentation style: 'egyptian braces' required.

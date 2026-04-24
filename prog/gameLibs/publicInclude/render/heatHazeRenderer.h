@@ -22,13 +22,11 @@ public:
 
   struct RenderTargets
   {
-    TEXTUREID backBufferId = BAD_TEXTUREID;
     Texture *backBuffer = nullptr;
     const RectInt *backBufferArea = nullptr;
-    TEXTUREID depthId = BAD_TEXTUREID;
-    TEXTUREID resolvedDepthId = BAD_TEXTUREID;
+    Texture *depth = nullptr;
+    Texture *resolvedDepth = nullptr;
     Texture *hazeTemp = nullptr;
-    TEXTUREID hazeTempId = BAD_TEXTUREID;
     Texture *hazeOffset = nullptr;
     Texture *hazeDepth = nullptr;
     Texture *hazeColor = nullptr;
@@ -37,12 +35,12 @@ public:
   HeatHazeRenderer(int haze_resolution_divisor);
   ~HeatHazeRenderer();
 
-  void renderHazeParticles(Texture *haze_depth, Texture *haze_offset, TEXTUREID depth_tex_id, int depth_tex_lod,
+  void renderHazeParticles(Texture *haze_depth, Texture *haze_offset, Texture *depth_tex, int depth_tex_lod,
     RenderHazeParticlesCallback render_haze_particles, RenderCustomHazeCallback render_ri_haze, Texture *stencil = nullptr);
   void renderColorHaze(Texture *haze_color, RenderCustomHazeCallback render_haze_particles, RenderCustomHazeCallback render_ri_haze,
     Texture *stencil = nullptr);
-  void applyHaze(double total_time, Texture *back_buffer, const RectInt *back_buffer_area, TEXTUREID back_buffer_id,
-    TEXTUREID resolve_depth_tex_id, Texture *haze_temp, TEXTUREID haze_temp_id, const IPoint2 &back_buffer_resolution);
+  void applyHaze(double total_time, Texture *back_buffer, const RectInt *back_buffer_area, Texture *resolve_depth_tex,
+    Texture *haze_temp, const IPoint2 &back_buffer_resolution);
 
   void render(double total_time, const RenderTargets &targets, const IPoint2 &back_buffer_resolution, int depth_tex_lod,
     RenderHazeParticlesCallback render_haze_particles, RenderCustomHazeCallback render_ri_haze,

@@ -4,14 +4,15 @@
 #include "daScript/daScript.h"
 
 namespace das {
+
     inline bool saveToFile ( TextPrinter &tout, const string_view & fname, const string_view & str, bool quiet = false ) {
-        if ( !quiet )  {
-            tout << "saving to " << fname.data() << "\n";
-        }
-        FILE * f = fopen ( fname.data(), "w" );
+        FILE * f = fopen ( fname.data(), "wb" );
         if ( !f ) {
             tout << "can't open " << fname.data() << "\n";
             return false;
+        }
+        if ( !quiet )  {
+            tout << "saving to " << fname.data() << "\n";
         }
         fwrite ( str.data(), str.length(), 1, f );
         fclose ( f );
@@ -66,7 +67,7 @@ namespace das {
      * @param cppOutputDir output directory where context will be created
      * @param standaloneContextName class name
      */
-    void runStandaloneVisitor(ProgramPtr program, const string& cppOutputDir, const StandaloneContextCfg &cfg);
+    DAS_API void runStandaloneVisitor(ProgramPtr program, const string& cppOutputDir, const StandaloneContextCfg &cfg);
 }
 
 #endif //DAS_AST_AOT_CPP_H

@@ -1,6 +1,7 @@
 // MIT License
 
-// Copyright (c) 2023 Evan Pezent
+// Copyright (c) 2020-2024 Evan Pezent
+// Copyright (c) 2025 Breno Cunha Queiroz
 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -20,10 +21,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-// ImPlot v0.16
+// ImPlot v0.17
 
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
+#endif
 #include "implot.h"
+#ifndef IMGUI_DISABLE
 #include "implot_internal.h"
 
 //-----------------------------------------------------------------------------
@@ -94,7 +98,7 @@ static IMPLOT_INLINE float  ImInvSqrt(float x) { return 1.0f / sqrtf(x); }
     #define IMPLOT_NUMERIC_TYPES (ImS8)(ImU8)(ImS16)(ImU16)(ImS32)(ImU32)(ImS64)(ImU64)(float)(double)
 #endif
 
-// CALL_INSTANTIATE_FOR_NUMERIC_TYPES will duplicate the template instantion code `INSTANTIATE_MACRO(T)` on supported types.
+// CALL_INSTANTIATE_FOR_NUMERIC_TYPES will duplicate the template instantiation code `INSTANTIATE_MACRO(T)` on supported types.
 #define _CAT(x, y) _CAT_(x, y)
 #define _CAT_(x,y) x ## y
 #define _INSTANTIATE_FOR_NUMERIC_TYPES(chain) _CAT(_INSTANTIATE_FOR_NUMERIC_TYPES_1 chain, _END)
@@ -1287,7 +1291,7 @@ struct RendererShaded : RendererBase {
             return false;
         }
         const int intersect = (P11.y > P12.y && P22.y > P21.y) || (P12.y > P11.y && P21.y > P22.y);
-        ImVec2 intersection = Intersection(P11,P21,P12,P22);
+        const ImVec2 intersection = intersect == 0 ? ImVec2(0,0) : Intersection(P11,P21,P12,P22);
         draw_list._VtxWritePtr[0].pos = P11;
         draw_list._VtxWritePtr[0].uv  = UV;
         draw_list._VtxWritePtr[0].col = Col;
@@ -1569,6 +1573,10 @@ void RenderMarkers(const _Getter& getter, ImPlotMarker marker, float size, bool 
 template <typename _Getter>
 void PlotLineEx(const char* label_id, const _Getter& getter, ImPlotLineFlags flags) {
     if (BeginItemEx(label_id, Fitter1<_Getter>(getter), flags, ImPlotCol_Line)) {
+        if (getter.Count <= 0) {
+            EndItem();
+            return;
+        }
         const ImPlotNextItemData& s = GetItemData();
         if (getter.Count > 1) {
             if (ImHasFlag(flags, ImPlotLineFlags_Shaded) && s.RenderFill) {
@@ -1640,6 +1648,10 @@ void PlotLineG(const char* label_id, ImPlotGetter getter_func, void* data, int c
 template <typename Getter>
 void PlotScatterEx(const char* label_id, const Getter& getter, ImPlotScatterFlags flags) {
     if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_MarkerOutline)) {
+        if (getter.Count <= 0) {
+            EndItem();
+            return;
+        }
         const ImPlotNextItemData& s = GetItemData();
         ImPlotMarker marker = s.Marker == ImPlotMarker_None ? ImPlotMarker_Circle: s.Marker;
         if (marker != ImPlotMarker_None) {
@@ -1686,8 +1698,12 @@ void PlotScatterG(const char* label_id, ImPlotGetter getter_func, void* data, in
 template <typename Getter>
 void PlotStairsEx(const char* label_id, const Getter& getter, ImPlotStairsFlags flags) {
     if (BeginItemEx(label_id, Fitter1<Getter>(getter), flags, ImPlotCol_Line)) {
+        if (getter.Count <= 0) {
+            EndItem();
+            return;
+        }
         const ImPlotNextItemData& s = GetItemData();
-        if (getter.Count > 1 ) {
+        if (getter.Count > 1) {
             if (s.RenderFill && ImHasFlag(flags,ImPlotStairsFlags_Shaded)) {
                 const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
                 if (ImHasFlag(flags, ImPlotStairsFlags_PreStep))
@@ -1746,6 +1762,10 @@ void PlotStairsG(const char* label_id, ImPlotGetter getter_func, void* data, int
 template <typename Getter1, typename Getter2>
 void PlotShadedEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, ImPlotShadedFlags flags) {
     if (BeginItemEx(label_id, Fitter2<Getter1,Getter2>(getter1,getter2), flags, ImPlotCol_Fill)) {
+        if (getter1.Count <= 0 || getter2.Count <= 0) {
+            EndItem();
+            return;
+        }
         const ImPlotNextItemData& s = GetItemData();
         if (s.RenderFill) {
             const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
@@ -1806,6 +1826,10 @@ void PlotShadedG(const char* label_id, ImPlotGetter getter_func1, void* data1, I
 template <typename Getter1, typename Getter2>
 void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 getter2, double width, ImPlotBarsFlags flags) {
     if (BeginItemEx(label_id, FitterBarV<Getter1,Getter2>(getter1,getter2,width), flags, ImPlotCol_Fill)) {
+        if (getter1.Count <= 0 || getter2.Count <= 0) {
+            EndItem();
+            return;
+        }
         const ImPlotNextItemData& s = GetItemData();
         const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
         const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
@@ -1826,6 +1850,10 @@ void PlotBarsVEx(const char* label_id, const Getter1& getter1, const Getter2 get
 template <typename Getter1, typename Getter2>
 void PlotBarsHEx(const char* label_id, const Getter1& getter1, const Getter2& getter2, double height, ImPlotBarsFlags flags) {
     if (BeginItemEx(label_id, FitterBarH<Getter1,Getter2>(getter1,getter2,height), flags, ImPlotCol_Fill)) {
+        if (getter1.Count <= 0 || getter2.Count <= 0) {
+            EndItem();
+            return;
+        }
         const ImPlotNextItemData& s = GetItemData();
         const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]);
         const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
@@ -1982,6 +2010,10 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 template <typename _GetterPos, typename _GetterNeg>
 void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, ImPlotErrorBarsFlags flags) {
     if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), flags, IMPLOT_AUTO)) {
+        if (getter_pos.Count <= 0 || getter_neg.Count <= 0) {
+            EndItem();
+            return;
+        }
         const ImPlotNextItemData& s = GetItemData();
         ImDrawList& draw_list = *GetPlotDrawList();
         const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_ErrorBar]);
@@ -2003,6 +2035,10 @@ void PlotErrorBarsVEx(const char* label_id, const _GetterPos& getter_pos, const 
 template <typename _GetterPos, typename _GetterNeg>
 void PlotErrorBarsHEx(const char* label_id, const _GetterPos& getter_pos, const _GetterNeg& getter_neg, ImPlotErrorBarsFlags flags) {
     if (BeginItemEx(label_id, Fitter2<_GetterPos,_GetterNeg>(getter_pos, getter_neg), flags, IMPLOT_AUTO)) {
+        if (getter_pos.Count <= 0 || getter_neg.Count <= 0) {
+            EndItem();
+            return;
+        }
         const ImPlotNextItemData& s = GetItemData();
         ImDrawList& draw_list = *GetPlotDrawList();
         const ImU32 col = ImGui::GetColorU32(s.Colors[ImPlotCol_ErrorBar]);
@@ -2060,13 +2096,17 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 //-----------------------------------------------------------------------------
 
 template <typename _GetterM, typename _GetterB>
-void PlotStemsEx(const char* label_id, const _GetterM& get_mark, const _GetterB& get_base, ImPlotStemsFlags flags) {
-    if (BeginItemEx(label_id, Fitter2<_GetterM,_GetterB>(get_mark,get_base), flags, ImPlotCol_Line)) {
+void PlotStemsEx(const char* label_id, const _GetterM& getter_mark, const _GetterB& getter_base, ImPlotStemsFlags flags) {
+    if (BeginItemEx(label_id, Fitter2<_GetterM,_GetterB>(getter_mark,getter_base), flags, ImPlotCol_Line)) {
+        if (getter_mark.Count <= 0 || getter_base.Count <= 0) {
+            EndItem();
+            return;
+        }
         const ImPlotNextItemData& s = GetItemData();
         // render stems
         if (s.RenderLine) {
             const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
-            RenderPrimitives2<RendererLineSegments2>(get_mark, get_base, col_line, s.LineWeight);
+            RenderPrimitives2<RendererLineSegments2>(getter_mark, getter_base, col_line, s.LineWeight);
         }
         // render markers
         if (s.Marker != ImPlotMarker_None) {
@@ -2074,7 +2114,7 @@ void PlotStemsEx(const char* label_id, const _GetterM& get_mark, const _GetterB&
             PushPlotClipRect(s.MarkerSize);
             const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerOutline]);
             const ImU32 col_fill = ImGui::GetColorU32(s.Colors[ImPlotCol_MarkerFill]);
-            RenderMarkers<_GetterM>(get_mark, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
+            RenderMarkers<_GetterM>(getter_mark, s.Marker, s.MarkerSize, s.RenderMarkerFill, col_fill, s.RenderMarkerLine, col_line, s.MarkerWeight);
         }
         EndItem();
     }
@@ -2123,13 +2163,17 @@ template <typename T>
 void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLinesFlags flags, int offset, int stride) {
     const ImPlotRect lims = GetPlotLimits(IMPLOT_AUTO,IMPLOT_AUTO);
     if (ImHasFlag(flags, ImPlotInfLinesFlags_Horizontal)) {
-        GetterXY<IndexerConst,IndexerIdx<T>> get_min(IndexerConst(lims.X.Min),IndexerIdx<T>(values,count,offset,stride),count);
-        GetterXY<IndexerConst,IndexerIdx<T>> get_max(IndexerConst(lims.X.Max),IndexerIdx<T>(values,count,offset,stride),count);
-        if (BeginItemEx(label_id, FitterY<GetterXY<IndexerConst,IndexerIdx<T>>>(get_min), flags, ImPlotCol_Line)) {
+        GetterXY<IndexerConst,IndexerIdx<T>> getter_min(IndexerConst(lims.X.Min),IndexerIdx<T>(values,count,offset,stride),count);
+        GetterXY<IndexerConst,IndexerIdx<T>> getter_max(IndexerConst(lims.X.Max),IndexerIdx<T>(values,count,offset,stride),count);
+        if (BeginItemEx(label_id, FitterY<GetterXY<IndexerConst,IndexerIdx<T>>>(getter_min), flags, ImPlotCol_Line)) {
+            if (count <= 0) {
+                EndItem();
+                return;
+            }
             const ImPlotNextItemData& s = GetItemData();
             const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
             if (s.RenderLine)
-                RenderPrimitives2<RendererLineSegments2>(get_min, get_max, col_line, s.LineWeight);
+                RenderPrimitives2<RendererLineSegments2>(getter_min, getter_max, col_line, s.LineWeight);
             EndItem();
         }
     }
@@ -2137,6 +2181,10 @@ void PlotInfLines(const char* label_id, const T* values, int count, ImPlotInfLin
         GetterXY<IndexerIdx<T>,IndexerConst> get_min(IndexerIdx<T>(values,count,offset,stride),IndexerConst(lims.Y.Min),count);
         GetterXY<IndexerIdx<T>,IndexerConst> get_max(IndexerIdx<T>(values,count,offset,stride),IndexerConst(lims.Y.Max),count);
         if (BeginItemEx(label_id, FitterX<GetterXY<IndexerIdx<T>,IndexerConst>>(get_min), flags, ImPlotCol_Line)) {
+            if (count <= 0) {
+                EndItem();
+                return;
+            }
             const ImPlotNextItemData& s = GetItemData();
             const ImU32 col_line = ImGui::GetColorU32(s.Colors[ImPlotCol_Line]);
             if (s.RenderLine)
@@ -2153,76 +2201,175 @@ CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 // [SECTION] PlotPieChart
 //-----------------------------------------------------------------------------
 
-IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col) {
+IMPLOT_INLINE void RenderPieSlice(ImDrawList& draw_list, const ImPlotPoint& center, double radius, double a0, double a1, ImU32 col, bool detached = false) {
     const float resolution = 50 / (2 * IM_PI);
     ImVec2 buffer[52];
-    buffer[0] = PlotToPixels(center,IMPLOT_AUTO,IMPLOT_AUTO);
+
     int n = ImMax(3, (int)((a1 - a0) * resolution));
     double da = (a1 - a0) / (n - 1);
     int i = 0;
-    for (; i < n; ++i) {
-        double a = a0 + i * da;
-        buffer[i + 1] = PlotToPixels(center.x + radius * cos(a), center.y + radius * sin(a),IMPLOT_AUTO,IMPLOT_AUTO);
+
+    if (detached) {
+        const double offset = 0.08; // Offset of the detached slice
+        const double width_scale = 0.95; // Scale factor for the width of the detached slice
+
+        double a_mid = (a0 + a1) / 2;
+        double new_a0 = a_mid - (a1 - a0) * width_scale / 2;
+        double new_a1 = a_mid + (a1 - a0) * width_scale / 2;
+        double new_da = (new_a1 - new_a0) / (n - 1);
+
+        ImPlotPoint offsetCenter(center.x + offset * cos(a_mid), center.y + offset * sin(a_mid));
+
+        // Start point (center of the offset)
+        buffer[0] = PlotToPixels(offsetCenter, IMPLOT_AUTO, IMPLOT_AUTO);
+
+        for (; i < n; ++i) {
+            double a = new_a0 + i * new_da;
+            buffer[i + 1] = PlotToPixels(
+                offsetCenter.x + (radius + offset/2) * cos(a),
+                offsetCenter.y + (radius + offset/2) * sin(a),
+                IMPLOT_AUTO, IMPLOT_AUTO
+            );
+        }
+
+    } else {
+        buffer[0] = PlotToPixels(center, IMPLOT_AUTO, IMPLOT_AUTO);
+        for (; i < n; ++i) {
+            double a = a0 + i * da;
+            buffer[i + 1] = PlotToPixels(
+                center.x + radius * cos(a),
+                center.y + radius * sin(a),
+                IMPLOT_AUTO, IMPLOT_AUTO);
+        }
     }
-    buffer[i+1] = buffer[0];
+    // Close the shape
+    buffer[i + 1] = buffer[0];
+
     // fill
-    draw_list.AddConvexPolyFilled(buffer, n + 1, col);
+    draw_list.AddConvexPolyFilled(buffer, n + 2, col);
+
     // border (for AA)
     draw_list.AddPolyline(buffer, n + 2, col, 0, 2.0f);
 }
 
 template <typename T>
-void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags) {
-    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != nullptr, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
-    ImDrawList & draw_list = *GetPlotDrawList();
+double PieChartSum(const T* values, int count, bool ignore_hidden) {
     double sum = 0;
-    for (int i = 0; i < count; ++i)
-        sum += (double)values[i];
-    const bool normalize = ImHasFlag(flags,ImPlotPieChartFlags_Normalize) || sum > 1.0;
-    ImPlotPoint center(x,y);
-    PushPlotClipRect();
+    if (ignore_hidden) {
+        ImPlotContext& gp = *GImPlot;
+        ImPlotItemGroup& Items = *gp.CurrentItems;
+        for (int i = 0; i < count; ++i) {
+            if (i >= Items.GetItemCount())
+                break;
+
+            ImPlotItem* item = Items.GetItemByIndex(i);
+            IM_ASSERT(item != nullptr);
+            if (item->Show) {
+                sum += (double)values[i];
+            }
+        }
+    }
+    else {
+        for (int i = 0; i < count; ++i) {
+            sum += (double)values[i];
+        }
+    }
+    return sum;
+}
+
+template <typename T>
+void PlotPieChartEx(const char* const label_ids[], const T* values, int count, ImPlotPoint center, double radius, double angle0, ImPlotPieChartFlags flags) {
+    ImDrawList& draw_list  = *GetPlotDrawList();
+
+    const bool ignore_hidden = ImHasFlag(flags, ImPlotPieChartFlags_IgnoreHidden);
+    const double sum         = PieChartSum(values, count, ignore_hidden);
+    const bool normalize     = ImHasFlag(flags, ImPlotPieChartFlags_Normalize) || sum > 1.0;
+
     double a0 = angle0 * 2 * IM_PI / 360.0;
     double a1 = angle0 * 2 * IM_PI / 360.0;
-    ImPlotPoint Pmin = ImPlotPoint(x-radius,y-radius);
-    ImPlotPoint Pmax = ImPlotPoint(x+radius,y+radius);
+    ImPlotPoint Pmin = ImPlotPoint(center.x - radius, center.y - radius);
+    ImPlotPoint Pmax = ImPlotPoint(center.x + radius, center.y + radius);
     for (int i = 0; i < count; ++i) {
-        double percent = normalize ? (double)values[i] / sum : (double)values[i];
-        a1 = a0 + 2 * IM_PI * percent;
-        if (BeginItemEx(label_ids[i], FitterRect(Pmin,Pmax))) {
-            ImU32 col = GetCurrentItem()->Color;
-            if (percent < 0.5) {
-                RenderPieSlice(draw_list, center, radius, a0, a1, col);
-            }
-            else  {
-                RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col);
-                RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col);
+        ImPlotItem* item = GetItem(label_ids[i]);
+        const double percent = normalize ? (double)values[i] / sum : (double)values[i];
+        const bool skip      = sum <= 0.0 || (ignore_hidden && item != nullptr && !item->Show);
+        if (!skip)
+            a1 = a0 + 2 * IM_PI * percent;
+
+        if (BeginItemEx(label_ids[i], FitterRect(Pmin, Pmax))) {
+            const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
+            if (sum > 0.0) {
+                ImU32 col = GetCurrentItem()->Color;
+                if (percent < 0.5) {
+                    RenderPieSlice(draw_list, center, radius, a0, a1, col, hovered);
+                }
+                else {
+                    RenderPieSlice(draw_list, center, radius, a0, a0 + (a1 - a0) * 0.5, col, hovered);
+                    RenderPieSlice(draw_list, center, radius, a0 + (a1 - a0) * 0.5, a1, col, hovered);
+                }
             }
             EndItem();
         }
-        a0 = a1;
+        if (!skip)
+            a0 = a1;
     }
+}
+
+int PieChartFormatter(double value, char* buff, int size, void* data) {
+    const char* fmt = (const char*)data;
+    return snprintf(buff, size, fmt, value);
+}
+
+template <typename T>
+void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags) {
+    PlotPieChart<T>(label_ids, values, count, x, y, radius, PieChartFormatter, (void*)fmt, angle0, flags);
+}
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotPieChart<T>(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
+#undef INSTANTIATE_MACRO
+
+template <typename T>
+void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, ImPlotFormatter fmt, void* fmt_data, double angle0, ImPlotPieChartFlags flags) {
+    IM_ASSERT_USER_ERROR(GImPlot->CurrentPlot != nullptr, "PlotPieChart() needs to be called between BeginPlot() and EndPlot()!");
+    ImDrawList& draw_list = *GetPlotDrawList();
+
+    const bool ignore_hidden = ImHasFlag(flags, ImPlotPieChartFlags_IgnoreHidden);
+    const double sum = PieChartSum(values, count, ignore_hidden);
+    const bool normalize = ImHasFlag(flags, ImPlotPieChartFlags_Normalize) || sum > 1.0;
+    ImPlotPoint center(x, y);
+
+    PushPlotClipRect();
+    PlotPieChartEx(label_ids, values, count, center, radius, angle0, flags);
     if (fmt != nullptr) {
-        a0 = angle0 * 2 * IM_PI / 360.0;
-        a1 = angle0 * 2 * IM_PI / 360.0;
+        double a0 = angle0 * 2 * IM_PI / 360.0;
+        double a1 = angle0 * 2 * IM_PI / 360.0;
         char buffer[32];
         for (int i = 0; i < count; ++i) {
             ImPlotItem* item = GetItem(label_ids[i]);
-            double percent = normalize ? (double)values[i] / sum : (double)values[i];
-            a1 = a0 + 2 * IM_PI * percent;
-            if (item->Show) {
-                ImFormatString(buffer, 32, fmt, (double)values[i]);
-                ImVec2 size = ImGui::CalcTextSize(buffer);
-                double angle = a0 + (a1 - a0) * 0.5;
-                ImVec2 pos = PlotToPixels(center.x + 0.5 * radius * cos(angle), center.y + 0.5 * radius * sin(angle),IMPLOT_AUTO,IMPLOT_AUTO);
-                ImU32 col  = CalcTextColor(ImGui::ColorConvertU32ToFloat4(item->Color));
-                draw_list.AddText(pos - size * 0.5f, col, buffer);
+            IM_ASSERT(item != nullptr);
+
+            const double percent = normalize ? (double)values[i] / sum : (double)values[i];
+            const bool skip = ignore_hidden && item != nullptr && !item->Show;
+
+            if (!skip) {
+                a1 = a0 + 2 * IM_PI * percent;
+                if (item->Show) {
+                    fmt((double)values[i], buffer, 32, fmt_data);
+                    ImVec2 size = ImGui::CalcTextSize(buffer);
+                    double angle = a0 + (a1 - a0) * 0.5;
+                    const bool hovered = ImPlot::IsLegendEntryHovered(label_ids[i]) && ImHasFlag(flags, ImPlotPieChartFlags_Exploding);
+                    const double offset = (hovered ? 0.6 : 0.5) * radius;
+                    ImVec2 pos = PlotToPixels(center.x + offset * cos(angle), center.y + offset * sin(angle), IMPLOT_AUTO, IMPLOT_AUTO);
+                    ImU32 col = CalcTextColor(ImGui::ColorConvertU32ToFloat4(item->Color));
+                    draw_list.AddText(pos - size * 0.5f, col, buffer);
+                }
+                a0 = a1;
             }
-            a0 = a1;
         }
     }
     PopPlotClipRect();
 }
-#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotPieChart<T>(const char* const label_ids[], const T* values, int count, double x, double y, double radius, const char* fmt, double angle0, ImPlotPieChartFlags flags);
+#define INSTANTIATE_MACRO(T) template IMPLOT_API void PlotPieChart(const char* const label_ids[], const T* values, int count, double x, double y, double radius, ImPlotFormatter fmt, void* fmt_data, double angle0, ImPlotPieChartFlags flags);
 CALL_INSTANTIATE_FOR_NUMERIC_TYPES()
 #undef INSTANTIATE_MACRO
 
@@ -2283,8 +2430,8 @@ struct GetterHeatmapColMaj {
     { }
     template <typename I> IMPLOT_INLINE RectC operator()(I idx) const {
         double val = (double)Values[idx];
-        const int r = idx % Cols;
-        const int c = idx / Cols;
+        const int r = idx % Rows;
+        const int c = idx / Rows;
         const ImPlotPoint p(XRef + HalfSize.x + c*Width, YRef + YDir * (HalfSize.y + r*Height));
         RectC rect;
         rect.Pos = p;
@@ -2375,6 +2522,10 @@ void RenderHeatmap(ImDrawList& draw_list, const T* values, int rows, int cols, d
 template <typename T>
 void PlotHeatmap(const char* label_id, const T* values, int rows, int cols, double scale_min, double scale_max, const char* fmt, const ImPlotPoint& bounds_min, const ImPlotPoint& bounds_max, ImPlotHeatmapFlags flags) {
     if (BeginItemEx(label_id, FitterRect(bounds_min, bounds_max))) {
+        if (rows <= 0 || cols <= 0) {
+            EndItem();
+            return;
+        }
         ImDrawList& draw_list = *GetPlotDrawList();
         const bool col_maj = ImHasFlag(flags, ImPlotHeatmapFlags_ColMajor);
         RenderHeatmap(draw_list, values, rows, cols, scale_min, scale_max, fmt, bounds_min, bounds_max, true, col_maj);
@@ -2539,6 +2690,10 @@ double PlotHistogram2D(const char* label_id, const T* xs, const T* ys, int count
     }
 
     if (BeginItemEx(label_id, FitterRect(range))) {
+        if (y_bins <= 0 || x_bins <= 0) {
+            EndItem();
+            return max_count;
+        }
         ImDrawList& draw_list = *GetPlotDrawList();
         RenderHeatmap(draw_list, &bin_counts.Data[0], y_bins, x_bins, 0, max_count, nullptr, range.Min(), range.Max(), false, col_maj);
         EndItem();
@@ -2577,15 +2732,15 @@ void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags
                 if (ImNanOrInf(itemData2.y)) itemData2.y = ImConstrainNan(ImConstrainInf(itemData2.y));
                 int pixY_0 = (int)(s.LineWeight);
                 itemData1.y = ImMax(0.0, itemData1.y);
-                float pixY_1_float = s.DigitalBitHeight * (float)itemData1.y;
-                int pixY_1 = (int)(pixY_1_float); //allow only positive values
-                int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1_float) + s.DigitalBitGap);
+                const float pixY_1 = s.DigitalBitHeight * (float)itemData1.y;
+                const int pixY_chPosOffset = (int)(ImMax(s.DigitalBitHeight, pixY_1) + s.DigitalBitGap);
                 pixYMax = ImMax(pixYMax, pixY_chPosOffset);
                 ImVec2 pMin = PlotToPixels(itemData1,IMPLOT_AUTO,IMPLOT_AUTO);
                 ImVec2 pMax = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO);
-                int pixY_Offset = 0; //20 pixel from bottom due to mouse cursor label
-                pMin.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset)                   - pixY_Offset);
-                pMax.y = (y_axis.PixelMin) + ((-gp.DigitalPlotOffset) - pixY_0 - pixY_1 - pixY_Offset);
+                const int pixY_Offset = 0; //20 pixel from bottom due to mouse cursor label
+                const float y_ref = y_axis.IsInverted() ? y_axis.PixelMax : y_axis.PixelMin;
+                pMin.y = y_ref - (gp.DigitalPlotOffset + pixY_Offset);
+                pMax.y = y_ref - (gp.DigitalPlotOffset + pixY_0 + (int)pixY_1 + pixY_Offset);
                 //plot only one rectangle for same digital state
                 while (((i+2) < getter.Count) && (itemData1.y == itemData2.y)) {
                     const int in = (i + 1);
@@ -2594,13 +2749,12 @@ void PlotDigitalEx(const char* label_id, Getter getter, ImPlotDigitalFlags flags
                     pMax.x = PlotToPixels(itemData2,IMPLOT_AUTO,IMPLOT_AUTO).x;
                     i++;
                 }
-                //do not extend plot outside plot range
-                if (pMin.x < x_axis.PixelMin) pMin.x = x_axis.PixelMin;
-                if (pMax.x < x_axis.PixelMin) pMax.x = x_axis.PixelMin;
-                if (pMin.x > x_axis.PixelMax) pMin.x = x_axis.PixelMax - 1; //fix issue related to https://github.com/ocornut/imgui/issues/3976
-                if (pMax.x > x_axis.PixelMax) pMax.x = x_axis.PixelMax - 1; //fix issue related to https://github.com/ocornut/imgui/issues/3976
+                // do not extend plot outside plot range
+                pMin.x = ImClamp(pMin.x, !x_axis.IsInverted() ? x_axis.PixelMin : x_axis.PixelMax, !x_axis.IsInverted() ? x_axis.PixelMax - 1 : x_axis.PixelMin - 1);
+                pMax.x = ImClamp(pMax.x, !x_axis.IsInverted() ? x_axis.PixelMin : x_axis.PixelMax, !x_axis.IsInverted() ? x_axis.PixelMax - 1 : x_axis.PixelMin - 1);
+
                 //plot a rectangle that extends up to x2 with y1 height
-                if ((pMax.x > pMin.x) && (gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
+                if ((gp.CurrentPlot->PlotRect.Contains(pMin) || gp.CurrentPlot->PlotRect.Contains(pMax))) {
                     // ImVec4 colAlpha = item->Color;
                     // colAlpha.w = item->Highlight ? 1.0f : 0.9f;
                     draw_list.AddRectFilled(pMin, pMax, ImGui::GetColorU32(s.Colors[ImPlotCol_Fill]));
@@ -2634,7 +2788,11 @@ void PlotDigitalG(const char* label_id, ImPlotGetter getter_func, void* data, in
 // [SECTION] PlotImage
 //-----------------------------------------------------------------------------
 
-void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, ImPlotImageFlags) {
+#ifdef IMGUI_HAS_TEXTURES
+void PlotImage(const char* label_id, ImTextureRef tex_ref, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, ImPlotImageFlags) {
+#else
+void PlotImage(const char* label_id, ImTextureID tex_ref, const ImPlotPoint& bmin, const ImPlotPoint& bmax, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, ImPlotImageFlags) {
+#endif
     if (BeginItemEx(label_id, FitterRect(bmin,bmax))) {
         ImU32 tint_col32 = ImGui::ColorConvertFloat4ToU32(tint_col);
         GetCurrentItem()->Color = tint_col32;
@@ -2642,7 +2800,7 @@ void PlotImage(const char* label_id, ImTextureID user_texture_id, const ImPlotPo
         ImVec2 p1 = PlotToPixels(bmin.x, bmax.y,IMPLOT_AUTO,IMPLOT_AUTO);
         ImVec2 p2 = PlotToPixels(bmax.x, bmin.y,IMPLOT_AUTO,IMPLOT_AUTO);
         PushPlotClipRect();
-        draw_list.AddImage(user_texture_id, p1, p2, uv0, uv1, tint_col32);
+        draw_list.AddImage(tex_ref, p1, p2, uv0, uv1, tint_col32);
         PopPlotClipRect();
         EndItem();
     }
@@ -2690,3 +2848,5 @@ void PlotDummy(const char* label_id, ImPlotDummyFlags flags) {
 }
 
 } // namespace ImPlot
+
+#endif // #ifndef IMGUI_DISABLE

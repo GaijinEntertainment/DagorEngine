@@ -12,23 +12,15 @@
 #include <generic/dag_sort.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <debug/dag_debug.h>
-#include <EditorCore/ec_ObjectEditor.h>
 #include <math/dag_math2d.h>
-#include "common.h"
 
 #include "hmlPlugin.h"
 #include "hmlCm.h"
 #include <de3_genObjData.h>
-#include <de3_genObjAlongSpline.h>
-#include <de3_genObjInsidePoly.h>
-#include <de3_rasterizePoly.h>
-#include <de3_genObjByDensGridMask.h>
 #include <de3_splineClassData.h>
 #include <de3_hmapService.h>
-// #include <util/dag_hierBitMap2d.h>
+#include <de3_csgEntity.h>
 #include <libTools/dagFileRW/splineShape.h>
-#include <math/dag_sphereVis.h>
-#include <util/dag_fastIntList.h>
 
 #include "hmlSplineUndoRedo.h"
 
@@ -79,6 +71,7 @@ enum
   PID_MODIF_SD_OFFSET,
   PID_MODIF_OFFSET_POW,
   PID_MODIF_ADDITIVE,
+  PID_MODIF_USE_PERPOINT_WIDTH,
 
   PID_POLY_OFFSET,
   PID_POLY_ROTATE,
@@ -103,6 +96,11 @@ enum
   PID_OPACGEN_BASE,
   PID_OPACGEN_VAR,
   PID_OPACGEN_APPLY,
+
+  PID_WIDTHGEN_BASE,
+  PID_WIDTHGEN_VAR,
+  PID_WIDTHGEN_MIN,
+  PID_WIDTHGEN_APPLY,
 
   PID_USE_FOR_NAVMESH,
   PID_NAVMESH_STRIPE_WIDTH,
@@ -129,12 +127,15 @@ int SplineObject::roadsSubtypeMask = -1;
 int SplineObject::splineSubTypeId = -1;
 bool SplineObject::isSplineCacheValid = false;
 
+bool SplineObject::objectWasMoved = false, SplineObject::objectWasRotated = false, SplineObject::objectWasScaled = false;
+
 static float opac_gen_base = 1, opac_gen_var = 0;
+static float width_gen_base = 1, width_gen_var = 0, width_gen_min = 0.1;
 
 static int spline_unique_buf_idx = 0;
 
 //==================================================================================================
-SplineObject::SplineObject(bool make_poly) : points(tmpmem), poly(make_poly), landClass(NULL), segSph(midmem)
+SplineObject::SplineObject(bool make_poly) : points(tmpmem), poly(make_poly), segSph(midmem)
 {
   isSplineCacheValid = false;
   csgGen = NULL;
@@ -160,6 +161,8 @@ SplineObject::SplineObject(bool make_poly) : points(tmpmem), poly(make_poly), la
   props.modifParams.smooth = 10;
   props.modifParams.offsetPow = 2;
   props.modifParams.additive = false;
+  props.modifParams.usePerPointWidth = false;
+  props.modifParams.maxWidthScale = 1.0f;
 
   props.poly.hmapAlign = false;
   props.poly.objRot = 0;
@@ -206,9 +209,8 @@ SplineObject::~SplineObject()
 {
   dagGeom->destroy(zFuncLessStateId);
   destroy_it(csgGen);
-  del_it(landClass);
+  destroy_it(polyGenObj);
   clear_and_shrink(points);
-  polyGeom.clear();
 
   segSph.clear();
   isSplineCacheValid = false;
@@ -223,11 +225,15 @@ void SplineObject::prepareSplineClassInPoints(bool report_missing_splcls)
     if (props.blkGenName.empty())
     {
       destroy_it(csgGen);
-      del_it(landClass);
-      polyGeom.clear();
+      destroy_it(polyGenObj);
     }
-    else if (!landClass)
-      landClass = new objgenerator::LandClassData(props.blkGenName);
+    else if (!polyGenObj)
+    {
+      if (DagorAsset *a = DAEDITOR3.getAssetByName(props.blkGenName, DAEDITOR3.getAssetTypeId("land")))
+        polyGenObj = DAEDITOR3.createEntity(*a);
+      if (polyGenObj)
+        polyGenObj->setEditLayerIdx(editLayerIdx);
+    }
   }
 
   if (points.size() < 1)
@@ -235,8 +241,9 @@ void SplineObject::prepareSplineClassInPoints(bool report_missing_splcls)
 
   const char *splineClassAssetName = !poly ? props.blkGenName.str() : NULL;
 
-  if (poly && landClass && landClass->data && landClass->data->splineClassAssetName.length())
-    splineClassAssetName = landClass->data->splineClassAssetName;
+  if (auto *lc = getLandClass())
+    if (lc->data && lc->data->splineClassAssetName.length())
+      splineClassAssetName = lc->data->splineClassAssetName;
 
   FastNameMap missing_splcls, *eff_missing_splcls = report_missing_splcls ? &missing_splcls : nullptr;
   splineclass::AssetData *a = points[0]->prepareSplineClass(splineClassAssetName, NULL, eff_missing_splcls);
@@ -252,7 +259,7 @@ void SplineObject::prepareSplineClassInPoints(bool report_missing_splcls)
     (points.back())->clearSegment();
 }
 
-void SplineObject::resetSplineClass() { del_it(landClass); }
+void SplineObject::resetSplineClass() { destroy_it(polyGenObj); }
 
 //==================================================================================================
 void SplineObject::getSpline()
@@ -376,24 +383,6 @@ void SplineObject::getSpline(DagSpline &spline)
 }
 
 
-static void gatherGeomTags(GeomObject *g, OAHashNameMap<true> &tags)
-{
-  int nnum = g->getGeometryContainer()->nodes.size();
-  for (int ni = 0; ni < nnum; ++ni)
-    if (StaticGeometryNode *node = g->getGeometryContainer()->nodes[ni])
-      if (const char *t = node->script.getStr("layerTag", NULL))
-        tags.addNameId(t);
-}
-void SplineObject::gatherPolyGeomLoftTags(OAHashNameMap<true> &loft_tags)
-{
-  if (splineInactive)
-    return;
-  if (polyGeom.mainMesh)
-    gatherGeomTags(polyGeom.mainMesh, loft_tags);
-  if (polyGeom.borderMesh)
-    gatherGeomTags(polyGeom.borderMesh, loft_tags);
-}
-
 //==================================================================================================
 void SplineObject::updateLoftBox()
 {
@@ -431,76 +420,25 @@ BBox3 SplineObject::getGeomBoxChanges()
   return worldBox;
 }
 
-static inline int hide_non_stage0_nodes(GeomObject &gobj)
+bool SplineObject::shouldRenderRoadsGeom(const Frustum &frustum) const
 {
-  StaticGeometryContainer *cont = gobj.getGeometryContainer();
-  if (!cont)
-    return 0;
-  int nnum = cont->nodes.size();
-  bool changed = false;
-
-  for (int ni = 0; ni < nnum; ++ni)
-    if (StaticGeometryNode *node = cont->nodes[ni])
-      if (node->script.getInt("stage", 0) != 0)
-      {
-        changed = true;
-        node->flags |= StaticGeometryNode::FLG_OPERATIVE_HIDE;
-      }
-  return changed ? nnum : 0;
-}
-static inline void reset_hide_non_stage0_nodes(GeomObject &gobj, int nnum)
-{
-  if (!nnum)
-    return;
-  StaticGeometryContainer *cont = gobj.getGeometryContainer();
-  for (int ni = 0; ni < nnum; ++ni)
-    if (StaticGeometryNode *node = cont->nodes[ni])
-      node->flags &= ~StaticGeometryNode::FLG_OPERATIVE_HIDE;
-}
-
-void SplineObject::renderGeom(bool opaque, int layer, const Frustum &frustum)
-{
-  if (EditLayerProps::layerProps[getEditLayerIdx()].hide)
-    return;
-
+  if (!created || EditLayerProps::layerProps[getEditLayerIdx()].hide)
+    return false;
   int st_mask = IDaEditor3Engine::get().getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-
-  if (poly && landClass && landClass->data && landClass->data->genGeom && (st_mask & polygonSubtypeMask))
-  {
-    if (polyGeom.mainMesh)
-    {
-      int nnum = hide_non_stage0_nodes(*polyGeom.mainMesh);
-      if (opaque)
-        dagGeom->geomObjectRender(*polyGeom.mainMesh);
-      else
-        dagGeom->geomObjectRenderTrans(*polyGeom.mainMesh);
-      reset_hide_non_stage0_nodes(*polyGeom.mainMesh, nnum);
-    }
-
-    if (polyGeom.borderMesh)
-    {
-      int nnum = hide_non_stage0_nodes(*polyGeom.borderMesh);
-      if (opaque)
-        dagGeom->geomObjectRender(*polyGeom.borderMesh);
-      else
-        dagGeom->geomObjectRenderTrans(*polyGeom.borderMesh);
-      reset_hide_non_stage0_nodes(*polyGeom.borderMesh, nnum);
-    }
-  }
-
-  if (!created)
-    return;
-
-  if (!(st_mask & (splineSubtypeMask | roadsSubtypeMask)))
-    return;
-
+  if (!(st_mask & splineSubtypeMask) || !(st_mask & roadsSubtypeMask))
+    return false;
   for (int i = 0; i < points.size(); ++i)
-  {
-    if (!frustum.testBoxB(points[i]->getGeomBox(false, st_mask & roadsSubtypeMask)))
-      continue;
-    if (st_mask & roadsSubtypeMask)
+    if (points[i]->getRoadGeom())
+      if (frustum.testBoxB(points[i]->getGeomBox(false, st_mask & roadsSubtypeMask)))
+        return true;
+  return false;
+}
+void SplineObject::renderRoadsGeom(bool opaque, const Frustum &frustum)
+{
+  int st_mask = IDaEditor3Engine::get().getEntitySubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+  for (int i = 0; i < points.size(); ++i)
+    if (frustum.testBoxB(points[i]->getGeomBox(false, st_mask & roadsSubtypeMask)))
       points[i]->renderRoadGeom(opaque);
-  }
 }
 
 
@@ -516,9 +454,9 @@ void SplineObject::renderLines(bool opaque_pass, const Frustum &frustum)
     return;
   bool lock = (EditLayerProps::layerProps[getEditLayerIdx()].lock);
 
-  if (HmapLandPlugin::self->renderDebugLines && opaque_pass && !lock)
-    if (created && landClass && landClass->data && landClass->data->genGeom)
-      polyGeom.renderLines();
+  if (HmapLandPlugin::self->renderDebugLines && opaque_pass && !lock && created)
+    if (auto *gen = getPolyGen())
+      HmapLandPlugin::splSrv->renderDebugPolyEdges(gen->geom);
 
   E3DCOLOR col;
   if (isSelected())
@@ -719,9 +657,9 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
 
     if (poly)
     {
-      commonGrp->createCheckBox(PID_ALT_GEOM, "Alternative geom export", polyGeom.altGeom);
-      commonGrp->createEditFloat(PID_BBOX_ALIGN_STEP, "geom bbox align step", polyGeom.bboxAlignStep);
-      commonGrp->setEnabledById(PID_BBOX_ALIGN_STEP, polyGeom.altGeom);
+      commonGrp->createCheckBox(PID_ALT_GEOM, "Alternative geom export", props.poly.altGeom);
+      commonGrp->createEditFloat(PID_BBOX_ALIGN_STEP, "geom bbox align step", props.poly.bboxAlignStep);
+      commonGrp->setEnabledById(PID_BBOX_ALIGN_STEP, props.poly.altGeom);
       commonGrp->createSeparator(0);
     }
     commonGrp->createCheckBox(PID_EXPORTABLE, "Export to game", props.exportable);
@@ -774,6 +712,7 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
     modGroup->createEditFloat(PID_MODIF_SD_OFFSET, "Ht side ofs", props.modifParams.offset[1]);
     modGroup->createEditFloat(PID_MODIF_OFFSET_POW, "Ht ofs function", props.modifParams.offsetPow);
     modGroup->createCheckBox(PID_MODIF_ADDITIVE, "Preserve land details", props.modifParams.additive);
+    modGroup->createCheckBox(PID_MODIF_USE_PERPOINT_WIDTH, "Use per-point width", props.modifParams.usePerPointWidth);
 
     if (poly)
     {
@@ -835,6 +774,14 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
     op.createEditFloat(PID_OPACGEN_BASE, "Base opacity", opac_gen_base);
     op.createEditFloat(PID_OPACGEN_VAR, "Max opacity variation", opac_gen_var);
     op.createButton(PID_OPACGEN_APPLY, "Generate opacity in points!");
+
+    op.createSeparator(0);
+    op.createStatic(-1, "Width generation formula:");
+    op.createStatic(-1, "   base + variation * Rnd(-1..+1)");
+    op.createEditFloat(PID_WIDTHGEN_BASE, "Base width", width_gen_base);
+    op.createEditFloat(PID_WIDTHGEN_VAR, "Max width variation", width_gen_var);
+    op.createEditFloat(PID_WIDTHGEN_MIN, "Min width", width_gen_min);
+    op.createButton(PID_WIDTHGEN_APPLY, "Generate width in points!");
   }
 
   for (int i = 0; i < objects.size(); ++i)
@@ -859,15 +806,19 @@ void SplineObject::fillProps(PropPanel::ContainerPropertyControl &op, DClassID f
 void SplineObject::setEditLayerIdx(int idx)
 {
   editLayerIdx = idx;
+  if (polyGenObj)
+    polyGenObj->setEditLayerIdx(editLayerIdx);
   for (SplinePointObject *p : points)
     p->setEditLayerIdx(editLayerIdx);
 }
 
 void SplineObject::onLayerOrderChanged()
 {
+  if (auto *gen = getPolyGen())
+    gen->layerOrder = props.layerOrder;
   for (SplinePointObject *p : points)
     if (auto *gen = p->getSplineGen())
-      gen->splineLayer = props.layerOrder;
+      gen->layerOrder = props.layerOrder;
 }
 
 void SplineObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerPropertyControl &panel,
@@ -1100,12 +1051,12 @@ void SplineObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerP
   }
   else if (pid == PID_ALT_GEOM)
   {
-    CHANGE_VAL(bool, polyGeom.altGeom, getBool)
-    panel.setEnabledById(PID_BBOX_ALIGN_STEP, polyGeom.altGeom);
+    CHANGE_VAL(bool, props.poly.altGeom, getBool)
+    panel.setEnabledById(PID_BBOX_ALIGN_STEP, props.poly.altGeom);
   }
   else if (pid == PID_BBOX_ALIGN_STEP)
   {
-    CHANGE_VAL(float, polyGeom.bboxAlignStep, getFloat)
+    CHANGE_VAL(float, props.poly.bboxAlignStep, getFloat)
   }
   else if (pid == PID_EXPORTABLE)
   {
@@ -1146,6 +1097,8 @@ void SplineObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerP
   }
   else if (pid == PID_MODIF_ADDITIVE)
     CHANGE_VAL_FUNC(bool, props.modifParams.additive, getBool, markModifChangedWhenUsed())
+  else if (pid == PID_MODIF_USE_PERPOINT_WIDTH)
+    CHANGE_VAL_FUNC(bool, props.modifParams.usePerPointWidth, getBool, markModifChangedWhenUsed())
   else if (pid == PID_MODIF_CT_OFFSET)
   {
     CHANGE_VAL_FUNC(real, props.modifParams.offset[0], getFloat, markModifChangedWhenUsed())
@@ -1175,6 +1128,12 @@ void SplineObject::onPPChange(int pid, bool edit_finished, PropPanel::ContainerP
     opac_gen_base = panel.getFloat(pid);
   else if (pid == PID_OPACGEN_VAR)
     opac_gen_var = panel.getFloat(pid);
+  else if (pid == PID_WIDTHGEN_BASE)
+    width_gen_base = panel.getFloat(pid);
+  else if (pid == PID_WIDTHGEN_VAR)
+    width_gen_var = panel.getFloat(pid);
+  else if (pid == PID_WIDTHGEN_MIN)
+    width_gen_min = panel.getFloat(pid);
 #undef CHANGE_VAL
 }
 
@@ -1187,7 +1146,7 @@ void SplineObject::changeAsset(const char *asset_name, bool _undo)
   if (!poly)
     points[0]->resetSplineClass();
   else
-    del_it(landClass);
+    destroy_it(polyGenObj);
 
   markAssetChanged(0);
   on_object_entity_name_changed(*this);
@@ -1402,7 +1361,7 @@ void SplineObject::onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &
     if (!o)
     {
       destroy_it(csgGen);
-      polyGeom.clear();
+      destroy_it(polyGenObj);
       return;
     }
 
@@ -1410,7 +1369,7 @@ void SplineObject::onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &
     if (!s || !s->points.size())
     {
       destroy_it(csgGen);
-      polyGeom.clear();
+      destroy_it(polyGenObj);
       return;
     }
 
@@ -1437,7 +1396,7 @@ void SplineObject::onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &
           {
             getObjEditor()->getUndoSystem()->put(o->points[i]->makePropsUndoObj());
 
-            p.attr.opacity = opac_gen_base + gsrnd() * opac_gen_var;
+            p.attr.opacity = new_opac;
             o->points[i]->setProps(p);
             o->points[i]->markChanged();
           }
@@ -1445,6 +1404,32 @@ void SplineObject::onPPBtnPressed(int pid, PropPanel::ContainerPropertyControl &
         o->getSpline();
       }
     getObjEditor()->getUndoSystem()->accept("Generate opacity in points");
+  }
+  else if (pid == PID_WIDTHGEN_APPLY)
+  {
+    getObjEditor()->getUndoSystem()->begin();
+
+    for (int si = 0; si < objects.size(); si++)
+      if (SplineObject *o = RTTI_cast<SplineObject>(objects[si]))
+      {
+        for (int i = 0; i < o->points.size(); i++)
+        {
+          float new_width = width_gen_base + gsrnd() * width_gen_var;
+          if (new_width < width_gen_min)
+            new_width = width_gen_min;
+          SplinePointObject::Props p = o->points[i]->getProps();
+          if (new_width != p.attr.scale_w)
+          {
+            getObjEditor()->getUndoSystem()->put(o->points[i]->makePropsUndoObj());
+
+            p.attr.scale_w = max(new_width, 1e-3f);
+            o->points[i]->setProps(p);
+            o->points[i]->markChanged();
+          }
+        }
+        o->getSpline();
+      }
+    getObjEditor()->getUndoSystem()->accept("Generate width in points");
   }
   else if (pid > PID_PER_MATERIAL_CONTROLS_BEGIN)
   {
@@ -1692,11 +1677,11 @@ void SplineObject::save(DataBlock &blk)
     sblk->setReal("navMeshStripeWidth", props.navMeshStripeWidth);
   if (props.navmeshIdx >= 0)
     sblk->setInt("navmeshIdx", props.navmeshIdx);
-  if (polyGeom.altGeom)
+  if (props.poly.altGeom)
   {
-    sblk->setBool("altGeom", polyGeom.altGeom);
-    if (polyGeom.bboxAlignStep != 1.0f)
-      sblk->setReal("bboxAlignStep", polyGeom.bboxAlignStep);
+    sblk->setBool("altGeom", props.poly.altGeom);
+    if (props.poly.bboxAlignStep != 1.0f)
+      sblk->setReal("bboxAlignStep", props.poly.bboxAlignStep);
   }
 
   if (props.cornerType != 0)
@@ -1712,6 +1697,8 @@ void SplineObject::save(DataBlock &blk)
   mblk->setReal("offsetPow", props.modifParams.offsetPow);
   mblk->setPoint2("offset", props.modifParams.offset);
   mblk->setBool("additive", props.modifParams.additive);
+  if (props.modifParams.usePerPointWidth)
+    mblk->setBool("usePerPointWidth", true);
 
   int pt_num = points.size();
   if (isClosed())
@@ -1761,8 +1748,8 @@ void SplineObject::load(const DataBlock &blk, bool use_undo)
   props.navMeshStripeWidth = blk.getReal("navMeshStripeWidth", DEF_NAVMESH_STRIPE_WIDTH);
   props.navmeshIdx = blk.getInt("navmeshIdx", -1);
 
-  polyGeom.altGeom = blk.getBool("altGeom", false);
-  polyGeom.bboxAlignStep = blk.getReal("bboxAlignStep", blk.getReal("minGridStep", 1.0f));
+  props.poly.altGeom = blk.getBool("altGeom", false);
+  props.poly.bboxAlignStep = blk.getReal("bboxAlignStep", blk.getReal("minGridStep", 1.0f));
 
   int nid = blk.getNameId("point");
 
@@ -1799,6 +1786,7 @@ void SplineObject::loadModifParams(const DataBlock &blk)
   props.modifParams.offsetPow = blk.getReal("offsetPow", 2);
   props.modifParams.offset = blk.getPoint2("offset", Point2(-0.05, 0));
   props.modifParams.additive = blk.getBool("additive", false);
+  props.modifParams.usePerPointWidth = blk.getBool("usePerPointWidth", false);
 }
 
 bool SplineObject::isSelectedByRectangle(IGenViewportWnd *vp, const EcRect &rect) const
@@ -1987,93 +1975,6 @@ success:
 }
 
 
-static void build_corner_spline(BezierSplinePrec3d &loftSpl, BezierSplinePrec3d &baseSpl, dag::ConstSpan<splineclass::SegData> seg,
-  int ss, int es)
-{
-  clear_and_shrink(loftSpl.segs);
-  if (!seg.size())
-  {
-    loftSpl.calculateLength();
-    return;
-  }
-
-  Tab<Point3> pts(tmpmem);
-  pts.reserve(seg.size() * 3);
-
-  // debug("loftSegs=%d (%d..%d)", seg.size(), ss, es);
-  for (int i = 0; i < seg.size(); ++i)
-  {
-    if (seg[i].segN + ss < ss)
-      continue;
-    else if (seg[i].segN + ss > es)
-      break;
-    int base = append_items(pts, 3);
-    pts[base + 0] = pts[base + 1] = pts[base + 2] = Point3::xVz(baseSpl.segs[seg[i].segN + ss].point(seg[i].offset), seg[i].y);
-    // debug(" %d: seg=%d ofs=%.4f y=%.4f  %~p3", i, seg[i].segN+ss, seg[i].offset, seg[i].y, pts[base+0]);
-  }
-  loftSpl.calculate(pts.data(), pts.size(), false);
-}
-static void build_ground_spline(BezierSpline3d &gndSpl, const PtrTab<SplinePointObject> &points, bool poly, bool poly_smooth,
-  bool is_closed)
-{
-  Tab<Point3> pt_gnd;
-  pt_gnd.resize(points.size() * 3);
-
-  // drop points to collision and recompute Y for helpers using CatmullRom
-  {
-    for (int pi = 0; pi < points.size(); pi++)
-    {
-      pt_gnd[pi * 3 + 0] = points[pi]->getPt();
-      HmapLandPlugin::self->getHeightmapPointHt(pt_gnd[pi * 3 + 0], NULL);
-
-      pt_gnd[pi * 3 + 1] = points[pi]->getPtEffRelBezierIn();
-      pt_gnd[pi * 3 + 2] = points[pi]->getPtEffRelBezierOut();
-    }
-
-    Point3 *catmul[4];
-    BezierSplineInt<Point3> sp;
-    Point3 v[4];
-    int pn = points.size();
-
-    for (int i = -1; i < pn - 2; i++)
-    {
-      for (int j = 0; j < 4; j++)
-        catmul[j] = pt_gnd.data() + ((poly || is_closed) ? (i + j + pn) % pn : clamp(i + j, 0, pn - 1)) * 3;
-
-      for (int j = 0; j < 4; j++)
-        v[j] = *catmul[j];
-      sp.calculateCatmullRom(v);
-      sp.calculateBack(v);
-
-      float pi0_y = v[0].y - v[1].y, pi1_y = v[2].y - v[3].y;
-      catmul[1][1].y = pi0_y;
-      catmul[1][2].y = -pi0_y;
-      catmul[2][1].y = pi1_y;
-      catmul[2][2].y = -pi1_y;
-    }
-  }
-
-  // build spline from ground points
-  SmallTab<Point3, TmpmemAlloc> pts;
-  int pts_num = points.size() + (poly ? 1 : 0);
-  clear_and_resize(pts, pts_num * 3);
-
-  for (int pi = 0; pi < pts_num; ++pi)
-  {
-    int wpi = pi % points.size();
-    pts[pi * 3 + 1] = pt_gnd[wpi * 3 + 0];
-    if ((poly && !poly_smooth) || (points[wpi]->isCross && points[wpi]->isRealCross))
-      pts[pi * 3 + 0] = pts[pi * 3 + 2] = pts[pi * 3 + 1];
-    else
-    {
-      pts[pi * 3 + 0] = pt_gnd[wpi * 3 + 0] + pt_gnd[wpi * 3 + 1];
-      pts[pi * 3 + 2] = pt_gnd[wpi * 3 + 0] + pt_gnd[wpi * 3 + 2];
-    }
-  }
-
-  gndSpl.calculate(pts.data(), pts.size(), false);
-}
-
 void SplineObject::regenerateObjects()
 {
   if (splineInactive)
@@ -2095,7 +1996,14 @@ void SplineObject::regenerateObjects()
         if (ISplineGenObj *gen = p->getSplineGen())
           for (auto &p : gen->entPools)
             p.resetUsedEntities();
-      build_ground_spline(onGndSpline, points, poly, props.poly.smooth, isClosed());
+
+      Tab<ISplineGenObj::SplinePt> pt;
+      pt.reserve(points.size());
+      for (auto &p : points)
+        pt.push_back(
+          {p->getProps().pt, p->getProps().relIn, p->getProps().relOut, p->getProps().cornerType, p->isCross && p->isRealCross});
+      HmapLandPlugin::splSrv->build_ground_spline(onGndSpline, pt, TMatrix::IDENT, props.cornerType, poly, props.poly.smooth,
+        isClosed());
     }
 
     int start_seg = 0;
@@ -2111,23 +2019,52 @@ void SplineObject::regenerateObjects()
         continue;
 
       if (ISplineGenObj *gen = p0->getSplineGen())
-        gen->generateObjects(effSpline, start_seg, i, splineSubTypeId, editLayerIdx, props.rndSeed, props.perInstSeed, &cablesPool);
+        gen->generateObjects(effSpline, start_seg, i, splineSubTypeId, props.rndSeed, props.perInstSeed, &cablesPool);
 
       start_seg = i;
       p0 = points[start_seg];
     }
 
     if (ISplineGenObj *gen = p0->getSplineGen())
-      gen->generateObjects(effSpline, start_seg, effSpline.segs.size(), splineSubTypeId, editLayerIdx, props.rndSeed,
-        props.perInstSeed, &cablesPool);
+      gen->generateObjects(effSpline, start_seg, effSpline.segs.size(), splineSubTypeId, props.rndSeed, props.perInstSeed,
+        &cablesPool);
   }
   DAGORED2->restoreEditorColliders();
 }
 
+void SplineObject::triangulatePoly()
+{
+  auto *landClass = getLandClass();
+  if (points.size() >= 3 && landClass && landClass->data && landClass->data->csgGen)
+  {
+    destroy_it(csgGen);
+    csgGen = DAEDITOR3.cloneEntity(landClass->data->csgGen);
+    csgGen->setSubtype(polygonSubtypeMask);
+    csgGen->setTm(points[0]->getWtm());
+    if (ICsgEntity *c = csgGen->queryInterface<ICsgEntity>())
+    {
+      Tab<Point3> p;
+      p.resize(points.size() - (isClosed() ? 1 : 0));
+      for (int i = 0; i < p.size(); i++)
+        p[i] = points[i]->getPt();
+      c->setFoundationPath(make_span(p), isClosed());
+    }
+  }
+
+  Tab<Point3> poly_pts(tmpmem);
+  getSmoothPoly(poly_pts);
+  if (IPolygonGenObj *gen = getPolyGen())
+  {
+    if (gen->geom.mainMesh || gen->geom.borderMesh)
+      HmapLandObjectEditor::geomBuildCntPoly++;
+    if (gen->triangulatePoly(poly_pts, props.poly, getName(), flattenBySpline ? &flattenBySpline->bezierSpline : nullptr))
+      HmapLandObjectEditor::geomBuildCntPoly++;
+  }
+}
 
 bool SplineObject::onAssetChanged(landclass::AssetData *data)
 {
-  if (landClass && landClass->data == data)
+  if (auto *lc = getLandClass(); lc && lc->data == data)
   {
     pointChanged(-1);
     return !splineInactive;
@@ -2223,71 +2160,34 @@ void SplineObject::createMaterialControls(PropPanel::ContainerPropertyControl &o
 
 void SplineObject::placeObjectsInsidePolygon()
 {
-  // lines.clear();
-  if (!landClass)
-    return;
-
-  Point3 hmofs = HmapLandPlugin::self->getHeightmapOffset();
-  landClass->beginGenerate();
-  if (landClass->data && landClass->data->tiled)
-    objgenerator::generateTiledEntitiesInsidePoly(*landClass->data->tiled, tiledByPolygonSubTypeId, editLayerIdx, HmapLandPlugin::self,
-      make_span(landClass->poolTiled), make_span_const((SplinePointObject **)points.data(), points.size()),
-      DEG_TO_RAD * props.poly.objRot, props.poly.objOffs + Point2(hmofs.x, hmofs.z));
-  if (landClass->data && landClass->data->planted)
+  if (auto *gen = getPolyGen())
   {
-    typedef HierBitMap2d<ConstSizeBitMap2d<5>> HierBitmap32;
-    HierBitmap32 bmp;
-    float ofs_x, ofs_z, cell;
-
-    cell = rasterize_poly(bmp, ofs_x, ofs_z, make_span_const((SplinePointObject **)points.data(), points.size()));
-    float mid_y = 0;
-    for (int i = 0; i < points.size(); i++)
-      mid_y += points[i]->getPt().y / points.size();
-
-
-    objgenerator::generatePlantedEntitiesInMaskedRect(*landClass->data->planted, tiledByPolygonSubTypeId, editLayerIdx, NULL,
-      make_span(landClass->poolPlanted), bmp, 1.0 / cell, 0, 0, bmp.getW() * cell, bmp.getH() * cell, ofs_x, ofs_z, mid_y);
+    Tab<Point3> poly_pts(tmpmem);
+    getSmoothPoly(poly_pts);
+    gen->placeObjectsInsidePolygon(make_span(poly_pts), props.poly, HmapLandPlugin::self);
+    DAGORED2->restoreEditorColliders();
   }
-  landClass->endGenerate();
-
-  DAGORED2->restoreEditorColliders();
 }
 
-void SplineObject::gatherStaticGeometry(StaticGeometryContainer &cont, int flags, bool collision, int layer, int stage)
+void SplineObject::gatherRoadsGeometry(StaticGeometryContainer &cont, int flags, bool collision, int stage)
 {
-  if (splineInactive)
+  if (splineInactive || !created)
     return;
-  if (!created)
+  int st_mask =
+    DAEDITOR3.getEntitySubTypeMask(collision ? IObjEntityFilter::STMASK_TYPE_COLLISION : IObjEntityFilter::STMASK_TYPE_EXPORT);
+  if (!(st_mask & roadsSubtypeMask))
     return;
 
   if (collision)
     flags |= StaticGeometryNode::FLG_COLLIDABLE;
 
-  int st_mask =
-    DAEDITOR3.getEntitySubTypeMask(collision ? IObjEntityFilter::STMASK_TYPE_COLLISION : IObjEntityFilter::STMASK_TYPE_EXPORT);
-
   const char *num_suffix = strrchr(name, '_');
   int id = num_suffix ? atoi(num_suffix + 1) : 0;
 
-  if (st_mask & roadsSubtypeMask)
-    for (int i = 0; i < (int)points.size() - 1; i++)
-    {
-      GeomObject *road = points[i]->getRoadGeom();
-      if (!road)
-        continue;
-
-      const StaticGeometryContainer *geom = road->getGeometryContainer();
-      if (geom)
+  for (int i = 0; i < (int)points.size() - 1; i++)
+    if (GeomObject *road = points[i]->getRoadGeom())
+      if (const StaticGeometryContainer *geom = road->getGeometryContainer())
         gatherStaticGeom(cont, *geom, flags, id, i, stage);
-    }
-
-  if (poly && (st_mask & polygonSubtypeMask) && !polyGeom.altGeom)
-  {
-    if (polyGeom.mainMesh)
-      gatherStaticGeom(cont, *polyGeom.mainMesh->getGeometryContainer(), flags, id, 0, stage);
-    if (polyGeom.borderMesh)
-      gatherStaticGeom(cont, *polyGeom.borderMesh->getGeometryContainer(), flags, id, 1, stage);
-  }
 }
 
 void SplineObject::gatherStaticGeom(StaticGeometryContainer &cont, const StaticGeometryContainer &geom, int flags, int id,
@@ -2300,24 +2200,6 @@ void SplineObject::gatherStaticGeom(StaticGeometryContainer &cont, const StaticG
       continue;
 
     if (node && (!flags || (node->flags & flags)))
-    {
-      StaticGeometryNode *n = dagGeom->newStaticGeometryNode(*node, tmpmem);
-      n->name = (const char *)String(1024, "%d_%s#%d", id, (const char *)n->name, name_idx1);
-      cont.addNode(n);
-    }
-  }
-}
-
-void SplineObject::gatherStaticGeomLayered(StaticGeometryContainer &cont, const StaticGeometryContainer &geom, int flags, int id,
-  int name_idx1, int layer, int stage)
-{
-  for (int ni = 0; ni < geom.nodes.size(); ++ni)
-  {
-    StaticGeometryNode *node = geom.nodes[ni];
-    if (node && node->script.getInt("stage", 0) != stage)
-      continue;
-
-    if (node && node->script.getInt("layer", 0) == layer && (!flags || (node->flags & flags)))
     {
       StaticGeometryNode *n = dagGeom->newStaticGeometryNode(*node, tmpmem);
       n->name = (const char *)String(1024, "%d_%s#%d", id, (const char *)n->name, name_idx1);
@@ -2615,7 +2497,7 @@ void SplineObject::onRemove(ObjectEditor *objEditor)
   for (int i = 0; i < points.size(); i++)
     points[i]->resetSplineClass();
 
-  del_it(landClass);
+  destroy_it(polyGenObj);
   pointChanged(-1);
   markModifChangedWhenUsed();
   HmapLandPlugin::hmlService->invalidateClipmap(false);
@@ -2726,20 +2608,6 @@ SplinePointObject *SplineObject::getNearestPoint(Point3 &p)
   return points[id];
 }
 
-bool SplineObject::lineIntersIgnoreY(Point3 &p1, Point3 &p2)
-{
-  for (int i = 0; i < (int)points.size() - 1; i++)
-  {
-    Point3 pp1 = points[i]->getPt();
-    Point3 pp2 = points[i + 1]->getPt();
-
-    if (lines_inters_ignore_Y(p1, p2, pp1, pp2))
-      return true;
-  }
-
-  return false;
-}
-
 real SplineObject::getTotalLength()
 {
   real total = 0;
@@ -2825,7 +2693,7 @@ void SplineObject::reApplyModifiers(bool apply_now, bool force)
   }
 
   BBox3 b = splBox;
-  float addr = props.modifParams.width + props.modifParams.smooth;
+  float addr = (props.modifParams.width + props.modifParams.smooth) * props.modifParams.maxWidthScale;
   Point3 add(addr, 0, addr);
 
   b[0] -= add;
@@ -2858,8 +2726,23 @@ void SplineObject::pointChanged(int pt_idx)
   if (getObjEditor())
     ((HmapLandObjectEditor *)getObjEditor())->splinesChanged = true;
 }
+void SplineObject::recalcMaxPerPointWidth()
+{
+  float maxS = 1.0f;
+  if (props.modifParams.usePerPointWidth)
+  {
+    for (int i = 0; i < points.size(); i++)
+    {
+      float sw = points[i]->getProps().attr.scale_w;
+      if (sw > maxS)
+        maxS = sw;
+    }
+  }
+  props.modifParams.maxWidthScale = maxS;
+}
 void SplineObject::markModifChanged()
 {
+  recalcMaxPerPointWidth();
   modifChanged = true;
   if (getObjEditor())
     ((HmapLandObjectEditor *)getObjEditor())->splinesChanged = true;
@@ -2982,7 +2865,7 @@ UndoRedoObject *SplineObject::makePointListUndo()
 SplineObject *SplineObject::clone()
 {
   Ptr<SplineObject> obj = new SplineObject(poly);
-  obj->setEditLayerIdx(EditLayerProps::activeLayerIdx[obj->lpIndex()]);
+  obj->setEditLayerIdx(editLayerIdx);
 
   getObjEditor()->setUniqName(obj, getName());
   getObjEditor()->addObject(obj);

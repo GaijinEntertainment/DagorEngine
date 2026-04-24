@@ -4,8 +4,12 @@
 
 #include "gradientControlStandalone.h"
 #include <propPanel/commonWindow/colorDialog.h>
+#include <propPanel/control/menu.h>
+#include <propPanel/imguiHelper.h>
 #include "../c_constants.h"
 #include <math/dag_rectInt.h>
+#include <ioSys/dag_dataBlock.h>
+#include <libTools/util/blkUtil.h>
 
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
@@ -164,6 +168,29 @@ bool TrackGradientButton::updateImgui(const Point2 &view_offset, const Point2 &m
   return hovered;
 }
 
+namespace ContextMenu
+{
+enum
+{
+  COPY,
+  PASTE,
+};
+}
+
+class GradientControlContextMenuEventHandler : public IMenuEventHandler
+{
+public:
+  GradientControlContextMenuEventHandler(GradientControlStandalone &gradient_control) : gradientControl(gradient_control) {}
+  int onMenuItemClick(unsigned id) override
+  {
+    gradientControl.processContextMenu(id);
+    return 0;
+  }
+
+private:
+  GradientControlStandalone &gradientControl;
+};
+
 // -------------- Gradient ---------------------------
 
 GradientControlStandalone::GradientControlStandalone(WindowControlEventHandler *event_handler, int w) :
@@ -271,6 +298,22 @@ void GradientControlStandalone::onLButtonDClick(float x_pos_in_canvas_space)
   mEventHandler->onWcChange(windowBaseForEventHandler);
 }
 
+void GradientControlStandalone::onRButtonDown()
+{
+  contextMenuEventHandler.reset(new GradientControlContextMenuEventHandler(*this));
+  contextMenu.reset(create_context_menu());
+  contextMenu->setEventHandler(contextMenuEventHandler.get());
+  contextMenu->addItem(ROOT_MENU_ITEM, ContextMenu::COPY, "Copy\tCtrl+C");
+  contextMenu->addItem(ROOT_MENU_ITEM, ContextMenu::PASTE, "Paste\tCtrl+V");
+  bool pasteEnabled = false;
+  if (const char *text = ImGui::GetClipboardText())
+  {
+    DataBlock blk;
+    dblk::load_text(blk, make_span(text, (int)strlen(text)), dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS);
+    pasteEnabled = blk.isValid() && !strcmp(blk.getStr("DataType", ""), "Gradient");
+  }
+  contextMenu->setEnabledById(ContextMenu::PASTE, pasteEnabled);
+}
 
 bool GradientControlStandalone::canRemove() { return (mKeys.size() > mMinPtCount); }
 
@@ -458,6 +501,16 @@ void GradientControlStandalone::updateCycled(TrackGradientButton *button)
   mKeys[j]->setColorValue(mKeys[i]->getColorValue());
 }
 
+void GradientControlStandalone::processContextMenu(unsigned id)
+{
+  switch (id)
+  {
+    case ContextMenu::COPY: copyGradient(); break;
+    case ContextMenu::PASTE: pasteGradient(); break;
+    default: break;
+  }
+}
+
 void GradientControlStandalone::calculateSizes(int total_width, int total_height)
 {
   if (totalControlWidth != total_width || totalControlHeight != total_height)
@@ -475,6 +528,35 @@ void GradientControlStandalone::cancelColorPickerShowRequest()
 {
   remove_delayed_callback(*this);
   showColorPickerForKeyIndex = -1;
+}
+
+void GradientControlStandalone::handleKeyPresses(unsigned canvas_id)
+{
+  if (mEventHandler && ImguiHelper::isKeyChordPressedOwned(ImGuiMod_Ctrl | ImGuiKey_C, canvas_id))
+    copyGradient();
+  else if (mEventHandler && ImguiHelper::isKeyChordPressedOwned(ImGuiMod_Ctrl | ImGuiKey_V, canvas_id))
+    pasteGradient();
+}
+
+void GradientControlStandalone::copyGradient()
+{
+  DataBlock blk;
+  mEventHandler->onWcClipboardCopy(nullptr, blk);
+
+  SimpleString text = blk_util::blkTextData(blk);
+  if (!text.empty())
+    ImGui::SetClipboardText(text);
+}
+
+void GradientControlStandalone::pasteGradient()
+{
+  if (const char *text = ImGui::GetClipboardText())
+  {
+    DataBlock blk;
+    dblk::load_text(blk, make_span(text, (int)strlen(text)), dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS);
+    if (blk.isValid())
+      mEventHandler->onWcClipboardPaste(nullptr, blk);
+  }
 }
 
 void GradientControlStandalone::onImguiDelayedCallback(void *user_data)
@@ -554,10 +636,18 @@ void GradientControlStandalone::updateImgui(int width, int height)
       mKeys[mouseClickKeyIndex]->onDrag(mousePosInCanvas.x, mousePosInCanvas.y);
     }
   }
-  else if (isHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left, canvasId))
+  else if (isHovered)
   {
-    onLButtonDClick(mousePosInCanvas.x);
+    if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left, canvasId))
+      onLButtonDClick(mousePosInCanvas.x);
+    if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+      onRButtonDown();
+    else
+      handleKeyPresses(canvasId);
   }
+
+  if (contextMenu && !render_context_menu(*contextMenu))
+    contextMenu.reset();
 
   ImGui::PopID();
 }

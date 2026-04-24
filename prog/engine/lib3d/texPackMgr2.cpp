@@ -1336,6 +1336,8 @@ bool DDSxTexturePack2::Factory::performDelayedLoad(int prio)
       logwarn("simultaneous call to performDelayedLoad() stalled thread at least for %d msec", profile_time_usec(reft) / 1000);
       passed_100ms = true;
     }
+    if (is_main_thread())
+      texmgr_internal::do_per_frame_updates_while_waiting_on_main_thread();
   }
 
   Tab<DDSxTexturePack2::Rec *> toLoad;
@@ -1354,7 +1356,7 @@ bool DDSxTexturePack2::Factory::performDelayedLoad(int prio)
 
   reft = profile_ref_ticks();
 
-  fast_sort(toLoad, [](const auto &a, const auto &b) { return a->ofs < b->ofs; });
+  fast_sort_branchless(toLoad.begin(), toLoad.end(), [](const Rec *a, const Rec *b) { return a->ofs < b->ofs; });
 
   DDSxTexturePack2::Rec *lastrec = NULL;
   for (int i = toLoad.size() - 1; i >= 0; i--)
@@ -1786,7 +1788,11 @@ bool ddsx::tex_pack2_perform_delayed_data_loading(int prio)
   {
     reft = profile_ref_ticks();
     while (interlocked_acquire_load(processingTexData[prio]))
+    {
       sleep_msec(1);
+      if (is_main_thread())
+        texmgr_internal::do_per_frame_updates_while_waiting_on_main_thread();
+    }
     if (profile_usec_passed(reft, 1000))
       logwarn("simultaneous call to tex_pack2_perform_delayed_data_loading(%d) stalled thread for %d msec", prio,
         profile_time_usec(reft) / 1000);
@@ -2528,6 +2534,10 @@ struct DDSxArrayTextureFactory final : public TextureFactory
               while (dagor_frame_no() < fe && (unsigned)interlocked_acquire_load(texmgr_internal::drv_res_updates_flush_count) < rfe &&
                      profile_time_usec(reft) < 100000)
                 sleep_msec(1);
+
+              // try to use overallocation on vulkan, so if IO is heavily stuck, we don't get empty textures
+              if (attempt + 2 == tries && d3d::get_driver_code().is(d3d::vulkan))
+                d3d::driver_command(Drv3dCommand::PROCESS_PENDING_RESOURCE_UPDATED);
             }
             else
               // on main thread we must process pending updates to free RUB memory
@@ -2658,6 +2668,10 @@ struct DDSxArrayTextureFactory final : public TextureFactory
               while (dagor_frame_no() < fe && (unsigned)interlocked_acquire_load(texmgr_internal::drv_res_updates_flush_count) < rfe &&
                      profile_time_usec(reft) < 100000)
                 sleep_msec(1);
+
+              // try to use overallocation on vulkan, so if IO is heavily stuck, we don't get empty textures
+              if (attempt + 2 == tries && d3d::get_driver_code().is(d3d::vulkan))
+                d3d::driver_command(Drv3dCommand::PROCESS_PENDING_RESOURCE_UPDATED);
             }
             else
               // on main thread we must process pending updates to free RUB memory

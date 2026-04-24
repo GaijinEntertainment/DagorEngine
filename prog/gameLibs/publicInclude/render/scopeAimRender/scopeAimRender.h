@@ -16,13 +16,17 @@ class PostFxRenderer;
 namespace dafg
 {
 class NodeHandle;
-}
+class Registry;
+} // namespace dafg
 
 struct ScopeAimRenderingData
 {
   int lensNodeId = -1;
   int lensCollisionNodeId = -1;
   int crosshairNodeId = -1;
+  int crosshairFfpNodeId = -1;
+  float firstFocalPlaneZoomFactor = 1.0f;
+  float scopeWeaponLensZoomFactor = 1.0f;
   ecs::EntityId entityWithScopeLensEid;
   ecs::EntityId gunEid;
   bool isAiming = false;
@@ -59,14 +63,15 @@ void render_scope_lens_mask(const ScopeAimRenderingData &scopeAimData, const Tex
   const bool use_depth_as_val = false);
 void render_scope_lens_hole(const ScopeAimRenderingData &scopeAimData, const bool by_mask, const TexStreamingContext &texCtx);
 void render_scope_trans_forward(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx);
+void render_scope_crosshair_gui(const AimRenderingData &scopeAimData, const CameraParams &view, const IPoint2 &viewport_res);
 
-void render_lens_frame(const ScopeAimRenderingData &scopeAimData, TEXTUREID frameTexId, TEXTUREID lensSourceTexId,
+void render_lens_frame(const ScopeAimRenderingData &scopeAimData, BaseTexture *frameTex, BaseTexture *lensSourceTex,
   const TexStreamingContext &texCtx);
 void render_lens_optics(const ScopeAimRenderingData &scopeAimData, const TexStreamingContext &texCtx,
   const PostFxRenderer &fadingRenderer);
 
 class ComputeShaderElement;
-void prepare_scope_vrs_mask(ComputeShaderElement *scope_vrs_mask_cs, Texture *scope_vrs_mask_tex, TEXTUREID depth);
+void prepare_scope_vrs_mask(ComputeShaderElement *scope_vrs_mask_cs, Texture *scope_vrs_mask_tex, Texture *depth);
 
 void render_scope(const ecs::EntityId entity_with_scope, const int node_id, const TexStreamingContext &tex_ctx,
-  ShaderElement *shader_elem);
+  ShaderElement *shader_elem, const int block_id = -1);

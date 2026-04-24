@@ -73,6 +73,7 @@ public:
   bool isTimeChanged() { return timeChanged == 1; }
 
   static void createSharedData(const char *fname);
+  static void releaseSharedData();
   static void reloadSharedData();
   static void *getSharedDataPtr();
   static void setSharedDataPtr(void *p);

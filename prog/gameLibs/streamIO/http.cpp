@@ -12,6 +12,7 @@
 #include <EASTL/shared_ptr.h>
 #include <flat_hash_map2.hpp>
 #include <time.h>
+#include <util/dag_compilerDefs.h>
 
 namespace streamio
 {
@@ -72,7 +73,7 @@ struct HTTPContext : public Context
 
   void poll() override
   {
-#ifdef __SANITIZE_THREAD__
+#ifdef DAGOR_THREAD_SANITIZER
     if ([&] {
           WinAutoLock lk(streamsCs);
           return !streams.empty();

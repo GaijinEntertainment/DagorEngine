@@ -9,6 +9,8 @@
 #include <de3_animCtrl.h>
 #include <de3_lodController.h>
 #include <de3_dynRenderService.h>
+#include <de3_objEntity.h>
+#include <de3_entityPool.h>
 #include <oldEditor/de_common_interface.h>
 #include <assets/assetChangeNotify.h>
 #include <assets/assetMgr.h>
@@ -35,58 +37,25 @@
 #include <oldEditor/de_interface.h>
 #include <oldEditor/de_workspace.h>
 #include <osApiWrappers/dag_direct.h>
+#include "common.h"
+#include "virtualAnimCharEntityBase.h"
 
-static int animCharEntityClassId = -1;
-static ISceneLightService *ltService;
-
-static bool registeredNotifier = false;
-static FastNameMapEx usedAssetNames;
-
-static float simDtScale = 1.0f;
-static bool simPaused = false;
-static DagorAssetMgr *aMgr = NULL;
-
-bool validateName = false;
-Tab<String> gameDataPath;
+struct AttachmentStor
+{
+  int slotId;
+  AnimCharV20::IAnimCharacter2 *ac;
+};
 
 class AnimCharEntity;
+using PoolType = SingleEntityPool<AnimCharEntity>;
+using AnimCharEntityBase = VirtualAnimCharEntityBase<PoolType, AttachmentStor>;
 
-typedef SingleEntityPool<AnimCharEntity> AnimCharEntityPool;
-
-class VirtualAnimCharEntity : public IObjEntity
+class VirtualAnimCharEntity : public AnimCharEntityBase
 {
 public:
-  struct DynamicAttachement
-  {
-    int slotId = -1;
-    int animVarId = -1;
-    const DataBlock *bEnum = NULL;
-    String attSuffix, configDir, varBlockNm;
-    bool varTypeInt = false;
-    float curValue = -1;
-    int setAssetNid = -1;
-    Tab<int> syncVarsF, syncVarsI;
-  };
-  struct AttachmentStor
-  {
-    int slotId;
-    AnimCharV20::IAnimCharacter2 *ac;
-  };
+  VirtualAnimCharEntity(int cls) : AnimCharEntityBase(cls), ac(NULL) {}
 
-public:
-  VirtualAnimCharEntity(int cls) : IObjEntity(cls), pool(NULL), ac(NULL)
-  {
-    bbox = BBox3(Point3(-0.5, -0.5, -0.5), Point3(0.5, 0.5, 0.5));
-    bsph = BSphere3(Point3(0, 0, 0), 0.5);
-    assetNameId = -1;
-    usedAssetNid = -1;
-  }
-
-  ~VirtualAnimCharEntity()
-  {
-    clear();
-    assetNameId = -1;
-  }
+  ~VirtualAnimCharEntity() { clear(); }
 
   void clear()
   {
@@ -96,16 +65,6 @@ public:
     for (auto &att : attStor)
       destroy_it(att.ac);
   }
-
-  void setTm(const TMatrix &_tm) override {}
-  void getTm(TMatrix &_tm) const override { _tm = TMatrix::IDENT; }
-  void destroy() override { delete this; }
-  void *queryInterfacePtr(unsigned huid) override { return NULL; }
-
-  BSphere3 getBsph() const override { return bsph; }
-  BBox3 getBbox() const override { return bbox; }
-
-  const char *getObjAssetName() const override { return usedAssetNames.getName(usedAssetNid); }
 
   void setup(const DagorAsset &asset)
   {
@@ -117,31 +76,23 @@ public:
     DAEDITOR3.setFatalHandler(false);
     try
     {
-      FastNameMap resNameMap;
-      resNameMap.addNameId(name);
-      ::set_required_res_list_restriction(resNameMap);
-      GameResHandle h = GAMERES_HANDLE_FROM_STRING(name);
-      GameResource *res = ::get_game_resource_ex(h, CharacterGameResClassId);
-      ::reset_required_res_list_restriction();
+      GameResource *res = ::get_one_game_resource_ex(name, CharacterGameResClassId);
       if (res && !((AnimCharV20::IAnimCharacter2 *)res)->getVisualResource())
       {
-        ::release_game_resource(res);
+        ::release_game_resource_ex(res, CharacterGameResClassId);
         res = nullptr;
       }
 
       if (res)
       {
         ac = ((AnimCharV20::IAnimCharacter2 *)res)->clone();
-        ::release_game_resource(res);
+        ::release_game_resource_ex(res, CharacterGameResClassId);
 
         const char *fp_name = asset.props.getStr("ref_fastPhys", NULL);
         if (fp_name)
         {
-          resNameMap.reset();
-          resNameMap.addNameId(fp_name);
-          ::set_required_res_list_restriction(resNameMap);
+          preload_game_resource(fp_name);
           FastPhysSystem *fpRes = create_fast_phys_from_gameres(fp_name);
-          ::reset_required_res_list_restriction();
 
           if (!fpRes)
             DAEDITOR3.conError("cannot find fastphys <%s> for animChar <%s>", fp_name, name);
@@ -162,7 +113,6 @@ public:
               continue;
             }
 
-            resNameMap.reset();
             if (const char *attAcNm = b.getStr("animChar", NULL))
             {
               AnimV20::attachment_uid_t uid = AnimV20::INVALID_ATTACHMENT_UID;
@@ -172,16 +122,13 @@ public:
                 usedRefNids.push_back(usedAssetNames.addNameId(a->getNameTypified()));
                 uid = a->getNameId() + 1;
               }
-              resNameMap.addNameId(attAcNm);
-              ::set_required_res_list_restriction(resNameMap);
-              GameResource *attAcRes = ::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(attAcNm), CharacterGameResClassId);
+              GameResource *attAcRes = ::get_one_game_resource_ex(attAcNm, CharacterGameResClassId);
               AnimCharV20::IAnimCharacter2 *attAc = attAcRes ? ((AnimCharV20::IAnimCharacter2 *)attAcRes)->clone() : NULL;
-              ::release_game_resource(attAcRes);
-              ::reset_required_res_list_restriction();
+              ::release_game_resource_ex(attAcRes, CharacterGameResClassId);
               if (attAc && a)
-                init_ref_default_state(attAc, a->props);
+                init_ref_default_state(&attAc->baseComp(), a->props);
 
-              if (attAc && ac->setAttachedChar(slot_id, uid, &attAc->baseComp()) >= 0)
+              if (attAc && ac->setAttachedChar(slot_id, uid, attAc->baseComp()) >= 0)
               {
                 DAEDITOR3.conNote("attached char <%s> to slot <%s> of animChar <%s>", attAcNm, slot_name, name);
                 replaceAtt(slot_id, attAc);
@@ -290,179 +237,12 @@ public:
     bsph = bbox;
 
     const char *ref_anim = asset.props.getStr("ref_anim", NULL);
-    if (ref_anim && !ac->getAnimStateDirector())
+    if (ref_anim)
       setAnim(ref_anim);
 
 
     if (IAnimCharController *animCtrl = queryInterface<IAnimCharController>())
-      init_ref_default_state(animCtrl->getAnimChar(), asset.props);
-  }
-
-  static int getIntParam(const DataBlock &b, const char *nm, int def)
-  {
-    int i = b.findParam(nm);
-    if (i < 0)
-      return def;
-    if (b.getParamType(i) == b.TYPE_STRING)
-      return AnimV20::getEnumValueByName(b.getStr(i));
-    if (b.getParamType(i) == b.TYPE_INT)
-      return b.getInt(i);
-    return def;
-  }
-  static float getFloatParam(const DataBlock &b, const char *nm, float def)
-  {
-    int i = b.findParam(nm);
-    if (i < 0)
-      return def;
-    if (b.getParamType(i) == b.TYPE_STRING)
-      return (float)AnimV20::getEnumValueByName(b.getStr(i));
-    if (b.getParamType(i) == b.TYPE_REAL)
-      return b.getReal(i);
-    return def;
-  }
-
-  void init_ref_default_state(AnimV20::IAnimCharacter2 *ac, const DataBlock &props)
-  {
-    AnimV20::AnimationGraph *ag = ac->getAnimGraph();
-    if (!ag)
-      return;
-
-    AnimV20::IAnimStateHolder &st = *ac->getAnimState();
-    if (const DataBlock *b = props.getBlockByName("ref_animvars"))
-      iterate_names(ag->getParamNames(), [&](int id, const char *name) {
-        switch (ag->getParamType(id))
-        {
-          case AnimV20::IPureAnimStateHolder::PT_ScalarParam:
-          case AnimV20::IPureAnimStateHolder::PT_TimeParam: st.setParam(id, getFloatParam(*b, name, st.getParam(id))); break;
-          case AnimV20::IPureAnimStateHolder::PT_ScalarParamInt: st.setParamInt(id, getIntParam(*b, name, st.getParamInt(id))); break;
-        }
-      });
-
-    if (const DataBlock *b = props.getBlockByName("ref_states"))
-      for (int i = 0, nid = b->getNameId("state"); i < b->paramCount(); i++)
-        if (b->getParamNameId(i) == nid && b->getParamType(i) == b->TYPE_STRING)
-        {
-          int s_idx = ag->getStateIdx(b->getStr(i));
-          if (s_idx >= 0)
-            ag->enqueueState(st, ag->getState(s_idx), -1);
-        }
-  }
-
-  bool isNonVirtual() const { return pool; }
-  int getAssetNameId() const { return assetNameId; }
-  inline const char *assetName() const { return aMgr ? aMgr->getAssetName(assetNameId) : NULL; }
-
-  AnimV20::AnimBlendCtrl_Fifo3 *initDebugFifo(bool set_anim)
-  {
-    AnimV20::AnimationGraph *ag = ac ? ac->getAnimGraph() : NULL;
-    if (!ag)
-      return NULL;
-    AnimV20::IAnimStateHolder *as = ac->getAnimState();
-    if (dbgHub.get())
-    {
-      dbgHub->setBlendNodeWt(*as, dbgOldRoot, set_anim ? 0.0f : 1.0f);
-      dbgHub->setBlendNodeWt(*as, dbgFifo, set_anim ? 1.0f : 0.0f);
-      return dbgFifo;
-    }
-    if (!set_anim)
-      return NULL;
-
-    dbgHub = new AnimV20::AnimBlendCtrl_Hub;
-    dbgFifo = new AnimV20::AnimBlendCtrl_Fifo3(*ag, "debug.fifo::var");
-    dbgOldRoot = ag->getRoot();
-
-    ag->registerBlendNode(dbgHub, "~debug.hub");
-    ag->registerBlendNode(dbgFifo, "debug.fifo");
-
-    dbgHub->addBlendNode(dbgFifo, false, 1.0);
-    if (dbgOldRoot.get())
-      dbgHub->addBlendNode(dbgOldRoot, true, 1.0);
-    dbgHub->finalizeInit(*ag, "debug.hub::var");
-
-    ag->replaceRoot(dbgHub);
-    ac->reset();
-    dbgHub->setBlendNodeWt(*as, dbgOldRoot, set_anim ? 0.0f : 1.0f);
-    dbgHub->setBlendNodeWt(*as, dbgFifo, set_anim ? 1.0f : 0.0f);
-    return dbgFifo;
-  }
-  void termDebugFifo()
-  {
-    AnimV20::AnimationGraph *ag = ac ? ac->getAnimGraph() : NULL;
-    if (!ag)
-      return;
-
-    if (dbgHub.get())
-    {
-      ag->replaceRoot(dbgOldRoot);
-      ag->unregisterBlendNode(dbgHub);
-      ag->unregisterBlendNode(dbgFifo);
-      dbgHub = NULL;
-      dbgFifo = NULL;
-      dbgOldRoot = NULL;
-      ac->reset();
-    }
-  }
-
-  bool enqueueAnim(const char *anim)
-  {
-    AnimV20::AnimationGraph *ag = ac ? ac->getAnimGraph() : NULL;
-    if (!ag)
-      return false;
-    if (anim && !*anim)
-      anim = NULL;
-
-    AnimV20::IAnimStateHolder *as = ac->getAnimState();
-    AnimV20::AnimBlendCtrl_Fifo3 *fifo = NULL;
-    if (ag->getRoot() && ag->getRoot()->isSubOf(AnimV20::AnimBlendCtrl_Fifo3CID))
-      fifo = reinterpret_cast<AnimV20::AnimBlendCtrl_Fifo3 *>(ag->getRoot());
-    else
-      fifo = initDebugFifo(anim != NULL);
-
-    if (!fifo && anim)
-    {
-      DAEDITOR3.conWarning("cant set anim <%s> due to AG:root is missing or not fifo3", anim);
-      return false;
-    }
-    if (anim)
-    {
-      AnimV20::IAnimBlendNode *n = ag->getBlendNodePtr(anim);
-      if (!n)
-      {
-        DAEDITOR3.conWarning("cant set missing anim <%s>", anim);
-        return false;
-      }
-      if (!fifo->isEnqueued(*as, n))
-        n->resume(*as, true);
-      fifo->enqueueState(*as, n, 0.15, 0.0);
-    }
-    return true;
-  }
-
-  bool setAnim(const char *anim)
-  {
-    if (!ac || !ac->getAnimGraph())
-    {
-      DAEDITOR3.conWarning("cant set ref anim <%s> due to AG is missing in animChar", anim);
-      return false;
-    }
-    if (!enqueueAnim(anim))
-    {
-      enqueueAnim(NULL);
-      return false;
-    }
-
-    // recalc bounds
-    ac->act(0.001, ::grs_cur_view.pos, true);
-    bbox3f wbb;
-    ac->rendComp().calcWorldBox(wbb, ac->getFinalWtm(), false);
-    bbox[0] = as_point3(&wbb.bmin);
-    bbox[1] = as_point3(&wbb.bmax);
-    bsph = bbox;
-    if (anim && *anim)
-      DAEDITOR3.conNote("set anim <%s>", anim);
-    else
-      DAEDITOR3.conNote("reset anim");
-    return true;
+      init_ref_default_state(animCtrl->getAnimCharBase(), asset.props);
   }
 
   void update(float dt)
@@ -495,24 +275,26 @@ public:
         ec_set_busy(true);
         usedRefNids.push_back(att.setAssetNid = usedAssetNames.addNameId(a->getNameTypified()));
 
-        FastNameMap resNameMap;
-        resNameMap.addNameId(a->getName());
-        ::set_required_res_list_restriction(resNameMap);
-        GameResource *attAcRes = ::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(a->getName()), CharacterGameResClassId);
-        AnimCharV20::IAnimCharacter2 *attAc = attAcRes ? ((AnimCharV20::IAnimCharacter2 *)attAcRes)->clone() : NULL;
-        ::release_game_resource(attAcRes);
-        ::reset_required_res_list_restriction();
-        if (attAc)
-          init_ref_default_state(attAc, a->props);
+        GameResource *attAcRes = ::get_one_game_resource_ex(a->getName(), CharacterGameResClassId);
+        if (attAcRes && !((AnimCharV20::IAnimCharacter2 *)attAcRes)->getVisualResource())
+        {
+          ::release_game_resource_ex(attAcRes, CharacterGameResClassId);
+          attAcRes = nullptr;
+        }
 
-        if (attAc && ac->setAttachedChar(att.slotId, a->getNameId(), &attAc->baseComp()) >= 0)
+        AnimCharV20::IAnimCharacter2 *attAc = attAcRes ? ((AnimCharV20::IAnimCharacter2 *)attAcRes)->clone() : NULL;
+        ::release_game_resource_ex(attAcRes, CharacterGameResClassId);
+        if (attAc)
+          init_ref_default_state(&attAc->baseComp(), a->props);
+
+        if (attAc && ac->setAttachedChar(att.slotId, a->getNameId(), attAc->baseComp()) >= 0)
           DAEDITOR3.conNote("attached char <%s> to slotId=%d of animChar <%s>", a->getName(), att.slotId, assetName());
         else
         {
           DAEDITOR3.conError("cannot set attachment char <%s>=%p to slotId=%d of animChar <%s>", a->getName(), attAc, att.slotId,
             assetName());
           destroy_it(attAc);
-          ac->setAttachedChar(att.slotId, AnimV20::INVALID_ATTACHMENT_UID, NULL);
+          ac->releaseAttachment(att.slotId);
           att.setAssetNid = -1;
         }
         replaceAtt(att.slotId, attAc);
@@ -521,7 +303,7 @@ public:
       else
       {
         DAEDITOR3.conNote("reset attachements at slotId=%d of animChar <%s>", att.slotId, assetName());
-        ac->setAttachedChar(att.slotId, AnimV20::INVALID_ATTACHMENT_UID, NULL);
+        ac->releaseAttachment(att.slotId);
         att.setAssetNid = -1;
         replaceAtt(att.slotId, NULL);
       }
@@ -583,6 +365,24 @@ public:
         att.ac->setTm(att.ac->getNodeTree().getRootTm());
         att.ac->act(dt, ::grs_cur_view.pos);
       }
+
+    auto updatePrevTm = [&](AnimCharV20::IAnimCharacter2 *animChar) {
+      DynamicRenderableSceneInstance *sceneInstance = animChar->getSceneInstance();
+      for (uint32_t i = 0; i < sceneInstance->getNodeCount(); i++)
+      {
+        TMatrix wtm = sceneInstance->getNodeWtm(i);
+        wtm.setcol(3, wtm.getcol(3) - ::grs_cur_view.pos);
+        sceneInstance->setPrevNodeWtm(i, wtm);
+      }
+    };
+    if (IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>())
+      if (rs->getRenderType() == rs->RTYPE_DNG_BASED)
+      {
+        updatePrevTm(ac);
+        for (auto &att : attStor)
+          if (att.ac)
+            updatePrevTm(att.ac);
+      }
   }
   void replaceAtt(int slot_id, AnimCharV20::IAnimCharacter2 *attAc)
   {
@@ -602,19 +402,26 @@ public:
     }
   }
 
-public:
-  AnimCharEntityPool *pool;
-  AnimV20::IAnimCharacter2 *ac;
-  Ptr<AnimV20::AnimBlendCtrl_Hub> dbgHub;
-  Ptr<AnimV20::AnimBlendCtrl_Fifo3> dbgFifo;
-  Ptr<AnimV20::IAnimBlendNode> dbgOldRoot;
-  Tab<int> usedRefNids;
-  Tab<DynamicAttachement> dynAtt;
-  Tab<AttachmentStor> attStor;
+protected:
+  void updateBounds() override
+  {
+    if (!ac)
+      return;
+    ac->act(0.001, ::grs_cur_view.pos, true);
+    bbox3f wbb;
+    ac->rendComp().calcWorldBox(wbb, ac->getFinalWtm(), false);
+    bbox[0] = as_point3(&wbb.bmin);
+    bbox[1] = as_point3(&wbb.bmax);
+    bsph = bbox;
+  }
 
-  int assetNameId, usedAssetNid;
-  BBox3 bbox;
-  BSphere3 bsph;
+  AnimV20::AnimationGraph *getAnimGraph() const override { return ac ? ac->getAnimGraph() : NULL; }
+  AnimV20::IAnimStateHolder *getAnimState() const override { return ac ? ac->getAnimState() : NULL; }
+  AnimV20::AnimcharBaseComponent *getAnimCharBase() const override { return ac ? &ac->baseComp() : nullptr; }
+  AnimV20::AnimcharRendComponent *getAnimCharRend() const override { return ac ? &ac->rendComp() : nullptr; }
+
+public:
+  AnimV20::IAnimCharacter2 *ac;
 };
 
 
@@ -655,27 +462,8 @@ public:
   {
     if (!e.ac)
       return;
-
     ac = e.ac->clone();
-    dbgHub = e.dbgHub;
-    dbgFifo = e.dbgFifo;
-    dbgOldRoot = e.dbgOldRoot;
-    assetNameId = e.assetNameId;
-    usedAssetNid = e.usedAssetNid;
-    usedRefNids = e.usedRefNids;
-    bbox = e.bbox;
-    bsph = e.bsph;
-
-    if (aMgr)
-    {
-      DagorAsset *a = aMgr->findAsset(aMgr->getAssetName(assetNameId), animCharEntityClassId);
-      if (a)
-      {
-        const char *ref_anim = a->props.getStr("ref_anim", NULL);
-        if (ref_anim && !ac->getAnimStateDirector())
-          setAnim(ref_anim);
-      }
-    }
+    AnimCharEntityBase::copyFrom(e);
   }
 
   // IAnimCharController
@@ -721,9 +509,12 @@ public:
     return false;
   }
 
-  AnimV20::AnimationGraph *getAnimGraph() const override { return ac ? ac->getAnimGraph() : NULL; }
-  AnimV20::IAnimStateHolder *getAnimState() const override { return ac ? ac->getAnimState() : NULL; }
-  AnimV20::IAnimCharacter2 *getAnimChar() const override { return ac; }
+  AnimV20::AnimationGraph *getAnimGraph() const override { return VirtualAnimCharEntity::getAnimGraph(); }
+  AnimV20::IAnimStateHolder *getAnimState() const override { return VirtualAnimCharEntity::getAnimState(); }
+  AnimV20::AnimcharBaseComponent *getAnimCharBase() const override { return VirtualAnimCharEntity::getAnimCharBase(); }
+  AnimV20::AnimcharRendComponent *getAnimCharRend() const override { return VirtualAnimCharEntity::getAnimCharRend(); }
+  const AnimV20::AnimcharFinalMat44 *getAnimCharFinalWTM() const override { return ac ? &ac->getFinalWtm() : nullptr; }
+  BSphere3 getAnimCharBoundingSphere() const override { return ac ? ac->getBoundingSphere() : BSphere3{}; }
 
   bool isPaused() const override { return simPaused; }
   void setPaused(bool paused) override { simPaused = paused; }
@@ -882,7 +673,7 @@ public:
         d3d::settm(TM_WORLD, &Matrix44::IDENT);
         d3d::getglobtm(gtm);
         Driver3dPerspective p;
-        AnimCharV20::prepareGlobTm(true, Frustum(gtm), d3d::getpersp(p) ? p.hk : 0, ::grs_cur_view.pos, nullptr);
+        AnimCharV20::prepareGlobTm(true, Frustum(gtm), nullptr, d3d::getpersp(p) ? p.hk : 0, ::grs_cur_view.pos, nullptr);
       }
         for (int i = 0; i < ent.size(); i++)
           if (ent[i] && ent[i]->ac && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
@@ -1065,7 +856,7 @@ public:
   }
 
 protected:
-  AnimCharEntityPool objPool;
+  PoolType objPool;
   bool visible;
 };
 

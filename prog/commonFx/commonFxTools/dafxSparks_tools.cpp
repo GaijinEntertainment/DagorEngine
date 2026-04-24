@@ -193,7 +193,7 @@ ScriptHelpers::TunedElement *DafxSparksGlobalParams::createTunedElement(const ch
 ScriptHelpers::TunedElement *DafxSparksOptionalModifiers::createTunedElement(const char *name)
 {
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
-  elems.reserve(3);
+  elems.reserve(4);
 
   elems.push_back(SparkFxValueCurveOpt::createTunedElement("widthOverLife"));
   elems.push_back(ScriptHelpers::create_tuned_bool_param("allowScreenProjDiscard", true));
@@ -210,8 +210,9 @@ ScriptHelpers::TunedElement *DafxSparksOptionalModifiers::createTunedElement(con
 
     elems.push_back(ScriptHelpers::create_tuned_enum_param("collision", enumEntries));
   }
+  elems.push_back(ScriptHelpers::create_tuned_bool_param("smoothFadeEnabled", true));
 
-  return ScriptHelpers::create_tuned_struct(name, 3, elems);
+  return ScriptHelpers::create_tuned_struct(name, 4, elems);
 }
 
 

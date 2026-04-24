@@ -9,8 +9,12 @@
 #include <3d/dag_resPtr.h>
 #include <projectors/shaders/projectors.hlsli>
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <daECS/core/updateStage.h>
 #include <ecs/render/updateStageRender.h>
 
@@ -134,12 +138,12 @@ public:
 
   void setAtmosphereParams(float atmosphereDensity, float noiseScale, float noiseStrength)
   {
-    ShaderGlobal::set_color4_fast(atmosphereParamsVarId, Color4(atmosphereDensity, noiseScale, noiseStrength, 0.0f));
+    ShaderGlobal::set_float4(atmosphereParamsVarId, Color4(atmosphereDensity, noiseScale, noiseStrength, 0.0f));
   }
 
   void setAtmosphereShift(const Point3 shift)
   {
-    ShaderGlobal::set_color4_fast(atmosphereShiftVarId, Color4(shift.x, shift.y, shift.z, 0.0f));
+    ShaderGlobal::set_float4(atmosphereShiftVarId, Color4(shift.x, shift.y, shift.z, 0.0f));
   }
 
 private:
@@ -166,12 +170,13 @@ ECS_REGISTER_BOXED_TYPE(ProjectorsManager, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(ProjectorsManager, "projectors_manager", nullptr, 0);
 
 template <typename Callable>
-inline void projector_update_ecs_query(Callable fn);
+inline void projector_update_ecs_query(ecs::EntityManager &manager, Callable fn);
 
 template <typename Callable>
-inline void add_projector_ecs_query(Callable fn);
+inline void add_projector_ecs_query(ecs::EntityManager &manager, Callable fn);
 
-static void add_projector(ecs::EntityId eid,
+static void add_projector(ecs::EntityManager &manager,
+  ecs::EntityId eid,
   ProjectorsManager &projectors_manager,
   int &projector__id,
   const Point3 &projector__color,
@@ -205,13 +210,14 @@ static void add_projector(ecs::EntityId eid,
     projector__length, projector__sourceWidth);
 
   if (projector__id < 0)
-    g_entity_mgr->destroyEntity(eid);
+    manager.destroyEntity(eid);
 }
 
 #define TRANSPARENCY_NODE_PRIORITY_PROJECTORS 0
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 void init_manager_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
   ProjectorsManager &projectors_manager,
   dafg::NodeHandle &projectors_node,
   Point3 &projectors_manager__atmosphereMoveDir,
@@ -227,12 +233,13 @@ void init_manager_es_event_handler(const ecs::Event &,
   projectors_manager.setAtmosphereParams(projectors_manager__atmosphereDensity, projectors_manager__noiseScale,
     projectors_manager__noiseStrength);
 
-  add_projector_ecs_query([&projectors_manager](ecs::EntityId eid, int &projector__id, const Point3 &projector__color,
-                            float projector__angle, float projector__length, float projector__sourceWidth,
-                            float &projector__xAngleAmplitude, float &projector__zAngleAmplitude, TMatrix &transform) {
-    add_projector(eid, projectors_manager, projector__id, projector__color, projector__angle, projector__length,
-      projector__sourceWidth, projector__xAngleAmplitude, projector__zAngleAmplitude, transform);
-  });
+  add_projector_ecs_query(manager,
+    [&manager, &projectors_manager](ecs::EntityId eid, int &projector__id, const Point3 &projector__color, float projector__angle,
+      float projector__length, float projector__sourceWidth, float &projector__xAngleAmplitude, float &projector__zAngleAmplitude,
+      TMatrix &transform) {
+      add_projector(manager, eid, projectors_manager, projector__id, projector__color, projector__angle, projector__length,
+        projector__sourceWidth, projector__xAngleAmplitude, projector__zAngleAmplitude, transform);
+    });
   auto nodeNs = dafg::root() / "transparent" / "far";
   projectors_node = nodeNs.registerNode("projectors", DAFG_PP_NODE_SRC, [&projectors_manager](dafg::Registry registry) {
     registry.requestRenderPass().color({"color_target"}).depthRoAndBindToShaderVars("depth", {"depth_gbuf"});
@@ -262,6 +269,7 @@ void update_projectors_atmosphere_es(const ecs::UpdateStageInfoAct &act,
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 void create_projector_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
   ecs::EntityId eid,
   int &projector__id,
   const Point3 &projector__color,
@@ -272,17 +280,18 @@ void create_projector_es_event_handler(const ecs::Event &,
   float &projector__zAngleAmplitude,
   TMatrix &transform)
 {
-  projector_update_ecs_query([&](ProjectorsManager &projectors_manager) {
-    add_projector(eid, projectors_manager, projector__id, projector__color, projector__angle, projector__length,
+  projector_update_ecs_query(manager, [&](ProjectorsManager &projectors_manager) {
+    add_projector(manager, eid, projectors_manager, projector__id, projector__color, projector__angle, projector__length,
       projector__sourceWidth, projector__xAngleAmplitude, projector__zAngleAmplitude, transform);
   });
 }
 
 ECS_TAG(render)
 ECS_TRACK(projector__color)
-void update_projector_color_changed_es(const ecs::Event &, int projector__id, const Point3 &projector__color)
+void update_projector_color_changed_es(
+  const ecs::Event &, ecs::EntityManager &manager, int projector__id, const Point3 &projector__color)
 {
-  projector_update_ecs_query([&](ProjectorsManager &projectors_manager) {
+  projector_update_ecs_query(manager, [&](ProjectorsManager &projectors_manager) {
     projectors_manager.setLightColor(projector__id, Color3(projector__color.x, projector__color.y, projector__color.z));
   });
 }
@@ -290,6 +299,7 @@ void update_projector_color_changed_es(const ecs::Event &, int projector__id, co
 ECS_TAG(render)
 ECS_NO_ORDER
 void update_projector_es(const ecs::UpdateStageInfoAct &act,
+  ecs::EntityManager &manager,
   int projector__id,
   float &projector__phase,
   float projector__period,
@@ -297,7 +307,7 @@ void update_projector_es(const ecs::UpdateStageInfoAct &act,
   float projector__zAngleAmplitude,
   const TMatrix &transform)
 {
-  projector_update_ecs_query([&](ProjectorsManager &projectors_manager) {
+  projector_update_ecs_query(manager, [&](ProjectorsManager &projectors_manager) {
     float xAmplitude = tanf(DegToRad(projector__xAngleAmplitude));
     float zAmplitude = tanf(DegToRad(projector__zAngleAmplitude));
 

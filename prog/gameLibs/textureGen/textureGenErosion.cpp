@@ -310,7 +310,7 @@ private:
       }
     }
     // need temp texture because can't write in render target textures. All editors testures are RT
-    Texture *temp_tex = d3d::create_tex(NULL, w, h, TEXFMT_R32F, 1, "temp");
+    Texture *temp_tex = d3d::create_tex(NULL, w, h, TEXFMT_R32F, 1, "temp", RESTAG_TEXGEN);
 
     writeTexture((Texture *)outputs[0], heightMap, temp_tex);
     writeTexture((Texture *)outputs[1], sedimentMap, temp_tex);
@@ -344,7 +344,7 @@ private:
     params.setInt("cellSize", cellSize);
     params.setInt("weightsCount", erosion_weights.size());
 
-    Texture *tempOutputTex = d3d::create_tex(NULL, w, h, TEXFMT_R32F | TEXCF_UNORDERED | TEXCF_RTARGET, 1, "temp_out0");
+    Texture *tempOutputTex = d3d::create_tex(NULL, w, h, TEXFMT_R32F | TEXCF_UNORDERED | TEXCF_RTARGET, 1, "temp_out0", RESTAG_TEXGEN);
     d3d::stretch_rect(inputs[0].tex, tempOutputTex);
 
     int iterations = (int)(cellSize * cellSize * data.params.getReal("drops_multiplier"));
@@ -356,7 +356,7 @@ private:
     for (int i = offsets.size() - 1; i > 0; i--)
       eastl::swap(offsets[i], offsets[rnd_int(0, i - 1)]);
 #if DAGOR_DBGLEVEL > 1
-    PIX_GPU_BEGIN_CAPTURE(D3D11X_PIX_CAPTURE_API, L"D:\\YourName.xpix");
+    PIX_GPU_BEGIN_CAPTURE(D3D12XBOX_PIX_CAPTURE_API, L"D:\\YourName.xpix");
 #endif
 
     eastl::vector<D3dResource *> writableOutputs = {tempOutputTex};

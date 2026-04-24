@@ -188,8 +188,8 @@ Result transform_syntax(const string &filename, const string content, format::Fo
         // All initialization and parsing took from daslang source
         yyscan_t scanner = nullptr;
         ProgramPtr program = make_smart<Program>();
-        (*daScriptEnvironment::bound)->g_Program = program;
-        (*daScriptEnvironment::bound)->g_compilerLog = &tout;
+        daScriptEnvironment::getBound()->g_Program = program;
+        daScriptEnvironment::getBound()->g_compilerLog = &tout;
         program->promoteToBuiltin = false;
         program->isCompiling = true;
         program->isDependency = false;
@@ -207,7 +207,7 @@ Result transform_syntax(const string &filename, const string content, format::Fo
         parserState.g_Access = access;
         parserState.g_FileAccessStack.push_back(access->getFileInfo(filename));
         parserState.g_Program = program;
-        parserState.das_def_tab_size = (*daScriptEnvironment::bound)->das_def_tab_size;
+        parserState.das_def_tab_size = daScriptEnvironment::getBound()->das_def_tab_size;
         parserState.das_gen2_make_syntax = false;
         libGroup.foreach([&](Module *mod) {
             if (mod->commentReader) {

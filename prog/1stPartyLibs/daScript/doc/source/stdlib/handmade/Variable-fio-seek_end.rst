@@ -1,0 +1,1 @@
+Constant for fseek that positions the file pointer relative to the end of the file by the given offset.

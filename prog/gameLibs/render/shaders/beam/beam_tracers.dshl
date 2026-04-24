@@ -16,11 +16,22 @@ float beam_max_intensity_cos = 1.0;
 float beam_min_intensity_mul = 1.0;
 float beam_max_intensity_mul = 1.0;
 float beam_fog_intensity_mul = 1.0;
+
+//used to boost gun firing smoke fx
+float beam_sparse_fog_multiplier = 100;
+float beam_sparse_fog_threshold = 0.001;
+
 texture beam_tracer_tail_tex;
 texture beam_tracer_tex;
 
 int beam_tracers_tail_tracers_const_no = 12;
 int beam_tracers_tail_tracerVerts_const_no = 13;
+
+int laser_beam_use_angular_intensity_for_hero_only = 0;
+interval laser_beam_use_angular_intensity_for_hero_only: no <1, yes;
+assume_if_not_assumed laser_beam_use_angular_intensity_for_hero_only = no;
+
+interval special_vision : special_vision_off<1, thermal_vision;
 
 shader beam_tracers_tail
 {
@@ -272,16 +283,13 @@ shader beam_tracers_tail
     local_view_z@f3 = local_view_z;
     cockpit_radius@f1 = (beam_tracer_cockpit_radius);
   }
-  if (mobile_render == off) {
-    (ps) {
-      downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
-    }
+  (ps) {
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
   }
 
   INIT_ZNZFAR()
   INIT_HDR(ps)
   USE_HDR(ps)
-  ENABLE_ASSERT(ps)
 
   hlsl(ps) {
     float4 beam_tracers_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
@@ -292,11 +300,7 @@ shader beam_tracers_tail
       //float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, screenCrd.x), lerp(view_vecLB, view_vecRB, screenCrd.x), screenCrd.y);
       //float viewDirLen = length(viewVect);
       //float3 viewDir = viewVect/viewDirLen;
-    ##if mobile_render != off
-      float depth = 0;
-    ##else
       float depth = tex2Dlod(downsampled_far_depth_tex, float4(screenCrd.xy,0,0)).x;
-    ##endif
       float dstDepth = linearize_z(depth, zn_zfar.zw);
       //float destDepthRange = dstDepth/viewDirLen;
       //--use it for softness depth?
@@ -339,10 +343,15 @@ int beam_tracers_head_culledTracers_const_no = 8;
 
 shader beam_tracers_head
 {
+  if (special_vision == thermal_vision)
+  {
+    dont_render;
+  }
+
   supports global_frame;
   //cull_mode = none;
   z_write = false;
-  blend_src =1; blend_dst = sa;
+  blend_src = 1; blend_dst = 1;
 
   (vs) {
     globtm@f44 = globtm;
@@ -364,8 +373,9 @@ shader beam_tracers_head
       float4 dir_scrollSpeed:TEXCOORD2;
       float4 cylRadius_length_fadeTime:TEXCOORD3;
       float4 pointToEye:TEXCOORD4;
-//      float3 fogMul:TEXCOORD4;
-//      float3 fogAdd:TEXCOORD5;
+      bool isHeroLaser:TEXCOORD5;
+//      float3 fogMul:TEXCOORD6;
+//      float3 fogAdd:TEXCOORD7;
     };
   }
   hlsl(vs) {
@@ -415,6 +425,7 @@ shader beam_tracers_head
       output.dir_scrollSpeed.xyz = ndir;
       output.dir_scrollSpeed.w = structuredBufferAt(culledTracers, iId).beamScrollSpeed;
       output.cylRadius_length_fadeTime = float4(realRadius, dirL, vert.z, structuredBufferAt(culledTracers, iId).fadeTimeRatio);
+      output.isHeroLaser = structuredBufferAt(culledTracers, iId).isHeroLaser != 0.0;
 
       return output;
     }
@@ -435,18 +446,17 @@ shader beam_tracers_head
     beam_min_intensity_mul@f1 = beam_min_intensity_mul;
     beam_max_intensity_mul@f1 = beam_max_intensity_mul;
     beam_fog_intensity_mul@f1 = beam_fog_intensity_mul;
+    beam_sparse_fog_multiplier@f1 = beam_sparse_fog_multiplier;
+    beam_sparse_fog_threshold@f1 = beam_sparse_fog_threshold;
   }
-  if (mobile_render == off) {
-    (ps) {
-      downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
-    }
+  (ps) {
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
   }
   INIT_ZNZFAR() // needed for USE_VOLUMETRIC_LIGHT_TRANSPARENT
   INIT_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
   USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
   INIT_HDR(ps)
   USE_HDR(ps)
-  ENABLE_ASSERT(ps)
   hlsl(ps) {
     bool intersect_beam(float3 view_dir, float view_dir_dot_cyl_dir, float dest_depth_range,
                         float3 cyl_p0, float3 cyl_dir, float cyl_length, float cyl_radius,
@@ -481,7 +491,6 @@ shader beam_tracers_head
       float3 uvTestDir = normalize(cross(world_pos - world_view_pos.xyz, cyl_dir));
       float u = dot(uvTestDir, (world_pos - cyl_p0) / cyl_radius);
       u = saturate(0.5 * u + 0.5);
-      float texLen = 10.0;
       float v = dot(cyl_dir, (world_pos - cyl_p0) / (100.0 * cyl_radius));
       v -= scroll_speed * beam_trace_current_time;
 
@@ -503,19 +512,31 @@ shader beam_tracers_head
       half3 fogMul, dummyFogAdd;
       get_volfog_with_scattering(tc, tc, point_to_eye, depth, fogMul, dummyFogAdd);
 
-      density = luminance(1.0h - fogMul) * beam_fog_intensity_mul / (point_to_eye_dist+0.0001h);
+      density = luminance(1.0h - fogMul) / (point_to_eye_dist+0.0001h);
       transmittance = luminance(fogMul);
     }
 
-    float calc_view_angular_intensity_mul(float fog_density, float view_dir_dot_cyl_dir)
+    float calc_view_angular_intensity_mul(bool is_hero, float fog_density, float view_dir_dot_cyl_dir)
     {
-      float A = abs(view_dir_dot_cyl_dir);
-      float t = saturate((A - beam_min_intensity_cos) / beam_max_intensity_cos_minus_min_intensity_cos);
-      return lerp(
-        clamp(fog_density, beam_min_intensity_mul, beam_max_intensity_mul),
-        beam_max_intensity_mul,
-        t
-      );
+      float angularMul = 0.0;
+    ##if laser_beam_use_angular_intensity_for_hero_only == yes
+      BRANCH
+      if (is_hero)
+    ##endif
+      {
+        float A = abs(view_dir_dot_cyl_dir);
+        float t = saturate((A - beam_min_intensity_cos) / beam_max_intensity_cos_minus_min_intensity_cos);
+
+        float angularMaxIntensityMul = (beam_max_intensity_mul + beam_min_intensity_mul);
+
+        angularMul = lerp(
+          clamp(fog_density, beam_min_intensity_mul, angularMaxIntensityMul),
+          angularMaxIntensityMul,
+          t
+        );
+      }
+
+      return lerp(angularMul, beam_max_intensity_mul * beam_fog_intensity_mul, fog_density);
     }
 
     float4 beam_tracers_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
@@ -525,11 +546,7 @@ shader beam_tracers_head
       float3 viewVect = lerp(lerp(view_vecLT, view_vecRT, screenCrd.x), lerp(view_vecLB, view_vecRB, screenCrd.x), screenCrd.y);
       float viewDirLen = length(viewVect);
       float3 viewDir = viewVect/viewDirLen;
-    ##if mobile_render != off
-      float depth = 0;
-    ##else
       float depth = tex2Dlod(downsampled_far_depth_tex, float4(screenCrd.xy,0,0)).x;
-    ##endif
       float dstDepth = linearize_z(depth, zn_zfar.zw);
       float destDepthRange = dstDepth*viewDirLen;
 
@@ -551,7 +568,16 @@ shader beam_tracers_head
 
       float3 worldPos = world_view_pos.xyz - input.pointToEye.xyz;
       float2 uv = get_beam_uv(worldPos, cylP, cylDir, cylRadius, scrollSpeed);
-      float4 litColor = float4(input.color.rgb, 1.0) * tex2Dlod(beam_tracer_tex, float4(uv,0,0));
+      uv.y *= 0.15;
+
+      float2 uv2 = float2(uv.x, uv.y + 0.3 * beam_trace_current_time * 3.0);
+
+      float4 beam1 = pow2(tex2Dlod(beam_tracer_tex, float4(uv,0,0)));
+      float4 beam2 = pow2(tex2Dlod(beam_tracer_tex, float4(uv2,0,0)));
+
+      float uCentered = (uv.x - 0.5) * 2.0;
+      float4 litColor = float4(input.color.rgb, 1.0) * (beam1.rgba * beam2.rgba);
+      litColor.a *= pow2(1.0 - pow2(abs(uCentered)));
 
       float pointToEyeDist = length(input.pointToEye.xyz);
       float distanceFade = calc_distance_fade(endDist, fadeDist, fadeTimeRatio, pointToEyeDist);
@@ -561,17 +587,21 @@ shader beam_tracers_head
       calc_fake_media_terms(screenCrd, input.pointToEye.xyz, pointToEyeDist,
                             screenDepth, fogDensity, fogTransmittance);
 
-      float viewAngularFade = calc_view_angular_intensity_mul(fogDensity, viewDirDotCylDir);
+      //TODO: hacky solution, need to revisit in future and make something better for the guns
+      float sparseFogDensityMul = fogDensity > beam_sparse_fog_threshold
+                                ? max(1.0, beam_sparse_fog_multiplier * exp(-fadeDist))
+                                : 1.0;
+      fogDensity *= sparseFogDensityMul;
+
+      float viewAngularFade = calc_view_angular_intensity_mul(input.isHeroLaser, fogDensity, viewDirDotCylDir);
 
       float4 result = litColor;
       result *= viewAngularFade;
       result *= distanceFade;
       result *= fogTransmittance;
-      result.a = clamp(1 - result.a, 0, 1);
-
       result.xyz *= smoothstep(cockpit_radius, cockpit_radius*1.2, length(input.pointToEye.xyz));
 
-      return float4(pack_hdr(result.rgb), result.a);
+      return float4(pack_hdr(result.rgb * result.a), result.a);
     }
   }
   compile("target_vs", "beam_tracers_vs");

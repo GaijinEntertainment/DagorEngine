@@ -1,0 +1,8 @@
+ERROR: expected 'identifier or *'
+testData/diagnostics/import_error.nut:2:20
+
+// missing import list
+from "file1" import
+                    ^
+
+

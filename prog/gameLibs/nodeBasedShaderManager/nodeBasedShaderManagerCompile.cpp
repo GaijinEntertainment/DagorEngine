@@ -12,224 +12,201 @@
 #include <ioSys/dag_fileIo.h>
 #include "platformUtils.h"
 #include <debug/dag_assert.h>
+#include <util/dag_finally.h>
+
+String NodeBasedShaderManager::toolsPath;
+String NodeBasedShaderManager::rootPath;
 
 void NodeBasedShaderManager::initCompilation()
 {
-  const char *dllPath = ::dgs_get_settings()->getBlockByNameEx("debug")->getStr("toolsPathWin", "");
-  G_VERIFYF(hlsl_compiler::try_init_dynlib(dllPath),
-    "Make sure you have the dll for compute shader compilation if you are using Node-based shader compilation. Otherwise (for "
-    "example, in release) you shouldn't be using this code!");
-}
-
-static String get_target_path_for_bin(String shader_path, const String &shader_file_suffix,
-  const NodeBasedShaderManager::PLATFORM platform_id)
-{
-#if !IS_OFFLINE_SHADER_COMPILER
-  shader_path = String(folders::get_temp_dir()) + "/nbs/" + shader_path;
-#endif
-
-  const char *found = strstr(shader_path.str(), ".bin");
-  if (found && (int(found - shader_path.str()) == shader_path.length() - 4))
-    return shader_path;
-
-  return shader_path + "." + PLATFORM_LABELS[platform_id] + ".cs50." + shader_file_suffix + ".bin";
-}
-
-static hlsl_compiler::Platform node_based_to_compiler_platform(NodeBasedShaderManager::PLATFORM platform)
-{
-  G_ASSERT(platform < NodeBasedShaderManager::PLATFORM::COUNT);
-
-  // This is currently 1 to 1, but a handrolled switch case is change-proof
-  switch (platform)
+  toolsPath = ::dgs_get_settings()->getBlockByNameEx("debug")->getStr("toolsPathWin", "");
+  rootPath = ::dgs_get_settings()->getBlockByNameEx("debug")->getStr("rootPathWin", "");
+  if (rootPath.empty())
   {
-    case NodeBasedShaderManager::DX11: return hlsl_compiler::Platform::DX11;
-    case NodeBasedShaderManager::PS4: return hlsl_compiler::Platform::PS4;
-    case NodeBasedShaderManager::VULKAN: return hlsl_compiler::Platform::VULKAN;
-    case NodeBasedShaderManager::DX12: return hlsl_compiler::Platform::DX12;
-    case NodeBasedShaderManager::DX12_XBOX_ONE: return hlsl_compiler::Platform::DX12_XBOX_ONE;
-    case NodeBasedShaderManager::DX12_XBOX_SCARLETT: return hlsl_compiler::Platform::DX12_XBOX_SCARLETT;
-    case NodeBasedShaderManager::PS5: return hlsl_compiler::Platform::PS5;
-    case NodeBasedShaderManager::MTL: return hlsl_compiler::Platform::MTL;
-    case NodeBasedShaderManager::VULKAN_BINDLESS: return hlsl_compiler::Platform::VULKAN_BINDLESS;
-    case NodeBasedShaderManager::MTL_BINDLESS: return hlsl_compiler::Platform::MTL_BINDLESS;
+    rootPath = toolsPath + "/../../..";
   }
-
-  G_ASSERT_RETURN(0, hlsl_compiler::Platform::DX11);
 }
 
-using SubstituteFunction = String (*)(NodeBasedShaderType shader_type, uint32_t variant_id, const DataBlock &shader_blk);
-
-static const eastl::array<SubstituteFunction, NodeBasedShaderManager::PLATFORM::COUNT> SUBSTITUTE_FUNCTIONS = {{
-  ShaderGraphRecompiler::substitute,
-  ShaderGraphRecompiler::substitute,
-  ShaderGraphRecompiler::substitutePs4,
-  ShaderGraphRecompiler::substitute,
-  ShaderGraphRecompiler::substitute,
-  ShaderGraphRecompiler::substitute,
-  ShaderGraphRecompiler::substitute,
-  ShaderGraphRecompiler::substitutePs5,
-  ShaderGraphRecompiler::substitute,
-  ShaderGraphRecompiler::substitute,
-  ShaderGraphRecompiler::substitute,
-}};
-
-static uint32_t calc_shader_source_hash(NodeBasedShaderType shader, const DataBlock &shader_blk)
+static uint32_t calc_dshl_shader_source_hash(NodeBasedShaderType shader, const DataBlock &shader_blk)
 {
   uint32_t finalShaderSourceHash = 0;
-  uint32_t variantCount = get_shader_variant_count(shader);
-  for (uint32_t variantId = 0; variantId < variantCount; ++variantId)
-  {
-    String code = ShaderGraphRecompiler::substitute(shader, variantId, shader_blk);
-    finalShaderSourceHash = calc_crc32(reinterpret_cast<const unsigned char *>(code.c_str()), code.size(), finalShaderSourceHash);
-  }
+  String code = ShaderGraphRecompiler::substituteDshl(shader, shader_blk);
+  finalShaderSourceHash = calc_crc32(reinterpret_cast<const unsigned char *>(code.c_str()), code.size(), finalShaderSourceHash);
   return finalShaderSourceHash;
 }
 
-bool NodeBasedShaderManager::compileShaderProgram(const DataBlock &shader_blk, String &out_errors, PLATFORM platform_id)
+bool NodeBasedShaderManager::compileScriptedShaders(const String &shader_name, const DataBlock &shader_blk, String &out_errors)
 {
-  const uint32_t newShaderSourceHash = calc_shader_source_hash(shader, shader_blk);
+  const uint32_t newShaderSourceHash = calc_dshl_shader_source_hash(shader, shader_blk);
   if (newShaderSourceHash == lastShaderSourceHash)
     return lastCompileIsSuccess;
 
-  uint32_t variantCount = get_shader_variant_count(shader);
-  lastCompileIsSuccess = true;
-
-  auto compileShaderForPlatform = [&, this](uint32_t platform_id) {
-    for (uint32_t variantId = 0; variantId < variantCount && lastCompileIsSuccess; ++variantId)
-    {
-      ShaderBin &permutation = shaderBin[platform_id][variantId][permutationId];
-      String substitutedCode = SUBSTITUTE_FUNCTIONS[platform_id](shader, variantId, shader_blk);
-
-      bool res = hlsl_compiler::compile_compute_shader(node_based_to_compiler_platform((PLATFORM)platform_id), substitutedCode,
-        shaderName, "cs_5_0", permutation, out_errors);
-
-      if (!res)
-        out_errors.aprintf(0, "\nIn shader:\n%s\n\n", ShaderGraphRecompiler::enumerateLines(substitutedCode).str());
-
-      lastCompileIsSuccess &= res;
-    }
-  };
-
-#if IS_OFFLINE_SHADER_COMPILER
-
-  if (platform_id == NodeBasedShaderManager::PLATFORM::ALL)
+  if (scriptedShadersDumpHandle == INVALID_BINDUMP_HANDLE)
   {
-    for (uint32_t platformId = 0; platformId < NodeBasedShaderManager::PLATFORM::COUNT && lastCompileIsSuccess; ++platformId)
-      compileShaderForPlatform((NodeBasedShaderManager::PLATFORM)platformId);
+    logerr("Recompiling NBS shader that failed to load initially is not supported yet.");
+    return false;
   }
-  else
-    compileShaderForPlatform(platform_id);
 
-#elif !NBSM_COMPILE_ONLY
-
-  G_ASSERT(platform_id == NodeBasedShaderManager::PLATFORM::ALL);
-  G_UNUSED(platform_id);
-  compileShaderForPlatform(get_nbsm_platform());
-
-#else
-#error "Invalid config: NBSM_COMPILE_ONLY can not be defined if IS_OFFLINE_SHADER_COMPILER is not defined"
-#endif
-
-  if (lastCompileIsSuccess)
+  // If our dump generation is out of date, then another nbs shader using the same dump has recompiled it, no need to do it again
+  if (uint32_t curBindumpGen = get_shaders_bindump_generation(scriptedShadersDumpHandle); cachedDumpGeneration < curBindumpGen)
+  {
+    cachedDumpGeneration = curBindumpGen;
     lastShaderSourceHash = newShaderSourceHash;
-  return lastCompileIsSuccess;
-}
-
-static void ensure_path_existance(const String &file_name)
-{
-  String dir = file_name;
-  char *p = max(strrchr(dir.str(), '\\'), strrchr(dir.str(), '/'));
-  if (p)
-    *p = 0;
-  else
-    return;
-
-  if (!dd_dir_exists(dir))
-  {
-    debug("NodeBasedShaderManager: Creating directory %s", dir.str());
-    dd_mkdir(dir);
+    lastCompileIsSuccess = true;
+    return true;
   }
-}
 
-void NodeBasedShaderManager::saveToFile(const String &shader_path, PLATFORM platform_id) const
-{
-  G_ASSERTF(lastCompileIsSuccess, "Attempt to save not compiled shaders.");
-  G_ASSERTF(platform_id < PLATFORM::COUNT, "Unknown platform id: %d", platform_id);
-  uint32_t variantCount = get_shader_variant_count(shader);
+  if (toolsPath.empty())
+  {
+    out_errors += "NodeBasedShaderManager::initCompilation was not called before recompiling shaders";
+    return false;
+  }
 
-  auto saveCompiledShaderToFile = [&, this](PLATFORM platform_id) {
-    String filename = get_target_path_for_bin(shader_path, shaderFileSuffix, NodeBasedShaderManager::PLATFORM(platform_id));
-    ensure_path_existance(filename);
+  const String shName = buildScriptedShaderName(shader_name);
+  DataBlock shaderBlk = shader_blk; // @TODO: mutable
+  shaderBlk.setStr("shader_name", "\n" + shName);
+  const String tmpDumpNameBase(32, "%s.tmp", shName.str());
+  const String tmpDumpName(32, "%s%s.ps50.shdump.bin", tmpDumpNameBase,
+    get_nbsm_platform() == VULKAN_BINDLESS || get_nbsm_platform() == MTL_BINDLESS ? ".bindless" : "");
 
-    FullFileSaveCB shaderFile(filename);
-    if (!shaderFile.fileHandle)
+  auto writeFile = [&](const String &name, const String &content) {
+    FullFileSaveCB file(name.str());
+    if (!file.fileHandle)
     {
-      G_ASSERTF(0, "Cannot write to file '%s'", filename.str());
-      return;
+      out_errors.aprintf(0, "Cannot write to file '%s'", name.str());
+      return false;
     }
 
-    for (uint32_t variantId = 0; variantId < variantCount; ++variantId)
+    file.write(content.str(), content.length());
+    return true;
+  };
+  auto readFile = [&](const String &name, String &output) {
+    FullFileLoadCB file(name.str());
+    if (!file.fileHandle)
     {
-      DataBlock parameters; // TODO: maybe only R/W once for all variants
-      parameters.addNewBlock(currentIntParametersBlk.get(), "inputs_int");
-      parameters.addNewBlock(currentInt4ParametersBlk.get(), "inputs_int4");
-      parameters.addNewBlock(currentFloatParametersBlk.get(), "inputs_float");
-      parameters.addNewBlock(currentFloat4ParametersBlk.get(), "inputs_float4");
-      parameters.addNewBlock(currentFloat4x4ParametersBlk.get(), "inputs_float4x4");
-      parameters.addNewBlock(currentTextures2dBlk.get(), "inputs_texture2D");
-      parameters.addNewBlock(currentTextures3dBlk.get(), "inputs_texture3D");
-      parameters.addNewBlock(currentTextures2dArrayBlk.get(), "inputs_texture2DArray");
-      parameters.addNewBlock(currentTextures2dShdArrayBlk.get(), "inputs_texture2D_shdArray");
-      parameters.addNewBlock(currentTextures2dNoSamplerBlk.get(), "inputs_texture2D_nosampler");
-      parameters.addNewBlock(currentTextures3dNoSamplerBlk.get(), "inputs_texture3D_nosampler");
-      parameters.addNewBlock(currentCBuffersBlk.get(), "inputs_CBuffer");
-      parameters.addNewBlock(currentBuffersBlk.get(), "inputs_Buffer");
-
-      parameters.saveToStream(shaderFile);
-      const ShaderBin &permutation = shaderBin[platform_id][variantId][permutationId];
-      G_ASSERTF(permutation.size() > 0,
-        "error: node based shader permutation is invalid: shader #%d, variant #%d, permutation #%d, platform #%d", (int)shader,
-        (int)variantId, (int)permutationId, (int)platform_id);
-
-      const uint32_t shaderBinSize = permutation.size() * sizeof(uint32_t);
-      shaderFile.write(&shaderBinSize, sizeof(shaderBinSize));
-      shaderFile.write(permutation.data(), shaderBinSize);
+      out_errors.aprintf(0, "Cannot read file '%s'", name.str());
+      return false;
     }
+
+    output.resize(file.getTargetDataSize());
+    file.read(output.str(), output.length());
+    return true;
   };
 
-#if IS_OFFLINE_SHADER_COMPILER
+  const String outputDshl = shName + ".tmp";
+  const String outputDscBlk = shName + ".blk.tmp";
 
-  if (platform_id == NodeBasedShaderManager::PLATFORM::ALL)
-  {
-    for (uint32_t platformId = 0; platformId < NodeBasedShaderManager::PLATFORM::COUNT && lastCompileIsSuccess; ++platformId)
-      saveCompiledShaderToFile((NodeBasedShaderManager::PLATFORM)platformId);
-  }
-  else
-    saveCompiledShaderToFile(platform_id);
+  FINALLY([&] {
+    dd_erase(outputDshl.str());
+    dd_erase(outputDscBlk.str());
+    dd_erase(tmpDumpName.str());
+    for (const alefind_t &ff : dd_find_iterator("./ShaderLog*", DA_FILE))
+      dd_erase(ff.name);
+  });
 
-#elif !NBSM_COMPILE_ONLY
-
-  G_ASSERT(platform_id == NodeBasedShaderManager::PLATFORM::ALL);
-  G_UNUSED(platform_id);
-  saveCompiledShaderToFile(get_nbsm_platform());
-
+#if _TARGET_PC_WIN
+  constexpr bool SKIP_WIN_CONSOLES = false;
+  constexpr bool SKIP_VULKAN = false;
+  constexpr bool SKIP_METAL = false;
+#elif _TARGET_PC_LINUX
+  constexpr bool SKIP_WIN_CONSOLES = true;
+  constexpr bool SKIP_VULKAN = false;
+  constexpr bool SKIP_METAL = true;
+#elif _TARGET_PC_MACOSX
+  constexpr bool SKIP_WIN_CONSOLES = true;
+  constexpr bool SKIP_VULKAN = true;
+  constexpr bool SKIP_METAL = false;
 #else
-#error "Invalid config: NBSM_COMPILE_ONLY can not be defined if IS_OFFLINE_SHADER_COMPILER is not defined"
+  constexpr bool SKIP_WIN_CONSOLES = true;
+  constexpr bool SKIP_VULKAN = true;
+  constexpr bool SKIP_METAL = true;
 #endif
-}
 
-#if IS_OFFLINE_SHADER_COMPILER
-void NodeBasedShaderManager::getShadersBinariesFileNames(const String &shader_path, Tab<String> &file_names,
-  PLATFORM platform_id) const
-{
-  file_names.clear();
-  for (int platformId = 0; platformId < NodeBasedShaderManager::PLATFORM::COUNT; ++platformId)
+  static constexpr struct
   {
-    if (platform_id >= 0 && platform_id != platformId)
-      continue;
+    const char *platform = nullptr;
+    const char *dscSuff = nullptr;
+    const char *dumpSuff = nullptr;
+    const char *additionalArgs = nullptr;
+    bool skip = false;
+  } DSC_TABLE[NodeBasedShaderManager::PLATFORM::COUNT] = {
+    {"dx11", "hlsl11", "", "", SKIP_WIN_CONSOLES},
+    {"", "", "", "", true},
+    {"ps4", "ps4", "PS4", "", SKIP_WIN_CONSOLES},
+    {"spirv", "spirv", "SpirV", "", SKIP_VULKAN},
+    {"dx12", "dx12", "DX12", "", SKIP_WIN_CONSOLES},
+    {"dx12x", "dx12", "DX12x", "-platform-xbox-one", SKIP_WIN_CONSOLES},
+    {"dx12xs", "dx12", "DX12xs", "-platform-xbox-scarlett", SKIP_WIN_CONSOLES},
+    {"ps5", "ps5", "PS5", "", SKIP_WIN_CONSOLES},
+    {"metal", "metal", "MTL", "", SKIP_METAL},
+    {"spirvb", "spirv", "SpirV", "-enableBindless:on", SKIP_VULKAN},
+    {"metalb", "metal", "MTL", "-enableBindless:on", SKIP_METAL},
+  };
 
-    const String name = get_target_path_for_bin(shader_path, shaderFileSuffix, NodeBasedShaderManager::PLATFORM(platformId));
-    file_names.push_back(name);
-  }
-}
+  G_ASSERT_RETURN(!DSC_TABLE[get_nbsm_platform()].skip, false);
+
+  String dscBlk = String(0,
+    R"(
+      shader_root_dir:t="."
+      outDumpName:t="%s%s"
+      engineRootDir:t="%s"
+      compileCppStcode:b=no
+      source {
+        file:t="%s"
+        includePath:t="%s/prog/gameLibs/webui/plugins/shaderEditors"
+        includePath:t="%s/prog/gameLibs/render/shaders"
+        includePath:t="%s/prog/gameLibs/daSDF/shaders"
+      }
+      Compile {
+        fsh:t = 5.0
+        additional_dump:b = yes
+      }
+    )",
+    tmpDumpNameBase, DSC_TABLE[get_nbsm_platform()].dumpSuff, rootPath.str(), outputDshl, rootPath.str(), rootPath.str(),
+    rootPath.str());
+  String dshl = ShaderGraphRecompiler::substituteDshl(shader, shaderBlk);
+
+  if (!writeFile(outputDshl, dshl))
+    return false;
+  if (!writeFile(outputDscBlk, dscBlk))
+    return false;
+
+  String tmpOutputFile(0, "tmplog_%s.log", outputDscBlk);
+
+#if _TARGET_PC_WIN
+  String cmd(0,
+    "call %s\\dsc2-%s-dev.exe %s -q -shaderOn -nodisassembly -commentPP -codeDumpErr -r %s -o %s\\_output\\lshader\\shaders~%s -quiet "
+    "> %s",
+    toolsPath.str(), DSC_TABLE[get_nbsm_platform()].dscSuff, outputDscBlk, DSC_TABLE[get_nbsm_platform()].additionalArgs,
+    rootPath.str(), DSC_TABLE[get_nbsm_platform()].platform, tmpOutputFile);
+  cmd.replaceAll("/", "\\");
+#elif _TARGET_PC_LINUX || _TARGET_PC_MACOSX
+  String cmd(0,
+    "%s/dsc2-%s-dev %s -q -shaderOn -nodisassembly -commentPP -codeDumpErr -r %s -o %s/_output/lshader/shaders~%s -quiet > %s",
+    toolsPath.str(), DSC_TABLE[get_nbsm_platform()].dscSuff, outputDscBlk, DSC_TABLE[get_nbsm_platform()].additionalArgs,
+    rootPath.str(), DSC_TABLE[get_nbsm_platform()].platform, tmpOutputFile);
+#else
+  String cmd("");
 #endif
+
+  if (cmd.empty())
+    return false;
+
+  FINALLY([&] { dd_erase(tmpOutputFile.c_str()); });
+
+  if (system(cmd.str()) != 0)
+  {
+    String output{};
+    if (readFile(tmpOutputFile, output))
+      out_errors += output;
+    return false;
+  }
+
+  if (!reload_shaders_bindump(scriptedShadersDumpHandle, tmpDumpNameBase.c_str(), scriptedShadersDumpName.c_str(), d3d::sm50))
+    return false;
+
+  cachedDumpGeneration = get_shaders_bindump_generation(scriptedShadersDumpHandle);
+  lastShaderSourceHash = newShaderSourceHash;
+  lastCompileIsSuccess = true;
+  return true;
+}

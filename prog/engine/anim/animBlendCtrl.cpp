@@ -18,6 +18,7 @@
 #include <memory/dag_framemem.h>
 #include <EASTL/vector_set.h>
 #include <EASTL/fixed_vector.h>
+#include "animInternal.h"
 
 using namespace AnimV20;
 
@@ -262,6 +263,41 @@ void AnimBlendNodeLeaf::buildNamedRanges(const DataBlock *blk)
   // DEBUG_CTX("ranges.count=%d", namedRanges.size());
 }
 
+static void common_reset_random_switch_setup(AnimationGraph &graph, AnimBlendNodeLeaf *node, const DataBlock &blk,
+  const char *anim_suffix)
+{
+  const DataBlock *b = blk.getBlockByName("resetRandomSwitchersOnAnimationEnd");
+  if (!b)
+    return;
+
+  for (int i = 0; i < b->blockCount(); ++i)
+  {
+    const char *targetName = b->getBlock(i)->getBlockName();
+    IAnimBlendNode *n = graph.getBlendNodePtr(targetName, anim_suffix);
+    if (!n)
+      n = graph.getBlendNodePtr(targetName);
+    if (!n)
+    {
+      ANIM_ERR("Could not find blend node <%s:%s> and <%s> referenced inside resetRandomSwitchersOnAnimationEnd!", targetName,
+        anim_suffix, targetName);
+      continue;
+    }
+    if (!n->isSubOf(AnimBlendCtrl_RandomSwitcherCID))
+    {
+      ANIM_ERR("Node <%s> referenced inside resetRandomSwitchersOnAnimationEnd has type %s but expecting AnimBlendCtrl_RandomSwitcher "
+               "(randomSwitch in blk) only!",
+        targetName, n->class_name());
+      continue;
+    }
+    graph.resetRandomOnIRQFromNode.push_back(node);
+    graph.resetRandomOnIRQFromNodeTarget.push_back(n);
+  }
+}
+
+void AnimBlendNodeLeaf::initChilds(AnimationGraph &, const DataBlock &blk, const char *anim_suffix)
+{
+  common_reset_random_switch_setup(graph, this, blk, anim_suffix);
+}
 
 //
 // Continuous leaf blend node implemenations
@@ -287,21 +323,23 @@ void AnimBlendNodeContinuousLeaf::buildBlendingList(BlendCtx &bctx, real w)
   BUILD_BLENDING_LIST_PROLOGUE_BNL(bctx, st, wt);
 
   real p = st.getParam(paramId);
-  if (eoaIrq && bctx.lastDt)
-    if (!st.getParamFlags(paramId, IPureAnimStateHolder::PF_Paused) && p > duration - 1.5f / fabs(rate))
+  int curTime = calcAnimTimePos(p);
+  if (eoaIrq && bctx.lastDt && !st.getParamFlags(paramId, IPureAnimStateHolder::PF_Paused))
+  {
+    real prevP = p - bctx.lastDt * st.getParamEffTimeScale(paramId);
+    int prevTime = calcAnimTimePos(prevP);
+    // Parameter increased but anim time became lower = we crossed anim duration boundry = animation end was hit
+    if (prevP < p && curTime < prevTime)
     {
-
       bctx.irq(GIRQT_EndOfContinuousAnim, (intptr_t)this, 0, 0);
       for (int i = irqs.size() - 1; i >= 0; i--)
         if (irqs[i].irqTime >= t0 + dt - 1)
           bctx.irq(irqs[i].irqId, (intptr_t)this, t0 + dt - 1, 0);
         else
           break;
-      p -= duration;
-      st.setParam(paramId, p);
     }
+  }
 
-  int curTime = calcAnimTimePos(p);
   if (irqs.size() && bctx.lastDt && w > 0 && !wt[bnlId])
   {
     int prevTime = calcAnimTimePos(p - bctx.lastDt * st.getParamEffTimeScale(paramId));
@@ -336,7 +374,7 @@ real AnimBlendNodeContinuousLeaf::tell(IPureAnimStateHolder &st)
   int t = int(st.getParam(paramId) * rate) % dt;
   return real(t) / real(dt);
 }
-void AnimBlendNodeContinuousLeaf::reset(IPureAnimStateHolder &st)
+void AnimBlendNodeContinuousLeaf::setDefaultState(IPureAnimStateHolder &st)
 {
   if (timeScaleParamId > 0)
   {
@@ -391,18 +429,6 @@ void AnimBlendNodeContinuousLeaf::setRange(int tStart, int tEnd, real anim_time,
   rate = dt / anim_time;
 
   timeRatio = rate;
-}
-int AnimBlendNodeContinuousLeaf::getKeyTime(const char *key)
-{
-  if (!anim)
-  {
-    DEBUG_CTX("getKeyTime ( %s ) while anim=NULL", key);
-    return -1.0f;
-  }
-  int t = anim->getLabelTime(key, !isdigit(key[0]));
-  if (t < 0)
-    t0 = atoi(key) * TIME_TicksPerSec / 30;
-  return t;
 }
 void AnimBlendNodeContinuousLeaf::setSyncTime(const char *syncKey)
 {
@@ -476,6 +502,10 @@ void AnimBlendNodeSingleLeaf::buildBlendingList(BlendCtx &bctx, real w)
     {
       if (resp == GIRQR_RewindSingleAnim)
       {
+        // FIXME?: changing p here is not fully correct. But this code is unused so it is okay. But if you ever want to use it again:
+        // If we have two animations which rely on the same parameter but have different lengths this code can do unexpected things.
+        // If two such animations are played at the same time when one is ended the parameter will reset meaning the second animation
+        // will not play till the end and will never throw a eoa irq.
         st.setParam(paramId, p - duration);
         st.setParamFlags(paramId, 0, IPureAnimStateHolder::PF_Paused);
       }
@@ -520,6 +550,7 @@ AnimBlendNodeParametricLeaf::AnimBlendNodeParametricLeaf(AnimationGraph &graph, 
   t0 = 0;
   dt = 1;
   updateOnParamChanged = upd_pc;
+  eoaIrq = false;
 }
 
 real AnimBlendNodeParametricLeaf::tell(IPureAnimStateHolder &st)
@@ -535,7 +566,7 @@ real AnimBlendNodeParametricLeaf::tell(IPureAnimStateHolder &st)
   int curTime = int(t0 + (param)*dt);
   return real(curTime) / real(dt);
 }
-void AnimBlendNodeParametricLeaf::reset(IPureAnimStateHolder &st)
+void AnimBlendNodeParametricLeaf::setDefaultState(IPureAnimStateHolder &st)
 {
   if (paramLastId < 0)
     return;
@@ -588,6 +619,8 @@ void AnimBlendNodeParametricLeaf::buildBlendingList(BlendCtx &bctx, real w)
     const int last_ct = st.getParamInt(paramLastId);
     if (last_ct >= 0 && last_ct != curTime)
     {
+      if (eoaIrq && curTime - t0 == dt) // parameter reached the end of expected progress on this frame
+        bctx.irq(GIRQT_EndOfParametricAnim, (intptr_t)this, curTime, curTime - last_ct);
       const int ct0 = curTime > last_ct ? last_ct : curTime;
       const int ct1 = curTime > last_ct ? curTime : last_ct;
       if ((ct1 - ct0) * 2 < dt) // ignore param rewind
@@ -677,7 +710,12 @@ void AnimBlendNodeParametricLeaf::setParamKoef(real mulk, real addk)
 }
 
 void AnimBlendNodeParametricLeaf::setLooping(bool loop) { looping = loop; }
-
+void AnimBlendNodeParametricLeaf::setupIrq(const DataBlock &blk, const char *anim_suffix)
+{
+  IrqPos::setupIrqs(irqs, anim, t0, dt, blk, anim_suffix);
+  if ((irqs.size() || eoaIrq) && paramLastId < 0)
+    paramLastId = graph.addParamId(String(0, ":%s:p", blk.getStr("name", NULL)), IPureAnimStateHolder::PT_ScalarParamInt);
+}
 
 //
 // Still leaf blend node implemenations
@@ -704,7 +742,7 @@ AnimBlendCtrl_1axis::AnimBlendCtrl_1axis(AnimationGraph &graph, const char *para
   paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParam);
 }
 void AnimBlendCtrl_1axis::destroy() {}
-void AnimBlendCtrl_1axis::reset(IPureAnimStateHolder & /*st*/) {}
+void AnimBlendCtrl_1axis::setDefaultState(IPureAnimStateHolder & /*st*/) {}
 bool AnimBlendCtrl_1axis::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n)
 {
   bool valid = true;
@@ -819,7 +857,7 @@ int AnimBlendCtrl_LinearPoly::anim_point_p0_cmp(const AnimBlendCtrl_LinearPoly::
     return -1;
   return 0;
 }
-void AnimBlendCtrl_LinearPoly::reset(IPureAnimStateHolder & /*st*/) { sort(poly, &anim_point_p0_cmp); }
+void AnimBlendCtrl_LinearPoly::setDefaultState(IPureAnimStateHolder & /*st*/) {}
 bool AnimBlendCtrl_LinearPoly::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n)
 {
   bool valid = true;
@@ -1038,7 +1076,7 @@ void AnimBlendCtrl_Fifo3::buildBlendingList(BlendCtx &bctx, real w)
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   fifo->buildBlendingList(bctx, st.getParam(AnimationGraph::PID_GLOBAL_TIME), w);
 }
-void AnimBlendCtrl_Fifo3::reset(IPureAnimStateHolder &st)
+void AnimBlendCtrl_Fifo3::setDefaultState(IPureAnimStateHolder &st)
 {
   if (!st.getParamIdValid(fifoParamId))
     return;
@@ -1046,10 +1084,10 @@ void AnimBlendCtrl_Fifo3::reset(IPureAnimStateHolder &st)
   fifo->reset(false);
 }
 
-void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time, real max_lag)
+void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
-  fifo->enqueueItem(st.getParam(AnimationGraph::PID_GLOBAL_TIME), st, n, overlap_time, max_lag);
+  fifo->enqueueItem(st.getParam(AnimationGraph::PID_GLOBAL_TIME), st, n, overlap_time);
 }
 void AnimBlendCtrl_Fifo3::resetQueue(IPureAnimStateHolder &st, bool leave_cur_state)
 {
@@ -1065,15 +1103,16 @@ bool AnimBlendCtrl_Fifo3::isEnqueued(IPureAnimStateHolder &st, IAnimBlendNode *n
 //
 // Random switcher
 //
-AnimBlendCtrl_RandomSwitcher::AnimBlendCtrl_RandomSwitcher(AnimationGraph &graph, const char *param_name) : list(midmem)
+AnimBlendCtrl_RandomSwitcher::AnimBlendCtrl_RandomSwitcher(AnimationGraph &graph, const char *param_name)
 {
   paramId = graph.addParamId(param_name, IPureAnimStateHolder::PT_ScalarParamInt);
   repParamId = graph.addParamId(String(128, ":repcnt_%s", param_name), IPureAnimStateHolder::PT_ScalarParamInt);
+  rndSeed = hash_int(uintptr_t(this) >> 4); // rely on ASLR for entropy
 }
 
 void AnimBlendCtrl_RandomSwitcher::destroy() {}
 
-void AnimBlendCtrl_RandomSwitcher::reset(IPureAnimStateHolder &st) { st.setParamInt(paramId, -1); }
+void AnimBlendCtrl_RandomSwitcher::setDefaultState(IPureAnimStateHolder &st) { setRandomAnim(st); }
 bool AnimBlendCtrl_RandomSwitcher::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n)
 {
   bool valid = true;
@@ -1216,9 +1255,11 @@ void AnimBlendCtrl_RandomSwitcher::setRandomAnim(IPureAnimStateHolder &st)
   int lastId = st.getParamInt(paramId);
   int lastIdRepeat = st.getParamInt(repParamId);
 
+  int seed = interlocked_relaxed_load(rndSeed);
   for (;;)
   {
-    real p = gfrnd();
+    real p = _frnd(seed);
+
     int id = -1, i;
 
     for (i = 0; i < list.size(); i++)
@@ -1243,6 +1284,7 @@ void AnimBlendCtrl_RandomSwitcher::setRandomAnim(IPureAnimStateHolder &st)
     lastId = id;
     break;
   }
+  interlocked_relaxed_store(rndSeed, seed);
 
   st.setParamInt(paramId, lastId);
   st.setParamInt(repParamId, lastIdRepeat);
@@ -1295,7 +1337,7 @@ void AnimBlendCtrl_Hub::buildBlendingList(BlendCtx &bctx, real w)
     if (reinterpret_cast<const int *>(np)[i] != 0)
       nodes[i]->buildBlendingList(bctx, w * np[i]);
 }
-void AnimBlendCtrl_Hub::reset(IPureAnimStateHolder &st)
+void AnimBlendCtrl_Hub::setDefaultState(IPureAnimStateHolder &st)
 {
   if (paramId == -1 || !st.getParamIdValid(paramId))
     return;
@@ -1435,7 +1477,7 @@ void AnimBlendCtrl_Blender::buildBlendingList(BlendCtx &bctx, real w)
   if (node[1])
     node[1]->buildBlendingList(bctx, w);
 }
-void AnimBlendCtrl_Blender::reset(IPureAnimStateHolder & /*st*/) {}
+void AnimBlendCtrl_Blender::setDefaultState(IPureAnimStateHolder & /*st*/) {}
 bool AnimBlendCtrl_Blender::validateNodeNotUsed(AnimationGraph &g, IAnimBlendNode *test_n)
 {
   bool valid = true;
@@ -1476,7 +1518,7 @@ void AnimBlendCtrl_Blender::pause(IPureAnimStateHolder &st)
   if (node[0])
     node[0]->pause(st);
   if (node[1])
-    node[0]->pause(st);
+    node[1]->pause(st);
 }
 void AnimBlendCtrl_Blender::resume(IPureAnimStateHolder &st, bool rewind)
 {
@@ -1486,7 +1528,7 @@ void AnimBlendCtrl_Blender::resume(IPureAnimStateHolder &st, bool rewind)
   if (node[0])
     node[0]->resume(st, rewind);
   if (node[1])
-    node[0]->resume(st, rewind);
+    node[1]->resume(st, rewind);
 }
 bool AnimBlendCtrl_Blender::isInRange(IPureAnimStateHolder &st, int rangeId)
 {
@@ -1518,16 +1560,17 @@ AnimBlendCtrl_BinaryIndirectSwitch::AnimBlendCtrl_BinaryIndirectSwitch(Animation
 void AnimBlendCtrl_BinaryIndirectSwitch::destroy() {}
 void AnimBlendCtrl_BinaryIndirectSwitch::buildBlendingList(BlendCtx &bctx, real w)
 {
-  G_ASSERT(fifo);
+  if (!fifo)
+    return;
   BUILD_BLENDING_LIST_PROLOGUE(bctx, st);
 
   int v = st.getParamInt(paramId);
   if ((v & maskAnd) == maskEq)
-    fifo->enqueueState(st, node[0], morphTime[0], morphTime[0] * 2);
+    fifo->enqueueState(st, node[0], morphTime[0]);
   else
-    fifo->enqueueState(st, node[1], morphTime[1], morphTime[1] * 2);
+    fifo->enqueueState(st, node[1], morphTime[1]);
 }
-void AnimBlendCtrl_BinaryIndirectSwitch::reset(IPureAnimStateHolder &st)
+void AnimBlendCtrl_BinaryIndirectSwitch::setDefaultState(IPureAnimStateHolder &st)
 {
   BlendCtx bctx(st);
   AnimBlendCtrl_BinaryIndirectSwitch::buildBlendingList(bctx, 0);
@@ -1556,15 +1599,8 @@ void AnimBlendCtrl_BinaryIndirectSwitch::setBlendNodes(IAnimBlendNode *n1, real 
   node[1] = n2;
   morphTime[0] = n1_mtime;
   morphTime[1] = n2_mtime;
-
-  G_ASSERT(node[0]);
-  G_ASSERT(node[1]);
 }
-void AnimBlendCtrl_BinaryIndirectSwitch::setFifoCtrl(AnimBlendCtrl_Fifo3 *n)
-{
-  fifo = n;
-  G_ASSERT(fifo);
-}
+void AnimBlendCtrl_BinaryIndirectSwitch::setFifoCtrl(AnimBlendCtrl_Fifo3 *n) { fifo = n; }
 
 
 //
@@ -1594,7 +1630,20 @@ void AnimBlendCtrl_ParametricSwitcher::buildBlendingList(BlendCtx &bctx, real w)
   {
     set_rewind_bit(newAnim, st, rewindBitmapParamsIds);
     list[newAnim].node->resume(st, !continuousAnimMode);
-    fifo->enqueueItem(st.getParam(AnimationGraph::PID_GLOBAL_TIME), st, list[newAnim].node, morphTime, morphTime * 2);
+    real time = morphTime;
+    if (fifo->state != AnimFifo3Queue::ST_0 && morphTimeOverride.size())
+    {
+      IAnimBlendNode *fromNode = fifo->state == AnimFifo3Queue::ST_1 ? fifo->node[0] : fifo->node[1];
+      for (auto &override : morphTimeOverride)
+      {
+        if (override.from == fromNode && override.to == list[newAnim].node)
+        {
+          time = override.morphTime;
+          break;
+        }
+      }
+    }
+    fifo->enqueueItem(st.getParam(AnimationGraph::PID_GLOBAL_TIME), st, list[newAnim].node, time);
     st.setParamInt(lastAnimParamId, newAnim + 1);
   }
   else if (newAnim == -1 && !continuousAnimMode)
@@ -1612,7 +1661,7 @@ void AnimBlendCtrl_ParametricSwitcher::buildBlendingList(BlendCtx &bctx, real w)
   fifo->buildBlendingList(bctx, st.getParam(AnimationGraph::PID_GLOBAL_TIME), w);
 }
 
-void AnimBlendCtrl_ParametricSwitcher::reset(IPureAnimStateHolder &st)
+void AnimBlendCtrl_ParametricSwitcher::setDefaultState(IPureAnimStateHolder &st)
 {
   AnimFifo3Queue *fifo = (AnimFifo3Queue *)st.getInlinePtr(fifoParamId);
   fifo->reset(false);

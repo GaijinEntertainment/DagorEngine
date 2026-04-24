@@ -1,11 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <3d/dag_resizableTex.h>
 #include <math/dag_adjpow2.h>
 #include <debug/dag_debug.h>
 #include <EASTL/fixed_string.h>
 #include <EASTL/algorithm.h>
+#include <EASTL/unique_ptr.h>
 #include <drv/3d/dag_texture.h>
 
 namespace resptr_detail
@@ -67,16 +68,16 @@ static UniqueBaseTex try_get_aliased(BaseTexture *original, D3DResourceType res_
 }
 
 static UniqueBaseTex try_create_new(D3DResourceType res_type, int width, int height, int depth, int flags, int mip_levels,
-  const char *name)
+  const char *name, ResourceTagType tag)
 {
   UniqueBaseTex result;
   switch (res_type)
   {
-    case D3DResourceType::TEX: result.reset(d3d::create_tex(nullptr, width, height, flags, mip_levels, name)); break;
-    case D3DResourceType::CUBETEX: result.reset(d3d::create_cubetex(width, flags, mip_levels, name)); break;
-    case D3DResourceType::VOLTEX: result.reset(d3d::create_voltex(width, height, depth, flags, mip_levels, name)); break;
-    case D3DResourceType::ARRTEX: result.reset(d3d::create_array_tex(width, height, depth, flags, mip_levels, name)); break;
-    case D3DResourceType::CUBEARRTEX: result.reset(d3d::create_cube_array_tex(width, depth, flags, mip_levels, name)); break;
+    case D3DResourceType::TEX: result.reset(d3d::create_tex(nullptr, width, height, flags, mip_levels, name, tag)); break;
+    case D3DResourceType::CUBETEX: result.reset(d3d::create_cubetex(width, flags, mip_levels, name, tag)); break;
+    case D3DResourceType::VOLTEX: result.reset(d3d::create_voltex(width, height, depth, flags, mip_levels, name, tag)); break;
+    case D3DResourceType::ARRTEX: result.reset(d3d::create_array_tex(width, height, depth, flags, mip_levels, name, tag)); break;
+    case D3DResourceType::CUBEARRTEX: result.reset(d3d::create_cube_array_tex(width, depth, flags, mip_levels, name, tag)); break;
     default: G_ASSERT(0); break;
   }
   return result;
@@ -212,6 +213,7 @@ void ResizableManagedTex::resize(int width, int height, int depth)
 
     change_managed_texture(mResId, mResource);
     d3d::resource_barrier({{previous, mResource}, {RB_ALIAS_FROM, RB_ALIAS_TO_AND_DISCARD}, {0, 0}, {0, 0}});
+    ShaderGlobal::sync_managed_resource(mResId, previous);
 
     currentKey = newKey;
     lastMResId = mResId;
@@ -225,11 +227,13 @@ void ResizableManagedTex::resize(int width, int height, int depth)
     const int max_mips = eastl::min(get_log2w(width), get_log2w(height)) + 1;
     const int mip_levels = min<int>(tex_info.mipLevels, max_mips);
 
-    BaseTexture *previous = eastl::exchange(mResource,
-      try_create_new(tex_info.type, width, height, depth, tex_info.cflg, mip_levels, originalTexture->getTexName()).release());
+    BaseTexture *previous = eastl::exchange(mResource, try_create_new(tex_info.type, width, height, depth, tex_info.cflg, mip_levels,
+                                                         originalTexture->getTexName(), RESTAG_RESIZABLE_TEX)
+                                                         .release());
 
     G_ASSERT(mResource);
     change_managed_texture(mResId, mResource);
+    ShaderGlobal::sync_managed_resource(mResId, previous);
 
     currentKey = newKey;
     originalTexture = mResource;

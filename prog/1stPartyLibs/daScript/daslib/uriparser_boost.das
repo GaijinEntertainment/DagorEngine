@@ -6,6 +6,11 @@ options strict_smart_pointers = true
 
 module uriparser_boost shared public
 
+//! Extended URI manipulation helpers.
+//!
+//! Adds convenience functions on top of the built-in ``uriparser`` module:
+//! ``uri_split_full_path``, path canonicalization, and file-URI conversion.
+
 require uriparser public
 
 require daslib/strings_boost
@@ -24,7 +29,7 @@ def uri_split_full_path(uri : Uri implicit) {
 
 def uri_compose_query(query : table<string; string>) {
     //! Compose a query string from a table of key-value pairs.
-    return build_string <| $(var tw) {
+    return build_string() $(var tw) {
         var first = true
         for (key, value in keys(query), values(query)) {
             if (first) {
@@ -47,7 +52,7 @@ def uri_compose_query_in_order(query : table<string; string>) {
     for (key, value in keys(query), values(query)) {
         vq |> push((key, value))
     }
-    sort(vq) <| $(a, b) {
+    sort(vq) $(a, b) {
         if (a.key == b.key) {
             return a.value < b.value
         } else {
@@ -55,7 +60,7 @@ def uri_compose_query_in_order(query : table<string; string>) {
         }
         var first = true
     }
-    let res = build_string <| $(var tw) {
+    let res = build_string() $(var tw) {
         var first = true
         for (kv in vq) {
             if (first) {
@@ -96,7 +101,7 @@ def port(uri : Uri implicit) {
 
 def path(uri : Uri implicit) {
     //! Return the path of a URI.
-    return build_string() <| $(var tw) {
+    return build_string() $(var tw) {
         var pcur : uriparser::UriPathSegmentStructA const? = uri.uri.pathHead
         var first = true
         while (pcur != null) {
@@ -123,7 +128,7 @@ def fragment(uri : Uri implicit) {
 
 def uri_compose(scheme, userInfo, hostText, portText, path, query, fragment : string) : Uri {
     //! Compose a URI from its components.
-    let text = build_string <| $(var tw) {
+    let text = build_string() $(var tw) {
         if (!empty(scheme)) {
             tw |> write(scheme)
             tw |> write("://")

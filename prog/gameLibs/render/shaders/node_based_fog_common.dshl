@@ -1,0 +1,85 @@
+include "node_based_common.dshl"
+
+int fog_shader_type always_referenced;
+interval fog_shader_type: froxel < 1, raymarch < 2, shadow always_referenced;
+
+block(scene) nbs_fog_block
+{
+  NBS_COMMON_BLOCK()
+
+  (cs) {
+    volfog_occlusion@tex2d = volfog_occlusion;
+    volfog_mask_tex@tex2d = volfog_mask_tex;
+    world_to_volfog_mask@f4 = world_to_volfog_mask;
+    froxel_fog_fading_params@f4 = froxel_fog_fading_params;
+    daskies_time@f1 = daskies_time;
+    volfog_shadow_res@f4 = volfog_shadow_res;
+    volfog_shadow_accumulation_factor@f1 = volfog_shadow_accumulation_factor;
+    volfog_prev_range_ratio@f1 = volfog_prev_range_ratio;
+    prev_volfog_shadow@tex3d = prev_volfog_shadow;
+    volfog_shadow_occlusion@tex2d = volfog_shadow_occlusion;
+    volfog_froxel_volume_res@f4 = volfog_froxel_volume_res;
+    inv_volfog_froxel_volume_res@f4 = inv_volfog_froxel_volume_res;
+    volfog_froxel_range_params@f4 = volfog_froxel_range_params;
+    volfog_poisson_samples@tex2d = volfog_poisson_samples;
+    jitter_ray_offset@f4 = jitter_ray_offset;
+    vf_wind_dir@f4 = vf_wind_dir;
+
+    // for distant fog:
+    downsampled_far_depth_tex@tex2d = downsampled_far_depth_tex;
+    downsampled_far_depth_tex_samplerstate@sampler = downsampled_far_depth_tex_samplerstate;
+    downsampled_checkerboard_depth_tex@tex2d = downsampled_checkerboard_depth_tex;
+    prev_downsampled_far_depth_tex@tex2d = prev_downsampled_far_depth_tex;
+    downsampled_close_depth_tex@tex2d = downsampled_close_depth_tex;
+    prev_distant_fog_raymarch_start_weights@tex2d = prev_distant_fog_raymarch_start_weights;
+    prev_distant_fog_raymarch_start_weights_samplerstate@sampler = prev_distant_fog_raymarch_start_weights_samplerstate;
+    distant_fog_raymarch_resolution@f4 = distant_fog_raymarch_resolution;
+    distant_fog_reconstruction_resolution@f4 = distant_fog_reconstruction_resolution;
+    distant_fog_raymarch_params_0@f4 = distant_fog_raymarch_params_0;
+    distant_fog_raymarch_params_1@f4 = distant_fog_raymarch_params_1;
+    distant_fog_raymarch_params_2@f4 = distant_fog_raymarch_params_2;
+    volfog_media_fog_input_mul@f1 = volfog_media_fog_input_mul;
+    fog_raymarch_frame_id@i1 = fog_raymarch_frame_id;
+    volfog_blended_slice_start_depth@f1 = volfog_blended_slice_start_depth;
+    prev_globtm_psf_0@f4 = prev_globtm_psf_0;
+    prev_globtm_psf_1@f4 = prev_globtm_psf_1;
+    prev_globtm_psf_2@f4 = prev_globtm_psf_2;
+    prev_globtm_psf_3@f4 = prev_globtm_psf_3;
+    sun_color_0@f4 = sun_color_0;
+    enviSPH0@f4 = enviSPH0;
+    enviSPH1@f4 = enviSPH1;
+    enviSPH2@f4 = enviSPH2;
+    nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m@f4 = nbs_world_pos_to_clouds_alt__inv_clouds_weather_size__neg_clouds_thickness_m;
+    skies_primary_sun_light_dir@f4 = skies_primary_sun_light_dir;
+    clouds_origin_offset@f4 = clouds_origin_offset;
+    clouds_shadows_2d@tex2d = clouds_shadows_2d;
+    clouds_shadows_2d_samplerstate@sampler = clouds_shadows_2d_samplerstate;
+    clouds_hole_pos@f4 = clouds_hole_pos;
+    distant_fog_local_view_z@f4 = distant_fog_local_view_z;
+
+    static_shadow_tex@texArray = static_shadow_tex;
+    static_shadow_tex_cmpSampler@cmpSampler = static_shadow_tex_cmpSampler;
+    static_shadow_matrix_0_0@f4 = static_shadow_matrix_0_0;
+    static_shadow_matrix_1_0@f4 = static_shadow_matrix_1_0;
+    static_shadow_matrix_2_0@f4 = static_shadow_matrix_2_0;
+    static_shadow_matrix_3_0@f4 = static_shadow_matrix_3_0;
+    static_shadow_matrix_0_1@f4 = static_shadow_matrix_0_1;
+    static_shadow_matrix_1_1@f4 = static_shadow_matrix_1_1;
+    static_shadow_matrix_2_1@f4 = static_shadow_matrix_2_1;
+    static_shadow_matrix_3_1@f4 = static_shadow_matrix_3_1;
+    static_shadow_cascade_0_scale_ofs_z_tor@f4 = static_shadow_cascade_0_scale_ofs_z_tor;
+    static_shadow_cascade_1_scale_ofs_z_tor@f4 = static_shadow_cascade_1_scale_ofs_z_tor;
+    static_shadow_scrolled_depth_min_0@f1 = static_shadow_scrolled_depth_min_0;
+    static_shadow_scrolled_depth_max_0@f1 = static_shadow_scrolled_depth_max_0;
+    distant_fog_use_static_shadows@i1 = distant_fog_use_static_shadows;
+
+    camera_in_camera_prev_vp_ellipse_center@f4 = camera_in_camera_prev_vp_ellipse_center;
+    camera_in_camera_prev_vp_ellipse_xy_axes@f4 = camera_in_camera_prev_vp_ellipse_xy_axes;
+    camera_in_camera_vp_ellipse_center@f4 = camera_in_camera_vp_ellipse_center;
+    camera_in_camera_vp_ellipse_xy_axes@f4 = camera_in_camera_vp_ellipse_xy_axes;
+    camera_in_camera_vp_y_scale@f1 = camera_in_camera_vp_y_scale;
+    camera_in_camera_vp_uv_remapping@f4 = camera_in_camera_vp_uv_remapping;
+    camera_in_camera_postfx_lens_view@f1 = camera_in_camera_postfx_lens_view;
+    camera_in_camera_active@f1 = camera_in_camera_active;
+  }
+}

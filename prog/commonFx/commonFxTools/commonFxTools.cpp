@@ -5,9 +5,10 @@
 
 String fx_devres_base_path;
 
-void register_all_common_fx_tools()
+void register_all_common_fx_tools(const DataBlock &appblk)
 {
   register_light_fx_tools();
+  register_outdatedFx_tools(appblk);
 
   register_dafx_sparks_fx_tools();
   register_dafx_modfx_fx_tools();

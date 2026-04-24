@@ -1,0 +1,42 @@
+Root           ?= ../../.. ;
+Location        = prog/gameLibs/sepClient ;
+StrictCompile   = yes ;
+TargetType      = lib ;
+Target          = gameLibs/sepClient.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes +=
+  $(Root)/prog/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+;
+
+UseProgLibs +=
+  gameLibs/websocketJsonRpc
+;
+
+local AllSrcFolder_CPP =
+  .
+;
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp : Sources ;
+
+# I'm not sure which platforms actually support c-ares
+# XBox does not need to use it since it cannot make use of resoved DNS names in WebSocket API
+# Exclude other console platforms just in case (very little users, hard to test)
+if ! $(Platform) in ps4 ps5 xbox xboxOne scarlett nswitch {
+  UseProgLibs += 3rdPartyLibs/c-ares ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/c-ares ;
+  CPPopt += -DSEPCLIENT_USE_CARES -DCARES_STATICLIB ;
+  Sources += asyncHostnameResolver/asyncHostnameResolverCAres.cpp ;
+}
+else {
+  Sources += asyncHostnameResolver/asyncHostnameResolverStub.cpp ;
+}
+
+if $(Platform) in windows {
+  CPPopt += /FC ;        # enable full path in __FILE__ macro (useful when navigating output with for IDE)
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

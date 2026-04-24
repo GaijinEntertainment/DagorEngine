@@ -864,6 +864,12 @@ void glTF2Exporter::ExportMaterials() {
                     mAsset->extensionsUsed.KHR_materials_ior = true;
                     m->materialIOR = Nullable<MaterialIOR>(ior);
                 }
+
+                MaterialEmissiveStrength emissiveStrength;
+                if (GetMatEmissiveStrength(mat, emissiveStrength)) {
+                    mAsset->extensionsUsed.KHR_materials_emissive_strength = true;
+                    m->materialEmissiveStrength = Nullable<MaterialEmissiveStrength>(emissiveStrength);
+                }
             }
         }
     }

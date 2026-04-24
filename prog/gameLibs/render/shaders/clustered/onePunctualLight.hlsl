@@ -27,7 +27,7 @@
   shadowTerm *= calc_micro_shadow(NoL, ao);
 
   #if OMNI_SHADOWS
-    shadowTerm *= getOmniShadow(shadowTcToAtlas, pos_and_radius, worldPos, NoL, screenpos);
+    shadowTerm *= getOmniShadow(shadowTcToAtlas, pos_and_radius, worldPos, NoL, screenpos, shadow_zn_zfar);
   #endif
 
   #if !DYNAMIC_LIGHTS_SPECULAR

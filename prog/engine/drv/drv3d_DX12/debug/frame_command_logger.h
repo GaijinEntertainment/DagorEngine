@@ -76,6 +76,13 @@ public:
 
   void dumpFrameCommandLog(FrameCommandLog &frame_log, debug::DeviceState &device_state, CheckpointValiationMode mode);
 
+  template <typename T, typename P0, typename P1, typename P2>
+  void logCommand(const ExtendedVariant3<T, P0, P1, P2> &params)
+  {
+    GetActiveFrameLog().pushBack<T, P0, P1, P2>(params.cmd, params.p0.data(), params.p0.size(), params.p1.data(), params.p1.size(),
+      params.p2.data(), params.p2.size());
+  }
+
   template <typename T, typename P0, typename P1>
   void logCommand(const ExtendedVariant2<T, P0, P1> &params)
   {
@@ -122,6 +129,10 @@ public:
   constexpr void initNextFrameLog() {}
   constexpr void dumpCommandLog(debug::DeviceState &) {}
   constexpr void dumpActiveFrameCommandLog(debug::DeviceState &) {}
+
+  template <typename T, typename P0, typename P1, typename P2>
+  constexpr void logCommand(const ExtendedVariant3<T, P0, P1, P2> &)
+  {}
 
   template <typename T, typename P0, typename P1>
   constexpr void logCommand(const ExtendedVariant2<T, P0, P1> &)

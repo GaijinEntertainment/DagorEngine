@@ -40,9 +40,7 @@ static unsigned real2int10(real a)
   if (ret >= 0)
     return ((unsigned)ret) & ((1 << 9) - 1);
   else
-  {
-    return ((unsigned)ret & ((1 << 9) - 1)) | (1 << 10);
-  }
+    return ((unsigned)ret & ((1 << 9) - 1)) | (1 << 9);
 }
 
 static unsigned real2uint(real a) { return real2int(a < 0 ? 0 : a); }
@@ -804,6 +802,15 @@ static float encode_vertex(const uint8_t *from, uint8_t to[16], int vert_type, i
       val[1] = p.g / 255.0f;
       val[2] = p.b / 255.0f;
       val[3] = p.a / 255.0f;
+    }
+    break;
+    case MeshData::CHT_SHORT4:
+    {
+      const BoneIndices &b = *(BoneIndices *)from;
+      val[0] = b.x;
+      val[1] = b.y;
+      val[2] = b.z;
+      val[3] = b.w;
     }
     break;
     default: G_ASSERT(0);

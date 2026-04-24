@@ -4,7 +4,7 @@
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <3d/dag_lockSbuffer.h>
 #include <perfMon/dag_statDrv.h>
 #include <FFT_CPU_Simulation.h>
@@ -61,11 +61,8 @@ bool CSGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
 {
   close();
 
-  {
-    auto driverDesc = d3d::get_driver_desc();
-    if (driverDesc.shaderModel < 5.0_sm)
-      return false;
-  }
+  if (auto &driverDesc = d3d::get_driver_desc(); driverDesc.shaderModel < 5.0_sm)
+    return false;
 
   h0UpdateRequired = true;
 
@@ -99,10 +96,11 @@ bool CSGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
     return false;
   }
 
-  gpuConstBuffer = dag::buffers::create_one_frame_cb(4 * dag::buffers::cb_struct_reg_count<ConstantBuffer>(), "fft_water_cbuffer");
+  gpuConstBuffer =
+    dag::buffers::create_one_frame_cb(4 * dag::buffers::cb_struct_reg_count<ConstantBuffer>(), "fft_water_cbuffer", RESTAG_WATER);
 
   const int gauss_size = N0 * N0;
-  gauss = dag::buffers::create_persistent_sr_structured(sizeof(float2), gauss_size, "fft_gauss");
+  gauss = dag::buffers::create_persistent_sr_structured(sizeof(float2), gauss_size, "fft_gauss", d3d::buffers::Init::No, RESTAG_WATER);
   if (!gauss)
   {
     debug("fftwater: can't create gauss buffer");
@@ -122,10 +120,14 @@ bool CSGPUData::init(const NVWaveWorks_FFT_CPU_Simulation *fft, int numCascades)
     int data_count;
     CascadeData &cdata = getData(i, cascades.size(), data_count);
 
-    cdata.h0 = dag::buffers::create_ua_sr_structured(sizeof(h0_type), data_count * h0_size, "fft_h0");
-    cdata.ht = dag::buffers::create_ua_sr_structured(sizeof(ht_type), data_count * htdt_size, "fft_ht");
-    cdata.dt = dag::buffers::create_ua_sr_structured(sizeof(dt_type), data_count * htdt_size, "fft_dt");
-    cdata.omega = dag::buffers::create_persistent_sr_structured(sizeof(float), data_count * omega_size, "fft_omega");
+    cdata.h0 =
+      dag::buffers::create_ua_sr_structured(sizeof(h0_type), data_count * h0_size, "fft_h0", d3d::buffers::Init::No, RESTAG_WATER);
+    cdata.ht =
+      dag::buffers::create_ua_sr_structured(sizeof(ht_type), data_count * htdt_size, "fft_ht", d3d::buffers::Init::No, RESTAG_WATER);
+    cdata.dt =
+      dag::buffers::create_ua_sr_structured(sizeof(dt_type), data_count * htdt_size, "fft_dt", d3d::buffers::Init::No, RESTAG_WATER);
+    cdata.omega = dag::buffers::create_persistent_sr_structured(sizeof(float), data_count * omega_size, "fft_omega",
+      d3d::buffers::Init::No, RESTAG_WATER);
     if (!cdata.h0 || !cdata.ht || !cdata.dt || !cdata.omega)
     {
       debug("fftwater: can't create sbuffers");
@@ -156,7 +158,7 @@ bool CSGPUData::initDispArray(const NVWaveWorks_FFT_CPU_Simulation *fft, bool r_
   dispArray = dag::create_array_tex(N0, N0, numCascades,
     TEXCF_UNORDERED | fmt | (r_target ? TEXCF_RTARGET : 0) // for enabling cascades separately in debug mode
     ,
-    1, "water3d_disp_cs_array");
+    1, "water3d_disp_cs_array", RESTAG_WATER);
   if (!dispArray)
     return false;
 

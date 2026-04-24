@@ -12,6 +12,8 @@
 #include "controllers/randomSwitch.h"
 #include "controllers/paramSwitch.h"
 #include "controllers/linearPoly.h"
+#include "controllers/alias.h"
+#include "controllers/animateNode.h"
 
 #include <propPanel/control/menu.h>
 #include <propPanel/control/container.h>
@@ -103,7 +105,7 @@ void set_leaf_as_root(PropPanel::ContainerPropertyControl &tree)
     copy_child_leafs_to_new_parent(tree, newRoot, tree.getChildLeaf(selLeaf, i));
 
   tree.removeLeaf(root);
-  tree.setBool(newRoot, /*open*/ true);
+  tree.setExpanded(newRoot, /*open*/ true);
 }
 
 int ChildsDialog::onMenuItemClick(unsigned id)
@@ -170,58 +172,144 @@ void ChildsDialog::fillChildsTree(PropPanel::TLeafHandle leaf)
   if (leafData != controllers.end())
     fillCtrlChilds(tree, nullptr, *leafData, String(""), includes, *enumRootProps);
   else
-    fillStateChilds(tree, leaf, *enumRootProps);
+  {
+    AnimStatesData *stateLeafData = find_data_by_handle(states, leaf);
+    if (stateLeafData != states.end())
+    {
+      if (stateLeafData->type == AnimStatesType::STATE)
+        fillStateChilds(tree, *stateLeafData, *enumRootProps);
+      else if (stateLeafData->type == AnimStatesType::POST_BLEND_CTRL_ORDER || stateLeafData->type == AnimStatesType::INIT_FIFO3)
+        fillInitAnimStateChilds(tree, *stateLeafData, *enumRootProps);
+    }
+  }
 }
 
-void ChildsDialog::fillStateChilds(PropPanel::ContainerPropertyControl *tree, PropPanel::TLeafHandle leaf,
+void ChildsDialog::fillStateChilds(PropPanel::ContainerPropertyControl *tree, AnimStatesData &data, const DataBlock &enum_root_props)
+{
+  dag::Vector<CachedInclude> includes;
+  String fullPath;
+  AnimStatesData *stateDescData =
+    eastl::find_if(states.begin(), states.end(), [](const AnimStatesData &data) { return data.type == AnimStatesType::STATE_DESC; });
+  CachedInclude &include = includes.emplace_back(CachedInclude{stateDescData->fileName,
+    get_props_from_include_state_data(paths, controllers, *asset, ctrlsTree, *stateDescData, fullPath, /*only_includes*/ true)});
+  DataBlock *stateDesc = include.props.addBlock("stateDesc");
+  DataBlock *settings = find_block_by_name(stateDesc, ctrlsTree->getCaption(data.handle));
+  PropPanel::TLeafHandle stateLeaf = tree->createTreeLeaf(nullptr, statesTree->getCaption(data.handle), STATE_LEAF_ICON);
+  tree->setExpanded(stateLeaf, /*open*/ true);
+  for (int i = 0; i < data.childs.size(); ++i)
+  {
+    const int idx = data.childs[i];
+    const char *chanName = settings->getBlock(i)->getBlockName();
+    if (idx == AnimStatesData::EMPTY_CHILD_TYPE)
+      tree->createTreeLeaf(stateLeaf, String(0, "[%s] (Empty child)", chanName), nullptr);
+    else if (idx == AnimStatesData::LEAVE_CUR_CHILD_TYPE)
+      tree->createTreeLeaf(stateLeaf, String(0, "[%s] (Leave cur child)", chanName), nullptr);
+    else
+    {
+      AnimCtrlData *ctrlChild =
+        eastl::find_if(controllers.begin(), controllers.end(), [idx](const AnimCtrlData &data) { return idx == data.id; });
+      if (ctrlChild != controllers.end())
+        fillCtrlChilds(tree, stateLeaf, *ctrlChild, String(0, "[%s] ", chanName), includes, enum_root_props);
+      else
+      {
+        BlendNodeData *nodeChild =
+          eastl::find_if(nodes.begin(), nodes.end(), [idx](const BlendNodeData &data) { return idx == data.id; });
+        if (nodeChild != nodes.end())
+          tree->createTreeLeaf(stateLeaf, String(0, "[%s] %s", chanName, nodesTree->getCaption(nodeChild->handle)),
+            get_blend_node_icon_name(nodeChild->type));
+        else
+        {
+          const char *childName = state_get_child_name_by_idx(*settings, i);
+          CtrlChildSearchResult result =
+            find_child_idx_and_icon_by_name(ctrlsTree, nodesTree, stateLeaf, controllers, nodes, childName);
+          if (result.id != AnimCtrlData::NOT_FOUND_CHILD)
+          {
+            tree->createTreeLeaf(stateLeaf, String(0, "[%s] %s", chanName, childName), result.iconName);
+            data.childs[i] = result.id;
+          }
+          else
+            tree->createTreeLeaf(stateLeaf, String(0, "[%s] (not found) %s", chanName, childName), nullptr);
+        }
+      }
+    }
+  }
+}
+
+void ChildsDialog::fillInitAnimStateChilds(PropPanel::ContainerPropertyControl *tree, AnimStatesData &data,
   const DataBlock &enum_root_props)
 {
   dag::Vector<CachedInclude> includes;
-  AnimStatesData *leafData = find_data_by_handle(states, leaf);
-  if (leafData != states.end())
+  String fullPath;
+  AnimStatesData *initAnimStateData = find_data_by_type(states, AnimStatesType::INIT_ANIM_STATE);
+  CachedInclude &include = includes.emplace_back(CachedInclude{initAnimStateData->fileName,
+    get_props_from_include_state_data(paths, controllers, *asset, ctrlsTree, *initAnimStateData, fullPath, /*only_includes*/ true)});
+  PropPanel::TLeafHandle leaf = tree->createTreeLeaf(nullptr, statesTree->getCaption(data.handle), STATE_LEAF_ICON);
+  tree->setExpanded(leaf, /*open*/ true);
+  for (int i = 0; i < data.childs.size(); ++i)
   {
-    String fullPath;
-    AnimStatesData *stateDescData =
-      eastl::find_if(states.begin(), states.end(), [](const AnimStatesData &data) { return data.type == AnimStatesType::STATE_DESC; });
-    CachedInclude &include = includes.emplace_back(CachedInclude{stateDescData->fileName,
-      get_props_from_include_state_data(paths, controllers, *asset, ctrlsTree, *stateDescData, fullPath, /*only_includes*/ true)});
-    DataBlock *stateDesc = include.props.addBlock("stateDesc");
-    DataBlock *settings = find_block_by_name(stateDesc, ctrlsTree->getCaption(leaf));
-    PropPanel::TLeafHandle stateLeaf = tree->createTreeLeaf(nullptr, statesTree->getCaption(leaf), STATE_LEAF_ICON);
-    tree->setBool(stateLeaf, /*open*/ true);
-    for (int i = 0; i < leafData->childs.size(); ++i)
+    if (data.type == AnimStatesType::POST_BLEND_CTRL_ORDER)
     {
-      const int idx = leafData->childs[i];
-      const char *chanName = settings->getBlock(i)->getBlockName();
-      if (idx == AnimStatesData::EMPTY_CHILD_TYPE)
-        tree->createTreeLeaf(stateLeaf, String(0, "[%s] (Empty child)", chanName), nullptr);
-      else if (idx == AnimStatesData::LEAVE_CUR_CHILD_TYPE)
-        tree->createTreeLeaf(stateLeaf, String(0, "[%s] (Leave cur child)", chanName), nullptr);
+      const int idx = data.childs[i];
+      AnimCtrlData *ctrlChild =
+        eastl::find_if(controllers.begin(), controllers.end(), [idx](const AnimCtrlData &data) { return idx == data.id; });
+      if (ctrlChild != controllers.end())
+        fillCtrlChilds(tree, leaf, *ctrlChild, String(""), includes, enum_root_props);
+    }
+    else if (data.type == AnimStatesType::INIT_FIFO3)
+    {
+      // First idx is fifo3 ctrl and second is value node
+      const int fifo3Idx = data.childs[i];
+      const int valueIdx = data.childs[++i];
+      const int paramIdx = i / 2;
+      AnimCtrlData *fifo3Child =
+        eastl::find_if(controllers.begin(), controllers.end(), [fifo3Idx](const AnimCtrlData &data) { return fifo3Idx == data.id; });
+      String fifo3Name;
+      if (fifo3Child == controllers.end())
+      {
+        DataBlock *fifo3InitProps = include.props.addBlock("initAnimState")->addBlock("fifo3");
+        const char *fifo3ParamName = fifo3InitProps->getParamName(paramIdx);
+        data.childs[i - 1] = find_child_idx_by_name(pluginPanel, data.handle, controllers, nodes, fifo3ParamName);
+        if (data.childs[i - 1] == AnimStatesData::NOT_FOUND_CHILD)
+        {
+          fifo3Name = String(0, "(not found) %s", fifo3ParamName);
+          check_fifo3_ctrl_child_idx(data.childs[i - 1], fifo3ParamName);
+        }
+        else
+          fifo3Name = fifo3ParamName;
+      }
+      else
+        fifo3Name = ctrlsTree->getCaption(fifo3Child->handle);
+      if (valueIdx == AnimStatesData::DEFAULT_INIT_FIFO3)
+      {
+        tree->createTreeLeaf(leaf, String(0, "[%s]:default", fifo3Name), STATE_LEAF_ICON);
+        continue;
+      }
+      AnimCtrlData *ctrlChild =
+        eastl::find_if(controllers.begin(), controllers.end(), [valueIdx](const AnimCtrlData &data) { return valueIdx == data.id; });
+      if (ctrlChild != controllers.end())
+        fillCtrlChilds(tree, leaf, *ctrlChild, String(0, "[%s]:", fifo3Name), includes, enum_root_props);
       else
       {
-        AnimCtrlData *ctrlChild =
-          eastl::find_if(controllers.begin(), controllers.end(), [idx](const AnimCtrlData &data) { return idx == data.id; });
-        if (ctrlChild != controllers.end())
-          fillCtrlChilds(tree, stateLeaf, *ctrlChild, String(0, "[%s] ", chanName), includes, enum_root_props);
+        BlendNodeData *nodeChild =
+          eastl::find_if(nodes.begin(), nodes.end(), [valueIdx](const BlendNodeData &data) { return valueIdx == data.id; });
+        if (nodeChild != nodes.end())
+          tree->createTreeLeaf(leaf, String(0, "[%s]:%s", fifo3Name, nodesTree->getCaption(nodeChild->handle)),
+            get_blend_node_icon_name(nodeChild->type));
         else
         {
-          BlendNodeData *nodeChild =
-            eastl::find_if(nodes.begin(), nodes.end(), [idx](const BlendNodeData &data) { return idx == data.id; });
-          if (nodeChild != nodes.end())
-            tree->createTreeLeaf(stateLeaf, String(0, "[%s] %s", chanName, nodesTree->getCaption(nodeChild->handle)),
-              get_blend_node_icon_name(nodeChild->type));
+          DataBlock *fifo3InitProps = include.props.addBlock("initAnimState")->addBlock("fifo3");
+          const char *childName = fifo3InitProps->getStr(paramIdx);
+          CtrlChildSearchResult result =
+            find_child_idx_and_icon_by_name(ctrlsTree, nodesTree, data.handle, controllers, nodes, childName);
+          if (result.id != AnimCtrlData::NOT_FOUND_CHILD)
+          {
+            tree->createTreeLeaf(leaf, String(0, "[%s]:%s", fifo3Name, childName), result.iconName);
+            data.childs[i] = result.id;
+          }
           else
           {
-            const char *childName = state_get_child_name_by_idx(*settings, i);
-            CtrlChildSearchResult result =
-              find_child_idx_and_icon_by_name(ctrlsTree, nodesTree, stateLeaf, controllers, nodes, childName);
-            if (result.id != AnimCtrlData::NOT_FOUND_CHILD)
-            {
-              tree->createTreeLeaf(stateLeaf, String(0, "[%s] %s", chanName, childName), result.iconName);
-              leafData->childs[i] = result.id;
-            }
-            else
-              tree->createTreeLeaf(stateLeaf, String(0, "[%s] (not found) %s", chanName, childName), nullptr);
+            check_init_anim_state_child_idx(result.id, "fifo3", childName);
+            tree->createTreeLeaf(leaf, String(0, "(not found) [%s]:%s", fifo3Name, childName), nullptr);
           }
         }
       }
@@ -257,8 +345,10 @@ String ChildsDialog::getImportantParamPrefixName(const DataBlock &settings, int 
   switch (type)
   {
     case ctrl_type_randomSwitch: return random_switch_get_child_prefix_name(settings, child_idx);
-    case ctrl_type_paramSwitch: return param_switch_get_child_prefix_name(settings, child_idx, enum_root_props);
+    case ctrl_type_paramSwitch:
+    case ctrl_type_paramSwitchS: return param_switch_get_child_prefix_name(settings, child_idx, enum_root_props);
     case ctrl_type_linearPoly: return linear_poly_get_child_prefix_name(settings, child_idx);
+    case ctrl_type_animateNode: return animate_node_get_child_prefix_name(settings, child_idx);
     default: break;
   }
 
@@ -267,7 +357,8 @@ String ChildsDialog::getImportantParamPrefixName(const DataBlock &settings, int 
 
 static bool is_contain_important_param(CtrlType type)
 {
-  return type == ctrl_type_randomSwitch || type == ctrl_type_paramSwitch || type == ctrl_type_linearPoly;
+  return type == ctrl_type_randomSwitch || type == ctrl_type_paramSwitch || type == ctrl_type_paramSwitchS ||
+         type == ctrl_type_linearPoly || type == ctrl_type_animateNode;
 }
 
 static bool get_child_is_optional_from_settings(const DataBlock &settings, CtrlType type, int idx)
@@ -275,7 +366,8 @@ static bool get_child_is_optional_from_settings(const DataBlock &settings, CtrlT
   switch (type)
   {
     case ctrl_type_hub: return hub_get_child_is_optional_by_idx(settings, idx);
-    case ctrl_type_paramSwitch: return param_switch_get_child_is_optional_by_idx(settings, idx);
+    case ctrl_type_paramSwitch:
+    case ctrl_type_paramSwitchS: return param_switch_get_child_is_optional_by_idx(settings, idx);
     default: break;
   }
 
@@ -305,7 +397,7 @@ void ChildsDialog::fillCtrlChilds(PropPanel::ContainerPropertyControl *tree, Pro
     settings = find_block_by_name(ctrlProps, ctrlsTree->getCaption(leaf_data.handle));
   }
   if (!parent)
-    tree->setBool(leaf, /*open*/ true);
+    tree->setExpanded(leaf, /*open*/ true);
   for (int i = 0; i < leaf_data.childs.size(); ++i)
   {
     String prefixChildName;
@@ -368,6 +460,7 @@ String ChildsDialog::getChildNameFromSettings(const DataBlock &settings, CtrlTyp
     case ctrl_type_hub: return String(hub_get_child_name_by_idx(settings, idx));
     case ctrl_type_randomSwitch: return String(random_switch_get_child_name_by_idx(settings, idx));
     case ctrl_type_paramSwitch:
+    case ctrl_type_paramSwitchS:
       if (settings.getBlockByNameEx("nodes")->paramExists("enum_gen"))
       {
         AnimStatesData *initAnimStateData = find_data_by_type(states, AnimStatesType::INIT_ANIM_STATE);
@@ -385,6 +478,8 @@ String ChildsDialog::getChildNameFromSettings(const DataBlock &settings, CtrlTyp
       else
         return String(param_switch_get_child_name_by_idx(settings, idx));
     case ctrl_type_linearPoly: return String(linear_poly_get_child_name_by_idx(settings, idx));
+    case ctrl_type_alias: return String(alias_get_child_name_by_idx(settings, idx));
+    case ctrl_type_animateNode: return String(animate_node_get_child_name_by_idx(settings, idx));
     default: break;
   }
 
@@ -489,7 +584,7 @@ void set_all_expanded(PropPanel::ContainerPropertyControl *tree, PropPanel::TLea
   for (int i = 0; i < tree->getChildCount(leaf); ++i)
   {
     set_all_expanded(tree, tree->getChildLeaf(leaf, i), expanded);
-    tree->setBool(tree->getChildLeaf(leaf, i), expanded);
+    tree->setExpanded(tree->getChildLeaf(leaf, i), expanded);
   }
 }
 
@@ -499,7 +594,7 @@ void ChildsDialog::setAllExpanded(bool expanded)
   PropPanel::ContainerPropertyControl *tree = panel->getById(PID_CHILDS_TREE)->getContainer();
   PropPanel::TLeafHandle selLeaf = tree->getSelLeaf();
   set_all_expanded(tree, selLeaf, expanded);
-  tree->setBool(selLeaf, expanded);
+  tree->setExpanded(selLeaf, expanded);
 }
 
 CachedInclude *ChildsDialog::findIncludeProps(dag::Vector<CachedInclude> &includes, PropPanel::TLeafHandle include_leaf)

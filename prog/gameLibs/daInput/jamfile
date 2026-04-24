@@ -1,7 +1,7 @@
 Root          ?= ../../.. ;
 Location       = prog/gameLibs/daInput ;
 StrictCompile  = yes ;
-UseQuirrel   ?= sq3r ;
+UseQuirrel   ?= yes ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 

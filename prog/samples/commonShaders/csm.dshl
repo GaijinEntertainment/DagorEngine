@@ -1,6 +1,5 @@
 texture shadow_cascade_depth_tex;
 float4 pcf_lerp = (0, 0, 0, 0);
-float start_csm_shadow_blend = 100;
 float4 csm_world_view_pos;
 
 int num_of_cascades = 4;
@@ -19,7 +18,6 @@ endmacro
 macro USE_CSM_SHADOW(code, num_cascades, for_compatibility)
   (code)
   {
-    start_csm_shadow_blend@f1 = (start_csm_shadow_blend);
     pcf_lerp@f4 = (pcf_lerp.x, pcf_lerp.y, pcf_lerp.x*2, pcf_lerp.y*2);
     shadow_cascade_tm_transp@f4[] = shadow_cascade_tm_transp;
     shadow_cascade_tc_mul_offset@f4[] = shadow_cascade_tc_mul_offset;
@@ -37,7 +35,6 @@ macro USE_CSM_SHADOW(code, num_cascades, for_compatibility)
       return shadow2D(shadow_cascade_depth_tex, float3(uv.xy, z));
     }
 
-    #define texCSMShadow2(a,b,c) texCSMShadow(a, b)
     half get_pcf_csm_shadow(float3 depthShadowTC)
     {
  
@@ -53,20 +50,20 @@ macro USE_CSM_SHADOW(code, num_cascades, for_compatibility)
         float2 pos = depthShadowTC.xy;
         float4 fxaaConsolePosPos = float4(pos - fxaaConsoleRcpFrameOpt, pos + fxaaConsoleRcpFrameOpt);
         fixed4 luma = fixed4(
-                 texCSMShadow2(fxaaConsolePosPos.xy, depthShadowTC.z, depthShadowTC.w),
-                 texCSMShadow2(fxaaConsolePosPos.xw, depthShadowTC.z, depthShadowTC.w),
-                 texCSMShadow2(fxaaConsolePosPos.zy, depthShadowTC.z, depthShadowTC.w),
-                 texCSMShadow2(fxaaConsolePosPos.zw, depthShadowTC.z, depthShadowTC.w));
+                 texCSMShadow(fxaaConsolePosPos.xy, depthShadowTC.z),
+                 texCSMShadow(fxaaConsolePosPos.xw, depthShadowTC.z),
+                 texCSMShadow(fxaaConsolePosPos.zy, depthShadowTC.z),
+                 texCSMShadow(fxaaConsolePosPos.zw, depthShadowTC.z));
          fixed4 dir = fixed4(
            dot(luma, fixed4(-1,1,-1,1)),
            dot(luma, fixed4(1,1,-1,-1)),
            0,0
          );
          fixed3 grad = fixed3(
-           texCSMShadow2(depthShadowTC.xy, depthShadowTC.z, depthShadowTC.w).r,
-           texCSMShadow2(depthShadowTC.xy - dir.xy * pcf_lerp.zw, depthShadowTC.z, depthShadowTC.w).r,
-           texCSMShadow2(depthShadowTC.xy + dir.xy * pcf_lerp.zw, depthShadowTC.z, depthShadowTC.w).r
-         ); 
+           texCSMShadow(depthShadowTC.xy, depthShadowTC.z).r,
+           texCSMShadow(depthShadowTC.xy - dir.xy * pcf_lerp.zw, depthShadowTC.z).r,
+           texCSMShadow(depthShadowTC.xy + dir.xy * pcf_lerp.zw, depthShadowTC.z).r
+         );
          return saturate(dot(grad, fixed3(0.2, 0.4, 0.4) ));
         /*/
         float2 fxaaConsoleRcpFrameOpt = pcf_lerp.xy;
@@ -110,7 +107,6 @@ macro USE_CSM_SHADOW(code, num_cascades, for_compatibility)
       {
         half csmShadow = get_pcf_csm_shadow(t);
         half blend = saturate(10*max(max(abstlast.x, abstlast.y), abstlast.z)-4);
-        //blend = w > start_csm_shadow_blend ? blend : 0;
         return half3(csmShadow, cascade_id, cascade_id == 3 ? blend : 0);
       }
       return half3( 1, cascade_id, 1 );

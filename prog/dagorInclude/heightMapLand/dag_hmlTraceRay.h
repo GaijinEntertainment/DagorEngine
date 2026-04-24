@@ -314,16 +314,26 @@ inline bool ray_under_heightmap(HM &heightmap, const Point3 &pt_, const Point3 &
 
   for (;;)
   {
-    if (!(hmapCellBox & ray.currentCell()))
+    IPoint2 cc = ray.currentCell();
+    if (!(hmapCellBox & cc))
       return false;
-    uint16_t ht = heightmap.getHeightmapHeightUnsafe(ray.currentCell());
+
+    uint16_t ht = heightmap.getHeightmapHeightUnsafe(cc);
     float oldT = nextT;
     ray.nextCell(nextT);
     if (nextT >= mint) // intentionally do not check last pixel. Src or Dest can not be below heightmap, only due inaccuracy.
       return false;
     real minRayY = pt.y + scaledDirY * (min(mint, nextT) + oldT); // scaledDirY already multiplied by 0.5
     if ((int)ht > (int)minRayY)
-      return true;
+    {
+      uint16_t h10 = (uint32_t(cc.x + 1) < hmapCellBox[1].x + 1) ? heightmap.getHeightmapHeightUnsafe(IPoint2(cc.x + 1, cc.y)) : ht;
+      uint16_t h01 = (uint32_t(cc.y + 1) < hmapCellBox[1].y + 1) ? heightmap.getHeightmapHeightUnsafe(IPoint2(cc.x, cc.y + 1)) : ht;
+      uint16_t h11 = (uint32_t(cc.x + 1) < hmapCellBox[1].x + 1 && uint32_t(cc.y + 1) < hmapCellBox[1].y + 1)
+                       ? heightmap.getHeightmapHeightUnsafe(IPoint2(cc.x + 1, cc.y + 1))
+                       : ht;
+      if ((int)h10 > (int)minRayY && (int)h01 > (int)minRayY && (int)h11 > (int)minRayY)
+        return true;
+    }
   }
   return false;
 }

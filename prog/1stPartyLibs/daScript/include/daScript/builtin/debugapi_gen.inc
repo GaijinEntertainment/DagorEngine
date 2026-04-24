@@ -3,175 +3,183 @@ protected:
   enum {
     __fn_canVisitHandle = 0,
     __fn_canVisitStructure = 1,
-    __fn_canVisitArray = 2,
-    __fn_canVisitArrayData = 3,
-    __fn_canVisitTuple = 4,
-    __fn_canVisitVariant = 5,
-    __fn_canVisitTable = 6,
-    __fn_canVisitTableData = 7,
-    __fn_canVisitPointer = 8,
-    __fn_canVisitLambda = 9,
-    __fn_canVisitIterator = 10,
-    __fn_beforeStructure = 11,
-    __fn_afterStructure = 12,
-    __fn_afterStructureCancel = 13,
-    __fn_beforeStructureField = 14,
-    __fn_afterStructureField = 15,
-    __fn_beforeTuple = 16,
-    __fn_afterTuple = 17,
-    __fn_beforeTupleEntry = 18,
-    __fn_afterTupleEntry = 19,
-    __fn_beforeVariant = 20,
-    __fn_afterVariant = 21,
-    __fn_beforeArrayData = 22,
-    __fn_afterArrayData = 23,
-    __fn_beforeArrayElement = 24,
-    __fn_afterArrayElement = 25,
-    __fn_beforeDim = 26,
-    __fn_afterDim = 27,
-    __fn_beforeArray = 28,
-    __fn_afterArray = 29,
-    __fn_beforeTable = 30,
-    __fn_beforeTableKey = 31,
-    __fn_afterTableKey = 32,
-    __fn_beforeTableValue = 33,
-    __fn_afterTableValue = 34,
-    __fn_afterTable = 35,
-    __fn_beforeRef = 36,
-    __fn_afterRef = 37,
-    __fn_beforePtr = 38,
-    __fn_afterPtr = 39,
-    __fn_beforeHandle = 40,
-    __fn_afterHandle = 41,
-    __fn_afterHandleCancel = 42,
-    __fn_beforeLambda = 43,
-    __fn_afterLambda = 44,
-    __fn_beforeIterator = 45,
-    __fn_afterIterator = 46,
-    __fn_Null = 47,
-    __fn_VoidPtr = 48,
-    __fn_Bool = 49,
-    __fn_Int8 = 50,
-    __fn_UInt8 = 51,
-    __fn_Int16 = 52,
-    __fn_UInt16 = 53,
-    __fn_Int64 = 54,
-    __fn_UInt64 = 55,
-    __fn_String = 56,
-    __fn_Double = 57,
-    __fn_Float = 58,
-    __fn_Int = 59,
-    __fn_UInt = 60,
-    __fn_Bitfield = 61,
-    __fn_Int2 = 62,
-    __fn_Int3 = 63,
-    __fn_Int4 = 64,
-    __fn_UInt2 = 65,
-    __fn_UInt3 = 66,
-    __fn_UInt4 = 67,
-    __fn_Float2 = 68,
-    __fn_Float3 = 69,
-    __fn_Float4 = 70,
-    __fn_Range = 71,
-    __fn_URange = 72,
-    __fn_Range64 = 73,
-    __fn_URange64 = 74,
-    __fn_WalkBlock = 75,
-    __fn_WalkFunction = 76,
-    __fn_WalkEnumeration = 77,
-    __fn_WalkEnumeration8 = 78,
-    __fn_WalkEnumeration16 = 79,
-    __fn_WalkEnumeration64 = 80,
-    __fn_FakeContext = 81,
-    __fn_InvalidData = 82,
+    __fn_canVisitDim = 2,
+    __fn_canVisitArray = 3,
+    __fn_canVisitArrayData = 4,
+    __fn_canVisitTuple = 5,
+    __fn_canVisitVariant = 6,
+    __fn_canVisitTable = 7,
+    __fn_canVisitTableData = 8,
+    __fn_canVisitPointer = 9,
+    __fn_canVisitLambda = 10,
+    __fn_canVisitIterator = 11,
+    __fn_beforeStructure = 12,
+    __fn_afterStructure = 13,
+    __fn_afterStructureCancel = 14,
+    __fn_beforeStructureField = 15,
+    __fn_afterStructureField = 16,
+    __fn_beforeTuple = 17,
+    __fn_afterTuple = 18,
+    __fn_beforeTupleEntry = 19,
+    __fn_afterTupleEntry = 20,
+    __fn_beforeVariant = 21,
+    __fn_afterVariant = 22,
+    __fn_beforeArrayData = 23,
+    __fn_afterArrayData = 24,
+    __fn_beforeArrayElement = 25,
+    __fn_afterArrayElement = 26,
+    __fn_beforeDim = 27,
+    __fn_afterDim = 28,
+    __fn_beforeArray = 29,
+    __fn_afterArray = 30,
+    __fn_beforeTable = 31,
+    __fn_beforeTableKey = 32,
+    __fn_afterTableKey = 33,
+    __fn_beforeTableValue = 34,
+    __fn_afterTableValue = 35,
+    __fn_afterTable = 36,
+    __fn_beforeRef = 37,
+    __fn_afterRef = 38,
+    __fn_beforePtr = 39,
+    __fn_afterPtr = 40,
+    __fn_beforeHandle = 41,
+    __fn_afterHandle = 42,
+    __fn_afterHandleCancel = 43,
+    __fn_beforeLambda = 44,
+    __fn_afterLambda = 45,
+    __fn_beforeIterator = 46,
+    __fn_afterIterator = 47,
+    __fn_Null = 48,
+    __fn_VoidPtr = 49,
+    __fn_Bool = 50,
+    __fn_Int8 = 51,
+    __fn_UInt8 = 52,
+    __fn_Int16 = 53,
+    __fn_UInt16 = 54,
+    __fn_Int64 = 55,
+    __fn_UInt64 = 56,
+    __fn_String = 57,
+    __fn_Double = 58,
+    __fn_Float = 59,
+    __fn_Int = 60,
+    __fn_UInt = 61,
+    __fn_Bitfield = 62,
+    __fn_Bitfield8 = 63,
+    __fn_Bitfield16 = 64,
+    __fn_Bitfield64 = 65,
+    __fn_Int2 = 66,
+    __fn_Int3 = 67,
+    __fn_Int4 = 68,
+    __fn_UInt2 = 69,
+    __fn_UInt3 = 70,
+    __fn_UInt4 = 71,
+    __fn_Float2 = 72,
+    __fn_Float3 = 73,
+    __fn_Float4 = 74,
+    __fn_Range = 75,
+    __fn_URange = 76,
+    __fn_Range64 = 77,
+    __fn_URange64 = 78,
+    __fn_WalkBlock = 79,
+    __fn_WalkFunction = 80,
+    __fn_WalkEnumeration = 81,
+    __fn_WalkEnumeration8 = 82,
+    __fn_WalkEnumeration16 = 83,
+    __fn_WalkEnumeration64 = 84,
+    __fn_FakeContext = 85,
+    __fn_InvalidData = 86,
   };
 protected:
-  int _das_class_method_offset[83];
+  int _das_class_method_offset[87];
 public:
   DapiDataWalker_Adapter ( const StructInfo * info ) {
       _das_class_method_offset[__fn_canVisitHandle] = info->fields[2]->offset;
       _das_class_method_offset[__fn_canVisitStructure] = info->fields[3]->offset;
-      _das_class_method_offset[__fn_canVisitArray] = info->fields[4]->offset;
-      _das_class_method_offset[__fn_canVisitArrayData] = info->fields[5]->offset;
-      _das_class_method_offset[__fn_canVisitTuple] = info->fields[6]->offset;
-      _das_class_method_offset[__fn_canVisitVariant] = info->fields[7]->offset;
-      _das_class_method_offset[__fn_canVisitTable] = info->fields[8]->offset;
-      _das_class_method_offset[__fn_canVisitTableData] = info->fields[9]->offset;
-      _das_class_method_offset[__fn_canVisitPointer] = info->fields[10]->offset;
-      _das_class_method_offset[__fn_canVisitLambda] = info->fields[11]->offset;
-      _das_class_method_offset[__fn_canVisitIterator] = info->fields[12]->offset;
-      _das_class_method_offset[__fn_beforeStructure] = info->fields[13]->offset;
-      _das_class_method_offset[__fn_afterStructure] = info->fields[14]->offset;
-      _das_class_method_offset[__fn_afterStructureCancel] = info->fields[15]->offset;
-      _das_class_method_offset[__fn_beforeStructureField] = info->fields[16]->offset;
-      _das_class_method_offset[__fn_afterStructureField] = info->fields[17]->offset;
-      _das_class_method_offset[__fn_beforeTuple] = info->fields[18]->offset;
-      _das_class_method_offset[__fn_afterTuple] = info->fields[19]->offset;
-      _das_class_method_offset[__fn_beforeTupleEntry] = info->fields[20]->offset;
-      _das_class_method_offset[__fn_afterTupleEntry] = info->fields[21]->offset;
-      _das_class_method_offset[__fn_beforeVariant] = info->fields[22]->offset;
-      _das_class_method_offset[__fn_afterVariant] = info->fields[23]->offset;
-      _das_class_method_offset[__fn_beforeArrayData] = info->fields[24]->offset;
-      _das_class_method_offset[__fn_afterArrayData] = info->fields[25]->offset;
-      _das_class_method_offset[__fn_beforeArrayElement] = info->fields[26]->offset;
-      _das_class_method_offset[__fn_afterArrayElement] = info->fields[27]->offset;
-      _das_class_method_offset[__fn_beforeDim] = info->fields[28]->offset;
-      _das_class_method_offset[__fn_afterDim] = info->fields[29]->offset;
-      _das_class_method_offset[__fn_beforeArray] = info->fields[30]->offset;
-      _das_class_method_offset[__fn_afterArray] = info->fields[31]->offset;
-      _das_class_method_offset[__fn_beforeTable] = info->fields[32]->offset;
-      _das_class_method_offset[__fn_beforeTableKey] = info->fields[33]->offset;
-      _das_class_method_offset[__fn_afterTableKey] = info->fields[34]->offset;
-      _das_class_method_offset[__fn_beforeTableValue] = info->fields[35]->offset;
-      _das_class_method_offset[__fn_afterTableValue] = info->fields[36]->offset;
-      _das_class_method_offset[__fn_afterTable] = info->fields[37]->offset;
-      _das_class_method_offset[__fn_beforeRef] = info->fields[38]->offset;
-      _das_class_method_offset[__fn_afterRef] = info->fields[39]->offset;
-      _das_class_method_offset[__fn_beforePtr] = info->fields[40]->offset;
-      _das_class_method_offset[__fn_afterPtr] = info->fields[41]->offset;
-      _das_class_method_offset[__fn_beforeHandle] = info->fields[42]->offset;
-      _das_class_method_offset[__fn_afterHandle] = info->fields[43]->offset;
-      _das_class_method_offset[__fn_afterHandleCancel] = info->fields[44]->offset;
-      _das_class_method_offset[__fn_beforeLambda] = info->fields[45]->offset;
-      _das_class_method_offset[__fn_afterLambda] = info->fields[46]->offset;
-      _das_class_method_offset[__fn_beforeIterator] = info->fields[47]->offset;
-      _das_class_method_offset[__fn_afterIterator] = info->fields[48]->offset;
-      _das_class_method_offset[__fn_Null] = info->fields[49]->offset;
-      _das_class_method_offset[__fn_VoidPtr] = info->fields[50]->offset;
-      _das_class_method_offset[__fn_Bool] = info->fields[51]->offset;
-      _das_class_method_offset[__fn_Int8] = info->fields[52]->offset;
-      _das_class_method_offset[__fn_UInt8] = info->fields[53]->offset;
-      _das_class_method_offset[__fn_Int16] = info->fields[54]->offset;
-      _das_class_method_offset[__fn_UInt16] = info->fields[55]->offset;
-      _das_class_method_offset[__fn_Int64] = info->fields[56]->offset;
-      _das_class_method_offset[__fn_UInt64] = info->fields[57]->offset;
-      _das_class_method_offset[__fn_String] = info->fields[58]->offset;
-      _das_class_method_offset[__fn_Double] = info->fields[59]->offset;
-      _das_class_method_offset[__fn_Float] = info->fields[60]->offset;
-      _das_class_method_offset[__fn_Int] = info->fields[61]->offset;
-      _das_class_method_offset[__fn_UInt] = info->fields[62]->offset;
-      _das_class_method_offset[__fn_Bitfield] = info->fields[63]->offset;
-      _das_class_method_offset[__fn_Int2] = info->fields[64]->offset;
-      _das_class_method_offset[__fn_Int3] = info->fields[65]->offset;
-      _das_class_method_offset[__fn_Int4] = info->fields[66]->offset;
-      _das_class_method_offset[__fn_UInt2] = info->fields[67]->offset;
-      _das_class_method_offset[__fn_UInt3] = info->fields[68]->offset;
-      _das_class_method_offset[__fn_UInt4] = info->fields[69]->offset;
-      _das_class_method_offset[__fn_Float2] = info->fields[70]->offset;
-      _das_class_method_offset[__fn_Float3] = info->fields[71]->offset;
-      _das_class_method_offset[__fn_Float4] = info->fields[72]->offset;
-      _das_class_method_offset[__fn_Range] = info->fields[73]->offset;
-      _das_class_method_offset[__fn_URange] = info->fields[74]->offset;
-      _das_class_method_offset[__fn_Range64] = info->fields[75]->offset;
-      _das_class_method_offset[__fn_URange64] = info->fields[76]->offset;
-      _das_class_method_offset[__fn_WalkBlock] = info->fields[77]->offset;
-      _das_class_method_offset[__fn_WalkFunction] = info->fields[78]->offset;
-      _das_class_method_offset[__fn_WalkEnumeration] = info->fields[79]->offset;
-      _das_class_method_offset[__fn_WalkEnumeration8] = info->fields[80]->offset;
-      _das_class_method_offset[__fn_WalkEnumeration16] = info->fields[81]->offset;
-      _das_class_method_offset[__fn_WalkEnumeration64] = info->fields[82]->offset;
-      _das_class_method_offset[__fn_FakeContext] = info->fields[83]->offset;
-      _das_class_method_offset[__fn_InvalidData] = info->fields[84]->offset;
+      _das_class_method_offset[__fn_canVisitDim] = info->fields[4]->offset;
+      _das_class_method_offset[__fn_canVisitArray] = info->fields[5]->offset;
+      _das_class_method_offset[__fn_canVisitArrayData] = info->fields[6]->offset;
+      _das_class_method_offset[__fn_canVisitTuple] = info->fields[7]->offset;
+      _das_class_method_offset[__fn_canVisitVariant] = info->fields[8]->offset;
+      _das_class_method_offset[__fn_canVisitTable] = info->fields[9]->offset;
+      _das_class_method_offset[__fn_canVisitTableData] = info->fields[10]->offset;
+      _das_class_method_offset[__fn_canVisitPointer] = info->fields[11]->offset;
+      _das_class_method_offset[__fn_canVisitLambda] = info->fields[12]->offset;
+      _das_class_method_offset[__fn_canVisitIterator] = info->fields[13]->offset;
+      _das_class_method_offset[__fn_beforeStructure] = info->fields[14]->offset;
+      _das_class_method_offset[__fn_afterStructure] = info->fields[15]->offset;
+      _das_class_method_offset[__fn_afterStructureCancel] = info->fields[16]->offset;
+      _das_class_method_offset[__fn_beforeStructureField] = info->fields[17]->offset;
+      _das_class_method_offset[__fn_afterStructureField] = info->fields[18]->offset;
+      _das_class_method_offset[__fn_beforeTuple] = info->fields[19]->offset;
+      _das_class_method_offset[__fn_afterTuple] = info->fields[20]->offset;
+      _das_class_method_offset[__fn_beforeTupleEntry] = info->fields[21]->offset;
+      _das_class_method_offset[__fn_afterTupleEntry] = info->fields[22]->offset;
+      _das_class_method_offset[__fn_beforeVariant] = info->fields[23]->offset;
+      _das_class_method_offset[__fn_afterVariant] = info->fields[24]->offset;
+      _das_class_method_offset[__fn_beforeArrayData] = info->fields[25]->offset;
+      _das_class_method_offset[__fn_afterArrayData] = info->fields[26]->offset;
+      _das_class_method_offset[__fn_beforeArrayElement] = info->fields[27]->offset;
+      _das_class_method_offset[__fn_afterArrayElement] = info->fields[28]->offset;
+      _das_class_method_offset[__fn_beforeDim] = info->fields[29]->offset;
+      _das_class_method_offset[__fn_afterDim] = info->fields[30]->offset;
+      _das_class_method_offset[__fn_beforeArray] = info->fields[31]->offset;
+      _das_class_method_offset[__fn_afterArray] = info->fields[32]->offset;
+      _das_class_method_offset[__fn_beforeTable] = info->fields[33]->offset;
+      _das_class_method_offset[__fn_beforeTableKey] = info->fields[34]->offset;
+      _das_class_method_offset[__fn_afterTableKey] = info->fields[35]->offset;
+      _das_class_method_offset[__fn_beforeTableValue] = info->fields[36]->offset;
+      _das_class_method_offset[__fn_afterTableValue] = info->fields[37]->offset;
+      _das_class_method_offset[__fn_afterTable] = info->fields[38]->offset;
+      _das_class_method_offset[__fn_beforeRef] = info->fields[39]->offset;
+      _das_class_method_offset[__fn_afterRef] = info->fields[40]->offset;
+      _das_class_method_offset[__fn_beforePtr] = info->fields[41]->offset;
+      _das_class_method_offset[__fn_afterPtr] = info->fields[42]->offset;
+      _das_class_method_offset[__fn_beforeHandle] = info->fields[43]->offset;
+      _das_class_method_offset[__fn_afterHandle] = info->fields[44]->offset;
+      _das_class_method_offset[__fn_afterHandleCancel] = info->fields[45]->offset;
+      _das_class_method_offset[__fn_beforeLambda] = info->fields[46]->offset;
+      _das_class_method_offset[__fn_afterLambda] = info->fields[47]->offset;
+      _das_class_method_offset[__fn_beforeIterator] = info->fields[48]->offset;
+      _das_class_method_offset[__fn_afterIterator] = info->fields[49]->offset;
+      _das_class_method_offset[__fn_Null] = info->fields[50]->offset;
+      _das_class_method_offset[__fn_VoidPtr] = info->fields[51]->offset;
+      _das_class_method_offset[__fn_Bool] = info->fields[52]->offset;
+      _das_class_method_offset[__fn_Int8] = info->fields[53]->offset;
+      _das_class_method_offset[__fn_UInt8] = info->fields[54]->offset;
+      _das_class_method_offset[__fn_Int16] = info->fields[55]->offset;
+      _das_class_method_offset[__fn_UInt16] = info->fields[56]->offset;
+      _das_class_method_offset[__fn_Int64] = info->fields[57]->offset;
+      _das_class_method_offset[__fn_UInt64] = info->fields[58]->offset;
+      _das_class_method_offset[__fn_String] = info->fields[59]->offset;
+      _das_class_method_offset[__fn_Double] = info->fields[60]->offset;
+      _das_class_method_offset[__fn_Float] = info->fields[61]->offset;
+      _das_class_method_offset[__fn_Int] = info->fields[62]->offset;
+      _das_class_method_offset[__fn_UInt] = info->fields[63]->offset;
+      _das_class_method_offset[__fn_Bitfield] = info->fields[64]->offset;
+      _das_class_method_offset[__fn_Bitfield8] = info->fields[65]->offset;
+      _das_class_method_offset[__fn_Bitfield16] = info->fields[66]->offset;
+      _das_class_method_offset[__fn_Bitfield64] = info->fields[67]->offset;
+      _das_class_method_offset[__fn_Int2] = info->fields[68]->offset;
+      _das_class_method_offset[__fn_Int3] = info->fields[69]->offset;
+      _das_class_method_offset[__fn_Int4] = info->fields[70]->offset;
+      _das_class_method_offset[__fn_UInt2] = info->fields[71]->offset;
+      _das_class_method_offset[__fn_UInt3] = info->fields[72]->offset;
+      _das_class_method_offset[__fn_UInt4] = info->fields[73]->offset;
+      _das_class_method_offset[__fn_Float2] = info->fields[74]->offset;
+      _das_class_method_offset[__fn_Float3] = info->fields[75]->offset;
+      _das_class_method_offset[__fn_Float4] = info->fields[76]->offset;
+      _das_class_method_offset[__fn_Range] = info->fields[77]->offset;
+      _das_class_method_offset[__fn_URange] = info->fields[78]->offset;
+      _das_class_method_offset[__fn_Range64] = info->fields[79]->offset;
+      _das_class_method_offset[__fn_URange64] = info->fields[80]->offset;
+      _das_class_method_offset[__fn_WalkBlock] = info->fields[81]->offset;
+      _das_class_method_offset[__fn_WalkFunction] = info->fields[82]->offset;
+      _das_class_method_offset[__fn_WalkEnumeration] = info->fields[83]->offset;
+      _das_class_method_offset[__fn_WalkEnumeration8] = info->fields[84]->offset;
+      _das_class_method_offset[__fn_WalkEnumeration16] = info->fields[85]->offset;
+      _das_class_method_offset[__fn_WalkEnumeration64] = info->fields[86]->offset;
+      _das_class_method_offset[__fn_FakeContext] = info->fields[87]->offset;
+      _das_class_method_offset[__fn_InvalidData] = info->fields[88]->offset;
   }
   __forceinline Func get_canVisitHandle ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitHandle]);
@@ -190,6 +198,15 @@ public:
       <void *,void * const ,StructInfo const  &>
         (__context__,nullptr,__funcCall__,
           self,ps,si);
+  }
+  __forceinline Func get_canVisitDim ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitDim]);
+  }
+  __forceinline bool invoke_canVisitDim ( Context * __context__, Func __funcCall__, void * self, void * const  ps, TypeInfo const  & ti ) const {
+    return das_invoke_function<bool>::invoke
+      <void *,void * const ,TypeInfo const  &>
+        (__context__,nullptr,__funcCall__,
+          self,ps,ti);
   }
   __forceinline Func get_canVisitArray ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canVisitArray]);
@@ -731,6 +748,33 @@ public:
         (__context__,nullptr,__funcCall__,
           self,value,ti);
   }
+  __forceinline Func get_Bitfield8 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Bitfield8]);
+  }
+  __forceinline void invoke_Bitfield8 ( Context * __context__, Func __funcCall__, void * self, uint8_t & value, TypeInfo const  & ti ) const {
+    das_invoke_function<void>::invoke
+      <void *,uint8_t &,TypeInfo const  &>
+        (__context__,nullptr,__funcCall__,
+          self,value,ti);
+  }
+  __forceinline Func get_Bitfield16 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Bitfield16]);
+  }
+  __forceinline void invoke_Bitfield16 ( Context * __context__, Func __funcCall__, void * self, uint16_t & value, TypeInfo const  & ti ) const {
+    das_invoke_function<void>::invoke
+      <void *,uint16_t &,TypeInfo const  &>
+        (__context__,nullptr,__funcCall__,
+          self,value,ti);
+  }
+  __forceinline Func get_Bitfield64 ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_Bitfield64]);
+  }
+  __forceinline void invoke_Bitfield64 ( Context * __context__, Func __funcCall__, void * self, uint64_t & value, TypeInfo const  & ti ) const {
+    das_invoke_function<void>::invoke
+      <void *,uint64_t &,TypeInfo const  &>
+        (__context__,nullptr,__funcCall__,
+          self,value,ti);
+  }
   __forceinline Func get_Int2 ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_Int2]);
   }
@@ -1183,16 +1227,18 @@ protected:
     __fn_canWalkOutOfScopeVariables = 2,
     __fn_onBeforeCall = 3,
     __fn_onCallAOT = 4,
-    __fn_onCallAt = 5,
-    __fn_onCall = 6,
-    __fn_onAfterPrologue = 7,
-    __fn_onArgument = 8,
-    __fn_onBeforeVariables = 9,
-    __fn_onVariable = 10,
-    __fn_onAfterCall = 11,
+    __fn_onCallJIT = 5,
+    __fn_onCallAt = 6,
+    __fn_onCall = 7,
+    __fn_onAfterPrologue = 8,
+    __fn_onArgument = 9,
+    __fn_onBeforeVariables = 10,
+    __fn_onVariable = 11,
+    __fn_onAfterCall = 12,
+    __fn_onCorruptStack = 13,
   };
 protected:
-  int _das_class_method_offset[12];
+  int _das_class_method_offset[14];
 public:
   DapiStackWalker_Adapter ( const StructInfo * info ) {
       _das_class_method_offset[__fn_canWalkArguments] = info->fields[2]->offset;
@@ -1200,13 +1246,15 @@ public:
       _das_class_method_offset[__fn_canWalkOutOfScopeVariables] = info->fields[4]->offset;
       _das_class_method_offset[__fn_onBeforeCall] = info->fields[5]->offset;
       _das_class_method_offset[__fn_onCallAOT] = info->fields[6]->offset;
-      _das_class_method_offset[__fn_onCallAt] = info->fields[7]->offset;
-      _das_class_method_offset[__fn_onCall] = info->fields[8]->offset;
-      _das_class_method_offset[__fn_onAfterPrologue] = info->fields[9]->offset;
-      _das_class_method_offset[__fn_onArgument] = info->fields[10]->offset;
-      _das_class_method_offset[__fn_onBeforeVariables] = info->fields[11]->offset;
-      _das_class_method_offset[__fn_onVariable] = info->fields[12]->offset;
-      _das_class_method_offset[__fn_onAfterCall] = info->fields[13]->offset;
+      _das_class_method_offset[__fn_onCallJIT] = info->fields[7]->offset;
+      _das_class_method_offset[__fn_onCallAt] = info->fields[8]->offset;
+      _das_class_method_offset[__fn_onCall] = info->fields[9]->offset;
+      _das_class_method_offset[__fn_onAfterPrologue] = info->fields[10]->offset;
+      _das_class_method_offset[__fn_onArgument] = info->fields[11]->offset;
+      _das_class_method_offset[__fn_onBeforeVariables] = info->fields[12]->offset;
+      _das_class_method_offset[__fn_onVariable] = info->fields[13]->offset;
+      _das_class_method_offset[__fn_onAfterCall] = info->fields[14]->offset;
+      _das_class_method_offset[__fn_onCorruptStack] = info->fields[15]->offset;
   }
   __forceinline Func get_canWalkArguments ( void * self ) const {
     return getDasClassMethod(self,_das_class_method_offset[__fn_canWalkArguments]);
@@ -1248,6 +1296,15 @@ public:
     return getDasClassMethod(self,_das_class_method_offset[__fn_onCallAOT]);
   }
   __forceinline void invoke_onCallAOT ( Context * __context__, Func __funcCall__, void * self, Prologue const  & pp, char * const  fileName ) const {
+    das_invoke_function<void>::invoke
+      <void *,Prologue const  &,char * const >
+        (__context__,nullptr,__funcCall__,
+          self,pp,fileName);
+  }
+  __forceinline Func get_onCallJIT ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_onCallJIT]);
+  }
+  __forceinline void invoke_onCallJIT ( Context * __context__, Func __funcCall__, void * self, Prologue const  & pp, char * const  fileName ) const {
     das_invoke_function<void>::invoke
       <void *,Prologue const  &,char * const >
         (__context__,nullptr,__funcCall__,
@@ -1312,6 +1369,15 @@ public:
   }
   __forceinline bool invoke_onAfterCall ( Context * __context__, Func __funcCall__, void * self, Prologue const  & pp ) const {
     return das_invoke_function<bool>::invoke
+      <void *,Prologue const  &>
+        (__context__,nullptr,__funcCall__,
+          self,pp);
+  }
+  __forceinline Func get_onCorruptStack ( void * self ) const {
+    return getDasClassMethod(self,_das_class_method_offset[__fn_onCorruptStack]);
+  }
+  __forceinline void invoke_onCorruptStack ( Context * __context__, Func __funcCall__, void * self, Prologue const  & pp ) const {
+    das_invoke_function<void>::invoke
       <void *,Prologue const  &>
         (__context__,nullptr,__funcCall__,
           self,pp);

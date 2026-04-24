@@ -1,6 +1,7 @@
 
 define_macro_if_not_defined USE_SPECIAL_VISION()
   hlsl {
+    static const float sky_special_vision = 0;
     void applySpecialVision(float4 v){}
   }
 endmacro

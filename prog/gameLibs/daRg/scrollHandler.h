@@ -9,7 +9,7 @@ namespace darg
 
 class Element;
 
-class ScrollHandler : public sqfrp::BaseObservable
+class ScrollHandler : public sqfrp::WatchedHandle
 {
 public:
   ScrollHandler(HSQUIRRELVM vm);
@@ -23,11 +23,6 @@ public:
   void scrollToChildren(Sqrat::Object finder, int depth, bool x, bool y);
 
   Sqrat::Object getElem() const;
-
-  virtual Sqrat::Object getValueForNotify() const override;
-
-  virtual void fillInfo(Sqrat::Table &) const override;
-  virtual void fillInfo(String &) const override;
 
 private:
   Element *elem;

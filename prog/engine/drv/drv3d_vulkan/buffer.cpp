@@ -18,6 +18,7 @@
 #include "statStr.h"
 #include "device_context.h"
 #include "global_lock.h"
+#include "backend/cmd/resources.h"
 
 using namespace drv3d_vulkan;
 
@@ -123,7 +124,7 @@ GenericBufferInterface::~GenericBufferInterface()
   auto &ctx = Globals::ctx;
 
   if (stagingBuffer)
-    ctx.destroyBuffer(stagingBuffer);
+    ctx.dispatchCmd<CmdDestroyBuffer>({stagingBuffer});
 
   if (bufFlags & SBCF_FRAMEMEM)
   {
@@ -132,7 +133,7 @@ GenericBufferInterface::~GenericBufferInterface()
     return;
   }
 
-  ctx.destroyBuffer(ref.buffer);
+  ctx.dispatchCmd<CmdDestroyBuffer>({ref.buffer});
 }
 
 void GenericBufferInterface::onDeviceReset() { asyncCopyEvent.reset(); }
@@ -209,9 +210,7 @@ void GenericBufferInterface::disposeStagingBuffer()
 {
   if (stagingBuffer)
   {
-    auto &ctx = Globals::ctx;
-
-    ctx.destroyBuffer(stagingBuffer);
+    Globals::ctx.dispatchCmd<CmdDestroyBuffer>({stagingBuffer});
     stagingBuffer = nullptr;
   }
 }
@@ -220,11 +219,10 @@ void GenericBufferInterface::processDiscardFlag()
 {
   if (bufferLockDiscardRequested())
   {
-    auto &ctx = Globals::ctx;
     // FIXME: clang on windows with dbg config, generates invalid code when .back() is used, used .stop instead
     uint32_t dynamic_size = (bufFlags & SBCF_FRAMEMEM) > 0 ? lockRange.stop : 0;
 
-    ref = ctx.discardBuffer(ref, getMemoryClass(), uavFormat, bufFlags, dynamic_size);
+    ref = ref.discard(getMemoryClass(), uavFormat, bufFlags, dynamic_size);
   }
 }
 

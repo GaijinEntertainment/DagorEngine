@@ -146,6 +146,15 @@ shader render_ambient
       uint age : SV_Target2;
       ##endif
     };
+
+    ##if hardware.ps4 || hardware.ps5
+      #pragma PSSL_target_output_format(target 0 FMT_32_R)
+      #pragma PSSL_target_output_format(target 1 FMT_32_R)
+      ##if (gi_quality == screen_probes)
+        #pragma PSSL_target_output_format(target 2 FMT_32_R)
+      ##endif
+    ##endif
+
     Output shadows_to_target_ps(VsOutput input HW_USE_SCREEN_POS)
     {
       Output output;
@@ -212,9 +221,9 @@ shader render_ambient
         ##elif (gi_quality == only_ao)
           float ofs = max(dist*0.04, 0.25*dagi_sky_vis_probe_size(0));
           worldPos += view*ofs;
-          float4 sh1 = dagi_get_sky_visibility_smooth_sh1(world_view_pos.xyz, worldPos, view, max(0, dist-ofs), normal, interleavedGradientNoise( screenpos.xy ) );
-          if (all(sh1 != 1))
-            ambient = GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx);
+          float vignette;
+          float4 sh1 = dagi_get_sky_visibility_smooth_vignette(world_view_pos.xyz, worldPos, view, max(0, dist-ofs), normal, interleavedGradientNoise( screenpos.xy ), vignette);
+          ambient = lerp(GetSHFunctionValueSimple(enviLightingNormal, enviSPH0*sh1.wyzx, enviSPH1*sh1.wyzx, enviSPH2*sh1.wyzx), ambient, vignette);
           #define HAS_SPECULAR 0
           #define HACK_SPECULAR_BRIGHTNESS 1
         ##endif

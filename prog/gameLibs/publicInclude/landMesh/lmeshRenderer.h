@@ -147,9 +147,8 @@ public:
 public:
   PhysMap *physMap = nullptr;
   LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes, int biome_land_class_idx,
-    TEXTUREID vert_tex_id, d3d::SamplerHandle vert_tex_smp, TEXTUREID vert_tex_nm_id, d3d::SamplerHandle vert_nm_tex_smp,
-    TEXTUREID vert_det_tex_id, d3d::SamplerHandle vert_det_tex_smp, TEXTUREID tile_tex, d3d::SamplerHandle tile_smp, real tile_x,
-    real tile_y);
+    TEXTUREID vert_tex_id, TEXTUREID vert_tex_nm_id, TEXTUREID vert_det_tex_id, TEXTUREID tile_tex, d3d::SamplerHandle tile_smp,
+    real tile_x, real tile_y);
   ~LandMeshRenderer();
 
   bool checkVerLabel() { return verLabel == VER_LABEL; }
@@ -186,8 +185,7 @@ public:
   }
 
   void setMirroring(LandMeshManager &provider, int num_border_cells_x_pos, int num_border_cells_x_neg, int num_border_cells_z_pos,
-    int num_border_cells_z_neg, float mirror_shrink_x_pos, float mirror_shrink_x_neg, float mirror_shrink_z_pos,
-    float mirror_shrink_z_neg);
+    int num_border_cells_z_neg);
 
   void setCellsDebug(int dbg) { debugCells = dbg; }
 
@@ -212,8 +210,10 @@ public:
     const Point3 &view_pos, RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
   void render(LandMeshManager &provider, RenderType rtype, const Point3 &view_pos, RenderPurpose rpurpose = DEFAULT_RENDERING_PURPOSE);
 
-  bool renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, bool compatibility_mode);
-  bool renderCulledDecals(LandMeshManager &provider, const LandMeshCullingData &culledData, bool compatibility_mode);
+  bool renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, bool compatibility_mode,
+    bool use_samplers_no_mipbias);
+  bool renderCulledDecals(LandMeshManager &provider, const LandMeshCullingData &culledData, bool compatibility_mode,
+    bool use_samplers_no_mipbias);
 
   static int lod1_switch_radius;
   ///!sets inverse (1/distance) distance to next geom LOD
@@ -240,7 +240,7 @@ protected:
 
   void renderLandclasses(CellState &curState, bool useFilter = false, LandClassType lcFilter = LC_SIMPLE);
   struct MirroredCellState;
-  bool renderCellDecals(LandMeshManager &provider, const MirroredCellState &mirroredCell);
+  bool renderCellDecals(LandMeshManager &provider, const MirroredCellState &mirroredCell, bool force_samplers_no_mipbias = false);
   void renderCell(LandMeshManager &provider, int borderX, int borderY, RenderType rtype, RenderPurpose rpurpose,
     bool skip_combined_not_marked_as_big);
 
@@ -325,10 +325,6 @@ protected:
   int numBorderCellsXNeg;
   int numBorderCellsZPos;
   int numBorderCellsZNeg;
-  float mirrorShrinkXPos;
-  float mirrorShrinkXNeg;
-  float mirrorShrinkZPos;
-  float mirrorShrinkZNeg;
   CellRegionCallback *regionCallback;
   bool has_detailed_land_classes;
   float detailedLCMicroDetail;   // scale microdetail IF land clasess are detailed, but landquality 0

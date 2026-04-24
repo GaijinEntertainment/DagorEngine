@@ -157,28 +157,11 @@ void d3d::endEvent()
   render.endEvent();
 }
 
-using UpdateGpuDriverConfigFunc = void (*)(GpuDriverConfig &);
-extern UpdateGpuDriverConfigFunc update_gpu_driver_config;
-static void update_metal_gpu_driver_config(GpuDriverConfig &gpu_driver_config)
-{
-#if _TARGET_IOS
-  NSArray *ver = [[[UIDevice currentDevice] systemVersion] componentsSeparatedByString:@"."];
-
-  gpu_driver_config.driverVersion[0] = ver.count > 0 ? [[ver objectAtIndex:0] intValue] : 0;
-  gpu_driver_config.driverVersion[1] = ver.count > 1 ? [[ver objectAtIndex:1] intValue] : 0;
-  gpu_driver_config.driverVersion[2] = ver.count > 2 ? [[ver objectAtIndex:2] intValue] : 0;
-  gpu_driver_config.driverVersion[3] = ver.count > 3 ? [[ver objectAtIndex:3] intValue] : 0;
-#else
-  G_UNUSED(gpu_driver_config);
-#endif
-}
-
 bool d3d::init_video(void* hinst,
            main_wnd_f* mwf,
            const char* wcname,
            int ncmdshow,
            void*& mainwnd_,
-           void* renderwnd,
            void* hicon,
            const char* title,
            Driver3dInitCallback* cb)
@@ -256,6 +239,7 @@ bool d3d::init_video(void* hinst,
   debug("[METAL_INIT] supported metal version %c %c %c %c", mtl[0], mtl[1], mtl[2], mtl[3]);
   debug("[METAL_INIT] readWriteTextureTier1 %d", render.caps.readWriteTextureTier1);
   debug("[METAL_INIT] readWriteTextureTier2 %d", render.caps.readWriteTextureTier2);
+  debug("[METAL_INIT] recommended working set %dkb", int(render.device.recommendedMaxWorkingSetSize>>10));
 
   tql::initTexStubs();
 
@@ -263,7 +247,6 @@ bool d3d::init_video(void* hinst,
   mainwnd = macosx_create_dagor_window(title, render.wnd_wd, render.wnd_ht, render.mainview, mainDisplayRect);
   mainwnd_ = mainwnd;
 #endif
-  update_gpu_driver_config = update_metal_gpu_driver_config;
 
   render.inited = true;
 

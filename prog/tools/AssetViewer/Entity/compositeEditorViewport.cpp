@@ -48,19 +48,26 @@ bool CompositeEditorViewport::getSelectionBox(IObjEntity *entity, BBox3 &box) co
   return true;
 }
 
+void CompositeEditorViewport::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  command_system.addCommand(EditorCommandIds::VIEW_GRID_MOVE_SNAP, ImGuiKey_S);
+  command_system.addCommand(EditorCommandIds::VIEW_GRID_ANGLE_SNAP, ImGuiKey_A);
+  command_system.addCommand(EditorCommandIds::VIEW_GRID_SCALE_SNAP, ImGuiMod_Shift | ImGuiKey_5);
+}
+
 void CompositeEditorViewport::registerMenuAccelerators()
 {
   IWndManager &wndManager = *EDITORCORE->getWndManager();
 
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODE, ImGuiKey_Delete);
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_NONE, ImGuiKey_Q);
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_MOVE, ImGuiKey_W);
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_ROTATE, ImGuiKey_E);
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_SCALE, ImGuiKey_R);
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_MOVE_SNAP, ImGuiKey_S);
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_ANGLE_SNAP, ImGuiKey_A);
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_SCALE_SNAP, ImGuiMod_Shift | ImGuiKey_5);
-  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_CANCEL_GIZMO_TRANSFORM, ImGuiKey_Escape);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_DELETE_SELECTED_NODE, EditorCommandIds::OBJED_DELETE);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_NONE, EditorCommandIds::OBJED_MODE_SELECT);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_MOVE, EditorCommandIds::OBJED_MODE_MOVE);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_ROTATE, EditorCommandIds::OBJED_MODE_ROTATE);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_SET_GIZMO_MODE_SCALE, EditorCommandIds::OBJED_MODE_SCALE);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_MOVE_SNAP, EditorCommandIds::VIEW_GRID_MOVE_SNAP);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_ANGLE_SNAP, EditorCommandIds::VIEW_GRID_ANGLE_SNAP);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_TOGGLE_SCALE_SNAP, EditorCommandIds::VIEW_GRID_SCALE_SNAP);
+  wndManager.addViewportAccelerator(CM_COMPOSITE_EDITOR_CANCEL_GIZMO_TRANSFORM, EditorCommandIds::OBJED_CANCEL_GIZMO_TRANSFORM);
 }
 
 void CompositeEditorViewport::handleViewportAcceleratorCommand(unsigned id, IGenViewportWnd &wnd, IObjEntity *entity)
@@ -281,7 +288,7 @@ void CompositeEditorViewport::fillRenderElements(IObjEntity &entity, OutlineRend
 
   if (auto *rendInstEntity = entity.queryInterface<IRendInstEntity>())
   {
-    const int ri_idx = rendInstEntity->getRIIndex();
+    const int ri_idx = rendInstEntity->getPregenId();
     if (DAGOR_LIKELY(ri_idx >= 0))
     {
       TMatrix tm;

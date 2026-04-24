@@ -48,6 +48,8 @@ struct Texture2dCreateInfo
   eastl::variant<IPoint2, AutoResolutionRequest<2>> resolution;
   /// Use 0 for automatic mip levels
   uint32_t mipLevels = 1;
+
+  bool operator==(const Texture2dCreateInfo &) const = default;
 };
 
 /**
@@ -61,6 +63,8 @@ struct Texture3dCreateInfo
   eastl::variant<IPoint3, AutoResolutionRequest<3>> resolution;
   /// Use 0 for automatic mip levels
   uint32_t mipLevels = 1;
+
+  bool operator==(const Texture3dCreateInfo &) const = default;
 };
 
 /**
@@ -82,6 +86,8 @@ struct BufferCreateInfo
    * masquerading as buffers. If you are not targeting DX10, don't use these
    */
   uint32_t format;
+
+  bool operator==(const BufferCreateInfo &) const = default;
 };
 
 } // namespace dafg

@@ -13,7 +13,8 @@ class AcesEffect;
 namespace ridestr
 {
 void init(bool have_render);
-void update(float dt, const TMatrix4 &glob_tm);
+void update(float dt, float current_time, const TMatrix4 &glob_tm);
+void increment_ridestr_version();
 void send_initial_ridestr(net::IConnection &conn);
 void shutdown();
 }; // namespace ridestr

@@ -23,6 +23,7 @@
 #include <libTools/util/makeBindump.h>
 #include <shaders/shader_ver.h>
 #include <shaders/shader_layout.h>
+#include <shaders/psoCacheVersion.h>
 #include <shaders/shLimits.h>
 #include "transcodeShader.h"
 #include "binDumpUtils.h"
@@ -38,8 +39,6 @@
 #include <EASTL/unordered_map.h>
 #include <dag/dag_vector.h>
 #include <generic/dag_enumerate.h>
-
-#include <hash/sha256.h>
 
 #include <util/dag_threadPool.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -187,6 +186,9 @@ struct Variables
     vl.v.setCount(count);
     vars.resize(vars.size() + count);
 
+    G_ASSERT(gvarsMetadata.empty());
+    gvarsMetadata.resize(count);
+
     int gv_ind = 0;
     for (int i = 0; i < remappingTable.size(); i++)
     {
@@ -197,6 +199,7 @@ struct Variables
         vl.v[gv_ind].nameId = varMap.xmap[v.nameId];
         vl.v[gv_ind].type = v.type;
         vl.v[gv_ind].isPublic = 1;
+        gvarsMetadata[gv_ind] = {.isRef = !v.definesValue, .isLiteral = v.isLiteral};
         gv_ind++;
       }
     }
@@ -370,6 +373,7 @@ struct Variables
   bindump::VecHolder<int, 4 * sizeof(int)> storage;
   Tab<shader_layout::VarList<>> varLists;
   bindump::VecHolder<shader_layout::Var<>> vars;
+  bindump::VecHolder<shader_layout::ShaderGvarMetadata> gvarsMetadata;
   const GatherNameMap &varMap;
 };
 
@@ -392,6 +396,53 @@ struct Variants
     clear_and_shrink(tmpVpDir);
     clear_and_shrink(tmpVpInt);
     clear_and_shrink(tmpMapData);
+  }
+
+  void addGlobalIntervalManually(const ::Interval &interval)
+  {
+    shader_layout::Interval<> ival;
+    float maxVal[256];
+    int var_num = 0;
+    bindump::VecHolder<bindump::StrHolder<>> subintervals;
+    const char *ivalname = get_interval_name(interval, ctx);
+
+    ival.type = ival.TYPE_GLOBAL_INTERVAL;
+
+    int id = varMap.getNameId(ivalname);
+    G_ASSERT(id >= 0);
+    ival.nameId = varMap.xmap[id];
+    G_ASSERTF(strcmp(varMap.getOrdinalName(ival.nameId), ivalname) == 0,
+      "varMap.nameCount()=%d varMap.getOrdinalName(%d->%d)=%s ivalname=%s", varMap.nameCount(), id, ival.nameId,
+      varMap.getOrdinalName(ival.nameId), ivalname);
+
+    var_num = interval.getValueCount();
+    G_ASSERT(var_num < 256);
+
+    subintervals.resize(interval.getValueCount());
+    for (int i = 0; i < interval.getValueCount(); i++)
+    {
+      subintervals[i] = get_interval_value_name(interval, i, ctx);
+      RealValueRange r = interval.getValueRange(i);
+
+      if (i == 0)
+        G_ASSERT(r.getMin() < -1e+6);
+      else if (i == interval.getValueCount() - 1)
+        G_ASSERT(r.getMax() > 1e+6);
+      else
+        G_ASSERT(r.getMax() == interval.getValueRange(i + 1).getMin());
+
+      if (i < interval.getValueCount() - 1)
+      {
+        maxVal[i] = r.getMax();
+      }
+    }
+    iValStorage.getRef(ival.maxVal, maxVal, var_num - 1);
+
+    int ivalId = getIntervalId(ival);
+
+    if (ivalId >= subintervals_by_interval.size())
+      subintervals_by_interval.resize(ivalId + 1);
+    subintervals_by_interval[ivalId] = eastl::move(subintervals);
   }
 
   shader_layout::VariantTable<> addVariantTable(ShaderVariant::VariantTable &vt, dag::ConstSpan<int> codeRemap, int codenum,
@@ -929,6 +980,25 @@ void addRemappedStrData(GatherNameMap &varMap, Variables &vars, Variants &vt, bi
 
 using namespace semicooked;
 
+static uint32_t compress_data(bindump::VecHolder<uint8_t> &compressed_data, const dag::ConstSpan<uint32_t> &src,
+  const ZSTD_CDict_s *dict, ZSTD_CCtx_s *ctx, int level)
+{
+  if (level < 0)
+  {
+    compressed_data.resize(data_size(src));
+    memcpy(&compressed_data[0], src.data(), data_size(src));
+    return data_size(src);
+  }
+  compressed_data.resize(zstd_compress_bound(data_size(src)));
+
+  size_t compressed_size =
+    zstd_compress_with_dict(ctx, compressed_data.data(), compressed_data.size(), src.data(), data_size(src), dict);
+
+  compressed_data.resize(compressed_size);
+
+  return data_size(src);
+}
+
 //
 // shaders binary dump builder
 //
@@ -976,9 +1046,15 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
       clear_and_shrink(stor.ldShVpr[i]);
     for (int i = 0; i < stor.ldShFsh.size(); i++)
       clear_and_shrink(stor.ldShFsh[i]);
+    for (int i = 0; i < stor.ldShVprMetadata.size(); i++)
+      clear_and_shrink(stor.ldShVprMetadata[i]);
+    for (int i = 0; i < stor.ldShFshMetadata.size(); i++)
+      clear_and_shrink(stor.ldShFshMetadata[i]);
     clear_and_shrink(stor.shadersStcode);
     clear_and_shrink(stor.ldShVpr);
     clear_and_shrink(stor.ldShFsh);
+    clear_and_shrink(stor.ldShVprMetadata);
+    clear_and_shrink(stor.ldShFshMetadata);
     clear_and_shrink(stor.renderStates);
     for (auto *&ptr : stor.shadersCompProg)
       delete eastl::exchange(ptr, nullptr);
@@ -1152,9 +1228,9 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   vars.addGlobVars(remapTable);
 
   // Generate the cpp stcode file for them
+  StcodeGlobalVars stcodeGlobvars(StcodeGlobalVars::Type::MAIN_COLLECTION);
   if (shc::config().compileCppStcode() && !strip_shaders_and_stcode)
   {
-    StcodeGlobalVars stcodeGlobvars(StcodeGlobalVars::Type::MAIN_COLLECTION);
     for (int i = 0; i < vars.varLists.back().v.size(); ++i)
     {
       const auto &var = vars.varLists.back().v[i];
@@ -1164,10 +1240,8 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
       if (strchr(name, '(') || strchr(name, '['))
         continue;
 
-      stcodeGlobvars.setVar((ShaderVarType)var.type, name, i);
+      stcodeGlobvars.setVar((ShaderVarType)var.type, name, true, i);
     }
-
-    save_stcode_global_vars(eastl::move(stcodeGlobvars), ctx.compInfo());
   }
 
   // convert data into binary dump prefabs
@@ -1209,6 +1283,16 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   for (auto &interval : vt.intervals)
     assumedIntervals.erase(varMap.getOrdinalName(interval.nameId));
 
+  for (int id = 0; id < targetCtx.globVars().getIntervalList().getCount(); ++id)
+  {
+    const auto *interval = targetCtx.globVars().getIntervalList().getInterval(id);
+    if (interval && interval->isAlwaysReferenced() &&
+        assumedIntervals.find(get_interval_name(*interval, targetCtx)) == assumedIntervals.end())
+    {
+      vt.addGlobalIntervalManually(*interval);
+    }
+  }
+
   for (auto &[name, value] : assumedIntervals)
   {
     shader_layout::Interval<> ival;
@@ -1245,7 +1329,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   // write shaders binary dump
   //
   bindump::Master<shader_layout::ScriptedShadersBinDumpCompressed> shaders_dump_compressed;
-  bindump::Master<shader_layout::ScriptedShadersBinDumpV3> shaders_dump;
+  bindump::Master<shader_layout::ScriptedShadersBinDumpV4> shaders_dump;
 
   // write dump header
   shaders_dump_compressed.header.magicPart1 = _MAKE4C('VSPS');
@@ -1276,6 +1360,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
   shaders_dump.externalStcodeMode = shc::config().cppStcodeMode;
   shaders_dump.externalStcodeVersion = uint32_t(CPP_STCODE_COMMON_VER);
+  shaders_dump.externalPsoCacheVersion = PSO_CACHE_COMMON_VER;
   CryptoHash externalStcodeHash{};
   memset(externalStcodeHash.data, 0, sizeof(externalStcodeHash.data));
 
@@ -1288,6 +1373,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     for (const auto &hash : targetCtx.cppStcode().staticRoutineHashes)
       hasher.update(hash);
     externalStcodeHash = hasher.hash();
+    externalStcodeHash = stcodeGlobvars.calcHash(&externalStcodeHash);
 
     eastl::string logHash{};
     for (uint8_t byte : externalStcodeHash.data)
@@ -1308,6 +1394,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
     }
 
     // Generate stcode main file w/ the final stcode hash
+    save_stcode_global_vars(eastl::move(stcodeGlobvars), ctx.compInfo(), targetCtx);
     save_stcode_dll_main(eastl::move(targetCtx.cppStcode()), externalStcodeHash, ctx.compInfo());
   }
 
@@ -1463,6 +1550,8 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   shaders_dump.variables = vars.vars;
   shaders_dump.globVars.v = vars.varLists[0].v;
 
+  shaders_dump.globVarsMetadata = eastl::move(vars.gvarsMetadata);
+
   // write strings
   shaders_dump.varMap = var_names;
   shaders_dump.shaderNameMap = shader_names;
@@ -1497,12 +1586,30 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
       shaders_dump.blocks[i + SHADER_BLOCK_HIER_LEVELS].suppBlockUid = shaders_dump.blkPartSign.getElementAddress(b.btd.suppListOfs);
   }
 
+  if (!strip_shaders_and_stcode)
   {
-    auto samplers = targetCtx.samplers().releaseSamplers();
+    auto [samplers, immutableSamplers] = targetCtx.samplers().releaseSamplers();
+
+    if (samplers.size() >= UINT16_MAX)
+    {
+      sh_debug(SHLOG_FATAL, "Sampler count in bindump is %lu, while the limit is %u (for 16-bit indexing with sentinel value)",
+        samplers.size(), UINT16_MAX);
+    }
+
+    // @NOTE: we are not re-checking global vars collection size because it is limited to 16k by shOpcodeFormat limitation
+
     shaders_dump.samplers.resize(samplers.size());
-    int smp_id = 0;
-    for (const auto &s : samplers)
-      shaders_dump.samplers[smp_id++] = s.mSamplerInfo;
+    for (const auto &[smp_id, s] : enumerate(samplers))
+      shaders_dump.samplers[smp_id] = s.mSamplerInfo;
+
+    shaders_dump.immutableSamplersMap.resize(immutableSamplers.size());
+    for (size_t iid = 0; auto [smpId, gvarId] : immutableSamplers)
+    {
+      const int remappedGvarId = remapTable[gvarId];
+      G_ASSERT(smpId >= 0 && smpId < shaders_dump.samplers.size());
+      G_ASSERT(gvarId >= 0 && remappedGvarId < shaders_dump.globVars.size());
+      shaders_dump.immutableSamplersMap[iid++] = {uint16_t(smpId), uint16_t(remappedGvarId)};
+    }
   }
 
   // write shader classes
@@ -1544,24 +1651,37 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   reft = ref_time_ticks();
 
   dag::Vector<dag::ConstSpan<uint32_t>> shaders(stor.ldShVpr.size() + stor.ldShFsh.size());
+  shaders_dump.shaders_metadata.resize(shaders.size());
   for (int i = 0; i < stor.ldShVpr.size(); i++)
   {
-    bool combi_type = stor.ldShVpr[i].size() > 4 && stor.ldShVpr[i][0] == _MAKE4C('DX11') && stor.ldShVpr[i][4] == _MAKE4C('DX11');
-    dag::ConstSpan<uint32_t> sh = ::transcode_vertex_shader(stor.ldShVpr[i]);
+    uint32_t type0 = 0, type1 = 0;
+    if (stor.ldShVprMetadata[i].size() >= 4)
+      memcpy(&type0, stor.ldShVprMetadata[i].data(), sizeof(type0));
+    if (stor.ldShVprMetadata[i].size() >= 20)
+      memcpy(&type1, stor.ldShVprMetadata[i].data() + 16, sizeof(type1));
+    bool combi_type = type0 == _MAKE4C('DX11') && type1 == _MAKE4C('DX11');
+    dag::ConstSpan<uint32_t> sh = ::transcode_vertex_shader(type0, stor.ldShVpr[i]);
+    dag::ConstSpan<uint8_t> meta = ::transcode_metadata(stor.ldShVprMetadata[i]);
     shaders[i] = sh;
+    shaders_dump.shaders_metadata[i] = meta;
     if (!combi_type)
       vpr_bytes += data_size(sh);
     else
     {
-      vpr_bytes += sh[4] * 4;
-      hs_ds_gs_bytes += (sh[5] + sh[6] + sh[7]) * 4;
+      const uint32_t *umeta = (const uint32_t *)meta.data();
+      vpr_bytes += umeta[4] * 4;
+      hs_ds_gs_bytes += (umeta[5] + umeta[6] + umeta[7]) * 4;
     }
   }
   for (int i = 0; i < stor.ldShFsh.size(); i++)
   {
-    int type = stor.ldShFsh[i].size() ? stor.ldShFsh[i][0] : 0;
-    dag::ConstSpan<uint32_t> sh = ::transcode_pixel_shader(stor.ldShFsh[i]);
+    uint32_t type = 0;
+    if (stor.ldShFshMetadata[i].size() > 4)
+      memcpy(&type, stor.ldShFshMetadata[i].data(), sizeof(type));
+    dag::ConstSpan<uint32_t> sh = ::transcode_pixel_shader(type, stor.ldShFsh[i]);
+    dag::ConstSpan<uint8_t> meta = ::transcode_metadata(stor.ldShFshMetadata[i]);
     shaders[i + stor.ldShVpr.size()] = sh;
+    shaders_dump.shaders_metadata[i + stor.ldShVpr.size()] = meta;
     if (type != _MAKE4C('D11c'))
       fsh_bytes += data_size(sh);
     else
@@ -1572,162 +1692,140 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   shaders_dump.shaderHashes.resize(shaders.size());
   for (int i = 0; i < shaders.size(); i++)
   {
-    auto *mapped = bindump::map<::dxil::ShaderContainer>((const uint8_t *)shaders[i].data());
+    auto *mapped = bindump::map<::dxil::ShaderContainer>(shaders_dump.shaders_metadata[i].data());
     shaders_dump.shaderHashes[i] = mapped->dataHash;
   }
 #endif
 
-  // 2) rearranging shaders into groups and creating a mapping to get the original shader by index
+  shaders_dump.shaders.resize(shaders.size());
+  shaders_dump.uncompressed_shader_sizes.resize(shaders.size());
 
-  struct GroupInfo
-  {
-    int size = 0;
-    dag::Vector<int> sh_ids;
-  };
+  // 2) forming a solid array of all shaders to create a common dictionary
 
-  const bool packGroups = (packing_flags & BindumpPackingFlagsBits::SHADER_GROUPS);
-
-  const size_t dictSizeBytes = packGroups ? shc::config().dictionarySizeInKb << 10 : 0;
-  const bool needToTrainDict = dictSizeBytes > 0;
-  const size_t groupThresholdBytes = packGroups ? shc::config().shGroupSizeInKb << 10 : 0;
-  const bool packEachShaderIntoSeparateGroup = groupThresholdBytes == 0;
-  const int groupCompressionLevel = shc::config().shGroupCompressionLevel;
+  const int shaderCompressionLevel = shc::config().shShaderCompressionLevel;
   const int dumpCompressionLevel = shc::config().shDumpCompressionLevel;
 
-  dag::Vector<GroupInfo> groups;
-  groups.reserve(shaders.size());
-  shaders_dump.shGroupsMapping.resize(shaders.size());
+  const bool packShaders = (packing_flags & BindumpPackingFlagsBits::SHADER) && shaderCompressionLevel >= 0 && !shaders.empty();
+  const bool packBin = (packing_flags & BindumpPackingFlagsBits::WHOLE_BINARY) && dumpCompressionLevel >= 0;
 
-  for (int sh = 0; sh < shaders.size(); sh++)
-  {
-    int index = -1;
-    if (!packEachShaderIntoSeparateGroup)
-    {
-      for (int i = 0; i < groups.size(); i++)
-        if (groups[i].size + data_size(shaders[sh]) < groupThresholdBytes)
-        {
-          index = i;
-          break;
-        }
-    }
-
-    auto &group_elem = index == -1 ? groups.emplace_back() : groups[index];
-    shaders_dump.shGroupsMapping[sh].groupId = eastl::distance(groups.begin(), &group_elem);
-    shaders_dump.shGroupsMapping[sh].indexInGroup = group_elem.sh_ids.size();
-    group_elem.size += data_size(shaders[sh]);
-    group_elem.sh_ids.push_back(sh);
-  }
-
-  auto make_group = [&shaders](const GroupInfo &gi) {
-    bindump::Master<shader_layout::ShGroup> group;
-    group.shaders.resize(gi.sh_ids.size());
-    for (int sh = 0; sh < gi.sh_ids.size(); sh++)
-      group.shaders[sh] = make_span_const((const uint8_t *)shaders[gi.sh_ids[sh]].data(), data_size(shaders[gi.sh_ids[sh]]));
-    return group;
-  };
-
-  sh_debug(SHLOG_NORMAL, "[INFO] Collected shader groups in %gms", get_time_usec(reft) / 1000.);
-
-  // 3) forming a solid array of all groups to create a common dictionary
+  const size_t dictSizeBytes = packShaders ? shc::config().dictionarySizeInKb << 10 : 0;
+  const bool needToTrainDict = dictSizeBytes > 0;
 
   reft = ref_time_ticks();
 
   ZSTD_CDict_s *dict = nullptr;
-  shaders_dump.dictionary = dag::Vector<char>{};
+  shaders_dump.dictionary = Tab<char>{};
 
   if (needToTrainDict)
   {
-    dag::Vector<char> samples_buffer;
-    dag::Vector<size_t> samples_sizes;
+    // Taken from https://github.com/facebook/zstd/blob/dev/programs/zstd.1.md
+    constexpr uint32_t MIN_SAMPLE_COUNT = 100;
+    // Reduced from recommended 100 -- this way the actual compressed sizes are smaller, and compression is 5-10 times faster
+    constexpr uint32_t DESIRED_SAMPLE_TO_DICT_SIZE_RATIO = 10;
+
+    uint32_t minTotalSamplesBytes = dictSizeBytes * DESIRED_SAMPLE_TO_DICT_SIZE_RATIO;
+    uint32_t maxSkip = max<uint32_t>(shaders.size() / MIN_SAMPLE_COUNT, 1);
+
+    Tab<char> samples_buffer;
+    Tab<size_t> samples_sizes;
     unsigned samples_total_size = 0;
-    for (const auto &g : groups)
+    while (samples_sizes.size() < MIN_SAMPLE_COUNT)
     {
-      bindump::MemoryWriter writer;
-      bindump::streamWrite(make_group(g), writer);
-      samples_sizes.push_back(writer.mData.size());
-      samples_buffer.insert(samples_buffer.end(), writer.mData.begin(), writer.mData.end());
-      samples_total_size += writer.mData.size();
+      for (uint32_t offset = 0; offset < maxSkip; ++offset)
+      {
+        for (uint32_t i = offset; i < shaders.size(); i += maxSkip)
+        {
+          const auto &sh = shaders[i];
+          const auto &byte_span = make_span_const((const uint8_t *)sh.data(), data_size(sh));
+          samples_sizes.push_back(data_size(byte_span));
+          samples_buffer.insert(samples_buffer.end(), byte_span.begin(), byte_span.end());
+          samples_total_size += byte_span.size();
+        }
+
+        if (samples_total_size >= minTotalSamplesBytes)
+          break;
+      }
     }
 
-    dag::Vector<char> dict_buffer;
+    Tab<char> dict_buffer;
     dict_buffer.resize(dictSizeBytes);
-    size_t dict_size = zstd_train_dict_buffer(make_span(dict_buffer), groupCompressionLevel, samples_buffer, samples_sizes);
+    size_t dict_size = zstd_train_dict_buffer(make_span(dict_buffer), shaderCompressionLevel, samples_buffer, samples_sizes);
     debug("using dictionary %dK: trained from %d samples (%dK total size) to trained size=%dK (%d)", shc::config().dictionarySizeInKb,
       samples_sizes.size(), samples_total_size >> 10, dict_size >> 10, dict_size);
     dict_buffer.resize(dict_size);
-    shaders_dump.dictionary = dict_buffer;
 
-    dict = zstd_create_cdict(dag::Span<char>(dict_buffer.data(), dict_buffer.size()), groupCompressionLevel);
+    shaders_dump.dictionary = eastl::move(dict_buffer);
+    dict = zstd_create_cdict(dag::Span<char>(shaders_dump.dictionary.data(), shaders_dump.dictionary.size()), shaderCompressionLevel);
 
     sh_debug(SHLOG_NORMAL, "[INFO] Trained group compression dict in %gms", get_time_usec(reft) / 1000.);
   }
 
-  // 4) compression of all groups
+  // 3) compression of all shaders
 
   reft = ref_time_ticks();
 
-  shaders_dump.shGroups.resize(groups.size());
-
   // If just writing to memory or not using threads, just for-loop
-  if (!packGroups || !shc::is_multithreaded())
+  if (!packShaders || !shc::is_multithreaded())
   {
-    ZSTD_CCtx_s *cctx = packGroups ? zstd_create_cctx() : nullptr;
-    // @NOTE: calling compress with level = -1 means "write as is without compression"
-    int packLevel = packGroups ? groupCompressionLevel : -1;
-    for (size_t i = 0; i < shaders_dump.shGroups.size(); ++i)
-      shaders_dump.shGroups[i].compress(make_group(groups[i]), packLevel, cctx, dict);
-
-    if (cctx)
-      zstd_destroy_cctx(cctx);
+    ZSTD_CCtx_s *zctx = zstd_create_cctx();
+    for (size_t i = 0; i < shaders_dump.shaders.size(); ++i)
+    {
+      shaders_dump.uncompressed_shader_sizes[i] =
+        compress_data(shaders_dump.shaders[i], shaders[i], dict, zctx, packShaders ? shaderCompressionLevel : -1);
+    }
+    zstd_destroy_cctx(zctx);
   }
   // Otherwise, compress in threads
-  else if (!shaders_dump.shGroups.empty())
+  else if (!shaders_dump.shaders.empty())
   {
+    Tab<ZSTD_CCtx_s *> zContexts(shc::worker_count() + 1); // +1 for main thread as it may take jobs in active wait
+    for (auto *&zctx : zContexts)
+      zctx = zstd_create_cctx();
+
     struct CompressionJob : shc::Job
     {
-      using CompressedGroupRef = decltype(shaders_dump.shGroups[0]);
-      using Group = decltype(make_group(groups[0]));
+      bindump::Master<shader_layout::ScriptedShadersBinDumpV4> *outDump;
+      dag::ConstSpan<uint32_t> src;
+      ZSTD_CDict_s *dict;
+      dag::ConstSpan<ZSTD_CCtx_s *> contexts;
+      int compressionLevel;
+      int id;
 
-      CompressedGroupRef dest;
-      Group src;
-      const ZSTD_CDict_s *cdict;
-      const int groupCompressionLevel;
-
-      CompressionJob(CompressedGroupRef shGroup, const Group &&group, const ZSTD_CDict_s *dict, int groupCompressionLevel) :
-        dest(shGroup), src(group), cdict(dict), groupCompressionLevel(groupCompressionLevel)
+      CompressionJob(bindump::Master<shader_layout::ScriptedShadersBinDumpV4> &out_dump, dag::ConstSpan<uint32_t> src,
+        ZSTD_CDict_s &dict, dag::ConstSpan<ZSTD_CCtx_s *> contexts, int compression_level, int i) :
+        outDump{&out_dump}, src{src}, dict{&dict}, contexts{contexts}, compressionLevel{compression_level}, id{i}
       {}
 
       void doJobBody() final
       {
-        // Using TLS did not give any performance benefit while testing, but creates a slight mem leak
-        ZSTD_CCtx_s *cctx = zstd_create_cctx();
-        dest.compress(src, groupCompressionLevel, cctx, cdict);
-        zstd_destroy_cctx(cctx);
+        ZSTD_CCtx_s *zctx = contexts[shc::current_worker() + 1]; // -1 for main thread -> 0
+        outDump->uncompressed_shader_sizes[id] = compress_data(outDump->shaders[id], src, dict, zctx, compressionLevel);
       }
-
       void releaseJobBody() final {}
     };
 
-    const int jobsCnt = shaders_dump.shGroups.size();
+    const int jobsCnt = shaders_dump.shaders.size();
     dag::Vector<CompressionJob> jobs{};
     jobs.reserve(jobsCnt);
     uint32_t queuePos;
     for (int i = 0; i < jobsCnt; ++i)
     {
-      jobs.emplace_back(shaders_dump.shGroups[i], make_group(groups[i]), dict, groupCompressionLevel);
-      shc::add_job(&jobs.back(), shc::JobMgrChoiceStrategy::ROUND_ROBIN);
+      jobs.emplace_back(shaders_dump, make_span_const(shaders[i]), *dict, zContexts, shaderCompressionLevel, i);
+      shc::add_job(&jobs.back());
     }
 
     shc::await_all_jobs();
+
+    for (auto *zctx : zContexts)
+      zstd_destroy_cctx(zctx);
   }
 
   if (dict)
     zstd_destroy_cdict(dict);
 
-  sh_debug(SHLOG_NORMAL, "[INFO] Compressed groups in %gms", get_time_usec(reft) / 1000.);
+  sh_debug(SHLOG_NORMAL, "[INFO] Compressed shaders in %gms", get_time_usec(reft) / 1000.);
   reft = ref_time_ticks();
 
-  const bool packBin = (packing_flags & BindumpPackingFlagsBits::WHOLE_BINARY);
   const int compressedSize =
     shaders_dump_compressed.scriptedShadersBindumpCompressed.compress(shaders_dump, packBin ? dumpCompressionLevel : -1);
 
@@ -1736,7 +1834,7 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
 
   // Splat data and calculate sha256 hash (of everything except the header)
 
-  bindump::VectorWriter contentWriter{};
+  bindump::ReservingVectorWriter contentWriter{};
   bindump::streamWrite(shaders_dump_compressed, contentWriter);
 
   auto mapped = bindump::map<ScriptedShadersBinDumpCompressed>(contentWriter.mData.data());
@@ -1745,11 +1843,12 @@ bool make_scripted_shaders_dump(const char *dump_name, const char *cache_filenam
   static_assert(offsetof(eastl::remove_pointer_t<decltype(mapped)>, scriptedShadersBindumpCompressed) == sizeof(mapped->header));
   auto content = dag::ConstSpan<uint8_t>{contentWriter.mData.data(), contentWriter.mData.size()}.subspan(sizeof(mapped->header));
 
-  uint8_t checksum[SHA256_DIGEST_LENGTH];
-  sha256_csum(content.data(), content.size(), checksum);
+  const CryptoHash csum = blake3_csum(content.data(), content.size());
 
-  static_assert(sizeof(mapped->header.checksumHash) == sizeof(checksum));
-  memcpy(mapped->header.checksumHash, checksum, sizeof(mapped->header.checksumHash));
+  static_assert(sizeof(mapped->header.checksumHash) == sizeof(csum.data));
+  memcpy(mapped->header.checksumHash, csum.data, sizeof(mapped->header.checksumHash));
+
+  memcpy(mapped->header.buildBlkHash, ctx.compInfo().targetBlkHash().data(), sizeof(mapped->header.buildBlkHash));
 
   sh_debug(SHLOG_NORMAL, "[INFO] Calculated checksum in %gms", get_time_usec(reft) / 1000.);
   reft = ref_time_ticks();

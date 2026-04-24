@@ -411,8 +411,8 @@ void HmapLandObjectEditor::exportToDag()
               blk.addPoint2("polyObjOffs", exp_spl[i]->getPolyObjOffs());
               blk.addReal("polyObjRot", exp_spl[i]->getPolyObjRot());
               blk.addBool("exportable", exp_spl[i]->isExportable());
-              blk.addBool("altGeom", exp_spl[i]->polyGeom.altGeom);
-              blk.addReal("bboxAlignStep", exp_spl[i]->polyGeom.bboxAlignStep);
+              blk.addBool("altGeom", exp_spl[i]->getProps().poly.altGeom);
+              blk.addReal("bboxAlignStep", exp_spl[i]->getProps().poly.bboxAlignStep);
               blk.addInt("cornerType", exp_spl[i]->getProps().cornerType);
 
               DataBlock *mblk = blk.addNewBlock("modifParams");
@@ -695,8 +695,8 @@ void HmapLandObjectEditor::importFromNode(const Node *node, bool &for_all, int &
             so->setPolyObjOffs(blk.getPoint2("polyObjOffs", Point2(0, 0)));
             so->setPolyObjRot(blk.getReal("polyObjRot", 0));
             so->setExportable(blk.getBool("exportable", false));
-            so->polyGeom.altGeom = blk.getBool("altGeom", false);
-            so->polyGeom.bboxAlignStep = blk.getReal("bboxAlignStep", blk.getReal("minGridStep", 1.0f));
+            so->setPolyAltGeom(blk.getBool("altGeom", false));
+            so->setPolyBboxAlignStep(blk.getReal("bboxAlignStep", blk.getReal("minGridStep", 1.0f)));
             so->setCornerType(blk.getInt("cornerType", 0));
 
             DataBlock *mblk = blk.getBlockByName("modifParams");

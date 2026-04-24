@@ -8,17 +8,23 @@
 
 namespace sqfrp
 {
-class BaseObservable;
-class ComputedValue; // -V1062
+
+struct NodeId
+{
+  uint32_t index = UINT32_MAX;
+  uint32_t generation = 0;
+  bool isValid() const { return index != UINT32_MAX; }
+  bool operator==(const NodeId &o) const { return index == o.index && generation == o.generation; }
+  bool operator!=(const NodeId &o) const { return !(*this == o); }
+  bool operator<(const NodeId &o) const { return index < o.index || (index == o.index && generation < o.generation); }
+};
 
 class IStateWatcher
 {
 public:
   virtual bool onSourceObservableChanged() = 0;
-  virtual void onObservableRelease(BaseObservable *observable) = 0;
+  virtual void onObservableRelease(NodeId id) = 0;
   virtual Sqrat::Object dbgGetWatcherScriptInstance() { return Sqrat::Object(); }
-
-  virtual ComputedValue *getComputed() { return nullptr; }
 };
 
 } // namespace sqfrp

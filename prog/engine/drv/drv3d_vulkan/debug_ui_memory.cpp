@@ -24,6 +24,7 @@ dag::Vector<String> const_info_lines;
 
 constexpr uint64_t USAGE_HISTORY_LEN = 256;
 dag::Vector<UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64>> heapUsagePlots;
+dag::Vector<UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64>> heapUsageOverheadPlots;
 uint64_t maxHeapLimitMb = 0;
 
 UiPlotScrollBuffer<USAGE_HISTORY_LEN, ImU64> budgetPlot;
@@ -74,6 +75,7 @@ void initData()
     const_info_lines.push_back(String(128, "Heap %u: %s, limit %s | %s", heap.index, byte_size_unit(heap.size),
       byte_size_unit(heap.limit), (heap.flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) ? "device local" : "host local"));
     heapUsagePlots.push_back();
+    heapUsageOverheadPlots.push_back();
   });
 
   maxHeapLimitMb >>= 20; // convert to Mb
@@ -105,19 +107,45 @@ void drawUsage()
 {
   DEV_MEM();
 
-  devMem.iterateHeaps([](const DeviceMemoryPool::Heap &heap) {
+  bool hasBudget = Globals::VK::phy.memoryBudgetInfoAvailable;
+#if VK_EXT_memory_budget
+  VkPhysicalDeviceMemoryBudgetPropertiesEXT budget;
+  if (hasBudget)
+    Globals::VK::phy.getCurrentMemoryBudget(Globals::VK::inst, budget);
+#endif
+
+  devMem.iterateHeaps([&](const DeviceMemoryPool::Heap &heap) {
     String inUseS = byte_size_unit(heap.inUse);
     String limitS = byte_size_unit(heap.limit);
     ImGui::Text("Heap %u: %llu%% %s of %s", heap.index, heap.inUse * 100ull / heap.limit, inUseS.c_str(), limitS.c_str());
-    heapUsagePlots[heap.index].addPoint(trackingFrameIdx, heap.inUse >> 20);
+#if VK_EXT_memory_budget
+    if (hasBudget)
+    {
+      String inUseSbudget = byte_size_unit(budget.heapUsage[heap.index]);
+      String limitSbudget = byte_size_unit(budget.heapBudget[heap.index]);
+      ImGui::Text("Heap budget %u: %llu%% %s of %s", heap.index, budget.heapUsage[heap.index] * 100ull / budget.heapBudget[heap.index],
+        inUseSbudget.c_str(), limitSbudget.c_str());
+      heapUsagePlots[heap.index].addPoint(trackingFrameIdx, budget.heapUsage[heap.index] >> 20);
+      heapUsageOverheadPlots[heap.index].addPoint(trackingFrameIdx, (budget.heapUsage[heap.index] - heap.inUse) >> 20);
+    }
+    else
+#endif
+      heapUsagePlots[heap.index].addPoint(trackingFrameIdx, heap.inUse >> 20);
   });
 
   setPlotLimits();
   if (ImPlot::BeginPlot("##Heap mem usage", nullptr, "Usage, Mb"))
   {
     for (int i = 0; i < heapUsagePlots.size(); ++i)
+    {
       ImPlot::PlotLine(String(32, "Heap %u", i), &heapUsagePlots[i].xData[0], &heapUsagePlots[i].yData[0],
         heapUsagePlots[i].xData.size(), ImPlotLineFlags_None, heapUsagePlots[i].offset);
+#if VK_EXT_memory_budget
+      if (hasBudget)
+        ImPlot::PlotLine(String(32, "Heap %u overhead", i), &heapUsageOverheadPlots[i].xData[0], &heapUsageOverheadPlots[i].yData[0],
+          heapUsageOverheadPlots[i].xData.size(), ImPlotLineFlags_None, heapUsageOverheadPlots[i].offset);
+#endif
+    }
     ImPlot::EndPlot();
   }
   ImGui::Checkbox("Clean memory every work item", &RenderWork::cleanUpMemoryEveryWorkItem);
@@ -150,8 +178,8 @@ void drawBudget()
 void drawUploadInfo()
 {
   // find and use one of last finished work items with offset that guarantie we not using this work
-  const size_t finishedWorkOffset = MAX_PENDING_REPLAY_ITEMS + 1;
-  const uint64_t defaultYLim = 100;
+  constexpr size_t finishedWorkOffset = MAX_PENDING_REPLAY_ITEMS + 1;
+  constexpr uint64_t defaultYLim = 100;
   size_t maxId = 0;
   Globals::timelines.get<TimelineManager::CpuReplay>().enumerate([&maxId](size_t, const RenderWork &ctx) //
     {
@@ -161,8 +189,7 @@ void drawUploadInfo()
   const RenderWork *lastWork = nullptr;
   if (maxId < finishedWorkOffset)
     return;
-  Globals::timelines.get<TimelineManager::CpuReplay>().enumerate(
-    [maxId, finishedWorkOffset, &lastWork](size_t, const RenderWork &ctx) //
+  Globals::timelines.get<TimelineManager::CpuReplay>().enumerate([maxId, &lastWork](size_t, const RenderWork &ctx) //
     {
       if (ctx.id == (maxId - finishedWorkOffset))
         lastWork = &ctx;

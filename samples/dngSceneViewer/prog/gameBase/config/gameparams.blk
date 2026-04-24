@@ -48,3 +48,4 @@ glassScratches {
   radius_pow:r = 45.0;
   mul:r = 4;
 }
+debugRiTexture:t="white"

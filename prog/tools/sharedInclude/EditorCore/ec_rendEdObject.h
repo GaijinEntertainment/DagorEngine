@@ -46,6 +46,7 @@ public:
     FLG_FROZEN = 1 << 2,       ///< Object is "frozen".
     FLG_HIGHLIGHTED = 1 << 3,  ///< Object is highlighted.
     FLG_WANTRESELECT = 1 << 4, ///< Object wants receive every select (even if already selected)
+    FLG_LOCKED = 1 << 5,       ///< Object is locked. All modifications are disabled
   };
 
   /// Constructor 1.
@@ -102,6 +103,9 @@ public:
   /// @return @b true if object is highlighted, @b false in other case
   inline bool isHighlighted() const { return objFlags & FLG_HIGHLIGHTED; }
 
+  /// Test whether the object is locked.
+  /// @return @b true if object is locked, @b false in other case
+  inline bool isLocked() const { return objFlags & FLG_LOCKED; }
 
   /// Get object flags.
   /// @return object flags
@@ -131,6 +135,11 @@ public:
   /// @param[in] select - <b>true / false</b>: set object selection
   ///                     <b>on / off</b>
   virtual void selectObject(bool select = true) { setFlags(select ? FLG_SELECTED : 0, FLG_SELECTED); }
+  //@}
+
+  /// Lock / unlock object.
+  /// @param[in] lock - <b>true / false: lock / unlock</b> object
+  virtual void lockObject(bool lock = true) { setFlags(lock ? FLG_LOCKED : 0, FLG_LOCKED); }
   //@}
 
   //*****************************************************************

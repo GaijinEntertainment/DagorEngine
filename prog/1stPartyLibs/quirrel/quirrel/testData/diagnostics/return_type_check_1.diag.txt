@@ -1,0 +1,9 @@
+ERROR: Return type differs from the declared type
+testData/diagnostics/return_type_check_1.nut:4:8
+
+    if (x < 0)
+        return
+        ^-----
+    return 4
+
+

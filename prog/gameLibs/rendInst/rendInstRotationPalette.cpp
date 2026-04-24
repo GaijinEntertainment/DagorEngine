@@ -37,7 +37,7 @@ rendinst::gen::RotationPaletteManager::RotationPaletteManager() : impostorData(m
 void rendinst::gen::RotationPaletteManager::clear()
 {
   version++;
-  impostorDataBuffer.close();
+  // impostorDataBuffer will be closed/recreated on main thread in deferBufferRecreationToMT
   entityIdToPaletteInfo.clear();
   // Dummy impostor data with identity rotation to serve as default value for anything that doesn't have rotation palettes
   impostorData.resize(IMPOSTOR_DATA_PALETTE_OFFSET + 1);
@@ -143,7 +143,8 @@ void rendinst::gen::RotationPaletteManager::deferBufferRecreationToMT()
   {
     run_action_on_main_thread([this]() {
       impostorDataBuffer.close();
-      impostorDataBuffer = dag::buffers::create_persistent_sr_tbuf(impostorData.size(), TEXFMT_A32B32G32R32F, "impostor_data_buffer");
+      impostorDataBuffer = dag::buffers::create_persistent_sr_tbuf(impostorData.size(), TEXFMT_A32B32G32R32F, "impostor_data_buffer",
+        d3d::buffers::Init::No, RESTAG_RENDINST);
       fillBuffer();
     });
   }
@@ -198,8 +199,7 @@ uint32_t rendinst::gen::RotationPaletteManager::getImpostorDataBufferOffset(cons
 
     int paletteSize = 1;
 
-    DataBlock *data =
-      reinterpret_cast<DataBlock *>(get_one_game_resource_ex(GAMERES_HANDLE(impostor_data), ImpostorDataGameResClassId));
+    DataBlock *data = reinterpret_cast<DataBlock *>(get_one_game_resource_ex("impostor_data", ImpostorDataGameResClassId));
     if (data)
     {
       DataBlock *impostorBlk = data->getBlockByName(name);
@@ -335,7 +335,7 @@ Point3 rendinst::gen::RotationPaletteManager::clamp_euler_angles(const Palette &
     // no need to apply modulo with 2*pi for these angle values, because the maximum interval size
     // is 2 * pi, which is handled by circular_clamp
     return Point3(circular_clamp(rotation.x, -palette.tiltLimit.x, palette.tiltLimit.x),
-      circular_clamp(rotation.y, y - palette.tiltLimit.x, y + palette.tiltLimit.x),
+      circular_clamp(rotation.y, y - palette.tiltLimit.y, y + palette.tiltLimit.y),
       circular_clamp(rotation.z, -palette.tiltLimit.z, palette.tiltLimit.z));
   }
   else

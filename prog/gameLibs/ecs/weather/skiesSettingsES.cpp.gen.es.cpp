@@ -106,7 +106,8 @@ static void clouds_rendering_es_event_handler_all_events(const ecs::Event &__res
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     clouds_rendering_es_event_handler(evt
-        , ECS_RO_COMP(clouds_rendering_es_event_handler_comps, "clouds_rendering__forward_eccentricity", float)
+        , components.manager()
+    , ECS_RO_COMP(clouds_rendering_es_event_handler_comps, "clouds_rendering__forward_eccentricity", float)
     , ECS_RO_COMP(clouds_rendering_es_event_handler_comps, "clouds_rendering__back_eccentricity", float)
     , ECS_RO_COMP(clouds_rendering_es_event_handler_comps, "clouds_rendering__forward_eccentricity_weight", float)
     , ECS_RO_COMP(clouds_rendering_es_event_handler_comps, "clouds_rendering__erosion_noise_size", float)
@@ -144,7 +145,8 @@ static void strata_clouds_es_event_handler_all_events(const ecs::Event &__restri
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     strata_clouds_es_event_handler(evt
-        , ECS_RO_COMP(strata_clouds_es_event_handler_comps, "strata_clouds__amount", Point2)
+        , components.manager()
+    , ECS_RO_COMP(strata_clouds_es_event_handler_comps, "strata_clouds__amount", Point2)
     , ECS_RO_COMP(strata_clouds_es_event_handler_comps, "strata_clouds__altitude", Point2)
     );
   while (++comp != compE);
@@ -174,7 +176,8 @@ static void strata_clouds_tex_es_all_events(const ecs::Event &__restrict evt, co
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     strata_clouds_tex_es(evt
-        , ECS_RO_COMP(strata_clouds_tex_es_comps, "strata_clouds__tex", ecs::string)
+        , components.manager()
+    , ECS_RO_COMP(strata_clouds_tex_es_comps, "strata_clouds__tex", ecs::string)
     );
   while (++comp != compE);
 }
@@ -208,7 +211,8 @@ static void clouds_form_es_event_handler_all_events(const ecs::Event &__restrict
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     clouds_form_es_event_handler(evt
-        , ECS_RO_COMP(clouds_form_es_event_handler_comps, "clouds_form__layers", ecs::Array)
+        , components.manager()
+    , ECS_RO_COMP(clouds_form_es_event_handler_comps, "clouds_form__layers", ecs::Array)
     , ECS_RO_COMP(clouds_form_es_event_handler_comps, "clouds_form__extinction", Point2)
     , ECS_RO_COMP(clouds_form_es_event_handler_comps, "clouds_form__turbulenceStrength", Point2)
     , ECS_RO_COMP(clouds_form_es_event_handler_comps, "clouds_form__shapeNoiseScale", int)
@@ -246,7 +250,8 @@ static void clouds_settings_es_event_handler_all_events(const ecs::Event &__rest
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     clouds_settings_es_event_handler(evt
-        , ECS_RO_COMP(clouds_settings_es_event_handler_comps, "clouds_settings__maximum_averaging_ratio", float)
+        , components.manager()
+    , ECS_RO_COMP(clouds_settings_es_event_handler_comps, "clouds_settings__maximum_averaging_ratio", float)
     , ECS_RO_COMP(clouds_settings_es_event_handler_comps, "clouds_settings__quality", int)
     , ECS_RO_COMP(clouds_settings_es_event_handler_comps, "clouds_settings__target_quality", int)
     , ECS_RO_COMP(clouds_settings_es_event_handler_comps, "clouds_settings__competitive_advantage", bool)
@@ -283,7 +288,8 @@ static void clouds_weather_gen_es_event_handler_all_events(const ecs::Event &__r
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     clouds_weather_gen_es_event_handler(evt
-        , ECS_RO_COMP(clouds_weather_gen_es_event_handler_comps, "clouds_weather_gen__layers", ecs::Array)
+        , components.manager()
+    , ECS_RO_COMP(clouds_weather_gen_es_event_handler_comps, "clouds_weather_gen__layers", ecs::Array)
     , ECS_RO_COMP(clouds_weather_gen_es_event_handler_comps, "clouds_weather_gen__epicness", float)
     , ECS_RO_COMP(clouds_weather_gen_es_event_handler_comps, "clouds_weather_gen__cumulonimbusCoverage", Point2)
     , ECS_RO_COMP(clouds_weather_gen_es_event_handler_comps, "clouds_weather_gen__cumulonimbusSeed", Point2)
@@ -344,7 +350,8 @@ static void sky_atmosphere_es_event_handler_all_events(const ecs::Event &__restr
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     sky_atmosphere_es_event_handler(evt
-        , ECS_RO_COMP(sky_atmosphere_es_event_handler_comps, "sky_atmosphere__average_ground_albedo", float)
+        , components.manager()
+    , ECS_RO_COMP(sky_atmosphere_es_event_handler_comps, "sky_atmosphere__average_ground_albedo", float)
     , ECS_RO_COMP(sky_atmosphere_es_event_handler_comps, "sky_atmosphere__min_ground_offset", float)
     , ECS_RO_COMP(sky_atmosphere_es_event_handler_comps, "sky_settings__haze_strength", float)
     , ECS_RO_COMP(sky_atmosphere_es_event_handler_comps, "sky_settings__haze_min_angle", float)
@@ -431,7 +438,8 @@ static void clouds_hole_es_event_handler_all_events(const ecs::Event &__restrict
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     clouds_hole_es_event_handler(evt
-        , ECS_RO_COMP(clouds_hole_es_event_handler_comps, "transform", TMatrix)
+        , components.manager()
+    , ECS_RO_COMP(clouds_hole_es_event_handler_comps, "transform", TMatrix)
     , ECS_RO_COMP(clouds_hole_es_event_handler_comps, "density", float)
     );
   while (++comp != compE);
@@ -457,9 +465,9 @@ static constexpr ecs::ComponentDesc disappear_clouds_hole_es_comps[] =
 };
 static void disappear_clouds_hole_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   disappear_clouds_hole_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc disappear_clouds_hole_es_es_desc
 (
@@ -486,7 +494,8 @@ static void moon_params_es_event_handler_all_events(const ecs::Event &__restrict
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     moon_params_es_event_handler(evt
-        , ECS_RO_COMP(moon_params_es_event_handler_comps, "moon_res_name", ecs::string)
+        , components.manager()
+    , ECS_RO_COMP(moon_params_es_event_handler_comps, "moon_res_name", ecs::string)
     , ECS_RO_COMP(moon_params_es_event_handler_comps, "moon_size", float)
     );
   while (++comp != compE);
@@ -548,9 +557,9 @@ static ecs::CompileTimeQueryDesc is_cloud_hole_enabled_for_preset_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void is_cloud_hole_enabled_for_preset_ecs_query(Callable function)
+inline void is_cloud_hole_enabled_for_preset_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, is_cloud_hole_enabled_for_preset_ecs_query_desc.getHandle(),
+  perform_query(&manager, is_cloud_hole_enabled_for_preset_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -578,9 +587,9 @@ static ecs::CompileTimeQueryDesc is_panorama_forced_ecs_query_desc
   make_span(is_panorama_forced_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void is_panorama_forced_ecs_query(Callable function)
+inline void is_panorama_forced_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, is_panorama_forced_ecs_query_desc.getHandle(),
+  perform_query(&manager, is_panorama_forced_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -609,9 +618,9 @@ static ecs::CompileTimeQueryDesc validate_volumetric_clouds_settings_ecs_query_d
   make_span(validate_volumetric_clouds_settings_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void validate_volumetric_clouds_settings_ecs_query(Callable function)
+inline void validate_volumetric_clouds_settings_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, validate_volumetric_clouds_settings_ecs_query_desc.getHandle(),
+  perform_query(&manager, validate_volumetric_clouds_settings_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

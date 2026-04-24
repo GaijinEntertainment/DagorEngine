@@ -8,7 +8,7 @@ The system library exposes operating system facilities like environment variable
 process execution and file operations
 
 --------------
-Squirrel API
+Quirrel API
 --------------
 
 ++++++++++++++

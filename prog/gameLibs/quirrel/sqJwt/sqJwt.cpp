@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqrat.h>
 #include <squirrel.h>
 #include <quirrel/quirrel_json/quirrel_json.h>
@@ -39,7 +39,7 @@ void bind_jwt(SqModules *module_mgr)
 {
   Sqrat::Table nsTbl(module_mgr->getVM());
   ///@module jwt
-  nsTbl.SquirrelFunc("decode", decode_jwt, 3, ".ss")
+  nsTbl.SquirrelFuncDeclString(decode_jwt, "decode(jwt_string: string, key: string): table")
     /* qdox
     @param jwt_string s
     @param key s

@@ -15,7 +15,6 @@ using SearchTextChangedCallback = eastl::function<void(const char *)>;
 using SearchEnterCallback = eastl::function<void()>;
 
 class LpProfilerTable;
-enum TableColumn;
 template <typename T>
 class LpRangeFilter;
 template <typename T>
@@ -229,7 +228,7 @@ private:
 class LpSearchWidget
 {
 public:
-  LpSearchWidget(LpProfilerTable *profiler_table, TableColumn table_column, const char *identifier, const char *hint_text,
+  LpSearchWidget(LpProfilerTable * /*profiler_table*/, ColumnIndex /*column_index*/, const char *identifier, const char *hint_text,
     SearchTextChangedCallback on_search_callback, SearchEnterCallback apply_filters_callback);
 
   ~LpSearchWidget();
@@ -238,6 +237,8 @@ public:
 
   void clear();
 
+  void draw();
+
 private:
   ProfilerString searchBuffer;
   eastl::unique_ptr<LpSearchBox> searchBox;
@@ -245,37 +246,97 @@ private:
 
 // === Range Widgets ===
 
-// --- Range Filter Widget - UI for numeric range filters ---
-
-// Unified widget for numeric range filters (int or float)
+// --- Range Filter Controller & UI Adapter ---
 template <typename T>
-class LpRangeFilterWidget
+class LpRangeFilterController
 {
   static_assert(eastl::is_arithmetic<T>::value, "T must be arithmetic");
 
 public:
-  static bool Draw(const char *widget_id, const char *label, LpRangeFilter<T> &filter, const char *format_min = nullptr,
-    const char *format_max = nullptr, float speed = 1.0f, ImGuiSliderFlags flags = 0)
+  explicit LpRangeFilterController(LpRangeFilter<T> *f = nullptr) : filter(f) {}
+  void bind(LpRangeFilter<T> *f) { filter = f; }
+  bool isBound() const { return filter != nullptr; }
+  void resetToDefaults()
   {
-    bool changed = false;
-    ImGui::PushID(widget_id);
+    if (filter)
+      filter->reset(filter->getDefaultMin(), filter->getDefaultMax());
+  }
+  void setRange(T mn, T mx)
+  {
+    if (filter)
+      filter->reset(mn, mx);
+  }
+  bool isActive() const { return filter && !filter->isDefault(); }
+  LpRangeFilter<T> *raw() { return filter; }
 
-    if (ImGui::Button("Clear"))
+private:
+  LpRangeFilter<T> *filter = nullptr; // non-owning
+};
+
+enum class LpSplitterDirection
+{
+  HORIZONTAL,
+  VERTICAL
+};
+
+class LpSplitter
+{
+public:
+  LpSplitter(LpSplitterDirection direction, float initial_ratio = 0.5f, float min_ratio = 0.2f, float max_ratio = 0.8f);
+
+  bool draw(const ImVec2 &available_area);
+
+  float getRatio() const { return ratio; }
+  void setRatio(float new_ratio);
+
+private:
+  LpSplitterDirection direction;
+  float ratio;
+  float minRatio;
+  float maxRatio;
+};
+
+template <typename T>
+bool drawRangeFilter(const char *widget_id, const char *label, LpRangeFilterController<T> &ctrl, const char *format_min = nullptr,
+  const char *format_max = nullptr, float speed = 1.0f, ImGuiSliderFlags flags = 0)
+{
+  if (!ctrl.isBound())
+    return false;
+  bool changed = false;
+  ImGui::PushID(widget_id);
+  if (ImGui::Button("Clear"))
+  {
+    ctrl.resetToDefaults();
+    changed = true;
+  }
+  ImGui::Separator();
+  const char *fmtMin = format_min ? format_min : (eastl::is_integral<T>::value ? "Min: %d" : "Min: %.3f");
+  const char *fmtMax = format_max ? format_max : (eastl::is_integral<T>::value ? "Max: %d" : "Max: %.3f");
+  if (auto *f = ctrl.raw())
+  {
+    T currentMin = f->getMin();
+    T currentMax = f->getMax();
+    bool localChanged = false;
+    if constexpr (eastl::is_integral<T>::value)
     {
-      filter.reset(filter.getDefaultMin(), filter.getDefaultMax());
+      localChanged = ImGui::DragIntRange2(label, reinterpret_cast<int *>(&currentMin), reinterpret_cast<int *>(&currentMax), speed,
+        static_cast<int>(f->getAbsoluteMin()), static_cast<int>(f->getAbsoluteMax()), fmtMin, fmtMax, flags);
+    }
+    else if constexpr (eastl::is_floating_point<T>::value)
+    {
+      localChanged = ImGui::DragFloatRange2(label, reinterpret_cast<float *>(&currentMin), reinterpret_cast<float *>(&currentMax),
+        speed, static_cast<float>(f->getAbsoluteMin()), static_cast<float>(f->getAbsoluteMax()), fmtMin, fmtMax, flags);
+    }
+    if (localChanged)
+    {
+      f->setRange(currentMin, currentMax);
+      f->setUseMin(currentMin > f->getAbsoluteMin());
+      f->setUseMax(currentMax < f->getAbsoluteMax());
       changed = true;
     }
-
-    ImGui::Separator();
-
-    const char *fmtMin = format_min ? format_min : (eastl::is_integral<T>::value ? "Min: %d" : "Min: %.3f");
-    const char *fmtMax = format_max ? format_max : (eastl::is_integral<T>::value ? "Max: %d" : "Max: %.3f");
-
-    changed |= filter.drawRangeSlider(label, fmtMin, fmtMax, speed, flags);
-
-    ImGui::PopID();
-    return changed;
   }
-};
+  ImGui::PopID();
+  return changed;
+}
 
 } // namespace levelprofiler

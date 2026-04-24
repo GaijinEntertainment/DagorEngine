@@ -24,6 +24,7 @@ void begin_event(const char *name);
 void end_event();
 void stop_ds(DrawStatSingle &ds);
 void start_ds(DrawStatSingle &ds);
+bool get_gpu_thread_name(char *buf, const size_t max_len);
 
 struct FuncTable
 {
@@ -41,6 +42,7 @@ struct FuncTable
   void (*end_event)();
   void (*stop_ds)(DrawStatSingle &ds);
   void (*start_ds)(DrawStatSingle &ds);
+  bool (*get_gpu_thread_name)(char *buf, const size_t max_len);
 
   inline void fill()
   {
@@ -57,6 +59,7 @@ struct FuncTable
     SET_ENTRY(end_event);
     SET_ENTRY(stop_ds);
     SET_ENTRY(start_ds);
+    SET_ENTRY(get_gpu_thread_name);
 #undef SET_ENTRY
   }
 };

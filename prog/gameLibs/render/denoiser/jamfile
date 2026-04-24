@@ -22,6 +22,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/3rdPartyLibs/math/sse2neon
   $(Root)/prog/3rdPartyLibs/math/MathLib
+  $(Root)/prog/3rdPartyLibs/NRD
 ;
 
 # depend on BVHSupport as it is part of BVH stack

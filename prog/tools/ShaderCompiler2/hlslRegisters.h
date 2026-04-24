@@ -38,10 +38,10 @@ inline constexpr eastl::array<HlslRegisterSpace, HLSL_RSPACE_COUNT> HLSL_RSPACE_
 };
 
 inline constexpr eastl::array<const char *, HLSL_RSPACE_COUNT> HLSL_RSPACE_ALL_NAMES = {
-  "texture",
+  "SRV",
   "sampler",
   "constant",
-  "uav",
+  "UAV",
   "constbuffer",
 };
 
@@ -174,9 +174,6 @@ public:
     return reg;
   }
 
-  // @TODO: do the void specialization for Expected!
-  struct ReserveSuccess
-  {};
   struct ReserveFailure
   {
     bool outOfRange = false;
@@ -191,7 +188,7 @@ public:
     return slots[reg].semantic;
   }
 
-  dag::Expected<ReserveSuccess, ReserveFailure> reserve(HlslSlotSemantic semantic, int32_t reg, uint32_t count = 1)
+  dag::Expected<void, ReserveFailure> reserve(HlslSlotSemantic semantic, int32_t reg, uint32_t count = 1)
   {
     G_ASSERT(reg >= 0);
     G_ASSERTF(semantic != HlslSlotSemantic::ALLOCATED, "Can't reserve a register as if it were allocated");
@@ -215,10 +212,10 @@ public:
       slots[i].semantic = semantic;
     }
     updateRange(reg, count);
-    return ReserveSuccess{};
+    return {};
   }
 
-  dag::Expected<ReserveSuccess, Tab<ReserveFailure>> reserveAllFrom(const HlslRegAllocator &supp)
+  dag::Expected<void, Tab<ReserveFailure>> reserveAllFrom(const HlslRegAllocator &supp)
   {
     G_ASSERT(policy.base == supp.policy.base);
     G_ASSERT(policy.cap == supp.policy.cap);
@@ -234,7 +231,7 @@ public:
       }
     }
     if (failedReserves.empty())
-      return ReserveSuccess{};
+      return {};
     else
       return dag::Unexpected{eastl::move(failedReserves)};
   }
@@ -260,7 +257,7 @@ public:
   void dumpUsage(HlslRegisterSpace space, auto &&logger, auto &&info_provider) const
   {
     auto [min, cap] = maxAllowedRange();
-    logger("Used registers in allowed range [%d, %d]:", min, cap - 1);
+    logger("Used registers in allowed range [%d, %d]:\n", min, cap - 1);
     int skip = 0;
     for (auto [ind, slot] : enumerate(slots))
     {
@@ -268,9 +265,9 @@ public:
         --skip;
       else if (slot.used)
       {
-        auto [name, size] = info_provider(ind);
+        auto [desc, size] = info_provider(ind);
         logger("  %c%-3d %-5s: %s, %s", HLSL_RSPACE_ALL_SYMBOLS[space], ind, size == 1 ? "" : string_f("[%d]", size).c_str(),
-          name.c_str(), SLOT_SEMANTIC_DESCS[size_t(slot.semantic)]);
+          SLOT_SEMANTIC_DESCS[size_t(slot.semantic)], desc.c_str());
         skip = size - 1;
       }
     }
@@ -317,11 +314,7 @@ inline eastl::string get_reg_alloc_dump(const HlslRegAllocator &alloc, HlslRegis
 {
   eastl::string usageDump{};
   alloc.dumpUsage(
-    rspace,
-    [&usageDump]<class... Ts>(const char *fmt, Ts &&...args) {
-      usageDump.append_sprintf(fmt, eastl::forward<Ts>(args)...);
-      usageDump.push_back('\n');
-    },
+    rspace, [&usageDump]<class... Ts>(const char *fmt, Ts &&...args) { usageDump.append_sprintf(fmt, eastl::forward<Ts>(args)...); },
     info_provider);
   return usageDump;
 }
@@ -344,7 +337,7 @@ inline void report_reg_reserve_failed(const char *name, int reg, int count, Hlsl
   }
 
   const eastl::string nameRef = name ? string_f(" '%s'", name) : "";
-  sh_debug(SHLOG_ERROR, "Trying to reserve a %s param%s with register '%c%d' of size %d, which is %s\n%s",
+  sh_debug(SHLOG_ERROR, "Can not reserve a %s param%s with register '%c%d' of size %d, which is %s\n%s",
     HlslRegAllocator::SLOT_SEMANTIC_DESCS[size_t(desired_semantic)], nameRef.c_str(), HLSL_RSPACE_ALL_SYMBOLS[rspace], reg, count,
     collisionInfo.c_str(), get_reg_alloc_dump(alloc, rspace, info_provider).c_str());
 }

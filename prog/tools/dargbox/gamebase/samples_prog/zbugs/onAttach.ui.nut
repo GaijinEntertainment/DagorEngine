@@ -27,10 +27,10 @@ return {
   color = Color(10,10,100)
   flow = FLOW_HORIZONTAL
   children = [
-    {size = static [sh(20), 0]}
+    {size = const [sh(20), 0]}
     {
       flow = FLOW_VERTICAL
-      children = array(10, {size = static [hdpx(100), hdpx(10)]}).append(elem)
+      children = array(10, {size = const [hdpx(100), hdpx(10)]}).append(elem)
     }
   ]
 }

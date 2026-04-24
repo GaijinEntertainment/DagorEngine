@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PS3 Wave Shader — Orange Knot v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #000; overflow: hidden; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+  #controls {
+    position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 10px; z-index: 10; font-family: 'Courier New', monospace;
+    background: rgba(0,0,0,0.7); border: 1px solid rgba(255,120,0,0.25);
+    border-radius: 6px; padding: 8px 14px; backdrop-filter: blur(8px);
+    flex-wrap: wrap; justify-content: center; max-width: 95vw;
+  }
+  #controls label { color: rgba(255,140,30,0.6); font-size: 10px; display: flex; flex-direction: column; align-items: center; gap: 2px; letter-spacing: 0.5px; }
+  #controls input[type=range] { width: 72px; accent-color: #e07000; height: 3px; }
+  #controls .val { color: rgba(255,180,60,0.85); font-size: 9px; min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="controls">
+  <label>Knot X <input type="range" id="kx" min="0" max="100" value="88"><span class="val" id="kx_v"></span></label>
+  <label>Knot Y <input type="range" id="ky" min="0" max="100" value="60"><span class="val" id="ky_v"></span></label>
+  <label>Angle <input type="range" id="dir" min="0" max="360" value="90" step="1"><span class="val" id="dir_v"></span></label>
+  <label>Waves <input type="range" id="waves" min="8" max="40" value="14"><span class="val" id="waves_v"></span></label>
+  <label>Speed <input type="range" id="spd" min="10" max="200" value="37"><span class="val" id="spd_v"></span></label>
+  <label>Sparks <input type="range" id="sparks" min="0" max="100" value="0"><span class="val" id="sparks_v"></span></label>
+  <label>Width <input type="range" id="width" min="5" max="100" value="64"><span class="val" id="width_v"></span></label>
+  <label>Wave Hue <input type="range" id="whue" min="0" max="360" value="25" step="1"><span class="val" id="whue_v"></span></label>
+  <label>BG Hue <input type="range" id="bghue" min="0" max="360" value="360" step="1"><span class="val" id="bghue_v"></span></label>
+  <label>BG Amt <input type="range" id="bgamt" min="0" max="100" value="39"><span class="val" id="bgamt_v"></span></label>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+document.querySelectorAll('#controls input[type=range]').forEach(inp => {
+  const updateVal = () => {
+    const v = document.getElementById(inp.id + '_v');
+    if (!v) return;
+    const raw = +inp.value;
+    switch(inp.id){
+      case 'kx': case 'ky': v.textContent = raw; break;
+      case 'dir': case 'bghue': case 'whue': v.textContent = raw + '\u00B0'; break;
+      case 'waves': v.textContent = raw; break;
+      case 'spd': case 'sparks': case 'bgamt': case 'width':
+        v.textContent = (raw / 100).toFixed(2); break;
+    }
+  };
+  inp.addEventListener('input', updateVal);
+  updateVal();
+});
+
+const ctrl = {
+  get kx()     { return document.getElementById('kx').value / 100; },
+  get ky()     { return document.getElementById('ky').value / 100; },
+  get dir()    { return document.getElementById('dir').value * Math.PI / 180; },
+  get waves()  { return +document.getElementById('waves').value; },
+  get spd()    { return document.getElementById('spd').value / 100; },
+  get sparks() { return document.getElementById('sparks').value / 100; },
+  get width()  { return document.getElementById('width').value / 100; },
+  get whue()   { return +document.getElementById('whue').value; },
+  get bghue()  { return +document.getElementById('bghue').value; },
+  get bgamt()  { return document.getElementById('bgamt').value / 100; },
+};
+
+const VS = `attribute vec2 a_pos; void main(){ gl_Position = vec4(a_pos,0.,1.); }`;
+
+const FS = `
+precision highp float;
+
+uniform vec2  u_res;
+uniform float u_time;
+uniform vec2  u_knot;
+uniform float u_dir;
+uniform float u_waves;
+uniform float u_speed;
+uniform float u_sparks;
+uniform float u_width;
+uniform float u_whue;
+uniform float u_bghue;
+uniform float u_bgamt;
+
+#define PI 3.14159265359
+
+float hash11(float p){
+  p = fract(p * 0.1031);
+  p *= p + 33.33;
+  p *= p + p;
+  return fract(p);
+}
+float hash21(vec2 p){
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
+vec3 hsv2rgb(vec3 c){
+  vec4 K = vec4(1.0, 2.0/3.0, 1.0/3.0, 3.0);
+  vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+  return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+void main(){
+  vec2 uv = gl_FragCoord.xy / u_res;
+  float aspect = u_res.x / u_res.y;
+
+  // ─── Background gradient ───
+  vec2 bgUV = uv - u_knot;
+  bgUV.x *= aspect;
+  float bgDist = length(bgUV);
+
+  float hue = u_bghue / 360.0;
+  vec3 bgDark  = hsv2rgb(vec3(hue, 0.6, 0.02)) * u_bgamt;
+  vec3 bgMid   = hsv2rgb(vec3(hue, 0.5, 0.07)) * u_bgamt;
+  vec3 bgLight = hsv2rgb(vec3(hue + 0.05, 0.4, 0.12)) * u_bgamt;
+
+  vec3 bg = mix(bgMid, bgDark, smoothstep(0.0, 0.8, bgDist));
+  vec2 bg2UV = uv - vec2(u_knot.x + 0.2, u_knot.y - 0.15);
+  bg2UV.x *= aspect;
+  bg += bgLight * exp(-dot(bg2UV, bg2UV) * 3.0) * 0.5;
+
+  float neb = hash21(floor(gl_FragCoord.xy * 0.15)) * 0.3
+            + hash21(floor(gl_FragCoord.xy * 0.05)) * 0.7;
+  bg += hsv2rgb(vec3(hue + 0.1, 0.3, 0.015 * u_bgamt)) * neb;
+
+  vec3 col = bg;
+
+  // ─── Coordinate setup ───
+  vec2 p = uv - 0.5;
+  p.x *= aspect;
+  vec2 knot = u_knot - 0.5;
+  knot.x *= aspect;
+
+  float ca = cos(u_dir), sa = sin(u_dir);
+  mat2 rot = mat2(ca, -sa, sa, ca);
+  vec2 rp = rot * p;
+  vec2 rk = rot * knot;
+
+  float along  = rp.x;
+  float perp   = rp.y;
+  float kAlong = rk.x;
+  float kPerp  = rk.y;
+
+  float t = u_time * u_speed;
+  float numW = u_waves;
+  float wHue = u_whue / 360.0;
+
+  // ─── Wave ribbons ───
+  for(float i = 0.0; i < 40.0; i++){
+    if(i >= numW) break;
+
+    float id = i / numW;
+    float s1 = hash11(i * 17.31);
+    float s2 = hash11(i * 23.71 + 7.0);
+    float s3 = hash11(i * 11.13 + 3.0);
+
+    float spread = (id - 0.5) * 2.0 + (s1 - 0.5) * 0.5;
+    float dAlong = along - kAlong;
+
+    float pinch      = 1.0 - exp(-2.2 * dAlong * dAlong);
+    float tightPinch = exp(-10.0 * dAlong * dAlong);
+
+    float ribbonBase = kPerp + spread * (0.06 * u_width + 0.35 * u_width * pinch);
+
+    float phase = along * (3.0 + s1 * 2.5) - t * (0.25 + s2 * 0.35);
+    float wave = sin(phase) * 0.035 * (0.4 + pinch) * u_width
+               + sin(phase * 2.1 + s1 * 5.0 - t * 0.18) * 0.018 * (0.3 + pinch) * u_width
+               + sin(phase * 0.6 + s3 * 4.0 + t * 0.12) * 0.022 * pinch * u_width
+               + sin(along * 9.0 + i * PI / numW + t * 0.4) * 0.065 * tightPinch * u_width;
+
+    float ribbonY = ribbonBase + wave;
+    float d = abs(perp - ribbonY);
+
+    // Core + halo
+    float coreWidth = 0.0012 + 0.0006 * tightPinch;
+    float core = smoothstep(coreWidth, coreWidth * 0.2, d);
+    float haloR = 0.003 * (1.0 + 0.8 * tightPinch);
+    float halo = exp(-d * d / (haloR * haloR)) * 0.35;
+
+    // Color
+    vec3 ribbonCol = hsv2rgb(vec3(wHue + s1 * 0.06 - 0.03, 0.85 - 0.15 * tightPinch, 1.0));
+    float kBright = 1.0 + 1.2 * tightPinch;
+
+    // Flowing dots
+    float pPhase = along * (40.0 + s1 * 30.0) - t * (3.0 + s2 * 4.0);
+    float dotIntensity = 0.25 + 0.75 * pow(max(sin(pPhase), 0.0), 8.0);
+
+    col += ribbonCol * (core * 1.2 + halo) * kBright * dotIntensity;
+
+    // ── Sparks (skipped when sparks ≈ 0) ──
+    if(u_sparks > 0.01){
+      float sparkAccum = 0.0;
+      for(float si = 0.0; si < 5.0; si++){
+        float ss1 = hash11(i * 100.0 + si * 37.0 + 5.0);
+        float ss2 = hash11(i * 100.0 + si * 53.0 + 11.0);
+        float sPA = along - (t * (0.15 + ss1 * 0.35) + ss2 * 10.0);
+        float per = 0.8 + ss1 * 1.2;
+        float sL = mod(sPA, per) - per * 0.5;
+        float sD2 = sL * sL + d * d;
+        float sR = 0.0006 + 0.0004 * u_sparks;
+        float spark = exp(-sD2 / (sR * sR));
+        float tailX = sL + 0.012 + 0.008 * ss1;
+        float tail = exp(-(tailX * tailX * 8.0 + d * d * 400.0)) * step(0.0, tailX);
+        sparkAccum += (spark * 2.5 + tail * 0.8) * (0.5 + 0.5 * ss1);
+      }
+      col += mix(ribbonCol, vec3(1.0, 0.92, 0.7), 0.55) * sparkAccum * u_sparks;
+    }
+
+    // Rectangular nodes
+    float nodeFreq = 3.5 + s1 * 2.5;
+    float nodePhase = along * nodeFreq - t * (0.08 + s2 * 0.12);
+    float nodeOn = smoothstep(0.94, 0.97, sin(nodePhase));
+    float nodeShape = smoothstep(0.008, 0.0024, abs(mod(along / (1.0 / nodeFreq), 1.0) - 0.5))
+                    * smoothstep(0.003, 0.0009, d);
+    col += ribbonCol * 0.75 * nodeOn * nodeShape;
+  }
+
+  // ─── Vignette ───
+  col *= 1.0 - 0.45 * pow(length(uv - 0.5) * 1.4, 2.0);
+
+  // ─── Tonemap ───
+  col = 1.0 - exp(-col * 2.0);
+  col.b += 0.008 * (1.0 - col.b);
+
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+function createShader(type, src){
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if(!gl.getShaderParameter(s, gl.COMPILE_STATUS)){
+    console.error('Shader error:', gl.getShaderInfoLog(s));
+    return null;
+  }
+  return s;
+}
+
+const vs = createShader(gl.VERTEX_SHADER, VS);
+const fs = createShader(gl.FRAGMENT_SHADER, FS);
+const prog = gl.createProgram();
+gl.attachShader(prog, vs);
+gl.attachShader(prog, fs);
+gl.linkProgram(prog);
+if(!gl.getProgramParameter(prog, gl.LINK_STATUS))
+  console.error('Link error:', gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+const aPos = gl.getAttribLocation(prog, 'a_pos');
+gl.enableVertexAttribArray(aPos);
+gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+const uniforms = {};
+['u_res','u_time','u_knot','u_dir','u_waves','u_speed','u_sparks','u_width','u_whue','u_bghue','u_bgamt'].forEach(n => {
+  uniforms[n] = gl.getUniformLocation(prog, n);
+});
+
+function resize(){
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width  = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  gl.viewport(0, 0, canvas.width, canvas.height);
+}
+window.addEventListener('resize', resize);
+resize();
+
+const start = performance.now();
+function frame(){
+  const t = (performance.now() - start) / 1000;
+  gl.uniform2f(uniforms.u_res, canvas.width, canvas.height);
+  gl.uniform1f(uniforms.u_time, t);
+  gl.uniform2f(uniforms.u_knot, ctrl.kx, ctrl.ky);
+  gl.uniform1f(uniforms.u_dir, ctrl.dir);
+  gl.uniform1f(uniforms.u_waves, ctrl.waves);
+  gl.uniform1f(uniforms.u_speed, ctrl.spd);
+  gl.uniform1f(uniforms.u_sparks, ctrl.sparks);
+  gl.uniform1f(uniforms.u_width, ctrl.width);
+  gl.uniform1f(uniforms.u_whue, ctrl.whue);
+  gl.uniform1f(uniforms.u_bghue, ctrl.bghue);
+  gl.uniform1f(uniforms.u_bgamt, ctrl.bgamt);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>

@@ -5,6 +5,30 @@
 #include <cstdio>
 #include <cstdarg>
 
+
+// Not using file system
+static struct WasmSqModulesFileAccess : public ISqModulesFileAccess
+{
+  virtual void destroy() override {}
+
+  virtual void getSearchTargets(const char * /*fn*/, bool &search_native, bool &search_script) override {
+    search_native = true;
+    search_script = false; // No file system in Wasm build
+  }
+
+  virtual void resolveFileName(const char *requested_fn, const char *running_script, string &res) override {
+    // No relative paths because there's no file systems
+    res = requested_fn;
+  }
+
+  virtual bool readFile(const string &resolved_fn, const char *requested_fn, vector<char> &buf, string &out_err_msg) override {
+    // Should not get here, but just in case
+    out_err_msg = std::string("Cannot read '") + resolved_fn.c_str() + "' module from file";
+    return false;
+  }
+} wasm_file_access;
+
+
 static std::string output;
 
 
@@ -30,7 +54,7 @@ static const std::string vaformat(const char * const fmt, ...)
   return res;
 }
 
-static void script_print_func(HSQUIRRELVM /*v*/, const SQChar* s,...)
+static void script_print_func(HSQUIRRELVM /*v*/, const char* s,...)
 {
   va_list vl;
   va_start(vl, s);
@@ -39,7 +63,7 @@ static void script_print_func(HSQUIRRELVM /*v*/, const SQChar* s,...)
 }
 
 
-static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar* s,...)
+static void script_err_print_func(HSQUIRRELVM /*v*/, const char* s,...)
 {
   va_list vl;
   va_start(vl, s);
@@ -48,10 +72,10 @@ static void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar* s,...)
 }
 
 
-static void compile_error_handler(HSQUIRRELVM /*v*/, SQMessageSeverity sev, const SQChar *desc, const SQChar *source,
-                        SQInteger line, SQInteger column, const SQChar *extra_info)
+static void compile_error_handler(HSQUIRRELVM /*v*/, SQMessageSeverity sev, const char *desc, const char *source,
+                        SQInteger line, SQInteger column, const char *extra_info)
 {
-  const SQChar *sevName = "error";
+  const char *sevName = "error";
   if (sev == SEV_HINT) sevName = "hint";
   else if (sev == SEV_WARNING) sevName = "warning";
   output += vaformat("Squirrel compile %s: %s (%d:%d): %s", sevName, source, int(line), int(column), desc);
@@ -98,7 +122,7 @@ static std::string runScript(const std::string &source_text)
   assert(vm);
 
   std::unique_ptr<SqModules> moduleMgr;
-  moduleMgr.reset(new SqModules(vm));
+  moduleMgr.reset(new SqModules(vm, &wasm_file_access));
 
   sq_setprintfunc(vm, script_print_func, script_err_print_func);
   sq_setcompilererrorhandler(vm, compile_error_handler);
@@ -106,12 +130,12 @@ static std::string runScript(const std::string &source_text)
   sq_newclosure(vm, runtime_error_handler, 0);
   sq_seterrorhandler(vm);
 
-  sq_enabledebuginfo(vm, true);
   sq_enablevartrace(vm, false);
 
   moduleMgr->registerMathLib();
   moduleMgr->registerStringLib();
   moduleMgr->registerSystemLib();
+  moduleMgr->registerDebugLib();
   moduleMgr->registerIoStreamLib();
   //moduleMgr->registerIoLib(); // not needed in browser version
   moduleMgr->registerDateTimeLib();
@@ -134,7 +158,7 @@ static std::string runScript(const std::string &source_text)
       {
         if (SQ_SUCCEEDED(sq_tostring(vm, -1)))
         {
-          const SQChar *resStr = nullptr;
+          const char *resStr = nullptr;
           sq_getstring(vm, -1, &resStr);
           output += "\n";
           output += resStr;

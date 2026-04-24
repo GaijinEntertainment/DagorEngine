@@ -129,8 +129,7 @@ public:
 
   int level_count() const override;
   virtual int texmiplevel(int minlevel, int maxlevel);
-  virtual void setReadStencil(bool on) override { read_stencil = on; }
-  bool isReadStencil() const { return read_stencil; }
+  virtual void setReadStencil(bool on) override;
 
   virtual int lockimg(void **, int &stride_bytes, int level, unsigned flags);
   virtual int lockimg(void **, int &stride_bytes, int layer, int level, unsigned flags);
@@ -157,7 +156,7 @@ public:
   void *lock(int &row_pitch, int &slice_pitch, int level, int face, unsigned flags, bool readback = false);
   void unlock();
 
-  void apply(id<MTLTexture> &out_tex, bool is_read_stencil, int mip_level, int start_slice, bool is_uav, bool as_uint);
+  void apply(id<MTLTexture> &out_tex, int mip_level, int start_slice, bool is_uav, bool as_uint);
 
   virtual void destroy();
   void release();

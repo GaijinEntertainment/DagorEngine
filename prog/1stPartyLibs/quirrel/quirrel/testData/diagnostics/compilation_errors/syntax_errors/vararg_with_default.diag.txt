@@ -1,0 +1,9 @@
+ERROR: function with default parameters cannot have variable number of parameters
+testData/diagnostics/compilation_errors/syntax_errors/vararg_with_default.nut:2:20
+
+// EXPECT_ERROR: "function with default parameters cannot have variable number of parameters"
+function foo(a = 1, ...) {
+                    ^--
+    return a
+
+

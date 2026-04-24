@@ -7,10 +7,12 @@
 #include <soundSystem/debug.h>
 #include <soundSystem/vars.h>
 #include "internal/fmodCompatibility.h"
-#include "internal/events.h"
-#include "internal/vars.h"
-#include "internal/debug.h"
+#include "internal/events_internal.h"
+#include "internal/vars_internal.h"
+#include "internal/delayed_internal.h"
+#include "internal/debug_internal.h"
 #include <generic/dag_carray.h>
+#include <math/dag_check_nan.h>
 
 namespace sndsys
 {
@@ -26,7 +28,7 @@ static inline void make_var_desc(FMOD_STUDIO_PARAMETER_DESCRIPTION &parameter_de
   desc.fmodParameterType = int(parameter_desc.type);
 }
 
-bool get_var_desc(FMOD::Studio::EventDescription &event_description, const char *var_name, VarDesc &desc)
+bool get_var_desc(const FMOD::Studio::EventDescription &event_description, const char *var_name, VarDesc &desc)
 {
   desc = {};
   FMOD_STUDIO_PARAMETER_DESCRIPTION parameterDesc;
@@ -36,7 +38,7 @@ bool get_var_desc(FMOD::Studio::EventDescription &event_description, const char 
   return true;
 }
 
-bool get_var_desc(FMOD::Studio::EventDescription &event_description, const VarId &var_id, VarDesc &desc)
+bool get_var_desc(const FMOD::Studio::EventDescription &event_description, const VarId &var_id, VarDesc &desc)
 {
   desc = {};
   FMOD_STUDIO_PARAMETER_DESCRIPTION parameterDesc;
@@ -44,27 +46,6 @@ bool get_var_desc(FMOD::Studio::EventDescription &event_description, const VarId
     return false;
   make_var_desc(parameterDesc, desc);
   return true;
-}
-
-static inline FMOD_RESULT _set_var(FMOD::Studio::EventInstance &event_instance, const char *var_name, float value)
-{
-  if (!var_name || !*var_name)
-    return FMOD_ERR_INVALID_PARAM;
-  return event_instance.setParameterByName(var_name, value);
-}
-static inline FMOD_RESULT _set_var(eastl::pair<EventHandle, const char *> debug_name_or_handle,
-  FMOD::Studio::EventInstance &event_instance, const char *var_name, float value)
-{
-  FMOD_RESULT result = _set_var(event_instance, var_name, value);
-#if DAGOR_DBGLEVEL > 0
-  if (result != FMOD_OK)
-    debug_trace_warn("set_var \"%s\" failed (\"%s\"): \"%s\"", var_name,
-      debug_name_or_handle.second ? debug_name_or_handle.second : get_debug_name(debug_name_or_handle.first).c_str(),
-      FMOD_ErrorString(result));
-#else
-  G_UNREFERENCED(debug_name_or_handle);
-#endif
-  return result;
 }
 
 // event:t="[name=value;...;name=value]*"
@@ -94,8 +75,8 @@ void set_vars_fmt(const char *format, eastl::pair<EventHandle, const char *> deb
         return;
       }
 
-      float value = strtof(separator + 1, nullptr);
-      if (value == HUGE_VALF)
+      const float value = strtof(separator + 1, nullptr);
+      if (!check_finite(value) || value < -100000.f || value > 100000.f)
       {
         debug_trace_warn("Syntax error in event path '%s', 'real' is expected after '=' at '%s'", format, start);
         return;
@@ -112,7 +93,16 @@ void set_vars_fmt(const char *format, eastl::pair<EventHandle, const char *> deb
         continue;
       }
 #endif
-      _set_var(debug_name_or_handle, event_instance, varName.c_str(), value);
+      const FMOD_RESULT result = !varName.empty() ? event_instance.setParameterByName(varName.c_str(), value) : FMOD_ERR_INVALID_PARAM;
+#if DAGOR_DBGLEVEL > 0
+      if (result != FMOD_OK)
+        debug_trace_warn("set_var \"%s\" failed (\"%s\"): \"%s\"", varName.c_str(),
+          debug_name_or_handle.second ? debug_name_or_handle.second : get_debug_name(debug_name_or_handle.first).c_str(),
+          FMOD_ErrorString(result));
+#else
+      G_UNREFERENCED(debug_name_or_handle);
+      G_UNREFERENCED(result);
+#endif
     }
   }
 }
@@ -122,11 +112,11 @@ bool get_var_desc(EventHandle event_handle, const char *var_name, VarDesc &desc)
   desc = {};
   G_ASSERT(var_name);
   SNDSYS_IF_NOT_INITED_RETURN_(false);
-  FMOD::Studio::EventDescription *eventDescription = get_description(event_handle);
+  const FMOD::Studio::EventDescription *eventDescription = get_description(event_handle);
   return eventDescription && get_var_desc(*eventDescription, var_name, desc);
 }
 
-bool get_var_desc(const char *event_name, const char *var_name, VarDesc &desc)
+bool get_var_desc(const char *event_name, const char *var_name, VarDesc &desc, bool can_trace_warn /* = true*/)
 {
   desc = {};
   G_ASSERT(event_name && var_name);
@@ -134,48 +124,53 @@ bool get_var_desc(const char *event_name, const char *var_name, VarDesc &desc)
   char eventPath[DAGOR_MAX_PATH];
   SNPRINTF(eventPath, sizeof(eventPath), "event:/%s", event_name);
   FMOD::Studio::EventDescription *eventDescription = nullptr;
-  FMOD_RESULT fmodResult = get_studio_system()->getEvent(eventPath, &eventDescription);
+  const FMOD_RESULT fmodResult = get_studio_system()->getEvent(eventPath, &eventDescription);
   if (FMOD_OK != fmodResult)
   {
-    debug_trace_warn("get event \"%s\" failed: '%s'", "", FMOD_ErrorString(fmodResult));
+    if (can_trace_warn)
+      debug_trace_warn("get event \"%s\" failed: '%s'", "", FMOD_ErrorString(fmodResult));
     return false;
   }
   return eventDescription && get_var_desc(*eventDescription, var_name, desc);
 }
 
-bool get_var_desc(const FMODGUID &event_id, const char *var_name, VarDesc &desc)
+bool get_var_desc(const FMODGUID &event_id, const char *var_name, VarDesc &desc, bool can_trace_warn /* = true*/)
 {
   SNDSYS_IF_NOT_INITED_RETURN_(false);
   FMOD::Studio::EventDescription *eventDescription = nullptr;
   G_STATIC_ASSERT(sizeof(FMODGUID) == sizeof(FMOD_GUID));
-  FMOD_RESULT fmodResult = get_studio_system()->getEventByID((FMOD_GUID *)&event_id, &eventDescription);
+  const FMOD_RESULT fmodResult = get_studio_system()->getEventByID((FMOD_GUID *)&event_id, &eventDescription);
   if (FMOD_OK != fmodResult)
   {
-    debug_trace_warn("get event \"%s\" failed: '%s'", "", FMOD_ErrorString(fmodResult));
+    if (can_trace_warn)
+      debug_trace_warn("get event \"%s\" failed: '%s'", "", FMOD_ErrorString(fmodResult));
     return false;
   }
   return eventDescription && get_var_desc(*eventDescription, var_name, desc);
 }
 
-bool get_var_desc(const FMODGUID &event_id, const VarId &var_id, VarDesc &desc)
+bool get_var_desc(const FMODGUID &event_id, const VarId &var_id, VarDesc &desc, bool can_trace_warn /* = true*/)
 {
   SNDSYS_IF_NOT_INITED_RETURN_(false);
   FMOD::Studio::EventDescription *eventDescription = nullptr;
   G_STATIC_ASSERT(sizeof(FMODGUID) == sizeof(FMOD_GUID));
-  FMOD_RESULT fmodResult = get_studio_system()->getEventByID((FMOD_GUID *)&event_id, &eventDescription);
+  const FMOD_RESULT fmodResult = get_studio_system()->getEventByID((FMOD_GUID *)&event_id, &eventDescription);
   if (FMOD_OK != fmodResult)
   {
-    debug_trace_warn("get event \"%s\" failed: '%s'", "", FMOD_ErrorString(fmodResult));
+    if (can_trace_warn)
+      debug_trace_warn("get event \"%s\" failed: '%s'", "", FMOD_ErrorString(fmodResult));
     return false;
   }
   return eventDescription && get_var_desc(*eventDescription, var_id, desc);
 }
 
-VarId get_var_id(EventHandle event_handle, const char *var_name)
+VarId get_var_id(EventHandle event_handle, const char *var_name, bool can_trace_warn /* = true*/)
 {
   VarDesc desc;
   if (get_var_desc(event_handle, var_name, desc))
     return desc.id;
+  if (can_trace_warn)
+    debug_trace_warn("set_var \"%s\" failed (\"%s\")", var_name, get_debug_name(event_handle).c_str());
   return {};
 }
 
@@ -207,7 +202,7 @@ bool get_var(EventHandle event_handle, const VarId &var_id, float &val)
 {
   val = 0.f;
   SNDSYS_IF_NOT_INITED_RETURN_(false);
-  FMOD::Studio::EventInstance *eventInstance = get_instance(event_handle);
+  const FMOD::Studio::EventInstance *eventInstance = get_instance(event_handle);
   if (!eventInstance)
     return false;
   SOUND_VERIFY_AND_DO(eventInstance->getParameterByID(as_fmod_param_id(var_id), &val, nullptr), return false);
@@ -218,7 +213,7 @@ VarId get_var_id_global(const char *var_name)
 {
   SNDSYS_IF_NOT_INITED_RETURN_({});
   FMOD_STUDIO_PARAMETER_DESCRIPTION parameterDesc;
-  FMOD_RESULT fmodResult = get_studio_system()->getParameterDescriptionByName(var_name, &parameterDesc);
+  const FMOD_RESULT fmodResult = get_studio_system()->getParameterDescriptionByName(var_name, &parameterDesc);
   if (FMOD_OK == fmodResult)
   {
     VarDesc desc;
@@ -228,7 +223,7 @@ VarId get_var_id_global(const char *var_name)
   return {};
 }
 
-bool set_var(EventHandle event_handle, const VarId &var_id, float value)
+bool set_var_immediate(EventHandle event_handle, const VarId &var_id, float value)
 {
   if (!var_id)
     return false;
@@ -239,38 +234,51 @@ bool set_var(EventHandle event_handle, const VarId &var_id, float value)
 #if DAGOR_DBGLEVEL > 0
   {
     FMOD::Studio::EventDescription *eventDescription = get_description(event_handle);
-    if (!eventDescription)
-      return false;
     FMOD_STUDIO_PARAMETER_DESCRIPTION parameterDesc;
-    if (FMOD_OK != eventDescription->getParameterDescriptionByID(as_fmod_param_id(var_id), &parameterDesc))
-      return false;
-    G_ASSERT(parameterDesc.type == FMOD_STUDIO_PARAMETER_GAME_CONTROLLED);
+    if (eventDescription && FMOD_OK == eventDescription->getParameterDescriptionByID(as_fmod_param_id(var_id), &parameterDesc))
+      G_ASSERT(parameterDesc.type == FMOD_STUDIO_PARAMETER_GAME_CONTROLLED);
   }
-  FMOD_RESULT fmodResult = eventInstance->setParameterByID(as_fmod_param_id(var_id), value);
-  if (FMOD_OK != fmodResult)
+#endif
+  const FMOD_RESULT result = eventInstance->setParameterByID(as_fmod_param_id(var_id), value);
+#if DAGOR_DBGLEVEL > 0
+  if (FMOD_OK != result)
   {
     const FMOD::Studio::EventDescription *eventDescription = get_description(event_handle);
     debug_trace_warn("set_var %s -> %f failed: '%s'", eventDescription ? get_debug_name(*eventDescription).c_str() : "", value,
-      FMOD_ErrorString(fmodResult));
-    return false;
+      FMOD_ErrorString(result));
   }
-  return true;
+#else
+  G_UNREFERENCED(result);
 #endif
-  SOUND_VERIFY_AND_DO(eventInstance->setParameterByID(as_fmod_param_id(var_id), value), return false);
-  return true;
+  return FMOD_OK == result;
+}
+
+bool set_var(EventHandle event_handle, const VarId &var_id, float value)
+{
+  if (!var_id)
+    return false;
+  SNDSYS_IF_NOT_INITED_RETURN_(false);
+  if (should_delay(event_handle, 0.f))
+  {
+    delayed::set_var(event_handle, var_id, value);
+    return true;
+  }
+  return set_var_immediate(event_handle, var_id, value);
 }
 
 bool set_var(EventHandle event_handle, const char *var_name, float value)
 {
   SNDSYS_IF_NOT_INITED_RETURN_(false);
-  FMOD::Studio::EventInstance *eventInstance = get_instance(event_handle);
-  return eventInstance ? _set_var({event_handle, nullptr}, *eventInstance, var_name, value) == FMOD_OK : false;
+  if (const VarId varId = get_var_id(event_handle, var_name, true /*can_trace_warn*/))
+    return set_var(event_handle, varId, value);
+  return false;
 }
 bool set_var_optional(EventHandle event_handle, const char *var_name, float value)
 {
   SNDSYS_IF_NOT_INITED_RETURN_(false);
-  FMOD::Studio::EventInstance *eventInstance = get_instance(event_handle);
-  return eventInstance ? _set_var(*eventInstance, var_name, value) == FMOD_OK : false;
+  if (const VarId varId = get_var_id(event_handle, var_name, false /*can_trace_warn*/))
+    return set_var(event_handle, varId, value);
+  return false;
 }
 
 bool set_var_global(const VarId &var_id, float value)
@@ -364,6 +372,16 @@ bool get_param_count(EventHandle event_handle, int &param_count)
 {
   SNDSYS_IF_NOT_INITED_RETURN_(false);
   FMOD::Studio::EventDescription *eventDescription = get_description(event_handle);
+  if (!eventDescription)
+    return false;
+  SOUND_VERIFY_AND_DO(eventDescription->getParameterDescriptionCount(&param_count), return false);
+  return true;
+}
+
+bool get_param_count(const FMODGUID &event_id, int &param_count)
+{
+  SNDSYS_IF_NOT_INITED_RETURN_(false);
+  FMOD::Studio::EventDescription *eventDescription = get_description(event_id);
   if (!eventDescription)
     return false;
   SOUND_VERIFY_AND_DO(eventDescription->getParameterDescriptionCount(&param_count), return false);

@@ -2,13 +2,13 @@ include "dynamic_trans_inc.dshl"
 include "cloud_mask.dshl"
 include "glass_gbuffer_inc.dshl"
 include "camera_in_camera.dshl"
+include "dynamic_destr_disappear_inc.dshl"
 
 shader dynamic_alpha_blend
 {
   IMPORT_ON_TOP_CAMERA_IN_CAMERA(vs)
   IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
-  ENABLE_ASSERT(ps)
-  if (dyn_model_render_pass != render_pass_normal || glass_normal_pass == yes)
+  if (dyn_model_render_pass != render_pass_normal || rendinst_transparent_gbuffer_pass == generate)
   {
     dont_render;
   }
@@ -16,7 +16,7 @@ shader dynamic_alpha_blend
   DYNAMIC_BLOCK_TRANS()
 
   texture tex = material.texture.diffuse;
-  (ps) { diffuse_tex@static = tex; }
+  (ps) { diffuse_tex@staticSmp = tex; }
 
   render_trans;
   z_bias = 0;
@@ -41,7 +41,8 @@ shader dynamic_alpha_blend
 
   static int num_bones = 0;
   interval num_bones: no_bones<1, four_bones;
-  supports global_const_block;
+
+  DYNAMIC_DESTR_DISAPPEAR_INIT()
 
   hlsl {
     #define DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT 1
@@ -50,7 +51,7 @@ shader dynamic_alpha_blend
 
     struct VsOutput
     {
-        VS_OUT_POSITION(pos)
+        PRECISE VS_OUT_POSITION(pos)
         float3 normal                           : TEXCOORD0;
         float2 diffuseTexcoord                  : TEXCOORD1;
         float3 pointToEye                       : TEXCOORD2;
@@ -59,6 +60,9 @@ shader dynamic_alpha_blend
         float3 fogMul                           : TEXCOORD5;
         float3 fogAdd                           : TEXCOORD6;
         float4 clipPos                          : TEXCOORD7;
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+          float4 destr_params                   : TEXCOORD8;
+        #endif
         #if SET_UP_MULTIDRAW
         VSOUT_DRAW_ID
         #endif
@@ -66,6 +70,7 @@ shader dynamic_alpha_blend
   }
 
   DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  DYNAMIC_DESTR_DISAPPEAR_USE()
   BASE_USE_BRUNETON_FOG(vs)
 
   hlsl(vs) {
@@ -93,7 +98,7 @@ shader dynamic_alpha_blend
   BASE_USE_BRUNETON_FOG(ps)
   GET_CLOUD_VOLUME_MASK()
 
-  if (mobile_render == off && in_editor_assume == no)
+  if (in_editor_assume == no)
   {
     USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
   }
@@ -119,7 +124,7 @@ shader dynamic_alpha_blend
       half3 pointToEyeDir = normalize(input.pointToEye.xyz);
       float2 screenUV = input.clipPos.xy / input.clipPos.w*float2(0.5, -0.5) + 0.5;
 
-      ##if mobile_render == off && in_editor_assume == no
+      ##if in_editor_assume == no
       #if APPLY_BRUNETON_FOG
         get_volfog_with_precalculated_scattering(
           screenUV,

@@ -6,7 +6,7 @@
 namespace das {
 
 __forceinline SQRESULT sq_getstring(HSQUIRRELVM v,SQInteger idx,const char * const *c) {
-    return sq_getstring(v,idx,(const SQChar **)c);
+    return sq_getstring(v,idx,(const char **)c);
 }
 
 void sqdas_register(HSQUIRRELVM v);

@@ -11,6 +11,9 @@ struct AutoResolutionData
 {
   AutoResTypeNameId id;
   float multiplier;
+
+  // Bitwise float comparison is intentional.
+  bool operator==(const AutoResolutionData &) const = default;
 };
 
 } // namespace dafg

@@ -3,13 +3,14 @@ include "gbuffer.dshl"
 include "normaldetail.dshl"
 include "simple_painted_inc.dshl"
 include "random_color.dshl"
+include "dynamic_destr_disappear_inc.dshl"
 
 
 shader dynamic_simple_painted
 {
-  ENABLE_ASSERT(ps)
   SUPPORT_MULTIDRAW(false)
   DYNAMIC_BLOCK()
+  DYNAMIC_DESTR_DISAPPEAR_INIT()
 
   texture tex = material.texture.diffuse;
   texture normal = material.texture[2];
@@ -42,6 +43,7 @@ shader dynamic_simple_painted
   }
 
   DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  DYNAMIC_DESTR_DISAPPEAR_USE()
   hlsl(vs) {
     void vs_post_function(VsInput input, inout VsOutput output)
     {
@@ -57,15 +59,15 @@ shader dynamic_simple_painted
     if (in_editor_assume == no) { NO_DYNSTCODE() }
     if (atest == atestOn)
     {
-      (ps) { diffuse_tex@static = tex; }
+      (ps) { diffuse_tex@staticSmp = tex; }
     }
-    SPECIAL_RENDER_ALPHATEST_CHOOSE()
+    SPECIAL_RENDER_ALPHATEST_CHOOSE(enable_ri_disintegration_animation == enabled)
   }
   else
   {
     hlsl(ps) {
       #define IS_DYNAMIC 1
     }
-    SIMPLE_PAINTED_PS(true, false)
+    SIMPLE_PAINTED_PS(true, false, GBUFFER_ORDER_DYNAMIC)
   }
 }

@@ -22,6 +22,8 @@
 #include <render/dynmodelRenderer.h>
 #include <perfMon/gpuProfiler.h>
 
+#include <EASTL/array.h>
+
 #define COLOR_HISTOGRAM_GRAPH_NAME      "Color histogram"
 #define BRIGHTNESS_HISTOGRAM_GRAPH_NAME "Brightness histogram"
 #define HISTOGRAM_UPDATE_TIME           1000
@@ -69,7 +71,9 @@ static dynrend::Statistics unit_stat;
 static const int stat_count = 11;
 static const char *stat_names[stat_count] = {
   "fps", "cpu frame", "triangles", "dip", "lock_vbib", "rt", "shaders", "instances", "rpasses", "dip/unit", "tri/unit"};
-static bool displayed_stats[stat_count] = {true, true, true, true, true, true, true, true, true, true, true};
+static constexpr bool displayed_stats_defaults[stat_count] = {
+  true, false, false, false, false, false, false, false, false, true, true};
+static eastl::array<bool, stat_count> displayed_stats = eastl::to_array(displayed_stats_defaults);
 
 void ec_init_stat3d()
 {
@@ -253,14 +257,15 @@ void ViewportWindow::drawStat3d()
 }
 
 
-void ViewportWindow::fillStat3dStatSettings(ViewportWindowStatSettingsDialog &dialog)
+void ViewportWindow::fillStat3dStatSettings(ViewportWindowStatSettingsDialog &dialog, bool show_3d_stats_default)
 {
   G_STATIC_ASSERT((CM_STATS_SETTINGS_STAT3D_ITEM_LAST + 1 - CM_STATS_SETTINGS_STAT3D_ITEM0) >= stat_count);
 
-  PropPanel::TLeafHandle statGroup = dialog.addGroup(CM_STATS_SETTINGS_STAT3D_GROUP, "Stat 3d", calcStat3d);
+  PropPanel::TLeafHandle statGroup =
+    dialog.addGroup(CM_STATS_SETTINGS_STAT3D_GROUP, "Stat 3d", shownStats._3dStats, show_3d_stats_default);
 
   for (int i = 0; i < stat_count; ++i)
-    dialog.addOption(statGroup, CM_STATS_SETTINGS_STAT3D_ITEM0 + i, stat_names[i], displayed_stats[i]);
+    dialog.addOption(statGroup, CM_STATS_SETTINGS_STAT3D_ITEM0 + i, stat_names[i], displayed_stats[i], displayed_stats_defaults[i]);
 }
 
 void ViewportWindow::handleStat3dStatSettingsDialogChange(int pcb_id, bool value)

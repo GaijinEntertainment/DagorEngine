@@ -46,6 +46,10 @@ public:
 protected:
   bool load(const char *name); //> return true if loaded, false if requested to load asynchronously
 
+public:
+  static constexpr TexFormat def_tex_format = TexFormat::SRGB_IN_UNORM;
+  TexFormat texFormat = def_tex_format;
+
 protected:
   GuiScene *guiScene = nullptr;
   AsyncLoadRequest *loadReq = nullptr;
@@ -64,15 +68,5 @@ class PictureImmediate : public Picture
 public:
   PictureImmediate(HSQUIRRELVM vm, const char *name);
 };
-
-class LottieAnimation : public Picture
-{
-public:
-  LottieAnimation(HSQUIRRELVM vm, const char *name) : Picture(vm) { init(name); }
-  LottieAnimation(const LottieAnimation &) = delete;
-  ~LottieAnimation();
-};
-
-void bind_lottie_animation(SqModules *module_mgr, Sqrat::Table *exports = nullptr);
 
 } // namespace darg

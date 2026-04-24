@@ -19,8 +19,9 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
   RiverRendererCB *riversCB, bool high_precision_distance_field, bool shore_waves_on)
 {
   distField.close();
-  Color4 world_to_heightmap = ShaderGlobal::get_color4_fast(get_shader_variable_id("world_to_heightmap", true));
-  ShaderGlobal::set_real(get_shader_variable_id("sdf_texture_size_meters"), world_to_heightmap.r > 0 ? 1.0 / world_to_heightmap.r : 1);
+  Color4 world_to_heightmap = ShaderGlobal::get_float4(get_shader_variable_id("world_to_heightmap", true));
+  ShaderGlobal::set_float(get_shader_variable_id("sdf_texture_size_meters"),
+    world_to_heightmap.r > 0 ? 1.0 / world_to_heightmap.r : 1);
 
   ShaderGlobal::set_int(get_shader_variable_id("distance_field_texture_size"), textureSize);
   ShaderGlobal::set_int(get_shader_variable_id("height_texture_size"), heightmapTextureSize);
@@ -36,8 +37,8 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
   if (shore_waves_on)
   {
     UniqueTex tempDistField[2]; //|TEXFMT_R8
-    tempDistField[0] = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_G16R16, 1, "shore_sdf_t0");
-    tempDistField[1] = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_G16R16, 1, "shore_sdf_t1");
+    tempDistField[0] = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_G16R16, 1, "shore_sdf_t0", RESTAG_WATER);
+    tempDistField[1] = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_G16R16, 1, "shore_sdf_t1", RESTAG_WATER);
     {
       d3d::SamplerInfo smpInfo;
       smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
@@ -80,9 +81,11 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
     if (riversCB || detect_rivers_width > 0)
     {
       const int river_levels = 3;
-      river_mask = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_R8, river_levels, "temp_river_mask");
+      river_mask =
+        dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_R8, river_levels, "temp_river_mask", RESTAG_WATER);
       if (!river_mask.getTex2D())
-        river_mask = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_A8R8G8B8, river_levels, "temp_river_mask");
+        river_mask = dag::create_tex(NULL, textureSize, textureSize, TEXCF_RTARGET | TEXFMT_A8R8G8B8, river_levels, "temp_river_mask",
+          RESTAG_WATER);
       d3d_err(river_mask.getTex2D());
       {
         d3d::SamplerInfo smpInfo;
@@ -93,7 +96,7 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
       if (detect_rivers_width > 0)
       {
         d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
-        ShaderGlobal::set_real(get_shader_variable_id("max_river_width", true), detect_rivers_width);
+        ShaderGlobal::set_float(get_shader_variable_id("max_river_width", true), detect_rivers_width);
         PostFxRenderer riverBuilder;
         riverBuilder.init("build_river");
         riverBuilder.render();
@@ -121,7 +124,8 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
     // build sdf
     high_precision_distance_field &= d3d::check_texformat(TEXFMT_A16B16G16R16);
     distField = dag::create_tex(NULL, textureSize, textureSize,
-      TEXCF_RTARGET | (high_precision_distance_field ? TEXFMT_A16B16G16R16 : TEXFMT_A8R8G8B8), 1, "shore_distance_field_tex");
+      TEXCF_RTARGET | (high_precision_distance_field ? TEXFMT_A16B16G16R16 : TEXFMT_A8R8G8B8), 1, "shore_distance_field_tex",
+      RESTAG_WATER);
 
     d3d::set_render_target(distField.getTex2D(), 0);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);
@@ -140,7 +144,8 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
       shoreDistanceFieldTexSize/16,
       TEXCF_RTARGET|TEXFMT_R8,
       1,
-      "shoreDistanceFieldTex");
+      "shoreDistanceFieldTex",
+      RESTAG_WATER);
 
     PostFxRenderer countTiles;countTiles.init("water_gradient_count_tiles", NULL, true);
     d3d::set_render_target(tempDistField, 0, false);
@@ -166,7 +171,7 @@ void build_distance_field(UniqueTexHolder &distField, int textureSize, int heigh
 
     high_precision_distance_field &= d3d::check_texformat(TEXFMT_L16);
     distField = dag::create_tex(NULL, textureSize, textureSize,
-      TEXCF_RTARGET | (high_precision_distance_field ? TEXFMT_L16 : TEXFMT_R8), 1, "shore_distance_field_tex");
+      TEXCF_RTARGET | (high_precision_distance_field ? TEXFMT_L16 : TEXFMT_R8), 1, "shore_distance_field_tex", RESTAG_WATER);
 
     d3d::set_render_target(distField.getTex2D(), 0);
     d3d::clearview(CLEAR_DISCARD_TARGET, 0, 0, 0);

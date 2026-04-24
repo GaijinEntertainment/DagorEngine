@@ -53,7 +53,6 @@ shader dagi_clear_albedo_freelist_cs
 
 shader dagi_clear_albedo_texture_cs
 {
-  ENABLE_ASSERT(cs)
   DAGI_ALBEDO_TEXTURE_WRITE(cs)
   hlsl(cs) {
     [numthreads(DAGI_ALBEDO_BLOCK_SIZE, DAGI_ALBEDO_BLOCK_SIZE, 1)]
@@ -72,7 +71,6 @@ shader dagi_albedo_toroidal_movement_cs
   hlsl {
     #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
   }
-  ENABLE_ASSERT(cs)
   DAGI_ALBEDO_WRITE(cs)
   DAGI_ALBEDO_FREE_BLOCK_USE(cs)
   DAGI_UPDATE_OTHER(cs)
@@ -121,14 +119,17 @@ shader dagi_albedo_after_toroidal_movement_create_indirect_cs
   hlsl {
     #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
   }
-  ENABLE_ASSERT(cs)
   DAGI_ALBEDO_CLIPMAP_MATH_INIT(cs)
   DAGI_ALBEDO_CLIPMAP_MATH_USE(cs)
   DAGI_ALBEDO_FREE_INDICES_WRITE_DECL(cs)
   DAGI_UPDATE_OTHER(cs)
   DAGI_ALBEDO_ATLAS_MATH(cs)
+  (cs) {
+    dagi_albedo_indirect_args@uav : register(0) hlsl {
+      RWByteAddressBuffer dagi_albedo_indirect_args@uav;
+    }
+  }
   hlsl(cs) {
-    RWByteAddressBuffer dagi_albedo_indirect_args:register(u0);
     [numthreads(1, 1, 1)]
     void dagi_albedo_after_toroidal_movement_create_indirect_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
     {
@@ -142,7 +143,6 @@ shader dagi_albedo_after_toroidal_movement_create_indirect_cs
 
 shader dagi_albedo_fix_insufficient_cs
 {
-  ENABLE_ASSERT(cs)
   DAGI_ALBEDO_FREE_INDICES_WRITE_DECL(cs)
   DAGI_ALBEDO_CLIPMAP_SIZE_INIT(cs)
   DAGI_ALBEDO_CLIPMAP_SIZE_USE(cs)
@@ -175,7 +175,6 @@ shader dagi_albedo_allocate_after_toroidal_movement_cs
   hlsl {
     #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
   }
-  ENABLE_ASSERT(cs)
   DAGI_ALBEDO_WRITE(cs)
   DAGI_ALBEDO_FREE_BLOCK_USE(cs)
   DAGI_UPDATE_OTHER(cs)
@@ -286,7 +285,6 @@ shader dagi_albedo_allocate_after_toroidal_movement_pass2_cs
   hlsl {
     #define DAGI_ALBEDO_COHERENCY RWByteAddressBuffer
   }
-  ENABLE_ASSERT(cs)
   DAGI_ALBEDO_WRITE(cs)
   DAGI_ALBEDO_FREE_BLOCK_USE(cs)
   DAGI_UPDATE_OTHER(cs)
@@ -315,7 +313,6 @@ shader dagi_albedo_allocate_after_toroidal_movement_pass2_cs
 int4 dagi_albedo_scene_update_count;
 shader dagi_fix_empty_alpha_cs
 {
-  ENABLE_ASSERT(cs)
   DAGI_ALBEDO_WRITE(cs)
   (cs) {
     dagi_albedo_scene_update_count@i2 = dagi_albedo_scene_update_count;

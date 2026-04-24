@@ -272,7 +272,7 @@ extern "C" uint16_t half_from_float(uint32_t f)
   const uint32_t f_m_rounded = _uint32_add(f_m, f_m_round_offset);
   const uint32_t f_m_denorm_sa = _uint32_sub(one, f_e_half_bias);
   const uint32_t f_m_with_hidden = _uint32_or(f_m_rounded, f_m_hidden_bit);
-  const uint32_t f_m_denorm = _uint32_srl(f_m_with_hidden, f_m_denorm_sa);
+  const uint32_t f_m_denorm = _uint32_srl(f_m_with_hidden, f_m_denorm_sa & 31); // may be out-of-range for non-denorm path
   const uint32_t h_m_denorm = _uint32_srl(f_m_denorm, f_h_m_pos_offset);
   const uint32_t f_m_rounded_overflow = _uint32_and(f_m_rounded, f_m_hidden_bit);
   const uint32_t m_nan = _uint32_srl(f_m, f_h_m_pos_offset);
@@ -456,7 +456,7 @@ extern "C" uint16_t half_add(uint16_t x, uint16_t y)
   const uint16_t is_diff_denorm = _uint16_ext(is_diff_denorm_msb);
   const uint16_t is_a_or_b_norm_msb = _uint16_neg(a_e_biased);
   const uint16_t diff_denorm_sa = _uint16_dec(a_e_biased);
-  const uint16_t c_m_diff_denorm = _uint16_sll(c_m_smag_diff, diff_denorm_sa);
+  const uint16_t c_m_diff_denorm = _uint16_sll(c_m_smag_diff, diff_denorm_sa & 15); // may be out-of-range when a_e_biased==0
   const uint16_t c_m_diff_norm = _uint16_sll(c_m_smag_diff, diff_norm_sa);
   const uint16_t c_e_diff_norm = _uint16_sub(a_e_biased, diff_norm_sa);
   const uint16_t c_m_diff_ab_norm = _uint16_sels(is_diff_denorm_msb, c_m_diff_denorm, c_m_diff_norm);
@@ -548,14 +548,14 @@ extern "C" uint16_t half_mul(uint16_t x, uint16_t y)
   const uint32_t c_m_denorm_round_amount = _uint32_and(c_m_denorm_biased, h_m_mask);
   const uint32_t c_m_denorm_rounded = _uint32_add(c_m_denorm_biased, c_m_denorm_round_amount);
   const uint32_t c_m_denorm_inplace = _uint32_srl(c_m_denorm_rounded, h_m_bit_count);
-  const uint32_t c_m_denorm_unbiased = _uint32_srl(c_m_denorm_inplace, c_e_denorm_unbias_e);
+  const uint32_t c_m_denorm_unbiased = _uint32_srl(c_m_denorm_inplace, c_e_denorm_unbias_e & 31); // discared for non-denorm path
   const uint32_t c_m_denorm = _uint32_and(c_m_denorm_unbiased, h_m_mask);
   const uint32_t c_e_amount_biased = _uint32_add(a_e_amount, b_e_amount);
   const uint32_t c_e_amount_unbiased = _uint32_sub(c_e_amount_biased, h_e_bias);
   const uint32_t is_c_e_unbiased_underflow = _uint32_ext(c_e_amount_unbiased);
   const uint32_t c_e_underflow_half_sa = _uint32_neg(c_e_amount_unbiased);
   const uint32_t c_e_underflow_sa = _uint32_sll(c_e_underflow_half_sa, one);
-  const uint32_t c_m_underflow = _uint32_srl(c_m_normal, c_e_underflow_sa);
+  const uint32_t c_m_underflow = _uint32_srl(c_m_normal, c_e_underflow_sa & 31); // may be out-of-range for non-underflow path
   const uint32_t c_e_underflow_added = _uint32_andc(c_e_amount_unbiased, is_c_e_unbiased_underflow);
   const uint32_t c_m_underflow_added = _uint32_selb(is_c_e_unbiased_underflow, c_m_underflow, c_m_normal);
   const uint32_t is_mul_overflow_test = _uint32_and(c_e_underflow_added, m_round_overflow_bit);

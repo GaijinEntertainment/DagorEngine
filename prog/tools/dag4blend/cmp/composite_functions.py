@@ -407,13 +407,55 @@ def bbox_to_gameobj(source, gameobj_collection):
 
 
 # MISC------------------------------------------------------------------------------------------------------------------
+# copies scene properties from old scenes[0] to new one
+def copy_props_recursive(src, dst):
+    for prop in src.bl_rna.properties:
+        name = prop.identifier
+        if name in ["rna_type", 'name']:
+            continue
+        value = getattr(src, name)
+        # another PropertyGroup inside
+        if prop.type == 'POINTER':
+            if value is not None:
+                copy_props_recursive(value, getattr(dst, name))
+            continue
+        # CollectionProperty
+        if prop.type == 'COLLECTION':
+            dst_collection = getattr(dst, name)
+            dst_collection.clear()
+            for item in value:
+                new_item = dst_collection.add()
+                copy_props_recursive(item, new_item)
+            continue
+        else:
+            try:
+                setattr(dst, name, value)
+            except AttributeError:
+                print(AttributeError)
+                pass
+    for key in list(dst.keys()):
+        try:
+            del dst[key]
+        except:
+            #print(f'can not remove {key}')
+            pass  # must be an api-defined property, not custom one
+    for key in list(src.keys()):
+        try:
+            dst[key] = src[key]
+        except:
+            print(f'can not copy {src}["{key}"]')
+            pass
+    return
 
 #creates scenes for cmp supported data types
 def upd_scenes():
+    props_src = bpy.data.scenes[0]
     for S in ["COMPOSITS", "GAMEOBJ", "GEOMETRY", "TECH_STUFF"]:
         if bpy.data.scenes.get(S) is None:
             new_scene = bpy.data.scenes.new(name = S)
             new_scene.world = bpy.data.worlds[0]
+    if bpy.data.scenes[0] != props_src:
+        copy_props_recursive(props_src.dag4blend, bpy.data.scenes[0].dag4blend)
     upd_transfer_collection()
     return
 

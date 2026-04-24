@@ -75,6 +75,8 @@ struct NavParams
   float jump_down_weight = 20.0f;
   float jump_over_weight = 20.0f;
   float jump_weight = 40.0f;
+  float heuristic_scale = 0.999f;
+  float reopen_total_threshold = 0.0f;
 };
 
 struct PolyState
@@ -97,7 +99,7 @@ enum NavMeshType : unsigned
   NMT_TILECACHED
 };
 
-enum PolyArea : unsigned
+enum PolyArea : uint8_t
 {
   POLYAREA_UNWALKABLE = 0,
   POLYAREA_GROUND = 1,
@@ -108,7 +110,7 @@ enum PolyArea : unsigned
   // NB: please do not change/add new fields inside this enum, add game specific enum inside das and use it instead
 };
 
-enum PolyFlag : unsigned
+enum PolyFlag : uint16_t
 {
   POLYFLAG_GROUND = 0x01,
   POLYFLAG_OBSTACLE = 0x02,
@@ -178,6 +180,8 @@ bool query_navmesh_projections(const Point3 &pos, const Point3 &extents, Tab<Poi
   const CustomNav *custom_nav = nullptr);
 bool query_navmesh_projections(const Point3 &pos, const Point3 &extents, Tab<Point3> &projections, Tab<dtPolyRef> &out_polys,
   int points_num = 8, const CustomNav *custom_nav = nullptr);
+bool query_navmesh_polys(const Point3 &pos, const Point3 &extents, Tab<dtPolyRef> &out_polys, int max_polys = 8,
+  const CustomNav *custom_nav = nullptr);
 float get_distance_to_wall(const Point3 &pos, float horz_extents, float search_rad, const CustomNav *custom_nav = nullptr);
 float get_distance_to_wall(const Point3 &pos, float horz_extents, float search_rad, Point3 &hit_norm,
   const CustomNav *custom_nav = nullptr);
@@ -251,11 +255,14 @@ bool find_nearest_triangle_by_pos(const Point3 &pos, const dtPolyRef poly_id, fl
 int squash_jumplinks(const TMatrix &tm, const BBox3 &bbox);
 bool find_polys_in_circle(dag::Vector<dtPolyRef, framemem_allocator> &polys, const Point3 &pos, float radius,
   float height_half_offset);
+bool is_navmesh_position_suitable_ex(int nav_mesh_idx, const Point3 &pos, float horz_extents, float vert_extents, int min_polys,
+  int max_depth);
 
 void clear_nav_mesh(int nav_mesh_idx, bool clear_nav_data = true);
 bool load_nav_mesh_ex(int nav_mesh_idx, const char *kind, IGenLoad &crd, NavMeshType type = NMT_SIMPLE,
   tile_check_cb_t tile_check_cb = nullptr, const char *patch_nav_mesh_file_name = nullptr);
 void init_weights_ex(int nav_mesh_idx, const DataBlock *navQueryFilterWeightsBlk);
+void override_weights_ex(int nav_mesh_idx, const DataBlock &navQueryFilterWeightsOverrideBlk);
 bool is_loaded_ex(int nav_mesh_idx);
 FindPathResult find_path_ex(int nav_mesh_idx, Tab<Point3> &path, FindRequest &req, float step_size, float slop,
   const CustomNav *custom_nav = nullptr);
@@ -366,4 +373,5 @@ bool is_stored_state_valid(int nav_mesh_idx);
 Tab<PolyState> &get_internal_stored_state_buffer(int nav_mesh_idx);
 bool update_walkability(int nav_mesh_idx, const eastl::function<bool(const Point2 &)> &is_walkable_cb);
 
+String make_file_path_for_nav_mesh_kind(const char *base_file_path, const char *nav_mesh_kind);
 }; // namespace pathfinder

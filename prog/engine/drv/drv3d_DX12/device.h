@@ -13,8 +13,8 @@
 #include "pipeline_cache.h"
 #include "platform.h"
 #include "query_manager.h"
+#include "ray_trace_pipeline.h"
 #include "resource_manager/image.h"
-#include "shader.h"
 #include "shader_library.h"
 #include "swapchain.h"
 #include "tagged_handles.h"
@@ -24,14 +24,15 @@
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_driverNetManager.h>
-#include <drv/3d/dag_info.h>
 #include <drv_log_defs.h>
-#include <drv_assert_defs.h>
-#include <generic/dag_objectPool.h>
-#include <mutex>
 
-
-#include "ray_trace_pipeline.h"
+#if _TARGET_PC_WIN && _TARGET_64BIT && !_M_ARM64
+namespace amd
+{
+// bit of a hack to get access to the memory of FSR this way, but how its implemented would make it needlessly complicated to implement
+uint64_t getFSRMemorySize();
+} // namespace amd
+#endif
 
 namespace drv3d_dx12
 {
@@ -47,17 +48,19 @@ struct TextureSubresourceInfo
   uint32_t totalByteSize{};
 };
 
-TextureSubresourceInfo calculate_texture_region_info(Extent3D ext, FormatStore fmt);
-inline TextureSubresourceInfo calculate_texture_mip_info(const Image &texture, MipMapIndex mip_level)
+TextureSubresourceInfo calculate_texture_region_info(Extent3D ext, FormatStore fmt, FormatPlaneIndex plane_index = {});
+
+inline TextureSubresourceInfo calculate_texture_mip_info(const Image &texture, MipMapIndex mip_level,
+  FormatPlaneIndex plane_index = {})
 {
-  return calculate_texture_region_info(texture.getMipExtents(mip_level), texture.getFormat());
+  return calculate_texture_region_info(texture.getMipExtents(mip_level), texture.getFormat(), plane_index);
 }
-inline TextureSubresourceInfo calculate_texture_subresource_info(const Image &texture, SubresourceIndex subres_index)
-{
-  return calculate_texture_mip_info(texture, texture.stateIndexToMipIndex(subres_index));
-}
+
+TextureSubresourceInfo calculate_texture_subresource_info(const Image &texture, SubresourceIndex subres_index);
+
 uint64_t calculate_texture_staging_buffer_size(Extent3D size, MipMapCount mips, FormatStore format,
   SubresourceRange subresource_range);
+
 inline uint64_t calculate_texture_staging_buffer_size(const Image &texture, SubresourceRange subresource_range)
 {
   return calculate_texture_staging_buffer_size(texture.getBaseExtent(), texture.getMipLevelRange(), texture.getFormat(),
@@ -66,7 +69,15 @@ inline uint64_t calculate_texture_staging_buffer_size(const Image &texture, Subr
 
 #if D3D_HAS_RAY_TRACING
 
-D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS toAccelerationStructureBuildFlags(RaytraceBuildFlags flags);
+D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS to_acceleration_structure_build_flags(RaytraceBuildFlags flags, bool do_update);
+#if HAS_NVAPI
+NVAPI_D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS_EX to_acceleration_structure_build_flags_nvidia(RaytraceBuildFlags flags,
+  bool do_update);
+eastl::pair<NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX, RaytraceGeometryDescriptionBufferResourceReferenceSet> convert_to_nvidia(
+  const RaytraceGeometryDescription &desc, dag::ConstSpan<NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_USAGE_COUNT> omm_descs);
+
+NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_ARRAY_BUILD_FLAGS to_nvidia(RaytraceBuildFlags flags);
+#endif
 eastl::pair<D3D12_RAYTRACING_GEOMETRY_DESC, RaytraceGeometryDescriptionBufferResourceReferenceSet>
 raytraceGeometryDescriptionToGeometryDesc(const RaytraceGeometryDescription &desc);
 #endif
@@ -92,7 +103,7 @@ struct VirtualAllocFree
 #if _TARGET_PC_WIN
 class DeviceErrorState
 {
-  enum class Health
+  enum class Health : uint32_t
   {
     HEALTHY,
     ILL,
@@ -129,10 +140,16 @@ protected:
     notify_all(contextHealth);
   }
 
-  void enterRecoveringState()
+  bool enterRecoveringState()
   {
-    contextHealth.store(Health::RECOVERING);
+    Health expected = Health::ILL;
+    if (!contextHealth.compare_exchange_strong(expected, Health::RECOVERING))
+    {
+      D3D_ERROR("DX12: Can not enter recovering state from state %u", static_cast<uint32_t>(expected));
+      return false;
+    }
     notify_all(contextHealth);
+    return true;
   }
 
   bool enterHealthyState()
@@ -275,7 +292,7 @@ class DeviceErrorState
 protected:
   void enterErrorState() {}
 
-  void enterRecoveringState() {}
+  bool enterRecoveringState() { return true; }
 
   bool enterHealthyState() { return true; }
 
@@ -372,6 +389,19 @@ struct FeatureID<D3D12_FEATURE_DATA_D3D12_OPTIONS11>
   static constexpr D3D12_FEATURE value = D3D12_FEATURE_D3D12_OPTIONS11;
 };
 #endif
+#if _TARGET_PC_WIN
+template <>
+struct FeatureID<D3D12_FEATURE_DATA_D3D12_OPTIONS16>
+{
+  static constexpr D3D12_FEATURE value = D3D12_FEATURE_D3D12_OPTIONS16;
+};
+
+template <>
+struct FeatureID<D3D12_FEATURE_DATA_TIGHT_ALIGNMENT>
+{
+  static constexpr D3D12_FEATURE value = D3D12_FEATURE_D3D12_TIGHT_ALIGNMENT;
+};
+#endif
 
 // Availability of this defines is inconsistent between SDKs, so we have copy here for now
 #define D3D_SHADER_REQUIRES_DOUBLES                                                        0x00000001
@@ -422,7 +452,8 @@ inline T check_feature_support(ID3D12Device *device, As &&...as)
 inline D3D12_FEATURE_DATA_SHADER_MODEL get_shader_model(ID3D12Device *device)
 {
   auto RaytraceMinSM = 6.5_sm;
-  d3d::shadermodel::Version shaderModelToCheck[] = {d3d::smMax, RaytraceMinSM, 6.4_sm, 6.3_sm, 6.2_sm, 6.1_sm, 6.0_sm};
+  auto OmmMin = 6.9_sm;
+  d3d::shadermodel::Version shaderModelToCheck[] = {OmmMin, d3d::smMax, RaytraceMinSM, 6.4_sm, 6.3_sm, 6.2_sm, 6.1_sm, 6.0_sm};
   D3D12_FEATURE_DATA_SHADER_MODEL sm{};
   for (auto &shaderModel : shaderModelToCheck)
   {
@@ -443,6 +474,7 @@ class Device : public DeviceErrorState, public DeviceErrorObserver<Device>, prot
   friend class frontend::Swapchain;
   friend class TempBufferManager;
   friend class ResourceMemoryHeap;
+  friend class AsyncPipelineCompiler;
 
 public:
   struct Config
@@ -467,13 +499,29 @@ private:
     {
       DEPTH_BOUNDS_TEST,
 #if D3D_HAS_RAY_TRACING
+      /// Indicates that the basic RT features are supported:
+      /// - Ray Dispatch Pipelines
+      /// - Top Level Acceleration Structures
+      /// - Bottom Level Acceleration Structures
       RAY_TRACING,
+      /// Indicates expanded RT features are supported:
+      /// - More vertex formats are supported for Bottom Level Acceleration Structure builds
+      /// - Inline Ray Tracing / Ray Query in any shader
       RAY_TRACING_T1_1,
+      /// Indicates further expanded RT features are supported:
+      /// - Opacity Micro Maps
+      /// - Shader Execution Reordering
+      RAY_TRACING_T1_2,
+      /// Nvidia extension to support Opacity Micro Maps without the need for T1.2 support
+      RAY_TRACING_OMM_NV,
+      /// Nvidia extension to support Shader Execution Reorder without the need for T1.2 support
+      RAY_TRACING_SER_NV,
 #endif
 #if !_TARGET_XBOXONE
       SHADING_RATE_T1,
       SHADING_RATE_T2,
 #endif
+      TIGHT_BUFFER_ALIGNMENT,
 
       MAX
     };
@@ -497,9 +545,12 @@ private:
   D3D12_CPU_DESCRIPTOR_HANDLE defaultSampler{};
   D3D12_CPU_DESCRIPTOR_HANDLE defaultCmpSampler{};
 #if _TARGET_PC_WIN
-  uint32_t vendorID = 0;
   DriverVersion driverVersion{};
 #endif
+#if HAS_NVAPI
+  bool isNvapiInitialized = false;
+#endif
+  WIN_MEMBER bool allowRaytracePipelinePreload = true;
   frontend::BindlessManager bindlessManager;
   BufferState nullBuffer;
   Sbuffer *dummyUavBuffer = nullptr;
@@ -517,7 +568,6 @@ private:
   Device &operator=(const Device &) = delete;
   // TODO rename and move null resource table gen into it
   void setupNullViews();
-  void configureFeatureCaps();
 
 #if _TARGET_PC_WIN
   DXGIAdapter *getDXGIAdapter() { return adapter.Get(); }
@@ -563,6 +613,7 @@ private:
 
 public:
   eastl::unique_ptr<DriverNetManager> netManager;
+  int psoSlowThresholdUsec = 1000 * 1000;
   using debug::DeviceState::nameObject;
   using debug::DeviceState::nameResource;
   using debug::DeviceState::processDebugLog;
@@ -572,7 +623,8 @@ public:
   ~Device();
 #if _TARGET_PC_WIN
   bool init(const Direct3D12Enviroment &d3d_env, debug::GlobalState &debug_state, ComPtr<DXGIFactory> &factory,
-    AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg);
+    AdapterInfo &&adapter_info, D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo swapchain_create_info, const Config &cfg,
+    eastl::fixed_function<8, void()> caps_init);
   uint32_t ensureSecondarySwapchainCreatedNoLock(HWND window, ComPtr<DXGIFactory> &factory);
   void destroySecondarySwapchainForWindow(HWND window);
 #elif _TARGET_XBOX
@@ -580,7 +632,7 @@ public:
 #endif
   bool isInitialized() const;
   void shutdown(const DeviceCapsAndShaderModel &deatures);
-  void adjustCaps(Driver3dDesc &);
+  void adjustCaps(DriverDesc &);
   void initializeBindlessManager(bool enable_types_validation);
 #if D3D_HAS_RAY_TRACING
   bool hasRaytraceSupport() const { return caps.test(Caps::RAY_TRACING); }
@@ -588,9 +640,10 @@ public:
 #endif
   uint64_t getGpuTimestampFrequency();
   int getGpuClockCalibration(uint64_t *gpu, uint64_t *cpu, int *cpu_freq_type);
+  bool isRaytracePipelinePreloadAllowed() const { return allowRaytracePipelinePreload; }
   Image *createImage(const ImageInfo &ii, Image *base_image, const char *name);
 #if _TARGET_PC_WIN
-  Image *createVirtualBackbuffer(Image *base);
+  Image *createVirtualBackbuffer(Image *base, const char *name);
 #endif
 #if DX12_USE_ESRAM
   Image *createEsramBackedImage(const ImageInfo &ii, Image *base_image, const char *name);
@@ -609,13 +662,23 @@ public:
   void deletePredicate(int name);
   void setTexName(Image *img, const char *name);
   bool hasDepthBoundsTest() const { return caps.test(Caps::DEPTH_BOUNDS_TEST); }
+  uint64_t getBufferSizeAlignment() const
+  {
+    return caps.test(Caps::TIGHT_BUFFER_ALIGNMENT) ? 256 : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+  }
+  bool hasTightAlignment() const { return caps.test(Caps::TIGHT_BUFFER_ALIGNMENT); }
 
   uint32_t getPipelineCompilationQueueLength() const { return pipeMan.getCompilePipelineSetQueueLength(); }
+  void setPipelineSetCompilationPaused(bool paused) { pipeMan.setPipelineSetCompilationPaused(paused); }
 
   ID3D12CommandQueue *getGraphicsCommandQueue() const;
   D3DDevice *getDevice();
+#if !_TARGET_XBOXONE
+  ID3D12Device7 *tryGetDevice7();
+#endif
 
-  void processEmergencyDefragmentation(uint32_t heap_group, bool is_alternate_heap_allowed, bool is_uav, bool is_rtv);
+  void processEmergencyDefragmentation(uint32_t requested_group, bool is_alternate_heap_allowed, bool is_uav, bool is_rtv,
+    uint64_t requested_size, bool is_dedicated_heap);
   bool processDefragmentationForAllGroups();
 
   DeviceContext &getContext() { return context; }
@@ -624,10 +687,10 @@ public:
     uint32_t *out_used_mem_kb);
 #if D3D_HAS_RAY_TRACING
   RaytraceAccelerationStructure *createRaytraceAccelerationStructure(RaytraceGeometryDescription *desc, uint32_t count,
-    RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes);
-  RaytraceAccelerationStructure *createRaytraceAccelerationStructure(uint32_t size);
+    RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType tag);
+  RaytraceAccelerationStructure *createRaytraceAccelerationStructure(uint32_t size, ResourceTagType tag);
   RaytraceAccelerationStructure *createRaytraceAccelerationStructure(uint32_t elements, RaytraceBuildFlags flags,
-    uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes);
+    uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType tag);
 
 
   ::raytrace::TopAccelerationStructure *createRaytraceAccelerationStructure(
@@ -638,6 +701,10 @@ public:
     const ::raytrace::BottomAccelerationStructurePlacementInfo &bottom_info);
   ::raytrace::BottomAccelerationStructure *createRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool,
     const ::raytrace::BottomAccelerationStructurePlacementInfo &bottom_info);
+  ::raytrace::OpacityMicroMapTriangleArray *createRaytraceAccelerationStructure(
+    const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &omm_info);
+  ::raytrace::OpacityMicroMapTriangleArray *createRaytraceAccelerationStructure(::raytrace::AccelerationStructurePool pool,
+    const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &omm_info);
 
   uint64_t getRaytraceAccelerationStructuresMemoryUsage() { return resources.getRaytraceAccelerationStructuresGpuMemoryUsage(); }
 #endif
@@ -645,6 +712,7 @@ public:
   {
     if (hasCoherentMemory(buffer))
       return;
+    ScopedCommitLock lock{context};
     buffer.flushMappedMemory(offset, size);
   }
   void invalidateMappedMemory(BufferState &buffer, uint32_t offset, uint32_t size)
@@ -688,14 +756,20 @@ public:
       logdbg("DX12: Device error observer shutdown");
       return;
     }
-    // report everything into error log, so we have complete overview by just looking at that log
-    D3D_ERROR("DX12: Detected device lost...");
-    auto removedReason = device->GetDeviceRemovedReason();
-    D3D_ERROR("DX12: GetDeviceRemovedReason returned %s", dxgi_error_code_to_string(removedReason));
 
-    D3D_ERROR("DX12: Trying to read debug layer message queue...");
+    auto removedReason = device->GetDeviceRemovedReason();
+
+    logwarn("DX12: Detected device lost...");
+    logwarn("DX12: Trying to read debug layer message queue...");
+
     // report the debug log, if enabled it may tells what happened
     processDebugLog();
+
+    // please, add all important logging here (before D3D_ERROR), if you want to find it with 'Client Logs'
+    // but be sure you're fit in 30 Kb (storage limitation)
+
+    // call D3D_ERROR only once, to avoid spam in 'Client Logs'
+    D3D_ERROR("DX12: GetDeviceRemovedReason returned %s", dxgi_error_code_to_string(removedReason));
 
     context.onDeviceError(removedReason);
 
@@ -713,7 +787,8 @@ public:
 #if _TARGET_PC_WIN
   LUID preRecovery();
   bool recover(const Direct3D12Enviroment &d3d_env, DXGIFactory *factory, ComPtr<DXGIAdapter> &&input_adapter,
-    D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&swapchain_create_info, HWND wnd);
+    D3D_FEATURE_LEVEL feature_level, SwapchainCreateInfo &&swapchain_create_info, HWND wnd,
+    eastl::fixed_function<8, void()> caps_init);
   bool finalizeRecovery();
 
   using debug::DeviceState::isAnyCapturerLoaded;
@@ -764,12 +839,19 @@ public:
     bindlessManager.freeBindlessResourceRange(type, index, count);
   }
 
-  bool updateBindlessBuffer(uint32_t index, GenericBufferInterface *buffer)
+  bool updateBindlessBuffer(uint32_t index, Sbuffer *buffer) { return bindlessManager.updateBindlessBuffer(context, index, buffer); }
+
+  void updateBindlessBufferRange(D3DResourceType type, uint32_t index, const dag::Span<Sbuffer *> &buffers)
   {
-    return bindlessManager.updateBindlessBuffer(context, index, buffer);
+    bindlessManager.updateBindlessBufferRange(context, type, index, buffers);
   }
 
   bool updateBindlessTexture(uint32_t index, BaseTex *res) { return bindlessManager.updateBindlessTexture(context, index, res); }
+
+  void updateBindlessTextureRange(D3DResourceType type, uint32_t index, const dag::Span<BaseTex *> &textures)
+  {
+    bindlessManager.updateBindlessTextureRange(context, type, index, textures);
+  }
 
   void updateBindlessNull(D3DResourceType type, uint32_t index, uint32_t count)
   {
@@ -777,11 +859,6 @@ public:
   }
 
   void updateTextureBindlessReferencesNoLock(BaseTex *tex, Image *old_image);
-
-#if _TARGET_PC_WIN
-  uint32_t getDeviceVendorID() const { return vendorID; }
-  DriverVersion getDriverVersion() const { return driverVersion; }
-#endif
 
   void memoryDebugOverlay()
   {
@@ -822,9 +899,9 @@ public:
 #endif
 #endif
 
-  ResourceHeap *newUserHeap(ResourceHeapGroup *group, size_t size, ResourceHeapCreateFlags flags)
+  ResourceHeap *newUserHeap(ResourceHeapGroup *group, size_t size, ResourceHeapCreateFlags flags, ResourceTagType tag)
   {
-    return resources.newUserHeap(getDXGIAdapter(), *this, group, size, flags);
+    return resources.newUserHeap(getDXGIAdapter(), *this, group, size, flags, tag);
   }
 
   ResourceAllocationProperties getResourceAllocationProperties(const ResourceDescription &desc)
@@ -834,6 +911,7 @@ public:
 
   BufferState placeBufferInHeap(::ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
     const ResourceAllocationProperties &alloc_info, const char *name);
+  bool isBufferPlacedInUserHeap(const BufferState &buffer) { return resources.isBufferPlacedInUserHeap(buffer); }
   Image *placeTextureInHeap(::ResourceHeap *heap, const ResourceDescription &desc, size_t offset,
     const ResourceAllocationProperties &alloc_info, const char *name);
   ResourceHeapGroupProperties getResourceHeapGroupProperties(::ResourceHeapGroup *heap_group)
@@ -888,6 +966,24 @@ public:
   bool allowStagingStreamBuffer() const { return config.features.test(DeviceFeaturesConfig::ALLOW_STREAM_STAGING_BUFFERS); }
 
   bool isDefragmentationEnabled() const { return config.features.test(DeviceFeaturesConfig::ENABLE_DEFRAGMENTATION); }
+  bool isPanicBudgetDefragmentationEnabled() const
+  {
+    return config.features.test(DeviceFeaturesConfig::ENABLE_DEFRAGMENTATION_ON_PANIC_BUDGET);
+  }
+  bool isEmergencyDefragmentationEnabled() const
+  {
+    return config.features.test(DeviceFeaturesConfig::ENABLE_EMERGENCY_DEFRAGMENTATION);
+  }
+  bool isRecompositionEmergencyDefragmentation() const
+  {
+    return config.features.test(DeviceFeaturesConfig::USE_RECOMPOSITION_EMERGENCY_DEFRAGMENTATION);
+  }
+  bool isAsyncPsoCompilationAllowed() const { return config.features.test(DeviceFeaturesConfig::ALLOW_ASYNC_PSO_COMPILATION); }
+
+  bool isAliasResourcesForcedToUseSharedHeaps() const
+  {
+    return config.features.test(DeviceFeaturesConfig::FORCE_SHARED_HEAPS_USER_ALIAS_RESOURCES);
+  }
 
   template <typename... Args>
   TextureInterfaceBase *newTextureObject(Args &&...args)
@@ -1023,10 +1119,103 @@ public:
     const ::raytrace::TopAccelerationStructureSizeCalculcationInfo &info);
   ::raytrace::AccelerationStructureSizes calculateAccelerationStructureSizes(
     const ::raytrace::BottomAccelerationStructureSizeCalculcationInfo &info);
+  ::raytrace::AccelerationStructureSizes calculateAccelerationStructureSizes(
+    const ::raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo &info);
 
   ::raytrace::AccelerationStructurePool createAccelerationStructurePool(const ::raytrace::AccelerationStructurePoolCreateInfo &info);
 #endif
   D3D12_CPU_DESCRIPTOR_HANDLE allocateResourceDescriptor() { return resources.allocateTextureSRVDescriptor(device.get()); }
+
+#if _TARGET_PC_WIN
+  FeatureImplementation getOpacityMicroMapAvailability() const
+  {
+    if (caps.test(Caps::RAY_TRACING_T1_2))
+    {
+      return FeatureImplementation::Core;
+    }
+    else if (caps.test(Caps::RAY_TRACING_OMM_NV))
+    {
+      return FeatureImplementation::Nvidia;
+    }
+    else
+    {
+      return FeatureImplementation::None;
+    }
+  }
+  uint32_t getOpacityMicroMapInputBufferAlignment() const
+  {
+    switch (getOpacityMicroMapAvailability())
+    {
+      default: return 0;
+      case FeatureImplementation::Core: return 128;
+      case FeatureImplementation::Nvidia: return 256;
+    }
+  }
+#else
+  constexpr FeatureImplementation getOpacityMicroMapAvailability() const { return FeatureImplementation::None; }
+  constexpr uint32_t getOpacityMicroMapInputBufferAlignment() const { return 0; }
+#endif
+
+  bool recordContextRingBuffer() const { return config.features.test(DeviceFeaturesConfig::RECORD_CONTEXT_RING_BUFFER); }
+
+  void visitTaggedResources(const ResourceTypeFilter &filter, const ResourceVisitor &visitor)
+  {
+    resources.visitTaggedResources(device.get(), filter, visitor);
+    if (!filter.includeUnspecifiedMemory)
+    {
+      return;
+    }
+#if USE_DLSS_WITHOUT_STREAMLINE
+    auto dlssMemoryUsage = context.dlssInterface.getMemoryUsage();
+    if (dlssMemoryUsage > 0)
+    {
+      visitor({
+        .type = TaggedResourceType::UnspecifiedMemory,
+        .tag = "DLSS",
+        .sizeInBytes = static_cast<uint32_t>(dlssMemoryUsage),
+      });
+    }
+#endif
+    auto xessMemoryUsage = context.xessWrapper.getMemoryUsage();
+    if (xessMemoryUsage > 0)
+    {
+      visitor({
+        .type = TaggedResourceType::UnspecifiedMemory,
+        .tag = "XESS",
+        .sizeInBytes = static_cast<uint32_t>(xessMemoryUsage),
+      });
+    }
+#if _TARGET_PC_WIN
+    if (context.streamlineAdapter)
+    {
+      auto streamlineMemoryUsage = context.streamlineAdapter->getMemorySize();
+      if (streamlineMemoryUsage > 0)
+      {
+        visitor({
+          .type = TaggedResourceType::UnspecifiedMemory,
+          .tag = "DLSS",
+          .sizeInBytes = static_cast<uint32_t>(streamlineMemoryUsage),
+          /// reported values by streamline are always estimates
+          .isAproximation = true,
+        });
+      }
+    }
+#if _TARGET_64BIT && !_M_ARM64
+    auto fsrMemoryUsage = ::amd::getFSRMemorySize();
+    if (fsrMemoryUsage > 0)
+    {
+      visitor({
+        .type = TaggedResourceType::UnspecifiedMemory,
+        .tag = "FSR",
+        .sizeInBytes = static_cast<uint32_t>(fsrMemoryUsage),
+      });
+    }
+#endif
+#endif
+  }
+
+  void reportBindlessSlotsInfo() { bindlessManager.reportBindlessSlotsInfo(); }
+  void reportBindlessSlotsAllocationInfo() { bindlessManager.reportBindlessSlotsAllocationInfo(); }
 };
 
 // makes all uses as dirty so that a discarded buffer is correctly used
@@ -1092,11 +1281,13 @@ inline void PipelineStageStateBase::pushConstantBuffers(ID3D12Device *device, Sh
   }
 #endif
 
+  // it's important to bind constRegisterLastBuffer only to slot '0'
+  const bool isConstRegisterLastBufferCanBeUsed = (cb_mask & 1) != 0 && constRegisterLastBuffer.BufferLocation != 0;
   if (ConstantBufferPushMode::DESCRIPTOR_HEAP == mode)
   {
     const auto baseIndex = heap.allocateConstBufferDescriptors(count);
     auto index = baseIndex;
-    auto defView = constRegisterLastBuffer.BufferLocation != 0 ? &constRegisterLastBuffer : nullptr;
+    auto defView = isConstRegisterLastBufferCanBeUsed ? &constRegisterLastBuffer : nullptr;
 
     for (auto i : LsbVisitor{cb_mask}) // pos may be changed on each iteration
     {
@@ -1111,8 +1302,7 @@ inline void PipelineStageStateBase::pushConstantBuffers(ID3D12Device *device, Sh
   }
   else
   {
-    auto defAdr =
-      constRegisterLastBuffer.BufferLocation != 0 ? constRegisterLastBuffer.BufferLocation : default_const_buffer.BufferLocation;
+    auto defAdr = isConstRegisterLastBufferCanBeUsed ? constRegisterLastBuffer.BufferLocation : default_const_buffer.BufferLocation;
 
     for (auto i : LsbVisitor{cb_mask})
     {
@@ -1546,8 +1736,8 @@ inline bool PipelineStageStateBase::URegister::is(D3D_SHADER_INPUT_TYPE type, D3
 #undef CHECK_BUFFER
 #undef CHECK_IMAGE_TYPE
 
-inline DynamicArray<StaticRenderStateIDWithHash> RenderStateSystem::loadStaticStatesFromBlk(DeviceContext &ctx,
-  const Driver3dDesc &desc, const DataBlock *blk, const char *default_format)
+inline DynamicArray<StaticRenderStateIDWithHash> RenderStateSystem::loadStaticStatesFromBlk(DeviceContext &ctx, const DriverDesc &desc,
+  const DataBlock *blk, const char *default_format)
 {
   DynamicArray<StaticRenderStateIDWithHash> renderStateIdTable{blk->blockCount()};
   logdbg("DX12: ...loading render states from BLK, has %u entries...", blk->blockCount());
@@ -1618,6 +1808,14 @@ inline BufferInterfaceConfigCommon::BufferType PlatformBufferInterfaceConfig::di
   return nextBuffer;
 }
 
+inline void BufferInterfaceConfigCommon::setBufferApiName(BufferConstReferenceType buffer, const char *name)
+{
+  if (buffer.buffer && get_device().isBufferPlacedInUserHeap(buffer))
+    get_device().nameResource(buffer.buffer, name);
+}
+
+inline void BufferInterfaceConfigCommon::frontendSyncFence() { ScopedCommitLock lock(get_device().getContext()); }
+
 inline void BufferInterfaceConfigCommon::deleteBuffer(BufferReferenceType buffer)
 {
   get_device().getContext().destroyBuffer(eastl::move(buffer));
@@ -1660,11 +1858,11 @@ inline HostDeviceSharedMemoryRegion BufferInterfaceConfigCommon::allocateTempora
 }
 
 inline void BufferInterfaceConfigCommon::updateBuffer(HostDeviceSharedMemoryRegion mem, GenericBufferInterface *self,
-  uint32_t buf_flags, BufferReferenceType buffer, uint32_t dst_offset)
+  uint32_t buf_flags, uint32_t dst_offset)
 {
-  G_UNUSED(self);
   G_UNUSED(buf_flags);
-  get_device().getContext().updateBuffer(mem, {buffer, dst_offset});
+  ScopedCommitLock lock(get_device().getContext());
+  get_device().getContext().updateBufferNoLock(mem, {self->getDeviceBuffer(), dst_offset});
 }
 
 inline void BufferInterfaceConfigCommon::copyBuffer(GenericBufferInterface *src_buf, uint32_t src_flags, BufferReferenceType src,
@@ -1689,17 +1887,19 @@ inline void BufferInterfaceConfigCommon::copyBuffer(GenericBufferInterface *src_
     dstRef = BufferReference{dst_stream};
   }
 
-  G_ASSERT_RETURN(srcRef.size >= size + src_offset && dstRef.size >= size + dst_offset, );
+  G_ASSERT_RETURN(get_device().isInErrorState() || (srcRef.size >= size + src_offset && dstRef.size >= size + dst_offset), );
 
   get_device().getContext().copyBuffer({srcRef, src_offset}, {dstRef, dst_offset}, size);
 }
 
 inline void BufferInterfaceConfigCommon::invalidateMappedRange(BufferReferenceType buffer, uint32_t offset, uint32_t size)
 {
+  ScopedCommitLock lock{get_device().getContext()};
   buffer.invalidateMappedMemory(offset, size);
 }
 inline void BufferInterfaceConfigCommon::flushMappedRange(BufferReferenceType buffer, uint32_t offset, uint32_t size)
 {
+  ScopedCommitLock lock{get_device().getContext()};
   buffer.flushMappedMemory(offset, size);
 }
 inline uint8_t *BufferInterfaceConfigCommon::getMappedPointer(BufferReferenceType buffer, uint32_t offset)
@@ -1713,7 +1913,8 @@ inline void BufferInterfaceConfigCommon::invalidateMemory(HostDeviceSharedMemory
 inline void BufferInterfaceConfigCommon::readBackBuffer(BufferReferenceType src, HostDeviceSharedMemoryRegion dst, uint32_t src_offset,
   uint32_t dst_offset, uint32_t size)
 {
-  get_device().getContext().readBackFromBuffer(dst, dst_offset, {src, src_offset, size});
+  ScopedCommitLock lock{get_device().getContext()};
+  get_device().getContext().readBackFromBufferNoLock(dst, dst_offset, {src, src_offset, size});
 }
 inline void BufferInterfaceConfigCommon::blockingReadBackBuffer(BufferReferenceType src, HostDeviceSharedMemoryRegion dst,
   uint32_t src_offset, uint32_t dst_offset, uint32_t size)
@@ -1734,7 +1935,8 @@ inline void BufferInterfaceConfigCommon::blockingFlushBuffer(BufferReferenceType
 inline void BufferInterfaceConfigCommon::uploadBuffer(HostDeviceSharedMemoryRegion src, BufferReferenceType dst, uint32_t src_offset,
   uint32_t dst_offset, uint32_t size)
 {
-  get_device().getContext().uploadToBuffer({dst, dst_offset, size}, src, src_offset);
+  ScopedCommitLock lock(get_device().getContext());
+  get_device().getContext().uploadToBufferNoLock({dst, dst_offset, size}, src, src_offset);
 }
 
 inline void BufferInterfaceConfigCommon::freeMemory(HostDeviceSharedMemoryRegion mem) { get_device().getContext().freeMemory(mem); }
@@ -1762,12 +1964,12 @@ inline uint32_t BufferInterfaceConfigCommon::minBufferSize(uint32_t cflags)
   return D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 }
 
-inline void BufferInterfaceConfigCommon::pushBufferUpdate(GenericBufferInterface *self, uint32_t buf_flags, BufferReferenceType buffer,
-  uint32_t offset, const void *src, uint32_t size)
+inline void BufferInterfaceConfigCommon::pushBufferUpdate(GenericBufferInterface *self, uint32_t buf_flags, uint32_t offset,
+  const void *src, uint32_t size)
 {
-  G_UNUSED(self);
   G_UNUSED(buf_flags);
-  get_device().getContext().pushBufferUpdate({buffer, offset}, src, size);
+  ScopedCommitLock lock(get_device().getContext());
+  get_device().getContext().pushBufferUpdateNoLock({self->getDeviceBuffer(), offset}, src, size);
 }
 
 inline BufferInterfaceConfigCommon::TemporaryMemoryType BufferInterfaceConfigCommon::discardStreamMememory(

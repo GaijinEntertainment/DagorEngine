@@ -37,6 +37,7 @@ void set_allow_gpu_ri_cb(AllowGpuRiCb cb);
 void enable_for_visibility(RiGenVisibility *visibility);
 void disable_for_visibility(RiGenVisibility *visibility);
 void clear_from_visibility(RiGenVisibility *visibility);
+void after_device_reset();
 
 
 } // namespace rendinst::gpuobjects

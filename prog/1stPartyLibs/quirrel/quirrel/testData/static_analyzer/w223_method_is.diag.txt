@@ -1,12 +1,8 @@
+WARNING: w223 (compared-with-bool) Comparison with boolean.
+testData/static_analyzer/w223_method_is.nut:11:4
 
-AN ERROR HAS OCCURRED [the index 'isVisible' does not exist]
+if (r.foo() != s) // warns
+    ^-----------
+    print("d")
 
-CALLSTACK
-*FUNCTION [__main__()] testData/static_analyzer/w223_method_is.nut:5
 
-LOCALS
-[r] ""
-[s] true
-[sec] 10000
-[vargv] ARRAY=[]
-[this] NULL

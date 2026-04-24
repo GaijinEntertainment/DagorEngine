@@ -52,7 +52,7 @@ private:
   int puddlesToRemoveCount = 0;
 
   bool isDeferredMode = false;
-  dafg::NodeHandle prepassNode;
+  eastl::array<dafg::NodeHandle, 2> prepassNodes;
   dafg::NodeHandle resolveNode;
   uint32_t updateOffset, updateLength;
   SimpleString splashFxTemplName;
@@ -219,6 +219,7 @@ public:
     const Point3 &gravity);
 
   void reset();
+  void resetNodes();
   void addSplash(const Point3 &pos, const Point3 &normal, const TMatrix &itm, int matrix_id, float size);
   float getBloodFreshness(const Point3 &pos) const;
 

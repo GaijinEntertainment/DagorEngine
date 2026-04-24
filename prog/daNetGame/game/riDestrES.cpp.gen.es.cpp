@@ -47,7 +47,8 @@ static void ri_extra_destroy_es_event_handler_all_events(const ecs::Event &__res
   G_FAST_ASSERT(evt.is<CmdDestroyRendinst>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     ri_extra_destroy_es_event_handler(static_cast<const CmdDestroyRendinst&>(evt)
-        , ECS_RO_COMP(ri_extra_destroy_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(ri_extra_destroy_es_event_handler_comps, "eid", ecs::EntityId)
     );
   while (++comp != compE);
 }
@@ -78,9 +79,9 @@ static ecs::CompileTimeQueryDesc destroyed_ladder_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline ecs::QueryCbResult destroyed_ladder_ecs_query(Callable function)
+inline ecs::QueryCbResult destroyed_ladder_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  return perform_query(g_entity_mgr, destroyed_ladder_ecs_query_desc.getHandle(),
+  return perform_query(&manager, destroyed_ladder_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -111,9 +112,9 @@ static ecs::CompileTimeQueryDesc destroyable_ents_ecs_query_desc
   make_span(destroyable_ents_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void destroyable_ents_ecs_query(Callable function)
+inline void destroyable_ents_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, destroyable_ents_ecs_query_desc.getHandle(),
+  perform_query(&manager, destroyable_ents_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -145,9 +146,9 @@ static ecs::CompileTimeQueryDesc riextra_eid_ecs_query_desc
   make_span(riextra_eid_ecs_query_comps+4, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void ridestr::riextra_eid_ecs_query(ecs::EntityId eid, Callable function)
+inline void ridestr::riextra_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, riextra_eid_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, riextra_eid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -183,9 +184,9 @@ static ecs::CompileTimeQueryDesc players_ecs_query_desc
   make_span(players_ecs_query_comps+3, 1)/*rq*/,
   make_span(players_ecs_query_comps+4, 1)/*no*/);
 template<typename Callable>
-inline void players_ecs_query(Callable function)
+inline void players_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, players_ecs_query_desc.getHandle(),
+  perform_query(&manager, players_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

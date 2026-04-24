@@ -79,7 +79,7 @@ void Component::read_behaviors(const Sqrat::Table &desc, const StringKeys *csk, 
     {
       Sqrat::Object objBhv = bhvArr.RawGetSlot(i);
       Behavior *bhv = try_cast_instance<Behavior>(objBhv, bhvArr, i, "Reading behaviors array");
-      if (bhv)
+      if (bhv && eastl::find(behaviors.begin(), behaviors.end(), bhv) == behaviors.end())
         behaviors.push_back(bhv);
     }
   }
@@ -242,23 +242,22 @@ bool Component::resolve_description(const Sqrat::Object &desc, Sqrat::Table &des
     {
       builder = desc;
       Sqrat::Function func(vm, Sqrat::Object(vm), desc.GetObject());
-      Sqrat::Object tbl;
-      bool ok;
+      Sqrat::optional<Sqrat::Object> tbl;
       {
         TIME_PROFILE_DEV(comp_gen_sq_call);
-        ok = func.Evaluate(tbl);
+        tbl = func.Eval<Sqrat::Object>();
 #if DAGOR_DBGLEVEL > 0 && TIME_PROFILER_ENABLED
         String cfn(framemem_ptr());
         get_closure_full_name(desc, cfn);
         DA_PROFILE_TAG(comp_gen_sq_call, cfn.c_str());
 #endif
       }
-      if (ok)
+      if (tbl)
       {
-        SQObjectType resType = tbl.GetType();
+        SQObjectType resType = tbl.value().GetType();
         if (resType == OT_CLASS || resType == OT_TABLE)
         {
-          desc_tbl = tbl;
+          desc_tbl = tbl.value();
           return true;
         }
         else if (resType == OT_NULL)

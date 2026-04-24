@@ -10,18 +10,30 @@ static inline Point4 point4(const Point3 &xyz, float w) { return Point4(xyz.x, x
 
 void AuroraBorealis::setVars()
 {
-  ShaderGlobal::set_color4(aurora_borealis_bottomVarId, point4(params.bottom_color, params.bottom_height));
-  ShaderGlobal::set_color4(aurora_borealis_topVarId, point4(params.top_color, fmax(params.top_height, params.bottom_height + 1.0)));
-  ShaderGlobal::set_real(aurora_borealis_brightnessVarId, params.brightness);
-  ShaderGlobal::set_real(aurora_borealis_luminanceVarId, params.luminance);
-  ShaderGlobal::set_real(aurora_borealis_speedVarId, params.speed);
-  ShaderGlobal::set_real(aurora_borealis_ripples_scaleVarId, params.ripples_scale);
-  ShaderGlobal::set_real(aurora_borealis_ripples_speedVarId, params.ripples_speed);
-  ShaderGlobal::set_real(aurora_borealis_ripples_strengthVarId, params.ripples_strength);
+  ShaderGlobal::set_float4(aurora_borealis_bottomVarId, point4(params.bottom_color, params.bottom_height));
+  ShaderGlobal::set_float4(aurora_borealis_topVarId, point4(params.top_color, fmax(params.top_height, params.bottom_height + 1.0)));
+  ShaderGlobal::set_float(aurora_borealis_brightnessVarId, params.brightness);
+  ShaderGlobal::set_float(aurora_borealis_luminanceVarId, params.luminance);
+  ShaderGlobal::set_float(aurora_borealis_speedVarId, params.speed);
+  ShaderGlobal::set_float(aurora_borealis_ripples_scaleVarId, params.ripples_scale);
+  ShaderGlobal::set_float(aurora_borealis_ripples_speedVarId, params.ripples_speed);
+  ShaderGlobal::set_float(aurora_borealis_ripples_strengthVarId, params.ripples_strength);
+}
+
+uint32_t AuroraBorealis::texFmt()
+{
+  uint32_t noAlphaSkyHdrFmt = TEXFMT_R11G11B10F;
+  if ((d3d::get_texformat_usage(noAlphaSkyHdrFmt) & (d3d::USAGE_RTARGET | d3d::USAGE_FILTER)) !=
+      (d3d::USAGE_RTARGET | d3d::USAGE_FILTER))
+    noAlphaSkyHdrFmt = TEXCF_SRGBREAD | TEXCF_SRGBWRITE;
+
+  return noAlphaSkyHdrFmt;
 }
 
 void AuroraBorealis::setParams(const AuroraBorealisParams &parameters, int targetW, int targetH)
 {
+  G_ASSERT((targetW > 0) == (targetH > 0));
+
   if (this->params != parameters)
   {
     this->params = parameters;
@@ -40,13 +52,10 @@ void AuroraBorealis::setParams(const AuroraBorealisParams &parameters, int targe
 
   if (params.enabled && targetW > 0 && !auroraBorealisTex.getTex2D())
   {
-    uint32_t noAlphaSkyHdrFmt = TEXFMT_R11G11B10F;
-    if ((d3d::get_texformat_usage(noAlphaSkyHdrFmt) & (d3d::USAGE_RTARGET | d3d::USAGE_FILTER)) !=
-        (d3d::USAGE_RTARGET | d3d::USAGE_FILTER))
-      noAlphaSkyHdrFmt = TEXCF_SRGBREAD | TEXCF_SRGBWRITE;
+    uint32_t noAlphaSkyHdrFmt = texFmt();
 
     int skyW = targetW / AURORA_BOREALIS_LEVEL, skyH = targetH / AURORA_BOREALIS_LEVEL;
-    auroraBorealisTex = dag::create_tex(NULL, skyW, skyH, TEXCF_RTARGET | noAlphaSkyHdrFmt, 1, "aurora_borealis_tex");
+    auroraBorealisTex = dag::create_tex(NULL, skyW, skyH, TEXCF_RTARGET | noAlphaSkyHdrFmt, 1, "aurora_borealis_tex", RESTAG_POSTFX);
     auroraBorealisTex.setVar();
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
@@ -57,20 +66,26 @@ void AuroraBorealis::setParams(const AuroraBorealisParams &parameters, int targe
 
 void AuroraBorealis::beforeRender()
 {
-  if (params.enabled && auroraBorealisTex.getTex2D())
-  {
-    TIME_D3D_PROFILE(render_aurora_borealis);
-    SCOPE_RENDER_TARGET;
+  if (!params.enabled)
+    return;
+  TIME_D3D_PROFILE(render_aurora_borealis);
 
-    d3d::set_render_target(auroraBorealisTex.getTex2D(), 0);
+  if (!auroraBorealisTex.getTex2D())
+  {
+    // Render to current render target from outside
     auroraBorealisFX.render();
-    d3d::resource_barrier({auroraBorealisTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    return;
   }
+
+  SCOPE_RENDER_TARGET;
+  d3d::set_render_target(auroraBorealisTex.getTex2D(), 0);
+  auroraBorealisFX.render();
+  d3d::resource_barrier({auroraBorealisTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 }
 
 void AuroraBorealis::render()
 {
-  if (params.enabled && auroraBorealisTex.getTex2D())
+  if (params.enabled)
   {
     TIME_D3D_PROFILE(apply_aurora_borealis);
 

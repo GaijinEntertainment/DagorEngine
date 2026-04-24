@@ -63,6 +63,12 @@ inline void effect_set_gravity_tm(TheEffect &effect, const Matrix3 &tm)
     fx.fx->setGravityTm(tm);
 }
 
+inline void effect_set_spline_control_points(TheEffect &effect, const Point4 &p0, const Point4 &p1, const Point4 &p2, const Point4 &p3)
+{
+  for (ScaledAcesEffect &fx : effect.getEffects())
+    fx.fx->setSplineControlPoints(p0, p1, p2, p3);
+}
+
 // Actually what is needed is to destruct the effect,
 // but such functionality isn't provided to AcesEffect's user.
 inline void effect_hide_and_reset(TheEffect &effect)

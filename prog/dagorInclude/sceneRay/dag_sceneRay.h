@@ -28,6 +28,7 @@
 #include <sceneRay/dag_rtHierGrid3.h>
 #include <math/integer/dag_IBBox3.h>
 #include <vecmath/dag_vecMath.h>
+#include <EASTL/type_traits.h>
 #include <memory/dag_framemem.h>
 
 // forward declarations for external classes
@@ -52,13 +53,58 @@ struct FaceIntersection
 };
 typedef dag::RelocatableFixedVector<FaceIntersection, 8, true, framemem_allocator> all_faces_ret_t;
 
+template <typename FI>
+struct StaticSceneRayTracerFlags
+{
+  enum
+  {
+    CULL_CCW = 0x01,
+    CULL_CW = 0x02,
+    CULL_BOTH = CULL_CCW | CULL_CW,
+    USER_VISIBLE = 0x04,
+    USER_INVISIBLE = 0x08,
+  };
+  unsigned useFlags = CULL_BOTH << 24;
+  unsigned skipFlags = USER_INVISIBLE << 24;
+  unsigned cullFlags = 0; //< or flags after all
+
+  void setUseFlagMask(unsigned flag) { useFlags = flag << 24; }
+  void setSkipFlagMask(unsigned flag) { skipFlags = flag << 24; }
+  void setCullFlags(unsigned cull_flags) { cullFlags = cull_flags << 24; }
+
+  unsigned getUseFlags() const { return useFlags >> 24; }
+  unsigned getSkipFlags() const { return skipFlags >> 24; }
+};
+
+template <>
+struct StaticSceneRayTracerFlags<uint16_t>
+{
+  enum
+  {
+    CULL_CCW = 0x01,
+    CULL_CW = 0x02,
+    CULL_BOTH = CULL_CCW | CULL_CW,
+  };
+  static constexpr unsigned cullFlags = CULL_BOTH << 24;
+  static inline constexpr unsigned useFlags = 0, skipFlags = 0;
+  void setCullFlags([[maybe_unused]] unsigned cf) { G_ASSERT(cf == CULL_BOTH); }
+};
+
 //! Standard interface for ray-tracing static scene composed of meshes.
 //! This class provide no way to create useful object -  use deserialized or buildable one.
 template <typename FI>
-class StaticSceneRayTracerT
+class StaticSceneRayTracerT : public StaticSceneRayTracerFlags<FI>
 {
 public:
   DAG_DECLARE_NEW(midmem)
+
+  using StaticSceneRayTracerFlags<FI>::CULL_CCW;
+  using StaticSceneRayTracerFlags<FI>::CULL_CW;
+  using StaticSceneRayTracerFlags<FI>::CULL_BOTH;
+
+  using StaticSceneRayTracerFlags<FI>::useFlags;
+  using StaticSceneRayTracerFlags<FI>::skipFlags;
+  using StaticSceneRayTracerFlags<FI>::cullFlags;
 
   // forward declarations for internal classes
   struct GetFacesContext;
@@ -67,11 +113,6 @@ public:
   GetFacesContext *getMainThreadCtx() const;
   enum
   {
-    CULL_CCW = 0x01,
-    CULL_CW = 0x02,
-    CULL_BOTH = CULL_CCW | CULL_CW,
-    USER_VISIBLE = 0x04,
-    USER_INVISIBLE = 0x08,
     USER_FLAG3 = 0x10,
     USER_FLAG4 = 0x20,
     USER_FLAG5 = 0x40,
@@ -119,8 +160,6 @@ public:
   __forceinline FaceIndex &faceIndices(int i) const { return dump.faceIndicesPtr[i]; }
   __forceinline int getFaceIndicesCount() const { return dump.faceIndicesCount; }
 
-  __forceinline void setCullFlags(unsigned cull_flags) { cullFlags = cull_flags << 24; }
-
   int getFaces(Tab<int> &face, const Point3 &center, real rad) const { return getFaces(face, BBox3(center, rad)); }
   int getFaces(Tab<int> &face, const BBox3 &box) const;
 
@@ -134,7 +173,10 @@ public:
   //! each triangle is vert0, edge1, edge2
   inline bool getVecFacesCached(bbox3f_cref wbox, vec3f *__restrict triangles, int &tri_left) const;
 
-  virtual ~StaticSceneRayTracerT();
+  StaticSceneRayTracerT() = default;
+  void destroy() const; // Shall be called for new'd or loaded instance
+
+  static StaticSceneRayTracerT *load(IGenLoad &cb); // Return new instance with data loaded from `cb`
 
   //! Tests ray hit to closest object and returns parameters of hit (if happen)
   /// return -1 if not hit, face index otherwise
@@ -155,10 +197,6 @@ public:
   VECTORCALL int tracerayNormalized(vec3f p, vec3f dir, real &mint, int ignore_face = -1) const;
   VECTORCALL bool tracerayNormalized(vec3f p, vec3f dir, real mint, all_faces_ret_t &hits) const;
 
-  __forceinline void setUseFlagMask(unsigned flag) { useFlags = flag << 24; }
-
-  __forceinline void setSkipFlagMask(unsigned flag) { skipFlags = flag << 24; }
-
   //! Tests ray hit to any object and returns parameters of hit (if happen)
   VECTORCALL int rayhitNormalizedIdx(vec3f p, vec3f dir, real mint, int ignore_face = -1) const;
   VECTORCALL bool rayhitNormalized(vec3f p, vec3f dir, real mint) const { return rayhitNormalizedIdx(p, dir, mint) >= 0; }
@@ -170,20 +208,13 @@ public:
 
   bool serialize(IGenSave &cb, bool be_target = false, int *out_dump_sz = NULL, bool zcompr = true);
 
-  __forceinline unsigned getUseFlags() const { return useFlags >> 24; }
-  __forceinline unsigned getSkipFlags() const { return skipFlags >> 24; }
-
 protected:
-  unsigned useFlags, skipFlags;
-  unsigned cullFlags; //< or flags after all
   enum
   {
     VAL_CULL_CCW = CULL_CCW << 24,
     VAL_CULL_CW = CULL_CW << 24,
     VAL_CULL_BOTH = CULL_BOTH << 24,
   };
-
-  StaticSceneRayTracerT();
 
 public:
   struct Node
@@ -224,14 +255,14 @@ protected:
     const Node *node) const;
   inline int clipCapsuleLNode(const Capsule &c, Point3 &cp1, Point3 &cp2, real &md, const Point3 &movedirNormalized,
     const LNode *node) const;
-  inline int tracerayLNode(const Point3 &p, const Point3 &dir, real &t, const LNode *node, int ignore_face) const;
-  inline int tracerayNode(const Point3 &p, const Point3 &dir, real &t, const Node *node, int ignore_face) const;
 
   // NOINLINE and ref& added for better performance
-  template <bool noCull>
-  DAGOR_NOINLINE int tracerayLNodeVec(const vec3f &p, const vec3f &dir, float &t, const LNode *node, int ignore_face) const;
-  template <bool noCull>
-  DAGOR_NOINLINE int tracerayNodeVec(const vec3f &p, const vec3f &dir, float &t, const Node *node, int ignore_face) const;
+  template <bool noCull, bool allHits>
+  DAGOR_NOINLINE int tracerayLNodeVec(const vec3f &p, const vec3f &dir, float &t, const LNode *node, int ignore_face,
+    all_faces_ret_t *hits, float offset_t) const;
+  template <bool noCull, bool allHits = false>
+  DAGOR_NOINLINE int tracerayNodeVec(const vec3f &p, const vec3f &dir, float &t, const Node *node, int ignore_face,
+    all_faces_ret_t *hits = nullptr, float offset_t = 0.f) const;
 
   template <bool noCull>
   VECTORCALL inline int rayhitLNodeIdx(vec3f p, vec3f dir, float t, const LNode *node, int ignore_face) const;
@@ -240,7 +271,6 @@ protected:
 
   inline int getHeightBelowLNode(const Point3 &p, real &ht, const LNode *node) const;
   inline int getHeightBelowNode(const Point3 &p, real &ht, const Node *node) const;
-  void rearrangeLegacyDump(char *data, uint32_t n);
 
   template <typename U>
   VECTORCALL static void getFacesNode(vec3f bmin, vec3f bmax, Tab<int> &face, U &uniqueness, const Node *node,
@@ -277,44 +307,16 @@ protected:
       grid = NULL;
     }
     void patch();
-  } dump;
-  bbox3f v_rtBBox;
-  Tab<Point3_vec4> vertsVecLegacy;
+  };
+  Dump dump; // Note: must be last member
+
+  ~StaticSceneRayTracerT() = default; // Call `destroy` if you need to delete new'd/loaded instance
 };
-
-template <typename FI>
-class DeserializedStaticSceneRayTracerT : public StaticSceneRayTracerT<FI>
-{
-public:
-  using typename StaticSceneRayTracerT<FI>::RTface;
-  using typename StaticSceneRayTracerT<FI>::FaceIndex;
-  using StaticSceneRayTracerT<FI>::dump;
-  using StaticSceneRayTracerT<FI>::verts;
-  using StaticSceneRayTracerT<FI>::getBox;
-  using StaticSceneRayTracerT<FI>::getVertsCount;
-  using StaticSceneRayTracerT<FI>::getFacesCount;
-
-protected:
-  using typename StaticSceneRayTracerT<FI>::Dump;
-  using StaticSceneRayTracerT<FI>::vertsVecLegacy;
-  using StaticSceneRayTracerT<FI>::v_rtBBox;
-
-public:
-  // Return if loaded from dump
-  virtual ~DeserializedStaticSceneRayTracerT();
-  DeserializedStaticSceneRayTracerT();
-  bool serializedLoad(IGenLoad &);
-  void createInMemory(char *data); /// creates tracer in memory. modifies this memory. allocates one bitarray
-
-protected:
-  char *loadedDump;
-  bool _serializedLoad(IGenLoad &, unsigned block_rest);
-};
-
-//! Create new (enhanced) ray-tracer object (via dump load)
-DeserializedStaticSceneRayTracer *create_staticmeshscene_raytracer(IGenLoad &cb);
 
 #include <sceneRay/dag_sceneRayBuildable.h>
+
+extern template class StaticSceneRayTracerT<SceneRayI24F8>;
+extern template class StaticSceneRayTracerT<uint16_t>;
 
 /// @}
 

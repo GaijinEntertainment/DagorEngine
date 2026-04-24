@@ -1,9 +1,6 @@
 include "dagdp_common_heightmap.dshl"
 include "dagdp_volume_utils.dshl"
 
-int dagdp_volume__num_dispatches;
-buffer dagdp_volume__dispatch_args;
-buffer dagdp_volume__counts;
 buffer dagdp_volume__tiles;
 buffer dagdp_volume__volumes;
 
@@ -38,54 +35,8 @@ buffer dagdp_volume__renderable_indices;
 buffer dagdp_volume__variants;
 buffer dagdp_volume__volume_variants;
 
-shader dagdp_volume_terrain_set_args
-{
-  ENABLE_ASSERT(cs)
-
-  (cs) {
-    dispatch_args@uav = dagdp_volume__dispatch_args hlsl {
-      RWByteAddressBuffer dispatch_args@uav;
-    }
-
-    num_dispatches@i1 = dagdp_volume__num_dispatches;
-
-    counts@cbuf = dagdp_volume__counts hlsl {
-      cbuffer counts@cbuf {
-        #include "dagdp_constants.hlsli"
-        uint4 counts[DAGDP_MAX_VIEWPORTS]; // only .x is used
-      }
-    }
-
-    tiles@buf = dagdp_volume__tiles hlsl {
-      #include "dagdp_volume_terrain.hlsli"
-      StructuredBuffer<VolumeTerrainTile> tiles@buf;
-    }
-  }
-
-  hlsl(cs) {
-    #define GROUP_SIZE DAGDP_MAX_VIEWPORTS
-
-    [numthreads(GROUP_SIZE, 1, 1)]
-    void main(uint dtId : SV_DispatchThreadID)
-    {
-      BRANCH
-      if (dtId >= num_dispatches)
-        return;
-
-      const uint argsByteOffset = dtId * 12; // 3 * sizeof(uint)
-
-      storeBuffer(dispatch_args, argsByteOffset, counts[dtId].x);
-      storeBuffer(dispatch_args, argsByteOffset + 4, 1);
-      storeBuffer(dispatch_args, argsByteOffset + 8, 1);
-    }
-  }
-  compile("target_cs", "main");
-}
-
 shader dagdp_volume_terrain_place_stage0, dagdp_volume_terrain_place_stage1
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     tiles@buf = dagdp_volume__tiles hlsl {
       #include <dagdp_volume_terrain.hlsli>
@@ -171,7 +122,7 @@ shader dagdp_volume_terrain_place_stage0, dagdp_volume_terrain_place_stage1
     {
       ##if shader == dagdp_volume_terrain_place_stage1
         const bool isEarlyExit = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) != 0;
-        ##if hardware.dx11
+        ##if hardware.dx11 || hardware.dx12
           // Work around compiler assuming varying flow control.
           BRANCH
           if (threadGroupAnyTrue(isEarlyExit, tId.y))

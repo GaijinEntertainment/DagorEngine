@@ -27,8 +27,10 @@ return {
   TransitionSize = "TransitionSize"
   MoveToArea = "MoveToArea"
   ProcessPointingInput = "ProcessPointingInput"
+  ProcessKeyInput = "ProcessKeyInput"
   ProcessGesture = "ProcessGesture"
   ElementEditor = "ElementEditor"
   EatInput = "EatInput"
   TextAreaEdit = "TextAreaEdit"
+  JoystickScroll = "JoystickScroll"
 }

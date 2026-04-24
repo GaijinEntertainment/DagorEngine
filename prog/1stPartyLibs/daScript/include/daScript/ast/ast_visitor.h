@@ -32,6 +32,7 @@ namespace das {
         virtual bool canVisitStructureFieldInit ( Structure * var ) { return true; }
         virtual bool canVisitIfSubexpr ( ExprIfThenElse * ) { return true; }
         virtual bool canVisitExpr ( ExprTypeInfo * expr, Expression * subexpr ) { return true; }
+        virtual bool canVisitMakeStructure ( ExprMakeStruct * expr ) { return true; }
         virtual bool canVisitMakeStructureBlock ( ExprMakeStruct * expr, Expression * blk ) { return true; }
         virtual bool canVisitMakeStructureBody ( ExprMakeStruct * expr ) { return true; }
         virtual bool canVisitArgumentInit ( Function * fun, const VariablePtr & var, Expression * init ) { return true; }
@@ -39,6 +40,8 @@ namespace das {
         virtual bool canVisitWithAliasSubexpression ( ExprAssume * ) { return false; }
         virtual bool canVisitMakeBlockBody ( ExprMakeBlock * expr ) { return true; }
         virtual bool canVisitCall ( ExprCall * expr ) { return true; }
+        virtual bool canVisitNamedCall ( ExprNamedCall * /*expr*/ ) { return true; }
+        virtual bool canVisitLooksLikeCall ( ExprLooksLikeCall * /*expr*/ ) { return true; }
         // WHOLE PROGRAM
         virtual void preVisitProgram ( Program * prog ) {}
         virtual void visitProgram ( Program * prog ) {}
@@ -58,6 +61,8 @@ namespace das {
         virtual EnumerationPtr visit ( Enumeration * enu ) { return enu; }
         // STRUCTURE
         virtual void preVisit ( Structure * var ) { }
+        virtual void preVisitStructureAlias ( Structure * var, const string & name, TypeDecl * at ) {}
+        virtual TypeDeclPtr visitStructureAlias ( Structure * var, const string & name, TypeDecl * at ) { return at; }
         virtual void preVisitStructureField ( Structure * var, Structure::FieldDeclaration & decl, bool last ) {}
         virtual void visitStructureField ( Structure * var, Structure::FieldDeclaration & decl, bool last ) {}
         virtual StructurePtr visit ( Structure * var ) { return var; }
@@ -303,19 +308,37 @@ namespace das {
 
     class PassVisitor : public Visitor {
     public:
+        using Visitor::preVisit;
+        using Visitor::visit;
+        explicit PassVisitor(int32_t round) : round(round) {}
         virtual void preVisitProgram ( Program * prog ) override;
         virtual void visitProgram ( Program * prog ) override;
         virtual void reportFolding();
+        virtual void preVisit ( Function * f ) override;
+        virtual FunctionPtr visit ( Function * f ) override;
+        virtual bool canVisitFunction ( Function * f ) override {
+            // The optimization round checks whether the function
+            // was changed (marked as dirty) during the current or previous
+            // optimization run.
+            // The round counter starts with 1 and the func's counter
+            // starts with 0.
+            return !f->isTemplate && funcIsDirty(f);
+        }
+        bool funcIsDirty( Function * f ) const {
+            return f->optimizationRound >= (round - 1);
+        }
         __forceinline bool didAnything() const { return anyFolding; }
     protected:
         bool        anyFolding = false;
+        int         round = 0;
         Program *   program = nullptr;
+        Function *  func = nullptr;
     };
 
     class FoldingVisitor : public PassVisitor {
     public:
-        FoldingVisitor(const ProgramPtr & prog)
-            : ctx(prog->getContextStackSize()), helper(ctx.debugInfo) {
+        FoldingVisitor(const ProgramPtr & prog, int32_t round = 0)
+            : PassVisitor(round), ctx(prog->getContextStackSize()), helper(ctx.debugInfo) {
             ctx.thisProgram = prog.get();
             ctx.thisHelper = &helper;
             ctx.heap = make_smart<LinearHeapAllocator>();

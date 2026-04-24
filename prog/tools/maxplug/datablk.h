@@ -1,22 +1,19 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <cassert>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <memory>
+
 #include <max.h>
 #include "math3d.h"
 #include "e3dcolor.h"
-// #include "tab.h"
-// #include "dyntab.h"
-// #include "dobject.h"
-#include "str.h"
-
-// #include "define_COREIMPORT.h"
+#include "namemap.h"
 
 #define INLINE __forceinline
-#define real   float
-
-class GeneralLoadCB;
-class GeneralSaveCB;
-class NameMap;
+typedef float real;
 
 /// @addtogroup utility_classes
 /// @{
@@ -34,18 +31,14 @@ class NameMap;
 /// DataBlock itself is a node of the tree that has a name and hosts typified
 /// named parameters and named sub-nodes.
 ///
-/// Parameter or sub-block name can be non-unique for a given DataBlock object.
-/// This is useful for enumerating data that can be repeated arbitrary number of times.
-///
 /// For clarity, names are restricted to C indentifier rules.
 ///
 /// Actual names are stored in NameMap that is shared by all DataBlocks in the tree.
 /// Blocks and parameters use integer ids to address names in the NameMap, so
 /// there are methods that take name ids and those that take character strings.
-/// You can use name ids when you look for multiple blocks or parameters with
-/// the same name for performance gain.
+/// You can use name ids when you look for blocks or parameters for performance gain.
 ///
-/// DataBlock tree contents can be serialized in binary or text form.
+/// DataBlock tree contents can be serialized in text form.
 ///
 /// Text files of this format usually have extension ".blk".
 class DataBlock
@@ -56,7 +49,7 @@ public:
   static DataBlock *emptyBlock;
 
   /// Parameter types enum.
-  enum ParamType
+  enum class ParamType
   {
     TYPE_NONE,
     TYPE_STRING,   ///< Text string.
@@ -72,27 +65,64 @@ public:
     TYPE_MATRIX,   ///< TMatrix.
   };
 
-  enum DataSrc
+  struct Param
   {
-    SRC_UNKNOWN, ///< Unknown data source
-    SRC_TEXT,    ///< Data was loaded from text file
-    SRC_BINARY,  ///< Data was loaded from binary file
+    int nameId;
+    ParamType type;
+
+    static const size_t max_size = ((sizeof(TMatrix) > sizeof(std::string)) ? sizeof(TMatrix) : sizeof(std::string));
+    std::aligned_storage<max_size>::type data;
+
+    Param(int id, const std::string &s);
+    Param(int id, int i);
+    Param(int id, real r);
+    Param(int id, const Point2 &p2);
+    Param(int id, const Point3 &p3);
+    Param(int id, const Point4 &p4);
+    Param(int id, const IPoint2 &ip2);
+    Param(int id, const IPoint3 &ip3);
+    Param(int id, bool b);
+    Param(int id, const E3DCOLOR &c);
+    Param(int id, const TMatrix &tm);
+
+    Param(const Param &);
+    ~Param();
+
+    const char *as_c_str() const;
+    int as_int() const;
+    real as_real() const;
+    const Point2 &as_pt2() const;
+    const Point3 &as_pt3() const;
+    const Point4 &as_pt4() const;
+    const IPoint2 &as_ipt2() const;
+    const IPoint3 &as_ipt3() const;
+    bool as_bool() const;
+    const E3DCOLOR &as_color() const;
+    const TMatrix &as_tm() const;
+
+    void set_str(const std::string &s);
+    void set_int(int i);
+    void set_real(real r);
+    void set_pt2(const Point2 &p2);
+    void set_pt3(const Point3 &p3);
+    void set_pt4(const Point4 &p4);
+    void set_ipt2(const IPoint2 &ip2);
+    void set_ipt3(const IPoint3 &ip3);
+    void set_bool(bool b);
+    void set_color(const E3DCOLOR &c);
+    void set_tm(const TMatrix &tm);
   };
 
+  static ParamType deserialize_param_type(const std::string &s);
 
-  /// Default constructor, constructs empty block.
-  DataBlock();
-
-  /// Destructor, destroys all sub-blocks.
+  DataBlock(std::shared_ptr<NameMap> nameMap);
   ~DataBlock();
 
-  /// Copy constructor.
-  DataBlock(const DataBlock &);
+private: // old C++ doesn't know =delete
+  DataBlock(const DataBlock &) : nameId(-1) {};
+  DataBlock &operator=(const DataBlock &) {};
 
-  /// Constructor that loads DataBlock tree from specified file.
-  /// If you want error checking, use default constructor and loadFile().
-  DataBlock(const char *filename);
-
+public:
   /// Delete all sub-blocks.
   void clearData();
 
@@ -109,18 +139,16 @@ public:
   /// Load DataBlock tree from specified text.
   /// Filename is for error output only.
   /// @note This method will modify @b text when including files.
-  bool loadText(Tab<char> &text, const char *filename = NULL);
+  bool loadText(std::string &text, const char *filename = NULL);
 
   /// Load DataBlock tree from arbitrary stream
   /// Data may be presented like text, binary or stream data
   /// created by function beginTaggedBlock(_MAKE4C('blk'))
   /// fname uses if loading from text file to right parse include directives
-  bool loadFromStream(FILE *crd, const char *fname = NULL);
+  bool loadFromStream(std::ifstream &is, const char *fname = NULL);
 
-  /// Load DataBlock tree from any type of file, binary or text
-  /// First function try to load file as binary, in fail case it
-  /// try to load file as text
-  bool load(const char *fname);
+  /// Load DataBlock tree from a text file
+  bool load(const std::wstring &fname);
 
   /// @}
 
@@ -129,13 +157,7 @@ public:
   /// @{
 
   /// Save this DataBlock (and its sub-tree) to the specified file (text form)
-  bool saveToTextFile(const char *filename) const;
-
-  /// Save this DataBlock (and its sub-tree) to arbitrary stream (binary form)
-  void saveToStream(GeneralSaveCB &cwr) const;
-
-  /// Save this DataBlock (and its sub-tree) to the specified file (binary form)
-  bool saveToBinaryFile(const char *filename) const;
+  bool saveToTextFile(const std::wstring &filename) const;
 
   /// @}
 
@@ -149,8 +171,6 @@ public:
   /// Returns name by name id, uses NameMap.
   /// Returns NULL if name id is not valid.
   const char *getName(int name_id) const;
-
-  void fillNameMap(NameMap *stringMap) const;
 
   /// @}
 
@@ -172,7 +192,7 @@ public:
 
   /// Returns number of sub-blocks in this DataBlock.
   /// Use for enumeration.
-  INLINE int blockCount() const { return blocks.Count(); }
+  INLINE int blockCount() const { return int(blocks.size()); }
 
   /// Returns pointer to i-th sub-block.
   DataBlock *getBlock(int block_number) const;
@@ -197,7 +217,7 @@ public:
   INLINE DataBlock *getBlockByNameEx(const char *name) const
   {
     if (!emptyBlock)
-      emptyBlock = new /*(inimem)*/ DataBlock;
+      emptyBlock = new /*(inimem)*/ DataBlock(nameMap);
     emptyBlock->reset();
     return getBlockByNameEx(name, emptyBlock);
   }
@@ -241,10 +261,10 @@ public:
 
   /// Returns number of parameters in this DataBlock.
   /// Use for enumeration.
-  INLINE int paramCount() const { return params.Count(); }
+  INLINE int paramCount() const { return int(params.size()); }
 
   /// Returns type of i-th parameter. See ParamType enum.
-  int getParamType(int param_number) const;
+  ParamType getParamType(int param_number) const;
 
   /// Returns i-th parameter name id. See getNameId().
   int getParamNameId(int param_number) const;
@@ -266,6 +286,8 @@ public:
   /// Returns true if there is parameter with specified name in this DataBlock.
   INLINE bool paramExists(const char *name, int start_after = -1) const { return findParam(name, start_after) >= 0; }
 
+  const Param *getParam(int name_id) const;
+
   /// @}
 
 
@@ -279,17 +301,17 @@ public:
   /// DataBlock::getParamName() and DataBlock::getParamType().
   /// @{
 
-  const char *getStr(int param_number) const;
-  bool getBool(int param_number) const;
-  int getInt(int param_number) const;
-  real getReal(int param_number) const;
-  Point2 getPoint2(int param_number) const;
-  Point3 getPoint3(int param_number) const;
-  Point4 getPoint4(int param_number) const;
-  IPoint2 getIPoint2(int param_number) const;
-  IPoint3 getIPoint3(int param_number) const;
-  E3DCOLOR getE3dcolor(int param_number) const;
-  TMatrix getTm(int param_number) const;
+  const char *getStr(int param_number, const char *def = "") const;
+  bool getBool(int param_number, bool def = false) const;
+  int getInt(int param_number, int def = 0) const;
+  real getReal(int param_number, real def = 0.f) const;
+  Point2 getPoint2(int param_number, const Point2 &def = Point2(0, 0)) const;
+  Point3 getPoint3(int param_number, const Point3 &def = Point3(0, 0, 0)) const;
+  Point4 getPoint4(int param_number, const Point4 &def = Point4(0, 0, 0, 0)) const;
+  IPoint2 getIPoint2(int param_number, const IPoint2 &def = IPoint2(0, 0)) const;
+  IPoint3 getIPoint3(int param_number, const IPoint3 &def = IPoint3(0, 0, 0)) const;
+  E3DCOLOR getE3dcolor(int param_number, const E3DCOLOR &def = E3DCOLOR(0, 0, 0, 0)) const;
+  TMatrix getTm(int param_number, const TMatrix &def = TMatrix::IDENT) const;
 
   /// @}
 
@@ -313,8 +335,8 @@ public:
   Point4 getPoint4(const char *name, const Point4 &def) const;
   IPoint2 getIPoint2(const char *name, const IPoint2 &def) const;
   IPoint3 getIPoint3(const char *name, const IPoint3 &def) const;
-  E3DCOLOR getE3dcolor(const char *name, E3DCOLOR def) const;
-  TMatrix getTm(const char *name, TMatrix &def) const;
+  E3DCOLOR getE3dcolor(const char *name, const E3DCOLOR &def) const;
+  TMatrix getTm(const char *name, const TMatrix &def) const;
 
   /// @}
 
@@ -376,106 +398,26 @@ public:
   /// @name Other methods
   /// @{
 
-  /// Returns true if data in DataBlock are valid
-  /// Data can be invalid if error occured while loading file
-  inline bool isValid() const { return valid; }
-
-  // Returns data mode, which means kind of data source for current DataBlock
-  inline DataSrc getDataSrc() const { return dataSrc; }
-  /// @}
-
 protected:
   /// @cond
   friend class DataBlockParser;
-
-  DataBlock(const DataBlock *);
 
   void setBlockName(const char *name);
 
   int addBlock(DataBlock *);
 
-  int addParam(const char *name, int type, const char *value, int line, const char *filename);
-
-  void shrink();
+  int addParam(const char *name, ParamType type, const char *value, int line, const char *filename);
 
   /// Save this DataBlock (and its sub-tree) in the text form.
   /// @b level is used for text indentation.
-  void saveText(FILE *cb, int level = 0) const;
-  /// helper routine to save data tree
-  void save(FILE *cb, NameMap &stringMap) const;
-  /// helper routine to load data tree
-  void load(FILE *cb, NameMap &stringMap);
-  /// Loads binary only data from stream without version check
-  void doLoadFromStream(FILE *crd);
+  void saveText(std::ofstream &os, int level = 0) const;
 
-  NameMap *nameMap;
-
-  union Value
-  {
-    char *s;
-    int i;
-    real r;
-    struct
-    {
-      Point2 p2;
-    };
-    struct
-    {
-      Point3 p3;
-    };
-    struct
-    {
-      Point4 p4;
-    };
-    struct
-    {
-      IPoint2 ip2;
-    };
-    struct
-    {
-      IPoint3 ip3;
-    };
-    bool b;
-    struct
-    {
-      E3DCOLOR c;
-    };
-    struct
-    {
-      TMatrix tm;
-    };
-
-    Value() {}
-  };
-
-  struct Param
-  {
-    int nameId;
-    Value value;
-    int type;
-
-    Param();
-    ~Param();
-  };
-
+  std::shared_ptr<NameMap> nameMap;
   int nameId;
-  Tab<DataBlock *> blocks;
-  /*Dyn*/ Tab<Param> params;
+  std::vector<std::unique_ptr<DataBlock>> blocks;
+  std::vector<Param> params;
 
-  bool valid;
-  DataSrc dataSrc;
   /// @endcond
-
-private:
-  /// Load DataBlock tree from specified file (text form)
-  /// Calls only from "load" function; do not use this function directly
-  /// To load BLK use load(const char *filename) function
-  //   bool loadFile(const char *filename);
-
-  /// Load DataBlock tree from specified file (binary form)
-  /// Calls only from "load" function; do not use this function directly
-  /// To load BLK use load(const char *filename) function
-  //   bool loadBinaryFile(const char *filename, bool& can_process_file);
 };
 
 #undef INLINE

@@ -7,4 +7,5 @@
 namespace rendinst
 {
 static constexpr int RI_MAX_LODS = 8;
+static constexpr int RI_SEED_COLLISION_IGNORE = 0xBAD;
 } // namespace rendinst

@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <render/fx/postFxEvent.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <util/dag_console.h>
 #include "game/player.h"
@@ -12,7 +14,9 @@
 #include <generic/dag_fixedVectorMap.h>
 
 // for hero_dof
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ecs/render/updateStageRender.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <ecs/anim/anim.h>
@@ -70,13 +74,13 @@ static __forceinline void post_fx_appear_es(
 
 
 template <typename Callable>
-inline void gather_override_post_fx_ecs_query(Callable c);
+inline void gather_override_post_fx_ecs_query(ecs::EntityManager &manager, Callable c);
 
 
 ECS_TAG(render)
 ECS_TRACK(post_fx)
 ECS_ON_EVENT(ReloadPostFx, BeforeLoadLevel) // we should init post_fx on WR creation if these objects created before
-static __forceinline void post_fx_reload_es(const ecs::Event &, const ecs::Object &post_fx)
+static __forceinline void post_fx_reload_es(const ecs::Event &, ecs::EntityManager &manager, const ecs::Object &post_fx)
 {
   damage_indicatorVarId = ::get_shader_variable_id("damage_indicator", true);
 
@@ -87,7 +91,7 @@ static __forceinline void post_fx_reload_es(const ecs::Event &, const ecs::Objec
     using OverrideDeclaration = eastl::pair<ecs::EntityId, const ecs::Object *>;
     dag::FixedVectorMap<int, OverrideDeclaration, 4, true, framemem_allocator> overrides;
 
-    gather_override_post_fx_ecs_query(
+    gather_override_post_fx_ecs_query(manager,
       [&overrides](ECS_REQUIRE(eastl::true_type override_post_fx__enabled) ecs::EntityId eid, const ecs::EntityManager &manager,
         const ecs::Object &override_post_fx__params, int override_post_fx__priority) {
         if (override_post_fx__priority < 0)
@@ -141,15 +145,16 @@ static __forceinline void override_post_fx_es(const ecs::Event &,
 // it would actually better to be as additional template around player, so we can 'mutate' it as dof controller
 
 template <typename Callable>
-inline void animchar_ecs_query(Callable c);
+inline void animchar_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_ON_EVENT(on_appear)
-static __forceinline void hero_dof_es(const ecs::Event &, ecs::EntityId &dof_target_id, const TMatrix &transform)
+static __forceinline void hero_dof_es(
+  const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId &dof_target_id, const TMatrix &transform)
 {
   float currentDist = MAX_REAL;
   Point3 pos = transform.getcol(3);
-  animchar_ecs_query([&dof_target_id, &currentDist, pos](ecs::EntityId eid,
-                       const TMatrix &transform ECS_REQUIRE(const AnimV20::AnimcharBaseComponent &animchar)) {
+  animchar_ecs_query(manager, [&dof_target_id, &currentDist, pos](ecs::EntityId eid,
+                                const TMatrix &transform ECS_REQUIRE(const AnimV20::AnimcharBaseComponent &animchar)) {
     float cDist = lengthSq(transform.getcol(3) - pos);
     if (cDist >= currentDist)
       return;
@@ -193,11 +198,12 @@ static int get_damage_indicator_stage(float hp, const Point3 &damage_indicator__
 }
 
 template <typename Callable>
-static void get_hero_ecs_query(ecs::EntityId, Callable);
+static void get_hero_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear, EventHeroChanged)
 static void post_fx_blood_es(const ecs::Event &,
+  ecs::EntityManager &manager,
   const Point3 &damage_indicator__thresholds,
   float &damage_indicator__phase,
   int &damage_indicator__stage,
@@ -215,7 +221,7 @@ static void post_fx_blood_es(const ecs::Event &,
   damage_indicator__phase = 0;
 
 
-  get_hero_ecs_query(game::get_controlled_hero(), [&](float hitpoints__maxHp = 1.f, float hitpoints__hp = 1.f) {
+  get_hero_ecs_query(manager, game::get_controlled_hero(), [&](float hitpoints__maxHp = 1.f, float hitpoints__hp = 1.f) {
     float health = safediv(hitpoints__hp, hitpoints__maxHp); // relative health
     if (health > 0)
     {
@@ -226,13 +232,13 @@ static void post_fx_blood_es(const ecs::Event &,
   // shader var is initialized with the proper value
   // if the var id is not initialized yet, then no need to reset it
   if (damage_indicatorVarId != -1)
-    ShaderGlobal::set_real(damage_indicatorVarId, 0);
+    ShaderGlobal::set_float(damage_indicatorVarId, 0);
 }
 
 ECS_TAG(render)
 ECS_REQUIRE(float damage_indicator__phase)
 ECS_ON_EVENT(on_disappear)
-static void post_fx_disappear_es(const ecs::Event &) { ShaderGlobal::set_real(damage_indicatorVarId, 0); }
+static void post_fx_disappear_es(const ecs::Event &) { ShaderGlobal::set_float(damage_indicatorVarId, 0); }
 
 ECS_TAG(render)
 ECS_NO_ORDER
@@ -326,14 +332,14 @@ static void post_fx_es(const ecs::UpdateStageInfoAct &info,
       float saturation = damage_indicator__pulseState[2];
       float intensity = damage_indicator__pulseState[1];
       damageIndicatorValue = (damageIndicatorValue * (1.f - saturation) + saturation) * intensity;
-      ShaderGlobal::set_real(damage_indicatorVarId, max(0.f, damageIndicatorValue));
+      ShaderGlobal::set_float(damage_indicatorVarId, max(0.f, damageIndicatorValue));
     }
     else if (hadEffect)
     {
       damage_indicator__startTime = 0;
       damage_indicator__stage = 0;
       damage_indicator__phase = 0;
-      ShaderGlobal::set_real(damage_indicatorVarId, 0);
+      ShaderGlobal::set_float(damage_indicatorVarId, 0);
     }
   }
   else if (damage_indicator__pulseState[0] > 0 || !damage_indicator__enabled)
@@ -344,20 +350,20 @@ static void post_fx_es(const ecs::UpdateStageInfoAct &info,
     damage_indicator__stage = 0;
     damage_indicator__phase = 0;
 
-    ShaderGlobal::set_real(damage_indicatorVarId, 0);
+    ShaderGlobal::set_float(damage_indicatorVarId, 0);
   }
 }
 
 template <typename Callable>
-static inline void postfx_console_ecs_query(Callable c);
+static inline void postfx_console_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static bool postfx_console_handler(const char *argv[], int argc)
 {
   int found = 0;
   CONSOLE_CHECK_NAME("postfx", "start_smoke", 1, 1)
   {
-    ShaderGlobal::set_real(get_shader_variable_id("smoke_blackout_effect_time_start", true), get_shader_global_time_phase(0, 0));
-    ShaderGlobal::set_real(get_shader_variable_id("smoke_blackout_effect_time_end", true), get_shader_global_time_phase(0, 0) + 10.0);
+    ShaderGlobal::set_float(get_shader_variable_id("smoke_blackout_effect_time_start", true), get_shader_global_time_phase(0, 0));
+    ShaderGlobal::set_float(get_shader_variable_id("smoke_blackout_effect_time_end", true), get_shader_global_time_phase(0, 0) + 10.0);
     ShaderGlobal::set_int(get_shader_variable_id("smoke_blackout_active", true), 1);
   }
 

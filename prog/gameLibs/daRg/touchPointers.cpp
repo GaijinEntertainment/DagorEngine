@@ -5,7 +5,7 @@
 namespace darg
 {
 
-void TouchPointers::updateState(InputEvent event, int touch_idx, const HumanInput::PointingRawState::Touch &touch)
+void TouchPointers::updateState(InputEvent event, int touch_idx, Point2 pos)
 {
   switch (event)
   {
@@ -14,10 +14,10 @@ void TouchPointers::updateState(InputEvent event, int touch_idx, const HumanInpu
       auto it = eastl::find_if(activePointers.begin(), activePointers.end(),
         [touch_idx](const PointerInfo &pi) { return pi.id == touch_idx; });
       if (it == activePointers.end())
-        activePointers.push_back(PointerInfo{touch_idx, Point2(touch.x, touch.y)});
+        activePointers.push_back(PointerInfo{touch_idx, pos});
       else
       {
-        it->pos = Point2(touch.x, touch.y);
+        it->pos = pos;
         LOGWARN_CTX("Touch #%d is already started", touch_idx);
       }
       break;
@@ -35,7 +35,7 @@ void TouchPointers::updateState(InputEvent event, int touch_idx, const HumanInpu
       auto it = eastl::find_if(activePointers.begin(), activePointers.end(),
         [touch_idx](const PointerInfo &pi) { return pi.id == touch_idx; });
       if (it != activePointers.end()) // press event might be sent before scene is loaded
-        it->pos.set(touch.x, touch.y);
+        it->pos = pos;
       break;
     }
     default: break;

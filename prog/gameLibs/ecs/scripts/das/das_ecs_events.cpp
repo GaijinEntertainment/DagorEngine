@@ -774,8 +774,6 @@ void register_pending_events(ecs::EntityManager *mgr, eastl::vector_map<uint64_t
 
     if (regNow || prevHash != structHash)
     {
-      if (prevHash != ecs::EventsDB::invalid_event_scheme_hash && prevHash != structHash)
-        logerr("event <%s|0x%X> has changed it's hash 0x%X!=0x%X(new)", eventName.c_str(), eventType, prevHash, structHash);
       bool registeredScheme = mgr->getEventsDbMutable().registerEventScheme(eventType, structHash, eastl::move(eventScheme));
       if (!registeredScheme)
         logerr("das_net: Unable to register event scheme for '%s' <0X%X>", eventName.c_str(), eventType);

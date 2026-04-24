@@ -3,6 +3,7 @@
 
 #include <3d/dag_resPtr.h>
 #include <EASTL/functional.h>
+#include <EASTL/unique_ptr.h>
 
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_Point2.h>
@@ -17,7 +18,7 @@ class SatelliteRenderer
 {
 public:
   using LandmeshHeightGetterCb = eastl::function<bool(const Point2 &pos2d, float &height)>;
-  using RenderWaterCb = eastl::function<void(Texture *color_target, const TMatrix &itm, Texture *depth)>;
+  using RenderWaterCb = eastl::function<void(Texture *color_target, const CameraParams &camera, Texture *depth)>;
   using RenderLandmeshCb =
     eastl::function<void(mat44f_cref globtm, const TMatrix4 &proj, const Frustum &frustum, const Point3 &view_pos)>;
   using ClipmapGetLastUpdatedTileCountCb = eastl::function<int()>;

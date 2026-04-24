@@ -4,6 +4,8 @@
 #include "os.h"
 #include <osApiWrappers/dag_dynLib.h>
 #include <EASTL/sort.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 
 using namespace drv3d_vulkan;
 
@@ -102,13 +104,26 @@ bool VulkanLoader::initStreamlineAdapter()
 }
 #endif
 
-bool VulkanLoader::load(const char *name, bool validate)
+void disable_problematic_implicit_layers()
 {
+#if _TARGET_PC_WIN
+  // VK_LAYER_AMD_switchable_graphics sometimes die in vkEnumerateDeviceExtensionProperties
+  SetEnvironmentVariable("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1", "1");
+#endif
+}
+
+bool VulkanLoader::load(const char *name, bool validate, bool init_streamline)
+{
+  disable_problematic_implicit_layers();
+  G_UNUSED(init_streamline);
 #if !_TARGET_C3
 #if USE_STREAMLINE_FOR_DLSS
-  streamlineInterposer = StreamlineAdapter::loadInterposer();
-  if (initStreamlineAdapter())
-    libHandle = streamlineInterposer.get();
+  if (init_streamline && !::dgs_get_settings()->getBlockByNameEx("video")->getBool("vulkanNVnativePresent", false))
+  {
+    streamlineInterposer = StreamlineAdapter::loadInterposer();
+    if (initStreamlineAdapter())
+      libHandle = streamlineInterposer.get();
+  }
 #endif
   if (!libHandle)
   {

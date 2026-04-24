@@ -5,73 +5,105 @@
 #include <stdio.h>
 #include <sqstdsystem.h>
 
-#define scgetenv getenv
-#define scsystem system
-#define scremove remove
-#define screname rename
 
 #if _TARGET_PC
 static SQInteger _system_getenv(HSQUIRRELVM v)
 {
-    const SQChar *s;
+    const char *s;
     if(SQ_SUCCEEDED(sq_getstring(v,2,&s))){
-        sq_pushstring(v,scgetenv(s),-1);
+        sq_pushstring(v,getenv(s),-1);
         return 1;
     }
     return 0;
 }
 
-
 static SQInteger _system_system(HSQUIRRELVM v)
 {
-    const SQChar *s;
+    const char *s;
     if(SQ_SUCCEEDED(sq_getstring(v,2,&s))){
-        sq_pushinteger(v,scsystem(s));
+        sq_pushinteger(v,system(s));
         return 1;
     }
-    return sq_throwerror(v,_SC("wrong param"));
+    return sq_throwerror(v,"wrong param");
 }
-#endif
 
+static SQInteger _system_setenv(HSQUIRRELVM v)
+{
+    const char *envname,*envval;
+    sq_getstring(v,2,&envname);
+    sq_getstring(v,3,&envval);
+    #if _TARGET_PC_WIN
+    int res = _putenv_s(envname,envval);
+    #else
+    int res = setenv(envname,envval,1);
+    #endif
+    if (res != 0)
+        return sq_throwerror(v,"setenv() failed");
+    return 0;
+}
+
+#else
+
+static SQInteger _system_getenv_stub(HSQUIRRELVM v)
+{
+    sq_throwerror(v,"getenv() not available for this platform");
+    return 1;
+}
+
+static SQInteger _system_setenv_stub(HSQUIRRELVM v)
+{
+    sq_throwerror(v,"setenv() not available for this platform");
+    return 1;
+}
+
+static SQInteger _system_system_stub(HSQUIRRELVM v)
+{
+    sq_throwerror(v,"system() not available for this platform");
+    return 1;
+}
+
+#endif
 
 static SQInteger _system_remove(HSQUIRRELVM v)
 {
-    const SQChar *s;
+    const char *s;
     sq_getstring(v,2,&s);
-    if(scremove(s)==-1)
-        return sq_throwerror(v,_SC("remove() failed"));
+    if(remove(s)==-1)
+        return sq_throwerror(v,"remove() failed");
     return 0;
 }
 
 static SQInteger _system_rename(HSQUIRRELVM v)
 {
-    const SQChar *oldn,*newn;
+    const char *oldn,*newn;
     sq_getstring(v,2,&oldn);
     sq_getstring(v,3,&newn);
-    if(screname(oldn,newn)==-1)
-        return sq_throwerror(v,_SC("rename() failed"));
+    if(rename(oldn,newn)==-1)
+        return sq_throwerror(v,"rename() failed");
     return 0;
 }
 
 
-
-#define _DECL_FUNC(name,nparams,pmask) {_SC(#name),_system_##name,nparams,pmask}
-static const SQRegFunction systemlib_funcs[]={
+static const SQRegFunctionFromStr systemlib_funcs[] = {
 #if _TARGET_PC
-    _DECL_FUNC(getenv,2,_SC(".s")),
-    _DECL_FUNC(system,2,_SC(".s")),
+    { _system_getenv, "getenv(name: string): string|null",            "Returns the value of the environment variable or null" },
+    { _system_setenv, "setenv(name: string, value: string)",          "Sets the environment variable to the given value" },
+    { _system_system, "system(cmd: string): int",                     "Executes a shell command and returns its exit code" },
+#else
+    { _system_getenv_stub, "getenv(name: string): string|null",       "Stub: getenv() is not available on this platform" },
+    { _system_setenv_stub, "setenv(name: string, value: string)",     "Stub: setenv() is not available on this platform" },
+    { _system_system_stub, "system(cmd: string): int",                "Stub: system() is not available on this platform" },
 #endif
-    _DECL_FUNC(remove,2,_SC(".s")),
-    _DECL_FUNC(rename,3,_SC(".ss")),
-    {NULL,(SQFUNCTION)0,0,NULL}
+    { _system_remove, "remove(path: string)",                         "Deletes the file at the given path, throws error in case of fail" },
+    { _system_rename, "rename(old: string, new: string)",             "Renames the file from old to new path, throws error in case of fail" },
+    { NULL, NULL, NULL }
 };
-#undef _DECL_FUNC
 
 
 SQRESULT sqstd_register_command_line_args(HSQUIRRELVM v, int argc, char ** argv)
 {
     sq_pushroottable(v);
-    sq_pushstring(v, _SC("__argv"), -1);
+    sq_pushstring(v, "__argv", -1);
     sq_newarray(v, 0);
     for (int idx = 0; idx < argc; idx++)
     {
@@ -87,14 +119,9 @@ SQRESULT sqstd_register_command_line_args(HSQUIRRELVM v, int argc, char ** argv)
 
 SQRESULT sqstd_register_systemlib(HSQUIRRELVM v)
 {
-    SQInteger i=0;
-    while(systemlib_funcs[i].name!=0)
-    {
-        sq_pushstring(v,systemlib_funcs[i].name,-1);
-        sq_newclosure(v,systemlib_funcs[i].f,0);
-        sq_setparamscheck(v,systemlib_funcs[i].nparamscheck,systemlib_funcs[i].typemask);
-        sq_setnativeclosurename(v,-1,systemlib_funcs[i].name);
-        sq_newslot(v,-3,SQFalse);
+    SQInteger i = 0;
+    while (systemlib_funcs[i].f) {
+        sq_new_closure_slot_from_decl_string(v, systemlib_funcs[i].f, 0, systemlib_funcs[i].declstring, systemlib_funcs[i].docstring);
         i++;
     }
     return SQ_OK;

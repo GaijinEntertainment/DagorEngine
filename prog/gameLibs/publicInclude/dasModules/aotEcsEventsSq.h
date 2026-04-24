@@ -69,7 +69,7 @@ public:
 
   static void CustomCtor(HSQUIRRELVM v)
   {
-    sq_pushobject(v, Sqrat::ClassType<First>::getClassData(v)->classObj);
+    sq_pushobject(v, Sqrat::ClassType<First>::getClassData(v)->classObj); //-V522
     sq_pushstring(v, "constructor", -1);
     sq_newclosure(v, CustomNew, 0);
     sq_setparamscheck(v, -1, ".o|t");

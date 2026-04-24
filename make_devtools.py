@@ -115,14 +115,14 @@ else:
     print('+++ Python 3 found at {0}'.format(python_src_folder))
     make_directory_symlink(python_src_folder, python_dest_folder)
 
-    subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', '--upgrade', 'pip'])
-    subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', '--version'])
-    subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'clang==14.0.6'])
-    subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'cymbal'])
     if not pathlib.Path(python_dest_folder+'/python3.exe').exists():
       make_file_link(python_dest_folder+'/python.exe', python_dest_folder+'/python3.exe')
   else:
     error("Python 3 not found")
+subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', '--upgrade', 'pip'])
+subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', '--version'])
+subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'clang==14.0.6'])
+subprocess.run([python_dest_folder+'/python.exe', '-m', 'pip', 'install', 'cymbal'])
 
 
 microsoft_retry = []
@@ -333,22 +333,22 @@ if len(microsoft_retry) > 0:
 
 
 
-# LLVM 18.1.8
-llvm_dest_folder = dest_dir+'/LLVM-18.1.8'
+# LLVM 21.1.8
+llvm_dest_folder = dest_dir+'/LLVM-21.1.8'
 if pathlib.Path(llvm_dest_folder).exists():
-  print('=== LLVM 18.1.8 symlink found at {0}, skipping setup'.format(llvm_dest_folder))
+  print('=== LLVM 21.1.8 symlink found at {0}, skipping setup'.format(llvm_dest_folder))
 else:
   llvm_src_folder = '{0}/LLVM'.format(os.environ['ProgramFiles']) #(x86)
-  if not pathlib.Path(llvm_src_folder+'/bin').exists():
-    print('--- LLVM 18.1.8 not found, trying to install')
-    download_url('https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/LLVM-18.1.8-win64.exe')
-    run(dest_dir+'/.packages/LLVM-18.1.8-win64.exe /S')
+  if not pathlib.Path(llvm_src_folder+'/bin/clang.exe').exists() or not pathlib.Path(llvm_src_folder+'/lib/clang/21').exists():
+    print('--- LLVM 21.1.8 not found, trying to install')
+    download_url('https://github.com/llvm/llvm-project/releases/download/llvmorg-21.1.8/LLVM-21.1.8-win64.exe')
+    run(dest_dir+'/.packages/LLVM-21.1.8-win64.exe /S')
 
   if pathlib.Path(llvm_src_folder+'/bin').exists():
-    print('+++ LLVM 18.1.8 found at {0}'.format(llvm_src_folder))
+    print('+++ LLVM 21.1.8 found at {0}'.format(llvm_src_folder))
     make_directory_symlink(llvm_src_folder, llvm_dest_folder)
   else:
-    error("LLVM 18.1.8 not found")
+    error("LLVM 21.1.8 not found")
 
 
 # nasm
@@ -502,28 +502,28 @@ else:
     print('+++ FidelityFX_SC 2.2.1 installed at {0}'.format(ffxsc_dest_folder))
 
 
-# DXC-1.8.2407
-dxc_dest_folder = dest_dir+'/DXC-1.8.2407'
+# DXC-1.8.2505.1
+dxc_dest_folder = dest_dir+'/DXC-1.8.2505.1'
 if pathlib.Path(dxc_dest_folder).exists():
-  print('=== DXC Jul 2024 1.8.2407 found at {0}, skipping setup'.format(dxc_dest_folder))
+  print('=== DXC May 2025 - Patch 1 -- 1.8.2505.1 found at {0}, skipping setup'.format(dxc_dest_folder))
 else:
-  download_url('https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2407/dxc_2024_07_31.zip')
-  download_url('https://github.com/microsoft/DirectXShaderCompiler/archive/refs/tags/v1.8.2407.zip')
-  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/v1.8.2407.zip'), 'r') as zip_file:
+  download_url('https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505.1/dxc_2025_07_14.zip')
+  download_url('https://github.com/microsoft/DirectXShaderCompiler/archive/refs/tags/v1.8.2505.1.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/v1.8.2505.1.zip'), 'r') as zip_file:
     zip_file.extractall(dest_dir+'/.packages/')
-    with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/dxc_2024_07_31.zip'), 'r') as zip_file:
-      zip_file.extractall(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/_win')
+    with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/dxc_2025_07_14.zip'), 'r') as zip_file:
+      zip_file.extractall(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2505.1/_win')
 
       pathlib.Path(dxc_dest_folder+'/include').mkdir(parents=True, exist_ok=True)
       pathlib.Path(dxc_dest_folder+'/lib').mkdir(parents=True, exist_ok=True)
-      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/include/dxc', dxc_dest_folder+'/include/dxc')
-      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/_win/bin/x64', dxc_dest_folder+'/lib/win64')
-      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/_win/bin/arm64', dxc_dest_folder+'/lib/win-arm64')
-      shutil.copyfile(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2407/LICENSE.TXT', dxc_dest_folder+'/LICENSE.TXT')
-      print('+++ DXC Jul 2024 1.8.2407 installed at {0}'.format(dxc_dest_folder))
+      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2505.1/include/dxc', dxc_dest_folder+'/include/dxc')
+      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2505.1/_win/bin/x64', dxc_dest_folder+'/lib/win64')
+      make_directory_symlink(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2505.1/_win/bin/arm64', dxc_dest_folder+'/lib/win-arm64')
+      shutil.copyfile(dest_dir+'/.packages/DirectXShaderCompiler-1.8.2505.1/LICENSE.TXT', dxc_dest_folder+'/LICENSE.TXT')
+      print('+++ DXC May 2025 - Patch 1 -- 1.8.2505.1 installed at {0}'.format(dxc_dest_folder))
 
-# Agility.SDK.1.616.1
-asdk_ver = '1.616.1'
+# Agility.SDK.1.619.0
+asdk_ver = '1.619.0'
 asdk_dest_folder = dest_dir+'/Agility.SDK.'+asdk_ver
 if pathlib.Path(asdk_dest_folder).exists():
   print('=== Agility.SDK.{1} symlink found at {0}, skipping setup'.format(asdk_dest_folder, asdk_ver))
@@ -563,14 +563,63 @@ else:
     zip_file.extractall(dest_dir)
     print('+++ ISPC v1.23.0 installed at {0}'.format(ispc_dest_folder))
 
+# FidelityFX-SDK-2.1.1
+fidelityfx_sdk_ver = '2.1.1'
+fidelityfx_sdk_dest_folder = dest_dir+'/FidelityFX-SDK-'+fidelityfx_sdk_ver
+if pathlib.Path(fidelityfx_sdk_dest_folder).exists():
+  print('=== FidelityFX SDK {1} found at {0}, skipping setup'.format(fidelityfx_sdk_dest_folder, fidelityfx_sdk_ver))
+else:
+  fidelityfx_sdk_zip = 'FidelityFX-SDK-'+fidelityfx_sdk_ver+'.zip'
+  download_url2('https://github.com/GPUOpen-LibrariesAndSDKs/FidelityFX-SDK/archive/refs/tags/v'+fidelityfx_sdk_ver+'.zip',
+                fidelityfx_sdk_zip)
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/'+fidelityfx_sdk_zip), 'r') as zip_file:
+    zip_file.extractall(dest_dir)
+  print('+++ FidelityFX SDK {1} installed at {0}'.format(fidelityfx_sdk_dest_folder, fidelityfx_sdk_ver))
+
+# nvapi-R590
+nvapi_dest_folder = dest_dir+'/nvapi-R590'
+if pathlib.Path(nvapi_dest_folder).exists():
+  print('=== nvapi symlink found at {0}, skipping setup'.format(nvapi_dest_folder))
+else:
+  download_url2('https://github.com/NVIDIA/nvapi/archive/refs/heads/main.zip', 'nvapi-R590.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/nvapi-R590.zip'), 'r') as zip_file:
+    members = [
+        m for m in zip_file.namelist()
+        if not (m.startswith('nvapi-main/docs/') or m.startswith('nvapi-main/Sample_Code/'))
+    ]
+    zip_file.extractall(dest_dir, members)
+  os.rename(os.path.normpath(dest_dir+'/nvapi-main'), os.path.normpath(nvapi_dest_folder));
+  print('+++ nvapi-R590 installed at {0}'.format(nvapi_dest_folder))
+
+# AGS v6.3.0
+ags_sdk_dest_folder = dest_dir+'/AGS.SDK.6.3.0'
+if pathlib.Path(ags_sdk_dest_folder).exists():
+  print('=== AGS SDK symlink found at {0}, skipping setup'.format(ags_sdk_dest_folder))
+else:
+  download_url2('https://github.com/GPUOpen-LibrariesAndSDKs/AGS_SDK/archive/refs/tags/v6.3.0.zip', 'AGS.SDK.6.3.0.zip')
+  with zipfile.ZipFile(os.path.normpath(dest_dir+'/.packages/AGS.SDK.6.3.0.zip'), 'r') as zip_file:
+    prefix = 'AGS_SDK-6.3.0/ags_lib/'
+    for member in zip_file.namelist():
+      if member.startswith(prefix) and not member.endswith('/'):
+        rel_path = os.path.relpath(member, prefix)
+        if rel_path == '.':
+          continue
+        target_path = os.path.join(ags_sdk_dest_folder, rel_path)
+        os.makedirs(os.path.dirname(target_path), exist_ok=True)
+        with zip_file.open(member) as source, open(target_path, 'wb') as target:
+          target.write(source.read())
+          target.close()
+  print('+++ AGS v6.3.0 installed at {0}'.format(ags_sdk_dest_folder))
 
 # install 3ds Max SDKs
+install_3ds_Max_SDK('2026',
+  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2026/SDK_3dsMax2026.msi')
 install_3ds_Max_SDK('2025',
   'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2025/SDK_3dsMax2025.msi')
 install_3ds_Max_SDK('2024',
   'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2024/SDK_3dsMax2024.msi')
-install_3ds_Max_SDK('2023',
-  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2023/SDK_3dsMax2023.msi')
+#install_3ds_Max_SDK('2023',
+#  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN+Extranet/M%26E/Max/Autodesk+3ds+Max+2023/SDK_3dsMax2023.msi')
 #install_3ds_Max_SDK('2019',
 #  'https://autodesk-adn-transfer.s3.us-west-2.amazonaws.com/ADN%20Extranet/M%26E/Max/Autodesk%203ds%20Max%202019/SDK_3dsMax2019.msi')
 

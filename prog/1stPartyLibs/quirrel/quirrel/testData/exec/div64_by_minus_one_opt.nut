@@ -1,5 +1,6 @@
+let min_int = -0x7FFFFFFF_FFFFFFFF-1
 try {
-    print( (-0x7FFFFFFF_FFFFFFFF-1) / -1 )
+    print( min_int / -1 )
 } catch(e) {
     print("OK")
 }

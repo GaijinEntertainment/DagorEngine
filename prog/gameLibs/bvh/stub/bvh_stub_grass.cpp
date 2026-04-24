@@ -12,7 +12,7 @@ void teardown(ContextId) {}
 void on_unload_scene(ContextId) {}
 void reload_grass(ContextId, RandomGrass *) {}
 void get_instances(ContextId, Sbuffer *&, Sbuffer *&) {}
-void get_memory_statistics(int64_t &vb, int64_t &ib, int64_t &blas, int64_t &meta, int64_t &queries)
+void get_memory_statistics(ContextId, int64_t &vb, int64_t &ib, int64_t &blas, int64_t &meta, int64_t &queries)
 {
   vb = ib = blas = meta = queries = 0;
 }

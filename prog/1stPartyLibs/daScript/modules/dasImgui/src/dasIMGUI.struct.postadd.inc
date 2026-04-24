@@ -1,6 +1,7 @@
 // this file is generated via Daslang automatic C++ binder
 // all user modifications will be lost after this file is re-generated
 
+initRecAnnotation(ann_ImTextureRef,lib);
 initRecAnnotation(ann_ImGuiTableSortSpecs,lib);
 initRecAnnotation(ann_ImGuiTableColumnSortSpecs,lib);
 initRecAnnotation(ann_ImNewWrapper,lib);
@@ -29,11 +30,14 @@ initRecAnnotation(ann_ImDrawChannel,lib);
 initRecAnnotation(ann_ImDrawListSplitter,lib);
 initRecAnnotation(ann_ImDrawList,lib);
 initRecAnnotation(ann_ImDrawData,lib);
+initRecAnnotation(ann_ImTextureRect,lib);
+initRecAnnotation(ann_ImTextureData,lib);
 initRecAnnotation(ann_ImFontConfig,lib);
 initRecAnnotation(ann_ImFontGlyph,lib);
 initRecAnnotation(ann_ImFontGlyphRangesBuilder,lib);
-initRecAnnotation(ann_ImFontAtlasCustomRect,lib);
+initRecAnnotation(ann_ImFontAtlasRect,lib);
 initRecAnnotation(ann_ImFontAtlas,lib);
+initRecAnnotation(ann_ImFontBaked,lib);
 initRecAnnotation(ann_ImFont,lib);
 initRecAnnotation(ann_ImGuiViewport,lib);
 initRecAnnotation(ann_ImGuiPlatformIO,lib);

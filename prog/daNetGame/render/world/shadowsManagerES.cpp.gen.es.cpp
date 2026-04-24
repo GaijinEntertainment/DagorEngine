@@ -8,9 +8,8 @@ static constexpr ecs::ComponentDesc shadows_settings_tracking_es_comps[] =
 {
 //start of 1 ro components at [0]
   {ECS_HASH("render_settings__ssssQuality"), ecs::ComponentTypeInfo<ecs::string>()},
-//start of 3 rq components at [1]
+//start of 2 rq components at [1]
   {ECS_HASH("render_settings__combinedShadows"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("render_settings__forwardRendering"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("render_settings__waterQuality"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static void shadows_settings_tracking_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -28,12 +27,13 @@ static ecs::EntitySystemDesc shadows_settings_tracking_es_es_desc
   ecs::EntitySystemOps(nullptr, shadows_settings_tracking_es_all_events),
   empty_span(),
   make_span(shadows_settings_tracking_es_comps+0, 1)/*ro*/,
-  make_span(shadows_settings_tracking_es_comps+1, 3)/*rq*/,
+  make_span(shadows_settings_tracking_es_comps+1, 2)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<ChangeRenderFeatures,
-                       OnRenderSettingsReady>::build(),
+                       OnRenderSettingsReady,
+                       OnRenderSettingsUpdated>::build(),
   0
-,nullptr,"render_settings__combinedShadows,render_settings__forwardRendering,render_settings__ssssQuality,render_settings__waterQuality",nullptr,"ssss_settings_tracking_es");
+,nullptr,"render_settings__combinedShadows,render_settings__ssssQuality,render_settings__waterQuality",nullptr,"ssss_settings_tracking_es");
 static constexpr ecs::ComponentDesc update_world_bbox_es_comps[] =
 {
 //start of 3 ro components at [0]
@@ -67,7 +67,8 @@ static ecs::EntitySystemDesc update_world_bbox_es_es_desc
 ,nullptr,nullptr,nullptr,"rendinst_move_es,rendinst_with_handle_move_es");
 static constexpr ecs::ComponentDesc init_shadows_es_comps[] =
 {
-//start of 2 rq components at [0]
+//start of 3 rq components at [0]
+  {ECS_HASH("render_settings__bare_minimum"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("render_settings__enableRTSM"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("render_settings__shadowsQuality"), ecs::ComponentTypeInfo<ecs::string>()}
 };
@@ -84,11 +85,11 @@ static ecs::EntitySystemDesc init_shadows_es_es_desc
   ecs::EntitySystemOps(nullptr, init_shadows_es_all_events),
   empty_span(),
   empty_span(),
-  make_span(init_shadows_es_comps+0, 2)/*rq*/,
+  make_span(init_shadows_es_comps+0, 3)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
-,"render","render_settings__enableRTSM,render_settings__shadowsQuality",nullptr,"bvh_render_settings_changed_es");
+,"render","render_settings__bare_minimum,render_settings__enableRTSM,render_settings__shadowsQuality",nullptr,"bvh_render_settings_changed_es");
 static constexpr ecs::ComponentDesc init_vsm_es_comps[] =
 {
 //start of 1 rq components at [0]
@@ -125,9 +126,9 @@ static ecs::CompileTimeQueryDesc use_rgba_fmt_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void use_rgba_fmt_ecs_query(Callable function)
+inline void use_rgba_fmt_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, use_rgba_fmt_ecs_query_desc.getHandle(),
+  perform_query(&manager, use_rgba_fmt_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -142,22 +143,21 @@ inline void use_rgba_fmt_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc bind_additional_textures_ecs_query_comps[] =
 {
-//start of 3 ro components at [0]
+//start of 2 ro components at [0]
   {ECS_HASH("combined_shadows__use_additional_textures"), ecs::ComponentTypeInfo<bool>()},
-  {ECS_HASH("combined_shadows__additional_textures"), ecs::ComponentTypeInfo<ecs::StringList>()},
-  {ECS_HASH("combined_shadows__additional_samplers"), ecs::ComponentTypeInfo<ecs::StringList>()}
+  {ECS_HASH("combined_shadows__additional_textures"), ecs::ComponentTypeInfo<ecs::StringList>()}
 };
 static ecs::CompileTimeQueryDesc bind_additional_textures_ecs_query_desc
 (
   "bind_additional_textures_ecs_query",
   empty_span(),
-  make_span(bind_additional_textures_ecs_query_comps+0, 3)/*ro*/,
+  make_span(bind_additional_textures_ecs_query_comps+0, 2)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void bind_additional_textures_ecs_query(Callable function)
+inline void bind_additional_textures_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, bind_additional_textures_ecs_query_desc.getHandle(),
+  perform_query(&manager, bind_additional_textures_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -165,7 +165,6 @@ inline void bind_additional_textures_ecs_query(Callable function)
           function(
               ECS_RO_COMP(bind_additional_textures_ecs_query_comps, "combined_shadows__use_additional_textures", bool)
             , ECS_RO_COMP(bind_additional_textures_ecs_query_comps, "combined_shadows__additional_textures", ecs::StringList)
-            , ECS_RO_COMP(bind_additional_textures_ecs_query_comps, "combined_shadows__additional_samplers", ecs::StringList)
             );
 
         }while (++comp != compE);

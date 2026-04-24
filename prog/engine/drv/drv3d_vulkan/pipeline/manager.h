@@ -164,6 +164,12 @@ public:
     return storage<PipelineType>().get(id);
   }
 
+  template <typename PipelineType>
+  bool valid(ProgramID id)
+  {
+    return storage<PipelineType>().valid(id);
+  }
+
   template <typename PipelineType, typename F>
   void enumerate(F callback)
   {
@@ -216,7 +222,10 @@ public:
   bool asyncCompileEnabledGR() { return (asyncCompileAllowed & ASYNC_MASK_RENDER) > 0; }
   bool asyncCompileEnabledCS() { return (asyncCompileAllowed & ASYNC_MASK_COMPUTE) > 0; }
 
-  static VulkanShaderModuleHandle makeVkModule(const ShaderModuleBlob *module);
+  void onDeviceReset();
+  void afterDeviceReset();
+
+  static VulkanShaderModuleHandle makeVkModule(const ShaderModuleBlob *module, spirv::HashValue &hv);
 
 private:
   AsyncMask asyncCompileAllowed = ASYNC_MASK_NONE;

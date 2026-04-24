@@ -61,6 +61,7 @@ static void auto_delete_client_entity_with_effect_component_es_all(const ecs::Up
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     auto_delete_client_entity_with_effect_component_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(auto_delete_client_entity_with_effect_component_es_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(auto_delete_client_entity_with_effect_component_es_comps, "effect", TheEffect)
     );
@@ -91,7 +92,8 @@ static void validate_auto_delete_tag_on_client_only_entities_es_all_events(const
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     validate_auto_delete_tag_on_client_only_entities_es(evt
-        , ECS_RO_COMP(validate_auto_delete_tag_on_client_only_entities_es_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(validate_auto_delete_tag_on_client_only_entities_es_comps, "eid", ecs::EntityId)
     );
   while (++comp != compE);
 }
@@ -153,9 +155,9 @@ static ecs::CompileTimeQueryDesc get_animchar_collision_transform_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline bool get_animchar_collision_transform_ecs_query(ecs::EntityId eid, Callable function)
+inline bool get_animchar_collision_transform_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  return perform_query(g_entity_mgr, eid, get_animchar_collision_transform_ecs_query_desc.getHandle(),
+  return perform_query(&manager, eid, get_animchar_collision_transform_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

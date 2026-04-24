@@ -65,18 +65,18 @@ endmacro
 
 macro INIT_COMMON_RENDINST_TESSELLATION_VARS()
   static int material_pn_triangulation = 0 no_warnings;
-  interval material_pn_triangulation : off < 1, displacement < 2, smoothing_only < 3, with_dominant_uv;
+  interval material_pn_triangulation : off < 1, displacement < 2, smoothing_only < 3, with_domain_uv;
 
   if (hardware.metal || compatibility_mode == compatibility_mode_on)
   {
     assume material_pn_triangulation = off;
   }
 
-  if (material_pn_triangulation == with_dominant_uv)
+  if (material_pn_triangulation == with_domain_uv)
   {
-    // channel float4 tc[1] = extra[56]; // TODO: everything breaks if it is declared here, see INIT_COMMON_RENDINST_TESSELLATION_CHANNELS
+    // channel float4 tc[1] = extra[56]; // TODO: everything breaks if it is declared here, see INIT_DOMAIN_UV
     hlsl {
-      #define HAS_DOMINANT_UV 1
+      #define HAS_DOMAIN_UV 1
     }
   }
 
@@ -96,15 +96,22 @@ macro INIT_COMMON_RENDINST_TESSELLATION_VARS()
       (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_depth);
 endmacro
 
+macro INIT_COMMON_RENDINST_TESSELLATION_CHANNELS()
+  if(material_pn_triangulation == with_domain_uv)
+  {
+    DECLARE_DOMAINT_UV_CHANNELS()
+  }
+endmacro
+
 macro INIT_COMMON_RENDINST_TESSELLATION()
   if (pn_triangulation_enabled)
   {
     hlsl {
       #if SET_UP_MULTIDRAW && DRAW_ID_USES_INSTANCE_OFFSET_ID
         ##if hardware.ps4 || hardware.ps5
-          #define GET_DRAW_CALL_ID_TRIANGULATION(src) get_material_offset_external_draw_id(WaveReadFirstLane(src.drawId))
+          #define GET_DRAW_CALL_ID_TRIANGULATION(src) (WaveReadFirstLane(src.drawId) & MATERIAL_OFFSET_MASK)
         ##else
-          #define GET_DRAW_CALL_ID_TRIANGULATION(src) get_material_offset_external_draw_id(src.drawId)
+          #define GET_DRAW_CALL_ID_TRIANGULATION(src) (src.drawId & MATERIAL_OFFSET_MASK)
         ##endif
       #else
         #define GET_DRAW_CALL_ID_TRIANGULATION(src) GET_MATERIAL_OFFSET
@@ -128,7 +135,7 @@ macro INIT_COMMON_RENDINST_TESSELLATION()
       bool use_tessellation_displacement() { return get_material_pn_triangulation() == MATERIAL_PN_TYPE_DISPLACEMENT || get_material_pn_triangulation() == MATERIAL_PN_TYPE_DOMINANT_UV; }
     }
 
-    if (debug_dominant_uv == on && material_pn_triangulation == with_dominant_uv)
+    if (debug_dominant_uv == on && material_pn_triangulation == with_domain_uv)
     {
       hlsl {
         #define DEBUG_DOMINANT_UV 1
@@ -156,17 +163,13 @@ macro INIT_COMMON_RENDINST_TESSELLATION()
   }
 endmacro
 
-macro INIT_COMMON_RENDINST_TESSELLATION_CHANNELS() // for some reason it depends on the order of declaration, TODO: merge it with INIT_COMMON_RENDINST_TESSELLATION
-  if (material_pn_triangulation == with_dominant_uv)
-  {
-    channel float4 tc[1] = extra[56];
-    channel float4 tc[2] = extra[57];
-  }
-endmacro
-
 macro USE_COMMON_RENDINST_DISPLACEMENT_FOR_TESSELLATION()
   if (pn_triangulation_enabled)
   {
+    if (material_pn_triangulation == with_domain_uv)
+    {
+      USE_DOMAIN_UV()
+    }
     (vs)
     {
       rendinst_displacement_min@f3 = rendinst_displacement_min;
@@ -174,9 +177,9 @@ macro USE_COMMON_RENDINST_DISPLACEMENT_FOR_TESSELLATION()
       rendinst_displacement_lod@f3 = rendinst_displacement_lod;
       rendinst_displacement_mod@f4 = rendinst_displacement_mod;
 
-      diffuse_tex@static = tex;
-      diffuse_tex1@static = tex1;
-      diffuse_tex2@static = tex2;
+      diffuse_tex@staticSmp = tex;
+      diffuse_tex1@staticTex = tex1;
+      diffuse_tex2@staticTex = tex2;
     }
     hlsl(ds)
     {
@@ -190,29 +193,16 @@ macro USE_COMMON_RENDINST_DISPLACEMENT_FOR_TESSELLATION()
 
         float3 normal = output.normal.xyz;
         float2 displacementTC = output.diffuseTexcoord.xy;
-        #if HAS_DOMINANT_UV
-          float3 edges = uvw == 0;
-          float intersectingEdgeCnt = dot(edges, 1);
-          if (intersectingEdgeCnt == 1) // edge
-          {
-            BARYCENTRIC_COORDS_UNPACK(uvw)
-            displacementTC =
-              edges.x*(v*input[1].domEdgeTc.xy + w*input[1].domEdgeTc.zw) +
-              edges.y*(w*input[2].domEdgeTc.xy + u*input[2].domEdgeTc.zw) +
-              edges.z*(u*input[0].domEdgeTc.xy + v*input[0].domEdgeTc.zw);
-          }
-          else if (intersectingEdgeCnt == 2) // corner
-          {
-            float3 corners = (edges.yzx + edges.zxy) == 2;
-            displacementTC = corners.x * input[1].domVertexTc + corners.y* input[2].domVertexTc + corners.z * input[0].domVertexTc;
-          }
+        #if HAS_DOMAIN_UV
+          displacementTC = get_modified_domaint_uv(input, displacementTC, uvw);
           #if DEBUG_DOMINANT_UV
             output.diffuseTexcoord.xy = displacementTC;
           #endif
         #endif
-        half4 diffuseColor  = tex2DLodBindless(get_diffuse_tex() , float4(displacementTC, 0, get_rendinst_displacement_lod().x));
-        half4 diffuseColor1 = tex2DLodBindless(get_diffuse_tex1(), float4(displacementTC, 0, get_rendinst_displacement_lod().y));
-        half4 diffuseColor2 = tex2DLodBindless(get_diffuse_tex2(), float4(displacementTC, 0, get_rendinst_displacement_lod().z));
+
+        half4 diffuseColor  = tex2DLodBindless(get_diffuse_tex(), float4(displacementTC, 0, get_rendinst_displacement_lod().x));
+        half4 diffuseColor1 = tex2DLodBindlessSampler(get_diffuse_tex1(), get_diffuse_tex().smp, float4(displacementTC, 0, get_rendinst_displacement_lod().y));
+        half4 diffuseColor2 = tex2DLodBindlessSampler(get_diffuse_tex2(), get_diffuse_tex().smp, float4(displacementTC, 0, get_rendinst_displacement_lod().z));
         float2 by_normal_params = float2(0, 0);
         ##if (shader == rendinst_cliff)
           by_normal_params = float2(max(dot(get_mask_by_normal().xyz, normal.xyz), 0), get_mask_by_normal().w);
@@ -243,8 +233,6 @@ endmacro
 
 
 macro COMMON_RENDINST_SIMPLE_INIT(for_dng)
-
-  ENABLE_ASSERT(ps)
 
   VERTEX_DENSITY_INIT_VS()
   VERTEX_DENSITY_WRITE()
@@ -333,7 +321,7 @@ endmacro
 
 
 macro COMMON_RENDINST_VS_OUTPUT_MEMBERS_DEF()
-
+  INIT_DOMAIN_UV()
   hlsl {
     #if PN_TESSELATION
       #define HLSL_FULL_VS_OUTPUT 1
@@ -399,21 +387,9 @@ macro COMMON_RENDINST_VS_OUTPUT_MEMBERS_DEF()
       #define RI_FIELD_BARYCENTRIC_VALUE_PLOD_ID
     #endif
 
-    #if HAS_DOMINANT_UV
-      #define DOMINANT_DATA_OUTPUT_MEMBERS \
-        float2 domVertexTc : TEXCOORD9; \
-        float4 domEdgeTc : TEXCOORD10;
-      #define RI_PROXY_FIELD_VALUE_DOMINANT_DATA PROXY_FIELD_VALUE(domVertexTc); PROXY_FIELD_VALUE(domEdgeTc);
-      #define RI_FIELD_BARYCENTRIC_VALUE_DOMINANT_DATA FIELD_BARYCENTRIC_VALUE(domVertexTc); FIELD_BARYCENTRIC_VALUE(domEdgeTc);
-    #else
-      #define DOMINANT_DATA_OUTPUT_MEMBERS
-      #define RI_PROXY_FIELD_VALUE_DOMINANT_DATA
-      #define RI_FIELD_BARYCENTRIC_VALUE_DOMINANT_DATA
-    #endif
-
     #define COMMON_RENDINST_VS_OUTPUT_MEMBERS \
       COMMON_OUTPUT_MEMBERS                   \
-      DOMINANT_DATA_OUTPUT_MEMBERS            \
+      DOMAIN_UV_OUTPUT_MEMBERS                \
       FULL_OUTPUT_MEMBERS                     \
       DEPTH_OUTPUT_MEMBERS                    \
       COLOR_OUTPUT_MEMBERS                    \
@@ -422,26 +398,26 @@ macro COMMON_RENDINST_VS_OUTPUT_MEMBERS_DEF()
 
     #define COMMON_RENDINST_HS_OUTPUT_MEMBERS \
       VSOUT_DRAW_ID                           \
-      DOMINANT_DATA_OUTPUT_MEMBERS            \
+      DOMAIN_UV_OUTPUT_MEMBERS                \
       FULL_OUTPUT_MEMBERS_HS                  \
       COLOR_OUTPUT_MEMBERS                    \
       PLOD_VS_OUTPUT
 
     #define COMMON_RENDINST_TESS_PROXY_FIELD_VALUE \
-      PROXY_FIELD_VALUE(diffuseTexcoord); \
-      PROXY_FIELD_VALUE(pointToEye); \
-      RI_PROXY_FIELD_VALUE_COLOR_MUL \
-      RI_PROXY_FIELD_VALUE_PLOD_ID \
-      RI_PROXY_FIELD_VALUE_DOMINANT_DATA \
+      PROXY_FIELD_VALUE(diffuseTexcoord);          \
+      PROXY_FIELD_VALUE(pointToEye);               \
+      RI_PROXY_FIELD_VALUE_COLOR_MUL               \
+      RI_PROXY_FIELD_VALUE_PLOD_ID                 \
+      RI_PROXY_FIELD_VALUE_DOMAIN_DATA             \
       RI_PROXY_FIELD_VALUE_DRAW_ID
 
-    #define COMMON_RENDINST_TESS_FIELD_BARYCENTRIC_VALUE \
-      FIELD_BARYCENTRIC_VALUE(diffuseTexcoord); \
-      FIELD_BARYCENTRIC_VALUE(pointToEye.w); \
+    #define COMMON_RENDINST_TESS_FIELD_BARYCENTRIC_VALUE       \
+      FIELD_BARYCENTRIC_VALUE(diffuseTexcoord);                \
+      FIELD_BARYCENTRIC_VALUE(pointToEye.w);                   \
       output.pointToEye.xyz = world_view_pos - output.pos.xyz; \
-      RI_FIELD_BARYCENTRIC_VALUE_COLOR_MUL \
-      RI_FIELD_BARYCENTRIC_VALUE_PLOD_ID \
-      RI_FIELD_BARYCENTRIC_VALUE_DOMINANT_DATA \
+      RI_FIELD_BARYCENTRIC_VALUE_COLOR_MUL                     \
+      RI_FIELD_BARYCENTRIC_VALUE_PLOD_ID                       \
+      RI_FIELD_BARYCENTRIC_VALUE_DOMAIN_DATA                   \
       RI_FIELD_BARYCENTRIC_VALUE_DRAW_ID
   }
 endmacro
@@ -456,9 +432,6 @@ macro COMMON_RENDINST_VS_IO_DEFINES()
     #endif
     #if HLSL_FULL_VS_OUTPUT
       #define IS_DYNAMIC input.diffuseTexcoord.z
-      #ifndef MOTION_VECTORS_ENABLED
-        #define FORCE_AUTO_MOTION_VECTOR 1
-      #endif
     #endif
   }
 
@@ -489,9 +462,8 @@ macro COMMON_RENDINST_VS_INPUT()
       #if HAS_VERTEX_COLOR_MASK
         float3 vcolMask             : COLOR0;
       #endif
-      #if HAS_DOMINANT_UV
-        float4 domVertexTc : TEXCOORD1;
-        float4 domEdgeTc : TEXCOORD2;
+      #if HAS_DOMAIN_UV
+        DOMAIN_UV_VTX_INPUT_MEMBERS
       #endif
     };
   }
@@ -577,7 +549,7 @@ macro COMMON_RENDINST_VS()
         ##endif
       #endif
 
-      #if HAS_DOMINANT_UV
+      #if HAS_DOMAIN_UV
       output.domVertexTc = input.domVertexTc.xy;
       output.domEdgeTc = input.domEdgeTc;
         #if RANDOMIZE_TC
@@ -665,7 +637,7 @@ macro INIT_AND_USE_DETAIL()
     static float detail_multiplier;
 
     (ps) {
-      detail_tex@static = detail;
+      detail_tex@staticSmp = detail;
       detail_multiplier@f1 = (detail_multiplier);
     }
 
@@ -673,7 +645,7 @@ macro INIT_AND_USE_DETAIL()
     {
       static float secondary_detail_multiplier;
       (ps) {
-        secondary_detail_tex@static = secondary_detail;
+        secondary_detail_tex@staticSmp = secondary_detail;
         secondary_detail_multiplier@f1 = (secondary_detail_multiplier);
       }
     }
@@ -712,10 +684,10 @@ macro USE_PARALLAX()
     USE_PIXEL_TANGENT_SPACE()
     hlsl(ps) {
       #define HAS_PARALLAX 1
-      #define parallax_tex_sampler(tex, tc) tex2DBindless(tex, tc.xy)
+      #define parallax_tex_sampler(sample, tex, tc) sample = tex2DBindless(tex, tc.xy)
       #define PARALLAX_TEX get_diffuse_tex()
       #define PARALLAX_ATTR a
-      #include "./parallax.hlsl"
+      #include <parallax.hlsl>
       #include "noise/Value2D.hlsl"
 
       float2 applyParallax(float2 tex_coord, float3 normal, float3 point_to_eye)

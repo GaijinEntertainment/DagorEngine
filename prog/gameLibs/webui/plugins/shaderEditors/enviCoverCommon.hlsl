@@ -1,7 +1,8 @@
 #define SELECT_ALBEDO_AO 0U
-#define SELECT_NORMAL_MATERIAL 1U
+#define SELECT_NORMAL 1U
 #define SELECT_SRTMSD 2U
 #define SELECT_MOTION_VECS 3U
+#define SELECT_MATERIAL_EXTRA 4U
 
 //MASK VALUES FOR MIXING
 #define ALBEDO_MASK (1U << 0U)
@@ -19,7 +20,6 @@
 #define SSS_PROF_MASK (1U << 12U)
 #define SHEEN_MASK (1U << 13U)
 #define DYNAMIC_MASK (1U << 14U)
-#define AUTO_MOTION_VECS_MASK (1U << 15U)
 #define IS_LANDSCAPE_MASK (1U << 16U)
 #define IS_HERO_COCKPIT_MASK (1U << 17U)
 #define MATERIAL_MASK (1U << 18U)
@@ -28,6 +28,7 @@
 #define Layer_t UnpackedGbuffer
 #define material_t uint
 #define mask_t uint
+#define ctrl_t bool
 
 bool isMemberMaskSet(uint flags, uint mask)
 {
@@ -65,7 +66,7 @@ static const float EPS = 0.0001;
 
 uint createLayerMask(bool albedo, bool normal, bool motion, bool reactive, bool smoothness, bool reflectance, bool shadow, bool ao,
   bool emission_color, bool metalness, bool translucency, bool emission_strength, bool sss_profile, bool sheen, bool dynamic,
-  bool autoMotionVecs, bool isLandscape, bool isHeroCockpit, bool material)
+  bool isLandscape, bool isHeroCockpit, bool material)
 {
   uint flag = 0;
   flag += albedo ? ALBEDO_MASK : 0;
@@ -83,7 +84,6 @@ uint createLayerMask(bool albedo, bool normal, bool motion, bool reactive, bool 
   flag += sss_profile ? SSS_PROF_MASK : 0;
   flag += sheen ? SHEEN_MASK : 0;
   flag += dynamic ? DYNAMIC_MASK : 0;
-  flag += autoMotionVecs ? AUTO_MOTION_VECS_MASK : 0;
   flag += isLandscape ? IS_LANDSCAPE_MASK : 0;
   flag += isHeroCockpit ? IS_HERO_COCKPIT_MASK : 0;
   flag += material ? MATERIAL_MASK : 0;
@@ -102,17 +102,24 @@ void setModified(inout uint flag, uint select)
 
 void setModifiedFromMix(inout uint nbs_flags, uint mix_flags)
 {
-  if ((mix_flags & (ALBEDO_MASK | AO_MASK | EMISSION_COLOR_MASK)) != 0)
+  #if GBUFFER_NORMALS_PACKED
+    if ((mix_flags & (ALBEDO_MASK | AO_MASK | EMISSION_COLOR_MASK | EMISSION_STRENGTH_MASK)) != 0)
+  #else
+    if ((mix_flags & (ALBEDO_MASK | AO_MASK | EMISSION_COLOR_MASK)) != 0)
+  #endif
     setModified(nbs_flags, SELECT_ALBEDO_AO);
 
-  if ((mix_flags & (NORMAL_MASK | MATERIAL_MASK)) != 0)
-    setModified(nbs_flags, SELECT_NORMAL_MATERIAL);
+  if ((mix_flags & NORMAL_MASK) != 0)
+    setModified(nbs_flags, SELECT_NORMAL);
+
+  if ((mix_flags & MATERIAL_MASK) != 0)
+    setModified(nbs_flags, SELECT_MATERIAL_EXTRA);
 
   if ((mix_flags & (MOTION_MASK | REACTIVE_MASK)) != 0)
     setModified(nbs_flags, SELECT_MOTION_VECS);
 
   uint srtmsd_mask = SMOOTHNESS_MASK | REFLECTANCE_MASK | SHADOW_MASK | EMISSION_COLOR_MASK | METALNESS_MASK | TRANSLUCENCY_MASK | IS_HERO_COCKPIT_MASK |
-                    EMISSION_STRENGTH_MASK | SSS_PROF_MASK | SHEEN_MASK | DYNAMIC_MASK | AUTO_MOTION_VECS_MASK | IS_LANDSCAPE_MASK;
+                    EMISSION_STRENGTH_MASK | SSS_PROF_MASK | SHEEN_MASK | DYNAMIC_MASK | IS_LANDSCAPE_MASK;
 
   if ((mix_flags & srtmsd_mask) != 0)
     setModified(nbs_flags, SELECT_SRTMSD);
@@ -126,33 +133,58 @@ struct NBSGbuffer
 
 void writeNBSGbuffer(NBSGbuffer nbsGbuff, uint2 tc)
 {
+  #if GBUFFER_NORMALS_PACKED
+    half2 emission_hi_lo = packEmissionStrenghHiLo(nbsGbuff.unpackedGbuffer);
+  #endif
+
   BRANCH
   if (isModified(nbsGbuff.flags, SELECT_ALBEDO_AO))
   {
-    half3 gammaCorrectedAlbedo = convertGbuffLinearToSRGB(nbsGbuff.unpackedGbuffer.albedo);
-    half4 packed_albedo_ao = packGbufAlbedoAo(gammaCorrectedAlbedo, nbsGbuff.unpackedGbuffer.ao, nbsGbuff.unpackedGbuffer.emission_color.rgb,
-                                              isEmissiveShader(nbsGbuff.unpackedGbuffer.material));
+    nbsGbuff.unpackedGbuffer.albedo = convertGbuffLinearToSRGB(nbsGbuff.unpackedGbuffer.albedo);
+    #if GBUFFER_NORMALS_PACKED
+      half4 packed_albedo_ao = packAlbedoAo(nbsGbuff.unpackedGbuffer, emission_hi_lo.x);
+    #else
+      half4 packed_albedo_ao = packAlbedoAo(nbsGbuff.unpackedGbuffer, 0);
+    #endif
     writeGbuffAlbedoAO(tc, packed_albedo_ao);
   }
 
-  BRANCH
-  if (isModified(nbsGbuff.flags, SELECT_NORMAL_MATERIAL))
-  {
-    half4 packed_normal_mat = packGbufNormalMaterial(nbsGbuff.unpackedGbuffer.normal, nbsGbuff.unpackedGbuffer.material);
-    writeGbuffNormalMat(tc, packed_normal_mat);
-  }
+  #if GBUFFER_NORMALS_PACKED
+    BRANCH
+    if (isModified(nbsGbuff.flags, SELECT_NORMAL))
+    {
+      writeGbuffNormal(tc, float4(nbsGbuff.unpackedGbuffer.normal * 0.5 - 0.5, 0));
+    }
+    BRANCH
+    if (isModified(nbsGbuff.flags, SELECT_MATERIAL_EXTRA))
+    {
+      half4 packed_normal_mat = packNormalMaterialExtra(nbsGbuff.unpackedGbuffer, true);
+      writeGbuffExtraBits(tc, packed_normal_mat);
+    }
+  #else
+    BRANCH
+    if (isModified(nbsGbuff.flags, SELECT_NORMAL) || isModified(nbsGbuff.flags, SELECT_MATERIAL_EXTRA))
+    {
+      half4 packed_normal_mat = packNormalMaterialExtra(nbsGbuff.unpackedGbuffer, false);
+      writeGbuffNormalMat(tc, packed_normal_mat);
+    }
+  #endif
 
   BRANCH
   if (isModified(nbsGbuff.flags, SELECT_SRTMSD))
   {
-    half4 SRTMSD = packGbufSmoothnessReflectancMetallTranslucencyShadow(nbsGbuff.unpackedGbuffer);
+    #if GBUFFER_NORMALS_PACKED
+      half4 SRTMSD = packGbuf2(nbsGbuff.unpackedGbuffer, emission_hi_lo.y);
+    #else
+      half4 SRTMSD = packGbuf2(nbsGbuff.unpackedGbuffer, nbsGbuff.unpackedGbuffer.emission_strength);
+    #endif
     writeGbuffReflectance(tc, SRTMSD);
   }
 
   BRANCH
   if (isModified(nbsGbuff.flags, SELECT_MOTION_VECS))
   {
-    half4 motion_reactive = packMotionReactive(nbsGbuff.unpackedGbuffer.motion, nbsGbuff.unpackedGbuffer.reactive);
+    half4 motion_reactive = packGbufMotionReactive(nbsGbuff.unpackedGbuffer.motion, nbsGbuff.unpackedGbuffer.reactive);
     writeGbuffMotionVecs(tc, motion_reactive);
   }
 }
@@ -163,15 +195,28 @@ NBSGbuffer init_NBSGbuffer(uint2 tc)
   PackedGbuffer packedGbuffer = (PackedGbuffer)0;
   packedGbuffer.smoothness_reflectance_metallTranslucency_shadow = readGbuffReflectance(tc);
   packedGbuffer.albedo_ao = readGbuffAlbedoAO(tc);
-  packedGbuffer.normal_material = readGbuffNormalMat(tc);
+  #if ENVI_COVER_NBS_WITH_PACKED_NORMS
+    // We still need to unpack material and extra bits, but normal needs manual handling
+    packedGbuffer.normal_material = readGbuffExtraBits(tc);
+  #else
+    packedGbuffer.normal_material = readGbuffNormalMat(tc);
+  #endif
   nbsGbuffer.unpackedGbuffer = unpackGbuffer(packedGbuffer);
-  nbsGbuffer.unpackedGbuffer.albedo = convertGbuffSRGBToLinear(nbsGbuffer.unpackedGbuffer.albedo);
+  #if ENVI_COVER_NBS_WITH_PACKED_NORMS
+    nbsGbuffer.unpackedGbuffer.normal = readGbuffNormal(tc).xyz * 2 - 1;
+  #endif
+
+  // only PS5 does hardware sRGB -> linear conversion on UAV read
+  #ifndef NBS_PS_DEFINED
+    nbsGbuffer.unpackedGbuffer.albedo = convertGbuffSRGBToLinear(nbsGbuffer.unpackedGbuffer.albedo);
+  #endif
+
   return nbsGbuffer;
 }
 
 
 UnpackedGbuffer createMetallicLayer(half3 albedo, float3 normal, half3 motion, half smoothness, half metalness, half reflectance, half ao, half shadow, half reactive,
-  bool dynamic, bool autoMotionVecs, bool isLandscape, bool isHeroCockpit)
+  bool dynamic, bool isLandscape, bool isHeroCockpit)
 {
   UnpackedGbuffer gbuff = (UnpackedGbuffer)0;
   gbuff.albedo = albedo;
@@ -185,14 +230,13 @@ UnpackedGbuffer createMetallicLayer(half3 albedo, float3 normal, half3 motion, h
   gbuff.reactive = reactive;
   gbuff.material = SHADING_NORMAL;
   gbuff.dynamic = uint(dynamic);
-  gbuff.autoMotionVecs = uint(autoMotionVecs);
   gbuff.isLandscape = uint(isLandscape);
   gbuff.isHeroCockpit = uint(isHeroCockpit);
   return gbuff;
 }
 
 UnpackedGbuffer createFoliageLayer(half3 albedo, float3 normal, half3 motion, half smoothness, half translucency, half reflectance, half ao, half shadow, half reactive,
-  bool dynamic, bool autoMotionVecs, bool isLandscape, bool isHeroCockpit)
+  bool dynamic, bool isLandscape, bool isHeroCockpit)
 {
   UnpackedGbuffer gbuff = (UnpackedGbuffer)0;
   gbuff.albedo = albedo;
@@ -206,14 +250,13 @@ UnpackedGbuffer createFoliageLayer(half3 albedo, float3 normal, half3 motion, ha
   gbuff.reactive = reactive;
   gbuff.material = SHADING_FOLIAGE;
   gbuff.dynamic = uint(dynamic);
-  gbuff.autoMotionVecs = uint(autoMotionVecs);
   gbuff.isLandscape = uint(isLandscape);
   gbuff.isHeroCockpit = uint(isHeroCockpit);
   return gbuff;
 }
 
 UnpackedGbuffer createSubsurfaceLayer(half3 albedo, float3 normal, half3 motion, half smoothness, half translucency, half reflectance, half sheen, half ao, half reactive,
-  bool dynamic, bool autoMotionVecs, uint sss_profile, bool isLandscape, bool isHeroCockpit)
+  bool dynamic, uint sss_profile, bool isLandscape, bool isHeroCockpit)
 {
   UnpackedGbuffer gbuff = (UnpackedGbuffer)0;
   gbuff.albedo = albedo;
@@ -227,7 +270,6 @@ UnpackedGbuffer createSubsurfaceLayer(half3 albedo, float3 normal, half3 motion,
   gbuff.reactive = reactive;
   gbuff.material = SHADING_SUBSURFACE;
   gbuff.dynamic = uint(dynamic);
-  gbuff.autoMotionVecs = uint(autoMotionVecs);
   gbuff.sss_profile = sss_profile;
   gbuff.isLandscape = uint(isLandscape);
   gbuff.isHeroCockpit = uint(isHeroCockpit);
@@ -235,7 +277,7 @@ UnpackedGbuffer createSubsurfaceLayer(half3 albedo, float3 normal, half3 motion,
 }
 
 UnpackedGbuffer createEmissiveLayer(half4 emission_color, half3 albedo, float3 normal, half3 motion, half smoothness, half emission_strength, half reflectance, half shadow, half reactive,
-  bool dynamic, bool autoMotionVecs, bool isLandscape, bool isHeroCockpit)
+  bool dynamic, bool isLandscape, bool isHeroCockpit)
 {
   UnpackedGbuffer gbuff = (UnpackedGbuffer)0;
     gbuff.emission_color = emission_color;
@@ -249,7 +291,6 @@ UnpackedGbuffer createEmissiveLayer(half4 emission_color, half3 albedo, float3 n
     gbuff.reactive = reactive;
     gbuff.material = SHADING_SELFILLUM;
     gbuff.dynamic = uint(dynamic);
-    gbuff.autoMotionVecs = uint(autoMotionVecs);
     gbuff.isLandscape = uint(isLandscape);
     gbuff.isHeroCockpit = uint(isHeroCockpit);
     return gbuff;
@@ -270,12 +311,12 @@ void overwrite_ao(inout NBSGbuffer gbuff, float value)
 void overwrite_normal(inout NBSGbuffer gbuff, float3 value)
 {
   gbuff.unpackedGbuffer.normal = value;
-  setModified(gbuff.flags, SELECT_NORMAL_MATERIAL);
+  setModified(gbuff.flags, SELECT_NORMAL);
 }
 void overwrite_material(inout NBSGbuffer gbuff, uint value)
 {
   gbuff.unpackedGbuffer.material = value;
-  setModified(gbuff.flags, SELECT_NORMAL_MATERIAL);
+  setModified(gbuff.flags, SELECT_MATERIAL_EXTRA);
 }
 void overwrite_motion(inout NBSGbuffer gbuff, float3 value)
 {
@@ -312,6 +353,9 @@ void overwrite_emission_strength(inout NBSGbuffer gbuff, float value)
 {
   gbuff.unpackedGbuffer.emission_strength = value;
   setModified(gbuff.flags, SELECT_SRTMSD);
+  #if GBUFFER_NORMALS_PACKED
+    setModified(gbuff.flags, SELECT_ALBEDO_AO);
+  #endif
 }
 void overwrite_reflectance(inout NBSGbuffer gbuff, float value)
 {
@@ -331,11 +375,6 @@ void overwrite_shadow(inout NBSGbuffer gbuff, float value)
 void overwrite_dynamic(inout NBSGbuffer gbuff, bool value)
 {
   gbuff.unpackedGbuffer.dynamic = (uint)value;
-  setModified(gbuff.flags, SELECT_SRTMSD);
-}
-void overwrite_autoMotionVecs(inout NBSGbuffer gbuff, bool value)
-{
-  gbuff.unpackedGbuffer.autoMotionVecs = (uint)value;
   setModified(gbuff.flags, SELECT_SRTMSD);
 }
 void overwrite_sss_profile(inout NBSGbuffer gbuff, uint value)
@@ -371,7 +410,7 @@ void lerp_normal(inout NBSGbuffer gbuff, float3 value, float weight)
 {
   gbuff.unpackedGbuffer.normal = lerp(gbuff.unpackedGbuffer.normal, value, weight);
   if (weight > EPS)
-    setModified(gbuff.flags, SELECT_NORMAL_MATERIAL);
+    setModified(gbuff.flags, SELECT_NORMAL);
 }
 void lerp_motion(inout NBSGbuffer gbuff, float3 value, float weight)
 {
@@ -416,7 +455,12 @@ void lerp_emission_strength(inout NBSGbuffer gbuff, float value, float weight)
 {
   gbuff.unpackedGbuffer.emission_strength = lerp(gbuff.unpackedGbuffer.emission_strength, value, weight);
   if (weight > EPS)
+  {
     setModified(gbuff.flags, SELECT_SRTMSD);
+    #if GBUFFER_NORMALS_PACKED
+      setModified(gbuff.flags, SELECT_ALBEDO_AO);
+    #endif
+  }
 }
 void lerp_reflectance(inout NBSGbuffer gbuff, float value, float weight)
 {
@@ -458,7 +502,6 @@ void overwriteWithLayer(inout NBSGbuffer gbuff, UnpackedGbuffer layer, uint flag
     gbuff.unpackedGbuffer.sss_profile = isMemberMaskSet(flags, SSS_PROF_MASK) ?  layer.sss_profile : gbuff.unpackedGbuffer.sss_profile;
     gbuff.unpackedGbuffer.sheen = isMemberMaskSet(flags, SHEEN_MASK) ?  layer.sheen : gbuff.unpackedGbuffer.sheen;
     gbuff.unpackedGbuffer.dynamic = isMemberMaskSet(flags, DYNAMIC_MASK) ?  layer.dynamic : gbuff.unpackedGbuffer.dynamic;
-    gbuff.unpackedGbuffer.autoMotionVecs = isMemberMaskSet(flags, AUTO_MOTION_VECS_MASK) ?  layer.autoMotionVecs : gbuff.unpackedGbuffer.autoMotionVecs;
     gbuff.unpackedGbuffer.isLandscape = isMemberMaskSet(flags, IS_LANDSCAPE_MASK) ?  layer.isLandscape : gbuff.unpackedGbuffer.isLandscape;
     gbuff.unpackedGbuffer.isHeroCockpit = isMemberMaskSet(flags, IS_HERO_COCKPIT_MASK) ?  layer.isHeroCockpit : gbuff.unpackedGbuffer.isHeroCockpit;
     gbuff.unpackedGbuffer.material = isMemberMaskSet(flags, MATERIAL_MASK) ?  layer.material : gbuff.unpackedGbuffer.material;
@@ -487,7 +530,6 @@ void lerpWithLayer(inout NBSGbuffer gbuff, UnpackedGbuffer layer, uint flags, fl
     gbuff.unpackedGbuffer.sheen = lerp(gbuff.unpackedGbuffer.sheen, layer.sheen, weight * isSetInt(flags, SSS_PROF_MASK));
     gbuff.unpackedGbuffer.sss_profile = isMemberMaskSet(flags, SSS_PROF_MASK) && allowOverwrite ?  layer.sss_profile : gbuff.unpackedGbuffer.sss_profile;
     gbuff.unpackedGbuffer.dynamic = isMemberMaskSet(flags, DYNAMIC_MASK) && allowOverwrite ?  layer.dynamic : gbuff.unpackedGbuffer.dynamic;
-    gbuff.unpackedGbuffer.autoMotionVecs = isMemberMaskSet(flags, AUTO_MOTION_VECS_MASK) && allowOverwrite ?  layer.autoMotionVecs : gbuff.unpackedGbuffer.autoMotionVecs;
     gbuff.unpackedGbuffer.isLandscape = isMemberMaskSet(flags, IS_LANDSCAPE_MASK) && allowOverwrite ?  layer.isLandscape : gbuff.unpackedGbuffer.isLandscape;
     gbuff.unpackedGbuffer.isHeroCockpit = isMemberMaskSet(flags, IS_HERO_COCKPIT_MASK) && allowOverwrite ?  layer.isHeroCockpit : gbuff.unpackedGbuffer.isHeroCockpit;
     gbuff.unpackedGbuffer.material = isMemberMaskSet(flags, MATERIAL_MASK) && allowOverwrite ?  layer.material : gbuff.unpackedGbuffer.material;
@@ -526,7 +568,7 @@ void applySparkles(inout NBSGbuffer gbuff, float3 sparkle_albedo, float sparkle_
   if (apply_to_normal)
   {
     gbuff.unpackedGbuffer.normal = normal;
-    setModified(gbuff.flags, SELECT_NORMAL_MATERIAL);
+    setModified(gbuff.flags, SELECT_NORMAL);
   }
   if(apply_to_smoothness)
   {

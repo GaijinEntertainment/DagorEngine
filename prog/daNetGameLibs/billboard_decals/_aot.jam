@@ -1,0 +1,5 @@
+local R = prog/daNetGameLibs/billboard_decals ;
+Sources +=
+  $(R)/_aot/stub_billboard_decals.cpp
+  $(R)/dasModules/billboardDecals.cpp
+;

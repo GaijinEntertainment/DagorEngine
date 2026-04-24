@@ -37,7 +37,6 @@ shader rendinst_animated_flow
     cull_mode = none;
   }
 
-  ENABLE_ASSERT(ps)
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_depth)
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
@@ -125,11 +124,11 @@ shader rendinst_animated_flow
       flow_scale@f1 = flow_scale;
       uv_scale@f2 = (detail_uv_mult_speed_12.x, detail_uv_mult_speed_12.y);
 
-      flow_tex@static = flow;
-      diffuse1_tex@static = dif1;
-      normal1_tex@static = norm1;
-      diffuse2_tex@static = dif2;
-      normal2_tex@static = norm2;
+      flow_tex@staticSmp = flow;
+      diffuse1_tex@staticSmp = dif1;
+      normal1_tex@staticSmp = norm1;
+      diffuse2_tex@staticSmp = dif2;
+      normal2_tex@staticSmp = norm2;
     }
 
     hlsl(ps) {

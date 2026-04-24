@@ -19,14 +19,15 @@ struct GlobalData
 
   GlobalData(GlobalData &&) = default;
 
-  int size;
+  int size = 0;
+  bool updateRequired = true;
   CpuResourcePtr cpuRes;
   SbufferIDHolderWithVar gpuBuf;
   static inline OSSpinlock bindSpinLock = {};
 };
 
 bool init_global_values(GlobalData &dst);
-void update_global_data(Context &ctx);
+void update_global_data(Context &ctx, bool force);
 void set_global_value(Context &ctx, const char *name, size_t name_len, uint32_t name_hash, const void *data, int size);
 template <unsigned N>
 inline void set_global_value(Context &ctx, const char (&name)[N], const void *data, int size)

@@ -83,22 +83,9 @@ void BhvMoveResize::onDetach(Element *elem, DetachMode)
 }
 
 
-int BhvMoveResize::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int data,
-  short mx, short my, int /*buttons*/, int accum_res)
+int BhvMoveResize::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id,
+  int button_id, Point2 pos, int accum_res)
 {
-  return pointingEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-}
-
-int BhvMoveResize::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/, int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch, int accum_res)
-{
-  return pointingEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
-}
-
-int BhvMoveResize::pointingEvent(ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
-  const Point2 &pos, int accum_res)
-{
-
   BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(dataSlotName, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
@@ -220,10 +207,11 @@ int BhvMoveResize::pointingEvent(ElementTree *, Element *elem, InputDevice devic
       Sqrat::Function onMoveResize(vm, scriptDesc, scriptDesc.RawGetSlot("onMoveResize"));
       if (!onMoveResize.IsNull())
       {
-        Sqrat::Table rhRes;
-        G_VERIFY(onMoveResize.Evaluate(dPos.x, dPos.y, dSize.x, dSize.y, rhRes));
-        if (!rhRes.IsNull())
+        auto optRhRes = onMoveResize.Eval<Sqrat::Table>(dPos.x, dPos.y, dSize.x, dSize.y);
+        G_ASSERT(optRhRes);
+        if (optRhRes && !optRhRes.value().IsNull())
         {
+          Sqrat::Table &rhRes = optRhRes.value();
           Sqrat::Object newPos = rhRes.RawGetSlot(elem->csk->pos);
           Sqrat::Object newSize = rhRes.RawGetSlot(elem->csk->size);
           if (!newPos.IsNull())
@@ -239,7 +227,7 @@ int BhvMoveResize::pointingEvent(ElementTree *, Element *elem, InputDevice devic
               darg_assert_trace_var(errMsg, rhRes, elem->csk->size);
           }
           if (!newPos.IsNull() || !newSize.IsNull())
-            elem->recalcLayout();
+            etree->guiScene->deferredRecalLayout(elem);
         }
       }
       result = R_PROCESSED;
@@ -321,18 +309,36 @@ void BhvMoveResize::setHandleCursor(Element *elem, HandlePos handle)
 }
 
 
+static void deactivate_input_impl(Element *elem, BhvMoveResizeData *bhvData)
+{
+  elem->clearGroupStateFlags(active_state_flags_for_device(bhvData->activeDevice));
+  bhvData->finish();
+  BhvMoveResize::setHandleCursor(elem, BhvMoveResize::MR_NONE);
+}
+
+
 int BhvMoveResize::onDeactivateInput(Element *elem, InputDevice device, int pointer_id)
 {
   BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(dataSlotName, nullptr);
   G_ASSERT_RETURN(bhvData, 0);
 
   if (bhvData->isStartedBy(device, pointer_id))
-  {
-    elem->clearGroupStateFlags(active_state_flags_for_device(device));
-    setHandleCursor(elem, MR_NONE);
-    bhvData->finish();
-  }
+    deactivate_input_impl(elem, bhvData);
+
   return 0;
 }
+
+
+int BhvMoveResize::onDeactivateAllInput(Element *elem)
+{
+  BhvMoveResizeData *bhvData = elem->props.storage.RawGetSlotValue<BhvMoveResizeData *>(dataSlotName, nullptr);
+  G_ASSERT_RETURN(bhvData, 0);
+
+  if (bhvData->isStarted())
+    deactivate_input_impl(elem, bhvData);
+
+  return 0;
+}
+
 
 } // namespace darg

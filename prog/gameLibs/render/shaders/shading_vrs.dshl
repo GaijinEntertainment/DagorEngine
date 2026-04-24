@@ -1,0 +1,130 @@
+include "hardware_defines.dshl"
+include "shader_global.dshl"
+include "gbuffer.dshl"
+
+texture close_depth;
+texture far_downsampled_depth;
+texture downsampled_motion_vectors_tex;
+texture vrs_rate_tex;
+
+int has_variable_rate_shading_by_4;
+interval has_variable_rate_shading_by_4: no < 1, yes;
+int variable_rate_shading_tile_size;
+interval variable_rate_shading_tile_size: size8 < 9, size16 < 17, size32;
+float4x4 prev_frame_uvz_to_uvz;
+float vrs_depth_diff_threshold = 0.95;
+float vrs_shading_cutoff4 = 2.4;
+float vrs_shading_cutoff2 = 1.6;
+float vrs_last_dt_msec = 0;
+
+
+shader gen_shading_motion_vrs
+{
+  INIT_ZNZFAR_STAGE(cs)
+
+  (cs) {
+    close_depth@tex = close_depth hlsl { Texture2D<float> close_depth@tex; };
+    far_downsampled_depth@tex = far_downsampled_depth hlsl { Texture2D<float> far_downsampled_depth@tex; };
+    downsampled_motion_vectors_tex@tex = downsampled_motion_vectors_tex hlsl { Texture2D<float3> downsampled_motion_vectors_tex@tex; };
+
+    vrs_rate_tex@uav = vrs_rate_tex hlsl { RWTexture2D<uint> vrs_rate_tex@uav; };
+    resolution@f2 = get_dimensions(vrs_rate_tex, 0);
+
+    gbuffer_view_size@i2 = gbuffer_view_size;
+    prev_frame_uvz_to_uvz@f44 = prev_frame_uvz_to_uvz;
+    vrs_depth_diff_threshold@f1 = vrs_depth_diff_threshold;
+    vrs_shading_cutoff4@f1 = vrs_shading_cutoff4;
+    vrs_shading_cutoff2@f1 = vrs_shading_cutoff2;
+    last_dt_msec@f1 = vrs_last_dt_msec;
+  }
+
+  hlsl(cs) {
+    ##if variable_rate_shading_tile_size == size8
+    #define DEPTH_MIP_LEVEL 2
+    ##elif variable_rate_shading_tile_size == size16
+    #define DEPTH_MIP_LEVEL 3
+    ##else
+    #define DEPTH_MIP_LEVEL 4
+    ##endif
+
+    float2 calc_fragment_motion(int2 pixel_coords)
+    {
+      ##if downsampled_motion_vectors_tex != NULL
+      float2 mv = texelFetch(downsampled_motion_vectors_tex, pixel_coords, 0).xy;
+      float fp16_max = 65504.0;
+      if (all(abs(mv) == float2(fp16_max, fp16_max)))
+        mv = 0;
+      return mv;
+      ##else
+      float prevZ = texelFetch(close_depth, pixel_coords, 0).x;
+      float2 halfScreenRes = resolution * (1 << DEPTH_MIP_LEVEL);
+      float2 prevUv = (float2(pixel_coords) + 0.5f) / halfScreenRes;
+      float4 prevUvz = float4(prevUv, prevZ, 1.0);
+
+      float4 uvz = mul(prev_frame_uvz_to_uvz, prevUvz);
+      uvz /= uvz.w;
+      // Velocity in "pixels per frame"
+      return (uvz - prevUvz).xy;
+      ##endif
+    }
+
+    [numthreads(16, 16, 1)]
+    void main(uint2 dtId : SV_DispatchThreadID)
+    {
+      if (any(dtId >= resolution))
+        return;
+
+      // Avoid OOB texture loads in shaders when gbuffer is odd.
+      // Resolution = (gbuffer_view_size / 2) / (mip coeff)
+      // divide by 2 since we are reading half-res depth
+      // and by (1 << DEPTH_MIP_LEVEL) to adjust for mip
+      bool isOnEdge = any(and(dtId == resolution - 1, gbuffer_view_size % (2 * (1 << DEPTH_MIP_LEVEL)) != 0));
+      if (isOnEdge || last_dt_msec > 25)
+      {
+        vrs_rate_tex[dtId] = encode_vrs_rate(1, 1, false);
+        return;
+      }
+
+      float2 rate = float2(1, 1);
+
+      float closeDepthEncoded = texelFetch(close_depth, dtId, DEPTH_MIP_LEVEL).x;
+      float farDepthEncoded = texelFetch(far_downsampled_depth, dtId, DEPTH_MIP_LEVEL).x;
+      float closeDepth = linearize_z(closeDepthEncoded, zn_zfar.zw);
+      float farDepth = linearize_z(farDepthEncoded, zn_zfar.zw);
+      if (closeDepthEncoded == 0)
+      {
+        rate = float2(4, 4);
+      }
+      else if (farDepthEncoded == 0 || (farDepth - closeDepth) / farDepth > vrs_depth_diff_threshold)
+      {
+        rate = float2(1, 1);
+      }
+      else
+      {
+        float2 halfScreenRes = resolution * (1 << DEPTH_MIP_LEVEL);
+        float2 motionVec = halfScreenRes;
+        for (int i = 0; i < (1u << DEPTH_MIP_LEVEL); ++i)
+        {
+          for (int j = 0; j < (1u << DEPTH_MIP_LEVEL); ++j)
+          {
+            const float2 motionVecSample = calc_fragment_motion((int2(dtId) << DEPTH_MIP_LEVEL) + int2(i, j)).xy * halfScreenRes;
+            motionVec = min(motionVec, abs(motionVecSample));
+            if (all(vrs_shading_cutoff2 >= motionVec))
+              break;
+          }
+        }
+
+        rate = (motionVec > vrs_shading_cutoff4) ? float2(4, 4) : ((motionVec > vrs_shading_cutoff2) ? float2(2, 2) : float2(1, 1));
+      }
+
+      ##if has_variable_rate_shading_by_4 == yes
+      const bool enablex4 = true;
+      ##else
+      const bool enablex4 = false;
+      ##endif
+      vrs_rate_tex[dtId] = encode_vrs_rate(rate.x, rate.y, enablex4);
+    }
+  }
+
+  compile("target_cs", "main");
+}

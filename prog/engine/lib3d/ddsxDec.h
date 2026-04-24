@@ -46,6 +46,13 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
 
   struct TexCreateJob : public cpujobs::IJob
   {
+    enum
+    {
+      JOB_ACTIVE = 0,
+      JOB_FREE = 1,
+      JOB_INITIALIZING = 2
+    };
+
     const ddsx::Header *hdr;
     char *data;
     const char *texName, *packName;
@@ -59,7 +66,7 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
     bool initJob(const ddsx::Header &_hdr, int tq, const char *tex_name, const char *pack_name, TEXTUREID _tid, FastSeqReader &crd,
       int data_sz, int _prio, volatile int &still_loading)
     {
-      G_ASSERT(!interlocked_acquire_load(done));
+      G_ASSERT(interlocked_acquire_load(done) == JOB_INITIALIZING);
       stillLoading = &still_loading;
       prio = _prio;
       data = (char *)tmpmem->tryAlloc(data_sz);
@@ -70,7 +77,7 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
       }
       else
       {
-        interlocked_release_store(done, 1);
+        interlocked_release_store(done, JOB_FREE);
         return false;
       }
       hdr = &_hdr;
@@ -78,6 +85,7 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
       packName = pack_name;
       texQ = tq;
       tid = _tid;
+      interlocked_release_store(done, JOB_ACTIVE);
       return true;
     }
 
@@ -183,11 +191,11 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
 
         while (job)
         {
-          G_ASSERT(interlocked_acquire_load(job->done) == 0);
+          G_ASSERT(interlocked_acquire_load(job->done) == TexCreateJob::JOB_ACTIVE);
           job->doJob();
           DDSxDecodeCtx::updateWorkerUsedMask(static_cast<TexCreateJob *>(job)->prio, wIdx);
-          G_ASSERT(interlocked_acquire_load(job->done) == 0);
-          interlocked_release_store(job->done, 1);
+          G_ASSERT(interlocked_acquire_load(job->done) == TexCreateJob::JOB_ACTIVE);
+          interlocked_release_store(job->done, TexCreateJob::JOB_FREE);
           if (isThreadTerminating()) // check quit request
             return;
           job = ctx->q.pop();
@@ -257,9 +265,9 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
   {
     OSSpinlockScopedLock lock(queueSL);
     for (int i = 0; i < numWorkers * 2; i++)
-      if (interlocked_acquire_load(jobs[i].done))
+      if (interlocked_acquire_load(jobs[i].done) == TexCreateJob::JOB_FREE)
       {
-        interlocked_release_store(jobs[i].done, 0);
+        interlocked_release_store(jobs[i].done, TexCreateJob::JOB_INITIALIZING);
         return &jobs[i];
       }
     return NULL;
@@ -279,7 +287,7 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
   {
   check_done:
     for (int i = 0; i < numWorkers * 2; i++)
-      if (!interlocked_acquire_load(jobs[i].done))
+      if (interlocked_acquire_load(jobs[i].done) == TexCreateJob::JOB_ACTIVE)
       {
         if (jobs[i].prio != prio)
           continue;
@@ -293,7 +301,7 @@ struct DDSxDecodeCtx : DDSxDecodeCtxBase
       return false;
     TexCreateJob *jobs = dCtx->jobs;
     for (int i = 0, ie = dCtx->numWorkers * 2; i < ie; i++)
-      if (!interlocked_acquire_load(jobs[i].done) && jobs[i].prio == prio)
+      if (interlocked_acquire_load(jobs[i].done) == TexCreateJob::JOB_ACTIVE && jobs[i].prio == prio)
         if (jobs[i].tid == tid)
           return true;
     return false;

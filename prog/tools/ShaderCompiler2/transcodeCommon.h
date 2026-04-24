@@ -24,11 +24,15 @@ static int find_string(const char *src, int len, const char *pattern)
   return (pos == eastl::string_view::npos) ? -1 : pos;
 }
 
-static eastl::vector<uint8_t> get_binary_buffer_with_header(void *data, unsigned int data_size, void *header, unsigned int header_size)
+static eastl::tuple<eastl::vector<uint8_t>, eastl::vector<uint8_t>> get_binary_buffer_with_header(void *data, unsigned int data_size,
+  void *header, unsigned int header_size)
 {
-  eastl::vector<uint8_t> result(data_size + header_size + 4);
-  memcpy(result.data() + 4, header, header_size);
-  memcpy(result.data() + header_size + 4, data, data_size);
-  *(int *)result.data() = data_size;
-  return result;
+  eastl::vector<uint8_t> metadata(header_size + sizeof(data_size));
+  memcpy(metadata.data() + 0, &data_size, sizeof(data_size));
+  memcpy(metadata.data() + sizeof(data_size), header, header_size);
+
+  eastl::vector<uint8_t> bytecode(data_size);
+  memcpy(bytecode.data(), data, data_size);
+
+  return {metadata, bytecode};
 }

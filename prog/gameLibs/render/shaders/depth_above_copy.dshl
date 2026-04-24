@@ -19,7 +19,6 @@ shader depth_above_copy_regions
   }
 
   POSTFX_VS(0)
-  ENABLE_ASSERT(ps)
 
   hlsl(ps) {
     float depth_above_copy_regions_ps(VsOutput input) : SV_Depth

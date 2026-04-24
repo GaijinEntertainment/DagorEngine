@@ -358,6 +358,13 @@ static aiMaterial *ImportMaterial(eastl::vector<int> &embeddedTexIdxs, Asset &r,
             aimat->AddProperty(&ior.ior, 1, AI_MATKEY_REFRACTI);
         }
 
+        // KHR_materials_emissive_strength
+        if (mat.materialEmissiveStrength.isPresent) {
+            const MaterialEmissiveStrength &emissiveStrength = mat.materialEmissiveStrength.value;
+
+            aimat->AddProperty(&emissiveStrength.emissiveStrength, 1, AI_MATKEY_EMISSIVE_INTENSITY);
+        }
+
         return aimat;
     } catch (...) {
         delete aimat;

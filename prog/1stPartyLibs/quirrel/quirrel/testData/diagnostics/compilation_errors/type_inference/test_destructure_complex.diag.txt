@@ -1,0 +1,9 @@
+ERROR: expression of type 'float' cannot be assigned to type 'string'
+testData/diagnostics/compilation_errors/type_inference/test_destructure_complex.nut:6:40
+
+}
+let [x: int = 0, y: string = "default", z: string = 3.14] = get_data()
+                                        ^---------------
+return [x, y, z]
+
+

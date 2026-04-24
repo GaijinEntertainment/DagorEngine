@@ -42,3 +42,41 @@
   max-width: 320px;
   word-wrap: break-word;
 }
+
+.jsonLogContainer {
+  margin-top: 20px;
+  border-top: 2px solid #ccc;
+  padding-top: 10px;
+}
+
+.jsonLogEntry {
+  margin-bottom: 10px;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+
+.jsonLogHeader {
+  color: #666;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jsonLogContent {
+  background: white;
+  padding: 5px;
+  margin: 5px 0;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+}
+
+.jsonLogEmpty {
+  color: #999;
+  text-align: center;
+  padding: 20px;
+  font-style: italic;
+}

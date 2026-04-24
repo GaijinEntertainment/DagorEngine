@@ -1,0 +1,9 @@
+ERROR: expression of type 'int|string' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/type_inference/test_complex_return_expr.nut:5:4
+
+function compute(flag: bool, x: int, y: int): int {
+    return flag ? x * y + 1 : "error"
+    ^--------------------------------
+}
+
+

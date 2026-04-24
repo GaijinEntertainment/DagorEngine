@@ -65,6 +65,12 @@ void ConVarT<bool, false>::describeValue(char *buf, size_t buf_size) const
 }
 
 template <>
+void ConVarT<ConVarSType, false>::describeValue(char *buf, size_t buf_size) const
+{
+  snprintf(buf, buf_size, "%s = \"%s\"", getName(), get().str());
+}
+
+template <>
 void ConVarT<int, true>::parseString(const char *buf)
 {
   if (buf)
@@ -107,6 +113,13 @@ void ConVarT<bool, false>::parseString(const char *buf)
 }
 
 template <>
+void ConVarT<ConVarSType, false>::parseString(const char *buf)
+{
+  if (buf)
+    set(ConVarSType(buf));
+}
+
+template <>
 bool ConVarT<int, true>::imguiWidget(const char *label_override)
 {
   const char *label = label_override != nullptr ? label_override : getName();
@@ -139,11 +152,27 @@ bool ConVarT<bool, false>::imguiWidget(const char *label_override)
   return ImGui::Checkbox(label, &value);
 }
 
+template <>
+bool ConVarT<ConVarSType, false>::imguiWidget(const char *label_override)
+{
+  const char *label = label_override != nullptr ? label_override : getName();
+  char buf[64];
+  strncpy(buf, get().str(), sizeof(buf));
+  buf[sizeof(buf) - 1] = '\0';
+  if (ImGui::InputText(label, buf, sizeof(buf)))
+  {
+    set(ConVarSType(buf));
+    return true;
+  }
+  return false;
+}
+
 template class ConVarT<int, false>;
 template class ConVarT<int, true>;
 template class ConVarT<float, false>;
 template class ConVarT<float, true>;
 template class ConVarT<bool, false>;
+template class ConVarT<ConVarSType, false>;
 
 ConVarIterator::ConVarIterator() : next(convars_tail) {}
 ConVarBase *ConVarIterator::nextVar()

@@ -14,7 +14,7 @@ class TargetContext;
 class Lexer : public GeneratedLexer
 {
 public:
-  Lexer(InputStream *s, ShaderMacroManager &macro_mgr) : GeneratedLexer(s), macroMgr{macro_mgr} {}
+  Lexer(InputStream *s, ShaderMacroManager &macro_mgr, bool add_assert = false);
 
   void diag_message(int type, int file, int ln, int col, const char *, int code = -1);
   // called by diag_message(), default is fatal on DIAG_ERROR and DIAG_SYNTAX_ERROR

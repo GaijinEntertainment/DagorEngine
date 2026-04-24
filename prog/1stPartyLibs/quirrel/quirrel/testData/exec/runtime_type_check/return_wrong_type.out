@@ -1,0 +1,15 @@
+
+AN ERROR HAS OCCURRED [type 'float' differs from the declared type 'int']
+
+CALLSTACK
+*FUNCTION [fn()] testData/exec/runtime_type_check/return_wrong_type.nut:3
+*FUNCTION [__main__()] testData/exec/runtime_type_check/return_wrong_type.nut:6
+
+LOCALS
+[y] 1.25
+[x] 5
+[this] NULL
+[fn] CLOSURE=FN:fn
+[vargv] ARRAY=[]
+[this] NULL
+Error [Failed to run script testData/exec/runtime_type_check/return_wrong_type.nut (testData/exec/runtime_type_check/return_wrong_type.nut)]

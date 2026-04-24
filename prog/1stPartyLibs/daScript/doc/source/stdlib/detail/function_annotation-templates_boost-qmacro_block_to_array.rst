@@ -1,1 +1,0 @@
-This macro implements `qmacro_block_to_array` expression reification. Expected input is a block expression (ExprMakeBlock over ExprBlock). It applies reification rules to the expression, and returns array with contents of the 'list' section of the block.

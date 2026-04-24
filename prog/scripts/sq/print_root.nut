@@ -3,4 +3,4 @@ foreach(k in keys)
   println($"{k}")
 println(getroottable().len())
 
-require("squirrel.native_modules").each(println)
+require("quirrel.native_modules").each(println)

@@ -21,15 +21,15 @@ let txtMin = @(text) {
 }
 
 let fixedGap = {
-  size = static [sh(2), flex()]
+  size = const [sh(2), flex()]
   halign = ALIGN_CENTER
-  children = { rendObj = ROBJ_SOLID size = static [1, flex()] }
+  children = { rendObj = ROBJ_SOLID size = const [1, flex()] }
 }
 
 let flexGap = {
   size = flex()
   halign = ALIGN_CENTER
-  children = { rendObj = ROBJ_SOLID size = static [1, flex()] }
+  children = { rendObj = ROBJ_SOLID size = const [1, flex()] }
 }
 
 let halfGap = {
@@ -38,7 +38,7 @@ let halfGap = {
 
 return {
   rendObj = ROBJ_FRAME
-  size = static [sw(50), SIZE_TO_CONTENT]
+  size = const [sw(50), SIZE_TO_CONTENT]
   hplace = ALIGN_CENTER
   vplace = ALIGN_CENTER
   flow = FLOW_VERTICAL

@@ -13,6 +13,12 @@ endmacro
 
 macro USE_POSTFX_VERTEX_POSITIONS()
 
+// workaround for android drivers providing trash base vertex on vulkan
+// NOTE: shader will use vulkan vertex id logic with this pragma!
+hlsl(vs) {
+  #pragma spir-v no-base-vertex
+}
+
 DECL_POSTFX_TC_VS_DEP()
 SCREEN_TO_TC()
 

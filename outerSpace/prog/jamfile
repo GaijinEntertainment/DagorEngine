@@ -6,6 +6,7 @@ GameMainVromFilePath = outer_space.vromfs.bin ;
 include $(Root)/prog/daNetGame/target_name_rules.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
 
 TargetType ?= exe ;
+SupportsUsingHostedInternalServer = yes ;
 if $(Dedicated) != yes { TargetType = exe ; }
 Target     ?= [ CorrectTargetName ] ;
 TargetCodeName = $(Game) ; # this will hold target name unchanged even if non-default phys engine is used
@@ -24,7 +25,8 @@ AotJamfile = $(Root)/prog/daNetGame-das-aot/jamfile ;
 AotCompilerBaseName = $(Root)/$(Location)/../tools/das-aot/outer_space-aot ;
 include $(Root)/prog/daNetGame/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
 DAS_AOT_COMPILER_OPT = -- --config outer_space_aot_config.blk -sConfig $(Config) ;
-if $(Platform) in windows { UseHostedInternalServer = yes ; }
+
+if ! $(Platform) in macOS android { UseHostedInternalServer = yes ; }
 
 if $(Dedicated) != yes && $(Platform) in windows && $(PlatformArch) != arm64 {
   VRDeviceSupport ?= yes ;
@@ -63,7 +65,9 @@ AllSrcFolder_CPP = ;
 
 # we set auth key explicitly otherwize linux server will reject any linux client (for win/mac auth key check is skipped)
 GameAuthKey_linux    = 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
-GameAuthKeyPlatformListPairs = linux linux ;
+GameAuthKey_ps5      = $(GameAuthKey_linux) ;
+GameAuthKey_scarlett = $(GameAuthKey_linux) ;
+GameAuthKeyPlatformListPairs = linux linux  xbox scarlett  ps ps5 ;
 #GamePublicKeyDER = ;
 
 include $(Root)/$(Location)/logCryptKey.jam ;
@@ -82,25 +86,27 @@ gamePulls = daECS/core/componentType.h game_pulls ;
 gamePulls +=
   framework_package_physobj_pull
   daNetGameLibs_native_dasevents_DAS_pull_AOT
+  daNetGameLibs_composite_entity_DAS_pull_AOT
 ;
 if $(Dedicated) = no {
   gamePulls +=
     daNetGameLibs_render_debug_DAS_pull_AOT
     daNetGameLibs_frame_graph_renderer_DAS_pull_AOT
   ;
-  Sources += gamePulls.jamvar ;
-} else {
-  Sources += gamePullsDed.jamvar ;
-  gamePullsDed = $(gamePulls) ;
-  gamePullsDed_action = $(gamePulls_action) ;
 }
+AddGamePullsToSources ;
 
-AddIncludes += $(Root)/prog/daNetGameLibs ;
+AddIncludes += 
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/gameLibs
+;
+
 UseProgLibs +=
   daNetGame
   daNetGameLibs/package_physobj
   daNetGameLibs/dm/stub
   daNetGameLibs/native_dasevents
+  daNetGameLibs/composite_entity
 ;
 if $(Dedicated) = no {
   UseProgLibs +=
@@ -227,6 +233,7 @@ if $(Dedicated) != yes {
 
     #AndroidCopyToDevice = default ;
   }
+  else if $(Platform) in ps5 scarlett { include setup_$(Platform).jam ; }
   else {
     Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
   }

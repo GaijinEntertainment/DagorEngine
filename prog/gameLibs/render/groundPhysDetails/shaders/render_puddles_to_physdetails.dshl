@@ -1,0 +1,121 @@
+include "shader_global.dshl"
+include "toroidal_heightmap.dshl"
+include "displacement_inc.dshl"
+
+include "trackdirt_inc.dshl"
+include "puddles_inc.dshl"
+include "wetness_inc.dshl"
+
+texture tex_hmap_low;
+texture hmap_ofs_thickness;
+
+float4 puddles_CPU_params;
+float4 puddles_CPU_to_world;
+float4 world_to_hmap_low = (10e+3, 10e+3, 10e+10, 10e+10);
+float4 tex_hmap_inv_sizes = (1/2048,1/2048,1/2048,1/2048);
+float4 heightmap_scale = (1,0,1,0);
+float4 hmap_ofs_thickness_map = (1/2048,1/2048,0,0);
+
+shader render_puddles_to_physdetails
+{
+  no_ablend;
+  supports none;
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  (ps) {
+    tex_hmap_low@smp2d = tex_hmap_low;
+
+    heightmap_scale@f4 = heightmap_scale;
+    puddles_CPU_params@f4 = puddles_CPU_params;
+    puddles_CPU_to_world@f4 = puddles_CPU_to_world;
+    world_to_hmap_low@f4 = (world_to_hmap_low.x, world_to_hmap_low.y,
+                            world_to_hmap_low.z + 0.5*tex_hmap_inv_sizes.x,
+                            world_to_hmap_low.w+0.5*tex_hmap_inv_sizes.y);
+  }
+
+  POSTFX_VS_TEXCOORD(0, texcoord00)
+
+  PS4_DEF_TARGET_FMT_32_GR()
+
+  INIT_TRACKDIRT_SCALES(ps, true)
+  USE_TRACKDIRT_SCALES(ps, false)
+
+  INIT_HEIGHTMAP_ZEROLEVEL(ps)
+  USE_HEIGHTMAP_ZEROLEVEL(ps)
+
+  INIT_TOROIDAL_HEIGHTMAP(ps)
+
+  USE_TOROIDAL_HEIGHTMAP_LOWRES(ps)
+
+  USE_HEIGHTMAP_DISPLACEMENT_PARAMS(ps)
+
+  USE_DISPLACEMENT_PHYSMAT(ps)
+
+  INIT_PUDDLES_WETNESS(ps)
+  USE_PUDDLES_WETNESS(ps)
+
+  hlsl(ps)
+  {
+    float get_wetness_from_tc(float2 in_tc)
+    {
+      float2 worldXZ = in_tc * puddles_CPU_to_world.xy + puddles_CPU_to_world.zw;
+      float2 tc_low = worldXZ*world_to_hmap_low.xy + world_to_hmap_low.zw;
+
+      float4 hScales = getTrackDirtScales(worldXZ, 0);
+      float tformHeight = 0;
+      float thickTex = hScales.y * hmap_ofs_tex_size.y;
+      float ofsTex = hScales.z;
+      float weightOfs = hScales.w;
+
+      float thickTexOriginal = hScales.y;
+      float thickTexScaled = thickTex;
+      float landDeformation = 2*ofsTex;
+
+      float distToCamera = 0;
+      float baseWetness, waterBorder;
+      float puddleLevel = sample_tor_puddle(worldXZ);
+
+      float wetness = 0;
+
+      BRANCH
+      if (check_puddles_conditions(puddleLevel, distToCamera, float3(0, 1, 0)))
+      {
+        float landDisplacement = 0;
+        landDisplacement = sample_tor_height_lowres(worldXZ, heightmap_zerolevel);
+        landDisplacement = displacementParams.y * landDisplacement + displacementParams.x;
+        landDisplacement = get_phys_height(landDisplacement, thickTexOriginal, landDeformation);
+
+        float out_displ = 0;
+
+        wetness = get_puddles_wetness(float3(worldXZ.x, 0, worldXZ.y), float3(0, 1, 0), distToCamera, puddleLevel, thickTexScaled, landDeformation, landDisplacement, out_displ);
+      }
+
+      return  ClampRange(wetness, 0.45, 0.95);
+    }
+
+    float4 render_height_displacement_ps(VsOutput input) : SV_Target
+    {
+      float wetness = 0;
+      float weight = 0;
+
+      UNROLL
+      for (int i=-1;i<=1;i++)
+      {
+        UNROLL
+        for (int j=-1;j<=1;j++)
+        {
+          float2 tc = input.texcoord00 + 0.3f * float2(i, j) * puddles_CPU_params.zw;
+          wetness += get_wetness_from_tc(tc);
+          weight += 1.0f;
+        }
+      }
+
+      return wetness / weight;
+    }
+  }
+  compile("target_ps", "render_height_displacement_ps");
+}

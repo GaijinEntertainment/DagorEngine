@@ -39,9 +39,11 @@ bool get_file_time64(const char *fn, int64_t &ft)
   return false;
 }
 
-CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps, const ShCompilationInfo &comp,
+CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String> current_deps, const shc::CompilationContext &ctx,
   bool check_cppstcode)
 {
+  const auto &comp = ctx.compInfo();
+
   bindump::FileReader reader(filename);
   if (!reader)
     return CompilerAction::COMPILE_AND_LINK;
@@ -104,12 +106,14 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
     srcFt = min(srcFt, cppstcodeStatMaybe->mtime);
   }
 
+  NameMap previousDepSet;
+  for (int i = 0; i < header.dependency_files.size(); i++)
+    previousDepSet.addNameId(header.dependency_files[i].c_str());
   if (!current_deps.empty())
   {
     NameMap currentDepSet;
     for (int i = 0; i < current_deps.size(); i++)
       currentDepSet.addNameId(current_deps[i].c_str());
-    NameMap previousDepSet;
     for (int i = 0; i < header.dependency_files.size(); i++)
     {
       if (currentDepSet.getNameId(header.dependency_files[i].c_str()) == -1)
@@ -119,8 +123,6 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
         return CompilerAction::LINK_ONLY;
       }
     }
-    for (int i = 0; i < header.dependency_files.size(); i++)
-      previousDepSet.addNameId(header.dependency_files[i].c_str());
     for (int i = 0; i < current_deps.size(); i++)
     {
       if (previousDepSet.getNameId(current_deps[i].c_str()) == -1)
@@ -157,6 +159,11 @@ CompilerAction check_scripted_shader(const char *filename, dag::ConstSpan<String
       return CompilerAction::COMPILE_AND_LINK;
     }
   }
+
+  // If the file is reused from cache, we need to add it's saved dependencies to the dump
+  if (shc::config().dependencyDumpMode)
+    iterate_names_in_id_order(previousDepSet, [&ctx](int, char const *name) { ctx.reportDepFile(name); });
+
   return CompilerAction::NOTHING;
 }
 
@@ -172,6 +179,8 @@ bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetCont
   stor.renderStates = eastl::move(shaders.renderStates);
   stor.ldShFsh = eastl::move(shaders.shadersFsh);
   stor.ldShVpr = eastl::move(shaders.shadersVpr);
+  stor.ldShFshMetadata = eastl::move(shaders.shadersFshMetadata);
+  stor.ldShVprMetadata = eastl::move(shaders.shadersVprMetadata);
   stor.shadersStcode = eastl::move(shaders.shadersStcode);
   stor.stcodeConstValidationMasks = eastl::move(shaders.stcodeConstMasks);
   stor.shaderClass = eastl::move(shaders.shaderClasses);
@@ -179,7 +188,7 @@ bool load_scripted_shaders(const char *filename, bool check_dep, shc::TargetCont
   out_ctx.globVars().getMutableVariableList() = eastl::move(shaders.variable_list);
   out_ctx.globVars().getMutableIntervalList() = eastl::move(shaders.intervals);
 
-  out_ctx.samplers().emplaceSamplers(eastl::move(shaders.static_samplers));
+  out_ctx.samplers().emplaceSamplers(eastl::move(shaders.static_samplers), eastl::move(shaders.immutable_samplers));
 
   out_ctx.blocks().link(shaders.state_blocks, {}, {});
 

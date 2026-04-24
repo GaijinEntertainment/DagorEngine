@@ -35,6 +35,7 @@ int register_rt_pregen_ri(RenderableInstanceLodsResource *ri_res, int layer_idx,
 void update_rt_pregen_ri(int pregen_id, RenderableInstanceLodsResource &ri_res);
 void set_rt_pregen_gather_cb(rigen_gather_pos_t cb_pos, rigen_gather_tm_t cb_tm, rigen_calculate_mapping_t cb_ind,
   rigen_prepare_pools_t cb_prep);
+void enable_ri_extra_in_generation(bool enable_riex);
 void release_rt_rigen_data();
 
 void rt_rigen_free_unused_land_classes();
@@ -64,6 +65,11 @@ void set_sun_dir_for_global_shadows(const Point3 &sun_dir);
 void set_global_shadows_needed(bool need);
 
 void get_layer_idx_and_ri_idx_from_pregen_id(int pregen_id, int &layer_idx, int &ri_idx);
+int get_pregen_id_from_layer_idx_and_ri_idx(int layer_idx, int ri_idx);
+
+void set_global_forced_lod(int lod);
+int get_global_forced_lod();
+int get_effective_forced_lod(int local);
 
 // Tries to find the rendInst matrix by coordinates.
 // If there are multiple rendInsts with the same asset type at the same (or very near) location then it returns with failure.

@@ -1,11 +1,20 @@
 #ifndef DAFX_MODFX_POS_HLSL
 #define DAFX_MODFX_POS_HLSL
 
+// This function is based on:
+//  - https://stackoverflow.com/questions/5837572/generate-a-random-point-within-a-circle-uniformly/50746409#50746409
+//  - https://math.stackexchange.com/questions/2530527/how-to-generate-a-uniformly-distributed-point-in-an-annular-area
+// Mostly the second one, as that is directly about annular areas.
 DAFX_INLINE
 float modfx_pos_radius_rnd( float rad, float volume, float rnd )
 {
-  float v = 1.f - pow2( rnd ); // better distribution
-  return lerp( 1.f, v, volume ) * rad;
+  float inner_rad = 1.0f - volume;
+  float inner_rad_sqr = inner_rad * inner_rad;
+  float outer_rad_sqr = 1.0f;
+
+  float lerped_rad_sqr = lerp( inner_rad_sqr, outer_rad_sqr, rnd );
+
+  return sqrt(lerped_rad_sqr) * rad;
 }
 
 DAFX_INLINE
@@ -263,6 +272,24 @@ void modfx_pos_add_water_flowmap(float3_ref o_pos, float3 pos_offset, float dt)
   o_pos += getWaterFlowmapVec(o_pos + pos_offset) * dt;
 #endif
 }
+
+bool modfx_pos_use_rain_map_to_spawn(ModfxParentSimData_cref parent_sdata, BufferData_cref buf, float3_cref o_pos, rnd_seed_ref rnd_seed)
+{
+  bool canSpawn = true;
+#if DAFX_USE_RAIN_MAP
+  uint ofs = parent_sdata.mods_offsets[MODFX_SMOD_POS_RAIN_MAP];
+  if ( ofs )
+  {
+    float cloudDensity = dafx_load_1f( parent_sdata.mods_buf, ofs );
+    float density = getRainCoverage(o_pos, cloudDensity);
+    float spawnChance = dafx_frnd( rnd_seed );
+    if (spawnChance >= density)
+      canSpawn = false;
+  }
+#endif
+  return canSpawn;
+}
+
 #endif
 
 DAFX_INLINE

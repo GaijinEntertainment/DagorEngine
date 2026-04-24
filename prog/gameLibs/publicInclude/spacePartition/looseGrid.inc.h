@@ -19,8 +19,9 @@ class LooseGridObject : public LooseGridObjectNextHolder
 public:
   LooseGridObjectNextHolder *prevInCell;
   uintptr_t gridPtr_LB;
+  int gridCurCellIdx;
 
-  LooseGridObject() : prevInCell(NULL), gridPtr_LB(0) {}
+  LooseGridObject() : prevInCell(NULL), gridPtr_LB(0), gridCurCellIdx(-1) {}
   ~LooseGridObject();
 
   void setOwnerGrid(LooseGrid *owner_);

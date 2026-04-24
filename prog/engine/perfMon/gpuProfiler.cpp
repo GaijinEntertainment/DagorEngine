@@ -3,10 +3,14 @@
 #include <perfMon/gpuProfiler.h>
 #include <drv/3d/dag_driver.h>
 #include <perfMon/dag_graphStat.h>
+#include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
 #include <perfMon/dag_perfTimer.h>
 #include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_spinlock.h>
+
+#include <cstdio>
+
 
 namespace gpu_profiler
 {
@@ -198,6 +202,20 @@ uint32_t flip(uint64_t *gpu_start)
 uint32_t flip() { return flip(NULL); }
 void begin_event(const char *name) { d3d::beginEvent(name); }
 void end_event() { d3d::endEvent(); }
+
+bool get_gpu_thread_name(char *buf, const size_t max_len)
+{
+  const char *gpuDeviceName = d3d::get_device_name();
+  const char *driverName = d3d::get_driver_name();
+  if (gpuDeviceName && driverName)
+  {
+    snprintf(buf, max_len, "GPU:%s\n%s", gpuDeviceName, driverName);
+    return true;
+  }
+
+  return false;
+}
+
 } // namespace gpu_profiler
 
 #include <drv/3d/dag_resetDevice.h>

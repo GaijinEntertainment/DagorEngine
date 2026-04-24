@@ -1,0 +1,2 @@
+int bvh_usable = 0;
+interval bvh_usable : no < 1, yes;

@@ -41,7 +41,7 @@ CONSOLE_FLOAT_VAL("render_sat", height, 40);
 // fixed height of camera
 CONSOLE_FLOAT_VAL("render_sat", height_fixed, 40);
 // height offset from land if use_land_based_height_offset enabled
-CONSOLE_FLOAT_VAL("render_sat", height_ofs, 40);
+CONSOLE_FLOAT_VAL("render_sat", height_ofs, 80);
 // use offset from land height instead of constant height
 CONSOLE_BOOL_VAL("render_sat", use_land_based_height_offset, true);
 // size of targets in pixels
@@ -82,16 +82,16 @@ struct ScopedShVars
 
   ScopedShVars(Point3 in_pos)
   {
-    originalZnZfar = ShaderGlobal::get_color4(zn_zfarVarId);
-    originalWorldPos = ShaderGlobal::get_color4(world_view_posVarId);
-    ShaderGlobal::set_color4(world_view_posVarId, in_pos.x, in_pos.y, in_pos.z, 1);
-    ShaderGlobal::set_color4(zn_zfarVarId, zn, zf, 0, 0);
+    originalZnZfar = ShaderGlobal::get_float4(zn_zfarVarId);
+    originalWorldPos = ShaderGlobal::get_float4(world_view_posVarId);
+    ShaderGlobal::set_float4(world_view_posVarId, in_pos.x, in_pos.y, in_pos.z, 1);
+    ShaderGlobal::set_float4(zn_zfarVarId, zn, zf, 0, 0);
   }
 
   ~ScopedShVars()
   {
-    ShaderGlobal::set_color4(zn_zfarVarId, originalZnZfar);
-    ShaderGlobal::set_color4(world_view_posVarId, originalWorldPos);
+    ShaderGlobal::set_float4(zn_zfarVarId, originalZnZfar);
+    ShaderGlobal::set_float4(world_view_posVarId, originalWorldPos);
   }
 };
 } // namespace WorldRenderSatellite
@@ -212,7 +212,6 @@ void SatelliteRenderer::renderFromPos(Point3 in_pos, const CallbackParams &callb
     view.setcol(3, 0, 0, 1);
 
     globtm_ = TMatrix4(view) * proj;
-    mat44f globtm;
     v_mat44_make_from_44cu(globtm, globtm_.m[0]);
     frustum = Frustum{globtm};
   }
@@ -265,7 +264,7 @@ void SatelliteRenderer::renderFromPos(Point3 in_pos, const CallbackParams &callb
   // render water on top of resolved content with simplified shader
   {
     ShaderGlobal::set_texture(downsampled_far_depth_texVarId, renderTargetGbuf->getDepthId());
-    callback_params.renderWater(targetTex.getBaseTex(), view_itm, renderTargetGbuf->getDepth());
+    callback_params.renderWater(targetTex.getBaseTex(), camera_params, renderTargetGbuf->getDepth());
   }
 
   // save if requested

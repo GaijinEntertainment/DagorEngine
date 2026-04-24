@@ -41,6 +41,14 @@ void rendinstdestr::tree_destr_load_from_blk(const DataBlock &blk)
   tree_destr.groundJointDamping = blk.getReal("groundJointDamping", tree_destr.groundJointDamping);
   tree_destr.collisionDistLimit = blk.getReal("collisionDistLimit", tree_destr.collisionDistLimit);
   tree_destr.collisionAngleLimit = blk.getReal("collisionAngleLimit", tree_destr.collisionAngleLimit);
+  tree_destr.bendLinDamping = blk.getReal("bendLinDamping", tree_destr.bendLinDamping);
+  tree_destr.bendAngDamping = blk.getReal("bendAngDamping", tree_destr.bendAngDamping);
+  tree_destr.bendSpringStiffness = blk.getReal("bendSpringStiffness", tree_destr.bendSpringStiffness);
+  tree_destr.bendMass = blk.getReal("bendMass", tree_destr.bendMass);
+  tree_destr.maxAngularVelocity = blk.getReal("maxAngularVelocity", tree_destr.maxAngularVelocity);
+  tree_destr.maxDestroyedTreeCount = blk.getInt("maxDestroyedTreeCount", tree_destr.maxDestroyedTreeCount);
+  tree_destr.maxCutTreeCount = blk.getInt("maxCutTreeCount", tree_destr.maxCutTreeCount);
+
   branch_destr_load_from_blk(tree_destr.branchDestrFromDamage, blk.getBlockByNameEx("branchDestr"));
   tree_destr.branchDestrOther = tree_destr.branchDestrFromDamage;
   branch_destr_load_from_blk(tree_destr.branchDestrOther, blk.getBlockByNameEx("branchDestrOther"));
@@ -75,6 +83,8 @@ void rendinstdestr::branch_destr_load_from_blk(rendinstdestr::BranchDestr &targe
   target.maxVisibleDistance = blk->getReal("maxVisibleDistance", loadingMultipliers ? 1.0f : target.maxVisibleDistance);
   target.fallThroughGroundIfBigger =
     blk->getReal("fallThroughGroundIfBigger", loadingMultipliers ? 1.0f : target.fallThroughGroundIfBigger);
+  target.bendStrength = blk->getReal("bendStrength", loadingMultipliers ? 1.0f : target.bendStrength);
+  target.forcePyramidCanopy = blk->getBool("forcePyramidCanopy", loadingMultipliers ? true : target.forcePyramidCanopy);
 }
 
 const rendinstdestr::TreeDestr &rendinstdestr::get_tree_destr() { return tree_destr; }
@@ -102,6 +112,8 @@ void rendinstdestr::BranchDestr::apply(const BranchDestr &other)
     horizontalSpeedMul *= other.horizontalSpeedMul;
     maxVisibleDistance *= other.maxVisibleDistance;
     fallThroughGroundIfBigger *= other.fallThroughGroundIfBigger;
+    bendStrength *= other.bendStrength;
+    forcePyramidCanopy = forcePyramidCanopy && other.forcePyramidCanopy;
   }
   else
   {
@@ -123,5 +135,7 @@ void rendinstdestr::BranchDestr::apply(const BranchDestr &other)
     horizontalSpeedMul = other.horizontalSpeedMul;
     maxVisibleDistance = other.maxVisibleDistance;
     fallThroughGroundIfBigger = other.fallThroughGroundIfBigger;
+    bendStrength = other.bendStrength;
+    forcePyramidCanopy = other.forcePyramidCanopy;
   }
 }

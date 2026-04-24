@@ -6,8 +6,12 @@
 #include <generic/dag_tab.h>
 #include <memory/dag_framemem.h>
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
 #include <daECS/core/updateStage.h>
 #include <daECS/core/entityComponent.h>
 #include <ecs/scripts/sqEntity.h>
@@ -75,7 +79,7 @@ static int find_callback_timer(const Sqrat::Object &handler)
   {
     HSQOBJECT fh = callback_timers[i].func.GetFunc();
 
-    if (::sq_direct_is_equal(vm, &fh, &o))
+    if (::sq_obj_is_equal(vm, &fh, &o))
       return i;
   }
   return -1;

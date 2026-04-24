@@ -23,6 +23,9 @@ extern float _Mu0;  // Viscosity [Pa*sec]
 extern float _hMax; // Maximal altitude
 extern float _water_density;
 
+inline constexpr float DENSITY_COEFFS[5] = {1.f, -9.59387e-05f, 3.53118e-09f, -5.83556e-14f, 2.28719e-19f};
+inline constexpr float PRESSURE_COEFFS[5] = {1.f, -0.000118441f, 5.6763e-09f, -1.3738e-13f, 1.60373e-18f};
+inline constexpr float TEMPERATURE_COEFFS[5] = {1.f, -2.27712e-05f, 2.18069e-10f, -5.71104e-14f, 3.97306e-18f};
 
 /** Earth gravity */
 inline float g() { return _g; }

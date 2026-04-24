@@ -169,9 +169,9 @@ static ecs::CompileTimeQueryDesc disable_bloom_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void disable_bloom_ecs_query(ecs::EntityId eid, Callable function)
+inline void disable_bloom_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, disable_bloom_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, disable_bloom_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -205,9 +205,9 @@ static ecs::CompileTimeQueryDesc init_bloom_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void init_bloom_ecs_query(ecs::EntityId eid, Callable function)
+inline void init_bloom_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, init_bloom_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, init_bloom_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

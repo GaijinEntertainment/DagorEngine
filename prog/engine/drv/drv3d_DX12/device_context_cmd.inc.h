@@ -9,6 +9,9 @@
 #ifndef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
 #define DX12_BEGIN_CONTEXT_COMMAND_EXT_2(name, param0Type, param0Name, param1Type, param1Name)
 #endif
+#ifndef DX12_BEGIN_CONTEXT_COMMAND_EXT_3
+#define DX12_BEGIN_CONTEXT_COMMAND_EXT_3(name, param0Type, param0Name, param1Type, param1Name, param2Type, param2Name)
+#endif
 #ifndef DX12_END_CONTEXT_COMMAND
 #define DX12_END_CONTEXT_COMMAND
 #endif
@@ -21,7 +24,9 @@
 #ifndef DX12_CONTEXT_COMMAND_USE_DEVICE
 #define DX12_CONTEXT_COMMAND_USE_DEVICE(value)
 #endif
-
+#ifndef DX12_CONTEXT_COMMAND_PROFILE_MARKER
+#define DX12_CONTEXT_COMMAND_PROFILE_MARKER(value)
+#endif
 
 /* Note: commands are sorted according to actual execution frequency (in order to help CPU's branch target predictor) */
 
@@ -45,9 +50,8 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexed)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND(false, SetRootConstants)
+DX12_BEGIN_CONTEXT_COMMAND_EXT_1(false, SetRootConstants, uint32_t, values)
   DX12_CONTEXT_COMMAND_PARAM(unsigned, stage)
-  DX12_CONTEXT_COMMAND_PARAM(RootConstatInfo, values)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.setRootConstants(stage, values);
 #endif
@@ -113,7 +117,7 @@ DX12_BEGIN_CONTEXT_COMMAND(false, SetConstRegisterBuffer)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND(false, TextureBarrier)
+DX12_BEGIN_CONTEXT_COMMAND(true, TextureBarrier)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
   DX12_CONTEXT_COMMAND_PARAM(SubresourceRange, subResRange)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, texFlags)
@@ -193,15 +197,15 @@ DX12_BEGIN_CONTEXT_COMMAND(false, SetFramebuffer)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, CheckFramebufferIntegrity)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, deletedImage)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdCheckFramebufferIntegrity);
   ctx.checkFramebufferIntegrity(deletedImage);
 #endif
 DX12_END_CONTEXT_COMMAND
 
-DX12_BEGIN_CONTEXT_COMMAND(false, BufferBarrier)
+DX12_BEGIN_CONTEXT_COMMAND(true, BufferBarrier)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReference, buffer)
   DX12_CONTEXT_COMMAND_PARAM(ResourceBarrier, barrier)
   DX12_CONTEXT_COMMAND_PARAM(GpuPipeline, queue)
@@ -212,7 +216,7 @@ DX12_BEGIN_CONTEXT_COMMAND(false, BufferBarrier)
 DX12_END_CONTEXT_COMMAND
 
 #if D3D_HAS_RAY_TRACING
-DX12_BEGIN_CONTEXT_COMMAND(false, AsBarrier)
+DX12_BEGIN_CONTEXT_COMMAND(true, AsBarrier)
   DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, as)
   DX12_CONTEXT_COMMAND_PARAM(GpuPipeline, queue)
 
@@ -297,12 +301,12 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_1(false, SetViewports, ViewportState, viewports)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, Dispatch)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, x)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, y)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, z)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdDispatch);
   ctx.switchActivePipeline(ActivePipeline::Compute);
   ctx.flushComputeState();
   ctx.dispatch(x, y, z);
@@ -330,6 +334,7 @@ DX12_END_CONTEXT_COMMAND
 
 #if D3D_HAS_RAY_TRACING
 DX12_BEGIN_CONTEXT_COMMAND(true, RaytraceBuildTopAccelerationStructure)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, scratchBuffer)
   DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, as)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, instanceBuffer)
@@ -340,22 +345,51 @@ DX12_BEGIN_CONTEXT_COMMAND(true, RaytraceBuildTopAccelerationStructure)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, batchIndex)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdRaytraceBuildTopAccelerationStructure);
-  ctx.buildTopAccelerationStructure(batchSize, batchIndex, instanceCount, instanceBuffer, toAccelerationStructureBuildFlags(flags),
-    update, as, nullptr, scratchBuffer);
+  ctx.buildTopAccelerationStructure(batchSize, batchIndex, instanceCount, instanceBuffer,
+    to_acceleration_structure_build_flags(flags, update), update, as, nullptr, scratchBuffer);
 #endif
 DX12_END_CONTEXT_COMMAND
-#endif
 
-#if D3D_HAS_RAY_TRACING
+DX12_BEGIN_CONTEXT_COMMAND_EXT_1(false, RaytraceBuildOpacityMicroMapTriangleArrayBatchBegin,
+  RayTraceOpacityMicroMapTriangleArrayBuildBufferSet, buffers)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
+  DX12_CONTEXT_COMMAND_PARAM(::raytrace::AccelerationStructureBuildMode, mode)
+
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.buildOpacityMicroMapTriangleArrayBatchBegin(mode, buffers);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND_EXT_1(false, RaytraceBuildOpacityMicroMapTriangleArrayBatchEntry, ::raytrace::OpacityMicroMapDescription,
+  descs)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
+  DX12_CONTEXT_COMMAND_PARAM(bool, autoFlush)
+  DX12_CONTEXT_COMMAND_PARAM(::raytrace::AccelerationStructureBuildMode, mode)
+  DX12_CONTEXT_COMMAND_PARAM(RaytraceOpacityMicroMapTriangleArray *, omm)
+  DX12_CONTEXT_COMMAND_PARAM(RaytraceBuildFlags, buildFlags)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, inputBuffer)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, descriptionsBuffer)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, compactedSizeOutputBuffer)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, sctachBuffer)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, descriptionsStride)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.buildOpacityMicroMapTriangleArrayBatchEntry(autoFlush, mode, omm, buildFlags, inputBuffer, descriptionsBuffer,
+    descriptionsStride, compactedSizeOutputBuffer, sctachBuffer, descs);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+
 DX12_BEGIN_CONTEXT_COMMAND(true, RaytraceCopyAccelerationStructure)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, dst)
   DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, src)
   DX12_CONTEXT_COMMAND_PARAM(bool, compact)
+  DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructureType, type)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdRaytraceCopyAccelerationStructure);
-  ctx.copyRaytracingAccelerationStructure(dst, src, compact);
+  ctx.copyRaytracingAccelerationStructure(dst, src, compact, type);
 #endif
 DX12_END_CONTEXT_COMMAND
 #endif
@@ -371,6 +405,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, MipMapGenSource)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, BlitImage)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, src)
   DX12_CONTEXT_COMMAND_PARAM(Image *, dst)
   DX12_CONTEXT_COMMAND_PARAM(ImageViewState, srcView)
@@ -382,16 +417,15 @@ DX12_BEGIN_CONTEXT_COMMAND(true, BlitImage)
   DX12_CONTEXT_COMMAND_PARAM(bool, disablePedication)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdBlitImage);
   ctx.blitImage(src, dst, srcView, dstView, srcViewDescriptor, dstViewDescriptor, srcRect, dstRect, disablePedication);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, DispatchIndirect)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, buffer)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdDispatchIndirect);
   ctx.switchActivePipeline(ActivePipeline::Compute);
   ctx.flushComputeState();
   ctx.dispatchIndirect(buffer);
@@ -401,12 +435,12 @@ DX12_END_CONTEXT_COMMAND
 #if !_TARGET_XBOXONE
 // Assuming this will be used a lot in the future this may be moved up after profiling
 DX12_BEGIN_CONTEXT_COMMAND(true, DispatchMesh)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, x)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, y)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, z)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdDispatchMesh);
   ctx.switchActivePipeline(ActivePipeline::Graphics);
   ctx.ensureActivePass();
   ctx.flushStreamOutputBuffer();
@@ -418,6 +452,7 @@ DX12_END_CONTEXT_COMMAND
 
 // Assuming this will be used a lot in the future this may be moved up after profiling
 DX12_BEGIN_CONTEXT_COMMAND(true, DispatchMeshIndirect)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, arguments)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, count)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, stride)
@@ -435,6 +470,7 @@ DX12_END_CONTEXT_COMMAND
 #endif
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ClearRenderTargets)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(ViewportState, viewport)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, clearMask)
   DX12_CONTEXT_COMMAND_PARAM(float, clearDepth)
@@ -442,7 +478,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, ClearRenderTargets)
   DX12_CONTEXT_COMMAND_PARAM_ARRAY(E3DCOLOR, clearColor, Driver3dRenderTarget::MAX_SIMRT)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdClearRenderTargets);
   ctx.clearRenderTargets(viewport, clearMask, clearColor, clearDepth, clearStencil);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -466,48 +501,48 @@ DX12_BEGIN_CONTEXT_COMMAND(false, SetUAVNull)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ClearBufferInt)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndClearView, buffer)
   DX12_CONTEXT_COMMAND_PARAM_ARRAY(uint32_t, values, 4)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdClearBufferInt);
   ctx.clearBufferUint(buffer, values);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, CopyImage)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, src)
   DX12_CONTEXT_COMMAND_PARAM(Image *, dst)
   DX12_CONTEXT_COMMAND_PARAM(ImageCopy, region)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdCopyImage);
   ctx.copyImage(src, dst, region);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ResolveMultiSampleImage)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, src)
   DX12_CONTEXT_COMMAND_PARAM(Image *, dst)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdResolveMultiSampleImage);
   ctx.resolveMultiSampleImage(src, dst);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, EndCPUTextureAccess)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, texture)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdEndCPUTextureAccess);
   ctx.onEndCPUTextureAccess(texture);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, UpdateBuffer)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, source)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, dest)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdUpdateBuffer);
   ctx.updateBuffer(source, dest);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -530,34 +565,35 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndirect)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, BeginCPUTextureAccess)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, texture)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdBeginCPUTextureAccess);
   ctx.onBeginCPUTextureAccess(texture);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, RegisterStaticRenderState)
   DX12_CONTEXT_COMMAND_USE_DEVICE(false)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(StaticRenderStateID, ident)
   DX12_CONTEXT_COMMAND_PARAM(RenderStateSystem::StaticState, state)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdRegisterStaticRenderState);
   ctx.registerStaticRenderState(ident, state);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ClearDepthStencilTexture)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
   DX12_CONTEXT_COMMAND_PARAM(ImageViewState, viewState)
   DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, viewDescriptor)
   DX12_CONTEXT_COMMAND_PARAM(ClearDepthStencilValue, value)
+  DX12_CONTEXT_COMMAND_PARAM(D3D12_CLEAR_FLAGS, depth_clear_flags)
   DX12_CONTEXT_COMMAND_PARAM(eastl::optional<D3D12_RECT>, rect)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdClearDepthStencilTexture);
-  ctx.clearDepthStencilImage(image, viewState, viewDescriptor, value, rect);
+  ctx.clearDepthStencilImage(image, viewState, viewDescriptor, value, depth_clear_flags, rect);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -702,22 +738,22 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DrawIndexedUserData)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, CopyBuffer)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, source)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, dest)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, dataSize)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdCopyBuffer);
   ctx.copyBuffer(source, dest, dataSize);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ClearBufferFloat)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndClearView, buffer)
   DX12_CONTEXT_COMMAND_PARAM_ARRAY(float, values, 4)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdClearBufferFloat);
   ctx.clearBufferFloat(buffer, values);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -737,6 +773,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, PopEvent)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ClearColorTexture)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
   DX12_CONTEXT_COMMAND_PARAM(ImageViewState, viewState)
   DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, viewDescriptor)
@@ -744,41 +781,40 @@ DX12_BEGIN_CONTEXT_COMMAND(true, ClearColorTexture)
   DX12_CONTEXT_COMMAND_PARAM(eastl::optional<D3D12_RECT>, rect)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdClearColorTexture);
   ctx.clearColorImage(image, viewState, viewDescriptor, value, rect);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ClearUAVTextureI)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
   DX12_CONTEXT_COMMAND_PARAM(ImageViewState, view)
   DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, viewDescriptor)
   DX12_CONTEXT_COMMAND_PARAM_ARRAY(uint32_t, values, 4)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdClearUAVTextureI);
   ctx.clearUAVTextureI(image, view, viewDescriptor, values);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ClearUAVTextureF)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
   DX12_CONTEXT_COMMAND_PARAM(ImageViewState, view)
   DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, viewDescriptor)
   DX12_CONTEXT_COMMAND_PARAM_ARRAY(float, values, 4)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdClearUAVTextureF);
   ctx.clearUAVTextureF(image, view, viewDescriptor, values);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, FlushWithFence)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint64_t, progress)
   DX12_CONTEXT_COMMAND_PARAM(std::atomic<uint32_t> *, threadFinishSignal)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdFlushWithFence);
   ctx.flush(progress, {}, {});
   if (threadFinishSignal)
   {
@@ -806,6 +842,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, SetLatencyMarker)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, FinishFrame)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint64_t, progress)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, frontFrameId)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, frameId)
@@ -815,7 +852,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, FinishFrame)
   DX12_CONTEXT_COMMAND_PARAM(ImageViewInfo, swapchainClearView)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdFinishFrame);
   ctx.finishFrame(progress, timingData, kickoffStamp, frontFrameId, frameId,
     {.mode = presentOnSwapchain ? PresentInfo::Mode::PresentSwapchain : PresentInfo::Mode::DoNotPresent,
       .clearView = swapchainClearView});
@@ -895,6 +931,7 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND_EXT_2(true, RaytraceBuildBottomAccelerationStructure, D3D12_RAYTRACING_GEOMETRY_DESC, geometryDescriptions,
   RaytraceGeometryDescriptionBufferResourceReferenceSet, resourceReferences)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, scratchBuffer)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, compactedSize)
   DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, as)
@@ -904,19 +941,36 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_2(true, RaytraceBuildBottomAccelerationStructure,
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, batchIndex)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdRaytraceBuildBottomAccelerationStructure);
   ctx.buildBottomAccelerationStructure(batchSize, batchIndex, geometryDescriptions, resourceReferences,
-    toAccelerationStructureBuildFlags(flags), update, as, nullptr, scratchBuffer, compactedSize);
+    to_acceleration_structure_build_flags(flags, update), update, as, nullptr, scratchBuffer, compactedSize);
 #endif
 DX12_END_CONTEXT_COMMAND
 
-#endif
-
-DX12_BEGIN_CONTEXT_COMMAND(false, ChangePresentMode)
-  DX12_CONTEXT_COMMAND_PARAM(PresentationMode, presentMode)
+#if HAS_NVAPI
+DX12_BEGIN_CONTEXT_COMMAND_EXT_3(true, RaytraceBuildBottomAccelerationStructureNvidia, NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX,
+  geometryDescriptions, RaytraceGeometryDescriptionBufferResourceReferenceSet, resourceReferences,
+  NVAPI_D3D12_RAYTRACING_OPACITY_MICROMAP_USAGE_COUNT, usageCounts)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
+  DX12_CONTEXT_COMMAND_PARAM(RaytraceAccelerationStructure *, as)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, scratchBuffer)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddress, compactedSize)
+  DX12_CONTEXT_COMMAND_PARAM(RaytraceBuildFlags, flags)
+  DX12_CONTEXT_COMMAND_PARAM(bool, update)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  ctx.changePresentMode(presentMode);
+  ctx.buildBottomAccelerationStructureNvidia(as, flags, update, scratchBuffer, compactedSize, geometryDescriptions,
+    resourceReferences);
+#endif
+DX12_END_CONTEXT_COMMAND
+#endif
+
+#endif
+
+DX12_BEGIN_CONTEXT_COMMAND(false, ChangePresentInterval)
+  DX12_CONTEXT_COMMAND_PARAM(int, presentInterval)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.changePresentInterval(presentInterval);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -960,12 +1014,18 @@ DX12_BEGIN_CONTEXT_COMMAND(true, EndVisibilityQuery)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(false, CancelQuery)
+  DX12_CONTEXT_COMMAND_PARAM(Query *, query)
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.cancelQuery(query);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, TextureReadBack, BufferImageCopy, regions)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, cpuMemory)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdTextureReadBack);
   ctx.textureReadBack(image, cpuMemory, regions);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -976,7 +1036,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, BufferReadBack)
   DX12_CONTEXT_COMMAND_PARAM(size_t, offset)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdBufferReadBack);
   ctx.bufferReadBack(buffer, cpuMemory, offset);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -1001,89 +1060,102 @@ DX12_BEGIN_CONTEXT_COMMAND(true, RegisterInputLayout)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, CreateDlssFeature)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(bool, stereo_render)
   DX12_CONTEXT_COMMAND_PARAM(int, output_width)
   DX12_CONTEXT_COMMAND_PARAM(int, output_height)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdCreateDlssFeature);
   ctx.createDlssFeature(stereo_render, output_width, output_height);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(true, CreateDlssFeatureWithMode)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
+  DX12_CONTEXT_COMMAND_PARAM(int, mode)
+  DX12_CONTEXT_COMMAND_PARAM(int, output_width)
+  DX12_CONTEXT_COMMAND_PARAM(int, output_height)
+  DX12_CONTEXT_COMMAND_PARAM(bool, use_rr)
+  DX12_CONTEXT_COMMAND_PARAM(bool, use_legacy_model)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.createDlssFeature(mode, output_width, output_height, use_rr, use_legacy_model);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ReleaseDlssFeature)
   DX12_CONTEXT_COMMAND_USE_DEVICE(false)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(bool, stereo_render)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdReleaseDlssFeature);
   ctx.releaseDlssFeature(stereo_render);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteDlss)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(nv::DlssParams<Image>, dlss_params)
   DX12_CONTEXT_COMMAND_PARAM(int, view_index)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdExecuteDlss);
   ctx.executeDlss(dlss_params, view_index);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteDlssG)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(nv::DlssGParams<Image>, dlss_g_params)
   DX12_CONTEXT_COMMAND_PARAM(int, view_index)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdExecuteDlssG);
   ctx.executeDlssG(dlss_g_params, view_index);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteXess)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(XessParamsDx12, params)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdExecuteXess);
   ctx.executeXess(params);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteXeFg)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(XessFgParamsDx12, params)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdExecuteXeFg);
   ctx.executeXeFg(params);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, DispatchFSR2)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Fsr2ParamsDx12, params)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdDispatchFSR2);
   ctx.executeFSR2(params);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, DispatchFSR)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(amd::FSR *, fsr)
   DX12_CONTEXT_COMMAND_PARAM(FSRUpscalingArgs, params)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdDispatchFSR);
   ctx.executeFSR(fsr, params);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, DispatchFSRFG)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(amd::FSR *, fsr)
   DX12_CONTEXT_COMMAND_PARAM(FSRFrameGenArgs, params)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdDispatchFSR);
   ctx.executeFSRFG(fsr, params);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -1151,12 +1223,12 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, DeleteQueries, Query *, queries)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, HostToDeviceMemoryCopy)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, gpuMemory)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, cpuMemory)
   DX12_CONTEXT_COMMAND_PARAM(size_t, cpuOffset)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdHostToDeviceMemoryCopy);
   ctx.hostToDeviceMemoryCopy(gpuMemory, cpuMemory, cpuOffset);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -1171,32 +1243,32 @@ DX12_BEGIN_CONTEXT_COMMAND(false, InitializeTextureState)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, UploadTexture, BufferImageCopy, regions)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, texture)
   DX12_CONTEXT_COMMAND_PARAM(HostDeviceSharedMemoryRegion, cpuMemory)
   DX12_CONTEXT_COMMAND_PARAM(DeviceQueueType, queue)
   DX12_CONTEXT_COMMAND_PARAM(bool, isDiscard)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdUploadTexture);
   ctx.uploadTexture(texture, regions, cpuMemory, queue, isDiscard);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 #if _TARGET_XBOX
 DX12_BEGIN_CONTEXT_COMMAND(true, UpdateFrameInterval)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(int32_t, freqLevel)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdUpdateFrameInterval);
   ctx.updateFrameInterval(freqLevel);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ResummarizeHtile)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(ID3D12Resource *, depth)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdResummarizeHtile);
   ctx.resummarizeHtile(depth);
 #endif
 
@@ -1209,9 +1281,9 @@ DX12_BEGIN_CONTEXT_COMMAND(true, WorkerPing)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, FlushWithFenceAndTerminate)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint64_t, progress)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdFlushWithFenceAndTerminate);
   ctx.flush(progress, {}, {});
   ctx.terminateWorker();
 #endif
@@ -1235,43 +1307,52 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, WriteDebugMessage, char, message)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, BindlessSetResourceDescriptor)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, slot)
   DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, descriptor)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdBindlessSetResourceDescriptor);
   ctx.bindlessSetResourceDescriptor(slot, descriptor);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, BindlessSetTextureDescriptor)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, slot)
   DX12_CONTEXT_COMMAND_PARAM(Image *, texture)
   DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, view)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdBindlessSetTextureDescriptor);
   ctx.bindlessSetResourceDescriptor(slot, view);
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(false, DeferBindlessSetTextureDescriptor)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, slot)
+  DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, view)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.deferBindlessSetResourceDescriptor(slot, view);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(false, BindlessSetSamplerDescriptor)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, slot)
   DX12_CONTEXT_COMMAND_PARAM(D3D12_CPU_DESCRIPTOR_HANDLE, descriptor)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdBindlessSetSamplerDescriptor);
   ctx.bindlessSetSamplerDescriptor(slot, descriptor);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, BindlessCopyResourceDescriptors)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, src)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, dst)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, count)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdBindlessCopyResourceDescriptors);
   ctx.bindlessCopyResourceDescriptors(src, dst, count);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -1294,23 +1375,12 @@ DX12_BEGIN_CONTEXT_COMMAND(false, RegisterFrameEventsCallback)
 #endif
 DX12_END_CONTEXT_COMMAND
 
-#if !DX12_USE_AUTO_PROMOTE_AND_DECAY
-DX12_BEGIN_CONTEXT_COMMAND(false, ResetBufferState)
-  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReference, buffer)
-
-#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdResetBufferState);
-  ctx.resetBufferState(buffer);
-#endif
-DX12_END_CONTEXT_COMMAND
-#endif
-
 DX12_BEGIN_CONTEXT_COMMAND(false, AddSwapchainView)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, image)
   DX12_CONTEXT_COMMAND_PARAM(ImageViewInfo, view)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdAddSwapchainView);
   ctx.addSwapchainView(image, view);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -1319,17 +1389,17 @@ DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, OnDeviceError)
   DX12_CONTEXT_COMMAND_USE_DEVICE(false)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(HRESULT, removerReason)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdOnDeviceError);
   ctx.onDeviceError(removerReason);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, CommandFence)
   DX12_CONTEXT_COMMAND_USE_DEVICE(false)
-  DX12_CONTEXT_COMMAND_PARAM(std::atomic_bool &, signal)
+  DX12_CONTEXT_COMMAND_PARAM(std::atomic_uint32_t &, signal)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
   ctx.commandFence(signal);
 #endif
@@ -1372,18 +1442,19 @@ DX12_BEGIN_CONTEXT_COMMAND(true, EndTileMapping)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ActivateBuffer)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndAddressRangeWithClearView, buffer)
   DX12_CONTEXT_COMMAND_PARAM(ResourceMemoryLocation, memoryLocation)
   DX12_CONTEXT_COMMAND_PARAM(ResourceActivationAction, action)
   DX12_CONTEXT_COMMAND_PARAM(GpuPipeline, queue)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdActivateBuffer);
   ctx.activateBuffer(buffer, memoryLocation, action, queue);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ActivateTexture)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, texture)
   DX12_CONTEXT_COMMAND_PARAM(ResourceActivationAction, action)
   DX12_CONTEXT_COMMAND_PARAM(ResourceClearValue, clearValue)
@@ -1392,7 +1463,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, ActivateTexture)
   DX12_CONTEXT_COMMAND_PARAM(GpuPipeline, queue)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdActivateTexture);
   ctx.activateTexture(texture, action, clearValue, clearViewState, clearViewDescriptor, queue);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -1417,44 +1487,66 @@ DX12_BEGIN_CONTEXT_COMMAND(true, DeactivateTexture)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(false, AliasFlush)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(GpuPipeline, queue)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdAliasFlush);
   ctx.aliasFlush(queue);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 
 DX12_BEGIN_CONTEXT_COMMAND(true, TwoPhaseCopyBuffer)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, source)
   DX12_CONTEXT_COMMAND_PARAM(uint64_t, destinationOffset)
   DX12_CONTEXT_COMMAND_PARAM(ScratchBuffer, scratchMemory)
   DX12_CONTEXT_COMMAND_PARAM(uint64_t, size)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdTwoPhaseCopyBuffer);
   ctx.twoPhaseCopyBuffer(source, destinationOffset, scratchMemory, size);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, MoveBuffer)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, from)
   DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, to)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdMoveBuffer);
   ctx.moveBuffer(from, to);
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(true, TwoPhaseMoveBuffer)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndOffset, from)
+  DX12_CONTEXT_COMMAND_PARAM(BufferResourceReferenceAndRange, to)
+  DX12_CONTEXT_COMMAND_PARAM(ScratchBuffer, scratch)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.twoPhaseMoveBuffer(from, to, scratch);
+#endif
+DX12_END_CONTEXT_COMMAND
+
 DX12_BEGIN_CONTEXT_COMMAND(true, MoveTexture)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, from)
   DX12_CONTEXT_COMMAND_PARAM(Image *, to)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdMoveTexture);
   ctx.moveTexture(from, to);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(true, TwoPhaseMoveTexture)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
+  DX12_CONTEXT_COMMAND_PARAM(Image *, from)
+  DX12_CONTEXT_COMMAND_PARAM(Image *, to)
+  DX12_CONTEXT_COMMAND_PARAM(ScratchBuffer, scratchMemory)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.twoPhaseMoveTexture(from, to, scratchMemory);
 #endif
 DX12_END_CONTEXT_COMMAND
 
@@ -1467,13 +1559,13 @@ DX12_BEGIN_CONTEXT_COMMAND(false, TransitionBuffer)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, ResizeImageMipMapTransfer)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(Image *, src)
   DX12_CONTEXT_COMMAND_PARAM(Image *, dst)
   DX12_CONTEXT_COMMAND_PARAM(MipMapRange, mipMapRange)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, srcMipMapOffset)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, dstMipMapOffset)
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdResizeImageMipMapTransfer);
   ctx.resizeImageMipMapTransfer(src, dst, mipMapRange, srcMipMapOffset, dstMipMapOffset);
 #endif
 DX12_END_CONTEXT_COMMAND
@@ -1500,35 +1592,36 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, RemoveDebugBreakString, char, str)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, AddShaderGroup, char, name)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, group)
   DX12_CONTEXT_COMMAND_PARAM(ScriptedShadersBinDumpOwner *, dump)
   DX12_CONTEXT_COMMAND_PARAM(ShaderID, nullPixelShader)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdAddShaderGroup);
   ctx.addShaderGroup(group, dump, nullPixelShader, name);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, RemoveShaderGroup)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(uint32_t, group)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdRemoveShaderGroup);
   ctx.removeShaderGroup(group);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, LoadComputeShaderFromDump)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(ProgramID, program)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdLoadComputeShaderFromDump);
   ctx.loadComputeShaderFromDump(program);
 #endif
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, CompilePipelineSet)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(eastl::span<InputLayoutIDWithHash>, inputLayouts)
   DX12_CONTEXT_COMMAND_PARAM(eastl::span<StaticRenderStateIDWithHash>, staticRenderStates)
   DX12_CONTEXT_COMMAND_PARAM(eastl::span<FramebufferLayoutWithHash>, framebufferLayouts)
@@ -1537,7 +1630,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, CompilePipelineSet)
   DX12_CONTEXT_COMMAND_PARAM(eastl::span<ComputePipelinePreloadInfo>, computePipelines)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdCompilePipelineSet);
   ctx.compilePipelineSet(DynamicArray<InputLayoutIDWithHash>::fromSpan(inputLayouts),
     DynamicArray<StaticRenderStateIDWithHash>::fromSpan(staticRenderStates),
     DynamicArray<FramebufferLayoutWithHash>::fromSpan(framebufferLayouts),
@@ -1548,6 +1640,7 @@ DX12_BEGIN_CONTEXT_COMMAND(true, CompilePipelineSet)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND(true, CompilePipelineSet2)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(eastl::span<InputLayoutIDWithHash>, inputLayouts)
   DX12_CONTEXT_COMMAND_PARAM(eastl::span<StaticRenderStateIDWithHash>, staticRenderStates)
   DX12_CONTEXT_COMMAND_PARAM(eastl::span<FramebufferLayoutWithHash>, framebufferLayouts)
@@ -1558,7 +1651,6 @@ DX12_BEGIN_CONTEXT_COMMAND(true, CompilePipelineSet2)
   DX12_CONTEXT_COMMAND_PARAM(ShaderID, nullPixelShader)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
-  TIME_PROFILE_DEV(CmdCompilePipelineSet2);
   ctx.compilePipelineSet(DynamicArray<InputLayoutIDWithHash>::fromSpan(inputLayouts),
     DynamicArray<StaticRenderStateIDWithHash>::fromSpan(staticRenderStates),
     DynamicArray<FramebufferLayoutWithHash>::fromSpan(framebufferLayouts),
@@ -1569,8 +1661,19 @@ DX12_BEGIN_CONTEXT_COMMAND(true, CompilePipelineSet2)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+#if _TARGET_PC_WIN
+DX12_BEGIN_CONTEXT_COMMAND(false, SetAsyncPsoCompilationMode)
+  DX12_CONTEXT_COMMAND_PARAM(PipelineManager::AsyncPsoMode, mode)
+
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.setAsyncPsoCompilationMode(mode);
+#endif
+DX12_END_CONTEXT_COMMAND
+#endif
+
 #if D3D_HAS_RAY_TRACING
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, DispatchRays, uint32_t, rootConstants)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(RayDispatchBasicParameters, dispatchParameters)
   DX12_CONTEXT_COMMAND_PARAM(RayDispatchParameters, params)
   DX12_CONTEXT_COMMAND_PARAM(ResourceBindingTable, resourceBindingTable)
@@ -1581,6 +1684,7 @@ DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, DispatchRays, uint32_t, rootConstants)
 DX12_END_CONTEXT_COMMAND
 
 DX12_BEGIN_CONTEXT_COMMAND_EXT_1(true, DispatchRaysIndirect, uint32_t, rootConstants)
+  DX12_CONTEXT_COMMAND_PROFILE_MARKER(true)
   DX12_CONTEXT_COMMAND_PARAM(RayDispatchBasicParameters, dispatchParameters)
   DX12_CONTEXT_COMMAND_PARAM(RayDispatchIndirectParameters, dispatchIndirectParameters)
   DX12_CONTEXT_COMMAND_PARAM(ResourceBindingTable, resourceBindingTable)
@@ -1592,7 +1696,7 @@ DX12_END_CONTEXT_COMMAND
 #endif
 
 #if D3D_HAS_RAY_TRACING
-DX12_BEGIN_CONTEXT_COMMAND(false, AccelerationStructurePoolBarrier)
+DX12_BEGIN_CONTEXT_COMMAND(true, AccelerationStructurePoolBarrier)
   DX12_CONTEXT_COMMAND_PARAM(::raytrace::AccelerationStructurePool, pool)
 
 #if DX12_CONTEXT_COMMAND_IMPLEMENTATION
@@ -1612,12 +1716,39 @@ DX12_BEGIN_CONTEXT_COMMAND(true, ExecuteFaultyTextureRead)
 #endif
 DX12_END_CONTEXT_COMMAND
 
+DX12_BEGIN_CONTEXT_COMMAND(false, SwitchSyncMode)
+  DX12_CONTEXT_COMMAND_PARAM(bool, postponed)
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.switchSyncMode(postponed);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+DX12_BEGIN_CONTEXT_COMMAND(true, SetGpuPostmortemDataTraceEnabled)
+  DX12_CONTEXT_COMMAND_PARAM(bool, is_enabled)
+  DX12_CONTEXT_COMMAND_USE_DEVICE(false)
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.setGpuPostmortemDataTraceEnabled(is_enabled);
+#endif
+DX12_END_CONTEXT_COMMAND
+
+#if D3D_HAS_RAY_TRACING
+DX12_BEGIN_CONTEXT_COMMAND(false, SetComputeOnRayTraceShaderBindingTableConstBuffer)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, stage)
+  DX12_CONTEXT_COMMAND_PARAM(uint32_t, slot)
+  DX12_CONTEXT_COMMAND_PARAM(ProgramID, program)
+#if DX12_CONTEXT_COMMAND_IMPLEMENTATION
+  ctx.setComputeOnRayTraceShaderBindingTableConstBuffer(stage, slot, program);
+#endif
+DX12_END_CONTEXT_COMMAND
+#endif
 
 #undef DX12_BEGIN_CONTEXT_COMMAND
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_1
 #undef DX12_BEGIN_CONTEXT_COMMAND_EXT_2
+#undef DX12_BEGIN_CONTEXT_COMMAND_EXT_3
 #undef DX12_END_CONTEXT_COMMAND
 #undef DX12_CONTEXT_COMMAND_PARAM
 #undef DX12_CONTEXT_COMMAND_PARAM_ARRAY
 #undef DX12_CONTEXT_COMMAND_USE_DEVICE
+#undef DX12_CONTEXT_COMMAND_PROFILE_MARKER
 #undef DX12_CONTEXT_COMMAND_IMPLEMENTATION

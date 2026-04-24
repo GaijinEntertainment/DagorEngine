@@ -2,8 +2,10 @@
 
 #include "sceneCam.h"
 #include <math/dag_TMatrix.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <math/dag_mathUtils.h> // check_nan
 #include "ecs/game/generic/team.h"
 #include "game/dasEvents.h"
@@ -39,15 +41,15 @@ bool create_free_camera()
 }
 
 template <typename Callable>
-inline void vehicle_ecs_query(ecs::EntityId, Callable c);
+inline void vehicle_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 template <typename Callable>
-inline void player_view_ecs_query(ecs::EntityId, Callable c);
+inline void player_view_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-inline void player_camera_ecs_query(ecs::EntityId, Callable c);
+inline void player_camera_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-inline void actor_ecs_query(ecs::EntityId, Callable c);
+inline void actor_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 const TMatrix &get_cam_itm()
 {
@@ -58,11 +60,11 @@ const TMatrix &get_cam_itm()
 }
 
 template <typename Callable>
-inline void set_camera_active_flag_ecs_query(ecs::EntityId, Callable c);
+inline void set_camera_active_flag_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 static void set_camera_flag(ecs::EntityId cam_eid, bool flag)
 {
-  set_camera_active_flag_ecs_query(cam_eid, [&](bool &camera__active, bool *camera__input_enabled) {
+  set_camera_active_flag_ecs_query(*g_entity_mgr, cam_eid, [&](bool &camera__active, bool *camera__input_enabled) {
     camera__active = flag;
     if (camera__input_enabled)
       *camera__input_enabled = flag;
@@ -109,12 +111,12 @@ static void switch_cam(ecs::EntityId active_cam, bool take_transform)
 }
 
 template <typename Callable>
-static inline void switch_active_camera_ecs_query(Callable c);
+static inline void switch_active_camera_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static ecs::EntityId get_active_cam()
 {
   ecs::EntityId activeCam = ecs::INVALID_ENTITY_ID;
-  switch_active_camera_ecs_query([&](ecs::EntityId eid ECS_REQUIRE(eastl::true_type camera__active)) {
+  switch_active_camera_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid ECS_REQUIRE(eastl::true_type camera__active)) {
     activeCam = eid;
     debug("active camera is %d<%s>", (ecs::entity_id_t)activeCam, g_entity_mgr->getEntityTemplateName(activeCam));
   });
@@ -207,30 +209,39 @@ SQ_DEF_AUTO_BINDING_MODULE(bind_scene_camera, "camera")
   return tbl;
 }
 
-static inline void setup_camera_accurate_pos(ecs::EntityId eid, const TMatrix *transform, DPoint3 *camera__accuratePos)
+static inline void setup_camera_accurate_pos(
+  ecs::EntityManager &mgr, ecs::EntityId eid, const TMatrix *transform, DPoint3 *camera__accuratePos)
 {
   const Point3 &campos = (transform ? transform : &TMatrix::IDENT)->getcol(3);
   if (camera__accuratePos)
     *camera__accuratePos = dpoint3(campos);
-  debug("set camera %d<%s> accurate pos to (%f,%f,%f)", (ecs::entity_id_t)eid, g_entity_mgr->getEntityTemplateName(eid), P3D(campos));
+  debug("set camera %d<%s> accurate pos to (%f,%f,%f)", (ecs::entity_id_t)eid, mgr.getEntityTemplateName(eid), P3D(campos));
 }
 
 ECS_ON_EVENT(on_appear)
-static void scene_cam_es_event_handler(
-  const ecs::Event &, ecs::EntityId eid, bool camera__active, const TMatrix *transform, DPoint3 *camera__accuratePos)
+static void scene_cam_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
+  ecs::EntityId eid,
+  bool camera__active,
+  const TMatrix *transform,
+  DPoint3 *camera__accuratePos)
 {
-  setup_camera_accurate_pos(eid, transform, camera__accuratePos);
+  setup_camera_accurate_pos(manager, eid, transform, camera__accuratePos);
   if (camera__active)
     curCam = eid;
 }
 
 ECS_TRACK(camera__active)
-static void scene_cam_activate_es_event_handler(
-  const ecs::Event &, ecs::EntityId eid, const TMatrix *transform, bool camera__active, DPoint3 *camera__accuratePos)
+static void scene_cam_activate_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
+  ecs::EntityId eid,
+  const TMatrix *transform,
+  bool camera__active,
+  DPoint3 *camera__accuratePos)
 {
   if (camera__active)
   {
-    setup_camera_accurate_pos(eid, transform, camera__accuratePos);
+    setup_camera_accurate_pos(manager, eid, transform, camera__accuratePos);
     curCam = eid;
   }
 }

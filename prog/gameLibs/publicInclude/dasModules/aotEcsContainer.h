@@ -261,8 +261,6 @@ das::Sequence das_Array_each_sequence(TT &vec, das::Context *context, das::LineI
 {
   using Iterator = DasArrayIterator<TT>;
   char *iter = context->allocateIterator(sizeof(Iterator), "ecs::Array iterator", at);
-  if (!iter)
-    context->throw_out_of_memory(false, sizeof(Iterator), at);
   new (iter) Iterator(&vec, at);
   return {(Iterator *)iter};
 }

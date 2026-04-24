@@ -34,7 +34,6 @@ class IPhysBase
 {
 public:
   virtual void validateTraceCache() = 0;
-  virtual void updatePhys(float at_time, float dt, bool is_for_real) = 0;
   virtual int applyUnapprovedCTAsAt(int32_t tick, bool do_remove_old, int starting_at_index, uint8_t unit_version) = 0;
 
   virtual void applyOffset(const Point3 &offset) = 0;
@@ -73,7 +72,7 @@ public:
   virtual void setTmSoft(TMatrix tm) = 0;
   virtual void setVelocityRough(Point3 velocity) = 0;
   virtual void saveAllStates(int32_t state_tick) = 0;
-  virtual void interpolateVisualPosition(float at_time) = 0;
+  virtual void interpolateVisualPosition(double at_time) = 0;
   virtual void calcPosVelAtTime(double time, DPoint3 &out_pos, DPoint3 &out_vel) const = 0;
   virtual void calcQuatOmegaAtTime(double at_time, Quat &out_quat, DPoint3 &out_omega) const = 0;
 

@@ -92,22 +92,6 @@ pushes the name of the closure at position idx in the stack. Note that the name 
 
 
 
-
-
-.. _sq_getclosureroot:
-
-.. c:function:: SQRESULT sq_getclosureroot(HSQUIRRELVM v, SQInteger idx)
-
-    :param HSQUIRRELVM v: the target VM
-    :param SQInteger idx: index of the target closure
-    :returns: an SQRESULT
-
-pushes the root table of the closure at position idx in the stack
-
-
-
-
-
 .. _sq_getfloat:
 
 .. c:function:: SQRESULT sq_getfloat(HSQUIRRELVM v, SQInteger idx, SQFloat * f)
@@ -201,7 +185,7 @@ gets the release hook of the userdata, class instance or class at position idx i
 
 .. _sq_getscratchpad:
 
-.. c:function:: SQChar * sq_getscratchpad(HSQUIRRELVM v, SQInteger minsize)
+.. c:function:: char * sq_getscratchpad(HSQUIRRELVM v, SQInteger minsize)
 
     :param HSQUIRRELVM v: the target VM
     :param SQInteger minsize: the requested size for the scratchpad buffer
@@ -230,11 +214,11 @@ returns the size of a value at the idx position in the stack. If the value is a 
 
 .. _sq_getstring:
 
-.. c:function:: SQRESULT sq_getstring(HSQUIRRELVM v, SQInteger idx, const SQChar ** c)
+.. c:function:: SQRESULT sq_getstring(HSQUIRRELVM v, SQInteger idx, const char ** c)
 
     :param HSQUIRRELVM v: the target VM
     :param SQInteger idx: an index in the stack
-    :param const SQChar ** c: a pointer to the pointer that will point to the string
+    :param const char ** c: a pointer to the pointer that will point to the string
     :returns: a SQRESULT
 
 gets a pointer to the string at the idx position in the stack.
@@ -245,11 +229,11 @@ gets a pointer to the string at the idx position in the stack.
 
 .. _sq_getstringandsize:
 
-.. c:function:: SQRESULT sq_getstringandsize(HSQUIRRELVM v, SQInteger idx, const SQChar ** c, SQInteger* size)
+.. c:function:: SQRESULT sq_getstringandsize(HSQUIRRELVM v, SQInteger idx, const char ** c, SQInteger* size)
 
     :param HSQUIRRELVM v: the target VM
     :param SQInteger idx: an index in the stack
-    :param const SQChar ** c: a pointer to the pointer that will point to the string
+    :param const char ** c: a pointer to the pointer that will point to the string
     :param SQInteger * size: a pointer to a SQInteger which will receive the size of the string
     :returns: a SQRESULT
 
@@ -260,11 +244,11 @@ gets a pointer to the string at the idx position in the stack; additionally retr
 
 .. _sq_getthread:
 
-.. c:function:: SQRESULT sq_getthread(HSQUIRRELVM v, SQInteger idx, HSQUIRRELVM* v)
+.. c:function:: SQRESULT sq_getthread(HSQUIRRELVM v, SQInteger idx, HSQUIRRELVM* vthread)
 
     :param HSQUIRRELVM v: the target VM
     :param SQInteger idx: an index in the stack
-    :param HSQUIRRELVM* v: A pointer to the variable that will store the thread pointer
+    :param HSQUIRRELVM* vthread: A pointer to the variable that will store the thread pointer
     :returns: a SQRESULT
 
 gets a pointer to the thread the idx position in the stack.
@@ -295,7 +279,7 @@ returns the type of the value at the position idx in the stack
     :param SQInteger idx: an index in the stack
     :param SQUserPointer * typetag: a pointer to the variable that will store the tag
     :returns: a SQRESULT
-    :remarks: the function works also with instances. if the taget object is an instance, the typetag of it's base class is fetched.
+    :remarks: the function works also with instances. if the target object is an instance, the typetag of its base class is fetched.
 
 gets the typetag of the object (userdata or class) at position idx in the stack.
 
@@ -466,10 +450,10 @@ pushes a null value into the stack
 
 .. _sq_pushstring:
 
-.. c:function:: void sq_pushstring(HSQUIRRELVM v, const SQChar * s, SQInteger len)
+.. c:function:: void sq_pushstring(HSQUIRRELVM v, const char * s, SQInteger len)
 
     :param HSQUIRRELVM v: the target VM
-    :param const SQChar * s: pointer to the string that has to be pushed
+    :param const char * s: pointer to the string that has to be pushed
     :param SQInteger len: length of the string pointed by s
     :remarks: if the parameter len is less than 0 the VM will calculate the length using strlen(s)
 
@@ -521,21 +505,6 @@ Sets the user data size of a class. If a class 'user data size' is greater than 
 
 
 
-
-.. _sq_setclosureroot:
-
-.. c:function:: SQRESULT sq_setclosureroot(HSQUIRRELVM v, SQInteger idx)
-
-    :param HSQUIRRELVM v: the target VM
-    :param SQInteger idx: index of the target closure
-    :returns: an SQRESULT
-
-pops a table from the stack and sets it as root of the closure at position idx in the stack
-
-
-
-
-
 .. _sq_setinstanceup:
 
 .. c:function:: SQRESULT sq_setinstanceup(HSQUIRRELVM v, SQInteger idx, SQUserPointer up)
@@ -553,11 +522,11 @@ sets the userpointer of the class instance at position idx in the stack.
 
 .. _sq_setnativeclosurename:
 
-.. c:function:: SQRESULT sq_setnativeclosurename(HSQUIRRELVM v, SQInteger idx, const SQChar * name)
+.. c:function:: SQRESULT sq_setnativeclosurename(HSQUIRRELVM v, SQInteger idx, const char * name)
 
     :param HSQUIRRELVM v: the target VM
     :param SQInteger idx: index of the target native closure
-    :param const SQChar * name: the name that has to be set
+    :param const char * name: the name that has to be set
     :returns: an SQRESULT
 
 sets the name of the native closure at the position idx in the stack. The name of a native closure is purely for debug purposes. The name is retrieved through the function sq_stackinfos() while the closure is in the call stack.
@@ -568,11 +537,11 @@ sets the name of the native closure at the position idx in the stack. The name o
 
 .. _sq_setparamscheck:
 
-.. c:function:: SQRESULT sq_setparamscheck(HSQUIRRELVM v, SQInteger nparamscheck, const SQChar * typemask)
+.. c:function:: SQRESULT sq_setparamscheck(HSQUIRRELVM v, SQInteger nparamscheck, const char * typemask)
 
     :param HSQUIRRELVM v: the target VM
     :param SQInteger nparamscheck: defines the parameters number check policy (0 disables the param checking). If nparamscheck is greater than 0, the VM ensures that the number of parameters is exactly the number specified in nparamscheck (eg. if nparamscheck == 3 the function can only be called with 3 parameters). If nparamscheck is less than 0 the VM ensures that the closure is called with at least the absolute value of the number specified in nparamcheck (eg. nparamscheck == -3 will check that the function is called with at least 3 parameters). The hidden parameter 'this' is included in this number; free variables aren't. If SQ_MATCHTYPEMASKSTRING is passed instead of the number of parameters, the function will automatically infer the number of parameters to check from the typemask (eg. if the typemask is ".sn", it is like passing 3).
-    :param const SQChar * typemask: defines a mask to validate the parametes types passed to the function. If the parameter is NULL, no typechecking is applied (default).
+    :param const char * typemask: defines a mask to validate the parametes types passed to the function. If the parameter is NULL, no typechecking is applied (default).
     :remarks: The typemask consists in a zero terminated string that represent the expected parameter type. The types are expressed as follows: 'o' null, 'i' integer, 'f' float, 'n' integer or float, 's' string, 't' table, 'a' array, 'u' userdata, 'c' closure and nativeclosure, 'g' generator, 'p' userpointer, 'v' thread, 'x' instance(class instance), 'y' class, 'b' bool. and '.' any type. The symbol '|' can be used as 'or' to accept multiple types on the same parameter. There isn't any limit on the number of 'or' that can be used. Spaces are ignored so can be inserted between types to increase readability. For instance to check a function that expect a table as 'this' a string as first parameter and a number or a userpointer as second parameter, the string would be "tsn|p" (table,string,number or userpointer). If the parameters mask is contains fewer parameters than 'nparamscheck', the remaining parameters will not be typechecked.
 
 Sets the parameter validation scheme for the native closure at the top position in the stack. Allows you to validate the number of parameters accepted by the function and optionally their types. If the function call does not comply with the parameter schema set by sq_setparamscheck, an exception is thrown.
@@ -585,7 +554,7 @@ Sets the parameter validation scheme for the native closure at the top position 
     SQInteger testy(HSQUIRRELVM v)
     {
         SQUserPointer p;
-        const SQChar *s;
+        const char *s;
         SQInteger i;
         //no type checking, if the call complies with the mask
         //surely the functions will succeed.
@@ -601,7 +570,7 @@ Sets the parameter validation scheme for the native closure at the top position 
     //....stuff
     sq_newclosure(v,testy,0);
     //expects exactly 3 parameters(userdata,string,number)
-    sq_setparamscheck(v,3,_SC("usn"));
+    sq_setparamscheck(v,3,"usn");
     //....stuff
 
 

@@ -77,7 +77,7 @@ macro DEFERRED_OMNI_LIGHTS_PS_SHADER()
     {
       #include "readDeferredGbuffer.hlsl"
       float4 color_and_attenuation = input.color_and_attenuation;
-      result = perform_point_light(worldPos.xyz, view, NoV, gbuffer, gbuffer.specularColor, dynamicLightsSpecularStrength, gbuffer.ao, pos_and_radius, color_and_attenuation, shadowTcToAtlas, screenpos.xy);//use gbuffer.specularColor for equality with point_lights.dshl
+      result = perform_point_light(worldPos.xyz, view, NoV, gbuffer, gbuffer.specularColor, dynamicLightsSpecularStrength, gbuffer.ao, pos_and_radius, color_and_attenuation, shadowTcToAtlas, float2(0, 1), screenpos.xy);//use gbuffer.specularColor for equality with point_lights.dshl
       result *= pointLightsFinalAO;
       return true;
     }
@@ -95,6 +95,7 @@ macro DEFERRED_SPOT_LIGHTS_VS_SHADER()
       float4 pos_and_radius: TEXCOORD1;
       float4 color_and_attenuation: TEXCOORD2;
       float4 dir_angle: TEXCOORD3;
+      nointerpolation float roll_angle: TEXCOORD4;
     };
   }
 
@@ -115,27 +116,29 @@ macro DEFERRED_SPOT_LIGHTS_VS_SHADER()
       ##else
       RenderSpotLight sl = spot_lights_cb[spot_light_index];
       ##endif
-      float4 pos_and_radius    = sl.lightPosRadius;
+      float4 pos_and_radius    = decode_spot_light_pos_radius(sl);
       float4 color_and_attenuation = sl.lightColorAngleScale;
       float4 dir_angle = sl.lightDirectionAngleOffset;
 
       const float lightAngleScale = color_and_attenuation.a;
       const float lightAngleOffset = dir_angle.a;
-      float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+      float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
+      float lightRollAngle = decode_light_roll_angle(sl);
 
       float cosOuter = -lightAngleOffset/lightAngleScale;
       float halfTan = sqrt(1/(cosOuter*cosOuter)-1);
-      
+
       float3 ofs = tangent_to_world(float3(input.pos.xy*halfTan, input.pos.z), dir_angle.xyz );
 
       //float3 worldPos = pos_and_radius.xyz + ofs*pos_and_radius.w;
       float3 worldPos = pos_and_radius.xyz + ofs.xyz*pos_and_radius.w;
 
-      output.id_texId_scale_illuminatingPlane = float4(spot_light_index, texId_scale, sl.texId_scale_illuminatingplane_shadow_contactshadow.z);
+      output.id_texId_scale_illuminatingPlane = float4(spot_light_index, texId_scale, sl.texId_scale_illuminatingplane_packedDataBits.z);
       output.pos = mul(float4(worldPos, 1), globtm);
       output.color_and_attenuation = color_and_attenuation;
       output.pos_and_radius = pos_and_radius;
       output.dir_angle = dir_angle;
+      output.roll_angle = lightRollAngle;
       return output;
     }
   }
@@ -151,6 +154,7 @@ macro DEFERRED_SPOT_LIGHTS_PS_SHADER()
       float4 lightPosRadius = input.pos_and_radius;
       float4 lightColor = input.color_and_attenuation;
       float4 lightDirection = input.dir_angle;
+      float lightRollAngle = input.roll_angle;
       uint spot_light_index = input.id_texId_scale_illuminatingPlane.x;
       float2 texId_scale = input.id_texId_scale_illuminatingPlane.yz;
       float illuminatingPlaneOffset = input.id_texId_scale_illuminatingPlane.w;

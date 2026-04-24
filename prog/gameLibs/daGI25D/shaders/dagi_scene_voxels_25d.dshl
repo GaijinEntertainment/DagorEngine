@@ -8,12 +8,14 @@ shader ssgi_clear_scene_25d_cs
   INIT_VOXELS_25D(cs)
   USE_VOXELS_25D(cs)
   INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
-  ENABLE_ASSERT(cs)
-  (cs) { scene_25d_voxels_invalid_start_width@f4 = scene_25d_voxels_invalid_start_width; }
+  (cs) {
+    scene_25d_voxels_invalid_start_width@f4 = scene_25d_voxels_invalid_start_width;
+    scene_25d_buf@uav : register(0) hlsl {
+      RWByteAddressBuffer scene_25d_buf@uav;
+    }
+  }
 
   hlsl(cs) {
-    RWByteAddressBuffer scene_25d_buf:register(u0);
-
 ##if gi_quality != only_ao
     #define VOXEL_25D_USE_COLOR 1
 ##endif
@@ -51,14 +53,17 @@ shader ssgi_clear_scene_25d_full_cs
   INIT_VOXELS_25D(cs)
   USE_VOXELS_25D(cs)
   INIT_VOXELS_HEIGHTMAP_HEIGHT_25D(cs)
-  ENABLE_ASSERT(cs)
-  (cs) { scene_25d_voxels_invalid_start_width@f4 = scene_25d_voxels_invalid_start_width; }
+  (cs) {
+    scene_25d_voxels_invalid_start_width@f4 = scene_25d_voxels_invalid_start_width;
+    scene_25d_buf@uav : register(0) hlsl {
+      RWByteAddressBuffer scene_25d_buf@uav;
+    }
+  }
   hlsl(cs) {
   ##if gi_quality != only_ao
     #define VOXEL_25D_USE_COLOR 1
   ##endif
     #include "dagi_voxels_25d_encoding.hlsl"
-    RWByteAddressBuffer scene_25d_buf:register(u0);
     //RWByteAddressBuffer buf:register(u1);
     [numthreads(8, 8, 1)]
     void ssgi_clear_scene_cs( uint3 dtId : SV_DispatchThreadID )//

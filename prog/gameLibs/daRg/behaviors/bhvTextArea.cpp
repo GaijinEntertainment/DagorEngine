@@ -20,9 +20,10 @@ namespace darg
 
 struct TextAreaTextParams : public textlayout::ITextParams
 {
-  Sqrat::Table colorTable, tagsTable;
+  Sqrat::Table colorTable, tagsTable, embedTable;
 
-  TextAreaTextParams(const Sqrat::Table &color_table, const Sqrat::Table &tags_table) : colorTable(color_table), tagsTable(tags_table)
+  TextAreaTextParams(const Sqrat::Table &color_table, const Sqrat::Table &tags_table, const Sqrat::Table &embed_table) :
+    colorTable(color_table), tagsTable(tags_table), embedTable(embed_table)
   {}
 
   virtual bool getColor(const char *color_name, E3DCOLOR &res, String &err_msg) override
@@ -49,7 +50,6 @@ struct TextAreaTextParams : public textlayout::ITextParams
     return true;
   }
 
-
   virtual void getUserTags(Tab<String> &tags) override
   {
     Sqrat::Object::iterator it;
@@ -57,6 +57,17 @@ struct TextAreaTextParams : public textlayout::ITextParams
       tags.push_back(String(it.getName()));
   }
 
+  virtual bool getEmbeddedComponent(const char *tag, Sqrat::Object &comp) override
+  {
+    Sqrat::Object val = embedTable.RawGetSlot(tag);
+    SQObjectType tp = val.GetType();
+    if (tp == OT_TABLE || tp == OT_CLOSURE)
+    {
+      comp = val;
+      return true;
+    }
+    return false;
+  }
 
   virtual bool getTagAttr(const char *tag_name, textlayout::TagAttributes &attr) override
   {
@@ -108,29 +119,29 @@ void BhvTextArea::update_formatted_text(textlayout::FormattedText *fmt_text, Ele
 
   Sqrat::Table colorTable = elem->props.scriptDesc.RawGetSlot(elem->csk->colorTable);
   Sqrat::Table tagsTable = elem->props.scriptDesc.RawGetSlot(elem->csk->tagsTable);
-  TextAreaTextParams tp(colorTable, tagsTable);
+  Sqrat::Table embedTable = elem->props.scriptDesc.RawGetSlot(elem->csk->embed);
+  TextAreaTextParams tp(colorTable, tagsTable, embedTable);
   fmt_text->updateText(elem->props.text.c_str(), elem->props.text.length(), &tp);
-}
-
-
-void BhvTextArea::onAttach(Element *elem)
-{
-  textlayout::FormattedText *fmtText = new textlayout::FormattedText();
-  elem->props.storage.SetInstance(elem->csk->formattedText, fmtText);
-
-  update_formatted_text(fmtText, elem);
 }
 
 
 void BhvTextArea::onElemSetup(Element *elem, SetupMode setup_mode)
 {
-  if (setup_mode == SM_REBUILD_UPDATE) // first update will be done during onAttach()
+  if (setup_mode == SM_INITIAL || setup_mode == SM_REBUILD_UPDATE)
   {
     textlayout::FormattedText *fmtText =
       elem->props.storage.RawGetSlotValue<textlayout::FormattedText *>(elem->csk->formattedText, nullptr);
-    if (fmtText)
-      update_formatted_text(fmtText, elem);
+    if (!fmtText)
+    {
+      fmtText = new textlayout::FormattedText();
+      elem->props.storage.SetInstance(elem->csk->formattedText, fmtText);
+      // ^ will be deleted in onDetach()/onDelete()
+    }
+
+    update_formatted_text(fmtText, elem);
   }
+
+  elem->updFlags(Element::F_CLIP_CHILDREN, true);
 }
 
 
@@ -143,6 +154,14 @@ void BhvTextArea::deleteData(Element *elem)
     delete fmtText;
     elem->props.storage.DeleteSlot(elem->csk->formattedText);
   }
+}
+
+
+void BhvTextArea::onAttach(Element *)
+{
+  // Initialization is done in onElemSetup(elem, setup_mode=SM_INITIAL)
+  // This is because of need to have a valid FormattedText in contributeChildren()
+  // and onAttach() is called after both onElemSetup() and contributeChildren()
 }
 
 
@@ -160,6 +179,52 @@ void BhvTextArea::onDetach(Element *elem, DetachMode dmode)
 void BhvTextArea::onDelete(Element *elem) { deleteData(elem); }
 
 
+void BhvTextArea::contributeChildren(Element *elem, dag::Vector<Sqrat::Object, framemem_allocator> &children)
+{
+  using namespace textlayout;
+
+  FormattedText *fmtText = elem->props.storage.RawGetSlotValue<FormattedText *>(elem->csk->formattedText, nullptr);
+  if (!fmtText)
+    return;
+
+  for (auto &p : fmtText->embeddedComps)
+    children.push_back(p.second);
+}
+
+
+void BhvTextArea::onRecalcLayout(Element *elem)
+{
+  TIME_PROFILE(bhv_textarea_onRecalcLayout);
+
+  using namespace textlayout;
+  FormattedText *fmtText = elem->props.storage.RawGetSlotValue<FormattedText *>(elem->csk->formattedText, nullptr);
+  if (!fmtText)
+    return;
+
+  eastl::vector_set<Element *, eastl::less<Element *>, framemem_allocator> processedChildren;
+  for (auto &p : fmtText->embeddedComps)
+  {
+    TextBlock *block = p.first;
+    const Sqrat::Object &comp = p.second;
+
+    for (Element *child : elem->children)
+    {
+      if (processedChildren.find(child) != processedChildren.end())
+        continue;
+
+      if (child->props.scriptDesc.IsEqual(comp) || child->props.scriptBuilder.IsEqual(comp))
+      {
+        child->screenCoord.relPos = block->position;
+        child->screenCoord.size = block->size;
+        // child->recalcScreenPositions();
+        child->screenCoord.screenPos = elem->screenCoord.screenPos + child->screenCoord.relPos;
+        processedChildren.insert(child);
+      }
+    }
+  }
+}
+
+
 void BhvTextArea::recalc_content(const Element *elem, int /*axis*/, const Point2 &elem_size, Point2 &out_size)
 {
   AutoProfileScope profile(GuiScene::get_from_elem(elem)->getProfiler(), M_RECALC_TEXTAREA);
@@ -175,27 +240,10 @@ void BhvTextArea::recalc_content(const Element *elem, int /*axis*/, const Point2
 
   const Properties &props = elem->props;
 
-  // if (axis == 0) // already calculated for Y
-  //  FIXME
+  if (!fmtText->canReuseLinesFor(calc_textarea_max_width(elem, elem_size)))
   {
-    float styleMaxWidth = props.getFloat(elem->csk->maxContentWidth, VERY_BIG_NUMBER);
-    if (styleMaxWidth == VERY_BIG_NUMBER)
-      styleMaxWidth = elem->sizeSpecToPixels(elem->layout.maxSize[0], 0);
-
     FormatParams params = {};
-    params.defFontId = props.getFontId();
-    params.defFontHt = (int)floorf(props.getFontSize() + 0.5f);
-    params.spacing = props.getFloat(elem->csk->spacing, 0);
-    params.monoWidth = font_mono_width_from_sq(params.defFontId, params.defFontHt, props.getObject(elem->csk->monoWidth));
-    params.lineSpacing = props.getFloat(elem->csk->lineSpacing, 0.0);
-    params.parSpacing = props.getFloat(elem->csk->parSpacing, 0);
-    params.indent = props.getFloat(elem->csk->indent, 0);
-    params.hangingIndent = props.getFloat(elem->csk->hangingIndent, 0);
-    params.maxWidth = (styleMaxWidth == VERY_BIG_NUMBER || styleMaxWidth <= 0) ? elem_size.x
-                      : elem_size.x <= 0                                       ? styleMaxWidth
-                                                                               : min(elem_size.x, styleMaxWidth);
-    params.maxHeight = elem_size.y;
-
+    fill_textarea_format_params(elem, elem_size, params);
     fmtText->format(params);
   }
 

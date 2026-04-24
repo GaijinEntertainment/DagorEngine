@@ -6,6 +6,7 @@
 #include "main/gameLoad.h"
 #include "net/net.h"
 #include "game/gameLauncher.h"
+#include "input/inputControls.h"
 
 #include <gui/dag_visConsole.h>
 #include <gui/dag_visualLog.h>
@@ -27,7 +28,7 @@ using namespace console;
 PULL_CONSOLE_PROC(def_app_console_handler)
 PULL_CONSOLE_PROC(profiler_console_handler)
 PULL_CONSOLE_PROC(ecs_console_handler)
-PULL_CONSOLE_PROC(game_console_handler)
+PULL_CONSOLE_PROC(editmode_console_handler)
 PULL_CONSOLE_PROC(phys_console_handler)
 PULL_CONSOLE_PROC(sq_console_handler)
 PULL_CONSOLE_PROC(das_console_handler)
@@ -71,6 +72,11 @@ static bool app_console_handler(const char *argv[], int argc)
     if (argc > 4)
       params.flags = console::to_int(argv[4]);
     d3d_err(d3d::driver_command(Drv3dCommand::PIX_GPU_CAPTURE_AFTER_LONG_FRAMES, reinterpret_cast<void *>(&params)));
+  }
+  CONSOLE_CHECK_NAME("app", "reinit_input", 1, 1)
+  {
+    controls::destroy();
+    controls::init_control();
   }
   return found;
 }

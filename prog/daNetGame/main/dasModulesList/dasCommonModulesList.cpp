@@ -39,6 +39,7 @@ void pull_das()
   NEED_MODULE(Module_JsonWriter)
   NEED_MODULE(Module_RapidJson)
   NEED_MODULE(JsonUtilsModule)
+  NEED_MODULE(AppTimeModule)
   NEED_MODULE(DngAppModule)
   NEED_MODULE(DngLevelModule)
   NEED_MODULE(DngGameObjectModule)
@@ -90,6 +91,8 @@ void pull_das()
   NEED_MODULE(DngDacollModule)
   NEED_MODULE(DeferToActModule)
   NEED_MODULE(CompressionModule)
+  NEED_MODULE(Module_StdDlg)
+  NEED_MODULE(PerFrameStat)
 
   pull_render_das();
   pull_input_das();
@@ -108,6 +111,7 @@ void pull_das()
 void require_project_specific_debugger_modules()
 {
 #if DAGOR_DBGLEVEL > 0 && _TARGET_PC
+  NEED_MODULE(AppTimeModule);
   NEED_MODULE(DngAppModule);
   NEED_MODULE(Module_Debugger);
   NEED_MODULE(Module_FIO)

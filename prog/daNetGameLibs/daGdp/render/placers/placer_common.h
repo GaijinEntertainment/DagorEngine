@@ -12,8 +12,8 @@ dafg::NodeHandle create_indirect_args_node(const dafg::NameSpace &ns, const east
     const auto &constants = persistentData->constants;
     view_multiplex(registry, constants.viewInfo.kind);
 
-    const auto indirectArgsHandle = registry.create("indirect_args", dafg::History::No)
-                                      .indirectBufferUa(d3d::buffers::Indirect::Dispatch, DAGDP_MAX_VIEWPORTS)
+    const auto indirectArgsHandle = registry.create("indirect_args")
+                                      .indirectBuffer(d3d::buffers::Indirect::Dispatch, DAGDP_MAX_VIEWPORTS)
                                       .atStage(dafg::Stage::UNKNOWN) // TODO: d3d::zero_rwbufi semantics is not defined.
                                       .useAs(dafg::Usage::UNKNOWN)
                                       .handle();
@@ -34,8 +34,8 @@ dafg::NodeHandle create_cull_tiles_node(const dafg::NameSpace &ns, const eastl::
 
     registry.modify("indirect_args").buffer().atStage(dafg::Stage::COMPUTE).bindToShaderVar("dagdp_heightmap__indirect_args");
 
-    registry.create("visible_tile_positions", dafg::History::No)
-      .byteAddressBufferUaSr(constants.numTiles * 2) // int2
+    registry.create("visible_tile_positions")
+      .byteAddressBuffer(constants.numTiles * 2 * constants.viewInfo.maxViewports) // int2
       .atStage(dafg::Stage::COMPUTE)
       .bindToShaderVar("dagdp_heightmap__visible_tile_positions");
 
@@ -44,8 +44,8 @@ dafg::NodeHandle create_cull_tiles_node(const dafg::NameSpace &ns, const eastl::
       const auto &view = viewHandle.ref();
 
       ShaderGlobal::set_int(var::num_tiles, constants.numTiles);
-      ShaderGlobal::set_real(var::tile_pos_delta, constants.tileWorldSize);
-      ShaderGlobal::set_real(var::max_placeable_bounding_radius, constants.maxPlaceableBoundingRadius);
+      ShaderGlobal::set_float(var::tile_pos_delta, constants.tileWorldSize);
+      ShaderGlobal::set_float(var::max_placeable_bounding_radius, constants.maxPlaceableBoundingRadius);
 
       ShaderGlobal::set_buffer(var::tile_positions, persistentData->tilePositionsBuffer.getBufId());
 
@@ -58,10 +58,11 @@ dafg::NodeHandle create_cull_tiles_node(const dafg::NameSpace &ns, const eastl::
         baseTileIntPos.x = static_cast<int>(floorf(viewport.worldPos.x / constants.tileWorldSize));
         baseTileIntPos.y = static_cast<int>(floorf(viewport.worldPos.z / constants.tileWorldSize));
 
-        ShaderGlobal::set_color4(var::base_tile_pos_xz, point4(baseTileIntPos) * constants.tileWorldSize);
-        ShaderGlobal::set_color4(var::viewport_pos, viewport.worldPos);
+        ShaderGlobal::set_float4(var::base_tile_pos_xz, point4(baseTileIntPos) * constants.tileWorldSize);
+        ShaderGlobal::set_float4(var::viewport_pos, viewport.worldPos);
         ShaderGlobal::set_int(var::viewport_index, viewportIndex);
-        ShaderGlobal::set_real(var::viewport_max_distance,
+        ShaderGlobal::set_int(var::visible_tiles_start_offset, viewportIndex * constants.numTiles * TILE_POSITION_BYTE_SIZE);
+        ShaderGlobal::set_float(var::viewport_max_distance,
           min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance) * get_global_range_scale());
 
         const bool res = shader.dispatchThreads(constants.numTiles, 1, 1);
@@ -137,10 +138,10 @@ dafg::NodeHandle create_place_node(
       ShaderGlobal::set_int(var::num_biomes, constants.numBiomes);
       ShaderGlobal::set_int(var::num_tiles, constants.numTiles);
 
-      ShaderGlobal::set_real(var::max_placeable_bounding_radius, constants.maxPlaceableBoundingRadius);
-      ShaderGlobal::set_real(var::tile_pos_delta, constants.tileWorldSize);
-      ShaderGlobal::set_real(var::instance_pos_delta, constants.tileWorldSize / TILE_INSTANCE_COUNT_1D);
-      ShaderGlobal::set_real(var::debug_frustum_culling_bias, get_frustum_culling_bias());
+      ShaderGlobal::set_float(var::max_placeable_bounding_radius, constants.maxPlaceableBoundingRadius);
+      ShaderGlobal::set_float(var::tile_pos_delta, constants.tileWorldSize);
+      ShaderGlobal::set_float(var::instance_pos_delta, constants.tileWorldSize / TILE_INSTANCE_COUNT_1D);
+      ShaderGlobal::set_float(var::debug_frustum_culling_bias, get_frustum_culling_bias());
 
       ShaderGlobal::set_int(var::prng_seed_jitter_x, constants.prngSeed + 0x4272ECD4u);
       ShaderGlobal::set_int(var::prng_seed_jitter_z, constants.prngSeed + 0x86E5A4D2u);
@@ -154,19 +155,19 @@ dafg::NodeHandle create_place_node(
       ShaderGlobal::set_int(var::prng_seed_density, constants.prngSeed + 0x54F2A367u);
 
 #if IS_GRASS
-      ShaderGlobal::set_real(var::grass_max_range, constants.grassMaxRange);
+      ShaderGlobal::set_float(var::grass_max_range, constants.grassMaxRange);
       ShaderGlobal::set_int(var::prng_seed_decal, constants.prngSeed + 0x45F9668Eu);
       ShaderGlobal::set_int(var::prng_seed_height, constants.prngSeed + 0x682A73E1u);
 #else
       ShaderGlobal::set_texture(var::density_mask, persistentData->densityMask);
-      ShaderGlobal::set_color4(var::density_mask_scale_offset, persistentData->densityMaskScaleOffset);
+      ShaderGlobal::set_float4(var::density_mask_scale_offset, persistentData->densityMaskScaleOffset);
       ShaderGlobal::set_buffer(var::density_mask_channel_weights, persistentData->densityMaskChannelWeightsBuffer.getBufId());
 
-      ShaderGlobal::set_real(var::grid_jitter, constants.gridJitter);
-      ShaderGlobal::set_real(var::displacement_noise_scale, constants.displacementNoiseScale);
-      ShaderGlobal::set_real(var::displacement_strength, constants.displacementStrength);
-      ShaderGlobal::set_real(var::placement_noise_scale, constants.placementNoiseScale);
-      ShaderGlobal::set_real(var::sample_range, constants.sampleRange);
+      ShaderGlobal::set_float(var::grid_jitter, constants.gridJitter);
+      ShaderGlobal::set_float(var::displacement_noise_scale, constants.displacementNoiseScale);
+      ShaderGlobal::set_float(var::displacement_strength, constants.displacementStrength);
+      ShaderGlobal::set_float(var::placement_noise_scale, constants.placementNoiseScale);
+      ShaderGlobal::set_float(var::sample_range, constants.sampleRange);
       ShaderGlobal::set_int(var::lower_level, constants.lowerLevel);
       ShaderGlobal::set_int(var::use_decals, constants.useDecals);
       ShaderGlobal::set_int(var::discard_on_grass_erasure, constants.discardOnGrassErasure);
@@ -183,12 +184,13 @@ dafg::NodeHandle create_place_node(
         baseTileIntPos.x = static_cast<int>(floorf(viewport.worldPos.x / constants.tileWorldSize));
         baseTileIntPos.y = static_cast<int>(floorf(viewport.worldPos.z / constants.tileWorldSize));
 
-        ShaderGlobal::set_color4(var::base_tile_pos_xz, point4(baseTileIntPos) * constants.tileWorldSize);
+        ShaderGlobal::set_float4(var::base_tile_pos_xz, point4(baseTileIntPos) * constants.tileWorldSize);
         ShaderGlobal::set_int4(var::base_tile_int_pos_xz, baseTileIntPos);
-        ShaderGlobal::set_color4(var::viewport_pos, viewport.worldPos);
-        ShaderGlobal::set_real(var::viewport_max_distance,
+        ShaderGlobal::set_float4(var::viewport_pos, viewport.worldPos);
+        ShaderGlobal::set_float(var::viewport_max_distance,
           min(viewport.maxDrawDistance, constants.viewInfo.maxDrawDistance) * get_global_range_scale());
         ShaderGlobal::set_int(var::viewport_index, viewportIndex);
+        ShaderGlobal::set_int(var::visible_tiles_start_offset, viewportIndex * constants.numTiles * TILE_POSITION_BYTE_SIZE);
 
         bool res = shader.dispatchIndirect(indirectArgsHandle.view().getBuf(), viewportIndex * DISPATCH_INDIRECT_BUFFER_SIZE);
         G_ASSERT(res);

@@ -16,9 +16,10 @@ let cursors = require("components/cursors.nut")
 let { modalWindowsComponent } = require("components/modalWindows.nut")
 let { msgboxComponent } = require("%daeditor/components/msgbox.nut")
 let { windowsManager, registerWindow } = require("%daeditor/components/window.nut")
+let { toastNotificationManager } = require("%daeditor/components/toastNotifications.nut")
 
 registerWindow(require("entitySelect.nut"))
-registerWindow(require("loadedScenes.nut"))
+registerWindow(require("sceneOutliner.nut"))
 registerWindow(require("logsWindow.nut"))
 
 function getActionCursor(actionType) {
@@ -55,6 +56,7 @@ return function() {
     children = [
       mainToolbar,
       windowsManager,
+      toastNotificationManager,
       (showTemplateSelect.get() ? templateSelect : null), //fixme
       attrPanel, //fixme
       (showHelp.get() ? help : null),

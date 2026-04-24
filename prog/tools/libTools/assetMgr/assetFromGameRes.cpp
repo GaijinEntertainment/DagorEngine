@@ -13,6 +13,7 @@
 
 bool DagorAssetMgr::mountBuiltGameRes(const char *mount_folder_name, const DataBlock &skip_types)
 {
+  WriteGuard guard(mutex);
   if (!folders.size())
   {
     folders.push_back(new DagorAssetFolder(-1, "Root", NULL));
@@ -108,6 +109,7 @@ bool DagorAssetMgr::mountBuiltGameRes(const char *mount_folder_name, const DataB
 void DagorAssetMgr::fillGameResFolder(const char *type_name, int root_fidx, int nsid, dag::ConstSpan<String> names,
   unsigned res_classid)
 {
+  WriteGuard guard(mutex);
   int type = typeNames.getNameId(type_name);
   if (type == -1)
     return;
@@ -129,7 +131,7 @@ void DagorAssetMgr::fillGameResFolder(const char *type_name, int root_fidx, int 
     if (!ca)
       ca = new DagorAssetPrivate(*this);
 
-    ca->setNames(assetNames.addNameId(names[i]), nsid, true);
+    ca->setNames(addAssetNameId(names[i]), nsid, true);
     if (perTypeNameIds[type].addInt(ca->getNameId()))
     {
       ca->setAssetData(fidx, -1, type);

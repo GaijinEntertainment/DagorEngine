@@ -10,6 +10,4 @@
 incDir:t="../../../prog/gameLibs/render/denoiser/shaders"
 incDir:t="../../../prog/3rdPartyLibs/NRD"
 incDir:t="../../../prog/3rdPartyLibs/NRD/Include"
-incDir:t="../../../prog/3rdPartyLibs/NRD/Resources"
-incDir:t="../../../prog/3rdPartyLibs/NRD/Source"
 incDir:t="../../../prog/3rdPartyLibs/math/MathLib"

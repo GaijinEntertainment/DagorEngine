@@ -4,8 +4,8 @@
 #include <math/dag_geomTree.h>
 #include <math/dag_vecMathCompatibility.h>
 
-static inline void apply_twist_ctrl(GeomNodeTree &tree, dag::Index16 node0, dag::Index16 node1, dag::Span<dag::Index16> twistNodes,
-  float ang_diff)
+static inline void apply_twist_ctrl(GeomNodeTree &tree, dag::Index16 node0, dag::Index16 node1,
+  dag::ConstSpan<dag::Index16> twistNodes, float ang_diff)
 {
   if (!twistNodes.size())
     return;

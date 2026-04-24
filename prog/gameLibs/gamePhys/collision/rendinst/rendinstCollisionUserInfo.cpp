@@ -7,16 +7,19 @@
 #include <rendInst/treeDestr.h>
 #include <rendInst/rendInstExtra.h>
 
+#if DAGOR_DBGLEVEL > 0
+void (*ri_coll_damage_log)(const char *format_str, ...) = nullptr;
+#endif
 
-RendinstCollisionUserInfo::RendinstImpulseThresholdData::RendinstImpulseThresholdData(float impulse,
-  const rendinst::RendInstDesc &ri_desc, float at_time, const rendinst::CollisionInfo &coll_info) :
+RendinstImpulseThresholdData::RendinstImpulseThresholdData(float impulse, const rendinst::RendInstDesc &ri_desc, float at_time,
+  const rendinst::CollisionInfo &coll_info) :
   CachedCollisionObjectInfo(impulse, ri_desc, at_time), collInfo(coll_info)
 {
   finalPos.zero();
   finalImpulse.zero();
 }
 
-RendinstCollisionUserInfo::RendinstImpulseThresholdData::~RendinstImpulseThresholdData()
+RendinstImpulseThresholdData::~RendinstImpulseThresholdData()
 {
   if (!alive)
     // for now don't apply absorbed impulse, as it makes behaviour worse
@@ -26,9 +29,8 @@ RendinstCollisionUserInfo::RendinstImpulseThresholdData::~RendinstImpulseThresho
         rendinst::DestrOptionFlag::ForceDestroy);
 }
 
-float RendinstCollisionUserInfo::RendinstImpulseThresholdData::onImpulse(float impulse, const Point3 &dir, const Point3 &pos,
-  float point_vel, const Point3 &collision_normal, uint32_t flags, int32_t user_data, gamephys::ImpulseLogFunc log_func,
-  const char *actor_name)
+float RendinstImpulseThresholdData::onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel,
+  const Point3 &collision_normal, uint32_t flags, int32_t user_data, const char *actor_name)
 {
   if (riDesc.isRiExtra() && impulse > 0.0f && rendinst::get_ri_phys_settings().impulseCallbacksEnabled)
     rendinst::onRiExtraImpulse(riDesc.getRiExtraHandle(), impulse, dir, pos, collision_normal, user_data);
@@ -53,8 +55,9 @@ float RendinstCollisionUserInfo::RendinstImpulseThresholdData::onImpulse(float i
       else
         damage = impulse * rendinstdestr::get_destr_settings().destrImpulseHitPointsMult;
       absorbedImpulse = damage;
-      if (log_func)
-        log_func(rendinst::get_rendinst_res_name_from_col_info(collInfo), actor_name, impulse, damage, collInfo.hp);
+      if (ri_coll_damage_log)
+        ri_coll_damage_log("[dm][ri] collision %s with %s impulse:%f damage:%f hp:%f", actor_name ? actor_name : "unknown actor",
+          rendinst::get_rendinst_res_name_from_col_info(collInfo), impulse, damage, collInfo.hp);
       if (rendinst::applyDamageRIGenExtra(riDesc, damage, &absorbedImpulse, true))
         alive = false;
       absorbedImpulse = safediv(absorbedImpulse, damage) * impulse;
@@ -75,18 +78,14 @@ float RendinstCollisionUserInfo::RendinstImpulseThresholdData::onImpulse(float i
   return absorbedImpulse;
 }
 
-float RendinstCollisionUserInfo::RendinstImpulseThresholdData::getDestructionImpulse() const { return thresImpulse; }
-
-bool RendinstCollisionUserInfo::RendinstImpulseThresholdData::isRICollision() const { return true; }
-
-RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::TreeRendinstImpulseThresholdData(float impulse,
-  const rendinst::RendInstDesc &ri_desc, float at_time, const rendinst::CollisionInfo &coll_info) :
+TreeRendinstImpulseThresholdData::TreeRendinstImpulseThresholdData(float impulse, const rendinst::RendInstDesc &ri_desc, float at_time,
+  const rendinst::CollisionInfo &coll_info) :
   CachedCollisionObjectInfo(impulse, ri_desc, at_time), lastPointVel(0.f), lastOmega(0.f), collInfo(coll_info)
 {
   finalImpulse.zero();
 }
 
-RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::~TreeRendinstImpulseThresholdData()
+TreeRendinstImpulseThresholdData::~TreeRendinstImpulseThresholdData()
 {
   if (!alive)
   {
@@ -96,8 +95,8 @@ RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::~TreeRendinstImpuls
   }
 }
 
-float RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::onImpulse(float impulse, const Point3 &dir, const Point3 &pos,
-  float point_vel, const Point3 &collision_normal, uint32_t flags, int32_t user_data, gamephys::ImpulseLogFunc, const char *)
+float TreeRendinstImpulseThresholdData::onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel,
+  const Point3 &collision_normal, uint32_t flags, int32_t user_data, const char *)
 {
   if (flags & CIF_NO_DAMAGE)
     return impulse;
@@ -114,22 +113,4 @@ float RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::onImpulse(flo
   finalPos = pos;
   CachedCollisionObjectInfo::onImpulse(impulse, dir, pos, point_vel, collision_normal, flags, user_data);
   return min(absorbedImpulse, impulse);
-}
-
-float RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::getDestructionImpulse() const { return thresImpulse; }
-
-bool RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData::isTreeCollision() const { return true; }
-
-RendinstCollisionUserInfo::RendinstCollisionUserInfo(const rendinst::RendInstDesc &from_desc) :
-  desc(from_desc),
-  isTree(false),
-  immortal(false),
-  isDestr(false),
-  objInfoData(NULL),
-  collRes(nullptr),
-  collided(false),
-  bushBehaviour(false),
-  treeBehaviour(false)
-{
-  physObjectType = _MAKE4C('RIUD');
 }

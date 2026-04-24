@@ -8,7 +8,7 @@
 #include "pipeline/manager.h"
 #include "front_render_pass_state.h"
 #include "backend.h"
-#include "execution_context.h"
+#include "backend/context.h"
 #include "execution_sync.h"
 #include "wrapped_command_buffer.h"
 
@@ -73,7 +73,7 @@ void RenderPassResource::releaseSharedHandle() { DAG_FATAL("vulkan: no handle re
 
 void RenderPassResource::evict() { DAG_FATAL("vulkan: render pass are not evictable"); }
 
-void RenderPassResource::restoreFromSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: render pass are not evictable"); }
+void RenderPassResource::restoreFromSysCopy() { DAG_FATAL("vulkan: render pass are not evictable"); }
 
 bool RenderPassResource::isEvictable() { return false; }
 
@@ -88,7 +88,7 @@ void RenderPassResource::shutdown()
 
 bool RenderPassResource::nonResidentCreation() { return false; }
 
-void RenderPassResource::makeSysCopy(ExecutionContext &) { DAG_FATAL("vulkan: render pass are not evictable"); }
+void RenderPassResource::makeSysCopy() { DAG_FATAL("vulkan: render pass are not evictable"); }
 
 void RenderPassResource::onDeviceReset() { shutdown(); }
 
@@ -184,7 +184,7 @@ void RenderPassResource::useWithState(const FrontRenderPassStateStorage &v) { st
 void RenderPassResource::useWithAttachments(BakedAttachmentSharedData *v) { bakedAttachments = v; }
 
 
-void RenderPassResource::updateImageStatesForCurrentSubpass(ExecutionContext &ctx)
+void RenderPassResource::updateImageStatesForCurrentSubpass()
 {
   for (uint32_t attIndex = 0; attIndex < desc.targetCount; ++attIndex)
   {
@@ -197,7 +197,7 @@ void RenderPassResource::updateImageStatesForCurrentSubpass(ExecutionContext &ct
       // all attachments must be valid
       D3D_CONTRACT_ASSERTF(tgt.image != nullptr, "vulkan: attachment %u of RP %p[%p]<%s> is not specified (null)", attIndex, this,
         getBaseHandle(), getDebugName());
-      ctx.verifyResident(tgt.image);
+      Backend::ctx.verifyResident(tgt.image);
     }
 
     const auto &extOp = desc.attachmentOperations[activeSubpass][attIndex];
@@ -232,10 +232,9 @@ void RenderPassResource::performSelfDepsForSubpass(uint32_t subpass)
   barrier.submit();
 }
 
-void RenderPassResource::bindInputAttachments(ExecutionContext &ctx, PipelineStageStateBase &tgt, uint32_t input_index,
-  uint32_t register_index, const VariatedGraphicsPipeline *pipeline)
+void RenderPassResource::bindInputAttachments(PipelineStageStateBase &tgt, uint32_t input_index, uint32_t flat_binding_index,
+  const VariatedGraphicsPipeline *pipeline)
 {
-  G_UNUSED(ctx);
   G_UNUSED(pipeline);
   G_ASSERTF(desc.inputAttachments[activeSubpass].size() > input_index,
     "vulkan: requested OOB input attachment\n"
@@ -244,14 +243,14 @@ void RenderPassResource::bindInputAttachments(ExecutionContext &ctx, PipelineSta
     "additional info: %s\n"
     "caller: %s",
     input_index, this, getBaseHandle(), getDebugName(), activeSubpass, desc.inputAttachments[activeSubpass].size(),
-    pipeline->printDebugInfoBuffered(), ctx.getCurrentCmdCaller());
+    pipeline->printDebugInfoBuffered(), Backend::ctx.getCurrentCmdCaller());
   uint32_t attIdx = desc.inputAttachments[activeSubpass][input_index];
-  tgt.setTinputAttachment(register_index - spirv::T_INPUT_ATTACHMENT_OFFSET, state->targets.data[attIdx].image,
+  tgt.setTinputAttachment(flat_binding_index, state->targets.data[attIdx].image,
     // only const DS for now, must be changed if special const RT will be found
     desc.attImageLayouts[activeSubpass][attIdx] == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL, bakedAttachments->views[attIdx]);
 }
 
-void RenderPassResource::advanceSubpass(ExecutionContext &ctx)
+void RenderPassResource::advanceSubpass()
 {
   G_ASSERTF(state && bakedAttachments, "vulkan: render pass %p [ %p ] <%s> is not used in any execution context", this,
     getBaseHandle(), getDebugName());
@@ -260,21 +259,21 @@ void RenderPassResource::advanceSubpass(ExecutionContext &ctx)
   Backend::sync.setCurrentRenderSubpass(activeSubpass);
 
   if (activeSubpass != desc.subpasses)
-    updateImageStatesForCurrentSubpass(ctx);
+    updateImageStatesForCurrentSubpass();
 }
 
-void RenderPassResource::beginPass(ExecutionContext &ctx)
+void RenderPassResource::beginPass()
 {
   G_ASSERTF(state && bakedAttachments, "vulkan: render pass %p [ %p ] <%s> is not used in any execution context", this,
     getBaseHandle(), getDebugName());
   G_ASSERTF(activeSubpass == 0, "vulkan: render pass %p [ %p ] <%s> started twice", this, getBaseHandle(), getDebugName());
 
-  ctx.insertEvent(getDebugName(), nativePassDebugMarkerColor);
+  Backend::ctx.insertEvent(getDebugName(), nativePassDebugMarkerColor);
 
   Backend::sync.setCurrentRenderSubpass(0);
-  updateImageStatesForCurrentSubpass(ctx);
+  updateImageStatesForCurrentSubpass();
 
-  Backend::gpuJob.get().execTracker.addMarker(&desc.hash, sizeof(desc.hash));
+  Backend::gpuJob.get().execTracker().addMarker(&desc.hash, sizeof(desc.hash));
 
   VkRenderPassBeginInfo rpbi = {VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, nullptr};
 
@@ -297,22 +296,22 @@ void RenderPassResource::beginPass(ExecutionContext &ctx)
 
   Backend::cb.startReorder();
   Backend::cb.wCmdBeginRenderPass(&rpbi, VK_SUBPASS_CONTENTS_INLINE);
-  ctx.insertEvent("subpass", subpassDebugMarkerColor);
+  Backend::ctx.insertEvent("subpass", subpassDebugMarkerColor);
 }
 
-void RenderPassResource::nextSubpass(ExecutionContext &ctx)
+void RenderPassResource::nextSubpass()
 {
-  advanceSubpass(ctx);
+  advanceSubpass();
   G_ASSERTF(activeSubpass < desc.subpasses, "vulkan: there is only %u subpasses in RP %p [ %p ] <%s>, but asking for %u",
     desc.subpasses, this, getBaseHandle(), getDebugName(), activeSubpass);
   Backend::cb.wCmdNextSubpass(VK_SUBPASS_CONTENTS_INLINE);
 
-  ctx.insertEvent("subpass", subpassDebugMarkerColor);
+  Backend::ctx.insertEvent("subpass", subpassDebugMarkerColor);
 }
 
-void RenderPassResource::endPass(ExecutionContext &ctx)
+void RenderPassResource::endPass()
 {
-  advanceSubpass(ctx);
+  advanceSubpass();
   G_ASSERTF(activeSubpass == desc.subpasses,
     "vulkan: there is %u subpasses in RP %p [ %p ] <%s>, but we ending it at activeSubpass %u", desc.subpasses, this, getBaseHandle(),
     getDebugName(), activeSubpass);

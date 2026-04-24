@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <EASTL/unordered_map.h>
 #include "levelProfilerTableBase.h"
 #include "levelProfilerFilter.h"
 #include "textureModule.h"
@@ -13,17 +14,21 @@ class TextureProfilerUI;
 struct TextureData;
 struct TextureUsage;
 
-// Represents a single item (row) in the texture table.
 struct TextureTableItem
 {
-  const ProfilerString *name;
-  const TextureData *data;
-  const TextureUsage *textureUsage; // Texture usage information (can be null)
-  bool isSelected;
+  ProfilerString name;
+  const TextureData *data = nullptr;
+  const TextureUsage *textureUsage = nullptr;
+  bool isSelected = false;
 
-  TextureTableItem(const ProfilerString &name_ref, const TextureData &data_ref, const TextureUsage *texture_usage_ptr = nullptr,
-    bool is_selected = false) :
-    name(&name_ref), data(&data_ref), textureUsage(texture_usage_ptr), isSelected(is_selected)
+  float memorySizeMB = 0.0f;
+  int usageUniqueCount = 0;
+  ProfilerString usageLabel;
+  ProfilerString assetNamesList;
+
+  TextureTableItem() = default;
+  TextureTableItem(const ProfilerString &name_ref, const TextureData &data_ref, const TextureUsage *usage_ptr, bool selected) :
+    name(name_ref), data(&data_ref), textureUsage(usage_ptr), isSelected(selected)
   {}
 };
 
@@ -32,9 +37,9 @@ struct TextureTableItem
 class LpTextureTableColumn : public LpProfilerTableColumn
 {
 public:
-  LpTextureTableColumn(const char *name, TableColumn column_type, float width = 0.0f, ImGuiTableColumnFlags flags = 0);
+  LpTextureTableColumn(const char *name, TextureColumn column_type, float width = 0.0f, ImGuiTableColumnFlags flags = 0);
   virtual ~LpTextureTableColumn() = default;
-  TableColumn getColumnType() const { return columnType; }
+  TextureColumn getColumnType() const { return columnType; }
   int compareItems(const void *item1, const void *item2) const override;
 
   ProfilerString getCellText(const void *item_data, int column_index) const override;
@@ -45,7 +50,7 @@ protected:
   virtual ProfilerString getCellTextForItem(const TextureTableItem *item) const = 0;
   virtual void drawCellForItem(const TextureTableItem *item) const = 0;
 
-  TableColumn columnType = COLUMN_NONE;
+  TextureColumn columnType = TextureColumn::NONE;
 };
 
 
@@ -145,15 +150,29 @@ public:
   void handleSelection() override;
 
   void sortFilteredTextures();
+  void sortFilteredTextures() const;
+  void buildDisplayOrderedNames(eastl::vector<ProfilerString> &out) const;
 
-  bool isFilterActive(TableColumn column) override;
+  bool isFilterActive(ColumnIndex column) const override;
 
-  void openFilterPopup(TableColumn column) override;
-  void drawFilterPopups() override;
+  int getColumnsCount() const { return columnsCount; }
+  LpProfilerTableColumn *getColumn(int index) const { return LpProfilerTable::getColumn(index); }
+  TextureProfilerUI *getProfilerUI() const { return profilerUI; }
+
+protected:
+  void clearAllFilters() override;
+  void clearColumnFilter(ColumnIndex column) override;
 
 private:
   TextureProfilerUI *profilerUI = nullptr;
   ProfilerString selectedTextureName;
+  mutable eastl::vector<TextureTableItem> cachedItems;
+  mutable eastl::vector<int> displayOrder;
+  mutable eastl::unordered_map<ProfilerString, int> nameToCacheIndex;
+
+  void rebuildCache() const;
+  void ensureDisplayOrder() const;
+  void sortDisplayOrder() const;
 
   void drawNameFilterContent();
   void drawFormatFilterContent();
@@ -173,13 +192,29 @@ private:
   bool shouldShowRowCopyOption() const override { return false; }
   eastl::vector<int> getEssentialColumnIndices() const override
   {
-    return {COL_NAME}; // Name shown at top level, others in submenu
+    return {*TextureColumn::NAME}; // Name shown at top level, others in submenu
   }
   bool shouldGroupNonEssentialCells() const override { return true; }
+  eastl::vector<int> getBaseColumnIndices() const override
+  {
+    static_assert(static_cast<int>(TextureColumn::NAME) == 0, "Texture base columns must start at 0");
+    static_assert(static_cast<int>(TextureColumn::BASE_COUNT) > static_cast<int>(TextureColumn::NAME),
+      "Unexpected texture column enum ordering / sentinel position");
+    eastl::vector<int> indices;
+    indices.reserve(static_cast<int>(TextureColumn::BASE_COUNT));
+    for (int i = 0; i < static_cast<int>(TextureColumn::BASE_COUNT); ++i)
+      indices.push_back(i);
+    return indices;
+  }
 
   int compareTextureItems(const void *item1, const void *item2, const ImGuiTableSortSpecs *sort_specs) const;
   static int sort_table_items_callback(const ImGuiTableSortSpecs *sort_specs, const void *a, const void *b, void *user_data);
   static void on_item_selected(int index, void *item_data, void *user_data);
+
+  void onNameSearchChange(const char *text);
+  void onNameSearchCommit();
+  void onUsageSearchChange(const char *text);
+  void onUsageSearchCommit();
 };
 
 } // namespace levelprofiler

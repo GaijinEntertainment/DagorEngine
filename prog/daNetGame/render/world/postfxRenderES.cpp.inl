@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daECS/core/componentTypes.h>
+#include <daECS/core/entityManager.h>
 #include <perfMon/dag_statDrv.h>
 
 // for ECS events
@@ -21,23 +22,23 @@ ECS_REGISTER_RELOCATABLE_TYPE(DepthOfFieldPS, nullptr)
 
 
 template <typename Callable>
-static void init_dof_ecs_query(ecs::EntityId, Callable);
+static void init_dof_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 template <typename Callable>
-static void get_dof_ecs_query(Callable);
+static void get_dof_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static void set_far_dof_ecs_query(Callable);
+static void set_far_dof_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static void check_bloom_ecs_query(Callable);
+static void check_bloom_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static void set_fade_mul_ecs_query(Callable);
+static void set_fade_mul_ecs_query(ecs::EntityManager &manager, Callable);
 
-void setFadeMul(float mul)
+void set_fade_mul(float mul)
 {
-  set_fade_mul_ecs_query([mul](ecs::Object &adaptation_override_settings) {
+  set_fade_mul_ecs_query(*g_entity_mgr, [mul](ecs::Object &adaptation_override_settings) {
     adaptation_override_settings.addMember("adaptation__fadeMul", clamp(mul, 0.0001f, 1.f));
   });
 }
@@ -63,7 +64,7 @@ static void init_dof_es(const BeforeLoadLevel &, ecs::EntityManager &manager)
 {
   if (renderer_has_feature(FeatureRenderFlags::BLOOM)) // todo: fix dof render implementation dependencies on bloom
   {
-    init_dof_ecs_query(manager.getOrCreateSingletonEntity(ECS_HASH("depth_of_field")),
+    init_dof_ecs_query(manager, manager.getOrCreateSingletonEntity(ECS_HASH("depth_of_field")),
       [](DepthOfFieldPS &dof, UniqueTex &downsampled_dof_frame_fallback) {
         dof.setLinearBlend(false);
         IPoint2 postfx_resolution = get_postfx_resolution();
@@ -168,7 +169,8 @@ static void render_dof_es(const RenderPostFx &event, DepthOfFieldPS &dof, const 
   IPoint2 renderingResolution = get_rendering_resolution();
   IPoint2 dofResolution = get_dof_resolution<false>(postFxResolution, renderingResolution);
 
-  TextureIDPair frameForDof, closeDepthForDof;
+  BaseTexture *frameForDof = nullptr;
+  BaseTexture *closeDepthForDof = nullptr;
   if (renderingResolution == dofResolution)
   {
     frameForDof = event.downsampledColor;
@@ -182,15 +184,15 @@ static void render_dof_es(const RenderPostFx &event, DepthOfFieldPS &dof, const 
   else if (renderingResolution.y < dofResolution.y / 2)
   {
     TIME_D3D_PROFILE(dof_fallback_downsample);
-    d3d::stretch_rect(event.prevRTColor.getTex2D(), downsampled_dof_frame_fallback.getTex2D());
-    frameForDof = {downsampled_dof_frame_fallback.getTex2D(), downsampled_dof_frame_fallback.getTexId()};
+    d3d::stretch_rect(event.prevRTColor, downsampled_dof_frame_fallback.getTex2D());
+    frameForDof = downsampled_dof_frame_fallback.getTex2D();
     closeDepthForDof = event.targetDepth;
   }
   else
   {
     TIME_D3D_PROFILE(dof_fallback_downsample);
-    d3d::stretch_rect(event.downsampledColor.getTex2D(), downsampled_dof_frame_fallback.getTex2D());
-    frameForDof = {downsampled_dof_frame_fallback.getTex2D(), downsampled_dof_frame_fallback.getTexId()};
+    d3d::stretch_rect(event.downsampledColor, downsampled_dof_frame_fallback.getTex2D());
+    frameForDof = downsampled_dof_frame_fallback.getTex2D();
     closeDepthForDof = event.closedDepth;
   }
 
@@ -198,9 +200,9 @@ static void render_dof_es(const RenderPostFx &event, DepthOfFieldPS &dof, const 
 }
 
 
-void set_dof_blend_depth_tex(TEXTUREID tex)
+void set_dof_blend_depth_tex(BaseTexture *tex)
 {
-  get_dof_ecs_query([&](DepthOfFieldPS &dof) { dof.setBlendDepthTex(tex); });
+  get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) { dof.setBlendDepthTex(tex); });
 }
 
 
@@ -211,7 +213,7 @@ static bool dof_console_handler(const char *argv[], int argc)
   {
     float fNumber = argc > 1 ? atof(argv[1]) : 1;
     float sensorHeight_mm = argc > 2 ? atof(argv[2]) : 24.0f;
-    get_dof_ecs_query([&](DepthOfFieldPS &dof) {
+    get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
       dof.setOn(true);
       DOFProperties focus = dof.getDoFParams();
       focus.setFilmicDoF(-1.f, fNumber, sensorHeight_mm * 0.001f, 0.5f * sensorHeight_mm * 0.001f);
@@ -224,7 +226,7 @@ static bool dof_console_handler(const char *argv[], int argc)
     float amount = argc > 1 ? atof(argv[1]) : 0;
     float start = argc > 2 ? atof(argv[2]) : 0.08;
     float end = argc > 3 ? atof(argv[3]) : start + 10;
-    get_dof_ecs_query([&](DepthOfFieldPS &dof) {
+    get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
       dof.setOn(true);
       DOFProperties focus = dof.getDoFParams();
       focus.setNearDof(start, end, amount);
@@ -237,12 +239,13 @@ static bool dof_console_handler(const char *argv[], int argc)
     float amount = argc > 1 ? atof(argv[1]) : 0;
     float start = argc > 2 ? atof(argv[2]) : 0.001;
     float end = argc > 3 ? atof(argv[3]) : start + 10;
-    set_far_dof_ecs_query([&](bool &dof__on, float &dof__farDofStart, float &dof__farDofEnd, float &dof__farDofAmountPercent) {
-      dof__on = true;
-      dof__farDofStart = start;
-      dof__farDofEnd = end;
-      dof__farDofAmountPercent = amount;
-    });
+    set_far_dof_ecs_query(*g_entity_mgr,
+      [&](bool &dof__on, float &dof__farDofStart, float &dof__farDofEnd, float &dof__farDofAmountPercent) {
+        dof__on = true;
+        dof__farDofStart = start;
+        dof__farDofEnd = end;
+        dof__farDofAmountPercent = amount;
+      });
     console::print("usage: postfx.dof_far [amount(percent of screen)=%f] [start=%f] [end=%f]", amount, start, end);
   }
   CONSOLE_CHECK_NAME("postfx", "dof_bokeh", 1, 3)
@@ -251,7 +254,7 @@ static bool dof_console_handler(const char *argv[], int argc)
     float fStops = argc > 2 ? atof(argv[2]) : 1;
     if (argc > 1)
     {
-      get_dof_ecs_query([&](DepthOfFieldPS &dof) {
+      get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
         dof.setOn(true);
         DOFProperties focus = dof.getDoFParams();
         dof.setBokehShape(fStops, blades);
@@ -263,7 +266,7 @@ static bool dof_console_handler(const char *argv[], int argc)
   CONSOLE_CHECK_NAME("postfx", "dof_minCheckDistance", 1, 2)
   {
     float dist = argc > 1 ? atof(argv[1]) : -1;
-    get_dof_ecs_query([&](DepthOfFieldPS &dof) {
+    get_dof_ecs_query(*g_entity_mgr, [&](DepthOfFieldPS &dof) {
       dof.setOn(true);
       DOFProperties focus = dof.getDoFParams();
       dof.setMinCheckDistance(dist);
@@ -277,31 +280,34 @@ static bool dof_console_handler(const char *argv[], int argc)
 REGISTER_CONSOLE_HANDLER(dof_console_handler);
 
 template <typename Callable>
-static void postfx_bind_additional_textures_from_registry_ecs_query(Callable c);
+static void postfx_bind_additional_textures_from_registry_ecs_query(ecs::EntityManager &manager, Callable c);
 void postfx_bind_additional_textures_from_registry(dafg::Registry &registry)
 {
-  postfx_bind_additional_textures_from_registry_ecs_query([&registry](const ecs::StringList &postfx__additional_bind_textures) {
-    for (const ecs::string texName : postfx__additional_bind_textures)
-      registry.readTexture(texName.c_str()).atStage(dafg::Stage::PS).bindToShaderVar(texName.c_str()).optional();
-  });
+  postfx_bind_additional_textures_from_registry_ecs_query(*g_entity_mgr,
+    [&registry](const ecs::StringList &postfx__additional_bind_textures) {
+      for (const ecs::string texName : postfx__additional_bind_textures)
+        registry.readTexture(texName.c_str()).atStage(dafg::Stage::PS).bindToShaderVar(texName.c_str()).optional();
+    });
 }
 
 template <typename Callable>
-static void postfx_bind_additional_textures_from_namespace_ecs_query(Callable c);
+static void postfx_bind_additional_textures_from_namespace_ecs_query(ecs::EntityManager &manager, Callable c);
 void postfx_bind_additional_textures_from_namespace(dafg::NameSpaceRequest &ns)
 {
-  postfx_bind_additional_textures_from_namespace_ecs_query([&ns](const ecs::StringList &postfx__additional_bind_textures) {
-    for (const ecs::string texName : postfx__additional_bind_textures)
-      ns.readTexture(texName.c_str()).atStage(dafg::Stage::POST_RASTER).bindToShaderVar(texName.c_str()).optional();
-  });
+  postfx_bind_additional_textures_from_namespace_ecs_query(*g_entity_mgr,
+    [&ns](const ecs::StringList &postfx__additional_bind_textures) {
+      for (const ecs::string texName : postfx__additional_bind_textures)
+        ns.readTexture(texName.c_str()).atStage(dafg::Stage::POST_RASTER).bindToShaderVar(texName.c_str()).optional();
+    });
 }
 
 template <typename Callable>
-static void postfx_read_additional_textures_from_registry_ecs_query(Callable c);
+static void postfx_read_additional_textures_from_registry_ecs_query(ecs::EntityManager &manager, Callable c);
 void postfx_read_additional_textures_from_registry(dafg::Registry &registry)
 {
-  postfx_read_additional_textures_from_registry_ecs_query([&registry](const ecs::StringList &postfx__additional_read_textures) {
-    for (const ecs::string texName : postfx__additional_read_textures)
-      registry.readTexture(texName.c_str()).atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::SHADER_RESOURCE).optional();
-  });
+  postfx_read_additional_textures_from_registry_ecs_query(*g_entity_mgr,
+    [&registry](const ecs::StringList &postfx__additional_read_textures) {
+      for (const ecs::string texName : postfx__additional_read_textures)
+        registry.readTexture(texName.c_str()).atStage(dafg::Stage::POST_RASTER).useAs(dafg::Usage::SHADER_RESOURCE).optional();
+    });
 }

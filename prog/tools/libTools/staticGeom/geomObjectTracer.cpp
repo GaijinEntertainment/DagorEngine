@@ -28,7 +28,7 @@ public:
   SceneRayTracer() : tracer(NULL), hasCollision(false), hasShadow(false) {}
   void clear()
   {
-    del_it(tracer);
+    destroy_it(tracer);
     for (int i = 0; i < textureSamplers.size(); ++i)
       del_it(textureSamplers[i]);
     clear_and_shrink(textureSamplers);
@@ -257,7 +257,7 @@ bool GeomObject::shadowRayHitTest(const Point3 &p1, const Point3 &dir1, real max
   Point3 dir = dir1 / lg;
   maxt *= lg;
   tracer->setSkipFlagMask(StaticSceneRayTracer::USER_INVISIBLE);
-  tracer->setUseFlagMask(traceInvisible ? StaticSceneRayTracer::CULL_BOTH : StaticSceneRayTracer::USER_FLAG4);
+  tracer->setUseFlagMask(traceInvisible ? (unsigned)StaticSceneRayTracer::CULL_BOTH : (unsigned)StaticSceneRayTracer::USER_FLAG4);
   tracer->setCullFlags(StaticSceneRayTracer::CULL_BOTH);
 
   // no atest

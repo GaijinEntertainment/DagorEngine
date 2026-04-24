@@ -1,0 +1,75 @@
+texture voxel_shadows_tex;
+
+int voxel_shadows_cascade_count = 0;
+
+int4 voxel_shadows_tex_dim; // xy, xy /2
+int4 voxel_shadows_rnd;
+float4 voxel_shadows_vignette_scale;
+
+// per cascade
+int4 voxel_shadows_origin[4];
+float4 voxel_shadows_origin_in_tc_space[4];
+float4 voxel_shadows_wvp_in_tc_space[4];  // clamped to be inside valid toroidal region
+int4 voxel_shadows_sparse_div[4]; // x.sparse, y.-temporal
+float4 voxel_shadows_voxel_size[4];
+float4 voxel_shadows_world_to_tc[4];
+
+macro VOXEL_SHADOWS_STCODE_INIT(code)
+  (code)
+  {
+    voxel_shadows_tex_dim@i2 = voxel_shadows_tex_dim.xy;
+    voxel_shadows_tex_dim_half@i2 = voxel_shadows_tex_dim.zw;
+    voxel_shadows_cascade_count@i1 = voxel_shadows_cascade_count;
+    voxel_shadows_vignette_scale@f2 = voxel_shadows_vignette_scale;
+
+    // per cascade
+    voxel_shadows_origin@i4[] = voxel_shadows_origin;
+    voxel_shadows_origin_in_tc_space@f4[] = voxel_shadows_origin_in_tc_space;
+    voxel_shadows_wvp_in_tc_space@f4[] = voxel_shadows_wvp_in_tc_space;
+    voxel_shadows_voxel_size@f4[] = voxel_shadows_voxel_size;
+    voxel_shadows_world_to_tc@f4[] = voxel_shadows_world_to_tc;
+  }
+endmacro
+
+macro VOXEL_SHADOWS_STCODE_USE(code)
+  hlsl(code)
+  {
+    #include "tor_voxel_grid_inc.hlsli"
+
+    #define VOXEL_SHADOWS_MAX_CASCADES 4 // must match shadervar arrays
+
+    int3 voxel_shadows_volindex_to_world_voxel(uint3 voxel_idx, uint cascade_id)
+    {
+      return tor_vgrid_volindex_to_world_voxel(voxel_idx, voxel_shadows_origin[cascade_id].xyz, voxel_shadows_tex_dim_half);
+    }
+
+    uint3 voxel_shadows_world_voxel_to_tex_tci(int3 world_voxel, uint cascade_id)
+    {
+      uint3 v = tor_vgrid_world_voxel_to_tex_tci(world_voxel, voxel_shadows_tex_dim);
+      v.z += 1 + (voxel_shadows_tex_dim.y + 2) * cascade_id; // TODO: add separate var to drop +2
+      return v;
+    }
+
+    float3 voxel_shadows_world_pos_to_tex_tc_linear(float3 world_pos, uint cascade_id)
+    {
+      return tor_vgrid_world_pos_to_tex_tc_linear(world_pos, voxel_shadows_world_to_tc[cascade_id].xy);
+    }
+
+    float3 voxel_shadows_tc_linear_to_atlas(float3 tc, uint cascade_id)
+    {
+      // TODO: precalc and move to vars
+      return tor_vgrid_tc_linear_to_atlas(tc, voxel_shadows_tex_dim.y, cascade_id, voxel_shadows_cascade_count);
+    }
+
+    float3 voxel_shadows_world_pos_to_tex_tc_atlas(float3 world_pos, uint cascade_id)
+    {
+      float3 tc = voxel_shadows_world_pos_to_tex_tc_linear(world_pos, cascade_id);
+      return voxel_shadows_tc_linear_to_atlas(tc, cascade_id);
+    }
+
+    float3 voxel_shadows_world_ofs_to_tc_ofs_atlas(float3 world_ofs, uint cascade_id)
+    {
+      return tor_vgrid_world_ofs_to_tc_ofs_atlas(world_ofs, voxel_shadows_world_to_tc[cascade_id].xy, voxel_shadows_tex_dim.y, voxel_shadows_cascade_count);
+    }
+  }
+endmacro

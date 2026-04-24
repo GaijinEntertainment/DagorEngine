@@ -16,7 +16,6 @@ shader deferred_shadow_to_buffer
   supports global_const_block;
   z_write = false;
   z_test = false;
-  ENABLE_ASSERT(ps)
   COMMON_RESOLVE_EXTENDED(ps) //should be BEFORE READ_GBUFFER!
 
   USE_AND_INIT_VIEW_VEC(vs)

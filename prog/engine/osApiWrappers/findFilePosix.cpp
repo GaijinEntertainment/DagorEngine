@@ -201,7 +201,11 @@ static bool bp_find_first(bool dir, alefind_t *fs, const char *basepath)
     }
   }
   else
-    closedir_impl(fd);
+  {
+    RealFind *rf = (RealFind *)fs->data;
+    closedir_impl(rf->handle);
+    rf->handle = fd;
+  }
 
   RealFind *rf = (RealFind *)fs->data;
   rf->wildcard = wildcard;

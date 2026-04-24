@@ -359,7 +359,7 @@ void GizmoEventFilter::startGizmo(IGenViewportWnd *wnd, int x, int y)
   {
     startRotAngle = 0;
 
-    Point2 pos, dx, dy;
+    Point2 pos, dx = Point2(0, 0), dy = Point2(0, 0);
     int delta = GIZMO_PIXEL_WIDTH;
     int count = 0;
     float dist2, min_dist2 = float(GIZMO_PIXEL_WIDTH * GIZMO_PIXEL_WIDTH * 32);
@@ -565,13 +565,17 @@ void GizmoEventFilter::recalcViewportGizmo()
     ViewportWindow *vpw = ged.getViewport(i);
     G_ASSERT(vpw);
 
+    TMatrix viewTm;
+    vpw->getCameraTransform(viewTm);
+    const float gizmoMeter = GIZMO_METER * max(length(pt - viewTm.getcol(3)), 1.0f);
+
     vpw->worldToClient(pt, center);
 
-    vpw->worldToClient(pt + GIZMO_METER * ax1, pt2);
+    vpw->worldToClient(pt + gizmoMeter * ax1, pt2);
     ax = (pt2 - center);
-    vpw->worldToClient(pt + GIZMO_METER * ay1, pt2);
+    vpw->worldToClient(pt + gizmoMeter * ay1, pt2);
     ay = (pt2 - center);
-    vpw->worldToClient(pt + GIZMO_METER * az1, pt2);
+    vpw->worldToClient(pt + gizmoMeter * az1, pt2);
     az = (pt2 - center);
 
     Matrix3 basis;
@@ -613,7 +617,7 @@ void GizmoEventFilter::drawGizmo(IGenViewportWnd *w)
 
   recalcViewportGizmo();
 
-  bool isMouseOver = gizmo.client->isMouseOver(w, mouseCurrentPos.x, mouseCurrentPos.y);
+  bool isMouseOver = !moveStarted && gizmo.client->isMouseOver(w, mouseCurrentPos.x, mouseCurrentPos.y);
   int vp_i = ged.findViewportIndex(w);
   int sel = ((moveStarted || isMouseOver) && !gizmo.over) ? gizmo.selected : gizmo.over;
   if ((gizmo.type & IEditorCoreEngine::MODE_Rotate)) // TODO: remove this

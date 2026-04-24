@@ -4,28 +4,157 @@
 #define _WIN32_WINNT 0x400
 #endif
 #include "include_dinput.h"
+#include "joy_enumdev.h"
 #include "joy_classdrv.h"
 #include "joy_device.h"
 #include <drv/hid/dag_hiDInput.h>
 #include <drv/hid/dag_hiGlobals.h>
 #include <drv/hid/dag_hiJoyFF.h>
 #include <drv/hid/dag_hiXInputMappings.h>
+#include <EASTL/vector.h>
 #include <generic/dag_sort.h>
 #include <osApiWrappers/dag_stackHlp.h>
 #include <osApiWrappers/dag_progGlobals.h>
+#include <perfMon/dag_statDrv.h>
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_watchdog.h>
 
 using namespace HumanInput;
 
-#define DEBUG_DUMP_EFFECTS (0)
 
-static BOOL CALLBACK enumJoysticksCallback(const DIDEVICEINSTANCE *pdidInstance, VOID *pContext);
-static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext);
-static BOOL CALLBACK enumObjSetLim(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext);
-static BOOL isXInputDevice(const GUID *pGuidProductFromDirectInput);
-static bool exclude_xinput_dev = false, remap_360 = false;
-static bool enum_probe_only = false;
+static BOOL CALLBACK add_joystick_inputs(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext);
+static BOOL CALLBACK set_axis_limits(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext);
+static BOOL CALLBACK detect_hid_usage(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext);
+
+template <typename F>
+static VidPidList populate_xinput_blacklist(F &&should_abort);
+static const DWORD COOP_LEVEL = DISCL_FOREGROUND | DISCL_EXCLUSIVE;
+
+
+#define DEL_RET_NULL_ON_FAIL(ptr, f, profiler_tag)                              \
+  do                                                                            \
+  {                                                                             \
+    TIME_PROFILE(profiler_tag);                                                 \
+    if (HRESULT hr = f; FAILED(hr))                                             \
+    {                                                                           \
+      HumanInput::printHResult(__FILE__, __LINE__, "[HID][DI8][ENUM] " #f, hr); \
+      delete ptr;                                                               \
+      return nullptr;                                                           \
+    }                                                                           \
+  } while (0);
+
+
+#define RETURN_ON_FAIL(f, profiler_tag, ret)                                    \
+  do                                                                            \
+  {                                                                             \
+    TIME_PROFILE(profiler_tag);                                                 \
+    if (HRESULT hr = f; FAILED(hr))                                             \
+    {                                                                           \
+      HumanInput::printHResult(__FILE__, __LINE__, "[HID][DI8][ENUM] " #f, hr); \
+      return ret;                                                               \
+    }                                                                           \
+  } while (0);
+
+#define RET_CONT_ON_FAIL(f, profiler_tag) RETURN_ON_FAIL(f, profiler_tag, DIENUM_CONTINUE)
+#define RET_STOP_ON_FAIL(f, profiler_tag) RETURN_ON_FAIL(f, profiler_tag, DIENUM_STOP)
+
+
+static Di8JoystickDevice *create_new_joystick(const Di8Device &d, bool remap_as_x360)
+{
+  TIME_PROFILE(HID_DI8_create_new_device);
+  bool needsPoll = d.caps.dwFlags & DIDC_POLLEDDEVICE;
+  unsigned int *guid = (unsigned int *)&d.instance.guidProduct;
+
+  Di8JoystickDevice *j = new (inimem) Di8JoystickDevice(d.device, needsPoll, remap_as_x360, true /*quiet*/, guid);
+
+  j->setDeviceName(d.instance.tszInstanceName);
+  // can't j->setId() yet, can only be done when we transfer data to the destination array
+
+  DEL_RET_NULL_ON_FAIL(j, d.device->EnumObjects(detect_hid_usage, j, DIDFT_COLLECTION), HID_DI8_EnumObjects_usage);
+  const bool doRemapAsX360 = remap_as_x360 && j->isGamepad();
+
+  auto cb = doRemapAsX360 ? set_axis_limits : add_joystick_inputs;
+  DEL_RET_NULL_ON_FAIL(j, d.device->EnumObjects(cb, j, DIDFT_ALL), HID_DI8_EnumObjects_setup);
+
+  if (doRemapAsX360)
+    j->applyRemapX360(d.instance.tszProductName);
+  else
+    j->applyRemapHats();
+
+  return j;
+}
+
+
+static BOOL CALLBACK add_di8_device(const DIDEVICEINSTANCE *inst, VOID *user_data)
+{
+  TIME_PROFILE(HID_DI8_add_or_remove_di8_device);
+  debug("[HID][DI8][ENUM] creating vid:pid=%04x:%04x", LOWORD(inst->guidProduct.Data1), HIWORD(inst->guidProduct.Data1));
+
+  DeviceEnumerator *self = reinterpret_cast<DeviceEnumerator *>(user_data);
+  if (self->isThreadTerminating())
+  {
+    debug("[HID][DI8][ENUM] device enumeration termination requested. Aborting.");
+    return DIENUM_STOP;
+  }
+
+  int alreadySpent = get_time_msec() - self->startedAtMs;
+  if (alreadySpent > self->timeoutMs)
+  {
+    logerr("[HID][DI8][ENUM] spent %dms (more than %dms) in device enumeration, aborting. Devices may be inconsistent", alreadySpent,
+      self->timeoutMs);
+    return DIENUM_STOP;
+  }
+
+  const auto &blacklist = self->blacklist;
+  if (blacklist.end() != eastl::find(blacklist.begin(), blacklist.end(), inst->guidProduct.Data1))
+  {
+    debug("[HID][DI8][ENUM] found blacklisted device vid:pid=%04x:%04x, ignoring", LOWORD(inst->guidProduct.Data1),
+      HIWORD(inst->guidProduct.Data1));
+    return DIENUM_CONTINUE;
+  }
+
+  Di8Device d{.instance = *inst};
+  RET_CONT_ON_FAIL(dinput8->CreateDevice(d.instance.guidInstance, &d.device, nullptr), HID_DI8_CreateDevice);
+  RET_CONT_ON_FAIL(d.device->SetDataFormat(&c_dfDIJoystick2), HID_DI8_SetDataFormat);
+  RET_CONT_ON_FAIL(d.device->SetCooperativeLevel((HWND)win32_get_main_wnd(), COOP_LEVEL), HID_DI8_SetCooperativeLevel);
+  RET_CONT_ON_FAIL(d.device->GetCapabilities(&d.caps), HID_DI8_GetCapabilities);
+
+  d.joy = create_new_joystick(d, self->remapAsX360);
+  if (d.joy && !self->isThreadTerminating())
+    self->found.push_back(d);
+  return self->isThreadTerminating() ? DIENUM_STOP : DIENUM_CONTINUE;
+}
+
+
+void DeviceEnumerator::execute()
+{
+  TIME_PROFILE(HID_DI8_DeviceEnumerator_execute);
+  debug("[HID][DI8][ENUM] starting");
+  auto shouldAbort = [this]() -> bool { return this->isThreadTerminating(); };
+  VidPidList devicesToIgnore = excludeXinputDevices ? populate_xinput_blacklist(shouldAbort) : VidPidList{};
+  if (shouldAbort())
+  {
+    debug("[HID][DI8][ENUM] aborted before enumeration, will not report devices");
+    return;
+  }
+
+  WinAutoLock l(cs);
+  this->blacklist = devicesToIgnore;
+  this->found.clear();
+  this->startedAtMs = get_time_msec();
+  dinput8->EnumDevices(DI8DEVCLASS_GAMECTRL, add_di8_device, this, DIEDFL_ATTACHEDONLY);
+
+  if (shouldAbort())
+  {
+    debug("[HID][DI8][ENUM] aborted during or after enumeration, will not report devices");
+    return;
+  }
+
+  // TODO: actually count lost and added devices, for now we rely on destroyDevices() after enumeration
+  ::interlocked_release_store(modifiedDevices, found.empty() ? lastKnownDevicesCount : found.size());
+  debug("[HID][DI8][ENUM] finished: found %d joysticks (previously %d)", found.size(), lastKnownDevicesCount);
+}
+
 
 static FastNameMapEx devNames;
 
@@ -36,110 +165,33 @@ static int cmp_dev_name(HumanInput::Di8JoystickDevice *const *a, HumanInput::Di8
   return (a[0] > b[0]) ? 1 : ((a[0] < b[0]) ? -1 : 0);
 }
 
-void Di8JoystickClassDriver::checkDeviceList()
+
+void Di8JoystickClassDriver::refreshDeviceList()
 {
-  static int last_t0 = 0;
-
-  if (!maybeDeviceConfigChanged || (last_t0 && get_time_msec() < last_t0 + 500))
-    return;
-  maybeDeviceConfigChanged = 0;
-
-  Tab<Di8JoystickDevice *> dev;
-  HRESULT hr;
-  exclude_xinput_dev = excludeXinputDev;
-  remap_360 = remapAsX360;
-  enum_probe_only = true;
-  hr = dinput8->EnumDevices(DI8DEVCLASS_GAMECTRL, enumJoysticksCallback, &dev, DIEDFL_ATTACHEDONLY);
-  exclude_xinput_dev = remap_360 = false;
-  enum_probe_only = false;
-  last_t0 = get_time_msec();
-  if (FAILED(hr))
-  {
-    HumanInput::printHResult(__FILE__, __LINE__, "EnumDevices", hr);
-    return;
-  }
-
-  bool changed = dev.size() != device.size();
-  if (!changed)
-  {
-    for (int i = 0; i < dev.size(); i++)
-    {
-      bool found = false;
-      for (int j = 0; j < device.size(); j++)
-        if (dev[i]->isEqual(device[j]))
-        {
-          found = true;
-          break;
-        }
-      if (!found)
-      {
-        changed = true;
-        break;
-      }
-    }
-  }
-  if (!changed)
-  {
-    for (int i = 0; i < device.size(); i++)
-    {
-      bool found = false;
-      for (int j = 0; j < dev.size(); j++)
-        if (device[i]->isEqual(dev[j]))
-        {
-          found = true;
-          break;
-        }
-      if (!found)
-      {
-        changed = true;
-        break;
-      }
-    }
-  }
-
-  for (int i = 0; i < dev.size(); i++)
-    delete dev[i];
-
-  if (changed)
-    deviceConfigChanged = true;
-}
-
-bool Di8JoystickClassDriver::tryRefreshDeviceList()
-{
-  if (deviceCheckerListRunning())
-  {
-    logwarn("Di8JoystickClassDriver::tryRefreshDeviceList is locked by AsyncDeviceListChecker job");
-    return false;
-  }
-  destroyDevices();
-  deviceConfigChanged = false;
-
+  TIME_PROFILE(HID_DI8_refreshDeviceList);
   bool was_enabled = enabled;
-  enable(false);
-
-  exclude_xinput_dev = excludeXinputDev;
-  remap_360 = remapAsX360;
-  int start = get_time_msec();
-  HRESULT hr = [&] {
-    ScopeSetWatchdogTimeout _wd(60000);
-    return dinput8->EnumDevices(DI8DEVCLASS_GAMECTRL, enumJoysticksCallback, &device, DIEDFL_ATTACHEDONLY);
-  }();
-  // if EnumDevices takes more than 30s than don't add joystick to update list
-  if (int dt = get_time_msec() - start; dt > 30000)
+  if (deviceConfigChanged)
   {
-    logwarn("IDirectInput8A::EnumDevices took %dms . The Joysticks will be ignored!", dt);
-    return false;
-  }
-  exclude_xinput_dev = remap_360 = false;
-  if (FAILED(hr))
-  {
-    HumanInput::printHResult(__FILE__, __LINE__, "EnumDevices", hr);
-    return false;
-  }
-  if (stg_joy.sortDevices)
-    sort(device, &cmp_dev_name);
+    destroyDevices();
+    deviceConfigChanged = false;
 
-  if (secDrv)
+    enable(false);
+
+    TIME_PROFILE(HID_DI8_add_cur_devices);
+    Di8Devices currentlyAttached = deviceEnumerator.fetch();
+    device.reserve(currentlyAttached.size());
+    for (const auto &d : currentlyAttached)
+    {
+      d.joy->setId(device.size(), devNames.addNameId(d.instance.tszInstanceName) + 256);
+      debug("[HID][DI8] adding joystick #%d - [%s] '%s' (%d axes, %d buttons, %d hats)", device.size(), d.joy->getDeviceID(),
+        d.joy->getName(), d.joy->getAxisCount(), d.joy->getButtonCount(), d.joy->getPovHatCount());
+      device.push_back(d.joy);
+    }
+    if (stg_joy.sortDevices)
+      sort(device, &cmp_dev_name);
+  }
+
+  if (secDrv && secDrv->isDeviceConfigChanged())
   {
     secDrv->refreshDeviceList();
     secDrv->setDefaultJoystick(defJoy);
@@ -162,44 +214,13 @@ bool Di8JoystickClassDriver::tryRefreshDeviceList()
 
   prevUpdateRefTime = ::ref_time_ticks();
   for (int i = 0; i < device.size(); i++)
-    device[i]->updateState(0, device[i] == defJoy);
-
-  return true;
+    device[i]->updateState(0, device[i] == defJoy); // Might be loosing input here...
 }
 
-#if DEBUG_DUMP_EFFECTS
 
-static DWORD dbgTypeFlags[] = {DIEFT_CONSTANTFORCE, DIEFT_RAMPFORCE, DIEFT_PERIODIC, DIEFT_CONDITION, DIEFT_CUSTOMFORCE,
-  DIEFT_HARDWARE, DIEFT_FFATTACK, DIEFT_FFFADE, DIEFT_SATURATION, DIEFT_POSNEGCOEFFICIENTS, DIEFT_POSNEGSATURATION, DIEFT_DEADBAND,
-  DIEFT_STARTDELAY};
-static const char *dbgTypeFlagsStr[] = {"DIEFT_CONSTANTFORCE", "DIEFT_RAMPFORCE", "DIEFT_PERIODIC", "DIEFT_CONDITION",
-  "DIEFT_CUSTOMFORCE", "DIEFT_HARDWARE", "DIEFT_FFATTACK", "DIEFT_FFFADE", "DIEFT_SATURATION", "DIEFT_POSNEGCOEFFICIENTS",
-  "DIEFT_POSNEGSATURATION", "DIEFT_DEADBAND", "DIEFT_STARTDELAY"};
-
-static DWORD dbgParamFlags[] = {DIEP_DURATION, DIEP_SAMPLEPERIOD, DIEP_GAIN, DIEP_TRIGGERBUTTON, DIEP_TRIGGERREPEATINTERVAL, DIEP_AXES,
-  DIEP_DIRECTION, DIEP_ENVELOPE, DIEP_TYPESPECIFICPARAMS};
-static const char *dbgParamFlagsStr[] = {"DIEP_DURATION", "DIEP_SAMPLEPERIOD", "DIEP_GAIN", "DIEP_TRIGGERBUTTON",
-  "DIEP_TRIGGERREPEATINTERVAL", "DIEP_AXES", "DIEP_DIRECTION", "DIEP_ENVELOPE", "DIEP_TYPESPECIFICPARAMS"};
-
-static BOOL CALLBACK enumEffectsCallback(LPCDIEFFECTINFO eff, LPVOID dev)
+static BOOL CALLBACK detect_hid_usage(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext)
 {
-  debug("Found effect '%s'", eff->tszName);
-  for (int i = 0; i < countof(dbgTypeFlags); i++)
-    if (eff->dwEffType & dbgTypeFlags[i])
-      debug(" - Type: %s", dbgTypeFlagsStr[i]);
-
-  for (int i = 0; i < countof(dbgParamFlags); i++)
-    if (eff->dwStaticParams & dbgParamFlags[i])
-      debug(" - [%c] Param: %s", (eff->dwDynamicParams & dbgParamFlags[i]) ? 'D' : 'S', dbgParamFlagsStr[i]);
-
-  return TRUE;
-};
-
-#endif // DEBUG_DUMP_EFFECTS
-
-
-static BOOL CALLBACK detectHidUsage(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext)
-{
+  TIME_PROFILE(HID_DI8_detect_hid_usage);
   Di8JoystickDevice &joy = *reinterpret_cast<Di8JoystickDevice *>(pContext);
 
   static constexpr DWORD GENERIC_DESKTOP_PAGE = 0x01;
@@ -208,7 +229,7 @@ static BOOL CALLBACK detectHidUsage(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *
   if (isCollection && pdidoi->wUsagePage == GENERIC_DESKTOP_PAGE)
   {
     bool isGamepad = pdidoi->wUsage == USAGE_GAMEPAD;
-    debug("[HID] '%s' [%s] is %sgamepad", joy.getName(), joy.getDeviceID(), isGamepad ? "a " : "not a ");
+    debug("[HID][DI8][ENUM] '%s' [%s] is %sgamepad", joy.getName(), joy.getDeviceID(), isGamepad ? "a " : "not a ");
     joy.markAsGamepad(isGamepad);
     return DIENUM_STOP;
   }
@@ -217,101 +238,9 @@ static BOOL CALLBACK detectHidUsage(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *
 }
 
 
-static BOOL CALLBACK enumJoysticksCallback(const DIDEVICEINSTANCE *pdidInstance, VOID *pContext)
+static BOOL CALLBACK add_joystick_inputs(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext)
 {
-  Tab<Di8JoystickDevice *> &device = *reinterpret_cast<Tab<Di8JoystickDevice *> *>(pContext);
-  IDirectInputDevice8 *lpJoystick = NULL;
-  HRESULT hr;
-
-  if (exclude_xinput_dev)
-    if (isXInputDevice(&pdidInstance->guidProduct))
-      return DIENUM_CONTINUE;
-
-  hr = dinput8->CreateDevice(pdidInstance->guidInstance, &lpJoystick, NULL);
-  if (FAILED(hr))
-  {
-    HumanInput::printHResult(__FILE__, __LINE__, "CreateDevice", hr);
-    return DIENUM_CONTINUE;
-  }
-
-  hr = lpJoystick->SetDataFormat(&c_dfDIJoystick2);
-  if (FAILED(hr))
-  {
-    HumanInput::printHResult(__FILE__, __LINE__, "SetDataFormat", hr);
-    return DIENUM_CONTINUE;
-  }
-
-  hr = lpJoystick->SetCooperativeLevel((HWND)win32_get_main_wnd(), DISCL_FOREGROUND | DISCL_EXCLUSIVE);
-  if (FAILED(hr))
-  {
-    HumanInput::printHResult(__FILE__, __LINE__, "SetCooperativeLevel", hr);
-    return DIENUM_CONTINUE;
-  }
-
-  DIDEVCAPS joyCaps;
-  memset(&joyCaps, 0, sizeof(joyCaps));
-  joyCaps.dwSize = sizeof(joyCaps);
-
-  hr = lpJoystick->GetCapabilities(&joyCaps);
-  if (FAILED(hr))
-  {
-    HumanInput::printHResult(__FILE__, __LINE__, "GetCapabilities", hr);
-    return DIENUM_CONTINUE;
-  }
-
-  Di8JoystickDevice *joyDev = new (inimem) Di8JoystickDevice(lpJoystick, joyCaps.dwFlags & DIDC_POLLEDDEVICE, remap_360,
-    enum_probe_only, (unsigned *)&pdidInstance->guidProduct);
-
-  if (enum_probe_only)
-  {
-    device.push_back(joyDev);
-    return DIENUM_CONTINUE;
-  }
-
-  joyDev->setDeviceName(pdidInstance->tszInstanceName);
-  joyDev->setId(device.size(), devNames.addNameId(pdidInstance->tszInstanceName) + 256);
-
-  hr = lpJoystick->EnumObjects(detectHidUsage, joyDev, DIDFT_COLLECTION);
-  if (FAILED(hr))
-  {
-    HumanInput::printHResult(__FILE__, __LINE__, "EnumObjects", hr);
-
-    delete joyDev;
-    return DIENUM_CONTINUE;
-  };
-
-  bool doRemap360 = remap_360 && joyDev->isGamepad();
-
-  hr = lpJoystick->EnumObjects(doRemap360 ? enumObjSetLim : enumObjectsCallback, joyDev, DIDFT_ALL);
-  if (FAILED(hr))
-  {
-    HumanInput::printHResult(__FILE__, __LINE__, "EnumObjects", hr);
-
-    delete joyDev;
-    return DIENUM_CONTINUE;
-  };
-
-#if DEBUG_DUMP_EFFECTS
-  hr = lpJoystick->EnumEffects(enumEffectsCallback, joyDev, DIEFT_ALL);
-  if (FAILED(hr))
-  {
-    HumanInput::printHResult(__FILE__, __LINE__, "EnumEffects", hr);
-    // ignore error - it's not fatal to have no effects at all
-  }
-#endif
-
-  if (doRemap360)
-    joyDev->applyRemapX360(pdidInstance->tszProductName);
-  else
-    joyDev->applyRemapHats();
-
-  device.push_back(joyDev);
-
-  return DIENUM_CONTINUE;
-}
-
-static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext)
-{
+  TIME_PROFILE(HID_DI8_enumObjectsCallback);
   Di8JoystickDevice &joy = *reinterpret_cast<Di8JoystickDevice *>(pContext);
 
   if (pdidoi->dwType & DIDFT_AXIS)
@@ -327,7 +256,7 @@ static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, V
       else
       {
         joy.addAxis(JOY_SLIDER0, 0, pdidoi->tszName);
-        DEBUG_CTX("incorrect slider offset: %d != %d,%d", pdidoi->dwOfs, DIJOFS_SLIDER(0), DIJOFS_SLIDER(1));
+        DEBUG_CTX("[HID][DI8][ENUM] incorrect slider offset: %d != %d,%d", pdidoi->dwOfs, DIJOFS_SLIDER(0), DIJOFS_SLIDER(1));
       }
     }
     else if (pdidoi->guidType == GUID_XAxis)
@@ -366,8 +295,8 @@ static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, V
         joy.addAxis(JOY_SLIDER1, DIJOFS_SLIDER(1), pdidoi->tszName);
       else
       {
-        DEBUG_CTX("unknown axis: type=%p:%p:%p:%p <%s>", ((unsigned *)&pdidoi->guidType)[0], ((unsigned *)&pdidoi->guidType)[1],
-          ((unsigned *)&pdidoi->guidType)[2], ((unsigned *)&pdidoi->guidType)[3], pdidoi->tszName);
+        DEBUG_CTX("[HID][DI8][ENUM][%s] unknown axis: type=%p:%p:%p:%p <%s>", joy.getDeviceID(), ((unsigned *)&pdidoi->guidType)[0],
+          ((unsigned *)&pdidoi->guidType)[1], ((unsigned *)&pdidoi->guidType)[2], ((unsigned *)&pdidoi->guidType)[3], pdidoi->tszName);
         return DIENUM_CONTINUE;
       }
     }
@@ -381,12 +310,7 @@ static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, V
     diprg.lMax = JOY_XINPUT_MAX_AXIS_VAL;
 
     // Set the range for the axis
-    HRESULT hr = joy.getDev()->SetProperty(DIPROP_RANGE, &diprg.diph);
-    if (FAILED(hr))
-    {
-      HumanInput::printHResult(__FILE__, __LINE__, "SetProperty", hr);
-      return DIENUM_STOP;
-    }
+    RET_STOP_ON_FAIL(joy.getDev()->SetProperty(DIPROP_RANGE, &diprg.diph), HID_DI8_SetProperty);
   }
   else if (pdidoi->dwType & DIDFT_BUTTON)
   {
@@ -395,22 +319,26 @@ static BOOL CALLBACK enumObjectsCallback(const DIDEVICEOBJECTINSTANCE *pdidoi, V
   }
   else if (pdidoi->dwType & DIDFT_POV)
   {
-    debug(" * POV %s usagePage %04X usage %04X", pdidoi->tszName, pdidoi->wUsagePage, pdidoi->wUsage);
+    debug("[HID][DI8][ENUM][%s] POV %s usagePage %04X usage %04X", joy.getDeviceID(), pdidoi->tszName, pdidoi->wUsagePage,
+      pdidoi->wUsage);
     joy.addPovHat(pdidoi->tszName);
   }
   else
   {
-    debug(" * UNKNOWN %s usagePage %04X usage %04X", pdidoi->tszName, pdidoi->wUsagePage, pdidoi->wUsage);
+    debug("[HID][DI8][ENUM][%s] UNKNOWN %s usagePage %04X usage %04X", joy.getDeviceID(), pdidoi->tszName, pdidoi->wUsagePage,
+      pdidoi->wUsage);
   }
   // else
-  //   DEBUG_CTX("unknown obj: %ph <%s> guid=%p:%p:%p:%p dwFlags=%ph",
+  //   DEBUG_CTX("[HID][DI8][ENUM] unknown obj: %ph <%s> guid=%p:%p:%p:%p dwFlags=%ph",
   //     pdidoi->dwType, pdidoi->tszName, pdidoi->guidType, pdidoi->dwFlags);
 
   return DIENUM_CONTINUE;
 }
 
-static BOOL CALLBACK enumObjSetLim(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext)
+
+static BOOL CALLBACK set_axis_limits(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *pContext)
 {
+  TIME_PROFILE(HID_DI8_set_axis_limits);
   Di8JoystickDevice &joy = *reinterpret_cast<Di8JoystickDevice *>(pContext);
   if (pdidoi->dwType & DIDFT_AXIS)
   {
@@ -423,12 +351,7 @@ static BOOL CALLBACK enumObjSetLim(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *p
     diprg.lMax = JOY_XINPUT_MAX_AXIS_VAL;
 
     // Set the range for the axis
-    HRESULT hr = joy.getDev()->SetProperty(DIPROP_RANGE, &diprg.diph);
-    if (FAILED(hr))
-    {
-      HumanInput::printHResult(__FILE__, __LINE__, "SetProperty", hr);
-      return DIENUM_STOP;
-    }
+    RET_STOP_ON_FAIL(joy.getDev()->SetProperty(DIPROP_RANGE, &diprg.diph), HID_DI8_SetProperty);
   }
 
   return DIENUM_CONTINUE;
@@ -445,8 +368,10 @@ static BOOL CALLBACK enumObjSetLim(const DIDEVICEOBJECTINSTANCE *pdidoi, VOID *p
 // "IG_" (ex. "VID_045E&PID_028E&IG_00").  If it does, then it's an XInput device
 // Unfortunately this information can not be found by just using DirectInput
 //-----------------------------------------------------------------------------
-static BOOL isXInputDevice(const GUID *pGuidProductFromDirectInput)
+template <typename F>
+static VidPidList populate_xinput_blacklist(F &&should_abort)
 {
+  TIME_PROFILE(HID_DI8_populate_xinput_blacklist);
   IWbemLocator *pIWbemLocator = NULL;
   IEnumWbemClassObject *pEnumDevices = NULL;
   IWbemClassObject *pDevices[20] = {0};
@@ -455,7 +380,6 @@ static BOOL isXInputDevice(const GUID *pGuidProductFromDirectInput)
   BSTR bstrDeviceID = NULL;
   BSTR bstrClassName = NULL;
   DWORD uReturned = 0;
-  bool bIsXinputDevice = false;
   UINT iDevice = 0;
   VARIANT var;
   HRESULT hr;
@@ -463,6 +387,7 @@ static BOOL isXInputDevice(const GUID *pGuidProductFromDirectInput)
   // CoInit if needed
   hr = CoInitialize(NULL);
   bool bCleanupCOM = SUCCEEDED(hr);
+  VidPidList xinputVidPids;
 
   // Create WMI
   hr = CoCreateInstance(__uuidof(WbemLocator), NULL, CLSCTX_INPROC_SERVER, __uuidof(IWbemLocator), (LPVOID *)&pIWbemLocator);
@@ -493,7 +418,7 @@ static BOOL isXInputDevice(const GUID *pGuidProductFromDirectInput)
     goto LCleanup;
 
   // Loop over all devices
-  for (;;)
+  while (!should_abort())
   {
     // Get 20 at a time
     hr = pEnumDevices->Next(10000, 20, pDevices, &uReturned);
@@ -502,7 +427,7 @@ static BOOL isXInputDevice(const GUID *pGuidProductFromDirectInput)
     if (uReturned == 0)
       break;
 
-    for (iDevice = 0; iDevice < uReturned; iDevice++)
+    for (iDevice = 0; iDevice < uReturned && !should_abort(); iDevice++)
     {
       // For each device, get its device ID
       hr = pDevices[iDevice]->Get(bstrDeviceID, 0L, &var, NULL, NULL);
@@ -521,13 +446,7 @@ static BOOL isXInputDevice(const GUID *pGuidProductFromDirectInput)
           if (strPid && swscanf(strPid, L"PID_%4X", &dwPid) != 1)
             dwPid = 0;
 
-          // Compare the VID/PID to the DInput device
-          DWORD dwVidPid = MAKELONG(dwVid, dwPid);
-          if (dwVidPid == pGuidProductFromDirectInput->Data1)
-          {
-            bIsXinputDevice = true;
-            goto LCleanup;
-          }
+          xinputVidPids.push_back(MAKELONG(dwVid, dwPid));
         }
       }
       if (pDevices[iDevice])
@@ -558,5 +477,6 @@ LCleanup:
   if (bCleanupCOM)
     CoUninitialize();
 
-  return bIsXinputDevice;
+  debug("[HID][DI8] found %d xinput devices to blacklist", xinputVidPids.size());
+  return xinputVidPids;
 }

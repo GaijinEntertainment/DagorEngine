@@ -5,13 +5,18 @@ Generator
 =========
 
 Generators allow you to declare a lambda that behaves like an iterator.
-For all intents and purposes, a generator is a lambda passed to an ``each`` or ``each_ref`` function.
+Internally, a generator is compiled into a lambda that is passed to an ``each`` or ``each_ref`` function.
 
-Generator syntax is similar to lambda syntax::
+Generator syntax is similar to lambda syntax.  A generator expression starts with the
+``generator`` keyword, followed by the element type in angle brackets, then a ``$`` and a block:
 
-    generator ::= `generator` < type > $ ( ) block
+.. code-block:: das
 
-Generator lambdas must have no arguments. It always returns boolean::
+    // generator<ElementType>() <| $ { ... }
+
+Generator lambdas must have no arguments. The generator body always returns a boolean:
+
+.. code-block:: das
 
     let gen <- generator<int>() <| $ {  // gen is iterator<int>
         for ( t in range(0,10) ) {
@@ -23,7 +28,9 @@ Generator lambdas must have no arguments. It always returns boolean::
 The result type of a ``generator`` expression is an iterator (see :ref:`Iterators <iterators>`).
 
 Generators output iterator values via ``yield`` expressions.
-Similar to the return statement, move semantic ``yield <-`` is allowed::
+Similar to the return statement, move semantic ``yield <-`` is allowed:
+
+.. code-block:: das
 
     return <- generator<TT> () <| $ {
         for ( w in src ) {
@@ -32,7 +39,9 @@ Similar to the return statement, move semantic ``yield <-`` is allowed::
         return false
     }
 
-Generators can output ref types. They can have a capture section::
+Generators can output ref types. They can have a capture section:
+
+.. code-block:: das
 
     unsafe {                                                // unsafe due to capture of src by reference
         var src = [1,2,3,4]
@@ -48,7 +57,9 @@ Generators can output ref types. They can have a capture section::
         print("src = {src}\n")  // will output [[2;3;4;5]]
     }
 
-Generators can have loops and other control structures::
+Generators can have loops and other control structures:
+
+.. code-block:: das
 
     let gen <- generator<int>() <| $ {
         var t = 0
@@ -71,7 +82,9 @@ Generators can have loops and other control structures::
         return false
     }
 
-Generators can have a ``finally`` expression on its blocks, with the exception of the if-then-else blocks::
+Generators can have a ``finally`` expression on its blocks, with the exception of the if-then-else blocks:
+
+.. code-block:: das
 
     let gen <- generator<int>() <| $ {
         for ( t in range(0,9) ) {
@@ -86,7 +99,9 @@ Generators can have a ``finally`` expression on its blocks, with the exception o
 implementation details
 ----------------------
 
-In the following example::
+In the following example:
+
+.. code-block:: das
 
     var gen <- generator<int> () <| $ {
         for ( x in range(0,10) ) {
@@ -97,7 +112,9 @@ In the following example::
         return false
     }
 
-A lambda is generated with all captured variables::
+A lambda is generated with all captured variables:
+
+.. code-block:: das
 
     struct _lambda_thismodule_8_8_1 {
         __lambda : function<(__this:_lambda_thismodule_8_8_1;_yield_8:int&):bool const> = @@_::_lambda_thismodule_8_8_1`function
@@ -109,7 +126,9 @@ A lambda is generated with all captured variables::
         _source_0_at_8 : iterator<int>
     }
 
-A lambda function is generated::
+A lambda function is generated:
+
+.. code-block:: das
 
     [GENERATOR]
     def _lambda_thismodule_8_8_1`function ( var __this:_lambda_thismodule_8_8_1; var _yield_8:int& ) : bool const {
@@ -145,13 +164,24 @@ Generators always start with ``goto __this.yield``.
 This effectively produces a finite state machine, with the ``yield`` variable holding current state index.
 
 The ``yield`` expression is converted into a copy result and return value pair.
-A label is created to specify where to go to next time, after the ``yield``::
+A label is created to specify where to go to next time, after the ``yield``:
+
+.. code-block:: das
 
     _yield_8 = __this.x                 // produce next iterator value
     __this.__yield = 1                  // label to go to next (1)
     return /*yield*/ true               // return true to indicate, that iterator produced a value
     label 1: /*yield at line 10*/       // next label marker (1)
 
-Iterator initialization is replaced with the creation of the lambda::
+Iterator initialization is replaced with the creation of the lambda:
+
+.. code-block:: das
 
     var gen:iterator<int> <- each(new<lambda<(_yield_8:int&):bool const>> default<_lambda_thismodule_8_8_1>)
+
+.. seealso::
+
+    :ref:`Lambdas <lambdas>` for lambda capture semantics used by generators,
+    :ref:`Statements <statements>` for ``yield`` and ``return`` statements,
+    :ref:`Comprehensions <comprehensions>` for iterator comprehensions backed by generators,
+    :ref:`Blocks <blocks>` for block-like syntax.

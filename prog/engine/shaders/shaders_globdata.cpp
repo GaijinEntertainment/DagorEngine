@@ -9,9 +9,11 @@
 
 namespace shaderbindump
 {
-ScriptedShadersBinDumpOwner shadersBinDump;
+ScriptedShadersBinDumpOwner shadersBinDump{.selfHandle = MAIN_BINDUMP_HANDLE};
+ScriptedShadersGlobalData shadersGlobalData{.backing = &shadersBinDump};
 #ifdef SHADERS_ALLOW_2_BINDUMP
-static ScriptedShadersBinDumpOwner shadersBinDumpExp;
+static ScriptedShadersBinDumpOwner shadersBinDumpExp{.selfHandle = SEC_EXP_BINDUMP_HANDLE};
+static ScriptedShadersGlobalData shadersGlobalDataExp{.backing = &shadersBinDumpExp};
 #endif
 ScriptedShadersBinDump emptyDump;
 
@@ -48,5 +50,16 @@ ScriptedShadersBinDumpOwner &shBinDumpExOwner(bool main)
   G_FAST_ASSERT(main); // Validate sec shdump
   G_UNUSED(main);
   return shaderbindump::shadersBinDump;
+#endif
+}
+
+ScriptedShadersGlobalData &shGlobalDataEx(bool main)
+{
+#ifdef SHADERS_ALLOW_2_BINDUMP
+  return main ? shaderbindump::shadersGlobalData : shaderbindump::shadersGlobalDataExp;
+#else
+  G_FAST_ASSERT(main); // Validate sec shdump
+  G_UNUSED(main);
+  return shaderbindump::shadersGlobalData;
 #endif
 }

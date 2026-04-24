@@ -12,6 +12,7 @@
 #include <generic/dag_staticTab.h>
 #include <generic/dag_carray.h>
 #include <math/dag_hlsl_floatx.h>
+#include <math/dag_half.h>
 #include "renderLights.hlsli"
 
 #include <render/iesTextureManager.h>
@@ -48,23 +49,23 @@ public:
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
     eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
     const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos,
-    SpotLightMaskType require_any_mask) const;
+    SpotLightMaskType require_any_mask, float cutoff_dist_sq = 0.f) const;
 
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
     eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occ, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
     const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos,
-    SpotLightMaskType require_any_mask) const
+    SpotLightMaskType require_any_mask, float cutoff_dist_sq = 0.f) const
   {
     prepare<true>(frustum, lights_inside_plane, lights_outside_plane, visibleIdBitset, occ, inside_box, outside_box, znear_plane,
-      shadow, markSmallLightsAsFarLimit, cameraPos, require_any_mask);
+      shadow, markSmallLightsAsFarLimit, cameraPos, require_any_mask, cutoff_dist_sq);
   }
 
   void prepare(const Frustum &frustum, Tab<uint16_t> &lights_inside_plane, Tab<uint16_t> &lights_outside_plane,
     eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occ, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-    const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, SpotLightMaskType require_any_mask)
+    const StaticTab<uint16_t, SpotLightsManager::MAX_LIGHTS> &shadow, SpotLightMaskType require_any_mask, float cutoff_dist_sq = 0.f)
   {
     prepare<false>(frustum, lights_inside_plane, lights_outside_plane, visibleIdBitset, occ, inside_box, outside_box, znear_plane,
-      shadow, 0, v_zero(), require_any_mask);
+      shadow, 0, v_zero(), require_any_mask, cutoff_dist_sq);
   }
   void renderDebugBboxes();
   int addLight(const Light &light); // return -1 if fails
@@ -92,15 +93,34 @@ public:
     const float cosOuter = cosHalfAngles[id];
     const float lightAngleScale = 1.0f / max(0.001f, (cosInner - cosOuter));
     const float lightAngleOffset = -cosOuter * lightAngleScale;
+    const float rollAngle = l.normalizedRollAngle;
     RenderSpotLight ret;
-    ret.lightPosRadius = (const float4 &)l.pos_radius;
+    ret.lightPos_halfRadius_halfCullRadius.x = l.pos_radius.x;
+    ret.lightPos_halfRadius_halfCullRadius.y = l.pos_radius.y;
+    ret.lightPos_halfRadius_halfCullRadius.z = l.pos_radius.z;
+    uint32_t packedRadiuses =
+      (static_cast<uint32_t>(float_to_half(l.culling_radius)) << 16) | static_cast<uint32_t>(float_to_half(l.pos_radius.w));
+    ret.lightPos_halfRadius_halfCullRadius.w = eastl::bit_cast<float>(packedRadiuses);
     ret.lightColorAngleScale = (const float4 &)l.color_atten;
     ret.lightColorAngleScale.w = lightAngleScale;
     ret.lightDirectionAngleOffset = (const float4 &)l.dir_tanHalfAngle;
     ret.lightDirectionAngleOffset.w = lightAngleOffset;
-    ret.texId_scale_illuminatingplane_shadow_contactshadow = (const float4 &)l.texId_scale_illuminatingPlane;
-    ret.texId_scale_illuminatingplane_shadow_contactshadow.w = eastl::bit_cast<float, uint32_t>(
-      (l.contactShadows ? SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK : 0) | (l.shadows ? SPOT_LIGHT_HAS_SHADOW_MASK : 0));
+    ret.texId_scale_illuminatingplane_packedDataBits = (const float4 &)l.texId_scale_illuminatingPlane;
+    if (ret.texId_scale_illuminatingplane_packedDataBits.y == 0)
+    {
+      // Used for projected textures
+      const float halfAngleTan = l.dir_tanHalfAngle.w;
+      const float invHalfAngleSin = safediv(sqrtf(1.f + halfAngleTan * halfAngleTan), halfAngleTan);
+      ret.texId_scale_illuminatingplane_packedDataBits.y = invHalfAngleSin;
+    }
+    uint32_t packedRollAngle = static_cast<uint32_t>(float(SPOT_LIGHT_ROLL_MAX_VALUE) * rollAngle) << SPOT_LIGHT_ROLL_BIT_OFFSET;
+    uint32_t shadowFlags =
+      (l.contactShadows ? SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK : 0) | (l.shadows ? SPOT_LIGHT_HAS_SHADOW_MASK : 0);
+    G_STATIC_ASSERT((SPOT_LIGHT_NEEDS_CONTACT_SHADOWS_MASK | SPOT_LIGHT_HAS_SHADOW_MASK) == SPOT_LIGHT_CONTACT_SHADOW_MASK);
+    G_STATIC_ASSERT((SPOT_LIGHT_CONTACT_SHADOW_MASK & SPOT_LIGHT_ROLL_MASK) == 0);
+    G_ASSERT((shadowFlags & SPOT_LIGHT_CONTACT_SHADOW_MASK) == shadowFlags);
+    G_ASSERT((packedRollAngle & SPOT_LIGHT_ROLL_MASK) == packedRollAngle);
+    ret.texId_scale_illuminatingplane_packedDataBits.w = eastl::bit_cast<float, uint32_t>(packedRollAngle | shadowFlags);
     return ret;
   }
 
@@ -117,8 +137,9 @@ public:
 
   void destroyAllLights();
 
+  // light_up_dir is only used if texture id is also provided
   int addLight(const Point3 &pos, const Color3 &color, const Point3 &dir, const float angle, float radius, float attenuation_k = 1.f,
-    bool contact_shadows = false, int tex = -1, float illuminating_plane = 0);
+    bool contact_shadows = false, const Point3 &light_up_dir = Point3(0, 1, 0), int tex = -1, float illuminating_plane = 0);
 
   void setLightPos(unsigned int id, const Point3 &pos)
   {
@@ -139,9 +160,10 @@ public:
   Point4 getLightPosRadius(unsigned int id) const { return rawLights[id].pos_radius; }
   void getLightView(unsigned int id, mat44f &viewITM);
   void getLightPersp(unsigned int id, mat44f &proj);
-  void setLightDirAngle(unsigned int id, const Point4 &dir_tanHalfAngle)
+  void setLightDirAngle(unsigned int id, const Point4 &dir_tanHalfAngle, const Point3 &light_up_dir)
   {
     rawLights[id].dir_tanHalfAngle = dir_tanHalfAngle;
+    rawLights[id].normalizedRollAngle = SpotLight::get_normalized_roll_angle(Point3::xyz(dir_tanHalfAngle), light_up_dir);
     resetLightOptimization(id);
     updateBoundingSphere(id);
   }

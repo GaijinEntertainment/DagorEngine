@@ -93,4 +93,9 @@ inline d3d::SamplerHandle d3d_request_sampler(const das::TBlock<void, das::TTemp
   return d3d::request_sampler(smpInfo);
 }
 
+inline int d3d_driver_background_processing_mode(DriverBackgroundProcessingMode mode, DriverMeasurementsAction action)
+{
+  return d3d::driver_command(Drv3dCommand::DRIVER_BACKGROUND_PROCESSING_MODE, (void *)&mode, (void *)&action, nullptr);
+}
+
 } // namespace bind_dascript

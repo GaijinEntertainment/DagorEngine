@@ -20,16 +20,19 @@
 int g_index = 0;
 #endif
 
-eastl::vector<uint8_t> get_blob_with_header_aligned(void *data, unsigned int data_size, void *header, unsigned int header_size)
+eastl::tuple<eastl::vector<uint8_t>, eastl::vector<uint8_t>> get_blob_with_header_aligned(void *data, unsigned int data_size,
+  void *header, unsigned int header_size)
 {
   unsigned data_size_aligned = (data_size + 3) & (~3);
-  int size = data_size_aligned + header_size + 4;
-  eastl::vector<uint8_t> result(size);
-  memcpy(result.data(), &data_size, 4);
-  memcpy(result.data() + 4, header, header_size);
-  memcpy(result.data() + header_size + 4, data, data_size);
-  memset(result.data() + data_size + header_size + 4, 0, data_size_aligned - data_size);
-  return result;
+
+  eastl::vector<uint8_t> metadata(header_size + sizeof(data_size_aligned));
+  memcpy(metadata.data(), &data_size, sizeof(data_size_aligned));
+  memcpy(metadata.data() + sizeof(data_size_aligned), header, header_size);
+
+  eastl::vector<uint8_t> bytecode(data_size_aligned, 0);
+  memcpy(bytecode.data(), data, data_size);
+
+  return {metadata, bytecode};
 }
 
 CompileResult compileShaderDX11(const char *shaderName, const char *source, const char **args, const char *profile, const char *entry,
@@ -90,13 +93,32 @@ CompileResult compileShaderDX11(const char *shaderName, const char *source, cons
   if (errors)
     errors->Release(); // should not be needed, however, for avoidance of mem leak if compiler returns warnings in errors
 
-  if (profile[0] == 'c')
+  int maxRtv = -1;
+
+  if (profile[0] == 'c' || profile[0] == 'p')
   {
     ID3D11ShaderReflection *reflector = nullptr;
     hr = D3DReflect(bytecode->GetBufferPointer(), bytecode->GetBufferSize(), IID_PPV_ARGS(&reflector));
-    G_ASSERTF(SUCCEEDED(hr), "Unable to reflect the compute shader");
-    reflector->GetThreadGroupSize(&result.computeShaderInfo.threadGroupSizeX, &result.computeShaderInfo.threadGroupSizeY,
-      &result.computeShaderInfo.threadGroupSizeZ);
+    G_ASSERTF(SUCCEEDED(hr), "Unable to reflect the %s shader", profile[0] == 'c' ? "compute" : "pixel");
+    if (profile[0] == 'c')
+    {
+      reflector->GetThreadGroupSize(&result.computeShaderInfo.threadGroupSizeX, &result.computeShaderInfo.threadGroupSizeY,
+        &result.computeShaderInfo.threadGroupSizeZ);
+    }
+    else // pixel shader
+    {
+      D3D11_SHADER_DESC desc;
+      hr = reflector->GetDesc(&desc);
+      G_ASSERTF(SUCCEEDED(hr), "Unable to reflect the pixel shader desc");
+
+      for (uint32_t i = 0; i < desc.OutputParameters; ++i)
+      {
+        D3D11_SIGNATURE_PARAMETER_DESC out;
+        reflector->GetOutputParameterDesc(i, &out);
+        if (strcmp(out.SemanticName, "SV_Target") == 0)
+          maxRtv = max(maxRtv, int(out.SemanticIndex));
+      }
+    }
     reflector->Release();
   }
 
@@ -132,7 +154,7 @@ CompileResult compileShaderDX11(const char *shaderName, const char *source, cons
   // memset(data, 0x00, extsize32 * sizeof(uint32_t)); //clean required bytes
   // memcpy(data+1, bytecodeMsg, bytecodeSz);
   //*data = bytecodeSz;
-  int header[2] = {max_constants_no, -1};
+  int header[2] = {max_constants_no, maxRtv};
   if (strncmp(profile, "hs", 2) == 0)
   {
     ID3D10Blob *hs_disasm = nullptr;
@@ -171,7 +193,8 @@ CompileResult compileShaderDX11(const char *shaderName, const char *source, cons
 
     header[0] |= topology << 24;
   }
-  result.bytecode = get_blob_with_header_aligned((void *)bytecodeMsg, (int)bytecodeSz, header, (int)sizeof(header));
+  eastl::tie(result.metadata, result.bytecode) =
+    get_blob_with_header_aligned((void *)bytecodeMsg, (int)bytecodeSz, header, (int)sizeof(header));
 
   if (bytecode)
     bytecode->Release();

@@ -69,7 +69,7 @@ bool BindPoseElem::checkBindPoseArr(dag::ConstSpan<TMatrix> target_bind_pose_arr
 }
 
 
-BindPoseBufferManager::BindPoseBufferManager() : bindposeAllocator(MatrixBufferHeapManager("bindpose_arr_heap_mgr_")) {}
+BindPoseBufferManager::BindPoseBufferManager() : bindposeAllocator(MatrixBufferHeapManager("bindpose_arr_heap_mgr_"), RESTAG_ENGINE) {}
 
 
 void BindPoseBufferManager::resizeIncrement(size_t min_size_increment)
@@ -120,7 +120,7 @@ Ptr<BindPoseElem> BindPoseBufferManager::createOrGetBindposeElem(dag::ConstSpan<
   bindPoseElem.delRef(); // bindposeElemArr has basically weak pointers
 
   if (log_unique_bindpose_changes)
-    debug("Unique bindpose inserted: %s -> %d", region.offset, region.size);
+    debug("Unique bindpose inserted: %d -> %d", region.offset, region.size);
 
   return bindPoseElem;
 }
@@ -136,7 +136,7 @@ void BindPoseBufferManager::closeElem(RegionId region_id)
   const Region region = bindposeAllocator.get(region_id);
 
   if (log_unique_bindpose_changes)
-    debug("Unique bindpose removed: %s -> %d", region.offset, region.size);
+    debug("Unique bindpose removed: %d -> %d", region.offset, region.size);
 
   bindposeAllocator.free(region_id);
   erase_items(bindposeElemArr, it - bindposeElemArr.begin(), 1);

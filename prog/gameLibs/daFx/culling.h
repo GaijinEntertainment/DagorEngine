@@ -22,6 +22,9 @@ struct DrawState
   int primPerElem;
   int vrs;
   uint32_t changes;
+#if DAGOR_DBGLEVEL > 0
+  int sid; // for fetching over-limit names
+#endif
 };
 
 struct DrawCall
@@ -71,7 +74,8 @@ struct CullingGpuFeedback
   int allocCount = 0;
   bool queryIssued = false;
   bool readbackIssued = false;
-  GpuResourcePtr gpuRes;
+  GpuResourcePtr gpuResAtomic;
+  GpuResourcePtr gpuResStaging;
   EventQueryHolder eventQuery;
   eastl::vector<int> frameWorkers;    // workers for that specific frame (might be 1..5 frames old)
   eastl::vector<uint32_t> frameFlags; // saved instances flags for that frame
@@ -99,4 +103,5 @@ void issue_culling_feedback(Context &ctx);
 void fetch_culling(Context &ctx);
 void process_cpu_culling(Context &ctx, int start, int count);
 void process_gpu_culling(Context &ctx);
+void clear_culling_visibility_flags(Context &ctx);
 } // namespace dafx

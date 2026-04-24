@@ -1,0 +1,221 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "contact_shadows.dshl"
+include "camera_in_camera.dshl"
+include "use_tiled_lights.dshl"
+include "ssao_use.dshl"
+include "rtao_use.dshl"
+include "classify_tiles_common.dshl"
+include "globtm_no_ofs.dshl"
+include "bvh_usable_inc.dshl"
+include_optional "ssss/ssss_transmittance_profile.dshl"
+
+float4x4 inv_proj_tm;
+
+float4 hero_cockpit_vec = (0, 0, 0, 0);
+
+texture precomputed_dynamic_lights;
+
+buffer render_direct_lights_args;
+buffer render_direct_lights_tiles;
+
+shader render_dynamic_lighting
+{
+  if (dynamic_lights_count == lights_off) { dont_render; }
+  if (compatibility_mode == compatibility_mode_on) { dont_render; }
+  if (in_editor_assume == yes) { dont_render; }
+
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
+
+  (cs) {
+    world_view_pos@f3 = world_view_pos;
+    hero_cockpit_vec@f4 = hero_cockpit_vec;
+    downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
+    shadow_frame@f1 = shadow_frame;
+
+    viewProjectionMatrixNoOfs@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
+    projectionMatrix@f44 = { projtm_psf_0, projtm_psf_1, projtm_psf_2, projtm_psf_3 };
+
+    tiles@buf = render_direct_lights_tiles hlsl { ByteAddressBuffer tiles@buf; };
+    dynamic_lights@uav = precomputed_dynamic_lights hlsl { RWTexture2D<float3> dynamic_lights@uav; };
+  }
+
+  hlsl(cs) {
+    #define OMNI_CONTACT_SHADOWS 1
+    #define SPOT_CONTACT_SHADOWS 1
+
+    #define screen_size rendering_res.xy
+
+    #include "contactShadows.hlsl"
+  }
+
+  USE_EMISSION_DECODE_COLOR_MAP(cs)
+
+  INIT_LOAD_GBUFFER_BASE(cs)
+  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+
+  INIT_ZNZFAR_STAGE(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
+  INIT_UPSCALE_SAMPLING_BASE(cs)
+
+  USE_LOAD_DEPTH_GBUFFER_BASE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, false)
+
+  USE_UPSCALE_SAMPLING_BASE(cs)
+  USE_SSSS_TRANSMITTANCE_PROFILE(cs)
+  VIEW_VEC_OPTIMIZED(cs)
+
+  USING_SSAO_BASE(cs)
+  USING_RTAO(cs)
+
+  INIT_RENDERING_RESOLUTION(cs)
+  INIT_AND_USE_TILED_LIGHTS(cs)
+
+  hlsl(cs)
+  {
+    [numthreads(8, 8, 1)]
+    void dynamic_lighting_cs(uint gid : SV_GroupID, uint2 gtid : SV_GroupThreadID)
+    {
+      uint tilePacked = loadBuffer(tiles, gid * 4);
+      uint2 pixelCoord = uint2(tilePacked & 0xFFFF, tilePacked >> 16) * 8 + gtid;
+
+      if (any(pixelCoord >= rendering_res.xy))
+        return;
+
+      float2 screenCoordCenter = float2(pixelCoord) + 0.5;
+      float2 curViewTc = saturate(screenCoordCenter * rendering_res.zw);
+      DISCARD_IF_INVALID_VIEW_AREA_CS(curViewTc);
+
+      float rawDepth = loadGbufferDepth(pixelCoord);
+      BRANCH
+      if (rawDepth <= 0)
+        return;
+
+      UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(pixelCoord));
+      ProcessedGbuffer processedGbuffer = processGbuffer(gbuffer);
+
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+      float3 viewVect = getViewVecOptimized(curViewTc);
+
+      float3 pointToEye = -viewVect * w;
+      float4 worldPos = float4(world_view_pos.xyz - pointToEye, 1);
+
+      float distSq = dot(pointToEye,pointToEye);
+      float invRsqrt = rsqrt(distSq);
+      float3 view  = pointToEye*invRsqrt;
+
+      float4 weights = sampleCloseUpscaleWeight(screenCoordCenter);
+      SSAO_TYPE ssao = getSSAOUpscaleWeighted(weights, screenCoordCenter);
+
+      half cockpitFade = half(saturate(dot(float4(worldPos.xyz, 1), hero_cockpit_vec)));
+
+      ##if bvh_usable == yes
+      if (isRTAOEnabled())
+      {
+        float rtao = getRTAO(uint2(screenCoordCenter));
+        if (processedGbuffer.isHeroCockpit)
+        {
+          ssao.x = lerp(rtao, 1, cockpitFade);
+          ssao.y = lerp(ssao. CONTACT_SHADOWS_ATTR, 1, cockpitFade);
+        }
+        else
+          ssao.x = rtao;
+      }
+      ##endif
+
+      float NdotV = dot(processedGbuffer.normal, view);
+      float NoV = abs( NdotV ) + 1e-5;
+
+      half AO = processedGbuffer.ao * ssao.x;
+
+      float3 result = get_dynamic_lighting(processedGbuffer, worldPos.xyz, -viewVect, w, screenCoordCenter, NoV,
+        processedGbuffer.specularColor, curViewTc, AO);
+      texture2DAt(dynamic_lights, pixelCoord) = result;
+    }
+  }
+
+  compile("target_cs", "dynamic_lighting_cs");
+}
+
+shader generate_dynamic_lighting_tiles
+{
+  if (dynamic_lights_count == lights_off)
+  {
+    dont_render;
+  }
+
+  (cs) {
+    args@uav = render_direct_lights_args hlsl { RWByteAddressBuffer args@uav; };
+    tiles@uav = render_direct_lights_tiles hlsl { RWByteAddressBuffer tiles@uav; };
+  }
+
+  hlsl(cs) {
+    #define screen_size rendering_res.xy
+  }
+
+  INIT_RENDERING_RESOLUTION(cs)
+  INIT_TILED_LIGHTS(cs)
+  USE_TILED_LIGHTS_COMMON(cs)
+  CLASSIFY_TILES_COMMON(cs)
+  INIT_ZNZFAR_STAGE(cs)
+
+  hlsl(cs)
+  {
+    groupshared uint hasLightsGroup;
+
+    [numthreads(8, 8, 1)]
+    void generate_direct_lights_tiles_cs(uint2 gtid : SV_GroupThreadID, uint2 gid : SV_GroupID, uint2 dtid : SV_DispatchThreadID)
+    {
+      if (all(dtid == 0))
+      {
+        storeBuffer(args, 4, 1);
+        storeBuffer(args, 8, 1);
+      }
+
+      if (all(gtid == 0))
+        hasLightsGroup = 0;
+
+      GroupMemoryBarrierWithGroupSync();
+
+      bool left = gtid.x < 4;
+      bool top  = gtid.y < 4;
+      uint mask = (left && top) ? 1 : (!left && top) ? 2 : (left && !top) ? 4 : 8;
+
+      uint2 blockCornerCoords = gid * 16 + gtid * 2;
+
+      uint hasLightsThread = 0;
+
+      if (all(blockCornerCoords < rendering_res.xy))
+      {
+        float2 rawDepthRange = get_raw_depth_range_2x2(blockCornerCoords);
+        if (rawDepthRange.x > 0)
+        {
+          float nearW = linearize_z(rawDepthRange.x, zn_zfar.zw);
+          float farW = linearize_z(rawDepthRange.y, zn_zfar.zw);
+          float2 blockCenter = float2(blockCornerCoords) + 1.0;
+          uint2 tileIdx = screen_uv_to_tile_idx(blockCenter);
+
+          hasLightsThread = has_dynamic_lighting(tileIdx, nearW, farW) ? mask : 0;
+
+          InterlockedOr(hasLightsGroup, hasLightsThread);
+        }
+      }
+
+      GroupMemoryBarrierWithGroupSync();
+
+      bool isMainThread = all((gtid & 3) == 0);
+
+      if (isMainThread && (hasLightsGroup & mask))
+      {
+        uint2 tileCoord = blockCornerCoords / 8;
+
+        uint tileSlot;
+        args.InterlockedAdd(0, 1, tileSlot);
+
+        storeBuffer(tiles, tileSlot * 4, (tileCoord.y << 16) | tileCoord.x);
+      }
+    }
+  }
+  compile("target_cs", "generate_direct_lights_tiles_cs");
+}

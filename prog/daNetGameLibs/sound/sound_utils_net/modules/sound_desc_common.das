@@ -20,7 +20,7 @@ def find_desc_idx_by_hash(desc_id_hash : uint; descs : Array) : int
     ++idx
   return -1
 
-def get_desc(idx : int; descs : Array)
+def get_desc(idx : int; descs : Array) : Object const?
   return descs?[idx] ?as Object
 
 def find_desc_by_hash(hash : uint; descs : Object) : Object const?

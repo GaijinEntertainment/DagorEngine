@@ -10,6 +10,7 @@
 #include <workCycle/dag_workCycle.h>
 #include <debug/dag_debug.h>
 #include <util/dag_string.h>
+#include <math/dag_mathUtils.h>
 
 #include <osApiWrappers/dag_miscApi.h>
 #include "drv_utils.h"
@@ -245,6 +246,11 @@ extern bool get_lowpower_mode();
   return savedBackTex;
 }
 
+-(int)getDrawableSize
+{
+  return 4 * metalLayer.drawableSize.width * metalLayer.drawableSize.height * metalLayer.maximumDrawableCount;
+}
+
 -(void)acquireDrawable
 {
   if (currentDrawable == nil)
@@ -264,7 +270,7 @@ extern bool get_lowpower_mode();
   @autoreleasepool
   {
     backTex = [currentDrawable.texture retain];
-    SRGBTex = [backTex newTextureViewWithPixelFormat : MTLPixelFormatBGRA8Unorm_sRGB];
+    SRGBTex = _hdrEnabled ? [currentDrawable.texture retain] : [backTex newTextureViewWithPixelFormat : MTLPixelFormatBGRA8Unorm_sRGB];
   }
 }
 
@@ -308,6 +314,18 @@ extern bool get_lowpower_mode();
   return metalLayer.pixelFormat;
 }
 
+-(float) getRelativeHeadroom {
+#if _TARGET_IOS | _TARGET_TVOS
+  if (@available(iOS 16, *))
+  {
+    constexpr float lowerEDRBound = 1.f;
+    const float maxEDRBound = [UIScreen mainScreen].potentialEDRHeadroom;
+    return cvt([UIScreen mainScreen].currentEDRHeadroom, lowerEDRBound, maxEDRBound, 0.f, 1.f);
+  }
+#endif
+  return 1.f;
+}
+
 -(bool) isHDREnabled
 {
   return get_enable_hdr_from_settings([[_device name] UTF8String]);
@@ -316,7 +334,11 @@ extern bool get_lowpower_mode();
 -(bool) isHDRAvailable
 {
 #if _TARGET_IOS | _TARGET_TVOS
-  return true;
+  if (@available(iOS 16, *))
+  {
+    return [UIScreen mainScreen].potentialEDRHeadroom >= 8;
+  }
+  return false;
 #elif _TARGET_PC_MACOSX
   NSScreen *screen = [NSScreen mainScreen];
   return screen.maximumPotentialExtendedDynamicRangeColorComponentValue > 1.f;
@@ -327,31 +349,33 @@ extern bool get_lowpower_mode();
 {
   if (_hdrEnabled == enable)
     return;
-  if (enable)
-  {
-    metalLayer.pixelFormat = MTLPixelFormatBGR10A2Unorm;
-#if _TARGET_IOS | _TARGET_TVOS
-    if ([_device supportsFamily:MTLGPUFamilyApple3])
-      metalLayer.pixelFormat = MTLPixelFormatBGR10_XR;
-#elif _TARGET_PC_MACOSX
-    metalLayer.wantsExtendedDynamicRangeContent = YES;
-#endif
 
-#if _TARGET_IOS
-    const CFStringRef name = kCGColorSpaceITUR_2020_PQ_EOTF;
-#else
-    const CFStringRef name = kCGColorSpaceITUR_2100_PQ;
-#endif
-    CGColorSpaceRef colorspace = CGColorSpaceCreateWithName(name);
-    metalLayer.colorspace = colorspace;
-    CGColorSpaceRelease(colorspace);
+  _int10HDRBuffer = _hdrEnabled = enable;
+
+  if (@available(iOS 16, *))
+  {
+    metalLayer.wantsExtendedDynamicRangeContent = enable ? YES : NO;
   }
-  else
+
+  if (!enable)
   {
     metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
     metalLayer.colorspace = defaultColorSpace;
+    DEBUG_CTX("Metal: HDR is disabled");
+    return;
   }
-  _int10HDRBuffer = _hdrEnabled = enable;
-  DEBUG_CTX("macOS: HDR is %s", enable ? "Enabled" : "disabled");
+
+  metalLayer.pixelFormat = MTLPixelFormatRGB10A2Unorm;
+
+#if _TARGET_IOS
+  const CFStringRef name = kCGColorSpaceITUR_2020_PQ_EOTF;
+#else
+  const CFStringRef name = kCGColorSpaceITUR_2100_PQ;
+#endif
+  CGColorSpaceRef colorspace = CGColorSpaceCreateWithName(name);
+  metalLayer.colorspace = colorspace;
+  CGColorSpaceRelease(colorspace);
+
+  DEBUG_CTX("Metal: HDR is enabled");
 }
 @end

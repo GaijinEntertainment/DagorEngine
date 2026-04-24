@@ -2,13 +2,14 @@
 
 #include <gameRes/dag_gameResHooks.h>
 
-bool (*gamereshooks::resolve_res_handle)(GameResHandle rh, unsigned class_id, int &out_res_id) = 0;
+bool (*gamereshooks::resolve_res_handle)(const char *resname, unsigned class_id, int &out_res_id) = 0;
 bool (*gamereshooks::get_res_refs)(int res_id, Tab<int> &out_refs) = 0;
 bool (*gamereshooks::on_get_game_res_class_id)(int res_id, unsigned &out_class_id) = 0;
 bool (*gamereshooks::on_validate_game_res_id)(int res_id, int &out_res_id) = 0;
-bool (*gamereshooks::on_get_game_resource)(int res_id, dag::Span<GameResourceFactory *> f, GameResource *&out_res) = 0;
+bool (*gamereshooks::on_preload_all_required_res)(gameres_rrl_ptr_t rrl) = 0;
+bool (*gamereshooks::on_get_game_resource)(int res_id, gameres_rrl_cptr_t rrl, dag::Span<GameResourceFactory *> f,
+  GameResource *&out_res) = 0;
 bool (*gamereshooks::on_release_game_resource)(int res_id, dag::Span<GameResourceFactory *> f) = 0;
-bool (*gamereshooks::on_release_game_res2)(GameResHandle rh, dag::Span<GameResourceFactory *> f) = 0;
 bool (*gamereshooks::on_load_game_resource_pack)(int res_id, dag::Span<GameResourceFactory *> f) = 0;
 bool (*gamereshooks::on_get_res_name)(int res_id, String &out_res_name) = 0;
 bool (*gamereshooks::on_gameres_pack_load_confirm)(const char *pack_fname, bool is_tex_pack) = 0;

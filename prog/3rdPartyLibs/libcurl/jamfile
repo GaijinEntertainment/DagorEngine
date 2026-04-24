@@ -32,6 +32,7 @@ if $(Platform) in windows {
 
 if $(Platform) = macOS {
   CPPopt += -Wno-deprecated-declarations ;
+  AddLibs += "-framework SystemConfiguration" ;
 }
 
 if $(UseSystemOpenSSL) != yes {

@@ -325,9 +325,9 @@ static ecs::CompileTimeQueryDesc gpu_object_placer_fill_ecs_query_desc
   make_span(gpu_object_placer_fill_ecs_query_comps+39, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void gpu_objects::gpu_object_placer_fill_ecs_query(Callable function)
+inline void gpu_objects::gpu_object_placer_fill_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gpu_object_placer_fill_ecs_query_desc.getHandle(),
+  perform_query(&manager, gpu_object_placer_fill_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -399,9 +399,9 @@ static ecs::CompileTimeQueryDesc gpu_object_placer_remove_ecs_query_desc
   make_span(gpu_object_placer_remove_ecs_query_comps+6, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void gpu_objects::gpu_object_placer_remove_ecs_query(Callable function)
+inline void gpu_objects::gpu_object_placer_remove_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gpu_object_placer_remove_ecs_query_desc.getHandle(),
+  perform_query(&manager, gpu_object_placer_remove_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -436,9 +436,9 @@ static ecs::CompileTimeQueryDesc gpu_object_placer_copy_on_expand_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gpu_objects::gpu_object_placer_copy_on_expand_ecs_query(Callable function)
+inline void gpu_objects::gpu_object_placer_copy_on_expand_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gpu_object_placer_copy_on_expand_ecs_query_desc.getHandle(),
+  perform_query(&manager, gpu_object_placer_copy_on_expand_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -481,9 +481,9 @@ static ecs::CompileTimeQueryDesc gpu_object_placer_visibility_ecs_query_desc
   make_span(gpu_object_placer_visibility_ecs_query_comps+13, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void gpu_objects::gpu_object_placer_visibility_ecs_query(Callable function)
+inline void gpu_objects::gpu_object_placer_visibility_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gpu_object_placer_visibility_ecs_query_desc.getHandle(),
+  perform_query(&manager, gpu_object_placer_visibility_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -525,9 +525,9 @@ static ecs::CompileTimeQueryDesc gpu_object_placer_invalidate_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gpu_objects::gpu_object_placer_invalidate_ecs_query(Callable function)
+inline void gpu_objects::gpu_object_placer_invalidate_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gpu_object_placer_invalidate_ecs_query_desc.getHandle(),
+  perform_query(&manager, gpu_object_placer_invalidate_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -559,9 +559,9 @@ static ecs::CompileTimeQueryDesc gpu_object_placer_distance_emitter_update_after
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gpu_objects::gpu_object_placer_distance_emitter_update_after_placing_ecs_query(ecs::EntityId eid, Callable function)
+inline void gpu_objects::gpu_object_placer_distance_emitter_update_after_placing_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, gpu_object_placer_distance_emitter_update_after_placing_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, gpu_object_placer_distance_emitter_update_after_placing_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -593,9 +593,9 @@ static ecs::CompileTimeQueryDesc gpu_object_placer_select_closest_distance_emitt
   make_span(gpu_object_placer_select_closest_distance_emitter_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void gpu_objects::gpu_object_placer_select_closest_distance_emitter_ecs_query(Callable function)
+inline void gpu_objects::gpu_object_placer_select_closest_distance_emitter_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gpu_object_placer_select_closest_distance_emitter_ecs_query_desc.getHandle(),
+  perform_query(&manager, gpu_object_placer_select_closest_distance_emitter_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -626,9 +626,9 @@ static ecs::CompileTimeQueryDesc gpu_object_placer_distance_emitter_update_volum
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gpu_objects::gpu_object_placer_distance_emitter_update_volume_placers_ecs_query(Callable function)
+inline void gpu_objects::gpu_object_placer_distance_emitter_update_volume_placers_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gpu_object_placer_distance_emitter_update_volume_placers_ecs_query_desc.getHandle(),
+  perform_query(&manager, gpu_object_placer_distance_emitter_update_volume_placers_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -657,9 +657,9 @@ static ecs::CompileTimeQueryDesc gpu_object_placer_get_current_distance_emitter_
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gpu_objects::gpu_object_placer_get_current_distance_emitter_position_ecs_query(ecs::EntityId eid, Callable function)
+inline void gpu_objects::gpu_object_placer_get_current_distance_emitter_position_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, gpu_object_placer_get_current_distance_emitter_position_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, gpu_object_placer_get_current_distance_emitter_position_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

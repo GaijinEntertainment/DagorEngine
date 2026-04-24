@@ -1503,10 +1503,6 @@
           "Command": "-config:renderFeatures/waterReflection:b=no"
         },
         {
-          "Id": "58d13b0c-12cf-44e4-92a1-83c2cfcd3a5c",
-          "Command": "-config:renderFeatures/bloom:b=no"
-        },
-        {
           "Id": "cb879f51-3325-41f7-a103-bfb4989f2cef",
           "Command": "-config:renderFeatures/microdetails:b=no"
         },

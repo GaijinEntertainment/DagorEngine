@@ -57,10 +57,10 @@ void DynamicLutManager::setColorGradingToShader(float baseWhiteTemp, float timeO
     return;
 
   auto setColorGradingToShader = [](ColorGradingParam param) {
-#define VAR(a) ShaderGlobal::set_color4(a##VarId, param.a);
+#define VAR(a) ShaderGlobal::set_float4(a##VarId, param.a);
     SHADER_VAR_LIST_COLOR
 #undef VAR
-#define VAR(a) ShaderGlobal::set_real(a##VarId, param.a);
+#define VAR(a) ShaderGlobal::set_float(a##VarId, param.a);
     SHADER_VAR_LIST_COLOR_GRADING
 #undef VAR
   };
@@ -69,7 +69,7 @@ void DynamicLutManager::setColorGradingToShader(float baseWhiteTemp, float timeO
   {
     DynamicLutParams dynamicLutAt = dynamicLutParamsList[0];
     float whiteTemp = baseWhiteTemp + dynamicLutAt.colorGradingParams.baseWhiteTemp;
-    ShaderGlobal::set_real(whiteTempVarId, whiteTemp);
+    ShaderGlobal::set_float(whiteTempVarId, whiteTemp);
     setColorGradingToShader(dynamicLutAt.colorGradingParams);
 
     return;
@@ -81,7 +81,7 @@ void DynamicLutManager::setColorGradingToShader(float baseWhiteTemp, float timeO
 
   DynamicLutParams dynamicLutAt = dynamicLutParamsList[0];
   float whiteTemp = baseWhiteTemp + dynamicLutAt.colorGradingParams.baseWhiteTemp;
-  ShaderGlobal::set_real(whiteTempVarId, whiteTemp);
+  ShaderGlobal::set_float(whiteTempVarId, whiteTemp);
 }
 
 void DynamicLutManager::setTonemapToShader(float timeOfDay)
@@ -90,7 +90,7 @@ void DynamicLutManager::setTonemapToShader(float timeOfDay)
     return;
 
   auto setTonemapToShader = [](TonemappingParam param) {
-#define VAR(a) ShaderGlobal::set_real(a##VarId, param.a);
+#define VAR(a) ShaderGlobal::set_float(a##VarId, param.a);
     SHADER_VAR_LIST_TONEMAP
 #undef VAR
   };
@@ -197,7 +197,7 @@ DynamicLutParams DynamicLutManager::getLerpedLutParams(const Tab<DynamicLutParam
   return toReturn;
 }
 
-#if DAGOR_DBGLEVEL > 0
+#if DAGOR_DBGLEVEL != 0
 
 void DynamicLutManager::setImGuiWeatherPath(const char *path) { strncpy(imGuiWeatherPath, path, sizeof(imGuiWeatherPath)); }
 

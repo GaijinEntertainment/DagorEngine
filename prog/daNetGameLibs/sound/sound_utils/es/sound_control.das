@@ -34,7 +34,7 @@ def sound_control_update(evt : Event)
 
                      sound_control__range : float;
                      sound_control__subtemplate : string;
-                     var sound_control__state : int&;
+                     sound_control__state : int;
                      var sound_control__haveSubTemplate : bool&;
                      sound_control__allowSound : bool;
                      is_watched_sound : bool = false;
@@ -45,11 +45,14 @@ def sound_control_update(evt : Event)
     let isHearable = is_watched_sound || (is_hearable_sound_state(sound_control__state) ? (distance_sq(listener, transform[3]) < square(sound_control__range * 0.99)) :
                                                                                           (distance_sq(listener, transform[3]) < square(sound_control__range * 0.92)))
 
-    sound_control__state = isHearable ? int(SoundControlState.SOUND_CONTROL_IS_HEARABLE) : 0
+    var newSoundControlState = isHearable ? int(SoundControlState.SOUND_CONTROL_IS_HEARABLE) : 0
     if is_watched_sound
-      sound_control__state |= int(SoundControlState.SOUND_CONTROL_IS_WATCHED)
+      newSoundControlState |= int(SoundControlState.SOUND_CONTROL_IS_WATCHED)
     if sound_preset__isLoaded && sound_control__allowSound && disableSoundControl == null
-      sound_control__state |= int(SoundControlState.SOUND_CONTROL_IS_PLAYABLE)
+      newSoundControlState |= int(SoundControlState.SOUND_CONTROL_IS_PLAYABLE)
+
+    if newSoundControlState != sound_control__state
+      set(eid, "sound_control__state", newSoundControlState)
 
     toggle_subtemplate(have_sound(sound_control__state), sound_control__haveSubTemplate, sound_control__subtemplate, eid)
 

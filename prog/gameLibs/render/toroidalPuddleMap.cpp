@@ -49,8 +49,8 @@ void ToroidalPuddles::init(int puddles_size, float near_lod_size, float far_lod_
   pixelTreshold = treshold;
   clearValue = clear_value;
 
-  toroidalPuddles =
-    dag::create_array_tex(puddlesCacheSize, puddlesCacheSize, LOD_COUNT, TEXFMT_R8 | TEXCF_RTARGET, 1, "toroidal_puddles_texarray");
+  toroidalPuddles = dag::create_array_tex(puddlesCacheSize, puddlesCacheSize, LOD_COUNT, TEXFMT_R8 | TEXCF_RTARGET, 1,
+    "toroidal_puddles_texarray", RESTAG_LAND);
   toroidalPuddles_texarray_samplerVarId.set_sampler(d3d::request_sampler({}));
 
   for (int j = 0; j < LOD_COUNT; ++j)
@@ -199,10 +199,10 @@ void ToroidalPuddles::updatePuddles(ToroidalPuddlesRenderer &renderer, const Poi
   }
 
   // shader var
-  ShaderGlobal::set_color4(toroidalPuddles_world2uv_1VarId, lodData[0].worldToToroidal);
-  ShaderGlobal::set_color4(toroidalPuddles_world2uv_2VarId, lodData[1].worldToToroidal);
+  ShaderGlobal::set_float4(toroidalPuddles_world2uv_1VarId, lodData[0].worldToToroidal);
+  ShaderGlobal::set_float4(toroidalPuddles_world2uv_2VarId, lodData[1].worldToToroidal);
 
-  ShaderGlobal::set_color4(toroidalPuddles_world_offsetsVarId, lodData[0].uvOffset.x, lodData[0].uvOffset.y, lodData[1].uvOffset.x,
+  ShaderGlobal::set_float4(toroidalPuddles_world_offsetsVarId, lodData[0].uvOffset.x, lodData[0].uvOffset.y, lodData[1].uvOffset.x,
     lodData[1].uvOffset.y);
 
   toroidalPuddles.setVar();

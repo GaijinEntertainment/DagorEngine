@@ -6,7 +6,6 @@
 
 #include <3d/dag_texMgr.h>
 #include <debug/dag_assert.h>
-#include <EASTL/vector_map.h>
 
 class TextureIDPair
 {
@@ -15,7 +14,9 @@ protected:
   TEXTUREID texId;
 
 public:
-  TextureIDPair(BaseTexture *t = NULL, TEXTUREID id = BAD_TEXTUREID) : tex(t), texId(id) {}
+  TextureIDPair(BaseTexture *t, TEXTUREID id) : tex(t), texId(id) {}
+  TextureIDPair() : tex(nullptr), texId(BAD_TEXTUREID) {}
+  TextureIDPair(std::nullptr_t) : tex(nullptr), texId(BAD_TEXTUREID) {}
 
   TEXTUREID getId() const { return texId; }
   BaseTexture *getTex() const { return tex; }
@@ -137,27 +138,4 @@ public:
 
 protected:
   int varId = -1;
-};
-
-// dynamically resizable texture baked by single memory area (heap)
-// resize to smaller size works only when heaps & resource aliasing are supported
-class ResizableTextureIDHolder : public TextureIDHolderWithVar
-{
-public:
-  ResizableTextureIDHolder() = default;
-  ResizableTextureIDHolder(ResizableTextureIDHolder &&rhs) = default;
-  ~ResizableTextureIDHolder() { close(); }
-
-  void resize(int w, int h);
-  void close();
-
-private:
-  struct TextureRecord
-  {
-    BaseTexture *tex;
-    TEXTUREID texId;
-  };
-  using TexRecKey = uint32_t;
-  eastl::vector_map<TexRecKey, TextureRecord> aliases;
-  TexRecKey getKey(uint16_t w, uint16_t h) { return (w << 16) | h; }
 };

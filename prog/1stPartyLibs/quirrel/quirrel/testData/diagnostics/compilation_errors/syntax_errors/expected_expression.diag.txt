@@ -1,0 +1,8 @@
+ERROR: expected 'expression'
+testData/diagnostics/compilation_errors/syntax_errors/expected_expression.nut:2:8
+
+// EXPECT_ERROR: "expected 'expression'"
+let x =
+        ^
+
+

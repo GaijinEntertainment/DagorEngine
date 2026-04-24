@@ -2,7 +2,7 @@ Root    ?= ../../.. ;
 Module = pathfinder ;
 ModuleDependsOnVars = PhysName ;
 Location = prog/daNetGameLibs/$(Module) ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 local DasModule = daNetGameLibs_pathfinder_DAS_pull_AOT ;
 
@@ -10,12 +10,14 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/daNetGame
   $(Root)/prog/1stPartyLibs/daScript/include
-  $(Root)/prog/3rdPartyLibs/Detour/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/Detour/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/DetourTileCache/Include
   $(Root)/prog/gameLibs/publicInclude/quirrel
 ;
 
 UseProgLibs =
-  3rdPartyLibs/Detour
+  3rdPartyLibs/recastnavigation/Detour
+  3rdPartyLibs/recastnavigation/DetourTileCache
   gameLibs/pathFinder
   gameLibs/pathFinder/tileCache
   gameLibs/pathFinder/customNav

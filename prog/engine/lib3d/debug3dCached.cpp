@@ -18,6 +18,7 @@
 #include <math/integer/dag_IPoint2.h>
 #include <math/dag_frustum.h>
 #include <dag/dag_vector.h>
+#include <3d/dag_resPtr.h>
 
 #if DAGOR_DBGLEVEL < 1 && !FORCE_LINK_DEBUG_LINES
 
@@ -30,8 +31,11 @@ bool begin_draw_cached_debug_lines_ex() { return false; }
 void set_cached_debug_lines_wtm(const TMatrix &) {}
 void end_draw_cached_debug_lines() {}
 void end_draw_cached_debug_lines_ex() {}
+void flush_cached_debug_lines() {}
 
 void draw_cached_debug_line(const Point3 &, const Point3 &, E3DCOLOR) {}
+void draw_cached_debug_line(vec3f, vec3f, E3DCOLOR) {}
+void draw_cached_debug_line(vec3f, vec3f, float, E3DCOLOR) {}
 void draw_cached_debug_line_twocolored(const Point3 &, const Point3 &, E3DCOLOR, E3DCOLOR) {}
 bool init_draw_cached_debug_twocolored_shader() { return false; }
 void close_draw_cached_debug() {}
@@ -41,6 +45,7 @@ void draw_cached_debug_box(const BBox3 &, E3DCOLOR) {}
 void draw_cached_debug_box(const Point3 &, const Point3 &, const Point3 &, const Point3 &, E3DCOLOR) {}
 void draw_cached_debug_box(const BBox3 &, E3DCOLOR, const TMatrix &) {}
 void draw_cached_debug_sphere(const Point3 &, real, E3DCOLOR, int) {}
+void draw_cached_debug_sphere(vec3f, real, E3DCOLOR, int) {}
 void draw_cached_debug_circle(const Point3 &, const Point3 &, const Point3 &, real, E3DCOLOR, int) {}
 void draw_skeleton_link(const Point3 &, real, E3DCOLOR) {}
 void draw_skeleton_tree(const GeomNodeTree &, real, E3DCOLOR, E3DCOLOR) {}
@@ -122,6 +127,7 @@ struct CachedDebugLinesData
   bool testZ, writeZ, zFuncLess;
   int started = 0;
   debug3d::CachedStates stateMap;
+  UniqueBuf vertexBuffer;
 
   CachedDebugLinesData()
   {
@@ -156,11 +162,14 @@ struct CachedDebugLinesData
   {
     if (numLines <= 0)
       return;
+    initVertexBuffer();
 
     push_blocks();
     setStates();
-
-    d3d::draw_up(PRIM_LINELIST, numLines, lineVertices.data(), sizeof(lineVertices[0]));
+    vertexBuffer->updateData(0, sizeof(Vertex) * numLines * 2, lineVertices.data(), VBLOCK_DISCARD);
+    d3d::setvsrc(0, vertexBuffer.getBuf(), sizeof(Vertex));
+    d3d::draw(PRIM_LINELIST, 0, numLines);
+    d3d::setvsrc(0, nullptr, 0);
     numLines = 0;
     lineVertices.resize(0);
 
@@ -178,7 +187,10 @@ struct CachedDebugLinesData
     push_blocks();
     setStates();
 
-    d3d::draw_up(PRIM_TRILIST, numTriangles, triangleVertices.data(), sizeof(triangleVertices[0]));
+    vertexBuffer->updateData(0, sizeof(Vertex) * numTriangles * 3, triangleVertices.data(), VBLOCK_DISCARD);
+    d3d::setvsrc(0, vertexBuffer.getBuf(), sizeof(Vertex));
+    d3d::draw(PRIM_TRILIST, 0, numTriangles);
+    d3d::setvsrc(0, nullptr, 0);
     numTriangles = 0;
     triangleVertices.resize(0);
 
@@ -203,8 +215,11 @@ struct CachedDebugLinesData
     push_blocks();
 
     d3d::settm(TM_WORLD, &Matrix44::IDENT);
+    vertexBuffer->updateData(0, sizeof(Vertex) * numLines2Colored * 2, lineVertices2Colored.data(), VBLOCK_DISCARD);
+    d3d::setvsrc(0, vertexBuffer.getBuf(), sizeof(Vertex));
     elem2Colored->setStates();
-    d3d::draw_up(PRIM_LINELIST, numLines2Colored, lineVertices2Colored.data(), sizeof(lineVertices2Colored[0]));
+    d3d::draw(PRIM_LINELIST, 0, numLines2Colored);
+    d3d::setvsrc(0, nullptr, 0);
     numLines2Colored = 0;
     lineVertices2Colored.resize(0);
 
@@ -302,13 +317,20 @@ struct CachedDebugLinesData
       logerr("draw_cached_debug_line_twocolored shader init failed, it'll fall back to draw_cached_debug_line");
     else
       debug("draw_cached_debug_line_twocolored is now initialized.");
+    initVertexBuffer();
     return (bool)elem2Colored;
+  }
+  void initVertexBuffer()
+  {
+    if (!vertexBuffer)
+      vertexBuffer = dag::create_vb(sizeof(Vertex) * MAX_TRIANGLES * 3, SBCF_BIND_VERTEX | SBCF_DYNAMIC, "debug3dCachedLinesVB");
   }
 
   void close2ColoredShaders()
   {
     elem2Colored = {};
     mat2Colored = {};
+    vertexBuffer.close();
   }
 };
 
@@ -359,6 +381,19 @@ void set_cached_debug_lines_wtm(const TMatrix &wtm) { ::cdld.wtm = wtm; }
 
 void draw_cached_debug_line(const Point3 &p0, const Point3 &p1, E3DCOLOR color) { ::cdld.addLine(p0, color, p1, color); }
 
+void draw_cached_debug_line(vec3f v0, vec3f v1, E3DCOLOR color)
+{
+  Point3_vec4 p0, p1;
+  v_st(&p0.x, v0);
+  v_st(&p1.x, v1);
+  ::cdld.addLine(p0, color, p1, color);
+}
+
+void draw_cached_debug_line(vec3f v0, vec3f dir, float t, E3DCOLOR color)
+{
+  draw_cached_debug_line(v0, v_madd(dir, v_splats(t), v0), color);
+}
+
 void draw_cached_debug_line_twocolored(const Point3 &p0, const Point3 &p1, E3DCOLOR color_front, E3DCOLOR color_behind)
 {
   ::cdld.addLine2Colored(p0, p1, color_front, color_behind);
@@ -373,6 +408,9 @@ void end_draw_cached_debug_lines()
   ::cdld.flush();
   cdld.started--;
 }
+
+void flush_cached_debug_lines() { ::cdld.flush(); }
+
 void end_draw_cached_debug_lines_ex()
 {
   if (cdld.started > 1)
@@ -466,6 +504,13 @@ void draw_cached_debug_sphere(const Point3 &c, real rad, E3DCOLOR col, int segs)
   ::draw_cached_debug_line(c - Point3(rad, 0, 0), c + Point3(rad, 0, 0), col);
   ::draw_cached_debug_line(c - Point3(0, rad, 0), c + Point3(0, rad, 0), col);
   ::draw_cached_debug_line(c - Point3(0, 0, rad), c + Point3(0, 0, rad), col);
+}
+
+void draw_cached_debug_sphere(vec3f c, real rad, E3DCOLOR col, int segs)
+{
+  Point3_vec4 center;
+  v_st(&center.x, c);
+  draw_cached_debug_sphere(center, rad, col, segs);
 }
 
 void draw_cached_debug_sphere_outline_clipped(const Point3 &camera, const Point3 &center, const real R, const Point4 &clipPlane,
@@ -741,6 +786,7 @@ void draw_cached_debug_trilist(const Point3 *p, int tn, E3DCOLOR c) { cdld.addTr
 void draw_cached_debug_hex(const TMatrix &view_itm, const Point3 &pos, real rad, E3DCOLOR c)
 {
   push_blocks();
+  cdld.initVertexBuffer();
   cdld.setStates();
   CachedDebugLinesData::Vertex v[6];
   Point3 ax = rad * view_itm.getcol(0), ay = rad * view_itm.getcol(1);
@@ -757,13 +803,17 @@ void draw_cached_debug_hex(const TMatrix &view_itm, const Point3 &pos, real rad,
   v[4].c = c;
   v[5].p = pos + ax * cosf(0 * PI / 3) + ay * sinf(0 * PI / 3);
   v[5].c = c;
-  d3d::draw_up(PRIM_TRISTRIP, 4, v, sizeof(v[0]));
+  cdld.vertexBuffer->updateData(0, sizeof(v), v, VBLOCK_DISCARD);
+  d3d::setvsrc(0, cdld.vertexBuffer.getBuf(), sizeof(v[0]));
+  d3d::draw(PRIM_TRISTRIP, 0, 4);
+  d3d::setvsrc(0, nullptr, 0);
   cdld.resetStates();
   pop_blocks();
 }
 void draw_cached_debug_quad(const Point3 p[4], E3DCOLOR c)
 {
   push_blocks();
+  cdld.initVertexBuffer();
   cdld.setStates();
   CachedDebugLinesData::Vertex v[4];
   v[0].p = p[0];
@@ -774,7 +824,10 @@ void draw_cached_debug_quad(const Point3 p[4], E3DCOLOR c)
   v[2].c = c;
   v[3].p = p[3];
   v[3].c = c;
-  d3d::draw_up(PRIM_TRISTRIP, 2, v, sizeof(v[0]));
+  cdld.vertexBuffer->updateData(0, sizeof(v), v, VBLOCK_DISCARD);
+  d3d::setvsrc(0, cdld.vertexBuffer.getBuf(), sizeof(v[0]));
+  d3d::draw(PRIM_TRISTRIP, 0, 2);
+  d3d::setvsrc(0, nullptr, 0);
   cdld.resetStates();
   pop_blocks();
 }
@@ -887,9 +940,17 @@ void draw_cached_debug_solid_box(const mat43f *__restrict tm, const bbox3f *__re
     vert[5].p = corners[4];
     vert += 6;
     if ((i % MAX_BOXES) == MAX_BOXES - 1 && i < count - 1)
-      d3d::draw_up(PRIM_TRILIST, MAX_BOXES * 12, vert = vertices.data(), sizeof(CachedDebugLinesData::Vertex));
+    {
+      cdld.vertexBuffer->updateData(0, data_size(vertices), vertices.data(), VBLOCK_DISCARD);
+      d3d::setvsrc(0, cdld.vertexBuffer.getBuf(), sizeof(*vert));
+      d3d::draw(PRIM_TRILIST, 0, MAX_BOXES * 12);
+      vert = vertices.data();
+    }
   }
-  d3d::draw_up(PRIM_TRILIST, (count % MAX_BOXES) * 12, vertices.data(), sizeof(CachedDebugLinesData::Vertex));
+  cdld.vertexBuffer->updateData(0, sizeof(*vert) * count * 36, vertices.data(), VBLOCK_DISCARD);
+  d3d::setvsrc(0, cdld.vertexBuffer.getBuf(), sizeof(*vert));
+  d3d::draw(PRIM_TRILIST, 0, (count % MAX_BOXES) * 12);
+  d3d::setvsrc(0, nullptr, 0);
   cdld.resetStates();
   pop_blocks();
 }

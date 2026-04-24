@@ -6,6 +6,7 @@
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
 #include <drv/3d/dag_resetDevice.h>
@@ -61,6 +62,7 @@ struct LCTexturesLoaded
   Point4 weighMapMulOffset = {-1, -1, -1, -1};
   IPoint4 physmatIDs = {0, 0, 0, 0};
   Point4 puddleScales = {1.0, 1.0, 1.0, 1.0};
+  Point4 finalColorMul = {1.0, 1.0, 1.0, 1.0};
 
   mutable bool lastUsedGrassMask = false;
 };
@@ -123,6 +125,7 @@ static int lmesh_ps_const__puddlescales = -1;
 static int lmesh_ps_const__displacementmin = -1;
 static int lmesh_ps_const__displacementmax = -1;
 static int lmesh_ps_const__compdiffusescales = -1;
+static int lmesh_ps_const__finalcolormul = -1;
 static int lmesh_ps_const__randomFlowmapParams = -1;
 static int lmesh_ps_const__water_decal_bump_scale = -1;
 static int lmesh_sampler__flowmap_tex = -1;
@@ -133,7 +136,7 @@ static int lmesh_sampler__land_detail_array1 = -1;
 
 static int lmesh_physmats__buffer_idx = -1;
 
-static carray<int, LandMeshManager::DECALS_OVERRIDE_SAMPLERS_COUNT> decals_overrideSampler_const_no_array;
+carray<int, LandMeshManager::DECALS_OVERRIDE_SAMPLERS_COUNT> decals_overrideSampler_const_no_array;
 
 static int get_shader_int_constant(const char *name, int def)
 {
@@ -163,20 +166,11 @@ static void init_one_quad()
 {
   del_d3dres(one_quad);
 
-  one_quad = d3d::create_vb(4 * 4 * 2, 0, "lm-1quad");
+  one_quad = d3d::create_vb(4 * 4 * 2, 0, "lm-1quad", RESTAG_LAND);
   d3d_err(one_quad);
-  short *vert;
-  d3d_err(one_quad->lock(0, 0, (void **)&vert, VBLOCK_WRITEONLY));
-  if (!vert)
-  {
-    del_d3dres(one_quad);
-    return;
-  }
-
   static const short int minus1 = -32768;
   signed short vertQuad[4][4] = {minus1, 0, minus1, 32767, minus1, 0, 32767, 32767, 32767, 0, minus1, 32767, 32767, 0, 32767, 32767};
-  memcpy(vert, vertQuad, sizeof(vertQuad));
-  one_quad->unlock();
+  one_quad->updateDataWithLock(0, sizeof(vertQuad), vertQuad, VBLOCK_WRITEONLY);
 }
 
 static void lmesh_after_reset_device(bool)
@@ -507,8 +501,7 @@ shaders::OverrideStateId LandMeshRenderer::MirroredCellState::currentCullFlipped
 shaders::OverrideStateId LandMeshRenderer::MirroredCellState::currentCullFlippedCurStateId;
 
 LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<LandClassDetailTextures> land_classes,
-  int biome_land_class_idx, TEXTUREID vert_tex_id, d3d::SamplerHandle vert_tex_smp, TEXTUREID vert_nm_tex_id,
-  d3d::SamplerHandle vert_nm_tex_smp, TEXTUREID vert_det_tex_id, d3d::SamplerHandle vert_det_tex_smp, TEXTUREID tile_tex,
+  int biome_land_class_idx, TEXTUREID vert_tex_id, TEXTUREID vert_nm_tex_id, TEXTUREID vert_det_tex_id, TEXTUREID tile_tex,
   d3d::SamplerHandle tile_smp, real tile_x, real tile_y) :
   tileTexId(tile_tex),
   tileTexSmp(tile_smp),
@@ -537,10 +530,6 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   numBorderCellsXNeg = 0;
   numBorderCellsZPos = 0;
   numBorderCellsZNeg = 0;
-  mirrorShrinkXPos = 0.f;
-  mirrorShrinkXNeg = 0.f;
-  mirrorShrinkZPos = 0.f;
-  mirrorShrinkZNeg = 0.f;
   vertTexId = vert_tex_id;
   vertNmTexId = vert_nm_tex_id;
   vertDetTexId = vert_det_tex_id;
@@ -561,11 +550,8 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   worldViewPosVarId = ::get_shader_glob_var_id("world_view_pos");
 
   vertTexGvId = ::get_shader_glob_var_id("vertical_tex", true);
-  ShaderGlobal::set_sampler(::get_shader_glob_var_id("vertical_tex_samplerstate", true), vert_tex_smp);
   vertNmTexGvId = ::get_shader_glob_var_id("vertical_nm_tex", true);
-  ShaderGlobal::set_sampler(::get_shader_glob_var_id("vertical_nm_tex_samplerstate", true), vert_nm_tex_smp);
   vertDetTexGvId = ::get_shader_glob_var_id("vertical_det_tex", true);
-  ShaderGlobal::set_sampler(::get_shader_glob_var_id("vertical_det_tex_samplerstate", true), vert_det_tex_smp);
   indicestexDimensionsVarId = ::get_shader_glob_var_id("indicestexDimensions", true);
 
   if (d3d::get_driver_desc().info.vendor == GpuVendor::QUALCOMM)
@@ -598,6 +584,7 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
   GET_SHADER_CONSTANT(lmesh_ps_const__displacementmin);
   GET_SHADER_CONSTANT(lmesh_ps_const__displacementmax);
   GET_SHADER_CONSTANT(lmesh_ps_const__compdiffusescales);
+  GET_SHADER_CONSTANT(lmesh_ps_const__finalcolormul);
   GET_SHADER_CONSTANT(lmesh_ps_const__randomFlowmapParams);
   GET_SHADER_CONSTANT(lmesh_ps_const__water_decal_bump_scale);
   GET_SHADER_CONSTANT(lmesh_sampler__land_detail_map);
@@ -616,7 +603,7 @@ LandMeshRenderer::LandMeshRenderer(LandMeshManager &provider, dag::ConstSpan<Lan
 
   GET_SHADER_CONSTANT(lmesh_physmats__buffer_idx);
   if (lmesh_physmats__buffer_idx > 0)
-    physmatIdsBuf = d3d::buffers::create_one_frame_sr_byte_address(DET_TEX_NUM * 4, "physmats_IDS");
+    physmatIdsBuf = d3d::buffers::create_one_frame_sr_byte_address(DET_TEX_NUM * 4, "physmats_IDS", RESTAG_LAND);
   else
     physmatIdsBuf = NULL;
 
@@ -1067,6 +1054,7 @@ void LandMeshRenderer::prepareLandClasses(LandMeshManager &provider)
     landClassesLoaded[i].displacementMin = landClasses[i].displacementMin;
     landClassesLoaded[i].displacementMax = landClasses[i].displacementMax;
     landClassesLoaded[i].compatibilityDiffuseScales = landClasses[i].compatibilityDiffuseScales;
+    landClassesLoaded[i].finalColorMul = landClasses[i].finalColorMul;
     landClassesLoaded[i].randomFlowmapParams = landClasses[i].randomFlowmapParams;
     landClassesLoaded[i].flowmapMask = landClasses[i].flowmapMask;
     landClassesLoaded[i].waterDecalBumpScale = landClasses[i].waterDecalBumpScale;
@@ -1442,7 +1430,8 @@ inline bool shouldRenderMeshElem(const LandMeshManager &provider, int cellId, in
          provider.getDecalElems().data()[cellId].shouldRenderElem[elemId];
 }
 
-bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const MirroredCellState &mirroredCell)
+bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const MirroredCellState &mirroredCell,
+  bool force_samplers_no_mipbias)
 {
   ShaderMesh *decalm = provider.getCellDecalShaderMeshOffseted(mirroredCell.cellX, mirroredCell.cellY);
   if (!decalm || !(lmesh_render_flags & RENDER_DECALS))
@@ -1454,7 +1443,7 @@ bool LandMeshRenderer::renderCellDecals(LandMeshManager &provider, const Mirrore
       provider.getDecalElems()[id].elemBoxes.size() == decalm->getAllElems().size())
   {
     bool setSamplersNoMipbias =
-      getLMeshRenderingMode() == LMeshRenderingMode::RENDERING_CLIPMAP &&
+      (getLMeshRenderingMode() == LMeshRenderingMode::RENDERING_CLIPMAP || force_samplers_no_mipbias) &&
       eastl::find_if(decals_overrideSampler_const_no_array.begin(), decals_overrideSampler_const_no_array.end(),
         [](int smp_reg) { return smp_reg >= 0; }) != decals_overrideSampler_const_no_array.end();
 
@@ -1615,7 +1604,7 @@ void LandMeshRenderer::setCustomLcTextures()
   static int use_flowmap_from_textureVarID = ::get_shader_glob_var_id("use_flowmap_from_texture", true);
   ShaderGlobal::set_int(use_flowmap_from_textureVarID, 0);
 
-  ShaderGlobal::set_real(indicestexDimensionsVarId, landLoaded.textureDimensions);
+  ShaderGlobal::set_float(indicestexDimensionsVarId, landLoaded.textureDimensions);
 
   if (landLoaded.lcTextures.size())
   {
@@ -1627,7 +1616,7 @@ void LandMeshRenderer::setCustomLcTextures()
     }
   }
 
-  if (lmesh_sampler__land_detail_array1)
+  if (lmesh_sampler__land_detail_array1 >= 0)
   {
     for (int i = 0; i < megaDetailsArray.size(); ++i)
     {
@@ -1662,22 +1651,16 @@ void LandMeshRenderer::setCustomLcTextures()
   Point3 offset = Point3(0, 0, 0);
 
   ShaderGlobal::set_texture(::get_shader_variable_id("biomeIndicesTex", true), landClasses[i].lcTextures[0]);
-  {
-    d3d::SamplerInfo smpInfo;
-    smpInfo.filter_mode = d3d::FilterMode::Point;
-    smpInfo.mip_map_mode = d3d::MipMapMode::Disabled;
-    ShaderGlobal::set_sampler(::get_shader_variable_id("biomeIndicesTex_samplerstate", true), d3d::request_sampler(smpInfo));
-  }
-  ShaderGlobal::set_color4(::get_shader_variable_id("biome_indices_tex_size", true), lcTexInfo.w, lcTexInfo.h, 1.0f / lcTexInfo.w,
+  ShaderGlobal::set_float4(::get_shader_variable_id("biome_indices_tex_size", true), lcTexInfo.w, lcTexInfo.h, 1.0f / lcTexInfo.w,
     1.0f / lcTexInfo.h);
-  ShaderGlobal::set_color4(::get_shader_variable_id("land_detail_mul_offset", true), landClasses[i].tile, -landClasses[i].tile,
+  ShaderGlobal::set_float4(::get_shader_variable_id("land_detail_mul_offset", true), landClasses[i].tile, -landClasses[i].tile,
     (landClasses[i].offset.x - offset.x + 0.5f * worldLcTexelSize) * landClasses[i].tile,
     (landClasses[i].offset.y - offset.z + 0.5f * worldLcTexelSize) * -landClasses[i].tile);
 }
 
 void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, LandClassType lcFilter)
 {
-  LandClassType currentLcType = (LandClassType)0xFFFF;
+  eastl::optional<LandClassType> currentLcType;
   Point4 weight[2] = {Point4(0, 0, 0, 0), Point4(0, 0, 0, 0)};
   d3d::set_ps_const(lmesh_ps_const__weight, &weight[0].x, 2);
   int last_ps_cb_register = -1;
@@ -1702,7 +1685,7 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
       blendSet = true;
     }
 
-    if ((currentLcType != landLoaded.lcType) || ((landLoaded.flowmapTex.tid != BAD_TEXTUREID) != has_flowmap_tex))
+    if ((!currentLcType || currentLcType != landLoaded.lcType) || ((landLoaded.flowmapTex.tid != BAD_TEXTUREID) != has_flowmap_tex))
     {
       static int use_flowmap_from_textureVarID = ::get_shader_glob_var_id("use_flowmap_from_texture", true);
       has_flowmap_tex = (landLoaded.flowmapTex.tid != BAD_TEXTUREID);
@@ -1719,10 +1702,10 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
           d3d::set_sampler(STAGE_PS, lmesh_sampler__land_detail_array1 + i, megaDetailsArray[i].first.sampler);
         }
       }
-      G_ASSERT(landclassShader[currentLcType].elem);
-      if (!landclassShader[currentLcType].elem->setStates(0, true)) // different land class types!
+      G_ASSERT(landclassShader[*currentLcType].elem);
+      if (!landclassShader[*currentLcType].elem->setStates(0, true)) // different land class types!
       {
-        logerr("can not set land class = %d stateblocks 0x%X: %d:%d", currentLcType, ShaderGlobal::getCurBlockStateWord(),
+        logerr("can not set land class = %d stateblocks 0x%X: %d:%d", *currentLcType, ShaderGlobal::getCurBlockStateWord(),
           ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME), ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE));
         continue;
       }
@@ -1740,12 +1723,12 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
     if (lmesh_ps_const__invtexturesizes >= 0) //&& normal map
       d3d::set_ps_const1(lmesh_ps_const__invtexturesizes, curState.invTexSizes[detailI >> 2][detailI & 3], 0, 0, 0);
 
-    const ShaderInfo &shader = landclassShader[currentLcType];
+    const ShaderInfo &shader = landclassShader[*currentLcType];
     if (currentLcType != LC_SIMPLE)
     {
       if (currentLcType >= LC_CUSTOM)
       {
-        ShaderGlobal::set_real(indicestexDimensionsVarId, landLoaded.textureDimensions);
+        ShaderGlobal::set_float(indicestexDimensionsVarId, landLoaded.textureDimensions);
       }
       if (shader.lc_textures_sampler >= 0 && landLoaded.lcTextures.size())
       {
@@ -1798,6 +1781,9 @@ void LandMeshRenderer::renderLandclasses(CellState &curState, bool useFilter, La
 
       if (lmesh_ps_const__compdiffusescales >= 0)
         d3d::set_ps_const(lmesh_ps_const__compdiffusescales, &landLoaded.compatibilityDiffuseScales.x, 1);
+
+      if (lmesh_ps_const__finalcolormul >= 0)
+        d3d::set_ps_const(lmesh_ps_const__finalcolormul, &landLoaded.finalColorMul.x, 1);
 
       if (lmesh_ps_const__randomFlowmapParams >= 0)
       {
@@ -1981,7 +1967,7 @@ void LandMeshRenderer::renderCell(LandMeshManager &provider, int cellNo, int lod
     if (debugCells && VariableMap::isGlobVariablePresent(landmesh_debug_cells_scale_gvid))
     {
       float s = ((mirroredCell.cellX + mirroredCell.cellY) & 1) ? 0.2f : 1.0f;
-      ShaderGlobal::set_color4_fast(landmesh_debug_cells_scale_gvid, Color4(s, s, s, s));
+      ShaderGlobal::set_float4(landmesh_debug_cells_scale_gvid, Color4(s, s, s, s));
     }
     mirroredCell.setPsMirror();
     // reverse order - landmesh combined first
@@ -2268,7 +2254,7 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
   // int opt_vs = (!renderInBBox.isempty() && renderInBBox.width().length() > big_clipmap_criterio);
   // ShaderGlobal::set_int_fast(optimizeVsId, opt_vs);
 
-  ShaderGlobal::set_color4_fast(worldViewPosVarId, view_pos.x, view_pos.y, view_pos.z, 1.f);
+  ShaderGlobal::set_float4(worldViewPosVarId, view_pos.x, view_pos.y, view_pos.z, 1.f);
 
   if (rtype == RENDER_CLIPMAP || rtype == RENDER_PATCHES || rtype == RENDER_GRASS_MASK)
     for (int i = 0; i <= lmesh_sampler__max_used_sampler; ++i)
@@ -2550,7 +2536,8 @@ void LandMeshRenderer::renderCulled(LandMeshManager &provider, RenderType rtype,
 }
 
 
-bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, bool compatibility_mode)
+bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype, const TMatrix4 &globtm, bool compatibility_mode,
+  bool use_samplers_no_mipbias)
 {
   LandMeshCullingState state;
   state.copyLandmeshState(provider, *this);
@@ -2572,20 +2559,21 @@ bool LandMeshRenderer::renderDecals(LandMeshManager &provider, RenderType rtype,
   }
   LandMeshCullingData defaultCullData(framemem_ptr());
   state.frustumCulling(provider, defaultCullData, NULL, 0,
-    HeightmapFrustumCullingInfo{hmapOriginPos, cameraHeight, waterLevel, frustum, NULL, -1});
+    HeightmapFrustumCullingInfo{hmapOriginPos, cameraHeight, waterLevel, frustum, NULL, NULL, -1});
 
   LandMeshRenderer::MirroredCellState::startRender();
 
   int oldScene = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE);
   ShaderGlobal::setBlock(land_mesh_object_blkid[rtype], ShaderGlobal::LAYER_SCENE);
-  bool renderedAnything = renderCulledDecals(provider, defaultCullData, compatibility_mode);
+  bool renderedAnything = renderCulledDecals(provider, defaultCullData, compatibility_mode, use_samplers_no_mipbias);
   if (oldScene != ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE))
     ShaderGlobal::setBlock(oldScene, ShaderGlobal::LAYER_SCENE);
 
   return renderedAnything;
 }
 
-bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandMeshCullingData &culledData, bool compatibility_mode)
+bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandMeshCullingData &culledData, bool compatibility_mode,
+  bool use_samplers_no_mipbias)
 {
   G_ASSERT(cellStates);
   if (!cellStates)
@@ -2628,7 +2616,7 @@ bool LandMeshRenderer::renderCulledDecals(LandMeshManager &provider, const LandM
           }
         }
 
-        renderedAnything |= renderCellDecals(provider, mirroredCell);
+        renderedAnything |= renderCellDecals(provider, mirroredCell, use_samplers_no_mipbias);
       }
 
   return renderedAnything;
@@ -2676,9 +2664,10 @@ void LandMeshRenderer::render(mat44f_cref globtm, const TMatrix4 &proj, const Fr
   if (rtype == RENDER_DEPTH)
     defaultCullData.heightmapData.useHWTesselation = false;
   defaultCullData.heightmapData.frustum = frustum;
-  HeightmapFrustumCullingInfo fi{hmapOriginPos, cameraHeight, waterLevel, frustum, NULL, -1, 0, 1, proj,
-    lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? 1e-6f : 0.f,
-    lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? fi.FASTEST : fi.BEST};
+  HeightmapFrustumCullingInfo fi{hmapOriginPos, cameraHeight, waterLevel, frustum, NULL, NULL, -1, 0, 1,
+    {proj_to_distance_scale(proj), int8_t(lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? -100 : 0),
+      lmeshRenderingMode == LMeshRenderingMode::RENDERING_HEIGHTMAP ? HeightmapMetricsQuality::FASTEST
+                                                                    : HeightmapMetricsQuality::BEST}};
 
   if (rtype == RENDER_CLIPMAP || rtype == RENDER_PATCHES || rtype == RENDER_GRASS_MASK ||
       (debugCells && (rtype == RENDER_WITH_CLIPMAP || rtype == RENDER_REFLECTION)))
@@ -2736,17 +2725,12 @@ void LandMeshRenderer::render(mat44f_cref globtm, const TMatrix4 &proj, const Fr
 
 
 void LandMeshRenderer::setMirroring(LandMeshManager &provider, int num_border_cells_x_pos, int num_border_cells_x_neg,
-  int num_border_cells_z_pos, int num_border_cells_z_neg, float mirror_shrink_x_pos, float mirror_shrink_x_neg,
-  float mirror_shrink_z_pos, float mirror_shrink_z_neg)
+  int num_border_cells_z_pos, int num_border_cells_z_neg)
 {
   numBorderCellsXPos = num_border_cells_x_pos * scaleVisRange;
   numBorderCellsXNeg = num_border_cells_x_neg * scaleVisRange;
   numBorderCellsZPos = num_border_cells_z_pos * scaleVisRange;
   numBorderCellsZNeg = num_border_cells_z_neg * scaleVisRange;
-  mirrorShrinkXPos = mirror_shrink_x_pos;
-  mirrorShrinkXNeg = mirror_shrink_x_neg;
-  mirrorShrinkZPos = mirror_shrink_z_pos;
-  mirrorShrinkZNeg = mirror_shrink_z_neg;
 
   int visRange = provider.getVisibilityRangeCells();
   if (visRange < 0)

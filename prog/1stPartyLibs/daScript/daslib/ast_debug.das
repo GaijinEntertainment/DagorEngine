@@ -6,7 +6,13 @@ options strict_smart_pointers = true
 
 module ast_debug shared private
 
-require debugapi
+//! AST-level debugger state reporting.
+//!
+//! Sends AST expression and program-structure data to the
+//! debug agent for live inspection of compilation state in
+//! the DAP variable view.
+
+require daslib/debugger
 require daslib/ast_boost
 require daslib/strings
 
@@ -24,7 +30,7 @@ def isExpressionType(_vinfo) {
     if (vinfo.basicType != Type.tHandle) {
         return false
     }
-    if (vinfo.annotation._module.name != "ast") {
+    if (vinfo.annotation._module.name != "ast_core") {
         return false
     }
     if (!string(vinfo.annotation.name) |> starts_with("Expr")) {
@@ -51,18 +57,18 @@ def isModulePtrType(_vinfo; mod, what : string) {
 }
 
 def isAstPtrType(_vinfo; what : string) {
-    return isModulePtrType(_vinfo, "ast", what)
+    return isModulePtrType(_vinfo, "ast_core", what)
 }
 
 def isRttiPtrType(_vinfo; what : string) {
-    return isModulePtrType(_vinfo, "rtti", what)
+    return isModulePtrType(_vinfo, "rtti_core", what)
 }
 
 def isRttiType(vinfo; what : string) {
     if (vinfo.basicType != Type.tHandle) {
         return false
     }
-    if (vinfo.annotation._module.name != "rtti") {
+    if (vinfo.annotation._module.name != "rtti_core") {
         return false
     }
     if (vinfo.annotation.name != what) {
@@ -101,6 +107,7 @@ def describe_arg(var ctxid : Context; vinfo; arg : void?) : void {
 }
 
 class SampleStackWalker : DapiStackWalker {
+    //! Sample stack walker that prints call stack to the log.
     ctxid : Context?
     def override onArgument(info : FuncInfo; index : int; vinfo : VarInfo; arg : float4) : void {
         if (vinfo.flags.ref || vinfo.flags.refType) {
@@ -125,6 +132,7 @@ class SampleStackWalker : DapiStackWalker {
 }
 
 class ContextStateAgent : DapiDebugAgent {
+    //! Debug agent that installs context-level stack walkers.
     walker_adapter : smart_ptr<StackWalker>
     walker : SampleStackWalker?
     def ContextStateAgent {

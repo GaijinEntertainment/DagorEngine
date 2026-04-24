@@ -21,17 +21,21 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <EASTL/unique_ptr.h>
 
 
 ShaderGraphRecompiler *create_fog_shader_recompiler();
 ShaderGraphRecompiler *create_envi_cover_shader_recompiler();
 
 ShaderGraphRecompiler *ShaderGraphRecompiler::activeInstance = nullptr;
-ShaderGraphRecompiler *ShaderGraphRecompiler::fogInstance = nullptr;
-ShaderGraphRecompiler *ShaderGraphRecompiler::enviCoverInstance = nullptr;
 
-String get_template_text_src_fog(uint32_t variant_id);
-String get_template_text_src_envi_cover(uint32_t variant_id);
+static eastl::unique_ptr<ShaderGraphRecompiler> g_fog_instance;
+static eastl::unique_ptr<ShaderGraphRecompiler> g_envi_cover_instance;
+
+String get_template_text_src_fog(uint32_t variant_id, NodeBasedShaderQuality nbs_quality);
+String get_template_text_src_envi_cover(uint32_t variant_id, NodeBasedShaderQuality nbs_quality);
+String get_dshl_template_text_src_fog();
+String get_dshl_template_text_src_envi_cover();
 
 String find_shader_editors_path()
 {
@@ -72,6 +76,11 @@ static String read_file_to_string(String &file_name)
 }
 
 
+String add_nbs_quality_definition(NodeBasedShaderQuality nbs_quality)
+{
+  return String(32, "#define NBS_QUALITY %d", static_cast<int>(nbs_quality));
+};
+
 String collect_template_files(const String &template_dir, const Tab<String> &template_names)
 {
   String res;
@@ -100,12 +109,22 @@ static String get_template_ps4_header()
   return collect_template_files(find_shader_editors_path(), templateNames);
 }
 
-static String get_template_text_src(NodeBasedShaderType shader, uint32_t variant_id)
+static String get_template_text_src(NodeBasedShaderType shader, uint32_t variant_id, NodeBasedShaderQuality nbs_quality)
 {
   switch (shader)
   {
-    case NodeBasedShaderType::Fog: return get_template_text_src_fog(variant_id);
-    case NodeBasedShaderType::EnviCover: return get_template_text_src_envi_cover(variant_id);
+    case NodeBasedShaderType::Fog: return get_template_text_src_fog(variant_id, nbs_quality);
+    case NodeBasedShaderType::EnviCover: return get_template_text_src_envi_cover(variant_id, nbs_quality);
+    default: G_ASSERTF(false, "Implement this shader type here!"); return String("");
+  }
+}
+
+static String get_dshl_template_text_src(NodeBasedShaderType shader)
+{
+  switch (shader)
+  {
+    case NodeBasedShaderType::Fog: return get_dshl_template_text_src_fog();
+    case NodeBasedShaderType::EnviCover: return get_dshl_template_text_src_envi_cover();
     default: G_ASSERTF(false, "Implement this shader type here!"); return String("");
   }
 }
@@ -131,14 +150,16 @@ String ShaderGraphRecompiler::enumerateLines(const char *s)
   return res;
 }
 
-String ShaderGraphRecompiler::substitute(NodeBasedShaderType shader, uint32_t variant_id, const DataBlock &shader_blk)
+String ShaderGraphRecompiler::substitute(NodeBasedShaderType shader, uint32_t variant_id, NodeBasedShaderQuality nbs_quality,
+  const DataBlock &shader_blk)
 {
-  return substitute(shader_blk, get_template_text_src(shader, variant_id));
+  return substitute(shader_blk, get_template_text_src(shader, variant_id, nbs_quality));
 }
 
-String ShaderGraphRecompiler::substitutePs4(NodeBasedShaderType shader, uint32_t variant_id, const DataBlock &shader_blk)
+String ShaderGraphRecompiler::substitutePs4(NodeBasedShaderType shader, uint32_t variant_id, NodeBasedShaderQuality nbs_quality,
+  const DataBlock &shader_blk)
 {
-  return substitute(shader_blk, String(get_template_ps4_header()) + get_template_text_src(shader, variant_id));
+  return substitute(shader_blk, String(get_template_ps4_header()) + get_template_text_src(shader, variant_id, nbs_quality));
 }
 
 String ShaderGraphRecompiler::substitute(const DataBlock &shader_blk, String shader_template)
@@ -153,13 +174,18 @@ String ShaderGraphRecompiler::substitute(const DataBlock &shader_blk, String sha
   return shader_template;
 }
 
+String ShaderGraphRecompiler::substituteDshl(NodeBasedShaderType shader, const DataBlock &shader_blk)
+{
+  return substitute(shader_blk, get_dshl_template_text_src(shader));
+}
+
 #if !NBSM_COMPILE_ONLY
 
 void ShaderGraphRecompiler::activate(NodeBasedShaderType shader)
 {
   switch (shader)
   {
-    case NodeBasedShaderType::Fog: activeInstance = fogInstance; break;
+    case NodeBasedShaderType::Fog: activeInstance = g_fog_instance.get(); break;
 
     default: G_ASSERTF(false, "Implement activating this shader here"); return;
   }
@@ -202,13 +228,13 @@ void ShaderGraphRecompiler::initialize(NodeBasedShaderType shader, ShaderCompile
   switch (shader)
   {
     case NodeBasedShaderType::Fog:
-      del_it(fogInstance);
-      instance = fogInstance = create_fog_shader_recompiler();
+      g_fog_instance.reset(create_fog_shader_recompiler());
+      instance = g_fog_instance.get();
       break;
 
     case NodeBasedShaderType::EnviCover:
-      del_it(enviCoverInstance);
-      instance = enviCoverInstance = create_envi_cover_shader_recompiler();
+      g_envi_cover_instance.reset(create_envi_cover_shader_recompiler());
+      instance = g_envi_cover_instance.get();
       break;
 
     default: G_ASSERTF(false, "This shader recompiler is not yet implemented!"); break;
@@ -227,24 +253,27 @@ void ShaderGraphRecompiler::onShaderGraphEditor(webui::RequestInfo *params)
 {
   if (strcmp(params->plugin->name, FOG_SHADER_EDITOR_PLUGIN_NAME) == 0)
   {
-    if (!ShaderGraphRecompiler::fogInstance)
+    if (!g_fog_instance)
       init_fog_shader_graph_plugin();
 
-    if (ShaderGraphRecompiler::fogInstance && ShaderGraphRecompiler::fogInstance->shader_editor)
-      ShaderGraphRecompiler::fogInstance->shader_editor->processRequest(params);
+    if (g_fog_instance && g_fog_instance->shader_editor)
+      g_fog_instance->shader_editor->processRequest(params);
     else
       webui::html_response_raw(params->conn, "Error: ShaderGraphRecompiler::shader_editor == null<br>"
-                                             "Maybe 'rootFogGraph:t' was not found in block 'volFog' in level blk");
+                                             "Wait for game loading to finish! If issue persists after that<br>"
+                                             "maybe 'volfog_nbs' template/entity is missing from scene");
   }
   else if (strcmp(params->plugin->name, ENVI_COVER_SHADER_EDITOR_PLUGIN_NAME) == 0)
   {
-    if (!ShaderGraphRecompiler::enviCoverInstance)
+    if (!g_envi_cover_instance)
       init_envi_cover_graph_plugin();
 
-    if (ShaderGraphRecompiler::enviCoverInstance && ShaderGraphRecompiler::enviCoverInstance->shader_editor)
-      ShaderGraphRecompiler::enviCoverInstance->shader_editor->processRequest(params);
+    if (g_envi_cover_instance && g_envi_cover_instance->shader_editor)
+      g_envi_cover_instance->shader_editor->processRequest(params);
     else
-      webui::html_response_raw(params->conn, "Error: ShaderGraphRecompiler::shader_editor == null<br>");
+      webui::html_response_raw(params->conn, "Error: ShaderGraphRecompiler::shader_editor == null<br>"
+                                             "Wait for game loading to finish! If issue persists after that<br>"
+                                             "maybe 'envi_cover_nbs' template/entity is missing from scene");
   }
   else
   {
@@ -347,18 +376,19 @@ void ShaderGraphRecompiler::recompile()
 #if _TARGET_PC_WIN
   uint32_t variantCnt = get_shader_variant_count(shaderType);
   for (uint32_t variantId = 0; variantId < variantCnt; ++variantId)
-  {
-    String shaderTemplateText = (String)shaderGetSrcCallback(variantId);
-    String code = substitute(shaderBlk, shaderTemplateText);
-    String errors;
-    bool ok = shaderCompilerCallback(variantCnt, currentShaderName, code, shaderBlk, errors);
-    if (!ok)
+    for (uint32_t nbsQuality = 0; nbsQuality < static_cast<uint32_t>(NodeBasedShaderQuality::COUNT); nbsQuality++)
     {
-      shader_editor->sendCommand(String(1024, "error: in shader #%d, variant #%d: %s", (int)shaderType, variantId, errors.str()));
-      lastCompileError = errors;
-      return;
+      String shaderTemplateText = (String)shaderGetSrcCallback(variantId, static_cast<NodeBasedShaderQuality>(nbsQuality));
+      String code = substitute(shaderBlk, shaderTemplateText);
+      String errors;
+      bool ok = shaderCompilerCallback(variantCnt, currentShaderName, code, shaderBlk, errors);
+      if (!ok)
+      {
+        shader_editor->sendCommand(String(1024, "error: in shader #%d, variant #%d: %s", (int)shaderType, variantId, errors.str()));
+        lastCompileError = errors;
+        return;
+      }
     }
-  }
 
   shader_editor->sendCommand("compiled");
 #else
@@ -430,7 +460,9 @@ void ShaderGraphRecompiler::update(float dt)
         DataBlock shaderBlk;
         shaderBlk.loadText(shaderBlkText.str(), shaderBlkText.length());
         uint32_t variantId = 0; // TODO: get it as param (and replace all this low-level hell)
-        String shaderTemplateText = (String)shaderGetSrcCallback(variantId);
+        const NodeBasedShaderQuality lowQuality = NodeBasedShaderQuality::Low; // TODO: get it as param (and replace all this low-level
+                                                                               // hell)
+        String shaderTemplateText = (String)shaderGetSrcCallback(variantId, lowQuality);
         String code = substitute(shaderBlk, shaderTemplateText);
         shader_editor->sendCommand(String(0, "%%generated_code:%s", code.str()));
       }
@@ -480,7 +512,11 @@ void ShaderGraphRecompiler::update(float dt)
   }
 }
 
-void ShaderGraphRecompiler::cleanUp() { del_it(fogInstance); }
+void ShaderGraphRecompiler::cleanUp()
+{
+  g_fog_instance.reset();
+  g_envi_cover_instance.reset();
+}
 #else
 void ShaderGraphRecompiler::cleanUp() {}
 #endif

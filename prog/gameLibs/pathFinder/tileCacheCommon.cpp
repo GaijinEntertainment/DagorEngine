@@ -5,10 +5,14 @@
 #include <pathFinder/pathFinder.h>
 #include <scene/dag_tiledScene.h>
 #include <math/dag_mathUtils.h>
-#include <detourCommon.h>
-#include <detourNavMesh.h>
-#include <detourNavMeshQuery.h>
+#include <DetourCommon.h>
+#include <DetourNavMesh.h>
+#include <DetourNavMeshQuery.h>
+
+#ifdef FAST_LZ_SUPPORTED
 #include <arc/fastlz/fastlz.h>
+#endif
+
 #define ZDICT_STATIC_LINKING_ONLY 1
 #include <zstd.h>
 #include <dictBuilder/zdict.h>
@@ -28,8 +32,6 @@ bool tilecache_is_dynamic_ladder_links_enabled() { return generateDynamicLadderL
 
 void tilecache_disable_tile_remove_cb() { tileCacheRemoveCbEnabled = false; }
 void tilecache_set_tile_remove_cb(tile_remove_cb_t tile_remove_cb) { tileCacheRemoveCb = tile_remove_cb; }
-
-static const float fastlzMaxCompressedSizeFactor = 1.05f;
 
 static const unsigned int staticJLBias = 1000;
 static const unsigned int staticOLBias = 2000;
@@ -88,71 +90,49 @@ static inline bool is_pt_in_obstacle(const float *center, const float *half_exte
   return true;
 }
 
-TileCacheCompressor::~TileCacheCompressor()
+void TileCacheCompressor::initDict(dag::ConstSpan<char> zstdDictBuff)
 {
-  ZSTD_freeDCtx(dctx);
-  ZSTD_freeDDict(dDict);
-}
-
-void TileCacheCompressor::reset(bool isZSTD, const Tab<char> &zstdDictBuff)
-{
-  ZSTD_freeDCtx(dctx);
-  ZSTD_freeDDict(dDict);
-  dctx = nullptr;
-  dDict = nullptr;
-
-  if (!isZSTD)
-    return;
-
-  dctx = ZSTD_createDCtx();
-  G_ASSERT(dctx);
+  G_ASSERT(!dDict); // Double load without cleanup?
   if (!zstdDictBuff.empty())
   {
-    dDict = ZSTD_createDDict(zstdDictBuff.data(), zstdDictBuff.size());
-    G_ASSERT(dDict);
+    G_VERIFY((dctx = ZSTD_createDCtx()));
+    G_VERIFY((dDict = ZSTD_createDDict(zstdDictBuff.data(), zstdDictBuff.size())));
   }
 }
 
-int TileCacheCompressor::maxCompressedSize(const int bufferSize)
+void TileCacheCompressor::reset()
 {
-  return (dctx != nullptr) ? (int)ZSTD_compressBound(bufferSize) : (int)(bufferSize * fastlzMaxCompressedSizeFactor);
+  if (auto d = eastl::exchange(dctx, nullptr))
+    ZSTD_freeDCtx(d);
+  if (auto d = eastl::exchange(dDict, nullptr))
+    ZSTD_freeDDict(d);
 }
+
+int TileCacheCompressor::maxCompressedSize(const int bufferSize) { return ZSTD_compressBound(bufferSize); }
 
 dtStatus TileCacheCompressor::compress(const unsigned char *buffer, const int bufferSize, unsigned char *compressed,
   const int maxCompressedSize, int *compressedSize)
 {
-  if (dctx != nullptr)
-  {
-    size_t res = ZSTD_compress(compressed, maxCompressedSize, buffer, bufferSize, -1);
-    *compressedSize = ZSTD_isError(res) ? -1 : (int)res;
-  }
-  else
-    *compressedSize = fastlz_compress((const void *const)buffer, bufferSize, compressed);
+  size_t res = ZSTD_compress(compressed, maxCompressedSize, buffer, bufferSize, -1);
+  *compressedSize = ZSTD_isError(res) ? -1 : (int)res;
   return *compressedSize < 0 ? DT_FAILURE : DT_SUCCESS;
 }
 
 dtStatus TileCacheCompressor::decompress(const unsigned char *compressed, const int compressedSize, unsigned char *buffer,
   const int maxBufferSize, int *bufferSize)
 {
-  if (dctx != nullptr)
-  {
-    size_t res;
-    if (dDict)
-      res = ZSTD_decompress_usingDDict(dctx, buffer, maxBufferSize, compressed, compressedSize, dDict);
-    else
-      res = ZSTD_decompressDCtx(dctx, buffer, maxBufferSize, compressed, compressedSize);
-
-    if (!ZSTD_isError(res))
-      *bufferSize = (int)res;
-    else
-    {
-      // if failed try fastlz (for example for navmesh patch tiles)
-      int sz = fastlz_decompress(compressed, compressedSize, buffer, maxBufferSize);
-      *bufferSize = sz > 0 ? sz : -1;
-    }
-  }
+  size_t res;
+  if (dDict)
+    res = ZSTD_decompress_usingDDict(dctx, buffer, maxBufferSize, compressed, compressedSize, dDict);
   else
-    *bufferSize = fastlz_decompress(compressed, compressedSize, buffer, maxBufferSize);
+    res = ZSTD_decompress(buffer, maxBufferSize, compressed, compressedSize);
+  *bufferSize = -1;
+  if (!ZSTD_isError(res))
+    *bufferSize = (int)res;
+#ifdef FAST_LZ_SUPPORTED // Legacy support for sandbox navmesh patch files
+  else if (int sz = fastlz_decompress(compressed, compressedSize, buffer, maxBufferSize); sz > 0)
+    *bufferSize = sz;
+#endif
   return *bufferSize < 0 ? DT_FAILURE : DT_SUCCESS;
 }
 

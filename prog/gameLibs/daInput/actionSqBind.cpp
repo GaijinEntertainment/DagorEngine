@@ -1,11 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include "actionData.h"
 #include <daInput/config_api.h>
 #include <ioSys/dag_dataBlock.h>
 #include <util/dag_delayedAction.h>
+#include <util/dag_string.h>
 
 #include <drv/hid/dag_hiKeyboard.h>
 #include <drv/hid/dag_hiPointing.h>
@@ -819,18 +820,21 @@ void dainput::bind_sq_api(SqModules *moduleMgr)
     /**/;
 
   Sqrat::Class<DigitalAction>(vm, "DigitalAction") //
+    .UseInlineUserdata()
     .SQ_BIND_MEMBER_VAR(DigitalAction, bState)
     .SQ_BIND_MEMBER_VAR(DigitalAction, bActive)
     .SQ_BIND_MEMBER_VAR(DigitalAction, bActivePrev)
     /**/;
 
   Sqrat::Class<AnalogAxisAction>(vm, "AnalogAxisAction") //
+    .UseInlineUserdata()
     .SQ_BIND_MEMBER_VAR(AnalogAxisAction, x)
     .SQ_BIND_MEMBER_VAR(AnalogAxisAction, bActive)
     .SQ_BIND_MEMBER_VAR(AnalogAxisAction, bActivePrev)
     /**/;
 
   Sqrat::Class<AnalogStickAction>(vm, "AnalogStickAction") //
+    .UseInlineUserdata()
     .SQ_BIND_MEMBER_VAR(AnalogStickAction, x)
     .SQ_BIND_MEMBER_VAR(AnalogStickAction, y)
     .SQ_BIND_MEMBER_VAR(AnalogStickAction, bActive)

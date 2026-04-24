@@ -20,6 +20,16 @@ rule ProcessLinkTarget
 
     _LINK_OPT += -Wl,-rpath,@executable_path/Frameworks ;
 
+    if $(EmbeddedFrameworks) {
+      ProcessEmbeddedFrameworks $(EmbeddedFrameworks) ;
+      EmbeddedFrameworks = ;
+    }
+
+    if $(BundleFrameworks) {
+      ProcessBundleFrameworks $(BundleFrameworks) ;
+      BundleFrameworks = ;
+    }
+
     for framework in [ GLOB $(OutDir)/Frameworks : *.framework ] {
       _LINK_OPT += -Wl,-rpath,@executable_path/Frameworks/$(framework:B).framework ;
     }
@@ -49,7 +59,17 @@ rule ProcessLinkTarget
     _LINK_OPT = -dynamiclib ;
 
     $(Target)__IMGBUILD = rem ;
- 
+
+    if $(EmbeddedFrameworks) {
+      ProcessEmbeddedFrameworks $(EmbeddedFrameworks) ;
+      EmbeddedFrameworks = ;
+    }
+
+    if $(BundleFrameworks) {
+      ProcessBundleFrameworks $(BundleFrameworks) ;
+      BundleFrameworks = ;
+    }
+
     if $(Config) = rel {
       _LINK_OPT += -Wl,-S ;
 

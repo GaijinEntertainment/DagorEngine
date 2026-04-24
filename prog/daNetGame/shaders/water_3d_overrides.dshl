@@ -2,6 +2,17 @@ include "panorama.dshl"
 include "static_shadow.dshl"
 include "sq_clouds_shadow.dshl"
 
+sampler water_ssr_linear_clamp_sampler
+{
+  mipmap_mode = linear;
+  filter = linear;
+  address_u = border;
+  address_v = border;
+  address_w = border;
+  border_color = (0, 0, 0, 0);
+  anisotropic_max = 1.0;
+};
+
 float4 water_planar_reflection_dir;
 float4 water_planar_reflection_far_plane_pos;
 float4x4 water_planar_reflection_view_proj;
@@ -9,11 +20,18 @@ float water_ssr_intensity = 1;
 float water_reflection_roughness_mip_scale = 1.9;
 texture water_planar_reflection_clouds;
 
+float foam_bump_mapping_scale = 10.0;
+float foam_reflectivity = 0.1;
+float foam_tiling = 0.4113;
+
 float water_reflection_hdr_multiplier = 1;
 float object_reflection_distortion = 0.05;
 
 int water_rt_enabled = 0;
 interval water_rt_enabled: no<1, yes;
+
+int underwater_render = 0;
+interval underwater_render : no<1, yes;
 
 macro WATER_PLANAR_INIT(code)
   (code)
@@ -46,13 +64,37 @@ macro WATER_PLANAR_PS()
   WATER_PLANAR_USE(ps)
 endmacro
 
+macro USE_WATER_RAIN_RIPPLES(stage)
+  USE_CUBE_RAIN_DROPLETS(1)
+  hlsl(stage) {
+  ##if compatibility_mode == compatibility_mode_off
+    float getRainRipplesStrength(float3 worldPos)
+    {
+      BRANCH
+      if (!water_rain_ripples_enabled)
+        return 0;
+
+      float vignetteEffect = 0;
+      float2 lerpFactor;
+      float4 depthSamples = gather_depth_above(worldPos.xyz, vignetteEffect, lerpFactor);
+      float4 depthCheckSamples = float4(worldPos.y > depthSamples);
+      float rain_ripples_strength = lerp_gathered_depth_above(depthCheckSamples, lerpFactor);
+      rain_ripples_strength = lerp(rain_ripples_strength, 1, vignetteEffect);
+
+      return rain_ripples_strength;
+    }
+  ##else
+    float getRainRipplesStrength(float3 worldPos) { return 0; }
+  ##endif
+  }
+endmacro
+
 macro INIT_WATER_REFLECTIONS_SAMPLING(code)
   USING_SKY_ATTENUATION(code)
   (code)
   {
     uv_temporal_jitter@f2 = (uv_temporal_jitter.xy);
     water_reflection_roughness_mip_scale@f1 = water_reflection_roughness_mip_scale;
-    lrefl_scatter_hdr_psize@f4 = (object_reflection_distortion, scatter_disappear_factor, water_reflection_hdr_multiplier, 1./(0.01+(height_tiling+1)*water_color_noise_size));
   }
   if (water_reflection_tex != NULL)
   {
@@ -104,13 +146,17 @@ macro USE_WATER_REFLECTIONS_SAMPLING(code)
       half3 envReflection;
     };
 
-    PlanarReflections getPlanarReflections(ViewData viewData)
+    PlanarReflections getPlanarReflections(ViewData vd)
     {
       PlanarReflections planarReflections;
 
-      // We should use lowresTC here, but since it's not available in WT, we use screenTc for compatibility.
-      // This shouldn't be a problem, as we use screenTc for linear sampling.
-      float2 refractionTC = saturate(viewData.screenTc.xy - uv_temporal_jitter.xy);
+      // We should use lowresTC here, but since it's not available in WT, we use linearTc for compatibility.
+      // This shouldn't be a problem, as we use linearTc for linear sampling.
+      ##if water_rt_enabled == no
+        float2 refractionTC = saturate(vd.linearTc.xy - uv_temporal_jitter.xy);
+      ##else
+        float2 refractionTC = saturate(vd.linearTc.xy);
+      ##endif
       planarReflections.waterRTShadow = 1;
       planarReflections.objectReflection = 0;
       ##if (in_editor_assume == no) && (water_reflection_tex != NULL)
@@ -151,19 +197,19 @@ macro USE_WATER_REFLECTIONS_SAMPLING(code)
       return planarReflections;
     }
 
-    EnvReflections getEnvReflections(const ViewData viewData, const PlanarReflections planarReflections)
+    EnvReflections getEnvReflections(const ViewData vd, const PlanarReflections planarReflections)
     {
       ##if clouds_panorama_mip == NULL
-        float2 reflectionTC = reflectionToPlanarTC(viewData.worldPos, viewData.reflectSampleDir);
-        half4 enviReflectionA = tex2Dbias(water_planar_reflection_clouds, reflectionTC, viewData.enviMip * water_reflection_roughness_mip_scale);
-        float3 reflectWaterPlaneDirNormalized = reflect(-viewData.pointToEyeNormalized, float3(0,1,0));
-        float enviMask = saturate(dot(viewData.reflectDirNormalized, reflectWaterPlaneDirNormalized));
+        float2 reflectionTC = reflectionToPlanarTC(vd.worldPos, vd.reflectSampleDir);
+        half4 enviReflectionA = tex2Dbias(water_planar_reflection_clouds, reflectionTC, vd.enviMip * water_reflection_roughness_mip_scale);
+        float3 reflectWaterPlaneDirNormalized = reflect(-vd.pointToEyeNormalized, float3(0,1,0));
+        float enviMask = saturate(dot(vd.reflectDirNormalized, reflectWaterPlaneDirNormalized));
         enviReflectionA.rgb = unpack_hdr(enviReflectionA.rgb) * enviMask;
         half3 enviReflection = enviReflectionA.rgb;
         half cloudsAlpha = enviReflectionA.a;
       ##else
-        float2 sky_uv = get_panorama_uv(viewData.worldPos, viewData.reflectSampleDir);
-        half3 enviReflection = tex2Dbias(clouds_panorama_mip, sky_uv, viewData.enviMip * water_reflection_roughness_mip_scale).rgb;
+        float2 sky_uv = get_panorama_uv(vd.worldPos, vd.reflectSampleDir);
+        half3 enviReflection = tex2Dbias(clouds_panorama_mip, sky_uv, vd.enviMip * water_reflection_roughness_mip_scale).rgb;
         half cloudsAlpha = 1 - get_clouds_alpha_panorama_uv(sky_uv);
         half enviMask = 1;
       ##endif
@@ -177,13 +223,13 @@ macro USE_WATER_REFLECTIONS_SAMPLING(code)
           half3 envi_smooth = tex2Dlod(clouds_panorama_mip, float4(sky_uv,0,PANORAMA_MIP_FOR_BLENDING)).rgb;
         ##else
           half4 enviReflectionB = tex2Dlod(water_planar_reflection_clouds, float4(reflectionTC, 0, PANORAMA_MIP_FOR_BLENDING));
-          half3 envi_smooth = unpack_hdr(enviReflectionB.rgb) * saturate(dot(viewData.reflectDirNormalized, reflectWaterPlaneDirNormalized));
+          half3 envi_smooth = unpack_hdr(enviReflectionB.rgb) * saturate(dot(vd.reflectDirNormalized, reflectWaterPlaneDirNormalized));
         ##endif
         envi_smooth *= skylight_sky_atten;
         enviReflection = lerp(enviReflection, envi_smooth, saturate(2*planarReflections.objectReflection.a));
       }
       ##if in_editor_assume == no
-        float4 indoorRefl__localWeight = use_indoor_probes(viewData.worldPos, viewData.worldNormal, viewData.reflectDirNormalized, viewData.enviMip, viewData.dist);
+        float4 indoorRefl__localWeight = use_indoor_probes(vd.worldPos, vd.worldNormal, vd.reflectDirNormalized, vd.enviMip, vd.dist);
         enviReflection = lerp(indoorRefl__localWeight.xyz, enviReflection, indoorRefl__localWeight.w);
       ##endif
 
@@ -194,11 +240,11 @@ macro USE_WATER_REFLECTIONS_SAMPLING(code)
       return envReflections;
     }
 
-    ReflectionsData getReflections(const ViewData viewData, const EnvReflections envReflections, const PlanarReflections planarReflections, const SunReflections sunReflections, const FoamData foamData, const DeepnessData deepnessData)
+    ReflectionsData getReflections(const ViewData vd, const EnvReflections envReflections, const PlanarReflections planarReflections, const SunReflections sunReflections, const FoamData foamData, const DeepnessData deepnessData)
     {
       ReflectionsData reflectionsData;
 
-      half3 reflectionColor = lerp(envReflections.enviReflection, planarReflections.objectReflection.rgb, planarReflections.objectReflection.a)*viewData.enviBRDF+sunReflections.sunReflection;
+      half3 reflectionColor = lerp(envReflections.enviReflection, planarReflections.objectReflection.rgb, planarReflections.objectReflection.a)*vd.enviBRDF;
       reflectionColor *= deepnessData.shore_blending_coeff;
 
       reflectionsData.reflectionColor = reflectionColor;
@@ -225,19 +271,22 @@ endmacro
 macro USE_WATER_SHADOWS(code)
   hlsl(code)
   {
+    #define SHADOW_BASE 0.0h
+    #define SHADOW_BASE_INV 1.0h
     struct ShadowsData
     {
       half vsmShadow;
       half cloudShadow;
+      half cloudShadowRelaxed;
       half sunReflectionShadow;
     };
 
-    ShadowsData getShadows(const ViewData viewData, const PlanarReflections planarReflections, const EnvReflections envReflections)
+    ShadowsData getShadows(const ViewData vd, const PlanarReflections planarReflections, const EnvReflections envReflections)
     {
       ShadowsData shadowsData;
-      shadowsData.cloudShadow = clouds_shadow(viewData.worldPos);
+      shadowsData.cloudShadow = clouds_shadow(vd.worldPos);
       ##if water_rt_enabled == no
-        shadowsData.vsmShadow = getStaticShadow(viewData.worldPos);
+        shadowsData.vsmShadow = getStaticShadow(vd.worldPos);
       ##else
         shadowsData.vsmShadow = planarReflections.waterRTShadow;
       ##endif
@@ -245,11 +294,15 @@ macro USE_WATER_SHADOWS(code)
       float sunMaskAlpha = planarReflections.objectReflection.a;
       sunMaskAlpha = 1 - pow2(1 - sunMaskAlpha);
       sunMaskAlpha = saturate(sunMaskAlpha + envReflections.cloudsAlpha);
-      float invDistToZfar = 1 - viewData.distToZfar;
+      float invDistToZfar = 1 - vd.distToZfar;
       sunMaskAlpha *= saturate(2 * invDistToZfar);
       shadowsData.sunReflectionShadow  = (shadowsData.cloudShadow * 0.85 + 0.15); // intensity of specular mask by clouds shadow, must have outer percent parameter
       shadowsData.sunReflectionShadow *= 1.0f - sunMaskAlpha; // reflected objects mask for sun specular
       shadowsData.sunReflectionShadow = lerp( 1.0, shadowsData.sunReflectionShadow, envReflections.mask);
+      shadowsData.sunReflectionShadow *= shadowsData.vsmShadow;
+
+      // There is no clouds_shadow_water_influence hacks in DNG, so just copy the cloud shadow for WT compatibility.
+      shadowsData.cloudShadowRelaxed = shadowsData.cloudShadow;
 
       return shadowsData;
     }
@@ -291,25 +344,206 @@ macro USE_UNDERWATER_SCATTERING(code)
 
     // DNG using custom alternate scattering impl due to WT issue with inverted water colors in scattering.
     // TODO: This should be revert to shared implementation once WT is fixed.
-    UnderWaterScattering getUnderWaterScattering(const ViewData viewData, const DeepnessData deepnessData, const half perlinWaterColor)
+    UnderWaterScattering getUnderWaterScattering(const ViewData vd, const DeepnessData deepnessData, const half perlinWaterColor)
     {
-      float4 oceanColor = get_ocean_color_perlin(viewData.worldPos.xz, 0, perlinWaterColor);
+      float4 oceanColor = get_ocean_color_perlin(vd.worldPos.xz, 0, perlinWaterColor);
       float waterVolumeFog = exp2(oceanColor.w*deepnessData.waterDepth);
       UnderWaterScattering underWaterScattering;
       underWaterScattering.loss = waterVolumeFog;
       underWaterScattering.inscatter = (oceanColor.rgb/4)*(1-waterVolumeFog);
+      if (backFaceCalcs)
+        underWaterScattering.loss = 1.0h;
       return underWaterScattering;
     }
 
-    UnderWaterScattering getUnderWaterScattering(const ViewData viewData, const DeepnessData deepnessData, const FoamData foamData)
+    UnderWaterScattering getUnderWaterScattering(const ViewData vd, const DeepnessData deepnessData, const FoamData foamData)
     {
       #if has_perlin_noise
-        half perlinWaterColor = (half)viewData.perlinSurf.x;
+        half perlinWaterColor = (half)vd.perlinSurf.x;
       #else
         half perlinWaterColor = 0.5h;
       #endif
 
-      return getUnderWaterScattering(viewData, deepnessData, perlinWaterColor);
+      return getUnderWaterScattering(vd, deepnessData, perlinWaterColor);
+    }
+  }
+endmacro
+
+macro INIT_WATER_FOAM(stage)
+  INIT_FOAM_PARAMS(stage)
+  (stage){
+    foam_tex@tex = foam_tex hlsl{ Texture2D<float>foam_tex@tex; };
+    foam_tex_size@f4 = (get_dimensions(foam_tex, 0).xy,
+                        1.0 / max(get_dimensions(foam_tex, 0).x, 1),
+                        1.0 / max(get_dimensions(foam_tex, 0).y, 1));
+    foam_tiling@f4 = (foam_tiling/(height_tiling+1), water_depth_hardness*(2-height_tiling), (1-1/max(1, max_wave_height))*angle_to_roughness_scale,
+      water_flowmap_foam_tiling*(foam_tiling/(height_tiling+1))/UVScaleCascade0123.x);
+    foam_reflectivity@f1 = (foam_reflectivity);
+    foam_bump_mapping_scale@f1 = (foam_bump_mapping_scale);
+    water_flowmap_foam@f4 = water_flowmap_foam;
+    water_flowmap_foam_bumpmapping_scale@f1 = water_flowmap_foam_bumpmapping_scale;
+    water_flowmap_foam_color_0@f4 = water_flowmap_foam_color_0;
+    water_flowmap_foam_color_1@f4 = water_flowmap_foam_color_1;
+    cascadesTexelScale@f1 = cascadesTexelScale0123;
+    water_flowmap_strength@f4 = water_flowmap_strength;
+    water_flowmap_foam_roughness@f1 = (1 - water_flowmap_foam.w);
+    water_flowmap_blend@f1 = (water_flowmap_blend);
+    water_flowmap_cascades@i1 = (water_flowmap_cascades);
+  }
+endmacro
+
+macro USE_WATER_FOAM(stage)
+  hlsl(stage)
+  {
+    struct FoamData
+    {
+      ##if has_water_flowmap
+        half3 foamNormal;
+      ##endif
+      half sternWakeFactor;
+      half4 diffuseColor;
+      float additionalRoughness;
+      half foamFactor;
+    };
+
+    #define water_flowmap_tex_add_1_samplerstate water_flowmap_tex_add_0_samplerstate
+    #define foam_tex_samplerstate global_linear_clamp_sampler
+
+    #define water_flowmap_foam_power (water_flowmap_foam.x)
+    #define water_flowmap_foam_scale (water_flowmap_foam.y)
+    #define water_flowmap_foam_threshold (water_flowmap_foam.z)
+
+    half4 sampleFoam(float2 tc)
+    {
+      half height = tex2D(foam_tex, tc);
+
+      half heightRight = tex2D(foam_tex, tc + float2(foam_tex_size.z, 0));
+      half heightUp = tex2D(foam_tex, tc + float2(0, foam_tex_size.w));
+
+      half2 dxy = height - half2(heightRight, heightUp);
+
+      dxy *= water_flowmap_foam_bumpmapping_scale;
+
+      half3 normal = normalize(half3(dxy.x, 1.0, dxy.y));
+      return half4(normal, height);
+    }
+
+    FoamData calcFoam(const PsInput input, const ViewData vd, const DeepnessData deepnessData, ChopWaterData chopWaterData, float foam_color)
+    {
+      // foam_color is not used, it's declared only for compatability with WT
+
+      FoamData foamData;
+      foamData.additionalRoughness = 0;
+      ##if !has_water_flowmap
+        half3 flowFoamColor = half3(0,0,0);
+        float flowFoamFactor = 0;
+      ##else
+        float3 flowmapSample = input.water_flowmap_sample;
+        flowmapSample += getWaterFlowmapFoam(vd.worldPos, vd.dist, true);
+        float2 windVec = wind_dir_speed.xy * cascadesTexelScale * current_time * 0.5 * UVScaleCascade0123.x;
+        half4 flowFoamLowFreqA = sampleFoam((vd.flowmapCoord_AB.xy + windVec) * foam_tiling.w);
+        half4 flowFoamLowFreqB = sampleFoam((vd.flowmapCoord_AB.zw + windVec) * foam_tiling.w);
+        half4 flowFoamLowFreq = lerp(flowFoamLowFreqA, flowFoamLowFreqB, vd.crossFade);
+        float flowFoamStrength = min(pow(flowmapSample.z, water_flowmap_foam_power) * water_flowmap_foam_scale, 1 + water_flowmap_foam_threshold) * water_flowmap_multiplier;
+        float flowFoamFactor = saturate((flowFoamLowFreq.w - (1 - flowFoamStrength) * water_flowmap_foam_threshold) * flowFoamStrength);
+        flowFoamFactor *= saturate(1 - water_flowmap_strength.w);
+        half3 flowFoamColor = lerp(water_flowmap_foam_color_0.rgb, water_flowmap_foam_color_1.rgb, flowFoamLowFreq.w * flowFoamStrength);
+        flowFoamFactor = smoothstep(0, water_flowmap_foam_softness, flowFoamFactor);
+        flowFoamFactor *= lerp(water_flowmap_foam_color_0.a, water_flowmap_foam_color_1.a, flowFoamFactor);
+        foamData.foamNormal = lerp(float3(0,1,0), normalize(flowFoamLowFreq.xyz), flowFoamFactor);
+      ##endif
+
+      // Adding foam on stern wake
+      foamData.sternWakeFactor = 0.0;
+      const half STERN_EPS = 0.001; // To prevent division by zero
+
+      half3 foamColor = half3(1,1,1);
+
+      // Getting projected effects color
+      ##if projected_on_water_effects_tex != NULL
+        // TODO this condition duplicated previous one,
+        #if has_projection_effects
+          if (all(vd.wfxTc >= 0) && all(vd.wfxTc <= 1)) {
+            half4 effectsColor = h4tex2D(projected_on_water_effects_tex, vd.wfxTc.xy);
+            foamData.sternWakeFactor = 1.0 - effectsColor.a;
+            foamColor = unpack_hdr(effectsColor.rgb) / (foamData.sternWakeFactor + STERN_EPS);
+          }
+        #endif
+      ##endif
+
+      // Adding some turbulence based bubbles spread in water
+      ##if shader == water_distant
+        float foamFactor = 0;
+      ##else
+        // Getting foam textures
+        half FoamLowFreq = tex2D(foam_tex, vd.worldPosUndisplaced.xz * foam_tiling.x).r;//0.051 plane, 0.101 tank
+
+        // Calculating shore waves foam
+        float gerstnerFoamFactor = FoamLowFreq*vd.shoreData.gerstnerFoamFactor;
+
+        // Calculating turbulence energy based foam
+        float oceanFoamFactor = 1.0*saturate(FoamLowFreq * min(1.0,2.0*vd.surfaceAttributes.foam_turbulent_energy));
+
+        // Clumping foam on folded areas
+        oceanFoamFactor *= 1.0 + 1.0*saturate(vd.surfaceAttributes.foam_surface_folding);
+        gerstnerFoamFactor *= 1.0 + 1.0*saturate(vd.surfaceAttributes.foam_surface_folding*vd.shoreData.oceanWavesMultiplier);
+
+        // Applying foam wave hats
+        oceanFoamFactor += 0.5*saturate(FoamLowFreq*FoamLowFreq*vd.surfaceAttributes.foam_wave_hats);
+
+        // Combining shore and ocean foam, using high power of oceanWavesMultiplier to leave leewind areas without ocean foam
+        float foamFactor = pow4(vd.shoreData.oceanWavesMultiplier)*oceanFoamFactor + gerstnerFoamFactor + foamData.sternWakeFactor;
+
+        foamFactor += FoamLowFreq * vd.ripplesFoam;
+      ##endif
+
+      foamColor = lerp(1.0, foamColor, foamData.sternWakeFactor / (foamFactor + STERN_EPS));
+
+      foamData.foamFactor = saturate(foamFactor + flowFoamFactor);
+      foamData.diffuseColor.rgb = lerp(foamColor.rgb, flowFoamColor.rgb, flowFoamFactor);
+      foamData.diffuseColor.a = foamData.foamFactor;
+      foamData.diffuseColor.a *= saturate(deepnessData.waterDepth);
+
+      foamData.additionalRoughness = water_flowmap_foam_roughness * flowFoamFactor;
+      float sternWakeReflectivity = saturate(foamData.sternWakeFactor * foam_reflectivity);
+      foamData.additionalRoughness = lerp(foamData.additionalRoughness, 1.0f, sternWakeReflectivity);
+
+      // Calculating texture based modulation factors used to to hide repeats and add uniqueness
+      half foamRepeatHider = 1-saturate(vd.dist/10000.0 - 1.0); // smoothly complete hide foam (lerp to 0) in distance range 10km to 20km
+
+      // Applying foam repeat hider
+      foamData.diffuseColor.a = 1.0 - saturate(foamRepeatHider*foamData.diffuseColor.a);
+
+      return foamData;
+    }
+
+    float applyFoamRoughness(float linearRoughness, FoamData foamData)
+    {
+      ##if has_water_flowmap
+        linearRoughness = saturate(linearRoughness + foamData.additionalRoughness);
+      ##endif
+
+      return linearRoughness;
+    }
+
+    float3 applyFoamNormal(float3 normal, FoamData foamData)
+    {
+      ##if has_water_flowmap
+        normal = RNM_ndetail_normalized(normal.xzy, foamData.foamNormal.xzy).xzy;
+      ##endif
+
+      return normal;
+    }
+
+    float4 applySpecialVision(const ViewData vd, const DeepnessData deepnessData, const float4 waterColor)
+    {
+      float4 result = waterColor;
+      if (special_vision > 0) //thermal vision
+      {
+        result.rgb = 0;
+        result.r = 0.02 + 0.1 * saturate(dot(vd.worldNormal, normalize(vd.pointToEyeNormalized)));
+      }
+      return result;
     }
   }
 endmacro

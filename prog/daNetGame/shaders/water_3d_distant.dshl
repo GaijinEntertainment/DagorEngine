@@ -8,8 +8,6 @@ shader water_distant
   z_write = false;
   z_func = equal;
 
-  ENABLE_ASSERT(ps)
-
   hlsl(ps)
   {
     float4 use_indoor_probes(float3 world_pos, float3 normal, float3 reflected, float roughnessMip, float viewDist)
@@ -27,8 +25,8 @@ shader water_distant
     float4 water_nv_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
       half3 worldNormal;
-      PS_INPUT In = get_spoofed_ps_input(input, worldNormal);
-      return calc_water_color_from_ps_input(In, 1, worldNormal);
+      PsInput psInput = get_spoofed_ps_input(input, worldNormal);
+      return calc_water_color_from_ps_input(psInput, 1, worldNormal);
     }
   }
 

@@ -24,7 +24,8 @@ class StringKeys;
 class HotkeyCombo
 {
 public:
-  bool updateOnCombo();
+  bool updateOnCombo(HumanInput::IGenJoystick *joy);
+  bool forceReleaseButtons();
   bool updateOnEvent(IGuiScene *scene, Element *elem, const char *event_id, int id_str_len, bool pressed); //< return true if processed
   void triggerOnCombo(IGuiScene *scene, Element *elem);
 

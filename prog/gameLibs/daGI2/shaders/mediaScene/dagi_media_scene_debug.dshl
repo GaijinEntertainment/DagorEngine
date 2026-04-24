@@ -7,8 +7,6 @@ include "globtm.dshl"
 
 shader dagi_media_scene_debug, dagi_media_scene_trace_debug
 {
-  ENABLE_ASSERT(ps)
-  supports global_const_block;
   supports global_frame;
   supports none;
   cull_mode = none;

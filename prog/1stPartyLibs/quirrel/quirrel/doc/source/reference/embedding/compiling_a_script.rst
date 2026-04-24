@@ -6,14 +6,18 @@ Compiling a script
 
 You can compile a Quirrel script with the function *sq_compile*.::
 
-    SQRESULT sq_compile(HSQUIRRELVM v,SQLEXREADFUNC read,SQUserPointer p,
-                const SQChar *sourcename,SQBool raiseerror);
+    SQRESULT sq_compile(HSQUIRRELVM v, const char* s, SQInteger size,
+                const char *sourcename, SQBool raiseerror,
+                const HSQOBJECT *bindings = nullptr);
 
-In order to compile a script is necessary for the host application to implement a reader
-function (SQLEXREADFUNC); this function is used to feed the compiler with the script
-data.
-The function is called every time the compiler needs a character; It has to return a
-character code if succeed or 0 if the source is finished.
+The function compiles a script from a memory buffer. The parameters are:
+
+* ``v``: the target VM
+* ``s``: pointer to the buffer containing the script source code
+* ``size``: size in characters of the buffer
+* ``sourcename``: symbolic name of the program (used for runtime errors)
+* ``raiseerror``: if true, the compiler error handler will be called on errors
+* ``bindings``: optional compile-time bindings object (can be nullptr)
 
 If sq_compile succeeds, the compiled script will be pushed as Quirrel function in the
 stack.
@@ -25,9 +29,14 @@ stack.
 When the compiler fails for a syntax error it will try to call the 'compiler error handler';
 this function must be declared as follow: ::
 
-    typedef void (*SQCOMPILERERROR)(HSQUIRRELVM /*v*/,const SQChar * /*desc*/,const SQChar * /*source*/,
-                            SQInteger /*line*/,SQInteger /*column*/);
+    typedef void (*SQCOMPILERERROR)(HSQUIRRELVM v, SQMessageSeverity severity,
+                            const char *desc, const char *source,
+                            SQInteger line, SQInteger column, const char *extra_info);
 
-and can be set with the following API call::
+where ``severity`` indicates the message severity (error, warning, etc.), ``desc`` is the error description,
+``source`` is the source filename, ``line`` and ``column`` are the location, and ``extra_info`` provides
+additional context.
 
-    void sq_setcompilererrorhandler(HSQUIRRELVM v,SQCOMPILERERROR f);
+The handler can be set with the following API call::
+
+    void sq_setcompilererrorhandler(HSQUIRRELVM v, SQCOMPILERERROR f);

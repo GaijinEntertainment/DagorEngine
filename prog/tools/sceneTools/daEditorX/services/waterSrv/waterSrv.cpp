@@ -32,6 +32,7 @@
 #include <ioSys/dag_zstdIo.h>
 #include <ioSys/dag_oodleIo.h>
 #include <ioSys/dag_btagCompr.h>
+#include <winGuiWrapper/wgw_dialogs.h>
 
 using editorcore_extapi::dagGeom;
 
@@ -105,7 +106,8 @@ public:
     fft_water::init();
     water_refraction_texVarId = get_shader_variable_id("water_refraction_tex", true);
     prev_frame_texVarId = get_shader_variable_id("prev_frame_tex", true);
-    water = fft_water::create_water(fft_water::RENDER_GOOD);
+    water = fft_water::create_water(fft_water::RENDER_GOOD, 1000.0f, 7, false, false, false, 6, fft_water::RenderQuality::UNDEFINED,
+      false, -1, false);
     if (!heightmap.getTex())
     {
       heightmap.set(d3d::create_tex(NULL, heightmap_w, heightmap_w, TEXCF_RTARGET | TEXFMT_R16F, 1, "water_heightmap_tex"),
@@ -120,7 +122,7 @@ public:
     if (!wfx_details.getTex())
     {
       wfx_details.set(d3d::create_tex(NULL, 1, 1, TEXCF_RTARGET | TEXFMT_A8R8G8B8, 1, "wfx_details"), "wfx_details");
-      d3d::clear_rt({wfx_details.getTex2D()}, make_clear_value(0.0f, 1.0f, 1.0f, 0.0f));
+      d3d::clear_rt({wfx_details.getTex2D()}, make_clear_value(0.0f, 0.0f, 0.0f, 1.0f));
       ShaderGlobal::set_texture(get_shader_variable_id("wfx_details", true), wfx_details.getId());
     }
   }
@@ -151,13 +153,13 @@ public:
     fft_water::simulate(water, totalTime);
     fft_water::before_render(water);
     static int foam_time_id = get_shader_glob_var_id("foam_time", true);
-    ShaderGlobal::set_real(foam_time_id, max(0.f, (float)get_time_msec() / 1000.0f));
+    ShaderGlobal::set_float(foam_time_id, max(0.f, (float)get_time_msec() / 1000.0f));
   }
   void renderGeometry(Stage stage) override
   {
     if (!water)
       return;
-    TEXTUREID prev = ShaderGlobal::get_tex_fast(prev_frame_texVarId);
+    auto *prev = ShaderGlobal::get_tex_ptr_fast(prev_frame_texVarId);
     ShaderGlobal::set_texture(water_refraction_texVarId, prev);
     ShaderGlobal::set_sampler(get_shader_variable_id("water_refraction_tex_samplerstate", true),
       ShaderGlobal::get_sampler(get_shader_variable_id("prev_frame_tex_samplerstate", true)));
@@ -196,7 +198,7 @@ public:
 
     static int max_river_widthVarId = get_shader_variable_id("max_river_width", true);
     if (rivers_size < 0)
-      rivers_size = max_river_widthVarId >= 0 ? ShaderGlobal::get_real_fast(max_river_widthVarId) : 250;
+      rivers_size = max_river_widthVarId >= 0 ? ShaderGlobal::get_float(max_river_widthVarId) : 250;
 
     float dimensions = 30;
 
@@ -207,9 +209,9 @@ public:
     else
       shoreHeightmapVar =
         Color4(1.f / dimensions, -(waterLevel - 0.5 * dimensions) / dimensions, dimensions, waterLevel - 0.5 * dimensions);
-    ShaderGlobal::set_color4(get_shader_variable_id("heightmap_min_max", true), shoreHeightmapVar);
+    ShaderGlobal::set_float4(get_shader_variable_id("heightmap_min_max", true), shoreHeightmapVar);
 
-    ShaderGlobal::set_color4(get_shader_variable_id("shore_heightmap_min_max", true), shoreHeightmapVar);
+    ShaderGlobal::set_float4(get_shader_variable_id("shore_heightmap_min_max", true), shoreHeightmapVar);
 
     static int shore_waves_on_gvid = get_shader_variable_id("shore_waves_on", true);
     ShaderGlobal::set_int(shore_waves_on_gvid, 0);
@@ -276,7 +278,7 @@ public:
 
     Color4 world_to_heightmap(1.f / levelBox.width().x, 1.f / levelBox.width().z, -levelBox[0].x / levelBox.width().x,
       -levelBox[0].z / levelBox.width().z);
-    ShaderGlobal::set_color4(get_shader_variable_id("world_to_heightmap", true), world_to_heightmap);
+    ShaderGlobal::set_float4(get_shader_variable_id("world_to_heightmap", true), world_to_heightmap);
 
     d3d::settm(TM_VIEW, &viewMatrix);
     ::grs_cur_view.tm = tmatrix(viewMatrix);
@@ -284,7 +286,7 @@ public:
     ::grs_cur_view.pos = Point3(center_pos.x, MAX_HEIGHT, center_pos.y);
     d3d::settm(TM_PROJ, &projectionMatrix);
 
-    ShaderGlobal::set_color4_fast(worldViewPosVarId, ::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f);
+    ShaderGlobal::set_float4(worldViewPosVarId, ::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f);
 
     setZTransformPersp(0.5, MAX_HEIGHT - MIN_HEIGHT); // fixme should set ortho
 
@@ -298,7 +300,7 @@ public:
           iface->renderGeometry(IRenderingService::STG_RENDER_HEIGHT_FIELD);
     }
 
-    ShaderGlobal::set_color4_fast(worldViewPosVarId, ::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f);
+    ShaderGlobal::set_float4(worldViewPosVarId, ::grs_cur_view.pos.x, ::grs_cur_view.pos.y, ::grs_cur_view.pos.z, 1.f);
 
     ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
   }
@@ -307,8 +309,8 @@ public:
     static int znZfarVarId = dagGeom->getShaderVariableId("zn_zfar");
     static int transformZVarId = dagGeom->getShaderVariableId("transform_z");
     float q = zf / (zf - zn);
-    ShaderGlobal::set_color4_fast(transformZVarId, Color4(q, 1, -zn * q, 0));
-    ShaderGlobal::set_color4_fast(znZfarVarId, Color4(zn, zf, 0, 0));
+    ShaderGlobal::set_float4(transformZVarId, Color4(q, 1, -zn * q, 0));
+    ShaderGlobal::set_float4(znZfarVarId, Color4(zn, zf, 0, 0));
   }
   void setHeightmap(HeightMapStorage &waterHmapDet, HeightMapStorage &waterHmapMain, const Point2 &waterHeightOfsScaleDet,
     const Point2 &waterHeightOfsScaleMain, BBox2 hmapDetRect, BBox2 hmapRectMain) override
@@ -332,7 +334,21 @@ public:
     Point2 mainTcScale(mainMapSize.x / mainRectSize.x, mainMapSize.y / mainRectSize.y);
     Point2 detTcScale(detMapSize.x / detRectSize.x, detMapSize.y / detRectSize.y);
 
-    if (mainMapSize.x <= 1)
+    bool mainHeightmapEmpty = mainMapSize.x <= 1;
+    if (!mainHeightmapEmpty)
+    {
+      float minHeight = FLT_MAX, maxHeight = -FLT_MAX;
+      for (int y = 0; y < mainMapSize.y; y++)
+        for (int x = 0; x < mainMapSize.x; x++)
+        {
+          float h = waterHmapMain.getInitialMap().getData(x, y);
+          minHeight = min(h, minHeight);
+          maxHeight = max(h, maxHeight);
+        }
+      mainHeightmapEmpty = minHeight == maxHeight;
+    }
+
+    if (mainHeightmapEmpty)
     {
       if (noDet)
       {
@@ -353,9 +369,10 @@ public:
     int gridSize = mainPageCount * scale;
     int gridCellSize = mainMapSize.x / gridSize;
     int maxPageCount = max(detPageCount, mainPageCount);
+    int maxTotalPages = detPageCount * detPageCount + (mainHeightmapEmpty ? 0 : mainPageCount * mainPageCount);
 
     eastl::vector<uint64_t> tempGrid;
-    tempGrid.resize(gridSize * gridSize);
+    tempGrid.resize(gridSize * gridSize, 0);
     eastl::map<uint64_t, uint16_t> pages;
 
     float minHeight = FLT_MAX, maxHeight = -FLT_MAX;
@@ -391,7 +408,8 @@ public:
 
         minHeight = min(height, minHeight);
         maxHeight = max(height, maxHeight);
-        if (height <= waterLevel)
+        const float IGNORE_PLANAR_WATER_HEIGHTMAP_EPS = 0.03;
+        if (abs(height - waterLevel) < IGNORE_PLANAR_WATER_HEIGHTMAP_EPS)
           continue;
         Point2 &patchHeight = patchHeights[(y / patchSize) * PATCHES_GRID_SIZE + x / patchSize];
         patchHeight.x = min(patchHeight.x, height);
@@ -430,9 +448,17 @@ public:
     }
     waterHeightmap->pagesX = pagesX;
     waterHeightmap->pagesY = pagesY;
+    waterHeightmap->gridSize = gridSize;
     waterHeightmap->scale = scale;
-    waterHeightmap->pages.resize(pagesX * pagesY * PAGE_SIZE_PADDED * PAGE_SIZE_PADDED);
-    waterHeightmap->patchHeights = patchHeights;
+
+    size_t dump_sz = waterHeightmap->calcDumpSize();
+    waterHeightmap->dataPtr = memalloc(dump_sz, midmem);
+    G_ASSERT(waterHeightmap->dataPtr);
+    waterHeightmap->arrangeDataLayout(dump_sz);
+
+    G_ASSERT(data_size(waterHeightmap->patchHeights) == data_size(patchHeights));
+    mem_copy_to(patchHeights, const_cast<Point2 *>(waterHeightmap->patchHeights.data()));
+
     waterHeightmap->tcOffsetScale =
       Point4(-mainRectOffset.x / mainRectSize.x, -mainRectOffset.y / mainRectSize.y, 1.0 / mainRectSize.x, 1.0 / mainRectSize.y);
     int pageCount = 0;
@@ -450,6 +476,7 @@ public:
       p.second = ((pageY & 0xFF) << 8) | ((pageX & 0x7F) << 1) | det;
       float pageMin = FLT_MAX;
       float pageMax = -FLT_MAX;
+      dag::Span<uint16_t> whm_pages(const_cast<uint16_t *>(waterHeightmap->pages.data()), waterHeightmap->pages.size());
       for (int y = 0; y < PAGE_SIZE_PADDED; y++)
         for (int x = 0; x < PAGE_SIZE_PADDED; x++)
         {
@@ -463,8 +490,7 @@ public:
                          : waterHmapMain.getInitialMap().getData(srcX, srcY) * waterHeightOfsScaleMain.y + waterHeightOfsScaleMain.x;
           pageMin = min(pageMin, ht);
           pageMax = max(pageMax, ht);
-          waterHeightmap->pages[destY * texWidth + destX] =
-            min(max(0u, unsigned((ht - minHeight) / range * UINT16_MAX)), (unsigned)UINT16_MAX);
+          whm_pages[destY * texWidth + destX] = min(max(0u, unsigned((ht - minHeight) / range * UINT16_MAX)), (unsigned)UINT16_MAX);
         }
       if (pageMin == pageMax)
         oneLevelPageCount++;
@@ -476,8 +502,17 @@ public:
                                             "Water level should be changed to reduce memory consumption.");
     }
 
-    waterHeightmap->gridSize = gridSize;
-    waterHeightmap->grid.resize(gridSize * gridSize);
+    if (pageCount > maxTotalPages / 2)
+    {
+      const char *warning_text =
+        "Too many water heightmap pages are created: more than half of area covered by heightmap will use non-planar water. "
+        "Re-check that water_level and default height in water heightmaps are matching.";
+      DAEDITOR3.conError(warning_text);
+      if (!DAGORED2->isInBatchOp())
+        wingw::message_box(wingw::MBS_INFO, "Warning", warning_text);
+    }
+
+    dag::Span<uint16_t> whm_grid(const_cast<uint16_t *>(waterHeightmap->grid.data()), waterHeightmap->grid.size());
     for (int y = 0; y < gridSize; y++)
       for (int x = 0; x < gridSize; x++)
       {
@@ -485,7 +520,7 @@ public:
         auto res = pages.find(tempGrid[y * gridSize + x]);
         if (res != pages.end())
           value = res->second;
-        waterHeightmap->grid[y * gridSize + x] = value;
+        whm_grid[y * gridSize + x] = value;
       }
 
     fft_water::set_heightmap(water, eastl::move(waterHeightmap));
@@ -576,3 +611,4 @@ void release_generic_water_service()
     srv.termSrv();
   }
 }
+bool is_generic_water_service_initialized() { return is_inited; }

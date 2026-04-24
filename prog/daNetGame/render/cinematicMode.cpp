@@ -51,17 +51,17 @@ const CinematicMode::Settings *CinematicMode::getSettings() const { return &sett
 
 void CinematicMode::setVignetteStrength(float strength)
 {
-  PriorityShadervar::set_real(vignette_strengthVarId, VIGNETTE_PRIORITY, strength);
+  PriorityShadervar::set_float(vignette_strengthVarId, VIGNETTE_PRIORITY, strength);
 }
 
 void CinematicMode::setChromaticAberration(Point3 chromatic_aberration)
 {
-  PriorityShadervar::set_color4(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY, Point4::xyz0(chromatic_aberration));
+  PriorityShadervar::set_float4(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY, Point4::xyz0(chromatic_aberration));
 }
 
 void CinematicMode::setFilmGrain(Point3 film_grain)
 {
-  PriorityShadervar::set_color4(film_grain_paramsVarId, FILM_GRAIN_PRIORITY, Point4::xyz0(film_grain));
+  PriorityShadervar::set_float4(film_grain_paramsVarId, FILM_GRAIN_PRIORITY, Point4::xyz0(film_grain));
 }
 
 void CinematicMode::setFps(int fps) { settings.videoSettings.fps = fps; }
@@ -72,8 +72,8 @@ void CinematicMode::setSuperPixels(int super_pixels) { settings.super_pixels = s
 
 void CinematicMode::setLenseFlareIntesity(float intensity)
 {
-  ShaderGlobal::set_real(flare_halo_space_mulVarId, intensity);
-  ShaderGlobal::set_real(flare_ghosts_space_mulVarId, intensity);
+  ShaderGlobal::set_float(flare_halo_space_mulVarId, intensity);
+  ShaderGlobal::set_float(flare_ghosts_space_mulVarId, intensity);
 }
 
 void CinematicMode::toggleLenseFlareCovering(bool use_covering) { flare.toggleCovering(use_covering); }
@@ -86,14 +86,14 @@ void CinematicMode::initLenseFlare(const char *covering_tex_name, const char *re
   flare.init(Point2(scrw / 4.0f, scrh / 4.0f), covering_tex_name, readial_tex_name);
 }
 
-void CinematicMode::renderLenseFlare(ManagedTexView prev_frame_tex)
+void CinematicMode::renderLenseFlare(Texture *prev_frame_tex)
 {
   if (!prev_frame_tex)
   {
     logerr("Lens flare was enabled, but prev_frame_tex was null!");
     return;
   }
-  flare.apply(prev_frame_tex.getTex2D(), prev_frame_tex.getTexId());
+  flare.apply(prev_frame_tex);
 }
 
 void CinematicMode::setOrigActRate(int rate) { settings.origActRate = rate; }

@@ -66,7 +66,7 @@ void BhvBrowser::onAttach(darg::Element *elem)
     bool hasDefaultUrl = false;
     Sqrat::Object url = elem->props.getObject(elem->csk->defaultUrl, &hasDefaultUrl);
     if (hasDefaultUrl && url.GetType() == OT_STRING)
-      webbrowser::get_helper()->go(url.GetVar<const SQChar *>().value);
+      webbrowser::get_helper()->go(url.GetVar<const char *>().value);
   }
 
   BhvBrowserData *bhvData = new BhvBrowserData();
@@ -162,8 +162,8 @@ IWndProcComponent::RetCode BhvBrowser::process(void *hwnd, unsigned msg, uintptr
   return IWndProcComponent::RetCode::PROCEED_OTHER_COMPONENTS;
 }
 
-int BhvBrowser::mouseEvent(ElementTree *, Element *elem, InputDevice device, InputEvent event, int /*pointer_id*/, int data, short mx,
-  short my, int /*buttons*/, int accum_res)
+int BhvBrowser::pointingEvent(ElementTree *, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
+  Point2 pos, int accum_res)
 {
   /*
   TODO: for touch send actual touch events instead of remapping them to mouse.
@@ -177,19 +177,17 @@ int BhvBrowser::mouseEvent(ElementTree *, Element *elem, InputDevice device, Inp
   G_ASSERT_RETURN(bhvData, 0);
 
   webbrowser::IBrowser *browser = webbrowser::get_helper()->getBrowser();
-  Point2 pos(mx, my);
-  int button_id = data;
-  int pointer_id = 0;
 
   if (event == INP_EV_MOUSE_WHEEL)
   {
     if (elem->hitTest(pos) && !(accum_res & R_PROCESSED))
     {
+      int scroll = button_id; // special case
       webbrowser::io::MouseWheel e;
       e.x = pos.x - elem->screenCoord.screenPos.x;
       e.y = pos.y - elem->screenCoord.screenPos.y;
       e.dx = 0;
-      e.dy = data;
+      e.dy = scroll;
       browser->consume(e);
       return R_PROCESSED;
     }

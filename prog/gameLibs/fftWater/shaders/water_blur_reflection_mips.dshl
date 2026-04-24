@@ -1,0 +1,294 @@
+include "shader_global.dshl"
+include "water_reflections_inc.dshl"
+
+float4 mip_target_size;
+float4 ssr_target_size;
+float mip_target_level;
+float reflection_vertical_blur_strength;
+float clouds_water_blur_mask = 0.0;
+
+int prev_mip_tex_register_const_no = 4 always_referenced;
+
+macro WATER_BLUR_COMMON(code)
+(code) {
+    mip_target_size@f4 = mip_target_size;
+    ssr_target_size@f4 = ssr_target_size;
+    mip_target_level@f1 = mip_target_level;
+    prev_mip_tex@tex2d : register(4);
+    prev_mip_tex_samplerstate@sampler : register(4);
+  }
+
+hlsl(code)
+  {
+    #include "fftWater/chop_water_reflections.hlsli"
+
+    // see encoding in chop_water_reflections.hlsli
+    // a8 == 0       -> 0  (hole contributes nothing, stops propagation)
+    // a8 == 255     -> 1  (.a == 1, skies)
+    // else (0<a<1)  -> w
+    float AlphaWeight(uint a8, float w)
+    {
+      if (a8 == 0u)   return 0.0;
+      if (a8 == 255u) return 1.0;
+      return w;
+    }
+  }
+endmacro
+
+macro VERTICAL_BLUR_CORE(code)
+
+  (code) {
+    reflection_vertical_blur_strength@f1 = reflection_vertical_blur_strength;
+    clouds_water_blur_mask@f1 = clouds_water_blur_mask;
+  }
+
+  hlsl(code)
+  {
+    float4 water_blur_reflection_alpha(float2 texcoord00)
+    {
+      float4 finalColor = 0;
+      float finalWeight = 0;
+      float depthAcc = 0;
+      float shadowAcc = 0;
+      float alphaWeight = 0;
+
+      float2 pixelSize = mip_target_size.zw;
+
+      float centerPacked = tex2Dlod(prev_mip_tex, float4(texcoord00, 0, 0)).a;
+      ReflAlphaDecoded center = DecodeReflAlpha(centerPacked);
+      ReflAlphaDecoded sU = DecodeReflAlpha(tex2Dlod(prev_mip_tex, float4(texcoord00 + float2(0, -1) * pixelSize, 0, 0)).a);
+      ReflAlphaDecoded sD = DecodeReflAlpha(tex2Dlod(prev_mip_tex, float4(texcoord00 + float2(0, +1) * pixelSize, 0, 0)).a);
+      float dU = sU.hole ? 0.0 : sU.depth01;
+      float dD = sD.hole ? 0.0 : sD.depth01;
+      float d0 = center.hole ? 0.0 : center.depth01;
+      float w0 = center.hole ? 0.0 : 0.5;
+      float wU = sU.hole     ? 0.0 : 0.25;
+      float wD = sD.hole     ? 0.0 : 0.25;
+      float ws = w0 + wU + wD;
+      float depthStable = (ws > 0.0) ? (d0*w0 + dU*wU + dD*wD) / ws : 0.0;
+
+      float baseStep = saturate((2.0 - mip_target_level) * 0.5);
+      float cloudAdditionalBlur = max(0.0, depthStable - 0.95) * 8.0 * clouds_water_blur_mask;
+      float2 step = baseStep + depthStable * reflection_vertical_blur_strength + cloudAdditionalBlur;
+
+      float horiz[3] = {0.2, 0.6, 0.2};
+      float vert[7] = {0.12, 0.15, 0.17, 0.18, 0.17, 0.15, 0.12};
+
+      for (int hx = 0; hx < 3; ++hx)
+      {
+        float2 columnOffset = float2(hx - 1, 0) * pixelSize * step;
+
+        // Center
+        {
+          int idx = 3;
+          float2 sampleCoord = texcoord00 + columnOffset;
+          float4 sampleColor = tex2Dlod(prev_mip_tex, float4(sampleCoord, 0, 0));
+          ReflAlphaDecoded s = DecodeReflAlpha(sampleColor.a);
+
+          float sampleW = max(0.01, AlphaWeight(s.a8, 3.0));
+          float w = sampleW * horiz[hx] * vert[idx];
+
+          if (!s.hole || hx == 1) // ensure valid data for color
+          {
+            finalColor  += sampleColor * w;
+            finalWeight += w;
+          }
+
+          if (!s.hole)
+          {
+            depthAcc += s.depth01 * w;
+            shadowAcc += (float)s.shadow * w;
+            alphaWeight += w;
+          }
+        }
+
+        for (int dir = 0; dir < 2; ++dir)
+        {
+          bool shouldStop = false;
+          int dirOffset = -1 + dir * 2;
+          bool gatherAnyway = center.hole && hx == 1 && dirOffset == 1; // spread valid data
+
+          for (int dist = 1; dist <= 3; ++dist)
+          {
+            int idx = 3 + dist * dirOffset; // -1 => 2,1,0 (up); +1 => 4,5,6 (down)
+            float2 sampleCoord = texcoord00 + columnOffset + float2(0, dirOffset * dist) * pixelSize * step;
+
+            float4 sampleColor = tex2Dlod(prev_mip_tex, float4(sampleCoord, 0, 0));
+            ReflAlphaDecoded s = DecodeReflAlpha(sampleColor.a);
+
+            if (s.hole)
+              shouldStop = true;
+
+            if (shouldStop && !gatherAnyway)
+              continue;
+
+            if (!s.hole)
+            {
+              float sampleW = AlphaWeight(s.a8, dirOffset > 0 ? 3.0 : 1.0);
+              float w = sampleW * horiz[hx] * vert[idx];
+
+                finalColor  += sampleColor * w;
+                finalWeight += w;
+                if (!center.hole)
+                {
+                  depthAcc += s.depth01 * w;
+                  shadowAcc += (float)s.shadow * w;
+                  alphaWeight += w;
+                }
+            }
+          }
+        }
+      }
+
+      float4 result = finalColor / max(finalWeight, 1e-6);
+      if (alphaWeight < 1e-5)
+      {
+        result.a = 0.0;
+        return result;
+      }
+
+      float depthAvg = depthAcc / alphaWeight;
+      float shadowAvg = shadowAcc / alphaWeight;
+
+      uint depthQOut = (uint)clamp(round(depthAvg * (float)REFL_DEPTH_MAX), 0.0, (float)REFL_DEPTH_MAX);
+      uint shadowOut = (uint)clamp(round(shadowAvg), 0.0, (float)REFL_SHADOW_MAX);
+
+      result.a = PackReflAlphaFloat(depthQOut, shadowOut);
+      return result;
+    }
+  }
+endmacro
+
+shader water_blur_reflection_mips
+{
+  no_ablend;
+  supports none;
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  POSTFX_VS_TEXCOORD(0, texcoord00)
+  WATER_BLUR_COMMON(ps)
+  VERTICAL_BLUR_CORE(ps)
+  INIT_VIEW_VEC_STAGE(ps)
+  USE_VIEW_VEC_STAGE(ps)
+  USE_FSR(ps)
+  INIT_REFLECTION_COMBINED_REPROJECTION(ps)
+  INIT_ZNZFAR_STAGE(ps)
+
+  hlsl(ps)
+  {
+    float4 water_blur_reflection_ps(VsOutput input) : SV_Target
+    {
+      float4 result = water_blur_reflection_alpha(input.texcoord00.xy);
+
+      float rawDepth = tex2Dlod(with_water_depth_tex, float4(input.texcoord00.xy, 0, 0)).x;
+      float worldDist = linearize_z(rawDepth, zn_zfar.zw);
+      float3 cameraToPoint = lerp_view_vec(input.texcoord00.xy * current_inv_dynamic_resolution_scale) * worldDist;
+
+      float4 prevTarget;
+      float weight;
+      getReflectionReprojection(input.texcoord00.xy * current_inv_dynamic_resolution_scale, ssr_target_size.xy, cameraToPoint, worldDist, worldDist, result, mip_target_level, mip_target_size.xy, prevTarget, weight);
+
+      ReflAlphaDecoded currAlpha = DecodeReflAlpha(result.a);
+      ReflAlphaDecoded prevAlphaDecoded = DecodeReflAlpha(prevTarget.a);
+      if (!prevAlphaDecoded.hole && !currAlpha.hole)
+      {
+        result.rgb = lerp(result.rgb, prevTarget.rgb, weight);
+        float depth01 = lerp(currAlpha.depth01, prevAlphaDecoded.depth01, weight);
+        uint depthQInterpolated = (uint)clamp(round(depth01 * (float)REFL_DEPTH_MAX), 0.0, (float)REFL_DEPTH_MAX);
+        result.a = PackReflAlphaFloat(depthQInterpolated, currAlpha.shadow);
+      }
+
+      return result;
+    }
+  }
+  compile("target_ps", "water_blur_reflection_ps");
+}
+
+macro SIMPLE_GAUSS_CORE(code)
+  hlsl(code)
+  {
+    #define CENTER_WEIGHT 0.13f
+    #define SIDE_WEIGHT 0.115f
+    #define CORNER_WEIGHT 0.102f
+    #define OFFSET_SCALE 0.9f
+
+    float4 gauss_mip_simple(float2 texcoord00)
+    {
+      float4 finalColor = 0;
+      float finalWeight = 0;
+      float depthAcc = 0;
+      float shadowAcc = 0;
+
+      float2 tcOffset = OFFSET_SCALE * mip_target_size.zw;
+
+      #define SAMPLE(offx, offy, weight) \
+      { \
+        float4 color = tex2Dlod(prev_mip_tex, float4(texcoord00 + float2(offx, offy) * tcOffset.xy, 0, 0)); \
+        ReflAlphaDecoded s = DecodeReflAlpha(color.a); \
+        float w = AlphaWeight(s.a8, 1.0) * weight; \
+        finalColor += color * w; \
+        finalWeight += w; \
+        depthAcc += s.depth01 * w; \
+        shadowAcc += (float)s.shadow * w; \
+      }
+
+      // center
+      SAMPLE(0, 0, CENTER_WEIGHT)
+
+      // side
+      SAMPLE(1, 0, SIDE_WEIGHT)
+      SAMPLE(-1, 0, SIDE_WEIGHT)
+      SAMPLE(0, 1, SIDE_WEIGHT)
+      SAMPLE(0, -1, SIDE_WEIGHT)
+
+      // corner
+      SAMPLE(1, 1, CORNER_WEIGHT)
+      SAMPLE(1, -1, CORNER_WEIGHT)
+      SAMPLE(-1, 1, CORNER_WEIGHT)
+      SAMPLE(-1, -1, CORNER_WEIGHT)
+
+      float4 result = finalColor / max(finalWeight, 0.001);
+      float depthAvg = depthAcc / max(finalWeight, 1e-6);
+      float shadowAvg = shadowAcc / max(finalWeight, 1e-6);
+
+      if (finalWeight < 0.05)
+      {
+        result.a = 0.0;
+        return result;
+      }
+
+      uint depthQOut = (uint)clamp(round(depthAvg * (float)REFL_DEPTH_MAX), 0.0, (float)REFL_DEPTH_MAX);
+      uint shadowOut = (uint)clamp(round(shadowAvg), 0.0, (float)REFL_SHADOW_MAX);
+      result.a = PackReflAlphaFloat(depthQOut, shadowOut);
+      return result;
+    }
+  }
+endmacro
+
+shader water_blur_reflection_mips_simple
+{
+  no_ablend;
+  supports none;
+  supports global_frame;
+
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  POSTFX_VS_TEXCOORD(0, texcoord00)
+  WATER_BLUR_COMMON(ps)
+  SIMPLE_GAUSS_CORE(ps)
+
+  hlsl(ps)
+  {
+    float4 water_blur_reflection_simple_ps(VsOutput input) : SV_Target
+    {
+      return gauss_mip_simple(input.texcoord00.xy);
+    }
+  }
+  compile("target_ps", "water_blur_reflection_simple_ps");
+}

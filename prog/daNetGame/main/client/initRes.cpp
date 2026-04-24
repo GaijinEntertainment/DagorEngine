@@ -5,13 +5,15 @@
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameResId.h>
+#include <gameRes/dag_collisionResource.h>
+#include <rendInst/rendInstGen.h>
 #include <ioSys/dag_dataBlock.h>
 #include <memory/dag_framemem.h>
 #include <startup/dag_startupTex.h>
 #include <osApiWrappers/dag_messageBox.h>
 #include <osApiWrappers/dag_direct.h>
 #include <shaders/dag_shaders.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <3d/dag_render.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_files.h>
@@ -20,6 +22,8 @@
 #include "render/renderEvent.h"
 #include "render/rendererFeatures.h"
 #include "main/version.h"
+
+static bool dng_fx_inited = false;
 
 void init_shaders()
 {
@@ -44,12 +48,6 @@ void init_shaders()
   if (strcmp(::dgs_get_settings()->getBlockByNameEx("graphics")->getStr("preset", "medium"), "bareMinimum") == 0)
     sh_bindump_prefix = "compiledShaders/compatPC/game";
 #endif
-
-  String renderingPath = get_corrected_rendering_path();
-  if (renderingPath == "forward")
-    sh_bindump_prefix = ::dgs_get_settings()->getStr("forwardShaders", "compiledShaders/gameAndroidForward");
-  else if (renderingPath == "mobile_deferred")
-    sh_bindump_prefix = ::dgs_get_settings()->getStr("deferredShaders", "compiledShaders/gameAndroidDeferred");
 
   set_stcode_special_tag_interp([](eastl::string_view directive) -> eastl::optional<eastl::string> {
     if (directive == "version")
@@ -84,13 +82,13 @@ void init_res_factories()
   ::register_geom_node_tree_gameres_factory();
   ::register_fast_phys_gameres_factory();
   ::register_a2d_gameres_factory();
+  ::register_phys_obj_gameres_factory();
   ::register_animchar_gameres_factory();
   ::register_character_gameres_factory();
 
   bool ri_uvd_streaming = ::dgs_get_settings()->getBlockByNameEx("unitedVdata.rendInst")->getBool("useStreaming", true);
   debug("unitedVdata.rendInst: useStreaming=%d", ri_uvd_streaming);
   ::register_rendinst_gameres_factory(ri_uvd_streaming);
-  ::register_phys_obj_gameres_factory();
   ::register_effect_gameres_factory();
   ::register_png_tex_load_factory();
   ::register_avif_tex_load_factory();
@@ -99,11 +97,18 @@ void init_res_factories()
   ::register_any_vromfs_tex_create_factory("avif|png|jpg|tga|ddsx");
   ::register_any_tex_load_factory();
   ::register_lshader_gameres_factory();
+  CollisionResource::registerFactory();
+  rendinst::register_land_gameres_factory();
 }
 void term_res_factories() {}
 
 void init_fx()
 {
+  if (eastl::exchange(dng_fx_inited, true))
+  {
+    logwarn("%s already called", __FUNCTION__);
+    return;
+  }
   const char *dafxType = ::dgs_get_settings()->getBlockByNameEx("graphics")->getStr("dafx", "cpu");
   bool dafxGpuSim = strcmp(dafxType, "gpu") == 0;
   bool dafxEnabled = acesfx::init_dafx(dafxGpuSim); // we need to create dafx context before fx factories
@@ -113,6 +118,7 @@ void init_fx()
   ::register_dafx_modfx_factory();
   ::register_dafx_compound_factory();
   ::register_light_fx_factory();
+  ::register_outdatedFx_factory(::dgs_get_settings()->getBool("outdatedFx", false));
 
   static const char *fx_blk_fn = "config/fx.blk";
   DataBlock fxBlk;
@@ -150,7 +156,12 @@ void init_fx()
 
 void term_fx()
 {
+  if (!eastl::exchange(dng_fx_inited, false))
+  {
+    logwarn("%s called without init", __FUNCTION__);
+    return;
+  }
   acesfx::shutdown(); // this frees all effects memory
   acesfx::term_dafx();
-  find_gameres_factory(EffectGameResClassId)->freeUnusedResources(false);
+  find_gameres_factory(EffectGameResClassId)->freeUnusedResources(nullptr, false);
 }

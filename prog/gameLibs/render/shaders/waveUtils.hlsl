@@ -10,14 +10,14 @@
 #define WaveInterlockedAddRawUint( AT, DEST, VALUE ) \
 { \
   uint addTotal = WaveActiveCountBits( true ) * VALUE; \
-  if ( WaveIsHelperLane() ) \
+  if ( WaveIsFirstLane() ) \
     AT . InterlockedAdd( DEST, addTotal ); \
 }
 
 #define WaveInterlockedAddRawUintOriginal( AT, DEST, VALUE, ORIGINAL_VALUE ) \
 { \
   uint addTotal = WaveActiveCountBits( true ) * VALUE; \
-  if ( WaveIsHelperLane() ) \
+  if ( WaveIsFirstLane() ) \
     AT . InterlockedAdd( DEST, addTotal, ORIGINAL_VALUE ); \
   ORIGINAL_VALUE = WaveReadFirstLane( ORIGINAL_VALUE ) + WavePrefixCountBits( true ) * VALUE; \
 }
@@ -25,7 +25,7 @@
 #define WaveInterlockedAddRaw( AT, DEST, VALUE ) \
 { \
   uint addTotal = WaveActiveSum( VALUE ); \
-  if ( WaveIsHelperLane() ) \
+  if ( WaveIsFirstLane() ) \
     AT . InterlockedAdd( DEST, addTotal ); \
 }
 
@@ -33,7 +33,7 @@
 { \
   uint localOfs = WavePrefixSum( VALUE ); \
   uint addTotal = WaveReadLaneLast( localOfs + VALUE ); \
-  if ( WaveIsHelperLane() ) \
+  if ( WaveIsFirstLane() ) \
     AT . InterlockedAdd( DEST, addTotal, ORIGINAL_VALUE ); \
   ORIGINAL_VALUE = WaveReadFirstLane( ORIGINAL_VALUE ) + localOfs; \
 }
@@ -42,14 +42,14 @@
 #define WaveInterlockedAddUint( DEST, VALUE ) \
 { \
   uint addTotal = WaveActiveCountBits( true ) * VALUE; \
-  if ( WaveIsHelperLane() ) \
+  if ( WaveIsFirstLane() ) \
     InterlockedAdd( DEST, addTotal ); \
 }
 
 #define WaveInterlockedAddUintOriginal( DEST, VALUE, ORIGINAL_VALUE ) \
 { \
   uint addTotal = WaveActiveCountBits( true ) * VALUE; \
-  if ( WaveIsHelperLane() ) \
+  if ( WaveIsFirstLane() ) \
     InterlockedAdd( DEST, addTotal, ORIGINAL_VALUE ); \
   ORIGINAL_VALUE = WaveReadFirstLane( ORIGINAL_VALUE ) + WavePrefixCountBits( true ) * VALUE; \
 }
@@ -57,7 +57,7 @@
 #define WaveInterlockedAdd( DEST, VALUE ) \
 { \
   uint addTotal = WaveActiveSum( VALUE ); \
-  if ( WaveIsHelperLane() ) \
+  if ( WaveIsFirstLane() ) \
     InterlockedAdd( DEST, addTotal ); \
 }
 
@@ -65,7 +65,7 @@
 { \
   uint localOfs = WavePrefixSum( VALUE ); \
   uint addTotal = WaveReadLaneLast( localOfs + VALUE ); \
-  if ( WaveIsHelperLane() ) \
+  if ( WaveIsFirstLane() ) \
     InterlockedAdd( DEST, addTotal, ORIGINAL_VALUE ); \
   ORIGINAL_VALUE = WaveReadFirstLane( ORIGINAL_VALUE ) + localOfs; \
 }

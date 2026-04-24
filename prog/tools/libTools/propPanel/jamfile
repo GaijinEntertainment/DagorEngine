@@ -13,6 +13,7 @@ if $(Platform) = linux {
   AddIncludes +=
     /usr/include/dbus-1.0
     /usr/lib/x86_64-linux-gnu/dbus-1.0/include
+    /usr/lib64/dbus-1.0/include
   ;
 
   AddLibs += -ldbus-1 ;
@@ -24,13 +25,14 @@ Sources =
   c_util.cpp
   colorChangeBuffer.cpp
   colorsInternal.cpp
-  contextMenuInternal.cpp
+  contextMenu.cpp
   focusHelper.cpp
   imageHelper.cpp
   imguiHelper.cpp
   immediateFocusLossHandler.cpp
-  menuInternal.cpp
+  menuImplementation.cpp
   messageQueueInternal.cpp
+  toastManagerInternal.cpp
   tooltipHelper.cpp
 
   commonWindow/color_correction_info.cpp
@@ -53,6 +55,10 @@ Sources =
   control/panelWindow.cpp
   control/propertyControlBase.cpp
   control/spinEditStandalone.cpp
+  control/toolbarButton.cpp
+  control/toolbarContainer.cpp
+  control/toolbarToggleButton.cpp
+  control/toolbarToggleButtonGroup.cpp
   control/treeStandalone.cpp
 ;
 

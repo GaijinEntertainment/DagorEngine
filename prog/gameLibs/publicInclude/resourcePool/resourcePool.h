@@ -8,7 +8,7 @@
 #include <3d/dag_resizableTex.h>
 #include <resourcePool/aliasableTex.h>
 #include <generic/dag_objectPool.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 
 #include <ska_hash_map/flat_hash_map2.hpp>
 
@@ -76,7 +76,8 @@ struct ResourceFactory<ResourceType::Texture>
 {
   static UniqueTex create(int w, int h, int flg, int levels)
   {
-    return dag::create_tex(nullptr, w, h, flg, levels, getUniqueResourceName<ResourceType::Texture>("tex").data());
+    return dag::create_tex(nullptr, w, h, flg, levels, getUniqueResourceName<ResourceType::Texture>("tex").data(),
+      RESTAG_RESOURCE_POOL);
   }
 
   static uint64_t get_size_for_alias(int, int, int, int) { return 0; }
@@ -88,7 +89,8 @@ struct ResourceFactory<ResourceType::CubeTexture>
 {
   static UniqueTex create(int size, int flg, int levels)
   {
-    return dag::create_cubetex(size, flg, levels, getUniqueResourceName<ResourceType::CubeTexture>("cubetex").data());
+    return dag::create_cubetex(size, flg, levels, getUniqueResourceName<ResourceType::CubeTexture>("cubetex").data(),
+      RESTAG_RESOURCE_POOL);
   }
 
   static uint64_t get_size_for_alias(int, int, int) { return 0; }
@@ -100,7 +102,8 @@ struct ResourceFactory<ResourceType::VolTexture>
 {
   static UniqueTex create(int w, int h, int d, int flg, int levels)
   {
-    return dag::create_voltex(w, h, d, flg, levels, getUniqueResourceName<ResourceType::VolTexture>("voltex").data());
+    return dag::create_voltex(w, h, d, flg, levels, getUniqueResourceName<ResourceType::VolTexture>("voltex").data(),
+      RESTAG_RESOURCE_POOL);
   }
 
   static uint64_t get_size_for_alias(int, int, int, int, int) { return 0; }
@@ -112,7 +115,8 @@ struct ResourceFactory<ResourceType::ArrayTexture>
 {
   static UniqueTex create(int w, int h, int d, int flg, int levels)
   {
-    return dag::create_array_tex(w, h, d, flg, levels, getUniqueResourceName<ResourceType::ArrayTexture>("arraytex").data());
+    return dag::create_array_tex(w, h, d, flg, levels, getUniqueResourceName<ResourceType::ArrayTexture>("arraytex").data(),
+      RESTAG_RESOURCE_POOL);
   }
 
   static uint64_t get_size_for_alias(int, int, int, int, int) { return 0; }
@@ -125,7 +129,7 @@ struct ResourceFactory<ResourceType::CubeArrayTexture>
   static UniqueTex create(int side, int d, int flg, int levels)
   {
     return dag::create_cube_array_tex(side, d, flg, levels,
-      getUniqueResourceName<ResourceType::CubeArrayTexture>("cubearraytex").data());
+      getUniqueResourceName<ResourceType::CubeArrayTexture>("cubearraytex").data(), RESTAG_RESOURCE_POOL);
   }
 
   static uint64_t get_size_for_alias(int, int, int, int) { return 0; }
@@ -137,7 +141,7 @@ struct ResourceFactory<ResourceType::VBuffer>
 {
   static UniqueRes<ManagedRes<Vbuffer>> create(int sz, int f)
   {
-    return dag::create_vb(sz, f, getUniqueResourceName<ResourceType::VBuffer>("vbuffer").data());
+    return dag::create_vb(sz, f, getUniqueResourceName<ResourceType::VBuffer>("vbuffer").data(), RESTAG_RESOURCE_POOL);
   }
 
   static uint64_t get_size_for_alias(int, int) { return 0; }
@@ -149,7 +153,7 @@ struct ResourceFactory<ResourceType::IBuffer>
 {
   static UniqueRes<ManagedRes<Ibuffer>> create(int size_bytes, int flags)
   {
-    return dag::create_ib(size_bytes, flags, getUniqueResourceName<ResourceType::IBuffer>("ibuffer").data());
+    return dag::create_ib(size_bytes, flags, getUniqueResourceName<ResourceType::IBuffer>("ibuffer").data(), RESTAG_RESOURCE_POOL);
   }
 
   static uint64_t get_size_for_alias(int, int) { return 0; }
@@ -161,7 +165,8 @@ struct ResourceFactory<ResourceType::SBuffer>
 {
   static UniqueRes<ManagedRes<Sbuffer>> create(int struct_size, int elements, unsigned flags, unsigned texfmt)
   {
-    return dag::create_sbuffer(struct_size, elements, flags, texfmt, getUniqueResourceName<ResourceType::SBuffer>("sbuffer").data());
+    return dag::create_sbuffer(struct_size, elements, flags, texfmt, getUniqueResourceName<ResourceType::SBuffer>("sbuffer").data(),
+      RESTAG_RESOURCE_POOL);
   }
 
   static uint64_t get_size_for_alias(int, int, unsigned, unsigned) { return 0; }
@@ -173,7 +178,8 @@ struct ResourceFactory<ResourceType::ResizableTexture>
 {
   static ResizableTex create(int w, int h, int flg, int levels)
   {
-    return dag::create_tex(nullptr, w, h, flg, levels, getUniqueResourceName<ResourceType::ResizableTexture>("restex").data());
+    return dag::create_tex(nullptr, w, h, flg, levels, getUniqueResourceName<ResourceType::ResizableTexture>("restex").data(),
+      RESTAG_RESOURCE_POOL);
   }
 
   static uint64_t get_size_for_alias(int, int, int, int) { return 0; }
@@ -185,7 +191,8 @@ struct ResourceFactory<ResourceType::AliasableTexture>
 {
   static AliasableTex2D create(int w, int h, int flg, int levels)
   {
-    return dag::create_tex(nullptr, w, h, flg, levels, getUniqueResourceName<ResourceType::AliasableTexture>("aliastex").data());
+    return dag::create_tex(nullptr, w, h, flg, levels, getUniqueResourceName<ResourceType::AliasableTexture>("aliastex").data(),
+      RESTAG_RESOURCE_POOL);
   }
 
   static bool can_be_aliased(int flg)

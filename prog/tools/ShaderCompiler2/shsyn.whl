@@ -53,7 +53,6 @@ terminal
          "##" (SHTOK_macro_concat),
          "always_referenced" (SHTOK_always_referenced),
          "no_warnings" (SHTOK_no_warnings),
-         "undefined_value" (SHTOK_undefined_value),
          "ambient" (SHTOK_ambient),
          "blend_asrc" (SHTOK_blend_asrc),
          "blend_adst" (SHTOK_blend_adst),
@@ -91,6 +90,7 @@ terminal
          "vulkan" (SHTOK_vulkan),
          "metal" (SHTOK_metal),
          "metaliOS" (SHTOK_metaliOS),
+         "android" (SHTOK_android),
          "fsh_4_0" (SHTOK_fsh_4_0),
          "fsh_4_1" (SHTOK_fsh_4_1),
          "fsh_5_0" (SHTOK_fsh_5_0),
@@ -159,6 +159,7 @@ terminal
          "local" (SHTOK_local),
          "global" (SHTOK_global),
          "const" (SHTOK_const),
+         "literal" (SHTOK_literal),
          "register" (SHTOK_register),
          "signed_pack" (SHTOK_signed_pack),
          "unsigned_pack" (SHTOK_unsigned_pack),
@@ -341,9 +342,9 @@ static-decl(static_var_decl) ->
   ";"=nothing;
 
 global-decl(global_var_decl) ->
+  ["literal"=is_literal]
   static-var-type=type ident=name ["["=nothing int-number=size "]"=nothing]
   ["="=nothing ((arithmetic-expr=expr)|("{"=nothing arithmetic-expr=arr0 (","=nothing arithmetic-expr=arrN)* "}"=nothing))]
-  ["undefined_value"=undefined]
   ["always_referenced"=is_always_referenced]
   ";"=nothing
   {add_global_var(n);};
@@ -364,6 +365,7 @@ interval-decl(interval)->
   "interval"=nothing ident=name ":"=nothing
   (interval-var-decl=var_decl)+
    ident=last_var_name
+  ["always_referenced"=is_always_referenced]
   ";"=nothing;
 
 bool-decl(bool_decl) ->
@@ -409,7 +411,7 @@ equal-op(equal_op) ->
   ("=="|"!="|"<"|"<="|">"|">=")=op;
 
 hardware-support(hardware_support) ->
-  ("metal"|"metaliOS"|"vulkan"|"pc"|"dx11"|"dx12"|"xbox"|"scarlett"|"ps4"|"ps5"|"fsh_4_0"|"fsh_5_0"|"fsh_6_0"|"fsh_6_2"|"fsh_6_6"|"mesh"|"bindless")=var;
+  ("metal"|"metaliOS"|"android"|"vulkan"|"pc"|"dx11"|"dx12"|"xbox"|"scarlett"|"ps4"|"ps5"|"fsh_4_0"|"fsh_5_0"|"fsh_6_0"|"fsh_6_2"|"fsh_6_6"|"mesh"|"bindless")=var;
 
 bool-value(bool_value) ->
   ("shader"=nothing equal-op=cmpop ident=shader) |
@@ -514,7 +516,7 @@ external-variable(external_variable) ->
 
 external-register(external_register) ->
   external-var-name=var ":"=nothing
-  "register"=nothing "("=nothing ident=shader_var ")"=nothing
+  "register"=nothing "("=nothing (ident=shader_var | int-number=literal_id) ")"=nothing
   [hlsl=nothing hlsl_text = hlsl_var_text]
   [";"=nothing];
 
@@ -524,8 +526,8 @@ external-variable-array(external_variable_array) ->
   [";"=nothing];
 
 external-register-array(external_register_array) ->
-  external-var-name=var "["=nothing ident=size_shader_var "]"=nothing ":"=nothing
-  "register"=nothing "("=nothing ident=shader_var ")"=nothing
+  external-var-name=var "["=nothing (ident=size_shader_var | int-number=literal_size) "]"=nothing ":"=nothing
+  "register"=nothing "("=nothing (ident=shader_var | int-number=literal_id) ")"=nothing
   [hlsl=nothing hlsl_text = hlsl_var_text]
   [";"=nothing];
 

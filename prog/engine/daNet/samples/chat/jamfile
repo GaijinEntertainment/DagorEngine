@@ -1,0 +1,25 @@
+Root    ?= ../../../../.. ;
+Location = prog/engine/daNet/samples/chat ;
+ConsoleExe = yes ;
+TargetType = exe ;
+Target = chat ;
+OutDir = $(Root)/$(Location) ;
+
+AddIncludes = ;
+
+Sources =
+  chat.cpp
+;
+
+UseProgLibs =
+  engine/memory
+  engine/kernel
+  engine/osApiWrappers
+  engine/baseUtil
+  engine/ioSys
+  engine/perfMon/daProfilerStub
+
+  engine/daNet
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

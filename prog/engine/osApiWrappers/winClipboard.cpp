@@ -118,14 +118,14 @@ bool set_clipboard_bmp_image(TexPixel32 *im, int wd, int ht, int stride)
     info->biCompression = BI_RGB;
 
     for (int i = 0; i < ht; ++i)
-      memcpy(buffer + sizeof(BITMAPINFO) + i * lineWd, ((char *)im) + (ht - i - 1) * stride, wd * 4);
+      memcpy(buffer + sizeof(BITMAPINFOHEADER) + i * lineWd, ((char *)im) + (ht - i - 1) * stride, wd * 4);
 
     GlobalUnlock(clipbuffer);
-    bool res = SetClipboardData(CF_DIB, clipbuffer) == NULL;
-    if (!res)
+    bool success = SetClipboardData(CF_DIB, clipbuffer) != NULL;
+    if (!success) // on success ownership is passed to the clipboard
       GlobalFree(clipbuffer);
     CloseClipboard();
-    return res;
+    return success;
   }
   return false;
 }

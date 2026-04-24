@@ -125,6 +125,7 @@ spline_sound{
     // setup
     spline_sound__path:t=""
     spline_sound__floorOnWater:b=no
+    spline_sound__waterLevel:r=1.5
     spline_sound__distToSoundSize:p4=0,0,0,0
     spline_sound__soundSizeVar:t=""
   }
@@ -137,6 +138,17 @@ river_sound{
     _tags:t="sound"
     spline_sound__floorOnWater:b=yes
     spline_sound__path:t="ambient/positioned/river_mid"
+    spline_sound__distToSoundSize:p4=0,10,5,50
+    spline_sound__soundSizeVar:t="soundSize"
+  }
+}
+
+river_small_sound{
+  _use:t="spline_sound"
+  _group{
+    _tags:t="sound"
+    spline_sound__floorOnWater:b=yes
+    spline_sound__path:t="ambient/positioned/river_small"
     spline_sound__distToSoundSize:p4=0,10,5,50
     spline_sound__soundSizeVar:t="soundSize"
   }
@@ -163,7 +175,7 @@ ocean_sound{
     ocean_sound__range:r=0
     ocean_sound__path:t="ambient/positioned/ocean"
     ocean_sound__shoreVar:t="shore"
-    ocean_sound__waterLevel:r=0
+    ocean_sound__waterLevel:r=1.5
     "ocean_sound__event:SoundEvent"{}
     ocean_sound__shoreDistanceToVar:p4=0,250,1,0
 
@@ -337,6 +349,7 @@ water_sound_field{
   water_sound_field__cellSize:r=5
   water_sound_field__depthThreshold:r=0.15
   water_sound_field__worldAABB:p4=-1000,-1000,1000,1000
+  water_sound_field__waterLevel:r=1.5
   water_sound_field__path:t="ambient/positioned/lake_mid"
 }
 
@@ -490,7 +503,7 @@ sound_occlusion{
     _tags:t="sound"
     "soundOcclusion:tag"{}
     sound_occlusion__indoorMul:r=1 // INSIDE (listener AND source)
-    sound_occlusion__outdoorMul:r=0.6 // OUTSIDE (listener AND source)
+    sound_occlusion__outdoorMul:r=0.8 // OUTSIDE (listener AND source)
     sound_occlusion__sourceIndoorMul:r=1 // source is INSIDE, listener is OUTSIDE
     sound_occlusion__sourceOutdoorMul:r=0.8 // source is OUTSIDE, listener is INSIDE
     sound_occlusion__undergroundDepthDist:r=3 // suppress when underground
@@ -499,18 +512,14 @@ sound_occlusion{
     _tags:t="sound"
     _tags:t="dev"
     sound_occlusion__debug:b=no
-    sound_occlusion__debugDist:r=1000
+    sound_occlusion__debugDist:r=500
+    sound_load_occluders_debug__filepath:t="config/rendinst_dmg.blk"
     sel_ri_name:t=""
   }
-  "sound_occlusion__occluderTypes:object"{
+  "sound_occlusion__occluderTypes:object"{ // debug
     _tags:t="sound"
-    heavy:r=1
-    medium:r=0.7
-    light:r=0.4
-    door:r=0.4
-    vehicle:r=0.3
   }
-  "sound_occlusion__ri_name_to_occluder_type:object"{
+  "sound_occlusion__ri_name_to_occluder_type:object"{ // debug
     _tags:t="sound"
   }
 }

@@ -23,14 +23,15 @@ struct VarDesc
   int fmodParameterType = 0;
 };
 
-static constexpr int MAX_EVENT_PARAMS = 12;
+static constexpr int MAX_EVENT_PARAMS = 32;
 bool get_var_desc(EventHandle event_handle, const char *var_name, VarDesc &desc);
 bool get_var_desc(const char *event_name, const char *var_name, VarDesc &desc);
-bool get_var_desc(const FMODGUID &event_id, const char *var_name, VarDesc &desc);
-bool get_var_desc(const FMODGUID &event_id, const VarId &var_id, VarDesc &desc);
+bool get_var_desc(const FMODGUID &event_id, const char *var_name, VarDesc &desc, bool can_trace_warn = true);
+bool get_var_desc(const FMODGUID &event_id, const VarId &var_id, VarDesc &desc, bool can_trace_warn = true);
 VarId get_var_id(const FMODGUID &event_id, const char *var_name, bool can_trace_warn = true);
-VarId get_var_id(EventHandle event_handle, const char *var_name);
+VarId get_var_id(EventHandle event_handle, const char *var_name, bool can_trace_warn = true);
 VarId get_var_id_global(const char *var_name);
+bool set_var_immediate(EventHandle event_handle, const VarId &var_id, float value);
 bool set_var(EventHandle event_handle, const VarId &var_id, float value);
 bool set_var(EventHandle event_handle, const char *var_name, float value);
 bool set_var_optional(EventHandle event_handle, const char *var_name, float value);
@@ -42,6 +43,7 @@ void set_vars_global(carray<VarId, sndsys::MAX_EVENT_PARAMS> &ids, carray<float,
 void init_vars(EventHandle event_handle, carray<VarId, MAX_EVENT_PARAMS> &ids);
 bool get_var(EventHandle event_handle, const VarId &var_id, float &val);
 bool get_param_count(EventHandle event_handle, int &param_count);
+bool get_param_count(const FMODGUID &event_id, int &param_count);
 const char *trim_vars_fmt(const char *path);
 void set_vars_fmt(const char *format, EventHandle event_handle);
 } // namespace sndsys

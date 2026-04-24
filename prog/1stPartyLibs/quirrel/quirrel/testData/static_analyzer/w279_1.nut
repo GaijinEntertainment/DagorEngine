@@ -1,4 +1,4 @@
-//expect:w279
+//-file:potentially-nulled-ops
 
 local j;
 for (local k = 0; j < 5; k++) {

@@ -34,75 +34,32 @@ void VarTable::clear()
   clear_and_shrink(variableList);
   intervals.clear();
   clear_and_shrink(variableByNameId);
-  variableByNameIdLastBuilt = 0;
 }
 
 // find id by id
-int VarTable::getVarInternalIndex(const int variable_id)
+int VarTable::getVarInternalIndex(int variable_id) const
 {
   if (variable_id == VarNameMap::BAD_ID)
     return -1;
   if (variable_id < variableByNameId.size())
     return variableByNameId[variable_id];
-
-  if (variableList.size() == variableByNameIdLastBuilt)
+  else
     return -1;
-
-  for (int i = variableByNameIdLastBuilt; i < variableList.size(); ++i)
-  {
-    int nameId = variableList[i].nameId;
-    if (variableByNameId.size() <= nameId)
-    {
-      int addCnt = nameId - variableByNameId.size() + 1;
-      int at = append_items(variableByNameId, addCnt);
-      memset(&variableByNameId[at], 0xFF, sizeof(variableByNameId[at]) * addCnt);
-    }
-
-    variableByNameId[nameId] = i;
-  }
-
-  variableByNameIdLastBuilt = variableList.size();
-
-  return getVarInternalIndex(variable_id);
 }
 
-// set variable value from string
-bool VarTable::setVarValue(int internal_index, const char *str)
+void VarTable::updateVarNameIdMapping(int var_id)
 {
-  if (!tabutils::isCorrectIndex(variableList, internal_index) || !str)
-    return false;
-
-  Var &variable = variableList[internal_index];
-
-  switch (variable.type)
-  {
-    case SHVT_INT:
-      if (sscanf(str, "%d", &variable.value.i) != 1)
-        return false;
-      break;
-    case SHVT_INT4:
-      if (sscanf(str, "%d %d %d %d", &variable.value.i4.x, &variable.value.i4.y, &variable.value.i4.z, &variable.value.i4.w) < 3)
-        return false;
-      break;
-    case SHVT_REAL:
-      if (sscanf(str, "%f", &variable.value.r) != 1)
-        return false;
-      break;
-    case SHVT_COLOR4:
-      if (sscanf(str, "%f %f %f %f", &variable.value.c4.r, &variable.value.c4.g, &variable.value.c4.b, &variable.value.c4.a) < 3)
-        return false;
-      break;
-    case SHVT_TEXTURE: return false; break;
-    default: return false;
-  }
-
-  return true;
+  const auto &var = variableList[var_id];
+  if (variableByNameId.size() <= var.nameId)
+    variableByNameId.resize(var.nameId + 1, -1);
+  G_ASSERT(variableByNameId[var.nameId] == -1);
+  variableByNameId[var.nameId] = var_id;
 }
 
 bool Var::operator==(const Var &right) const
 {
   G_ASSERT(type == right.type);
-  if (shouldIgnoreValue || right.shouldIgnoreValue)
+  if (!definesValue || !right.definesValue)
     return true;
   switch (type)
   {
@@ -141,15 +98,21 @@ void VarTable::link(const Tab<ShaderGlobal::Var> &variables, const IntervalList 
 
         if (var.type != existingVar.type)
           sh_debug(SHLOG_FATAL, "Different variable types: '%s'", varNameMap.getName(var.nameId));
-
         if (var != existingVar)
           sh_debug(SHLOG_FATAL, "Different variable values: '%s'", varNameMap.getName(var.nameId));
+        if (var.array_size != existingVar.array_size)
+          sh_debug(SHLOG_FATAL, "Different variable array sizes: '%s'", varNameMap.getName(var.nameId));
+        if (var.definesValue && existingVar.definesValue && var.isLiteral != existingVar.isLiteral)
+          sh_debug(SHLOG_FATAL, "Different variable literal states: '%s'", varNameMap.getName(var.nameId));
 
-        if (var.isAlwaysReferenced != existingVar.isAlwaysReferenced)
-          sh_debug(SHLOG_FATAL, "Different variable always_referenced states: '%s'", varNameMap.getName(var.nameId));
-
-        if (var.isImplicitlyReferenced && !existingVar.isImplicitlyReferenced)
-          existingVar.isImplicitlyReferenced = true;
+        existingVar.isAlwaysReferenced |= var.isAlwaysReferenced;
+        existingVar.isImplicitlyReferenced |= var.isImplicitlyReferenced;
+        if (var.definesValue && !existingVar.definesValue)
+        {
+          existingVar.definesValue = true;
+          existingVar.isLiteral = var.isLiteral;
+          existingVar.value = var.value;
+        }
       }
     }
 
@@ -176,6 +139,28 @@ void VarTable::link(const Tab<ShaderGlobal::Var> &variables, const IntervalList 
     else
     {
       interval_link_table[intervalNo] = INTERVAL_NOT_INIT;
+    }
+  }
+}
+
+void validate_linked_gvar_collection(const shc::TargetContext &ctx)
+{
+  for (const Var &var : ctx.globVars().variableList)
+  {
+    if (var.isLiteral)
+      G_ASSERT(var.definesValue);
+    else if (!var.definesValue)
+      G_ASSERT(!var.isLiteral);
+
+    // @NOTE: non primary dumps only allow references and constants
+    if (ctx.compCtx().compInfo().compilingAdditionalDump())
+    {
+      if (var.definesValue && !var.isLiteral)
+      {
+        sh_debug(SHLOG_FATAL,
+          "Global mutable variable '%s' is defined in a non-primary dump, while only references and consts are allowed.",
+          ctx.globVars().varNameMap.getName(var.nameId));
+      }
     }
   }
 }

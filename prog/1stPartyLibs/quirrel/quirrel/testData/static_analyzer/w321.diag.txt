@@ -1,0 +1,32 @@
+WARNING: w321 (param-assign-in-lambda) Assignment to parameter 'a' in lambda has no effect. Return the expression instead.
+testData/static_analyzer/w321.nut:17:29
+
+// reduce with assignment to accumulator
+let _r1 = arr.reduce(@(a, v) a = max(v, a), 0)
+                             ^------------
+
+
+WARNING: w321 (param-assign-in-lambda) Assignment to parameter 'v' in lambda has no effect. Return the expression instead.
+testData/static_analyzer/w321.nut:20:23
+
+// map with assignment to parameter
+let _m1 = arr.map(@(v) v = v * 2)
+                       ^--------
+
+
+WARNING: w321 (param-assign-in-lambda) Assignment to parameter 'v' in lambda has no effect. Return the expression instead.
+testData/static_analyzer/w321.nut:23:26
+
+// filter with assignment
+let _f1 = arr.filter(@(v) v = v > 1)
+                          ^--------
+
+
+WARNING: w321 (param-assign-in-lambda) Assignment to parameter 'a' in lambda has no effect. Return the expression instead.
+testData/static_analyzer/w321.nut:26:33
+
+// table reduce with assignment
+let _r3 = tbl.reduce(@(a, v, _k) a = a + v, 0)
+                                 ^--------
+
+

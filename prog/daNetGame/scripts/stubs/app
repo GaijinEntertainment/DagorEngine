@@ -13,9 +13,14 @@ return {
   get_app_id = @() 1154
   set_fps_limit = @(_limit) null
   launch_network_session = @(_params) null
+  launch_internal_server = @(_params) null
+  is_internal_server_running_or_activating = @() false
+  kill_internal_server = @() null
+  get_internal_server_url = @() "0.0.0.0:0"
+  manual_relay_start = @() null
 
   exit_game = @() null
-  is_app_terminated = @() false
+  is_app_terminating = @() false
   circuit_name = get_arg_value_by_name("circuit")
   set_timespeed = @(_speed) null
   get_timespeed = @() 1.0

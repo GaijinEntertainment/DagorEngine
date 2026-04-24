@@ -1,0 +1,1 @@
+Parse DOCTYPE declarations.

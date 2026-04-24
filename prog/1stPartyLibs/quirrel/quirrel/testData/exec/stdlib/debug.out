@@ -1,4 +1,4 @@
-Version: 4.8.0
+Version: 4.19.0
 seterrorhandler: function
 setdebughook: function
 getstackinfos: function
@@ -8,3 +8,5 @@ collectgarbage: OK
 resurrectunreachable: OK
 getobjflags: function
 getbuildinfo: function
+get_function_decl_string: pure (table|userdata|instance|class|null).fn(x: int, y: float): float
+type_mask_to_string(6) = number

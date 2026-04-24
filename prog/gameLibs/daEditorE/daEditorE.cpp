@@ -26,6 +26,8 @@
 #include <debug/dag_debug3d.h>
 #include <util/dag_console.h>
 #include <perfMon/dag_statDrv.h>
+#include <quirrel/sqEventBus/sqEventBus.h>
+#include <jsoncpp/include/json/value.h>
 
 extern void register_da_editor4_objed_ptr(ObjectEditor **oe_ptr);
 extern void update_gizmo_basis_type_on_toolbar();
@@ -419,7 +421,7 @@ void De4ActivationHandler::activeChanged()
     DAEDITOR4.endRectangularSelection(NULL, NULL);
 }
 
-struct IDaEditor4EngineImpl : public IDaEditor4Engine, public ILogWriter, public IDaEditor4EmbeddedComponent
+struct IDaEditor4EngineImpl : public IDaEditor4Engine, public ILogWriter, public IDaEditor4EmbeddedComponent, IUndoRedoWndClient
 {
   struct Grid
   {
@@ -435,7 +437,7 @@ struct IDaEditor4EngineImpl : public IDaEditor4Engine, public ILogWriter, public
   void (*performPointActionCb)(bool trace, const Point3 &p0, const Point3 &dir, const Point3 &traced_pos, const char *op, int mod);
 
 public:
-  IDaEditor4EngineImpl() : IDaEditor4Engine(*create_undo_system("de4", 2 << 20, NULL))
+  IDaEditor4EngineImpl() : IDaEditor4Engine(*create_undo_system("de4", 2 << 20, this))
   {
     memset(&rectSelect, 0, sizeof(rectSelect));
     curEH = NULL;
@@ -825,6 +827,17 @@ public:
     if (!de4_freecam_active && ::gui_cursor && !de4_inp_handler.shouldHideCursor() &&
         global_cls_drv_pnt->getDevice(0)->isPointerOverWindow() && ::gui_cursor->getVisible())
       ::gui_cursor->render(Point2(rs.x, rs.y));
+  }
+  void updateUndoRedoMenu() override {}
+  void onUndoRedo(const char *nm, bool wasUndo)
+  {
+    if (!suppressUndoRedoEvents)
+    {
+      Json::Value val;
+      val["name"] = Json::Value(nm);
+      val["wasUndo"] = wasUndo;
+      sqeventbus::send_event("undoNotification", eastl::move(val));
+    }
   }
 };
 IDaEditor4Engine *IDaEditor4Engine::__daeditor4_global_instance = NULL;

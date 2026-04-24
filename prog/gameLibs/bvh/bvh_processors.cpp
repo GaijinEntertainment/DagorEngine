@@ -6,8 +6,10 @@
 
 #include <drv/3d/dag_shaderConstants.h>
 #include <shaders/dag_shaderBlock.h>
+#include <3d/dag_lockSbuffer.h>
 #include <math/dag_hlsl_floatx.h>
 #include "shaders/bvh_process_tree_vertices.hlsli"
+#include "shaders/bvh_skinned_instance_data_batched.hlsli"
 
 #if BVH_PROFILING_ENABLED
 #define BVH_PROFILE TIME_PROFILE
@@ -18,25 +20,61 @@
 namespace bvh
 {
 
-static bool allocate(ContextId context_id, UniqueOrReferencedBVHBuffer &buffer, uint32_t size, const String &name)
+static bool allocate(ContextId context_id, UniqueOrReferencedBVHBuffer &buffer, uint32_t &bindless_id, uint32_t size,
+  const String &name)
 {
   if (buffer.unique)
   {
-    buffer.unique->reset(d3d::buffers::create_ua_sr_byte_address(size / sizeof(uint32_t), name.data()));
+    buffer.unique->reset(
+      d3d::buffers::create_ua_sr_byte_address(size / sizeof(uint32_t), name.data(), d3d::buffers::Init::No, RESTAG_BVH));
+    context_id->holdBuffer(buffer.unique->get(), bindless_id);
     HANDLE_LOST_DEVICE_STATE(buffer.unique, false);
   }
   else if (buffer.referenced)
   {
-    ProcessBufferAllocator *allocator = nullptr;
-    if (auto iter = context_id->processBufferAllocators.find(size); iter == context_id->processBufferAllocators.end())
-      allocator =
-        &context_id->processBufferAllocators.insert({size, ProcessBufferAllocator(size, divide_up(1024 * 1024, size))}).first->second;
-    else
-      allocator = &iter->second;
+    static constexpr int pageSize = 4 << 20;
 
-    *buffer.referenced = allocator->allocate();
+    int allocatorUsed = -1;
+    LinearHeapAllocatorSbuffer::RegionId id = {};
+    LinearHeapAllocatorSbuffer::Region region = {};
+    for (auto [index, allocator] : enumerate(context_id->processBufferAllocator))
+    {
+      id = allocator.first.allocateInHeap(size);
+      region = allocator.first.get(id);
+      if (region.size)
+      {
+        allocatorUsed = index;
+        break;
+      }
+    }
+
+    if (allocatorUsed < 0)
+    {
+      logdbg("BVH is allocating new process buffer allocator. We have %d allocators now. With the page size of %dMB, total allocation "
+             "size is now %dMB",
+        context_id->processBufferAllocator.size() + 1, pageSize >> 20,
+        ((context_id->processBufferAllocator.size() + 1) * pageSize) >> 20);
+      auto &[allocator, bindlessId] =
+        context_id->processBufferAllocator.emplace_back(eastl::pair<LinearHeapAllocatorSbuffer, uint32_t>{
+          LinearHeapAllocatorSbuffer{SbufferHeapManager(String(32, "bvh_process_buffer_%d", context_id->processBufferAllocator.size()),
+                                       d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE, SBCF_UA_SR_BYTE_ADDRESS),
+            RESTAG_BVH},
+          -1});
+      id = allocator.allocate(size, pageSize);
+      region = allocator.get(id);
+      G_ASSERT_RETURN(region.size, false);
+      allocatorUsed = context_id->processBufferAllocator.size() - 1;
+
+      context_id->holdBuffer(allocator.getHeap().getBuf(), bindlessId);
+    }
+
+    buffer.referenced->allocator = allocatorUsed;
+    buffer.referenced->allocId = id;
+    buffer.referenced->buffer = context_id->processBufferAllocator[allocatorUsed].first.getHeap().getBuf();
+    buffer.referenced->size = region.size;
+    buffer.referenced->offset = region.offset;
+    bindless_id = context_id->processBufferAllocator[allocatorUsed].second;
     HANDLE_LOST_DEVICE_STATE(*buffer.referenced, false);
-    buffer.referenced->allocator = allocator->bufferSize;
   }
   else
   {
@@ -65,8 +103,22 @@ static void set_offset(UniqueBVHBufferWithOffset &buf)
   ShaderGlobal::set_int(bvh_process_target_offsetVarId, buf.offset);
 }
 
-void IndexProcessor::process(Sbuffer *source, UniqueBVHBufferWithOffset &processed_buffer, int index_format, int index_count,
-  int index_start, int start_vertex)
+static void set_offset(BVHGeometryBufferWithOffset &buf, bool ib)
+{
+  static int bvh_process_target_offsetVarId = get_shader_variable_id("bvh_process_target_offset");
+
+  ShaderGlobal::set_int(bvh_process_target_offsetVarId, ib ? 0 : buf.vbOffset);
+}
+
+static void set_source_offset(int off)
+{
+  static int bvh_process_source_offsetVarId = get_shader_variable_id("bvh_process_source_offset");
+
+  ShaderGlobal::set_int(bvh_process_source_offsetVarId, off);
+}
+
+void IndexProcessor::process(Sbuffer *source, BVHGeometryBufferWithOffset &processed_buffer, int index_format, int index_count,
+  int index_start, int start_vertex, ContextId context_id)
 {
 #define GLOBAL_VARS_LIST                         \
   VAR(bvh_process_dynrend_indices_start)         \
@@ -93,7 +145,7 @@ void IndexProcessor::process(Sbuffer *source, UniqueBVHBufferWithOffset &process
     {
       // A 16 bit index buffer can't be larger than this.
       String name(32, "bvh_IndexProcessor_%u", ++index);
-      buffer.reset(d3d::buffers::create_ua_byte_address((64 * 1024 * 2) / 4, name.data()));
+      buffer.reset(d3d::buffers::create_ua_byte_address((64 * 1024 * 2) / 4, name.data(), RESTAG_BVH));
       HANDLE_LOST_DEVICE_STATE(buffer, );
     }
 
@@ -105,7 +157,7 @@ void IndexProcessor::process(Sbuffer *source, UniqueBVHBufferWithOffset &process
   else
   {
     String name(32, "bvh_IndexProcessor");
-    indexProcessorOutput = d3d::buffers::create_ua_byte_address(dwordCount, name.data());
+    indexProcessorOutput = d3d::buffers::create_ua_byte_address(dwordCount, name.data(), RESTAG_BVH);
     HANDLE_LOST_DEVICE_STATE(indexProcessorOutput, );
     deleteIPO = true;
   }
@@ -113,7 +165,7 @@ void IndexProcessor::process(Sbuffer *source, UniqueBVHBufferWithOffset &process
   d3d::set_buffer(STAGE_CS, source_const_no, source);
   d3d::set_rwbuffer(STAGE_CS, output_uav_no, indexProcessorOutput);
 
-  set_offset(processed_buffer);
+  set_offset(processed_buffer, true);
   ShaderGlobal::set_int(bvh_process_dynrend_indices_startVarId, index_start);
   ShaderGlobal::set_int(bvh_process_dynrend_indices_start_alignedVarId, ((index_start * 2) & 3) ? 0 : 1);
   ShaderGlobal::set_int(bvh_process_dynrend_indices_countVarId, dwordCount);
@@ -122,15 +174,16 @@ void IndexProcessor::process(Sbuffer *source, UniqueBVHBufferWithOffset &process
   G_ASSERT(shader);
   shader->dispatchThreads(dwordCount, 1, 1);
 
-  indexProcessorOutput->copyTo(processed_buffer.get(), 0, 0, dwordCount * 4);
+  indexProcessorOutput->copyTo(processed_buffer.getIndexBuffer(context_id), processed_buffer.ibOffset, 0, dwordCount * 4);
 
   if (deleteIPO)
     del_d3dres(indexProcessorOutput);
 }
 
-bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer,
-  ProcessArgs &args, bool skip_processing) const
+bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
 {
+  G_UNUSED(source_buffer_bindless);
 #define GLOBAL_VARS_LIST                                \
   VAR(bvh_process_skinned_vertices_start)               \
   VAR(bvh_process_skinned_vertices_stride)              \
@@ -143,6 +196,7 @@ bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniq
   VAR(bvh_process_skinned_vertices_color_offset)        \
   VAR(bvh_process_skinned_vertices_texcoord_offset)     \
   VAR(bvh_process_skinned_vertices_texcoord_size)       \
+  VAR(bvh_process_skinned_vertices_position_packed)     \
   VAR(bvh_process_skinned_vertices_pos_mul)             \
   VAR(bvh_process_skinned_vertices_pos_ofs)             \
   VAR(bvh_process_skinned_vertices_inv_wtm)             \
@@ -172,7 +226,7 @@ bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniq
   if (processed_buffer.needAllocation())
   {
     String name(32, "bvh_skinnedVertexProcessor_%u", ++counter);
-    if (!allocate(context_id, processed_buffer, vertexSize * args.vertexCount, name))
+    if (!allocate(context_id, processed_buffer, bindless_id, vertexSize * args.vertexCount, name))
       return false;
     skip_processing = false;
   }
@@ -182,6 +236,7 @@ bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniq
     static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_skinned_vertices_source_const_no");
     static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_skinned_vertices_output_uav_no");
 
+    set_source_offset(source_offset);
     d3d::set_buffer(STAGE_CS, source_const_no, source);
     d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
@@ -199,8 +254,9 @@ bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniq
     ShaderGlobal::set_int(bvh_process_skinned_vertices_color_offsetVarId, args.colorOffset);
     ShaderGlobal::set_int(bvh_process_skinned_vertices_texcoord_offsetVarId, args.texcoordOffset);
     ShaderGlobal::set_int(bvh_process_skinned_vertices_texcoord_sizeVarId, tcSize);
-    ShaderGlobal::set_color4(bvh_process_skinned_vertices_pos_mulVarId, args.posMul);
-    ShaderGlobal::set_color4(bvh_process_skinned_vertices_pos_ofsVarId, args.posAdd);
+    ShaderGlobal::set_int(bvh_process_skinned_vertices_position_packedVarId, args.positionFormat != VSDT_FLOAT3 ? 1 : 0);
+    ShaderGlobal::set_float4(bvh_process_skinned_vertices_pos_mulVarId, args.posMul);
+    ShaderGlobal::set_float4(bvh_process_skinned_vertices_pos_ofsVarId, args.posAdd);
     ShaderGlobal::set_float4x4(bvh_process_skinned_vertices_inv_wtmVarId, args.invWorldTm);
     ShaderGlobal::set_int(bvh_process_skinned_vertices_pos_format_halfVarId, args.positionFormat == VSDT_SHORT4N ? 1 : 0);
     G_ASSERT(shader);
@@ -231,18 +287,192 @@ bool SkinnedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniq
   return !skip_processing;
 }
 
-bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer,
-  ProcessArgs &args, bool skip_processing) const
+bool SkinnedVertexProcessorBatched::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
 {
-#define GLOBAL_VARS_LIST                     \
-  VAR(bvh_process_tree_vertices_is_pos_inst) \
-  VAR(bvh_process_tree_vertices_is_pivoted)
+  G_UNUSED(source);
+  BVH_PROFILE(SkinnedVertexProcessorBatched);
 
-#define VAR(a) static int a##VarId = get_shader_variable_id(#a, true);
+  G_ASSERT(args.setTransformsFn);
+  G_ASSERT(args.positionFormat == VSDT_SHORT4N || args.positionFormat == VSDT_FLOAT3);
+
+  unsigned tcSize;
+  channel_size(args.texcoordFormat == bvhAttributeShort2TC ? VSDT_SHORT2 : args.texcoordFormat, tcSize);
+
+  auto vertexSize = sizeof(Point3);
+  if (args.normalOffset != -1)
+    vertexSize += sizeof(uint32_t);
+  if (args.colorOffset != -1)
+    vertexSize += sizeof(uint32_t);
+  if (args.texcoordOffset != -1)
+    vertexSize += tcSize;
+
+  if (processed_buffer.needAllocation())
+  {
+    String name(32, "bvh_skinnedVertexProcessor_%u", ++counter);
+    if (!allocate(context_id, processed_buffer, bindless_id, vertexSize * args.vertexCount, name))
+      return false;
+    skip_processing = false;
+  }
+
+  if (!skip_processing)
+  {
+    auto &dispatchData = dispatchDataMapping[processed_buffer.get()];
+
+    dispatchData.maxVertexCount = max(args.vertexCount, dispatchData.maxVertexCount);
+
+    // TODO Callback was made for non-batched variant, so it doesn't have a return value
+    // So as a workaround it sets to a global variable, and then we copy it
+    args.setTransformsFn();
+    uint32_t instanceOffset = lastInstanceOffset;
+
+    BvhSkinnedInstanceData &params = dispatchData.instanceData.push_back();
+    params.inv_wtm = args.invWorldTm;
+    params.target_offset = processed_buffer.referenced ? processed_buffer.referenced->offset : 0;
+    params.source_offset = source_offset;
+    params.start_vertex = args.baseVertex + args.startVertex;
+    params.vertex_stride = args.vertexStride;
+    params.vertex_count = args.vertexCount;
+    params.processed_vertex_stride = vertexSize;
+    params.position_offset = args.positionOffset;
+    params.skin_indices_offset = args.indicesOffset;
+    params.skin_weights_offset = args.weightsOffset;
+    params.color_offset = args.colorOffset;
+    params.normal_offset = args.normalOffset;
+    params.texcoord_offset = args.texcoordOffset;
+    params.texcoord_size = tcSize;
+    params.instance_offset = instanceOffset;
+    params.source_slot = source_buffer_bindless;
+    params.pos_format_half = args.positionFormat == VSDT_SHORT4N ? 1 : 0;
+  }
+
+  args.positionFormat = VSDT_FLOAT3;
+  args.vertexStride = vertexSize;
+  args.startVertex = 0;
+  args.positionOffset = 0;
+
+  int offset = sizeof(Point3);
+  if (args.texcoordOffset != -1)
+  {
+    args.texcoordOffset = offset;
+    offset += tcSize;
+  }
+  if (args.normalOffset != -1)
+  {
+    args.normalOffset = offset;
+    offset += sizeof(uint32_t);
+  }
+  if (args.colorOffset != -1)
+  {
+    args.colorOffset = offset;
+    offset += sizeof(uint32_t);
+  }
+  return !skip_processing;
+}
+
+void SkinnedVertexProcessorBatched::begin() const {}
+
+void SkinnedVertexProcessorBatched::end(bool is_protype_building) const
+{
+#define GLOBAL_VARS_LIST                       \
+  VAR(bvh_process_skinned_vertices_params_buf) \
+  VAR(bvh_process_skinned_vertices_is_building_prototype)
+
+#define VAR(a) static int a##VarId = get_shader_variable_id(#a);
   GLOBAL_VARS_LIST
 #undef VAR
 #undef GLOBAL_VARS_LIST
 
+  static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_skinned_vertices_output_uav_no");
+
+  TIME_D3D_PROFILE(SkinnedVertexProcessorBatched::end)
+  updateData();
+
+  int dispatches = 0;
+  int instances = 0;
+  {
+    ShaderGlobal::set_buffer(bvh_process_skinned_vertices_params_bufVarId, instanceDataBuffer);
+    ShaderGlobal::set_int(bvh_process_skinned_vertices_is_building_prototypeVarId, is_protype_building);
+    for (auto &[targetBuffer, dispatchData] : dispatchDataMapping)
+    {
+      if (dispatchData.instanceData.empty())
+        continue;
+      G_ASSERT(dispatchData.maxVertexCount > 0);
+
+      d3d::set_rwbuffer(STAGE_CS, output_uav_no, targetBuffer);
+      uint32_t immediateConst[] = {(uint32_t)instances, (uint32_t)dispatchData.instanceData.size()};
+      d3d::set_immediate_const(STAGE_CS, immediateConst, 2);
+
+      G_ASSERT(shader);
+      shader->dispatchThreads(dispatchData.maxVertexCount, dispatchData.instanceData.size(), 1);
+      dispatches++;
+      instances += dispatchData.instanceData.size();
+    }
+    d3d::set_immediate_const(STAGE_CS, nullptr, 0);
+  }
+  DA_PROFILE_TAG(SkinnedVertexProcessorBatched::end, "dispatches: %d, instances: %d", dispatches, instances);
+
+  // Do NOT free memory, it'll just need to be reallocated next frame and that's slow
+  for (auto &[_, dispatchData] : dispatchDataMapping)
+  {
+    dispatchData.instanceData.clear();
+    dispatchData.maxVertexCount = 0;
+  }
+}
+
+void SkinnedVertexProcessorBatched::updateData() const
+{
+  TIME_D3D_PROFILE(updateData);
+
+  uint32_t targetSize = 0;
+  for (auto &[_, dispatchData] : dispatchDataMapping)
+    targetSize += dispatchData.instanceData.size();
+
+  size_t bufferSize = instanceDataBuffer ? instanceDataBuffer->getNumElements() : 0;
+  if (bufferSize < targetSize)
+  {
+    instanceDataBuffer = dag::buffers::create_one_frame_sr_structured(sizeof(BvhSkinnedInstanceData), targetSize,
+      "bvh_skinned_vertex_processor_instance_data", RESTAG_BVH);
+    debug("[FRAMEMEM] Allocated buffer for BVH: 'bvh_skinned_vertex_processor_instance_data': %d",
+      sizeof(BvhSkinnedInstanceData) * targetSize);
+  }
+
+  if (targetSize > 0)
+  {
+    auto upload = lock_sbuffer<uint8_t>(instanceDataBuffer.getBuf(), 0, targetSize * sizeof(BvhSkinnedInstanceData),
+      VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    HANDLE_LOST_DEVICE_STATE(upload, );
+
+    auto cursor = upload.get();
+    for (auto &[_, dispatchData] : dispatchDataMapping)
+    {
+      if (dispatchData.instanceData.empty())
+        continue;
+      size_t dataSize = data_size(dispatchData.instanceData);
+      memcpy(cursor, dispatchData.instanceData.data(), dataSize);
+      cursor += dataSize;
+    }
+  }
+}
+
+SkinnedVertexProcessorBatched::DispatchData::~DispatchData() = default;
+
+
+TreeVertexProcessor::VariantKey TreeVertexProcessor::packVariants(bool is_pos_instance, bool is_pivoted)
+{
+  return uint32_t(is_pos_instance) | (uint32_t(is_pivoted) << 1);
+}
+
+void TreeVertexProcessor::unpackVariants(VariantKey key, bool &is_pos_instance, bool &is_pivoted)
+{
+  is_pos_instance = key & 1;
+  is_pivoted = key & (1 << 1);
+}
+
+bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
+{
+  G_UNUSED(source);
   BVH_PROFILE(TreeVertexProcessor);
 
   unsigned tcSize;
@@ -257,7 +487,7 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
   if (processed_buffer.needAllocation())
   {
     String name(32, "bvh_treeVertexProcessor_%u", ++counter);
-    if (!allocate(context_id, processed_buffer, vertexSize * args.vertexCount, name))
+    if (!allocate(context_id, processed_buffer, bindless_id, vertexSize * args.vertexCount, name))
       return false;
     skip_processing = false;
   }
@@ -266,23 +496,16 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
   {
     G_ASSERT(args.positionFormat == VSDT_FLOAT3);
 
-    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_source_const_no");
-    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_output_uav_no");
-    static int pp_pos_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_pp_pos_no");
-    static int pp_dir_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_pp_dir_no");
-    static int sampler_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_pp_sampler_no");
-    static int params_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_params_no");
-
-    static d3d::SamplerHandle ppSampler = d3d::request_sampler(d3d::SamplerInfo());
-
-    ShaderGlobal::set_int(bvh_process_tree_vertices_is_pos_instVarId, args.tree.isPosInstance);
-    ShaderGlobal::set_int(bvh_process_tree_vertices_is_pivotedVarId, args.tree.isPivoted);
-
     TMatrix4_vec4 worldTm;
     v_mat43_transpose_to_mat44((mat44f &)worldTm, args.worldTm);
     worldTm._44 = 1; // v_mat43_transpose_to_mat44 sets the last column to 0
 
-    BvhTreeInstanceData params;
+    VariantKey variantKey = packVariants(args.tree.isPosInstance, args.tree.isPivoted);
+    auto &dispatchData = dispatchDataMapping[variantKey][processed_buffer.get()];
+
+    dispatchData.maxVertexCount = max(args.vertexCount, dispatchData.maxVertexCount);
+
+    BvhTreeInstanceData &params = dispatchData.instanceData.push_back();
     params.wtm = worldTm.transpose();
     params.packed_itm = args.invWorldTm;
     params.wind_per_level_angle_rot_max = args.tree.ppWindPerLevelAngleRotMax;
@@ -308,19 +531,18 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
     params.texcoord_size = tcSize;
     params.indirect_texcoord_offset = args.secTexcoordOffset;
     params.perInstanceRenderAdditionalData = args.tree.perInstanceRenderAdditionalData;
-
-    auto cbuffer = getNextCbuffer();
-    cbuffer->updateDataWithLock(0, cbuffer->getSize(), &params, VBLOCK_DISCARD);
-
-    d3d::set_buffer(STAGE_CS, source_const_no, source);
-    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
-    d3d::set_tex(STAGE_CS, pp_pos_no, args.tree.ppPosition);
-    d3d::set_tex(STAGE_CS, pp_dir_no, args.tree.ppDirection);
-    d3d::set_sampler(STAGE_CS, sampler_no, ppSampler);
-    d3d::set_const_buffer(STAGE_CS, params_no, cbuffer, 0, 0);
-
-    G_ASSERT(shader);
-    shader->dispatchThreads(args.vertexCount, 1, 1);
+    params.sourceOffset = source_offset;
+    params.ground_snap_params = float4(args.tree.groundSnapHeightSoft, safeinv(args.tree.groundSnapHeightSoft),
+      args.tree.groundSnapHeightFull, safeinv(args.tree.groundSnapHeightFull));
+    params.ground_bend_params = float4(args.tree.groundBendHeight, safeinv(args.tree.groundBendHeight),
+      args.tree.groundBendTangentOffset, args.tree.groundBendNormalOffset);
+    params.ground_snap_normal_offset = args.tree.groundSnapNormalOffset;
+    params.ground_snap_limit = args.tree.groundSnapLimit;
+    G_ASSERTF(!args.tree.isPivoted || (args.tree.ppPositionBindless != 0xFFFFFFFF && args.tree.ppDirectionBindless != 0xFFFFFFFF),
+      "Pivoted tree has invalid bindless pivot textures!");
+    params.pp_pos_tex_slot = args.tree.ppPositionBindless;
+    params.pp_dir_tex_slot = args.tree.ppDirectionBindless;
+    params.source_slot = source_buffer_bindless;
   }
 
   args.positionFormat = VSDT_FLOAT3;
@@ -343,31 +565,117 @@ bool TreeVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
   return !skip_processing;
 }
 
-void TreeVertexProcessor::begin() const
+void TreeVertexProcessor::begin() const {}
+
+void TreeVertexProcessor::updateData() const
 {
+  TIME_D3D_PROFILE(updateData);
+
+  uint32_t targetSize = 0;
+  for (auto &[_, mapping] : dispatchDataMapping)
+    for (auto &[_, dispatchData] : mapping)
+      targetSize += dispatchData.instanceData.size();
+
+  size_t bufferSize = instanceDataBuffer ? instanceDataBuffer->getNumElements() : 0;
+  if (bufferSize < targetSize)
+  {
+    instanceDataBuffer = dag::create_sbuffer(sizeof(BvhTreeInstanceData), targetSize,
+      SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED | SBCF_DYNAMIC, 0, "bvh_tree_vertex_processor_instance_data", RESTAG_BVH);
+    // TODO: trim this buffer periodically
+    debug("[FRAMEMEM] Allocated buffer for BVH: 'bvh_tree_vertex_processor_instance_data': %d",
+      sizeof(BvhTreeInstanceData) * targetSize);
+  }
+
+  if (targetSize > 0)
+  {
+    auto upload = lock_sbuffer<uint8_t>(instanceDataBuffer.getBuf(), 0, targetSize * sizeof(BvhTreeInstanceData),
+      VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    HANDLE_LOST_DEVICE_STATE(upload, );
+
+    auto cursor = upload.get();
+    for (auto &[variantKey, mapping] : dispatchDataMapping)
+    {
+      for (auto &[targetBuffer, dispatchData] : mapping)
+      {
+        if (dispatchData.instanceData.empty())
+          continue;
+        size_t dataSize = data_size(dispatchData.instanceData);
+        memcpy(cursor, dispatchData.instanceData.data(), dataSize);
+        cursor += dataSize;
+      }
+    }
+  }
+}
+
+void TreeVertexProcessor::end(bool is_prototype_buidling) const
+{
+  G_UNUSED(is_prototype_buidling);
+#define GLOBAL_VARS_LIST                     \
+  VAR(bvh_process_tree_vertices_is_pos_inst) \
+  VAR(bvh_process_tree_vertices_is_pivoted)
+
+#define VAR(a) static int a##VarId = get_shader_variable_id(#a, true);
+  GLOBAL_VARS_LIST
+#undef VAR
+#undef GLOBAL_VARS_LIST
   static int bvh_process_tree_vertices_blockId = ShaderGlobal::getBlockId("bvh_process_tree_vertices_block");
-  ShaderGlobal::setBlock(bvh_process_tree_vertices_blockId, ShaderGlobal::LAYER_SCENE);
-  cbufferCursor = 0;
+  static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_output_uav_no");
+  static int sampler_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_pp_sampler_no");
+  static int params_no = ShaderGlobal::get_slot_by_name("bvh_process_tree_vertices_params_no");
+  static d3d::SamplerHandle ppSampler = d3d::request_sampler(d3d::SamplerInfo());
+
+
+  TIME_D3D_PROFILE(TreeVertexProcessor::end)
+  updateData();
+
+  int dispatches = 0;
+  int instances = 0;
+  {
+    SCENE_LAYER_GUARD(bvh_process_tree_vertices_blockId);
+    d3d::set_sampler(STAGE_CS, sampler_no, ppSampler);
+    d3d::set_buffer(STAGE_CS, params_no, instanceDataBuffer.getBuf());
+    for (auto &[variantKey, mapping] : dispatchDataMapping)
+    {
+      bool isPosInst;
+      bool isPivoted;
+      unpackVariants(variantKey, isPosInst, isPivoted);
+      ShaderGlobal::set_int(bvh_process_tree_vertices_is_pos_instVarId, isPosInst);
+      ShaderGlobal::set_int(bvh_process_tree_vertices_is_pivotedVarId, isPivoted);
+
+      for (auto &[targetBuffer, dispatchData] : mapping)
+      {
+        if (dispatchData.instanceData.empty())
+          continue;
+        G_ASSERT(dispatchData.maxVertexCount > 0);
+        d3d::set_rwbuffer(STAGE_CS, output_uav_no, targetBuffer);
+        uint32_t immediateConst[] = {(uint32_t)instances, (uint32_t)dispatchData.instanceData.size()};
+        d3d::set_immediate_const(STAGE_CS, immediateConst, 2);
+
+        G_ASSERT(shader);
+        shader->dispatchThreads(dispatchData.maxVertexCount, dispatchData.instanceData.size(), 1);
+        dispatches++;
+        instances += dispatchData.instanceData.size();
+      }
+    }
+    d3d::set_immediate_const(STAGE_CS, nullptr, 0);
+  }
+  DA_PROFILE_TAG(TreeVertexProcessor::end, "dispatches: %d, instances: %d", dispatches, instances);
+
+  // Do NOT free memory, it'll just need to be reallocated next frame and that's slow
+  for (auto &[_, mapping] : dispatchDataMapping)
+    for (auto &[_, dispatchData] : mapping)
+    {
+      dispatchData.instanceData.clear();
+      dispatchData.maxVertexCount = 0;
+    }
 }
 
-void TreeVertexProcessor::end() const { ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_SCENE); }
+TreeVertexProcessor::DispatchData::~DispatchData() = default;
 
-Sbuffer *TreeVertexProcessor::getNextCbuffer() const
+bool ImpostorVertexProcessor::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
 {
-  if (cbufferCursor < cbuffers.size())
-    return cbuffers.data()[cbufferCursor++].get();
-
-  eastl::string name(eastl::string::CtorSprintf(), "btc_%d", cbufferCursor);
-
-  cbuffers.push_back();
-  cbuffers.back().reset(d3d::buffers::create_one_frame_cb((sizeof(BvhTreeInstanceData) + 15) / 16, name.c_str()));
-  cbufferCursor++;
-  return cbuffers.back().get();
-}
-
-bool ImpostorVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer,
-  ProcessArgs &args, bool skip_processing) const
-{
+  G_UNUSED(source_buffer_bindless);
 #define GLOBAL_VARS_LIST                                 \
   VAR(bvh_process_impostor_vertices_start)               \
   VAR(bvh_process_impostor_vertices_stride)              \
@@ -396,7 +704,7 @@ bool ImpostorVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
   if (processed_buffer.needAllocation())
   {
     String name(32, "bvh_instanceVertexProcessor_%u", ++counter);
-    if (!allocate(context_id, processed_buffer, outputVertexSize * args.vertexCount * 2, name))
+    if (!allocate(context_id, processed_buffer, bindless_id, outputVertexSize * args.vertexCount * 2, name))
       return false;
     skip_processing = false;
   }
@@ -406,6 +714,7 @@ bool ImpostorVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
     static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_impostor_vertices_source_const_no");
     static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_impostor_vertices_output_uav_no");
 
+    set_source_offset(source_offset);
     d3d::set_buffer(STAGE_CS, source_const_no, source);
     d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
@@ -413,13 +722,13 @@ bool ImpostorVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
     ShaderGlobal::set_int(bvh_process_impostor_vertices_startVarId, args.baseVertex + args.startVertex);
     ShaderGlobal::set_int(bvh_process_impostor_vertices_strideVarId, args.vertexStride);
     ShaderGlobal::set_int(bvh_process_impostor_vertices_countVarId, args.vertexCount);
-    ShaderGlobal::set_real(bvh_process_impostor_vertices_height_offsetVarId, args.impostorHeightOffset);
-    ShaderGlobal::set_color4(bvh_process_impostor_vertices_scaleVarId, args.impostorScale);
-    ShaderGlobal::set_color4(bvh_process_impostor_vertices_sliceTcTm1VarId, args.impostorSliceTm1);
-    ShaderGlobal::set_color4(bvh_process_impostor_vertices_sliceTcTm2VarId, args.impostorSliceTm2);
-    ShaderGlobal::set_color4(bvh_process_impostor_vertices_sliceClippingLines1VarId, args.impostorSliceClippingLines1);
-    ShaderGlobal::set_color4(bvh_process_impostor_vertices_sliceClippingLines2VarId, args.impostorSliceClippingLines2);
-    ShaderGlobal::set_color4_array(bvh_process_impostor_vertices_vertex_offsetsVarId, args.impostorOffsets, 4);
+    ShaderGlobal::set_float(bvh_process_impostor_vertices_height_offsetVarId, args.impostorHeightOffset);
+    ShaderGlobal::set_float4(bvh_process_impostor_vertices_scaleVarId, args.impostorScale);
+    ShaderGlobal::set_float4(bvh_process_impostor_vertices_sliceTcTm1VarId, args.impostorSliceTm1);
+    ShaderGlobal::set_float4(bvh_process_impostor_vertices_sliceTcTm2VarId, args.impostorSliceTm2);
+    ShaderGlobal::set_float4(bvh_process_impostor_vertices_sliceClippingLines1VarId, args.impostorSliceClippingLines1);
+    ShaderGlobal::set_float4(bvh_process_impostor_vertices_sliceClippingLines2VarId, args.impostorSliceClippingLines2);
+    ShaderGlobal::set_float4_array(bvh_process_impostor_vertices_vertex_offsetsVarId, args.impostorOffsets, 4);
     G_ASSERT(shader);
     shader->dispatchThreads(args.vertexCount, 1, 1);
   }
@@ -434,9 +743,10 @@ bool ImpostorVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
   return !skip_processing;
 }
 
-bool BakeTextureToVerticesProcessor::process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer,
-  ProcessArgs &args, bool skip_processing) const
+bool BakeTextureToVerticesProcessor::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
 {
+  G_UNUSED(source_buffer_bindless);
 #define GLOBAL_VARS_LIST                                     \
   VAR(bvh_process_bake_texture_to_vertices_start)            \
   VAR(bvh_process_bake_texture_to_vertices_stride)           \
@@ -473,7 +783,7 @@ bool BakeTextureToVerticesProcessor::process(ContextId context_id, Sbuffer *sour
   if (processed_buffer.needAllocation())
   {
     String name(32, "bvh_bakeTextureProcessor_%u", ++counter);
-    if (!allocate(context_id, processed_buffer, vertexSize * args.vertexCount, name))
+    if (!allocate(context_id, processed_buffer, bindless_id, vertexSize * args.vertexCount, name))
       return false;
     skip_processing = false;
   }
@@ -483,6 +793,7 @@ bool BakeTextureToVerticesProcessor::process(ContextId context_id, Sbuffer *sour
     static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_bake_texture_to_vertices_source_const_no");
     static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_bake_texture_to_vertices_output_uav_no");
 
+    set_source_offset(source_offset);
     d3d::set_buffer(STAGE_CS, source_const_no, source);
     d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
@@ -537,9 +848,10 @@ bool BakeTextureToVerticesProcessor::process(ContextId context_id, Sbuffer *sour
   return !skip_processing;
 }
 
-bool LeavesVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer,
-  ProcessArgs &args, bool skip_processing) const
+bool LeavesVertexProcessor::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
 {
+  G_UNUSED(source_buffer_bindless);
 #define GLOBAL_VARS_LIST                  \
   VAR(bvh_process_leaves_vertices_start)  \
   VAR(bvh_process_leaves_vertices_stride) \
@@ -569,7 +881,7 @@ bool LeavesVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniqu
   if (processed_buffer.needAllocation())
   {
     String name(32, "bvh_leavesVertexProcessor_%u", ++counter);
-    if (!allocate(context_id, processed_buffer, outputVertexSize * args.vertexCount, name))
+    if (!allocate(context_id, processed_buffer, bindless_id, outputVertexSize * args.vertexCount, name))
       return false;
     skip_processing = false;
   }
@@ -581,6 +893,7 @@ bool LeavesVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniqu
     static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_leaves_vertices_source_const_no");
     static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_leaves_vertices_output_uav_no");
 
+    set_source_offset(source_offset);
     d3d::set_buffer(STAGE_CS, source_const_no, source);
     d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
@@ -605,9 +918,10 @@ bool LeavesVertexProcessor::process(ContextId context_id, Sbuffer *source, Uniqu
   return !skip_processing;
 }
 
-bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer,
-  ProcessArgs &args, bool skip_processing) const
+bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
 {
+  G_UNUSED(source_buffer_bindless);
 #define GLOBAL_VARS_LIST                                \
   VAR(bvh_process_heli_rotor_vertices_start)            \
   VAR(bvh_process_heli_rotor_vertices_stride)           \
@@ -647,7 +961,7 @@ bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, Un
   if (processed_buffer.needAllocation())
   {
     String name(32, "bvh_heliRotorVertexProcessor_%u", ++counter);
-    if (!allocate(context_id, processed_buffer, vertexSize * args.vertexCount, name))
+    if (!allocate(context_id, processed_buffer, bindless_id, vertexSize * args.vertexCount, name))
       return false;
     skip_processing = false;
   }
@@ -657,6 +971,7 @@ bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, Un
     static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_heli_rotor_vertices_source_const_no");
     static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_heli_rotor_vertices_output_uav_no");
 
+    set_source_offset(source_offset);
     d3d::set_buffer(STAGE_CS, source_const_no, source);
     d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
@@ -677,10 +992,10 @@ bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, Un
     ShaderGlobal::set_int(bvh_process_heli_rotor_vertices_color_offsetVarId, args.colorOffset);
     ShaderGlobal::set_int(bvh_process_heli_rotor_vertices_texcoord_offsetVarId, args.texcoordOffset);
     ShaderGlobal::set_int(bvh_process_heli_rotor_vertices_texcoord_sizeVarId, tcSize);
-    ShaderGlobal::set_color4(bvh_process_heli_rotor_vertices_paramsVarId, params);
-    ShaderGlobal::set_color4(bvh_process_heli_rotor_vertices_sec_paramsVarId, secParams);
-    ShaderGlobal::set_color4(bvh_process_heli_rotor_vertices_pos_mulVarId, args.posMul);
-    ShaderGlobal::set_color4(bvh_process_heli_rotor_vertices_pos_ofsVarId, args.posAdd);
+    ShaderGlobal::set_float4(bvh_process_heli_rotor_vertices_paramsVarId, params);
+    ShaderGlobal::set_float4(bvh_process_heli_rotor_vertices_sec_paramsVarId, secParams);
+    ShaderGlobal::set_float4(bvh_process_heli_rotor_vertices_pos_mulVarId, args.posMul);
+    ShaderGlobal::set_float4(bvh_process_heli_rotor_vertices_pos_ofsVarId, args.posAdd);
     ShaderGlobal::set_float4x4(bvh_process_heli_rotor_vertices_wtmVarId, worldTm.transpose());
     G_ASSERT(shader);
     shader->dispatchThreads(args.vertexCount, 1, 1);
@@ -710,9 +1025,10 @@ bool HeliRotorVertexProcessor::process(ContextId context_id, Sbuffer *source, Un
   return !skip_processing;
 }
 
-bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer,
-  ProcessArgs &args, bool skip_processing) const
+bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
 {
+  G_UNUSED(source_buffer_bindless);
 #define GLOBAL_VARS_LIST                             \
   VAR(bvh_process_flag_vertices_start)               \
   VAR(bvh_process_flag_vertices_stride)              \
@@ -763,7 +1079,7 @@ bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
   if (processed_buffer.needAllocation())
   {
     String name(32, "bvh_flagVertexProcessor_%u", ++counter);
-    if (!allocate(context_id, processed_buffer, vertexSize * args.vertexCount, name))
+    if (!allocate(context_id, processed_buffer, bindless_id, vertexSize * args.vertexCount, name))
       return false;
     skip_processing = false;
   }
@@ -773,6 +1089,7 @@ bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
     static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_flag_vertices_source_const_no");
     static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_flag_vertices_output_uav_no");
 
+    set_source_offset(source_offset);
     d3d::set_buffer(STAGE_CS, source_const_no, source);
     d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
@@ -798,22 +1115,22 @@ bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
 
     if (args.flag.windType == 0)
     {
-      ShaderGlobal::set_color4(bvh_process_flag_vertices_frequency_amplitudeVarId, args.flag.fixedWind.frequencyAmplitude);
-      ShaderGlobal::set_color4(bvh_process_flag_vertices_wind_directionVarId, args.flag.fixedWind.windDirection);
-      ShaderGlobal::set_real(bvh_process_flag_vertices_wind_strengthVarId, args.flag.fixedWind.windStrength);
-      ShaderGlobal::set_real(bvh_process_flag_vertices_wave_lengthVarId, args.flag.fixedWind.waveLength);
+      ShaderGlobal::set_float4(bvh_process_flag_vertices_frequency_amplitudeVarId, args.flag.fixedWind.frequencyAmplitude);
+      ShaderGlobal::set_float4(bvh_process_flag_vertices_wind_directionVarId, args.flag.fixedWind.windDirection);
+      ShaderGlobal::set_float(bvh_process_flag_vertices_wind_strengthVarId, args.flag.fixedWind.windStrength);
+      ShaderGlobal::set_float(bvh_process_flag_vertices_wave_lengthVarId, args.flag.fixedWind.waveLength);
     }
     else
     {
-      ShaderGlobal::set_color4(bvh_process_flag_vertices_flagpole_pos_0VarId, args.flag.globalWind.flagpolePos0);
-      ShaderGlobal::set_color4(bvh_process_flag_vertices_flagpole_pos_1VarId, args.flag.globalWind.flagpolePos1);
-      ShaderGlobal::set_real(bvh_process_flag_vertices_stiffnessVarId, args.flag.globalWind.stiffness);
-      ShaderGlobal::set_real(bvh_process_flag_vertices_flag_movement_scaleVarId, args.flag.globalWind.flagMovementScale);
-      ShaderGlobal::set_real(bvh_process_flag_vertices_bendVarId, args.flag.globalWind.bend);
-      ShaderGlobal::set_real(bvh_process_flag_vertices_deviationVarId, args.flag.globalWind.deviation);
-      ShaderGlobal::set_real(bvh_process_flag_vertices_stretchVarId, args.flag.globalWind.stretch);
-      ShaderGlobal::set_real(bvh_process_flag_vertices_flag_lengthVarId, args.flag.globalWind.flagLength);
-      ShaderGlobal::set_real(bvh_process_flag_vertices_sway_speedVarId, args.flag.globalWind.swaySpeed);
+      ShaderGlobal::set_float4(bvh_process_flag_vertices_flagpole_pos_0VarId, args.flag.globalWind.flagpolePos0);
+      ShaderGlobal::set_float4(bvh_process_flag_vertices_flagpole_pos_1VarId, args.flag.globalWind.flagpolePos1);
+      ShaderGlobal::set_float(bvh_process_flag_vertices_stiffnessVarId, args.flag.globalWind.stiffness);
+      ShaderGlobal::set_float(bvh_process_flag_vertices_flag_movement_scaleVarId, args.flag.globalWind.flagMovementScale);
+      ShaderGlobal::set_float(bvh_process_flag_vertices_bendVarId, args.flag.globalWind.bend);
+      ShaderGlobal::set_float(bvh_process_flag_vertices_deviationVarId, args.flag.globalWind.deviation);
+      ShaderGlobal::set_float(bvh_process_flag_vertices_stretchVarId, args.flag.globalWind.stretch);
+      ShaderGlobal::set_float(bvh_process_flag_vertices_flag_lengthVarId, args.flag.globalWind.flagLength);
+      ShaderGlobal::set_float(bvh_process_flag_vertices_sway_speedVarId, args.flag.globalWind.swaySpeed);
       ShaderGlobal::set_int(bvh_process_flag_vertices_width_typeVarId, args.flag.globalWind.widthType);
     }
 
@@ -845,9 +1162,10 @@ bool FlagVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueO
   return !skip_processing;
 }
 
-bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, UniqueOrReferencedBVHBuffer &processed_buffer,
-  ProcessArgs &args, bool skip_processing) const
+bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
 {
+  G_UNUSED(source_buffer_bindless);
 #define GLOBAL_VARS_LIST                              \
   VAR(bvh_process_deformed_vertices_start)            \
   VAR(bvh_process_deformed_vertices_stride)           \
@@ -887,7 +1205,7 @@ bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
   if (processed_buffer.needAllocation())
   {
     String name(32, "bvh_deformedVertexProcessor_%u", ++counter);
-    if (!allocate(context_id, processed_buffer, vertexSize * args.vertexCount, name))
+    if (!allocate(context_id, processed_buffer, bindless_id, vertexSize * args.vertexCount, name))
       return false;
     skip_processing = false;
   }
@@ -897,6 +1215,7 @@ bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
     static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_deformed_vertices_source_const_no");
     static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_deformed_vertices_output_uav_no");
 
+    set_source_offset(source_offset);
     d3d::set_buffer(STAGE_CS, source_const_no, source);
     d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
 
@@ -919,8 +1238,8 @@ bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
     ShaderGlobal::set_int(bvh_process_deformed_vertices_color_offsetVarId, args.colorOffset);
     ShaderGlobal::set_int(bvh_process_deformed_vertices_texcoord_offsetVarId, args.texcoordOffset);
     ShaderGlobal::set_int(bvh_process_deformed_vertices_texcoord_sizeVarId, tcSize);
-    ShaderGlobal::set_color4(bvh_process_deformed_vertices_pos_mulVarId, args.posMul);
-    ShaderGlobal::set_color4(bvh_process_deformed_vertices_pos_ofsVarId, args.posAdd);
+    ShaderGlobal::set_float4(bvh_process_deformed_vertices_pos_mulVarId, args.posMul);
+    ShaderGlobal::set_float4(bvh_process_deformed_vertices_pos_ofsVarId, args.posAdd);
     ShaderGlobal::set_float4x4(bvh_process_deformed_vertices_wtmVarId, worldTm.transpose());
     ShaderGlobal::set_float4x4(bvh_process_deformed_vertices_itmVarId, args.invWorldTm);
     ShaderGlobal::set_int4(bvh_process_deformed_vertices_paramsVarId, *((IPoint4 *)&deformaParams)); // hmap id is coded as uint, which
@@ -954,15 +1273,18 @@ bool DeformedVertexProcessor::process(ContextId context_id, Sbuffer *source, Uni
   return !skip_processing;
 }
 
-void AHSProcessor::process(Sbuffer *indices, Sbuffer *vertices, UniqueBVHBufferWithOffset &processed_buffer, int index_format,
-  int index_count, int texcoord_offset, int texcoord_format, int vertex_stride, int color_offset)
+void AHSProcessor::process(ContextId context_id, const BVHGeometryBufferWithOffset &geometry,
+  UniqueBVHBufferWithOffset &processed_buffer, uint32_t &bindless_id, int index_format, int index_count, int texcoord_offset,
+  int texcoord_format, int vertex_stride, int color_offset)
 {
 #define GLOBAL_VARS_LIST                        \
   VAR(bvh_process_ahs_vertices_index_count)     \
   VAR(bvh_process_ahs_vertices_texcoord_offset) \
   VAR(bvh_process_ahs_vertices_texcoord_format) \
   VAR(bvh_process_ahs_vertices_color_offset)    \
-  VAR(bvh_process_ahs_vertices_vertex_stride)
+  VAR(bvh_process_ahs_vertices_vertex_stride)   \
+  VAR(bvh_process_ahs_vertices_ib_offset)       \
+  VAR(bvh_process_ahs_vertices_vb_offset)
 
 #define VAR(a) static int a##VarId = get_shader_variable_id(#a, true);
   GLOBAL_VARS_LIST
@@ -975,7 +1297,7 @@ void AHSProcessor::process(Sbuffer *indices, Sbuffer *vertices, UniqueBVHBufferW
 
   BVH_PROFILE(AHSProcessor);
 
-  G_ASSERT(indices);
+  G_ASSERT(geometry);
   G_ASSERT(index_format == 2);
 
   G_UNUSED(index_format);
@@ -988,12 +1310,12 @@ void AHSProcessor::process(Sbuffer *indices, Sbuffer *vertices, UniqueBVHBufferW
   if (!output)
   {
     // A vertex is 2 halfs, 4 bytes, so one dword.
-    output.reset(d3d::buffers::create_ua_byte_address(maxVertexCount, "bvh_AHSProcessor_output"));
+    output.reset(d3d::buffers::create_ua_byte_address(maxVertexCount, "bvh_AHSProcessor_output", RESTAG_BVH));
     HANDLE_LOST_DEVICE_STATE(output, );
   }
 
-  d3d::set_buffer(STAGE_CS, indices_const_no, indices);
-  d3d::set_buffer(STAGE_CS, vertices_const_no, vertices);
+  d3d::set_buffer(STAGE_CS, indices_const_no, geometry.getIndexBuffer(context_id));
+  d3d::set_buffer(STAGE_CS, vertices_const_no, geometry.getVertexBuffer(context_id));
   d3d::set_rwbuffer(STAGE_CS, output_uav_no, output.get());
 
   set_offset(processed_buffer);
@@ -1002,14 +1324,98 @@ void AHSProcessor::process(Sbuffer *indices, Sbuffer *vertices, UniqueBVHBufferW
   ShaderGlobal::set_int(bvh_process_ahs_vertices_texcoord_formatVarId, texcoord_format);
   ShaderGlobal::set_int(bvh_process_ahs_vertices_color_offsetVarId, color_offset);
   ShaderGlobal::set_int(bvh_process_ahs_vertices_vertex_strideVarId, vertex_stride);
+  ShaderGlobal::set_int(bvh_process_ahs_vertices_ib_offsetVarId, geometry.ibOffset);
+  ShaderGlobal::set_int(bvh_process_ahs_vertices_vb_offsetVarId, geometry.vbOffset);
 
   G_ASSERT(shader);
   shader->dispatchThreads(index_count, 1, 1);
 
-  processed_buffer.buffer.reset(d3d::buffers::create_persistent_sr_byte_address(output_index_count, "bvh_ahs_vertices"));
+  processed_buffer.buffer.reset(
+    d3d::buffers::create_persistent_sr_byte_address(output_index_count, "bvh_ahs_vertices", d3d::buffers::Init::No, RESTAG_BVH));
   output->copyTo(processed_buffer.get(), 0, 0, output_index_count * 4);
 
+  context_id->holdBuffer(processed_buffer.buffer.get(), bindless_id);
+
   d3d::resource_barrier(ResourceBarrierDesc(processed_buffer.get(), RB_RO_SRV | RB_STAGE_ALL_SHADERS));
+}
+
+bool SplineGenVertexProcessor::process(ContextId context_id, Sbuffer *source, int source_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processed_buffer, uint32_t &bindless_id, ProcessArgs &args, bool skip_processing) const
+{
+  G_UNUSED(source_buffer_bindless);
+  G_UNUSED(source_offset);
+  G_UNUSED(source);
+#define GLOBAL_VARS_LIST                     \
+  VAR(bvh_process_splinegen_vertices_start)  \
+  VAR(bvh_process_splinegen_vertices_stride) \
+  VAR(bvh_process_splinegen_vertices_count)  \
+  VAR(bvh_process_splinegen_vertices_processed_stride)
+
+#define VAR(a) static int a##VarId = get_shader_variable_id(#a, true);
+  GLOBAL_VARS_LIST
+#undef VAR
+#undef GLOBAL_VARS_LIST
+
+  BVH_PROFILE(SplineGenVertexProcessor);
+
+  unsigned tcSize;
+  channel_size(args.texcoordFormat == bvhAttributeShort2TC ? VSDT_SHORT2 : args.texcoordFormat, tcSize);
+
+  auto vertexSize = sizeof(Point3);
+  if (args.normalOffset != -1)
+    vertexSize += sizeof(uint32_t);
+  if (args.texcoordOffset != -1)
+    vertexSize += tcSize;
+
+  G_ASSERT(args.getSplineDataFn);
+
+  if (processed_buffer.needAllocation())
+  {
+    String name(32, "bvh_splinegenVertexProcessor_%u", ++counter);
+    if (!allocate(context_id, processed_buffer, bindless_id, vertexSize * args.vertexCount, name))
+      return false;
+
+    skip_processing = false;
+  }
+
+  if (!skip_processing)
+  {
+    static int source_const_no = ShaderGlobal::get_slot_by_name("bvh_process_splinegen_vertices_source_const_no");
+    static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_process_splinegen_vertices_output_uav_no");
+
+    uint32_t startVertex = 0;
+    auto vertexBuffer = args.getSplineDataFn(startVertex);
+
+    set_source_offset(source_offset);
+    d3d::set_buffer(STAGE_CS, source_const_no, vertexBuffer);
+    d3d::set_rwbuffer(STAGE_CS, output_uav_no, processed_buffer.get());
+
+    set_offset(processed_buffer);
+    ShaderGlobal::set_int(bvh_process_splinegen_vertices_startVarId, startVertex);
+    ShaderGlobal::set_int(bvh_process_splinegen_vertices_strideVarId, args.vertexStride);
+    ShaderGlobal::set_int(bvh_process_splinegen_vertices_countVarId, args.vertexCount);
+    ShaderGlobal::set_int(bvh_process_splinegen_vertices_processed_strideVarId, vertexSize);
+
+    G_ASSERT(shader);
+    shader->dispatchThreads(args.vertexCount, 1, 1);
+  }
+
+  args.positionFormat = VSDT_FLOAT3;
+  args.vertexStride = vertexSize;
+  args.startVertex = 0;
+
+  int offset = sizeof(Point3);
+  if (args.texcoordOffset != -1)
+  {
+    args.texcoordOffset = offset;
+    offset += tcSize;
+  }
+  if (args.normalOffset != -1)
+  {
+    args.normalOffset = offset;
+    offset += sizeof(uint32_t);
+  }
+  return !skip_processing;
 }
 
 } // namespace bvh

@@ -16,7 +16,7 @@ shader simple_outline_final_render
 
   (ps) {
     simple_outline_color@f4 = simple_outline_color;
-    color_rt@smp2d = simple_outline_color_rt;
+    color_rt@tex2d = simple_outline_color_rt;
   }
 
   hlsl(ps) {

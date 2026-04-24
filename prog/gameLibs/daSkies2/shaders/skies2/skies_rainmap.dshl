@@ -12,7 +12,6 @@ macro GET_SKIES_RAINMAP(code)
     clouds_rainmap_size@f4 = (skies_rain_strength*(1 + skies_rain_absorbtion), 1./clouds_weather_size,
       0.5 + clouds_origin_offset.x/clouds_weather_size, 0.5 + clouds_origin_offset.y/clouds_weather_size);
     clouds_rain_altitude_start_end@f4 = ((clouds_start_altitude2+0.6)*5 + 1, -5, (clouds_start_altitude2+0.6) + 0.2, skies_rain_strength);
-    clouds_hole_pos@f4 = clouds_hole_pos;
     skies_rain_wind@f2 = skies_rain_wind;
   }
   hlsl(code) {

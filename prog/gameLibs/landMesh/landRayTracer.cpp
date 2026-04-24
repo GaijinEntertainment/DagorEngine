@@ -14,6 +14,19 @@
 #include <generic/dag_smallTab.h>
 #include <memory/dag_framemem.h>
 #include <gameMath/traceUtils.h> //requried only for TraceMeshFaces
+#include <osApiWrappers/dag_sharedMem.h>
+
+template <class VertIndex, class FaceIndex>
+BaseLandRayTracer<VertIndex, FaceIndex>::~BaseLandRayTracer()
+{
+  if (sharedMem && sharedMem->doesPtrBelong(bindump))
+    sharedMem->releasePtr(SM_DATA_TAG, bindump);
+  else
+    mem->free(bindump);
+  bindump = NULL;
+  bindumpSz = 0;
+  del_it(buildStor);
+}
 
 template <class VertIndex, class FaceIndex>
 void BaseLandRayTracer<VertIndex, FaceIndex>::loadStreamToDump(void *dump, IGenLoad &cb, int sz)
@@ -438,7 +451,7 @@ bool BaseLandRayTracer<VertIndex, FaceIndex>::build(uint32_t cellsX, uint32_t ce
   Tab<FaceIndex> faceInds(tmpmem);
   for (int lt = 0, y = 0; y < numCellsY; ++y)
   {
-    for (int x = 0; x < numCellsY; ++x, ++lt)
+    for (int x = 0; x < numCellsX; ++x, ++lt)
     {
       LandRayCell &cell = cells[lt];
       cell.grid = &grid[currentGridSize];

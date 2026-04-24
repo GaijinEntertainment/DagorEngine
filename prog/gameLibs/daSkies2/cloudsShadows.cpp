@@ -5,7 +5,7 @@
 
 #include <drv/3d/dag_resetDevice.h>
 #include <drv/3d/dag_lock.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 
 #include <util/dag_convar.h>
 #include <workCycle/dag_workCycle.h>
@@ -20,19 +20,15 @@ void CloudsShadows::initTemporal()
   cloudsShadowsTemp.close();
   copy_cloud_shadows_volume.initVoltex(cloudsShadowsTemp, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD,
     CLOUDS_MAX_SHADOW_TEMPORAL_Y_WD, TEXFMT_R32UI, 1, "cloud_shadows_old_values");
-  d3d::SamplerInfo smpInfo;
-  smpInfo.filter_mode = d3d::FilterMode::Point;
-  smpInfo.mip_map_mode = d3d::MipMapMode::Point;
-  ShaderGlobal::set_sampler(::get_shader_variable_id("cloud_shadows_old_values_samplerstate"), d3d::request_sampler(smpInfo));
 
-  ShaderGlobal::set_color4(clouds_compute_widthVarId, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD,
+  ShaderGlobal::set_float4(clouds_compute_widthVarId, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD, CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD,
     CLOUDS_MAX_SHADOW_TEMPORAL_Y_WD, 0);
   resetGen = 0;
 }
 
 void CloudsShadows::updateTemporalStep(int x, int y, int z)
 {
-  ShaderGlobal::set_color4(clouds_start_compute_offsetVarId, x, y, z, 0);
+  ShaderGlobal::set_float4(clouds_start_compute_offsetVarId, x, y, z, 0);
   {
     TIME_D3D_PROFILE(cloud_shadows_vol_copy);
     copy_cloud_shadows_volume.render(cloudsShadowsTemp);
@@ -56,7 +52,7 @@ bool CloudsShadows::updateTemporal()
     TIME_D3D_PROFILE(cloud_shadows_vol_gradual);
     const uint32_t lerpStep = (temporalStepFinal - temporalStep - 1) / TEMPORAL_STEPS;
     float effect = 1.f - float(lerpStep) / (lerpStep + 1.f);
-    ShaderGlobal::set_color4(clouds_new_shadow_ambient_weightVarId, effect, updateAmbient ? effect : 0.f, 0, 0);
+    ShaderGlobal::set_float4(clouds_new_shadow_ambient_weightVarId, effect, updateAmbient ? effect : 0.f, 0, 0);
     int xs = (temporalStep % CLOUDS_MAX_SHADOW_TEMPORAL_XZ_STEPS),
         ys = (temporalStep / CLOUDS_MAX_SHADOW_TEMPORAL_XZ_STEPS) % CLOUDS_MAX_SHADOW_TEMPORAL_XZ_STEPS,
         zs = (temporalStep / CLOUDS_MAX_SHADOW_TEMPORAL_XZ_STEPS / CLOUDS_MAX_SHADOW_TEMPORAL_XZ_STEPS) %
@@ -71,7 +67,7 @@ bool CloudsShadows::updateTemporal()
   else if (temporalStep == TEMPORAL_STEP_FORCED)
   {
     TIME_D3D_PROFILE(cloud_shadows_vol_all);
-    ShaderGlobal::set_color4(clouds_new_shadow_ambient_weightVarId, 1, updateAmbient ? 1 : 0, 0, 0);
+    ShaderGlobal::set_float4(clouds_new_shadow_ambient_weightVarId, 1, updateAmbient ? 1 : 0, 0, 0);
     for (int z = 0; z < CLOUD_SHADOWS_VOLUME_RES_Y; z += CLOUDS_MAX_SHADOW_TEMPORAL_Y_WD)
       for (int y = 0; y < CLOUD_SHADOWS_VOLUME_RES_XZ; y += CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD)
         for (int x = 0; x < CLOUD_SHADOWS_VOLUME_RES_XZ; x += CLOUDS_MAX_SHADOW_TEMPORAL_XZ_WD)
@@ -89,8 +85,9 @@ void CloudsShadows::init()
   genCloudShadowsVolume.init("gen_cloud_shadows_volume_cs", "gen_cloud_shadows_volume_ps");
   int fmt = (VoltexRenderer::is_compute_supported() && d3d::get_driver_desc().issues.hasBrokenComputeFormattedOutput) ? TEXFMT_G32R32F
                                                                                                                       : TEXFMT_R8G8;
+  // NOTE: this texture may be used while skies are not yet fully prepared
   genCloudShadowsVolume.initVoltex(cloudsShadowsVol, CLOUD_SHADOWS_VOLUME_RES_XZ, CLOUD_SHADOWS_VOLUME_RES_XZ,
-    CLOUD_SHADOWS_VOLUME_RES_Y, fmt, 1, "clouds_shadows_volume");
+    CLOUD_SHADOWS_VOLUME_RES_Y, fmt | TEXCF_CLEAR_ON_CREATE, 1, "clouds_shadows_volume");
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = d3d::AddressMode::Wrap;
@@ -169,14 +166,14 @@ CloudsChangeFlags CloudsShadows::render(const Point3 &main_light_dir) // todo: u
         }
 
         d3d::GPUWorkloadSplit gpuWorkSplit(true /*do_split*/, true /*split_at_end*/, String(32, "cloud_shadows_vol_split%u", i));
-        ShaderGlobal::set_color4(clouds_start_compute_offsetVarId, splitStep * i, 0, 0, 0);
+        ShaderGlobal::set_float4(clouds_start_compute_offsetVarId, splitStep * i, 0, 0, 0);
         genCloudShadowsVolume.render(cloudsShadowsVol, 0, {splitStep, -1, -1});
       }
-      ShaderGlobal::set_color4(clouds_start_compute_offsetVarId, 0, 0, 0, 0);
+      ShaderGlobal::set_float4(clouds_start_compute_offsetVarId, 0, 0, 0, 0);
     }
     else
     {
-      ShaderGlobal::set_color4(clouds_start_compute_offsetVarId, 0, 0, 0, 0);
+      ShaderGlobal::set_float4(clouds_start_compute_offsetVarId, 0, 0, 0, 0);
       genCloudShadowsVolume.render(cloudsShadowsVol);
     }
 
@@ -206,8 +203,8 @@ void CloudsShadows::initShadows2D()
   if (cloudsShadows2d)
     return;
   // may be build a mip chain?
-  cloudsShadows2d =
-    dag::create_tex(NULL, CLOUD_SHADOWS_VOLUME_RES_XZ, CLOUD_SHADOWS_VOLUME_RES_XZ, TEXFMT_R8 | TEXCF_RTARGET, 1, "clouds_shadows_2d");
+  cloudsShadows2d = dag::create_tex(NULL, CLOUD_SHADOWS_VOLUME_RES_XZ, CLOUD_SHADOWS_VOLUME_RES_XZ, TEXFMT_R8 | TEXCF_RTARGET, 1,
+    "clouds_shadows_2d", RESTAG_DASKIES2);
   ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_shadows_2d_samplerstate"), d3d::request_sampler({}));
   build_shadows_2d_ps.init("build_shadows_2d_ps");
   rerenderShadows2D = true;

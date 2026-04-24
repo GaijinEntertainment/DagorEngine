@@ -82,7 +82,7 @@ public:
   const char *__stdcall getExporterIdStr() const override { return "state graph exp"; }
 
   const char *__stdcall getAssetType() const override { return TYPE; }
-  unsigned __stdcall getGameResClassId() const override { return AnimCharGameResClassId; }
+  unsigned __stdcall getGameResClassId() const override { return AnimGraphGameResClassId; }
   unsigned __stdcall getGameResVersion() const override { return 6; }
 
   void __stdcall onRegister() override {}
@@ -212,7 +212,7 @@ public:
                    "namespace AnimV20 { class GenericAnimStatesGraph; }\n\n");
 
     int atype = a_one.getType();
-    dag::ConstSpan<int> a_idx = a_one.getMgr().getFilteredAssets(make_span_const(&atype, 1));
+    auto a_idx = a_one.getMgr().getFilteredAssets(make_span_const(&atype, 1));
     G_ASSERT(a_idx.size() > 0);
 
     assets.clear();

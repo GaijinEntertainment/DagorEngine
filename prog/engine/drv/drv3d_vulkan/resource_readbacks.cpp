@@ -11,7 +11,10 @@
 
 using namespace drv3d_vulkan;
 
+namespace
+{
 typedef ContextedPipelineBarrier<BuiltinPipelineBarrierCache::QFOT> QFOTPipelineBarrier;
+}
 
 void ResourceReadbacks::init()
 {

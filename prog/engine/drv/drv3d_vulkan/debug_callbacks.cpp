@@ -5,6 +5,8 @@
 #include "driver_config.h"
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_dataBlock.h>
+#include "backend.h"
+#include "backend/context.h"
 
 using namespace drv3d_vulkan;
 
@@ -129,12 +131,8 @@ VkBool32 VKAPI_PTR DebugCallbacks::msgCallbackUtils(VkDebugUtilsMessageSeverityF
     typeName = "General";
   }
 
-#if VULKAN_VALIDATION_COLLECT_CALLER > 0
-  if (ExecutionContext::dbg_get_active_instance())
-  {
-    debug("vulkan: triggered in execution context by %s", ExecutionContext::dbg_get_active_instance()->getCurrentCmdCaller());
-  }
-#endif
+  if (BEContext::active)
+    debug("vulkan: triggered in execution context by %s", Backend::ctx.getCurrentCmdCaller());
 
   String message(2048, "vulkan: %s: %s: %s (%u): %s", typeName, serverityName, pCallbackData->pMessageIdName,
     pCallbackData->messageIdNumber, pCallbackData->pMessage);

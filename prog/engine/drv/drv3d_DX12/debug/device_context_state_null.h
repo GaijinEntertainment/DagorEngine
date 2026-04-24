@@ -21,15 +21,15 @@ namespace debug::null
 class DeviceContextState : public break_point::Controller
 {
 public:
-  constexpr void debugBeginCommandBuffer(DeviceState &, D3DDevice *, D3DGraphicsCommandList *) {}
+  constexpr void debugBeginCommandBuffer(DeviceState &, D3DDevice *, CommandListIdentifier, D3DGraphicsCommandList *) {}
 
-  constexpr void debugEndCommandBuffer(DeviceState &, D3DGraphicsCommandList *) {}
+  constexpr void debugEndCommandBuffer(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *) {}
 
   constexpr void debugFramePresent(DeviceState &) {}
 
-  constexpr void debugEventBegin(DeviceState &, D3DGraphicsCommandList *, eastl::string_view) {}
-  constexpr void debugEventEnd(DeviceState &, D3DGraphicsCommandList *) {}
-  constexpr void debugMarkerSet(DeviceState &, D3DGraphicsCommandList *, eastl::string_view) {}
+  constexpr void debugEventBegin(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *, eastl::string_view) {}
+  constexpr void debugEventEnd(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *) {}
+  constexpr void debugMarkerSet(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *, eastl::string_view) {}
 
   constexpr void debugFrameCaptureBegin(DeviceState &, ID3D12CommandQueue *, uint32_t, eastl::span<const wchar_t>) {}
 
@@ -37,56 +37,57 @@ public:
 
   constexpr void debugFrameCaptureQueueNextFrames(DeviceState &, ID3D12CommandQueue *, uint32_t, eastl::span<const wchar_t>, int) {}
 
-  constexpr void debugRecordDraw(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
+  constexpr void debugRecordDraw(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, uint32_t,
     D3D12_PRIMITIVE_TOPOLOGY)
   {}
 
-  constexpr void debugRecordDrawIndexed(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
+  constexpr void debugRecordDrawIndexed(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t, int32_t, uint32_t,
     D3D12_PRIMITIVE_TOPOLOGY)
   {}
 
-  constexpr void debugDrawIndirect(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
+  constexpr void debugDrawIndirect(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
   {}
 
-  constexpr void debugDrawIndexedIndirect(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &)
-  {}
-
-  constexpr void debugDispatchIndirect(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &, ComputePipeline &,
+  constexpr void debugDrawIndexedIndirect(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *,
+    const PipelineStageStateBase &, const PipelineStageStateBase &, BasePipeline &, PipelineVariant &,
     const BufferResourceReferenceAndOffset &)
   {}
 
-  constexpr void debugDispatch(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &, ComputePipeline &, uint32_t,
-    uint32_t, uint32_t)
+  constexpr void debugDispatchIndirect(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *, const PipelineStageStateBase &,
+    ComputePipeline &, const BufferResourceReferenceAndOffset &)
   {}
 
-  constexpr void debugDispatchMesh(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
+  constexpr void debugDispatch(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *, const PipelineStageStateBase &,
+    ComputePipeline &, uint32_t, uint32_t, uint32_t)
+  {}
+
+  constexpr void debugDispatchMesh(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *, const PipelineStageStateBase &,
     const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, uint32_t, uint32_t, uint32_t)
   {}
 
-  constexpr void debugDispatchMeshIndirect(DeviceState &, D3DGraphicsCommandList *, const PipelineStageStateBase &,
-    const PipelineStageStateBase &, BasePipeline &, PipelineVariant &, const BufferResourceReferenceAndOffset &,
-    const BufferResourceReferenceAndOffset &, uint32_t)
+  constexpr void debugDispatchMeshIndirect(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *,
+    const PipelineStageStateBase &, const PipelineStageStateBase &, BasePipeline &, PipelineVariant &,
+    const BufferResourceReferenceAndOffset &, const BufferResourceReferenceAndOffset &, uint32_t)
   {}
 
-  constexpr void debugBlit(DeviceState &, D3DGraphicsCommandList *) {}
+  constexpr void debugBlit(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *) {}
 
 #if D3D_HAS_RAY_TRACING
-  constexpr void debugDispatchRays(DeviceState &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
+  constexpr void debugDispatchRays(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
     const ResourceBindingTable &, const RayDispatchParameters &)
   {}
-  constexpr void debugDispatchRaysIndirect(DeviceState &, D3DGraphicsCommandList *, const RayDispatchBasicParameters &,
-    const ResourceBindingTable &, const RayDispatchIndirectParameters &)
+  constexpr void debugDispatchRaysIndirect(DeviceState &, CommandListIdentifier, D3DGraphicsCommandList *,
+    const RayDispatchBasicParameters &, const ResourceBindingTable &, const RayDispatchIndirectParameters &)
   {}
 #endif
 
   constexpr void debugOnDeviceRemoved(DeviceState &, D3DDevice *, HRESULT) {}
-
   constexpr void nameResource(DeviceState &, ID3D12Resource *, eastl::string_view) {}
   constexpr void nameResource(DeviceState &, ID3D12Resource *, eastl::wstring_view) {}
+  constexpr void debugSetPostmortemTraceEnabled(DeviceState &, CommandListIdentifier, bool) {}
 };
 } // namespace debug::null
 } // namespace drv3d_dx12

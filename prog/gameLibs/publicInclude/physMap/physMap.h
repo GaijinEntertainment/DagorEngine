@@ -41,8 +41,11 @@ struct PhysMap
     Tab<Point2> vertices;
     Tab<Point2> texCoords;
     Tab<MaterialIndices> matIndices;
-
-    DecalMesh() { box.setempty(); }
+    enum
+    {
+      TINDICES_SAME_AS_INDICES = 1
+    };
+    uint32_t flags = 0;
   };
 
   Tab<DecalMesh> decals;

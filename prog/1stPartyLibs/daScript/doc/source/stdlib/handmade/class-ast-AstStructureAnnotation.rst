@@ -1,0 +1,1 @@
+Annotation macro that attaches to `Structure` declarations. Provides compile-time hooks for inspecting and modifying structure definitions, fields, and layout.

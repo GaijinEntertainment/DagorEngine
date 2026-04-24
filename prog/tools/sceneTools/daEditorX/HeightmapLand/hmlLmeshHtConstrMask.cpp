@@ -152,6 +152,9 @@ bool HmapLandPlugin::applyHtConstraintBitmask(Mesh &mesh)
 {
   if (!bmLmeshHtConstr)
     return false;
+  auto *lrt = landMeshMap.getEditorLandRayTracer(true);
+  if (!lrt)
+    return false;
 
   int t0 = get_time_msec();
 
@@ -164,8 +167,7 @@ bool HmapLandPlugin::applyHtConstraintBitmask(Mesh &mesh)
   mem_set_0(vshift);
   bool changed = false;
   exportType = -1;
-  BBox2 landBoundsXZ(Point2::xz(landMeshMap.getEditorLandRayTracer()->getBBox()[0]),
-    Point2::xz(landMeshMap.getEditorLandRayTracer()->getBBox()[1]));
+  BBox2 landBoundsXZ(Point2::xz(lrt->getBBox()[0]), Point2::xz(lrt->getBBox()[1]));
   for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++)
       if (bmLmeshHtConstr->get(x, y))
@@ -181,7 +183,7 @@ bool HmapLandPlugin::applyHtConstraintBitmask(Mesh &mesh)
         // int fi = rt.traceray(p, Point3(0,-1,0), t);
 
         float htOther;
-        int fi = landMeshMap.getEditorLandRayTracer()->traceDownFaceVec<true, false>(p, htOther, NULL);
+        int fi = lrt->traceDownFaceVec<true, false>(p, htOther, NULL);
 
         if (fi < 0)
           continue;

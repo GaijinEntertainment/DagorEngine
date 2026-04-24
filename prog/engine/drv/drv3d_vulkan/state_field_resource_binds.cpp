@@ -1,15 +1,16 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <drv/3d/dag_renderTarget.h>
 #include "state_field_resource_binds.h"
 #include "buffer.h"
 #include "texture.h"
 #include "util/backtrace.h"
 #include "device_context.h"
 #include "sampler_cache.h"
-#include "buffer_alignment.h"
-#include <drv/3d/dag_renderTarget.h>
+#include "buffer_props.h"
 #include "backend.h"
-#include "execution_context.h"
+#include "backend/context.h"
+#include "backend/cmd/state.h"
 
 namespace drv3d_vulkan
 {
@@ -65,8 +66,7 @@ void StateFieldURegister::dumpLog(uint32_t index, const StateFieldResourceBindsS
 template <>
 void StateFieldURegister::transit(uint32_t index, StateFieldResourceBindsStorage &state, DeviceContext &target) const
 {
-  CmdTransitURegister cmd{state.stage, index, data};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdTransitURegister>({state.stage, index, data});
 }
 
 template <>
@@ -76,20 +76,13 @@ void StateFieldURegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
 
   if (data.buffer)
   {
-    target.getExecutionContext().verifyResident(data.buffer.buffer);
+    Backend::ctx.verifyResident(data.buffer.buffer);
     sts.setUbuffer(index, data.buffer);
   }
   else if (data.image)
   {
-    VulkanImageViewHandle ivh;
-    Image *actualImage = nullptr;
-
-    target.getExecutionContext().verifyResident(data.image);
-
-    ivh = data.image->getImageView(data.imageView);
-    actualImage = data.image;
-
-    sts.setUtexture(index, actualImage, data.imageView, ivh);
+    Backend::ctx.verifyResident(data.image);
+    sts.setUtexture(index, data.image, data.imageView);
   }
   else
     sts.setUempty(index);
@@ -104,8 +97,7 @@ void StateFieldBRegister::dumpLog(uint32_t index, const StateFieldResourceBindsS
 template <>
 void StateFieldBRegister::transit(uint32_t index, StateFieldResourceBindsStorage &state, DeviceContext &target) const
 {
-  CmdTransitBRegister cmd{state.stage, index, data};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdTransitBRegister>({state.stage, index, data});
 }
 
 template <>
@@ -119,7 +111,7 @@ void StateFieldBRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
     {
       if (state.globalConstBuf.data)
       {
-        target.getExecutionContext().verifyResident(state.globalConstBuf.data.buffer);
+        Backend::ctx.verifyResident(state.globalConstBuf.data.buffer);
         sts.setBbuffer(index, state.globalConstBuf.data);
       }
       else
@@ -132,7 +124,7 @@ void StateFieldBRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
 
   if (data.buffer)
   {
-    target.getExecutionContext().verifyResident(data.buffer);
+    Backend::ctx.verifyResident(data.buffer);
     sts.setBbuffer(index, data);
   }
   else
@@ -157,8 +149,7 @@ void StateFieldTRegister::dumpLog(uint32_t index, const StateFieldResourceBindsS
 template <>
 void StateFieldTRegister::transit(uint32_t index, StateFieldResourceBindsStorage &state, DeviceContext &target) const
 {
-  CmdTransitTRegister cmd{state.stage, index, data};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdTransitTRegister>({state.stage, index, data});
 }
 
 template <>
@@ -168,22 +159,20 @@ void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
 
   if (data.type == TRegister::TYPE_BUF)
   {
-    target.getExecutionContext().verifyResident(data.buf.buffer);
+    Backend::ctx.verifyResident(data.buf.buffer);
     sts.setTbuffer(index, data.buf);
   }
   else if (data.type == TRegister::TYPE_IMG)
   {
-
     // very rare branch, will trigger if texture without stub is used before being loaded with contents
     if (DAGOR_UNLIKELY(!data.img.ptr))
     {
       D3D_ERROR("vulkan: used broken texture at slot %s:%u, check stub config for it and usage at caller site:\n%s",
-        formatShaderStage(state.stage), index, target.getExecutionContext().getCurrentCmdCaller());
+        formatShaderStage(state.stage), index, Backend::ctx.getCurrentCmdCaller());
       return sts.setTempty(index);
     }
-    target.getExecutionContext().verifyResident(data.img.ptr);
+    Backend::ctx.verifyResident(data.img.ptr);
 
-    VulkanImageViewHandle ivh = data.img.ptr->getImageView(data.img.view);
     bool isConstDs = false;
     RenderPassResource *rpRes = target.getRO<StateFieldRenderPassResource, RenderPassResource *, BackGraphicsState>();
     if (rpRes)
@@ -191,7 +180,7 @@ void StateFieldTRegister::applyTo(uint32_t index, StateFieldResourceBindsStorage
     else
       isConstDs = (state.stage != STAGE_CS) && isConstDepthStencilTarget(data.img.ptr, data.img.view);
 
-    sts.setTtexture(index, data.img.ptr, data.img.view, isConstDs, ivh);
+    sts.setTtexture(index, data.img.ptr, data.img.view, isConstDs);
   }
 #if VULKAN_HAS_RAYTRACING
   else if (data.type == TRegister::TYPE_AS)
@@ -219,8 +208,7 @@ void StateFieldSRegister::dumpLog(uint32_t index, const StateFieldResourceBindsS
 template <>
 void StateFieldSRegister::transit(uint32_t index, StateFieldResourceBindsStorage &state, DeviceContext &target) const
 {
-  CmdTransitSRegister cmd{state.stage, index, data};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdTransitSRegister>({state.stage, index, data});
 }
 
 template <>
@@ -538,7 +526,7 @@ void StateFieldImmediateConst::transit(StateFieldResourceBindsStorage &state, De
 {
   CmdSetImmediateConsts cmd{state.stage, enabled};
   memcpy(cmd.data, data, sizeof(data));
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock(cmd);
 }
 
 template <>
@@ -557,7 +545,7 @@ void StateFieldGlobalConstBuffer::applyTo(StateFieldResourceBindsStorage &state,
   PipelineStageStateBase &sts = target.getResBinds(state.stage);
   if (data && sts.bGCBActive)
   {
-    target.getExecutionContext().verifyResident(data.buffer);
+    Backend::ctx.verifyResident(data.buffer);
     sts.setBbuffer(sts.GCBSlot, data);
   }
 }
@@ -565,77 +553,12 @@ void StateFieldGlobalConstBuffer::applyTo(StateFieldResourceBindsStorage &state,
 template <>
 void StateFieldGlobalConstBuffer::transit(StateFieldResourceBindsStorage &state, DeviceContext &target) const
 {
-  CmdSetConstRegisterBuffer cmd{data, state.stage};
-  target.dispatchCommandNoLock(cmd);
+  target.dispatchCmdNoLock<CmdSetConstRegisterBuffer>({data, state.stage});
 }
 
 } // namespace drv3d_vulkan
 
 using namespace drv3d_vulkan;
-
-void ImmediateConstBuffer::flushWrites()
-{
-  if (offset)
-  {
-    Buffer *buf = ring[ringIdx];
-    G_ASSERTF(buf, "vulkan: ImmediateConstBuffer: buffer or offset changed independently to each other");
-
-    buf->markNonCoherentRangeLoc(0, offset - alignedElementSize, true);
-  }
-}
-
-void ImmediateConstBuffer::init() { alignedElementSize = Globals::VK::bufAlign.alignSize(element_size); }
-
-BufferRef ImmediateConstBuffer::push(const uint32_t *data)
-{
-  Buffer *buf = ring[ringIdx];
-
-  if (!buf || offset >= buf->getBlockSize())
-  {
-    if (buf)
-    {
-      flushWrites();
-      Backend::gpuJob.get().cleanups.enqueue(*buf);
-    }
-
-    buf = Buffer::create(alignedElementSize * initial_blocks, DeviceMemoryClass::DEVICE_RESIDENT_HOST_WRITE_ONLY_BUFFER, 1,
-      BufferMemoryFlags::NONE);
-    offset = 0;
-    ring[ringIdx] = buf;
-  }
-
-  memcpy(buf->ptrOffsetLoc(offset), data, element_size);
-
-  BufferRef ret(buf);
-  ret.offset = offset;
-  ret.visibleDataSize = alignedElementSize;
-  offset += alignedElementSize;
-  return ret;
-}
-
-void ImmediateConstBuffer::onFlush()
-{
-  flushWrites();
-
-  ringIdx = (ringIdx + 1) % ring_size;
-  offset = 0;
-}
-
-void ImmediateConstBuffer::shutdown()
-{
-  for (Buffer *&i : ring)
-  {
-    if (i)
-    {
-      G_ASSERTF(Backend::State::pendingCleanups.removeWithReferenceCheck(i, Backend::State::pipe),
-        "vulkan: immediate cb is still bound");
-      Backend::gpuJob.get().cleanups.enqueue(*i);
-      i = nullptr;
-    }
-  }
-  offset = 0;
-  ringIdx = 0;
-}
 
 void StateFieldResourceBindsStorage::makeDirty()
 {

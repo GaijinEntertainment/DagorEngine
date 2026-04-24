@@ -91,8 +91,8 @@ void VertexDensityOverlay::before_render()
     ShaderGlobal::set_int(halfSzVarId, uavSize.get() >> 1);
 
     uav.close();
-    uav = UniqueBufHolder(
-      dag::create_sbuffer(1, uavSize.get() * uavSize.get(), SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED, 0, "vertexDensityAccumulator"),
+    uav = UniqueBufHolder(dag::create_sbuffer(1, uavSize.get() * uavSize.get(), SBCF_BIND_SHADER_RES | SBCF_BIND_UNORDERED, 0,
+                            "vertexDensityAccumulator", RESTAG_DEBUG),
       "vertexDensityAccumulator");
     uav.setVar();
   }
@@ -102,7 +102,7 @@ void VertexDensityOverlay::before_render()
   if (acmWeight.pullValueChange())
     ShaderGlobal::set_int(vertexDensityAcmWeightVarId, acmWeight.get());
   if (overlayBlendFactor.pullValueChange())
-    ShaderGlobal::set_real(vertexDensityOverlayBlendFactorVarId, overlayBlendFactor.get());
+    ShaderGlobal::set_float(vertexDensityOverlayBlendFactorVarId, overlayBlendFactor.get());
 
   d3d::zero_rwbufi(uav.getBuf());
 }

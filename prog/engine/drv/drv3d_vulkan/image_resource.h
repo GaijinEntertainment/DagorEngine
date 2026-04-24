@@ -9,7 +9,6 @@
 namespace drv3d_vulkan
 {
 
-class ExecutionContext;
 class MemoryHeapResource;
 class Buffer;
 
@@ -152,8 +151,8 @@ public:
   bool isEvictable();
   void shutdown();
   bool nonResidentCreation();
-  void restoreFromSysCopy(ExecutionContext &ctx);
-  void makeSysCopy(ExecutionContext &ctx);
+  void restoreFromSysCopy();
+  void makeSysCopy();
   bool mayAlias() { return desc.memFlags & MEM_IN_PLACED_HEAP; }
   void delayedRestoreFromSysCopy();
   void onDeviceReset();
@@ -201,6 +200,7 @@ public:
     G_ASSERT(!isManaged());
     setHandle(generalize(new_handle));
   }
+  VkDeviceSize getRawSize();
   Buffer *getHostCopyBuffer();
   void fillImage2BufferCopyData(carray<VkBufferImageCopy, MAX_MIPMAPS> &copies, Buffer *targetBuffer);
   VkBufferImageCopy makeBufferCopyInfo(uint8_t mip, uint16_t arr, VkDeviceSize buf_offset);
@@ -243,9 +243,16 @@ public:
 
   inline uint32_t getMipHeight(uint32_t level) const { return max(desc.ici.extent.height >> level, 1u); }
 
+#if VK_KHR_fragment_shading_rate
+  bool isAllowedForShadingRateAttachment() { return getUsage() & VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR; }
+#else
+  bool isAllowedForShadingRateAttachment() { return false; }
+#endif
+
   bool isAllowedForFramebuffer()
   {
-    return getUsage() & (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    return getUsage() & (VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT) ||
+           isAllowedForShadingRateAttachment();
   }
 
   bool isGPUWritable()
@@ -258,13 +265,15 @@ public:
   bool isSparseAspected();
 
   static Image *create(const ImageCreateInfo &ii);
-  static bool checkImageCreate(const VkImageCreateInfo &ici, FormatStore format);
+  static bool checkImageCreate(const VkImageCreateInfo &ici, FormatStore format, bool verbose = false);
 
   bool checkImageViewFormat(FormatStore fmt, VkImageUsageFlags usage) const;
   VulkanImageViewHandle createNewImageView(ImageViewState state) const;
   VulkanImageViewHandle getImageView(ImageViewState state);
 
-  bool verifyLinearFilteringSupported(const char *usageContextStr, ExecutionContext *ctx);
+  bool verifyLinearFilteringSupported(const char *usageContextStr);
+
+  void reportMemUsage(bool allocating);
 };
 
 void viewFormatListFrom(FormatStore format, VkImageUsageFlags usage, Image::ViewFormatList &viewFormats);

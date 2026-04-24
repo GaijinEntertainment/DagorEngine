@@ -35,6 +35,7 @@ public:
   struct FilePos
   {
     int file, line, col, pos;
+    bool at_eof;
   };
   BaseLexicalAnalyzer *lexer;
   Tab<IncFile> incfile;

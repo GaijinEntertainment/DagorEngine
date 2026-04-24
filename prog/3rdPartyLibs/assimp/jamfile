@@ -412,7 +412,12 @@ CPPopt +=
 
 CPPopt +=
   -DASSIMP_FBX_USE_PAGE_ALLOCATOR
+  -DASSIMP_ENABLE_DRACO
 ;
+if $(PlatformSpec) = clang {
+  # draco\attributes\geometry_attribute.h(401,25): warning: implicit conversion from 'long long' to 'double'
+  CPPopt += -Wno-implicit-const-int-float-conversion ;
+}
 
 if ! $(Platform) in windows macOS linux android {
   if $(PlatformSpec) = clang {
@@ -423,6 +428,7 @@ if ! $(Platform) in windows macOS linux android {
 UseProgLibs +=
    3rdPartyLibs/arc/unzip
    3rdPartyLibs/eastl
+   3rdPartyLibs/draco
 ;
 
 AddIncludes =

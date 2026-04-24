@@ -1,0 +1,9 @@
+ERROR: unsupported directive 'this-directive-does-not-exist'
+testData/diagnostics/compilation_errors/syntax_errors/unsupported_directive.nut:2:0
+
+// EXPECT_ERROR: "unsupported directive"
+#this-directive-does-not-exist
+^-----------------------------
+let x = 42
+
+

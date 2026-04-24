@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
 
 #import <AppKit/NSScreen.h>

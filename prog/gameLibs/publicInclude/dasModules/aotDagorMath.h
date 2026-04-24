@@ -34,6 +34,7 @@ MAKE_TYPE_FACTORY(Capsule, Capsule)
 MAKE_TYPE_FACTORY(quat, Quat)
 MAKE_TYPE_FACTORY(Plane3, Plane3)
 MAKE_TYPE_FACTORY(InterpolateTabFloat, InterpolateTabFloat)
+MAKE_TYPE_FACTORY(InterpolateTabMemPtrFloat, InterpolateTabMemPtrFloat)
 MAKE_TYPE_FACTORY(mat44f, mat44f)
 MAKE_TYPE_FACTORY(Frustum, Frustum)
 
@@ -274,6 +275,10 @@ inline DPoint3 dpoint3_approach_vel(const DPoint3 &from, const DPoint3 &to, floa
 inline void dpoint3_add_dpoint3(DPoint3 &a, const DPoint3 &b) { a += b; }
 
 inline float interpolate_tab_float_interpolate(const InterpolateTabFloat &tab, float val) { return tab.interpolate(val); }
+inline float interpolate_tab_mem_ptr_float_interpolate(const InterpolateTabMemPtrFloat &tab, float val)
+{
+  return tab.interpolate(val);
+}
 
 inline mat44f mat44f_make_matrix(TMatrix const &tm)
 {
@@ -308,6 +313,25 @@ inline void read_interpolate_tab_as_params(InterpolateTabFloat &tab, const DataB
 }
 
 inline void read_interpolate_tab_float_p2(InterpolateTabFloat &tab, const DataBlock &blk)
+{
+  ::read_interpolate_tab_as_params(tab, blk, [](const DataBlock &blk, int i, float &x, float &y) -> bool {
+    Point2 p = blk.getPoint2(i);
+    x = p.x;
+    y = p.y;
+    return true;
+  });
+}
+
+inline void read_interpolate_tab_mem_ptr_as_params(InterpolateTabMemPtrFloat &tab, const DataBlock &blk,
+  const das::TBlock<bool, DataBlock &, int, float, float> &block, das::Context *context, das::LineInfoArg *at)
+{
+  ::read_interpolate_tab_as_params(tab, blk, [&](const DataBlock &, int i, float x, float y) -> bool {
+    vec4f args[] = {das::cast<DataBlock &>::from(blk), das::cast<int>::from(i), das::cast<float>::from(x), das::cast<float>::from(y)};
+    return das::cast<bool>::to(context->invoke(block, args, nullptr, at));
+  });
+}
+
+inline void read_interpolate_tab_mem_ptr_float_p2(InterpolateTabMemPtrFloat &tab, const DataBlock &blk)
 {
   ::read_interpolate_tab_as_params(tab, blk, [](const DataBlock &blk, int i, float &x, float &y) -> bool {
     Point2 p = blk.getPoint2(i);

@@ -4,17 +4,62 @@
 //
 #pragma once
 
-typedef volatile int os_spinlock_t;
-
 #include <supp/dag_define_KRNLIMP.h>
+#include <util/dag_compilerDefs.h>
+#include <osApiWrappers/dag_atomic.h>
+#if _TARGET_PC_LINUX && DAGOR_THREAD_SANITIZER // we have to use pthread's spinlock API or it would be not recognized by TSAN
+#include <pthread.h>
+#endif
 #include <perfMon/dag_daProfilerToken.h>
 #include <osApiWrappers/dag_threadSafety.h>
 
+namespace dag::spinlock_internal
+{
+enum
+{
+  LOCK_IS_FREE = 0,
+  LOCK_IS_TAKEN_NO_WAITERS = 1,
+  LOCK_IS_TAKEN_CONTENDED = 2
+};
+}
+
+typedef volatile int os_spinlock_t;
+
 KRNLIMP void os_spinlock_init(os_spinlock_t *lock);
 KRNLIMP void os_spinlock_destroy(os_spinlock_t *lock);
-KRNLIMP void os_spinlock_lock(os_spinlock_t *lock, da_profiler::desc_id_t token = da_profiler::DescSpinlock);
-KRNLIMP bool os_spinlock_trylock(os_spinlock_t *lock);
-KRNLIMP void os_spinlock_unlock(os_spinlock_t *lock);
+inline bool os_spinlock_trylock(os_spinlock_t *lock)
+{
+  using namespace dag::spinlock_internal;
+#if _TARGET_PC_LINUX && DAGOR_THREAD_SANITIZER
+  static_assert(sizeof(*lock) >= sizeof(pthread_spinlock_t), "bad os_spinlock_t type!");
+  return pthread_spin_trylock(lock) == 0;
+#elif _TARGET_PC_WIN || _TARGET_XBOX || _TARGET_C2
+  return interlocked_compare_exchange(*lock, LOCK_IS_TAKEN_NO_WAITERS, LOCK_IS_FREE) == LOCK_IS_FREE;
+#else
+  return interlocked_exchange(*lock, LOCK_IS_TAKEN_NO_WAITERS) == LOCK_IS_FREE;
+#endif
+}
+KRNLIMP void DAGOR_NOINLINE os_spinlock_lock_contended(os_spinlock_t *lock, da_profiler::desc_id_t token);
+#if _TARGET_PC_WIN || _TARGET_XBOX || _TARGET_C2
+KRNLIMP void os_spinlock_unlock_contended(os_spinlock_t *lock);
+#endif
+inline void os_spinlock_lock(os_spinlock_t *lock, da_profiler::desc_id_t token = da_profiler::DescSpinlock)
+{
+  if (!os_spinlock_trylock(lock)) [[unlikely]]
+    os_spinlock_lock_contended(lock, token);
+}
+inline void os_spinlock_unlock(os_spinlock_t *lock)
+{
+  using namespace dag::spinlock_internal;
+#if _TARGET_PC_LINUX && DAGOR_THREAD_SANITIZER
+  pthread_spin_unlock(lock);
+#elif _TARGET_PC_WIN || _TARGET_XBOX || _TARGET_C2
+  if (interlocked_exchange(*lock, LOCK_IS_FREE) == LOCK_IS_TAKEN_CONTENDED)
+    os_spinlock_unlock_contended(lock);
+#else
+  interlocked_release_store(*lock, LOCK_IS_FREE);
+#endif
+}
 
 class DAG_TS_CAPABILITY("mutex") OSSpinlock
 {

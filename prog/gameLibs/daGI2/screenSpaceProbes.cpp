@@ -12,6 +12,8 @@
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_lock.h>
+#include <frustumCulling/frustumPlanes.h>
+
 CONSOLE_INT_VAL("gi", sp_spatial_filter_passes, 3, 1, 5);
 CONSOLE_INT_VAL("gi", sp_placement_probes_iterations, -1, -1, 8);
 CONSOLE_BOOL_VAL("gi", sp_radiance_r11g11b10, true);
@@ -33,7 +35,7 @@ enum
   VAR(prev_screenspace_probe_screen_res)           \
   VAR(sp_radiance_oct_res)                         \
   VAR(sp_irradiance_oct_quality)                   \
-  VAR(sp_probes_per_warp_irradiance)               \
+  VAR(sp_probes_per_group_irradiance)              \
   VAR(sp_irradiance_res)                           \
   VAR(sp_irradiance_resf)                          \
   VAR(dagi_screenprobes_user_trace_dist)           \
@@ -94,16 +96,18 @@ GLOBAL_VARS_LIST
 
 ScreenSpaceProbes::~ScreenSpaceProbes()
 {
+  debug("DaGI2: screen probes destructed");
+
   ShaderGlobal::set_int4(dagi_screenspace_probe_trace_resVarId, 0, 0, 0, 0);
-  ShaderGlobal::set_color4(dagi_sp_oct_to_trace_radiance_atlas_clampVarId, 0, 0, 0, 0);
+  ShaderGlobal::set_float4(dagi_sp_oct_to_trace_radiance_atlas_clampVarId, 0, 0, 0, 0);
 
   ShaderGlobal::set_int4(screenspace_probe_resVarId, 0, 0, 16384, 0);
-  ShaderGlobal::set_color4(screenspace_probe_atlas_sizeVarId, 0, 0, 0, 0);
+  ShaderGlobal::set_float4(screenspace_probe_atlas_sizeVarId, 0, 0, 0, 0);
   ShaderGlobal::set_int4(screenspace_probes_count__added__totalVarId, 0, 0, 0, 0);
   ShaderGlobal::set_int4(prev_screenspace_probes_count__added__totalVarId, 0, 0, 0, 0);
-  ShaderGlobal::set_color4(dagi_sp_oct_to_irradiance_atlasVarId, 0, 0, 0, 0);
-  ShaderGlobal::set_color4(dagi_sp_oct_to_radiance_atlasVarId, 0, 0, 0, 0);
-  ShaderGlobal::set_color4(dagi_sp_oct_to_radiance_atlas_clampVarId, 0, 0, 0, 0);
+  ShaderGlobal::set_float4(dagi_sp_oct_to_irradiance_atlasVarId, 0, 0, 0, 0);
+  ShaderGlobal::set_float4(dagi_sp_oct_to_radiance_atlasVarId, 0, 0, 0, 0);
+  ShaderGlobal::set_float4(dagi_sp_oct_to_radiance_atlas_clampVarId, 0, 0, 0, 0);
 }
 
 static uint32_t div_round_up(uint32_t n, uint32_t d) { return uint32_t(n + d - 1) / d; }
@@ -143,23 +147,24 @@ void ScreenSpaceProbes::setCurrentScreenRes(const ScreenRes &sr)
   }
 
   ShaderGlobal::set_int4(screenspace_probe_resVarId, sr.w, sr.h, sr.tileSize, radianceRes);
-  ShaderGlobal::set_color4(screenspace_probe_atlas_sizeVarId, sr.atlasW, sr.atlasH, 1. / sr.atlasW, 1. / sr.atlasH);
+  ShaderGlobal::set_float4(screenspace_probe_atlas_sizeVarId, sr.atlasW, sr.atlasH, 1. / sr.atlasW, 1. / sr.atlasH);
   ShaderGlobal::set_int4(screenspace_probes_count__added__totalVarId, sr.screenProbes, sr.additionalProbes, sr.totalProbes,
     allocated.getTileClassifyDwords());
 
-  ShaderGlobal::set_color4(dagi_sp_oct_to_irradiance_atlasVarId, irrBorderMul / sr.atlasW, irrBorderMul / sr.atlasH,
+  ShaderGlobal::set_float4(dagi_sp_oct_to_irradiance_atlasVarId, irrBorderMul / sr.atlasW, irrBorderMul / sr.atlasH,
     irrBorderAdd / sr.atlasW, irrBorderAdd / sr.atlasH);
 
 
-  ShaderGlobal::set_color4(dagi_sp_oct_to_radiance_atlasVarId, 0.5f / sr.atlasW, 0.5f / sr.atlasH, 0, 0);
-  ShaderGlobal::set_color4(dagi_sp_oct_to_radiance_atlas_clampVarId, .5f / radianceRes / sr.atlasW, .5f / radianceRes / sr.atlasH,
+  ShaderGlobal::set_float4(dagi_sp_oct_to_radiance_atlasVarId, 0.5f / sr.atlasW, 0.5f / sr.atlasH, 0, 0);
+  ShaderGlobal::set_float4(dagi_sp_oct_to_radiance_atlas_clampVarId, .5f / radianceRes / sr.atlasW, .5f / radianceRes / sr.atlasH,
     (1.f - .5f / radianceRes) / sr.atlasW, (1.f - .5f / radianceRes) / sr.atlasH);
 
-  ShaderGlobal::set_color4(dagi_sp_oct_to_trace_radiance_atlas_clampVarId, .5f / radianceTraceRes / sr.atlasW,
+  ShaderGlobal::set_float4(dagi_sp_oct_to_trace_radiance_atlas_clampVarId, .5f / radianceTraceRes / sr.atlasW,
     .5f / radianceTraceRes / sr.atlasH, (1.f - .5f / radianceTraceRes) / sr.atlasW, (1.f - .5f / radianceTraceRes) / sr.atlasH);
-  ShaderGlobal::set_int4(dagi_screenspace_probe_trace_resVarId, radianceTraceRes, radianceTraceRes * radianceTraceRes, 0, 0);
+  ShaderGlobal::set_int4(dagi_screenspace_probe_trace_resVarId, radianceTraceRes, radianceTraceRes * radianceTraceRes, sr.atlasW,
+    sr.atlasH);
 
-  ShaderGlobal::set_color4(screenspace_probe_screen_resVarId, sr.sw, sr.sh, 1. / sr.sw, 1. / sr.sh);
+  ShaderGlobal::set_float4(screenspace_probe_screen_resVarId, sr.sw, sr.sh, 1. / sr.sw, 1. / sr.sh);
 
   ShaderGlobal::set_buffer(screenspace_probe_posVarId, screenspaceProbePos[cFrame].getBufId());
 }
@@ -175,9 +180,9 @@ void ScreenSpaceProbes::setPrevScreenRes(const ScreenRes &sr)
   ShaderGlobal::set_buffer(prev_screenspace_probe_posVarId, screenspaceProbePos[pFrame].getBufId());
   ShaderGlobal::set_int4(prev_screenspace_probes_count__added__totalVarId, sr.screenProbes, sr.additionalProbes, sr.totalProbes,
     (sr.screenProbes + 31) >> 5);
-  ShaderGlobal::set_color4(prev_screenspace_probe_screen_resVarId, sr.sw, sr.sh, 1. / sr.sw, 1. / sr.sh);
+  ShaderGlobal::set_float4(prev_screenspace_probe_screen_resVarId, sr.sw, sr.sh, 1. / sr.sw, 1. / sr.sh);
   ShaderGlobal::set_int4(prev_screenspace_probe_resVarId, sr.w, sr.h, sr.tileSize, radianceRes);
-  ShaderGlobal::set_color4(prev_screenspace_probe_atlas_sizeVarId, sr.atlasW, sr.atlasH, 1. / sr.atlasW, 1. / sr.atlasH);
+  ShaderGlobal::set_float4(prev_screenspace_probe_atlas_sizeVarId, sr.atlasW, sr.atlasH, 1. / sr.atlasW, 1. / sr.atlasH);
 }
 
 void ScreenSpaceProbes::init(int tile_size, int sw, int sh, int max_sw, int max_sh, int radiance_res, bool need_distance,
@@ -191,7 +196,7 @@ void ScreenSpaceProbes::initProbesList(uint32_t total, bool history)
 {
   screenspace_probes_list.close();
   screenspace_probes_list = dag::create_sbuffer(sizeof(uint32_t), total * (history ? 2 : 1) + 2,
-    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "screenspace_probes_list");
+    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "screenspace_probes_list", RESTAG_DAGI2);
 }
 
 void ScreenSpaceProbes::initMaxResolution(int tile_size, int max_sw, int max_sh, int radiance_res, bool need_distance,
@@ -238,6 +243,7 @@ void ScreenSpaceProbes::initMaxResolution(int tile_size, int max_sw, int max_sh,
     CS(rearrange_additional_probes_placement_cs);
     CS(dagi_probes_back_color_cs);
     CS(screenspace_probes_create_dispatch_indirect_cs);
+    CS(screenspace_probes_invalidate_cs);
 #undef CS
   }
   supportRGBE_UAV = d3d::check_texformat(TEXFMT_R9G9B9E5 | TEXCF_UNORDERED);
@@ -245,13 +251,13 @@ void ScreenSpaceProbes::initMaxResolution(int tile_size, int max_sw, int max_sh,
   debug("screen probes supportRGBE_UAV: %d", supportRGBE_UAV);
   screenprobes_indirect_buffer.close();
   screenprobes_indirect_buffer = dag::create_sbuffer(sizeof(uint32_t), SP_INDIRECT_BUFFER_SIZE,
-    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_UA_INDIRECT, 0, "screenprobes_indirect_buffer");
+    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_UA_INDIRECT, 0, "screenprobes_indirect_buffer", RESTAG_DAGI2);
   const uint32_t currentRadianceFmt = need_distance ? TEXFMT_A16B16G16R16F : (supportRGBE_UAV ? TEXFMT_R9G9B9E5 : TEXFMT_R11G11B10F);
 
   current_radiance.close();
   current_radiance = dag::create_tex(NULL, allocated.atlasW * radianceTraceRes, allocated.atlasH * radianceTraceRes,
     TEXCF_UNORDERED | currentRadianceFmt, 1, // TEXFMT_A16B16G16R16F
-    "screenprobes_trace_radiance");
+    "screenprobes_trace_radiance", RESTAG_DAGI2);
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
@@ -267,15 +273,15 @@ void ScreenSpaceProbes::initMaxResolution(int tile_size, int max_sw, int max_sh,
   const uint32_t radianceFMT =
     need_distance || !sp_radiance_r11g11b10 ? TEXFMT_A16B16G16R16F : (supportRGBE_UAV ? TEXFMT_R9G9B9E5 : TEXFMT_R11G11B10F);
   screenspaceRadiance[0] = dag::create_tex(NULL, allocated.atlasW * radianceRes, allocated.atlasH * radianceRes,
-    TEXCF_UNORDERED | radianceFMT, 1, "screenspace_radiance0");
+    TEXCF_UNORDERED | radianceFMT, 1, "screenspace_radiance0", RESTAG_DAGI2);
   screenspaceRadiance[1] = dag::create_tex(NULL, allocated.atlasW * radianceRes, allocated.atlasH * radianceRes,
-    TEXCF_UNORDERED | radianceFMT, 1, "screenspace_radiance1");
+    TEXCF_UNORDERED | radianceFMT, 1, "screenspace_radiance1", RESTAG_DAGI2);
 
   const uint32_t irradianceFmt = supportRGBE_UAV ? TEXFMT_R9G9B9E5 : TEXFMT_R11G11B10F;
   const int irradianceResWithBorder = irradianceRes + 2;
   screenspace_irradiance.close();
   screenspace_irradiance = dag::create_tex(NULL, allocated.atlasW * irradianceResWithBorder,
-    allocated.atlasH * irradianceResWithBorder, TEXCF_UNORDERED | irradianceFmt, 1, "screenspace_irradiance_a");
+    allocated.atlasH * irradianceResWithBorder, TEXCF_UNORDERED | irradianceFmt, 1, "screenspace_irradiance_a", RESTAG_DAGI2);
   ShaderGlobal::set_texture(screenspace_irradianceVarId, screenspace_irradiance.getTexId());
 
   screenspaceProbePos[0].close();
@@ -288,19 +294,19 @@ void ScreenSpaceProbes::initMaxResolution(int tile_size, int max_sw, int max_sh,
 
   const uint32_t totalProbePosCount = allocated.totalProbes * 3 + allocated.w * allocated.h + 1;
   screenspaceProbePos[0] = dag::create_sbuffer(sizeof(uint32_t), totalProbePosCount,
-    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "screenspace_probe_pos0");
+    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "screenspace_probe_pos0", RESTAG_DAGI2);
   screenspaceProbePos[1] = dag::create_sbuffer(sizeof(uint32_t), totalProbePosCount,
-    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "screenspace_probe_pos1");
+    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "screenspace_probe_pos1", RESTAG_DAGI2);
 
   tileClassificator.close();
   tileClassificator =
     dag::create_sbuffer(sizeof(uint32_t), allocated.getTileClassifyDwords() + ((allocated.additionalProbes + 3) & ~3),
-      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "screenspace_tile_classificator");
+      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "screenspace_tile_classificator", RESTAG_DAGI2);
 
   linked_list_additional_screenspace_probes.close();
   linked_list_additional_screenspace_probes =
     dag::create_sbuffer(sizeof(uint32_t), allocated.screenProbes + 1 + allocated.additionalProbes * 3,
-      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "linked_list_additional_screenspace_probes");
+      SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "linked_list_additional_screenspace_probes", RESTAG_DAGI2);
   const int halfRes = (radianceRes + 1) / 2, halfResArea = halfRes * halfRes;
   ShaderGlobal::set_int4(sp_radiance_areaVarId, radianceRes * radianceRes, halfResArea, halfRes,
     bitwise_cast<uint32_t>(1.f / halfResArea));
@@ -308,19 +314,19 @@ void ScreenSpaceProbes::initMaxResolution(int tile_size, int max_sw, int max_sh,
 
   ShaderGlobal::set_int4(sp_irradiance_resVarId, irradianceRes, irradianceResWithBorder, irradianceRes * irradianceRes,
     irradianceResWithBorder * irradianceResWithBorder);
-  ShaderGlobal::set_real(sp_irradiance_resfVarId, irradianceRes);
+  ShaderGlobal::set_float(sp_irradiance_resfVarId, irradianceRes);
   ShaderGlobal::set_int(sp_radiance_oct_resVarId, radianceRes);
-  uint32_t probesPerWarp = 0;
+  uint32_t probesPerGroup = 0;
   if (radianceRes > 8)
   {
     G_ASSERT(irradianceResWithBorder == 8);
-    probesPerWarp = 1;
+    probesPerGroup = 1;
     ShaderGlobal::set_int(sp_irradiance_oct_qualityVarId, RADIANCE_DOWNSAMPLE);
   }
   else if (radianceRes == 8)
   {
     G_ASSERT(irradianceResWithBorder == 8);
-    probesPerWarp = 1;
+    probesPerGroup = 1;
     ShaderGlobal::set_int(sp_irradiance_oct_qualityVarId, SAME_AS_RADIANCE_8);
   }
   else if (radianceRes == 7)
@@ -338,13 +344,13 @@ void ScreenSpaceProbes::initMaxResolution(int tile_size, int max_sw, int max_sh,
     G_ASSERT((radianceRes == 6 && irradianceRes == 4) || (radianceRes == 5 && irradianceRes == 3));
     ShaderGlobal::set_int(sp_irradiance_oct_qualityVarId, RADIANCE_56_IRRADIANCE_34);
   }
-  if (probesPerWarp == 0)
+  if (probesPerGroup == 0)
   {
     auto updateTsz = calc_screenspace_irradiance_cs->getThreadGroupSizes();
-    const uint32_t warpSize = updateTsz[0] * updateTsz[1];
-    probesPerWarp = warpSize / (irradianceRes * irradianceRes);
+    const uint32_t groupSize = updateTsz[0] * updateTsz[1];
+    probesPerGroup = groupSize / (irradianceRes * irradianceRes);
   }
-  ShaderGlobal::set_int(sp_probes_per_warp_irradianceVarId, probesPerWarp);
+  ShaderGlobal::set_int(sp_probes_per_group_irradianceVarId, probesPerGroup);
   setCurrentScreenRes(allocated);
   setPrevScreenRes(prev = allocated);
   afterReset();
@@ -466,17 +472,25 @@ void ScreenSpaceProbes::trace_probe_radiance(float quality, bool angle_filtering
   auto &dest = current_radiance;
   DA_PROFILE_GPU;
   ShaderGlobal::set_int(dagi_screenprobes_trace_qualityVarId, quality <= 0 ? 0 : angle_filtering ? 2 : 1);
-  ShaderGlobal::set_real(dagi_screenprobes_user_trace_distVarId, max(0.f, quality));
+  ShaderGlobal::set_float(dagi_screenprobes_user_trace_distVarId, max(0.f, quality));
   d3d::set_rwtex(STAGE_CS, 0, dest.getTex2D(), 0, 0);
   d3d::set_rwtex(STAGE_CS, 1, nullptr, 0, 0);
   d3d::set_rwtex(STAGE_CS, 2, nullptr, 0, 0);
-  d3d::set_cs_constbuffer_size(256);
+  d3d::set_cs_constbuffer_register_count(256);
   const bool useSelected = sp_use_selected_probes && validHistory && currentTemporality < 1;
+  auto dispatch = [&](auto &shader, uint32_t indirectOffset) {
+    auto threadGroupSizes = shader->getThreadGroupSizes();
+    bool isRaygen = threadGroupSizes == decltype(threadGroupSizes){1, 1, 1};
+    if (isRaygen)
+      shader->dispatchThreads(radianceTraceRes * radianceTraceRes, allocated.atlasW, allocated.atlasH);
+    else
+      shader->dispatch_indirect(screenprobes_indirect_buffer.getBuf(), indirectOffset * 4);
+  };
   if (useSelected)
-    calc_screenspace_selected_radiance_cs->dispatch_indirect(screenprobes_indirect_buffer.getBuf(), SP_TRACE_SELECTED_OFS * 4);
+    dispatch(calc_screenspace_selected_radiance_cs, SP_TRACE_SELECTED_OFS);
   else
-    calc_screenspace_radiance_cs->dispatch_indirect(screenprobes_indirect_buffer.getBuf(), SP_TRACE_INDIRECT_OFFSET * 4);
-  d3d::set_cs_constbuffer_size(0);
+    dispatch(calc_screenspace_radiance_cs, SP_TRACE_INDIRECT_OFFSET);
+  d3d::set_cs_constbuffer_register_count(0);
   d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
   d3d::set_rwtex(STAGE_CS, 1, nullptr, 0, 0);
   d3d::set_rwtex(STAGE_CS, 2, nullptr, 0, 0);
@@ -560,7 +574,7 @@ void ScreenSpaceProbes::calc_probe_irradiance()
     calc_screenspace_irradiance_sph3_cs->dispatch_indirect(screenprobes_indirect_buffer.getBuf(), SP_IRRADIANCE_INDIRECT_OFFSET * 4);
   else
     calc_screenspace_irradiance_cs->dispatch_indirect(screenprobes_indirect_buffer.getBuf(), SP_IRRADIANCE_INDIRECT_OFFSET * 4);
-  d3d::set_rwbuffer(STAGE_CS, 0, nullptr);
+  d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
   d3d::resource_barrier({screenspace_irradiance.getTex2D(),
     RB_RO_SRV | RB_SOURCE_STAGE_COMPUTE | (RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX), 0, 0});
 }
@@ -586,6 +600,13 @@ void ScreenSpaceProbes::afterReset()
 
 void ScreenSpaceProbes::resetHistoryAge() { afterReset(); }
 
+void ScreenSpaceProbes::invalidateFrustum(const Frustum &invalid_frustum)
+{
+  DA_PROFILE_GPU;
+  set_frustum_planes(invalid_frustum);
+  screenspace_probes_invalidate_cs->dispatchThreads(current.totalProbes, 1, 1);
+}
+
 static void set_frame_info(const DaGIFrameInfo &fi)
 {
   const TMatrix4 globTm = fi.globTm.transpose();
@@ -594,13 +615,13 @@ static void set_frame_info(const DaGIFrameInfo &fi)
   ShaderGlobal::set_float4x4(sp_projtmVarId, projTm);
   const TMatrix4 globTmNoOfs = fi.globTmNoOfs.transpose();
   ShaderGlobal::set_float4x4(sp_globtm_from_camposVarId, globTmNoOfs);
-  ShaderGlobal::set_color4(sp_world_view_posVarId, P3D(fi.world_view_pos), 0);
-  ShaderGlobal::set_color4(sp_view_zVarId, P3D(fi.viewZ), 0);
-  ShaderGlobal::set_color4(sp_view_vecLTVarId, Color4(&fi.viewVecLT.x));
-  ShaderGlobal::set_color4(sp_view_vecRTVarId, Color4(&fi.viewVecRT.x));
-  ShaderGlobal::set_color4(sp_view_vecLBVarId, Color4(&fi.viewVecLB.x));
-  ShaderGlobal::set_color4(sp_view_vecRBVarId, Color4(&fi.viewVecRB.x));
-  ShaderGlobal::set_color4(sp_zn_zfarVarId, fi.znear, fi.zfar);
+  ShaderGlobal::set_float4(sp_world_view_posVarId, P3D(fi.world_view_pos), 0);
+  ShaderGlobal::set_float4(sp_view_zVarId, P3D(fi.viewZ), 0);
+  ShaderGlobal::set_float4(sp_view_vecLTVarId, Color4(&fi.viewVecLT.x));
+  ShaderGlobal::set_float4(sp_view_vecRTVarId, Color4(&fi.viewVecRT.x));
+  ShaderGlobal::set_float4(sp_view_vecLBVarId, Color4(&fi.viewVecLB.x));
+  ShaderGlobal::set_float4(sp_view_vecRBVarId, Color4(&fi.viewVecRB.x));
+  ShaderGlobal::set_float4(sp_zn_zfarVarId, fi.znear, fi.zfar);
 }
 
 static void set_prev_frame_info(const DaGIFrameInfo &curFi, const DaGIFrameInfo &prevFi)
@@ -625,15 +646,15 @@ static void set_prev_frame_info(const DaGIFrameInfo &curFi, const DaGIFrameInfo 
   globTmNoOfsFromCurCamPos = globTmNoOfsFromCurCamPos.transpose();
 
   ShaderGlobal::set_float4x4(sp_prev_globtm_from_current_camposVarId, globTmNoOfsFromCurCamPos);
-  ShaderGlobal::set_color4(sp_prev_camera_pos_movementVarId, P3D(move), length(move));
-  ShaderGlobal::set_color4(sp_prev_world_view_posVarId, P3D(prevFi.world_view_pos), 0);
-  ShaderGlobal::set_color4(sp_prev_view_zVarId, P3D(prevFi.viewZ), 0);
-  ShaderGlobal::set_color4(sp_prev_view_vecLTVarId, Color4(&prevFi.viewVecLT.x));
-  ShaderGlobal::set_color4(sp_prev_view_vecRTVarId, Color4(&prevFi.viewVecRT.x));
-  ShaderGlobal::set_color4(sp_prev_view_vecLBVarId, Color4(&prevFi.viewVecLB.x));
-  ShaderGlobal::set_color4(sp_prev_view_vecRBVarId, Color4(&prevFi.viewVecRB.x));
-  ShaderGlobal::set_color4(sp_prev_zn_zfarVarId, prevFi.znear, prevFi.zfar);
-  ShaderGlobal::set_color4(sp_jitterVarId, curFi.ox, curFi.ox, prevFi.ox, prevFi.ox);
+  ShaderGlobal::set_float4(sp_prev_camera_pos_movementVarId, P3D(move), length(move));
+  ShaderGlobal::set_float4(sp_prev_world_view_posVarId, P3D(prevFi.world_view_pos), 0);
+  ShaderGlobal::set_float4(sp_prev_view_zVarId, P3D(prevFi.viewZ), 0);
+  ShaderGlobal::set_float4(sp_prev_view_vecLTVarId, Color4(&prevFi.viewVecLT.x));
+  ShaderGlobal::set_float4(sp_prev_view_vecRTVarId, Color4(&prevFi.viewVecRT.x));
+  ShaderGlobal::set_float4(sp_prev_view_vecLBVarId, Color4(&prevFi.viewVecLB.x));
+  ShaderGlobal::set_float4(sp_prev_view_vecRBVarId, Color4(&prevFi.viewVecRB.x));
+  ShaderGlobal::set_float4(sp_prev_zn_zfarVarId, prevFi.znear, prevFi.zfar);
+  ShaderGlobal::set_float4(sp_jitterVarId, curFi.ox, curFi.oy, prevFi.ox, prevFi.oy);
 }
 
 void ScreenSpaceProbes::calcProbesPlacement(const DPoint3 &world_pos, const TMatrix &viewItm, const TMatrix4 &proj, float zn, float zf)

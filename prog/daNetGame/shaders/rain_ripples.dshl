@@ -1,6 +1,7 @@
 include "shader_global.dshl"
 include "viewVecVS.dshl"
 include "gbuffer.dshl"
+include "gbuffer_with_mixing.dshl"
 include "depth_above.dshl"
 include "wetness_inc.dshl"
 include "normaldetail.dshl"
@@ -12,11 +13,6 @@ float rain_ripples_max_radius = 0.15;
 
 shader rain_ripples
 {
-  static int writemask = 112;//(7<<4) - normal
-  color_write = static writemask;
-  // We need all static variables to be defined before dont_render, otherwise we have logerr
-  // about static vars count mismatch when reload shaders to compatibility.
-
   if (compatibility_mode == compatibility_mode_on)
   {
     dont_render;//currently not support
@@ -25,13 +21,25 @@ shader rain_ripples
   z_write = false;
   z_test = false;
   cull_mode = none;
-  blend_src = sa; blend_dst = isa;
-  blend_asrc = one; blend_adst = isa;
 
-
+  if(packed_gbuf_normals == yes)
+  {
+    blend_src = sa; blend_dst = isa;
+    blend_asrc = 0; blend_adst = 0;
+    color_write = rgba;
+    INIT_READ_IS_HERO_COCKPIT(ps)
+    USE_READ_IS_HERO_COCKPIT(ps)
+    INIT_GBUFFER_MIXING_UAV()
+  }
+  else
+  {
+    blend_src = sa; blend_dst = isa;
+    blend_asrc = one; blend_adst = isa;
+    color_write = rgb;
+  }
 
   INIT_ZNZFAR()
-  WRITE_GBUFFER()
+  USE_PARTIAL_PACK_UNPACK_GBUFF(ps)
   USE_DECODE_DEPTH()
   INIT_READ_DEPTH_GBUFFER()
   USE_AND_INIT_VIEW_VEC_VS()
@@ -45,6 +53,7 @@ shader rain_ripples
 
   POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
 
+  INIT_WETNESS()
   USE_WETNESS()
   INIT_WRITE_GBUFFER_WETNESS()
   WRITE_GBUFFER_WETNESS()
@@ -52,6 +61,8 @@ shader rain_ripples
 
   INIT_WORLD_HEIGHTMAP_PS()
   USE_HEIGHTMAP_COMMON_PS()
+  INIT_HEIGHTMAP_GATHERED_SAMPLING(ps)
+  USE_HEIGHTMAP_GATHERED_SAMPLING(ps)
   INIT_PUDDLE(ps)
   USE_PUDDLE(ps)
 
@@ -156,7 +167,7 @@ shader rain_ripples
       }
     }
 
-    GBUFFER_OUTPUT rain_ripples_ps(VsOutput input)
+    float4 rain_ripples_ps(VsOutput input) : SV_Target
     {
       float sceneDepth = linearize_z(readGbufferDepth(input.texcoord), zn_zfar.zw);
       float3 viewVect = lerp_view_vec(input.texcoord);
@@ -173,9 +184,6 @@ shader rain_ripples
       BRANCH
       if (depthInfl < 0.0001)
         discard;
-
-      UnpackedGbuffer output;
-      init_gbuffer(output);
 
       float waterBorder;
       float wetness = get_base_wetness(worldPos, normal, waterBorder);
@@ -226,11 +234,20 @@ shader rain_ripples
         }
       }
 
-      init_normal(output, normal);
+      ##if packed_gbuf_normals == yes
+        // We need to filter out portal (and later possible other) material
+        half4 normal_material = packed_gbuf_1[GET_SCREEN_POS(input.pos).xy];
+        uint _unusedExtra, material;
+        unpackMaterialExtra(normal_material, _unusedExtra, material);
+        if (isNoLightEmissiveShader(material))
+          discard;
 
-      GBUFFER_OUTPUT gbuf = encode_gbuffer(output, -cameraToPoint, GET_SCREEN_POS(input.pos));
-      gbuf.normal_material.w = wetMaterial * depthInfl;
-      return gbuf;
+        BRANCH
+        if(isGbufferHeroCockpit(input.texcoord))
+          discard;
+      ##endif
+
+      return float4(normal * 0.5f + 0.5f, wetMaterial * depthInfl);
     }
   }
 

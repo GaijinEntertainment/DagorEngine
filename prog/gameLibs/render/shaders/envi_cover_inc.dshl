@@ -4,7 +4,7 @@ float4 envi_cover_albedo = (0.8, 0.98, 1.000, 0.000);
 float4 envi_cover_specular_color = (0.500, 0.500, 0.500, 0.000);
 float envi_cover_translucency = 1;
 float envi_cover_smoothness = 0.35;
-float envi_cover_reflectance = 0.8;
+float envi_cover_reflectance = 0.8 always_referenced;
 float envi_cover_normal_infl = -0.5;
 float4 envi_cover_normal = (0.000, 1.000, 0.100, 0.000);
 int envi_cover = 0;
@@ -21,7 +21,8 @@ float envi_cover_depth_mask_threshold = 0.45;
 float envi_cover_normal_mask_threshold = 0.3;
 float envi_cover_depth_mask_contrast = 1;
 float envi_cover_normal_mask_contrast = 1.5;
-texture envi_cover_intensity_map;
+texture envi_cover_intensity_map always_referenced;
+sampler envi_cover_intensity_map_samplerstate always_referenced;
 float4 envi_cover_intensity_map_left_top_right_bottom = (-2048, 2048, 2048, -2048);
 float envi_cover_water_level_fade_factor = 2.0;
 float envi_cover_lowest_intensity = 0.0;
@@ -192,6 +193,15 @@ endmacro
 
 macro DEFERRED_SNOW_COVER_COMPATIBILITY()
   DEFERRED_SNOW_COVER_COMPATIBILITY_WITH_PARAMS(false, true)
+endmacro
+
+macro WRITE_DEFERRED_SNOW_COVER_FLAG()
+  if (use_deferred_snow_cover_flag)
+  {
+    hlsl(ps) {
+      #define DEFERRED_SNOW_COVER_FLAG 1
+    }
+  }
 endmacro
 
 macro USE_ENVI_COVER_COMMON(code)

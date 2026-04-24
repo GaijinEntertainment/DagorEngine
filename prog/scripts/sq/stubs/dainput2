@@ -53,6 +53,7 @@ return {
   get_actions_binding_columns = @() 1
   get_action_binding = @(_a, _column, _binding) null
   set_action_binding = @(_a, _column, _binding) null
+  reset_action_binding = @(_a, _column) null
   check_bindings_conflicts = @(_a, _binding) null
   is_recording_complete = @() true
   finish_recording_bindings = @(_blk) false

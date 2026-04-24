@@ -1,0 +1,43 @@
+include "hardware_defines.dshl"
+
+buffer postfx_levels_hist;
+texture final_target_frame;
+
+shader fill_postfx_levels_histogram_cs
+{
+  local float4 final_target_frame_resolution = get_dimensions(final_target_frame, 0);
+  (cs) {
+    frame@tex2d = final_target_frame;
+    frame_resolution@f4 = (final_target_frame_resolution.xy, 0, 0);
+    postfx_levels_hist@uav = postfx_levels_hist hlsl {
+      RWStructuredBuffer<uint> postfx_levels_hist@uav;
+    }
+  }
+  hlsl(cs)
+  {
+    #define HIST_STRIDE 256
+
+    uint color_to_hist_idx(float v, uint idx)
+    {
+      v = clamp(v, 0,1);
+      v = v * (float)(HIST_STRIDE-1);
+      return (v + idx*HIST_STRIDE);
+    }
+
+    [numthreads(32, 32, 1)]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      BRANCH
+      if (any(dtId.xy >= frame_resolution.xy))
+        return;
+
+      uint originalValue=0;
+      half3 sdr_color = texelFetch(frame, dtId.xy, 0).xyz;
+      InterlockedAdd(structuredBufferAt(postfx_levels_hist, color_to_hist_idx(sdr_color.x, 0)), 1, originalValue);
+      InterlockedAdd(structuredBufferAt(postfx_levels_hist, color_to_hist_idx(sdr_color.y, 1)), 1, originalValue);
+      InterlockedAdd(structuredBufferAt(postfx_levels_hist, color_to_hist_idx(sdr_color.z, 2)), 1, originalValue);
+    }
+  }
+
+  compile("target_cs", "main");
+}

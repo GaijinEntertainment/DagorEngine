@@ -63,3 +63,27 @@ inline eastl::string string_dsa(const char *fmt, const DagorSafeArg *arg, int an
 }
 
 inline bool streq(const char *s1, const char *s2) { return strcmp(s1, s2) == 0; }
+
+inline void hash_combine(size_t &seed, size_t value) { seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2); };
+
+// @TODO: use concept for return type once we have a stably available 'concepts' header
+template <typename T>
+concept Hashable = requires(T a) {
+  { eastl::hash<T>{}(a) };
+} && eastl::is_convertible_v<decltype(eastl::hash<T>{}(eastl::declval<T>())), size_t>;
+
+template <Hashable T>
+inline void hash_into(size_t &seed, const T &val)
+{
+  hash_combine(seed, eastl::hash<T>{}(val));
+}
+
+inline bool path_is_abs(const char *path)
+{
+  G_ASSERT(path);
+#if _TARGET_PC_WIN
+  if (strchr(path, ':'))
+    return true;
+#endif
+  return path[0] == '/';
+}

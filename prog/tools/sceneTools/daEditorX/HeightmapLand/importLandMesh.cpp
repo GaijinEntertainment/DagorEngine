@@ -69,9 +69,8 @@ enum
   BOTTOM_COUNT
 };
 
-LandMeshMap::LandMeshMap() : size(0, 0), origin(0, 0), cellSize(0), editorLandTracer(NULL), materials(midmem), textures(tmpmem)
+LandMeshMap::LandMeshMap() : size(0, 0), origin(0, 0), cellSize(0), materials(midmem), textures(tmpmem)
 {
-  gameLandTracer = NULL;
   landMatSG = new StaticGeometryMaterial;
   landMatSG->name = "LandMeshGenerated@hmap";
   landMatSG->className = "land_mesh";
@@ -171,7 +170,8 @@ void LandMeshMap::clear(bool clear_tracer)
   clear_and_shrink(cells);
   if (clear_tracer)
   {
-    del_it(editorLandTracer);
+    for (auto &t : editorLandTracer)
+      del_it(t);
     del_it(gameLandTracer);
   }
 
@@ -199,21 +199,23 @@ BBox3 LandMeshMap::getBBox(int x, int y, float *sphere_radius)
 }
 
 // traceRay
-bool LandMeshMap::traceRay(const Point3 &p, const Point3 &dir, real &t, Point3 *normal) const
+bool LandMeshMap::traceRay(bool lmesh_only, const Point3 &p, const Point3 &dir, real &t, Point3 *normal) const
 {
-  return editorLandTracer && editorLandTracer->traceRay(p, dir, t, normal);
+  auto *tr = editorLandTracer[(!lmesh_only && editorLandTracer[0]) ? 0 : 1];
+  return tr && tr->traceRay(p, dir, t, normal);
 }
 
-bool LandMeshMap::getHeight(const Point2 &p, real &ht, Point3 *normal) const
+bool LandMeshMap::getHeight(bool lmesh_only, const Point2 &p, real &ht, Point3 *normal) const
 {
-  return editorLandTracer && editorLandTracer->getHeight(p, ht, normal);
+  auto *tr = editorLandTracer[(!lmesh_only && editorLandTracer[0]) ? 0 : 1];
+  return tr && tr->getHeight(p, ht, normal);
 }
 
-void LandMeshMap::setEditorLandRayTracer(EditorLandRayTracer *lrt)
+void LandMeshMap::setEditorLandRayTracer(EditorLandRayTracer *lrt, bool full)
 {
-  if (editorLandTracer)
-    delete editorLandTracer;
-  editorLandTracer = lrt;
+  auto &t = editorLandTracer[full ? 1 : 0];
+  del_it(t);
+  t = lrt;
 }
 void LandMeshMap::setGameLandRayTracer(LandRayTracer *lrt)
 {
@@ -830,12 +832,6 @@ public:
   void releaseJob() override { delete this; }
 };
 
-class Point2Deref : public Point2
-{
-public:
-  Point3 getPt() const { return Point3::x0y(*this); }
-};
-
 #if 1
 static void write_tif(objgenerator::HugeBitmask &m, const char *fname)
 {
@@ -910,15 +906,16 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
   loft_pt_cloud.reserve(4096);
 
   IDagorEdCustomCollider *coll = this;
+  if (!detDivisor && exportType != EXPORT_HMAP)
+    strip_det_hmap_from_tracer = false;
+  bool use_det_hmap = (detDivisor && exportType != EXPORT_HMAP);
   int prev_exp_type = exportType;
 
   DAGORED2->setColliders(make_span(&coll, 1), 0x7FFFFFFF);
   exportType = EXPORT_HMAP;
 
   rebuildWaterSurface(&loft_pt_cloud, &water_border_polys, &hmap_sweep_polys);
-  if (!detDivisor)
-    strip_det_hmap_from_tracer = false;
-  if (strip_det_hmap_from_tracer)
+  if (strip_det_hmap_from_tracer && use_det_hmap)
   {
     int time0l = dagTools->getTimeMsec();
 
@@ -1013,19 +1010,14 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
     exclMask = new objgenerator::HugeBitmask(hmap.width(), hmap.height());
   if (hmap_sweep_polys.size() && exclMask)
   {
-    Tab<Point2Deref *> pts(tmpmem);
-
     for (int i = 0; i < hmap_sweep_polys.size(); i++)
       if (hmap_sweep_polys[i].x > 1e12f)
       {
-        pts.resize(hmap_sweep_polys[i].y);
+        auto pts = make_span_const(&hmap_sweep_polys[i + 1], (int)hmap_sweep_polys[i].y);
         debug("add new sweep %d pts", pts.size());
-        i++;
-        for (int j = 0; j < pts.size(); j++, i++)
-          pts[j] = static_cast<Point2Deref *>(&hmap_sweep_polys[i]);
-
-        rasterize_poly_2_nz(*exclMask, pts, heightMapOffset.x, heightMapOffset.y, 1.0f / gridCellSize);
-        i--;
+        if (!rasterize_poly_2_nz(*exclMask, pts, heightMapOffset.x, heightMapOffset.y, 1.0f / gridCellSize))
+          DAEDITOR3.conError("rasterize_poly_2_nz failed for sweep poly %d (%d pts)", i, (int)pts.size());
+        i += pts.size();
       }
   }
   for (int i = 0; i < loft_pt_cloud.size() && exclMask; i++)
@@ -1135,18 +1127,18 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
     generate_ok = false;
   }
 
-  if (!loadedFromCache || !landMeshMap.getEditorLandRayTracer())
+  if (!loadedFromCache || !landMeshMap.getEditorLandRayTracer(true))
   {
     EditorLandRayTracer *lrt = generate_ok ? ::generate_editor_land_tracer(mesh, ofs) : NULL;
-    landMeshMap.setEditorLandRayTracer(lrt);
+    landMeshMap.setEditorLandRayTracer(lrt, true);
   }
   if (generate_ok && applyHtConstraintBitmask(mesh))
   {
     EditorLandRayTracer *lrt = ::generate_editor_land_tracer(mesh, ofs);
-    landMeshMap.setEditorLandRayTracer(lrt);
+    landMeshMap.setEditorLandRayTracer(lrt, true);
   }
 
-  if (strip_det_hmap_from_tracer && generate_ok)
+  if (strip_det_hmap_from_tracer && use_det_hmap && generate_ok)
   {
     int time0l = dagTools->getTimeMsec();
     float csz = gridCellSize / detDivisor;
@@ -1256,7 +1248,7 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
     con.setActionDesc("gather static visual...");
     con.startProgress();
 
-    DataBlock applicationBlk(DAGORED2->getWorkspace().getAppPath());
+    DataBlock applicationBlk(DAGORED2->getWorkspace().getAppBlkPath());
     bool joinSplineMeshes = applicationBlk.getBlockByNameEx("heightMap")->getBool("joinSplineMeshes", true);
 
     con.setTotal(DAGORED2->getPluginCount());
@@ -1696,8 +1688,13 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
   clear_and_resize(cellCombinedMeshes, cm.size());
   for (int i = 0; i < cm.size(); ++i)
   {
-    if (strip_det_hmap_from_tracer && cm[i].box[0].x + gridCellSize >= detRect[0].x && cm[i].box[1].x - gridCellSize <= detRect[1].x &&
-        cm[i].box[0].z + gridCellSize >= detRect[0].y && cm[i].box[1].z - gridCellSize <= detRect[1].y)
+    BBox2 eff_rect = use_det_hmap
+                       ? detRect
+                       : BBox2(heightMapOffset, heightMapOffset + gridCellSize * Point2(getHeightmapSizeX(), getHeightmapSizeY()));
+
+    if (strip_det_hmap_from_tracer && cm[i].box[0].x + gridCellSize >= eff_rect[0].x &&
+        cm[i].box[1].x - gridCellSize <= eff_rect[1].x && cm[i].box[0].z + gridCellSize >= eff_rect[0].y &&
+        cm[i].box[1].z - gridCellSize <= eff_rect[1].y)
     {
       debug("strip landMesh cell[%d] %@ (replaced by detaled HMAP)", i, cm[i].box);
       cellLandMeshes[i] = NULL;
@@ -1750,12 +1747,13 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
     EditorLandRayTracer *lrt = new EditorLandRayTracer;
     if (lrt->build(cells.getNumCellsX(), cells.getNumCellsY(), meshCellSize, ofs, landBox, cellLandMeshes, cellCombinedMeshes, minGrid,
           maxGrid, true))
-      landMeshMap.setEditorLandRayTracer(lrt);
+      landMeshMap.setEditorLandRayTracer(lrt, false);
     else
     {
       delete lrt;
-      DAEDITOR3.conError("Can't build landtracer for editor (with stripped DET HMAP), resetting main landtracer.");
-      landMeshMap.setEditorLandRayTracer(nullptr);
+      DAEDITOR3.conError("Can't build landtracer for editor (with stripped %s HMAP), resetting main landtracer.",
+        use_det_hmap ? "DET" : "MAIN");
+      landMeshMap.setEditorLandRayTracer(nullptr, false);
     }
   }
 
@@ -1794,7 +1792,7 @@ bool HmapLandPlugin::generateLandMeshMap(LandMeshMap &map, CoolConsole &con, boo
     }
 
   // resync border taking into account landmesh vertex quantization
-  if (strip_det_hmap_from_tracer)
+  if (strip_det_hmap_from_tracer && use_det_hmap)
   {
     int step = 32, w = (detRectC[1].x - detRectC[0].x) / step, h = (detRectC[1].y - detRectC[0].y) / step;
 
@@ -1946,8 +1944,8 @@ bool HmapLandPlugin::addUsedTextures(ITextureNumerator &tn)
   String ltmap_fn = ::make_full_path(prj, "builtScene/lightmap.tga");
 
   DataBlock app_blk;
-  if (!app_blk.load(DAGORED2->getWorkspace().getAppPath()))
-    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
+  if (!app_blk.load(DAGORED2->getWorkspace().getAppBlkPath()))
+    DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppBlkPath());
   const DataBlock *cvtBlk = app_blk.getBlockByNameEx("heightMap")->getBlockByName("lightmapCvtProps");
 
   if (cvtBlk)
@@ -2074,7 +2072,7 @@ int HmapLandPlugin::markUndergroundFaces(MeshData &mesh, Bitarray &facesAbove, T
 
   if (!mesh.face.size())
     return 0;
-  EditorLandRayTracer *tracer = landMeshMap.getEditorLandRayTracer();
+  EditorLandRayTracer *tracer = landMeshMap.getEditorLandRayTracer(true);
   if (!tracer)
     return 0;
   Bitarray vertsBelow;
@@ -2178,7 +2176,7 @@ int HmapLandPlugin::markUndergroundFaces(MeshData &mesh, Bitarray &facesAbove, T
 
 void HmapLandPlugin::removeInvisibleFaces(StaticGeometryContainer &container)
 {
-  if (!landMeshMap.getEditorLandRayTracer())
+  if (!landMeshMap.getEditorLandRayTracer(true))
     return;
   CoolConsole &con = DAGORED2->getConsole();
   con.setActionDesc("removing undeground faces...");
@@ -2247,8 +2245,8 @@ bool HmapLandPlugin::exportLandMesh(mkbindump::BinDumpSaveCB &cb, IWriterToLandm
   bool game_res_sys_v2 = false;
   {
     DataBlock app_blk;
-    if (!app_blk.load(DAGORED2->getWorkspace().getAppPath()))
-      DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppPath());
+    if (!app_blk.load(DAGORED2->getWorkspace().getAppBlkPath()))
+      DAEDITOR3.conError("cannot read <%s>", DAGORED2->getWorkspace().getAppBlkPath());
     game_res_sys_v2 = app_blk.getBlockByNameEx("assets")->getBlockByName("export") != NULL;
   }
   G_ASSERT(game_res_sys_v2);

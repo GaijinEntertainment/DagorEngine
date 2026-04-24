@@ -18,7 +18,6 @@ Target = tools/dsc2-nodeBased.exe ;
 include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
 NodeBasedCompiler = yes ;
-DontUseVulkanGlslang = yes ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
@@ -42,15 +41,11 @@ UseProgLibs =
   engine/math
   engine/perfMon/daProfilerStub
 
-  gameLibs/render/volumetricLights/stub
-  gameLibs/nodeBasedShaderManager
   gameLibs/webui/plugins/shaderEditors
 
   tools/libTools/util
   3rdPartyLibs/regExp
 ;
 UseMemoryDebugLevel = off ;
-
-CPPopt = -DBINDUMP_TARGET_BE=0 -DIS_OFFLINE_SHADER_COMPILER ;
 
 include $(Root)/prog/_jBuild/build.jam ;

@@ -109,7 +109,7 @@ void MemorySaveCB::seekto(int _pos)
 {
   if (_pos < minPos)
     _pos = minPos;
-  else if (pos > maxPos)
+  else if (_pos > maxPos)
     _pos = maxPos;
 
   if (_pos > totalSize)

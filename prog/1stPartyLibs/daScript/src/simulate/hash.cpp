@@ -29,6 +29,9 @@ namespace das
         virtual void Int ( int32_t & t ) override       { update(t); }
         virtual void UInt ( uint32_t & t ) override     { update(t); }
         virtual void Bitfield ( uint32_t & t, TypeInfo * ti ) override { update(t); update(ti->hash); }
+        virtual void Bitfield8 ( uint8_t & t, TypeInfo * ti ) override   { update(t); update(ti->hash); }
+        virtual void Bitfield16 ( uint16_t & t, TypeInfo * ti ) override { update(t); update(ti->hash); }
+        virtual void Bitfield64 ( uint64_t & t, TypeInfo * ti ) override { update(t); update(ti->hash); }
         virtual void Int2 ( int2 & t ) override         { update(t); }
         virtual void Int3 ( int3 & t ) override         { update(t); }
         virtual void Int4 ( int4 & t ) override         { update(t); }

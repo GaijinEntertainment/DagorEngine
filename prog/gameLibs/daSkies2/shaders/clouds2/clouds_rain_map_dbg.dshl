@@ -1,0 +1,61 @@
+include "shader_global.dshl"
+include "gbuffer.dshl"
+include "viewVecVS.dshl"
+include "clouds_rain_map.dshl"
+
+float rain_map_dbg_strength = 0.5;
+float rain_map_dbg_density__height_mul = 1;
+int rain_map_dbg_mode = 0;
+
+shader rain_map_dbg
+{
+  cull_mode = none;
+  z_test = false;
+  z_write = false;
+
+  blend_src=sa;
+  blend_dst=isa;
+
+  INIT_ZNZFAR_STAGE(ps)
+  INIT_RENDERING_RESOLUTION(ps)
+  VIEW_VEC_OPTIMIZED(ps)
+
+  INIT_READ_DEPTH_GBUFFER_BASE(ps)
+  USE_READ_DEPTH_GBUFFER_BASE(ps)
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, tc, viewVec)
+
+  INIT_CLOUDS_RAIN_MAP(ps)
+  USE_CLOUDS_RAIN_MAP(ps)
+
+  (ps)
+  {
+    world_view_pos@f4 = world_view_pos;
+    rain_map_dbg_strength@f1 = rain_map_dbg_strength;
+    rain_map_dbg_density__height_mul@f1 = rain_map_dbg_density__height_mul;
+    rain_map_dbg_mode@i1 = rain_map_dbg_mode;
+    inv_max_height@f1 = 1.0 / clouds_rain_map_max_height;
+  }
+  hlsl(ps)
+  {
+    float4 main_ps(VsOutput input) : SV_Target
+    {
+      float rawDepth = readGbufferDepth(input.tc);
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      if (w > 8000)
+        discard;
+
+      float3 pointToEye = -input.viewVec * w;
+      float3 worldPos = float3(world_view_pos.xyz - pointToEye);
+
+      if (!rain_map_dbg_mode)
+        return float4(getRainCoverage(worldPos, rain_map_dbg_density__height_mul), 0, 0, rain_map_dbg_strength);
+      else
+        return float4(getAccurateCloudStart(worldPos) * inv_max_height * rain_map_dbg_density__height_mul, 0, 0, rain_map_dbg_strength);
+
+    }
+  }
+  compile("target_ps", "main_ps");
+}

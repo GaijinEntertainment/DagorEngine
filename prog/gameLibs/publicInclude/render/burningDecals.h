@@ -14,8 +14,6 @@
 #include <math/dag_Point2.h>
 #include <math/dag_bounds2.h>
 #include <3d/dag_resPtr.h>
-#include <3d/dag_textureIDHolder.h>
-#include <3d/dag_resPtr.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 #include <EASTL/string.h>
 
@@ -43,8 +41,8 @@ protected:
 
   Tab<BurningDecal> decals;
 
-  TextureIDHolderWithVar burningMap;
-  TextureIDHolderWithVar bakedBurningMap;
+  UniqueTexHolder burningMap;
+  UniqueTexHolder bakedBurningMap;
 
 private:
   int activeCount = 0;

@@ -12,6 +12,7 @@ include "ssss/ssss_csm.dshl"
 include "heightmap_common.dshl"
 include "rtsm_use.dshl"
 include "vsm.dshl"
+include "bvh_usable_inc.dshl"
 
 float csm_distance = 1000;
 
@@ -38,7 +39,6 @@ endmacro
 
 float4 hero_cockpit_vec = (0, 0, 0, 0);
 float4 hero_cockpit_camera_to_point = (0, 0, 0, 0);
-int bvh_usable = 0;
 
 macro INIT_COMBINE_SHADOWS()
   supports global_const_block;
@@ -77,11 +77,11 @@ endmacro
 macro USE_COMBINE_SHADOWS()
 
   hlsl(ps) {
-    #if !MOBILE_DEVICE
+    ##if use_dng_mobile_optimizations == no
     //on mobile devices taa is currently off. it is actually tied to taa being enabled
     #define STATIC_SHADOW_DITHERED 1
     #define CONTACT_HARDENING_STATIC_SHADOWS 0//will work only when more than one cascade is available
-    #endif
+    ##endif
     #define STATIC_SHADOW_DITHER_RADIUS 1.5
     #define STATIC_SHADOW_REFERENCE_FXAA_IMPL 1
     #define STATIC_SHADOW_CUSTOM_FXAA_DIR 0
@@ -94,7 +94,7 @@ macro USE_COMBINE_SHADOWS()
   SQ_CLOUDS_SHADOW(ps)
   USE_STATIC_SHADOW()
   USE_VSM()
-  USE_CSM_SHADOW_DEF_NUM()
+  USE_CSM_SHADOW_DEF_NUM_DEFAULT()
   USE_CSM_SSSS_TRANSMITTANCE_FACTOR(ps)
   USE_SSSS_TRANSMITTANCE_ENCODE(ps)
   SHADOWS_QUALITY_DEFINE(ps)
@@ -106,6 +106,9 @@ macro USE_COMBINE_SHADOWS()
     }
     (ps) {offset_foliage_shadows@i1 = offset_foliage_shadows;}
     USE_CSM_OFFSET_TO_CULLING_NEAR_PLANE(ps)
+  }
+  hlsl{
+    #define CONTACT_SHADOWS_SELF_OCCLUSION_BIAS_SCALE 0.5
   }
   CONTACT_SHADOWS()
 
@@ -265,14 +268,14 @@ macro USE_COMBINE_SHADOWS()
           BRANCH if (material == SHADING_FOLIAGE)
           {
             float distStepToSun = min(foliage_offset_distance, w);
-            UnpackedGbuffer gbuffer = (UnpackedGbuffer)0;
-            gbuffer.material = material;
-            readPackedGbufferTranslucencyChannel(tc, gbuffer);
-            float effect = shadowEffect * gbuffer.translucency;
+            half translucency;
+            uint _unused_sss_profile;
+            readSSSParams(tc, SHADING_FOLIAGE, translucency, _unused_sss_profile);
+            float effect = shadowEffect * translucency;
 
             //dithered move towards sun, but depending on effect
             cameraToPoint -= from_sun_direction*(lerp(0.5, 1, dither)*effect*distStepToSun);
-            shadowRadiusScale += gbuffer.translucency*foliage_shadow_radius_scale;
+            shadowRadiusScale += translucency*foliage_shadow_radius_scale;
             worldPos = world_view_pos.xyz + cameraToPoint;
           }
         }
@@ -335,15 +338,17 @@ macro USE_COMBINE_SHADOWS()
 
         ##if ssss_quality != off
           #if OFFSET_FOLIAGE_SHADOWS
-          //if OFFSET_FOLIAGE_SHADOWS, then material is alread known!
-          UnpackedGbuffer gbuf = (UnpackedGbuffer)0;
-          gbuf.material = material;
-          readPackedGbufferTranslucencyChannel(tc, gbuf);
-          ProcessedGbuffer gbuffer = processGbuffer(gbuf);
+            //if OFFSET_FOLIAGE_SHADOWS, then material is alread known!
+            half translucency;
+            uint sss_profile;
+            readSSSParams(tc, material, translucency, sss_profile);
           #else
-          ProcessedGbuffer gbuffer = readProcessedGbuffer(tc);
+            uint material = readUnpackedGbufferMaterial(tc);
+            half translucency;
+            uint sss_profile;
+            readSSSParams(tc, material, translucency, sss_profile);
           #endif
-          FLATTEN if (gbuffer.material == SHADING_SUBSURFACE && isSubSurfaceProfileValid(gbuffer.sss_profile) && gbuffer.translucency > 0)
+          FLATTEN if (material == SHADING_SUBSURFACE && isSubSurfaceProfileValid(sss_profile) && translucency > 0)
             shadows.ssssDepthMask = 1;
           ##if ssss_quality == transmittance_and_reflectance_blur
             float cloudsAndStaticShadow = staticShadow*cloudsShadow;
@@ -351,22 +356,20 @@ macro USE_COMBINE_SHADOWS()
             if (cloudsAndStaticShadow > 0.01 && w < csm_distance.x)
             {
               BRANCH
-              if (gbuffer.material == SHADING_SUBSURFACE && isSubSurfaceProfileValid(gbuffer.sss_profile) && gbuffer.translucency > 0)
+              if (material == SHADING_SUBSURFACE && isSubSurfaceProfileValid(sss_profile) && translucency > 0)
               {
-                float3 ssssWorldPos = ssss_calculate_world_pos(worldPos, gbuffer.normal);
+                float3 ssssWorldPos = ssss_calculate_world_pos(worldPos, readPackedNormal(tc, material));
                 float3 ssssPointToEye = world_view_pos.xyz - ssssWorldPos;
                 uint ssssCascadeId = 4;
-                float dummy;
-                float3 ssssCsmTc = get_csm_shadow_tc(ssssPointToEye, ssssCascadeId, dummy);
+                float3 ssssCsmTc = get_csm_shadow_tc(ssssPointToEye, ssssCascadeId);
                 if (ssssCascadeId < 3) //Not enough resolution, don't even bother.
                 {
-                  // HLSLcc doesn't declare shadow_cascade_depth_tex@shd as a Texture2D, hence the additional shadow_cascade_depth_tex_smp :(
                   ShadowDescriptor desc;
                   desc.shadowRange = csm_ranges[ssssCascadeId];
                   desc.meterToUV = csm_meter_to_uvs[ssssCascadeId];
                   desc.uvMinMax = csm_uv_minmaxs[ssssCascadeId];
                   shadows.ssssTransmittance = ssss_get_transmittance_factor(
-                    gbuffer.translucency, tc, shadow_cascade_depth_tex_smp, shadow_cascade_depth_tex_size, ssssCsmTc, desc);
+                    translucency, tc, shadow_cascade_depth_tex_smp, shadow_cascade_depth_tex_size, ssssCsmTc, desc);
                   shadows.ssssTransmittance = encode_ssss_transmittance(shadows.ssssTransmittance * cloudsAndStaticShadow);
                 }
               }
@@ -379,7 +382,12 @@ macro USE_COMBINE_SHADOWS()
         shadows.cloudsShadow = cloudsShadow;
         shadows.combinedShadow = shadow;
 
-        #define FULLRES_CONTACT_SHADOWS !MOBILE_DEVICE
+        ##if use_dng_mobile_optimizations == yes
+          #define FULLRES_CONTACT_SHADOWS 0
+        ##else
+          #define FULLRES_CONTACT_SHADOWS 1
+        ##endif
+
         ##if shadows_quality == high
           #define CONTACT_SHADOWS_FROM_GBUF 1
         ##endif

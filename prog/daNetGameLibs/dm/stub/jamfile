@@ -2,7 +2,7 @@ Root    ?= ../../../.. ;
 Location = prog/daNetGameLibs ;
 
 TargetType  = lib ;
-Target = daNetGameLibs-dm-stub ;
+Target = daNetGameLibs-dm-stub.lib ;
 
 include $(Root)/prog/daNetGame/setup.jam ; # Note - $(Platform) is not defined before this line unless passed in command line
 

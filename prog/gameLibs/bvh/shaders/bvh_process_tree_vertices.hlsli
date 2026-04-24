@@ -28,9 +28,15 @@ struct BvhTreeInstanceData
   uint texcoord_size;
   uint indirect_texcoord_offset;
   uint perInstanceRenderAdditionalData;
-  uint pad0;
+  uint sourceOffset;
+  uint pp_pos_tex_slot;
+  uint pp_dir_tex_slot;
+  float4 ground_snap_params;
+  float4 ground_bend_params;
+  float ground_snap_normal_offset;
+  float ground_snap_limit;
+  uint source_slot;
   uint pad1;
-  uint pad2;
 };
 
 #endif

@@ -6,8 +6,14 @@ options strict_smart_pointers = true
 
 module lpipe shared private
 
-require ast
-require rtti
+//! Left-pipe macro.
+//!
+//! ``lpipe`` allows piping an additional block argument to the previous call
+//! on the preceding line. Useful when a function takes multiple block arguments
+//! and only ``<|`` can be used for the first one.
+
+require daslib/ast
+require daslib/rtti
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/macro_boost
@@ -43,7 +49,7 @@ def lpipe_expr(var fnCall : ExpressionPtr&; var arg : ExpressionPtr&) : Expressi
         return <- cLet
     } elif (fnCall |> is_expr_like_call()) {
         var pCall = unsafe(reinterpret<ExprLooksLikeCall?> fnCall)
-        if (string(pCall.name) == "lpipe") {// not piping pipe into pipe
+        if (pCall.name == "lpipe") {// not piping pipe into pipe
             return <- default<ExpressionPtr>
         }
         pCall.arguments |> emplace(arg)
@@ -70,7 +76,7 @@ class LpipeMacro : AstCallMacro {
     def override visit(prog : ProgramPtr; mod : Module?; var call : smart_ptr<ExprCallMacro>) : ExpressionPtr {
         macro_verify(call.arguments |> length == 1, prog, call.at, "expecting lpipe(value)")
         var success = false
-        compiling_program() |> get_ast_context(call) <| $(valid, astc) {
+        compiling_program() |> get_ast_context(call) $(valid, astc) {
             if (!valid) {
                 macro_error(prog, call.at, "can't get valid program context")
                 return
@@ -108,7 +114,7 @@ class LpipeMacro : AstCallMacro {
         if (!success) {
             return <- default<ExpressionPtr>
         }
-        return <- quote <| $() {
+        return <- quote() {
             pass
         }
     }

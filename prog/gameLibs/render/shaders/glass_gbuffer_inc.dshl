@@ -1,2 +1,2 @@
-int glass_normal_pass = 0;
-interval glass_normal_pass : no < 1, yes;
+int rendinst_transparent_gbuffer_pass = 0;
+interval rendinst_transparent_gbuffer_pass : off < 1, generate < 2, apply;

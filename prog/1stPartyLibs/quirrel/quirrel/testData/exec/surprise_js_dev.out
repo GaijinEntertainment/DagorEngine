@@ -1,0 +1,58 @@
+=== Part 1: Truthy/falsy differences ===
+
+  zero 0 is FALSY
+  empty table {} is TRUTHY
+  empty string "" is TRUTHY
+  empty array [] is TRUTHY
+  zero 0.0 is FALSY
+
+  Note: unlike JS, empty string is truthy in Quirrel.
+
+=== Part 2: Integer division (no implicit float) ===
+
+  JS:  10 / 3 = 3.333...  |  Quirrel: 10 / 3 = 3
+  Want float? Use 10.0 / 3 = 3.33333
+  Negative modulo: -7 % 3 = -1  (C-style, not math-style)
+
+=== Part 3: Cooperative multitasking with coroutines ===
+
+  Fibonacci server: 0 1 1 2 3 5 8 13 21 34 
+  After reset: 1
+
+=== Part 4: Build a DSL with metamethods ===
+
+  SELECT name, age, email FROM users WHERE age > 18 AND active = true ORDER BY name LIMIT 10
+  SELECT * FROM (SELECT name FROM admins WHERE role = 'super') UNION (SELECT name FROM moderators WHERE level > 3)
+
+=== Part 5: freeze - deep immutability ===
+
+  config.app.name = quirrel-app
+  config is frozen: true
+  config.db is frozen: true
+  config.db.pool is frozen: true
+  Mutation blocked: trying to modify immutable 'table'
+
+=== Part 6: delete returns the value ===
+
+  Sold sword for 100 gold! Remaining: 2 items
+
+=== Part 7: The _call metamethod - objects as functions ===
+
+  validate(null):   must not be null
+  validate(42):     must be a string
+  validate("ab"):   must be at least 3 chars
+  validate("john"): OK
+
+=== Part 8: Coroutine pipeline ===
+
+  Lazy pipeline (odd squares): 1 9 25 49 81 121 169 225 
+
+=== Part 9: Three-way comparison & custom sorting ===
+
+  Sorted hand: 7D 7H 10S AC AS 
+
+=== Part 10: Destructuring + null safety chain ===
+
+  Avatar: cat.png
+  Theme (missing path): dark
+  Destructured avatar: cat.png

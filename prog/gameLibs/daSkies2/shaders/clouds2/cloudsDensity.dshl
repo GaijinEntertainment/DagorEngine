@@ -1,6 +1,7 @@
 include "clouds_weather.dshl"
 include "clouds_erosion_lut.dshl"
 include "clouds_alt_fraction.dshl"
+include "nuke_atmospheric_effects.dshl"
 
 texture gen_cloud_shape;
 texture gen_cloud_detail;
@@ -147,62 +148,6 @@ macro SAMPLE_CLOUDS_DENSITY_MATH(code, clouds_view_pos)
       density += density*weather_data.a;//rain map. we should probably use it for rain
 
       return density;
-    }
-  }
-endmacro
-
-texture perlin_noise3d;
-float4 nuke_pos;
-// x - radius, y - blend distance, z - fade, w - cloud extinction radius
-float4 nuke_wave;
-
-int nuke_in_atmosphere = 0;
-interval nuke_in_atmosphere: off<1, on;
-
-macro SAMPLE_CLOUDS_NUKE_INVERSION(code)
-  (code) {
-    perlin_noise3d@smp3d = perlin_noise3d;
-    nuke_pos@f3 = (nuke_pos.x + clouds_origin_offset.x, nuke_pos.y, nuke_pos.z+clouds_origin_offset.y, 0);
-    // nuke_wave.y contains bland zone for wave, usually 340 m
-    nuke_wave@f4 = (nuke_wave.x, 1/(nuke_wave.y + 0.000001), nuke_wave.z, nuke_wave.w);
-  }
-
-  hlsl(code) {
-    float sampleNukeCloudsInversion(float3 p, float density, float heightFraction)
-    {
-      float waveDistance = nuke_wave.x;
-      float cloudDensity2 = 0;
-      float nukeDistance = length(p - nuke_pos.xyz);
-      // we have symmetrical transition zone around shockwave
-      float waveProfile = abs(nuke_wave.y* (nukeDistance - waveDistance));
-      float waveFade = saturate(1.5f*nuke_wave.z);
-      // inversion zone expands 3 times as wave fading
-      float inversion = saturate(1 - 0.15 * waveProfile - 0.35 * waveProfile *  waveFade);
-      // wider the investion zone -> sharper opacity
-      inversion = lerp(pow2(inversion), inversion, waveFade);
-
-      BRANCH
-      if (inversion>0)
-      {
-        float3 noiseCoords1 = p*0.00041f;
-        float3 noiseCoords2 = p*0.00037f;
-        float2 noise = float2(tex3Dlod(perlin_noise3d, float4(noiseCoords1, 0)).x,
-                              tex3Dlod(perlin_noise3d, float4(noiseCoords2, 0)).y);
-        cloudDensity2 = 0.05*saturate(0.5 + 0.5*sin(heightFraction*16.28))*saturate(10*noise.x*noise.y-4.5+2*inversion*waveFade);
-        // shockwave
-        cloudDensity2 += 0.02 * pow2(noise.x) * saturate(10*inversion - 9)*waveFade;
-        cloudDensity2 *= saturate(5 - 10*abs(heightFraction-0.5));
-      }
-
-      inversion*=waveFade;
-
-      float extinctionDistance = nuke_wave.w;
-      float extinction = saturate((nukeDistance/extinctionDistance) - 1);
-
-      // extinct clouds around shockwave zone and around extinction zone
-      return lerp(max(0.0, density - 0.4*inversion)*extinction,
-        cloudDensity2,
-        saturate(1.5f *inversion));
     }
   }
 endmacro

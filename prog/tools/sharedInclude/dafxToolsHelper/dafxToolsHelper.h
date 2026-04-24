@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "ioSys/dag_dataBlock.h"
 #include <daFx/dafx.h>
 #include <fx/dag_baseFxClasses.h>
 #include <de3_dynRenderService.h>
@@ -22,6 +23,7 @@ extern void dafx_sparksfx_set_context(dafx::ContextId ctx);
 extern void dafx_modfx_set_context(dafx::ContextId ctx);
 extern void dafx_compound_set_context(dafx::ContextId ctx);
 extern void dafx_modfx_register_cpu_overrides(dafx::ContextId ctx);
+extern const DataBlock *get_project_settings_blk();
 
 inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx_cull, dafx::CullingId &dafx_fom_cull)
 {
@@ -32,6 +34,10 @@ inline void set_up_dafx_context(dafx::ContextId &dafx_ctx, dafx::CullingId &dafx
   cfg.qualityMask = 1 << 2; // high quality
   cfg.sim_lods_enabled = true;
   cfg.gen_sim_lods_for_invisible_instances = true;
+  constexpr uint32_t DEFAULT_BUFFER_SIZE = 524288;
+  cfg.gpu_data_buffer_size =
+    get_project_settings_blk()->getBlockByNameEx("graphics")->getInt("fxHighQualityGpuDataBufferSize", DEFAULT_BUFFER_SIZE);
+  cfg.emission_limit = 40960; // Max value: 65536 ; ~40k particles (value also set in Enlisted / AM configs)
 
   dafx_ctx = dafx::create_context(cfg);
   if (dafx_ctx)
@@ -132,11 +138,11 @@ inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cu
 
   static int sunLightDirVarId = ::get_shader_variable_id("from_sun_direction", true);
   Color4 sunLightDir =
-    VariableMap::isVariablePresent(sunLightDirVarId) ? ShaderGlobal::get_color4(sunLightDirVarId) : Color4(0, 1, 0, 0);
+    VariableMap::isVariablePresent(sunLightDirVarId) ? ShaderGlobal::get_float4(sunLightDirVarId) : Color4(0, 1, 0, 0);
   static int sunColorVarId = ::get_shader_variable_id("sun_color_0", true);
-  Color4 sunColor = VariableMap::isVariablePresent(sunColorVarId) ? ShaderGlobal::get_color4(sunColorVarId) : Color4(1, 1, 1, 1);
+  Color4 sunColor = VariableMap::isVariablePresent(sunColorVarId) ? ShaderGlobal::get_float4(sunColorVarId) : Color4(1, 1, 1, 1);
   static int skyColorVarId = ::get_shader_variable_id("sky_color", true);
-  Color4 skyColor = VariableMap::isVariablePresent(skyColorVarId) ? ShaderGlobal::get_color4(skyColorVarId) : Color4(1, 1, 1, 1);
+  Color4 skyColor = VariableMap::isVariablePresent(skyColorVarId) ? ShaderGlobal::get_float4(skyColorVarId) : Color4(1, 1, 1, 1);
 
   dafx::set_global_value(dafx_ctx, "proj_hk", &persp.hk, 4);
   dafx::set_global_value(dafx_ctx, "target_size", &targetSize, 8);
@@ -181,6 +187,7 @@ inline void before_render_dafx(dafx::ContextId dafx_ctx, dafx::CullingId dafx_cu
   memset(&dafx_stats, 0, sizeof(dafx::Stats));
 
   dafx::update_culling_state(dafx_ctx, dafx_cull, Frustum(globtm), Point3::xyz(itm.getcol(3)));
+  dafx::sync_instance_flags(dafx_ctx);
   dafx::before_render(dafx_ctx, {"highres", "lowres", "underwater", "distortion", "xray", "water_proj"});
 
   prevGlobTm = globtm;

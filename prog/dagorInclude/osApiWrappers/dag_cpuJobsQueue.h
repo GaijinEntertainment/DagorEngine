@@ -69,7 +69,7 @@ struct JobQueue
             if (i == 0 && on_queue_full_cb)
             {
               on_queue_full_cb(param);
-              debug("queue is full!");
+              // debug("queue is full!");
             }
             sleep_msec(0); // queue is full - wait some time for free slots
           }

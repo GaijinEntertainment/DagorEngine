@@ -7,7 +7,10 @@ hlsl {
 
 shader dagi_media_toroidal_movement_cs
 {
-  ENABLE_ASSERT(cs)
+  hlsl(cs) {
+    #define DAGI_USE_BIAS_FOR_OFFSCREEN_AMBIENT 0
+  }
+
   DAGI_MEDIA_SCENE_UAV(cs)
   DAGI_MEDIA_SCENE_CLIPMAP_MATH(cs)
   DAGI_MEDIA_SCENE_ATLAS(cs)
@@ -76,7 +79,6 @@ shader dagi_media_toroidal_movement_cs
 
 shader dagi_media_scene_reset_cs
 {
-  ENABLE_ASSERT(cs)
   DAGI_MEDIA_SCENE_UAV(cs)
   DAGI_MEDIA_SCENE_CLIPMAP_MATH(cs)
   hlsl(cs) {

@@ -12,8 +12,8 @@ let animations = [
 let white =Color(255,255,255)
 let size = hdpx(10)
 function mkRect(i){
-  let x = i%maxX*size[0]*1.4
-  let y = i/maxX*size[0]*1.4
+  let x = i%maxX*size*1.4
+  let y = i/maxX*size*1.4
 
   return {
     rendObj=ROBJ_BOX
@@ -21,7 +21,7 @@ function mkRect(i){
     fillColor=white
     size = size
     pos = [x,y]
-    transform = {}
+    transform = true
     animations= animations
   }
 }
@@ -50,7 +50,7 @@ function root() {
     cursor = cursors.normal
 
     function onClick() {
-      isStarted(true)
+      isStarted.set(true)
     }
   }
 }

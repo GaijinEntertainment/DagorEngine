@@ -35,8 +35,8 @@ Example of module creation:
   Sqrat::Table exports(vm); // Create a table to hold the exported functions and classes
   exports
     .Func("function_name", function) // Export a C++ function with automatic handling of arguments and return values
-    .SquirrelFuncDeclString(add, "add(a: int, b: int): int", "Returns the sum of two integers, optional string")// Export a C++ function that works with the Squirrel stack, fully documented
-    .SquirrelFunc("function_name", low_level_function) // Export a C++ function that works with the Squirrel stack
+    .SquirrelFuncDeclString(add, "add(a: int, b: int): int", "Returns the sum of two integers, optional string")// Export a C++ function that works with the Quirrel stack, fully documented
+    .SquirrelFunc("function_name", low_level_function) // Export a C++ function that works with the Quirrel stack
     .SetValue("SOME_ID", value) // Exports is a table, so it can hold any Quirrel value
   ;
   module_manager->addNativeModule("module_name", exports); // Expose the table as a module to the Quirrel scripts
@@ -46,7 +46,7 @@ Simple bind of cpp function
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can use Sqrat::Table::Func() or Sqrat::Class::Func() to register a C++ function for use in a Quirrel script.
-Sqrat automatically handles argument and return value conversions between Squirrel and C++ types.
+Sqrat automatically handles argument and return value conversions between Quirrel and C++ types.
 
 C++:
 
@@ -69,10 +69,10 @@ Usage in Quirrel:
 
 
 
-Bind Function that Works with Squirrel Stack
+Bind function that works with Quirrel stack
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For more control, you can manually handle the Squirrel stack by using SquirrelFunc.
+For more control, you can manually handle the Quirrel stack by using SquirrelFunc.
 This allows you to specify custom logic for processing function arguments and returning values.
 For instance, you may need this for variadic functions, arguments of varying types, or functions with complex logic that can't be automatically bound.
 
@@ -101,7 +101,7 @@ In script:
 
 Full signature of SquirrelFunc:
 
-.. cpp:function:: TableBase& Table::SquirrelFunc(const SQChar* name, SQFUNCTION func, SQInteger nparamscheck, const SQChar *typemask=nullptr, const SQChar *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr)
+.. cpp:function:: TableBase& Table::SquirrelFunc(const char* name, SQFUNCTION func, SQInteger nparamscheck, const char *typemask=nullptr, const char *docstring=nullptr, SQInteger nfreevars=0, const Object *freevars=nullptr)
 
   :param name: should be string, func should be function that works with Quirrel
   :param nparamscheck: number of arguments of function. If negative - function can have at least this number of arguments but can accept more.
@@ -115,7 +115,7 @@ Full signature of SquirrelFunc:
 
 
 
-The preferred method for binding C++ functions that work with the Squirrel stack is to use `.SquirrelFuncDeclString`.  
+The preferred method for binding C++ functions that work with the Quirrel stack is to use `.SquirrelFuncDeclString`.
 This declarative method allows you to specify the function signature, argument types (including optional/default values), return type, and documentation string all in one place.
 
 **Example:**
@@ -142,7 +142,7 @@ This approach allows the engine to:
 **Deprecation Notice:**
 
 The older `.SquirrelFunc` macro is now **deprecated**.  
-It required manually handling arguments from the Squirrel VM stack, which is more error-prone and lacks reflection support.  
+It required manually handling arguments from the Quirrel VM stack, which is more error-prone and lacks reflection support.
 **Always prefer `.SquirrelFuncDeclString` for new bindings.**
 
 

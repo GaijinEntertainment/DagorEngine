@@ -3,5 +3,5 @@ local m = []
 
 foreach (_, x in a) {
     m.append(@() print(x))
-    m.each(@(_p) print(x))
+    m.each(@(_p) print(x)) // `each()` is whitelisted, should not warn
 }

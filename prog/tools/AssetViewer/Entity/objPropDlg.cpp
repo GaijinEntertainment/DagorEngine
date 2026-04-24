@@ -19,7 +19,7 @@ ObjPropDialog::ObjPropDialog(const char *caption, hdpi::Px width, hdpi::Px heigh
   PropPanel::ContainerPropertyControl *panel = getPanel();
   G_ASSERTF(panel, "ObjPropDialog: No panel found!");
   panel->createMultiSelectList(ID_NODE_LIST, nodes, height / 3);
-  panel->createEditBox(ID_PROPS, "", "", true, true, true, height / 2 - hdpi::_pxScaled(25));
+  panel->createEditBox(ID_PROPS, "", "", true, true, true, height / 2 - hdpi::_pxScaled(35));
   panel->setEventHandler(this);
 }
 

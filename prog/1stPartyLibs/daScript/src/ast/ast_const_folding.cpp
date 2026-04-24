@@ -23,13 +23,31 @@ namespace das {
         Visitor::visitProgram(prog);
     }
 
+    void PassVisitor::preVisit ( Function * f ) {
+        Visitor::preVisit(f);
+        func = f;
+    }
+
+    FunctionPtr PassVisitor::visit ( Function * f ) {
+        func = nullptr;
+        return Visitor::visit(f);
+    }
+
     void PassVisitor::reportFolding() {
         anyFolding = true;
+        if (func) {
+            // Mark the function as dirty for the current and
+            // upcoming optimization pass.
+            // Non-optimizer passes that derive from PassVisitor
+            // have round always set to 0, so this assignment
+            // wouldn't affect anything
+            func->optimizationRound = round;
+        }
     }
 
     class SetSideEffectVisitor : public Visitor {
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
         // any expression
         virtual void preVisitExpression ( Expression * expr ) override {
@@ -42,7 +60,7 @@ namespace das {
     class NoSideEffectVisitor : public Visitor {
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
         // virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
         // virtual bool canVisitArgumentInit ( Function * , const VariablePtr &, Expression * ) override { return false; }
@@ -311,6 +329,9 @@ namespace das {
                 case Type::tInt:        ival = cast<int32_t>::to(value); break;
                 case Type::tUInt:       ival = cast<uint32_t>::to(value); break;
                 case Type::tBitfield:   ival = cast<uint32_t>::to(value); break;
+                case Type::tBitfield8:  ival = cast<uint8_t>::to(value); break;
+                case Type::tBitfield16: ival = cast<uint16_t>::to(value); break;
+                case Type::tBitfield64: ival = cast<uint64_t>::to(value); break;
                 case Type::tInt64:      ival = cast<int64_t>::to(value); break;
                 case Type::tUInt64:     ival = cast<uint64_t>::to(value); break;
                 default: DAS_ASSERTF(0,"we should not be here. unsupported enum type");
@@ -323,6 +344,24 @@ namespace das {
                 sim->at = encloseAt(expr);
                 sim->value = value;
                 sim->foldedNonConst = !expr->type->constant;
+                reportFolding();
+                return sim;
+            } else if ( expr->type->isBitfield() ) {
+                uint64_t ival = 0;
+                switch ( expr->type->baseType ) {
+                case Type::tBitfield8:  ival = cast<uint8_t>::to(value); break;
+                case Type::tBitfield16: ival = cast<uint16_t>::to(value); break;
+                case Type::tBitfield:   ival = cast<uint32_t>::to(value); break;
+                case Type::tBitfield64: ival = cast<uint64_t>::to(value); break;
+                default: DAS_ASSERTF(0,"we should not be here. unsupported bitfield type");
+                }
+                auto sim = make_smart<ExprConstBitfield>(expr->at, ival);
+                sim->type = make_smart<TypeDecl>(*expr->type);
+                sim->constexpression = true;
+                sim->at = encloseAt(expr);
+                sim->foldedNonConst = !expr->type->constant;
+                sim->baseType = expr->type->baseType;
+                sim->bitfieldType = make_smart<TypeDecl>(*expr->type);
                 reportFolding();
                 return sim;
             } else {
@@ -347,7 +386,10 @@ namespace das {
         bool failed;
         vec4f value = eval(expr, failed);
         if ( !failed ) {
-            auto pTypeInfo = helper.makeTypeInfo(nullptr,expr->type);
+            auto b4ref = expr->type->ref;
+            expr->type->ref = false;
+            TypeInfo * pTypeInfo = helper.makeTypeInfo(nullptr,expr->type);
+            expr->type->ref = b4ref;
             auto res = debug_value(value, pTypeInfo, PrintFlags::string_builder);
             auto sim = make_smart<ExprConstString>(expr->at, res);
             sim->type = make_smart<TypeDecl>(Type::tString);
@@ -426,12 +468,12 @@ namespace das {
      */
     class ConstFolding : public FoldingVisitor {
     public:
-        ConstFolding( const ProgramPtr & prog ) : FoldingVisitor(prog) {}
+        ConstFolding( const ProgramPtr & prog, int32_t round ) : FoldingVisitor(prog, round) {}
     public:
         vector<Function *> needRun;
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return !fun->stub && !fun->isTemplate && funcIsDirty(fun);    // we don't do a thing with templates
         }
         // function which is fully a nop
         bool isNop ( const FunctionPtr & func ) {
@@ -758,7 +800,7 @@ namespace das {
         FunctionPtr             func;
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
         virtual void preVisit ( Function * f ) override {
             Visitor::preVisit(f);
@@ -846,7 +888,7 @@ namespace das {
         bool anySimulated = false;
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
         // ExprCall
         virtual ExpressionPtr visit ( ExprCall * expr ) override {
@@ -899,9 +941,9 @@ namespace das {
         visit(nse);
     }
 
-    bool Program::optimizationConstFolding() {
+    bool Program::optimizationConstFolding(int32_t round) {
         checkSideEffects();
-        ConstFolding cfe(this);
+        ConstFolding cfe(this, round);
         visit(cfe);
         bool any = cfe.didAnything();
         if ( !cfe.needRun.empty() ) {

@@ -98,7 +98,8 @@ static void create_biggest_depth(int w, int h)
   bigW = max(bigW, w);
   bigH = max(bigH, h);
   biggest_depth.close();
-  biggest_depth.set(d3d::create_tex(NULL, bigW, bigH, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "texgen_depth"), "texgen_depth");
+  biggest_depth.set(d3d::create_tex(NULL, bigW, bigH, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "texgen_depth", RESTAG_TEXGEN),
+    "texgen_depth");
 }
 
 static constexpr int MAX_PARAMS_SIZE = 128;
@@ -712,10 +713,10 @@ bool init_pixel_shader_texgen()
 {
   prune_cache();
   del_d3dres(textureParamsCB);
-  textureParamsCB = d3d::buffers::create_persistent_cb(16, "textureParamsCB");
+  textureParamsCB = d3d::buffers::create_persistent_cb(16, "textureParamsCB", RESTAG_TEXGEN);
 
   del_d3dres(particlesInstancesIndirect);
-  particlesInstancesIndirect = d3d::create_sbuffer(4, 4, SBCF_UA_INDIRECT, 0, "particlesInstancesIndirect");
+  particlesInstancesIndirect = d3d::create_sbuffer(4, 4, SBCF_UA_INDIRECT, 0, "particlesInstancesIndirect", RESTAG_TEXGEN);
   if (particlesInstancesIndirect)
   {
     uint32_t *data;

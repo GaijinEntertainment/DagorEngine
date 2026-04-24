@@ -24,7 +24,7 @@ void ConvexHullComputerProcessing::calcComputer(const ConvexComputerSettings &se
   float shrink = settings.shrink;
   for (const auto &refNode : settings.selectedNodes.refNodes)
   {
-    G_ASSERT_LOG(add_verts_from_node(nodes, refNode, verts), "Collision node not found: %s", refNode);
+    G_ASSERT_LOG(add_verts_from_node(*collisionRes, nodes, refNode, verts), "Collision node not found: %s", refNode);
   }
 
   if (!verts.empty())

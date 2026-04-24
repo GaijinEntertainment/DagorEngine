@@ -1,14 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#define _WIN32_WINNT 0x0500
+
 #include "splashScreen.h"
 #include <oldEditor/de_interface.h>
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_unicode.h>
 #include <util/dag_globDef.h>
 
-#define _WIN32_WINNT 0x0500
-
-#include <windows.h>
 #include <stdio.h>
 
 #include <libTools/util/strUtil.h>
@@ -34,7 +33,7 @@ unsigned SplashScreen::registerSplashClass()
   wcex.cbSize = sizeof(WNDCLASSEX);
 
   wcex.style = 0;
-  wcex.lpfnWndProc = (WNDPROC)wndProc;
+  wcex.lpfnWndProc = wndProc;
   wcex.cbClsExtra = 0;
   wcex.cbWndExtra = 0;
   wcex.hInstance = GetModuleHandle(NULL);
@@ -108,7 +107,7 @@ void SplashScreen::kill()
 
 
 //==============================================================================
-int __stdcall SplashScreen::wndProc(void *h_wnd, unsigned msg, void *w_param, void *l_param)
+LRESULT CALLBACK SplashScreen::wndProc(HWND h_wnd, UINT msg, WPARAM w_param, LPARAM l_param)
 {
   if (msg == WM_PAINT)
   {
@@ -158,5 +157,5 @@ int __stdcall SplashScreen::wndProc(void *h_wnd, unsigned msg, void *w_param, vo
     return 0;
   }
 
-  return ::DefWindowProcW((HWND)h_wnd, msg, (WPARAM)w_param, (LPARAM)l_param);
+  return ::DefWindowProcW(h_wnd, msg, w_param, l_param);
 }

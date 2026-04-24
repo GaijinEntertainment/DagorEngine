@@ -1,0 +1,1 @@
+Compiles a regular expression pattern string into a ``Regex`` object. Panics if the pattern is invalid. An overload taking a ``var re : Regex`` out-parameter returns ``bool`` instead of panicking. Optional flags: ``case_insensitive=true`` for ASCII case-insensitive matching, ``dot_all=true`` for ``.`` to also match newline characters.

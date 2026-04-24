@@ -28,7 +28,7 @@ public:
     bool perFileOptRes = false, perFileOptTex = false, patchMode = false;
   };
 
-  PackListMgr() : list(midmem) {}
+  PackListMgr(ILogWriter &l) : log(l) {}
 
   bool loadVromfs(const char *fn_vromfs, const char *fn, unsigned targetCode)
   {
@@ -85,10 +85,14 @@ public:
           registerGoodPack(b->getStr(i), false, NULL);
   }
   void sort() { ::sort(list, &filename_cmp); }
-  void save(const char *fn, const PackOptions &opt)
+  void save(const char *fn, const PackOptions &opt, const char *base_grpHdr_md5 = nullptr)
   {
     DataBlock blk;
     saveTo(blk, opt);
+
+    if (base_grpHdr_md5 && *base_grpHdr_md5)
+      blk.setStr("base_grpHdr_md5", base_grpHdr_md5);
+
     blk.saveToTextFile(fn);
   }
   void saveTo(DataBlock &blk, const PackOptions &opt)
@@ -145,13 +149,13 @@ public:
       blk.setBool("patchMode", opt.patchMode);
   }
 
-  void writeHdrCacheVromfs(const char *dest_base, const char *game_base, const char *fname, const char *fn_reslist,
-    unsigned targetCode, bool writeGrpHdrCache, const PackOptions &opt)
+  bool writeHdrCacheVromfs(const char *dest_base, const char *game_base, const char *fname, const char *fn_reslist,
+    unsigned targetCode, bool writeGrpHdrCache, const PackOptions &opt, const char *base_grpHdr_md5 = nullptr)
   {
     if (!list.size())
     {
       dd_erase(fname);
-      return;
+      return true;
     }
 
     bool write_be = dagor_target_code_be(targetCode);
@@ -179,7 +183,9 @@ public:
         if (list[i].grp)
           grpNids.addInt(id);
       }
-    int reslist_id = names.addNameId(fn_reslist);
+    String fn_reslist_lowercase(fn_reslist);
+    fn_reslist_lowercase.toLower();
+    int reslist_id = names.addNameId(fn_reslist_lowercase);
     pt_names.reserveData(cwr, names.nameCount(), cwr.PTR_SZ);
 
     Tab<int> sorted_ids;
@@ -207,6 +213,8 @@ public:
       {
         DataBlock blk;
         saveTo(blk, opt);
+        if (base_grpHdr_md5 && *base_grpHdr_md5)
+          blk.setStr("base_grpHdr_md5", base_grpHdr_md5);
 
         cwr.align16();
         int p_start = cwr.tell();
@@ -244,14 +252,20 @@ public:
       i++;
     });
     if (failed)
-      return;
+    {
+      log.addMessage(log.ERROR, "failed to build %s", fname);
+      return false;
+    }
     pt_names.finishTab(cwr);
     pt_data.finishTab(cwr);
 
     // finally, write file on disk
     FullFileSaveCB fcwr(fname);
     if (!fcwr.fileHandle)
-      return;
+    {
+      log.addMessage(log.ERROR, "failed to write %s", fname);
+      return false;
+    }
 
     fcwr.writeInt(_MAKE4C('VRFs'));
     fcwr.writeInt(targetCode);
@@ -266,6 +280,7 @@ public:
     unsigned hw32 = packed_sz | 0x40000000;
     fcwr.writeInt(mkbindump::le2be32_cond(hw32, write_be));
     fcwr.write(mcwr.data(), packed_sz);
+    return true;
   }
 
   void invalidate(bool grp, bool tex)
@@ -285,6 +300,7 @@ public:
     bool grp, marked;
   };
   Tab<Rec> list;
+  ILogWriter &log;
 
 protected:
   void registerPack(const char *fn, bool grp, bool good, const char *cache_fn)
@@ -308,36 +324,58 @@ protected:
   {
     FullFileLoadCB crd(grp_fname);
     if (!crd.fileHandle)
+    {
+      log.addMessage(log.ERROR, "can't open: %s", grp_fname);
       return false;
+    }
 
     bool read_be = cwr.WRITE_BE;
 
     gamerespackbin::GrpHeader ghdr;
     crd.read(&ghdr, sizeof(ghdr));
     if (ghdr.label != _MAKE4C('GRP2') && ghdr.label != _MAKE4C('GRP3'))
+    {
+      log.addMessage(log.ERROR, "bad GRP format: %s", grp_fname);
       return false;
+    }
 
     int restSz = mkbindump::le2be32_cond(ghdr.restFileSize, read_be);
     int fullDataSize = mkbindump::le2be32_cond(ghdr.fullDataSize, read_be);
     if (restSz + sizeof(ghdr) != df_length(crd.fileHandle))
+    {
+      log.addMessage(log.ERROR, "bad GRP content: %s", grp_fname);
       return false;
+    }
 
     cwr.writeRaw(&ghdr, sizeof(ghdr));
     copy_stream_to_stream(crd, cwr.getRawWriter(), fullDataSize);
     return true;
   }
 
-  bool writeDxpHdr(mkbindump::BinDumpSaveCB &cwr, const char *grp_fname)
+  bool writeDxpHdr(mkbindump::BinDumpSaveCB &cwr, const char *dxp_fname)
   {
-    FullFileLoadCB crd(grp_fname);
+    FullFileLoadCB crd(dxp_fname);
     if (!crd.fileHandle)
+    {
+      log.addMessage(log.ERROR, "can't open: %s", dxp_fname);
       return false;
+    }
 
     bool read_be = cwr.WRITE_BE;
     unsigned hdr[4];
     crd.read(hdr, sizeof(hdr));
+    if (hdr[0] != _MAKE4C('DxP2') || (hdr[1] != 2 && hdr[1] != 3))
+    {
+      log.addMessage(log.ERROR, "bad DxP format: %s", dxp_fname);
+      return false;
+    }
     cwr.writeRaw(hdr, sizeof(hdr));
     int restSz = mkbindump::le2be32_cond(hdr[3], read_be);
+    if (restSz + sizeof(hdr) > df_length(crd.fileHandle))
+    {
+      log.addMessage(log.ERROR, "bad DxP content: %s", dxp_fname);
+      return false;
+    }
     copy_stream_to_stream(crd, cwr.getRawWriter(), restSz);
     return true;
   }
@@ -358,7 +396,11 @@ protected:
         debug("ERR: can't open %s", fname);
         return NULL;
       }
-      crd.read(&hdr, sizeof(hdr));
+      if (crd.tryRead(&hdr, sizeof(hdr)) != sizeof(hdr))
+      {
+        debug("ERR: bad VRFS header %s", fname);
+        return NULL;
+      }
       if (hdr.label != _MAKE4C('VRFs'))
       {
         debug("ERR: VRFS label not found in %s", fname);

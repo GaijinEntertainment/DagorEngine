@@ -11,7 +11,6 @@ class IGenViewportWnd;
 class ScreenshotMetaInfoLoader
 {
 public:
-  static bool loadMetaInfo(const char *screenshot_path, DataBlock &meta_info, String &error_message);
   static bool getProjectPath(const DataBlock &meta_info, const char *app_dir, const char *levels_dir, String &project_path,
     String &error_message);
   static void applyCameraSettings(const DataBlock &meta_info, IGenViewportWnd &viewport);

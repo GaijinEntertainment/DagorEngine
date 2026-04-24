@@ -7,6 +7,7 @@
 #include "buffBindPoints.h"
 
 #include <ioSys/dag_fileIo.h>
+#include <ioSys/dag_memIo.h>
 #include <util/dag_string.h>
 #include <drv/3d/dag_decl.h>
 
@@ -326,7 +327,7 @@ static spv::ExecutionModel shader_type_to_execution_model(ShaderType type)
   G_ASSERT(type != ShaderType::Invalid);
   switch (type)
   {
-    case ShaderType::Invalid: return spv::ExecutionModelVertex;
+    case ShaderType::Invalid: [[fallthrough]];
     case ShaderType::Vertex: return spv::ExecutionModelVertex;
     case ShaderType::Pixel: return spv::ExecutionModelFragment;
     case ShaderType::Compute: return spv::ExecutionModelGLCompute;
@@ -344,7 +345,7 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
   int textureRemap[drv3d_metal::MAX_SHADER_TEXTURES * 2];
   int samplerRemap[drv3d_metal::MAX_SHADER_TEXTURES];
 
-  std::fill(bufferRemap, bufferRemap + drv3d_metal::BUFFER_POINT_COUNT, -1);
+  std::fill(bufferRemap, bufferRemap + drv3d_metal::BUFFER_POINT_COUNT, drv3d_metal::EncodedBufferRemap{}.value);
   std::fill(textureRemap, textureRemap + drv3d_metal::MAX_SHADER_TEXTURES * 2, -1);
   std::fill(samplerRemap, samplerRemap + drv3d_metal::MAX_SHADER_TEXTURES, -1);
 
@@ -376,7 +377,13 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
   spirv_cross::MSLResourceBinding bind = {};
   bind.stage = shader_type_to_execution_model(shaderType);
 
-  uint32_t sampler = 0, texture = 0, buffer_local = drv3d_metal::BIND_POINT + 1;
+  uint32_t flags = 0;
+
+  // drv3d_metal::BIND_POINT + 0 is used for Global constant buffer
+  // drv3d_metal::BIND_POINT + 1 is used for global texture bias buffer
+  // drv3d_metal::BIND_POINT + 2 is used for immediate constants
+  // drv3d_metal::BIND_POINT + 3 is first unused slot
+  uint32_t sampler = 0, texture = 0, buffer_local = drv3d_metal::BIND_POINT + 3;
   uint32_t bindless_texture_id_count = 0, bindless_sampler_id_count = 0, bindless_buffer_id_count = 0;
   for (const auto &res : resourceMap)
   {
@@ -470,6 +477,11 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
           EncodeBufferSlot(drv3d_metal::STRUCT_BUFFER, bind.msl_buffer);
         bindless_buffer_id_count++;
       }
+      else if (type == drv3d_metal::CONST_BUFFER && bind.binding == drv3d_metal::IMMEDIATE_BIND_POINT)
+      {
+        bind.msl_buffer = drv3d_metal::IMMEDIATE_BIND_SLOT; // immediate buffer slot is fixed
+        flags |= drv3d_metal::ShaderFlags::HasImmediateConstants;
+      }
       else if (type != drv3d_metal::CONST_BUFFER || bind.binding)
       {
         bind.msl_buffer = buffer_local++;
@@ -516,6 +528,10 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
 
   DataAccumulator header;
   header.append(shaderType).appendData(local_entry, sizeof(local_entry)).appendData(bufferRemap, sizeof(bufferRemap));
+
+  if (strstr(msource.c_str(), "global_texture_bias_array"))
+    flags |= drv3d_metal::ShaderFlags::HasSamplerBiases;
+  header.append(flags);
 
   spirv_cross::ShaderResources res = this->get_shader_resources(this->get_active_interface_variables());
 
@@ -698,12 +714,12 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
 
   save2Lib(msource);
 
-  std::string_view sourceToCompress = {mtl_src.c_str(), mtl_src.size()};
+  std::string_view sourceToWrite = {mtl_src.c_str(), mtl_src.size()};
 
   std::vector<uint8_t> mtl_bin;
   if (use_binary_msl)
   {
-    if (!this->compileBinaryMSL(mtl_src, mtl_bin, use_ios_token, has_raytracing || has_mesh, sourceToCompress))
+    if (!this->compileBinaryMSL(mtl_src, mtl_bin, use_ios_token, has_raytracing || has_mesh, sourceToWrite))
     {
       debug("metal source:\n%s\n", mtl_src.c_str());
       eastl::string str;
@@ -713,6 +729,26 @@ CompileResult CompilerMSLlocal::convertToMSL(CompileResult &compile_result, east
     }
   }
 
-  compressData(compile_result, header, sourceToCompress);
+  const int dataSize = (int)sourceToWrite.size();
+  const int headerSize = (int)header.size();
+  constexpr int hashSize = 32;
+
+  HashMD5 hash;
+  hash.append(header.data(), headerSize);
+  hash.append(sourceToWrite.data(), dataSize);
+  hash.calc();
+
+  uint64_t shader_hash = std::hash<std::string>{}(hash.get());
+
+  DynamicMemGeneralSaveCB mcwr(tmpmem, 0, 128 << 10);
+  mcwr.writeInt(_MAKE4C('MTLZ'));
+  mcwr.writeInt(dataSize);
+  mcwr.write(&shader_hash, sizeof(shader_hash));
+  mcwr.write(header.data(), headerSize);
+  mcwr.alignOnDword(mcwr.size());
+
+  compile_result.metadata.assign((const uint8_t *)mcwr.data(), (const uint8_t *)mcwr.data() + mcwr.size());
+  compile_result.bytecode.assign(sourceToWrite.data(), sourceToWrite.data() + dataSize);
+
   return compile_result;
 }

@@ -142,15 +142,15 @@ public:
     normalizedSunColor0 /= scale;
     normalizedSunColor1 /= scale;
 
-    ShaderGlobal::set_color4_fast(normSkyColorVarId, normalizedSkyColor.r, normalizedSkyColor.g, normalizedSkyColor.b, 0.f);
-    ShaderGlobal::set_color4_fast(normSunColor0VarId, normalizedSunColor0.r, normalizedSunColor0.g, normalizedSunColor0.b, 0.f);
-    ShaderGlobal::set_color4_fast(normSunColor1VarId, normalizedSunColor1.r, normalizedSunColor1.g, normalizedSunColor1.b, 0.f);
+    ShaderGlobal::set_float4(normSkyColorVarId, normalizedSkyColor.r, normalizedSkyColor.g, normalizedSkyColor.b, 0.f);
+    ShaderGlobal::set_float4(normSunColor0VarId, normalizedSunColor0.r, normalizedSunColor0.g, normalizedSunColor0.b, 0.f);
+    ShaderGlobal::set_float4(normSunColor1VarId, normalizedSunColor1.r, normalizedSunColor1.g, normalizedSunColor1.b, 0.f);
 
-    ShaderGlobal::set_color4_fast(skyColorScaleVarId, scale, scale, scale, 0.f);
+    ShaderGlobal::set_float4(skyColorScaleVarId, scale, scale, scale, 0.f);
 
-    ShaderGlobal::set_color4_fast(skyColGvId, skyColor.r, skyColor.g, skyColor.b, 0.f);
-    ShaderGlobal::set_color4_fast(sunCol0GvId, sunColor0.r, sunColor0.g, sunColor0.b, 0.f);
-    ShaderGlobal::set_color4_fast(sunCol1GvId, sunColor1.r, sunColor1.g, sunColor1.b, 0.f);
+    ShaderGlobal::set_float4(skyColGvId, skyColor.r, skyColor.g, skyColor.b, 0.f);
+    ShaderGlobal::set_float4(sunCol0GvId, sunColor0.r, sunColor0.g, sunColor0.b, 0.f);
+    ShaderGlobal::set_float4(sunCol1GvId, sunColor1.r, sunColor1.g, sunColor1.b, 0.f);
 
     static int global_frame_const_blockid = ShaderGlobal::getBlockId("global_const_block");
     ShaderGlobal::setBlock(global_frame_const_blockid, ShaderGlobal::LAYER_GLOBAL_CONST);
@@ -160,23 +160,23 @@ public:
   {
     if (sun.size() > 0)
     {
-      ShaderGlobal::set_color4_fast(sunLtDir0GvId, -Color4(sun[0].ltDir.x, sun[0].ltDir.y, sun[0].ltDir.z, 0));
+      ShaderGlobal::set_float4(sunLtDir0GvId, -Color4(sun[0].ltDir.x, sun[0].ltDir.y, sun[0].ltDir.z, 0));
 
-      ShaderGlobal::set_color4_fast(dlGvId.worldLt.dir0, -Color4(sun[0].ltDir.x, sun[0].ltDir.y, sun[0].ltDir.z, 0));
-      ShaderGlobal::set_color4_fast(dlGvId.worldLt.col0, ::color4(sun[0].ltCol, 0));
+      ShaderGlobal::set_float4(dlGvId.worldLt.dir0, -Color4(sun[0].ltDir.x, sun[0].ltDir.y, sun[0].ltDir.z, 0));
+      ShaderGlobal::set_float4(dlGvId.worldLt.col0, ::color4(sun[0].ltCol, 0));
 
-      ShaderGlobal::set_color4_fast(dlGvId.lightDir, -Color4(sun[0].ltDir.x, sun[0].ltDir.y, sun[0].ltDir.z, 0));
-      ShaderGlobal::set_color4_fast(dlGvId.lightSpecularColor, Color4(1, 1, 1, 0));
+      ShaderGlobal::set_float4(dlGvId.lightDir, -Color4(sun[0].ltDir.x, sun[0].ltDir.y, sun[0].ltDir.z, 0));
+      ShaderGlobal::set_float4(dlGvId.lightSpecularColor, Color4(1, 1, 1, 0));
 
-      ShaderGlobal::set_color4_fast(sunDirLtmapGvid, Color4(sun[0].ltDir.x, sun[0].ltDir.y, sun[0].ltDir.z, 0));
-      ShaderGlobal::set_color4_fast(sunColLtmapGvid, ::color4(sun[0].ltCol, 0));
+      ShaderGlobal::set_float4(sunDirLtmapGvid, Color4(sun[0].ltDir.x, sun[0].ltDir.y, sun[0].ltDir.z, 0));
+      ShaderGlobal::set_float4(sunColLtmapGvid, ::color4(sun[0].ltCol, 0));
     }
     if (sun.size() > 1)
     {
-      ShaderGlobal::set_color4_fast(sunLtDir1GvId, -Color4(sun[1].ltDir.x, sun[1].ltDir.y, sun[1].ltDir.z, 0));
+      ShaderGlobal::set_float4(sunLtDir1GvId, -Color4(sun[1].ltDir.x, sun[1].ltDir.y, sun[1].ltDir.z, 0));
 
-      ShaderGlobal::set_color4_fast(dlGvId.worldLt.dir1, -Color4(sun[1].ltDir.x, sun[1].ltDir.y, sun[1].ltDir.z, 0));
-      ShaderGlobal::set_color4_fast(dlGvId.worldLt.col1, ::color4(sun[1].ltCol, 0));
+      ShaderGlobal::set_float4(dlGvId.worldLt.dir1, -Color4(sun[1].ltDir.x, sun[1].ltDir.y, sun[1].ltDir.z, 0));
+      ShaderGlobal::set_float4(dlGvId.worldLt.col1, ::color4(sun[1].ltCol, 0));
     }
     setupSkyLighting();
   }
@@ -330,7 +330,7 @@ public:
   {
     SunLightProps &s = sun.push_back();
 
-    setDefSunProps(s, sun.size() == 1 ? 1600 : 1);
+    setDefSunProps(s, sun.size() == 1 ? SunLightProps::DEFAULT_FIRST_SUN_BRIGTHNESS : SunLightProps::DEFAULT_SUN_BRIGTHNESS);
     Point2 az = b->getPoint2("azimuthZenith", Point2(s.azimuth, s.zenith));
     Point3 col = b->getPoint3("dl_color", Point3::rgb(s.ltCol));
 
@@ -386,8 +386,8 @@ protected:
 
   void setDefSkyProps(SkyLightProps &p)
   {
-    p.color = E3DCOLOR(100, 120, 200, 255);
-    p.brightness = 1.5;
+    p.color = SkyLightProps::DEFAULT_COLOR;
+    p.brightness = SkyLightProps::DEFAULT_BRIGHTNESS;
     p.earthColor = E3DCOLOR(70, 70, 70, 255);
     ;
     p.earthBrightness = 1;
@@ -400,11 +400,11 @@ protected:
   }
   void setDefSunProps(SunLightProps &p, float br)
   {
-    p.color = E3DCOLOR(255, 255, 242, 255);
+    p.color = SunLightProps::DEFAULT_COLOR;
     p.brightness = br;
-    p.azimuth = 0;
-    p.zenith = 40 * DEG_TO_RAD;
-    p.angSize = 5 * DEG_TO_RAD;
+    p.azimuth = SunLightProps::DEFAULT_AZIMUTH;
+    p.zenith = SunLightProps::DEFAULT_ZENITH;
+    p.angSize = SunLightProps::DEFAULT_ANG_SIZE;
     p.enabled = true;
 
     const Point3 postMultiply = tonemap.getPostScale();

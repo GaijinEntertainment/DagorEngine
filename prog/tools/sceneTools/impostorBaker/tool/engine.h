@@ -62,7 +62,7 @@ public:
 
   const char *getBuildString() override { return "1.0"; }
 
-  bool initAssetBase(const char *app_dir) override;
+  bool initAssetBase(const char *app_dir, const DataBlock &app_blk) override;
 
   bool registerService(IEditorService *srv) override { DUMMY_IMPL_0; }
   bool unregisterService(IEditorService *srv) override { DUMMY_IMPL_0; }
@@ -99,6 +99,7 @@ public:
   {
     DUMMY_IMPL_0;
   }
+  eastl::optional<String> selectAsset(const SelectAssetDlgOptions & /*options*/) override { return {}; }
   void showAssetWindow(bool show, const char *caption, IAssetBaseViewClient *cli, dag::ConstSpan<int> types) override { DUMMY_IMPL; }
   void addAssetToRecentlyUsed(const char *asset) override { DUMMY_IMPL; }
 
@@ -134,11 +135,13 @@ public:
   void imguiBegin(PropPanel::PanelWindowPropertyControl &panel_window, bool *open, unsigned window_flags) override {}
   void imguiEnd() override {}
 
-  Outliner::OutlinerWindow *createOutlinerWindow() override
-  {
-    G_ASSERT(false);
-    return nullptr;
-  }
+  AssetTagManager *getVisibleTagManagerWindow() override { return nullptr; }
+  void showTagManagerWindow(bool) override {}
+  bool saveAssetsTags() override { return false; }
+
+  Outliner::OutlinerWindow *createOutlinerWindow() override { DUMMY_IMPL_0; }
+
+  void revealInExplorer(const char *path) override { DUMMY_IMPL; }
 
 private:
   ConsoleLogWriter console;

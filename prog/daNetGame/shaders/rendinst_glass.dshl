@@ -2,13 +2,16 @@ include "psh_tangent.dshl"
 include "rendinst_trans_inc.dshl"
 include "emissive.dshl"
 include "rt_glass_apply.dshl"
+include_optional "hero_cockpit_transparency.dshl"
 include "glass.dshl"
 include "indoor_light_probes.dshl"
 include "gbuffer_to_temperature.dshl"
 include "csm.dshl"
 include "camera_in_camera.dshl"
+include "ssao_use.dshl"
+include "resolve_thin_g_buffer_inc.dshl"
 
-shader rendinst_simple_glass, rendinst_refraction
+shader rendinst_refraction
 {
   assume instancing_type = tm_vb;
   if (in_editor_assume == no)
@@ -17,29 +20,10 @@ shader rendinst_simple_glass, rendinst_refraction
     USE_BRUNETON_FOG()
   }
   ENABLE_MULTI_DRAW(false)
-  if (shader == rendinst_simple_glass)
-  {
-    INIT_CSM_SHADOW(ps)
-    USE_CSM_SHADOW_DEF_NUM()
-    hlsl (ps) {
-      #define USE_CSM_SHADOWS 1
-      float getCSMShadow(float3 pointToEye)
-      {
-        return get_csm_shadow(pointToEye).x;
-      }
-    }
 
-    INIT_GLASS_BACKFACE_SPECULAR_LIGHT(ps)
-    INIT_SIMPLE_GLASS()
-    static float emission = 0;
-    (ps) { emission@f1 = (emission); }
-    INIT_GLASS_NIGHT_EMISSION()
-    INIT_GLASS_HOLE_MASK(ps)
-  } else
-  {
-    INIT_REFRACTION_GLASS()
-    INIT_GLASS_USE_TILED_LIGHTS()
-  }
+  INIT_REFRACTION_GLASS(use_hw_raytracing && rendinst_transparent_gbuffer_pass == generate)
+  INIT_GLASS_USE_TILED_LIGHTS()
+
   if (gi_quality != off)
   {
     USE_IN_FRUSTUM_GI(ps)
@@ -47,7 +31,33 @@ shader rendinst_simple_glass, rendinst_refraction
       #define GLASS_USE_GI 1
     }
   }
-  RENDINST_TRANS_BLOCK()
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    supports rendinst_trans_scene;
+    USE_BRUNETON_FOG_VS()
+    if (in_editor_assume == no)
+    {
+      SQ_CLOUDS_SHADOW(ps)
+      USE_STATIC_SHADOW()
+      USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
+    }
+    USING_SSAO()
+    CALC_COMPATIBILITY_AO()
+    USE_FETCH_REFRACTED_PIXEL_IMPL(ps)
+    hlsl(ps) {
+      float4 fetchRefractedPixel(float2 screenUV, float3 cameraToPoint, float3 worldRayDir, float rayLen, float roughnessMip)
+      {
+        float4 refractedColor = fetchRefractedPixel_impl(screenUV, cameraToPoint, worldRayDir, rayLen, roughnessMip);
+        SSAO_TYPE ssao = getSSAOSimpleWithTc(screenUV);
+        refractedColor *= calc_compatibility_ao(ssao);
+        return refractedColor;
+      }
+    }
+  }
+  else
+  {
+    RENDINST_TRANS_BLOCK()
+  }
   RENDINST_INSTANCING()
   USE_THERMAL_SIGNATURE()
   hlsl(vs) {
@@ -85,13 +95,23 @@ shader rendinst_simple_glass, rendinst_refraction
       half3 fogMul, fogAdd;
       get_fog(pointToEye, fogMul, fogAdd);
       output.clipPos = output.pos;
-      output.fogMul = fogMul;
-      output.fogAdd = fogAdd;
+      ##if rendinst_transparent_gbuffer_pass != generate
+        output.fogMul = fogMul;
+        output.fogAdd = fogAdd;
+      ##endif
       return output;
     }
   }
   compile("target_vs", "glass_vs");
 
-  RT_GLASS_APPLY(ps)
-  GLASS_PS()
+  INIT_GLASS_TRANSP()
+  if (rendinst_transparent_gbuffer_pass == generate)
+  {
+    GENERATE_TRANSPARENT_GBUFFER_PS()
+  }
+  else
+  {
+    RT_GLASS_APPLY(ps)
+    GLASS_PS()
+  }
 }

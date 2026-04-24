@@ -101,19 +101,18 @@ void CompositeEditorGizmoClient::gizmoStarted()
 
   expectedPosition = getPt();
   expectedPositionSet = true;
+  cloning = ec_is_shift_key_down() && IEditorCoreEngine::get()->getGizmoModeType() == IEditorCoreEngine::MODE_Move;
   originalTm = node->getTransformationMatrix();
 
-  get_app().getCompositeEditor().beginUndo();
+  get_app().getCompositeEditor().beginUndo(/*save_selection = */ cloning);
 
   G_ASSERTF_ONCE(!get_app().getCompositeEditor().getPreventUiUpdatesWhileUsingGizmo(),
     "gizmoEnded has not been called. (Non-fatal error.)");
   get_app().getCompositeEditor().setPreventUiUpdatesWhileUsingGizmo(true);
 
-  if (ec_is_shift_key_down() && IEditorCoreEngine::get()->getGizmoModeType() == IEditorCoreEngine::MODE_Move)
+  if (cloning)
   {
-    cloning = true;
     cloneStartPosition = getPt();
-
     get_app().getCompositeEditor().cloneSelectedNode();
   }
 }

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <drv/3d/dag_resUpdateBuffer.h>
+#include "validation.h"
 
 namespace rubgeneric
 {
@@ -32,37 +33,37 @@ bool update_texture_and_release_update_buffer(ResUpdateBuffer *&src_rub);
 } // namespace rubgeneric
 
 #define IMPLEMENT_D3D_RUB_API_USING_GENERIC()                                                                                      \
-  d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *dest_base_texture, unsigned dest_mip,              \
+  NO_UBSAN d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex_region(BaseTexture *dest_base_texture, unsigned dest_mip,     \
     unsigned dest_slice, unsigned offset_x, unsigned offset_y, unsigned offset_z, unsigned width, unsigned height, unsigned depth) \
   {                                                                                                                                \
     return reinterpret_cast<d3d::ResUpdateBuffer *>(rubgeneric::allocate_update_buffer_for_tex_region(dest_base_texture, dest_mip, \
       dest_slice, offset_x, offset_y, offset_z, width, height, depth));                                                            \
   }                                                                                                                                \
-  d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_tex, int dest_mip, int dest_slice)                   \
+  NO_UBSAN d3d::ResUpdateBuffer *d3d::allocate_update_buffer_for_tex(BaseTexture *dest_tex, int dest_mip, int dest_slice)          \
   {                                                                                                                                \
     return reinterpret_cast<d3d::ResUpdateBuffer *>(rubgeneric::allocate_update_buffer_for_tex(dest_tex, dest_mip, dest_slice));   \
   }                                                                                                                                \
-  void d3d::release_update_buffer(d3d::ResUpdateBuffer *&rub)                                                                      \
+  NO_UBSAN void d3d::release_update_buffer(d3d::ResUpdateBuffer *&rub)                                                             \
   {                                                                                                                                \
     rubgeneric::release_update_buffer(reinterpret_cast<rubgeneric::ResUpdateBuffer *&>(rub));                                      \
   }                                                                                                                                \
-  char *d3d::get_update_buffer_addr_for_write(d3d::ResUpdateBuffer *rub)                                                           \
+  NO_UBSAN char *d3d::get_update_buffer_addr_for_write(d3d::ResUpdateBuffer *rub)                                                  \
   {                                                                                                                                \
     return rubgeneric::get_update_buffer_addr_for_write(reinterpret_cast<rubgeneric::ResUpdateBuffer *>(rub));                     \
   }                                                                                                                                \
-  size_t d3d::get_update_buffer_size(d3d::ResUpdateBuffer *rub)                                                                    \
+  NO_UBSAN size_t d3d::get_update_buffer_size(d3d::ResUpdateBuffer *rub)                                                           \
   {                                                                                                                                \
     return rubgeneric::get_update_buffer_size(reinterpret_cast<rubgeneric::ResUpdateBuffer *>(rub));                               \
   }                                                                                                                                \
-  size_t d3d::get_update_buffer_pitch(d3d::ResUpdateBuffer *rub)                                                                   \
+  NO_UBSAN size_t d3d::get_update_buffer_pitch(d3d::ResUpdateBuffer *rub)                                                          \
   {                                                                                                                                \
     return rubgeneric::get_update_buffer_pitch(reinterpret_cast<rubgeneric::ResUpdateBuffer *>(rub));                              \
   }                                                                                                                                \
-  size_t d3d::get_update_buffer_slice_pitch(d3d::ResUpdateBuffer *rub)                                                             \
+  NO_UBSAN size_t d3d::get_update_buffer_slice_pitch(d3d::ResUpdateBuffer *rub)                                                    \
   {                                                                                                                                \
     return rubgeneric::get_update_buffer_slice_pitch(reinterpret_cast<rubgeneric::ResUpdateBuffer *>(rub));                        \
   }                                                                                                                                \
-  bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)                                                   \
+  NO_UBSAN bool d3d::update_texture_and_release_update_buffer(d3d::ResUpdateBuffer *&rub)                                          \
   {                                                                                                                                \
     return rubgeneric::update_texture_and_release_update_buffer(reinterpret_cast<rubgeneric::ResUpdateBuffer *&>(rub));            \
   }

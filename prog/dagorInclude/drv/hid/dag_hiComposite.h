@@ -56,6 +56,24 @@ struct Device
 class CompositeJoystickClassDriver : public IGenJoystickClassDrv
 {
 public:
+  static const int INVALID_DEVICE_IDX = -1;
+  struct DeviceDescription
+  {
+    int idx = INVALID_DEVICE_IDX;
+    struct InputLimits
+    {
+      int ofs = 0;
+      int count = 0;
+    } buttons, axes;
+    bool isConnected = false;
+    bool isXinputCompatible = false;
+    const char *name = nullptr;
+    const char *deviceIdString = nullptr; // TODO: should be vid:pid uint16_t pair
+
+    bool isValid() const { return idx != INVALID_DEVICE_IDX; }
+  }; // struct DeviceDescription
+
+public:
   static const int MAX_CLASSDRV = 4;
   static CompositeJoystickClassDriver *create();
 
@@ -117,6 +135,8 @@ public:
   const char *getRealDeviceID(int real_dev_idx) const;
   //! fills and returns description of real device by index in BLK form; indices are valid from 0 through getRealDeviceCount(true)-1
   bool getRealDeviceDesc(int real_dev_idx, DataBlock &out_desc) const;
+
+  DeviceDescription getRealDeviceDesc(int real_dev_idx) const;
 
   //! return native name of axis by idx; returns NULL for disconnected devices
   const char *getNativeAxisName(int axis_idx) const;

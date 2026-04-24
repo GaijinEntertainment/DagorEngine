@@ -60,7 +60,8 @@ void TileDeferredLighting::initAllLights()
   for (int i = 0; i < allLights.size(); ++i)
   {
     String name(128, "allLights%d", i);
-    allLights[i].set(d3d::create_tex(NULL, OmniLightsManager::MAX_LIGHTS * 2, 1, TEXFMT_A32B32G32R32F | TEXCF_DYNAMIC, 1, name), name);
+    allLights[i].set(
+      d3d::create_tex(NULL, OmniLightsManager::MAX_LIGHTS * 2, 1, TEXFMT_A32B32G32R32F | TEXCF_DYNAMIC, 1, name, RESTAG_LIGHTS), name);
   }
 }
 
@@ -70,9 +71,10 @@ bool TileDeferredLighting::init(int w, int h)
   height = h;
   int classifyW = w / TILE_SIZE, classifyH = h / TILE_SIZE;
 
-  ShaderGlobal::set_color4(lights_indices_sizeVarId, classifyW, classifyH, 1.0f / classifyW, 1.0f / classifyH);
+  ShaderGlobal::set_float4(lights_indices_sizeVarId, classifyW, classifyH, 1.0f / classifyW, 1.0f / classifyH);
 
-  ArrayTexture *lightsArray = d3d::create_array_tex(classifyW, classifyH, MAX_LIGHTS_PER_TILE / 4, TEXCF_RTARGET, 1, "lights_indices");
+  ArrayTexture *lightsArray =
+    d3d::create_array_tex(classifyW, classifyH, MAX_LIGHTS_PER_TILE / 4, TEXCF_RTARGET, 1, "lights_indices", RESTAG_LIGHTS);
   if (!lightsArray)
     return false;
   lightsIndicesArray.set(lightsArray, "lights_indices");
@@ -111,7 +113,7 @@ void TileDeferredLighting::classifyPointLights(const TextureIDPair &far_depth, c
 
   TMatrix4_vec4 projTm;
   d3d::gettm(TM_PROJ, &projTm);
-  ShaderGlobal::set_color4(viewClipVarId, projTm[0][0], -projTm[1][1], projTm[2][0], projTm[2][1]);
+  ShaderGlobal::set_float4(viewClipVarId, projTm[0][0], -projTm[1][1], projTm[2][0], projTm[2][1]);
 
 
   d3d::set_render_target();
@@ -132,7 +134,7 @@ void TileDeferredLighting::classifyPointLights(const TextureIDPair &far_depth, c
   lightsIndicesArray.getArrayTex()->getinfo(linfo, 0);
   G_ASSERTF(dinfo.w == linfo.w && dinfo.h == linfo.h, "dinfo.w = %d, linfo.w=%d", dinfo.w, linfo.w);
 #endif
-  ShaderGlobal::set_color4(rendering_resVarId, width, height, 1.0 / width, 1.0 / height);
+  ShaderGlobal::set_float4(rendering_resVarId, width, height, 1.0 / width, 1.0 / height);
 
   prepareLightCount.render();
 
@@ -181,14 +183,14 @@ int TileDeferredLighting::preparePointLights(
   Point3_vec4 all_lights_view_pos_and_rad;
   v_st(&all_lights_view_pos_and_rad.x, v_all_lights_view_pos_and_rad);
 
-  ShaderGlobal::set_color4(all_lights_view_pos_radVarId, Color4(&all_lights_view_pos_and_rad.x));
+  ShaderGlobal::set_float4(all_lights_view_pos_radVarId, Color4(&all_lights_view_pos_and_rad.x));
   CvtStorage s;
-  ShaderGlobal::set_color4(all_lights_box_centerVarId, Color4::xyzw(cvt_point4(v_bbox3_center(worldLightBox), s)));
-  ShaderGlobal::set_color4(all_lights_box_extentVarId,
+  ShaderGlobal::set_float4(all_lights_box_centerVarId, Color4::xyzw(cvt_point4(v_bbox3_center(worldLightBox), s)));
+  ShaderGlobal::set_float4(all_lights_box_extentVarId,
     Color4::xyzw(cvt_point4(v_sub(worldLightBox.bmax, v_bbox3_center(worldLightBox)), s)));
 
-  ShaderGlobal::set_color4(view_lights_box_bminVarId, Color4::xyzw(cvt_point4(lightBox.bmin, s)));
-  ShaderGlobal::set_color4(view_lights_box_bmaxVarId, Color4::xyzw(cvt_point4(lightBox.bmax, s)));
+  ShaderGlobal::set_float4(view_lights_box_bminVarId, Color4::xyzw(cvt_point4(lightBox.bmin, s)));
+  ShaderGlobal::set_float4(view_lights_box_bmaxVarId, Color4::xyzw(cvt_point4(lightBox.bmax, s)));
 
   int stride;
   OmniLightsManager::RawLight *lights;

@@ -1,0 +1,7 @@
+ERROR: expression of type 'array' cannot be assigned to type 'table'
+testData/diagnostics/compilation_errors/type_inference/test_const_array2.nut:4:12
+
+function fn(x: table = true ? ARR1 : ARR2): null {}
+            ^----------------------------
+
+

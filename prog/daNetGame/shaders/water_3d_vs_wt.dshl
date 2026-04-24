@@ -1,29 +1,33 @@
 include "water_vertex.dshl"
 
-float wfx_height_limit = 100;
-
 macro WATER_3D_COMMON_VS_WT()
 hlsl {
   // WaveWorks related structs
-  struct VS_OUTPUT
+  struct PsInput
   {
-    float4 nvsf_eye_vec: TEXCOORD1;
-    float3 pos_world_undisplaced  : TEXCOORD2;
-    float4 screenTc: TEXCOORD3;
+    float3 worldPosUndisplaced : TEXCOORD1;
+    ##if has_water_flowmap
+      float4 worldPos_ab : TEXCOORD2;
+    ##endif
+    ##if has_water_flowmap && colorPass
+      float3 water_flowmap_sample : TEXCOORD3;
+    ##endif
     #if has_projection_effects
-      float4 pos_clip_undisplaced   : TEXCOORD4;
+      float4 screenPosUndisplaced   : TEXCOORD4;
     #endif
     ##if water_heightmap_pages != NULL
       float3 tangent            : TEXCOORD5;
       float3 bitangent          : TEXCOORD6;
     ##endif
+
+    #if WATER_GI_ENABLED
+      half3 ambient             : TEXCOORD7;
+    #endif
+
     float3 flowmap_normal : TEXCOORD9;
-    VS_OUT_POSITION(pos_clip)
+    VS_OUT_POSITION(screenPos)
   };
-
-  #define PS_INPUT VS_OUTPUT
-
-  struct VS_OUTPUT_FOR_TESSELATION
+  struct VsOutputTessellation
   {
     float4 worldPos_distFade : TEXCOORD0;
   };
@@ -31,46 +35,64 @@ hlsl {
 endmacro
 
 macro WATER_3D_DEFERRED_COMMON_VS_WT()
-WATER_3D_POSITION(vs)
+WATER_3D_POSITION()
 WATER_3D_TBN(vs)
 
-(vs) { wfx_height_limit@f1 = wfx_height_limit; }
-
 hlsl (vs) {
-  PS_INPUT calc_ps_input_from_world_position(float3 pos_world, float distFade, bool useWaterHeightmap)
+  PsInput calc_ps_input_from_world_position(float3 world_pos, float distFade, bool useWaterHeightmap)
   {
-    VS_OUTPUT Output;
+    force_cpu_water_level_around_camera(world_pos, distFade);
+    PsInput output;
 
-    float3 pos_world_undisplaced = pos_world.xzy;
-    float4 pos_clip_undisplaced = mul(float4(pos_world_undisplaced.xzy, 1), water_effects_proj_tm);
+    float3 worldPosUndisplaced = world_pos;
+    float4 screenPosUndisplaced = mul(float4(worldPosUndisplaced, 1), water_effects_proj_tm);
 
     ShoreData shoreData;
-    getShoreAttributes(pos_world, shoreData);
+    getShoreAttributes(world_pos, shoreData);
 
-    float3 waterDispl = getWavesDisplacement(pos_world.xzy, shoreData);
-    #if has_water_flowmap
-      waterDispl.z += getWaterFlowmapDisplacement(pos_world);
-    #endif
-    waterDispl += getWFXDisplacement(pos_world.xzy, pos_clip_undisplaced);
-    pos_world.xzy += (shoreData.shoreWavesDisplacement + waterDispl*shoreData.oceanWavesMultiplier) * distFade;
-
-    float4 pos_clip = mul(float4(pos_world,1), globtm);
-    Output.pos_clip = pos_clip;
-    Output.nvsf_eye_vec = float4(world_view_pos.xzy - pos_world.xzy, pos_clip.w * inv_zfar);
-    Output.pos_world_undisplaced = pos_world_undisplaced;
-    #if has_projection_effects
-      Output.pos_clip_undisplaced = pos_clip_undisplaced;
-    #endif
-    #if has_water_flowmap
-      Output.flowmap_normal = getWaterFlowmapNormal(pos_world.xzy);
-    #endif
-    Output.screenTc = float4(pos_clip.xy * RT_SCALE_HALF + float2(0.50001, 0.50001) * pos_clip.w, pos_clip.zw);
-
-    ##if water_heightmap_pages != NULL
-      calcWaterTBN(pos_world, useWaterHeightmap, Output.tangent, Output.bitangent);
+    float3 worldPos_a, worldPos_b;
+    ##if has_water_flowmap
+      float viewDist = length(world_view_pos - world_pos);
+      calcWaterFlowmapParams(world_pos, viewDist, worldPos_a, worldPos_b);
+      output.worldPos_ab = float4(worldPos_a.xz, worldPos_b.xz);
     ##endif
 
-    return Output;
+    float3 displacement = getWavesDisplacement(world_pos, worldPos_a, worldPos_b, float4(1, 1, 1, 1), float4(1, 1, 1, 1), shoreData.landHeight);
+    ##if has_water_flowmap
+      displacement.y += getWaterFlowmapDisplacement(world_pos) * water_flowmap_foam_displacement;
+    ##endif
+
+    ##if water_tess_factor == water_tess_factor_on
+      const float wfxStrength = saturate(max(-shoreData.landHeight, 0.0) * wfx_shore_fade_depth);
+      displacement += getWFXDisplacement(world_pos, screenPosUndisplaced, wfxStrength);
+    ##endif
+    world_pos += (shoreData.shoreWavesDisplacement + displacement * shoreData.oceanWavesMultiplier) * distFade;
+
+    float4 screenPos = mul(float4(world_pos,1), globtm);
+    output.screenPos = screenPos;
+    output.worldPosUndisplaced = worldPosUndisplaced;
+    #if has_projection_effects
+      output.screenPosUndisplaced = screenPosUndisplaced;
+    #endif
+    ##if has_water_flowmap
+      output.flowmap_normal = getWaterFlowmapNormal(world_pos);
+    ##endif
+
+    #if WATER_GI_ENABLED
+      half3 enviLight = GetSkySHDiffuse(half3(0,1,0));
+      float3 view = world_pos - world_view_pos;
+      output.ambient = get_gi_ambient(world_pos, half3(0,1,0), half3(0,1,0), enviLight, length(view), normalize(view));
+    #endif
+
+    ##if water_heightmap_pages != NULL
+      calcWaterTBN(world_pos, useWaterHeightmap, output.tangent, output.bitangent);
+    ##endif
+
+    ##if has_water_flowmap && colorPass
+      output.water_flowmap_sample = 0; // Todo implement this
+    ##endif
+
+    return output;
   }
 }
 endmacro

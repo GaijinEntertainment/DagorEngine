@@ -6,7 +6,9 @@
 #include <ioSys/dag_dataBlock.h>
 
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/shaderVar.h>
 
 #include <blood_puddles/public/render/bloodPuddles.h>
@@ -23,10 +25,10 @@ constexpr eastl::array group_name_hashes{
 };
 
 template <typename Callable>
-inline void get_blood_settings_ecs_query(Callable c);
+inline void get_blood_settings_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void get_blood_group_attributes_ecs_query(Callable c);
+inline void get_blood_group_attributes_ecs_query(ecs::EntityManager &manager, Callable c);
 
 BloodPuddles::BloodPuddles() :
   matrixManager(BLOOD_PUDDLES_MAX_MATRICES_COUNT, "blood_puddle_matrices", ECS_HASH("decals__bloodPuddlesMatrixId"), MAX_PUDDLES),
@@ -39,8 +41,8 @@ BloodPuddles::BloodPuddles() :
   const bool isDeferredBlood = !strcmp(bloodQuality, "high");
 
   bool hasSettings = false;
-  get_blood_settings_ecs_query([this, &hasSettings](const ecs::Object &blood_puddles_settings__atlas,
-                                 const ecs::Object &blood_puddles_settings__groupAttributes) {
+  get_blood_settings_ecs_query(*g_entity_mgr, [this, &hasSettings](const ecs::Object &blood_puddles_settings__atlas,
+                                                const ecs::Object &blood_puddles_settings__groupAttributes) {
     hasSettings = true;
     initAtlasResources(blood_puddles_settings__atlas);
     initGroupAttributes(blood_puddles_settings__groupAttributes);
@@ -66,19 +68,24 @@ BloodPuddles::~BloodPuddles()
 void BloodPuddles::reset()
 {
   closeResources();
-  closeNodes();
 
-  get_blood_settings_ecs_query(
+  get_blood_settings_ecs_query(*g_entity_mgr,
     [this](const ecs::Object &blood_puddles_settings__atlas, const ecs::Object &blood_puddles_settings__groupAttributes) {
       initAtlasResources(blood_puddles_settings__atlas);
       initGroupAttributes(blood_puddles_settings__groupAttributes);
     });
 
-  initNodes();
+  resetNodes();
 
   updateOffset = 0;
   updateLength = puddles.size();
   matrixManager.reset();
+}
+
+void BloodPuddles::resetNodes()
+{
+  closeNodes();
+  initNodes();
 }
 
 void BloodPuddles::initAtlasResources(const ecs::Object &atlas_settings)
@@ -96,13 +103,12 @@ void BloodPuddles::initAtlasResources(const ecs::Object &atlas_settings)
   {
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Linear;
-    ShaderGlobal::set_sampler(::get_shader_variable_id("blood_puddle_tex_samplerstate", true), d3d::request_sampler(smpInfo));
     ShaderGlobal::set_sampler(::get_shader_variable_id("blood_puddle_flowmap_tex_samplerstate", true), d3d::request_sampler(smpInfo));
   }
 
   const Point2 atlasSize = atlas_settings.getMemberOr("atlasSize", Point2(1, 1));
-  ShaderGlobal::set_color4(::get_shader_variable_id("blood_decals_atlas_size", true), atlasSize.x, atlasSize.y, 0, 0);
-  ShaderGlobal::set_real(::get_shader_variable_id("blood_puddle_depth", true), 0.03f);
+  ShaderGlobal::set_float4(::get_shader_variable_id("blood_decals_atlas_size", true), atlasSize.x, atlasSize.y, 0, 0);
+  ShaderGlobal::set_float(::get_shader_variable_id("blood_puddle_depth", true), 0.03f);
 }
 
 void BloodPuddles::closeResources()
@@ -117,7 +123,7 @@ void BloodPuddles::initNodes()
 {
   if (isDeferredMode)
   {
-    prepassNode = make_blood_accumulation_prepass_node();
+    prepassNodes = make_blood_accumulation_prepass_node();
     resolveNode = make_blood_resolve_node();
   }
   else
@@ -126,7 +132,7 @@ void BloodPuddles::initNodes()
 
 void BloodPuddles::closeNodes()
 {
-  prepassNode = {};
+  prepassNodes = {};
   resolveNode = {};
 }
 
@@ -238,6 +244,20 @@ static void reset_blood_es(const AfterDeviceReset &)
 }
 
 ECS_TAG(render)
+ECS_ON_EVENT(ChangeRenderFeatures)
+static void blood_puddles_handle_render_feature_change_es(const ecs::Event &evt)
+{
+  if (auto *changedFeatures = evt.cast<ChangeRenderFeatures>())
+  {
+    if (!(changedFeatures->isFeatureChanged(CAMERA_IN_CAMERA) || changedFeatures->isFeatureChanged(GBUFFER_PACKED_NORMALS)))
+      return;
+  }
+
+  if (auto *mgr = get_blood_puddles_mgr())
+    mgr->resetNodes();
+}
+
+ECS_TAG(render)
 ECS_TRACK(*)
 static void update_blood_puddles_group_settings_es(const ecs::Event &, const ecs::Object &blood_puddles_settings__groupAttributes)
 {
@@ -263,13 +283,13 @@ static void update_blood_puddles_shader_params_es(const ecs::Event &, const ecs:
     blood_puddles_settings__visualAttributes.getMemberOr(ECS_HASH("landscapeSmoothnessEdge"), 0.4f);
   const float centerAlbedoDarkening = blood_puddles_settings__visualAttributes.getMemberOr(ECS_HASH("centerAlbedoDarkening"), 0.5f);
 
-  ShaderGlobal::set_real(get_shader_variable_id("blood_puddle_start_size"), startSize);
-  ShaderGlobal::set_color4(get_shader_variable_id("blood_puddle_high_intensity_color"), colorAtHighIntensity, 1.0f);
-  ShaderGlobal::set_color4(get_shader_variable_id("blood_puddle_low_intensity_color"), colorAtLowIntensity, 1.0f);
-  ShaderGlobal::set_real(get_shader_variable_id("blood_puddle_reflectance"), reflectance);
-  ShaderGlobal::set_real(get_shader_variable_id("blood_puddle_smoothness"), smoothness);
-  ShaderGlobal::set_real(get_shader_variable_id("blood_puddle_smoothness_edge"), smoothnessOnEdge);
-  ShaderGlobal::set_real(get_shader_variable_id("blood_puddle_landscape_reflectance"), landscapeReflectance);
-  ShaderGlobal::set_real(get_shader_variable_id("blood_puddle_landscape_smoothness_edge"), landscapeSmoothnessEdge);
-  ShaderGlobal::set_real(get_shader_variable_id("blood_puddle_center_albedo_darkening"), centerAlbedoDarkening);
+  ShaderGlobal::set_float(get_shader_variable_id("blood_puddle_start_size"), startSize);
+  ShaderGlobal::set_float4(get_shader_variable_id("blood_puddle_high_intensity_color"), colorAtHighIntensity, 1.0f);
+  ShaderGlobal::set_float4(get_shader_variable_id("blood_puddle_low_intensity_color"), colorAtLowIntensity, 1.0f);
+  ShaderGlobal::set_float(get_shader_variable_id("blood_puddle_reflectance"), reflectance);
+  ShaderGlobal::set_float(get_shader_variable_id("blood_puddle_smoothness"), smoothness);
+  ShaderGlobal::set_float(get_shader_variable_id("blood_puddle_smoothness_edge"), smoothnessOnEdge);
+  ShaderGlobal::set_float(get_shader_variable_id("blood_puddle_landscape_reflectance"), landscapeReflectance);
+  ShaderGlobal::set_float(get_shader_variable_id("blood_puddle_landscape_smoothness_edge"), landscapeSmoothnessEdge);
+  ShaderGlobal::set_float(get_shader_variable_id("blood_puddle_center_albedo_darkening"), centerAlbedoDarkening);
 }

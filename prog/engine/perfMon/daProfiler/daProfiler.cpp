@@ -335,6 +335,8 @@ bool ProfilerData::profileCpuSpike(uint64_t frame_ticks, uint32_t save_first, ui
 {
   // check if it is spiked frame
   const uint32_t frameCount = framesInfo.activeFramesCount();
+  if (frameCount < 2) // need at least 2 frames for variance calculation
+    return false;
   const uint64_t avg = cpuFrameMovingAverageTick / frameCount; // count
   // const uint64_t spikeThreshold = (avg*cpuSpikesMulAverage) + cpuSpikesAddTicks;//3 average + fixed threshold
   // todo: we can actually use running average for variance

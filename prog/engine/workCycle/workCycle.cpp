@@ -19,6 +19,7 @@
 #include <startup/dag_inpDevClsDrv.h>
 #include <startup/dag_restart.h>
 #include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_lock.h>
@@ -100,12 +101,12 @@ bool dagor_work_cycle_is_need_to_draw()
 
 void dagor_work_cycle()
 {
-  struct CpuOnlyCycleScope
+  struct WorkCycleScope
   {
-    CpuOnlyCycleScope() { workcycleperf::mark_cpu_only_cycle_start(); }
-    ~CpuOnlyCycleScope() { end(); }
-    void end() { workcycleperf::mark_cpu_only_cycle_end(); }
-  } cpuOnlyCycleScope;
+    WorkCycleScope() { workcycleperf::mark_workcycle_start(); }
+    ~WorkCycleScope() { endCpuCycle(); }
+    void endCpuCycle() { workcycleperf::mark_cpu_only_cycle_end(); }
+  } workCycleScope;
 
   [[maybe_unused]] AutoDepthCounter acntr;
   TIME_PROFILER_TICK();
@@ -143,18 +144,18 @@ void dagor_work_cycle()
     interlocked_release_store(latest_frame_started, currentFrameId);
     // if the frame was not already started, we start it here
     TIME_PROFILE(low_latency);
-    d3d::begin_frame(currentFrameId, true);
+    static bool allowWait = dgs_get_settings()->getBlockByNameEx("video")->getBool("pufdGpuLatencyWait", true);
+    d3d::begin_frame(currentFrameId, allowWait);
     d3d::mark_simulation_start(currentFrameId);
   }
   auto deferredSimulationEnd = eastl::finally([]() { d3d::mark_simulation_end(dagor_get_global_frame_id()); });
 
-  ::dagor_idle_cycle();
+  bool willGoIdle = is_minimized_fullscreen() && ::dgs_dont_use_cpu_in_background;
+  ::dagor_idle_cycle(false, !willGoIdle);
 
-  if (DAGOR_UNLIKELY(is_minimized_fullscreen() && ::dgs_dont_use_cpu_in_background))
+  if (DAGOR_UNLIKELY(willGoIdle))
   {
     ResourceChecker::report();
-    if (tql::on_frame_finished)
-      tql::on_frame_finished();
     sleep_msec(200);
     ::dagor_reset_spent_work_time();
     return;
@@ -281,7 +282,11 @@ void dagor_work_cycle()
       interlocked_release_store(workcycle_internal::lastFrameTime, 1); // tell act to proceed working
       ResourceChecker::report();
       if (tql::on_frame_finished)
+      {
         tql::on_frame_finished();
+        // process pending resource updates because we won't present.
+        d3d::driver_command(Drv3dCommand::PROCESS_PENDING_RESOURCE_UPDATED);
+      }
       return;
     }
   }
@@ -306,12 +311,6 @@ void dagor_work_cycle()
   }
 #endif
 
-  // perform scene rendering
-  {
-    TIME_PROFILE(wait_for_async_present);
-    d3d::wait_for_async_present();
-  }
-
   if (DAGOR_UNLIKELY(check_and_handle_window_resize()))
     check_and_restore_3d_device();
 
@@ -327,15 +326,14 @@ void dagor_work_cycle()
   workcycleperf::log("== draw: endt=%6d us, dur=%6d us", fdt, fdt);
 
   // end before scope close, because we must not include present time that is usually waiting for GPU
-  cpuOnlyCycleScope.end();
+  workCycleScope.endCpuCycle();
 
+  d3d::mark_render_end(dagor_get_global_frame_id());
   if (game_scene && game_scene->canPresentAndReset())
   {
     updatescr_done = false;
     present(true);
   }
-
-  d3d::mark_render_end(dagor_get_global_frame_id());
 
   occluded_window = (da_profiler::get_active_mode() == 0) && d3d::is_window_occluded();
 
@@ -406,6 +404,7 @@ static void handle_programmatic_pix_capture()
     {
       da_profiler::set_mode(modeBackup);
       pix_capture_n_frames.set(0);
+      console::print_d("GPU capture finished");
     }
   }
   else if (framesToWaitBeforeCapture)
@@ -447,6 +446,7 @@ static void handle_programmatic_pix_capture()
 static void draw(bool enable_stereo, int elapsed_usec, float gametime_elapsed, bool call_before_render, bool draw_gui)
 {
   G_ASSERTF_RETURN(d3d::is_inited(), , "Drawing with uninitialized d3d");
+  TIME_D3D_PROFILE(draw);
 
   handle_programmatic_pix_capture();
 
@@ -552,10 +552,11 @@ void workcycle_internal::default_on_swap_callback()
   unsigned frameTime = get_time_usec(lastSwapTime);
   lastSwapTime = ref_time_ticks();
 
-  nv::Streamline *streamline = nullptr;
-  d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
-  nv::DLSSFrameGeneration *dlss_g = streamline ? streamline->getDlssGFeature(0) : nullptr;
-  dagor_frame_no_add(dlss_g ? dlss_g->getActualFramesPresented() : 1);
+  dagor_frame_no_increment();
+  if (auto getFramesPresented = interlocked_acquire_load_ptr(dwc_get_frames_presented))
+    dagor_frames_presented_add(getFramesPresented());
+  else
+    dagor_frames_presented_add(1);
   if (interlocked_relaxed_load(workcycle_internal::lastFrameTime) >= 0 || frameTime < 1000000000U)
   {
     if (dwc_hook_after_frame)

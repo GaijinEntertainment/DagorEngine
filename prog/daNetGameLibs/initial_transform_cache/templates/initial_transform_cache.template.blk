@@ -1,0 +1,5 @@
+initial_transform_cache_manager{
+  _singleton:b=yes
+  "initial_transform_cache_manager:InitialTransformCacheManager"{ }
+  _tags:t="render"
+}

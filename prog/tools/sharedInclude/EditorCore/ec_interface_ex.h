@@ -54,7 +54,6 @@ public:
   };
 
   virtual void renderGeometry(Stage stage) = 0;
-  virtual void renderUI() {}
   virtual int setSubDiv(int) { return 0; }
   virtual void prepare([[maybe_unused]] const Point3 &center_pos, [[maybe_unused]] const BBox3 &box) {}
 };

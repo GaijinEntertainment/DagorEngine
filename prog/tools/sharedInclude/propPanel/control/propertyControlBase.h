@@ -4,11 +4,13 @@
 //
 #pragma once
 
+#include <propPanel/colors.h>
 #include <propPanel/c_common.h>
 #include <propPanel/c_control_event_handler.h>
 #include <propPanel/c_window_event_handler.h>
 #include <propPanel/c_data_flags.h>
 #include <propPanel/focusHelper.h>
+#include <propPanel/variant.h>
 
 #include <generic/dag_tab.h>
 #include <libTools/util/hdpiUtil.h>
@@ -22,6 +24,10 @@ namespace PropPanel
 
 class ContainerPropertyControl;
 class IListBoxControlEventHandler;
+class IDragSourceHandler;
+class IDropTargetHandler;
+class IListDragHandler;
+class IListDropHandler;
 
 class PropertyControlBase : public WindowControlEventHandler
 {
@@ -65,6 +71,12 @@ public:
   virtual void setCaptionValue(const char value[]) { G_UNUSED(value); }
   virtual void setButtonPictureValues(const char *fname = nullptr) { G_UNUSED(fname); }
   virtual void setListBoxEventHandlerValue(IListBoxControlEventHandler *handler) { G_UNUSED(handler); }
+  virtual void setDragSourceHandlerValue([[maybe_unused]] IDragSourceHandler *handler) {}
+  virtual void setDropTargetHandler([[maybe_unused]] IDropTargetHandler *handler) {}
+  virtual void setListDragHandlerValue([[maybe_unused]] IListDragHandler *handler) {}
+  virtual void setListDropHandlerValue([[maybe_unused]] IListDropHandler *handler) {}
+  virtual void setValueHighlight([[maybe_unused]] ColorOverride::ColorIndex color) {}
+  virtual void setShowTooltipAlways([[maybe_unused]] bool show) {}
 
   virtual int addStringValue(const char *value);
   virtual void removeStringValue(int idx) { G_UNUSED(idx); }
@@ -99,6 +111,14 @@ public:
   virtual int getX() const { return mX; }
   virtual int getY() const { return mY; }
   virtual int getID() const { return mId; }
+
+  virtual void *queryInterfacePtr([[maybe_unused]] unsigned huid) { return nullptr; }
+
+  template <class T>
+  T *queryInterface()
+  {
+    return (T *)queryInterfacePtr(T::HUID);
+  }
 
   virtual void setWidth(hdpi::Px w) { mW = _px(w); }
 
@@ -164,10 +184,16 @@ public:
   // Returns with PropPanel::ControlType.
   virtual int getImguiControlType() const { return 0; }
 
+  virtual bool isDefaultValueSet() const { return true; }
+  virtual void setDefaultValue(Variant var) { G_UNUSED(var); }
+  virtual void applyDefaultValue() {}
+
 protected:
   void setFocusToNextImGuiControlIfRequested(int offset = 0) { focus_helper.setFocusToNextImGuiControlIfRequested(this, offset); }
 
   void setPreviousImguiControlTooltip();
+  void labelWithTooltip(const char *label, const char *label_end, bool use_text_width = false);
+  void separateLineLabelWithTooltip(const char *label, const char *label_end);
 
   int mId;
   ControlEventHandler *mEventHandler;

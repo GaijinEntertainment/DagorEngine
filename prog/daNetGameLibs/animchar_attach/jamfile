@@ -1,0 +1,24 @@
+ModuleDependsOnVars = HaveRenderer PhysName ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = animchar_attach ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_animchar_attach_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/$(Location)
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_DAS = main ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_DAS +=
+    render
+  ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

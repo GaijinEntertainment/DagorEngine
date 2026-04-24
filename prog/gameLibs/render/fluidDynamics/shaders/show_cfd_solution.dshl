@@ -12,7 +12,6 @@ shader show_cfd_solution
   z_write = false;
   no_ablend;
 
-  ENABLE_ASSERT(ps)
   POSTFX_VS_TEXCOORD(0, texcoord)
 
   (ps) {

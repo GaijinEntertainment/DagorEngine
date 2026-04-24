@@ -1,0 +1,22 @@
+Root           ?= ../../../.. ;
+Location        = prog/engine/imgui/netImgui ;
+
+TargetType      = lib ;
+Target          = engine/imgui/netImgui.lib ;
+
+AddIncludes =
+  $(Root)/prog/3rdPartyLibs/imgui
+  $(Root)/prog/3rdPartyLibs/netImgui
+  $(Root)/prog/3rdPartyLibs/netImgui/source
+  $(Root)/prog/3rdPartyLibs/stb
+;
+
+if $(Platform) in ps4 ps5 {
+  Sources += NetImgui_NetworkPS.cpp ;
+}
+
+UseProgLibs =
+  3rdPartyLibs/netImgui
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

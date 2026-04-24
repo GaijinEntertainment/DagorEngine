@@ -4,12 +4,15 @@ Location = prog/tools/libTools/daKernel ;
 StrictCompile = yes ;
 KernelLinkage = dynamic ;
 ProjectAllowsOodle = yes ;
-UseQuirrel = none ;
+UseQuirrel = no ;
+UseMemoryAllocator = RTL ;
+LinuxUseGUI = no
 include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType    = dll ;
 Target        = tools/libTools/daKernel ;
 include $(Root)/prog/tools/tools_setup_outdir_bin.jam ;
+if $(OutDirForDaKernel) { OutDir = $(OutDirForDaKernel) ; }
 
 Sources =
   daKernel.cpp
@@ -30,8 +33,10 @@ UseProgLibs =
   engine/memory
   engine/ioSys
   engine/baseUtil
+  engine/perfMon
   engine/perfMon/daProfiler
 ;
+Dependencies = $(Root)/prog/tools/libTools/daKernel/eastl-local.jam ;
 
 if $(Platform) in windows {
   UseProgLibs +=
@@ -44,13 +49,16 @@ if $(Platform) in windows {
   ;
 }
 
-# separate fpic code from everything else
 if $(Platform) in linux {
+  # separate fpic code from everything else
   UseProgLibs +=
     engine/osApiWrappers/messageBox/stub
     engine/workCycle/stub
   ;
   AddLibs = -ldl -lpthread -lrt -lm -lstdc++ --no-undefined ;
+
+  # set the default visibility of all symbols to be hidden to prevent them from being visible across library boundaries
+  CPPopt += -fvisibility=hidden ;
 }
 
 include $(Root)/prog/_jBuild/build.jam ;

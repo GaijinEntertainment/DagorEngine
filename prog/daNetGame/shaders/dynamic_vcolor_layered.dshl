@@ -4,13 +4,14 @@ include "normaldetail.dshl"
 include "paint_details_inc.dshl"
 include "vcolor_layered_inc.dshl"
 include "random_color.dshl"
+include "dynamic_destr_disappear_inc.dshl"
 
 shader dynamic_vcolor_layered
 {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
   INIT_VCOLOR_LAYERED(true)
   INIT_RANDOMIZED_TC(vs)
+  DYNAMIC_DESTR_DISAPPEAR_INIT()
   if (in_editor_assume == no)
   {
     NO_DYNSTCODE()
@@ -34,7 +35,7 @@ shader dynamic_vcolor_layered
       #define USE_INITIAL_POS 1
       struct VsOutput
       {
-        VS_OUT_POSITION(pos)
+        PRECISE VS_OUT_POSITION(pos)
         float4 pointToEye                       : TEXCOORD0;
         float3 normal                           : TEXCOORD1;
         float2 diffuseTexcoord                  : TEXCOORD2;
@@ -46,6 +47,9 @@ shader dynamic_vcolor_layered
         float4 out_pos_prev                     : TEXCOORD5;
         #endif
         float3 vcolMask                         : TEXCOORD6;
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+        float4 destr_params                     : TEXCOORD7;
+        #endif
       };
     }
   }
@@ -55,6 +59,7 @@ shader dynamic_vcolor_layered
     #define NEED_VCOL_MASK 1
   }
   DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  DYNAMIC_DESTR_DISAPPEAR_USE()
 
   if (dyn_model_render_pass == render_pass_normal) {
     USE_RANDOMIZED_TC(vs)
@@ -82,7 +87,7 @@ shader dynamic_vcolor_layered
 
   if (dyn_model_render_pass != render_pass_normal)
   {
-    SPECIAL_RENDER_NOALPHATEST()
+    SPECIAL_RENDER_NOALPHATEST(enable_ri_disintegration_animation == enabled)
   }
   else
   {
@@ -90,6 +95,6 @@ shader dynamic_vcolor_layered
       #define NORMAL_RENDER_PASS 1
       #define IS_DYNAMIC 1
     }
-    VCOLOR_LAYERED_PS(true, false, false)
+    VCOLOR_LAYERED_PS(true, false, false, GBUFFER_ORDER_DYNAMIC)
   }
 }

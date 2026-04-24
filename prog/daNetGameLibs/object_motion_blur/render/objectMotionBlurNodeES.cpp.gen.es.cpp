@@ -26,17 +26,20 @@ static ecs::EntitySystemDesc calc_resolution_for_motion_blur_es_es_desc
 ,"render");
 static constexpr ecs::ComponentDesc init_object_motion_blur_es_comps[] =
 {
-//start of 2 ro components at [0]
+//start of 3 ro components at [0]
   {ECS_HASH("render_settings__motionBlurStrength"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("render_settings__motionBlurRuntimeSwitch"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("render_settings__bare_minimum"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 rq components at [2]
-  {ECS_HASH("render_settings__motionBlurStrength"), ecs::ComponentTypeInfo<float>()}
+//start of 1 rq components at [3]
+  {ECS_HASH("render_settings__antialiasing_mode"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static void init_object_motion_blur_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     init_object_motion_blur_es(evt
-        , ECS_RO_COMP(init_object_motion_blur_es_comps, "render_settings__motionBlurStrength", float)
+        , components.manager()
+    , ECS_RO_COMP(init_object_motion_blur_es_comps, "render_settings__motionBlurStrength", float)
+    , ECS_RO_COMP(init_object_motion_blur_es_comps, "render_settings__motionBlurRuntimeSwitch", bool)
     , ECS_RO_COMP(init_object_motion_blur_es_comps, "render_settings__bare_minimum", bool)
     );
   while (++comp != compE);
@@ -47,12 +50,12 @@ static ecs::EntitySystemDesc init_object_motion_blur_es_es_desc
   "prog/daNetGameLibs/object_motion_blur/render/objectMotionBlurNodeES.cpp.inl",
   ecs::EntitySystemOps(nullptr, init_object_motion_blur_es_all_events),
   empty_span(),
-  make_span(init_object_motion_blur_es_comps+0, 2)/*ro*/,
-  make_span(init_object_motion_blur_es_comps+2, 1)/*rq*/,
+  make_span(init_object_motion_blur_es_comps+0, 3)/*ro*/,
+  make_span(init_object_motion_blur_es_comps+3, 1)/*rq*/,
   empty_span(),
   ecs::EventSetBuilder<OnRenderSettingsReady>::build(),
   0
-,"render","render_settings__motionBlurStrength");
+,"render","render_settings__antialiasing_mode,render_settings__motionBlurRuntimeSwitch,render_settings__motionBlurStrength");
 static constexpr ecs::ComponentDesc close_object_motion_blur_es_comps[] =
 {
 //start of 1 rq components at [0]
@@ -91,7 +94,8 @@ static void object_motion_blur_settings_appear_es_all_events(const ecs::Event &_
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     object_motion_blur_settings_appear_es(evt
-        , ECS_RO_COMP(object_motion_blur_settings_appear_es_comps, "object_motion_blur_settings__max_blur_px", int)
+        , components.manager()
+    , ECS_RO_COMP(object_motion_blur_settings_appear_es_comps, "object_motion_blur_settings__max_blur_px", int)
     , ECS_RO_COMP(object_motion_blur_settings_appear_es_comps, "object_motion_blur_settings__max_samples", int)
     , ECS_RO_COMP(object_motion_blur_settings_appear_es_comps, "object_motion_blur_settings__strength", float)
     , ECS_RO_COMP(object_motion_blur_settings_appear_es_comps, "object_motion_blur_settings__vignette_strength", float)
@@ -133,9 +137,9 @@ static ecs::CompileTimeQueryDesc object_motion_blur_node_init_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void object_motion_blur_node_init_ecs_query(ecs::EntityId eid, Callable function)
+inline void object_motion_blur_node_init_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, object_motion_blur_node_init_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, object_motion_blur_node_init_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -172,9 +176,9 @@ static ecs::CompileTimeQueryDesc object_motion_blur_init_settings_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void object_motion_blur_init_settings_ecs_query(ecs::EntityId eid, Callable function)
+inline void object_motion_blur_init_settings_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, object_motion_blur_init_settings_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, object_motion_blur_init_settings_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

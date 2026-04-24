@@ -28,7 +28,7 @@ ECS_REGISTER_EVENT(OnExplicitVolfogSettingsChange)
 
 static VolumeLight::DistantFogQuality get_distant_fog_quality(const ecs::string &render_settings__volumeFogQuality)
 {
-  if (render_settings__volumeFogQuality == "far")
+  if (render_settings__volumeFogQuality == "far" || render_settings__volumeFogQuality == "movie")
     return VolumeLight::DistantFogQuality::High;
   else if (render_settings__volumeFogQuality == "medium")
     return VolumeLight::DistantFogQuality::Medium;
@@ -54,11 +54,12 @@ static void volfog_convar_init_es(
   hq_volfog = render_settings__HQVolfog;
 }
 
-ECS_NO_ORDER
 ECS_TAG(render, dev)
 ECS_AFTER(animchar_before_render_es) // require for execute animchar_before_render_es as early as possible
-static void volfog_convar_change_es(
-  const UpdateStageInfoBeforeRender &, bool &render_settings__HQVolfog, ecs::string &render_settings__volumeFogQuality)
+static void volfog_convar_change_es(const UpdateStageInfoBeforeRender &,
+  ecs::EntityManager &manager,
+  bool &render_settings__HQVolfog,
+  ecs::string &render_settings__volumeFogQuality)
 {
   if (hq_volfog.pullValueChange())
     render_settings__HQVolfog = hq_volfog;
@@ -68,7 +69,7 @@ static void volfog_convar_change_es(
       get_distant_fog_quality_str(static_cast<VolumeLight::DistantFogQuality>(distant_fog_quality.get()));
 
   if (disable_volfog_shadows.pullValueChange())
-    g_entity_mgr->broadcastEvent(OnExplicitVolfogSettingsChange());
+    manager.broadcastEvent(OnExplicitVolfogSettingsChange());
 }
 
 
@@ -88,8 +89,6 @@ static void volfog_change_settings_es(const ecs::Event &,
   VolumeLight *volumeLight = WRDispatcher::getVolumeLight();
   if (volumeLight)
   {
-    NodeBasedShaderManager::clearAllCachedResources();
-
     VolumeLight::VolfogQuality volfogQuality =
       render_settings__HQVolfog ? VolumeLight::VolfogQuality::HighQuality : VolumeLight::VolfogQuality::Default;
     VolumeLight::VolfogShadowCasting shadowCasting = has_shadow_casting(render_settings__shadowsQuality)

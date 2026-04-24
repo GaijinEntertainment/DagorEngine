@@ -2,6 +2,7 @@ if (__name__ == "__analysis__")
   return
 
 //-file:declared-never-used
+//-file:undefined-global
 
 
 function fn(x) {

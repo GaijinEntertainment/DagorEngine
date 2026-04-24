@@ -50,6 +50,7 @@ static void attr_float_track_anim_es_all(const ecs::UpdateStageInfo &__restrict 
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     attr_float_track_anim_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(attr_float_track_anim_es_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP(attr_float_track_anim_es_comps, "anim_float_attr", AttrAnimKeyTrackFloat)
     );
@@ -139,14 +140,16 @@ static void attr_float_key_track_change_anim_es_event_handler_all_events(const e
 if (evt.is<key_track_anim::CmdAddAttrFloatAnim>()) {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
       attr_float_key_track_change_anim_es_event_handler(static_cast<const key_track_anim::CmdAddAttrFloatAnim&>(evt)
-            , ECS_RO_COMP(attr_float_key_track_change_anim_es_event_handler_comps, "eid", ecs::EntityId)
+            , components.manager()
+      , ECS_RO_COMP(attr_float_key_track_change_anim_es_event_handler_comps, "eid", ecs::EntityId)
       , ECS_RW_COMP(attr_float_key_track_change_anim_es_event_handler_comps, "anim_float_attr", AttrAnimKeyTrackFloat)
       );
     while (++comp != compE);
   } else if (evt.is<key_track_anim::CmdResetAttrFloatAnim>()) {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
       attr_float_key_track_change_anim_es_event_handler(static_cast<const key_track_anim::CmdResetAttrFloatAnim&>(evt)
-            , ECS_RO_COMP(attr_float_key_track_change_anim_es_event_handler_comps, "eid", ecs::EntityId)
+            , components.manager()
+      , ECS_RO_COMP(attr_float_key_track_change_anim_es_event_handler_comps, "eid", ecs::EntityId)
       , ECS_RW_COMP(attr_float_key_track_change_anim_es_event_handler_comps, "anim_float_attr", AttrAnimKeyTrackFloat)
       );
     while (++comp != compE);

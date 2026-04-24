@@ -37,7 +37,7 @@ public:
 
 public:
   KRNLIMP FastSeqReader();
-  ~FastSeqReader() { closeData(); }
+  KRNLIMP ~FastSeqReader();
 
   void read(void *ptr, int size) override
   {
@@ -80,18 +80,18 @@ protected:
     int sa, ea;
     char *data;
     int handle;
-    short mask;
-  } buf[BUF_CNT], *cBuf;
+    unsigned short mask;
+  } buf[BUF_CNT], *cBuf = nullptr;
 
-  unsigned pendMask, doneMask;
-  int readAheadPos, lastSweepPos, maxBackSeek;
+  unsigned short pendMask = 0, doneMask = 0;
+  int readAheadPos = 0, lastSweepPos = 0, maxBackSeek = 0;
+  char *rawBufMem = nullptr;
   dag::Span<Range> ranges;
   SimpleString targetFilename;
   int64_t curThreadId = -1;
 
   void readCompleted(int i, int bit, int sz);
   void placeRequests();
-  KRNLIMP void closeData();
   void checkThreadSanity();
 };
 

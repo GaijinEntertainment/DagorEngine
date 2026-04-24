@@ -6,6 +6,7 @@
 #include <propPanel/messageQueue.h>
 #include <math/dag_e3dColor.h>
 #include <util/dag_string.h>
+#include <EASTL/unique_ptr.h>
 
 #include <imgui/imgui.h>
 
@@ -42,6 +43,9 @@ struct MyRect
 
 
 /////////////////////////////////////////////////////////////////////////////
+
+class IMenu;
+class CurveControlContextMenuEventHandler;
 class CurveControlStandalone : public IDelayedCallbackHandler
 {
 public:
@@ -57,7 +61,7 @@ public:
     const Point2 &left_bottom = Point2(-0.05, -0.1), const Point2 &right_top = Point2(1.05, 1.1),
     ICurveControlCallback *curve_control_cb = nullptr);
 
-  virtual ~CurveControlStandalone() { setCB(nullptr); }
+  virtual ~CurveControlStandalone();
 
   // set and get ICurveControlCallback pointer
   ICurveControlCallback *getCB() const { return cb; }
@@ -94,6 +98,7 @@ public:
   void setSelected(bool value) { mSelected = value; }
 
   void autoZoom();
+  void processContextMenu(unsigned id);
 
   void updateImgui(float width, float height);
 
@@ -106,6 +111,8 @@ protected:
   void onRButtonDown(long x, long y);
   void onVScroll(int dy, bool is_wheel);
   void handleKeyPresses(unsigned canvas_id);
+  void copyCurve();
+  void pasteCurve();
 
   void drawAxisMarks(uint32_t color);
   void drawPlotLine(const Point2 &p1, const Point2 &p2, uint32_t color);
@@ -158,6 +165,9 @@ protected:
   bool showHelp = false;
   int delayedEditDialogPointIndex = -1;
   ImGuiMouseCursor mouseCursor = ImGuiMouseCursor_Arrow;
+  Point2 lastMousePosContextMenu;
+  eastl::unique_ptr<IMenu> contextMenu;
+  eastl::unique_ptr<CurveControlContextMenuEventHandler> contextMenuEventHandler;
 };
 
 } // namespace PropPanel

@@ -1,10 +1,10 @@
 .. _reference:
 
 #################################
-  Daslang 0.5 Reference Manual
+  Daslang 0.6.1 Reference Manual
 #################################
 
-Copyright (c) 2018-2024 Gaijin Entertainment
+Copyright (c) 2018-2026 Gaijin Entertainment
 
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
@@ -22,5 +22,8 @@ THE SOFTWARE.
    :numbered:
 
    introduction.rst
+   design_philosophy.rst
    language.rst
    embedding.rst
+   utils.rst
+   tutorials.rst

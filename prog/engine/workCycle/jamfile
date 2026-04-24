@@ -36,7 +36,6 @@ if $(Platform) in windows { Sources += windows/threadedWindow.cpp ; }
 if $(Platform) in xboxOne scarlett {
   Sources +=
     xbox/keyboard.cpp
-    xbox/IME.cpp
   ;
 }
 
@@ -44,8 +43,8 @@ if $(Platform) in ps4 ps5 {
   Sources +=
     sony/idleCycle.cpp
     sony/initGamepad.cpp
-    sony/IME.cpp
   ;
+  if ! -DDAGOR_HOSTED_INTERNAL_SERVER in $(GlobalCPPopt) { Sources += sony/IME.cpp ; }
 }
 
 if $(Platform) = macOS {
@@ -81,10 +80,8 @@ if $(Platform) in linux {
     initMouseWin.cpp
     initJoystickSteam.cpp
   ;
-  if $(LinuxUseX11) = yes {
-    CPPopt += -DUSE_X11 ;
-    Target = $(Target:S=~x11.lib) ;
-    AddLibs += -lX11 ;
+  if $(LinuxUseGUI) = yes {
+    UseProgLibs += engine/osApiWrappers/linuxGUI ;
   }
 }
 

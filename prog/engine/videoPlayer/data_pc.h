@@ -45,22 +45,6 @@ public:
     sampler = d3d::request_sampler(smpInfo);
   }
   void termBuffers() { vBuf.clear(0); }
-  static inline bool memsetTexture(Texture *tex)
-  {
-    if (!tex)
-      return false;
-    TextureInfo tinfo;
-    int stride;
-    uint8_t *p;
-    if (tex->lockimg((void **)&p, stride, 0, TEXLOCK_WRITE))
-    {
-      tex->getinfo(tinfo);
-      memset(p, 0xFF, stride * tinfo.h); // fixme: not correct for DXT
-      return tex->unlockimg();
-    }
-    tex->unlockimg();
-    return false;
-  }
   bool initVideoBuffers(int wd, int ht)
   {
     TextureInfo ti;
@@ -80,7 +64,7 @@ public:
     for (int i = 0; i < vBuf.getDepth(); i++)
     {
       OneFrame &b = vBuf.buf[i];
-      b.texY = d3d::create_tex(NULL, w, h, tex_flags, 1, "videoSysTexY");
+      b.texY = d3d::create_tex(NULL, w, h, tex_flags, 1, "videoSysTexY", RESTAG_VIDEO);
       if (!b.texY)
       {
         DEBUG_CTX("can't create Y tex %d: w=%d, h=%d, tex_flags=0x%p", i, w, h, tex_flags);
@@ -93,8 +77,8 @@ public:
         return false;
       }
 
-      b.texU = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoSysTexU");
-      b.texV = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoSysTexV");
+      b.texU = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoSysTexU", RESTAG_VIDEO);
+      b.texV = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoSysTexV", RESTAG_VIDEO);
       if (!b.texU || !b.texV)
       {
         DEBUG_CTX("can't create UV tex %d: w=%d, h=%d, tex_flags=0x%p", i, w / 2, h / 2, tex_flags);
@@ -118,12 +102,12 @@ public:
       return true;
 
     tex_flags &= ~TEXCF_SYSMEM;
-    tex_flags |= TEXCF_UPDATE_DESTINATION;
+    tex_flags |= TEXCF_UPDATE_DESTINATION | TEXCF_CLEAR_ON_CREATE;
 
     for (int i = 0; i < VIDEO_BUFFER_SIZE; i++)
     {
       OneVideoFrame &b = useVideo[i];
-      b.texY = d3d::create_tex(NULL, w, h, tex_flags, 1, "videoBufTexY");
+      b.texY = d3d::create_tex(NULL, w, h, tex_flags, 1, "videoBufTexY", RESTAG_VIDEO);
       if (!b.texY)
       {
         DEBUG_CTX("can't create tex: w=%d, h=%d, tex_flags=0x%p", w, h, tex_flags);
@@ -140,8 +124,8 @@ public:
       snprintf(texName, sizeof(texName), "y%04d_ogv", ++counter);
       b.texIdY = register_managed_tex(texName, b.texY);
 
-      b.texU = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoBufTexU");
-      b.texV = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoBufTexV");
+      b.texU = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoBufTexU", RESTAG_VIDEO);
+      b.texV = d3d::create_tex(NULL, w / 2, h / 2, tex_flags, 1, "videoBufTexV", RESTAG_VIDEO);
       if (!b.texU || !b.texV)
       {
         DEBUG_CTX("can't create uv tex: w=%d, h=%d, tex_flags=0x%p", w / 2, h / 2, tex_flags);
@@ -153,10 +137,6 @@ public:
 
       texName[0] = 'v';
       b.texIdV = register_managed_tex(texName, b.texV);
-
-      memsetTexture(b.texY);
-      memsetTexture(b.texU);
-      memsetTexture(b.texV);
     }
 
     return true;

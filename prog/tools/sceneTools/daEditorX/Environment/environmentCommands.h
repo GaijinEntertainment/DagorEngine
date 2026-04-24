@@ -84,3 +84,14 @@ enum
   PID_DIR_SUN1_DIR,
   PID_DIR_SUN2_DIR,
 };
+
+namespace EditorCommandIds
+{
+
+static constexpr const char *SHOW_PANEL = "Plugin.Environment.TogglePropertiesPanel";
+static constexpr const char *RESET_GIZMO = "Plugin.Environment.ResetGizmo";
+static constexpr const char *IMPORT = "Plugin.Environment.Import";
+static constexpr const char *HTTP_GAME_SERVER = "Plugin.Environment.ConnectToGameHTTPServer";
+static constexpr const char *COLOR_CORRECTION = "Plugin.Environment.ColorCorrection";
+
+} // namespace EditorCommandIds

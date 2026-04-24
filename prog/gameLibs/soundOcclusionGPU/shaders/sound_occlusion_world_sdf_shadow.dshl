@@ -1,0 +1,65 @@
+include "sky_shader_global.dshl"
+include "gbuffer.dshl"
+include "postfx_inc.dshl"
+include "viewVecVS.dshl"
+include "world_sdf.dshl"
+include "sound_occlusion_trace.dshl"
+
+float4 snd_occ_sdf_listener;
+
+shader sound_occlusion_world_sdf_shadow
+{
+  supports global_frame;
+  supports none;
+  cull_mode = none;
+  z_write = false;
+  z_test = false;
+
+  blend_src = 1;
+  blend_dst = sa;
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(1, texcoord, viewvec)
+  INIT_ZNZFAR_STAGE(ps)
+  INIT_HDR(ps)
+  USE_HDR(ps)
+  SND_OCC_TRACE(ps)
+
+  (ps) {
+    debug_world_view_pos@f3 = world_view_pos;
+    snd_occ_sdf_listener@f3 = snd_occ_sdf_listener;
+  }
+
+  INIT_READ_DEPTH_GBUFFER()
+  USE_READ_DEPTH_GBUFFER()
+
+  hlsl(ps)
+  {
+    struct Output
+    {
+      float4 color : SV_Target;
+    };
+
+    Output snd_occ_world_sdf_shadow_ps(VsOutput input)
+    {
+      Output output = (Output)0;
+
+      float rawDepth = readGbufferDepth(input.texcoord);
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
+      if (w >= zn_zfar.y)
+        discard;
+
+      float3 worldPos = input.viewvec * w + debug_world_view_pos;
+      float3 listenerPos = snd_occ_sdf_listener.xyz;
+
+      //float shadow = snd_occ_trace_back_forth(worldPos, listenerPos, 8);
+      float shadow = snd_occ_trace_5ray(worldPos, listenerPos, 0.5, 8);
+
+      float transparency = shadow;
+      float3 value = (transparency > 0.5) * 0.25;
+      output.color = float4(pack_hdr(value), transparency);
+      return output;
+    }
+  }
+  compile("target_ps", "snd_occ_world_sdf_shadow_ps");
+}

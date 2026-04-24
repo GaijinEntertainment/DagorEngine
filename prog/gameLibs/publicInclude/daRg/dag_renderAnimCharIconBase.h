@@ -23,7 +23,7 @@
 class DataBlock;
 
 template <typename TAnimCharIcon>
-class RenderAnimCharIconPF final : public PictureManager::PictureRenderFactory
+class RenderAnimCharIconPF final : public PictureManager::PictureDelayedRenderFactory
 {
 public:
   InitOnDemand<TAnimCharIcon, false> ctx;
@@ -39,7 +39,7 @@ public:
   {
     return !ctx || ctx->match(pic_props, out_w, out_h);
   }
-  virtual bool render(Texture *to, int x, int y, int w, int h, const DataBlock &info, PICTUREID pid) override
+  virtual bool doRender(Texture *to, int x, int y, int w, int h, const DataBlock &info, PICTUREID pid) override
   {
     return !ctx || ctx->render(to, x, y, w, h, info, pid);
   }
@@ -170,20 +170,65 @@ public:
   void clearPendReq();
 
 protected:
-  bool renderInternal(Texture *to, int x, int y, int w, int h, const DataBlock &info, PICTUREID pid);
-  virtual bool renderIconAnimChars(const IconAnimcharWithAttachments &iconAnimchars, Texture *to, const Driver3dPerspective &persp,
-    int x, int y, int w, int h, int dstw, int dsth, const DataBlock &info) = 0;
+  enum class IconPrepareStatus : uint8_t
+  {
+    Failed,
+    RetryAgain,
+    Ready
+  };
+
+  struct IconSSAA
+  {
+    int w, h, ssaa;
+  };
+
+  struct IconAnimcharRenderingContext
+  {
+    IconPrepareStatus status = IconPrepareStatus::Failed;
+    IconAnimcharWithAttachments iconAnimchars;
+    eastl::optional<SharedTexHolder> previousEnviPanoramaScoped;
+
+    Texture *to = nullptr;
+    int x = 0;
+    int y = 0;
+    int dstw = 0;
+    int dsth = 0;
+    const DataBlock *info = nullptr;
+    PICTUREID pid = BAD_PICTUREID;
+  };
+
+  IconSSAA applySSAA(const int dstw, const int dsth, const DataBlock &info) const;
+  struct AnimcharPrefetch
+  {
+    IconPrepareStatus status = IconPrepareStatus::Failed;
+    IconAnimcharWithAttachments ia;
+  };
+
+  AnimcharPrefetch prepareAnimchar(Texture *to, int x, int y, int dstw, int dsth, const DataBlock &info, PICTUREID pid);
+  Driver3dPerspective updateAnimcharRenderParams(IconAnimcharRenderingContext &ctx, const IconSSAA &icon_ssaa);
+
+  IconAnimcharRenderingContext beforeRender(Texture *to, int x, int y, int dstw, int dsth, const DataBlock &info, PICTUREID pid);
+
+  void resolveFinalTarget(const IconAnimcharRenderingContext &ctx, const IconSSAA icon_ssaa);
+
+  IconPrepareStatus renderInternal(Texture *to, int x, int y, int w, int h, const DataBlock &info, PICTUREID pid);
+  void afterRender(IconAnimcharWithAttachments &icon_animchars, const PICTUREID pid);
+
+  virtual bool renderIconAnimChars(const IconAnimcharRenderingContext &ctx, const IconSSAA &icon_ssaa,
+    const Driver3dPerspective &persp) = 0;
   virtual bool needsResolveRenderTarget() = 0;
-  virtual bool ensureDim(int w, int h) = 0;
-  virtual void beforeRender(const DataBlock &) {};
-  virtual void afterRender() {};
+  virtual void ensureDim(int w, int h) = 0;
+  virtual void onBeforeRender(const DataBlock &) {};
+  virtual void onAfterRender() {};
   virtual void setSunLightParams(const Point4 &lightDir, const Point4 &lightColor) = 0;
-  void setEnviParams(const DataBlock &info);
-  void setLightParams(const DataBlock &info, bool full_deferred, bool mobile_deferred);
+  eastl::optional<SharedTexHolder> setEnviParams(const DataBlock &info);
+  void setLightParams(const DataBlock &info, bool full_deferred);
   void clear_to(E3DCOLOR col, Texture *to, int x, int y, int dstw, int dsth) const;
   eastl::unique_ptr<DeferredRenderTarget> target;
   UniqueTexHolder finalTarget;
+  UniqueTexHolder finalTargetAA;
   PostFxRenderer finalAA;
+  PostFxRenderer finalSharpen;
   EnviPanoramaCache enviPanoramaCache;
   eastl::vector_map<PICTUREID, IconAnimcharWithAttachments> pendReq;
   WinCritSec pendReqCs;

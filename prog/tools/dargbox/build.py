@@ -7,7 +7,10 @@ sys.path.pop()
 
 # build EXE
 if 'code' in BUILD_COMPONENTS:
-  run(['jam', '-sRoot=../..', '-f', 'dargbox/jamfile'], cwd='..')
+  PROJ_JAM_OPTIONS = []
+  if BUILD_TARGET_ARCH != '':
+    PROJ_JAM_OPTIONS += ['-sPlatformArch='+BUILD_TARGET_ARCH]
+  run(['jam', '-sRoot=../..', '-f', 'dargbox/jamfile'] + PROJ_JAM_OPTIONS, cwd='..')
 
 # build shaders
 if 'shaders' in BUILD_COMPONENTS:

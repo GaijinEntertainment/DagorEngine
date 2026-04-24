@@ -1,26 +1,55 @@
 texture rtr_probes;
 buffer rtr_probe_locations;
 sampler rtr_probe_sampler;
-int rtr_probes_w = 1;
-int rtr_probes_h = 1;
 
-macro INIT_RTR_PROBES_NO_SAMPLER(stage)
+int rtr_probes_tex_slot;
+int rtr_probe_locations_buf_slot;
+int rtr_probe_sampler_slot;
+int4 rtr_probes_count;
+int4 rtr_usable_probes_count;
+
+macro INIT_RTR_PROBES_NO_SAMPLER(stage, use_bindless)
   (stage) {
-    probes@tex2d = rtr_probes;
-    probe_locations@buf = rtr_probe_locations hlsl { StructuredBuffer<float4> probe_locations@buf; };
-    probe_count@u2 = (rtr_probes_w, rtr_probes_h);
-    inv_probe_count@f2 = (1.0 / rtr_probes_w, 1.0 / rtr_probes_h);
+    if (use_bindless) {
+      rtr_probes_tex_slot@i1 = rtr_probes_tex_slot;
+      rtr_probe_locations_buf_slot@i1 = rtr_probe_locations_buf_slot;
+    }
+    else {
+      probes@tex2d = rtr_probes;
+      probe_locations@buf = rtr_probe_locations hlsl { ByteAddressBuffer probe_locations@buf; };
+    }
+    probe_count@u2 = rtr_probes_count;
+    inv_probe_count@f2 = 1.0 / (max(rtr_probes_count.xy, 1), 1, 1);
+    usable_probe_count@u2 = rtr_usable_probes_count;
   }
 
   hlsl(stage) {
+    ##if use_bindless
+      #define probes uniformBindlessTex2D(bvh_textures, rtr_probes_tex_slot)
+      #define probe_locations uniformBindlessBAB(bvh_geometry, rtr_probe_locations_buf_slot)
+    ##endif
     #define rtr_use_probes 1
   }
 endmacro
 
-macro INIT_RTR_PROBES(stage)
-  INIT_RTR_PROBES_NO_SAMPLER(stage)
-  (stage) {
-    probes_samplerstate@sampler = rtr_probe_sampler;
+macro INIT_RTR_PROBES(stage, use_bindless)
+  INIT_RTR_PROBES_NO_SAMPLER(stage, use_bindless)
+  if (use_bindless) {
+    (stage) {
+      rtr_probe_sampler_slot@i1 = rtr_probe_sampler_slot;
+    }
+    hlsl(stage) {
+      #define probes_samplerstate bvh_samplers[rtr_probe_sampler_slot]
+      bool rtr_probes_bindless_enabled()
+      {
+        return rtr_probes_tex_slot >= 0 && rtr_probe_locations_buf_slot >= 0 && rtr_probe_sampler_slot >= 0;
+      }
+    }
+  }
+  else {
+    (stage) {
+      probes_samplerstate@sampler = rtr_probe_sampler;
+    }
   }
 endmacro
 

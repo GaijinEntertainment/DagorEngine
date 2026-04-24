@@ -9,11 +9,13 @@
 #include <drv/3d/dag_rwResource.h>
 #include <shaders/dag_computeShaders.h>
 #include <generic/dag_enumerate.h>
+#include <generic/dag_sort.h>
 #include <imgui/imgui.h>
 #include <gui/dag_imgui.h>
 #include <gui/dag_imguiUtil.h>
 #include <image/dag_dds.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_localConv.h>
 #include <ioSys/dag_dataBlock.h>
 
 #include <EASTL/vector.h>
@@ -83,6 +85,7 @@ static bool filterRT = false;
 static bool filterDepth = false;
 static D3DResourceType filterTexType = D3DResourceType::TEX;
 static char filterName[128] = "";
+static bool caseSensitiveSearch = true;
 
 static eastl::string selectedTextureName;
 static eastl::string selectedTextureNameForDiff;
@@ -241,8 +244,16 @@ static void update_filtered_textures()
     if (filterDepth && !is_depth_format_flg(info.cflg))
       continue;
 
-    if (filterName[0] && !strstr(iter.first.data(), filterName))
-      continue;
+    if (filterName[0])
+    {
+      if (!caseSensitiveSearch)
+      {
+        if (!dd_stristr(iter.first.data(), filterName))
+          continue;
+      }
+      else if (!strstr(iter.first.data(), filterName))
+        continue;
+    }
 
     filteredTextures.push_back(iter.first);
   }
@@ -436,21 +447,21 @@ static void set_image_mode(const ImDrawList *, const ImDrawCmd *cmd)
   float slice = tex_slice_val(info);
 
   ShaderGlobal::set_int(imgui_channel_maskVarId, mask);
-  ShaderGlobal::set_real(imgui_r_minVarId, channelFilters[0].min);
-  ShaderGlobal::set_real(imgui_r_maxVarId, channelFilters[0].max);
-  ShaderGlobal::set_real(imgui_g_minVarId, channelFilters[1].min);
-  ShaderGlobal::set_real(imgui_g_maxVarId, channelFilters[1].max);
-  ShaderGlobal::set_real(imgui_b_minVarId, channelFilters[2].min);
-  ShaderGlobal::set_real(imgui_b_maxVarId, channelFilters[2].max);
-  ShaderGlobal::set_real(imgui_a_minVarId, channelFilters[3].min);
-  ShaderGlobal::set_real(imgui_a_maxVarId, channelFilters[3].max);
+  ShaderGlobal::set_float(imgui_r_minVarId, channelFilters[0].min);
+  ShaderGlobal::set_float(imgui_r_maxVarId, channelFilters[0].max);
+  ShaderGlobal::set_float(imgui_g_minVarId, channelFilters[1].min);
+  ShaderGlobal::set_float(imgui_g_maxVarId, channelFilters[1].max);
+  ShaderGlobal::set_float(imgui_b_minVarId, channelFilters[2].min);
+  ShaderGlobal::set_float(imgui_b_maxVarId, channelFilters[2].max);
+  ShaderGlobal::set_float(imgui_a_minVarId, channelFilters[3].min);
+  ShaderGlobal::set_float(imgui_a_maxVarId, channelFilters[3].max);
   ShaderGlobal::set_int(imgui_mip_levelVarId, max((int)(uintptr_t)cmd->UserCallbackData, 0));
   ShaderGlobal::set_int(imgui_use_custom_sampler, 1);
   ShaderGlobal::set_int(imgui_tex_type, texType);
-  ShaderGlobal::set_real(imgui_slice, slice);
-  ShaderGlobal::set_color4(imgui_cube_view_dirVarId, cubeViewMatrix.getcol(2));
-  ShaderGlobal::set_color4(imgui_cube_view_upVarId, cubeViewMatrix.getcol(1));
-  ShaderGlobal::set_color4(imgui_cube_view_rightVarId, cubeViewMatrix.getcol(0));
+  ShaderGlobal::set_float(imgui_slice, slice);
+  ShaderGlobal::set_float4(imgui_cube_view_dirVarId, cubeViewMatrix.getcol(2));
+  ShaderGlobal::set_float4(imgui_cube_view_upVarId, cubeViewMatrix.getcol(1));
+  ShaderGlobal::set_float4(imgui_cube_view_rightVarId, cubeViewMatrix.getcol(0));
 
   TextureEntry diffEntry = get_texture_entry(selectedTextureNameForDiff);
   ShaderGlobal::set_texture(imgui_tex_diff, diffEntry.texId);
@@ -465,14 +476,14 @@ static void reset_image_mode(const ImDrawList *, const ImDrawCmd *)
     return;
 
   ShaderGlobal::set_int(imgui_channel_maskVarId, 15);
-  ShaderGlobal::set_real(imgui_r_minVarId, 0);
-  ShaderGlobal::set_real(imgui_r_maxVarId, 1);
-  ShaderGlobal::set_real(imgui_g_minVarId, 0);
-  ShaderGlobal::set_real(imgui_g_maxVarId, 1);
-  ShaderGlobal::set_real(imgui_b_minVarId, 0);
-  ShaderGlobal::set_real(imgui_b_maxVarId, 1);
-  ShaderGlobal::set_real(imgui_a_minVarId, 0);
-  ShaderGlobal::set_real(imgui_a_maxVarId, 1);
+  ShaderGlobal::set_float(imgui_r_minVarId, 0);
+  ShaderGlobal::set_float(imgui_r_maxVarId, 1);
+  ShaderGlobal::set_float(imgui_g_minVarId, 0);
+  ShaderGlobal::set_float(imgui_g_maxVarId, 1);
+  ShaderGlobal::set_float(imgui_b_minVarId, 0);
+  ShaderGlobal::set_float(imgui_b_maxVarId, 1);
+  ShaderGlobal::set_float(imgui_a_minVarId, 0);
+  ShaderGlobal::set_float(imgui_a_maxVarId, 1);
   ShaderGlobal::set_int(imgui_mip_levelVarId, 0);
   ShaderGlobal::set_int(imgui_use_custom_sampler, 0);
   ShaderGlobal::set_int(imgui_tex_type, 0);
@@ -586,7 +597,7 @@ static void render_selected_texture()
 
     ImGui::GetWindowDrawList()->AddCallback(set_image_mode, (void *)(uintptr_t)-1);
 
-    if (ImGui::ImageButton("texDebugImage", reinterpret_cast<ImTextureID>(unsigned(id)), buttonSize, uv0, uv1))
+    if (ImGui::ImageButton("texDebugImage", ImGuiDagor::EncodeTexturePtr(D3dResManagerData::getBaseTex(id)), buttonSize, uv0, uv1))
     {
       rgbFiltersLocked = !rgbFiltersLocked;
       if (rgbFiltersLocked)
@@ -678,7 +689,7 @@ static void render_selected_texture()
   int height = width / aspect;
 
   auto imagePosition = ImGui::GetCursorScreenPos();
-  ImGui::Image(reinterpret_cast<ImTextureID>(unsigned(texId)), ImVec2(width, height), uvTL, uvBR);
+  ImGuiDagor::Image(texId, width, height, uvTL, uvBR);
 
   ImGui::GetWindowDrawList()->AddCallback(reset_image_mode, nullptr);
 
@@ -764,7 +775,7 @@ static void render_selected_texture()
         ImGui::SameLine();
 
       ImGui::GetWindowDrawList()->AddCallback(set_image_mode, (void *)(uintptr_t)mipIx);
-      ImGui::Image(reinterpret_cast<ImTextureID>(unsigned(texId)), ImVec2(width, height), uvTL, uvBR);
+      ImGuiDagor::Image(texId, width, height, uvTL, uvBR);
     }
 
     ImGui::GetWindowDrawList()->AddCallback(reset_image_mode, nullptr);
@@ -806,14 +817,12 @@ static void render_selected_texture()
     ShaderGlobal::set_texture(tex_debug_textureVarId, texId);
     ShaderGlobal::set_texture(tex_debug_texture_for_diffVarId, diffTexId);
     ShaderGlobal::set_buffer(tex_debug_readback_bufferVarId, pickBuffer.getBufId());
-    ShaderGlobal::set_color4(tex_debug_readback_uvVarId, cursorUV);
+    ShaderGlobal::set_float4(tex_debug_readback_uvVarId, cursorUV);
     ShaderGlobal::set_int(tex_debug_mip_levelVarId, max(selectedMipLevel, 0));
     ShaderGlobal::set_int(tex_debug_typeVarId, texType);
-    ShaderGlobal::set_real(tex_debug_sliceVarId, slice);
+    ShaderGlobal::set_float(tex_debug_sliceVarId, slice);
     ShaderGlobal::set_int(tex_debug_sliceIVarId, sliceI);
     ShaderGlobal::set_int(tex_debug_rangesVarId, pickBufferQueryCalcRangesStart ? 1 : 0);
-
-    d3d::set_sampler(STAGE_CS, 5, pointSampler);
 
     ImGui::GetWindowDrawList()->AddCallback(
       [](const ImDrawList *, const ImDrawCmd *) {
@@ -896,8 +905,13 @@ static void imguiWindow()
   }
 
   ImGui::SameLine();
-  ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
+  const float caseSensitiveCheckboxWidth =
+    ImGui::GetFrameHeight() + ImGui::CalcTextSize("Case sensitive").x + 2 * ImGui::GetStyle().ItemInnerSpacing.x;
+  ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - caseSensitiveCheckboxWidth);
   if (ImGui::InputTextWithHint("##texDebugFilter", "Filter...", filterName, sizeof(filterName)))
+    update_filtered_textures();
+  ImGui::SameLine();
+  if (ImGui::Checkbox("Case sensitive", &caseSensitiveSearch))
     update_filtered_textures();
 
   ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x - ImGui::CalcTextSize("Diff texture").x);
@@ -1047,7 +1061,8 @@ void init()
 
   if (processTextureShader)
   {
-    pickBuffer = dag::buffers::create_ua_structured_readback(sizeof(Point4), 3, "texDebugPickBuffer");
+    pickBuffer =
+      dag::buffers::create_ua_structured_readback(sizeof(Point4), 3, "texDebugPickBuffer", d3d::buffers::Init::No, RESTAG_DEBUG);
     pickBufferQuery.reset(d3d::create_event_query());
   }
 

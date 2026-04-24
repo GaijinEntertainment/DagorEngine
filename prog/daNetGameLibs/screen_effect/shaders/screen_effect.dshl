@@ -76,7 +76,6 @@ shader screen_effect
   INIT_ZNZFAR()
   USE_DECODE_DEPTH()
   INIT_READ_DEPTH_GBUFFER()
-  ENABLE_ASSERT(ps)
 
   (ps) {
     frame_tex@smp2d = frame_tex;

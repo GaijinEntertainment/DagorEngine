@@ -66,19 +66,41 @@ if/else statement
 
 ::
 
-    stat:= 'if' '(' exp ')' stat ['else' stat]
+    stat := 'if' '(' [decl ';'] exp ')' stat ['else' stat]
 
-Conditionally execute a statement depending on the result of an expression.::
+Conditionally execute a statement depending on the result of an expression.
+Optionally, a variable may be declared before the condition using a declaration
+syntax (`local` or `let`). The declared variable is scoped to the entire
+if-else block (including all `else` and `else if` branches) and is destroyed
+after the block ends.
+
+Examples::
 
     if (a > b)
         a = b
     else
         b = a
-    ////
+
     if ( a == 10 ) {
         b = a + b
         return a
     }
+
+    if (local cv = iv)
+        println(cv)
+
+    if (let cv: int|null = iv)
+        println(cv)
+    else
+        println(cv - 1)
+
+    if (local cv: int = iv; cv > -1000000)
+        println(cv)
+
+    if (let cv = iv)
+        println(cv)
+    else if (local cv2 = iv)
+        println("fail")
 
 ^^^^^^^^^^^^^^^^^
 while statement
@@ -314,7 +336,7 @@ So if you see somewhere in function scope let foo =  you can be sure that foo wi
   While named bindings looks like constants they do not provide immutability. Named bindings can reference mutable objects (like array or instance or table)
 
   
-  
+
 --------------------
 Function declaration
 --------------------

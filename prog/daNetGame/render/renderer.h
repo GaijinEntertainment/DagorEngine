@@ -3,6 +3,7 @@
 
 #include <daECS/core/entityId.h>
 #include <math/dag_TMatrix4.h>
+#include <math/dag_TMatrix4D.h>
 #include <drv/3d/dag_resId.h>
 #include <3d/dag_resPtr.h>
 #include <util/dag_oaHashNameMap.h>
@@ -11,6 +12,7 @@
 #include <render/world/shoreRenderer.h>
 
 class BaseStreamingSceneHolder;
+class Occlusion;
 class RenderScene;
 class LandMeshManager;
 struct WorldSDF;
@@ -30,6 +32,7 @@ struct Driver3dPerspective;
 class DPoint3;
 class BloomPS;
 struct CameraSetup;
+struct DaGISettings;
 
 namespace webui
 {
@@ -66,7 +69,8 @@ public:
     float game_time,
     const TMatrix &view_itm,
     const DPoint3 &view_pos,
-    const Driver3dPerspective &persp) = 0;
+    const Driver3dPerspective &persp,
+    const TMatrix4D &proj_tm) = 0;
   virtual void draw(uint32_t frame_id, float real_dt) = 0;
   virtual void debugDraw() = 0;
   virtual void beforeLoadLevel(const DataBlock &level_blk) = 0; // to be called from main thread
@@ -110,7 +114,9 @@ public:
   virtual ManagedTexView getSuperResolutionScreenshot() const = 0;
   // virtual TEXTUREID getUiBlurTexId() const = 0;
 
-  virtual WorldSDF *getWorldSDF() = 0;
+  virtual class DaGI *getGI() = 0;
+  virtual void overrideGISettings(const DaGISettings &settings) = 0;
+  virtual void resetGISettingsOverride() = 0;
 
   virtual bool getBoxAround(const Point3 &position, TMatrix &box) const = 0;
 
@@ -123,9 +129,8 @@ public:
 
   virtual void setWorldBBox(const BBox3 &) = 0;
 
-  virtual void invalidateNodeBasedResources() = 0;
-
   virtual bool needSeparatedUI() const = 0;
+  virtual bool needUIBlendingForScreenshot() const = 0;
 
 protected:
   virtual ~IRenderWorld() {}
@@ -146,6 +151,7 @@ void close_world_renderer(); // after destroy, static shutdowns of factories
 
 IRenderWorld *get_world_renderer();
 IRenderWorld *get_world_renderer_unsafe(); // UB if WR wasn't inited or already destroyed (i.e. can't return nullptr)
+Occlusion *get_main_occlusion_safe();      // null-safe wrapper for WorldRenderer::getMainCameraOcclusion
 
 webui::HttpPlugin *get_renderer_http_plugins();
 void init_fog_shader_graph_plugin();

@@ -1,0 +1,160 @@
+texture perlin_noise3d;
+
+texture nuke_volumetrics_mask_tex;
+texture nuke_lights_mask_tex;
+texture nuke_volumetrics_closest_dist_tex;
+float4 nuke_masks_tex_size = (1, 1, 0, 0);
+
+buffer nuke_atmospheric_effects;
+buffer nuke_atmospheric_light_effects;
+int nuke_atmospheric_effects_count = 0;
+int nuke_atmospheric_light_effects_count = 0;
+int nuke_in_atmosphere = 0;
+interval nuke_in_atmosphere: off<1, on;
+
+macro SAMPLE_CLOUDS_NUKE_INVERSION(code, for_render)
+
+  if (!hardware.metal && compatibility_mode == compatibility_mode_off)
+  {
+    (code) {
+      nuke_volumetrics_mask_tex@tex = nuke_volumetrics_mask_tex hlsl { Texture2D<uint> nuke_volumetrics_mask_tex@tex; };
+      nuke_volumetrics_closest_dist_tex@tex = nuke_volumetrics_closest_dist_tex hlsl {
+        Texture2D<uint> nuke_volumetrics_closest_dist_tex@tex;
+      };
+
+      nuke_lights_mask_tex@tex = nuke_lights_mask_tex hlsl { Texture2D<uint> nuke_lights_mask_tex@tex; };
+      nuke_masks_tex_size@f2 = nuke_masks_tex_size;
+    }
+  }
+  else
+  {
+    (code) {
+      nuke_volumetrics_mask_tex@smp2d = nuke_volumetrics_mask_tex;
+      nuke_lights_mask_tex@smp2d = nuke_lights_mask_tex;
+    }
+  }
+  (code) {
+    perlin_noise3d@smp3d = perlin_noise3d;
+
+    clouds_origin_offset@f3 = clouds_origin_offset;
+    nuke_atmospheric_effects_count@i1 = nuke_atmospheric_effects_count;
+    nuke_atmospheric_light_effects_count@i1 = nuke_atmospheric_light_effects_count;
+
+    nuke_atmospheric_effects@buf = nuke_atmospheric_effects hlsl {
+      Buffer<float4> nuke_atmospheric_effects@buf;
+    }
+    nuke_atmospheric_light_effects@buf = nuke_atmospheric_light_effects hlsl {
+      Buffer<float4> nuke_atmospheric_light_effects@buf;
+    }
+  }
+
+  hlsl(code) {
+
+  ##if (!hardware.ps4 && compatibility_mode == compatibility_mode_off)
+    #define CONDENSATION_CLOUDS_SUPPORT 1
+  ##endif
+
+  ##if for_render
+    float sampleNukeCloudsInversion(float3 p, float density, float heightFraction, inout float fake_shadow, uint nuke_volum_mask)
+  ##else
+    bool checkNukeCloudsInversion(float3 p, float density, float heightFraction)
+  ##endif
+    {
+      float2 resultDensity = 0;
+      float resultExtinction = 1;
+
+      float3 noiseCoords1 = p*0.00041f;
+      float3 noiseCoords2 = p*0.00037f;
+      ##if for_render
+        float2 noise = float2(tex3Dlod(perlin_noise3d, float4(noiseCoords1, 0)).x,
+                              tex3Dlod(perlin_noise3d, float4(noiseCoords2, 0)).y);
+      ##else
+        float2 noise = 1;
+      ##endif
+
+      float newDensityMul = saturate(5 - 11*abs(heightFraction-0.5));
+
+      for (int i=0; i<nuke_atmospheric_effects_count; i++)
+      {
+        ##if for_render
+          ##if !hardware.metal && compatibility_mode == compatibility_mode_off
+            BRANCH
+            if ((nuke_volum_mask & (1u << clamp(uint(i), 0u, 31u))) == 0u)
+            {
+              continue;
+            }
+          ##endif
+        ##endif
+
+        float4 nukeWave = loadBuffer(nuke_atmospheric_effects, i * 2 + 0).xyzw;
+        float4 nukePosExtFade  = loadBuffer(nuke_atmospheric_effects, i * 2 + 1).xyzw;
+        nukePosExtFade.xyz += float3(clouds_origin_offset.x, 0, clouds_origin_offset.y);
+
+        float waveDistance = nukeWave.x;
+        float cloudDensity2 = 0;
+        float cloudDensity3 = 0;
+        float nukeDistance = length(p - nukePosExtFade.xyz);
+        float nukeDistanceExt = length((p - nukePosExtFade.xyz) * float3(1, 0.3, 1));
+        // we have symmetrical transition zone around shockwave
+        float waveProfile = abs(nukeWave.y * (nukeDistance - waveDistance));
+        float waveFade = saturate(1.5f*nukeWave.z);
+        // inversion zone expands 3 times as wave fading
+        float inversion = saturate(1 - 0.15 * waveProfile - 0.35 * waveProfile *  waveFade);
+        // wider the investion zone -> sharper opacity
+        inversion = lerp(pow2(inversion), inversion, waveFade);
+
+        float extinctionDistance = nukeWave.w;
+
+        // simulate shift of atmospheric layers by heat flow
+        float heightShifted =  p.y + 500*pow2(0.3 * nukeDistanceExt/extinctionDistance);
+
+        float sin51 = sin(heightShifted * 0.0051);
+        float sin36 = sin(heightShifted * 0.0036);
+
+        float extinction = saturate(3*((nukeDistanceExt/extinctionDistance) - 1 + 0.25 * sin51));
+        float condensationDistance = saturate(3*(1.5 + 0.2*sin51 + 0.2*sin36 - (0.6*nukeDistance + 0.4*nukeDistanceExt)/extinctionDistance));
+
+        BRANCH
+        if (inversion>0)
+        {
+          ##if for_render
+            cloudDensity2 = 0.05*saturate(0.25 + 0.75*sin36)*saturate(10*noise.x*noise.y-4.5+2*inversion*waveFade);
+            // shockwave
+            cloudDensity2 += 0.01 * pow2(noise.x) * saturate(5*inversion - 4)*waveFade;
+            cloudDensity2 *= newDensityMul;
+          ##else
+            return true;
+          ##endif
+        }
+
+        inversion*=waveFade;
+
+        #if CONDENSATION_CLOUDS_SUPPORT
+          BRANCH
+          if (extinction * condensationDistance > 0)
+          {
+            float sin72 = sin(heightShifted * 0.014283);
+            float newDensity = 0.5*saturate(extinction * condensationDistance + 0.65 * noise.x - 0.4) * saturate(0.25 + 0.33*sin72 + 0.43*sin51) * newDensityMul;
+            cloudDensity3 = newDensity * nukePosExtFade.w;
+            ##if !for_render
+              if (cloudDensity3 > 0)
+                return true;
+            ##endif
+          }
+        #endif
+
+        resultDensity += float2(cloudDensity2 * saturate(1.5f *inversion), cloudDensity3);
+        // extinct clouds around shockwave zone and around extinction zone
+        resultExtinction *= saturate(1 - 2*inversion) * extinction;
+      }
+
+      density = (density + resultDensity.y) * resultExtinction + resultDensity.x;
+      ##if for_render
+        fake_shadow = clamp(1 - 20*(resultDensity.y * resultExtinction + resultDensity.x), 0.25, 1);
+        return density;
+      ##else
+        return false;
+      ##endif
+    }
+  }
+endmacro

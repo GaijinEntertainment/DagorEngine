@@ -17,10 +17,11 @@
 #include "scriptSMat.h"
 #include "shaders/sh_vars.h"
 #include <shaders/dag_shaderBlock.h>
-#include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_critSec.h>
 #include <stdio.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_shaderConstants.h>
+#include <drv/3d/dag_driverDesc.h>
 #if DAGOR_DBGLEVEL > 0
 #include <debug/dag_log.h>
 #endif
@@ -92,7 +93,7 @@ float DynamicRenderableSceneInstance::lodDistanceScale = 1.f;
 void (*DynamicRenderableSceneLodsResource::on_higher_lod_required)(DynamicRenderableSceneLodsResource *res, unsigned req_lod,
   unsigned cur_lod) = nullptr;
 
-static OSSpinlock dynres_clones_list_spinlock;
+static WinCritSec dynres_clones_list_mutex;
 
 static on_dynsceneres_beforedrawmeshes_cb on_dynsceneres_beforedrawmeshes = nullptr;
 on_dynsceneres_beforedrawmeshes_cb set_dynsceneres_beforedrawmeshes_cb(on_dynsceneres_beforedrawmeshes_cb cb)
@@ -141,6 +142,28 @@ DynamicRenderableSceneResource *DynamicRenderableSceneResource::loadResourceInte
   res->names = nm;
   res->patchAndLoadData(crd, srl_flags, res_sz, smvd);
 
+  if (srl_flags & DynamicRenderableSceneLodsResource::SF_PHYSTRACK)
+  {
+    int uniqueTrackId = res->names->node.getNameId("0");
+    int uniqueConnectorId = res->names->node.getNameId("0_t");
+    for (int i = 0; i < res->getRigids().size(); ++i)
+    {
+      String name(4, "%d", i);
+      int trackId = res->names->node.getNameId(name.c_str());
+      if (trackId >= 0)
+      {
+        RigidObject &ro = res->getRigids()[trackId - 1];
+        ro.uniqueRefId = uniqueTrackId | (trackId << 16);
+      }
+      name.printf(4, "%d_t", i);
+      trackId = res->names->node.getNameId(name.c_str());
+      if (trackId >= 0)
+      {
+        RigidObject &ro = res->getRigids()[trackId - 1];
+        ro.uniqueRefId = uniqueConnectorId | (trackId << 16);
+      }
+    }
+  }
   return res;
 }
 void DynamicRenderableSceneResource::patchAndLoadData(IGenLoad &crd, int flags, int res_sz, ShaderMatVdata &smvd)
@@ -408,7 +431,7 @@ void DynamicRenderableSceneResource::render(DynamicRenderableSceneInstance &cb, 
     d3d::settm(TM_WORLD, tm);
 
     if (on_dynsceneres_beforedrawmeshes)
-      on_dynsceneres_beforedrawmeshes(cb, o.nodeId);
+      on_dynsceneres_beforedrawmeshes(cb, o.nodeId, i);
 
     if (!o.mesh->getMesh())
       DAG_FATAL("DynamicRenderableSceneResource:render - mesh in NULL! (object build not called?)");
@@ -435,7 +458,7 @@ void DynamicRenderableSceneResource::renderTrans(DynamicRenderableSceneInstance 
   bool need_transp = opacity < 0.99f;
 
   if (need_transp)
-    ShaderGlobal::set_real_fast(globalTransRGvId, opacity);
+    ShaderGlobal::set_float(globalTransRGvId, opacity);
 
   int i;
 
@@ -456,7 +479,7 @@ void DynamicRenderableSceneResource::renderTrans(DynamicRenderableSceneInstance 
 
     bool need_node_opacity = nodeOpacity < 0.99f;
     if (need_node_opacity)
-      ShaderGlobal::set_real_fast(globalTransRGvId, totalOpacity);
+      ShaderGlobal::set_float(globalTransRGvId, totalOpacity);
 
     if (totalOpacity < 1)
       o.mesh->getMesh()->render();
@@ -464,7 +487,7 @@ void DynamicRenderableSceneResource::renderTrans(DynamicRenderableSceneInstance 
     o.mesh->getMesh()->render_trans();
 
     if (need_node_opacity)
-      ShaderGlobal::set_real_fast(globalTransRGvId, opacity);
+      ShaderGlobal::set_float(globalTransRGvId, opacity);
   }
 
   d3d::settm(TM_WORLD, TMatrix::IDENT);
@@ -484,7 +507,7 @@ void DynamicRenderableSceneResource::renderTrans(DynamicRenderableSceneInstance 
   }
 
   if (need_transp)
-    ShaderGlobal::set_real_fast(globalTransRGvId, 1.f);
+    ShaderGlobal::set_float(globalTransRGvId, 1.f);
 }
 
 
@@ -781,9 +804,23 @@ bool DynamicRenderableSceneResource::traceRayRigids(DynamicRenderableSceneInstan
   return collision;
 }
 
+static uint32_t get_static_flags(const char *name)
+{
+  if (!name)
+    return 0;
+  uint32_t flags = 0;
+  eastl::string_view wrappedName(name);
+  if (wrappedName.ends_with("_xray"))
+    flags |= DynamicRenderableSceneLodsResource::SF_XRAY;
+  else if (wrappedName.ends_with("_destr"))
+    flags |= DynamicRenderableSceneLodsResource::SF_DESTR;
+  else if (wrappedName.ends_with("_phys_track_line"))
+    flags |= DynamicRenderableSceneLodsResource::SF_PHYSTRACK;
+  return flags;
+}
 
-DynamicRenderableSceneLodsResource *DynamicRenderableSceneLodsResource::loadResource(IGenLoad &crd, int flags, int res_sz,
-  const DataBlock *desc)
+DynamicRenderableSceneLodsResource *DynamicRenderableSceneLodsResource::loadResource(IGenLoad &crd, int flags, const char *name,
+  int res_sz, const DataBlock *desc)
 {
   if (res_sz == -1)
     res_sz = crd.readInt();
@@ -846,6 +883,7 @@ DynamicRenderableSceneLodsResource *DynamicRenderableSceneLodsResource::loadReso
   res = new (mem, _NEW_INPLACE) DynamicRenderableSceneLodsResource;
   res->smvdR = smvd;
   crd.read(res->dumpStartPtr(), res_sz);
+  res->staticFlags = get_static_flags(name);
 
   if (int skins_count = res->patchAndLoadData(crd, flags, res_sz))
   {
@@ -1046,7 +1084,7 @@ void DynamicRenderableSceneLodsResource::addToCloneList(const DynamicRenderableS
 
 DynamicRenderableSceneLodsResource::DynamicRenderableSceneLodsResource(const DynamicRenderableSceneLodsResource &from) //-V730
 {
-  OSSpinlockScopedLock lock(dynres_clones_list_spinlock);
+  WinAutoLock lock(dynres_clones_list_mutex);
 
   instanceRefCount = 0;
   uint32_t srcPackedFields =
@@ -1059,6 +1097,7 @@ DynamicRenderableSceneLodsResource::DynamicRenderableSceneLodsResource(const Dyn
   // don't touch (write) bpC254/bpC255 unless boundPackUsed==1; resSize MAY BE smaller than offset between lods and end of bpC255!
 
   bvhId = from.bvhId;
+  staticFlags = from.staticFlags;
 
   void *new_base = &lods;
   const void *old_base = &from.lods;
@@ -1084,9 +1123,12 @@ DynamicRenderableSceneLodsResource *DynamicRenderableSceneLodsResource::clone() 
   return copy;
 }
 
-void DynamicRenderableSceneLodsResource::clearData()
+DynamicRenderableSceneLodsResource::~DynamicRenderableSceneLodsResource()
 {
-  OSSpinlockScopedLock lock(dynres_clones_list_spinlock);
+  G_ASSERT(getInstanceRefCount() == 0);
+
+  Ptr<DynamicRenderableSceneLodsResource> tmp_holder;
+  WinAutoLock lock(dynres_clones_list_mutex);
 
   for (int i = 0; i < lods.size(); i++)
     lods[i].scene->delRef();
@@ -1095,8 +1137,7 @@ void DynamicRenderableSceneLodsResource::clearData()
 
   if (originalRes)
   {
-    Ptr<DynamicRenderableSceneLodsResource> tmp_holder = originalRes;
-
+    tmp_holder = originalRes;
     for (DynamicRenderableSceneLodsResource *r = originalRes; r; r = r->nextClonedRes)
       if (r->nextClonedRes == this)
       {
@@ -1106,24 +1147,12 @@ void DynamicRenderableSceneLodsResource::clearData()
     originalRes = nullptr;
     nextClonedRes = nullptr;
   }
-  else if (getRefCount() > 0) // expect nextClonedRes == nullptr when refCount is suitable for destruction, so code under branch shall
-                              // not be called
-  {
-    Ptr<DynamicRenderableSceneLodsResource> tmp_holder = this;
-
-    for (DynamicRenderableSceneLodsResource *r = nextClonedRes; r; r = r->nextClonedRes)
-      r->originalRes = nextClonedRes;
-  }
+  // else -> refCount == 0 and all cloned res (list) should be already destroyed
   G_ASSERT(!originalRes && !nextClonedRes);
 }
-void DynamicRenderableSceneLodsResource::lockClonesList() DAG_TS_ACQUIRE(dynres_clones_list_spinlock)
-{
-  dynres_clones_list_spinlock.lock();
-}
-void DynamicRenderableSceneLodsResource::unlockClonesList() DAG_TS_RELEASE(dynres_clones_list_spinlock)
-{
-  dynres_clones_list_spinlock.unlock();
-}
+
+void DynamicRenderableSceneLodsResource::lockClonesList() { dynres_clones_list_mutex.lock(); }
+void DynamicRenderableSceneLodsResource::unlockClonesList() { dynres_clones_list_mutex.unlock(); }
 
 
 DynamicRenderableSceneResource *DynamicRenderableSceneLodsResource::getLod(real range)

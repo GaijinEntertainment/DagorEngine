@@ -7,11 +7,8 @@ define_macro_if_not_defined PROJECT_DO_NOT_UPDATE_FROM_POINT_NO_GBUF(code)
     #define POINT_OPAQUE 3
     uint get_project_update_from_point(float3 wp, float ld, float2 tc, uint2 crd, ProcessedGbuffer gbuf)
     {
-      #ifdef GBUFFER_HAS_DYNAMIC_BIT
       bool isDynamic = gbuf.dynamic && gbuf.material != SHADING_FOLIAGE;
       return isDynamic ? POINT_DYNAMIC : gbuf.translucency > 0 || gbuf.material == SHADING_FOLIAGE ? POINT_TRANSLUCENT : POINT_OPAQUE;
-      #endif
-      return gbuf.translucency>0.0 || gbuf.material == SHADING_FOLIAGE ? POINT_TRANSLUCENT : POINT_OPAQUE;
     }
     uint get_project_update_from_point(float3 worldPos, float linearDepth, float2 tc, uint2 coord)
     {
@@ -19,11 +16,8 @@ define_macro_if_not_defined PROJECT_DO_NOT_UPDATE_FROM_POINT_NO_GBUF(code)
     }
     bool get_project_is_dynamic_pixel(uint2 coord)
     {
-      #ifdef GBUFFER_HAS_DYNAMIC_BIT
       ProcessedGbuffer gbuf = loadProcessedGbuffer(coord);
       return gbuf.dynamic && gbuf.material != SHADING_FOLIAGE;
-      #endif
-      return false;
     }
   }
 endmacro

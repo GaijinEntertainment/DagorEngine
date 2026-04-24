@@ -17,10 +17,10 @@ macro INIT_BAKED_IMPOSTOR_STATIC_TEX()
   static texture impostor_preshadow = 0;
 
   (ps) {
-    impostor_albedo_alpha@static = impostor_albedo_alpha;
-    impostor_normal_translucency@static = impostor_normal_translucency;
-    impostor_ao_smoothness@static = impostor_ao_smoothness;
-    impostor_preshadow@staticTexArray = impostor_preshadow;
+    impostor_albedo_alpha@staticSmp = impostor_albedo_alpha;
+    impostor_normal_translucency@staticSmp = impostor_normal_translucency;
+    impostor_ao_smoothness@staticSmp = impostor_ao_smoothness;
+    impostor_preshadow@staticSmpArray = impostor_preshadow;
   }
 endmacro
 

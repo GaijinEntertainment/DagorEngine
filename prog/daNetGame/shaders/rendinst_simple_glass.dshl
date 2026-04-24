@@ -1,0 +1,106 @@
+include "psh_tangent.dshl"
+include "rendinst_trans_inc.dshl"
+include "emissive.dshl"
+include "rt_glass_apply.dshl"
+include_optional "hero_cockpit_transparency.dshl"
+include "glass.dshl"
+include "indoor_light_probes.dshl"
+include "gbuffer_to_temperature.dshl"
+include "csm.dshl"
+include "camera_in_camera.dshl"
+include "ssao_use.dshl"
+include "resolve_thin_g_buffer_inc.dshl"
+
+shader rendinst_simple_glass
+{
+  assume instancing_type = tm_vb;
+  if (in_editor_assume == no)
+  {
+    IMPORT_ON_TOP_CAMERA_IN_CAMERA(ps)
+    USE_BRUNETON_FOG()
+  }
+  ENABLE_MULTI_DRAW(false)
+
+  INIT_CSM_SHADOW(ps)
+  USE_CSM_SHADOW_DEF_NUM_DEFAULT()
+  hlsl (ps) {
+    #define USE_CSM_SHADOWS 1
+    float getCSMShadow(float3 pointToEye)
+    {
+      return get_csm_shadow(pointToEye).x;
+    }
+  }
+
+  INIT_GLASS_BACKFACE_SPECULAR_LIGHT(ps)
+  INIT_SIMPLE_GLASS(use_hw_raytracing && rendinst_transparent_gbuffer_pass == generate)
+  static float emission = 0;
+  (ps) { emission@f1 = (emission); }
+  INIT_GLASS_NIGHT_EMISSION()
+  INIT_GLASS_HOLE_MASK(ps)
+
+  if (gi_quality != off)
+  {
+    USE_IN_FRUSTUM_GI(ps)
+    hlsl {
+      #define GLASS_USE_GI 1
+    }
+  }
+
+  RENDINST_TRANS_BLOCK()
+  RENDINST_INSTANCING()
+  USE_THERMAL_SIGNATURE()
+  hlsl(vs) {
+
+    INSTANCING_BUFFERS
+
+    struct VsInput
+    {
+      float3 pos                  : POSITION;
+      float3 normal               : NORMAL;
+      float2 texcoord             : TEXCOORD0;
+    };
+
+    VsOutput glass_vs(VsInput input  HW_USE_INSTANCE_ID)
+    {
+      VsOutput output;
+
+      #if SET_UP_MULTIDRAW
+        INIT_MULTIDRAW(output);
+        SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET);
+      #endif
+
+      input.normal = normalize(input.normal * 2 - 1);
+      float3 localNormal = input.normal.xyz;
+      float3 localPos = input.pos;
+      float opacity = 1;
+      VB_PERFORM_INSTANCING
+
+      float3 pointToEye = world_view_pos-worldPos;
+
+      output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
+      output.texcoord.xy = input.texcoord;
+      output.normal.xyz = worldNormal;
+      output.pointToEye.xyz = pointToEye;
+      ##if rendinst_transparent_gbuffer_pass != generate
+        half3 fogMul, fogAdd;
+        get_fog(pointToEye, fogMul, fogAdd);
+        output.fogMul = fogMul;
+        output.fogAdd = fogAdd;
+      ##endif
+      output.clipPos = output.pos;
+      return output;
+    }
+  }
+  compile("target_vs", "glass_vs");
+
+  INIT_GLASS_TRANSP()
+  if (rendinst_transparent_gbuffer_pass == generate)
+  {
+    GENERATE_TRANSPARENT_GBUFFER_PS()
+  }
+  else
+  {
+    RT_GLASS_APPLY(ps)
+    GLASS_PS()
+  }
+}

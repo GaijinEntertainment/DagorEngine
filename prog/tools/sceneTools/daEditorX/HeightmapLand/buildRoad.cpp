@@ -37,7 +37,7 @@ static bool loadRoadBuilderDll()
   if (hDll)
     return true;
 
-  String fn = ::make_full_start_path("roadBuilder.dll");
+  String fn = ::make_full_start_path("roadBuilder" DAGOR_OS_DLL_SUFFIX);
 
   hDll = os_dll_load_deep_bind(fn);
   if (!hDll)

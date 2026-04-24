@@ -9,8 +9,8 @@
 #include <osApiWrappers/dag_localConv.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
-#include <3d/dag_gpuConfig.h>
 
 
 #if USE_CPU_FEATURES
@@ -134,19 +134,18 @@ void dump_sysinfo()
   int freeVirtualMemMb = 0;
   get_virtual_memory_free(freeVirtualMemMb);
 
-  const GpuUserConfig &gpuCfg = d3d_get_gpu_cfg();
-  DagorDateTime gpuDriverDate = d3d::get_gpu_driver_date(gpuCfg.primaryVendor);
+  auto &info = d3d::get_driver_desc().info;
+  const DagorDateTime &gpuDriverDate = info.driverDate;
 
-  debug("SYSINFO: \"%s\",\"%s\",\"%s\",\"%d/%02d/%02d %d.%d.%d.%d\",\"%s\",\"%s\",%d,%lld", get_platform_string_id(), os.str(),
-    d3d::get_device_name(), gpuDriverDate.year, gpuDriverDate.month, gpuDriverDate.day, gpuCfg.driverVersion[0],
-    gpuCfg.driverVersion[1], gpuCfg.driverVersion[2], gpuCfg.driverVersion[3], d3d::get_driver_name(), cpu.str(), cpuCores,
-    freeVirtualMemMb);
+  debug("SYSINFO: \"%s\",\"%s\",\"%s\",\"%d/%02d/%02d %s\",\"%s\",\"%s\",%d,%lld", get_platform_string_id(), os.str(),
+    d3d::get_device_name(), gpuDriverDate.year, gpuDriverDate.month, gpuDriverDate.day, info.driverVersion.toString().c_str(),
+    d3d::get_driver_name(), cpu.str(), cpuCores, freeVirtualMemMb);
   debug("SYSINFO_PLATFORM: %s", get_platform_string_id());
   debug("SYSINFO_OS: %s", os.str());
   debug("SYSINFO_GPU_NAME: \"%s\"", d3d::get_device_name());
-  debug("SYSINFO_GPU_VENDOR: %s", d3d_get_vendor_name(gpuCfg.primaryVendor));
-  debug("SYSINFO_GPU_DRIVER: %d/%02d/%02d %d.%d.%d.%d", gpuDriverDate.year, gpuDriverDate.month, gpuDriverDate.day,
-    gpuCfg.driverVersion[0], gpuCfg.driverVersion[1], gpuCfg.driverVersion[2], gpuCfg.driverVersion[3]);
+  debug("SYSINFO_GPU_VENDOR: %s", d3d_get_vendor_name(info.vendor));
+  debug("SYSINFO_GPU_DRIVER: %d/%02d/%02d %s", gpuDriverDate.year, gpuDriverDate.month, gpuDriverDate.day,
+    info.driverVersion.toString().c_str());
   debug("SYSINFO_GPU_API: \"%s\"", d3d::get_driver_name());
   debug("SYSINFO_CPU_INFO: \"%s\", freq=%s", cpu.str(), cpuFreq, cpuCores);
   debug("SYSINFO_CPU_VENDOR: \"%s\"", cpuVendor);
@@ -176,6 +175,9 @@ void dump_sysinfo()
   String soc;
   if (systeminfo::get_soc_info(soc))
     debug("SYSINFO_SOC: \"%s\"", soc);
+  int memPageSize = systeminfo::get_mem_page_size();
+  if (memPageSize > 0)
+    debug("SYSINFO_PAGESIZE: %d", memPageSize);
 }
 
 void dump_dll_names()

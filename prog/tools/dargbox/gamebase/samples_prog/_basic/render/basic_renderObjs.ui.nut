@@ -14,7 +14,7 @@ function sampleDebug() {
   return {
     rendObj = ROBJ_DEBUG
     color = Color(255,230,200)
-    size = static [100,30]
+    size = const [100,30]
   }
 }
 
@@ -23,7 +23,7 @@ function sampleSolid() {
   return {
     rendObj = ROBJ_SOLID
     color = Color(250,25,205)
-    size = static [100,30]
+    size = const [100,30]
   }
 }
 
@@ -32,7 +32,7 @@ function sampleFrameP(borderWidth=1, color=Color(200,200,200)) {
   return {
     rendObj = ROBJ_FRAME
     color = color
-    size = static [40,30]
+    size = const [40,30]
     borderWidth = borderWidth
   }
 }
@@ -42,8 +42,8 @@ function sampleBox() {
     rendObj = ROBJ_BOX
     fillColor = Color(100,50,50)
     borderColor = Color(100,100,200)
-    borderWidth = static [4,1,4,1]
-    size = static [100,30]
+    borderWidth = const [4,1,4,1]
+    size = const [100,30]
   }
 }
 
@@ -56,7 +56,7 @@ function labeledElem(elem,text) {
     valign = ALIGN_CENTER
     children = [
       {
-        size = static [200, 30]
+        size = const [200, 30]
         halign= ALIGN_CENTER
         valign =ALIGN_CENTER
         children = elem
@@ -64,7 +64,7 @@ function labeledElem(elem,text) {
       {
         rendObj = ROBJ_TEXTAREA
         behavior = Behaviors.TextArea
-        size = static [flex(),SIZE_TO_CONTENT]
+        size = const [flex(),SIZE_TO_CONTENT]
         text = text
         valign=ALIGN_CENTER
       }
@@ -153,7 +153,7 @@ let frames = {
 
 }
 let nine_rect = {
-  size = static [100, 50]
+  size = const [100, 50]
   rendObj = ROBJ_9RECT
   image = button_image
   screenOffs = [hdpx(4),hdpx(4),hdpx(5),hdpx(5)]
@@ -167,7 +167,7 @@ let sampleRoundedBox = {
   borderWidth = 2
   borderRadius = [2,2,2,2]
 
-  size = static [100,30]
+  size = const [100,30]
 }
 
 let sampleRoundedImage = {
@@ -178,7 +178,7 @@ let sampleRoundedImage = {
   borderWidth = 2
   borderRadius = [8,4,5,1]
 
-  size = static [100,30]
+  size = const [100,30]
 }
 
 

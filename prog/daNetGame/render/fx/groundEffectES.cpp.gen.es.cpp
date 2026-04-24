@@ -16,6 +16,7 @@ static void update_ground_effects_es_all(const ecs::UpdateStageInfo &__restrict 
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     update_ground_effects_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(update_ground_effects_es_comps, "eid", ecs::EntityId)
     , ECS_RW_COMP(update_ground_effects_es_comps, "ground_effect__manager", GroundEffectManager)
     );
@@ -110,9 +111,9 @@ static ecs::CompileTimeQueryDesc ground_fx_stop_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void ground_fx_stop_ecs_query(ecs::EntityId eid, Callable function)
+inline void ground_fx_stop_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, ground_fx_stop_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, ground_fx_stop_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -138,9 +139,9 @@ static ecs::CompileTimeQueryDesc get_camera_position_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_camera_position_ecs_query(ecs::EntityId eid, Callable function)
+inline void get_camera_position_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, get_camera_position_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, get_camera_position_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

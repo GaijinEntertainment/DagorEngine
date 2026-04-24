@@ -15,7 +15,7 @@ class SMAA
 {
 public:
   SMAA(const IPoint2 &resolution);
-  void apply(const TextureIDPair &source, const TextureIDPair &destination);
+  void apply(Texture *source, Texture *destination);
 
 private:
   PostFxRenderer edge_detect, blend_weights, apply_smaa;

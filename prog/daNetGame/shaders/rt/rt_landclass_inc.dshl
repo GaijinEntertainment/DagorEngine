@@ -1,0 +1,13 @@
+// In RT shaders we don’t need the ri_landclass_index declaration because the index
+// is computed based on data from the meta BVH structures.
+// To avoid including ri_landclass_index and get_clipmap_indirection_offset (which depends on it),
+// we override the USE_CLIPMAP_INDIRECTION_OFFSET macro here before including landclass_inc.dshl.
+
+macro USE_CLIPMAP_INDIRECTION_OFFSET_BASE(stage, use_landclass_params, use_ri_index)
+    USE_LANDCLASS_INDIRECTION_OFFSET_BASE(stage, use_landclass_params)
+    // This function is not used in RT shaders, but still needs to be defined
+    // to prevent compilation errors in code paths that are present but not executed in RT.
+    hlsl (stage) { uint get_clipmap_indirection_offset() { return 0; } }
+endmacro
+
+include "landclass_inc.dshl"

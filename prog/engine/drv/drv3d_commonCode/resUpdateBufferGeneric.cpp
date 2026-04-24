@@ -14,7 +14,9 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex_region(B
   dest_base_texture->getinfo(ti, dest_mip);
 
   int cflg = (ti.cflg & (TEXFMT_MASK | TEXCF_SRGBWRITE | TEXCF_SRGBREAD)) | TEXCF_SYSMEM | TEXCF_WRITEONLY;
+#if _TARGET_C2
 
+#endif
   unsigned texFmt = ti.cflg & TEXFMT_MASK;
   const TextureFormatDesc &fmtInfo = get_tex_format_desc(texFmt);
 
@@ -39,9 +41,7 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex_region(B
   D3D_CONTRACT_ASSERT_RETURN(offset_y + height <= targetHeight, nullptr);
   D3D_CONTRACT_ASSERT_RETURN(offset_z + depth <= targetDepth, nullptr);
 
-  bool updateDirectly = d3d::is_in_device_reset_now();
-  if (d3d::get_driver_code().is(d3d::metal))
-    updateDirectly = true;
+  const bool updateDirectly = d3d::is_in_device_reset_now();
 
   BaseTexture *stagingTex = nullptr;
   char *dst = nullptr;
@@ -74,7 +74,8 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex_region(B
   else
   {
     bool voltex = (ti.type == D3DResourceType::VOLTEX);
-    stagingTex = voltex ? d3d::create_voltex(width, height, depth, cflg, 1) : d3d::create_tex(nullptr, width, height, cflg, 1);
+    stagingTex = voltex ? d3d::create_voltex(width, height, depth, cflg, 1, RESTAG_STAGING)
+                        : d3d::create_tex(nullptr, width, height, cflg, 1, RESTAG_STAGING);
     if (!stagingTex)
     {
       if (!d3d::is_in_device_reset_now())
@@ -123,6 +124,9 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex(BaseText
   TextureInfo ti;
   dest_tex->getinfo(ti, dest_mip);
   int cflg = (ti.cflg & (TEXFMT_MASK | TEXCF_SRGBWRITE | TEXCF_SRGBREAD)) | TEXCF_SYSMEM | TEXCF_WRITEONLY;
+#if _TARGET_C2
+
+#endif
   unsigned tex_fmt = ti.cflg & TEXFMT_MASK;
   bool is_block_fmt = tex_fmt == TEXFMT_DXT1 || tex_fmt == TEXFMT_DXT3 || tex_fmt == TEXFMT_DXT5 || tex_fmt == TEXFMT_BC7 ||
                       tex_fmt == TEXFMT_BC6H || tex_fmt == TEXFMT_ATI1N || tex_fmt == TEXFMT_ATI2N;
@@ -133,9 +137,7 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex(BaseText
     ti.h = max<uint16_t>(ti.h, 4);
   }
 
-  bool update_directly = d3d::is_in_device_reset_now();
-  if (d3d::get_driver_code().is(d3d::metal))
-    update_directly = true;
+  const bool update_directly = d3d::is_in_device_reset_now();
 
   BaseTexture *staging_tex = nullptr;
   char *dst = nullptr;
@@ -171,7 +173,8 @@ rubgeneric::ResUpdateBuffer *rubgeneric::allocate_update_buffer_for_tex(BaseText
   else
   {
     bool voltex = (dest_tex->getType() == D3DResourceType::VOLTEX);
-    staging_tex = voltex ? d3d::create_voltex(ti.w, ti.h, 1, cflg, 1) : d3d::create_tex(nullptr, ti.w, ti.h, cflg, 1);
+    staging_tex = voltex ? d3d::create_voltex(ti.w, ti.h, 1, cflg, 1, RESTAG_STAGING)
+                         : d3d::create_tex(nullptr, ti.w, ti.h, cflg, 1, RESTAG_STAGING);
     if (!staging_tex)
     {
       if (!d3d::is_in_device_reset_now())

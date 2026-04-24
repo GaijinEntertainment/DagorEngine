@@ -4,7 +4,7 @@
 #include <ecsPropPanel/ecsBasicObjectEditor.h>
 
 #include <daECS/scene/scene.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <libTools/util/undo.h>
 
 class ECSUndoDeleteTemplate : public UndoRedoObject

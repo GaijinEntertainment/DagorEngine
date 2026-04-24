@@ -2,7 +2,7 @@
 
 #include <recastTools/recastBuildJumpLinks.h>
 #include <recastTools/recastNavMeshTile.h>
-#include <detourNavMeshQuery.h>
+#include <DetourNavMeshQuery.h>
 #include <pathFinder/pathFinder.h>
 #include <recastTools/recastTools.h>
 
@@ -17,9 +17,6 @@ struct Jumplink
   Edge obstructionLine;
   bool merged = false;
 };
-
-void add_off_mesh_connection(recastnavmesh::OffMeshConnectionsStorage &storage, const float *spos, const float *epos, float rad,
-  unsigned char bidir, unsigned short flags = pathfinder::POLYFLAG_JUMP, unsigned short area = pathfinder::POLYAREA_JUMP);
 
 static bool find_nearest_navmesh_point(const dtNavMeshQuery *nav_query, Point3 &pos, float horz_extents, float vert_extend)
 {
@@ -255,18 +252,27 @@ static bool check_jumpoff_fall(const rcHeightfield *solid, const JumpLinksParams
   const float allowedSpace = jlk_params.agentHeight * 0.1f;
 
   float prevAgentY = start_pos.y;
-  float prevCellFloor = start_pos.y;
+  float curFloor = -FLT_MAX;
+  float curCeiling = FLT_MAX;
+  float prevFloor = -FLT_MAX;
+  float prevCeiling = FLT_MAX;
+  float prevCellFloor = -FLT_MAX;
+  float prevCellCeiling = FLT_MAX;
   bool res = false;
 
   // 1. check for jump down trajectory
   const float maxWalkForwardSamples = ceilf(jlk_params.agentRadius * 2.f / cellSize);
+  const float startFallingHeight = 0.5f;
   bool isFalling = false;
-  bool foundObstruction = false;
-  for (int i = 0; !foundObstruction; i++)
+  bool foundFallPos = false;
+  float maxHeight = start_pos.y;
+  int startFallingSample = -1;
+  for (int i = 0; !foundFallPos; i++)
   {
     isFalling = isFalling || i > maxWalkForwardSamples;
     const float dist = cellSize * i;
-    const float trajHeight = isFalling ? get_jump_down_trajectory_height(dist) : 0.0f;
+    const float startFallingDist = startFallingSample >= 0 ? cellSize * startFallingSample : 0.0f;
+    const float trajHeight = isFalling ? get_jump_down_trajectory_height(dist - startFallingDist) : 0.0f;
     if (trajHeight < -jlk_params.jumpoffMaxHeight)
       break;
     const Point3 pt = start_pos + dir * dist;
@@ -277,63 +283,87 @@ static bool check_jumpoff_fall(const rcHeightfield *solid, const JumpLinksParams
       break;
 
     const rcSpan *span = solid->spans[ix + iz * hfWidth];
-    float prevFloor = -FLT_MAX;
+    bool fit = false;
+    float atFloor = -FLT_MAX;
     for (;;)
     {
-      float ymin = span ? orig[1] + span->smin * cellHeight : FLT_MAX;
-      float ymax = span ? orig[1] + span->smax * cellHeight : FLT_MAX;
+      const float atCeiling = span ? (solid->bmin[1] + span->smin * cellHeight) : FLT_MAX;
 
-      // skip floors below startPos
-      if (agentY + allowedSpace > ymax)
-      {
-        prevFloor = ymax;
-        span = span ? span->next : nullptr; //-V547
-        continue;
-      }
-      // stop on ceiling above agent
-      if (ymin != FLT_MAX && agentY + agentHeight < ymin)
-        break;
-
-      if (isFalling)
-      {
-        // obstruction on the way
-        if (!(agentY + allowedSpace >= prevFloor && agentY + agentHeight < ymin))
-        {
-          foundObstruction = true;
-          break;
-        }
-        // found floor to jump to
-        if (ymin > prevAgentY + agentHeight && prevFloor > agentY - allowedSpace && prevFloor < prevAgentY + allowedSpace)
-        {
-          fall_pos = Point3::xVz(pt, prevFloor);
-          res = start_pos.y - prevFloor > jlk_params.jumpoffMinHeight;
-          foundObstruction = true;
-          break;
-        }
-      }
+      const float fitFloor = max(atFloor, prevCellFloor);
+      const float fitCeiling = min(atCeiling, prevCellCeiling);
 
       if (!isFalling)
       {
-        // obstruction on the way to edge
-        if (!(agentY + allowedSpace >= prevFloor && agentY + agentHeight < ymin))
-          foundObstruction = true;
+        if (fitFloor < agentY + agentHeight && fitCeiling > agentY + jlk_params.agentMinSpace &&
+            fitCeiling - fitFloor > jlk_params.agentMinSpace)
+        {
+          fit = true;
+          curFloor = atFloor;
+          curCeiling = atCeiling;
 
-        // found cliff, start falling
-        else if (prevFloor < prevCellFloor - cellHeight)
-          isFalling = true;
+          if (prevCellFloor > -FLT_MAX && prevCellFloor - curFloor > startFallingHeight)
+          {
+            isFalling = true;
+            startFallingSample = i;
+            break;
+          }
+        }
 
-        prevCellFloor = prevFloor;
+        if (atFloor > agentY + agentHeight)
+        {
+          break;
+        }
+      }
+
+      if (isFalling)
+      {
+        if (atFloor < agentY + allowedSpace && atCeiling > agentY + agentHeight)
+        {
+          fit = true;
+          curFloor = atFloor;
+          curCeiling = atCeiling;
+        }
+
+        // found floor to jump to
+        if (atCeiling > prevAgentY + agentHeight && atFloor > agentY - allowedSpace && atFloor < prevAgentY + allowedSpace)
+        {
+          fit = true;
+          fall_pos = Point3::xVz(pt, atFloor);
+          res = start_pos.y - atFloor > jlk_params.jumpoffMinHeight;
+          foundFallPos = true;
+          break;
+        }
+      }
+
+      prevFloor = atFloor;
+      prevCeiling = atCeiling;
+
+      if (!span)
+      {
         break;
       }
 
-      if (!span)
+      atFloor = solid->bmin[1] + span->smax * cellHeight;
+      if (atFloor > prevCellCeiling)
+      {
         break;
+      }
 
-      prevFloor = ymax;
       span = span->next;
     }
+    if (!fit)
+    {
+      return false;
+    }
+    if (!isFalling)
+      maxHeight = max(maxHeight, curFloor);
+    prevCellFloor = curFloor;
+    prevCellCeiling = curCeiling;
     prevAgentY = agentY;
   }
+
+  if (maxHeight - fall_pos.y > jlk_params.jumpoffMaxHeight)
+    res = false;
 
   return res;
 }
@@ -472,59 +502,117 @@ static void sample_mapping_areas(const Edge edge, const Tab<Edge> &mapped_edges,
   bool &found_obstacles)
 {
   found_obstacles = false;
-  Point2 samplingDir = Point2(edge.sq.x - edge.sp.x, edge.sq.z - edge.sp.z);
-  int samples = (int)ceilf(length(samplingDir) / solid->cs);
-  float relativeAgentRadius = jlk_params.agentRadius / samplingDir.length();
-  samplingDir.normalize();
+
+  Point2 samplingDir2D = Point2(edge.sq.x - edge.sp.x, edge.sq.z - edge.sp.z);
+  float samplingLength = length(samplingDir2D);
+  int samples = max(2, (int)ceilf(samplingLength / solid->cs));
+  float relativeAgentRadius = jlk_params.agentRadius / samplingLength;
+  samplingDir2D.normalize();
+
   const Point3 edgeDir = edge.sq - edge.sp;
-  for (int i = 0; i < mapped_edges.size(); ++i)
+
+  for (const Edge &originalMappedEdge : mapped_edges)
   {
-    const Edge mappedEdge = mapped_edges[i];
+    Edge mappedEdge = originalMappedEdge;
+    if (dot(edge.sp - edge.sq, mappedEdge.sp - mappedEdge.sq) < 0.0f)
+      mappedEdge = Edge{mappedEdge.sq, mappedEdge.sp};
+
     const Point3 mappedEdgeDir = mappedEdge.sq - mappedEdge.sp;
-    float startValidU = 0.0f;
-    float lastValidU = 0.0f;
-    for (int i = 0; i < samples; i++)
+
+    bool segmentActive = false;
+    float segmentStartU = 0.0f;
+    float height = 0.0f;
+
+    for (int sampleIdx = 0; sampleIdx < samples; ++sampleIdx)
     {
-      const float u = (float)i / (float)(samples - 1);
+      float u = (float)sampleIdx / (float)(samples - 1);
+
       Point3 startPoint = lerp(edge.sp, edge.sq, u);
       Point3 endPoint = lerp(mappedEdge.sp, mappedEdge.sq, u);
+
       Point3 dir = endPoint - startPoint;
       dir.y = 0;
-      dir.normalize();
+      if (dir.lengthSq() > 0.01f)
+        dir.normalize();
+      else
+        continue;
+
       startPoint -= dir * jlk_params.agentRadius;
       endPoint += dir * jlk_params.agentRadius;
 
-      float height = 0.0f;
       const bool canJump = check_jump_between_points(nav_query, solid, chf, jlk_params, startPoint, endPoint, height);
 
-      if (!canJump)
+      if (canJump)
+      {
+        if (!segmentActive)
+        {
+          segmentStartU = u;
+          segmentActive = true;
+        }
+      }
+      else
       {
         found_obstacles = true;
-        if (lastValidU - startValidU > relativeAgentRadius)
-        {
-          const Edge fromEdge{edge.sp + edgeDir * startValidU, edge.sp + edgeDir * lastValidU};
-          const Edge toEdge{mappedEdge.sp + mappedEdgeDir * startValidU, mappedEdge.sp + mappedEdgeDir * lastValidU};
-          out_jumplinks.push_back(Jumplink{fromEdge, toEdge});
-        }
-        i += ceil(jlk_params.agentRadius / solid->cs);
-        if (i >= samples)
-          return;
-        startValidU = lastValidU = (float)(i + 1) / (float)(samples - 1);
-        continue;
-      }
 
-      lastValidU = u;
+        if (segmentActive)
+        {
+          float segmentLength = u - segmentStartU;
+          if (segmentLength > relativeAgentRadius)
+          {
+            const Edge fromEdge{edge.sp + edgeDir * segmentStartU, edge.sp + edgeDir * u};
+            const Edge toEdge{mappedEdge.sp + mappedEdgeDir * segmentStartU, mappedEdge.sp + mappedEdgeDir * u};
+            out_jumplinks.push_back(Jumplink{fromEdge, toEdge});
+          }
+          segmentActive = false;
+        }
+      }
     }
-    if (1.0f - startValidU > relativeAgentRadius)
+
+    // Handle trailing valid segment
+    if (segmentActive)
     {
-      const Edge fromEdge{edge.sp + edgeDir * startValidU, edge.sq};
-      const Edge toEdge{mappedEdge.sp + mappedEdgeDir * startValidU, mappedEdge.sq};
-      out_jumplinks.push_back(Jumplink{fromEdge, toEdge});
+      float segmentLength = 1.0f - segmentStartU;
+      if (segmentLength > relativeAgentRadius)
+      {
+        const Edge fromEdge{edge.sp + edgeDir * segmentStartU, edge.sq};
+        const Edge toEdge{mappedEdge.sp + mappedEdgeDir * segmentStartU, mappedEdge.sq};
+        out_jumplinks.push_back(Jumplink{fromEdge, toEdge});
+      }
     }
   }
 }
 
-static const int MAX_MAPPING_CYCLES = 15;
+static Edge find_mapping_edge_by_normal(const Edge &smaller_mapping_edge, const Edge &larger_mapping_edge, const Point3 &plane_normal)
+{
+  EdgeClipResult leftClipResult;
+  Point3 leftMappedPoint = clip_edge_by_plane(larger_mapping_edge, smaller_mapping_edge.sp, plane_normal, leftClipResult);
+
+  Point3 planeNormal = -plane_normal;
+  EdgeClipResult rightClipResult;
+  Point3 rightMappedPoint = clip_edge_by_plane(larger_mapping_edge, smaller_mapping_edge.sq, planeNormal, rightClipResult);
+  if (rightClipResult == EDGE_CLIP_RESULT_INSIDE)
+    rightMappedPoint = larger_mapping_edge.sq;
+
+  if (leftClipResult == EDGE_CLIP_RESULT_INSIDE)
+  {
+    planeNormal = larger_mapping_edge.sp - smaller_mapping_edge.sp;
+    planeNormal = normalize(Point3{-planeNormal.z, 0, planeNormal.x});
+    rightMappedPoint = clip_edge_by_plane(larger_mapping_edge, smaller_mapping_edge.sq, planeNormal, rightClipResult);
+    if (rightClipResult == EDGE_CLIP_RESULT_INSIDE)
+      rightMappedPoint = larger_mapping_edge.sq;
+  }
+  else if (rightClipResult == EDGE_CLIP_RESULT_INSIDE)
+  {
+    planeNormal = larger_mapping_edge.sq - smaller_mapping_edge.sq;
+    planeNormal = normalize(Point3{planeNormal.z, 0, -planeNormal.x});
+    leftMappedPoint = clip_edge_by_plane(larger_mapping_edge, smaller_mapping_edge.sp, planeNormal, leftClipResult);
+    if (leftMappedPoint == larger_mapping_edge.sq)
+      leftMappedPoint = larger_mapping_edge.sp;
+  }
+
+  return Edge{leftMappedPoint, rightMappedPoint};
+}
+
 static void build_edge_to_edge_links(const Tab<Edge> &edges, const rcHeightfield *solid, const rcCompactHeightfield *chf,
   dtNavMeshQuery *nav_query, const JumpLinksParams &jlk_params, Tab<Jumplink> &jumplinks)
 {
@@ -640,45 +728,16 @@ static void build_edge_to_edge_links(const Tab<Edge> &edges, const rcHeightfield
 
       // mapping areas
       Tab<Edge> mappedEdges;
-      Point3 lastLeftMappedPoint = largerMappingEdge.sp;
-      Point3 lastRightMappedPoint = largerMappingEdge.sq;
-      for (int i = 0;; i++)
       {
-        if (i > MAX_MAPPING_CYCLES)
-        {
-          break;
-        }
-        const Edge leftMappingConnection = {smallerMappingEdge.sp, lastLeftMappedPoint};
-        Point3 mappingDir = leftMappingConnection.sq - leftMappingConnection.sp;
-        Point3 planeNormal = {mappingDir.z, 0, -mappingDir.x};
-        EdgeClipResult clipResult;
-        Point3 mappedPoint = clip_edge_by_plane(largerMappingEdge, smallerMappingEdge.sq, planeNormal, clipResult);
-        if (clipResult == EDGE_CLIP_RESULT_INSIDE)
-          mappedPoint = largerMappingEdge.sq;
-
-        Edge mappedEdge = {lastLeftMappedPoint, mappedPoint};
+        Point3 planeNormal = smallerMappingEdge.sq - smallerMappingEdge.sp;
+        planeNormal = normalize(Point3{planeNormal.z, 0, planeNormal.x});
+        Edge mappedEdge = find_mapping_edge_by_normal(smallerMappingEdge, largerMappingEdge, planeNormal);
         mappedEdges.push_back(mappedEdge);
-        lastLeftMappedPoint = mappedPoint;
 
-        if (i == 0 && (mappedEdge.sq - mappedEdge.sp).lengthSq() > (largerMappingEdge.sq - largerMappingEdge.sp).lengthSq() * 0.95f)
-          break;
-
-        if ((largerMappingEdge.sp - lastLeftMappedPoint).lengthSq() > (largerMappingEdge.sp - lastRightMappedPoint).lengthSq())
-          break;
-
-        const Edge rightMappingConnection = {smallerMappingEdge.sq, lastRightMappedPoint};
-        mappingDir = rightMappingConnection.sq - rightMappingConnection.sp;
-        planeNormal = {-mappingDir.z, 0, mappingDir.x};
-        mappedPoint = clip_edge_by_plane(largerMappingEdge, smallerMappingEdge.sp, planeNormal, clipResult);
-        if (clipResult == EDGE_CLIP_RESULT_INSIDE)
-          mappedPoint = largerMappingEdge.sq;
-
-        mappedEdge = {mappedPoint, lastRightMappedPoint};
+        planeNormal = largerMappingEdge.sq - largerMappingEdge.sp;
+        planeNormal = normalize(Point3{planeNormal.x, 0, planeNormal.z});
+        mappedEdge = find_mapping_edge_by_normal(smallerMappingEdge, largerMappingEdge, planeNormal);
         mappedEdges.push_back(mappedEdge);
-        lastRightMappedPoint = mappedPoint;
-
-        if ((largerMappingEdge.sp - lastLeftMappedPoint).lengthSq() > (largerMappingEdge.sp - lastRightMappedPoint).lengthSq())
-          break;
       }
 
       // sample mapping areas
@@ -838,7 +897,11 @@ void build_jumplinks_v2(recastnavmesh::OffMeshConnectionsStorage &out_conn_stora
   build_edge_to_edge_links(edges, solid, chf, navQuery, jlk_params, jumplinks);
 
   if (jumplinks.size() == 0)
+  {
+    dtFreeNavMeshQuery(navQuery);
+    navQuery = nullptr;
     return;
+  }
 
   Tab<Jumplink> mergedJumplinks = merge_all_jumplinks(jumplinks, jlk_params.edgeMergeAngle, jlk_params.edgeMergeDist);
 

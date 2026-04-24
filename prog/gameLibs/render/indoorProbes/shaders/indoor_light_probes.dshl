@@ -8,7 +8,12 @@ float4 indoor_probes_grid_xz_center;
 buffer indoor_active_probes_data;
 buffer indoor_visible_probes_data;
 buffer indoor_probe_cells_clusters;
+float indoor_probes_max_distance;
 float indoor_probes_max_distance_or_disabled; // if negative, indoor probes are not used
+
+int indoor_probes_enable_cube_tex = 1;
+interval indoor_probes_enable_cube_tex: no<1, yes;
+assume_if_not_assumed indoor_probes_enable_cube_tex = yes;
 
 macro USE_INDOOR_LIGHT_PROBES(code, is_window)
 if (compatibility_mode == compatibility_mode_off)
@@ -133,6 +138,78 @@ if (compatibility_mode == compatibility_mode_off)
       return intersectPositionWS - probe_pos;
     }
 
+    bool has_indoor_probes(float3 world_pos, float viewDist)
+    {
+      if (indoor_probes_max_distance_or_disabled <= 0)
+        return false;
+
+      float3 gridPos;
+      int3 gridSize;
+      float fadeWeight;
+      get_grid_params(world_pos, viewDist, gridPos, gridSize, fadeWeight);
+
+      BRANCH
+      if (fadeWeight == 0)
+        return false;
+
+      ##if indoor_probes_to_use == active_probes
+        int probesCount = PROBES_IN_CELL;
+        float3 idx =  gridPos + gridSize * 0.5;
+        if (any(idx < 0) || any(idx >= float3(GRID_SIDE, GRID_HEIGHT, GRID_SIDE)))
+          return false;
+        uint id = (uint(idx.x) * GRID_HEIGHT + uint(idx.y)) * GRID_SIDE + uint(idx.z);
+        uint4 probesIndicesPacked = structuredBufferAt(indoor_probe_cells, id);
+        uint4 indices1 = probesIndicesPacked >> 16;
+        uint4 indices2 = probesIndicesPacked & 0xFFFF;
+        uint probesIndices[PROBES_IN_CELL] =
+        {
+          indices1.x, indices1.y, indices1.z, indices1.w,
+          indices2.x, indices2.y, indices2.z, indices2.w
+        };
+      ##else
+        int probesCount = NON_CELL_PROBES_COUNT;
+      ##endif
+
+      // no cubemap texture support for mobiles
+      ##if indoor_probes_enable_cube_tex == yes
+        int boxesNearbyCount = 0;
+        UNROLL
+        for (int i = 0; i < probesCount; ++i)
+        {
+          ##if indoor_probes_to_use == active_probes
+            uint probeIndex = probesIndices[i];
+            if (probeIndex == uint(INVALID_CUBE_ID))
+              break;
+          ##else
+            int probeIndex = i;
+          ##endif
+
+          uint cubeId = indoor_probe_pos_and_cubes[probeIndex].w;
+          if (cubeId == INVALID_CUBE_ID)
+            continue;
+
+          half3 boxSize = half3(indoor_probe_boxes[probeIndex * 3 + 0].w, indoor_probe_boxes[probeIndex * 3 + 1].w, indoor_probe_boxes[probeIndex * 3 + 2].w);
+          half3 boxX = indoor_probe_boxes[probeIndex * 3 + 0].xyz;
+          half3 boxY = indoor_probe_boxes[probeIndex * 3 + 1].xyz;
+          half3 boxZ = indoor_probe_boxes[probeIndex * 3 + 2].xyz;
+
+          half3 probePos = indoor_probe_pos_and_cubes[probeIndex].xyz;
+          half3 localPos = get_local_dir(world_pos - probePos, boxX, boxY, boxZ);
+
+          // Box (/boundingbox) calculation
+          //---------------------------------
+          half3 boxDistanceVector = abs(localPos) - boxSize * 0.5;
+          half signedDistance = max3(boxDistanceVector);
+
+          BRANCH
+          if (signedDistance <= PROBE_BOX_OFFSET_FOR_BIG_BOX + PROBE_BOX_PADDING)
+            return true;
+        }
+      ##endif //indoor_probes_enable_cube_tex == yes
+
+      return false;
+    }
+
     float4 use_indoor_probes(float3 world_pos, float3 normal, float3 reflected_dir, float roughnessMip, float viewDist)
     {
       if (indoor_probes_max_distance_or_disabled <= 0)
@@ -168,7 +245,7 @@ if (compatibility_mode == compatibility_mode_off)
       float3 result = float3(0, 0, 0);
       float totalWeight = 0;
       // no cubemap texture support for mobiles
-  #if !MOBILE_DEVICE
+  #if indoor_probes_enable_cube_tex == yes
 
       int boxesNearbyCount = 0;
       UNROLL
@@ -271,7 +348,7 @@ if (compatibility_mode == compatibility_mode_off)
 
       result *= fadeWeight;
 
-  #endif //!MOBILE_DEVICE
+  #endif //indoor_probes_enable_cube_tex == yes
       return float4(result, 1.0f-totalWeight*fadeWeight);
     }
   }

@@ -1,0 +1,39 @@
+float4 hero_cockpit_bbox_min = (0, 0, 0, 0);
+float4 hero_cockpit_bbox_max = (0, 0, 0, 0);
+int hero_cockpit_camera_enabled = 0;
+
+macro INIT_AND_USE_HERO_COCKPIT_DISCARD_TRANSPARENCY()
+  if (in_editor_assume == no)
+  {
+    INIT_READ_IS_HERO_COCKPIT(ps)
+    USE_READ_IS_HERO_COCKPIT(ps)
+
+    (ps) {
+      hero_cockpit_bbox_min@f3 = hero_cockpit_bbox_min.xyz;
+      hero_cockpit_bbox_max@f3 = hero_cockpit_bbox_max.xyz;
+      hero_cockpit_camera_enabled@i1 = hero_cockpit_camera_enabled;
+    }
+
+    hlsl(ps) {
+      void hero_cockpit_discard_transparency(float3 world_pos, float2 tc)
+      {
+        BRANCH
+        if (hero_cockpit_camera_enabled)
+        {
+          BRANCH
+          if ((all(world_pos > hero_cockpit_bbox_min) && all(world_pos < hero_cockpit_bbox_max)))
+          {
+            if (isGbufferHeroCockpit(tc))
+              discard;
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    hlsl(ps) {
+      void hero_cockpit_discard_transparency(float3 world_pos, float2 tc) {}
+    }
+  }
+endmacro

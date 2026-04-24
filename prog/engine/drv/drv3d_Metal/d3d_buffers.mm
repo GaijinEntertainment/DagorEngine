@@ -43,21 +43,21 @@ bool d3d::setvdecl(VDECL vdecl)
   return true;
 }
 
-Sbuffer *d3d::create_vb(int size, int flg, const char* name)
+Sbuffer *d3d::create_vb(int size, int flg, const char* name, ResourceTagType)
 {
   flg |= SBCF_BIND_VERTEX;
   validate_sbuffer_flags(flg, name);
   return new Buffer(size, 0, flg, 0, name);
 }
 
-Sbuffer *d3d::create_ib(int size, int flg, const char *name)
+Sbuffer *d3d::create_ib(int size, int flg, const char *name, ResourceTagType)
 {
   flg |= SBCF_BIND_INDEX;
   validate_sbuffer_flags(flg, name);
   return new Buffer(size, 0, flg, 0, name);
 }
 
-Sbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char* name)
+Sbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char* name, ResourceTagType)
 {
   validate_sbuffer_flags(flags, name);
   return new Buffer(elements, struct_size, flags, format, name);
@@ -172,21 +172,6 @@ bool d3d::multi_draw_indexed_indirect(int prim_type, Sbuffer *args, uint32_t dra
   return res;
 }
 
-bool d3d::draw_up(int prim_type, int numprim, const void* ptr, int stride_bytes)
-{
-  dirty_render_target();
-  check_primtype(prim_type);
-  return render.drawUP(prim_type, nprim_to_nverts(prim_type, numprim), NULL, ptr, nprim_to_nverts(prim_type, numprim), stride_bytes);
-}
-
-/// draw indexed primitives from user pointer (rather slow)
-bool d3d::drawind_up(int prim_type, int minvert, int numvert, int numprim, const uint16_t *ind,
-                     const void* ptr, int stride_bytes)
-{
-  dirty_render_target();
-  check_primtype(prim_type);
-  return render.drawUP(prim_type, nprim_to_nverts(prim_type, numprim), ind, ptr, numvert, stride_bytes);
-}
 #define IMMEDIATE_CB_NAMESPACE namespace drv3d_metal
 
 bool d3d::set_immediate_const(unsigned shader_stage, const uint32_t *data, unsigned num_words)

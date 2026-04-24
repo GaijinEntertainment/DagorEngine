@@ -11,3 +11,7 @@ typedef uint32_t TargetSignatureDetectorId;
 typedef uint32_t TargetSignatureSourceId;
 
 #define INVALID_TARGET_SIGNATURE_SOURCE_ID TargetSignatureSourceId(-1)
+
+typedef unsigned int TargetSignatureTypesMask;
+
+#define ALL_TARGET_SIGNATURE_FLAGS (TargetSignatureTypesMask) - 1

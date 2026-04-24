@@ -7,6 +7,7 @@
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_threads.h>
 #include <util/dag_globDef.h>
+#include <math/dag_bits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -14,7 +15,6 @@
 #include <debug/dag_debug.h>
 #include <supp/dag_cpuControl.h>
 #include <perfMon/dag_statDrv.h>
-#include <EASTL/bitset.h>
 #if _TARGET_APPLE
 #include <mach/thread_act.h>
 #include <sys/sysctl.h>
@@ -67,6 +67,7 @@ inline void LOGMSG1(const char *, ...) {}
 
 #endif
 
+uint64_t dgs_main_thread_affinity = 4;
 
 #if _TARGET_PC
 #define MAX_VIRT_JOB_MGR_COUNT 88
@@ -468,7 +469,6 @@ static struct CpuJobsData //-V730
 #if _TARGET_PC_WIN | _TARGET_XBOX
   int numLogicalCores = 0;
   int numPhysicalCores = 0;
-  int numLogicalCoresPerLLC = 0;
 #elif _TARGET_C1 | _TARGET_C2
 
 
@@ -598,42 +598,41 @@ void cpujobs::init(int force_core_count, bool reserve_jobmgr_cores)
   if (force_core_count <= 0)
   {
 #if _TARGET_PC_WIN | _TARGET_XBOX
-    DWORD bufLen = 0;
-    G_VERIFY(!GetLogicalProcessorInformation(NULL, &bufLen) && GetLastError() == ERROR_INSUFFICIENT_BUFFER);
-    SYSTEM_LOGICAL_PROCESSOR_INFORMATION *sysInfo = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION *)alloca(bufLen);
-    G_VERIFYF(GetLogicalProcessorInformation(sysInfo, &bufLen), "%d", GetLastError());
-    int numCores = 0, numProcs = 0;
-    size_t maxCoresPerCacheL[4] = {0, 0, 0, 0};
-    for (int i = 0, n = bufLen / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION); i < n; ++i)
+    alignas(SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX) char tmpBuf[2048];
+    DWORD bufLen = sizeof(tmpBuf), offs = 0;
+    auto inf = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *)&tmpBuf[0]; //-V641
+    if (!GetLogicalProcessorInformationEx(RelationProcessorCore, inf, &bufLen)) [[unlikely]]
     {
-      const SYSTEM_LOGICAL_PROCESSOR_INFORMATION &inf = sysInfo[i];
-      switch (inf.Relationship)
-      {
-        case RelationCache:
-        {
-          int cli = inf.Cache.Level - 1;
-          G_FAST_ASSERT(cli >= 0 && cli < countof(maxCoresPerCacheL));
-          maxCoresPerCacheL[cli] = eastl::max(maxCoresPerCacheL[cli], eastl::bitset<64>(inf.ProcessorMask).count());
-        }
-        break;
-
-        case RelationProcessorCore:
-        {
-          numCores++;
-          numProcs += eastl::bitset<64>(inf.ProcessorMask).count();
-        }
-        break;
-
-        default: continue;
-      }
+      G_ASSERT(GetLastError() == ERROR_INSUFFICIENT_BUFFER);
+      inf = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *)alloca(bufLen);
+      G_VERIFYF(GetLogicalProcessorInformationEx(RelationProcessorCore, inf, &bufLen), "%d", GetLastError());
     }
-    int llcIndex = 0;
-    for (; llcIndex < countof(maxCoresPerCacheL) && maxCoresPerCacheL[llcIndex]; ++llcIndex)
-      ;
+    int numCores = 0, numProcs = 0;
+    eastl::pair<BYTE, KAFFINITY> procRecs[64] = {};
+    BYTE maxEffClass = 0;
+    for (int i = 0; offs < bufLen; i++)
+    {
+      auto cinf = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *)((char *)inf + offs);
+      numCores++;
+      numProcs += dag::popcount(cinf->Processor.GroupMask[0].Mask);
+      if (cinf->Processor.EfficiencyClass && i < eastl::size(procRecs))
+      {
+        procRecs[i] = eastl::make_pair(cinf->Processor.EfficiencyClass, cinf->Processor.GroupMask[0].Mask);
+        maxEffClass = max(maxEffClass, cinf->Processor.EfficiencyClass);
+      }
+      offs += cinf->Size;
+    }
     cpujobs_data.numLogicalCores = numProcs;
     cpujobs_data.numPhysicalCores = numCores;
-    cpujobs_data.numLogicalCoresPerLLC = maxCoresPerCacheL[llcIndex - 1];
-#elif _TARGET_C1 | _TARGET_C2
+    dgs_main_thread_affinity = 0;
+    EA_DISABLE_VC_WARNING(4146); // unary minus operator applied to unsigned type, result still unsigned
+    if (maxEffClass)
+      for (auto &r : procRecs)
+        if (r.first == maxEffClass && eastl::exchange(dgs_main_thread_affinity, /*lsb*/ r.second & -r.second))
+          break;
+    EA_RESTORE_VC_WARNING();
+    if (!dgs_main_thread_affinity)
+      dgs_main_thread_affinity = (numProcs >= 3) ? 4 : 1;
 
 #elif _TARGET_PC_MACOSX | _TARGET_PC_LINUX | _TARGET_ANDROID
     cpujobs_data.numLogicalCores = sysconf(_SC_NPROCESSORS_ONLN);
@@ -655,7 +654,7 @@ void cpujobs::init(int force_core_count, bool reserve_jobmgr_cores)
   {
     cpujobs_data.numLogicalCores = force_core_count;
   }
-#else
+#else // CONSTEXPR_CORE_COUNT
   G_UNUSED(force_core_count);
 #endif
 
@@ -746,16 +745,6 @@ int cpujobs::get_physical_core_count()
   G_ASSERT(cpujobs_data.isInited());
 #endif
   return cpujobs_data.numPhysicalCores;
-}
-
-int cpujobs::get_core_count_per_llc()
-{
-  G_ASSERT(cpujobs_data.isInited());
-#if _TARGET_PC_WIN | _TARGET_XBOX
-  return cpujobs_data.numLogicalCoresPerLLC;
-#else
-  return 1;
-#endif
 }
 
 bool cpujobs::start_job_manager(int core_id, int stk_sz, const char *threadName, int thread_priority)
@@ -959,7 +948,7 @@ int cpujobs::remove_jobs_by_tag(int core_or_vmgr_id, unsigned tag, bool auto_rel
   if (auto_release_jobs)
     ctx.releaseDoneQueue();
   cpujobs_data.unlock();
-  LOGMSG1("cpuobjs: remove job queue on %d, tag=%f\n", core_or_vmgr_id, tag);
+  LOGMSG1("cpuobjs: remove job queue on %d, tag=%u\n", core_or_vmgr_id, tag);
   return jobsRemovedCount;
 }
 

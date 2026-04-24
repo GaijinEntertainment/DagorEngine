@@ -1,0 +1,81 @@
+tree_burning_manager{
+  _tags:t="render"
+  _singleton:b=yes
+  "tree_burning_manager:TreeBurningManager"{}
+  tree_burning__additional_source_min_distance:r=2.0
+  tree_burning__fire_spread_speed:r=0.3
+  tree_burning__time_to_invalidate_shadows:r=1.0
+
+  "tree_burning__burnableRiExtra:list<t>"{}
+  "tree_burning__leavesShaders:list<t>"{
+    shader:t="rendinst_tree_colored"
+    shader:t="rendinst_tree_colored_alpha_split"
+  }
+
+  "tree_burning__bark_burnt_tex_d:SharedTexHolder"{}
+  tree_burning__bark_burnt_tex_d_res:t=""
+  tree_burning__bark_burnt_tex_d_var:t="tree_burning_bark_burnt_tex_d"
+  "tree_burning__bark_burnt_tex_n:SharedTexHolder"{}
+  tree_burning__bark_burnt_tex_n_res:t=""
+  tree_burning__bark_burnt_tex_n_var:t="tree_burning_bark_burnt_tex_n"
+  "tree_burning__bark_emissive_tex_d:SharedTexHolder"{}
+  tree_burning__bark_emissive_tex_d_res:t=""
+  tree_burning__bark_emissive_tex_d_var:t="tree_burning_bark_emissive_tex_d"
+}
+
+tree_burning_fx{
+  tree_burning__ignite_radius:r=1.0
+}
+
+tree_burning_chain_leaves_fire{
+  _use:t="fire_vegetation_tree_leaves_effect"
+  _use:t="fire_source_no_effect"
+  "serverSideEffect:tag"{}
+}
+
+tree_burning_chain_trunk_fire{
+  _use:t="fire_vegetation_tree_trunk_effect"
+  _use:t="fire_source_no_effect"
+  "serverSideEffect:tag"{}
+}
+
+tree_burning_chain_manager{
+  tree_burning_chain_manager__framesPerChainInit:i=3
+  tree_burning_chain_manager__framesToNextInit:i=0
+  tree_burning_chain_manager__framesForDebug:i=5000
+  tree_burning_chain_manager__canopyBoxStep:r=2.2
+  tree_burning_chain_manager__trunkBoxStep:r=1.5
+  tree_burning_chain_manager__canopyBoxSizeMul:p3=0.4, 0.7, 0.4
+  tree_burning_chain_manager__debugOn:b=no
+  tree_burning_chain_manager__fireFxTurnOnSpeed:r=2.4
+  tree_burning_chain_manager__fxUpdateCamDist:r=200
+  tree_burning_chain_manager__canopyBoxDisp:r=0.3
+  tree_burning_chain_manager__destroyFx:t="envir_destr_tree_dead_med_effect"
+  tree_burning_chain_manager__bushEffectLifeTime:r=3
+  tree_burning_chain_manager__canopyFxName:t="tree_burning_chain_leaves_fire"
+  tree_burning_chain_manager__trunkFxName:t="tree_burning_chain_trunk_fire"
+  "tree_burning_chain_manager__destroyedChainsHandles:list<u64>"{}
+  "tree_burning_chain_manager__destroyedChainsPoses:list<p3>"{}
+}
+
+tree_burning_chain{
+  _use:t="replicating"
+  transform:m=[[1, 0, 0] [0, 1, 0] [0, 0, 1] [0, 0, 0]]
+  tree_burning_chain__inited:b=no
+  tree_burning_chain__isBush:b=no
+  tree_burning_chain__deathTime:r=35
+  tree_burning_chain__canopyBoxMin:p3=0,0,0
+  tree_burning_chain__canopyBoxMax:p3=0,0,0
+  tree_burning_chain__nextUpdateInterval:r=0.5
+  tree_burning_chain__nextUpdateTime:r=-1
+  tree_burning_chain__canopyType:i=0
+  "tree_burning_chain__fireFxEids:list<eid>"{}
+  "tree_burning_chain__fireFxPoses:list<p4>"{}
+  "tree_burning_chain__fireSources:list<p4>"{}
+  "tree_burning_chain__treeHandle:u64"{
+    value:i64=-1
+  }
+  _tracked:t="tree_burning_chain__fireFxPoses"
+  _tracked:t="tree_burning_chain__fireSources"
+  _tracked:t="tree_burning_chain__inited"
+}

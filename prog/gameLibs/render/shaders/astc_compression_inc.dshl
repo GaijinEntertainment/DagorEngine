@@ -619,6 +619,10 @@ hlsl(stage)
 endmacro
 
 macro INIT_ASTC_COMPRESSION()
-  hlsl(cs){ RWTexture2D<uint4> compressedTexture : register( u2 ); }
+  (cs) {
+    compressedTexture@uav : register(2) hlsl {
+      RWTexture2D<uint4> compressedTexture@uav;
+    }
+  }
   INIT_ASTC_COMPRESSION_STAGE(cs)
 endmacro

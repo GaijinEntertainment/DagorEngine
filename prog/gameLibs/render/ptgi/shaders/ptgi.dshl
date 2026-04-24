@@ -2,6 +2,7 @@ include "shader_global.dshl"
 include "gbuffer.dshl"
 include "viewVecVS.dshl"
 include "bvh.dshl"
+include "rt_pipeline.dshl"
 include "ThreadGroupTilingX.dshl"
 include "rt/rt_lighting.dshl"
 include "use_prefiltered_gf.dshl"
@@ -17,6 +18,7 @@ texture rt_nr;
 
 float4 ptgi_hit_dist_params;
 
+float4 ptgi_resolution = (1,1,1,1);
 int4 ptgi_resolutionI = (1,1,1,1);
 int ptgi_res_mul = 1;
 int ptgi_use_rr = 1;
@@ -33,6 +35,14 @@ int blue_noise_frame_index;
 
 float ptgi_boost = 0;
 float ptgi_boost_range = 0;
+float4 ptgi_uv_scale;
+
+int ptgi_use_csm_shadows = 1;
+
+int ptgi_pipeline_mode = 0;
+interval ptgi_pipeline_mode : inline < 1, raygen < 2, ser;
+
+assume_if_not_assumed ptgi_pipeline_mode = inline;
 
 shader rt_gi
 {
@@ -43,14 +53,13 @@ shader rt_gi
 
   supports global_const_block;
 
-  ENABLE_ASSERT(cs)
   USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
 
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = ptgi_resolutionI.xy;
-    inv_aligned_resolution@f2 = (ptgi_res_mul * screen_pos_to_texcoord.xy);
+    inv_aligned_resolution@f2 = (1.0 / ptgi_resolution.xy);
     output@uav = ptgi_target hlsl { RWTexture2D<float4> output@uav; };
     impostor_shadow_offset@f1 = impostor_shadow_offset;
     ptgi_res_mul@i1 = ptgi_res_mul;
@@ -68,29 +77,55 @@ shader rt_gi
   hlsl(cs) {
     #define DISABLE_TOONSHADING 1
 
-    #include <Include/NRDEncoding.hlsli>
-    #include <Include/NRD.hlsli>
+    #include <NRD.hlsli>
 
     #define depth_gbuf_load depth_gbuf_read
+
+    #define TRACING_LOD 6
+  }
+
+  INIT_MAIN_BVH(cs, 0, false)
+
+  if (ptgi_pipeline_mode == inline)
+  {
+    USE_BVH_FOR_GI(cs)
+  }
+  else
+  {
+    if (ptgi_pipeline_mode == ser)
+    {
+      hlsl(cs)
+      {
+        #include "nvHLSLExtns.h"
+      }
+    }
+
+    USE_MAIN_BVH_RECONSTRUCTION(cs, 1, 1, 0, 1, 0, 0)
+    USE_GI_PAYLOAD(cs)
+
+    hlsl(cs)
+    {
+      float pl_get_lod(RayPayload pl)
+      {
+        return TRACING_LOD;
+      }
+    }
+    USE_GENERIC_RAYGEN_AHS(cs, true)
   }
 
   USE_AND_INIT_VIEW_VEC_CS()
   INIT_ZNZFAR_STAGE(cs)
-  INIT_READ_DEPTH_GBUFFER_BASE(cs)
 
   INIT_HALF_RES_DEPTH_TEX(cs)
   INIT_LOAD_BVH_FLAGS_BASE(cs)
-  INIT_LOAD_GBUFFER_BASE(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   USE_LOAD_GBUFFER_BASE(cs, true)
 
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
-  INIT_MAIN_BVH(cs, 0, false)
-  USE_BVH_FOR_GI(cs)
-
   USE_CALC_GEOMETRY_NORMAL(cs)
   USE_ADAPTIVE_RAY_OFFSET(cs)
 
-  INIT_RT_LIGHTING(cs, false, true, false, false, true, false)
+  INIT_RT_LIGHTING(cs, false, true, false, false, ptgi_use_csm_shadows, false)
   USE_RT_LIGHTING(cs, 0, true)
 
   INIT_BVH_WATER_FADE_BASE(cs)
@@ -147,6 +182,8 @@ shader rt_gi
 
     void write_output(uint2 output_index, float3 color, float d, float w, float roughness)
     {
+      ##assert(!any(isnan(color)) && !any(isinf(color)), "nan or inf in ptgi output color");
+
       if (ptgi_use_rr)
       {
         texture2DAt(output, output_index) = float4(color, 1);
@@ -158,8 +195,7 @@ shader rt_gi
       }
     }
 
-    RT_GROUP_SIZE
-    void rt_gi_cs(uint2 dtid : SV_DispatchThreadID)
+    void rt_gi(uint2 dtid)
     {
       uint2 rayIndex    = dtid;
       uint2 outputIndex = rayIndex;
@@ -242,8 +278,6 @@ shader rt_gi
       const float giDistance = hit_dist_params.x;
       const float throughputTreshold = 0.001;
 
-      HitInfo hitInfo;
-
       float3 throughput = 1;
       float3 giColor = 0;
       float rayLength = w;
@@ -260,8 +294,6 @@ shader rt_gi
       surface.reflectance     = processedGbuffer.reflectance;
       surface.isWater         = false; // Not used for the primary surface
       surface.isImpostor      = false; // Not used for the primary surface
-      surface.isTwoSided      = processedGbuffer.isTwoSided;
-      surface.isUnstable      = processedGbuffer.isUnstable;
       surface.isFoliage       = processedGbuffer.material == SHADING_FOLIAGE;
 
       ml::Rng::Hash::Initialize(rayIndex, frame_index);
@@ -273,7 +305,8 @@ shader rt_gi
 
         float rnd = ml::Rng::Hash::GetFloat();
 
-        bool isDiffuse = rnd < diffuseProbability;
+        bool isDiffuse = rnd <= diffuseProbability;
+
         throughput /= abs(float(!isDiffuse) - diffuseProbability);
 
         float3x3 localBasis = ml::Geometry::GetBasis(surface.normal);
@@ -306,23 +339,69 @@ shader rt_gi
         uint traceFlags = 0;
         // From the second bounce, don't bother with alpha testing, as it only has a meaningless contribution for a higher performance cost.
         // Except if it is two sided, like trees. There the rays are mostly hitting the foliage up close, which need to be more preceise.
-        if (bounce > 0 && !processedGbuffer.isTwoSided)
+        if (bounce > 0 && !isFoliageShader(processedGbuffer.material))
           traceFlags |= RAY_FLAG_FORCE_OPAQUE;
         float minT = surface.isFoliage ? bvh_foliage_bias : 0;
-        bool isHit = trace_ray(bvhMain, surface.position, sampleDir, minT, giDistance, rayLength, bvhGroupGI, hitInfo, 1, traceFlags);
+
+        SurfaceParams hitSurface;
+        float hitDistance;
+
+        ##if ptgi_pipeline_mode == inline
+          HitInfo hitInfo;
+          bool isHit = trace_ray(bvhMain, surface.position, sampleDir, minT, giDistance, rayLength, bvhGroupGI, hitInfo, half3(1,1,1), traceFlags);
+          if (isHit)
+          {
+            hitSurface = calc_surface_params(hitInfo, -sampleDir, -TRACING_LOD); // Use fix texture LOD
+            hitDistance = hitInfo.t;
+          }
+        ##else
+          RayPayload payload = (RayPayload)0;
+          pl_set_distance(payload, giDistance * 2); // Larger than giDistance means a miss
+
+          RayDesc ray;
+          ray.Origin = surface.position;
+          ray.Direction = sampleDir;
+          ray.TMin = minT;
+          ray.TMax = giDistance;
+
+          uint flags = RAY_FLAG_CULL_BACK_FACING_TRIANGLES | traceFlags;
+
+          TraceRay(bvhMain, flags, bvhGroupGI, 0, 0, 0, ray, payload);
+
+          bool isHit = pl_get_distance(payload) < giDistance;
+          hitDistance = pl_get_distance(payload);
+          if (isHit)
+          {
+            hitSurface.position = ray.Origin + ray.Direction * hitDistance;
+            hitSurface.surfaceToCamera = -half3(sampleDir);
+            hitSurface.albedo = half3(pl_get_albedo(payload));
+            hitSurface.normal = half3(pl_get_normal(payload));
+            hitSurface.smoothness = pl_get_smoothness(payload);
+            hitSurface.metalness = pl_get_metalness(payload);
+            hitSurface.reflectance = pl_get_reflectance(payload);
+            hitSurface.emission = 0;      // Implement it once we have emissive support in the BVH
+            hitSurface.emissionPart = 0;  // Implement it once we have emissive support in the BVH
+            hitSurface.isWater = pl_get_is_water(payload);
+            hitSurface.isImpostor = pl_get_is_impostor(payload);
+            hitSurface.isFoliage = pl_get_is_foliage(payload);
+          }
+
+          ##if ptgi_pipeline_mode == ser
+            NvReorderThread(isHit ? 1 : 0, 1);
+          ##endif
+        ##endif
 
         if (isHit)
         {
-          SurfaceParams hitSurface = calc_surface_params(hitInfo, -sampleDir, -6); // Use fix texture LOD
-          rayLength += hitInfo.t;
-          traceLength += hitInfo.t;
+          rayLength += hitDistance;
+          traceLength += hitDistance;
 
           half3 diffuseLighting = light_hit_surface(hitSurface, -sampleDir, rayLength, 10000, RAY_FLAG_FORCE_OPAQUE);
           half3 combinedLighting = diffuseLighting;
 
           giColor += combinedLighting * throughput;
 
-          firstDistance = bounce == 0 ? hitInfo.t : firstDistance;
+          firstDistance = bounce == 0 ? hitDistance : firstDistance;
 
           surface = hitSurface;
         }
@@ -338,9 +417,60 @@ shader rt_gi
 
       write_output(outputIndex, giColor, firstDistance, w, roughness);
     }
+
+    ##if ptgi_pipeline_mode == inline
+      RT_GROUP_SIZE
+      void rt_gi_cs(uint2 dtid : SV_DispatchThreadID)
+      {
+        rt_gi(dtid);
+      }
+    ##else
+      [shader("raygeneration")]
+      void rt_gi_raygen()
+      {
+        rt_gi(DispatchRaysIndex().xy);
+      }
+
+      [shader("closesthit")]
+      void rt_gi_closesthit(inout RayPayload payload, BuiltInTriangleIntersectionAttributes attr)
+      {
+        HitInfo hitInfo = CalcHitInfo<false>(WorldRayOrigin(),
+                                             WorldRayDirection(),
+                                             RayTCurrent(),
+                                             PrimitiveIndex(),
+                                             InstanceID(),
+                                             GeometryIndex(),
+                                             attr.barycentrics,
+                                             ObjectToWorld3x4(),
+                                             WorldToObject3x4(),
+                                             HitKind() == HIT_KIND_TRIANGLE_FRONT_FACE,
+                                             InstanceIndex(),
+                                             1);
+        SurfaceParams hitSurface = calc_surface_params(hitInfo, -WorldRayDirection(), -TRACING_LOD); // Use fix texture LOD
+        pl_set_albedo(payload, hitSurface.albedo);
+        pl_set_reflectance(payload, hitSurface.reflectance);
+        pl_set_metalness(payload, hitSurface.metalness);
+        pl_set_smoothness(payload, hitSurface.smoothness);
+        pl_set_normal(payload, hitSurface.normal);
+        pl_set_is_water(payload, hitSurface.isWater);
+        pl_set_is_impostor(payload, hitSurface.isImpostor);
+        pl_set_is_foliage(payload, hitSurface.isFoliage);
+        pl_set_distance(payload, RayTCurrent());
+      }
+
+      RaytracingShaderConfig shader_config={sizeof(RayPayload), sizeof(BuiltInTriangleIntersectionAttributes)};
+      RaytracingPipelineConfig pipeline_config = {1}; // No recursion
+    ##endif
   }
 
-  compile("cs_6_5", "rt_gi_cs");
+  if (ptgi_pipeline_mode == inline)
+  {
+    compile("cs_6_5", "rt_gi_cs");
+  }
+  else
+  {
+    compile("lib_6_5", "rt_gi_raygen");
+  }
 }
 
 texture ptgi_decode_src;
@@ -354,8 +484,6 @@ interval ptgi_decode_tonemap: no < 1, yes;
 
 shader rt_gi_decode
 {
-  ENABLE_ASSERT(cs)
-
   if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) {
     dont_render;
   }
@@ -367,6 +495,7 @@ shader rt_gi_decode
     resolution@f2 = get_dimensions(ptgi_decode_dst, 0).xy;
     ptgi_res_mul@i1 = ptgi_res_mul;
     ptgi_use_rr@u1 = ptgi_use_rr;
+    ptgi_inv_uv_scale@f2 = (1.0 / ptgi_uv_scale.xy);
   }
 
   hlsl(cs) {
@@ -374,6 +503,7 @@ shader rt_gi_decode
   }
 
   USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   INIT_READ_GBUFFER_BASE(cs)
   USE_READ_GBUFFER_BASE(cs)
 
@@ -381,8 +511,7 @@ shader rt_gi_decode
   USE_FULL_TONEMAP_LUT(cs)
 
   hlsl (cs) {
-    #include <Include/NRDEncoding.hlsli>
-    #include <Include/NRD.hlsli>
+    #include <NRD.hlsli>
 
     [numthreads(8, 8, 1)]
     void rt_gi_decode_cs(uint2 dtid : SV_DispatchThreadID)
@@ -398,7 +527,7 @@ shader rt_gi_decode
         value = texture2DAt(input, dtid * ptgi_res_mul).rgb;
 
       ##if (ptgi_decode_albedo_mul == yes)
-        value *= readPackedGbuffer((dtid + 0.5f) / resolution).albedo_ao.rgb;
+        value *= readPackedGbuffer((dtid + 0.5f) / resolution * ptgi_inv_uv_scale).albedo_ao.rgb;
       ##endif
 
       ##if (ptgi_decode_tonemap == yes)

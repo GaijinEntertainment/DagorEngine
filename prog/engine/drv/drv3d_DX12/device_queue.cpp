@@ -1,7 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <util/dag_watchdog.h>
-
 #include "device_queue.h"
 #include "device.h"
 
@@ -167,18 +165,6 @@ bool should_trigger_timeout_error(int msGpuWaitingTime)
   if (get_device().isInErrorState())
     return false;
 
-  if (get_device().isAnyCapturerLoaded())
-  {
-    logdbg("DX12: GPU capturer is active, timeout reached but continuing to wait (%d ms)", msGpuWaitingTime);
-    return false;
-  }
-
-  if (get_device().isGpuBasedValidationEnabled())
-  {
-    logdbg("DX12: GPU validation is enabled, timeout reached but continuing to wait (%d ms)", msGpuWaitingTime);
-    return false;
-  }
-
   return true;
 }
 } // namespace
@@ -197,19 +183,38 @@ bool drv3d_dx12::wait_for_frame_progress_with_event_slow_path(DeviceQueueGroup &
     return false;
   }
 
-  auto result = WaitForSingleObject(event, MAX_WAIT_OBJECT_TIMEOUT_MS);
+  int MAX_WAIT_TIME_MS = MAX_WAIT_OBJECT_TIMEOUT_MS;
+#if _TARGET_PC_WIN && DAGOR_DBGLEVEL > 0
+  if (get_device().isAnyCapturerLoaded() || get_device().isGpuBasedValidationEnabled())
+    MAX_WAIT_TIME_MS = INFINITE;
+#endif
+
+  auto result = WaitForSingleObject(event, MAX_WAIT_TIME_MS);
   int msGpuWaitingTime = 0;
+  uint32_t workerWaitAttempts = 0;
+  static constexpr uint32_t MAX_WORKER_WAIT_ATTEMPTS = 10;
   while (result == WAIT_TIMEOUT)
   {
     const uint64_t cpuFrameProgress = qs.lastFrameProgress();
+    if (cpuFrameProgress < progress && workerWaitAttempts++ < MAX_WORKER_WAIT_ATTEMPTS)
+    {
+      logdbg("DX12: Worker is taking longer than %uMS to arrive at progress %llu, waiting again (attempt %u of %u)...",
+        MAX_WAIT_TIME_MS, progress, workerWaitAttempts, MAX_WORKER_WAIT_ATTEMPTS);
+      result = WaitForSingleObject(event, MAX_WAIT_TIME_MS);
+      continue;
+    }
 #if _TARGET_PC_WIN
     if (should_trigger_timeout_error(msGpuWaitingTime))
     {
-      logerr("DX12: While waiting for frame progress %u (GPU progress %u, CPU progress %u) - %s, WaitForSingleObject(%p, "
-             "MAX_WAIT_OBJECT_TIMEOUT_MS) returned WAIT_TIMEOUT for too long (%d ms), giving up",
+      D3D_ERROR("DX12: While waiting for frame progress %u (GPU progress %u, CPU progress %u) - %s, WaitForSingleObject(%p, "
+                "MAX_WAIT_OBJECT_TIMEOUT_MS) returned WAIT_TIMEOUT for too long (%d ms), giving up",
         progress, qs.checkFrameProgress(), cpuFrameProgress, what, event, msGpuWaitingTime);
-      get_device().getDevice()->RemoveDevice();
-      get_device().signalDeviceErrorNoDebugInfo();
+      // If device removed is already detected, do not signal another one. That cause deadlock.
+      if (!get_device().isInErrorState()) // Smells race condition, but i don't have better idea.
+      {
+        get_device().getDevice()->RemoveDevice();
+        get_device().signalDeviceErrorNoDebugInfo();
+      }
     }
 #endif
     if (get_device().isInErrorState())

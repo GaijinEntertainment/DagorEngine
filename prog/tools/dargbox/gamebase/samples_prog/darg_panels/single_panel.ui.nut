@@ -19,7 +19,7 @@ let buttonCursor = Cursor({
   size = 24
   hotspot = [12, 12]
 
-  transform = {}
+  transform = true
   animations = [
     { prop=AnimProp.rotate, from = 0, to = 360, duration = 1, play = true, loop = true }
   ]
@@ -75,7 +75,7 @@ let freePanelLayout = {
   //worldPointerTexture = "panel_cursor"
   cursor         = panelCursor
 
-  size           = static [512, 640]
+  size           = const [512, 640]
 
   flow           = FLOW_VERTICAL
 
@@ -106,7 +106,7 @@ let freePanelLayout = {
       ]
     }
     {
-      size = static [512, 128]
+      size = const [512, 128]
       rendObj = ROBJ_TEXT
       halign = ALIGN_CENTER
       valign = ALIGN_CENTER

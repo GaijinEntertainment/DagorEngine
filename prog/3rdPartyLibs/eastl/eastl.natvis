@@ -573,6 +573,7 @@
 
 <Type Name="eastl::optional&lt;*&gt;">
   <Intrinsic Name="value" Expression="*($T1*)&amp;val"/>
+  <SmartPointer Usage="Minimal">($T1*)&amp;val</SmartPointer>
   <DisplayString Condition="!engaged">nullopt</DisplayString>
   <DisplayString Condition="engaged">{value()}</DisplayString>
   <Expand>

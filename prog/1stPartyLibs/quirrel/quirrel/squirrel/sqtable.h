@@ -16,8 +16,6 @@
 #define TBL_CLASS_TYPE_MEMBER_MASK ((1u<<TBL_CLASS_TYPE_MEMBER_BITS)-1)
 #define TBL_CLASS_CLASS_MASK ( (~(uint64_t(0))) ^ TBL_CLASS_TYPE_MEMBER_MASK )
 
-#define SQ_FREE_KEY_TYPE SQObjectType(0)
-
 inline SQUnsignedInteger32 sq_float_hash32(float v)
 {
     SQUnsignedInteger32 i;
@@ -43,7 +41,7 @@ private:
     friend struct SQStreamSerializer;
     struct _HashNode
     {
-        _HashNode() { key._type = SQ_FREE_KEY_TYPE; next = NULL; }
+        _HashNode() { key._type = OT_FREE_TABLE_SLOT; next = NULL; }
         SQObjectPtr val;
         SQObjectPtr key;
         _HashNode *next;
@@ -105,7 +103,7 @@ public:
         return NULL;
     }
     //for compiler use
-    inline bool GetStr(const SQChar* key,SQInteger keylen,SQObjectPtr &val) const
+    inline bool GetStr(const char* key,SQInteger keylen,SQObjectPtr &val) const
     {
         SQHash hash = _hashstr(key,keylen);
         _HashNode *n = &_nodes[hash & _numofnodes_minus_one];

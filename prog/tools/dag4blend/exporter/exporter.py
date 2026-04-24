@@ -305,32 +305,43 @@ class DagExporter(Operator, ExportHelper):
         node.objFlg |= DAG_NF_CASTSHADOW
         #<
         DP=o.dagorprops
-        broken=''
+        broken_properties = []
+        scripts = []
         for key in DP.keys():
-            if key!='broken_properties':
-                if key=='renderable:b':
-                    node.objFlg -= DAG_NF_RENDERABLE*int(DP[key]=='no')
-                elif key=='cast_shadows:b':
-                    node.objFlg -= DAG_NF_CASTSHADOW*int(DP[key]=='no')
-                try:
-                    value=str(DP[key].to_list())
-                    value=value.replace('[','')
-                    value=value.replace(']','')
-                except:
-                    value=str(DP[key])
-                    if key.endswith(':t'):
-                        value=value.replace('"','')#to avoid multiple quotes
-                        value='"'+value+'"'
-                line=key+'='+value+'\r\n'
-                #TODO: replace with more complex validation
-                if value.__len__()==0 or (key.endswith(':b') and value not in['yes','no']) or key.find(':')==-1:
-                    broken+=line
+            if key == 'broken_properties:t':
+                broken_properties.append(DP[key])
+                continue
+            if key=='renderable:b':
+                node.objFlg -= DAG_NF_RENDERABLE*int(DP[key]=='no')
+            elif key=='cast_shadows:b':
+                node.objFlg -= DAG_NF_CASTSHADOW*int(DP[key]=='no')
+            try:
+                value=str(DP[key].to_list())
+                value=value.replace('[','')
+                value=value.replace(']','')
+            except:
+                value=str(DP[key])
+                if key.endswith(':t'):
+                    value=value.replace('"','')#to avoid multiple quotes
+                    value='"'+value+'"'
+            if key.endswith(':b'):
+                if f'{DP[key]}'.lower() in ["0", "no", "false"]:
+                    scripts.append(f'{key}=no')
+                elif f'{DP[key]}'.lower() in ["1", "yes", "true"]:
+                    scripts.append(f'{key}=yes')
                 else:
-                    scripts+=line
+                    broken_properties.append(f'{key}={value}')
+                continue
+            script = f'{key}={value}'
+            #TODO: replace with more complex validation
+            if value.__len__()==0 or key.find(':')==-1:
+                broken_properties.append(script)
             else:
-                broken+=DP[key]
-        if broken.__len__()>0:
-            scripts+='broken_properties='+broken
+                scripts.append(script)
+        if broken_properties.__len__() > 0:
+            broken = ";".join(broken_properties)
+            scripts.append(f'broken_properties:t="{broken}"')
+        scripts = "\r\n".join(scripts)
         return scripts
 
     def toMesh(self, o, scene):

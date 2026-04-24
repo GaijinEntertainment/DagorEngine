@@ -15,7 +15,7 @@ void CachedStates::makeState(const StateKey &key)
             (key.s.zfunc != ZFUNC_GREATER_EQUAL ? shaders::OverrideState::Z_FUNC : 0));
   state.sblend = BLEND_SRCALPHA;
   state.dblend = BLEND_INVSRCALPHA;
-  state.sblenda = BLEND_ZERO;
+  state.sblenda = BLEND_ONE;
   state.dblenda = BLEND_ZERO;
 
   if (key.s.zfunc == ZFUNC_LESS)

@@ -1,16 +1,22 @@
 include "caustics_render_inc.dshl"
 
+texture caustics_tex;
+
 shader caustics_render_cs
 {
   if (hardware.fsh_5_0)
   {
-    ENABLE_ASSERT(cs)
     USE_AND_INIT_VIEW_VEC_CS()
     CAUSTICS_RENDER_CORE(cs)
 
-    hlsl(cs) {
-      RWTexture2D<float4> caustics_tex : register(u0);
+    (cs) {
+      caustics_tex@uav = caustics_tex hlsl {
+        RWTexture2D<float4> caustics_tex@uav;
+      };
+      inv_caustics_texture_size@f2 = (1.0 / get_dimensions(caustics_tex, 0).xy);
+    }
 
+    hlsl(cs) {
       [numthreads(8, 8, 1)]
       void caustics_cs(uint3 DTid : SV_DispatchThreadID)
       {

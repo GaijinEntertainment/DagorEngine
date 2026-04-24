@@ -12,6 +12,8 @@ float4 deform_hmap_reproject_uv_offset;
 float4 deform_hmap_world_to_uv_scale_bias;
 float4 deform_hmap_zn_zf;
 float deform_edge_strength = 0.5;
+buffer deform_occupied_tiles_bitvector;
+int deform_tiles_count_hor;
 
 float deform_fps_cam_dist = 0;
 interval deform_fps_cam_dist: off<0.000001, on;
@@ -60,10 +62,13 @@ shader deform_hmap_reproject
 
 shader deform_hmap_clearmask_cs
 {
+  (cs) {
+    mask_grid@uav : register(0) hlsl {
+      RWTexture2D<unorm float> mask_grid@uav;
+    }
+  }
   hlsl(cs) {
     #include "deform_hmap.hlsli"
-
-    RWTexture2D<unorm float> mask_grid : register(u0);
 
     [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
     void deform_hmap_clearmask_cs(uint2 dtid : SV_DispatchThreadID)
@@ -95,6 +100,13 @@ shader deform_hmap_deform_cs
     );
     hmap_deform_params_buffer@buf = hmap_deform_params_buffer hlsl { StructuredBuffer<float4> hmap_deform_params_buffer@buf; };
   }
+  if (deform_occupied_tiles_bitvector != NULL)
+  {
+    (cs) {
+      occupied_tiles_bitvector@uav = deform_occupied_tiles_bitvector hlsl { RWStructuredBuffer<uint> occupied_tiles_bitvector@uav; };
+      tiles_count_hor@i1 = (deform_tiles_count_hor);
+    }
+  }
   INIT_AND_USE_HMAP_DISPLACEMENT_INVALIDATION(cs, xz)
 
   if (deform_fps_cam_dist == on)
@@ -125,11 +137,17 @@ shader deform_hmap_deform_cs
   USE_HEIGHTMAP_OFS(cs)
   INIT_AND_USE_PHYSMAP_PATCH(cs)
 
+  (cs) {
+    result_texture@uav : register(0) hlsl {
+      RWTexture2D<unorm float> result_texture@uav;
+    }
+    mask_grid@uav : register(1) hlsl {
+      RWTexture2D<unorm float> mask_grid@uav;
+    }
+  }
+
   hlsl(cs) {
     #include "deform_hmap.hlsli"
-
-    RWTexture2D<unorm float> result_texture : register(u0);
-    RWTexture2D<unorm float> mask_grid : register(u1);
 
     float update_deform_height_with_pressure_info(float deformingPointWorldPosY, float offsetedHeight, float heightmapHeight,
       float baseVehicleDeform, float humanDeform, uint2 dtid)
@@ -200,6 +218,18 @@ shader deform_hmap_deform_cs
       BRANCH if (deformedHeight >= offsetedHeight && !reduceHmapDisplacement)
         return;
 
+      ##if (deform_occupied_tiles_bitvector != NULL)
+      bool uniformDepthDirtyCondition = WaveActiveAnyTrue(depthTexSample > 0);
+      if (WaveIsFirstLane())
+        if (uniformDepthDirtyCondition)
+        {
+          uint tileId = gid.x + gid.y * tiles_count_hor;
+          uint tileDwordId = tileId / 32;
+          uint tileBit = tileId % 32;
+          InterlockedOr(occupied_tiles_bitvector[tileDwordId], 1u << tileBit);
+        }
+      ##endif
+
       float deformAmount = min(offsetedHeight - deformedHeight, vehicleMaxDeform);
       // Zero displacement is equivalent to deformAmount being equal to heightOffset:
       deformAmount = lerp(deformAmount, heightOffset, hmapDisplacementReduction);
@@ -240,10 +270,12 @@ shader deform_hmap_deform_cs
 
 shader deform_hmap_clearindirect_cs
 {
-  ENABLE_ASSERT(cs)
+  (cs) {
+    indirect_buf@uav : register(0) hlsl {
+      RWByteAddressBuffer indirect_buf@uav;
+    }
+  }
   hlsl(cs) {
-    RWByteAddressBuffer indirect_buf : register(u0);
-
     [numthreads(2, 1, 1)]
     void deform_hmap_clearindirect_cs(uint dtid : SV_DispatchThreadID)
     {
@@ -258,19 +290,27 @@ shader deform_hmap_clearindirect_cs
 
 shader deform_hmap_dispatcher_cs
 {
-  ENABLE_ASSERT(cs)
   (cs) {
     tex_size@f1 = (deform_hmap_tex_size);
+    current_mask_grid@uav : register(0) hlsl {
+      RWTexture2D<unorm float> current_mask_grid@uav;
+    }
+    prev_mask_grid@uav : register(1) hlsl {
+      RWTexture2D<unorm float> prev_mask_grid@uav;
+    }
+    indirect_buf@uav : register(2) hlsl {
+      RWByteAddressBuffer indirect_buf@uav;
+    }
+    postfx_cell_buffer@uav : register(3) hlsl {
+      RWStructuredBuffer<uint> postfx_cell_buffer@uav;
+    }
+    clear_cell_buffer@uav : register(4) hlsl {
+      RWStructuredBuffer<uint> clear_cell_buffer@uav;
+    }
   }
 
   hlsl(cs) {
     #include "deform_hmap.hlsli"
-
-    RWTexture2D<unorm float> current_mask_grid : register(u0);
-    RWTexture2D<unorm float> prev_mask_grid : register(u1);
-    RWByteAddressBuffer indirect_buf : register(u2);
-    RWStructuredBuffer<uint> postfx_cell_buffer : register(u3);
-    RWStructuredBuffer<uint> clear_cell_buffer : register(u4);
 
     [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
     void deform_hmap_dispatcher_cs(uint2 dtid : SV_DispatchThreadID)
@@ -307,6 +347,12 @@ shader deform_hmap_edge_detect_cs, deform_hmap_blur_cs
       deform_edge_strength,
       0
     );
+    result_texture@uav : register(0) hlsl {
+      RWTexture2D<unorm float> result_texture@uav;
+    }
+    postfx_cell_buffer@uav : register(1) hlsl {
+      RWStructuredBuffer<uint> postfx_cell_buffer@uav;
+    }
   }
 
   hlsl(cs) {
@@ -315,9 +361,6 @@ shader deform_hmap_edge_detect_cs, deform_hmap_blur_cs
     #define tex_size tex_size__texel_size__edge_strength.x
     #define texel_size tex_size__texel_size__edge_strength.y
     #define edge_strength tex_size__texel_size__edge_strength.z
-
-    RWTexture2D<unorm float> result_texture : register(u0);
-    RWStructuredBuffer<uint> postfx_cell_buffer : register(u1);
 
     [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
     void deform_hmap_postprocess_cs(uint gid : SV_GroupID, uint2 gtid : SV_GroupThreadID)
@@ -367,14 +410,19 @@ shader deform_hmap_clearer_cs
 {
   (cs) {
     tex_size@f1 = (deform_hmap_tex_size);
+    postfx_tex_0@uav : register(0) hlsl {
+      RWTexture2D<unorm float> postfx_tex_0@uav;
+    }
+    postfx_tex_1@uav : register(1) hlsl {
+      RWTexture2D<unorm float> postfx_tex_1@uav;
+    }
+    clear_cell_buffer@uav : register(2) hlsl {
+      RWStructuredBuffer<uint> clear_cell_buffer@uav;
+    }
   }
 
   hlsl(cs) {
     #include "deform_hmap.hlsli"
-
-    RWTexture2D<unorm float> postfx_tex_0 : register(u0);
-    RWTexture2D<unorm float> postfx_tex_1 : register(u1);
-    RWStructuredBuffer<uint> clear_cell_buffer : register(u2);
 
     [numthreads(DEFORM_HMAP_THREADGROUP_WIDTH, DEFORM_HMAP_THREADGROUP_WIDTH, 1)]
     void deform_hmap_clearer_cs(uint gid : SV_GroupID, uint2 gtid : SV_GroupThreadID)

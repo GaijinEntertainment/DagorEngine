@@ -25,7 +25,7 @@ class [[nodiscard]] VirtualResourceCreationSemiRequest
   using Base = detail::VirtualResourceRequestBase;
   using RRP = detail::ResourceRequestPolicy;
 
-  friend class Registry;
+  friend class BaseRegistry;
   VirtualResourceCreationSemiRequest(detail::ResUid resId, NodeNameId node, InternalRegistry *reg) : Base{resId, node, reg} {}
 
 public:
@@ -34,7 +34,7 @@ public:
    *
    * \param info The 2D texture creation info.
    */
-  VirtualResourceRequest<BaseTexture, RRP::None> texture(const Texture2dCreateInfo &info) &&
+  VirtualResourceRequest<BaseTexture, RRP::CanSpecifyHistory> texture(const Texture2dCreateInfo &info) &&
   {
     Base::texture(info);
     return {resUid, nodeId, registry};
@@ -45,7 +45,7 @@ public:
    *
    * \param info The 3D texture creation info.
    */
-  VirtualResourceRequest<BaseTexture, RRP::None> texture(const Texture3dCreateInfo &info) &&
+  VirtualResourceRequest<BaseTexture, RRP::CanSpecifyHistory> texture(const Texture3dCreateInfo &info) &&
   {
     Base::texture(info);
     return {resUid, nodeId, registry};
@@ -58,7 +58,7 @@ public:
    *
    * \param info The buffer creation info.
    */
-  VirtualResourceRequest<Sbuffer, RRP::HasClearValue> buffer(const BufferCreateInfo &info) &&
+  VirtualResourceRequest<Sbuffer, RRP::HasClearValue | RRP::CanSpecifyHistory> buffer(const BufferCreateInfo &info) &&
   {
     Base::buffer(info);
     return {resUid, nodeId, registry};
@@ -72,14 +72,7 @@ public:
    */
   ///@{
 
-  VirtualResourceRequest<Sbuffer, RRP::HasClearValue> byteAddressBufferUaSr(uint32_t size_in_dwords) &&
-  {
-    BufferCreateInfo ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE, size_in_dwords, SBCF_UA_SR_BYTE_ADDRESS, 0};
-    Base::buffer(ci);
-    return {resUid, nodeId, registry};
-  }
-
-  VirtualResourceRequest<Sbuffer, RRP::HasClearValue> byteAddressBufferUa(uint32_t size_in_dwords) &&
+  VirtualResourceRequest<Sbuffer, RRP::HasClearValue | RRP::CanSpecifyHistory> byteAddressBuffer(uint32_t size_in_dwords) &&
   {
     BufferCreateInfo ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE, size_in_dwords, SBCF_UA_BYTE_ADDRESS, 0};
     Base::buffer(ci);
@@ -87,32 +80,18 @@ public:
   }
 
   template <class T>
-  VirtualResourceRequest<Sbuffer, RRP::HasClearValue> structuredBufferUaSr(uint32_t element_count) &&
-  {
-    BufferCreateInfo ci{sizeof(T), element_count, SBCF_UA_SR_STRUCTURED, 0};
-    Base::buffer(ci);
-    return {resUid, nodeId, registry};
-  }
-
-  template <class T>
-  VirtualResourceRequest<Sbuffer, RRP::HasClearValue> structuredBufferUa(uint32_t element_count) &&
+  VirtualResourceRequest<Sbuffer, RRP::HasClearValue | RRP::CanSpecifyHistory> structuredBuffer(uint32_t element_count) &&
   {
     BufferCreateInfo ci{sizeof(T), element_count, SBCF_UA_STRUCTURED, 0};
     Base::buffer(ci);
     return {resUid, nodeId, registry};
   }
 
-  VirtualResourceRequest<Sbuffer, RRP::HasClearValue> indirectBufferUa(d3d::buffers::Indirect indirect_type, uint32_t call_count) &&
+  VirtualResourceRequest<Sbuffer, RRP::HasClearValue | RRP::CanSpecifyHistory> indirectBuffer(d3d::buffers::Indirect indirect_type,
+    uint32_t call_count) &&
   {
     BufferCreateInfo ci{
       d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE, call_count * dword_count_per_call(indirect_type), SBCF_UA_INDIRECT, 0};
-    Base::buffer(ci);
-    return {resUid, nodeId, registry};
-  }
-
-  VirtualResourceRequest<Sbuffer, RRP::HasClearValue> indirectBuffer(d3d::buffers::Indirect indirect_type, uint32_t call_count) &&
-  {
-    BufferCreateInfo ci{d3d::buffers::BYTE_ADDRESS_ELEMENT_SIZE, call_count * dword_count_per_call(indirect_type), SBCF_INDIRECT, 0};
     Base::buffer(ci);
     return {resUid, nodeId, registry};
   }
@@ -125,7 +104,7 @@ public:
    * \tparam T The type of the CPU data blob
    */
   template <class T>
-  VirtualResourceRequest<T, RRP::HasClearValue> blob() &&
+  VirtualResourceRequest<T, RRP::HasClearValue | RRP::CanSpecifyHistory> blob() &&
   {
     BlobDescription desc{
       .typeTag = tag_for<T>(),
@@ -143,7 +122,7 @@ public:
    * \param defaultValue The default value to initialize the blob with.
    */
   template <class T>
-  VirtualResourceRequest<T, RRP::HasClearValue> blob(const T defaultValue) &&
+  VirtualResourceRequest<T, RRP::HasClearValue | RRP::CanSpecifyHistory> blob(const T defaultValue) &&
   {
     BlobDescription desc{
       .typeTag = tag_for<T>(),

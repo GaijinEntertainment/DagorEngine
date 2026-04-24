@@ -45,15 +45,15 @@ void ShoreRenderer::setupShoreSurf(float wave_height_to_amplitude,
   float gerstner_speed,
   float rivers_wave_multiplier)
 {
-  ShaderGlobal::set_real(shore_wave_height_to_amplitudeVarId, wave_height_to_amplitude);
-  ShaderGlobal::set_real(shore_amplitude_to_lengthVarId, amplitude_to_length);
-  ShaderGlobal::set_real(shore_parallelism_to_windVarId, parallelism_to_wind);
-  ShaderGlobal::set_real(shore_width_kVarId, width_k);
-  ShaderGlobal::set_color4(shore__waves_distVarId, Color4::xyzw(waves_dist));
-  ShaderGlobal::set_real(shore__waves_depth_minVarId, depth_min);
-  ShaderGlobal::set_real(shore__waves_depth_fade_intervalVarId, depth_fade_interval);
-  ShaderGlobal::set_real(shore_gerstner_speedVarId, gerstner_speed);
-  ShaderGlobal::set_real(shore_rivers_wave_multiplierVarId, rivers_wave_multiplier);
+  ShaderGlobal::set_float(shore_wave_height_to_amplitudeVarId, wave_height_to_amplitude);
+  ShaderGlobal::set_float(shore_amplitude_to_lengthVarId, amplitude_to_length);
+  ShaderGlobal::set_float(shore_parallelism_to_windVarId, parallelism_to_wind);
+  ShaderGlobal::set_float(shore_width_kVarId, width_k);
+  ShaderGlobal::set_float4(shore__waves_distVarId, Color4::xyzw(waves_dist));
+  ShaderGlobal::set_float(shore__waves_depth_minVarId, depth_min);
+  ShaderGlobal::set_float(shore__waves_depth_fade_intervalVarId, depth_fade_interval);
+  ShaderGlobal::set_float(shore_gerstner_speedVarId, gerstner_speed);
+  ShaderGlobal::set_float(shore_rivers_wave_multiplierVarId, rivers_wave_multiplier);
 }
 
 void ShoreRenderer::buildShore(const FFTWater *water)
@@ -96,24 +96,24 @@ void ShoreRenderer::buildShore(const FFTWater *water)
   float heightScale = heightMax - heightMin;
   float heightOffset = heightMin;
   Color4 shoreHeightmapVar = Color4(1.0f / heightScale, -heightOffset / heightScale, heightScale, heightOffset);
-  ShaderGlobal::set_color4(get_shader_variable_id("heightmap_min_max", true), shoreHeightmapVar);
+  ShaderGlobal::set_float4(get_shader_variable_id("heightmap_min_max", true), shoreHeightmapVar);
 
   Point3 origin(0, 0, 0);
   Point4 world_to_heightmap;
   const float water_level = water ? fft_water::get_level(water) : HeightmapHeightCulling::NO_WATER_ON_LEVEL;
   render_landmesh_to_heightmap(shoreHeightmapTex.getTex2D(), shoreHmapSize, Point2::xz(origin), NULL, water_level, world_to_heightmap);
-  ShaderGlobal::set_color4(get_shader_variable_id("world_to_heightmap", true), world_to_heightmap);
+  ShaderGlobal::set_float4(get_shader_variable_id("world_to_heightmap", true), world_to_heightmap);
 
   // TextureInfo tinfo;
   // heightmap.getTex2D()->getinfo(tinfo, 0);
   float rivers_width = shoreRiversWidth;
-  ShaderGlobal::set_color4(get_shader_variable_id("shore_heightmap_min_max", true), shoreHeightmapVar);
+  ShaderGlobal::set_float4(get_shader_variable_id("shore_heightmap_min_max", true), shoreHeightmapVar);
 
-  // ShaderGlobal::set_color4( get_shader_variable_id("shore_heightmap_min_max"),
+  // ShaderGlobal::set_float4( get_shader_variable_id("shore_heightmap_min_max"),
   //   1/hmap.getHeightScale(), -hmap.getHeightMin()/hmap.getHeightScale(),0,0);
   // Point3 worldPosOfs = hmap.getHeightmapOffset();
   // Point2 worldSize = hmap.getWorldSize();
-  // ShaderGlobal::set_color4( get_shader_variable_id("world_to_heightmap"),
+  // ShaderGlobal::set_float4( get_shader_variable_id("world_to_heightmap"),
   //   Color4(1.0f/worldSize.x, 1.0f/worldSize.y, -worldPosOfs.x/worldSize.x, -worldPosOfs.z/worldSize.y));
   d3d::resource_barrier({shoreHeightmapTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
 
@@ -123,8 +123,8 @@ void ShoreRenderer::buildShore(const FFTWater *water)
 
   ShaderGlobal::set_texture(get_shader_variable_id("flowmap_heightmap_tex", true), shoreHeightmapTex);
   ShaderGlobal::set_int(get_shader_variable_id("flowmap_heightmap_texture_size"), hmapTextureSize);
-  ShaderGlobal::set_color4(get_shader_variable_id("flowmap_heightmap_min_max", true), flowmapHeightmapVar);
-  ShaderGlobal::set_color4(get_shader_variable_id("world_to_flowmap_heightmap", true), world_to_heightmap);
+  ShaderGlobal::set_float4(get_shader_variable_id("flowmap_heightmap_min_max", true), flowmapHeightmapVar);
+  ShaderGlobal::set_float4(get_shader_variable_id("world_to_flowmap_heightmap", true), world_to_heightmap);
 }
 
 bool ShoreRenderer::getNeedShore(const FFTWater *water) const
@@ -178,12 +178,14 @@ void ShoreRenderer::updateShore(FFTWater *water, int32_t water_quality, const DP
         if (waterFlowmap->hasSlopes || water_quality >= 1)
         {
           TIME_D3D_PROFILE(build_flowmap_1);
-          fft_water::build_flowmap(water, shoreTextureSize / 2, shoreTextureSize, cameraWorldPos, 0, true);
+          fft_water::build_flowmap(water, shoreTextureSize / 2, shoreTextureSize, cameraWorldPos, 0,
+            fft_water::FLOWMAP_OBSTACLES | fft_water::FLOWMAP_FOAM_SAMPLE);
         }
         if (water_quality >= 2)
         {
           TIME_D3D_PROFILE(build_flowmap_2);
-          fft_water::build_flowmap(water, shoreTextureSize, shoreTextureSize, cameraWorldPos, 1, true);
+          fft_water::build_flowmap(water, shoreTextureSize, shoreTextureSize, cameraWorldPos, 1,
+            fft_water::FLOWMAP_OBSTACLES | fft_water::FLOWMAP_FOAM_SAMPLE);
         }
       }
     }

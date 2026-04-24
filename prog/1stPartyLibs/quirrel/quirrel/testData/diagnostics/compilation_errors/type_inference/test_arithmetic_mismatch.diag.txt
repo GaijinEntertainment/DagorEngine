@@ -1,0 +1,9 @@
+ERROR: expression of type 'int' cannot be assigned to type 'string'
+testData/diagnostics/compilation_errors/type_inference/test_arithmetic_mismatch.nut:4:0
+
+local b: int = 20
+local c: string = a + b
+^----------------------
+return c
+
+

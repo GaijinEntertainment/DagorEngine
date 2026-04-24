@@ -11,11 +11,13 @@ class RenderScene;
 
 bool is_level_loaded();
 bool is_level_loaded_not_empty();
+bool is_level_loaded_no_binary();
 bool is_level_loading();
 bool is_level_unloading();
 ecs::EntityId get_current_level_eid();
 
 void select_weather_preset(const char *preset_name);
+void select_weather_preset_delayed(const char *preset_name);
 
 const char *get_rendinst_dmg_blk_fn();
 

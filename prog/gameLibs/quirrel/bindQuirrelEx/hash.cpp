@@ -1,9 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <hash/md5.h>
 #include <hash/sha1.h>
 #include <hash/sha256.h>
+#include <hash/sha3.h>
 #include <hash/crc32.h>
 #include <util/dag_strUtil.h>
 #include <osApiWrappers/dag_files.h>
@@ -111,6 +112,58 @@ static SQInteger sq_file_sha256(HSQUIRRELVM vm)
   return 1;
 }
 
+// compute sha3_256 for given file_name
+static SQInteger sq_file_sha3_256(HSQUIRRELVM vm)
+{
+  const char *fileName = nullptr;
+  sq_getstring(vm, 2, &fileName);
+
+  file_ptr_t file = df_open(fileName, DF_READ);
+  if (!file)
+  {
+    return sq_throwerror(vm, String(0, "Failed to open file '%s'", fileName));
+  }
+  int fileLength = 0;
+  const void *fileData = df_mmap(file, &fileLength);
+  if (!fileData)
+  {
+    df_close(file);
+    return sq_throwerror(vm, String(0, "Failed to read file '%s'", fileName));
+  }
+
+  static constexpr int HASH_SZ = SHA3_256_DIGEST_LENGTH;
+  unsigned char sha3_output[HASH_SZ] = {0};
+
+  sha3_256_csum((const unsigned char *)fileData, fileLength, sha3_output);
+
+  String sha3_str;
+  data_to_str_hex(sha3_str, sha3_output, sizeof(sha3_output));
+
+  df_unmap(fileData, fileLength);
+  df_close(file);
+
+  sq_pushstring(vm, sha3_str, sha3_str.length());
+  return 1;
+}
+
+static SQInteger sq_sha3_256(HSQUIRRELVM vm)
+{
+  const char *dataStr;
+  SQInteger dataStrLen;
+  sq_getstringandsize(vm, 2, &dataStr, &dataStrLen);
+
+  static constexpr int HASH_SZ = SHA3_256_DIGEST_LENGTH;
+  unsigned char sha3_output[HASH_SZ] = {0};
+
+  sha3_256_csum((const unsigned char *)dataStr, dataStrLen, sha3_output);
+
+  String sha3_str;
+  data_to_str_hex(sha3_str, sha3_output, sizeof(sha3_output));
+
+  sq_pushstring(vm, sha3_str, sha3_str.length());
+  return 1;
+}
+
 static uint32_t calc_crc32_for_sq_params(HSQUIRRELVM vm)
 {
   const char *dataStr;
@@ -159,13 +212,15 @@ void register_hash(SqModules *module_mgr)
 
   ///@module hash
   exports //
-    .SquirrelFunc("md5", sq_md5, 2, ".s")
-    .SquirrelFunc("sha1", sq_sha1, 2, ".s")
-    .SquirrelFunc("sha256", sq_sha256, 2, ".s")
-    .SquirrelFunc("file_sha256", sq_file_sha256, 2, ".s")
-    .SquirrelFunc("crc32", sq_crc32, -2, ".si")
-    .SquirrelFunc("crc32_int", sq_crc32_int, -2, ".si")
-    .SquirrelFunc("create_guid", sq_create_guid, 1, ".s")
+    .SquirrelFuncDeclString(sq_md5, "md5(data: string): string")
+    .SquirrelFuncDeclString(sq_sha1, "sha1(data: string): string")
+    .SquirrelFuncDeclString(sq_sha256, "sha256(data: string): string")
+    .SquirrelFuncDeclString(sq_sha3_256, "sha3_256(data: string): string")
+    .SquirrelFuncDeclString(sq_file_sha256, "file_sha256(fileName: string): string")
+    .SquirrelFuncDeclString(sq_file_sha3_256, "file_sha3_256(fileName: string): string")
+    .SquirrelFuncDeclString(sq_crc32, "crc32(data: string, [initSum: int]): string")
+    .SquirrelFuncDeclString(sq_crc32_int, "crc32_int(data: string, [initSum: int]): int")
+    .SquirrelFuncDeclString(sq_create_guid, "create_guid(): string")
     /**/;
 
   module_mgr->addNativeModule("hash", exports);

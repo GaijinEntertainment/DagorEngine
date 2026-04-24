@@ -7,6 +7,7 @@
 #include "fastPhysEd.h"
 #include "fastPhysObject.h"
 #include <de3_dynRenderService.h>
+#include <shaders/dag_dynSceneRes.h>
 #include <render/dag_cur_view.h>
 
 
@@ -21,6 +22,7 @@ E3DCOLOR FastPhysCharRoot ::selectedColor(255, 255, 255);
 FastPhysCharRoot::FastPhysCharRoot(AnimV20::IAnimCharacter2 *ch, FastPhysEditor &editor) :
   character(ch), mFPEditor(editor), isCharVisible(true)
 {
+  G_ASSERT(ch->getSceneInstance());
   setName("CharacterRoot");
   objEditor = &editor;
 }
@@ -102,8 +104,22 @@ void FastPhysCharRoot::render()
 
 void FastPhysCharRoot::update(real dt)
 {
-  if (character)
-    character->act(dt, ::grs_cur_view.pos);
+  if (!character)
+    return;
+
+  character->act(dt, ::grs_cur_view.pos);
+
+  auto rs = EDITORCORE->queryEditorInterface<IDynRenderService>();
+  if (rs && rs->getRenderType() == IDynRenderService::RTYPE_DNG_BASED)
+  {
+    DynamicRenderableSceneInstance *sceneInstance = character->getSceneInstance();
+    for (uint32_t i = 0; i < sceneInstance->getNodeCount(); i++)
+    {
+      TMatrix wtm = sceneInstance->getNodeWtm(i);
+      wtm.setcol(3, wtm.getcol(3) - ::grs_cur_view.pos);
+      sceneInstance->setPrevNodeWtm(i, wtm);
+    }
+  }
 }
 
 

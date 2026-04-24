@@ -1,0 +1,8 @@
+ERROR: expression of type 'string' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/sema_errors/type_differs.nut:2:0
+
+// EXPECT_ERROR: "differs from the declared type"
+local x: int = "not a number"
+^----------------------------
+
+

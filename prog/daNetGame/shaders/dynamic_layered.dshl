@@ -3,10 +3,10 @@ include "normaldetail.dshl"
 include "dynamic_opaque_inc.dshl"
 include "mask_layered_inc.dshl"
 include "gbuffer.dshl"
+include "dynamic_destr_disappear_inc.dshl"
 
 shader dynamic_layered
 {
-  ENABLE_ASSERT(ps)
   if (in_editor_assume == yes)
   {
     (vs) {
@@ -30,6 +30,7 @@ shader dynamic_layered
     }
   }
 
+  DYNAMIC_DESTR_DISAPPEAR_INIT()
   INIT_LAYERED_FULL(true)
   if (dyn_model_render_pass == render_pass_normal)
   {
@@ -81,6 +82,9 @@ shader dynamic_layered
           nointerpolation float3 colorMul : TEXCOORD5;
         #endif
       ##endif
+      #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+        float4 destr_params         : TEXCOORD6;
+      #endif
     };
   }
   OPTIONAL_SKINNING_SHADER()
@@ -92,6 +96,7 @@ shader dynamic_layered
     USE_MOTION_VEC_ENCODE(ps)
   }
   USE_UNPACK_UNIT_VECTOR_VS()
+  DYNAMIC_DESTR_DISAPPEAR_USE()
   hlsl(vs) {
     VsOutput simple_vs(VsInput input HW_USE_INSTANCE_ID)
     {
@@ -179,7 +184,7 @@ shader dynamic_layered
 
     USE_LAYERED_PS(true)
     (ps) {
-      mask_tex@static = mask_tex;
+      mask_tex@staticSmp = mask_tex;
       paint_details@f3 = paint_details;
     }
     USE_NORMAL_DETAIL()

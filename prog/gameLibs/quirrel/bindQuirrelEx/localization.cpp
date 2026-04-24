@@ -4,7 +4,7 @@
 #include <util/dag_string.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <sqrat.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include "hypenation.h"
 
 
@@ -260,6 +260,11 @@ static SQInteger process_japanese_string_with_tab(HSQUIRRELVM vm)
   return 1;
 }
 
+static void load_localization_table_from_file(const char *filename, const char *lang)
+{
+  load_localization_table_from_csv_V2(filename, lang);
+}
+
 namespace bindquirrel
 {
 
@@ -269,16 +274,17 @@ void register_dagor_localization_module(SqModules *module_mgr)
   Sqrat::Table exports(vm);
   ///@module dagor.localize
   exports //
-    .SquirrelFunc("loc", &localize, -2, ".s|o", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
-    .SquirrelFunc("getLocTextForLang", &localize_for_lang, -3, ".ss|o", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
-    .SquirrelFunc("processHypenationsCN", process_chinese_string_with_tab, 2, ".s", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
-    .SquirrelFunc("processHypenationsJP", process_japanese_string_with_tab, 2, ".s", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
-    .SquirrelFunc("doesLocTextExist", script_does_localized_text_exist, 2, ".s", nullptr, 0, nullptr, Sqrat::FunctionPurity::Pure)
+    .SquirrelFuncDeclString(&localize, "pure loc(key: string|null, ...): string")
+    .SquirrelFuncDeclString(&localize_for_lang, "pure getLocTextForLang(key: string, lang: string|null, ...): string")
+    .SquirrelFuncDeclString(process_chinese_string_with_tab, "pure processHypenationsCN(str: string): string")
+    .SquirrelFuncDeclString(process_japanese_string_with_tab, "pure processHypenationsJP(str: string): string")
+    .SquirrelFuncDeclString(script_does_localized_text_exist, "pure doesLocTextExist(key: string): bool")
     .Func("getCurrentLanguage", get_current_language)
     .Func("getForceLanguage", get_force_language)
     .Func("setLanguageToSettings", set_language_to_settings)
+    .Func("loadLocalizationFromFile", load_localization_table_from_file)
     .Func("getLangId", getLangId)
-    .SquirrelFunc("initLocalization", init_localization, -2, ".xs")
+    .SquirrelFuncDeclString(init_localization, "initLocalization(locBlk: instance, [curLang: string]): null")
     /**/;
   module_mgr->addNativeModule("dagor.localize", exports);
 }

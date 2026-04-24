@@ -25,59 +25,15 @@ void build_jumplinks_connstorage(recastnavmesh::OffMeshConnectionsStorage &out_c
   }
 }
 
-void add_off_mesh_connection(recastnavmesh::OffMeshConnectionsStorage &storage, const float *spos, const float *epos, float rad,
-  unsigned char bidir, unsigned short flags = pathfinder::POLYFLAG_JUMP, unsigned short area = pathfinder::POLYAREA_JUMP)
-{
-  int &count = storage.m_offMeshConCount;
-  if (count >= MAX_OFFMESH_CONNECTIONS)
-  {
-    logerr("m_offMeshConCount %d >= MAX_OFFMESH_CONNECTIONS %d", count, MAX_OFFMESH_CONNECTIONS);
-    return;
-  }
-
-  float *v = &storage.m_offMeshConVerts[count * 3 * 2];
-  storage.m_offMeshConRads[count] = rad;
-  storage.m_offMeshConDirs[count] = bidir;
-  storage.m_offMeshConAreas[count] = area;
-  storage.m_offMeshConFlags[count] = flags;
-  storage.m_offMeshConId[count] = 1000 + count;
-  v[0] = spos[0];
-  v[1] = spos[1];
-  v[2] = spos[2];
-
-  v[3] = epos[0];
-  v[4] = epos[1];
-  v[5] = epos[2];
-  storage.m_offMeshConCount++;
-}
-
 bool remove_off_mesh_connection(recastnavmesh::OffMeshConnectionsStorage &storage, int idx)
 {
-  if (storage.m_offMeshConCount <= idx)
+  if (storage.offMeshCon.size() <= idx)
   {
-    logerr("can't remove offmesh connection idx %d from storage. Storage count = %d", idx, storage.m_offMeshConCount);
+    logerr("can't remove offmesh connection idx %d from storage. Storage count = %d", idx, storage.offMeshCon.size());
     return false;
   }
 
-  storage.m_offMeshConCount--;
-  if (storage.m_offMeshConCount == idx)
-    return true; // Job done
-
-  float *vTo = &storage.m_offMeshConVerts[idx * 3 * 2];
-  float *vFrom = &storage.m_offMeshConVerts[storage.m_offMeshConCount * 3 * 2];
-
-  storage.m_offMeshConRads[idx] = storage.m_offMeshConRads[storage.m_offMeshConCount];
-  storage.m_offMeshConDirs[idx] = storage.m_offMeshConDirs[storage.m_offMeshConCount];
-  storage.m_offMeshConAreas[idx] = storage.m_offMeshConAreas[storage.m_offMeshConCount];
-  storage.m_offMeshConFlags[idx] = storage.m_offMeshConFlags[storage.m_offMeshConCount];
-  storage.m_offMeshConId[idx] = storage.m_offMeshConId[storage.m_offMeshConCount];
-  vTo[0] = vFrom[0];
-  vTo[1] = vFrom[1];
-  vTo[2] = vFrom[2];
-
-  vTo[3] = vFrom[3];
-  vTo[4] = vFrom[4];
-  vTo[5] = vFrom[5];
+  storage.offMeshCon.erase(storage.offMeshCon.begin() + idx);
 
   return true;
 }
@@ -149,7 +105,7 @@ void recastbuild::cross_obstacles_with_jumplinks(recastnavmesh::OffMeshConnectio
           p2 = cast_endpoint_to_edge(p2, p1, cell_height, dmesh);
         else
           p2.y = p1.y;
-        recastbuild::add_off_mesh_connection(out_conn_storage, &p1.x, &p2.x, serachRadius, 1, 0, pathfinder::POLYAREA_OBSTACLE);
+        recastnavmesh::add_off_mesh_connection(out_conn_storage, &p1.x, &p2.x, serachRadius, 1, 0, pathfinder::POLYAREA_OBSTACLE);
       }
       else if (box & p2)
       {
@@ -158,7 +114,7 @@ void recastbuild::cross_obstacles_with_jumplinks(recastnavmesh::OffMeshConnectio
           p1 = cast_endpoint_to_edge(p1, p2, cell_height, dmesh);
         else
           p1.y = p2.y;
-        recastbuild::add_off_mesh_connection(out_conn_storage, &p2.x, &p1.x, serachRadius, 1, 0, pathfinder::POLYAREA_OBSTACLE);
+        recastnavmesh::add_off_mesh_connection(out_conn_storage, &p2.x, &p1.x, serachRadius, 1, 0, pathfinder::POLYAREA_OBSTACLE);
       }
       else // Should be impossible
         logerr("Obstacle center is in tile, but none of the jumplink points are");
@@ -181,23 +137,21 @@ void recastbuild::add_custom_jumplinks(recastnavmesh::OffMeshConnectionsStorage 
       jumpLinkStart = cast_endpoint_to_edge(jumpLinkStart, jumpLinkEnd, cell_height, dmesh);
     if (endInBox)
       jumpLinkEnd = cast_endpoint_to_edge(jumpLinkEnd, jumpLinkStart, cell_height, dmesh);
-    recastbuild::add_off_mesh_connection(out_conn_storage, &jumpLinkStart.x, &jumpLinkEnd.x, 0.5f, 1);
+    recastnavmesh::add_off_mesh_connection(out_conn_storage, &jumpLinkStart.x, &jumpLinkEnd.x, 0.5f, 1);
   }
 }
 
 void recastbuild::disable_jumplinks_around_obstacle(recastnavmesh::OffMeshConnectionsStorage &out_conn_storage,
   const Tab<JumpLinkObstacle> &obstacles)
 {
+  auto verts = out_conn_storage.offMeshCon.get<recastnavmesh::OffMeshCon::Verts>();
   for (auto &obstacle : obstacles)
   {
     Quat q = inverse(Quat(Point3(0, 1, 0), obstacle.yAngle));
     Point3 center = obstacle.box.center();
-    for (int i = 0; i < out_conn_storage.m_offMeshConCount; i++)
+    for (int i = 0; i < out_conn_storage.offMeshCon.size(); i++)
     {
-      float *v = &out_conn_storage.m_offMeshConVerts[i * 3 * 2];
-      Point3 points[2] = {Point3(v[0], v[1], v[2]), Point3(v[3], v[4], v[5])};
-
-      for (auto &p : points)
+      for (auto &p : make_span_const(&verts[i].first, 2))
       {
         Point3 rPoint = q * (p - center) + center;
         if (obstacle.box & rPoint)

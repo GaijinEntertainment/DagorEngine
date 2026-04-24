@@ -7,7 +7,7 @@ The Datetime library
 The datetime library date and time manipulation facilities
 
 --------------
-Squirrel API
+Quirrel API
 --------------
 
 ++++++++++++++

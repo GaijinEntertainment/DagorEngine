@@ -28,24 +28,9 @@ using AnyDevicePtr = VersionedPtr<D3DDevice>;
 #define DX12_CAPTURE_DEF_EQ =
 #endif
 
-#if DX12_USE_AUTO_PROMOTE_AND_DECAY
 inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_COPY_QUEUE_TARGET = D3D12_RESOURCE_STATE_COMMON;
 inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_COPY_QUEUE_SOURCE = D3D12_RESOURCE_STATE_COMMON;
 inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE = D3D12_RESOURCE_STATE_COMMON;
-// Can not be detected with auto promote and decay as it needs
-// D3D12_RESOURCE_STATE_COPY_QUEUE_TARGET to be different than D3D12_RESOURCE_STATE_COMMON.
-#define DX12_FIX_UNITITALIZED_STATIC_TEXTURE_STATE 0
-#else
-inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_COPY_QUEUE_TARGET = D3D12_RESOURCE_STATE_COPY_DEST;
-inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_COPY_QUEUE_SOURCE = D3D12_RESOURCE_STATE_COPY_SOURCE;
-inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE =
-  D3D12_RESOURCE_STATE_COPY_DEST | D3D12_RESOURCE_STATE_COPY_SOURCE;
-// Fixes an engine error, where static textures with uninitialized content are used as source for
-// draws, dispatches or copies. This bug makes only problems on consoles as there auto promotion and
-// the initial state of static textures will lead to problems. NOTE: This has a performance cost in
-// the worker thread, as it has to do more barrier work for each draw, dispatch and copy call.
-#define DX12_FIX_UNITITALIZED_STATIC_TEXTURE_STATE 1
-#endif
 
 #define DX12_FOLD_BATCHED_SPLIT_BARRIERS                  1
 #define DX12_REUSE_UNORDERD_ACCESS_VIEW_DESCRIPTOR_RANGES 1
@@ -81,13 +66,45 @@ inline constexpr D3D12_RESOURCE_STATES D3D12_RESOURCE_STATE_INITIAL_BUFFER_STATE
 #error "DX12 Driver configured to _not_ generate required barriers and to _ignore_ user barriers, this will crash on execution"
 #endif
 
-#define DX12_ENABLE_MT_VALIDATION DAGOR_DBGLEVEL > 0
+#define DX12_ENABLE_MT_VALIDATION                  DAGOR_DBGLEVEL > 0
+#define DX12_ENABLE_ALL_COMMANDS_PROFILING_MARKERS 0
 
-#define DX12_SUPPORT_RESOURCE_MEMORY_METRICS DAGOR_DBGLEVEL > 0
-#define DX12_RESOURCE_USAGE_TRACKER          DAGOR_DBGLEVEL > 0
+#define DX12_SUPPORT_RESOURCE_MEMORY_METRICS  DAGOR_DBGLEVEL > 0
+#define DX12_RESOURCE_USAGE_TRACKER           DAGOR_DBGLEVEL > 0
+#define DX12_DEBUG_RESOURCE_ALLOCATOR_ENABLED (DAGOR_DBGLEVEL > 0 && _TARGET_PC_WIN)
+
+#define DX12_SET_HEAP_RESIDENCY_PRIORITY (_TARGET_PC_WIN)
 
 namespace drv3d_dx12
 {
+/// Describes in which way a optional feature is implemented, when there are more than one possibility
+enum class FeatureImplementation
+{
+  /// Feature is not implemented at all and can not be used
+  None,
+  /// Feature is implemented with DX12 core API
+  Core,
+  /// Feature is implemented with Nvidia proprietary API (NVAPI)
+  Nvidia,
+  /// Feature is implemented with AMD proprietary API
+  Amd,
+  /// Feature is implemented with Intel proprietary API
+  Intel,
+};
+
+inline const char *as_string(FeatureImplementation imp)
+{
+  switch (imp)
+  {
+    case FeatureImplementation::None: return "None";
+    case FeatureImplementation::Core: return "Direct3D12 API";
+    case FeatureImplementation::Nvidia: return "Nvidia driver extensions";
+    case FeatureImplementation::Amd: return "AMD driver extensions";
+    case FeatureImplementation::Intel: return "Intel driver extension";
+  }
+  return nullptr;
+}
+
 struct HLSLVendorExtensions
 {
   uint16_t vendor = 0;

@@ -179,8 +179,9 @@ static Sbuffer *create_static_cb(uint32_t register_count, const char *name)
 
 
 
+
 #else
-  return d3d::buffers::create_persistent_cb(register_count, name);
+  return d3d::buffers::create_persistent_cb(register_count, name, RESTAG_ENGINE);
 #endif
 }
 
@@ -428,7 +429,7 @@ struct BindlessState
 
         auto p4btcmp = [](const Point4 &a, const Point4 &b) {
           // bitwise compare to be able collapse bitwise-identical NaNs
-          return v_signmask(v_cmp_eqi(v_ld(&a.x), v_ld(&b.x))) == 15;
+          return v_check_xyzw_all_true(v_cmp_eqi(v_ld(&a.x), v_ld(&b.x)));
         };
         uint32_t beginConst = 0;
         // if there are exist bindless resources we compare all dataConstToAdd ranges EXCEPT bindless ones,

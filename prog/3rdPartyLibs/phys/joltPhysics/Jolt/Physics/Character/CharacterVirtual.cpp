@@ -12,6 +12,7 @@
 #include <Jolt/Physics/Collision/CollideShape.h>
 #include <Jolt/Physics/Collision/Shape/RotatedTranslatedShape.h>
 #include <Jolt/Physics/Collision/Shape/ScaledShape.h>
+#include <Jolt/Physics/Collision/Shape/CompoundShape.h>
 #include <Jolt/Physics/Collision/CollisionDispatch.h>
 #include <Jolt/Core/QuickSort.h>
 #include <Jolt/Core/ScopeExit.h>
@@ -542,6 +543,14 @@ inline static bool sCorrectFractionForCharacterPadding(const Shape *inShape, Mat
 		const ScaledShape *scaled_shape = static_cast<const ScaledShape *>(inShape);
 		return sCorrectFractionForCharacterPadding(scaled_shape->GetInnerShape(), inStart, inDisplacement, inScale * scaled_shape->GetScale(), inPolygon, ioFraction);
 	}
+	else if (inShape->GetType() == EShapeType::Compound)
+	{
+		const CompoundShape *compound = static_cast<const CompoundShape *>(inShape);
+		bool return_value = false;
+		for (const CompoundShape::SubShape &sub_shape : compound->GetSubShapes())
+			return_value |= sCorrectFractionForCharacterPadding(sub_shape.mShape, inStart * sub_shape.GetLocalTransformNoScale(inScale), inDisplacement, sub_shape.TransformScale(inScale), inPolygon, ioFraction);
+		return return_value;
+	}
 	else
 	{
 		JPH_ASSERT(false, "Not supported yet!");
@@ -674,7 +683,7 @@ void CharacterVirtual::DetermineConstraints(TempContactList &inContacts, float i
 				outConstraints.emplace_back();
 				Constraint &vertical_constraint = outConstraints.back();
 				vertical_constraint.mContact = &c;
-				vertical_constraint.mLinearVelocity = contact_velocity.Dot(normal) * normal; // Project the contact velocity on the new normal so that both planes push at an equal rate
+				vertical_constraint.mLinearVelocity = c.mLinearVelocity.Dot(normal) * normal; // Project the contact velocity on the new normal so that both planes push at an equal rate. We ignore velocity added to push characters out of collision as that can get characters stuck if they are surrounded on all sides by steep slopes.
 				vertical_constraint.mPlane = Plane(normal, c.mDistance / normal.Dot(c.mContactNormal)); // Calculate the distance we have to travel horizontally to hit the contact plane
 			}
 		}
@@ -916,7 +925,7 @@ void CharacterVirtual::SolveConstraints(Vec3Arg inVelocity, float inDeltaTime, f
 
 		// Find the normal of the previous contact that we will violate the most if we move in this new direction
 		float highest_penetration = 0.0f;
-		Constraint *other_constraint = nullptr;
+		const Constraint *other_constraint = nullptr;
 		for (Constraint **c = previous_contacts.data(); c < previous_contacts.data() + num_previous_contacts; ++c)
 			if (*c != constraint)
 			{
@@ -933,6 +942,12 @@ void CharacterVirtual::SolveConstraints(Vec3Arg inVelocity, float inDeltaTime, f
 						other_constraint = *c;
 					}
 				}
+
+				// Cancel the constraint velocity in the other constraint plane's direction so that we won't try to apply it again and keep ping ponging between planes
+				constraint->mLinearVelocity -= min(0.0f, constraint->mLinearVelocity.Dot(other_normal)) * other_normal;
+
+				// Cancel the other constraints velocity in this constraint plane's direction so that we won't try to apply it again and keep ping ponging between planes
+				(*c)->mLinearVelocity -= min(0.0f, (*c)->mLinearVelocity.Dot(plane_normal)) * plane_normal;
 			}
 
 		// Check if we found a 2nd constraint
@@ -942,12 +957,6 @@ void CharacterVirtual::SolveConstraints(Vec3Arg inVelocity, float inDeltaTime, f
 			Vec3 other_normal = other_constraint->mPlane.GetNormal();
 			Vec3 slide_dir = plane_normal.Cross(other_normal).Normalized();
 			Vec3 velocity_in_slide_dir = new_velocity.Dot(slide_dir) * slide_dir;
-
-			// Cancel the constraint velocity in the other constraint plane's direction so that we won't try to apply it again and keep ping ponging between planes
-			constraint->mLinearVelocity -= min(0.0f, constraint->mLinearVelocity.Dot(other_normal)) * other_normal;
-
-			// Cancel the other constraints velocity in this constraint plane's direction so that we won't try to apply it again and keep ping ponging between planes
-			other_constraint->mLinearVelocity -= min(0.0f, other_constraint->mLinearVelocity.Dot(plane_normal)) * plane_normal;
 
 			// Calculate the velocity of this constraint perpendicular to the slide direction
 			Vec3 perpendicular_velocity = constraint->mLinearVelocity - constraint->mLinearVelocity.Dot(slide_dir) * slide_dir;
@@ -1886,6 +1895,39 @@ void CharacterVirtual::RestoreState(StateRecorder &inStream)
 	mActiveContacts.resize(num_contacts);
 	for (Contact &c : mActiveContacts)
 		c.RestoreState(inStream);
+}
+
+CharacterVirtualSettings CharacterVirtual::GetCharacterVirtualSettings() const
+{
+	CharacterVirtualSettings settings;
+	settings.mUp = mUp;
+	settings.mSupportingVolume = mSupportingVolume;
+	settings.mMaxSlopeAngle = ACos(mCosMaxSlopeAngle);
+	settings.mEnhancedInternalEdgeRemoval = mEnhancedInternalEdgeRemoval;
+	settings.mShape = mShape;
+	settings.mID = mID;
+	settings.mMass = mMass;
+	settings.mMaxStrength = mMaxStrength;
+	settings.mShapeOffset = mShapeOffset;
+	settings.mBackFaceMode = mBackFaceMode;
+	settings.mPredictiveContactDistance = mPredictiveContactDistance;
+	settings.mMaxCollisionIterations = mMaxCollisionIterations;
+	settings.mMaxConstraintIterations = mMaxConstraintIterations;
+	settings.mMinTimeRemaining = mMinTimeRemaining;
+	settings.mCollisionTolerance = mCollisionTolerance;
+	settings.mCharacterPadding = mCharacterPadding;
+	settings.mMaxNumHits = mMaxNumHits;
+	settings.mHitReductionCosMaxAngle = mHitReductionCosMaxAngle;
+	settings.mPenetrationRecoverySpeed = mPenetrationRecoverySpeed;
+	BodyLockRead lock(mSystem->GetBodyLockInterface(), mInnerBodyID);
+	if (lock.Succeeded())
+	{
+		const Body &body = lock.GetBody();
+		settings.mInnerBodyShape = body.GetShape();
+		settings.mInnerBodyIDOverride = body.GetID();
+		settings.mInnerBodyLayer = body.GetObjectLayer();
+	}
+	return settings;
 }
 
 JPH_NAMESPACE_END

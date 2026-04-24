@@ -60,16 +60,17 @@ macro USE_IMPOSTOR_STRUCTS()
 endmacro
 
 macro USE_READ_IMPOSTOR_GBUF_TEXTURES()
-  ENABLE_ASSERT(ps)
   USE_IMPOSTOR_STRUCTS()
   INIT_LOAD_DEPTH_GBUFFER()
   USE_LOAD_DEPTH_GBUFFER()
 
-  hlsl(ps) {
-    Texture2D impostor_gbuf_a : register(t13);
-    Texture2D impostor_gbuf_b : register(t14);
-    Texture2D impostor_gbuf_c : register(t15);
+  (ps) {
+    impostor_gbuf_a@tex2d : register(13);
+    impostor_gbuf_b@tex2d : register(14);
+    impostor_gbuf_c@tex2d : register(15);
+  }
 
+  hlsl(ps) {
     ImpostorParameters read_impostor_params_from_gbuf(uint2 tc)
     {
       ImpostorParameters ret;
@@ -118,14 +119,13 @@ macro USE_READ_IMPOSTOR_GBUF_TEXTURES()
 endmacro
 
 macro USE_READ_IMPOSTOR_PACKED_TEXTURES()
-  ENABLE_ASSERT(ps)
   USE_IMPOSTOR_STRUCTS()
 
   (ps)
   {
-    impostor_packed_albedo_alpha@smp2d = impostor_packed_albedo_alpha;
-    impostor_packed_normal_translucency@smp2d = impostor_packed_normal_translucency;
-    impostor_packed_ao_smoothness@smp2d = impostor_packed_ao_smoothness;
+    impostor_packed_albedo_alpha@tex2d = impostor_packed_albedo_alpha;
+    impostor_packed_normal_translucency@tex2d = impostor_packed_normal_translucency;
+    impostor_packed_ao_smoothness@tex2d = impostor_packed_ao_smoothness;
   }
 
   hlsl(ps) {
@@ -372,11 +372,13 @@ shader pack_impostor_texture
     slice_id@i1 = (slice_id);
     impostor_sdf_max_distance@f1 = (impostor_sdf_max_distance);
     impostor_branch_mask_tex@tex2d = impostor_branch_mask_tex;
+
+    impostor_sdf_tex@uav : register(3) hlsl {
+      RWTexture2D<uint> impostor_sdf_tex@uav;
+    }
   }
 
   hlsl(ps) {
-    RWTexture2D<uint> impostor_sdf_tex : register(u3);
-
     ImpostorParameters fetch_gbuf(int2 samplePos)
     {
       float2 normalizedTC = float2(samplePos) * texture_size.zw / RENDER_OVERSCALE;

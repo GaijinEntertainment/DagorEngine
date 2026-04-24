@@ -12,17 +12,18 @@
 #include <render/debugMesh.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_buffers.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/componentType.h>
 #include <daECS/core/coreEvents.h>
 
 SplineGenGeometryAsset::SplineGenGeometryAsset(const eastl::string &asset_name, uint32_t batch_size) :
   assetName(asset_name), batchSize(batch_size)
 {
-  objHandle = GAMERES_HANDLE_FROM_STRING(assetName.c_str());
   // Expected to be preloaded by SplineGenGeometryAssetPreload
-  res = (DynamicRenderableSceneLodsResource *)get_game_resource(objHandle);
-  release_game_resource(objHandle); // remove the reference added by get_one_game_resource_ex, res will keep one too
+  res = (DynamicRenderableSceneLodsResource *)get_game_resource_ex(assetName.c_str(), DynModelGameResClassId);
+  release_game_resource_ex(res.get(), DynModelGameResClassId); // release ref added by get_game_resource_ex(), res will keep one too
 
   const char *attacherShader = "spline_gen_obj_attacher";
   attacherCs = new_compute_shader(attacherShader);
@@ -113,7 +114,7 @@ void SplineGenGeometryAsset::attachObjects(int instance_count, int attachment_ma
 
 void SplineGenGeometryAsset::renderObjects(Sbuffer *params_buffer, uint32_t lod)
 {
-  if (is_game_resource_loaded(objHandle, DynModelGameResClassId))
+  if (is_game_resource_loaded(assetName.c_str(), DynModelGameResClassId))
   {
     G_ASSERT(res->isSubOf(DynamicRenderableSceneLodsResourceCID));
     objectDiameter = length(res->bbox.width());
@@ -156,7 +157,7 @@ float SplineGenGeometryAsset::getObjectDiameter() const { return objectDiameter;
 void SplineGenGeometryAsset::addIndirectParams(eastl::vector<DrawIndexedIndirectArgs, framemem_allocator> &params_data,
   uint32_t lod) const
 {
-  if (!is_game_resource_loaded(objHandle, DynModelGameResClassId))
+  if (!is_game_resource_loaded(assetName.c_str(), DynModelGameResClassId))
     return;
   dag::Span<DynamicRenderableSceneLodsResource::Lod> availableLods = res->getUsedLods();
   lod = min<int>(lod, availableLods.size() - 1);

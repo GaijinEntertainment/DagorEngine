@@ -64,7 +64,7 @@ IGenJoystickClassDrv *HumanInput::createNullJoystickClassDriver()
 
 #if _TARGET_PC
 bool HumanInput::isImeAvailable() { return false; }
-bool HumanInput::showScreenKeyboard_IME(const DataBlock &, OnFinishIME, void *) { return false; }
+bool HumanInput::showScreenKeyboard_IME(const DataBlock &, OnUpdateIME, void *) { return false; }
 namespace HumanInput
 {
 void reg_cb_show_ime_steam(OnShowIME) {}

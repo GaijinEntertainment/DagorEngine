@@ -1,0 +1,9 @@
+ERROR: expression of type 'int' cannot be assigned to type 'string'
+testData/diagnostics/compilation_errors/type_inference/test_call_result_type.nut:5:0
+
+}
+local y: string = sqri(5)
+^------------------------
+return y
+
+

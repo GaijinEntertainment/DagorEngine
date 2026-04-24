@@ -62,7 +62,7 @@ void WorldRenderer::toggleProbeReflectionQuality()
 void WorldRenderer::initRendinstVisibility()
 {
   closeRendinstVisibility();
-  const DataBlock *grCfg = ::dgs_get_settings()->getBlockByName("graphics");
+  const DataBlock *grCfg = ::dgs_get_settings()->getBlockByNameEx("graphics");
   sw_occlusion.set(grCfg->getBool("sw_occlusion", sw_occlusion.get()));
   sw_hmap_occlusion.set(grCfg->getBool("sw_hmap_occlusion", sw_hmap_occlusion.get()));
   rendinst_cube_visibility = rendinst::createRIGenVisibility(midmem);
@@ -115,16 +115,23 @@ void WorldRenderer::startOcclusionAndSwRaster()
   mainCameraVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, currentFrameCamera, lmeshMgr);
 
   if (camera_in_camera::is_lens_render_active())
+  {
+    if (camera_in_camera::get_frame_number() < 1)
+      camcamVisibilityMgr.getOcclusion()->reset();
+
     camcamVisibilityMgr.startOcclusionAndSwRaster(*riOcclusionData, *camcamParams, lmeshMgr);
+  }
 }
 
 void WorldRenderer::startGroundVisibility()
 {
-  mainCameraVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, cameraHeight, waterLevel, displacementSubDiv,
+  const float deformR = deformHmap ? 1.414213562373095f * deformHmap->getRadius() : 0;
+  mainCameraVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, cameraHeight, waterLevel, displacementSubDiv, deformR,
     currentFrameCamera);
 
   if (camera_in_camera::is_lens_render_active())
-    camcamVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, cameraHeight, waterLevel, displacementSubDiv, *camcamParams);
+    camcamVisibilityMgr.startGroundVisibility(lmeshMgr, lmeshRenderer, cameraHeight, waterLevel, displacementSubDiv, deformR,
+      *camcamParams);
 }
 
 void WorldRenderer::startGroundReflectionVisibility()

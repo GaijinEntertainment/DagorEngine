@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <render/antiAliasing.h>
+#include <render/antiAliasing_legacy.h>
 #include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
 
 class XeSuperSampling : public AntiAliasing
@@ -11,14 +11,17 @@ public:
 
   bool needMotionVectors() const override { return true; };
 
-  static bool is_enabled();
+  float getLodBias() const override;
+
+  bool isFrameGenerationEnabled() const override;
+
+  bool needMotionVectorHistory() const override { return isFrameGenerationEnabled(); }
+  bool needDepthHistory() const override { return isFrameGenerationEnabled(); }
+  bool isAvailable() const override { return available; }
 
 private:
+  bool available;
   dafg::NodeHandle applierNode;
+  dafg::NodeHandle frameGenerationNode;
+  dafg::NodeHandle lifetimeExtenderNode;
 };
-
-void xess_render(Texture *in_color,
-  Texture *out_color,
-  Point2 input_resolution,
-  Point2 jitter_offset,
-  const AntiAliasing::OptionalInputParams &params);

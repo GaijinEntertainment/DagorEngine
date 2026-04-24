@@ -1,0 +1,17 @@
+Root    ?= ../../.. ;
+Module = console_commands ;
+Location = prog/gameLibs/$(Module) ;
+local DasModule = gameLibs_console_commands_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/1stPartyLibs/daScript/include
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
+;
+
+local AllSrcFolder_DAS =
+  main
+;
+
+include $(Root)/prog/gameLibs/build_module.jam ;

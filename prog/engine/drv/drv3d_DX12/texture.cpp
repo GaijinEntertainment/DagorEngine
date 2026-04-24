@@ -9,6 +9,7 @@
 
 #include <basetexture.h>
 #include <drv/3d/dag_platform_pc.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_texture.h>
 #include <image/dag_texPixel.h>
 #include <ioSys/dag_memIo.h>
@@ -39,7 +40,7 @@ bool needs_subresource_tracking(uint32_t cflags)
   return 0 != (cflags & (TEXCF_RTARGET | TEXCF_UNORDERED | TEXCF_UPDATE_DESTINATION | TEXCF_DYNAMIC));
 }
 
-void clear_full_rt_resource_with_default_value(BaseTex &tex, const ImageInfo &desc)
+void clear_or_discard_full_rt_resource_with_default_value(BaseTex &tex, const ImageInfo &desc)
 {
   auto &ctx = get_device().getContext();
   auto image = tex.image;
@@ -61,7 +62,7 @@ void clear_full_rt_resource_with_default_value(BaseTex &tex, const ImageInfo &de
   }
   else
   {
-    ctx.clearDepthStencilImage(image, area, {}, {});
+    ctx.clearDepthStencilImage(image, area, {}, (D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL), {});
   }
 }
 
@@ -338,7 +339,7 @@ bool create_tex2d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t levels, bool cu
       return false;
   }
   else if (isRT)
-    clear_full_rt_resource_with_default_value(tex, desc);
+    clear_or_discard_full_rt_resource_with_default_value(tex, desc);
   else if (flg & TEXCF_CLEAR_ON_CREATE)
   {
     if (isUav)
@@ -472,7 +473,7 @@ bool create_tex3d(BaseTex &tex, uint32_t w, uint32_t h, uint32_t d, uint32_t flg
   else if (isRT)
   {
     // init render target to a known state
-    clear_full_rt_resource_with_default_value(tex, desc);
+    clear_or_discard_full_rt_resource_with_default_value(tex, desc);
   }
   else if (flg & TEXCF_CLEAR_ON_CREATE)
   {
@@ -545,7 +546,15 @@ ImageViewState BaseTex::getViewInfoUav(MipMapIndex mip, ArrayLayerIndex layer, b
   else if (type == D3DResourceType::ARRTEX)
   {
     result.isArray = 1;
-    result.isCubemap = isArrayCube();
+    result.isCubemap = 0;
+    result.setArrayRange(getArrayCount().front(layer));
+    D3D_CONTRACT_ASSERTF(layer < getArrayCount(), "UAV view for layer/face %u requested, but texture has only %u layers", layer,
+      getArrayCount());
+  }
+  else if (type == D3DResourceType::CUBEARRTEX)
+  {
+    result.isArray = 1;
+    result.isCubemap = 1;
     result.setArrayRange(getArrayCount().front(layer));
     D3D_CONTRACT_ASSERTF(layer < getArrayCount(), "UAV view for layer/face %u requested, but texture has only %u layers", layer,
       getArrayCount());
@@ -580,8 +589,8 @@ ImageViewState BaseTex::getViewInfoRenderTarget(MipMapIndex mip, ArrayLayerIndex
 {
   FormatStore format = isSrgbWriteAllowed() ? getFormat() : getFormat().getLinearVariant();
   ImageViewState result;
-  result.isArray = type == D3DResourceType::ARRTEX;
-  result.isCubemap = type == D3DResourceType::CUBETEX;
+  result.isArray = (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX);
+  result.isCubemap = (type == D3DResourceType::CUBETEX || type == D3DResourceType::CUBEARRTEX);
   result.setFormat(format);
   result.setSingleMipMapRange(mip);
 
@@ -617,8 +626,8 @@ ImageViewState BaseTex::getViewInfo() const
 {
   ImageViewState result;
   result.setFormat(isSrgbReadAllowed() ? getFormat() : getFormat().getLinearVariant());
-  result.isArray = type == D3DResourceType::ARRTEX ? 1 : 0;
-  result.isCubemap = type == D3DResourceType::CUBETEX ? 1 : (type == D3DResourceType::ARRTEX ? int(isArrayCube()) : 0);
+  result.isArray = (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX) ? 1 : 0;
+  result.isCubemap = (type == D3DResourceType::CUBETEX || type == D3DResourceType::CUBEARRTEX) ? 1 : 0;
   int32_t baseMip = clamp<int32_t>(maxMipLevel, 0, max(0, (int32_t)realMipLevels - 1));
   int32_t mipCount = (minMipLevel - maxMipLevel) + 1;
   if (mipCount <= 0 || baseMip + mipCount > realMipLevels)
@@ -847,7 +856,11 @@ ArrayLayerCount BaseTex::getArrayCount() const
   }
   else if (type == D3DResourceType::ARRTEX)
   {
-    return ArrayLayerCount::make((isArrayCube() ? 6 : 1) * depth);
+    return ArrayLayerCount::make(depth);
+  }
+  else if (type == D3DResourceType::CUBEARRTEX)
+  {
+    return ArrayLayerCount::make(6 * depth);
   }
   return ArrayLayerCount::make(1);
 }
@@ -860,7 +873,7 @@ void BaseTex::setApiName(const char *name) const
   }
 }
 
-BaseTex::BaseTex(D3DResourceType type, uint32_t cflg) : cflg{cflg}, type{type}, depth{1}, minMipLevel{20}
+BaseTex::BaseTex(D3DResourceType type, uint32_t cflg, ResourceTagType tg) : cflg{cflg}, type{type}, depth{1}, minMipLevel{20}, tag{tg}
 {
   creationFenceProgress = get_device().getContext().getRecordingFenceProgress();
 
@@ -894,10 +907,11 @@ BaseTexture *BaseTex::makeTmpTexResCopy(int w, int h, int d, int l)
   STORE_RETURN_ADDRESS();
   if (type != D3DResourceType::ARRTEX && type != D3DResourceType::VOLTEX && type != D3DResourceType::CUBEARRTEX)
     d = 1;
-  BaseTex *clonedTex = get_device().newTextureObject(type, cflg);
+  BaseTex *clonedTex = get_device().newTextureObject(type, cflg, tag);
   clonedTex->tidXored = tidXored, clonedTex->stubTexIdx = stubTexIdx;
   clonedTex->setParams(w, h, d, l, String::mk_str_cat("tmp:", getTexName()));
   clonedTex->setIsPreallocBeforeLoad(true);
+  clonedTex->adoptWasUsed(this);
   if (!clonedTex->allocateTex())
     del_d3dres(clonedTex);
   return clonedTex;
@@ -962,7 +976,8 @@ BaseTexture *BaseTex::downSize(int new_width, int new_height, int new_depth, int
   unsigned sourceLevel = max<unsigned>(level_offset, start_src_level);
   unsigned sourceLevelEnd = min<unsigned>(mipLevels, new_mips + level_offset);
 
-  rep->texmiplevel(sourceLevel - level_offset, sourceLevelEnd - level_offset - 1);
+  repTex->texmiplevel(sourceLevel - level_offset, sourceLevelEnd - level_offset - 1);
+  repTex->adoptWasUsed(this);
 
   STORE_RETURN_ADDRESS();
   get_device().getContext().resizeImageMipMapTransfer(src, dst, MipMapRange::make(sourceLevel, sourceLevelEnd - sourceLevel), 0,
@@ -990,7 +1005,8 @@ BaseTexture *BaseTex::upSize(int new_width, int new_height, int new_depth, int n
   unsigned destinationLevel = level_offset + start_src_level;
   unsigned destinationLevelEnd = min<unsigned>(mipLevels + level_offset, new_mips);
 
-  rep->texmiplevel(destinationLevel, destinationLevelEnd - 1);
+  repTex->texmiplevel(destinationLevel, destinationLevelEnd - 1);
+  repTex->adoptWasUsed(this);
 
   STORE_RETURN_ADDRESS();
   get_device().getContext().resizeImageMipMapTransfer(src, dst,
@@ -1132,7 +1148,13 @@ bool BaseTex::recreate()
   if (D3DResourceType::ARRTEX == type)
   {
     VERBOSE_DEBUG("<%s> recreate %dx%dx%d (%s)", getName(), width, height, depth, "rt|dyn");
-    return create_tex2d(*this, width, height, mipLevels, isArrayCube(), NULL, depth);
+    return create_tex2d(*this, width, height, mipLevels, 0, NULL, depth);
+  }
+
+  if (D3DResourceType::CUBEARRTEX == type)
+  {
+    VERBOSE_DEBUG("<%s> recreate %dx%dx%d (%s)", getName(), width, height, depth, "rt|dyn");
+    return create_tex2d(*this, width, height, mipLevels, 1, NULL, depth);
   }
 
   return false;
@@ -1342,7 +1364,7 @@ int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, in
   }
 
   if ((D3DResourceType::TEX != type) && (D3DResourceType::CUBETEX != type) && (D3DResourceType::VOLTEX != type) &&
-      (D3DResourceType::ARRTEX != type))
+      (D3DResourceType::ARRTEX != type) && (D3DResourceType::CUBEARRTEX != type))
     return 0;
 
   if (stex->image == nullptr || image == nullptr)
@@ -1362,6 +1384,61 @@ int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, in
     "DX12: BaseTex::updateSubRegion source <%s> format %s can not be copied "
     "to dest <%s> format %s",
     stex->getTexName(), sfmt.getNameString(), getTexName(), dfmt.getNameString());
+
+  ImageCopy region;
+  region.srcSubresource = SubresourceIndex::make(src_subres_idx);
+  region.dstSubresource = SubresourceIndex::make(dest_subres_idx);
+
+  const Extent3D copyExtent{
+    .width = static_cast<uint32_t>(src_w), .height = static_cast<uint32_t>(src_h), .depth = static_cast<uint32_t>(src_d)};
+
+  const auto srcExt = stex->image->getMipExtents(stex->image->stateIndexToMipIndex(region.srcSubresource));
+  const auto dstExt = image->getMipExtents(image->stateIndexToMipIndex(region.dstSubresource));
+
+  const bool srcIsFullResourceRegion = copyExtent == srcExt;
+  const bool dstIsFullResourceRegion = copyExtent == dstExt;
+
+  if (sfmt.isDepth() || dfmt.isDepth() || (0 != (TEXCF_SAMPLECOUNT_MASK & (cflg | stex->cflg))))
+  {
+    // for multi sample the sample count has be identical
+    if ((cflg & TEXCF_SAMPLECOUNT_MASK) != (stex->cflg & TEXCF_SAMPLECOUNT_MASK))
+    {
+      D3D_CONTRACT_ERROR("DX12: updateSubRegion for multisampled textures requires same sample count, src=<%s> %08X, dst=<%s> %08X",
+        src->getTexName(), (stex->cflg & TEXCF_SAMPLECOUNT_MASK), getTexName(), (cflg & TEXCF_SAMPLECOUNT_MASK));
+      return 0;
+    }
+
+    if (0 != src_x || 0 != src_y || 0 != src_z)
+    {
+      D3D_CONTRACT_ERROR("DX12: updateSubRegion for multisampled or depth/stencil only entire sub resource is allowed, but src "
+                         "offsets where not 0 (%u, %u, %u)",
+        src_x, src_y, src_z);
+      return 0;
+    }
+
+    if (0 != dest_x || 0 != dest_y || 0 != dest_z)
+    {
+      D3D_CONTRACT_ERROR("DX12: updateSubRegion for multisampled or depth/stencil only entire sub resource is allowed, but dst "
+                         "offsets where not 0 (%u, %u, %u)",
+        dest_x, dest_y, dest_z);
+      return 0;
+    }
+    if (!srcIsFullResourceRegion)
+    {
+      D3D_CONTRACT_ERROR("DX12: updateSubRegion for multisampled or depth/stencil copy region has to match mip map extents of src "
+                         "(%u, %u, %u) != (%u, %u, %u)",
+        copyExtent.width, copyExtent.height, copyExtent.depth, srcExt.width, srcExt.height, srcExt.depth);
+      return 0;
+    }
+
+    if (!dstIsFullResourceRegion)
+    {
+      D3D_CONTRACT_ERROR("DX12: updateSubRegion for multisampled or depth/stencil copy region has to match mip map extents of dst "
+                         "(%u, %u, %u) != (%u, %u, %u)",
+        copyExtent.width, copyExtent.height, copyExtent.depth, dstExt.width, dstExt.height, dstExt.depth);
+      return 0;
+    }
+  }
 
   uint32_t sbx, sby, dbx, dby;
   sfmt.getBytesPerPixelBlock(&sbx, &sby);
@@ -1386,18 +1463,25 @@ int BaseTex::updateSubRegion(BaseTexture *src, int src_subres_idx, int src_x, in
   dest_x = fix_block_size(dest_x, dbx, "dest_x");
   dest_y = fix_block_size(dest_y, dby, "dest_y");
 
-  ImageCopy region;
-  region.srcSubresource = SubresourceIndex::make(src_subres_idx);
-  region.dstSubresource = SubresourceIndex::make(dest_subres_idx);
-  region.dstOffset.x = dest_x;
-  region.dstOffset.y = dest_y;
-  region.dstOffset.z = dest_z;
-  region.srcBox.left = src_x;
-  region.srcBox.top = src_y;
-  region.srcBox.front = src_z;
-  region.srcBox.right = src_x + src_w;
-  region.srcBox.bottom = src_y + src_h;
-  region.srcBox.back = src_z + src_d;
+  if (srcIsFullResourceRegion && dstIsFullResourceRegion)
+  {
+    region.dstOffset.x = 0;
+    region.dstOffset.y = 0;
+    region.dstOffset.z = 0;
+    region.srcBox = make_full_region_meta_box();
+  }
+  else
+  {
+    region.dstOffset.x = dest_x;
+    region.dstOffset.y = dest_y;
+    region.dstOffset.z = dest_z;
+    region.srcBox.left = src_x;
+    region.srcBox.top = src_y;
+    region.srcBox.front = src_z;
+    region.srcBox.right = src_x + src_w;
+    region.srcBox.bottom = src_y + src_h;
+    region.srcBox.back = src_z + src_d;
+  }
 
   ScopedCommitLock ctxLock{get_device().getContext()};
   get_device().getContext().copyImage(stex->image, image, region);
@@ -1430,6 +1514,10 @@ int BaseTex::generateMips()
 {
   if (!image)
     return 0;
+
+  if (!(cflg & TEXCF_GENERATEMIPS))
+    LOGWARN_ONCE("generateMips called on %s texture without TEXCF_GENERATEMIPS flag", getTexName());
+
   STORE_RETURN_ADDRESS();
   if (mipLevels > 1)
   {
@@ -1487,9 +1575,11 @@ void BaseTex::releaseMemory(uint64_t progress)
     ctx.waitForProgress(progress);
   }
 
+  // Emergency defragmentation may update image in the middle of the frame. The guard is to avoid the old pointer double free.
+  ScopedCommitLock lock{ctx};
   if (image)
   {
-    ctx.destroyImage(image, isRenderTarget());
+    ctx.destroyImageNoLock(image, isRenderTarget());
     image = nullptr;
   }
 }
@@ -1512,7 +1602,7 @@ void BaseTex::lockimgXboxLinearLayout(void **pointer, int &stride, int level, in
     return;
   }
 
-  if ((flags & TEXLOCK_READ) && (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED)))
+  if ((flags & TEXLOCK_READ) && (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED | TEXCF_UPDATE_DESTINATION)))
   {
     if (!waitAndResetProgress())
     {
@@ -1566,7 +1656,7 @@ int BaseTex::lockimg(void **pointer, int &stride, int level, unsigned flags)
   stride = 0;
 
   uint32_t prevFlags = lockFlags;
-  if (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED))
+  if (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED | TEXCF_UPDATE_DESTINATION))
   {
 #if DAGOR_DBGLEVEL > 0
     setWasUsed();
@@ -2051,7 +2141,8 @@ int BaseTex::texmiplevel(int minlevel, int maxlevel)
 }
 
 static constexpr int IMAGE_BYTES_PER_PIXEL = 4;
-static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, Texture *baseTexture)
+static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, Texture *baseTexture,
+  ResourceTagType tag)
 {
   if (!d3d::check_texformat(flg) && get_device().isHealthy())
   {
@@ -2070,7 +2161,7 @@ static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int 
     h = img->h;
   }
 
-  const Driver3dDesc &dd = d3d::get_driver_desc();
+  const DriverDesc &dd = d3d::get_driver_desc();
   w = clamp<int>(w, dd.mintexw, dd.maxtexw);
   h = clamp<int>(h, dd.mintexh, dd.maxtexh);
 
@@ -2101,7 +2192,7 @@ static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int 
 
   // TODO: check for preallocated RT (with requested, not adjusted tex dimensions)
 
-  auto tex = get_device().newTextureObject(D3DResourceType::TEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::TEX, flg, tag);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(w > 0 && h > 0, nullptr);
@@ -2179,14 +2270,15 @@ static Texture *create_tex_internal(TexImage32 *img, int w, int h, int flg, int 
   return tex;
 }
 
-Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
+Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
   STORE_RETURN_ADDRESS();
   check_texture_creation_args(w, h, flg, stat_name);
-  return create_tex_internal(img, w, h, flg, levels, stat_name, nullptr);
+  return create_tex_internal(img, w, h, flg, levels, stat_name, nullptr, tag);
 }
 
-static CubeTexture *create_cubetex_internal(int size, int flg, int levels, const char *stat_name, CubeTexture *baseTexture)
+static CubeTexture *create_cubetex_internal(int size, int flg, int levels, const char *stat_name, CubeTexture *baseTexture,
+  ResourceTagType tag)
 {
   if (!d3d::check_cubetexformat(flg) && get_device().isHealthy())
   {
@@ -2200,12 +2292,12 @@ static CubeTexture *create_cubetex_internal(int size, int flg, int levels, const
     return nullptr;
   }
 
-  const Driver3dDesc &dd = d3d::get_driver_desc();
+  const DriverDesc &dd = d3d::get_driver_desc();
   size = get_bigger_pow2(clamp<int>(size, dd.mincubesize, dd.maxcubesize));
 
   levels = count_mips_if_needed(size, size, flg, levels);
 
-  auto tex = get_device().newTextureObject(D3DResourceType::CUBETEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::CUBETEX, flg, tag);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(size > 0, nullptr);
@@ -2223,13 +2315,14 @@ static CubeTexture *create_cubetex_internal(int size, int flg, int levels, const
   return tex;
 }
 
-CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat_name)
+CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
   STORE_RETURN_ADDRESS();
-  return create_cubetex_internal(size, flg, levels, stat_name, nullptr);
+  return create_cubetex_internal(size, flg, levels, stat_name, nullptr, tag);
 }
 
-static VolTexture *create_voltex_internal(int w, int h, int d, int flg, int levels, const char *stat_name, VolTexture *baseTexture)
+static VolTexture *create_voltex_internal(int w, int h, int d, int flg, int levels, const char *stat_name, VolTexture *baseTexture,
+  ResourceTagType tag)
 {
   if (!d3d::check_voltexformat(flg) && get_device().isHealthy())
   {
@@ -2245,7 +2338,7 @@ static VolTexture *create_voltex_internal(int w, int h, int d, int flg, int leve
 
   levels = count_mips_if_needed(w, h, flg, levels);
 
-  auto tex = get_device().newTextureObject(D3DResourceType::VOLTEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::VOLTEX, flg, tag);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(w > 0 && h > 0 && d > 0, nullptr);
@@ -2289,14 +2382,14 @@ static VolTexture *create_voltex_internal(int w, int h, int d, int flg, int leve
   return tex;
 }
 
-VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name)
+VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
   STORE_RETURN_ADDRESS();
-  return create_voltex_internal(w, h, d, flg, levels, stat_name, nullptr);
+  return create_voltex_internal(w, h, d, flg, levels, stat_name, nullptr, tag);
 }
 
 static ArrayTexture *create_array_tex_internal(int w, int h, int d, int flg, int levels, const char *stat_name,
-  ArrayTexture *baseTexture)
+  ArrayTexture *baseTexture, ResourceTagType tag)
 {
   if (!d3d::check_texformat(flg) && get_device().isHealthy())
   {
@@ -2306,7 +2399,7 @@ static ArrayTexture *create_array_tex_internal(int w, int h, int d, int flg, int
 
   levels = count_mips_if_needed(w, h, flg, levels);
 
-  auto tex = get_device().newTextureObject(D3DResourceType::ARRTEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::ARRTEX, flg, tag);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(w > 0 && h > 0 && d > 0, nullptr);
@@ -2324,14 +2417,14 @@ static ArrayTexture *create_array_tex_internal(int w, int h, int d, int flg, int
   return tex;
 }
 
-ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name)
+ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
   STORE_RETURN_ADDRESS();
-  return create_array_tex_internal(w, h, d, flg, levels, stat_name, nullptr);
+  return create_array_tex_internal(w, h, d, flg, levels, stat_name, nullptr, tag);
 }
 
-static ArrayTexture *create_cube_array_tex_internal(int side, int d, int flg, int levels, const char *stat_name,
-  ArrayTexture *baseTexture)
+static CubeArrayTexture *create_cube_array_tex_internal(int side, int d, int flg, int levels, const char *stat_name,
+  CubeArrayTexture *baseTexture, ResourceTagType tag)
 {
   if (!d3d::check_cubetexformat(flg) && get_device().isHealthy())
   {
@@ -2341,13 +2434,12 @@ static ArrayTexture *create_cube_array_tex_internal(int side, int d, int flg, in
 
   levels = count_mips_if_needed(side, side, flg, levels);
 
-  auto tex = get_device().newTextureObject(D3DResourceType::ARRTEX, flg);
+  auto tex = get_device().newTextureObject(D3DResourceType::CUBEARRTEX, flg, tag);
 
   G_ASSERT_RETURN(tex, nullptr);
   G_ASSERT_RETURN(side > 0 && d > 0, nullptr);
   G_ASSERT_RETURN(levels > 0 && levels < MAX_MIPMAPS, nullptr);
   tex->setParams(side, side, d, levels, stat_name);
-  tex->setIsArrayCube(true);
 
   if (!create_tex2d(*tex, side, side, levels, true, nullptr, d, static_cast<BaseTex *>(baseTexture)))
   {
@@ -2360,10 +2452,10 @@ static ArrayTexture *create_cube_array_tex_internal(int side, int d, int flg, in
   return tex;
 }
 
-ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name)
+CubeArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
   STORE_RETURN_ADDRESS();
-  return create_cube_array_tex_internal(side, d, flg, levels, stat_name, nullptr);
+  return create_cube_array_tex_internal(side, d, flg, levels, stat_name, nullptr, tag);
 }
 
 // load compressed texture
@@ -2453,7 +2545,7 @@ BaseTexture *d3d::alloc_ddsx_tex(const ddsx::Header &hdr, int flg, int q_id, int
   else
     type = D3DResourceType::TEX;
 
-  auto bt = drv3d_dx12::get_device().newTextureObject(type, flg);
+  auto bt = drv3d_dx12::get_device().newTextureObject(type, flg, RESTAG_DDSX_TEX);
 
   int skip_levels = hdr.getSkipLevels(hdr.getSkipLevelsFromQ(q_id), levels);
   int w = max(hdr.w >> skip_levels, 1), h = max(hdr.h >> skip_levels, 1), d = max(hdr.depth >> skip_levels, 1);
@@ -2502,29 +2594,29 @@ void *d3d::pcwin::get_native_surface(BaseTexture *)
 Texture *d3d::alias_tex(Texture *baseTexture, TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
 {
   STORE_RETURN_ADDRESS();
-  return create_tex_internal(img, w, h, flg, levels, stat_name, static_cast<BaseTex *>(baseTexture));
+  return create_tex_internal(img, w, h, flg, levels, stat_name, static_cast<BaseTex *>(baseTexture), nullptr);
 }
 
 CubeTexture *d3d::alias_cubetex(CubeTexture *baseTexture, int size, int flg, int levels, const char *stat_name)
 {
   STORE_RETURN_ADDRESS();
-  return create_cubetex_internal(size, flg, levels, stat_name, baseTexture);
+  return create_cubetex_internal(size, flg, levels, stat_name, baseTexture, nullptr);
 }
 
 VolTexture *d3d::alias_voltex(VolTexture *baseTexture, int w, int h, int d, int flg, int levels, const char *stat_name)
 {
   STORE_RETURN_ADDRESS();
-  return create_voltex_internal(w, h, d, flg, levels, stat_name, baseTexture);
+  return create_voltex_internal(w, h, d, flg, levels, stat_name, baseTexture, nullptr);
 }
 
 ArrayTexture *d3d::alias_array_tex(ArrayTexture *baseTexture, int w, int h, int d, int flg, int levels, const char *stat_name)
 {
   STORE_RETURN_ADDRESS();
-  return create_array_tex_internal(w, h, d, flg, levels, stat_name, baseTexture);
+  return create_array_tex_internal(w, h, d, flg, levels, stat_name, baseTexture, nullptr);
 }
 
-ArrayTexture *d3d::alias_cube_array_tex(ArrayTexture *baseTexture, int side, int d, int flg, int levels, const char *stat_name)
+CubeArrayTexture *d3d::alias_cube_array_tex(CubeArrayTexture *baseTexture, int side, int d, int flg, int levels, const char *stat_name)
 {
   STORE_RETURN_ADDRESS();
-  return create_cube_array_tex_internal(side, d, flg, levels, stat_name, baseTexture);
+  return create_cube_array_tex_internal(side, d, flg, levels, stat_name, baseTexture, nullptr);
 }

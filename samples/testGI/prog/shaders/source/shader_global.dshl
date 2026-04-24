@@ -277,9 +277,6 @@ half linearSmoothnessToLinearRoughness(half linearSmoothness) {return 1-linearSm
 int compatibility_mode = 0;
 interval compatibility_mode:compatibility_mode_off<1, compatibility_mode_on;
 
-int mobile_render = 0;
-interval mobile_render: off < 1, forward < 2, deferred;
-
 macro USE_MSAA()
   hlsl(ps) {
     #define NUM_MSAA_SAMPLES 0

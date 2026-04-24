@@ -1,19 +1,25 @@
+if (__name__ == "__analysis__")
+  return
+
 // -file:paren-is-function-call
+
+
 function foo(...) {}
+let s1 = "sum="
+let s2 = "array:"
 
-foo("sum=" (6+7)) // EXPECTED 1
+foo(s1 (6+7)) // EXPECTED 1
 
-foo("array:" [6]) // EXPECTED 2 access
+foo(s2 [6]) // EXPECTED 2 access
 
+let s3 = "t", s4 = "y"
 let _x = [
     "x"
 //    [6]       // compilation error
-    "t" [7]     // EXPECTED 3   access
-    "y" (6+7)   // EXPECTED 4
+    s3 [7]     // EXPECTED 3   access
+    s4 (6+7)   // EXPECTED 4
     "z"
     (6+7)       // EXPECTED 5
 ]
 
-
 foo(foo("b"))    // FP
-

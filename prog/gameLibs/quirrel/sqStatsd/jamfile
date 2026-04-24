@@ -2,8 +2,7 @@ Root    ?= ../../../.. ;
 
 Location = prog/gameLibs/quirrel/sqStatsd ;
 StrictCompile = yes ;
-UseQuirrel = sq3+ sq3r sq3r+ ;
-ProjectUseQuirrel ?= sq3r+ ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/quirrel/sqStatsd.lib ;

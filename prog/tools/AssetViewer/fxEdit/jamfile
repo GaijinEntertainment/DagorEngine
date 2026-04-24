@@ -1,6 +1,5 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/AssetViewer/fxEdit ;
-UseQuirrel = sq3+ ;
 
 TargetType  = lib ;
 Target      = tools/AssetViewer/fxEdit.lib ;
@@ -10,6 +9,7 @@ AddIncludes =
   $(Root)/prog/tools/gameLibs/squirrel
   $(Root)/prog/tools/sceneTools/daEditorX/include
   $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
 ;
 
 

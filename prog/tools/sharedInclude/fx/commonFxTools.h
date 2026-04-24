@@ -7,4 +7,6 @@ void register_dafx_sparks_fx_tools();
 void register_dafx_modfx_fx_tools();
 void register_dafx_compound_fx_tools();
 
-void register_all_common_fx_tools();
+class DataBlock;
+void register_outdatedFx_tools(const DataBlock &appblk);
+void register_all_common_fx_tools(const DataBlock &appblk);

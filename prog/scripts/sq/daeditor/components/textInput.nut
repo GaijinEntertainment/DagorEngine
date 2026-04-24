@@ -1,5 +1,6 @@
 from "%darg/ui_imports.nut" import *
 from "string" import regexp, split_by_chars
+let { colors } = require("style.nut")
 
 /*
   todo:
@@ -43,9 +44,9 @@ function isStringLikelyEmail(str, _verbose=true) {
   let quotes = locpart.indexof("\"")
   if (quotes && quotes!=0)
     return false //quotes only at the begining
-  if (quotes==null && locpart.indexof("@")!=null)
+  if (quotes==null && locpart.contains("@"))
     return false //no @ without quotes
-  if (dompart.indexof(".")==null || dompart.indexof(".")>dompart.len()-3) // warning disable: -func-can-return-null -potentially-nulled-ops
+  if (!dompart.contains(".") || dompart.indexof(".")>dompart.len()-3) // warning disable: -func-can-return-null -potentially-nulled-ops
     return false  //too short first level domain or no periods
   return true
 }
@@ -53,20 +54,10 @@ function isStringLikelyEmail(str, _verbose=true) {
 function defaultFrame(inputObj, group, sf) {
   return {
     rendObj = ROBJ_FRAME
-    borderWidth = [hdpx(1), hdpx(1), 0, hdpx(1)]
     size = FLEX_H
-    color = sf & S_KB_FOCUS ? Color(180, 180, 180) : Color(120, 120, 120)
+    color = sf & S_KB_FOCUS ? colors.FrameActive : colors.FrameDefault
     group = group
-
-    children = {
-      rendObj = ROBJ_FRAME
-      borderWidth = [0, 0, hdpx(1), 0]
-      size = FLEX_H
-      color = sf & S_KB_FOCUS ? Color(250, 250, 250) : Color(180, 180, 180)
-      group = group
-
-      children = inputObj
-    }
+    children = inputObj
   }
 }
 
@@ -124,11 +115,11 @@ function textInput(text_state, options={}, frameCtor=defaultFrame) {
     isValidResult = null, isValidChange = null
   } = options
 
-  let colors = defaultColors.__merge(options?.colors ?? {})
+  let colorOptions = defaultColors.__merge(options?.colors ?? {})
 
   isValidResult = isValidResult ?? @(new_value) isValidStrByType(new_value, inputType)
   isValidChange = isValidChange
-    ?? @(new_value) interactiveValidTypes.indexof(inputType) == null
+    ?? @(new_value) !interactiveValidTypes.contains(inputType)
       || isValidStrByType(new_value, inputType)
 
   let stateFlags = Watched(0)
@@ -166,9 +157,8 @@ function textInput(text_state, options={}, frameCtor=defaultFrame) {
       rendObj = ROBJ_TEXT
       font
       fontSize
-      color = colors.placeHolderColor
+      color = colorOptions.placeHolderColor
       animations = [failAnim(text_state)]
-      margin = [0, sh(0.5)]
     }
     placeholderObj = isObservable(placeholder)
       ? @() phBase.__update({ watch = placeholder, text = placeholder.get() })
@@ -183,7 +173,7 @@ function textInput(text_state, options={}, frameCtor=defaultFrame) {
     size
     font
     fontSize
-    color = colors.textColor
+    color = colorOptions.textColor
     group
     margin = textmargin
     valign = valignText
@@ -225,7 +215,7 @@ function textInput(text_state, options={}, frameCtor=defaultFrame) {
     padding
 
     rendObj = ROBJ_BOX
-    fillColor = colors.backGroundColor
+    fillColor = colorOptions.backGroundColor
     borderWidth = 0
     borderRadius
     clipChildren = true

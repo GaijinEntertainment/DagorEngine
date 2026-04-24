@@ -22,10 +22,12 @@
 inline void stat_inc(int &v) { ++v; }
 inline void stat_add(int &v, int b) { v += b; }
 inline void stat_set(int &v, int b) { v = b; }
+inline void stat_min(int &v, int b) { v = min(v, b); }
 #else
 inline void stat_inc(int &) {}
 inline void stat_add(int &, int) {}
 inline void stat_set(int &, int) {}
+inline void stat_min(int &, int) {}
 #endif
 #endif
 

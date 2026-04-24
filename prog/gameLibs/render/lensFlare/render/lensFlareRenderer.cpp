@@ -294,7 +294,7 @@ void LensFlareRenderer::prepareConfigBuffers(const eastl::vector<LensFlareConfig
 
   // A single texel at this mip level should cover the area in gbuffer depth, that's used by the occlusion test
   const int depthMipLevel = get_bigger_log2(LENS_FLARE_OCCLUSION_DEPTH_TEXELS);
-  const int farDepthMipLevel = depthMipLevel - 1;
+  const int farDepthMipLevel = min(downSampledDepthMipCount ? downSampledDepthMipCount - 1 : depthMipLevel, depthMipLevel - 1);
   ShaderGlobal::set_int(lens_flare_prepare_far_depth_mipVarId, farDepthMipLevel);
 
   eastl::vector<uint16_t> indexBufferContent;
@@ -337,31 +337,34 @@ void LensFlareRenderer::prepareConfigBuffers(const eastl::vector<LensFlareConfig
   ShaderGlobal::set_int(lens_flare_visibility_history_buf_sizeVarId, VISIBILITY_HISTORY_SIZE);
   ShaderGlobal::set_int(lens_flare_prepare_max_num_instanceVarId, MAX_NUM_INSTANCES);
 
-  lensFlareBuf =
-    dag::buffers::create_persistent_sr_structured(sizeof(flaresBufferContent[0]), flaresBufferContent.size(), "lens_flare_info_buf");
+  lensFlareBuf = dag::buffers::create_persistent_sr_structured(sizeof(flaresBufferContent[0]), flaresBufferContent.size(),
+    "lens_flare_info_buf", d3d::buffers::Init::No, RESTAG_LENSFLARE);
   manualLightDataBuf = dag::buffers::create_one_frame_sr_structured(sizeof(ManualLightFlareData), MAX_NUM_MANUAL_PREPARED_LIGHTS,
-    "lens_flare_prepare_manual_lights_buf");
-  lensFlareInstancesBuf =
-    dag::buffers::create_ua_sr_structured(sizeof(LensFlareInstanceData), MAX_NUM_INSTANCES, "lens_flare_instances_buf");
+    "lens_flare_prepare_manual_lights_buf", RESTAG_LENSFLARE);
+  lensFlareInstancesBuf = dag::buffers::create_ua_sr_structured(sizeof(LensFlareInstanceData), MAX_NUM_INSTANCES,
+    "lens_flare_instances_buf", d3d::buffers::Init::No, RESTAG_LENSFLARE);
   lensFlareVisibilityHistoryBuf = dag::buffers::create_ua_sr_structured(sizeof(LensFlareVisibilityHistoryData),
-    VISIBILITY_HISTORY_SIZE, "lens_flare_visibility_history_buf");
+    VISIBILITY_HISTORY_SIZE, "lens_flare_visibility_history_buf", d3d::buffers::Init::No, RESTAG_LENSFLARE);
   vertexPositionsBuf = dag::buffers::create_persistent_sr_structured(sizeof(Point2), vertexPositionsBufferContent.size(),
-    "lens_flare_vertex_positions_buf");
-  indirectDrawStagingBuf = dag::buffers::create_one_frame_sr_byte_address(
-    (sizeof(DrawIndexedIndirectArgs) * max(maxNumIndirectDrawCalls, 1) + 3) / 4, "lens_flare_prepare_indirect_draw_staging_buf");
+    "lens_flare_vertex_positions_buf", d3d::buffers::Init::No, RESTAG_LENSFLARE);
+  indirectDrawStagingBuf =
+    dag::buffers::create_one_frame_sr_byte_address((sizeof(DrawIndexedIndirectArgs) * max(maxNumIndirectDrawCalls, 1) + 3) / 4,
+      "lens_flare_prepare_indirect_draw_staging_buf", RESTAG_LENSFLARE);
   indirectDrawBuf = dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, max(maxNumIndirectDrawCalls, 1),
-    "lens_flare_prepare_indirect_draw_buf");
+    "lens_flare_prepare_indirect_draw_buf", RESTAG_LENSFLARE);
   indirectDrawInstanceOffsetsBuf = dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), max(maxNumIndirectDrawCalls, 1),
-    "lens_flare_prepare_instance_offsets_buf");
-  indirectDispatchInitialBuf = dag::buffers::create_persistent_cb(1, "lens_flare_prepare_indirect_dispatch_initial_buf");
-  indirectDispatchBuf =
-    dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, 1, "lens_flare_prepare_indirect_dispatch_buf");
-  preCulledInstanceIndicesBuf =
-    dag::buffers::create_ua_sr_structured(sizeof(uint32_t), MAX_NUM_INSTANCES, "lens_flare_prepare_pre_culled_instance_indices_buf");
-  drawCallIndicesBufferBuf =
-    dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), drawCallIndicesBufSize, "lens_flare_prepare_draw_indices_buf");
-  flareVB = dag::create_vb(data_size(vertexBufferContent), SBCF_BIND_VERTEX, "LensFlareVertices");
-  flareIB = dag::create_ib(lensShaderElement.stride * indexBufferContent.size(), SBCF_BIND_INDEX, "LensFlareIndices");
+    "lens_flare_prepare_instance_offsets_buf", RESTAG_LENSFLARE);
+  indirectDispatchInitialBuf =
+    dag::buffers::create_persistent_cb(1, "lens_flare_prepare_indirect_dispatch_initial_buf", RESTAG_LENSFLARE);
+  indirectDispatchBuf = dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, 1,
+    "lens_flare_prepare_indirect_dispatch_buf", RESTAG_LENSFLARE);
+  preCulledInstanceIndicesBuf = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), MAX_NUM_INSTANCES,
+    "lens_flare_prepare_pre_culled_instance_indices_buf", d3d::buffers::Init::No, RESTAG_LENSFLARE);
+  drawCallIndicesBufferBuf = dag::buffers::create_one_frame_sr_structured(sizeof(uint32_t), drawCallIndicesBufSize,
+    "lens_flare_prepare_draw_indices_buf", RESTAG_LENSFLARE);
+  flareVB = dag::create_vb(data_size(vertexBufferContent), SBCF_BIND_VERTEX, "LensFlareVertices", RESTAG_LENSFLARE);
+  flareIB =
+    dag::create_ib(lensShaderElement.stride * indexBufferContent.size(), SBCF_BIND_INDEX, "LensFlareIndices", RESTAG_LENSFLARE);
   lensFlareBuf->updateData(0, flaresBufferContent.size() * sizeof(flaresBufferContent[0]), flaresBufferContent.data(),
     VBLOCK_WRITEONLY);
   vertexPositionsBuf->updateData(0, sizeof(float) * 2 * vertexPositionsBufferContent.size(), vertexPositionsBufferContent.data(),
@@ -628,19 +631,20 @@ bool LensFlareRenderer::endPreparingLights(const Point3 &camera_pos, const Point
   G_ASSERT(currentDataIndex <= drawIndicesDataSize);
   d3d::resource_barrier({drawCallIndicesBufferBuf.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
 
-  ShaderGlobal::set_color4(lens_flare_prepare_camera_posVarId, camera_pos, 0);
-  ShaderGlobal::set_color4(lens_flare_prepare_camera_dirVarId, camera_dir, 0);
+  ShaderGlobal::set_float4(lens_flare_prepare_camera_posVarId, camera_pos, 0);
+  ShaderGlobal::set_float4(lens_flare_prepare_camera_dirVarId, camera_dir, 0);
   ShaderGlobal::set_int(lens_flare_prepare_num_manual_flaresVarId, numPreparedManualInstances);
   ShaderGlobal::set_int(lens_flare_prepare_num_omni_light_flaresVarId, omni_light_count);
   ShaderGlobal::set_int(lens_flare_prepare_num_spot_light_flaresVarId, spot_light_count);
   if (hadDynamicLights)
   {
     const auto &flareData = lensFlares[dynamicLightsFlareId];
-    ShaderGlobal::set_real(lens_flare_prepare_dynamic_lights_fadeout_distanceVarId, flareData.getParams().smoothScreenFadeoutDistance);
+    ShaderGlobal::set_float(lens_flare_prepare_dynamic_lights_fadeout_distanceVarId,
+      flareData.getParams().smoothScreenFadeoutDistance);
     ShaderGlobal::set_int(lens_flare_prepare_dynamic_lights_use_occlusionVarId, flareData.getParams().useOcclusion ? 1 : 0);
-    ShaderGlobal::set_real(lens_flare_prepare_dynamic_lights_depth_biasVarId, flareData.getParams().depthBias);
-    ShaderGlobal::set_real(lens_flare_prepare_dynamic_lights_exposure_pow_paramVarId, flareData.getParams().exposurePowParam);
-    ShaderGlobal::set_real(lens_flare_prepare_spot_lights_cone_angle_cosVarId, flareData.getParams().spotlightConeAngleCos);
+    ShaderGlobal::set_float(lens_flare_prepare_dynamic_lights_depth_biasVarId, flareData.getParams().depthBias);
+    ShaderGlobal::set_float(lens_flare_prepare_dynamic_lights_exposure_pow_paramVarId, flareData.getParams().exposurePowParam);
+    ShaderGlobal::set_float(lens_flare_prepare_spot_lights_cone_angle_cosVarId, flareData.getParams().spotlightConeAngleCos);
   }
 
   if (numPreparedManualInstances > 0)
@@ -696,8 +700,8 @@ void LensFlareRenderer::render(const Point2 &resolution, float zoom) const
 
   const Point2 globalScale =
     resolution.x >= resolution.y ? Point2(float(resolution.y) / resolution.x, 1) : Point2(1, float(resolution.x) / resolution.y);
-  ShaderGlobal::set_color4(lens_flare_resolutionVarId, resolution);
-  ShaderGlobal::set_color4(lens_flare_global_scaleVarId, globalScale * zoom);
+  ShaderGlobal::set_float4(lens_flare_resolutionVarId, resolution);
+  ShaderGlobal::set_float4(lens_flare_global_scaleVarId, globalScale * zoom);
 
   d3d::setvsrc(0, vb, lensShaderElement.stride);
   d3d::setind(ib);

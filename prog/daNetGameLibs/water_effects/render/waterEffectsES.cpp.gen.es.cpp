@@ -11,9 +11,9 @@ static constexpr ecs::ComponentDesc attempt_to_enable_water_effects_es_comps[] =
 };
 static void attempt_to_enable_water_effects_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   attempt_to_enable_water_effects_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc attempt_to_enable_water_effects_es_es_desc
 (
@@ -119,7 +119,8 @@ static void update_water_effects_es_all_events(const ecs::Event &__restrict evt,
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_water_effects_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(update_water_effects_es_comps, "water_effects", WaterEffects)
+        , components.manager()
+    , ECS_RW_COMP(update_water_effects_es_comps, "water_effects", WaterEffects)
     , ECS_RW_COMP(update_water_effects_es_comps, "should_use_wfx_textures", bool)
     );
   while (++comp != compE);
@@ -152,7 +153,8 @@ if (evt.is<SetResolutionEvent>()) {
   } else {
     auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
       set_up_foam_params_es(evt
-            , ECS_RW_COMP(set_up_foam_params_es_comps, "water_effects", WaterEffects)
+            , components.manager()
+      , ECS_RW_COMP(set_up_foam_params_es_comps, "water_effects", WaterEffects)
       );
     while (++comp != compE);
   }
@@ -250,7 +252,8 @@ static void water_foamfx_es_all_events(const ecs::Event &__restrict evt, const e
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     water_foamfx_es(evt
-        , ECS_RO_COMP(water_foamfx_es_comps, "foamfx__tile_uv_scale", float)
+        , components.manager()
+    , ECS_RO_COMP(water_foamfx_es_comps, "foamfx__tile_uv_scale", float)
     , ECS_RO_COMP(water_foamfx_es_comps, "foamfx__distortion_scale", float)
     , ECS_RO_COMP(water_foamfx_es_comps, "foamfx__normal_scale", float)
     , ECS_RO_COMP(water_foamfx_es_comps, "foamfx__pattern_gamma", float)
@@ -294,9 +297,9 @@ static ecs::CompileTimeQueryDesc get_water_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_water_ecs_query(Callable function)
+inline void get_water_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_water_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_water_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -336,9 +339,9 @@ static ecs::CompileTimeQueryDesc get_foam_params_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_foam_params_ecs_query(Callable function)
+inline void get_foam_params_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_foam_params_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_foam_params_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -378,9 +381,9 @@ static ecs::CompileTimeQueryDesc get_water_effects_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_water_effects_ecs_query(ecs::EntityId eid, Callable function)
+inline void get_water_effects_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, get_water_effects_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, get_water_effects_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

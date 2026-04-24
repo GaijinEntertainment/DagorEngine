@@ -36,7 +36,6 @@
   VAR(world_to_hmap_ofs)                \
   VAR(world_to_hmap_patches_tex_ofs)    \
   VAR(world_to_hmap_patches_ofs)        \
-  VAR(world_to_depth_ao)                \
   VAR(depth_ao_heights)                 \
   VAR(dyn_model_render_pass)            \
   VAR(dynamic_lights_count)             \
@@ -88,7 +87,6 @@
   VAR(specular_tex_samplerstate)              \
   VAR(gi_quality)                             \
   VAR(current_ambient)                        \
-  VAR(water_depth_above)                      \
   VAR(world_to_trees_tex_mul)                 \
   VAR(world_to_trees_tex_ofs)                 \
   VAR(depth_bounds_support)                   \
@@ -97,6 +95,7 @@
   VAR(lens_dof_depth)                         \
   VAR(lens_render_mode)                       \
   VAR(lens_detail_level)                      \
+  VAR(enable_ri_disintegration_animation)     \
   VAR(lens_frame_tex)                         \
   VAR(lens_frame_tex_samplerstate)            \
   VAR(lens_distortion_params)                 \
@@ -113,6 +112,7 @@
   VAR(matrices_stride)                        \
   VAR(has_motion_vectors)                     \
   VAR(mip_bias)                               \
+  VAR(dgs_tex_anisotropy)                     \
   VAR(disable_volfog_on_stars)                \
   VAR(volfog_froxel_range_params)             \
   VAR(projection_center)                      \
@@ -158,8 +158,7 @@
   VAR(object_tess_factor)                     \
   VAR(force_ignore_history)                   \
   VAR(antialiasing_type)                      \
-  VAR(fx_render_mode)                         \
-  VAR(contrast_adaptive_sharpening)           \
+  VAR(contrast_adaptive_sharpening_strength)  \
   VAR(voxelize_box0)                          \
   VAR(gbuffer_for_treesabove)                 \
   VAR(world_to_hmap_tex_ofs_ri_landclass_arr) \
@@ -170,7 +169,9 @@
   VAR(glass_dynamic_light)                    \
   VAR(disable_dynmat_params)                  \
   VAR(camera_base_offset)                     \
-  VAR(use_contact_shadows)
+  VAR(params_validation_debug_color)          \
+  VAR(use_contact_shadows)                    \
+  VAR(grass_dynamic_flag)
 
 #define GLOBAL_BLOCKS_LIST \
   VAR(globalFrame)         \

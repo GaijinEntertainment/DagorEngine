@@ -23,7 +23,7 @@ shader vsm_shadow_blur_y,vsm_shadow_blur_x
     {
       VS_OUT_POSITION(pos)
       ##if shader == vsm_shadow_blur_x
-        ##if hardware.dx11 || hardware.vulkan || hardware.metal
+        ##if hardware.dx11 || hardware.dx12 || hardware.vulkan || hardware.metal
         float2 tc : TEXCOORD0;
         ##else
         float4 tc0 : TEXCOORD0;
@@ -50,7 +50,7 @@ shader vsm_shadow_blur_y,vsm_shadow_blur_x
       float2 texelSize = texsz_consts.zw;
 
       ##if shader == vsm_shadow_blur_x
-        ##if hardware.dx11 || hardware.vulkan || hardware.metal
+        ##if hardware.dx11 || hardware.dx12 || hardware.vulkan || hardware.metal
         output.tc.xy = tc;
         ##else
         output.tc3.xy = tc - float2(3.0*texelSize.x,0);
@@ -94,7 +94,7 @@ shader vsm_shadow_blur_y,vsm_shadow_blur_x
       ##if shader == vsm_shadow_blur_x
         float4 DepthSamples0123;
         float3 DepthSamples4;
-        ##if hardware.dx11 || hardware.vulkan || hardware.metal
+        ##if hardware.dx11 || hardware.dx12 || hardware.vulkan || hardware.metal
         #define texel2DOffset(tex, tc, offset) tex.Sample(tex_samplerstate, tc, offset)
         DepthSamples4.y = texel2DOffset(tex, input.tc, int2(-3,0)).r;
 

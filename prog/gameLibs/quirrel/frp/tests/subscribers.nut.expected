@@ -1,0 +1,6 @@
+sub received: 42
+multi sub: 7, 7, 7
+before unsub: 1
+after unsub: 1
+computed sub: 30
+order: 1, 2, 3

@@ -24,7 +24,6 @@ shader debug_mirror_sphere
       float3 worldPos : TEXCOORD0;
     };
   }
-  ENABLE_ASSERT(ps)
   USE_AND_INIT_VIEW_VEC_VS()
   USE_INDOOR_LIGHT_PROBES(ps, false)
 

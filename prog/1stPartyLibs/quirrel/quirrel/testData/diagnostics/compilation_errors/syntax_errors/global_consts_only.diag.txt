@@ -1,0 +1,8 @@
+ERROR: global can be applied to const and enum only
+testData/diagnostics/compilation_errors/syntax_errors/global_consts_only.nut:2:7
+
+// EXPECT_ERROR: "global can be applied to const and enum only"
+global local x = 5
+       ^----
+
+

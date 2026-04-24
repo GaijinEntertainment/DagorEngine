@@ -16,10 +16,7 @@ inline void netstat_get_aggregations(
   dag::ConstSpan<netstat::Sample> aggregated_samples = netstat::get_aggregations();
 
   das::Array arr;
-  arr.data = (char *)aggregated_samples.data();
-  arr.size = uint32_t(aggregated_samples.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)aggregated_samples.data(), aggregated_samples.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

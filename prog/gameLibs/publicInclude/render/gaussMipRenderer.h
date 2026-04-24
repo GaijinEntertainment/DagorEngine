@@ -15,6 +15,9 @@ public:
   ~GaussMipRenderer() {}
   GaussMipRenderer() {}
   void close() { mipRenderer.close(); }
-  bool init(bool alpha = false) { return mipRenderer.init(alpha ? "gaussian_mipchain_alpha" : "gaussian_mipchain"); }
+  bool init(d3d::AddressMode addressMode, bool alpha = false)
+  {
+    return mipRenderer.init(alpha ? "gaussian_mipchain_alpha" : "gaussian_mipchain", addressMode);
+  }
   void render(BaseTexture *tex) { mipRenderer.render(tex); }
 };

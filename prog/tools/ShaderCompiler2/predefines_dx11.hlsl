@@ -31,3 +31,5 @@ struct TextureCubeArraySampler
   TextureCubeArray tex;
   SamplerState smp;
 };
+
+#define ACCESS_FORMAT(fmt)

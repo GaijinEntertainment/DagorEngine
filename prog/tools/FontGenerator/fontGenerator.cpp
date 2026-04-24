@@ -263,6 +263,7 @@ struct FontInfo
   E3DCOLOR border_color, font_color;
   bool caseSensitive, useFontColor;
   dag::Vector<String> systemNames;
+  dag::Vector<String> fontFeatureSettingsList;
 
   struct RasterGlyph
   {
@@ -376,6 +377,9 @@ struct FontInfo
       printf("[SKIP] %s/%s both size_percents:r and size_pixels:r specified\n", file, name.c_str());
       return false;
     }
+
+    dblk::iterate_params_by_name_and_type(blk, "fontFeatureSettings", DataBlock::TYPE_STRING,
+      [&](int pidx) { fontFeatureSettingsList.push_back() = blk.getStr(pidx); });
 
     if (!::dgs_execute_quiet)
       debug("font name = %s, def_sz = %f, size_multiplier = %f, size_percents = %f, size_pixels =  %f, size_pixels_by_screen = %d",
@@ -2185,6 +2189,9 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
     if (!f.forceAutoHinting)
       b.setBool("forceAutoHint", f.forceAutoHinting);
 
+    for (auto &s : f.fontFeatureSettingsList)
+      b.addStr("fontFeatureSettings", s);
+
     unicode_range_t usedSym;
     for (auto &af : f.additional)
       for (int i = 0, inc = 1; i < usedSym.FULL_SZ; i += inc)
@@ -2324,8 +2331,8 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
 int DagorWinMain(bool debugmode)
 {
   if (!::dgs_execute_quiet)
-    printf("Dagor Font Generator v3.16 (based on freetype-%d.%d.%d)\n"
-           "Copyright (c) Gaijin Games KFT, 2023\n"
+    printf("Dagor Font Generator v3.17 (based on freetype-%d.%d.%d)\n"
+           "Copyright (c) Gaijin Games KFT, 2025\n"
            "All rights reserved\n",
       FREETYPE_MAJOR, FREETYPE_MINOR, FREETYPE_PATCH);
   ::register_tga_tex_load_factory();

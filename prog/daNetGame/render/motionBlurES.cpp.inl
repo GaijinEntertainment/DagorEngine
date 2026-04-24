@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "motionBlurECS.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/entityId.h>
 #include <ecs/render/updateStageRender.h>
@@ -27,13 +29,13 @@ static void motion_blur_update_es(const UpdateStageInfoBeforeRender &evt, Motion
 }
 
 template <typename Callable>
-static void query_motion_blur_ecs_query(Callable c);
+static void query_motion_blur_ecs_query(ecs::EntityManager &manager, Callable c);
 
 eastl::pair<MotionBlur *, MotionBlurMode> query_motion_blur()
 {
   MotionBlur *ptr = nullptr;
   MotionBlurMode mode = MotionBlurMode::MOTION_VECTOR;
-  query_motion_blur_ecs_query([&](MotionBlur &motion_blur, int motion_blur__mode) {
+  query_motion_blur_ecs_query(*g_entity_mgr, [&](MotionBlur &motion_blur, int motion_blur__mode) {
     ptr = &motion_blur;
     mode = static_cast<MotionBlurMode>(clamp(motion_blur__mode, 0, 2));
   });
@@ -73,21 +75,21 @@ static void motion_blur_destroyed_es(const ecs::Event &) { disable_motion_blur_n
 
 template <typename Callable>
 ECS_REQUIRE(MotionBlur motion_blur)
-static void query_motion_blur_scale_ecs_query(Callable c);
+static void query_motion_blur_scale_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void recreate_motion_blur_nodes(MotionBlurNodePointers pointers)
 {
   float scale = 0;
-  query_motion_blur_scale_ecs_query([&scale](float motion_blur__scale) { scale = motion_blur__scale; });
+  query_motion_blur_scale_ecs_query(*g_entity_mgr, [&scale](float motion_blur__scale) { scale = motion_blur__scale; });
   enable_motion_blur_nodes_based_on_scale(scale, pointers);
 }
 
 template <typename Callable>
-static void set_motion_blur_mode_ecs_query(Callable c);
+static void set_motion_blur_mode_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
 ECS_REQUIRE(MotionBlur motion_blur)
-static void delete_motion_blur_ecs_query(Callable c);
+static void delete_motion_blur_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static bool motion_blur_console_handler(const char *argv[], int argc)
 {
@@ -105,7 +107,7 @@ static bool motion_blur_console_handler(const char *argv[], int argc)
         default: console::print_d("Using mode MOTION_VECTOR"); break;
       }
       bool entitySet = false;
-      set_motion_blur_mode_ecs_query([modeRaw, &entitySet](int &motion_blur__mode) {
+      set_motion_blur_mode_ecs_query(*g_entity_mgr, [modeRaw, &entitySet](int &motion_blur__mode) {
         entitySet = true;
         motion_blur__mode = modeRaw;
       });
@@ -120,7 +122,7 @@ static bool motion_blur_console_handler(const char *argv[], int argc)
     else
     {
       console::print_d("Deleting motion blur entity...");
-      delete_motion_blur_ecs_query([](ecs::EntityId eid) { g_entity_mgr->destroyEntity(eid); });
+      delete_motion_blur_ecs_query(*g_entity_mgr, [](ecs::EntityId eid) { g_entity_mgr->destroyEntity(eid); });
     }
   }
   return found;

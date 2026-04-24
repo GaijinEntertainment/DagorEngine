@@ -23,15 +23,17 @@ namespace das {
 #pragma clang diagnostic ignored "-Wunused-parameter"
 #endif
 
-    struct DataWalker : ptr_ref_count {
+    struct DAS_API DataWalker : ptr_ref_count {
     // we doing what?
         class Context * context = nullptr;
+        bool collecting = false;
         bool reading = false;
         bool _cancel = false;
     // helpers
         void error ( const char * message );
         virtual bool cancel () { return _cancel; }
     // data structures
+        virtual bool canVisitDim ( char * ps, TypeInfo * ti ) { return true; }
         virtual bool canVisitArray ( Array * ar, TypeInfo * ti ) { return true; }
         virtual bool canVisitArrayData ( TypeInfo * ti, uint32_t count ) { return true; }
         virtual bool canVisitHandle ( char * ps, TypeInfo * ti ) { return true; }
@@ -93,7 +95,10 @@ namespace das {
         virtual void Float ( float & ) {}
         virtual void Int ( int32_t & ) {}
         virtual void UInt ( uint32_t & ) {}
-        virtual void Bitfield ( uint32_t &, TypeInfo * ti ) {}
+        virtual void Bitfield ( uint32_t &, TypeInfo * ) {}
+        virtual void Bitfield8 ( uint8_t &, TypeInfo * ) {}
+        virtual void Bitfield16 ( uint16_t &, TypeInfo * ) {}
+        virtual void Bitfield64 ( uint64_t &, TypeInfo * ) {}
         virtual void Int2 ( int2 & ) {}
         virtual void Int3 ( int3 & ) {}
         virtual void Int4 ( int4 & ) {}

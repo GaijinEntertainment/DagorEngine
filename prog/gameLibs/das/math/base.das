@@ -158,7 +158,7 @@ def pos_tm(pos : float3) : float3x4
   return res
 
 [generic]
-def is_inside_tm(pos : float3; tm : float3x4) : bool
+def is_inside_tm(pos : float3; tm : float3x4 | #) : bool
   let p = pos - tm[3]
   return (abs(dot(p, tm[0])) < dot(tm[0], tm[0]) * 0.5 &&
           abs(dot(p, tm[1])) < dot(tm[1], tm[1]) * 0.5 &&
@@ -166,7 +166,7 @@ def is_inside_tm(pos : float3; tm : float3x4) : bool
 
 
 [generic]
-def tm_volume(tm : float3x4) : float
+def tm_volume(tm : float3x4 | #) : float
   return sqrt(length_sq(tm[0]) * length_sq(tm[1]) * length_sq(tm[2]))
 
 
@@ -182,7 +182,7 @@ def frac(x)
 [generic]
 def get_normal(dir : float3)
   let altDir = abs(dot(dir, float3(1, 0, 0))) > 0.5 ? float3(0, 0, 1) : float3(1, 0, 0)
-  return cross(dir, altDir)
+  return normalize(cross(dir, altDir))
 
 [generic]
 def x0z(f)

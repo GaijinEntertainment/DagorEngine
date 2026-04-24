@@ -21,7 +21,6 @@ macro INIT_UPSCALE_SAMPLING()
 endmacro
 
 macro USE_UPSCALE_SAMPLING_BASE(code)
-  ENABLE_ASSERT(code)
   hlsl(code) {
     float4 sampleUpscaleWeightIndex(uint2 screenpos, uint weightIdx)
     {
@@ -38,6 +37,11 @@ macro USE_UPSCALE_SAMPLING_BASE(code)
     float4 sampleCloseUpscaleWeight(uint2 screenpos)
     {
       return sampleUpscaleWeightIndex(screenpos, texelFetch(upscale_sampling_tex, screenpos, 0).x>>4);
+    }
+    bool isTrivialUpscaleWeight(uint2 screenpos)
+    {
+      uint weightIdx = texelFetch(upscale_sampling_tex, screenpos, 0).x&0xF;
+      return (weightIdx == 0 || weightIdx == 0xF);
     }
   }
 endmacro

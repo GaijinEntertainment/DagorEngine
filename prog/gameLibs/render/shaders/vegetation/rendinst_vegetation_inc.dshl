@@ -12,12 +12,6 @@ macro RENDER_TO_GBUFFER_IMPOSTOR()
   if (compatibility_mode == compatibility_mode_on)
   {
     hlsl(ps) {
-      ##if mobile_render != off
-        #define FORWARD_NO_STATIC_SHADOW 1
-        #if PBR_FORWARD_SHADING
-          #define FORWARD_NO_INTERNAL_LUT
-        #endif
-      ##endif
       #define BLEND_GBUFFER 1
       #define USE_SSS_THIN 1
     }
@@ -26,17 +20,11 @@ macro RENDER_TO_GBUFFER_IMPOSTOR()
     USE_SKYLIGHT_PARAMS(ps)
   }
   hlsl(ps) {
-    ##if compatibility_mode == compatibility_mode_on && mobile_render != deferred
+    ##if compatibility_mode == compatibility_mode_on
     void render_to_impostor_ps(
       VsOutput input,
-      out float4 out_0 : SV_Target0
-      ##if mobile_render != off
-        #if PBR_FORWARD_SHADING
-          , out float4 out_1 : SV_Target1
-        #endif
-      ##else
-        , out float4 out_1 : SV_Target1
-      ##endif
+      out float4 out_0 : SV_Target0,
+      out float4 out_1 : SV_Target1
       INPUT_VFACE)
     {
       #if SET_UP_MULTIDRAW
@@ -58,25 +46,11 @@ macro RENDER_TO_GBUFFER_IMPOSTOR()
         gbuffer_sun_light_dir.xyz, gbuffer_sun_light_col.xyz*skylight_sun_atten_inv,//fixme: we should not modulate by eclipse
         gbuffer_enviSPH0*skylight_ambient_atten_inv, gbuffer_enviSPH1*skylight_ambient_atten_inv, gbuffer_enviSPH2*skylight_ambient_atten_inv,//divide by skylight_params, so we restore original
         1);
-      ##if mobile_render != off
-        ret.color.a = alpha;
-        out_0 = ret.color;
-        #if PBR_FORWARD_SHADING
-          gbuffer.shadow = 0;
-          GBUFFER_OUTPUT ret_noLit = encode_gbuffer_exposure(gbuffer, input.pointToEye.xyz, screenPos, 1,
-            gbuffer_sun_light_dir.xyz, gbuffer_sun_light_col.xyz*skylight_sun_atten_inv,//fixme: we should not modulate by eclipse
-            gbuffer_enviSPH0*skylight_ambient_atten_inv, gbuffer_enviSPH1*skylight_ambient_atten_inv, gbuffer_enviSPH2*skylight_ambient_atten_inv,//divide by skylight_params, so we restore original
-            1);
 
-          ret_noLit.color.a = gbuffer.material == SHADING_FOLIAGE ? gbuffer.translucency : 0.0f;
-          out_1 = ret_noLit.color;
-        #endif
-      ##else
-        ret.sunLight.w = alpha;
-        ret.ambientLight.w = gbuffer.material == SHADING_FOLIAGE ? gbuffer.translucency : 0.0f;
-        out_0 = ret.sunLight;
-        out_1 = ret.ambientLight;
-      ##endif // mobile_render != off
+      ret.sunLight.w = alpha;
+      ret.ambientLight.w = gbuffer.material == SHADING_FOLIAGE ? gbuffer.translucency : 0.0f;
+      out_0 = ret.sunLight;
+      out_1 = ret.ambientLight;
     }
     ##else
     void render_to_impostor_ps(
@@ -108,16 +82,11 @@ macro RENDER_TO_GBUFFER_IMPOSTOR()
 
       out_0.a = alpha;
       out_0.rgb = gbuffer.albedo.rgb;
-      //half3 encodedNormal = encodeNormal(gbuffer.normal);
       out_1.xyz = normalize(gbuffer.normal)*0.5+0.5;
       out_1.w = gbuffer.material == SHADING_FOLIAGE ? gbuffer.translucency*0.5+0.5 : coloring*0.49f;
       out_2.x = gbuffer.ao;
       out_2.y = 1-gbuffer.smoothness;
-    ##if mobile_render == deferred
-      out_2.z = 1.0;
-    ##else
       out_2.z = gbuffer.shadow;
-    ##endif
       out_2.w = 1;
       //out_2.y = gbuffer.shadowing;
       ##else
@@ -136,9 +105,9 @@ macro RENDER_TO_IMPOSTOR_SHADOW_PS()
   if (atest == atestOn)
   {
     if (shader == rendinst_tree_colored) {
-      (ps) { diffuse_tex@static = tex; }
+      (ps) { diffuse_tex@staticSmp = tex; }
     } else {
-      (ps) { alpha_tex@static = alpha_tex; }
+      (ps) { alpha_tex@staticSmp = alpha_tex; }
     }
   }
 
@@ -188,8 +157,11 @@ macro INIT_GROUND_ALIGN()
     ground_snap_normal_offset@f1 = (ground_snap_normal_offset);
     ground_snap_limit@f1 = (ground_snap_limit);
   }
+endmacro
 
-  hlsl(vs)
+macro USE_GROUND_ALIGN_MATH(code)
+  USE_RENDINST_HEIGHTMAP_OFS(code)
+  hlsl(code)
   {
     float4x4 get_rotation_from_angle_axis(float angle, float3 axis)
     {
@@ -209,7 +181,6 @@ macro INIT_GROUND_ALIGN()
       );
     }
 
-
     float4x4 get_rotation_from_dir(float3 dir, float a)
     {
       float3 up = float3(0, 1, 0);
@@ -217,57 +188,75 @@ macro INIT_GROUND_ALIGN()
       float angle = acos(dot(normalize(dir), up));
       return get_rotation_from_angle_axis(-angle * a, xaxis);
     }
+
+    bool is_rendinst_outside_hmap(float3 worldLocalPos)
+    {
+      float2 heightmapTc = calcTcLow(worldLocalPos.xz);
+      return any(saturate(heightmapTc) != heightmapTc);
+    }
+
+    float3 apply_snap(float3 worldPos, float3 localPos, float3 worldLocalPos, float4 pos_and_scale)
+    {
+      const float4 heightMaskParams = get_ground_snap_params();
+      const float offset = get_ground_snap_normal_offset();
+      const float snapLimit = get_ground_snap_limit();
+      float landscapeHeight = getWorldHeightGathered(worldPos.xz);
+      apply_renderinst_hmap_ofs(worldPos.xz, landscapeHeight);
+      landscapeHeight -= offset;
+      BRANCH
+      if (worldLocalPos.y - landscapeHeight < snapLimit)
+      {
+        BRANCH
+        if (localPos.y < 0.0f)
+          worldPos.y = worldPos.y - (worldLocalPos.y - landscapeHeight);
+        else if (localPos.y < heightMaskParams.z)
+        {
+          float heightMaskLerpValue = saturate((heightMaskParams.z - localPos.y) * heightMaskParams.w);
+          worldPos.y = lerp(landscapeHeight + heightMaskParams.z * pos_and_scale.w, landscapeHeight, heightMaskLerpValue);
+        }
+        else if (localPos.y < heightMaskParams.x)
+        {
+          float heightMaskLerpValue = saturate((heightMaskParams.x - localPos.y) * heightMaskParams.y);
+          worldPos.y = lerp(worldLocalPos.y + heightMaskParams.x * pos_and_scale.w, landscapeHeight, heightMaskLerpValue);
+        }
+      }
+      return worldPos;
+    }
+
+    float3 apply_bend(float3 worldPos, float3 localPos, float3 worldLocalPos, float4 pos_and_scale)
+    {
+      float4 heightMaskParams = get_ground_bend_params();
+      float bendAmount = pow3(saturate((heightMaskParams.x - localPos.y) * heightMaskParams.y));
+      float2 landscapeGradient = getWorldGradient(worldLocalPos);
+      float3 landscapeNormal = getWorldNormal(worldLocalPos);
+      float angleCos = dot(normalize(landscapeNormal), float3(0, 1, 0));
+      float3 offset = normalize(float3(landscapeGradient.x, 0, landscapeGradient.y)) * heightMaskParams.z * (1 - angleCos);
+      landscapeNormal = getWorldNormal(worldLocalPos + offset);
+      float landscapeHeight = getWorldHeightGathered(worldLocalPos.xz + offset.xz);
+      offset.y = landscapeHeight - worldLocalPos.y;
+
+      float4x4 landscapeRotation = get_rotation_from_dir(landscapeNormal, pow3(bendAmount));
+      float4 newlocalPos = mulPointTm(localPos, landscapeRotation) + float4(offset * pow3(bendAmount), 0);
+      worldPos = newlocalPos.xyz * pos_and_scale.w + worldLocalPos - heightMaskParams.w * landscapeNormal;
+
+      return worldPos;
+    }
   }
 endmacro
 
 macro USE_GROUND_ALIGN()
-  USE_RENDINST_HEIGHTMAP_OFS(vs)
+  USE_GROUND_ALIGN_MATH(vs)
   hlsl(vs)
   {
     float3 apply_ground_align(float3 worldPos, float3 localPos, float3 worldLocalPos, float4 pos_and_scale)
     {
-      float2 heightmapTc = calcTcLow(worldLocalPos.xz);
-      if (any(saturate(heightmapTc) != heightmapTc))
+      if (is_rendinst_outside_hmap(worldLocalPos))
         return worldPos;
 
       ##if (ground_snap_height_soft == snapOn)
-        const float4 heightMaskParams = get_ground_snap_params();
-        const float offset = get_ground_snap_normal_offset();
-        const float snapLimit = get_ground_snap_limit();
-        float landscapeHeight = getHeight(worldPos.xz);
-        apply_renderinst_hmap_ofs(worldPos.xz, landscapeHeight);
-        landscapeHeight -= offset;
-        BRANCH
-        if (worldLocalPos.y - landscapeHeight < snapLimit)
-        {
-          BRANCH
-          if (localPos.y < 0.0f)
-            worldPos.y = worldPos.y - (worldLocalPos.y - landscapeHeight);
-          else if (localPos.y < heightMaskParams.z)
-          {
-            float heightMaskLerpValue = saturate((heightMaskParams.z - localPos.y) * heightMaskParams.w);
-            worldPos.y = lerp(landscapeHeight + heightMaskParams.z * pos_and_scale.w, landscapeHeight, heightMaskLerpValue);
-          }
-          else if (localPos.y < heightMaskParams.x)
-          {
-            float heightMaskLerpValue = saturate((heightMaskParams.x - localPos.y) * heightMaskParams.y);
-            worldPos.y = lerp(worldLocalPos.y + heightMaskParams.x * pos_and_scale.w, landscapeHeight, heightMaskLerpValue);
-          }
-        }
+        worldPos = apply_snap(worldPos, localPos, worldLocalPos, pos_and_scale);
       ##elif (ground_bend_height == bendOn)
-        float4 heightMaskParams = get_ground_bend_params();
-        float bendAmount = pow3(saturate((heightMaskParams.x - localPos.y) * heightMaskParams.y));
-        float2 landscapeGradient = getWorldGradient(worldLocalPos);
-        float3 landscapeNormal = getWorldNormal(worldLocalPos);
-        float angleCos = dot(normalize(landscapeNormal), float3(0, 1, 0));
-        float3 offset = normalize(float3(landscapeGradient.x, 0, landscapeGradient.y)) * heightMaskParams.z * (1 - angleCos);
-        landscapeNormal = getWorldNormal(worldLocalPos + offset);
-        float landscapeHeight = getHeight(worldLocalPos.xz + offset.xz);
-        offset.y = landscapeHeight - worldLocalPos.y;
-
-        float4x4 landscapeRotation = get_rotation_from_dir(landscapeNormal, pow3(bendAmount));
-        float4 newlocalPos = mulPointTm(localPos, landscapeRotation) + float4(offset * pow3(bendAmount), 0);
-        worldPos = newlocalPos.xyz * pos_and_scale.w + worldLocalPos - heightMaskParams.w * landscapeNormal;
+        worldPos = apply_bend(worldPos, localPos, worldLocalPos, pos_and_scale);
       ##endif
       return worldPos;
     }
@@ -279,9 +268,9 @@ macro INIT_VEGETATION_INTERACTIONS()
   interval interactions: interactionsOff < 1, interactionsTrees < 2, interactionsBushes;
   if (interactions == interactionsTrees || interactions == interactionsBushes)
   {
-    static float interaction_strength = 1.0;
-    static float interaction_force_max = 15.0;
-    static float interaction_min_bounding_sphere_rad = 0.3;
+    static float interaction_strength = 1.0 no_warnings;
+    static float interaction_force_max = 15.0 no_warnings;
+    static float interaction_min_bounding_sphere_rad = 0.3 no_warnings;
   }
 endmacro
 

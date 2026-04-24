@@ -23,9 +23,6 @@ interval lmesh_rendering_mode : rendering_landmesh<1, rendering_clipmap<3, grass
 texture land_detail_map;
 texture land_detail_map2;
 
-include "vertical.dshl"
-
-
 //float4 land_flir = (0.2, 0.3, 0, 0);
 float4 landmesh_debug_cells_scale= (1, 1, 1, 1);
 
@@ -97,7 +94,8 @@ block(scene) land_mesh_with_clipmap_reflection
   BASE_LAND_MESH_BLOCK()
   (ps) {
     world_to_last_clip@f4 = world_to_last_clip;
-    last_clip_tex@smp2d = last_clip_tex;
+    last_clip_tex@tex2d = last_clip_tex;
+    last_clip_tex_samplerstate@sampler = LastClipTexSampler;
     lightmap_tex@smp2d = lightmap_tex;
   }
 }
@@ -123,7 +121,7 @@ hlsl(ps) {
     float ocean_density = wind_dir_water_level_ocean_density.w;
     float const_wet_above = 0.4;
     float wet_above = const_wet_above + max_wave_height/2;
-    //fixme:      wet_above = 0.2+max(riversMultiplier*max_wave_height/16, 2*shoreWavesDisplacement.z);
+    //fixme: wet_above = 0.2 + max(riversMultiplier * max_wave_height / 16, 2 * shoreWavesDisplacement.y);
     float under_water_deep = max(0, (water_level-worldPos.y)+wet_above);
     float3 geomNormal = float3(0,1,0);
     shoreWavesMultiplier = 0;
@@ -143,18 +141,23 @@ hlsl(ps) {
       BRANCH
       if (sdf.w > 0)//fixme: if too high according to riversMultiplier as well
       {
-        float3 normal; float breaker, foamTrail, riversMultiplier, oceanWavesMultiplier;//, shoreWavesMultiplier
+        float riversMultiplier, oceanShadowFactor;
+        sdf.yz = decode_sdf(sdf, riversMultiplier, oceanShadowFactor);
+        float3 normal;
+        float breaker, foamTrail, oceanWavesMultiplier;
         float3 shoreWavesDisplacement = 0;
         float sdf_size_in_meters = world_to_heightmap.x;
         float linear_wetness;
-        GetShoreSurfaceAttributes(max_wave_height, foam_time, 2*(kSDFRadiusInPixels/kSDFTextureSize)/sdf_size_in_meters, float2(decode_heightmap.x, decode_heightmap.y-water_level), wind_dir,
-                                 worldPos.xzy, shoreWavesDisplacement, normal, breaker, foamTrail,
-                                 shoreWavesMultiplier, oceanWavesMultiplier, riversMultiplier, sdf, linear_wetness, geomNormal, water_level);
+        float2 decode_hmap = float2(decode_heightmap.x, decode_heightmap.y - water_level);
+        float landHeight = sdf.x * decode_hmap.x + decode_hmap.y;
+        GetShoreSurfaceAttributes(max_wave_height, foam_time, 2 * (kSDFRadiusInPixels / kSDFTextureSize) / sdf_size_in_meters, landHeight, wind_dir, worldPos,
+                                  shoreWavesDisplacement, normal, breaker, foamTrail,
+                                  shoreWavesMultiplier, oceanWavesMultiplier, riversMultiplier, oceanShadowFactor, sdf, linear_wetness, geomNormal, water_level);
         float shoreWetness = 1-pow2(1-saturate(linear_wetness));
 
         wetness = max(wetness, shoreWetness*vignetteVal);
         return wetness;
-        //real_water_level += 0.5*shoreWavesDisplacement.z;
+        //real_water_level += 0.5 * shoreWavesDisplacement.y;
       }
       return sdf.w<0.001 ? wetness : 0;
     }
@@ -211,7 +214,7 @@ float land_selfillum_worldscale = 0.9;
 int land_selfillum_biome_group_id = -1;
 int land_selfillum_microdetail_id = -1;
 
-macro DETECT_LAND_SELFILLUM()
+macro DETECT_LAND_SELFILLUM(need_biomes)
   (ps) {
     land_selfillum_params@f4 = (land_selfillum_strength, 1.0/autodetect_land_selfillum_color.w,
                                 time_phase(0.0, 0.0), land_selfillum_worldscale);
@@ -228,10 +231,13 @@ macro DETECT_LAND_SELFILLUM()
       init_emission(gbuffer, emission_varying*land_selfillum_params.x*selfillum_strength);\
       init_emission_color(gbuffer, 1);
   }
+  if (need_biomes)
+  {
+    INIT_BIOMES(ps)
+    USE_BIOMES(ps)
+  }
 if (autodetect_land_selfillum_enabled == yes)
 {
-  INIT_BIOMES(ps)
-  USE_BIOMES(ps)
   (ps) {
     autodetect_land_selfillum_color@f4 = autodetect_land_selfillum_color;
     land_selfillum_params_add@f2 = (land_selfillum_biome_group_id, land_selfillum_microdetail_id, 0, 0);

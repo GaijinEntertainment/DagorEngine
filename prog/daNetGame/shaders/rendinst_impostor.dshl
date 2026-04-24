@@ -12,11 +12,13 @@ texture dynamic_impostor_texture_normal;
 
 int dynamic_impostor_texture_const_no = 13 always_referenced;
 macro INIT_BAKED_IMPOSTOR_TEXTURES()
-  hlsl(ps) {
-    ##if (rendinst_render_pass == rendinst_render_pass_to_shadow)
-      Texture2DArray shadow_tex : register(t15);
-      SamplerState shadow_tex_samplerstate : register(s15);
-    ##endif
+  (ps) {
+    if (rendinst_render_pass == rendinst_render_pass_to_shadow) {
+      shadow_tex@tex : register(15) hlsl {
+        Texture2DArray shadow_tex@tex;
+      }
+      shadow_tex_samplerstate@sampler : register(15);
+    }
   }
 endmacro
 
@@ -27,7 +29,6 @@ float4 windMatrix1Y = (0, 1, 0, 0);
 
 shader rendinst_baked_impostor
 {
-  ENABLE_ASSERT(ps)
   USE_TRANSITION_CROSS_DISSOLVE()
 
   if (compatibility_mode == compatibility_mode_on)
@@ -65,7 +66,6 @@ shader rendinst_baked_impostor
   (vs) { local_view_z@f3 = local_view_z; }
 
   RENDINST_INSTANCING()
-  ENABLE_ASSERT(ps)
 
   //---------------------------------------------------
   // PS stuff.
@@ -194,7 +194,13 @@ shader rendinst_baked_impostor
         float opacityVal = input.fadeout_sliceDet_cosSin.x;
         float4 screenpos = GET_SCREEN_POS(input.pos);
         float noise = interleavedGradientNoiseFramed(screenpos.xy, dissolve_frame);
+
+        // For dissolving trees we do a prepass, so shouldn't clip with dissolve twice, it causes artifacts with VRS.
+        ##if rendinst_render_pass != rendinst_render_pass_normal
         float dissolveVal = opacityVal - noise;
+        ##else
+        float dissolveVal = 1.0f;
+        ##endif
 
         float2 ds = float2(1-input.fadeout_sliceDet_cosSin.y,input.fadeout_sliceDet_cosSin.y);
         float4 albedo_alpha1 = impostor_tex_slice(get_impostor_albedo_alpha(), input.slice_data1.xy);
@@ -236,11 +242,7 @@ shader rendinst_baked_impostor
         init_smoothness(gbuffer, 1-properties.invsmoothness);
         init_normal(gbuffer, normal);
         init_ao(gbuffer, properties.ao);
-      ##if mobile_render != off
-        init_shadow(gbuffer, 1);
-      ##else
         init_shadow(gbuffer, properties.shadowing);
-      ##endif
       ##if special_vision == special_vision_off
         init_material(gbuffer, translucency > 0 ? SHADING_FOLIAGE : SHADING_NORMAL);
       ##else
@@ -291,7 +293,7 @@ shader rendinst_baked_impostor
       float4 color;
 
       // PC and PS3 instancing.
-      color = get_random_color(worldLocalPos, 0);
+      color = get_random_color(worldLocalPos, paletteId);
 
       //inputPos = input.pos.xyz;
       inputPos = 0;
@@ -341,7 +343,7 @@ shader rendinst_baked_impostor
 
     float3 imp_view_x = impostor_view_x;
     float3 imp_view_y = impostor_view_y;
-#if !MOBILE_DEVICE
+##if use_dng_mobile_optimizations == no
     if (abs(modelToEyeNorm.y) < 0.999)
     {
       float len = (1-modelToEyeNorm.y)*(1+modelToEyeNorm.y);
@@ -355,7 +357,7 @@ shader rendinst_baked_impostor
         -(modelToEyeNorm.z * modelToEyeNorm.z + modelToEyeNorm.x * modelToEyeNorm.x),
         modelToEyeNorm.z * modelToEyeNorm.y);
     }
-#endif
+##endif
 
     get_impostor_view(
       imp_view_x, imp_view_y,

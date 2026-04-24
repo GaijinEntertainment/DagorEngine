@@ -25,7 +25,8 @@ shader compress_panorama_bc3
   no_ablend;
 
   (ps) {
-    src_tex@smp2d = src_tex;
+    src_tex@tex2d = src_tex;
+    src_tex_samplerstate@sampler = CompressionInputTexSampler;
     panorama_rect@f4 = (1/panorama_rect.x, 1/panorama_rect.y, panorama_rect.z, panorama_rect.w);
     stride_count@i1 = (panorama_stride_count, 0, 0, 0);
   }
@@ -87,7 +88,12 @@ shader compress_panorama_bc3
       }
 
       half4 min_color, max_color;
-      find_base_colors( texels, min_color, max_color );
+      ##if find_base_colors_with_pca
+        find_base_colors_pca_rgb( texels, min_color, max_color );
+      ##else
+        find_base_colors( texels, min_color, max_color );
+        correlate_rgb_base_colors( texels, min_color, max_color );
+      ##endif
       correlate_rgb_base_colors( texels, min_color, max_color );
       inset_rgb_base_colors( min_color, max_color );
       return pack_bc3_block( texels, min_color, max_color );
@@ -103,12 +109,12 @@ shader compress_panorama_etc2
 
   (cs) {
     src_dst_mip@f2 = (src_mip, dst_mip, 0, 0);
-    src_tex@smp2d = src_tex;
+    src_tex@tex2d = src_tex;
+    src_tex_samplerstate@sampler = CompressionInputTexSampler;
     panorama_rect@f4 = (1/panorama_rect.x, 1/panorama_rect.y, panorama_rect.z, panorama_rect.w);
     panorama_height@i1 = (panorama_height, 0, 0, 0);
   }
 
-  ENABLE_ASSERT(cs)
   USE_RGBM_SH(cs)
 
   INIT_ETC2_COMPRESSION()

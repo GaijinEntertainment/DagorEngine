@@ -1,0 +1,1 @@
+The ``[block_macro]`` structure annotation — registers an ``AstBlockAnnotation`` subclass as a named block-level annotation available to the compiler.

@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <sqrat.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <ctime>
 #include <cmath>
 #include <cstring>
@@ -73,19 +73,19 @@ void register_iso8601_time(SqModules *module_mgr)
   /// Functions for converting between timestamps as a string in ISO-8601 format (like "YYYY-MM-DDTHH:MM:SSZ") and
   /// timestamps as an integer (UNIX timestamp).
   exports
-    .SquirrelFunc("parse_msec", iso8601_parse_msec, 2, ".s")
+    .SquirrelFuncDeclString(iso8601_parse_msec, "parse_msec(iso8601str: string): int|null")
     ///@brief Converts ISO-8601 timestamp string to UNIX timestamp in milliseconds (!) integer.
     ///@param iso8601str s : ISO-8601 timestamp
     ///@return i : UNIX timestamp in milliseconds
-    .SquirrelFunc("parse_unix_time", iso8601_parse_sec, 2, ".s")
+    .SquirrelFuncDeclString(iso8601_parse_sec, "parse_unix_time(iso8601str: string): int|null")
     ///@brief Converts ISO-8601 timestamp string to UNIX timestamp integer.
     ///@param iso8601str s : ISO-8601 timestamp
     ///@return i : UNIX timestamp
-    .SquirrelFunc("format_msec", iso8601_format_msec, 2, ".i")
+    .SquirrelFuncDeclString(iso8601_format_msec, "format_msec(ts: int): string")
     ///@brief Converts UNIX timestamp in milliseconds (!) integer to ISO-8601 timestamp string.
     ///@param ts i : UNIX timestamp in milliseconds
     ///@return s : ISO-8601 timestamp
-    .SquirrelFunc("format_unix_time", iso8601_format_sec, 2, ".i")
+    .SquirrelFuncDeclString(iso8601_format_sec, "format_unix_time(ts: int): string")
     ///@brief Converts UNIX timestamp integer to ISO-8601 timestamp string.
     ///@param ts i : UNIX timestamp
     ///@return s : ISO-8601 timestamp

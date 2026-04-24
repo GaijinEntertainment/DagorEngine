@@ -12,6 +12,7 @@ struct TextureData
 {
   TextureInfo info;
   uint64_t sizeBytes = 0;
+  ProfilerString name;
 
   TextureData() = default;
   TextureData(const TextureInfo &texInfo, uint64_t size) : info(texInfo), sizeBytes(size) {}
@@ -48,12 +49,6 @@ public:
   float getMemorySizeMinDefault() const { return sizeMinDefault; }
   float getMemorySizeMaxDefault() const { return sizeMaxDefault; }
 
-  void startDataCollection();
-  void updateDataCollection();
-  bool isCollecting() const { return isCollectingData; }
-  float getCollectionProgress() const;
-  const ProfilerString &getCurrentCollectionTexture() const;
-
   static const char *getFormatName(uint32_t format);
   eastl::vector<ProfilerString> getUniqueFormats();
   eastl::vector<int> getUniqueWidths();
@@ -77,12 +72,8 @@ private:
   int mipMinDefault = 0, mipMaxDefault = 0;
   float sizeMinDefault = 0.f, sizeMaxDefault = 0.f;
 
-  bool isCollectingData = false;
-  eastl::vector<ProfilerString> texturesToCollect;
-  size_t currentCollectionIndex = 0;
-  int collectionFrameCounter = 0;
-
   void recalculateStatistics();
+  void calculateFilterRanges();
   void setImagePreviewMode(const ImDrawList *draw_list, const ImDrawCmd *command);
   void resetImagePreviewMode(const ImDrawList *draw_list, const ImDrawCmd *command);
 

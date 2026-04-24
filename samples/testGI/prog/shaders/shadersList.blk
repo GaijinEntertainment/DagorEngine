@@ -10,11 +10,11 @@
   file:t = "./source/landmesh.dshl"
   file:t = "./source/water_3d.dshl"
   file:t = "./source/heightmap.dshl"
-  file:t = "./source/heightmap_flexgrid.dshl"
   file:t = "./source/deferred_shadow.dshl"
   file:t = "./source/ambient.dshl"
   file:t = "./source/taa.dshl"
   file:t = "./source/copy_hmap_depth.dshl"
+  file:t = "scrollShadow.dshl"
   file:t = "heightmap_shadows.dshl"
   file:t = "giHelpers/render_lru_collision.dshl"
   file:t = "giHelpers/trees_above_process.dshl"
@@ -32,6 +32,8 @@
   file:t = "find_max_depth_2d.dshl"
   file:t = "octahedral_shadow.dshl"
   file:t = "trace_sdf_shadow.dshl"
+  file:t = "../../../../prog/gameLibs/soundOcclusionGPU/shaders/sound_occlusion_gpu.dshl"
+  file:t = "../../../../prog/gameLibs/soundOcclusionGPU/shaders/sound_occlusion_world_sdf_shadow.dshl"
 
   file:t = "./source/dynamicSpheresMat.dshl"
 

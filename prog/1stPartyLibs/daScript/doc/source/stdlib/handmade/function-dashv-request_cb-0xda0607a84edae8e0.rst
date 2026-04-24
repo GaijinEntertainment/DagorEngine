@@ -1,0 +1,1 @@
+Sends an HTTP request and invokes ``on_body`` with raw bytes (``uint8?`` pointer and size) for each body chunk as it arrives, then calls ``on_complete`` with the final response. Use this for binary streaming or when exact byte counts are needed.

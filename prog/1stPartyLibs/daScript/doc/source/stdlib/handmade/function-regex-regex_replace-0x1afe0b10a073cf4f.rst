@@ -1,0 +1,1 @@
+Replaces each substring matched by the regex with the result returned by the provided block. An overload accepting a template string is also available, supporting ``$0``/``$&`` for the whole match, ``$1``–``$9`` for numbered groups, ``${name}`` for named groups, and ``$$`` for a literal ``$``.

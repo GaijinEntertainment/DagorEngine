@@ -16,6 +16,12 @@ inline int get_closest_region_and_split(const ToroidalHelper &helper, Tab<IBBox2
 // get_texture_box returns box around origin [helper.curOrigin - helper.texSize/2, helper.curOrigin - helper.texSize/2 - 1]
 inline IBBox2 get_texture_box(const ToroidalHelper &helper);
 
+// split box in texture space, so there is no wrapping, for up to 4 boxes.
+// it is assumed, that box is within texture size
+// returns true if cnt>1
+// boxes[0] is always written
+inline bool split_toroidal_texture_space(const IBBox2 &ibox, const ToroidalHelper &helper, IBBox2 *boxes, int &cnt);
+
 // split box so there is no wrapping, for up to 4 boxes.
 // it is assumed, that box is clipped with texture box
 // returns true if cnt>1
@@ -65,9 +71,55 @@ inline void toroidal_clip_regions(const ToroidalHelper &helper, Tab<IBBox2> &reg
   }
 }
 
+inline bool split_toroidal_texture_space(const IBBox2 &ibox, const ToroidalHelper &helper, IBBox2 *boxes, int &cnt)
+{
+  G_ASSERTF(ibox[0].x >= 0 && ibox[1].x < helper.texSize && ibox[0].y >= 0 && ibox[1].y < helper.texSize, "ibox = %@, texSize = %d",
+    ibox, helper.texSize);
+
+  const IPoint2 texSize(helper.texSize, helper.texSize);
+  const IPoint2 wrappedOriginOfs = (helper.curOrigin - helper.mainOrigin) % helper.texSize;
+  const IPoint2 wrapPtViewport = (wrappedOriginOfs + texSize) % helper.texSize;
+  const IPoint2 splitPt = wrapPtViewport;
+
+  boxes[0] = ibox;
+  cnt = 1;
+
+  // Check if the box is fully inside one of the 4 regions
+  if (((ibox[1].x < splitPt.x) || (ibox[0].x >= splitPt.x)) && ((ibox[1].y < splitPt.y) || (ibox[0].y >= splitPt.y)))
+  {
+    return false;
+  }
+
+  // Split the box along the toroidal boundaries
+#define SPLIT(attr)                                                \
+  if (ibox[0].attr < splitPt.attr && ibox[1].attr >= splitPt.attr) \
+  {                                                                \
+    const int splitLine = splitPt.attr;                            \
+    for (int i = 0, e = cnt; i < e; ++i)                           \
+    {                                                              \
+      boxes[cnt] = boxes[i];                                       \
+      boxes[cnt][1].attr = splitLine - 1;                          \
+      boxes[i][0].attr = splitLine;                                \
+      cnt++;                                                       \
+    }                                                              \
+  }
+
+  SPLIT(x) // split horizontal
+  SPLIT(y) // split vertical
+#undef SPLIT
+
+  IBBox2 combinedBox = boxes[0];
+  for (int i = 1; i < cnt; ++i)
+    combinedBox += boxes[i];
+
+  G_ASSERTF(combinedBox == ibox, "Combined box = %@, Original box = %@", combinedBox, ibox);
+
+  return cnt > 1;
+}
+
 inline bool split_toroidal(const IBBox2 &ibox, const ToroidalHelper &helper, IBBox2 *boxes, int &cnt)
 {
-  const IPoint2 halfTexSize(helper.texSize >> 1, helper.texSize >> 1), texSize(helper.texSize, helper.texSize);
+  const IPoint2 texSize(helper.texSize, helper.texSize);
   const IBBox2 textureBox = get_texture_box(helper);
   IBBox2 cbox = ibox;
   textureBox.clipBox(cbox);

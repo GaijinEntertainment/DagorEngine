@@ -35,7 +35,7 @@ Sources =
   api/cpp/detail/dispatchRequestBase.cpp
   api/cpp/detail/drawRequestBase.cpp
   api/cpp/daFG.cpp
-  api/cpp/registry.cpp
+  api/cpp/baseRegistry.cpp
   api/cpp/stateRequest.cpp
   api/cpp/virtualPassRequest.cpp
   api/cpp/autoResolutionRequest.cpp
@@ -59,11 +59,13 @@ Sources =
   backend/nodeScheduler.cpp
   backend/resourceScheduling/barrierScheduler.cpp
   backend/resourceScheduling/resourceScheduler.cpp
-  backend/resourceScheduling/nativeResourceScheduler.cpp
-  backend/resourceScheduling/poolResourceScheduler.cpp
+  backend/resourceScheduling/resourceAllocator.cpp
+  backend/resourceScheduling/nativeResourceAllocator.cpp
+  backend/resourceScheduling/poolResourceAllocator.cpp
   backend/blobBindingHelpers.cpp
   backend/badResolutionTracker.cpp
 
+  runtime/graphHierarchicalMarksParser.cpp
   runtime/nodeExecutor.cpp
   runtime/typeDb.cpp
   runtime/runtime.cpp
@@ -103,11 +105,12 @@ if $(Config) in dbg dev {
     debug/textureVisualization.cpp
 
     debug/backendDebug.cpp
-    debug/dafgVisualizer.cpp
-    debug/userGraphVisualizer.cpp
-    debug/irGraphVisualizer.cpp
-    debug/resourceVisualizer.cpp
-    debug/textureVisualizer.cpp
+
+    debug/visualizationManager.cpp
+    debug/visualization/userGraphVisualizer.cpp
+    debug/visualization/irGraphVisualizer.cpp
+    debug/visualization/resourceVisualizer.cpp
+    debug/visualization/textureVisualizer.cpp
   ;
   UseProgLibs +=
     3rdPartyLibs/imgui

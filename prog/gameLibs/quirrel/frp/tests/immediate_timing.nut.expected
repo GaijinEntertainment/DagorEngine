@@ -1,0 +1,8 @@
+timing: before-set sub:2 after-set after-update
+snapshots: 20 40 60
+history: 1 2 3
+deferred before update: 
+deferred after update: 3
+chain: aaa
+chain: bbb
+chain: ccc

@@ -30,12 +30,7 @@ shader dynamic_metatex, dynamic_emissive_metatex, dynamic_translucent_metatex
 
   DYNAMIC_SIMPLE_VS_ATEST_USE()
 
-  if (dyn_model_render_pass != render_pass_normal)
-  {
-    DYNAMIC_SIMPLE_SHARED_DECL(ps) // needed for dynmat metadata
-  }
   SET_DYNMAT_METATEX_PARAM_GETTERS()
-  ENABLE_ASSERT(ps)
 
   METATEX_PS()
 }

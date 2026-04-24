@@ -133,6 +133,7 @@ public:
   bool delRes(RES *res);
 
   bool reloadRes(RES *res);
+  void reloadResList(PtrTab<RES> &&resources);
   void downgradeRes(RES *res, int upper_lod);
   void discardUnusedResToFreeReqMem();
 
@@ -172,6 +173,7 @@ public:
   // vertex buffer defrag and things like RElem::bv and RElem::si are no
   // longer the same as before.
   inline static MulticastEvent<void(const RES *, bool /*deleted*/, int /*upper_lod*/)> on_mesh_relems_updated;
+  inline static MulticastEvent<void(const RES *, bool /*deleted*/, int /*upper_lod*/)> on_mesh_relems_about_to_be_updated;
 
   typedef void (*availableRElemsAccessorFct)(dag::Span<RES *>);
   void availableRElemsAccessor(availableRElemsAccessorFct access_cb);
@@ -191,6 +193,7 @@ protected:
   int reloadJobMgrId = -1;
   volatile int vbSizeToFree = 0, ibSizeToFree = 0;
   int uselessDiscardAttempts = 0;
+  volatile int discardJobIsPending = 0;
   Tab<RES *> failedVdataReloadResList;
   volatile int pendingVdataReloadResCount = 0;
   unitedvdata::BufConfig hints;
@@ -200,10 +203,16 @@ protected:
   int requestLodsByDistanceFrames = 0;
 
   unitedvdata::BufConfig getHints() const;
+  void initReloadJobMgrIdNoLock();
+
+  bool reloadResNoLock(RES *res);
 
   void rebuildUnitedVdata(dag::Span<RES *> res, bool in_d3d_reset);
   static void updateVdata(RES *r, unitedvdata::BufPool &buf, Tab<int> &dviOfs_stor, Tab<uint8_t> &buf_stor,
     dag::ConstSpan<unitedvdata::BufChunk> c);
+
+  bool shouldDowngradeRes(int idx, int upper_lod);
+  void doDowngradeRes(int idx, int upper_lod);
 
   static void prepareVdataBaseOfs(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, Tab<int> &dviOfs);
   static void updateVdata(dag::ConstSpan<Ptr<ShaderMatVdata>> smvd_list, unitedvdata::BufPool &buf, Tab<uint8_t> &buf_stor,
@@ -216,7 +225,9 @@ protected:
   }
 
   void updateLocalMaximum(bool out_peak_to_debug);
-  void discardUnusedResToFreeReqMemNoLock(bool forced);
+  template <typename F>
+  void discardUnusedResGather(F &&);
+  void discardUnusedResToFreeReqMemImpl(bool lock, bool forced, bool async);
 
   struct UpdateModelCtx
   {

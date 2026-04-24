@@ -1,0 +1,1 @@
+Returns the source file path of the module with the given name, or empty string if the module is not found or has no file (e.g. built-in modules). Pass an empty string to get the main script's file path. Only works during simulation (global variable initialization); at runtime requires `options rtti` to keep the program object alive.

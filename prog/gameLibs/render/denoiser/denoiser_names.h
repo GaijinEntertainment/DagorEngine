@@ -13,7 +13,6 @@ const char *TextureNames::motion_vectors = "motion_vectors";
 const char *TextureNames::half_motion_vectors = "half_motion_vectors";
 const char *TextureNames::half_normals = "half_normals";
 const char *TextureNames::half_depth = "half_depth";
-const char *TextureNames::reblur_history_confidence = "reblur_history_confidence";
 #undef NAME
 
 #define NAME(name) const char *AODenoiser::TextureNames::name = TOSTRING(name);

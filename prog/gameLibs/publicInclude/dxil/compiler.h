@@ -81,6 +81,7 @@ struct PreprocessResult
   eastl::string errorLog;
   eastl::string messageLog;
 };
-PreprocessResult preprocessHLSLWithDXC(dag::ConstSpan<char> src, dag::ConstSpan<DXCDefine> defines, void *dxc_lib);
+PreprocessResult preprocessHLSLWithDXC(const char *profile, dag::ConstSpan<char> src, dag::ConstSpan<DXCDefine> defines,
+  void *dxc_lib);
 
 } // namespace dxil

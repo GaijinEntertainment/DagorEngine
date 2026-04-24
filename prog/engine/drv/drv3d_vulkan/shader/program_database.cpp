@@ -35,11 +35,7 @@ void ShaderProgramDatabase::initShaders(DeviceContext &dc)
   smh.hash = spirv::HashValue::calculate(&spvHeader, 1);
   smh.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-  ShaderModuleBlob smb = {};
-  auto from = reinterpret_cast<const uint32_t *>(null_frag_shader);
-  auto to = reinterpret_cast<const uint32_t *>(null_frag_shader + sizeof(null_frag_shader));
-  smb.blob.insert(end(smb.blob), from, to);
-  smb.hash = spirv::HashValue::calculate(smb.blob.data(), smb.blob.size());
+  ShaderModuleBlob smb(null_frag_shader, null_frag_shader + sizeof(null_frag_shader));
 
   nullFragmentShader = newShader(dc, smh, smb);
 }
@@ -55,12 +51,12 @@ ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, const ShaderModule
 }
 
 ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, VkShaderStageFlagBits stage, Tab<spirv::ChunkHeader> &chunks,
-  Tab<uint8_t> &chunk_data)
+  Tab<uint8_t> &chunk_data, const ShaderSource &source)
 {
   ShaderModuleHeader header;
   ShaderModuleBlob blob;
 
-  if (!extractShaderModules(stage, chunks, chunk_data, header, blob))
+  if (!extractShaderModules(stage, chunks, chunk_data, source, {0, 0}, header, blob))
     return ShaderID::Null();
 
   WinAutoLock l(dataGuard);
@@ -74,7 +70,8 @@ ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, VkShaderStageFlagB
 }
 
 ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, dag::Vector<VkShaderStageFlagBits> stage,
-  dag::Vector<Tab<spirv::ChunkHeader>> chunks, dag::Vector<Tab<uint8_t>> chunk_data)
+  dag::Vector<Tab<spirv::ChunkHeader>> chunks, dag::Vector<Tab<uint8_t>> chunk_data, dag::Vector<ShaderProgramData> bytecode,
+  const ShaderSource &source)
 {
   // find and setup vertex shader stuff
   int vsIndex = -1;
@@ -121,15 +118,15 @@ ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, dag::Vector<VkShad
   WinAutoLock l(dataGuard);
 
   CombinedChunkModules modules;
-  modules.vs = {&chunks[vsIndex], &chunk_data[vsIndex]};
+  modules.vs = {&chunks[vsIndex], &chunk_data[vsIndex], &bytecode[vsIndex]};
   if (gsIndex != -1)
-    modules.gs = {&chunks[gsIndex], &chunk_data[gsIndex]};
+    modules.gs = {&chunks[gsIndex], &chunk_data[gsIndex], &bytecode[gsIndex]};
   if (tcIndex != -1)
-    modules.tc = {&chunks[tcIndex], &chunk_data[tcIndex]};
+    modules.tc = {&chunks[tcIndex], &chunk_data[tcIndex], &bytecode[tcIndex]};
   if (teIndex != -1)
-    modules.te = {&chunks[teIndex], &chunk_data[teIndex]};
+    modules.te = {&chunks[teIndex], &chunk_data[teIndex], &bytecode[teIndex]};
 
-  auto creationInfo = getShaderCreationInfo(ctx, modules);
+  auto creationInfo = getShaderCreationInfo(ctx, modules, source);
   if (!creationInfo)
     return ShaderID::Null();
 
@@ -142,7 +139,8 @@ ShaderID ShaderProgramDatabase::newShader(DeviceContext &ctx, dag::Vector<VkShad
 }
 
 bool ShaderProgramDatabase::extractShaderModules(const VkShaderStageFlagBits stage, const Tab<spirv::ChunkHeader> &chunk_header,
-  const Tab<uint8_t> &chunk_data, ShaderModuleHeader &shader_header, ShaderModuleBlob &shader_blob)
+  const Tab<uint8_t> &chunk_data, const ShaderSource &source, const ShaderProgramData &bytecode, ShaderModuleHeader &shader_header,
+  ShaderModuleBlob &shader_blob)
 {
   auto header = spirv_extractor::getHeader(stage, chunk_header, chunk_data, 0);
   if (!header)
@@ -152,8 +150,8 @@ bool ShaderProgramDatabase::extractShaderModules(const VkShaderStageFlagBits sta
   }
   shader_header = *header;
 
-  shader_blob = spirv_extractor::getBlob(chunk_header, chunk_data, 0);
-  if (shader_blob.blob.empty())
+  shader_blob = spirv_extractor::getBlob(shader_header, source, bytecode, chunk_header, chunk_data, 0);
+  if (shader_blob.source.compressedData.empty())
   {
     DAG_FATAL("missing shader byte code chunk");
     return false;
@@ -163,7 +161,7 @@ bool ShaderProgramDatabase::extractShaderModules(const VkShaderStageFlagBits sta
 }
 
 eastl::optional<ShaderInfo::CreationInfo> ShaderProgramDatabase::getShaderCreationInfo(DeviceContext &ctx,
-  const CombinedChunkModules &modules)
+  const CombinedChunkModules &modules, const ShaderSource &source)
 {
   struct CreationInfoFillData
   {
@@ -186,7 +184,7 @@ eastl::optional<ShaderInfo::CreationInfo> ShaderProgramDatabase::getShaderCreati
     {
       ShaderModuleHeader header;
       ShaderModuleBlob blob;
-      if (!extractShaderModules(fd.stage, *fd.module->headers, *fd.module->data, header, blob))
+      if (!extractShaderModules(fd.stage, *fd.module->headers, *fd.module->data, source, *fd.module->bytecode, header, blob))
         return eastl::nullopt;
 
       *fd.uniqueHeader = shaderDesc.headers.uniqueInsert(ctx, header);
@@ -240,6 +238,11 @@ void ShaderProgramDatabase::init(bool has_bindless, DeviceContext &ctx)
   initShaders(ctx);
   initDebugProg(has_bindless, ctx);
   initRotateProg(has_bindless, ctx);
+  afterDeviceReset();
+}
+
+void ShaderProgramDatabase::afterDeviceReset()
+{
   // set debug prog to states, unset shader is an error
   Frontend::State::pipe.set<StateFieldGraphicsProgram, ProgramID, FrontGraphicsState>(debugProgId);
 }

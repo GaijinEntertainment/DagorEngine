@@ -1,0 +1,171 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+
+int deform_hmap_tex_size = 1024;
+buffer deform_hmap_reprojection_indirect_buf;
+buffer deform_occupied_tiles_bitvector;
+int deform_tiles_count_hor;
+texture deform_hmap_postfx_source_tex;
+texture deform_hmap_info_tex;
+float4 deform_hmap_reproject_uv_offset;
+buffer deform_hmap_info_tex_clear_tiles_indices;
+
+shader deform_hmap_clear_reprojection_indirect_cs
+{
+  (cs) {
+    tex_size@f1 = (deform_hmap_tex_size);
+    deform_hmap_reprojection_indirect_buf@uav = deform_hmap_reprojection_indirect_buf hlsl { RWByteAddressBuffer deform_hmap_reprojection_indirect_buf@uav; };
+  }
+
+  hlsl(cs) {
+    [numthreads(1, 1, 1)]
+    void deform_hmap_clear_reprojection_indirect_cs(uint dtid : SV_DispatchThreadID)
+    {
+      deform_hmap_reprojection_indirect_buf.Store(0 * 4, 6);
+      deform_hmap_reprojection_indirect_buf.Store(1 * 4, 0);
+      deform_hmap_reprojection_indirect_buf.Store(2 * 4, 0);
+      deform_hmap_reprojection_indirect_buf.Store(3 * 4, 0);
+    }
+  }
+
+  compile("target_cs", "deform_hmap_clear_reprojection_indirect_cs");
+}
+
+shader deform_hmap_classify_reprojection_tiles_cs
+{
+  (cs) {
+    occupied_tiles_bitvector@buf = deform_occupied_tiles_bitvector hlsl { StructuredBuffer<uint> occupied_tiles_bitvector@buf; };
+    reprojection_indirect_buf@uav = deform_hmap_reprojection_indirect_buf hlsl { RWByteAddressBuffer reprojection_indirect_buf@uav; };
+    clear_tiles_indices@uav = deform_hmap_info_tex_clear_tiles_indices hlsl { RWStructuredBuffer<uint> clear_tiles_indices@uav; };
+  }
+
+  hlsl(cs) {
+    #include "deform_hmap.hlsli"
+
+    #define DWORD_BITS 32u
+    #define MAX_WAVE_DWORD_COUNT (128 / DWORD_BITS)
+
+    uint fill_tile_occupancy_mask(uint dwordIdx, out uint mask[MAX_WAVE_DWORD_COUNT])
+    {
+      uint tilesToAdd = 0;
+
+      const uint DWORDS_PROCESSED_BY_WAVE = max(WaveGetLaneCount() / DWORD_BITS, 1);
+      for (int i = 0; i < DWORDS_PROCESSED_BY_WAVE; ++i)
+      {
+        mask[i] = loadBuffer(occupied_tiles_bitvector, dwordIdx * DWORDS_PROCESSED_BY_WAVE + i);
+        tilesToAdd += countbits(mask[i]);
+      }
+      return WaveReadLaneFirst(tilesToAdd);
+    }
+
+    // atomically increment instance count of indirect draw and return tile instance insert offset
+    uint allocate_tile_instances(uint tilesToAdd)
+    {
+      uint tileInsertOffset;
+      if (WaveIsFirstLane())
+        reprojection_indirect_buf.InterlockedAdd(4, tilesToAdd, tileInsertOffset);
+      return WaveReadLaneFirst(tileInsertOffset);
+    }
+
+    void extract_clear_tile_indices(uint tileInsertOffset, uint dwordIdx, uint mask[MAX_WAVE_DWORD_COUNT])
+    {
+      // Perform several iterations for hardware with lane count 16 or 8.
+      for (int dwordPartIdx = 0; dwordPartIdx < max(DWORD_BITS / WaveGetLaneCount(), 1); ++dwordPartIdx)
+      {
+        uint additionalOffset = dwordPartIdx * WaveGetLaneCount();
+        uint indexToProcess = (WaveGetLaneIndex() + additionalOffset);
+        // Check if the bit in the bitvector for the corresponding thread is set and mark the lane as active.
+        uint isTileClearNeeded = ((1u << (indexToProcess % DWORD_BITS)) & mask[indexToProcess / DWORD_BITS]) != 0 ? 1 : 0;
+        uint tileInsertIndex = WavePrefixSum(isTileClearNeeded);
+        // Write the instance index to the buffer.
+        if (isTileClearNeeded)
+          structuredBufferAt(clear_tiles_indices, tileInsertOffset + tileInsertIndex) = dwordIdx * max(WaveGetLaneCount(), DWORD_BITS) + indexToProcess;
+        tileInsertOffset += WaveActiveSum(isTileClearNeeded);
+      }
+    }
+
+    // Convert bitvector to a list of instance indices.
+    [numthreads(128, 1, 1)]
+    void deform_hmap_classify_reprojection_tiles_cs(uint threadId : SV_DispatchThreadID)
+    {
+      // Read the same dword (or dwords for 64 threads) in the wave.
+      uint dwordIdx = WaveReadLaneFirst(threadId / WaveGetLaneCount());
+
+      // Mask should have length of DWORDS_PROCESSED_BY_WAVE, but the compiler doesn't know that WaveGetLaneCount is a constant, so we use a big enough const here.
+      uint mask[MAX_WAVE_DWORD_COUNT];
+      uint tilesToAdd = fill_tile_occupancy_mask(dwordIdx, mask);
+      if (tilesToAdd == 0)
+        return;
+
+      uint tileInsertOffset = allocate_tile_instances(tilesToAdd);
+      extract_clear_tile_indices(tileInsertOffset, dwordIdx, mask);
+    }
+  }
+  compile("target_cs", "deform_hmap_classify_reprojection_tiles_cs");
+}
+
+shader deform_hmap_reproject_tiled
+{
+  cull_mode = none;
+  no_ablend;
+
+  (ps) {
+    source_tex@smp2d = deform_hmap_postfx_source_tex;
+    hmap_info_tex@smp2d = deform_hmap_info_tex;
+  }
+  (vs) {
+    uv_offset@f2 = deform_hmap_reproject_uv_offset;
+    clear_tiles_indices@buf = deform_hmap_info_tex_clear_tiles_indices hlsl { StructuredBuffer<uint> clear_tiles_indices@buf; };
+    tiles_count_hor@i1 = (deform_tiles_count_hor);
+  }
+
+  USE_POSTFX_VERTEX_POSITIONS()
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float2 uv : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    #include "deform_hmap.hlsli"
+    // Vertices for quad from 0 to 1
+    static const float2 verts[6] = {
+      float2(0.0, 0.0),
+      float2(1.0, 0.0),
+      float2(1.0, 1.0),
+      float2(0.0, 0.0),
+      float2(1.0, 1.0),
+      float2(0.0, 1.0)
+    };
+    VsOutput deform_hmap_reproject_vs(uint vertex_id : SV_VertexID, uint instance_id : SV_InstanceID)
+    {
+      VsOutput output;
+      output.pos = float4(verts[vertex_id], 0.0, 1.0);
+      uint tileId = loadBuffer(clear_tiles_indices, instance_id);
+      uint2 tilePos = uint2(tileId % tiles_count_hor, tileId / tiles_count_hor);
+      uint texSize = DEFORM_HMAP_THREADGROUP_WIDTH * tiles_count_hor;
+      output.pos.xy = output.pos.xy / texSize * DEFORM_HMAP_THREADGROUP_WIDTH + float2((tilePos) * DEFORM_HMAP_THREADGROUP_WIDTH) / texSize;
+      float2 originalPos = output.pos.xy;
+      output.pos.xy -= uv_offset;
+      output.pos.xy = output.pos.xy * 2.0 - 1.0;
+      output.pos.y *= -1;
+      originalPos = originalPos * 2.0 - 1.0;
+      originalPos.y *= -1;
+      output.uv = screen_to_texcoords(originalPos.xy);
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    float deform_hmap_reproject_ps(VsOutput input, out float depth : SV_Depth) : SV_Target
+    {
+      depth = tex2D(source_tex, input.uv).x;
+      return tex2D(hmap_info_tex, input.uv).x;
+    }
+  }
+
+  compile("target_vs", "deform_hmap_reproject_vs");
+  compile("target_ps", "deform_hmap_reproject_ps");
+}

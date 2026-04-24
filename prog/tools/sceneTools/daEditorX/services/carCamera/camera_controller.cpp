@@ -96,7 +96,7 @@ Point3 clip_camera(const Point3 &pos, const Point3 &tpos, IPhysCar *target)
 
 String get_car_common_fn()
 {
-  DataBlock appBlk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock appBlk(DAGORED2->getWorkspace().getAppBlkPath());
   const char *cpBlkPath = appBlk.getBlockByNameEx("game")->getStr("car_params", "/game/config/car_params.blk");
 
   char buf[260];

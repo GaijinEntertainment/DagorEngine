@@ -56,6 +56,7 @@ public:
   void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
   void selectAll() override {}
   void deselectAll() override {}
+  void invertSelection() override {}
 
   void actObjects(float dt) override;
   void beforeRenderObjects(IGenViewportWnd *vp) override;

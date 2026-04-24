@@ -248,6 +248,11 @@ class DataBlock:
           self.params.pop(i)
           return
 
+    def remParamByIdx(self, idx):
+      if idx < 0 or idx >= len(self.params):
+        return
+      self.params.pop(idx)
+
     def saveIncludes(self):
       for l, (inc, blk) in self.includes:
         blk.saveFile(inc)

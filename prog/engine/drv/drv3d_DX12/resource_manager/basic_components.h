@@ -20,6 +20,9 @@
 #include <osApiWrappers/dag_critSec.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
+#include <util/dag_compilerDefs.h>
 
 #include <windows.h>
 #include <psapi.h> // psapi.h is not self-contained, it needs windows.h
@@ -88,6 +91,13 @@ protected:
   accessRecodingPendingFrameCompletion(U accessor)
   {
     OSSpinlockScopedLock lock{recodingPendingFrameCompletionMutex};
+    accessor(*static_cast<T *>(recodingPendingFrameCompletion));
+  }
+
+  template <typename T, typename U>
+  typename eastl::enable_if<eastl::is_convertible<T &, PendingForCompletedFrameData &>::value>::type
+  accessRecodingPendingFrameCompletionNoLock(U accessor) DAG_TS_REQUIRES(recodingPendingFrameCompletionMutex)
+  {
     accessor(*static_cast<T *>(recodingPendingFrameCompletion));
   }
 
@@ -172,13 +182,30 @@ protected:
   void setup(const SetupInfo &info)
   {
     didReportOOM = false;
+#if _TARGET_XBOX
+    renderMemoryLimitBytes = static_cast<uint64_t>(dgs_get_settings()->getBlockByNameEx("dx12")->getInt("renderMemoryLimitMb", 0))
+                             << 20u;
+    logdbg("DX12: Render memory limit set to %u MB", renderMemoryLimitBytes >> 20u);
+#if DAGOR_ADDRESS_SANITIZER
+    const uint64_t additionalAsanSystemMemoryBytes =
+      static_cast<uint64_t>(dgs_get_settings()->getBlockByNameEx("dx12")->getInt("additionalAsanSystemMemoryMb", 0)) << 20u;
+    renderMemoryLimitBytes -= additionalAsanSystemMemoryBytes;
+    logdbg("DX12: Adjusted render memory limit to %u MB due to ASAN build (additional system memory: %u MB)",
+      renderMemoryLimitBytes >> 20u, additionalAsanSystemMemoryBytes >> 20u);
+#endif
+#endif
     BaseType::setup(info);
   }
+
+#if _TARGET_XBOX
+  uint64_t renderMemoryLimitBytes = 0;
+  uint64_t renderMemoryUsedBytes = 0;
+#endif
 
   class OomReportData
   {
   public:
-    OomReportData(const char *method_name, const char *resource_name = nullptr, const eastl::optional<uint64_t> &requested_size = {},
+    OomReportData(const char *method_name, const char *resource_name, uint64_t requested_size,
       const eastl::optional<uint32_t> &allocation_flags = {}, const eastl::optional<uint32_t> &memory_group = {}) :
       methodName{method_name},
       resourceName{resource_name},
@@ -201,7 +228,7 @@ protected:
       if (requestedSize)
       {
         oomReport += ", requested size: ";
-        oomReport += eastl::to_string(*requestedSize);
+        oomReport += eastl::to_string(requestedSize);
       }
       if (allocationFlags)
       {
@@ -216,10 +243,12 @@ protected:
       return oomReport;
     }
 
+    uint64_t getRequestedSize() const { return requestedSize; }
+
   private:
     const char *methodName = nullptr;
     const char *resourceName = nullptr;
-    eastl::optional<uint64_t> requestedSize;
+    uint64_t requestedSize;
     eastl::optional<uint32_t> allocationFlags;
     eastl::optional<uint32_t> memoryGroup;
   };
@@ -426,7 +455,9 @@ protected:
   COUNTER(scratchBufferPersistentUse)                                                                                               \
   ALLOCATE_FREE_COUNTERS(allocatedRaytraceAccelStructPool, freedRaytraceAccelStructPool, raytraceAccelStructPool)                   \
   ALLOCATE_FREE_COUNTERS(allocatedRaytraceBottomStructure, freedRaytraceBottomStructure, raytraceBottomStructure)                   \
-  ALLOCATE_FREE_COUNTERS(allocatedRaytraceTopStructure, freedRaytraceTopStructure, raytraceTopStructure)
+  ALLOCATE_FREE_COUNTERS(allocatedRaytraceTopStructure, freedRaytraceTopStructure, raytraceTopStructure)                            \
+  ALLOCATE_FREE_COUNTERS(allocatedRaytraceOpacityMicroMapTriangleArray, freedRaytraceOpacityMicroMapTriangleArray,                  \
+    raytraceOpacityMicroMapTriangleArray)
 
   struct RawCounterSet
   {
@@ -603,6 +634,8 @@ protected:
         RAYTRACE_BOTTOM_STRUCTURE_FREE,
         RAYTRACE_TOP_STRUCTURE_ALLOCATE,
         RAYTRACE_TOP_STRUCTURE_FREE,
+        RAYTRACE_OPACITY_MICRO_MAP_TRIANGLE_ARRAY_ALLOCATE,
+        RAYTRACE_OPACITY_MICRO_MAP_TRIANGLE_ARRAY_FREE,
         COUNT
       };
       Type type;
@@ -753,7 +786,6 @@ class MetricsProvider : public MetricsProviderBase
 
 protected:
   using ConcurrentMetricsState = ContainerMutexWrapper<MetricsState, WinCritSec>;
-  using ConcurrentMetricsStateAccessToken = ConcurrentMetricsState::AccessToken;
 
 private:
   MetricBits metricsCollectedBits{};
@@ -1438,6 +1470,29 @@ protected:
     recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_TOP_STRUCTURE_FREE, size, true);
   }
 
+  void recordRaytraceOpacityMicroMapTriangleArrayAllocated(uint32_t size)
+  {
+    if (!isCollectingMetric(Metric::RAYTRACING))
+      return;
+    auto metricsAccess = metrics.access();
+    auto &target = metricsAccess->currentFrame.rawCounters.allocatedRaytraceOpacityMicroMapTriangleArray;
+    target.count++;
+    target.size += size;
+    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_OPACITY_MICRO_MAP_TRIANGLE_ARRAY_ALLOCATE, size, true);
+  }
+
+  void recordRaytraceOpacityMicroMapTriangleArrayFreed(uint32_t size)
+  {
+    if (!isCollectingMetric(Metric::RAYTRACING))
+      return;
+    auto metricsAccess = metrics.access();
+    auto &target = metricsAccess->currentFrame.rawCounters.freedRaytraceOpacityMicroMapTriangleArray;
+    target.count++;
+    target.size += size;
+
+    recordBufferEvent(metricsAccess, MetricsState::ActionInfo::Type::RAYTRACE_OPACITY_MICRO_MAP_TRIANGLE_ARRAY_FREE, size, true);
+  }
+
 public:
   void pushEvent(const char *begin, const char *end)
   {
@@ -1551,6 +1606,8 @@ protected:
   void recordRaytraceBottomStructureFreed(uint32_t) {}
   void recordRaytraceTopStructureAllocated(uint32_t) {}
   void recordRaytraceTopStructureFreed(uint32_t) {}
+  void recordRaytraceOpacityMicroMapTriangleArrayAllocated(uint32_t) {}
+  void recordRaytraceOpacityMicroMapTriangleArrayFreed(uint32_t) {}
 
 public:
   void pushEvent(const char *, const char *) {}

@@ -9,6 +9,7 @@ struct SoundActionPropsAnnotation : das::ManagedStructureAnnotation<sound::Actio
     cppName = " sound::ActionProps";
     addFieldEx("humanHitSoundPath", "humanHitSoundPath", offsetof(sound::ActionProps, humanHitSoundPath), das::makeType<char *>(ml));
     addFieldEx("humanHitSoundName", "humanHitSoundName", offsetof(sound::ActionProps, humanHitSoundName), das::makeType<char *>(ml));
+    addFieldEx("voicePhrase", "voicePhrase", offsetof(sound::ActionProps, voicePhrase), das::makeType<char *>(ml));
   }
 };
 

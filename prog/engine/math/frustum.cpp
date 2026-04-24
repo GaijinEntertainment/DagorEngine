@@ -31,7 +31,11 @@ void Frustum::construct(const mat44f &matrix)
   v_construct_camplanes(matrix, camPlanes[0], camPlanes[1], camPlanes[2], camPlanes[3], camPlanes[5], camPlanes[4]);
   for (int p = 0; p < 6; p++)
     camPlanes[p] = v_norm3(camPlanes[p]); // .w is divided by length(xyz) as side effect
+  constructVectorizedPlanes();
+}
 
+void Frustum::constructVectorizedPlanes()
+{
   //  build a bit-field that will tell us the indices for the nearest and farthest vertices from each plane...
   plane03X = camPlanes[0];
   plane03Y = camPlanes[1];
@@ -44,6 +48,27 @@ void Frustum::construct(const mat44f &matrix)
   plane5W2 = camPlanes[5];
   plane4W2 = v_perm_xyzd(plane4W2, v_add(plane4W2, plane4W2));
   plane5W2 = v_perm_xyzd(plane5W2, v_add(plane5W2, plane5W2));
+}
+
+bbox3f Frustum::calcFrustumBBox(vec3f *pntList) const
+{
+  vec3f frustumMax01 = v_max(pntList[0], pntList[1]);
+  vec3f frustumMin01 = v_min(pntList[0], pntList[1]);
+  vec3f frustumMax23 = v_max(pntList[2], pntList[3]);
+  vec3f frustumMin23 = v_min(pntList[2], pntList[3]);
+  vec3f frustumMax45 = v_max(pntList[4], pntList[5]);
+  vec3f frustumMin45 = v_min(pntList[4], pntList[5]);
+  vec3f frustumMax67 = v_max(pntList[6], pntList[7]);
+  vec3f frustumMin67 = v_min(pntList[6], pntList[7]);
+
+  vec3f frustumMin03 = v_min(frustumMin01, frustumMin23);
+  vec3f frustumMax03 = v_max(frustumMax01, frustumMax23);
+  vec3f frustumMin47 = v_min(frustumMin45, frustumMin67);
+  vec3f frustumMax47 = v_max(frustumMax45, frustumMax67);
+
+  vec3f frustumMin_v = v_min(frustumMin03, frustumMin47);
+  vec3f frustumMax_v = v_max(frustumMax03, frustumMax47);
+  return bbox3f{frustumMin_v, frustumMax_v};
 }
 
 void Frustum::calcFrustumBBox(bbox3f &box) const
@@ -142,6 +167,84 @@ int Frustum::testSphere(const Point3 &center, float radius, unsigned int &last_p
     out_mask = (unsigned int)maskFlt; // LHS!
     return (intersect >= 0.0f) ? INTERSECT : INSIDE;
   }
+}
+
+int Frustum::testBoxCorrect(const BBox3 &box, const vec3f *frustumPoints, const bbox3f &frustumBox) const
+{
+  vec3f bmin_v = v_ldu(&box[0].x);
+  vec3f bmax_v = v_ldu(&box[1].x);
+  vec4f center2_v = v_add(bmax_v, bmin_v);
+  vec4f extent2_v = v_sub(bmax_v, bmin_v);
+  int cheapResult = v_box_frustum_intersect_extent2(center2_v, extent2_v, plane03X, plane03Y, plane03Z, plane03W2, plane4W2, plane5W2);
+  if (cheapResult != INTERSECT)
+    return cheapResult;
+
+  if (v_check_xyz_any_true(v_or(v_cmp_lt(frustumBox.bmax, bmin_v), v_cmp_gt(frustumBox.bmin, bmax_v))))
+    return OUTSIDE;
+
+  const Point3 &bMin = box[0];
+  const Point3 &bMax = box[1];
+  Point3 fpts[8];
+  for (int i = 0; i < 8; ++i)
+    fpts[i] = as_point3(&frustumPoints[i]);
+
+  const Point3 c{0.5f * (bMin.x + bMax.x), 0.5f * (bMin.y + bMax.y), 0.5f * (bMin.z + bMax.z)};
+  const Point3 e{0.5f * (bMax.x - bMin.x), 0.5f * (bMax.y - bMin.y), 0.5f * (bMax.z - bMin.z)};
+
+  auto axis_separates = [&](const Point3 &n) -> int {
+    float fMin = dot(fpts[0], n);
+    float fMax = fMin;
+    for (int i = 1; i < 8; ++i)
+    {
+      float d = dot(fpts[i], n);
+      if (d < fMin)
+        fMin = d;
+      if (d > fMax)
+        fMax = d;
+    }
+
+    float r = fabsf(n.x) * e.x + fabsf(n.y) * e.y + fabsf(n.z) * e.z;
+    float bCenter = dot(c, n);
+    float bMin = bCenter - r;
+    float bMax = bCenter + r;
+    if (bMax < fMin || fMax < bMin)
+      return OUTSIDE;
+    // Fully inside case caught by cheap test, no need to test it here
+    return INTERSECT;
+  };
+
+  Point3 planeN[6];
+  for (int i = 0; i < 6; ++i)
+    planeN[i] = as_point3(&camPlanes[i]);
+
+  for (int i = 0; i < 6; ++i)
+  {
+    if (axis_separates(planeN[i]) == OUTSIDE)
+      return OUTSIDE;
+  }
+
+  auto cross_world_coord = [](int coord, const Point3 &n) -> Point3 {
+    switch (coord)
+    {
+      case 0: return Point3{0.0f, -n.z, n.y};
+      case 1: return Point3{n.z, 0.0f, -n.x};
+      default: return Point3{-n.y, n.x, 0.0f};
+    }
+  };
+
+  for (int a = 0; a < 3; ++a)
+  {
+    for (int p = 0; p < 6; ++p)
+    {
+      const Point3 axis = cross_world_coord(a, planeN[p]);
+      if (axis_separates(axis) == OUTSIDE)
+        return OUTSIDE;
+    }
+  }
+
+  // We know it's not inside, because this function is only called
+  // if the cheap test said it was intersecting.
+  return INTERSECT;
 }
 
 int Frustum::testBox(vec4f bmin, vec4f bmax, unsigned int &last_start_plane, unsigned int in_mask, unsigned int &out_mask) const

@@ -1,9 +1,9 @@
 WARNING: w228 (declared-never-used) variable 'str' was declared but never used.
-testData/static_analyzer/w228.nut:4:2
+testData/static_analyzer/w228.nut:2:8
 
-function x() { //-declared-never-used
+function _x() {
   local str = "string"
-  ^-----
+        ^--
   return
 
 

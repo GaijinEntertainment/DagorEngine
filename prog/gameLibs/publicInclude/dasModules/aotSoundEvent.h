@@ -14,8 +14,11 @@
 #include <soundSystem/visualLabels.h>
 #include <soundSystem/eventInstanceStealing.h>
 #include <soundSystem/occlusion.h>
+#include <soundSystem/occlusionGPU.h>
+#include <soundSystem/dsp.h>
 #include <ecs/sound/soundComponent.h>
 #include <ecs/sound/soundGroup.h>
+#include <math/dag_Point4.h>
 
 MAKE_TYPE_FACTORY(SoundEvent, SoundEvent);
 MAKE_TYPE_FACTORY(SoundEventHandle, sndsys::EventHandle);
@@ -23,6 +26,7 @@ MAKE_TYPE_FACTORY(SoundVarId, SoundVarId);
 MAKE_TYPE_FACTORY(SoundEventGroup, SoundEventGroup);
 MAKE_TYPE_FACTORY(VisualLabel, sndsys::VisualLabel);
 MAKE_TYPE_FACTORY(SoundEventsPreload, SoundEventsPreload);
+MAKE_TYPE_FACTORY(SoundOcclusionBlob, SoundOcclusionBlob);
 
 DAS_BIND_VECTOR(VisualLabels, sndsys::VisualLabels, sndsys::VisualLabel, " ::sndsys::VisualLabels")
 
@@ -170,6 +174,12 @@ inline sndsys::EventHandle delayed_play_with_name_path_pos(const char *name, con
   return sndsys::delayed_play(name, path, pos, delay);
 }
 
+inline sndsys::EventHandle set_var_optional_and_play_sound_with_name_path_pos(const char *param_name, float value, const char *name,
+  const char *path, Point3 pos)
+{
+  return sndsys::set_var_optional_and_play(param_name, value, name, path, pos);
+}
+
 inline void play_sound_with_name(SoundEvent &sound_event, const char *name) { sound_event.reset(sndsys::play(name)); }
 inline void play_sound_with_name_pos(SoundEvent &sound_event, const char *name, Point3 pos)
 {
@@ -315,6 +325,12 @@ inline void set_occlusion_group_eid(sndsys::EventHandle handle, ecs::EntityId ei
   sndsys::occlusion::set_event_group(handle, sndsys::occlusion::group_id_t(eid));
 }
 
+inline void set_occlusion_radius(sndsys::EventHandle handle, float radius) { sndsys::occlusion::set_radius(handle, radius); }
+inline void __set_occlusion_radius(const SoundEvent &sound_event, float radius)
+{
+  sndsys::occlusion::set_radius(sound_event.handle, radius);
+}
+
 inline void set_occlusion_pos(sndsys::occlusion::group_id_t group_id, Point3 pos) { sndsys::occlusion::set_group_pos(group_id, pos); }
 inline void set_occlusion_pos_eid(ecs::EntityId eid, Point3 pos)
 {
@@ -329,10 +345,7 @@ inline bool das_query_visual_labels(const das::TBlock<void, const das::TTemporar
   sndsys::VisualLabels labels = sndsys::query_visual_labels();
 
   das::Array arr;
-  arr.data = (char *)labels.data();
-  arr.size = uint32_t(labels.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)labels.data(), labels.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -355,5 +368,56 @@ inline void sound_events_load(SoundEventsPreload &sound_events_preload, const da
 }
 
 inline void sound_events_unload(SoundEventsPreload &sound_events_preload) { sound_events_preload.unload(); }
+
+// sound occlusion_gpu
+
+inline void occlusion_gpu__create_blob(SoundOcclusionBlob &sound_occlusion_blob, Point3 pos, float attach_radius,
+  float occlusion_radius)
+{
+  sound_occlusion_blob.reset(sndsys::occlusion_gpu::create_blob(pos, attach_radius, occlusion_radius));
+}
+
+inline void occlusion_gpu__delete_blob(SoundOcclusionBlob &sound_occlusion_blob) { sound_occlusion_blob.reset(); }
+
+inline void occlusion_gpu__set_pos(const SoundOcclusionBlob &sound_occlusion_blob, Point3 pos)
+{
+  sndsys::occlusion_gpu::set_pos(sound_occlusion_blob.handle, pos);
+}
+
+inline bool occlusion_gpu__is_valid_handle_value(const SoundOcclusionBlob &sound_occlusion_blob)
+{
+  return (bool)sound_occlusion_blob.handle;
+}
+
+inline void occlusion_gpu__attach_to_blob(sndsys::EventHandle handle, const SoundOcclusionBlob &sound_occlusion_blob)
+{
+  sndsys::occlusion_gpu::attach_to_blob(handle, sound_occlusion_blob.handle);
+}
+inline void __occlusion_gpu__attach_to_blob(const SoundEvent &sound_event, const SoundOcclusionBlob &sound_occlusion_blob)
+{
+  sndsys::occlusion_gpu::attach_to_blob(sound_event.handle, sound_occlusion_blob.handle);
+}
+
+inline void occlusion_gpu__detach_instance(sndsys::EventHandle handle) { sndsys::occlusion_gpu::drop_instance(handle); }
+inline void occlusion_gpu__drop_instance(sndsys::EventHandle handle) { sndsys::occlusion_gpu::drop_instance(handle); }
+
+inline void __occlusion_gpu__detach_instance(const SoundEvent &sound_event) // TODO: remove both "*_detach_instance"
+{
+  sndsys::occlusion_gpu::drop_instance(sound_event.handle);
+}
+inline void __occlusion_gpu__drop_instance(const SoundEvent &sound_event) { sndsys::occlusion_gpu::drop_instance(sound_event.handle); }
+
+inline bool occlusion_gpu__is_inside_active_range(Point3 pos) { return sndsys::occlusion_gpu::is_inside_active_range(pos); }
+
+inline void occlusion_gpu__set_blob_active_range(const SoundOcclusionBlob &sound_occlusion_blob, float active_radius)
+{
+  sndsys::occlusion_gpu::set_blob_active_range(sound_occlusion_blob.handle, active_radius);
+}
+
+// Fills out[] with FFT spectrum bar heights in [0..1]. Resize before calling.
+inline void get_music_spectrum(das::TArray<float> &out)
+{
+  sndsys::dsp::get_spectrum_bars(dag::Span<float>((float *)out.data, (int)out.size));
+}
 
 } // namespace soundevent_bind_dascript

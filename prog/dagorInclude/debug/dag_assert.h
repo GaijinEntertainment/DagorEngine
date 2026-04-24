@@ -134,6 +134,20 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
       logerr(__VA_ARGS__);                           \
     }                                                \
   } while (0)
+#define G_ASSERT_LOG_ONCE_AND_DO(expression, action, ...) \
+  do                                                      \
+  {                                                       \
+    if (DAGOR_UNLIKELY(!(expression)))                    \
+    {                                                     \
+      static bool g_assert_do_and_logged_ = false;        \
+      if (!g_assert_do_and_logged_)                       \
+      {                                                   \
+        logerr(__VA_ARGS__);                              \
+        g_assert_do_and_logged_ = true;                   \
+      }                                                   \
+      action;                                             \
+    }                                                     \
+  } while (0)
 #else
 #define G_ASSERT_LOG(expression, ...) G_ASSERTF(expression, ##__VA_ARGS__)
 #define G_ASSERT_DO_AND_LOG(expr, action, ...)               \
@@ -144,6 +158,7 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
       action;                                                \
     G_ASSERTF_EX(g_assert_result_do_, #expr, ##__VA_ARGS__); \
   } while (0)
+#define G_ASSERT_LOG_ONCE_AND_DO(expr, action, ...) G_ASSERT_DO_AND_LOG(expr, action, ##__VA_ARGS__)
 #endif
 
 #if DAGOR_DBGLEVEL < 1
@@ -218,9 +233,10 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
 #define G_ASSERT_BREAK(expr)               G_ASSERT_AND_DO_UNHYGIENIC(expr, break)
 #define G_ASSERT_CONTINUE(expr)            G_ASSERT_AND_DO_UNHYGIENIC(expr, continue)
 
-#define G_ASSERTF_RETURN(expr, returnValue, fmt, ...) G_ASSERTF_AND_DO(expr, return returnValue, fmt, ##__VA_ARGS__)
-#define G_ASSERTF_BREAK(expr, fmt, ...)               G_ASSERTF_AND_DO_UNHYGIENIC(expr, break, fmt, ##__VA_ARGS__)
-#define G_ASSERTF_CONTINUE(expr, fmt, ...)            G_ASSERTF_AND_DO_UNHYGIENIC(expr, continue, fmt, ##__VA_ARGS__)
+#define G_ASSERTF_LOG_ONCE_RETURN(expr, returnValue, fmt, ...) G_ASSERT_LOG_ONCE_AND_DO(expr, return returnValue, fmt, ##__VA_ARGS__)
+#define G_ASSERTF_RETURN(expr, returnValue, fmt, ...)          G_ASSERTF_AND_DO(expr, return returnValue, fmt, ##__VA_ARGS__)
+#define G_ASSERTF_BREAK(expr, fmt, ...)                        G_ASSERTF_AND_DO_UNHYGIENIC(expr, break, fmt, ##__VA_ARGS__)
+#define G_ASSERTF_CONTINUE(expr, fmt, ...)                     G_ASSERTF_AND_DO_UNHYGIENIC(expr, continue, fmt, ##__VA_ARGS__)
 
 #if DAGOR_DBGLEVEL > 0
 #define G_DEBUG_BREAK G_DEBUG_BREAK_FORCED
@@ -235,6 +251,20 @@ DECLARE_DSA_OVERLOADS_FAMILY_LT(inline bool dgs_assertion_handler_inl, return dg
     logerr(__VA_ARGS__);                         \
     action;                                      \
   }                                              \
+  else
+
+
+#define G_LOGERR_ONCE_AND_DO(expression, action, ...) \
+  if (DAGOR_UNLIKELY(!(expression)))                  \
+  {                                                   \
+    static bool showed_ = false;                      \
+    if (!showed_)                                     \
+    {                                                 \
+      showed_ = true;                                 \
+      logerr(__VA_ARGS__);                            \
+    }                                                 \
+    action;                                           \
+  }                                                   \
   else
 
 

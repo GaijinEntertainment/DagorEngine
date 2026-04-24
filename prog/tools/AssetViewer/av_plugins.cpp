@@ -16,7 +16,7 @@ extern void init_plugin_land_class();
 extern void init_plugin_nodes();
 extern void init_plugin_collision();
 extern void init_plugin_physobj();
-extern void init_plugin_effects();
+extern void init_plugin_effects(const DataBlock &appblk);
 extern void init_plugin_vehicle();
 extern void init_plugin_fastphys();
 extern void init_plugin_rndgrass();
@@ -27,7 +27,7 @@ extern void init_plugin_anim_tree();
 extern void init_plugin_ecs_templates();
 // extern void init_plugin_custom();
 
-void init_all_editor_plugins()
+void init_all_editor_plugins(const DataBlock &appblk)
 {
 #define INIT_SERVICE(TYPE_NAME, EXPR)           \
   if (DAEDITOR3.getAssetTypeId(TYPE_NAME) >= 0) \
@@ -46,7 +46,7 @@ void init_all_editor_plugins()
   INIT_SERVICE("skeleton", ::init_plugin_nodes());
   INIT_SERVICE("collision", ::init_plugin_collision());
   INIT_SERVICE("physObj", ::init_plugin_physobj());
-  INIT_SERVICE("fx", ::init_plugin_effects());
+  INIT_SERVICE("fx", ::init_plugin_effects(appblk));
   INIT_SERVICE("vehicle", ::init_plugin_vehicle());
   INIT_SERVICE("fastPhys", ::init_plugin_fastphys());
   INIT_SERVICE("rndGrass", ::init_plugin_rndgrass());

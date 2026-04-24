@@ -39,15 +39,39 @@ float scope_reticle_size_mul = 1.0;
 
 float scope_reticle_radius = 0.02;
 
+int use_scope_cylinder_shadow = 1;
+interval use_scope_cylinder_shadow: no<1, yes;
+assume_if_not_assumed use_scope_cylinder_shadow = yes;
+
+float crosshair_scale = 1.0;
+
+define_macro_if_not_defined PROJECT_SCOPE_LENS_REFLECTIONS()
+  USE_ROUGH_TO_MIP()
+  USE_SKY_DIFFUSE()
+  USE_INDOOR_LIGHT_PROBES(ps, false)
+  GLASS_APPLY_FUNC_PS(false)
+
+  hlsl(ps) {
+    half3 sample_scope_lens_reflections(VsOutput input, float4 screenpos, float2 lens_input_plane_coord, float4 lens_diffuse_color)
+    {
+      return apply_glass_ps(input, screenpos, lens_diffuse_color, 1).color.rgb;
+    }
+  }
+endmacro
+
 macro SCOPE_LENS_SHADER()
   assume_if_not_assumed assume_wt_scope_hack = off;
 
-  ENABLE_ASSERT(ps)
+  if (rendinst_transparent_gbuffer_pass == generate)
+  {
+    dont_render;
+  }
+
   SUPPORT_MULTIDRAW(false)
   DYNAMIC_BLOCK_TRANS()
 
   if (render_to_icon == yes) {
-    if (lens_zoom_factor != no_zoom || render_scope_collimator != no || use_depth_val_as_mask != no || glass_normal_pass != no) {
+    if (lens_zoom_factor != no_zoom || render_scope_collimator != no || use_depth_val_as_mask != no || rendinst_transparent_gbuffer_pass > off) {
       dont_render;
     }
   }
@@ -71,7 +95,7 @@ macro SCOPE_LENS_SHADER()
     dont_render;
   }
 
-  if (shader == scope_lens && (lens_render_mode == render_depth || lens_render_mode == render_mask ||
+  if (shader == scope_lens && (lens_render_mode == render_depth || (lens_render_mode == render_mask && assume_wt_scope_hack == off) ||
       lens_render_mode == render_depth_by_mask) || shader == dynamic_crosshair)
   {
     z_write = true;
@@ -80,7 +104,15 @@ macro SCOPE_LENS_SHADER()
   {
     z_write = false;
   }
-  z_test = true;
+
+  if (shader == scope_lens && lens_render_mode == render_mask && assume_wt_scope_hack == on)
+  {
+    z_test = false;
+  }
+  else
+  {
+    z_test = true;
+  }
 
   if (shader == scope_lens)
   {
@@ -124,14 +156,15 @@ macro SCOPE_LENS_SHADER()
       float2 lensScrPos             : TEXCOORD3;
       float3 lensNormal             : TEXCOORD4;
       float scopeShadowStrength     : TEXCOORD5;
+      float2 lensInputPlaneCoord    : TEXCOORD6;
     ##endif
 
-      float4 clipPos                : TEXCOORD6;
-      float3 fogMul                 : TEXCOORD7;
-      float3 fogAdd                 : TEXCOORD8;
+      float4 clipPos                : TEXCOORD7;
+      float3 fogMul                 : TEXCOORD8;
+      float3 fogAdd                 : TEXCOORD9;
 
     ##if shader == dynamic_crosshair
-      float2 texcoord               : TEXCOORD9;
+      float2 texcoord               : TEXCOORD10;
     ##endif
 
       #if SET_UP_MULTIDRAW
@@ -150,6 +183,7 @@ macro SCOPE_LENS_SHADER()
     scope_lens_local_x@f3 = scope_lens_local_x;
     scope_lens_local_y@f3 = scope_lens_local_y;
     scope_lens_local_z@f3 = scope_lens_local_z;
+    crosshair_scale@f1 = crosshair_scale;
   }
   if (lens_render_mode == render_depth)
   {
@@ -176,7 +210,7 @@ macro SCOPE_LENS_SHADER()
       float3 worldNormal;
       float3 localNormal = input.normal.xyz;
 
-##if shader == scope_lens && (lens_render_mode == render_optics || lens_render_mode == render_frame)
+##if shader == scope_lens && (lens_render_mode == render_optics || lens_render_mode == render_frame || (lens_render_mode == render_mask && assume_wt_scope_hack == on))
     //We need to move the lens further to increase depth-value
     //to be able to overwrite the antialiased pixels with non-lens depth
     //Otherwise a border around the lens area appears, where a depth test fails
@@ -217,7 +251,7 @@ macro SCOPE_LENS_SHADER()
       output.pointToEye.xyz = pointToEye;
       output.normal.xyz = worldNormal;
 
-    ##if shader == dynamic_crosshair || lens_render_mode == render_optics
+    ##if shader == dynamic_crosshair || lens_render_mode == render_optics || lens_render_mode == render_mask
       // Could be optimized (not necessary to recalculate it for every vertex).
       VsInput modifiedInput = input;
       modifiedInput.pos = float3(0, 0, 0);
@@ -232,6 +266,7 @@ macro SCOPE_LENS_SHADER()
         float2 lensScrTc = lensOut.pos.xy / lensOut.pos.w * float2(1, -1);
         output.lensScrPos = (lensScrTc + float2(1, 1)) * 0.5 * screen_size;
         output.lensNormal = lensOut.worldNormal;
+        output.lensInputPlaneCoord = input.pos.xz;
 
         lensCenterOnParallaxPlane.xy /= lensCenterOnParallaxPlane.w * float2(1, -1);
         const float lensCenterToParallaxCenterRadiusUV = length(lensScrTc - lensCenterOnParallaxPlane.xy);
@@ -239,12 +274,13 @@ macro SCOPE_LENS_SHADER()
         output.scopeShadowStrength = saturate(lensCenterToParallaxCenterRadiusUV/scopeShadowMaxDistanceRadius);
 
       ##else
+        output.pos.xy /= output.pos.w;
+        float2 lensNDC = lensOut.pos.xy / lensOut.pos.w;
+        output.pos.xy = lensNDC + (output.pos.xy - lensNDC) * crosshair_scale;
         ##if assume_wt_scope_hack == off
-          float4 collimatorPos = lensCenterOnParallaxPlane;
-          output.pos.xy /= output.pos.w;
-          output.pos.xy += collimatorPos.xy / collimatorPos.w - lensOut.pos.xy / lensOut.pos.w;
-          output.pos.xy *= output.pos.w;
+          output.pos.xy += lensCenterOnParallaxPlane.xy / lensCenterOnParallaxPlane.w - lensNDC;
         ##endif
+        output.pos.xy *= output.pos.w;
         output.texcoord = modifiedInput.texcoord;
       ##endif
 
@@ -271,14 +307,13 @@ macro SCOPE_LENS_SHADER()
   if (shader == dynamic_crosshair)
   {
     static float transparency_mul = 1;
+    static float emissive_mul = 10.0;
     if (dyn_model_render_pass != render_to_depth)
     {
       (ps) {
         transparency_mul@f1 = (transparency_mul);
-        diffuse_tex@static = tex;
-      }
-
-      (ps) {
+        diffuse_tex@staticSmp = tex;
+        emissive_mul@f1 = emissive_mul;
         screen_pos_to_texcoord@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y, 0, 0);
         scope_lens_mask@smp2d = scope_lens_mask;
       }
@@ -287,22 +322,33 @@ macro SCOPE_LENS_SHADER()
 
         float4 crosshair_ps(VsOutput input HW_USE_SCREEN_POS INPUT_VFACE) : SV_Target0
         {
+          ##if assume_wt_scope_hack == on && dyn_model_render_pass != render_to_depth
+            float4 screenpos = GET_SCREEN_POS(input.pos);
+            float2 uv = screenpos.xy * screen_pos_to_texcoord;
+            float value = tex2D(scope_lens_mask, uv.xy).r;
+            if (value < 0.5)
+              discard;
+          ##endif
           #if SET_UP_MULTIDRAW
             INIT_MULTIDRAW(input);
             SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
           #endif
 
-        ##if mobile_render != off
-          float4 screenPos = GET_SCREEN_POS(input.pos);
-          float maskValue = tex2D(scope_lens_mask, screenPos.xy * screen_pos_to_texcoord).r;
-          if (maskValue == 0.0)
-            discard;
-        ##endif
-
           half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.texcoord);
           diffuseColor.a *= get_transparency_mul();
 
-          return float4(pack_hdr(diffuseColor.rgb), diffuseColor.a);
+          float emissiveMul = get_emissive_mul();
+        #if CROSSHAIR_PREMULT_ALPHA
+          diffuseColor.rgb *= diffuseColor.a;
+          emissiveMul *= diffuseColor.a;
+        #endif
+          diffuseColor.rgb *= max(1.0, emissiveMul);
+
+        #if CROSSHAIR_USE_EXPOSURE
+          diffuseColor.rgb = pack_hdr(diffuseColor.rgb);
+        #endif
+
+          return float4((diffuseColor.rgb), diffuseColor.a);
         }
       }
 
@@ -323,6 +369,9 @@ macro SCOPE_LENS_SHADER()
         float4 scope_lens_ps(VsOutput input) : SV_Target0
         {
           ##if use_depth_val_as_mask == yes
+            ##if hardware.ps5 || hardware.ps4
+              #pragma PSSL_target_output_format (target 0 FMT_32_ABGR)
+            ##endif
             return float4(input.pos.z.xxx, 1.0);
           ##else
             return float4(1, 1, 1, 1);
@@ -338,18 +387,8 @@ macro SCOPE_LENS_SHADER()
           screen_pos_to_texcoord@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y, 0, 0);
         }
 
-        if (mobile_render == deferred && in_editor_assume == no)
-        {
-          USE_SUBPASS_LOADS()
-          hlsl(ps) {
-            SUBPASS_RESOURCE(scope_lens_mask, SP_LENS_DEPTH_CUT_REG_LENS_MASK, SP_LENS_DEPTH_CUT_IA_LENS_MASK)
-          }
-        }
-        else
-        {
-          (ps) {
-            scope_lens_mask@smp2d = scope_lens_mask;
-          }
+        (ps) {
+          scope_lens_mask@smp2d = scope_lens_mask;
         }
       }
       hlsl(ps) {
@@ -362,11 +401,7 @@ macro SCOPE_LENS_SHADER()
         ##if lens_render_mode == render_depth_by_mask
           float4 screenPos = GET_SCREEN_POS(input.pos);
           float2 uv = screenPos.xy * screen_pos_to_texcoord;
-        ##if mobile_render == deferred && in_editor_assume == no
-          float maskValue = SUBPASS_LOAD(scope_lens_mask, uv).r;
-        ##else
           float maskValue = tex2D(scope_lens_mask, uv).r;
-        ##endif
 
           if (maskValue < 0.5)
             discard;
@@ -433,6 +468,11 @@ macro SCOPE_LENS_SHADER()
         (ps) { frame_tex@smp2d = lens_frame_tex; }
       }
 
+      if (assume_wt_scope_hack == on)
+      {
+        (ps) { scope_lens_mask@smp2d = scope_lens_mask; }
+      }
+
       hlsl(ps) {
         #define isRefractionGlass 0
         #define hasNormal 0
@@ -453,12 +493,12 @@ macro SCOPE_LENS_SHADER()
         USE_STATIC_SHADOW_ONE_CASCADE(ps)
       }
 
-      if ((in_editor_assume == no || lens_detail_level == full_night_vision) && mobile_render == off)
+      if (in_editor_assume == no || lens_detail_level == full_night_vision)
       {
         INIT_READ_DEPTH_GBUFFER()
         USE_READ_DEPTH_GBUFFER()
       }
-      if (lens_detail_level == full_night_vision && mobile_render == off)
+      if (lens_detail_level == full_night_vision)
       {
         INIT_READ_GBUFFER()
         USE_READ_GBUFFER_NORMAL()
@@ -474,11 +514,9 @@ macro SCOPE_LENS_SHADER()
       }
       else
       {
-        USE_ROUGH_TO_MIP()
-        USE_SKY_DIFFUSE()
-        USE_INDOOR_LIGHT_PROBES(ps, false)
-        GLASS_APPLY_FUNC_PS(false)
+        PROJECT_SCOPE_LENS_REFLECTIONS()
       }
+
 
       hlsl(ps) {
         float2 getDisTc(float2 scrpos, float2 lensScrPos, float3 lensToPoint, float2 k)
@@ -581,7 +619,7 @@ macro SCOPE_LENS_SHADER()
             #else
               half4 lensDiffuseColor = half4(0,0,0,1);
             #endif
-          reflections = apply_glass_ps(input, screenpos, lensDiffuseColor, 1).color.rgb;
+          reflections = sample_scope_lens_reflections(input, screenpos, input.lensInputPlaneCoord, lensDiffuseColor);
           ##endif
 
           const float shadowedLensAlpha = (1 - shade_factor) * get_scope_lens_albedo().a;
@@ -602,10 +640,12 @@ macro SCOPE_LENS_SHADER()
           half scopeShadowStrength = 0.0;
 
         ##if special_vision != thermal_vision
+          ##if use_scope_cylinder_shadow == yes
           shadeFactor = raycastScopeCylinder(input.eyeToLens, eyeToPoint, lensNormal,
             lens_shading_params.x, lens_shading_params.y, lens_shading_params.z);
           shadeFactor *= raycastScopeCylinder(input.eyeToLens, eyeToPoint, -lensNormal,
             lens_shading_params2.x, lens_shading_params2.y, lens_shading_params2.z);
+          ##endif
 
           scopeShadowStrength = input.scopeShadowStrength;
         ##endif
@@ -631,7 +671,7 @@ macro SCOPE_LENS_SHADER()
           SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
         #endif
 
-        ##if (glass_normal_pass == yes && lens_detail_level == only_reflections)
+        ##if (rendinst_transparent_gbuffer_pass == generate && lens_detail_level == only_reflections)
           float3 worldNormal = normalize(input.normal.xyz);
           worldNormal = normalize(MUL_VFACE(worldNormal));
 
@@ -651,7 +691,7 @@ macro SCOPE_LENS_SHADER()
 
             shadeFactor = calc_scope_shadow(input, collimatorRFront, lensNormal);
 
-            ##if lens_detail_level == full_night_vision && mobile_render == off
+            ##if lens_detail_level == full_night_vision
             float2 tc = getDisTc(screenpos.xy, input.lensScrPos, lensToPoint, float2(1.00, -lens_distortion_params.y));
               ##if special_vision != thermal_vision
                 applyNightVision(color, tc);

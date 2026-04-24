@@ -1,0 +1,9 @@
+ERROR: expression of type 'int' cannot be assigned to type 'string'
+testData/diagnostics/compilation_errors/type_inference/test_complex_bitwise.nut:8:0
+
+local d: int = 0x55
+local result: string = (a & b) | (c ^ d) << 2
+^--------------------------------------------
+return result
+
+

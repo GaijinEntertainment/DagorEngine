@@ -1,8 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <propPanel/control/contextMenu.h>
 #include <propPanel/control/panelWindow.h>
 #include <propPanel/focusHelper.h>
-#include "../contextMenuInternal.h"
 #include <ioSys/dag_dataBlock.h>
 #include <imgui/imgui_internal.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
@@ -38,9 +38,6 @@ private:
 static void fill_jump_to_group_context_menu(IMenu &context_menu, ContainerPropertyControl &container, int menu_id, int &next_unique_id,
   ska::flat_hash_map<int, ContainerPropertyControl *> &menu_id_to_container_map)
 {
-  if (!container.isRealContainer())
-    return;
-
   for (int childIndex = 0; childIndex < container.getChildCount(); ++childIndex)
   {
     ContainerPropertyControl *childContainer = container.getByIndex(childIndex)->getContainer();
@@ -62,14 +59,21 @@ static void fill_jump_to_group_context_menu(IMenu &context_menu, ContainerProper
 
     if (hasGrandChildContainer)
     {
-      const int subMenuId = next_unique_id++;
-      const int menuItemId = next_unique_id++;
-      menu_id_to_container_map.insert({menuItemId, childContainer});
+      if (childContainer->isRealContainer() && !caption.empty())
+      {
+        const int subMenuId = next_unique_id++;
+        const int menuItemId = next_unique_id++;
+        menu_id_to_container_map.insert({menuItemId, childContainer});
 
-      context_menu.addSubMenu(menu_id, subMenuId, caption);
-      context_menu.addItem(subMenuId, menuItemId, caption);
-      context_menu.addSeparator(subMenuId);
-      fill_jump_to_group_context_menu(context_menu, *childContainer, subMenuId, next_unique_id, menu_id_to_container_map);
+        context_menu.addSubMenu(menu_id, subMenuId, caption);
+        context_menu.addItem(subMenuId, menuItemId, caption);
+        context_menu.addSeparator(subMenuId);
+        fill_jump_to_group_context_menu(context_menu, *childContainer, subMenuId, next_unique_id, menu_id_to_container_map);
+      }
+      else
+      {
+        fill_jump_to_group_context_menu(context_menu, *childContainer, menu_id, next_unique_id, menu_id_to_container_map);
+      }
     }
     else if (childContainer->isRealContainer() && !caption.empty())
     {
@@ -118,11 +122,16 @@ int PanelWindowPropertyControl::saveState(DataBlock &datablk, bool by_name)
   else
     panelId.printf(64, "panel_%d", getID());
 
-  DataBlock *_block = datablk.addNewBlock(panelId.c_str());
-  _block->addInt("vscroll", getScrollPos());
+  DataBlock *_block = datablk.addBlock(panelId.c_str());
+  _block->setInt("vscroll", getScrollPos());
 
   ContainerPropertyControl::saveState(datablk, by_name);
   return 0;
+}
+
+int PanelWindowPropertyControl::saveStateWithoutScrollPosition(DataBlock &datablk, bool by_name)
+{
+  return ContainerPropertyControl::saveState(datablk, by_name);
 }
 
 int PanelWindowPropertyControl::loadState(DataBlock &datablk, bool by_name)
@@ -156,7 +165,7 @@ void PanelWindowPropertyControl::onWcRightClick(WindowBase *source)
   int nextIdToUse = 1;
   fill_jump_to_group_context_menu(*contextMenu, *this, ROOT_MENU_ITEM, nextIdToUse, menuIdToContainerMap);
 
-  if (contextMenu->getItemCount(ROOT_MENU_ITEM) == 0)
+  if (contextMenu->isEmpty())
   {
     contextMenu.reset();
     contextMenuEventHandler.reset();

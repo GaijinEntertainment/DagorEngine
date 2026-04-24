@@ -18,6 +18,7 @@ bool getProfileResult(String &res);
 bool isStarted();
 void start(HSQUIRRELVM vm);
 void stop(HSQUIRRELVM vm);
+void actualStop();
 void onEnterFunction(HSQUIRRELVM vm, const HSQOBJECT &func);
 void onLeaveFunction(HSQUIRRELVM vm);
 void register_profiler_module(HSQUIRRELVM vm, SqModules *module_mgr);
@@ -29,6 +30,7 @@ inline bool getProfileResult(String &) { return false; }
 inline bool isStarted() { return false; }
 inline void start(HSQUIRRELVM) {}
 inline void stop(HSQUIRRELVM) {}
+inline void actualStop() {}
 inline void onEnterFunction(HSQUIRRELVM, const HSQOBJECT &) {}
 inline void onLeaveFunction(HSQUIRRELVM) {}
 inline void register_profiler_module(HSQUIRRELVM, SqModules *);

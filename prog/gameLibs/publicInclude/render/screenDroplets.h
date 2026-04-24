@@ -26,7 +26,6 @@ class ScreenDroplets
   bool enabled = false;
   float intensity = 0;
   GaussMipRenderer mipRenderer;
-  IPoint2 resolution;
   d3d::SamplerHandle clampSampler;
 
   void updateShaderState() const;
@@ -34,7 +33,7 @@ class ScreenDroplets
 
 public:
   ScreenDroplets(int w, int h, uint32_t rtFmt);
-  ScreenDroplets(int w, int h);
+  ScreenDroplets();
 
   ~ScreenDroplets();
   void setRain(float force, const Point3 &rain_dir);
@@ -44,8 +43,8 @@ public:
   // No need to provide dt, if rain_cone_off > rain_cone_max
   // if rain_cone_off < rain_cone_max, then the default dt value is basically instant change
   void update(bool is_underwater, const TMatrix &itm, float dt = 100000);
-  void render(ManagedTexView rtarget, TEXTUREID frame_tex);
-  RTarget::CPtr render(TEXTUREID frame_tex);
+  void render(BaseTexture *rtarget, BaseTexture *frame_tex);
+  RTarget::CPtr renderToTmpTarget(BaseTexture *frame_tex);
 
   void setEnabled(bool is_enabled);
   bool isVisible() const;
@@ -53,8 +52,7 @@ public:
   // Unsatisfied link-time dependency, shall be implemented by client code
   static bool rayHitNormalized(const Point3 &p, const Point3 &dir, float t);
 
-  static IPoint2 getSuggestedResolution(int rendering_w, int rendering_h);
-  IPoint2 getResolution() { return resolution; }
+  static IPoint2 getSuggestedResolution(const IPoint2 &current_resolution, const IPoint2 &max_resolution);
 
 
   // Default values should be the same as the convars in screenDroplets.cpp
@@ -76,6 +74,6 @@ extern eastl::unique_ptr<ScreenDroplets> screen_droplets_mgr;
 inline ScreenDroplets *get_screen_droplets_mgr() { return screen_droplets_mgr.get(); }
 // If rain_cone_off > rain_cone_max then it'll just turn off below rain_cone_max, and always rain with max intensity
 void init_screen_droplets_mgr(int w, int h, uint32_t rtFmt, bool has_leaks = false, float rain_cone_max = 0, float rain_cone_off = 1);
-void init_screen_droplets_mgr(int w, int h, bool has_leaks = false, float rain_cone_max = 0, float rain_cone_off = 1);
+void init_screen_droplets_mgr(bool has_leaks = false, float rain_cone_max = 0, float rain_cone_off = 1);
 
 void close_screen_droplets_mgr();

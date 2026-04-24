@@ -1,0 +1,1 @@
+No-op replacement for `print`. Has the same signature and side-effect annotations as `print`, but intentionally does nothing. Use `feint` in tests where print-like behavior is needed to prevent the call from being optimized out, but no actual output is desired.

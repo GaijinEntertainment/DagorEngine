@@ -30,10 +30,10 @@
 #include "net/userid.h"
 #include "render/renderer.h"
 #include "render/hdrRender.h"
-#include "render/renderLibsAllowed.h"
 #include "sound/dngSound.h"
 #include "ui/userUi.h"
 #include "ui/uiShared.h"
+#include <math/random/dag_random.h>
 
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_gameResSystem.h>
@@ -50,8 +50,10 @@
 #include <util/dag_string.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <ioSys/dag_findFiles.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/scene/scene.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/scene/scene.h>
 #include <ecs/scripts/dascripts.h>
 #include <daScript/daScript.h>
 #include <daScript/ast/ast_serializer.h>
@@ -94,9 +96,12 @@
 #include <osApiWrappers/dag_atomic_types.h>
 #include <osApiWrappers/basePath.h>
 #include <osApiWrappers/fs_hlp.h>
+#include <drv/3d/dag_commands.h>
+#include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_renderTarget.h>
 #include "updaterEvents.h"
 #include "gameProjConfig.h"
+#include <rendInst/rendInstGen.h>
 
 extern void (*get_memcollect_cur_thread_cb())(); // FIXME: move to engine header (dag_memBase.h)
 
@@ -183,6 +188,26 @@ static GamePackage current_game;
 static dag::AtomicInteger<bool> switch_scene_flag(false);
 static UserGameModeInfo user_game_mode_info;
 bool unload_in_progress = false;
+
+static DataBlock riGenExtraConfig;
+static void load_and_register_rigenextra_config()
+{
+  rendinst::RIGenLoadingAutoLock riGenLd;
+  const char *rendinstDmgBlkFn = get_rendinst_dmg_blk_fn();
+  if (dd_file_exists(rendinstDmgBlkFn))
+    riGenExtraConfig.load(rendinstDmgBlkFn);
+  else
+    riGenExtraConfig.reset();
+  debug("registerRIGenExtraConfig(%s, %d blocks)", rendinstDmgBlkFn, riGenExtraConfig.blockCount());
+  rendinst::registerRIGenExtraConfig(&riGenExtraConfig);
+}
+static void unregister_and_unload_rigenextra_config()
+{
+  rendinst::RIGenLoadingAutoLock riGenLd;
+  debug("unregisterRIGenExtraConfig()");
+  rendinst::registerRIGenExtraConfig(nullptr);
+  riGenExtraConfig.resetAndReleaseRoNameMap();
+}
 
 const UserGameModeInfo &get_user_mode_info()
 {
@@ -279,7 +304,7 @@ void add_operator_vromfs(GamePackage &gameInfo)
   String vrom_path(0, "%s.vromfs.bin", operatorStr);
   if (dd_file_exists(vrom_path))
   {
-    debug("[%s] use partner vroms %s", vrom_path);
+    debug("[VROM] use partner vroms %s for %s operator", vrom_path, operatorStr);
     gameInfo.addonVroms.push_back({operatorStr, vrom_path.str(), "", false});
   }
   else
@@ -446,7 +471,30 @@ GamePackage load_game_package()
   if (const DataBlock *addons = gameInfo.gameSettings.getBlockByName("addonBasePath"))
     parse_addons(gameInfo, *addons, useAddonVromSrc);
 
+  eastl::unordered_map<eastl::string, eastl::vector<uint32_t>> chunksMap;
+
 #if _TARGET_XBOX | _TARGET_C1 | _TARGET_C2
+
+  auto collectAddonChunks = [&](const char *addon_name, const DataBlock *blk, eastl::vector<uint32_t> &chunks_list) {
+#if _TARGET_XBOX
+    static constexpr uint32_t LAUNCH_CHUNK_ID = 1001;
+    static const char *PARAMETER_NAME = "id";
+#elif _TARGET_C1 | _TARGET_C2
+
+
+#endif
+    int nid = blk->getNameId(PARAMETER_NAME);
+    for (int i = 0; i < blk->paramCount(); i++)
+    {
+      if (blk->getParamNameId(i) == nid && blk->getParamType(i) == DataBlock::TYPE_INT)
+      {
+        uint32_t chunkId = blk->getInt(i);
+        if (chunkId != LAUNCH_CHUNK_ID)
+          chunks_list.push_back(chunkId);
+      }
+    }
+  };
+
   if (const DataBlock *chunksMapping = gameInfo.gameSettings.getBlockByName("chunksMapping"))
   {
     for (int i = 0, nid = chunksMapping->getNameId("chunk"); i < chunksMapping->blockCount(); ++i)
@@ -455,22 +503,14 @@ GamePackage load_game_package()
       if (chunkBlk->getBlockNameId() == nid)
       {
         const char *addonFolder = chunkBlk->getStr("folder", nullptr);
-#if _TARGET_XBOX
-        static constexpr uint32_t XBOX_LAUNCH_CHUNK_ID = 1001;
-        uint32_t chunkId = chunkBlk->getInt("id", XBOX_LAUNCH_CHUNK_ID);
-        if (chunkId == XBOX_LAUNCH_CHUNK_ID)
-          continue;
-#elif _TARGET_C1 | _TARGET_C2
-
-
-
-
-#endif
         if (addonFolder)
-          gameInfo.chunksMap.emplace(addonFolder, chunkId);
+        {
+          eastl::vector<uint32_t> &chunksList = chunksMap[addonFolder];
+          collectAddonChunks(addonFolder, chunkBlk, chunksList);
+        }
       }
     }
-    debug("Loaded %u entries into chunks map", gameInfo.chunksMap.size());
+    debug("Loaded %u entries into chunks map", chunksMap.size());
   }
   else
     logwarn("Chunks mapping wasn't found");
@@ -481,43 +521,54 @@ GamePackage load_game_package()
       for (int i = 0, nid = addons->getNameId("folder"); i < addons->paramCount(); i++)
         if (addons->getParamNameId(i) == nid || strncmp(addons->getParamName(i), "folder", 6) == 0)
         {
-          String addon_name(addons->getStr(i));
-          if (addon_name.find('{'))
+          String addonName(addons->getStr(i));
+          if (addonName.find('{'))
           {
             // replace known keywords
-            addon_name.replaceAll("{SHADER_SUFFIX}", node_based_shader_current_platform_suffix());
+            addonName.replaceAll("{SHADER_SUFFIX}", node_based_shader_current_platform_suffix());
 
             // skip loading packages with unresolved keywords
-            if (addon_name.find('{'))
+            if (addonName.find('{'))
             {
-              logerr("skip unsupported package %s", addon_name);
+              logerr("skip unsupported package %s", addonName);
               continue;
             }
           }
 #if _TARGET_XBOX | _TARGET_C1 | _TARGET_C2
-          eastl::unordered_map<eastl::string, uint32_t>::iterator it = gameInfo.chunksMap.find(addon_name.c_str());
-          if (it != gameInfo.chunksMap.end())
+          eastl::unordered_map<eastl::string, eastl::vector<uint32_t>>::iterator it = chunksMap.find(addonName.c_str());
+          if (it != chunksMap.end())
           {
-            uint32_t chunkId = it->second;
+            eastl::vector<uint32_t> &chunksList = it->second;
+            bool allChunksAvailable = true;
+            for (uint32_t chunkId : chunksList)
+            {
 #if _TARGET_XBOX
-            bool chunkAvailable = gdk::is_game_chunk_available(chunkId);
+              allChunksAvailable &= gdk::is_game_chunk_available(chunkId);
 #elif _TARGET_C1 | _TARGET_C2
 
 
 #endif
-            if (!chunkAvailable)
+              if (!allChunksAvailable)
+              {
+                logwarn("Chunk %u with folder %s is not available. Skipping.", chunkId, addonName.c_str());
+                break;
+              }
+            }
+
+            if (!allChunksAvailable)
             {
-              logwarn("Chunk %u with folder %s is not available. Skipping.", chunkId, addon_name.c_str());
+              logwarn("Not all chunks are available for addon: %s, skipping", addonName.c_str());
               continue;
             }
           }
 #endif // end _TARGET_XBOX | _TARGET_C1 | _TARGET_C2
-          buffer.push_back((addon_name + "/res").str());
+          buffer.push_back((addonName + "/res").str());
         }
   };
 
   initAddons("addons", gameInfo.addons);
   initAddons("rawAddons", gameInfo.rawAddons);
+  add_operator_vromfs(gameInfo);
   return gameInfo;
 }
 
@@ -565,11 +616,8 @@ void unload_current_game()
 
   g_entity_mgr->broadcastEventImmediate(EventOnGameUnloadEnd());
 
-  ::reset_required_res_list_restriction();
   ::free_unused_game_resources();
-  ::reset_game_resources();
-  gameres_rendinst_desc.reset();
-  gameres_dynmodel_desc.reset();
+  unregister_and_unload_rigenextra_config();
   prepare_united_vdata_setup(nullptr); // Reset to default
 
   current_game.gameSettings.resetAndReleaseRoNameMap();
@@ -598,28 +646,8 @@ static bool load_game_scene(const DataBlock &scene_blk, const char *scene_path, 
     if (!ecs::g_scenes && has_in_game_editor())
       ecs::g_scenes.demandInit();
 
-    ecs::template_allowed_cb_t template_allowed_cb = [](const char *templ_name) -> bool {
-      if (const ecs::Template *templ = g_entity_mgr->getTemplateDB().getTemplateByName(templ_name))
-      {
-        if (const char *libNameStart = strstr(templ->getPath(), "%danetlibs/"))
-        {
-          libNameStart += 11;
-          if (const char *libNameEnd = strchr(libNameStart, '/'))
-          {
-            String libName(libNameStart, libNameEnd - libNameStart);
-            if (!is_render_lib_allowed(libName.c_str()))
-            {
-              debug("Template '%s' is skipped because library '%s' is disabled", templ_name, libName.c_str());
-              return false;
-            }
-          }
-        }
-      }
-      return true;
-    };
-
     ecs::SceneManager::loadScene(ecs::g_scenes.get(), scene_blk, scene_path, &ecs::SceneManager::entityCreationCounter, import_depth,
-      load_type, template_allowed_cb);
+      load_type);
   }
   return res;
 }
@@ -674,6 +702,7 @@ static void load_scene(const char *name, const eastl::vector<eastl::string> &imp
     // Before any entity creation (including the ones from common scenes) as it might request resources
     apply_united_vdata_settings(sceneLoaded ? &sceneBlk : nullptr);
   }
+  load_and_register_rigenextra_config();
   if (app_profile::get().haveGraphicsWindow && (is_server() || !app_profile::get().replay.playFile.empty()))
     load_common_game_client_scenes(&load_game_scene); // Otherwise it will be loaded on connect to server (see `apply_scene_level`)
   if (!is_server() || !app_profile::get().replay.playFile.empty())
@@ -884,15 +913,17 @@ static void load_scene_impl(const eastl::string_view &scene_name,
   {
     TIME_PROFILE(load_package_files)
 
-    load_package_files(gameInfo);
+    load_package_files(gameInfo, false);
     current_game = eastl::move(gameInfo);
   }
   ::dagor_idle_cycle();
 
   load_gameparams();
-  dng_load_localization();
 
-  set_timespeed(1.f);
+  reset_timespeed();
+  if (dgs_get_settings()->getBlockByNameEx("debug")->getBool("resetRndSeedOnSceneLoad", false))
+    dagor_random::set_rnd_seed(0);
+
   bool hasServerUrls = !connect_params.serverUrls.empty();
   if (!app_profile::get().devMode && (hasServerUrls || !app_profile::get().replay.playFile.empty()))
     net_init_late_client(eastl::move(connect_params), *g_entity_mgr);
@@ -996,7 +1027,8 @@ static void prepare_to_switch_scene()
   force_feedback::rumble::reset();
   set_fps_limit(30);
   start_animated_splash_screen_in_thread();
-  animated_splash_screen_allow_watchdog_kick(false);
+  if (!d3d::driver_command(Drv3dCommand::GET_PIPELINE_COMPILATION_QUEUE_LENGTH))
+    animated_splash_screen_allow_watchdog_kick(false);
   g_entity_mgr->tick(); // create/destroy delayed entities
   unload_current_game();
   animated_splash_screen_allow_watchdog_kick(true);
@@ -1251,7 +1283,7 @@ struct SwitchSceneDelayedAction : public DelayedAction
   eastl::string scene;
   eastl::vector<eastl::string> importScenes;
   UserGameModeContext ugmCtx;
-  bool precondition() override { return !is_load_in_progress() && !dng_is_app_terminated(); }
+  bool precondition() override { return !is_load_in_progress() && !dng_is_app_terminating(); }
   void performAction() override
   {
     debug("switch current scene to '%.*s' (+%d imports)", (int)scene.size(), scene.data(), importScenes.size());
@@ -1334,19 +1366,20 @@ static SQInteger request_ugm_manifest_sq(HSQUIRRELVM vm)
 
     void releaseJob() override
     {
-      Json::Value data;
-      data["result"] = result;
-      data["vromfs"] = vromFn.c_str();
-      data["contentId"] = contentId.c_str();
-      data["manifestStr"] = manifestJsonStr.c_str();
-      data["sceneBlkFound"] = (flist.getNameId("scene.blk") >= 0);
-      Json::Value files(Json::arrayValue);
-      iterate_names(flist, [&](int, const char *name) {
-        files.append(name);
-        debug(name);
+      sqeventbus::write_event_main_thread(eventId.c_str(), [&](auto &data) {
+        data["result"] = result;
+        data["vromfs"] = vromFn.c_str();
+        data["contentId"] = contentId.c_str();
+        data["manifestStr"] = manifestJsonStr.c_str();
+        data["sceneBlkFound"] = (flist.getNameId("scene.blk") >= 0);
+        eastl::remove_cvref_t<decltype(data)> files(data.getVM(), flist.nameCount());
+        int i = 0;
+        iterate_names(flist, [&](int, const char *name) {
+          files[i++] = name;
+          debug("%s", name);
+        });
+        data["modFiles"] = files;
       });
-      data["modFiles"] = files;
-      sqeventbus::send_event(eventId.c_str(), data);
       delete this;
     }
   };

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <math/dag_bezier.h>
+#include <de3_splineGenSrv.h>
 
 #include <EditorCore/ec_rendEdObject.h>
 #include <libTools/staticGeom/staticGeometryContainer.h>
@@ -13,7 +14,6 @@
 #include <de3_cableSrv.h>
 #include <shaders/dag_overrideStateId.h>
 
-#include "common.h"
 #include "hmlLayers.h"
 
 class HeightMapStorage;
@@ -81,26 +81,8 @@ public:
     real offsetPow;
     Point2 offset;
     bool additive;
-  };
-
-  struct PolyGeom
-  {
-    typedef FaceNGr Triangle;
-
-    PolyGeom();
-    ~PolyGeom();
-
-    void createMeshes(const char *parent_name, SplineObject &spline);
-    static void recalcLighting(GeomObject *go);
-    void clear();
-    void renderLines();
-
-    GeomObject *mainMesh, *borderMesh;
-    Tab<Triangle> centerTri, borderTri;
-    Tab<Point3> verts;
-
-    bool altGeom;
-    float bboxAlignStep;
+    bool usePerPointWidth;
+    real maxWidthScale; // cached max of per-point scale_w, updated on edit/load
   };
 
   SplineObject(bool make_poly);
@@ -139,11 +121,9 @@ public:
 
   void getSmoothPoly(Tab<Point3> &pts);
 
-  void gatherStaticGeometry(StaticGeometryContainer &cont, int flags, bool collision, int layer, int stage);
+  void gatherRoadsGeometry(StaticGeometryContainer &cont, int flags, bool collision, int stage);
   static void gatherStaticGeom(StaticGeometryContainer &cont, const StaticGeometryContainer &geom, int flags, int id, int name_idx1,
     int stage);
-  static void gatherStaticGeomLayered(StaticGeometryContainer &cont, const StaticGeometryContainer &geom, int flags, int id,
-    int name_idx1, int layer, int stage);
 
   void gatherLoftLandPts(Tab<Point3> &loft_pt_cloud, Tab<Point3> &water_border_polys, Tab<Point2> &hmap_sweep_polys);
 
@@ -167,13 +147,12 @@ public:
   void regenerateObjects();
   void onCreated(bool gen = true);
   void reverse();
-  void renderGeom(bool opaque, int layer, const Frustum &);
+  bool shouldRenderRoadsGeom(const Frustum &) const;
+  void renderRoadsGeom(bool opaque, const Frustum &);
   bool isSelfCross();
   void updateFullLoft();
   BBox3 getGeomBox();
   BBox3 getGeomBoxChanges();
-
-  void gatherPolyGeomLoftTags(OAHashNameMap<true> &loft_tags);
 
   real getTotalLength();
 
@@ -182,6 +161,7 @@ public:
   void prepareSplineClassInPoints(bool report_missing_splcls = false);
 
   void pointChanged(int pt_idx);
+  void recalcMaxPerPointWidth();
   void markModifChanged();
   void markModifChangedWhenUsed()
   {
@@ -207,14 +187,9 @@ public:
   Point3 getPolyClosingProjPoint(Point3 &p, real *proj_t = NULL);
   SplinePointObject *getNearestPoint(Point3 &p);
   real getSplineTAtPoint(int id);
-  bool lineIntersIgnoreY(Point3 &p1, Point3 &p2);
 
-  void movePointByNormal(Point3 &p, int id, SplineObject *flatt_spl);
   void triangulatePoly();
-  bool calcPolyPlane(Point4 &plane);
-
   void splitOnTwoPolys(int pt1, int pt2);
-  void buildInnerSpline(Tab<Point3> &out_pts, float offset, float pts_y, float eps);
 
   bool isDirReversed(Point3 &p1, Point3 &p2);
 
@@ -245,6 +220,8 @@ public:
   inline void setCornerType(int t) { props.cornerType = t; }
   inline void setRandomSeed(int seed) { props.rndSeed = seed; }
   inline void setNavmeshIdx(int navmesh_idx) { props.navmeshIdx = navmesh_idx; }
+  inline void setPolyAltGeom(bool a) { props.poly.altGeom = a; }
+  inline void setPolyBboxAlignStep(float s) { props.poly.bboxAlignStep = s; }
 
   void loadModifParams(const DataBlock &blk);
   void attachTo(SplineObject *s, int to_idx = -1);
@@ -261,7 +238,8 @@ public:
 
   void resetSplineClass();
   void changeAsset(const char *asset_name, bool put_undo);
-  const objgenerator::LandClassData *getLandClass() const { return landClass; }
+  IPolygonGenObj *getPolyGen() const { return polyGenObj ? polyGenObj->queryInterface<IPolygonGenObj>() : nullptr; }
+  const objgenerator::LandClassData *getLandClass() const { return getPolyGen() ? getPolyGen()->landClass : nullptr; }
 
   DagorAsset *getMaterialAsset(int idx) const;
   bool isUsingMaterial(const char *mat_name_to_find) const;
@@ -280,7 +258,7 @@ public:
   static int makeSplinesCrosses(dag::ConstSpan<SplineObject *> spls);
 
   PtrTab<SplinePointObject> points;
-  PolyGeom polyGeom;
+  IObjEntity *polyGenObj = nullptr;
   IObjEntity *csgGen;
   IBBox2 lastModifArea, lastModifAreaDet;
 
@@ -301,14 +279,7 @@ public:
     short modifType;
     bool maySelfCross;
 
-    struct PolyProps
-    {
-      Point2 objOffs;
-      real objRot;
-      float curvStrength;
-      float minStep, maxStep;
-      bool hmapAlign, smooth;
-    } poly;
+    IPolygonGenObj::Props poly;
 
     short cornerType; // -1=polyline, 0=smooth 1st deriv., 1=smooth 2nd deriv.
     bool exportable;
@@ -330,6 +301,7 @@ public:
   static int roadsSubtypeMask;
 
   static bool isSplineCacheValid;
+  static bool objectWasMoved, objectWasRotated, objectWasScaled;
 
 protected:
   Props props;
@@ -362,17 +334,5 @@ protected:
   BBox3 geomBoxPrev;
   float splStep;
 
-  objgenerator::LandClassData *landClass;
-
   DebugPrimitivesVbuffer *bezierBuf;
-};
-
-struct SplineObjectRec
-{
-  SplineObject *s;
-  Tab<SplinePointObject *> p1, p2;
-
-  int k;
-
-  SplineObjectRec() : p1(tmpmem), p2(tmpmem) { k = 0; }
 };

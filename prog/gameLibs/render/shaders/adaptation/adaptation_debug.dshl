@@ -1,0 +1,74 @@
+include "hardware_defines.dshl"
+include "adaptation_inc.dshl"
+
+float adaptation_debug_max_sample_index = 1;
+
+shader AdaptationSamplesDebug
+{
+  cull_mode=none;
+  z_write=false;
+  z_test=false;
+
+  blend_src = 1;
+  blend_dst = isa;
+
+  PROJECT_ADAPTATION_SAMPLE_TC_FUNCTION(vs)
+
+  (vs) {
+    max_sample_index@f1 = adaptation_debug_max_sample_index;
+  }
+
+  hlsl{
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 color : TEXCOORD0;
+    };
+  }
+
+  hlsl(vs) {
+    VsOutput adaptation_samples_debug_vs(uint vertexId : SV_VertexID, uint instanceId : SV_InstanceID) {
+      VsOutput output;
+
+      float2 quadVertices[4] = { float2(-1.f, -1.f), float2(-1.f, 1.f), float2(1.f, -1.f), float2(1.f, 1.f) };
+      float2 pos = quadVertices[vertexId];
+
+      BRANCH
+      if (instanceId == 0)
+      {
+        output.pos = float4(pos, 0, 1);
+        output.color = float4(0,0,0, 0.7);
+      }
+      else
+      {
+        uint sampleId = instanceId - 1;
+
+        float3 a = float3(0.627, 0.129, 0.941);
+        float3 b = float3(0,1,1);
+        float3 c = float3(1, 0, 0);
+
+        float T = (float)sampleId / max_sample_index;
+        float3 c1 = lerp(a, b, saturate(T/0.5));
+        float3 c2 = lerp(c1, c, saturate((T-0.5)/0.5));
+
+        float2 tc = getAdaptationSampleTC(sampleId);
+        float2 offset = tc * 2.0 - 1.0;
+        float scale = lerp(0.001, 0.0025, T);
+        output.pos = float4(pos * scale + offset, 0, 1);
+        output.color = float4(c2, 1.0);
+      }
+
+      return output;
+    }
+  }
+
+  hlsl(ps) {
+    float4 adaptation_samples_debug_ps(VsOutput input) : SV_Target0
+    {
+      return input.color;
+    }
+  }
+
+  compile("target_vs", "adaptation_samples_debug_vs");
+  compile("target_ps", "adaptation_samples_debug_ps");
+}
