@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import sys
 sys.path.append('../../..')
-from build_all import run, run_per_platform, DABUILD_CMD, BUILD_COMPONENTS
+from build_all import run, run_per_platform, DABUILD_CMD, BUILD_COMPONENTS, JAM_BUILD_TARGET_ARCH_OPTIONS
 sys.path.pop()
 
 
 # build EXE
 if 'code' in BUILD_COMPONENTS:
-  run('jam')
+  run(['jam'] + JAM_BUILD_TARGET_ARCH_OPTIONS)
 
 # build shaders
 if 'shaders' in BUILD_COMPONENTS:

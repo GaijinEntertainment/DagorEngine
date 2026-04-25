@@ -11,7 +11,7 @@
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/dag_files.h>
-#include <gameres/dag_stdGameResId.h>
+#include <gameRes/dag_stdGameResId.h>
 #include <util/dag_strUtil.h>
 #include <util/dag_texMetaData.h>
 #include <util/dag_fastIntList.h>

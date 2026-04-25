@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <osApiWrappers/dag_addressWait.h>
-#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include <util/dag_globDef.h>
@@ -19,8 +18,7 @@ struct alignas(128) WaitTableEntry
 {
   std::mutex mtx;
   std::condition_variable cv;
-  std::atomic<int> numWaiters{0};
-  const void *commonWaitAddr = nullptr;
+  int numWaiters = 0;
 };
 static WaitTableEntry waitTable[256];
 
@@ -46,41 +44,29 @@ void os_wait_on_address(volatile uint32_t *addr, const uint32_t *cmpaddr, int wa
   auto &entry = get_wait_table_entry((const void *)addr);
   std::unique_lock lock(entry.mtx);
 
-  if (entry.numWaiters++ == 0) // first waiter
-    entry.commonWaitAddr = (const void *)addr;
-  else if (entry.commonWaitAddr != (const void *)addr)
-    entry.commonWaitAddr = nullptr;
+  // Re-check under lock: closes lost-wake race with wakers. Do NOT remove.
+  if (interlocked_acquire_load(*addr) != *cmpaddr)
+    return;
 
-  if (interlocked_acquire_load(*addr) == *cmpaddr) // Under-lock re-check, AFTER the seq_cst numWaiters mutate above
-  {
-    // Note: deliberately ignore spurious wake-ups since caller is assumed to be expecting them
-    if (wait_ms < 0) [[likely]]
-      entry.cv.wait(lock);
-    else
-      entry.cv.wait_for(lock, std::chrono::milliseconds(wait_ms));
-  }
+  entry.numWaiters++;
+
+  // Note: deliberately ignore spurious wake-ups since caller is assumed to be expecting them
+  if (wait_ms < 0) [[likely]]
+    entry.cv.wait(lock);
+  else
+    entry.cv.wait_for(lock, std::chrono::milliseconds(wait_ms));
 
   entry.numWaiters--;
 }
 
-static inline void os_entry_notify_impl(volatile uint32_t *addr, bool one = false)
+static inline void os_entry_notify_impl(volatile uint32_t *addr)
 {
   auto &entry = get_wait_table_entry((const void *)addr);
-
-  std::atomic_thread_fence(std::memory_order_seq_cst);
-  if (entry.numWaiters.load(std::memory_order_relaxed) == 0)
-    return;
-
   std::unique_lock lock(entry.mtx);
-  if (int nw = entry.numWaiters.load(std::memory_order_relaxed); nw != 0)
-  {
-    if (one && (nw == 1 || entry.commonWaitAddr == (const void *)addr))
-      entry.cv.notify_one();
-    else
-      entry.cv.notify_all();
-  }
+  if (entry.numWaiters)
+    entry.cv.notify_all();
 }
 
 void os_wake_on_address_all(volatile uint32_t *addr) { os_entry_notify_impl(addr); }
 
-void os_wake_on_address_one(volatile uint32_t *addr) { os_entry_notify_impl(addr, /*one*/ true); }
+void os_wake_on_address_one(volatile uint32_t *addr) { os_entry_notify_impl(addr); }

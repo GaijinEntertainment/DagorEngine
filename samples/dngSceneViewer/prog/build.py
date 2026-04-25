@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 import sys
 sys.path.append('../../..')
-from build_all import run, run_per_platform, VROMFS_PACKER_EXE, BUILD_COMPONENTS, DAGOR_HOST, BUILD_TARGET_ARCH, DAGOR_HOST_ARCH
+from build_all import run, run_per_platform, VROMFS_PACKER_EXE, BUILD_COMPONENTS, DAGOR_HOST, BUILD_TARGET_ARCH, DAGOR_HOST_ARCH, JAM_BUILD_TARGET_ARCH_OPTIONS
 sys.path.pop()
 
 
 # build EXE
 if 'code' in BUILD_COMPONENTS:
   AOT_COMPILER_JAM_OPTIONS = []
-  PROJ_JAM_OPTIONS = []
+  PROJ_JAM_OPTIONS = JAM_BUILD_TARGET_ARCH_OPTIONS
   if BUILD_TARGET_ARCH != '':
-    PROJ_JAM_OPTIONS += ['-sPlatformArch='+BUILD_TARGET_ARCH]
     if DAGOR_HOST == 'macOS' and BUILD_TARGET_ARCH == 'arm64': # macOS can run both x86_64 and arm64
-      AOT_COMPILER_JAM_OPTIONS += ['-sPlatformArch='+BUILD_TARGET_ARCH]
+      AOT_COMPILER_JAM_OPTIONS += JAM_BUILD_TARGET_ARCH_OPTIONS
     elif DAGOR_HOST == 'windows' and BUILD_TARGET_ARCH == 'arm64' and DAGOR_HOST_ARCH != BUILD_TARGET_ARCH:
       AOT_COMPILER_JAM_OPTIONS += ['-sPlatformArch=x86_64']
     else: # otherwise just use the same arch to match main project settings

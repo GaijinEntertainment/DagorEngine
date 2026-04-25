@@ -1,16 +1,14 @@
-#Platform ?= macOS ;
-PlatformArch_windows ?= x86_64 ;
-PlatformSpec_windows ?= clang ;
-
 Root    ?= ../../.. ;
 Location = samples/testGI/prog ;
-
 UseD3DMulti ?= yes ;
+
+PlatformArch_windows ?= host_arch ;
+PlatformSpec_windows ?= clang ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 TargetType  = exe ;
-Target      = samples/testGI-$(LegacyPlatformSuffix) ;
+Target      = samples/testGI-$(Platform)-$(PlatformArch) ;
 
 if $(UseWholeOpt) != yes {
   UseLLDLink ?= yes ;
@@ -130,11 +128,13 @@ if $(Platform) in windows {
   UseProgLibs +=
     engine/drv/hid_sony
     engine/drv/drv3d_ps4
+    gameLibs/sony
   ;
 } else if $(Platform) = ps5 {
   UseProgLibs +=
     engine/drv/hid_sony
     engine/drv/drv3d_ps5
+    gameLibs/sony
   ;
 } else if $(Platform) in xboxOne scarlett {
   UseProgLibs += engine/drv/drv3d_DX12 ;

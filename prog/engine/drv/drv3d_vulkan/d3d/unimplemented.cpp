@@ -13,6 +13,7 @@
 #include <drv/3d/dag_shaderLibrary.h>
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_resourceTag.h>
 
 bool d3d::is_window_occluded() { return false; }
 bool d3d::should_use_compute_for_image_processing(std::initializer_list<unsigned>) { return false; }
@@ -96,5 +97,11 @@ ArrayTexture *d3d::alias_cube_array_tex(ArrayTexture *, int, int, int, int, cons
 
 bool d3d::discard_tex(BaseTexture *) { return false; }
 
+void d3d::visit_tagged_resources(const ResourceTypeFilter &filter, const ResourceVisitor &visitor)
+{
+  G_UNUSED(filter);
+  G_UNUSED(visitor);
+  G_ASSERTF(false, "Not implemented");
+}
 
 #include <legacyCaptureImpl.cpp.inl>

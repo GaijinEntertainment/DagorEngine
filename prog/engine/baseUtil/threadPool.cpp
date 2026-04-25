@@ -35,6 +35,17 @@
 #define HAVE_FUTEX_CONSTEXPR constexpr
 #endif
 
+#if _TARGET_XBOX || _TARGET_C2
+#define HAVE_NATIVE_FUTEX           true
+#define HAVE_NATIVE_FUTEX_CONSTEXPR constexpr
+#elif _TARGET_PC_WIN
+#define HAVE_NATIVE_FUTEX has_futex_impl
+#define HAVE_NATIVE_FUTEX_CONSTEXPR
+#else // no native futex/WaitOnAddress; os_wait_on_address uses cv-bucket fallback
+#define HAVE_NATIVE_FUTEX           false
+#define HAVE_NATIVE_FUTEX_CONSTEXPR constexpr
+#endif
+
 #if _TARGET_C1
 
 #endif
@@ -202,7 +213,7 @@ struct TPCtxBase
   JobDoneEvent jobDoneEvent;
   TPCtxBase()
   {
-    if HAVE_FUTEX_CONSTEXPR (!HAVE_FUTEX)
+    if HAVE_NATIVE_FUTEX_CONSTEXPR (!HAVE_NATIVE_FUTEX)
     {
       new (&condVarMtxStor, _NEW_INPLACE) std::mutex;
       new (&condVarStor, _NEW_INPLACE) std::condition_variable;
@@ -210,7 +221,7 @@ struct TPCtxBase
   }
   ~TPCtxBase()
   {
-    if HAVE_FUTEX_CONSTEXPR (!HAVE_FUTEX)
+    if HAVE_NATIVE_FUTEX_CONSTEXPR (!HAVE_NATIVE_FUTEX)
     {
       eastl::destroy_at(&condVar);
       eastl::destroy_at(&condVarMtx);
@@ -273,12 +284,12 @@ struct TPWorkerThread final : public DaThread
 #endif
     FINALLY([] { free_thread_framemem(); });
 
-    HAVE_FUTEX_CONSTEXPR bool haveFutex = HAVE_FUTEX;
+    HAVE_NATIVE_FUTEX_CONSTEXPR bool haveNativeFutex = HAVE_NATIVE_FUTEX;
     do
     {
       threadpool::JobQueueElem jelem;
       // To consider: evaluate actual rate of spurious wakeups on different systems/OSes
-      if HAVE_FUTEX_CONSTEXPR (haveFutex)
+      if HAVE_NATIVE_FUTEX_CONSTEXPR (haveNativeFutex)
       {
         if (auto tmpWakes = interlocked_acquire_load(num_wakes.value); DAGOR_UNLIKELY(tmpWakes == nwakeslocal))
         {
@@ -400,10 +411,8 @@ struct TPCtx : public TPCtxBase
     do
     {
       // this (at least first) wake is imporant - no wake up might be called at this point (so calling code might rely on it)
-      if (HAVE_FUTEX)
-        wakeUpOne();
-      else
-        wakeUpAll();
+      wakeUpOne();
+
       if (lowest_prio >= 0 && perform_job(taskQueue, min(lowest_prio, (int)PRIO_LOW), *jenv_direct, jobDoneEvent))
         ;
       else
@@ -440,7 +449,7 @@ struct TPCtx : public TPCtxBase
   {
     TIME_PROFILE_DEV(tpool_wake_all);
     interlocked_increment(num_wakes.value);
-    if HAVE_FUTEX_CONSTEXPR (HAVE_FUTEX)
+    if HAVE_NATIVE_FUTEX_CONSTEXPR (HAVE_NATIVE_FUTEX)
       os_wake_on_address_all(&num_wakes.value);
     else
       condVar.notify_all();
@@ -450,7 +459,7 @@ struct TPCtx : public TPCtxBase
   {
     TIME_PROFILE_DEV(tpool_wake_one);
     interlocked_increment(num_wakes.value);
-    if HAVE_FUTEX_CONSTEXPR (HAVE_FUTEX)
+    if HAVE_NATIVE_FUTEX_CONSTEXPR (HAVE_NATIVE_FUTEX)
       os_wake_on_address_one(&num_wakes.value);
     else
       condVar.notify_one();
@@ -555,7 +564,7 @@ void shutdown()
 
   spin_wait([] {
     tp_instance->wakeUpAll();
-    if HAVE_FUTEX_CONSTEXPR (!HAVE_FUTEX) // Fallback for missed wake
+    if HAVE_NATIVE_FUTEX_CONSTEXPR (!HAVE_NATIVE_FUTEX) // NOTE: wakeUpAll on condVar path can lose a wake
       for (int i = 0; i < tp_instance->numWorkers; ++i)
         if (tp_instance->workers[i].isThreadRunnning())
           return true;

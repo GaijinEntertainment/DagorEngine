@@ -263,6 +263,7 @@ if $(Platform) in windows {
 }
 
 # Fallback std::condition_variable bucket impl for platforms without native futex
+# Update threadpool's HAVE_NATIVE_FUTEX if you changing this
 if ! $(Platform) in windows xboxOne scarlett ps5 { Sources += addressWaitStdCondVar.cpp ; }
 
 AddIncludes +=

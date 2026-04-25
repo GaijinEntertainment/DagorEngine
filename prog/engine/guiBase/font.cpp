@@ -59,6 +59,7 @@ void set_font_raster_quota_per_frame(int quota_usec)
 static FastNameMapEx ttfNames;
 static FT_Library ft_lib;
 static SimpleString ttf_path_prefix;
+static bool isTtfOptional(int ttf_nid);
 OSReadWriteLock DagorFontBinDump::fontRwLock;
 
 DagorFontBinDump::InscriptionsAtlas DagorFontBinDump::inscr_atlas;
@@ -81,7 +82,7 @@ struct DagorFreeTypeFontRec
 public:
   ~DagorFreeTypeFontRec() { closeTTF(); }
 
-  bool openTTF(const char *fn, bool init_harfbuz = false)
+  bool openTTF(const char *fn, bool init_harfbuz = false, bool is_optional = false)
   {
     closeTTF();
 
@@ -90,7 +91,10 @@ public:
     file_ptr_t fp = df_open(fn, DF_READ | DF_IGNORE_MISSING);
     if (!fp)
     {
-      logerr("failed to load font: %s", fn);
+      if (is_optional)
+        logwarn("optional font not found, skipping: %s", fn);
+      else
+        logerr("failed to load font: %s", fn);
       curHt = -2;
       return false;
     }
@@ -128,7 +132,7 @@ public:
     if (!face)
     {
       G_ASSERTF(f && ttf_nid >= 0, "f=%p ttf_nid=%d", f, ttf_nid);
-      openTTF(String(0, "%s/%s", ttf_path_prefix, ttfNames.getName(ttf_nid)), true);
+      openTTF(String(0, "%s/%s", ttf_path_prefix, ttfNames.getName(ttf_nid)), true, isTtfOptional(ttf_nid));
       f->appendFontHt(ht, this, /*read_locked*/ true);
     }
 
@@ -230,6 +234,19 @@ static void setTtfLoadAtInit(int ttf_nid)
 }
 static bool getTtfLoadAtInit(int ttf_nid) { return ttf_nid < ttfRecLoadAtInit.size() ? ttfRecLoadAtInit[ttf_nid] : false; }
 
+// Required-wins: a ttfNid is treated as optional iff every reference to it was marked optional.
+// Any single non-optional reference flips it to required (missing file becomes logerr), matching
+// the default behavior for legacy fontgen.blk / .dynFont.blk inputs that do not carry the flag.
+static dag::Vector<bool> ttfRecRequired;
+static void registerTtfRef(int ttf_nid, bool optional)
+{
+  if (ttfRecRequired.size() <= ttf_nid)
+    ttfRecRequired.resize(ttf_nid + 1, false);
+  if (!optional)
+    ttfRecRequired[ttf_nid] = true;
+}
+static bool isTtfOptional(int ttf_nid) { return ttf_nid >= ttfRecRequired.size() || !ttfRecRequired[ttf_nid]; }
+
 void DagorFontBinDump::reqCharGen(wchar_t ch, unsigned font_ht)
 {
   if (!dynGrp.size() && !isFullyDynamicFont())
@@ -268,8 +285,7 @@ bool DagorFontBinDump::updateGen(int64_t reft, bool allow_raster_glyphs, bool al
         {
           String fn(0, "%s/%s", ttf_path_prefix, ttfNames.getName(ttfNid));
           debug("load pending font: %d %s", ttfNid, ttfNames.getName(ttfNid));
-          if (!frec.openTTF(fn))
-            G_ASSERTF(0, "failed to load font '%s'", fn);
+          frec.openTTF(fn, false, isTtfOptional(ttfNid));
         }
       }
       ttfNidToBuild->delInt(ttfNid);
@@ -366,11 +382,10 @@ bool DagorFontBinDump::updateGen(int64_t reft, bool allow_raster_glyphs, bool al
             debug("delayed ttf load: %s", fn);
           continue;
         }
-        if (!frec.openTTF(fn))
+        if (!frec.openTTF(fn, false, isTtfOptional(ttfNid)))
         {
           if (g)
             g->dynGrpIdx = 0x7F;
-          G_ASSERTF(0, "failed to load font '%s' (for %c+%04X)", fn, isFullyDynamicFont() ? 'G' : 'U', gidx_to_gen);
           continue;
         }
       }
@@ -603,10 +618,9 @@ int DagorFontBinDump::compute_str_width_u(const wchar_t *str, int len, float sca
         if (frec->curHt < 0)
         {
           String fn(0, "%s/%s", ttf_path_prefix, ttfNames.getName(dgd->ttfNid));
-          if (!frec->openTTF(fn))
+          if (!frec->openTTF(fn, false, isTtfOptional(dgd->ttfNid)))
           {
             const_cast<GlyphData &>(gd).dynGrpIdx = 0x7F;
-            G_ASSERTF(0, "failed to load font '%s' (for U+%04X)", fn, *str);
             frec = NULL;
           }
         }
@@ -754,10 +768,9 @@ bool DagorFontBinDump::rasterize_str_u(const DagorFontBinDump::InscriptionData &
           if (frec->curHt < 0)
           {
             String fn(0, "%s/%s", ttf_path_prefix, ttfNames.getName(dgd->ttfNid));
-            if (!frec->openTTF(fn))
+            if (!frec->openTTF(fn, false, isTtfOptional(dgd->ttfNid)))
             {
               const_cast<GlyphData &>(gd).dynGrpIdx = 0x7F;
-              G_ASSERTF(0, "failed to load font '%s' (for U+%04X)", fn, *str);
               frec = NULL;
             }
           }
@@ -1452,6 +1465,7 @@ void DagorFontBinDump::FontData::loadBaseFontData(const DataBlock &desc)
   forceAutoHint = desc.getBool("forceAutoHint", true);
   memset(addFontRange, 0, sizeof(addFontRange));
   addFontMask = 0;
+  registerTtfRef(ttfNid, desc.getBool("optional", false));
   setTtfLoadAtInit(ttfNid);
 
   for (int i = 0, add_idx = 0, nid_addFont = desc.getNameId("addFont"); i < desc.blockCount(); i++)
@@ -1503,6 +1517,7 @@ void DagorFontBinDump::FontData::loadBaseFontData(const DataBlock &desc)
         bin.dfont.pixHt = 0;
         bin.dfont.initialPixHt = 0;
         G_ASSERTF((add_font_idx & WCRFI_FONT_MASK) == add_font_idx, "add_font_idx=%d", add_font_idx);
+        registerTtfRef(bin.dfont.ttfNid, b2.getBool("optional", false));
         if (!b2.getBool("lazyLoad", false))
           setTtfLoadAtInit(bin.dfont.ttfNid);
       }
@@ -1697,17 +1712,19 @@ void DagorFontBinDump::loadDynFonts(FontArray &fonts, const DataBlock &desc, int
         fn = String(0, "%s/%s", ttf_path_prefix, ttfNames.getName(ttfNid));
 
       debug("load font: %d %s", ttfNid, ttfNames.getName(ttfNid));
-      if (!frec.openTTF(fn, true))
+      const bool ttfOptional = isTtfOptional(ttfNid);
+      if (!frec.openTTF(fn, true, ttfOptional))
       {
-        if (dag_on_assets_fatal_cb)
+        if (!ttfOptional && dag_on_assets_fatal_cb)
           dag_on_assets_fatal_cb(fn.c_str());
-        G_ASSERTF(0, "failed to load font '%s'", fn);
       }
     }
 
   for (int i = prev_fonts_count; i < fonts.size(); i++)
   {
     DagorFontBinDump &bin = fonts[i];
+    if (bin.dfont.ttfNid < ttfRec.size() && !ttfRec[bin.dfont.ttfNid].face)
+      continue; // skip fonts whose TTF failed to load (optional fonts or missing required fonts)
     bin.appendFontHt(bin.dfont.pixHt);
     // debug("%d: ht=%d ascent=%d descent=%d linesp=%d capsHt=%d spaceWd=%d baseFontData[%d].dynGrp.count=%d",
     //   bin.name.get(), bin.fontHt, bin.ascent, bin.descent, bin.lineSpacing, bin.fontCapsHt, bin.dfont.fontMx[0].spaceWd,

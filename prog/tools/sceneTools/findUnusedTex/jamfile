@@ -34,5 +34,6 @@ UseProgLibs =
 ;
 
 ImportProgLibs = tools/libTools/daKernel ;
+ImportsRelativeDir = . ;
 
 include $(Root)/prog/_jBuild/build.jam ;

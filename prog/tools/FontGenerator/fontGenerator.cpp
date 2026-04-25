@@ -211,6 +211,7 @@ struct FontInfo
     FreeTypeFont f;
     bool forceAutoHinting = true;
     bool ttfLazyLoad = false;
+    bool optional = false;
     bool sysFontMark = false;
     dag::Vector<String> systemNames;
 
@@ -224,6 +225,7 @@ struct FontInfo
       FontInfo::processRanges(*fb_props.getBlockByNameEx("exclude"), exclude);
       forceAutoHinting = fb_props.getBool("forceAutoHinting", true);
       ttfLazyLoad = fb_props.getBool("ttfLazyLoad", def_lazy);
+      optional = fb_props.getBool("optional", false);
       sysFontMark = strncmp(file, "<system>", 8) == 0;
       dblk::iterate_params_by_name_and_type(fb_props, "sysfont", DataBlock::TYPE_STRING,
         [&](int pidx) { systemNames.push_back() = fb_props.getStr(pidx); });
@@ -245,6 +247,7 @@ struct FontInfo
   bool monochrome;
   bool forceAutoHinting = true, checkExtents = false;
   bool ttfLazyLoad = false;
+  bool optional = false;
   Tab<int> hRes;
   dag::Vector<FontInfo> additional;
   Tab<unicode_range_t> monoWdGrp;
@@ -420,6 +423,7 @@ struct FontInfo
     monochrome = blk.getBool("bw", false);
     forceAutoHinting = blk.getBool("forceAutoHinting", true);
     ttfLazyLoad = blk.getBool("ttfLazyLoad", false);
+    optional = blk.getBool("optional", false);
     checkExtents = blk.getBool("checkExtents", false);
 
     if (size < 0)
@@ -2099,6 +2103,7 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
             af.include = fb_used[&fbf - f.fallBackFonts.data()];
             af.forceAutoHinting = fbf.forceAutoHinting;
             af.ttfLazyLoad = fbf.ttfLazyLoad;
+            af.optional = fbf.optional;
             af.systemNames = fbf.systemNames;
             for (int afi = 0; afi < initial_add_cnt; afi++)
               for (int i = 1, inc = 1; i < missingSym.FULL_SZ; i += inc)
@@ -2188,6 +2193,8 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
     }
     if (!f.forceAutoHinting)
       b.setBool("forceAutoHint", f.forceAutoHinting);
+    if (f.optional)
+      b.setBool("optional", true);
 
     for (auto &s : f.fontFeatureSettingsList)
       b.addStr("fontFeatureSettings", s);
@@ -2276,6 +2283,8 @@ static void build_config_for_fully_dynamic_fonts(const char *dest_fn, dag::Span<
         b2.setBool("forceAutoHint", af.forceAutoHinting);
       if (af.ttfLazyLoad)
         b2.setBool("lazyLoad", af.ttfLazyLoad);
+      if (af.optional)
+        b2.setBool("optional", true);
 
       for (int i = 0, idx = &af - f.additional.data(); i < sym_ranges.size(); i++)
         if (sym_ranges[i].x == idx)

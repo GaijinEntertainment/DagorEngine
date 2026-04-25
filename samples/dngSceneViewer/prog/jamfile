@@ -2,14 +2,15 @@ Game     = dng_scene_viewer ;
 GameMainVromFilePath = dng_scene_viewer.vromfs.bin ;
 Root    ?= ../../.. ;
 Location = samples/dngSceneViewer/prog ;
-PlatformArch_windows = x86_64 ;
-
-TargetType  = exe ;
-Target     ?=  $(Game) ;
 
 NOCARE $(Root)/$(Location)/def.jam ;
 include $(Root)/$(Location)/def.jam ;
+
+PlatformArch_windows ?= host_arch ;
 include $(Root)/prog/_jBuild/defPlatform.jam ;
+
+TargetType  = exe ;
+Target     ?=  $(Game) ;
 
 UseModulesAI = no ;
 UseModulesDM = no ;

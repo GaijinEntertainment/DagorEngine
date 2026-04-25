@@ -33,6 +33,7 @@ if $(OS) = NT {
     case ARM64 : WindowsHostArch = arm64  ; PlatformArch_windows ?= arm64 ;
   }
   WindowsHostArch ?= x86_64 ;
+  if $(PlatformArch_windows) = host_arch { PlatformArch_windows = $(WindowsHostArch) ; }
 }
 
 PlatformArch_windows ?= x86 ;

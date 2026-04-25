@@ -11,10 +11,12 @@ if $(Dedicated) != yes { TargetType = exe ; }
 Target     ?= [ CorrectTargetName ] ;
 TargetCodeName = $(Game) ; # this will hold target name unchanged even if non-default phys engine is used
 UseSystemOpenSSL = no ;
-PlatformArch_windows = x86_64 ;
 
 NOCARE $(Root)/$(Location)/def.jam ;
 include $(Root)/$(Location)/def.jam ;
+
+PlatformArch_windows ?= host_arch ;
+include $(Root)/prog/_jBuild/defPlatform.jam ;
 
 UseModulesAI = no ;
 UseModulesDM = no ;

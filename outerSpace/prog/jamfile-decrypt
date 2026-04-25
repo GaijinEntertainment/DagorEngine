@@ -2,6 +2,9 @@ Root  ?= ../.. ;
 Target = log_decrypt ;
 OutDir = $(Root)/outerSpace/tools ;
 
+PlatformArch_windows ?= host_arch ;
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+
 include $(Root)/outerSpace/prog/logCryptKey.jam ;
 logCryptKey = $(GameLogCryptKey) ;
 

@@ -3,6 +3,14 @@ jam -s Root=../.. -f libTools/daKernel/jamfile
 jam -s Root=../.. -f sceneTools/assetExp/jamfile
 jam -s Root=../.. -f converters/ddsxCvt2/jamfile
 
+# DaEditorX
+jam -s Root=../.. -f sceneTools/daEditorX/jamfile-editor
+jam -s Root=../.. -f sceneTools/daEditorX/jamfile
+
+# AssetViewer
+jam -s Root=../.. -f AssetViewer/jamfile
+jam -s Root=../.. -f sceneTools/findUnusedTex/jamfile
+
 # daImpostorBaker
 jam -s Root=../.. -f sceneTools/impostorBaker/tool/jamfile
 

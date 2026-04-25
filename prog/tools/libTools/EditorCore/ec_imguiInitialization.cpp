@@ -169,10 +169,10 @@ public:
     dlg.setWindowSize(widthMin, font + padding + hdpi::_pxActual(textSize.y) + spacing);
 
     ret = dlg.showDialog();
-    G_STATIC_ASSERT(PropPanel::DIALOG_ID_OK == wingw::MB_ID_OK);
-    G_STATIC_ASSERT(PropPanel::DIALOG_ID_YES == wingw::MB_ID_YES);
-    G_STATIC_ASSERT(PropPanel::DIALOG_ID_CANCEL == wingw::MB_ID_CANCEL);
-    G_STATIC_ASSERT(PropPanel::DIALOG_ID_NO == wingw::MB_ID_NO);
+    G_STATIC_ASSERT(int(PropPanel::DIALOG_ID_OK) == int(wingw::MB_ID_OK));
+    G_STATIC_ASSERT(int(PropPanel::DIALOG_ID_YES) == int(wingw::MB_ID_YES));
+    G_STATIC_ASSERT(int(PropPanel::DIALOG_ID_CANCEL) == int(wingw::MB_ID_CANCEL));
+    G_STATIC_ASSERT(int(PropPanel::DIALOG_ID_NO) == int(wingw::MB_ID_NO));
     switch (ret)
     {
       case DIALOG_ID_ABORT: ret = wingw::MB_ID_ABORT; break;

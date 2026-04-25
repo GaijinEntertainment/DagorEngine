@@ -621,7 +621,7 @@ void gpu::update_device_attributes(uint32_t vendor_id, uint32_t device_id, Devic
 }
 
 static bool match_device_families(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
-  eastl::span<const uint32_t> other_discrete, eastl::span<const char *> family_keys)
+  eastl::span<const uint32_t> other_discrete, eastl::span<const char *> family_keys, eastl::span<const char *> device_keys)
 {
   DeviceAttributes deviceAttributes;
   gpu::update_device_attributes(vendor_id, device_id, deviceAttributes);
@@ -640,8 +640,11 @@ static bool match_device_families(const DataBlock &gpu_preferences, uint32_t ven
         [&](int param_idx) { result |= vendor.getInt(param_idx) == deviceAttributes.family; });
     }
 
-    dblk::iterate_params_by_name_and_type(vendor, "preferredDeviceIds", DataBlock::TYPE_INT,
-      [&](int param_idx) { result |= vendor.getInt(param_idx) == device_id; });
+    for (const char *key : device_keys)
+    {
+      dblk::iterate_params_by_name_and_type(vendor, key, DataBlock::TYPE_INT,
+        [&](int param_idx) { result |= vendor.getInt(param_idx) == device_id; });
+    }
 
     dblk::iterate_params_by_name_and_type(vendor, "skipIfOtherDiscrete", DataBlock::TYPE_STRING, [&](int param_idx) {
       const char *skipIfOtherDiscrete = vendor.getStr(param_idx);
@@ -657,15 +660,17 @@ static bool match_device_families(const DataBlock &gpu_preferences, uint32_t ven
 bool gpu::is_forced_device(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
   eastl::span<const uint32_t> other_discrete)
 {
-  const char *keys[] = {"forcedFamily"};
-  return match_device_families(gpu_preferences, vendor_id, device_id, other_discrete, keys);
+  const char *familyKeys[] = {"forcedFamily"};
+  const char *deviceKeys[] = {"forcedDeviceIds"};
+  return match_device_families(gpu_preferences, vendor_id, device_id, other_discrete, familyKeys, deviceKeys);
 }
 
 bool gpu::is_preferred_device(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
   eastl::span<const uint32_t> other_discrete)
 {
-  const char *keys[] = {"forcedFamily", "preferredFamily"};
-  return match_device_families(gpu_preferences, vendor_id, device_id, other_discrete, keys);
+  const char *familyKeys[] = {"forcedFamily", "preferredFamily"};
+  const char *deviceKeys[] = {"forcedDeviceIds", "preferredDeviceIds"};
+  return match_device_families(gpu_preferences, vendor_id, device_id, other_discrete, familyKeys, deviceKeys);
 }
 
 bool gpu::is_blacklisted_device(const DataBlock &gpu_preferences, uint32_t vendor_id, uint32_t device_id,
