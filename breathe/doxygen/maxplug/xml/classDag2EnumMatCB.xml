@@ -1,0 +1,127 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDag2EnumMatCB" kind="class" language="C++" prot="public">
+    <compoundname>Dag2EnumMatCB</compoundname>
+    <basecompoundref refid="classENodeCB" prot="public" virt="non-virtual">ENodeCB</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDag2EnumMatCB_1a10ed6eedb8796811048af45127b94654" prot="public" static="no" mutable="no">
+        <type>Interface *</type>
+        <definition>Interface* Dag2EnumMatCB::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>Dag2EnumMatCB::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2428" column="13" bodyfile="util.cpp" bodystart="2428" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDag2EnumMatCB_1a2a238b575a517bb53e6ce3d1eb72bd46" prot="public" static="no" mutable="no">
+        <type>std::unordered_set&lt; Mtl * &gt;</type>
+        <definition>std::unordered_set&lt;Mtl *&gt; Dag2EnumMatCB::materials</definition>
+        <argsstring></argsstring>
+        <name>materials</name>
+        <qualifiedname>Dag2EnumMatCB::materials</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2429" column="22" bodyfile="util.cpp" bodystart="2429" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDag2EnumMatCB_1ae4697daa2dcd743b506213d86031a660" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2EnumMatCB::Dag2EnumMatCB</definition>
+        <argsstring>(Interface *iptr)</argsstring>
+        <name>Dag2EnumMatCB</name>
+        <qualifiedname>Dag2EnumMatCB::Dag2EnumMatCB</qualifiedname>
+        <param>
+          <type>Interface *</type>
+          <declname>iptr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2431" column="3" bodyfile="util.cpp" bodystart="2431" bodyend="2431"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2EnumMatCB_1a3d3dfc2dfef7d76312d54d10aee46ecc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>Dag2EnumMatCB::~Dag2EnumMatCB</definition>
+        <argsstring>() override</argsstring>
+        <name>~Dag2EnumMatCB</name>
+        <qualifiedname>Dag2EnumMatCB::~Dag2EnumMatCB</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2432" column="3" bodyfile="util.cpp" bodystart="2432" bodyend="2432"/>
+      </memberdef>
+      <memberdef kind="function" id="classDag2EnumMatCB_1a46de606ae98535d5bad1c438ad39e843" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>int Dag2EnumMatCB::proc</definition>
+        <argsstring>(INode *n) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>Dag2EnumMatCB::proc</qualifiedname>
+        <reimplements refid="classENodeCB_1ad287b227ea11aa5f7d22d4f768193c17">proc</reimplements>
+        <param>
+          <type>INode *</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="util.cpp" line="2434" column="7" bodyfile="util.cpp" bodystart="2434" bodyend="2477"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Dag2EnumMatCB</label>
+        <link refid="classDag2EnumMatCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>Dag2EnumMatCB</label>
+        <link refid="classDag2EnumMatCB"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ENodeCB</label>
+        <link refid="classENodeCB"/>
+      </node>
+    </collaborationgraph>
+    <location file="util.cpp" line="2425" column="1" bodyfile="util.cpp" bodystart="2426" bodyend="2478"/>
+    <listofallmembers>
+      <member refid="classDag2EnumMatCB_1ae4697daa2dcd743b506213d86031a660" prot="public" virt="non-virtual"><scope>Dag2EnumMatCB</scope><name>Dag2EnumMatCB</name></member>
+      <member refid="classDag2EnumMatCB_1a10ed6eedb8796811048af45127b94654" prot="public" virt="non-virtual"><scope>Dag2EnumMatCB</scope><name>ip</name></member>
+      <member refid="classDag2EnumMatCB_1a2a238b575a517bb53e6ce3d1eb72bd46" prot="public" virt="non-virtual"><scope>Dag2EnumMatCB</scope><name>materials</name></member>
+      <member refid="classDag2EnumMatCB_1a46de606ae98535d5bad1c438ad39e843" prot="public" virt="virtual"><scope>Dag2EnumMatCB</scope><name>proc</name></member>
+      <member refid="classDag2EnumMatCB_1a3d3dfc2dfef7d76312d54d10aee46ecc" prot="public" virt="non-virtual"><scope>Dag2EnumMatCB</scope><name>~Dag2EnumMatCB</name></member>
+      <member refid="classENodeCB_1afb82335a7b99836b8661a70665c9f5e9" prot="public" virt="virtual"><scope>Dag2EnumMatCB</scope><name>~ENodeCB</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

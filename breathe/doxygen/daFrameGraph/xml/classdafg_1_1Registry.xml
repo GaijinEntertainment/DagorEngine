@@ -1,0 +1,304 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classdafg_1_1Registry" kind="class" language="C++" prot="public">
+    <compoundname>dafg::Registry</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">BaseRegistry</basecompoundref>
+    <includes refid="registry_8h" local="no">registry.h</includes>
+      <sectiondef kind="friend">
+      <memberdef kind="friend" id="classdafg_1_1Registry_1a7934cf821b23d924a511e1b8b8ead041" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>class</type>
+        <definition>friend class NameSpace</definition>
+        <argsstring></argsstring>
+        <name>NameSpace</name>
+        <qualifiedname>dafg::Registry::NameSpace</qualifiedname>
+        <param>
+          <type><ref refid="classdafg_1_1NameSpace" kindref="compound">NameSpace</ref></type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="15" column="16" bodyfile="registry.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classdafg_1_1Registry_1acc6d29f3e9714c05fc16725919a403c2" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>dafg::Registry::Registry</definition>
+        <argsstring>(NodeNameId node, InternalRegistry *reg)</argsstring>
+        <name>Registry</name>
+        <qualifiedname>dafg::Registry::Registry</qualifiedname>
+        <param>
+          <type>NodeNameId</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>InternalRegistry *</type>
+          <declname>reg</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="17" column="3" bodyfile="registry.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classdafg_1_1Registry_1a0aa5c17d70d4626e8172cb050688d5be" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto dafg::Registry::bindTexPs</definition>
+        <argsstring>(const char *tex_name, const char *shader_var_name)</argsstring>
+        <name>bindTexPs</name>
+        <qualifiedname>dafg::Registry::bindTexPs</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="20" column="8" bodyfile="registry.h" bodystart="20" bodyend="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a8e0deb926267dd9196aadab44463ba06" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto dafg::Registry::bindTexVs</definition>
+        <argsstring>(const char *tex_name, const char *shader_var_name)</argsstring>
+        <name>bindTexVs</name>
+        <qualifiedname>dafg::Registry::bindTexVs</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="24" column="8" bodyfile="registry.h" bodystart="24" bodyend="27"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a3819936570a7d0c4a2c76dbc5eb95751" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto dafg::Registry::bindTexCs</definition>
+        <argsstring>(const char *tex_name, const char *shader_var_name)</argsstring>
+        <name>bindTexCs</name>
+        <qualifiedname>dafg::Registry::bindTexCs</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="28" column="8" bodyfile="registry.h" bodystart="28" bodyend="31"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1aa27e188758599b23570abf629be10971" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type>auto</type>
+        <definition>auto dafg::Registry::bindBlob</definition>
+        <argsstring>(const char *blob_name, const char *shader_var_name)</argsstring>
+        <name>bindBlob</name>
+        <qualifiedname>dafg::Registry::bindBlob</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>blob_name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>shader_var_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="34" column="8" bodyfile="registry.h" bodystart="34" bodyend="37"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a2fcaa20c06e4d2eab750d52ebdd0a87a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto dafg::Registry::readTexHndlPs</definition>
+        <argsstring>(const char *tex_name)</argsstring>
+        <name>readTexHndlPs</name>
+        <qualifiedname>dafg::Registry::readTexHndlPs</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="39" column="8" bodyfile="registry.h" bodystart="39" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a2c1164c7dce42debbb39c686b5900b9b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto dafg::Registry::readTexHndlVs</definition>
+        <argsstring>(const char *tex_name)</argsstring>
+        <name>readTexHndlVs</name>
+        <qualifiedname>dafg::Registry::readTexHndlVs</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="44" column="8" bodyfile="registry.h" bodystart="44" bodyend="47"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a6acc52968b8cccc28429b35844f9dccd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto dafg::Registry::readTexHndlCs</definition>
+        <argsstring>(const char *tex_name)</argsstring>
+        <name>readTexHndlCs</name>
+        <qualifiedname>dafg::Registry::readTexHndlCs</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>tex_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="49" column="8" bodyfile="registry.h" bodystart="49" bodyend="52"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a88a843837ba68a18d3881cf2424c21e5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void dafg::Registry::postFx</definition>
+        <argsstring>(const char *shader_name)</argsstring>
+        <name>postFx</name>
+        <qualifiedname>dafg::Registry::postFx</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>shader_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="54" column="8" bodyfile="registry.h" bodystart="54" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a4b7d55c07bd6483c17a0aa2e615e4a69" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>auto</type>
+        <definition>auto dafg::Registry::createTexture2d</definition>
+        <argsstring>(const char *name, Texture2dCreateInfo info)</argsstring>
+        <name>createTexture2d</name>
+        <qualifiedname>dafg::Registry::createTexture2d</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="structdafg_1_1Texture2dCreateInfo" kindref="compound">Texture2dCreateInfo</ref></type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="59" column="8" bodyfile="registry.h" bodystart="59" bodyend="59"/>
+      </memberdef>
+      <memberdef kind="function" id="classdafg_1_1Registry_1a96ddc05313c9a511a81f64e44819682f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>auto</type>
+        <definition>auto dafg::Registry::createBlob</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>createBlob</name>
+        <qualifiedname>dafg::Registry::createBlob</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="registry.h" line="62" column="8" bodyfile="registry.h" bodystart="62" bodyend="65"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>BaseRegistry</label>
+      </node>
+      <node id="1">
+        <label>dafg::Registry</label>
+        <link refid="classdafg_1_1Registry"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>BaseRegistry</label>
+      </node>
+      <node id="1">
+        <label>dafg::Registry</label>
+        <link refid="classdafg_1_1Registry"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="registry.h" line="13" column="1" bodyfile="registry.h" bodystart="14" bodyend="66"/>
+    <listofallmembers>
+      <member refid="classdafg_1_1Registry_1aa27e188758599b23570abf629be10971" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>bindBlob</name></member>
+      <member refid="classdafg_1_1Registry_1a3819936570a7d0c4a2c76dbc5eb95751" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>bindTexCs</name></member>
+      <member refid="classdafg_1_1Registry_1a0aa5c17d70d4626e8172cb050688d5be" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>bindTexPs</name></member>
+      <member refid="classdafg_1_1Registry_1a8e0deb926267dd9196aadab44463ba06" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>bindTexVs</name></member>
+      <member refid="classdafg_1_1Registry_1a96ddc05313c9a511a81f64e44819682f" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>createBlob</name></member>
+      <member refid="classdafg_1_1Registry_1a4b7d55c07bd6483c17a0aa2e615e4a69" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>createTexture2d</name></member>
+      <member refid="classdafg_1_1Registry_1a7934cf821b23d924a511e1b8b8ead041" prot="private" virt="non-virtual"><scope>dafg::Registry</scope><name>NameSpace</name></member>
+      <member refid="classdafg_1_1Registry_1a88a843837ba68a18d3881cf2424c21e5" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>postFx</name></member>
+      <member refid="classdafg_1_1Registry_1a6acc52968b8cccc28429b35844f9dccd" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>readTexHndlCs</name></member>
+      <member refid="classdafg_1_1Registry_1a2fcaa20c06e4d2eab750d52ebdd0a87a" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>readTexHndlPs</name></member>
+      <member refid="classdafg_1_1Registry_1a2c1164c7dce42debbb39c686b5900b9b" prot="public" virt="non-virtual"><scope>dafg::Registry</scope><name>readTexHndlVs</name></member>
+      <member refid="classdafg_1_1Registry_1acc6d29f3e9714c05fc16725919a403c2" prot="private" virt="non-virtual"><scope>dafg::Registry</scope><name>Registry</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

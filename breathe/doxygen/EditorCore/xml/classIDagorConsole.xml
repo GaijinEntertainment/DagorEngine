@@ -1,0 +1,225 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIDagorConsole" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IDagorConsole</compoundname>
+    <includes refid="ec__IEditorCore_8h" local="no">ec_IEditorCore.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIDagorConsole_1addf245b1be0ea798444e7cc636af99b9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorConsole::startProgress</definition>
+        <argsstring>(CoolConsole &amp;con) const =0</argsstring>
+        <name>startProgress</name>
+        <qualifiedname>IDagorConsole::startProgress</qualifiedname>
+        <param>
+          <type>CoolConsole &amp;</type>
+          <declname>con</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="441" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorConsole_1a7afdf755e84a7aa932ac524206a46b76" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorConsole::endProgress</definition>
+        <argsstring>(CoolConsole &amp;con) const =0</argsstring>
+        <name>endProgress</name>
+        <qualifiedname>IDagorConsole::endProgress</qualifiedname>
+        <param>
+          <type>CoolConsole &amp;</type>
+          <declname>con</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="442" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorConsole_1adac7cb5a6a943891f7d52dc62c723bcb" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorConsole::addMessageFmt</definition>
+        <argsstring>(CoolConsole &amp;con, ILogWriter::MessageType t, const char *msg, const DagorSafeArg *arg, int anum) const =0</argsstring>
+        <name>addMessageFmt</name>
+        <qualifiedname>IDagorConsole::addMessageFmt</qualifiedname>
+        <param>
+          <type>CoolConsole &amp;</type>
+          <declname>con</declname>
+        </param>
+        <param>
+          <type>ILogWriter::MessageType</type>
+          <declname>t</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>const DagorSafeArg *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>anum</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="444" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorConsole_1a154186e955416d0ac11dfb8a95cab63b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorConsole::showConsole</definition>
+        <argsstring>(CoolConsole &amp;con, bool activate=false) const =0</argsstring>
+        <name>showConsole</name>
+        <qualifiedname>IDagorConsole::showConsole</qualifiedname>
+        <param>
+          <type>CoolConsole &amp;</type>
+          <declname>con</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>activate</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="447" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorConsole_1ab346dcd57d3a12fa354148234167b037" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorConsole::hideConsole</definition>
+        <argsstring>(const CoolConsole &amp;con) const =0</argsstring>
+        <name>hideConsole</name>
+        <qualifiedname>IDagorConsole::hideConsole</qualifiedname>
+        <param>
+          <type>const CoolConsole &amp;</type>
+          <declname>con</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="448" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorConsole_1a6362ab8e6708d9e7996a66c04525f063" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IDagorConsole::addConProc</definition>
+        <argsstring>(console::ICommandProcessor *proc)=0</argsstring>
+        <name>addConProc</name>
+        <qualifiedname>IDagorConsole::addConProc</qualifiedname>
+        <param>
+          <type>console::ICommandProcessor *</type>
+          <declname>proc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="452" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorConsole_1ac5d0b250e684bba8a124b0f4e0fe6310" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool IDagorConsole::delConProc</definition>
+        <argsstring>(console::ICommandProcessor *proc)=0</argsstring>
+        <name>delConProc</name>
+        <qualifiedname>IDagorConsole::delConProc</qualifiedname>
+        <param>
+          <type>console::ICommandProcessor *</type>
+          <declname>proc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="457" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIDagorConsole_1ab7f04584c5e25b9c088293bbdcba681c" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>int</type>
+        <definition>virtual int IDagorConsole::conCollectorCmp</definition>
+        <argsstring>(const char *arg, int ac, const char *cmd, int min_ac, int max_ac, const char *description=&quot;&quot;, const char *argsDescription=&quot;&quot;, const char *varValue=&quot;&quot;, eastl::vector&lt; console::CommandOptions &gt; &amp;&amp;cmdOptions={})=0</argsstring>
+        <name>conCollectorCmp</name>
+        <qualifiedname>IDagorConsole::conCollectorCmp</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>arg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>ac</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>cmd</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>min_ac</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>max_ac</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>description</declname>
+          <defval>&quot;&quot;</defval>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>argsDescription</declname>
+          <defval>&quot;&quot;</defval>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>varValue</declname>
+          <defval>&quot;&quot;</defval>
+        </param>
+        <param>
+          <type>eastl::vector&lt; console::CommandOptions &gt; &amp;&amp;</type>
+          <declname>cmdOptions</declname>
+          <defval>{}</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IEditorCore.h" line="460" column="15"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_IEditorCore.h" line="438" column="1" bodyfile="ec_IEditorCore.h" bodystart="439" bodyend="469"/>
+    <listofallmembers>
+      <member refid="classIDagorConsole_1a6362ab8e6708d9e7996a66c04525f063" prot="public" virt="pure-virtual"><scope>IDagorConsole</scope><name>addConProc</name></member>
+      <member refid="classIDagorConsole_1adac7cb5a6a943891f7d52dc62c723bcb" prot="public" virt="pure-virtual"><scope>IDagorConsole</scope><name>addMessageFmt</name></member>
+      <member refid="classIDagorConsole_1ab7f04584c5e25b9c088293bbdcba681c" prot="public" virt="pure-virtual"><scope>IDagorConsole</scope><name>conCollectorCmp</name></member>
+      <member refid="classIDagorConsole_1ac5d0b250e684bba8a124b0f4e0fe6310" prot="public" virt="pure-virtual"><scope>IDagorConsole</scope><name>delConProc</name></member>
+      <member refid="classIDagorConsole_1a7afdf755e84a7aa932ac524206a46b76" prot="public" virt="pure-virtual"><scope>IDagorConsole</scope><name>endProgress</name></member>
+      <member refid="classIDagorConsole_1ab346dcd57d3a12fa354148234167b037" prot="public" virt="pure-virtual"><scope>IDagorConsole</scope><name>hideConsole</name></member>
+      <member refid="classIDagorConsole_1a154186e955416d0ac11dfb8a95cab63b" prot="public" virt="pure-virtual"><scope>IDagorConsole</scope><name>showConsole</name></member>
+      <member refid="classIDagorConsole_1addf245b1be0ea798444e7cc636af99b9" prot="public" virt="pure-virtual"><scope>IDagorConsole</scope><name>startProgress</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

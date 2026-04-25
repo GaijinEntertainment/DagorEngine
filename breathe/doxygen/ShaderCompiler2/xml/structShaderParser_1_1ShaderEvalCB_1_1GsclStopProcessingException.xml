@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderParser_1_1ShaderEvalCB_1_1GsclStopProcessingException" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderParser::ShaderEvalCB::GsclStopProcessingException</compoundname>
+    <includes refid="shsem_8h" local="no">shsem.h</includes>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shsem.h" line="21" column="3" bodyfile="shsem.h" bodystart="22" bodyend="22"/>
+    <listofallmembers>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

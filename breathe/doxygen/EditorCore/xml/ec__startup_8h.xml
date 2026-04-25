@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__startup_8h" kind="file" language="C++">
+    <compoundname>ec_startup.h</compoundname>
+    <includes local="no">math/dag_e3dColor.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>ec_startup.h</label>
+        <link refid="ec__startup_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>math/dag_e3dColor.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__startup_8h_1aabee07fdf2edfa0033a4f2d919e922a2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ec_log_startup_info</definition>
+        <argsstring>()</argsstring>
+        <name>ec_log_startup_info</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startup.h" line="7" column="6" declfile="ec_startup.h" declline="7" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__startup_8h_1aebbd056997eac0b016a1fe9e37fdd837" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void startup_editor_core_select_startup_scene</definition>
+        <argsstring>(E3DCOLOR bg_color=E3DCOLOR(229, 229, 229))</argsstring>
+        <name>startup_editor_core_select_startup_scene</name>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>bg_color</declname>
+          <defval>E3DCOLOR(229, 229, 229)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startup.h" line="11" column="6" declfile="ec_startup.h" declline="11" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="ec__startup_8h_1a295d0685e77c76b12a7ee2cdedeafdfc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void startup_editor_core_force_startup_scene_draw</definition>
+        <argsstring>()</argsstring>
+        <name>startup_editor_core_force_startup_scene_draw</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_startup.h" line="15" column="6" declfile="ec_startup.h" declline="15" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_e3dColor.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Log<sp/>the<sp/>build<sp/>timestamp,<sp/>startup<sp/>time,<sp/>command<sp/>line<sp/>arguments<sp/>and<sp/>the<sp/>current<sp/>working<sp/>directory.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7" refid="ec__startup_8h_1aabee07fdf2edfa0033a4f2d919e922a2" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__startup_8h_1aabee07fdf2edfa0033a4f2d919e922a2" kindref="member">ec_log_startup_info</ref>();</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="comment">//<sp/>The<sp/>startup<sp/>scene<sp/>renders<sp/>the<sp/>initial<sp/>workspace<sp/>creator/selector<sp/>dialogs.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="comment">//<sp/>bg_color:<sp/>background<sp/>color<sp/>of<sp/>the<sp/>window<sp/>(can<sp/>be<sp/>seen<sp/>before<sp/>ImGui<sp/>starts<sp/>drawing)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11" refid="ec__startup_8h_1aebbd056997eac0b016a1fe9e37fdd837" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__startup_8h_1aebbd056997eac0b016a1fe9e37fdd837" kindref="member">startup_editor_core_select_startup_scene</ref>(E3DCOLOR<sp/>bg_color<sp/>=<sp/>E3DCOLOR(229,<sp/>229,<sp/>229));</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Draw<sp/>a<sp/>new<sp/>startup<sp/>scene<sp/>frame.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>is<sp/>needed<sp/>to<sp/>get<sp/>rid<sp/>of<sp/>the<sp/>open<sp/>dialog<sp/>from<sp/>the<sp/>screen<sp/>once<sp/>the<sp/>modal<sp/>loop<sp/>ends.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="ec__startup_8h_1a295d0685e77c76b12a7ee2cdedeafdfc" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="ec__startup_8h_1a295d0685e77c76b12a7ee2cdedeafdfc" kindref="member">startup_editor_core_force_startup_scene_draw</ref>();</highlight></codeline>
+    </programlisting>
+    <location file="ec_startup.h"/>
+  </compounddef>
+</doxygen>

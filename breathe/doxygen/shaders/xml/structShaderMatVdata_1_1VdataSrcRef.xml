@@ -1,0 +1,126 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderMatVdata_1_1VdataSrcRef" kind="struct" language="C++" prot="protected">
+    <compoundname>ShaderMatVdata::VdataSrcRef</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderMatVdata_1_1VdataSrcRef_1a637f9bdc1107fae1faa35a2ed8096606" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderMatVdata::VdataSrcRef::fname</definition>
+        <argsstring></argsstring>
+        <name>fname</name>
+        <qualifiedname>ShaderMatVdata::VdataSrcRef::fname</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="321" column="16" bodyfile="dag_shaderMesh.h" bodystart="321" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatVdata_1_1VdataSrcRef_1a093cf812d5107139be8e30b603c112ef" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::VdataSrcRef::fileOfs</definition>
+        <argsstring></argsstring>
+        <name>fileOfs</name>
+        <qualifiedname>ShaderMatVdata::VdataSrcRef::fileOfs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="322" column="14" bodyfile="dag_shaderMesh.h" bodystart="322" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatVdata_1_1VdataSrcRef_1a76fc421223cf643457c72a78d5ff1269" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::VdataSrcRef::dataSz</definition>
+        <argsstring></argsstring>
+        <name>dataSz</name>
+        <qualifiedname>ShaderMatVdata::VdataSrcRef::dataSz</qualifiedname>
+        <bitfield> 26</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="323" column="14" bodyfile="dag_shaderMesh.h" bodystart="323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatVdata_1_1VdataSrcRef_1a5e2d09557ebb77c8fd659b59425e6383" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::VdataSrcRef::comprType</definition>
+        <argsstring></argsstring>
+        <name>comprType</name>
+        <qualifiedname>ShaderMatVdata::VdataSrcRef::comprType</qualifiedname>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="323" column="22" bodyfile="dag_shaderMesh.h" bodystart="323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatVdata_1_1VdataSrcRef_1a834c68b65775bc51d8d2463ed62b4117" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::VdataSrcRef::packTag</definition>
+        <argsstring></argsstring>
+        <name>packTag</name>
+        <qualifiedname>ShaderMatVdata::VdataSrcRef::packTag</qualifiedname>
+        <bitfield> 3</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="323" column="33" bodyfile="dag_shaderMesh.h" bodystart="323" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderMatVdata_1_1VdataSrcRef_1a06e8e6dd916b3fccc4e3529ddcb7acc8" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ShaderMatVdata::VdataSrcRef::_pad</definition>
+        <argsstring></argsstring>
+        <name>_pad</name>
+        <qualifiedname>ShaderMatVdata::VdataSrcRef::_pad</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="325" column="14" bodyfile="dag_shaderMesh.h" bodystart="325" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderMatVdata_1_1VdataSrcRef_1aaff58e0429d6af1647d48617c421ae61" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderMatVdata::VdataSrcRef::VdataSrcRef</definition>
+        <argsstring>()</argsstring>
+        <name>VdataSrcRef</name>
+        <qualifiedname>ShaderMatVdata::VdataSrcRef::VdataSrcRef</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderMesh.h" line="327" column="5" bodyfile="dag_shaderMesh.h" bodystart="327" bodyend="327"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderMesh.h" line="319" column="3" bodyfile="dag_shaderMesh.h" bodystart="320" bodyend="328"/>
+    <listofallmembers>
+      <member refid="structShaderMatVdata_1_1VdataSrcRef_1a06e8e6dd916b3fccc4e3529ddcb7acc8" prot="public" virt="non-virtual"><scope>ShaderMatVdata::VdataSrcRef</scope><name>_pad</name></member>
+      <member refid="structShaderMatVdata_1_1VdataSrcRef_1a5e2d09557ebb77c8fd659b59425e6383" prot="public" virt="non-virtual"><scope>ShaderMatVdata::VdataSrcRef</scope><name>comprType</name></member>
+      <member refid="structShaderMatVdata_1_1VdataSrcRef_1a76fc421223cf643457c72a78d5ff1269" prot="public" virt="non-virtual"><scope>ShaderMatVdata::VdataSrcRef</scope><name>dataSz</name></member>
+      <member refid="structShaderMatVdata_1_1VdataSrcRef_1a093cf812d5107139be8e30b603c112ef" prot="public" virt="non-virtual"><scope>ShaderMatVdata::VdataSrcRef</scope><name>fileOfs</name></member>
+      <member refid="structShaderMatVdata_1_1VdataSrcRef_1a637f9bdc1107fae1faa35a2ed8096606" prot="public" virt="non-virtual"><scope>ShaderMatVdata::VdataSrcRef</scope><name>fname</name></member>
+      <member refid="structShaderMatVdata_1_1VdataSrcRef_1a834c68b65775bc51d8d2463ed62b4117" prot="public" virt="non-virtual"><scope>ShaderMatVdata::VdataSrcRef</scope><name>packTag</name></member>
+      <member refid="structShaderMatVdata_1_1VdataSrcRef_1aaff58e0429d6af1647d48617c421ae61" prot="public" virt="non-virtual"><scope>ShaderMatVdata::VdataSrcRef</scope><name>VdataSrcRef</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

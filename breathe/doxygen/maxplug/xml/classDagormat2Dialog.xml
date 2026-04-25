@@ -1,0 +1,994 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDagormat2Dialog" kind="class" language="C++" prot="public">
+    <compoundname>Dagormat2Dialog</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ParamDlg</basecompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classDagormat2Dialog_1a5993dce4f957b84dd341c268ed1c6c68" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND Dagormat2Dialog::hwmedit</definition>
+        <argsstring></argsstring>
+        <name>hwmedit</name>
+        <qualifiedname>Dagormat2Dialog::hwmedit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="699" column="8" bodyfile="mater2.cpp" bodystart="699" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1ae2552420486eea0978dd769e03494fe5" prot="public" static="no" mutable="no">
+        <type>IMtlParams *</type>
+        <definition>IMtlParams* Dagormat2Dialog::ip</definition>
+        <argsstring></argsstring>
+        <name>ip</name>
+        <qualifiedname>Dagormat2Dialog::ip</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="700" column="14" bodyfile="mater2.cpp" bodystart="700" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a6533d0f421d21c6d88400201703f4365" prot="public" static="no" mutable="no">
+        <type>class <ref refid="classDagorMat2" kindref="compound">DagorMat2</ref> *</type>
+        <definition>class DagorMat2* Dagormat2Dialog::theMtl</definition>
+        <argsstring></argsstring>
+        <name>theMtl</name>
+        <qualifiedname>Dagormat2Dialog::theMtl</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="701" column="18" bodyfile="mater2.cpp" bodystart="701" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a834c79f07641ab5acbc2fd05720d2b52" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND Dagormat2Dialog::hShader</definition>
+        <argsstring></argsstring>
+        <name>hShader</name>
+        <qualifiedname>Dagormat2Dialog::hShader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="702" column="8" bodyfile="mater2.cpp" bodystart="702" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a2d5118711e4333d85e215fb5671076d5" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND Dagormat2Dialog::hPhong</definition>
+        <argsstring></argsstring>
+        <name>hPhong</name>
+        <qualifiedname>Dagormat2Dialog::hPhong</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="702" column="16" bodyfile="mater2.cpp" bodystart="702" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1ac3db71329c28a1679aa7087704932fb1" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND Dagormat2Dialog::hTex</definition>
+        <argsstring></argsstring>
+        <name>hTex</name>
+        <qualifiedname>Dagormat2Dialog::hTex</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="702" column="23" bodyfile="mater2.cpp" bodystart="702" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1af3c7023ad57fb19f71835e24fdbeafd4" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND Dagormat2Dialog::hParam</definition>
+        <argsstring></argsstring>
+        <name>hParam</name>
+        <qualifiedname>Dagormat2Dialog::hParam</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="702" column="28" bodyfile="mater2.cpp" bodystart="702" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a0885ae56c266c58294ffcbe2af9ac772" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND Dagormat2Dialog::hProxy</definition>
+        <argsstring></argsstring>
+        <name>hProxy</name>
+        <qualifiedname>Dagormat2Dialog::hProxy</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="702" column="35" bodyfile="mater2.cpp" bodystart="702" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a27db1d0d5ec010d22f1a685f683d497d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Dagormat2Dialog::valid</definition>
+        <argsstring></argsstring>
+        <name>valid</name>
+        <qualifiedname>Dagormat2Dialog::valid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="703" column="8" bodyfile="mater2.cpp" bodystart="703" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a43b30739dce46ca0db0bf003386064ba" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Dagormat2Dialog::isActive</definition>
+        <argsstring></argsstring>
+        <name>isActive</name>
+        <qualifiedname>Dagormat2Dialog::isActive</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="704" column="8" bodyfile="mater2.cpp" bodystart="704" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a2ffd6c1ad462e0dc441c18b1377510e6" prot="public" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch* Dagormat2Dialog::csa</definition>
+        <argsstring></argsstring>
+        <name>csa</name>
+        <qualifiedname>Dagormat2Dialog::csa</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="705" column="16" bodyfile="mater2.cpp" bodystart="705" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a9ce76293579e525d709d685a97396d0a" prot="public" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch * Dagormat2Dialog::csd</definition>
+        <argsstring></argsstring>
+        <name>csd</name>
+        <qualifiedname>Dagormat2Dialog::csd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="705" column="20" bodyfile="mater2.cpp" bodystart="705" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a44de3aade491548c6e83946e203d7574" prot="public" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch * Dagormat2Dialog::css</definition>
+        <argsstring></argsstring>
+        <name>css</name>
+        <qualifiedname>Dagormat2Dialog::css</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="705" column="24" bodyfile="mater2.cpp" bodystart="705" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a3b6707904da6d2be68b036b48b479bc5" prot="public" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch * Dagormat2Dialog::cse</definition>
+        <argsstring></argsstring>
+        <name>cse</name>
+        <qualifiedname>Dagormat2Dialog::cse</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="705" column="28" bodyfile="mater2.cpp" bodystart="705" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1aa9c60c7888c35822cb3779d17efeabf1" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool Dagormat2Dialog::creating</definition>
+        <argsstring></argsstring>
+        <name>creating</name>
+        <qualifiedname>Dagormat2Dialog::creating</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="706" column="8" bodyfile="mater2.cpp" bodystart="706" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a08a806a71e549c29ba4ce4011240b65e" prot="public" static="no" mutable="no">
+        <type>TexDADMgr</type>
+        <definition>TexDADMgr Dagormat2Dialog::dadmgr</definition>
+        <argsstring></argsstring>
+        <name>dadmgr</name>
+        <qualifiedname>Dagormat2Dialog::dadmgr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="707" column="13" bodyfile="mater2.cpp" bodystart="707" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a53a157ee348b69a2955f2f2052ef44b9" prot="public" static="no" mutable="no">
+        <type>std::array&lt; ICustButton *, <ref refid="texmaps_8h_1aff91cf36fd3ffe965f4d5e1155bb06f3" kindref="member">NUMTEXMAPS</ref> &gt;</type>
+        <definition>std::array&lt;ICustButton *, NUMTEXMAPS&gt; Dagormat2Dialog::texbut</definition>
+        <argsstring></argsstring>
+        <name>texbut</name>
+        <qualifiedname>Dagormat2Dialog::texbut</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="709" column="14" bodyfile="mater2.cpp" bodystart="709" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1add23306d555986efa4780cd1b5613ceb" prot="public" static="no" mutable="no">
+        <type>POINT</type>
+        <definition>POINT Dagormat2Dialog::paramOrg</definition>
+        <argsstring></argsstring>
+        <name>paramOrg</name>
+        <qualifiedname>Dagormat2Dialog::paramOrg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="710" column="9" bodyfile="mater2.cpp" bodystart="710" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a26d6f7345bde6d0328b76a3bdb0c15c3" prot="public" static="no" mutable="no">
+        <type>HPEN</type>
+        <definition>HPEN Dagormat2Dialog::hFramePen</definition>
+        <argsstring></argsstring>
+        <name>hFramePen</name>
+        <qualifiedname>Dagormat2Dialog::hFramePen</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="711" column="8" bodyfile="mater2.cpp" bodystart="711" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a570c9bef2e704328f78ee38c17a3599a" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; std::unique_ptr&lt; <ref refid="classAbstractWidget" kindref="compound">AbstractWidget</ref> &gt; &gt;</type>
+        <definition>std::vector&lt;std::unique_ptr&lt;AbstractWidget&gt; &gt; Dagormat2Dialog::parameters</definition>
+        <argsstring></argsstring>
+        <name>parameters</name>
+        <qualifiedname>Dagormat2Dialog::parameters</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="713" column="15" bodyfile="mater2.cpp" bodystart="713" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a46a5f44d68115de613599bf0dfb549bb" prot="public" static="no" mutable="no">
+        <type>std::unique_ptr&lt; <ref refid="classDataBlock" kindref="compound">DataBlock</ref> &gt;</type>
+        <definition>std::unique_ptr&lt;DataBlock&gt; Dagormat2Dialog::blk</definition>
+        <argsstring></argsstring>
+        <name>blk</name>
+        <qualifiedname>Dagormat2Dialog::blk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="714" column="19" bodyfile="mater2.cpp" bodystart="714" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1ad09a2edd1599712be69b27dfe747d5ac" prot="public" static="no" mutable="no">
+        <type>WStr</type>
+        <definition>WStr Dagormat2Dialog::proxyPath</definition>
+        <argsstring></argsstring>
+        <name>proxyPath</name>
+        <qualifiedname>Dagormat2Dialog::proxyPath</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="716" column="8" bodyfile="mater2.cpp" bodystart="716" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDagormat2Dialog_1a823a961672692936fab891442a2a9268" prot="public" static="no" mutable="no">
+        <type>FilterList</type>
+        <definition>FilterList Dagormat2Dialog::filterList</definition>
+        <argsstring></argsstring>
+        <name>filterList</name>
+        <qualifiedname>Dagormat2Dialog::filterList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="717" column="14" bodyfile="mater2.cpp" bodystart="717" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classDagormat2Dialog_1aaa290ae72e203281e38c42166f3453d0" prot="public" static="yes" mutable="no">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * Dagormat2Dialog::defaultExtension</definition>
+        <argsstring></argsstring>
+        <name>defaultExtension</name>
+        <qualifiedname>Dagormat2Dialog::defaultExtension</qualifiedname>
+        <initializer>= L&quot;proxymat.blk&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="718" column="22" bodyfile="mater2.cpp" bodystart="718" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDagormat2Dialog_1a7e689792ab0aaa5f359316baae8f2cc4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::DialogsReposition</definition>
+        <argsstring>()</argsstring>
+        <name>DialogsReposition</name>
+        <qualifiedname>Dagormat2Dialog::DialogsReposition</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="698" column="8" bodyfile="mater2.cpp" bodystart="3683" bodyend="3718"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1af597e7b7a6ccf27db17b45dd76738926" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Dagormat2Dialog::Dagormat2Dialog</definition>
+        <argsstring>(HWND hwMtlEdit, IMtlParams *imp, DagorMat2 *m)</argsstring>
+        <name>Dagormat2Dialog</name>
+        <qualifiedname>Dagormat2Dialog::Dagormat2Dialog</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hwMtlEdit</declname>
+        </param>
+        <param>
+          <type>IMtlParams *</type>
+          <declname>imp</declname>
+        </param>
+        <param>
+          <type><ref refid="classDagorMat2" kindref="compound">DagorMat2</ref> *</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="720" column="3" bodyfile="mater2.cpp" bodystart="1358" bodyend="1382"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1aaacfa29568682ae2e75858f39899d5b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Dagormat2Dialog::~Dagormat2Dialog</definition>
+        <argsstring>() override</argsstring>
+        <name>~Dagormat2Dialog</name>
+        <qualifiedname>Dagormat2Dialog::~Dagormat2Dialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="721" column="3" bodyfile="mater2.cpp" bodystart="1384" bodyend="1399"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1abf5eba54ed4c2a07aa04d1be0a815fcc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::RestoreParams</definition>
+        <argsstring>()</argsstring>
+        <name>RestoreParams</name>
+        <qualifiedname>Dagormat2Dialog::RestoreParams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="723" column="8" bodyfile="mater2.cpp" bodystart="1559" bodyend="1668"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a64ecf6421bc6067dcc383703e39ec5a7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::SaveParams</definition>
+        <argsstring>()</argsstring>
+        <name>SaveParams</name>
+        <qualifiedname>Dagormat2Dialog::SaveParams</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="724" column="8" bodyfile="mater2.cpp" bodystart="1670" bodyend="1694"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a0843372e400ee2e3dca14ee91acb7be2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::FillSlotNames</definition>
+        <argsstring>()</argsstring>
+        <name>FillSlotNames</name>
+        <qualifiedname>Dagormat2Dialog::FillSlotNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="726" column="8" bodyfile="mater2.cpp" bodystart="1868" bodyend="1871"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a621d3495567b073ec0623f141e89ba01" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING Dagormat2Dialog::GetShaderName</definition>
+        <argsstring>()</argsstring>
+        <name>GetShaderName</name>
+        <qualifiedname>Dagormat2Dialog::GetShaderName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="728" column="16" bodyfile="mater2.cpp" bodystart="1705" bodyend="1716"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1ab835da56037aecdc82633770f7a4d58a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::UpdateShaderNameWidget</definition>
+        <argsstring>()</argsstring>
+        <name>UpdateShaderNameWidget</name>
+        <qualifiedname>Dagormat2Dialog::UpdateShaderNameWidget</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="729" column="8" bodyfile="mater2.cpp" bodystart="1718" bodyend="1718"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a3a7458dc5cf3e3b6ac44e1247518f614" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::ChangeShaderName</definition>
+        <argsstring>()</argsstring>
+        <name>ChangeShaderName</name>
+        <qualifiedname>Dagormat2Dialog::ChangeShaderName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="730" column="8" bodyfile="mater2.cpp" bodystart="1720" bodyend="1730"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1ac1519d41a81e9530fcffb1ce389df7de" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::Update2SidedWidget</definition>
+        <argsstring>()</argsstring>
+        <name>Update2SidedWidget</name>
+        <qualifiedname>Dagormat2Dialog::Update2SidedWidget</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="731" column="8" bodyfile="mater2.cpp" bodystart="1732" bodyend="1737"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a0ba2973dce1794cbd4d1c5d208e1ac0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::AddParam</definition>
+        <argsstring>(ParamInfo param)</argsstring>
+        <name>AddParam</name>
+        <qualifiedname>Dagormat2Dialog::AddParam</qualifiedname>
+        <param>
+          <type><ref refid="structParamInfo" kindref="compound">ParamInfo</ref></type>
+          <declname>param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="732" column="8" bodyfile="mater2.cpp" bodystart="1744" bodyend="1769"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a3f4ed09ba698049da944a7fb2f89afaf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classAbstractWidget" kindref="compound">AbstractWidget</ref> *</type>
+        <definition>AbstractWidget * Dagormat2Dialog::GetParam</definition>
+        <argsstring>(const M_STD_STRING &amp;name)</argsstring>
+        <name>GetParam</name>
+        <qualifiedname>Dagormat2Dialog::GetParam</qualifiedname>
+        <param>
+          <type>const <ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref> &amp;</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="733" column="18" bodyfile="mater2.cpp" bodystart="1771" bodyend="1777"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1af9c637af172848083c694688383519ab" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::RemParam</definition>
+        <argsstring>(const M_STD_STRING &amp;name)</argsstring>
+        <name>RemParam</name>
+        <qualifiedname>Dagormat2Dialog::RemParam</qualifiedname>
+        <param>
+          <type>const <ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref> &amp;</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="734" column="8" bodyfile="mater2.cpp" bodystart="1779" bodyend="1813"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a1dc159f2a95731bc8f4dbf8abf65d384" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::RemParamGroup</definition>
+        <argsstring>(const M_STD_STRING &amp;group_name)</argsstring>
+        <name>RemParamGroup</name>
+        <qualifiedname>Dagormat2Dialog::RemParamGroup</qualifiedname>
+        <param>
+          <type>const <ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref> &amp;</type>
+          <declname>group_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="735" column="8" bodyfile="mater2.cpp" bodystart="1815" bodyend="1850"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1ac518abf6bad310142748b08b2373bca7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::MarkUnknownParams</definition>
+        <argsstring>(const DataBlock *dataBlk)</argsstring>
+        <name>MarkUnknownParams</name>
+        <qualifiedname>Dagormat2Dialog::MarkUnknownParams</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+          <declname>dataBlk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="736" column="8" bodyfile="mater2.cpp" bodystart="1401" bodyend="1490"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a05514d6b0bc38d57dee32cb3323371af" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; RECT &gt;</type>
+        <definition>std::vector&lt; RECT &gt; Dagormat2Dialog::GetParamGroupRectangles</definition>
+        <argsstring>() const</argsstring>
+        <name>GetParamGroupRectangles</name>
+        <qualifiedname>Dagormat2Dialog::GetParamGroupRectangles</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="737" column="15" bodyfile="mater2.cpp" bodystart="1493" bodyend="1540"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1abd5dc80da7d9da9d568b6131d5b99c11" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::Invalidate</definition>
+        <argsstring>()</argsstring>
+        <name>Invalidate</name>
+        <qualifiedname>Dagormat2Dialog::Invalidate</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="739" column="8" bodyfile="mater2.cpp" bodystart="1873" bodyend="1881"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a904c41b3f43fb3f841ae80927626a1d1" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::UpdateMtlDisplay</definition>
+        <argsstring>()</argsstring>
+        <name>UpdateMtlDisplay</name>
+        <qualifiedname>Dagormat2Dialog::UpdateMtlDisplay</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="740" column="8" bodyfile="mater2.cpp" bodystart="740" bodyend="740"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a35da5f9a2bef58824b63a8061bd7b2ea" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::UpdateTexDisplay</definition>
+        <argsstring>(int i)</argsstring>
+        <name>UpdateTexDisplay</name>
+        <qualifiedname>Dagormat2Dialog::UpdateTexDisplay</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="741" column="8" bodyfile="mater2.cpp" bodystart="1893" bodyend="1906"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a1366bb507f8f17b7f3ea3222c5f63d9a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int Dagormat2Dialog::FindSubTexFromHWND</definition>
+        <argsstring>(HWND hw) override</argsstring>
+        <name>FindSubTexFromHWND</name>
+        <qualifiedname>Dagormat2Dialog::FindSubTexFromHWND</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="744" column="7" bodyfile="mater2.cpp" bodystart="1696" bodyend="1703"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a074aa7adacbadbe66f87a02c9168fc17" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::ReloadDialog</definition>
+        <argsstring>() override</argsstring>
+        <name>ReloadDialog</name>
+        <qualifiedname>Dagormat2Dialog::ReloadDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="745" column="8" bodyfile="mater2.cpp" bodystart="1908" bodyend="1926"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a3873594580844588264a6d53af69fc74" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID Dagormat2Dialog::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>Dagormat2Dialog::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="746" column="12" bodyfile="mater2.cpp" bodystart="746" bodyend="746"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a195df78af9da74277a082cb84485e585" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL Dagormat2Dialog::KeyAtCurTime</definition>
+        <argsstring>(int id)</argsstring>
+        <name>KeyAtCurTime</name>
+        <qualifiedname>Dagormat2Dialog::KeyAtCurTime</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="747" column="8" bodyfile="mater2.cpp" bodystart="1891" bodyend="1891"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a10029c01eae715f80cf7b49776e6911e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::SetThing</definition>
+        <argsstring>(ReferenceTarget *m) override</argsstring>
+        <name>SetThing</name>
+        <qualifiedname>Dagormat2Dialog::SetThing</qualifiedname>
+        <param>
+          <type>ReferenceTarget *</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="748" column="8" bodyfile="mater2.cpp" bodystart="1883" bodyend="1889"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a28c71272e4d145107bb20a8b6ec29944" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ReferenceTarget *</type>
+        <definition>ReferenceTarget * Dagormat2Dialog::GetThing</definition>
+        <argsstring>() override</argsstring>
+        <name>GetThing</name>
+        <qualifiedname>Dagormat2Dialog::GetThing</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="749" column="19" bodyfile="mater2.cpp" bodystart="749" bodyend="749"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1ab0f5f38693ade5e3e3beefa76f76949a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>Dagormat2Dialog::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="750" column="8" bodyfile="mater2.cpp" bodystart="750" bodyend="750"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1acbc43b0f00db7d030f5eed5fb721362a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::SetTime</definition>
+        <argsstring>(TimeValue t) override</argsstring>
+        <name>SetTime</name>
+        <qualifiedname>Dagormat2Dialog::SetTime</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="751" column="8" bodyfile="mater2.cpp" bodystart="751" bodyend="751"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1ade91e737f1d10ac9f28ce336ad2d56bb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::ActivateDlg</definition>
+        <argsstring>(BOOL onOff) override</argsstring>
+        <name>ActivateDlg</name>
+        <qualifiedname>Dagormat2Dialog::ActivateDlg</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>onOff</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="752" column="8" bodyfile="mater2.cpp" bodystart="752" bodyend="758"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1acea936abea27d8ea2fdc5391d6b68b0e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>HWND</type>
+        <definition>HWND Dagormat2Dialog::AppendDialog</definition>
+        <argsstring>(const TCHAR *paramName, long Resource, DLGPROC lpDialogProc, LPARAM param)</argsstring>
+        <name>AppendDialog</name>
+        <qualifiedname>Dagormat2Dialog::AppendDialog</qualifiedname>
+        <param>
+          <type>const TCHAR *</type>
+          <declname>paramName</declname>
+        </param>
+        <param>
+          <type>long</type>
+          <declname>Resource</declname>
+        </param>
+        <param>
+          <type>DLGPROC</type>
+          <declname>lpDialogProc</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>param</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="760" column="8" bodyfile="mater2.cpp" bodystart="1852" bodyend="1866"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a8066dce1e06b050141febf262f8cf7be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::ImportProxymat</definition>
+        <argsstring>()</argsstring>
+        <name>ImportProxymat</name>
+        <qualifiedname>Dagormat2Dialog::ImportProxymat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="762" column="8" bodyfile="mater2.cpp" bodystart="1928" bodyend="1965"/>
+      </memberdef>
+      <memberdef kind="function" id="classDagormat2Dialog_1a62bd361ad4b1eb2901b8b246825f35f2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void Dagormat2Dialog::ExportProxymat</definition>
+        <argsstring>()</argsstring>
+        <name>ExportProxymat</name>
+        <qualifiedname>Dagormat2Dialog::ExportProxymat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="763" column="8" bodyfile="mater2.cpp" bodystart="1967" bodyend="1988"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>Dagormat2Dialog</label>
+        <link refid="classDagormat2Dialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ParamDlg</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="3">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+        <childnode refid="1" relation="usage">
+          <edgelabel>dlg</edgelabel>
+        </childnode>
+        <childnode refid="7" relation="usage">
+          <edgelabel>texmaps</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>postLoadCallback</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>DagorMat2PostLoadCallback</label>
+        <link refid="classDagorMat2PostLoadCallback"/>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="1">
+        <label>Dagormat2Dialog</label>
+        <link refid="classDagormat2Dialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>theMtl</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="5">
+        <label>IDagorMat2</label>
+        <link refid="classIDagorMat2"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>Mtl</label>
+      </node>
+      <node id="2">
+        <label>ParamDlg</label>
+      </node>
+      <node id="10">
+        <label>PostLoadCallback</label>
+      </node>
+      <node id="8">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="7">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater2.cpp" line="695" column="1" bodyfile="mater2.cpp" bodystart="696" bodyend="764"/>
+    <listofallmembers>
+      <member refid="classDagormat2Dialog_1ade91e737f1d10ac9f28ce336ad2d56bb" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>ActivateDlg</name></member>
+      <member refid="classDagormat2Dialog_1a0ba2973dce1794cbd4d1c5d208e1ac0b" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>AddParam</name></member>
+      <member refid="classDagormat2Dialog_1acea936abea27d8ea2fdc5391d6b68b0e" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>AppendDialog</name></member>
+      <member refid="classDagormat2Dialog_1a46a5f44d68115de613599bf0dfb549bb" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>blk</name></member>
+      <member refid="classDagormat2Dialog_1a3a7458dc5cf3e3b6ac44e1247518f614" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>ChangeShaderName</name></member>
+      <member refid="classDagormat2Dialog_1a3873594580844588264a6d53af69fc74" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>ClassID</name></member>
+      <member refid="classDagormat2Dialog_1aa9c60c7888c35822cb3779d17efeabf1" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>creating</name></member>
+      <member refid="classDagormat2Dialog_1a2ffd6c1ad462e0dc441c18b1377510e6" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>csa</name></member>
+      <member refid="classDagormat2Dialog_1a9ce76293579e525d709d685a97396d0a" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>csd</name></member>
+      <member refid="classDagormat2Dialog_1a3b6707904da6d2be68b036b48b479bc5" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>cse</name></member>
+      <member refid="classDagormat2Dialog_1a44de3aade491548c6e83946e203d7574" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>css</name></member>
+      <member refid="classDagormat2Dialog_1a08a806a71e549c29ba4ce4011240b65e" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>dadmgr</name></member>
+      <member refid="classDagormat2Dialog_1af597e7b7a6ccf27db17b45dd76738926" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>Dagormat2Dialog</name></member>
+      <member refid="classDagormat2Dialog_1aaa290ae72e203281e38c42166f3453d0" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>defaultExtension</name></member>
+      <member refid="classDagormat2Dialog_1ab0f5f38693ade5e3e3beefa76f76949a" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>DeleteThis</name></member>
+      <member refid="classDagormat2Dialog_1a7e689792ab0aaa5f359316baae8f2cc4" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>DialogsReposition</name></member>
+      <member refid="classDagormat2Dialog_1a62bd361ad4b1eb2901b8b246825f35f2" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>ExportProxymat</name></member>
+      <member refid="classDagormat2Dialog_1a0843372e400ee2e3dca14ee91acb7be2" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>FillSlotNames</name></member>
+      <member refid="classDagormat2Dialog_1a823a961672692936fab891442a2a9268" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>filterList</name></member>
+      <member refid="classDagormat2Dialog_1a1366bb507f8f17b7f3ea3222c5f63d9a" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>FindSubTexFromHWND</name></member>
+      <member refid="classDagormat2Dialog_1a3f4ed09ba698049da944a7fb2f89afaf" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>GetParam</name></member>
+      <member refid="classDagormat2Dialog_1a05514d6b0bc38d57dee32cb3323371af" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>GetParamGroupRectangles</name></member>
+      <member refid="classDagormat2Dialog_1a621d3495567b073ec0623f141e89ba01" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>GetShaderName</name></member>
+      <member refid="classDagormat2Dialog_1a28c71272e4d145107bb20a8b6ec29944" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>GetThing</name></member>
+      <member refid="classDagormat2Dialog_1a26d6f7345bde6d0328b76a3bdb0c15c3" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>hFramePen</name></member>
+      <member refid="classDagormat2Dialog_1af3c7023ad57fb19f71835e24fdbeafd4" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>hParam</name></member>
+      <member refid="classDagormat2Dialog_1a2d5118711e4333d85e215fb5671076d5" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>hPhong</name></member>
+      <member refid="classDagormat2Dialog_1a0885ae56c266c58294ffcbe2af9ac772" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>hProxy</name></member>
+      <member refid="classDagormat2Dialog_1a834c79f07641ab5acbc2fd05720d2b52" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>hShader</name></member>
+      <member refid="classDagormat2Dialog_1ac3db71329c28a1679aa7087704932fb1" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>hTex</name></member>
+      <member refid="classDagormat2Dialog_1a5993dce4f957b84dd341c268ed1c6c68" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>hwmedit</name></member>
+      <member refid="classDagormat2Dialog_1a8066dce1e06b050141febf262f8cf7be" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>ImportProxymat</name></member>
+      <member refid="classDagormat2Dialog_1abd5dc80da7d9da9d568b6131d5b99c11" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>Invalidate</name></member>
+      <member refid="classDagormat2Dialog_1ae2552420486eea0978dd769e03494fe5" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>ip</name></member>
+      <member refid="classDagormat2Dialog_1a43b30739dce46ca0db0bf003386064ba" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>isActive</name></member>
+      <member refid="classDagormat2Dialog_1a195df78af9da74277a082cb84485e585" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>KeyAtCurTime</name></member>
+      <member refid="classDagormat2Dialog_1ac518abf6bad310142748b08b2373bca7" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>MarkUnknownParams</name></member>
+      <member refid="classDagormat2Dialog_1a570c9bef2e704328f78ee38c17a3599a" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>parameters</name></member>
+      <member refid="classDagormat2Dialog_1add23306d555986efa4780cd1b5613ceb" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>paramOrg</name></member>
+      <member refid="classDagormat2Dialog_1ad09a2edd1599712be69b27dfe747d5ac" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>proxyPath</name></member>
+      <member refid="classDagormat2Dialog_1a074aa7adacbadbe66f87a02c9168fc17" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>ReloadDialog</name></member>
+      <member refid="classDagormat2Dialog_1af9c637af172848083c694688383519ab" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>RemParam</name></member>
+      <member refid="classDagormat2Dialog_1a1dc159f2a95731bc8f4dbf8abf65d384" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>RemParamGroup</name></member>
+      <member refid="classDagormat2Dialog_1abf5eba54ed4c2a07aa04d1be0a815fcc" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>RestoreParams</name></member>
+      <member refid="classDagormat2Dialog_1a64ecf6421bc6067dcc383703e39ec5a7" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>SaveParams</name></member>
+      <member refid="classDagormat2Dialog_1a10029c01eae715f80cf7b49776e6911e" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>SetThing</name></member>
+      <member refid="classDagormat2Dialog_1acbc43b0f00db7d030f5eed5fb721362a" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>SetTime</name></member>
+      <member refid="classDagormat2Dialog_1a53a157ee348b69a2955f2f2052ef44b9" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>texbut</name></member>
+      <member refid="classDagormat2Dialog_1a6533d0f421d21c6d88400201703f4365" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>theMtl</name></member>
+      <member refid="classDagormat2Dialog_1ac1519d41a81e9530fcffb1ce389df7de" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>Update2SidedWidget</name></member>
+      <member refid="classDagormat2Dialog_1a904c41b3f43fb3f841ae80927626a1d1" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>UpdateMtlDisplay</name></member>
+      <member refid="classDagormat2Dialog_1ab835da56037aecdc82633770f7a4d58a" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>UpdateShaderNameWidget</name></member>
+      <member refid="classDagormat2Dialog_1a35da5f9a2bef58824b63a8061bd7b2ea" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>UpdateTexDisplay</name></member>
+      <member refid="classDagormat2Dialog_1a27db1d0d5ec010d22f1a685f683d497d" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>valid</name></member>
+      <member refid="classDagormat2Dialog_1aaacfa29568682ae2e75858f39899d5b1" prot="public" virt="non-virtual"><scope>Dagormat2Dialog</scope><name>~Dagormat2Dialog</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

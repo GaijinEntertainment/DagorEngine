@@ -1,0 +1,100 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceshader__assert" kind="namespace" language="C++">
+    <compoundname>shader_assert</compoundname>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__shAssert_8h_1aaf24366b97e96a1c4ea4c2a1c817d304" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shader_assert::readback_all</definition>
+        <argsstring>()</argsstring>
+        <name>readback_all</name>
+        <qualifiedname>shader_assert::readback_all</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shAssert.h" line="9" column="6" declfile="dag_shAssert.h" declline="9" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shAssert_8h_1ad65d36c806ba17a847965f8de0fa7a80" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void shader_assert::reset_all</definition>
+        <argsstring>()</argsstring>
+        <name>reset_all</name>
+        <qualifiedname>shader_assert::reset_all</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shAssert.h" line="10" column="6" declfile="dag_shAssert.h" declline="10" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shAssert_8h_1a9d10613b9612e499e8969bdae9efc254" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shader_assert::init</definition>
+        <argsstring>()</argsstring>
+        <name>init</name>
+        <qualifiedname>shader_assert::init</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shAssert.h" line="13" column="13" bodyfile="dag_shAssert.h" bodystart="13" bodyend="13"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shAssert_8h_1a4043c0fab839a5c926d03ef8a096abd6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shader_assert::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>shader_assert::close</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shAssert.h" line="14" column="13" bodyfile="dag_shAssert.h" bodystart="14" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shAssert_8h_1ae747348148d27b90d53d029b0dae7a64" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shader_assert::readback</definition>
+        <argsstring>()</argsstring>
+        <name>readback</name>
+        <qualifiedname>shader_assert::readback</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shAssert.h" line="15" column="13" bodyfile="dag_shAssert.h" bodystart="15" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__shAssert_8h_1a329653ada98d5140d31a040d6761197a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void shader_assert::bind</definition>
+        <argsstring>(int)</argsstring>
+        <name>bind</name>
+        <qualifiedname>shader_assert::bind</qualifiedname>
+        <param>
+          <type>int</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shAssert.h" line="16" column="13" bodyfile="dag_shAssert.h" bodystart="16" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shAssert.h" line="7" column="1"/>
+  </compounddef>
+</doxygen>

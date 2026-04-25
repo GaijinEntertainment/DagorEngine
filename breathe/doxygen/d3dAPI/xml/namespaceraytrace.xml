@@ -1,0 +1,1107 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceraytrace" kind="namespace" language="C++">
+    <compoundname>raytrace</compoundname>
+    <innerclass refid="structraytrace_1_1AccelerationStructureBuildParameters" prot="public">raytrace::AccelerationStructureBuildParameters</innerclass>
+    <innerclass refid="structraytrace_1_1AccelerationStructurePoolCreateInfo" prot="public">raytrace::AccelerationStructurePoolCreateInfo</innerclass>
+    <innerclass refid="structraytrace_1_1AccelerationStructureSizes" prot="public">raytrace::AccelerationStructureSizes</innerclass>
+    <innerclass refid="structraytrace_1_1BatchedBottomAccelerationStructureBuildInfo" prot="public">raytrace::BatchedBottomAccelerationStructureBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BatchedOpacityMicroMapTriangleArrayBuildInfo" prot="public">raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BatchedTopAccelerationStructureBuildInfo" prot="public">raytrace::BatchedTopAccelerationStructureBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BottomAccelerationCreateInfo" prot="public">raytrace::BottomAccelerationCreateInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BottomAccelerationStructureBuildInfo" prot="public">raytrace::BottomAccelerationStructureBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BottomAccelerationStructurePlacementInfo" prot="public">raytrace::BottomAccelerationStructurePlacementInfo</innerclass>
+    <innerclass refid="structraytrace_1_1BottomAccelerationStructureSizeCalculcationInfo" prot="public">raytrace::BottomAccelerationStructureSizeCalculcationInfo</innerclass>
+    <innerclass refid="structraytrace_1_1CallableShaderGroupMember" prot="public">raytrace::CallableShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1InBufferOpacityMicroMapDescription" prot="public">raytrace::InBufferOpacityMicroMapDescription</innerclass>
+    <innerclass refid="structraytrace_1_1MissShaderGroupMember" prot="public">raytrace::MissShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo" prot="public">raytrace::OpacityMicroMapTriangleArrayBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1OpacityMicroMapTriangleArrayPlacementInfo" prot="public">raytrace::OpacityMicroMapTriangleArrayPlacementInfo</innerclass>
+    <innerclass refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo" prot="public">raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo</innerclass>
+    <innerclass refid="classraytrace_1_1Pipeline" prot="public">raytrace::Pipeline</innerclass>
+    <innerclass refid="structraytrace_1_1PipelineCreateInfo" prot="public">raytrace::PipelineCreateInfo</innerclass>
+    <innerclass refid="structraytrace_1_1PipelineExpandInfo" prot="public">raytrace::PipelineExpandInfo</innerclass>
+    <innerclass refid="structraytrace_1_1ProceduralShaderGroupMember" prot="public">raytrace::ProceduralShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchGroup" prot="public">raytrace::RayDispatchGroup</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchGroupTable" prot="public">raytrace::RayDispatchGroupTable</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchGroupTableSet" prot="public">raytrace::RayDispatchGroupTableSet</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchIndirectArguments" prot="public">raytrace::RayDispatchIndirectArguments</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchIndirectBaseParameters" prot="public">raytrace::RayDispatchIndirectBaseParameters</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchIndirectCountParameters" prot="public">raytrace::RayDispatchIndirectCountParameters</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchIndirectParameters" prot="public">raytrace::RayDispatchIndirectParameters</innerclass>
+    <innerclass refid="structraytrace_1_1RayDispatchParameters" prot="public">raytrace::RayDispatchParameters</innerclass>
+    <innerclass refid="structraytrace_1_1RayGenShaderGroupMember" prot="public">raytrace::RayGenShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1ResourceBindingTable" prot="public">raytrace::ResourceBindingTable</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableBufferProperties" prot="public">raytrace::ShaderBindingTableBufferProperties</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableDefinition" prot="public">raytrace::ShaderBindingTableDefinition</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableGroupInfo" prot="public">raytrace::ShaderBindingTableGroupInfo</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableGroupProperties" prot="public">raytrace::ShaderBindingTableGroupProperties</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableOffset" prot="public">raytrace::ShaderBindingTableOffset</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableSet" prot="public">raytrace::ShaderBindingTableSet</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderBindingTableSubRange" prot="public">raytrace::ShaderBindingTableSubRange</innerclass>
+    <innerclass refid="structraytrace_1_1ShaderGroupMember" prot="public">raytrace::ShaderGroupMember</innerclass>
+    <innerclass refid="structraytrace_1_1TopAccelerationStructureBuildInfo" prot="public">raytrace::TopAccelerationStructureBuildInfo</innerclass>
+    <innerclass refid="structraytrace_1_1TopAccelerationStructurePlacementInfo" prot="public">raytrace::TopAccelerationStructurePlacementInfo</innerclass>
+    <innerclass refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo" prot="public">raytrace::TopAccelerationStructureSizeCalculcationInfo</innerclass>
+    <innerclass refid="structraytrace_1_1TriangleShaderGroupMember" prot="public">raytrace::TriangleShaderGroupMember</innerclass>
+    <innernamespace refid="namespaceraytrace_1_1opacity__micro__map">raytrace::opacity_micro_map</innernamespace>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceraytrace_1a9f4c8210125146a867105925ddd600d8" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>OpacityMicroMapState</name>
+        <qualifiedname>raytrace::OpacityMicroMapState</qualifiedname>
+        <enumvalue id="namespaceraytrace_1a9f4c8210125146a867105925ddd600d8ac1cfd4c3bc08ad6625e417fd42d188a1" prot="public">
+          <name>FullyTransparent</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Triangle is fully transparent. Valid for any format. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceraytrace_1a9f4c8210125146a867105925ddd600d8ae13b500309e793875d088d4f879ce616" prot="public">
+          <name>FullyOpaque</name>
+          <initializer>= 1</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Triangle is fully opaque. Valid for any format. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceraytrace_1a9f4c8210125146a867105925ddd600d8afd6544a490442f3ef10f808e78fda4ed" prot="public">
+          <name>UnknownTransparent</name>
+          <initializer>= 2</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Triangle is unknown transparent (eg not fully transparent but more transparent than opaque). Valid only for 4 state format. </para>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceraytrace_1a9f4c8210125146a867105925ddd600d8a23e2f553f61ce34ed99c1b163466db73" prot="public">
+          <name>UnknownOpaque</name>
+          <initializer>= 3</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>Triangle is unknown opaque (eg not fully opaque but more opaque than transparent). Valid only for 4 state format. </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>A opacity micro map triangle can have up to 4 states. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="459" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="460" bodyend="473"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>AccelerationStructureBuildMode</name>
+        <qualifiedname>raytrace::AccelerationStructureBuildMode</qualifiedname>
+        <enumvalue id="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216a2fe4167817733fec8e6ba1afddf78f1b" prot="public">
+          <name>Synchronous</name>
+          <briefdescription>
+<para>Build process is executed as normal and the build results are usable right away. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216aa805c160c8eb333fde4a672b1044fc21" prot="public">
+          <name>FrameParallel</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+<para>This allows the driver to move the build process to a execution queue that is executing builds in parallel to the current frame. Those builds are required to be completed before the next frame starts (eg aiming for the end of current frame). This mode aims to minimizes the impact for the build process to the frame time of the current frame with a simple rules change. All builds with this mode will be executed in order by one queue, this means that resource regions, like scratch buffer regions used by this build process are unavailable for builds with other modes than this mode, but can be used again with builds with FrameParallel build mode in the same frame. Constant resources, like source acceleration structures for compaction, vertex index and other buffers, are still usable as normal during the frame, as long as they are not modified during the frame in a way that would affect the build command. So updating a region of a vertex buffer that is not used by the build command during the frame is perfectly fine, but a region the is used by the build command, may be not. This is because the driver may reorders internally the order in which copies to buffers and the execution of build commands on the parallel queue is executed on the GPU. Should any resource used by build commands with this mode, be deleted during the current frame, the driver has to ensure that the resources are valid until the build command is completed. </para>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="667" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="668" bodyend="692"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ShaderGroup</name>
+        <qualifiedname>raytrace::ShaderGroup</qualifiedname>
+        <enumvalue id="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776aec0fc0100c4fc1ce4eea230c3dc10360" prot="public">
+          <name>Undefined</name>
+          <briefdescription>
+<para>Undefined, indicates that <ref refid="structraytrace_1_1ShaderGroupMember" kindref="compound">ShaderGroupMember</ref> is uninitialized. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a4b2766e948a345bc42a34d6ae00b329a" prot="public">
+          <name>RayGen</name>
+          <briefdescription>
+<para>Shader group is of <ref refid="structraytrace_1_1RayGenShaderGroupMember" kindref="compound">RayGenShaderGroupMember</ref> type. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776ae7ddb7cd777b59610b220bcfa80bd95f" prot="public">
+          <name>Miss</name>
+          <briefdescription>
+<para>Shader group is of <ref refid="structraytrace_1_1MissShaderGroupMember" kindref="compound">MissShaderGroupMember</ref> type. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a79ace5b2a7206c5d0aa286a5b33385f8" prot="public">
+          <name>Callable</name>
+          <briefdescription>
+<para>Shader group is of <ref refid="structraytrace_1_1CallableShaderGroupMember" kindref="compound">CallableShaderGroupMember</ref> type. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a5e5500cb2b82eb72d550de644bd1b64b" prot="public">
+          <name>Triangle</name>
+          <briefdescription>
+<para>Shader group is of <ref refid="structraytrace_1_1TriangleShaderGroupMember" kindref="compound">TriangleShaderGroupMember</ref> type. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceraytrace_1a7c6cd72ce0ef8c9ff48251913ea82776a4b729261cf45327870528920781485f4" prot="public">
+          <name>Procedural</name>
+          <briefdescription>
+<para>Shader group is of <ref refid="structraytrace_1_1ProceduralShaderGroupMember" kindref="compound">ProceduralShaderGroupMember</ref> type. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Describes which kind of shader group a shader belongs to. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="739" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="740" bodyend="753"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="typedef">
+      <memberdef kind="typedef" id="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" prot="public" static="no">
+        <type>AccelerationStructurePoolType *</type>
+        <definition>using raytrace::AccelerationStructurePool = typedef AccelerationStructurePoolType *</definition>
+        <argsstring></argsstring>
+        <name>AccelerationStructurePool</name>
+        <qualifiedname>raytrace::AccelerationStructurePool</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="661" column="1" bodyfile="dag_consts.h" bodystart="661" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceraytrace_1aa59903fe566fb04b74f7971fc34726e6" prot="public" static="no">
+        <type><ref refid="dag__drvRayTrace_8h_1a9cfed265bc6e84ea407b5472b5146e32" kindref="member">RaytraceOpacityMicroMapFormat</ref></type>
+        <definition>using raytrace::OpacityMicroMapFormat = typedef RaytraceOpacityMicroMapFormat</definition>
+        <argsstring></argsstring>
+        <name>OpacityMicroMapFormat</name>
+        <qualifiedname>raytrace::OpacityMicroMapFormat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="491" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="491" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceraytrace_1a5e10ee9e661e1536b9ab1296d2780c9c" prot="public" static="no">
+        <type><ref refid="structRaytraceOpacityMicroMapDescription" kindref="compound">RaytraceOpacityMicroMapDescription</ref></type>
+        <definition>using raytrace::OpacityMicroMapDescription = typedef RaytraceOpacityMicroMapDescription</definition>
+        <argsstring></argsstring>
+        <name>OpacityMicroMapDescription</name>
+        <qualifiedname>raytrace::OpacityMicroMapDescription</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="492" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="492" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceraytrace_1aba761a21ee3ae0e7ea842f104c79b19a" prot="public" static="no">
+        <type>eastl::variant&lt; <ref refid="structraytrace_1_1TopAccelerationStructureSizeCalculcationInfo" kindref="compound">TopAccelerationStructureSizeCalculcationInfo</ref>, <ref refid="structraytrace_1_1BottomAccelerationStructureSizeCalculcationInfo" kindref="compound">BottomAccelerationStructureSizeCalculcationInfo</ref>, <ref refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo" kindref="compound">OpacityMicroMapTriangleArraySizeCalculationInfo</ref> &gt;</type>
+        <definition>using raytrace::AccelerationStructureSizeCalculcationInfo = typedef eastl::variant&lt;TopAccelerationStructureSizeCalculcationInfo, BottomAccelerationStructureSizeCalculcationInfo, OpacityMicroMapTriangleArraySizeCalculationInfo&gt;</definition>
+        <argsstring></argsstring>
+        <name>AccelerationStructureSizeCalculcationInfo</name>
+        <qualifiedname>raytrace::AccelerationStructureSizeCalculcationInfo</qualifiedname>
+        <briefdescription>
+<para>Represents either TLAS, BLAS or OMMTA size calculation info. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="565" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="566" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceraytrace_1a389e4d54f792ba8ec1bd90bbc504aad6" prot="public" static="no">
+        <type>RaytraceOpacityMicroMapTriangleArray</type>
+        <definition>using raytrace::OpacityMicroMapTriangleArray = typedef RaytraceOpacityMicroMapTriangleArray</definition>
+        <argsstring></argsstring>
+        <name>OpacityMicroMapTriangleArray</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArray</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="575" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="575" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceraytrace_1ac85e5877995cba71908c8cb710fa0424" prot="public" static="no">
+        <type>RaytraceBottomAccelerationStructure</type>
+        <definition>using raytrace::BottomAccelerationStructure = typedef RaytraceBottomAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>BottomAccelerationStructure</name>
+        <qualifiedname>raytrace::BottomAccelerationStructure</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="576" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="576" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceraytrace_1a8c32a7f9c3f9b96a2871abe28b75bef0" prot="public" static="no">
+        <type>RaytraceTopAccelerationStructure</type>
+        <definition>using raytrace::TopAccelerationStructure = typedef RaytraceTopAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>TopAccelerationStructure</name>
+        <qualifiedname>raytrace::TopAccelerationStructure</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="577" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="577" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceraytrace_1a154c80bfc8cf2aae689a30803b9d030b" prot="public" static="no">
+        <type><ref refid="structRaytraceAnyAccelerationStructure" kindref="compound">RaytraceAnyAccelerationStructure</ref></type>
+        <definition>using raytrace::AnyAccelerationStructure = typedef RaytraceAnyAccelerationStructure</definition>
+        <argsstring></argsstring>
+        <name>AnyAccelerationStructure</name>
+        <qualifiedname>raytrace::AnyAccelerationStructure</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="578" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="578" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="typedef" id="namespaceraytrace_1afc127134e0118a9ec77c913d4d8d6fa0" prot="public" static="no">
+        <type>eastl::variant&lt; <ref refid="structraytrace_1_1TopAccelerationStructurePlacementInfo" kindref="compound">TopAccelerationStructurePlacementInfo</ref>, <ref refid="structraytrace_1_1BottomAccelerationStructurePlacementInfo" kindref="compound">BottomAccelerationStructurePlacementInfo</ref>, <ref refid="structraytrace_1_1OpacityMicroMapTriangleArrayPlacementInfo" kindref="compound">OpacityMicroMapTriangleArrayPlacementInfo</ref> &gt;</type>
+        <definition>using raytrace::AccelerationStructurePlacementInfo = typedef eastl::variant&lt;TopAccelerationStructurePlacementInfo, BottomAccelerationStructurePlacementInfo, OpacityMicroMapTriangleArrayPlacementInfo&gt;</definition>
+        <argsstring></argsstring>
+        <name>AccelerationStructurePlacementInfo</name>
+        <qualifiedname>raytrace::AccelerationStructurePlacementInfo</qualifiedname>
+        <briefdescription>
+<para>Placement information of a TLAS, BLAS or a OMMAS in a raytrace acceleration structure pool. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="611" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="612" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceraytrace_1a87950fe98c34e6cb18021fa216f9c08b" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref></type>
+        <definition>constexpr AccelerationStructurePool raytrace::InvalidAccelerationStructurePool</definition>
+        <argsstring></argsstring>
+        <name>InvalidAccelerationStructurePool</name>
+        <qualifiedname>raytrace::InvalidAccelerationStructurePool</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_consts.h" line="662" column="44" bodyfile="dag_consts.h" bodystart="662" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceraytrace_1a1d5e11386fd4a9628c4aff5ee7092ae7" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref></type>
+        <definition>constexpr Pipeline raytrace::InvalidPipeline</definition>
+        <argsstring></argsstring>
+        <name>InvalidPipeline</name>
+        <qualifiedname>raytrace::InvalidPipeline</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+<para>Represents a &quot;null pointer&quot; to a pipeline object. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="864" column="27" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="864" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceraytrace_1a0fad1e46e50db136432acdb178cbe7c5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>static bool raytrace::check_vertex_format_support_for_acceleration_structure_build</definition>
+        <argsstring>(uint32_t format)</argsstring>
+        <name>check_vertex_format_support_for_acceleration_structure_build</name>
+        <qualifiedname>raytrace::check_vertex_format_support_for_acceleration_structure_build</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>format</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Checks if any VSDT_* is supported by the device as source for building bottom acceleration structures. When &apos;<ref refid="structDeviceDriverCapabilitiesBase_1aff575ee7120e0f388dc928e659b08982" kindref="member">DeviceDriverCapabilitiesBase::hasRayAccelerationStructure</ref>&apos; is false, then this will always return false. When &apos;<ref refid="structDeviceDriverCapabilitiesBase_1aff575ee7120e0f388dc928e659b08982" kindref="member">DeviceDriverCapabilitiesBase::hasRayAccelerationStructure</ref>&apos; is true, then this has to return true for VSDT_FLOAT3, which is always required to be supported, any other format is optional and may or may not return true. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="74" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="74" bodyend="77" declfile="rayTrace/dag_drvRayTrace.h" declline="380" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a5b943c5b46f1a20371d43024cc9277e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref></type>
+        <definition>AccelerationStructurePool raytrace::create_acceleration_structure_pool</definition>
+        <argsstring>(const AccelerationStructurePoolCreateInfo &amp;info)</argsstring>
+        <name>create_acceleration_structure_pool</name>
+        <qualifiedname>raytrace::create_acceleration_structure_pool</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1AccelerationStructurePoolCreateInfo" kindref="compound">AccelerationStructurePoolCreateInfo</ref> &amp;</type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Creates a new pool for acceleration structures. Returns InvalidAccelerationStructurePool on error or when pools are not supported. A value other than 0 of <ref refid="structDeviceDriverRaytraceProperties_1ab296e3776bdcdbd804021099346900d9" kindref="member">DeviceDriverRaytraceProperties::accelerationStructurePoolSizeAlignment</ref> indicates supports for pools. Cause for error may be:<itemizedlist>
+<listitem><para>Invalid input</para>
+</listitem><listitem><para>Insufficient space to satisfy the requested allocation size</para>
+</listitem><listitem><para>Device error <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The properties of the pool to create. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A new pool object or InvalidAccelerationStructurePool to indicate an error. </para>
+</simplesect>
+</para>
+</listitem></itemizedlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="413" column="27" declfile="rayTrace/dag_drvRayTrace.h" declline="413" declcolumn="27"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1aa0e61ad095081547a09cd69c710242a7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void raytrace::destroy_acceleration_structure_pool</definition>
+        <argsstring>(AccelerationStructurePool pool)</argsstring>
+        <name>destroy_acceleration_structure_pool</name>
+        <qualifiedname>raytrace::destroy_acceleration_structure_pool</qualifiedname>
+        <param>
+          <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref></type>
+          <declname>pool</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Destroys the given acceleration structure pool. Implicitly destroys all TLAS and BLAS created from the given pool. Drivers will ensure that pending uses of the pool will be executed safely before the pool is actually freed. This may result in a delayed freeing of the used memory of the pool. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>pool</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The ray trace acceleration structure pool to delete. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="419" column="6" declfile="rayTrace/dag_drvRayTrace.h" declline="419" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a163143b44cc8022a0a9801dbf8ac49d3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structRaytraceAccelerationStructureGpuHandle" kindref="compound">RaytraceAccelerationStructureGpuHandle</ref></type>
+        <definition>RaytraceAccelerationStructureGpuHandle raytrace::get_pool_base_address</definition>
+        <argsstring>(AccelerationStructurePool pool)</argsstring>
+        <name>get_pool_base_address</name>
+        <qualifiedname>raytrace::get_pool_base_address</qualifiedname>
+        <param>
+          <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref></type>
+          <declname>pool</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns the base address (address at offset 0) of the acceleration structure pool. This can be used to calculate GPU addresses for BLAS and TLAS. This address will remain constant for the entire lifetime duration of the pool. Returned value may be 0 on drivers without proper GPU address support. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>pool</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The pool to query the base GPU address of. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A valid GPU address or 0, depending on the driver support. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="426" column="40" declfile="rayTrace/dag_drvRayTrace.h" declline="426" declcolumn="40"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1acf092ba36b5b40be978b8b457eeae191" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structraytrace_1_1AccelerationStructureSizes" kindref="compound">AccelerationStructureSizes</ref></type>
+        <definition>AccelerationStructureSizes raytrace::calculate_acceleration_structure_sizes</definition>
+        <argsstring>(const AccelerationStructureSizeCalculcationInfo &amp;info)</argsstring>
+        <name>calculate_acceleration_structure_sizes</name>
+        <qualifiedname>raytrace::calculate_acceleration_structure_sizes</qualifiedname>
+        <param>
+          <type>const <ref refid="namespaceraytrace_1aba761a21ee3ae0e7ea842f104c79b19a" kindref="member">AccelerationStructureSizeCalculcationInfo</ref> &amp;</type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Calculates all needed sizes for BLAS or TLAS create, build and update. Note this may allocate some temporary memory internally to convert some input data arrays to target APIs data structures. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The information about the BLAS or TLAS the size is requested for. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Required sizes information or all 0 on error. Cause for error may be invalid inputs to info or a device reset. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="572" column="28" declfile="rayTrace/dag_drvRayTrace.h" declline="572" declcolumn="28"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1afded2e162d667ffe9c0c0e68e50d0601" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceraytrace_1a154c80bfc8cf2aae689a30803b9d030b" kindref="member">AnyAccelerationStructure</ref></type>
+        <definition>AnyAccelerationStructure raytrace::create_acceleration_structure</definition>
+        <argsstring>(AccelerationStructurePool pool, const AccelerationStructurePlacementInfo &amp;placement_info)</argsstring>
+        <name>create_acceleration_structure</name>
+        <qualifiedname>raytrace::create_acceleration_structure</qualifiedname>
+        <param>
+          <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref></type>
+          <declname>pool</declname>
+        </param>
+        <param>
+          <type>const <ref refid="namespaceraytrace_1afc127134e0118a9ec77c913d4d8d6fa0" kindref="member">AccelerationStructurePlacementInfo</ref> &amp;</type>
+          <declname>placement_info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Creates a TLAS or BLAS at the given location at the offset specified by &apos;placement_info&apos; in the acceleration structure pool &apos;pool&apos; with the size from &apos;placement_info&apos;. offset and size need to be aligned to the system specific (T/B)LAS alignment values. pool is for the time being optional, and can be InvalidAccelerationStructurePool.</para>
+<para>Concurrent create invocations with the same pool have to be synchronized as modifying access to the pool object is not thread safe.</para>
+<para>May return nullptr on error. Cause for error may be:<itemizedlist>
+<listitem><para>when pool is not InvalidAccelerationStructurePool and offset + size is larger than pool size</para>
+</listitem><listitem><para>when pool is not InvalidAccelerationStructurePool and offset is not aligned to the required alignment</para>
+</listitem><listitem><para>size if not aligned to the required alignment</para>
+</listitem><listitem><para>Feature unsupported <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>pool</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The pool where the TLAS / BLAS should be placed. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>placement_info</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Information on where to place the TLAS / BLAS in pool. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>A TLAS or BLAS object on success or nullptr on error. </para>
+</simplesect>
+</para>
+</listitem></itemizedlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="628" column="26" declfile="rayTrace/dag_drvRayTrace.h" declline="628" declcolumn="26"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a274bfebaa40708d8874ef0b81d173022" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void raytrace::destroy_acceleration_structure</definition>
+        <argsstring>(AccelerationStructurePool pool, AnyAccelerationStructure structure)</argsstring>
+        <name>destroy_acceleration_structure</name>
+        <qualifiedname>raytrace::destroy_acceleration_structure</qualifiedname>
+        <param>
+          <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">AccelerationStructurePool</ref></type>
+          <declname>pool</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceraytrace_1a154c80bfc8cf2aae689a30803b9d030b" kindref="member">AnyAccelerationStructure</ref></type>
+          <declname>structure</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Destroys a acceleration struct, pool has to be the pool where the structure was allocated from. Providing mismatching pool and structure results in undefined behavior, it may work or it may cause memory corruptions and errors. <parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>pool</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>The pool where the TLAS / BLAS was placed into. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>structure</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>TLAS / BLAS to destroy. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="634" column="6" declfile="rayTrace/dag_drvRayTrace.h" declline="634" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1af44d1f98bc3b8604ac1cb310094680c6" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void raytrace::build_acceleration_structure</definition>
+        <argsstring>(AccelerationStructureBuildParameters build_params, AccelerationStructureBuildMode build_mode=AccelerationStructureBuildMode::Synchronous)</argsstring>
+        <name>build_acceleration_structure</name>
+        <qualifiedname>raytrace::build_acceleration_structure</qualifiedname>
+        <param>
+          <type><ref refid="structraytrace_1_1AccelerationStructureBuildParameters" kindref="compound">AccelerationStructureBuildParameters</ref></type>
+          <declname>build_params</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216" kindref="member">AccelerationStructureBuildMode</ref></type>
+          <declname>build_mode</declname>
+          <defval><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216a2fe4167817733fec8e6ba1afddf78f1b" kindref="member">AccelerationStructureBuildMode::Synchronous</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Issues a build command with the given parameters and mode. See <ref refid="structraytrace_1_1AccelerationStructureBuildParameters" kindref="compound">AccelerationStructureBuildParameters</ref> and AccelerationStructureBuildMode for details. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="696" column="6" declfile="rayTrace/dag_drvRayTrace.h" declline="696" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a24293d09eb2f7bc6f932334ca537c95b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref></type>
+        <definition>Pipeline raytrace::create_pipeline</definition>
+        <argsstring>(const PipelineCreateInfo &amp;pci)</argsstring>
+        <name>create_pipeline</name>
+        <qualifiedname>raytrace::create_pipeline</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1PipelineCreateInfo" kindref="compound">PipelineCreateInfo</ref> &amp;</type>
+          <declname>pci</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Creates a new pipeline object with the given properties defined by the &apos;pci&apos; parameter. May return InvalidPipeline on an error. In case of a device reset, the pipeline becomes unusable and has to be destroyed and recreated. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="919" column="10" declfile="rayTrace/dag_drvRayTrace.h" declline="919" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1aaa5009767f704ef3e7c4f7e8c2b09db0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref></type>
+        <definition>Pipeline raytrace::expand_pipeline</definition>
+        <argsstring>(const Pipeline &amp;pipeline, const PipelineExpandInfo &amp;pei)</argsstring>
+        <name>expand_pipeline</name>
+        <qualifiedname>raytrace::expand_pipeline</qualifiedname>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1PipelineExpandInfo" kindref="compound">PipelineExpandInfo</ref> &amp;</type>
+          <declname>pei</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Tries to expand a existing pipeline object. This will return a new pipeline object, the old one is can still be used normally (and concurrently) and is kept as is and may be destroyed at any time with destroy_pipeline should the new object replace the old one. May return InvalidPipeline on an error or when an expansion was not be possible. This is to be cheaper than &apos;create_pipeline&apos; with the same existing and added shaders, when the driver supports pipeline expansion natively. In any case it should not perform worse than &apos;create_pipeline&apos;. Native support for pipeline expansion is not required. In some cases, driver may not be able to expand the pipeline, even when native expansion is supported, this may be because of various cases, like pipeline layout / root signature not being able to supply all the resource slots needed by the expanded pipeline. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="930" column="10" declfile="rayTrace/dag_drvRayTrace.h" declline="930" declcolumn="10"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1af415da54c6df1e89330b160503becafc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void raytrace::destroy_pipeline</definition>
+        <argsstring>(Pipeline &amp;p)</argsstring>
+        <name>destroy_pipeline</name>
+        <qualifiedname>raytrace::destroy_pipeline</qualifiedname>
+        <param>
+          <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Destroys a pipeline object, pending ray dispatches will be guaranteed to be executed before the object is actually destroyed. This function will not block to make this guarantee. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="933" column="6" declfile="rayTrace/dag_drvRayTrace.h" declline="933" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a23c502084a2f2a97589bbec3a4f57a1a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties" kindref="compound">ShaderBindingTableBufferProperties</ref></type>
+        <definition>ShaderBindingTableBufferProperties raytrace::get_shader_binding_table_buffer_properties</definition>
+        <argsstring>(const ShaderBindingTableDefinition &amp;sbtd, const Pipeline &amp;pipeline)</argsstring>
+        <name>get_shader_binding_table_buffer_properties</name>
+        <qualifiedname>raytrace::get_shader_binding_table_buffer_properties</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ShaderBindingTableDefinition" kindref="compound">ShaderBindingTableDefinition</ref> &amp;</type>
+          <declname>sbtd</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Calculates the properties of a buffer to be use as a shader binding table with the given properties. Returns default initialized data structure on error and on success values to create a sbuffer for shader binding table use. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="1046" column="36" declfile="rayTrace/dag_drvRayTrace.h" declline="1046" declcolumn="36"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1af9d8e925a496024535ed6758ec6aca9b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void raytrace::dispatch</definition>
+        <argsstring>(const ResourceBindingTable &amp;rbt, const Pipeline &amp;pipeline, const RayDispatchParameters &amp;rdp, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>dispatch</name>
+        <qualifiedname>raytrace::dispatch</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">ResourceBindingTable</ref> &amp;</type>
+          <declname>rbt</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1RayDispatchParameters" kindref="compound">RayDispatchParameters</ref> &amp;</type>
+          <declname>rdp</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref></type>
+          <declname>gpu_pipeline</declname>
+          <defval><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Dispatches the ray gen shader rederenced by the &apos;shaderBindingTableSet&apos; member of &apos;rdp&apos; with the grid parameters of &apos;rdp&apos;. All resource usages are defined by &apos;rbt&apos; any resource slot undefined will use a null resource. All shaders that may be invoked directly or indirectly by this dispatch have to be part of &apos;pipeline&apos;. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="1263" column="6" declfile="rayTrace/dag_drvRayTrace.h" declline="1263" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a779451cfcb9aa15bcd553626d6686e41" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void raytrace::dispatch_indirect</definition>
+        <argsstring>(const ResourceBindingTable &amp;rbt, const Pipeline &amp;pipeline, const RayDispatchIndirectParameters &amp;rdip, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>dispatch_indirect</name>
+        <qualifiedname>raytrace::dispatch_indirect</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">ResourceBindingTable</ref> &amp;</type>
+          <declname>rbt</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1RayDispatchIndirectParameters" kindref="compound">RayDispatchIndirectParameters</ref> &amp;</type>
+          <declname>rdip</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref></type>
+          <declname>gpu_pipeline</declname>
+          <defval><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Indirect dispatch of the ray gen shader referenced by each entry in the indirect buffer, the indirect invocation will be executed the number of times the &apos;count&apos; member of &apos;rdip&apos; declares. All resource usages are defined by &apos;rbt&apos; any resource slot undefined will use a null resource. All shaders that may be invoked directly or indirectly by this dispatch have to be part of &apos;pipeline&apos;. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="1269" column="6" declfile="rayTrace/dag_drvRayTrace.h" declline="1269" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a8b8526ad0b1fdc357ef580cda30c9120" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void raytrace::dispatch_indirect_count</definition>
+        <argsstring>(const ResourceBindingTable &amp;rbt, const Pipeline &amp;pipeline, const RayDispatchIndirectCountParameters &amp;rdicp, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>dispatch_indirect_count</name>
+        <qualifiedname>raytrace::dispatch_indirect_count</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">ResourceBindingTable</ref> &amp;</type>
+          <declname>rbt</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1RayDispatchIndirectCountParameters" kindref="compound">RayDispatchIndirectCountParameters</ref> &amp;</type>
+          <declname>rdicp</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref></type>
+          <declname>gpu_pipeline</declname>
+          <defval><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Indirect dispatch of the ray gen shader referenced by each entry in the indirect buffer, the indirect invocation will be executed the number of times the value at the count buffer is at the time of the invocation on the execution device, however this value can not exceed the value of &apos;maxCount&apos; member of &apos;rdip&apos; declares. All resource usages are defined by &apos;rbt&apos; any resource slot undefined will use a null resource. All shaders that may be invoked directly or indirectly by this dispatch have to be part of &apos;pipeline&apos;. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="1276" column="6" declfile="rayTrace/dag_drvRayTrace.h" declline="1276" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a12348105f76711eb8120940ea96f7ec3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">::raytrace::AccelerationStructurePool</ref></type>
+        <definition>static inline::raytrace::AccelerationStructurePool raytrace::create_acceleration_structure_pool</definition>
+        <argsstring>(const ::raytrace::AccelerationStructurePoolCreateInfo &amp;info)</argsstring>
+        <name>create_acceleration_structure_pool</name>
+        <qualifiedname>raytrace::create_acceleration_structure_pool</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1AccelerationStructurePoolCreateInfo" kindref="compound">::raytrace::AccelerationStructurePoolCreateInfo</ref> &amp;</type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="79" column="53" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="79" bodyend="83" declfile="rayTrace/rayTracedrv3d.inl.h" declline="34" declcolumn="39"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a1319990b45d7a776869c40f5ed733dab" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void raytrace::destroy_acceleration_structure_pool</definition>
+        <argsstring>(::raytrace::AccelerationStructurePool pool)</argsstring>
+        <name>destroy_acceleration_structure_pool</name>
+        <qualifiedname>raytrace::destroy_acceleration_structure_pool</qualifiedname>
+        <param>
+          <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">::raytrace::AccelerationStructurePool</ref></type>
+          <declname>pool</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="85" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="85" bodyend="88" declfile="rayTrace/rayTracedrv3d.inl.h" declline="35" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a6f8593da061bf809cbd2f6b0d41181b5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="structRaytraceAccelerationStructureGpuHandle" kindref="compound">RaytraceAccelerationStructureGpuHandle</ref></type>
+        <definition>static RaytraceAccelerationStructureGpuHandle raytrace::get_pool_base_address</definition>
+        <argsstring>(::raytrace::AccelerationStructurePool pool)</argsstring>
+        <name>get_pool_base_address</name>
+        <qualifiedname>raytrace::get_pool_base_address</qualifiedname>
+        <param>
+          <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">::raytrace::AccelerationStructurePool</ref></type>
+          <declname>pool</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="90" column="54" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="90" bodyend="93" declfile="rayTrace/rayTracedrv3d.inl.h" declline="36" declcolumn="40"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a367c3e24bcf3a7376a2174d58b88c869" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structraytrace_1_1AccelerationStructureSizes" kindref="compound">::raytrace::AccelerationStructureSizes</ref></type>
+        <definition>static inline::raytrace::AccelerationStructureSizes raytrace::calculate_acceleration_structure_sizes</definition>
+        <argsstring>(const ::raytrace::AccelerationStructureSizeCalculcationInfo &amp;info)</argsstring>
+        <name>calculate_acceleration_structure_sizes</name>
+        <qualifiedname>raytrace::calculate_acceleration_structure_sizes</qualifiedname>
+        <param>
+          <type>const <ref refid="namespaceraytrace_1aba761a21ee3ae0e7ea842f104c79b19a" kindref="member">::raytrace::AccelerationStructureSizeCalculcationInfo</ref> &amp;</type>
+          <declname>info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="95" column="54" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="95" bodyend="99" declfile="rayTrace/rayTracedrv3d.inl.h" declline="37" declcolumn="40"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1ac95a35121919c487653d1ac939f24fdb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceraytrace_1a154c80bfc8cf2aae689a30803b9d030b" kindref="member">::raytrace::AnyAccelerationStructure</ref></type>
+        <definition>static inline::raytrace::AnyAccelerationStructure raytrace::create_acceleration_structure</definition>
+        <argsstring>(::raytrace::AccelerationStructurePool pool, const ::raytrace::AccelerationStructurePlacementInfo &amp;placement_info)</argsstring>
+        <name>create_acceleration_structure</name>
+        <qualifiedname>raytrace::create_acceleration_structure</qualifiedname>
+        <param>
+          <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">::raytrace::AccelerationStructurePool</ref></type>
+          <declname>pool</declname>
+        </param>
+        <param>
+          <type>const <ref refid="namespaceraytrace_1afc127134e0118a9ec77c913d4d8d6fa0" kindref="member">::raytrace::AccelerationStructurePlacementInfo</ref> &amp;</type>
+          <declname>placement_info</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="101" column="52" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="101" bodyend="105" declfile="rayTrace/rayTracedrv3d.inl.h" declline="39" declcolumn="38"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a8b391c1d73318492ef69825c12eeda87" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void raytrace::destroy_acceleration_structure</definition>
+        <argsstring>(::raytrace::AccelerationStructurePool pool, ::raytrace::AnyAccelerationStructure structure)</argsstring>
+        <name>destroy_acceleration_structure</name>
+        <qualifiedname>raytrace::destroy_acceleration_structure</qualifiedname>
+        <param>
+          <type><ref refid="namespaceraytrace_1adbb02c348e0566bba9f729648b6fad5b" kindref="member">::raytrace::AccelerationStructurePool</ref></type>
+          <declname>pool</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceraytrace_1a154c80bfc8cf2aae689a30803b9d030b" kindref="member">::raytrace::AnyAccelerationStructure</ref></type>
+          <declname>structure</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="107" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="107" bodyend="111" declfile="rayTrace/rayTracedrv3d.inl.h" declline="41" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1af047ab2e727454cd5dd9d6f44cfc0931" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void raytrace::build_acceleration_structure</definition>
+        <argsstring>(::raytrace::AccelerationStructureBuildParameters build_params, ::raytrace::AccelerationStructureBuildMode build_mode=::raytrace::AccelerationStructureBuildMode::Synchronous)</argsstring>
+        <name>build_acceleration_structure</name>
+        <qualifiedname>raytrace::build_acceleration_structure</qualifiedname>
+        <param>
+          <type><ref refid="structraytrace_1_1AccelerationStructureBuildParameters" kindref="compound">::raytrace::AccelerationStructureBuildParameters</ref></type>
+          <declname>build_params</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216" kindref="member">::raytrace::AccelerationStructureBuildMode</ref></type>
+          <declname>build_mode</declname>
+          <defval><ref refid="namespaceraytrace_1a55fd0f65c8a2342c3f099a953601a216a2fe4167817733fec8e6ba1afddf78f1b" kindref="member">::raytrace::AccelerationStructureBuildMode::Synchronous</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="113" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="113" bodyend="117" declfile="rayTrace/rayTracedrv3d.inl.h" declline="42" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a38552e17aef536fdd77e6600dba9a256" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">::raytrace::Pipeline</ref></type>
+        <definition>static inline::raytrace::Pipeline raytrace::create_pipeline</definition>
+        <argsstring>(const ::raytrace::PipelineCreateInfo &amp;pci)</argsstring>
+        <name>create_pipeline</name>
+        <qualifiedname>raytrace::create_pipeline</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1PipelineCreateInfo" kindref="compound">::raytrace::PipelineCreateInfo</ref> &amp;</type>
+          <declname>pci</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="119" column="36" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="119" bodyend="122" declfile="rayTrace/rayTracedrv3d.inl.h" declline="44" declcolumn="22"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a323c2ed920d24c2f66aaef7f6402e549" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">::raytrace::Pipeline</ref></type>
+        <definition>static inline::raytrace::Pipeline raytrace::expand_pipeline</definition>
+        <argsstring>(const ::raytrace::Pipeline &amp;pipeline, const ::raytrace::PipelineExpandInfo &amp;pei)</argsstring>
+        <name>expand_pipeline</name>
+        <qualifiedname>raytrace::expand_pipeline</qualifiedname>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">::raytrace::Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1PipelineExpandInfo" kindref="compound">::raytrace::PipelineExpandInfo</ref> &amp;</type>
+          <declname>pei</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="124" column="36" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="124" bodyend="127" declfile="rayTrace/rayTracedrv3d.inl.h" declline="45" declcolumn="22"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1ac84a48462ce79ad9bbab0121b0121e48" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void raytrace::destroy_pipeline</definition>
+        <argsstring>(::raytrace::Pipeline &amp;p)</argsstring>
+        <name>destroy_pipeline</name>
+        <qualifiedname>raytrace::destroy_pipeline</qualifiedname>
+        <param>
+          <type><ref refid="classraytrace_1_1Pipeline" kindref="compound">::raytrace::Pipeline</ref> &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="129" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="129" bodyend="129" declfile="rayTrace/rayTracedrv3d.inl.h" declline="46" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a401cf0ab1e9897dbbc8dd1500d26737b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="structraytrace_1_1ShaderBindingTableBufferProperties" kindref="compound">::raytrace::ShaderBindingTableBufferProperties</ref></type>
+        <definition>static inline::raytrace::ShaderBindingTableBufferProperties raytrace::get_shader_binding_table_buffer_properties</definition>
+        <argsstring>(const ::raytrace::ShaderBindingTableDefinition &amp;sbtci, const ::raytrace::Pipeline &amp;pipeline)</argsstring>
+        <name>get_shader_binding_table_buffer_properties</name>
+        <qualifiedname>raytrace::get_shader_binding_table_buffer_properties</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ShaderBindingTableDefinition" kindref="compound">::raytrace::ShaderBindingTableDefinition</ref> &amp;</type>
+          <declname>sbtci</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">::raytrace::Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="131" column="62" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="131" bodyend="135" declfile="rayTrace/rayTracedrv3d.inl.h" declline="47" declcolumn="48"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1a017786d2d24a4d159d034585ddd4163a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void raytrace::dispatch</definition>
+        <argsstring>(const ::raytrace::ResourceBindingTable &amp;rbt, const ::raytrace::Pipeline &amp;pipeline, const ::raytrace::RayDispatchParameters &amp;rdp, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>dispatch</name>
+        <qualifiedname>raytrace::dispatch</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">::raytrace::ResourceBindingTable</ref> &amp;</type>
+          <declname>rbt</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">::raytrace::Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1RayDispatchParameters" kindref="compound">::raytrace::RayDispatchParameters</ref> &amp;</type>
+          <declname>rdp</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref></type>
+          <declname>gpu_pipeline</declname>
+          <defval><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="137" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="137" bodyend="141" declfile="rayTrace/rayTracedrv3d.inl.h" declline="49" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1af6bc9a991be0c5114aff4df33da7d0f9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void raytrace::dispatch_indirect</definition>
+        <argsstring>(const ::raytrace::ResourceBindingTable &amp;rbt, const ::raytrace::Pipeline &amp;pipeline, const ::raytrace::RayDispatchIndirectParameters &amp;rdip, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>dispatch_indirect</name>
+        <qualifiedname>raytrace::dispatch_indirect</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">::raytrace::ResourceBindingTable</ref> &amp;</type>
+          <declname>rbt</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">::raytrace::Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1RayDispatchIndirectParameters" kindref="compound">::raytrace::RayDispatchIndirectParameters</ref> &amp;</type>
+          <declname>rdip</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref></type>
+          <declname>gpu_pipeline</declname>
+          <defval><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="143" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="143" bodyend="147" declfile="rayTrace/rayTracedrv3d.inl.h" declline="51" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceraytrace_1ad2ce061869e97e0e9f21cf726f9b652c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>static void raytrace::dispatch_indirect_count</definition>
+        <argsstring>(const ::raytrace::ResourceBindingTable &amp;rbt, const ::raytrace::Pipeline &amp;pipeline, const ::raytrace::RayDispatchIndirectCountParameters &amp;rdicp, GpuPipeline gpu_pipeline=GpuPipeline::GRAPHICS)</argsstring>
+        <name>dispatch_indirect_count</name>
+        <qualifiedname>raytrace::dispatch_indirect_count</qualifiedname>
+        <param>
+          <type>const <ref refid="structraytrace_1_1ResourceBindingTable" kindref="compound">::raytrace::ResourceBindingTable</ref> &amp;</type>
+          <declname>rbt</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classraytrace_1_1Pipeline" kindref="compound">::raytrace::Pipeline</ref> &amp;</type>
+          <declname>pipeline</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structraytrace_1_1RayDispatchIndirectCountParameters" kindref="compound">::raytrace::RayDispatchIndirectCountParameters</ref> &amp;</type>
+          <declname>rdicp</declname>
+        </param>
+        <param>
+          <type><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461" kindref="member">GpuPipeline</ref></type>
+          <declname>gpu_pipeline</declname>
+          <defval><ref refid="dag__consts_8h_1adcd89e6c7307a7035681267b2c7c5461a6f49448c79d7d58c6e60cf7129b84d1c" kindref="member">GpuPipeline::GRAPHICS</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/rayTraceMulti.inl.h" line="148" column="20" bodyfile="rayTrace/rayTraceMulti.inl.h" bodystart="148" bodyend="152" declfile="rayTrace/rayTracedrv3d.inl.h" declline="53" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_consts.h" line="656" column="1"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,149 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classApplicationCreator" kind="class" language="C++" prot="public">
+    <compoundname>ApplicationCreator</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">PropPanel::DialogWindow</basecompoundref>
+    <includes refid="ec__application__creator_8h" local="no">ec_application_creator.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classApplicationCreator_1afbc4bc49d3e667654af1e2dd1d589e5b" prot="private" static="no" mutable="no">
+        <type><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref> &amp;</type>
+        <definition>EditorWorkspace&amp; ApplicationCreator::wsp</definition>
+        <argsstring></argsstring>
+        <name>wsp</name>
+        <qualifiedname>ApplicationCreator::wsp</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_application_creator.h" line="24" column="19" bodyfile="ec_application_creator.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classApplicationCreator_1a722206e3382ca10a2c5b33ba653c4a9d" prot="public" static="no" const="no" explicit="yes" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ApplicationCreator::ApplicationCreator</definition>
+        <argsstring>(EditorWorkspace &amp;wsp)</argsstring>
+        <name>ApplicationCreator</name>
+        <qualifiedname>ApplicationCreator::ApplicationCreator</qualifiedname>
+        <param>
+          <type><ref refid="classEditorWorkspace" kindref="compound">EditorWorkspace</ref> &amp;</type>
+          <declname>wsp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_application_creator.h" line="12" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classApplicationCreator_1a730c10aacd136ef9035e63c55b50b03b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ApplicationCreator::onOk</definition>
+        <argsstring>() override</argsstring>
+        <name>onOk</name>
+        <qualifiedname>ApplicationCreator::onOk</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_application_creator.h" line="16" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classApplicationCreator_1a7755368fd9f2746394644e3407a253a2" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ApplicationCreator::onCancel</definition>
+        <argsstring>() override</argsstring>
+        <name>onCancel</name>
+        <qualifiedname>ApplicationCreator::onCancel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_application_creator.h" line="17" column="8" bodyfile="ec_application_creator.h" bodystart="17" bodyend="17"/>
+      </memberdef>
+      <memberdef kind="function" id="classApplicationCreator_1ac0209e5a02da6d958916b7e75771168b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ApplicationCreator::onChange</definition>
+        <argsstring>(int pcb_id, PropPanel::ContainerPropertyControl *panel) override</argsstring>
+        <name>onChange</name>
+        <qualifiedname>ApplicationCreator::onChange</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>pcb_id</declname>
+        </param>
+        <param>
+          <type>PropPanel::ContainerPropertyControl *</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_application_creator.h" line="21" column="8"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classApplicationCreator_1aba1b599b03d2bfa74531d91cdae34598" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ApplicationCreator::correctAppPath</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;panel)</argsstring>
+        <name>correctAppPath</name>
+        <qualifiedname>ApplicationCreator::correctAppPath</qualifiedname>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>panel</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_application_creator.h" line="26" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>ApplicationCreator</label>
+        <link refid="classApplicationCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>ApplicationCreator</label>
+        <link refid="classApplicationCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>PropPanel::DialogWindow</label>
+      </node>
+    </collaborationgraph>
+    <location file="ec_application_creator.h" line="9" column="1" bodyfile="ec_application_creator.h" bodystart="10" bodyend="27"/>
+    <listofallmembers>
+      <member refid="classApplicationCreator_1a722206e3382ca10a2c5b33ba653c4a9d" prot="public" virt="non-virtual"><scope>ApplicationCreator</scope><name>ApplicationCreator</name></member>
+      <member refid="classApplicationCreator_1aba1b599b03d2bfa74531d91cdae34598" prot="private" virt="non-virtual"><scope>ApplicationCreator</scope><name>correctAppPath</name></member>
+      <member refid="classApplicationCreator_1a7755368fd9f2746394644e3407a253a2" prot="public" virt="non-virtual"><scope>ApplicationCreator</scope><name>onCancel</name></member>
+      <member refid="classApplicationCreator_1ac0209e5a02da6d958916b7e75771168b" prot="public" virt="non-virtual"><scope>ApplicationCreator</scope><name>onChange</name></member>
+      <member refid="classApplicationCreator_1a730c10aacd136ef9035e63c55b50b03b" prot="public" virt="non-virtual"><scope>ApplicationCreator</scope><name>onOk</name></member>
+      <member refid="classApplicationCreator_1afbc4bc49d3e667654af1e2dd1d589e5b" prot="private" virt="non-virtual"><scope>ApplicationCreator</scope><name>wsp</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

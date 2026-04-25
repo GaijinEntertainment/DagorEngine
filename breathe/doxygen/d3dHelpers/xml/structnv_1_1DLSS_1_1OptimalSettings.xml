@@ -1,0 +1,121 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structnv_1_1DLSS_1_1OptimalSettings" kind="struct" language="C++" prot="public">
+    <compoundname>nv::DLSS::OptimalSettings</compoundname>
+    <includes refid="dag__nvFeatures_8h" local="no">dag_nvFeatures.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structnv_1_1DLSS_1_1OptimalSettings_1a701bc93f4026307006175d1175b4f3d4" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned nv::DLSS::OptimalSettings::renderWidth</definition>
+        <argsstring></argsstring>
+        <name>renderWidth</name>
+        <qualifiedname>nv::DLSS::OptimalSettings::renderWidth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="165" column="14" bodyfile="dag_nvFeatures.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DLSS_1_1OptimalSettings_1a11401691be27c75de3dced7712e523e2" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned nv::DLSS::OptimalSettings::renderHeight</definition>
+        <argsstring></argsstring>
+        <name>renderHeight</name>
+        <qualifiedname>nv::DLSS::OptimalSettings::renderHeight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="166" column="14" bodyfile="dag_nvFeatures.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DLSS_1_1OptimalSettings_1ac0ff3b172c60590640f9e3ee4c01ea52" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned nv::DLSS::OptimalSettings::renderMinWidth</definition>
+        <argsstring></argsstring>
+        <name>renderMinWidth</name>
+        <qualifiedname>nv::DLSS::OptimalSettings::renderMinWidth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="167" column="14" bodyfile="dag_nvFeatures.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DLSS_1_1OptimalSettings_1a417c44e5afcd531044f69feefc601e87" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned nv::DLSS::OptimalSettings::renderMinHeight</definition>
+        <argsstring></argsstring>
+        <name>renderMinHeight</name>
+        <qualifiedname>nv::DLSS::OptimalSettings::renderMinHeight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="168" column="14" bodyfile="dag_nvFeatures.h" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DLSS_1_1OptimalSettings_1a0e60df5d1d33d5bae3d6b8d69806e430" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned nv::DLSS::OptimalSettings::renderMaxWidth</definition>
+        <argsstring></argsstring>
+        <name>renderMaxWidth</name>
+        <qualifiedname>nv::DLSS::OptimalSettings::renderMaxWidth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="169" column="14" bodyfile="dag_nvFeatures.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DLSS_1_1OptimalSettings_1ac3cd99f9e1c6a1c4f0426c3fdbb64bff" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned nv::DLSS::OptimalSettings::renderMaxHeight</definition>
+        <argsstring></argsstring>
+        <name>renderMaxHeight</name>
+        <qualifiedname>nv::DLSS::OptimalSettings::renderMaxHeight</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="170" column="14" bodyfile="dag_nvFeatures.h" bodystart="170" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structnv_1_1DLSS_1_1OptimalSettings_1aa37cf01dfe300275cba2a174c89ed449" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool nv::DLSS::OptimalSettings::rayReconstruction</definition>
+        <argsstring></argsstring>
+        <name>rayReconstruction</name>
+        <qualifiedname>nv::DLSS::OptimalSettings::rayReconstruction</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_nvFeatures.h" line="171" column="10" bodyfile="dag_nvFeatures.h" bodystart="171" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_nvFeatures.h" line="163" column="3" bodyfile="dag_nvFeatures.h" bodystart="164" bodyend="172"/>
+    <listofallmembers>
+      <member refid="structnv_1_1DLSS_1_1OptimalSettings_1aa37cf01dfe300275cba2a174c89ed449" prot="public" virt="non-virtual"><scope>nv::DLSS::OptimalSettings</scope><name>rayReconstruction</name></member>
+      <member refid="structnv_1_1DLSS_1_1OptimalSettings_1a11401691be27c75de3dced7712e523e2" prot="public" virt="non-virtual"><scope>nv::DLSS::OptimalSettings</scope><name>renderHeight</name></member>
+      <member refid="structnv_1_1DLSS_1_1OptimalSettings_1ac3cd99f9e1c6a1c4f0426c3fdbb64bff" prot="public" virt="non-virtual"><scope>nv::DLSS::OptimalSettings</scope><name>renderMaxHeight</name></member>
+      <member refid="structnv_1_1DLSS_1_1OptimalSettings_1a0e60df5d1d33d5bae3d6b8d69806e430" prot="public" virt="non-virtual"><scope>nv::DLSS::OptimalSettings</scope><name>renderMaxWidth</name></member>
+      <member refid="structnv_1_1DLSS_1_1OptimalSettings_1a417c44e5afcd531044f69feefc601e87" prot="public" virt="non-virtual"><scope>nv::DLSS::OptimalSettings</scope><name>renderMinHeight</name></member>
+      <member refid="structnv_1_1DLSS_1_1OptimalSettings_1ac0ff3b172c60590640f9e3ee4c01ea52" prot="public" virt="non-virtual"><scope>nv::DLSS::OptimalSettings</scope><name>renderMinWidth</name></member>
+      <member refid="structnv_1_1DLSS_1_1OptimalSettings_1a701bc93f4026307006175d1175b4f3d4" prot="public" virt="non-virtual"><scope>nv::DLSS::OptimalSettings</scope><name>renderWidth</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,873 @@
+
+daRG Framework
+==============
+
+Docs for daRG - Dagor Reactive GUI framework, based on Quirrel language and Functional Reactive Programming (FRP).
+
+Overview
+--------
+
+daRG (Dagor Reactive GUI) is a reactive GUI framework integrated into the Dagor
+Engine. It is significantly inspired by React JS and React Native from Facebook,
+as well as frameworks like Flutter.
+
+Documentation and examples are available in the viewer located at:
+
+.. code-block:: shell
+
+   dagor2/tools/dargbox/
+
+You can run the examples using:
+
+.. code-block:: shell
+
+   dargbox-64-dev.exe -config\:script\:t=samples_prog/_basic/layout/basic_layout.ui.nut
+
+Use ``s.bat`` to launch the example browser. The examples themselves are located
+at:
+
+.. code-block:: shell
+
+   prog/tools/dargbox/gamebase
+
+The author and conceptual designer of daRG is Vasiliy Ryabtsev. Current
+maintainers: Alexey Borisov, Alexey Volynskov.
+
+Core Principles
+---------------
+
+* **Reactivity**: Code executes only when changes occur.
+* **Portability**: UI logic and markup are written in the interpreted language
+  Quirrel, ensuring compatibility across multiple platforms (consoles, mobile
+  devices) without requiring code submission. This facilitates easy modding.
+* **Responsiveness and Performance**: Interfaces must quickly and efficiently
+  respond to user interactions.
+* **Native and Simple Animations**: Animations should be straightforward to
+  create and perform efficiently.
+* **Explicit State Management**: The UI explicitly reflects visible state
+  changes, simplifying debugging and reducing state-related errors common in
+  traditional approaches.
+* **VR Support**: Full support for 3D interfaces.
+
+In daRG, all UI elements are created using a single language (Quirrel), unlike
+traditional web stacks (HTML, CSS, JS) or daGUI (blk, css, quirrel).
+
+Separation of Concerns
+----------------------
+
+Traditional technologies (HTML, CSS, JS) do not effectively separate
+responsibilities. In daRG, separation is based on responsibilities rather than
+technologies. Each UI component is self-contained, reusable, and maintained
+independently. Components explicitly state their dependencies, ensuring
+consistency across different interface instances.
+
+Immediate vs Retained Mode
+--------------------------
+
+Working with daRG can feel like using Immediate Mode GUI—code seemingly executes
+each frame. However, in practice, daRG only executes scripts when the relevant
+state changes, thus optimizing performance. You describe UI rendering logic, and
+daRG selectively updates components affected by state changes, providing
+significant performance optimizations.
+
+Explicit State
+--------------
+
+All state in daRG is entirely explicit, eliminating hidden states (e.g.,
+checkbox values). The state is a clearly defined model, changing explicitly and
+triggering UI updates accordingly. This approach simplifies debugging and
+facilitates advanced debugging features like a state history ("time machine"),
+assuming state adheres to certain contracts. The ``persist`` function can save
+the state, allowing restoration upon reload.
+
+Core Concepts
+-------------
+
+**Component**
+A description of UI element in form of a table with properties or a function that generates such a table.
+This description maps a logical state into an interactive representation.
+
+**Element**
+A current interactive piece of an UI scene that may be rendered, may define visual layout, and may process input and other events.
+
+**Behaviors**
+A Behavior is a reusable unit of UI logic implemented in C++ and exposed to Quirrel scripts.
+It encapsulates event handling, state management, and interaction patterns for UI elements.
+A behavior instance is usually attached to a UI element in markup and can react to events such as pointer movement, clicks, keyboard input, or custom signals.
+Behaviors can modify element properties directly, call user-defined callback functions, or update reactive variables to trigger UI updates.
+They provide the equivalent of a "controller" in other UI frameworks and allow complex interactivity to be implemented once and reused across multiple views.
+Common behaviors include: Button, Slider, TextInput, TextArea, Pannable, MoveResize, DragAndDrop and others.
+
+**Render Objects**
+Render objects are the low-level drawing primitives in daRG.
+A render object represents something that can be drawn on screen: an image, a piece of text, a shape, or anything else visual.
+They are implemented in C++ and are processed by the C++ rendering pipeline.
+Common render objects include: ROBJ_SOLID, ROBJ_IMAGE, ROBJ_TEXT, ROBJ_INSCRIPTION, ROBJ_FRAME, ROBJ_BOX, ROBJ_MOVIE and others.
+
+**Watch Fields (FRP Observables)**
+Watch fields are reactive variables that automatically propagate changes to any dependent computations or bound UI properties.
+They implement a form of Functional Reactive Programming (FRP) in which UI state is expressed as a network of dependencies.
+When a watch field changes value, all computations that depend on it are invalidated and recomputed, any dependent UI components are recalculated, and scene elements are rebuild to reflect the changes.
+This eliminates the need for explicit update calls, as the data flow is declarative.
+Watch fields can be combined, transformed, or computed from other watch fields, allowing complex state to be derived without manual synchronization.
+
+**Events and Input Handling**
+The UI layer processes events from multiple sources (mouse, touch, gamepad, keyboard, VR input devices) and routes them to the relevant behaviors of elements.
+Event propagation follows a tree structure matching the UI hierarchy. Behaviors can inform the subsequent behaviors about whether these events were consumed earlier.
+
+**Layout and Composition**
+UI elements in daRG use a flexible layout model inspired by CSS flexbox and flow layouts.
+Elements can size themselves based on content, fill available space, align and flow relative to parent containers, or use fixed positioning.
+Layouts are recomputed automatically when relevant state changes occur.
+
+
+Example
+--------
+
+Here is a sample daRG component (``introduction.nut``):
+
+.. code-block:: quirrel
+
+   return {
+     rendObj = ROBJ_SOLID
+     color = Color(30,40,50)
+     size = flex()
+     gap = sh(2)
+     flow = FLOW_HORIZONTAL
+     halign = ALIGN_CENTER
+     valign = ALIGN_MIDDLE
+     children = [
+       {
+         size = [sh(5), sh(5)]
+         rendObj = ROBJ_IMAGE
+         image= Picture("ui/image.png")
+       },
+       {
+         rendObj = ROBJ_TEXT
+         text = "Hello World!"
+       }
+     ]
+   }
+
+Interoperability with Native Code
+---------------------------------
+
+daRG offers three main methods to interface with native (game) code:
+
+* **ECS**: Quirrel bindings provide access to ECS world data.
+* **Watch/Observables**: Native observables or callback registration from native
+  code.
+* **Behavior.RtPropUpdate**: A method for updating properties every frame if
+  necessary (this won't be fast). It is more performant than frequently updating
+  observable values and is used primarily for animations or real-time UI
+  updates.
+
+Observables (Watched)
+---------------------
+
+The Observable pattern (``Watched``) works as follows:
+
+* ``watched.get()``: Retrieve the object's value.
+* ``watched.set(some_value)`` / ``watched.modify(callback, called with current value, and should return new value)``: Set a new value.
+* ``watched.mutate(callback)``: Modify content within the object (e.g., arrays
+  or tables).
+* ``watched.subscribe(callback)``: Subscribe to object changes, triggering
+  callbacks post-change.
+* ``watched.unsubscribe(callback)``: Unsubscribe callback
+* ``watched.trigger()``: Manually invoke all subscribers of an observable
+  object.
+
+Example counter component (``counter.ui.nut``):
+
+.. code-block:: quirrel
+
+   from "daRg" import *
+   from "frp" import *
+
+   let counter = Watched(0)
+   let increment = @() counter.modify(@(v) v+1)
+   let decrement = @() counter.modify(@(v) v-1)
+
+   return {
+     rendObj = ROBJ_SOLID
+     color = Color(30,40,50)
+     size = flex()
+     gap = sh(5)
+     flow = FLOW_VERTICAL
+     halign = ALIGN_CENTER
+     valign = ALIGN_CENTER
+     children = [
+       button("Increment", increment, "^I"),
+       @() { rendObj = ROBJ_TEXT, text=$"Counter value = {counter.get()}", watch=counter },
+       button("Decrement", decrement, "^D")
+     ]
+   }
+
+This approach emphasizes clarity, explicit state, and high performance.
+
+Component Reference
+-------------------
+
+daRg behaviors
+=================
+
+Button
+------
+Captures press inside hitbox (with configurable touch margin),
+maintains "active" state while pressed, cancels if the element moves due to scrolling,
+issues click or double-click on release within tolerance, optionally focuses the element,
+and fires a touch-hold callback after the hold delay.
+Handles mouse, touch, joystick, and keyboard activation.
+
+**Properties**
+
+- ``onClick([event])`` – function.
+- ``onDoubleClick([event])`` – function.
+- ``eventPassThrough`` – bool. If true, does not raise "consumed" flag on propagation.
+- ``focusOnClick`` – bool. Gives keyboard focus on successful click.
+- ``onTouchHold([event])`` – function. Called after holding for a delay.
+- ``touchHoldTime`` – float (seconds). Delay for ``onTouchHold``.
+
+DragAndDrop
+-----------
+Tracks pointer press; after movement threshold or ``dragStartDelay``, enters drag,
+raises visual "drag" state, floats the element (translation and Z-on-top),
+continuously hunts a valid drop target (``canDrop``), and on release calls that target's ``onDrop``.
+If movement stayed under click threshold, it falls back to click/double-click handling.
+
+**Properties**
+
+- ``dragStartDelay`` – float (seconds). Press-and-hold delay before a drag starts.
+- ``dropData`` – any object/value. Arbitrary payload associated with the dragged element; passed to drop handlers.
+- ``onDrop(drop_data)`` – function. Called on the drop target when a drag is released over it; receives the source's ``dropData``.
+- ``canDrop(drop_data) -> bool`` – function. Optional predicate on potential targets; if false, the element is excluded as a drop target.
+- ``onDragMode(on: bool, drop_data)`` – function. Called on the draggable when drag mode toggles on/off; receives current ``dropData``.
+- ``onClick([event])`` – function. Called on single click if not dragging.
+- ``onDoubleClick([event])`` – function. Called on double click if not dragging.
+
+Pannable
+--------
+Implements scrollable viewport with one or two-finger touch dragging, mouse dragging,
+kinetic scrolling on release, and overscroll feedback. Supports axis locking and scroll velocity filtering.
+
+**Properties**
+
+- ``panMouseButton`` – int. Mouse button to use for panning (-1 for any).
+- ``onTouchBegin()`` – function. Called when touch begins.
+- ``kineticScrollOnTouchEnd(velocity)`` – function. Alternative to built-in kinetic scrolling.
+- ``kineticAxisLockAngle`` – float (degrees). Angle threshold for axis locking kinetic scroll.
+
+Pannable2Touch
+--------------
+Two-finger simultaneous touch panning; requires both fingers to be active for movement.
+
+**Properties**
+
+(None)
+
+Slider
+------
+Provides interactive slider/seekbar control with keyboard navigation, mouse/touch dragging,
+cursor positioning by click, and optional knob element. Supports custom value ranges,
+stepping, and wheel scrolling.
+
+**Properties**
+
+- ``min`` – float. Minimum value (default: 0).
+- ``max`` – float. Maximum value (default: 100).
+- ``fValue`` – float. Current value (default: 0).
+- ``unit`` – float. Step size for keyboard/wheel input (default: 1).
+- ``pageScroll`` – float. Page up/down step size (default: 10).
+- ``orientation`` – enum (horizontal/vertical). Slider orientation.
+- ``knob`` – component constructor. Child element to use as draggable knob.
+- ``onChange(value)`` – function. Called when value changes.
+- ``onSliderMouseMove(value)`` – function. Called during mouse hover with potential value.
+- ``ignoreWheel`` – bool. If true, ignores mouse wheel events.
+
+TextInput
+---------
+Single-line text input with cursor positioning, keyboard editing, clipboard support,
+character masking, IME integration, and validation callbacks.
+
+**Properties**
+
+- ``text`` – string. Current text content.
+- ``cursorPos`` – int. Current cursor position.
+- ``maxChars`` – int. Maximum character limit.
+- ``charMask`` – string. Allowed characters (empty = all allowed).
+- ``password`` – bool. If true, displays as password field.
+- ``onChange(text)`` – function. Called when text changes.
+- ``onReturn()`` – function. Called on Enter key press.
+- ``onEscape()`` – function. Called on Escape key press.
+- ``onWrongInput()`` – function. Called when invalid input is attempted.
+- ``title`` – string. IME dialog title.
+- ``hint`` – string. IME dialog hint text.
+- ``inputType`` – string. IME input type hint.
+- ``imeNoAutoCap`` – bool. Disables IME auto-capitalization.
+- ``imeNoCopy`` – bool. Disables IME copy functionality.
+- ``imeOpenJoyBtn`` – string. Joystick button to open IME.
+
+TextArea
+--------
+Multi-line formatted text rendering with support for color tags, custom fonts,
+text styling, and inline embedded components. Handles text parsing and layout formatting.
+
+**Properties**
+
+- ``text`` – string. Text content (may include formatting tags).
+- ``colorTable`` – table. Map of color name to color value for tag resolution.
+- ``tagsTable`` – table. Map of tag name to formatting attributes (color, font, fontSize).
+- ``embed`` – table. Map of tag name to component description (table or closure). See **Embedded Components** below.
+- ``preformatted`` – bool/int. Controls whitespace handling and formatting flags.
+- ``spacing`` – float. Character spacing.
+- ``lineSpacing`` – float. Additional line spacing.
+- ``parSpacing`` – float. Paragraph spacing.
+- ``indent`` – float. Text indentation.
+- ``hangingIndent`` – float. Hanging indent for continuation lines.
+- ``maxContentWidth`` – float. Maximum text width before wrapping.
+- ``valign`` – enum. Vertical alignment (top/center/bottom).
+- ``monoWidth`` – float/bool. Monospace width override.
+
+**Embedded Components**
+
+Inline UI elements can be placed within text using self-closing tags (``<name/>``).
+Each tag name must correspond to a key in the ``embed`` table.
+
+Components are rendered inline with text and aligned on the text baseline
+(i.e. bottom edge of the component sits on the baseline).
+
+Only absolute size modes are supported: ``pixels`` (e.g. ``hdpx(N)``, ``sh(N)``)
+and ``fontH`` (e.g. ``fontH(150)``).
+Relative sizes (``flex``, ``pw``, ``ph``, etc.) are not allowed.
+If size is not specified, it defaults to the current font height for both axes.
+Unlike layout, fontH is measured by the font ascent.
+Tag names are limited to 16 characters.
+
+Example::
+
+  let textarea = {
+    rendObj = ROBJ_TEXTAREA
+    behavior = Behaviors.TextArea
+    text = "Click <icon/> to continue"
+    embed = {
+      icon = {
+        size = [fontH(100), fontH(100)]
+        rendObj = ROBJ_IMAGE
+        image = Picture("!ui/atlas#arrow_icon")
+      }
+    }
+  }
+
+TextAreaEdit
+------------
+Editable multi-line text area with cursor navigation, text selection, formatting support,
+and IME integration. Extends TextArea with editing capabilities.
+
+**Properties**
+
+- ``editableText`` – EditableText object. Text editing state and content.
+- ``onChange(editableText)`` – function. Called when content changes.
+- ``onImeFinish(applied)`` – function. Called when IME editing completes.
+- ``title`` – string. IME dialog title.
+- ``hint`` – string. IME dialog hint text.
+- ``inputType`` – string. IME input type.
+- ``maxChars`` – int. Maximum character limit.
+- ``imeNoAutoCap`` – bool. Disables auto-capitalization.
+- ``imeNoCopy`` – bool. Disables copy functionality.
+
+PieMenu
+-------
+Radial/pie menu control supporting mouse, touch, and gamepad stick input.
+Tracks sector selection and handles click events with sector information.
+
+**Properties**
+
+- ``devId`` – enum (mouse/joystick/vr). Input device type.
+- ``stickNo`` – int. Gamepad stick number (0 or 1).
+- ``sectorsCount`` – int. Number of pie sectors.
+- ``curSector`` – observable. Current selected sector index.
+- ``curAngle`` – observable. Current angle selection.
+- ``onClick([sector])`` – function. Called on activation.
+- ``eventPassThrough`` – bool. Allows event propagation.
+
+ComboPopup
+----------
+A minimal click trigger suitable for combo dropdown popups; consumes the event on touch release.
+
+**Properties**
+
+- ``onClick()`` – function. Fired when popup is pressed (mouse) or released (touch).
+
+EatInput
+--------
+On press inside the element, flags mouse/touch input as stopped so that elements behind will discard it.
+Useful as a shield.
+
+**Properties**
+
+(None)
+
+BoundToArea
+-----------
+Before render, clamps the element's transformed bbox inside the screen's safe area by
+applying a translation so it stays fully visible.
+
+**Properties**
+
+- ``safeAreaMargin`` – offsets object/array (HTML notation: top, right, bottom, left).
+
+Marquee
+-------
+Auto-scrolls content from start to end with initial delay, optional looping, and optional fade-out phase;
+preserves position across recalcs when looping.
+Resets when not hovered if ``scrollOnHover`` is set.
+
+**Properties**
+
+- ``loop`` – bool. If true, continuously loops the scroll.
+- ``threshold`` – float. If overflow is within this threshold, disables marquee.
+- ``orientation`` – enum/int (horizontal or vertical). Axis to scroll.
+- ``speed`` – float. Scroll speed in pixels/sec (can be array for different phases).
+- ``delay`` – float or array. Initial delay and optional fade-out delay.
+- ``scrollOnHover`` – bool. If true, only scrolls while hovered.
+
+MoveResize
+----------
+Detects presses on edges/corners/area using an epsilon around the bbox,
+sets active visual state and cursor, and drives move/resize while the pointer moves.
+Cleans up on release and input deactivation.
+
+**Properties**
+
+- ``moveResizeModes`` – bitmask of handles (edges, corners, area).
+- ``moveResizeCursors`` – map (handle -> cursor object).
+- ``cursor`` – cursor object, used during drag.
+- ``onMoveResizeStarted(x, y, bbox)`` – function. Called when drag starts.
+- ``onMoveResize(dx, dy, dw, dh) -> {pos, size}`` – function. Called during resize/move.
+- ``onMoveResizeFinished()`` – function. Called when drag stops.
+
+MoveToArea
+----------
+Continuously moves the element towards the target rect if present, positions/sizes it inside
+the parent relative to the target; updates each frame with smooth animation.
+Hides the element if the target is empty.
+
+**Properties**
+
+- ``target`` – object with ``targetRect`` property (BBox2).
+- ``speed`` – float. Animation speed in pixels/sec.
+- ``viscosity`` – float. Animation viscosity/damping factor.
+
+InspectPicker
+-------------
+Provides "element picker" UX to inspect what is under the pointer, both on hover and on click.
+Supports modifier keys to include elements without render objects.
+
+**Properties**
+
+- ``onChange(arrayOrNull)`` – function. Called on pointer move; receives array of records (bbox + elem).
+- ``onClick(arrayOrNull)`` – function. Called on click; receives array of element info.
+- On inspected elements: ``skipInspection`` – bool. If true, element is ignored.
+
+RecalcHandler
+-------------
+Calls a handler when layout is recalculated, useful for responding to size changes.
+
+**Properties**
+
+- ``onRecalcLayout([initial[, elemRef]])`` – function. Called on layout recalculation.
+
+RtPropUpdate
+------------
+Real-time property updater that calls ``update()`` on attach and every before-render frame,
+merges returned properties into the component, re-runs setup, and optionally recalculates layout.
+
+**Properties**
+
+- ``update() -> table`` – function. Returns table of script properties to update.
+- ``onlyWhenParentInScreen`` – bool. Updates only if parent is visible on screen.
+- ``rtAlwaysUpdate`` – bool. Writes all returned keys regardless of whether they changed.
+- ``rtRecalcLayout`` – bool. Forces layout recalculation after property update.
+
+ScrollEvent
+-----------
+Detects changes to scroll offset, content size, and element size;
+calls handler and triggers any bound scrollHandler with updated values.
+
+**Properties**
+
+- ``onScroll(elemRef)`` or ``onScroll(scrollX, scrollY, contentW, contentH, elemW, elemH)`` – function. Called when scroll position or dimensions change.
+
+WheelScroll
+-----------
+Handles mouse wheel events to scroll the element content, with configurable step size and orientation.
+
+**Properties**
+
+- ``wheelStep`` – float. Scroll amount per wheel notch (default: 0.2).
+- ``orientation`` – enum (horizontal/vertical). Scroll direction (default: vertical).
+- ``onWheelScroll(delta)`` – function. Called on wheel scroll with delta amount.
+
+SwipeScroll
+-----------
+Implements swipe-to-scroll behavior for touch interfaces, snapping to child element boundaries.
+
+**Properties**
+
+- ``panMouseButton`` – int. Mouse button for panning (-1 for any).
+- ``onChange(index, swipeIsActive)`` – function. Called with current child index and swipe state.
+
+Movie
+-----
+Video playback behavior supporting multiple formats (AV1, Ogg) with optional audio track.
+
+**Properties**
+
+- ``movie`` – string. Video file path.
+- ``sound`` – string. Audio file path (defaults to video_file.mp3).
+- ``soundVolume`` – float. Audio volume (0.0-1.0).
+- ``loop`` – bool. Whether to loop playback.
+- ``enableSound`` – bool. Enable audio playback (default: true).
+- ``onStart()`` – function. Called when playback starts.
+- ``onFinish()`` – function. Called when playback ends.
+- ``onError()`` – function. Called on playback error.
+
+OverlayTransparency
+------------------
+Manages element opacity based on overlap with higher-priority elements,
+creating visual layering effects and center-based opacity gradients.
+
+**Properties**
+
+- ``priority`` – float. Element priority for overlay calculations.
+- ``data.priorityOffset`` – float. Additional priority offset.
+- ``data.opacityCenterMinMult`` – float. Minimum opacity multiplier for center-distance fading.
+- ``data.opacityCenterRelativeDist`` – float. Distance threshold for center-based opacity.
+
+Parallax
+--------
+Creates parallax scrolling effect based on mouse position relative to screen center.
+
+**Properties**
+
+- ``parallaxK`` – float. Parallax effect strength multiplier.
+
+SmoothScrollStack
+----------------
+Animates stack children to smoothly flow into position with configurable speed and viscosity.
+
+**Properties**
+
+- ``speed`` – float. Animation speed (default: 10.0).
+- ``viscosity`` – float. Animation viscosity for gap prevention (default: 0.025).
+- ``orientation`` – enum (horizontal/vertical). Stack direction.
+
+TransitionSize
+--------------
+Smoothly animates element size changes with configurable speed and axis control.
+
+**Properties**
+
+- ``orientation`` – enum (horizontal/vertical/both). Which axes to animate.
+- ``speed`` – float. Animation speed in pixels/sec (default: 100.0).
+
+TrackMouse
+----------
+Tracks mouse movement and wheel events, calling handlers for movement and scroll.
+Includes Xbox-specific workarounds for missing mouse move events.
+
+**Properties**
+
+- ``onMouseMove(x, y)`` – function. Called on mouse movement.
+- ``onMouseWheel(delta, x, y)`` – function. Called on mouse wheel events.
+- ``eventPassThrough`` – bool. Allows event propagation.
+
+ProcessPointingInput
+--------------------
+Low-level behavior for custom pointing device input processing, providing direct access
+to press/release/move events with device information and modifier keys.
+
+**Properties**
+
+- ``onPointerPress(event)`` – function. Called on pointer press.
+- ``onPointerRelease(event)`` – function. Called on pointer release.
+- ``onPointerMove(event)`` – function. Called on pointer movement.
+
+ProcessGesture
+--------------
+Gesture recognition behavior supporting pinch, rotate, and drag gestures with configurable
+distance limits and phase callbacks.
+
+**Properties**
+
+- ``onGestureBegin(event)`` – function. Called when gesture starts.
+- ``onGestureActive(event)`` – function. Called during active gesture.
+- ``onGestureEnd(event)`` – function. Called when gesture ends.
+- ``gestureDragDistanceMax`` – float. Maximum distance for drag gestures.
+- ``gesturePinchDistanceMin`` – float. Minimum distance for pinch gestures.
+- ``gestureRotateDistanceMin`` – float. Minimum distance for rotation gestures.
+
+FpsBar
+------
+Real-time FPS and frame time display with color-coded performance indicators.
+Updates text and color each frame based on current performance metrics.
+
+**Properties**
+
+(None readable)
+- ``color`` – color. Display color (auto-updated by the behavior based on performance).
+
+LatencyBar
+----------
+Displays input latency metrics and low-latency rendering information.
+
+**Properties**
+
+(None)
+
+
+daRg Render Objects
+===================
+
+ROBJ_SOLID
+----------
+Renders a solid rectangle of a given color.
+
+Properties:
+
+* ``color`` — Color, fill color (default 0xFFFFFFFF).
+* ``brightness`` — float, brightness modifier (0.0—1.0; default 1.0).
+
+ROBJ_DEBUG
+----------
+Renders a debug rectangle with a 1px frame and diagonal cross-lines.
+
+Properties:
+
+* ``color`` — Color, stroke color (default 0xFFFFFFFF).
+* ``brightness`` — float, brightness modifier (0.0—1.0; default 1.0).
+
+ROBJ_IMAGE
+----------
+Renders a picture.
+
+Properties:
+
+* ``image`` — Picture, main image.
+* ``fallbackImage`` — Picture, used when ``image`` fails/empty.
+* ``color`` — Color, tint (default 0xFFFFFFFF).
+* ``keepAspect`` — bool or enum ``KEEP_ASPECT_*``; default ``KEEP_ASPECT_NONE``.
+* ``imageHalign`` / ``imageValign`` — enum ``ALIGN_*`` (default center).
+* ``flipX`` / ``flipY`` — bool, flip texture coords.
+* ``picSaturate`` — float, saturation factor (0—1; default 1.0).
+* ``imageAffectsLayout`` — bool, if true the element size influences layout.
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_VECTOR_CANVAS
+------------------
+Immediate-mode vector drawing; either run a ``draw(api, rect)`` function or execute a ``commands`` array (VECTOR_* opcodes).
+
+Properties:
+
+* ``color`` — Color, stroke color (default 0xFFFFFFFF).
+* ``fillColor`` — Color, fill color (default 0xFFFFFFFF).
+* ``lineWidth`` — float, stroke width (default 2).
+* ``draw`` — function(api, rect), scripted draw.
+* ``commands`` — array of VECTOR_* commands.
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_9RECT
+----------
+Nine-slice scalable image renderer.
+
+Properties:
+
+* ``image`` — Picture, required.
+* ``color`` — Color, modulation (default 0xFFFFFFFF).
+* ``texOffs`` — array[4], texture slice offsets [top, right, bottom, left].
+* ``screenOffs`` — array[4], on-screen slice offsets [top, right, bottom, left].
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_PROGRESS_LINEAR
+--------------------
+Horizontal progress bar; negative values fill from the right.
+
+Properties:
+
+* ``fValue`` — float, progress (-1.0…1.0).
+* ``bgColor`` — Color, background bar color (default 0x64646464).
+* ``fgColor`` — Color, foreground bar color (default 0xFFFFFFFF).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_PROGRESS_CIRCULAR
+----------------------
+Circular progress indicator with optional radial image overlay.
+
+Properties:
+
+* ``fValue`` — float, magnitude 0.0—1.0 (sign selects direction).
+* ``image`` — Picture, optional mask/overlay.
+* ``fallbackImage`` — Picture, optional fallback if ``image`` invalid.
+* ``bgColor`` — Color, background arc (default 0x64646464).
+* ``fgColor`` — Color, foreground arc (default 0xFFFFFFFF).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_TEXT
+---------
+Renders single-line text. Requires the element's ``text`` value; supports font, effects and overflow controls.
+
+Properties:
+
+* ``font`` — Font id or ``Font.<name>``; defaults to scene default font.
+* ``color`` — Color, text color; defaults to scene default.
+* ``fontFx`` — enum FFT_* (text effect), default ``FFT_NONE``.
+* ``fxColor`` — Color, effect color (default 0x78787878).
+* ``fxFactor`` — int, effect factor (default 48).
+* ``fxOffsX`` / ``fxOffsY`` — int, effect offsets (default 0).
+* ``overflowX`` — enum TOVERFLOW_* (e.g., ``TOVERFLOW_CLIP``).
+* ``ellipsis`` — bool, append ellipsis on overflow (default true).
+* ``spacing`` — int, extra character spacing (default 0).
+* ``monoWidth`` — number, fixed character width.
+* ``password`` — null/bool/char; masks text with given char or "*".
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+* ``fontSize`` — float, font size.
+* ``fontTex`` — Picture, font texture.
+* ``fontTexSu`` / ``fontTexSv`` — int, font texture UV coordinates (default 32).
+* ``fontTexBov`` — int, font texture baseline offset vertical (default 0).
+
+ROBJ_INSCRIPTION
+----------------
+Renders single-line text laid out as a precomputed inscription. Same properties as ``ROBJ_TEXT`` plus:
+
+Properties:
+
+* All properties from ``ROBJ_TEXT``
+* Renders text as inscription in separate texture, providing better font effects but using more memory.
+
+Note: Text rendering differs slightly in size compared to ``ROBJ_TEXT`` for the same fontSize.
+
+ROBJ_TEXTAREA
+-------------
+Multi-line editable text area with scrolling and cursor rendering. Uses the same properties as ``ROBJ_TEXT`` plus the following.
+
+Properties:
+
+* ``overflowY`` — enum TOVERFLOW_* for vertical overflow (default ``TOVERFLOW_CLIP``).
+* ``lowLineCount`` — int, minimum line count for alignment (default 0).
+* ``lowLineCountAlign`` — enum alignment when there are few lines (default ``PLACE_DEFAULT``).
+* ``spacing`` — int, extra character spacing.
+* ``preformatted`` - bool or combination of the following flags:
+
+  * ``FMT_NO_WRAP`` - disable auto wrapping of lines.
+  * ``FMT_KEEP_SPACES`` - don't merge multiple spaces into one.
+  * ``FMT_IGNORE_TAGS`` - keep tags as-is instead of interpreting them.
+  * ``FMT_HIDE_ELLIPSIS`` - do not render ellipsis for overflowed text.
+  * ``FMT_AS_IS`` - all of the above combined (equivalent to ``true``).
+
+ROBJ_BOX
+--------
+Filled rectangle with optional image, border and rounded corners.
+
+Properties:
+
+* ``borderWidth`` — float or array[4] [top, right, bottom, left].
+* ``borderRadius`` — float or array[4] [top-left, top-right, bottom-right, bottom-left].
+* ``borderColor`` — Color, border color.
+* ``fillColor`` — Color, fill (default transparent).
+* ``image`` / ``fallbackImage`` — Picture(s), optional content.
+* ``keepAspect`` — enum/bool; image aspect policy.
+* ``imageHalign`` / ``imageValign`` — enum ``ALIGN_*`` (default center).
+* ``flipX`` / ``flipY`` — bool, flip image.
+* ``picSaturate`` — float, image saturation (0—1; default 1.0).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+
+ROBJ_FRAME
+----------
+Draws a rectangular frame; optionally fills the interior.
+
+Properties:
+
+* ``color`` — Color, border color.
+* ``fillColor`` — Color, interior fill (default transparent).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+* ``borderWidth`` — float or array[4] in CSS order [top, right, bottom, left]; negatives clamped to 0.
+
+ROBJ_MASK
+---------
+Applies a clipping mask so children render only through the mask.
+
+Properties:
+
+* ``image`` — Picture used as mask.
+
+ROBJ_MOVIE
+----------
+Renders video frames from a movie player (requires ``behavior = Behaviors.Movie``).
+Aspect handling and saturation similar to images.
+
+Properties:
+
+* ``movie`` — string, path to video file.
+* ``color`` — Color, tint (default 0xFFFFFFFF).
+* ``keepAspect`` — bool or enum ``KEEP_ASPECT_*`` (default ``KEEP_ASPECT_NONE``).
+* ``picSaturate`` — float, 0—1 saturation (default 1.0).
+* ``imageHalign`` / ``imageValign`` — enum ``ALIGN_*`` (default center).
+* ``brightness`` — float, brightness modifier (0—1; default 1.0).
+* ``loop`` — bool, whether to loop the video.
+* ``enableSound`` — bool, enable sound playback (default true).
+* ``sound`` — string, sound file path (defaults to "<video_file>.mp3").
+* ``soundVolume`` — float, sound volume (default 1.0).
+
+Event Handlers:
+
+* ``onStart`` — called when playback starts.
+* ``onFinish`` — called when playback finishes.
+* ``onError`` — called on playback error.
+
+ROBJ_DAS_CANVAS
+---------------
+Custom drawing canvas implemented in daslang. Property surface is defined by the das script.
+
+Properties:
+
+* ``script`` — DasScript instance.
+* ``drawFunc`` — string, name of draw function in script.
+* ``setupFunc`` — string, name of optional setup function in script (optional).
+
+Function Signatures:
+
+* Draw function: ``(var ctx: GuiContext&; rdata: ElemRenderData& const; rstate: RenderState& const; [data: <user's struct> &])``
+* Setup function: ``(props: Properties&; var storage: <user's struct> &)``
+
+ROBJ_WORLD_BLUR
+---------------
+Blurs the 3D world behind the UI and uses it as the object's image; you can tint it and overlay a fill color.
+
+Properties:
+
+* ``color`` — Color, tint applied to blurred scene (default 0xFFFFFFFF).
+* ``fillColor`` — Color, overlay above blurred scene (default transparent).
+* ``borderWidth`` — not set by default; if absent, border is zeroed.
+* ``borderRadius`` — float or array[4] [top-left, top-right, bottom-right, bottom-left].
+* ``saturateFactor`` — float, saturation factor (0—1; default 1.0).
+
+ROBJ_WORLD_BLUR_PANEL
+---------------------
+Blurs both world and UI content and uses it as the object's image; same color and fill semantics as ``ROBJ_WORLD_BLUR``.
+
+Properties:
+
+* ``color`` — Color, tint applied to blurred content (default 0xFFFFFFFF).
+* ``fillColor`` — Color, overlay above blurred content (default transparent).
+* ``borderWidth`` — border width specification.
+* ``borderRadius`` — float or array[4] [top-left, top-right, bottom-right, bottom-left].
+* ``saturateFactor`` — float, saturation factor (0—1; default 1.0).
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Contents:
+   :glob:
+
+   *
+

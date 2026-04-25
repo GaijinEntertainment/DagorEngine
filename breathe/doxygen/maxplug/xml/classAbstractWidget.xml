@@ -1,0 +1,428 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classAbstractWidget" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>AbstractWidget</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ParamDlg</basecompoundref>
+    <derivedcompoundref refid="classWidgetBool" prot="public" virt="non-virtual">WidgetBool</derivedcompoundref>
+    <derivedcompoundref refid="classWidgetColor" prot="public" virt="non-virtual">WidgetColor</derivedcompoundref>
+    <derivedcompoundref refid="classWidgetGroup" prot="public" virt="non-virtual">WidgetGroup</derivedcompoundref>
+    <derivedcompoundref refid="classWidgetNumeric" prot="public" virt="non-virtual">WidgetNumeric</derivedcompoundref>
+    <derivedcompoundref refid="classWidgetText" prot="public" virt="non-virtual">WidgetText</derivedcompoundref>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classAbstractWidget_1ae6ef1a942f5beccee8e1317729b39e29" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND AbstractWidget::hPanel</definition>
+        <argsstring></argsstring>
+        <name>hPanel</name>
+        <qualifiedname>AbstractWidget::hPanel</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="577" column="8" bodyfile="mater2.cpp" bodystart="577" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAbstractWidget_1a526a24cfeeb1ec8719cebd4cb6f301bb" prot="public" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND AbstractWidget::hSType</definition>
+        <argsstring></argsstring>
+        <name>hSType</name>
+        <qualifiedname>AbstractWidget::hSType</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="578" column="8" bodyfile="mater2.cpp" bodystart="578" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAbstractWidget_1acc041c5ce7ee3ffa9e2b9222e60a9257" prot="public" static="no" mutable="no">
+        <type>BOOL</type>
+        <definition>BOOL AbstractWidget::creating</definition>
+        <argsstring></argsstring>
+        <name>creating</name>
+        <qualifiedname>AbstractWidget::creating</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="579" column="8" bodyfile="mater2.cpp" bodystart="579" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAbstractWidget_1a191d69769bfc7165bbf8024cf3c039e9" prot="public" static="no" mutable="no">
+        <type><ref refid="structParamInfo" kindref="compound">ParamInfo</ref></type>
+        <definition>ParamInfo AbstractWidget::param</definition>
+        <argsstring></argsstring>
+        <name>param</name>
+        <qualifiedname>AbstractWidget::param</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="581" column="13" bodyfile="mater2.cpp" bodystart="581" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classAbstractWidget_1a2206c7b044e53a42eecc7e5cce08e31d" prot="public" static="no" mutable="no">
+        <type>RECT</type>
+        <definition>RECT AbstractWidget::screen_rc</definition>
+        <argsstring></argsstring>
+        <name>screen_rc</name>
+        <qualifiedname>AbstractWidget::screen_rc</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="582" column="8" bodyfile="mater2.cpp" bodystart="582" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classAbstractWidget_1a1d40750cb424c8a14226b610257d896e" prot="protected" static="no" mutable="no">
+        <type><ref refid="classDagormat2Dialog" kindref="compound">Dagormat2Dialog</ref> *</type>
+        <definition>Dagormat2Dialog* AbstractWidget::parent</definition>
+        <argsstring></argsstring>
+        <name>parent</name>
+        <qualifiedname>AbstractWidget::parent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="599" column="19" bodyfile="mater2.cpp" bodystart="599" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classAbstractWidget_1a454fa11aba5faa882f13558c3abb8979" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>AbstractWidget::AbstractWidget</definition>
+        <argsstring>(const ParamInfo &amp;pinfo, Dagormat2Dialog *p)</argsstring>
+        <name>AbstractWidget</name>
+        <qualifiedname>AbstractWidget::AbstractWidget</qualifiedname>
+        <param>
+          <type>const <ref refid="structParamInfo" kindref="compound">ParamInfo</ref> &amp;</type>
+          <declname>pinfo</declname>
+        </param>
+        <param>
+          <type><ref refid="classDagormat2Dialog" kindref="compound">Dagormat2Dialog</ref> *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="584" column="3" bodyfile="mater2.cpp" bodystart="3197" bodyend="3199"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1acd357b6426d63a3658dffd4b84c1c6d2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>AbstractWidget::~AbstractWidget</definition>
+        <argsstring>() override</argsstring>
+        <name>~AbstractWidget</name>
+        <qualifiedname>AbstractWidget::~AbstractWidget</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="585" column="3" bodyfile="mater2.cpp" bodystart="3201" bodyend="3201"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1ad49b39e71d00b743a496fdd507a8ad0f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void AbstractWidget::ReloadDialog</definition>
+        <argsstring>() override</argsstring>
+        <name>ReloadDialog</name>
+        <qualifiedname>AbstractWidget::ReloadDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="587" column="8" bodyfile="mater2.cpp" bodystart="587" bodyend="587"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1a6fe8fca67f5966b557d5febd9eeb0125" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID AbstractWidget::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>AbstractWidget::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="588" column="12" bodyfile="mater2.cpp" bodystart="588" bodyend="588"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1a2c3b6db8f678ebfd546b2b81fd881b58" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void AbstractWidget::SetThing</definition>
+        <argsstring>(ReferenceTarget *m) override</argsstring>
+        <name>SetThing</name>
+        <qualifiedname>AbstractWidget::SetThing</qualifiedname>
+        <param>
+          <type>ReferenceTarget *</type>
+          <declname>m</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="589" column="8" bodyfile="mater2.cpp" bodystart="589" bodyend="589"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1a7db3309c2ef92adb0e81325e322ad7ad" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>ReferenceTarget *</type>
+        <definition>ReferenceTarget * AbstractWidget::GetThing</definition>
+        <argsstring>() override</argsstring>
+        <name>GetThing</name>
+        <qualifiedname>AbstractWidget::GetThing</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="590" column="19" bodyfile="mater2.cpp" bodystart="590" bodyend="590"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1a856eab753d8c16238ef3635697d6e8a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void AbstractWidget::DeleteThis</definition>
+        <argsstring>() override</argsstring>
+        <name>DeleteThis</name>
+        <qualifiedname>AbstractWidget::DeleteThis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="591" column="8" bodyfile="mater2.cpp" bodystart="591" bodyend="591"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1aa1cba9b42b68fb5248eee5b1e9575fca" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void AbstractWidget::SetTime</definition>
+        <argsstring>(TimeValue t) override</argsstring>
+        <name>SetTime</name>
+        <qualifiedname>AbstractWidget::SetTime</qualifiedname>
+        <param>
+          <type>TimeValue</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="592" column="8" bodyfile="mater2.cpp" bodystart="592" bodyend="592"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1adbf42d102782f62660fcf7f462bc5051" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void AbstractWidget::ActivateDlg</definition>
+        <argsstring>(BOOL onOff) override</argsstring>
+        <name>ActivateDlg</name>
+        <qualifiedname>AbstractWidget::ActivateDlg</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>onOff</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="593" column="8" bodyfile="mater2.cpp" bodystart="593" bodyend="593"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1a90aa0849f34ee9f02fda1873cb7aa23f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const TCHAR *</type>
+        <definition>virtual const TCHAR * AbstractWidget::GetType</definition>
+        <argsstring>() const =0</argsstring>
+        <name>GetType</name>
+        <qualifiedname>AbstractWidget::GetType</qualifiedname>
+        <reimplementedby refid="classWidgetText_1a459722b2a452eaf6f480b1cb02c9d2f0">GetType</reimplementedby>
+        <reimplementedby refid="classWidgetColor_1ad5541bb7f1f82fdf6086e31c65ff98d4">GetType</reimplementedby>
+        <reimplementedby refid="classWidgetBool_1a90e03aebe3c39c939230aaee59dea027">GetType</reimplementedby>
+        <reimplementedby refid="classWidgetNumeric_1a09cb1748cb17b1e4a3fdf89dd7d57073">GetType</reimplementedby>
+        <reimplementedby refid="classWidgetGroup_1a9ce3ab27665633cfbdbcae18494d88c8">GetType</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="595" column="23"/>
+      </memberdef>
+      <memberdef kind="function" id="classAbstractWidget_1a9d7b8f0fc266a86464287bf42df95049" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>virtual bool AbstractWidget::IsGroup</definition>
+        <argsstring>() const</argsstring>
+        <name>IsGroup</name>
+        <qualifiedname>AbstractWidget::IsGroup</qualifiedname>
+        <reimplementedby refid="classWidgetGroup_1a9b1fc1d2f01527d72b60ef2facc60e6c">IsGroup</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="596" column="16" bodyfile="mater2.cpp" bodystart="596" bodyend="596"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>AbstractWidget</label>
+        <link refid="classAbstractWidget"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ParamDlg</label>
+      </node>
+      <node id="3">
+        <label>WidgetBool</label>
+        <link refid="classWidgetBool"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>WidgetColor</label>
+        <link refid="classWidgetColor"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>WidgetGroup</label>
+        <link refid="classWidgetGroup"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>WidgetNumeric</label>
+        <link refid="classWidgetNumeric"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>WidgetText</label>
+        <link refid="classWidgetText"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>AbstractWidget</label>
+        <link refid="classAbstractWidget"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>param</edgelabel>
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="6" relation="public-inheritance">
+        </childnode>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>dlg</edgelabel>
+        </childnode>
+        <childnode refid="9" relation="usage">
+          <edgelabel>texmaps</edgelabel>
+        </childnode>
+        <childnode refid="11" relation="usage">
+          <edgelabel>postLoadCallback</edgelabel>
+        </childnode>
+      </node>
+      <node id="11">
+        <label>DagorMat2PostLoadCallback</label>
+        <link refid="classDagorMat2PostLoadCallback"/>
+        <childnode refid="12" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>Dagormat2Dialog</label>
+        <link refid="classDagormat2Dialog"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>theMtl</edgelabel>
+        </childnode>
+      </node>
+      <node id="8">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="7">
+        <label>IDagorMat2</label>
+        <link refid="classIDagorMat2"/>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>Mtl</label>
+      </node>
+      <node id="2">
+        <label>ParamDlg</label>
+      </node>
+      <node id="3">
+        <label>ParamInfo</label>
+        <link refid="structParamInfo"/>
+      </node>
+      <node id="12">
+        <label>PostLoadCallback</label>
+      </node>
+      <node id="10">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="9">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="10" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater2.cpp" line="574" column="1" bodyfile="mater2.cpp" bodystart="575" bodyend="600"/>
+    <listofallmembers>
+      <member refid="classAbstractWidget_1a454fa11aba5faa882f13558c3abb8979" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>AbstractWidget</name></member>
+      <member refid="classAbstractWidget_1adbf42d102782f62660fcf7f462bc5051" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>ActivateDlg</name></member>
+      <member refid="classAbstractWidget_1a6fe8fca67f5966b557d5febd9eeb0125" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>ClassID</name></member>
+      <member refid="classAbstractWidget_1acc041c5ce7ee3ffa9e2b9222e60a9257" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>creating</name></member>
+      <member refid="classAbstractWidget_1a856eab753d8c16238ef3635697d6e8a5" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>DeleteThis</name></member>
+      <member refid="classAbstractWidget_1a7db3309c2ef92adb0e81325e322ad7ad" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>GetThing</name></member>
+      <member refid="classAbstractWidget_1a90aa0849f34ee9f02fda1873cb7aa23f" prot="public" virt="pure-virtual"><scope>AbstractWidget</scope><name>GetType</name></member>
+      <member refid="classAbstractWidget_1ae6ef1a942f5beccee8e1317729b39e29" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>hPanel</name></member>
+      <member refid="classAbstractWidget_1a526a24cfeeb1ec8719cebd4cb6f301bb" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>hSType</name></member>
+      <member refid="classAbstractWidget_1a9d7b8f0fc266a86464287bf42df95049" prot="public" virt="virtual"><scope>AbstractWidget</scope><name>IsGroup</name></member>
+      <member refid="classAbstractWidget_1a191d69769bfc7165bbf8024cf3c039e9" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>param</name></member>
+      <member refid="classAbstractWidget_1a1d40750cb424c8a14226b610257d896e" prot="protected" virt="non-virtual"><scope>AbstractWidget</scope><name>parent</name></member>
+      <member refid="classAbstractWidget_1ad49b39e71d00b743a496fdd507a8ad0f" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>ReloadDialog</name></member>
+      <member refid="classAbstractWidget_1a2206c7b044e53a42eecc7e5cce08e31d" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>screen_rc</name></member>
+      <member refid="classAbstractWidget_1a2c3b6db8f678ebfd546b2b81fd881b58" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>SetThing</name></member>
+      <member refid="classAbstractWidget_1aa1cba9b42b68fb5248eee5b1e9575fca" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>SetTime</name></member>
+      <member refid="classAbstractWidget_1acd357b6426d63a3658dffd4b84c1c6d2" prot="public" virt="non-virtual"><scope>AbstractWidget</scope><name>~AbstractWidget</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

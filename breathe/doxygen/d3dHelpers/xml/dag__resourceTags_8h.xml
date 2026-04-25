@@ -1,0 +1,1094 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__resourceTags_8h" kind="file" language="C++">
+    <compoundname>dag_resourceTags.h</compoundname>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__resourceTags_8h_1aec18783b1e51c4ff3576ccf4875d4cf6" prot="public" static="no">
+        <name>RESTAG_VR</name>
+        <initializer>&quot;VR&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="12" column="9" bodyfile="dag_resourceTags.h" bodystart="12" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a4a0d6cf275a35614897cd24a214e8608" prot="public" static="no">
+        <name>RESTAG_ATLAS</name>
+        <initializer>&quot;atlas&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="13" column="9" bodyfile="dag_resourceTags.h" bodystart="13" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1acb2488e73c99025624043da35570c632" prot="public" static="no">
+        <name>RESTAG_RINGDYNBUF</name>
+        <initializer>&quot;ringDynBuf&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="14" column="9" bodyfile="dag_resourceTags.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a8c0db11da8ac1951b58ceee2d4ccf8b5" prot="public" static="no">
+        <name>RESTAG_AVIWRITER</name>
+        <initializer>&quot;aviWriter&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="15" column="9" bodyfile="dag_resourceTags.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a904a111166b93a2169f5f672c8a19b77" prot="public" static="no">
+        <name>RESTAG_DDSX_TEX</name>
+        <initializer>&quot;ddsx_tex&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="16" column="9" bodyfile="dag_resourceTags.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a0190503e5dfd8eafdd97ca1a97c4cd31" prot="public" static="no">
+        <name>RESTAG_STAGING</name>
+        <initializer>&quot;staging&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="17" column="9" bodyfile="dag_resourceTags.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a3d6e9c74b5de9c7ef78d4e8a77bef8ae" prot="public" static="no">
+        <name>RESTAG_DDS_TEXTURE</name>
+        <initializer>&quot;dds_texture&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="18" column="9" bodyfile="dag_resourceTags.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ac3debd43a594a8b0fd19ef51d0063a75" prot="public" static="no">
+        <name>RESTAG_GUI</name>
+        <initializer>&quot;gui&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="19" column="9" bodyfile="dag_resourceTags.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a6e97445ee3a9802aff7ac9a1896750bf" prot="public" static="no">
+        <name>RESTAG_IMGUI</name>
+        <initializer>&quot;imgui&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="20" column="9" bodyfile="dag_resourceTags.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a3ded45e0d5fb70d66da6e5ee011dbfc7" prot="public" static="no">
+        <name>RESTAG_DEBUG</name>
+        <initializer>&quot;debug&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="21" column="9" bodyfile="dag_resourceTags.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a289bd60b6e6ae88a3be8da0f62abb655" prot="public" static="no">
+        <name>RESTAG_OCCLUSION</name>
+        <initializer>&quot;occlusion&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="22" column="9" bodyfile="dag_resourceTags.h" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a6e699bb7b3b6395c54f98973e17acb2b" prot="public" static="no">
+        <name>RESTAG_QUAD_INDEX_BUFFER</name>
+        <initializer>&quot;quadIndexBuffer&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="23" column="9" bodyfile="dag_resourceTags.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a5c2c6d2d69e3d9750db6c68462f98717" prot="public" static="no">
+        <name>RESTAG_REGTEX</name>
+        <initializer>&quot;reg_tex&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="24" column="9" bodyfile="dag_resourceTags.h" bodystart="24" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a444be0e48d5b7ff5b7cd1b4bfc159e45" prot="public" static="no">
+        <name>RESTAG_RESIZABLE_TEX</name>
+        <initializer>&quot;resizable_tex&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="25" column="9" bodyfile="dag_resourceTags.h" bodystart="25" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ad3c4141794d2f8ef09a68c2f15c37717" prot="public" static="no">
+        <name>RESTAG_RING_CPU_BUFFER_LOCK</name>
+        <initializer>&quot;RingCPUBufferLock&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="26" column="9" bodyfile="dag_resourceTags.h" bodystart="26" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1adac0e16452451277937195b9a716d913" prot="public" static="no">
+        <name>RESTAG_SERIAL_INT_BUFFER</name>
+        <initializer>&quot;serialIntBuffer&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="27" column="9" bodyfile="dag_resourceTags.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a9365020229a072191c0266506bd1c1c4" prot="public" static="no">
+        <name>RESTAG_PERFMON</name>
+        <initializer>&quot;perfMon&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="28" column="9" bodyfile="dag_resourceTags.h" bodystart="28" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ad2acf7407435da345dc3eff4182fdb8c" prot="public" static="no">
+        <name>RESTAG_RENDINST</name>
+        <initializer>&quot;rendInst&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="29" column="9" bodyfile="dag_resourceTags.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a80b9d16040499aa8ba05907b3689b423" prot="public" static="no">
+        <name>RESTAG_DIFFUSE_MIPMAP</name>
+        <initializer>&quot;diffuse_mipmap&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="30" column="9" bodyfile="dag_resourceTags.h" bodystart="30" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a3f67d0c7a1960659d84c884612ea351c" prot="public" static="no">
+        <name>RESTAG_SHADER_MESH</name>
+        <initializer>&quot;shaderMesh&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="31" column="9" bodyfile="dag_resourceTags.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ab39c017b50c4c520db8d3ce2466c3eae" prot="public" static="no">
+        <name>RESTAG_VIDEO</name>
+        <initializer>&quot;video&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="32" column="9" bodyfile="dag_resourceTags.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a8ef0c2ccaf73b65c671a529186a0987f" prot="public" static="no">
+        <name>RESTAG_APEX</name>
+        <initializer>&quot;apex&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="33" column="9" bodyfile="dag_resourceTags.h" bodystart="33" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a0cd352642122d9776f635dbd9b8dafe1" prot="public" static="no">
+        <name>RESTAG_BVH</name>
+        <initializer>&quot;bvh&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="34" column="9" bodyfile="dag_resourceTags.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a809d00405f1ea2f7f11eff43e9afbb8d" prot="public" static="no">
+        <name>RESTAG_DAGI</name>
+        <initializer>&quot;daGI&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="35" column="9" bodyfile="dag_resourceTags.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a193b2e580b2159295e12b11c4fff947f" prot="public" static="no">
+        <name>RESTAG_DAGI2</name>
+        <initializer>&quot;daGI2&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="36" column="9" bodyfile="dag_resourceTags.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a5204cc77533e7a57510ea96163c6db2e" prot="public" static="no">
+        <name>RESTAG_DASDF</name>
+        <initializer>&quot;daSDF&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="37" column="9" bodyfile="dag_resourceTags.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a1cd489509a81f8faa394334d938c5d5b" prot="public" static="no">
+        <name>RESTAG_DASKIES2</name>
+        <initializer>&quot;daSkies2&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="38" column="9" bodyfile="dag_resourceTags.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1aba7194d20b282e769b237567868474c5" prot="public" static="no">
+        <name>RESTAG_WATER</name>
+        <initializer>&quot;water&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="39" column="9" bodyfile="dag_resourceTags.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1af5f5b9b9c711022d9cbc5429e9f3480a" prot="public" static="no">
+        <name>RESTAG_LAND</name>
+        <initializer>&quot;land&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="40" column="9" bodyfile="dag_resourceTags.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ac70bd6158906451a178448d49ce3add2" prot="public" static="no">
+        <name>RESTAG_PHYSMAP</name>
+        <initializer>&quot;physMap&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="41" column="9" bodyfile="dag_resourceTags.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a07ea2b0bfdcb2947147e665ded5a6db0" prot="public" static="no">
+        <name>RESTAG_DASRES</name>
+        <initializer>&quot;dasRes&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="42" column="9" bodyfile="dag_resourceTags.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a72c8bd6dede74ce0b7a1c90d6fdc0768" prot="public" static="no">
+        <name>RESTAG_VOLTEX_RENDERER</name>
+        <initializer>&quot;voltexRenderer&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="43" column="9" bodyfile="dag_resourceTags.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ac52099764b1421db13ac36c23e9fbf6c" prot="public" static="no">
+        <name>RESTAG_RESOURCE_POOL</name>
+        <initializer>&quot;resourcePool&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="44" column="9" bodyfile="dag_resourceTags.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a634975aa9eab2a2998294dd491fb88b8" prot="public" static="no">
+        <name>RESTAG_AA</name>
+        <initializer>&quot;aa&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="45" column="9" bodyfile="dag_resourceTags.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a260674bf1c64a0b576db9503d6e51597" prot="public" static="no">
+        <name>RESTAG_TARGET</name>
+        <initializer>&quot;target&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="46" column="9" bodyfile="dag_resourceTags.h" bodystart="46" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a5deef9d430a308567f3d38ba3fb6a873" prot="public" static="no">
+        <name>RESTAG_SHADOW</name>
+        <initializer>&quot;shadow&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="47" column="9" bodyfile="dag_resourceTags.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ae460041df23e94bcf30ee14462d0be0d" prot="public" static="no">
+        <name>RESTAG_LIGHTS</name>
+        <initializer>&quot;lights&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="48" column="9" bodyfile="dag_resourceTags.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1aac3f55c1dff1b79d6dcb3bc4ae2cd834" prot="public" static="no">
+        <name>RESTAG_FRAMEGRAPH</name>
+        <initializer>&quot;frameGraph&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="49" column="9" bodyfile="dag_resourceTags.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a1fd769bc8fb634ffd21febbd254297f3" prot="public" static="no">
+        <name>RESTAG_DENOISER</name>
+        <initializer>&quot;denoiser&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="50" column="9" bodyfile="dag_resourceTags.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ad4aa4c31ffcbb3de98d70ca4ad5262d2" prot="public" static="no">
+        <name>RESTAG_AO</name>
+        <initializer>&quot;ao&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="51" column="9" bodyfile="dag_resourceTags.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1aa3e8fe3122c0a6afd0229ba47581ddf2" prot="public" static="no">
+        <name>RESTAG_SSR</name>
+        <initializer>&quot;ssr&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="52" column="9" bodyfile="dag_resourceTags.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a8d6595fcfdc3a273024cd89e23e087e9" prot="public" static="no">
+        <name>RESTAG_FX</name>
+        <initializer>&quot;fx&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="53" column="9" bodyfile="dag_resourceTags.h" bodystart="53" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a2c6cdfc0d08750294c49a80584095571" prot="public" static="no">
+        <name>RESTAG_DOF</name>
+        <initializer>&quot;dof&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="54" column="9" bodyfile="dag_resourceTags.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ab4d773c96c80c1423b35f0d075b20fd1" prot="public" static="no">
+        <name>RESTAG_GRASS</name>
+        <initializer>&quot;grass&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="55" column="9" bodyfile="dag_resourceTags.h" bodystart="55" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a463ceef540e4169e88a570ea7dee0c47" prot="public" static="no">
+        <name>RESTAG_POSTFX</name>
+        <initializer>&quot;postfx&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="56" column="9" bodyfile="dag_resourceTags.h" bodystart="56" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a186ffa5792aedbc92dbb17da815acc55" prot="public" static="no">
+        <name>RESTAG_BENCHMARK</name>
+        <initializer>&quot;benchmark&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="57" column="9" bodyfile="dag_resourceTags.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1aabb7b9b9ec920e8c0218aa2b2c3df7dd" prot="public" static="no">
+        <name>RESTAG_HDR</name>
+        <initializer>&quot;hdr&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="58" column="9" bodyfile="dag_resourceTags.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1aabdebbdd8fe00f6d5b0a65b52eb8ad6b" prot="public" static="no">
+        <name>RESTAG_WETNESS</name>
+        <initializer>&quot;wetness&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="59" column="9" bodyfile="dag_resourceTags.h" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a4b2c5c33cb58094994baed3b923e81de" prot="public" static="no">
+        <name>RESTAG_LENSFLARE</name>
+        <initializer>&quot;lensflare&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="60" column="9" bodyfile="dag_resourceTags.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1abd32d1381308fae8b8e3233bda2fe9cf" prot="public" static="no">
+        <name>RESTAG_NOISE</name>
+        <initializer>&quot;noise&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="61" column="9" bodyfile="dag_resourceTags.h" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a0b151adf2ea0ada693134f6c4d1ebeb8" prot="public" static="no">
+        <name>RESTAG_MOTIONBLUR</name>
+        <initializer>&quot;motionblur&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="62" column="9" bodyfile="dag_resourceTags.h" bodystart="62" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a653b4c7bc15e57def41fce22064b9696" prot="public" static="no">
+        <name>RESTAG_PARTIAL_DXT</name>
+        <initializer>&quot;partial_dxt&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="63" column="9" bodyfile="dag_resourceTags.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a1febaeb4d1977ad3aa6c5bd1a61b80ef" prot="public" static="no">
+        <name>RESTAG_RAIN</name>
+        <initializer>&quot;rain&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="64" column="9" bodyfile="dag_resourceTags.h" bodystart="64" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a30d741e506802018a88a4e14177673f2" prot="public" static="no">
+        <name>RESTAG_RTR</name>
+        <initializer>&quot;rtr&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="65" column="9" bodyfile="dag_resourceTags.h" bodystart="65" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a8d073a3f1afefa12b9f783ac1aad5fc0" prot="public" static="no">
+        <name>RESTAG_SHADER_CAHCE</name>
+        <initializer>&quot;shader_cache&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="66" column="9" bodyfile="dag_resourceTags.h" bodystart="66" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a55825d977f120c285109b54504faf0f9" prot="public" static="no">
+        <name>RESTAG_COMPRESS</name>
+        <initializer>&quot;compress&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="67" column="9" bodyfile="dag_resourceTags.h" bodystart="67" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ab63a93478391ef7c09ec87d704596c6c" prot="public" static="no">
+        <name>RESTAG_TRACER</name>
+        <initializer>&quot;tracer&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="68" column="9" bodyfile="dag_resourceTags.h" bodystart="68" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1aa462abe55aac160a4a57060fe8721ee9" prot="public" static="no">
+        <name>RESTAG_TREES2D</name>
+        <initializer>&quot;trees2d&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="69" column="9" bodyfile="dag_resourceTags.h" bodystart="69" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1adffd70e5b86b71c8c4edaf8d3321a423" prot="public" static="no">
+        <name>RESTAG_VOLFOG</name>
+        <initializer>&quot;volfog&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="70" column="9" bodyfile="dag_resourceTags.h" bodystart="70" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ab6956e18751da8d978042151c8351731" prot="public" static="no">
+        <name>RESTAG_VOXEL</name>
+        <initializer>&quot;voxel&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="71" column="9" bodyfile="dag_resourceTags.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a57555c65890d14f8d36879500e07e71f" prot="public" static="no">
+        <name>RESTAG_WIND</name>
+        <initializer>&quot;wind&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="72" column="9" bodyfile="dag_resourceTags.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a38e4b5131d16f43071aade083e661321" prot="public" static="no">
+        <name>RESTAG_XRAY</name>
+        <initializer>&quot;xray&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="73" column="9" bodyfile="dag_resourceTags.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ab71d8c3beb5e60b8436eb198a96d7d72" prot="public" static="no">
+        <name>RESTAG_ALIASABLE</name>
+        <initializer>&quot;aliasable&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="74" column="9" bodyfile="dag_resourceTags.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a8127c55b94f68a5865d0ef0cffa7f1a6" prot="public" static="no">
+        <name>RESTAG_TEXGEN</name>
+        <initializer>&quot;tex_gen&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="75" column="9" bodyfile="dag_resourceTags.h" bodystart="75" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ae3f2b15e7f3b7f38a2ddf9623f555b48" prot="public" static="no">
+        <name>RESTAG_CABLE</name>
+        <initializer>&quot;cable&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="76" column="9" bodyfile="dag_resourceTags.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1aeaf46e12eaf6cb6b87e4c5e96473c0ff" prot="public" static="no">
+        <name>RESTAG_ENVIRONMENT_ANALYZER</name>
+        <initializer>&quot;EnvironmentAnalyzer&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="77" column="9" bodyfile="dag_resourceTags.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a6ecb6fbe950880b859711099186d6630" prot="public" static="no">
+        <name>RESTAG_EXPLOSION_PATCH</name>
+        <initializer>&quot;explosionPatch&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="78" column="9" bodyfile="dag_resourceTags.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a191ece0085cf9ddec239a4e4f124ba0c" prot="public" static="no">
+        <name>RESTAG_TRACK</name>
+        <initializer>&quot;track&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="79" column="9" bodyfile="dag_resourceTags.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1acf496ba2d94d59eefc2f69e1f3875b6f" prot="public" static="no">
+        <name>RESTAG_VAPOR</name>
+        <initializer>&quot;vapor&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="80" column="9" bodyfile="dag_resourceTags.h" bodystart="80" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1aa7d95b46cc019faa76db76dfded23fe7" prot="public" static="no">
+        <name>RESTAG_WT</name>
+        <initializer>&quot;wt&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="81" column="9" bodyfile="dag_resourceTags.h" bodystart="81" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a869db6724773b5c739f0e7f5ca4b5d14" prot="public" static="no">
+        <name>RESTAG_SCREENSHOT</name>
+        <initializer>&quot;screenshot&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="82" column="9" bodyfile="dag_resourceTags.h" bodystart="82" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a5296a7260cece93428dc4a4ac9aaf47f" prot="public" static="no">
+        <name>RESTAG_AFTERBURNER</name>
+        <initializer>&quot;afterburner&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="83" column="9" bodyfile="dag_resourceTags.h" bodystart="83" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a3d6ca4eda07564d22889ea5a315ad307" prot="public" static="no">
+        <name>RESTAG_DYNDEFORM</name>
+        <initializer>&quot;dynDeform&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="84" column="9" bodyfile="dag_resourceTags.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ae29a4b2a8ac355589f001debf1f44cb5" prot="public" static="no">
+        <name>RESTAG_NIGHTVISION</name>
+        <initializer>&quot;night_vision&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="85" column="9" bodyfile="dag_resourceTags.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a9cb3ffcf91a6c3211aaad8268297ac06" prot="public" static="no">
+        <name>RESTAG_NUKE</name>
+        <initializer>&quot;nuke&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="86" column="9" bodyfile="dag_resourceTags.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a7334bda831f4caa7d48f8bebfde2a210" prot="public" static="no">
+        <name>RESTAG_SONAR</name>
+        <initializer>&quot;sonar&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="87" column="9" bodyfile="dag_resourceTags.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a10cdd961cb19d72787680bd050f0c6ee" prot="public" static="no">
+        <name>RESTAG_SSSS</name>
+        <initializer>&quot;ssss&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="88" column="9" bodyfile="dag_resourceTags.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a6421107d0f7fa792606a417c5fa42922" prot="public" static="no">
+        <name>RESTAG_ENVI_COVER</name>
+        <initializer>&quot;envi_cover&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="89" column="9" bodyfile="dag_resourceTags.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a49fd7a75095c7651dcacec026d5fcccc" prot="public" static="no">
+        <name>RESTAG_ROCKET_WIRE</name>
+        <initializer>&quot;rocket_wire&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="90" column="9" bodyfile="dag_resourceTags.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ab83f2b1f248b15af6768b8556c160763" prot="public" static="no">
+        <name>RESTAG_FARAWAY_RENDER</name>
+        <initializer>&quot;farawayRender&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="91" column="9" bodyfile="dag_resourceTags.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a097f5ff7c72eac196f4733b7d99e0499" prot="public" static="no">
+        <name>RESTAG_TACVIEW</name>
+        <initializer>&quot;tacView&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="92" column="9" bodyfile="dag_resourceTags.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a04d0611c09fa1ae1fd63cfadd1216bae" prot="public" static="no">
+        <name>RESTAG_ENGINE</name>
+        <initializer>&quot;3dengine&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="93" column="9" bodyfile="dag_resourceTags.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ab83e340b6369dad156b0952585619a81" prot="public" static="no">
+        <name>RESTAG_UNITED_DATA</name>
+        <initializer>&quot;unitedData&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="94" column="9" bodyfile="dag_resourceTags.h" bodystart="94" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a4555700fbe30dc1e2a5086b981aca2a6" prot="public" static="no">
+        <name>RESTAG_DASWRT</name>
+        <initializer>&quot;daSWRT&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="95" column="9" bodyfile="dag_resourceTags.h" bodystart="95" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a47cffdbabe31453b3ba420d81138168c" prot="public" static="no">
+        <name>RESTAG_GPUOBJ</name>
+        <initializer>&quot;gpuObject&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="96" column="9" bodyfile="dag_resourceTags.h" bodystart="96" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1afee32c816964f2966aa54cdbe094ace5" prot="public" static="no">
+        <name>RESTAG_DECALS</name>
+        <initializer>&quot;decals&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="97" column="9" bodyfile="dag_resourceTags.h" bodystart="97" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1ac3d9b6b34d7c3f099da0e139fa4bb03a" prot="public" static="no">
+        <name>RESTAG_COLLISION</name>
+        <initializer>&quot;collision&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="98" column="9" bodyfile="dag_resourceTags.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a1a5330d49f17100ef7b94d58fceb272c" prot="public" static="no">
+        <name>RESTAG_INDOOR_PROBES</name>
+        <initializer>&quot;indoorProbes&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="99" column="9" bodyfile="dag_resourceTags.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__resourceTags_8h_1a621b1362ba09877c08a018976c38d63b" prot="public" static="no">
+        <name>RESTAG_DYNMODEL</name>
+        <initializer>&quot;dynModel&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTags.h" line="100" column="9" bodyfile="dag_resourceTags.h" bodystart="100" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="comment">/*</highlight></codeline>
+<codeline lineno="8"><highlight class="comment"><sp/>*<sp/>Before<sp/>adding<sp/>a<sp/>new<sp/>TAG,<sp/>consider<sp/>using<sp/>one<sp/>that<sp/>already<sp/>exist,<sp/>otherwise<sp/>the</highlight></codeline>
+<codeline lineno="9"><highlight class="comment"><sp/>*<sp/>memory<sp/>report<sp/>will<sp/>be<sp/>overly<sp/>fragmented<sp/>and<sp/>be<sp/>less<sp/>useful.</highlight></codeline>
+<codeline lineno="10"><highlight class="comment"><sp/>*/</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12" refid="dag__resourceTags_8h_1aec18783b1e51c4ff3576ccf4875d4cf6" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_VR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;VR&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="dag__resourceTags_8h_1a4a0d6cf275a35614897cd24a214e8608" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_ATLAS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;atlas&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="dag__resourceTags_8h_1acb2488e73c99025624043da35570c632" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_RINGDYNBUF<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;ringDynBuf&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15" refid="dag__resourceTags_8h_1a8c0db11da8ac1951b58ceee2d4ccf8b5" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_AVIWRITER<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;aviWriter&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="dag__resourceTags_8h_1a904a111166b93a2169f5f672c8a19b77" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DDSX_TEX<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;ddsx_tex&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17" refid="dag__resourceTags_8h_1a0190503e5dfd8eafdd97ca1a97c4cd31" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_STAGING<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;staging&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="dag__resourceTags_8h_1a3d6e9c74b5de9c7ef78d4e8a77bef8ae" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DDS_TEXTURE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;dds_texture&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="dag__resourceTags_8h_1ac3debd43a594a8b0fd19ef51d0063a75" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_GUI<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;gui&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="20" refid="dag__resourceTags_8h_1a6e97445ee3a9802aff7ac9a1896750bf" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_IMGUI<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;imgui&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="21" refid="dag__resourceTags_8h_1a3ded45e0d5fb70d66da6e5ee011dbfc7" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DEBUG<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;debug&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22" refid="dag__resourceTags_8h_1a289bd60b6e6ae88a3be8da0f62abb655" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_OCCLUSION<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;occlusion&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="23" refid="dag__resourceTags_8h_1a6e699bb7b3b6395c54f98973e17acb2b" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_QUAD_INDEX_BUFFER<sp/><sp/><sp/><sp/>&quot;quadIndexBuffer&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="24" refid="dag__resourceTags_8h_1a5c2c6d2d69e3d9750db6c68462f98717" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_REGTEX<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;reg_tex&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="25" refid="dag__resourceTags_8h_1a444be0e48d5b7ff5b7cd1b4bfc159e45" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_RESIZABLE_TEX<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;resizable_tex&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="26" refid="dag__resourceTags_8h_1ad3c4141794d2f8ef09a68c2f15c37717" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_RING_CPU_BUFFER_LOCK<sp/>&quot;RingCPUBufferLock&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="27" refid="dag__resourceTags_8h_1adac0e16452451277937195b9a716d913" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_SERIAL_INT_BUFFER<sp/><sp/><sp/><sp/>&quot;serialIntBuffer&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="28" refid="dag__resourceTags_8h_1a9365020229a072191c0266506bd1c1c4" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_PERFMON<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;perfMon&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="29" refid="dag__resourceTags_8h_1ad2acf7407435da345dc3eff4182fdb8c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_RENDINST<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;rendInst&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="dag__resourceTags_8h_1a80b9d16040499aa8ba05907b3689b423" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DIFFUSE_MIPMAP<sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;diffuse_mipmap&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="31" refid="dag__resourceTags_8h_1a3f67d0c7a1960659d84c884612ea351c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_SHADER_MESH<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;shaderMesh&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="32" refid="dag__resourceTags_8h_1ab39c017b50c4c520db8d3ce2466c3eae" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_VIDEO<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;video&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="33" refid="dag__resourceTags_8h_1a8ef0c2ccaf73b65c671a529186a0987f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_APEX<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;apex&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="34" refid="dag__resourceTags_8h_1a0cd352642122d9776f635dbd9b8dafe1" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_BVH<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;bvh&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="35" refid="dag__resourceTags_8h_1a809d00405f1ea2f7f11eff43e9afbb8d" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DAGI<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;daGI&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="36" refid="dag__resourceTags_8h_1a193b2e580b2159295e12b11c4fff947f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DAGI2<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;daGI2&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="37" refid="dag__resourceTags_8h_1a5204cc77533e7a57510ea96163c6db2e" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DASDF<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;daSDF&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="38" refid="dag__resourceTags_8h_1a1cd489509a81f8faa394334d938c5d5b" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DASKIES2<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;daSkies2&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="39" refid="dag__resourceTags_8h_1aba7194d20b282e769b237567868474c5" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_WATER<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;water&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40" refid="dag__resourceTags_8h_1af5f5b9b9c711022d9cbc5429e9f3480a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_LAND<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;land&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="41" refid="dag__resourceTags_8h_1ac70bd6158906451a178448d49ce3add2" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_PHYSMAP<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;physMap&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="42" refid="dag__resourceTags_8h_1a07ea2b0bfdcb2947147e665ded5a6db0" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DASRES<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;dasRes&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="43" refid="dag__resourceTags_8h_1a72c8bd6dede74ce0b7a1c90d6fdc0768" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_VOLTEX_RENDERER<sp/><sp/><sp/><sp/><sp/><sp/>&quot;voltexRenderer&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="44" refid="dag__resourceTags_8h_1ac52099764b1421db13ac36c23e9fbf6c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_RESOURCE_POOL<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;resourcePool&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="45" refid="dag__resourceTags_8h_1a634975aa9eab2a2998294dd491fb88b8" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_AA<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;aa&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="46" refid="dag__resourceTags_8h_1a260674bf1c64a0b576db9503d6e51597" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_TARGET<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;target&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="47" refid="dag__resourceTags_8h_1a5deef9d430a308567f3d38ba3fb6a873" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_SHADOW<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;shadow&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="48" refid="dag__resourceTags_8h_1ae460041df23e94bcf30ee14462d0be0d" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_LIGHTS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;lights&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49" refid="dag__resourceTags_8h_1aac3f55c1dff1b79d6dcb3bc4ae2cd834" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_FRAMEGRAPH<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;frameGraph&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="50" refid="dag__resourceTags_8h_1a1fd769bc8fb634ffd21febbd254297f3" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DENOISER<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;denoiser&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="51" refid="dag__resourceTags_8h_1ad4aa4c31ffcbb3de98d70ca4ad5262d2" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_AO<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;ao&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="52" refid="dag__resourceTags_8h_1aa3e8fe3122c0a6afd0229ba47581ddf2" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_SSR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;ssr&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="dag__resourceTags_8h_1a8d6595fcfdc3a273024cd89e23e087e9" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_FX<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;fx&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54" refid="dag__resourceTags_8h_1a2c6cdfc0d08750294c49a80584095571" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DOF<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;dof&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="55" refid="dag__resourceTags_8h_1ab4d773c96c80c1423b35f0d075b20fd1" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_GRASS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;grass&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="56" refid="dag__resourceTags_8h_1a463ceef540e4169e88a570ea7dee0c47" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_POSTFX<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;postfx&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="dag__resourceTags_8h_1a186ffa5792aedbc92dbb17da815acc55" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_BENCHMARK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;benchmark&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="58" refid="dag__resourceTags_8h_1aabb7b9b9ec920e8c0218aa2b2c3df7dd" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_HDR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;hdr&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="59" refid="dag__resourceTags_8h_1aabdebbdd8fe00f6d5b0a65b52eb8ad6b" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_WETNESS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;wetness&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="60" refid="dag__resourceTags_8h_1a4b2c5c33cb58094994baed3b923e81de" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_LENSFLARE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;lensflare&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="61" refid="dag__resourceTags_8h_1abd32d1381308fae8b8e3233bda2fe9cf" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_NOISE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;noise&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="dag__resourceTags_8h_1a0b151adf2ea0ada693134f6c4d1ebeb8" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_MOTIONBLUR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;motionblur&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="63" refid="dag__resourceTags_8h_1a653b4c7bc15e57def41fce22064b9696" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_PARTIAL_DXT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;partial_dxt&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="64" refid="dag__resourceTags_8h_1a1febaeb4d1977ad3aa6c5bd1a61b80ef" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_RAIN<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;rain&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="65" refid="dag__resourceTags_8h_1a30d741e506802018a88a4e14177673f2" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_RTR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;rtr&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="66" refid="dag__resourceTags_8h_1a8d073a3f1afefa12b9f783ac1aad5fc0" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_SHADER_CAHCE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;shader_cache&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="dag__resourceTags_8h_1a55825d977f120c285109b54504faf0f9" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_COMPRESS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;compress&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="68" refid="dag__resourceTags_8h_1ab63a93478391ef7c09ec87d704596c6c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_TRACER<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;tracer&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69" refid="dag__resourceTags_8h_1aa462abe55aac160a4a57060fe8721ee9" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_TREES2D<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;trees2d&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70" refid="dag__resourceTags_8h_1adffd70e5b86b71c8c4edaf8d3321a423" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_VOLFOG<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;volfog&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="71" refid="dag__resourceTags_8h_1ab6956e18751da8d978042151c8351731" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_VOXEL<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;voxel&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="72" refid="dag__resourceTags_8h_1a57555c65890d14f8d36879500e07e71f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_WIND<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;wind&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="dag__resourceTags_8h_1a38e4b5131d16f43071aade083e661321" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_XRAY<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;xray&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="74" refid="dag__resourceTags_8h_1ab71d8c3beb5e60b8436eb198a96d7d72" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_ALIASABLE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;aliasable&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="75" refid="dag__resourceTags_8h_1a8127c55b94f68a5865d0ef0cffa7f1a6" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_TEXGEN<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;tex_gen&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="76" refid="dag__resourceTags_8h_1ae3f2b15e7f3b7f38a2ddf9623f555b48" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_CABLE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;cable&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="77" refid="dag__resourceTags_8h_1aeaf46e12eaf6cb6b87e4c5e96473c0ff" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_ENVIRONMENT_ANALYZER<sp/>&quot;EnvironmentAnalyzer&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="78" refid="dag__resourceTags_8h_1a6ecb6fbe950880b859711099186d6630" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_EXPLOSION_PATCH<sp/><sp/><sp/><sp/><sp/><sp/>&quot;explosionPatch&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="79" refid="dag__resourceTags_8h_1a191ece0085cf9ddec239a4e4f124ba0c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_TRACK<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;track&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80" refid="dag__resourceTags_8h_1acf496ba2d94d59eefc2f69e1f3875b6f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_VAPOR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;vapor&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81" refid="dag__resourceTags_8h_1aa7d95b46cc019faa76db76dfded23fe7" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_WT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;wt&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82" refid="dag__resourceTags_8h_1a869db6724773b5c739f0e7f5ca4b5d14" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_SCREENSHOT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;screenshot&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83" refid="dag__resourceTags_8h_1a5296a7260cece93428dc4a4ac9aaf47f" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_AFTERBURNER<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;afterburner&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="dag__resourceTags_8h_1a3d6ca4eda07564d22889ea5a315ad307" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DYNDEFORM<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;dynDeform&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85" refid="dag__resourceTags_8h_1ae29a4b2a8ac355589f001debf1f44cb5" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_NIGHTVISION<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;night_vision&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="86" refid="dag__resourceTags_8h_1a9cb3ffcf91a6c3211aaad8268297ac06" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_NUKE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;nuke&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="87" refid="dag__resourceTags_8h_1a7334bda831f4caa7d48f8bebfde2a210" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_SONAR<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;sonar&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88" refid="dag__resourceTags_8h_1a10cdd961cb19d72787680bd050f0c6ee" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_SSSS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;ssss&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="89" refid="dag__resourceTags_8h_1a6421107d0f7fa792606a417c5fa42922" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_ENVI_COVER<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;envi_cover&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="90" refid="dag__resourceTags_8h_1a49fd7a75095c7651dcacec026d5fcccc" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_ROCKET_WIRE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;rocket_wire&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="91" refid="dag__resourceTags_8h_1ab83f2b1f248b15af6768b8556c160763" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_FARAWAY_RENDER<sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;farawayRender&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="92" refid="dag__resourceTags_8h_1a097f5ff7c72eac196f4733b7d99e0499" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_TACVIEW<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;tacView&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="93" refid="dag__resourceTags_8h_1a04d0611c09fa1ae1fd63cfadd1216bae" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_ENGINE<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;3dengine&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="94" refid="dag__resourceTags_8h_1ab83e340b6369dad156b0952585619a81" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_UNITED_DATA<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;unitedData&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="95" refid="dag__resourceTags_8h_1a4555700fbe30dc1e2a5086b981aca2a6" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DASWRT<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;daSWRT&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="96" refid="dag__resourceTags_8h_1a47cffdbabe31453b3ba420d81138168c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_GPUOBJ<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;gpuObject&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="97" refid="dag__resourceTags_8h_1afee32c816964f2966aa54cdbe094ace5" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DECALS<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;decals&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98" refid="dag__resourceTags_8h_1ac3d9b6b34d7c3f099da0e139fa4bb03a" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_COLLISION<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;collision&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="99" refid="dag__resourceTags_8h_1a1a5330d49f17100ef7b94d58fceb272c" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_INDOOR_PROBES<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;indoorProbes&quot;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100" refid="dag__resourceTags_8h_1a621b1362ba09877c08a018976c38d63b" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>RESTAG_DYNMODEL<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>&quot;dynModel&quot;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="dag_resourceTags.h"/>
+  </compounddef>
+</doxygen>

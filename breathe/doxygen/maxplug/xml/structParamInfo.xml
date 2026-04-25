@@ -1,0 +1,242 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structParamInfo" kind="struct" language="C++" prot="public">
+    <compoundname>ParamInfo</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structParamInfo_1aa0735c7d14c65acbe908d8b5ed15c7c8" prot="public" static="no" mutable="no">
+        <type><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" kindref="member">DataBlock::ParamType</ref></type>
+        <definition>DataBlock::ParamType ParamInfo::type</definition>
+        <argsstring></argsstring>
+        <name>type</name>
+        <qualifiedname>ParamInfo::type</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="193" column="24" bodyfile="mater2.cpp" bodystart="193" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1a9d71d2121741d57db978c83cbbfc3a90" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring ParamInfo::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ParamInfo::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="194" column="16" bodyfile="mater2.cpp" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1ae832738117f15d1affd48e7984e4682a" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring ParamInfo::description</definition>
+        <argsstring></argsstring>
+        <name>description</name>
+        <qualifiedname>ParamInfo::description</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="194" column="21" bodyfile="mater2.cpp" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1a4ee3a67acfdc6fa67b906ee6b2203689" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring ParamInfo::custom_ui</definition>
+        <argsstring></argsstring>
+        <name>custom_ui</name>
+        <qualifiedname>ParamInfo::custom_ui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="194" column="33" bodyfile="mater2.cpp" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1ae2b4ca3b9c7fd8bf4aa81779e2155271" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring ParamInfo::value</definition>
+        <argsstring></argsstring>
+        <name>value</name>
+        <qualifiedname>ParamInfo::value</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="194" column="43" bodyfile="mater2.cpp" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1a337174380e8d796bbba23d69d6fe083f" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring ParamInfo::def</definition>
+        <argsstring></argsstring>
+        <name>def</name>
+        <qualifiedname>ParamInfo::def</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="194" column="49" bodyfile="mater2.cpp" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1a443d4361766ca5cd8ae95b06a32f7d66" prot="public" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring ParamInfo::parent</definition>
+        <argsstring></argsstring>
+        <name>parent</name>
+        <qualifiedname>ParamInfo::parent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="194" column="53" bodyfile="mater2.cpp" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1a3c9fcfd09ed9121ba815009bf06dd0ba" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ParamInfo::soft_min</definition>
+        <argsstring></argsstring>
+        <name>soft_min</name>
+        <qualifiedname>ParamInfo::soft_min</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="195" column="9" bodyfile="mater2.cpp" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1af5d6f8591ca89c1fe16cabcdfd0d5764" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float ParamInfo::soft_max</definition>
+        <argsstring></argsstring>
+        <name>soft_max</name>
+        <qualifiedname>ParamInfo::soft_max</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="195" column="18" bodyfile="mater2.cpp" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1a0ce9bd84f0ef2a3c6487134a12355960" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ParamInfo::is_group</definition>
+        <argsstring></argsstring>
+        <name>is_group</name>
+        <qualifiedname>ParamInfo::is_group</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="196" column="8" bodyfile="mater2.cpp" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1a57e23e5bcf7ec748d6474ad59c18c80a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ParamInfo::def_enabled</definition>
+        <argsstring></argsstring>
+        <name>def_enabled</name>
+        <qualifiedname>ParamInfo::def_enabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="197" column="8" bodyfile="mater2.cpp" bodystart="197" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1a725115fa515d0eb274d968addee352db" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ParamInfo::soft_min_enabled</definition>
+        <argsstring></argsstring>
+        <name>soft_min_enabled</name>
+        <qualifiedname>ParamInfo::soft_min_enabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="198" column="8" bodyfile="mater2.cpp" bodystart="198" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structParamInfo_1a54836db1342b408c3dd301e28ba31e1a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ParamInfo::soft_max_enabled</definition>
+        <argsstring></argsstring>
+        <name>soft_max_enabled</name>
+        <qualifiedname>ParamInfo::soft_max_enabled</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="199" column="8" bodyfile="mater2.cpp" bodystart="199" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structParamInfo_1a90e95e39beb27cac26b7fedea5129c1f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ParamInfo::ParamInfo</definition>
+        <argsstring>()</argsstring>
+        <name>ParamInfo</name>
+        <qualifiedname>ParamInfo::ParamInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="201" column="3" bodyfile="mater2.cpp" bodystart="201" bodyend="209"/>
+      </memberdef>
+      <memberdef kind="function" id="structParamInfo_1ad0d7a1f969d9cb699cf901342ce57bb6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ParamInfo::isInt</definition>
+        <argsstring>() const</argsstring>
+        <name>isInt</name>
+        <qualifiedname>ParamInfo::isInt</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="211" column="8" bodyfile="mater2.cpp" bodystart="211" bodyend="215"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="mater2.cpp" line="191" column="1" bodyfile="mater2.cpp" bodystart="192" bodyend="216"/>
+    <listofallmembers>
+      <member refid="structParamInfo_1a4ee3a67acfdc6fa67b906ee6b2203689" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>custom_ui</name></member>
+      <member refid="structParamInfo_1a337174380e8d796bbba23d69d6fe083f" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>def</name></member>
+      <member refid="structParamInfo_1a57e23e5bcf7ec748d6474ad59c18c80a" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>def_enabled</name></member>
+      <member refid="structParamInfo_1ae832738117f15d1affd48e7984e4682a" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>description</name></member>
+      <member refid="structParamInfo_1a0ce9bd84f0ef2a3c6487134a12355960" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>is_group</name></member>
+      <member refid="structParamInfo_1ad0d7a1f969d9cb699cf901342ce57bb6" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>isInt</name></member>
+      <member refid="structParamInfo_1a9d71d2121741d57db978c83cbbfc3a90" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>name</name></member>
+      <member refid="structParamInfo_1a90e95e39beb27cac26b7fedea5129c1f" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>ParamInfo</name></member>
+      <member refid="structParamInfo_1a443d4361766ca5cd8ae95b06a32f7d66" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>parent</name></member>
+      <member refid="structParamInfo_1af5d6f8591ca89c1fe16cabcdfd0d5764" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>soft_max</name></member>
+      <member refid="structParamInfo_1a54836db1342b408c3dd301e28ba31e1a" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>soft_max_enabled</name></member>
+      <member refid="structParamInfo_1a3c9fcfd09ed9121ba815009bf06dd0ba" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>soft_min</name></member>
+      <member refid="structParamInfo_1a725115fa515d0eb274d968addee352db" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>soft_min_enabled</name></member>
+      <member refid="structParamInfo_1aa0735c7d14c65acbe908d8b5ed15c7c8" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>type</name></member>
+      <member refid="structParamInfo_1ae2b4ca3b9c7fd8bf4aa81779e2155271" prot="public" virt="non-virtual"><scope>ParamInfo</scope><name>value</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

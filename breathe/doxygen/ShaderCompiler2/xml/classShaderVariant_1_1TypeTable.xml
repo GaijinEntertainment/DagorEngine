@@ -1,0 +1,416 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderVariant_1_1TypeTable" kind="class" language="C++" prot="public">
+    <compoundname>ShaderVariant::TypeTable</compoundname>
+    <includes refid="shaderVariant_8h" local="no">shaderVariant.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderVariant_1_1TypeTable_1a4363bcd041ee7bb836f49adb8ffacb1c" prot="private" static="no" mutable="no">
+        <type><ref refid="classSerializableTab" kindref="compound">SerializableTab</ref>&lt; <ref refid="structShaderVariant_1_1VariantType" kindref="compound">VariantType</ref> &gt;</type>
+        <definition>SerializableTab&lt;VariantType&gt; ShaderVariant::TypeTable::types</definition>
+        <argsstring></argsstring>
+        <name>types</name>
+        <qualifiedname>ShaderVariant::TypeTable::types</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="73" column="19" bodyfile="shaderVariant.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1adf2d022bbe7e93b3308a03f45e47c233" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::TypeTable::TypeTable</definition>
+        <argsstring>()=default</argsstring>
+        <name>TypeTable</name>
+        <qualifiedname>ShaderVariant::TypeTable::TypeTable</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="38" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1a7b1a7bf5eed27af46737ea6762c238fa" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::TypeTable::TypeTable</definition>
+        <argsstring>(shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>TypeTable</name>
+        <qualifiedname>ShaderVariant::TypeTable::TypeTable</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="39" column="12" bodyfile="shaderVariant.h" bodystart="39" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1ad107f77c534bdad10abcdea8f7709a04" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderVariant::TypeTable::getCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getCount</name>
+        <qualifiedname>ShaderVariant::TypeTable::getCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="41" column="14" bodyfile="shaderVariant.h" bodystart="41" bodyend="41"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1ad07dd3cf65d7585a03f92c99de1a572c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::TypeTable::shrinkTo</definition>
+        <argsstring>(int cnt)</argsstring>
+        <name>shrinkTo</name>
+        <qualifiedname>ShaderVariant::TypeTable::shrinkTo</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>cnt</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="42" column="15" bodyfile="shaderVariant.h" bodystart="42" bodyend="42"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1af90d2bea0949d3dc5bc616d54e419c31" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="structShaderVariant_1_1VariantType" kindref="compound">VariantType</ref> &amp;</type>
+        <definition>const VariantType &amp; ShaderVariant::TypeTable::getType</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>getType</name>
+        <qualifiedname>ShaderVariant::TypeTable::getType</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="44" column="28" bodyfile="shaderVariant.h" bodystart="44" bodyend="44"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1a598e48543decca70198ebc78852b1110" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::TypeTable::addType</definition>
+        <argsstring>(BaseType init_type, ExtType init_exttype, bool unique)</argsstring>
+        <name>addType</name>
+        <qualifiedname>ShaderVariant::TypeTable::addType</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+          <declname>init_type</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref></type>
+          <declname>init_exttype</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>unique</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="46" column="8" bodyfile="shaderVariant.cpp" bodystart="14" bodyend="26"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1aa528b15035272c112d1319eeda7bb6f3" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderVariant::TypeTable::findType</definition>
+        <argsstring>(BaseType init_type, ExtType init_exttype) const</argsstring>
+        <name>findType</name>
+        <qualifiedname>ShaderVariant::TypeTable::findType</qualifiedname>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a2ead6f90546c0e0030738ab5579421cb" kindref="member">BaseType</ref></type>
+          <declname>init_type</declname>
+        </param>
+        <param>
+          <type><ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref></type>
+          <declname>init_exttype</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="49" column="7" bodyfile="shaderVariant.cpp" bodystart="37" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1afb28959c55f9b0b6d2c9feb59c3d08e8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String ShaderVariant::TypeTable::getTypeName</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>getTypeName</name>
+        <qualifiedname>ShaderVariant::TypeTable::getTypeName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="51" column="10" bodyfile="shaderVariant.cpp" bodystart="108" bodyend="150"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1aa25f3593efe0e80efe5c2a475965f30a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String ShaderVariant::TypeTable::getValueName</definition>
+        <argsstring>(int type_index, int value_index) const</argsstring>
+        <name>getValueName</name>
+        <qualifiedname>ShaderVariant::TypeTable::getValueName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>type_index</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>value_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="52" column="10" bodyfile="shaderVariant.cpp" bodystart="152" bodyend="177"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1ac082abb9c75345172274377069963b67" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * ShaderVariant::TypeTable::getIntervalName</definition>
+        <argsstring>(int i) const</argsstring>
+        <name>getIntervalName</name>
+        <qualifiedname>ShaderVariant::TypeTable::getIntervalName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>i</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="55" column="14" bodyfile="shaderVariant.cpp" bodystart="179" bodyend="200"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1ae291fa47f4b0414d1f1e50434a3d800b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>String</type>
+        <definition>String ShaderVariant::TypeTable::getStringInfo</definition>
+        <argsstring>() const</argsstring>
+        <name>getStringInfo</name>
+        <qualifiedname>ShaderVariant::TypeTable::getStringInfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="58" column="10" bodyfile="shaderVariant.cpp" bodystart="203" bodyend="215"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1aae37e869da8e7b771d21030dfb004488" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="namespaceShaderVariant_1ac16065f8f13b47639769efb7fbeb0a24" kindref="member">ValueType</ref></type>
+        <definition>ValueType ShaderVariant::TypeTable::normalizeValue</definition>
+        <argsstring>(int index, real val) const</argsstring>
+        <name>normalizeValue</name>
+        <qualifiedname>ShaderVariant::TypeTable::normalizeValue</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>val</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="61" column="13" bodyfile="shaderVariant.cpp" bodystart="48" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1a4cf40b5f1779b153a749a9942ab600bd" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::TypeTable::setIntervalList</definition>
+        <argsstring>(IntervalList *ilist)</argsstring>
+        <name>setIntervalList</name>
+        <qualifiedname>ShaderVariant::TypeTable::setIntervalList</qualifiedname>
+        <param>
+          <type><ref refid="classIntervalList" kindref="compound">IntervalList</ref> *</type>
+          <declname>ilist</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="63" column="8" bodyfile="shaderVariant.cpp" bodystart="28" bodyend="34"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1acb83e9ee8718af131424344efc21224a" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classIntervalList" kindref="compound">IntervalList</ref> *</type>
+        <definition>const IntervalList * ShaderVariant::TypeTable::getIntervals</definition>
+        <argsstring>() const</argsstring>
+        <name>getIntervals</name>
+        <qualifiedname>ShaderVariant::TypeTable::getIntervals</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="64" column="29" bodyfile="shaderVariant.h" bodystart="64" bodyend="64"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1a93dff8ebf0aac2b29f70ba69d1e1e9a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::TypeTable::link</definition>
+        <argsstring>(Tab&lt; ExtType &gt; &amp;interval_link_table)</argsstring>
+        <name>link</name>
+        <qualifiedname>ShaderVariant::TypeTable::link</qualifiedname>
+        <param>
+          <type>Tab&lt; <ref refid="namespaceShaderVariant_1a576d584c5c88f3e1685c515c843bb30a" kindref="member">ExtType</ref> &gt; &amp;</type>
+          <declname>interval_link_table</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="66" column="8" bodyfile="shaderVariant.cpp" bodystart="217" bodyend="227"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1a8288b463477dabb5d3df3b3276de521a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::TypeTable::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>ShaderVariant::TypeTable::reset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="68" column="8" bodyfile="shaderVariant.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1a0dd4691c1436822f7bd8fd4d84e90072" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::TypeTable::setContextRef</definition>
+        <argsstring>(shc::TargetContext &amp;a_ctx)</argsstring>
+        <name>setContextRef</name>
+        <qualifiedname>ShaderVariant::TypeTable::setContextRef</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> &amp;</type>
+          <declname>a_ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="70" column="8" bodyfile="shaderVariant.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1a4dbdc07efb2b28deef8a8b474317bc6d" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::TypeTable::BINDUMP_NON_SERIALIZABLE</definition>
+        <argsstring>(const IntervalList *iList=nullptr)</argsstring>
+        <name>BINDUMP_NON_SERIALIZABLE</name>
+        <qualifiedname>ShaderVariant::TypeTable::BINDUMP_NON_SERIALIZABLE</qualifiedname>
+        <param>
+          <type>const <ref refid="classIntervalList" kindref="compound">IntervalList</ref> *</type>
+          <declname>iList</declname>
+          <defval>nullptr</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="74" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1a3c5898277cffa1d6197678466f9b801b" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderVariant::TypeTable::BINDUMP_NON_SERIALIZABLE</definition>
+        <argsstring>(shc::TargetContext *ctx)</argsstring>
+        <name>BINDUMP_NON_SERIALIZABLE</name>
+        <qualifiedname>ShaderVariant::TypeTable::BINDUMP_NON_SERIALIZABLE</qualifiedname>
+        <param>
+          <type><ref refid="classshc_1_1TargetContext" kindref="compound">shc::TargetContext</ref> *</type>
+          <declname>ctx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="75" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderVariant_1_1TypeTable_1a6e4ceb971b5373f325177c1e2eeb00c4" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderVariant::TypeTable::updateTypeValRange</definition>
+        <argsstring>(VariantType &amp;t)</argsstring>
+        <name>updateTypeValRange</name>
+        <qualifiedname>ShaderVariant::TypeTable::updateTypeValRange</qualifiedname>
+        <param>
+          <type><ref refid="structShaderVariant_1_1VariantType" kindref="compound">VariantType</ref> &amp;</type>
+          <declname>t</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="shaderVariant.h" line="78" column="8" bodyfile="shaderVariant.cpp" bodystart="69" bodyend="105"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="shaderVariant.h" line="35" column="1" bodyfile="shaderVariant.h" bodystart="36" bodyend="79"/>
+    <listofallmembers>
+      <member refid="classShaderVariant_1_1TypeTable_1a598e48543decca70198ebc78852b1110" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>addType</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1a4dbdc07efb2b28deef8a8b474317bc6d" prot="private" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>BINDUMP_NON_SERIALIZABLE</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1a3c5898277cffa1d6197678466f9b801b" prot="private" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>BINDUMP_NON_SERIALIZABLE</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1aa528b15035272c112d1319eeda7bb6f3" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>findType</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1ad107f77c534bdad10abcdea8f7709a04" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>getCount</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1ac082abb9c75345172274377069963b67" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>getIntervalName</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1acb83e9ee8718af131424344efc21224a" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>getIntervals</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1ae291fa47f4b0414d1f1e50434a3d800b" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>getStringInfo</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1af90d2bea0949d3dc5bc616d54e419c31" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>getType</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1afb28959c55f9b0b6d2c9feb59c3d08e8" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>getTypeName</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1aa25f3593efe0e80efe5c2a475965f30a" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>getValueName</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1a93dff8ebf0aac2b29f70ba69d1e1e9a0" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>link</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1aae37e869da8e7b771d21030dfb004488" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>normalizeValue</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1a8288b463477dabb5d3df3b3276de521a" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>reset</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1a0dd4691c1436822f7bd8fd4d84e90072" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>setContextRef</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1a4cf40b5f1779b153a749a9942ab600bd" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>setIntervalList</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1ad07dd3cf65d7585a03f92c99de1a572c" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>shrinkTo</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1a4363bcd041ee7bb836f49adb8ffacb1c" prot="private" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>types</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1adf2d022bbe7e93b3308a03f45e47c233" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>TypeTable</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1a7b1a7bf5eed27af46737ea6762c238fa" prot="public" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>TypeTable</name></member>
+      <member refid="classShaderVariant_1_1TypeTable_1a6e4ceb971b5373f325177c1e2eeb00c4" prot="private" virt="non-virtual"><scope>ShaderVariant::TypeTable</scope><name>updateTypeValRange</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

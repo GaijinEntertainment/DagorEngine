@@ -1,0 +1,150 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structExportENCB_1_1AnimDataHeader" kind="struct" language="C++" prot="public">
+    <compoundname>ExportENCB::AnimDataHeader</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structExportENCB_1_1AnimDataHeader_1a04ea1a5ad586d72e7ee7709505ca1043" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::AnimDataHeader::label</definition>
+        <argsstring></argsstring>
+        <name>label</name>
+        <qualifiedname>ExportENCB::AnimDataHeader::label</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3357" column="14" bodyfile="expUtil.cpp" bodystart="3357" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimDataHeader_1a4dd3a62ff3f7b2a223339de58b7eeda4" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::AnimDataHeader::ver</definition>
+        <argsstring></argsstring>
+        <name>ver</name>
+        <qualifiedname>ExportENCB::AnimDataHeader::ver</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3358" column="14" bodyfile="expUtil.cpp" bodystart="3358" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimDataHeader_1adafc94160eee9c91a7259f417e02cb66" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::AnimDataHeader::hdrSize</definition>
+        <argsstring></argsstring>
+        <name>hdrSize</name>
+        <qualifiedname>ExportENCB::AnimDataHeader::hdrSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3359" column="14" bodyfile="expUtil.cpp" bodystart="3359" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimDataHeader_1a51722633daa50d3f135aabe64d27f710" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::AnimDataHeader::reserved</definition>
+        <argsstring></argsstring>
+        <name>reserved</name>
+        <qualifiedname>ExportENCB::AnimDataHeader::reserved</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3360" column="14" bodyfile="expUtil.cpp" bodystart="3360" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimDataHeader_1a33b81f221461575e49a8532f9e9b7d95" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::AnimDataHeader::namePoolSize</definition>
+        <argsstring></argsstring>
+        <name>namePoolSize</name>
+        <qualifiedname>ExportENCB::AnimDataHeader::namePoolSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3362" column="14" bodyfile="expUtil.cpp" bodystart="3362" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimDataHeader_1a773449cec587da9e773f57cc5c0abc3c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::AnimDataHeader::timeNum</definition>
+        <argsstring></argsstring>
+        <name>timeNum</name>
+        <qualifiedname>ExportENCB::AnimDataHeader::timeNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3363" column="14" bodyfile="expUtil.cpp" bodystart="3363" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimDataHeader_1aff215f4eb2cf456397ac98af86953837" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::AnimDataHeader::keyPoolSize</definition>
+        <argsstring></argsstring>
+        <name>keyPoolSize</name>
+        <qualifiedname>ExportENCB::AnimDataHeader::keyPoolSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3364" column="14" bodyfile="expUtil.cpp" bodystart="3364" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimDataHeader_1a3c81a2739a3f649bda7b9cc3f195a84c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::AnimDataHeader::totalAnimLabelNum</definition>
+        <argsstring></argsstring>
+        <name>totalAnimLabelNum</name>
+        <qualifiedname>ExportENCB::AnimDataHeader::totalAnimLabelNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3365" column="14" bodyfile="expUtil.cpp" bodystart="3365" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structExportENCB_1_1AnimDataHeader_1ad6d4910b8e119c0426e90ba4a3566eb5" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned ExportENCB::AnimDataHeader::dataTypeNum</definition>
+        <argsstring></argsstring>
+        <name>dataTypeNum</name>
+        <qualifiedname>ExportENCB::AnimDataHeader::dataTypeNum</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expUtil.cpp" line="3366" column="14" bodyfile="expUtil.cpp" bodystart="3366" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expUtil.cpp" line="3355" column="3" bodyfile="expUtil.cpp" bodystart="3356" bodyend="3367"/>
+    <listofallmembers>
+      <member refid="structExportENCB_1_1AnimDataHeader_1ad6d4910b8e119c0426e90ba4a3566eb5" prot="public" virt="non-virtual"><scope>ExportENCB::AnimDataHeader</scope><name>dataTypeNum</name></member>
+      <member refid="structExportENCB_1_1AnimDataHeader_1adafc94160eee9c91a7259f417e02cb66" prot="public" virt="non-virtual"><scope>ExportENCB::AnimDataHeader</scope><name>hdrSize</name></member>
+      <member refid="structExportENCB_1_1AnimDataHeader_1aff215f4eb2cf456397ac98af86953837" prot="public" virt="non-virtual"><scope>ExportENCB::AnimDataHeader</scope><name>keyPoolSize</name></member>
+      <member refid="structExportENCB_1_1AnimDataHeader_1a04ea1a5ad586d72e7ee7709505ca1043" prot="public" virt="non-virtual"><scope>ExportENCB::AnimDataHeader</scope><name>label</name></member>
+      <member refid="structExportENCB_1_1AnimDataHeader_1a33b81f221461575e49a8532f9e9b7d95" prot="public" virt="non-virtual"><scope>ExportENCB::AnimDataHeader</scope><name>namePoolSize</name></member>
+      <member refid="structExportENCB_1_1AnimDataHeader_1a51722633daa50d3f135aabe64d27f710" prot="public" virt="non-virtual"><scope>ExportENCB::AnimDataHeader</scope><name>reserved</name></member>
+      <member refid="structExportENCB_1_1AnimDataHeader_1a773449cec587da9e773f57cc5c0abc3c" prot="public" virt="non-virtual"><scope>ExportENCB::AnimDataHeader</scope><name>timeNum</name></member>
+      <member refid="structExportENCB_1_1AnimDataHeader_1a3c81a2739a3f649bda7b9cc3f195a84c" prot="public" virt="non-virtual"><scope>ExportENCB::AnimDataHeader</scope><name>totalAnimLabelNum</name></member>
+      <member refid="structExportENCB_1_1AnimDataHeader_1a4dd3a62ff3f7b2a223339de58b7eeda4" prot="public" virt="non-virtual"><scope>ExportENCB::AnimDataHeader</scope><name>ver</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

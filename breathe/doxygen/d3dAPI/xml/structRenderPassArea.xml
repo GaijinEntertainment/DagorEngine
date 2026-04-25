@@ -1,0 +1,107 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRenderPassArea" kind="struct" language="C++" prot="public">
+    <compoundname>RenderPassArea</compoundname>
+    <includes refid="dag__renderPass_8h" local="no">dag_renderPass.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRenderPassArea_1a4bfe3e341ef71c24448815f6591ed5f9" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassArea::left</definition>
+        <argsstring></argsstring>
+        <name>left</name>
+        <qualifiedname>RenderPassArea::left</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="84" column="12" bodyfile="dag_renderPass.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassArea_1a65f6b5e565b6eccd112b0d118271dfea" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassArea::top</definition>
+        <argsstring></argsstring>
+        <name>top</name>
+        <qualifiedname>RenderPassArea::top</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="85" column="12" bodyfile="dag_renderPass.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassArea_1a001ba81710b05b74778bd55b3f59b212" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassArea::width</definition>
+        <argsstring></argsstring>
+        <name>width</name>
+        <qualifiedname>RenderPassArea::width</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="86" column="12" bodyfile="dag_renderPass.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassArea_1a8d59e3209bdde6d3bf8526d2b00fc375" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RenderPassArea::height</definition>
+        <argsstring></argsstring>
+        <name>height</name>
+        <qualifiedname>RenderPassArea::height</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="87" column="12" bodyfile="dag_renderPass.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassArea_1a38cbb7866385a05c6f506c15cadd5c82" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderPassArea::minZ</definition>
+        <argsstring></argsstring>
+        <name>minZ</name>
+        <qualifiedname>RenderPassArea::minZ</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="88" column="9" bodyfile="dag_renderPass.h" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRenderPassArea_1abff776eaafb82f749b2277e593f214ba" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float RenderPassArea::maxZ</definition>
+        <argsstring></argsstring>
+        <name>maxZ</name>
+        <qualifiedname>RenderPassArea::maxZ</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_renderPass.h" line="89" column="9" bodyfile="dag_renderPass.h" bodystart="89" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Area of render target where rendering will happen inside render pass. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_renderPass.h" line="82" column="1" bodyfile="dag_renderPass.h" bodystart="83" bodyend="90"/>
+    <listofallmembers>
+      <member refid="structRenderPassArea_1a8d59e3209bdde6d3bf8526d2b00fc375" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>height</name></member>
+      <member refid="structRenderPassArea_1a4bfe3e341ef71c24448815f6591ed5f9" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>left</name></member>
+      <member refid="structRenderPassArea_1abff776eaafb82f749b2277e593f214ba" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>maxZ</name></member>
+      <member refid="structRenderPassArea_1a38cbb7866385a05c6f506c15cadd5c82" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>minZ</name></member>
+      <member refid="structRenderPassArea_1a65f6b5e565b6eccd112b0d118271dfea" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>top</name></member>
+      <member refid="structRenderPassArea_1a001ba81710b05b74778bd55b3f59b212" prot="public" virt="non-virtual"><scope>RenderPassArea</scope><name>width</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

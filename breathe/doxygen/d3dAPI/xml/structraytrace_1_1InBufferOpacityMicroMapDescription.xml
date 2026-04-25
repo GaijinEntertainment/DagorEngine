@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1InBufferOpacityMicroMapDescription" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::InBufferOpacityMicroMapDescription</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1InBufferOpacityMicroMapDescription_1ae5a67211d90eb5fbee64d03d9482aa5c" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::InBufferOpacityMicroMapDescription::byteOffset</definition>
+        <argsstring></argsstring>
+        <name>byteOffset</name>
+        <qualifiedname>raytrace::InBufferOpacityMicroMapDescription::byteOffset</qualifiedname>
+        <briefdescription>
+<para>Byte offset into the inputBuffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="506" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="506" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1InBufferOpacityMicroMapDescription_1a2b860b12e746d567f1222277eaec8781" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t raytrace::InBufferOpacityMicroMapDescription::subdivisionLevel</definition>
+        <argsstring></argsstring>
+        <name>subdivisionLevel</name>
+        <qualifiedname>raytrace::InBufferOpacityMicroMapDescription::subdivisionLevel</qualifiedname>
+        <briefdescription>
+<para>Subdivision levels, ranges from 0 to 14. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="508" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="508" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1InBufferOpacityMicroMapDescription_1a09d94ec71ecbdd473b9b7ffcc9ce7508" prot="public" static="no" mutable="no">
+        <type>uint16_t</type>
+        <definition>uint16_t raytrace::InBufferOpacityMicroMapDescription::format</definition>
+        <argsstring></argsstring>
+        <name>format</name>
+        <qualifiedname>raytrace::InBufferOpacityMicroMapDescription::format</qualifiedname>
+        <briefdescription>
+<para>Data format for each OMM, see OpacityMicroMapFormat for valid values. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="510" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="510" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>This is the data layout for each entry of <ref refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a1a9a788780eff0e8a68796a64b36f5c3" kindref="member">OpacityMicroMapTriangleArrayBuildInfo::perOpacityMicroMapDescriptions</ref>. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="503" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="504" bodyend="511"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1InBufferOpacityMicroMapDescription_1ae5a67211d90eb5fbee64d03d9482aa5c" prot="public" virt="non-virtual"><scope>raytrace::InBufferOpacityMicroMapDescription</scope><name>byteOffset</name></member>
+      <member refid="structraytrace_1_1InBufferOpacityMicroMapDescription_1a09d94ec71ecbdd473b9b7ffcc9ce7508" prot="public" virt="non-virtual"><scope>raytrace::InBufferOpacityMicroMapDescription</scope><name>format</name></member>
+      <member refid="structraytrace_1_1InBufferOpacityMicroMapDescription_1a2b860b12e746d567f1222277eaec8781" prot="public" virt="non-virtual"><scope>raytrace::InBufferOpacityMicroMapDescription</scope><name>subdivisionLevel</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

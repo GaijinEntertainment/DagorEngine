@@ -1,0 +1,154 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage" kind="struct" language="C++" prot="public">
+    <compoundname>RaytraceGeometryDescription::OpacityMicroMapLinkage</compoundname>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1af9ea1461bafe9f905be76694da505fc4" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* RaytraceGeometryDescription::OpacityMicroMapLinkage::indexBuffer</definition>
+        <argsstring></argsstring>
+        <name>indexBuffer</name>
+        <qualifiedname>RaytraceGeometryDescription::OpacityMicroMapLinkage::indexBuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Buffer providing indices into triangleArray for each triangle of &apos;triangles&apos;. Can be null, then a 1:1 mapping of OMM data from triangleArray and triangle is assumed. On updates this has to be identical to the previous build unless BLAS was build with <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ae19c6ae36c6bd18209cd965e86d0ed75" kindref="member">RaytraceBuildFlags::OMM_LINKAGE_UPDATE</ref> flag. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="133" column="13" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a45ca865b4a7efc6065e8f458ee45c46c" prot="public" static="no" mutable="no">
+        <type><ref refid="structRaytraceGeometryDescription_1a29b6f35e3bb2e7d24859ea372de077d2" kindref="member">IndexFormat</ref></type>
+        <definition>IndexFormat RaytraceGeometryDescription::OpacityMicroMapLinkage::indexFormat</definition>
+        <argsstring></argsstring>
+        <name>indexFormat</name>
+        <qualifiedname>RaytraceGeometryDescription::OpacityMicroMapLinkage::indexFormat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Configures the formatting of the index data of &apos;indexBuffer&apos;. When indexBuffer is null, this is ignored. On updates this has to be identical to the previous build unless BLAS was build with <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ae19c6ae36c6bd18209cd965e86d0ed75" kindref="member">RaytraceBuildFlags::OMM_LINKAGE_UPDATE</ref> flag. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="138" column="17" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a8621dded359244f63a1fc2cdae202e0d" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::OpacityMicroMapLinkage::indexBufferOffsetInIndexUnits</definition>
+        <argsstring></argsstring>
+        <name>indexBufferOffsetInIndexUnits</name>
+        <qualifiedname>RaytraceGeometryDescription::OpacityMicroMapLinkage::indexBufferOffsetInIndexUnits</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Offset into indexBuffer in index buffer units (eg for u8 its in bytes, for u16 its 2 bytes and so on). On updates this has to be identical to the previous build unless BLAS was build with <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ae19c6ae36c6bd18209cd965e86d0ed75" kindref="member">RaytraceBuildFlags::OMM_LINKAGE_UPDATE</ref> flag. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="142" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="142" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a2f9212531e9c5f64a383b087e62ad72f" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::OpacityMicroMapLinkage::indexBufferStrideInIndexUnits</definition>
+        <argsstring></argsstring>
+        <name>indexBufferStrideInIndexUnits</name>
+        <qualifiedname>RaytraceGeometryDescription::OpacityMicroMapLinkage::indexBufferStrideInIndexUnits</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Stride between indices in indexBuffer in index buffer units (eg for u8 its in bytes, for u16 its 2 bytes and so on). On updates this has to be identical to the previous build unless BLAS was build with <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ae19c6ae36c6bd18209cd965e86d0ed75" kindref="member">RaytraceBuildFlags::OMM_LINKAGE_UPDATE</ref> flag. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="146" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a474af5b8ae6459754852db48d0c911f4" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t RaytraceGeometryDescription::OpacityMicroMapLinkage::triangleArrayOffset</definition>
+        <argsstring></argsstring>
+        <name>triangleArrayOffset</name>
+        <qualifiedname>RaytraceGeometryDescription::OpacityMicroMapLinkage::triangleArrayOffset</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Like a vertex offset but for each triangle info of triangleArray. This is always applied. When triangleArray is null, this is ignored. On updates this has to be identical to the previous build unless BLAS was build with <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ae19c6ae36c6bd18209cd965e86d0ed75" kindref="member">RaytraceBuildFlags::OMM_LINKAGE_UPDATE</ref> flag. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="152" column="14" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1ab86ffa642ba23123916d75dcba8d2cdd" prot="public" static="no" mutable="no">
+        <type>RaytraceOpacityMicroMapTriangleArray *</type>
+        <definition>RaytraceOpacityMicroMapTriangleArray* RaytraceGeometryDescription::OpacityMicroMapLinkage::triangleArray</definition>
+        <argsstring></argsstring>
+        <name>triangleArray</name>
+        <qualifiedname>RaytraceGeometryDescription::OpacityMicroMapLinkage::triangleArray</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Array buffer with OMM data. Can be null, then uniform OMM geometry is assumed. On updates this has to be identical to the previous build unless BLAS was build with <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8ae19c6ae36c6bd18209cd965e86d0ed75" kindref="member">RaytraceBuildFlags::OMM_LINKAGE_UPDATE</ref> flag. IMPORTANT: The resulting BLAS will reference the underlying RaytraceOpacityMicroMapTriangleArray, deleting it will result in a GPU page fault when using the resulting BLAS. Also the contents becomes immutable, any changes to triangleArray after build of a BLAS and a usage during a trace will result in undefined behavior (probably GPU hang). </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="159" column="42" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a4e5f6a7c7d3e64b493f4098c0c118adf" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; const <ref refid="structRaytraceOpacityMicroMapDescription" kindref="compound">RaytraceOpacityMicroMapDescription</ref> &gt;</type>
+        <definition>dag::ConstSpan&lt;const RaytraceOpacityMicroMapDescription&gt; RaytraceGeometryDescription::OpacityMicroMapLinkage::ommDesc</definition>
+        <argsstring></argsstring>
+        <name>ommDesc</name>
+        <qualifiedname>RaytraceGeometryDescription::OpacityMicroMapLinkage::ommDesc</qualifiedname>
+        <briefdescription>
+<para>OMM description for the triangles. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="161" column="20" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="161" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Provides linkage data for opacity micro map triangles. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="3">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="1">
+        <label>RaytraceGeometryDescription::OpacityMicroMapLinkage</label>
+        <link refid="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>indexBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="4">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="2">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="127" column="3" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="128" bodyend="162"/>
+    <listofallmembers>
+      <member refid="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1af9ea1461bafe9f905be76694da505fc4" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::OpacityMicroMapLinkage</scope><name>indexBuffer</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a8621dded359244f63a1fc2cdae202e0d" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::OpacityMicroMapLinkage</scope><name>indexBufferOffsetInIndexUnits</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a2f9212531e9c5f64a383b087e62ad72f" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::OpacityMicroMapLinkage</scope><name>indexBufferStrideInIndexUnits</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a45ca865b4a7efc6065e8f458ee45c46c" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::OpacityMicroMapLinkage</scope><name>indexFormat</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a4e5f6a7c7d3e64b493f4098c0c118adf" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::OpacityMicroMapLinkage</scope><name>ommDesc</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1ab86ffa642ba23123916d75dcba8d2cdd" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::OpacityMicroMapLinkage</scope><name>triangleArray</name></member>
+      <member refid="structRaytraceGeometryDescription_1_1OpacityMicroMapLinkage_1a474af5b8ae6459754852db48d0c911f4" prot="public" virt="non-virtual"><scope>RaytraceGeometryDescription::OpacityMicroMapLinkage</scope><name>triangleArrayOffset</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

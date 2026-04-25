@@ -1,0 +1,190 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structResourceTypeFilter" kind="struct" language="C++" prot="public">
+    <compoundname>ResourceTypeFilter</compoundname>
+    <includes refid="dag__resourceTag_8h" local="no">dag_resourceTag.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structResourceTypeFilter_1aaf96ec4294e5907d22b9b01c84bde085" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includeDeviceMemoryBuffers</definition>
+        <argsstring></argsstring>
+        <name>includeDeviceMemoryBuffers</name>
+        <qualifiedname>ResourceTypeFilter::includeDeviceMemoryBuffers</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+<para>Should buffers be included. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="15" column="8" bodyfile="dag_resourceTag.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceTypeFilter_1ab649c31620df6df0ebb491d670204ebf" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includeHostMemoryBuffers</definition>
+        <argsstring></argsstring>
+        <name>includeHostMemoryBuffers</name>
+        <qualifiedname>ResourceTypeFilter::includeHostMemoryBuffers</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+<para>Should buffers that use host memory be included. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="17" column="8" bodyfile="dag_resourceTag.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceTypeFilter_1ad8ae2bad0000980622d89d7ed72fa41b" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includeTextures</definition>
+        <argsstring></argsstring>
+        <name>includeTextures</name>
+        <qualifiedname>ResourceTypeFilter::includeTextures</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+<para>Should texture be included. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="19" column="8" bodyfile="dag_resourceTag.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceTypeFilter_1abe7227084f8b6bce98d0d5e5d3f2b448" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includeRayTraceBottomStructures</definition>
+        <argsstring></argsstring>
+        <name>includeRayTraceBottomStructures</name>
+        <qualifiedname>ResourceTypeFilter::includeRayTraceBottomStructures</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+<para>Should ray trace bottom acceleration structures be included. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="21" column="8" bodyfile="dag_resourceTag.h" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceTypeFilter_1aa339dc311fd5a06896846b272b3026bc" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includeRayTraceTopStructures</definition>
+        <argsstring></argsstring>
+        <name>includeRayTraceTopStructures</name>
+        <qualifiedname>ResourceTypeFilter::includeRayTraceTopStructures</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+<para>Should ray trace top acceleration structures be included. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="23" column="8" bodyfile="dag_resourceTag.h" bodystart="23" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceTypeFilter_1aec1ad28b9071d2ef8647c271b374f07d" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includeRayTraceOtherStructures</definition>
+        <argsstring></argsstring>
+        <name>includeRayTraceOtherStructures</name>
+        <qualifiedname>ResourceTypeFilter::includeRayTraceOtherStructures</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Should ray trace other acceleration structures be included Such structures are:<itemizedlist>
+<listitem><para>Opacity Micro Maps </para>
+</listitem></itemizedlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="27" column="8" bodyfile="dag_resourceTag.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceTypeFilter_1a34320870eda1516438e6d471cf16831c" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includeRayTraceStructurePools</definition>
+        <argsstring></argsstring>
+        <name>includeRayTraceStructurePools</name>
+        <qualifiedname>ResourceTypeFilter::includeRayTraceStructurePools</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+<para>Should ray trace structure pools be included. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="29" column="8" bodyfile="dag_resourceTag.h" bodystart="29" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceTypeFilter_1a2d42afdc41bc60d100da9b936acea379" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includeResourceHeaps</definition>
+        <argsstring></argsstring>
+        <name>includeResourceHeaps</name>
+        <qualifiedname>ResourceTypeFilter::includeResourceHeaps</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+<para>Should user-created resource heaps be included. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="31" column="8" bodyfile="dag_resourceTag.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structResourceTypeFilter_1adb5572af074c142929f23fb086dae81a" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includeUnspecifiedMemory</definition>
+        <argsstring></argsstring>
+        <name>includeUnspecifiedMemory</name>
+        <qualifiedname>ResourceTypeFilter::includeUnspecifiedMemory</qualifiedname>
+        <bitfield> 1 = false</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Memory where it is not know for which kind of resource it is being used. This is typical for memory usage by third party libraries like DLSS, XESS and such. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="34" column="8" bodyfile="dag_resourceTag.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structResourceTypeFilter_1ae26c7509b8d07688a569eeb507db17d2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ResourceTypeFilter::includes_any</definition>
+        <argsstring>() const</argsstring>
+        <name>includes_any</name>
+        <qualifiedname>ResourceTypeFilter::includes_any</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceTag.h" line="36" column="15" bodyfile="dag_resourceTag.h" bodystart="36" bodyend="41"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Filter set, each type set to false will be skipped by the operation. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resourceTag.h" line="12" column="1" bodyfile="dag_resourceTag.h" bodystart="13" bodyend="42"/>
+    <listofallmembers>
+      <member refid="structResourceTypeFilter_1aaf96ec4294e5907d22b9b01c84bde085" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includeDeviceMemoryBuffers</name></member>
+      <member refid="structResourceTypeFilter_1ab649c31620df6df0ebb491d670204ebf" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includeHostMemoryBuffers</name></member>
+      <member refid="structResourceTypeFilter_1abe7227084f8b6bce98d0d5e5d3f2b448" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includeRayTraceBottomStructures</name></member>
+      <member refid="structResourceTypeFilter_1aec1ad28b9071d2ef8647c271b374f07d" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includeRayTraceOtherStructures</name></member>
+      <member refid="structResourceTypeFilter_1a34320870eda1516438e6d471cf16831c" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includeRayTraceStructurePools</name></member>
+      <member refid="structResourceTypeFilter_1aa339dc311fd5a06896846b272b3026bc" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includeRayTraceTopStructures</name></member>
+      <member refid="structResourceTypeFilter_1a2d42afdc41bc60d100da9b936acea379" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includeResourceHeaps</name></member>
+      <member refid="structResourceTypeFilter_1ae26c7509b8d07688a569eeb507db17d2" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includes_any</name></member>
+      <member refid="structResourceTypeFilter_1ad8ae2bad0000980622d89d7ed72fa41b" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includeTextures</name></member>
+      <member refid="structResourceTypeFilter_1adb5572af074c142929f23fb086dae81a" prot="public" virt="non-virtual"><scope>ResourceTypeFilter</scope><name>includeUnspecifiedMemory</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

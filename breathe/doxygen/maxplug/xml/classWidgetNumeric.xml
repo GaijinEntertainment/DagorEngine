@@ -1,0 +1,399 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classWidgetNumeric" kind="class" language="C++" prot="public">
+    <compoundname>WidgetNumeric</compoundname>
+    <basecompoundref refid="classAbstractWidget" prot="public" virt="non-virtual">AbstractWidget</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classWidgetNumeric_1a1c9aec97dda692f8dd70eb05c1a0ec89" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool WidgetNumeric::is_float</definition>
+        <argsstring></argsstring>
+        <name>is_float</name>
+        <qualifiedname>WidgetNumeric::is_float</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="672" column="8" bodyfile="mater2.cpp" bodystart="672" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWidgetNumeric_1a012a10e7f23e3005b05228b59935c481" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool WidgetNumeric::is_color_ui</definition>
+        <argsstring></argsstring>
+        <name>is_color_ui</name>
+        <qualifiedname>WidgetNumeric::is_color_ui</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="673" column="8" bodyfile="mater2.cpp" bodystart="673" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWidgetNumeric_1a9a81945d27f5ab18310a232405b4f228" prot="private" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool WidgetNumeric::is_spinner_used</definition>
+        <argsstring></argsstring>
+        <name>is_spinner_used</name>
+        <qualifiedname>WidgetNumeric::is_spinner_used</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="674" column="8" bodyfile="mater2.cpp" bodystart="674" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWidgetNumeric_1a78f66370ae844cb362391e4de973b1dd" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int WidgetNumeric::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <qualifiedname>WidgetNumeric::size</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="675" column="7" bodyfile="mater2.cpp" bodystart="675" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWidgetNumeric_1a117e401401587bbefb1163c236c5cc2b" prot="private" static="no" mutable="no">
+        <type>ISpinnerControl *</type>
+        <definition>ISpinnerControl* WidgetNumeric::spinner[4]</definition>
+        <argsstring>[4]</argsstring>
+        <name>spinner</name>
+        <qualifiedname>WidgetNumeric::spinner</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="676" column="19" bodyfile="mater2.cpp" bodystart="676" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWidgetNumeric_1a83f9b3ea72c3f56d4733e16aebb1b41e" prot="private" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch* WidgetNumeric::col</definition>
+        <argsstring></argsstring>
+        <name>col</name>
+        <qualifiedname>WidgetNumeric::col</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="677" column="16" bodyfile="mater2.cpp" bodystart="677" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classWidgetNumeric_1a9f4af2812b21ffca0793dccab719f296" prot="private" static="no" mutable="no">
+        <type>HPEN</type>
+        <definition>HPEN WidgetNumeric::hFramePen</definition>
+        <argsstring></argsstring>
+        <name>hFramePen</name>
+        <qualifiedname>WidgetNumeric::hFramePen</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="678" column="8" bodyfile="mater2.cpp" bodystart="678" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classWidgetNumeric_1a4e2bc887687cb3b00f58923a31a06f2b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>WidgetNumeric::WidgetNumeric</definition>
+        <argsstring>(const ParamInfo &amp;pinfo, Dagormat2Dialog *p)</argsstring>
+        <name>WidgetNumeric</name>
+        <qualifiedname>WidgetNumeric::WidgetNumeric</qualifiedname>
+        <param>
+          <type>const <ref refid="structParamInfo" kindref="compound">ParamInfo</ref> &amp;</type>
+          <declname>pinfo</declname>
+        </param>
+        <param>
+          <type><ref refid="classDagormat2Dialog" kindref="compound">Dagormat2Dialog</ref> *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="654" column="3" bodyfile="mater2.cpp" bodystart="3393" bodyend="3443"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetNumeric_1a68ffb98007f5fa4355d71d9e7763740d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>WidgetNumeric::~WidgetNumeric</definition>
+        <argsstring>() override</argsstring>
+        <name>~WidgetNumeric</name>
+        <qualifiedname>WidgetNumeric::~WidgetNumeric</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="655" column="3" bodyfile="mater2.cpp" bodystart="3445" bodyend="3450"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetNumeric_1aa2a1bc29c2e451185a852cc50417171f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR</type>
+        <definition>INT_PTR WidgetNumeric::WndProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>WndProc</name>
+        <qualifiedname>WidgetNumeric::WndProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="657" column="11" bodyfile="mater2.cpp" bodystart="3463" bodyend="3585"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetNumeric_1a09cb1748cb17b1e4a3fdf89dd7d57073" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * WidgetNumeric::GetType</definition>
+        <argsstring>() const override</argsstring>
+        <name>GetType</name>
+        <qualifiedname>WidgetNumeric::GetType</qualifiedname>
+        <reimplements refid="classAbstractWidget_1a90aa0849f34ee9f02fda1873cb7aa23f">GetType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="659" column="15" bodyfile="mater2.cpp" bodystart="659" bodyend="663"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetNumeric_1a9ad818552709939cb4314f0b987c7d64" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool WidgetNumeric::isOutOfRange</definition>
+        <argsstring>() const</argsstring>
+        <name>isOutOfRange</name>
+        <qualifiedname>WidgetNumeric::isOutOfRange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="665" column="8" bodyfile="mater2.cpp" bodystart="3452" bodyend="3461"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classWidgetNumeric_1a38172fa3d9efd539df119b8b0e309d92" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WidgetNumeric::GetValue</definition>
+        <argsstring>()</argsstring>
+        <name>GetValue</name>
+        <qualifiedname>WidgetNumeric::GetValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="668" column="8" bodyfile="mater2.cpp" bodystart="3587" bodyend="3606"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetNumeric_1a3dbc5badc97eead280df44d8698a92ea" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WidgetNumeric::SetValue</definition>
+        <argsstring>(const M_STD_STRING &amp;v)</argsstring>
+        <name>SetValue</name>
+        <qualifiedname>WidgetNumeric::SetValue</qualifiedname>
+        <param>
+          <type>const <ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="669" column="8" bodyfile="mater2.cpp" bodystart="3608" bodyend="3632"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetNumeric_1a75515d7ab1ce25e07e8b8ed08ef569ab" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WidgetNumeric::UpdateColorSwatch</definition>
+        <argsstring>(float f[4])</argsstring>
+        <name>UpdateColorSwatch</name>
+        <qualifiedname>WidgetNumeric::UpdateColorSwatch</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>f</declname>
+          <array>[4]</array>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="670" column="8" bodyfile="mater2.cpp" bodystart="3634" bodyend="3650"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>AbstractWidget</label>
+        <link refid="classAbstractWidget"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ParamDlg</label>
+      </node>
+      <node id="1">
+        <label>WidgetNumeric</label>
+        <link refid="classWidgetNumeric"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>AbstractWidget</label>
+        <link refid="classAbstractWidget"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>param</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>dlg</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>texmaps</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>postLoadCallback</edgelabel>
+        </childnode>
+      </node>
+      <node id="12">
+        <label>DagorMat2PostLoadCallback</label>
+        <link refid="classDagorMat2PostLoadCallback"/>
+        <childnode refid="13" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>Dagormat2Dialog</label>
+        <link refid="classDagormat2Dialog"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>theMtl</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="8">
+        <label>IDagorMat2</label>
+        <link refid="classIDagorMat2"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>Mtl</label>
+      </node>
+      <node id="3">
+        <label>ParamDlg</label>
+      </node>
+      <node id="4">
+        <label>ParamInfo</label>
+        <link refid="structParamInfo"/>
+      </node>
+      <node id="13">
+        <label>PostLoadCallback</label>
+      </node>
+      <node id="11">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="10">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>WidgetNumeric</label>
+        <link refid="classWidgetNumeric"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater2.cpp" line="651" column="1" bodyfile="mater2.cpp" bodystart="652" bodyend="679"/>
+    <listofallmembers>
+      <member refid="classAbstractWidget_1a454fa11aba5faa882f13558c3abb8979" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>AbstractWidget</name></member>
+      <member refid="classAbstractWidget_1adbf42d102782f62660fcf7f462bc5051" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>ActivateDlg</name></member>
+      <member refid="classAbstractWidget_1a6fe8fca67f5966b557d5febd9eeb0125" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>ClassID</name></member>
+      <member refid="classWidgetNumeric_1a83f9b3ea72c3f56d4733e16aebb1b41e" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>col</name></member>
+      <member refid="classAbstractWidget_1acc041c5ce7ee3ffa9e2b9222e60a9257" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>creating</name></member>
+      <member refid="classAbstractWidget_1a856eab753d8c16238ef3635697d6e8a5" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>DeleteThis</name></member>
+      <member refid="classAbstractWidget_1a7db3309c2ef92adb0e81325e322ad7ad" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>GetThing</name></member>
+      <member refid="classWidgetNumeric_1a09cb1748cb17b1e4a3fdf89dd7d57073" prot="public" virt="virtual"><scope>WidgetNumeric</scope><name>GetType</name></member>
+      <member refid="classWidgetNumeric_1a38172fa3d9efd539df119b8b0e309d92" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>GetValue</name></member>
+      <member refid="classWidgetNumeric_1a9f4af2812b21ffca0793dccab719f296" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>hFramePen</name></member>
+      <member refid="classAbstractWidget_1ae6ef1a942f5beccee8e1317729b39e29" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>hPanel</name></member>
+      <member refid="classAbstractWidget_1a526a24cfeeb1ec8719cebd4cb6f301bb" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>hSType</name></member>
+      <member refid="classWidgetNumeric_1a012a10e7f23e3005b05228b59935c481" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>is_color_ui</name></member>
+      <member refid="classWidgetNumeric_1a1c9aec97dda692f8dd70eb05c1a0ec89" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>is_float</name></member>
+      <member refid="classWidgetNumeric_1a9a81945d27f5ab18310a232405b4f228" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>is_spinner_used</name></member>
+      <member refid="classAbstractWidget_1a9d7b8f0fc266a86464287bf42df95049" prot="public" virt="virtual"><scope>WidgetNumeric</scope><name>IsGroup</name></member>
+      <member refid="classWidgetNumeric_1a9ad818552709939cb4314f0b987c7d64" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>isOutOfRange</name></member>
+      <member refid="classAbstractWidget_1a191d69769bfc7165bbf8024cf3c039e9" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>param</name></member>
+      <member refid="classAbstractWidget_1a1d40750cb424c8a14226b610257d896e" prot="protected" virt="non-virtual"><scope>WidgetNumeric</scope><name>parent</name></member>
+      <member refid="classAbstractWidget_1ad49b39e71d00b743a496fdd507a8ad0f" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>ReloadDialog</name></member>
+      <member refid="classAbstractWidget_1a2206c7b044e53a42eecc7e5cce08e31d" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>screen_rc</name></member>
+      <member refid="classAbstractWidget_1a2c3b6db8f678ebfd546b2b81fd881b58" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>SetThing</name></member>
+      <member refid="classAbstractWidget_1aa1cba9b42b68fb5248eee5b1e9575fca" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>SetTime</name></member>
+      <member refid="classWidgetNumeric_1a3dbc5badc97eead280df44d8698a92ea" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>SetValue</name></member>
+      <member refid="classWidgetNumeric_1a78f66370ae844cb362391e4de973b1dd" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>size</name></member>
+      <member refid="classWidgetNumeric_1a117e401401587bbefb1163c236c5cc2b" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>spinner</name></member>
+      <member refid="classWidgetNumeric_1a75515d7ab1ce25e07e8b8ed08ef569ab" prot="private" virt="non-virtual"><scope>WidgetNumeric</scope><name>UpdateColorSwatch</name></member>
+      <member refid="classWidgetNumeric_1a4e2bc887687cb3b00f58923a31a06f2b" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>WidgetNumeric</name></member>
+      <member refid="classWidgetNumeric_1aa2a1bc29c2e451185a852cc50417171f" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>WndProc</name></member>
+      <member refid="classAbstractWidget_1acd357b6426d63a3658dffd4b84c1c6d2" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>~AbstractWidget</name></member>
+      <member refid="classWidgetNumeric_1a68ffb98007f5fa4355d71d9e7763740d" prot="public" virt="non-virtual"><scope>WidgetNumeric</scope><name>~WidgetNumeric</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

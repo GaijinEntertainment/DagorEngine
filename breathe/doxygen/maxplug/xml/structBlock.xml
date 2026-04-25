@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structBlock" kind="struct" language="C++" prot="public">
+    <compoundname>Block</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structBlock_1a4c72705c2d5aba13ad391db7672e70dd" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Block::ofs</definition>
+        <argsstring></argsstring>
+        <name>ofs</name>
+        <qualifiedname>Block::ofs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="87" column="7" bodyfile="dagimp.cpp" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBlock_1a21d50926441045b69fe825bbbc02f7ed" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Block::len</definition>
+        <argsstring></argsstring>
+        <name>len</name>
+        <qualifiedname>Block::len</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="87" column="11" bodyfile="dagimp.cpp" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structBlock_1a99c9706831644a317def3404ad2c72c8" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int Block::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>Block::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dagimp.cpp" line="88" column="7" bodyfile="dagimp.cpp" bodystart="88" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dagimp.cpp" line="85" column="1" bodyfile="dagimp.cpp" bodystart="86" bodyend="89"/>
+    <listofallmembers>
+      <member refid="structBlock_1a21d50926441045b69fe825bbbc02f7ed" prot="public" virt="non-virtual"><scope>Block</scope><name>len</name></member>
+      <member refid="structBlock_1a4c72705c2d5aba13ad391db7672e70dd" prot="public" virt="non-virtual"><scope>Block</scope><name>ofs</name></member>
+      <member refid="structBlock_1a99c9706831644a317def3404ad2c72c8" prot="public" virt="non-virtual"><scope>Block</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

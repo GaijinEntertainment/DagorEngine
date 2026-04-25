@@ -1,0 +1,455 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__multidrawContext_8h" kind="file" language="C++">
+    <compoundname>dag_multidrawContext.h</compoundname>
+    <includes local="no">EASTL/fixed_function.h</includes>
+    <includes local="no">EASTL/optional.h</includes>
+    <includes local="no">EASTL/string.h</includes>
+    <includes local="no">EASTL/variant.h</includes>
+    <includes refid="dag__resPtr_8h" local="no">3d/dag_resPtr.h</includes>
+    <includes refid="dag__ringDynBuf_8h" local="no">3d/dag_ringDynBuf.h</includes>
+    <includes local="no">drv/3d/dag_draw.h</includes>
+    <incdepgraph>
+      <node id="35">
+        <label>3d/dag_lockSbuffer.h</label>
+        <link refid="dag__lockSbuffer_8h"/>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="36" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>dag_multidrawContext.h</label>
+        <link refid="dag__multidrawContext_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="37" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>dag_resMgr.h</label>
+        <link refid="dag__resMgr_8h"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>3d/dag_resPtr.h</label>
+        <link refid="dag__resPtr_8h"/>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+      </node>
+      <node id="31">
+        <label>3d/dag_ringDynBuf.h</label>
+        <link refid="dag__ringDynBuf_8h"/>
+        <childnode refid="18" relation="include">
+        </childnode>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+        <childnode refid="34" relation="include">
+        </childnode>
+        <childnode refid="35" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+      </node>
+      <node id="13">
+        <label>dag_texMgr.h</label>
+        <link refid="dag__texMgr_8h"/>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+      </node>
+      <node id="27">
+        <label>EASTL/algorithm.h</label>
+      </node>
+      <node id="2">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="3">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="4">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="28">
+        <label>EASTL/type_traits.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/variant.h</label>
+      </node>
+      <node id="26">
+        <label>debug/dag_assert.h</label>
+      </node>
+      <node id="23">
+        <label>drv/3d/dag_buffers.h</label>
+      </node>
+      <node id="22">
+        <label>drv/3d/dag_commands.h</label>
+      </node>
+      <node id="8">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="37">
+        <label>drv/3d/dag_draw.h</label>
+      </node>
+      <node id="21">
+        <label>drv/3d/dag_driver.h</label>
+      </node>
+      <node id="32">
+        <label>drv/3d/dag_driverDesc.h</label>
+      </node>
+      <node id="19">
+        <label>drv/3d/dag_heap.h</label>
+      </node>
+      <node id="33">
+        <label>drv/3d/dag_info.h</label>
+      </node>
+      <node id="36">
+        <label>drv/3d/dag_query.h</label>
+      </node>
+      <node id="17">
+        <label>drv/3d/dag_renderTarget.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_resId.h</label>
+      </node>
+      <node id="15">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="20">
+        <label>drv/3d/dag_texture.h</label>
+      </node>
+      <node id="18">
+        <label>drv/3d/dag_vertexIndexBuffer.h</label>
+      </node>
+      <node id="25">
+        <label>gameRes/dag_gameResources.h</label>
+      </node>
+      <node id="30">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="16">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+      <node id="10">
+        <label>osApiWrappers/dag_atomic.h</label>
+      </node>
+      <node id="24">
+        <label>shaders/dag_shaders.h</label>
+      </node>
+      <node id="12">
+        <label>startup/dag_globalSettings.h</label>
+      </node>
+      <node id="34">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="29">
+        <label>util/dag_preprocessor.h</label>
+      </node>
+      <node id="11">
+        <label>util/dag_stdint.h</label>
+      </node>
+      <node id="14">
+        <label>util/dag_texMetaData.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="classMultidrawContext" prot="public">MultidrawContext</innerclass>
+    <innerclass refid="classMultidrawContext_1_1MultidrawRenderExecutor" prot="public">MultidrawContext::MultidrawRenderExecutor</innerclass>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="dag__multidrawContext_8h_1a5dd04b7fdc23337872b770ff78956348" prot="public" static="no">
+        <name>USE_STAGING_MULTIDRAW_BUF</name>
+        <initializer>_TARGET_XBOXONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="18" column="9" bodyfile="dag_multidrawContext.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="dag__multidrawContext_8h_1aebd5bb84beae2508bd476ec015727cdd" prot="public" static="no">
+        <name>CONSTEXPR_EXT_MULTIDRAW</name>
+        <initializer>constexpr</initializer>
+        <briefdescription>
+<para>Checks if extended draw call arguments structure is used. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="84" column="10" bodyfile="dag_multidrawContext.h" bodystart="84" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/fixed_function.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/optional.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;EASTL/variant.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__resPtr_8h" kindref="compound">3d/dag_resPtr.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="dag__ringDynBuf_8h" kindref="compound">3d/dag_ringDynBuf.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_draw.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16"><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="comment">//<sp/>This<sp/>is<sp/>workaround<sp/>for<sp/>OOM<sp/>on<sp/>xbox</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="dag__multidrawContext_8h_1a5dd04b7fdc23337872b770ff78956348" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>USE_STAGING_MULTIDRAW_BUF<sp/>_TARGET_XBOXONE</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight></codeline>
+<codeline lineno="29"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>PerDrawDataT,<sp/>u</highlight><highlight class="keywordtype">int</highlight><highlight class="normal">32_t<sp/>DrawIdBits<sp/>=<sp/>20&gt;</highlight></codeline>
+<codeline lineno="30" refid="classMultidrawContext" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref></highlight></codeline>
+<codeline lineno="31"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/>eastl::string<sp/>name;</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>USE_STAGING_MULTIDRAW_BUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"><sp/><sp/><ref refid="classresptr__detail_1_1UniqueRes" kindref="compound">UniqueBuf</ref><sp/>multidrawArguments;</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/><ref refid="classRingDynamicSB" kindref="compound">RingDynamicSB</ref><sp/>multidrawArgsStagingBuffer;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/><ref refid="classRingDynamicSB" kindref="compound">RingDynamicSB</ref><sp/>multidrawArguments;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="54"><highlight class="normal"><sp/><sp/><ref refid="classresptr__detail_1_1ConcreteResHolder" kindref="compound">UniqueBufHolder</ref><sp/>perDrawArgsBuffer;</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"><sp/><sp/>uint32_t<sp/>allocatedDrawcallsInBuffer<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="59"><highlight class="normal"></highlight></codeline>
+<codeline lineno="63"><highlight class="normal"><sp/><sp/>uint32_t<sp/>actualStart<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="64"><highlight class="normal"></highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>_TARGET_PC_WIN</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="69"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CONSTEXPR_EXT_MULTIDRAW</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="70"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>uint8_t<sp/>bytesCountPerDrawcall<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="71"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>usesExtendedMultiDrawStruct()</highlight></codeline>
+<codeline lineno="72"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="73"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(DAGOR_UNLIKELY(!bytesCountPerDrawcall))</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>bytesCountPerDrawcall<sp/>=</highlight></codeline>
+<codeline lineno="75"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>d3d::get_driver_code().is(d3d::dx12)<sp/>?<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DrawIndexedIndirectArgsWithId)<sp/>:<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DrawIndexedIndirectArgs);</highlight></codeline>
+<codeline lineno="76"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DrawIndexedIndirectArgsWithId)<sp/>!=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DrawIndexedIndirectArgs));</highlight></codeline>
+<codeline lineno="77"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>bytesCountPerDrawcall<sp/>==<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DrawIndexedIndirectArgsWithId);</highlight></codeline>
+<codeline lineno="78"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight><highlight class="preprocessor">#elif<sp/>_TARGET_XBOX</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CONSTEXPR_EXT_MULTIDRAW<sp/>constexpr</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint8_t<sp/>bytesCountPerDrawcall<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DrawIndexedIndirectArgsWithId);</highlight></codeline>
+<codeline lineno="82"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>usesExtendedMultiDrawStruct()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;<sp/>}<sp/></highlight><highlight class="comment">//<sp/>DX12</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="83"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="84" refid="dag__multidrawContext_8h_1aebd5bb84beae2508bd476ec015727cdd" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>CONSTEXPR_EXT_MULTIDRAW<sp/>constexpr</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>uint8_t<sp/>bytesCountPerDrawcall<sp/>=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(DrawIndexedIndirectArgs);</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>usesExtendedMultiDrawStruct()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">false</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="88"><highlight class="normal"></highlight></codeline>
+<codeline lineno="92"><highlight class="normal"><sp/><sp/>eastl::string<sp/>getPerDrawArgsBufferName()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>name<sp/>+<sp/></highlight><highlight class="stringliteral">&quot;_perDrawArgsBuffer&quot;</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="93"><highlight class="normal"></highlight></codeline>
+<codeline lineno="94"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>USE_STAGING_MULTIDRAW_BUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="98"><highlight class="normal"><sp/><sp/>eastl::string<sp/>getMultidrawStagingBufferName()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>name<sp/>+<sp/></highlight><highlight class="stringliteral">&quot;_staging&quot;</highlight><highlight class="normal">;<sp/>}</highlight></codeline>
+<codeline lineno="99"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="100"><highlight class="normal"></highlight></codeline>
+<codeline lineno="104"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>needPerDrawParamsBuffer()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(PerDrawDataT)<sp/>!=<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t);<sp/>}</highlight></codeline>
+<codeline lineno="105"><highlight class="normal"></highlight></codeline>
+<codeline lineno="106"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="110"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static_assert</highlight><highlight class="normal">(DrawIdBits<sp/>&lt;<sp/>32);</highlight></codeline>
+<codeline lineno="111" refid="classMultidrawContext_1a22ba330f6ca14bba99194b927d497443" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/><ref refid="classMultidrawContext_1a22ba330f6ca14bba99194b927d497443" kindref="member">DRAW_DWORD_FREE_BITS</ref><sp/>=<sp/>32<sp/>-<sp/>DrawIdBits;</highlight></codeline>
+<codeline lineno="112"><highlight class="normal"></highlight></codeline>
+<codeline lineno="117" refid="classMultidrawContext_1ab74f880b73a7abc52dfccf93be0daeb6" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classMultidrawContext_1ab74f880b73a7abc52dfccf93be0daeb6" kindref="member">MultidrawContext</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*name)<sp/>:<sp/>name(name)<sp/>{}</highlight></codeline>
+<codeline lineno="121" refid="classMultidrawContext_1a9557e8b3fb3ae0a211e69f1a4e220f05" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classMultidrawContext_1a9557e8b3fb3ae0a211e69f1a4e220f05" kindref="member">MultidrawContext</ref>(<ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="125" refid="classMultidrawContext_1ad1109743216df0ea4f91e09627384b71" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref><sp/>&amp;<ref refid="classMultidrawContext_1ad1109743216df0ea4f91e09627384b71" kindref="member">operator=</ref>(<ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keywordflow">default</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="129" refid="classMultidrawContext_1abddd9a5f406d3e585ff41726421b45da" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classMultidrawContext_1abddd9a5f406d3e585ff41726421b45da" kindref="member">MultidrawContext</ref>(<ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="133" refid="classMultidrawContext_1a395d122e58244ead4629509083646173" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref><sp/>&amp;<ref refid="classMultidrawContext_1a395d122e58244ead4629509083646173" kindref="member">operator=</ref>(<ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="134"><highlight class="normal"></highlight></codeline>
+<codeline lineno="141" refid="classMultidrawContext_1_1MultidrawRenderExecutor" refkind="compound"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref></highlight></codeline>
+<codeline lineno="142"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="143" refid="classMultidrawContext_1_1MultidrawRenderExecutor_1ad8e864c6bf3164a8ca3a3b2d85f59062" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">friend</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref>;</highlight></codeline>
+<codeline lineno="147"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref><sp/>*context;</highlight></codeline>
+<codeline lineno="151"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref>()<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="152"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref>(<ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="153"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;operator=(<ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="154"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref>(<ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="155"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;operator=(<ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref><sp/>&amp;)<sp/>=<sp/></highlight><highlight class="keyword">delete</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="156"><highlight class="normal"></highlight></codeline>
+<codeline lineno="157"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="162" refid="classMultidrawContext_1_1MultidrawRenderExecutor_1a844a835bf1d7d833cd3ab4b5a02933ec" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor_1a844a835bf1d7d833cd3ab4b5a02933ec" kindref="member">MultidrawRenderExecutor</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref><sp/>*context)<sp/>:<sp/>context(context)<sp/>{}</highlight></codeline>
+<codeline lineno="171" refid="classMultidrawContext_1_1MultidrawRenderExecutor_1ac1fe9cf89a945ef0f8af0a3e2c406b77" refkind="member"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor_1ac1fe9cf89a945ef0f8af0a3e2c406b77" kindref="member">render</ref>(uint32_t<sp/>primitive_type,<sp/>uint32_t<sp/>first_drawcall,<sp/>uint32_t<sp/>drawcalls_count)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="172"><highlight class="keyword"><sp/><sp/><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="173"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!context)</highlight></codeline>
+<codeline lineno="174"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="175"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>USE_STAGING_MULTIDRAW_BUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="176"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>d3d::multi_draw_indexed_indirect(primitive_type,<sp/>context-&gt;multidrawArguments.<ref refid="classRingDynamicBuffer_1ab7a4c13ffb9526e52d58cb5d9f284752" kindref="member">getBuf</ref>(),<sp/>drawcalls_count,</highlight></codeline>
+<codeline lineno="177"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>context-&gt;bytesCountPerDrawcall,<sp/>first_drawcall<sp/>*<sp/>context-&gt;bytesCountPerDrawcall);</highlight></codeline>
+<codeline lineno="178"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="179"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>d3d::multi_draw_indexed_indirect(primitive_type,<sp/>context-&gt;multidrawArguments.<ref refid="classRingDynamicSB_1a4ede2a5546cadab814546bf34eb57c2a" kindref="member">getRenderBuf</ref>(),<sp/>drawcalls_count,</highlight></codeline>
+<codeline lineno="180"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>context-&gt;bytesCountPerDrawcall,<sp/>(first_drawcall<sp/>+<sp/>context-&gt;actualStart)<sp/>*<sp/>context-&gt;bytesCountPerDrawcall);</highlight></codeline>
+<codeline lineno="181"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="182"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="183"><highlight class="normal"><sp/><sp/>};</highlight></codeline>
+<codeline lineno="184"><highlight class="normal"></highlight></codeline>
+<codeline lineno="194"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">typename</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="195" refid="classMultidrawContext_1a6e4e83b0176933f87957aa405c0d0037" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref><sp/><ref refid="classMultidrawContext_1a6e4e83b0176933f87957aa405c0d0037" kindref="member">fillBuffers</ref>(uint32_t<sp/>drawcalls_count,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>T<sp/>&amp;set_cb)</highlight></codeline>
+<codeline lineno="196"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="197"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="dag__multidrawContext_8h_1aebd5bb84beae2508bd476ec015727cdd" kindref="member">CONSTEXPR_EXT_MULTIDRAW</ref><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>extMultiDraw<sp/>=<sp/>usesExtendedMultiDrawStruct();</highlight></codeline>
+<codeline lineno="198"><highlight class="normal"></highlight></codeline>
+<codeline lineno="199"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>USE_STAGING_MULTIDRAW_BUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="200"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicSB" kindref="compound">RingDynamicSB</ref><sp/>&amp;multidrawArgsBuf<sp/>=<sp/>multidrawArgsStagingBuffer;</highlight></codeline>
+<codeline lineno="201"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="202"><highlight class="normal"><sp/><sp/><sp/><sp/><ref refid="classRingDynamicSB" kindref="compound">RingDynamicSB</ref><sp/>&amp;multidrawArgsBuf<sp/>=<sp/>multidrawArguments;</highlight></codeline>
+<codeline lineno="203"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="204"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(allocatedDrawcallsInBuffer<sp/>&lt;<sp/>drawcalls_count<sp/>||<sp/>!multidrawArgsBuf.<ref refid="classRingDynamicSB_1a4ede2a5546cadab814546bf34eb57c2a" kindref="member">getRenderBuf</ref>())</highlight></codeline>
+<codeline lineno="205"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="206"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>uint32_t<sp/>CHUNK_SIZE<sp/>=<sp/>2048;</highlight></codeline>
+<codeline lineno="207"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>allocatedDrawcallsInBuffer<sp/>=<sp/>(drawcalls_count<sp/>+<sp/>CHUNK_SIZE<sp/>-<sp/>1)<sp/>/<sp/>CHUNK_SIZE<sp/>*<sp/>CHUNK_SIZE;</highlight></codeline>
+<codeline lineno="208"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>USE_STAGING_MULTIDRAW_BUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="209"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArguments.<ref refid="classresptr__detail_1_1UniqueRes_1a0e4b3abd6528dd033ee1338d39d7926d" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="210"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArguments<sp/>=<sp/>dag::create_sbuffer(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t),<sp/>bytesCountPerDrawcall<sp/>*<sp/>allocatedDrawcallsInBuffer<sp/>/<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t),</highlight></codeline>
+<codeline lineno="211"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SBCF_INDIRECT,<sp/>0,<sp/>name.c_str(),<sp/><ref refid="dag__resourceTags_8h_1a04d0611c09fa1ae1fd63cfadd1216bae" kindref="member">RESTAG_ENGINE</ref>);</highlight></codeline>
+<codeline lineno="212"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArgsStagingBuffer.<ref refid="classRingDynamicSB_1a6bb8b5e8319325c15e5439730999952b" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="213"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArgsStagingBuffer.<ref refid="classRingDynamicSB_1a0c4d958e3aeda5b5231b5269c1e54f1c" kindref="member">init</ref>(allocatedDrawcallsInBuffer,<sp/>bytesCountPerDrawcall,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t),<sp/>SBCF_DYNAMIC,<sp/>0,</highlight></codeline>
+<codeline lineno="214"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>getMultidrawStagingBufferName().c_str());</highlight></codeline>
+<codeline lineno="215"><highlight class="normal"></highlight><highlight class="preprocessor">#else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="216"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArguments.<ref refid="classresptr__detail_1_1UniqueRes_1a0e4b3abd6528dd033ee1338d39d7926d" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="217"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArguments.init(allocatedDrawcallsInBuffer,<sp/>bytesCountPerDrawcall,<sp/></highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(uint32_t),<sp/>SBCF_INDIRECT<sp/>|<sp/>SBCF_DYNAMIC,<sp/>0,</highlight></codeline>
+<codeline lineno="218"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>name.c_str());</highlight></codeline>
+<codeline lineno="219"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="220"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(needPerDrawParamsBuffer())</highlight></codeline>
+<codeline lineno="221"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="222"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>perDrawArgsBuffer.<ref refid="classresptr__detail_1_1ConcreteResHolder_1a5a467f78fdb21488f822a54633e46273" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="223"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>perDrawArgsBuffer<sp/>=<sp/>dag::create_sbuffer(</highlight><highlight class="keyword">sizeof</highlight><highlight class="normal">(PerDrawDataT),<sp/>allocatedDrawcallsInBuffer,</highlight></codeline>
+<codeline lineno="224"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>SBCF_MISC_STRUCTURED<sp/>|<sp/>SBCF_BIND_SHADER_RES<sp/>|<sp/>SBCF_DYNAMIC,<sp/>0,<sp/>getPerDrawArgsBufferName().c_str(),<sp/><ref refid="dag__resourceTags_8h_1a04d0611c09fa1ae1fd63cfadd1216bae" kindref="member">RESTAG_ENGINE</ref>);</highlight></codeline>
+<codeline lineno="225"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="226"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="227"><highlight class="normal"></highlight></codeline>
+<codeline lineno="228"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::variant&lt;eastl::monostate,<sp/>LockedBuffer&lt;DrawIndexedIndirectArgs&gt;,<sp/><ref refid="classLockedBuffer" kindref="compound">LockedBuffer&lt;DrawIndexedIndirectArgsWithId&gt;</ref>&gt;<sp/>multidrawArgs;</highlight></codeline>
+<codeline lineno="229"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/>bufferLocked<sp/>=<sp/></highlight><highlight class="keyword">true</highlight><highlight class="normal">;</highlight></codeline>
+<codeline lineno="230"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/><ref refid="dag__multidrawContext_8h_1aebd5bb84beae2508bd476ec015727cdd" kindref="member">CONSTEXPR_EXT_MULTIDRAW</ref><sp/>(extMultiDraw)</highlight></codeline>
+<codeline lineno="231"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="232"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArgs<sp/>=<sp/>multidrawArgsBuf.<ref refid="classRingDynamicBuffer_1af797f0a0d9f0ae233a1d73ffcc10f359" kindref="member">lockBufferAs</ref>&lt;DrawIndexedIndirectArgsWithId&gt;(drawcalls_count,<sp/>actualStart);</highlight></codeline>
+<codeline lineno="233"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>bufferLocked<sp/>=<sp/>(bool)eastl::get&lt;2&gt;(multidrawArgs);</highlight></codeline>
+<codeline lineno="234"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="235"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="236"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="237"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>multidrawArgs<sp/>=<sp/>multidrawArgsBuf.<ref refid="classRingDynamicBuffer_1af797f0a0d9f0ae233a1d73ffcc10f359" kindref="member">lockBufferAs</ref>&lt;DrawIndexedIndirectArgs&gt;(drawcalls_count,<sp/>actualStart);</highlight></codeline>
+<codeline lineno="238"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>bufferLocked<sp/>=<sp/>(bool)eastl::get&lt;1&gt;(multidrawArgs);</highlight></codeline>
+<codeline lineno="239"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="240"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!bufferLocked)</highlight></codeline>
+<codeline lineno="241"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="242"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>logerr(</highlight><highlight class="stringliteral">&quot;Buffer<sp/>%s<sp/>data<sp/>wasn&apos;t<sp/>updated.&quot;</highlight><highlight class="normal">,<sp/>multidrawArgsBuf.<ref refid="classRingDynamicSB_1a4ede2a5546cadab814546bf34eb57c2a" kindref="member">getRenderBuf</ref>()-&gt;getBufName());</highlight></codeline>
+<codeline lineno="243"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref>(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="244"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="245"><highlight class="normal"></highlight></codeline>
+<codeline lineno="246"><highlight class="normal"><sp/><sp/><sp/><sp/>eastl::optional&lt;LockedBuffer&lt;PerDrawDataT&gt;&gt;<sp/>perDrawArgs;</highlight></codeline>
+<codeline lineno="247"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>(needPerDrawParamsBuffer())</highlight></codeline>
+<codeline lineno="248"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="249"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>perDrawArgs.emplace(perDrawArgsBuffer.getBuf(),<sp/>0,<sp/>drawcalls_count,<sp/>VBLOCK_DISCARD);</highlight></codeline>
+<codeline lineno="250"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!perDrawArgs)</highlight></codeline>
+<codeline lineno="251"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="252"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>logerr(</highlight><highlight class="stringliteral">&quot;Buffer<sp/>%s<sp/>data<sp/>wasn&apos;t<sp/>updated.&quot;</highlight><highlight class="normal">,<sp/>perDrawArgsBuffer.getBuf()-&gt;getBufName());</highlight></codeline>
+<codeline lineno="253"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref>(</highlight><highlight class="keyword">nullptr</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="254"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="255"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="256"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">for</highlight><highlight class="normal"><sp/>(uint32_t<sp/>i<sp/>=<sp/>0;<sp/>i<sp/>&lt;<sp/>drawcalls_count;<sp/>++i)</highlight></codeline>
+<codeline lineno="257"><highlight class="normal"><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="258"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keyword">auto</highlight><highlight class="normal"><sp/>&amp;dc<sp/>=<sp/>extMultiDraw<sp/>?<sp/>eastl::get&lt;2&gt;(multidrawArgs)[i].args<sp/>:<sp/>eastl::get&lt;1&gt;(multidrawArgs)[i];</highlight></codeline>
+<codeline lineno="259"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>dc.startInstanceLocation<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="260"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>uint32_t<sp/>&amp;drawcallId<sp/>=<sp/>extMultiDraw<sp/>?<sp/>eastl::get&lt;2&gt;(multidrawArgs)[i].drawcallId<sp/>:<sp/>dc.startInstanceLocation;</highlight></codeline>
+<codeline lineno="261"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">constexpr</highlight><highlight class="normal"><sp/>(needPerDrawParamsBuffer())</highlight></codeline>
+<codeline lineno="262"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="263"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>drawcallId<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="264"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>set_cb(i,<sp/>dc.indexCountPerInstance,<sp/>dc.instanceCount,<sp/>dc.startIndexLocation,<sp/>dc.baseVertexLocation,<sp/>perDrawArgs.value()[i],</highlight></codeline>
+<codeline lineno="265"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>drawcallId);</highlight></codeline>
+<codeline lineno="266"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>G_ASSERTF((i<sp/>&lt;<sp/>(1u<sp/>&lt;&lt;<sp/>DrawIdBits)),<sp/></highlight><highlight class="stringliteral">&quot;Draw<sp/>call<sp/>index<sp/>%d<sp/>exceeds<sp/>maximum<sp/>allowed<sp/>value<sp/>%d<sp/>for<sp/>DrawIdBits=%d&quot;</highlight><highlight class="normal">,<sp/>i,</highlight></codeline>
+<codeline lineno="267"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>(1u<sp/>&lt;&lt;<sp/>DrawIdBits)<sp/>-<sp/>1,<sp/>DrawIdBits);</highlight></codeline>
+<codeline lineno="268"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>drawcallId<sp/>|=<sp/>(i<sp/>&lt;&lt;<sp/><ref refid="classMultidrawContext_1a22ba330f6ca14bba99194b927d497443" kindref="member">DRAW_DWORD_FREE_BITS</ref>);</highlight></codeline>
+<codeline lineno="269"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="270"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">else</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="271"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>{</highlight></codeline>
+<codeline lineno="272"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>set_cb(i,<sp/>dc.indexCountPerInstance,<sp/>dc.instanceCount,<sp/>dc.startIndexLocation,<sp/>dc.baseVertexLocation,<sp/>drawcallId);</highlight></codeline>
+<codeline lineno="273"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="274"><highlight class="normal"><sp/><sp/><sp/><sp/>}</highlight></codeline>
+<codeline lineno="275"><highlight class="normal"></highlight></codeline>
+<codeline lineno="276"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>USE_STAGING_MULTIDRAW_BUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="277"><highlight class="normal"><sp/><sp/><sp/><sp/>extMultiDraw<sp/>?<sp/>eastl::get&lt;2&gt;(multidrawArgs).close()<sp/>:<sp/>eastl::get&lt;1&gt;(multidrawArgs).close();</highlight></codeline>
+<codeline lineno="278"><highlight class="normal"><sp/><sp/><sp/><sp/>multidrawArgsStagingBuffer.<ref refid="classRingDynamicSB_1a4ede2a5546cadab814546bf34eb57c2a" kindref="member">getRenderBuf</ref>()-&gt;copyTo(multidrawArguments.getBuf(),<sp/>0,<sp/>actualStart<sp/>*<sp/>bytesCountPerDrawcall,</highlight></codeline>
+<codeline lineno="279"><highlight class="normal"><sp/><sp/><sp/><sp/><sp/><sp/>drawcalls_count<sp/>*<sp/>bytesCountPerDrawcall);</highlight></codeline>
+<codeline lineno="280"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="281"><highlight class="normal"></highlight></codeline>
+<codeline lineno="282"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref>(</highlight><highlight class="keyword">this</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="283"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="287" refid="classMultidrawContext_1a80dff56f9591b7c3fb252fef9bfe310d" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="classMultidrawContext_1a80dff56f9591b7c3fb252fef9bfe310d" kindref="member">close</ref>()</highlight></codeline>
+<codeline lineno="288"><highlight class="normal"><sp/><sp/>{</highlight></codeline>
+<codeline lineno="289"><highlight class="normal"><sp/><sp/><sp/><sp/>multidrawArguments.<ref refid="classresptr__detail_1_1UniqueRes_1a0e4b3abd6528dd033ee1338d39d7926d" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="290"><highlight class="normal"></highlight><highlight class="preprocessor">#if<sp/>USE_STAGING_MULTIDRAW_BUF</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="291"><highlight class="normal"><sp/><sp/><sp/><sp/>multidrawArgsStagingBuffer.<ref refid="classRingDynamicSB_1a6bb8b5e8319325c15e5439730999952b" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="292"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="293"><highlight class="normal"><sp/><sp/><sp/><sp/>perDrawArgsBuffer.<ref refid="classresptr__detail_1_1ConcreteResHolder_1a5a467f78fdb21488f822a54633e46273" kindref="member">close</ref>();</highlight></codeline>
+<codeline lineno="294"><highlight class="normal"><sp/><sp/><sp/><sp/>allocatedDrawcallsInBuffer<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="295"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="296"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="297"><highlight class="normal"></highlight></codeline>
+<codeline lineno="298"><highlight class="normal"></highlight><highlight class="preprocessor">#undef<sp/>CONSTEXPR_EXT_MULTIDRAW</highlight></codeline>
+    </programlisting>
+    <location file="dag_multidrawContext.h"/>
+  </compounddef>
+</doxygen>

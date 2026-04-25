@@ -1,0 +1,546 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderSkinnedMesh" kind="class" language="C++" prot="public">
+    <compoundname>ShaderSkinnedMesh</compoundname>
+    <innerclass refid="structShaderSkinnedMesh_1_1BoneForElem" prot="public">ShaderSkinnedMesh::BoneForElem</innerclass>
+    <innerclass refid="structShaderSkinnedMesh_1_1MaterialDesc" prot="private">ShaderSkinnedMesh::MaterialDesc</innerclass>
+    <innerclass refid="structShaderSkinnedMesh_1_1WorkData" prot="private">ShaderSkinnedMesh::WorkData</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderSkinnedMesh_1a87c637d4b06af5f9864af5c3a88904e5" prot="private" static="no" mutable="no">
+        <type>PatchableTab&lt; TMatrix &gt;</type>
+        <definition>PatchableTab&lt;TMatrix&gt; ShaderSkinnedMesh::boneOrgTm</definition>
+        <argsstring></argsstring>
+        <name>boneOrgTm</name>
+        <qualifiedname>ShaderSkinnedMesh::boneOrgTm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="98" column="16" bodyfile="dag_shSkinMesh.h" bodystart="98" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSkinnedMesh_1a265b5e13208302644d1686d2859a2f95" prot="private" static="no" mutable="no">
+        <type>PatchableTab&lt; MaterialDesc &gt;</type>
+        <definition>PatchableTab&lt;MaterialDesc&gt; ShaderSkinnedMesh::matTab</definition>
+        <argsstring></argsstring>
+        <name>matTab</name>
+        <qualifiedname>ShaderSkinnedMesh::matTab</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="99" column="16" bodyfile="dag_shSkinMesh.h" bodystart="99" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSkinnedMesh_1ab80ab7c78ab235924e938d805b3a040f" prot="private" static="no" mutable="no">
+        <type>PatchablePtr&lt; int16_t &gt;</type>
+        <definition>PatchablePtr&lt;int16_t&gt; ShaderSkinnedMesh::boneNodeId</definition>
+        <argsstring></argsstring>
+        <name>boneNodeId</name>
+        <qualifiedname>ShaderSkinnedMesh::boneNodeId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="101" column="16" bodyfile="dag_shSkinMesh.h" bodystart="101" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSkinnedMesh_1a95c37dbb199248a4ceddbd1ffc383fee" prot="private" static="no" mutable="no">
+        <type>PatchablePtr&lt; PatchablePtr&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> &gt; &gt;</type>
+        <definition>PatchablePtr&lt;PatchablePtr&lt;ShaderMaterial&gt; &gt; ShaderSkinnedMesh::shMat</definition>
+        <argsstring></argsstring>
+        <name>shMat</name>
+        <qualifiedname>ShaderSkinnedMesh::shMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="102" column="16" bodyfile="dag_shSkinMesh.h" bodystart="102" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSkinnedMesh_1a2380a47530be8c23b3d9b8f895cbf8df" prot="private" static="no" mutable="no">
+        <type>PatchablePtr&lt; WorkData &gt;</type>
+        <definition>PatchablePtr&lt;WorkData&gt; ShaderSkinnedMesh::workData</definition>
+        <argsstring></argsstring>
+        <name>workData</name>
+        <qualifiedname>ShaderSkinnedMesh::workData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="103" column="16" bodyfile="dag_shSkinMesh.h" bodystart="103" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderSkinnedMesh_1a0d9f382619844b2ed503003f4ee2f07f" prot="private" static="no" mutable="no">
+        <type><ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref></type>
+        <definition>ShaderMesh ShaderSkinnedMesh::shaderMesh</definition>
+        <argsstring></argsstring>
+        <name>shaderMesh</name>
+        <qualifiedname>ShaderSkinnedMesh::shaderMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="105" column="14" bodyfile="dag_shSkinMesh.h" bodystart="105" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a5fabd3eea2309c5b3c99a13ed2d67ff4" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderSkinnedMesh::~ShaderSkinnedMesh</definition>
+        <argsstring>()</argsstring>
+        <name>~ShaderSkinnedMesh</name>
+        <qualifiedname>ShaderSkinnedMesh::~ShaderSkinnedMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="40" column="3" bodyfile="dag_shSkinMesh.h" bodystart="40" bodyend="40"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a1b2b1ce56e1712a60e476792ab979687" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::patchData</definition>
+        <argsstring>(void *base, ShaderMatVdata &amp;smvd)</argsstring>
+        <name>patchData</name>
+        <qualifiedname>ShaderSkinnedMesh::patchData</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>base</declname>
+        </param>
+        <param>
+          <type><ref refid="classShaderMatVdata" kindref="compound">ShaderMatVdata</ref> &amp;</type>
+          <declname>smvd</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="44" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a6a1a23c56aee7931f9eff6bdb4f98484" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::rebaseAndClone</definition>
+        <argsstring>(void *new_base, const void *old_base)</argsstring>
+        <name>rebaseAndClone</name>
+        <qualifiedname>ShaderSkinnedMesh::rebaseAndClone</qualifiedname>
+        <param>
+          <type>void *</type>
+          <declname>new_base</declname>
+        </param>
+        <param>
+          <type>const void *</type>
+          <declname>old_base</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="47" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1af28f94482c9fcac58696fea32de940fe" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::clearData</definition>
+        <argsstring>()</argsstring>
+        <name>clearData</name>
+        <qualifiedname>ShaderSkinnedMesh::clearData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="50" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a9b4467381f1197cc53e1efc3b5a9db89" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::render</definition>
+        <argsstring>()</argsstring>
+        <name>render</name>
+        <qualifiedname>ShaderSkinnedMesh::render</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="53" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a93c99d85671d97d5e6a9606a51aa292a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::render_trans</definition>
+        <argsstring>()</argsstring>
+        <name>render_trans</name>
+        <qualifiedname>ShaderSkinnedMesh::render_trans</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="54" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1ae8abc5b5d39d99e965a90dfdffef6d05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::render_distortion</definition>
+        <argsstring>()</argsstring>
+        <name>render_distortion</name>
+        <qualifiedname>ShaderSkinnedMesh::render_distortion</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="55" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1ad36e696c675305dbee1ccda15a638511" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::recalcBones</definition>
+        <argsstring>(const DynamicRenderableSceneInstance &amp;cb, const TMatrix *render_space_tm=NULL)</argsstring>
+        <name>recalcBones</name>
+        <qualifiedname>ShaderSkinnedMesh::recalcBones</qualifiedname>
+        <param>
+          <type>const <ref refid="classDynamicRenderableSceneInstance" kindref="compound">DynamicRenderableSceneInstance</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>const TMatrix *</type>
+          <declname>render_space_tm</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="58" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a03ce6bcad137f4005c6571d93602db8a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::duplicateMaterial</definition>
+        <argsstring>(TEXTUREID tex_id, Tab&lt; ShaderMaterial * &gt; &amp;old_mat, Tab&lt; ShaderMaterial * &gt; &amp;new_mat)</argsstring>
+        <name>duplicateMaterial</name>
+        <qualifiedname>ShaderSkinnedMesh::duplicateMaterial</qualifiedname>
+        <param>
+          <type>TEXTUREID</type>
+          <declname>tex_id</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>old_mat</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>new_mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="60" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a35d727b6d27c4433ea21a2462085b92e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::duplicateMat</definition>
+        <argsstring>(ShaderMaterial *prev_m, Tab&lt; ShaderMaterial * &gt; &amp;old_mat, Tab&lt; ShaderMaterial * &gt; &amp;new_mat)</argsstring>
+        <name>duplicateMat</name>
+        <qualifiedname>ShaderSkinnedMesh::duplicateMat</qualifiedname>
+        <param>
+          <type><ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> *</type>
+          <declname>prev_m</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>old_mat</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> * &gt; &amp;</type>
+          <declname>new_mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="61" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a4baba3f239e02ab084191f4ef6586921" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::updateShaderElems</definition>
+        <argsstring>()</argsstring>
+        <name>updateShaderElems</name>
+        <qualifiedname>ShaderSkinnedMesh::updateShaderElems</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="63" column="8" bodyfile="dag_shSkinMesh.h" bodystart="63" bodyend="63"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1abd3e1b462c1526572d72b82b074bf464" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref> &amp;</type>
+        <definition>ShaderMesh &amp; ShaderSkinnedMesh::getShaderMesh</definition>
+        <argsstring>()</argsstring>
+        <name>getShaderMesh</name>
+        <qualifiedname>ShaderSkinnedMesh::getShaderMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="66" column="21" bodyfile="dag_shSkinMesh.h" bodystart="66" bodyend="66"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a77b297b75cb9e5980240a88869ef5ac5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="classShaderMesh" kindref="compound">ShaderMesh</ref> &amp;</type>
+        <definition>const ShaderMesh &amp; ShaderSkinnedMesh::getShaderMesh</definition>
+        <argsstring>() const</argsstring>
+        <name>getShaderMesh</name>
+        <qualifiedname>ShaderSkinnedMesh::getShaderMesh</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="67" column="27" bodyfile="dag_shSkinMesh.h" bodystart="67" bodyend="67"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a77a964e3fa20e26d40bbdca65b3517b9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::getBonesForElem</definition>
+        <argsstring>(ShaderElement *elem, Tab&lt; BoneForElem &gt; &amp;out_bones) const</argsstring>
+        <name>getBonesForElem</name>
+        <qualifiedname>ShaderSkinnedMesh::getBonesForElem</qualifiedname>
+        <param>
+          <type><ref refid="classShaderElement" kindref="compound">ShaderElement</ref> *</type>
+          <declname>elem</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structShaderSkinnedMesh_1_1BoneForElem" kindref="compound">BoneForElem</ref> &gt; &amp;</type>
+          <declname>out_bones</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="69" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a253ec728b209f553fb5c793ed2f01325" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderSkinnedMesh::bonesCount</definition>
+        <argsstring>() const</argsstring>
+        <name>bonesCount</name>
+        <qualifiedname>ShaderSkinnedMesh::bonesCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="70" column="7" bodyfile="dag_shSkinMesh.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a30eda953ff063145b628cd72fa3bb8ba" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderSkinnedMesh::hasBone</definition>
+        <argsstring>(int bone_id) const</argsstring>
+        <name>hasBone</name>
+        <qualifiedname>ShaderSkinnedMesh::hasBone</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>bone_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="71" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a4b0b3afb193a959f771a946d06de9826" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderSkinnedMesh::matchBetterBoneIdxAndItmForPoint</definition>
+        <argsstring>(const Point3 &amp;pos, int &amp;bone_idx, TMatrix &amp;bone_itm, DynamicRenderableSceneInstance &amp;cb) const</argsstring>
+        <name>matchBetterBoneIdxAndItmForPoint</name>
+        <qualifiedname>ShaderSkinnedMesh::matchBetterBoneIdxAndItmForPoint</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>bone_idx</declname>
+        </param>
+        <param>
+          <type>TMatrix &amp;</type>
+          <declname>bone_itm</declname>
+        </param>
+        <param>
+          <type><ref refid="classDynamicRenderableSceneInstance" kindref="compound">DynamicRenderableSceneInstance</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="73" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1aa671ac52f19b9cccce415ca484bc578c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderSkinnedMesh::getBoneForNode</definition>
+        <argsstring>(int node_idx) const</argsstring>
+        <name>getBoneForNode</name>
+        <qualifiedname>ShaderSkinnedMesh::getBoneForNode</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>node_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="74" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1ac5f5ab18544fa205de87c80cfe87dcf9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderSkinnedMesh::getNodeForBone</definition>
+        <argsstring>(uint32_t bone_idx) const</argsstring>
+        <name>getNodeForBone</name>
+        <qualifiedname>ShaderSkinnedMesh::getNodeForBone</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>bone_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="75" column="12" bodyfile="dag_shSkinMesh.h" bodystart="75" bodyend="79"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1ae981ef7b0cb85e98c13c0e36dfb0a12f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; int16_t &gt;</type>
+        <definition>dag::ConstSpan&lt; int16_t &gt; ShaderSkinnedMesh::getBoneNodeIds</definition>
+        <argsstring>() const</argsstring>
+        <name>getBoneNodeIds</name>
+        <qualifiedname>ShaderSkinnedMesh::getBoneNodeIds</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="80" column="18" bodyfile="dag_shSkinMesh.h" bodystart="80" bodyend="80"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1ad17d2e4adbc852d5fe4ca961ea18e19c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TMatrix &amp;</type>
+        <definition>const TMatrix &amp; ShaderSkinnedMesh::getBoneOrgTm</definition>
+        <argsstring>(uint32_t bone_idx) const</argsstring>
+        <name>getBoneOrgTm</name>
+        <qualifiedname>ShaderSkinnedMesh::getBoneOrgTm</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>bone_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="81" column="17" bodyfile="dag_shSkinMesh.h" bodystart="81" bodyend="81"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a7c1ee94e80ca12b999b280bcf44197d0" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; TMatrix &gt;</type>
+        <definition>dag::ConstSpan&lt; TMatrix &gt; ShaderSkinnedMesh::getBoneOrgTmArr</definition>
+        <argsstring>() const</argsstring>
+        <name>getBoneOrgTmArr</name>
+        <qualifiedname>ShaderSkinnedMesh::getBoneOrgTmArr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="82" column="18" bodyfile="dag_shSkinMesh.h" bodystart="82" bodyend="82"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderSkinnedMesh_1a61439be6434e704bb41d33f74058a5c1" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void ShaderSkinnedMesh::allocateWorkData</definition>
+        <argsstring>()</argsstring>
+        <name>allocateWorkData</name>
+        <qualifiedname>ShaderSkinnedMesh::allocateWorkData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shSkinMesh.h" line="85" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shSkinMesh.h" line="29" column="1" bodyfile="dag_shSkinMesh.h" bodystart="30" bodyend="106"/>
+    <listofallmembers>
+      <member refid="classShaderSkinnedMesh_1a61439be6434e704bb41d33f74058a5c1" prot="private" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>allocateWorkData</name></member>
+      <member refid="classShaderSkinnedMesh_1ab80ab7c78ab235924e938d805b3a040f" prot="private" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>boneNodeId</name></member>
+      <member refid="classShaderSkinnedMesh_1a87c637d4b06af5f9864af5c3a88904e5" prot="private" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>boneOrgTm</name></member>
+      <member refid="classShaderSkinnedMesh_1a253ec728b209f553fb5c793ed2f01325" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>bonesCount</name></member>
+      <member refid="classShaderSkinnedMesh_1af28f94482c9fcac58696fea32de940fe" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>clearData</name></member>
+      <member refid="classShaderSkinnedMesh_1a35d727b6d27c4433ea21a2462085b92e" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>duplicateMat</name></member>
+      <member refid="classShaderSkinnedMesh_1a03ce6bcad137f4005c6571d93602db8a" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>duplicateMaterial</name></member>
+      <member refid="classShaderSkinnedMesh_1aa671ac52f19b9cccce415ca484bc578c" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>getBoneForNode</name></member>
+      <member refid="classShaderSkinnedMesh_1ae981ef7b0cb85e98c13c0e36dfb0a12f" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>getBoneNodeIds</name></member>
+      <member refid="classShaderSkinnedMesh_1ad17d2e4adbc852d5fe4ca961ea18e19c" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>getBoneOrgTm</name></member>
+      <member refid="classShaderSkinnedMesh_1a7c1ee94e80ca12b999b280bcf44197d0" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>getBoneOrgTmArr</name></member>
+      <member refid="classShaderSkinnedMesh_1a77a964e3fa20e26d40bbdca65b3517b9" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>getBonesForElem</name></member>
+      <member refid="classShaderSkinnedMesh_1ac5f5ab18544fa205de87c80cfe87dcf9" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>getNodeForBone</name></member>
+      <member refid="classShaderSkinnedMesh_1abd3e1b462c1526572d72b82b074bf464" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>getShaderMesh</name></member>
+      <member refid="classShaderSkinnedMesh_1a77b297b75cb9e5980240a88869ef5ac5" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>getShaderMesh</name></member>
+      <member refid="classShaderSkinnedMesh_1a30eda953ff063145b628cd72fa3bb8ba" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>hasBone</name></member>
+      <member refid="classShaderSkinnedMesh_1a4b0b3afb193a959f771a946d06de9826" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>matchBetterBoneIdxAndItmForPoint</name></member>
+      <member refid="classShaderSkinnedMesh_1a265b5e13208302644d1686d2859a2f95" prot="private" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>matTab</name></member>
+      <member refid="classShaderSkinnedMesh_1a1b2b1ce56e1712a60e476792ab979687" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>patchData</name></member>
+      <member refid="classShaderSkinnedMesh_1a6a1a23c56aee7931f9eff6bdb4f98484" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>rebaseAndClone</name></member>
+      <member refid="classShaderSkinnedMesh_1ad36e696c675305dbee1ccda15a638511" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>recalcBones</name></member>
+      <member refid="classShaderSkinnedMesh_1a9b4467381f1197cc53e1efc3b5a9db89" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>render</name></member>
+      <member refid="classShaderSkinnedMesh_1ae8abc5b5d39d99e965a90dfdffef6d05" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>render_distortion</name></member>
+      <member refid="classShaderSkinnedMesh_1a93c99d85671d97d5e6a9606a51aa292a" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>render_trans</name></member>
+      <member refid="classShaderSkinnedMesh_1a0d9f382619844b2ed503003f4ee2f07f" prot="private" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>shaderMesh</name></member>
+      <member refid="classShaderSkinnedMesh_1a95c37dbb199248a4ceddbd1ffc383fee" prot="private" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>shMat</name></member>
+      <member refid="classShaderSkinnedMesh_1a4baba3f239e02ab084191f4ef6586921" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>updateShaderElems</name></member>
+      <member refid="classShaderSkinnedMesh_1a2380a47530be8c23b3d9b8f895cbf8df" prot="private" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>workData</name></member>
+      <member refid="classShaderSkinnedMesh_1a5fabd3eea2309c5b3c99a13ed2d67ff4" prot="public" virt="non-virtual"><scope>ShaderSkinnedMesh</scope><name>~ShaderSkinnedMesh</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

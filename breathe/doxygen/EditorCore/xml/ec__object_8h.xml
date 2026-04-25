@@ -1,0 +1,145 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="ec__object_8h" kind="file" language="C++">
+    <compoundname>ec_object.h</compoundname>
+    <includes refid="ec__decl_8h" local="no">EditorCore/ec_decl.h</includes>
+    <includes local="no">math/dag_math3d.h</includes>
+    <includes local="no">util/dag_string.h</includes>
+    <includes local="no">generic/dag_DObject.h</includes>
+    <includedby refid="ec__rendEdObject_8h" local="no">ec_rendEdObject.h</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>EditorCore/ec_decl.h</label>
+        <link refid="ec__decl_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_object.h</label>
+        <link refid="ec__object_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="3">
+        <label>math/dag_math3d.h</label>
+      </node>
+      <node id="4">
+        <label>util/dag_string.h</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="3">
+        <label>ec_ObjectEditor.h</label>
+        <link refid="ec__ObjectEditor_8h"/>
+      </node>
+      <node id="1">
+        <label>ec_object.h</label>
+        <link refid="ec__object_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ec_rendEdObject.h</label>
+        <link refid="ec__rendEdObject_8h"/>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="classEditableObject" prot="public">EditableObject</innerclass>
+      <sectiondef kind="define">
+      <member refid="group__EditorCore_1ga8187112d800c6222b0cde94907a214c3" kind="define"><name>EO_IMPLEMENT_RTTI_EX</name></member>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="ec__object_8h_1a8a4291ed4774176cc07528eaf9af8c0b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>class T</type>
+          </param>
+        </templateparamlist>
+        <type>T *</type>
+        <definition>T * RTTI_cast</definition>
+        <argsstring>(EditableObject *source)</argsstring>
+        <name>RTTI_cast</name>
+        <param>
+          <type><ref refid="classEditableObject" kindref="compound">EditableObject</ref> *</type>
+          <declname>source</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_object.h" line="83" column="3" bodyfile="ec_object.h" bodystart="83" bodyend="88"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;<ref refid="ec__decl_8h" kindref="compound">EditorCore/ec_decl.h</ref>&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_math3d.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;util/dag_string.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_DObject.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18" refid="group__EditorCore_1ga8187112d800c6222b0cde94907a214c3" refkind="member"><highlight class="preprocessor">#define<sp/>EO_IMPLEMENT_RTTI_EX(id,<sp/>BASECLS)<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="19"><highlight class="preprocessor"><sp/><sp/>static<sp/>DClassID<sp/>getStaticClassId()<sp/>{<sp/>return<sp/>id;<sp/>}<sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/><sp/>\</highlight></codeline>
+<codeline lineno="20"><highlight class="preprocessor"><sp/><sp/>bool<sp/>isSubOf(DClassID<sp/>cid)<sp/>override<sp/>{<sp/>return<sp/>cid<sp/>==<sp/>(id)<sp/>||<sp/>BASECLS::isSubOf(cid);<sp/>}<sp/>\</highlight></codeline>
+<codeline lineno="21"><highlight class="preprocessor"><sp/><sp/>DClassID<sp/>getClassId()<sp/>override<sp/>{<sp/>return<sp/>id;<sp/>}</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight></codeline>
+<codeline lineno="23"><highlight class="normal"></highlight></codeline>
+<codeline lineno="30" refid="classEditableObject" refkind="compound"><highlight class="keyword">class<sp/></highlight><highlight class="normal"><ref refid="classEditableObject" kindref="compound">EditableObject</ref><sp/>:<sp/></highlight><highlight class="keyword">public</highlight><highlight class="normal"><sp/>DObject</highlight></codeline>
+<codeline lineno="31"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"></highlight><highlight class="keyword">public</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="34" refid="classEditableObject_1a46185d4332bf3b2a09ef0c5260c7c0bd" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1a46185d4332bf3b2a09ef0c5260c7c0bd" kindref="member">EditableObject</ref>()<sp/>:<sp/><ref refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" kindref="member">matrix</ref>(TMatrix::IDENT)<sp/>{}</highlight></codeline>
+<codeline lineno="36" refid="classEditableObject_1af5fe3ddda76d699056a11180641dfac2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1af5fe3ddda76d699056a11180641dfac2" kindref="member">EditableObject</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="classEditableObject" kindref="compound">EditableObject</ref><sp/>&amp;from)<sp/>:<sp/><ref refid="classEditableObject_1a9aa0b0d654aff5ebd01999b9d826ecf1" kindref="member">name</ref>(from.<ref refid="classEditableObject_1a9aa0b0d654aff5ebd01999b9d826ecf1" kindref="member">name</ref>),<sp/><ref refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" kindref="member">matrix</ref>(from.<ref refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" kindref="member">matrix</ref>)<sp/>{}</highlight></codeline>
+<codeline lineno="38" refid="classEditableObject_1a76e739cbdae45c89f3eaa185c951ba55" refkind="member"><highlight class="normal"><sp/><sp/><ref refid="classEditableObject_1a76e739cbdae45c89f3eaa185c951ba55" kindref="member">~EditableObject</ref>()</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="41"></codeline>
+<codeline lineno="42" refid="classEditableObject_1adfd23384e9249efd8723a0d9a2bd3e54" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/>DClassID<sp/><ref refid="classEditableObject_1adfd23384e9249efd8723a0d9a2bd3e54" kindref="member">getStaticClassId</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>0;<sp/>}</highlight></codeline>
+<codeline lineno="43" refid="classEditableObject_1a912558e6dbfe80d39ae4ba717dde01b1" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1a912558e6dbfe80d39ae4ba717dde01b1" kindref="member">isSubOf</ref>(DClassID<sp/>cid)</highlight><highlight class="keyword"><sp/>override<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>cid<sp/>==<sp/><ref refid="classEditableObject_1adfd23384e9249efd8723a0d9a2bd3e54" kindref="member">getStaticClassId</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="44" refid="classEditableObject_1a0c28f3f141cd36487be51f380871c86c" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>DClassID<sp/><ref refid="classEditableObject_1a0c28f3f141cd36487be51f380871c86c" kindref="member">getClassId</ref>()<sp/>{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1adfd23384e9249efd8723a0d9a2bd3e54" kindref="member">getStaticClassId</ref>();<sp/>}</highlight></codeline>
+<codeline lineno="46"></codeline>
+<codeline lineno="49" refid="classEditableObject_1ad90c8161c547a36da0b29b5f6c63a528" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*<ref refid="classEditableObject_1ad90c8161c547a36da0b29b5f6c63a528" kindref="member">getName</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*)<ref refid="classEditableObject_1a9aa0b0d654aff5ebd01999b9d826ecf1" kindref="member">name</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"></highlight></codeline>
+<codeline lineno="53" refid="classEditableObject_1a4e7f96802efb46c6b2b609f04d57733a" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>Point3<sp/><ref refid="classEditableObject_1a4e7f96802efb46c6b2b609f04d57733a" kindref="member">getPos</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" kindref="member">matrix</ref>.getcol(3);<sp/>}</highlight></codeline>
+<codeline lineno="54"><highlight class="normal"></highlight></codeline>
+<codeline lineno="57" refid="classEditableObject_1ac6b2206396d5ac77b14f07edabd583a7" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/>TMatrix<sp/><ref refid="classEditableObject_1ac6b2206396d5ac77b14f07edabd583a7" kindref="member">getTm</ref>()</highlight><highlight class="keyword"><sp/>const<sp/></highlight><highlight class="normal">{<sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" kindref="member">matrix</ref>;<sp/>}</highlight></codeline>
+<codeline lineno="58"><highlight class="normal"></highlight></codeline>
+<codeline lineno="62" refid="classEditableObject_1ac421b839e1f07233e7926966c65880e2" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1ac421b839e1f07233e7926966c65880e2" kindref="member">setName</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">char</highlight><highlight class="normal"><sp/>*nm)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="63"><highlight class="normal"></highlight></codeline>
+<codeline lineno="67" refid="classEditableObject_1aa62e59924f2f7e080ec4c11be04c08be" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1aa62e59924f2f7e080ec4c11be04c08be" kindref="member">setPos</ref>(</highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Point3<sp/>&amp;p)<sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="68"><highlight class="normal"></highlight></codeline>
+<codeline lineno="73" refid="classEditableObject_1acb3a28374d78f23831c7ba6585dad631" refkind="member"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">virtual</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="classEditableObject_1acb3a28374d78f23831c7ba6585dad631" kindref="member">isSelectedByPointClick</ref>(<ref refid="classIGenViewportWnd" kindref="compound">IGenViewportWnd</ref><sp/>*vp,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>x,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>y)<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>=<sp/>0;</highlight></codeline>
+<codeline lineno="74"><highlight class="normal"></highlight></codeline>
+<codeline lineno="75"><highlight class="normal"></highlight><highlight class="keyword">protected</highlight><highlight class="normal">:</highlight></codeline>
+<codeline lineno="76" refid="classEditableObject_1a9aa0b0d654aff5ebd01999b9d826ecf1" refkind="member"><highlight class="normal"><sp/><sp/>String<sp/><ref refid="classEditableObject_1a9aa0b0d654aff5ebd01999b9d826ecf1" kindref="member">name</ref>;</highlight></codeline>
+<codeline lineno="77" refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" refkind="member"><highlight class="normal"><sp/><sp/>TMatrix<sp/><ref refid="classEditableObject_1ab662b669c6fca7253d99b37ad23be306" kindref="member">matrix</ref>;</highlight></codeline>
+<codeline lineno="78"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="79"><highlight class="normal"></highlight></codeline>
+<codeline lineno="80"><highlight class="normal"></highlight></codeline>
+<codeline lineno="81"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Helper<sp/>template<sp/>to<sp/>cast<sp/>EditableObject<sp/>to<sp/>derived<sp/>class.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="82"><highlight class="normal"></highlight><highlight class="keyword">template</highlight><highlight class="normal"><sp/>&lt;</highlight><highlight class="keyword">class</highlight><highlight class="normal"><sp/>T&gt;</highlight></codeline>
+<codeline lineno="83" refid="ec__object_8h_1a8a4291ed4774176cc07528eaf9af8c0b" refkind="member"><highlight class="normal">T<sp/>*<ref refid="ec__object_8h_1a8a4291ed4774176cc07528eaf9af8c0b" kindref="member">RTTI_cast</ref>(<ref refid="classEditableObject" kindref="compound">EditableObject</ref><sp/>*source)</highlight></codeline>
+<codeline lineno="84"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="85"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">if</highlight><highlight class="normal"><sp/>(!source<sp/>||<sp/>!source-&gt;<ref refid="classEditableObject_1a912558e6dbfe80d39ae4ba717dde01b1" kindref="member">isSubOf</ref>(T::getStaticClassId()))</highlight></codeline>
+<codeline lineno="86"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>NULL;</highlight></codeline>
+<codeline lineno="87"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>(T<sp/>*)source;</highlight></codeline>
+<codeline lineno="88"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="ec_object.h"/>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDialogLayout" kind="struct" language="C++" prot="public">
+    <compoundname>DialogLayout</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDialogLayout_1a280d34075c47c954d6707f0f10bcd4fd" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DialogLayout::dlg_w</definition>
+        <argsstring></argsstring>
+        <name>dlg_w</name>
+        <qualifiedname>DialogLayout::dlg_w</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="20" column="7" bodyfile="layout.cpp" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDialogLayout_1ac1a57c8b93d620e0761dfff9d10c84d3" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DialogLayout::dlg_h</definition>
+        <argsstring></argsstring>
+        <name>dlg_h</name>
+        <qualifiedname>DialogLayout::dlg_h</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="20" column="13" bodyfile="layout.cpp" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; int &gt;</type>
+        <definition>std::vector&lt;int&gt; DialogLayout::items</definition>
+        <argsstring></argsstring>
+        <name>items</name>
+        <qualifiedname>DialogLayout::items</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="21" column="15" bodyfile="layout.cpp" bodystart="21" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDialogLayout_1a8e1fcd24810437159b9b73cf7bdf6e0e" prot="public" static="no" mutable="no">
+        <type>std::vector&lt; <ref refid="layout_8cpp_1aba7bc1797add20fe3efdf37ced1182c5" kindref="member">uint8_t</ref> &gt;</type>
+        <definition>std::vector&lt;uint8_t&gt; DialogLayout::layout</definition>
+        <argsstring></argsstring>
+        <name>layout</name>
+        <qualifiedname>DialogLayout::layout</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.cpp" line="22" column="15" bodyfile="layout.cpp" bodystart="22" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="layout.cpp" line="18" column="1" bodyfile="layout.cpp" bodystart="19" bodyend="23"/>
+    <listofallmembers>
+      <member refid="structDialogLayout_1ac1a57c8b93d620e0761dfff9d10c84d3" prot="public" virt="non-virtual"><scope>DialogLayout</scope><name>dlg_h</name></member>
+      <member refid="structDialogLayout_1a280d34075c47c954d6707f0f10bcd4fd" prot="public" virt="non-virtual"><scope>DialogLayout</scope><name>dlg_w</name></member>
+      <member refid="structDialogLayout_1aded4707bf47f9c1ebf1bdfaa6e80f930" prot="public" virt="non-virtual"><scope>DialogLayout</scope><name>items</name></member>
+      <member refid="structDialogLayout_1a8e1fcd24810437159b9b73cf7bdf6e0e" prot="public" virt="non-virtual"><scope>DialogLayout</scope><name>layout</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

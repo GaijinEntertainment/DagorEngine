@@ -1,0 +1,1093 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>daRG Framework</title>
+      <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=55b73dce" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.custom.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster.bundle.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-shadow.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-punk.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-noir.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-light.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/tooltipster-sideTip-borderless.min.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/micromodal.css" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/css/sphinx_rtd_theme.css?v=3234e928" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/design-style.4045f2051d55cab465a707391d5b2007.min.css?v=6ad1a40c" />
+      <link rel="stylesheet" type="text/css" href="../../../../_static/custom.css?v=fe408b2f" />
+
+  
+    <link rel="shortcut icon" href="../../../../_static/favicon.ico"/>
+      <script src="../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../../_static/js/hoverxref.js"></script>
+      <script src="../../../../_static/js/tooltipster.bundle.min.js"></script>
+      <script src="../../../../_static/js/micromodal.min.js"></script>
+      <script src="../../../../_static/js/versionwarning.js?v=d4224a34"></script>
+      <script src="../../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../../_static/copybutton.js?v=f281be69"></script>
+      <script src="../../../../_static/design-tabs.js?v=36754332"></script>
+      <script>window.MathJax = {"options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="canvasAPI" href="canvasAPI.html" />
+    <link rel="prev" title="net" href="../quirrel_daECS/net.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../index.html" class="icon icon-home">
+            Dagor Documentation
+              <img src="../../../../_static/logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-home/index.html">Dagor Home</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../getting-started/index.html">Getting Started with Dagor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../assets/index.html">Assets and Assets Management</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../dagor-tools/index.html">Dagor Tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../projects/index.html">Projects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/index.html">Tutorials and Manuals</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API References and Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-render/index.html">Dagor Engine Render</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">Dagor Quirrel Modules Docs</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../quirrel_gamelibs/index.html">Quirrel Gamelibs Native Modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../quirrel_daECS/index.html">Quirrel ECS</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">daRG Framework</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#core-principles">Core Principles</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#separation-of-concerns">Separation of Concerns</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#immediate-vs-retained-mode">Immediate vs Retained Mode</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#explicit-state">Explicit State</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#core-concepts">Core Concepts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#interoperability-with-native-code">Interoperability with Native Code</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#observables-watched">Observables (Watched)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#component-reference">Component Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#darg-behaviors">daRg behaviors</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#button">Button</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#draganddrop">DragAndDrop</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pannable">Pannable</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pannable2touch">Pannable2Touch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#slider">Slider</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#textinput">TextInput</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#textarea">TextArea</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#textareaedit">TextAreaEdit</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#piemenu">PieMenu</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#combopopup">ComboPopup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#eatinput">EatInput</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#boundtoarea">BoundToArea</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#marquee">Marquee</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#moveresize">MoveResize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#movetoarea">MoveToArea</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#inspectpicker">InspectPicker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#recalchandler">RecalcHandler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#rtpropupdate">RtPropUpdate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#scrollevent">ScrollEvent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#wheelscroll">WheelScroll</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#swipescroll">SwipeScroll</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#movie">Movie</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#overlaytransparency">OverlayTransparency</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#parallax">Parallax</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#smoothscrollstack">SmoothScrollStack</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#transitionsize">TransitionSize</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#trackmouse">TrackMouse</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#processpointinginput">ProcessPointingInput</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#processgesture">ProcessGesture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#fpsbar">FpsBar</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#latencybar">LatencyBar</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#darg-render-objects">daRg Render Objects</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#robj-solid">ROBJ_SOLID</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-debug">ROBJ_DEBUG</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-image">ROBJ_IMAGE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-vector-canvas">ROBJ_VECTOR_CANVAS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-9rect">ROBJ_9RECT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-progress-linear">ROBJ_PROGRESS_LINEAR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-progress-circular">ROBJ_PROGRESS_CIRCULAR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-text">ROBJ_TEXT</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-inscription">ROBJ_INSCRIPTION</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-textarea">ROBJ_TEXTAREA</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-box">ROBJ_BOX</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-frame">ROBJ_FRAME</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-mask">ROBJ_MASK</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-movie">ROBJ_MOVIE</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-das-canvas">ROBJ_DAS_CANVAS</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-world-blur">ROBJ_WORLD_BLUR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#robj-world-blur-panel">ROBJ_WORLD_BLUR_PANEL</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="canvasAPI.html">canvasAPI</a></li>
+<li class="toctree-l5"><a class="reference internal" href="daRg.html">daRg</a></li>
+<li class="toctree-l5"><a class="reference internal" href="daRg.behaviors.html">daRg.behaviors</a></li>
+<li class="toctree-l5"><a class="reference internal" href="daRg.debug.html">daRg.debug</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../tools/dargbox/index.html">dargbox Tool</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGameLibs/index.html">daNetGameLibs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../daNetGame/index.html">daNetGame</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../soundSystem/index.html">soundSystem</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-engine-docs/index.html">Engine Libraries Docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-ecs/index.html">Dagor ECS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-dshl/index.html">Dagor Shading Language (DSHL) docs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../dagor-tools/index.html">Dagor Tools</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Dagor Documentation</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../index.html">API References and Documentation</a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Dagor Quirrel Modules Docs</a></li>
+      <li class="breadcrumb-item active">daRG Framework</li>
+  
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../../../_sources/api-references/quirrel-modules/quirrel-modules/darg_framework/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  <li class="wy-breadcrumbs-aside.github-icon">
+    <a href="https://github.com/GaijinEntertainment/DagorEngine" target="_blank" rel="noopener">
+      <img src="../../../../_static/_images/github-mark.png"
+           alt="GitHub"
+           style="height: 1.5em; vertical-align: text-bottom; " />
+    </a>
+  </li>
+
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="darg-framework">
+<h1>daRG Framework<a class="headerlink" href="#darg-framework" title="Link to this heading"></a></h1>
+<p>Docs for daRG - Dagor Reactive GUI framework, based on Quirrel language and Functional Reactive Programming (FRP).</p>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Link to this heading"></a></h2>
+<p>daRG (Dagor Reactive GUI) is a reactive GUI framework integrated into the Dagor
+Engine. It is significantly inspired by React JS and React Native from Facebook,
+as well as frameworks like Flutter.</p>
+<p>Documentation and examples are available in the viewer located at:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>dagor2/tools/dargbox/
+</pre></div>
+</div>
+<p>You can run the examples using:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>dargbox-64-dev.exe<span class="w"> </span>-config<span class="se">\:</span>script<span class="se">\:</span><span class="nv">t</span><span class="o">=</span>samples_prog/_basic/layout/basic_layout.ui.nut
+</pre></div>
+</div>
+<p>Use <code class="docutils literal notranslate"><span class="pre">s.bat</span></code> to launch the example browser. The examples themselves are located
+at:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>prog/tools/dargbox/gamebase
+</pre></div>
+</div>
+<p>The author and conceptual designer of daRG is Vasiliy Ryabtsev. Current
+maintainers: Alexey Borisov, Alexey Volynskov.</p>
+</section>
+<section id="core-principles">
+<h2>Core Principles<a class="headerlink" href="#core-principles" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Reactivity</strong>: Code executes only when changes occur.</p></li>
+<li><p><strong>Portability</strong>: UI logic and markup are written in the interpreted language
+Quirrel, ensuring compatibility across multiple platforms (consoles, mobile
+devices) without requiring code submission. This facilitates easy modding.</p></li>
+<li><p><strong>Responsiveness and Performance</strong>: Interfaces must quickly and efficiently
+respond to user interactions.</p></li>
+<li><p><strong>Native and Simple Animations</strong>: Animations should be straightforward to
+create and perform efficiently.</p></li>
+<li><p><strong>Explicit State Management</strong>: The UI explicitly reflects visible state
+changes, simplifying debugging and reducing state-related errors common in
+traditional approaches.</p></li>
+<li><p><strong>VR Support</strong>: Full support for 3D interfaces.</p></li>
+</ul>
+<p>In daRG, all UI elements are created using a single language (Quirrel), unlike
+traditional web stacks (HTML, CSS, JS) or daGUI (blk, css, quirrel).</p>
+</section>
+<section id="separation-of-concerns">
+<h2>Separation of Concerns<a class="headerlink" href="#separation-of-concerns" title="Link to this heading"></a></h2>
+<p>Traditional technologies (HTML, CSS, JS) do not effectively separate
+responsibilities. In daRG, separation is based on responsibilities rather than
+technologies. Each UI component is self-contained, reusable, and maintained
+independently. Components explicitly state their dependencies, ensuring
+consistency across different interface instances.</p>
+</section>
+<section id="immediate-vs-retained-mode">
+<h2>Immediate vs Retained Mode<a class="headerlink" href="#immediate-vs-retained-mode" title="Link to this heading"></a></h2>
+<p>Working with daRG can feel like using Immediate Mode GUI—code seemingly executes
+each frame. However, in practice, daRG only executes scripts when the relevant
+state changes, thus optimizing performance. You describe UI rendering logic, and
+daRG selectively updates components affected by state changes, providing
+significant performance optimizations.</p>
+</section>
+<section id="explicit-state">
+<h2>Explicit State<a class="headerlink" href="#explicit-state" title="Link to this heading"></a></h2>
+<p>All state in daRG is entirely explicit, eliminating hidden states (e.g.,
+checkbox values). The state is a clearly defined model, changing explicitly and
+triggering UI updates accordingly. This approach simplifies debugging and
+facilitates advanced debugging features like a state history (“time machine”),
+assuming state adheres to certain contracts. The <code class="docutils literal notranslate"><span class="pre">persist</span></code> function can save
+the state, allowing restoration upon reload.</p>
+</section>
+<section id="core-concepts">
+<h2>Core Concepts<a class="headerlink" href="#core-concepts" title="Link to this heading"></a></h2>
+<p><strong>Component</strong>
+A description of UI element in form of a table with properties or a function that generates such a table.
+This description maps a logical state into an interactive representation.</p>
+<p><strong>Element</strong>
+A current interactive piece of an UI scene that may be rendered, may define visual layout, and may process input and other events.</p>
+<p><strong>Behaviors</strong>
+A Behavior is a reusable unit of UI logic implemented in C++ and exposed to Quirrel scripts.
+It encapsulates event handling, state management, and interaction patterns for UI elements.
+A behavior instance is usually attached to a UI element in markup and can react to events such as pointer movement, clicks, keyboard input, or custom signals.
+Behaviors can modify element properties directly, call user-defined callback functions, or update reactive variables to trigger UI updates.
+They provide the equivalent of a “controller” in other UI frameworks and allow complex interactivity to be implemented once and reused across multiple views.
+Common behaviors include: Button, Slider, TextInput, TextArea, Pannable, MoveResize, DragAndDrop and others.</p>
+<p><strong>Render Objects</strong>
+Render objects are the low-level drawing primitives in daRG.
+A render object represents something that can be drawn on screen: an image, a piece of text, a shape, or anything else visual.
+They are implemented in C++ and are processed by the C++ rendering pipeline.
+Common render objects include: ROBJ_SOLID, ROBJ_IMAGE, ROBJ_TEXT, ROBJ_INSCRIPTION, ROBJ_FRAME, ROBJ_BOX, ROBJ_MOVIE and others.</p>
+<p><strong>Watch Fields (FRP Observables)</strong>
+Watch fields are reactive variables that automatically propagate changes to any dependent computations or bound UI properties.
+They implement a form of Functional Reactive Programming (FRP) in which UI state is expressed as a network of dependencies.
+When a watch field changes value, all computations that depend on it are invalidated and recomputed, any dependent UI components are recalculated, and scene elements are rebuild to reflect the changes.
+This eliminates the need for explicit update calls, as the data flow is declarative.
+Watch fields can be combined, transformed, or computed from other watch fields, allowing complex state to be derived without manual synchronization.</p>
+<p><strong>Events and Input Handling</strong>
+The UI layer processes events from multiple sources (mouse, touch, gamepad, keyboard, VR input devices) and routes them to the relevant behaviors of elements.
+Event propagation follows a tree structure matching the UI hierarchy. Behaviors can inform the subsequent behaviors about whether these events were consumed earlier.</p>
+<p><strong>Layout and Composition</strong>
+UI elements in daRG use a flexible layout model inspired by CSS flexbox and flow layouts.
+Elements can size themselves based on content, fill available space, align and flow relative to parent containers, or use fixed positioning.
+Layouts are recomputed automatically when relevant state changes occur.</p>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<p>Here is a sample daRG component (<code class="docutils literal notranslate"><span class="pre">introduction.nut</span></code>):</p>
+<div class="highlight-quirrel notranslate"><div class="highlight"><pre><span></span><span class="k">return</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_SOLID</span>
+<span class="w">  </span><span class="nx">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Color</span><span class="p">(</span><span class="mf">30</span><span class="p">,</span><span class="mf">40</span><span class="p">,</span><span class="mf">50</span><span class="p">)</span>
+<span class="w">  </span><span class="nx">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">flex</span><span class="p">()</span>
+<span class="w">  </span><span class="nx">gap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">sh</span><span class="p">(</span><span class="mf">2</span><span class="p">)</span>
+<span class="w">  </span><span class="nx">flow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">FLOW_HORIZONTAL</span>
+<span class="w">  </span><span class="nx">halign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ALIGN_CENTER</span>
+<span class="w">  </span><span class="nx">valign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ALIGN_MIDDLE</span>
+<span class="w">  </span><span class="nx">children</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="nx">sh</span><span class="p">(</span><span class="mf">5</span><span class="p">),</span><span class="w"> </span><span class="nx">sh</span><span class="p">(</span><span class="mf">5</span><span class="p">)]</span>
+<span class="w">      </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_IMAGE</span>
+<span class="w">      </span><span class="nx">image</span><span class="o">=</span><span class="w"> </span><span class="nx">Picture</span><span class="p">(</span><span class="s2">&quot;ui/image.png&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_TEXT</span>
+<span class="w">      </span><span class="nx">text</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Hello World!&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="interoperability-with-native-code">
+<h2>Interoperability with Native Code<a class="headerlink" href="#interoperability-with-native-code" title="Link to this heading"></a></h2>
+<p>daRG offers three main methods to interface with native (game) code:</p>
+<ul class="simple">
+<li><p><strong>ECS</strong>: Quirrel bindings provide access to ECS world data.</p></li>
+<li><p><strong>Watch/Observables</strong>: Native observables or callback registration from native
+code.</p></li>
+<li><p><strong>Behavior.RtPropUpdate</strong>: A method for updating properties every frame if
+necessary (this won’t be fast). It is more performant than frequently updating
+observable values and is used primarily for animations or real-time UI
+updates.</p></li>
+</ul>
+</section>
+<section id="observables-watched">
+<h2>Observables (Watched)<a class="headerlink" href="#observables-watched" title="Link to this heading"></a></h2>
+<p>The Observable pattern (<code class="docutils literal notranslate"><span class="pre">Watched</span></code>) works as follows:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.get()</span></code>: Retrieve the object’s value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.set(some_value)</span></code> / <code class="docutils literal notranslate"><span class="pre">watched.modify(callback,</span> <span class="pre">called</span> <span class="pre">with</span> <span class="pre">current</span> <span class="pre">value,</span> <span class="pre">and</span> <span class="pre">should</span> <span class="pre">return</span> <span class="pre">new</span> <span class="pre">value)</span></code>: Set a new value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.mutate(callback)</span></code>: Modify content within the object (e.g., arrays
+or tables).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.subscribe(callback)</span></code>: Subscribe to object changes, triggering
+callbacks post-change.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.unsubscribe(callback)</span></code>: Unsubscribe callback</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">watched.trigger()</span></code>: Manually invoke all subscribers of an observable
+object.</p></li>
+</ul>
+<p>Example counter component (<code class="docutils literal notranslate"><span class="pre">counter.ui.nut</span></code>):</p>
+<div class="highlight-quirrel notranslate"><div class="highlight"><pre><span></span><span class="kr">from</span><span class="w"> </span><span class="s2">&quot;daRg&quot;</span><span class="w"> </span><span class="kr">import</span><span class="w"> </span><span class="o">*</span>
+<span class="kr">from</span><span class="w"> </span><span class="s2">&quot;frp&quot;</span><span class="w"> </span><span class="kr">import</span><span class="w"> </span><span class="o">*</span>
+
+<span class="kd">let</span><span class="w"> </span><span class="nx">counter</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Watched</span><span class="p">(</span><span class="mf">0</span><span class="p">)</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">increment</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">@</span><span class="p">()</span><span class="w"> </span><span class="nx">counter</span><span class="p">.</span><span class="nx">modify</span><span class="p">(</span><span class="o">@</span><span class="p">(</span><span class="nx">v</span><span class="p">)</span><span class="w"> </span><span class="nx">v</span><span class="o">+</span><span class="mf">1</span><span class="p">)</span>
+<span class="kd">let</span><span class="w"> </span><span class="nx">decrement</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">@</span><span class="p">()</span><span class="w"> </span><span class="nx">counter</span><span class="p">.</span><span class="nx">modify</span><span class="p">(</span><span class="o">@</span><span class="p">(</span><span class="nx">v</span><span class="p">)</span><span class="w"> </span><span class="nx">v</span><span class="o">-</span><span class="mf">1</span><span class="p">)</span>
+
+<span class="k">return</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_SOLID</span>
+<span class="w">  </span><span class="nx">color</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">Color</span><span class="p">(</span><span class="mf">30</span><span class="p">,</span><span class="mf">40</span><span class="p">,</span><span class="mf">50</span><span class="p">)</span>
+<span class="w">  </span><span class="nx">size</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">flex</span><span class="p">()</span>
+<span class="w">  </span><span class="nx">gap</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">sh</span><span class="p">(</span><span class="mf">5</span><span class="p">)</span>
+<span class="w">  </span><span class="nx">flow</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">FLOW_VERTICAL</span>
+<span class="w">  </span><span class="nx">halign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ALIGN_CENTER</span>
+<span class="w">  </span><span class="nx">valign</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ALIGN_CENTER</span>
+<span class="w">  </span><span class="nx">children</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="nx">button</span><span class="p">(</span><span class="s2">&quot;Increment&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">increment</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;^I&quot;</span><span class="p">),</span>
+<span class="w">    </span><span class="o">@</span><span class="p">()</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nx">rendObj</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nx">ROBJ_TEXT</span><span class="p">,</span><span class="w"> </span><span class="nx">text</span><span class="o">=</span><span class="nx">$</span><span class="s2">&quot;Counter value = {counter.get()}&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">watch</span><span class="o">=</span><span class="nx">counter</span><span class="w"> </span><span class="p">},</span>
+<span class="w">    </span><span class="nx">button</span><span class="p">(</span><span class="s2">&quot;Decrement&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">decrement</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;^D&quot;</span><span class="p">)</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This approach emphasizes clarity, explicit state, and high performance.</p>
+</section>
+<section id="component-reference">
+<h2>Component Reference<a class="headerlink" href="#component-reference" title="Link to this heading"></a></h2>
+</section>
+</section>
+<section id="darg-behaviors">
+<h1>daRg behaviors<a class="headerlink" href="#darg-behaviors" title="Link to this heading"></a></h1>
+<section id="button">
+<h2>Button<a class="headerlink" href="#button" title="Link to this heading"></a></h2>
+<p>Captures press inside hitbox (with configurable touch margin),
+maintains “active” state while pressed, cancels if the element moves due to scrolling,
+issues click or double-click on release within tolerance, optionally focuses the element,
+and fires a touch-hold callback after the hold delay.
+Handles mouse, touch, joystick, and keyboard activation.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onClick([event])</span></code> – function.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onDoubleClick([event])</span></code> – function.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">eventPassThrough</span></code> – bool. If true, does not raise “consumed” flag on propagation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">focusOnClick</span></code> – bool. Gives keyboard focus on successful click.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onTouchHold([event])</span></code> – function. Called after holding for a delay.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">touchHoldTime</span></code> – float (seconds). Delay for <code class="docutils literal notranslate"><span class="pre">onTouchHold</span></code>.</p></li>
+</ul>
+</section>
+<section id="draganddrop">
+<h2>DragAndDrop<a class="headerlink" href="#draganddrop" title="Link to this heading"></a></h2>
+<p>Tracks pointer press; after movement threshold or <code class="docutils literal notranslate"><span class="pre">dragStartDelay</span></code>, enters drag,
+raises visual “drag” state, floats the element (translation and Z-on-top),
+continuously hunts a valid drop target (<code class="docutils literal notranslate"><span class="pre">canDrop</span></code>), and on release calls that target’s <code class="docutils literal notranslate"><span class="pre">onDrop</span></code>.
+If movement stayed under click threshold, it falls back to click/double-click handling.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">dragStartDelay</span></code> – float (seconds). Press-and-hold delay before a drag starts.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">dropData</span></code> – any object/value. Arbitrary payload associated with the dragged element; passed to drop handlers.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onDrop(drop_data)</span></code> – function. Called on the drop target when a drag is released over it; receives the source’s <code class="docutils literal notranslate"><span class="pre">dropData</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">canDrop(drop_data)</span> <span class="pre">-&gt;</span> <span class="pre">bool</span></code> – function. Optional predicate on potential targets; if false, the element is excluded as a drop target.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onDragMode(on:</span> <span class="pre">bool,</span> <span class="pre">drop_data)</span></code> – function. Called on the draggable when drag mode toggles on/off; receives current <code class="docutils literal notranslate"><span class="pre">dropData</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onClick([event])</span></code> – function. Called on single click if not dragging.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onDoubleClick([event])</span></code> – function. Called on double click if not dragging.</p></li>
+</ul>
+</section>
+<section id="pannable">
+<h2>Pannable<a class="headerlink" href="#pannable" title="Link to this heading"></a></h2>
+<p>Implements scrollable viewport with one or two-finger touch dragging, mouse dragging,
+kinetic scrolling on release, and overscroll feedback. Supports axis locking and scroll velocity filtering.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">panMouseButton</span></code> – int. Mouse button to use for panning (-1 for any).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onTouchBegin()</span></code> – function. Called when touch begins.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kineticScrollOnTouchEnd(velocity)</span></code> – function. Alternative to built-in kinetic scrolling.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kineticAxisLockAngle</span></code> – float (degrees). Angle threshold for axis locking kinetic scroll.</p></li>
+</ul>
+</section>
+<section id="pannable2touch">
+<h2>Pannable2Touch<a class="headerlink" href="#pannable2touch" title="Link to this heading"></a></h2>
+<p>Two-finger simultaneous touch panning; requires both fingers to be active for movement.</p>
+<p><strong>Properties</strong></p>
+<p>(None)</p>
+</section>
+<section id="slider">
+<h2>Slider<a class="headerlink" href="#slider" title="Link to this heading"></a></h2>
+<p>Provides interactive slider/seekbar control with keyboard navigation, mouse/touch dragging,
+cursor positioning by click, and optional knob element. Supports custom value ranges,
+stepping, and wheel scrolling.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">min</span></code> – float. Minimum value (default: 0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">max</span></code> – float. Maximum value (default: 100).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fValue</span></code> – float. Current value (default: 0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">unit</span></code> – float. Step size for keyboard/wheel input (default: 1).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pageScroll</span></code> – float. Page up/down step size (default: 10).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation</span></code> – enum (horizontal/vertical). Slider orientation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">knob</span></code> – component constructor. Child element to use as draggable knob.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onChange(value)</span></code> – function. Called when value changes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onSliderMouseMove(value)</span></code> – function. Called during mouse hover with potential value.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ignoreWheel</span></code> – bool. If true, ignores mouse wheel events.</p></li>
+</ul>
+</section>
+<section id="textinput">
+<h2>TextInput<a class="headerlink" href="#textinput" title="Link to this heading"></a></h2>
+<p>Single-line text input with cursor positioning, keyboard editing, clipboard support,
+character masking, IME integration, and validation callbacks.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">text</span></code> – string. Current text content.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cursorPos</span></code> – int. Current cursor position.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxChars</span></code> – int. Maximum character limit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">charMask</span></code> – string. Allowed characters (empty = all allowed).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> – bool. If true, displays as password field.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onChange(text)</span></code> – function. Called when text changes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onReturn()</span></code> – function. Called on Enter key press.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onEscape()</span></code> – function. Called on Escape key press.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onWrongInput()</span></code> – function. Called when invalid input is attempted.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">title</span></code> – string. IME dialog title.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hint</span></code> – string. IME dialog hint text.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inputType</span></code> – string. IME input type hint.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imeNoAutoCap</span></code> – bool. Disables IME auto-capitalization.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imeNoCopy</span></code> – bool. Disables IME copy functionality.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imeOpenJoyBtn</span></code> – string. Joystick button to open IME.</p></li>
+</ul>
+</section>
+<section id="textarea">
+<h2>TextArea<a class="headerlink" href="#textarea" title="Link to this heading"></a></h2>
+<p>Multi-line formatted text rendering with support for color tags, custom fonts,
+text styling, and inline embedded components. Handles text parsing and layout formatting.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">text</span></code> – string. Text content (may include formatting tags).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">colorTable</span></code> – table. Map of color name to color value for tag resolution.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">tagsTable</span></code> – table. Map of tag name to formatting attributes (color, font, fontSize).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">embed</span></code> – table. Map of tag name to component description (table or closure). See <strong>Embedded Components</strong> below.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">preformatted</span></code> – bool/int. Controls whitespace handling and formatting flags.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">spacing</span></code> – float. Character spacing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lineSpacing</span></code> – float. Additional line spacing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">parSpacing</span></code> – float. Paragraph spacing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">indent</span></code> – float. Text indentation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hangingIndent</span></code> – float. Hanging indent for continuation lines.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxContentWidth</span></code> – float. Maximum text width before wrapping.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">valign</span></code> – enum. Vertical alignment (top/center/bottom).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">monoWidth</span></code> – float/bool. Monospace width override.</p></li>
+</ul>
+<p><strong>Embedded Components</strong></p>
+<p>Inline UI elements can be placed within text using self-closing tags (<code class="docutils literal notranslate"><span class="pre">&lt;name/&gt;</span></code>).
+Each tag name must correspond to a key in the <code class="docutils literal notranslate"><span class="pre">embed</span></code> table.</p>
+<p>Components are rendered inline with text and aligned on the text baseline
+(i.e. bottom edge of the component sits on the baseline).</p>
+<p>Only absolute size modes are supported: <code class="docutils literal notranslate"><span class="pre">pixels</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">hdpx(N)</span></code>, <code class="docutils literal notranslate"><span class="pre">sh(N)</span></code>)
+and <code class="docutils literal notranslate"><span class="pre">fontH</span></code> (e.g. <code class="docutils literal notranslate"><span class="pre">fontH(150)</span></code>).
+Relative sizes (<code class="docutils literal notranslate"><span class="pre">flex</span></code>, <code class="docutils literal notranslate"><span class="pre">pw</span></code>, <code class="docutils literal notranslate"><span class="pre">ph</span></code>, etc.) are not allowed.
+If size is not specified, it defaults to the current font height for both axes.
+Unlike layout, fontH is measured by the font ascent.
+Tag names are limited to 16 characters.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">let</span> <span class="n">textarea</span> <span class="o">=</span> <span class="p">{</span>
+  <span class="n">rendObj</span> <span class="o">=</span> <span class="n">ROBJ_TEXTAREA</span>
+  <span class="n">behavior</span> <span class="o">=</span> <span class="n">Behaviors</span><span class="o">.</span><span class="n">TextArea</span>
+  <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;Click &lt;icon/&gt; to continue&quot;</span>
+  <span class="n">embed</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">icon</span> <span class="o">=</span> <span class="p">{</span>
+      <span class="n">size</span> <span class="o">=</span> <span class="p">[</span><span class="n">fontH</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="n">fontH</span><span class="p">(</span><span class="mi">100</span><span class="p">)]</span>
+      <span class="n">rendObj</span> <span class="o">=</span> <span class="n">ROBJ_IMAGE</span>
+      <span class="n">image</span> <span class="o">=</span> <span class="n">Picture</span><span class="p">(</span><span class="s2">&quot;!ui/atlas#arrow_icon&quot;</span><span class="p">)</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="textareaedit">
+<h2>TextAreaEdit<a class="headerlink" href="#textareaedit" title="Link to this heading"></a></h2>
+<p>Editable multi-line text area with cursor navigation, text selection, formatting support,
+and IME integration. Extends TextArea with editing capabilities.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">editableText</span></code> – EditableText object. Text editing state and content.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onChange(editableText)</span></code> – function. Called when content changes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onImeFinish(applied)</span></code> – function. Called when IME editing completes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">title</span></code> – string. IME dialog title.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">hint</span></code> – string. IME dialog hint text.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">inputType</span></code> – string. IME input type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">maxChars</span></code> – int. Maximum character limit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imeNoAutoCap</span></code> – bool. Disables auto-capitalization.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imeNoCopy</span></code> – bool. Disables copy functionality.</p></li>
+</ul>
+</section>
+<section id="piemenu">
+<h2>PieMenu<a class="headerlink" href="#piemenu" title="Link to this heading"></a></h2>
+<p>Radial/pie menu control supporting mouse, touch, and gamepad stick input.
+Tracks sector selection and handles click events with sector information.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">devId</span></code> – enum (mouse/joystick/vr). Input device type.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">stickNo</span></code> – int. Gamepad stick number (0 or 1).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sectorsCount</span></code> – int. Number of pie sectors.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">curSector</span></code> – observable. Current selected sector index.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">curAngle</span></code> – observable. Current angle selection.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onClick([sector])</span></code> – function. Called on activation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">eventPassThrough</span></code> – bool. Allows event propagation.</p></li>
+</ul>
+</section>
+<section id="combopopup">
+<h2>ComboPopup<a class="headerlink" href="#combopopup" title="Link to this heading"></a></h2>
+<p>A minimal click trigger suitable for combo dropdown popups; consumes the event on touch release.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onClick()</span></code> – function. Fired when popup is pressed (mouse) or released (touch).</p></li>
+</ul>
+</section>
+<section id="eatinput">
+<h2>EatInput<a class="headerlink" href="#eatinput" title="Link to this heading"></a></h2>
+<p>On press inside the element, flags mouse/touch input as stopped so that elements behind will discard it.
+Useful as a shield.</p>
+<p><strong>Properties</strong></p>
+<p>(None)</p>
+</section>
+<section id="boundtoarea">
+<h2>BoundToArea<a class="headerlink" href="#boundtoarea" title="Link to this heading"></a></h2>
+<p>Before render, clamps the element’s transformed bbox inside the screen’s safe area by
+applying a translation so it stays fully visible.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">safeAreaMargin</span></code> – offsets object/array (HTML notation: top, right, bottom, left).</p></li>
+</ul>
+</section>
+<section id="marquee">
+<h2>Marquee<a class="headerlink" href="#marquee" title="Link to this heading"></a></h2>
+<p>Auto-scrolls content from start to end with initial delay, optional looping, and optional fade-out phase;
+preserves position across recalcs when looping.
+Resets when not hovered if <code class="docutils literal notranslate"><span class="pre">scrollOnHover</span></code> is set.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">loop</span></code> – bool. If true, continuously loops the scroll.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">threshold</span></code> – float. If overflow is within this threshold, disables marquee.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation</span></code> – enum/int (horizontal or vertical). Axis to scroll.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">speed</span></code> – float. Scroll speed in pixels/sec (can be array for different phases).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">delay</span></code> – float or array. Initial delay and optional fade-out delay.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scrollOnHover</span></code> – bool. If true, only scrolls while hovered.</p></li>
+</ul>
+</section>
+<section id="moveresize">
+<h2>MoveResize<a class="headerlink" href="#moveresize" title="Link to this heading"></a></h2>
+<p>Detects presses on edges/corners/area using an epsilon around the bbox,
+sets active visual state and cursor, and drives move/resize while the pointer moves.
+Cleans up on release and input deactivation.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">moveResizeModes</span></code> – bitmask of handles (edges, corners, area).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">moveResizeCursors</span></code> – map (handle -&gt; cursor object).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cursor</span></code> – cursor object, used during drag.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onMoveResizeStarted(x,</span> <span class="pre">y,</span> <span class="pre">bbox)</span></code> – function. Called when drag starts.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onMoveResize(dx,</span> <span class="pre">dy,</span> <span class="pre">dw,</span> <span class="pre">dh)</span> <span class="pre">-&gt;</span> <span class="pre">{pos,</span> <span class="pre">size}</span></code> – function. Called during resize/move.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onMoveResizeFinished()</span></code> – function. Called when drag stops.</p></li>
+</ul>
+</section>
+<section id="movetoarea">
+<h2>MoveToArea<a class="headerlink" href="#movetoarea" title="Link to this heading"></a></h2>
+<p>Continuously moves the element towards the target rect if present, positions/sizes it inside
+the parent relative to the target; updates each frame with smooth animation.
+Hides the element if the target is empty.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">target</span></code> – object with <code class="docutils literal notranslate"><span class="pre">targetRect</span></code> property (BBox2).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">speed</span></code> – float. Animation speed in pixels/sec.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">viscosity</span></code> – float. Animation viscosity/damping factor.</p></li>
+</ul>
+</section>
+<section id="inspectpicker">
+<h2>InspectPicker<a class="headerlink" href="#inspectpicker" title="Link to this heading"></a></h2>
+<p>Provides “element picker” UX to inspect what is under the pointer, both on hover and on click.
+Supports modifier keys to include elements without render objects.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onChange(arrayOrNull)</span></code> – function. Called on pointer move; receives array of records (bbox + elem).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onClick(arrayOrNull)</span></code> – function. Called on click; receives array of element info.</p></li>
+<li><p>On inspected elements: <code class="docutils literal notranslate"><span class="pre">skipInspection</span></code> – bool. If true, element is ignored.</p></li>
+</ul>
+</section>
+<section id="recalchandler">
+<h2>RecalcHandler<a class="headerlink" href="#recalchandler" title="Link to this heading"></a></h2>
+<p>Calls a handler when layout is recalculated, useful for responding to size changes.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onRecalcLayout([initial[,</span> <span class="pre">elemRef]])</span></code> – function. Called on layout recalculation.</p></li>
+</ul>
+</section>
+<section id="rtpropupdate">
+<h2>RtPropUpdate<a class="headerlink" href="#rtpropupdate" title="Link to this heading"></a></h2>
+<p>Real-time property updater that calls <code class="docutils literal notranslate"><span class="pre">update()</span></code> on attach and every before-render frame,
+merges returned properties into the component, re-runs setup, and optionally recalculates layout.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">update()</span> <span class="pre">-&gt;</span> <span class="pre">table</span></code> – function. Returns table of script properties to update.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onlyWhenParentInScreen</span></code> – bool. Updates only if parent is visible on screen.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rtAlwaysUpdate</span></code> – bool. Writes all returned keys regardless of whether they changed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rtRecalcLayout</span></code> – bool. Forces layout recalculation after property update.</p></li>
+</ul>
+</section>
+<section id="scrollevent">
+<h2>ScrollEvent<a class="headerlink" href="#scrollevent" title="Link to this heading"></a></h2>
+<p>Detects changes to scroll offset, content size, and element size;
+calls handler and triggers any bound scrollHandler with updated values.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onScroll(elemRef)</span></code> or <code class="docutils literal notranslate"><span class="pre">onScroll(scrollX,</span> <span class="pre">scrollY,</span> <span class="pre">contentW,</span> <span class="pre">contentH,</span> <span class="pre">elemW,</span> <span class="pre">elemH)</span></code> – function. Called when scroll position or dimensions change.</p></li>
+</ul>
+</section>
+<section id="wheelscroll">
+<h2>WheelScroll<a class="headerlink" href="#wheelscroll" title="Link to this heading"></a></h2>
+<p>Handles mouse wheel events to scroll the element content, with configurable step size and orientation.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">wheelStep</span></code> – float. Scroll amount per wheel notch (default: 0.2).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation</span></code> – enum (horizontal/vertical). Scroll direction (default: vertical).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onWheelScroll(delta)</span></code> – function. Called on wheel scroll with delta amount.</p></li>
+</ul>
+</section>
+<section id="swipescroll">
+<h2>SwipeScroll<a class="headerlink" href="#swipescroll" title="Link to this heading"></a></h2>
+<p>Implements swipe-to-scroll behavior for touch interfaces, snapping to child element boundaries.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">panMouseButton</span></code> – int. Mouse button for panning (-1 for any).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onChange(index,</span> <span class="pre">swipeIsActive)</span></code> – function. Called with current child index and swipe state.</p></li>
+</ul>
+</section>
+<section id="movie">
+<h2>Movie<a class="headerlink" href="#movie" title="Link to this heading"></a></h2>
+<p>Video playback behavior supporting multiple formats (AV1, Ogg) with optional audio track.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">movie</span></code> – string. Video file path.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sound</span></code> – string. Audio file path (defaults to video_file.mp3).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">soundVolume</span></code> – float. Audio volume (0.0-1.0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loop</span></code> – bool. Whether to loop playback.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enableSound</span></code> – bool. Enable audio playback (default: true).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onStart()</span></code> – function. Called when playback starts.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onFinish()</span></code> – function. Called when playback ends.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onError()</span></code> – function. Called on playback error.</p></li>
+</ul>
+</section>
+<section id="overlaytransparency">
+<h2>OverlayTransparency<a class="headerlink" href="#overlaytransparency" title="Link to this heading"></a></h2>
+<p>Manages element opacity based on overlap with higher-priority elements,
+creating visual layering effects and center-based opacity gradients.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">priority</span></code> – float. Element priority for overlay calculations.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data.priorityOffset</span></code> – float. Additional priority offset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data.opacityCenterMinMult</span></code> – float. Minimum opacity multiplier for center-distance fading.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data.opacityCenterRelativeDist</span></code> – float. Distance threshold for center-based opacity.</p></li>
+</ul>
+</section>
+<section id="parallax">
+<h2>Parallax<a class="headerlink" href="#parallax" title="Link to this heading"></a></h2>
+<p>Creates parallax scrolling effect based on mouse position relative to screen center.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">parallaxK</span></code> – float. Parallax effect strength multiplier.</p></li>
+</ul>
+</section>
+<section id="smoothscrollstack">
+<h2>SmoothScrollStack<a class="headerlink" href="#smoothscrollstack" title="Link to this heading"></a></h2>
+<p>Animates stack children to smoothly flow into position with configurable speed and viscosity.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">speed</span></code> – float. Animation speed (default: 10.0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">viscosity</span></code> – float. Animation viscosity for gap prevention (default: 0.025).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation</span></code> – enum (horizontal/vertical). Stack direction.</p></li>
+</ul>
+</section>
+<section id="transitionsize">
+<h2>TransitionSize<a class="headerlink" href="#transitionsize" title="Link to this heading"></a></h2>
+<p>Smoothly animates element size changes with configurable speed and axis control.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">orientation</span></code> – enum (horizontal/vertical/both). Which axes to animate.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">speed</span></code> – float. Animation speed in pixels/sec (default: 100.0).</p></li>
+</ul>
+</section>
+<section id="trackmouse">
+<h2>TrackMouse<a class="headerlink" href="#trackmouse" title="Link to this heading"></a></h2>
+<p>Tracks mouse movement and wheel events, calling handlers for movement and scroll.
+Includes Xbox-specific workarounds for missing mouse move events.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onMouseMove(x,</span> <span class="pre">y)</span></code> – function. Called on mouse movement.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onMouseWheel(delta,</span> <span class="pre">x,</span> <span class="pre">y)</span></code> – function. Called on mouse wheel events.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">eventPassThrough</span></code> – bool. Allows event propagation.</p></li>
+</ul>
+</section>
+<section id="processpointinginput">
+<h2>ProcessPointingInput<a class="headerlink" href="#processpointinginput" title="Link to this heading"></a></h2>
+<p>Low-level behavior for custom pointing device input processing, providing direct access
+to press/release/move events with device information and modifier keys.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onPointerPress(event)</span></code> – function. Called on pointer press.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onPointerRelease(event)</span></code> – function. Called on pointer release.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onPointerMove(event)</span></code> – function. Called on pointer movement.</p></li>
+</ul>
+</section>
+<section id="processgesture">
+<h2>ProcessGesture<a class="headerlink" href="#processgesture" title="Link to this heading"></a></h2>
+<p>Gesture recognition behavior supporting pinch, rotate, and drag gestures with configurable
+distance limits and phase callbacks.</p>
+<p><strong>Properties</strong></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onGestureBegin(event)</span></code> – function. Called when gesture starts.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onGestureActive(event)</span></code> – function. Called during active gesture.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onGestureEnd(event)</span></code> – function. Called when gesture ends.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gestureDragDistanceMax</span></code> – float. Maximum distance for drag gestures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gesturePinchDistanceMin</span></code> – float. Minimum distance for pinch gestures.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">gestureRotateDistanceMin</span></code> – float. Minimum distance for rotation gestures.</p></li>
+</ul>
+</section>
+<section id="fpsbar">
+<h2>FpsBar<a class="headerlink" href="#fpsbar" title="Link to this heading"></a></h2>
+<p>Real-time FPS and frame time display with color-coded performance indicators.
+Updates text and color each frame based on current performance metrics.</p>
+<p><strong>Properties</strong></p>
+<p>(None readable)
+- <code class="docutils literal notranslate"><span class="pre">color</span></code> – color. Display color (auto-updated by the behavior based on performance).</p>
+</section>
+<section id="latencybar">
+<h2>LatencyBar<a class="headerlink" href="#latencybar" title="Link to this heading"></a></h2>
+<p>Displays input latency metrics and low-latency rendering information.</p>
+<p><strong>Properties</strong></p>
+<p>(None)</p>
+</section>
+</section>
+<section id="darg-render-objects">
+<h1>daRg Render Objects<a class="headerlink" href="#darg-render-objects" title="Link to this heading"></a></h1>
+<section id="robj-solid">
+<h2>ROBJ_SOLID<a class="headerlink" href="#robj-solid" title="Link to this heading"></a></h2>
+<p>Renders a solid rectangle of a given color.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, fill color (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0.0—1.0; default 1.0).</p></li>
+</ul>
+</section>
+<section id="robj-debug">
+<h2>ROBJ_DEBUG<a class="headerlink" href="#robj-debug" title="Link to this heading"></a></h2>
+<p>Renders a debug rectangle with a 1px frame and diagonal cross-lines.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, stroke color (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0.0—1.0; default 1.0).</p></li>
+</ul>
+</section>
+<section id="robj-image">
+<h2>ROBJ_IMAGE<a class="headerlink" href="#robj-image" title="Link to this heading"></a></h2>
+<p>Renders a picture.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">image</span></code> — Picture, main image.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fallbackImage</span></code> — Picture, used when <code class="docutils literal notranslate"><span class="pre">image</span></code> fails/empty.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, tint (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">keepAspect</span></code> — bool or enum <code class="docutils literal notranslate"><span class="pre">KEEP_ASPECT_*</span></code>; default <code class="docutils literal notranslate"><span class="pre">KEEP_ASPECT_NONE</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imageHalign</span></code> / <code class="docutils literal notranslate"><span class="pre">imageValign</span></code> — enum <code class="docutils literal notranslate"><span class="pre">ALIGN_*</span></code> (default center).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">flipX</span></code> / <code class="docutils literal notranslate"><span class="pre">flipY</span></code> — bool, flip texture coords.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">picSaturate</span></code> — float, saturation factor (0—1; default 1.0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imageAffectsLayout</span></code> — bool, if true the element size influences layout.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0—1; default 1.0).</p></li>
+</ul>
+</section>
+<section id="robj-vector-canvas">
+<h2>ROBJ_VECTOR_CANVAS<a class="headerlink" href="#robj-vector-canvas" title="Link to this heading"></a></h2>
+<p>Immediate-mode vector drawing; either run a <code class="docutils literal notranslate"><span class="pre">draw(api,</span> <span class="pre">rect)</span></code> function or execute a <code class="docutils literal notranslate"><span class="pre">commands</span></code> array (VECTOR_* opcodes).</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, stroke color (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fillColor</span></code> — Color, fill color (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lineWidth</span></code> — float, stroke width (default 2).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">draw</span></code> — function(api, rect), scripted draw.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">commands</span></code> — array of VECTOR_* commands.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0—1; default 1.0).</p></li>
+</ul>
+</section>
+<section id="robj-9rect">
+<h2>ROBJ_9RECT<a class="headerlink" href="#robj-9rect" title="Link to this heading"></a></h2>
+<p>Nine-slice scalable image renderer.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">image</span></code> — Picture, required.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, modulation (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">texOffs</span></code> — array[4], texture slice offsets [top, right, bottom, left].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">screenOffs</span></code> — array[4], on-screen slice offsets [top, right, bottom, left].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0—1; default 1.0).</p></li>
+</ul>
+</section>
+<section id="robj-progress-linear">
+<h2>ROBJ_PROGRESS_LINEAR<a class="headerlink" href="#robj-progress-linear" title="Link to this heading"></a></h2>
+<p>Horizontal progress bar; negative values fill from the right.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fValue</span></code> — float, progress (-1.0…1.0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bgColor</span></code> — Color, background bar color (default 0x64646464).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fgColor</span></code> — Color, foreground bar color (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0—1; default 1.0).</p></li>
+</ul>
+</section>
+<section id="robj-progress-circular">
+<h2>ROBJ_PROGRESS_CIRCULAR<a class="headerlink" href="#robj-progress-circular" title="Link to this heading"></a></h2>
+<p>Circular progress indicator with optional radial image overlay.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">fValue</span></code> — float, magnitude 0.0—1.0 (sign selects direction).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">image</span></code> — Picture, optional mask/overlay.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fallbackImage</span></code> — Picture, optional fallback if <code class="docutils literal notranslate"><span class="pre">image</span></code> invalid.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bgColor</span></code> — Color, background arc (default 0x64646464).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fgColor</span></code> — Color, foreground arc (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0—1; default 1.0).</p></li>
+</ul>
+</section>
+<section id="robj-text">
+<h2>ROBJ_TEXT<a class="headerlink" href="#robj-text" title="Link to this heading"></a></h2>
+<p>Renders single-line text. Requires the element’s <code class="docutils literal notranslate"><span class="pre">text</span></code> value; supports font, effects and overflow controls.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">font</span></code> — Font id or <code class="docutils literal notranslate"><span class="pre">Font.&lt;name&gt;</span></code>; defaults to scene default font.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, text color; defaults to scene default.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fontFx</span></code> — enum FFT_* (text effect), default <code class="docutils literal notranslate"><span class="pre">FFT_NONE</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fxColor</span></code> — Color, effect color (default 0x78787878).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fxFactor</span></code> — int, effect factor (default 48).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fxOffsX</span></code> / <code class="docutils literal notranslate"><span class="pre">fxOffsY</span></code> — int, effect offsets (default 0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">overflowX</span></code> — enum TOVERFLOW_* (e.g., <code class="docutils literal notranslate"><span class="pre">TOVERFLOW_CLIP</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ellipsis</span></code> — bool, append ellipsis on overflow (default true).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">spacing</span></code> — int, extra character spacing (default 0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">monoWidth</span></code> — number, fixed character width.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">password</span></code> — null/bool/char; masks text with given char or “*”.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0—1; default 1.0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fontSize</span></code> — float, font size.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fontTex</span></code> — Picture, font texture.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fontTexSu</span></code> / <code class="docutils literal notranslate"><span class="pre">fontTexSv</span></code> — int, font texture UV coordinates (default 32).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fontTexBov</span></code> — int, font texture baseline offset vertical (default 0).</p></li>
+</ul>
+</section>
+<section id="robj-inscription">
+<h2>ROBJ_INSCRIPTION<a class="headerlink" href="#robj-inscription" title="Link to this heading"></a></h2>
+<p>Renders single-line text laid out as a precomputed inscription. Same properties as <code class="docutils literal notranslate"><span class="pre">ROBJ_TEXT</span></code> plus:</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p>All properties from <code class="docutils literal notranslate"><span class="pre">ROBJ_TEXT</span></code></p></li>
+<li><p>Renders text as inscription in separate texture, providing better font effects but using more memory.</p></li>
+</ul>
+<p>Note: Text rendering differs slightly in size compared to <code class="docutils literal notranslate"><span class="pre">ROBJ_TEXT</span></code> for the same fontSize.</p>
+</section>
+<section id="robj-textarea">
+<h2>ROBJ_TEXTAREA<a class="headerlink" href="#robj-textarea" title="Link to this heading"></a></h2>
+<p>Multi-line editable text area with scrolling and cursor rendering. Uses the same properties as <code class="docutils literal notranslate"><span class="pre">ROBJ_TEXT</span></code> plus the following.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">overflowY</span></code> — enum TOVERFLOW_* for vertical overflow (default <code class="docutils literal notranslate"><span class="pre">TOVERFLOW_CLIP</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lowLineCount</span></code> — int, minimum line count for alignment (default 0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">lowLineCountAlign</span></code> — enum alignment when there are few lines (default <code class="docutils literal notranslate"><span class="pre">PLACE_DEFAULT</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">spacing</span></code> — int, extra character spacing.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">preformatted</span></code> - bool or combination of the following flags:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">FMT_NO_WRAP</span></code> - disable auto wrapping of lines.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FMT_KEEP_SPACES</span></code> - don’t merge multiple spaces into one.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FMT_IGNORE_TAGS</span></code> - keep tags as-is instead of interpreting them.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FMT_HIDE_ELLIPSIS</span></code> - do not render ellipsis for overflowed text.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FMT_AS_IS</span></code> - all of the above combined (equivalent to <code class="docutils literal notranslate"><span class="pre">true</span></code>).</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="robj-box">
+<h2>ROBJ_BOX<a class="headerlink" href="#robj-box" title="Link to this heading"></a></h2>
+<p>Filled rectangle with optional image, border and rounded corners.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">borderWidth</span></code> — float or array[4] [top, right, bottom, left].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">borderRadius</span></code> — float or array[4] [top-left, top-right, bottom-right, bottom-left].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">borderColor</span></code> — Color, border color.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fillColor</span></code> — Color, fill (default transparent).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">image</span></code> / <code class="docutils literal notranslate"><span class="pre">fallbackImage</span></code> — Picture(s), optional content.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">keepAspect</span></code> — enum/bool; image aspect policy.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imageHalign</span></code> / <code class="docutils literal notranslate"><span class="pre">imageValign</span></code> — enum <code class="docutils literal notranslate"><span class="pre">ALIGN_*</span></code> (default center).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">flipX</span></code> / <code class="docutils literal notranslate"><span class="pre">flipY</span></code> — bool, flip image.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">picSaturate</span></code> — float, image saturation (0—1; default 1.0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0—1; default 1.0).</p></li>
+</ul>
+</section>
+<section id="robj-frame">
+<h2>ROBJ_FRAME<a class="headerlink" href="#robj-frame" title="Link to this heading"></a></h2>
+<p>Draws a rectangular frame; optionally fills the interior.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, border color.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fillColor</span></code> — Color, interior fill (default transparent).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0—1; default 1.0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">borderWidth</span></code> — float or array[4] in CSS order [top, right, bottom, left]; negatives clamped to 0.</p></li>
+</ul>
+</section>
+<section id="robj-mask">
+<h2>ROBJ_MASK<a class="headerlink" href="#robj-mask" title="Link to this heading"></a></h2>
+<p>Applies a clipping mask so children render only through the mask.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">image</span></code> — Picture used as mask.</p></li>
+</ul>
+</section>
+<section id="robj-movie">
+<h2>ROBJ_MOVIE<a class="headerlink" href="#robj-movie" title="Link to this heading"></a></h2>
+<p>Renders video frames from a movie player (requires <code class="docutils literal notranslate"><span class="pre">behavior</span> <span class="pre">=</span> <span class="pre">Behaviors.Movie</span></code>).
+Aspect handling and saturation similar to images.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">movie</span></code> — string, path to video file.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, tint (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">keepAspect</span></code> — bool or enum <code class="docutils literal notranslate"><span class="pre">KEEP_ASPECT_*</span></code> (default <code class="docutils literal notranslate"><span class="pre">KEEP_ASPECT_NONE</span></code>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">picSaturate</span></code> — float, 0—1 saturation (default 1.0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">imageHalign</span></code> / <code class="docutils literal notranslate"><span class="pre">imageValign</span></code> — enum <code class="docutils literal notranslate"><span class="pre">ALIGN_*</span></code> (default center).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">brightness</span></code> — float, brightness modifier (0—1; default 1.0).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">loop</span></code> — bool, whether to loop the video.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">enableSound</span></code> — bool, enable sound playback (default true).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">sound</span></code> — string, sound file path (defaults to “&lt;video_file&gt;.mp3”).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">soundVolume</span></code> — float, sound volume (default 1.0).</p></li>
+</ul>
+<p>Event Handlers:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">onStart</span></code> — called when playback starts.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onFinish</span></code> — called when playback finishes.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">onError</span></code> — called on playback error.</p></li>
+</ul>
+</section>
+<section id="robj-das-canvas">
+<h2>ROBJ_DAS_CANVAS<a class="headerlink" href="#robj-das-canvas" title="Link to this heading"></a></h2>
+<p>Custom drawing canvas implemented in daslang. Property surface is defined by the das script.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">script</span></code> — DasScript instance.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">drawFunc</span></code> — string, name of draw function in script.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">setupFunc</span></code> — string, name of optional setup function in script (optional).</p></li>
+</ul>
+<p>Function Signatures:</p>
+<ul class="simple">
+<li><p>Draw function: <code class="docutils literal notranslate"><span class="pre">(var</span> <span class="pre">ctx:</span> <span class="pre">GuiContext&amp;;</span> <span class="pre">rdata:</span> <span class="pre">ElemRenderData&amp;</span> <span class="pre">const;</span> <span class="pre">rstate:</span> <span class="pre">RenderState&amp;</span> <span class="pre">const;</span> <span class="pre">[data:</span> <span class="pre">&lt;user's</span> <span class="pre">struct&gt;</span> <span class="pre">&amp;])</span></code></p></li>
+<li><p>Setup function: <code class="docutils literal notranslate"><span class="pre">(props:</span> <span class="pre">Properties&amp;;</span> <span class="pre">var</span> <span class="pre">storage:</span> <span class="pre">&lt;user's</span> <span class="pre">struct&gt;</span> <span class="pre">&amp;)</span></code></p></li>
+</ul>
+</section>
+<section id="robj-world-blur">
+<h2>ROBJ_WORLD_BLUR<a class="headerlink" href="#robj-world-blur" title="Link to this heading"></a></h2>
+<p>Blurs the 3D world behind the UI and uses it as the object’s image; you can tint it and overlay a fill color.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, tint applied to blurred scene (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fillColor</span></code> — Color, overlay above blurred scene (default transparent).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">borderWidth</span></code> — not set by default; if absent, border is zeroed.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">borderRadius</span></code> — float or array[4] [top-left, top-right, bottom-right, bottom-left].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">saturateFactor</span></code> — float, saturation factor (0—1; default 1.0).</p></li>
+</ul>
+</section>
+<section id="robj-world-blur-panel">
+<h2>ROBJ_WORLD_BLUR_PANEL<a class="headerlink" href="#robj-world-blur-panel" title="Link to this heading"></a></h2>
+<p>Blurs both world and UI content and uses it as the object’s image; same color and fill semantics as <code class="docutils literal notranslate"><span class="pre">ROBJ_WORLD_BLUR</span></code>.</p>
+<p>Properties:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">color</span></code> — Color, tint applied to blurred content (default 0xFFFFFFFF).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fillColor</span></code> — Color, overlay above blurred content (default transparent).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">borderWidth</span></code> — border width specification.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">borderRadius</span></code> — float or array[4] [top-left, top-right, bottom-right, bottom-left].</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">saturateFactor</span></code> — float, saturation factor (0—1; default 1.0).</p></li>
+</ul>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="canvasAPI.html">canvasAPI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daRg.html">daRg</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-fonts">class Fonts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#enum-animprop">enum AnimProp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-scrollhandler">class ScrollHandler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-joystickaxisobservable">class JoystickAxisObservable</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-elemgroup">class ElemGroup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-behavior">class Behavior</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-picture">class Picture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-pictureimmediate-extends-picture">class PictureImmediate extends Picture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-formattedtext">class FormattedText</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-igenvideoplayer">class IGenVideoPlayer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-igensound">class IGenSound</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-draganddropstate">class DragAndDropState</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-eventdatarect">class EventDataRect</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-mouseclickeventdata">class MouseClickEventData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-hotkeyeventdata">class HotkeyEventData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-hovereventdata">class HoverEventData</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-transitall">class TransitAll</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-movetoareatarget">class MoveToAreaTarget</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-guiscene">class GuiScene</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-sceneconfig">class SceneConfig</a></li>
+<li class="toctree-l2"><a class="reference internal" href="daRg.html#class-elementref">class ElementRef</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="daRg.behaviors.html">daRg.behaviors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="daRg.debug.html">daRg.debug</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../quirrel_daECS/net.html" class="btn btn-neutral float-left" title="net" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="canvasAPI.html" class="btn btn-neutral float-right" title="canvasAPI" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Gaijin Entertainment 2026.
+      <span class="lastupdated">Last updated on Apr 25, 2026.
+      </span></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

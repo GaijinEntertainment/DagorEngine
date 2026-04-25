@@ -1,0 +1,252 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classmkbindump_1_1RoNameMapBuilder" kind="class" language="C++" prot="public">
+    <compoundname>mkbindump::RoNameMapBuilder</compoundname>
+    <includes refid="binDumpUtil_8h" local="no">binDumpUtil.h</includes>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classmkbindump_1_1RoNameMapBuilder_1a34b1c5bdb56b26e00ef5c5a8da3eef22" prot="protected" static="no" mutable="no">
+        <type><ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref> *</type>
+        <definition>StrCollector* mkbindump::RoNameMapBuilder::strNames</definition>
+        <argsstring></argsstring>
+        <name>strNames</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::strNames</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="90" column="16" bodyfile="binDumpUtil.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" prot="protected" static="no" mutable="no">
+        <type><ref refid="classmkbindump_1_1GatherNameMap" kindref="compound">GatherNameMap</ref></type>
+        <definition>GatherNameMap mkbindump::RoNameMapBuilder::map</definition>
+        <argsstring></argsstring>
+        <name>map</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::map</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="91" column="17" bodyfile="binDumpUtil.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1RoNameMapBuilder_1ad2ab4406edcaa7525e66ae8cf2e7073e" prot="protected" static="no" mutable="no">
+        <type><ref refid="structmkbindump_1_1PatchTabRef" kindref="compound">PatchTabRef</ref></type>
+        <definition>PatchTabRef mkbindump::RoNameMapBuilder::ptStr</definition>
+        <argsstring></argsstring>
+        <name>ptStr</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::ptStr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="92" column="15" bodyfile="binDumpUtil.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1RoNameMapBuilder_1a87ad1f32827f1ab9ed4415a66a054a94" prot="protected" static="no" mutable="no">
+        <type><ref refid="structmkbindump_1_1PatchTabRef" kindref="compound">PatchTabRef</ref></type>
+        <definition>PatchTabRef mkbindump::RoNameMapBuilder::ptIdx</definition>
+        <argsstring></argsstring>
+        <name>ptIdx</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::ptIdx</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="92" column="21" bodyfile="binDumpUtil.h" bodystart="92" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classmkbindump_1_1RoNameMapBuilder_1af18c1beb0b21b31fd3b977982405bc53" prot="protected" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool mkbindump::RoNameMapBuilder::noIdxRemap</definition>
+        <argsstring></argsstring>
+        <name>noIdxRemap</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::noIdxRemap</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="93" column="8" bodyfile="binDumpUtil.h" bodystart="93" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classmkbindump_1_1RoNameMapBuilder_1ab5c4eb65fdd235d6e1cf0d01159673a6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>mkbindump::RoNameMapBuilder::RoNameMapBuilder</definition>
+        <argsstring>()</argsstring>
+        <name>RoNameMapBuilder</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::RoNameMapBuilder</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="56" column="3" bodyfile="binDumpUtil.h" bodystart="56" bodyend="60"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1RoNameMapBuilder_1aaf83161193d86ebd196d31858665916b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename NM</type>
+          </param>
+        </templateparamlist>
+        <type>void</type>
+        <definition>void mkbindump::RoNameMapBuilder::prepare</definition>
+        <argsstring>(const NM &amp;src, StrCollector &amp;common_names, bool no_idx_remap=true)</argsstring>
+        <name>prepare</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::prepare</qualifiedname>
+        <param>
+          <type>const NM &amp;</type>
+          <declname>src</declname>
+        </param>
+        <param>
+          <type><ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref> &amp;</type>
+          <declname>common_names</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>no_idx_remap</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="63" column="8" bodyfile="binDumpUtil.h" bodystart="63" bodyend="75"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1RoNameMapBuilder_1a751604445429fb6b4cdfd0cb89459ea8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::RoNameMapBuilder::prepare</definition>
+        <argsstring>(StrCollector &amp;direct_namemap)</argsstring>
+        <name>prepare</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::prepare</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1StrCollector" kindref="compound">StrCollector</ref> &amp;</type>
+          <declname>direct_namemap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="76" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1RoNameMapBuilder_1a92e74f0842e555ff1b66ea02a11dc3f3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::RoNameMapBuilder::writeHdr</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr)</argsstring>
+        <name>writeHdr</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::writeHdr</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="78" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1RoNameMapBuilder_1ac4f63fa8f2b33e989461ee1235ea97f5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void mkbindump::RoNameMapBuilder::writeMap</definition>
+        <argsstring>(BinDumpSaveCB &amp;cwr)</argsstring>
+        <name>writeMap</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::writeMap</qualifiedname>
+        <param>
+          <type><ref refid="classmkbindump_1_1BinDumpSaveCB" kindref="compound">BinDumpSaveCB</ref> &amp;</type>
+          <declname>cwr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="79" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classmkbindump_1_1RoNameMapBuilder_1ae13f06dface6150571ee3aaf5e741a95" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int mkbindump::RoNameMapBuilder::getFinalNameId</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getFinalNameId</name>
+        <qualifiedname>mkbindump::RoNameMapBuilder::getFinalNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="binDumpUtil.h" line="81" column="7" bodyfile="binDumpUtil.h" bodystart="81" bodyend="87"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="4">
+        <label>FastNameMap</label>
+      </node>
+      <node id="3">
+        <label>mkbindump::GatherNameMap</label>
+        <link refid="classmkbindump_1_1GatherNameMap"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="5">
+        <label>mkbindump::PatchTabRef</label>
+        <link refid="structmkbindump_1_1PatchTabRef"/>
+      </node>
+      <node id="1">
+        <label>mkbindump::RoNameMapBuilder</label>
+        <link refid="classmkbindump_1_1RoNameMapBuilder"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>strNames</edgelabel>
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>map</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>ptIdx</edgelabel>
+          <edgelabel>ptStr</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>mkbindump::StrCollector</label>
+        <link refid="classmkbindump_1_1StrCollector"/>
+      </node>
+    </collaborationgraph>
+    <location file="binDumpUtil.h" line="53" column="1" bodyfile="binDumpUtil.h" bodystart="54" bodyend="94"/>
+    <listofallmembers>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1ae13f06dface6150571ee3aaf5e741a95" prot="public" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>getFinalNameId</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1a2045bbe4218d8dd88aac3f2fbbd2d030" prot="protected" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>map</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1af18c1beb0b21b31fd3b977982405bc53" prot="protected" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>noIdxRemap</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1aaf83161193d86ebd196d31858665916b" prot="public" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>prepare</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1a751604445429fb6b4cdfd0cb89459ea8" prot="public" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>prepare</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1a87ad1f32827f1ab9ed4415a66a054a94" prot="protected" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>ptIdx</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1ad2ab4406edcaa7525e66ae8cf2e7073e" prot="protected" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>ptStr</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1ab5c4eb65fdd235d6e1cf0d01159673a6" prot="public" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>RoNameMapBuilder</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1a34b1c5bdb56b26e00ef5c5a8da3eef22" prot="protected" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>strNames</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1a92e74f0842e555ff1b66ea02a11dc3f3" prot="public" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>writeHdr</name></member>
+      <member refid="classmkbindump_1_1RoNameMapBuilder_1ac4f63fa8f2b33e989461ee1235ea97f5" prot="public" virt="non-virtual"><scope>mkbindump::RoNameMapBuilder</scope><name>writeMap</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

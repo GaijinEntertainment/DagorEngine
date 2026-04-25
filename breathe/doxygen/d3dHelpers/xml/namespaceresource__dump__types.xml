@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceresource__dump__types" kind="namespace" language="C++">
+    <compoundname>resource_dump_types</compoundname>
+      <sectiondef kind="enum">
+      <memberdef kind="enum" id="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>TextureTypes</name>
+        <qualifiedname>resource_dump_types::TextureTypes</qualifiedname>
+        <enumvalue id="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3aa3166cbd5d5bb4475573ba1d85b9268c" prot="public">
+          <name>TEX2D</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3ae7ee4d32712df025b7f8f92eabf24344" prot="public">
+          <name>CUBETEX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3abee50059b421068baed4374fa29e094b" prot="public">
+          <name>VOLTEX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3a10cf336c868e7bd2de17e4f1c61a13e2" prot="public">
+          <name>ARRTEX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceresource__dump__types_1a07efce5250691e2b8988fc1b125b29d3a335f06645ca70d01648906d0ee42749e" prot="public">
+          <name>CUBEARRTEX</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="12" column="1" bodyfile="dag_resourceDump.h" bodystart="13" bodyend="19"/>
+      </memberdef>
+      <memberdef kind="enum" id="namespaceresource__dump__types_1aa7fc191c45953c15548661553c431879" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ResourceType</name>
+        <qualifiedname>resource_dump_types::ResourceType</qualifiedname>
+        <enumvalue id="namespaceresource__dump__types_1aa7fc191c45953c15548661553c431879a7e62bc342f41c946868f0ea6f0b712d8" prot="public">
+          <name>Buffer</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceresource__dump__types_1aa7fc191c45953c15548661553c431879aa3e8ae43188ae76d38f414b2bdb0077b" prot="public">
+          <name>Texture</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="namespaceresource__dump__types_1aa7fc191c45953c15548661553c431879a67f4e9c95e5eaeaac203237f47176b19" prot="public">
+          <name>RtAccel</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_resourceDump.h" line="20" column="1" bodyfile="dag_resourceDump.h" bodystart="21" bodyend="25"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_resourceDump.h" line="10" column="1"/>
+  </compounddef>
+</doxygen>

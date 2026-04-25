@@ -1,0 +1,302 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structamd_1_1FSR_1_1FrameGenArgsBase" kind="struct" language="C++" prot="public">
+    <compoundname>amd::FSR::FrameGenArgsBase</compoundname>
+    <includes refid="dag__amdFsr_8h" local="no">dag_amdFsr.h</includes>
+    <templateparamlist>
+      <param>
+        <type>typename TextureType</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1ad2552a8b556a6e6c9ec8fe75033da919" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::colorTexture</definition>
+        <argsstring></argsstring>
+        <name>colorTexture</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::colorTexture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="126" column="17" bodyfile="dag_amdFsr.h" bodystart="126" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1abf12f4533a07a825b56b5a56491ce197" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::depthTexture</definition>
+        <argsstring></argsstring>
+        <name>depthTexture</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::depthTexture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="127" column="17" bodyfile="dag_amdFsr.h" bodystart="127" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a68434c8ce5e7026d52e864bca187460c" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::motionVectors</definition>
+        <argsstring></argsstring>
+        <name>motionVectors</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::motionVectors</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="128" column="17" bodyfile="dag_amdFsr.h" bodystart="128" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1af72f445aea98598f9d768e1e0a7e3ac7" prot="public" static="no" mutable="no">
+        <type>TextureType *</type>
+        <definition>TextureType* amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::uiTexture</definition>
+        <argsstring></argsstring>
+        <name>uiTexture</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::uiTexture</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="129" column="17" bodyfile="dag_amdFsr.h" bodystart="129" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a3a181cf929673e8263bee98888d6e231" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::jitter</definition>
+        <argsstring></argsstring>
+        <name>jitter</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::jitter</qualifiedname>
+        <initializer>= Point2::ZERO</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="130" column="12" bodyfile="dag_amdFsr.h" bodystart="130" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a61313fef91dfcb34d9f2c1830f8e2589" prot="public" static="no" mutable="no">
+        <type>Point2</type>
+        <definition>Point2 amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::motionVectorScale</definition>
+        <argsstring></argsstring>
+        <name>motionVectorScale</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::motionVectorScale</qualifiedname>
+        <initializer>= Point2::ONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="131" column="12" bodyfile="dag_amdFsr.h" bodystart="131" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a7fbf65ed12c5dc32255f13a1c16303b1" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::reset</definition>
+        <argsstring></argsstring>
+        <name>reset</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::reset</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="132" column="10" bodyfile="dag_amdFsr.h" bodystart="132" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a51571ae3621bfea3d2d4335726d19315" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::debugView</definition>
+        <argsstring></argsstring>
+        <name>debugView</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::debugView</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="133" column="10" bodyfile="dag_amdFsr.h" bodystart="133" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1ad9257ec85971f6ee57c6a7e260af99bc" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::timeElapsed</definition>
+        <argsstring></argsstring>
+        <name>timeElapsed</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::timeElapsed</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="134" column="11" bodyfile="dag_amdFsr.h" bodystart="134" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a3d2773a0f156abc9a8f1923e1007307e" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::inputResolution</definition>
+        <argsstring></argsstring>
+        <name>inputResolution</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::inputResolution</qualifiedname>
+        <initializer>= IPoint2::ONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="135" column="13" bodyfile="dag_amdFsr.h" bodystart="135" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a044fe3ec6d5981163e5e1f80cf6575d6" prot="public" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::outputResolution</definition>
+        <argsstring></argsstring>
+        <name>outputResolution</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::outputResolution</qualifiedname>
+        <initializer>= IPoint2::ONE</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="136" column="13" bodyfile="dag_amdFsr.h" bodystart="136" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a6232420990b3c6720e66882d9f69e5bb" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::fovY</definition>
+        <argsstring></argsstring>
+        <name>fovY</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::fovY</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="137" column="11" bodyfile="dag_amdFsr.h" bodystart="137" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a1d35d27f2bdce84d5580d7ccca4e53f5" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::nearPlane</definition>
+        <argsstring></argsstring>
+        <name>nearPlane</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::nearPlane</qualifiedname>
+        <initializer>= 1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="138" column="11" bodyfile="dag_amdFsr.h" bodystart="138" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a10829d68ef1dd33e983b35d876391585" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::farPlane</definition>
+        <argsstring></argsstring>
+        <name>farPlane</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::farPlane</qualifiedname>
+        <initializer>= 2</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="139" column="11" bodyfile="dag_amdFsr.h" bodystart="139" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structamd_1_1FSR_1_1FrameGenArgsBase_1af78871d3a07d6500cefde5db10ab3832" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::frameIndex</definition>
+        <argsstring></argsstring>
+        <name>frameIndex</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::frameIndex</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="140" column="14" bodyfile="dag_amdFsr.h" bodystart="140" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structamd_1_1FSR_1_1FrameGenArgsBase_1ad9b219d8e50d2836f86b07d56fa0172b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::FrameGenArgsBase</definition>
+        <argsstring>()=default</argsstring>
+        <name>FrameGenArgsBase</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::FrameGenArgsBase</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="104" column="5"/>
+      </memberdef>
+      <memberdef kind="function" id="structamd_1_1FSR_1_1FrameGenArgsBase_1a72d71917038d8405cc976a314f59ddcb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename Other</type>
+          </param>
+        </templateparamlist>
+        <type></type>
+        <definition>amd::FSR::FrameGenArgsBase&lt; TextureType &gt;::FrameGenArgsBase</definition>
+        <argsstring>(const FrameGenArgsBase&lt; Other &gt; &amp;other)</argsstring>
+        <name>FrameGenArgsBase</name>
+        <qualifiedname>amd::FSR::FrameGenArgsBase::FrameGenArgsBase</qualifiedname>
+        <param>
+          <type>const <ref refid="structamd_1_1FSR_1_1FrameGenArgsBase" kindref="compound">FrameGenArgsBase</ref>&lt; Other &gt; &amp;</type>
+          <declname>other</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_amdFsr.h" line="107" column="5" bodyfile="dag_amdFsr.h" bodystart="107" bodyend="124"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_amdFsr.h" line="102" column="3" bodyfile="dag_amdFsr.h" bodystart="103" bodyend="141"/>
+    <listofallmembers>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1ad2552a8b556a6e6c9ec8fe75033da919" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>colorTexture</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a51571ae3621bfea3d2d4335726d19315" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>debugView</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1abf12f4533a07a825b56b5a56491ce197" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>depthTexture</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a10829d68ef1dd33e983b35d876391585" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>farPlane</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a6232420990b3c6720e66882d9f69e5bb" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>fovY</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1ad9b219d8e50d2836f86b07d56fa0172b" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>FrameGenArgsBase</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a72d71917038d8405cc976a314f59ddcb" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>FrameGenArgsBase</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1af78871d3a07d6500cefde5db10ab3832" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>frameIndex</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a3d2773a0f156abc9a8f1923e1007307e" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>inputResolution</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a3a181cf929673e8263bee98888d6e231" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>jitter</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a68434c8ce5e7026d52e864bca187460c" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>motionVectors</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a61313fef91dfcb34d9f2c1830f8e2589" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>motionVectorScale</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a1d35d27f2bdce84d5580d7ccca4e53f5" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>nearPlane</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a044fe3ec6d5981163e5e1f80cf6575d6" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>outputResolution</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1a7fbf65ed12c5dc32255f13a1c16303b1" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>reset</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1ad9257ec85971f6ee57c6a7e260af99bc" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>timeElapsed</name></member>
+      <member refid="structamd_1_1FSR_1_1FrameGenArgsBase_1af72f445aea98598f9d768e1e0a7e3ac7" prot="public" virt="non-virtual"><scope>amd::FSR::FrameGenArgsBase</scope><name>uiTexture</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

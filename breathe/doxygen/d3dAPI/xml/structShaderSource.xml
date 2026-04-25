@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderSource" kind="struct" language="C++" prot="public">
+    <compoundname>ShaderSource</compoundname>
+    <includes refid="dag__shader_8h" local="no">dag_shader.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderSource_1afec1bc45228f9f41473c12a37e3eeb09" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; uint8_t &gt;</type>
+        <definition>dag::ConstSpan&lt;uint8_t&gt; ShaderSource::compressedData</definition>
+        <argsstring></argsstring>
+        <name>compressedData</name>
+        <qualifiedname>ShaderSource::compressedData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shader.h" line="17" column="18" bodyfile="dag_shader.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSource_1a0c3ed997a9d7162d7500a1c6783f54c6" prot="public" static="no" mutable="no">
+        <type>dag::ConstSpan&lt; uint8_t &gt;</type>
+        <definition>dag::ConstSpan&lt;uint8_t&gt; ShaderSource::metadata</definition>
+        <argsstring></argsstring>
+        <name>metadata</name>
+        <qualifiedname>ShaderSource::metadata</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shader.h" line="18" column="18" bodyfile="dag_shader.h" bodystart="18" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSource_1a36f969a47a64bdebf98e4e7b715ced0e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t ShaderSource::uncompressedSize</definition>
+        <argsstring></argsstring>
+        <name>uncompressedSize</name>
+        <qualifiedname>ShaderSource::uncompressedSize</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shader.h" line="19" column="12" bodyfile="dag_shader.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderSource_1a5782756301f297b8826356447b50ef9a" prot="public" static="no" mutable="no">
+        <type>void *</type>
+        <definition>void* ShaderSource::dictionary</definition>
+        <argsstring></argsstring>
+        <name>dictionary</name>
+        <qualifiedname>ShaderSource::dictionary</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shader.h" line="20" column="8" bodyfile="dag_shader.h" bodystart="20" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structShaderSource_1af63837f02a03b6f29e3c633f3aba1f87" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const uint32_t *</type>
+        <definition>const uint32_t * ShaderSource::uncompress</definition>
+        <argsstring>(Tab&lt; uint8_t &gt; &amp;tmpbuf) const</argsstring>
+        <name>uncompress</name>
+        <qualifiedname>ShaderSource::uncompress</qualifiedname>
+        <param>
+          <type>Tab&lt; uint8_t &gt; &amp;</type>
+          <declname>tmpbuf</declname>
+        </param>
+        <briefdescription>
+<para>Uncompresses the shader data, in case of no compression just copies it. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>tmpbuf</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Temporary memory that will hold resulting shader data </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>Pointer to uncompressed shader data. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shader.h" line="28" column="18"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+<para>Holds a direct pointer to a (compressed) shader data in bindump Supports both compressed (if dictionary not nullptr) and uncompressed data. </para>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shader.h" line="15" column="1" bodyfile="dag_shader.h" bodystart="16" bodyend="29"/>
+    <listofallmembers>
+      <member refid="structShaderSource_1afec1bc45228f9f41473c12a37e3eeb09" prot="public" virt="non-virtual"><scope>ShaderSource</scope><name>compressedData</name></member>
+      <member refid="structShaderSource_1a5782756301f297b8826356447b50ef9a" prot="public" virt="non-virtual"><scope>ShaderSource</scope><name>dictionary</name></member>
+      <member refid="structShaderSource_1a0c3ed997a9d7162d7500a1c6783f54c6" prot="public" virt="non-virtual"><scope>ShaderSource</scope><name>metadata</name></member>
+      <member refid="structShaderSource_1af63837f02a03b6f29e3c633f3aba1f87" prot="public" virt="non-virtual"><scope>ShaderSource</scope><name>uncompress</name></member>
+      <member refid="structShaderSource_1a36f969a47a64bdebf98e4e7b715ced0e" prot="public" virt="non-virtual"><scope>ShaderSource</scope><name>uncompressedSize</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

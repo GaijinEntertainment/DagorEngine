@@ -1,0 +1,280 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classVNormal" kind="class" language="C++" prot="public">
+    <compoundname>VNormal</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classVNormal_1a44d2cbe66bc6ec39069197eb837d7411" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 VNormal::norm</definition>
+        <argsstring></argsstring>
+        <name>norm</name>
+        <qualifiedname>VNormal::norm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="586" column="10" bodyfile="polyBumpUtil.cpp" bodystart="586" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVNormal_1a09976f5d0c9fde8d680a6416be945ebb" prot="public" static="no" mutable="no">
+        <type>DWORD</type>
+        <definition>DWORD VNormal::smooth</definition>
+        <argsstring></argsstring>
+        <name>smooth</name>
+        <qualifiedname>VNormal::smooth</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="587" column="9" bodyfile="polyBumpUtil.cpp" bodystart="587" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVNormal_1ac5e23cecaf47171024b99605d7542f1b" prot="public" static="no" mutable="no">
+        <type><ref refid="classVNormal" kindref="compound">VNormal</ref> *</type>
+        <definition>VNormal* VNormal::next</definition>
+        <argsstring></argsstring>
+        <name>next</name>
+        <qualifiedname>VNormal::next</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="588" column="11" bodyfile="polyBumpUtil.cpp" bodystart="588" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVNormal_1a7d7b1c5d5f8fd6c41f0687484c8aafe1" prot="public" static="no" mutable="no">
+        <type>BOOL</type>
+        <definition>BOOL VNormal::init</definition>
+        <argsstring></argsstring>
+        <name>init</name>
+        <qualifiedname>VNormal::init</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="589" column="8" bodyfile="polyBumpUtil.cpp" bodystart="589" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVNormal_1adf2542206bcad969ae3dfdf227dac5d4" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int VNormal::index</definition>
+        <argsstring></argsstring>
+        <name>index</name>
+        <qualifiedname>VNormal::index</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="590" column="7" bodyfile="polyBumpUtil.cpp" bodystart="590" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classVNormal_1acdfb20dbd1c9778ecd372d6c2012be31" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int VNormal::fi</definition>
+        <argsstring></argsstring>
+        <name>fi</name>
+        <qualifiedname>VNormal::fi</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="590" column="13" bodyfile="polyBumpUtil.cpp" bodystart="590" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classVNormal_1a5eb3ca29184fb90d849f194ed5a98953" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>VNormal::VNormal</definition>
+        <argsstring>()</argsstring>
+        <name>VNormal</name>
+        <qualifiedname>VNormal::VNormal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="591" column="3" bodyfile="polyBumpUtil.cpp" bodystart="591" bodyend="598"/>
+      </memberdef>
+      <memberdef kind="function" id="classVNormal_1a5df0fea96b4014f65d88a9842cdaf30a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>VNormal::VNormal</definition>
+        <argsstring>(Point3 &amp;n, DWORD s, int f)</argsstring>
+        <name>VNormal</name>
+        <qualifiedname>VNormal::VNormal</qualifiedname>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="600" column="3" bodyfile="polyBumpUtil.cpp" bodystart="600" bodyend="607"/>
+      </memberdef>
+      <memberdef kind="function" id="classVNormal_1a7fb3a45e0cdbe519cd7562a9e31288a5" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>VNormal::~VNormal</definition>
+        <argsstring>()</argsstring>
+        <name>~VNormal</name>
+        <qualifiedname>VNormal::~VNormal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="609" column="3" bodyfile="polyBumpUtil.cpp" bodystart="609" bodyend="614"/>
+      </memberdef>
+      <memberdef kind="function" id="classVNormal_1add289cd9b1bf6c0256aa9ecea5b4cdec" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void VNormal::AddNormal</definition>
+        <argsstring>(Point3 &amp;n, DWORD s, int fi)</argsstring>
+        <name>AddNormal</name>
+        <qualifiedname>VNormal::AddNormal</qualifiedname>
+        <param>
+          <type>Point3 &amp;</type>
+          <declname>n</declname>
+        </param>
+        <param>
+          <type>DWORD</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>fi</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="616" column="8" bodyfile="polyBumpUtil.cpp" bodystart="643" bodyend="662"/>
+      </memberdef>
+      <memberdef kind="function" id="classVNormal_1a82d49bd4dc52db0125c52d45d8d93640" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3 &amp;</type>
+        <definition>Point3 &amp; VNormal::GetNormal</definition>
+        <argsstring>(DWORD s, int f)</argsstring>
+        <name>GetNormal</name>
+        <qualifiedname>VNormal::GetNormal</qualifiedname>
+        <param>
+          <type>DWORD</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="618" column="10" bodyfile="polyBumpUtil.cpp" bodystart="667" bodyend="677"/>
+      </memberdef>
+      <memberdef kind="function" id="classVNormal_1a9af85fdc8a1d7d0d503fc9d8e58be0d8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void VNormal::Normalize</definition>
+        <argsstring>()</argsstring>
+        <name>Normalize</name>
+        <qualifiedname>VNormal::Normalize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="620" column="8" bodyfile="polyBumpUtil.cpp" bodystart="682" bodyend="704"/>
+      </memberdef>
+      <memberdef kind="function" id="classVNormal_1a5e2a799820531fff897115b2d4aa19bb" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void VNormal::SetIndex</definition>
+        <argsstring>(int &amp;ind)</argsstring>
+        <name>SetIndex</name>
+        <qualifiedname>VNormal::SetIndex</qualifiedname>
+        <param>
+          <type>int &amp;</type>
+          <declname>ind</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="621" column="8" bodyfile="polyBumpUtil.cpp" bodystart="621" bodyend="627"/>
+      </memberdef>
+      <memberdef kind="function" id="classVNormal_1a6c6161453753dd774460e57019594a23" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int VNormal::GetIndex</definition>
+        <argsstring>(DWORD s, int f)</argsstring>
+        <name>GetIndex</name>
+        <qualifiedname>VNormal::GetIndex</qualifiedname>
+        <param>
+          <type>DWORD</type>
+          <declname>s</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>f</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="polyBumpUtil.cpp" line="628" column="7" bodyfile="polyBumpUtil.cpp" bodystart="628" bodyend="638"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>VNormal</label>
+        <link refid="classVNormal"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>next</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="polyBumpUtil.cpp" line="583" column="1" bodyfile="polyBumpUtil.cpp" bodystart="584" bodyend="639"/>
+    <listofallmembers>
+      <member refid="classVNormal_1add289cd9b1bf6c0256aa9ecea5b4cdec" prot="public" virt="non-virtual"><scope>VNormal</scope><name>AddNormal</name></member>
+      <member refid="classVNormal_1acdfb20dbd1c9778ecd372d6c2012be31" prot="public" virt="non-virtual"><scope>VNormal</scope><name>fi</name></member>
+      <member refid="classVNormal_1a6c6161453753dd774460e57019594a23" prot="public" virt="non-virtual"><scope>VNormal</scope><name>GetIndex</name></member>
+      <member refid="classVNormal_1a82d49bd4dc52db0125c52d45d8d93640" prot="public" virt="non-virtual"><scope>VNormal</scope><name>GetNormal</name></member>
+      <member refid="classVNormal_1adf2542206bcad969ae3dfdf227dac5d4" prot="public" virt="non-virtual"><scope>VNormal</scope><name>index</name></member>
+      <member refid="classVNormal_1a7d7b1c5d5f8fd6c41f0687484c8aafe1" prot="public" virt="non-virtual"><scope>VNormal</scope><name>init</name></member>
+      <member refid="classVNormal_1ac5e23cecaf47171024b99605d7542f1b" prot="public" virt="non-virtual"><scope>VNormal</scope><name>next</name></member>
+      <member refid="classVNormal_1a44d2cbe66bc6ec39069197eb837d7411" prot="public" virt="non-virtual"><scope>VNormal</scope><name>norm</name></member>
+      <member refid="classVNormal_1a9af85fdc8a1d7d0d503fc9d8e58be0d8" prot="public" virt="non-virtual"><scope>VNormal</scope><name>Normalize</name></member>
+      <member refid="classVNormal_1a5e2a799820531fff897115b2d4aa19bb" prot="public" virt="non-virtual"><scope>VNormal</scope><name>SetIndex</name></member>
+      <member refid="classVNormal_1a09976f5d0c9fde8d680a6416be945ebb" prot="public" virt="non-virtual"><scope>VNormal</scope><name>smooth</name></member>
+      <member refid="classVNormal_1a5eb3ca29184fb90d849f194ed5a98953" prot="public" virt="non-virtual"><scope>VNormal</scope><name>VNormal</name></member>
+      <member refid="classVNormal_1a5df0fea96b4014f65d88a9842cdaf30a" prot="public" virt="non-virtual"><scope>VNormal</scope><name>VNormal</name></member>
+      <member refid="classVNormal_1a7fb3a45e0cdbe519cd7562a9e31288a5" prot="public" virt="non-virtual"><scope>VNormal</scope><name>~VNormal</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,84 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classCircleCreator" kind="class" language="C++" prot="public">
+    <compoundname>CircleCreator</compoundname>
+    <basecompoundref refid="classSphereCreator" prot="public" virt="non-virtual">SphereCreator</basecompoundref>
+    <includes refid="ec__ObjectCreator_8h" local="no">ec_ObjectCreator.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classCircleCreator_1ac3e30c49c60d6eb46380ab03916628bf" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void CircleCreator::render</definition>
+        <argsstring>() override</argsstring>
+        <name>render</name>
+        <qualifiedname>CircleCreator::render</qualifiedname>
+        <reimplements refid="classIObjectCreator_1a176ce9b187bc9a72b22c52156cf61b00">render</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Render <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. Called from program code that created <ref refid="classBoxCreator" kindref="compound">BoxCreator</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ObjectCreator.h" line="361" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>CircleCreator</label>
+        <link refid="classCircleCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="2">
+        <label>SphereCreator</label>
+        <link refid="classSphereCreator"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>CircleCreator</label>
+        <link refid="classCircleCreator"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>IObjectCreator</label>
+        <link refid="classIObjectCreator"/>
+      </node>
+      <node id="2">
+        <label>SphereCreator</label>
+        <link refid="classSphereCreator"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="ec_ObjectCreator.h" line="358" column="1" bodyfile="ec_ObjectCreator.h" bodystart="359" bodyend="362"/>
+    <listofallmembers>
+      <member refid="classSphereCreator_1a367f7a0d3a3b2e4f42a47df8a97b388a" prot="protected" virt="non-virtual"><scope>CircleCreator</scope><name>clientCenter0</name></member>
+      <member refid="classSphereCreator_1ac8a69535d474046a0c6a9126a323fe16" prot="public" virt="virtual"><scope>CircleCreator</scope><name>handleMouseLBPress</name></member>
+      <member refid="classSphereCreator_1a6d423bd66301e4a2801c354e32788b45" prot="public" virt="virtual"><scope>CircleCreator</scope><name>handleMouseLBRelease</name></member>
+      <member refid="classSphereCreator_1ae2c0676ba3b23271744cc4c8bf3eb585" prot="public" virt="virtual"><scope>CircleCreator</scope><name>handleMouseMove</name></member>
+      <member refid="classSphereCreator_1aaec8f53252f8fc9f03216e7b6c729ee5" prot="public" virt="virtual"><scope>CircleCreator</scope><name>handleMouseRBPress</name></member>
+      <member refid="classIObjectCreator_1a329744f60005a03f1d0c7a0c01457b01" prot="public" virt="non-virtual"><scope>CircleCreator</scope><name>IObjectCreator</name></member>
+      <member refid="classIObjectCreator_1ac4a428a645503de2ee32a59539b40671" prot="public" virt="non-virtual"><scope>CircleCreator</scope><name>isFinished</name></member>
+      <member refid="classIObjectCreator_1a6176e974fe1e9bcd327f7c2897d054ef" prot="public" virt="non-virtual"><scope>CircleCreator</scope><name>isOk</name></member>
+      <member refid="classIObjectCreator_1a5b997ac5828c3903443903c6ea1e9e36" prot="public" virt="non-virtual"><scope>CircleCreator</scope><name>matrix</name></member>
+      <member refid="classSphereCreator_1a0e0f1c7eaba4b08cc48a8c210782fbae" prot="public" virt="non-virtual"><scope>CircleCreator</scope><name>radius</name></member>
+      <member refid="classCircleCreator_1ac3e30c49c60d6eb46380ab03916628bf" prot="public" virt="virtual"><scope>CircleCreator</scope><name>render</name></member>
+      <member refid="classSphereCreator_1a827cfc034bdcf58b86cd000a264efae0" prot="public" virt="non-virtual"><scope>CircleCreator</scope><name>SphereCreator</name></member>
+      <member refid="classSphereCreator_1a35e024f39a5850db0ac05be265063cae" prot="protected" virt="non-virtual"><scope>CircleCreator</scope><name>stageNo</name></member>
+      <member refid="classIObjectCreator_1aded570cbf7c7853c4c9ea78f4b8cef53" prot="protected" virt="non-virtual"><scope>CircleCreator</scope><name>stateFinished</name></member>
+      <member refid="classIObjectCreator_1ab2e28bdda145f0d6f241e14ca57b0d97" prot="protected" virt="non-virtual"><scope>CircleCreator</scope><name>stateOk</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

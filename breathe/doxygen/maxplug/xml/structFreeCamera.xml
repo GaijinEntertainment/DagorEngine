@@ -1,0 +1,304 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFreeCamera" kind="struct" language="C++" prot="public">
+    <compoundname>FreeCamera</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFreeCamera_1a929ceab454762513513d31e78f24d27c" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char FreeCamera::on</definition>
+        <argsstring></argsstring>
+        <name>on</name>
+        <qualifiedname>FreeCamera::on</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="42" column="8" bodyfile="freecam.cpp" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1a1b016aeb130f6862e668891154b18441" prot="public" static="no" mutable="no">
+        <type>char</type>
+        <definition>char FreeCamera::modon</definition>
+        <argsstring></argsstring>
+        <name>modon</name>
+        <qualifiedname>FreeCamera::modon</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="43" column="8" bodyfile="freecam.cpp" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1a9fa348de06a7532a3d53951657805319" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool FreeCamera::changed</definition>
+        <argsstring></argsstring>
+        <name>changed</name>
+        <qualifiedname>FreeCamera::changed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="44" column="8" bodyfile="freecam.cpp" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1af2ec7f7b372c623bf2182ca7d3dab88b" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float FreeCamera::move_speed</definition>
+        <argsstring></argsstring>
+        <name>move_speed</name>
+        <qualifiedname>FreeCamera::move_speed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="45" column="9" bodyfile="freecam.cpp" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1ad2fa2f3c8ed9d25703104df236b867c4" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float FreeCamera::rot_speed</definition>
+        <argsstring></argsstring>
+        <name>rot_speed</name>
+        <qualifiedname>FreeCamera::rot_speed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="45" column="20" bodyfile="freecam.cpp" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1a3d0c96cd75dc56b5fdd2362e8421f179" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float FreeCamera::turbo</definition>
+        <argsstring></argsstring>
+        <name>turbo</name>
+        <qualifiedname>FreeCamera::turbo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="45" column="30" bodyfile="freecam.cpp" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1a0a05c9ef70ac0833b530e55a185fda57" prot="public" static="no" mutable="no">
+        <type>Matrix3</type>
+        <definition>Matrix3 FreeCamera::curviewtm</definition>
+        <argsstring></argsstring>
+        <name>curviewtm</name>
+        <qualifiedname>FreeCamera::curviewtm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="59" column="11" bodyfile="freecam.cpp" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1aeceb5ba3433cf5298b3981275a9a7a4d" prot="public" static="no" mutable="no">
+        <type>Matrix3</type>
+        <definition>Matrix3 FreeCamera::curviewitm</definition>
+        <argsstring></argsstring>
+        <name>curviewitm</name>
+        <qualifiedname>FreeCamera::curviewitm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="59" column="21" bodyfile="freecam.cpp" bodystart="59" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1a27cb2b5d55dcbd97bb11c75eaab71dc5" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 FreeCamera::curviewpos</definition>
+        <argsstring></argsstring>
+        <name>curviewpos</name>
+        <qualifiedname>FreeCamera::curviewpos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="60" column="10" bodyfile="freecam.cpp" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1a3c15057859b4e5ecb394f8ebca581dfa" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float FreeCamera::hang</definition>
+        <argsstring></argsstring>
+        <name>hang</name>
+        <qualifiedname>FreeCamera::hang</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="61" column="9" bodyfile="freecam.cpp" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFreeCamera_1a9e3e6a6478b6bd2530003500baae6fb1" prot="public" static="no" mutable="no">
+        <type>float</type>
+        <definition>float FreeCamera::vang</definition>
+        <argsstring></argsstring>
+        <name>vang</name>
+        <qualifiedname>FreeCamera::vang</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="61" column="14" bodyfile="freecam.cpp" bodystart="61" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structFreeCamera_1a5dd6948d8aba72e7943e55f925ff66a7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FreeCamera::init</definition>
+        <argsstring>(HWND hw, Interface *ip)</argsstring>
+        <name>init</name>
+        <qualifiedname>FreeCamera::init</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="46" column="8" bodyfile="freecam.cpp" bodystart="46" bodyend="46"/>
+      </memberdef>
+      <memberdef kind="function" id="structFreeCamera_1a18d6dbe5147d44c2daebd4c531597139" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>FreeCamera::FreeCamera</definition>
+        <argsstring>()</argsstring>
+        <name>FreeCamera</name>
+        <qualifiedname>FreeCamera::FreeCamera</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="47" column="3" bodyfile="freecam.cpp" bodystart="47" bodyend="57"/>
+      </memberdef>
+      <memberdef kind="function" id="structFreeCamera_1a46689215cc8854ef55bdfc9888bbc39b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FreeCamera::destroy</definition>
+        <argsstring>(HWND hw, Interface *ip)</argsstring>
+        <name>destroy</name>
+        <qualifiedname>FreeCamera::destroy</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hw</declname>
+        </param>
+        <param>
+          <type>Interface *</type>
+          <declname>ip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="58" column="8" bodyfile="freecam.cpp" bodystart="58" bodyend="58"/>
+      </memberdef>
+      <memberdef kind="function" id="structFreeCamera_1aa161413a81a85158e5e567183c5ad580" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FreeCamera::InitView</definition>
+        <argsstring>(ViewExp *viewexp)</argsstring>
+        <name>InitView</name>
+        <qualifiedname>FreeCamera::InitView</qualifiedname>
+        <param>
+          <type>ViewExp *</type>
+          <declname>viewexp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="63" column="8" bodyfile="freecam.cpp" bodystart="63" bodyend="82"/>
+      </memberdef>
+      <memberdef kind="function" id="structFreeCamera_1a8c4dc729408aad904aa605ab77b2d789" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool FreeCamera::MoveViewByRow</definition>
+        <argsstring>(int ch, float dh)</argsstring>
+        <name>MoveViewByRow</name>
+        <qualifiedname>FreeCamera::MoveViewByRow</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>ch</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>dh</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="84" column="8" bodyfile="freecam.cpp" bodystart="84" bodyend="92"/>
+      </memberdef>
+      <memberdef kind="function" id="structFreeCamera_1a882f848ad5122ee470ec0deffa223afd" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void FreeCamera::SetView</definition>
+        <argsstring>(ViewExp *viewexp)</argsstring>
+        <name>SetView</name>
+        <qualifiedname>FreeCamera::SetView</qualifiedname>
+        <param>
+          <type>ViewExp *</type>
+          <declname>viewexp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="freecam.cpp" line="93" column="8" bodyfile="freecam.cpp" bodystart="93" bodyend="110"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="freecam.cpp" line="40" column="1" bodyfile="freecam.cpp" bodystart="41" bodyend="111"/>
+    <listofallmembers>
+      <member refid="structFreeCamera_1a9fa348de06a7532a3d53951657805319" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>changed</name></member>
+      <member refid="structFreeCamera_1aeceb5ba3433cf5298b3981275a9a7a4d" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>curviewitm</name></member>
+      <member refid="structFreeCamera_1a27cb2b5d55dcbd97bb11c75eaab71dc5" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>curviewpos</name></member>
+      <member refid="structFreeCamera_1a0a05c9ef70ac0833b530e55a185fda57" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>curviewtm</name></member>
+      <member refid="structFreeCamera_1a46689215cc8854ef55bdfc9888bbc39b" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>destroy</name></member>
+      <member refid="structFreeCamera_1a18d6dbe5147d44c2daebd4c531597139" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>FreeCamera</name></member>
+      <member refid="structFreeCamera_1a3c15057859b4e5ecb394f8ebca581dfa" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>hang</name></member>
+      <member refid="structFreeCamera_1a5dd6948d8aba72e7943e55f925ff66a7" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>init</name></member>
+      <member refid="structFreeCamera_1aa161413a81a85158e5e567183c5ad580" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>InitView</name></member>
+      <member refid="structFreeCamera_1a1b016aeb130f6862e668891154b18441" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>modon</name></member>
+      <member refid="structFreeCamera_1af2ec7f7b372c623bf2182ca7d3dab88b" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>move_speed</name></member>
+      <member refid="structFreeCamera_1a8c4dc729408aad904aa605ab77b2d789" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>MoveViewByRow</name></member>
+      <member refid="structFreeCamera_1a929ceab454762513513d31e78f24d27c" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>on</name></member>
+      <member refid="structFreeCamera_1ad2fa2f3c8ed9d25703104df236b867c4" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>rot_speed</name></member>
+      <member refid="structFreeCamera_1a882f848ad5122ee470ec0deffa223afd" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>SetView</name></member>
+      <member refid="structFreeCamera_1a3d0c96cd75dc56b5fdd2362e8421f179" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>turbo</name></member>
+      <member refid="structFreeCamera_1a9e3e6a6478b6bd2530003500baae6fb1" prot="public" virt="non-virtual"><scope>FreeCamera</scope><name>vang</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,128 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPreshaderCompilationInput" kind="struct" language="C++" prot="public">
+    <compoundname>PreshaderCompilationInput</compoundname>
+    <includes refid="preshaderCompilation_8h" local="no">preshaderCompilation.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" prot="public" static="no" mutable="no">
+        <type>Tab&lt; ShaderTerminal::supports_stat * &gt;</type>
+        <definition>Tab&lt;ShaderTerminal::supports_stat *&gt; PreshaderCompilationInput::supportStats</definition>
+        <argsstring></argsstring>
+        <name>supportStats</name>
+        <qualifiedname>PreshaderCompilationInput::supportStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="40" column="7" bodyfile="preshaderCompilation.h" bodystart="40" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" prot="public" static="no" mutable="no">
+        <type>Tab&lt; eastl::variant&lt; <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref>, ShaderTerminal::local_var_decl * &gt; &gt;</type>
+        <definition>Tab&lt;eastl::variant&lt;PreshaderStat, ShaderTerminal::local_var_decl *&gt; &gt; PreshaderCompilationInput::scalarStats</definition>
+        <argsstring></argsstring>
+        <name>scalarStats</name>
+        <qualifiedname>PreshaderCompilationInput::scalarStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="41" column="7" bodyfile="preshaderCompilation.h" bodystart="41" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; PreshaderCompilationInput::staticTextureStats</definition>
+        <argsstring></argsstring>
+        <name>staticTextureStats</name>
+        <qualifiedname>PreshaderCompilationInput::staticTextureStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="42" column="7" bodyfile="preshaderCompilation.h" bodystart="42" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; PreshaderCompilationInput::dynamicResourceStats</definition>
+        <argsstring></argsstring>
+        <name>dynamicResourceStats</name>
+        <qualifiedname>PreshaderCompilationInput::dynamicResourceStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="43" column="7" bodyfile="preshaderCompilation.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" prot="public" static="no" mutable="no">
+        <type>Tab&lt; <ref refid="structPreshaderStat" kindref="compound">PreshaderStat</ref> &gt;</type>
+        <definition>Tab&lt;PreshaderStat&gt; PreshaderCompilationInput::hardcodedStats</definition>
+        <argsstring></argsstring>
+        <name>hardcodedStats</name>
+        <qualifiedname>PreshaderCompilationInput::hardcodedStats</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="44" column="7" bodyfile="preshaderCompilation.h" bodystart="44" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1ae6aa66f67b16d3f03e83093a39216f94" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool PreshaderCompilationInput::isCompute</definition>
+        <argsstring></argsstring>
+        <name>isCompute</name>
+        <qualifiedname>PreshaderCompilationInput::isCompute</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="45" column="8" bodyfile="preshaderCompilation.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" prot="public" static="no" mutable="no">
+        <type>Tab&lt; ShaderTerminal::static_var_decl * &gt;</type>
+        <definition>Tab&lt;ShaderTerminal::static_var_decl *&gt; PreshaderCompilationInput::staticVarDecls</definition>
+        <argsstring></argsstring>
+        <name>staticVarDecls</name>
+        <qualifiedname>PreshaderCompilationInput::staticVarDecls</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="49" column="7" bodyfile="preshaderCompilation.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="preshaderCompilation.h" line="38" column="1" bodyfile="preshaderCompilation.h" bodystart="39" bodyend="50"/>
+    <listofallmembers>
+      <member refid="structPreshaderCompilationInput_1a1464690780c81e18ef7667434bc1d37c" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>dynamicResourceStats</name></member>
+      <member refid="structPreshaderCompilationInput_1a15f08573179a989c0d68b401c51ae028" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>hardcodedStats</name></member>
+      <member refid="structPreshaderCompilationInput_1ae6aa66f67b16d3f03e83093a39216f94" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>isCompute</name></member>
+      <member refid="structPreshaderCompilationInput_1a19210e6770988df4401305fb907b49e4" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>scalarStats</name></member>
+      <member refid="structPreshaderCompilationInput_1a652b9b252cff174bd2e0eff293ca6bd8" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>staticTextureStats</name></member>
+      <member refid="structPreshaderCompilationInput_1a57d25eb48748a2dd2d5c0fc9ff982c61" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>staticVarDecls</name></member>
+      <member refid="structPreshaderCompilationInput_1ab5e331b597b70ee48d797f2395bbf515" prot="public" virt="non-virtual"><scope>PreshaderCompilationInput</scope><name>supportStats</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

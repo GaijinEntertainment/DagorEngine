@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structTMCache" kind="struct" language="C++" prot="public">
+    <compoundname>TMCache</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structTMCache_1a52c506b00d1154df00a3d6e477b5c263" prot="public" static="no" mutable="no">
+        <type>TimeValue</type>
+        <definition>TimeValue TMCache::t</definition>
+        <argsstring></argsstring>
+        <name>t</name>
+        <qualifiedname>TMCache::t</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expAnim.cpp" line="155" column="13" bodyfile="expAnim.cpp" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTMCache_1a09b98f070e7ef7874f4c608b1eeba601" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 TMCache::p</definition>
+        <argsstring></argsstring>
+        <name>p</name>
+        <qualifiedname>TMCache::p</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expAnim.cpp" line="156" column="10" bodyfile="expAnim.cpp" bodystart="156" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTMCache_1a53c533cbc62bef38db234080e047b6a3" prot="public" static="no" mutable="no">
+        <type>Quat</type>
+        <definition>Quat TMCache::r</definition>
+        <argsstring></argsstring>
+        <name>r</name>
+        <qualifiedname>TMCache::r</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expAnim.cpp" line="157" column="8" bodyfile="expAnim.cpp" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structTMCache_1a303573e8488111bbb08004812ab16299" prot="public" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 TMCache::s</definition>
+        <argsstring></argsstring>
+        <name>s</name>
+        <qualifiedname>TMCache::s</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expAnim.cpp" line="158" column="10" bodyfile="expAnim.cpp" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="expAnim.cpp" line="153" column="1" bodyfile="expAnim.cpp" bodystart="154" bodyend="159"/>
+    <listofallmembers>
+      <member refid="structTMCache_1a09b98f070e7ef7874f4c608b1eeba601" prot="public" virt="non-virtual"><scope>TMCache</scope><name>p</name></member>
+      <member refid="structTMCache_1a53c533cbc62bef38db234080e047b6a3" prot="public" virt="non-virtual"><scope>TMCache</scope><name>r</name></member>
+      <member refid="structTMCache_1a303573e8488111bbb08004812ab16299" prot="public" virt="non-virtual"><scope>TMCache</scope><name>s</name></member>
+      <member refid="structTMCache_1a52c506b00d1154df00a3d6e477b5c263" prot="public" virt="non-virtual"><scope>TMCache</scope><name>t</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

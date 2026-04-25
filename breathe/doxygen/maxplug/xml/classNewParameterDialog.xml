@@ -1,0 +1,208 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classNewParameterDialog" kind="class" language="C++" prot="public">
+    <compoundname>NewParameterDialog</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classNewParameterDialog_1af68e9885cadb99e1f5ca2136455be9db" prot="private" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND NewParameterDialog::hWnd</definition>
+        <argsstring></argsstring>
+        <name>hWnd</name>
+        <qualifiedname>NewParameterDialog::hWnd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="546" column="8" bodyfile="mater2.cpp" bodystart="546" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classNewParameterDialog_1a98943637203d548e36bdfc067368cb96" prot="private" static="no" mutable="no">
+        <type><ref refid="classDagormat2Dialog" kindref="compound">Dagormat2Dialog</ref> *</type>
+        <definition>Dagormat2Dialog* NewParameterDialog::parent</definition>
+        <argsstring></argsstring>
+        <name>parent</name>
+        <qualifiedname>NewParameterDialog::parent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="547" column="19" bodyfile="mater2.cpp" bodystart="547" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classNewParameterDialog_1a3d57ac8c098b1d7da5e2c1aae9c06507" prot="private" static="no" mutable="no">
+        <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref></type>
+        <definition>M_STD_STRING NewParameterDialog::shader</definition>
+        <argsstring></argsstring>
+        <name>shader</name>
+        <qualifiedname>NewParameterDialog::shader</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="548" column="16" bodyfile="mater2.cpp" bodystart="548" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classNewParameterDialog_1a147637f88ccb3b66b3115bcafe7f720b" prot="private" static="no" mutable="no">
+        <type>std::vector&lt; std::wstring &gt;</type>
+        <definition>std::vector&lt;std::wstring&gt; NewParameterDialog::selected_names</definition>
+        <argsstring></argsstring>
+        <name>selected_names</name>
+        <qualifiedname>NewParameterDialog::selected_names</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="549" column="15" bodyfile="mater2.cpp" bodystart="549" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classNewParameterDialog_1ad78e249304d002dec52f59e8b858ef58" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>NewParameterDialog::NewParameterDialog</definition>
+        <argsstring>(Dagormat2Dialog *p, M_STD_STRING &amp;shdr)</argsstring>
+        <name>NewParameterDialog</name>
+        <qualifiedname>NewParameterDialog::NewParameterDialog</qualifiedname>
+        <param>
+          <type><ref refid="classDagormat2Dialog" kindref="compound">Dagormat2Dialog</ref> *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type><ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref> &amp;</type>
+          <declname>shdr</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="534" column="3" bodyfile="mater2.cpp" bodystart="2890" bodyend="2890"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewParameterDialog_1afc90684f3ba91c9243a6334460ab7e97" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>NewParameterDialog::~NewParameterDialog</definition>
+        <argsstring>()</argsstring>
+        <name>~NewParameterDialog</name>
+        <qualifiedname>NewParameterDialog::~NewParameterDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="535" column="11" bodyfile="mater2.cpp" bodystart="2892" bodyend="2892"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewParameterDialog_1aeea8b80edad196cfb89632dce1d4169e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const std::vector&lt; std::wstring &gt; &amp;</type>
+        <definition>const std::vector&lt; std::wstring &gt; &amp; NewParameterDialog::GetNewParamNames</definition>
+        <argsstring>() const</argsstring>
+        <name>GetNewParamNames</name>
+        <qualifiedname>NewParameterDialog::GetNewParamNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="537" column="21" bodyfile="mater2.cpp" bodystart="537" bodyend="537"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewParameterDialog_1a66a38eb38f2b5a9bd066dd98c8ed0865" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int NewParameterDialog::DoModal</definition>
+        <argsstring>()</argsstring>
+        <name>DoModal</name>
+        <qualifiedname>NewParameterDialog::DoModal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="539" column="7" bodyfile="mater2.cpp" bodystart="2894" bodyend="2897"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewParameterDialog_1a970e6ba771087746444cb8f08066453e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL NewParameterDialog::WndProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>WndProc</name>
+        <qualifiedname>NewParameterDialog::WndProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="540" column="8" bodyfile="mater2.cpp" bodystart="2905" bodyend="2980"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classNewParameterDialog_1a56a6d0e720d2b3fd02c76d4d643b4c08" prot="private" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>std::vector&lt; std::wstring &gt;</type>
+        <definition>std::vector&lt; std::wstring &gt; NewParameterDialog::GetSelectedNames</definition>
+        <argsstring>() const</argsstring>
+        <name>GetSelectedNames</name>
+        <qualifiedname>NewParameterDialog::GetSelectedNames</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="543" column="15" bodyfile="mater2.cpp" bodystart="2982" bodyend="3008"/>
+      </memberdef>
+      <memberdef kind="function" id="classNewParameterDialog_1a7e1c1d1487daea59dad06128e8a731e8" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool NewParameterDialog::GetAndVerifyParamName</definition>
+        <argsstring>()</argsstring>
+        <name>GetAndVerifyParamName</name>
+        <qualifiedname>NewParameterDialog::GetAndVerifyParamName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="544" column="8" bodyfile="mater2.cpp" bodystart="3010" bodyend="3081"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="mater2.cpp" line="531" column="1" bodyfile="mater2.cpp" bodystart="532" bodyend="550"/>
+    <listofallmembers>
+      <member refid="classNewParameterDialog_1a66a38eb38f2b5a9bd066dd98c8ed0865" prot="public" virt="non-virtual"><scope>NewParameterDialog</scope><name>DoModal</name></member>
+      <member refid="classNewParameterDialog_1a7e1c1d1487daea59dad06128e8a731e8" prot="private" virt="non-virtual"><scope>NewParameterDialog</scope><name>GetAndVerifyParamName</name></member>
+      <member refid="classNewParameterDialog_1aeea8b80edad196cfb89632dce1d4169e" prot="public" virt="non-virtual"><scope>NewParameterDialog</scope><name>GetNewParamNames</name></member>
+      <member refid="classNewParameterDialog_1a56a6d0e720d2b3fd02c76d4d643b4c08" prot="private" virt="non-virtual"><scope>NewParameterDialog</scope><name>GetSelectedNames</name></member>
+      <member refid="classNewParameterDialog_1af68e9885cadb99e1f5ca2136455be9db" prot="private" virt="non-virtual"><scope>NewParameterDialog</scope><name>hWnd</name></member>
+      <member refid="classNewParameterDialog_1ad78e249304d002dec52f59e8b858ef58" prot="public" virt="non-virtual"><scope>NewParameterDialog</scope><name>NewParameterDialog</name></member>
+      <member refid="classNewParameterDialog_1a98943637203d548e36bdfc067368cb96" prot="private" virt="non-virtual"><scope>NewParameterDialog</scope><name>parent</name></member>
+      <member refid="classNewParameterDialog_1a147637f88ccb3b66b3115bcafe7f720b" prot="private" virt="non-virtual"><scope>NewParameterDialog</scope><name>selected_names</name></member>
+      <member refid="classNewParameterDialog_1a3d57ac8c098b1d7da5e2c1aae9c06507" prot="private" virt="non-virtual"><scope>NewParameterDialog</scope><name>shader</name></member>
+      <member refid="classNewParameterDialog_1a970e6ba771087746444cb8f08066453e" prot="public" virt="non-virtual"><scope>NewParameterDialog</scope><name>WndProc</name></member>
+      <member refid="classNewParameterDialog_1afc90684f3ba91c9243a6334460ab7e97" prot="public" virt="virtual"><scope>NewParameterDialog</scope><name>~NewParameterDialog</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

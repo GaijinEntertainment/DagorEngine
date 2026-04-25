@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structFindParamInfo" kind="struct" language="C++" prot="public">
+    <compoundname>FindParamInfo</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structFindParamInfo_1a4cb40eae35dfb5c19162853bdc76885a" prot="public" static="no" mutable="no">
+        <type><ref refid="structParamInfo" kindref="compound">ParamInfo</ref></type>
+        <definition>ParamInfo FindParamInfo::pinfo</definition>
+        <argsstring></argsstring>
+        <name>pinfo</name>
+        <qualifiedname>FindParamInfo::pinfo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="1545" column="13" bodyfile="mater2.cpp" bodystart="1545" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structFindParamInfo_1a0dd7d16773ab2f86a7e0d10fea5f8681" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool FindParamInfo::found</definition>
+        <argsstring></argsstring>
+        <name>found</name>
+        <qualifiedname>FindParamInfo::found</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="1546" column="8" bodyfile="mater2.cpp" bodystart="1546" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>FindParamInfo</label>
+        <link refid="structFindParamInfo"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>pinfo</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>ParamInfo</label>
+        <link refid="structParamInfo"/>
+      </node>
+    </collaborationgraph>
+    <location file="mater2.cpp" line="1543" column="1" bodyfile="mater2.cpp" bodystart="1544" bodyend="1547"/>
+    <listofallmembers>
+      <member refid="structFindParamInfo_1a0dd7d16773ab2f86a7e0d10fea5f8681" prot="public" virt="non-virtual"><scope>FindParamInfo</scope><name>found</name></member>
+      <member refid="structFindParamInfo_1a4cb40eae35dfb5c19162853bdc76885a" prot="public" virt="non-virtual"><scope>FindParamInfo</scope><name>pinfo</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

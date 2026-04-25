@@ -1,0 +1,95 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIGizmoObject" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IGizmoObject</compoundname>
+    <includes refid="ec__IGizmoObject_8h" local="no">ec_IGizmoObject.h</includes>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIGizmoObject_1a9ce7bd3d7425d8cf4adcbbb446023881" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>TMatrix</type>
+        <definition>virtual TMatrix IGizmoObject::getTm</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getTm</name>
+        <qualifiedname>IGizmoObject::getTm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IGizmoObject.h" line="13" column="19"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoObject_1a4dca17c12db7193aa66169e993416e46" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGizmoObject::setTm</definition>
+        <argsstring>(const TMatrix &amp;new_tm)=0</argsstring>
+        <name>setTm</name>
+        <qualifiedname>IGizmoObject::setTm</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>new_tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IGizmoObject.h" line="15" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoObject_1acae9918a5254ec2aef995d428f4f973f" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IGizmoObject::onStartChange</definition>
+        <argsstring>()=0</argsstring>
+        <name>onStartChange</name>
+        <qualifiedname>IGizmoObject::onStartChange</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IGizmoObject.h" line="18" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoObject_1aa0e3aba10b87bcd6e8341d00f0d4067d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IGizmoObject::getUndoName</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getUndoName</name>
+        <qualifiedname>IGizmoObject::getUndoName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IGizmoObject.h" line="21" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIGizmoObject_1a83d901ba4a73d3d6a96f6fab21415aff" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>int</type>
+        <definition>virtual int IGizmoObject::getAvailableAxis</definition>
+        <argsstring>() const</argsstring>
+        <name>getAvailableAxis</name>
+        <qualifiedname>IGizmoObject::getAvailableAxis</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_IGizmoObject.h" line="24" column="15" bodyfile="ec_IGizmoObject.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_IGizmoObject.h" line="9" column="1" bodyfile="ec_IGizmoObject.h" bodystart="10" bodyend="25"/>
+    <listofallmembers>
+      <member refid="classIGizmoObject_1a83d901ba4a73d3d6a96f6fab21415aff" prot="public" virt="virtual"><scope>IGizmoObject</scope><name>getAvailableAxis</name></member>
+      <member refid="classIGizmoObject_1a9ce7bd3d7425d8cf4adcbbb446023881" prot="public" virt="pure-virtual"><scope>IGizmoObject</scope><name>getTm</name></member>
+      <member refid="classIGizmoObject_1aa0e3aba10b87bcd6e8341d00f0d4067d" prot="public" virt="pure-virtual"><scope>IGizmoObject</scope><name>getUndoName</name></member>
+      <member refid="classIGizmoObject_1acae9918a5254ec2aef995d428f4f973f" prot="public" virt="pure-virtual"><scope>IGizmoObject</scope><name>onStartChange</name></member>
+      <member refid="classIGizmoObject_1a4dca17c12db7193aa66169e993416e46" prot="public" virt="pure-virtual"><scope>IGizmoObject</scope><name>setTm</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

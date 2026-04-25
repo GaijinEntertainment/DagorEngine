@@ -1,0 +1,148 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classRBHelperClassDesc" kind="class" language="C++" prot="public">
+    <compoundname>RBHelperClassDesc</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">ClassDesc</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classRBHelperClassDesc_1a837adf643168ac1cbad0f37086780103" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int RBHelperClassDesc::IsPublic</definition>
+        <argsstring>() override</argsstring>
+        <name>IsPublic</name>
+        <qualifiedname>RBHelperClassDesc::IsPublic</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="140" column="7" bodyfile="rbDummy.cpp" bodystart="140" bodyend="140"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelperClassDesc_1aa94f1eca2b4ecb741dc7ecd0762088e8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void *</type>
+        <definition>void * RBHelperClassDesc::Create</definition>
+        <argsstring>(BOOL loading=FALSE) override</argsstring>
+        <name>Create</name>
+        <qualifiedname>RBHelperClassDesc::Create</qualifiedname>
+        <param>
+          <type>BOOL</type>
+          <declname>loading</declname>
+          <defval>FALSE</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="141" column="8" bodyfile="rbDummy.cpp" bodystart="141" bodyend="141"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelperClassDesc_1a629569343c9a0c65225b5695ff348076" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * RBHelperClassDesc::ClassName</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassName</name>
+        <qualifiedname>RBHelperClassDesc::ClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="142" column="15" bodyfile="rbDummy.cpp" bodystart="142" bodyend="142"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelperClassDesc_1a4398a689830d8f28eb8ea54360858e9b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const <ref refid="max__cpt_8h_1ac2ec3340fbe0c6ea0663fd3923d13fe5" kindref="member">MCHAR</ref> *</type>
+        <definition>const MCHAR * RBHelperClassDesc::NonLocalizedClassName</definition>
+        <argsstring>()</argsstring>
+        <name>NonLocalizedClassName</name>
+        <qualifiedname>RBHelperClassDesc::NonLocalizedClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="146" column="15" bodyfile="rbDummy.cpp" bodystart="146" bodyend="146"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelperClassDesc_1a6d0be6c84f6953b128be018cd042324e" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>SClass_ID</type>
+        <definition>SClass_ID RBHelperClassDesc::SuperClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>SuperClassID</name>
+        <qualifiedname>RBHelperClassDesc::SuperClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="148" column="13" bodyfile="rbDummy.cpp" bodystart="148" bodyend="148"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelperClassDesc_1adf59efe985f2ee0db54e2eddb6a2e32f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Class_ID</type>
+        <definition>Class_ID RBHelperClassDesc::ClassID</definition>
+        <argsstring>() override</argsstring>
+        <name>ClassID</name>
+        <qualifiedname>RBHelperClassDesc::ClassID</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="149" column="12" bodyfile="rbDummy.cpp" bodystart="149" bodyend="149"/>
+      </memberdef>
+      <memberdef kind="function" id="classRBHelperClassDesc_1a1168e2bc9a32cc8b0fa1a2522eb350ae" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * RBHelperClassDesc::Category</definition>
+        <argsstring>() override</argsstring>
+        <name>Category</name>
+        <qualifiedname>RBHelperClassDesc::Category</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rbDummy.cpp" line="150" column="15" bodyfile="rbDummy.cpp" bodystart="150" bodyend="150"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>RBHelperClassDesc</label>
+        <link refid="classRBHelperClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>ClassDesc</label>
+      </node>
+      <node id="1">
+        <label>RBHelperClassDesc</label>
+        <link refid="classRBHelperClassDesc"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="rbDummy.cpp" line="137" column="1" bodyfile="rbDummy.cpp" bodystart="138" bodyend="151"/>
+    <listofallmembers>
+      <member refid="classRBHelperClassDesc_1a1168e2bc9a32cc8b0fa1a2522eb350ae" prot="public" virt="non-virtual"><scope>RBHelperClassDesc</scope><name>Category</name></member>
+      <member refid="classRBHelperClassDesc_1adf59efe985f2ee0db54e2eddb6a2e32f" prot="public" virt="non-virtual"><scope>RBHelperClassDesc</scope><name>ClassID</name></member>
+      <member refid="classRBHelperClassDesc_1a629569343c9a0c65225b5695ff348076" prot="public" virt="non-virtual"><scope>RBHelperClassDesc</scope><name>ClassName</name></member>
+      <member refid="classRBHelperClassDesc_1aa94f1eca2b4ecb741dc7ecd0762088e8" prot="public" virt="non-virtual"><scope>RBHelperClassDesc</scope><name>Create</name></member>
+      <member refid="classRBHelperClassDesc_1a837adf643168ac1cbad0f37086780103" prot="public" virt="non-virtual"><scope>RBHelperClassDesc</scope><name>IsPublic</name></member>
+      <member refid="classRBHelperClassDesc_1a4398a689830d8f28eb8ea54360858e9b" prot="public" virt="non-virtual"><scope>RBHelperClassDesc</scope><name>NonLocalizedClassName</name></member>
+      <member refid="classRBHelperClassDesc_1a6d0be6c84f6953b128be018cd042324e" prot="public" virt="non-virtual"><scope>RBHelperClassDesc</scope><name>SuperClassID</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

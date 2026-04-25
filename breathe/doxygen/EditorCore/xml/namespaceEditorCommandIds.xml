@@ -1,0 +1,598 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceEditorCommandIds" kind="namespace" language="C++">
+    <compoundname>EditorCommandIds</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ab6e43a398613cecba92a107b1c2cd050" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::ZOOM_AND_CENTER</definition>
+        <argsstring></argsstring>
+        <name>ZOOM_AND_CENTER</name>
+        <qualifiedname>EditorCommandIds::ZOOM_AND_CENTER</qualifiedname>
+        <initializer>= &quot;Main.ZoomAndCenter&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="144" column="29" bodyfile="ec_cm.h" bodystart="144" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1aaefb001a1d062e7cc241c3f131a76bdc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::ZOOM_AND_CENTER_IN_FLY_MODE</definition>
+        <argsstring></argsstring>
+        <name>ZOOM_AND_CENTER_IN_FLY_MODE</name>
+        <qualifiedname>EditorCommandIds::ZOOM_AND_CENTER_IN_FLY_MODE</qualifiedname>
+        <initializer>= &quot;Main.ZoomAndCenterInFlyMode&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="145" column="29" bodyfile="ec_cm.h" bodystart="145" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ac82ff6d79feb263f6890531c8eff5b0c" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::NAVIGATE</definition>
+        <argsstring></argsstring>
+        <name>NAVIGATE</name>
+        <qualifiedname>EditorCommandIds::NAVIGATE</qualifiedname>
+        <initializer>= &quot;Main.NavigationHelp&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="146" column="29" bodyfile="ec_cm.h" bodystart="146" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a32f39c8c32c3d0eec1b0904b464080d6" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::STATS</definition>
+        <argsstring></argsstring>
+        <name>STATS</name>
+        <qualifiedname>EditorCommandIds::STATS</qualifiedname>
+        <initializer>= &quot;Main.ShowLevelStatistics&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="147" column="29" bodyfile="ec_cm.h" bodystart="147" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a338dcbc048eadfb6f4670cf21f9c0161" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::CHANGE_VIEWPORT</definition>
+        <argsstring></argsstring>
+        <name>CHANGE_VIEWPORT</name>
+        <qualifiedname>EditorCommandIds::CHANGE_VIEWPORT</qualifiedname>
+        <initializer>= &quot;Main.ChangeViewport&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="148" column="29" bodyfile="ec_cm.h" bodystart="148" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a829e61befb10da8605d8b88e391ae6cd" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::CONSOLE</definition>
+        <argsstring></argsstring>
+        <name>CONSOLE</name>
+        <qualifiedname>EditorCommandIds::CONSOLE</qualifiedname>
+        <initializer>= &quot;Main.Console&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="149" column="29" bodyfile="ec_cm.h" bodystart="149" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1aa43d941432055d15eb22c1819d03226e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::CAMERAS_FREE</definition>
+        <argsstring></argsstring>
+        <name>CAMERAS_FREE</name>
+        <qualifiedname>EditorCommandIds::CAMERAS_FREE</qualifiedname>
+        <initializer>= &quot;Main.Camera.Free&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="150" column="29" bodyfile="ec_cm.h" bodystart="150" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ab634e58291416994c555abfe703d2f1b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::CAMERAS_FPS</definition>
+        <argsstring></argsstring>
+        <name>CAMERAS_FPS</name>
+        <qualifiedname>EditorCommandIds::CAMERAS_FPS</qualifiedname>
+        <initializer>= &quot;Main.Camera.FPS&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="151" column="29" bodyfile="ec_cm.h" bodystart="151" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a0bbc1077d35521d492c0d710743433dc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::CAMERAS_TPS</definition>
+        <argsstring></argsstring>
+        <name>CAMERAS_TPS</name>
+        <qualifiedname>EditorCommandIds::CAMERAS_TPS</qualifiedname>
+        <initializer>= &quot;Main.Camera.TPS&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="152" column="29" bodyfile="ec_cm.h" bodystart="152" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ab45185946340bdc104080021a7d3fe78" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::CAMERAS_CAR</definition>
+        <argsstring></argsstring>
+        <name>CAMERAS_CAR</name>
+        <qualifiedname>EditorCommandIds::CAMERAS_CAR</qualifiedname>
+        <initializer>= &quot;Main.Camera.Car&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="153" column="29" bodyfile="ec_cm.h" bodystart="153" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a083f38adec434a4a8a3d6db491c451d8" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::CHANGE_FOV</definition>
+        <argsstring></argsstring>
+        <name>CHANGE_FOV</name>
+        <qualifiedname>EditorCommandIds::CHANGE_FOV</qualifiedname>
+        <initializer>= &quot;Main.ChangeFov&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="154" column="29" bodyfile="ec_cm.h" bodystart="154" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a26fa7a065a5110cb1b6e4afdc5e174ce" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::CREATE_SCREENSHOT</definition>
+        <argsstring></argsstring>
+        <name>CREATE_SCREENSHOT</name>
+        <qualifiedname>EditorCommandIds::CREATE_SCREENSHOT</qualifiedname>
+        <initializer>= &quot;Main.CreateScreenshot&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="155" column="29" bodyfile="ec_cm.h" bodystart="155" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1abdc85714d7c4f74ef442d41f4b03081f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::CREATE_CUBE_SCREENSHOT</definition>
+        <argsstring></argsstring>
+        <name>CREATE_CUBE_SCREENSHOT</name>
+        <qualifiedname>EditorCommandIds::CREATE_CUBE_SCREENSHOT</qualifiedname>
+        <initializer>= &quot;Main.CreateCubeScreenshot&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="156" column="29" bodyfile="ec_cm.h" bodystart="156" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1acaf28c51e38386905393cc4d2950c937" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::ENVIRONMENT_SETTINGS</definition>
+        <argsstring></argsstring>
+        <name>ENVIRONMENT_SETTINGS</name>
+        <qualifiedname>EditorCommandIds::ENVIRONMENT_SETTINGS</qualifiedname>
+        <initializer>= &quot;Main.EnvironmentSettings&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="157" column="29" bodyfile="ec_cm.h" bodystart="157" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ae0a001bb4f8f114fcb30add1d60e8fea" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::PALETTE</definition>
+        <argsstring></argsstring>
+        <name>PALETTE</name>
+        <qualifiedname>EditorCommandIds::PALETTE</qualifiedname>
+        <initializer>= &quot;Main.Palette&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="158" column="29" bodyfile="ec_cm.h" bodystart="158" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ac3764d7d2b4c9ceccdb4876a36d18ee5" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VR_ENABLE</definition>
+        <argsstring></argsstring>
+        <name>VR_ENABLE</name>
+        <qualifiedname>EditorCommandIds::VR_ENABLE</qualifiedname>
+        <initializer>= &quot;Main.ToggleVR&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="159" column="29" bodyfile="ec_cm.h" bodystart="159" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a14093b0270ea66ed3d3143a86d70aa56" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::THEME_TOGGLE</definition>
+        <argsstring></argsstring>
+        <name>THEME_TOGGLE</name>
+        <qualifiedname>EditorCommandIds::THEME_TOGGLE</qualifiedname>
+        <initializer>= &quot;Main.ToggleTheme&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="160" column="29" bodyfile="ec_cm.h" bodystart="160" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ad9a7b6e984f919c0d5184a7fadbb802a" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_SELECT_BY_NAME</definition>
+        <argsstring></argsstring>
+        <name>OBJED_SELECT_BY_NAME</name>
+        <qualifiedname>EditorCommandIds::OBJED_SELECT_BY_NAME</qualifiedname>
+        <initializer>= &quot;ObjectEditor.SelectByName&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="162" column="29" bodyfile="ec_cm.h" bodystart="162" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a1aae390d5078d5342e403ed7ffc8121d" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_OBJPROP_PANEL</definition>
+        <argsstring></argsstring>
+        <name>OBJED_OBJPROP_PANEL</name>
+        <qualifiedname>EditorCommandIds::OBJED_OBJPROP_PANEL</qualifiedname>
+        <initializer>= &quot;ObjectEditor.TogglePropertiesPanel&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="163" column="29" bodyfile="ec_cm.h" bodystart="163" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a6c9926aaa4b1b5178c5a528f3a13dd90" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_MODE_SELECT</definition>
+        <argsstring></argsstring>
+        <name>OBJED_MODE_SELECT</name>
+        <qualifiedname>EditorCommandIds::OBJED_MODE_SELECT</qualifiedname>
+        <initializer>= &quot;ObjectEditor.Mode.Select&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="164" column="29" bodyfile="ec_cm.h" bodystart="164" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a47f9e4415976fb9f643a6faaf9723919" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_MODE_MOVE</definition>
+        <argsstring></argsstring>
+        <name>OBJED_MODE_MOVE</name>
+        <qualifiedname>EditorCommandIds::OBJED_MODE_MOVE</qualifiedname>
+        <initializer>= &quot;ObjectEditor.Mode.Move&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="165" column="29" bodyfile="ec_cm.h" bodystart="165" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a9988fc2a71a33ff0b9efd1b6851cbf2b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_MODE_SURF_MOVE</definition>
+        <argsstring></argsstring>
+        <name>OBJED_MODE_SURF_MOVE</name>
+        <qualifiedname>EditorCommandIds::OBJED_MODE_SURF_MOVE</qualifiedname>
+        <initializer>= &quot;ObjectEditor.Mode.SurfMove&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="166" column="29" bodyfile="ec_cm.h" bodystart="166" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a60178f24d3dac52faf492c4fc30319bb" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_MODE_ROTATE</definition>
+        <argsstring></argsstring>
+        <name>OBJED_MODE_ROTATE</name>
+        <qualifiedname>EditorCommandIds::OBJED_MODE_ROTATE</qualifiedname>
+        <initializer>= &quot;ObjectEditor.Mode.Rotate&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="167" column="29" bodyfile="ec_cm.h" bodystart="167" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a4eec2cbb7ddfbf1230b5590ffa439f52" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_MODE_SCALE</definition>
+        <argsstring></argsstring>
+        <name>OBJED_MODE_SCALE</name>
+        <qualifiedname>EditorCommandIds::OBJED_MODE_SCALE</qualifiedname>
+        <initializer>= &quot;ObjectEditor.Mode.Scale&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="168" column="29" bodyfile="ec_cm.h" bodystart="168" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a47c7ae176abfe0bcc6127923eef1e6cc" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_DROP</definition>
+        <argsstring></argsstring>
+        <name>OBJED_DROP</name>
+        <qualifiedname>EditorCommandIds::OBJED_DROP</qualifiedname>
+        <initializer>= &quot;ObjectEditor.Drop&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="169" column="29" bodyfile="ec_cm.h" bodystart="169" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a5fd816f446951f160c4681c67627e40e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_DELETE</definition>
+        <argsstring></argsstring>
+        <name>OBJED_DELETE</name>
+        <qualifiedname>EditorCommandIds::OBJED_DELETE</qualifiedname>
+        <initializer>= &quot;ObjectEditor.Delete&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="170" column="29" bodyfile="ec_cm.h" bodystart="170" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a57210ab94f82bbfcdc48d14b3e8558d7" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::OBJED_CANCEL_GIZMO_TRANSFORM</definition>
+        <argsstring></argsstring>
+        <name>OBJED_CANCEL_GIZMO_TRANSFORM</name>
+        <qualifiedname>EditorCommandIds::OBJED_CANCEL_GIZMO_TRANSFORM</qualifiedname>
+        <initializer>= &quot;ObjectEditor.CancelGizmoTransform&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="171" column="29" bodyfile="ec_cm.h" bodystart="171" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ae30307e04db6c11b37ead459e6284c0b" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_GRID_MOVE_SNAP</definition>
+        <argsstring></argsstring>
+        <name>VIEW_GRID_MOVE_SNAP</name>
+        <qualifiedname>EditorCommandIds::VIEW_GRID_MOVE_SNAP</qualifiedname>
+        <initializer>= &quot;Main.Grid.MoveSnap&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="173" column="29" bodyfile="ec_cm.h" bodystart="173" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a01dd51a885f3f8edab866bf75818af49" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_GRID_ANGLE_SNAP</definition>
+        <argsstring></argsstring>
+        <name>VIEW_GRID_ANGLE_SNAP</name>
+        <qualifiedname>EditorCommandIds::VIEW_GRID_ANGLE_SNAP</qualifiedname>
+        <initializer>= &quot;Main.Grid.AngleSnap&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="174" column="29" bodyfile="ec_cm.h" bodystart="174" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a894d07045b9825af83d467edd6cc7729" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_GRID_SCALE_SNAP</definition>
+        <argsstring></argsstring>
+        <name>VIEW_GRID_SCALE_SNAP</name>
+        <qualifiedname>EditorCommandIds::VIEW_GRID_SCALE_SNAP</qualifiedname>
+        <initializer>= &quot;Main.Grid.ScaleSnap&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="175" column="29" bodyfile="ec_cm.h" bodystart="175" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ab3a401617409840d168e005c2f475567" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_GRID_SHOW</definition>
+        <argsstring></argsstring>
+        <name>VIEW_GRID_SHOW</name>
+        <qualifiedname>EditorCommandIds::VIEW_GRID_SHOW</qualifiedname>
+        <initializer>= &quot;Viewport.ToggleGrid&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="177" column="29" bodyfile="ec_cm.h" bodystart="177" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a3cbab84443476e96dc9aed9c821554b0" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_WIREFRAME</definition>
+        <argsstring></argsstring>
+        <name>VIEW_WIREFRAME</name>
+        <qualifiedname>EditorCommandIds::VIEW_WIREFRAME</qualifiedname>
+        <initializer>= &quot;Viewport.ToggleWireframe&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="178" column="29" bodyfile="ec_cm.h" bodystart="178" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a239c06658bc735d11715e95af2cbb1db" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_PERSPECTIVE</definition>
+        <argsstring></argsstring>
+        <name>VIEW_PERSPECTIVE</name>
+        <qualifiedname>EditorCommandIds::VIEW_PERSPECTIVE</qualifiedname>
+        <initializer>= &quot;Viewport.View.Perspective&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="179" column="29" bodyfile="ec_cm.h" bodystart="179" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1aa90b59953a7daa97319d96e157cd77fe" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_FRONT</definition>
+        <argsstring></argsstring>
+        <name>VIEW_FRONT</name>
+        <qualifiedname>EditorCommandIds::VIEW_FRONT</qualifiedname>
+        <initializer>= &quot;Viewport.View.Front&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="180" column="29" bodyfile="ec_cm.h" bodystart="180" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a53b33872bcbf13d02c4053ce7beb35cf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_BACK</definition>
+        <argsstring></argsstring>
+        <name>VIEW_BACK</name>
+        <qualifiedname>EditorCommandIds::VIEW_BACK</qualifiedname>
+        <initializer>= &quot;Viewport.View.Back&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="181" column="29" bodyfile="ec_cm.h" bodystart="181" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1ad7e90382aeeddb04aa17b45b537df521" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_TOP</definition>
+        <argsstring></argsstring>
+        <name>VIEW_TOP</name>
+        <qualifiedname>EditorCommandIds::VIEW_TOP</qualifiedname>
+        <initializer>= &quot;Viewport.View.Top&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="182" column="29" bodyfile="ec_cm.h" bodystart="182" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a7016a3f918c39a2470d57ee7d092520e" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_BOTTOM</definition>
+        <argsstring></argsstring>
+        <name>VIEW_BOTTOM</name>
+        <qualifiedname>EditorCommandIds::VIEW_BOTTOM</qualifiedname>
+        <initializer>= &quot;Viewport.View.Bottom&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="183" column="29" bodyfile="ec_cm.h" bodystart="183" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1a093279eb44d4f596e98b0c8542ff58bf" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_LEFT</definition>
+        <argsstring></argsstring>
+        <name>VIEW_LEFT</name>
+        <qualifiedname>EditorCommandIds::VIEW_LEFT</qualifiedname>
+        <initializer>= &quot;Viewport.View.Left&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="184" column="29" bodyfile="ec_cm.h" bodystart="184" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceEditorCommandIds_1af5861397c8019e94b787280a1016a389" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* EditorCommandIds::VIEW_RIGHT</definition>
+        <argsstring></argsstring>
+        <name>VIEW_RIGHT</name>
+        <qualifiedname>EditorCommandIds::VIEW_RIGHT</qualifiedname>
+        <initializer>= &quot;Viewport.View.Right&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="185" column="29" bodyfile="ec_cm.h" bodystart="185" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_cm.h" line="141" column="1"/>
+  </compounddef>
+</doxygen>

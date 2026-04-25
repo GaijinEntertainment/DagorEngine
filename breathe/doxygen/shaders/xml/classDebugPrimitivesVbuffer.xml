@@ -1,0 +1,596 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDebugPrimitivesVbuffer" kind="class" language="C++" prot="public">
+    <compoundname>DebugPrimitivesVbuffer</compoundname>
+    <innerclass refid="structDebugPrimitivesVbuffer_1_1Line" prot="private">DebugPrimitivesVbuffer::Line</innerclass>
+    <innerclass refid="structDebugPrimitivesVbuffer_1_1Pass" prot="private">DebugPrimitivesVbuffer::Pass</innerclass>
+    <innerclass refid="structDebugPrimitivesVbuffer_1_1Triangle" prot="private">DebugPrimitivesVbuffer::Triangle</innerclass>
+    <innerclass refid="structDebugPrimitivesVbuffer_1_1VertexHasher" prot="private">DebugPrimitivesVbuffer::VertexHasher</innerclass>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1a2449a23cbbbaca865b63e1a57a73d696" prot="private" static="no" mutable="no">
+        <type>SimpleString</type>
+        <definition>SimpleString DebugPrimitivesVbuffer::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>DebugPrimitivesVbuffer::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="43" column="16" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="43" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1ab703cdf029d5400f62d842ad4032b0f1" prot="private" static="no" mutable="no">
+        <type>TMatrix</type>
+        <definition>TMatrix DebugPrimitivesVbuffer::tm</definition>
+        <argsstring></argsstring>
+        <name>tm</name>
+        <qualifiedname>DebugPrimitivesVbuffer::tm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="45" column="11" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="45" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1a1e93beb518bb65b3675a214339f683c8" prot="private" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* DebugPrimitivesVbuffer::vbuffer</definition>
+        <argsstring></argsstring>
+        <name>vbuffer</name>
+        <qualifiedname>DebugPrimitivesVbuffer::vbuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="47" column="11" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1af721121e044e87f5f39a489d74addd3a" prot="private" static="no" mutable="no">
+        <type>Sbuffer *</type>
+        <definition>Sbuffer* DebugPrimitivesVbuffer::ibuffer</definition>
+        <argsstring></argsstring>
+        <name>ibuffer</name>
+        <qualifiedname>DebugPrimitivesVbuffer::ibuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="48" column="11" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1ab7ce97c66aee433dc00243dbcd26a46e" prot="private" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderMaterial" kindref="compound">ShaderMaterial</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderMaterial&gt; DebugPrimitivesVbuffer::shaderMat</definition>
+        <argsstring></argsstring>
+        <name>shaderMat</name>
+        <qualifiedname>DebugPrimitivesVbuffer::shaderMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="50" column="7" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="50" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1ae3d26eb138e945d31357fd7ee0c54b84" prot="private" static="no" mutable="no">
+        <type>Ptr&lt; <ref refid="classShaderElement" kindref="compound">ShaderElement</ref> &gt;</type>
+        <definition>Ptr&lt;ShaderElement&gt; DebugPrimitivesVbuffer::shaderElem</definition>
+        <argsstring></argsstring>
+        <name>shaderElem</name>
+        <qualifiedname>DebugPrimitivesVbuffer::shaderElem</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="51" column="7" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="51" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1a852f3a12dbf44f2396452f5e842b9ee1" prot="private" static="no" mutable="no">
+        <type>debug3d::CachedStates</type>
+        <definition>debug3d::CachedStates DebugPrimitivesVbuffer::renderStates</definition>
+        <argsstring></argsstring>
+        <name>renderStates</name>
+        <qualifiedname>DebugPrimitivesVbuffer::renderStates</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="52" column="25" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="52" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1a2ee3683d2db306112997f697593188b7" prot="private" static="no" mutable="no">
+        <type>Tab&lt; Pass &gt;</type>
+        <definition>Tab&lt;Pass&gt; DebugPrimitivesVbuffer::linesPasses</definition>
+        <argsstring></argsstring>
+        <name>linesPasses</name>
+        <qualifiedname>DebugPrimitivesVbuffer::linesPasses</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="60" column="7" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1a3e564393c4d68b20d426c45b879606d6" prot="private" static="no" mutable="no">
+        <type>Tab&lt; Pass &gt;</type>
+        <definition>Tab&lt;Pass&gt; DebugPrimitivesVbuffer::trianglesPasses</definition>
+        <argsstring></argsstring>
+        <name>trianglesPasses</name>
+        <qualifiedname>DebugPrimitivesVbuffer::trianglesPasses</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="60" column="19" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="60" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1ab70eda545ba0cfae353d97ba89c0fe2d" prot="private" static="no" mutable="no">
+        <type>Tab&lt; Line &gt;</type>
+        <definition>Tab&lt;Line&gt; DebugPrimitivesVbuffer::linesCache</definition>
+        <argsstring></argsstring>
+        <name>linesCache</name>
+        <qualifiedname>DebugPrimitivesVbuffer::linesCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="77" column="7" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="77" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1ac10b970763ce98ab34cafb9e38796c29" prot="private" static="no" mutable="no">
+        <type>Tab&lt; Triangle &gt;</type>
+        <definition>Tab&lt;Triangle&gt; DebugPrimitivesVbuffer::trianglesCache</definition>
+        <argsstring></argsstring>
+        <name>trianglesCache</name>
+        <qualifiedname>DebugPrimitivesVbuffer::trianglesCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="78" column="7" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="78" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1a40c68e3351cb5cfc2ab8a42165a2fedf" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DebugPrimitivesVbuffer::trianglesStartIndex</definition>
+        <argsstring></argsstring>
+        <name>trianglesStartIndex</name>
+        <qualifiedname>DebugPrimitivesVbuffer::trianglesStartIndex</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="79" column="7" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="79" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1ad36980a84ecce543d867f67e1d5c4e7e" prot="private" static="no" mutable="no">
+        <type>ska::flat_hash_map&lt; Point3, int, VertexHasher &gt;</type>
+        <definition>ska::flat_hash_map&lt;Point3, int, VertexHasher&gt; DebugPrimitivesVbuffer::vertexMap</definition>
+        <argsstring></argsstring>
+        <name>vertexMap</name>
+        <qualifiedname>DebugPrimitivesVbuffer::vertexMap</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="86" column="22" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="86" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDebugPrimitivesVbuffer_1aca9d65b17ba56855d831aee3010894ad" prot="private" static="no" mutable="no">
+        <type>Tab&lt; Point3 &gt;</type>
+        <definition>Tab&lt;Point3&gt; DebugPrimitivesVbuffer::vertexList</definition>
+        <argsstring></argsstring>
+        <name>vertexList</name>
+        <qualifiedname>DebugPrimitivesVbuffer::vertexList</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="87" column="7" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="87" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a47cc26fcdd0696b4c3d174c04320cf66" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DebugPrimitivesVbuffer::DebugPrimitivesVbuffer</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>DebugPrimitivesVbuffer</name>
+        <qualifiedname>DebugPrimitivesVbuffer::DebugPrimitivesVbuffer</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="22" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a9341ca21f0af059e4333fb38c87b6013" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DebugPrimitivesVbuffer::~DebugPrimitivesVbuffer</definition>
+        <argsstring>()</argsstring>
+        <name>~DebugPrimitivesVbuffer</name>
+        <qualifiedname>DebugPrimitivesVbuffer::~DebugPrimitivesVbuffer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="23" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a6d84e28c6861d84d206a38d2c48e109c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DebugPrimitivesVbuffer::addVertex</definition>
+        <argsstring>(const Point3 &amp;p)</argsstring>
+        <name>addVertex</name>
+        <qualifiedname>DebugPrimitivesVbuffer::addVertex</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="25" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1abd8b4c59ff5632b3ec85b8b97edaa636" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::addLine</definition>
+        <argsstring>(const Point3 &amp;p0, const Point3 &amp;p1, E3DCOLOR c)</argsstring>
+        <name>addLine</name>
+        <qualifiedname>DebugPrimitivesVbuffer::addLine</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p0</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p1</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>c</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="26" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a295f5e73fc7410c7dc33280ede5f783d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::addBox</definition>
+        <argsstring>(const Point3 &amp;p, const Point3 &amp;ax, const Point3 &amp;ay, const Point3 &amp;az, E3DCOLOR color)</argsstring>
+        <name>addBox</name>
+        <qualifiedname>DebugPrimitivesVbuffer::addBox</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ax</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ay</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>az</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="27" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a4ef1dbd77dd381ad59da9b0c9928fc82" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::addBox</definition>
+        <argsstring>(const BBox3 &amp;box, E3DCOLOR color)</argsstring>
+        <name>addBox</name>
+        <qualifiedname>DebugPrimitivesVbuffer::addBox</qualifiedname>
+        <param>
+          <type>const BBox3 &amp;</type>
+          <declname>box</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="28" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a055e0a65073db02e293bc43c6c0d51d0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::addSolidBox</definition>
+        <argsstring>(const Point3 &amp;p, const Point3 &amp;ax, const Point3 &amp;ay, const Point3 &amp;az, E3DCOLOR color)</argsstring>
+        <name>addSolidBox</name>
+        <qualifiedname>DebugPrimitivesVbuffer::addSolidBox</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ax</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>ay</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>az</declname>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="29" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a86fb05f3d1d8eb3305d84038a09ae343" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::addTriangle</definition>
+        <argsstring>(const Point3 p[3], E3DCOLOR color)</argsstring>
+        <name>addTriangle</name>
+        <qualifiedname>DebugPrimitivesVbuffer::addTriangle</qualifiedname>
+        <param>
+          <type>const Point3</type>
+          <declname>p</declname>
+          <array>[3]</array>
+        </param>
+        <param>
+          <type>E3DCOLOR</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="30" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1abac766e54b4d554766ee7a1092efb614" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::invalidate</definition>
+        <argsstring>()</argsstring>
+        <name>invalidate</name>
+        <qualifiedname>DebugPrimitivesVbuffer::invalidate</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="31" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1ad98eeeea218d6f7a3c34d75157b4d112" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::beginCache</definition>
+        <argsstring>()</argsstring>
+        <name>beginCache</name>
+        <qualifiedname>DebugPrimitivesVbuffer::beginCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="32" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1ac818c48ecf2def7670587eb58991951d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::endCache</definition>
+        <argsstring>()</argsstring>
+        <name>endCache</name>
+        <qualifiedname>DebugPrimitivesVbuffer::endCache</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="33" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a996e78e6fe1e570367213ef98210be58" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::renderOverrideColor</definition>
+        <argsstring>(Color4 color_multiplier)</argsstring>
+        <name>renderOverrideColor</name>
+        <qualifiedname>DebugPrimitivesVbuffer::renderOverrideColor</qualifiedname>
+        <param>
+          <type>Color4</type>
+          <declname>color_multiplier</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="34" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a84a1e8d23d33f7ca8b952e6c3ba3199b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::render</definition>
+        <argsstring>()</argsstring>
+        <name>render</name>
+        <qualifiedname>DebugPrimitivesVbuffer::render</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="35" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a4d95850ee9a50f06b4090efd5a0e4bce" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::renderEx</definition>
+        <argsstring>(bool z_test, bool z_write, bool z_func_less, Color4 color_multiplier)</argsstring>
+        <name>renderEx</name>
+        <qualifiedname>DebugPrimitivesVbuffer::renderEx</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>z_test</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>z_write</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>z_func_less</declname>
+        </param>
+        <param>
+          <type>Color4</type>
+          <declname>color_multiplier</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="36" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a4860228139fba81a22a387890c522dfa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::setTm</definition>
+        <argsstring>(const TMatrix &amp;tm)</argsstring>
+        <name>setTm</name>
+        <qualifiedname>DebugPrimitivesVbuffer::setTm</qualifiedname>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>tm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="37" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a13175420ca7f795a7c544784ce09be18" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DebugPrimitivesVbuffer::isValid</definition>
+        <argsstring>()</argsstring>
+        <name>isValid</name>
+        <qualifiedname>DebugPrimitivesVbuffer::isValid</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="39" column="15" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="39" bodyend="39"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classDebugPrimitivesVbuffer_1a417cb219e852c6ad559505b251c98144" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DebugPrimitivesVbuffer::renderEx</definition>
+        <argsstring>(const E3DCOLOR *color)</argsstring>
+        <name>renderEx</name>
+        <qualifiedname>DebugPrimitivesVbuffer::renderEx</qualifiedname>
+        <param>
+          <type>const E3DCOLOR *</type>
+          <declname>color</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="42" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_DebugPrimitivesVbuffer.h" line="19" column="1" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="20" bodyend="88"/>
+    <listofallmembers>
+      <member refid="classDebugPrimitivesVbuffer_1a295f5e73fc7410c7dc33280ede5f783d" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>addBox</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a4ef1dbd77dd381ad59da9b0c9928fc82" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>addBox</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1abd8b4c59ff5632b3ec85b8b97edaa636" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>addLine</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a055e0a65073db02e293bc43c6c0d51d0" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>addSolidBox</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a86fb05f3d1d8eb3305d84038a09ae343" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>addTriangle</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a6d84e28c6861d84d206a38d2c48e109c" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>addVertex</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1ad98eeeea218d6f7a3c34d75157b4d112" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>beginCache</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a47cc26fcdd0696b4c3d174c04320cf66" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>DebugPrimitivesVbuffer</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1ac818c48ecf2def7670587eb58991951d" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>endCache</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1af721121e044e87f5f39a489d74addd3a" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>ibuffer</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1abac766e54b4d554766ee7a1092efb614" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>invalidate</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a13175420ca7f795a7c544784ce09be18" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>isValid</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1ab70eda545ba0cfae353d97ba89c0fe2d" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>linesCache</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a2ee3683d2db306112997f697593188b7" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>linesPasses</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a2449a23cbbbaca865b63e1a57a73d696" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>name</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a84a1e8d23d33f7ca8b952e6c3ba3199b" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>render</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a4d95850ee9a50f06b4090efd5a0e4bce" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>renderEx</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a417cb219e852c6ad559505b251c98144" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>renderEx</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a996e78e6fe1e570367213ef98210be58" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>renderOverrideColor</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a852f3a12dbf44f2396452f5e842b9ee1" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>renderStates</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a4860228139fba81a22a387890c522dfa" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>setTm</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1ae3d26eb138e945d31357fd7ee0c54b84" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>shaderElem</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1ab7ce97c66aee433dc00243dbcd26a46e" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>shaderMat</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1ab703cdf029d5400f62d842ad4032b0f1" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>tm</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1ac10b970763ce98ab34cafb9e38796c29" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>trianglesCache</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a3e564393c4d68b20d426c45b879606d6" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>trianglesPasses</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a40c68e3351cb5cfc2ab8a42165a2fedf" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>trianglesStartIndex</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a1e93beb518bb65b3675a214339f683c8" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>vbuffer</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1aca9d65b17ba56855d831aee3010894ad" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>vertexList</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1ad36980a84ecce543d867f67e1d5c4e7e" prot="private" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>vertexMap</name></member>
+      <member refid="classDebugPrimitivesVbuffer_1a9341ca21f0af059e4333fb38c87b6013" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer</scope><name>~DebugPrimitivesVbuffer</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

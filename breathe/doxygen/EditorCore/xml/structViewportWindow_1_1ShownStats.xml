@@ -1,0 +1,160 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structViewportWindow_1_1ShownStats" kind="struct" language="C++" prot="protected">
+    <compoundname>ViewportWindow::ShownStats</compoundname>
+    <includes refid="ec__ViewportWindow_8h" local="no">ec_ViewportWindow.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structViewportWindow_1_1ShownStats_1aa5d8ea483973a84e0f706e217e499a6f" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::ShownStats::rootStats</definition>
+        <argsstring></argsstring>
+        <name>rootStats</name>
+        <qualifiedname>ViewportWindow::ShownStats::rootStats</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="436" column="10" bodyfile="ec_ViewportWindow.h" bodystart="436" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1ShownStats_1aa48fcfbe2d6b211c3e9a2a4abe669b15" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::ShownStats::_3dStats</definition>
+        <argsstring></argsstring>
+        <name>_3dStats</name>
+        <qualifiedname>ViewportWindow::ShownStats::_3dStats</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="437" column="10" bodyfile="ec_ViewportWindow.h" bodystart="437" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1ShownStats_1afe0bbe70583a1c27e78855e6c686f9b3" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::ShownStats::cameraStats</definition>
+        <argsstring></argsstring>
+        <name>cameraStats</name>
+        <qualifiedname>ViewportWindow::ShownStats::cameraStats</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="438" column="10" bodyfile="ec_ViewportWindow.h" bodystart="438" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1ShownStats_1a5bee6e59106f08eaf989dd1224d5a5c4" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::ShownStats::cameraPos</definition>
+        <argsstring></argsstring>
+        <name>cameraPos</name>
+        <qualifiedname>ViewportWindow::ShownStats::cameraPos</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="439" column="10" bodyfile="ec_ViewportWindow.h" bodystart="439" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1ShownStats_1ae8b10674aa77b2d450cd329c3dd654d2" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::ShownStats::cameraDist</definition>
+        <argsstring></argsstring>
+        <name>cameraDist</name>
+        <qualifiedname>ViewportWindow::ShownStats::cameraDist</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="440" column="10" bodyfile="ec_ViewportWindow.h" bodystart="440" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1ShownStats_1aa16195b09c9fb7e807177d9e41726225" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::ShownStats::cameraFov</definition>
+        <argsstring></argsstring>
+        <name>cameraFov</name>
+        <qualifiedname>ViewportWindow::ShownStats::cameraFov</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="441" column="10" bodyfile="ec_ViewportWindow.h" bodystart="441" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1ShownStats_1a0aaaecc7a2f813015c68ca596bec3aa3" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::ShownStats::flyCameraStats</definition>
+        <argsstring></argsstring>
+        <name>flyCameraStats</name>
+        <qualifiedname>ViewportWindow::ShownStats::flyCameraStats</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="442" column="10" bodyfile="ec_ViewportWindow.h" bodystart="442" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1ShownStats_1a4d7f610652925f68e37dcaa1e82a8598" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::ShownStats::flyCameraSpeed</definition>
+        <argsstring></argsstring>
+        <name>flyCameraSpeed</name>
+        <qualifiedname>ViewportWindow::ShownStats::flyCameraSpeed</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="443" column="10" bodyfile="ec_ViewportWindow.h" bodystart="443" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structViewportWindow_1_1ShownStats_1a10de0ff5691d048f84598a8afbdb0b8f" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ViewportWindow::ShownStats::flyCameraTurboSpeed</definition>
+        <argsstring></argsstring>
+        <name>flyCameraTurboSpeed</name>
+        <qualifiedname>ViewportWindow::ShownStats::flyCameraTurboSpeed</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_ViewportWindow.h" line="444" column="10" bodyfile="ec_ViewportWindow.h" bodystart="444" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_ViewportWindow.h" line="434" column="3" bodyfile="ec_ViewportWindow.h" bodystart="435" bodyend="445"/>
+    <listofallmembers>
+      <member refid="structViewportWindow_1_1ShownStats_1aa48fcfbe2d6b211c3e9a2a4abe669b15" prot="public" virt="non-virtual"><scope>ViewportWindow::ShownStats</scope><name>_3dStats</name></member>
+      <member refid="structViewportWindow_1_1ShownStats_1ae8b10674aa77b2d450cd329c3dd654d2" prot="public" virt="non-virtual"><scope>ViewportWindow::ShownStats</scope><name>cameraDist</name></member>
+      <member refid="structViewportWindow_1_1ShownStats_1aa16195b09c9fb7e807177d9e41726225" prot="public" virt="non-virtual"><scope>ViewportWindow::ShownStats</scope><name>cameraFov</name></member>
+      <member refid="structViewportWindow_1_1ShownStats_1a5bee6e59106f08eaf989dd1224d5a5c4" prot="public" virt="non-virtual"><scope>ViewportWindow::ShownStats</scope><name>cameraPos</name></member>
+      <member refid="structViewportWindow_1_1ShownStats_1afe0bbe70583a1c27e78855e6c686f9b3" prot="public" virt="non-virtual"><scope>ViewportWindow::ShownStats</scope><name>cameraStats</name></member>
+      <member refid="structViewportWindow_1_1ShownStats_1a4d7f610652925f68e37dcaa1e82a8598" prot="public" virt="non-virtual"><scope>ViewportWindow::ShownStats</scope><name>flyCameraSpeed</name></member>
+      <member refid="structViewportWindow_1_1ShownStats_1a0aaaecc7a2f813015c68ca596bec3aa3" prot="public" virt="non-virtual"><scope>ViewportWindow::ShownStats</scope><name>flyCameraStats</name></member>
+      <member refid="structViewportWindow_1_1ShownStats_1a10de0ff5691d048f84598a8afbdb0b8f" prot="public" virt="non-virtual"><scope>ViewportWindow::ShownStats</scope><name>flyCameraTurboSpeed</name></member>
+      <member refid="structViewportWindow_1_1ShownStats_1aa5d8ea483973a84e0f706e217e499a6f" prot="public" virt="non-virtual"><scope>ViewportWindow::ShownStats</scope><name>rootStats</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

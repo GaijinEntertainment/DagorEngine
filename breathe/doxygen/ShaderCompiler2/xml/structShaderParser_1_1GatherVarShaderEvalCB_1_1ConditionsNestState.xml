@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structShaderParser_1_1GatherVarShaderEvalCB_1_1ConditionsNestState" kind="struct" language="C++" prot="private">
+    <compoundname>ShaderParser::GatherVarShaderEvalCB::ConditionsNestState</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structShaderParser_1_1GatherVarShaderEvalCB_1_1ConditionsNestState_1ae74bd6de0576e3d6c4364fe313d83269" prot="public" static="no" mutable="no">
+        <type>Tab&lt; bool &gt;</type>
+        <definition>Tab&lt;bool&gt; ShaderParser::GatherVarShaderEvalCB::ConditionsNestState::stack</definition>
+        <argsstring></argsstring>
+        <name>stack</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::ConditionsNestState::stack</qualifiedname>
+        <initializer>= Tab&lt;bool&gt;(tmpmem)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="37" column="9" bodyfile="gatherVar.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1GatherVarShaderEvalCB_1_1ConditionsNestState_1aba8d7d03f0deea152832636730f9d594" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderParser::GatherVarShaderEvalCB::ConditionsNestState::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::ConditionsNestState::count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="38" column="9" bodyfile="gatherVar.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structShaderParser_1_1GatherVarShaderEvalCB_1_1ConditionsNestState_1a9904fb1780672ef56a51621c19bc84b6" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ShaderParser::GatherVarShaderEvalCB::ConditionsNestState::hasFlag</definition>
+        <argsstring></argsstring>
+        <name>hasFlag</name>
+        <qualifiedname>ShaderParser::GatherVarShaderEvalCB::ConditionsNestState::hasFlag</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="gatherVar.h" line="39" column="10" bodyfile="gatherVar.h" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="gatherVar.h" line="35" column="3" bodyfile="gatherVar.h" bodystart="36" bodyend="40"/>
+    <listofallmembers>
+      <member refid="structShaderParser_1_1GatherVarShaderEvalCB_1_1ConditionsNestState_1aba8d7d03f0deea152832636730f9d594" prot="public" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB::ConditionsNestState</scope><name>count</name></member>
+      <member refid="structShaderParser_1_1GatherVarShaderEvalCB_1_1ConditionsNestState_1a9904fb1780672ef56a51621c19bc84b6" prot="public" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB::ConditionsNestState</scope><name>hasFlag</name></member>
+      <member refid="structShaderParser_1_1GatherVarShaderEvalCB_1_1ConditionsNestState_1ae74bd6de0576e3d6c4364fe313d83269" prot="public" virt="non-virtual"><scope>ShaderParser::GatherVarShaderEvalCB::ConditionsNestState</scope><name>stack</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

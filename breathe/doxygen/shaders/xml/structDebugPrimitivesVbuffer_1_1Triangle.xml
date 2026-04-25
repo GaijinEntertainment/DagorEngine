@@ -1,0 +1,75 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDebugPrimitivesVbuffer_1_1Triangle" kind="struct" language="C++" prot="private">
+    <compoundname>DebugPrimitivesVbuffer::Triangle</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Triangle_1ab4f372a972f88d355107971c80ac0032" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DebugPrimitivesVbuffer::Triangle::id0</definition>
+        <argsstring></argsstring>
+        <name>id0</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Triangle::id0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="71" column="9" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="71" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Triangle_1adc58012151af461a3db819626c74000e" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DebugPrimitivesVbuffer::Triangle::id1</definition>
+        <argsstring></argsstring>
+        <name>id1</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Triangle::id1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="72" column="9" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="72" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Triangle_1a72f391de357c575688b03fe7863e4f6b" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DebugPrimitivesVbuffer::Triangle::id2</definition>
+        <argsstring></argsstring>
+        <name>id2</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Triangle::id2</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="73" column="9" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="73" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structDebugPrimitivesVbuffer_1_1Triangle_1a17940dd75c61e8ffe53be669232e3ea7" prot="public" static="no" mutable="no">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR DebugPrimitivesVbuffer::Triangle::c</definition>
+        <argsstring></argsstring>
+        <name>c</name>
+        <qualifiedname>DebugPrimitivesVbuffer::Triangle::c</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_DebugPrimitivesVbuffer.h" line="74" column="14" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="74" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_DebugPrimitivesVbuffer.h" line="69" column="3" bodyfile="dag_DebugPrimitivesVbuffer.h" bodystart="70" bodyend="75"/>
+    <listofallmembers>
+      <member refid="structDebugPrimitivesVbuffer_1_1Triangle_1a17940dd75c61e8ffe53be669232e3ea7" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Triangle</scope><name>c</name></member>
+      <member refid="structDebugPrimitivesVbuffer_1_1Triangle_1ab4f372a972f88d355107971c80ac0032" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Triangle</scope><name>id0</name></member>
+      <member refid="structDebugPrimitivesVbuffer_1_1Triangle_1adc58012151af461a3db819626c74000e" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Triangle</scope><name>id1</name></member>
+      <member refid="structDebugPrimitivesVbuffer_1_1Triangle_1a72f391de357c575688b03fe7863e4f6b" prot="public" virt="non-virtual"><scope>DebugPrimitivesVbuffer::Triangle</scope><name>id2</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

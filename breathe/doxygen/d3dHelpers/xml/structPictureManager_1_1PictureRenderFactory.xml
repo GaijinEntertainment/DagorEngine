@@ -1,0 +1,200 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structPictureManager_1_1PictureRenderFactory" kind="struct" language="C++" prot="public" abstract="yes">
+    <compoundname>PictureManager::PictureRenderFactory</compoundname>
+    <derivedcompoundref refid="structPictureManager_1_1PictureDelayedRenderFactory" prot="public" virt="non-virtual">PictureManager::PictureDelayedRenderFactory</derivedcompoundref>
+    <includes refid="dag__picMgr_8h" local="no">dag_picMgr.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structPictureManager_1_1PictureRenderFactory_1a968d9a1490b7c0460ee5a9bf71383692" prot="public" static="no" mutable="no">
+        <type><ref refid="structPictureManager_1_1PictureRenderFactory" kindref="compound">PictureRenderFactory</ref> *</type>
+        <definition>PictureRenderFactory* PictureManager::PictureRenderFactory::next</definition>
+        <argsstring></argsstring>
+        <name>next</name>
+        <qualifiedname>PictureManager::PictureRenderFactory::next</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="90" column="24" bodyfile="dag_picMgr.h" bodystart="90" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="structPictureManager_1_1PictureRenderFactory_1ae3feac2b782979781e1274bb75a876bc" prot="public" static="yes" mutable="no">
+        <type><ref refid="structPictureManager_1_1PictureRenderFactory" kindref="compound">PictureRenderFactory</ref> *</type>
+        <definition>PictureRenderFactory* PictureManager::PictureRenderFactory::tail</definition>
+        <argsstring></argsstring>
+        <name>tail</name>
+        <qualifiedname>PictureManager::PictureRenderFactory::tail</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="91" column="31" bodyfile="dag_picMgr.h" bodystart="91" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structPictureManager_1_1PictureRenderFactory_1a7dfd8d2d33b75750e60c9f4cb37a7002" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>PictureManager::PictureRenderFactory::PictureRenderFactory</definition>
+        <argsstring>()</argsstring>
+        <name>PictureRenderFactory</name>
+        <qualifiedname>PictureManager::PictureRenderFactory::PictureRenderFactory</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="92" column="3" bodyfile="dag_picMgr.h" bodystart="92" bodyend="96"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PictureRenderFactory_1a23204b89320f2f59f94897c824a5137e" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void PictureManager::PictureRenderFactory::registered</definition>
+        <argsstring>()=0</argsstring>
+        <name>registered</name>
+        <qualifiedname>PictureManager::PictureRenderFactory::registered</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="98" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PictureRenderFactory_1a7cc54ecc1fcdec480b85e6648c142511" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void PictureManager::PictureRenderFactory::unregistered</definition>
+        <argsstring>()=0</argsstring>
+        <name>unregistered</name>
+        <qualifiedname>PictureManager::PictureRenderFactory::unregistered</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="99" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PictureRenderFactory_1a01b8aa60142456539cae60db679cd362" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void PictureManager::PictureRenderFactory::clearPendReq</definition>
+        <argsstring>()=0</argsstring>
+        <name>clearPendReq</name>
+        <qualifiedname>PictureManager::PictureRenderFactory::clearPendReq</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="100" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PictureRenderFactory_1a79b65da9d2fd1c0a8bfe4af826fa3ddb" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>bool</type>
+        <definition>virtual bool PictureManager::PictureRenderFactory::match</definition>
+        <argsstring>(const DataBlock &amp;pic_props, int &amp;out_w, int &amp;out_h)=0</argsstring>
+        <name>match</name>
+        <qualifiedname>PictureManager::PictureRenderFactory::match</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>pic_props</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>out_w</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>out_h</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="101" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PictureRenderFactory_1a41f22431389f64e1ef5269c39c38bff8" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void PictureManager::PictureRenderFactory::queueRender</definition>
+        <argsstring>(PictureRenderContext &amp;ctx, WinAutoLock *lock)=0</argsstring>
+        <name>queueRender</name>
+        <qualifiedname>PictureManager::PictureRenderFactory::queueRender</qualifiedname>
+        <reimplementedby refid="structPictureManager_1_1PictureDelayedRenderFactory_1abe73e8f2287adb4a6b91252c492a4431">queueRender</reimplementedby>
+        <param>
+          <type>PictureRenderContext &amp;</type>
+          <declname>ctx</declname>
+        </param>
+        <param>
+          <type>WinAutoLock *</type>
+          <declname>lock</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="102" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="structPictureManager_1_1PictureRenderFactory_1aa22d00615d8b434cdf8968bfa969b936" prot="public" static="no" const="no" explicit="no" inline="yes" virt="virtual">
+        <type>void</type>
+        <definition>virtual void PictureManager::PictureRenderFactory::updatePerFrame</definition>
+        <argsstring>()</argsstring>
+        <name>updatePerFrame</name>
+        <qualifiedname>PictureManager::PictureRenderFactory::updatePerFrame</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_picMgr.h" line="103" column="16" bodyfile="dag_picMgr.h" bodystart="103" bodyend="103"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>PictureManager::PictureDelayedRenderFactory</label>
+        <link refid="structPictureManager_1_1PictureDelayedRenderFactory"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>PictureManager::PictureRenderFactory</label>
+        <link refid="structPictureManager_1_1PictureRenderFactory"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>PictureManager::PictureRenderFactory</label>
+        <link refid="structPictureManager_1_1PictureRenderFactory"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>next</edgelabel>
+          <edgelabel>tail</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_picMgr.h" line="88" column="1" bodyfile="dag_picMgr.h" bodystart="89" bodyend="104"/>
+    <listofallmembers>
+      <member refid="structPictureManager_1_1PictureRenderFactory_1a01b8aa60142456539cae60db679cd362" prot="public" virt="pure-virtual"><scope>PictureManager::PictureRenderFactory</scope><name>clearPendReq</name></member>
+      <member refid="structPictureManager_1_1PictureRenderFactory_1a79b65da9d2fd1c0a8bfe4af826fa3ddb" prot="public" virt="pure-virtual"><scope>PictureManager::PictureRenderFactory</scope><name>match</name></member>
+      <member refid="structPictureManager_1_1PictureRenderFactory_1a968d9a1490b7c0460ee5a9bf71383692" prot="public" virt="non-virtual"><scope>PictureManager::PictureRenderFactory</scope><name>next</name></member>
+      <member refid="structPictureManager_1_1PictureRenderFactory_1a7dfd8d2d33b75750e60c9f4cb37a7002" prot="public" virt="non-virtual"><scope>PictureManager::PictureRenderFactory</scope><name>PictureRenderFactory</name></member>
+      <member refid="structPictureManager_1_1PictureRenderFactory_1a41f22431389f64e1ef5269c39c38bff8" prot="public" virt="pure-virtual"><scope>PictureManager::PictureRenderFactory</scope><name>queueRender</name></member>
+      <member refid="structPictureManager_1_1PictureRenderFactory_1a23204b89320f2f59f94897c824a5137e" prot="public" virt="pure-virtual"><scope>PictureManager::PictureRenderFactory</scope><name>registered</name></member>
+      <member refid="structPictureManager_1_1PictureRenderFactory_1ae3feac2b782979781e1274bb75a876bc" prot="public" virt="non-virtual"><scope>PictureManager::PictureRenderFactory</scope><name>tail</name></member>
+      <member refid="structPictureManager_1_1PictureRenderFactory_1a7cc54ecc1fcdec480b85e6648c142511" prot="public" virt="pure-virtual"><scope>PictureManager::PictureRenderFactory</scope><name>unregistered</name></member>
+      <member refid="structPictureManager_1_1PictureRenderFactory_1aa22d00615d8b434cdf8968bfa969b936" prot="public" virt="virtual"><scope>PictureManager::PictureRenderFactory</scope><name>updatePerFrame</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

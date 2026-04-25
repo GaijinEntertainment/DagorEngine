@@ -1,0 +1,155 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structunitedvdata_1_1BufPool_1_1PoolSize" kind="struct" language="C++" prot="public">
+    <compoundname>unitedvdata::BufPool::PoolSize</compoundname>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1_1PoolSize_1aed72aadf5141c5b823dbbf2407e0bb87" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int unitedvdata::BufPool::PoolSize::used</definition>
+        <argsstring></argsstring>
+        <name>used</name>
+        <qualifiedname>unitedvdata::BufPool::PoolSize::used</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="76" column="9" bodyfile="dag_shaderResUnitedData.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufPool_1_1PoolSize_1a42199c0ecdaf1c78b1a52c71f32ae1b1" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int unitedvdata::BufPool::PoolSize::size</definition>
+        <argsstring></argsstring>
+        <name>size</name>
+        <qualifiedname>unitedvdata::BufPool::PoolSize::size</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="76" column="15" bodyfile="dag_shaderResUnitedData.h" bodystart="76" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1_1PoolSize_1a4c046efe147f5a40640e0006e9d172ba" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int unitedvdata::BufPool::PoolSize::getUsed</definition>
+        <argsstring>() const</argsstring>
+        <name>getUsed</name>
+        <qualifiedname>unitedvdata::BufPool::PoolSize::getUsed</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="68" column="9" bodyfile="dag_shaderResUnitedData.h" bodystart="68" bodyend="68"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1_1PoolSize_1abcaa3fd7b97d3ca4da51c06f1034e003" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int unitedvdata::BufPool::PoolSize::getSize</definition>
+        <argsstring>() const</argsstring>
+        <name>getSize</name>
+        <qualifiedname>unitedvdata::BufPool::PoolSize::getSize</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="69" column="9" bodyfile="dag_shaderResUnitedData.h" bodystart="69" bodyend="69"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1_1PoolSize_1a6525457a98d19c9ed58a845294f6c48f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void unitedvdata::BufPool::PoolSize::setUsed</definition>
+        <argsstring>(int u)</argsstring>
+        <name>setUsed</name>
+        <qualifiedname>unitedvdata::BufPool::PoolSize::setUsed</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>u</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="70" column="10" bodyfile="dag_shaderResUnitedData.h" bodystart="70" bodyend="70"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1_1PoolSize_1af44055a52eaee0838ab6e9056f56d8f3" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void unitedvdata::BufPool::PoolSize::setSize</definition>
+        <argsstring>(int s)</argsstring>
+        <name>setSize</name>
+        <qualifiedname>unitedvdata::BufPool::PoolSize::setSize</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="71" column="10" bodyfile="dag_shaderResUnitedData.h" bodystart="71" bodyend="71"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1_1PoolSize_1acc4ec52b8a96484399cd365cdc36e629" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void unitedvdata::BufPool::PoolSize::incUsed</definition>
+        <argsstring>(int u)</argsstring>
+        <name>incUsed</name>
+        <qualifiedname>unitedvdata::BufPool::PoolSize::incUsed</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>u</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="72" column="10" bodyfile="dag_shaderResUnitedData.h" bodystart="72" bodyend="72"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufPool_1_1PoolSize_1add94e8626daa470ed79c257eb4a6de19" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void unitedvdata::BufPool::PoolSize::decUsed</definition>
+        <argsstring>(int u)</argsstring>
+        <name>decUsed</name>
+        <qualifiedname>unitedvdata::BufPool::PoolSize::decUsed</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>u</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="73" column="10" bodyfile="dag_shaderResUnitedData.h" bodystart="73" bodyend="73"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderResUnitedData.h" line="66" column="3" bodyfile="dag_shaderResUnitedData.h" bodystart="67" bodyend="77"/>
+    <listofallmembers>
+      <member refid="structunitedvdata_1_1BufPool_1_1PoolSize_1add94e8626daa470ed79c257eb4a6de19" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool::PoolSize</scope><name>decUsed</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1_1PoolSize_1abcaa3fd7b97d3ca4da51c06f1034e003" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool::PoolSize</scope><name>getSize</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1_1PoolSize_1a4c046efe147f5a40640e0006e9d172ba" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool::PoolSize</scope><name>getUsed</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1_1PoolSize_1acc4ec52b8a96484399cd365cdc36e629" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool::PoolSize</scope><name>incUsed</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1_1PoolSize_1af44055a52eaee0838ab6e9056f56d8f3" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool::PoolSize</scope><name>setSize</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1_1PoolSize_1a6525457a98d19c9ed58a845294f6c48f" prot="public" virt="non-virtual"><scope>unitedvdata::BufPool::PoolSize</scope><name>setUsed</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1_1PoolSize_1a42199c0ecdaf1c78b1a52c71f32ae1b1" prot="protected" virt="non-virtual"><scope>unitedvdata::BufPool::PoolSize</scope><name>size</name></member>
+      <member refid="structunitedvdata_1_1BufPool_1_1PoolSize_1aed72aadf5141c5b823dbbf2407e0bb87" prot="protected" virt="non-virtual"><scope>unitedvdata::BufPool::PoolSize</scope><name>used</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

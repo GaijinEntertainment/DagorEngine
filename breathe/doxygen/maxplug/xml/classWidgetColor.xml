@@ -1,0 +1,274 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classWidgetColor" kind="class" language="C++" prot="public">
+    <compoundname>WidgetColor</compoundname>
+    <basecompoundref refid="classAbstractWidget" prot="public" virt="non-virtual">AbstractWidget</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classWidgetColor_1a41ca348337c05fe181ab3267bf5b4a03" prot="private" static="no" mutable="no">
+        <type>IColorSwatch *</type>
+        <definition>IColorSwatch* WidgetColor::col</definition>
+        <argsstring></argsstring>
+        <name>col</name>
+        <qualifiedname>WidgetColor::col</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="633" column="16" bodyfile="mater2.cpp" bodystart="633" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classWidgetColor_1ade6947d6bc01000c0be20b78aef86652" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>WidgetColor::WidgetColor</definition>
+        <argsstring>(const ParamInfo &amp;pinfo, Dagormat2Dialog *p)</argsstring>
+        <name>WidgetColor</name>
+        <qualifiedname>WidgetColor::WidgetColor</qualifiedname>
+        <param>
+          <type>const <ref refid="structParamInfo" kindref="compound">ParamInfo</ref> &amp;</type>
+          <declname>pinfo</declname>
+        </param>
+        <param>
+          <type><ref refid="classDagormat2Dialog" kindref="compound">Dagormat2Dialog</ref> *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="622" column="3" bodyfile="mater2.cpp" bodystart="3270" bodyend="3273"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetColor_1aad74d27b8890b51eeee571df61c035f0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>WidgetColor::~WidgetColor</definition>
+        <argsstring>() override</argsstring>
+        <name>~WidgetColor</name>
+        <qualifiedname>WidgetColor::~WidgetColor</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="623" column="3" bodyfile="mater2.cpp" bodystart="3275" bodyend="3275"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetColor_1a1d52990089e9e09dbc1e7722b97d54aa" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR</type>
+        <definition>INT_PTR WidgetColor::WndProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>WndProc</name>
+        <qualifiedname>WidgetColor::WndProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="625" column="11" bodyfile="mater2.cpp" bodystart="3277" bodyend="3314"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetColor_1ad5541bb7f1f82fdf6086e31c65ff98d4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * WidgetColor::GetType</definition>
+        <argsstring>() const override</argsstring>
+        <name>GetType</name>
+        <qualifiedname>WidgetColor::GetType</qualifiedname>
+        <reimplements refid="classAbstractWidget_1a90aa0849f34ee9f02fda1873cb7aa23f">GetType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="627" column="15" bodyfile="mater2.cpp" bodystart="627" bodyend="627"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classWidgetColor_1a466d7abe1ad2581f9e94aca8de9991f9" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WidgetColor::GetValue</definition>
+        <argsstring>()</argsstring>
+        <name>GetValue</name>
+        <qualifiedname>WidgetColor::GetValue</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="630" column="8" bodyfile="mater2.cpp" bodystart="3316" bodyend="3324"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetColor_1a190fa94784c5c17f4ea5f11315341197" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void WidgetColor::SetValue</definition>
+        <argsstring>(const M_STD_STRING &amp;v)</argsstring>
+        <name>SetValue</name>
+        <qualifiedname>WidgetColor::SetValue</qualifiedname>
+        <param>
+          <type>const <ref refid="max__cpt_8h_1aac8fc27342213a2c8f99bf3ed5a11a2a" kindref="member">M_STD_STRING</ref> &amp;</type>
+          <declname>v</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="631" column="8" bodyfile="mater2.cpp" bodystart="3326" bodyend="3336"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>AbstractWidget</label>
+        <link refid="classAbstractWidget"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ParamDlg</label>
+      </node>
+      <node id="1">
+        <label>WidgetColor</label>
+        <link refid="classWidgetColor"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>AbstractWidget</label>
+        <link refid="classAbstractWidget"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>param</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>dlg</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>texmaps</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>postLoadCallback</edgelabel>
+        </childnode>
+      </node>
+      <node id="12">
+        <label>DagorMat2PostLoadCallback</label>
+        <link refid="classDagorMat2PostLoadCallback"/>
+        <childnode refid="13" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>Dagormat2Dialog</label>
+        <link refid="classDagormat2Dialog"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>theMtl</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="8">
+        <label>IDagorMat2</label>
+        <link refid="classIDagorMat2"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>Mtl</label>
+      </node>
+      <node id="3">
+        <label>ParamDlg</label>
+      </node>
+      <node id="4">
+        <label>ParamInfo</label>
+        <link refid="structParamInfo"/>
+      </node>
+      <node id="13">
+        <label>PostLoadCallback</label>
+      </node>
+      <node id="11">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="10">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>WidgetColor</label>
+        <link refid="classWidgetColor"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater2.cpp" line="619" column="1" bodyfile="mater2.cpp" bodystart="620" bodyend="634"/>
+    <listofallmembers>
+      <member refid="classAbstractWidget_1a454fa11aba5faa882f13558c3abb8979" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>AbstractWidget</name></member>
+      <member refid="classAbstractWidget_1adbf42d102782f62660fcf7f462bc5051" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>ActivateDlg</name></member>
+      <member refid="classAbstractWidget_1a6fe8fca67f5966b557d5febd9eeb0125" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>ClassID</name></member>
+      <member refid="classWidgetColor_1a41ca348337c05fe181ab3267bf5b4a03" prot="private" virt="non-virtual"><scope>WidgetColor</scope><name>col</name></member>
+      <member refid="classAbstractWidget_1acc041c5ce7ee3ffa9e2b9222e60a9257" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>creating</name></member>
+      <member refid="classAbstractWidget_1a856eab753d8c16238ef3635697d6e8a5" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>DeleteThis</name></member>
+      <member refid="classAbstractWidget_1a7db3309c2ef92adb0e81325e322ad7ad" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>GetThing</name></member>
+      <member refid="classWidgetColor_1ad5541bb7f1f82fdf6086e31c65ff98d4" prot="public" virt="virtual"><scope>WidgetColor</scope><name>GetType</name></member>
+      <member refid="classWidgetColor_1a466d7abe1ad2581f9e94aca8de9991f9" prot="private" virt="non-virtual"><scope>WidgetColor</scope><name>GetValue</name></member>
+      <member refid="classAbstractWidget_1ae6ef1a942f5beccee8e1317729b39e29" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>hPanel</name></member>
+      <member refid="classAbstractWidget_1a526a24cfeeb1ec8719cebd4cb6f301bb" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>hSType</name></member>
+      <member refid="classAbstractWidget_1a9d7b8f0fc266a86464287bf42df95049" prot="public" virt="virtual"><scope>WidgetColor</scope><name>IsGroup</name></member>
+      <member refid="classAbstractWidget_1a191d69769bfc7165bbf8024cf3c039e9" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>param</name></member>
+      <member refid="classAbstractWidget_1a1d40750cb424c8a14226b610257d896e" prot="protected" virt="non-virtual"><scope>WidgetColor</scope><name>parent</name></member>
+      <member refid="classAbstractWidget_1ad49b39e71d00b743a496fdd507a8ad0f" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>ReloadDialog</name></member>
+      <member refid="classAbstractWidget_1a2206c7b044e53a42eecc7e5cce08e31d" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>screen_rc</name></member>
+      <member refid="classAbstractWidget_1a2c3b6db8f678ebfd546b2b81fd881b58" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>SetThing</name></member>
+      <member refid="classAbstractWidget_1aa1cba9b42b68fb5248eee5b1e9575fca" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>SetTime</name></member>
+      <member refid="classWidgetColor_1a190fa94784c5c17f4ea5f11315341197" prot="private" virt="non-virtual"><scope>WidgetColor</scope><name>SetValue</name></member>
+      <member refid="classWidgetColor_1ade6947d6bc01000c0be20b78aef86652" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>WidgetColor</name></member>
+      <member refid="classWidgetColor_1a1d52990089e9e09dbc1e7722b97d54aa" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>WndProc</name></member>
+      <member refid="classAbstractWidget_1acd357b6426d63a3658dffd4b84c1c6d2" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>~AbstractWidget</name></member>
+      <member refid="classWidgetColor_1aad74d27b8890b51eeee571df61c035f0" prot="public" virt="non-virtual"><scope>WidgetColor</scope><name>~WidgetColor</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

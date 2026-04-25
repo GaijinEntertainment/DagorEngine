@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classLinkDummyCreateCallBack" kind="class" language="C++" prot="public">
+    <compoundname>LinkDummyCreateCallBack</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">CreateMouseCallBack</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classLinkDummyCreateCallBack_1a203c24895f61305353434825a26da1bc" prot="private" static="no" mutable="no">
+        <type>IPoint2</type>
+        <definition>IPoint2 LinkDummyCreateCallBack::sp1</definition>
+        <argsstring></argsstring>
+        <name>sp1</name>
+        <qualifiedname>LinkDummyCreateCallBack::sp1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="242" column="11" bodyfile="dummy.cpp" bodystart="242" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLinkDummyCreateCallBack_1a001cb46e956d77802b9002192c2d7a2c" prot="private" static="no" mutable="no">
+        <type><ref refid="classLinkDummy" kindref="compound">LinkDummy</ref> *</type>
+        <definition>LinkDummy* LinkDummyCreateCallBack::ob</definition>
+        <argsstring></argsstring>
+        <name>ob</name>
+        <qualifiedname>LinkDummyCreateCallBack::ob</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="243" column="13" bodyfile="dummy.cpp" bodystart="243" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLinkDummyCreateCallBack_1a438955d964f66b52a0a1c1e805d55a19" prot="private" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 LinkDummyCreateCallBack::p0</definition>
+        <argsstring></argsstring>
+        <name>p0</name>
+        <qualifiedname>LinkDummyCreateCallBack::p0</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="244" column="10" bodyfile="dummy.cpp" bodystart="244" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classLinkDummyCreateCallBack_1a085d06d74fb22a070c0db71c32377fc0" prot="private" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 LinkDummyCreateCallBack::p1</definition>
+        <argsstring></argsstring>
+        <name>p1</name>
+        <qualifiedname>LinkDummyCreateCallBack::p1</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="244" column="13" bodyfile="dummy.cpp" bodystart="244" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classLinkDummyCreateCallBack_1a6d1b37fc3990bf67f55128cd7d21a269" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int LinkDummyCreateCallBack::proc</definition>
+        <argsstring>(ViewExp *vpt, int msg, int point, int flags, IPoint2 m, Matrix3 &amp;mat) override</argsstring>
+        <name>proc</name>
+        <qualifiedname>LinkDummyCreateCallBack::proc</qualifiedname>
+        <param>
+          <type>ViewExp *</type>
+          <declname>vpt</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>point</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>flags</declname>
+        </param>
+        <param>
+          <type>IPoint2</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>Matrix3 &amp;</type>
+          <declname>mat</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="247" column="7" bodyfile="dummy.cpp" bodystart="251" bodyend="287"/>
+      </memberdef>
+      <memberdef kind="function" id="classLinkDummyCreateCallBack_1ac862647f53c00ba83854d1547ccc0aa7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void LinkDummyCreateCallBack::SetObj</definition>
+        <argsstring>(LinkDummy *obj)</argsstring>
+        <name>SetObj</name>
+        <qualifiedname>LinkDummyCreateCallBack::SetObj</qualifiedname>
+        <param>
+          <type><ref refid="classLinkDummy" kindref="compound">LinkDummy</ref> *</type>
+          <declname>obj</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dummy.cpp" line="248" column="8" bodyfile="dummy.cpp" bodystart="248" bodyend="248"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>CreateMouseCallBack</label>
+      </node>
+      <node id="1">
+        <label>LinkDummyCreateCallBack</label>
+        <link refid="classLinkDummyCreateCallBack"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>CreateMouseCallBack</label>
+      </node>
+      <node id="1">
+        <label>LinkDummyCreateCallBack</label>
+        <link refid="classLinkDummyCreateCallBack"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dummy.cpp" line="240" column="1" bodyfile="dummy.cpp" bodystart="241" bodyend="249"/>
+    <listofallmembers>
+      <member refid="classLinkDummyCreateCallBack_1a001cb46e956d77802b9002192c2d7a2c" prot="private" virt="non-virtual"><scope>LinkDummyCreateCallBack</scope><name>ob</name></member>
+      <member refid="classLinkDummyCreateCallBack_1a438955d964f66b52a0a1c1e805d55a19" prot="private" virt="non-virtual"><scope>LinkDummyCreateCallBack</scope><name>p0</name></member>
+      <member refid="classLinkDummyCreateCallBack_1a085d06d74fb22a070c0db71c32377fc0" prot="private" virt="non-virtual"><scope>LinkDummyCreateCallBack</scope><name>p1</name></member>
+      <member refid="classLinkDummyCreateCallBack_1a6d1b37fc3990bf67f55128cd7d21a269" prot="public" virt="non-virtual"><scope>LinkDummyCreateCallBack</scope><name>proc</name></member>
+      <member refid="classLinkDummyCreateCallBack_1ac862647f53c00ba83854d1547ccc0aa7" prot="public" virt="non-virtual"><scope>LinkDummyCreateCallBack</scope><name>SetObj</name></member>
+      <member refid="classLinkDummyCreateCallBack_1a203c24895f61305353434825a26da1bc" prot="private" virt="non-virtual"><scope>LinkDummyCreateCallBack</scope><name>sp1</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

@@ -1,0 +1,1956 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDynamicRenderableSceneInstance" kind="class" language="C++" prot="protected">
+    <compoundname>DynamicRenderableSceneInstance</compoundname>
+      <sectiondef kind="protected-type">
+      <memberdef kind="enum" id="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4" prot="protected" static="no" strong="no">
+        <type></type>
+        <name>Offsets</name>
+        <qualifiedname>DynamicRenderableSceneInstance::Offsets</qualifiedname>
+        <enumvalue id="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4a6ffd04fcbf4588a1b5a45ed8dfd05a5d" prot="protected">
+          <name>CUR_WTM</name>
+          <initializer>= 0</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4a804e112846cf76da157580fa45b1a2aa" prot="protected">
+          <name>PREV_WTM</name>
+          <initializer>= CUR_WTM + sizeof(TMatrix)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4aba2e187031125afd2e9ecf1ef9751f06" prot="protected">
+          <name>ORIGIN_VEC</name>
+          <initializer>= PREV_WTM + sizeof(TMatrix)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4ab4979a7d0d81d77ed517e54047aea6fa" prot="protected">
+          <name>PREV_ORIGIN_VEC</name>
+          <initializer>= ORIGIN_VEC + sizeof(Point3)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4a25698db7385194208e19ecf30e1ae77d" prot="protected">
+          <name>OPACITY</name>
+          <initializer>= PREV_ORIGIN_VEC + sizeof(Point3)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4ac0d72e6b0d130e32dbc427c6a06dab23" prot="protected">
+          <name>HIDDEN</name>
+          <initializer>= OPACITY + sizeof(float)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4a7798ce73dfcfdc8d431e2c82d51ac29d" prot="protected">
+          <name>ALL_DATA_SIZE</name>
+          <initializer>= HIDDEN + sizeof(bool)</initializer>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="722" column="3" bodyfile="dag_dynSceneRes.h" bodystart="723" bodyend="731"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="typedef" id="classDynamicRenderableSceneInstance_1ae58ee2f912e84a38dc1370dd67e49ffa" prot="public" static="no">
+        <type>eastl::array&lt; uint32_t, 4 *2 &gt;</type>
+        <definition>using DynamicRenderableSceneInstance::NodeCollapserBits =  eastl::array&lt;uint32_t, 4 * 2&gt;</definition>
+        <argsstring></argsstring>
+        <name>NodeCollapserBits</name>
+        <qualifiedname>DynamicRenderableSceneInstance::NodeCollapserBits</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="476" column="3" bodyfile="dag_dynSceneRes.h" bodystart="476" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a97891176656004415dc964a08cc2bdf1" prot="public" static="yes" mutable="no">
+        <type>float</type>
+        <definition>float DynamicRenderableSceneInstance::lodDistanceScale</definition>
+        <argsstring></argsstring>
+        <name>lodDistanceScale</name>
+        <qualifiedname>DynamicRenderableSceneInstance::lodDistanceScale</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="478" column="16" bodyfile="dag_dynSceneRes.h" bodystart="478" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1ac0645a6f61672a2b2084641f3a36095e" prot="protected" static="no" mutable="no">
+        <type>Ptr&lt; DynamicRenderableSceneResource &gt;</type>
+        <definition>Ptr&lt;DynamicRenderableSceneResource&gt; DynamicRenderableSceneInstance::sceneResource</definition>
+        <argsstring></argsstring>
+        <name>sceneResource</name>
+        <qualifiedname>DynamicRenderableSceneInstance::sceneResource</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="702" column="7" bodyfile="dag_dynSceneRes.h" bodystart="702" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a0bd3e94783a9e87515d9f375bdef8c30" prot="protected" static="no" mutable="no">
+        <type>Ptr&lt; DynamicRenderableSceneLodsResource &gt;</type>
+        <definition>Ptr&lt;DynamicRenderableSceneLodsResource&gt; DynamicRenderableSceneInstance::lods</definition>
+        <argsstring></argsstring>
+        <name>lods</name>
+        <qualifiedname>DynamicRenderableSceneInstance::lods</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="703" column="7" bodyfile="dag_dynSceneRes.h" bodystart="703" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a2f1432f08982b53a263b3241a99fe66b" prot="protected" static="no" mutable="no">
+        <type>eastl::unique_ptr&lt; uint8_t[]&gt;</type>
+        <definition>eastl::unique_ptr&lt;uint8_t[]&gt; DynamicRenderableSceneInstance::allNodesData</definition>
+        <argsstring></argsstring>
+        <name>allNodesData</name>
+        <qualifiedname>DynamicRenderableSceneInstance::allNodesData</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="705" column="21" bodyfile="dag_dynSceneRes.h" bodystart="705" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a8f68d91b7755c2a2b3f0819629b13fa7" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DynamicRenderableSceneInstance::count</definition>
+        <argsstring></argsstring>
+        <name>count</name>
+        <qualifiedname>DynamicRenderableSceneInstance::count</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="706" column="12" bodyfile="dag_dynSceneRes.h" bodystart="706" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a5c6e5a7ac136ba04b23ff61e9c6a50f4" prot="protected" static="no" mutable="no">
+        <type>int8_t</type>
+        <definition>int8_t DynamicRenderableSceneInstance::curLodNo</definition>
+        <argsstring></argsstring>
+        <name>curLodNo</name>
+        <qualifiedname>DynamicRenderableSceneInstance::curLodNo</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="707" column="10" bodyfile="dag_dynSceneRes.h" bodystart="707" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a0b52ce7163276a9d4a037774c2c59b89" prot="protected" static="no" mutable="no">
+        <type>int8_t</type>
+        <definition>int8_t DynamicRenderableSceneInstance::forceLod</definition>
+        <argsstring></argsstring>
+        <name>forceLod</name>
+        <qualifiedname>DynamicRenderableSceneInstance::forceLod</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="708" column="10" bodyfile="dag_dynSceneRes.h" bodystart="708" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1aa2b9d35f8090cf6271845f9e59a5c803" prot="protected" static="no" mutable="no">
+        <type>int8_t</type>
+        <definition>int8_t DynamicRenderableSceneInstance::bestLodLimit</definition>
+        <argsstring></argsstring>
+        <name>bestLodLimit</name>
+        <qualifiedname>DynamicRenderableSceneInstance::bestLodLimit</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="709" column="10" bodyfile="dag_dynSceneRes.h" bodystart="709" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a5699a858bf13176342fc6dfa7a473b2d" prot="protected" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t DynamicRenderableSceneInstance::autoCalcBBox</definition>
+        <argsstring></argsstring>
+        <name>autoCalcBBox</name>
+        <qualifiedname>DynamicRenderableSceneInstance::autoCalcBBox</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="710" column="11" bodyfile="dag_dynSceneRes.h" bodystart="710" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a7267ace1b6da8408f807fe01436025c3" prot="protected" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t DynamicRenderableSceneInstance::disableAutoChooseLod</definition>
+        <argsstring></argsstring>
+        <name>disableAutoChooseLod</name>
+        <qualifiedname>DynamicRenderableSceneInstance::disableAutoChooseLod</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="710" column="25" bodyfile="dag_dynSceneRes.h" bodystart="710" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a805cc8f3f3924625135655ce923e40bd" prot="protected" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t DynamicRenderableSceneInstance::instanceActive</definition>
+        <argsstring></argsstring>
+        <name>instanceActive</name>
+        <qualifiedname>DynamicRenderableSceneInstance::instanceActive</qualifiedname>
+        <bitfield> 1</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="710" column="47" bodyfile="dag_dynSceneRes.h" bodystart="710" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a3f1c0a67d53349f5a059b427d19ee8cd" prot="protected" static="no" mutable="no">
+        <type>uint8_t</type>
+        <definition>uint8_t DynamicRenderableSceneInstance::_resv</definition>
+        <argsstring></argsstring>
+        <name>_resv</name>
+        <qualifiedname>DynamicRenderableSceneInstance::_resv</qualifiedname>
+        <bitfield> 5</bitfield>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="710" column="63" bodyfile="dag_dynSceneRes.h" bodystart="710" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a2a729fa57f00a1a078307dc77f73cfe9" prot="protected" static="no" mutable="no">
+        <type>float</type>
+        <definition>float DynamicRenderableSceneInstance::distSq</definition>
+        <argsstring></argsstring>
+        <name>distSq</name>
+        <qualifiedname>DynamicRenderableSceneInstance::distSq</qualifiedname>
+        <initializer>= 0.0f</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="712" column="9" bodyfile="dag_dynSceneRes.h" bodystart="712" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1ac53f014bd59f78b6bd2675f86d9ea11d" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 DynamicRenderableSceneInstance::origin</definition>
+        <argsstring></argsstring>
+        <name>origin</name>
+        <qualifiedname>DynamicRenderableSceneInstance::origin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="714" column="10" bodyfile="dag_dynSceneRes.h" bodystart="714" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1ae819ce92bfa0775ab0766959ce0065a3" prot="protected" static="no" mutable="no">
+        <type>Point3</type>
+        <definition>Point3 DynamicRenderableSceneInstance::originPrev</definition>
+        <argsstring></argsstring>
+        <name>originPrev</name>
+        <qualifiedname>DynamicRenderableSceneInstance::originPrev</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="715" column="10" bodyfile="dag_dynSceneRes.h" bodystart="715" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a9aa6f9f42cfc847cbf73711a1c0c2afe" prot="protected" static="no" mutable="no">
+        <type>BBox3</type>
+        <definition>BBox3 DynamicRenderableSceneInstance::bbox</definition>
+        <argsstring></argsstring>
+        <name>bbox</name>
+        <qualifiedname>DynamicRenderableSceneInstance::bbox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="716" column="9" bodyfile="dag_dynSceneRes.h" bodystart="716" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a7389f442a6711cdddcb462f6e3aa8dd1" prot="protected" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t DynamicRenderableSceneInstance::uniqueId</definition>
+        <argsstring></argsstring>
+        <name>uniqueId</name>
+        <qualifiedname>DynamicRenderableSceneInstance::uniqueId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="718" column="12" bodyfile="dag_dynSceneRes.h" bodystart="718" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1adb242a75c389d4f1b39a9b51d08dbb45" prot="protected" static="no" mutable="no">
+        <type>NodeCollapserBits</type>
+        <definition>NodeCollapserBits DynamicRenderableSceneInstance::nodeCollapserBits</definition>
+        <argsstring></argsstring>
+        <name>nodeCollapserBits</name>
+        <qualifiedname>DynamicRenderableSceneInstance::nodeCollapserBits</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="720" column="21" bodyfile="dag_dynSceneRes.h" bodystart="720" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a8beae9e076e1902eb6971ba1e232d074" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::curWtm</definition>
+        <argsstring></argsstring>
+        <name>curWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::curWtm</qualifiedname>
+        <initializer>= CUR_WTM</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="732" column="7" bodyfile="dag_dynSceneRes.h" bodystart="732" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a0df1be74d45b0cacb99f08a8c004f563" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::prevWtm</definition>
+        <argsstring></argsstring>
+        <name>prevWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::prevWtm</qualifiedname>
+        <initializer>= PREV_WTM</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="733" column="7" bodyfile="dag_dynSceneRes.h" bodystart="733" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1a2af5b12387920c91edf3f690d55a954c" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::curOrig</definition>
+        <argsstring></argsstring>
+        <name>curOrig</name>
+        <qualifiedname>DynamicRenderableSceneInstance::curOrig</qualifiedname>
+        <initializer>= ORIGIN_VEC</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="734" column="7" bodyfile="dag_dynSceneRes.h" bodystart="734" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classDynamicRenderableSceneInstance_1ab2c41993b3247e8936128316e18f72f9" prot="protected" static="no" mutable="no">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::prevOrig</definition>
+        <argsstring></argsstring>
+        <name>prevOrig</name>
+        <qualifiedname>DynamicRenderableSceneInstance::prevOrig</qualifiedname>
+        <initializer>= PREV_ORIGIN_VEC</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="735" column="7" bodyfile="dag_dynSceneRes.h" bodystart="735" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a194f5bd3912c58ec1d4fc25a5c46d050" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DynamicRenderableSceneInstance::DynamicRenderableSceneInstance</definition>
+        <argsstring>(DynamicRenderableSceneLodsResource *res, bool activate_instance=true)</argsstring>
+        <name>DynamicRenderableSceneInstance</name>
+        <qualifiedname>DynamicRenderableSceneInstance::DynamicRenderableSceneInstance</qualifiedname>
+        <param>
+          <type>DynamicRenderableSceneLodsResource *</type>
+          <declname>res</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>activate_instance</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="480" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a4d926a2c0181533eeaf17d3c5ff5ddc3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DynamicRenderableSceneInstance::~DynamicRenderableSceneInstance</definition>
+        <argsstring>()</argsstring>
+        <name>~DynamicRenderableSceneInstance</name>
+        <qualifiedname>DynamicRenderableSceneInstance::~DynamicRenderableSceneInstance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="482" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1adf8de4cf27f8abfdd17f267d381038e7" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::activateInstance</definition>
+        <argsstring>(bool a=true)</argsstring>
+        <name>activateInstance</name>
+        <qualifiedname>DynamicRenderableSceneInstance::activateInstance</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>a</declname>
+          <defval>true</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="484" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a2b5f52587aa290dae498bb46ff29e743" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::deactivateInstance</definition>
+        <argsstring>()</argsstring>
+        <name>deactivateInstance</name>
+        <qualifiedname>DynamicRenderableSceneInstance::deactivateInstance</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="485" column="15" bodyfile="dag_dynSceneRes.h" bodystart="485" bodyend="485"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1acd225d41a355356488afbd956871a18b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>DynamicRenderableSceneResource *</type>
+        <definition>DynamicRenderableSceneResource * DynamicRenderableSceneInstance::getCurSceneResource</definition>
+        <argsstring>()</argsstring>
+        <name>getCurSceneResource</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getCurSceneResource</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="487" column="34" bodyfile="dag_dynSceneRes.h" bodystart="487" bodyend="487"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a0ba2a130ed28e1d9a87ab72b62e5f061" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const DynamicRenderableSceneResource *</type>
+        <definition>const DynamicRenderableSceneResource * DynamicRenderableSceneInstance::getCurSceneResource</definition>
+        <argsstring>() const</argsstring>
+        <name>getCurSceneResource</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getCurSceneResource</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="488" column="40" bodyfile="dag_dynSceneRes.h" bodystart="488" bodyend="488"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1af7121c5a22b376d94f35781377a6636b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>DynamicRenderableSceneLodsResource *</type>
+        <definition>DynamicRenderableSceneLodsResource * DynamicRenderableSceneInstance::getLodsResource</definition>
+        <argsstring>()</argsstring>
+        <name>getLodsResource</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getLodsResource</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="490" column="38" bodyfile="dag_dynSceneRes.h" bodystart="490" bodyend="490"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a36080aec3900e9da0a43495e25101854" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>DynamicRenderableSceneLodsResource *</type>
+        <definition>DynamicRenderableSceneLodsResource * DynamicRenderableSceneInstance::cloneLodsResource</definition>
+        <argsstring>() const</argsstring>
+        <name>cloneLodsResource</name>
+        <qualifiedname>DynamicRenderableSceneInstance::cloneLodsResource</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="491" column="38" bodyfile="dag_dynSceneRes.h" bodystart="491" bodyend="491"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1abde2017e78e9a591532ca9dd15bfb33e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::changeLodsResource</definition>
+        <argsstring>(DynamicRenderableSceneLodsResource *new_lods)</argsstring>
+        <name>changeLodsResource</name>
+        <qualifiedname>DynamicRenderableSceneInstance::changeLodsResource</qualifiedname>
+        <param>
+          <type>DynamicRenderableSceneLodsResource *</type>
+          <declname>new_lods</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="492" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1aa052f13bb0250e20b5a5e75ba1463ec1" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const DynamicRenderableSceneLodsResource *</type>
+        <definition>const DynamicRenderableSceneLodsResource * DynamicRenderableSceneInstance::getConstLodsResource</definition>
+        <argsstring>() const</argsstring>
+        <name>getConstLodsResource</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getConstLodsResource</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="494" column="44" bodyfile="dag_dynSceneRes.h" bodystart="494" bodyend="494"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1afee567c5629785cfd350b5d09915e3a2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const DynamicRenderableSceneLodsResource *</type>
+        <definition>const DynamicRenderableSceneLodsResource * DynamicRenderableSceneInstance::getLodsResource</definition>
+        <argsstring>() const</argsstring>
+        <name>getLodsResource</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getLodsResource</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="495" column="44" bodyfile="dag_dynSceneRes.h" bodystart="495" bodyend="495"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a157dadff5f31f3ac702c20c5e110a8de" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::getLodsCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getLodsCount</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getLodsCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="496" column="7" bodyfile="dag_dynSceneRes.h" bodystart="496" bodyend="496"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a7a34abdc45a1337b7a7c8db2c19b527f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::getNodeId</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getNodeId</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getNodeId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="498" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a101062c5792082fa092a906ef7564b94" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t DynamicRenderableSceneInstance::getNodeCount</definition>
+        <argsstring>() const</argsstring>
+        <name>getNodeCount</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getNodeCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="500" column="19" bodyfile="dag_dynSceneRes.h" bodystart="500" bodyend="500"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a8442ee641be45e7c15beadbbf0ec41ba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setNodeOpacity</definition>
+        <argsstring>(uint32_t n_id, real value)</argsstring>
+        <name>setNodeOpacity</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setNodeOpacity</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <param>
+          <type>real</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="502" column="8" bodyfile="dag_dynSceneRes.h" bodystart="502" bodyend="506"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a2509e539416f941c1d2f04f4266addcc" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::showNode</definition>
+        <argsstring>(uint32_t n_id, bool show)</argsstring>
+        <name>showNode</name>
+        <qualifiedname>DynamicRenderableSceneInstance::showNode</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>show</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="507" column="8" bodyfile="dag_dynSceneRes.h" bodystart="507" bodyend="511"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ade971292bc4778ad8801cc9aeb66f9f4" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::showSkinnedNodesConnectedToBone</definition>
+        <argsstring>(int bone_id, bool need_show)</argsstring>
+        <name>showSkinnedNodesConnectedToBone</name>
+        <qualifiedname>DynamicRenderableSceneInstance::showSkinnedNodesConnectedToBone</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>bone_id</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>need_show</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="513" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1af36505587f45b177b1c87c8cb88d2846" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::clearNodeCollapser</definition>
+        <argsstring>()</argsstring>
+        <name>clearNodeCollapser</name>
+        <qualifiedname>DynamicRenderableSceneInstance::clearNodeCollapser</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="515" column="8" bodyfile="dag_dynSceneRes.h" bodystart="515" bodyend="515"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a7f01d6e9c900b542c952a349243b0dba" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::markNodeCollapserNode</definition>
+        <argsstring>(uint32_t node_index)</argsstring>
+        <name>markNodeCollapserNode</name>
+        <qualifiedname>DynamicRenderableSceneInstance::markNodeCollapserNode</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>node_index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="517" column="8" bodyfile="dag_dynSceneRes.h" bodystart="517" bodyend="523"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ae78d815de66771ec1064c62d5f38e876" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const NodeCollapserBits &amp;</type>
+        <definition>const NodeCollapserBits &amp; DynamicRenderableSceneInstance::getNodeCollapserBits</definition>
+        <argsstring>() const</argsstring>
+        <name>getNodeCollapserBits</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getNodeCollapserBits</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="525" column="27" bodyfile="dag_dynSceneRes.h" bodystart="525" bodyend="525"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a088ce33ffc1cc98e634ce2fe6c3735ed" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setNodeWtm</definition>
+        <argsstring>(uint32_t n_id, const TMatrix &amp;wtm)</argsstring>
+        <name>setNodeWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setNodeWtm</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>wtm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="527" column="8" bodyfile="dag_dynSceneRes.h" bodystart="527" bodyend="534"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a5ca733d52fdd5d9d9f6e343b57745a2c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>float</type>
+        <definition>float DynamicRenderableSceneInstance::getDistSq</definition>
+        <argsstring>() const</argsstring>
+        <name>getDistSq</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getDistSq</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="536" column="16" bodyfile="dag_dynSceneRes.h" bodystart="536" bodyend="536"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a563f72f0efe5fd7dff56240dfbd92add" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::savePrevNodeWtm</definition>
+        <argsstring>()</argsstring>
+        <name>savePrevNodeWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::savePrevNodeWtm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="538" column="8" bodyfile="dag_dynSceneRes.h" bodystart="538" bodyend="549"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1abfc50159b33a74d960a6b42243252c30" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TMatrix &amp;</type>
+        <definition>const TMatrix &amp; DynamicRenderableSceneInstance::getPrevNodeWtm</definition>
+        <argsstring>(int n_id) const</argsstring>
+        <name>getPrevNodeWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getPrevNodeWtm</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="551" column="17" bodyfile="dag_dynSceneRes.h" bodystart="551" bodyend="551"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a3038170242d4996d657196c6ac9b6a0f" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setPrevNodeWtm</definition>
+        <argsstring>(int n_id, const TMatrix &amp;wtm)</argsstring>
+        <name>setPrevNodeWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setPrevNodeWtm</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n_id</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>wtm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="553" column="8" bodyfile="dag_dynSceneRes.h" bodystart="553" bodyend="562"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a8852433d961bd6429c38ef644790240d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setNodeWtm</definition>
+        <argsstring>(uint32_t n_id, const mat44f &amp;wtm)</argsstring>
+        <name>setNodeWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setNodeWtm</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <param>
+          <type>const mat44f &amp;</type>
+          <declname>wtm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="564" column="8" bodyfile="dag_dynSceneRes.h" bodystart="564" bodyend="573"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a617ac48027169d1b1f71d09f1af3bd19" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setOrigin</definition>
+        <argsstring>(const Point3 &amp;in_origin)</argsstring>
+        <name>setOrigin</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setOrigin</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>in_origin</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="578" column="8" bodyfile="dag_dynSceneRes.h" bodystart="578" bodyend="578"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a2648529d6e18fd17f2dd2517daf0be89" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Point3 &amp;</type>
+        <definition>const Point3 &amp; DynamicRenderableSceneInstance::getOrigin</definition>
+        <argsstring>() const</argsstring>
+        <name>getOrigin</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getOrigin</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="579" column="16" bodyfile="dag_dynSceneRes.h" bodystart="579" bodyend="579"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ad2a36a6253ea10f06a1cde39cb0ea495" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setOriginPrev</definition>
+        <argsstring>(const Point3 &amp;in_origin_prev)</argsstring>
+        <name>setOriginPrev</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setOriginPrev</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>in_origin_prev</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="580" column="8" bodyfile="dag_dynSceneRes.h" bodystart="580" bodyend="580"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a5bbec2fd01c379e92500cd8011778b23" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Point3 &amp;</type>
+        <definition>const Point3 &amp; DynamicRenderableSceneInstance::getOriginPrev</definition>
+        <argsstring>() const</argsstring>
+        <name>getOriginPrev</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getOriginPrev</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="581" column="16" bodyfile="dag_dynSceneRes.h" bodystart="581" bodyend="581"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1afc703740fe3d28ac220eb3244b2dc863" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setNodeWtmRelToOrigin</definition>
+        <argsstring>(uint32_t n_id, const TMatrix &amp;wtm_rel_to_origin)</argsstring>
+        <name>setNodeWtmRelToOrigin</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setNodeWtmRelToOrigin</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>wtm_rel_to_origin</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="583" column="8" bodyfile="dag_dynSceneRes.h" bodystart="583" bodyend="591"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1afca359a429d49421371218c7a5b7eb71" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setNodeWtmRelToOrigin</definition>
+        <argsstring>(uint32_t n_id, const mat44f &amp;wtm_rel_to_origin)</argsstring>
+        <name>setNodeWtmRelToOrigin</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setNodeWtmRelToOrigin</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <param>
+          <type>const mat44f &amp;</type>
+          <declname>wtm_rel_to_origin</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="593" column="8" bodyfile="dag_dynSceneRes.h" bodystart="593" bodyend="603"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1aa9171107d076a25d83755347334b1b5e" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>TMatrix</type>
+        <definition>TMatrix DynamicRenderableSceneInstance::getNodeWtmRelToOrigin</definition>
+        <argsstring>(int n_id) const</argsstring>
+        <name>getNodeWtmRelToOrigin</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getNodeWtmRelToOrigin</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="605" column="11" bodyfile="dag_dynSceneRes.h" bodystart="605" bodyend="610"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ab5ff00ca0da027637635c47268c7847d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>TMatrix</type>
+        <definition>TMatrix DynamicRenderableSceneInstance::getNodePrevWtmRelToOrigin</definition>
+        <argsstring>(int n_id) const</argsstring>
+        <name>getNodePrevWtmRelToOrigin</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getNodePrevWtmRelToOrigin</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>n_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="613" column="11" bodyfile="dag_dynSceneRes.h" bodystart="613" bodyend="618"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ad7a632614900141f7c8a7042e9fd73f9" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setBoundingBox</definition>
+        <argsstring>(const BBox3 &amp;in_bbox)</argsstring>
+        <name>setBoundingBox</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setBoundingBox</qualifiedname>
+        <param>
+          <type>const BBox3 &amp;</type>
+          <declname>in_bbox</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="621" column="8" bodyfile="dag_dynSceneRes.h" bodystart="621" bodyend="625"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a08f313843c9e296aba6976358aacd778" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::chooseLodByDistSq</definition>
+        <argsstring>(float dist_sq, float dist_mul=1.0f)</argsstring>
+        <name>chooseLodByDistSq</name>
+        <qualifiedname>DynamicRenderableSceneInstance::chooseLodByDistSq</qualifiedname>
+        <param>
+          <type>float</type>
+          <declname>dist_sq</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>dist_mul</declname>
+          <defval>1.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="628" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a412cfb08aebe5d49e40f47ec39e65207" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::chooseLod</definition>
+        <argsstring>(const Point3 &amp;camera_pos, float dist_mul=1.0f)</argsstring>
+        <name>chooseLod</name>
+        <qualifiedname>DynamicRenderableSceneInstance::chooseLod</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>camera_pos</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>dist_mul</declname>
+          <defval>1.0f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="631" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a3a803dc2d5855b7ec22a596a6f156d34" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setLod</definition>
+        <argsstring>(int lod)</argsstring>
+        <name>setLod</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setLod</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>lod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="633" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ab671434c2f57839d01acf077d4f87789" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setCurrentLod</definition>
+        <argsstring>(int lod)</argsstring>
+        <name>setCurrentLod</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setCurrentLod</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>lod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="634" column="15" bodyfile="dag_dynSceneRes.h" bodystart="764" bodyend="773"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a0183543ea3ffd8a2a8ac6892cbb2bcf9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setBestLodLimit</definition>
+        <argsstring>(int lod)</argsstring>
+        <name>setBestLodLimit</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setBestLodLimit</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>lod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="635" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a5b0ea8ace7a45d93861d34396bb81a3c" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::setDisableAutoChooseLod</definition>
+        <argsstring>(bool dis)</argsstring>
+        <name>setDisableAutoChooseLod</name>
+        <qualifiedname>DynamicRenderableSceneInstance::setDisableAutoChooseLod</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>dis</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="638" column="8" bodyfile="dag_dynSceneRes.h" bodystart="638" bodyend="638"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1adfe518dada193364711a2aa9caea5fcc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::getCurrentLodNo</definition>
+        <argsstring>() const</argsstring>
+        <name>getCurrentLodNo</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getCurrentLodNo</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="640" column="14" bodyfile="dag_dynSceneRes.h" bodystart="640" bodyend="640"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1adcfb2ea6b1931b3cf9bb36fe20f9f087" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicRenderableSceneInstance::validateLod</definition>
+        <argsstring>(uint32_t lod) const</argsstring>
+        <name>validateLod</name>
+        <qualifiedname>DynamicRenderableSceneInstance::validateLod</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>lod</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="641" column="15" bodyfile="dag_dynSceneRes.h" bodystart="775" bodyend="780"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1adda7559d36c81c5f5486a1320912fe63" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::beforeRender</definition>
+        <argsstring>(const Point3 &amp;view_pos)</argsstring>
+        <name>beforeRender</name>
+        <qualifiedname>DynamicRenderableSceneInstance::beforeRender</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>view_pos</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="644" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a352e5427793cdd0b423475d8dbcf3661" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::render</definition>
+        <argsstring>(real opacity=1.f)</argsstring>
+        <name>render</name>
+        <qualifiedname>DynamicRenderableSceneInstance::render</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>opacity</declname>
+          <defval>1.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="646" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ae5ad00917eb3565646ccca73eb8e95b0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::renderTrans</definition>
+        <argsstring>(real opacity=1.f)</argsstring>
+        <name>renderTrans</name>
+        <qualifiedname>DynamicRenderableSceneInstance::renderTrans</qualifiedname>
+        <param>
+          <type>real</type>
+          <declname>opacity</declname>
+          <defval>1.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="647" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a45629be304f860ee85fc3bb00c88bdcc" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::renderDistortion</definition>
+        <argsstring>()</argsstring>
+        <name>renderDistortion</name>
+        <qualifiedname>DynamicRenderableSceneInstance::renderDistortion</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="648" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a77cea66bfb3bee833a9b8b66d4a7d738" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TMatrix &amp;</type>
+        <definition>const TMatrix &amp; DynamicRenderableSceneInstance::getNodeWtm</definition>
+        <argsstring>(uint32_t n_id) const</argsstring>
+        <name>getNodeWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getNodeWtm</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="650" column="24" bodyfile="dag_dynSceneRes.h" bodystart="650" bodyend="650"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1aa1f0ef08a5f9028e22a1d9e51bd7739d" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>real</type>
+        <definition>real DynamicRenderableSceneInstance::getNodeOpacity</definition>
+        <argsstring>(uint32_t n_id) const</argsstring>
+        <name>getNodeOpacity</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getNodeOpacity</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="651" column="15" bodyfile="dag_dynSceneRes.h" bodystart="651" bodyend="651"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a068e023c9a43ef9f98cb7cdbbb97dd73" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicRenderableSceneInstance::getNodeHidden</definition>
+        <argsstring>(uint32_t n_id) const</argsstring>
+        <name>getNodeHidden</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getNodeHidden</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="652" column="15" bodyfile="dag_dynSceneRes.h" bodystart="652" bodyend="652"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1abaff37f5f7ad36859da1467134b069b3" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicRenderableSceneInstance::isNodeHidden</definition>
+        <argsstring>(uint32_t n_id) const</argsstring>
+        <name>isNodeHidden</name>
+        <qualifiedname>DynamicRenderableSceneInstance::isNodeHidden</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>n_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="653" column="15" bodyfile="dag_dynSceneRes.h" bodystart="653" bodyend="660"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a50cbec94e24f99cd811e2b7eddaad254" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>BBox3</type>
+        <definition>BBox3 DynamicRenderableSceneInstance::getLocalBoundingBox</definition>
+        <argsstring>() const</argsstring>
+        <name>getLocalBoundingBox</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getLocalBoundingBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="661" column="16" bodyfile="dag_dynSceneRes.h" bodystart="661" bodyend="661"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a1d4bf55139a47598fad599905d4060d8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>BBox3</type>
+        <definition>BBox3 DynamicRenderableSceneInstance::getBoundingBox</definition>
+        <argsstring>() const</argsstring>
+        <name>getBoundingBox</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getBoundingBox</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="662" column="16" bodyfile="dag_dynSceneRes.h" bodystart="662" bodyend="682"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ab2b9a983c8f5a8c8e7c29c57e0dcc338" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>BSphere3</type>
+        <definition>BSphere3 DynamicRenderableSceneInstance::getBoundingSphere</definition>
+        <argsstring>() const</argsstring>
+        <name>getBoundingSphere</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getBoundingSphere</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="683" column="12"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a93b0aabdcc05b4adfe929e17a58fdaea" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::autoCalcBoundingBox</definition>
+        <argsstring>(bool calc)</argsstring>
+        <name>autoCalcBoundingBox</name>
+        <qualifiedname>DynamicRenderableSceneInstance::autoCalcBoundingBox</qualifiedname>
+        <param>
+          <type>bool</type>
+          <declname>calc</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="685" column="15" bodyfile="dag_dynSceneRes.h" bodystart="685" bodyend="685"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a810cec800551eb3844983233f05d3720" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DynamicRenderableSceneInstance::matchBetterBoneIdxAndItmForPoint</definition>
+        <argsstring>(const Point3 &amp;pos, int &amp;bone_idx, TMatrix &amp;bone_itm)</argsstring>
+        <name>matchBetterBoneIdxAndItmForPoint</name>
+        <qualifiedname>DynamicRenderableSceneInstance::matchBetterBoneIdxAndItmForPoint</qualifiedname>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>int &amp;</type>
+          <declname>bone_idx</declname>
+        </param>
+        <param>
+          <type>TMatrix &amp;</type>
+          <declname>bone_itm</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="687" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a0e576071437f50b091f46fc83e93f808" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::getBoneForNode</definition>
+        <argsstring>(int node_idx) const</argsstring>
+        <name>getBoneForNode</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getBoneForNode</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>node_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="688" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ac0c479b62e21e4acd09d157593d15639" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DynamicRenderableSceneInstance::getNodeForBone</definition>
+        <argsstring>(uint32_t bone_idx) const</argsstring>
+        <name>getNodeForBone</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getNodeForBone</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>bone_idx</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="689" column="7"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a6d87adb260544fbb4ebf97c4cd3d69bc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const float *</type>
+        <definition>const float * DynamicRenderableSceneInstance::opacity_ptr</definition>
+        <argsstring>() const</argsstring>
+        <name>opacity_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::opacity_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="691" column="22" bodyfile="dag_dynSceneRes.h" bodystart="691" bodyend="691"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a29085085172573ef6ef133c0c6dae5a9" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const bool *</type>
+        <definition>const bool * DynamicRenderableSceneInstance::hidden_ptr</definition>
+        <argsstring>() const</argsstring>
+        <name>hidden_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::hidden_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="692" column="21" bodyfile="dag_dynSceneRes.h" bodystart="692" bodyend="692"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a86b0e59dab16a8f34912a69e49630229" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::clipNodes</definition>
+        <argsstring>(const Frustum &amp;frustum, dag::Vector&lt; int, framemem_allocator &gt; &amp;node_list)</argsstring>
+        <name>clipNodes</name>
+        <qualifiedname>DynamicRenderableSceneInstance::clipNodes</qualifiedname>
+        <param>
+          <type>const Frustum &amp;</type>
+          <declname>frustum</declname>
+        </param>
+        <param>
+          <type>dag::Vector&lt; int, framemem_allocator &gt; &amp;</type>
+          <declname>node_list</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="694" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a13fc836112f7106c7b6bd0e5300301e9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DynamicRenderableSceneInstance::findRigidNodesWithMaterials</definition>
+        <argsstring>(dag::ConstSpan&lt; const char * &gt; material_names, const eastl::fixed_function&lt; 2 *sizeof(void *), void(int)&gt; &amp;cb) const</argsstring>
+        <name>findRigidNodesWithMaterials</name>
+        <qualifiedname>DynamicRenderableSceneInstance::findRigidNodesWithMaterials</qualifiedname>
+        <param>
+          <type>dag::ConstSpan&lt; const char * &gt;</type>
+          <declname>material_names</declname>
+        </param>
+        <param>
+          <type>const eastl::fixed_function&lt; 2 *sizeof(void *), void(int)&gt; &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="696" column="8"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ad93d8bd456de20f7e00525ac29e0e88c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>uint32_t</type>
+        <definition>uint32_t DynamicRenderableSceneInstance::getUniqueId</definition>
+        <argsstring>() const</argsstring>
+        <name>getUniqueId</name>
+        <qualifiedname>DynamicRenderableSceneInstance::getUniqueId</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="699" column="12" bodyfile="dag_dynSceneRes.h" bodystart="699" bodyend="699"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ac73a11b45a5d557b359d9fcb464bcbfb" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TMatrix *</type>
+        <definition>const TMatrix * DynamicRenderableSceneInstance::nodeWtm_ptr</definition>
+        <argsstring>() const</argsstring>
+        <name>nodeWtm_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::nodeWtm_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="737" column="24" bodyfile="dag_dynSceneRes.h" bodystart="737" bodyend="737"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a30f3a85d4b4313b8ba6d6aafc0619881" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const TMatrix *</type>
+        <definition>const TMatrix * DynamicRenderableSceneInstance::nodePrevWtm_ptr</definition>
+        <argsstring>() const</argsstring>
+        <name>nodePrevWtm_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::nodePrevWtm_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="738" column="24" bodyfile="dag_dynSceneRes.h" bodystart="738" bodyend="738"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a5b44bbe291242cdce1bc9a05222b7b65" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Point3 *</type>
+        <definition>const Point3 * DynamicRenderableSceneInstance::wtmToOriginVec_ptr</definition>
+        <argsstring>() const</argsstring>
+        <name>wtmToOriginVec_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::wtmToOriginVec_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="739" column="23" bodyfile="dag_dynSceneRes.h" bodystart="739" bodyend="739"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a9cea85ee8fc87d4e6e9a9421c6a5c532" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const Point3 *</type>
+        <definition>const Point3 * DynamicRenderableSceneInstance::wtmToOriginVecPrev_ptr</definition>
+        <argsstring>() const</argsstring>
+        <name>wtmToOriginVecPrev_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::wtmToOriginVecPrev_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="740" column="23" bodyfile="dag_dynSceneRes.h" bodystart="740" bodyend="740"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a2cb1a51e354e4878f83714fa453f499f" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TMatrix *</type>
+        <definition>TMatrix * DynamicRenderableSceneInstance::nodeWtm_ptr</definition>
+        <argsstring>()</argsstring>
+        <name>nodeWtm_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::nodeWtm_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="742" column="11" bodyfile="dag_dynSceneRes.h" bodystart="742" bodyend="742"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a883d1926518e86083332e2b3e84e5282" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>TMatrix *</type>
+        <definition>TMatrix * DynamicRenderableSceneInstance::nodePrevWtm_ptr</definition>
+        <argsstring>()</argsstring>
+        <name>nodePrevWtm_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::nodePrevWtm_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="743" column="11" bodyfile="dag_dynSceneRes.h" bodystart="743" bodyend="743"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a86d3a7178ff0fb4505a473c91d8d9788" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3 *</type>
+        <definition>Point3 * DynamicRenderableSceneInstance::wtmToOriginVec_ptr</definition>
+        <argsstring>()</argsstring>
+        <name>wtmToOriginVec_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::wtmToOriginVec_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="744" column="10" bodyfile="dag_dynSceneRes.h" bodystart="744" bodyend="744"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a36421434ed900ccc405412171203f1d0" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>Point3 *</type>
+        <definition>Point3 * DynamicRenderableSceneInstance::wtmToOriginVecPrev_ptr</definition>
+        <argsstring>()</argsstring>
+        <name>wtmToOriginVecPrev_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::wtmToOriginVecPrev_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="745" column="10" bodyfile="dag_dynSceneRes.h" bodystart="745" bodyend="745"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a910fda5fdab7eedee1196ec2e43258e6" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>float *</type>
+        <definition>float * DynamicRenderableSceneInstance::opacity_ptr</definition>
+        <argsstring>()</argsstring>
+        <name>opacity_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::opacity_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="746" column="9" bodyfile="dag_dynSceneRes.h" bodystart="746" bodyend="746"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1abc35f8a438faed35964919678fae1475" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool *</type>
+        <definition>bool * DynamicRenderableSceneInstance::hidden_ptr</definition>
+        <argsstring>()</argsstring>
+        <name>hidden_ptr</name>
+        <qualifiedname>DynamicRenderableSceneInstance::hidden_ptr</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="747" column="8" bodyfile="dag_dynSceneRes.h" bodystart="747" bodyend="747"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1aa115d95682719829bec5e0fb78e9da78" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; TMatrix &gt;</type>
+        <definition>dag::ConstSpan&lt; TMatrix &gt; DynamicRenderableSceneInstance::nodeWtm</definition>
+        <argsstring>() const</argsstring>
+        <name>nodeWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::nodeWtm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="749" column="18" bodyfile="dag_dynSceneRes.h" bodystart="749" bodyend="749"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a7c9148ec5af968183dd1473343c3cc4a" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; TMatrix &gt;</type>
+        <definition>dag::ConstSpan&lt; TMatrix &gt; DynamicRenderableSceneInstance::nodePrevWtm</definition>
+        <argsstring>() const</argsstring>
+        <name>nodePrevWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::nodePrevWtm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="750" column="18" bodyfile="dag_dynSceneRes.h" bodystart="750" bodyend="750"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a274dd86a890e6b93a7283607690fe433" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; Point3 &gt;</type>
+        <definition>dag::ConstSpan&lt; Point3 &gt; DynamicRenderableSceneInstance::wtmToOriginVec</definition>
+        <argsstring>() const</argsstring>
+        <name>wtmToOriginVec</name>
+        <qualifiedname>DynamicRenderableSceneInstance::wtmToOriginVec</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="751" column="18" bodyfile="dag_dynSceneRes.h" bodystart="751" bodyend="751"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1aaaf9e0f8103ed33a7c4557f9c722f762" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; Point3 &gt;</type>
+        <definition>dag::ConstSpan&lt; Point3 &gt; DynamicRenderableSceneInstance::wtmToOriginVecPrev</definition>
+        <argsstring>() const</argsstring>
+        <name>wtmToOriginVecPrev</name>
+        <qualifiedname>DynamicRenderableSceneInstance::wtmToOriginVecPrev</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="752" column="18" bodyfile="dag_dynSceneRes.h" bodystart="752" bodyend="752"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a772ddf8b6af1a5957fea26af2a1a90fb" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; float &gt;</type>
+        <definition>dag::ConstSpan&lt; float &gt; DynamicRenderableSceneInstance::opacity</definition>
+        <argsstring>() const</argsstring>
+        <name>opacity</name>
+        <qualifiedname>DynamicRenderableSceneInstance::opacity</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="753" column="18" bodyfile="dag_dynSceneRes.h" bodystart="753" bodyend="753"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a24b2996414d9856108bdae4b59c249c6" prot="protected" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::ConstSpan&lt; bool &gt;</type>
+        <definition>dag::ConstSpan&lt; bool &gt; DynamicRenderableSceneInstance::hidden</definition>
+        <argsstring>() const</argsstring>
+        <name>hidden</name>
+        <qualifiedname>DynamicRenderableSceneInstance::hidden</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="754" column="18" bodyfile="dag_dynSceneRes.h" bodystart="754" bodyend="754"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1aaa7ce2ea040c114abf633eddbf059e42" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Span&lt; TMatrix &gt;</type>
+        <definition>dag::Span&lt; TMatrix &gt; DynamicRenderableSceneInstance::nodeWtm</definition>
+        <argsstring>()</argsstring>
+        <name>nodeWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::nodeWtm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="756" column="13" bodyfile="dag_dynSceneRes.h" bodystart="756" bodyend="756"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1a4a0c67a741ed697f88169e7cfae19f7e" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Span&lt; TMatrix &gt;</type>
+        <definition>dag::Span&lt; TMatrix &gt; DynamicRenderableSceneInstance::nodePrevWtm</definition>
+        <argsstring>()</argsstring>
+        <name>nodePrevWtm</name>
+        <qualifiedname>DynamicRenderableSceneInstance::nodePrevWtm</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="757" column="13" bodyfile="dag_dynSceneRes.h" bodystart="757" bodyend="757"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1aad357a8d955e51f95b1a388524de8124" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Span&lt; Point3 &gt;</type>
+        <definition>dag::Span&lt; Point3 &gt; DynamicRenderableSceneInstance::wtmToOriginVec</definition>
+        <argsstring>()</argsstring>
+        <name>wtmToOriginVec</name>
+        <qualifiedname>DynamicRenderableSceneInstance::wtmToOriginVec</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="758" column="13" bodyfile="dag_dynSceneRes.h" bodystart="758" bodyend="758"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1acefe87dd3a9ec24cb8339bad2d4b84ab" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Span&lt; Point3 &gt;</type>
+        <definition>dag::Span&lt; Point3 &gt; DynamicRenderableSceneInstance::wtmToOriginVecPrev</definition>
+        <argsstring>()</argsstring>
+        <name>wtmToOriginVecPrev</name>
+        <qualifiedname>DynamicRenderableSceneInstance::wtmToOriginVecPrev</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="759" column="13" bodyfile="dag_dynSceneRes.h" bodystart="759" bodyend="759"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1ad206b1597902e1fbafd78aaf94d424b5" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Span&lt; float &gt;</type>
+        <definition>dag::Span&lt; float &gt; DynamicRenderableSceneInstance::opacity</definition>
+        <argsstring>()</argsstring>
+        <name>opacity</name>
+        <qualifiedname>DynamicRenderableSceneInstance::opacity</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="760" column="13" bodyfile="dag_dynSceneRes.h" bodystart="760" bodyend="760"/>
+      </memberdef>
+      <memberdef kind="function" id="classDynamicRenderableSceneInstance_1acbacda3aaa600f60d53f33d050eec0e6" prot="protected" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>dag::Span&lt; bool &gt;</type>
+        <definition>dag::Span&lt; bool &gt; DynamicRenderableSceneInstance::hidden</definition>
+        <argsstring>()</argsstring>
+        <name>hidden</name>
+        <qualifiedname>DynamicRenderableSceneInstance::hidden</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynSceneRes.h" line="761" column="13" bodyfile="dag_dynSceneRes.h" bodystart="761" bodyend="761"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_dynSceneRes.h" line="471" column="1" bodyfile="dag_dynSceneRes.h" bodystart="472" bodyend="762"/>
+    <listofallmembers>
+      <member refid="classDynamicRenderableSceneInstance_1a3f1c0a67d53349f5a059b427d19ee8cd" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>_resv</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1adf8de4cf27f8abfdd17f267d381038e7" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>activateInstance</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4a7798ce73dfcfdc8d431e2c82d51ac29d" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>ALL_DATA_SIZE</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a2f1432f08982b53a263b3241a99fe66b" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>allNodesData</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a5699a858bf13176342fc6dfa7a473b2d" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>autoCalcBBox</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a93b0aabdcc05b4adfe929e17a58fdaea" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>autoCalcBoundingBox</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a9aa6f9f42cfc847cbf73711a1c0c2afe" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>bbox</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1adda7559d36c81c5f5486a1320912fe63" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>beforeRender</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1aa2b9d35f8090cf6271845f9e59a5c803" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>bestLodLimit</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1abde2017e78e9a591532ca9dd15bfb33e" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>changeLodsResource</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a412cfb08aebe5d49e40f47ec39e65207" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>chooseLod</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a08f313843c9e296aba6976358aacd778" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>chooseLodByDistSq</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1af36505587f45b177b1c87c8cb88d2846" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>clearNodeCollapser</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a86b0e59dab16a8f34912a69e49630229" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>clipNodes</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a36080aec3900e9da0a43495e25101854" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>cloneLodsResource</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a8f68d91b7755c2a2b3f0819629b13fa7" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>count</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4a6ffd04fcbf4588a1b5a45ed8dfd05a5d" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>CUR_WTM</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a5c6e5a7ac136ba04b23ff61e9c6a50f4" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>curLodNo</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a2af5b12387920c91edf3f690d55a954c" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>curOrig</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a8beae9e076e1902eb6971ba1e232d074" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>curWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a2b5f52587aa290dae498bb46ff29e743" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>deactivateInstance</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a7267ace1b6da8408f807fe01436025c3" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>disableAutoChooseLod</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a2a729fa57f00a1a078307dc77f73cfe9" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>distSq</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a194f5bd3912c58ec1d4fc25a5c46d050" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>DynamicRenderableSceneInstance</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a13fc836112f7106c7b6bd0e5300301e9" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>findRigidNodesWithMaterials</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a0b52ce7163276a9d4a037774c2c59b89" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>forceLod</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a0e576071437f50b091f46fc83e93f808" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getBoneForNode</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a1d4bf55139a47598fad599905d4060d8" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getBoundingBox</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ab2b9a983c8f5a8c8e7c29c57e0dcc338" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getBoundingSphere</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1aa052f13bb0250e20b5a5e75ba1463ec1" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getConstLodsResource</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1adfe518dada193364711a2aa9caea5fcc" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getCurrentLodNo</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1acd225d41a355356488afbd956871a18b" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getCurSceneResource</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a0ba2a130ed28e1d9a87ab72b62e5f061" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getCurSceneResource</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a5ca733d52fdd5d9d9f6e343b57745a2c" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getDistSq</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a50cbec94e24f99cd811e2b7eddaad254" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getLocalBoundingBox</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a157dadff5f31f3ac702c20c5e110a8de" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getLodsCount</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1af7121c5a22b376d94f35781377a6636b" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getLodsResource</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1afee567c5629785cfd350b5d09915e3a2" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getLodsResource</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ae78d815de66771ec1064c62d5f38e876" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getNodeCollapserBits</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a101062c5792082fa092a906ef7564b94" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getNodeCount</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ac0c479b62e21e4acd09d157593d15639" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getNodeForBone</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a068e023c9a43ef9f98cb7cdbbb97dd73" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getNodeHidden</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a7a34abdc45a1337b7a7c8db2c19b527f" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getNodeId</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1aa1f0ef08a5f9028e22a1d9e51bd7739d" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getNodeOpacity</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ab5ff00ca0da027637635c47268c7847d" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getNodePrevWtmRelToOrigin</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a77cea66bfb3bee833a9b8b66d4a7d738" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getNodeWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1aa9171107d076a25d83755347334b1b5e" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getNodeWtmRelToOrigin</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a2648529d6e18fd17f2dd2517daf0be89" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getOrigin</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a5bbec2fd01c379e92500cd8011778b23" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getOriginPrev</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1abfc50159b33a74d960a6b42243252c30" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getPrevNodeWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ad93d8bd456de20f7e00525ac29e0e88c" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>getUniqueId</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a24b2996414d9856108bdae4b59c249c6" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>hidden</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1acbacda3aaa600f60d53f33d050eec0e6" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>hidden</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4ac0d72e6b0d130e32dbc427c6a06dab23" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>HIDDEN</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a29085085172573ef6ef133c0c6dae5a9" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>hidden_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1abc35f8a438faed35964919678fae1475" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>hidden_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a805cc8f3f3924625135655ce923e40bd" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>instanceActive</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1abaff37f5f7ad36859da1467134b069b3" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>isNodeHidden</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a97891176656004415dc964a08cc2bdf1" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>lodDistanceScale</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a0bd3e94783a9e87515d9f375bdef8c30" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>lods</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a7f01d6e9c900b542c952a349243b0dba" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>markNodeCollapserNode</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a810cec800551eb3844983233f05d3720" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>matchBetterBoneIdxAndItmForPoint</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1adb242a75c389d4f1b39a9b51d08dbb45" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>nodeCollapserBits</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ae58ee2f912e84a38dc1370dd67e49ffa" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>NodeCollapserBits</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a7c9148ec5af968183dd1473343c3cc4a" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>nodePrevWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a4a0c67a741ed697f88169e7cfae19f7e" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>nodePrevWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a30f3a85d4b4313b8ba6d6aafc0619881" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>nodePrevWtm_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a883d1926518e86083332e2b3e84e5282" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>nodePrevWtm_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1aa115d95682719829bec5e0fb78e9da78" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>nodeWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1aaa7ce2ea040c114abf633eddbf059e42" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>nodeWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ac73a11b45a5d557b359d9fcb464bcbfb" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>nodeWtm_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a2cb1a51e354e4878f83714fa453f499f" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>nodeWtm_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>Offsets</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4a25698db7385194208e19ecf30e1ae77d" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>OPACITY</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a772ddf8b6af1a5957fea26af2a1a90fb" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>opacity</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ad206b1597902e1fbafd78aaf94d424b5" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>opacity</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a6d87adb260544fbb4ebf97c4cd3d69bc" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>opacity_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a910fda5fdab7eedee1196ec2e43258e6" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>opacity_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ac53f014bd59f78b6bd2675f86d9ea11d" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>origin</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4aba2e187031125afd2e9ecf1ef9751f06" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>ORIGIN_VEC</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ae819ce92bfa0775ab0766959ce0065a3" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>originPrev</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4ab4979a7d0d81d77ed517e54047aea6fa" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>PREV_ORIGIN_VEC</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a1feddc8783c84a79b37045f9b7512da4a804e112846cf76da157580fa45b1a2aa" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>PREV_WTM</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ab2c41993b3247e8936128316e18f72f9" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>prevOrig</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a0df1be74d45b0cacb99f08a8c004f563" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>prevWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a352e5427793cdd0b423475d8dbcf3661" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>render</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a45629be304f860ee85fc3bb00c88bdcc" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>renderDistortion</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ae5ad00917eb3565646ccca73eb8e95b0" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>renderTrans</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a563f72f0efe5fd7dff56240dfbd92add" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>savePrevNodeWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ac0645a6f61672a2b2084641f3a36095e" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>sceneResource</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a0183543ea3ffd8a2a8ac6892cbb2bcf9" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setBestLodLimit</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ad7a632614900141f7c8a7042e9fd73f9" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setBoundingBox</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ab671434c2f57839d01acf077d4f87789" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setCurrentLod</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a5b0ea8ace7a45d93861d34396bb81a3c" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setDisableAutoChooseLod</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a3a803dc2d5855b7ec22a596a6f156d34" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setLod</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a8442ee641be45e7c15beadbbf0ec41ba" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setNodeOpacity</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a088ce33ffc1cc98e634ce2fe6c3735ed" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setNodeWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a8852433d961bd6429c38ef644790240d" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setNodeWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1afc703740fe3d28ac220eb3244b2dc863" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setNodeWtmRelToOrigin</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1afca359a429d49421371218c7a5b7eb71" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setNodeWtmRelToOrigin</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a617ac48027169d1b1f71d09f1af3bd19" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setOrigin</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ad2a36a6253ea10f06a1cde39cb0ea495" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setOriginPrev</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a3038170242d4996d657196c6ac9b6a0f" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>setPrevNodeWtm</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a2509e539416f941c1d2f04f4266addcc" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>showNode</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1ade971292bc4778ad8801cc9aeb66f9f4" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>showSkinnedNodesConnectedToBone</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a7389f442a6711cdddcb462f6e3aa8dd1" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>uniqueId</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1adcfb2ea6b1931b3cf9bb36fe20f9f087" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>validateLod</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a274dd86a890e6b93a7283607690fe433" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>wtmToOriginVec</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1aad357a8d955e51f95b1a388524de8124" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>wtmToOriginVec</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a5b44bbe291242cdce1bc9a05222b7b65" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>wtmToOriginVec_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a86d3a7178ff0fb4505a473c91d8d9788" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>wtmToOriginVec_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1aaaf9e0f8103ed33a7c4557f9c722f762" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>wtmToOriginVecPrev</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1acefe87dd3a9ec24cb8339bad2d4b84ab" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>wtmToOriginVecPrev</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a9cea85ee8fc87d4e6e9a9421c6a5c532" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>wtmToOriginVecPrev_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a36421434ed900ccc405412171203f1d0" prot="protected" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>wtmToOriginVecPrev_ptr</name></member>
+      <member refid="classDynamicRenderableSceneInstance_1a4d926a2c0181533eeaf17d3c5ff5ddc3" prot="public" virt="non-virtual"><scope>DynamicRenderableSceneInstance</scope><name>~DynamicRenderableSceneInstance</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

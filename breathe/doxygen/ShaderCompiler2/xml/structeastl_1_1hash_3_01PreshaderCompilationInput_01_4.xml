@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structeastl_1_1hash_3_01PreshaderCompilationInput_01_4" kind="struct" language="C++" prot="public">
+    <compoundname>eastl::hash&lt; PreshaderCompilationInput &gt;</compoundname>
+    <includes refid="preshaderCompilation_8h" local="no">preshaderCompilation.h</includes>
+    <templateparamlist>
+    </templateparamlist>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structeastl_1_1hash_3_01PreshaderCompilationInput_01_4_1a85e3c6b3797400a2a09696fc3a2e671b" prot="public" static="no" const="yes" explicit="no" inline="yes" noexcept="yes" virt="non-virtual">
+        <type>size_t</type>
+        <definition>size_t eastl::hash&lt; PreshaderCompilationInput &gt;::operator()</definition>
+        <argsstring>(const PreshaderCompilationInput &amp;inp) const noexcept</argsstring>
+        <name>operator()</name>
+        <qualifiedname>eastl::hash&lt; PreshaderCompilationInput &gt;::operator()</qualifiedname>
+        <param>
+          <type>const <ref refid="structPreshaderCompilationInput" kindref="compound">PreshaderCompilationInput</ref> &amp;</type>
+          <declname>inp</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="preshaderCompilation.h" line="86" column="10" bodyfile="preshaderCompilation.h" bodystart="86" bodyend="120"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="preshaderCompilation.h" line="84" column="1" bodyfile="preshaderCompilation.h" bodystart="85" bodyend="121"/>
+    <listofallmembers>
+      <member refid="structeastl_1_1hash_3_01PreshaderCompilationInput_01_4_1a85e3c6b3797400a2a09696fc3a2e671b" prot="public" virt="non-virtual"><scope>eastl::hash&lt; PreshaderCompilationInput &gt;</scope><name>operator()</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

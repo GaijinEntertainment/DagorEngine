@@ -1,0 +1,92 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structproc_1_1internal_1_1ExtraStateData" kind="struct" language="C++" prot="public">
+    <compoundname>proc::internal::ExtraStateData</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExtraStateData_1a9b25ff0f53044da9df61472d1fc1236b" prot="public" static="no" mutable="no">
+        <type><ref refid="unionproc_1_1internal_1_1Pipe" kindref="compound">Pipe</ref></type>
+        <definition>Pipe proc::internal::ExtraStateData::cancellationPipe</definition>
+        <argsstring></argsstring>
+        <name>cancellationPipe</name>
+        <qualifiedname>proc::internal::ExtraStateData::cancellationPipe</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="47" column="8" bodyfile="processes_unix.cpp" bodystart="47" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExtraStateData_1aefea8f1bdba018b2b9df945b5658fafb" prot="public" static="no" mutable="no">
+        <type>sigset_t</type>
+        <definition>sigset_t proc::internal::ExtraStateData::initialSigmask</definition>
+        <argsstring></argsstring>
+        <name>initialSigmask</name>
+        <qualifiedname>proc::internal::ExtraStateData::initialSigmask</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="48" column="12" bodyfile="processes_unix.cpp" bodystart="48" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExtraStateData_1a3d26bd3694a667950adb4406b99ca648" prot="public" static="no" mutable="no">
+        <type>dag::Vector&lt; <ref refid="unionproc_1_1internal_1_1Pipe" kindref="compound">Pipe</ref> &gt;</type>
+        <definition>dag::Vector&lt; Pipe &gt; proc::internal::ExtraStateData::outputPipePool</definition>
+        <argsstring></argsstring>
+        <name>outputPipePool</name>
+        <qualifiedname>proc::internal::ExtraStateData::outputPipePool</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_unix.cpp" line="49" column="15" bodyfile="processes_unix.cpp" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1internal_1_1ExtraStateData_1a58e473ddf4cb10af9f1d070e5f5d0229" prot="public" static="no" mutable="no">
+        <type>HANDLE</type>
+        <definition>HANDLE proc::internal::ExtraStateData::cancellationEventHnd</definition>
+        <argsstring></argsstring>
+        <name>cancellationEventHnd</name>
+        <qualifiedname>proc::internal::ExtraStateData::cancellationEventHnd</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes_win.cpp" line="37" column="10" bodyfile="processes_win.cpp" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>proc::internal::ExtraStateData</label>
+        <link refid="structproc_1_1internal_1_1ExtraStateData"/>
+        <childnode refid="2" relation="usage">
+          <edgelabel>cancellationPipe</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>proc::internal::Pipe</label>
+        <link refid="unionproc_1_1internal_1_1Pipe"/>
+      </node>
+    </collaborationgraph>
+    <location file="processes_unix.cpp" line="45" column="1" bodyfile="processes_unix.cpp" bodystart="46" bodyend="50"/>
+    <listofallmembers>
+      <member refid="structproc_1_1internal_1_1ExtraStateData_1a58e473ddf4cb10af9f1d070e5f5d0229" prot="public" virt="non-virtual"><scope>proc::internal::ExtraStateData</scope><name>cancellationEventHnd</name></member>
+      <member refid="structproc_1_1internal_1_1ExtraStateData_1a9b25ff0f53044da9df61472d1fc1236b" prot="public" virt="non-virtual"><scope>proc::internal::ExtraStateData</scope><name>cancellationPipe</name></member>
+      <member refid="structproc_1_1internal_1_1ExtraStateData_1aefea8f1bdba018b2b9df945b5658fafb" prot="public" virt="non-virtual"><scope>proc::internal::ExtraStateData</scope><name>initialSigmask</name></member>
+      <member refid="structproc_1_1internal_1_1ExtraStateData_1a3d26bd3694a667950adb4406b99ca648" prot="public" virt="non-virtual"><scope>proc::internal::ExtraStateData</scope><name>outputPipePool</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

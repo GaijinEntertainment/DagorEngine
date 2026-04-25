@@ -1,0 +1,221 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structunitedvdata_1_1BufConfig" kind="struct" language="C++" prot="public">
+    <compoundname>unitedvdata::BufConfig</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1a9f0a7093c88f1a55c69e4c2f31710ad9" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufConfig::ibSz</definition>
+        <argsstring></argsstring>
+        <name>ibSz</name>
+        <qualifiedname>unitedvdata::BufConfig::ibSz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="31" column="14" bodyfile="dag_shaderResUnitedData.h" bodystart="31" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1a2a85c3c16ffa3537c10a8d3ed63b4faa" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufConfig::vbSz[MAX_VBIDX_CNT]</definition>
+        <argsstring>[MAX_VBIDX_CNT]</argsstring>
+        <name>vbSz</name>
+        <qualifiedname>unitedvdata::BufConfig::vbSz</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="32" column="14" bodyfile="dag_shaderResUnitedData.h" bodystart="32" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1accbd96d8dbbed1cf7766cd237b53260c" prot="public" static="no" mutable="no">
+        <type>union <ref refid="structunitedvdata_1_1BufConfig" kindref="compound">unitedvdata::BufConfig</ref></type>
+        <definition>union unitedvdata::BufConfig unitedvdata::BufConfig</definition>
+        <argsstring></argsstring>
+        <name></name>
+        <qualifiedname>unitedvdata::BufConfig</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="33" column="3"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1ae0752dbc4259db9140462dcdc7cd716c" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufConfig::ibMinAdd</definition>
+        <argsstring></argsstring>
+        <name>ibMinAdd</name>
+        <qualifiedname>unitedvdata::BufConfig::ibMinAdd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="34" column="12" bodyfile="dag_shaderResUnitedData.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1ae7b2f0ab97f68f47f8616975f7e942da" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufConfig::vbMinAdd</definition>
+        <argsstring></argsstring>
+        <name>vbMinAdd</name>
+        <qualifiedname>unitedvdata::BufConfig::vbMinAdd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="34" column="21" bodyfile="dag_shaderResUnitedData.h" bodystart="34" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1ac3a5869a494e14bbeba789b78dcdb02b" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufConfig::ibMaxAdd</definition>
+        <argsstring></argsstring>
+        <name>ibMaxAdd</name>
+        <qualifiedname>unitedvdata::BufConfig::ibMaxAdd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="35" column="12" bodyfile="dag_shaderResUnitedData.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1ad8a3bb0a3274da2b5f24db68ea712bc6" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufConfig::vbMaxAdd</definition>
+        <argsstring></argsstring>
+        <name>vbMaxAdd</name>
+        <qualifiedname>unitedvdata::BufConfig::vbMaxAdd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="35" column="21" bodyfile="dag_shaderResUnitedData.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1aa013dac9244a0b24c7c0cdd2b048170b" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufConfig::ibAddPromille</definition>
+        <argsstring></argsstring>
+        <name>ibAddPromille</name>
+        <qualifiedname>unitedvdata::BufConfig::ibAddPromille</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="36" column="12" bodyfile="dag_shaderResUnitedData.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1ac4ee597551bc3e91ae9c12fc68af29bc" prot="public" static="no" mutable="no">
+        <type>unsigned</type>
+        <definition>unsigned unitedvdata::BufConfig::vbAddPromille</definition>
+        <argsstring></argsstring>
+        <name>vbAddPromille</name>
+        <qualifiedname>unitedvdata::BufConfig::vbAddPromille</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="36" column="26" bodyfile="dag_shaderResUnitedData.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1a6539b239206e19fa183c8aa94b569151" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool unitedvdata::BufConfig::exactSize</definition>
+        <argsstring></argsstring>
+        <name>exactSize</name>
+        <qualifiedname>unitedvdata::BufConfig::exactSize</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="37" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structunitedvdata_1_1BufConfig_1a4453a44063dad23cac6a688464c6e1fa" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool unitedvdata::BufConfig::dumpResListOnAddResFail</definition>
+        <argsstring></argsstring>
+        <name>dumpResListOnAddResFail</name>
+        <qualifiedname>unitedvdata::BufConfig::dumpResListOnAddResFail</qualifiedname>
+        <initializer>= true</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="38" column="8" bodyfile="dag_shaderResUnitedData.h" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structunitedvdata_1_1BufConfig_1ab0d64f2097ab93e5feddc83c389c6da5" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>unitedvdata::BufConfig::BufConfig</definition>
+        <argsstring>()</argsstring>
+        <name>BufConfig</name>
+        <qualifiedname>unitedvdata::BufConfig::BufConfig</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="27" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="structunitedvdata_1_1BufConfig_1ac2fc95385b387f918aaedc3ae15f939b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>unitedvdata::BufConfig::BufConfig</definition>
+        <argsstring>(const DataBlock &amp;hints_blk, int maxVbSize)</argsstring>
+        <name>BufConfig</name>
+        <qualifiedname>unitedvdata::BufConfig::BufConfig</qualifiedname>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>hints_blk</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>maxVbSize</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderResUnitedData.h" line="28" column="3"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_shaderResUnitedData.h" line="25" column="1" bodyfile="dag_shaderResUnitedData.h" bodystart="26" bodyend="39"/>
+    <listofallmembers>
+      <member refid="structunitedvdata_1_1BufConfig_1ab0d64f2097ab93e5feddc83c389c6da5" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>BufConfig</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1ac2fc95385b387f918aaedc3ae15f939b" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>BufConfig</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1a4453a44063dad23cac6a688464c6e1fa" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>dumpResListOnAddResFail</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1a6539b239206e19fa183c8aa94b569151" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>exactSize</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1aa013dac9244a0b24c7c0cdd2b048170b" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>ibAddPromille</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1ac3a5869a494e14bbeba789b78dcdb02b" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>ibMaxAdd</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1ae0752dbc4259db9140462dcdc7cd716c" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>ibMinAdd</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1a9f0a7093c88f1a55c69e4c2f31710ad9" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>ibSz</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1ac4ee597551bc3e91ae9c12fc68af29bc" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>vbAddPromille</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1ad8a3bb0a3274da2b5f24db68ea712bc6" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>vbMaxAdd</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1ae7b2f0ab97f68f47f8616975f7e942da" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>vbMinAdd</name></member>
+      <member refid="structunitedvdata_1_1BufConfig_1a2a85c3c16ffa3537c10a8d3ed63b4faa" prot="public" virt="non-virtual"><scope>unitedvdata::BufConfig</scope><name>vbSz</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

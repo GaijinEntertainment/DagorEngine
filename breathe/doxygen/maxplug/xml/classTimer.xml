@@ -1,0 +1,140 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classTimer" kind="class" language="C++" prot="public">
+    <compoundname>Timer</compoundname>
+    <includes refid="Timer_8hpp" local="no">Timer.hpp</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classTimer_1ae20d2e64a553a1f32a6c1b3ac2d9d6ee" prot="private" static="no" mutable="no">
+        <type>std::chrono::time_point&lt; std::chrono::high_resolution_clock &gt;</type>
+        <definition>std::chrono::time_point&lt;std::chrono::high_resolution_clock&gt; Timer::_current</definition>
+        <argsstring></argsstring>
+        <name>_current</name>
+        <qualifiedname>Timer::_current</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="6" column="27" bodyfile="Timer.hpp" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTimer_1a3fe976795295dba3a60362801f09786d" prot="private" static="no" mutable="no">
+        <type>std::chrono::time_point&lt; std::chrono::high_resolution_clock &gt;</type>
+        <definition>std::chrono::time_point&lt;std::chrono::high_resolution_clock&gt; Timer::_prev</definition>
+        <argsstring></argsstring>
+        <name>_prev</name>
+        <qualifiedname>Timer::_prev</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="6" column="36" bodyfile="Timer.hpp" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classTimer_1a09329cbf9f861df65c9e8f4b0c4cb5d4" prot="private" static="no" mutable="no">
+        <type>std::chrono::time_point&lt; std::chrono::high_resolution_clock &gt;</type>
+        <definition>std::chrono::time_point&lt;std::chrono::high_resolution_clock&gt; Timer::_start</definition>
+        <argsstring></argsstring>
+        <name>_start</name>
+        <qualifiedname>Timer::_start</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="6" column="42" bodyfile="Timer.hpp" bodystart="6" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classTimer_1a5f16e8da27d2a5a5242dead46de05d97" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>Timer::Timer</definition>
+        <argsstring>()</argsstring>
+        <name>Timer</name>
+        <qualifiedname>Timer::Timer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="9" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classTimer_1af90455f3201a327ae96eb37e21a9ca31" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Timer::Tick</definition>
+        <argsstring>()</argsstring>
+        <name>Tick</name>
+        <qualifiedname>Timer::Tick</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="10" column="15" bodyfile="Timer.hpp" bodystart="10" bodyend="14"/>
+      </memberdef>
+      <memberdef kind="function" id="classTimer_1a84f3f99d23bf33ffa921591524ab4725" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>double</type>
+        <definition>double Timer::FrameMs</definition>
+        <argsstring>()</argsstring>
+        <name>FrameMs</name>
+        <qualifiedname>Timer::FrameMs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="15" column="17" bodyfile="Timer.hpp" bodystart="15" bodyend="15"/>
+      </memberdef>
+      <memberdef kind="function" id="classTimer_1a8032cdab06dff47335af9e787420ee64" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>double</type>
+        <definition>double Timer::TotalMs</definition>
+        <argsstring>()</argsstring>
+        <name>TotalMs</name>
+        <qualifiedname>Timer::TotalMs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="16" column="17" bodyfile="Timer.hpp" bodystart="16" bodyend="16"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classTimer_1a03000d4bf8d0dd0bdd30f4ddfa860e45" prot="public" static="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>double</type>
+        <definition>static double Timer::NowMs</definition>
+        <argsstring>()</argsstring>
+        <name>NowMs</name>
+        <qualifiedname>Timer::NowMs</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="Timer.hpp" line="17" column="17" bodyfile="Timer.hpp" bodystart="17" bodyend="21"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="Timer.hpp" line="4" column="1" bodyfile="Timer.hpp" bodystart="5" bodyend="22"/>
+    <listofallmembers>
+      <member refid="classTimer_1ae20d2e64a553a1f32a6c1b3ac2d9d6ee" prot="private" virt="non-virtual"><scope>Timer</scope><name>_current</name></member>
+      <member refid="classTimer_1a3fe976795295dba3a60362801f09786d" prot="private" virt="non-virtual"><scope>Timer</scope><name>_prev</name></member>
+      <member refid="classTimer_1a09329cbf9f861df65c9e8f4b0c4cb5d4" prot="private" virt="non-virtual"><scope>Timer</scope><name>_start</name></member>
+      <member refid="classTimer_1a84f3f99d23bf33ffa921591524ab4725" prot="public" virt="non-virtual"><scope>Timer</scope><name>FrameMs</name></member>
+      <member refid="classTimer_1a03000d4bf8d0dd0bdd30f4ddfa860e45" prot="public" virt="non-virtual"><scope>Timer</scope><name>NowMs</name></member>
+      <member refid="classTimer_1af90455f3201a327ae96eb37e21a9ca31" prot="public" virt="non-virtual"><scope>Timer</scope><name>Tick</name></member>
+      <member refid="classTimer_1a5f16e8da27d2a5a5242dead46de05d97" prot="public" virt="non-virtual"><scope>Timer</scope><name>Timer</name></member>
+      <member refid="classTimer_1a8032cdab06dff47335af9e787420ee64" prot="public" virt="non-virtual"><scope>Timer</scope><name>TotalMs</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

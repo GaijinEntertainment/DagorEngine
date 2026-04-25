@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classConfirmationDialog" kind="class" language="C++" prot="public" final="yes">
+    <compoundname>ConfirmationDialog</compoundname>
+    <includes refid="ec__confirmation__dialog_8h" local="no">ec_confirmation_dialog.h</includes>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classConfirmationDialog_1a6fa1596c3bbbd9d9a64551dac3b8fe2b" prot="private" static="no" mutable="no">
+        <type>PropPanel::DialogWindow</type>
+        <definition>PropPanel::DialogWindow ConfirmationDialog::dialog</definition>
+        <argsstring></argsstring>
+        <name>dialog</name>
+        <qualifiedname>ConfirmationDialog::dialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_confirmation_dialog.h" line="27" column="27" bodyfile="ec_confirmation_dialog.h" bodystart="27" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classConfirmationDialog_1a5898a49e356905d9bf85784c75df6551" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ConfirmationDialog::ConfirmationDialog</definition>
+        <argsstring>(const char caption[], const char msg[])</argsstring>
+        <name>ConfirmationDialog</name>
+        <qualifiedname>ConfirmationDialog::ConfirmationDialog</qualifiedname>
+        <param>
+          <type>const char</type>
+          <declname>caption</declname>
+          <array>[]</array>
+        </param>
+        <param>
+          <type>const char</type>
+          <declname>msg</declname>
+          <array>[]</array>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_confirmation_dialog.h" line="11" column="12" bodyfile="ec_confirmation_dialog.h" bodystart="11" bodyend="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classConfirmationDialog_1aa5d4eff111047e2adbdd0db179bc0275" prot="public" static="no" const="no" explicit="no" inline="no" noexcept="yes" virt="non-virtual">
+        <type></type>
+        <definition>ConfirmationDialog::~ConfirmationDialog</definition>
+        <argsstring>() noexcept=default</argsstring>
+        <name>~ConfirmationDialog</name>
+        <qualifiedname>ConfirmationDialog::~ConfirmationDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_confirmation_dialog.h" line="22" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classConfirmationDialog_1a55cef35e0121575bc8faef447199f9e8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ConfirmationDialog::showDialog</definition>
+        <argsstring>()</argsstring>
+        <name>showDialog</name>
+        <qualifiedname>ConfirmationDialog::showDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_confirmation_dialog.h" line="24" column="7" bodyfile="ec_confirmation_dialog.h" bodystart="24" bodyend="24"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_confirmation_dialog.h" line="8" column="1" bodyfile="ec_confirmation_dialog.h" bodystart="9" bodyend="28"/>
+    <listofallmembers>
+      <member refid="classConfirmationDialog_1a5898a49e356905d9bf85784c75df6551" prot="public" virt="non-virtual"><scope>ConfirmationDialog</scope><name>ConfirmationDialog</name></member>
+      <member refid="classConfirmationDialog_1a6fa1596c3bbbd9d9a64551dac3b8fe2b" prot="private" virt="non-virtual"><scope>ConfirmationDialog</scope><name>dialog</name></member>
+      <member refid="classConfirmationDialog_1a55cef35e0121575bc8faef447199f9e8" prot="public" virt="non-virtual"><scope>ConfirmationDialog</scope><name>showDialog</name></member>
+      <member refid="classConfirmationDialog_1aa5d4eff111047e2adbdd0db179bc0275" prot="public" virt="non-virtual"><scope>ConfirmationDialog</scope><name>~ConfirmationDialog</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

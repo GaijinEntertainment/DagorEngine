@@ -1,0 +1,174 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderClassDialog" kind="class" language="C++" prot="public">
+    <compoundname>ShaderClassDialog</compoundname>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderClassDialog_1a75c3dcd58f8252e0c7516c01b9f2d557" prot="private" static="no" mutable="no">
+        <type>HWND</type>
+        <definition>HWND ShaderClassDialog::hWnd</definition>
+        <argsstring></argsstring>
+        <name>hWnd</name>
+        <qualifiedname>ShaderClassDialog::hWnd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="566" column="8" bodyfile="mater2.cpp" bodystart="566" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClassDialog_1abbec0d03f77c0e583a5b1e29460d6744" prot="private" static="no" mutable="no">
+        <type><ref refid="classDagormat2Dialog" kindref="compound">Dagormat2Dialog</ref> *</type>
+        <definition>Dagormat2Dialog* ShaderClassDialog::parent</definition>
+        <argsstring></argsstring>
+        <name>parent</name>
+        <qualifiedname>ShaderClassDialog::parent</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="567" column="19" bodyfile="mater2.cpp" bodystart="567" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderClassDialog_1a9a6777708bdaf9c5400928d432d12044" prot="private" static="no" mutable="no">
+        <type>std::wstring</type>
+        <definition>std::wstring ShaderClassDialog::shader_class_name</definition>
+        <argsstring></argsstring>
+        <name>shader_class_name</name>
+        <qualifiedname>ShaderClassDialog::shader_class_name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="569" column="16" bodyfile="mater2.cpp" bodystart="569" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderClassDialog_1a044184c10a54d72cf910003196abb0df" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>ShaderClassDialog::ShaderClassDialog</definition>
+        <argsstring>(Dagormat2Dialog *p)</argsstring>
+        <name>ShaderClassDialog</name>
+        <qualifiedname>ShaderClassDialog::ShaderClassDialog</qualifiedname>
+        <param>
+          <type><ref refid="classDagormat2Dialog" kindref="compound">Dagormat2Dialog</ref> *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="555" column="3" bodyfile="mater2.cpp" bodystart="3102" bodyend="3102"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderClassDialog_1a1e15d5fcaee7b791990144b23d173e60" prot="public" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type></type>
+        <definition>ShaderClassDialog::~ShaderClassDialog</definition>
+        <argsstring>()</argsstring>
+        <name>~ShaderClassDialog</name>
+        <qualifiedname>ShaderClassDialog::~ShaderClassDialog</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="556" column="11" bodyfile="mater2.cpp" bodystart="3104" bodyend="3104"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderClassDialog_1ac10ec74a88a52f492996f65968800740" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const std::wstring &amp;</type>
+        <definition>const std::wstring &amp; ShaderClassDialog::GetShaderClassName</definition>
+        <argsstring>() const</argsstring>
+        <name>GetShaderClassName</name>
+        <qualifiedname>ShaderClassDialog::GetShaderClassName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="558" column="22" bodyfile="mater2.cpp" bodystart="558" bodyend="558"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderClassDialog_1a49e1c0d483c3e1aa27900d0e1d77bba1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderClassDialog::DoModal</definition>
+        <argsstring>()</argsstring>
+        <name>DoModal</name>
+        <qualifiedname>ShaderClassDialog::DoModal</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="560" column="7" bodyfile="mater2.cpp" bodystart="3106" bodyend="3110"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderClassDialog_1a09f06bd037d62f26deed2e26aa8d2787" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>BOOL</type>
+        <definition>BOOL ShaderClassDialog::WndProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>WndProc</name>
+        <qualifiedname>ShaderClassDialog::WndProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="561" column="8" bodyfile="mater2.cpp" bodystart="3112" bodyend="3166"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classShaderClassDialog_1abc1d9de61894748ce8e2a955c88ebd9f" prot="private" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool ShaderClassDialog::GetName</definition>
+        <argsstring>()</argsstring>
+        <name>GetName</name>
+        <qualifiedname>ShaderClassDialog::GetName</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="564" column="8" bodyfile="mater2.cpp" bodystart="3168" bodyend="3193"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="mater2.cpp" line="552" column="1" bodyfile="mater2.cpp" bodystart="553" bodyend="570"/>
+    <listofallmembers>
+      <member refid="classShaderClassDialog_1a49e1c0d483c3e1aa27900d0e1d77bba1" prot="public" virt="non-virtual"><scope>ShaderClassDialog</scope><name>DoModal</name></member>
+      <member refid="classShaderClassDialog_1abc1d9de61894748ce8e2a955c88ebd9f" prot="private" virt="non-virtual"><scope>ShaderClassDialog</scope><name>GetName</name></member>
+      <member refid="classShaderClassDialog_1ac10ec74a88a52f492996f65968800740" prot="public" virt="non-virtual"><scope>ShaderClassDialog</scope><name>GetShaderClassName</name></member>
+      <member refid="classShaderClassDialog_1a75c3dcd58f8252e0c7516c01b9f2d557" prot="private" virt="non-virtual"><scope>ShaderClassDialog</scope><name>hWnd</name></member>
+      <member refid="classShaderClassDialog_1abbec0d03f77c0e583a5b1e29460d6744" prot="private" virt="non-virtual"><scope>ShaderClassDialog</scope><name>parent</name></member>
+      <member refid="classShaderClassDialog_1a9a6777708bdaf9c5400928d432d12044" prot="private" virt="non-virtual"><scope>ShaderClassDialog</scope><name>shader_class_name</name></member>
+      <member refid="classShaderClassDialog_1a044184c10a54d72cf910003196abb0df" prot="public" virt="non-virtual"><scope>ShaderClassDialog</scope><name>ShaderClassDialog</name></member>
+      <member refid="classShaderClassDialog_1a09f06bd037d62f26deed2e26aa8d2787" prot="public" virt="non-virtual"><scope>ShaderClassDialog</scope><name>WndProc</name></member>
+      <member refid="classShaderClassDialog_1a1e15d5fcaee7b791990144b23d173e60" prot="public" virt="virtual"><scope>ShaderClassDialog</scope><name>~ShaderClassDialog</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

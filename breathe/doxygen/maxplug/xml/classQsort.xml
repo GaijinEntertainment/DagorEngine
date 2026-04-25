@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classQsort" kind="class" language="C++" prot="public">
+    <compoundname>Qsort</compoundname>
+    <includes refid="qsort_8h" local="no">qsort.h</includes>
+    <templateparamlist>
+      <param>
+        <type>class T</type>
+      </param>
+      <param>
+        <type>class C</type>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="protected-attrib">
+      <memberdef kind="variable" id="classQsort_1a721ff188d22caa4e4d0eddd071c87421" prot="protected" static="no" mutable="no">
+        <type>char</type>
+        <definition>char Qsort&lt; T, C &gt;::__sort_x[sizeof(T)]</definition>
+        <argsstring>[sizeof(T)]</argsstring>
+        <name>__sort_x</name>
+        <qualifiedname>Qsort::__sort_x</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="10" column="8" bodyfile="qsort.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classQsort_1a960de135e40b97af43fb4dd7112bd746" prot="protected" static="no" mutable="no">
+        <type>char</type>
+        <definition>char Qsort&lt; T, C &gt;::__sort_y[sizeof(T)]</definition>
+        <argsstring>[sizeof(T)]</argsstring>
+        <name>__sort_y</name>
+        <qualifiedname>Qsort::__sort_y</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="10" column="17" bodyfile="qsort.h" bodystart="10" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classQsort_1a933cb92df0f367ce121e7d112dcc03a8" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Qsort&lt; T, C &gt;::__sort</definition>
+        <argsstring>(T *a, int n)</argsstring>
+        <name>__sort</name>
+        <qualifiedname>Qsort::__sort</qualifiedname>
+        <param>
+          <type>T *</type>
+          <declname>a</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="13" column="8" bodyfile="qsort.h" bodystart="13" bodyend="39"/>
+      </memberdef>
+      <memberdef kind="function" id="classQsort_1a9f90c486995074cfb611180f2d2917b7" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void Qsort&lt; T, C &gt;::sort</definition>
+        <argsstring>(T *p, int n)</argsstring>
+        <name>sort</name>
+        <qualifiedname>Qsort::sort</qualifiedname>
+        <param>
+          <type>T *</type>
+          <declname>p</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>n</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="qsort.h" line="41" column="8" bodyfile="qsort.h" bodystart="41" bodyend="46"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="qsort.h" line="7" column="1" bodyfile="qsort.h" bodystart="8" bodyend="47"/>
+    <listofallmembers>
+      <member refid="classQsort_1a933cb92df0f367ce121e7d112dcc03a8" prot="public" virt="non-virtual"><scope>Qsort</scope><name>__sort</name></member>
+      <member refid="classQsort_1a721ff188d22caa4e4d0eddd071c87421" prot="protected" virt="non-virtual"><scope>Qsort</scope><name>__sort_x</name></member>
+      <member refid="classQsort_1a960de135e40b97af43fb4dd7112bd746" prot="protected" virt="non-virtual"><scope>Qsort</scope><name>__sort_y</name></member>
+      <member refid="classQsort_1a9f90c486995074cfb611180f2d2917b7" prot="public" virt="non-virtual"><scope>Qsort</scope><name>sort</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

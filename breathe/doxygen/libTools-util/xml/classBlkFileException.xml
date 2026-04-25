@@ -1,0 +1,72 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classBlkFileException" kind="class" language="C++" prot="public">
+    <compoundname>BlkFileException</compoundname>
+    <includes refid="blockFileUtil_8h" local="no">blockFileUtil.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classBlkFileException_1af5f5e9acd767be8097b9fe670ca2876f" prot="public" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* BlkFileException::msg</definition>
+        <argsstring></argsstring>
+        <name>msg</name>
+        <qualifiedname>BlkFileException::msg</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="36" column="14" bodyfile="blockFileUtil.h" bodystart="36" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classBlkFileException_1a47568c8da353a6fbee050933f5751fbf" prot="public" static="no" mutable="no">
+        <type>int</type>
+        <definition>int BlkFileException::pos</definition>
+        <argsstring></argsstring>
+        <name>pos</name>
+        <qualifiedname>BlkFileException::pos</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="37" column="7" bodyfile="blockFileUtil.h" bodystart="37" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classBlkFileException_1a9b4f523f43ef2e2065268eff676233d6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>BlkFileException::BlkFileException</definition>
+        <argsstring>(const char *m, int p=0)</argsstring>
+        <name>BlkFileException</name>
+        <qualifiedname>BlkFileException::BlkFileException</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>m</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>p</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="blockFileUtil.h" line="38" column="3" bodyfile="blockFileUtil.h" bodystart="38" bodyend="42"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="blockFileUtil.h" line="33" column="1" bodyfile="blockFileUtil.h" bodystart="34" bodyend="43"/>
+    <listofallmembers>
+      <member refid="classBlkFileException_1a9b4f523f43ef2e2065268eff676233d6" prot="public" virt="non-virtual"><scope>BlkFileException</scope><name>BlkFileException</name></member>
+      <member refid="classBlkFileException_1af5f5e9acd767be8097b9fe670ca2876f" prot="public" virt="non-virtual"><scope>BlkFileException</scope><name>msg</name></member>
+      <member refid="classBlkFileException_1a47568c8da353a6fbee050933f5751fbf" prot="public" virt="non-virtual"><scope>BlkFileException</scope><name>pos</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

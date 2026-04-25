@@ -1,0 +1,182 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="expanim2_8h" kind="file" language="C++">
+    <compoundname>expanim2.h</compoundname>
+    <includes refid="debug_8h" local="yes">debug.h</includes>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="expanim2_8cpp" local="yes">expanim2.cpp</includedby>
+    <incdepgraph>
+      <node id="2">
+        <label>debug.h</label>
+        <link refid="debug_8h"/>
+      </node>
+      <node id="1">
+        <label>expanim2.h</label>
+        <link refid="expanim2_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="3">
+        <label>expanim2.cpp</label>
+        <link refid="expanim2_8cpp"/>
+      </node>
+      <node id="1">
+        <label>expanim2.h</label>
+        <link refid="expanim2_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+    </invincdepgraph>
+    <innerclass refid="structAnimChanPoint3" prot="public">AnimChanPoint3</innerclass>
+    <innerclass refid="structAnimChanQuat" prot="public">AnimChanQuat</innerclass>
+    <innerclass refid="structAnimKeyPoint3" prot="public">AnimKeyPoint3</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="expanim2_8h_1a6b08a93a325e83c15cbfd68e8fece720" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_tm_anim_2</definition>
+        <argsstring>(Tab&lt; AnimChanPoint3 * &gt; &amp;pos, Tab&lt; AnimChanQuat * &gt; &amp;rot, Tab&lt; AnimChanPoint3 * &gt; &amp;scl, const Interval &amp;limit, const Tab&lt; INode * &gt; &amp;node, const Tab&lt; ExpTMAnimCB * &gt; &amp;cb, float pos_thr, float rot_thr, float scl_thr, float ort_thr, int explags)</argsstring>
+        <name>get_tm_anim_2</name>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimChanPoint3" kindref="compound">AnimChanPoint3</ref> * &gt; &amp;</type>
+          <declname>pos</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimChanQuat" kindref="compound">AnimChanQuat</ref> * &gt; &amp;</type>
+          <declname>rot</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimChanPoint3" kindref="compound">AnimChanPoint3</ref> * &gt; &amp;</type>
+          <declname>scl</declname>
+        </param>
+        <param>
+          <type>const Interval &amp;</type>
+          <declname>limit</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; INode * &gt; &amp;</type>
+          <declname>node</declname>
+        </param>
+        <param>
+          <type>const Tab&lt; <ref refid="classExpTMAnimCB" kindref="compound">ExpTMAnimCB</ref> * &gt; &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>pos_thr</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>rot_thr</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>scl_thr</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>ort_thr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>explags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim2.h" line="19" column="6" bodyfile="expanim2.cpp" bodystart="429" bodyend="600" declfile="expanim2.h" declline="19" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="expanim2_8h_1adcc75033642eb915383bd1d3b9c39469" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool get_node_vel</definition>
+        <argsstring>(Tab&lt; AnimKeyPoint3 &gt; &amp;lin_vel, Tab&lt; AnimKeyPoint3 &gt; &amp;ang_vel, Tab&lt; int &gt; &amp;lin_vel_t, Tab&lt; int &gt; &amp;ang_vel_t, const Interval &amp;limit, ExpTMAnimCB &amp;cb, float pos_thr, float rot_thr, int explags)</argsstring>
+        <name>get_node_vel</name>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimKeyPoint3" kindref="compound">AnimKeyPoint3</ref> &gt; &amp;</type>
+          <declname>lin_vel</declname>
+        </param>
+        <param>
+          <type>Tab&lt; <ref refid="structAnimKeyPoint3" kindref="compound">AnimKeyPoint3</ref> &gt; &amp;</type>
+          <declname>ang_vel</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>lin_vel_t</declname>
+        </param>
+        <param>
+          <type>Tab&lt; int &gt; &amp;</type>
+          <declname>ang_vel_t</declname>
+        </param>
+        <param>
+          <type>const Interval &amp;</type>
+          <declname>limit</declname>
+        </param>
+        <param>
+          <type><ref refid="classExpTMAnimCB" kindref="compound">ExpTMAnimCB</ref> &amp;</type>
+          <declname>cb</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>pos_thr</declname>
+        </param>
+        <param>
+          <type>float</type>
+          <declname>rot_thr</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>explags</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="expanim2.h" line="22" column="6" bodyfile="expanim2.cpp" bodystart="625" bodyend="916" declfile="expanim2.h" declline="22" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4" refid="structAnimChanPoint3" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structAnimChanPoint3" kindref="compound">AnimChanPoint3</ref></highlight></codeline>
+<codeline lineno="5"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="6" refid="structAnimChanPoint3_1a697a17fad92055c7159a44e146f0bf33" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;PosKey&gt;<sp/><ref refid="structAnimChanPoint3_1a697a17fad92055c7159a44e146f0bf33" kindref="member">key</ref>;</highlight></codeline>
+<codeline lineno="7"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9" refid="structAnimChanQuat" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structAnimChanQuat" kindref="compound">AnimChanQuat</ref></highlight></codeline>
+<codeline lineno="10"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="11" refid="structAnimChanQuat_1acef9a120f4d3869e91b94a026106207d" refkind="member"><highlight class="normal"><sp/><sp/>Tab&lt;RotKey&gt;<sp/><ref refid="structAnimChanQuat_1acef9a120f4d3869e91b94a026106207d" kindref="member">key</ref>;</highlight></codeline>
+<codeline lineno="12"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight></codeline>
+<codeline lineno="14" refid="structAnimKeyPoint3" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structAnimKeyPoint3" kindref="compound">AnimKeyPoint3</ref></highlight></codeline>
+<codeline lineno="15"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="16" refid="structAnimKeyPoint3_1a6c2fc8d585bf30bdffd3e4bca1565a88" refkind="member"><highlight class="normal"><sp/><sp/>Point3<sp/><ref refid="structAnimKeyPoint3_1a1f2bc40f014af74a3031b7d8e68ed2e0" kindref="member">p</ref>,<sp/><ref refid="structAnimKeyPoint3_1a6c2fc8d585bf30bdffd3e4bca1565a88" kindref="member">k1</ref>,<sp/><ref refid="structAnimKeyPoint3_1ac127ab60ea8537d769c7c28b93b028b6" kindref="member">k2</ref>,<sp/><ref refid="structAnimKeyPoint3_1a1cfcf2df0d85a3d1402c3450adcf47ae" kindref="member">k3</ref>;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="expanim2_8h_1a6b08a93a325e83c15cbfd68e8fece720" kindref="member">get_tm_anim_2</ref>(Tab&lt;AnimChanPoint3<sp/>*&gt;<sp/>&amp;pos,<sp/>Tab&lt;AnimChanQuat<sp/>*&gt;<sp/>&amp;rot,<sp/>Tab&lt;AnimChanPoint3<sp/>*&gt;<sp/>&amp;scl,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Interval<sp/>&amp;limit,</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;INode<sp/>*&gt;<sp/>&amp;node,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Tab&lt;ExpTMAnimCB<sp/>*&gt;<sp/>&amp;cb,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>pos_thr,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>rot_thr,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>scl_thr,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>ort_thr,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>explags);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"></highlight></codeline>
+<codeline lineno="22"><highlight class="normal"></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="expanim2_8h_1adcc75033642eb915383bd1d3b9c39469" kindref="member">get_node_vel</ref>(Tab&lt;AnimKeyPoint3&gt;<sp/>&amp;lin_vel,<sp/>Tab&lt;AnimKeyPoint3&gt;<sp/>&amp;ang_vel,<sp/>Tab&lt;int&gt;<sp/>&amp;lin_vel_t,<sp/>Tab&lt;int&gt;<sp/>&amp;ang_vel_t,</highlight></codeline>
+<codeline lineno="23"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>Interval<sp/>&amp;limit,<sp/><ref refid="classExpTMAnimCB" kindref="compound">ExpTMAnimCB</ref><sp/>&amp;cb,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>pos_thr,<sp/></highlight><highlight class="keywordtype">float</highlight><highlight class="normal"><sp/>rot_thr,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>explags);</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"></highlight></codeline>
+<codeline lineno="25"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&quot;<ref refid="debug_8h" kindref="compound">debug.h</ref>&quot;</highlight><highlight class="normal"></highlight></codeline>
+    </programlisting>
+    <location file="expanim2.h"/>
+  </compounddef>
+</doxygen>

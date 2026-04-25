@@ -1,0 +1,187 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="layout_8h" kind="file" language="C++">
+    <compoundname>layout.h</compoundname>
+    <includes local="no">vector</includes>
+    <includes local="no">max.h</includes>
+    <includedby refid="common_8cpp" local="yes">common.cpp</includedby>
+    <includedby refid="dagimp_8cpp" local="yes">dagimp.cpp</includedby>
+    <includedby refid="expUtil_8cpp" local="yes">expUtil.cpp</includedby>
+    <includedby refid="layout_8cpp" local="yes">layout.cpp</includedby>
+    <includedby refid="mater2_8cpp" local="yes">mater2.cpp</includedby>
+    <includedby refid="util_8cpp" local="yes">util.cpp</includedby>
+    <incdepgraph>
+      <node id="1">
+        <label>layout.h</label>
+        <link refid="layout_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>max.h</label>
+      </node>
+      <node id="2">
+        <label>vector</label>
+      </node>
+    </incdepgraph>
+    <invincdepgraph>
+      <node id="2">
+        <label>common.cpp</label>
+        <link refid="common_8cpp"/>
+      </node>
+      <node id="3">
+        <label>dagimp.cpp</label>
+        <link refid="dagimp_8cpp"/>
+      </node>
+      <node id="4">
+        <label>expUtil.cpp</label>
+        <link refid="expUtil_8cpp"/>
+      </node>
+      <node id="5">
+        <label>layout.cpp</label>
+        <link refid="layout_8cpp"/>
+      </node>
+      <node id="1">
+        <label>layout.h</label>
+        <link refid="layout_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+      </node>
+      <node id="6">
+        <label>mater2.cpp</label>
+        <link refid="mater2_8cpp"/>
+      </node>
+      <node id="7">
+        <label>util.cpp</label>
+        <link refid="util_8cpp"/>
+      </node>
+    </invincdepgraph>
+      <sectiondef kind="define">
+      <memberdef kind="define" id="layout_8h_1ac93033490bc8943cfc82ec3b40e5cd74" prot="public" static="no">
+        <name>IDC_STATIC</name>
+        <initializer>(-1)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="16" column="9" bodyfile="layout.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="define" id="layout_8h_1aed00501af96b4cd497da0588c11beecc" prot="public" static="no">
+        <name>LAYOUT_MESSAGE</name>
+        <initializer>(WM_USER)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="19" column="9" bodyfile="layout.h" bodystart="19" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="layout_8h_1aaf131fbb2554c561ac1a282f95fda14b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void attach_layout_to_rollup</definition>
+        <argsstring>(HWND hWnd, LPCWSTR dialog_name)</argsstring>
+        <name>attach_layout_to_rollup</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>LPCWSTR</type>
+          <declname>dialog_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="11" column="6" bodyfile="layout.cpp" bodystart="370" bodyend="376" declfile="layout.h" declline="11" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8h_1a75048c6100d98af4f7937b6050907999" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void attach_layout_to_dialog</definition>
+        <argsstring>(HWND hWnd, LPCWSTR dialog_name)</argsstring>
+        <name>attach_layout_to_dialog</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>LPCWSTR</type>
+          <declname>dialog_name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="12" column="6" bodyfile="layout.cpp" bodystart="378" bodyend="382" declfile="layout.h" declline="12" declcolumn="6"/>
+      </memberdef>
+      <memberdef kind="function" id="layout_8h_1a2af181674729a2a0032b0cd5b381d929" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void update_layout</definition>
+        <argsstring>(HWND hWnd, LPARAM lParam)</argsstring>
+        <name>update_layout</name>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="layout.h" line="13" column="6" bodyfile="layout.cpp" bodystart="86" bodyend="86" declfile="layout.h" declline="13" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//<sp/>temporarily<sp/>disabled<sp/>due<sp/>to<sp/>visible<sp/>artifacts</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;vector&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;max.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDialogLayout" kindref="compound">DialogLayout</ref>;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="layout_8h_1aaf131fbb2554c561ac1a282f95fda14b" kindref="member">attach_layout_to_rollup</ref>(HWND<sp/>hWnd,<sp/>LPCWSTR<sp/>dialog_name);</highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="layout_8h_1a75048c6100d98af4f7937b6050907999" kindref="member">attach_layout_to_dialog</ref>(HWND<sp/>hWnd,<sp/>LPCWSTR<sp/>dialog_name);</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="layout_8h_1a2af181674729a2a0032b0cd5b381d929" kindref="member">update_layout</ref>(HWND<sp/>hWnd,<sp/>LPARAM<sp/>lParam);</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight><highlight class="preprocessor">#ifndef<sp/>IDC_STATIC</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="layout_8h_1ac93033490bc8943cfc82ec3b40e5cd74" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>IDC_STATIC<sp/>(-1)</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight><highlight class="preprocessor">#endif</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"></highlight></codeline>
+<codeline lineno="19" refid="layout_8h_1aed00501af96b4cd497da0588c11beecc" refkind="member"><highlight class="normal"></highlight><highlight class="preprocessor">#define<sp/>LAYOUT_MESSAGE<sp/>(WM_USER)</highlight></codeline>
+    </programlisting>
+    <location file="layout.h"/>
+  </compounddef>
+</doxygen>

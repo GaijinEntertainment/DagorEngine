@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceraytrace_1_1opacity__micro__map" kind="namespace" language="C++">
+    <compoundname>raytrace::opacity_micro_map</compoundname>
+    <innernamespace refid="namespaceraytrace_1_1opacity__micro__map_1_1index">raytrace::opacity_micro_map::index</innernamespace>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="479" column="1"/>
+  </compounddef>
+</doxygen>

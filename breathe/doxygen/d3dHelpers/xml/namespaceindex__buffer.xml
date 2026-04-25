@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceindex__buffer" kind="namespace" language="C++">
+    <compoundname>index_buffer</compoundname>
+    <innerclass refid="structindex__buffer_1_1Quads32BitUsageLock" prot="public">index_buffer::Quads32BitUsageLock</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="namespaceindex__buffer_1a132ede3468fd38bf8eb5954596eabd93" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::init_box</definition>
+        <argsstring>()</argsstring>
+        <name>init_box</name>
+        <qualifiedname>index_buffer::init_box</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="9" column="13" declfile="dag_quadIndexBuffer.h" declline="9" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceindex__buffer_1aa058568797f8def09033344a495253c0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::use_box</definition>
+        <argsstring>()</argsstring>
+        <name>use_box</name>
+        <qualifiedname>index_buffer::use_box</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="10" column="13" declfile="dag_quadIndexBuffer.h" declline="10" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceindex__buffer_1a477eb19928ea03960d218d84c1c8e915" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::release_box</definition>
+        <argsstring>()</argsstring>
+        <name>release_box</name>
+        <qualifiedname>index_buffer::release_box</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="11" column="13" declfile="dag_quadIndexBuffer.h" declline="11" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceindex__buffer_1aeb9a47c595b56ad72c7a823eef0743ee" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::init_quads_16bit</definition>
+        <argsstring>()</argsstring>
+        <name>init_quads_16bit</name>
+        <qualifiedname>index_buffer::init_quads_16bit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="13" column="13" declfile="dag_quadIndexBuffer.h" declline="13" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceindex__buffer_1afe906d10ebed1a1a8fe2199149e10e17" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::use_quads_16bit</definition>
+        <argsstring>()</argsstring>
+        <name>use_quads_16bit</name>
+        <qualifiedname>index_buffer::use_quads_16bit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="14" column="13" declfile="dag_quadIndexBuffer.h" declline="14" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceindex__buffer_1afcec0d493e8ee72201e1382c0c5095ac" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::release_quads_16bit</definition>
+        <argsstring>()</argsstring>
+        <name>release_quads_16bit</name>
+        <qualifiedname>index_buffer::release_quads_16bit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="15" column="13" declfile="dag_quadIndexBuffer.h" declline="15" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceindex__buffer_1a592639c4395507f6d37abef3d12af2a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::init_quads_32bit</definition>
+        <argsstring>(int quads_count)</argsstring>
+        <name>init_quads_32bit</name>
+        <qualifiedname>index_buffer::init_quads_32bit</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>quads_count</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="17" column="13" declfile="dag_quadIndexBuffer.h" declline="17" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceindex__buffer_1a6b3df14b35afd04bdc0581fa6fa151c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::start_use_quads_32bit</definition>
+        <argsstring>()</argsstring>
+        <name>start_use_quads_32bit</name>
+        <qualifiedname>index_buffer::start_use_quads_32bit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="18" column="13" declfile="dag_quadIndexBuffer.h" declline="18" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceindex__buffer_1aa62c542ddb0b19d506b873118e941ee0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::end_use_quads_32bit</definition>
+        <argsstring>()</argsstring>
+        <name>end_use_quads_32bit</name>
+        <qualifiedname>index_buffer::end_use_quads_32bit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="19" column="13" declfile="dag_quadIndexBuffer.h" declline="19" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="function" id="namespaceindex__buffer_1a41b8f7931bec72605b0fec1a8b872580" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void index_buffer::release_quads_32bit</definition>
+        <argsstring>()</argsstring>
+        <name>release_quads_32bit</name>
+        <qualifiedname>index_buffer::release_quads_32bit</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_quadIndexBuffer.h" line="20" column="13" declfile="dag_quadIndexBuffer.h" declline="20" declcolumn="13"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="dag_quadIndexBuffer.h" line="7" column="1"/>
+  </compounddef>
+</doxygen>

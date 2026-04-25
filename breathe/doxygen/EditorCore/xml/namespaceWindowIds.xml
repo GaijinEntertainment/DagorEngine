@@ -1,0 +1,88 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceWindowIds" kind="namespace" language="C++">
+    <compoundname>WindowIds</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceWindowIds_1a3e524b2fc64cd24b3f01161b1e0eea50" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* WindowIds::MAIN_SETTINGS_CAMERA</definition>
+        <argsstring></argsstring>
+        <name>MAIN_SETTINGS_CAMERA</name>
+        <qualifiedname>WindowIds::MAIN_SETTINGS_CAMERA</qualifiedname>
+        <initializer>= &quot;Main.Settings.Camera&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="192" column="29" bodyfile="ec_cm.h" bodystart="192" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceWindowIds_1aefa4e340136f00c2a8de3a159c1fe59f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* WindowIds::MAIN_SETTINGS_SCREENSHOT</definition>
+        <argsstring></argsstring>
+        <name>MAIN_SETTINGS_SCREENSHOT</name>
+        <qualifiedname>WindowIds::MAIN_SETTINGS_SCREENSHOT</qualifiedname>
+        <initializer>= &quot;Main.Settings.Screenshot&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="193" column="29" bodyfile="ec_cm.h" bodystart="193" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceWindowIds_1aa5adb6c3e12ce9276b704db806e81dfe" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* WindowIds::VIEWPORT_GRID_SETTINGS_PREFIX</definition>
+        <argsstring></argsstring>
+        <name>VIEWPORT_GRID_SETTINGS_PREFIX</name>
+        <qualifiedname>WindowIds::VIEWPORT_GRID_SETTINGS_PREFIX</qualifiedname>
+        <initializer>= &quot;Viewport.GridSettings.&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="194" column="29" bodyfile="ec_cm.h" bodystart="194" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceWindowIds_1a1c704a84e320878a096257717129fb42" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* WindowIds::VIEWPORT_STAT_SETTINGS_PREFIX</definition>
+        <argsstring></argsstring>
+        <name>VIEWPORT_STAT_SETTINGS_PREFIX</name>
+        <qualifiedname>WindowIds::VIEWPORT_STAT_SETTINGS_PREFIX</qualifiedname>
+        <initializer>= &quot;Viewport.StatSettings.&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="195" column="29" bodyfile="ec_cm.h" bodystart="195" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceWindowIds_1a7f451014d23cd98dd362d2af4581bb9f" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr const char *</type>
+        <definition>constexpr const char* WindowIds::VIEWPORT_GIZMO_SETTINGS</definition>
+        <argsstring></argsstring>
+        <name>VIEWPORT_GIZMO_SETTINGS</name>
+        <qualifiedname>WindowIds::VIEWPORT_GIZMO_SETTINGS</qualifiedname>
+        <initializer>= &quot;Viewport.GizmoSettings&quot;</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_cm.h" line="196" column="29" bodyfile="ec_cm.h" bodystart="196" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="ec_cm.h" line="189" column="1"/>
+  </compounddef>
+</doxygen>

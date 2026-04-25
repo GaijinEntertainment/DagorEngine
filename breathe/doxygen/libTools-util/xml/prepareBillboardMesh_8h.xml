@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="prepareBillboardMesh_8h" kind="file" language="C++">
+    <compoundname>prepareBillboardMesh.h</compoundname>
+    <includes local="no">generic/dag_tabFwd.h</includes>
+    <incdepgraph>
+      <node id="1">
+        <label>prepareBillboardMesh.h</label>
+        <link refid="prepareBillboardMesh_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>generic/dag_tabFwd.h</label>
+      </node>
+    </incdepgraph>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="prepareBillboardMesh_8h_1ad923c8ccbb1184916eb975635c406a29" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool ignore_mapping_in_prepare_billboard_mesh</definition>
+        <argsstring></argsstring>
+        <name>ignore_mapping_in_prepare_billboard_mesh</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="prepareBillboardMesh.h" line="12" column="13" declfile="prepareBillboardMesh.h" declline="12" declcolumn="13"/>
+      </memberdef>
+      <memberdef kind="variable" id="prepareBillboardMesh_8h_1a2c2cdf113284955b368c1c7962e32000" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool generate_extra_in_prepare_billboard_mesh</definition>
+        <argsstring></argsstring>
+        <name>generate_extra_in_prepare_billboard_mesh</name>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="prepareBillboardMesh.h" line="13" column="13" declfile="prepareBillboardMesh.h" declline="13" declcolumn="13"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="prepareBillboardMesh_8h_1aea7e248254e4c9809448f21e93ae57a0" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void prepare_billboard_mesh</definition>
+        <argsstring>(Mesh &amp;mesh, const TMatrix &amp;wtm, dag::ConstSpan&lt; Point3 &gt; org_verts)</argsstring>
+        <name>prepare_billboard_mesh</name>
+        <param>
+          <type>Mesh &amp;</type>
+          <declname>mesh</declname>
+        </param>
+        <param>
+          <type>const TMatrix &amp;</type>
+          <declname>wtm</declname>
+        </param>
+        <param>
+          <type>dag::ConstSpan&lt; Point3 &gt;</type>
+          <declname>org_verts</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="prepareBillboardMesh.h" line="16" column="6" declfile="prepareBillboardMesh.h" declline="16" declcolumn="6"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Tech<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;generic/dag_tabFwd.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">Mesh;</highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">TMatrix;</highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="keyword">class<sp/></highlight><highlight class="normal">Point3;</highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="prepareBillboardMesh_8h_1ad923c8ccbb1184916eb975635c406a29" kindref="member">ignore_mapping_in_prepare_billboard_mesh</ref>;</highlight></codeline>
+<codeline lineno="13"><highlight class="normal"></highlight><highlight class="keyword">extern</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">bool</highlight><highlight class="normal"><sp/><ref refid="prepareBillboardMesh_8h_1a2c2cdf113284955b368c1c7962e32000" kindref="member">generate_extra_in_prepare_billboard_mesh</ref>;</highlight></codeline>
+<codeline lineno="14"><highlight class="normal"></highlight></codeline>
+<codeline lineno="15"><highlight class="normal"></highlight></codeline>
+<codeline lineno="16" refid="prepareBillboardMesh_8h_1aea7e248254e4c9809448f21e93ae57a0" refkind="member"><highlight class="normal"></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/><ref refid="prepareBillboardMesh_8h_1aea7e248254e4c9809448f21e93ae57a0" kindref="member">prepare_billboard_mesh</ref>(Mesh<sp/>&amp;mesh,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/>TMatrix<sp/>&amp;wtm,<sp/>dag::ConstSpan&lt;Point3&gt;<sp/>org_verts);</highlight></codeline>
+    </programlisting>
+    <location file="prepareBillboardMesh.h"/>
+  </compounddef>
+</doxygen>

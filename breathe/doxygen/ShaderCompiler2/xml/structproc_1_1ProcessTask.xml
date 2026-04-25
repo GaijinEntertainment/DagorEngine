@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structproc_1_1ProcessTask" kind="struct" language="C++" prot="public">
+    <compoundname>proc::ProcessTask</compoundname>
+    <includes refid="processes_8h" local="no">processes.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structproc_1_1ProcessTask_1acbe9fe90c6d9563016fad4950af861d7" prot="public" static="no" mutable="no">
+        <type>dag::Vector&lt; eastl::string &gt;</type>
+        <definition>dag::Vector&lt;eastl::string&gt; proc::ProcessTask::argv</definition>
+        <argsstring></argsstring>
+        <name>argv</name>
+        <qualifiedname>proc::ProcessTask::argv</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.h" line="14" column="15" bodyfile="processes.h" bodystart="14" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1ProcessTask_1a68edf74be209442c9431f335ce890af2" prot="public" static="no" mutable="no">
+        <type>eastl::optional&lt; eastl::string &gt;</type>
+        <definition>eastl::optional&lt;eastl::string&gt; proc::ProcessTask::cwd</definition>
+        <argsstring></argsstring>
+        <name>cwd</name>
+        <qualifiedname>proc::ProcessTask::cwd</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.h" line="15" column="19" bodyfile="processes.h" bodystart="15" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1ProcessTask_1ae66706a89be2e8d3d6c2c8e3fd96ba2a" prot="public" static="no" mutable="no">
+        <type>dag::FixedMoveOnlyFunction&lt; 64, void(void)&gt;</type>
+        <definition>dag::FixedMoveOnlyFunction&lt;64, void(void)&gt; proc::ProcessTask::onSuccess</definition>
+        <argsstring></argsstring>
+        <name>onSuccess</name>
+        <qualifiedname>proc::ProcessTask::onSuccess</qualifiedname>
+        <initializer>= [] {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.h" line="16" column="30" bodyfile="processes.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1ProcessTask_1abe9ccf6c140771e73fd2ef7e0bf4c877" prot="public" static="no" mutable="no">
+        <type>dag::FixedMoveOnlyFunction&lt; 64, void(void)&gt;</type>
+        <definition>dag::FixedMoveOnlyFunction&lt;64, void(void)&gt; proc::ProcessTask::onFail</definition>
+        <argsstring></argsstring>
+        <name>onFail</name>
+        <qualifiedname>proc::ProcessTask::onFail</qualifiedname>
+        <initializer>= [] {}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.h" line="16" column="41" bodyfile="processes.h" bodystart="16" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structproc_1_1ProcessTask_1a54d7e4664a9712deb15a202d14e60f97" prot="public" static="no" mutable="no">
+        <type>bool</type>
+        <definition>bool proc::ProcessTask::isExternal</definition>
+        <argsstring></argsstring>
+        <name>isExternal</name>
+        <qualifiedname>proc::ProcessTask::isExternal</qualifiedname>
+        <initializer>= false</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="processes.h" line="17" column="8" bodyfile="processes.h" bodystart="17" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="processes.h" line="12" column="1" bodyfile="processes.h" bodystart="13" bodyend="18"/>
+    <listofallmembers>
+      <member refid="structproc_1_1ProcessTask_1acbe9fe90c6d9563016fad4950af861d7" prot="public" virt="non-virtual"><scope>proc::ProcessTask</scope><name>argv</name></member>
+      <member refid="structproc_1_1ProcessTask_1a68edf74be209442c9431f335ce890af2" prot="public" virt="non-virtual"><scope>proc::ProcessTask</scope><name>cwd</name></member>
+      <member refid="structproc_1_1ProcessTask_1a54d7e4664a9712deb15a202d14e60f97" prot="public" virt="non-virtual"><scope>proc::ProcessTask</scope><name>isExternal</name></member>
+      <member refid="structproc_1_1ProcessTask_1abe9ccf6c140771e73fd2ef7e0bf4c877" prot="public" virt="non-virtual"><scope>proc::ProcessTask</scope><name>onFail</name></member>
+      <member refid="structproc_1_1ProcessTask_1ae66706a89be2e8d3d6c2c8e3fd96ba2a" prot="public" virt="non-virtual"><scope>proc::ProcessTask</scope><name>onSuccess</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

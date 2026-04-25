@@ -1,0 +1,2047 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classDataBlock" kind="class" language="C++" prot="public">
+    <compoundname>DataBlock</compoundname>
+    <includes refid="datablk_8h" local="no">datablk.h</includes>
+    <innerclass refid="structDataBlock_1_1Param" prot="public">DataBlock::Param</innerclass>
+      <sectiondef kind="user-defined">
+      <header>Loading</header>
+      <memberdef kind="function" id="classDataBlock_1a8c434d45b644443c1cfec4a55cc0207f" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::loadText</definition>
+        <argsstring>(char *text, int text_length, const char *filename=NULL)</argsstring>
+        <name>loadText</name>
+        <qualifiedname>DataBlock::loadText</qualifiedname>
+        <param>
+          <type>char *</type>
+          <declname>text</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>text_length</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load <ref refid="classDataBlock" kindref="compound">DataBlock</ref> tree from specified text. Filename is for error output only. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="137" column="8" bodyfile="datablk.cpp" bodystart="880" bodyend="884"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a9cd5f74e7bcb52ef35a7345f5527a9a9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::loadText</definition>
+        <argsstring>(std::string &amp;text, const char *filename=NULL)</argsstring>
+        <name>loadText</name>
+        <qualifiedname>DataBlock::loadText</qualifiedname>
+        <param>
+          <type>std::string &amp;</type>
+          <declname>text</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>filename</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load <ref refid="classDataBlock" kindref="compound">DataBlock</ref> tree from specified text. Filename is for error output only. <simplesect kind="note"><para>This method will modify <bold>text</bold> when including files. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="142" column="8" bodyfile="datablk.cpp" bodystart="858" bodyend="878"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1aaabf519f7489719bff58ab5d0c354702" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::loadFromStream</definition>
+        <argsstring>(std::ifstream &amp;is, const char *fname=NULL)</argsstring>
+        <name>loadFromStream</name>
+        <qualifiedname>DataBlock::loadFromStream</qualifiedname>
+        <param>
+          <type>std::ifstream &amp;</type>
+          <declname>is</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>fname</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Load <ref refid="classDataBlock" kindref="compound">DataBlock</ref> tree from arbitrary stream Data may be presented like text, binary or stream data created by function beginTaggedBlock(_MAKE4C(&apos;blk&apos;)) fname uses if loading from text file to right parse include directives </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="148" column="8" bodyfile="datablk.cpp" bodystart="906" bodyend="911"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1add66d720a44507c2f09d67791ed9e978" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::load</definition>
+        <argsstring>(const std::wstring &amp;fname)</argsstring>
+        <name>load</name>
+        <qualifiedname>DataBlock::load</qualifiedname>
+        <param>
+          <type>const std::wstring &amp;</type>
+          <declname>fname</declname>
+        </param>
+        <briefdescription>
+<para>Load <ref refid="classDataBlock" kindref="compound">DataBlock</ref> tree from a text file. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="151" column="8" bodyfile="datablk.cpp" bodystart="887" bodyend="903"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Saving</header>
+      <memberdef kind="function" id="classDataBlock_1a304e643c0b7cc3e453d56a53a22f73a5" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::saveToTextFile</definition>
+        <argsstring>(const std::wstring &amp;filename) const</argsstring>
+        <name>saveToTextFile</name>
+        <qualifiedname>DataBlock::saveToTextFile</qualifiedname>
+        <param>
+          <type>const std::wstring &amp;</type>
+          <declname>filename</declname>
+        </param>
+        <briefdescription>
+<para>Save this <ref refid="classDataBlock" kindref="compound">DataBlock</ref> (and its sub-tree) to the specified file (text form) </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="160" column="8" bodyfile="datablk.cpp" bodystart="1034" bodyend="1045"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Names</header>
+      <memberdef kind="function" id="classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::getNameId</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getNameId</name>
+        <qualifiedname>DataBlock::getNameId</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Returns name id from <ref refid="classNameMap" kindref="compound">NameMap</ref>, or -1 if there&apos;s no such name in the <ref refid="classNameMap" kindref="compound">NameMap</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="169" column="7" bodyfile="datablk.cpp" bodystart="1049" bodyend="1049"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a4393039cb019686357e6f9e7fdffe95b" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * DataBlock::getName</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>getName</name>
+        <qualifiedname>DataBlock::getName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns name by name id, uses <ref refid="classNameMap" kindref="compound">NameMap</ref>. Returns NULL if name id is not valid. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="173" column="14" bodyfile="datablk.cpp" bodystart="1051" bodyend="1051"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Block Name</header>
+      <memberdef kind="function" id="classDataBlock_1a42d44973a12b1089fac54ebfd28c5ed5" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::getBlockNameId</definition>
+        <argsstring>() const</argsstring>
+        <name>getBlockNameId</name>
+        <qualifiedname>DataBlock::getBlockNameId</qualifiedname>
+        <briefdescription>
+<para>Returns name id of this <ref refid="classDataBlock" kindref="compound">DataBlock</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="182" column="14" bodyfile="datablk.h" bodystart="182" bodyend="182"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a41453fdfa89e8474d97b940908c9ec5b" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * DataBlock::getBlockName</definition>
+        <argsstring>() const</argsstring>
+        <name>getBlockName</name>
+        <qualifiedname>DataBlock::getBlockName</qualifiedname>
+        <briefdescription>
+<para>Returns name of this <ref refid="classDataBlock" kindref="compound">DataBlock</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="185" column="21" bodyfile="datablk.h" bodystart="185" bodyend="185"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Sub-blocks</header>
+      <memberdef kind="function" id="classDataBlock_1a4a5b83f3d2a45528f849872f1d12b385" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::blockCount</definition>
+        <argsstring>() const</argsstring>
+        <name>blockCount</name>
+        <qualifiedname>DataBlock::blockCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns number of sub-blocks in this <ref refid="classDataBlock" kindref="compound">DataBlock</ref>. Use for enumeration. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="195" column="14" bodyfile="datablk.h" bodystart="195" bodyend="195"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ab237db25052efbbde85f4d127127933c" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::getBlock</definition>
+        <argsstring>(int block_number) const</argsstring>
+        <name>getBlock</name>
+        <qualifiedname>DataBlock::getBlock</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>block_number</declname>
+        </param>
+        <briefdescription>
+<para>Returns pointer to i-th sub-block. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="198" column="13" bodyfile="datablk.cpp" bodystart="1055" bodyend="1060"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ab8c6197cb00448acfd583b864384ff81" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::getBlockByName</definition>
+        <argsstring>(int name_id, int start_after=-1) const</argsstring>
+        <name>getBlockByName</name>
+        <qualifiedname>DataBlock::getBlockByName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>start_after</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+<para>Returns pointer to sub-block with specified name id, or NULL if not found. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="201" column="13" bodyfile="datablk.cpp" bodystart="1062" bodyend="1068"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ad001b2a6ba7c9c7f893aa768c514905f" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::getBlockByName</definition>
+        <argsstring>(const char *name, int start_after=-1) const</argsstring>
+        <name>getBlockByName</name>
+        <qualifiedname>DataBlock::getBlockByName</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>start_after</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+<para>Returns pointer to sub-block with specified name, or NULL if not found. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="204" column="20" bodyfile="datablk.h" bodystart="204" bodyend="207"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a78e34f7a6944da36594613fa0712fa46" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::getBlockByNameEx</definition>
+        <argsstring>(const char *name, DataBlock *def_blk) const</argsstring>
+        <name>getBlockByNameEx</name>
+        <qualifiedname>DataBlock::getBlockByNameEx</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+          <declname>def_blk</declname>
+        </param>
+        <briefdescription>
+<para>Get sub-block by name, returns <bold>def_blk</bold>, if not found. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="210" column="20" bodyfile="datablk.h" bodystart="210" bodyend="214"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ada13f599ebcd47077a544ee900a0b0cd" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::getBlockByNameEx</definition>
+        <argsstring>(const char *name) const</argsstring>
+        <name>getBlockByNameEx</name>
+        <qualifiedname>DataBlock::getBlockByNameEx</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Get block by name, returns (always valid) <bold>emptyBlock</bold>, if not found. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="217" column="20" bodyfile="datablk.h" bodystart="217" bodyend="223"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a99e1bd4ac1e49de956b85a801e282763" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::addBlock</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>addBlock</name>
+        <qualifiedname>DataBlock::addBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Add block or get existing one. See also <ref refid="classDataBlock_1af6f6556233f14e728dddf08413fb0957" kindref="member">addNewBlock()</ref> and <ref refid="classDataBlock_1ada13f599ebcd47077a544ee900a0b0cd" kindref="member">getBlockByNameEx(const char *name) const</ref>. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="227" column="13" bodyfile="datablk.cpp" bodystart="409" bodyend="416"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1af6f6556233f14e728dddf08413fb0957" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::addNewBlock</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>addNewBlock</name>
+        <qualifiedname>DataBlock::addNewBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Add new block. See also <ref refid="classDataBlock_1a99e1bd4ac1e49de956b85a801e282763" kindref="member">addBlock()</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="230" column="13" bodyfile="datablk.cpp" bodystart="549" bodyend="555"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1aade8d46dc8c04d37e64acb429fef5097" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataBlock::setParamsFrom</definition>
+        <argsstring>(const DataBlock *copy_from)</argsstring>
+        <name>setParamsFrom</name>
+        <qualifiedname>DataBlock::setParamsFrom</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+          <declname>copy_from</declname>
+        </param>
+        <briefdescription>
+<para>Copies all parameters (not sub-blocks!) from specified <ref refid="classDataBlock" kindref="compound">DataBlock</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="233" column="8" bodyfile="datablk.cpp" bodystart="596" bodyend="624"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a43608b5fa50b5e2f1de7127e7cf3a745" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::addNewBlock</definition>
+        <argsstring>(const DataBlock *copy_from, const char *as_name=NULL)</argsstring>
+        <name>addNewBlock</name>
+        <qualifiedname>DataBlock::addNewBlock</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+          <declname>copy_from</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>as_name</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Create new block as a copy of specified <ref refid="classDataBlock" kindref="compound">DataBlock</ref>, with copy of all its sub-tree. <simplesect kind="note"><para>Specified <ref refid="classDataBlock" kindref="compound">DataBlock</ref> can be from different <ref refid="classDataBlock" kindref="compound">DataBlock</ref> tree. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="237" column="13" bodyfile="datablk.cpp" bodystart="627" bodyend="642"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1aabbe0e3a6ecfb4c694c4fb9dbc94fbf8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::removeBlock</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>removeBlock</name>
+        <qualifiedname>DataBlock::removeBlock</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Remove all sub-blocks with specified name. Returns false if no sub-blocks were removed. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="241" column="8" bodyfile="datablk.cpp" bodystart="558" bodyend="574"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a43278b25d18181ccd260a89e45525d3b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::setBlock</definition>
+        <argsstring>(const DataBlock *blk, const char *as_name=NULL)</argsstring>
+        <name>setBlock</name>
+        <qualifiedname>DataBlock::setBlock</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+          <declname>blk</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>as_name</declname>
+          <defval>NULL</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Similar to <ref refid="classDataBlock_1a43608b5fa50b5e2f1de7127e7cf3a745" kindref="member">addNewBlock(const DataBlock *copy_from, const char *as_name)</ref>, but removes existing sub-blocks with the same name first. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="245" column="13" bodyfile="datablk.h" bodystart="245" bodyend="251"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a0d635af28dbd58404c7446192cad7813" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataBlock::setFrom</definition>
+        <argsstring>(const DataBlock *from)</argsstring>
+        <name>setFrom</name>
+        <qualifiedname>DataBlock::setFrom</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+          <declname>from</declname>
+        </param>
+        <briefdescription>
+<para>Clears data, then copies all parameters and sub-blocks from specified <ref refid="classDataBlock" kindref="compound">DataBlock</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="254" column="8" bodyfile="datablk.cpp" bodystart="645" bodyend="656"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Parameters - Getting and Enumeration</header>
+      <memberdef kind="function" id="classDataBlock_1ab882fe0d17bf0ae63f49b37c5d654c22" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::paramCount</definition>
+        <argsstring>() const</argsstring>
+        <name>paramCount</name>
+        <qualifiedname>DataBlock::paramCount</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Returns number of parameters in this <ref refid="classDataBlock" kindref="compound">DataBlock</ref>. Use for enumeration. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="264" column="14" bodyfile="datablk.h" bodystart="264" bodyend="264"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a365913f705b094c774bd348dc57aa0f4" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" kindref="member">ParamType</ref></type>
+        <definition>DataBlock::ParamType DataBlock::getParamType</definition>
+        <argsstring>(int param_number) const</argsstring>
+        <name>getParamType</name>
+        <qualifiedname>DataBlock::getParamType</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <briefdescription>
+<para>Returns type of i-th parameter. See ParamType enum. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="267" column="13" bodyfile="datablk.cpp" bodystart="1072" bodyend="1077"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1af1bce1997cf5243d69ca01c25f3fecd8" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::getParamNameId</definition>
+        <argsstring>(int param_number) const</argsstring>
+        <name>getParamNameId</name>
+        <qualifiedname>DataBlock::getParamNameId</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <briefdescription>
+<para>Returns i-th parameter name id. See <ref refid="classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9" kindref="member">getNameId()</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="270" column="7" bodyfile="datablk.cpp" bodystart="1079" bodyend="1084"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a34b1bd82fbe6ea83173f6789aece18d6" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * DataBlock::getParamName</definition>
+        <argsstring>(int param_number) const</argsstring>
+        <name>getParamName</name>
+        <qualifiedname>DataBlock::getParamName</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <briefdescription>
+<para>Returns i-th parameter name. Uses <ref refid="classDataBlock_1a4393039cb019686357e6f9e7fdffe95b" kindref="member">getName()</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="273" column="21" bodyfile="datablk.h" bodystart="273" bodyend="273"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a2c08e03e2141ec3ce9c0cc10bb3d1720" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::findParam</definition>
+        <argsstring>(int name_id, int start_after=-1) const</argsstring>
+        <name>findParam</name>
+        <qualifiedname>DataBlock::findParam</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>start_after</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Find parameter by name id. Returns parameter index or -1 if not found. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="277" column="7" bodyfile="datablk.cpp" bodystart="1164" bodyend="1170"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a9a8ec0930292edfa9039967cf295e0c4" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::findParam</definition>
+        <argsstring>(const char *name, int start_after=-1) const</argsstring>
+        <name>findParam</name>
+        <qualifiedname>DataBlock::findParam</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>start_after</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Find parameter by name. Uses <ref refid="classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9" kindref="member">getNameId()</ref>. Returns parameter index or -1 if not found. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="281" column="14" bodyfile="datablk.h" bodystart="281" bodyend="281"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a7e7497d495750c86e10daa37a16c9464" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::paramExists</definition>
+        <argsstring>(int name_id, int start_after=-1) const</argsstring>
+        <name>paramExists</name>
+        <qualifiedname>DataBlock::paramExists</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>start_after</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+<para>Returns true if there is parameter with specified name id in this <ref refid="classDataBlock" kindref="compound">DataBlock</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="284" column="15" bodyfile="datablk.h" bodystart="284" bodyend="284"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a522747f7c2a9d313807a95852aa5a2d2" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::paramExists</definition>
+        <argsstring>(const char *name, int start_after=-1) const</argsstring>
+        <name>paramExists</name>
+        <qualifiedname>DataBlock::paramExists</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>start_after</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+<para>Returns true if there is parameter with specified name in this <ref refid="classDataBlock" kindref="compound">DataBlock</ref>. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="287" column="15" bodyfile="datablk.h" bodystart="287" bodyend="287"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a2753e6cdf30bb35433a165a72575e8e1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const <ref refid="structDataBlock_1_1Param" kindref="compound">Param</ref> *</type>
+        <definition>const DataBlock::Param * DataBlock::getParam</definition>
+        <argsstring>(int name_id) const</argsstring>
+        <name>getParam</name>
+        <qualifiedname>DataBlock::getParam</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>name_id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="289" column="15" bodyfile="datablk.cpp" bodystart="1172" bodyend="1177"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Parameters - Getting by Index</header>
+      <description><para>These methods get parameter value by parameter index in the block, the index number is from <bold>0</bold> to <ref refid="classDataBlock_1ab882fe0d17bf0ae63f49b37c5d654c22" kindref="member">paramCount()</ref> -1.</para>
+<para>On parameter type mismatch, zero-like value is returned.</para>
+<para>Use them for enumerating parameters together with <ref refid="classDataBlock_1af1bce1997cf5243d69ca01c25f3fecd8" kindref="member">DataBlock::getParamNameId()</ref> / <ref refid="classDataBlock_1a34b1bd82fbe6ea83173f6789aece18d6" kindref="member">DataBlock::getParamName()</ref> and <ref refid="classDataBlock_1a365913f705b094c774bd348dc57aa0f4" kindref="member">DataBlock::getParamType()</ref>. </para>
+</description>
+      <memberdef kind="function" id="classDataBlock_1a7cbd96fb90e012426bff0f1641a976ca" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * DataBlock::getStr</definition>
+        <argsstring>(int param_number, const char *def=&quot;&quot;) const</argsstring>
+        <name>getStr</name>
+        <qualifiedname>DataBlock::getStr</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>def</declname>
+          <defval>&quot;&quot;</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="304" column="14" bodyfile="datablk.cpp" bodystart="1086" bodyend="1091"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a3eb1b630a655770215db0973af2438d7" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::getBool</definition>
+        <argsstring>(int param_number, bool def=false) const</argsstring>
+        <name>getBool</name>
+        <qualifiedname>DataBlock::getBool</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>def</declname>
+          <defval>false</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="305" column="8" bodyfile="datablk.cpp" bodystart="1100" bodyend="1105"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a2843a09844f8dad1fe75fa78bdb18c30" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::getInt</definition>
+        <argsstring>(int param_number, int def=0) const</argsstring>
+        <name>getInt</name>
+        <qualifiedname>DataBlock::getInt</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>def</declname>
+          <defval>0</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="306" column="7" bodyfile="datablk.cpp" bodystart="1093" bodyend="1098"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ac4d46263956fd45cd8462f36cd3d867e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="datablk_8h_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real DataBlock::getReal</definition>
+        <argsstring>(int param_number, real def=0.f) const</argsstring>
+        <name>getReal</name>
+        <qualifiedname>DataBlock::getReal</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type><ref refid="datablk_8h_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>def</declname>
+          <defval>0.f</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="307" column="8" bodyfile="datablk.cpp" bodystart="1107" bodyend="1112"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a33f63ae9c5a3edd5473a2c52d65f8333" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point2</type>
+        <definition>Point2 DataBlock::getPoint2</definition>
+        <argsstring>(int param_number, const Point2 &amp;def=Point2(0, 0)) const</argsstring>
+        <name>getPoint2</name>
+        <qualifiedname>DataBlock::getPoint2</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>def</declname>
+          <defval>Point2(0, 0)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="308" column="10" bodyfile="datablk.cpp" bodystart="1114" bodyend="1119"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ab78465c1c2362ffe8fd7e6ade555283a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 DataBlock::getPoint3</definition>
+        <argsstring>(int param_number, const Point3 &amp;def=Point3(0, 0, 0)) const</argsstring>
+        <name>getPoint3</name>
+        <qualifiedname>DataBlock::getPoint3</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>def</declname>
+          <defval>Point3(0, 0, 0)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="309" column="10" bodyfile="datablk.cpp" bodystart="1121" bodyend="1126"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1aaeec3b56fff31f6c804b45aaa2f4470d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point4</type>
+        <definition>Point4 DataBlock::getPoint4</definition>
+        <argsstring>(int param_number, const Point4 &amp;def=Point4(0, 0, 0, 0)) const</argsstring>
+        <name>getPoint4</name>
+        <qualifiedname>DataBlock::getPoint4</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>const Point4 &amp;</type>
+          <declname>def</declname>
+          <defval>Point4(0, 0, 0, 0)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="310" column="10" bodyfile="datablk.cpp" bodystart="1128" bodyend="1133"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a427aca025062f43595bad2f2808c4c2e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>IPoint2</type>
+        <definition>IPoint2 DataBlock::getIPoint2</definition>
+        <argsstring>(int param_number, const IPoint2 &amp;def=IPoint2(0, 0)) const</argsstring>
+        <name>getIPoint2</name>
+        <qualifiedname>DataBlock::getIPoint2</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>const IPoint2 &amp;</type>
+          <declname>def</declname>
+          <defval>IPoint2(0, 0)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="311" column="11" bodyfile="datablk.cpp" bodystart="1135" bodyend="1140"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a055f8486371a4f1c85da80e9d0effc30" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>IPoint3</type>
+        <definition>IPoint3 DataBlock::getIPoint3</definition>
+        <argsstring>(int param_number, const IPoint3 &amp;def=IPoint3(0, 0, 0)) const</argsstring>
+        <name>getIPoint3</name>
+        <qualifiedname>DataBlock::getIPoint3</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>const IPoint3 &amp;</type>
+          <declname>def</declname>
+          <defval>IPoint3(0, 0, 0)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="312" column="11" bodyfile="datablk.cpp" bodystart="1142" bodyend="1147"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1afb75bd4f9176e82a2633fe03e29af7ff" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR DataBlock::getE3dcolor</definition>
+        <argsstring>(int param_number, const E3DCOLOR &amp;def=E3DCOLOR(0, 0, 0, 0)) const</argsstring>
+        <name>getE3dcolor</name>
+        <qualifiedname>DataBlock::getE3dcolor</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>const E3DCOLOR &amp;</type>
+          <declname>def</declname>
+          <defval>E3DCOLOR(0, 0, 0, 0)</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="313" column="12" bodyfile="datablk.cpp" bodystart="1149" bodyend="1154"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a41dfd5db020e06ffe268e48d14243342" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTMatrix" kindref="compound">TMatrix</ref></type>
+        <definition>TMatrix DataBlock::getTm</definition>
+        <argsstring>(int param_number, const TMatrix &amp;def=TMatrix::IDENT) const</argsstring>
+        <name>getTm</name>
+        <qualifiedname>DataBlock::getTm</qualifiedname>
+        <param>
+          <type>int</type>
+          <declname>param_number</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classTMatrix" kindref="compound">TMatrix</ref> &amp;</type>
+          <declname>def</declname>
+          <defval><ref refid="group__common_1ga2da604b1aad57ead190a7e92d2c16f67" kindref="member">TMatrix::IDENT</ref></defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="314" column="11" bodyfile="datablk.cpp" bodystart="1156" bodyend="1161"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Parameters - Getting by Name</header>
+      <description><para>These methods get parameter value by parameter name.</para>
+<para>If there is no parameter with specified name in this <ref refid="classDataBlock" kindref="compound">DataBlock</ref>, or it has different type, <bold>default</bold> value is returned.</para>
+<para>If there is more than one matching parameter, value of the first one is returned. </para>
+</description>
+      <memberdef kind="function" id="classDataBlock_1af7eda060b05780f9ecf9f06f4b26e680" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>const char *</type>
+        <definition>const char * DataBlock::getStr</definition>
+        <argsstring>(const char *name, const char *def) const</argsstring>
+        <name>getStr</name>
+        <qualifiedname>DataBlock::getStr</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="329" column="14" bodyfile="datablk.cpp" bodystart="1179" bodyend="1179"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a2bab6a8fc0153f45669597ea593de771" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::getBool</definition>
+        <argsstring>(const char *name, bool def) const</argsstring>
+        <name>getBool</name>
+        <qualifiedname>DataBlock::getBool</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="330" column="8" bodyfile="datablk.cpp" bodystart="1183" bodyend="1183"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ab784a15cdf32962570db4ebfa1fe9fda" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::getInt</definition>
+        <argsstring>(const char *name, int def) const</argsstring>
+        <name>getInt</name>
+        <qualifiedname>DataBlock::getInt</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="331" column="7" bodyfile="datablk.cpp" bodystart="1181" bodyend="1181"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a5ef3b2b19ef6a5a69c426905eee2bf0f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="datablk_8h_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+        <definition>real DataBlock::getReal</definition>
+        <argsstring>(const char *name, real def) const</argsstring>
+        <name>getReal</name>
+        <qualifiedname>DataBlock::getReal</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="datablk_8h_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="332" column="8" bodyfile="datablk.cpp" bodystart="1185" bodyend="1185"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a7a42ae89e3ccc0f6a9c757c0f7753c3a" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point2</type>
+        <definition>Point2 DataBlock::getPoint2</definition>
+        <argsstring>(const char *name, const Point2 &amp;def) const</argsstring>
+        <name>getPoint2</name>
+        <qualifiedname>DataBlock::getPoint2</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="333" column="10" bodyfile="datablk.cpp" bodystart="1187" bodyend="1187"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ad7d94599b2d63c18c4d4507137401f5d" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point3</type>
+        <definition>Point3 DataBlock::getPoint3</definition>
+        <argsstring>(const char *name, const Point3 &amp;def) const</argsstring>
+        <name>getPoint3</name>
+        <qualifiedname>DataBlock::getPoint3</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="334" column="10" bodyfile="datablk.cpp" bodystart="1189" bodyend="1189"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a4d2bc42848b14c025e83bb1d396fb66e" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>Point4</type>
+        <definition>Point4 DataBlock::getPoint4</definition>
+        <argsstring>(const char *name, const Point4 &amp;def) const</argsstring>
+        <name>getPoint4</name>
+        <qualifiedname>DataBlock::getPoint4</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point4 &amp;</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="335" column="10" bodyfile="datablk.cpp" bodystart="1191" bodyend="1191"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a05c8941713326402f4a50b234e2bc608" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>IPoint2</type>
+        <definition>IPoint2 DataBlock::getIPoint2</definition>
+        <argsstring>(const char *name, const IPoint2 &amp;def) const</argsstring>
+        <name>getIPoint2</name>
+        <qualifiedname>DataBlock::getIPoint2</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const IPoint2 &amp;</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="336" column="11" bodyfile="datablk.cpp" bodystart="1193" bodyend="1193"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a3a59400512b24a9fb3808c147243fb9f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>IPoint3</type>
+        <definition>IPoint3 DataBlock::getIPoint3</definition>
+        <argsstring>(const char *name, const IPoint3 &amp;def) const</argsstring>
+        <name>getIPoint3</name>
+        <qualifiedname>DataBlock::getIPoint3</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const IPoint3 &amp;</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="337" column="11" bodyfile="datablk.cpp" bodystart="1195" bodyend="1195"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a56d40ad116e1370c72affcbf4c977a9f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type>E3DCOLOR</type>
+        <definition>E3DCOLOR DataBlock::getE3dcolor</definition>
+        <argsstring>(const char *name, const E3DCOLOR &amp;def) const</argsstring>
+        <name>getE3dcolor</name>
+        <qualifiedname>DataBlock::getE3dcolor</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const E3DCOLOR &amp;</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="338" column="12" bodyfile="datablk.cpp" bodystart="1197" bodyend="1197"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1accc9b45e25eaea6ec29f2c9f33c0fc6f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classTMatrix" kindref="compound">TMatrix</ref></type>
+        <definition>TMatrix DataBlock::getTm</definition>
+        <argsstring>(const char *name, const TMatrix &amp;def) const</argsstring>
+        <name>getTm</name>
+        <qualifiedname>DataBlock::getTm</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classTMatrix" kindref="compound">TMatrix</ref> &amp;</type>
+          <declname>def</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="339" column="11" bodyfile="datablk.cpp" bodystart="1199" bodyend="1199"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Parameters - Setting</header>
+      <description><para>These methods set value of the parameter with the specified name.</para>
+<para>If parameter of requested type doesn&apos;t exist, it&apos;s added, otherwise its value is set to the specified one. </para>
+</description>
+      <memberdef kind="function" id="classDataBlock_1aff8bff937bbf6fe493132745d72c4e4c" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setStr</definition>
+        <argsstring>(const char *name, const char *value)</argsstring>
+        <name>setStr</name>
+        <qualifiedname>DataBlock::setStr</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="351" column="7" bodyfile="datablk.cpp" bodystart="659" bodyend="667"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a08890e7fcf236697e1f0b941caef9039" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setBool</definition>
+        <argsstring>(const char *name, bool value)</argsstring>
+        <name>setBool</name>
+        <qualifiedname>DataBlock::setBool</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="352" column="7" bodyfile="datablk.cpp" bodystart="669" bodyend="677"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1aa6b964399a63be78e809fcab7b58d5e1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setInt</definition>
+        <argsstring>(const char *name, int value)</argsstring>
+        <name>setInt</name>
+        <qualifiedname>DataBlock::setInt</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="353" column="7" bodyfile="datablk.cpp" bodystart="679" bodyend="687"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ae45f291df8ff1a828cee0d35a6ecfabf" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setReal</definition>
+        <argsstring>(const char *name, real value)</argsstring>
+        <name>setReal</name>
+        <qualifiedname>DataBlock::setReal</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="datablk_8h_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="354" column="7" bodyfile="datablk.cpp" bodystart="689" bodyend="697"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a23dac6db9f9769c8e67bd5834c9554fb" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setPoint2</definition>
+        <argsstring>(const char *name, const Point2 &amp;value)</argsstring>
+        <name>setPoint2</name>
+        <qualifiedname>DataBlock::setPoint2</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="355" column="7" bodyfile="datablk.cpp" bodystart="699" bodyend="707"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a312f232e5689bb3dccb7fb4c5d41416a" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setPoint3</definition>
+        <argsstring>(const char *name, const Point3 &amp;value)</argsstring>
+        <name>setPoint3</name>
+        <qualifiedname>DataBlock::setPoint3</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="356" column="7" bodyfile="datablk.cpp" bodystart="709" bodyend="717"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1afb11a765c2eaa925a824dd547d4779be" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setPoint4</definition>
+        <argsstring>(const char *name, const Point4 &amp;value)</argsstring>
+        <name>setPoint4</name>
+        <qualifiedname>DataBlock::setPoint4</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point4 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="357" column="7" bodyfile="datablk.cpp" bodystart="719" bodyend="727"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a4686bfe5347fcc2b7b7941093592cead" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setIPoint2</definition>
+        <argsstring>(const char *name, const IPoint2 &amp;value)</argsstring>
+        <name>setIPoint2</name>
+        <qualifiedname>DataBlock::setIPoint2</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const IPoint2 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="358" column="7" bodyfile="datablk.cpp" bodystart="729" bodyend="737"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a596b67ecd11936e0e4df2126d0e37720" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setIPoint3</definition>
+        <argsstring>(const char *name, const IPoint3 &amp;value)</argsstring>
+        <name>setIPoint3</name>
+        <qualifiedname>DataBlock::setIPoint3</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const IPoint3 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="359" column="7" bodyfile="datablk.cpp" bodystart="739" bodyend="747"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a595c6d701317e1a783172f632d73d495" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setE3dcolor</definition>
+        <argsstring>(const char *name, const E3DCOLOR value)</argsstring>
+        <name>setE3dcolor</name>
+        <qualifiedname>DataBlock::setE3dcolor</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const E3DCOLOR</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="360" column="7" bodyfile="datablk.cpp" bodystart="749" bodyend="757"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ad1817ede2a7ceff5c576c2767b64d6c9" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::setTm</definition>
+        <argsstring>(const char *name, const TMatrix &amp;value)</argsstring>
+        <name>setTm</name>
+        <qualifiedname>DataBlock::setTm</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classTMatrix" kindref="compound">TMatrix</ref> &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="361" column="7" bodyfile="datablk.cpp" bodystart="759" bodyend="767"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Parameters - Adding</header>
+      <description><para>These methods add new parameter with the specified name.</para>
+<para>It&apos;s possible to add multiple parameters with the same name and type.</para>
+<para>If you want just to add / set single parameter value, use <bold>set*</bold> methods. </para>
+</description>
+      <memberdef kind="function" id="classDataBlock_1a43dca6a549e52e941faa84d6bdfa448b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addStr</definition>
+        <argsstring>(const char *name, const char *value)</argsstring>
+        <name>addStr</name>
+        <qualifiedname>DataBlock::addStr</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="374" column="7" bodyfile="datablk.cpp" bodystart="770" bodyend="774"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1aaf7bbd214f73de63c1af3fb4f6706b55" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addBool</definition>
+        <argsstring>(const char *name, bool value)</argsstring>
+        <name>addBool</name>
+        <qualifiedname>DataBlock::addBool</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>bool</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="375" column="7" bodyfile="datablk.cpp" bodystart="776" bodyend="780"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a286b854d978dd2c20a9a314173469781" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addInt</definition>
+        <argsstring>(const char *name, int value)</argsstring>
+        <name>addInt</name>
+        <qualifiedname>DataBlock::addInt</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="376" column="7" bodyfile="datablk.cpp" bodystart="782" bodyend="786"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a8e07a241ac041b99c432f261ac4160b1" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addReal</definition>
+        <argsstring>(const char *name, real value)</argsstring>
+        <name>addReal</name>
+        <qualifiedname>DataBlock::addReal</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type><ref refid="datablk_8h_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref></type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="377" column="7" bodyfile="datablk.cpp" bodystart="788" bodyend="792"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a8d30e2130f66a5e3a20861a4e70eb6b3" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addPoint2</definition>
+        <argsstring>(const char *name, const Point2 &amp;value)</argsstring>
+        <name>addPoint2</name>
+        <qualifiedname>DataBlock::addPoint2</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point2 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="378" column="7" bodyfile="datablk.cpp" bodystart="794" bodyend="798"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a29acfc707ed15d829343f731c9bfd818" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addPoint3</definition>
+        <argsstring>(const char *name, const Point3 &amp;value)</argsstring>
+        <name>addPoint3</name>
+        <qualifiedname>DataBlock::addPoint3</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point3 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="379" column="7" bodyfile="datablk.cpp" bodystart="800" bodyend="804"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1acfaf19a992d3c010e355dcb047a5ae6e" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addPoint4</definition>
+        <argsstring>(const char *name, const Point4 &amp;value)</argsstring>
+        <name>addPoint4</name>
+        <qualifiedname>DataBlock::addPoint4</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const Point4 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="380" column="7" bodyfile="datablk.cpp" bodystart="806" bodyend="810"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ad6c0ea33a4b4a7a5e73c9414972d7104" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addIPoint2</definition>
+        <argsstring>(const char *name, const IPoint2 &amp;value)</argsstring>
+        <name>addIPoint2</name>
+        <qualifiedname>DataBlock::addIPoint2</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const IPoint2 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="381" column="7" bodyfile="datablk.cpp" bodystart="812" bodyend="816"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a6fadcf7ee5e0553a785f1e42874fb439" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addIPoint3</definition>
+        <argsstring>(const char *name, const IPoint3 &amp;value)</argsstring>
+        <name>addIPoint3</name>
+        <qualifiedname>DataBlock::addIPoint3</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const IPoint3 &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="382" column="7" bodyfile="datablk.cpp" bodystart="818" bodyend="822"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a2232828826377062ff7d7d6302a3a093" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addE3dcolor</definition>
+        <argsstring>(const char *name, const E3DCOLOR value)</argsstring>
+        <name>addE3dcolor</name>
+        <qualifiedname>DataBlock::addE3dcolor</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const E3DCOLOR</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="383" column="7" bodyfile="datablk.cpp" bodystart="824" bodyend="828"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a8c76b5a5e2b4d6f89dd17ce85194d222" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>int</type>
+        <definition>int DataBlock::addTm</definition>
+        <argsstring>(const char *name, const TMatrix &amp;value)</argsstring>
+        <name>addTm</name>
+        <qualifiedname>DataBlock::addTm</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>const <ref refid="classTMatrix" kindref="compound">TMatrix</ref> &amp;</type>
+          <declname>value</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="384" column="7" bodyfile="datablk.cpp" bodystart="830" bodyend="834"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="user-defined">
+      <header>Parameters - Removing</header>
+      <memberdef kind="function" id="classDataBlock_1aa8f184060e309989c3ea6166f9effd06" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>bool</type>
+        <definition>bool DataBlock::removeParam</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>removeParam</name>
+        <qualifiedname>DataBlock::removeParam</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Remove all parameters with the specified name. Returns false if no parameters were removed. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="394" column="8" bodyfile="datablk.cpp" bodystart="577" bodyend="593"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-type">
+      <memberdef kind="enum" id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" prot="public" static="no" strong="yes">
+        <type></type>
+        <name>ParamType</name>
+        <qualifiedname>DataBlock::ParamType</qualifiedname>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5abecaf8c11de4bfc13039fdb16e9c4f0a" prot="public">
+          <name>TYPE_NONE</name>
+          <briefdescription>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5ac8d746edee2e78b43d0db005850f11f8" prot="public">
+          <name>TYPE_STRING</name>
+          <briefdescription>
+<para>Text string. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5ae252dc27408bfae62687f5ba60941b41" prot="public">
+          <name>TYPE_INT</name>
+          <briefdescription>
+<para>Integer. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5add13fa08630c81fd85ba1ba866f7b8ae" prot="public">
+          <name>TYPE_REAL</name>
+          <briefdescription>
+<para><ref refid="datablk_8h_1a031f8951175b43076c2084a6c2173410" kindref="member">real</ref> (float). </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a69ddecac75d1f7a35e6c87a5925c6fa4" prot="public">
+          <name>TYPE_POINT2</name>
+          <briefdescription>
+<para>Point2. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a2f68656a2fdd3bd7eea727060896906f" prot="public">
+          <name>TYPE_POINT3</name>
+          <briefdescription>
+<para>Point3. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5ac7952dff8d714c2e3f5b6420417b5d34" prot="public">
+          <name>TYPE_POINT4</name>
+          <briefdescription>
+<para>Point4. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5acb01cb8b95a17b9d5b5014c819521725" prot="public">
+          <name>TYPE_IPOINT2</name>
+          <briefdescription>
+<para>IPoint2. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a83cabcb940595d5dff78dc2715d07cb4" prot="public">
+          <name>TYPE_IPOINT3</name>
+          <briefdescription>
+<para>IPoint3. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5abcead9cc5cf68325b7ae26c0c5fa3378" prot="public">
+          <name>TYPE_BOOL</name>
+          <briefdescription>
+<para>Boolean. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a0e2f13ecd2882dcdda2560b6dbd3d809" prot="public">
+          <name>TYPE_E3DCOLOR</name>
+          <briefdescription>
+<para>E3DCOLOR. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <enumvalue id="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5a7e9ce45ce5045698a60d1b26dda95049" prot="public">
+          <name>TYPE_MATRIX</name>
+          <briefdescription>
+<para><ref refid="classTMatrix" kindref="compound">TMatrix</ref>. </para>
+          </briefdescription>
+          <detaileddescription>
+          </detaileddescription>
+        </enumvalue>
+        <briefdescription>
+<para>Parameter types enum. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="52" column="3" bodyfile="datablk.h" bodystart="53" bodyend="66"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classDataBlock_1aecf9e0e98283104a0c315d6bdae8d319" prot="public" static="yes" mutable="no">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> *</type>
+        <definition>DataBlock * DataBlock::emptyBlock</definition>
+        <argsstring></argsstring>
+        <name>emptyBlock</name>
+        <qualifiedname>DataBlock::emptyBlock</qualifiedname>
+        <initializer>= NULL</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="49" column="20" bodyfile="datablk.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-static-func">
+      <memberdef kind="function" id="classDataBlock_1a1c0ed85d14c67ca7febf2ef488f40521" prot="public" static="yes" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" kindref="member">ParamType</ref></type>
+        <definition>DataBlock::ParamType DataBlock::deserialize_param_type</definition>
+        <argsstring>(const std::string &amp;s)</argsstring>
+        <name>deserialize_param_type</name>
+        <qualifiedname>DataBlock::deserialize_param_type</qualifiedname>
+        <param>
+          <type>const std::string &amp;</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="116" column="20" bodyfile="datablk.cpp" bodystart="398" bodyend="405"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classDataBlock_1a13dc1fd8bcb7f886499e92474b75ae9d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DataBlock::DataBlock</definition>
+        <argsstring>(std::shared_ptr&lt; NameMap &gt; nameMap)</argsstring>
+        <name>DataBlock</name>
+        <qualifiedname>DataBlock::DataBlock</qualifiedname>
+        <param>
+          <type>std::shared_ptr&lt; <ref refid="classNameMap" kindref="compound">NameMap</ref> &gt;</type>
+          <declname>nameMap</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="118" column="3" bodyfile="datablk.cpp" bodystart="837" bodyend="837"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a57af8af3d61a5bdfbddd9f7baeabd5ae" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>DataBlock::~DataBlock</definition>
+        <argsstring>()</argsstring>
+        <name>~DataBlock</name>
+        <qualifiedname>DataBlock::~DataBlock</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="119" column="3" bodyfile="datablk.cpp" bodystart="839" bodyend="839"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1ad139ce5afee1bb83f1d8369853e4540d" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataBlock::clearData</definition>
+        <argsstring>()</argsstring>
+        <name>clearData</name>
+        <qualifiedname>DataBlock::clearData</qualifiedname>
+        <briefdescription>
+<para>Delete all sub-blocks. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="127" column="8" bodyfile="datablk.cpp" bodystart="851" bodyend="855"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a7d48c1160c74a539dc0f8e124958dab2" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>void</type>
+        <definition>void DataBlock::reset</definition>
+        <argsstring>()</argsstring>
+        <name>reset</name>
+        <qualifiedname>DataBlock::reset</qualifiedname>
+        <briefdescription>
+<para>Reset <ref refid="classDataBlock" kindref="compound">DataBlock</ref> object (clear all data &amp; names). </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="130" column="8" bodyfile="datablk.cpp" bodystart="842" bodyend="847"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classDataBlock_1a43d2da079ca7232f8fd305086e3f9b97" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DataBlock::DataBlock</definition>
+        <argsstring>(const DataBlock &amp;)</argsstring>
+        <name>DataBlock</name>
+        <qualifiedname>DataBlock::DataBlock</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="122" column="3" bodyfile="datablk.h" bodystart="122" bodyend="122"/>
+      </memberdef>
+      <memberdef kind="function" id="classDataBlock_1a4b66838c19e0dc79e3bec326e7c4b7d2" prot="private" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type><ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+        <definition>DataBlock &amp; DataBlock::operator=</definition>
+        <argsstring>(const DataBlock &amp;)</argsstring>
+        <name>operator=</name>
+        <qualifiedname>DataBlock::operator=</qualifiedname>
+        <param>
+          <type>const <ref refid="classDataBlock" kindref="compound">DataBlock</ref> &amp;</type>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.h" line="123" column="13" bodyfile="datablk.h" bodystart="123" bodyend="123"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Class for reading and writing hierarchically structured data.</para>
+<para><ref refid="classDataBlock" kindref="compound">DataBlock</ref> itself is a node of the tree that has a name and hosts typified named parameters and named sub-nodes.</para>
+<para>For clarity, names are restricted to C indentifier rules.</para>
+<para>Actual names are stored in <ref refid="classNameMap" kindref="compound">NameMap</ref> that is shared by all DataBlocks in the tree. Blocks and parameters use integer ids to address names in the <ref refid="classNameMap" kindref="compound">NameMap</ref>, so there are methods that take name ids and those that take character strings. You can use name ids when you look for blocks or parameters for performance gain.</para>
+<para><ref refid="classDataBlock" kindref="compound">DataBlock</ref> tree contents can be serialized in text form.</para>
+<para>Text files of this format usually have extension &quot;.blk&quot;. </para>
+    </detaileddescription>
+    <collaborationgraph>
+      <node id="1">
+        <label>DataBlock</label>
+        <link refid="classDataBlock"/>
+        <childnode refid="1" relation="usage">
+          <edgelabel>emptyBlock</edgelabel>
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="datablk.h" line="44" column="1" bodyfile="datablk.h" bodystart="45" bodyend="421"/>
+    <listofallmembers>
+      <member refid="classDataBlock_1a99e1bd4ac1e49de956b85a801e282763" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addBlock</name></member>
+      <member refid="classDataBlock_1aaf7bbd214f73de63c1af3fb4f6706b55" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addBool</name></member>
+      <member refid="classDataBlock_1a2232828826377062ff7d7d6302a3a093" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addE3dcolor</name></member>
+      <member refid="classDataBlock_1a286b854d978dd2c20a9a314173469781" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addInt</name></member>
+      <member refid="classDataBlock_1ad6c0ea33a4b4a7a5e73c9414972d7104" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addIPoint2</name></member>
+      <member refid="classDataBlock_1a6fadcf7ee5e0553a785f1e42874fb439" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addIPoint3</name></member>
+      <member refid="classDataBlock_1af6f6556233f14e728dddf08413fb0957" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addNewBlock</name></member>
+      <member refid="classDataBlock_1a43608b5fa50b5e2f1de7127e7cf3a745" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addNewBlock</name></member>
+      <member refid="classDataBlock_1a8d30e2130f66a5e3a20861a4e70eb6b3" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addPoint2</name></member>
+      <member refid="classDataBlock_1a29acfc707ed15d829343f731c9bfd818" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addPoint3</name></member>
+      <member refid="classDataBlock_1acfaf19a992d3c010e355dcb047a5ae6e" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addPoint4</name></member>
+      <member refid="classDataBlock_1a8e07a241ac041b99c432f261ac4160b1" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addReal</name></member>
+      <member refid="classDataBlock_1a43dca6a549e52e941faa84d6bdfa448b" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addStr</name></member>
+      <member refid="classDataBlock_1a8c76b5a5e2b4d6f89dd17ce85194d222" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>addTm</name></member>
+      <member refid="classDataBlock_1a4a5b83f3d2a45528f849872f1d12b385" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>blockCount</name></member>
+      <member refid="classDataBlock_1ad139ce5afee1bb83f1d8369853e4540d" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>clearData</name></member>
+      <member refid="classDataBlock_1a13dc1fd8bcb7f886499e92474b75ae9d" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>DataBlock</name></member>
+      <member refid="classDataBlock_1a43d2da079ca7232f8fd305086e3f9b97" prot="private" virt="non-virtual"><scope>DataBlock</scope><name>DataBlock</name></member>
+      <member refid="classDataBlock_1a1c0ed85d14c67ca7febf2ef488f40521" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>deserialize_param_type</name></member>
+      <member refid="classDataBlock_1aecf9e0e98283104a0c315d6bdae8d319" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>emptyBlock</name></member>
+      <member refid="classDataBlock_1a2c08e03e2141ec3ce9c0cc10bb3d1720" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>findParam</name></member>
+      <member refid="classDataBlock_1a9a8ec0930292edfa9039967cf295e0c4" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>findParam</name></member>
+      <member refid="classDataBlock_1ab237db25052efbbde85f4d127127933c" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getBlock</name></member>
+      <member refid="classDataBlock_1ab8c6197cb00448acfd583b864384ff81" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getBlockByName</name></member>
+      <member refid="classDataBlock_1ad001b2a6ba7c9c7f893aa768c514905f" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getBlockByName</name></member>
+      <member refid="classDataBlock_1a78e34f7a6944da36594613fa0712fa46" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getBlockByNameEx</name></member>
+      <member refid="classDataBlock_1ada13f599ebcd47077a544ee900a0b0cd" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getBlockByNameEx</name></member>
+      <member refid="classDataBlock_1a41453fdfa89e8474d97b940908c9ec5b" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getBlockName</name></member>
+      <member refid="classDataBlock_1a42d44973a12b1089fac54ebfd28c5ed5" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getBlockNameId</name></member>
+      <member refid="classDataBlock_1a3eb1b630a655770215db0973af2438d7" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getBool</name></member>
+      <member refid="classDataBlock_1a2bab6a8fc0153f45669597ea593de771" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getBool</name></member>
+      <member refid="classDataBlock_1afb75bd4f9176e82a2633fe03e29af7ff" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getE3dcolor</name></member>
+      <member refid="classDataBlock_1a56d40ad116e1370c72affcbf4c977a9f" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getE3dcolor</name></member>
+      <member refid="classDataBlock_1a2843a09844f8dad1fe75fa78bdb18c30" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getInt</name></member>
+      <member refid="classDataBlock_1ab784a15cdf32962570db4ebfa1fe9fda" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getInt</name></member>
+      <member refid="classDataBlock_1a427aca025062f43595bad2f2808c4c2e" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getIPoint2</name></member>
+      <member refid="classDataBlock_1a05c8941713326402f4a50b234e2bc608" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getIPoint2</name></member>
+      <member refid="classDataBlock_1a055f8486371a4f1c85da80e9d0effc30" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getIPoint3</name></member>
+      <member refid="classDataBlock_1a3a59400512b24a9fb3808c147243fb9f" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getIPoint3</name></member>
+      <member refid="classDataBlock_1a4393039cb019686357e6f9e7fdffe95b" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getName</name></member>
+      <member refid="classDataBlock_1a7e96e40dcdbcf32e45b3e18eaab53db9" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getNameId</name></member>
+      <member refid="classDataBlock_1a2753e6cdf30bb35433a165a72575e8e1" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getParam</name></member>
+      <member refid="classDataBlock_1a34b1bd82fbe6ea83173f6789aece18d6" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getParamName</name></member>
+      <member refid="classDataBlock_1af1bce1997cf5243d69ca01c25f3fecd8" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getParamNameId</name></member>
+      <member refid="classDataBlock_1a365913f705b094c774bd348dc57aa0f4" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getParamType</name></member>
+      <member refid="classDataBlock_1a33f63ae9c5a3edd5473a2c52d65f8333" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getPoint2</name></member>
+      <member refid="classDataBlock_1a7a42ae89e3ccc0f6a9c757c0f7753c3a" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getPoint2</name></member>
+      <member refid="classDataBlock_1ab78465c1c2362ffe8fd7e6ade555283a" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getPoint3</name></member>
+      <member refid="classDataBlock_1ad7d94599b2d63c18c4d4507137401f5d" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getPoint3</name></member>
+      <member refid="classDataBlock_1aaeec3b56fff31f6c804b45aaa2f4470d" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getPoint4</name></member>
+      <member refid="classDataBlock_1a4d2bc42848b14c025e83bb1d396fb66e" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getPoint4</name></member>
+      <member refid="classDataBlock_1ac4d46263956fd45cd8462f36cd3d867e" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getReal</name></member>
+      <member refid="classDataBlock_1a5ef3b2b19ef6a5a69c426905eee2bf0f" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getReal</name></member>
+      <member refid="classDataBlock_1a7cbd96fb90e012426bff0f1641a976ca" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getStr</name></member>
+      <member refid="classDataBlock_1af7eda060b05780f9ecf9f06f4b26e680" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getStr</name></member>
+      <member refid="classDataBlock_1a41dfd5db020e06ffe268e48d14243342" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getTm</name></member>
+      <member refid="classDataBlock_1accc9b45e25eaea6ec29f2c9f33c0fc6f" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>getTm</name></member>
+      <member refid="classDataBlock_1add66d720a44507c2f09d67791ed9e978" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>load</name></member>
+      <member refid="classDataBlock_1aaabf519f7489719bff58ab5d0c354702" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>loadFromStream</name></member>
+      <member refid="classDataBlock_1a8c434d45b644443c1cfec4a55cc0207f" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>loadText</name></member>
+      <member refid="classDataBlock_1a9cd5f74e7bcb52ef35a7345f5527a9a9" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>loadText</name></member>
+      <member refid="classDataBlock_1a4b66838c19e0dc79e3bec326e7c4b7d2" prot="private" virt="non-virtual"><scope>DataBlock</scope><name>operator=</name></member>
+      <member refid="classDataBlock_1ab882fe0d17bf0ae63f49b37c5d654c22" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>paramCount</name></member>
+      <member refid="classDataBlock_1a7e7497d495750c86e10daa37a16c9464" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>paramExists</name></member>
+      <member refid="classDataBlock_1a522747f7c2a9d313807a95852aa5a2d2" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>paramExists</name></member>
+      <member refid="classDataBlock_1af970c30e57912cf2a1af42bcdfd0c7a5" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>ParamType</name></member>
+      <member refid="classDataBlock_1aabbe0e3a6ecfb4c694c4fb9dbc94fbf8" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>removeBlock</name></member>
+      <member refid="classDataBlock_1aa8f184060e309989c3ea6166f9effd06" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>removeParam</name></member>
+      <member refid="classDataBlock_1a7d48c1160c74a539dc0f8e124958dab2" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>reset</name></member>
+      <member refid="classDataBlock_1a304e643c0b7cc3e453d56a53a22f73a5" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>saveToTextFile</name></member>
+      <member refid="classDataBlock_1a43278b25d18181ccd260a89e45525d3b" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setBlock</name></member>
+      <member refid="classDataBlock_1a08890e7fcf236697e1f0b941caef9039" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setBool</name></member>
+      <member refid="classDataBlock_1a595c6d701317e1a783172f632d73d495" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setE3dcolor</name></member>
+      <member refid="classDataBlock_1a0d635af28dbd58404c7446192cad7813" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setFrom</name></member>
+      <member refid="classDataBlock_1aa6b964399a63be78e809fcab7b58d5e1" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setInt</name></member>
+      <member refid="classDataBlock_1a4686bfe5347fcc2b7b7941093592cead" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setIPoint2</name></member>
+      <member refid="classDataBlock_1a596b67ecd11936e0e4df2126d0e37720" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setIPoint3</name></member>
+      <member refid="classDataBlock_1aade8d46dc8c04d37e64acb429fef5097" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setParamsFrom</name></member>
+      <member refid="classDataBlock_1a23dac6db9f9769c8e67bd5834c9554fb" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setPoint2</name></member>
+      <member refid="classDataBlock_1a312f232e5689bb3dccb7fb4c5d41416a" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setPoint3</name></member>
+      <member refid="classDataBlock_1afb11a765c2eaa925a824dd547d4779be" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setPoint4</name></member>
+      <member refid="classDataBlock_1ae45f291df8ff1a828cee0d35a6ecfabf" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setReal</name></member>
+      <member refid="classDataBlock_1aff8bff937bbf6fe493132745d72c4e4c" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setStr</name></member>
+      <member refid="classDataBlock_1ad1817ede2a7ceff5c576c2767b64d6c9" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>setTm</name></member>
+      <member refid="classDataBlock_1a57af8af3d61a5bdfbddd9f7baeabd5ae" prot="public" virt="non-virtual"><scope>DataBlock</scope><name>~DataBlock</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

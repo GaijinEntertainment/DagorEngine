@@ -1,0 +1,439 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classIEditorCommandSystem" kind="class" language="C++" prot="public" abstract="yes">
+    <compoundname>IEditorCommandSystem</compoundname>
+    <derivedcompoundref refid="classEditorCommandSystem" prot="public" virt="non-virtual">EditorCommandSystem</derivedcompoundref>
+    <includes refid="ec__editorCommandSystem_8h" local="no">ec_editorCommandSystem.h</includes>
+      <sectiondef kind="public-static-attrib">
+      <memberdef kind="variable" id="classIEditorCommandSystem_1a50fe6095976049ca8c6a2913a8bf7c49" prot="public" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr unsigned</type>
+        <definition>constexpr unsigned IEditorCommandSystem::HUID</definition>
+        <argsstring></argsstring>
+        <name>HUID</name>
+        <qualifiedname>IEditorCommandSystem::HUID</qualifiedname>
+        <initializer>= 0x167633F1u</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="57" column="29" bodyfile="ec_editorCommandSystem.h" bodystart="57" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classIEditorCommandSystem_1a57350ca8743848c4ccf4a940e0e1c02a" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::addCommand</definition>
+        <argsstring>(const char *id)=0</argsstring>
+        <name>addCommand</name>
+        <qualifiedname>IEditorCommandSystem::addCommand</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1abc735eeab991eecd4b0249b6f0e3b299">addCommand</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="25" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a3e7b746f46a9066df6fb7df0c8999c60" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::addCommand</definition>
+        <argsstring>(const char *id, ImGuiKeyChord key_chord)=0</argsstring>
+        <name>addCommand</name>
+        <qualifiedname>IEditorCommandSystem::addCommand</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1a3ce29e75ac1d181c6e290f660cbb2160">addCommand</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type><ref refid="ec__editorCommandSystem_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref></type>
+          <declname>key_chord</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="26" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a19171bf590a5d9933b8ee1613e660908" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::addCommand</definition>
+        <argsstring>(const char *id, ImGuiKeyChord key_chord1, ImGuiKeyChord key_chord2)=0</argsstring>
+        <name>addCommand</name>
+        <qualifiedname>IEditorCommandSystem::addCommand</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1a45244501e8fe768ce86cc1cb3ee7020f">addCommand</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type><ref refid="ec__editorCommandSystem_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref></type>
+          <declname>key_chord1</declname>
+        </param>
+        <param>
+          <type><ref refid="ec__editorCommandSystem_8h_1a0720c04fed27e0f01b3722a13c8a8762" kindref="member">ImGuiKeyChord</ref></type>
+          <declname>key_chord2</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="27" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1aa315912954d480d944a66d12eac2e3c7" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IEditorCommandSystem::getCommandKeyChordsAsText</definition>
+        <argsstring>(const char *id)=0</argsstring>
+        <name>getCommandKeyChordsAsText</name>
+        <qualifiedname>IEditorCommandSystem::getCommandKeyChordsAsText</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1a5083d227c83280e2d368b62e0e3af43d">getCommandKeyChordsAsText</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="31" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a3d6c1c987d3efaca49212d65bb47841f" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>unsigned int</type>
+        <definition>virtual unsigned int IEditorCommandSystem::getCommandCount</definition>
+        <argsstring>() const =0</argsstring>
+        <name>getCommandCount</name>
+        <qualifiedname>IEditorCommandSystem::getCommandCount</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1ae38ce2bd05cdc509ea62a9e4bb44e0f5">getCommandCount</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="33" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1aa729b944f3faaea8afdfa01d593579f1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>const char *</type>
+        <definition>virtual const char * IEditorCommandSystem::getCommandId</definition>
+        <argsstring>(int index) const =0</argsstring>
+        <name>getCommandId</name>
+        <qualifiedname>IEditorCommandSystem::getCommandId</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1a72a74e9a1ad2fafead7f23b9ff02a2ae">getCommandId</reimplementedby>
+        <param>
+          <type>int</type>
+          <declname>index</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="34" column="22"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a6412c8bc7f24314d06094e4dc2621975" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>unsigned int</type>
+        <definition>virtual unsigned int IEditorCommandSystem::getCommandCmdId</definition>
+        <argsstring>(const char *id)=0</argsstring>
+        <name>getCommandCmdId</name>
+        <qualifiedname>IEditorCommandSystem::getCommandCmdId</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1af55fa3149e53ea372cd754a934e3f3c1">getCommandCmdId</reimplementedby>
+        <param>
+          <type>const char *</type>
+          <declname>id</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="35" column="24"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1acbcb5658e7fb2bfc6d52317d3772ac93" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::loadChangedHotkeys</definition>
+        <argsstring>(const DataBlock &amp;blk)=0</argsstring>
+        <name>loadChangedHotkeys</name>
+        <qualifiedname>IEditorCommandSystem::loadChangedHotkeys</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1af0fe834aaf013751b850816f3a3e61f8">loadChangedHotkeys</reimplementedby>
+        <param>
+          <type>const DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="37" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a897f3d88951eba1d26f8fe55eed170d1" prot="public" static="no" const="yes" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::saveChangedHotkeys</definition>
+        <argsstring>(DataBlock &amp;blk) const =0</argsstring>
+        <name>saveChangedHotkeys</name>
+        <qualifiedname>IEditorCommandSystem::saveChangedHotkeys</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1af07e0ae2b76773c816280cbf30212756">saveChangedHotkeys</reimplementedby>
+        <param>
+          <type>DataBlock &amp;</type>
+          <declname>blk</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="38" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a404aa08ddebb6468e563b32a7f1a91ce" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::createToolbarButton</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;parent, int id, const char *editor_command_id, const char *tooltip)=0</argsstring>
+        <name>createToolbarButton</name>
+        <qualifiedname>IEditorCommandSystem::createToolbarButton</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1aef26b9817f5f00c62854ab7f760b842b">createToolbarButton</reimplementedby>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>parent</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>editor_command_id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tooltip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="40" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a354a64761342d841c20e1dec536fa041" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::createToolbarRadioButton</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;parent, int id, const char *editor_command_id, const char *tooltip)=0</argsstring>
+        <name>createToolbarRadioButton</name>
+        <qualifiedname>IEditorCommandSystem::createToolbarRadioButton</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1a13ffa7f5a35cea03570cf52ee4ffb513">createToolbarRadioButton</reimplementedby>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>parent</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>editor_command_id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tooltip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="42" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a9d548efed51680924a87e44887522a85" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::createToolbarToggleButton</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;parent, int id, const char *editor_command_id, const char *tooltip)=0</argsstring>
+        <name>createToolbarToggleButton</name>
+        <qualifiedname>IEditorCommandSystem::createToolbarToggleButton</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1ade46a53c5146ff564145d1955149bea2">createToolbarToggleButton</reimplementedby>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>parent</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>editor_command_id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>tooltip</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="44" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1ae3369f160d5eccbdca047723eb42b829" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::updateToolbarButtons</definition>
+        <argsstring>(PropPanel::ContainerPropertyControl &amp;container)=0</argsstring>
+        <name>updateToolbarButtons</name>
+        <qualifiedname>IEditorCommandSystem::updateToolbarButtons</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1aa0127ae999cb516bb306697ee210df19">updateToolbarButtons</reimplementedby>
+        <param>
+          <type>PropPanel::ContainerPropertyControl &amp;</type>
+          <declname>container</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="46" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1ac7b7da6ac0f37ec25fe114447d93aff6" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::addMenuItem</definition>
+        <argsstring>(PropPanel::IMenu &amp;menu, unsigned menu_id, unsigned item_id, const char *editor_command_id, const char *title)=0</argsstring>
+        <name>addMenuItem</name>
+        <qualifiedname>IEditorCommandSystem::addMenuItem</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1abb7b91e84b0980b608799a359dcfba04">addMenuItem</reimplementedby>
+        <param>
+          <type>PropPanel::IMenu &amp;</type>
+          <declname>menu</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>menu_id</declname>
+        </param>
+        <param>
+          <type>unsigned</type>
+          <declname>item_id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>editor_command_id</declname>
+        </param>
+        <param>
+          <type>const char *</type>
+          <declname>title</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="48" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1ad5195382a6fcb45b6329b974d60ee536" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::updateMenuItemShortcuts</definition>
+        <argsstring>(PropPanel::IMenu &amp;menu)=0</argsstring>
+        <name>updateMenuItemShortcuts</name>
+        <qualifiedname>IEditorCommandSystem::updateMenuItemShortcuts</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1a00ac537c087a07c8746b64453d71e508">updateMenuItemShortcuts</reimplementedby>
+        <param>
+          <type>PropPanel::IMenu &amp;</type>
+          <declname>menu</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="50" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a9c668dea6900e4c8d85281272463d016" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::enableMissingCommandLogging</definition>
+        <argsstring>()=0</argsstring>
+        <name>enableMissingCommandLogging</name>
+        <qualifiedname>IEditorCommandSystem::enableMissingCommandLogging</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1a0637c6835d0502338f7308c5b489d314">enableMissingCommandLogging</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="52" column="16"/>
+      </memberdef>
+      <memberdef kind="function" id="classIEditorCommandSystem_1a60b32bf001e198365422de81d9eb2559" prot="public" static="no" const="no" explicit="no" inline="no" virt="pure-virtual">
+        <type>void</type>
+        <definition>virtual void IEditorCommandSystem::updateImgui</definition>
+        <argsstring>()=0</argsstring>
+        <name>updateImgui</name>
+        <qualifiedname>IEditorCommandSystem::updateImgui</qualifiedname>
+        <reimplementedby refid="classEditorCommandSystem_1ae6498d28b1e0822236b9fb7ef77024ca">updateImgui</reimplementedby>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="ec_editorCommandSystem.h" line="55" column="16"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>EditorCommandSystem</label>
+        <link refid="classEditorCommandSystem"/>
+        <childnode refid="1" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>IEditorCommandSystem</label>
+        <link refid="classIEditorCommandSystem"/>
+      </node>
+    </inheritancegraph>
+    <location file="ec_editorCommandSystem.h" line="22" column="1" bodyfile="ec_editorCommandSystem.h" bodystart="23" bodyend="58"/>
+    <listofallmembers>
+      <member refid="classIEditorCommandSystem_1a57350ca8743848c4ccf4a940e0e1c02a" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>addCommand</name></member>
+      <member refid="classIEditorCommandSystem_1a3e7b746f46a9066df6fb7df0c8999c60" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>addCommand</name></member>
+      <member refid="classIEditorCommandSystem_1a19171bf590a5d9933b8ee1613e660908" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>addCommand</name></member>
+      <member refid="classIEditorCommandSystem_1ac7b7da6ac0f37ec25fe114447d93aff6" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>addMenuItem</name></member>
+      <member refid="classIEditorCommandSystem_1a404aa08ddebb6468e563b32a7f1a91ce" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>createToolbarButton</name></member>
+      <member refid="classIEditorCommandSystem_1a354a64761342d841c20e1dec536fa041" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>createToolbarRadioButton</name></member>
+      <member refid="classIEditorCommandSystem_1a9d548efed51680924a87e44887522a85" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>createToolbarToggleButton</name></member>
+      <member refid="classIEditorCommandSystem_1a9c668dea6900e4c8d85281272463d016" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>enableMissingCommandLogging</name></member>
+      <member refid="classIEditorCommandSystem_1a6412c8bc7f24314d06094e4dc2621975" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>getCommandCmdId</name></member>
+      <member refid="classIEditorCommandSystem_1a3d6c1c987d3efaca49212d65bb47841f" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>getCommandCount</name></member>
+      <member refid="classIEditorCommandSystem_1aa729b944f3faaea8afdfa01d593579f1" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>getCommandId</name></member>
+      <member refid="classIEditorCommandSystem_1aa315912954d480d944a66d12eac2e3c7" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>getCommandKeyChordsAsText</name></member>
+      <member refid="classIEditorCommandSystem_1a50fe6095976049ca8c6a2913a8bf7c49" prot="public" virt="non-virtual"><scope>IEditorCommandSystem</scope><name>HUID</name></member>
+      <member refid="classIEditorCommandSystem_1acbcb5658e7fb2bfc6d52317d3772ac93" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>loadChangedHotkeys</name></member>
+      <member refid="classIEditorCommandSystem_1a897f3d88951eba1d26f8fe55eed170d1" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>saveChangedHotkeys</name></member>
+      <member refid="classIEditorCommandSystem_1a60b32bf001e198365422de81d9eb2559" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>updateImgui</name></member>
+      <member refid="classIEditorCommandSystem_1ad5195382a6fcb45b6329b974d60ee536" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>updateMenuItemShortcuts</name></member>
+      <member refid="classIEditorCommandSystem_1ae3369f160d5eccbdca047723eb42b829" prot="public" virt="pure-virtual"><scope>IEditorCommandSystem</scope><name>updateToolbarButtons</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

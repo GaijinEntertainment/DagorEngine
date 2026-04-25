@@ -1,0 +1,78 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="namespaceraytrace_1_1opacity__micro__map_1_1index" kind="namespace" language="C++">
+    <compoundname>raytrace::opacity_micro_map::index</compoundname>
+      <sectiondef kind="var">
+      <memberdef kind="variable" id="namespaceraytrace_1_1opacity__micro__map_1_1index_1a8e139a72f1a73d0fbbf5954cb6f7dcc6" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int raytrace::opacity_micro_map::index::fully_transparent</definition>
+        <argsstring></argsstring>
+        <name>fully_transparent</name>
+        <qualifiedname>raytrace::opacity_micro_map::index::fully_transparent</qualifiedname>
+        <initializer>= -1</initializer>
+        <briefdescription>
+<para>Represents a triangle with all sub-triangles to be fully transparent. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="482" column="22" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="482" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceraytrace_1_1opacity__micro__map_1_1index_1aa4d399f2711afbd39c79c872bbe1965a" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int raytrace::opacity_micro_map::index::fully_opaque</definition>
+        <argsstring></argsstring>
+        <name>fully_opaque</name>
+        <qualifiedname>raytrace::opacity_micro_map::index::fully_opaque</qualifiedname>
+        <initializer>= -2</initializer>
+        <briefdescription>
+<para>Represents a triangle with all sub-triangles to be fully opaque. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="484" column="22" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="484" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceraytrace_1_1opacity__micro__map_1_1index_1ad8a4e85aa7c77dd2ec6d4290f1ead5aa" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int raytrace::opacity_micro_map::index::fully_unknown_transparent</definition>
+        <argsstring></argsstring>
+        <name>fully_unknown_transparent</name>
+        <qualifiedname>raytrace::opacity_micro_map::index::fully_unknown_transparent</qualifiedname>
+        <initializer>= -3</initializer>
+        <briefdescription>
+<para>Represents a triangle with all sub-triangles to be fully unknown transparent. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="486" column="22" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="486" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="namespaceraytrace_1_1opacity__micro__map_1_1index_1a764dcfacdd011671d684d12ef4539d44" prot="public" static="no" constexpr="yes" mutable="no">
+        <type>constexpr int</type>
+        <definition>constexpr int raytrace::opacity_micro_map::index::fully_unknown_opaque</definition>
+        <argsstring></argsstring>
+        <name>fully_unknown_opaque</name>
+        <qualifiedname>raytrace::opacity_micro_map::index::fully_unknown_opaque</qualifiedname>
+        <initializer>= -4</initializer>
+        <briefdescription>
+<para>Represents a triangle with all sub-triangles to be fully unknown opaque. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="488" column="22" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="488" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>This namespace contains special index values that represent opacity micro map triangles that have a single transparency state for all sub-triangles. Those values can be used as values in RaytraceGeometryDescription::TrianglesWithOpacityMicroMapInfo::linkage.indexBuffer. Those special index values are preferable over linkages to opacity micro map triangles. </para>
+    </detaileddescription>
+    <location file="rayTrace/dag_drvRayTrace.h" line="479" column="1"/>
+  </compounddef>
+</doxygen>

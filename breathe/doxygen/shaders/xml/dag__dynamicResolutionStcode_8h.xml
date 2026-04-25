@@ -1,0 +1,339 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="dag__dynamicResolutionStcode_8h" kind="file" language="C++">
+    <compoundname>dag_dynamicResolutionStcode.h</compoundname>
+    <includes local="no">math/dag_Point2.h</includes>
+    <includes local="no">math/integer/dag_IPoint2.h</includes>
+    <includes refid="dag__shaders_8h" local="no">shaders/dag_shaders.h</includes>
+    <includes refid="dag__shaderVar_8h" local="no">shaders/dag_shaderVar.h</includes>
+    <includes local="no">drv/3d/dag_tex3d.h</includes>
+    <incdepgraph>
+      <node id="15">
+        <label>shaders/dag_bindumpReloadListener.h</label>
+        <link refid="dag__bindumpReloadListener_8h_source"/>
+      </node>
+      <node id="1">
+        <label>dag_dynamicResolutionStcode.h</label>
+        <link refid="dag__dynamicResolutionStcode_8h"/>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="3" relation="include">
+        </childnode>
+        <childnode refid="4" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="33" relation="include">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>shaders/dag_shaderCommon.h</label>
+        <link refid="dag__shaderCommon_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="9" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+      </node>
+      <node id="12">
+        <label>shaders/dag_shaderVar.h</label>
+        <link refid="dag__shaderVar_8h_source"/>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="13" relation="include">
+        </childnode>
+        <childnode refid="14" relation="include">
+        </childnode>
+        <childnode refid="19" relation="include">
+        </childnode>
+        <childnode refid="2" relation="include">
+        </childnode>
+        <childnode refid="20" relation="include">
+        </childnode>
+        <childnode refid="21" relation="include">
+        </childnode>
+      </node>
+      <node id="11">
+        <label>shaders/dag_shaderVarType.h</label>
+        <link refid="dag__shaderVarType_8h_source"/>
+      </node>
+      <node id="14">
+        <label>shaders/dag_shaderVariableInfo.h</label>
+        <link refid="dag__shaderVariableInfo_8h_source"/>
+        <childnode refid="15" relation="include">
+        </childnode>
+        <childnode refid="11" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="16" relation="include">
+        </childnode>
+        <childnode refid="17" relation="include">
+        </childnode>
+        <childnode refid="18" relation="include">
+        </childnode>
+      </node>
+      <node id="4">
+        <label>shaders/dag_shaders.h</label>
+        <link refid="dag__shaders_8h_source"/>
+        <childnode refid="5" relation="include">
+        </childnode>
+        <childnode refid="6" relation="include">
+        </childnode>
+        <childnode refid="7" relation="include">
+        </childnode>
+        <childnode refid="12" relation="include">
+        </childnode>
+        <childnode refid="22" relation="include">
+        </childnode>
+        <childnode refid="30" relation="include">
+        </childnode>
+        <childnode refid="8" relation="include">
+        </childnode>
+        <childnode refid="31" relation="include">
+        </childnode>
+        <childnode refid="32" relation="include">
+        </childnode>
+      </node>
+      <node id="22">
+        <label>shaders/dag_stcode.h</label>
+        <link refid="dag__stcode_8h_source"/>
+        <childnode refid="23" relation="include">
+        </childnode>
+        <childnode refid="24" relation="include">
+        </childnode>
+        <childnode refid="25" relation="include">
+        </childnode>
+        <childnode refid="26" relation="include">
+        </childnode>
+        <childnode refid="27" relation="include">
+        </childnode>
+        <childnode refid="28" relation="include">
+        </childnode>
+        <childnode refid="29" relation="include">
+        </childnode>
+        <childnode refid="10" relation="include">
+        </childnode>
+      </node>
+      <node id="8">
+        <label>3d/dag_texMgr.h</label>
+      </node>
+      <node id="5">
+        <label>EASTL/fixed_function.h</label>
+      </node>
+      <node id="26">
+        <label>EASTL/optional.h</label>
+      </node>
+      <node id="24">
+        <label>EASTL/string.h</label>
+      </node>
+      <node id="25">
+        <label>EASTL/string_view.h</label>
+      </node>
+      <node id="27">
+        <label>dag/dag_vector.h</label>
+      </node>
+      <node id="28">
+        <label>dag/dag_vectorSet.h</label>
+      </node>
+      <node id="9">
+        <label>drv/3d/dag_consts.h</label>
+      </node>
+      <node id="23">
+        <label>drv/3d/dag_d3dResource.h</label>
+      </node>
+      <node id="13">
+        <label>drv/3d/dag_samplerHandle.h</label>
+      </node>
+      <node id="6">
+        <label>drv/3d/dag_shaderModelVersion.h</label>
+      </node>
+      <node id="33">
+        <label>drv/3d/dag_tex3d.h</label>
+      </node>
+      <node id="30">
+        <label>generic/dag_DObject.h</label>
+      </node>
+      <node id="29">
+        <label>generic/dag_fixedMoveOnlyFunction.h</label>
+      </node>
+      <node id="10">
+        <label>generic/dag_span.h</label>
+      </node>
+      <node id="2">
+        <label>math/dag_Point2.h</label>
+      </node>
+      <node id="17">
+        <label>math/dag_check_nan.h</label>
+      </node>
+      <node id="20">
+        <label>math/dag_dxmath_forward.h</label>
+      </node>
+      <node id="3">
+        <label>math/integer/dag_IPoint2.h</label>
+      </node>
+      <node id="19">
+        <label>math/integer/dag_IPoint4.h</label>
+      </node>
+      <node id="31">
+        <label>memory/dag_mem.h</label>
+      </node>
+      <node id="16">
+        <label>stdint.h</label>
+      </node>
+      <node id="32">
+        <label>util/dag_globDef.h</label>
+      </node>
+      <node id="21">
+        <label>util/dag_string.h</label>
+      </node>
+      <node id="18">
+        <label>vecmath/dag_vecMathDecl.h</label>
+      </node>
+    </incdepgraph>
+    <innerclass refid="structDynRes" prot="public">DynRes</innerclass>
+      <sectiondef kind="func">
+      <memberdef kind="function" id="dag__dynamicResolutionStcode_8h_1aa784d8f68eae70740a5f4172fe59f556" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void set_dynamic_resolution_stcode</definition>
+        <argsstring>(Point2 current_dynamic_resolution, Point2 prev_dynamic_resolution, Point2 rendering_resolution)</argsstring>
+        <name>set_dynamic_resolution_stcode</name>
+        <param>
+          <type>Point2</type>
+          <declname>current_dynamic_resolution</declname>
+        </param>
+        <param>
+          <type>Point2</type>
+          <declname>prev_dynamic_resolution</declname>
+        </param>
+        <param>
+          <type>Point2</type>
+          <declname>rendering_resolution</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynamicResolutionStcode.h" line="31" column="13" bodyfile="dag_dynamicResolutionStcode.h" bodystart="31" bodyend="38"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__dynamicResolutionStcode_8h_1a263c0d4aa9c472707ed24efcc5b89532" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>IPoint2</type>
+        <definition>IPoint2 calc_and_set_dynamic_resolution_stcode</definition>
+        <argsstring>(int tw, int th, const DynRes &amp;dyn_res, const DynRes &amp;prev_dyn_res)</argsstring>
+        <name>calc_and_set_dynamic_resolution_stcode</name>
+        <param>
+          <type>int</type>
+          <declname>tw</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>th</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structDynRes" kindref="compound">DynRes</ref> &amp;</type>
+          <declname>dyn_res</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structDynRes" kindref="compound">DynRes</ref> &amp;</type>
+          <declname>prev_dyn_res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynamicResolutionStcode.h" line="40" column="16" bodyfile="dag_dynamicResolutionStcode.h" bodystart="40" bodyend="45"/>
+      </memberdef>
+      <memberdef kind="function" id="dag__dynamicResolutionStcode_8h_1a37bc75f99ef29ee1101a0437b2d8f66a" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>IPoint2</type>
+        <definition>IPoint2 calc_and_set_dynamic_resolution_stcode</definition>
+        <argsstring>(Texture &amp;texture, const DynRes &amp;dyn_res, const DynRes &amp;prev_dyn_res)</argsstring>
+        <name>calc_and_set_dynamic_resolution_stcode</name>
+        <param>
+          <type>Texture &amp;</type>
+          <declname>texture</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structDynRes" kindref="compound">DynRes</ref> &amp;</type>
+          <declname>dyn_res</declname>
+        </param>
+        <param>
+          <type>const <ref refid="structDynRes" kindref="compound">DynRes</ref> &amp;</type>
+          <declname>prev_dyn_res</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_dynamicResolutionStcode.h" line="47" column="16" bodyfile="dag_dynamicResolutionStcode.h" bodystart="47" bodyend="52"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <programlisting>
+<codeline lineno="1"><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="2"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Dagor<sp/>Engine<sp/>6.5</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="3"><highlight class="normal"></highlight><highlight class="comment">//<sp/>Copyright<sp/>(C)<sp/>Gaijin<sp/>Games<sp/>KFT.<sp/><sp/>All<sp/>rights<sp/>reserved.</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="4"><highlight class="normal"></highlight><highlight class="comment">//</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="5"><highlight class="normal"></highlight><highlight class="preprocessor">#pragma<sp/>once</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="6"><highlight class="normal"></highlight></codeline>
+<codeline lineno="7"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/dag_Point2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="8"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;math/integer/dag_IPoint2.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="9"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaders.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="10"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;shaders/dag_shaderVar.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="11"><highlight class="normal"></highlight><highlight class="preprocessor">#include<sp/>&lt;drv/3d/dag_tex3d.h&gt;</highlight><highlight class="normal"></highlight></codeline>
+<codeline lineno="12"><highlight class="normal"></highlight></codeline>
+<codeline lineno="13" refid="structDynRes" refkind="compound"><highlight class="normal"></highlight><highlight class="keyword">struct<sp/></highlight><highlight class="normal"><ref refid="structDynRes" kindref="compound">DynRes</ref></highlight></codeline>
+<codeline lineno="14"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="15"><highlight class="normal"><sp/><sp/>Point2<sp/>dynamicResolution<sp/>=<sp/>Point2::ONE;</highlight></codeline>
+<codeline lineno="16"><highlight class="normal"><sp/><sp/>Point2<sp/>renderingResolution<sp/>=<sp/>Point2::ONE;</highlight></codeline>
+<codeline lineno="17"><highlight class="normal"></highlight></codeline>
+<codeline lineno="18"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>Point2<sp/>CalcCurrentRate()</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="19"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="20"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>Point2(dynamicResolution.x<sp/>/<sp/>renderingResolution.x,<sp/>dynamicResolution.y<sp/>/<sp/>renderingResolution.y);</highlight></codeline>
+<codeline lineno="21"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="22"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>IPoint2<sp/>CalcScaledResolution(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>w,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>h)</highlight><highlight class="keyword"><sp/>const</highlight></codeline>
+<codeline lineno="23"><highlight class="keyword"><sp/><sp/></highlight><highlight class="normal">{</highlight></codeline>
+<codeline lineno="24"><highlight class="normal"><sp/><sp/><sp/><sp/>Point2<sp/>rate<sp/>=<sp/>CalcCurrentRate();</highlight></codeline>
+<codeline lineno="25"><highlight class="normal"><sp/><sp/><sp/><sp/>w<sp/>=<sp/>ceil(w<sp/>*<sp/>rate.x);</highlight></codeline>
+<codeline lineno="26"><highlight class="normal"><sp/><sp/><sp/><sp/>h<sp/>=<sp/>ceil(h<sp/>*<sp/>rate.y);</highlight></codeline>
+<codeline lineno="27"><highlight class="normal"><sp/><sp/><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>IPoint2(w,<sp/>h);</highlight></codeline>
+<codeline lineno="28"><highlight class="normal"><sp/><sp/>}</highlight></codeline>
+<codeline lineno="29"><highlight class="normal">};</highlight></codeline>
+<codeline lineno="30"><highlight class="normal"></highlight></codeline>
+<codeline lineno="31"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">void</highlight><highlight class="normal"><sp/>set_dynamic_resolution_stcode(Point2<sp/>current_dynamic_resolution,<sp/>Point2<sp/>prev_dynamic_resolution,</highlight></codeline>
+<codeline lineno="32"><highlight class="normal"><sp/><sp/>Point2<sp/>rendering_resolution)</highlight></codeline>
+<codeline lineno="33"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="34"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>current_dynamic_resolutionVarId<sp/>=<sp/>get_shader_variable_id(</highlight><highlight class="stringliteral">&quot;current_dynamic_resolution&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="35"><highlight class="normal"><sp/><sp/></highlight><highlight class="keyword">static</highlight><highlight class="normal"><sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>prev_dynamic_resolutionVarId<sp/>=<sp/>get_shader_variable_id(</highlight><highlight class="stringliteral">&quot;prev_dynamic_resolution&quot;</highlight><highlight class="normal">);</highlight></codeline>
+<codeline lineno="36"><highlight class="normal"><sp/><sp/>ShaderGlobal::set_float4(current_dynamic_resolutionVarId,<sp/>current_dynamic_resolution,<sp/>rendering_resolution);</highlight></codeline>
+<codeline lineno="37"><highlight class="normal"><sp/><sp/>ShaderGlobal::set_float4(prev_dynamic_resolutionVarId,<sp/>prev_dynamic_resolution,<sp/>rendering_resolution);</highlight></codeline>
+<codeline lineno="38"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="39"><highlight class="normal"></highlight></codeline>
+<codeline lineno="40"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>IPoint2<sp/>calc_and_set_dynamic_resolution_stcode(</highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>tw,<sp/></highlight><highlight class="keywordtype">int</highlight><highlight class="normal"><sp/>th,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDynRes" kindref="compound">DynRes</ref><sp/>&amp;dyn_res,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDynRes" kindref="compound">DynRes</ref><sp/>&amp;prev_dyn_res)</highlight></codeline>
+<codeline lineno="41"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="42"><highlight class="normal"><sp/><sp/>IPoint2<sp/>sres<sp/>=<sp/>dyn_res.CalcScaledResolution(tw,<sp/>th);</highlight></codeline>
+<codeline lineno="43"><highlight class="normal"><sp/><sp/>set_dynamic_resolution_stcode(sres,<sp/>prev_dyn_res.CalcScaledResolution(tw,<sp/>th),<sp/>Point2(tw,<sp/>th));</highlight></codeline>
+<codeline lineno="44"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>sres;</highlight></codeline>
+<codeline lineno="45"><highlight class="normal">}</highlight></codeline>
+<codeline lineno="46"><highlight class="normal"></highlight></codeline>
+<codeline lineno="47"><highlight class="normal"></highlight><highlight class="keyword">inline</highlight><highlight class="normal"><sp/>IPoint2<sp/>calc_and_set_dynamic_resolution_stcode(Texture<sp/>&amp;texture,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDynRes" kindref="compound">DynRes</ref><sp/>&amp;dyn_res,<sp/></highlight><highlight class="keyword">const</highlight><highlight class="normal"><sp/><ref refid="structDynRes" kindref="compound">DynRes</ref><sp/>&amp;prev_dyn_res)</highlight></codeline>
+<codeline lineno="48"><highlight class="normal">{</highlight></codeline>
+<codeline lineno="49"><highlight class="normal"><sp/><sp/>TextureInfo<sp/>ti;</highlight></codeline>
+<codeline lineno="50"><highlight class="normal"><sp/><sp/>texture.getinfo(ti);</highlight></codeline>
+<codeline lineno="51"><highlight class="normal"><sp/><sp/></highlight><highlight class="keywordflow">return</highlight><highlight class="normal"><sp/>calc_and_set_dynamic_resolution_stcode(ti.w,<sp/>ti.h,<sp/>dyn_res,<sp/>prev_dyn_res);</highlight></codeline>
+<codeline lineno="52"><highlight class="normal">}</highlight></codeline>
+    </programlisting>
+    <location file="dag_dynamicResolutionStcode.h"/>
+  </compounddef>
+</doxygen>

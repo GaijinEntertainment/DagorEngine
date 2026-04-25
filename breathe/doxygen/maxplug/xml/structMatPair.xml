@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structMatPair" kind="struct" language="C++" prot="public">
+    <compoundname>MatPair</compoundname>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structMatPair_1a68dd12af9fcf42fbe1cf259a26a04db7" prot="public" static="no" mutable="no">
+        <type>Mtl *</type>
+        <definition>Mtl* MatPair::oldMat</definition>
+        <argsstring></argsstring>
+        <name>oldMat</name>
+        <qualifiedname>MatPair::oldMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="38" column="7" bodyfile="matConvUtil.cpp" bodystart="38" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structMatPair_1a59733a40259c6b1a758a870c6228c7a0" prot="public" static="no" mutable="no">
+        <type>Mtl *</type>
+        <definition>Mtl* MatPair::newMat</definition>
+        <argsstring></argsstring>
+        <name>newMat</name>
+        <qualifiedname>MatPair::newMat</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="matConvUtil.cpp" line="39" column="7" bodyfile="matConvUtil.cpp" bodystart="39" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <location file="matConvUtil.cpp" line="36" column="1" bodyfile="matConvUtil.cpp" bodystart="37" bodyend="40"/>
+    <listofallmembers>
+      <member refid="structMatPair_1a59733a40259c6b1a758a870c6228c7a0" prot="public" virt="non-virtual"><scope>MatPair</scope><name>newMat</name></member>
+      <member refid="structMatPair_1a68dd12af9fcf42fbe1cf259a26a04db7" prot="public" virt="non-virtual"><scope>MatPair</scope><name>oldMat</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

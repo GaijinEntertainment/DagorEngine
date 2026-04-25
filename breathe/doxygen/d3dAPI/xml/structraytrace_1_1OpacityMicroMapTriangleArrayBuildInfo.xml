@@ -1,0 +1,243 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo" kind="struct" language="C++" prot="public">
+    <compoundname>raytrace::OpacityMicroMapTriangleArrayBuildInfo</compoundname>
+    <basecompoundref refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo" prot="public" virt="non-virtual">raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo</basecompoundref>
+    <includes refid="dag__drvRayTrace_8h" local="no">dag_drvRayTrace.h</includes>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a8eae3d195bbc630a365fbd2f17c193b3" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::OpacityMicroMapTriangleArrayBuildInfo::inputBuffer</definition>
+        <argsstring></argsstring>
+        <name>inputBuffer</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::inputBuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>This stores the 1 bit or 2 bit per triangle opacity information. Buffer requires SBCF_OPACITY_MICRO_MAP_TRIANGLE_SOURCE_DATA flag. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="517" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="517" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a4bb6477988b874cb5a7d393aa6e4924b" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::OpacityMicroMapTriangleArrayBuildInfo::inputBufferOffset</definition>
+        <argsstring></argsstring>
+        <name>inputBufferOffset</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::inputBufferOffset</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Byte offset into the inputBuffer, has to be raytrace.opacityMicroMapInputBufferAlignment byte aligned. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="519" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="519" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a1a9a788780eff0e8a68796a64b36f5c3" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::OpacityMicroMapTriangleArrayBuildInfo::perOpacityMicroMapDescriptions</definition>
+        <argsstring></argsstring>
+        <name>perOpacityMicroMapDescriptions</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::perOpacityMicroMapDescriptions</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>For memory layout of each entry see &apos;<ref refid="structraytrace_1_1InBufferOpacityMicroMapDescription" kindref="compound">InBufferOpacityMicroMapDescription</ref>&apos;. This has the location in inputBuffer and the data to interpret the data as OMM triangles. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="522" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="522" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1add0471f43db62df558de4071d47f4f07" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::OpacityMicroMapTriangleArrayBuildInfo::perOpacityMicroMapDescriptionsOffset</definition>
+        <argsstring></argsstring>
+        <name>perOpacityMicroMapDescriptionsOffset</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::perOpacityMicroMapDescriptionsOffset</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Byte offset into perOpacityMicroMapDescriptions, has to be 4 byte aligned. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="524" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="524" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a6c9495a36c5dcfbd1ac35642b6379d2e" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::OpacityMicroMapTriangleArrayBuildInfo::perOpacityMicroMapDescriptionsStride</definition>
+        <argsstring></argsstring>
+        <name>perOpacityMicroMapDescriptionsStride</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::perOpacityMicroMapDescriptionsStride</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Stride in between each element of perOpacityMicroMapDescriptions, has to be 4 byte aligned. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="526" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="526" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a82cbb0fb6cfd301a7a51940cbc05cd8d" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::OpacityMicroMapTriangleArrayBuildInfo::compactedSizeOutputBuffer</definition>
+        <argsstring></argsstring>
+        <name>compactedSizeOutputBuffer</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::compactedSizeOutputBuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Needs to be set when <ref refid="dag__drvRayTrace_8h_1a46397cc51b1c10848f986af0c0bd49c8a8585657419da99db0fece0a26d2e432a" kindref="member">RaytraceBuildFlags::ALLOW_COMPACTION</ref> flag is set, otherwise ignored. At the end of the build process, the GPU will write the required size of a compacted variant of resulting data structure content to this buffer at the offset location. This can be used to create smaller compacted acceleration structures. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="531" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="531" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1aafbb37d8cd3e70e79cd14e5b12b78f94" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::OpacityMicroMapTriangleArrayBuildInfo::compactedSizeOutputBufferOffsetInBytes</definition>
+        <argsstring></argsstring>
+        <name>compactedSizeOutputBufferOffsetInBytes</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::compactedSizeOutputBufferOffsetInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Ignored when compactedSizeOutputBuffer is nullptr. compactedSizeOutputBuffer has to be large enough to store a uint64_t at that offset. Offset has to be 64 bit aligned. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="535" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="535" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a0a4d957a38bba392429a3d50ec1e1415" prot="public" static="no" mutable="no">
+        <type><ref refid="classSbuffer" kindref="compound">Sbuffer</ref> *</type>
+        <definition>Sbuffer* raytrace::OpacityMicroMapTriangleArrayBuildInfo::scratchSpaceBuffer</definition>
+        <argsstring></argsstring>
+        <name>scratchSpaceBuffer</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::scratchSpaceBuffer</qualifiedname>
+        <initializer>= nullptr</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Buffer that provides scratch space needed for the build, size requirements are derived from scratchSpaceBufferOffsetInBytes + scratchSpaceBufferSizeInBytes. <simplesect kind="note"><para>Multiple builds can safely use the same buffer without synchronization as long as they do not overlap in used region of the buffer. </para>
+</simplesect>
+<simplesect kind="note"><para>May be nullptr when the corresponding scratch buffer size provided by d3d::calculate_acceleration_structure_sizes was 0. </para>
+</simplesect>
+<simplesect kind="note"><para>A frame end is a implicit flush of every buffer. So no synchronization in between frames is needed. </para>
+</simplesect>
+<simplesect kind="warning"><para>Currently this is optional, but this behavior is deprecated until all users have updated to provide this buffer when needed. </para>
+</simplesect>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="546" column="11" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="546" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1aa2c7dc0176b6aca9c92517ebe826c772" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::OpacityMicroMapTriangleArrayBuildInfo::scratchSpaceBufferOffsetInBytes</definition>
+        <argsstring></argsstring>
+        <name>scratchSpaceBufferOffsetInBytes</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::scratchSpaceBufferOffsetInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Offset into scratchSpaceBuffer, buffer has to be large enough to provide space for scratchSpaceBufferOffsetInBytes + scratchSpaceBufferSizeInBytes. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="549" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="549" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1af1ca67b902d0d4ca8ecbb3b0e53d4ff5" prot="public" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t raytrace::OpacityMicroMapTriangleArrayBuildInfo::scratchSpaceBufferSizeInBytes</definition>
+        <argsstring></argsstring>
+        <name>scratchSpaceBufferSizeInBytes</name>
+        <qualifiedname>raytrace::OpacityMicroMapTriangleArrayBuildInfo::scratchSpaceBufferSizeInBytes</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+<para>Usable space of scratchSpaceBuffer, this has to be at least as large as the provided build_scratch_size_in_bytes value for the build structure for a rebuild or update_scratch_size_in_bytes for updates. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="rayTrace/dag_drvRayTrace.h" line="553" column="12" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="553" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>raytrace::OpacityMicroMapTriangleArrayBuildInfo</label>
+        <link refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo</label>
+        <link refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo"/>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="4">
+        <label>D3dResource</label>
+        <link refid="classD3dResource"/>
+      </node>
+      <node id="5">
+        <label>ResourceChecker</label>
+        <link refid="structResourceChecker"/>
+      </node>
+      <node id="3">
+        <label>Sbuffer</label>
+        <link refid="classSbuffer"/>
+        <childnode refid="4" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>raytrace::OpacityMicroMapTriangleArrayBuildInfo</label>
+        <link refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+        <childnode refid="3" relation="usage">
+          <edgelabel>compactedSizeOutputBuffer</edgelabel>
+          <edgelabel>inputBuffer</edgelabel>
+          <edgelabel>perOpacityMicroMapDescriptions</edgelabel>
+          <edgelabel>scratchSpaceBuffer</edgelabel>
+        </childnode>
+      </node>
+      <node id="2">
+        <label>raytrace::OpacityMicroMapTriangleArraySizeCalculationInfo</label>
+        <link refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo"/>
+      </node>
+    </collaborationgraph>
+    <location file="rayTrace/dag_drvRayTrace.h" line="513" column="1" bodyfile="rayTrace/dag_drvRayTrace.h" bodystart="514" bodyend="554"/>
+    <listofallmembers>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a82cbb0fb6cfd301a7a51940cbc05cd8d" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>compactedSizeOutputBuffer</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1aafbb37d8cd3e70e79cd14e5b12b78f94" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>compactedSizeOutputBufferOffsetInBytes</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo_1afb07d9360dba273e17408b9f3338ed9a" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>flags</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a8eae3d195bbc630a365fbd2f17c193b3" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>inputBuffer</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a4bb6477988b874cb5a7d393aa6e4924b" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>inputBufferOffset</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArraySizeCalculationInfo_1a8022189ac3f597c57dc8fc2a7f0f1388" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>ommDesc</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a1a9a788780eff0e8a68796a64b36f5c3" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>perOpacityMicroMapDescriptions</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1add0471f43db62df558de4071d47f4f07" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>perOpacityMicroMapDescriptionsOffset</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a6c9495a36c5dcfbd1ac35642b6379d2e" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>perOpacityMicroMapDescriptionsStride</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1a0a4d957a38bba392429a3d50ec1e1415" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>scratchSpaceBuffer</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1aa2c7dc0176b6aca9c92517ebe826c772" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>scratchSpaceBufferOffsetInBytes</name></member>
+      <member refid="structraytrace_1_1OpacityMicroMapTriangleArrayBuildInfo_1af1ca67b902d0d4ca8ecbb3b0e53d4ff5" prot="public" virt="non-virtual"><scope>raytrace::OpacityMicroMapTriangleArrayBuildInfo</scope><name>scratchSpaceBufferSizeInBytes</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

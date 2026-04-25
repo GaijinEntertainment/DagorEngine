@@ -1,0 +1,390 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classMultidrawContext" kind="class" language="C++" prot="public">
+    <compoundname>MultidrawContext</compoundname>
+    <includes refid="dag__multidrawContext_8h" local="no">dag_multidrawContext.h</includes>
+    <innerclass refid="classMultidrawContext_1_1MultidrawRenderExecutor" prot="public">MultidrawContext::MultidrawRenderExecutor</innerclass>
+    <templateparamlist>
+      <param>
+        <type>typename PerDrawDataT</type>
+      </param>
+      <param>
+        <type>uint32_t</type>
+        <declname>DrawIdBits</declname>
+        <defname>DrawIdBits</defname>
+        <defval>20</defval>
+      </param>
+    </templateparamlist>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classMultidrawContext_1a16e8b7d178034894c72867b0200d264a" prot="private" static="no" mutable="no">
+        <type>eastl::string</type>
+        <definition>eastl::string MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>MultidrawContext::name</qualifiedname>
+        <briefdescription>
+<para>Name for context that is used as a buffer name and as a prefix for helper buffers. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="35" column="17" bodyfile="dag_multidrawContext.h" bodystart="35" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMultidrawContext_1a4d3d38d7b2139d877a2306619885d90c" prot="private" static="no" mutable="no">
+        <type><ref refid="classRingDynamicSB" kindref="compound">RingDynamicSB</ref></type>
+        <definition>RingDynamicSB MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::multidrawArguments</definition>
+        <argsstring></argsstring>
+        <name>multidrawArguments</name>
+        <qualifiedname>MultidrawContext::multidrawArguments</qualifiedname>
+        <briefdescription>
+<para>Buffer for draw calls arguments. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="49" column="17" bodyfile="dag_multidrawContext.h" bodystart="49" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMultidrawContext_1ab7a082270f62044789c81758c26f078a" prot="private" static="no" mutable="no">
+        <type><ref refid="dag__resPtr_8h_1ab16e69a73a91abc6e5cfa1e583364868" kindref="member">UniqueBufHolder</ref></type>
+        <definition>UniqueBufHolder MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::perDrawArgsBuffer</definition>
+        <argsstring></argsstring>
+        <name>perDrawArgsBuffer</name>
+        <qualifiedname>MultidrawContext::perDrawArgsBuffer</qualifiedname>
+        <briefdescription>
+<para>Buffer for per draw parameters. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="54" column="19" bodyfile="dag_multidrawContext.h" bodystart="54" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMultidrawContext_1a8794a07bc1fd79ab8faf4e9a67a159f9" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::allocatedDrawcallsInBuffer</definition>
+        <argsstring></argsstring>
+        <name>allocatedDrawcallsInBuffer</name>
+        <qualifiedname>MultidrawContext::allocatedDrawcallsInBuffer</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Number of draw calls that can be stored in buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="58" column="12" bodyfile="dag_multidrawContext.h" bodystart="58" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classMultidrawContext_1a9462126990f9b853a9012a69c18a6608" prot="private" static="no" mutable="no">
+        <type>uint32_t</type>
+        <definition>uint32_t MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::actualStart</definition>
+        <argsstring></argsstring>
+        <name>actualStart</name>
+        <qualifiedname>MultidrawContext::actualStart</qualifiedname>
+        <initializer>= 0</initializer>
+        <briefdescription>
+<para>Offset in buffer for next draw call. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="63" column="12" bodyfile="dag_multidrawContext.h" bodystart="63" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-attrib">
+      <memberdef kind="variable" id="classMultidrawContext_1a5888684d3b1166bb76e3dfd9328d0884" prot="private" static="yes" constexpr="yes" mutable="no">
+        <type>constexpr uint8_t</type>
+        <definition>constexpr uint8_t MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::bytesCountPerDrawcall</definition>
+        <argsstring></argsstring>
+        <name>bytesCountPerDrawcall</name>
+        <qualifiedname>MultidrawContext::bytesCountPerDrawcall</qualifiedname>
+        <initializer>= sizeof(DrawIndexedIndirectArgs)</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="85" column="28" bodyfile="dag_multidrawContext.h" bodystart="85" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-attrib">
+      <memberdef kind="variable" id="classMultidrawContext_1a22ba330f6ca14bba99194b927d497443" prot="public" static="no" mutable="no">
+        <type>const uint32_t</type>
+        <definition>const uint32_t MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::DRAW_DWORD_FREE_BITS</definition>
+        <argsstring></argsstring>
+        <name>DRAW_DWORD_FREE_BITS</name>
+        <qualifiedname>MultidrawContext::DRAW_DWORD_FREE_BITS</qualifiedname>
+        <initializer>= 32 - DrawIdBits</initializer>
+        <briefdescription>
+<para>Number of free bits in draw call arguments structure for user data. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="111" column="18" bodyfile="dag_multidrawContext.h" bodystart="111" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-static-func">
+      <memberdef kind="function" id="classMultidrawContext_1ada18f07542beb4591149cc5afe3b6fe7" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::usesExtendedMultiDrawStruct</definition>
+        <argsstring>()</argsstring>
+        <name>usesExtendedMultiDrawStruct</name>
+        <qualifiedname>MultidrawContext::usesExtendedMultiDrawStruct</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="86" column="25" bodyfile="dag_multidrawContext.h" bodystart="86" bodyend="86"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1af2df46ba2279c83e0e19282ba6ce0109" prot="private" static="yes" constexpr="yes" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>constexpr bool</type>
+        <definition>static constexpr bool MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::needPerDrawParamsBuffer</definition>
+        <argsstring>()</argsstring>
+        <name>needPerDrawParamsBuffer</name>
+        <qualifiedname>MultidrawContext::needPerDrawParamsBuffer</qualifiedname>
+        <briefdescription>
+<para>Checks if per draw parameter could be stored instead of draw id. In this case we don&apos;t need per draw parameters buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="104" column="25" bodyfile="dag_multidrawContext.h" bodystart="104" bodyend="104"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="private-func">
+      <memberdef kind="function" id="classMultidrawContext_1af97c238838104d5564b6432c5b1682cd" prot="private" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>eastl::string</type>
+        <definition>eastl::string MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::getPerDrawArgsBufferName</definition>
+        <argsstring>() const</argsstring>
+        <name>getPerDrawArgsBufferName</name>
+        <qualifiedname>MultidrawContext::getPerDrawArgsBufferName</qualifiedname>
+        <briefdescription>
+<para>Returns name for per draw parameters buffer. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="92" column="17" bodyfile="dag_multidrawContext.h" bodystart="92" bodyend="92"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classMultidrawContext_1ab74f880b73a7abc52dfccf93be0daeb6" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::MultidrawContext</definition>
+        <argsstring>(const char *name)</argsstring>
+        <name>MultidrawContext</name>
+        <qualifiedname>MultidrawContext::MultidrawContext</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <briefdescription>
+<para>Default constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>name</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>must be unique for each context. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="117" column="3" bodyfile="dag_multidrawContext.h" bodystart="117" bodyend="117"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1a9557e8b3fb3ae0a211e69f1a4e220f05" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::MultidrawContext</definition>
+        <argsstring>(MultidrawContext &amp;&amp;)=default</argsstring>
+        <name>MultidrawContext</name>
+        <qualifiedname>MultidrawContext::MultidrawContext</qualifiedname>
+        <param>
+          <type><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+<para>Default move constructor. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="121" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1ad1109743216df0ea4f91e09627384b71" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref> &amp;</type>
+        <definition>MultidrawContext &amp; MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::operator=</definition>
+        <argsstring>(MultidrawContext &amp;&amp;)=default</argsstring>
+        <name>operator=</name>
+        <qualifiedname>MultidrawContext::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref> &amp;&amp;</type>
+        </param>
+        <briefdescription>
+<para>Default move assignment operator. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="125" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1abddd9a5f406d3e585ff41726421b45da" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::MultidrawContext</definition>
+        <argsstring>(MultidrawContext &amp;)=delete</argsstring>
+        <name>MultidrawContext</name>
+        <qualifiedname>MultidrawContext::MultidrawContext</qualifiedname>
+        <param>
+          <type><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Removed copy constructor since we use unique buffer holders. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="129" column="3"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1a395d122e58244ead4629509083646173" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref> &amp;</type>
+        <definition>MultidrawContext &amp; MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::operator=</definition>
+        <argsstring>(MultidrawContext &amp;)=delete</argsstring>
+        <name>operator=</name>
+        <qualifiedname>MultidrawContext::operator=</qualifiedname>
+        <param>
+          <type><ref refid="classMultidrawContext" kindref="compound">MultidrawContext</ref> &amp;</type>
+        </param>
+        <briefdescription>
+<para>Removed copy assignment operator since we use unique buffer holders. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="133" column="20"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1a6e4e83b0176933f87957aa405c0d0037" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <templateparamlist>
+          <param>
+            <type>typename T</type>
+          </param>
+        </templateparamlist>
+        <type><ref refid="classMultidrawContext_1_1MultidrawRenderExecutor" kindref="compound">MultidrawRenderExecutor</ref></type>
+        <definition>MultidrawRenderExecutor MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::fillBuffers</definition>
+        <argsstring>(uint32_t drawcalls_count, const T &amp;set_cb)</argsstring>
+        <name>fillBuffers</name>
+        <qualifiedname>MultidrawContext::fillBuffers</qualifiedname>
+        <param>
+          <type>uint32_t</type>
+          <declname>drawcalls_count</declname>
+        </param>
+        <param>
+          <type>const T &amp;</type>
+          <declname>set_cb</declname>
+        </param>
+        <briefdescription>
+<para>Fills multidraw buffers. </para>
+        </briefdescription>
+        <detaileddescription>
+<para><parameterlist kind="param"><parameteritem>
+<parameternamelist>
+<parametername>drawcalls_count</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>number of draw calls. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>set_cb</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>function that sets draw call parameters. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+<simplesect kind="return"><para>executor that could be used to render draw calls.</para>
+</simplesect>
+This method iterates over locked buffers content and calls params_setter for each draw call to fill only allowed parameters of drawcall. If the buffers are too small, it recreates them. </para>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="195" column="27" bodyfile="dag_multidrawContext.h" bodystart="195" bodyend="283"/>
+      </memberdef>
+      <memberdef kind="function" id="classMultidrawContext_1a80dff56f9591b7c3fb252fef9bfe310d" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type>void</type>
+        <definition>void MultidrawContext&lt; PerDrawDataT, DrawIdBits &gt;::close</definition>
+        <argsstring>()</argsstring>
+        <name>close</name>
+        <qualifiedname>MultidrawContext::close</qualifiedname>
+        <briefdescription>
+<para>Closes buffers. </para>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_multidrawContext.h" line="287" column="8" bodyfile="dag_multidrawContext.h" bodystart="287" bodyend="295"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+<para>Multidraw Context</para>
+<para>This class incapsulates logic of filling multidraw buffers. It implements draw call id/per draw parameters passing for different platforms and manages buffers required for it. <parameterlist kind="templateparam"><parameteritem>
+<parameternamelist>
+<parametername>PerDrawDataT</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Type of per draw parameters structure. If only draw call id is required, use uint32_t. When dword is enough there won&apos;t be any indirection for per draw parameter reading in the shader. </para>
+</parameterdescription>
+</parameteritem>
+<parameteritem>
+<parameternamelist>
+<parametername>DrawIdBits</parametername>
+</parameternamelist>
+<parameterdescription>
+<para>Number of bits used for draw call id storage inside draw arguments structure. Default is 20 bits. Other bits could be used by user for per draw data, so this data could be read without indirections. </para>
+</parameterdescription>
+</parameteritem>
+</parameterlist>
+</para>
+    </detaileddescription>
+    <location file="dag_multidrawContext.h" line="30" column="1" bodyfile="dag_multidrawContext.h" bodystart="31" bodyend="296"/>
+    <listofallmembers>
+      <member refid="classMultidrawContext_1a9462126990f9b853a9012a69c18a6608" prot="private" virt="non-virtual"><scope>MultidrawContext</scope><name>actualStart</name></member>
+      <member refid="classMultidrawContext_1a8794a07bc1fd79ab8faf4e9a67a159f9" prot="private" virt="non-virtual"><scope>MultidrawContext</scope><name>allocatedDrawcallsInBuffer</name></member>
+      <member refid="classMultidrawContext_1a5888684d3b1166bb76e3dfd9328d0884" prot="private" virt="non-virtual"><scope>MultidrawContext</scope><name>bytesCountPerDrawcall</name></member>
+      <member refid="classMultidrawContext_1a80dff56f9591b7c3fb252fef9bfe310d" prot="public" virt="non-virtual"><scope>MultidrawContext</scope><name>close</name></member>
+      <member refid="classMultidrawContext_1a22ba330f6ca14bba99194b927d497443" prot="public" virt="non-virtual"><scope>MultidrawContext</scope><name>DRAW_DWORD_FREE_BITS</name></member>
+      <member refid="classMultidrawContext_1a6e4e83b0176933f87957aa405c0d0037" prot="public" virt="non-virtual"><scope>MultidrawContext</scope><name>fillBuffers</name></member>
+      <member refid="classMultidrawContext_1af97c238838104d5564b6432c5b1682cd" prot="private" virt="non-virtual"><scope>MultidrawContext</scope><name>getPerDrawArgsBufferName</name></member>
+      <member refid="classMultidrawContext_1a4d3d38d7b2139d877a2306619885d90c" prot="private" virt="non-virtual"><scope>MultidrawContext</scope><name>multidrawArguments</name></member>
+      <member refid="classMultidrawContext_1ab74f880b73a7abc52dfccf93be0daeb6" prot="public" virt="non-virtual"><scope>MultidrawContext</scope><name>MultidrawContext</name></member>
+      <member refid="classMultidrawContext_1a9557e8b3fb3ae0a211e69f1a4e220f05" prot="public" virt="non-virtual"><scope>MultidrawContext</scope><name>MultidrawContext</name></member>
+      <member refid="classMultidrawContext_1abddd9a5f406d3e585ff41726421b45da" prot="public" virt="non-virtual"><scope>MultidrawContext</scope><name>MultidrawContext</name></member>
+      <member refid="classMultidrawContext_1a16e8b7d178034894c72867b0200d264a" prot="private" virt="non-virtual"><scope>MultidrawContext</scope><name>name</name></member>
+      <member refid="classMultidrawContext_1af2df46ba2279c83e0e19282ba6ce0109" prot="private" virt="non-virtual"><scope>MultidrawContext</scope><name>needPerDrawParamsBuffer</name></member>
+      <member refid="classMultidrawContext_1ad1109743216df0ea4f91e09627384b71" prot="public" virt="non-virtual"><scope>MultidrawContext</scope><name>operator=</name></member>
+      <member refid="classMultidrawContext_1a395d122e58244ead4629509083646173" prot="public" virt="non-virtual"><scope>MultidrawContext</scope><name>operator=</name></member>
+      <member refid="classMultidrawContext_1ab7a082270f62044789c81758c26f078a" prot="private" virt="non-virtual"><scope>MultidrawContext</scope><name>perDrawArgsBuffer</name></member>
+      <member refid="classMultidrawContext_1ada18f07542beb4591149cc5afe3b6fe7" prot="private" virt="non-virtual"><scope>MultidrawContext</scope><name>usesExtendedMultiDrawStruct</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

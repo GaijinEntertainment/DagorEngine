@@ -1,0 +1,57 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="structDataBlockParser_1_1SyntaxErrorException" kind="struct" language="C++" prot="public">
+    <compoundname>DataBlockParser::SyntaxErrorException</compoundname>
+    <basecompoundref prot="public" virt="non-virtual">std::runtime_error</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="structDataBlockParser_1_1SyntaxErrorException_1add5bc4b18506025c624102f81b33181b" prot="public" static="no" const="no" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>DataBlockParser::SyntaxErrorException::SyntaxErrorException</definition>
+        <argsstring>(const char *s)</argsstring>
+        <name>SyntaxErrorException</name>
+        <qualifiedname>DataBlockParser::SyntaxErrorException::SyntaxErrorException</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>s</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="datablk.cpp" line="63" column="5" bodyfile="datablk.cpp" bodystart="63" bodyend="63"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="1">
+        <label>DataBlockParser::SyntaxErrorException</label>
+        <link refid="structDataBlockParser_1_1SyntaxErrorException"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>std::runtime_error</label>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="1">
+        <label>DataBlockParser::SyntaxErrorException</label>
+        <link refid="structDataBlockParser_1_1SyntaxErrorException"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="2">
+        <label>std::runtime_error</label>
+      </node>
+    </collaborationgraph>
+    <location file="datablk.cpp" line="61" column="3" bodyfile="datablk.cpp" bodystart="62" bodyend="64"/>
+    <listofallmembers>
+      <member refid="structDataBlockParser_1_1SyntaxErrorException_1add5bc4b18506025c624102f81b33181b" prot="public" virt="non-virtual"><scope>DataBlockParser::SyntaxErrorException</scope><name>SyntaxErrorException</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

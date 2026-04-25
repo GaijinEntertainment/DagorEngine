@@ -1,0 +1,236 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classWidgetGroup" kind="class" language="C++" prot="public">
+    <compoundname>WidgetGroup</compoundname>
+    <basecompoundref refid="classAbstractWidget" prot="public" virt="non-virtual">AbstractWidget</basecompoundref>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classWidgetGroup_1aef57f76d5908dace4fb7fc238161f23b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>WidgetGroup::WidgetGroup</definition>
+        <argsstring>(const ParamInfo &amp;pinfo, Dagormat2Dialog *p)</argsstring>
+        <name>WidgetGroup</name>
+        <qualifiedname>WidgetGroup::WidgetGroup</qualifiedname>
+        <param>
+          <type>const <ref refid="structParamInfo" kindref="compound">ParamInfo</ref> &amp;</type>
+          <declname>pinfo</declname>
+        </param>
+        <param>
+          <type><ref refid="classDagormat2Dialog" kindref="compound">Dagormat2Dialog</ref> *</type>
+          <declname>p</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="684" column="3" bodyfile="mater2.cpp" bodystart="3654" bodyend="3657"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetGroup_1a7e2fecdb53a4f36c8065a085008ec0b8" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type></type>
+        <definition>WidgetGroup::~WidgetGroup</definition>
+        <argsstring>() override</argsstring>
+        <name>~WidgetGroup</name>
+        <qualifiedname>WidgetGroup::~WidgetGroup</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="685" column="3" bodyfile="mater2.cpp" bodystart="3659" bodyend="3659"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetGroup_1a0101a94a798206a3cdf933ebfd949b2b" prot="public" static="no" const="no" explicit="no" inline="no" virt="non-virtual">
+        <type>INT_PTR</type>
+        <definition>INT_PTR WidgetGroup::WndProc</definition>
+        <argsstring>(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)</argsstring>
+        <name>WndProc</name>
+        <qualifiedname>WidgetGroup::WndProc</qualifiedname>
+        <param>
+          <type>HWND</type>
+          <declname>hWnd</declname>
+        </param>
+        <param>
+          <type>UINT</type>
+          <declname>msg</declname>
+        </param>
+        <param>
+          <type>WPARAM</type>
+          <declname>wParam</declname>
+        </param>
+        <param>
+          <type>LPARAM</type>
+          <declname>lParam</declname>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="687" column="11" bodyfile="mater2.cpp" bodystart="3661" bodyend="3679"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetGroup_1a9ce3ab27665633cfbdbcae18494d88c8" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>const TCHAR *</type>
+        <definition>const TCHAR * WidgetGroup::GetType</definition>
+        <argsstring>() const override</argsstring>
+        <name>GetType</name>
+        <qualifiedname>WidgetGroup::GetType</qualifiedname>
+        <reimplements refid="classAbstractWidget_1a90aa0849f34ee9f02fda1873cb7aa23f">GetType</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="689" column="15" bodyfile="mater2.cpp" bodystart="689" bodyend="689"/>
+      </memberdef>
+      <memberdef kind="function" id="classWidgetGroup_1a9b1fc1d2f01527d72b60ef2facc60e6c" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="virtual">
+        <type>bool</type>
+        <definition>bool WidgetGroup::IsGroup</definition>
+        <argsstring>() const override</argsstring>
+        <name>IsGroup</name>
+        <qualifiedname>WidgetGroup::IsGroup</qualifiedname>
+        <reimplements refid="classAbstractWidget_1a9d7b8f0fc266a86464287bf42df95049">IsGroup</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="mater2.cpp" line="690" column="8" bodyfile="mater2.cpp" bodystart="690" bodyend="690"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>AbstractWidget</label>
+        <link refid="classAbstractWidget"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="3">
+        <label>ParamDlg</label>
+      </node>
+      <node id="1">
+        <label>WidgetGroup</label>
+        <link refid="classWidgetGroup"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>AbstractWidget</label>
+        <link refid="classAbstractWidget"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="4" relation="usage">
+          <edgelabel>param</edgelabel>
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="6">
+        <label>DagorMat2</label>
+        <link refid="classDagorMat2"/>
+        <childnode refid="7" relation="public-inheritance">
+        </childnode>
+        <childnode refid="8" relation="public-inheritance">
+        </childnode>
+        <childnode refid="5" relation="usage">
+          <edgelabel>dlg</edgelabel>
+        </childnode>
+        <childnode refid="10" relation="usage">
+          <edgelabel>texmaps</edgelabel>
+        </childnode>
+        <childnode refid="12" relation="usage">
+          <edgelabel>postLoadCallback</edgelabel>
+        </childnode>
+      </node>
+      <node id="12">
+        <label>DagorMat2PostLoadCallback</label>
+        <link refid="classDagorMat2PostLoadCallback"/>
+        <childnode refid="13" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>parent</edgelabel>
+        </childnode>
+      </node>
+      <node id="5">
+        <label>Dagormat2Dialog</label>
+        <link refid="classDagormat2Dialog"/>
+        <childnode refid="3" relation="public-inheritance">
+        </childnode>
+        <childnode refid="6" relation="usage">
+          <edgelabel>theMtl</edgelabel>
+        </childnode>
+      </node>
+      <node id="9">
+        <label>IDagorMat</label>
+        <link refid="classIDagorMat"/>
+      </node>
+      <node id="8">
+        <label>IDagorMat2</label>
+        <link refid="classIDagorMat2"/>
+        <childnode refid="9" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="7">
+        <label>Mtl</label>
+      </node>
+      <node id="3">
+        <label>ParamDlg</label>
+      </node>
+      <node id="4">
+        <label>ParamInfo</label>
+        <link refid="structParamInfo"/>
+      </node>
+      <node id="13">
+        <label>PostLoadCallback</label>
+      </node>
+      <node id="11">
+        <label>TexmapContainer</label>
+      </node>
+      <node id="10">
+        <label>Texmaps</label>
+        <link refid="classTexmaps"/>
+        <childnode refid="11" relation="public-inheritance">
+        </childnode>
+      </node>
+      <node id="1">
+        <label>WidgetGroup</label>
+        <link refid="classWidgetGroup"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="mater2.cpp" line="681" column="1" bodyfile="mater2.cpp" bodystart="682" bodyend="691"/>
+    <listofallmembers>
+      <member refid="classAbstractWidget_1a454fa11aba5faa882f13558c3abb8979" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>AbstractWidget</name></member>
+      <member refid="classAbstractWidget_1adbf42d102782f62660fcf7f462bc5051" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>ActivateDlg</name></member>
+      <member refid="classAbstractWidget_1a6fe8fca67f5966b557d5febd9eeb0125" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>ClassID</name></member>
+      <member refid="classAbstractWidget_1acc041c5ce7ee3ffa9e2b9222e60a9257" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>creating</name></member>
+      <member refid="classAbstractWidget_1a856eab753d8c16238ef3635697d6e8a5" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>DeleteThis</name></member>
+      <member refid="classAbstractWidget_1a7db3309c2ef92adb0e81325e322ad7ad" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>GetThing</name></member>
+      <member refid="classWidgetGroup_1a9ce3ab27665633cfbdbcae18494d88c8" prot="public" virt="virtual"><scope>WidgetGroup</scope><name>GetType</name></member>
+      <member refid="classAbstractWidget_1ae6ef1a942f5beccee8e1317729b39e29" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>hPanel</name></member>
+      <member refid="classAbstractWidget_1a526a24cfeeb1ec8719cebd4cb6f301bb" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>hSType</name></member>
+      <member refid="classWidgetGroup_1a9b1fc1d2f01527d72b60ef2facc60e6c" prot="public" virt="virtual"><scope>WidgetGroup</scope><name>IsGroup</name></member>
+      <member refid="classAbstractWidget_1a191d69769bfc7165bbf8024cf3c039e9" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>param</name></member>
+      <member refid="classAbstractWidget_1a1d40750cb424c8a14226b610257d896e" prot="protected" virt="non-virtual"><scope>WidgetGroup</scope><name>parent</name></member>
+      <member refid="classAbstractWidget_1ad49b39e71d00b743a496fdd507a8ad0f" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>ReloadDialog</name></member>
+      <member refid="classAbstractWidget_1a2206c7b044e53a42eecc7e5cce08e31d" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>screen_rc</name></member>
+      <member refid="classAbstractWidget_1a2c3b6db8f678ebfd546b2b81fd881b58" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>SetThing</name></member>
+      <member refid="classAbstractWidget_1aa1cba9b42b68fb5248eee5b1e9575fca" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>SetTime</name></member>
+      <member refid="classWidgetGroup_1aef57f76d5908dace4fb7fc238161f23b" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>WidgetGroup</name></member>
+      <member refid="classWidgetGroup_1a0101a94a798206a3cdf933ebfd949b2b" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>WndProc</name></member>
+      <member refid="classAbstractWidget_1acd357b6426d63a3658dffd4b84c1c6d2" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>~AbstractWidget</name></member>
+      <member refid="classWidgetGroup_1a7e2fecdb53a4f36c8065a085008ec0b8" prot="public" virt="non-virtual"><scope>WidgetGroup</scope><name>~WidgetGroup</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>

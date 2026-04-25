@@ -1,0 +1,167 @@
+<?xml version='1.0' encoding='UTF-8' standalone='no'?>
+<doxygen xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="compound.xsd" version="1.9.7" xml:lang="en-US">
+  <compounddef id="classShaderBlockIdHolder" kind="class" language="C++" prot="public">
+    <compoundname>ShaderBlockIdHolder</compoundname>
+    <basecompoundref refid="classIShaderBindumpReloadListener" prot="public" virt="non-virtual">IShaderBindumpReloadListener</basecompoundref>
+      <sectiondef kind="private-attrib">
+      <memberdef kind="variable" id="classShaderBlockIdHolder_1af4e46f18e02124c1f5d321d555f4ef77" prot="private" static="no" mutable="no">
+        <type><ref refid="structShaderBlockIds" kindref="compound">ShaderBlockIds</ref></type>
+        <definition>ShaderBlockIds ShaderBlockIdHolder::ids</definition>
+        <argsstring></argsstring>
+        <name>ids</name>
+        <qualifiedname>ShaderBlockIdHolder::ids</qualifiedname>
+        <initializer>{}</initializer>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="108" column="18" bodyfile="dag_shaderBlock.h" bodystart="108" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderBlockIdHolder_1ab41d93e78fd5224068100e0abb8737d2" prot="private" static="no" mutable="no">
+        <type>const char *</type>
+        <definition>const char* ShaderBlockIdHolder::name</definition>
+        <argsstring></argsstring>
+        <name>name</name>
+        <qualifiedname>ShaderBlockIdHolder::name</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="109" column="14" bodyfile="dag_shaderBlock.h" bodystart="109" bodyend="-1"/>
+      </memberdef>
+      <memberdef kind="variable" id="classShaderBlockIdHolder_1a0da6af3920a0cac9cd73779a0069f418" prot="private" static="no" mutable="no">
+        <type>int</type>
+        <definition>int ShaderBlockIdHolder::layer</definition>
+        <argsstring></argsstring>
+        <name>layer</name>
+        <qualifiedname>ShaderBlockIdHolder::layer</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="110" column="7" bodyfile="dag_shaderBlock.h" bodystart="110" bodyend="-1"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="public-func">
+      <memberdef kind="function" id="classShaderBlockIdHolder_1a74cfe67d118f796d2359caac8a2560ba" prot="public" static="no" const="no" explicit="yes" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderBlockIdHolder::ShaderBlockIdHolder</definition>
+        <argsstring>(const char *name, int layer=-1)</argsstring>
+        <name>ShaderBlockIdHolder</name>
+        <qualifiedname>ShaderBlockIdHolder::ShaderBlockIdHolder</qualifiedname>
+        <param>
+          <type>const char *</type>
+          <declname>name</declname>
+        </param>
+        <param>
+          <type>int</type>
+          <declname>layer</declname>
+          <defval>-1</defval>
+        </param>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="113" column="12" bodyfile="dag_shaderBlock.h" bodystart="113" bodyend="113"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockIdHolder_1a21eb4b4800f27c2d4a9dd0715eceeb47" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type>int</type>
+        <definition>int ShaderBlockIdHolder::get</definition>
+        <argsstring>() const</argsstring>
+        <name>get</name>
+        <qualifiedname>ShaderBlockIdHolder::get</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="115" column="7" bodyfile="dag_shaderBlock.h" bodystart="115" bodyend="115"/>
+      </memberdef>
+      <memberdef kind="function" id="classShaderBlockIdHolder_1a9ef7ed12cdf01a417f62e9f01d1248fc" prot="public" static="no" const="yes" explicit="no" inline="yes" virt="non-virtual">
+        <type></type>
+        <definition>ShaderBlockIdHolder::operator int</definition>
+        <argsstring>() const</argsstring>
+        <name>operator int</name>
+        <qualifiedname>ShaderBlockIdHolder::operator int</qualifiedname>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="116" column="3" bodyfile="dag_shaderBlock.h" bodystart="116" bodyend="116"/>
+      </memberdef>
+      </sectiondef>
+      <sectiondef kind="protected-func">
+      <memberdef kind="function" id="classShaderBlockIdHolder_1a191389e9ab60f0eca03ab07a7e0b5fa4" prot="protected" static="no" const="no" explicit="no" inline="no" virt="virtual">
+        <type>void</type>
+        <definition>void ShaderBlockIdHolder::resolve</definition>
+        <argsstring>() override</argsstring>
+        <name>resolve</name>
+        <qualifiedname>ShaderBlockIdHolder::resolve</qualifiedname>
+        <reimplements refid="classIShaderBindumpReloadListener_1a47f555e4f12c10c438172dc7be1f14e4">resolve</reimplements>
+        <briefdescription>
+        </briefdescription>
+        <detaileddescription>
+        </detaileddescription>
+        <inbodydescription>
+        </inbodydescription>
+        <location file="dag_shaderBlock.h" line="119" column="8"/>
+      </memberdef>
+      </sectiondef>
+    <briefdescription>
+    </briefdescription>
+    <detaileddescription>
+    </detaileddescription>
+    <inheritancegraph>
+      <node id="2">
+        <label>IShaderBindumpReloadListener</label>
+        <link refid="classIShaderBindumpReloadListener"/>
+      </node>
+      <node id="1">
+        <label>ShaderBlockIdHolder</label>
+        <link refid="classShaderBlockIdHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </inheritancegraph>
+    <collaborationgraph>
+      <node id="2">
+        <label>IShaderBindumpReloadListener</label>
+        <link refid="classIShaderBindumpReloadListener"/>
+      </node>
+      <node id="1">
+        <label>ShaderBlockIdHolder</label>
+        <link refid="classShaderBlockIdHolder"/>
+        <childnode refid="2" relation="public-inheritance">
+        </childnode>
+      </node>
+    </collaborationgraph>
+    <location file="dag_shaderBlock.h" line="106" column="1" bodyfile="dag_shaderBlock.h" bodystart="107" bodyend="120"/>
+    <listofallmembers>
+      <member refid="classShaderBlockIdHolder_1a21eb4b4800f27c2d4a9dd0715eceeb47" prot="public" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>get</name></member>
+      <member refid="classShaderBlockIdHolder_1af4e46f18e02124c1f5d321d555f4ef77" prot="private" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>ids</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a90f58c2d275c1b7d3f5c1f4bc45db709" prot="public" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>IShaderBindumpReloadListener</name></member>
+      <member refid="classIShaderBindumpReloadListener_1af315e3a0711fbcc9bf46c7e675b88a06" prot="public" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>IShaderBindumpReloadListener</name></member>
+      <member refid="classShaderBlockIdHolder_1a0da6af3920a0cac9cd73779a0069f418" prot="private" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>layer</name></member>
+      <member refid="classShaderBlockIdHolder_1ab41d93e78fd5224068100e0abb8737d2" prot="private" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>name</name></member>
+      <member refid="classShaderBlockIdHolder_1a9ef7ed12cdf01a417f62e9f01d1248fc" prot="public" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>operator int</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a25f21c1ee064a47716fb8ef3296dadd4" prot="public" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>operator=</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a8ceafeede2b870002536ae3e9bb10d4b" prot="public" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>reportStaticInitDone</name></member>
+      <member refid="classShaderBlockIdHolder_1a191389e9ab60f0eca03ab07a7e0b5fa4" prot="protected" virt="virtual"><scope>ShaderBlockIdHolder</scope><name>resolve</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a048ca30af2dca91b12c4dd8f97ab9f92" prot="public" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>resolveAll</name></member>
+      <member refid="classShaderBlockIdHolder_1a74cfe67d118f796d2359caac8a2560ba" prot="public" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>ShaderBlockIdHolder</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a758c8f576fd0a4f4929dd9bcb616cd80" prot="protected" virt="non-virtual"><scope>ShaderBlockIdHolder</scope><name>staticInitDone</name></member>
+      <member refid="classIShaderBindumpReloadListener_1a06cf1cb39b7e469dd9fefd44fec42b39" prot="public" virt="virtual"><scope>ShaderBlockIdHolder</scope><name>~IShaderBindumpReloadListener</name></member>
+    </listofallmembers>
+  </compounddef>
+</doxygen>
