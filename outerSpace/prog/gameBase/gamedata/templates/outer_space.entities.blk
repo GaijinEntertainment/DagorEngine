@@ -8,6 +8,7 @@ import:t="%danetlibs/composite_entity/templates/composite_entity.templates.blk"
 import_optional:t="composite_entities/*.entities.blk"
 import:t="game_logic.blk"
 import:t="checkpoints_fx.blk"
+import:t="lights.blk"
 
 replicating{
   replication {_tags:t="net";}
