@@ -1,7 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/quirrel/clientLog ;
 StrictCompile = yes ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/quirrel/clientLog.lib ;

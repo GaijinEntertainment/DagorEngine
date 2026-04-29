@@ -43,6 +43,7 @@ struct Selection
   TimePoint when;
   dafg::ResNameId what;
 };
-void update_fg_debug_tex(const eastl::optional<Selection> &selection, dafg::InternalRegistry &registry);
+void update_fg_debug_tex(const eastl::optional<Selection> &selection, dafg::InternalRegistry &registry,
+  const dafg::DependencyData &dep_data);
 void update_external_texture_visualization(dafg::InternalRegistry &registry, const dafg::DependencyData &dep_data);
 void set_manual_showtex_params(const char *params);

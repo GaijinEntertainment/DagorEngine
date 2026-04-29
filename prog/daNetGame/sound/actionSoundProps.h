@@ -11,6 +11,7 @@ struct ActionProps
 {
   SimpleString humanHitSoundName;
   SimpleString humanHitSoundPath;
+  SimpleString voicePhrase;
 
   void load(const DataBlock *blk);
   static const ActionProps *get_props(int prop_id);

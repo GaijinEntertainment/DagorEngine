@@ -44,6 +44,7 @@ public:
   static bool optimizeForCache;
   static int limitBonePerVertex;
   static int setBonePerVertex;
+  static bool use16BitBoneIndices;
   static bool (*process_scene)(const char *fn, int lod_n, AScene &sc, float start_range, const DataBlock &props);
   static DataBlock *buildResultsBlk;
   static bool sepMatToBuildResultsBlk;

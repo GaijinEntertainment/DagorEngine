@@ -1,1 +1,3 @@
 file:t = "adaptation/adaptation_cs.dshl"
+file:t = "adaptation/adaptation_debug.dshl"
+file:t = "adaptation/shaders/fill_postfx_levels_histogram.dshl"

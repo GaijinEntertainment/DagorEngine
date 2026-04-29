@@ -153,9 +153,7 @@ void dump_all()
   for (i = 0; i < fx.size(); i++)
   {
     const FXDesc &pfx = fx[i];
-    String s;
-    pfx.params.dump(s);
-    debug(" %d: name=%s type=%d params=[%s]", i, (const char *)pfx.name, pfx.type, (char *)s);
+    debug(" %d: name=%s type=%d", i, (const char *)pfx.name, pfx.type);
   }
   debug("InteractProps:");
   for (i = 0; i < bfClasses.size(); i++)
@@ -353,7 +351,6 @@ void init(const char *filename, const DataBlock *loadedBlk, register_mat_props_c
       if (!fxName)
         DAG_FATAL("Empty fx names is not allowed! (type '%s') (%s)", colFxBlk->getBlockName(), filename);
       curFx.name = fxName;
-      curFx.params.loadFromBlk(*colFxBlk);
     }
   }
 

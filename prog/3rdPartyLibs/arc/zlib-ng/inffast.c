@@ -14,7 +14,7 @@
 /* Load 64 bits from IN and place the bytes at offset BITS in the result. */
 static inline uint64_t load_64_bits(const unsigned char *in, unsigned bits) {
     uint64_t chunk;
-    zmemcpy_8(&chunk, in);
+    memcpy(&chunk, in, sizeof(chunk));
 
 #if BYTE_ORDER == LITTLE_ENDIAN
     return chunk << bits;

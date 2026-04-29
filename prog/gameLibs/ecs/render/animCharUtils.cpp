@@ -4,8 +4,9 @@
 #include <shaders/dag_dynSceneRes.h>
 #include <memory/dag_framemem.h>
 
-static bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,
-  const eastl::function<bool(const char *)> &shader_name_filter, const eastl::function<void(ShaderMaterial *)> &shader_var_setter)
+bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,
+  const eastl::function<bool(const ShaderMaterial *)> &material_filter,
+  const eastl::function<void(ShaderMaterial *)> &shader_var_setter)
 {
   DynamicRenderableSceneInstance *scene = animchar_render.getSceneInstance();
   if (scene == nullptr)
@@ -19,7 +20,7 @@ static bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &an
   Tab<ShaderMaterial *> oldMatList(framemem_ptr()), newMatList(framemem_ptr());
   for (ShaderMaterial *mat : matList)
   {
-    if (!shader_name_filter(mat->getShaderClassName()))
+    if (!material_filter(mat))
       continue;
     int matCount = newMatList.size();
     newRes->duplicateMat(mat, oldMatList, newMatList); // should add new pointer on material to newMatList
@@ -34,6 +35,14 @@ static bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &an
   animchar_render.updateLodResFromSceneInstance();
 
   return true;
+}
+
+static bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,
+  const eastl::function<bool(const char *)> &shader_name_filter, const eastl::function<void(ShaderMaterial *)> &shader_var_setter)
+{
+  return recreate_material_with_new_params(
+    animchar_render, [&shader_name_filter](const ShaderMaterial *m) { return shader_name_filter(m->getShaderClassName()); },
+    shader_var_setter);
 }
 
 bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_render,
@@ -55,7 +64,8 @@ bool recreate_material_with_new_params(AnimV20::AnimcharRendComponent &animchar_
 {
   return recreate_material_with_new_params(
     animchar_render,
-    [&](const char *name) {
+    [&](const ShaderMaterial *m) {
+      const char *name = m->getShaderClassName();
       for (const char *shader_name : shader_names_filter)
         if (strcmp(shader_name, name) == 0)
           return true;

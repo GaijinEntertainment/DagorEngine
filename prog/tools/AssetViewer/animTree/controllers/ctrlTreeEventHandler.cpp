@@ -68,7 +68,7 @@ int CtrlTreeEventHandler::onMenuItemClick(unsigned id)
       if (!dialog.isVisible())
       {
         if (!dialog.hasEverBeenShown())
-          dialog.positionLeftToWindow("Properties", /*use_same_height*/ true);
+          dialog.positionBesideWindow("Properties");
         dialog.show();
       }
       break;

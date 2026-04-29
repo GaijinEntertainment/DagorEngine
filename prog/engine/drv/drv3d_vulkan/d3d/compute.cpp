@@ -7,7 +7,9 @@
 #include "global_lock.h"
 #include "global_const_buffer.h"
 #include "buffer.h"
+#include "physical_device_set.h"
 #include "device_context.h"
+#include "backend/cmd/draw_dispatch.h"
 
 using namespace drv3d_vulkan;
 
@@ -23,12 +25,14 @@ void checkComputeOutsideNativeRP()
 bool d3d::dispatch(uint32_t x, uint32_t y, uint32_t z, GpuPipeline gpu_pipeline)
 {
   G_UNUSED(gpu_pipeline);
+  D3D_CONTRACT_ASSERT(x <= Globals::VK::phy.properties.limits.maxComputeWorkGroupCount[0]);
+  D3D_CONTRACT_ASSERT(y <= Globals::VK::phy.properties.limits.maxComputeWorkGroupCount[1]);
+  D3D_CONTRACT_ASSERT(z <= Globals::VK::phy.properties.limits.maxComputeWorkGroupCount[2]);
   VERIFY_GLOBAL_LOCK_ACQUIRED();
   checkComputeOutsideNativeRP();
 
   Frontend::GCB.flushCompute(Globals::ctx);
-  CmdDispatch cmd{x, y, z};
-  Globals::ctx.dispatchPipeline(cmd, "dispatch");
+  Globals::ctx.dispatchPipeline<CmdDispatch>({x, y, z}, "dispatch");
   return true;
 }
 
@@ -43,7 +47,6 @@ bool d3d::dispatch_indirect(Sbuffer *args, uint32_t byte_offset, GpuPipeline gpu
 
   Frontend::GCB.flushCompute(Globals::ctx);
   GenericBufferInterface *buffer = (GenericBufferInterface *)args;
-  CmdDispatchIndirect cmd{buffer->getBufferRef(), byte_offset};
-  Globals::ctx.dispatchPipeline(cmd, "dispatchIndirect");
+  Globals::ctx.dispatchPipeline<CmdDispatchIndirect>({buffer->getBufferRef(), byte_offset}, "dispatchIndirect");
   return true;
 }

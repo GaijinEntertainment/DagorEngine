@@ -70,8 +70,8 @@ class CommandListTrace : public CommandListTraceBase
       logdbg("DX12: %s DRAW", prefix(status));
       if (TraceStatus::Completed != status)
       {
-        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
-        report_resources(vertexStageState, pixelStageState, pipelineBase);
+        logdbg("DX12: ...Pipeline <%s> %p...", pipelineVariant->getName(), pipelineVariant);
+        report_resources(vertexStageState, pixelStageState, pipelineBase, status == TraceStatus::Launched);
         reporter.report(*this);
       }
     }
@@ -97,8 +97,8 @@ class CommandListTrace : public CommandListTraceBase
       logdbg("DX12: %s DRAW INDEXED", prefix(status));
       if (TraceStatus::Completed != status)
       {
-        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
-        report_resources(vertexStageState, pixelStageState, pipelineBase);
+        logdbg("DX12: ...Pipeline <%s> %p...", pipelineVariant->getName(), pipelineVariant);
+        report_resources(vertexStageState, pixelStageState, pipelineBase, status == TraceStatus::Launched);
         reporter.report(*this);
       }
     }
@@ -119,8 +119,8 @@ class CommandListTrace : public CommandListTraceBase
       logdbg("DX12: %s DRAW INDIRECT", prefix(status));
       if (TraceStatus::Completed != status)
       {
-        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
-        report_resources(vertexStageState, pixelStageState, pipelineBase);
+        logdbg("DX12: ...Pipeline <%s> %p...", pipelineVariant->getName(), pipelineVariant);
+        report_resources(vertexStageState, pixelStageState, pipelineBase, status == TraceStatus::Launched);
         reporter.report(*this);
       }
     }
@@ -141,8 +141,8 @@ class CommandListTrace : public CommandListTraceBase
       logdbg("DX12: %s DRAW INDEXED INDIRECT", prefix(status));
       if (TraceStatus::Completed != status)
       {
-        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
-        report_resources(vertexStageState, pixelStageState, pipelineBase);
+        logdbg("DX12: ...Pipeline <%s> %p...", pipelineVariant->getName(), pipelineVariant);
+        report_resources(vertexStageState, pixelStageState, pipelineBase, status == TraceStatus::Launched);
         reporter.report(*this);
       }
     }
@@ -161,8 +161,8 @@ class CommandListTrace : public CommandListTraceBase
       logdbg("DX12: %s DISPATCH INDIRECT", prefix(status));
       if (TraceStatus::Completed != status)
       {
-        logdbg("DX12: ...Pipeline %p...", pipeline);
-        report_resources(computeStageState, pipeline);
+        logdbg("DX12: ...Pipeline <%s> %p...", pipeline->getName(), pipeline);
+        report_resources(computeStageState, pipeline, status == TraceStatus::Launched);
         reporter.report(*this);
       }
     }
@@ -183,8 +183,8 @@ class CommandListTrace : public CommandListTraceBase
       logdbg("DX12: %s DISPATCH", prefix(status));
       if (TraceStatus::Completed != status)
       {
-        logdbg("DX12: ...Pipeline %p...", pipeline);
-        report_resources(computeStageState, pipeline);
+        logdbg("DX12: ...Pipeline <%s> %p...", pipeline->getName(), pipeline);
+        report_resources(computeStageState, pipeline, status == TraceStatus::Launched);
         reporter.report(*this);
       }
     }
@@ -207,8 +207,8 @@ class CommandListTrace : public CommandListTraceBase
       logdbg("DX12: %s DISPATCH MESH", prefix(status));
       if (TraceStatus::Completed != status)
       {
-        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
-        report_resources(vertexStageState, pixelStageState, pipelineBase);
+        logdbg("DX12: ...Pipeline <%s> %p...", pipelineVariant->getName(), pipelineVariant);
+        report_resources(vertexStageState, pixelStageState, pipelineBase, status == TraceStatus::Launched);
         reporter.report(*this);
       }
     }
@@ -231,8 +231,8 @@ class CommandListTrace : public CommandListTraceBase
       logdbg("DX12: %s DISPATCH MESH INDIRECT", prefix(status));
       if (TraceStatus::Completed != status)
       {
-        logdbg("DX12: ...Pipeline %p...", pipelineVariant);
-        report_resources(vertexStageState, pixelStageState, pipelineBase);
+        logdbg("DX12: ...Pipeline <%s> %p...", pipelineVariant->getName(), pipelineVariant);
+        report_resources(vertexStageState, pixelStageState, pipelineBase, status == TraceStatus::Launched);
         reporter.report(*this);
       }
     }
@@ -422,6 +422,27 @@ public:
         },
         trace);
     }
+  }
+
+  template <typename T, typename U>
+  bool reportTraceIf(call_stack::Reporter &reporter, T &&predicate, U &&status_query) const
+  {
+    bool hasReports = false;
+    for (auto &&trace : traces)
+    {
+      eastl::visit(
+        [&reporter, &predicate, &status_query, &hasReports](auto &trace) {
+          if (!predicate(trace))
+            return;
+
+          trace.report(reporter, status_query(trace.getTraceID()));
+
+          hasReports = true;
+        },
+        trace);
+    }
+
+    return hasReports;
   }
 };
 } // namespace drv3d_dx12::debug

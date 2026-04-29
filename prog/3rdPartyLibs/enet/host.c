@@ -7,6 +7,7 @@
 #include <string.h>
 #include "enet/enet.h"
 #include "enet/utility.h"
+#include "enet/enet_dagor.h"
 
 /** @defgroup host ENet host functions
     @{
@@ -41,14 +42,14 @@ enet_host_create (const ENetAddress * address, size_t peerCount, size_t channelL
       return NULL;
     memset (host, 0, sizeof (ENetHost));
 
-    host -> peers = (ENetPeer *) enet_malloc (peerCount * sizeof (ENetPeer));
+    host -> peers = (ENetPeer *) enet_malloc (ENET_DAGOR_ALLOC_PEER_COUNT (peerCount) * sizeof (ENetPeer));
     if (host -> peers == NULL)
     {
        enet_free (host);
 
        return NULL;
     }
-    memset (host -> peers, 0, peerCount * sizeof (ENetPeer));
+    memset (host -> peers, 0, ENET_DAGOR_ALLOC_PEER_COUNT (peerCount) * sizeof (ENetPeer));
 
     host -> socket = enet_socket_create (ENET_SOCKET_TYPE_DATAGRAM);
     if (host -> socket == ENET_SOCKET_NULL || (address != NULL && enet_socket_bind (host -> socket, address) < 0))
@@ -116,7 +117,7 @@ enet_host_create (const ENetAddress * address, size_t peerCount, size_t channelL
     enet_list_clear (& host -> dispatchQueue);
 
     for (currentPeer = host -> peers;
-         currentPeer < & host -> peers [host -> peerCount];
+         currentPeer < & host -> peers [ENET_DAGOR_ALLOC_PEER_COUNT(host -> peerCount)];
          ++ currentPeer)
     {
        currentPeer -> host = host;
@@ -133,6 +134,8 @@ enet_host_create (const ENetAddress * address, size_t peerCount, size_t channelL
 
        enet_peer_reset (currentPeer);
     }
+
+    _DAGOR_ENET_INJECT_INITIALIZE_UNCONNECTED_PEER;
 
     return host;
 }
@@ -151,7 +154,7 @@ enet_host_destroy (ENetHost * host)
     enet_socket_destroy (host -> socket);
 
     for (currentPeer = host -> peers;
-         currentPeer < & host -> peers [host -> peerCount];
+         currentPeer < & host -> peers [ENET_DAGOR_ALLOC_PEER_COUNT(host -> peerCount)];
          ++ currentPeer)
     {
        enet_peer_reset (currentPeer);
@@ -174,8 +177,7 @@ enet_host_random (ENetHost * host)
     return n ^ (n >> 14);
 }
 
-/** Initiates a connection to a foreign host as a specified peer. Mostly for internal use
-    @param peer selected peer to represent the connection
+/** Initiates a connection to a foreign host.
     @param host host seeking the connection
     @param address destination for the connection
     @param channelCount number of channels to allocate
@@ -185,15 +187,30 @@ enet_host_random (ENetHost * host)
     notifies of an ENET_EVENT_TYPE_CONNECT event for the peer.
 */
 ENetPeer *
-enet_host_connect_internal (ENetPeer *currentPeer, ENetHost * host, const ENetAddress * address, size_t channelCount, enet_uint32 data)
+enet_host_connect (ENetHost * host, const ENetAddress * address, size_t channelCount, enet_uint32 data)
 {
-
+    ENetPeer * currentPeer;
+    ENetChannel * channel;
+    ENetProtocol command;
 
     if (channelCount < ENET_PROTOCOL_MINIMUM_CHANNEL_COUNT)
       channelCount = ENET_PROTOCOL_MINIMUM_CHANNEL_COUNT;
     else
     if (channelCount > ENET_PROTOCOL_MAXIMUM_CHANNEL_COUNT)
       channelCount = ENET_PROTOCOL_MAXIMUM_CHANNEL_COUNT;
+
+    _DAGOR_ENET_OVERRIDE_CURRENT_PEER(currentPeer, host)
+    for (currentPeer = host -> peers;
+         currentPeer < & host -> peers [host -> peerCount];
+         ++ currentPeer)
+    {
+       if (currentPeer -> state == ENET_PEER_STATE_DISCONNECTED)
+         break;
+    }
+
+    if (currentPeer >= & host -> peers [host -> peerCount])
+      return NULL;
+    _DAGOR_ENET_OVERRIDE_CURRENT_PEER_END
 
     currentPeer -> channels = (ENetChannel *) enet_malloc (channelCount * sizeof (ENetChannel));
     if (currentPeer -> channels == NULL)
@@ -215,8 +232,7 @@ enet_host_connect_internal (ENetPeer *currentPeer, ENetHost * host, const ENetAd
     else
     if (currentPeer -> windowSize > ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE)
       currentPeer -> windowSize = ENET_PROTOCOL_MAXIMUM_WINDOW_SIZE;
-
-    ENetChannel * channel;
+         
     for (channel = currentPeer -> channels;
          channel < & currentPeer -> channels [channelCount];
          ++ channel)
@@ -232,8 +248,8 @@ enet_host_connect_internal (ENetPeer *currentPeer, ENetHost * host, const ENetAd
         channel -> usedReliableWindows = 0;
         memset (channel -> reliableWindows, 0, sizeof (channel -> reliableWindows));
     }
-
-    ENetProtocol command;
+        
+    _DAGOR_ENET_INJECT_CONNECT_GUARD(currentPeer, address)
     command.header.command = (enet_uint8)ENET_PROTOCOL_COMMAND_CONNECT | (enet_uint8)ENET_PROTOCOL_COMMAND_FLAG_ACKNOWLEDGE;
     command.header.channelID = 0xFF;
     command.connect.outgoingPeerID = ENET_HOST_TO_NET_16 (currentPeer -> incomingPeerID);
@@ -254,64 +270,6 @@ enet_host_connect_internal (ENetPeer *currentPeer, ENetHost * host, const ENetAd
 
     return currentPeer;
 }
-
-
-/** Initiates a connection to a foreign host. Wrapps normal enet_host_connect but find peer from the end of the list
- * this is useful when you have peers that are order dependent which need to be allocated first and match index by index some outside array and order independent.
-    @param host host seeking the connection
-    @param address destination for the connection
-    @param channelCount number of channels to allocate
-    @param data user data supplied to the receiving host
-    @returns a peer representing the foreign host on success, NULL on failure
-    @remarks The peer returned will have not completed the connection until enet_host_service()
-    notifies of an ENET_EVENT_TYPE_CONNECT event for the peer.
-*/
-ENetPeer *
-enet_host_connect_peer_from_the_end (ENetHost * host, const ENetAddress * address, size_t channelCount, enet_uint32 data)
-{
-    ENetPeer * currentPeer;
-
-    for (currentPeer = & host -> peers [host -> peerCount - 1];
-         currentPeer >= & host -> peers [0];
-         ++ currentPeer)
-    {
-       if (currentPeer -> state == ENET_PEER_STATE_DISCONNECTED)
-         break;
-    }
-
-    if (currentPeer >= & host -> peers [host -> peerCount])
-      return NULL;
-    return enet_host_connect_internal(currentPeer, host, address, channelCount, data);
-}
-
-/** Initiates a connection to a foreign host.
-    @param host host seeking the connection
-    @param address destination for the connection
-    @param channelCount number of channels to allocate
-    @param data user data supplied to the receiving host
-    @returns a peer representing the foreign host on success, NULL on failure
-    @remarks The peer returned will have not completed the connection until enet_host_service()
-    notifies of an ENET_EVENT_TYPE_CONNECT event for the peer.
-*/
-ENetPeer *
-enet_host_connect (ENetHost * host, const ENetAddress * address, size_t channelCount, enet_uint32 data)
-{
-
-    ENetPeer * currentPeer;
-
-    for (currentPeer = host -> peers;
-         currentPeer < & host -> peers [host -> peerCount];
-         ++ currentPeer)
-    {
-       if (currentPeer -> state == ENET_PEER_STATE_DISCONNECTED)
-         break;
-    }
-
-    if (currentPeer >= & host -> peers [host -> peerCount])
-      return NULL;
-    return enet_host_connect_internal(currentPeer, host, address, channelCount, data);
-}
-
 
 /** Queues a packet to be sent to all peers associated with the host.
     @param host host on which to broadcast the packet

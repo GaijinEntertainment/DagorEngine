@@ -2,10 +2,7 @@
 #pragma once
 
 #include <cstdint>
-#include <math/dag_color.h>
-#include <math/dag_TMatrix4more.h>
 #include <drv/3d/dag_consts.h>
-#include <shaders/shInternalTypes.h>
 #include <EASTL/algorithm.h>
 #include <EASTL/bit.h>
 
@@ -13,8 +10,6 @@ namespace stcode::cpp
 {
 
 typedef uint32_t uint;
-
-// @TODO: simdify all of this
 
 namespace detail
 {
@@ -108,14 +103,77 @@ constexpr detail::Mask operator""_mask(const char *val, size_t n) { return detai
 #define CAT(v, s)      v##s
 #define DECODE_MASK(d) CAT(d, _mask)
 
-struct float4 : Color4
+struct float4
 {
-  float4() : Color4(0, 0, 0, 0) {}
-  float4(float r, float g, float b, float a) : Color4(r, g, b, a) {}
-  float4(float r) : Color4(r, r, r, r) {}
-  float4(Color4 other) : Color4(other) {}
+  float r, g, b, a;
+  float4() : r(0), g(0), b(0), a(0) {}
+  float4(float rr, float gg, float bb, float aa = 1)
+  {
+    r = rr;
+    g = gg;
+    b = bb;
+    a = aa;
+  }
+  float4(float rr)
+  {
+    r = rr;
+    g = rr;
+    b = rr;
+    a = rr;
+  }
 
-  operator Point4() const { return Point4(r, g, b, a); }
+  float4 operator+() const { return *this; }
+  float4 operator-() const { return float4(-r, -g, -b, -a); }
+  float4 operator*(const float4 &c) const { return float4(r * c.r, g * c.g, b * c.b, a * c.a); }
+  float4 operator/(const float4 &c) const { return float4(r / c.r, g / c.g, b / c.b, a / c.a); }
+  float4 operator+(const float4 &c) const { return float4(r + c.r, g + c.g, b + c.b, a + c.a); }
+  float4 operator-(const float4 &c) const { return float4(r - c.r, g - c.g, b - c.b, a - c.a); }
+  float4 &operator+=(const float4 &c)
+  {
+    r += c.r;
+    g += c.g;
+    b += c.b;
+    a += c.a;
+    return *this;
+  }
+  float4 &operator-=(const float4 &c)
+  {
+    r -= c.r;
+    g -= c.g;
+    b -= c.b;
+    a -= c.a;
+    return *this;
+  }
+  float4 &operator*=(const float4 &c)
+  {
+    r *= c.r;
+    g *= c.g;
+    b *= c.b;
+    a *= c.a;
+    return *this;
+  }
+  float4 &operator/=(const float4 &c)
+  {
+    r /= c.r;
+    g /= c.g;
+    b /= c.b;
+    a /= c.a;
+    return *this;
+  }
+  float4 &operator*=(float k)
+  {
+    r *= k;
+    g *= k;
+    b *= k;
+    a *= k;
+    return *this;
+  }
+  float4 &operator/=(float k) { return operator*=(1.0f / k); }
+
+  bool operator==(const float4 &c) const { return (r == c.r && g == c.g && b == c.b && a == c.a); }
+  bool operator!=(const float4 &c) const { return (r != c.r || g != c.g || b != c.b || a != c.a); }
+
+  explicit operator float() const { return r; }
 
   template <detail::Mask MASK>
   float4 swizzleMask()
@@ -160,19 +218,30 @@ inline float4 operator*(float4 v, float r) { return float4(r) * v; }
 
 inline float4 operator/(float4 v, float r) { return v / float4(r); }
 
-struct float4x4 : public TMatrix4_vec4
+struct alignas(16) float4x4
 {
-  float4x4 &operator=(const float4 other[4])
+  union
+  {
+    struct
+    {
+      float _11, _12, _13, _14;
+      float _21, _22, _23, _24;
+      float _31, _32, _33, _34;
+      float _41, _42, _43, _44;
+    };
+    float m[4][4];
+    float4 row[4];
+  };
+
+  float4x4() : row() {}
+
+  float4x4 &operator=(const float4 (&other)[4])
   {
     eastl::copy_n(other, 4, row);
     return *this;
   }
 
-  float4x4 &operator=(const TMatrix4_vec4 other)
-  {
-    TMatrix4_vec4::operator=(other);
-    return *this;
-  }
+  float4x4 &operator=(const float4x4 &other) { return operator=(other.row); }
 };
 
 // Helper types for partial writes of packed consts,

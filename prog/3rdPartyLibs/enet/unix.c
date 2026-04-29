@@ -70,8 +70,8 @@ typedef int socklen_t;
 static size_t timeBase = 0;
 
 #define UDP_HEADER_SIZE 28
-size_t enet_rx_bytes = 0, enet_rx_packets = 0;
-size_t enet_tx_bytes = 0, enet_tx_dropped_bytes = 0, enet_tx_packets = 0;
+volatile uint64_t enet_rx_bytes = 0, enet_rx_packets = 0;
+volatile uint64_t enet_tx_bytes = 0, enet_tx_dropped_bytes = 0, enet_tx_packets = 0;
 
 #if !(_TARGET_C1 | _TARGET_C2)
 int
@@ -477,7 +477,7 @@ enet_socket_send (ENetSocket socket,
     {
 #if DAGOR_DBGLEVEL > 0 || _TARGET_PC
       for (int i = 0; i < bufferCount; ++i)
-        enet_tx_dropped_bytes += buffers[i].dataLength;
+        __atomic_add_fetch(&enet_tx_dropped_bytes, buffers[i].dataLength, __ATOMIC_SEQ_CST);
 #endif
 #if _TARGET_PC_LINUX
       return (errno == EWOULDBLOCK || errno == EPERM) ? 0 : -1; // EPERM might get reported if packet was dropped by firewall (e.g. for debug purposes)
@@ -487,8 +487,8 @@ enet_socket_send (ENetSocket socket,
     }
 
 #if DAGOR_DBGLEVEL > 0 || _TARGET_PC
-    enet_tx_bytes += sentLength + UDP_HEADER_SIZE;
-    enet_tx_packets++;
+    __atomic_add_fetch(&enet_tx_bytes, sentLength + UDP_HEADER_SIZE, __ATOMIC_SEQ_CST);
+    __atomic_add_fetch(&enet_tx_packets, 1, __ATOMIC_SEQ_CST);
 #endif
 
     return sentLength;
@@ -534,8 +534,8 @@ enet_socket_receive_impl (ENetSocket socket,
 #endif
 
 #if DAGOR_DBGLEVEL > 0 || _TARGET_PC
-    enet_rx_bytes += recvLength + UDP_HEADER_SIZE;
-    enet_rx_packets++;
+    __atomic_add_fetch(&enet_rx_bytes, recvLength + UDP_HEADER_SIZE, __ATOMIC_SEQ_CST);
+    __atomic_add_fetch(&enet_rx_packets, 1, __ATOMIC_SEQ_CST);
 #endif
 
     return recvLength;

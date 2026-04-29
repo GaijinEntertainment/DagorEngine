@@ -1,0 +1,1 @@
+Registers an SSE (Server-Sent Events) handler on the server for the given URL path. Uses ``ANY`` method matching so both GET and POST requests reach the handler. The lambda receives the request and response and returns an HTTP status code.

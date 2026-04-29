@@ -19,9 +19,9 @@ static ecs::CompileTimeQueryDesc get_poly_capzone_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline bool get_poly_capzone_ecs_query(ecs::EntityId eid, Callable function)
+inline bool get_poly_capzone_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  return perform_query(g_entity_mgr, eid, get_poly_capzone_ecs_query_desc.getHandle(),
+  return perform_query(&manager, eid, get_poly_capzone_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -51,9 +51,9 @@ static ecs::CompileTimeQueryDesc get_box_capzone_ecs_query_desc
   make_span(get_box_capzone_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline bool get_box_capzone_ecs_query(ecs::EntityId eid, Callable function)
+inline bool get_box_capzone_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  return perform_query(g_entity_mgr, eid, get_box_capzone_ecs_query_desc.getHandle(),
+  return perform_query(&manager, eid, get_box_capzone_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -80,9 +80,9 @@ static ecs::CompileTimeQueryDesc get_sphere_capzone_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline bool get_sphere_capzone_ecs_query(ecs::EntityId eid, Callable function)
+inline bool get_sphere_capzone_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  return perform_query(g_entity_mgr, eid, get_sphere_capzone_ecs_query_desc.getHandle(),
+  return perform_query(&manager, eid, get_sphere_capzone_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

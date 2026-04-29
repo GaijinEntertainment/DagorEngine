@@ -10,7 +10,8 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_log.h>
 #include <drv/hid/dag_hiXInputMappings.h>
-#include <perfmon/dag_autofuncprof.h>
+#include <perfMon/dag_autofuncprof.h>
+#include <perfMon/dag_statDrv.h>
 #include <stdio.h>
 
 using namespace HumanInput;
@@ -40,6 +41,7 @@ Di8JoystickDevice::Di8JoystickDevice(IDirectInputDevice8 *dev, bool must_poll, b
     DEBUG_CTX("added joystick: dev=%p mustPoll=%d", device, mustPoll);
 }
 
+
 static void safe_release_device(IDirectInputDevice8 *dev)
 {
 #ifndef SEH_DISABLED
@@ -55,6 +57,7 @@ static void safe_release_device(IDirectInputDevice8 *dev)
   dev->Release();
 #endif
 }
+
 
 Di8JoystickDevice::~Di8JoystickDevice()
 {
@@ -74,6 +77,7 @@ Di8JoystickDevice::~Di8JoystickDevice()
   }
   device = NULL;
 }
+
 
 bool Di8JoystickDevice::isEqual(Di8JoystickDevice *dev)
 {
@@ -260,6 +264,7 @@ bool Di8JoystickDevice::processAxes(JoyCookedCreateParams &dest, const JoyFfCrea
   return true;
 }
 
+
 void Di8JoystickDevice::applyRemapX360(const char *product_name)
 {
   axes.resize(6);
@@ -321,6 +326,7 @@ void Di8JoystickDevice::applyRemapX360(const char *product_name)
   }
 }
 
+
 void Di8JoystickDevice::applyRemapHats()
 {
   for (int i = 0; i < povHats.size(); i++)
@@ -330,8 +336,10 @@ void Di8JoystickDevice::applyRemapHats()
     }
 }
 
+
 void Di8JoystickDevice::acquire()
 {
+  TIME_PROFILE(HID_DI8_acquire);
   if (device)
   {
     AutoFuncProfT<AFP_MSEC, 100> _prof("[DINPUT] acquire() %d msec\n");
@@ -361,6 +369,7 @@ void Di8JoystickDevice::acquire()
 
 void Di8JoystickDevice::unacquire()
 {
+  TIME_PROFILE(HID_DI8_unacquire);
   if (device)
     device->Unacquire();
 }
@@ -370,6 +379,7 @@ void Di8JoystickDevice::poll()
 {
   if (device && mustPoll)
   {
+    TIME_PROFILE(HID_DI8_poll);
     HRESULT hr = device->Poll();
     if (hr == DIERR_INPUTLOST || hr == DIERR_NOTACQUIRED)
     {
@@ -382,6 +392,7 @@ void Di8JoystickDevice::poll()
 
 bool Di8JoystickDevice::updateState(int dt_msec, bool def)
 {
+  TIME_PROFILE(HID_DI8_updateState);
   DIJOYSTATE2 js;
   HRESULT hr;
   bool changed = false;
@@ -392,6 +403,7 @@ bool Di8JoystickDevice::updateState(int dt_msec, bool def)
     Di8JoystickDevice::acquire();
     hr = device->GetDeviceState(sizeof(DIJOYSTATE2), &js);
   }
+
   if (SUCCEEDED(hr))
   {
     static int lastKeyPressedTime = 0;
@@ -542,6 +554,7 @@ bool Di8JoystickDevice::updateState(int dt_msec, bool def)
   return changed && !state.buttons.cmpEq(state.buttonsPrev);
 }
 
+
 void Di8JoystickDevice::setClient(IGenJoystickClient *cli)
 {
   if (cli == client)
@@ -585,6 +598,7 @@ const char *Di8JoystickDevice::getAxisName(int idx) const
 
 int Di8JoystickDevice::getPovHatCount() const { return povHats.size(); }
 
+
 const char *Di8JoystickDevice::getPovHatName(int idx) const
 {
   if (idx >= 0 && idx < povHats.size())
@@ -622,6 +636,7 @@ int Di8JoystickDevice::getPovHatId(const char *hat_name) const
   return -1;
 }
 
+
 void Di8JoystickDevice::setAxisLimits(int axis_id, float min_val, float max_val)
 {
   if (axis_id >= 0 && axis_id < axes.size())
@@ -648,6 +663,8 @@ float Di8JoystickDevice::getAxisPos(int axis_id) const
     return getVirtualPOVAxis((axis_id - ac) / 2, (axis_id - ac) % 2);
   return 0;
 }
+
+
 int Di8JoystickDevice::getAxisPosRaw(int axis_id) const
 {
   const int ac = axes.size();
@@ -666,6 +683,7 @@ int Di8JoystickDevice::getPovHatAngle(int hat_id) const
   }
   return -1;
 }
+
 
 int Di8JoystickDevice::getVirtualPOVAxis(int hat_id, int axis_id) const
 {
@@ -700,6 +718,7 @@ IJoyFfCondition *Di8JoystickDevice::createConditionFx(int condfx_type, const Joy
   return fx;
 }
 
+
 IJoyFfConstForce *Di8JoystickDevice::createConstForceFx(const JoyFfCreateParams &cp, float force)
 {
   JoyCookedCreateParams ccp;
@@ -715,6 +734,7 @@ IJoyFfConstForce *Di8JoystickDevice::createConstForceFx(const JoyFfCreateParams 
   addFx(fx);
   return fx;
 }
+
 
 IJoyFfPeriodic *Di8JoystickDevice::createPeriodicFx(int period_type, const JoyFfCreateParams &cp)
 {
@@ -732,6 +752,7 @@ IJoyFfPeriodic *Di8JoystickDevice::createPeriodicFx(int period_type, const JoyFf
   return fx;
 }
 
+
 IJoyFfRampForce *Di8JoystickDevice::createRampForceFx(const JoyFfCreateParams &cp, float start_f, float end_f)
 {
   JoyCookedCreateParams ccp;
@@ -748,8 +769,10 @@ IJoyFfRampForce *Di8JoystickDevice::createRampForceFx(const JoyFfCreateParams &c
   return fx;
 }
 
+
 bool Di8JoystickDevice::isConnected()
 {
+  TIME_PROFILE(HID_DI8_isConnected);
   DIJOYSTATE2 js;
   HRESULT hr;
 
@@ -766,6 +789,7 @@ bool Di8JoystickDevice::isConnected()
   // we should ignore this
   return SUCCEEDED(hr) || hr == DIERR_NOTACQUIRED;
 }
+
 
 #define DEADCLAMP(value, threshold)                        \
   if (((value) < (threshold)) && ((value) > -(threshold))) \
@@ -795,6 +819,8 @@ static void decodeDataPS3(const DIJOYSTATE2 &is, JoystickRawState &os)
     if (is.rgbButtons[i] & 0x80)
       os.buttons.orWord0(btn_remap[i]);
 }
+
+
 static void setupButtonNamesPS3(dag::Span<String> btn)
 {
   static struct
@@ -809,6 +835,7 @@ static void setupButtonNamesPS3(dag::Span<String> btn)
     btn[btn_remap[i].btn] = btn_remap[i].name;
 }
 
+
 static void setupButtonNamesPS4(dag::Span<String> btn)
 {
   static struct
@@ -822,6 +849,8 @@ static void setupButtonNamesPS4(dag::Span<String> btn)
   for (int i = 0; i < 10; i++)
     btn[btn_remap[i].btn] = btn_remap[i].name;
 }
+
+
 static void decodeDataPS4(const DIJOYSTATE2 &is, JoystickRawState &os)
 {
   os.x = is.lX;
@@ -848,6 +877,7 @@ static void decodeDataPS4(const DIJOYSTATE2 &is, JoystickRawState &os)
       os.buttons.orWord0(btn_remap[i]);
 }
 
+
 static void decodeDataDef(const DIJOYSTATE2 &is, JoystickRawState &os)
 {
   os.x = is.lX;
@@ -872,6 +902,8 @@ static void decodeDataDef(const DIJOYSTATE2 &is, JoystickRawState &os)
     if (is.rgbButtons[i] & 0x80)
       os.buttons.orWord0(btn_remap[i]);
 }
+
+
 static void setupButtonNamesDef(dag::Span<String> btn)
 {
   static int btn_remap[12] = {
@@ -895,6 +927,7 @@ static void setupButtonNamesDef(dag::Span<String> btn)
 
 #undef DEADCLAMP
 
+
 int Di8JoystickDevice::getPairedButtonForAxis(int axis_idx) const
 {
   if (!shouldRemapAsX360())
@@ -905,6 +938,8 @@ int Di8JoystickDevice::getPairedButtonForAxis(int axis_idx) const
     return JOY_XINPUT_REAL_BTN_R_TRIGGER;
   return -1;
 }
+
+
 int Di8JoystickDevice::getPairedAxisForButton(int btn_idx) const
 {
   if (!shouldRemapAsX360())
@@ -915,6 +950,8 @@ int Di8JoystickDevice::getPairedAxisForButton(int btn_idx) const
     return JOY_XINPUT_REAL_AXIS_R_TRIGGER;
   return -1;
 }
+
+
 int Di8JoystickDevice::getJointAxisForAxis(int axis_idx) const
 {
   if (!shouldRemapAsX360())

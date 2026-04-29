@@ -234,6 +234,8 @@ void OodleLoadCB::seekrel(int ofs)
     while (ofs > 0)
     {
       int rd_sz = decodeData(ofs);
+      if (rd_sz <= 0)
+        break;
       rdPos += rd_sz;
       ofs -= rd_sz;
     }

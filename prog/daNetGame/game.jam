@@ -18,9 +18,9 @@ DefVars_$(Game) = "namespace gameproj{ " ;
 DefVars_$(Game) += const char* game_codename(){ return \"$(Game)\";} ;
 if $(GameMainVromFilePath) != * { DefVars_$(Game) += const char* main_vromfs_fpath(){ return \"$(GameMainVromFilePath)\";} ; }
 if $(GameMainVromMountDir) != * { DefVars_$(Game) += const char* main_vromfs_mount_dir(){ return \"$(GameMainVromMountDir)\";} ; }
+if $(GameUserDirName) != * { DefVars_$(Game) += const char* game_user_dir_name(){ return \"$(GameUserDirName)\";} ; }
 DefVars_$(Game) += const char* config_name_prefix(){ return \"$(GameUserConfigPathPrefix)\";} ;
 DefVars_$(Game) += const char* game_window_title(){ return \"$(GameWindowTitle)\";} ;
-DefVars_$(Game) += const char* game_user_dir_name(){ return \"$(GameUserDirName)\";} ;
 DefVars_$(Game) += const char* game_telemetry_name(){ return \"$(GameTelemetryName)\";} ;
 DefVars_$(Game) += const char* game_yup_name(){ return \"$(GameYupName)\";} ;
 
@@ -52,15 +52,6 @@ if $(UseGameCallbacks) = no {
 DefVars_$(Game) += "}" ;
 
 UseHostedInternalServer ?= no ;
-
-DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType) = "namespace gameproj{ " ;
-if $(UseHostedInternalServer) = no || $(TargetType) != dll {
-  DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType) += bool is_hosted_server_instance(){ return false;} ;
-}
-else {
-  DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType) += bool is_hosted_server_instance(){ return true;} ;
-}
-DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType) += "}" ;
 
 gamePublicKeyDER = "namespace gameproj{ " ;
 if $(GamePublicKeyDER) {
@@ -106,6 +97,16 @@ else {
 
 partnerPublicKeysDER += \} ;
 
+anticheatsAdditionalData = "namespace gameproj{ " ;
+beacSecretServerKey = \"BEAC_KEY_NOT_DEFINED\" ;
+if $(BEACSecretServerKey) {
+  beacSecretServerKey = $(BEACSecretServerKey) ;
+}
+anticheatsAdditionalData += "static const unsigned char beacSecretServerKey[] \= $(beacSecretServerKey)\;" ;
+anticheatsAdditionalData += "const unsigned char *beac_secret_server_key(){ return beacSecretServerKey; }" ;
+anticheatsAdditionalData += "unsigned beac_secret_server_key_len(){ return sizeof(beacSecretServerKey); }" ;
+anticheatsAdditionalData += "}" ;
+
 rule MakeAuthKeyJamvar name : func : key : forced {
   $(name) = "#include \"net/userid.h\"" ;
   if $(key) && ( $(Config) in dev dbg || $(Platform) = linux || $(forced) = yes ) {
@@ -119,14 +120,24 @@ rule MakeAuthKeyJamvar name : func : key : forced {
 
 MakeAuthKeyJamvar gamePlatformAuthKey : get_platform_auth_key : $(GameAuthKey_$(Platform)) : yes ;
 
+rule AddGamePullsToSources {
+  if $(Dedicated) = no {
+    Sources += gamePulls.jamvar ;
+  } else {
+    gamePulls_ded = ;
+    redirect_to_var on gamePulls_ded = gamePulls ; # we use redirect since gamePulls is updated later in other jamfiles
+    Sources += gamePulls_ded.jamvar ;
+  }
+}
+
 Sources +=
   gameMain.jamvar
   gameVersion.jamvar
   DefVars_$(Game).jamvar
-  DefVars_$(Game)_$(UseHostedInternalServer)_$(TargetType).jamvar
   gamePlatformAuthKey.jamvar
   gamePublicKeyDER.jamvar
   partnerPublicKeysDER.jamvar
+  anticheatsAdditionalData.jamvar
 ;
 
 if $(Platform) in windows && $(HaveRenderer) = yes && $(ExportOptimus) = yes {
@@ -172,26 +183,41 @@ if $(Dedicated) = yes  {
   Sources += gameAuthKeyForPlatform.jamvar ;
 }
 
-if $(Config) = rel && $(ForceLogs) = yes && $(GameLogCryptKey) {
+if $(Config) in rel irel && $(ForceLogs) = yes && $(GameLogCryptKey) {
   getLogCryptKey = const unsigned char *get_dagor_log_crypt_key() \{ static const unsigned char key[128] \= \{ $(GameLogCryptKey) \} \; return key \; \} ;
   Sources += getLogCryptKey.jamvar ;
 }
 
 include $(Root)/prog/daNetGame/target_name_rules.jam ;
 
-if $(UseHostedInternalServer) = yes {
+SupportsUsingHostedInternalServer ?= no ;
+if $(UseHostedInternalServer) = yes && $(Dedicated) != yes {
+  if $(SupportsUsingHostedInternalServer) = no {
+    #if the game's jam doesn't explicitly tell us it supports hosted internal server we do not allow it to built to avoid false reports
+    EXIT UseHostedInternalServer is set to yes but SupportsUsingHostedInternalServer is not set to true, aborting ;
+  }
   local t = [ FormInternalHostedServerName ] ;
 
   dedicName = extern\ \"C\"{ const char *dedicated_server_dll_fn=\"$(t)\"; \} ;
   Sources += dedicName.jamvar ;
+} else if $(Dedicated) != yes {
+  dedicName_stub = extern\ \"C\"{ const char *dedicated_server_dll_fn=nullptr; \} ;
+  Sources += dedicName_stub.jamvar ;
+}
+if $(Dedicated) = yes && $(TargetType) = dll {
+  OutputSuffix = HIS ;
+  GlobalCPPopt += -DDAGOR_HOSTED_INTERNAL_SERVER ;
+  if $(Platform) in linux { GlobalCPPopt += -fPIC ; }
 
-  if $(TargetType) = dll {
-    gameBuildStamp = extern\ \"C\"{ const char *dagor_exe_build_date=__DATE__; const char *dagor_exe_build_time=__TIME__; \} ;
-    dedicated_dll_start = \# include \"net/dedicated/dedicated_dll_starter.inc.cpp\" ;
-    Sources += gameBuildStamp.jamvar dedicated_dll_start.jamvar ;
+  gameMain = \# include \"net/dedicated/hostedServer/dedicated_dll__main.cpp\" ;
+  dedicated_dll_exp = \# include \"net/dedicated/hostedServer/dedicated_dll__exports.cpp\" ;
+  Sources += dedicated_dll_exp.jamvar ;
+
+  need_buildstamp on [ AutoCompleteTargetName [ MangleTargetName $(Target) ] ] = yes ;
+
+  if $(Platform) in windows {
     LINKopt += gdi32.lib dbghelp.lib ;
   }
-} else {
-  dedicName = extern\ \"C\"{ const char *dedicated_server_dll_fn=\"no_name_as_game_doesnt_use_hosted_dedic_feature\"; \} ;
-  Sources += dedicName.jamvar ;
+  UseMemoryAllocator = imported ;
+  UseMemoryDebugLevel = off ; # since we use imported allocator we already have debug allocator from main module
 }

@@ -136,7 +136,7 @@ GpuReadbackQuerySystem<InputT, ResultT>::GpuReadbackQuerySystem(const GpuReadbac
   resultRingBuffer.init(sizeof(ResultT), desc.maxQueriesPerFrame, 3, desc.resultBufferName, SBCF_UA_STRUCTURED_READBACK, 0, false);
 
   const uint32_t inputBufferFlags = SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_DYNAMIC;
-  inputBuffer = dag::create_sbuffer(sizeof(InputT), desc.maxQueriesPerFrame, inputBufferFlags, 0, desc.inputBufferName);
+  inputBuffer = dag::create_sbuffer(sizeof(InputT), desc.maxQueriesPerFrame, inputBufferFlags, 0, desc.inputBufferName, RESTAG_ENGINE);
 
   inputs.resize(desc.maxQueriesPerFrame);
 
@@ -172,6 +172,7 @@ void GpuReadbackQuerySystem<InputT, ResultT>::beforeDeviceReset()
 template <typename InputT, typename ResultT>
 void GpuReadbackQuerySystem<InputT, ResultT>::afterDeviceReset()
 {
+  resultRingBuffer.reset();
   isResettingDevice = false;
 }
 
@@ -249,6 +250,22 @@ template <typename InputT, typename ResultT>
 void GpuReadbackQuerySystem<InputT, ResultT>::dispatchNewQueries()
 {
   TIME_PROFILE(dispatchNewQueries);
+
+  bool hasNewQueries = false;
+  for (const auto &[_, query] : queryMap)
+  {
+    if (query.state == GpuReadbackQueryState::NEW)
+    {
+      hasNewQueries = true;
+      break;
+    }
+  }
+  if (!hasNewQueries)
+  {
+    newQueriesSinceLastFrame = 0;
+    return;
+  }
+
   int frame = 0;
   Sbuffer *resultBuffer = (Sbuffer *)resultRingBuffer.getNewTarget(frame);
   if (!resultBuffer)
@@ -267,11 +284,9 @@ void GpuReadbackQuerySystem<InputT, ResultT>::dispatchNewQueries()
     }
   }
 
+  G_ASSERT(numInputs > 0 && numInputs <= querySystemDesc.maxQueriesPerFrame);
 
-  if (numInputs > 0)
   {
-    G_ASSERT(numInputs <= querySystemDesc.maxQueriesPerFrame);
-
     TIME_D3D_PROFILE_NAME(gpu_readback_query, querySystemDesc.computeShaderName);
 
     inputBuffer.getBuf()->updateData(0, (uint32_t)(numInputs * sizeof(inputs[0])), inputs.data(), VBLOCK_DISCARD | VBLOCK_WRITEONLY);

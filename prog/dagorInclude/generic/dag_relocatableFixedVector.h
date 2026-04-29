@@ -451,7 +451,7 @@ protected:
         return base_type::heap.data;
 
     value_type *newData = allocateCapacity(new_capacity);
-    memcpy(newData, base_type::heap.data, base_type::used() * sizeof(value_type)); // -V780
+    memcpy((void *)newData, (void *)base_type::heap.data, base_type::used() * sizeof(value_type)); // -V780
     deallocate(base_type::heap.data);
     return base_type::heap.data = newData;
   }
@@ -604,18 +604,14 @@ inline void RelocatableFixedVector<T, N, O, A, C, Z>::resize(size_type newCount)
 
   IF_CONSTEXPR (canOverflow)
   {
-    const size_type copyCount = newCount < size() ? newCount : size();
-    const bool wasInplace = base_type::isInplace();
-    const bool willBeInplace = base_type::is_inplace(newCount);
     CHECK_RELOCATABLE_OR_INPLACE()
-    if (wasInplace != willBeInplace)
+    const bool wasInplace = base_type::isInplace(), willBeInplace = base_type::is_inplace(newCount);
+    if (wasInplace != willBeInplace) [[unlikely]]
     {
       value_type *newData = willBeInplace ? base_type::inplaceData() : allocateCapacity(newCount);
-      memcpy((void *)newData, (void *)s, copyCount * sizeof(value_type));
+      memcpy((void *)newData, (void *)s, (newCount < size() ? newCount : size()) * sizeof(value_type));
       if (willBeInplace)
-      {
         deallocate(s);
-      }
       else
       {
         // has to be done after memcpy!
@@ -624,7 +620,7 @@ inline void RelocatableFixedVector<T, N, O, A, C, Z>::resize(size_type newCount)
       }
       s = newData;
     }
-    else if (!willBeInplace && base_type::heapCapacity() < newCount)
+    else if (!willBeInplace && base_type::heapCapacity() < newCount) [[unlikely]]
       s = reallocateToCapacity(newCount);
   }
 

@@ -9,7 +9,7 @@
 #include "util/fault_report.h"
 #include "backend.h"
 #include "execution_state.h"
-#include "execution_context.h"
+#include "backend/context.h"
 #include "wrapped_command_buffer.h"
 
 using namespace drv3d_vulkan;
@@ -64,6 +64,7 @@ void DeviceExecutionTracker::dumpFaultData(FaultReportDump &dump) const
     dump.addRef(mark, FaultReportDump::GlobalTag::TAG_CMD, (uint64_t)hmarker.cmdPtr);
 #endif
   }
+  verify();
 }
 
 void DeviceExecutionTracker::addMarker(const void *data, size_t data_sz)
@@ -94,15 +95,22 @@ void DeviceExecutionTracker::addMarker(const void *data, size_t data_sz)
     currentMarker.hash = fnv1a_step<64>((uint8_t)dt[i], currentMarker.hash);
   currentMarker.dataHash = mem_hash_fnv1<64>((const char *)data, data_sz);
 #if DAGOR_DBGLEVEL > 0
-  currentMarker.caller = Backend::State::exec.getExecutionContext().getCurrentCmdCallerHash();
-  currentMarker.cmdPtr = Backend::State::exec.getExecutionContext().cmd;
+  currentMarker.caller = Backend::ctx.getCurrentCmdCallerHash();
+  currentMarker.cmdPtr = Backend::ctx.cmdPtr;
 #endif
+
+  if (Globals::cfg.executionTrackerDataBreakpoint != 0 && Globals::cfg.executionTrackerDataBreakpoint == currentMarker.dataHash)
+  {
+    generateFaultReport();
+    DAG_FATAL("vulkan: reached execution data hash breakpoint %016llX-%016llX at %s", currentMarker.hash, currentMarker.dataHash,
+      Backend::ctx.getCurrentCmdCaller());
+  }
 
   if (Globals::cfg.executionTrackerBreakpoint != 0 && Globals::cfg.executionTrackerBreakpoint == currentMarker.hash)
   {
     generateFaultReport();
-    DAG_FATAL("vulkan: reached execution hash breakpoint %016llX-%016llX at cmd %p:%u", currentMarker.hash, currentMarker.dataHash,
-      Backend::State::exec.getExecutionContext().cmd, Backend::State::exec.getExecutionContext().cmdIndex);
+    DAG_FATAL("vulkan: reached execution hash breakpoint %016llX-%016llX at %s", currentMarker.hash, currentMarker.dataHash,
+      Backend::ctx.getCurrentCmdCaller());
   }
 
   const VkDeviceSize bufOffset = markerCount * msz;
@@ -145,14 +153,13 @@ void DeviceExecutionTracker::restart(size_t job_id)
   }
 }
 
-void DeviceExecutionTracker::verify()
+void DeviceExecutionTracker::verify() const
 {
   if (Globals::cfg.bits.enableDeviceExecutionTracker == 0 || markerCount == 0)
     return;
 
   deviceMarkers->markNonCoherentRangeLoc(0, markerCount * sizeof(Marker), false);
 
-  uint64_t firstFailedHash = 0;
   Marker *firstFailedMarker = nullptr;
 
   for (int i = markerCount - 1; i > 0; --i)
@@ -160,22 +167,24 @@ void DeviceExecutionTracker::verify()
     Marker &dmarker = *(Marker *)deviceMarkers->ptrOffsetLoc(i * sizeof(Marker));
     Marker &hmarker = *(Marker *)hostMarkers->ptrOffsetLoc(i * sizeof(Marker));
     if (dmarker.hash != hmarker.hash)
-    {
-      firstFailedHash = hmarker.hash;
-      firstFailedMarker = &hmarker;
-    }
+      // when we not reach marker, it means work between last marker and not reached one are problematic
+      // so we must report prev marker as failed, instead one that is not reached
+      firstFailedMarker = (Marker *)hostMarkers->ptrOffsetLoc(max(i - 1, 0) * sizeof(Marker));
     else
       break;
   }
   if (firstFailedMarker)
   {
+    // report full data siletly in log
+    // it will be visible in client logs when error is received
+    debug("vulkan: GPU execution failed on hash %016llX frame %016llX", firstFailedMarker->hash, currentMarker.hash);
+    // report error only for action that failed, as usually it is most stable data to receive,
+    // so it is sortable and can be investigated with less problems
 #if DAGOR_DBGLEVEL > 0
-    D3D_ERROR("vulkan: GPU execution tracker verify failed. First hash %016llX-%016llX (caller %016llX cmd %p) not reached on GPU, "
-              "frame hash %016llX",
-      firstFailedHash, firstFailedMarker->dataHash, firstFailedMarker->caller, firstFailedMarker->cmdPtr, currentMarker.hash);
+    D3D_ERROR("vulkan: GPU execution failed on data %016llX (caller %016llX cmd %p)", firstFailedMarker->dataHash,
+      firstFailedMarker->caller, firstFailedMarker->cmdPtr);
 #else
-    D3D_ERROR("vulkan: GPU execution tracker verify failed. First hash %016llX-%016llX not reached on GPU, frame hash %016llX",
-      firstFailedHash, firstFailedMarker->dataHash, currentMarker.hash);
+    D3D_ERROR("vulkan: GPU execution failed on data %016llX", firstFailedMarker->dataHash);
 #endif
   }
 }

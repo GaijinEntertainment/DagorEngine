@@ -44,6 +44,7 @@
 #endif
 
 #include <3d/dag_maskedOcclusionCulling.h>
+#include <daBVH/dag_swBLAS_ray.h>
 #if DAGOR_DBGLEVEL > 0
 #define OCCLUSION_ASSERT assert
 #else
@@ -308,6 +309,13 @@ MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderTriangles(co
   int nTris, const float *modelToClipMatrix, BackfaceWinding bfWinding, ClipPlanes clipPlaneMask)
 {
   return MOC_STATIC_DOWNCAST(this)->RenderTriangles(inVtx, inTris, nTris, modelToClipMatrix, bfWinding, clipPlaneMask);
+}
+
+MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd,
+  const float *rawToClipMatrix, unsigned short *cacheIndices, int *cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding)
+{
+  return MOC_STATIC_DOWNCAST(this)->RenderBLAS(blasData, treeStart, treeEnd, rawToClipMatrix, cacheIndices, cacheTriCount, cacheMode,
+    bfWinding);
 }
 
 MaskedOcclusionCulling::CullingResult MaskedOcclusionCulling::TestRect(float xmin, float ymin, float xmax, float ymax,

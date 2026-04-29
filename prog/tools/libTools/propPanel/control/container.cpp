@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <propPanel/control/container.h>
+#include <propPanel/control/dragAndDropHandler.h>
 #include <propPanel/c_indirect.h>
 #include <propPanel/focusHelper.h>
 #include "button.h"
@@ -37,6 +38,7 @@
 #include "trackBarFloat.h"
 #include "trackBarInt.h"
 #include "tree.h"
+#include "matrix.h"
 #include "../messageQueueInternal.h"
 #include <imgui/imgui_internal.h>
 
@@ -60,19 +62,21 @@ ContainerPropertyControl *ContainerPropertyControl::createContainer(int id, bool
   return newControl;
 }
 
-ContainerPropertyControl *ContainerPropertyControl::createExtensible(int id, bool new_line)
+ContainerPropertyControl *ContainerPropertyControl::createExtensible(int id, bool new_line, const char *menu_button_icon,
+  const char *menu_button_tooltip)
 {
   ExtensiblePropertyControl *newControl = new ExtensiblePropertyControl(mEventHandler, this, id, getNextControlX(),
-    getNextControlY(new_line), getClientWidth(), hdpi::Px(0));
+    getNextControlY(new_line), getClientWidth(), hdpi::Px(0), menu_button_icon, menu_button_tooltip);
 
   addControl(newControl, new_line);
   return newControl;
 }
 
-ContainerPropertyControl *ContainerPropertyControl::createExtGroup(int id, const char caption[])
+ContainerPropertyControl *ContainerPropertyControl::createExtGroup(int id, const char caption[], const char *menu_button_icon,
+  const char *menu_button_tooltip)
 {
-  ExtGroupPropertyControl *newControl =
-    new ExtGroupPropertyControl(mEventHandler, this, id, getNextControlX(), getNextControlY(), getClientWidth(), hdpi::Px(0), caption);
+  ExtGroupPropertyControl *newControl = new ExtGroupPropertyControl(mEventHandler, this, id, getNextControlX(), getNextControlY(),
+    getClientWidth(), hdpi::Px(0), caption, menu_button_icon, menu_button_tooltip);
 
   addControl(newControl);
   return newControl;
@@ -171,24 +175,24 @@ ContainerPropertyControl *ContainerPropertyControl::createMultiSelectTreeCheckbo
   return newControl;
 }
 
-void ContainerPropertyControl::createStatic(int id, const char caption[], bool new_line)
+void ContainerPropertyControl::createStatic(int id, const char caption[], bool new_line, bool use_text_width, bool word_wrap)
 {
   StaticPropertyControl *newControl = new StaticPropertyControl(mEventHandler, this, id, getNextControlX(new_line),
-    getNextControlY(new_line), getClientWidth(), caption, hdpi::Px(0));
+    getNextControlY(new_line), getClientWidth(), caption, hdpi::Px(0), use_text_width, word_wrap);
 
   addControl(newControl, new_line);
 }
 
 void ContainerPropertyControl::createEditBox(int id, const char caption[], const char text[], bool enabled, bool new_line,
-  bool multiline, hdpi::Px multi_line_height)
+  bool multiline, hdpi::Px multi_line_height, bool auto_height)
 {
   EditBoxPropertyControl *newControl =
-    new EditBoxPropertyControl(id, mEventHandler, this, 0, 0, hdpi::Px(0), hdpi::Px(0), caption, multiline);
+    new EditBoxPropertyControl(id, mEventHandler, this, 0, 0, hdpi::Px(0), hdpi::Px(0), caption, multiline, auto_height);
 
   newControl->setTextValue(text);
   newControl->setEnabled(enabled);
 
-  if (multiline)
+  if (multiline && !auto_height)
     newControl->setHeight(multi_line_height);
 
   addControl(newControl, new_line);
@@ -391,10 +395,11 @@ void ContainerPropertyControl::createRadio(int id, const char caption[], bool en
   addControl(newControl, new_line);
 }
 
-void ContainerPropertyControl::createColorBox(int id, const char caption[], E3DCOLOR value, bool enabled, bool new_line)
+void ContainerPropertyControl::createColorBox(int id, const char caption[], E3DCOLOR value, bool enabled, bool new_line,
+  bool use_modal_color_selector)
 {
   ColorBoxPropertyControl *newControl = new ColorBoxPropertyControl(mEventHandler, this, id, getNextControlX(new_line),
-    getNextControlY(new_line), getClientWidth(), caption);
+    getNextControlY(new_line), getClientWidth(), caption, use_modal_color_selector);
 
   newControl->setColorValue(value);
   newControl->setEnabled(enabled);
@@ -443,9 +448,12 @@ void ContainerPropertyControl::createPoint4(int id, const char caption[], Point4
 
 void ContainerPropertyControl::createMatrix(int id, const char caption[], const TMatrix &value, int prec, bool enabled, bool new_line)
 {
-  // TODO: ImGui porting: missing control: used in scriptPanelWrapper.
-  logdbg("ImGui porting: missing control: %s", __FUNCTION__);
-  G_ASSERT(false);
+  MatrixPropertyControl *newControl = new MatrixPropertyControl(mEventHandler, this, id, getNextControlX(new_line),
+    getNextControlY(new_line), getClientWidth(), caption, prec);
+
+  newControl->setMatrixValue(value);
+  newControl->setEnabled(enabled);
+  addControl(newControl, new_line);
 }
 
 void ContainerPropertyControl::createGradientBox(int id, const char caption[], bool enabled, bool new_line)
@@ -709,6 +717,24 @@ void ContainerPropertyControl::setTooltipId(int id, const char text[])
   }
 }
 
+void ContainerPropertyControl::setShowTooltipAlwaysById(int id, bool show)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+  {
+    ptr->setShowTooltipAlways(show);
+  }
+}
+
+void ContainerPropertyControl::setDefaultValueById(int id, Variant var)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+  {
+    ptr->setDefaultValue(std::move(var));
+  }
+}
+
 void ContainerPropertyControl::setMinMaxStep(int id, float min, float max, float step)
 {
   PropertyControlBase *ptr = getById(id);
@@ -768,6 +794,41 @@ void ContainerPropertyControl::setListBoxEventHandler(int id, IListBoxControlEve
   PropertyControlBase *ptr = getById(id);
   if (ptr)
     ptr->setListBoxEventHandlerValue(handler);
+}
+
+void ContainerPropertyControl::setListDragHandler(int id, IListDragHandler *handler)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+    ptr->setListDragHandlerValue(handler);
+}
+
+void ContainerPropertyControl::setListDropHandler(int id, IListDropHandler *handler)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+    ptr->setListDropHandlerValue(handler);
+}
+
+void ContainerPropertyControl::setDragSourceHandlerById(int id, IDragSourceHandler *handler)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+    ptr->setDragSourceHandlerValue(handler);
+}
+
+void ContainerPropertyControl::setDropTargetHandlerById(int id, IDropTargetHandler *handler)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+    ptr->setDropTargetHandler(handler);
+}
+
+void ContainerPropertyControl::setValueHighlightById(int id, ColorOverride::ColorIndex color)
+{
+  PropertyControlBase *ptr = getById(id);
+  if (ptr)
+    ptr->setValueHighlight(color);
 }
 
 int ContainerPropertyControl::addString(int id, const char *value)
@@ -1245,6 +1306,43 @@ void ContainerPropertyControl::addVerticalSpaceAfterControl()
   ImGui::SetCursorScreenPos(ImVec2(cursor.x, cursor.y + itemSpacingY));
 }
 
+void ContainerPropertyControl::setDropTargetHandler(IDropTargetHandler *drop_target_handler)
+{
+  dropTargetHandler = drop_target_handler;
+}
+
+void ContainerPropertyControl::handleDragAndDropForControl(PropertyControlBase &control)
+{
+  if (dropTargetHandler == nullptr || !ImGui::BeginDragDropTarget())
+    return;
+
+  auto result = dropTargetHandler->handleDropTarget(control.getID(), this);
+  PropPanel::handleDragAndDropNotAllowed(result);
+
+  ImGui::EndDragDropTarget();
+}
+
+bool ContainerPropertyControl::isDefaultValueSet() const
+{
+  for (const PropertyControlBase *control : mControlArray)
+  {
+    if (!control->isDefaultValueSet())
+    {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+void ContainerPropertyControl::applyDefaultValue()
+{
+  for (PropertyControlBase *control : mControlArray)
+  {
+    control->applyDefaultValue();
+  }
+}
+
 void ContainerPropertyControl::updateImgui()
 {
   G_ASSERT(mControlArray.size() == mControlsNewLine.size());
@@ -1284,6 +1382,8 @@ void ContainerPropertyControl::updateImgui()
           ImGui::PushID(control);
           control->updateImgui();
           ImGui::PopID();
+
+          handleDragAndDropForControl(*control);
         }
 
         ImGui::EndTable();
@@ -1309,6 +1409,8 @@ void ContainerPropertyControl::updateImgui()
         control->updateImgui();
       }
       ImGui::PopID();
+
+      handleDragAndDropForControl(*control);
 
       ++i;
     }

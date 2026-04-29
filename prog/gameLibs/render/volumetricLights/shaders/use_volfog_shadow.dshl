@@ -15,6 +15,15 @@ macro INIT_VOLFOG_SHADOW(code)
   }
 endmacro
 
+macro INIT_VOLFOG_SHADOW_BRANCH(code)
+  (code)
+  {
+    volfog_shadow@smp3d = volfog_shadow;
+    volfog_shadow_exists@i1 = exists_tex(volfog_shadow);
+    volfog_froxel_range_inv@f1 = volfog_froxel_range_params.y;
+  }
+endmacro
+
 macro USE_VOLFOG_SHADOW(code)
   hlsl(code)
   {
@@ -34,6 +43,21 @@ macro USE_VOLFOG_SHADOW(code)
         return 1;
       }
   ##endif
+  }
+endmacro
+
+macro USE_VOLFOG_SHADOW_BRANCH(code)
+  hlsl(code)
+  {
+    float get_volfog_shadow(float2 screen_tc, float w)
+    {
+      float3 volumePos = float3(screen_tc, depth_to_volume_pos(w, volfog_froxel_range_inv));
+      BRANCH
+      if (!volfog_shadow_exists || volumePos.z >= 1)
+        return 1;
+
+      return tex3Dlod(volfog_shadow, float4(volumePos, 0.0f)).x;
+    }
   }
 endmacro
 

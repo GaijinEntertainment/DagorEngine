@@ -100,6 +100,8 @@ public:
   {
     RenderType renderType = RENDER_HEIGHT;
     TEXTUREID diffuseTexId = BAD_TEXTUREID;
+    TEXTUREID diffuseMVTexId = BAD_TEXTUREID;
+    float diffuseMVScale = 0.f;
     d3d::SamplerHandle diffuseSampler = d3d::INVALID_SAMPLER_HANDLE;
     TEXTUREID distortionTexId = BAD_TEXTUREID;
     d3d::SamplerHandle distortionSampler = d3d::INVALID_SAMPLER_HANDLE;
@@ -208,6 +210,8 @@ private:
   BufPtr indirectBuffer;
 
   int diffuseTexVarId;
+  int diffuseMVTexVarId;
+  int diffuseMVScaleVarId;
   int diffuseTex_samplerstateVarId;
   int distortionTexVarId;
   int distortionTex_samplerstateVarId;

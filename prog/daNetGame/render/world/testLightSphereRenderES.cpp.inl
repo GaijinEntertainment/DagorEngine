@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <perfMon/dag_statDrv.h>
 #include <ecs/render/updateStageRender.h>
 #include <drv/3d/dag_draw.h>
@@ -34,26 +36,26 @@ static __forceinline void test_light_sphere_render_es(const UpdateStageInfoRende
 {
   TIME_D3D_PROFILE(debug_gbuffer_sphere);
   spheresRenderer.shader->setStates(0, true);
-  ShaderGlobal::set_color4(debugGbufferSpherePosId, transform[3][0], transform[3][1], transform[3][2], size);
-  ShaderGlobal::set_color4(debugGbufferSphereColorId, albedo.x, albedo.y, albedo.z, 0);
-  ShaderGlobal::set_real(debugGbufferSphereReflectanceId, reflectance);
-  ShaderGlobal::set_real(debugGbufferSphereMetallnessId, metallness);
-  ShaderGlobal::set_real(debugGbufferSphereSmoothnessId, smoothness);
+  ShaderGlobal::set_float4(debugGbufferSpherePosId, transform[3][0], transform[3][1], transform[3][2], size);
+  ShaderGlobal::set_float4(debugGbufferSphereColorId, albedo.x, albedo.y, albedo.z, 0);
+  ShaderGlobal::set_float(debugGbufferSphereReflectanceId, reflectance);
+  ShaderGlobal::set_float(debugGbufferSphereMetallnessId, metallness);
+  ShaderGlobal::set_float(debugGbufferSphereSmoothnessId, smoothness);
 
   d3d::draw_instanced(PRIM_TRILIST, 0, SPHERES_INDICES_TO_DRAW, 1);
 }
 
 template <typename Callable>
-void current_camera_ecs_query(ecs::EntityId, Callable);
+void current_camera_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable);
 
 ECS_REQUIRE(ecs::Tag IsDebugGbufferSphereTag)
 ECS_REQUIRE(eastl::true_type isFixedToCamera)
 ECS_TAG(dev, render)
 static __forceinline void operate_camera_bounded_sphere_es(
-  const UpdateStageInfoBeforeRender &, TMatrix &transform, Point3 cameraOffset)
+  const UpdateStageInfoBeforeRender &, ecs::EntityManager &manager, TMatrix &transform, Point3 cameraOffset)
 {
   TMatrix &sphereTransform = transform;
-  current_camera_ecs_query(get_cur_cam_entity(), [&](const TMatrix &transform) {
+  current_camera_ecs_query(manager, get_cur_cam_entity(), [&](const TMatrix &transform) {
     Point3 transformedOffset = transform * cameraOffset;
     sphereTransform.setcol(3, transformedOffset);
   });
@@ -81,7 +83,10 @@ ECS_NO_ORDER
 ECS_REQUIRE(ecs::Tag IsDebugGbufferSphereTag)
 ECS_REQUIRE(eastl::true_type triggerDeleteSphere)
 ECS_TAG(dev, render)
-static __forceinline void delete_sphere_es(const ecs::UpdateStageInfoAct &, ecs::EntityId eid) { g_entity_mgr->destroyEntity(eid); }
+static __forceinline void delete_sphere_es(const ecs::UpdateStageInfoAct &, ecs::EntityManager &manager, ecs::EntityId eid)
+{
+  manager.destroyEntity(eid);
+}
 
 ECS_REQUIRE(ecs::Tag IsDebugGbufferSphereTag)
 ECS_TAG(dev, render)

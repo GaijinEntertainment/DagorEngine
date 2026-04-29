@@ -82,7 +82,6 @@ struct RiGenVisibility
     RENDER_ALL = 2
   };
   int atest_skip_mask = RENDER_ALL;
-  rendinst::VisibilityRenderingFlags rendering = rendinst::VisibilityRenderingFlag::All;
   bbox3f cameraBBox;
   int8_t stride = 0;
   uint8_t vismask = 0;
@@ -117,7 +116,7 @@ struct RiGenVisibility
     for (int i = 0; i < cellsLod.size(); ++i)
       dag::set_allocator(cellsLod[i], allocator);
   }
-  void resizeRanges(int cnt, int mul)
+  void resizeRanges(int cnt)
   {
     if (renderRanges.size() != cnt)
     {
@@ -128,7 +127,6 @@ struct RiGenVisibility
     mem_set_0(renderRanges); // for (int i = 0; i < renderRanges.size(); ++i) renderRanges[i].init();
     for (int i = 0; i < cellsLod.size(); ++i)
     {
-      cellsLod[i].reserve(cnt * (i ? (mul << 1) : mul));
       cellsLod[i].clear();
     }
   }

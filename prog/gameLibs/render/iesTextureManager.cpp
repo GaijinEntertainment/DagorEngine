@@ -11,11 +11,21 @@
 #include <3d/dag_resPtr.h>
 #include <perfMon/dag_statDrv.h>
 #include <math/dag_TMatrix4D.h>
+#include <ioSys/dag_dataBlock.h>
 
 #include <EASTL/algorithm.h>
+#include <EASTL/string_view.h>
 
+#include <render/renderLightsConsts.hlsli>
+
+static constexpr eastl::string_view IES_PREFIX = "ies_";
 static const char *const PHOTOMETRY_TEX_NAME = "photometry_textures";
 static const char *const PHOTOMETRY_VAR_NAME = "photometry_textures_tex";
+
+static bool is_ies_texture(const char *texture_name)
+{
+  return texture_name && strncmp(texture_name, IES_PREFIX.data(), IES_PREFIX.size()) == 0;
+}
 
 IesTextureCollection *IesTextureCollection::instance = nullptr;
 const char *IesTextureCollection::EDITOR_TEXTURE_NAME = "__ies_editor_tex__";
@@ -28,15 +38,20 @@ static eastl::vector<String> gather_ies_textures()
   for (TEXTUREID i = first_managed_texture(0); i != BAD_TEXTUREID; i = next_managed_texture(i, 0))
   {
     const char *textureName = get_managed_texture_name(i);
-    const char *const IES_PREFIX = "ies_";
-    if (strncmp(textureName, IES_PREFIX, strlen(IES_PREFIX)) == 0)
+    if (is_ies_texture(textureName))
     {
-      unsigned int size = strlen(IES_PREFIX); // skip the prefix
+      unsigned int size = IES_PREFIX.size(); // skip the prefix
       const size_t len = strlen(textureName);
       while (size < len && textureName[size] != '*')
         size++;
       textures.emplace_back(textureName, size);
     }
+  }
+  const DataBlock *projectionTexturesBlk = ::dgs_get_game_params()->getBlockByNameEx("projectionTextures");
+  if (projectionTexturesBlk != nullptr)
+  {
+    for (int i = 0; i < projectionTexturesBlk->paramCount(); ++i)
+      textures.emplace_back(0, projectionTexturesBlk->getStr(i));
   }
   return textures;
 }
@@ -44,13 +59,19 @@ static eastl::vector<String> gather_ies_textures()
 void IesTextureCollection::gatherAndReloadTextures()
 {
   usedTextures = eastl::move(gather_ies_textures());
+  textureNames.clear();
+  for (int i = 0; i < usedTextures.size(); ++i)
+  {
+    [[maybe_unused]] int id = textureNames.addNameId(usedTextures[i].c_str());
+    G_ASSERT(id == i);
+  }
   reloadTextures();
 }
 
 IesTextureCollection *IesTextureCollection::acquireRef()
 {
   if (!instance)
-    instance = new IesTextureCollection(eastl::move(gather_ies_textures()));
+    instance = new IesTextureCollection(gather_ies_textures());
 
   instance->refCount++;
   return instance;
@@ -68,6 +89,11 @@ void IesTextureCollection::releaseRef()
 
 IesTextureCollection::IesTextureCollection(eastl::vector<String> &&textures) : usedTextures(eastl::move(textures))
 {
+  for (int i = 0; i < usedTextures.size(); ++i)
+  {
+    [[maybe_unused]] int id = textureNames.addNameId(usedTextures[i].c_str());
+    G_ASSERT(id == i);
+  }
   reloadTextures();
 }
 
@@ -75,49 +101,64 @@ IesTextureCollection::~IesTextureCollection() { close(); }
 
 void IesTextureCollection::close()
 {
-  ShaderGlobal::reset_from_vars(photometryTexId);
-  evict_managed_tex_id(photometryTexId);
+  if (photometryTexId != BAD_TEXTUREID)
+  {
+    ShaderGlobal::reset_from_vars(photometryTexId);
+    evict_managed_tex_id(photometryTexId);
+    photometryTexId = BAD_TEXTUREID;
+  }
 }
 
 int IesTextureCollection::getTextureIdx(const char *name)
 {
   if (strcmp(name, EDITOR_TEXTURE_NAME) == 0)
-    return usedTextures.size();
-  int ret = textureNames.getNameId(name);
-  if (ret == -1)
+    return (usedTextures.size() << IES_TEX_ID_TYPE_BIT_OFFSET) | IES_TEX_ID_TYPE__IES;
+
+  if (textureNames.nameCount() == 0)
   {
 #if DAGOR_DBGLEVEL > 0
-    debug("Loading an ies texture after initialization: %s", name);
+    debug("Loading all ies textures after initialization");
 #endif
-    addTexture(name);
-    return textureNames.getNameId(name);
+    gatherAndReloadTextures();
+
+    if (is_ies_texture(name) && textureNames.getNameId(name) == -1)
+    {
+      logerr("Cannot load ies texture %s", name);
+      return -1;
+    }
   }
-  return ret;
+
+  const auto idx = textureNames.getNameId(name);
+  if (idx == -1)
+  {
+#if DAGOR_DBGLEVEL > 0
+    logwarn("Loading an ies texture after initialization: %s", name);
+#endif
+    return addTexture(name);
+  }
+  return is_ies_texture(name) ? (idx << IES_TEX_ID_TYPE_BIT_OFFSET) | IES_TEX_ID_TYPE__IES
+                              : (idx << IES_TEX_ID_TYPE_BIT_OFFSET) | IES_TEX_ID_TYPE__PROJ;
 }
 
-IesTextureCollection::PhotometryData IesTextureCollection::getTextureData(int tex_idx) const
+IesTextureCollection::PhotometryData IesTextureCollection::getTextureData(int tex_id) const
 {
-  if (tex_idx < 0)
+  if (tex_id < 0)
     return {};
+  const auto index = tex_id >> IES_TEX_ID_TYPE_BIT_OFFSET;
   // tex_idx == photometryData.size() is a special value, it indicates that this is the edited texture
   // The edited texture currently only supports default photometry parameters
-  if (tex_idx >= photometryData.size())
+  if (index >= photometryData.size())
     return {};
-  return photometryData[tex_idx];
+  return photometryData[index];
 }
 
 void IesTextureCollection::reloadTextures()
 {
-  textureNames.reset();
-  photometryData.clear();
-  if (usedTextures.size() == 0)
+  if (usedTextures.empty())
     return;
-  photometryData.reserve(usedTextures.size());
+
   eastl::vector<const char *> cstrVec(usedTextures.size());
-  eastl::transform(eastl::begin(usedTextures), eastl::end(usedTextures), eastl::begin(cstrVec), [this](const String &s) {
-    textureNames.addNameId(s.c_str());
-    return s.c_str();
-  });
+  eastl::transform(usedTextures.begin(), usedTextures.end(), cstrVec.begin(), [](const String &s) { return s.c_str(); });
 
   if (photometryTexId != BAD_TEXTUREID)
   {
@@ -134,29 +175,41 @@ void IesTextureCollection::reloadTextures()
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     ShaderGlobal::set_sampler(::get_shader_variable_id("photometry_textures_tex_samplerstate"), d3d::request_sampler(smpInfo));
   }
-  for (uint32_t i = 0; i < usedTextures.size(); ++i)
+  photometryData.reserve(usedTextures.size());
+  for (uint32_t i = photometryData.size(); i < usedTextures.size(); ++i)
   {
-    SharedTex tex = dag::get_tex_gameres(cstrVec[i]);
-    G_ASSERT_CONTINUE(tex);
+    if (is_ies_texture(cstrVec[i]))
+    {
+      SharedTex tex = dag::get_tex_gameres(cstrVec[i]);
+      G_ASSERT_CONTINUE(tex);
 
-    TextureMetaData tmd;
-    tmd.decodeData(tex->getTexName());
-    PhotometryData data;
-    data.rotated = bool(tmd.flags & tmd.FLG_IES_ROT);
-    data.zoom = tmd.getIesScale();
-    photometryData.push_back(data);
+      TextureMetaData tmd;
+      tmd.decodeData(tex->getTexName());
+      PhotometryData data;
+      data.rotated = bool(tmd.flags & tmd.FLG_IES_ROT);
+      data.zoom = tmd.getIesScale();
+      photometryData.push_back(data);
+    }
+    else
+      photometryData.push_back({.zoom = 0});
   }
 }
 
 TEXTUREID IesTextureCollection::getTextureArrayId() { return photometryTexId; }
 
-void IesTextureCollection::addTexture(const char *textureName)
+int IesTextureCollection::addTexture(const char *texture_name)
 {
   // This implementation is not efficient, but it is rarely used
   // It's intended for testing only
-  // The released scenes should have all photometry textures listed in the gameparames.blk
-  usedTextures.push_back(String(textureName));
+
+  usedTextures.push_back(String(texture_name));
+  int id = textureNames.addNameId(texture_name);
+  G_ASSERT(id == usedTextures.size() - 1);
+
+  const int result = is_ies_texture(texture_name) ? (id << IES_TEX_ID_TYPE_BIT_OFFSET) | IES_TEX_ID_TYPE__IES
+                                                  : (id << IES_TEX_ID_TYPE_BIT_OFFSET) | IES_TEX_ID_TYPE__PROJ;
   reloadTextures();
+  return result;
 }
 
 IesEditor *IesTextureCollection::requireEditor()
@@ -186,7 +239,7 @@ void IesEditor::ensureTextureCreated(BaseTexture *photometry_tex_array)
   if (photometry_tex_array == nullptr)
     return;
   dynamicIesTexArray = dag::create_array_tex(currentResolution.x, currentResolution.y, currentResolution.z,
-    TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE | TEXCF_SRGBREAD | TEXFMT_R8, 1, "ies_editor_tex");
+    TEXCF_RTARGET | TEXCF_CLEAR_ON_CREATE | TEXCF_SRGBREAD | TEXFMT_R8, 1, "ies_editor_tex", RESTAG_LIGHTS);
   for (int i = 0; i < photometryResolution.z; ++i)
   {
     dynamicIesTexArray.getArrayTex()->updateSubRegion(photometry_tex_array, i, 0, 0, 0, photometryResolution.x, photometryResolution.y,
@@ -206,8 +259,8 @@ IesEditor::IesEditor() : iesGenerator("ies_generator")
     ensureTextureCreated(photometryTexArray);
     ::release_managed_tex(photometryTexArrayId);
   }
-  sortedPhotometryControlPointsBuf =
-    dag::buffers::create_persistent_sr_structured(sizeof(PhotometryControlPoint), MAX_NUM_CONTROL_POINTS, "ies_control_points_buf");
+  sortedPhotometryControlPointsBuf = dag::buffers::create_persistent_sr_structured(sizeof(PhotometryControlPoint),
+    MAX_NUM_CONTROL_POINTS, "ies_control_points_buf", d3d::buffers::Init::No, RESTAG_LIGHTS);
 }
 
 void IesEditor::renderIesTexture()
@@ -230,7 +283,7 @@ void IesEditor::renderIesTexture()
   static int num_control_pointsVarId = get_shader_variable_id("num_control_points", false);
   static int ies_max_light_levelVarId = get_shader_variable_id("ies_max_light_level", false);
   ShaderGlobal::set_int(num_control_pointsVarId, sortedPhotometryControlPoints.size());
-  ShaderGlobal::set_real(ies_max_light_levelVarId, maxLight);
+  ShaderGlobal::set_float(ies_max_light_levelVarId, maxLight);
 
   {
     SCOPE_RENDER_TARGET;

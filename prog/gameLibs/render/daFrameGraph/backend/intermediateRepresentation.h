@@ -31,7 +31,10 @@
 #include <common/autoResolutionData.h>
 #include <common/bindingType.h>
 
+#include <memory/dag_framemem.h>
 #include <id/idIndexedMapping.h>
+#include <id/idSparseIndexedMapping.h>
+#include <id/idIndexedFlags.h>
 #include <id/idSentinels.h>
 
 
@@ -66,6 +69,8 @@ struct ResourceUsage
   Usage type;
   Access access : 2;
   Stage stage : 6;
+
+  bool operator==(const ResourceUsage &other) const = default;
 };
 static_assert(sizeof(ResourceUsage) <= 4);
 
@@ -75,6 +80,8 @@ struct Request
   ResourceUsage usage;
   // Marks that a node wants to use the last frame version of this resource
   bool fromLastFrame;
+
+  bool operator==(const Request &other) const = default;
 };
 
 struct Node
@@ -85,6 +92,11 @@ struct Node
   // Resources that are used by this node
   dag::RelocatableFixedVector<Request, 16> resourceRequests{};
 
+  // Requests that this node technically makes but doesn't use,
+  // so we suppress them from the main requests list to avoid pessimizing
+  // further graph optimization.
+  dag::RelocatableFixedVector<ResourceIndex, 16> supressedRequests{};
+
   // Nodes that have to be executed before this one
   dag::FixedVectorSet<NodeIndex, 16> predecessors{};
 
@@ -92,6 +104,10 @@ struct Node
 
   // Multiplexing iteration this node will be executed on
   MultiplexingIndex multiplexingIndex{Invalid};
+
+  bool hasSideEffects = false;
+
+  bool operator==(const Node &other) const = default;
 };
 
 using CtorFunc = dag::FunctionRef<void(void *) const>;
@@ -130,6 +146,7 @@ struct ScheduledResource
   eastl::optional<AutoResolutionData> resolutionType;
   ClearStage clearStage;
   eastl::variant<ResourceClearValue, DynamicParameter> clearValue;
+  ResourceClearFlags clearFlags;
   History history;
   bool autoMipCount;
 
@@ -229,6 +246,9 @@ struct Binding
   eastl::optional<ResourceIndex> resource = eastl::nullopt;
   bool history = false;
 
+  // do we need to reset it to default value after node is executed
+  bool reset = false;
+
   // projected type of "what"
   ResourceSubtypeTag projectedTag = ResourceSubtypeTag::Invalid;
   // projector to get the value
@@ -276,6 +296,8 @@ struct RenderPass
   dag::FixedVectorMap<ResourceIndex, ResourceIndex, 2> resolves;
   bool isLegacyPass = false;
   eastl::optional<SubresourceRef> vrsRateAttachment;
+
+  friend bool operator==(const RenderPass &first, const RenderPass &second) = default;
 };
 
 struct ShaderBlockBindings
@@ -309,16 +331,22 @@ using DebugResourceName = eastl::fixed_string<char, 128>;
 
 struct Graph
 {
-  IdIndexedMapping<ResourceIndex, Resource> resources;
-  IdIndexedMapping<NodeIndex, Node> nodes;
-  // DoD suggests these should not be inside Node/Resource
-  IdIndexedMapping<NodeIndex, RequiredNodeState> nodeStates;
-  IdIndexedMapping<NodeIndex, DebugNodeName> nodeNames;
-  IdIndexedMapping<ResourceIndex, DebugResourceName> resourceNames;
+  IdSparseIndexedMapping<ResourceIndex, Resource> resources;
+  IdSparseIndexedMapping<NodeIndex, Node> nodes;
+  IdSparseIndexedMapping<NodeIndex, RequiredNodeState> nodeStates;
+  IdSparseIndexedMapping<NodeIndex, DebugNodeName> nodeNames;
+  IdSparseIndexedMapping<ResourceIndex, DebugResourceName> resourceNames;
 
-  // Choses a subgraph by selecting some nodes and specifying their order
-  // Argument must map "old -> new" index and not contain any gaps
-  void choseSubgraph(eastl::span<const intermediate::NodeIndex> old_to_new_index_mapping);
+  void clear()
+  {
+    resources.clear();
+    nodes.clear();
+    nodeStates.clear();
+    nodeNames.clear();
+    resourceNames.clear();
+  }
+
+  void pruneResources();
 
   // Calculates the original resources/nodes -> IR resources/nodes mapping
   Mapping calculateMapping() const;
@@ -327,6 +355,24 @@ struct Graph
   // only useful for finding bugs in IR generation
   void validate() const;
 };
+
+// Remaps a desired node ordering to preserve old sorted positions where possible,
+// minimizing churn in the sparse intermediateGraph.
+// Returns a mapping: unsorted index -> new sorted index.
+// Some entries may remain NODE_NOT_MAPPED if no free slot was found (caller must handle fallback).
+IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> try_remap_node_order(const Graph &graph,
+  const IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> &desired, const IdIndexedMapping<NodeIndex, NodeIndex> &prev);
+
+// Incrementally applies a new node ordering to graph, preserving unchanged nodes.
+// Erases stale nodes, remaps positions, emplaces new/moved nodes from source_graph,
+// refreshes predecessors. Populates out_nodes_changed with which destination
+// nodes were added or changed.
+// Caller must ensure out_nodes_changed has sufficient capacity.
+IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> apply_node_remap(Graph &graph, const Graph &source_graph,
+  const IdIndexedMapping<NodeIndex, NodeIndex, framemem_allocator> &desired_mapping,
+  const IdIndexedMapping<NodeIndex, NodeIndex> &prev_mapping,
+  const IdIndexedFlags<NodeIndex, framemem_allocator> &source_nodes_changed,
+  IdIndexedFlags<NodeIndex, framemem_allocator> &out_nodes_changed);
 
 
 // These support structures can be used to determine which IR entity

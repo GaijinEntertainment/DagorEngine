@@ -8,6 +8,8 @@
 #include "query_pools.h"
 #include "pipeline_state.h"
 #include "device_context.h"
+#include "query_pools.h"
+#include "backend/cmd/query.h"
 
 using namespace drv3d_vulkan;
 
@@ -17,7 +19,10 @@ bool d3d::begin_survey(int name)
     return false;
 
   VERIFY_GLOBAL_LOCK_ACQUIRED();
-  Globals::ctx.beginSurvey(name);
+  OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+  CmdBeginSurvey cmd = Globals::surveys.start(name);
+  Frontend::State::pipe.set<StateFieldGraphicsQueryState, GraphicsQueryState, FrontGraphicsState>({cmd.pool, cmd.index});
+  Globals::ctx.dispatchCmdNoLock(cmd);
   return true;
 }
 
@@ -27,7 +32,9 @@ void d3d::end_survey(int name)
     return;
 
   VERIFY_GLOBAL_LOCK_ACQUIRED();
-  Globals::ctx.endSurvey(name);
+  OSSpinlockScopedLock frontLock(Globals::ctx.getFrontLock());
+  Frontend::State::pipe.set<StateFieldGraphicsQueryState, GraphicsQueryState, FrontGraphicsState>({});
+  Globals::ctx.dispatchCmdNoLock(Globals::surveys.end(name));
 }
 
 int d3d::create_predicate()
@@ -45,6 +52,9 @@ void d3d::free_predicate(int name)
 
 void d3d::begin_conditional_render(int name)
 {
+  if (-1 == name)
+    return;
+
   D3D_CONTRACT_ASSERTF_RETURN(name >= 0, , "vlukan: driver received an invalid survey name '%d' in begin_conditional_rendering", name);
 
   VERIFY_GLOBAL_LOCK_ACQUIRED();
@@ -55,6 +65,9 @@ void d3d::begin_conditional_render(int name)
 
 void d3d::end_conditional_render(int name)
 {
+  if (-1 == name)
+    return;
+
   D3D_CONTRACT_ASSERTF_RETURN(name >= 0, , "vlukan: driver received an invalid survey name '%d' in end_conditional_rendering", name);
 
   VERIFY_GLOBAL_LOCK_ACQUIRED();

@@ -88,7 +88,7 @@ struct TraceMeshFaces
       for (const CacheEntry &entry : cachedData)
       {
         bool isRiExtra = (entry.type & rendinst::GatherRiTypeFlag::RiExtraOnly).asInteger() != 0;
-        if ((entry.type & ri_types) && rendinst::isRiGenDescValid(entry.desc))
+        if ((entry.type & ri_types) && rendinst::isRiGenDescInGrid(entry.desc))
           callback(entry.desc, isRiExtra);
       }
     }
@@ -102,14 +102,12 @@ struct TraceMeshFaces
       cachedData.emplace_back(CacheEntry{type, desc});
     }
     void clear() { cachedData.clear(); }
-    void sort();
 
   private:
     struct CacheEntry
     {
       rendinst::GatherRiTypeFlags type;
       rendinst::RendInstDesc desc;
-      bool operator<(const CacheEntry &rhs) const { return desc.getRiExtraHandle() < rhs.desc.getRiExtraHandle(); }
     };
     StaticTab<CacheEntry, MAX_ENTRIES> cachedData;
   } rendinstCache;
@@ -334,7 +332,7 @@ inline void draw_trace_handle_debug_cast_result(const TraceMeshFaces *trace_hand
       draw_debug_box_buffered(tm * box, E3DCOLOR_MAKE(255, 255, 255, 255), 60);
   }
   else if (trace_handle->debugDrawMisses)
-    draw_debug_box_buffered(tm * box, (is_for_ri ? E3DCOLOR_MAKE(0, 255, 0, 255) : E3DCOLOR_MAKE(255, 0, 0, 255)), 60);
+    draw_debug_box_buffered(tm * box, (is_for_ri ? E3DCOLOR_MAKE(255, 255, 0, 255) : E3DCOLOR_MAKE(255, 128, 0, 255)), 60);
 #else
   G_UNUSED(trace_handle);
   G_UNUSED(tm);

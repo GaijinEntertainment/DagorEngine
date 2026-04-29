@@ -2,7 +2,6 @@
 
 #include "hmlHoleObject.h"
 #include "hmlCm.h"
-#include "common.h"
 
 #include <EditorCore/ec_IEditorCore.h>
 #include <math/dag_math2d.h>
@@ -249,7 +248,7 @@ void HmapLandHoleObject::scaleObject(const Point3 &delta, const Point3 &origin, 
   boxSize.y = matrix.getcol(1).y;
   boxSize.z = matrix.getcol(2).z;
 
-  objectWasScaled = true;
+  SplineObject::objectWasScaled = true;
 }
 
 void HmapLandHoleObject::setBoxSize(Point3 &s)

@@ -17,7 +17,7 @@ macro PROJECT_BASE_HEIGHTMAP(code)
     bool dagi_project_get_base_heightmap(float3 worldPos, inout float world_height, float dist_of_interest)
     {
       #if PROJECT_DAGI_USE_HMAP
-      if (!checkHeightmapHoles(worldPos))
+      if (checkHeightmapHoles(worldPos))
         return false;
       float2 tc = calcTcLow(worldPos.xz);
       if (any(tc != saturate(tc)))

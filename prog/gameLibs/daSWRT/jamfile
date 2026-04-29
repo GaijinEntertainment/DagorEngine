@@ -9,16 +9,19 @@ Target      = gameLibs/daSWRT.lib ;
 
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/$(Location)
-  $(Root)/$(Location)/shaders
+  $(Root)/prog/engine/daBVH
+  $(Root)/prog/engine/daBVH/shaders
 ;
 
 Sources =
-  swBVH.cpp
+  swRTTLAS.cpp
+  swRTBLAS.cpp
+  swRT.cpp
 ;
 
 UseProgLibs +=
   engine/lib3d
+  engine/daBVH
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

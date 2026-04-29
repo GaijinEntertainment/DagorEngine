@@ -189,8 +189,8 @@ ML_STD_ARG2(atan2, double)
 ML_STD_ARG2(pow, float)
 ML_STD_ARG2(pow, double)
 
-#undef ML_STD_ARG1
-#undef ML_STD_ARG2
+#    undef ML_STD_ARG1
+#    undef ML_STD_ARG2
 
 #endif
 
@@ -228,12 +228,12 @@ ML_INLINE v4i emu_mm_div_epx(const v4i& x, const v4i& y) {
 //======================================================================================================================
 
 #define v4i_set(x, y, z, w) _mm_setr_epi32(x, y, z, w)
-#define v4i_get(v, i) _mm_cvtsi128_si32(_mm_srli_si128(v, 4 * i))
+#define v4i_get(v, i)       _mm_cvtsi128_si32(_mm_srli_si128(v, 4 * i))
 
 #define _mm_not_epi32(a) _mm_andnot_si128(a, _mm_set1_epi32(0xFFFFFFFF))
 
-#define _mm_cmple_epi32(a, b) _mm_not_epi32(_mm_cmpgt_epi32(a, b))
-#define _mm_cmpge_epi32(a, b) _mm_not_epi32(_mm_cmplt_epi32(a, b))
+#define _mm_cmple_epi32(a, b)  _mm_not_epi32(_mm_cmpgt_epi32(a, b))
+#define _mm_cmpge_epi32(a, b)  _mm_not_epi32(_mm_cmplt_epi32(a, b))
 #define _mm_cmpneq_epi32(a, b) _mm_not_epi32(_mm_cmpeq_epi32(a, b))
 
 #define _mm_movemask_epi32(a) _mm_movemask_ps(_mm_castsi128_ps(a))
@@ -268,22 +268,22 @@ const v4f c_v4f_Sign = _mm_castsi128_ps(_mm_set1_epi32(0x80000000));
 const v4f c_v4f_FFF0 = _mm_castsi128_ps(_mm_setr_epi32(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000));
 
 #define v4f_mask_dp(xi, yi, zi, wi, xo, yo, zo, wo) (xo | (yo << 1) | (zo << 2) | (wo << 3) | (xi << 4) | (yi << 5) | (zi << 6) | (wi << 7))
-#define v4f_mask_dp4 v4f_mask_dp(1, 1, 1, 1, 1, 1, 1, 1)
-#define v4f_mask_dp3 v4f_mask_dp(1, 1, 1, 0, 1, 1, 1, 1)
+#define v4f_mask_dp4                                v4f_mask_dp(1, 1, 1, 1, 1, 1, 1, 1)
+#define v4f_mask_dp3                                v4f_mask_dp(1, 1, 1, 0, 1, 1, 1, 1)
 
 #define v4f_set(x, y, z, w) _mm_setr_ps(x, y, z, w)
-#define v4f_get(v, i) _mm_cvtss_f32(_mm_castsi128_ps(_mm_srli_si128(_mm_castps_si128(v), 4 * i)))
+#define v4f_get(v, i)       _mm_cvtss_f32(_mm_castsi128_ps(_mm_srli_si128(_mm_castps_si128(v), 4 * i)))
 
 #define v4f_setw1(x) _mm_or_ps(_mm_and_ps(x, c_v4f_FFF0), c_v4f_0001)
 #define v4f_setw0(x) _mm_and_ps(x, c_v4f_FFF0)
 
-#define v4f_test3_all(v) ((_mm_movemask_ps(v) & ML_Mask(1, 1, 1, 0)) == ML_Mask(1, 1, 1, 0))
+#define v4f_test3_all(v)  ((_mm_movemask_ps(v) & ML_Mask(1, 1, 1, 0)) == ML_Mask(1, 1, 1, 0))
 #define v4f_test3_none(v) ((_mm_movemask_ps(v) & ML_Mask(1, 1, 1, 0)) == 0)
-#define v4f_test3_any(v) ((_mm_movemask_ps(v) & ML_Mask(1, 1, 1, 0)) != 0)
+#define v4f_test3_any(v)  ((_mm_movemask_ps(v) & ML_Mask(1, 1, 1, 0)) != 0)
 
-#define v4f_test4_all(v) (_mm_movemask_ps(v) == ML_Mask(1, 1, 1, 1))
+#define v4f_test4_all(v)  (_mm_movemask_ps(v) == ML_Mask(1, 1, 1, 1))
 #define v4f_test4_none(v) (_mm_movemask_ps(v) == 0)
-#define v4f_test4_any(v) (_mm_movemask_ps(v) != 0)
+#define v4f_test4_any(v)  (_mm_movemask_ps(v) != 0)
 
 #define v4f_isnegative1_all(v) ((_mm_movemask_ps(v) & ML_Mask(1, 0, 0, 0)) == ML_Mask(1, 0, 0, 0))
 #define v4f_isnegative3_all(v) ((_mm_movemask_ps(v) & ML_Mask(1, 1, 1, 0)) == ML_Mask(1, 1, 1, 0))
@@ -293,23 +293,23 @@ const v4f c_v4f_FFF0 = _mm_castsi128_ps(_mm_setr_epi32(0xFFFFFFFF, 0xFFFFFFFF, 0
 #define v4f_ispositive3_all(v) ((_mm_movemask_ps(v) & ML_Mask(1, 1, 1, 0)) == 0)
 #define v4f_ispositive4_all(v) (_mm_movemask_ps(v) == 0)
 
-#define v4f_swizzle(v, x, y, z, w) _mm_permute_ps(v, _MM_SHUFFLE(w, z, y, x))
+#define v4f_swizzle(v, x, y, z, w)          _mm_permute_ps(v, _MM_SHUFFLE(w, z, y, x))
 #define v4f_shuffle(v0, v1, i0, j0, i1, j1) _mm_shuffle_ps(v0, v1, _MM_SHUFFLE(j1, i1, j0, i0))
 
-#define v4f_Azw_Bzw(a, b) _mm_movehl_ps(a, b)
-#define v4f_Axy_Bxy(a, b) _mm_movelh_ps(a, b)
-#define v4f_Ax_Byzw(a, b) _mm_move_ss(b, a)
+#define v4f_Azw_Bzw(a, b)     _mm_movehl_ps(a, b)
+#define v4f_Axy_Bxy(a, b)     _mm_movelh_ps(a, b)
+#define v4f_Ax_Byzw(a, b)     _mm_move_ss(b, a)
 #define v4f_Az_Bz_Aw_Bw(a, b) _mm_unpackhi_ps(a, b)
 #define v4f_Ax_Bx_Ay_By(a, b) _mm_unpacklo_ps(a, b)
 
 #define v4f_store_x(ptr, x) _mm_store_ss(ptr, x)
 
 #define v4f_negate(v) _mm_xor_ps(v, c_v4f_Sign)
-#define v4f_abs(v) _mm_andnot_ps(c_v4f_Sign, v)
+#define v4f_abs(v)    _mm_andnot_ps(c_v4f_Sign, v)
 
 #define v4f_greater0_all(a) v4f_test4_all(_mm_cmpgt_ps(a, _mm_setzero_ps()))
-#define v4f_gequal0_all(a) v4f_test4_all(_mm_cmpge_ps(a, _mm_setzero_ps()))
-#define v4f_not0_all(a) v4f_test4_all(_mm_cmpneq_ps(a, _mm_setzero_ps()))
+#define v4f_gequal0_all(a)  v4f_test4_all(_mm_cmpge_ps(a, _mm_setzero_ps()))
+#define v4f_not0_all(a)     v4f_test4_all(_mm_cmpneq_ps(a, _mm_setzero_ps()))
 
 #define v4f_dot33(a, b) _mm_dp_ps(a, b, v4f_mask_dp3)
 #define v4f_dot44(a, b) _mm_dp_ps(a, b, v4f_mask_dp4)
@@ -317,18 +317,18 @@ const v4f c_v4f_FFF0 = _mm_castsi128_ps(_mm_setr_epi32(0xFFFFFFFF, 0xFFFFFFFF, 0
 
 #define v4f_round(x) _mm_round_ps(x, _MM_FROUND_TO_NEAREST_INT | ML_ROUNDING_EXEPTIONS_MASK)
 #define v4f_floor(x) _mm_round_ps(x, _MM_FROUND_FLOOR | ML_ROUNDING_EXEPTIONS_MASK)
-#define v4f_ceil(x) _mm_round_ps(x, _MM_FROUND_CEIL | ML_ROUNDING_EXEPTIONS_MASK)
+#define v4f_ceil(x)  _mm_round_ps(x, _MM_FROUND_CEIL | ML_ROUNDING_EXEPTIONS_MASK)
 
 #define _v4f_vselecti(mask, x, y) _mm_blendv_ps(y, x, _mm_castsi128_ps(mask))
-#define _v4f_vselect(mask, x, y) _mm_blendv_ps(y, x, mask)
-#define _v4f_iselect(mask, x, y) _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(y), _mm_castsi128_ps(x), mask))
-#define _v4f_mulsign(x, y) _mm_xor_ps(x, _mm_and_ps(y, c_v4f_Sign))
-#define _v4f_negatei(x) _mm_sub_epi32(_mm_setzero_si128(), x)
-#define _v4f_is_inf(x) _mm_cmpeq_ps(v4f_abs(x), c_v4f_Inf)
-#define _v4f_is_pinf(x) _mm_cmpeq_ps(x, c_v4f_Inf)
-#define _v4f_is_ninf(x) _mm_cmpeq_ps(x, c_v4f_InfMinus)
-#define _v4f_is_nan(x) _mm_cmpneq_ps(x, x)
-#define _v4f_is_inf2(x, y) _mm_and_ps(_v4f_is_inf(x), _mm_or_ps(_mm_and_ps(x, c_v4f_Sign), y))
+#define _v4f_vselect(mask, x, y)  _mm_blendv_ps(y, x, mask)
+#define _v4f_iselect(mask, x, y)  _mm_castps_si128(_mm_blendv_ps(_mm_castsi128_ps(y), _mm_castsi128_ps(x), mask))
+#define _v4f_mulsign(x, y)        _mm_xor_ps(x, _mm_and_ps(y, c_v4f_Sign))
+#define _v4f_negatei(x)           _mm_sub_epi32(_mm_setzero_si128(), x)
+#define _v4f_is_inf(x)            _mm_cmpeq_ps(v4f_abs(x), c_v4f_Inf)
+#define _v4f_is_pinf(x)           _mm_cmpeq_ps(x, c_v4f_Inf)
+#define _v4f_is_ninf(x)           _mm_cmpeq_ps(x, c_v4f_InfMinus)
+#define _v4f_is_nan(x)            _mm_cmpneq_ps(x, x)
+#define _v4f_is_inf2(x, y)        _mm_and_ps(_v4f_is_inf(x), _mm_or_ps(_mm_and_ps(x, c_v4f_Sign), y))
 
 #if ML_CHECK_W_IS_ZERO
 
@@ -340,12 +340,6 @@ ML_INLINE bool v4f_is_w_zero(const v4f& x) {
 
 #else
 #    define v4f_is_w_zero(x) (true)
-#endif
-
-#if (ML_INTRINSIC_LEVEL >= ML_INTRINSIC_AVX1)
-ML_INLINE v4i v4f_to_h4(const v4f& x) {
-    return _mm_cvtps_ph(x, _MM_FROUND_TO_NEAREST_INT);
-}
 #endif
 
 ML_INLINE v4f v4f_sign(const v4f& x) {
@@ -481,18 +475,18 @@ const v4d c_v4d_Sign = _mm256_castsi256_pd(_mm256_set_epi32(0x80000000, 0x000000
 const v4d c_v4d_FFF0 = _mm256_castsi256_pd(_mm256_setr_epi32(0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0x00000000));
 
 #define v4d_set(x, y, z, w) _mm256_setr_pd(x, y, z, w)
-#define v4d_get(v, i) _mm256_cvtsd_f64(_mm256_permute4x64_pd(v, _MM_SHUFFLE(0, 0, 0, i)))
+#define v4d_get(v, i)       _mm256_cvtsd_f64(_mm256_permute4x64_pd(v, _MM_SHUFFLE(0, 0, 0, i)))
 
 #define v4d_setw1(x) _mm256_or_pd(_mm256_and_pd(x, c_v4d_FFF0), c_v4d_0001)
 #define v4d_setw0(x) _mm256_and_pd(x, c_v4d_FFF0)
 
-#define v4d_test3_all(v) ((_mm256_movemask_pd(v) & ML_Mask(1, 1, 1, 0)) == ML_Mask(1, 1, 1, 0))
+#define v4d_test3_all(v)  ((_mm256_movemask_pd(v) & ML_Mask(1, 1, 1, 0)) == ML_Mask(1, 1, 1, 0))
 #define v4d_test3_none(v) ((_mm256_movemask_pd(v) & ML_Mask(1, 1, 1, 0)) == 0)
-#define v4d_test3_any(v) ((_mm256_movemask_pd(v) & ML_Mask(1, 1, 1, 0)) != 0)
+#define v4d_test3_any(v)  ((_mm256_movemask_pd(v) & ML_Mask(1, 1, 1, 0)) != 0)
 
-#define v4d_test4_all(v) (_mm256_movemask_pd(v) == ML_Mask(1, 1, 1, 1))
+#define v4d_test4_all(v)  (_mm256_movemask_pd(v) == ML_Mask(1, 1, 1, 1))
 #define v4d_test4_none(v) (_mm256_movemask_pd(v) == 0)
-#define v4d_test4_any(v) (_mm256_movemask_pd(v) != 0)
+#define v4d_test4_any(v)  (_mm256_movemask_pd(v) != 0)
 
 #define v4d_isnegative1_all(v) ((_mm256_movemask_pd(v) & ML_Mask(1, 0, 0, 0)) == ML_Mask(1, 0, 0, 0))
 #define v4d_isnegative3_all(v) ((_mm256_movemask_pd(v) & ML_Mask(1, 1, 1, 0)) == ML_Mask(1, 1, 1, 0))
@@ -502,39 +496,39 @@ const v4d c_v4d_FFF0 = _mm256_castsi256_pd(_mm256_setr_epi32(0xFFFFFFFF, 0xFFFFF
 #define v4d_ispositive3_all(v) ((_mm256_movemask_pd(v) & ML_Mask(1, 1, 1, 0)) == 0)
 #define v4d_ispositive4_all(v) (_mm256_movemask_pd(v) == 0)
 
-#define v4d_swizzle(v, x, y, z, w) _mm256_permute4x64_pd(v, _MM_SHUFFLE(w, z, y, x))
+#define v4d_swizzle(v, x, y, z, w)          _mm256_permute4x64_pd(v, _MM_SHUFFLE(w, z, y, x))
 #define v4d_shuffle(v0, v1, i0, j0, i1, j1) _mm256_blend_pd(_mm256_permute4x64_pd(v0, _MM_SHUFFLE(j1, i1, j0, i0)), _mm256_permute4x64_pd(v1, _MM_SHUFFLE(j1, i1, j0, i0)), 0xC)
 
-#define v4d_Azw_Bzw(a, b) _mm256_permute2f128_pd(a, b, (1 << 4) | 3)
-#define v4d_Axy_Bxy(a, b) _mm256_permute2f128_pd(a, b, (2 << 4) | 0)
+#define v4d_Azw_Bzw(a, b)     _mm256_permute2f128_pd(a, b, (1 << 4) | 3)
+#define v4d_Axy_Bxy(a, b)     _mm256_permute2f128_pd(a, b, (2 << 4) | 0)
 #define v4d_Ay_By_Aw_Bw(a, b) _mm256_unpackhi_pd(a, b)
 #define v4d_Ax_Bx_Az_Bz(a, b) _mm256_unpacklo_pd(a, b)
 
 #define v4d_store_x(ptr, x) _mm_storel_pd(ptr, _mm256_extractf128_pd(x, 0))
 
 #define v4d_negate(v) _mm256_xor_pd(v, c_v4d_Sign)
-#define v4d_abs(v) _mm256_andnot_pd(c_v4d_Sign, v)
+#define v4d_abs(v)    _mm256_andnot_pd(c_v4d_Sign, v)
 
-#define _mm256_cmplt_pd(a, b) _mm256_cmp_pd(a, b, _CMP_LT_OQ)
-#define _mm256_cmple_pd(a, b) _mm256_cmp_pd(a, b, _CMP_LE_OQ)
-#define _mm256_cmpeq_pd(a, b) _mm256_cmp_pd(a, b, _CMP_EQ_UQ)
-#define _mm256_cmpge_pd(a, b) _mm256_cmp_pd(a, b, _CMP_GE_OQ)
-#define _mm256_cmpgt_pd(a, b) _mm256_cmp_pd(a, b, _CMP_GT_OQ)
+#define _mm256_cmplt_pd(a, b)  _mm256_cmp_pd(a, b, _CMP_LT_OQ)
+#define _mm256_cmple_pd(a, b)  _mm256_cmp_pd(a, b, _CMP_LE_OQ)
+#define _mm256_cmpeq_pd(a, b)  _mm256_cmp_pd(a, b, _CMP_EQ_UQ)
+#define _mm256_cmpge_pd(a, b)  _mm256_cmp_pd(a, b, _CMP_GE_OQ)
+#define _mm256_cmpgt_pd(a, b)  _mm256_cmp_pd(a, b, _CMP_GT_OQ)
 #define _mm256_cmpneq_pd(a, b) _mm256_cmp_pd(a, b, _CMP_NEQ_UQ)
 
 #define v4d_greater0_all(a) v4d_test4_all(_mm256_cmpgt_pd(a, _mm256_setzero_pd()))
-#define v4d_gequal0_all(a) v4d_test4_all(_mm256_cmpge_pd(a, _mm256_setzero_pd()))
-#define v4d_not0_all(a) v4d_test4_all(_mm256_cmpneq_pd(a, _mm256_setzero_pd()))
+#define v4d_gequal0_all(a)  v4d_test4_all(_mm256_cmpge_pd(a, _mm256_setzero_pd()))
+#define v4d_not0_all(a)     v4d_test4_all(_mm256_cmpneq_pd(a, _mm256_setzero_pd()))
 
 #define v4d_round(x) _mm256_round_pd(x, _MM_FROUND_TO_NEAREST_INT | ML_ROUNDING_EXEPTIONS_MASK)
 #define v4d_floor(x) _mm256_round_pd(x, _MM_FROUND_FLOOR | ML_ROUNDING_EXEPTIONS_MASK)
-#define v4d_ceil(x) _mm256_round_pd(x, _MM_FROUND_CEIL | ML_ROUNDING_EXEPTIONS_MASK)
+#define v4d_ceil(x)  _mm256_round_pd(x, _MM_FROUND_CEIL | ML_ROUNDING_EXEPTIONS_MASK)
 
 #define _v4d_mulsign(x, y) _mm256_xor_pd(x, _mm256_and_pd(y, c_v4d_Sign))
-#define _v4d_is_inf(x) _mm256_cmpeq_pd(v4d_abs(x), c_v4d_Inf)
-#define _v4d_is_pinf(x) _mm256_cmpeq_pd(x, c_v4d_Inf)
-#define _v4d_is_ninf(x) _mm256_cmpeq_pd(x, c_v4d_InfMinus)
-#define _v4d_is_nan(x) _mm256_cmpneq_pd(x, x)
+#define _v4d_is_inf(x)     _mm256_cmpeq_pd(v4d_abs(x), c_v4d_Inf)
+#define _v4d_is_pinf(x)    _mm256_cmpeq_pd(x, c_v4d_Inf)
+#define _v4d_is_ninf(x)    _mm256_cmpeq_pd(x, c_v4d_InfMinus)
+#define _v4d_is_nan(x)     _mm256_cmpneq_pd(x, x)
 #define _v4d_is_inf2(x, y) _mm256_and_pd(_v4d_is_inf(x), _mm256_or_pd(_mm256_and_pd(x, c_v4d_Sign), y))
 
 #if ML_CHECK_W_IS_ZERO
@@ -1172,7 +1166,7 @@ ML_INLINE v4d _v4d_is_inf_or_zero(const v4d& x) {
 #    define _v4d_vselect(mask, x, y) _mm256_blendv_pd(y, x, mask)
 
 ML_INLINE v4i _v4d_selecti(const v4d& d0, const v4d& d1, const v4i& x, const v4i& y) {
-    __m128i mask = _mm256_cvtpd_epi32(_mm256_and_pd(_mm256_cmplt_pd(d0, d1), _mm256_broadcast_sd(c_d + 0)));
+    v4i mask = _mm256_cvtpd_epi32(_mm256_and_pd(_mm256_cmplt_pd(d0, d1), _mm256_broadcast_sd(c_d + 0)));
     mask = _mm_cmpeq_epi32(mask, _mm_set1_epi32(1));
 
     return _v4f_iselect(_mm_castsi128_ps(mask), x, y);

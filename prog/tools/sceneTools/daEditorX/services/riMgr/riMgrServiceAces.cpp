@@ -20,6 +20,7 @@
 #include <de3_dynRenderService.h>
 #include <libTools/util/binDumpHierBitmap.h>
 #include <rendInst/rendInstGenRender.h>
+#include <rendInst/rendInstExtraAccess.h>
 #include <riGen/genObjUtil.h>
 #include <gameMath/traceUtils.h>
 #include <oldEditor/de_interface.h>
@@ -36,6 +37,7 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_render.h>
 #include <render/dag_cur_view.h>
 #include <ioSys/dag_ioUtils.h>
@@ -92,7 +94,13 @@ namespace rendinst
 {
 extern int maxRiGenPerCell, maxRiExPerCell;
 extern bool forceRiExtra;
+extern bool persistentRiExtraInstances;
 } // namespace rendinst
+
+namespace pathfinder
+{
+extern String make_file_path_for_nav_mesh_kind(const char *base_file_path, const char *nav_mesh_kind);
+} // namespace pathfinder
 
 extern bool(__stdcall *external_traceRay_for_rigen)(const Point3 &from, const Point3 &dir, float &current_t, Point3 *out_norm);
 
@@ -104,9 +112,9 @@ static int rendEntGeomMask = -1;
 static int maskTypeSubtypeMask = -1, rendSubtypeSumMask = -1;
 static const int DEF_COL = IColorRangeService::IDX_GRAY;
 static IColorRangeService *colRangeSrv = NULL;
-static int force_lod_no = -1;
 static int traceMode = 0;
 static bbox3f rayBoxExt;
+static bool allowRiExtraUsage = false;
 
 static bool(__stdcall *ri_get_height)(Point3 &pos, Point3 *out_norm) = 0;
 static bool(__stdcall *ri_trace_ray)(const Point3 &pos, const Point3 &dir, real &t, Point3 *out_norm) = 0;
@@ -118,6 +126,7 @@ static uint8_t perInstDataDwords = 0;
 static bool perInstDataUseSeed = false;
 static bool instSeedStoreZeroForRandom = false;
 static bool delayRiResInit = true; // stays true until first HUID_BeforeMainLoop event
+static bool riExtraRenderInited = false;
 
 class AcesRendInstEntity;
 class AcesRendInstEntityPool;
@@ -125,26 +134,33 @@ class AcesRendInstEntityPool;
 typedef MultiEntityPool<AcesRendInstEntity, AcesRendInstEntityPool> MultiAcesRendInstEntityPool;
 typedef VirtualMpEntity<MultiAcesRendInstEntityPool> VirtualAcesRendInstEntity;
 
-static const char *DEFAULT_LEVEL_GAMENAME = "enlisted"; // FIXME_BROKEN_DEP
-
 static class NavmeshLayers
 {
-  SimpleString gameName{DEFAULT_LEVEL_GAMENAME};
+  SimpleString gameName;
 
   int findRiPool(const char *ri_name)
   {
+    int riex_idx = rendinst::getRIGenExtraResIdx(ri_name);
+    if (riex_idx >= 0)
+      return rendinst::RendinstVertexDataCbBase::make_pool_id(riex_idx, true);
     FOR_EACH_RG_LAYER_DO (rgl)
       for (size_t i = 0, size = rgl->rtData->riResName.size(); i < size; i++)
         if (!strcmp(ri_name, rgl->rtData->riResName[i]))
-          return (int)i;
+          return rendinst::RendinstVertexDataCbBase::make_pool_id((int)i, false);
     return -1;
   }
 
   int getBiggestLevelSize()
   {
     uint32_t size = 0;
+    if (int riex_sz = rendinst::getRIExtraMapSize())
+    {
+      size = rendinst::RendinstVertexDataCbBase::make_pool_id(riex_sz, true);
+      debug("%s: getRIExtraMapSize()=%d -> size=%d", __FUNCTION__, riex_sz, size);
+    }
     FOR_EACH_RG_LAYER_DO (rgl)
-      size = max(rgl->rtData->riResName.size(), size);
+      size = max<uint32_t>(rendinst::RendinstVertexDataCbBase::make_pool_id(rgl->rtData->riResName.size(), false), size);
+    debug("%s: final size=%d", __FUNCTION__, size);
     return size;
   }
 
@@ -164,8 +180,8 @@ static class NavmeshLayers
     }
   }
 
-  template <typename Lamda>
-  void applyRegExp(const DataBlock *filterBlk, Lamda lambda)
+  template <typename Lambda>
+  void applyRegExp(const DataBlock *filterBlk, Lambda lambda)
   {
     if (!filterBlk)
       return;
@@ -177,41 +193,29 @@ static class NavmeshLayers
       for (size_t i = 0, size = rgl->rtData->riResName.size(); i < size; i++)
         for (RegExp *re : filter)
           if (re->test(rgl->rtData->riResName[i]))
-            lambda((int)i);
+          {
+            int riex_idx = rendinst::getRIGenExtraResIdx(rgl->rtData->riResName[i]);
+            lambda(rendinst::RendinstVertexDataCbBase::make_pool_id(riex_idx >= 0 ? riex_idx : (int)i, riex_idx >= 0));
+          }
 
     for (RegExp *re : filter)
       delete re;
   }
 
-  String makeFilePathForNavMeshKind(const char *base_file_path, const char *nav_mesh_kind)
-  {
-    String res(base_file_path);
-    if (!nav_mesh_kind || !*nav_mesh_kind)
-      return res;
-    const char *extentionPos = res.find('.', nullptr, /*forward*/ false);
-    if (!extentionPos)
-      return res;
-    String navMeshKindPostfix(100, "_%s", nav_mesh_kind);
-    res.insert(extentionPos - res.begin(), navMeshKindPostfix);
-    return res;
-  }
-
 public:
-  Bitarray pools;
+  Bitarray poolsToIgnore;
   ska::flat_hash_set<int> transparentPools;
   ska::flat_hash_map<int, uint32_t> obstaclePools;
   ska::flat_hash_map<int, uint32_t> materialPools;
   rendinst::obstacle_settings_t obstaclesSettings;
   ska::flat_hash_map<uint32_t, uint32_t> obstacleFlags;
 
-  NavmeshLayers() {}
-
   void setGameName(const char *game_name)
   {
     if (gameName == game_name)
       return;
     gameName = game_name;
-    pools.reset();
+    poolsToIgnore.reset();
     obstaclePools.clear();
   };
 
@@ -232,12 +236,12 @@ public:
         navmesh_layers = navmeshLayersWithKind->getStr(nav_mesh_kind, nullptr);
     }
     if (navmesh_layers.empty())
-      navmesh_layers = makeFilePathForNavMeshKind(gameBlk->getStr("navmesh_layers", nullptr), nav_mesh_kind);
+      navmesh_layers = pathfinder::make_file_path_for_nav_mesh_kind(gameBlk->getStr("navmesh_layers", nullptr), nav_mesh_kind);
     if (navmesh_layers.empty())
       return;
 
-    pools.resize(getBiggestLevelSize());
-    pools.reset();
+    poolsToIgnore.resize(getBiggestLevelSize());
+    poolsToIgnore.reset();
 
     transparentPools.clear();
 
@@ -245,9 +249,9 @@ public:
 
     DataBlock navmblk(String(260, "%s/%s", DAGORED2->getWorkspace().getAppDir(), navmesh_layers));
 
-    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter")), [&](int pool) { pools.set(pool); });
-    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_exclude")), [&](int pool) { pools.reset(pool); });
-    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_include")), [&](int pool) { pools.set(pool); });
+    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter")), [&](int pool) { poolsToIgnore.set(pool); });
+    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_exclude")), [&](int pool) { poolsToIgnore.reset(pool); });
+    applyRegExp(navmblk.getBlock(navmblk.findBlock("filter_include")), [&](int pool) { poolsToIgnore.set(pool); });
 
     const int blkSkipNameId1 = navmblk.getNameId("filter");
     const int blkSkipNameId2 = navmblk.getNameId("filter_exclude");
@@ -266,7 +270,7 @@ public:
         {
           int pool = findRiPool(blk->getBlock(i)->getBlockName());
           if (pool > -1)
-            pools.set(pool);
+            poolsToIgnore.set(pool);
         }
       }
 
@@ -276,7 +280,7 @@ public:
         {
           int pool = findRiPool(blk->getBlock(i)->getBlockName());
           if (pool > -1)
-            pools.reset(pool);
+            poolsToIgnore.reset(pool);
         }
       }
 
@@ -299,8 +303,9 @@ public:
         rendinstDmgBlk = rendinstDmgWithKind->getStr(nav_mesh_kind, nullptr);
     }
     if (rendinstDmgBlk.empty())
-      rendinstDmgBlk = makeFilePathForNavMeshKind(gameBlk->getStr("rendinst_dmg", ""), nav_mesh_kind);
-    rendinstDmgBlk.replaceAll("<gameName>", gameName.c_str());
+      rendinstDmgBlk = pathfinder::make_file_path_for_nav_mesh_kind(gameBlk->getStr("rendinst_dmg", ""), nav_mesh_kind);
+    if (!gameName.empty())
+      rendinstDmgBlk.replaceAll("<gameName>", gameName.c_str());
     if (rendinstDmgBlk.empty())
     {
       logdbg("rendinst_dmg is not specified, tilecached navmesh will be built without obstacles");
@@ -370,7 +375,7 @@ public:
         navmesh_obstacles = navmeshObstaclesWithKind->getStr(nav_mesh_kind, nullptr);
     }
     if (navmesh_obstacles.empty())
-      navmesh_obstacles = makeFilePathForNavMeshKind(gameBlk->getStr("navmesh_obstacles", nullptr), nav_mesh_kind);
+      navmesh_obstacles = pathfinder::make_file_path_for_nav_mesh_kind(gameBlk->getStr("navmesh_obstacles", nullptr), nav_mesh_kind);
     if (navmesh_obstacles.empty())
       return;
 
@@ -397,6 +402,7 @@ struct RendinstVertexDataCbEditor : public rendinst::RendinstVertexDataCbBase
   {
     if (!coll_info.collRes)
       return;
+    int pool_id = rendinst::RendinstVertexDataCbBase::make_pool_id(coll_info.desc);
     RiData *data = NULL;
     for (int i = 0; i < riCache.size(); ++i)
     {
@@ -424,7 +430,7 @@ struct RendinstVertexDataCbEditor : public rendinst::RendinstVertexDataCbBase
     const int indBase = indices.size();
     int idxBase = vertices.size();
 
-    auto materialIt = navmeshLayers.materialPools.find(coll_info.desc.pool);
+    auto materialIt = navmeshLayers.materialPools.find(pool_id);
     if (materialIt == navmeshLayers.materialPools.end())
     {
       Point3_vec4 tmpVert;
@@ -436,11 +442,11 @@ struct RendinstVertexDataCbEditor : public rendinst::RendinstVertexDataCbBase
       for (int i = 0; i < data->indices.size(); ++i)
         indices.push_back(data->indices[i] + idxBase);
 
-      if (navmeshLayers.transparentPools.find(coll_info.desc.pool) != navmeshLayers.transparentPools.end())
+      if (navmeshLayers.transparentPools.find(pool_id) != navmeshLayers.transparentPools.end())
         transparent.push_back({indBase, (int)data->indices.size()});
     }
 
-    auto obstacleIt = navmeshLayers.obstaclePools.find(coll_info.desc.pool);
+    auto obstacleIt = navmeshLayers.obstaclePools.find(pool_id);
     if (obstacleIt != navmeshLayers.obstaclePools.end())
     {
       Point3_vec4 p1, p2;
@@ -455,7 +461,7 @@ struct RendinstVertexDataCbEditor : public rendinst::RendinstVertexDataCbBase
       if (materialIt != navmeshLayers.materialPools.end())
         idxBase = -1;
 
-      auto setup = navmeshLayers.obstaclesSettings.find(coll_info.desc.pool);
+      auto setup = navmeshLayers.obstaclesSettings.findDesc(coll_info.desc);
       if (setup && setup->overridePadding)
         obstaclePadding.x = setup->overridePaddingValue;
 
@@ -499,22 +505,25 @@ public:
     Tab<Point3> vertices;
     Tab<int> indices;
 
-    RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
+    RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.poolsToIgnore, navmeshLayers.obstaclePools,
       navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
     rendinst::testObjToRendInstIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
     transparent.reserve(cb.transparent.size());
     vertices.reserve(cb.vertNum);
     indices.reserve(cb.indNum);
-    cb.procFilteredCollision([this](const rendinst::CollisionInfo &ci) {
-      if (ci.collRes == nullptr)
-        return false;
-      BBox3 curBox;
-      v_stu_bbox3(curBox, ci.collRes->vFullBBox);
-      curBox = ci.tm * curBox;
+    if (inExcludeBoxes.empty())
+      cb.procAllCollision();
+    else
+      cb.procFilteredCollision([this](const rendinst::CollisionInfo &ci) {
+        if (ci.collRes == nullptr)
+          return false;
+        BBox3 curBox;
+        v_stu_bbox3(curBox, ci.collRes->vFullBBox);
+        curBox = ci.tm * curBox;
 
-      return eastl::all_of(inExcludeBoxes.begin(), inExcludeBoxes.end(),
-        [&curBox](const BBox3 &excludeBox) { return !curBox.non_empty_intersect(excludeBox); });
-    });
+        return eastl::all_of(inExcludeBoxes.begin(), inExcludeBoxes.end(),
+          [&curBox](const BBox3 &excludeBox) { return !curBox.non_empty_intersect(excludeBox); });
+      });
     debug("RendinstGatherCollJob proc done in %.2f sec", get_time_usec_qpc(refproc) / 1000000.0);
 
     if ((vertices.empty() || indices.empty()) && obstacles.empty())
@@ -574,6 +583,7 @@ static void addPerInstData(BinDumpSaveCB &cell_cwr, bool add_per_inst_data, int 
     cell_cwr.writeZeroes((perInstDataDwords - 1) * 4);
 }
 
+static constexpr float POS_NOT_INITED_XZ = 1e6f;
 
 class AcesRendInstEntity : public VirtualAcesRendInstEntity,
                            public IColor,
@@ -596,7 +606,7 @@ public:
   inline void initTm()
   {
     tm.identity();
-    tm.m[3][0] = tm.m[3][2] = 1e6;
+    tm.m[3][0] = tm.m[3][2] = POS_NOT_INITED_XZ;
   }
 
   void setTm(const TMatrix &_tm) override;
@@ -639,7 +649,7 @@ public:
   DagorAsset *getAsset() override;
   int getAssetNameId() override;
   const char *getResourceName() override;
-  int getRIIndex() const override;
+  int getPregenId() const override;
   int getPoolIndex() override { return poolIdx; }
   bool getRendInstQuantizedTm(TMatrix &out_tm) const override;
 
@@ -659,8 +669,12 @@ public:
   RenderableInstanceLodsResource *getSceneLodsRes() override;
   const RenderableInstanceLodsResource *getSceneLodsRes() const override;
 
+  bool showRiExtraInstance(bool moved);
+  void hideRiExtraInstance();
+
 public:
   TMatrix tm;
+  rendinst::riex_handle_t riexHandle = rendinst::RIEX_HANDLE_NULL;
   unsigned short colorIdx;
   unsigned short autoInstSeed : 1;
   unsigned short dataBlockId : 15;
@@ -676,6 +690,7 @@ public:
   int defColorIdx;
   int pregenId;
   int layerIdx;
+  int pendingRiExtraCount = 0;
   BBox2 precalculatedBox;
 
 
@@ -735,28 +750,21 @@ public:
     res = nullptr;
 
     if (!delayRiResInit)
-    {
-      FastNameMap resNameMap;
-      resNameMap.addNameId(riResName);
-      resNameMap.addNameId(String(0, "%s" RI_COLLISION_RES_SUFFIX, riResName));
-      ::set_required_res_list_restriction(resNameMap);
-    }
-    res = (RenderableInstanceLodsResource *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(riResName), RendInstGameResClassId);
-    if (!delayRiResInit)
-      ::reset_required_res_list_restriction();
+      res = (RenderableInstanceLodsResource *)::get_one_game_resource_ex(riResName, RendInstGameResClassId);
+    else
+      res = (RenderableInstanceLodsResource *)::get_game_resource_ex(riResName, RendInstGameResClassId);
 
     if (!res)
     {
       DAEDITOR3.conError("resource is not rendInst: %s", (char *)riResName);
       return;
     }
-    ::release_game_resource((GameResource *)res.get());
+    ::release_game_resource_ex(res.get(), RendInstGameResClassId);
 
     if (on_asset_changed)
       rendinst::update_rt_pregen_ri(pregenId, *res);
     else
-      pregenId = rendinst::register_rt_pregen_ri(res, layerIdx, colRangeSrv->getColorFrom(defColorIdx),
-        colRangeSrv->getColorTo(defColorIdx), riResName);
+      initPregenId();
     if (pregenId < -1)
     {
       DAEDITOR3.conError("pregenEnt exceeds RI pool limit %d, so <%s> will not be visible!", -pregenId - 2, riResName);
@@ -769,6 +777,26 @@ public:
       bsph = BSphere3(res->bsphCenter, res->bsphRad);
       bbox = res->bbox;
     }
+
+    initRiExtraIdx();
+  }
+
+  void initPregenId()
+  {
+    pregenId = rendinst::register_rt_pregen_ri(res, layerIdx, colRangeSrv->getColorFrom(defColorIdx),
+      colRangeSrv->getColorTo(defColorIdx), riResName);
+  }
+
+  void initRiExtraIdx()
+  {
+    if (res && res->lods.size() && !res->hasImpostor() && rendinst::forceRiExtra && allowRiExtraUsage)
+    {
+      riExtraIdx = rendinst::getOrAddMissingRIGenExtraResIdx(riResName,
+        rendinst::AddRIFlag::UseShadow | rendinst::AddRIFlag::Immortal | rendinst::AddRIFlag::GameresPreLoaded);
+      debug("%s: hasImpostor=%d riExtraIdx=%d", riResName, res->hasImpostor(), riExtraIdx);
+    }
+    else
+      riExtraIdx = -1;
   }
 
   ~AcesRendInstEntityPool()
@@ -820,6 +848,28 @@ public:
         }
       }
   }
+  void assureRiExtraCreated(float x0, float z0, float x1, float z1)
+  {
+    if (pendingRiExtraCount <= 0)
+      return;
+
+    int pendingToFind = pendingRiExtraCount;
+    int subtype_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    for (auto *e : ent)
+    {
+      if (!e || e->riexHandle != rendinst::RIEX_HANDLE_NULL)
+        continue;
+      if (e->checkSubtypeAndLayerHiddenMasks(subtype_mask, lh_mask))
+      {
+        float x = e->tm[3][0], z = e->tm[3][2];
+        if (x >= x0 && x < x1 && z >= z0 && z < z1)
+          e->showRiExtraInstance(false);
+      }
+      if (--pendingToFind == 0)
+        break;
+    }
+  }
 
   void buildBBox()
   {
@@ -857,6 +907,12 @@ public:
       }
       end_draw_cached_debug_lines();
     }
+  }
+  void showAndHideRiExtraInstancesOnLayerMaskChanges(int subtype_mask, uint64_t lh_mask)
+  {
+    for (auto *e : ent)
+      if (e)
+        e->checkSubtypeAndLayerHiddenMasks(subtype_mask, lh_mask) ? (void)e->showRiExtraInstance(false) : e->hideRiExtraInstance();
   }
 
   void gatherOccluders(Tab<TMatrix> &occl_boxes, Tab<IOccluderGeomProvider::Quad> &occl_quads)
@@ -1148,6 +1204,9 @@ public:
     return false;
   }
 
+  int getRiExtraIdx() const { return riExtraIdx; }
+  bool useRiExtra() const { return riExtraIdx >= 0; }
+
 protected:
   inline void parseGeometry()
   {
@@ -1188,6 +1247,7 @@ protected:
   collisionpreview::Collision collision;
   VirtualAcesRendInstEntity virtualEntity;
   real bound0rad;
+  int riExtraIdx = -1;
 
   Tab<TMatrix> occlBox;
   Tab<Point3> occlQuadV;
@@ -1252,11 +1312,11 @@ public:
       "rendInstGenExtraRender.inc.cpp fills out the 2nd and 3rd members at runtime (check addData[ADDITIONAL_DATA_IDX] = ...)");
     perInstDataUseSeed = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("perInstDataUseSeed", false);
     instSeedStoreZeroForRandom =
-      appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("instSeedStoreZeroForRandom", perInstDataUseSeed);
+      appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("instSeedStoreZeroForRandom", false);
     debug("using perInstDataDwords=%d %s %s", perInstDataDwords, perInstDataUseSeed ? "[posSeed]" : "",
       instSeedStoreZeroForRandom ? "[storeZeroForRandom]" : "");
 
-    rendinst::initRIGen(/*render*/ !d3d::is_stub_driver(), 80, 8000.0f, NULL, NULL, -1, 256.0f);
+    rendinst::initRIGen(/*render*/ true, 80, 8000.0f, NULL, NULL, -1, 256.0f);
     frameBlkId = ShaderGlobal::getBlockId("global_frame");
     lastRendMask = 0;
     lastLayerHiddenMask = 0;
@@ -1269,12 +1329,19 @@ public:
     initTreeTopProjection();
 
     rendinst::tmInst12x32bit = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("tmInst12x32bit", false);
+    project_tmInst12x32bit = rendinst::tmInst12x32bit;
     rendinst::maxRiGenPerCell =
       appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getInt("maxRiGenPerCell", 0x10000);
     rendinst::maxRiExPerCell =
       appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getInt("maxRiExPerCell", 0x10000);
     rendinst::forceRiExtra =
       appBlk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("rendInst")->getBool("forceRiExtra", false);
+    allowRiExtraUsage = appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("riMgr")->getBool("allowRiExtra", true);
+    riExtraRenderInited = rendinst::forceRiExtra && allowRiExtraUsage;
+    rendinst::persistentRiExtraInstances = appBlk.getBlockByNameEx("assets")
+                                             ->getBlockByNameEx("build")
+                                             ->getBlockByNameEx("rendInst")
+                                             ->getBool("persistentRiExtraInstances", !riExtraRenderInited);
   }
   ~AcesRendInstEntityManagementService() override
   {
@@ -1283,12 +1350,24 @@ public:
     resetLandClassCache();
     if (rigenSrv)
     {
+      clearServiceData();
       rendinst::release_rt_rigen_data();
       rendinst::termRIGen();
       rigenSrv = NULL;
+      tmInst12x32bit_changeEnabled = true;
     }
     cleanTreeTopProjection();
     cleanRendinstLandscapeBlend();
+  }
+  void clearServiceData() override
+  {
+    if (rendinst::forceRiExtra)
+    {
+      debug("destroying riExtra instances in %s before rendinst::termRIGen()", __FUNCTION__);
+      for (auto *p : riPool.getPools())
+        if (p->useRiExtra())
+          p->showAndHideRiExtraInstancesOnLayerMaskChanges(0, ~uint64_t(0));
+    }
   }
 
   // IEditorService interface
@@ -1375,16 +1454,13 @@ public:
       dag::ConstSpan<AcesRendInstEntityPool *> p = riPool.getPools();
       if (p.size())
       {
-        FastNameMap resNameMap;
-        for (int i = 0; i < p.size(); i++)
-        {
-          resNameMap.addNameId(p[i]->riResName);
-          resNameMap.addNameId(String(0, "%s" RI_COLLISION_RES_SUFFIX, p[i]->riResName));
-        }
-
-        ::set_required_res_list_restriction(resNameMap);
-        ::preload_all_required_res();
-        ::reset_required_res_list_restriction();
+        String tmp_name;
+        preload_game_resources(p.size() * 2, [&p, &tmp_name](unsigned idx) {
+          if ((idx & 1) == 0)
+            return p[idx / 2]->riResName.c_str();
+          tmp_name.setStrCat(p[idx / 2]->riResName, RI_COLLISION_RES_SUFFIX);
+          return tmp_name.c_str();
+        });
       }
       for (int i = 0; i < p.size(); i++)
         p[i]->init1();
@@ -1420,7 +1496,7 @@ public:
   void onLightingSettingsChanged() override
   {
     static int fromSunDirectionVarId = ::get_shader_glob_var_id("from_sun_direction");
-    Color4 new_sun_dir = ShaderGlobal::get_color4_fast(fromSunDirectionVarId);
+    Color4 new_sun_dir = ShaderGlobal::get_float4(fromSunDirectionVarId);
     rendinst::set_sun_dir_for_global_shadows(Point3(new_sun_dir.r, new_sun_dir.g, new_sun_dir.b));
   }
 
@@ -1428,18 +1504,26 @@ public:
   void renderGeometry(Stage stage) override
   {
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
-    if ((st_mask & rendEntGeomMask) != rendEntGeomMask)
+    bool is_visible = (st_mask & rendEntGeomMask) == rendEntGeomMask;
+
+    if (auto rs = EDITORCORE->queryEditorInterface<IDynRenderService>(); rs && (rs->getRenderType() == rs->RTYPE_DNG_BASED))
+    {
+      if (stage == STG_BEFORE_RENDER)
+      {
+        rendinst::render::enablePrimaryLayerRender(is_visible);
+        rendinst::render::enableSecLayerRender(is_visible);
+        rendinst::render::enableRiExtraRender(is_visible);
+      }
+      else
+      {
+        return; // DNG-based render already renders current global RI scene in world renderer
+      }
+    }
+
+    if (!is_visible)
       return;
 
-    if (stage != STG_BEFORE_RENDER)
-      if (IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>())
-        if (rs->getRenderType() == rs->RTYPE_DNG_BASED)
-          return; // DNG-based render already renders current global RI scene in world renderer
-
     uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
-    rendinst::LayerFlags forceLodBits = {};
-    if (force_lod_no >= 0)
-      forceLodBits = rendinst::make_forced_lod_layer_flags(force_lod_no);
 
     int frame_block = -1;
 
@@ -1461,6 +1545,7 @@ public:
           rendinst::discard_rigen_all();
           lastRendMask = (st_mask & rendSubtypeSumMask);
           lastLayerHiddenMask = lh_mask;
+          showAndHideRiExtraInstancesOnLayerMaskChanges();
         }
         {
           mat44f proj;
@@ -1480,7 +1565,7 @@ public:
         if (hmlService && feedback)
           hmlService->startUAVFeedback();
         rendinst::render::renderRIGen(rendinst::RenderPass::Normal, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra | forceLodBits, false, texStrmCtx);
+          rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra, false, texStrmCtx);
         if (hmlService && feedback)
           hmlService->endUAVFeedback();
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
@@ -1491,7 +1576,7 @@ public:
         frame_block = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
         rendinst::render::renderRIGen(rendinst::RenderPass::Normal, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Decals | forceLodBits, false, texStrmCtx);
+          rendinst::LayerFlag::Decals, false, texStrmCtx);
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
         break;
 
@@ -1499,7 +1584,7 @@ public:
         frame_block = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
         rendinst::render::renderRIGen(rendinst::RenderPass::Normal, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Transparent | forceLodBits, false, texStrmCtx);
+          rendinst::LayerFlag::Transparent, false, texStrmCtx);
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
         break;
 
@@ -1507,7 +1592,7 @@ public:
         frame_block = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
         rendinst::render::renderRIGen(rendinst::RenderPass::Normal, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Distortion | forceLodBits, false, texStrmCtx);
+          rendinst::LayerFlag::Distortion, false, texStrmCtx);
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
         break;
 
@@ -1515,7 +1600,7 @@ public:
         frame_block = ShaderGlobal::getBlock(ShaderGlobal::LAYER_FRAME);
         ShaderGlobal::setBlock(frameBlkId, ShaderGlobal::LAYER_FRAME);
         rendinst::render::renderRIGen(rendinst::RenderPass::ToShadow, globtm, ::grs_cur_view.pos, ::grs_cur_view.itm,
-          rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra | forceLodBits, false, texStrmCtx);
+          rendinst::LayerFlag::Opaque | rendinst::LayerFlag::NotExtra, false, texStrmCtx);
         ShaderGlobal::setBlock(frame_block, ShaderGlobal::LAYER_FRAME);
         break;
 
@@ -1549,6 +1634,7 @@ public:
     ent->setColor(riPool.getPools()[pool_idx]->defColorIdx);
 
     riPool.addEntity(ent, pool_idx);
+    riPool.getPools()[pool_idx]->pendingRiExtraCount++;
     // debug("create ent: %p", ent);
     return ent;
   }
@@ -1567,6 +1653,7 @@ public:
     ent->setColor(riPool.getPools()[o->poolIdx]->defColorIdx);
 
     riPool.addEntity(ent, o->poolIdx);
+    riPool.getPools()[o->poolIdx]->pendingRiExtraCount++;
     // debug("clone ent: %p", ent);
     return ent;
   }
@@ -1574,17 +1661,12 @@ public:
   // IRendInstGen interface
   rendinst::gen::land::AssetData *getLandClassGameRes(const char *name) override
   {
-    FastNameMap landcls_nm;
-    landcls_nm.addNameId(name);
-    ::set_required_res_list_restriction(landcls_nm);
-    GameResource *res = ::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(name), rendinst::HUID_LandClassGameRes);
-    ::reset_required_res_list_restriction();
-    return (rendinst::gen::land::AssetData *)res;
+    return (rendinst::gen::land::AssetData *)::get_one_game_resource_ex(name, rendinst::HUID_LandClassGameRes);
   }
   void releaseLandClassGameRes(rendinst::gen::land::AssetData *res) override
   {
     if (res)
-      release_game_resource((GameResource *)res);
+      release_game_resource_ex(res, rendinst::HUID_LandClassGameRes);
   }
 
   void setCustomGetHeight(bool(__stdcall *c_get_height)(Point3 &pos, Point3 *out_norm)) override
@@ -1600,6 +1682,7 @@ public:
   void clearRtRIGenData() override
   {
     rendinst::release_rt_rigen_data();
+    tmInst12x32bit_changeEnabled = true;
     rigenLandBox.setempty();
   }
   bool createRtRIGenData(float ofs_x, float ofs_z, float grid2world, int cell_sz, int cell_num_x, int cell_num_z,
@@ -1609,6 +1692,7 @@ public:
       return false;
     debug("createRtRIGenData");
     rendinst::release_rt_rigen_data();
+    tmInst12x32bit_changeEnabled = false;
     rendinst::set_rt_pregen_gather_cb(&pregen_gather_pos_cb, &pregen_gather_tm_cb, &prepare_pool_mapping, &prepare_pools);
 
     rigenLandBox.setempty();
@@ -1620,11 +1704,25 @@ public:
 
     dag::ConstSpan<AcesRendInstEntityPool *> p = riPool.getPools();
     for (int i = 0; i < p.size(); i++)
-      p[i]->pregenId = rendinst::register_rt_pregen_ri(p[i]->res, p[i]->layerIdx, colRangeSrv->getColorFrom(p[i]->defColorIdx),
-        colRangeSrv->getColorTo(p[i]->defColorIdx), p[i]->riResName);
+    {
+      p[i]->initPregenId();
+      p[i]->initRiExtraIdx();
+
+      // After rendinst::release_rt_rigen_data() all the riExtra handles become invalid, so we destroy all entities by
+      // hiding them, and force their recreation at the next render.
+      if (p[i]->useRiExtra())
+      {
+        p[i]->showAndHideRiExtraInstancesOnLayerMaskChanges(0, ~uint64_t(0));
+        lastLayerHiddenMask = 0;
+      }
+    }
     return true;
   }
-  void releaseRtRIGenData() override { rendinst::release_rt_rigen_data(); }
+  void releaseRtRIGenData() override
+  {
+    rendinst::release_rt_rigen_data();
+    tmInst12x32bit_changeEnabled = true;
+  }
   EditableHugeBitMap2d *getRIGenBitMask(rendinst::gen::land::AssetData *land_cls) override
   {
     return rendinst::get_rigen_bit_mask(land_cls);
@@ -1641,7 +1739,21 @@ public:
   }
   void resetLandClassCache() override { rendinst::rt_rigen_free_unused_land_classes(); }
 
-  void onLevelBlkLoaded(const DataBlock &blk) override { navmeshLayers.setGameName(blk.getStr("gameName", DEFAULT_LEVEL_GAMENAME)); }
+  void onLevelBlkLoaded(const DataBlock &blk) override
+  {
+    bool per_location_tmInst12x32bit = blk.getBool("rendinst::tmInst12x32bit", project_tmInst12x32bit);
+    if (tmInst12x32bit_changeEnabled && per_location_tmInst12x32bit != rendinst::tmInst12x32bit)
+    {
+      DAEDITOR3.conNote("set rendinst::tmInst12x32bit=%s (was %s, project_def=%s)", per_location_tmInst12x32bit ? "true" : "false",
+        rendinst::tmInst12x32bit ? "true" : "false", project_tmInst12x32bit ? "true" : "false");
+      rendinst::tmInst12x32bit = per_location_tmInst12x32bit;
+    }
+    else if (per_location_tmInst12x32bit != rendinst::tmInst12x32bit)
+      DAEDITOR3.conError("cannot set tmInst12x32bit=%s (was %s, project_def=%s) due to incorrect context",
+        per_location_tmInst12x32bit ? "true" : "false", rendinst::tmInst12x32bit ? "true" : "false",
+        project_tmInst12x32bit ? "true" : "false");
+    navmeshLayers.setGameName(blk.getStr("gameName", ""));
+  }
 
   static void prepare_pools(bool prepare)
   {
@@ -1678,6 +1790,21 @@ public:
     p[idx]->gatherRiP4(dest, dest_per_inst_data, add_per_inst_data, x0, z0, x1, z1);
   }
   static void pregen_gather_tm_cb(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, int idx, int pregen_id,
+    float x0, float z0, float x1, float z1)
+  {
+    if (idx < 0)
+      return;
+    dag::ConstSpan<AcesRendInstEntityPool *> p = static_cast<AcesRendInstEntityManagementService *>(rigenSrv)->riPool.getPools();
+    if (p[idx]->pregenId != pregen_id)
+      return;
+    if (p[idx]->useRiExtra())
+      return p[idx]->assureRiExtraCreated(x0, z0, x1, z1);
+    BBox2 box(x0, z0, x1, z1);
+    if (!p[idx]->precalculatedBox.isempty() && !(p[idx]->precalculatedBox & box))
+      return;
+    p[idx]->gatherRiTM(dest, dest_per_inst_data, add_per_inst_data, x0, z0, x1, z1);
+  }
+  static void exp_pregen_gather_tm_cb(Tab<TMatrix> &dest, Tab<int> &dest_per_inst_data, bool add_per_inst_data, int idx, int pregen_id,
     float x0, float z0, float x1, float z1)
   {
     if (idx < 0)
@@ -1820,7 +1947,7 @@ public:
     }
     else
     {
-      RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.pools, navmeshLayers.obstaclePools,
+      RendinstVertexDataCbEditor cb(vertices, indices, transparent, navmeshLayers.poolsToIgnore, navmeshLayers.obstaclePools,
         navmeshLayers.materialPools, navmeshLayers.obstaclesSettings, obstacles);
       rendinst::testObjToRendInstIntersection(box, cb, rendinst::GatherRiTypeFlag::RiGenAndExtra);
       cb.procFilteredCollision([&exclude_boxes](const rendinst::CollisionInfo &ci) {
@@ -1973,7 +2100,16 @@ public:
       }
     }
 
+    // set exp_pregen_gather_tm_cb (processes both riGen and riExtra) for rendinst::compute_rt_rigen_tight_ht_limits()
+    rendinst::set_rt_pregen_gather_cb(&pregen_gather_pos_cb, &exp_pregen_gather_tm_cb, &prepare_pool_mapping, &prepare_pools);
+    rendinst::enable_ri_extra_in_generation(false);
+
     exportGenEntities(fileBlk, main_cwr, poolsList, isDynamicImpostorList);
+
+    // restore pregen_gather_tm_cb after export done
+    rendinst::enable_ri_extra_in_generation(true);
+    rendinst::set_rt_pregen_gather_cb(&pregen_gather_pos_cb, &pregen_gather_tm_cb, &prepare_pool_mapping, &prepare_pools);
+
     fileBlk.reset();
     IObjEntityFilter::setSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER, sm_render);
     rendinst::discard_rigen_all();
@@ -2099,20 +2235,27 @@ public:
   // IDagorEdCustomCollider
   bool traceRay(const Point3 &p, const Point3 &dir, real &maxt, Point3 *norm) override
   {
+    using namespace rendinst;
     if (traceMode == 1)
     {
       if (dir.y < -0.999f)
       {
         Trace trace(p, Point3(0, -1, 0), maxt, nullptr);
-        rendinst::RendInstDesc ri_desc;
+        RendInstDesc ri_desc;
         bbox3f box;
         vec4f vFrom = *(vec3f *)&trace.pos.x;
         v_bbox3_init(box, vFrom);
         v_bbox3_add_pt(box, v_madd(*(vec4f *)&trace.dir.x, v_splat_w(vFrom), vFrom));
         v_bbox3_add_pt(box, v_add(vFrom, rayBoxExt.bmin));
         v_bbox3_add_pt(box, v_add(vFrom, rayBoxExt.bmax));
-        if (rendinst::traceDownMultiRay(make_span(&trace, 1), box, make_span(&ri_desc, 1), NULL, -1, rendinst::TraceFlag::Destructible,
-              {}, (navmeshLayers.pools.size() ? &navmeshLayers.pools : nullptr)))
+        TraceDownMutiRayIgnoreCbType poolFilter = [](const RendInstDesc &d) -> bool {
+          if (d.isRiExtra() && get_riextra_instance_seed(d.getRiExtraHandle()) == RI_SEED_COLLISION_IGNORE)
+            return true;
+
+          return navmeshLayers.poolsToIgnore.size() > 0 &&
+                 navmeshLayers.poolsToIgnore[rendinst::RendinstVertexDataCbBase::make_pool_id(d)];
+        };
+        if (traceDownMultiRay(make_span(&trace, 1), box, make_span(&ri_desc, 1), NULL, -1, TraceFlag::Destructible, poolFilter))
           if (trace.pos.outT > 0)
           {
             maxt = trace.pos.outT;
@@ -2125,7 +2268,7 @@ public:
       {
         Point3 dummyNorm;
         Point3 &resultNorm = norm ? *norm : dummyNorm;
-        return rendinst::traceRayRendInstsNormalized(p, dir, maxt, resultNorm, false, true);
+        return traceRayRendInstsNormalized(p, dir, maxt, resultNorm, false, true);
       }
       return false;
     }
@@ -2226,6 +2369,7 @@ protected:
   TMatrix lastCacheTM;
   MultiAcesRendInstEntityPool riPool;
   bool visible;
+  bool project_tmInst12x32bit = false, tmInst12x32bit_changeEnabled = true;
   int lastRendMask;
   uint64_t lastLayerHiddenMask;
   TEXTUREID treeTopProjectionTexId;
@@ -2249,12 +2393,13 @@ protected:
     float rendinstLandBlendAngleMin = sinf(rendinstLandBlendBlk->getReal("appearanceMinAngle", 12.f) / DEG_TO_RAD);
     float rendinstLandBlendAngleMax = sinf(rendinstLandBlendBlk->getReal("appearanceMaxAngle", 25.f) / DEG_TO_RAD);
     float rendinstLandBlendPerlinTexScale = rendinstLandBlendBlk->getReal("perlinTexScale", 0.25f);
-    ShaderGlobal::set_color4(get_shader_variable_id("rendinst_land_blend", true), rendinstLandBlendSharpness,
+    ShaderGlobal::set_float4(get_shader_variable_id("rendinst_land_blend", true), rendinstLandBlendSharpness,
       rendinstLandBlendAngleMin, rendinstLandBlendAngleMax, rendinstLandBlendPerlinTexScale);
   }
 
   void cleanRendinstLandscapeBlend()
   {
+    ShaderGlobal::set_texture(get_shader_variable_id("perlin_tex", true), BAD_TEXTUREID);
     release_managed_tex(landBlendNoiseTexId);
     landBlendNoiseTexId = BAD_TEXTUREID;
   }
@@ -2282,7 +2427,7 @@ protected:
     static int treeTopProjectionTexVarId = get_shader_variable_id("trees_top_projection_tex", true);
     ShaderGlobal::set_texture(treeTopProjectionTexVarId, treeTopProjectionTexId);
 
-    ShaderGlobal::set_color4(get_shader_variable_id("tree_top_projection_params", true), treeTopProjectionNormalY,
+    ShaderGlobal::set_float4(get_shader_variable_id("tree_top_projection_params", true), treeTopProjectionNormalY,
       treeTopProjectionSharpness, 0.f, 0.f);
   }
 
@@ -2320,6 +2465,18 @@ protected:
       }
 
     return total;
+  }
+
+  void showAndHideRiExtraInstancesOnLayerMaskChanges()
+  {
+    if (!rendinst::forceRiExtra)
+      return;
+
+    int subtypeMask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    for (auto *p : riPool.getPools())
+      if (p->useRiExtra())
+        p->showAndHideRiExtraInstancesOnLayerMaskChanges(subtypeMask, lh_mask);
   }
 
   static inline bool isMaskRefParam(const char *pname) { return pname[0] == 'm' && pname[1] >= '0' && pname[1] <= '9'; }
@@ -2455,6 +2612,7 @@ protected:
     dag::ConstSpan<bool> isDynamicImpostorList, int layer_idx)
   {
     static const int SUBCELL_DIV = 8;
+    static constexpr bool LOG_RI_EXPORT_AND_QUANTIZATION = false;
 
     rendinst::gen::RotationPaletteManager *rotationPaletteMgr = rendinst::gen::get_rotation_palette_manager();
     G_ASSERT(rotationPaletteMgr);
@@ -2589,7 +2747,9 @@ protected:
       float oy = cellHtLim[i].x;
       float oz = gridOfs.z + (i / ri_cw) * cell_xz_sz;
       rendinst::gen::InstancePackData packData{ox, oy, oz, cell_xz_sz, cell_y_sz, 0};
-      // debug("%d:%d,%d: cellHtLim[%d]=%@ oy=%.3f, cell_y_sz=%.3f", layer_idx, i%ri_cw, i/ri_cw, i, cellHtLim[i], oy, cell_y_sz);
+      if (LOG_RI_EXPORT_AND_QUANTIZATION)
+        debug("\n\n%d:%d,%d: cellHtLim[%d]=%@ oy=%.3f, cell_y_sz=%.3f, cell at xz=(%.0f,%.0f)\n", //
+          layer_idx, i % ri_cw, i / ri_cw, i, cellHtLim[i], oy, cell_y_sz, ox, oz);
 
       for (int j = 0; j < SUBCELL_DIV * SUBCELL_DIV; j++)
       {
@@ -2604,6 +2764,8 @@ protected:
             const int *ent_idx = ent.data();
             int poolId = find_value_idx(riPoolReMap, k);
             const TmpPool &pool = poolsList[poolId];
+            if (LOG_RI_EXPORT_AND_QUANTIZATION && cnt)
+              debug("ri[%d]=%s: %d inst", k, riPool.getPools()[poolId]->riResName, cnt);
             // TODO use a better writing method and try to move the writing code out of the if blocks
             if (pool.isPos)
               for (int m = 0; m < cnt; m++)
@@ -2624,8 +2786,12 @@ protected:
                 for (int i = 0; i < 4; ++i)
                   cell_cwr.writeInt16e(data[i]);
                 addPerInstData(cell_cwr, !pool.hasZeroInstSeeds, p.seed);
-                // debug("y=%.1f -> %04X -> %.1f", p.pos.y, int(clamp((p.pos.y - oy)/cell_y_sz, -1.f, 1.f) *32767.0),
-                //   int(clamp((p.pos.y - oy)/cell_y_sz, -1.f, 1.f) *32767.0)*cell_y_sz/32767.0+oy);
+                if (LOG_RI_EXPORT_AND_QUANTIZATION)
+                {
+                  float qy = data[1] * cell_y_sz / 32767.0 + oy;
+                  debug("  %sy=%.1f -> %04X -> %.1f (pos %@)", fabsf(qy - p.pos.y) > 0.10f ? "!" : "", //
+                    p.pos.y, uint16_t(data[1]), qy, p.pos);
+                }
               }
             else if (!rendinst::tmInst12x32bit)
               for (int m = 0; m < cnt; m++)
@@ -2637,8 +2803,12 @@ protected:
                 for (int i = 0; i < 12; ++i)
                   cell_cwr.writeInt16e(data[i]);
                 addPerInstData(cell_cwr, !pool.hasZeroInstSeeds, pool.entitiesTmList[ent_idx[m]].seed);
-                // debug("y=%.1f -> %04X -> %.1f", tm.m[3][1], int(clamp((tm.m[3][1] - oy)/cell_y_sz, -1.f, 1.f) *32767.0),
-                //   int(clamp((tm.m[3][1] - oy)/cell_y_sz, -1.f, 1.f) *32767.0)*cell_y_sz/32767.0+oy);
+                if (LOG_RI_EXPORT_AND_QUANTIZATION)
+                {
+                  float qy = float(data[7]) * cell_y_sz / 32767.0 + oy;
+                  debug("  %sy=%.1f -> %04X -> %.1f (tm %@)", fabsf(qy - tm.m[3][1]) > 0.10f ? "!" : "", //
+                    tm.m[3][1], uint16_t(data[7]), qy, tm.getcol(3));
+                }
               }
             else
               for (int m = 0; m < cnt; m++)
@@ -2650,6 +2820,12 @@ protected:
                 for (int i = 0; i < 12; ++i)
                   cell_cwr.writeInt32e(data[i]);
                 addPerInstData(cell_cwr, !pool.hasZeroInstSeeds, pool.entitiesTmList[ent_idx[m]].seed);
+                if (LOG_RI_EXPORT_AND_QUANTIZATION)
+                {
+                  float qy = float(data[7]) * cell_y_sz / 32767.0f / 65536.0f + oy;
+                  debug("  %sy=%.1f -> %04X -> %.1f (tm32 %@)", fabsf(qy - tm.m[3][1]) > 0.10f ? "!" : "", //
+                    tm.m[3][1], data[7], qy, tm.getcol(3));
+                }
               }
           }
       }
@@ -2933,7 +3109,7 @@ protected:
 
 int AcesRendInstEntity::getLodCount() { return pool->getPools()[poolIdx]->getLodCount(); }
 
-void AcesRendInstEntity::setCurLod(int n) { force_lod_no = n; }
+void AcesRendInstEntity::setCurLod(int n) { rendinst::set_global_forced_lod(n); }
 
 real AcesRendInstEntity::getLodRange(int lod_n) { return pool->getPools()[poolIdx]->getLodRange(lod_n); }
 
@@ -2963,13 +3139,44 @@ const char *AcesRendInstEntity::getResourceName()
   return pool->getPools()[poolIdx]->riResName;
 }
 
-int AcesRendInstEntity::getRIIndex() const
+int AcesRendInstEntity::getPregenId() const
 {
   G_ASSERT(pool);
   G_ASSERT(poolIdx < pool->getPools().size());
-  int layerIdx, riIdx;
-  rendinst::get_layer_idx_and_ri_idx_from_pregen_id(pool->getPools()[poolIdx]->pregenId, layerIdx, riIdx);
-  return riIdx;
+  return pool->getPools()[poolIdx]->pregenId;
+}
+
+bool AcesRendInstEntity::showRiExtraInstance(bool moved)
+{
+  if (tm.m[3][0] >= POS_NOT_INITED_XZ)
+    return true;
+  if (!moved && riexHandle != rendinst::RIEX_HANDLE_NULL)
+    return false;
+
+  auto riExtraIdx = getPool()->getRiExtraIdx();
+  mat44f m;
+  v_mat44_make_from_43cu(m, &tm.array[0]);
+  if (riexHandle == rendinst::RIEX_HANDLE_NULL)
+  {
+    riexHandle = rendinst::addRIGenExtra44(riExtraIdx, m, true, -1, -1, 1, &instSeed);
+    getPool()->pendingRiExtraCount--;
+    return true;
+  }
+
+  rendinst::moveRIGenExtra44(riexHandle, m, true, true);
+  if (autoInstSeed && riExtraRenderInited)
+    rendinst::set_riextra_instance_seed(riexHandle, instSeed);
+  if (is_main_thread())
+    rendinst::applyTiledScenesUpdateForRIGenExtra(1000, 0);
+  return false;
+}
+void AcesRendInstEntity::hideRiExtraInstance()
+{
+  if (riexHandle == rendinst::RIEX_HANDLE_NULL)
+    return;
+  rendinst::delRIGenExtra(riexHandle);
+  riexHandle = rendinst::RIEX_HANDLE_NULL;
+  getPool()->pendingRiExtraCount++;
 }
 
 bool AcesRendInstEntity::getRendInstQuantizedTm(TMatrix &out_tm) const
@@ -2998,19 +3205,25 @@ bool AcesRendInstEntity::getRendInstQuantizedTm(TMatrix &out_tm) const
 
 void AcesRendInstEntity::setTm(const TMatrix &_tm)
 {
-  if (memcmp(&tm, &_tm, sizeof(tm)) != 0)
-    rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], _tm[3][0], _tm[3][2]);
-  tm = _tm;
   if (autoInstSeed)
+    instSeed = instSeedStoreZeroForRandom ? 0 : mem_hash_fnv1((const char *)&_tm.m[3][0], 12);
+  if (memcmp(&tm, &_tm, sizeof(tm)) == 0)
+    return;
+
+  if (getPool()->useRiExtra())
   {
-    instSeed = instSeedStoreZeroForRandom ? 0 : mem_hash_fnv1((const char *)&tm.m[3][0], 12);
+    tm = _tm;
+    showRiExtraInstance(true);
+  }
+  else
+  {
+    rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], _tm[3][0], _tm[3][2]);
+    tm = _tm;
   }
 }
 void AcesRendInstEntity::setPerInstanceSeed(int seed)
 {
-  if (instSeed != seed)
-    rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], tm[3][0], tm[3][2]);
-
+  auto prev_seed = instSeed;
   if (seed)
     instSeed = seed, autoInstSeed = false;
   else
@@ -3018,11 +3231,30 @@ void AcesRendInstEntity::setPerInstanceSeed(int seed)
     instSeed = instSeedStoreZeroForRandom ? 0 : mem_hash_fnv1((const char *)&tm.m[3][0], 12);
     autoInstSeed = true;
   }
+
+  if (prev_seed != instSeed)
+  {
+    if (getPool()->useRiExtra())
+    {
+      if (!showRiExtraInstance(false) && riExtraRenderInited)
+      {
+        rendinst::set_riextra_instance_seed(riexHandle, instSeed);
+        rendinst::applyTiledScenesUpdateForRIGenExtra(1000, 0);
+      }
+    }
+    else
+      rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], tm[3][0], tm[3][2]);
+  }
 }
 void AcesRendInstEntity::destroy()
 {
-  rendinst::notify_ri_deleted(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2]);
+  AcesRendInstEntityPool *entPool = getPool();
+  if (entPool->useRiExtra())
+    hideRiExtraInstance();
+  else
+    rendinst::notify_ri_deleted(entPool->pregenId, tm[3][0], tm[3][2]);
   pool->delEntity(this);
+  entPool->pendingRiExtraCount--;
   instSeed = 0;
   autoInstSeed = true;
 }
@@ -3036,7 +3268,11 @@ void AcesRendInstEntity::setEditLayerIdx(int t)
 
   // Update the entity if it has been moved from a visible to an invisible layer (or vice versa).
   const unsigned newHidden = (lhMask >> editLayerIdx) & 1;
-  if (newHidden != oldHidden)
+  if (newHidden == oldHidden)
+    return;
+  if (getPool()->useRiExtra())
+    newHidden ? hideRiExtraInstance() : (void)showRiExtraInstance(false);
+  else
     rendinst::notify_ri_moved(pool->getPools()[poolIdx]->pregenId, tm[3][0], tm[3][2], tm[3][0], tm[3][2]);
 }
 
@@ -3080,8 +3316,8 @@ void generic_rendinstgen_service_set_callbacks(bool(__stdcall *get_height)(Point
     rendinst::set_rt_pregen_gather_cb(NULL, NULL, NULL, NULL);
 }
 
-void rimgr_set_force_lod_no(int lod_no) { force_lod_no = lod_no; }
-int rimgr_get_force_lod_no() { return force_lod_no; }
+void rimgr_set_force_lod_no(int lod_no) { rendinst::set_global_forced_lod(lod_no); }
+int rimgr_get_force_lod_no() { return rendinst::get_global_forced_lod(); }
 
 namespace rendinst::gen
 {

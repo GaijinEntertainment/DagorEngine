@@ -58,6 +58,7 @@ struct FuelTankProps
   int priority;
   bool external;
 };
+
 void reset(FuelTankProps &props);
 
 struct EngineMass
@@ -91,7 +92,6 @@ typedef uint64_t PartsPresenceFlags;
 
 struct MassInput
 {
-  float dumpFuelAmount;
   float consumeNitroAmount;
   Tab<PartMass> parts;
   float payloadCogMult;
@@ -101,9 +101,14 @@ struct MassInput
   carray<float, FuelTankProps::MAX_SYSTEMS> consumeFuelUnlimited;
   carray<float, FuelTankProps::MAX_TANKS> leakFuelAmount;
   float loadFactor;
+  bool fuelDumping;
+  bool afterburner;
   MassInput() = default;
   MassInput(IMemAlloc *a) : parts(a) {} //-V730
 };
+
+void set_allocator(MassInput &input, IMemAlloc *a);
+
 void reset(MassInput &input);
 
 struct MassOutput
@@ -114,6 +119,7 @@ struct MassOutput
   carray<float, FuelTankProps::MAX_SYSTEMS> availableFuelAmount;
   float availableNitroAmount;
 };
+
 void reset(MassOutput &output);
 
 struct MassProps
@@ -141,6 +147,12 @@ struct MassProps
   carray<FuelSystemProps, FuelTankProps::MAX_SYSTEMS> fuelSystemProps;
 };
 
+void set_allocator(MassProps &props, IMemAlloc *a);
+
+void reset(MassProps &props);
+
+void add_extra_mass(MassProps &props, float extra_mass);
+
 struct MassState
 {
   float mass;                    // Current mass
@@ -150,12 +162,12 @@ struct MassState
   Point3 centerOfGravity;
   DPoint3 momentOfInertiaNormMult; // Moment of inertia multiplier, caused by damage for example
   DPoint3 momentOfInertia;         // Current total J
-
+  bool dumpedFuelBurning;
 
   carray<FuelTankState, FuelTankProps::MAX_TANKS> fuelTankStates;
   carray<FuelSystemState, FuelTankProps::MAX_SYSTEMS> fuelSystemStates;
 };
-void reset(MassProps &props);
+
 void reset(MassState &state);
 
 void set_fuel_custom(const MassProps &props, MassState &state, float amount, bool internal, bool external, int fuel_system_num,
@@ -174,10 +186,12 @@ inline void set_fuel_external(const MassProps &props, MassState &state, float am
 void load_masses(MassProps &props, const DataBlock *parts_masses_blk, const DataBlock *surface_parts_masses_blk,
   const CollisionResource *collision, const NameMap &fuel_tank_names, const DataBlock &additional_masses);
 
-void post_load_masses(const MassProps &props, MassState &state, const CollisionResource *collision, int num_tanks_old);
+void apply(const MassProps &props, MassState &in_out_state);
 
 void load_save_override(MassProps &props, DataBlock *mass_blk, bool load, const CollisionResource *collision,
   const NameMap &fuel_tank_names, const DataBlock &additional_masses);
+
+int apply_modifications(MassProps &props, const DataBlock &mod_blk, float mod_effect);
 
 struct Mass
 {
@@ -192,7 +206,7 @@ public:
 
   float calcConsumptionLimit(int fuel_system_num, float load_factor, float dt) const;
 
-  Mass();
+  Mass(IMemAlloc *a);
 
   const MassOutput &getOutput() const { return output; }
   const MassProps &getProps() const { return props; };
@@ -215,13 +229,18 @@ public:
   void load(const DataBlock *mass_blk, const int crewNum, const CollisionResource *collision, const NameMap &fuel_tank_names,
     const DataBlock &additional_masses);
 
+  inline void setProps(const MassProps &props_in) { props = props_in; }
+
   void loadSaveOverride(DataBlock *mass_blk, bool load, const CollisionResource *collision, const NameMap &fuel_tank_names,
     const DataBlock &additional_masses);
+
+  int applyModifications(const DataBlock &mod_blk, float mod_effect);
 
   void repair();
 
   // simulate
-  const MassOutput &simulate(const MassInput &input, float dt = 0.f);
+  void apply(const MassInput &input);
+  const MassOutput &simulate(const MassInput &input, float dt);
 
 private:
   float consumeFuelAmount(float amount, bool limited_fuel, int fuel_system_num, float load_factor, float dt);
@@ -253,7 +272,6 @@ public:
   void addExtraMass(float extra_mass);
 
   void setMass(float mass) { state.mass = mass; };
-
 
   void setPayloadMass(float payload_mass) { state.payloadMass = payload_mass; };
 
@@ -297,6 +315,12 @@ public:
   void setFuelTankCapacity(int idx, float capacity) { props.fuelTankProps[idx].capacity = capacity; };
 
   void setFuelSystemMaxFuel(int idx, float max_fuel) { props.fuelSystemProps[idx].maxFuel = max_fuel; };
+
+  inline void setDumpedFuel(float dumped_fuel_amount, bool dumped_fuel_burning)
+  {
+    output.dumpedFuelAmount = dumped_fuel_amount;
+    state.dumpedFuelBurning = dumped_fuel_burning;
+  }
 
   // state get
 

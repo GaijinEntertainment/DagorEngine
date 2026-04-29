@@ -1,0 +1,10 @@
+if $(Platform) in windows xboxOne scarlett linux macOS android ios ps4 ps5 && $(Config) != rel && $(ForceDisableNetImgui) != yes {
+  CPPopt += -DADD_NET_IMGUI ;
+  AddIncludes +=
+    $(Root)/prog/3rdPartyLibs/netImgui
+    $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
+  ;
+  if $(Platform) in ps4 ps5 { UseProgLibs += engine/imgui/netImgui ; }
+  else { UseProgLibs += 3rdPartyLibs/netImgui ; }
+  UseProgLibs += 3rdPartyLibs/arc/zstd-$(ZstdVer) ;
+}

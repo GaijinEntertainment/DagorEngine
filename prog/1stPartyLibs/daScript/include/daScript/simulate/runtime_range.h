@@ -39,7 +39,6 @@ namespace das
             vec4f ll = subexpr->eval(context);
             TRange r = cast<TRange>::to(ll);
             char * iter = context.allocateIterator(sizeof(RangeIterator<TRange>),"range iterator", &debugInfo);
-            if ( !iter ) context.throw_out_of_memory(false, sizeof(RangeIterator<TRange>) + 16, &debugInfo);
             new (iter) RangeIterator<TRange>(r, &debugInfo);
             return cast<char *>::from(iter);
         }

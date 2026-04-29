@@ -220,11 +220,13 @@ void ShadingResolver::recreateTileBuffersIfNeeded(const int w, const int h)
   {
     eastl::string resource_name;
     resource_name.sprintf("tiles_buffer #%i", i);
-    tileBufs.emplace_back(dag::buffers::create_ua_sr_byte_address(new_tiles_w * new_tiles_h, resource_name.c_str()));
+    tileBufs.emplace_back(dag::buffers::create_ua_sr_byte_address(new_tiles_w * new_tiles_h, resource_name.c_str(),
+      d3d::buffers::Init::No, RESTAG_TARGET));
   }
-  tileCounters = dag::buffers::create_ua_sr_byte_address(RESOLVE_GBUFFER_MAX_PERMUTATIONS, "tile_counters");
-  indirectArguments =
-    dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, RESOLVE_GBUFFER_MAX_PERMUTATIONS, "tile_indirect_arguments");
+  tileCounters =
+    dag::buffers::create_ua_sr_byte_address(RESOLVE_GBUFFER_MAX_PERMUTATIONS, "tile_counters", d3d::buffers::Init::No, RESTAG_TARGET);
+  indirectArguments = dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, RESOLVE_GBUFFER_MAX_PERMUTATIONS,
+    "tile_indirect_arguments", RESTAG_TARGET);
 
   tiles_w = new_tiles_w;
   tiles_h = new_tiles_h;
@@ -246,7 +248,7 @@ void ShadingResolver::debugTiles(BaseTexture *resolveTarget)
 
   for (int i = 0; i < RESOLVE_GBUFFER_MAX_PERMUTATIONS; ++i)
   {
-    ShaderGlobal::set_color4(debug_colorVarId, debug_colors[i]);
+    ShaderGlobal::set_float4(debug_colorVarId, debug_colors[i]);
 
     ShaderGlobal::set_buffer(tileCoordinatesVarId, tileBufs[i]);
     debugTilesCS->dispatch_indirect(indirectArguments.getBuf(), i * 3 * sizeof(uint32_t));
@@ -279,11 +281,11 @@ void DeferredRenderTarget::resolve(BaseTexture *resolveTarget, const TMatrix &vi
   shadingResolver.resolve(resolveTarget, view_tm, proj_tm, depth_bounds_tex, clear_target, gbufferTm, resolve_area);
 }
 
-void DeferredRenderTarget::debugRender(int mode)
+void DeferredRenderTarget::debugRender(BaseTexture *depth, int mode)
 {
   if (debugRenderer.getMat() == NULL)
     debugRenderer = PostFxRenderer(DEBUG_RENDER_GBUFFER_SHADER_NAME);
-  debug_render_gbuffer(debugRenderer, renderTargets, mode);
+  debug_render_gbuffer(debugRenderer, renderTargets, depth, mode);
 }
 
 void DeferredRenderTarget::debugRenderVectors(int mode, int vec_count, int vec_scale)

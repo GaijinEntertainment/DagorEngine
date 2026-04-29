@@ -24,7 +24,7 @@ function draggable(data) {
       borderColor = Color(255,180,50)
       opacity = (sf & S_DRAG) ? 0.5 : 1.0
       size = itemSize
-      transform = {}
+      transform = true
       behavior = [Behaviors.DragAndDrop]
       clipChildren = true
       children = { rendObj = ROBJ_TEXT text=data hplace=ALIGN_CENTER vplace=ALIGN_CENTER}
@@ -68,7 +68,7 @@ function target(label, color, can_drop) {
       size = itemSize
 
       watch = draggedData
-      transform = {}
+      transform = true
       behavior = Behaviors.DragAndDrop
       onDrop = function(data) {
         vlog($"{label} box: dropped data = {data}")

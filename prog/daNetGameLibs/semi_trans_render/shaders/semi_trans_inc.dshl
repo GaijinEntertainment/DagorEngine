@@ -7,16 +7,17 @@ macro SEMI_TRANS_PS()
       float NdotV = max(0, dot(view, input.normal));
       float opacity = 1.0 - NdotV;
 ##if (shader == rendinst_semi_trans)
-      float3 color = placing_color;
+      float3 color = placing_color.rgb;
       ##if (diffuse_rendinst_tex != NULL)
         color *= dot(tex2D(diffuse_rendinst_tex, input.diffuseTexcoord).rgb, float3(0.2126, 0.7152, 0.0722));
       ##else
         color *= opacity;
       ##endif
 ##else// if (shader == dynamic_semi_trans)
-      float3 color = opacity * input.placingColor;
+      float4 placing_color = input.placingColor; // Compatibility with rendinst_semi_trans.
+      float3 color = opacity * placing_color.rgb;
 ##endif
-      return float4(pack_hdr(color), opacity);
+      return float4(pack_hdr(color), opacity * placing_color.a);
     }
   }
   compile("target_ps", "semi_trans_ps");

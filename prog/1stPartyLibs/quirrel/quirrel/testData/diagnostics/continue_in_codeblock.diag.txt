@@ -1,0 +1,9 @@
+ERROR: 'continue' has to be in a loop block
+testData/diagnostics/continue_in_codeblock.nut:3:2
+
+let x = $${
+  continue
+  ^-------
+  return 1
+
+

@@ -1,12 +1,16 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ecs/render/decalsES.h>
 
-ECS_REGISTER_RELOCATABLE_TYPE(ResizableDecals, nullptr)
-ECS_REGISTER_RELOCATABLE_TYPE(RingBufferDecals, nullptr)
+ECS_REGISTER_RELOCATABLE_TYPE(ResizableDecalManager, nullptr)
+ECS_REGISTER_RELOCATABLE_TYPE(RingBufferDecalManager, nullptr)
 ECS_REGISTER_BOXED_TYPE(DecalsMatrices, nullptr)
 
 ECS_TRACK(transform)

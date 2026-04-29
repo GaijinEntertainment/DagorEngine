@@ -16,6 +16,7 @@
 #include <osApiWrappers/dag_threads.h>
 #include <debug/dag_debug.h>
 #include <unistd.h>
+#include <signal.h>
 #include "dag_addBasePathDef.h"
 #include "dag_loadSettings.h"
 #include <workCycle/dag_workCycle.h>
@@ -34,9 +35,27 @@
 #include <osApiWrappers/dag_atomic_types.h>
 #include <mutex>
 
+
+#ifdef DAGOR_ANDROID_DEBUG_TAG
+#define debug(...) logmessage(_MAKE4C(DAGOR_ANDROID_DEBUG_TAG), __VA_ARGS__)
+#endif
+
+
 const size_t ANDROID_ROTATED_LOGS = 3;
 
 #define AWINDOW_FLAG_KEEP_SCREEN_ON 0x00000080
+
+#ifndef DAGOR_ANDROID_EXIT_ON_CMD_DESTROY
+#define DAGOR_ANDROID_EXIT_ON_CMD_DESTROY 1
+#endif
+
+#ifndef DAGOR_ALLOW_INTENT_ARGUMENTS
+#if DAGOR_DBGLEVEL > 0
+#define DAGOR_ALLOW_INTENT_ARGUMENTS 1
+#else
+#define DAGOR_ALLOW_INTENT_ARGUMENTS 0
+#endif
+#endif
 
 void DagorWinMainInit(int nCmdShow, bool debugmode);
 int DagorWinMain(int nCmdShow, bool debugmode);
@@ -65,6 +84,7 @@ extern intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 
 const char *dagor_android_internal_path = NULL;
 const char *dagor_android_external_path = NULL;
+static SimpleString dagor_android_external_path_jni; // JNI fallback for externalDataPath
 const DataBlock *dagor_android_preload_settings_blk = &DataBlock::emptyBlock;
 
 SimpleString dagor_android_self_pkg_name, dagor_android_self_pkg_ver_name;
@@ -315,9 +335,12 @@ struct DagorMainThread final : public DaThread
   {
     DagorHwException::setHandler("main");
 
+    // writing to a socket closed by the peer leads to SIGPIPE, process will exit if it is not ignored
+    signal(SIGPIPE, SIG_IGN);
+
     default_crt_init_kernel_lib();
 
-    if (dagor_android_external_path)
+    if (dagor_android_external_path && dagor_android_external_path[0])
     {
       char path[DAGOR_MAX_PATH];
       strcpy(path, dagor_android_external_path);
@@ -332,6 +355,13 @@ struct DagorMainThread final : public DaThread
     default_crt_init_core_lib();
     while (!win32_get_main_wnd())
     {
+      // Activity was destroyed before window was created
+      if (!win32_get_instance())
+      {
+        debug("Activity was destroyed before window was created, exiting...");
+        return;
+      }
+
       dagor_idle_cycle(false);
       debug("waiting for window to be inited...");
       sleep_msec(100);
@@ -723,6 +753,58 @@ SimpleString get_library_name(JavaVM *jvm, jobject activity)
 #undef JNI_ASSERT
 }
 
+SimpleString get_external_files_dir(JavaVM *jvm, jobject activity)
+{
+  JNIEnv *jni;
+  android::attach_current_thread(jvm, &jni, NULL);
+
+  jclass ourActivity = jni->GetObjectClass(activity);
+  if (jni->ExceptionCheck() || !ourActivity)
+  {
+    if (jni->ExceptionCheck())
+      jni->ExceptionClear();
+    jvm->DetachCurrentThread();
+    return SimpleString("");
+  }
+
+  // Activity.getExternalFilesDir(null) returns the app-specific external files directory
+  jmethodID getExternalFilesDir = jni->GetMethodID(ourActivity, "getExternalFilesDir", "(Ljava/lang/String;)Ljava/io/File;");
+  if (jni->ExceptionCheck() || !getExternalFilesDir)
+  {
+    if (jni->ExceptionCheck())
+      jni->ExceptionClear();
+    jvm->DetachCurrentThread();
+    return SimpleString("");
+  }
+
+  jobject fileObj = jni->CallObjectMethod(activity, getExternalFilesDir, (jstring)NULL);
+  if (jni->ExceptionCheck() || !fileObj)
+  {
+    if (jni->ExceptionCheck())
+      jni->ExceptionClear();
+    jvm->DetachCurrentThread();
+    return SimpleString("");
+  }
+
+  jclass fileClass = jni->FindClass("java/io/File");
+  jmethodID getAbsolutePath = jni->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+  jstring pathStr = (jstring)jni->CallObjectMethod(fileObj, getAbsolutePath);
+
+  if (jni->ExceptionCheck() || !pathStr)
+  {
+    if (jni->ExceptionCheck())
+      jni->ExceptionClear();
+    jvm->DetachCurrentThread();
+    return SimpleString("");
+  }
+
+  const char *pathUTF = jni->GetStringUTFChars(pathStr, NULL);
+  SimpleString ret(pathUTF);
+  jni->ReleaseStringUTFChars(pathStr, pathUTF);
+  jvm->DetachCurrentThread();
+  return ret;
+}
+
 SimpleString get_logs_folder(JavaVM *jvm, jobject activity)
 {
 #define JNI_ASSERT(jni, cond)         \
@@ -878,9 +960,13 @@ static void android_looper_poll_all_blocking()
     if (app->destroyRequested != 0)
     {
       push_android_command_and_wait(APP_CMD_DESTROY);
-      android_native_app_destroy(app);
       debug("--- application destroyed ---");
+
+#if DAGOR_ANDROID_EXIT_ON_CMD_DESTROY
+      android_native_app_destroy(app);
       _exit(0);
+#endif
+
       return;
     }
   }
@@ -893,9 +979,19 @@ void android_main(struct android_app *state)
   jobject activityObj = android::get_activity_class(state->activity);
   SimpleString logsFolder = get_logs_folder(jvm, activityObj);
 
+  // Resolve external data path: use ANativeActivity field, fall back to JNI on Android 16+
+  // where ANativeActivity::externalDataPath may be null or empty.
+  const char *externalDataPath = state->activity->externalDataPath;
+  if (!externalDataPath || !externalDataPath[0])
+  {
+    dagor_android_external_path_jni = get_external_files_dir(jvm, activityObj);
+    if (!dagor_android_external_path_jni.empty())
+      externalDataPath = dagor_android_external_path_jni.c_str();
+  }
+
   SimpleString libraryName = get_library_name(jvm, activityObj);
-  setup_debug_system((libraryName == "") ? "run" : libraryName,
-    logsFolder.empty() ? state->activity->externalDataPath : logsFolder.c_str(), DAGOR_DBGLEVEL > 0, ANDROID_ROTATED_LOGS);
+  setup_debug_system((libraryName == "") ? "run" : libraryName, logsFolder.empty() ? externalDataPath : logsFolder.c_str(),
+    DAGOR_DBGLEVEL > 0, ANDROID_ROTATED_LOGS);
 
   g_android_joystick_events_free.set();
 
@@ -909,7 +1005,12 @@ void android_main(struct android_app *state)
   measure_cpu_freq();
 
   dagor_android_internal_path = state->activity->internalDataPath;
-  dagor_android_external_path = state->activity->externalDataPath;
+  dagor_android_external_path = externalDataPath;
+
+  if (externalDataPath != state->activity->externalDataPath)
+    debug("MAIN Android: externalDataPath was empty, resolved via JNI: %s", dagor_android_external_path);
+  if (!dagor_android_external_path || !dagor_android_external_path[0])
+    logerr("MAIN Android: external files dir is empty, file operations will fail");
 
   SimpleString defaultLibName{"android-native-app"};
 
@@ -928,7 +1029,7 @@ void android_main(struct android_app *state)
   const char *libname = !libraryName.empty() ? libraryName.c_str() : defaultLibName.c_str();
   copyArg(libname, ::strlen(libname));
 
-#if DAGOR_DBGLEVEL > 0
+#if DAGOR_ALLOW_INTENT_ARGUMENTS
   SimpleString intentArguments = get_intent_arguments(jvm, activityObj);
   debug("intentArguments: %s", intentArguments.c_str());
 
@@ -951,8 +1052,11 @@ void android_main(struct android_app *state)
 #if defined(DEBUG_ANDROID_CMDLINE_FILE)
   read_argv_from_file(DEBUG_ANDROID_CMDLINE_FILE, argc, argv);
 #endif
-
-  dgs_init_argv(argc, argv);
+  char **argvptr = argv;
+#if defined OPTIONAL_ADD_ARGS
+  OPTIONAL_ADD_ARGS(argc, argvptr);
+#endif
+  dgs_init_argv(argc, argvptr);
 
   dgs_report_fatal_error = messagebox_report_fatal_error;
 
@@ -1061,7 +1165,7 @@ void android_main(struct android_app *state)
     dagor_android_scr_yres / dagor_android_scr_ydpi * 2.54);
 
   dagor_command_thread_looper = ALooper_forThread();
-  debug("Androd: dagor_command_thread_looper: %p", dagor_command_thread_looper);
+  debug("Android: dagor_command_thread_looper: %p", dagor_command_thread_looper);
 
   g_dagor_main_thread.start();
 
@@ -1120,10 +1224,10 @@ void dagor_process_sys_messages(bool /*input_only*/)
   free_android_joystick_events(inputCalls, inputCallsSize);
 }
 
-void dagor_idle_cycle(bool input_only)
+void dagor_idle_cycle(bool input_only, bool is_work_cycle)
 {
   TIME_PROFILE(dagor_idle_cycle);
-  perform_regular_actions_for_idle_cycle();
+  perform_regular_actions_for_idle_cycle(is_work_cycle);
   dagor_process_sys_messages(input_only);
 }
 

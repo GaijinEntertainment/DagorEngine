@@ -28,6 +28,7 @@ UseProgLibs =
   engine/image
   tools/libTools/util
   tools/libTools/dtx
+  engine/perfMon/daProfilerStub
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

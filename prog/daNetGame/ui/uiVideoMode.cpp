@@ -3,7 +3,7 @@
 #include <sqrat.h>
 
 #include "uiVideoMode.h"
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 #include <util/dag_parseResolution.h>
 #include <math/dag_mathUtils.h>
@@ -12,16 +12,19 @@
 #include <generic/dag_sort.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_dataBlockUtils.h>
-#include <osApiWrappers/dag_miscApi.h>
+#include <osApiWrappers/dag_winVersionQuery.h>
 #include <startup/dag_globalSettings.h>
 #include <frameTimeMetrics/aggregator.h>
 
 #include "main/main.h"
 #include "main/settings.h"
+#include "squirrel.h"
+#include "ui/userUi.h"
 #include <daRg/dag_guiScene.h>
 
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <3d/dag_nvFeatures.h>
 #include <gui/dag_guiStartup.h>
@@ -35,6 +38,8 @@
 #include <main/settingsOverride.h>
 #include <daGI2/settingSupport.h>
 #include <render/world/bvh.h>
+#include <render/antialiasing.h>
+#include <render/autoGraphics.h>
 
 namespace ui
 {
@@ -63,7 +68,7 @@ static inline void make_resolution(HSQUIRRELVM vm, Sqrat::Array &out, int index,
 static SQInteger get_video_modes(HSQUIRRELVM vm)
 {
 #if _TARGET_PC
-  const SQChar *displayName; // SQChar is defined as char (at this point probably always)
+  const char *displayName;
   sq_getstring(vm, SQInteger(2), &displayName);
 
   Tab<String> strList(framemem_ptr());
@@ -212,7 +217,7 @@ static SQInteger get_available_monitors(HSQUIRRELVM vm)
 
 static SQInteger get_monitor_info(HSQUIRRELVM vm)
 {
-  const SQChar *displayName; // SQChar is defined as char (at this point probably always)
+  const char *displayName;
   sq_getstring(vm, SQInteger(2), &displayName);
 #if _TARGET_PC
   if (displayName)
@@ -255,31 +260,7 @@ static void apply_video_settings_sq(Sqrat::Array changed_fields)
 
 static SQInteger is_fullscreen_enabled(HSQUIRRELVM vm)
 {
-  Sqrat::Var<SQChar *> e(vm, 1);
   sq_pushbool(vm, dgs_get_window_mode() == WindowMode::FULLSCREEN_EXCLUSIVE);
-  return 1;
-}
-
-static SQInteger get_dlss_state(HSQUIRRELVM vm)
-{
-  nv::Streamline *streamline = nullptr;
-  d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
-  sq_pushinteger(vm, eastl::to_underlying(streamline ? streamline->getDlssState() : nv::DLSS::State::DISABLED));
-  return 1;
-}
-
-static SQInteger get_xess_state(HSQUIRRELVM vm)
-{
-  int xessState = d3d::driver_command(Drv3dCommand::GET_XESS_STATE);
-  sq_pushinteger(vm, xessState);
-  return 1;
-}
-
-
-static SQInteger get_fsr2_state(HSQUIRRELVM vm)
-{
-  int fsr2State = d3d::driver_command(Drv3dCommand::GET_FSR2_STATE, nullptr, nullptr, nullptr);
-  sq_pushinteger(vm, fsr2State);
   return 1;
 }
 
@@ -297,88 +278,75 @@ static SQInteger get_current_window_resolution(HSQUIRRELVM vm)
   return 1;
 }
 
-static SQInteger get_dlssg_support_state(HSQUIRRELVM vm)
+static SQInteger get_antialiasing_options(HSQUIRRELVM vm)
 {
-  nv::Streamline *streamline = nullptr;
-  d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
+  const char *options = render::antialiasing::get_available_methods(false, false);
 
-  sq_pushinteger(vm, eastl::to_underlying(streamline ? streamline->isDlssGSupported() : nv::SupportState::NotSupported));
+  sq_pushstring(vm, options, -1);
+
   return 1;
 }
 
-static SQInteger set_dlssg_suppressed(HSQUIRRELVM vm)
+static SQInteger set_frame_generation_suppressed(HSQUIRRELVM vm)
 {
   SQBool suppressed;
   sq_getbool(vm, SQInteger(2), &suppressed);
 
-  nv::Streamline *streamline = nullptr;
-  d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
-
-  nv::DLSSFrameGeneration *dlssg = streamline ? streamline->getDlssGFeature(0) : nullptr;
-
-  if (dlssg)
-    dlssg->setSuppressed(suppressed);
+  render::antialiasing::suppress_frame_generation(suppressed);
 
   return 1;
 }
 
-static SQInteger get_dlssg_maximum_number_of_frames_generated(HSQUIRRELVM vm)
+static SQInteger get_antialiasing_upscaling_options(HSQUIRRELVM vm)
 {
-  nv::Streamline *streamline = nullptr;
-  d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
+  const char *method = nullptr;
+  sq_getstring(vm, SQInteger(2), &method);
 
-  sq_pushinteger(vm, streamline ? streamline->getMaximumNumberOfGeneratedFrames() : 0);
+  const char *options = render::antialiasing::get_available_upscaling_options(method);
+
+  sq_pushstring(vm, options, -1);
+
   return 1;
 }
 
-static SQInteger is_dlss_quality_available_at_resolution(HSQUIRRELVM vm)
+static SQInteger get_supported_generated_frames(HSQUIRRELVM vm)
 {
-  SQInteger targetWidth = 0, targetHeight = 0, dlssQuality = 0;
-  sq_getinteger(vm, 2, &targetWidth);
-  sq_getinteger(vm, 3, &targetHeight);
-  sq_getinteger(vm, 4, &dlssQuality);
+  const char *method = nullptr;
+  sq_getstring(vm, SQInteger(2), &method);
 
-  // DLAA being not a real preset is always available
-  if (nv::DLSS::Mode(dlssQuality) == nv::DLSS::Mode::DLAA)
-  {
-    sq_pushbool(vm, true);
-    return 1;
-  }
+  SQBool exclusiveFullscreen = false;
+  sq_getbool(vm, SQInteger(3), &exclusiveFullscreen);
 
-  bool available = false;
+  sq_pushinteger(vm, render::antialiasing::get_supported_generated_frames(method, exclusiveFullscreen));
 
-  nv::Streamline *streamline = nullptr;
-  d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
-  if (streamline)
-  {
-    available = streamline->isDlssModeAvailableAtResolution(nv::DLSS::Mode(dlssQuality), IPoint2(targetWidth, targetHeight));
-  }
-
-  sq_pushbool(vm, available);
   return 1;
 }
 
-static SQInteger is_xess_quality_available_at_resolution(HSQUIRRELVM vm)
+static SQInteger get_frame_generation_unsupported_reason(HSQUIRRELVM vm)
 {
-  SQInteger targetWidth = 0, targetHeight = 0, xessQuality = 0;
-  sq_getinteger(vm, 2, &targetWidth);
-  sq_getinteger(vm, 3, &targetHeight);
-  sq_getinteger(vm, 4, &xessQuality);
+  const char *method = nullptr;
+  sq_getstring(vm, SQInteger(2), &method);
 
-  IPoint2 targetResolution(targetWidth, targetHeight);
-  int xessQualityInt = xessQuality;
-  bool available = d3d::driver_command(Drv3dCommand::IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTION, &targetResolution, &xessQualityInt);
+  SQBool exclusiveFullscreen = false;
+  sq_getbool(vm, SQInteger(3), &exclusiveFullscreen);
 
-  sq_pushbool(vm, available);
+  const char *reason = render::antialiasing::get_frame_generation_unsupported_reason(method, exclusiveFullscreen);
+
+  if (reason)
+    sq_pushstring(vm, reason, -1);
+  else
+    sq_pushnull(vm);
+
   return 1;
 }
 
-static SQInteger is_dlss_ray_reconstruction_available(HSQUIRRELVM vm)
+static SQInteger is_dlss_rr_supported(HSQUIRRELVM vm)
 {
   nv::Streamline *streamline = nullptr;
   d3d::driver_command(Drv3dCommand::GET_STREAMLINE, &streamline);
+  bool supported = streamline && streamline->isDlssRRSupported() == nv::SupportState::Supported;
 
-  sq_pushbool(vm, streamline && streamline->isDlssRRSupported() == nv::SupportState::Supported);
+  sq_pushbool(vm, supported);
   return 1;
 }
 
@@ -406,8 +374,8 @@ static SQInteger get_performance_display_mode_support(HSQUIRRELVM vm)
 
 static SQInteger is_inline_rt_supported(HSQUIRRELVM vm)
 {
-  auto &caps = d3d::get_driver_desc();
-  bool inlineRTSupported = caps.caps.hasRayQuery;
+  auto &caps = d3d::get_driver_desc().caps;
+  bool inlineRTSupported = caps.hasRayQuery;
   sq_pushbool(vm, inlineRTSupported);
   return 1;
 }
@@ -428,16 +396,20 @@ static SQInteger is_vulkan(HSQUIRRELVM vm)
 
 static SQInteger is_gui_driver_select_enabled(HSQUIRRELVM vm)
 {
-  auto winVer = get_windows_version();
+#if _TARGET_PC_WIN
+  auto winVer = *get_windows_version(true);
   const DataBlock &blk_video = *dgs_get_settings()->getBlockByNameEx("video");
-  bool enabled = winVer.MajorVersion >= 10 ? blk_video.getBool("guiDriverSelectEnabled", false) : false;
+  bool enabled = winVer.major >= 10 ? blk_video.getBool("guiDriverSelectEnabled", false) : false;
+#else
+  constexpr bool enabled = false;
+#endif
   sq_pushbool(vm, enabled);
   return 1;
 }
 
 static SQInteger is_hdr_available(HSQUIRRELVM vm)
 {
-  const SQChar *displayName = nullptr; // SQChar is defined as char (at this point probably always)
+  const char *displayName = nullptr;
   sq_getstring(vm, SQInteger(2), &displayName);
 
   bool available = d3d::driver_command(Drv3dCommand::IS_HDR_AVAILABLE, (void *)displayName);
@@ -507,6 +479,12 @@ static SQInteger is_rt_supported_sq(HSQUIRRELVM vm)
   return 1;
 }
 
+static SQInteger rt_support_error_code_sq(HSQUIRRELVM vm)
+{
+  sq_pushinteger(vm, rt_support_error_code());
+  return 1;
+}
+
 static SQInteger is_nvidia_gpu(HSQUIRRELVM vm)
 {
   bool isNvidia = d3d::get_driver_desc().info.vendor == GpuVendor::NVIDIA;
@@ -534,21 +512,20 @@ void bind_script(SqModules *moduleMgr)
   Sqrat::Table aTable(moduleMgr->getVM());
   aTable //
     .Func("apply_video_settings", apply_video_settings_sq)
-    .SquirrelFunc("get_video_modes", get_video_modes, 2)
+    .SquirrelFunc("get_video_modes", get_video_modes, 2, ".s")
     .SquirrelFunc("get_available_monitors", get_available_monitors, 1)
-    .SquirrelFunc("get_monitor_info", get_monitor_info, 2)
+    .SquirrelFunc("get_monitor_info", get_monitor_info, 2, ".s")
     .SquirrelFunc("get_current_window_resolution", get_current_window_resolution, 1)
     .SquirrelFunc("is_fullscreen_enabled", is_fullscreen_enabled, 1)
-    .SquirrelFunc("get_dlss_state", get_dlss_state, 1)
-    .SquirrelFunc("get_xess_state", get_xess_state, 1)
-    .SquirrelFunc("get_fsr2_state", get_fsr2_state, 1)
-    .SquirrelFunc("get_dlssg_support_state", get_dlssg_support_state, 1)
-    .SquirrelFunc("set_dlssg_suppressed", set_dlssg_suppressed, 2)
-    .SquirrelFunc("get_dlssg_maximum_number_of_frames_generated", get_dlssg_maximum_number_of_frames_generated, 1)
-    .SquirrelFunc("is_dlss_quality_available_at_resolution", is_dlss_quality_available_at_resolution, 4)
-    .SquirrelFunc("is_xess_quality_available_at_resolution", is_xess_quality_available_at_resolution, 4)
-    .SquirrelFunc("is_dlss_ray_reconstruction_available", is_dlss_ray_reconstruction_available, 1)
-    .SquirrelFunc("get_performance_display_mode_support", get_performance_display_mode_support, 2)
+    .SquirrelFunc("set_frame_generation_suppressed", set_frame_generation_suppressed, 2, ".b")
+    .SquirrelFunc("get_antialiasing_options", get_antialiasing_options, 1)
+    .SquirrelFunc("get_antialiasing_upscaling_options", get_antialiasing_upscaling_options, 2, ".s")
+    .SquirrelFunc("get_supported_generated_frames", get_supported_generated_frames, 3, ".sb")
+    .SquirrelFunc("get_frame_generation_unsupported_reason", get_frame_generation_unsupported_reason, 3, ".sb")
+    .SquirrelFunc("get_performance_display_mode_support", get_performance_display_mode_support, 2, ".i")
+    .Func("get_auto_selected_antialiasing_method", auto_graphics::auto_antialiasing::get_auto_selected_method)
+    .Func("get_settings_override_for_auto_resolution", auto_graphics::auto_resolution::get_antialiasing_settings)
+    .Func("should_use_upscaling_method", auto_graphics::auto_antialiasing::should_use_upscaling_method)
     .SquirrelFunc("get_low_latency_modes", get_low_latency_modes, 1)
     .SquirrelFunc("is_nvidia_gpu", is_nvidia_gpu, 1)
     .SquirrelFunc("is_amd_gpu", is_amd_gpu, 1)
@@ -568,6 +545,8 @@ void bind_script(SqModules *moduleMgr)
     .SquirrelFunc("is_only_low_gi_supported", is_only_low_gi_supported_sq, 1)
     .SquirrelFunc("is_hfr_supported", is_hfr_supported, 1)
     .SquirrelFunc("is_rt_supported", is_rt_supported_sq, 1)
+    .SquirrelFunc("rt_support_error_code", rt_support_error_code_sq, 1)
+    .SquirrelFunc("is_dlss_rr_supported", is_dlss_rr_supported, 1)
     /**/;
   moduleMgr->addNativeModule("videomode", aTable);
 }

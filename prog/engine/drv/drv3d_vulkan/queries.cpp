@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "queries.h"
-#include "device_context_cmd.h"
 #include "globals.h"
 #include "backend.h"
 #include "frame_info.h"

@@ -60,7 +60,7 @@ inline ResourceDescription set_tex_desc_resolution(const ResourceDescription &de
       copy.asTexRes.width = resolution.x;
       copy.asTexRes.height = resolution.y;
       if (automip)
-        copy.asCubeTexRes.mipLevels = auto_mip_levels_count(resolution.x, resolution.y, 1);
+        copy.asTexRes.mipLevels = auto_mip_levels_count(resolution.x, resolution.y, 1);
       break;
     default: G_ASSERT(false); // impossible situation
   }
@@ -77,7 +77,7 @@ inline ResourceDescription set_tex_desc_resolution(const ResourceDescription &de
       copy.asVolTexRes.height = resolution.y;
       copy.asVolTexRes.depth = resolution.z;
       if (automip)
-        copy.asCubeTexRes.mipLevels = auto_mip_levels_count(resolution.x, resolution.y, resolution.z, 1);
+        copy.asVolTexRes.mipLevels = auto_mip_levels_count(resolution.x, resolution.y, resolution.z, 1);
       break;
     default: G_ASSERT(false); // impossible situation
   }

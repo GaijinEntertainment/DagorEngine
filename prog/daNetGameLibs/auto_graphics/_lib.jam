@@ -1,0 +1,4 @@
+if $(HaveRenderer) = yes {
+  UseProgLibs += daNetGameLibs/auto_graphics ;
+  gamePulls += framework_auto_graphics_pull ;
+}

@@ -1,0 +1,127 @@
+//| --------------------------------------- |
+//| ONLY USE THIS FILE IN THE MIXING REGION |
+//| --------------------------------------- |
+include "gbuffer.dshl"
+include "shader_global.dshl"
+include "gbuffer_mixing_tex.dshl"
+
+interval packed_gbuf_normals : no < 1, yes;
+
+
+macro DYNAMIC_FILTER_FOR_MIXING(is_dynamic, allow_dynstcode)
+  if (packed_gbuf_normals == yes && !is_dynamic)
+  {
+    if (allow_dynstcode)
+    {
+      INIT_GBUFFER_MIXING_UAV()
+    }
+    hlsl { #define FILTER_DYNAMIC 1 }
+
+    hlsl(ps)
+    {
+      void filterDynamic(float2 tc)
+      {
+        float packedBits = packed_gbuf_1[uint2(tc)].z;
+        uint extraBits = uint(packedBits * 1023.f + 0.5f);
+        if ((extraBits & 1) == 1) discard;
+      }
+    }
+  }
+  else
+  {
+    hlsl(ps) { void filterDynamic(float2 tc) {} }
+  }
+endmacro
+
+//Always include this macro after blend is set to avoid accidental errors
+macro WRITE_GBUFFER_WITH_MIXING(blending, normal_blend, allow_dynstcode)
+  USE_PARTIAL_PACK_UNPACK_GBUFF(ps)
+  if (compatibility_mode == compatibility_mode_on)
+  {
+    WRITE_GBUFFER_THIN()
+  }
+  else
+  {
+    if(blending && normal_blend && packed_gbuf_normals == yes)
+    {
+      blend_adst[1] = 0;
+      color_write[1] = rgba;
+    }
+
+    if (!blending && packed_gbuf_normals == yes)
+    {
+      if (allow_dynstcode)
+      {
+        INIT_GBUFFER_MIXING_UAV()
+      }
+      hlsl(ps) { #define UAV_5th_TARGET 1 }
+    }
+    else
+    {
+      hlsl(ps) { #define UAV_5th_TARGET 0 }
+    }
+    hlsl(ps){
+      struct GBUFFER_OUTPUT
+      {
+        float4 albedo_ao : SV_Target0;
+        float4 normal : SV_Target1;
+        float4 smoothness_reflectance_metallTranslucency_shadow : SV_Target2;
+        #ifdef MOTION_VECTORS_ENABLED
+          float4 motion_reactive : SV_Target3;
+        #endif
+      };
+      GBUFFER_OUTPUT encode_gbuffer_raw(UnpackedGbuffer gbuf, float2 tc)
+      {
+        GBUFFER_OUTPUT ret;
+        PackedGbuffer packedGbuf = pack_gbuffer(gbuf);
+        ret.albedo_ao = packedGbuf.albedo_ao;
+        ret.smoothness_reflectance_metallTranslucency_shadow = packedGbuf.smoothness_reflectance_metallTranslucency_shadow;
+        #ifdef MOTION_VECTORS_ENABLED
+          ret.motion_reactive = packedGbuf.motion_reactive;
+        #endif
+        ##if packed_gbuf_normals == yes
+          ret.normal = float4(gbuf.normal * 0.5f + 0.5f, 0);
+        ##else
+          ret.normal = packedGbuf.normal_material;
+        ##endif
+        #if UAV_5th_TARGET
+          packed_gbuf_1[tc] = packedGbuf.normal_material;
+        #endif
+        return ret;
+      }
+
+      GBUFFER_OUTPUT encode_gbuffer_alpha_raw(UnpackedGbuffer gbuf, half alpha)
+      {
+        GBUFFER_OUTPUT ret;
+        PackedGbuffer packedGbuf = pack_gbuffer(gbuf);
+        ret.albedo_ao = packedGbuf.albedo_ao;
+        ret.smoothness_reflectance_metallTranslucency_shadow = packedGbuf.smoothness_reflectance_metallTranslucency_shadow;
+        #ifdef MOTION_VECTORS_ENABLED
+          ret.motion_reactive = packedGbuf.motion_reactive;
+        #endif
+        ret.normal = float4(gbuf.normal * 0.5f + 0.5f, alpha);
+        ret.albedo_ao.w = ret.smoothness_reflectance_metallTranslucency_shadow.w = alpha;
+        return ret;
+      }
+
+      GBUFFER_OUTPUT encode_gbuffer_alpha3_raw(UnpackedGbuffer gbuf, half3 alpha)
+      {
+        GBUFFER_OUTPUT ret;
+        PackedGbuffer packedGbuf = pack_gbuffer(gbuf);
+        ret.albedo_ao = packedGbuf.albedo_ao;
+        ret.smoothness_reflectance_metallTranslucency_shadow = packedGbuf.smoothness_reflectance_metallTranslucency_shadow;
+        #ifdef MOTION_VECTORS_ENABLED
+          ret.motion_reactive = packedGbuf.motion_reactive;
+        #endif
+        ret.normal = float4(gbuf.normal * 0.5f + 0.5f, alpha.y);
+        ret.albedo_ao.w = alpha.x;
+        ret.smoothness_reflectance_metallTranslucency_shadow.w = alpha.z;
+        return ret;
+      }
+
+      #define encode_gbuffer_alpha(a,b,c,d) encode_gbuffer_alpha_raw(a, b)
+      #define encode_gbuffer_alpha3(a,b,c,d) encode_gbuffer_alpha3_raw(a, b)
+      #define encode_gbuffer(a,b,c) encode_gbuffer_raw(a, c.xy)
+    }
+  }
+endmacro

@@ -37,7 +37,7 @@ struct TemporalAAParams
   float clampingGamma = 1.2f;
   int subsamples = 4;
   float scaleAabbWithMotionSteepness = 0.f;
-  float scaleAabbWithMotionMax = INFINITY;
+  float scaleAabbWithMotionMax = eastl::numeric_limits<float>::max();
   float scaleAabbWithMotionMaxForTAAU = -1.0;
 };
 
@@ -61,15 +61,15 @@ public:
 
   bool beforeRenderFrame();
   bool beforeRenderView(const TMatrix4 &uv_reproject_tm_no_jitter);
-  void apply(TEXTUREID currentFrameId, Texture *target);
-  void applyToCurrentTarget(TEXTUREID currentFrameId);
+  void apply(Texture *currentFrameTex, Texture *target);
+  void applyToCurrentTarget(Texture *currentFrameTex);
 
   void invalidate()
   {
     frame.forEach([](int &f) { f = 0; });
   }
   bool isValid() const { return true; }
-  Point2 getPersJitterOffset() const { return jitterTexelOfs; }
+  Point2 getJitterOffset() const { return jitterPixelOfs; }
   const IPoint2 &getInputResolution() const { return inputResolution; }
   bool isUpsampling() const { return inputResolution != outputResolution; }
   float getLodBias() const { return lodBias; }
@@ -80,7 +80,7 @@ public:
 
 private:
   Params getDefaultParams() const;
-  void applyImpl(TEXTUREID currentFrameId);
+  void applyImpl(Texture *currentFrameTex);
 
   const IPoint2 inputResolution;
   const IPoint2 outputResolution;
@@ -90,7 +90,6 @@ private:
   ViewDependentResource<int, 2> frame;
 
   Point2 jitterPixelOfs;
-  Point2 jitterTexelOfs;
   TextureIDHolderWithVar taaPrecomputedWeights;
 
   RTargetPool::Ptr historyTexPool;

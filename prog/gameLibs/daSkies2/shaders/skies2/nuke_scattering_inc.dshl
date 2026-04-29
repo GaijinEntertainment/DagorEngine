@@ -1,5 +1,8 @@
-float4 nuke_light_pos;
-float4 nuke_light_color;
+buffer nuke_atmospheric_light_effects;
+int nuke_atmospheric_light_effects_count = 0;
+
+float nuke_scattering_light_mul = 0.00005;
+float nuke_scattering_dist_mul = 0.4;
 
 int nuke_in_atmosphere = 0;
 interval nuke_in_atmosphere: off<1, on;
@@ -7,8 +10,15 @@ interval nuke_in_atmosphere: off<1, on;
 macro INIT_NUKE_FOG_LIGHT(code)
   (code)
   {
-    nuke_light_fog_color@f4 = (0.00005*nuke_light_color.x, 0.00005*nuke_light_color.y, 0.00005*nuke_light_color.z, 0.4*nuke_light_color.w);
-    nuke_light_pos@f4 = nuke_light_pos;
+    nuke_scattering_light_mul@f1 = nuke_scattering_light_mul;
+    nuke_scattering_dist_mul@f1 = nuke_scattering_dist_mul;
+
+    nuke_atmospheric_light_effects_count@i1 = nuke_atmospheric_light_effects_count;
+
+    nuke_atmospheric_light_effects@buf = nuke_atmospheric_light_effects hlsl {
+      Buffer<float4> nuke_atmospheric_light_effects@buf;
+    }
+
     timePhase@f3 = (time_phase(0, 10) * 0.05, time_phase(0, 20)*0.05, time_phase(0, 5)*0.2);
   }
 endmacro
@@ -17,18 +27,31 @@ macro USE_NUKE_FOG_LIGHT(code)
   hlsl(code) {
     float3 get_nuke_fog_step(float3 cur_world_pos, float3 throughput, float3 extinction, float3 sample_transmittance, float3 view)
     {
-      float lightDist = length(cur_world_pos - nuke_light_pos.xyz);
-      float radFade = pow2(saturate((nuke_light_fog_color.w-lightDist)/nuke_light_fog_color.w));
+      float3 result = 0;
+      for (int i=0; i<nuke_atmospheric_light_effects_count; i++)
+      {
+        float4 nukeLightColor = loadBuffer(nuke_atmospheric_light_effects, i * 2 + 0).xyzw;
+        float3 nukeLightPos = loadBuffer(nuke_atmospheric_light_effects, i * 2 + 1).xyz;
+        if (nukeLightColor.w > 0)
+        {
 
-      // Attempt to add variance to nuke lighting, looks good
-      float3 angs = (normalize(nuke_light_pos.xyz - cur_world_pos) + timePhase) * 2.0f * 3.1415926f;
-      radFade *= max(1.0f + 0.75*cos(3*angs.y) *(sin(2*angs.x) + 0.75*sin(2*angs.z)), 0.0f);
+          nukeLightColor.w *= nuke_scattering_dist_mul;
 
-      // we assume that light propagates only in horisontal direction, so light fade is calculated
-      // from current density of fog and distance  (it's not not physical, but very simple)
-      float3 transmitFade = exp(- extinction * lightDist *0.001);
-      transmitFade *= 0.6f + 0.4f*dot(view, normalize(nuke_light_pos.xyz - cur_world_pos));
-      return (1 - sample_transmittance)*nuke_light_fog_color.rgb* radFade * transmitFade * throughput / extinction;
+          float lightDist = length(cur_world_pos - nukeLightPos.xyz);
+          float radFade = pow2(saturate((nukeLightColor.w-lightDist)/max(nukeLightColor.w, 0.0000001)));
+
+          // Attempt to add variance to nuke lighting, looks good
+          float3 angs = (normalize(nukeLightPos.xyz - cur_world_pos) + timePhase) * 2.0f * 3.1415926f;
+          radFade *= max(1.0f + 0.75*cos(3*angs.y) *(sin(2*angs.x) + 0.75*sin(2*angs.z)), 0.0f);
+
+          // we assume that light propagates only in horisontal direction, so light fade is calculated
+          // from current density of fog and distance  (it's not not physical, but very simple)
+          float3 transmitFade = exp(- extinction * lightDist *0.001);
+          transmitFade *= 0.6f + 0.4f*dot(view, normalize(nukeLightPos.xyz - cur_world_pos));
+          result += (1 - sample_transmittance)*nukeLightColor.rgb * nuke_scattering_light_mul * radFade * transmitFade * throughput / extinction;
+        }
+      }
+      return result;
     }
   }
 endmacro

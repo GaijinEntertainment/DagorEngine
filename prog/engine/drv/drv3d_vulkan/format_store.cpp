@@ -401,7 +401,7 @@ typedef typename SortedFormatInfoTable<FormatInfoTable<
   FormatInfo<TEXFMT_A1R5G5B5,       VK_FORMAT_A1R5G5B5_UNORM_PACK16,     VK_FORMAT_A1R5G5B5_UNORM_PACK16>,
   FormatInfo<TEXFMT_A4R4G4B4,       VK_FORMAT_B4G4R4A4_UNORM_PACK16,     VK_FORMAT_B4G4R4A4_UNORM_PACK16>,
   FormatInfo<TEXFMT_R5G6B5,         VK_FORMAT_R5G6B5_UNORM_PACK16,       VK_FORMAT_R5G6B5_UNORM_PACK16>,
-  DummyFormatInfo<0x16000000U>,
+  FormatInfo<TEXFMT_A8B8G8R8,       VK_FORMAT_R8G8B8A8_UNORM,            VK_FORMAT_R8G8B8A8_SRGB>,
   FormatInfo<TEXFMT_A16B16G16R16S,  VK_FORMAT_R16G16B16A16_SNORM,        VK_FORMAT_R16G16B16A16_SNORM>,
   FormatInfo<TEXFMT_A16B16G16R16UI, VK_FORMAT_R16G16B16A16_UINT,         VK_FORMAT_R16G16B16A16_UINT>,
   FormatInfo<TEXFMT_A32B32G32R32UI, VK_FORMAT_R32G32B32A32_UINT,         VK_FORMAT_R32G32B32A32_UINT>,
@@ -428,18 +428,8 @@ typedef typename SortedFormatInfoTable<FormatInfoTable<
   /*stub*/ DummyFormatInfo<0x2B000000U>, DummyFormatInfo<0x2C000000U>, DummyFormatInfo<0x2D000000U>,
   FormatInfo<TEXFMT_ETC2_RG,        VK_FORMAT_EAC_R11G11_UNORM_BLOCK,    VK_FORMAT_EAC_R11G11_SNORM_BLOCK>,
   FormatInfo<TEXFMT_ETC2_RGBA,      VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK, VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK>
-  >>::Type BaseFormatInfoTableSet;
+  >>::Type FormatInfoTableSet;
 // clang-format on
-
-// add here all formats that the d3d stuff does not need to know but we need to map it back
-// to our format table somehow
-// prime examples are formats for the swapchain that are not covered by TEXFMT_*
-typedef TypePack<
-  // abgr8 for mobile/nswitch
-  ExtraFormatInfo<VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_SRGB>>
-  SwapchainExtraFormats;
-
-typedef typename Concat<BaseFormatInfoTableSet, SwapchainExtraFormats>::Type FormatInfoTableSet;
 
 template <typename T>
 void check()

@@ -17,11 +17,21 @@ using ExposureBuffer = eastl::array<float, EXPOSURE_BUF_SIZE>;
 
 struct AdaptationSettings
 {
-  float lowPart = 0, highPart = 0.01, minExposure = 0.25, maxExposure = 5, autoExposureScale = 1.5, adaptDownSpeed = 8,
-        adaptUpSpeed = 1, fixedExposure = -1;
+  float minExposure = 0.25, maxExposure = 5, autoExposureScale = 1.5, adaptDownSpeed = 8, adaptUpSpeed = 1, fixedExposure = -1;
   float brightnessPerceptionLinear = 0.9, brightnessPerceptionPower = 0.9;
   float fadeMul = 1.0;
   float centerWeight = 0.7;
+
+  float luminanceLowRange = 0, luminanceHighRange = 0.01f;
+  bool useLuminanceTrimming = false, includesHeroCockpit = true, focusOnAim = false;
+  Point2 focusAimScale = {0.5, 0.5};
+  float minSamples = 9.5;
+
+  float fnUniformSamplesPercentage = 30.0f;
+  float fnUniformDistributionRadius = 0.2;
+  float fnNonLinearDistributionRadius = 1.0;
+  float fnNonLinearDistributionCurvinesPow = 0.3;
+
   bool isFixedExposure() const { return fixedExposure > 0; }
 };
 
@@ -35,13 +45,14 @@ struct AdaptationManager
   void setExposure(bool value);
   bool writeExposure(float exposure);
   AdaptationSettings getSettings() { return settings; }
-  void setSettings(const AdaptationSettings &value) { settings = value; }
+  bool setSettings(const AdaptationSettings &value);
   void dumpExposureBuffer() { isDumpExposureBuffer = true; }
   void updateTime(float dt) { accumulatedTime += dt; }
   void genHistogramFromSource();
   void accumulateHistogram();
   void adaptExposure();
   void updateReadbackExposure();
+  void afterDeviceReset();
   void clearNormalizationFactor();
   void sheduleClear() { isClearNeeded = true; }
   D3DRESID getExposureBufferId() { return g_Exposure.getBufId(); }
@@ -49,6 +60,7 @@ struct AdaptationManager
   const ExposureBuffer &getLastExposureBuffer() const { return lastExposureBuffer; }
 
 private:
+  friend class AdaptationDebug;
   struct DispatchInfo
   {
     static constexpr int groupsCount = 32;

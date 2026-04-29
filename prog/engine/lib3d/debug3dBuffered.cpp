@@ -4,6 +4,7 @@
 #include <drv/3d/dag_driver.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_carray.h>
+#include <vecmath/dag_vecMath.h>
 #include <mutex>
 
 struct BufferedLine
@@ -35,6 +36,19 @@ void draw_debug_line_buffered(const Point3 &p0, const Point3 &p1, E3DCOLOR c, si
       return;
     }
   insert_item_at(buffered_line_list, 0, BufferedLine{p0, p1, c, deadlineFrame, frames}); // insert first (oldest)
+}
+
+void draw_debug_line_buffered(vec3f v0, vec3f v1, E3DCOLOR c, size_t frames)
+{
+  Point3_vec4 p0, p1;
+  v_st(&p0.x, v0);
+  v_st(&p1.x, v1);
+  draw_debug_line_buffered(p0, p1, c, frames);
+}
+
+void draw_debug_line_buffered(vec3f v0, vec3f dir, float t, E3DCOLOR c, size_t frames)
+{
+  draw_debug_line_buffered(v0, v_madd(dir, v_splats(t), v0), c, frames);
 }
 
 void clear_buffered_debug_lines()
@@ -185,6 +199,13 @@ void draw_debug_sphere_buffered(const Point3 &c, real rad, E3DCOLOR col, int seg
   DRLN(c - Point3(0, rad, 0), c + Point3(0, rad, 0), col);
   DRLN(c - Point3(0, 0, rad), c + Point3(0, 0, rad), col);
 #undef DRLN
+}
+
+void draw_debug_sphere_buffered(vec3f c, real rad, E3DCOLOR col, int segs, size_t frames)
+{
+  Point3_vec4 center;
+  v_st(&center.x, c);
+  draw_debug_sphere_buffered(center, rad, col, segs, frames);
 }
 
 void draw_debug_capsule_buffered(const Point3 &p0, const Point3 &p1, real rad, E3DCOLOR col, int segs, size_t frames)

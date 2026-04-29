@@ -6,6 +6,7 @@
 #include "dialogManagerInternal.h"
 #include <propPanel/commonWindow/dialogManager.h>
 #include <propPanel/control/container.h>
+#include <propPanel/constants.h>
 #include <propPanel/focusHelper.h>
 
 #include <drv/3d/dag_driver.h>
@@ -16,6 +17,11 @@
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 
+static constexpr const float SEPARATOR_HEIGHT = 2.0f;
+
+static hdpi::Px initialExtWidth = hdpi::Px::ZERO;
+static hdpi::Px initialExtHeight = hdpi::Px::ZERO;
+
 namespace PropPanel
 {
 
@@ -24,19 +30,21 @@ class DialogButtonsHandler : public PropPanel::ControlEventHandler
 public:
   explicit DialogButtonsHandler(DialogWindow &in_dialog) : dialog(in_dialog) {}
 
-  void onClick(int pcb_id, ContainerPropertyControl *panel) override
-  {
-    if (pcb_id == DIALOG_ID_OK && dialog.onOk())
-      dialog.hide(pcb_id);
-    else if (pcb_id == DIALOG_ID_CANCEL && dialog.onCancel())
-      dialog.hide(pcb_id);
-    else if (pcb_id == DIALOG_ID_CLOSE && dialog.onClose())
-      dialog.hide(dialog.closeReturn());
-  }
+  void onClick(int pcb_id, ContainerPropertyControl *panel) override { dialog.onButtonPanelClick(pcb_id); }
 
 private:
   DialogWindow &dialog;
 };
+
+/*static*/
+void DialogWindow::setInitialSizeExtension(hdpi::Px w, hdpi::Px h)
+{
+  initialExtWidth = w;
+  initialExtHeight = h;
+}
+
+/*static*/
+IPoint2 DialogWindow::getInitialSizeExtension() { return IPoint2(hdpi::_px(initialExtWidth), hdpi::_px(initialExtHeight)); }
 
 DialogWindow::DialogWindow(void *phandle, hdpi::Px w, hdpi::Px h, const char caption[], bool hide_panel) :
   dialogCaption(caption), dialogResult(DIALOG_ID_NONE)
@@ -68,6 +76,11 @@ void DialogWindow::create(unsigned w, unsigned h, bool hide_panel)
   initialWidth = w;
   initialHeight = h;
 
+  if (initialWidth != 0)
+    initialWidth += hdpi::_px(initialExtWidth);
+  if (initialHeight != 0)
+    initialHeight += hdpi::_px(initialExtHeight);
+
   G_ASSERT(!propertiesPanel);
   if (!hide_panel)
     propertiesPanel = new ContainerPropertyControl(0, this, nullptr, 0, 0, hdpi::Px::ZERO, hdpi::Px::ZERO);
@@ -78,12 +91,39 @@ void DialogWindow::create(unsigned w, unsigned h, bool hide_panel)
   buttonsPanel->createButton(DIALOG_ID_CANCEL, "Cancel", true, false);
 }
 
+void DialogWindow::applyInitialFocus()
+{
+  if (initialFocusId == DIALOG_ID_NONE)
+    return;
+
+  PropertyControlBase *control = buttonsPanel->getById(initialFocusId);
+  if (!control && propertiesPanel)
+    control = propertiesPanel->getById(initialFocusId);
+
+  if (!control)
+    return;
+
+  if (modal)
+  {
+    const void *oldControlToFocus = focus_helper.getRequestedControlToFocus();
+    control->setFocus();
+
+    // Re-request the focus but with the focus rectangle displayed. This allows pressing the button with the Space key.
+    const void *newControlToFocus = focus_helper.getRequestedControlToFocus();
+    if (newControlToFocus != oldControlToFocus)
+      focus_helper.requestFocus(newControlToFocus, /*show_focus_rectangle = */ true);
+  }
+  else
+  {
+    control->setFocus();
+  }
+}
+
 void DialogWindow::show()
 {
   modal = false;
 
-  if (initialFocusId == DIALOG_ID_OK || initialFocusId == DIALOG_ID_CANCEL)
-    buttonsPanel->setFocusById(initialFocusId);
+  applyInitialFocus();
 
   // Modals (BeginPopupModal) are centered by ImGui, so this is only needed here.
   if (!moveRequested && (!dockingRequested || dockingRequestNodeId == 0) && !hasEverBeenShown())
@@ -118,17 +158,7 @@ int DialogWindow::showDialog()
   modal = true;
   visible = true;
 
-  if (initialFocusId == DIALOG_ID_OK || initialFocusId == DIALOG_ID_CANCEL)
-  {
-    const void *oldControlToFocus = focus_helper.getRequestedControlToFocus();
-    buttonsPanel->setFocusById(initialFocusId);
-
-    // Re-request the focus but with the focus rectangle displayed. This allows pressing the button with the Space key.
-    const void *newControlToFocus = focus_helper.getRequestedControlToFocus();
-    if (newControlToFocus != oldControlToFocus)
-      focus_helper.requestFocus(newControlToFocus, /*show_focus_rectangle = */ true);
-  }
-
+  applyInitialFocus();
   dialog_manager.showDialog(*this);
 
   while (visible)
@@ -208,20 +238,45 @@ void DialogWindow::autoSize(bool auto_center)
     centerWindow();
 }
 
-void DialogWindow::positionLeftToWindow(const char *window_name, bool use_same_height)
+void DialogWindow::positionBesideWindow(const char *window_name, bool prefer_left_side, bool use_same_height)
 {
   ImGuiWindow *window = ImGui::FindWindowByName(window_name);
-  if (!window)
+  if (!window || !window->Viewport)
     return;
 
+  float requiredWidth = sizingRequested ? sizingRequestSize.x : 0.0f;
+  if (requiredWidth <= 0.0f)
+  {
+    requiredWidth = getWindowSize().x;
+    if (requiredWidth <= 0.0f)
+      requiredWidth = initialWidth;
+  }
+
+  const bool fitsToLeft = (window->Pos.x - requiredWidth) >= window->Viewport->WorkPos.x;
+  const bool fitsToRight =
+    (window->Pos.x + window->Size.x + requiredWidth) <= (window->Viewport->WorkPos.x + window->Viewport->WorkSize.x);
+  if ((prefer_left_side && fitsToLeft) || (fitsToLeft && !fitsToRight))
+  {
+    moveRequestPosition = window->Pos;
+    moveRequestPivot = Point2(1.0f, 0.0f);
+  }
+  else if (fitsToRight)
+  {
+    moveRequestPosition = Point2(window->Pos.x + window->Size.x, window->Pos.y);
+    moveRequestPivot = Point2(0.0f, 0.0f);
+  }
+  else
+  {
+    moveRequestPosition = window->Viewport->WorkPos + (window->Viewport->WorkSize / 2.0f);
+    moveRequestPivot = Point2(0.5f, 0.5f);
+  }
+
   moveRequested = true;
-  moveRequestPosition = window->Pos;
-  moveRequestPivot = Point2(1.0f, 0.0f);
 
   if (use_same_height)
   {
+    sizingRequestSize = Point2(sizingRequested ? sizingRequestSize.x : 0.0f, window->Size.y);
     sizingRequested = true;
-    sizingRequestSize = Point2(0.0f, window->Size.y);
   }
 }
 
@@ -275,11 +330,43 @@ void DialogWindow::setDialogButtonText(int id, const char *text)
     buttonsPanel->setText(id, text);
 }
 
+void DialogWindow::createDialogButton(int id, const char *text)
+{
+  if (buttonsPanel)
+    buttonsPanel->createButton(id, text, true, false);
+}
+
 bool DialogWindow::removeDialogButton(int id)
 {
   if (buttonsPanel)
     return buttonsPanel->removeById(id);
   return false;
+}
+
+void DialogWindow::setDialogButtonEnabled(int id, bool enabled)
+{
+  if (buttonsPanel)
+  {
+    buttonsPanel->setEnabledById(id, enabled);
+  }
+}
+
+void DialogWindow::setDialogButtonTooltip(int id, const char *text)
+{
+  if (buttonsPanel)
+  {
+    buttonsPanel->setTooltipId(id, text);
+  }
+}
+
+void DialogWindow::onButtonPanelClick(int id)
+{
+  if (id == DIALOG_ID_OK && onOk())
+    hide(id);
+  else if (id == DIALOG_ID_CANCEL && onCancel())
+    hide(id);
+  else if (id == DIALOG_ID_CLOSE && onClose())
+    hide(closeReturn());
 }
 
 void DialogWindow::beforeUpdateImguiDialog(bool &use_auto_size_for_the_current_frame)
@@ -324,19 +411,25 @@ void DialogWindow::updateImguiDialog()
 {
   // NOTE: ImGui porting: BeginChild did not fare well with auto sizing, so using manual bottom alignment for the buttons.
   // Good test dialogs: Viewport grid settings vs. Settings/Camera settings vs Settings/Project settings.
+  ImGuiStyle &style = ImGui::GetStyle();
+  const int modalSpacing = hdpi::_pxS(PropPanel::Constants::MODAL_WINDOW_ITEM_SPACING);
+  const ImVec2 buttonItemSpacing = isModal() ? ImVec2(modalSpacing, modalSpacing) : style.ItemSpacing;
+  const ImVec2 buttonFramePadding = isModal() ? ImVec2(hdpi::_pxS(6), hdpi::_pxS(6)) : style.FramePadding;
 
   // This needs to saved because otherwise ImGui::GetFrameHeightWithSpacing() could return an incorrect value when
   // queried from a child control. (For example ContainerPropertyControl::updateImgui changes the
   // vertical spacing.)
-  const float separatorHeight = 2.0f;
-  const float separatorHeightWithSpacing = separatorHeight + (ImGui::GetStyle().FramePadding.y * 2.0f);
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, buttonItemSpacing);
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, buttonFramePadding);
+  const float separatorHeightWithSpacing = SEPARATOR_HEIGHT + style.FramePadding.y;
   buttonPanelHeight = buttonsVisible ? (ImGui::GetFrameHeightWithSpacing() + separatorHeightWithSpacing) : 0.0f;
+  ImGui::PopStyleVar(2);
 
   if (propertiesPanel)
   {
     const ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoBackground;
     const float regionAvailYStart = ImGui::GetContentRegionAvail().y;
-    const float propertiesPanelHeight = max(regionAvailYStart - buttonPanelHeight - ImGui::GetStyle().ItemSpacing.y, 0.0f);
+    const float propertiesPanelHeight = max(regionAvailYStart - buttonPanelHeight - style.ItemSpacing.y, 0.0f);
 
     // "c" stands for child. It could be anything.
     const ImVec2 childWindowSize(0.0f, autoSizingRequestedForFrames > 0 ? 0.0f : propertiesPanelHeight);
@@ -372,18 +465,22 @@ void DialogWindow::updateImguiDialog()
 
   if (buttonsVisible)
   {
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, buttonItemSpacing);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, buttonFramePadding);
+
     const float availableHeight = floorf(ImGui::GetContentRegionAvail().y - buttonPanelHeight);
     if (availableHeight > 0.0f)
       ImGui::SetCursorPosY(ImGui::GetCursorPosY() + availableHeight);
 
     if (propertiesPanel)
     {
-      ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
-      ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, separatorHeight);
-      ImGui::SetCursorPosY(ImGui::GetCursorPosY() + ImGui::GetStyle().FramePadding.y);
+      ImGui::SetCursorPosY(ImGui::GetCursorPosY() + style.FramePadding.y);
+      ImGui::SeparatorEx(ImGuiSeparatorFlags_Horizontal, SEPARATOR_HEIGHT);
     }
 
     buttonsPanel->updateImgui();
+
+    ImGui::PopStyleVar(2);
   }
 
   if (ImGui::IsWindowFocused(ImGuiFocusedFlags_ChildWindows))

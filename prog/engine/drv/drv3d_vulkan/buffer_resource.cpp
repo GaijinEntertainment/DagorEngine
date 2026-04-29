@@ -4,9 +4,9 @@
 #include "globals.h"
 #include "device_memory.h"
 #include "resource_manager.h"
-#include "buffer_alignment.h"
+#include "buffer_props.h"
 #include "backend.h"
-#include "execution_context.h"
+#include "backend/context.h"
 #include "bindless.h"
 #include "wrapped_command_buffer.h"
 #include "execution_sync.h"
@@ -73,8 +73,8 @@ void Buffer::destroyVulkanObject()
 {
   G_ASSERT(!isHandleShared());
 
-  if (isManaged() && isResident() && !isMemoryClassHostResident(desc.memoryClass))
-    reportToTQL(false);
+  if (isManaged() && isResident())
+    reportMemUsage(false);
 
   Globals::VK::dev.vkDestroyBuffer(Globals::VK::dev.get(), getHandle(), VKALLOC(buffer));
   setHandle(generalize(Handle()));
@@ -97,6 +97,13 @@ void Buffer::onDelayedCleanupFinish<CleanupTag::DESTROY>()
   G_ASSERTF(bindlessSlots.empty(), "vulkan: bindless slots are not free at destruction of buffer %p:%s", this, getDebugName());
   G_ASSERTF(!isFrameMemReferencedAtRemoval(), "vulkan: framemem buffer %p:%s is still referenced (%u refs) while being destroyed",
     this, getDebugName(), discardIndex);
+
+  // shader var system * delayed state tansit may give us delete-bind command order, avoid crashin on it
+  if (Backend::State::pipe.isReferenced(this))
+  {
+    Backend::State::pendingCleanups.removeReferenced(this);
+    return;
+  }
 
   if (desc.memFlags & BufferMemoryFlags::IN_PLACED_HEAP)
   {
@@ -147,9 +154,10 @@ MemoryRequirementInfo Buffer::getMemoryReq()
 VkMemoryRequirements Buffer::getSharedHandleMemoryReq()
 {
   VkMemoryRequirements ret;
-  ret.alignment = Globals::VK::bufAlign.getForUsageAndFlags(0, Buffer::getUsage(desc.memoryClass));
+  ret.alignment = Globals::VK::bufProps.getAlignForUsageAndFlags(0, Buffer::getUsage(desc.memoryClass));
   ret.size = ret.alignment > 0 ? getTotalSize() : 0;
-  ret.memoryTypeBits = Globals::Mem::pool.getMemoryTypeMaskForClass(desc.memoryClass);
+  ret.memoryTypeBits = Globals::Mem::pool.getMemoryTypeMaskForClass(desc.memoryClass) &
+                       Globals::VK::bufProps.getMemoryTypeMaskForUsageAndFlags(0, Buffer::getUsage(desc.memoryClass));
 #if VULKAN_MAPPED_BUFFER_OVERRUN_WRITE_CHECK > 0
   ret.size *= 2;
 #endif
@@ -174,8 +182,7 @@ void Buffer::bindAssignedMemoryId()
 void Buffer::bindMemory()
 {
   bindAssignedMemoryId();
-  if (!isMemoryClassHostResident(desc.memoryClass))
-    reportToTQL(true);
+  reportMemUsage(true);
 }
 
 void Buffer::bindMemoryFromHeap(MemoryHeapResource *in_heap, ResourceMemoryId heap_mem_id)
@@ -198,16 +205,15 @@ void Buffer::reuseHandle()
 
   // we are reusing handle
   setHandle(mem.handle);
-  if (!isMemoryClassHostResident(desc.memoryClass))
-    reportToTQL(true);
+  reportMemUsage(true);
 }
 
 void Buffer::releaseSharedHandle()
 {
   G_ASSERT(!getMemory().isDeviceMemory());
   G_ASSERT(isHandleShared());
-  if (!isMemoryClassHostResident(desc.memoryClass))
-    reportToTQL(false);
+  reportMemUsage(false);
+
   setHandle(generalize(Handle()));
 }
 
@@ -225,6 +231,15 @@ void Buffer::fillPointers(const ResourceMemory &mem)
     mappedPtr = nullptr;
   if (!Globals::cfg.bits.useCoherentMemory || !Globals::Mem::pool.isCoherentMemoryType(mem.memType))
     nonCoherentMemoryHandle = mem.isDeviceMemory() ? mem.deviceMemory() : mem.deviceMemorySlow();
+}
+
+void Buffer::reportMemUsage(bool allocating)
+{
+  if (!isMemoryClassHostResident(desc.memoryClass))
+    reportToTQL(allocating);
+
+  if (desc.memFlags & BufferMemoryFlags::EVICTION_SYSCOPY)
+    Globals::Mem::pool.onResidencySysCopyChange(getMemory().size, allocating);
 }
 
 void Buffer::evict()
@@ -255,7 +270,7 @@ void Buffer::afterDeviceReset()
 #endif
 }
 
-void Buffer::restoreFromSysCopy(ExecutionContext &ctx)
+void Buffer::restoreFromSysCopy()
 {
   if (FormatStore(0) != viewFmt && !views)
     addBufferView(viewFmt);
@@ -263,7 +278,7 @@ void Buffer::restoreFromSysCopy(ExecutionContext &ctx)
   // was not evicted, created non-residently
   if (!hostCopy)
     return;
-  ctx.queueBufferResidencyRestore(this);
+  Backend::ctx.queueBufferResidencyRestore(this);
 }
 
 bool Buffer::nonResidentCreation()
@@ -279,7 +294,6 @@ bool Buffer::nonResidentCreation()
   memoryOffset = 0;
   sharedOffset = 0;
   createVulkanObject();
-  // FIXME: right now non resident buffers will not contribute to TQL, biasing streaming
   return true;
 }
 
@@ -301,14 +315,15 @@ Buffer *Buffer::getHostCopyBuffer()
 {
   if (!hostCopy)
   {
-    hostCopy = Buffer::create(getBlockSize(), DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::NONE);
+    hostCopy =
+      Buffer::create(getBlockSize(), DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::EVICTION_SYSCOPY);
     if (Globals::cfg.debugLevel > 0)
       hostCopy->setDebugName(String(128, "host copy of buf %s", getDebugName()));
   }
   return hostCopy;
 }
 
-void Buffer::makeSysCopy(ExecutionContext &)
+void Buffer::makeSysCopy()
 {
   Buffer *buf = getHostCopyBuffer();
 
@@ -370,27 +385,27 @@ void Buffer::shutdown()
 }
 
 bool Buffer::hasMappedMemory() const { return mappedPtr != nullptr; }
+void Buffer::ensureNoMappedMemory() { mappedPtr = nullptr; }
 
-bool Buffer::isFakeFrameMem() { return Globals::cfg.bits.debugFrameMemUsage > 0; }
+bool Buffer::isFakeFrameMem() { return Globals::cfg.bits.debugFrameMemUsage; }
 
 void Buffer::verifyFrameMem()
 {
-  ExecutionContext &ctx = Backend::State::exec.getExecutionContext();
   uint32_t discardedAt = interlocked_relaxed_load(lastDiscardFrame);
   bool passing = false;
   if (Globals::cfg.bits.debugFrameMemUsage)
     // with debug, we using normal discard approach, index may go over current frame for every frame discard
     // may fail to detect edge-error cases, but gives resilence for wast amount of false triggers
-    passing = discardedAt >= ctx.data.frontFrameIndex;
+    passing = discardedAt >= Backend::ctx.data->frontFrameIndex;
   else
-    passing = discardedAt == ctx.data.frontFrameIndex;
+    passing = discardedAt == Backend::ctx.data->frontFrameIndex;
 
   if (!passing)
   {
     // enable Globals::cfg.bits.debugFrameMemUsage to see proper buffer name
     // but framemem logic will be not used to full extent!
     D3D_CONTRACT_ERROR("vulkan: missed discard on framemem buffer %p:%s, expected frame %u got %u at %s", this, getDebugName(),
-      ctx.data.frontFrameIndex, discardedAt, Backend::State::exec.getExecutionContext().getCurrentCmdCaller());
+      Backend::ctx.data->frontFrameIndex, discardedAt, Backend::ctx.getCurrentCmdCaller());
   }
 }
 
@@ -412,7 +427,7 @@ void Buffer::markNonCoherentRangeAbs(uint32_t offset, uint32_t size, bool flush)
 
   // Conform it to VUID-VkMappedMemoryRange-size-01390
   // Assume that the underlying buffer memory is properly aligned.
-  VkDeviceSize alignmentMask = Globals::VK::bufAlign.minimal - 1;
+  VkDeviceSize alignmentMask = Globals::VK::bufProps.minimal - 1;
   range.size += range.offset & alignmentMask;
   range.offset = range.offset & ~alignmentMask;
   range.size = (range.size + alignmentMask) & ~alignmentMask;
@@ -433,7 +448,7 @@ void Buffer::Description::fillAllocationDesc(AllocationDesc &alloc_desc) const
   bool noSuballoc = (memFlags & BufferMemoryFlags::DEDICATED) != 0;
   alloc_desc.canUseSharedHandle = !noSuballoc;
   alloc_desc.forceDedicated = noSuballoc;
-  alloc_desc.reqs.requirements.alignment = Globals::VK::bufAlign.minimal;
+  alloc_desc.reqs.requirements.alignment = Globals::VK::bufProps.minimal;
   alloc_desc.reqs.requirements.size = blockSize * discardBlocks;
   alloc_desc.memClass = memoryClass;
   alloc_desc.temporary = (memFlags & BufferMemoryFlags::TEMP) != 0;
@@ -443,7 +458,7 @@ void Buffer::Description::fillAllocationDesc(AllocationDesc &alloc_desc) const
 Buffer *Buffer::create(uint32_t size, DeviceMemoryClass memory_class, uint32_t discard_count, BufferMemoryFlags mem_flags)
 {
   D3D_CONTRACT_ASSERTF(discard_count > 0, "discard count has to be at least one");
-  uint32_t blockSize = Globals::VK::bufAlign.alignSize(size);
+  uint32_t blockSize = Globals::VK::bufProps.alignSize(size);
 
   WinAutoLock lk(Globals::Mem::mutex);
   return Globals::Mem::res.alloc<Buffer>({blockSize, memory_class, discard_count, mem_flags}, true);

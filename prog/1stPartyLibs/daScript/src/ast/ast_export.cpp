@@ -8,7 +8,7 @@ namespace das {
     class ClearUnusedSymbols : public Visitor {
     public:
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return true; }
         virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override { return false; }
@@ -108,6 +108,7 @@ namespace das {
         }
         void markModuleUsedFunctions( ModuleLibrary &, Module * inWhichModule ) {
             for ( auto & fn : inWhichModule->functions.each() ) {
+                if ( fn->isTemplate ) continue;
                 if ( fn->builtIn || fn->macroInit || fn->macroFunction  ) continue;
                 if ( fn->privateFunction && fn->generated && fn->fromGeneric ) continue;    // instances of templates are never roots
                 if ( fn->isClassMethod && fn->classParent->macroInterface ) continue;       // methods of macro interfaces
@@ -144,7 +145,7 @@ namespace das {
         TextWriter * tw = nullptr;
     protected:
         virtual bool canVisitFunction ( Function * fun ) override {
-            return !fun->isTemplate;    // we don't do a thing with templates
+            return !fun->stub && !fun->isTemplate;    // we don't do a thing with templates
         }
         virtual bool canVisitStructureFieldInit ( Structure * ) override { return false; }
         virtual bool canVisitArgumentInit ( Function *, const VariablePtr &, Expression * ) override { return false; }

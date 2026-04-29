@@ -66,6 +66,8 @@ bitfield RenderState
   ALPHA_TO_COVERAGE
   Z_WRITE_ENABLE
 
+
+[no_default_initializer]
 struct OverrideRenderState
   bits : RenderState = bitfield(0)
   zFunc : ZCompareFunc = ZCompareFunc.INVALID

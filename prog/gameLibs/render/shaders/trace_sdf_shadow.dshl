@@ -63,7 +63,6 @@ shader trace_shadow_depth_region
   READ_WORLD_SDF_MATH(ps)
   READ_WORLD_SDF_INIT(ps)
   READ_WORLD_SDF_USE(ps)
-  ENABLE_ASSERT(ps)
 
   hlsl (ps)
   {
@@ -86,7 +85,8 @@ shader trace_shadow_depth_region
         #if SDF_FAST_TRACE
         //gradient base tracing is 4 times slower, although produces much less acne
         //with decreased 'thickness', acne is also smaller (yet bigger), but we can miss some surfaces
-        if (world_sdf_trace_start(i, rayStart + ofs*rayDir, rayDir, zn_zfar.y, t, clip, 1, 0, false, 0.75))
+        float distAtRayStart;
+        if (world_sdf_trace_start(i, rayStart + ofs*rayDir, rayDir, zn_zfar.y, t, distAtRayStart, clip, 1, 0, false, 0.75))
         #else
         if (world_sdf_trace_start_gradient_bias(i, rayStart + ofs*rayDir, rayDir, zn_zfar.y, t, clip, 1))
         #endif

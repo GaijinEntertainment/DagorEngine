@@ -82,11 +82,11 @@ struct GPUSmokeTracerTailRender//todo: compress me!
 struct GPUSmokeTracerHeadRender//todo: compress me!
 {
   float3 p0;
-  float pad0;
+  float radius0; // radius at p0
   float3 p1;
-  float radius;//can be compressed
+  float radius1; // radius at p1
 
-  float4 color;//can be compressed
+  float4 color;//can be compressed ; // color.a is fade at p1
 };
 
 struct TracerCreateCommand

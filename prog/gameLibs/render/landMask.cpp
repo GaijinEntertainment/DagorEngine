@@ -28,27 +28,43 @@ enum
   ST_NOT_INITIALIZED = 2,
 };
 
-enum
-{
-  SHV_VIEWPORT,
-  SHV_CELL_INV_SCALE,
-  SHV_RANDOM_GRASS_HEIGHTMAP_PARAMS,
-  SHV_HEIGHT_TO_WORLD,
-  SHV_CELL_TO_HEIGHT, // same as SHV_HEIGHT_TO_WORLD, legacy, remove me after 21.03.2022
-
-  SHV_COUNT
-};
-
-static int world_to_grassVarId = -1;
 static const Color4 defaultGrassBiomes(0.1 / 255., 1.1 / 255., 2.1 / 255, 0); // by default red == 0, green = 1, blue == 2, and we
                                                                               // don't use direct biome indices when writing grass mask
 
+const carray<const char *, LandMask::SHV_NAME_COUNT> LandMask::defaultShaderVarNames = {
+  "random_grass_tex_viewport",
+  "grass_inv_scale",
+  "random_grass_heightmap_params",
+  "land_mask_height_to_world",
+  "world_to_grass",
+  "grass_mask_biomes",
+  "tmp_grass_mask",
 
-LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass) :
+  "landHeightTex",
+  "random_grass_heightmap",
+  "random_grass_heightmap_samplerstate",
+
+  "land_grass_type_tex",
+  "land_grass_type_tex_samplerstate",
+
+  "landColorTex",
+  "grass_land_color_mask",
+  "grass_land_color_mask_samplerstate",
+  "tmp_grass_mask",
+};
+
+
+LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass,
+  const carray<const char *, SHV_NAME_COUNT> &shader_var_names) :
   texAlign(tex_align), worldSize(1), squareCenter(0, 0), status(ST_NOT_INITIALIZED), worldAlign(1), maxSlope(DEFAULT_MAX_SLOPE)
 {
   filterRenderer = new PostFxRenderer();
   filterRenderer->init("random_grass_filter");
+
+  blurRenderer = new PostFxRenderer();
+  blurRenderer->init("grass_blur_filter", true);
+  copyMaskRenderer = new PostFxRenderer();
+  copyMaskRenderer->init("grass_mask_copy", true);
 
   shaders::OverrideState state;
   state.set(shaders::OverrideState::FLIP_CULL);
@@ -68,15 +84,12 @@ LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass) :
   flipCullDepthOnlyOverride = shaders::overrides::create(state);
 
   // shader vars
-  shaderVars.resize(SHV_COUNT);
+  for (int i = 0; i < SHV_VARS_COUNT; i++)
+    shaderVars[i] = ::get_shader_variable_id(shader_var_names[i], i >= SHV_OPT_VARS_START);
 
-  shaderVars[SHV_CELL_INV_SCALE] = ::get_shader_variable_id("grass_inv_scale");
-  shaderVars[SHV_VIEWPORT] = ::get_shader_variable_id("random_grass_tex_viewport");
-  shaderVars[SHV_RANDOM_GRASS_HEIGHTMAP_PARAMS] = ::get_shader_variable_id("random_grass_heightmap_params");
-  shaderVars[SHV_HEIGHT_TO_WORLD] = ::get_shader_variable_id("land_mask_height_to_world");
-  shaderVars[SHV_CELL_TO_HEIGHT] = ::get_shader_variable_id("cell_to_height", true);
-
-  world_to_grassVarId = ::get_shader_variable_id("world_to_grass", true);
+  filterHmapInputVar = ::get_shader_variable_id("filter_hmap_input_tex", true);
+  filterTypeInputVar = ::get_shader_variable_id("filter_type_input_tex", true);
+  filterMaskInputVar = ::get_shader_variable_id("filter_mask_input_tex", true);
 
   // level params
   loadParams(level_blk);
@@ -84,8 +97,9 @@ LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass) :
   // textures
 
   unsigned flags = TEXCF_RTARGET;
-  landHeightTex = UniqueTexHolder(dag::create_tex(NULL, landTexSize, landTexSize, TEXFMT_DEPTH16 | flags, 1, "landHeightTex"),
-    "random_grass_heightmap");
+  landHeightTex = UniqueTexHolder(
+    dag::create_tex(NULL, landTexSize, landTexSize, TEXFMT_DEPTH16 | flags, 1, shader_var_names[SHV_LAND_HEIGHT_TEX], RESTAG_LAND),
+    shader_var_names[SHV_GRASS_HEIGHTMAP]);
 
   {
     d3d::SamplerInfo smpInfo;
@@ -96,21 +110,30 @@ LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass) :
       smpInfo.filter_mode = d3d::FilterMode::Point;
       smpInfo.mip_map_mode = d3d::MipMapMode::Point;
     }
-    ShaderGlobal::set_sampler(::get_shader_variable_id("random_grass_heightmap_samplerstate", true), d3d::request_sampler(smpInfo));
+    ShaderGlobal::set_sampler(::get_shader_variable_id(shader_var_names[SHV_GRASS_HEIGHTMAP_SAMPLERSTATE], true),
+      d3d::request_sampler(smpInfo));
   }
 
   if (needGrass)
   {
     // these textures are needed only when we have grass!
-    grassTypeTex = dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_R8, 1, "land_grass_type_tex");
+    grassTypeTex =
+      dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_R8, 1, shader_var_names[SHV_LAND_GRASS_TYPE_TEX], RESTAG_LAND);
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
-    ShaderGlobal::set_sampler(::get_shader_variable_id("land_grass_type_tex_samplerstate", true), d3d::request_sampler(smpInfo));
+    ShaderGlobal::set_sampler(::get_shader_variable_id(shader_var_names[SHV_LAND_GRASS_TYPE_TEX_SAMPLERSTATE], true),
+      d3d::request_sampler(smpInfo));
 
-    landColorTex = UniqueTexHolder(
-      dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1, "landColorTex"),
-      "grass_land_color_mask");
-    ShaderGlobal::set_sampler(::get_shader_variable_id("grass_land_color_mask_samplerstate", true), d3d::request_sampler({}));
+    if (blurRenderer->getMat())
+      tmpMaskTex =
+        dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_R8, 1, shader_var_names[SHV_TMP_GRASS_TEX], RESTAG_LAND);
+
+    landColorTex =
+      UniqueTexHolder(dag::create_tex(NULL, landTexSize, landTexSize, flags | TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE, 1,
+                        shader_var_names[SHV_LAND_COLOR_TEX], RESTAG_LAND),
+        shader_var_names[SHV_GRASS_LAND_COLOR_MASK]);
+    ShaderGlobal::set_sampler(::get_shader_variable_id(shader_var_names[SHV_GRASS_LAND_COLOR_MASK_SAMPLERSTATE], true),
+      d3d::request_sampler({}));
   }
 
   torHelper.texSize = landTexSize;
@@ -137,12 +160,14 @@ LandMask::LandMask(const DataBlock &level_blk, int tex_align, bool needGrass) :
 
 LandMask::~LandMask()
 {
+  delete copyMaskRenderer;
+  delete blurRenderer;
   delete filterRenderer;
 
   landHeightTex.close();
   landColorTex.close();
   grassTypeTex.close();
-  ShaderGlobal::set_color4(get_shader_variable_id("grass_mask_biomes", true), defaultGrassBiomes);
+  ShaderGlobal::set_float4(shaderVars[SHV_GRASS_MASK_BIOMES], defaultGrassBiomes);
 }
 
 void LandMask::loadParams(const DataBlock &level_blk)
@@ -163,7 +188,7 @@ void LandMask::loadParams(const DataBlock &level_blk)
   grass_mask_biomes.r = (level_blk.getInt("grassMaskRedBiomeId", defaultGrassBiomes.r * 255) + 0.1) / 255.;
   grass_mask_biomes.g = (level_blk.getInt("grassMaskGreenBiomeId", defaultGrassBiomes.g * 255) + 0.1) / 255.;
   grass_mask_biomes.b = (level_blk.getInt("grassMaskBlueBiomeId", defaultGrassBiomes.b * 255) + 0.1) / 255.;
-  ShaderGlobal::set_color4(get_shader_variable_id("grass_mask_biomes", true), grass_mask_biomes);
+  ShaderGlobal::set_float4(shaderVars[SHV_GRASS_MASK_BIOMES], grass_mask_biomes);
 }
 
 void LandMask::invalidate() // can be called from another thread
@@ -206,7 +231,6 @@ void LandMask::renderRegion(const Point3 &center_pos, const ToroidalQuadRegion &
   render_helper.beginRender(Point3::xVz(box3.center(), center_pos.y), box3, viewProj);
 
   d3d::settm(TM_PROJ, &proj);
-  ShaderGlobal::set_color4(shaderVars[SHV_CELL_TO_HEIGHT], maxLandHeight - minLandHeight, 0, 0, 0);
 
   {
     // height only
@@ -231,29 +255,54 @@ void LandMask::renderRegion(const Point3 &center_pos, const ToroidalQuadRegion &
     // render combined color and mask
     render_helper.renderColor();
 
-    // only grass mask part
     shaders::overrides::reset();
     shaders::overrides::set(grassMaskAndTypeOverride);
-
     render_helper.renderMask();
+    d3d::resource_barrier({grassTypeTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+
     shaders::overrides::reset();
     shaders::overrides::set(grassMaskOnlyOverride);
 
     render_helper.renderExplosions(); // just remove mask, do not change mask type
-    shaders::overrides::reset();
 
     // filter based on slope
-    ShaderGlobal::set_color4(shaderVars[SHV_VIEWPORT], reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y);
+    ShaderGlobal::set_float4(shaderVars[SHV_VIEWPORT], reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y);
 
     // params for heightmap filtering
-    ShaderGlobal::set_color4_fast(shaderVars[SHV_RANDOM_GRASS_HEIGHTMAP_PARAMS],
+    ShaderGlobal::set_float4(shaderVars[SHV_GRASS_HEIGHTMAP_PARAMS],
       Color4(1.f / landTexSize, (maxSlope * worldSize / landTexSize) / (maxLandHeight - minLandHeight), 0, 0));
 
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
+
+    d3d::set_render_target({NULL, 0}, DepthAccess::RW, {{landColorTex.getTex2D(), 0}});
+    d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
+    ShaderGlobal::set_texture(filterHmapInputVar, landHeightTex.getTex2D());
+    ShaderGlobal::set_texture(filterTypeInputVar, grassTypeTex.getTex2D());
     filterRenderer->render();
 
+    shaders::overrides::reset();
     d3d::resource_barrier({landColorTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
-    d3d::resource_barrier({grassTypeTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+
+    if (useBlur && blurRenderer->getMat())
+    {
+      // blur grass mask
+      d3d::set_render_target({NULL, 0}, DepthAccess::RW, {{tmpMaskTex.getTex2D(), 0}});
+      d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
+      ShaderGlobal::set_texture(filterMaskInputVar, landColorTex.getTex2D());
+      blurRenderer->render();
+      d3d::resource_barrier({tmpMaskTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+
+      shaders::overrides::reset();
+      shaders::overrides::set(grassMaskOnlyOverride);
+
+      d3d::set_render_target({NULL, 0}, DepthAccess::RW, {{landColorTex.getTex2D(), 0}});
+      d3d::setview(reg.lt.x, reg.lt.y, reg.wd.x, reg.wd.y, 0, 1);
+      ShaderGlobal::set_texture(shaderVars[SHV_TMP_GRASS_MASK], tmpMaskTex.getTex2D());
+      copyMaskRenderer->render();
+
+      shaders::overrides::reset();
+      d3d::resource_barrier({landColorTex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
+    }
   }
 
   render_helper.endRender();
@@ -304,7 +353,7 @@ void LandMask::beforeRender(const Point3 &center_pos, ILandMaskRenderHelper &ren
 
     BBox2 bbox2 = getRenderBbox();
     Point2 width = bbox2.width();
-    ShaderGlobal::set_color4(world_to_grassVarId,
+    ShaderGlobal::set_float4(shaderVars[SHV_WORLD_TO_GRASS],
       Color4(-1 / width.x, -1 / width.y, 1 + bbox2[0].x / width.x, 1 + bbox2[0].y / width.y));
 
     for (int i = 0; i < regions.size(); ++i)
@@ -355,11 +404,9 @@ void LandMask::beforeRender(const Point3 &center_pos, ILandMaskRenderHelper &ren
   }
 
   Point2 ofs = point2((torHelper.mainOrigin - torHelper.curOrigin) % torHelper.texSize) / torHelper.texSize;
-  ShaderGlobal::set_color4_fast(shaderVars[SHV_CELL_INV_SCALE], -1.f / worldSize, ofs.x, ofs.y, landTexSize);
+  ShaderGlobal::set_float4(shaderVars[SHV_CELL_INV_SCALE], -1.f / worldSize, ofs.x, ofs.y, landTexSize);
 
-  ShaderGlobal::set_color4_fast(shaderVars[SHV_HEIGHT_TO_WORLD], maxLandHeight - minLandHeight, minLandHeight, 0.0f, 0.0f);
-  // legacy, this variable doesn't exist, remove me after 21.03.2022
-  ShaderGlobal::set_color4_fast(shaderVars[SHV_CELL_TO_HEIGHT], maxLandHeight - minLandHeight, minLandHeight, 0.0f, 0.0f);
+  ShaderGlobal::set_float4(shaderVars[SHV_HEIGHT_TO_WORLD], maxLandHeight - minLandHeight, minLandHeight, 0.0f, 0.0f);
 }
 
 void LandMask::invalidateBox(const BBox2 &box)

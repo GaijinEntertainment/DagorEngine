@@ -97,7 +97,6 @@ scope_collimator_moa{
   gunmod__collimator_moa_dynamic_noise_sub_scale:r=0.56
   gunmod__collimator_moa_dynamic_noise_scale:r=40.0
   gunmod__collimator_moa_dynamic_noise_add:r=-0.112
-  gunmod__collimator_moa_dynamic_noise_intensity_scale:r=0.0
   gunmod__collimator_moa_dynamic_noise_speed:p2=0.1, 0.27
 
   "gunmod__collimator_moa_img_eid:eid"{}

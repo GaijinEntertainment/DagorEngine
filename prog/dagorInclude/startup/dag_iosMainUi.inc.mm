@@ -20,6 +20,7 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_logSys.h>
 #include <unistd.h>
+#include <signal.h>
 #include "dag_addBasePathDef.h"
 #include "dag_loadSettings.h"
 #include "dag_iosCallback.h"
@@ -41,6 +42,8 @@ int g_ios_fps_limit = 120;
 extern bool g_ios_pause_rendering;
 static bool g_ios_was_paused_before_sleep = false;
 static bool g_ios_main_view_is_active = true;
+// if true, the main loop will wait for native UI events to show (purchase popups, etc), the caller should set it back to false when the UI is dismissed
+static bool g_ios_wait_for_ui_events = false;
 UIInterfaceOrientation g_app_orientation = UIInterfaceOrientationUnknown;
 UIInterfaceOrientation preferredLandscapeOrientation = UIInterfaceOrientationLandscapeLeft;
 
@@ -135,6 +138,11 @@ void setFPSLimit(int lim)
   g_ios_fps_limit = lim ? lim : 120;
   if (g_displayLink)
     g_displayLink.preferredFramesPerSecond = g_ios_fps_limit;
+}
+
+void setWaitForUIEvents(bool wait)
+{
+  g_ios_wait_for_ui_events = wait;
 }
 
 int ios_get_maximum_frames_per_second() { return [UIScreen mainScreen].maximumFramesPerSecond; }
@@ -862,6 +870,9 @@ static void dagor_ios_before_main_init(int argc, char *argv[])
   pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #endif
 
+#if defined OPTIONAL_ADD_ARGS
+  OPTIONAL_ADD_ARGS(argc, argv);
+#endif
   dgs_init_argv(argc, argv);
   dgs_report_fatal_error = messagebox_report_fatal_error;
   apply_hinstance(NULL, NULL);
@@ -879,6 +890,9 @@ static void dagor_ios_before_main_init(int argc, char *argv[])
   debug("app: <%s>", ios_global_log_fname);
 
   DagorHwException::setHandler("main");
+
+  // writing to a socket closed by the peer leads to SIGPIPE, process will exit if it is not ignored
+  signal(SIGPIPE, SIG_IGN);
 }
 
 static void dagor_ios_main_init_impl()
@@ -940,7 +954,7 @@ extern "C" void dagor_ios_delegate_step(CADisplayLink*)
 {
   if (g_frame_callback)
   {
-    if (!g_ios_pause_rendering)
+    if (!g_ios_pause_rendering && !g_ios_wait_for_ui_events)
       g_frame_callback();
   }
   else if (!g_ios_pause_rendering)
@@ -1081,7 +1095,7 @@ extern "C" void dagor_ios_delegate_dealloc()
   flush_debug_file();
 }
 
-extern "C" int main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   dagor_ios_before_main_init(argc, argv);
 

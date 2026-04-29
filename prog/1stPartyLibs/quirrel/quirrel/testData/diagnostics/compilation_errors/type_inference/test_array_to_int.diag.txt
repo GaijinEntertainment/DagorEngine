@@ -1,0 +1,9 @@
+ERROR: expression of type 'array' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/type_inference/test_array_to_int.nut:2:0
+
+// EXPECTED: compile-time error - array assigned to int
+local x: int = [1, 2, 3]
+^-----------------------
+return x
+
+

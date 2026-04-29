@@ -1,6 +1,6 @@
 Root    ?= ../../../.. ;
 Location = prog/tools/libTools/scriptPanelWrapper ;
-UseQuirrel = sq3r+ ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = tools/libTools/scriptPanelWrapper.lib ;
@@ -20,7 +20,6 @@ Sources =
 UseProgLibs =
   engine/coreUtil
   gameLibs/quirrel/bindQuirrelEx
-  gameLibs/quirrel/sqModules
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

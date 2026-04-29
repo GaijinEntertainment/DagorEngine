@@ -31,8 +31,9 @@ function eachBlock(db, callback, thisArg = null) {
 
   assert(isDataBlock(db))
   assert(isFunction(callback))
-  let numArgs = callback.getfuncinfos().parameters.len() - 1
-  assert(numArgs >= 1 && numArgs <= 3)
+  let {parameters, varargs} = callback.getfuncinfos()
+  let numArgs = parameters.len() - 1
+  assert((numArgs >= 1 && numArgs <= 3) || varargs)
 
   let l = db.blockCount()
   for (local i = 0; i < l; i++) {

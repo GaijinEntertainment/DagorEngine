@@ -169,9 +169,9 @@ static ecs::CompileTimeQueryDesc get_current_local_delay_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_current_local_delay_ecs_query(Callable function)
+inline void get_current_local_delay_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_current_local_delay_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_current_local_delay_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -186,7 +186,7 @@ inline void get_current_local_delay_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc collision_obj_eid_ecs_query_comps[] =
 {
-//start of 11 ro components at [0]
+//start of 12 ro components at [0]
   {ECS_HASH("pair_collision__tag"), ecs::ComponentTypeInfo<ecs::string>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("human"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("airplane"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
@@ -196,6 +196,7 @@ static constexpr ecs::ComponentDesc collision_obj_eid_ecs_query_comps[] =
   {ECS_HASH("nphysPairCollision"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("havePairCollision"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("phys__maxMassRatioForPushOnCollision"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("pair_collision__ignoreWorldContacts"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("net_phys__collisionMaterialId"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("net_phys__ignoreMaterialId"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL}
 };
@@ -203,13 +204,13 @@ static ecs::CompileTimeQueryDesc collision_obj_eid_ecs_query_desc
 (
   "collision_obj_eid_ecs_query",
   empty_span(),
-  make_span(collision_obj_eid_ecs_query_comps+0, 11)/*ro*/,
+  make_span(collision_obj_eid_ecs_query_comps+0, 12)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void collision_obj_eid_ecs_query(ecs::EntityId eid, Callable function)
+inline void collision_obj_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, collision_obj_eid_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, collision_obj_eid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -224,6 +225,7 @@ inline void collision_obj_eid_ecs_query(ecs::EntityId eid, Callable function)
             , ECS_RO_COMP_PTR(collision_obj_eid_ecs_query_comps, "nphysPairCollision", ecs::Tag)
             , ECS_RO_COMP_OR(collision_obj_eid_ecs_query_comps, "havePairCollision", bool(true))
             , ECS_RO_COMP_OR(collision_obj_eid_ecs_query_comps, "phys__maxMassRatioForPushOnCollision", float(-1.f))
+            , ECS_RO_COMP_OR(collision_obj_eid_ecs_query_comps, "pair_collision__ignoreWorldContacts", bool(false))
             , ECS_RO_COMP_OR(collision_obj_eid_ecs_query_comps, "net_phys__collisionMaterialId", int((int)PHYSMAT_INVALID))
             , ECS_RO_COMP_OR(collision_obj_eid_ecs_query_comps, "net_phys__ignoreMaterialId", int((int)PHYSMAT_INVALID))
             );

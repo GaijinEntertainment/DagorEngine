@@ -14,8 +14,9 @@ let {getEditMode=@() null, isFreeCamMode=@() false, setWorkMode=@(_) null,
 let {is_editor_activated=@() false, get_scene_filepath=@() null, set_start_work_mode=@(_) null, get_instance=@() null} = require_optional("entity_editor")
 let selectedEntity = Watched(ecs.INVALID_ENTITY_ID)
 let { selectedEntities, selectedEntitiesSetKeyVal, selectedEntitiesDeleteKey } = mkFrameIncrementObservable({}, "selectedEntities")
-let { markedScenes, markedScenesSetKeyVal, markedScenesDeleteKey } = mkFrameIncrementObservable({}, "markedScenes")
-
+let markedScenes = mkWatched(persist, "markedScenes", {})
+let allScenesWatcher = mkWatched(persist, "allScenes", null)
+let sceneIdMap = mkWatched(persist, "sceneIdMap", null)
 const SETTING_EDITOR_WORKMODE = "daEditor/workMode"
 const SETTING_EDITOR_TPLGROUP = "daEditor/templatesGroup"
 const SETTING_EDITOR_PROPS_ON_SELECT = "daEditor/showPropsOnSelect"
@@ -37,7 +38,7 @@ de4workMode.subscribe(function(v) {
   save_settings?()
 })
 
-let initWorkModes = function(modes, defMode=null) {
+function initWorkModes(modes, defMode=null) {
   de4workModes.set(modes ?? [""])
   let good_mode = modes.contains(defMode) ? defMode : modes?[0] ?? ""
   let last_mode = get_setting_by_blk_path?(SETTING_EDITOR_WORKMODE) ?? good_mode
@@ -45,7 +46,7 @@ let initWorkModes = function(modes, defMode=null) {
   de4workMode.set(mode_to_set)
 }
 
-let canChangeGizmoBasisType = function() {
+function canChangeGizmoBasisType() {
   local m = getEditMode()
   return m == DE4_MODE_MOVE || m == DE4_MODE_MOVE_SURF || m == DE4_MODE_ROTATE || m == DE4_MODE_SCALE
 }
@@ -65,7 +66,7 @@ gizmoCenterType.subscribe(function(v) {
   setGizmoCenterType(v)
 })
 
-let proceedWithSavingUnsavedChanges = function(showMsgbox, callback, unsavedText=null, proceedText=null) {
+function proceedWithSavingUnsavedChanges(showMsgbox, callback, unsavedText=null, proceedText=null) {
   if (unsavedText == true) { unsavedText = null; proceedText = true; }
   local hasUnsavedChanges = (get_instance() != null && (get_instance().hasUnsavedChanges() ?? false))
   if (!hasUnsavedChanges && proceedText==null) { callback(); return }
@@ -74,7 +75,7 @@ let proceedWithSavingUnsavedChanges = function(showMsgbox, callback, unsavedText
     text = hasUnsavedChanges ? (unsavedText!=null ? unsavedText : "You have unsaved changes. How do you want to proceed?")
                              : (proceedText!=null ? proceedText : "No unsaved changes. Proceed?")
     buttons = hasUnsavedChanges ? [
-      { text = "Save changes",  isCurrent = true, action = function() { get_instance?().saveObjects(""); callback() }}
+      { text = "Save changes",  isCurrent = true, action = function() { get_instance()?.saveDirtyScenes(); callback() }}
       { text = "Ignore changes" action = callback }
       { text = "Cancel", isCancel = true }
     ] : [
@@ -114,6 +115,9 @@ function editorUnpause(time) {
 let showPointAction = mkWatched(persist, "showPointAction", false)
 let typePointAction = mkWatched(persist, "typePointAction", "")
 let namePointAction = mkWatched(persist, "namePointAction", "")
+let sceneListUpdateTrigger = mkWatched(persist, "sceneListUpdateTrigger", 0)
+let edObjectFlagsUpdateTrigger = mkWatched(persist, "edObjectFlagsUpdateTrigger", 0)
+
 local funcPointAction = null
 function setPointActionMode(actionType, actionName, cb) {
   hideAllWindows()
@@ -171,9 +175,25 @@ function handleEntityMoved(eid) {
   }
 }
 
+function getAllScenes() {
+  if (allScenesWatcher.get() == null || allScenesWatcher.get().len() == 0) {
+    allScenesWatcher.set(get_instance()?.getSceneImports() ?? [])
+    sceneIdMap.set(allScenesWatcher.get().map(@(item) [item.id, item]).totable())
+  }
+
+  return allScenesWatcher.get()
+}
+
+function updateAllScenes() {
+  allScenesWatcher.set(get_instance()?.getSceneImports() ?? [])
+  sceneIdMap.set(allScenesWatcher.get().map(@(item) [item.id, item]).totable())
+}
+
+sceneListUpdateTrigger.subscribe_with_nasty_disregard_of_frp_update(@(_v) updateAllScenes())
+
 return {
   EntitySelectWndId = "entity_select"
-  LoadedScenesWndId = "loaded_scenes"
+  SceneOutlinerWndId = "scene_outliner"
   LogsWindowId = "log_window"
 
   showUIinEditor = mkWatched(persist, "showUIinEditor", false)
@@ -190,11 +210,11 @@ return {
   filterString = mkWatched(persist, "filterString", "")
   selectedCompName = Watched()
   markedScenes
-  markedScenesSetKeyVal
-  markedScenesDeleteKey
   showTemplateSelect = mkWatched(persist, "showTemplateSelect", false)
   showHelp = mkWatched(persist, "showHelp", false)
   entitiesListUpdateTrigger = mkWatched(persist, "entitiesListUpdateTrigger", 0)
+  sceneListUpdateTrigger
+  edObjectFlagsUpdateTrigger
   de4editMode = Watched(getEditMode?())
   extraPropPanelCtors = Watched([])
   de4workMode
@@ -228,4 +248,9 @@ return {
   handleEntityMoved
 
   wantOpenRISelect = Watched(false)
+
+  allScenesWatcher
+  getAllScenes
+  updateAllScenes
+  sceneIdMap
 }

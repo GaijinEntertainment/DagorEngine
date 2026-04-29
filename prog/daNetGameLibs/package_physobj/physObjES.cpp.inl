@@ -1,8 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "physObj.h"
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ecs/phys/turretControl.h>
 #include <daECS/net/netbase.h>
 #include <daECS/net/connection.h>
@@ -11,6 +15,7 @@
 
 #include "phys/physUtils.h"
 #include "phys/netPhys.cpp.inl"
+#include <ecs/game/generic/gridEvent.h>
 
 ECS_NET_DECL_MSG(PhysObjSnapshotsMsg, danet::BitStream);
 ECS_NET_IMPL_MSG(PhysObjSnapshotsMsg,
@@ -39,6 +44,8 @@ ECS_AUTO_REGISTER_COMPONENT_DEPS(PhysObjActor,
 struct PhysObjActorUpdateContext : public BasePhysActor::UpdateContext
 {
   int *prevRShadowTick = nullptr;
+  const TMatrix *initialTransform;
+  const Point3 *initialVel;
 };
 
 template class PhysActor<PhysObj, PhysObjCustomPhys, PhysType::PHYSOBJ>;
@@ -76,19 +83,26 @@ ECS_BEFORE(after_net_phys_sync)
 ECS_AFTER(before_net_phys_sync)
 ECS_REQUIRE_NOT(ecs::Tag disableUpdate)
 static inline void phys_obj_phys_es(const UpdatePhysEvent &info,
+  ecs::EntityManager &manager,
+  ecs::EntityId eid,
   PhysObjActor &phys_obj_net_phys,
   TMatrix &transform,
   int *net_phys__prevTick,
-  const ecs::Tag *phys__broadcastAAS)
+  const ecs::Tag *phys__broadcastAAS,
+  const TMatrix *initial_transform,
+  const Point3 *initial_velocity)
 {
   PhysObjActorUpdateContext uctx;
   uctx.transform = &transform;
   uctx.physObjBroadcastAAS = phys__broadcastAAS != nullptr;
   if (net_phys__prevTick && phys_obj_net_phys.getRole() == IPhysActor::ROLE_REMOTELY_CONTROLLED_SHADOW)
     uctx.prevRShadowTick = net_phys__prevTick;
+  uctx.initialTransform = initial_transform;
+  uctx.initialVel = initial_velocity;
 
   net_phys_update_es(info, phys_obj_net_phys, uctx);
   phys_obj_net_phys.phys.updatePhysInWorld(transform);
+  manager.sendEventImmediate(eid, CmdUpdateGrid());
 
   if (uctx.prevRShadowTick)
     *uctx.prevRShadowTick = gamephys::nearestPhysicsTickNumber(get_sync_time(), phys_obj_net_phys.phys.timeStep);
@@ -129,6 +143,8 @@ void PhysObjActor::serializePhysSnapshotImpl(danet::BitStream &bs, PhysSnapSeria
 
   bs.AlignWriteToByteBoundary();
 }
+
+void PhysObj::additionalCollisionChecks(const CollisionObject &, const TMatrix &, Tab<gamephys::CollisionContactData> &) {}
 
 template <>
 bool PhysObjActor::deserializePhysSnapshot(
@@ -172,7 +188,7 @@ void PhysObjActor::processSnapshotNoEntity(uint16_t netPhysId, BasePhysSnapshot 
 }
 
 template <>
-void PhysObjActor::updateRemoteShadow(float remote_time, float dt, const BasePhysActor::UpdateContext &uctx_)
+void PhysObjActor::updateRemoteShadow(double remote_time, float dt, const BasePhysActor::UpdateContext &uctx_)
 {
   if (ECS_GET_NULLABLE(ecs::Tag, getEid(), phys__disableSnapshots) == nullptr)
   {

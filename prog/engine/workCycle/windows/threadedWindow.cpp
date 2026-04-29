@@ -252,7 +252,7 @@ void shutdown_threaded_window()
         d3d::window_destroyed(window_thread->params.hwnd);
     }
 
-    window_thread->terminate(true);
+    window_thread->terminate(true, 3000);
     window_thread.demandDestroy();
   }
 }

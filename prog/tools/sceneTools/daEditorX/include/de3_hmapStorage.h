@@ -376,6 +376,8 @@ public:
 
   bool hasDistinctInitialAndFinalMap() const { return hmInitial != hmFinal; }
 
+  const MapStorage<float> &getInitialMap() const { return *hmInitial; }
+  const MapStorage<float> &getFinalMap() const { return *hmFinal; }
   MapStorage<float> &getInitialMap() { return *hmInitial; }
   MapStorage<float> &getFinalMap() { return *hmFinal; }
 

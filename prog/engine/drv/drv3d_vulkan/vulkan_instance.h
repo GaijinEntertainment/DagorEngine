@@ -287,7 +287,7 @@ private:
     if (extRef != listEnd)
     {
       loaded = true;
-      this->T::enumerateFunctions([this, &loaded](const char *f_name, PFN_vkVoidFunction &function) {
+      this->T::enumerateFunctions([this, &loaded](const char *f_name, PFN_vkVoidFunction &function, bool) {
         function = VULKAN_LOG_CALL_R(Globals::VK::loader.vkGetInstanceProcAddr(instance, f_name));
         if (!function)
           loaded = false;
@@ -306,7 +306,7 @@ private:
   {
     if (extensionEnabled.test(TypeIndexOf<T, ExtensionTypePack>::value))
     {
-      this->T::enumerateFunctions([](const char *, PFN_vkVoidFunction &function) { function = nullptr; });
+      this->T::enumerateFunctions([](const char *, PFN_vkVoidFunction &function, bool) { function = nullptr; });
       extensionEnabled.reset(TypeIndexOf<T, ExtensionTypePack>::value);
     }
   }

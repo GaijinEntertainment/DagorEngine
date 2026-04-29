@@ -14,7 +14,8 @@ static void connectivity_state_es_all_events(const ecs::Event &__restrict evt, c
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     connectivity_state_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(connectivity_state_es_comps, "ui_state__connectivity", int)
+        , components.manager()
+    , ECS_RW_COMP(connectivity_state_es_comps, "ui_state__connectivity", int)
     );
   while (++comp != compE);
 }

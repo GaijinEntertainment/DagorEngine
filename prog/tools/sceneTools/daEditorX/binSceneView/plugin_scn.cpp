@@ -621,7 +621,7 @@ bool BinSceneViewPlugin::traceRay(const Point3 &p, const Point3 &dir, real &maxt
   if (streamingScene->lmeshMgr)
     _result = streamingScene->lmeshMgr->traceray(p, dir, maxt, norm);
   int pmid;
-  if (streamingScene->frtDump.isDataValid() && streamingScene->frtDump.traceray(p, dir, maxt, pmid))
+  if (streamingScene->frtDump.isDataValid() && streamingScene->frtDump.traceray(p, dir, maxt, pmid) >= 0)
     _result = true;
   return _result;
 }

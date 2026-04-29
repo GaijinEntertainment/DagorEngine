@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ecs/render/updateStageRender.h>
 #include <debug/dag_debug3d.h>
 #include <vecmath/dag_vecMath_common.h>
@@ -10,7 +11,7 @@
 #include <daECS/core/componentTypes.h>
 #include <EASTL/numeric.h>
 #include <math/random/dag_random.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include <EASTL/array.h>
 #include <util/dag_convar.h>
 #include <math/dag_hlsl_floatx.h>

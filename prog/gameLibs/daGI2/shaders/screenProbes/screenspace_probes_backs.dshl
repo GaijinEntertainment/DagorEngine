@@ -24,9 +24,10 @@ macro GET_PROBE_COLOR(code)
   PROJECT_GET_WORLD_RADIANCE_AT(code)
   hlsl(code) {
     #include <screen_probes_encoding.hlsl>
-    uint get_probe_color(float3 uvw, uint encodedNormal, bool isMoving)
+    uint get_probe_color(float3 uvw, uint encodedNormal, bool isMoving, bool isNewborn)
     {
-      float3 camPos = sp_getViewVecOptimized(uvw.xy)*uvw.z;
+      float3 viewVec = sp_getViewVecOptimized(uvw.xy);
+      float3 camPos = viewVec*uvw.z;
       float3 worldPos = sp_world_view_pos + camPos;
       float3 worldNormal = decodeProbeNormal(encodedNormal);
       if (isMoving)
@@ -47,14 +48,19 @@ macro GET_PROBE_COLOR(code)
 
       float3 historyRadiance;
       bool hasValidHistoryRadiance = false;
-      if (sp_is_valid_history())
-        hasValidHistoryRadiance = sample_prev_frame_radiance(prevUVW, uvw, camPos, true, historyRadiance);
+      if (sp_is_valid_history() && !isNewborn)
+        hasValidHistoryRadiance = sample_prev_frame_radiance(prevUVW, uvw, camPos, viewVec, true, historyRadiance);
 
       float3 radiance;
       if (hasValidHistoryRadiance)
+      {
         radiance = historyRadiance;
+      }
       else
-        radiance = dagi_get_radiance_at(worldPos, worldNormal);
+      {
+        float toCamDist = length(camPos);
+        radiance = dagi_get_radiance_at(worldPos, worldNormal, float4(-camPos / toCamDist, toCamDist));
+      }
       //float3 sdfAtlasTC = world_sdf_clip_tc_to_atlas_tc(sdfClip, world_pos_to_world_sdf_tc(sdfClip, worldPos));
       //float3 gradient = world_sdf_sample_gradient_with_atlas_tc(sdfAtlasTC);
       //float gradLen = length(gradient);
@@ -71,17 +77,18 @@ buffer screenspace_tile_classificator;
 
 shader dagi_probes_back_color_cs
 {
-  ENABLE_ASSERT(cs)
   GET_PROBE_COLOR(cs)
   SP_USE_BUFFERS_LIST(cs)
   (cs) {
     screenspace_tile_classificator@buf = screenspace_tile_classificator hlsl {
       ByteAddressBuffer screenspace_tile_classificator@buf;
     }
+    screenspace_probe_pos@uav : register(0) hlsl {
+      RWByteAddressBuffer screenspace_probe_pos@uav;
+    }
   }
   hlsl(cs) {
-    RWByteAddressBuffer screenspace_probe_pos: register(u0);
-    [numthreads(SP_BACK_COLOR_WARP, 1, 1)]
+    [numthreads(SP_BACK_COLOR_GROUP_SIZE, 1, 1)]
     void calc_back_radiance_cs(uint probeIdx : SV_DispatchThreadID)
     {
       uint totalCount = loadBuffer(screenspace_probes_list, 0);
@@ -92,7 +99,6 @@ shader dagi_probes_back_color_cs
       if (!encodedProbe)
         return;
       uint color = 0;
-      if (!sp_is_newborn_probe(encodedProbe))
       {
         uint encodedNormalOfs = sp_loadEncodedProbeNormalCoord(screenspace_probe_pos, atlasProbeIndex, sp_getNumTotalProbes());
         uint screenProbeIndex = atlasProbeIndex;
@@ -104,7 +110,7 @@ shader dagi_probes_back_color_cs
         uint2 probeScreenCoord = min(screen_tile_coord*screenspace_probe_res.z + coord_ofs, screenspace_probe_screen_limit.zw);
         float3 uv = float3(screenICoordToScreenUV(probeScreenCoord), sp_decodeProbeInfo(encodedProbe).normalizedW*sp_zn_zfar.y);
 
-        color = get_probe_color(uv, encodedNormalOfs, sp_is_moving_probe(encodedProbe));
+        color = get_probe_color(uv, encodedNormalOfs, sp_is_moving_probe(encodedProbe), sp_is_newborn_probe(encodedProbe));
       }
       storeBuffer(screenspace_probe_pos, (atlasProbeIndex*2 + sp_getNumTotalProbes())*4 + 4, color);
     }

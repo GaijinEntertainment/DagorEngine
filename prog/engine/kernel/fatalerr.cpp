@@ -273,7 +273,6 @@ static void flush_all_std_and_debug()
   logmessage(LOGLEVEL_DEBUG, "flush_all_std_and_debug\n");
   flush_debug_file();
   fflush(stdout);
-  fflush(stdin);
   fflush(stderr);
   close_debug_files();
 }
@@ -354,13 +353,19 @@ void quit_game(int c, bool restart, const char **args)
 
   flush_all_std_and_debug();
 
-
 #if _TARGET_APPLE | _TARGET_ANDROID
 #if _TARGET_ANDROID
   if (android_exit_app_ptr)
     android_exit_app_ptr(c);
 #endif
   _exit(c);
+#elif _TARGET_PC_LINUX
+  // proper cleanup may be not available in emergency conditions causing secondary crash on exit
+  // use _exit to skip _fini (static destructors) that are not aware of this
+  if (c > 0)
+    _exit(c);
+  else
+    exit(c);
 #elif _TARGET_PC | _TARGET_XBOX
   exit(c);
 #elif _TARGET_C3

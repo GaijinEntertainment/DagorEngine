@@ -12,11 +12,11 @@
 #include <soundSystem/debug.h>
 #include <soundSystem/vars.h>
 #include <soundSystem/varId.h>
-#include "internal/events.h"
+#include "internal/events_internal.h"
 #include "internal/fmodCompatibility.h"
 #include "internal/releasing.h"
-#include "internal/occlusion.h"
-#include "internal/debug.h"
+#include "internal/occlusion_internal.h"
+#include "internal/debug_internal.h"
 
 static WinCritSec g_occlusion_cs;
 #define SNDSYS_OCCLUSION_BLOCK WinAutoLock occlusionLock(g_occlusion_cs);
@@ -56,6 +56,7 @@ struct Source
   float value = g_uninited_value;
   float deadlineAt = 0.f;
   float checkAt = 0.f;
+  float radius = 0.f;
   bool debugUpdate = false;
   bool needAbandon = false;
 
@@ -224,10 +225,23 @@ void set_event_group(EventHandle event_handle, group_id_t group_id)
   }
 }
 
+void set_radius(EventHandle event_handle, float radius)
+{
+  if (!g_occlusion_valid.load())
+    return;
+  if (fmod_instance_t *instance = fmodapi::get_instance(event_handle))
+  {
+    SNDSYS_OCCLUSION_BLOCK;
+
+    if (Source *src = find_source_by_instance_no_group(instance))
+      src->radius = radius;
+  }
+}
+
 static int g_total_traces = 0;
 static constexpr int g_max_traces = 16;
 
-static float make_occlusion_impl(const Point3 &pos)
+static float make_occlusion_impl(const Point3 &pos, float source_radius)
 {
   TIME_PROFILE_DEV(sndsys_occlusion_make_occlusion);
 
@@ -238,7 +252,7 @@ static float make_occlusion_impl(const Point3 &pos)
   if (dir.lengthSq() < sqr(g_far_attenuation))
     if (g_total_traces < g_max_traces)
     {
-      value = g_trace_proc(g_listener_pos, pos, g_near_attenuation, g_far_attenuation);
+      value = g_trace_proc(g_listener_pos, pos, g_near_attenuation, g_far_attenuation, source_radius);
       ++g_total_traces;
     }
 
@@ -252,22 +266,6 @@ static void set_occlusion(Source &src, float value)
     src.value = value;
     src.instance->setParameterByID(as_fmod_param_id(src.varId), value);
   }
-}
-
-void oneshot(FMOD::Studio::EventInstance &instance, const Point3 &pos)
-{
-  TIME_PROFILE_DEV(sndsys_occlusion_oneshot);
-  if (!g_occlusion_valid.load())
-    return;
-  SNDSYS_OCCLUSION_BLOCK;
-
-  if (!g_listener_pos.lengthSq())
-    return;
-
-  const float value = make_occlusion_impl(pos);
-
-  if (value != g_default_value)
-    instance.setParameterByName(g_occlusion_param_name.c_str(), value);
 }
 
 bool release(FMOD::Studio::EventInstance *instance)
@@ -380,13 +378,13 @@ void update(float cur_time, const Point3 &listener)
 
       if ((tIdx >= g_idx || tIdx + maxTraceable < g_idx + maxTraces) && traces < maxTraces)
       {
-        set_occlusion(src, make_occlusion_impl(src.pos));
+        set_occlusion(src, make_occlusion_impl(src.pos, src.radius));
         src.debugUpdate = true;
         ++traces;
       }
       else if (src.value == g_uninited_value)
       {
-        set_occlusion(src, make_occlusion_impl(src.pos));
+        set_occlusion(src, make_occlusion_impl(src.pos, src.radius));
         src.debugUpdate = true;
       }
 
@@ -408,7 +406,7 @@ void debug_enum_sources(debug_enum_sources_t debug_enum_sources)
       src.pos);
 }
 
-static float default_trace_proc(const Point3 &from, const Point3 &to, float /*near*/, float /*far*/)
+static float default_trace_proc(const Point3 &from, const Point3 &to, float /*near*/, float /*far*/, float /*source_radius*/)
 {
   float value = 0.f;
   SOUND_VERIFY(g_low_level_system->getGeometryOcclusion(&as_fmod_vector(from), &as_fmod_vector(to), &value, nullptr));
@@ -480,5 +478,7 @@ void get_debug_info(int &total_traces, int &max_traces)
   total_traces = g_total_traces;
   max_traces = g_max_traces;
 }
+
+float get_far_attenuation() { return g_far_attenuation; }
 
 } // namespace sndsys::occlusion

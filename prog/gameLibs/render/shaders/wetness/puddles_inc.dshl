@@ -8,12 +8,14 @@ float4 puddles_params = float4(160.0, 200.0, 0, 0);
 // y = 0..1 - dist puddles max
 // z, w - unused
 
-macro USE_PUDDLE_DISTANCES(code)
+macro INIT_PUDDLE_DISTANCES(code)
   (code) {
     puddles_params@f4 = (1.0 / max(0.01, puddles_params.y - puddles_params.x),
                       -puddles_params.x / max(0.01, puddles_params.y - puddles_params.x), puddles_params.z, puddles_params.w);
   }
+endmacro
 
+macro USE_PUDDLE_DISTANCES(code)
   hlsl (code) {
     #define WETNESS_PUDDLE_SLOPE 0.002
     float get_puddle_slope_fade(float3 vertical_normal)
@@ -23,8 +25,12 @@ macro USE_PUDDLE_DISTANCES(code)
   }
 endmacro
 
+macro INIT_PUDDLES_WETNESS(code)
+  INIT_PUDDLE_DISTANCES(code)
+  INIT_TOROIDAL_PUDDLES(code, true)
+endmacro
+
 macro USE_PUDDLES_WETNESS(code)
-  INIT_TOROIDAL_PUDDLES(code)
   USE_TOROIDAL_PUDDLES(code)
   USE_PUDDLE_DISTANCES(code)
 
@@ -46,7 +52,7 @@ macro USE_PUDDLES_WETNESS(code)
       puddle_displacement = 0;
 
       float totalThickness = 0.01;
-      ##if shader == heightmap && render_with_normalmap == render_displacement
+      ##if (shader == render_puddles_to_physdetails || ((shader == heightmap || shader == explosion_rendinst_decal || shader == water_ripples_update) && render_with_normalmap == render_displacement))
         totalThickness = hmap_displacement_max - hmap_displacement_min;
         puddle_displacement = hmap_displacement_min;
       ##endif
@@ -62,7 +68,8 @@ macro USE_PUDDLES_WETNESS(code)
 
       wetness *= saturate(puddle_level * 100);
 
-      puddle_displacement += puddle_level * totalThickness;
+      // limit puddle displacement by 0.5 of total thickness to have smooth water level
+      puddle_displacement += min(puddle_level, 0.5) * totalThickness;
 
       return wetness;
     }
@@ -70,22 +77,42 @@ macro USE_PUDDLES_WETNESS(code)
 endmacro
 
 float4 heightmap_mud_color = (0.08, 0.05, 0.015, 3);
+float4 heightmap_foam_scale = (0.21, 0.5, 0.5, 1.5);
+// x- scale for lowFreq foam
+// y- base val for lowFreq foam shift
+// z- scale for highFreq foam
+// w- base val for highFreq foam shift
 
 macro USE_LAND_WETNESS()
+  INIT_PUDDLES_WETNESS(ps)
   USE_PUDDLES_WETNESS(ps)
+  INIT_WETNESS()
   USE_WETNESS()
   INIT_WRITE_GBUFFER_WETNESS()
   WRITE_GBUFFER_WETNESS()
   USE_WATER_RIPPLES(@smp2d)
+  INIT_WATER_HEIGHTMAP(ps)
+  USE_WATER_HEIGHTMAP(ps)
 
-  (ps) { heightmap_mud_color@f4 = heightmap_mud_color; }
+  (ps) {
+    heightmap_mud_color@f4 = heightmap_mud_color;
+  }
+  if (shader == heightmap || shader == explosion_rendinst_decal)
+  {
+    (ps) {
+      foam_tex@smp2d = foam_tex;
+      droplets_8bit_tex@smp3d = droplets_8bit_tex;
+      foam_time@f2 = (time_phase(1, 0), time_phase(2.1, 0));
+      heightmap_foam_scale@f4 = heightmap_foam_scale;
+    }
+  }
 
   hlsl(ps) {
 
-    bool check_land_wetness_conditions(float3 world_pos, float3 vertical_normal, float dist, float puddle_level, out float base_wetness, out float water_border)
+    bool check_land_wetness_conditions(float3 world_pos, float3 vertical_normal, float dist, float water_level, float puddle_level, out float base_wetness, out float water_border)
     {
-      base_wetness = get_base_wetness(world_pos, vertical_normal, water_border);
-      return base_wetness > 0 || (check_puddles_conditions(puddle_level, dist, vertical_normal) && world_pos.y > get_wetness_water_level());
+      base_wetness = get_base_wetness(world_pos, vertical_normal, water_level, water_border);
+      return base_wetness > 0 || (check_puddles_conditions(puddle_level, dist, vertical_normal) && world_pos.y > water_level);
     }
 
     float2 get_land_wetness(float3 world_pos, float3 vertical_normal, float dist, float puddle_level, float land_thickness, float land_deformation, float height, float base_wetness, float water_border)
@@ -122,11 +149,42 @@ macro USE_LAND_WETNESS()
       g_buf.shadow = lerp(g_buf.shadow, 1.0, wetnessAO);
       g_buf.translucency *= (1 - wetnessAO);
       g_buf.smoothness = lerp(g_buf.smoothness, 1, ClampRange(wetMaterial, 0.2, 1.0));
-
-      if (max(wetness.x, wetness.y) > get_base_wetness_max_level())
-        g_buf.normal = RNM_ndetail_normalized(g_buf.normal.xzy, get_water_ripples_normal(world_pos).xzy).xzy;
-
       g_buf.reflectance = lerp(g_buf.reflectance, 1.0, wetMaterial);
+
+      ##if shader == heightmap || shader ==  explosion_rendinst_decal
+        BRANCH
+        if (max(wetness.x, wetness.y) > get_base_wetness_max_level())
+        {
+          float distort = 0;
+          float3 ripplesNormal = get_water_ripples_normal(world_pos, distort);
+          if (distort > 0.02)
+          {
+            float ripplesNormalDistortion = 0.4*saturate(10 * distort - 0.2);
+            float4 foamUV = float4(0.05*ripplesNormal.xz + world_pos.xz * heightmap_foam_scale.x, 0, 0);
+            float foamLowFreq = tex2Dlod(foam_tex, foamUV).r;
+            float foamPeriod = 2 * abs(frac(3.1*foamLowFreq + foam_time.x + heightmap_foam_scale.y*(world_pos.x + world_pos.z)) - 0.5);
+            half distortionMul = 1 + 5 * foamPeriod;
+            // foam generates both from distortion itself and ripples normalmap
+            distort = saturate(saturate( distort * distortionMul - 0.3) + 2*saturate(2 - 2*ripplesNormal.y));
+            foamUV = float4(world_pos.xz * heightmap_foam_scale.z + 0.05*ripplesNormal.xz, 0, 0);
+
+            // foam
+            distort *= 0.25 + abs(frac(4.1*foamLowFreq + foam_time.y + 0.2*heightmap_foam_scale.y*(world_pos.x + world_pos.z)) - 0.5);
+
+            g_buf.albedo.rgb = lerp(g_buf.albedo.rgb, float3(0.3, 0.35, 0.35), 0.6 * distort * wetMaterial);
+            g_buf.smoothness = lerp( g_buf.smoothness, 0.7, max(ripplesNormalDistortion, 0.5*distort) * wetMaterial);
+
+            // distortion ripples use rain texture to simulate insane amount of small droplets
+            float2 dropNormal = tex3Dlod(droplets_8bit_tex, float4(world_pos.xz * heightmap_foam_scale.z + 0.05*ripplesNormal.xz, foam_time.x, 0)).zw;
+
+            // this is tricky: when we have foam or ripples from distortion, we fade out low-frequency waves, because they looking too sharp and unrealistic
+            ripplesNormal = lerp(ripplesNormal, float3(0, 1, 0), ripplesNormalDistortion + 0.5*distort);
+            ripplesNormal.x += 4*ripplesNormalDistortion * (dropNormal.x - 0.5);
+            ripplesNormal.z += 4*ripplesNormalDistortion * (dropNormal.y - 0.5);
+          }
+          g_buf.normal = RNM_ndetail_normalized(g_buf.normal.xzy, ripplesNormal.xzy).xzy;
+        }
+      ##endif
     }
   }
 endmacro
@@ -134,18 +192,23 @@ endmacro
 float object_default_porosity = 0.6;
 float decal_default_porosity = 0.7;
 
-// Rendinsts not have any displacement or trackdirt offsets, aswell as water ripples and etc
-// so we use much simplier function to apply toroidal puddles (with some variance)
-macro USE_RENDINST_PUDDLES(code)
-  INIT_TOROIDAL_PUDDLES(code)
-  USE_TOROIDAL_PUDDLES(code)
-  USE_WETNESS()
-  USE_PUDDLE_DISTANCES(code)
+macro INIT_RENDINST_PUDDLES(code, use_sampler)
+  INIT_WETNESS()
+  INIT_TOROIDAL_PUDDLES(code, use_sampler)
+  INIT_PUDDLE_DISTANCES(code)
 
   (code) {
     porosity_params@f2 = (object_default_porosity, decal_default_porosity);
     landmesh_puddles_mul@f1 = landmesh_puddles_mul;
   }
+endmacro
+
+// Rendinsts not have any displacement or trackdirt offsets, aswell as water ripples and etc
+// so we use much simplier function to apply toroidal puddles (with some variance)
+macro USE_RENDINST_PUDDLES(code)
+  USE_TOROIDAL_PUDDLES(code)
+  USE_WETNESS()
+  USE_PUDDLE_DISTANCES(code)
 
   hlsl(code) {
     #define object_default_porosity porosity_params.x

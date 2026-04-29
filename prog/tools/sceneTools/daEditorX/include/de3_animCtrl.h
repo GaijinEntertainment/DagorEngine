@@ -25,7 +25,10 @@ public:
   //! returns animation params state
   virtual AnimV20::IAnimStateHolder *getAnimState() const = 0;
   //! returns animated character
-  virtual AnimV20::IAnimCharacter2 *getAnimChar() const = 0;
+  virtual AnimV20::AnimcharBaseComponent *getAnimCharBase() const = 0;
+  virtual AnimV20::AnimcharRendComponent *getAnimCharRend() const = 0;
+  virtual const AnimV20::AnimcharFinalMat44 *getAnimCharFinalWTM() const = 0;
+  virtual BSphere3 getAnimCharBoundingSphere() const = 0;
 
   //! returns true when animchar update is paused
   virtual bool isPaused() const = 0;

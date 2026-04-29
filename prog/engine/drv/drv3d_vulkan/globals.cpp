@@ -11,7 +11,6 @@
 #include "device_memory_report.h"
 #include "fence_manager.h"
 #include "timelines.h"
-#include "execution_markers.h"
 #include "query_pools.h"
 #include "bindless.h"
 #include "dlss.h"
@@ -26,7 +25,7 @@
 #include "debug_naming.h"
 #include "sampler_cache.h"
 #include "vk_format_utils.h"
-#include "buffer_alignment.h"
+#include "buffer_props.h"
 #include "vulkan_instance.h"
 #include "shader/program_database.h"
 #include "os.h"
@@ -47,6 +46,8 @@ DeviceMemoryReport Globals::Mem::report;
 
 TexturePool Globals::Res::tex;
 BufferPool Globals::Res::buf;
+EventQueryPool Globals::Res::queries;
+ResUpdateBufferPool Globals::Res::rub;
 
 DebugNaming Globals::Dbg::naming;
 RenderDocCaptureModule Globals::Dbg::rdoc;
@@ -56,7 +57,6 @@ PipelineManager Globals::pipelines;
 RenderPassManager Globals::passes;
 FenceManager Globals::fences;
 TimelineManager Globals::timelines;
-ExecutionMarkers Globals::gpuExecMarkers;
 SurveyQueryManager Globals::surveys;
 QueryManager Globals::timestamps;
 QueryManager Globals::occlusionQueries;
@@ -67,7 +67,7 @@ DriverConfig Globals::cfg;
 DeviceContext Globals::ctx;
 SamplerCache Globals::samplers;
 ShaderProgramDatabase Globals::shaderProgramDatabase;
-Driver3dDesc Globals::desc;
+DriverDesc Globals::desc;
 WindowState Globals::window;
 #if !USE_STREAMLINE_FOR_DLSS
 DLSSSuperResolutionDirect Globals::dlss;
@@ -81,5 +81,5 @@ VulkanDevice Globals::VK::dev;
 DeviceQueueGroup Globals::VK::queue;
 PhysicalDeviceSet Globals::VK::phy;
 FormatUtil Globals::VK::fmt;
-BufferAlignment Globals::VK::bufAlign;
+BufferProps Globals::VK::bufProps;
 VulkanInstance Globals::VK::inst;

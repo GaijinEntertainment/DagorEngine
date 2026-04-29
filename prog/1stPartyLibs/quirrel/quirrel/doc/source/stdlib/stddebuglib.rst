@@ -7,7 +7,7 @@ The Debug library
 the library implements some basic debug routines.
 
 --------------
-Squirrel API
+Quirrel API
 --------------
 
 
@@ -56,6 +56,9 @@ returns the stack informations of a given call stack level. returns a table form
 level = 0 is getstackinfos() itself! level = 1 is the current function, level = 2 is the caller of the current function, and so on.
 If the stack level doesn't exist the function returns null.
 
+.. sq:function:: format_call_stack_string()
+
+Collects the call stack and returns the information about functions being executed and local variables as a string.
 
 .. sq:function:: getlocals([level=1], [include_internal=false])
 

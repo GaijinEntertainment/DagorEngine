@@ -20,10 +20,6 @@ typedef int SQInt32;
 typedef unsigned int SQUnsignedInteger32;
 
 
-#ifndef __forceinline
-#define __forceinline inline
-#endif
-
 #ifdef SQUSEDOUBLE
     typedef double SQFloat;
 #else
@@ -50,8 +46,6 @@ typedef void* SQUserPointer;
 typedef SQUnsignedInteger SQBool;
 typedef SQInteger SQRESULT;
 
-typedef char SQChar;
-#define _SC(a) a
 #if defined __EMSCRIPTEN__
 #define scsprintf   snprintf
 #elif (!defined(_TARGET_PC_WIN) && !defined(_TARGET_XBOX)) || (defined(_MSC_VER) && _MSC_VER <= 1800)
@@ -68,13 +62,12 @@ typedef char SQChar;
 #else
 #define scstrtol    strtol
 #endif
-#define SQ_MAX_CHAR 0xFF
 
 #ifdef _SQ64
-    #define _PRINT_INT_PREC _SC("ll")
-    #define _PRINT_INT_FMT _SC("%" PRId64)
+    #define _PRINT_INT_PREC "ll"
+    #define _PRINT_INT_FMT "%" PRId64
 #else
-    #define _PRINT_INT_FMT _SC("%d")
+    #define _PRINT_INT_FMT "%d"
 #endif
 
 #define SQ_USED_MEM_COUNTER_DECL namespace sqmemtrace { extern unsigned mem_used; }
@@ -86,6 +79,11 @@ typedef char SQChar;
 
 #ifndef SQ_CHECK_THREAD
 #define SQ_CHECK_THREAD SQ_CHECK_THREAD_LEVEL_NONE
+#endif
+
+// doc strings and native function declaration strings
+#ifndef SQ_STORE_DOC_OBJECTS
+#define SQ_STORE_DOC_OBJECTS 1
 #endif
 
 #define MIN_SQ_INTEGER SQInteger(1ULL << (sizeof(SQInteger) * 8 - 1))

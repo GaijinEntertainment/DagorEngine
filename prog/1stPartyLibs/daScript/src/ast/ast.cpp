@@ -38,6 +38,15 @@ namespace das {
 
     AotListBase * AotListBase::head = nullptr;
 
+    SimNode* AotFactory::operator()(Context& ctx) const
+    {
+        if (is_cmres) {
+            return ctx.code->makeNode<SimNode_AotCMRES>(fn, wrappedFn);
+        } else {
+            return ctx.code->makeNode<SimNode_Aot>(fn, wrappedFn);
+        }
+    }
+
     AotListBase::AotListBase( RegisterAotFunctions prfn ) {
         tail = head;
         head = this;
@@ -178,8 +187,12 @@ namespace das {
     }
 
     string Enumeration::find ( int64_t va, const string & def ) const {
+        auto vaRef = pair(va,true);
         for ( const auto & it : list ) {
-            if ( getConstExprIntOrUInt(it.value)==va ) {
+            if (    it.value
+                &&  it.value->rtti_isConstant()
+                &&  (!it.value->type || it.value->type->isInteger())
+                && tryGetConstExprIntOrUInt(it.value)==vaRef ) {
                 return it.name;
             }
         }
@@ -221,6 +234,10 @@ namespace das {
 
     // structure
 
+    TypeDeclPtr Structure::findAlias ( const string & aliasName ) const {
+        return aliases.find(aliasName);
+    }
+
     uint64_t Structure::getOwnSemanticHash(HashBuilder & hb, das_set<Structure *> & dep, das_set<Annotation *> & adep) const {
         hb.updateString(getMangledName());
         hb.update(fields.size());
@@ -228,6 +245,10 @@ namespace das {
             hb.updateString(fld.name);
             hb.update(fld.type->getOwnSemanticHash(hb, dep, adep));
         }
+        aliases.foreach([&](const TypeDeclPtr & atype) {
+            hb.update(atype->getOwnSemanticHash(hb, dep, adep));
+            return true;
+        });
         return hb.getHash();
     }
 
@@ -238,6 +259,10 @@ namespace das {
             cs->fields.emplace_back(fd.name, make_smart<TypeDecl>(*fd.type), fd.init, fd.annotation, fd.moveSemantics, fd.at);
             cs->fields.back().flags = fd.flags;
         }
+        aliases.foreach([&](const TypeDeclPtr & atype) -> bool {
+            cs->aliases.insert(atype->alias, make_smart<TypeDecl>(*atype));
+            return true;
+        });
         cs->at = at;
         cs->module = module;
         cs->flags = flags;
@@ -267,34 +292,54 @@ namespace das {
     }
 
     bool Structure::canCopy(bool tempMatters) const {
+        if ( circularGuard ) return true;
+        circularGuard = true;
         for ( const auto & fd : fields ) {
-            if ( !fd.type->canCopy(tempMatters) )
+            if ( !fd.type->canCopy(tempMatters) ) {
+                circularGuard = false;
                 return false;
+            }
         }
+        circularGuard = false;
         return true;
     }
 
     bool Structure::canMove() const {
+        if ( circularGuard ) return true;
+        circularGuard = true;
         for ( const auto & fd : fields ) {
-            if ( !fd.type->canMove() )
+            if ( !fd.type->canMove() ) {
+                circularGuard = false;
                 return false;
+            }
         }
+        circularGuard = false;
         return true;
     }
 
     bool Structure::canCloneFromConst() const {
+        if ( circularGuard ) return true;
+        circularGuard = true;
         for ( const auto & fd : fields ) {
-            if ( !fd.type->canCloneFromConst() )
+            if ( !fd.type->canCloneFromConst() ) {
+                circularGuard = false;
                 return false;
+            }
         }
+        circularGuard = false;
         return true;
     }
 
     bool Structure::canClone() const {
+        if ( circularGuard ) return true;
+        circularGuard = true;
         for ( const auto & fd : fields ) {
-            if ( !fd.type->canClone() )
+            if ( !fd.type->canClone() ) {
+                circularGuard = false;
                 return false;
+            }
         }
+        circularGuard = false;
         return true;
     }
 
@@ -342,6 +387,8 @@ namespace das {
     }
 
     uint64_t Structure::getSizeOf64() const {
+        if ( circularGuard ) return 1;
+        circularGuard = true;
         uint64_t size = 0;
         const Structure * cppLayoutParent = nullptr;
         for ( const auto & fd : fields ) {
@@ -359,17 +406,70 @@ namespace das {
             size = (size + al) & ~al;
             size += fd.type->getSizeOf64();
         }
+        circularGuard = false;
         int al = getAlignOf() - 1;
         size = (size + al) & ~al;
         return size;
     }
 
+    uint64_t Structure::getSizeOf64(bool & failed) const {
+        if ( circularGuard ) return 1;
+        circularGuard = true;
+        uint64_t size = 0;
+        const Structure * cppLayoutParent = nullptr;
+        for ( const auto & fd : fields ) {
+            int fieldAlignemnt = fd.type->getAlignOfFailed(failed);
+            int al = fieldAlignemnt - 1;
+            if ( cppLayout ) {
+                auto fp = findFieldParent(fd.name);
+                if ( fp!=cppLayoutParent ) {
+                    if (DAS_NON_POD_PADDING || !cppLayoutNotPod) {
+                        size = cppLayoutParent ? cppLayoutParent->getSizeOf64(failed) : 0;
+                    }
+                    cppLayoutParent = fp;
+                }
+            }
+            size = (size + al) & ~al;
+            size += fd.type->getSizeOf64(failed);
+        }
+        circularGuard = false;
+        int al = getAlignOfFailed(failed) - 1;
+        size = (size + al) & ~al;
+        return size;
+    }
+
     int Structure::getAlignOf() const {
+        if ( circularGuard ) return 1;
+        circularGuard = true;
         int align = 1;
         for ( const auto & fd : fields ) {
             align = das::max ( fd.type->getAlignOf(), align );
         }
+        circularGuard = false;
         return align;
+    }
+
+    int Structure::getAlignOfFailed(bool & failed) const {
+        if ( circularGuard ) return 1;
+        circularGuard = true;
+        int align = 1;
+        for ( const auto & fd : fields ) {
+            align = das::max ( fd.type->getAlignOfFailed(failed), align );
+        }
+        circularGuard = false;
+        return align;
+    }
+
+    Structure::FieldDeclarationRef Structure::findFieldRef ( const string & fieldName ) const {
+        auto pField = findField(fieldName);
+        if ( pField ) {
+            FieldDeclarationRef ref;
+            ref.owner = const_cast<Structure *>(this);
+            ref.index = int32_t(pField - &fields[0]);
+            return ref;
+        } else {
+            return FieldDeclarationRef{};
+        }
     }
 
     const Structure::FieldDeclaration * Structure::findField ( const string & na ) const {
@@ -557,6 +657,10 @@ namespace das {
 
     bool Variable::isAccessUnused() const {
         return !(access_get || access_init || access_pass || access_ref);
+    }
+
+    bool Variable::isAccessDummy() const {
+        return !(access_get || access_pass || access_ref);
     }
 
     bool Variable::isCtorInitialized() const {
@@ -965,24 +1069,6 @@ namespace das {
         }
     }
 
-    // add extern func
-
-    void addExternFunc(Module& mod, const FunctionPtr & fnX, bool isCmres, SideEffects seFlags) {
-        if (!isCmres) {
-            if (fnX->result->isRefType() && !fnX->result->ref) {
-                DAS_FATAL_ERROR(
-                    "addExtern(%s)::failed in module %s\n"
-                    "  this function should be bound with addExtern<DAS_BIND_FUNC(%s), SimNode_ExtFuncCallAndCopyOrMove>\n"
-                    "  likely cast<> is implemented for the return type, and it should not\n",
-                    fnX->name.c_str(), mod.name.c_str(), fnX->name.c_str());
-            }
-        }
-        fnX->setSideEffects(seFlags);
-        if (!mod.addFunction(fnX)) {
-            DAS_FATAL_ERROR("addExtern(%s) failed in module %s\n", fnX->name.c_str(), mod.name.c_str());
-        }
-    }
-
     // expression
 
     string Expression::describe() const {
@@ -1169,7 +1255,7 @@ namespace das {
 
     ExpressionPtr ExprConstBitfield::clone( const ExpressionPtr & expr ) const {
         auto cexpr = clonePtr<ExprConstBitfield>(expr);
-        ExprConstT<uint32_t,ExprConstBitfield>::clone(cexpr);
+        ExprConstT<uint64_t,ExprConstBitfield>::clone(cexpr);
         if ( bitfieldType ) {
             cexpr->bitfieldType = make_smart<TypeDecl>(*bitfieldType);
         }
@@ -1317,6 +1403,7 @@ namespace das {
             cexpr->iterType = make_smart<TypeDecl>(*iterType);
         }
         cexpr->capture = capture;
+        cexpr->captureAt = captureAt;
         return cexpr;
     }
 
@@ -1356,6 +1443,7 @@ namespace das {
         cexpr->isLambda = isLambda;
         cexpr->isLocalFunction = isLocalFunction;
         cexpr->capture = capture;
+        cexpr->captureAt = captureAt;
         cexpr->aotFunctorName = aotFunctorName;
         return cexpr;
     }
@@ -1797,6 +1885,10 @@ namespace das {
         return vis.visit(this);
     }
 
+    Structure::FieldDeclaration * ExprField::field() const {
+        return fieldRef.get();
+    }
+
     ExpressionPtr ExprField::clone( const ExpressionPtr & expr ) const {
         auto cexpr = clonePtr<ExprField>(expr);
         Expression::clone(cexpr);
@@ -1804,7 +1896,7 @@ namespace das {
         if ( value) {
             cexpr->value = value->clone();
         }
-        cexpr->field = field;
+        cexpr->fieldRef = fieldRef;
         cexpr->fieldIndex = fieldIndex;
         cexpr->unsafeDeref = unsafeDeref;
         cexpr->ignoreCaptureConst = ignoreCaptureConst;
@@ -2212,6 +2304,7 @@ namespace das {
             cexpr->subexpr = subexpr->clone();
         cexpr->moveSemantics = moveSemantics;
         cexpr->fromYield = fromYield;
+        cexpr->fromComprehension = fromComprehension;
         return cexpr;
     }
 
@@ -2297,7 +2390,9 @@ namespace das {
     ExpressionPtr ExprAssume::visit(Visitor & vis) {
         vis.preVisit(this);
         if ( vis.canVisitWithAliasSubexpression(this) ) {
-            subexpr = subexpr->visit(vis);
+            if ( subexpr ) subexpr = subexpr->visit(vis);
+            if ( assumeType ) assumeType = assumeType->visit(vis);
+
         }
         return vis.visit(this);
     }
@@ -2306,7 +2401,8 @@ namespace das {
         auto cexpr = clonePtr<ExprAssume>(expr);
         Expression::clone(cexpr);
         cexpr->alias = alias;
-        cexpr->subexpr = subexpr->clone();
+        if ( subexpr ) cexpr->subexpr = subexpr->clone();
+        if ( assumeType ) cexpr->assumeType = make_smart<TypeDecl>(*assumeType);
         return cexpr;
     }
 
@@ -2477,15 +2573,19 @@ namespace das {
     // ExprLooksLikeCall
 
     ExpressionPtr ExprLooksLikeCall::visit(Visitor & vis) {
-        vis.preVisit(this);
-        for ( auto & arg : arguments ) {
-            if ( vis.canVisitLooksLikeCallArg(this, arg.get(), arg==arguments.back()) ) {
-                vis.preVisitLooksLikeCallArg(this, arg.get(), arg==arguments.back());
-                arg = arg->visit(vis);
-                arg = vis.visitLooksLikeCallArg(this, arg.get(), arg==arguments.back());
+        if ( vis.canVisitLooksLikeCall(this) ) {
+            vis.preVisit(this);
+            for ( auto & arg : arguments ) {
+                if ( vis.canVisitLooksLikeCallArg(this, arg.get(), arg==arguments.back()) ) {
+                    vis.preVisitLooksLikeCallArg(this, arg.get(), arg==arguments.back());
+                    arg = arg->visit(vis);
+                    arg = vis.visitLooksLikeCallArg(this, arg.get(), arg==arguments.back());
+                }
             }
+            return vis.visit(this);
+        } else {
+            return this;
         }
-        return vis.visit(this);
     }
 
     ExpressionPtr ExprLooksLikeCall::clone( const ExpressionPtr & expr ) const {
@@ -2551,23 +2651,27 @@ namespace das {
     // named call
 
     ExpressionPtr ExprNamedCall::visit(Visitor & vis) {
-        vis.preVisit(this);
+        if ( vis.canVisitNamedCall(this) ) {
+            vis.preVisit(this);
 
-        if (nonNamedArguments.size() > 0) {
-            ExprCall dummy;
-            for (auto& arg : nonNamedArguments) {
-                vis.preVisitCallArg(&dummy, arg.get(), arg == nonNamedArguments.back());
-                arg = arg->visit(vis);
-                arg = vis.visitCallArg(&dummy, arg.get(), arg == nonNamedArguments.back());
+            if (nonNamedArguments.size() > 0) {
+                ExprCall dummy;
+                for (auto& arg : nonNamedArguments) {
+                    vis.preVisitCallArg(&dummy, arg.get(), arg == nonNamedArguments.back());
+                    arg = arg->visit(vis);
+                    arg = vis.visitCallArg(&dummy, arg.get(), arg == nonNamedArguments.back());
+                }
+                this->argumentsFailedToInfer = dummy.argumentsFailedToInfer;
             }
-            this->argumentsFailedToInfer = dummy.argumentsFailedToInfer;
+            for (auto& arg : arguments) {
+                vis.preVisitNamedCallArg(this, arg.get(), arg == arguments.back());
+                arg->value = arg->value->visit(vis);
+                arg = vis.visitNamedCallArg(this, arg.get(), arg==arguments.back());
+            }
+            return vis.visit(this);
+        } else {
+            return this;
         }
-        for (auto& arg : arguments) {
-            vis.preVisitNamedCallArg(this, arg.get(), arg == arguments.back());
-            arg->value = arg->value->visit(vis);
-            arg = vis.visitNamedCallArg(this, arg.get(), arg==arguments.back());
-        }
-        return vis.visit(this);
     }
 
     ExpressionPtr ExprNamedCall::clone( const ExpressionPtr & expr ) const {
@@ -2617,34 +2721,38 @@ namespace das {
     }
 
     ExpressionPtr ExprMakeStruct::visit(Visitor & vis) {
-        vis.preVisit(this);
-        if ( makeType ) {
-            vis.preVisit(makeType.get());
-            makeType = makeType->visit(vis);
-            makeType = vis.visit(makeType.get());
-        }
-        if ( vis.canVisitMakeStructureBody(this) ) {
-            for ( int index=0; index != int(structs.size()); ++index ) {
-                vis.preVisitMakeStructureIndex(this, index, index==int(structs.size()-1));
-                auto & fields = structs[index];
-                for ( auto it = fields->begin(); it != fields->end(); ) {
-                    auto & field = *it;
-                    vis.preVisitMakeStructureField(this, index, field.get(), field==fields->back());
-                    field->value = field->value->visit(vis);
-                    if ( field ) {
-                        field = vis.visitMakeStructureField(this, index, field.get(), field==fields->back());
-                    }
-                    if ( field ) ++it; else it = fields->erase(it);
-                }
-                vis.visitMakeStructureIndex(this, index, index==int(structs.size()-1));
+        if ( vis.canVisitMakeStructure(this) ) {
+            vis.preVisit(this);
+            if ( makeType ) {
+                vis.preVisit(makeType.get());
+                makeType = makeType->visit(vis);
+                makeType = vis.visit(makeType.get());
             }
+            if ( vis.canVisitMakeStructureBody(this) ) {
+                for ( int index=0; index != int(structs.size()); ++index ) {
+                    vis.preVisitMakeStructureIndex(this, index, index==int(structs.size()-1));
+                    auto & fields = structs[index];
+                    for ( auto it = fields->begin(); it != fields->end(); ) {
+                        auto & field = *it;
+                        vis.preVisitMakeStructureField(this, index, field.get(), field==fields->back());
+                        field->value = field->value->visit(vis);
+                        if ( field ) {
+                            field = vis.visitMakeStructureField(this, index, field.get(), field==fields->back());
+                        }
+                        if ( field ) ++it; else it = fields->erase(it);
+                    }
+                    vis.visitMakeStructureIndex(this, index, index==int(structs.size()-1));
+                }
+            }
+            if ( block && vis.canVisitMakeStructureBlock(this, block.get()) ) {
+                vis.preVisitMakeStructureBlock(this, block.get());
+                block = block->visit(vis);
+                if ( block ) block = vis.visitMakeStructureBlock(this, block.get());
+            }
+            return vis.visit(this);
+        } else {
+            return this;
         }
-        if ( block && vis.canVisitMakeStructureBlock(this, block.get()) ) {
-            vis.preVisitMakeStructureBlock(this, block.get());
-            block = block->visit(vis);
-            if ( block ) block = vis.visitMakeStructureBlock(this, block.get());
-        }
-        return vis.visit(this);
     }
 
     void ExprMakeStruct::markNoDiscard() {
@@ -3038,26 +3146,33 @@ namespace das {
         return res;
     }
 
-    int64_t getConstExprIntOrUInt ( const ExpressionPtr & expr ) {
+    pair<int64_t,bool> tryGetConstExprIntOrUInt ( const ExpressionPtr & expr ) {
         DAS_ASSERTF ( expr && expr->rtti_isConstant(),
                      "expecting constant. something in enumeration (or otherwise) did not fold.");
         auto econst = static_pointer_cast<ExprConst>(expr);
         switch (econst->baseType) {
-        case Type::tInt8:       return static_pointer_cast<ExprConstInt8>(expr)->getValue();
-        case Type::tUInt8:      return static_pointer_cast<ExprConstUInt8>(expr)->getValue();
-        case Type::tInt16:      return static_pointer_cast<ExprConstInt16>(expr)->getValue();
-        case Type::tUInt16:     return static_pointer_cast<ExprConstUInt16>(expr)->getValue();
-        case Type::tInt:        return static_pointer_cast<ExprConstInt>(expr)->getValue();
-        case Type::tUInt:       return static_pointer_cast<ExprConstUInt>(expr)->getValue();
-        case Type::tBitfield:   return static_pointer_cast<ExprConstBitfield>(expr)->getValue();
-        case Type::tInt64:      return static_pointer_cast<ExprConstInt64>(expr)->getValue();
-        case Type::tUInt64:     return static_pointer_cast<ExprConstUInt64>(expr)->getValue();
-        default:
-            DAS_ASSERTF ( 0,
-                "we should not even be here. there is an enumeration of unsupported type."
-                "something in enumeration (or otherwise) did not fold.");
-            return 0;
+        case Type::tInt8:       return make_pair(static_pointer_cast<ExprConstInt8>(expr)->getValue(), true);
+        case Type::tUInt8:      return make_pair(static_pointer_cast<ExprConstUInt8>(expr)->getValue(), true);
+        case Type::tInt16:      return make_pair(static_pointer_cast<ExprConstInt16>(expr)->getValue(), true);
+        case Type::tUInt16:     return make_pair(static_pointer_cast<ExprConstUInt16>(expr)->getValue(), true);
+        case Type::tInt:        return make_pair(static_pointer_cast<ExprConstInt>(expr)->getValue(), true);
+        case Type::tUInt:       return make_pair(static_pointer_cast<ExprConstUInt>(expr)->getValue(), true);
+        case Type::tBitfield:   return make_pair(static_pointer_cast<ExprConstBitfield>(expr)->getValue(), true);
+        case Type::tBitfield8:  return make_pair(static_pointer_cast<ExprConstBitfield>(expr)->getValue(), true);
+        case Type::tBitfield16: return make_pair(static_pointer_cast<ExprConstBitfield>(expr)->getValue(), true);
+        case Type::tBitfield64: return make_pair(static_pointer_cast<ExprConstBitfield>(expr)->getValue(), true);
+        case Type::tInt64:      return make_pair(static_pointer_cast<ExprConstInt64>(expr)->getValue(), true);
+        case Type::tUInt64:     return make_pair(static_pointer_cast<ExprConstUInt64>(expr)->getValue(), true);
+        default:                return make_pair(0, false);
         }
+    }
+
+    int64_t getConstExprIntOrUInt ( const ExpressionPtr & expr ) {
+        auto result = tryGetConstExprIntOrUInt(expr);
+        DAS_ASSERTF ( result.second,
+            "we should not even be here. there is an enumeration of unsupported type."
+            "something in enumeration (or otherwise) did not fold.");
+        return result.second ? result.first : 0;
     }
 
     ExpressionPtr Program::makeConst ( const LineInfo & at, const TypeDeclPtr & type, vec4f value ) {
@@ -3076,6 +3191,21 @@ namespace das {
             case Type::tUInt64:         return make_smart<ExprConstUInt64>(at, cast<uint64_t>::to(value));
             case Type::tUInt:           return make_smart<ExprConstUInt>(at, cast<uint32_t>::to(value));
             case Type::tBitfield:       return make_smart<ExprConstBitfield>(at, cast<uint32_t>::to(value));
+            case Type::tBitfield8:      {
+                auto res = make_smart<ExprConstBitfield>(at, cast<uint8_t>::to(value));
+                res->baseType = Type::tBitfield8;
+                return res;
+            }
+            case Type::tBitfield16:     {
+                auto res = make_smart<ExprConstBitfield>(at, cast<uint16_t>::to(value));
+                res->baseType = Type::tBitfield16;
+                return res;
+            }
+            case Type::tBitfield64:     {
+                auto res = make_smart<ExprConstBitfield>(at, cast<uint64_t>::to(value));
+                res->baseType = Type::tBitfield64;
+                return res;
+            }
             case Type::tUInt2:          return make_smart<ExprConstUInt2>(at, cast<uint2>::to(value));
             case Type::tUInt3:          return make_smart<ExprConstUInt3>(at, cast<uint3>::to(value));
             case Type::tUInt4:          return make_smart<ExprConstUInt4>(at, cast<uint4>::to(value));
@@ -3094,6 +3224,17 @@ namespace das {
 
     StructurePtr Program::visitStructure(Visitor & vis, Structure * pst) {
         vis.preVisit(pst);
+        pst->aliases.foreach([&](auto & alsv){
+            vis.preVisitStructureAlias(pst, alsv->alias, alsv.get());
+            vis.preVisit(alsv.get());
+            auto alssv = alsv->visit(vis);
+            if ( alssv ) alssv = vis.visit(alssv.get());
+            if ( alssv ) alssv = vis.visitStructureAlias(pst, alssv->alias, alssv.get());
+            if ( alssv!=alsv ) {
+                pst->aliases.replace(alsv->alias, alssv);
+                alsv = alssv;
+            }
+        });
         for ( auto & fi : pst->fields ) {
             vis.preVisitStructureField(pst, fi, &fi==&pst->fields.back());
             if ( fi.type ) {
@@ -3140,13 +3281,82 @@ namespace das {
         vis.visitProgram(this);
     }
 
-    void Program::visit(Visitor & vis, bool visitGenerics ) {
+    void Program::visit(Visitor & vis, bool visitGenerics, bool sortStructures ) {
         vis.preVisitProgram(this);
-        visitModule(vis, thisModule.get(), visitGenerics);
+        visitModule(vis, thisModule.get(), visitGenerics, sortStructures);
         vis.visitProgram(this);
     }
 
-    void Program::visitModule(Visitor & vis, Module * thatModule, bool visitGenerics) {
+    static void collectStructDeps ( const TypeDeclPtr & type, Structure * owner, das_hash_set<Structure *> & deps ) {
+        if ( !type ) return;
+        if ( type->baseType == Type::tStructure && type->structType && type->structType != owner ) {
+            if ( type->isPointer() ) return;   // pointers don't need full definition
+            if ( !deps.insert(type->structType).second ) return;   // already visited
+            // recurse into the struct's own fields
+            for ( auto & field : type->structType->fields ) {
+                collectStructDeps(field.type, owner, deps);
+            }
+        }
+        // recurse into firstType / secondType for containers
+        if ( type->firstType ) collectStructDeps(type->firstType, owner, deps);
+        if ( type->secondType ) collectStructDeps(type->secondType, owner, deps);
+        // recurse into argTypes (e.g. tuple, variant element types)
+        for ( auto & argType : type->argTypes ) {
+            collectStructDeps(argType, owner, deps);
+        }
+    }
+
+    static void topoSortStructures ( vector<StructurePtr> & structs ) {
+        if ( structs.size() <= 1 ) return;
+        // build adjacency: struct -> set of structs it depends on (by value)
+        das_hash_map<Structure *, das_hash_set<Structure *>> deps;
+        das_hash_set<Structure *> allSet;
+        for ( auto & sp : structs ) {
+            allSet.insert(sp.get());
+        }
+        for ( auto & sp : structs ) {
+            auto & d = deps[sp.get()];
+            for ( auto & field : sp->fields ) {
+                collectStructDeps(field.type, sp.get(), d);
+            }
+            // only keep deps that are in our set
+            das_hash_set<Structure *> filtered;
+            for ( auto dep : d ) {
+                if ( allSet.count(dep) ) filtered.insert(dep);
+            }
+            d = das::move(filtered);
+        }
+        // Kahn's algorithm using vector as queue
+        das_hash_map<Structure *, int> inDegree;
+        for ( auto & [s, dd] : deps ) {
+            inDegree[s] = (int)dd.size();
+        }
+        vector<Structure *> sorted;
+        sorted.reserve(structs.size());
+        // seed with zero-dependency structs
+        for ( auto & sp : structs ) {
+            if ( inDegree[sp.get()] == 0 ) sorted.push_back(sp.get());
+        }
+        // process in FIFO order
+        for ( size_t qi = 0; qi < sorted.size(); qi++ ) {
+            auto s = sorted[qi];
+            for ( auto & [other, dd] : deps ) {
+                if ( dd.erase(s) ) {
+                    inDegree[other]--;
+                    if ( inDegree[other] == 0 ) sorted.push_back(other);
+                }
+            }
+        }
+        if ( sorted.size() != structs.size() ) return; // cycle - keep original order
+        // reorder structs to match sorted order
+        das_hash_map<Structure *, StructurePtr> byPtr;
+        for ( auto & sp : structs ) byPtr[sp.get()] = sp;
+        for ( size_t i = 0; i < sorted.size(); i++ ) {
+            structs[i] = byPtr[sorted[i]];
+        }
+    }
+
+    void Program::visitModule(Visitor & vis, Module * thatModule, bool visitGenerics, bool sortStructures) {
         vis.preVisitModule(thatModule);
         // enumerations
         thatModule->enumerations.foreach([&](auto & penum){
@@ -3159,23 +3369,41 @@ namespace das {
             }
         });
         // structures
-        thatModule->structures.foreach([&](auto & spst){
-            Structure * pst = spst.get();
-            if ( vis.canVisitStructure(pst) ) {
+        if ( sortStructures ) {
+            // collect, topologically sort, then visit
+            vector<StructurePtr> allStructs;
+            thatModule->structures.foreach([&](auto & spst){
+                if ( vis.canVisitStructure(spst.get()) ) {
+                    allStructs.push_back(spst);
+                }
+            });
+            topoSortStructures(allStructs);
+            for ( auto & spst : allStructs ) {
+                Structure * pst = spst.get();
                 StructurePtr pstn = visitStructure(vis, pst);
                 if ( pstn.get() != pst ) {
                     thatModule->structures.replace(pst->name, pstn);
-                    spst = pstn;
                 }
             }
-        });
+        } else {
+            thatModule->structures.foreach([&](auto & spst){
+                Structure * pst = spst.get();
+                if ( vis.canVisitStructure(pst) ) {
+                    StructurePtr pstn = visitStructure(vis, pst);
+                    if ( pstn.get() != pst ) {
+                        thatModule->structures.replace(pst->name, pstn);
+                        spst = pstn;
+                    }
+                }
+            });
+        }
         // aliases
         thatModule->aliasTypes.foreach([&](auto & alsv){
             vis.preVisitAlias(alsv.get(), alsv->alias);
             vis.preVisit(alsv.get());
             auto alssv = alsv->visit(vis);
             if ( alssv ) alssv = vis.visit(alssv.get());
-            if ( alssv ) alsv = vis.visitAlias(alssv.get(), alssv->alias);
+            if ( alssv ) alssv = vis.visitAlias(alssv.get(), alssv->alias);
             if ( alssv!=alsv ) {
                 thatModule->aliasTypes.replace(alssv->alias, alssv);
                 alsv = alssv;
@@ -3236,7 +3464,12 @@ namespace das {
     }
 
     bool Program::getOptimize() const {
-        return !policies.no_optimizations && options.getBoolOption("optimize",true);
+        if ( policies.no_optimizations ) return false;
+        auto arg = options.find("optimize",Type::tBool);
+        if ( arg ) return arg->bValue;
+        arg = options.find("no_optimization",Type::tBool);
+        if ( arg ) return !arg->bValue;
+        return true;
     }
 
     bool Program::getDebugger() const {
@@ -3252,24 +3485,25 @@ namespace das {
         bool logPass = options.getBoolOption("log_optimization_passes",false);
         bool log = logOpt || logPass;
         bool any, last;
+        int optimizationRound = 1;
         if (log) {
             logs << *this << "\n";
         }
         do {
-            if ( log ) logs << "OPTIMIZE:\n"; if ( logPass ) logs << *this;
+            if ( log ) logs << "OPTIMIZE " << optimizationRound << ":\n"; if ( logPass ) logs << *this;
             any = false;
-            last = optimizationRefFolding();    if ( failed() ) break;  any |= last;
+            last = optimizationRefFolding(optimizationRound);    if ( failed() ) break;  any |= last;
             if ( log ) logs << "REF FOLDING: " << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            last = optimizationUnused(logs);    if ( failed() ) break;  any |= last;
+            last = optimizationUnused(logs, optimizationRound);    if ( failed() ) break;  any |= last;
             if ( log ) logs << "REMOVE UNUSED:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            last = optimizationConstFolding();  if ( failed() ) break;  any |= last;
+            last = optimizationConstFolding(optimizationRound);  if ( failed() ) break;  any |= last;
             if ( log ) logs << "CONST FOLDING:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            last = optimizationCondFolding();  if ( failed() ) break;  any |= last;
+            last = optimizationCondFolding(optimizationRound);  if ( failed() ) break;  any |= last;
             if ( log ) logs << "COND FOLDING:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
-            last = optimizationBlockFolding();  if ( failed() ) break;  any |= last;
+            last = optimizationBlockFolding(optimizationRound);  if ( failed() ) break;  any |= last;
             if ( log ) logs << "BLOCK FOLDING:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
             // this is here again for a reason
-            last = optimizationUnused(logs);    if ( failed() ) break;  any |= last;
+            last = optimizationUnused(logs, optimizationRound);    if ( failed() ) break;  any |= last;
             if ( log ) logs << "REMOVE UNUSED:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
             // now, user macros
             last = false;
@@ -3292,6 +3526,7 @@ namespace das {
             if ( failed() ) break;
             any |= last;
             if ( log ) logs << "MACROS:" << (last ? "optimized" : "nothing") << "\n"; if ( logPass ) logs << *this;
+            optimizationRound++;
         } while ( any );
     }
 }

@@ -14,8 +14,11 @@
 #include <assets/assetMsgPipe.h>
 #include <assets/assetHlp.h>
 #include <assets/assetExpCache.h>
+#include <assets/assetUtils.h>
 #include <assets/texAssetBuilderTextureFactory.h>
 #include <assetsGui/av_selObjDlg.h>
+#include <assetsGui/av_tagManagement.h>
+#include <assetsGui/av_view.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_outliner.h>
 #include <EditorCore/ec_wndGlobal.h>
@@ -39,6 +42,7 @@
 #include <startup/dag_globalSettings.h>
 #include <debug/dag_debug.h>
 
+#include "de_appwnd.h"
 #include "de_batch_log.h"
 
 #include <imgui/imgui.h>
@@ -51,6 +55,8 @@ bool on_asset_changed(const DagorAsset &asset);
 }
 
 extern BatchLogCB *bl_callback;
+extern DataBlock asset_browser_modal_settings;
+extern DataBlock asset_browser_modeless_settings;
 extern DataBlock de3scannedResBlk;
 extern bool dabuild_usage_allowed;
 extern bool minimize_dabuild_usage;
@@ -98,7 +104,7 @@ public:
   void beforeMainLoop() override {}
 
   // called when user requests switch to this plugin; returns true on success
-  bool begin(int toolbar_id, unsigned menu_id) override { return false; }
+  bool begin(int, unsigned) override { return false; }
   // called when user requests switch from this plugin; returns true on success
   bool end() override { return false; }
   // called by editor AFTER begin() returns true; can return NULL when no event handling is needed
@@ -108,8 +114,8 @@ public:
   void setVisible(bool vis) override { srv->setServiceVisible(vis); }
   bool getVisible() const override { return srv->getServiceVisible(); }
 
-  bool getSelectionBox(BBox3 &box) const override { return false; }
-  bool getStatusBarPos(Point3 &pos) const override { return false; }
+  bool getSelectionBox(BBox3 &) const override { return false; }
+  bool getStatusBarPos(Point3 &) const override { return false; }
 
   // clears all objects contained in this plugin (on NEW or before LOAD command)
   void clearObjects() override { srv->clearServiceData(); }
@@ -117,15 +123,16 @@ public:
   void onNewProject() override {}
   // saves all objects contained in this plugin to data block
   // and/or to base_path folder (with trailing slash)
-  void saveObjects(DataBlock &blk, DataBlock &l_data, const char *base_path) override {}
+  void saveObjects(DataBlock &, DataBlock &, const char *) override {}
   // loads all objects for this plugin from data block
   // and/or from base_path folder (with trailing slash)
-  void loadObjects(const DataBlock &blk, const DataBlock &l_data, const char *base_path) override {}
+  void loadObjects(const DataBlock &, const DataBlock &, const char *) override {}
   bool acceptSaveLoad() const override { return false; }
 
   // selects all objects
   void selectAll() override {}
   void deselectAll() override {}
+  void invertSelection() override {}
 
   // render/acting interface
   void actObjects(float dt) override { srv->actService(dt); }
@@ -144,7 +151,7 @@ public:
   // return true if stop catching
   bool catchEvent(unsigned ev_huid, void *data) override { return srv->catchEvent(ev_huid, data); }
 
-  bool onPluginMenuClick(unsigned id) override { return false; }
+  bool onPluginMenuClick(unsigned) override { return false; }
 
 public:
   IEditorService *srv;
@@ -162,9 +169,9 @@ static Tab<int> genObjTypes(inimem);
 class DaEditor3Updater : public IDagorAssetChangeNotify
 {
 public:
-  void onAssetRemoved(int asset_name_id, int asset_type) override {}
+  void onAssetRemoved(int, int) override {}
 
-  void onAssetChanged(const DagorAsset &asset, int asset_name_id, int asset_type) override
+  void onAssetChanged(const DagorAsset &asset, int, int) override
   {
     bool changed = reload_changed_texture_asset(asset);
     changed |= environment::on_asset_changed(asset);
@@ -179,6 +186,30 @@ public:
 
 static DaEditor3Updater updater;
 
+namespace
+{
+
+class SelectAssetDlgModeless : public SelectAssetDlg
+{
+public:
+  using SelectAssetDlg::SelectAssetDlg;
+
+  void hide(int result = PropPanel::DIALOG_ID_NONE) override
+  {
+    // If the asset selector is already hidden then we cannot get the visibility of the asset browser dialog.
+    if (visible)
+    {
+      asset_browser_modeless_settings.clearData();
+      saveAssetBrowserSettings(asset_browser_modeless_settings);
+      assetBrowserSetOpen(false);
+    }
+
+    DialogWindow::hide(result);
+  }
+};
+
+} // namespace
+
 struct FatalHandlerCtx
 {
   bool (*handler)(const char *msg, const char *call_stack, const char *file, int line);
@@ -186,7 +217,7 @@ struct FatalHandlerCtx
 };
 static Tab<FatalHandlerCtx> fhCtx(inimem);
 static bool fatalStatus = false, fatalQuiet = false;
-static bool de3_gen_fatal_handler(const char *msg, const char *call_stack, const char *file, int line)
+static bool de3_gen_fatal_handler(const char *msg, const char *, const char *file, int line)
 {
   fatalStatus = true;
   if (!fatalQuiet)
@@ -197,7 +228,7 @@ static bool de3_gen_fatal_handler(const char *msg, const char *call_stack, const
   return false;
 }
 
-class DaEditor3Engine : public IDaEditor3Engine, public NullMsgPipe, public ITextureNameResolver
+class DaEditor3Engine : public IDaEditor3Engine, public NullMsgPipe, public ITextureNameResolver, public IAssetTagsView
 {
 public:
   DaEditor3Engine() : m_FilterTypeId(-1)
@@ -409,19 +440,12 @@ public:
         objFilterList.push_back() = blk->getStr(i);
   }
 
-  bool initAssetBase(const char *app_dir) override
+  bool initAssetBase(const char *app_dir, const DataBlock &app_blk) override
   {
-    String fname(260, "%sapplication.blk", app_dir);
-    DataBlock appblk;
-
     assetMgr.clear();
     assetMgr.setMsgPipe(this);
 
-    if (!appblk.load(fname))
-    {
-      debug("cannot load %s", fname.str());
-      return false;
-    }
+    DataBlock appblk(app_blk);
     appblk.setStr("appDir", app_dir);
     ::dagor_set_game_act_rate(appblk.getInt("work_cycle_act_rate", 100));
     DataBlock::setRootIncludeResolver(app_dir);
@@ -440,10 +464,7 @@ public:
     assetMgr.setupAllowedTypes(*blk.getBlockByNameEx("types"), blk.getBlockByName("export"));
     for (int i = 0; src_assets_scan_allowed && i < blk.paramCount(); i++)
       if (blk.getParamNameId(i) == base_nid && blk.getParamType(i) == DataBlock::TYPE_STRING)
-      {
-        fname.printf(260, "%s%s", app_dir, blk.getStr(i));
-        assetMgr.loadAssetsBase(fname, "global");
-      }
+        assetMgr.loadAssetsBase(String::mk_str_cat(app_dir, blk.getStr(i)), "global");
     if (!minimize_dabuild_usage) // prefer real texture assets to gameres loaded from *.dxp.bin
     {
       dag::ConstSpan<DagorAsset *> assets = assetMgr.getAssets();
@@ -501,7 +522,7 @@ public:
     // add texture assets to texmgr
     if (get_max_managed_texture_id())
       debug("tex/res registered before AssetBase: %d", get_max_managed_texture_id().index());
-    if (::get_gameres_sys_ver() == 2)
+
     {
       int atype = assetMgr.getTexAssetTypeId();
       dag::ConstSpan<DagorAsset *> assets = assetMgr.getAssets();
@@ -522,6 +543,9 @@ public:
     }
     assetlocalprops::init(app_dir, "develop/.asset-local");
     AssetExportCache::createSharedData(assetlocalprops::makePath("assets-hash.bin"));
+
+    if (!assettags::load(assetMgr))
+      con.addMessage(con.WARNING, "Failed to load asset tags!");
 
     if (dabuild_usage_allowed)
       dabuild_usage_allowed = appblk.getBool("dagored_use_dabuild", true);
@@ -663,43 +687,46 @@ public:
     bool open_all_grp) override
   {
     static String buf;
-    IWndManager *_manager = DAGORED2->getWndManager();
 
-    SelectAssetDlg dlg(_manager->getMainWindow(), &assetMgr, caption, "Select asset", "Reset asset", types);
-    dlg.setManualModalSizingEnabled();
+    SelectAssetDlgOptions dlgOptions;
+    dlgOptions.selectableAssetTypes = types;
+    dlgOptions.initiallySelectedAsset = asset;
+    dlgOptions.dialogCaption = caption;
+    dlgOptions.filter = filter_str;
+    dlgOptions.openAllGroups = open_all_grp;
 
-    dlg.selectObj(asset);
-    if (open_all_grp)
-    {
-      Tab<bool> gr;
-      dlg.getTreeNodesExpand(gr);
-      mem_set_ff(gr);
-      dlg.setTreeNodesExpand(gr);
-    }
-    if (filter_str)
-      dlg.setFilterStr(filter_str);
+    const eastl::optional<String> dlgResult = selectAsset(dlgOptions);
+    if (!dlgResult.has_value())
+      return nullptr;
+
+    buf = dlgResult.value();
+    return buf;
+  }
+
+  eastl::optional<String> selectAsset(const SelectAssetDlgOptions &options) override
+  {
+    eastl::unique_ptr<SelectAssetDlg> dlg(assets_gui_create_asset_selector_dialog(options, assetMgr));
 
     Tab<bool> tree_exps(midmem);
-    assetTreeStateCache.getState(tree_exps, types);
-    dlg.setTreeNodesExpand(tree_exps);
-    dlg.expandNodesFromSelectionTillRoot();
+    assetTreeStateCache.getState(tree_exps, options.selectableAssetTypes);
+    dlg->setTreeNodesExpand(tree_exps);
+    dlg->expandNodesFromSelectionTillRoot();
+    dlg->loadAssetBrowserSettings(asset_browser_modal_settings);
 
-    int ret = dlg.showDialog();
+    const int result = dlg->showDialog();
 
-    dlg.getTreeNodesExpand(tree_exps);
-    assetTreeStateCache.setState(tree_exps, types);
+    asset_browser_modal_settings.clearData();
+    dlg->saveAssetBrowserSettings(asset_browser_modal_settings);
 
-    if (ret == PropPanel::DIALOG_ID_CLOSE)
-      return NULL;
+    dlg->getTreeNodesExpand(tree_exps);
+    assetTreeStateCache.setState(tree_exps, options.selectableAssetTypes);
 
-    if (ret == PropPanel::DIALOG_ID_OK)
-    {
-      buf = dlg.getSelObjName();
-      return buf;
-    }
-
-    // on reset asset, return empty string
-    return "";
+    if (result == PropPanel::DIALOG_ID_OK) // select
+      return String(dlg->getSelObjName());
+    else if (result == PropPanel::DIALOG_ID_CANCEL) // reset
+      return String();
+    else // close
+      return {};
   }
 
   void showAssetWindow(bool show, const char *caption, IAssetBaseViewClient *cli, dag::ConstSpan<int> types) override
@@ -721,6 +748,8 @@ public:
 
       assetDlg->getTreeNodesExpand(tree_exps);
       assetTreeStateCache.setState(tree_exps, last_filter);
+
+      assetDlg->hide(); // To save asset browser settings.
       del_it(assetDlg);
     }
 
@@ -729,10 +758,10 @@ public:
     if (show)
     {
       IWndManager *_manager = DAGORED2->getWndManager();
-      IGenViewportWnd *viewport = DAGORED2->getCurrentViewport();
 
       const String captionWithId = String::mk_str_cat(caption, "###AssetSelectorPanel");
-      assetDlg = new (uimem) SelectAssetDlg(_manager->getMainWindow(), &assetMgr, cli, captionWithId, types);
+      assetDlg = new (uimem)
+        SelectAssetDlgModeless(_manager->getMainWindow(), &assetMgr, cli, captionWithId, types, "Asset Browser##AssetBrowserModeless");
 
       if (DAEDITOR3.getAssetTypeId("spline") == m_FilterTypeId && !mSelectedSplineName.empty())
         assetDlg->selectObj(mSelectedSplineName.str());
@@ -741,6 +770,10 @@ public:
       else if (!mSelectedEntityName.empty())
         assetDlg->selectObj(mSelectedEntityName.str());
 
+      assetDlg->setAssetTagsView(this);
+      if (tagManager)
+        tagManager->onAvSelectAsset(assetDlg->getSelectedAsset(), assetDlg->getSelObjName());
+
       if (cli)
         cli->onAvSelectAsset(assetDlg->getSelectedAsset(), assetDlg->getSelObjName());
 
@@ -748,6 +781,7 @@ public:
       assetTreeStateCache.getState(tree_exps, types);
       assetDlg->setTreeNodesExpand(tree_exps);
       assetDlg->expandNodesFromSelectionTillRoot();
+      assetDlg->loadAssetBrowserSettings(asset_browser_modeless_settings);
       assetDlg->show();
     }
   }
@@ -804,6 +838,9 @@ public:
   {
     static_geom_mat_subst.setMatProcessor(nullptr);
     AssetExportCache::saveSharedData();
+    AssetExportCache::releaseSharedData();
+
+    del_it(tagManager);
 
     if (EDITORCORE)
     {
@@ -852,16 +889,47 @@ public:
     {
       if (!out_str.empty())
         DAEDITOR3.conError("tex %s for %s not found (src tex is %s)", out_str.str(), getCurrentDagName(), src_name);
-      out_str.printf(260, "%s/../commonData/tex/missing.dds", sgg::get_exe_path_full());
+      out_str.printf(260, "%s/tex/missing.dds", sgg::get_common_data_dir());
     }
     return true;
   }
 
+  // IAssetTagsView
+  AssetTagManager *getVisibleTagManager() override { return tagManager; }
+  void showTagManager(bool show) override
+  {
+    if (show)
+    {
+      if (tagManager == nullptr)
+      {
+        tagManager = new AssetTagManager(nullptr);
+        if (assetDlg)
+          tagManager->onAvSelectAsset(assetDlg->getSelectedAsset(), assetDlg->getSelObjName());
+      }
+
+      get_app().showTagManager(true);
+    }
+    else
+    {
+      del_it(tagManager);
+
+      get_app().showTagManager(false);
+    }
+  };
+
+  AssetTagManager *getVisibleTagManagerWindow() override { return getVisibleTagManager(); }
+  void showTagManagerWindow(bool show) override { showTagManager(show); }
+
+  bool saveAssetsTags() override { return assettags::save(assetMgr); }
+
   Outliner::OutlinerWindow *createOutlinerWindow() override { return new Outliner::OutlinerWindow(); }
+
+  void revealInExplorer(const char *path) override { dag_reveal_in_explorer(String(path)); }
 
 protected:
   DagorAssetMgr assetMgr;
-  SelectAssetDlg *assetDlg;
+  SelectAssetDlgModeless *assetDlg;
+  AssetTagManager *tagManager;
   SimpleString mSelectedEntityName;
   SimpleString mSelectedSplineName;
   SimpleString mSelectedPolygonName;

@@ -50,9 +50,9 @@ static ecs::CompileTimeQueryDesc level_splines_ecs_query_desc
   make_span(level_splines_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void level_splines_ecs_query(Callable function)
+inline void level_splines_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, level_splines_ecs_query_desc.getHandle(),
+  perform_query(&manager, level_splines_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -65,5 +65,5 @@ inline void level_splines_ecs_query(Callable function)
     }
   );
 }
-static constexpr ecs::component_t level_spline__name_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char, eastl::allocator>>::type; }
+static constexpr ecs::component_t level_spline__name_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char>>::type; }
 static constexpr ecs::component_t level_spline__points_get_type(){return ecs::ComponentTypeInfo<ecs::List<Point3>>::type; }

@@ -551,7 +551,7 @@ void negate(iter_t begin, iter_t end) {
 }
 
 void negate(exact_t& e) {
-  negate(&e[0], &e[e.size()]);
+  negate(e.begin(), e.end());
 }
 
 template <typename iter_t>
@@ -588,7 +588,7 @@ void scale_zeroelim(iter_t ebegin, iter_t eend, double b, exact_t& h) {
 }
 
 void scale_zeroelim(const exact_t& e, double b, exact_t& h) {
-  scale_zeroelim(&e[0], &e[e.size()], b, h);
+  scale_zeroelim(e.data(), e.data()+e.size(), b, h);
 }
 
 template <typename iter_t>
@@ -662,17 +662,17 @@ void sum_zeroelim(iter_t ebegin, iter_t eend, iter_t fbegin, iter_t fend,
 }
 
 void sum_zeroelim(const exact_t& e, const exact_t& f, exact_t& h) {
-  sum_zeroelim(&e[0], &e[e.size()], &f[0], &f[f.size()], h);
+  sum_zeroelim(e.begin(), e.end(), f.begin(), f.end(), h);
 }
 
 void sum_zeroelim(const double* ebegin, const double* eend, const exact_t& f,
                   exact_t& h) {
-  sum_zeroelim(ebegin, eend, &f[0], &f[f.size()], h);
+  sum_zeroelim(ebegin, eend, f.data(), f.data()+f.size(), h);
 }
 
 void sum_zeroelim(const exact_t& e, const double* fbegin, const double* fend,
                   exact_t& h) {
-  sum_zeroelim(&e[0], &e[e.size()], fbegin, fend, h);
+  sum_zeroelim(e.data(), e.data()+e.size(), fbegin, fend, h);
 }
 
 exact_t operator+(const exact_t& a, const exact_t& b) {

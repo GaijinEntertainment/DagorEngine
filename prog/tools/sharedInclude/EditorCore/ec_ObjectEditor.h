@@ -21,6 +21,7 @@
 
 class RenderableEditableObject;
 class ObjectEditorPropPanelBar;
+class IEditorCommandSystem;
 class IObjectCreator;
 
 
@@ -53,7 +54,7 @@ public:
   /// @name Implementation of IObjectsList methods for selecting objects by name
   //@{
   void getObjNames(Tab<String> &names, Tab<String> &sel_names, const Tab<int> &types) override;
-  void getTypeNames(Tab<String> &names) override {}
+  void getTypeNames(Tab<String> &) override {}
   void onSelectedNames(const Tab<String> &names) override;
   //@}
 
@@ -86,6 +87,9 @@ public:
   /// @param[in] hint - pointer to hint string
   /// @param[in] check - is check button
   virtual void addButton(PropPanel::ContainerPropertyControl *tb, int id, const char *bmp_name, const char *hint, bool check = false);
+
+  virtual void addEditorCommandButton(PropPanel::ContainerPropertyControl *tb, int id, const char *editor_command_id,
+    const char *icon_name, const char *hint, bool check = false);
 
   /// Enable button.
   /// @param[in] id - button ID
@@ -136,7 +140,7 @@ public:
 
   /// Create editable object transform controls on the panel for a given edit mode.
   /// Property panel implementation handles the creation.
-  virtual void createPanelTransform(int mode);
+  virtual void createPanelTransform(int mode, bool read_only = false);
 
   void loadPropPanelSettings(const DataBlock &settings);
   void savePropPanelSettings(DataBlock &settings);
@@ -158,7 +162,7 @@ public:
   void setSuffixDigitsCount(int c) { suffixDigitsCount = c; }
 
   /// Get layer names for a given object type.
-  virtual void getLayerNames(int type, Tab<String> &names) {}
+  virtual void getLayerNames(int, Tab<String> &) {}
 
   //*****************************************************************
   /// @name Editing objects (add, remove, render).
@@ -282,6 +286,9 @@ public:
   /// Select all objects.
   virtual void selectAll();
 
+  // Select all previously unselected objects, deselect all previously selected objects.
+  virtual void invertSelection();
+
   /// Get bounding box for objects selected.
   /// @param[out] box - reference to bounding box
   /// @return @b true if operation successful, @b false in other case
@@ -363,13 +370,13 @@ public:
   bool handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   bool handleMouseRBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
   bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
-  bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
-  bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
-  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override { return false; }
-  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override { return false; }
+  bool handleMouseCBPress(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseCBRelease(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseWheel(IGenViewportWnd *, int, int, int, int) override { return false; }
+  bool handleMouseDoubleClick(IGenViewportWnd *, int, int, int) override { return false; }
 
-  void handleViewportPaint(IGenViewportWnd *wnd) override {}
-  void handleViewChange(IGenViewportWnd *wnd) override {}
+  void handleViewportPaint(IGenViewportWnd *) override {}
+  void handleViewChange(IGenViewportWnd *) override {}
   //@}
 
   //*****************************************************************
@@ -394,13 +401,16 @@ public:
   virtual void createObjectBySample(RenderableEditableObject *sample);
   //@}
 
+  virtual void registerEditorCommands(IEditorCommandSystem &command_system);
   virtual void registerViewportAccelerators(IWndManager &wndManager);
 
   // IMenuEventHandler
-  int onMenuItemClick(unsigned id) override { return 0; }
+  int onMenuItemClick(unsigned) override { return 0; }
 
   static bool getPlaceTypeRadio() { return placeTypeRadio; }
   static void setPlaceTypeRadio(bool is_radio) { placeTypeRadio = is_radio; }
+
+  virtual void zoomAndCenter();
 
 protected:
   String objListOwnerName;
@@ -447,7 +457,7 @@ protected:
 
   virtual void moveObjects(PtrTab<RenderableEditableObject> &obj, const Point3 &delta, IEditorCoreEngine::BasisType basis);
 
-  virtual void fillSelectionMenu(IGenViewportWnd *wnd, PropPanel::IMenu *menu) {}
+  virtual void fillSelectionMenu(IGenViewportWnd *, PropPanel::IMenu *) {}
 
   class UndoAddObjects : public UndoRedoObject
   {
@@ -457,7 +467,7 @@ protected:
 
     UndoAddObjects(ObjectEditor *oe, int num) : objEd(oe), objects(midmem) { objects.reserve(num); }
 
-    void restore(bool save_redo) override { objEd->_removeObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
+    void restore(bool) override { objEd->_removeObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
 
     void redo() override { objEd->_addObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
 
@@ -474,7 +484,7 @@ protected:
 
     UndoRemoveObjects(ObjectEditor *oe, int num) : objEd(oe), objects(midmem) { objects.reserve(num); }
 
-    void restore(bool save_redo) override { objEd->_addObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
+    void restore(bool) override { objEd->_addObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
 
     void redo() override { objEd->_removeObjects((RenderableEditableObject **)&objects[0], objects.size(), false); }
 
@@ -551,7 +561,7 @@ public:
   virtual void fillPanel();
   virtual void refillPanel();
   virtual PropPanel::ContainerPropertyControl *createPanelGroup(int pid);
-  virtual void createPanelTransform(int mode);
+  virtual void createPanelTransform(int mode, bool read_only = false);
   virtual void updateName(const char *name);
   virtual void updateTransform();
 

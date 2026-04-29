@@ -19,7 +19,7 @@ Sbuffer *alloc_scratch_buffer(uint32_t size, uint32_t &offset);
 namespace bvh::cables
 {
 
-static const auto blas_flags = RaytraceBuildFlags::FAST_TRACE;
+static const auto blas_flags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
 
 static constexpr int vertex_stride = sizeof(float) * 3 + sizeof(uint32_t);
 static constexpr int index_stride = sizeof(uint32_t);
@@ -127,7 +127,8 @@ void on_cables_changed(Cables *cables, ContextId context_id)
 
   if (!context_id->cableVertices)
   {
-    context_id->cableVertices = dag::buffers::create_ua_sr_structured(vertex_stride, vertexCount, "bvh_cable_vertices");
+    context_id->cableVertices =
+      dag::buffers::create_ua_sr_structured(vertex_stride, vertexCount, "bvh_cable_vertices", d3d::buffers::Init::No, RESTAG_BVH);
     HANDLE_LOST_DEVICE_STATE(context_id->cableVertices, );
 
     uint32_t bindlessIndex;
@@ -140,7 +141,7 @@ void on_cables_changed(Cables *cables, ContextId context_id)
   if (!context_id->cableIndices)
   {
     context_id->cableIndices =
-      dag::create_sbuffer(index_stride, indexCount, SBCF_UA_SR_STRUCTURED | SBCF_INDEX32, 0, "bvh_cable_indices");
+      dag::create_sbuffer(index_stride, indexCount, SBCF_UA_SR_STRUCTURED | SBCF_INDEX32, 0, "bvh_cable_indices", RESTAG_BVH);
     HANDLE_LOST_DEVICE_STATE(context_id->cableIndices, );
 
     uint32_t bindlessIndex;

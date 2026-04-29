@@ -24,7 +24,6 @@ shader rendinst_metatex, rendinst_emissive_metatex, rendinst_translucent_metatex
     cull_mode = none;
   }
   NO_DYNSTCODE()
-  ENABLE_ASSERT(ps)
 
   ENABLE_MULTI_DRAW(rendinst_render_pass == rendinst_render_pass_to_shadow || rendinst_render_pass == rendinst_render_pass_depth)
   RENDINST_BLOCK()
@@ -134,9 +133,8 @@ shader rendinst_refraction_metatex
   {
     dont_render;
   }
-  ENABLE_ASSERT(ps)
   RI_NO_VOXELIZE()
-  INIT_REFRACTION_GLASS()
+  INIT_REFRACTION_GLASS(use_hw_raytracing && rendinst_transparent_gbuffer_pass == generate)
   if (gi_quality != off)
   {
     USE_IN_FRUSTUM_GI(ps)
@@ -192,7 +190,7 @@ shader rendinst_refraction_metatex
 
   INIT_METATEX_REFRACTIVE()
   APPLY_METATEX()
-  INIT_GLASS_TRANSP()
+  INIT_GLASS_TRANSP_NO_TEX()
   USE_GLASS(false)
 
   hlsl(ps) {

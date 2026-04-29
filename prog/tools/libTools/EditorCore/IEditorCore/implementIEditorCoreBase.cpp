@@ -395,7 +395,10 @@ void EcRender::dynRenderBufferDrawBox(DynRenderBuffer &buf, const TMatrix &tm, E
 
 
 //==================================================================================================
-TEXTUREID EcRender::addManagedTexture(const char *name) const { return ::add_managed_texture(name); }
+TEXTUREID EcRender::addManagedTexture(const char *name) const
+{
+  return strchr(name, '*') ? ::get_managed_texture_id(name) : ::add_managed_texture(name);
+}
 
 //==================================================================================================
 TEXTUREID EcRender::registerManagedTex(const char *name, BaseTexture *basetex) const { return ::register_managed_tex(name, basetex); }
@@ -447,14 +450,16 @@ void EcConsole::hideConsole(const CoolConsole &con) const { const_cast<CoolConso
 
 
 //==================================================================================================
-bool EcConsole::registerCommand(CoolConsole &con, const char *cmd, IConsoleCmd *handler) const
-{
-  return con.registerCommand(cmd, handler);
-}
+void EcConsole::addConProc(console::ICommandProcessor *proc) { add_con_proc(proc); }
 
 
 //==================================================================================================
-bool EcConsole::unregisterCommand(CoolConsole &con, const char *cmd, IConsoleCmd *handler) const
+bool EcConsole::delConProc(console::ICommandProcessor *proc) { return del_con_proc(proc); }
+
+
+//==================================================================================================
+int EcConsole::conCollectorCmp(const char *arg, int ac, const char *cmd, int min_ac, int max_ac, const char *description,
+  const char *argsDescription, const char *varValue, eastl::vector<console::CommandOptions> &&cmdOptions)
 {
-  return con.unregisterCommand(cmd, handler);
+  return console::collector_cmp(arg, ac, cmd, min_ac, max_ac, description, argsDescription, varValue, eastl::move(cmdOptions));
 }

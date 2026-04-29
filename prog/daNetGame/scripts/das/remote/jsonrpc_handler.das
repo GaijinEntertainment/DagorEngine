@@ -131,6 +131,8 @@ class JsonRpcMatch : Matcher
         js as _object |> get("id") <| $(ptr)
           if ptr is _number
             req.id = uint64(ptr as _number)
+          elif ptr is _longint
+            req.id = uint64(ptr as _longint)
           elif ptr is _string
             req.id = uint64(double(ptr as _string))
           else

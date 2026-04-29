@@ -67,7 +67,7 @@ void Module_dasQUIRREL::initFunctions_6() {
 	addExtern< SQRESULT (*)(SQVM *,SQInteger,tagSQObject *) , sq_getstackobj >(*this,lib,"sq_getstackobj",SideEffects::worstDefault,"sq_getstackobj")
 		->args({"v","idx","po"});
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:353:19
-	addExtern< void (*)(SQVM *,tagSQObject) , sq_pushobject >(*this,lib,"sq_pushobject",SideEffects::worstDefault,"sq_pushobject")
+	addExtern< void (*)(SQVM *,const tagSQObject &) , sq_pushobject >(*this,lib,"sq_pushobject",SideEffects::worstDefault,"sq_pushobject")
 		->args({"v","obj"});
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:354:19
 	addExtern< void (*)(SQVM *,tagSQObject *) , sq_addref >(*this,lib,"sq_addref",SideEffects::worstDefault,"sq_addref")

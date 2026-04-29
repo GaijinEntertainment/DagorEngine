@@ -45,6 +45,7 @@ void request_ri_resources(const ecs::resource_request_cb_t &res_cb, const char *
 bool replace_ri_extra_res(ecs::EntityId eid, const char *res_name, bool destroy = false, bool add_restorable = false,
   bool create_destr = true);
 int get_or_add_ri_extra_res_id(const char *res_name, rendinst::AddRIFlags ri_flags);
+void add_rigenextra_debris(int res_idx);
 void update_per_draw_gathered_data(uint32_t id);
 const UniqueBuf &get_per_draw_gathered_data();
 

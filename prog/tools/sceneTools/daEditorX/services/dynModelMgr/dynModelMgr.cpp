@@ -79,14 +79,14 @@ public:
 
     if (res)
     {
-      release_game_resource((GameResource *)res);
+      release_game_resource_ex(res, DynModelGameResClassId);
       res = NULL;
     }
 
     geomNodeTree = NULL;
     if (origSkeleton)
     {
-      release_game_resource((GameResource *)origSkeleton);
+      release_game_resource_ex(origSkeleton, GeomNodeTreeGameResClassId);
       origSkeleton = NULL;
     }
   }
@@ -151,13 +151,9 @@ public:
     assetNameId = asset.getNameId();
 
     DAEDITOR3.setFatalHandler(false);
-    FastNameMap resNameMap;
     try
     {
-      resNameMap.addNameId(name);
-      ::set_required_res_list_restriction(resNameMap);
-      res = (DynamicRenderableSceneLodsResource *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(name), DynModelGameResClassId);
-      ::reset_required_res_list_restriction();
+      res = (DynamicRenderableSceneLodsResource *)::get_one_game_resource_ex(name, DynModelGameResClassId);
     }
     catch (...)
     {
@@ -182,10 +178,7 @@ public:
     refSkelNodePrefix = asset.props.getStr("ref_skeleton_node_prefix", "");
     if (skeletonName)
     {
-      resNameMap.addNameId(skeletonName);
-      ::set_required_res_list_restriction(resNameMap);
-      geomNodeTree = (GeomNodeTree *)get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(skeletonName), GeomNodeTreeGameResClassId);
-      ::reset_required_res_list_restriction();
+      geomNodeTree = (GeomNodeTree *)get_one_game_resource_ex(skeletonName, GeomNodeTreeGameResClassId);
       if (!geomNodeTree)
         DAEDITOR3.conError("can't find resource GeomNodeTree '%s'", skeletonName);
     }
@@ -209,6 +202,16 @@ public:
           noDynRender = true;
           break;
         }
+  }
+
+  void updatePrevWtm()
+  {
+    for (uint32_t i = 0; i < sceneInstance->getNodeCount(); i++)
+    {
+      TMatrix wtm = sceneInstance->getNodeWtm(i);
+      wtm.setcol(3, wtm.getcol(3) - ::grs_cur_view.pos);
+      sceneInstance->setPrevNodeWtm(i, wtm);
+    }
   }
 
   bool isNonVirtual() const { return pool; }
@@ -246,7 +249,7 @@ public:
   ~DynModelEntity() override
   {
     if (collision)
-      ::release_game_resource((GameResource *)collision);
+      ::release_game_resource_ex(collision, CollisionGameResClassId);
   }
 
   void *queryInterfacePtr(unsigned huid) override
@@ -291,8 +294,8 @@ public:
     bbox = e.bbox;
     bsph = e.bsph;
 
-    game_resource_add_ref((GameResource *)res);
-    game_resource_add_ref((GameResource *)e.origSkeleton);
+    game_resource_add_ref_ex(res, DynModelGameResClassId);
+    game_resource_add_ref_ex(e.origSkeleton, GeomNodeTreeGameResClassId);
     origSkeleton = geomNodeTree;
 
     sceneInstance = new DynamicRenderableSceneInstance(res);
@@ -306,14 +309,10 @@ public:
     if (collisionTried)
       return false;
 
-    FastNameMap resNameMap;
     String resName(0, "%s_collision", assetName());
     try
     {
-      resNameMap.addNameId(resName);
-      ::set_required_res_list_restriction(resNameMap);
-      collision = (CollisionResource *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(resName), CollisionGameResClassId);
-      ::reset_required_res_list_restriction();
+      collision = (CollisionResource *)::get_one_game_resource_ex(resName, CollisionGameResClassId);
     }
     catch (...)
     {
@@ -431,6 +430,7 @@ public:
 
   ~DynModelEntityManagementService() override
   {
+    ShaderGlobal::set_texture(get_shader_variable_id("camo_micro_noise_tex", true), BAD_TEXTUREID);
     release_managed_tex(camoMicroNoiseTexId);
     external_traceRay_for_rigen = (external_traceRay_for_rigen == &traceRay_for_rigen) ? prev_traceRay_for_rigen : NULL;
     del_it(ccForTrace);
@@ -444,7 +444,20 @@ public:
   void setServiceVisible(bool vis) override { visible = vis; }
   bool getServiceVisible() const override { return visible; }
 
-  void actService(float dt) override {}
+  void actService(float dt) override
+  {
+    G_UNUSED(dt);
+    if (IDynRenderService *rs = EDITORCORE->queryEditorInterface<IDynRenderService>())
+      if (rs->getRenderType() != rs->RTYPE_DNG_BASED)
+        return;
+
+    dag::ConstSpan<DynModelEntity *> ent = objPool.getEntities();
+    int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    for (int i = 0; i < ent.size(); i++)
+      if (ent[i] && ent[i]->isNonVirtual() && ent[i]->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
+        ent[i]->updatePrevWtm();
+  }
   void beforeRenderService() override {}
   void renderService() override
   {
@@ -558,7 +571,7 @@ public:
     float tankCamoMicroNoiseTile = options_blk->getReal("tile_tank", 7.f);
     float tankpCamoMicroNoiseAmplitude = options_blk->getReal("amplitude_tank", 0.15f);
     static int camoMicroNoiseParametersVarId = get_shader_variable_id("camo_micro_noise_parameters", true);
-    ShaderGlobal::set_color4(camoMicroNoiseParametersVarId, shipCamoMicroNoiseTile, shipCamoMicroNoiseAmplitude,
+    ShaderGlobal::set_float4(camoMicroNoiseParametersVarId, shipCamoMicroNoiseTile, shipCamoMicroNoiseAmplitude,
       tankCamoMicroNoiseTile, tankpCamoMicroNoiseAmplitude);
   }
 
@@ -662,6 +675,16 @@ public:
     decal3d_gather_gen = current_dynmodel_gen;
   }
 
+  static bool hasActiveEntities()
+  {
+    int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_RENDER);
+    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
+    for (auto ent : self->objPool.getEntities())
+      if (ent && ent->res && ent->isNonVirtual() && ent->checkSubtypeAndLayerHiddenMasks(st_mask, lh_mask))
+        return true;
+    return false;
+  }
+
 protected:
   DynModelEntityPool objPool;
   bool visible;
@@ -677,6 +700,8 @@ DynModelEntityManagementService *DynModelEntityManagementService::self = NULL;
 Tab<DynModelEntity *> DynModelEntityManagementService::tmpDecalsList;
 bool(__stdcall *DynModelEntityManagementService::prev_traceRay_for_rigen)(const Point3 &from, const Point3 &dir, float &current_t,
   Point3 *out_norm) = NULL;
+
+bool dynmodel_mgr_has_active_entities() { return DynModelEntityManagementService::hasActiveEntities(); }
 
 void init_dynmodel_mgr_service(const DataBlock &app_blk)
 {

@@ -10,9 +10,12 @@
 #include <EASTL/array.h>
 #include <EASTL/fixed_vector.h>
 #include <EASTL/vector_map.h>
+#include <generic/dag_fixedMoveOnlyFunction.h>
 
 namespace pathfinder
 {
+using GetNearAreasCb = dag::FixedMoveOnlyFunction<sizeof(void *) * 4, bool(int, int) const>;
+
 class CustomNav
 {
 public:
@@ -36,8 +39,9 @@ public:
     float posThreshold = 0.25f, float angCosThreshold = 0.98f);
 
   // Setup area as y-oriented cylinder, w1 is weight at the center of cylinder, w2 - on the sides.
-  void areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, bool optimize = true, float posThreshold = 0.25f,
-    float angCosThreshold = 0.98f);
+  void areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, bool optimize = true, float posThreshold = 0.25f);
+  void areaUpdateCylinder(uint32_t area_id, const BBox3 &aabb, float w1, float w2, float fadeTimeStart, float fadeTimeEnd,
+    bool optimize = true, float posThreshold = 0.25f);
 
   // Remove area.
   void areaRemove(uint32_t area_id);
@@ -48,7 +52,16 @@ public:
   float getWeight(uint32_t tile_id, const Point3 &p1, const Point3 &p2, const Point3 &norm_dir, float len, float inv_len,
     bool &optimize) const;
 
+  float getWeightAtPointFromCylinderAreasOnly(const Point3 &p) const;
+  Point2 getAreaCurrentWeight(uint32_t area_id) const;
+
+  BBox3 getAreaBBox(uint32_t area_id) const;
+
   void getHashes(dag::ConstSpan<uint64_t> poly_refs, PolyHashes &hashes) const;
+
+  void setAreaUserTagData(uint32_t area_id, int user_tag, int user_data);
+  void getNearCylAreasByUserTag(const Point3 &pos, float search_dist, int search_user_tag, GetNearAreasCb cb) const;
+  Point4 getCylAreaBBoxPosRadius(uint32_t area_id) const;
 
   // Check if path, described by polygons, has changed since it was originally created, typically
   // used by the navigation code.
@@ -58,6 +71,8 @@ public:
   void restoreLostTiles();
 
   void removeTile(uint32_t tile_id);
+
+  static void updateFadeSyncTime(float time);
 
 private:
   friend class CustomNavHelper;
@@ -83,12 +98,15 @@ private:
   struct CylArea : BaseArea
   {
     inline BBox3 getAABB() const { return oobb; }
+
+    float fadeTimeStart = -1.0f;
+    float fadeTimeEnd = -1.0f;
   };
 
   struct Tile
   {
-    eastl::fixed_vector<BoxArea, 16, true> boxAreas;
-    eastl::fixed_vector<CylArea, 16, true> cylinderAreas;
+    eastl::fixed_vector<BoxArea, 2, true> boxAreas;
+    eastl::fixed_vector<CylArea, 4, true> cylinderAreas;
   };
 
   template <typename AreaT, typename CB>
@@ -111,6 +129,8 @@ private:
   ska::flat_hash_map<uint32_t, BoxArea> boxAreas;
   ska::flat_hash_map<uint32_t, CylArea> cylAreas;
   ska::flat_hash_map<uint32_t, Tile> tiles;
+  ska::flat_hash_map<uint32_t, IPoint2> areaUserTags;
+  mutable ska::flat_hash_map<uint32_t, int> areaIdFlagged;
   mutable Tab<eastl::pair<uint32_t, uint32_t>> tmpHashBuff;
 
   struct ReTile

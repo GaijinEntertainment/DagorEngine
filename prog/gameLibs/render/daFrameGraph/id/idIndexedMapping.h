@@ -2,6 +2,7 @@
 #pragma once
 
 #include <dag/dag_vector.h>
+#include <EASTL/span.h>
 #include <debug/dag_assert.h>
 #include "idEnumerateView.h"
 #include "idRange.h"
@@ -66,8 +67,11 @@ struct IdIndexedMapping : dag::Vector<ValueType, Allocator, true>
       Container::resize(eastl::to_underlying(key) + 1);
   }
 
+  size_t totalKeys() const { return Container::size(); }
+
   IdEnumerateView<IdIndexedMapping> enumerate() & { return {*this}; }
   IdEnumerateView<const IdIndexedMapping> enumerate() const & { return {*this}; }
 
   IdRange<EnumType> keys() const { return {0, static_cast<eastl::underlying_type_t<EnumType>>(Container::size())}; }
+  eastl::span<const ValueType> values() const { return {Container::data(), Container::size()}; }
 };

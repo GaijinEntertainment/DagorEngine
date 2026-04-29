@@ -132,3 +132,21 @@ light_flicker_3state{
     "light_flicker__lightEids:list<eid>"{}
   }
 }
+
+// Light switch
+light_switch{
+  _group {
+    _tags:t="render"
+    _track:b=yes
+    light_switch__on:b=no
+  }
+  light_switch__group:t=""
+  _tracked:t="light_switch__group"
+}
+
+light_switcher{
+  _singleton:b=yes
+  _tags:t="render"
+  "light_switcher__state:object"{}
+  _tracked:t="light_switcher__state"
+}

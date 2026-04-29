@@ -1,0 +1,9 @@
+ERROR: expected 'IDENTIFIER'
+testData/diagnostics/compilation_errors/syntax_errors/expected_identifier.nut:2:9
+
+// EXPECT_ERROR: "expected 'IDENTIFIER'"
+function 123() {
+         ^--
+    return 42
+
+

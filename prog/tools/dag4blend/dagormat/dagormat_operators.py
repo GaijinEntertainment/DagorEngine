@@ -299,6 +299,8 @@ class DAGOR_OT_Set_Value(Operator):
     def poll(self, context):
         if context.prop_owner is None:
             return False
+        if context.active_object is None:
+            return False
         if context.active_object.active_material is None:
             return False
         return True

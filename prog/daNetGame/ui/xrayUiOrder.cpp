@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "xrayUiOrder.h"
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 namespace ui
 {
@@ -20,7 +20,7 @@ static SQInteger set_xray_before_ui(HSQUIRRELVM vm)
 void bind_script(SqModules *moduleMgr)
 {
   Sqrat::Table aTable(moduleMgr->getVM());
-  aTable.SquirrelFunc("set_xray_before_ui", set_xray_before_ui, 2);
+  aTable.SquirrelFunc("set_xray_before_ui", set_xray_before_ui, 2, ".b");
   moduleMgr->addNativeModule("xray_ui_order", aTable);
 }
 

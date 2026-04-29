@@ -311,7 +311,7 @@ void init()
 }
 
 bool begin(DynamicPhysObjectData *base_obj, int phys_type, int inst_count, int scene_type, float interval, float base_plane_ht0,
-  float base_plane_ht1)
+  float base_plane_ht1, int render_lod)
 {
   if (!initPhys(phys_type))
   {
@@ -320,7 +320,7 @@ bool begin(DynamicPhysObjectData *base_obj, int phys_type, int inst_count, int s
   }
 
   CALL_PHYS_FUNC(init, (), break);
-  CALL_PHYS_FUNC(create_phys_world, (base_obj, base_plane_ht0, base_plane_ht1, inst_count, scene_type, interval), break);
+  CALL_PHYS_FUNC(create_phys_world, (base_obj, base_plane_ht0, base_plane_ht1, inst_count, scene_type, interval, render_lod), break);
   needSimulate = true;
 
   isGridVisibleLast = get_app().isGridVisible();
@@ -346,12 +346,11 @@ void setTargetObj(void *phys_body, const char *res)
   simObjRes.clear();
   if (res)
   {
-    DynamicPhysObjectData *podata =
-      (DynamicPhysObjectData *)get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(res), PhysObjGameResClassId);
+    DynamicPhysObjectData *podata = (DynamicPhysObjectData *)get_game_resource_ex(res, PhysObjGameResClassId);
     if (podata)
     {
       simObjRes.push_back(podata->physRes);
-      release_game_resource((GameResource *)podata);
+      release_game_resource_ex(podata, PhysObjGameResClassId);
     }
     else
     {
@@ -384,7 +383,8 @@ void close()
 
 void beforeRender() { CALL_PHYS_FUNC(before_render, (), break); }
 
-void renderTrans(bool render_collision, bool render_geom, bool bodies, bool body_center, bool constraints, bool constraints_refsys)
+void renderTrans(bool render_collision, bool render_geom, bool bodies, bool body_center, bool constraints, bool constraints_refsys,
+  bool render_boxes)
 {
   if (render_geom)
     CALL_PHYS_FUNC(render_trans, (), break);
@@ -403,13 +403,16 @@ void renderTrans(bool render_collision, bool render_geom, bool bodies, bool body
     end_draw_cached_debug_lines();
   }
 
-  boxrender::drawBox();
+  if (render_boxes)
+    boxrender::drawBox();
   CALL_PHYS_FUNC(render_debug, (bodies, body_center, constraints, constraints_refsys), break);
 }
 
 void render() { CALL_PHYS_FUNC(render, (), break); }
 
 void renderDecals() { CALL_PHYS_FUNC(render_decals, (), break); }
+
+void setRenderLod(int render_lod) { CALL_PHYS_FUNC(set_render_lod, (render_lod), break); }
 
 static bool traceCollision(PhysicsResource *simObjRes, int o_idx, const Point3 &pt, Point3 dir, Point3 &cp, int &obj_idx,
   int &sub_body_idx, real &dist)

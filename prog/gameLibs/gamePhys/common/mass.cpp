@@ -78,9 +78,10 @@ void gamephys::reset(FuelSystemState &state)
   state.fuelAccumulated = 0.0f;
 }
 
+void gamephys::set_allocator(MassInput &input, IMemAlloc *a) { dag::set_allocator(input.parts, a); }
+
 void gamephys::reset(MassInput &input)
 {
-  input.dumpFuelAmount = 0.f;
   input.consumeNitroAmount = 0.f;
   input.parts.clear();
   input.payloadCogMult = 1.0;
@@ -90,6 +91,8 @@ void gamephys::reset(MassInput &input)
   eastl::fill(input.consumeFuelUnlimited.begin(), input.consumeFuelUnlimited.end(), 0.f);
   eastl::fill(input.leakFuelAmount.begin(), input.leakFuelAmount.end(), 0.f);
   input.loadFactor = 0.f;
+  input.fuelDumping = false;
+  input.afterburner = false;
 }
 
 void gamephys::reset(MassOutput &output)
@@ -99,6 +102,13 @@ void gamephys::reset(MassOutput &output)
   output.consumedFuelAmount = 0.f;
   eastl::fill(output.availableFuelAmount.begin(), output.availableFuelAmount.end(), 0.f);
   output.availableNitroAmount = 0.f;
+}
+
+void gamephys::set_allocator(MassProps &props, IMemAlloc *a)
+{
+  dag::set_allocator(props.advancedMasses, a);
+  dag::set_allocator(props.dynamicMasses, a);
+  dag::set_allocator(props.collisionNodesMasses, a);
 }
 
 void gamephys::reset(MassProps &props)
@@ -124,11 +134,18 @@ void gamephys::reset(MassProps &props)
   eastl::for_each(props.fuelTankProps.begin(), props.fuelTankProps.end(), [](auto &props) { reset(props); });
 }
 
+void gamephys::add_extra_mass(MassProps &props, float extra_mass)
+{
+  props.maxWeight += extra_mass;
+  props.massEmpty += extra_mass;
+}
+
 void gamephys::reset(MassState &state)
 {
   state.mass = 0.f;
   state.payloadMass = 0.f;
   state.payloadMomentOfInertia.zero();
+  state.dumpedFuelBurning = false;
   state.nitro = 0.f;
   state.centerOfGravity.zero();
   state.momentOfInertiaNormMult.set(1.0, 1.0, 1.0);
@@ -244,7 +261,7 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
       const CollisionNode &node = allCollisionNodes[i];
       if (node.type != COLLISION_NODE_TYPE_POINTS)
       {
-        int tankNameNum = fuel_tank_names.getNameId(allCollisionNodes[i].name.str());
+        int tankNameNum = fuel_tank_names.getNameId(collision->getNodeName(allCollisionNodes[i].nodeIndex));
         if (tankNameNum >= 0)
         {
           fuelTanksNumbers[numFuelTanks] = tankNameNum;
@@ -267,30 +284,31 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
       const CollisionNode &node = allCollisionNodes[i];
       if (node.type != COLLISION_NODE_TYPE_POINTS)
       {
-        int nid = nameMap.getNameId(node.name.str());
+        int nid = nameMap.getNameId(collision->getNodeName(node.nodeIndex));
         if (nid < 0)
         {
-          nameMap.addNameId(node.name.str());
+          nameMap.addNameId(collision->getNodeName(node.nodeIndex));
           PartMass &currentMass = props.advancedMasses.push_back();
           reset(currentMass);
 
-          float knownMass = parts_masses_blk->getReal(node.name.str(), -1.f);
-          float knownSurfaceMass = surface_parts_masses_blk->getReal(node.name.str(), -1.f);
+          float knownMass = parts_masses_blk->getReal(collision->getNodeName(node.nodeIndex), -1.f);
+          float knownSurfaceMass = surface_parts_masses_blk->getReal(collision->getNodeName(node.nodeIndex), -1.f);
           if (knownMass >= 0.0f && knownSurfaceMass >= 0.0f)
             knownMass = -1.0f;
           else if (knownSurfaceMass >= 0.0f)
             knownMass = knownSurfaceMass;
           if (knownMass < 0.f && knownAdditionalMasses)
-            knownMass = knownAdditionalMasses->getReal(node.name.str(), -1.f);
+            knownMass = knownAdditionalMasses->getReal(collision->getNodeName(node.nodeIndex), -1.f);
 
-          int tankNameNum = fuel_tank_names.getNameId(node.name.str());
+          int tankNameNum = fuel_tank_names.getNameId(collision->getNodeName(node.nodeIndex));
           int tankNum = tankNameNum >= 0 ? find_value_idx(fuelTanksNumbers, tankNameNum) : -1;
           int fuelSystemNum =
-            props.separateFuelTanks ? parts_masses_blk->getInt(String(128, "tank%d_system", tankNum + 1).str(), 0) : 0;
+            props.separateFuelTanks ? parts_masses_blk->getInt(String(128, framemem_ptr(), "tank%d_system", tankNum + 1).str(), 0) : 0;
           if (fuelSystemNum < props.numFuelSystems && tankNum >= 0 && tankNum < FuelTankProps::MAX_TANKS)
           {
-            bool external =
-              props.separateFuelTanks ? parts_masses_blk->getBool(String(128, "tank%d_external", tankNum + 1).str(), false) : 0;
+            bool external = props.separateFuelTanks
+                              ? parts_masses_blk->getBool(String(128, framemem_ptr(), "tank%d_external", tankNum + 1).str(), false)
+                              : 0;
             if (!external)
             {
               FuelSystemProps &fsp = props.fuelSystemProps[fuelSystemNum];
@@ -301,14 +319,16 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
 
               ftp.external = false;
               ftp.fuelSystemNum = fuelSystemNum;
-              ftp.capacity =
-                props.separateFuelTanks ? parts_masses_blk->getReal(String(128, "tank%d_capacity", tankNum + 1).str(), 0.f) : 0;
+              ftp.capacity = props.separateFuelTanks
+                               ? parts_masses_blk->getReal(String(128, framemem_ptr(), "tank%d_capacity", tankNum + 1).str(), 0.f)
+                               : 0;
               knownFuel[fuelSystemNum] += ftp.capacity;
               if (ftp.capacity == 0.f)
                 ++unknownFuel[fuelSystemNum];
               ++props.numTanks;
-              ftp.priority =
-                props.separateFuelTanks ? parts_masses_blk->getInt(String(128, "tank%d_priority", tankNum + 1).str(), 0) : 0;
+              ftp.priority = props.separateFuelTanks
+                               ? parts_masses_blk->getInt(String(128, framemem_ptr(), "tank%d_priority", tankNum + 1).str(), 0)
+                               : 0;
               fsp.priorityNum = max(fsp.priorityNum, ftp.priority + 1);
             }
           }
@@ -324,31 +344,39 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
           if (isVolumetric)
           {
             totalKnownMass += knownMass;
+            const TMatrix &nodeTm = collision->getNodeTm(node.nodeIndex);
             BBox3 localBox;
             localBox.setempty();
             if (node.type == COLLISION_NODE_TYPE_MESH)
             {
-              for (int j = 0; j < node.indices.size(); ++j)
-                localBox += node.tm % node.vertices[node.indices[j]]; // rotated, but not translated vertex position
+              collision->iterateNodeVerts(node.nodeIndex, [&](int, vec4f v) {
+                Point3_vec4 vf;
+                v_st(&vf.x, v);
+                localBox += nodeTm % vf; // rotated, but not translated vertex position
+              });
             }
             else
-              localBox = node.modelBBox;
+              localBox = collision->getNodeBBox(node.nodeIndex);
             Point3 width = localBox.width();
             currentMass.momentOfInertia.set(lengthSq(Point2::yz(width)) / 12.f, lengthSq(Point2::xz(width)) / 12.f,
               lengthSq(Point2::xy(width)) / 12.f);
-            currentMass.center = node.tm.getcol(3) + localBox.center(); // we already have rotated box, so no need to do it twice, just
-                                                                        // translate it.
+            currentMass.center = nodeTm.getcol(3) + localBox.center(); // we already have rotated box, so no need to do it twice, just
+                                                                       // translate it.
           }
           else if (node.type == COLLISION_NODE_TYPE_MESH)
           {
+            const TMatrix &nodeTm = collision->getNodeTm(node.nodeIndex);
             Point3 centerOfMass(0.f, 0.f, 0.f);
             Tab<MassData> centers(framemem_ptr());
-            centers.reserve(node.indices.size() / 3);
-            for (int j = 0; j < node.indices.size(); j += 3)
-            {
-              Point3 v0 = node.tm % node.vertices[node.indices[j + 0]];
-              Point3 v1 = node.tm % node.vertices[node.indices[j + 1]];
-              Point3 v2 = node.tm % node.vertices[node.indices[j + 2]];
+            centers.reserve(collision->getNodeFaceCount(node.nodeIndex));
+            collision->iterateNodeFacesVerts(node.nodeIndex, [&](int, vec4f vv0, vec4f vv1, vec4f vv2) {
+              Point3_vec4 pv0, pv1, pv2;
+              v_st(&pv0.x, vv0);
+              v_st(&pv1.x, vv1);
+              v_st(&pv2.x, vv2);
+              Point3 v0 = nodeTm % pv0;
+              Point3 v1 = nodeTm % pv1;
+              Point3 v2 = nodeTm % pv2;
               Point3 center = (v0 + v1 + v2) / 3.f;
               Point3 p0 = v0 - center;
               Point3 p1 = v1 - center;
@@ -364,7 +392,7 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
               currentMass.eqArea += area;
               currentMass.momentOfInertia = inertia * area;
               centers.push_back(MassData(center, area, inertia));
-            }
+            });
             float invArea = safeinv(currentMass.eqArea);
             centerOfMass *= invArea;
             for (int j = 0; j < centers.size(); ++j)
@@ -375,7 +403,7 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
                 centers[j].area;
             }
             currentMass.momentOfInertia *= invArea;
-            currentMass.center = node.tm.getcol(3) + centerOfMass;
+            currentMass.center = nodeTm.getcol(3) + centerOfMass;
             totalArea += currentMass.eqArea;
           }
         }
@@ -401,15 +429,15 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
 
     for (int tankNum = 0; tankNum < FuelTankProps::MAX_TANKS; ++tankNum)
     {
-      float capacity = parts_masses_blk->getReal(String(128, "tank%d_capacity", tankNum + 1).str(), 0.f);
-      int fuelSystemNum = parts_masses_blk->getInt(String(128, "tank%d_system", tankNum + 1).str(), 0);
-      bool external = parts_masses_blk->getBool(String(128, "tank%d_external", tankNum + 1).str(), false);
+      float capacity = parts_masses_blk->getReal(String(128, framemem_ptr(), "tank%d_capacity", tankNum + 1).str(), 0.f);
+      int fuelSystemNum = parts_masses_blk->getInt(String(128, framemem_ptr(), "tank%d_system", tankNum + 1).str(), 0);
+      bool external = parts_masses_blk->getBool(String(128, framemem_ptr(), "tank%d_external", tankNum + 1).str(), false);
       if (capacity > 0.0f && fuelSystemNum < props.numFuelSystems && external)
       {
         FuelTankProps &ftp = props.fuelTankProps[tankNum];
         ftp.capacity = capacity;
         ftp.fuelSystemNum = fuelSystemNum;
-        ftp.priority = parts_masses_blk->getInt(String(128, "tank%d_priority", tankNum + 1).str(), 0);
+        ftp.priority = parts_masses_blk->getInt(String(128, framemem_ptr(), "tank%d_priority", tankNum + 1).str(), 0);
         FuelSystemProps &fsp = props.fuelSystemProps[ftp.fuelSystemNum];
         fsp.priorityNum = max(fsp.priorityNum, ftp.priority + 1);
         ftp.external = true;
@@ -440,48 +468,49 @@ void gamephys::load_masses(MassProps &props, const DataBlock *parts_masses_blk, 
   }
 }
 
-void gamephys::post_load_masses(const MassProps &props, MassState &state, const CollisionResource *collision, int num_tanks_old)
+void gamephys::apply(const MassProps &props, MassState &in_out_state)
 {
-  if (collision)
+  // Limit tanks
+  for (int i = 0; i < props.numTanks; ++i)
   {
-    // Limit tanks
-    for (int i = 0; i < props.numTanks; ++i)
+    FuelTankState &fts = in_out_state.fuelTankStates[i];
+    const FuelTankProps &ftp = props.fuelTankProps[i];
+    fts.currentFuel = min(fts.currentFuel, ftp.capacity);
+  }
+  // External fuel tanks
+  for (int tankNum = 0; tankNum < FuelTankProps::MAX_TANKS; ++tankNum)
+  {
+    const FuelTankProps &ftp = props.fuelTankProps[tankNum];
+    if (ftp.capacity > 0.0f && ftp.fuelSystemNum < props.numFuelSystems && ftp.external)
     {
-      FuelTankState &fts = state.fuelTankStates[i];
-      const FuelTankProps &ftp = props.fuelTankProps[i];
+      FuelTankState &fts = in_out_state.fuelTankStates[tankNum];
       fts.currentFuel = min(fts.currentFuel, ftp.capacity);
     }
-    // External fuel tanks
-    for (int tankNum = 0; tankNum < FuelTankProps::MAX_TANKS; ++tankNum)
-    {
-      const FuelTankProps &ftp = props.fuelTankProps[tankNum];
-      if (ftp.capacity > 0.0f && ftp.fuelSystemNum < props.numFuelSystems && ftp.external)
-      {
-        FuelTankState &fts = state.fuelTankStates[tankNum];
-        fts.currentFuel = min(fts.currentFuel, ftp.capacity);
-        if (props.numTanks > num_tanks_old)
-          fts.available = false;
-      }
-    }
-    // Ensure that fuel system capacity is a sum of the connected fuel tanks capacities
-    for (int i = 0; i < props.numFuelSystems; ++i)
-      state.fuelSystemStates[i].fuel = state.fuelSystemStates[i].fuelExternal = 0.0f;
-    for (int i = 0; i < props.numTanks; ++i)
-    {
-      const FuelTankState &fts = state.fuelTankStates[i];
-      const FuelTankProps &ftp = props.fuelTankProps[i];
-      FuelSystemState &fss = state.fuelSystemStates[ftp.fuelSystemNum];
-      fss.fuel += fts.currentFuel;
-      if (ftp.external)
-        fss.fuelExternal += fts.currentFuel;
-    }
   }
+  // Ensure that fuel system capacity is a sum of the connected fuel tanks capacities
+  for (int i = 0; i < props.numFuelSystems; ++i)
+    in_out_state.fuelSystemStates[i].fuel = in_out_state.fuelSystemStates[i].fuelExternal = 0.0f;
+  for (int i = 0; i < props.numTanks; ++i)
+  {
+    const FuelTankState &fts = in_out_state.fuelTankStates[i];
+    const FuelTankProps &ftp = props.fuelTankProps[i];
+    FuelSystemState &fss = in_out_state.fuelSystemStates[ftp.fuelSystemNum];
+    fss.fuel += fts.currentFuel;
+    if (ftp.external)
+      fss.fuelExternal += fts.currentFuel;
+  }
+  // Make all external fuel tanks unavailable
+  for (int i = 0; i < props.numTanks; ++i)
+    if (props.fuelTankProps[i].external)
+      in_out_state.fuelTankStates[i].available = false;
 }
 
 void gamephys::load_save_override(MassProps &props, DataBlock *mass_blk, bool load, const CollisionResource *collision,
   const NameMap &fuel_tank_names, const DataBlock &additional_masses)
 {
   blkutil::loadSaveBlk(mass_blk, "EmptyMass", props.massEmpty, 0.0f, load);
+  G_ASSERTF(props.massEmpty >= 0.1f && props.massEmpty <= 1.0e8f, "EmptyMass = %.2f", props.massEmpty);
+  props.massEmpty = clamp(props.massEmpty, 0.1f, 1.0e8f);
 
   if (load)
   {
@@ -491,10 +520,11 @@ void gamephys::load_save_override(MassProps &props, DataBlock *mass_blk, bool lo
   }
   for (int i = 0; i < (load ? FuelTankProps::MAX_SYSTEMS : props.numFuelSystems); ++i)
   {
-    blkutil::loadSaveBlk(mass_blk, String(32, "MaxFuelMass%d", i).str(), props.fuelSystemProps[i].maxFuel,
+    blkutil::loadSaveBlk(mass_blk, String(32, framemem_ptr(), "MaxFuelMass%d", i).str(), props.fuelSystemProps[i].maxFuel,
       i == FuelTankProps::MAIN_SYSTEM ? props.fuelSystemProps[i].maxFuel : 0.0f, load);
-    blkutil::loadSaveBlk(mass_blk, String(32, "MaxFuelMassExternal%d", i).str(), props.fuelSystemProps[i].maxFuelExternal,
-      i == FuelTankProps::MAIN_SYSTEM ? props.fuelSystemProps[i].maxFuelExternal : 0.0f, load);
+    blkutil::loadSaveBlk(mass_blk, String(32, framemem_ptr(), "MaxFuelMassExternal%d", i).str(),
+      props.fuelSystemProps[i].maxFuelExternal, i == FuelTankProps::MAIN_SYSTEM ? props.fuelSystemProps[i].maxFuelExternal : 0.0f,
+      load);
     if (load && props.fuelSystemProps[i].maxFuel > 0.0f && i > 0)
       ++props.numFuelSystems;
   }
@@ -510,14 +540,14 @@ void gamephys::load_save_override(MassProps &props, DataBlock *mass_blk, bool lo
   }
   for (int i = 0; i < props.numFuelSystems; ++i)
   {
-    blkutil::loadSaveBlk(mass_blk, String(32, "FuelAccumulatorCapacity%d", i).str(), props.fuelSystemProps[i].fuelAccumulatorCapacity,
-      0.0f, load);
-    blkutil::loadSaveBlk(mass_blk, String(32, "MinimalLoadFactor%d", i).str(), props.fuelSystemProps[i].minimalLoadFactor,
-      minimalLoadFactor, load);
-    blkutil::loadSaveBlk(mass_blk, String(32, "FuelAccumulatorFlowRate%d", i).str(), props.fuelSystemProps[i].fuelAccumulatorFlowRate,
-      fuelAccumulatorFlowRate, load);
-    blkutil::loadSaveBlk(mass_blk, String(32, "FuelEngineFlowRate%d", i).str(), props.fuelSystemProps[i].fuelEngineFlowRate,
-      fuelEngineFlowRate, load);
+    blkutil::loadSaveBlk(mass_blk, String(32, framemem_ptr(), "FuelAccumulatorCapacity%d", i).str(),
+      props.fuelSystemProps[i].fuelAccumulatorCapacity, 0.0f, load);
+    blkutil::loadSaveBlk(mass_blk, String(32, framemem_ptr(), "MinimalLoadFactor%d", i).str(),
+      props.fuelSystemProps[i].minimalLoadFactor, minimalLoadFactor, load);
+    blkutil::loadSaveBlk(mass_blk, String(32, framemem_ptr(), "FuelAccumulatorFlowRate%d", i).str(),
+      props.fuelSystemProps[i].fuelAccumulatorFlowRate, fuelAccumulatorFlowRate, load);
+    blkutil::loadSaveBlk(mass_blk, String(32, framemem_ptr(), "FuelEngineFlowRate%d", i).str(),
+      props.fuelSystemProps[i].fuelEngineFlowRate, fuelEngineFlowRate, load);
   }
 
   blkutil::loadSaveBlk(mass_blk, "hasFuelDumping", props.hasFuelDumping, false, load);
@@ -577,10 +607,10 @@ void gamephys::load_save_override(MassProps &props, DataBlock *mass_blk, bool lo
         {
           FuelTankProps &ftp = props.fuelTankProps[i];
           if (ftp.capacity != 0.f)
-            partsMassesBlk->setReal(String(128, "tank%d_capacity", i + 1).str(), ftp.capacity);
-          partsMassesBlk->setInt(String(128, "tank%d_system", i + 1).str(), ftp.fuelSystemNum);
-          partsMassesBlk->setBool(String(128, "tank%d_external", i + 1).str(), ftp.external);
-          partsMassesBlk->setInt(String(128, "tank%d_priority", i + 1).str(), ftp.priority);
+            partsMassesBlk->setReal(String(128, framemem_ptr(), "tank%d_capacity", i + 1).str(), ftp.capacity);
+          partsMassesBlk->setInt(String(128, framemem_ptr(), "tank%d_system", i + 1).str(), ftp.fuelSystemNum);
+          partsMassesBlk->setBool(String(128, framemem_ptr(), "tank%d_external", i + 1).str(), ftp.external);
+          partsMassesBlk->setInt(String(128, framemem_ptr(), "tank%d_priority", i + 1).str(), ftp.priority);
         }
       }
       dag::ConstSpan<CollisionNode> allCollisionNodes = collision->getAllNodes();
@@ -589,10 +619,42 @@ void gamephys::load_save_override(MassProps &props, DataBlock *mass_blk, bool lo
         const CollisionNodeMass &collisionNodeMass = props.collisionNodesMasses[i];
         const PartMass &partMass = props.advancedMasses[collisionNodeMass.massIndex];
         DataBlock *blk = partMass.volumetric ? partsMassesBlk : partsWithSurfaceMassesBlk;
-        blk->setReal(allCollisionNodes[collisionNodeMass.nodeIndex].name.str(), partMass.mass);
+        blk->setReal(collision->getNodeName(allCollisionNodes[collisionNodeMass.nodeIndex].nodeIndex), partMass.mass);
       }
     }
   }
+}
+
+int gamephys::apply_modifications(MassProps &props, const DataBlock &mod_blk, float mod_effect)
+{
+  int numChanges = 0;
+  const int mulMassId = mod_blk.getNameId("mulMass");
+  const int changeMassId = mod_blk.getNameId("changeMass");
+  for (int i = 0; i < mod_blk.paramCount(); ++i)
+  {
+    int nid = mod_blk.getParamNameId(i);
+
+    float massDiff = 0.f;
+    if (mulMassId == nid)
+    {
+      massDiff = (mod_blk.getReal(i) - 1.f) * props.massEmpty * mod_effect;
+      numChanges++;
+    }
+    if (changeMassId == nid)
+    {
+      massDiff = mod_blk.getReal(i) * mod_effect;
+      numChanges++;
+    }
+
+    // TODO Check if this change has sideeffects
+    // Previouly mass.mass was not incremented, unlike for tanks and ships
+    add_extra_mass(props, massDiff);
+  }
+
+  G_ASSERTF(props.massEmpty >= 0.1f && props.massEmpty <= 1.0e8f, "EmptyMass = %.2f", props.massEmpty);
+  props.massEmpty = clamp(props.massEmpty, 0.1f, 1.0e8f);
+
+  return numChanges;
 }
 
 float Mass::calcConsumptionLimit(int fuel_system_num, float load_factor, float dt) const
@@ -622,7 +684,11 @@ void Mass::computeFullMass()
   state.mass = props.massEmpty + props.oilMass + props.crewMass + fuelMass + state.nitro + state.payloadMass;
 }
 
-Mass::Mass() { init(); }
+Mass::Mass(IMemAlloc *a)
+{
+  set_allocator(props, a);
+  init();
+}
 
 void Mass::init()
 {
@@ -670,7 +736,7 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
       const CollisionNode &node = allCollisionNodes[i];
       if (node.type != COLLISION_NODE_TYPE_POINTS)
       {
-        int tankNameNum = fuel_tank_names.getNameId(allCollisionNodes[i].name.str());
+        int tankNameNum = fuel_tank_names.getNameId(collision->getNodeName(allCollisionNodes[i].nodeIndex));
         if (tankNameNum >= 0)
         {
           fuelTanksNumbers[numFuelTanks] = tankNameNum;
@@ -693,30 +759,31 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
       const CollisionNode &node = allCollisionNodes[i];
       if (node.type != COLLISION_NODE_TYPE_POINTS)
       {
-        int nid = nameMap.getNameId(node.name.str());
+        int nid = nameMap.getNameId(collision->getNodeName(node.nodeIndex));
         if (nid < 0)
         {
-          nameMap.addNameId(node.name.str());
+          nameMap.addNameId(collision->getNodeName(node.nodeIndex));
           PartMass &currentMass = props.advancedMasses.push_back();
           reset(currentMass);
 
-          float knownMass = parts_masses_blk->getReal(node.name.str(), -1.f);
-          float knownSurfaceMass = surface_parts_masses_blk->getReal(node.name.str(), -1.f);
+          float knownMass = parts_masses_blk->getReal(collision->getNodeName(node.nodeIndex), -1.f);
+          float knownSurfaceMass = surface_parts_masses_blk->getReal(collision->getNodeName(node.nodeIndex), -1.f);
           if (knownMass >= 0.0f && knownSurfaceMass >= 0.0f)
             knownMass = -1.0f;
           else if (knownSurfaceMass >= 0.0f)
             knownMass = knownSurfaceMass;
           if (knownMass < 0.f && knownAdditionalMasses)
-            knownMass = knownAdditionalMasses->getReal(node.name.str(), -1.f);
+            knownMass = knownAdditionalMasses->getReal(collision->getNodeName(node.nodeIndex), -1.f);
 
-          int tankNameNum = fuel_tank_names.getNameId(node.name.str());
+          int tankNameNum = fuel_tank_names.getNameId(collision->getNodeName(node.nodeIndex));
           int tankNum = tankNameNum >= 0 ? find_value_idx(fuelTanksNumbers, tankNameNum) : -1;
           int fuelSystemNum =
-            props.separateFuelTanks ? parts_masses_blk->getInt(String(128, "tank%d_system", tankNum + 1).str(), 0) : 0;
+            props.separateFuelTanks ? parts_masses_blk->getInt(String(128, framemem_ptr(), "tank%d_system", tankNum + 1).str(), 0) : 0;
           if (fuelSystemNum < props.numFuelSystems && tankNum >= 0 && tankNum < MAX_FUEL_TANKS)
           {
-            bool external =
-              props.separateFuelTanks ? parts_masses_blk->getBool(String(128, "tank%d_external", tankNum + 1).str(), false) : 0;
+            bool external = props.separateFuelTanks
+                              ? parts_masses_blk->getBool(String(128, framemem_ptr(), "tank%d_external", tankNum + 1).str(), false)
+                              : 0;
             if (!external)
             {
               FuelSystemProps &fsp = props.fuelSystemProps[fuelSystemNum];
@@ -729,14 +796,16 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
 
               ftp.external = false;
               ftp.fuelSystemNum = fuelSystemNum;
-              ftp.capacity =
-                props.separateFuelTanks ? parts_masses_blk->getReal(String(128, "tank%d_capacity", tankNum + 1).str(), 0.f) : 0;
+              ftp.capacity = props.separateFuelTanks
+                               ? parts_masses_blk->getReal(String(128, framemem_ptr(), "tank%d_capacity", tankNum + 1).str(), 0.f)
+                               : 0;
               knownFuel[fuelSystemNum] += ftp.capacity;
               if (ftp.capacity == 0.f)
                 ++unknownFuel[fuelSystemNum];
               ++props.numTanks;
-              ftp.priority =
-                props.separateFuelTanks ? parts_masses_blk->getInt(String(128, "tank%d_priority", tankNum + 1).str(), 0) : 0;
+              ftp.priority = props.separateFuelTanks
+                               ? parts_masses_blk->getInt(String(128, framemem_ptr(), "tank%d_priority", tankNum + 1).str(), 0)
+                               : 0;
               fsp.priorityNum = max(fsp.priorityNum, ftp.priority + 1);
             }
           }
@@ -752,31 +821,39 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
           if (isVolumetric)
           {
             totalKnownMass += knownMass;
+            const TMatrix &nodeTm = collision->getNodeTm(node.nodeIndex);
             BBox3 localBox;
             localBox.setempty();
             if (node.type == COLLISION_NODE_TYPE_MESH)
             {
-              for (int j = 0; j < node.indices.size(); ++j)
-                localBox += node.tm % node.vertices[node.indices[j]]; // rotated, but not translated vertex position
+              collision->iterateNodeVerts(node.nodeIndex, [&](int, vec4f v) {
+                Point3_vec4 vf;
+                v_st(&vf.x, v);
+                localBox += nodeTm % vf; // rotated, but not translated vertex position
+              });
             }
             else
-              localBox = node.modelBBox;
+              localBox = collision->getNodeBBox(node.nodeIndex);
             Point3 width = localBox.width();
             currentMass.momentOfInertia.set(lengthSq(Point2::yz(width)) / 12.f, lengthSq(Point2::xz(width)) / 12.f,
               lengthSq(Point2::xy(width)) / 12.f);
-            currentMass.center = node.tm.getcol(3) + localBox.center(); // we already have rotated box, so no need to do it twice, just
-                                                                        // translate it.
+            currentMass.center = nodeTm.getcol(3) + localBox.center(); // we already have rotated box, so no need to do it twice, just
+                                                                       // translate it.
           }
           else if (node.type == COLLISION_NODE_TYPE_MESH)
           {
+            const TMatrix &nodeTm = collision->getNodeTm(node.nodeIndex);
             Point3 centerOfMass(0.f, 0.f, 0.f);
             Tab<MassData> centers(framemem_ptr());
-            centers.reserve(node.indices.size() / 3);
-            for (int j = 0; j < node.indices.size(); j += 3)
-            {
-              Point3 v0 = node.tm % node.vertices[node.indices[j + 0]];
-              Point3 v1 = node.tm % node.vertices[node.indices[j + 1]];
-              Point3 v2 = node.tm % node.vertices[node.indices[j + 2]];
+            centers.reserve(collision->getNodeFaceCount(node.nodeIndex));
+            collision->iterateNodeFacesVerts(node.nodeIndex, [&](int, vec4f vv0, vec4f vv1, vec4f vv2) {
+              Point3_vec4 pv0, pv1, pv2;
+              v_st(&pv0.x, vv0);
+              v_st(&pv1.x, vv1);
+              v_st(&pv2.x, vv2);
+              Point3 v0 = nodeTm % pv0;
+              Point3 v1 = nodeTm % pv1;
+              Point3 v2 = nodeTm % pv2;
               Point3 center = (v0 + v1 + v2) / 3.f;
               Point3 p0 = v0 - center;
               Point3 p1 = v1 - center;
@@ -792,7 +869,7 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
               currentMass.eqArea += area;
               currentMass.momentOfInertia = inertia * area;
               centers.push_back(MassData(center, area, inertia));
-            }
+            });
             float invArea = safeinv(currentMass.eqArea);
             centerOfMass *= invArea;
             for (int j = 0; j < centers.size(); ++j)
@@ -803,7 +880,7 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
                 centers[j].area;
             }
             currentMass.momentOfInertia *= invArea;
-            currentMass.center = node.tm.getcol(3) + centerOfMass;
+            currentMass.center = nodeTm.getcol(3) + centerOfMass;
             totalArea += currentMass.eqArea;
           }
         }
@@ -831,9 +908,9 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
 
     for (int tankNum = 0; tankNum < MAX_FUEL_TANKS; ++tankNum)
     {
-      float capacity = parts_masses_blk->getReal(String(128, "tank%d_capacity", tankNum + 1).str(), 0.f);
-      int fuelSystemNum = parts_masses_blk->getInt(String(128, "tank%d_system", tankNum + 1).str(), 0);
-      bool external = parts_masses_blk->getBool(String(128, "tank%d_external", tankNum + 1).str(), false);
+      float capacity = parts_masses_blk->getReal(String(128, framemem_ptr(), "tank%d_capacity", tankNum + 1).str(), 0.f);
+      int fuelSystemNum = parts_masses_blk->getInt(String(128, framemem_ptr(), "tank%d_system", tankNum + 1).str(), 0);
+      bool external = parts_masses_blk->getBool(String(128, framemem_ptr(), "tank%d_external", tankNum + 1).str(), false);
       if (capacity > 0.0f && fuelSystemNum < props.numFuelSystems && external)
       {
         FuelTankState &fts = state.fuelTankStates[tankNum];
@@ -841,7 +918,7 @@ void Mass::loadMasses(const DataBlock *parts_masses_blk, const DataBlock *surfac
         ftp.capacity = capacity;
         fts.currentFuel = min(fts.currentFuel, capacity);
         ftp.fuelSystemNum = fuelSystemNum;
-        ftp.priority = parts_masses_blk->getInt(String(128, "tank%d_priority", tankNum + 1).str(), 0);
+        ftp.priority = parts_masses_blk->getInt(String(128, framemem_ptr(), "tank%d_priority", tankNum + 1).str(), 0);
         FuelSystemProps &fsp = props.fuelSystemProps[ftp.fuelSystemNum];
         fsp.priorityNum = max(fsp.priorityNum, ftp.priority + 1);
         ftp.external = true;
@@ -894,8 +971,8 @@ void Mass::baseLoad(const DataBlock *mass_blk, int crew_num)
   props.numFuelSystems = 1;
   for (int i = 0; i < MAX_FUEL_SYSTEMS; ++i)
   {
-    props.fuelSystemProps[i].maxFuel =
-      mass_blk->getReal(String(16, "Fuel%d", i).str(), i == MAIN_FUEL_SYSTEM ? props.fuelSystemProps[i].maxFuel : 0.0f);
+    props.fuelSystemProps[i].maxFuel = mass_blk->getReal(String(16, framemem_ptr(), "Fuel%d", i).str(),
+      i == MAIN_FUEL_SYSTEM ? props.fuelSystemProps[i].maxFuel : 0.0f);
     props.fuelSystemProps[i].maxFuelExternal = 0.0f;
     if (props.fuelSystemProps[i].maxFuel > 0.0f && i > MAIN_FUEL_SYSTEM)
     {
@@ -980,14 +1057,28 @@ void Mass::loadSaveOverride(DataBlock *mass_blk, bool load, const CollisionResou
     for (int i = props.numFuelSystems; i < FuelTankProps::MAX_SYSTEMS; ++i)
       reset(state.fuelSystemStates[i]);
   }
-  int numTanksOld = props.numTanks;
-  post_load_masses(props, state, collision, numTanksOld);
+  ::apply(props, state);
+}
+
+int Mass::applyModifications(const DataBlock &mod_blk, float mod_effect)
+{
+  const float emptyMassPrev = props.massEmpty;
+  int numChanges = apply_modifications(props, mod_blk, mod_effect);
+  state.mass += props.massEmpty - emptyMassPrev;
+  return numChanges;
 }
 
 void Mass::repair()
 {
   state.nitro = props.maxNitro;
   state.momentOfInertiaNormMult.set(1.0, 1.0, 1.0);
+  state.dumpedFuelBurning = false;
+}
+
+void gamephys::Mass::apply(const MassInput &input)
+{
+  computeMasses(input.parts, input.payloadCogMult, input.payloadImMult, input.partsPresenceFlags);
+  computeFullMass();
 }
 
 const MassOutput &gamephys::Mass::simulate(const MassInput &input, float dt)
@@ -1010,45 +1101,59 @@ const MassOutput &gamephys::Mass::simulate(const MassInput &input, float dt)
       output.leakedFuelAmount += leakedFuel;
     }
   }
+
   // Dump
-  if (input.dumpFuelAmount > 0.0f)
+  float fuelDumped = 0.0f;
+  if (input.fuelDumping)
   {
-    for (int i = 0; i < props.numTanks; ++i)
+    const float dumpAmount = min(props.fuelDumpingRate * dt, state.fuelSystemStates[dumpFuelSystem].fuel);
+    if (dumpAmount > 0.0f)
     {
-      const FuelTankState &fts = state.fuelTankStates[i];
-      const FuelTankProps &ftp = props.fuelTankProps[i];
-      if (ftp.fuelSystemNum == dumpFuelSystem && fts.available && fts.currentFuel > 0.0f)
+      for (int i = 0; i < props.numTanks; ++i)
       {
-        tanksToDumpFrom.insert({fts.currentFuel, i});
+        const FuelTankState &fts = state.fuelTankStates[i];
+        const FuelTankProps &ftp = props.fuelTankProps[i];
+        if (ftp.fuelSystemNum == dumpFuelSystem && fts.available && fts.currentFuel > 0.0f)
+        {
+          tanksToDumpFrom.insert({fts.currentFuel, i});
+        }
       }
+
+      float fuelLeftToDump = dumpAmount;
+      while (!tanksToDumpFrom.empty())
+      {
+        auto curIt = tanksToDumpFrom.begin();
+
+        FuelTankState &fts = state.fuelTankStates[curIt->second];
+
+        const float curAmountToDump = fuelLeftToDump / static_cast<float>(tanksToDumpFrom.size());
+
+        if (fts.currentFuel > curAmountToDump)
+        {
+          fts.currentFuel -= curAmountToDump;
+          fuelLeftToDump -= curAmountToDump;
+        }
+        else
+        {
+          fuelLeftToDump -= fts.currentFuel;
+          fts.currentFuel = 0.f;
+        }
+
+        tanksToDumpFrom.erase(curIt);
+      }
+      fuelDumped = dumpAmount - fuelLeftToDump;
+      state.fuelSystemStates[dumpFuelSystem].fuel -= fuelDumped;
     }
-
-    float fuelLeftToDump = input.dumpFuelAmount;
-    while (!tanksToDumpFrom.empty())
-    {
-      auto curIt = tanksToDumpFrom.begin();
-
-      FuelTankState &fts = state.fuelTankStates[curIt->second];
-
-      const float curAmountToDump = fuelLeftToDump / static_cast<float>(tanksToDumpFrom.size());
-
-      if (fts.currentFuel > curAmountToDump)
-      {
-        fts.currentFuel -= curAmountToDump;
-        fuelLeftToDump -= curAmountToDump;
-      }
-      else
-      {
-        fuelLeftToDump -= fts.currentFuel;
-        fts.currentFuel = 0.f;
-      }
-
-      tanksToDumpFrom.erase(curIt);
-    }
-    const float fuelDumped = input.dumpFuelAmount - fuelLeftToDump;
-    state.fuelSystemStates[dumpFuelSystem].fuel -= fuelDumped;
-    output.dumpedFuelAmount = fuelDumped;
   }
+  if (fuelDumped >= 1.0e-3f)
+  {
+    if (input.afterburner)
+      state.dumpedFuelBurning = true;
+  }
+  else
+    state.dumpedFuelBurning = false;
+  output.dumpedFuelAmount = fuelDumped;
+
   // Nitro
   if (input.consumeNitroAmount > 0.f)
   {
@@ -1291,8 +1396,7 @@ void Mass::clearFuel()
 
 void Mass::addExtraMass(float extra_mass)
 {
-  props.maxWeight += extra_mass;
-  props.massEmpty += extra_mass;
+  add_extra_mass(props, extra_mass);
   state.mass += extra_mass;
 }
 

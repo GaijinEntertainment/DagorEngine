@@ -3,14 +3,15 @@ include "gbuffer.dshl"
 include "normaldetail.dshl"
 include "perlin_layered_inc.dshl"
 include "random_color.dshl"
+include "dynamic_destr_disappear_inc.dshl"
 
 
 shader dynamic_perlin_layered
 {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
   INIT_PERLIN_LAYERED()
   INIT_RANDOMIZED_TC(vs)
+  DYNAMIC_DESTR_DISAPPEAR_INIT()
 
   static int num_bones = 0;
   interval num_bones: no_bones<1, four_bones;
@@ -36,7 +37,7 @@ shader dynamic_perlin_layered
       #define USE_INITIAL_POS 1
       struct VsOutput
       {
-        VS_OUT_POSITION(pos)
+        PRECISE VS_OUT_POSITION(pos)
         float2 diffuseTexcoord                  : TEXCOORD0;
         nointerpolation float3 colorMul         : TEXCOORD1;
         float3 initPos                          : TEXCOORD2;
@@ -47,11 +48,15 @@ shader dynamic_perlin_layered
         float4 out_pos_prev                     : TEXCOORD6;
         #endif
         float localPosY                         : TEXCOORD7;
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+        float4 destr_params                     : TEXCOORD8;
+        #endif
       };
     }
   }
 
   DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  DYNAMIC_DESTR_DISAPPEAR_USE()
   hlsl(vs) {
     void vs_post_function(VsInput input, inout VsOutput output)
     {
@@ -71,7 +76,7 @@ shader dynamic_perlin_layered
   if (dyn_model_render_pass != render_pass_normal)
   {
     if (in_editor_assume == no) { NO_DYNSTCODE() }
-    SPECIAL_RENDER_NOALPHATEST()
+    SPECIAL_RENDER_NOALPHATEST(enable_ri_disintegration_animation == enabled)
   }
   else
   {
@@ -80,6 +85,6 @@ shader dynamic_perlin_layered
     hlsl(ps) {
       #define IS_DYNAMIC 1
     }
-    PERLIN_LAYERED_PS(true, false)
+    PERLIN_LAYERED_PS(true, false, GBUFFER_ORDER_DYNAMIC)
   }
 }

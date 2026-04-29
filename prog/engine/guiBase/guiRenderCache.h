@@ -306,7 +306,8 @@ struct DrawElem
     EXEC_CMD // startIndex = cmd, extState = CallBackExtState
   };
   Command command;
-  uint8_t shaderId_bufferId; // 4:4
+  uint8_t shaderId : 4;
+  uint8_t bufferId : 4;
 
   uint16_t view;
   uint16_t guiState;
@@ -326,6 +327,12 @@ struct CallBackExtState
   uintptr_t data;
 };
 
+struct TargetParams
+{
+  Point2 screenOrig;
+  Point2 screenScale;
+};
+
 struct BufferedRenderer
 {
   Tab<GuiShader *> shaders;
@@ -336,6 +343,7 @@ struct BufferedRenderer
   Tab<GuiState> guiStates;
   Tab<DrawElem> drawElems;
   eastl::fixed_vector<int, 4, /*bOverflow*/ true> chunks; // drawElems chunks[N]..chunks[N+1]
+  eastl::fixed_vector<TargetParams, 4, /*bOverflow*/ true> chunksTargetParams;
 
   bool isInChunk;
   bool isInLock;
@@ -343,11 +351,7 @@ struct BufferedRenderer
   int currentShaderId;
   int currentBufferId;
 
-  // target params
-  Point2 screenOrig;
-  Point2 screenScale;
   static constexpr float screenPixelAR = 1.f;
-  int targetWd = 0, targetHt = 0;
 
   QuadCache quadCache;
 
@@ -418,7 +422,7 @@ struct BufferedRenderer
   void drawFan(int num_faces) { drawPrims(DrawElem::DRAW_FAN, num_faces); }
 
   int beginChunk(); // return chunk_id 0-based
-  void endChunk();
+  void endChunk(const TargetParams &target_params);
   void renderChunk(int chunk_id, int targetW, int targetH);
   void renderChunkCustom(int chunk_id, int targetW, int targetH, int replace_buffer, Ptr<ShaderElement> shaderElem);
 

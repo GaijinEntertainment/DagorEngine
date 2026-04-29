@@ -5,6 +5,7 @@
 #include <perfMon/dag_cpuFreq.h>
 #include <generic/dag_tab.h>
 #include <osApiWrappers/dag_miscApi.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <atomic>
 #include <drv_log_defs.h>
 #include <drv_assert_defs.h>
@@ -98,6 +99,8 @@ public:
   void setSignaledExternally() { state = State::SIGNALED; }
 
 private:
+  bool isInDeviceLost();
+
   State gpuFenceWait()
   {
     State stCopy = state;
@@ -107,11 +110,23 @@ private:
     VkResult waitRet;
     if (d3d::get_driver_desc().issues.hasPollDeviceFences)
     {
+      uint64_t pollStart = ref_time_ticks();
       for (;;)
       {
+        if (isInDeviceLost())
+        {
+          waitRet = VK_ERROR_DEVICE_LOST;
+          break;
+        }
         waitRet = Globals::VK::dev.vkGetFenceStatus(Globals::VK::dev.get(), fence);
         if (waitRet == VK_SUCCESS || VULKAN_FAIL(waitRet))
           break;
+        if (get_time_nsec(pollStart) >= MAX_GPU_FENCE_WAIT_NS)
+        {
+          D3D_ERROR("vulkan: GPU fence poll exceeded max wait time");
+          waitRet = VK_ERROR_DEVICE_LOST;
+          break;
+        }
         sleep_usec(0);
       }
     }
@@ -122,13 +137,25 @@ private:
       // if timeout reached: check work load & integrity
       //  -reduce complexity/add flushes if work load is too long
       //  -fix workload/shaders integrity at caller site (for(;;) in shaders, -1 in dispatch groups, etc.)
-      waitRet = Globals::VK::dev.vkWaitForFences(Globals::VK::dev.get(), 1, ptr(fence), VK_TRUE, GENERAL_GPU_TIMEOUT_NS);
+      uint32_t retriesLeft = MAX_GPU_FENCE_WAIT_RETRIES;
+      if (DAGOR_LIKELY(!isInDeviceLost()))
+        waitRet = Globals::VK::dev.vkWaitForFences(Globals::VK::dev.get(), 1, ptr(fence), VK_TRUE, GENERAL_GPU_TIMEOUT_NS);
+      else
+        waitRet = VK_ERROR_DEVICE_LOST;
       while (waitRet == VK_TIMEOUT)
       {
-        // be verbose only in dev builds, as some systems can drop into sleep mode right inside vkWaitForFences
-        // causing this method to fail and crash the game
-        // still, use non infinite timeout, as this can be unsafe
-        //(blocking core from being used by other threads, sometimes)
+        if (isInDeviceLost())
+        {
+          waitRet = VK_ERROR_DEVICE_LOST;
+          break;
+        }
+        if (--retriesLeft == 0)
+        {
+          D3D_ERROR("vulkan: GPU fence wait exceeded max retries (%u x %llu ns)", MAX_GPU_FENCE_WAIT_RETRIES,
+            (unsigned long long)GENERAL_GPU_TIMEOUT_NS);
+          waitRet = VK_ERROR_DEVICE_LOST;
+          break;
+        }
 #if DAGOR_DBGLEVEL > 0 && !_TARGET_ANDROID
         // when debug level above 0, assert on timeout
         if (Globals::cfg.debugLevel > 0)
@@ -156,24 +183,9 @@ private:
         ignoredDeviceLostCount++;
       }
       else
-      {
-        generateFaultReport();
-        DAG_FATAL("vulkan: GPU crash detected (code: %08lX)", waitRet);
-      }
-
-      // if fatal is skipped, just wait without timeout
-      waitRet = Globals::VK::dev.vkWaitForFences(Globals::VK::dev.get(), 1, ptr(fence), VK_TRUE, UINT64_MAX);
-      if (ignoreDeviceLost && (waitRet == VK_ERROR_DEVICE_LOST || waitRet == VK_ERROR_INITIALIZATION_FAILED))
-      {
-        if (ignoredDeviceLostCount < 3)
-          D3D_ERROR("vulkan: GPU device lost detected and ignored (wait without timeout, code: %08lX)", waitRet);
-        ignoredDeviceLostCount++;
-      }
-      else
-        VULKAN_EXIT_ON_FAIL(waitRet);
+        deviceLostIfFailed(waitRet);
     }
     state = State::SIGNALED;
-
     return State::SIGNALED;
   }
 

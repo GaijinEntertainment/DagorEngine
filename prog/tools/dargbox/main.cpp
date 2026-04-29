@@ -358,8 +358,6 @@ static void dagor_main(int nCmdShow)
 
   register_loadable_tex_create_factory();
 
-  ::register_lottie_tex_load_factory();
-
   visual_err_log_setup(false);
 
   ::dagor_init_video("DagorWClass", nCmdShow, NULL, "Loading...", "dargbox");
@@ -418,7 +416,6 @@ static void dagor_main(int nCmdShow)
 
   const DataBlock &blkFx = *dgs_get_settings()->getBlockByNameEx("effects");
 
-  ::set_gameres_sys_ver(2);
   if (blkFx.getStr("res", NULL))
   {
     ShaderGlobal::enableAutoBlockChange(true);

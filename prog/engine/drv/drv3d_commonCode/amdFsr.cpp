@@ -3,6 +3,7 @@
 #include "amdFsr.h"
 
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_texture.h>
@@ -47,8 +48,7 @@ static bool is_uav_load_supported(std::initializer_list<FormatTypeID> formats)
 bool FSR::isSupported()
 {
 #if _TARGET_PC_WIN
-  if (d3d::get_driver_desc().shaderModel >= 6.2_sm &&
-      (d3d::get_driver_code().is(d3d::dx12) || d3d::get_driver_code().is(d3d::vulkan)) &&
+  if (d3d::get_driver_desc().shaderModel >= 6.2_sm && d3d::get_driver_code().is(d3d::dx12 || d3d::vulkan) &&
       is_uav_load_supported(
         {TEXFMT_R8, TEXFMT_A16B16G16R16F, TEXFMT_R11G11B10F, TEXFMT_R16F, TEXFMT_G16R16F, TEXFMT_R32UI, TEXFMT_R8G8B8A8}))
     return true;
@@ -79,7 +79,7 @@ void FSR::scheduleGeneratedFrames(const FrameGenArgs &args) { d3d::driver_comman
 
 FSR *createFSR()
 {
-#if _TARGET_PC_WIN
+#if _TARGET_PC
 #if AMDFSR_HAS_DX12
   if (d3d::get_driver_code().is(d3d::dx12))
     return createD3D12Win();

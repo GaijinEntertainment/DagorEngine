@@ -20,8 +20,10 @@
 #include <landMesh/lmeshRenderer.h>
 #include <landMesh/clipMap.h>
 #include <landMesh/lastClip.h>
-#include <heightmap/heightmapRenderer.h>
 #include <heightmap/lodGrid.h>
+#include <heightmap/simpleHeightmapRenderer.h>
+#include <heightmap/heightmapCulling.h>
+#include <heightmap/heightmapMetricsCalc.h>
 #include <render/grassTranslucency.h>
 #include <scene/dag_physMat.h>
 #include <scene/dag_physMatId.h>
@@ -54,6 +56,7 @@
 #include <assets/asset.h>
 #include <math/dag_mesh.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <3d/dag_texPackMgr2.h>
 #include <coolConsole/coolConsole.h>
 #include <perfMon/dag_cpuFreq.h>
@@ -78,7 +81,9 @@
 #include <de3_editorEvents.h>
 #include <de3_splineGenSrv.h>
 #include <physMap/physMatSwRendererRT.h>
+#include <physMap/physMatHtTex.h>
 #include <landMesh/biomeQuery.h>
+#include <heightmap/heightmapHandler.h>
 
 /*#include "detailRenderData.h"
 Tab<DetailRenderData::TexturePingPong> DetailRenderData::colorMapTexArr;
@@ -111,6 +116,7 @@ using editorcore_extapi::dagTools;
 extern const char *filter_class_name;
 static void optimizeMesh(Mesh &m);
 extern TEXTUREID load_land_micro_details(const DataBlock &blk);
+extern void close_land_micro_details(TEXTUREID &id);
 
 #define CALL_LMESH_TYPED_RENDER(X, p) X.render(p, X.RENDER_WITH_CLIPMAP, false)
 
@@ -965,17 +971,30 @@ class GenericHeightMapService : public IHmapService
   bool rebuilLastClip;
   bool preparingClipmap;
 
+  bool shouldShowPhysMatColors;
+  bool shouldUpdatePhysMatHtTex;
+
+  Texture *physMatHtTex;
+  TEXTUREID physMatHtTexId;
+
+  bool enableTrackDirt;
+
   struct HeightMap2
   {
     LodGrid lodGrid;
     HeightmapRenderer rend;
-    float sx, sy, ax, ay;
-    TEXTUREID texMainId, texDetId;
+    float sx = 1, sy = 1, ax = 1, ay = 1;
+    TEXTUREID texMainId = BAD_TEXTUREID, texDetId = BAD_TEXTUREID;
     BBox2 bboxMain, bboxDet;
 
-    HeightMap2() : sx(1), sy(1), ax(1), ay(1), texMainId(BAD_TEXTUREID), texDetId(BAD_TEXTUREID)
+    MetricsErrors *metrics = nullptr;
+    SimpleHeightmapRenderer *metricsRenderer = nullptr;
+    float hMin = 0, hMax = 1;
+
+    ~HeightMap2()
     {
-      bboxMain.setempty(), bboxDet.setempty();
+      del_it(metrics);
+      del_it(metricsRenderer);
     }
   } hm2;
 
@@ -1003,15 +1022,17 @@ public:
     clipmap = NULL;
     shouldUseClipmap = false;
     preparingClipmap = false;
+    shouldShowPhysMatColors = false;
+    shouldUpdatePhysMatHtTex = false;
     rebuilLastClip = true;
     lastClipTexSz = 4096;
   }
   void init()
   {
-    DataBlock appblk(String(260, "%s/application.blk", DAGORED2->getWorkspace().getAppDir()));
+    DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
 
-    const Driver3dDesc &desc = d3d::get_driver_desc();
-    lastClipTexSz = min(desc.maxtexw, desc.maxtexh);
+    auto &drvDesc = d3d::get_driver_desc();
+    lastClipTexSz = min(drvDesc.maxtexw, drvDesc.maxtexh);
 
     shouldUseClipmap = appblk.getBlockByName("clipmap") != NULL;
     clipmap = NULL;
@@ -1029,13 +1050,6 @@ public:
         grassTranslucency->init(appblk.getBlockByNameEx("dynamicDeferred")->getInt("grassTranslucencyMapSize", 512));
         grassTranslucencyHalfSize = appblk.getBlockByNameEx("dynamicDeferred")->getReal("grassTranslucencyHalfSize", 8192);
       }
-
-    Ptr<ShaderMaterial> hm2_mat = new_shader_material_by_name("heightmap");
-    if (hm2_mat)
-    {
-      hm2.lodGrid.init(8, 1, 0, 1);
-      hm2.rend.init("heightmap", "", "hmap_tess_factor", true);
-    }
 
     /*static VSDTYPE dcl[] = { VSD_STREAM(0), VSD_REG(VSDR_POS, VSDT_FLOAT2), VSD_END };
     VPROG vs = d3d::create_vertex_shader_hlsl(d3d::get_driver_code().is(d3d::dx11) ? vs_hlsl11 : vs_hlsl, -1, "vs_main",
@@ -1079,7 +1093,11 @@ public:
   {
     del_it(clipmap);
     closeFixedClip();
+    close_land_micro_details(landMicrodetailsId);
     del_it(grassTranslucency);
+
+    if (physMatHtTex)
+      release_managed_tex_verified(physMatHtTexId, physMatHtTex);
   }
 
   DataBlock microDetails;
@@ -1109,7 +1127,7 @@ public:
 
   void initClipmap()
   {
-    DataBlock appblk(String(260, "%s/application.blk", DAGORED2->getWorkspace().getAppDir()));
+    DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
     const DataBlock *clipBlk = appblk.getBlockByName("clipmap");
     G_ASSERT(shouldUseClipmap);
     G_ASSERT(clipBlk != NULL);
@@ -1123,8 +1141,9 @@ public:
     bool useToroidalPuddles = clipBlk->getBool("useToroidalPuddles", false);
 
     clipmap = new Clipmap(clipBlk->getBool("useUAVFeedback", false));
-    clipmap->init(texel_sz, Clipmap::CPU_HW_FEEDBACK, Clipmap::getDefaultFeedbackProperties(), clipBlk->getInt("texMips", 6));
-    clipmap->initVirtualTexture(clipBlk->getInt("cacheWidth", 4096), clipBlk->getInt("cacheHeight", 8192), float(2 * 1920 * 1080));
+    clipmap->init(texel_sz, Clipmap::CPU_HW_FEEDBACK, Clipmap::getDefaultFeedbackProperties(), clipBlk->getInt("texMips", 7));
+    clipmap->initVirtualTexture(clipBlk->getInt("cacheWidth", 4096), clipBlk->getInt("cacheHeight", 8192), 256, 1,
+      ::dgs_tex_anisotropy, float(2 * 1920 * 1080));
     if (useToroidalHeightmap)
     {
       toroidalHeightmap.reset(new ToroidalHeightmap());
@@ -1146,6 +1165,7 @@ public:
     for (int i = 0; i < cacheCnt; ++i)
       formats[i] = parse_tex_format(clipBlk->getStr(String(32, "cache_tex%d", i), "NONE"), TEXFMT_DEFAULT);
     clipmap->createCaches(formats.data(), formats.data(), cacheCnt, bufFormats.data(), bufCnt);
+    clipmap->setMaxTileUpdateCount(TEX_DEFAULT_CLIPMAP_UPDATES_PER_FRAME);
 
     lastClipTexSz = min(clipBlk->getInt("lastClipTexSz", 4096), lastClipTexSz);
     G_ASSERT(clipmap != NULL);
@@ -1501,7 +1521,7 @@ public:
       {
         land_gen = cur_land_gen;
         clipmap_gen = cur_clipmap_gen;
-        invalidateClipmap(true, true);
+        invalidateClipmap(false, true);
       }
     }
   }
@@ -1600,10 +1620,77 @@ public:
     int tesselation = blk.getInt("tesselation", 0);
     int lodRadMul = blk.getInt("lodRadMul", 1);
     hm2.lodGrid.init(lod_cnt, lod0Rad, tesselation, lodRadMul);
-    DAEDITOR3.conNote("initLodGridHm2(%d, %d, %d, %d)", lod_cnt, lod0Rad, tesselation, lodRadMul);
+    Ptr<ShaderMaterial> hm2_mat = new_shader_material_by_name("heightmap");
+    if (hm2_mat)
+      hm2.rend.init("heightmap", "", "hmap_tess_factor", true);
+    DAEDITOR3.conNote("initLodGridHm2(%d, %d, %d, %d) hm2_mat=%p", lod_cnt, lod0Rad, tesselation, lodRadMul, hm2_mat.get());
   }
+
+  void updateMetricsHm2(bool use_metrics, const HeightMapStorage &htStorage, bool show_final_hmap, float cellSize,
+    float waterLevel) override
+  {
+    if (!use_metrics)
+    {
+      if (hm2.metrics)
+        DAEDITOR3.conNote("updateMetricsHm2(use_metrics=%d)", use_metrics);
+      del_it(hm2.metrics);
+      del_it(hm2.metricsRenderer);
+      return;
+    }
+    int time0 = dagTools->getTimeMsec();
+
+    const MapStorage<float> &hmap = show_final_hmap ? htStorage.getFinalMap() : htStorage.getInitialMap();
+    float hScale = htStorage.heightScale, hOfs = htStorage.heightOffset;
+    auto get_ht = [&hmap, hScale, hOfs](int x, int y) { return hmap.getData(x, y) * hScale + hOfs; };
+
+    int w = htStorage.getMapSizeX();
+    int h = htStorage.getMapSizeY();
+    Tab<uint16_t> r16;
+    r16.resize(w * h);
+    float hMin = get_ht(0, 0);
+    float hMax = hMin;
+
+    for (int y = 0; y < h; ++y)
+      for (int x = 0; x < w; x++)
+      {
+        float v = get_ht(x, y);
+        hMin = min(v, hMin);
+        hMax = max(v, hMax);
+      }
+
+    hMax = max(hMax, hMin + 1.f);
+
+    float scale = 65535.f / (hMax - hMin);
+    auto to = r16.data();
+
+    for (int y = 0; y < h; ++y)
+      for (int x = 0; x < w; ++x, ++to)
+        *to = clamp<int>((get_ht(x, y) - hMin) * scale + 0.5f, 0, 65535);
+
+    HeightmapHandler handler;
+    handler.initRaw(r16.data(), cellSize, w, h, hMin, hMax - hMin, -0.5 * cellSize * Point2(w, h));
+
+    hm2.hMin = hMin;
+    hm2.hMax = hMax;
+    del_it(hm2.metrics);
+    hm2.metrics = new MetricsErrors();
+    const int metrics_dim = 3;
+    const int metrics_maxCalcLevel = 14;
+    const int metrics_minCalcLevel = 2;
+    hm2.metrics->calc_lod_errors(handler, metrics_minCalcLevel, metrics_maxCalcLevel, 1 << metrics_dim, waterLevel);
+    if (!hm2.metricsRenderer)
+    {
+      hm2.metricsRenderer = new SimpleHeightmapRenderer;
+      hm2.metricsRenderer->init("heightmap", true, metrics_dim);
+    }
+
+    DAEDITOR3.conNote("updateMetricsHm2(final=%d, cellSize=%g, waterLevel=%g) htRange=(%g, %g)  for %.2f sec", //
+      show_final_hmap, cellSize, waterLevel, hMin, hMax, (dagTools->getTimeMsec() - time0) / 1e3f);
+  }
+  bool areMetricsUsedForHm2() const override { return hm2.metrics != nullptr; }
+
   void setupRenderHm2(float sx, float sy, float ax, float ay, Texture *htTexMain, TEXTUREID htTexIdMain, float mx0, float my0,
-    float mw, float mh, Texture *htTexDet, TEXTUREID htTexIdDet, float dx0, float dy0, float dw, float dh) override
+    float mw, float mh, Texture *htTexDet, TEXTUREID htTexIdDet, float dx0, float dy0, float dw, float dh, const Point3 &vpos) override
   {
     static int w2hm_main_gvid = ::get_shader_glob_var_id("world_to_hmap_low", true);
     static int w2hm_det_gvid = ::get_shader_glob_var_id("world_to_hmap_high", true);
@@ -1637,7 +1724,7 @@ public:
         ti.w = ti.h = 4096;
       tisz.r = 1.0f / ti.w;
       tisz.g = 1.0f / ti.h;
-      ShaderGlobal::set_color4_fast(w2hm_main_gvid, Color4(1.f / mw, 1.f / mh, -mx0 / mw, -my0 / mh));
+      ShaderGlobal::set_float4(w2hm_main_gvid, Color4(1.f / mw, 1.f / mh, -mx0 / mw, -my0 / mh));
       ShaderGlobal::set_texture_fast(tex_main_gvid, htTexIdMain);
       hm2.bboxMain[0].x = mx0;
       hm2.bboxMain[0].y = my0;
@@ -1647,7 +1734,7 @@ public:
     else
     {
       ShaderGlobal::set_texture_fast(tex_main_gvid, BAD_TEXTUREID);
-      ShaderGlobal::set_color4_fast(w2hm_main_gvid, noHmapMapping);
+      ShaderGlobal::set_float4(w2hm_main_gvid, noHmapMapping);
     }
 
     if (htTexDet)
@@ -1656,11 +1743,11 @@ public:
         ti.w = ti.h = 4096;
       tisz.b = 1.0f / ti.w;
       tisz.a = 1.0f / ti.h;
-      ShaderGlobal::set_color4_fast(w2hm_det_gvid, Color4(1.f / dw, 1.f / dh, -dx0 / dw, -dy0 / dh));
+      ShaderGlobal::set_float4(w2hm_det_gvid, Color4(1.f / dw, 1.f / dh, -dx0 / dw, -dy0 / dh));
       ShaderGlobal::set_texture_fast(tex_det_gvid, htTexIdDet);
       if (!htTexMain)
       {
-        ShaderGlobal::set_color4_fast(w2hm_main_gvid, Color4(1.f / dw, 1.f / dh, -dx0 / dw, -dy0 / dh));
+        ShaderGlobal::set_float4(w2hm_main_gvid, Color4(1.f / dw, 1.f / dh, -dx0 / dw, -dy0 / dh));
         ShaderGlobal::set_texture_fast(tex_main_gvid, htTexIdDet);
         tisz.r = 1.0f / ti.w;
         tisz.g = 1.0f / ti.h;
@@ -1673,10 +1760,10 @@ public:
     else
     {
       ShaderGlobal::set_texture_fast(tex_det_gvid, BAD_TEXTUREID);
-      ShaderGlobal::set_color4_fast(w2hm_det_gvid, noHmapMapping);
+      ShaderGlobal::set_float4(w2hm_det_gvid, noHmapMapping);
     }
 
-    ShaderGlobal::set_color4_fast(tex_hmap_inv_sizes_gvid, tisz);
+    ShaderGlobal::set_float4(tex_hmap_inv_sizes_gvid, tisz);
   }
 
   void startUAVFeedback() const override
@@ -1688,17 +1775,13 @@ public:
   void endUAVFeedback() const override
   {
     if (clipmap)
-    {
       clipmap->endUAVFeedback();
-      clipmap->copyUAVFeedback();
-    }
   }
 
-  int setLod0SubDiv(int lod) override
+  void copyUAVFeedback() const override
   {
-    int old = hm2.lodGrid.lod0SubDiv;
-    hm2.lodGrid.lod0SubDiv = lod;
-    return old;
+    if (clipmap)
+      clipmap->copyUAVFeedback();
   }
 
   BBox3 getLMeshBBoxWithHMapWBBox(LandMeshManager &p) const override { return p.getBBoxWithHMapWBBox(); }
@@ -1708,35 +1791,70 @@ public:
     if (hm2.texMainId == BAD_TEXTUREID && hm2.texDetId == BAD_TEXTUREID)
       return;
 
+    static LodGridCullData cullData;
     LMeshRenderingMode oldMode;
     if (render_hm)
       oldMode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_HEIGHTMAP);
 
     d3d::settm(TM_WORLD, TMatrix::IDENT);
-
     const BBox2 *clip = hm2.texMainId != BAD_TEXTUREID ? (infinite ? NULL : &hm2.bboxMain) : &hm2.bboxDet;
-    hm2.rend.setRenderClip(clip);
-    static LodGridCullData cullData;
     mat44f globtm;
     d3d::getglobtm(globtm);
     Frustum frustum;
     frustum.construct(globtm);
-    cullData.frustum = frustum;
-    Point2 clippedVpos = Point2::xz(vpos);
-    if (clip)
+    if (hm2.metrics)
     {
-      clippedVpos.x = min(max(clip->left(), clippedVpos.x), clip->right());
-      clippedVpos.y = min(max(clip->top(), clippedVpos.y), clip->bottom());
+      static int heightmap_region_gvid = ::get_shader_glob_var_id("heightmap_region", true);
+      TMatrix4 proj;
+      d3d::gettm(TM_PROJ, &proj);
+      HeightmapMetricsQuality hq = {proj_to_distance_scale(proj)};
+      if (hq.distanceScale == 0)
+        hq.maxRelativeTexelTess = 0;
+
+      const float maxUpwardDisplacement = 0.5f;
+      const float maxDownwardDisplacement = 0.f;
+      const bool mirror = infinite;
+      ShaderGlobal::set_float4(heightmap_region_gvid,
+        mirror ? Color4(-(128 << 20), -(128 << 20), 128 << 20, 128 << 20)
+               : Color4(hm2.bboxMain[0].x, hm2.bboxMain[0].y, hm2.bboxMain[1].x, hm2.bboxMain[1].y));
+      {
+        static int tex_main_samplerstate_gvid = ::get_shader_glob_var_id("tex_hmap_low_samplerstate", true);
+        d3d::SamplerInfo smpInfo;
+        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w =
+          mirror ? d3d::AddressMode::Mirror : d3d::AddressMode::Clamp;
+        ShaderGlobal::set_sampler(tex_main_samplerstate_gvid, d3d::request_sampler(smpInfo));
+      }
+      cullData.eraseAll();
+      cull_lod_grid3(*hm2.metrics, cullData, frustum, nullptr, hm2.hMin, hm2.hMax, hm2.bboxMain, maxUpwardDisplacement,
+        maxDownwardDisplacement, mirror, v_ldu(&vpos.x), nullptr, hq);
+
+      if (cullData.hasPatches())
+      {
+        MetricsErrors &errors = *hm2.metrics;
+        G_ASSERT(errors.dim == hm2.metricsRenderer->getDim());
+        hm2.metricsRenderer->render(cullData, hm2.metricsRenderer->getShElem(), hm2.metricsRenderer->getDimBits());
+      }
     }
-    int lod = (length(clippedVpos - Point2::xz(vpos)) / hm2.rend.getDim()) * 0.5f;
-    lod += max(0.f, vpos.y) * 0.001;
-    lod = clamp(lod, 0, hm2.lodGrid.lodsCount - 1);
-    float lodScale = (1 << lod);
-    Point2 cellSize(hm2.sx * lodScale, hm2.sy * lodScale);
-    float lod0AreaSize = 0.f;
-    cull_lod_grid(hm2.lodGrid, hm2.lodGrid.lodsCount - lod, clippedVpos.x, clippedVpos.y, cellSize.x, cellSize.y, hm2.ax * lodScale,
-      hm2.ay * lodScale, -10000, 10000, &frustum, clip, cullData, NULL, lod0AreaSize, hm2.rend.get_hmap_tess_factorVarId());
-    hm2.rend.render(hm2.lodGrid, cullData);
+    else
+    {
+      hm2.rend.setRenderClip(clip);
+      cullData.frustum = frustum;
+      Point2 clippedVpos = Point2::xz(vpos);
+      if (clip)
+      {
+        clippedVpos.x = min(max(clip->left(), clippedVpos.x), clip->right());
+        clippedVpos.y = min(max(clip->top(), clippedVpos.y), clip->bottom());
+      }
+      int lod = (length(clippedVpos - Point2::xz(vpos)) / hm2.rend.getDim()) * 0.5f;
+      lod += max(0.f, vpos.y) * 0.001;
+      lod = clamp(lod, 0, hm2.lodGrid.lodsCount - 1);
+      float lodScale = (1 << lod);
+      Point2 cellSize(hm2.sx * lodScale, hm2.sy * lodScale);
+      float lod0AreaSize = 0.f;
+      cull_lod_grid(hm2.lodGrid, hm2.lodGrid.lodsCount - lod, clippedVpos.x, clippedVpos.y, cellSize.x, cellSize.y, hm2.ax * lodScale,
+        hm2.ay * lodScale, -10000, 10000, &frustum, clip, cullData, NULL, lod0AreaSize, hm2.rend.get_hmap_tess_factorVarId());
+      hm2.rend.render(hm2.lodGrid, cullData);
+    }
 
     if (render_hm)
       r.setLMeshRenderingMode(oldMode);
@@ -1806,7 +1924,7 @@ public:
         vtm.setcol(1, 0, 0, 1, 0);
         vtm.setcol(2, 0, 1, 0, 0);
         d3d::settm(TM_VIEW, &vtm);
-        ShaderGlobal::set_color4(get_shader_variable_id("hmap_patches_min_max_z", true), minZ, maxZ, 0.0, 1.0);
+        ShaderGlobal::set_float4(get_shader_variable_id("hmap_patches_min_max_z", true), minZ, maxZ, 0.0, 1.0);
         filter_class_name = "land_mesh";
         prevLandmeshRenderingMode = renderer.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_CLIPMAP);
         static int land_mesh_prepare_clipmap_blockid = ShaderGlobal::getBlockId("land_mesh_prepare_clipmap");
@@ -1826,21 +1944,17 @@ public:
         d3d::settm(TM_PROJ, &proj);
         for (int i = 0; i < rendSrv.size(); i++)
           rendSrv[i]->renderGeometry(IRenderingService::STG_RENDER_HEIGHT_PATCH);
-        ISplineGenService *splSrv = EDITORCORE->queryEditorInterface<ISplineGenService>();
-        FastIntList loft_layers;
-        loft_layers.addInt(0);
-        if (splSrv)
-          splSrv->gatherLoftLayers(loft_layers, true);
-        d3d::settm(TM_WORLD, TMatrix::IDENT);
-        TMatrix4 globtm;
-        d3d::getglobtm(globtm);
-        Frustum frustum;
-        frustum.construct(globtm);
-        for (int lli = 0; lli < loft_layers.size(); lli++)
+        if (ISplineGenService *splSrv = EDITORCORE->queryEditorInterface<ISplineGenService>())
         {
-          int ll = loft_layers.getList()[lli];
-          if (splSrv)
-            splSrv->renderLoftGeom(ll, true, frustum, -1, true);
+          ISplineGenService::LayerIndexList loft_layers(0);
+          splSrv->gatherLoftLayers(loft_layers, true);
+
+          d3d::settm(TM_WORLD, TMatrix::IDENT);
+          TMatrix4 globtm;
+          d3d::getglobtm(globtm);
+          Frustum frustum;
+          frustum.construct(globtm);
+          loft_layers.iterate_layers([&](unsigned ll) { splSrv->renderGeneratedGeom(ll, true, frustum, -1, true); });
         }
       }
       void end()
@@ -1857,12 +1971,6 @@ public:
     explicit HeightmapPatchesRenderer(int resolution) : texSize(resolution)
     {
       hmapPatchesDepthTex = dag::create_tex(NULL, texSize, texSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "hmap_patches_depth_tex");
-      {
-        d3d::SamplerInfo smpInfo;
-        smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
-        smpInfo.filter_mode = d3d::FilterMode::Point;
-        ShaderGlobal::set_sampler(get_shader_variable_id("hmap_patches_depth_tex_samplerstate", true), d3d::request_sampler(smpInfo));
-      }
       hmapPatchesTex = dag::create_tex(NULL, texSize, texSize, TEXCF_RTARGET | TEXFMT_L16, 1, "hmap_patches_tex");
       {
         d3d::SamplerInfo smpInfo;
@@ -1916,9 +2024,9 @@ public:
         Point2 ofs =
           point2((hmapPatchesData.mainOrigin - hmapPatchesData.curOrigin) % hmapPatchesData.texSize) / hmapPatchesData.texSize;
 
-        ShaderGlobal::set_color4(world_to_hmap_patches_tex_ofsVarId, ofs.x, ofs.y, 0, 0);
+        ShaderGlobal::set_float4(world_to_hmap_patches_tex_ofsVarId, ofs.x, ofs.y, 0, 0);
         alignedOrigin = point2(hmapPatchesData.curOrigin) * texelSize;
-        ShaderGlobal::set_color4(world_to_hmap_patches_ofsVarId, 1.0f / fullDistance, 1.0f / fullDistance,
+        ShaderGlobal::set_float4(world_to_hmap_patches_ofsVarId, 1.0f / fullDistance, 1.0f / fullDistance,
           -alignedOrigin.x / fullDistance + 0.5, -alignedOrigin.y / fullDistance + 0.5);
       }
     }
@@ -1939,9 +2047,17 @@ public:
     unsigned old_st_mask;
     unsigned new_st_mask;
     shaders::OverrideStateId flipCullStateId;
+    bool shouldShowPhysMatColors;
 
-    LandmeshCMRenderer(LandMeshRenderer &r, LandMeshManager &p) :
-      rendSrv(tmpmem), renderer(r), provider(p), hmap(0), omode(LMeshRenderingMode::RENDERING_LANDMESH), old_st_mask(0), new_st_mask(0)
+    LandmeshCMRenderer(LandMeshRenderer &r, LandMeshManager &p, bool shouldRenderPhysmats) :
+      rendSrv(tmpmem),
+      renderer(r),
+      provider(p),
+      shouldShowPhysMatColors(shouldRenderPhysmats),
+      hmap(0),
+      omode(LMeshRenderingMode::RENDERING_LANDMESH),
+      old_st_mask(0),
+      new_st_mask(0)
     {
       shaders::OverrideState flipCullState;
       flipCullState.set(shaders::OverrideState::FLIP_CULL);
@@ -1969,8 +2085,6 @@ public:
       vtm.setcol(2, 0, 1, 0);
       shaders::overrides::set(flipCullStateId);
       d3d::settm(TM_VIEW, vtm);
-
-      renderer.prepare(provider, pos, pos.y);
 
       get_subtype_mask_for_clipmap_rendering(old_st_mask, new_st_mask);
     }
@@ -2001,7 +2115,7 @@ public:
         BBox3(Point3(region[0].x, landBox[0].y - 10, region[0].y), Point3(region[1].x, landBox[1].y + 10, region[1].y)));
       renderer.render(provider, renderer.RENDER_CLIPMAP, ::grs_cur_view.pos);
       render_decals_to_clipmap(hmap, rendSrv, old_st_mask, new_st_mask);
-      if (renderer.physMap)
+      if (renderer.physMap && shouldShowPhysMatColors)
       {
         Driver3dRenderTarget curRt;
         d3d::get_render_target(curRt);
@@ -2059,6 +2173,7 @@ public:
   LandMeshManager *createLandMeshManager(IGenLoad &crd) override
   {
     LandMeshManager *p = new LandMeshManager(true);
+    p->resetRenderDataNeeded(LC_SWAP_VERTICAL_DETAIL);
     p->setGrassMaskBlk(grassBlk);
     biome_query::init();
     if (p->loadDump(crd))
@@ -2100,11 +2215,22 @@ public:
 
   void prepareLandMesh(LandMeshRenderer &r, LandMeshManager &p, const Point3 &pos) const override { r.prepare(p, pos, pos.y); }
 
+  void invalidatePhysMatHtTex() override { shouldUpdatePhysMatHtTex = true; }
+
+  void setShouldShowPhysMatColors(bool val) override
+  {
+    if (shouldShowPhysMatColors != val)
+      invalidateClipmap(true, true);
+    shouldShowPhysMatColors = val;
+  }
+
   void invalidateClipmap(bool force_redraw, bool rebuild_last_clip) override
   {
     if (!clipmap)
       return;
     clipmap->invalidate(force_redraw);
+
+    invalidatePhysMatHtTex();
 
     if (toroidalHeightmap)
       toroidalHeightmap->invalidate();
@@ -2138,15 +2264,55 @@ public:
       setFixedClipToShader(&p);
     }
 
+    if (enableTrackDirt && shouldUpdatePhysMatHtTex && r.physMap)
+    {
+      static int hmap_ofs_thicknessVarId = ::get_shader_glob_var_id("hmap_ofs_thickness", true);
+      static int hmap_ofs_thickness_mapVarId = ::get_shader_glob_var_id("hmap_ofs_thickness_map", true);
+      static int hmap_ofs_tex_sizeVarId = ::get_shader_glob_var_id("hmap_ofs_tex_size", true);
+      if (physMatHtTex)
+      {
+        ShaderGlobal::set_texture(hmap_ofs_thicknessVarId, BAD_TEXTUREID);
+        release_managed_tex_verified(physMatHtTexId, physMatHtTex);
+      }
+
+      float thickness = 0;
+
+      BBox2 hmapBox2D = hm2.bboxDet;
+
+      PhysMapTexData *physMapTexData = render_phys_map_ht_data(*r.physMap, hmapBox2D, thickness, 200 / 255.0f, false);
+
+      if (thickness < 0.01f || !physMapTexData)
+      {
+        DAEDITOR3.conRemark("Can't create physmat height texture with %.1f thickness", thickness);
+      }
+      else
+      {
+        physMatHtTex = create_phys_map_ht_tex(physMapTexData);
+        physMatHtTexId = register_managed_tex("physMatHtTex", physMatHtTex);
+        ShaderGlobal::set_texture(hmap_ofs_thicknessVarId, physMatHtTexId);
+
+        ShaderGlobal::set_float4(hmap_ofs_thickness_mapVarId,
+          Color4(1.f / hmapBox2D.width().x, 1.f / hmapBox2D.width().y, -hmapBox2D[0].x / hmapBox2D.width().x,
+            -hmapBox2D[0].y / hmapBox2D.width().y));
+
+        float maxThickness = thickness * 255.0f / 200.0f;
+        ShaderGlobal::set_float4(hmap_ofs_tex_sizeVarId, Color4(1.0f / 1024.0f, maxThickness, 0, 0));
+        destroy_phys_map_tex_data(physMapTexData);
+      }
+      shouldUpdatePhysMatHtTex = false;
+    }
+
     int64_t reft = ref_time_ticks();
     DagorCurView savedView = ::grs_cur_view;
-    LandmeshCMRenderer landmeshCMRenderer(r, p);
+    LandmeshCMRenderer landmeshCMRenderer(r, p, shouldShowPhysMatColors);
     landmeshCMRenderer.hRel = ht_rel;
 
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
     d3d::settm(TM_WORLD, TMatrix::IDENT);
     TMatrix4 gtm;
     d3d::getglobtm(gtm);
+    Driver3dPerspective persp;
+    d3d::getpersp(persp);
     if (::grs_draw_wire)
       d3d::setwire(0);
     ShaderGlobal::set_int_fast(render_with_normalmapVarId, 1);
@@ -2157,7 +2323,7 @@ public:
     d3d::get_target_size(w, h);
     clipmap->setTargetSize(w, h, 0.f);
     clipmap->prepareRender(landmeshCMRenderer);
-    clipmap->prepareFeedback(::grs_cur_view.pos, ::grs_cur_view.itm, gtm, ht_rel + ht_rel, 0.f);
+    clipmap->prepareFeedback(::grs_cur_view.pos, gtm, nullptr, {ht_rel, persp.wk});
     clipmap->renderFallbackFeedback(landmeshCMRenderer, gtm);
 
     ShaderGlobal::set_int_fast(render_with_normalmapVarId, 2);
@@ -2238,6 +2404,7 @@ public:
   {
     if (preparingClipmap) // avoid invalid render landmesh
       return;
+    TIME_D3D_PROFILE(renderLandMesh);
     DagorCurView savedView = ::grs_cur_view;
     d3d::settm(TM_WORLD, TMatrix::IDENT);
     r.render(p, r.RENDER_WITH_CLIPMAP, ::grs_cur_view.pos);
@@ -2321,7 +2488,7 @@ public:
     d3d::getglobtm(globtm);
     LMeshRenderingMode omode = r.setLMeshRenderingMode(LMeshRenderingMode::RENDERING_LANDMESH);
     ShaderGlobal::setBlock(global_frame_blockid, ShaderGlobal::LAYER_FRAME);
-    r.renderDecals(p, LandMeshRenderer::RENDER_WITH_CLIPMAP, globtm, false);
+    r.renderDecals(p, LandMeshRenderer::RENDER_WITH_CLIPMAP, globtm, false, false);
     r.setLMeshRenderingMode(omode);
 
     r.setRenderInBBox(BBox3());
@@ -2391,7 +2558,8 @@ public:
         d3d::setwire(::grs_draw_wire);
       }
     };
-    ddsx::tex_pack2_perform_delayed_data_loading();
+    if (!is_managed_textures_streaming_load_on_demand())
+      ddsx::tex_pack2_perform_delayed_data_loading();
 
     MyGrassTranlucencyCB cb(r, p);
     r.prepare(p, ::grs_cur_view.pos, ::grs_cur_view.pos.y);
@@ -2418,6 +2586,7 @@ public:
     puddlesPowerScale = level_blk.getReal("puddlesPowerScale", 0.0f);
     puddlesNoiseInfluence = level_blk.getReal("puddlesNoiseInfluence", 1.0f);
     puddlesSeed = level_blk.getReal("puddlesSeed", 0.0f);
+    enableTrackDirt = level_blk.getBool("trackDirt", true);
   }
 
   void getPuddlesParams(float &power_scale, float &seed, float &noise_influence) override

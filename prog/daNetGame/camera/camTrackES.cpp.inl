@@ -7,8 +7,12 @@
 #include <camTrack/camTrack.h>
 #include <generic/dag_tabUtils.h>
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 
 struct CamTrack
 {

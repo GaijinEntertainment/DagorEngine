@@ -63,6 +63,7 @@ KRNLIMP void watchdog_init(WatchdogConfig *cfg = nullptr);
 KRNLIMP void watchdog_shutdown();
 KRNLIMP void watchdog_kick();
 KRNLIMP intptr_t watchdog_set_option(int option, intptr_t p0 = 0, intptr_t p1 = 0);
+KRNLIMP bool watchdog_set_keep_sleeping_cb(bool (*keep_sleeping_cb)());
 
 // create an instance of IWatchDog
 // if cfg is nullptr, default watchdog config will be used

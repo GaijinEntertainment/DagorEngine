@@ -21,9 +21,9 @@ namespace dafg::detail
 // expose the ResourceProvider headers in the API.
 struct VirtualResourceHandleBase
 {
-  // T can only be ManagedTexView, ManagedBufView or BlobView
+  // T can only be BaseTexture*, Sbuffer* or BlobView
   template <class T>
-  T getResourceView() const;
+  T getResourceData() const;
 
   ResUid resUid;
   const ResourceProvider *provider;

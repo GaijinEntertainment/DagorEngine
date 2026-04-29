@@ -57,7 +57,7 @@ let marker = {
 }
 
 let container = {
-  size = static [sw(80), sh(80)]
+  size = const [sw(80), sh(80)]
   rendObj = ROBJ_FRAME
   borderWidth = sh(1)
   padding = sh(5)

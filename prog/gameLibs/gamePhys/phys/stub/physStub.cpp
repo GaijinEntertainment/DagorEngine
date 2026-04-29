@@ -73,6 +73,11 @@ Point3 get_wind()
   G_ASSERT(0);
   return Point3();
 }
+float pressure(float)
+{
+  G_ASSERT(0);
+  return 0.0f;
+}
 float temperature(float)
 {
   G_ASSERT(0);
@@ -85,8 +90,6 @@ float sonicSpeed(float)
 }
 } // namespace atmosphere
 void Orient::setYP0(const Point3 &) { G_ASSERT(0); }
-void Orient::setQuat(const Quat &) { G_ASSERT(0); }
-void Orient::wrap() { G_ASSERT(0); }
 void extrapolate_circular(const Point3 &, const Point3 &, const Point3 &, float, Point3 &, Point3 &) { G_ASSERT(0); }
 } // namespace gamephys
 

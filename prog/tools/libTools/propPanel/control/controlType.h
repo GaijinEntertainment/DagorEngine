@@ -10,6 +10,8 @@ enum class ControlType
   Unknown,
   GroupBox,
   TabPage,
+  Toolbar,
+  ToolbarSeparator,
   ToolbarToggleButtonGroup,
 };
 

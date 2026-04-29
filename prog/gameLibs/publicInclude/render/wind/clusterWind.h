@@ -63,8 +63,8 @@ public:
   Point3 getBlastAtPosForParticle(const Point3 &pos);
   Point3 getBlastAtPosForAntenna(const Point3 &pos);
   void loadBendingMultConst(float treeMult, float impostorMult, float grassMult, float treeAnimationMult, float grassAnimationMult);
-
   void updateRenderer();
+  void afterResetDevice();
 
   void flipClusterWindSimArray();
 };

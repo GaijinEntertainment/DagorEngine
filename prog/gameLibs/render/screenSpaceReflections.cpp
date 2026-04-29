@@ -9,12 +9,14 @@
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_info.h>
 #include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_viewScissor.h>
 #include <shaders/dag_shaders.h>
 #include <util/dag_convar.h>
 #include <render/set_reprojection.h>
 #include <render/noiseTex.h>
 #include <shaders/dag_computeShaders.h>
 #include <EASTL/string.h>
+#include <math/integer/dag_IPoint2.h>
 
 #define GLOBAL_VARS_LIST            \
   VAR(ssr_target)                   \
@@ -73,7 +75,7 @@ ScreenSpaceReflections::ScreenSpaceReflections(const int ssr_w, const int ssr_h,
     ssrTarget.forTheFirstN(num_views, [&](auto &a, int view) {
       String name(128, "ssr_target_%d", view);
       int mipCount = getMipCount(ssr_quality);
-      a = dag::create_tex(NULL, ssrW, ssrH, fmt, mipCount, name);
+      a = dag::create_tex(NULL, ssrW, ssrH, fmt, mipCount, name, RESTAG_SSR);
       d3d::resource_barrier({a.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     });
 
@@ -138,7 +140,7 @@ void ScreenSpaceReflections::updatePrevTarget()
 void ScreenSpaceReflections::setHistoryValid(bool valid) { isHistoryValid = valid; }
 
 void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
-  SubFrameSample sub_sample)
+  SubFrameSample sub_sample, const DynRes *dynamic_resolution)
 {
   G_ASSERT(ownTextures);
 
@@ -160,11 +162,13 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
     targetTex = *rtTemp0;
   }
 
-  render(view_tm, proj_tm, world_pos, sub_sample, ssrTex, prevTex, targetTex, afrs.current().frameNo);
+  render(view_tm, proj_tm, world_pos, sub_sample, ssrTex.getTex2D(), prevTex.getTex2D(), targetTex.getTex2D(), afrs.current().frameNo,
+    dynamic_resolution);
 }
 
 void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 &world_pos,
-  SubFrameSample sub_sample, ManagedTexView ssr_tex, ManagedTexView ssr_prev_tex, ManagedTexView target_tex, int callId)
+  SubFrameSample sub_sample, BaseTexture *ssr_tex, BaseTexture *ssr_prev_tex, BaseTexture *target_tex, int callId,
+  const DynRes *dynamic_resolution)
 {
   G_ASSERT(ssr_tex && ssr_prev_tex && target_tex);
   TIME_D3D_PROFILE(ssr);
@@ -177,29 +181,47 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
   set_reprojection(view_tm, proj_tm, afr.prevProjTm, afr.prevWorldPos, afr.prevGlobTm, afr.prevViewVecLT, afr.prevViewVecRT,
     afr.prevViewVecLB, afr.prevViewVecRB, &world_pos);
 
-  ShaderGlobal::set_color4(ssr_target_sizeVarId, ssrW, ssrH, 1.0f / ssrW, 1.0f / ssrH);
-  ShaderGlobal::set_color4(ssr_frameNoVarId, callId & ((1 << 23) - 1), (callId % randomizeOverNFrames) * 1551,
-    (callId % randomizeOverNFrames), 0);
+  TextureInfo info;
+  target_tex->getinfo(info, 0);
+
+  int dw = ssrW;
+  int dh = ssrH;
+  if (dynamic_resolution)
+  {
+    auto dd = calc_and_set_dynamic_resolution_stcode(ssrW, ssrH, *dynamic_resolution, prevDynRes.value_or(*dynamic_resolution));
+    dw = dd.x;
+    dh = dd.y;
+  }
+
+  ShaderGlobal::set_float4(ssr_target_sizeVarId, dw, dh, 1.0f / dw, 1.0f / dh);
+  ShaderGlobal::set_float4(ssr_frameNoVarId, callId & ((1 << 23) - 1), (callId % randomizeOverNFrames) * 1551,
+    (callId % randomizeOverNFrames), info.mipLevels);
 
   ShaderGlobal::set_texture(ssr_prev_targetVarId, ssr_prev_tex);
   const int tileX = callId & 1, tileY = (callId / 2) & 1;
-  ShaderGlobal::set_color4(ssr_tile_jitterVarId, tileX, tileY, 0, 0);
+  ShaderGlobal::set_float4(ssr_tile_jitterVarId, tileX, tileY, 0, 0);
 
   if (quality != SSRQuality::Compute)
   {
     TIME_D3D_PROFILE(ssr_ps)
-    d3d::set_render_target(target_tex.getTex2D(), 0);
+    d3d::set_render_target(target_tex, 0);
+    d3d::setviewscissor(0, 0, dw, dh);
     ssrQuad.render();
   }
   else
   {
-    d3d::set_rwtex(STAGE_CS, 0, target_tex.getTex2D(), 0, 0);
+    d3d::set_rwtex(STAGE_CS, 0, target_tex, 0, 0);
     if (denoiser)
+    {
+      G_ASSERTF_ONCE(!dynamic_resolution, "Handle dynamic resolution for non compute, denoised ssr!");
       ssrCompute->dispatchThreads(ssrW / 2, ssrH, 1);
+    }
     else
     {
       auto tsz = ssrCompute->getThreadGroupSizes();
-      ssrCompute->dispatchThreads(ssrW + (tileX ? tsz[0] / 2 : 0), ssrH + (tileY ? tsz[1] / 2 : 0), 1);
+      dw += (tileX ? tsz[0] / 2 : 0);
+      dh += (tileY ? tsz[1] / 2 : 0);
+      ssrCompute->dispatchThreads(dw, dh, 1);
     }
     d3d::set_rwtex(STAGE_CS, 0, nullptr, 0, 0);
   }
@@ -208,11 +230,11 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
   {
     // this is the case when previous frame ssr is stored in ssr_tex, while the new one
     // is rendered in target_tex. It is happended where there is no separate previous frame texture
-    d3d::resource_barrier({target_tex.getTex2D(), RB_RO_COPY_SOURCE, 0, 1});
-    ssr_tex.getTex2D()->updateSubRegion(target_tex.getTex2D(), 0, 0, 0, 0, ssrW, ssrH, 1, 0, 0, 0, 0);
+    d3d::resource_barrier({target_tex, RB_RO_COPY_SOURCE, 0, 1});
+    ssr_tex->updateSubRegion(target_tex, 0, 0, 0, 0, ssrW, ssrH, 1, 0, 0, 0, 0);
   }
 
-  d3d::resource_barrier({ssr_tex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 1});
+  d3d::resource_barrier({ssr_tex, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 1});
   ShaderGlobal::set_texture(ssr_targetVarId, ssr_tex);
 #if SSR_MIPS > 1
   if (quality < SSRQuality::Compute)
@@ -223,20 +245,26 @@ void ScreenSpaceReflections::render(const TMatrix &view_tm, const TMatrix4 &proj
       name[8] += i;
       TIME_D3D_PROFILE_NAME(mip_levels, name);
 
-      d3d::set_render_target(ssr_tex.getTex2D(), i);
+      d3d::set_render_target(ssr_tex, i);
       int w = ssrW >> i, h = ssrH >> i;
-      ShaderGlobal::set_color4(ssr_target_sizeVarId, w, h, 1.0f / w, 1.0f / h);
-      ssr_tex.getTex2D()->texmiplevel(i - 1, i - 1);
+      ShaderGlobal::set_float4(ssr_target_sizeVarId, w, h, 1.0f / w, 1.0f / h);
+      ssr_tex->texmiplevel(i - 1, i - 1);
       ssrMipChain.render();
-      d3d::resource_barrier({ssr_tex.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
+      d3d::resource_barrier({ssr_tex, RB_RO_SRV | RB_STAGE_PIXEL, unsigned(i), 1});
     }
-    ssr_tex.getTex2D()->texmiplevel(-1, -1);
+    ssr_tex->texmiplevel(-1, -1);
   }
 #endif
 
-  ShaderGlobal::set_color4(ssr_target_sizeVarId, ssrW, ssrH, 1.0f / ssrW, 1.0f / ssrH);
+  ShaderGlobal::set_float4(ssr_target_sizeVarId, ssrW, ssrH, 1.0f / ssrW, 1.0f / ssrH);
   if (sub_sample == SubFrameSample::Single || sub_sample == SubFrameSample::Last)
     afr.frameNo++;
+
+  ShaderGlobal::set_texture(ssr_prev_targetVarId, BAD_TEXTUREID);
+  ShaderGlobal::set_texture(ssr_targetVarId, BAD_TEXTUREID);
+
+  if (dynamic_resolution)
+    prevDynRes = *dynamic_resolution;
 }
 
 void ScreenSpaceReflections::setCurrentView(int index)
@@ -244,6 +272,7 @@ void ScreenSpaceReflections::setCurrentView(int index)
   afrs.setCurrentView(index);
   ssrTarget.setCurrentView(index);
   ssrPrevTarget.setCurrentView(index);
+  ShaderGlobal::set_texture(ssr_targetVarId, ssrTarget.current());
 }
 
 void ScreenSpaceReflections::enablePrevTarget(int num_views)
@@ -261,7 +290,7 @@ void ScreenSpaceReflections::enablePrevTarget(int num_views)
   ssrPrevTarget.forTheFirstN(num_views, [&](auto &a, int view) {
     eastl::string name(eastl::string::CtorSprintf(), "ssr_prev_target_%d", view);
     int mipCount = 1;
-    a = dag::create_tex(NULL, ssrW, ssrH, flags, mipCount, name.c_str());
+    a = dag::create_tex(NULL, ssrW, ssrH, flags, mipCount, name.c_str(), RESTAG_SSR);
   });
   updatePrevTarget();
 }

@@ -2,7 +2,7 @@
 
 #include <sqDebugger/sqDebugger.h>
 #include <sqDebugger/scriptProfiler.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <squirrel/sqpcheader.h>
 #include <squirrel/squtils.h>
 #include <squirrel/sqstate.h>
@@ -12,6 +12,12 @@
 #include <squirrel/sqclass.h>
 #include <osApiWrappers/dag_miscApi.h>
 
+
+DagSqDebuggers::DagSqDebuggers()
+{
+  for (int i = 0; i < MAX_SQ_DEBUGGERS; i++)
+    debuggers[i].myIndex = i;
+}
 
 void DagSqDebuggers::initDebugger(int index, SqModules *module_mgr, const char *description)
 {
@@ -31,6 +37,24 @@ void DagSqDebuggers::shutdownDebugger(int index)
   G_ASSERT(index >= 0 && index < MAX_SQ_DEBUGGERS);
 
   debuggers[index].shutdown();
+}
+
+
+void DagSqDebuggers::shutdownDebugger(HSQUIRRELVM vm)
+{
+  for (int i = 0; i < MAX_SQ_DEBUGGERS; i++)
+    if (vm == debuggers[i].vm)
+      return debuggers[i].shutdown();
+}
+
+
+DagSqDebugger *DagSqDebuggers::allocate()
+{
+  for (int i = 0; i < MAX_SQ_DEBUGGERS; i++)
+    if (debuggers[i].vm == nullptr)
+      return &debuggers[i];
+
+  return nullptr;
 }
 
 
@@ -200,7 +224,7 @@ void SourceCodeCoverageList::onLineExists(const char *sourcename, int line)
 }
 
 
-static void sq_debug_hook(HSQUIRRELVM v, SQInteger type, const SQChar *sourcename, SQInteger line, const SQChar *funcname)
+static void sq_debug_hook(HSQUIRRELVM v, SQInteger type, const char *sourcename, SQInteger line, const char *funcname)
 {
   DagSqDebugger &debugger = dag_sq_debuggers.get(v);
 
@@ -238,7 +262,7 @@ static void sq_debug_hook(HSQUIRRELVM v, SQInteger type, const SQChar *sourcenam
   }
 }
 
-static void compile_line_hook(HSQUIRRELVM v, const SQChar *sourcename, SQInteger line)
+static void compile_line_hook(HSQUIRRELVM v, const char *sourcename, SQInteger line)
 {
   DagSqDebugger &debugger = dag_sq_debuggers.get(v);
   debugger.onLineExists(sourcename, line);
@@ -306,6 +330,10 @@ void DagSqDebugger::init(SqModules *module_mgr, const char *description_)
 {
   G_ASSERT(module_mgr);
   G_ASSERT(module_mgr->getVM());
+
+  if (vm)
+    shutdown();
+
   vm = module_mgr->getVM();
   description = description_;
 
@@ -315,7 +343,7 @@ void DagSqDebugger::init(SqModules *module_mgr, const char *description_)
   areFunctionsRegistered = true;
 
   Sqrat::Table exports(vm);
-  exports.SquirrelFunc("setObjPrintFunc", setObjPrintFunction, 2, ".c");
+  exports.SquirrelFuncDeclString(setObjPrintFunction, "setObjPrintFunc(func: function): null");
   module_mgr->addNativeModule("sqdebugger", exports);
 }
 

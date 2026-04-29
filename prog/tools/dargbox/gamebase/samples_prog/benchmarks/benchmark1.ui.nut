@@ -24,9 +24,9 @@ const CompsToUpdateEachFrame = 30 //darg only
 
 
 function simpleComponent(i, watch){
-  let pos = useFlow ? null : [sw(math.rand()*80/math.RAND_MAX), sh(math.rand()*80/math.RAND_MAX)]
-  let size = [sh(math.rand()*15/math.RAND_MAX+2), sh(math.rand()*15/math.RAND_MAX+2) / (useFlow ? 10 : 1)]
-  let color = Color(math.rand()*255/math.RAND_MAX, math.rand()*255/math.RAND_MAX, math.rand()*255/math.RAND_MAX)
+  let pos = useFlow ? null : [sw(math.rand() % 81), sh(math.rand() % 81)]
+  let size = [sh(math.rand() % 16 + 2), sh(math.rand() % 16 + 2) / (useFlow ? 10 : 1)]
+  let color = Color(math.rand() & 0xFF, math.rand() & 0xFF, math.rand() & 0xFF)
   let textCanBePlaced = size[0] > hdpx(150)
   let addText = rand.rint(0, 5)==1
   let text = textCanBePlaced ? function textComp() { return {watch rendObj = ROBJ_TEXT text = addText || !watch.get() ? $"{i}: {watch.get()}" : null}} : null
@@ -49,8 +49,8 @@ function simpleComponent(i, watch){
       pos
       valign = ALIGN_CENTER
       halign = ALIGN_CENTER
-      padding = static [hdpx(4), hdpx(5)]
-      margin = static [hdpx(5), hdpx(3)]
+      padding = const [hdpx(4), hdpx(5)]
+      margin = const [hdpx(5), hdpx(3)]
       color = watch.get() ? color : Color(0,0,0)
       behavior = Behaviors.Button
       onClick

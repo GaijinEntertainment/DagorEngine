@@ -3,6 +3,7 @@
 #include <EditorCore/ec_ObjectEditor.h>
 #include <EditorCore/ec_rendEdObject.h>
 #include <EditorCore/ec_cm.h>
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_input.h>
 #include <EditorCore/ec_IObjectCreator.h>
@@ -147,6 +148,23 @@ void ObjectEditor::unselectAll()
 }
 
 
+void ObjectEditor::invertSelection()
+{
+  PtrTab<RenderableEditableObject> objectsToSelect(tmpmem);
+  for (RenderableEditableObject *object : objects)
+    if (!object->isSelected())
+      objectsToSelect.push_back(object);
+
+  getUndoSystem()->begin();
+  unselectAll();
+  for (RenderableEditableObject *object : objectsToSelect)
+    if (canSelectObj(object))
+      object->selectObject();
+  updateGizmo();
+  getUndoSystem()->accept("Invert selection");
+}
+
+
 void ObjectEditor::update(real dt)
 {
   updateGizmo();
@@ -249,6 +267,11 @@ void ObjectEditor::onObjectFlagsChange(RenderableEditableObject *obj, int change
           break;
         }
     }
+  }
+
+  if (changed_flags & RenderableEditableObject::FLG_LOCKED)
+  {
+    invalidateObjectProps();
   }
 }
 
@@ -689,6 +712,14 @@ void ObjectEditor::gizmoEnded(bool apply)
 
 bool ObjectEditor::canStartChangeAt(IGenViewportWnd *wnd, int x, int y, int gizmo_sel)
 {
+  // The rotation gizmo can only be started when it is hovered, it does not work in 3ds Max-like mode (that allows
+  // manipulation without the mouse being over the gizmo axis if an axis has been selected before).
+  gizmo_sel = (IEditorCoreEngine::get()->getGizmoModeType() & IEditorCoreEngine::MODE_Rotate) == 0 ? gizmo_sel : 0;
+
+  // Do to not block starting rectangle selection from over an object if no gizmo axis has been selected.
+  if (gizmo_sel == 0)
+    return false;
+
   Tab<RenderableEditableObject *> objs(tmpmem);
   if (!pickObjects(wnd, x, y, objs))
     return false;
@@ -1003,18 +1034,47 @@ void ObjectEditor::onChange(int pcb_id, PropPanel::ContainerPropertyControl *pan
 }
 
 
+void ObjectEditor::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  // There could be multiple ObjectEditors but commands need only a single registration. Not using a static bool
+  // because ObjectEditor is used from DLLs too.
+  if (command_system.getCommandKeyChordsAsText(EditorCommandIds::OBJED_SELECT_BY_NAME))
+    return;
+
+  command_system.addCommand(EditorCommandIds::OBJED_SELECT_BY_NAME, ImGuiKey_H);
+  command_system.addCommand(EditorCommandIds::OBJED_OBJPROP_PANEL, ImGuiKey_P);
+  command_system.addCommand(EditorCommandIds::OBJED_MODE_SELECT, ImGuiKey_Q);
+  command_system.addCommand(EditorCommandIds::OBJED_MODE_MOVE, ImGuiKey_W);
+  command_system.addCommand(EditorCommandIds::OBJED_MODE_SURF_MOVE, ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_W);
+  command_system.addCommand(EditorCommandIds::OBJED_MODE_ROTATE, ImGuiKey_E);
+  command_system.addCommand(EditorCommandIds::OBJED_MODE_SCALE, ImGuiKey_R);
+  command_system.addCommand(EditorCommandIds::OBJED_DROP, ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D);
+  command_system.addCommand(EditorCommandIds::OBJED_DELETE, ImGuiKey_Delete);
+  command_system.addCommand(EditorCommandIds::OBJED_CANCEL_GIZMO_TRANSFORM, ImGuiKey_Escape);
+}
+
+
 void ObjectEditor::registerViewportAccelerators(IWndManager &wndManager)
 {
-  wndManager.addViewportAccelerator(CM_OBJED_SELECT_BY_NAME, ImGuiKey_H);
-  wndManager.addViewportAccelerator(CM_OBJED_OBJPROP_PANEL, ImGuiKey_P);
-  wndManager.addViewportAccelerator(CM_OBJED_MODE_SELECT, ImGuiKey_Q);
-  wndManager.addViewportAccelerator(CM_OBJED_MODE_MOVE, ImGuiKey_W);
-  wndManager.addViewportAccelerator(CM_OBJED_MODE_SURF_MOVE, ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_W);
-  wndManager.addViewportAccelerator(CM_OBJED_MODE_ROTATE, ImGuiKey_E);
-  wndManager.addViewportAccelerator(CM_OBJED_MODE_SCALE, ImGuiKey_R);
-  wndManager.addViewportAccelerator(CM_OBJED_DROP, ImGuiMod_Ctrl | ImGuiMod_Alt | ImGuiKey_D);
-  wndManager.addViewportAccelerator(CM_OBJED_DELETE, ImGuiKey_Delete);
-  wndManager.addViewportAccelerator(CM_OBJED_CANCEL_GIZMO_TRANSFORM, ImGuiKey_Escape);
+  wndManager.addViewportAccelerator(CM_OBJED_SELECT_BY_NAME, EditorCommandIds::OBJED_SELECT_BY_NAME);
+  wndManager.addViewportAccelerator(CM_OBJED_OBJPROP_PANEL, EditorCommandIds::OBJED_OBJPROP_PANEL);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_SELECT, EditorCommandIds::OBJED_MODE_SELECT);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_MOVE, EditorCommandIds::OBJED_MODE_MOVE);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_SURF_MOVE, EditorCommandIds::OBJED_MODE_SURF_MOVE);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_ROTATE, EditorCommandIds::OBJED_MODE_ROTATE);
+  wndManager.addViewportAccelerator(CM_OBJED_MODE_SCALE, EditorCommandIds::OBJED_MODE_SCALE);
+  wndManager.addViewportAccelerator(CM_OBJED_DROP, EditorCommandIds::OBJED_DROP);
+  wndManager.addViewportAccelerator(CM_OBJED_DELETE, EditorCommandIds::OBJED_DELETE);
+  wndManager.addViewportAccelerator(CM_OBJED_CANCEL_GIZMO_TRANSFORM, EditorCommandIds::OBJED_CANCEL_GIZMO_TRANSFORM);
+}
+
+
+void ObjectEditor::zoomAndCenter()
+{
+  BBox3 box;
+  if (getSelectionBox(box))
+    if (IGenViewportWnd *viewport = IEditorCoreEngine::get()->getCurrentViewport())
+      viewport->zoomAndCenter(box);
 }
 
 
@@ -1032,74 +1092,7 @@ bool ObjectEditor::handleMouseLBPress(IGenViewportWnd *wnd, int x, int y, bool i
     return true;
   }
 
-  Tab<RenderableEditableObject *> objs(tmpmem);
-  if (pickObjects(wnd, x, y, objs))
-  {
-    getUndoSystem()->begin();
-
-    if (dagInput->isAltKeyDown())
-    {
-      // unselect first selected
-      for (int i = 0; i < objs.size(); ++i)
-        if (objs[i]->isSelected())
-        {
-          objs[i]->selectObject(false);
-          break;
-        }
-    }
-    else if (dagInput->isCtrlKeyDown())
-    {
-      // unselect last selected or select first
-
-      int i;
-      for (i = objs.size() - 1; i >= 0; --i)
-        if (objs[i]->isSelected())
-        {
-          objs[i]->selectObject(false);
-          break;
-        }
-
-      if (i < 0)
-        objs[0]->selectObject();
-    }
-    else if (objs.size() > 1 || !objs[0]->isSelected())
-    {
-      // select next object after selected one
-      int i;
-      for (i = 0; i < objs.size(); ++i)
-        if (objs[i]->isSelected())
-          break;
-
-      ++i;
-      if (i >= objs.size())
-        i = 0;
-
-      unselectAll();
-      objs[i]->selectObject();
-    }
-    else if (objs.size() && objs[0]->isSelected() && (objs[0]->objFlags & RenderableEditableObject::FLG_WANTRESELECT))
-      objs[0]->selectObject();
-
-    getUndoSystem()->accept("select");
-
-    updateGizmo();
-
-    if (editMode != CM_OBJED_MODE_SELECT)
-    {
-      int i;
-      for (i = 0; i < objs.size(); ++i)
-        if (objs[i]->isSelected())
-          break;
-
-      if (i < objs.size())
-        IEditorCoreEngine::get()->startGizmo(wnd, x, y, inside, buttons, key_modif);
-    }
-    else
-      wnd->startRectangularSelection(x, y, key_modif);
-  }
-  else
-    wnd->startRectangularSelection(x, y, key_modif);
-
+  wnd->startRectangularSelection(x, y, key_modif);
   return true;
 }
 
@@ -1162,17 +1155,83 @@ bool ObjectEditor::handleMouseLBRelease(IGenViewportWnd *wnd, int x, int y, bool
 
       updateGizmo();
     }
-    else if (!(type & (wingw::M_ALT | wingw::M_CTRL)))
+    else
     {
-      RenderableEditableObject *obj = pickObject(wnd, (rect.l + rect.r + 1) / 2, (rect.t + rect.b + 1) / 2);
-
-      if (!obj)
+      Tab<RenderableEditableObject *> objs(tmpmem);
+      if (pickObjects(wnd, x, y, objs))
       {
         getUndoSystem()->begin();
-        unselectAll();
-        getUndoSystem()->accept("Select");
+
+        if (dagInput->isAltKeyDown())
+        {
+          // unselect first selected
+          for (int i = 0; i < objs.size(); ++i)
+            if (objs[i]->isSelected())
+            {
+              objs[i]->selectObject(false);
+              break;
+            }
+        }
+        else if (dagInput->isCtrlKeyDown())
+        {
+          // unselect last selected or select first
+
+          int i;
+          for (i = objs.size() - 1; i >= 0; --i)
+            if (objs[i]->isSelected())
+            {
+              objs[i]->selectObject(false);
+              break;
+            }
+
+          if (i < 0)
+            objs[0]->selectObject();
+        }
+        else if (objs.size() > 1 || !objs[0]->isSelected())
+        {
+          // select next object after selected one
+          int i;
+          for (i = 0; i < objs.size(); ++i)
+            if (objs[i]->isSelected())
+              break;
+
+          ++i;
+          if (i >= objs.size())
+            i = 0;
+
+          unselectAll();
+          objs[i]->selectObject();
+        }
+        else if (objs.size() && objs[0]->isSelected() && (objs[0]->objFlags & RenderableEditableObject::FLG_WANTRESELECT))
+          objs[0]->selectObject();
+
+        getUndoSystem()->accept("select");
 
         updateGizmo();
+
+        if (editMode != CM_OBJED_MODE_SELECT)
+        {
+          int i;
+          for (i = 0; i < objs.size(); ++i)
+            if (objs[i]->isSelected())
+              break;
+
+          if (i < objs.size())
+            IEditorCoreEngine::get()->startGizmo(wnd, x, y, inside, buttons, key_modif);
+        }
+      }
+      else if (!(type & (wingw::M_ALT | wingw::M_CTRL)))
+      {
+        RenderableEditableObject *obj = pickObject(wnd, (rect.l + rect.r + 1) / 2, (rect.t + rect.b + 1) / 2);
+
+        if (!obj)
+        {
+          getUndoSystem()->begin();
+          unselectAll();
+          getUndoSystem()->accept("Select");
+
+          updateGizmo();
+        }
       }
     }
   }
@@ -1252,7 +1311,7 @@ TMatrix ObjectEditor::getPlacementRotationMatrix()
     Point3 startingDir = Point3(0, 0, 0);
     startingDir[static_cast<int>(selectedPlacementRotation)] = 1;
     Point3 rotationAxis = normalize(cross(startingDir, targetDir));
-    float rotationAmount = acos(dot(startingDir, targetDir));
+    float rotationAmount = safe_acos(dot(startingDir, targetDir));
     matrix.makeTM(rotationAxis, rotationAmount);
   }
   return matrix;
@@ -1464,6 +1523,23 @@ void ObjectEditor::addButton(PropPanel::ContainerPropertyControl *tb, int id, co
 }
 
 
+void ObjectEditor::addEditorCommandButton(PropPanel::ContainerPropertyControl *tb, int id, const char *editor_command_id,
+  const char *icon_name, const char *hint, bool check)
+{
+  G_ASSERT(tb);
+
+  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
+
+  if (check)
+    commandSystem->createToolbarToggleButton(*tb, id, editor_command_id, hint);
+  else
+    commandSystem->createToolbarButton(*tb, id, editor_command_id, hint);
+
+  tb->setButtonPictures(id, icon_name);
+}
+
+
 void ObjectEditor::enableButton(int id, bool state)
 {
   PropPanel::ContainerPropertyControl *tb = EDITORCORE->getCustomPanel(toolBarId);
@@ -1610,23 +1686,29 @@ void ObjectEditor::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
   PropPanel::ContainerPropertyControl *tb = toolbar->createToolbarPanel(0, "");
 
-  addButton(tb, CM_OBJED_MODE_SELECT, "select", "Select (Q)", true);
+  addEditorCommandButton(tb, CM_OBJED_MODE_SELECT, EditorCommandIds::OBJED_MODE_SELECT, "select", "Select", true);
 
   tb->createSeparator();
 
-  addButton(tb, CM_OBJED_MODE_MOVE, "move", "Move (W). Use \"Shift\" for clone mode, \"Ctrl\" for snap points mode.", true);
-  addButton(tb, CM_OBJED_MODE_SURF_MOVE, "move_on_surface", "Move over surface (Ctrl+Alt+W). Use \"Shift\" for clone mode.", true);
-  addButton(tb, CM_OBJED_MODE_ROTATE, "rotate", "Rotate (E). Use \"Shift\" for clone mode.", true);
-  addButton(tb, CM_OBJED_MODE_SCALE, "scale", "Scale (R). Use \"Shift\" for clone mode.", true);
-  addButton(tb, CM_OBJED_DROP, "drop", "Drop object (Ctrl+Alt+D)");
+  addEditorCommandButton(tb, CM_OBJED_MODE_MOVE, EditorCommandIds::OBJED_MODE_MOVE, "move",
+    "Move. Use \"Shift\" for clone mode, \"Ctrl\" for snap points mode.", true);
+  addEditorCommandButton(tb, CM_OBJED_MODE_SURF_MOVE, EditorCommandIds::OBJED_MODE_SURF_MOVE, "move_on_surface",
+    "Move over surface. Use \"Shift\" for clone mode.", true);
+  addEditorCommandButton(tb, CM_OBJED_MODE_ROTATE, EditorCommandIds::OBJED_MODE_ROTATE, "rotate",
+    "Rotate. Use \"Shift\" for clone mode.", true);
+  addEditorCommandButton(tb, CM_OBJED_MODE_SCALE, EditorCommandIds::OBJED_MODE_SCALE, "scale", "Scale. Use \"Shift\" for clone mode.",
+    true);
+  addEditorCommandButton(tb, CM_OBJED_DROP, EditorCommandIds::OBJED_DROP, "drop", "Drop object");
 
   tb->createSeparator();
 
-  addButton(tb, CM_OBJED_SELECT_BY_NAME, "select_by_name", "Select objects by name (H)");
+  addEditorCommandButton(tb, CM_OBJED_SELECT_BY_NAME, EditorCommandIds::OBJED_SELECT_BY_NAME, "select_by_name",
+    "Select objects by name");
 
   tb->createSeparator();
 
-  addButton(tb, CM_OBJED_OBJPROP_PANEL, "show_panel", "Show/hide object props panel (P)", true);
+  addEditorCommandButton(tb, CM_OBJED_OBJPROP_PANEL, EditorCommandIds::OBJED_OBJPROP_PANEL, "show_panel",
+    "Show/hide object props panel", true);
 
   setButton(CM_OBJED_OBJPROP_PANEL, (bool)objectPropBar);
 
@@ -1650,10 +1732,10 @@ PropPanel::ContainerPropertyControl *ObjectEditor::createPanelGroup(int pid)
 }
 
 
-void ObjectEditor::createPanelTransform(int mode)
+void ObjectEditor::createPanelTransform(int mode, bool read_only)
 {
   if (isPanelShown())
-    objectPropBar->createPanelTransform(mode);
+    objectPropBar->createPanelTransform(mode, read_only);
 }
 
 

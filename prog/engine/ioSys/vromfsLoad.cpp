@@ -106,7 +106,7 @@ static void patch_fs(VirtualRomFsData *fs, void *data_offs = NULL)
   {
     fs->data[i].patch(data_offs ? data_offs : base);
     if (!fs->data[i].size())
-      fs->data[i].init((char *)NULL + 1, 0);
+      fs->data[i].init(reinterpret_cast<char *>((uintptr_t)1), 0);
   }
 }
 
@@ -1069,12 +1069,12 @@ VirtualRomFsPack *open_vromfs_pack(const char *fname, IMemAlloc *mem, int file_f
     goto load_fail;
   fs->mtime = st.mtime;
 
-  patch_fs(fs, (char *)NULL + sizeof(hdr.file) + hdr.ext.size);
+  patch_fs(fs, reinterpret_cast<char *>((uintptr_t)(sizeof(hdr.file) + hdr.ext.size)));
   if (!init_patched_fs_file_attr(fs, (char *)fs + FS_OFFS, hdr.pack.hdrSz, fs_attr_ofs))
     goto load_fail;
 
   fs->_resv = 0;
-  fs->ptr = fs->ptr ? (char *)fs + FS_OFFS + ptrdiff_t(fs->ptr) : (char *)NULL + 1;
+  fs->ptr = fs->ptr ? (char *)fs + FS_OFFS + ptrdiff_t(fs->ptr) : reinterpret_cast<char *>((uintptr_t)1);
 
   G_ASSERTF((char *)fs + FS_OFFS + hdr.pack.hdrSz == fs->getFilePath(), "fs=%p getFilePath()=%p inlinePtr=%p", fs, fs->getFilePath(),
     (char *)fs + FS_OFFS + hdr.pack.hdrSz);
@@ -1137,7 +1137,7 @@ VirtualRomFsSingleFile *VirtualRomFsSingleFile::make_file_link(IMemAlloc *mem, c
   fs->files.map.init(inl_name, 1);
   fs->data.init(inl_data, 1);
   fs->_resv = 0;
-  fs->ptr = (char *)NULL + 1;
+  fs->ptr = reinterpret_cast<char *>((uintptr_t)1);
   fs->hdrSz = inl_packfn - (char *)&fs->files;
   fs->nextPtr = NULL;
   fs->mem = mem;

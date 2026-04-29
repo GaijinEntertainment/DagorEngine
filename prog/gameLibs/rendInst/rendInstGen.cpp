@@ -8,6 +8,8 @@
 #include "riGen/riGenExtra.h"
 #include "riGen/riRotationPalette.h"
 #include "riGen/riGenData.h"
+#include "riGen/riGenRenderer.h"
+#include "riGen/riCollOptimize.h"
 
 #include <generic/dag_sort.h>
 #include <util/dag_finally.h>
@@ -33,6 +35,7 @@
 #include <osApiWrappers/dag_threads.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <perfMon/dag_perfTimer.h>
 #include <memory/dag_framemem.h>
 #include <startup/dag_globalSettings.h>
 #include <math/dag_mathUtils.h>
@@ -49,9 +52,13 @@ static constexpr unsigned REGEN_JOB_TAG = 0x20000000;
 
 namespace rendinst
 {
+extern void shrinkToFitRiEx();
+
 dag::AtomicInteger<bool> isRiGenLoaded = false;
 extern int maxRiGenPerCell, maxRiExPerCell;
 extern bool forceRiExtra;
+extern bool enableRiExtra;
+extern bool persistentRiExtraInstances;
 } // namespace rendinst
 
 static inline IGenLoad &ptr_to_ref(IGenLoad *crd) { return *crd; }
@@ -69,7 +76,7 @@ static bool rendinstExtraAutoSubst = false;
 static int riExtraSubstFaceThres = 4000;
 static float riExtraSubstFaceDensThres = 1e6;
 static int riExtraSubstPregenThres = 32;
-static Tab<rendinst::ri_added_from_rigendata_cb> riExtraAddFromGenDataCallbacks;
+static rendinst::ri_added_from_rigendata_cb_t riExtraAddFromGenDataCb;
 static Tab<rendinst::ri_gen_cell_loaded_cb> riGenCellLoadedCallback;
 
 static FastNameMap riFullLodsNames, riHideNames, riHideMode0Names, riHideMode1Names;
@@ -227,10 +234,13 @@ RendInstGenData *RendInstGenData::create(IGenLoad &crd, int layer_idx)
     }
     else
       dump->sweepMask = nullptr;
+    debug("RIGz: landCls.size()=%d, layer_idx=%d (from %s)", dump->landCls.size(), layer_idx, crd.getTargetName());
     for (int i = 0; i < dump->landCls.size(); i++)
     {
       dump->landCls[i].landClassName.patch(dump);
       dump->landCls[i].mask = RoHugeHierBitMap2d<4, 3>::create(zcrd);
+      debug("  landCls[%d]=%s mask=%p (%d bytes)", i, dump->landCls[i].landClassName.get(), dump->landCls[i].mask,
+        dump->landCls[i].mask ? defaultmem->getSize(dump->landCls[i].mask) : 0);
       if (!dump->landCls[i].mask)
         goto create_fail;
     }
@@ -263,7 +273,7 @@ RendInstGenData::~RendInstGenData()
   for (int i = 0; i < landCls.size(); i++)
   {
     if (landCls[i].asset != &rendinst::gen::land::AssetData::emptyLandStub)
-      release_game_resource((GameResource *)landCls[i].asset);
+      release_game_resource_ex(landCls[i].asset, rendinst::gen::land::HUID_LandClass);
     landCls[i].asset = nullptr;
     delete landCls[i].mask;
   }
@@ -275,11 +285,13 @@ RendInstGenData::~RendInstGenData()
       unregCollCb(rtData->riCollRes[i].handle);
   for (int i = 0; i < pregenEnt.size(); i++)
   {
-    release_game_resource((GameResource *)pregenEnt[i].riRes.get());
+    if (pregenEnt[i].riRes)
+      pregenEnt[i].riRes->delRef();
     if (rtData && rtData->riCollRes.size())
     {
       G_ASSERT(i < rtData->riCollRes.size());
-      release_game_resource((GameResource *)rtData->riCollRes[i].collRes);
+      if (CollisionResource *collRes = rtData->riCollRes[i].collRes)
+        collRes->delRef();
     }
   }
   pregenEnt.init(nullptr, 0);
@@ -411,8 +423,7 @@ void RendInstGenData::prepareRtData(int layer_idx)
     PatchablePtr<RenderableInstanceLodsResource> &riRes = pregenEnt[i].riRes;
     if (!riRes)
     {
-      riRes = (RenderableInstanceLodsResource *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(pregenEnt[i].riName),
-        RendInstGameResClassId);
+      riRes = (RenderableInstanceLodsResource *)::get_game_resource_ex(pregenEnt[i].riName, RendInstGameResClassId);
       if (!riRes)
       {
         logerr("pregen[%d].riName=<%s> missing", i, pregenEnt[i].riName);
@@ -459,19 +470,18 @@ void RendInstGenData::prepareRtData(int layer_idx)
 
     String coll_name(128, "%s" RI_COLLISION_RES_SUFFIX, pregenEnt[i].riName.get());
     FATAL_CONTEXT_AUTO_SCOPE(coll_name);
-    CollisionResource *collRes =
-      get_resource_type_id(coll_name) == CollisionGameResClassId
-        ? (CollisionResource *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(coll_name), CollisionGameResClassId)
-        : nullptr;
+    CollisionResource *collRes = get_resource_type_id(coll_name) == CollisionGameResClassId
+                                   ? (CollisionResource *)::get_game_resource_ex(coll_name, CollisionGameResClassId)
+                                   : nullptr;
     if (!collRes && pregenEnt[i].posInst)
       logwarn("missing tree-RI-collRes: %s", coll_name);
     if (collRes && collRes->getAllNodes().empty())
     {
-      release_game_resource((GameResource *)collRes);
+      release_game_resource_ex(collRes, CollisionGameResClassId);
       collRes = nullptr;
     }
     if (collRes)
-      collRes->collapseAndOptimize(pregenEnt[i].riName, USE_GRID_FOR_RI);
+      optimize_collres_on_load(collRes, [&coll_name]() { return coll_name; });
     CollisionResData &collResData = rtData->riCollRes.push_back();
     collResData.collRes = collRes;
     collResData.handle = nullptr;
@@ -624,7 +634,7 @@ void RendInstGenData::prepareRtData(int layer_idx)
             int pnMat = 0;
             int crossDissolve = 0;
 
-            if (strstr(elems[elemNo].mat->getInfo().str(), "rendinst_plod"))
+            if (strstr(elems[elemNo].mat->getShaderClassName(), "rendinst_plod"))
               plodMask |= 1 << elemNo;
 
             if (rtData->riRes[i]->hasImpostor() &&
@@ -636,9 +646,9 @@ void RendInstGenData::prepareRtData(int layer_idx)
               cmask |= 1 << elemNo;
               continue;
             }
-            if (strstr(elems[elemNo].mat->getInfo().str(), "facing_leaves") ||
-                strstr(elems[elemNo].mat->getInfo().str(), "rendinst_tree") || // Not atest but must use separate shader to apply the
-                                                                               // wind.
+            if (strstr(elems[elemNo].mat->getShaderClassName(), "facing_leaves") ||
+                strstr(elems[elemNo].mat->getShaderClassName(), "rendinst_tree") || // Not atest but must use separate shader to apply
+                                                                                    // the wind.
                 (elems[elemNo].mat->getIntVariable(atest_variable_id, atest) && atest > 0) ||
                 (elems[elemNo].mat->getIntVariable(pn_variable_id, pnMat) && pnMat > 0))
               mask |= 1 << elemNo;
@@ -733,10 +743,7 @@ void RendInstGenData::prepareRtData(int layer_idx)
       rtData->riCollResBb[i].bmin = rtData->riCollResBb[i].bmax = v_zero();
 
     if (RendInstGenData::renderResRequired && rtData->riRes[i])
-    {
-      as_point4(&rtData->riResBb[i].bmin).set_xyz1(rtData->riRes[i]->bbox[0]);
-      as_point4(&rtData->riResBb[i].bmax).set_xyz1(rtData->riRes[i]->bbox[1]);
-    }
+      rtData->riResBb[i] = v_ldu_bbox3(rtData->riRes[i]->bbox);
     else if (rtData->riCollRes[i].collRes)
       rtData->riResBb[i] = rtData->riCollResBb[i];
     else if (rtData->riResName[i])
@@ -744,14 +751,14 @@ void RendInstGenData::prepareRtData(int layer_idx)
       const DataBlock *b = gameres_rendinst_desc.getBlockByName(rtData->riResName[i]);
       if (!b)
         goto missing;
-      as_point4(&rtData->riResBb[i].bmin).set_xyz1(b->getPoint3("bbox0", Point3(-1, -1, -1)));
-      as_point4(&rtData->riResBb[i].bmax).set_xyz1(b->getPoint3("bbox1", Point3(1, 1, 1)));
+      BBox3 init(b->getPoint3("bbox0", Point3(-1, -1, -1)), b->getPoint3("bbox1", Point3(1, 1, 1)));
+      rtData->riResBb[i] = v_ldu_bbox3(init);
     }
     else
     {
     missing:
-      as_point4(&rtData->riResBb[i].bmin).set(-0.1, -0.1, -0.1, 1);
-      as_point4(&rtData->riResBb[i].bmax).set(0.1, 0.1, 0.1, 1);
+      rtData->riResBb[i].bmin = v_make_vec4f(-0.1, -0.1, -0.1, 1);
+      rtData->riResBb[i].bmax = v_make_vec4f(0.1, 0.1, 0.1, 1);
     }
     if (!rtData->riCollRes[i].collRes && RendInstGenData::renderResRequired && rtData->riRes[i])
       rtData->riCollResBb[i] = rtData->riResBb[i];
@@ -784,7 +791,7 @@ void RendInstGenData::prepareRtData(int layer_idx)
       rtData->riResElemMask[i * rendinst::MAX_LOD_COUNT + 7].cullN,
       rtData->riResElemMask[i * rendinst::MAX_LOD_COUNT + 8].cullN,
       rtData->riResHideMask[i]);
-    // clang-format off
+    // clang-format on
 #endif
   }
   rtData->lastPoi = Point2(-1000000, 1000000);
@@ -830,14 +837,20 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
   float world2grid = 1.0 / grid2world;
   float box_sz = grid2world * cellSz / SUBCELL_DIV;
 
-  clear_and_resize(crt.pools, rtData->riRes.size());
-  mem_set_0(crt.pools);
+  auto &crtPools = crt.pools.getNonSealedVec();
+  clear_and_resize(crtPools, rtData->riRes.size());
+  mem_set_0(crtPools);
   dag::ConstSpan<uint16_t> riExtraIdxPair = rtData->riExtraIdxPair;
+#if _TARGET_PC_TOOLS_BUILD
+  if (!rendinst::enableRiExtra)
+    riExtraIdxPair = {};
+#endif
 
   for (int i = 0; i < riExtraIdxPair.size(); i += 2)
   {
-    crt.pools[riExtraIdxPair[i]].avail = -riExtraIdxPair[i + 1] - 1;
-    crt.pools[riExtraIdxPair[i]].baseOfs = riExtraIdxPair[i];
+    auto &p = crtPools[riExtraIdxPair[i]];
+    p.avail = -riExtraIdxPair[i + 1] - 1;
+    p.baseOfs = riExtraIdxPair[i];
   }
   rendinst::gen::SingleEntityPool::ri_col_pair.set(rtData->riColPair);
 
@@ -847,7 +860,7 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
     landMin, landMax);
   inplace_max(landMax, cell.htMin + cell.htDelta); //< or we have big troubles when placing RI on prefabs high above land!
 
-  as_point4(&crt.cellOrigin).set(world0x() + x * grid2world * cellSz, landMin, world0z() + z * grid2world * cellSz, 1);
+  crt.cellOrigin = v_make_vec4f(world0x() + x * grid2world * cellSz, landMin, world0z() + z * grid2world * cellSz, 1);
   crt.cellHeight = landMax - landMin;
 
   Tab<const TMatrix *> sbm_cell(tmpmem), sbm_subcell(tmpmem);
@@ -873,15 +886,16 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
   rendinst::gen::SingleEntityPool::per_pool_local_bb = rtData->riResBb.data();
   rendinst::gen::SingleEntityPool::cur_cell_id = cellIdx;
   rendinst::gen::SingleEntityPool::cur_ri_extra_ord = 0;
-  rendinst::gen::SingleEntityPool::per_inst_data_dwords = perInstDataDwords;
+  rendinst::gen::SingleEntityPool::persistent_ri_extra_instances = rendinst::persistentRiExtraInstances;
+  rendinst::gen::SingleEntityPool::ri_extra_counter = 0;
 
-  if (cell.riDataRelOfs >= 0)
+  if (cell.riDataRelOfs >= 0 && rendinst::persistentRiExtraInstances)
   {
     bool need_unpack_pregen = false;
     for (int s = 0; s < SUBCELL_DIV * SUBCELL_DIV; s++)
     {
       for (PregenEntCounter *p = cell.entCnt[s], *pe = cell.entCnt[s + 1]; p < pe; p++)
-        if (crt.pools[p->riResIdx].avail < 0)
+        if (crtPools[p->riResIdx].avail < 0)
         {
           need_unpack_pregen = true;
           break;
@@ -908,17 +922,17 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
   }
 
   rtData->riRwCs.lockRead();
-  int cellExtraDestrIdx = -1; // intentionally not ptr, since riDestrCellData might be reallocated within add_destroyed_data in other
-                              // thread
+  rendinst::DestroyedCellData extraDestrData;
+  extraDestrData.cellId = 0;
   for (int i = 0; i < rtData->riDestrCellData.size(); ++i)
   {
     if (rtData->riDestrCellData[i].cellId != -(cellIdx + 1))
       continue;
-    cellExtraDestrIdx = i;
+    extraDestrData = rtData->riDestrCellData[i];
+    extraDestrData.cellId = 1; // "Found"
     break;
   }
-  if (cellExtraDestrIdx < 0)
-    rtData->riRwCs.unlockRead();
+  rtData->riRwCs.unlockRead();
 
   // null-generate to determine capacity requirements
   for (int s = 0; s < SUBCELL_DIV * SUBCELL_DIV; s++)
@@ -930,16 +944,15 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
     if (zcrd)
       for (PregenEntCounter *p = cell.entCnt[s], *pe = cell.entCnt[s + 1]; p < pe; p++)
       {
-        EntPool &pool = crt.pools[p->riResIdx];
+        EntPool &pool = crtPools[p->riResIdx];
         bool pos_inst = rtData->riPosInst[p->riResIdx];
-        bool palette_rotation = rtData->riPaletteRotation[p->riResIdx];
         bool zeroInstSeeds = rtData->riZeroInstSeeds[p->riResIdx];
         int cnt = p->riCount;
         int stride = (pos_inst ? 2 * 4 : (rendinst::tmInst12x32bit ? 4 * 12 : 2 * 12)) + (zeroInstSeeds ? 0 : 4 * perInstDataDwords);
 
         if (pool.avail >= 0)
         {
-          crt.pools[p->riResIdx].total += cnt;
+          crtPools[p->riResIdx].total += cnt;
           zcrd->seekrel(cnt * stride);
           continue;
         }
@@ -948,123 +961,34 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
           clear_and_resize(pregenUnpData, cnt * stride);
         zcrd->read(pregenUnpData.data(), cnt * stride);
 
-        int ri_idx = -pool.avail - 1;
-        const rendinst::DestroyedPoolData *poolExtraData = nullptr;
-        if (cellExtraDestrIdx >= 0)
-          poolExtraData = rtData->riDestrCellData[cellExtraDestrIdx].getPool(ri_idx);
-        int x_ofs = pos_inst ? 2 * 0 : (rendinst::tmInst12x32bit ? 4 * 3 + 2 : 2 * 3);
-        int y_ofs = pos_inst ? 2 * 1 : (rendinst::tmInst12x32bit ? 4 * 7 + 2 : 2 * 7);
-        int z_ofs = pos_inst ? 2 * 2 : (rendinst::tmInst12x32bit ? 4 * 11 + 2 : 2 * 11);
-        int curDestrRange = 0;
-        int originalRiPool = rendinst::riExtra[ri_idx].riPoolRef;
-        bool canBeExcluded = useDestrExclForPregenAdd && rtData->riDestr.size() && originalRiPool >= 0 && // debris inited
-                             rendinst::getRgLayer(rendinst::riExtra[ri_idx].riPoolRefLayer) == this &&
-                             !rtData->riProperties[originalRiPool].immortal && !rtData->riDestr[originalRiPool].destructable;
-        for (uint8_t *ptr = pregenUnpData.data(), *ptr_e = ptr + stride * cnt; ptr < ptr_e; ptr += stride)
-        {
-          float px =
-            *(int16_t *)(ptr + x_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::ox;
-          float pz =
-            *(int16_t *)(ptr + z_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::oz;
-          bool isInDestr = false;
-          if (poolExtraData)
-          {
-            for (; curDestrRange < poolExtraData->destroyedInstances.size(); ++curDestrRange)
-            {
-              if (poolExtraData->destroyedInstances[curDestrRange].endOffs > rendinst::gen::SingleEntityPool::cur_ri_extra_ord)
-              {
-                isInDestr |=
-                  rendinst::gen::SingleEntityPool::cur_ri_extra_ord >= poolExtraData->destroyedInstances[curDestrRange].startOffs;
-                break;
-              }
-            }
-          }
-          rendinst::RiExtraPool &riPool = rendinst::riExtra[ri_idx];
-          if ((canBeExcluded && rendinst::gen::destrExcl.isMarked(px, pz)) ||
-              rendinst::gen::SingleEntityPool::intersectWithSweepBoxes(px, pz) || (isInDestr && riPool.destrDepth == 0))
-          {
-            if (pos_inst)
-              *(int16_t *)(ptr + 2 * 3) = 0;
-            else if (!rendinst::tmInst12x32bit)
-              *(int16_t *)(ptr + 2 * 0) = *(int16_t *)(ptr + 2 * 1) = *(int16_t *)(ptr + 2 * 2) = *(int16_t *)(ptr + 2 * 4) =
-                *(int16_t *)(ptr + 2 * 5) = *(int16_t *)(ptr + 2 * 6) = *(int16_t *)(ptr + 2 * 8) = *(int16_t *)(ptr + 2 * 9) =
-                  *(int16_t *)(ptr + 2 * 10) = 0;
-            else
-              *(int *)(ptr + 4 * 0) = *(int *)(ptr + 4 * 1) = *(int *)(ptr + 4 * 2) = *(int *)(ptr + 4 * 4) = *(int *)(ptr + 4 * 5) =
-                *(int *)(ptr + 4 * 6) = *(int *)(ptr + 4 * 8) = *(int *)(ptr + 4 * 9) = *(int *)(ptr + 4 * 10) = 0;
-            rendinst::gen::SingleEntityPool::cur_ri_extra_ord += 16 * (riPool.destrDepth + 1);
-            continue;
-          }
-          mat44f tm;
-          if (pos_inst)
-            rendinst::gen::unpack_tm_pos(tm, (int16_t *)ptr, v_cell_add, v_cell_mul, palette_rotation);
-          else if (!rendinst::tmInst12x32bit)
-          {
-            rendinst::gen::unpack_tm_full(tm, (int16_t *)ptr, v_cell_add, v_cell_mul);
-            // Note: 16-bit quantization is quite inaccurate so orthonormalize it to match with collision
-            vec3f ls = v_sqrt(v_perm_xzac(v_perm_xycd(v_length3_sq(tm.col0), v_length3_sq(tm.col1)), v_length3_sq(tm.col2)));
-            v_mat44_orthonormalize33(tm, tm);
-            tm.col0 = v_mul(tm.col0, v_splat_x(ls));
-            tm.col1 = v_mul(tm.col1, v_splat_y(ls));
-            tm.col2 = v_mul(tm.col2, v_splat_z(ls));
-          }
-          else
-            rendinst::gen::unpack_tm32_full(tm, (int32_t *)ptr, v_cell_add, v_cell_mul);
-          tm.col3 = rendinst::gen::custom_update_pregen_pos_y(tm.col3, (int16_t *)(ptr + y_ofs),
-            rendinst::gen::SingleEntityPool::cell_y_sz, rendinst::gen::SingleEntityPool::oy);
-          if (v_extract_x(v_mat44_det43(tm)) < 0.f)
-          {
-            logwarn("RiExtra <%s> instance at pos " FMT_P3 " has inverted matrix", rendinst::riExtraMap.getName(ri_idx), V3D(tm.col3));
-            tm.col0 = v_neg(tm.col0);
-          }
-
-          v_bbox3_add_transformed_box(crt.pregenRiExtraBbox, tm, riPool.lbb);
-
-          int curRiPoolIdx = ri_idx;
-          if (isInDestr)
-          {
-            rendinst::gen::SingleEntityPool::cur_ri_extra_ord += 16;
-            for (curRiPoolIdx = riPool.destroyedRiIdx; curRiPoolIdx >= 0;
-                 curRiPoolIdx = rendinst::riExtra[curRiPoolIdx].destroyedRiIdx)
-            {
-              poolExtraData = rtData->riDestrCellData[cellExtraDestrIdx].getPool(curRiPoolIdx);
-              if (!poolExtraData || !poolExtraData->isInRange(rendinst::gen::SingleEntityPool::cur_ri_extra_ord))
-                break;
-              rendinst::gen::SingleEntityPool::cur_ri_extra_ord += 16;
-            }
-          }
-          if (curRiPoolIdx >= 0)
-          {
-            const int32_t *per_inst_data =
-              (perInstDataDwords && !zeroInstSeeds) ? (int *)(ptr + stride - 4 * perInstDataDwords) : nullptr;
-            // debug("add riEx(%d : %d) seed=%08X  %.3f, %.3f", p->riResIdx, curRiPoolIdx, *per_inst_data, px, pz);
-
-            // addRIGenExtra44 does write lock of ccExtra within, do unlock layer's rw lock to avoid
-            // relying on lock order of AutoLockReadPrimaryAndExtra (fragile) and also code that use it (e.g. traces) to continue
-            if (cellExtraDestrIdx >= 0)
-              rtData->riRwCs.unlockRead();
-            const rendinst::riex_handle_t riHandle = rendinst::addRIGenExtra44(curRiPoolIdx, tm, true /*has_collision*/, cellIdx,
-              rendinst::gen::SingleEntityPool::cur_ri_extra_ord, zeroInstSeeds ? 0 : perInstDataDwords, per_inst_data,
-              true /*on loading*/);
-            rendinst::onRiExtraAddedFromGenData(riHandle);
-            if (cellExtraDestrIdx >= 0)
-              rtData->riRwCs.lockRead();
-            rendinst::gen::SingleEntityPool::cur_ri_extra_ord += 16 * (rendinst::riExtra[curRiPoolIdx].destrDepth + 1);
-          }
-        }
+        int riex_idx = -pool.avail - 1;
+        G_ASSERT_DO_AND_LOG(!pos_inst, continue, //
+          "pos_inst=%d riex_idx=%d {%s}, skip", pos_inst, riex_idx, rendinst::getRIGenExtraName(riex_idx));
+        generateRiExFromPregenData(riex_idx, crt, v_cell_add, v_cell_mul, pregenUnpData.data(), cnt, stride, zeroInstSeeds,
+          extraDestrData, false);
       }
     else if (cell.riDataRelOfs >= 0)
+    {
       for (PregenEntCounter *p = cell.entCnt[s], *pe = cell.entCnt[s + 1]; p < pe; p++)
-        if (crt.pools[p->riResIdx].avail >= 0)
-          crt.pools[p->riResIdx].total += p->riCount;
+        if (crtPools[p->riResIdx].avail >= 0)
+          crtPools[p->riResIdx].total += p->riCount;
+        else
+          rendinst::gen::SingleEntityPool::ri_extra_counter += p->riCount;
+    }
 
     if (crt.pregenAdd)
       for (PregenEntCounter *p = crt.pregenAdd->cntStor.data() + crt.pregenAdd->scCntIdx[s],
                             *pe = crt.pregenAdd->cntStor.data() + crt.pregenAdd->scCntIdx[s + 1];
            p < pe; p++)
-        if (crt.pools[p->riResIdx].avail >= 0)
-          crt.pools[p->riResIdx].total += p->riCount;
+      {
+        if (crtPools[p->riResIdx].avail >= 0)
+          crtPools[p->riResIdx].total += p->riCount;
+        else if (!rendinst::persistentRiExtraInstances)
+          rendinst::gen::SingleEntityPool::ri_extra_counter += p->riCount;
+      }
 
+    if (!maskGeneratedEnabled)
+      continue;
     for (int i = 0; i < cell.cls.size(); i++)
     {
       int cls_idx = cell.cls[i].landClsIdx;
@@ -1084,13 +1008,14 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
 
       pools.resize(land.riRes.size());
       mem_set_0(pools);
-      if (riExtraIdxPair.size())
-        for (int j = 0; j < pools.size(); j++)
-        {
-          int k = landCls[cls_idx].riResMap[j];
-          if (crt.pools[k].avail < 0)
-            pools[j].avail = crt.pools[k].avail, pools[j].shortage = crt.pools[k].baseOfs;
-        }
+      for (int j = 0; j < pools.size(); j++)
+      {
+        int k = landCls[cls_idx].riResMap[j];
+        if (crtPools[k].avail < 0)
+          pools[j].avail = crtPools[k].avail, pools[j].shortage = crtPools[k].baseOfs;
+        if (crtPools[k].avail < 0 || !rtData->riZeroInstSeeds[k])
+          pools[j].per_inst_data_dwords = perInstDataDwords;
+      }
 
       if (land.tiled)
         rendinst::gen::generateTiledEntitiesInMaskedRect(*land.tiled, make_span(pools), *landCls[cls_idx].mask, world2grid, x0, z0,
@@ -1102,12 +1027,15 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
 
       for (int j = 0; j < pools.size(); j++)
         if (pools[j].avail >= 0)
-          crt.pools[landCls[cls_idx].riResMap[j]].total += pools[j].shortage;
+          crtPools[landCls[cls_idx].riResMap[j]].total += pools[j].shortage;
     }
   }
 
-  if (cellExtraDestrIdx >= 0)
-    rtData->riRwCs.unlockRead();
+  if (!rendinst::persistentRiExtraInstances)
+  {
+    G_FAST_ASSERT(!crt.riexHandles.data());
+    crt.riexHandles.set(nullptr, rendinst::gen::SingleEntityPool::ri_extra_counter);
+  }
 
   rendinst::gen::SingleEntityPool::sweep_boxes_itm.reset();
 
@@ -1118,30 +1046,31 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
     fcrd.endBlock();
   }
 
-  // compute VB size
-  crt.vbSize = 0;
-  for (int i = 0; i < crt.pools.size(); i++)
-    crt.vbSize += RIGEN_STRIDE_B(rtData->riPosInst[i], rtData->riZeroInstSeeds[i], perInstDataDwords) * crt.pools[i].total;
+  // compute VB size and arrange base offsets
+  unsigned ri_count = 0, ofs = 0;
+  for (int i = 0; i < crtPools.size(); i++)
+    if (crtPools[i].total)
+    {
+      unsigned stride = RIGEN_STRIDE_B(rtData->riPosInst[i], rtData->riZeroInstSeeds[i], perInstDataDwords);
+      crtPools[i].baseOfs = ofs;
+      ofs += stride * crtPools[i].total;
+      ri_count += crtPools[i].total;
+    }
+    else
+      crtPools[i].baseOfs = ofs;
+  crt.vbSize = ofs;
 
-  // arrange base offsets
-  int ri_count = 0, ofs = 0;
-  for (int i = 0; i < crt.pools.size();
-       ofs += RIGEN_STRIDE_B(rtData->riPosInst[i], rtData->riZeroInstSeeds[i], perInstDataDwords) * crt.pools[i].total, i++)
-  {
-    crt.pools[i].baseOfs = ofs, ri_count += crt.pools[i].total;
-  }
-  G_ASSERT(ofs <= crt.vbSize);
   if (rendinst::rgAttr[rtData->layerIdx].needNetSync)
   {
 #if _TARGET_PC_TOOLS_BUILD
     if (rendinst::forceRiExtra && crt.vbSize > rendinst::maxRiGenPerCell * 8)
     {
       int ri_gen_per_cell = 0, ri_ex_per_cell = 0;
-      for (int i = 0; i < crt.pools.size(); i++)
+      for (int i = 0; i < crtPools.size(); i++)
         if (rtData->riPosInst[i])
-          ri_gen_per_cell += crt.pools[i].total;
+          ri_gen_per_cell += crtPools[i].total;
         else
-          ri_ex_per_cell += crt.pools[i].total;
+          ri_ex_per_cell += crtPools[i].total;
 
       G_ASSERTF(ri_gen_per_cell <= rendinst::maxRiGenPerCell,
         "crt.vbSize=%d, ri_gen_per_cell=%d > %d, ri_ex_per_cell=%d; cell[%d,%d] at (%.1f,%.1f) sz=%.1f", crt.vbSize, ri_gen_per_cell,
@@ -1160,12 +1089,12 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
 #if DAGOR_DBGLEVEL > 0
       if (crt.vbSize > rendinst::maxRiGenPerCell * 8)
       {
-        debug("cell[%d,%d], %d RI:", x, z, crt.pools.size());
-        for (int i = 0; i < crt.pools.size(); i++)
+        debug("cell[%d,%d], %d RI:", x, z, crtPools.size());
+        for (int i = 0; i < crtPools.size(); i++)
         {
           BBox3 riResBb;
           v_stu_bbox3(riResBb, rtData->riResBb[i]);
-          debug(" [%2d] %4d - %s  [%s] sz=%@%s", i, crt.pools[i].total, rtData->riResName[i], rtData->riPosInst[i] ? "pos" : "tm",
+          debug(" [%2d] %4d - %s  [%s] sz=%@%s", i, crtPools[i].total, rtData->riResName[i], rtData->riPosInst[i] ? "pos" : "tm",
             i < rtData->riResBb.size() ? riResBb.lim[1] - riResBb.lim[0] : Point3(0, 0, 0),
             (i < rtData->riCollRes.size() && rtData->riCollRes[i].collRes) ? "" : " non-collidable");
         }
@@ -1183,13 +1112,13 @@ int RendInstGenData::precomputeCell(RendInstGenData::CellRtData &crt, int x, int
 #endif
   }
 
-  if (!ri_count)
+  if (!ri_count && !crt.riexHandles.size())
   {
     G_ASSERT(!crt.vbSize);
     G_ASSERT(!crt.sysMemData);
-    clear_and_shrink(crt.pools);
+    clear_and_shrink(crtPools);
   }
-  // debug("cell %4d,%4d: alloc %7d pools=%d (cnt=%d)", x, z, crt.vbSize, crt.pools.size(), ri_count);
+  // debug("cell %4d,%4d: alloc %7d pools=%d (cnt=%d riex=%d)", x, z, crt.vbSize, crtPools.size(), ri_count, crt.riexHandles.size());
   return ri_count;
 }
 
@@ -1221,10 +1150,13 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
     interlocked_release_store_ptr(cell.rtData, (RendInstGenData::CellRtData *)nullptr); // mark as not ready
 
   RendInstGenData::CellRtData &crt = *crt_ptr;
-  if (crt.vbSize <= 0)
+  if (crt.vbSize <= 0 && !crt.riexHandles.size())
     return crt_ptr;
 
   crt.setDataUploadFlag(false);
+  if (crt.pools.isSealed())
+    crt.pools.unseal();
+  auto &crtPools = crt.pools.getNonSealedVec();
 
   uint8_t *vbPtr = crt.sysMemData.get();
   Finally setSysMemData([&] {
@@ -1235,26 +1167,45 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   {
     // allocate sysmem data copy and storage for SubCell slices
     vbPtr = new uint8_t[crt.vbSize];
-    G_ASSERT(crt.pools.size() <= (1ull << (sizeof(decltype(crt.scsRemap)::value_type) * CHAR_BIT)));
-    clear_and_resize(crt.scsRemap, crt.pools.size());
+    G_ASSERT(crtPools.size() <= (1ull << (sizeof(decltype(crt.scsRemap)::value_type) * CHAR_BIT)));
+    clear_and_resize(crt.scsRemap, crtPools.size());
     clear_and_resize(crt.bbox, 1 + SUBCELL_DIV * SUBCELL_DIV);
   }
   else
     setSysMemData.release();
 
-  for (int i = 0; i < crt.pools.size(); i++)
+  for (int i = 0; i < crtPools.size(); i++)
   {
-    crt.pools[i].avail = crt.pools[i].total;
-    crt.pools[i].topOfs = crt.pools[i].baseOfs;
+    crtPools[i].avail = crtPools[i].total;
+    crtPools[i].topOfs = crtPools[i].baseOfs;
   }
   dag::ConstSpan<uint16_t> riExtraIdxPair = rtData->riExtraIdxPair;
-  for (int i = 0; i < riExtraIdxPair.size(); i += 2)
-    crt.pools[riExtraIdxPair[i]].avail = 0;
+#if _TARGET_PC_TOOLS_BUILD
+  if (!rendinst::enableRiExtra)
+    riExtraIdxPair = {};
+#endif
+  if (rendinst::persistentRiExtraInstances)
+  {
+    for (int i = 0; i < riExtraIdxPair.size(); i += 2)
+      G_ASSERTF(crtPools[riExtraIdxPair[i]].avail == 0, //
+        "crtPools[riExtraIdxPair[%d]=%d].avail=%d", i, riExtraIdxPair[i], crtPools[riExtraIdxPair[i]].avail);
+  }
+  else
+  {
+    for (int i = 0; i < riExtraIdxPair.size(); i += 2)
+      crtPools[riExtraIdxPair[i]].avail = -riExtraIdxPair[i + 1] - 1;
+    if (auto cnt = crt.riexHandles.size())
+    {
+      G_FAST_ASSERT(!crt.riexHandles.data());
+      crt.riexHandles.set((rendinst::riex_handle_t *)memalloc(elem_size(crt.riexHandles) * cnt, midmem), cnt);
+      mem_set_ff(crt.riexHandles); // same as filling with rendinst::RIEX_HANDLE_NULL
+    }
+  }
 
   Tab<rendinst::gen::SingleEntityPool> pools(tmpmem);
   float world2grid = 1.0 / grid2world;
   float box_sz = grid2world * cellSz / SUBCELL_DIV;
-  int p_cnt = crt.pools.size();
+  int p_cnt = crtPools.size();
 
   rendinst::gen::SingleEntityPool::ox = world0x() + x * SUBCELL_DIV * box_sz;
   rendinst::gen::SingleEntityPool::oy = v_extract_y(crt.cellOrigin);
@@ -1262,7 +1213,10 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   rendinst::gen::SingleEntityPool::cell_xz_sz = SUBCELL_DIV * box_sz;
   rendinst::gen::SingleEntityPool::cell_y_sz = crt.cellHeight;
   rendinst::gen::SingleEntityPool::per_pool_local_bb = rtData->riResBb.data();
-  rendinst::gen::SingleEntityPool::per_inst_data_dwords = perInstDataDwords;
+  rendinst::gen::SingleEntityPool::cur_cell_id = cellId;
+  rendinst::gen::SingleEntityPool::cur_ri_extra_ord = 0;
+  rendinst::gen::SingleEntityPool::persistent_ri_extra_instances = rendinst::persistentRiExtraInstances;
+  rendinst::gen::SingleEntityPool::ri_extra_counter = 0;
   v_bbox3_init_empty(rendinst::gen::SingleEntityPool::bbox);
 
   if (RendInstGenData::riGenPrepareAddPregenCB && crt.pregenAdd && crt.pregenAdd->needsUpdate)
@@ -1273,7 +1227,16 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   LFileGeneralLoadCB fcrd(fpLevelBin);
   IGenLoad *zcrd = nullptr;
 
-  if (cell.riDataRelOfs >= 0)
+  bool need_unpack_pregen = cell.riDataRelOfs >= 0 && !rendinst::persistentRiExtraInstances;
+  if (cell.riDataRelOfs >= 0 && rendinst::persistentRiExtraInstances)
+    for (int s = 0; !need_unpack_pregen && s < SUBCELL_DIV * SUBCELL_DIV; s++)
+      for (PregenEntCounter *p = cell.entCnt[s], *pe = cell.entCnt[s + 1]; p < pe; p++)
+        if (crtPools[p->riResIdx].avail >= 0) // need unpack only when riGen present
+        {
+          need_unpack_pregen = true;
+          break;
+        }
+  if (need_unpack_pregen)
   {
     fcrd.seekto(pregenDataBaseOfs + cell.riDataRelOfs);
     unsigned fmt = 0;
@@ -1286,7 +1249,7 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
   }
 
   Tab<CellRtData::SubCellSlice> scsLocal(tmpmem);
-  scsLocal.resize(SUBCELL_DIV * SUBCELL_DIV * crt.pools.size());
+  scsLocal.resize(SUBCELL_DIV * SUBCELL_DIV * crtPools.size());
   mem_set_0(scsLocal);
   mem_set_0(crt.scsRemap);
   crt.bbox[0] = rendinst::gen::SingleEntityPool::bbox;
@@ -1301,11 +1264,28 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
 
   char *pregenData = crt.pregenAdd ? (char *)crt.pregenAdd->dataStor.data() : nullptr;
 
+  rendinst::DestroyedCellData extraDestrData;
+  extraDestrData.cellId = 0;
+  if (!rendinst::persistentRiExtraInstances)
+  {
+    rtData->riRwCs.lockRead();
+    for (int i = 0; i < rtData->riDestrCellData.size(); ++i)
+    {
+      if (rtData->riDestrCellData[i].cellId != -(cellId + 1))
+        continue;
+      extraDestrData = rtData->riDestrCellData[i];
+      extraDestrData.cellId = 1; // "Found"
+      break;
+    }
+    rtData->riRwCs.unlockRead();
+  }
+
   // debug("cell[%d,%d] origin=(%.3f,%.3f,%.3f) + sz=(%.3f,%.3f,%.3f)", x, z, P3D(as_point4(&crt.cellOrigin)),
   //   rendinst::gen::SingleEntityPool::cell_xz_sz, rendinst::gen::SingleEntityPool::cell_y_sz,
   //   rendinst::gen::SingleEntityPool::cell_xz_sz);
   Tab<uint8_t> buf_tm32;
   Tab<uint8_t> buf_w16;
+  SmallTab<uint8_t, TmpmemAlloc> pregenUnpData;
   for (int s = 0; s < SUBCELL_DIV * SUBCELL_DIV; s++)
   {
     float x0 = (x * SUBCELL_DIV + (s % SUBCELL_DIV)) * box_sz;
@@ -1316,27 +1296,29 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
     if (zcrd)
       for (PregenEntCounter *p = cell.entCnt[s], *pe = cell.entCnt[s + 1]; p < pe; p++)
       {
-        EntPool &pool = crt.pools[p->riResIdx];
+        EntPool &pool = crtPools[p->riResIdx];
         bool pos_inst = rtData->riPosInst[p->riResIdx];
-        bool palette_rotation = rtData->riPaletteRotation[p->riResIdx];
         bool zeroInstSeeds = rtData->riZeroInstSeeds[p->riResIdx];
         int cnt = p->riCount;
-        int stride = (pos_inst ? 2 * 4 : 2 * 12) + (zeroInstSeeds ? 0 : 4 * perInstDataDwords);
+        int stride = (pos_inst ? 2 * 4 : (rendinst::tmInst12x32bit ? 4 * 12 : 2 * 12)) + (zeroInstSeeds ? 0 : 4 * perInstDataDwords);
         uint8_t *ptr = pool.topPtr(vbPtr);
+        int riex_idx = -1;
 
         scsLocal[crt.getCellIndex(p->riResIdx, s)].ofs = pool.topOfs + 1;
 
-        int dest_stride = RIGEN_STRIDE_B(pos_inst, zeroInstSeeds, perInstDataDwords);
-#if RIGEN_PERINST_ADD_DATA_FOR_TOOLS
-        int dest_adata = pos_inst ? 0 : RIGEN_ADD_STRIDE_PER_INST_B(zeroInstSeeds, perInstDataDwords);
-        int src_adata = zeroInstSeeds ? 0 : perInstDataDwords * 4;
-#endif
-
         buf_tm32.clear();
         buf_w16.clear();
-        if (!pos_inst && rendinst::tmInst12x32bit)
+        if (pool.avail < 0)
         {
-          stride += 4 * 12 - 2 * 12;
+          if (pregenUnpData.size() < cnt * stride)
+            clear_and_resize(pregenUnpData, cnt * stride);
+          ptr = pregenUnpData.data();
+          zcrd->read(ptr, cnt * stride);
+          riex_idx = -pool.avail - 1;
+          G_ASSERTF_CONTINUE(!pos_inst, "riex_idx=%d {%s}", riex_idx, rendinst::getRIGenExtraName(riex_idx));
+        }
+        else if (!pos_inst && rendinst::tmInst12x32bit)
+        {
           buf_tm32.resize(stride * cnt);
           ptr = buf_tm32.data();
         }
@@ -1345,21 +1327,20 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
           buf_w16.resize(stride * cnt);
           ptr = buf_w16.data();
         }
-        if (pool.avail > cnt)
+
+        if (pool.avail >= cnt)
         {
           zcrd->read(ptr, cnt * stride);
-          pool.topOfs += cnt * dest_stride;
           pool.avail -= cnt;
         }
-        else if (pool.avail)
+        else if (pool.avail > 0)
         {
           zcrd->read(ptr, pool.avail * stride);
           zcrd->seekrel((cnt - pool.avail) * stride);
-          pool.topOfs += pool.avail * dest_stride;
           cnt = pool.avail;
           pool.avail = 0;
         }
-        else
+        else if (pool.avail == 0)
         {
           zcrd->seekrel(cnt * stride);
           cnt = 0;
@@ -1367,82 +1348,10 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
 
         if (!cnt)
           continue;
-        bbox3f lbb = rtData->riResBb[p->riResIdx];
-        bool canBeExcluded = useDestrExclForPregenAdd && rtData->riDestr.size() && // debris inited
-                             !rtData->riProperties[p->riResIdx].immortal && !rtData->riDestr[p->riResIdx].destructable;
-        int x_ofs = pos_inst ? 2 * 0 : (rendinst::tmInst12x32bit ? 4 * 3 + 2 : 2 * 3);
-        int y_ofs = pos_inst ? 2 * 1 : (rendinst::tmInst12x32bit ? 4 * 7 + 2 : 2 * 7);
-        int z_ofs = pos_inst ? 2 * 2 : (rendinst::tmInst12x32bit ? 4 * 11 + 2 : 2 * 11);
-        for (uint8_t *ptr_e = ptr + stride * cnt; ptr < ptr_e; ptr += stride)
-        {
-          float px =
-            *(int16_t *)(ptr + x_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::ox;
-          float pz =
-            *(int16_t *)(ptr + z_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::oz;
-          if ((canBeExcluded && rendinst::gen::destrExcl.isMarked(px, pz)) ||
-              rendinst::gen::SingleEntityPool::intersectWithSweepBoxes(px, pz))
-          {
-            if (pos_inst)
-              *(int16_t *)(ptr + 2 * 3) = 0;
-            else
-              *(int16_t *)(ptr + 2 * 0) = *(int16_t *)(ptr + 2 * 1) = *(int16_t *)(ptr + 2 * 2) = *(int16_t *)(ptr + 2 * 4) =
-                *(int16_t *)(ptr + 2 * 5) = *(int16_t *)(ptr + 2 * 6) = *(int16_t *)(ptr + 2 * 8) = *(int16_t *)(ptr + 2 * 9) =
-                  *(int16_t *)(ptr + 2 * 10) = 0;
-            continue;
-          }
-          if (pos_inst)
-          {
-            vec4f pos, scale;
-            rendinst::gen::unpack_tm_pos(pos, scale, (int16_t *)ptr, v_cell_add, v_cell_mul, palette_rotation);
-            pos = rendinst::gen::custom_update_pregen_pos_y(pos, (int16_t *)(ptr + y_ofs), rendinst::gen::SingleEntityPool::cell_y_sz,
-              rendinst::gen::SingleEntityPool::oy);
-            *((int16_t *)(ptr + y_ofs)) =
-              int16_t(clamp((v_extract_y(pos) - rendinst::gen::SingleEntityPool::oy) / rendinst::gen::SingleEntityPool::cell_y_sz,
-                        -1.0f, 1.0f) *
-                      32767.0);
-            v_bbox3_add_pt(rendinst::gen::SingleEntityPool::bbox, v_madd(lbb.bmin, scale, pos));
-            v_bbox3_add_pt(rendinst::gen::SingleEntityPool::bbox, v_madd(lbb.bmax, scale, pos));
-          }
-          else
-          {
-            mat44f tm;
-            if (!rendinst::tmInst12x32bit)
-              rendinst::gen::unpack_tm_full(tm, (int16_t *)ptr, v_cell_add, v_cell_mul);
-            else
-            {
-              rendinst::gen::unpack_tm32_full(tm, (int32_t *)ptr, v_cell_add, v_cell_mul);
-              *(int16_t *)(ptr + y_ofs - 2) = 0;
-            }
-            tm.col3 = rendinst::gen::custom_update_pregen_pos_y(tm.col3, (int16_t *)(ptr + y_ofs),
-              rendinst::gen::SingleEntityPool::cell_y_sz, rendinst::gen::SingleEntityPool::oy);
-            *((int16_t *)(ptr + y_ofs)) =
-              int16_t(clamp((v_extract_y(tm.col3) - rendinst::gen::SingleEntityPool::oy) / rendinst::gen::SingleEntityPool::cell_y_sz,
-                        -1.0f, 1.0f) *
-                      32767.0);
-            v_bbox3_add_transformed_box(rendinst::gen::SingleEntityPool::bbox, tm, lbb);
-          }
-        }
-
-        if (buf_tm32.size())
-          copy_interlaced_buf(cnt, pool.topPtr(vbPtr), dest_stride, buf_tm32.data() + 2, 4, stride - dest_stride * 2);
-        else if (buf_w16.size())
-          copy_interlaced_buf(cnt, pool.topPtr(vbPtr), dest_stride, buf_w16.data(), 2, stride - dest_stride);
-
-#if RIGEN_PERINST_ADD_DATA_FOR_TOOLS // use additional data as hashVal only when in Tools (De3X, AV2)
-        // We need second pass because in the first we used high 16bits of 32bits values, but for additional we need low 16bits
-        int dest_shift = dest_stride - dest_adata;
-        int src_shift = stride - src_adata;
-        int skip_stride = dest_stride - (zeroInstSeeds ? 0 : perInstDataDwords * sizeof(uint32_t));
-        if (buf_tm32.size())
-          copy_interlaced_buf(cnt, pool.topPtr(vbPtr) + dest_shift, dest_stride, buf_tm32.data() + src_shift, 2, src_shift,
-            skip_stride);
-        else if (buf_w16.size() && dest_adata > 0)
-        {
-          // src_step is set to 2 so the entire stride is copied without gaps (full 32 bit seed)
-          copy_interlaced_buf(cnt, pool.topPtr(vbPtr) + dest_shift, dest_stride, buf_w16.data() + src_shift, 2, src_shift,
-            skip_stride);
-        }
-#endif
+        if (riex_idx >= 0)
+          generateRiExFromPregenData(riex_idx, crt, v_cell_add, v_cell_mul, ptr, cnt, stride, zeroInstSeeds, extraDestrData, true);
+        else
+          processRiGenFromPregenData(p->riResIdx, pool, v_cell_add, v_cell_mul, ptr, cnt, stride, buf_tm32, buf_w16, vbPtr, true);
       }
 
     if (pregenData)
@@ -1450,27 +1359,32 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
                             *pe = crt.pregenAdd->cntStor.data() + crt.pregenAdd->scCntIdx[s + 1];
            p < pe; p++)
       {
-        G_ASSERTF_CONTINUE(p->riResIdx < crt.pools.size(), "p->riResIdx=%d crt.pools.size()=%d s=%d idx=%d", p->riResIdx,
-          crt.pools.size(), s, p - (crt.pregenAdd->cntStor.data() + crt.pregenAdd->scCntIdx[s]));
+        G_ASSERTF_CONTINUE(p->riResIdx < crtPools.size(), "p->riResIdx=%d crt.pools.size()=%d s=%d idx=%d", p->riResIdx,
+          crtPools.size(), s, p - (crt.pregenAdd->cntStor.data() + crt.pregenAdd->scCntIdx[s]));
 
-        EntPool &pool = crt.pools[p->riResIdx];
+        EntPool &pool = crtPools[p->riResIdx];
         bool pos_inst = rtData->riPosInst[p->riResIdx];
-        bool palette_rotation = rtData->riPaletteRotation[p->riResIdx];
         bool zeroInstSeeds = rtData->riZeroInstSeeds[p->riResIdx];
         int cnt = p->riCount;
-        int stride = (pos_inst ? 2 * 4 : 2 * 12) + (zeroInstSeeds ? 0 : 4 * perInstDataDwords);
+        int stride = (pos_inst ? 2 * 4 : (rendinst::tmInst12x32bit ? 4 * 12 : 2 * 12)) + (zeroInstSeeds ? 0 : 4 * perInstDataDwords);
         uint8_t *ptr = pool.topPtr(vbPtr);
+        int riex_idx = -1;
 
-        scsLocal[crt.getCellIndex(p->riResIdx, s)].ofs = pool.topOfs + 1;
+        if (!scsLocal[crt.getCellIndex(p->riResIdx, s)].ofs)
+          scsLocal[crt.getCellIndex(p->riResIdx, s)].ofs = pool.topOfs + 1;
 
-        int dest_stride = RIGEN_STRIDE_B(pos_inst, zeroInstSeeds, perInstDataDwords);
-        int dest_adata = pos_inst ? 0 : RIGEN_ADD_STRIDE_PER_INST_B(zeroInstSeeds, perInstDataDwords);
-        int src_adata = zeroInstSeeds ? 0 : perInstDataDwords * 4;
         buf_tm32.clear();
         buf_w16.clear();
-        if (!pos_inst && rendinst::tmInst12x32bit)
+        if (pool.avail < 0)
         {
-          stride += 4 * 12 - 2 * 12;
+          if (pregenUnpData.size() < cnt * stride)
+            clear_and_resize(pregenUnpData, cnt * stride);
+          ptr = (uint8_t *)pregenData;
+          riex_idx = -pool.avail - 1;
+          G_ASSERTF_CONTINUE(!pos_inst, "riex_idx=%d {%s}", riex_idx, rendinst::getRIGenExtraName(riex_idx));
+        }
+        else if (!pos_inst && rendinst::tmInst12x32bit)
+        {
           buf_tm32.resize(stride * cnt);
           ptr = buf_tm32.data();
         }
@@ -1480,22 +1394,20 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
           ptr = buf_w16.data();
         }
 
-        if (pool.avail > cnt)
+        if (pool.avail >= cnt)
         {
           memcpy(ptr, pregenData, cnt * stride);
           pregenData += cnt * stride;
-          pool.topOfs += cnt * dest_stride;
           pool.avail -= cnt;
         }
-        else if (pool.avail)
+        else if (pool.avail > 0)
         {
           memcpy(ptr, pregenData, pool.avail * stride);
           pregenData += cnt * stride;
-          pool.topOfs += pool.avail * dest_stride;
           cnt = pool.avail;
           pool.avail = 0;
         }
-        else
+        else if (pool.avail == 0)
         {
           pregenData += cnt * stride;
           cnt = 0;
@@ -1503,83 +1415,10 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
 
         if (!cnt)
           continue;
-        bbox3f lbb = rtData->riResBb[p->riResIdx];
-        bool canBeExcluded = useDestrExclForPregenAdd && rtData->riDestr.size() && // debris inited
-                             !rtData->riProperties[p->riResIdx].immortal && !rtData->riDestr[p->riResIdx].destructable;
-        int x_ofs = pos_inst ? 2 * 0 : (rendinst::tmInst12x32bit ? 4 * 3 + 2 : 2 * 3);
-        int y_ofs = pos_inst ? 2 * 1 : (rendinst::tmInst12x32bit ? 4 * 7 + 2 : 2 * 7);
-        int z_ofs = pos_inst ? 2 * 2 : (rendinst::tmInst12x32bit ? 4 * 11 + 2 : 2 * 11);
-        for (uint8_t *ptr_e = ptr + stride * cnt; ptr < ptr_e; ptr += stride)
-        {
-          float px =
-            *(int16_t *)(ptr + x_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::ox;
-          float pz =
-            *(int16_t *)(ptr + z_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::oz;
-          if ((canBeExcluded && rendinst::gen::destrExcl.isMarked(px, pz)) ||
-              rendinst::gen::SingleEntityPool::intersectWithSweepBoxes(px, pz))
-          {
-            if (pos_inst)
-              *(int16_t *)(ptr + 2 * 3) = 0;
-            else
-              *(int16_t *)(ptr + 2 * 0) = *(int16_t *)(ptr + 2 * 1) = *(int16_t *)(ptr + 2 * 2) = *(int16_t *)(ptr + 2 * 4) =
-                *(int16_t *)(ptr + 2 * 5) = *(int16_t *)(ptr + 2 * 6) = *(int16_t *)(ptr + 2 * 8) = *(int16_t *)(ptr + 2 * 9) =
-                  *(int16_t *)(ptr + 2 * 10) = 0;
-            continue;
-          }
-          if (pos_inst)
-          {
-            vec4f pos, scale;
-            rendinst::gen::unpack_tm_pos(pos, scale, (int16_t *)ptr, v_cell_add, v_cell_mul, palette_rotation);
-            pos = rendinst::gen::custom_update_pregen_pos_y(pos, (int16_t *)(ptr + y_ofs), rendinst::gen::SingleEntityPool::cell_y_sz,
-              rendinst::gen::SingleEntityPool::oy);
-            *((int16_t *)(ptr + y_ofs)) = int16_t(
-              roundf(clamp((v_extract_y(pos) - rendinst::gen::SingleEntityPool::oy) / rendinst::gen::SingleEntityPool::cell_y_sz,
-                       -1.0f, 1.0f) *
-                     32767.0f));
-            v_bbox3_add_pt(rendinst::gen::SingleEntityPool::bbox, v_madd(lbb.bmin, scale, pos));
-            v_bbox3_add_pt(rendinst::gen::SingleEntityPool::bbox, v_madd(lbb.bmax, scale, pos));
-          }
-          else
-          {
-            mat44f tm;
-            if (!rendinst::tmInst12x32bit)
-              rendinst::gen::unpack_tm_full(tm, (int16_t *)ptr, v_cell_add, v_cell_mul);
-            else
-            {
-              rendinst::gen::unpack_tm32_full(tm, (int32_t *)ptr, v_cell_add, v_cell_mul);
-              *(int16_t *)(ptr + y_ofs - 2) = 0;
-            }
-            tm.col3 = rendinst::gen::custom_update_pregen_pos_y(tm.col3, (int16_t *)(ptr + y_ofs),
-              rendinst::gen::SingleEntityPool::cell_y_sz, rendinst::gen::SingleEntityPool::oy);
-            *((int16_t *)(ptr + y_ofs)) = int16_t(
-              roundf(clamp((v_extract_y(tm.col3) - rendinst::gen::SingleEntityPool::oy) / rendinst::gen::SingleEntityPool::cell_y_sz,
-                       -1.0f, 1.0f) *
-                     32767.0f));
-            v_bbox3_add_transformed_box(rendinst::gen::SingleEntityPool::bbox, tm, lbb);
-          }
-        }
-
-        // Copy only base data without additional
-        if (buf_tm32.size())
-          copy_interlaced_buf(cnt, pool.topPtr(vbPtr), dest_stride, buf_tm32.data() + 2, 4, src_adata, dest_adata);
-        else if (buf_w16.size())
-          copy_interlaced_buf(cnt, pool.topPtr(vbPtr), dest_stride, buf_w16.data(), 2, src_adata, dest_adata);
-
-#if RIGEN_PERINST_ADD_DATA_FOR_TOOLS // use additional data as hashVal only when in Tools (De3X, AV2)
-        // We need second pass because in the first we used high 16bits of 32bits values, but for additional we need low 16bits
-        int dest_shift = dest_stride - dest_adata;
-        int src_shift = stride - src_adata;
-        int skip_stride = dest_stride - (zeroInstSeeds ? 0 : perInstDataDwords * sizeof(uint32_t));
-        if (buf_tm32.size())
-          copy_interlaced_buf(cnt, pool.topPtr(vbPtr) + dest_shift, dest_stride, buf_tm32.data() + src_shift, 2, src_shift,
-            skip_stride);
-        else if (buf_w16.size() && dest_adata > 0)
-        {
-          // src_step is set to 2 so the entire stride is copied without gaps (full 32 bit seed)
-          copy_interlaced_buf(cnt, pool.topPtr(vbPtr) + dest_shift, dest_stride, buf_w16.data() + src_shift, 2, src_shift,
-            skip_stride);
-        }
-#endif
+        if (riex_idx >= 0)
+          generateRiExFromPregenData(riex_idx, crt, v_cell_add, v_cell_mul, ptr, cnt, stride, zeroInstSeeds, extraDestrData, true);
+        else
+          processRiGenFromPregenData(p->riResIdx, pool, v_cell_add, v_cell_mul, ptr, cnt, stride, buf_tm32, buf_w16, vbPtr, false);
       }
 
     if (maskGeneratedEnabled)
@@ -1604,17 +1443,14 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
         for (int j = 0; j < pools.size(); j++)
         {
           int idx = landCls[cls_idx].riResMap[j];
-          if (crt.pools[idx].avail < 0)
-          {
-            pools[idx].topPtr = pools[idx].basePtr = nullptr;
-            pools[idx].avail = pools[idx].shortage = 0;
-            continue;
-          }
           if (!scsLocal[crt.getCellIndex(idx, s)].ofs)
-            scsLocal[crt.getCellIndex(idx, s)].ofs = crt.pools[idx].topOfs + 1;
-          pools[j].topPtr = pools[j].basePtr = crt.pools[idx].topPtr(vbPtr);
-          pools[j].avail = crt.pools[idx].avail;
+            scsLocal[crt.getCellIndex(idx, s)].ofs = crtPools[idx].topOfs + 1;
+          pools[j].topPtr = pools[j].basePtr = crtPools[idx].topPtr(vbPtr);
+          pools[j].avail = crtPools[idx].avail;
           pools[j].shortage = 0;
+          if (!rendinst::persistentRiExtraInstances && crtPools[idx].avail < 0)
+            pools[j].basePtr = crt.riexHandles.data(), pools[j].topPtr = crt.riexHandles.end();
+          pools[j].per_inst_data_dwords = crtPools[idx].avail < 0 || !rtData->riZeroInstSeeds[idx] ? perInstDataDwords : 0;
         }
 
 #if RIGEN_PERINST_ADD_DATA_FOR_TOOLS
@@ -1634,8 +1470,9 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
         for (int j = 0; j < pools.size(); j++)
         {
           int idx = landCls[cls_idx].riResMap[j];
-          crt.pools[idx].avail = pools[j].avail;
-          crt.pools[idx].topOfs = (uint8_t *)pools[j].topPtr - vbPtr;
+          crtPools[idx].avail = pools[j].avail;
+          if (pools[j].avail >= 0)
+            crtPools[idx].topOfs = (uint8_t *)pools[j].topPtr - vbPtr;
         }
       }
 
@@ -1645,7 +1482,7 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
       if (scs.ofs)
       {
         scs.ofs--;
-        scs.sz = crt.pools[i].topOfs - scs.ofs;
+        scs.sz = crtPools[i].topOfs - scs.ofs;
       }
       else
       {
@@ -1684,6 +1521,8 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
     }
   }
 
+  uint32_t nonEmptyPoolsBegin = p_cnt;
+  uint32_t nonEmptyPoolsEnd = 0;
   uint32_t nonEmptyPools = 1;
   for (int i = 0; i < p_cnt; i++)
   {
@@ -1693,7 +1532,10 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
 
     crt.scsRemap[i] = total > 0 ? nonEmptyPools : 0;
     nonEmptyPools += total > 0 ? 1 : 0;
+    nonEmptyPoolsBegin = eastl::min(nonEmptyPoolsBegin, total > 0 ? uint32_t(i) : nonEmptyPoolsBegin);
+    nonEmptyPoolsEnd = eastl::max(nonEmptyPoolsEnd, total > 0 ? uint32_t(i) + 1 : nonEmptyPoolsEnd);
   }
+  nonEmptyPoolsBegin = eastl::min(nonEmptyPoolsBegin, nonEmptyPoolsEnd);
 
   clear_and_resize(crt.scs, SUBCELL_DIV * SUBCELL_DIV * nonEmptyPools);
   mem_set_0(crt.scs);
@@ -1742,7 +1584,7 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
 
         bool posInst = rtData->riPosInst[poolDestr.poolIdx];
         int stride_w = RIGEN_STRIDE_B(posInst, rtData->riZeroInstSeeds[poolDestr.poolIdx], perInstDataDwords) / 2;
-        uint8_t *basePoolPtr = vbPtr + crt.pools[poolDestr.poolIdx].baseOfs;
+        uint8_t *basePoolPtr = vbPtr + crtPools[poolDestr.poolIdx].baseOfs;
         for (auto &range : poolDestr.destroyedInstances)
         {
           for (int16_t *data = (int16_t *)(basePoolPtr + range.startOffs), *data_e = (int16_t *)(basePoolPtr + range.endOffs);
@@ -1767,12 +1609,219 @@ RendInstGenData::CellRtData *RendInstGenData::generateCell(int x, int z)
     fcrd.endBlock();
   }
 
-  // int ri_count = 0;
-  // for (int i = 0; i < p_cnt; i ++)
-  //   ri_count +=  crt.pools[i].total - crt.pools[i].avail;
-  // debug("cell (%2d,%2d): %d inst", x, z, ri_count);
+  if (!rendinst::persistentRiExtraInstances)
+    for (int i = 0; i < riExtraIdxPair.size(); i += 2)
+      crtPools[riExtraIdxPair[i]].avail = 0;
+
+#if _TARGET_PC_TOOLS_BUILD
+  // leave empty pools with .avail > 0 to be properly accounted in RendInstGenData::CellRtData::update()
+  for (int i = 0; i < crtPools.size(); i++)
+    if (crtPools[i].avail > 0)
+    {
+      if (nonEmptyPoolsBegin > i)
+        nonEmptyPoolsBegin = i;
+      else if (nonEmptyPoolsEnd <= i)
+        nonEmptyPoolsEnd = i + 1;
+    }
+#endif
+  crt.pools.setDataSpanAndSeal(nonEmptyPoolsBegin, nonEmptyPoolsEnd);
+
+  if (0)
+  {
+    int ri_count = 0;
+    for (int i = 0; i < p_cnt; i++)
+      ri_count += crt.pools[i].avail >= 0 ? crt.pools[i].total - crt.pools[i].avail : 0;
+    debug("cell (%2d,%2d): %d inst (+%d riex)", x, z, ri_count, crt.riexHandles.size());
+  }
   crt_ptr->cellStateFlags &= ~RendInstGenData::CellRtData::STATIC_SHADOW_RENDERED;
   return crt_ptr;
+}
+
+void RendInstGenData::generateRiExFromPregenData(int riex_idx, RendInstGenData::CellRtData &crt, vec3f v_cell_add, vec3f v_cell_mul,
+  uint8_t *ptr, unsigned cnt, unsigned stride, bool zeroInstSeeds, const rendinst::DestroyedCellData &extraDestrData, bool store)
+{
+  const rendinst::DestroyedPoolData *poolExtraData = nullptr;
+  if (extraDestrData.cellId > 0)
+    poolExtraData = extraDestrData.getPool(riex_idx);
+  int x_ofs = (rendinst::tmInst12x32bit ? 4 * 3 + 2 : 2 * 3);
+  int y_ofs = (rendinst::tmInst12x32bit ? 4 * 7 + 2 : 2 * 7);
+  int z_ofs = (rendinst::tmInst12x32bit ? 4 * 11 + 2 : 2 * 11);
+  int curDestrRange = 0;
+  int originalRiPool = rendinst::riExtra[riex_idx].riPoolRef;
+  bool canBeExcl = useDestrExclForPregenAdd && rtData->riDestr.size() && originalRiPool >= 0 && // debris inited
+                   rendinst::getRgLayer(rendinst::riExtra[riex_idx].riPoolRefLayer) == this &&
+                   !rtData->riProperties[originalRiPool].immortal && !rtData->riDestr[originalRiPool].destructable;
+
+  int cur_cell_id = rendinst::gen::SingleEntityPool::cur_cell_id;
+  int cur_ri_extra_ord = rendinst::gen::SingleEntityPool::cur_ri_extra_ord;
+
+  for (uint8_t *ptr_e = ptr + stride * cnt; ptr < ptr_e; ptr += stride)
+  {
+    float px =
+      *(int16_t *)(ptr + x_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::ox;
+    float pz =
+      *(int16_t *)(ptr + z_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::oz;
+    bool isInDestr = false;
+    if (poolExtraData)
+    {
+      for (; curDestrRange < poolExtraData->destroyedInstances.size(); ++curDestrRange)
+      {
+        if (poolExtraData->destroyedInstances[curDestrRange].endOffs > cur_ri_extra_ord)
+        {
+          isInDestr |= cur_ri_extra_ord >= poolExtraData->destroyedInstances[curDestrRange].startOffs;
+          break;
+        }
+      }
+    }
+    rendinst::RiExtraPool &riPool = rendinst::riExtra[riex_idx];
+    if ((canBeExcl && rendinst::gen::destrExcl.isMarked(px, pz)) || rendinst::gen::SingleEntityPool::intersectWithSweepBoxes(px, pz) ||
+        (isInDestr && riPool.destrDepth == 0))
+    {
+      cur_ri_extra_ord += 16 * (riPool.destrDepth + 1);
+      continue;
+    }
+    mat44f tm;
+    if (!rendinst::tmInst12x32bit)
+    {
+      rendinst::gen::unpack_tm_full(tm, (int16_t *)ptr, v_cell_add, v_cell_mul);
+      // Note: 16-bit quantization is quite inaccurate so orthonormalize it to match with collision
+      vec3f ls = v_sqrt(v_perm_xzac(v_perm_xycd(v_length3_sq(tm.col0), v_length3_sq(tm.col1)), v_length3_sq(tm.col2)));
+      v_mat44_orthonormalize33(tm, tm);
+      tm.col0 = v_mul(tm.col0, v_splat_x(ls));
+      tm.col1 = v_mul(tm.col1, v_splat_y(ls));
+      tm.col2 = v_mul(tm.col2, v_splat_z(ls));
+    }
+    else
+      rendinst::gen::unpack_tm32_full(tm, (int32_t *)ptr, v_cell_add, v_cell_mul);
+    tm.col3 = rendinst::gen::custom_update_pregen_pos_y(tm.col3, (int16_t *)(ptr + y_ofs), rendinst::gen::SingleEntityPool::cell_y_sz,
+      rendinst::gen::SingleEntityPool::oy);
+    if (v_extract_x(v_mat44_det43(tm)) < 0.f)
+    {
+      logerr("RiExtra <%s> instance at pos %@ has inverted matrix", rendinst::riExtraMap.getName(riex_idx), tm.col3);
+      tm.col0 = v_neg(tm.col0);
+    }
+
+    v_bbox3_add_transformed_box(crt.pregenRiExtraBbox, tm, riPool.lbb);
+
+    int eff_riex_idx = riex_idx;
+    if (isInDestr)
+    {
+      cur_ri_extra_ord += 16;
+      for (eff_riex_idx = riPool.destroyedRiIdx; eff_riex_idx >= 0; eff_riex_idx = rendinst::riExtra[eff_riex_idx].destroyedRiIdx)
+      {
+        poolExtraData = extraDestrData.getPool(eff_riex_idx);
+        if (!poolExtraData || !poolExtraData->isInRange(cur_ri_extra_ord))
+          break;
+        cur_ri_extra_ord += 16;
+      }
+    }
+    if (eff_riex_idx >= 0)
+    {
+      const int32_t *per_inst_data = (perInstDataDwords && !zeroInstSeeds) ? (int *)(ptr + stride - 4 * perInstDataDwords) : nullptr;
+      // debug("add riEx(%d) seed=%08X  %.3f, %.3f", eff_riex_idx, *per_inst_data, px, pz);
+
+      int ndw = zeroInstSeeds ? 0 : perInstDataDwords;
+      constexpr bool hasColl = true, onLoad = true;
+      auto riH = rendinst::addRIGenExtra44(eff_riex_idx, tm, hasColl, cur_cell_id, cur_ri_extra_ord, ndw, per_inst_data, onLoad);
+      cur_ri_extra_ord += 16 * (rendinst::riExtra[eff_riex_idx].destrDepth + 1);
+      if (auto cb = interlocked_acquire_load_ptr(riExtraAddFromGenDataCb))
+        cb(riH);
+      if (store)
+        crt.riexHandles[rendinst::gen::SingleEntityPool::ri_extra_counter++] = riH;
+    }
+  }
+  rendinst::gen::SingleEntityPool::cur_ri_extra_ord = cur_ri_extra_ord;
+}
+
+void RendInstGenData::processRiGenFromPregenData(int ri_idx, EntPool &pool, vec3f v_cell_add, vec3f v_cell_mul, uint8_t *ptr,
+  unsigned cnt, int stride, dag::ConstSpan<uint8_t> buf_tm32, dag::ConstSpan<uint8_t> buf_w16, uint8_t *vbPtr, bool from_RIGz)
+{
+  bool pos_inst = rtData->riPosInst[ri_idx];
+  bool palette_rotation = rtData->riPaletteRotation[ri_idx];
+  bool zeroInstSeeds = rtData->riZeroInstSeeds[ri_idx];
+  int dest_stride = RIGEN_STRIDE_B(pos_inst, zeroInstSeeds, perInstDataDwords);
+  int dest_adata = pos_inst ? 0 : RIGEN_ADD_STRIDE_PER_INST_B(zeroInstSeeds, perInstDataDwords);
+  int src_adata = zeroInstSeeds ? 0 : perInstDataDwords * 4;
+
+  pool.topOfs += cnt * dest_stride;
+
+  bbox3f lbb = rtData->riResBb[ri_idx];
+  bool canBeExcl = useDestrExclForPregenAdd && rtData->riDestr.size() && // debris inited
+                   !rtData->riProperties[ri_idx].immortal && !rtData->riDestr[ri_idx].destructable;
+  int x_ofs = pos_inst ? 2 * 0 : (rendinst::tmInst12x32bit ? 4 * 3 + 2 : 2 * 3);
+  int y_ofs = pos_inst ? 2 * 1 : (rendinst::tmInst12x32bit ? 4 * 7 + 2 : 2 * 7);
+  int z_ofs = pos_inst ? 2 * 2 : (rendinst::tmInst12x32bit ? 4 * 11 + 2 : 2 * 11);
+  for (uint8_t *ptr_e = ptr + stride * cnt; ptr < ptr_e; ptr += stride)
+  {
+    float px =
+      *(int16_t *)(ptr + x_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::ox;
+    float pz =
+      *(int16_t *)(ptr + z_ofs) * rendinst::gen::SingleEntityPool::cell_xz_sz / 32767.0f + rendinst::gen::SingleEntityPool::oz;
+    if ((canBeExcl && rendinst::gen::destrExcl.isMarked(px, pz)) || rendinst::gen::SingleEntityPool::intersectWithSweepBoxes(px, pz))
+    {
+      if (pos_inst)
+        *(int16_t *)(ptr + 2 * 3) = 0;
+      else if (!rendinst::tmInst12x32bit)
+        *(int16_t *)(ptr + 2 * 0) = *(int16_t *)(ptr + 2 * 1) = *(int16_t *)(ptr + 2 * 2) = *(int16_t *)(ptr + 2 * 4) =
+          *(int16_t *)(ptr + 2 * 5) = *(int16_t *)(ptr + 2 * 6) = *(int16_t *)(ptr + 2 * 8) = *(int16_t *)(ptr + 2 * 9) =
+            *(int16_t *)(ptr + 2 * 10) = 0;
+      else
+        *(int *)(ptr + 4 * 0) = *(int *)(ptr + 4 * 1) = *(int *)(ptr + 4 * 2) = *(int *)(ptr + 4 * 4) = *(int *)(ptr + 4 * 5) =
+          *(int *)(ptr + 4 * 6) = *(int *)(ptr + 4 * 8) = *(int *)(ptr + 4 * 9) = *(int *)(ptr + 4 * 10) = 0;
+      continue;
+    }
+    if (pos_inst)
+    {
+      vec4f pos, scale;
+      rendinst::gen::unpack_tm_pos(pos, scale, (int16_t *)ptr, v_cell_add, v_cell_mul, palette_rotation);
+      pos = rendinst::gen::custom_update_pregen_pos_y(pos, (int16_t *)(ptr + y_ofs), rendinst::gen::SingleEntityPool::cell_y_sz,
+        rendinst::gen::SingleEntityPool::oy);
+      float pos_y =
+        clamp((v_extract_y(pos) - rendinst::gen::SingleEntityPool::oy) / rendinst::gen::SingleEntityPool::cell_y_sz, -1.0f, 1.0f);
+      *((int16_t *)(ptr + y_ofs)) = (int16_t)roundf(pos_y * 32767.0f);
+      v_bbox3_add_pt(rendinst::gen::SingleEntityPool::bbox, v_madd(lbb.bmin, scale, pos));
+      v_bbox3_add_pt(rendinst::gen::SingleEntityPool::bbox, v_madd(lbb.bmax, scale, pos));
+    }
+    else
+    {
+      mat44f tm;
+      if (!rendinst::tmInst12x32bit)
+        rendinst::gen::unpack_tm_full(tm, (int16_t *)ptr, v_cell_add, v_cell_mul);
+      else
+      {
+        rendinst::gen::unpack_tm32_full(tm, (int32_t *)ptr, v_cell_add, v_cell_mul);
+        *(int16_t *)(ptr + y_ofs - 2) = 0;
+      }
+      tm.col3 = rendinst::gen::custom_update_pregen_pos_y(tm.col3, (int16_t *)(ptr + y_ofs),
+        rendinst::gen::SingleEntityPool::cell_y_sz, rendinst::gen::SingleEntityPool::oy);
+      float pos_y =
+        clamp((v_extract_y(tm.col3) - rendinst::gen::SingleEntityPool::oy) / rendinst::gen::SingleEntityPool::cell_y_sz, -1.0f, 1.0f);
+      *((int16_t *)(ptr + y_ofs)) = (int16_t)roundf(pos_y * 32767.0f);
+      v_bbox3_add_transformed_box(rendinst::gen::SingleEntityPool::bbox, tm, lbb);
+    }
+  }
+
+  // Copy only base data without additional (for editor case)
+  if (buf_tm32.size())
+    copy_interlaced_buf(cnt, pool.topPtr(vbPtr), dest_stride, buf_tm32.data() + 2, 4, //
+      from_RIGz ? stride - dest_stride * 2 : src_adata, from_RIGz ? 0 : dest_adata);
+  else if (buf_w16.size())
+    copy_interlaced_buf(cnt, pool.topPtr(vbPtr), dest_stride, buf_w16.data(), 2, //
+      from_RIGz ? stride - dest_stride : src_adata, from_RIGz ? 0 : dest_adata);
+
+#if RIGEN_PERINST_ADD_DATA_FOR_TOOLS // use additional data as hashVal only when in Tools (De3X, AV2)
+  // We need second pass because in the first we used high 16bits of 32bits values, but for additional we need low 16bits
+  int dest_shift = dest_stride - dest_adata;
+  int src_shift = stride - src_adata;
+  int skip_stride = dest_stride - (zeroInstSeeds ? 0 : perInstDataDwords * sizeof(uint32_t));
+  if (buf_tm32.size())
+    copy_interlaced_buf(cnt, pool.topPtr(vbPtr) + dest_shift, dest_stride, buf_tm32.data() + src_shift, 2, src_shift, skip_stride);
+  else if (buf_w16.size() && dest_adata > 0)
+  {
+    // src_step is set to 2 so the entire stride is copied without gaps (full 32 bit seed)
+    copy_interlaced_buf(cnt, pool.topPtr(vbPtr) + dest_shift, dest_stride, buf_w16.data() + src_shift, 2, src_shift, skip_stride);
+  }
+#endif
 }
 
 void rendinst::configurateRIGen(const DataBlock &riSetup)
@@ -1822,7 +1871,15 @@ void rendinst::initRIGen(bool need_render, int cell_pool_sz, float poi_radius, r
     configurateRIGen(DataBlock::emptyBlock);
   }
 
+  rendinst::allowOptimizeCollResOnLoad =
+    ::dgs_get_game_params()->getBool("rendinstAllowOptimizeCollResOnLoad", rendinst::allowOptimizeCollResOnLoad);
+  if (!rendinst::allowOptimizeCollResOnLoad)
+    debug("RI-collres expected to be optimized in buildtime");
+
   rendinst::maxExtraRiCount = ::dgs_get_game_params()->getInt("rendinstExtraMaxCnt", 4000);
+  rendinst::persistentRiExtraInstances = ::dgs_get_game_params()->getBool("persistentRiExtra", rendinst::persistentRiExtraInstances);
+  if (!rendinst::persistentRiExtraInstances)
+    debug("non-persistentRiExtraInstances are used");
   rendinst::extendTreeRiExtraTreeBbox = ::dgs_get_game_params()
                                           ->getBlockByNameEx("treeDestractible")
                                           ->getBlockByNameEx("branchDestr")
@@ -1832,6 +1889,13 @@ void rendinst::initRIGen(bool need_render, int cell_pool_sz, float poi_radius, r
   {
     rendinst::render::instancingTexRegNo = 14;
     logerr("\"per_instance_data_no\" shader var not exist, using 14 as fallback");
+  }
+
+  if (need_render &&
+      !ShaderGlobal::get_int_by_name("ri_additional_instance_offsets_data_no", rendinst::render::additionalInstancingTexRegNo))
+  {
+    rendinst::render::additionalInstancingTexRegNo = 15;
+    logerr("\"ri_additional_instance_offsets_data_no\" shader var not exist, using 15 as fallback");
   }
 
   externalJobId = job_manager_id;
@@ -1944,7 +2008,8 @@ void rendinst::initRIGen(bool need_render, int cell_pool_sz, float poi_radius, r
     rgAttr.resize(rgPrimaryLayers);
   }
 #endif
-  rotationPaletteManager = eastl::make_unique<rendinst::gen::RotationPaletteManager>();
+  if (!rotationPaletteManager)
+    rotationPaletteManager = eastl::make_unique<rendinst::gen::RotationPaletteManager>();
 
   if (!render::meshRElemsUpdatedCbToken)
     render::meshRElemsUpdatedCbToken =
@@ -2069,6 +2134,18 @@ uint8_t rendinst::getResHideMask(const char *res_name, const BBox3 *lbox)
   return (mode0 ? 0 : 1) | (mode1 ? 0 : 2) | (mode2 ? 0 : 4);
 }
 
+float rendinst::getMaxRiGenLoadingDistance()
+{
+  float maxDist = 0;
+  FOR_EACH_RG_LAYER_DO (rgl)
+  {
+    float poi_rad = rendinst::rgAttr[_layer].poiRad;
+    poi_rad = poi_rad < 0 ? rgl->rtData->preloadDistance : poi_rad;
+    maxDist = max(maxDist, poi_rad);
+  }
+  return maxDist;
+}
+
 void rendinst::registerRIGenSweepAreas(dag::ConstSpan<TMatrix> box_itm_list)
 {
   ScopedLockAllRgLayersForWrite lock;
@@ -2081,10 +2158,10 @@ void rendinst::registerRIGenSweepAreas(dag::ConstSpan<TMatrix> box_itm_list)
   {
     TMatrix tm = inverse(box_itm_list[i]);
     full_sweep_wbox_list[i].setempty();
-    full_sweep_wbox_list[i] += Point2::xz(tm * Point3(-1, 0, -1));
-    full_sweep_wbox_list[i] += Point2::xz(tm * Point3(-1, 0, 1));
-    full_sweep_wbox_list[i] += Point2::xz(tm * Point3(1, 0, 1));
-    full_sweep_wbox_list[i] += Point2::xz(tm * Point3(1, 0, -1));
+    full_sweep_wbox_list[i] += Point2::xz(tm * Point3(-0.5f, 0, -0.5f));
+    full_sweep_wbox_list[i] += Point2::xz(tm * Point3(-0.5f, 0, 0.5f));
+    full_sweep_wbox_list[i] += Point2::xz(tm * Point3(0.5f, 0, 0.5f));
+    full_sweep_wbox_list[i] += Point2::xz(tm * Point3(0.5f, 0, -0.5f));
   }
 
   FOR_EACH_RG_LAYER_DO (rgl)
@@ -2094,7 +2171,7 @@ void rendinst::registerRIGenSweepAreas(dag::ConstSpan<TMatrix> box_itm_list)
       debug("reset %d loaded cells (due to sweep areas changed)", ld.size());
       for (auto ldi : ld)
         if (RendInstGenData::CellRtData *crt = rgl->cells[ldi].rtData)
-          crt->clear();
+          crt->clearAllWithRiEx();
 
       rgl->rtData->loaded.reset();
       rgl->rtData->lastPoi.set(-1e6, 1e6);
@@ -2114,11 +2191,30 @@ void rendinst::regenerateRIGen()
       debug("reset %d loaded cells", ld.size());
       for (auto ldi : ld)
         if (RendInstGenData::CellRtData *crt = rgl->cells[ldi].rtData)
-          crt->clear();
+          crt->clearAllWithRiEx();
 
       rgl->rtData->loaded.reset();
       rgl->rtData->lastPoi = Point2(-1000000, 1000000);
     }
+}
+
+void RendInstGenData::CellRtData::clearRiEx(dag::Span<rendinst::riex_handle_t> &riex_handles, unsigned max_time_quant_usec)
+{
+  if (auto *h_ptr = riex_handles.data())
+  {
+    riex_handles.set(nullptr, riex_handles.size());
+    uint64_t time = profile_ref_ticks();
+    for (int i = riex_handles.size() - 1; i >= 0; i--)
+    {
+      rendinst::delRIGenExtra(h_ptr[i]);
+      if (profile_time_usec(time) > max_time_quant_usec)
+      {
+        sleep_msec(1);
+        time = profile_ref_ticks();
+      }
+    }
+    memfree(h_ptr, midmem);
+  }
 }
 
 struct RiGenCellSortPredicate
@@ -2187,10 +2283,17 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
     {
       // debug("unload %d,%d", idx%rgl->cellNumW, idx/rgl->cellNumW);
       G_ASSERT((unsigned)idx < rgl->cells.size());
+      auto riexHandles = clearRiGen();
+      if (riexHandles.size() > 0)
+        RendInstGenData::CellRtData::clearRiEx(riexHandles, 5000);
+    }
 
+    dag::Span<rendinst::riex_handle_t> clearRiGen()
+    {
       ScopedLockWrite lock(rgl->rtData->riRwCs);
       bool wasReady = rgl->cells[idx].isReady();
       RendInstGenData::CellRtData *crt = rgl->cells[idx].rtData;
+      dag::Span<rendinst::riex_handle_t> riex = {nullptr, 0};
       if (crt) // Note: actual data deleted in dtor (to be able safely read it from main thread)
         unloadedCellData = eastl::move((RendInstGenData::CellRtDataLoaded &)*crt);
       rgl->rtData->loaded.delInt(idx);
@@ -2211,10 +2314,18 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
               rgl->rtData->loadedCellsBBox += IPoint2(cellI % cell_stride, cellI / cell_stride);
           }
         }
+
+        if (!rendinst::persistentRiExtraInstances && crt)
+        {
+          riex = crt->riexHandles;
+          crt->riexHandles.set(nullptr, crt->riexHandles.size());
+        }
       }
       if (crt)
-        crt->clear();
+        crt->clearAllWithRiEx();
+      return riex;
     }
+
     virtual unsigned getJobTag() override { return tag; };
     virtual void releaseJob() override { delete this; }
   };
@@ -2395,7 +2506,7 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
         if (extra_cnt <= 0)
           break;
       }
-    for (int i = 0; i < toLoad.getList().size(); i++)
+    for (int i = 0; i < toLoad.getList().size();)
       if (!reqCells.hasInt(toLoad.getList()[i]))
       {
         int idx = toLoad.getList()[i];
@@ -2405,6 +2516,8 @@ static int scheduleRIGenPrepare(RendInstGenData *rgl, dag::ConstSpan<Point3> poi
         if (extra_cnt <= 0)
           break;
       }
+      else
+        i++;
   }
 
   if (newCells.size())
@@ -2588,8 +2701,8 @@ static void prepareRIGen(RendInstGenData *rgl, int layer_idx, const DataBlock *l
     if (rgl->landCls[i].asset)
       continue;
 
-    rgl->landCls[i].asset = (rendinst::gen::land::AssetData *)::get_game_resource_ex(
-      GAMERES_HANDLE_FROM_STRING(rgl->landCls[i].landClassName), rendinst::gen::land::HUID_LandClass);
+    rgl->landCls[i].asset =
+      (rendinst::gen::land::AssetData *)::get_game_resource_ex(rgl->landCls[i].landClassName, rendinst::gen::land::HUID_LandClass);
     debug("land %s =%p", rgl->landCls[i].landClassName.get(), rgl->landCls[i].asset);
     if (!rgl->landCls[i].asset)
       rgl->landCls[i].asset = &rendinst::gen::land::AssetData::emptyLandStub;
@@ -2703,6 +2816,7 @@ void rendinst::precomputeRIGenCellsAndPregenerateRIExtra()
         ri_count += rgl->precomputeCell(*crt, x, z);
         cell.rtData = crt;
       }
+  shrinkToFitRiEx();
   debug("%s done, ri_count=%d", __FUNCTION__, ri_count);
 }
 
@@ -2753,21 +2867,6 @@ void rendinst::updateRiDestrFxIds(FxTypeByNameCallback get_fx_type_by_name)
     if (const auto rtData = rgl->rtData)
       for (auto &riDestr : rtData->riDestr)
         riDestr.destrFxId = get_fx_type_by_name(riDestr.destrFxName);
-}
-
-void rendinst::initRiSoundOccluders(const dag::ConstSpan<eastl::pair<const char *, const char *>> &ri_name_to_occluder_type,
-  const dag::ConstSpan<eastl::pair<const char *, float>> &occluders)
-{
-  G_ASSERT_RETURN(!RendInstGenData::isLoading, );
-  FOR_EACH_RG_LAYER_DO (rgl)
-  {
-    if (!rgl->rtData)
-      continue;
-    if (!rendinst::isRgLayerPrimary(_layer))
-      continue;
-
-    rgl->rtData->initRiSoundOccluders(ri_name_to_occluder_type, occluders);
-  }
 }
 
 float rendinst::debugGetSoundOcclusion(const char *ri_name, float def_value)
@@ -2848,7 +2947,7 @@ void rendinst::enableSecLayer(bool en)
         debug("reset %d loaded cells", ld.size());
         for (auto ldi : ld)
           if (RendInstGenData::CellRtData *crt = rgl->cells[ldi].rtData)
-            crt->clear();
+            crt->clearAllWithRiEx();
 
         rgl->rtData->loaded.reset();
         rgl->rtData->lastPoi.set(-1e6, 1e6);
@@ -2886,21 +2985,9 @@ bool RendInstGenData::updateLClassColors(const char *name, E3DCOLOR from, E3DCOL
 }
 
 
-void rendinst::registerRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb cb)
+rendinst::ri_added_from_rigendata_cb_t rendinst::setRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb_t cb)
 {
-  if (find_value_idx(riExtraAddFromGenDataCallbacks, cb) == -1)
-    riExtraAddFromGenDataCallbacks.push_back(cb);
-}
-
-bool rendinst::unregisterRiExtraAddedFromGenDataCb(ri_added_from_rigendata_cb cb)
-{
-  return erase_item_by_value(riExtraAddFromGenDataCallbacks, cb);
-}
-
-void rendinst::onRiExtraAddedFromGenData(riex_handle_t id)
-{
-  for (auto cb : riExtraAddFromGenDataCallbacks)
-    cb(id);
+  return interlocked_exchange_ptr(riExtraAddFromGenDataCb, cb);
 }
 
 void rendinst::registerRiGenCellLoadedCb(ri_gen_cell_loaded_cb cb)

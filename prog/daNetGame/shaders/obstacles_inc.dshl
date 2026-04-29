@@ -1,0 +1,134 @@
+buffer obstacle_indices_buf;
+const_buffer obstacles_buf;
+buffer obstacle_prev_indices_buf;
+const_buffer obstacles_prev_buf;
+
+macro INIT_OBSTACLES(code)
+  (code)
+  {
+    obstacle_indices@buf = obstacle_indices_buf hlsl {
+      StructuredBuffer<uint> obstacle_indices@buf;//fixme: move that to generate phase! it is totally doable, since all we do in the end is squash one direction
+    };
+    obstacles_indirection@cbuf = obstacles_buf hlsl {
+      #include "obstacleStruct.hlsli"
+      cbuffer obstacles_indirection@cbuf
+      {
+        ObstaclesData obstacles;
+      };
+    }
+  }
+endmacro
+
+macro INIT_OBSTACLES_PREV(code)
+  (code)
+  {
+    obstacle_prev_indices@buf = obstacle_prev_indices_buf hlsl {
+      StructuredBuffer<uint> obstacle_prev_indices@buf;
+    };
+    obstacles_prev_indirection@cbuf = obstacles_prev_buf hlsl {
+      #include "obstacleStruct.hlsli"
+      cbuffer obstacles_prev_indirection@cbuf
+      {
+        ObstaclesData obstacles_prev;
+      };
+    }
+  }
+endmacro
+
+macro USE_OBSTACLES(code)
+  hlsl(code)
+  {
+    float4 sdBoxNorm(float3 localPos, float3 boxExt)
+    {
+      float3 dist = abs(localPos) - boxExt;
+      float insideDist = min(max(max(dist.x, dist.y), dist.z), 0);
+      float3 ptOnBox = max(dist, 0);
+      float outsideDist = length(ptOnBox);
+      float signedDist = outsideDist + insideDist;
+      float3 norm;
+      FLATTEN
+      if (signedDist <= 0)
+        norm = (float3(insideDist == dist.x, insideDist == dist.y, insideDist == dist.z));
+      else
+        norm = ptOnBox/(outsideDist+1e-6);
+      norm = (localPos < 0 ? -norm : norm);
+      return float4(signedDist, norm);
+    }
+
+    float3 offsetFromObstacle( float3 worldPivot, float3 worldPos, float4 dir_x, float4 dir_y, float4 dir_z, float3 boxSize, float sz, float height, float rad, out float effect)
+    {
+      float3 center = float3(dir_x.w, dir_y.w, dir_z.w);
+      float3 relPos = worldPos - center;
+      float3 local_pos = mul(float3x3(dir_x.xyz, dir_y.xyz, dir_z.xyz), relPos);
+
+      effect = 0;
+      float3 ret = 0;
+
+      float4 distToBoxNorm = sdBoxNorm(local_pos, 0.5*boxSize+rad);
+      if (distToBoxNorm.x<0)
+      {
+        float3 moveDir = -distToBoxNorm.yzw*distToBoxNorm.x;
+        moveDir = mul(moveDir, float3x3(dir_x.xyz, dir_y.xyz, dir_z.xyz));
+        float radDist = (-distToBoxNorm.x/rad);
+        float squashed = saturate(radDist-1);//grass is totally squashed
+        moveDir.y = -abs(moveDir.y);//don't allow grass move up
+        moveDir = lerp(moveDir, float3(0,-height,0) + rad*normalize(float3(relPos.x, 0, relPos.z)), squashed);
+        ret = moveDir;
+        effect = saturate(radDist*2);
+      }
+      return ret;
+    }
+
+    float3 apply_obstacles_common(float3 worldPivot, float3 worldPos, float verticalPos, float2 height_horSize, ObstaclesData obsData, StructuredBuffer<uint> obst_indices)
+    {
+      float2 pos = worldPivot.xz-obsData.indirection_lt;
+      pos.xy /= obsData.indirection_cell;
+      float2 vignette = abs((pos.xy/obsData.indirection_wd)*2-1);
+      float vignetteEffect = saturate(10-9*dot(vignette,vignette));
+      if (vignetteEffect==0 || obsData.indirection_wd == 0 || verticalPos == 0)
+        return 0;
+      uint2 coord = clamp(uint2(pos.xy), 0U, obsData.indirection_wd-1);
+      uint index = coord.x+coord.y*obsData.indirection_wd;
+
+      float3 totalOfs = 0;
+      uint obstIndCount = structuredBufferAt(obst_indices, index);
+      uint obstIndStart = obstIndCount>>OBSTACLE_OFFSET_BIT_SHIFT;
+      uint obstIndEnd = (obstIndCount&((1U<<OBSTACLE_OFFSET_BIT_SHIFT) - 1)) + obstIndStart;
+
+      float ceffect = 1;
+      float height = 0.8*height_horSize.y;
+      float radius = 0.5*height_horSize.x;
+      worldPos = worldPivot + float3(0,height,0);//instead of float worldPos, use offseted pivot. So whole grass move one direction
+      for (uint i = obstIndStart; i < obstIndEnd; ++i)
+      {
+        uint index = structuredBufferAt(obst_indices, i);
+        float effect;
+        float3 ofs = offsetFromObstacle( worldPivot, worldPos+totalOfs,
+                                         obsData.obstacles[index].dir_x,
+                                         obsData.obstacles[index].dir_y,
+                                         obsData.obstacles[index].dir_z,
+                                         obsData.obstacles[index].box.xyz,
+                                         verticalPos, height, radius, effect);
+        totalOfs += ofs*ceffect;
+
+        //compiler workaround:
+        ceffect = saturate(ceffect * saturate(1-effect));//this saturate is required because compiler generate something bad otherwise (and ceffect is not corret)
+      }
+      return totalOfs*vignetteEffect;
+    }
+
+    float3 apply_obstacles(float3 worldPivot, float3 worldPos, float verticalPos, float2 height_horSize)
+    {
+      return apply_obstacles_common(worldPivot, worldPos, verticalPos, height_horSize, obstacles, obstacle_indices);
+    }
+
+    float3 apply_obstacles_prev(float3 worldPivot, float3 worldPos, float verticalPos, float2 height_horSize)
+    {
+    #if HAS_PREV_OBSTACLES
+      return apply_obstacles_common(worldPivot, worldPos, verticalPos, height_horSize, obstacles_prev, obstacle_prev_indices);
+    #else
+      return apply_obstacles(worldPivot, worldPos, verticalPos, height_horSize);
+    #endif
+    }
+  }
+endmacro

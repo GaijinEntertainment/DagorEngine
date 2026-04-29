@@ -301,6 +301,8 @@ class Dag_Import_Props(PropertyGroup):
                         description = "Search for Damaged versions")
     with_destr      :BoolProperty(name = "Import destr", default = True,
                         description = "Search for dynamic destr asset")
+    with_dm         :BoolProperty(name = "Import DM", default = True,
+                        description = "Search for related Damage Model")
     filepath        :StringProperty(name = "File Path", default = "", subtype = 'FILE_PATH',
                         description = "Path to file that should be imported", update = upd_imp_filepath)
 # Advanced mode

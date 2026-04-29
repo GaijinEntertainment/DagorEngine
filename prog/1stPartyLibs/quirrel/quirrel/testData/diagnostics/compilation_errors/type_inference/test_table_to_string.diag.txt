@@ -1,0 +1,9 @@
+ERROR: expression of type 'table' cannot be assigned to type 'string'
+testData/diagnostics/compilation_errors/type_inference/test_table_to_string.nut:2:0
+
+// EXPECTED: compile-time error - table assigned to string
+local x: string = { a = 1 }
+^--------------------------
+return x
+
+

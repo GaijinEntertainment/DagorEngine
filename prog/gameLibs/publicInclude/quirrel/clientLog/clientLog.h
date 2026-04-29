@@ -4,7 +4,7 @@
 //
 #pragma once
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 namespace clientlog
 {

@@ -84,7 +84,7 @@ public:
   const char *__stdcall getExporterIdStr() const override { return "anim exp"; }
 
   const char *__stdcall getAssetType() const override { return TYPE; }
-  unsigned __stdcall getGameResClassId() const override { return AnimCharGameResClassId; }
+  unsigned __stdcall getGameResClassId() const override { return AnimGraphGameResClassId; }
   unsigned __stdcall getGameResVersion() const override { return 4; }
 
   void __stdcall onRegister() override {}
@@ -100,7 +100,7 @@ public:
       struct IncludeGather : DataBlock::IFileNotify
       {
         Tab<SimpleString> &files;
-        const char *srcFn;
+        SimpleString srcFn;
         IncludeGather(Tab<SimpleString> &files, const char *src_fn) : files(files), srcFn(src_fn) {}
         void onFileLoaded(const char *fname) override
         {
@@ -112,7 +112,7 @@ public:
         }
       } notify(files, a.getSrcFilePath());
 
-      dblk::load(blk, a.getSrcFilePath(), dblk::ReadFlags(), &notify);
+      dblk::load(blk, notify.srcFn, dblk::ReadFlags(), &notify);
     }
   }
 

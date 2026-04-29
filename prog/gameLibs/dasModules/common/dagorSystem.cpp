@@ -101,6 +101,8 @@ public:
       "get_console_model_revision"); // although platform doesn't change in runtime, but AoT will generate one code
     das::addExtern<DAS_BIND_FUN(get_dagor_frame_no)>(*this, lib, "get_dagor_frame_no", das::SideEffects::accessExternal,
       "bind_dascript::get_dagor_frame_no");
+    das::addExtern<DAS_BIND_FUN(get_dagor_frames_presented)>(*this, lib, "get_dagor_frames_presented",
+      das::SideEffects::accessExternal, "bind_dascript::get_dagor_frames_presented");
     das::addExtern<DAS_BIND_FUN(get_dagor_game_act_time)>(*this, lib, "get_dagor_game_act_time", das::SideEffects::accessExternal,
       "bind_dascript::get_dagor_game_act_time");
     das::addExtern<DAS_BIND_FUN(clipboard::set_clipboard_ansi_text)>(*this, lib, "set_clipboard_ansi_text",

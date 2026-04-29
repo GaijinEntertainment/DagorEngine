@@ -141,6 +141,12 @@ bool FastPhysPlugin::end()
 }
 
 
+void FastPhysPlugin::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  mFastPhysEditor.registerEditorCommands(command_system);
+}
+
+
 void FastPhysPlugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *EDITORCORE->getWndManager();

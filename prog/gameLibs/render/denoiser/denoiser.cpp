@@ -1,9 +1,5 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#define ML_NAMESPACE
-#include "ml.h"
-#include "ml.hlsli"
-
 #include <render/denoiser.h>
 #include <shaders/dag_computeShaders.h>
 #include <image/dag_texPixel.h>
@@ -25,6 +21,49 @@
 
 #include "sobol_256_4d.h"
 #include "scrambling_ranking_128x128_2d_1spp.h"
+
+#if defined(_MSC_VER)
+// MSVC: Disable warning C4100 (unused parameter)
+#pragma warning(push)
+#pragma warning(disable : 4100)
+#elif defined(__clang__)
+// Clang: Disable -Wunused-parameter
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-parameter"
+#endif
+
+#ifdef __ARM_NEON
+namespace ml
+{
+struct float16_t_arm
+{
+  uint16_t x;
+
+  inline float16_t_arm() = default;
+  inline float16_t_arm(const float16_t_arm &) = default;
+  inline float16_t_arm &operator=(const float16_t_arm &) = default;
+
+  // Conversion
+
+  inline float16_t_arm(float v);
+  inline operator float() const;
+};
+} // namespace ml
+#define float16_t float16_t_arm
+#endif
+
+
+#define ML_NAMESPACE
+#undef RadToDeg
+#undef DegToRad
+#include "ml.h"
+#include "ml.hlsli"
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 using ml::float2;
 using ml::float3;
@@ -109,17 +148,18 @@ static d3d::SamplerHandle samplerLinearMirror = d3d::INVALID_SAMPLER_HANDLE;
 static UniqueTexHolder scramblingRankingTexture;
 static UniqueTexHolder sobolTexture;
 
-static UniqueBuf reblurSharedCb;
+static UniqueBuf reblurSharedCb_ao;
+static UniqueBuf reblurSharedCb_gi;
+static UniqueBuf reblurSharedCb_reflection;
 
+static int downsampled_close_depth_texVarId = -1;
 static int denoiser_resolutionVarId = -1;
 static int denoiser_view_zVarId = -1;
 static int denoiser_nrVarId = -1;
-static int denoiser_spec_history_confidenceVarId = -1;
 static int denoiser_half_view_zVarId = -1;
 static int denoiser_half_nrVarId = -1;
 static int denoiser_half_normalsVarId = -1;
 static int denoiser_half_resVarId = -1;
-static int denoiser_spec_confidence_half_resVarId = -1;
 
 static int rtao_bindless_slotVarId = -1;
 static int rtsm_bindless_slotVarId = -1;
@@ -132,6 +172,8 @@ static int vsm_bindless_slotVarId = -1;
 static int vsm_sampler_bindless_slotVarId = -1;
 static int rtr_bindless_slotVarId = -1;
 static int rtr_bindless_sampler_slotVarId = -1;
+static int rtr_normal_roughness_bindless_slotVarId = -1;
+static int rtr_normal_roughness_bindless_sampler_slotVarId = -1;
 static int ptgi_bindless_sampler_slotVarId = -1;
 static int ptgi_depth_bindless_sampler_slotVarId = -1;
 static int rtao_bindless_sampler_slotVarId = -1;
@@ -149,6 +191,7 @@ enum
   csm_bindless_index,
   vsm_bindless_index,
   rtr_bindless_index,
+  rtr_normal_roughness_bindless_index,
 
   bindless_texture_count
 };
@@ -219,8 +262,8 @@ struct SigmaSharedConstants
   float2 rectSizePrev;
   float2 resolutionScale;
   float2 rectOffset;
-  int2 printfAt;
-  int2 rectOrigin;
+  uint2 printfAt;
+  uint2 rectOrigin;
   int2 rectSizeMinusOne;
   int2 tilesSizeMinusOne;
   float orthoMode;
@@ -257,11 +300,12 @@ struct ReblurSharedConstants
   float4 frustum;
   float4 frustumPrev;
   float4 cameraDelta;
-  float4 hitDistParams;
+  float4 hitDistSettings;
   float4 viewVectorWorld;
   float4 viewVectorWorldPrev;
   float4 mvScale;
-  float2 antilagParams;
+  float4 convergenceSettings;
+  float2 antilagSettings;
   float2 resourceSize;
   float2 resourceSizeInv;
   float2 resourceSizeInvPrev;
@@ -273,8 +317,8 @@ struct ReblurSharedConstants
   float2 rectOffset;
   float2 specProbabilityThresholdsForMvModification;
   float2 jitter;
-  int2 printfAt;
-  int2 rectOrigin;
+  uint2 printfAt;
+  uint2 rectOrigin;
   int2 rectSizeMinusOne;
   float disocclusionThreshold;
   float disocclusionThresholdAlternate;
@@ -297,9 +341,11 @@ struct ReblurSharedConstants
   float antiFirefly;
   float lobeAngleFraction;
   float roughnessFraction;
-  float responsiveAccumulationRoughnessThreshold;
   float historyFixFrameNum;
   float historyFixBasePixelStride;
+  float historyFixAlternatePixelStride;
+  float historyFixAlternatePixelStrideMaterialID;
+  float fastHistoryClampingSigmaScale;
   float minRectDimMulUnproject;
   float usePrepassNotOnlyForSpecularMotionEstimation;
   float splitScreen;
@@ -310,6 +356,8 @@ struct ReblurSharedConstants
   float minHitDistanceWeight;
   float diffMinMaterial;
   float specMinMaterial;
+  float responsiveAccumulationInvRoughnessThreshold;
+  uint32_t responsiveAccumulationMinAccumulatedFrameNum;
   uint32_t hasHistoryConfidence;
   uint32_t hasDisocclusionThresholdMix;
   uint32_t diffCheckerboard;
@@ -317,13 +365,13 @@ struct ReblurSharedConstants
   uint32_t frameIndex;
   uint32_t isRectChanged;
   uint32_t resetHistory;
+  uint32_t returnHistoryLengthInsteadOfOcclusion;
   // Validation layer
   uint32_t hasDiffuse;
   uint32_t hasSpecular;
 
   uint32_t pad1;
   uint32_t pad2;
-  uint32_t pad3;
 };
 
 static_assert(sizeof(ReblurSharedConstants) % (4 * sizeof(float)) == 0,
@@ -352,8 +400,8 @@ struct RelaxSharedConstants
   float2 rectSizeInv;
   float2 rectSizePrev;
   float2 resourceSizeInvPrev;
-  int2 printfAt;
-  int2 rectOrigin;
+  uint2 printfAt;
+  uint2 rectOrigin;
   int2 rectSize;
   float specMaxAccumulatedFrameNum;
   float specMaxFastAccumulatedFrameNum;
@@ -375,7 +423,7 @@ struct RelaxSharedConstants
   float historyFixEdgeStoppingNormalPower;
   float roughnessEdgeStoppingRelaxation;
   float normalEdgeStoppingRelaxation;
-  float colorBoxSigmaScale;
+  float fastHistoryClampingSigmaScale;
   float historyAccelerationAmount;
   float historyResetTemporalSigmaScale;
   float historyResetSpatialSigmaScale;
@@ -390,13 +438,15 @@ struct RelaxSharedConstants
   float confidenceDrivenLuminanceEdgeStoppingRelaxation;
   float confidenceDrivenNormalEdgeStoppingRelaxation;
   float debug;
-  float OrthoMode;
+  float orthoMode;
   float unproject;
   float framerateScale;
   float checkerboardResolveAccumSpeed;
   float jitterDelta;
   float historyFixFrameNum;
   float historyFixBasePixelStride;
+  float historyFixAlternatePixelStride;
+  float historyFixAlternatePixelStrideMaterialID;
   float historyThreshold;
   float viewZScale;
   float minHitDistanceWeight;
@@ -423,6 +473,16 @@ static_assert(sizeof(RelaxSharedConstants) % (4 * sizeof(float)) == 0,
 
 static int divide_up(int x, int y) { return (x + y - 1) / y; }
 
+static Sbuffer *create_and_update_reblur_cbuffer_if_needed(UniqueBuf &reblur_cb, const ReblurSharedConstants &reblur_shared_constants,
+  const char *name)
+{
+  if (!reblur_cb)
+    reblur_cb = dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<ReblurSharedConstants>(), name, RESTAG_DENOISER);
+
+  reblur_cb->updateData(0, sizeof(ReblurSharedConstants), &reblur_shared_constants, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+  return reblur_cb.getBuf();
+}
+
 void init_blue_noise()
 {
 
@@ -431,7 +491,7 @@ void init_blue_noise()
     static_assert(sizeof(scrambling_ranking_128x128_2d_1spp) == 128 * 128 * 4);
     TexImage32 *image = TexImage32::create(128, 128, tmpmem);
     memcpy(image->getPixels(), scrambling_ranking_128x128_2d_1spp, sizeof(scrambling_ranking_128x128_2d_1spp));
-    scramblingRankingTexture = dag::create_tex(image, 128, 128, TEXFMT_R8G8B8A8, 1, "scrambling_ranking_texture");
+    scramblingRankingTexture = dag::create_tex(image, 128, 128, TEXFMT_R8G8B8A8, 1, "scrambling_ranking_texture", RESTAG_DENOISER);
     scramblingRankingTexture.setVar();
     memfree(image, tmpmem);
   }
@@ -441,7 +501,7 @@ void init_blue_noise()
     static_assert(sizeof(sobol_256_4d) == 256 * 1 * 4);
     TexImage32 *image = TexImage32::create(256, 1, tmpmem);
     memcpy(image->getPixels(), sobol_256_4d, sizeof(sobol_256_4d));
-    sobolTexture = dag::create_tex(image, 256, 1, TEXFMT_R8G8B8A8, 1, "sobol_texture");
+    sobolTexture = dag::create_tex(image, 256, 1, TEXFMT_R8G8B8A8, 1, "sobol_texture", RESTAG_DENOISER);
     sobolTexture.setVar();
     memfree(image, tmpmem);
   }
@@ -454,18 +514,20 @@ void close_blue_noise()
 }
 
 
-void initialize(int w, int h, bool use_ray_reconstruction)
+void initialize(int w, int h, bool use_ray_reconstruction, bool ptgi_use_ray_reconstruction)
 {
   G_ASSERT(w && h);
   G_ASSERT((resolution_config.width == 0 && resolution_config.height == 0) ||
            (resolution_config.width == w && resolution_config.height == h &&
-             use_ray_reconstruction == resolution_config.useRayReconstruction));
+             use_ray_reconstruction == resolution_config.useRayReconstruction &&
+             ptgi_use_ray_reconstruction == resolution_config.ptgiUseRayReconstruction));
 
-  if (
-    resolution_config.width == w && resolution_config.height == h && use_ray_reconstruction == resolution_config.useRayReconstruction)
+  if (resolution_config.width == w && resolution_config.height == h &&
+      use_ray_reconstruction == resolution_config.useRayReconstruction &&
+      ptgi_use_ray_reconstruction == resolution_config.ptgiUseRayReconstruction)
     return;
 
-  resolution_config.init(w, h, use_ray_reconstruction);
+  resolution_config.init(w, h, use_ray_reconstruction, ptgi_use_ray_reconstruction);
 
   if (!prepareCS)
     prepareCS = new_compute_shader("denoiser_prepare");
@@ -616,15 +678,14 @@ void initialize(int w, int h, bool use_ray_reconstruction)
   }
   init_blue_noise();
 
+  downsampled_close_depth_texVarId = get_shader_variable_id("downsampled_close_depth_tex");
   denoiser_resolutionVarId = get_shader_variable_id("denoiser_resolution");
   denoiser_view_zVarId = get_shader_variable_id("denoiser_view_z");
   denoiser_nrVarId = get_shader_variable_id("denoiser_nr");
   denoiser_half_view_zVarId = get_shader_variable_id("denoiser_half_view_z");
   denoiser_half_nrVarId = get_shader_variable_id("denoiser_half_nr");
   denoiser_half_normalsVarId = get_shader_variable_id("denoiser_half_normals");
-  denoiser_spec_history_confidenceVarId = get_shader_variable_id("denoiser_spec_history_confidence");
   denoiser_half_resVarId = get_shader_variable_id("denoiser_half_res");
-  denoiser_spec_confidence_half_resVarId = get_shader_variable_id("denoiser_spec_confidence_half_res");
 
   rtao_bindless_slotVarId = get_shader_variable_id("rtao_bindless_slot");
   rtsm_bindless_slotVarId = get_shader_variable_id("rtsm_bindless_slot");
@@ -637,6 +698,8 @@ void initialize(int w, int h, bool use_ray_reconstruction)
   vsm_sampler_bindless_slotVarId = get_shader_variable_id("vsm_sampler_bindless_slot", true);
   rtr_bindless_slotVarId = get_shader_variable_id("rtr_bindless_slot");
   rtr_bindless_sampler_slotVarId = get_shader_variable_id("rtr_bindless_sampler_slot");
+  rtr_normal_roughness_bindless_slotVarId = get_shader_variable_id("rtr_normal_roughness_bindless_slot");
+  rtr_normal_roughness_bindless_sampler_slotVarId = get_shader_variable_id("rtr_normal_roughness_bindless_sampler_slot");
   ptgi_bindless_sampler_slotVarId = get_shader_variable_id("ptgi_bindless_sampler_slot");
   ptgi_depth_bindless_sampler_slotVarId = get_shader_variable_id("ptgi_depth_bindless_sampler_slot");
   rtao_bindless_sampler_slotVarId = get_shader_variable_id("rtao_bindless_sampler_slot");
@@ -684,6 +747,7 @@ inline void safe_delete(T *&ptr)
 }
 
 bool is_ray_reconstruction_enabled() { return resolution_config.useRayReconstruction; }
+bool is_ptgi_ray_reconstruction_enabled() { return resolution_config.ptgiUseRayReconstruction; }
 
 void teardown()
 {
@@ -741,7 +805,9 @@ void teardown()
 
   close_blue_noise();
 
-  reblurSharedCb.close();
+  reblurSharedCb_ao.close();
+  reblurSharedCb_gi.close();
+  reblurSharedCb_reflection.close();
 
   resolution_config.closeAll();
   frame_counter = 0;
@@ -775,7 +841,7 @@ void add_transient_texture(TexInfoMap &textures, const char *name, int w, int h,
 
 void get_required_persistent_texture_descriptors(TexInfoMap &persistent_textures, bool need_half_res)
 {
-  if (resolution_config.useRayReconstruction)
+  if (resolution_config.useRayReconstruction && resolution_config.ptgiUseRayReconstruction)
     return;
 
   add_persistent_texture(persistent_textures, TextureNames::denoiser_normal_roughness, resolution_config.width,
@@ -815,6 +881,7 @@ void get_required_persistent_texture_descriptors_for_ao(TexInfoMap &persistent_t
     add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_prev_view_z, width, height, TEXFMT_R32F);
     add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_prev_normal_roughness, width, height, TEXFMT_A2R10G10B10);
     add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_prev_internal_data, width, height, TEXFMT_R16UI);
+    add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_diff_history, width, height, TEXFMT_L16);
     add_persistent_texture(persistent_textures, AODenoiser::TextureNames::ao_diff_fast_history, width, height, TEXFMT_L16);
   }
 }
@@ -866,6 +933,8 @@ void get_required_persistent_texture_descriptors_for_rtr(TexInfoMap &persistent_
   else
   {
     ShaderGlobal::set_int(rtr_bindless_sampler_slotVarId,
+      d3d::register_bindless_sampler(resolution_config.rtr.isHalfRes ? samplerLinearClamp : samplerNearestClamp));
+    ShaderGlobal::set_int(rtr_normal_roughness_bindless_sampler_slotVarId,
       d3d::register_bindless_sampler(resolution_config.rtr.isHalfRes ? samplerLinearClamp : samplerNearestClamp));
 
     // division.
@@ -1018,7 +1087,7 @@ void get_required_persistent_texture_descriptors_for_gi(TexInfoMap &persistent_t
   int width = resolution_config.ptgi.width;
   int height = resolution_config.ptgi.height;
 
-  if (resolution_config.useRayReconstruction)
+  if (resolution_config.ptgiUseRayReconstruction)
   {
 
     add_persistent_texture(persistent_textures, GIDenoiser::TextureNames::ptgi_tex_unfiltered, width, height, TEXFMT_A16B16G16R16F);
@@ -1048,7 +1117,7 @@ void get_required_transient_texture_descriptors_for_gi(TexInfoMap &transient_tex
   if (resolution_config.width == 0 || resolution_config.height == 0)
     return;
 
-  if (resolution_config.useRayReconstruction)
+  if (resolution_config.ptgiUseRayReconstruction)
     return;
 
   int width = resolution_config.ptgi.width;
@@ -1077,9 +1146,19 @@ void prepare(const FrameParams &params)
   frame_counter++;
 
   ShaderGlobal::set_int(blue_noise_frame_indexVarId, frame_counter);
+  if (params.dynRes.has_value())
+    resolution_config.dynRes = params.dynRes.value();
+  else
+  {
+    resolution_config.dynRes.res = resolution_config.dynRes.prevRes = IPoint2{resolution_config.width, resolution_config.height};
+    resolution_config.dynRes.halfRes = resolution_config.dynRes.prevHalfRes =
+      IPoint2{resolution_config.width / 2, resolution_config.height / 2};
+  }
 
-  if (resolution_config.useRayReconstruction)
+  if (resolution_config.useRayReconstruction && resolution_config.ptgiUseRayReconstruction)
     return;
+
+  const IPoint2 &renderingResolution = resolution_config.dynRes.res;
 
   auto normal_roughness_iter = params.textures.find(TextureNames::denoiser_normal_roughness);
   G_ASSERT_RETURN(normal_roughness_iter != params.textures.end(), );
@@ -1087,10 +1166,8 @@ void prepare(const FrameParams &params)
   auto view_z_iter = params.textures.find(TextureNames::denoiser_view_z);
   G_ASSERT_RETURN(view_z_iter != params.textures.end(), );
 
-  auto normal_roughness = normal_roughness_iter->second.getTex2D();
-  auto normal_roughness_id = normal_roughness_iter->second.getId();
-  auto view_z = view_z_iter->second.getTex2D();
-  auto view_z_id = view_z_iter->second.getId();
+  auto normal_roughness = normal_roughness_iter->second;
+  auto view_z = view_z_iter->second;
 
   G_ASSERT_RETURN(normal_roughness && view_z, );
 
@@ -1147,8 +1224,8 @@ void prepare(const FrameParams &params)
   float a3 = ml::Sequence::Bayer4x4(uint2(0, 0), frame_counter * 2 + 1) * ml::radians(360.0f);
   rotator_post = ml::Geometry::CombineRotators(ml::Geometry::GetRotator(a2), ml::Geometry::GetRotator(a3));
 
-  Point2 scaledJitter = Point2(jitter.x * resolution_config.width, jitter.y * resolution_config.height);
-  Point2 scaledPrevJitter = Point2(prev_jitter.x * resolution_config.width, prev_jitter.y * resolution_config.height);
+  Point2 scaledJitter = Point2(jitter.x * renderingResolution.x, jitter.y * renderingResolution.y);
+  Point2 scaledPrevJitter = Point2(prev_jitter.x * renderingResolution.x, prev_jitter.y * renderingResolution.y);
 
   float jitterDx = abs(scaledJitter.x - scaledPrevJitter.x);
   float jitterDy = abs(scaledJitter.y - scaledPrevJitter.y);
@@ -1189,42 +1266,49 @@ void prepare(const FrameParams &params)
     max_fast_accumulated_frame_num = maxFastAccumulatedFrameNum + 0.5f;
   }
 
-  auto reblur_history_confidence_iter = params.textures.find(TextureNames::reblur_history_confidence);
-  auto reblur_history_confidence_id =
-    reblur_history_confidence_iter == params.textures.end() ? BAD_TEXTUREID : reblur_history_confidence_iter->second.getId();
+  ShaderGlobal::set_int4(denoiser_resolutionVarId, renderingResolution.x, renderingResolution.y, 0, 0);
+  ShaderGlobal::set_texture(denoiser_view_zVarId, view_z);
+  ShaderGlobal::set_texture(denoiser_nrVarId, normal_roughness);
 
-  ShaderGlobal::set_int(denoiser_spec_confidence_half_resVarId, resolution_config.rtr.isHalfRes ? 1 : 0);
-  ShaderGlobal::set_int4(denoiser_resolutionVarId, resolution_config.width, resolution_config.height, 0, 0);
-  ShaderGlobal::set_texture(denoiser_view_zVarId, view_z_id);
-  ShaderGlobal::set_texture(denoiser_nrVarId, normal_roughness_id);
-  ShaderGlobal::set_texture(denoiser_spec_history_confidenceVarId, reblur_history_confidence_id);
   if ((resolution_config.rtao.width > 0 && resolution_config.rtao.isHalfRes) ||
       (resolution_config.rtr.width > 0 && resolution_config.rtr.isHalfRes) ||
       (resolution_config.ptgi.width > 0 && resolution_config.ptgi.isHalfRes))
   {
+    auto downsampled_close_depth_tex_iter = params.textures.find(TextureNames::half_depth);
     auto half_normal_roughness_iter = params.textures.find(TextureNames::denoiser_half_normal_roughness);
     auto half_view_z_iter = params.textures.find(TextureNames::denoiser_half_view_z);
     auto half_normals_iter = params.textures.find(TextureNames::half_normals);
     G_ASSERT_RETURN(half_normal_roughness_iter != params.textures.end() && half_view_z_iter != params.textures.end() &&
-                      half_normals_iter != params.textures.end(), );
+                      half_normals_iter != params.textures.end() && downsampled_close_depth_tex_iter != params.textures.end(), );
 
-    auto half_normal_roughness_id = half_normal_roughness_iter->second.getId();
-    auto half_view_z_id = half_view_z_iter->second.getId();
-    auto half_normals_id = half_normals_iter->second.getId();
+    auto half_normal_roughness = half_normal_roughness_iter->second;
+    auto half_view_z = half_view_z_iter->second;
+    auto half_normals = half_normals_iter->second;
+    auto downsampled_close_depth_tex = downsampled_close_depth_tex_iter->second;
 
     ShaderGlobal::set_int(denoiser_half_resVarId, 1);
-    ShaderGlobal::set_texture(denoiser_half_view_zVarId, half_view_z_id);
-    ShaderGlobal::set_texture(denoiser_half_normalsVarId, half_normals_id);
-    ShaderGlobal::set_texture(denoiser_half_nrVarId, half_normal_roughness_id);
+    ShaderGlobal::set_texture(denoiser_half_view_zVarId, half_view_z);
+    ShaderGlobal::set_texture(denoiser_half_normalsVarId, half_normals);
+    ShaderGlobal::set_texture(denoiser_half_nrVarId, half_normal_roughness);
+    ShaderGlobal::set_texture(downsampled_close_depth_texVarId, downsampled_close_depth_tex);
   }
   else
   {
     ShaderGlobal::set_int(denoiser_half_resVarId, 0);
-    ShaderGlobal::set_texture(denoiser_half_view_zVarId, BAD_TEXTUREID);
-    ShaderGlobal::set_texture(denoiser_half_normalsVarId, BAD_TEXTUREID);
-    ShaderGlobal::set_texture(denoiser_half_nrVarId, BAD_TEXTUREID);
+    ShaderGlobal::set_texture(denoiser_half_view_zVarId, nullptr);
+    ShaderGlobal::set_texture(denoiser_half_normalsVarId, nullptr);
+    ShaderGlobal::set_texture(denoiser_half_nrVarId, nullptr);
   }
-  prepareCS->dispatchThreads(resolution_config.width, resolution_config.height, 1);
+
+  prepareCS->dispatchThreads(renderingResolution.x, renderingResolution.y, 1);
+
+  ShaderGlobal::set_texture(downsampled_close_depth_texVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_view_zVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_nrVarId, nullptr);
+
+  ShaderGlobal::set_texture(denoiser_half_view_zVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_half_normalsVarId, nullptr);
+  ShaderGlobal::set_texture(denoiser_half_nrVarId, nullptr);
 }
 
 static float randuf() { return rand() / float(RAND_MAX); }
@@ -1242,15 +1326,15 @@ static eastl::tuple<Texture *, Texture *, Texture *> get_denoiser_textures(const
   if (normal_roughness_iter == params.textures.end() || view_z_iter == params.textures.end() ||
       motion_vectors_iter == params.textures.end())
     return eastl::make_tuple(nullptr, nullptr, nullptr);
-  auto normal_roughness = normal_roughness_iter->second.getTex2D();
-  auto view_z = view_z_iter->second.getTex2D();
-  auto motion_vectors = motion_vectors_iter->second.getTex2D();
+  auto normal_roughness = normal_roughness_iter->second;
+  auto view_z = view_z_iter->second;
+  auto motion_vectors = motion_vectors_iter->second;
   return eastl::make_tuple(normal_roughness, view_z, motion_vectors);
 }
 
 #define GET_DENOISER_TEXTURES(params, half_res) auto [normalRoughness, viewZ, motionVectors] = get_denoiser_textures(params, half_res)
 
-#define ACQUIRE_TEXTURE(name) ACQUIRE_DENOISER_TEXTURE(params, name)
+#define ACQUIRE_TEXTURE(name) ACQUIRE_DENOISER_TEXTURE(params, name, )
 
 void denoise_shadow(const ShadowDenoiser &params)
 {
@@ -1283,7 +1367,10 @@ void denoise_shadow(const ShadowDenoiser &params)
   }
 
   TIME_D3D_PROFILE(denoise_shadow);
-  int width = resolution_config.rtsm.width, height = resolution_config.rtsm.height;
+  const IPoint2 &resolution = resolution_config.dynRes.res;
+  int width = resolution.x, height = resolution.y;
+  const IPoint2 &prevResolution = resolution_config.dynRes.prevRes;
+  int prevWidth = prevResolution.x, prevHeight = prevResolution.y;
 
   int tilesW = divide_up(width, 16);
   int tilesH = divide_up(height, 16);
@@ -1294,7 +1381,7 @@ void denoise_shadow(const ShadowDenoiser &params)
 #undef NAME
 
   auto titer = params.textures.find(ShadowDenoiser::TextureNames::rtsm_translucency);
-  auto rtsm_translucency = titer != params.textures.end() ? titer->second.getTex2D() : nullptr;
+  auto rtsm_translucency = titer != params.textures.end() ? titer->second : nullptr;
 
   GET_DENOISER_TEXTURES(params, false);
 
@@ -1306,7 +1393,7 @@ void denoise_shadow(const ShadowDenoiser &params)
     clear_texture(rtsm_shadows_denoised);
 
   float3 lightDirectionView =
-    Rotate(world_to_view, float3(-params.lightDirection.x, -params.lightDirection.y, -params.lightDirection.z));
+    ml::Rotate(world_to_view, float3(-params.lightDirection.x, -params.lightDirection.y, -params.lightDirection.z));
 
   float3 cameraDelta = prev_view_pos - view_pos;
 
@@ -1328,15 +1415,16 @@ void denoise_shadow(const ShadowDenoiser &params)
   sigmaSharedConstants.frustumPrev = frustum_prev;
   sigmaSharedConstants.cameraDelta = float4(cameraDelta, 0);
   sigmaSharedConstants.mvScale = float4(motion_multiplier, 0);
-  sigmaSharedConstants.resourceSizeInv = float2(1.0 / width, 1.0 / height);
-  sigmaSharedConstants.resourceSizeInvPrev = float2(1.0 / width, 1.0 / height);
+  sigmaSharedConstants.resourceSizeInv = float2(1.0 / resolution_config.rtsm.width, 1.0 / resolution_config.rtsm.height);
+  sigmaSharedConstants.resourceSizeInvPrev = float2(1.0 / resolution_config.rtsm.width, 1.0 / resolution_config.rtsm.height);
   sigmaSharedConstants.rectSize = float2(width, height);
   sigmaSharedConstants.rectSizeInv = float2(1.0 / width, 1.0 / height);
-  sigmaSharedConstants.rectSizePrev = float2(width, height);
-  sigmaSharedConstants.resolutionScale = float2(1, 1);
+  sigmaSharedConstants.rectSizePrev = float2(prevWidth, prevHeight);
+  sigmaSharedConstants.resolutionScale =
+    float2(float(width) / float(resolution_config.rtsm.width), float(height) / float(resolution_config.rtsm.height));
   sigmaSharedConstants.rectOffset = float2(0, 0);
-  sigmaSharedConstants.printfAt = int2(0, 0);
-  sigmaSharedConstants.rectOrigin = int2(0, 0);
+  sigmaSharedConstants.printfAt = uint2(0, 0);
+  sigmaSharedConstants.rectOrigin = uint2(0, 0);
   sigmaSharedConstants.rectSizeMinusOne = int2(width - 1, height - 1);
   sigmaSharedConstants.tilesSizeMinusOne = int2(tilesW - 1, tilesH - 1);
   sigmaSharedConstants.orthoMode = 0;
@@ -1458,9 +1546,14 @@ void denoise_shadow(const ShadowDenoiser &params)
 }
 
 static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist_params, const Point2 &antilag_settings,
-  bool use_history_confidence, int width, int height, int max_stabilized_frame_num, bool checkerboard, bool occlusion,
+  bool use_history_confidence, const IPoint2 res_size, bool half_res, int max_stabilized_frame_num, bool checkerboard, bool occlusion,
   bool antiFirefly)
 {
+  const IPoint2 &resolution = half_res ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
+  int width = resolution.x, height = resolution.y;
+  const IPoint2 &prevResolution = half_res ? resolution_config.dynRes.prevHalfRes : resolution_config.dynRes.prevRes;
+  int prevWidth = prevResolution.x, prevHeight = prevResolution.y;
+
   float disocclusionThresholdBonus = (1.0f + jitter_delta) / float(height);
   float disocclusionThreshold = 0.01 + disocclusionThresholdBonus;
   float disocclusionThresholdAlternate = 0.05 + disocclusionThresholdBonus;
@@ -1474,6 +1567,15 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   float unproject = 1.0f / (0.5f * height * abs(projectY));
 
   float lobeAngleFraction = occlusion ? 0.5f : 0.15f;
+
+  float worstResolutionScale = ml::min(float(width) / float(res_size.x), float(height) / float(res_size.y));
+
+  float minBlurRadius = 1;
+  float maxBlurRadius = 30 * worstResolutionScale;
+
+  float fastHistoryClampingSigmaScale = 2; // It is suggested to be 1.5
+  fastHistoryClampingSigmaScale =
+    ml::lerp(3.0f, fastHistoryClampingSigmaScale, ml::saturate(ml::max(maxBlurRadius, minBlurRadius) / 2.0f));
 
   ReblurSharedConstants reblurSharedConstants;
   // float4x4
@@ -1491,35 +1593,38 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   reblurSharedConstants.frustum = frustum;
   reblurSharedConstants.frustumPrev = frustum_prev;
   reblurSharedConstants.cameraDelta = float4(cameraDelta, 0);
-  reblurSharedConstants.hitDistParams = float4(hit_dist_params.x, hit_dist_params.y, hit_dist_params.z, hit_dist_params.w);
+  reblurSharedConstants.hitDistSettings = float4(hit_dist_params.x, hit_dist_params.y, hit_dist_params.z, 0);
   reblurSharedConstants.viewVectorWorld = float4(view_dir, 0);
   reblurSharedConstants.viewVectorWorldPrev = float4(prev_view_dir, 0);
   reblurSharedConstants.mvScale = float4(motion_multiplier, 0);
+  reblurSharedConstants.convergenceSettings = float4(1.0, 0.2, 0.8, 0);
 
   // float2
-  reblurSharedConstants.antilagParams = float2(antilag_settings.x, antilag_settings.y);
-  reblurSharedConstants.resourceSize = float2(width, height);
-  reblurSharedConstants.resourceSizeInv = float2(1.0 / width, 1.0 / height);
-  reblurSharedConstants.resourceSizeInvPrev = float2(1.0 / width, 1.0 / height);
+  reblurSharedConstants.antilagSettings = float2(antilag_settings.x, antilag_settings.y);
+  reblurSharedConstants.resourceSize = float2(res_size.x, res_size.y);
+  reblurSharedConstants.resourceSizeInv = float2(1.0 / res_size.x, 1.0 / res_size.y);
+  reblurSharedConstants.resourceSizeInvPrev = float2(1.0 / res_size.x, 1.0 / res_size.y);
   reblurSharedConstants.rectSize = float2(width, height);
   reblurSharedConstants.rectSizeInv = float2(1.0 / width, 1.0 / height);
-  reblurSharedConstants.rectSizePrev = float2(width, height);
-  reblurSharedConstants.resolutionScale = float2(1, 1);
-  reblurSharedConstants.resolutionScalePrev = float2(1, 1);
+  reblurSharedConstants.rectSizePrev = float2(prevWidth, prevHeight);
+  reblurSharedConstants.resolutionScale = float2(float(width) / float(res_size.x), float(height) / float(res_size.y));
+  reblurSharedConstants.resolutionScalePrev = float2(float(prevWidth) / float(res_size.x), float(prevHeight) / float(res_size.y));
   reblurSharedConstants.rectOffset = float2(0, 0);
   reblurSharedConstants.specProbabilityThresholdsForMvModification = float2(2.0f, 3.0f);
   reblurSharedConstants.jitter = float2(jitter.x * width, jitter.y * height);
 
+  // uint2
+  reblurSharedConstants.printfAt = uint2(0, 0);
+  reblurSharedConstants.rectOrigin = uint2(0, 0);
+
   // int2
-  reblurSharedConstants.printfAt = int2(0, 0);
-  reblurSharedConstants.rectOrigin = int2(0, 0);
   reblurSharedConstants.rectSizeMinusOne = int2(width - 1, height - 1);
 
   // float
   reblurSharedConstants.disocclusionThreshold = disocclusionThreshold;
   reblurSharedConstants.disocclusionThresholdAlternate = disocclusionThresholdAlternate;
   reblurSharedConstants.cameraAttachedReflectionMaterialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
-  reblurSharedConstants.strandMaterialID = 999;
+  reblurSharedConstants.strandMaterialID = STRAND_MATERIAL_ID;
   reblurSharedConstants.strandThickness = 80e-6f;
   reblurSharedConstants.stabilizationStrength = reset_history ? 0 : stabilizationStrength;
   reblurSharedConstants.debug = 0;
@@ -1528,8 +1633,8 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   reblurSharedConstants.denoisingRange = 100000;
   reblurSharedConstants.planeDistSensitivity = 0.02;
   reblurSharedConstants.framerateScale = frame_rate_scale;
-  reblurSharedConstants.minBlurRadius = occlusion ? 5 : 1;
-  reblurSharedConstants.maxBlurRadius = 30;
+  reblurSharedConstants.minBlurRadius = minBlurRadius;
+  reblurSharedConstants.maxBlurRadius = ml::max(maxBlurRadius, minBlurRadius);
   reblurSharedConstants.diffPrepassBlurRadius = 30;
   reblurSharedConstants.specPrepassBlurRadius = 50;
   reblurSharedConstants.maxAccumulatedFrameNum = reset_history ? 0 : max_accumulated_frame_num;
@@ -1537,9 +1642,11 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   reblurSharedConstants.antiFirefly = antiFirefly ? 1 : 0;
   reblurSharedConstants.lobeAngleFraction = lobeAngleFraction * lobeAngleFraction;
   reblurSharedConstants.roughnessFraction = 0.15;
-  reblurSharedConstants.responsiveAccumulationRoughnessThreshold = 0;
   reblurSharedConstants.historyFixFrameNum = occlusion ? 2 : 3;
   reblurSharedConstants.historyFixBasePixelStride = 14;
+  reblurSharedConstants.historyFixAlternatePixelStride = 14;
+  reblurSharedConstants.historyFixAlternatePixelStrideMaterialID = 999.0f;
+  reblurSharedConstants.fastHistoryClampingSigmaScale = fastHistoryClampingSigmaScale;
   reblurSharedConstants.minRectDimMulUnproject = (float)min(width, height) * unproject;
   reblurSharedConstants.usePrepassNotOnlyForSpecularMotionEstimation = 1;
   reblurSharedConstants.splitScreen = 0;
@@ -1550,8 +1657,10 @@ static ReblurSharedConstants make_reblur_shared_constants(const Point4 &hit_dist
   reblurSharedConstants.minHitDistanceWeight = 0.1f;
   reblurSharedConstants.diffMinMaterial = 0;
   reblurSharedConstants.specMinMaterial = 0;
+  reblurSharedConstants.responsiveAccumulationInvRoughnessThreshold = 1.0f / 1e-3f;
 
   // uint32_t
+  reblurSharedConstants.responsiveAccumulationMinAccumulatedFrameNum = 3;
   reblurSharedConstants.hasHistoryConfidence = use_history_confidence ? 1 : 0;
   reblurSharedConstants.hasDisocclusionThresholdMix = 0;
   reblurSharedConstants.diffCheckerboard = checkerboard ? 1 : 2;
@@ -1597,15 +1706,12 @@ void denoise_ao(const AODenoiser &params)
   d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtao_bindless_index, denoised_ao);
   ShaderGlobal::set_int(rtao_bindless_slotVarId, bindless_range + rtao_bindless_index);
 
-  if (!reblurSharedCb)
-  {
-    reblurSharedCb =
-      dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<ReblurSharedConstants>(), "ReblurSharedConstantsCB");
-  }
-
   ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
-    width, height, params.maxStabilizedFrameNum, params.checkerboard, true, false);
-  reblurSharedCb->updateData(0, sizeof(ReblurSharedConstants), &reblurSharedConstants, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    IPoint2{resolution_config.rtao.width, resolution_config.rtao.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
+    true, false);
+
+  Sbuffer *reblurSharedCb =
+    create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_ao, reblurSharedConstants, "ReblurSharedConstantsCB_ao");
 
   if (reset_history)
     clear_texture(denoised_ao);
@@ -1615,7 +1721,7 @@ void denoise_ao(const AODenoiser &params)
   {
     TIME_D3D_PROFILE(reblur::classify_tiles);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, viewZ);
     d3d::set_rwtex(STAGE_CS, 0, ao_tiles, 0, 0);
 
@@ -1627,7 +1733,7 @@ void denoise_ao(const AODenoiser &params)
 
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, ao_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, viewZ);
@@ -1638,11 +1744,11 @@ void denoise_ao(const AODenoiser &params)
     d3d::set_tex(STAGE_CS, 7, viewZ); // DUMMY
     d3d::set_tex(STAGE_CS, 8, viewZ); // DUMMY
     d3d::set_tex(STAGE_CS, 9, rtao_tex_unfiltered);
-    d3d::set_tex(STAGE_CS, 10, denoised_ao);
+    d3d::set_tex(STAGE_CS, 10, ao_diff_history);
     d3d::set_tex(STAGE_CS, 11, ao_diff_fast_history);
-    d3d::set_rwtex(STAGE_CS, 0, ao_diffTemp2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, ao_diffFastHistory, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, ao_data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 0, ao_data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, ao_diffTemp2, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, ao_diffFastHistory, 0, 0);
 
     if (params.performanceMode)
       reblurDiffuseOcclusionPerfTemporalAccumulation->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1656,7 +1762,7 @@ void denoise_ao(const AODenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, ao_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, ao_data1);
@@ -1678,14 +1784,14 @@ void denoise_ao(const AODenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, ao_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, ao_data1);
-    d3d::set_tex(STAGE_CS, 3, ao_diffTemp1);
-    d3d::set_tex(STAGE_CS, 4, viewZ);
-    d3d::set_rwtex(STAGE_CS, 0, ao_diffTemp2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, ao_prev_view_z, 0, 0);
+    d3d::set_tex(STAGE_CS, 2, viewZ);
+    d3d::set_tex(STAGE_CS, 3, ao_data1);
+    d3d::set_tex(STAGE_CS, 4, ao_diffTemp1);
+    d3d::set_rwtex(STAGE_CS, 0, ao_prev_view_z, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, ao_diffTemp2, 0, 0);
 
     if (params.performanceMode)
       reblurDiffuseOcclusionPerfBlur->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1699,15 +1805,16 @@ void denoise_ao(const AODenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, ao_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, ao_data1);
-    d3d::set_tex(STAGE_CS, 3, ao_diffTemp2);
-    d3d::set_tex(STAGE_CS, 4, ao_prev_view_z);
+    d3d::set_tex(STAGE_CS, 3, ao_prev_view_z);
+    d3d::set_tex(STAGE_CS, 4, ao_diffTemp2);
     d3d::set_rwtex(STAGE_CS, 0, ao_prev_normal_roughness, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, denoised_ao, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, ao_diff_history, 0, 0);
     d3d::set_rwtex(STAGE_CS, 2, ao_prev_internal_data, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, denoised_ao, 0, 0);
 
     if (params.performanceMode)
       reblurDiffuseOcclusionPerfPostBlurNoTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1724,7 +1831,7 @@ void denoise_gi(const GIDenoiser &params)
 {
   TIME_D3D_PROFILE(denoise_gi);
 
-  if (resolution_config.useRayReconstruction)
+  if (resolution_config.ptgiUseRayReconstruction)
   {
     ACQUIRE_TEXTURE(ptgi_tex_unfiltered);
     d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + ptgi_bindless_index, ptgi_tex_unfiltered);
@@ -1752,15 +1859,12 @@ void denoise_gi(const GIDenoiser &params)
   ShaderGlobal::set_int(ptgi_bindless_slotVarId, bindless_range + ptgi_bindless_index);
   ShaderGlobal::set_int(ptgi_depth_bindless_slotVarId, bindless_range + ptgi_depth_bindless_index);
 
-  if (!reblurSharedCb)
-  {
-    reblurSharedCb =
-      dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<ReblurSharedConstants>(), "ReblurSharedConstantsCB");
-  }
-
   ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
-    width, height, params.maxStabilizedFrameNum, params.checkerboard, true, false);
-  reblurSharedCb->updateData(0, sizeof(ReblurSharedConstants), &reblurSharedConstants, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    IPoint2{resolution_config.ptgi.width, resolution_config.ptgi.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
+    true, false);
+
+  Sbuffer *reblurSharedCb =
+    create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_gi, reblurSharedConstants, "ReblurSharedConstantsCB_gi");
 
   if (reset_history)
     clear_texture(denoised_gi);
@@ -1773,7 +1877,7 @@ void denoise_gi(const GIDenoiser &params)
   {
     TIME_D3D_PROFILE(reblur::classify_tiles);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, viewZ);
     d3d::set_rwtex(STAGE_CS, 0, gi_tiles, 0, 0);
 
@@ -1786,7 +1890,7 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, gi_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, viewZ);
@@ -1804,7 +1908,7 @@ void denoise_gi(const GIDenoiser &params)
 
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, gi_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, viewZ);
@@ -1817,9 +1921,9 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_tex(STAGE_CS, 9, gi_diffTemp1);
     d3d::set_tex(STAGE_CS, 10, gi_diff_history);
     d3d::set_tex(STAGE_CS, 11, gi_diff_fast_history);
-    d3d::set_rwtex(STAGE_CS, 0, gi_diffTemp2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, gi_diffFastHistory, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, gi_data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 0, gi_data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, gi_diffTemp2, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, gi_diffFastHistory, 0, 0);
     d3d::set_rwtex(STAGE_CS, 3, gi_data2, 0, 0);
 
     if (params.performanceMode)
@@ -1834,7 +1938,7 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, gi_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, gi_data1);
@@ -1856,14 +1960,14 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, gi_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, gi_data1);
-    d3d::set_tex(STAGE_CS, 3, gi_diffTemp1);
-    d3d::set_tex(STAGE_CS, 4, viewZ);
-    d3d::set_rwtex(STAGE_CS, 0, gi_diffTemp2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, gi_prev_view_z, 0, 0);
+    d3d::set_tex(STAGE_CS, 2, viewZ);
+    d3d::set_tex(STAGE_CS, 3, gi_data1);
+    d3d::set_tex(STAGE_CS, 4, gi_diffTemp1);
+    d3d::set_rwtex(STAGE_CS, 0, gi_prev_view_z, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, gi_diffTemp2, 0, 0);
 
     if (params.performanceMode)
       reblurDiffusePerfBlur->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1877,15 +1981,14 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, gi_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, gi_data1);
-    d3d::set_tex(STAGE_CS, 3, gi_diffTemp2);
-    d3d::set_tex(STAGE_CS, 4, gi_prev_view_z);
+    d3d::set_tex(STAGE_CS, 3, gi_prev_view_z);
+    d3d::set_tex(STAGE_CS, 4, gi_diffTemp2);
     d3d::set_rwtex(STAGE_CS, 0, gi_prev_normal_roughness, 0, 0);
     d3d::set_rwtex(STAGE_CS, 1, gi_diff_history, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, gi_prev_internal_data, 0, 0);
 
     if (params.performanceMode)
       reblurDiffusePerfPostBlur->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1899,18 +2002,18 @@ void denoise_gi(const GIDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, gi_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ);
+    d3d::set_tex(STAGE_CS, 2, gi_prev_view_z);
     d3d::set_tex(STAGE_CS, 3, gi_data1);
     d3d::set_tex(STAGE_CS, 4, gi_data2);
     d3d::set_tex(STAGE_CS, 5, gi_diff_history);
     d3d::set_tex(STAGE_CS, 6, stab_ping);
-    d3d::set_tex(STAGE_CS, 7, motionVectors);
-    d3d::set_rwtex(STAGE_CS, 0, gi_prev_internal_data, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, denoised_gi, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, stab_pong, 0, 0);
+    d3d::set_tex(STAGE_CS, 13, motionVectors);
+    d3d::set_rwtex(STAGE_CS, 1, gi_prev_internal_data, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, denoised_gi, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, stab_pong, 0, 0);
 
     if (params.performanceMode)
       reblurDiffusePerfTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -1934,25 +2037,25 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
   ENUM_RTR_DENOISED_REBLUR_TRANSIENT_NAMES;
 #undef NAME
 
-  TextureInfo ti, tilesTi;
-  rtr_tex->getinfo(ti);
-  rtr_reblur_tiles->getinfo(tilesTi);
+  const IPoint2 &resolution = params.halfResolution ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
+  const IPoint2 tilesResolution = IPoint2(divide_up(resolution.x, 16), divide_up(resolution.y, 16));
 
-  int width = ti.w, height = ti.h, tilesWidth = tilesTi.w, tilesHeight = tilesTi.h;
+  int width = resolution.x, height = resolution.y, tilesWidth = tilesResolution.x, tilesHeight = tilesResolution.y;
   bool halfRes = params.halfResolution;
 
   GET_DENOISER_TEXTURES(params, halfRes);
   auto &rtr_tmp1 = rtr_tex;
 
-  if (!reblurSharedCb)
-  {
-    reblurSharedCb =
-      dag::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<ReblurSharedConstants>(), "ReblurSharedConstantsCB");
-  }
+  d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtr_normal_roughness_bindless_index, normalRoughness);
+  d3d::resource_barrier(ResourceBarrierDesc(normalRoughness, RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0));
+  ShaderGlobal::set_int(rtr_normal_roughness_bindless_slotVarId, bindless_range + rtr_normal_roughness_bindless_index);
 
   ReblurSharedConstants reblurSharedConstants = make_reblur_shared_constants(params.hitDistParams, params.antilagSettings, false,
-    width, height, params.maxStabilizedFrameNum, params.checkerboard, false, params.antiFirefly);
-  reblurSharedCb->updateData(0, sizeof(ReblurSharedConstants), &reblurSharedConstants, VBLOCK_WRITEONLY | VBLOCK_DISCARD);
+    IPoint2{resolution_config.rtr.width, resolution_config.rtr.height}, halfRes, params.maxStabilizedFrameNum, params.checkerboard,
+    false, params.antiFirefly);
+
+  Sbuffer *reblurSharedCb =
+    create_and_update_reblur_cbuffer_if_needed(reblurSharedCb_reflection, reblurSharedConstants, "ReblurSharedConstantsCB_reflection");
 
   auto hitd_ping = (frame_counter & 1) == 0 ? reblur_spec_hitdist_for_tracking_ping : reblur_spec_hitdist_for_tracking_pong;
   auto hitd_pong = (frame_counter & 1) != 0 ? reblur_spec_hitdist_for_tracking_ping : reblur_spec_hitdist_for_tracking_pong;
@@ -1965,7 +2068,7 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
   {
     TIME_D3D_PROFILE(reblur::classify_tiles);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, viewZ);
     d3d::set_rwtex(STAGE_CS, 0, rtr_reblur_tiles, 0, 0);
 
@@ -1978,7 +2081,7 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, viewZ);
@@ -1998,7 +2101,7 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, viewZ);
@@ -2013,10 +2116,10 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_tex(STAGE_CS, 11, reblur_spec_fast_history);
     d3d::set_tex(STAGE_CS, 12, hitd_ping);
     d3d::set_tex(STAGE_CS, 13, rtr_hitdistForTracking);
-    d3d::set_rwtex(STAGE_CS, 0, rtr_tmp2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtr_fastHistory, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, hitd_pong, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 3, rtr_data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 0, rtr_data1, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, rtr_tmp2, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, rtr_fastHistory, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, hitd_pong, 0, 0);
     d3d::set_rwtex(STAGE_CS, 4, rtr_data2, 0, 0);
 
     if (params.performanceMode)
@@ -2031,13 +2134,14 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, rtr_data1);
     d3d::set_tex(STAGE_CS, 3, viewZ);
     d3d::set_tex(STAGE_CS, 4, rtr_tmp2);
     d3d::set_tex(STAGE_CS, 5, rtr_fastHistory);
+    d3d::set_tex(STAGE_CS, 6, hitd_pong);
     d3d::set_rwtex(STAGE_CS, 0, rtr_tmp1, 0, 0);
     d3d::set_rwtex(STAGE_CS, 1, reblur_spec_fast_history, 0, 0);
 
@@ -2053,14 +2157,14 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, rtr_data1);
-    d3d::set_tex(STAGE_CS, 3, rtr_tmp1);
-    d3d::set_tex(STAGE_CS, 4, viewZ);
-    d3d::set_rwtex(STAGE_CS, 0, rtr_tmp2, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, reblur_spec_prev_view_z, 0, 0);
+    d3d::set_tex(STAGE_CS, 2, viewZ);
+    d3d::set_tex(STAGE_CS, 3, rtr_data1);
+    d3d::set_tex(STAGE_CS, 4, rtr_tmp1);
+    d3d::set_rwtex(STAGE_CS, 0, reblur_spec_prev_view_z, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, rtr_tmp2, 0, 0);
 
     if (params.performanceMode)
       reblurSpecularPerfBlur->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2074,12 +2178,12 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
     d3d::set_tex(STAGE_CS, 2, rtr_data1);
-    d3d::set_tex(STAGE_CS, 3, rtr_tmp2);
-    d3d::set_tex(STAGE_CS, 4, reblur_spec_prev_view_z);
+    d3d::set_tex(STAGE_CS, 3, reblur_spec_prev_view_z);
+    d3d::set_tex(STAGE_CS, 4, rtr_tmp2);
     d3d::set_rwtex(STAGE_CS, 0, reblur_spec_prev_normal_roughness, 0, 0);
     d3d::set_rwtex(STAGE_CS, 1, reblur_spec_history, 0, 0);
 
@@ -2095,20 +2199,20 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_sampler(STAGE_CS, 0, samplerNearestClamp);
     d3d::set_sampler(STAGE_CS, 1, samplerLinearClamp);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, rtr_reblur_tiles);
     d3d::set_tex(STAGE_CS, 1, normalRoughness);
-    d3d::set_tex(STAGE_CS, 2, viewZ); // dummy
-    d3d::set_tex(STAGE_CS, 3, reblur_spec_prev_view_z);
-    d3d::set_tex(STAGE_CS, 4, rtr_data1);
-    d3d::set_tex(STAGE_CS, 5, rtr_data2);
-    d3d::set_tex(STAGE_CS, 6, reblur_spec_history);
-    d3d::set_tex(STAGE_CS, 7, stab_ping);
-    d3d::set_tex(STAGE_CS, 8, hitd_pong);
-    d3d::set_tex(STAGE_CS, 9, motionVectors);
-    d3d::set_rwtex(STAGE_CS, 0, reblur_spec_prev_internal_data, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtr_tex, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, stab_pong, 0, 0);
+    d3d::set_tex(STAGE_CS, 2, reblur_spec_prev_view_z);
+    d3d::set_tex(STAGE_CS, 3, rtr_data1);
+    d3d::set_tex(STAGE_CS, 4, rtr_data2);
+    d3d::set_tex(STAGE_CS, 5, rtr_data2); // DUMMY
+    d3d::set_tex(STAGE_CS, 6, hitd_pong);
+    d3d::set_tex(STAGE_CS, 7, reblur_spec_history);
+    d3d::set_tex(STAGE_CS, 8, stab_ping);
+    d3d::set_tex(STAGE_CS, 13, motionVectors);
+    d3d::set_rwtex(STAGE_CS, 1, reblur_spec_prev_internal_data, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, rtr_tex, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 3, stab_pong, 0, 0);
 
     if (params.performanceMode)
       reblurSpecularPerfTemporalStabilization->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2120,7 +2224,7 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
   {
     TIME_D3D_PROFILE(reblur::validation);
 
-    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb.getBuf());
+    d3d::set_const_buffer(STAGE_CS, 0, reblurSharedCb);
     d3d::set_tex(STAGE_CS, 0, normalRoughness);
     d3d::set_tex(STAGE_CS, 1, viewZ);
     d3d::set_tex(STAGE_CS, 2, motionVectors);
@@ -2128,7 +2232,7 @@ static void denoise_reflection_reblur(const ReflectionDenoiser &params)
     d3d::set_tex(STAGE_CS, 4, rtr_data2);
     d3d::set_tex(STAGE_CS, 5, rtr_tex_unfiltered);
     d3d::set_tex(STAGE_CS, 6, rtr_tex_unfiltered);
-    d3d::set_rwtex(STAGE_CS, 0, iter->second.getTex2D(), 0, 0);
+    d3d::set_rwtex(STAGE_CS, 0, iter->second, 0, 0);
 
     reblurValidation->dispatch(tilesWidth * 2, tilesHeight, 1);
   }
@@ -2147,21 +2251,26 @@ inline float3 RELAX_GetFrustumForward(const float4x4 &viewToWorld, const float4 
   return frustumForwardWorld;
 }
 
-static RelaxSharedConstants make_relax_shared_constants(int width, int height, bool checkerboard, int max_stabilized_frame_num,
-  int max_fast_stabilized_frame_num)
+static RelaxSharedConstants make_relax_shared_constants(IPoint2 res_size, bool half_res, bool checkerboard,
+  int max_stabilized_frame_num, int max_fast_stabilized_frame_num)
 {
+  const IPoint2 &resolution = half_res ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
+  int width = resolution.x, height = resolution.y;
+  const IPoint2 &prevResolution = half_res ? resolution_config.dynRes.prevHalfRes : resolution_config.dynRes.prevRes;
+  int prevWidth = prevResolution.x, prevHeight = prevResolution.y;
+
   float unproject = 1.0f / (0.5f * height * abs(projectY));
 
   float tanHalfFov = 1.0f / view_to_clip.a00;
   float aspect = view_to_clip.a00 / view_to_clip.a11;
-  float3 frustumRight = float3(world_to_view.GetRow0().xyz) * tanHalfFov;
-  float3 frustumUp = float3(world_to_view.GetRow1().xyz) * tanHalfFov * aspect;
+  float3 frustumRight = float3(world_to_view.Row(0).xyz) * tanHalfFov;
+  float3 frustumUp = float3(world_to_view.Row(1).xyz) * tanHalfFov * aspect;
   float3 frustumForward = RELAX_GetFrustumForward(view_to_world, frustum);
 
   float prevTanHalfFov = 1.0f / prev_view_to_clip.a00;
   float prevAspect = prev_view_to_clip.a00 / prev_view_to_clip.a11;
-  float3 prevFrustumRight = float3(prev_world_to_view.GetRow0().xyz) * prevTanHalfFov;
-  float3 prevFrustumUp = float3(prev_world_to_view.GetRow1().xyz) * prevTanHalfFov * prevAspect;
+  float3 prevFrustumRight = float3(prev_world_to_view.Row(0).xyz) * prevTanHalfFov;
+  float3 prevFrustumUp = float3(prev_world_to_view.Row(1).xyz) * prevTanHalfFov * prevAspect;
   float3 prevFrustumForward = RELAX_GetFrustumForward(prev_view_to_world, frustum_prev);
 
   float3 cameraDelta = prev_view_pos - view_pos;
@@ -2203,15 +2312,17 @@ static RelaxSharedConstants make_relax_shared_constants(int width, int height, b
   relaxSharedConstants.jitter = float2(jitter.x * width, jitter.y * height);
   relaxSharedConstants.resolutionScale = float2(1, 1);
   relaxSharedConstants.rectOffset = float2(0, 0);
-  relaxSharedConstants.resourceSizeInv = float2(1.0 / width, 1.0 / height);
-  relaxSharedConstants.resourceSize = float2(width, height);
+  relaxSharedConstants.resourceSizeInv = float2(1.0 / res_size.x, 1.0 / res_size.y);
+  relaxSharedConstants.resourceSize = float2(res_size.x, res_size.y);
   relaxSharedConstants.rectSizeInv = float2(1.0 / width, 1.0 / height);
-  relaxSharedConstants.rectSizePrev = float2(width, height);
-  relaxSharedConstants.resourceSizeInvPrev = float2(1.0 / width, 1.0 / height);
+  relaxSharedConstants.rectSizePrev = float2(prevWidth, prevHeight);
+  relaxSharedConstants.resourceSizeInvPrev = float2(1.0 / res_size.x, 1.0 / res_size.y);
+
+  // uint2
+  relaxSharedConstants.printfAt = uint2(0, 0);
+  relaxSharedConstants.rectOrigin = uint2(0, 0);
 
   // int2
-  relaxSharedConstants.printfAt = int2(0, 0);
-  relaxSharedConstants.rectOrigin = int2(0, 0);
   relaxSharedConstants.rectSize = int2(width, height);
 
   // float
@@ -2222,7 +2333,7 @@ static RelaxSharedConstants make_relax_shared_constants(int width, int height, b
   relaxSharedConstants.disocclusionThreshold = disocclusionThreshold;
   relaxSharedConstants.disocclusionThresholdAlternate = disocclusionThresholdAlternate;
   relaxSharedConstants.cameraAttachedReflectionMaterialID = CAMERA_ATTACHED_REFLECTION_MATERIAL_ID;
-  relaxSharedConstants.strandMaterialID = 999;
+  relaxSharedConstants.strandMaterialID = STRAND_MATERIAL_ID;
   relaxSharedConstants.strandThickness = 80e-6f;
   relaxSharedConstants.roughnessFraction = 0.15;
   relaxSharedConstants.specVarianceBoost = 0;
@@ -2231,11 +2342,11 @@ static RelaxSharedConstants make_relax_shared_constants(int width, int height, b
   relaxSharedConstants.specBlurRadius = 50;
   relaxSharedConstants.depthThreshold = 0.003;
   relaxSharedConstants.lobeAngleFraction = 0.5;
-  relaxSharedConstants.specLobeAngleSlack = DegToRad(0.15);
+  relaxSharedConstants.specLobeAngleSlack = ml::Math::DegToRad(0.15);
   relaxSharedConstants.historyFixEdgeStoppingNormalPower = 8;
   relaxSharedConstants.roughnessEdgeStoppingRelaxation = 1;
   relaxSharedConstants.normalEdgeStoppingRelaxation = 0.3;
-  relaxSharedConstants.colorBoxSigmaScale = 2;
+  relaxSharedConstants.fastHistoryClampingSigmaScale = 2;
   relaxSharedConstants.historyAccelerationAmount = 0.3;
   relaxSharedConstants.historyResetTemporalSigmaScale = 0.5;
   relaxSharedConstants.historyResetSpatialSigmaScale = 4.5;
@@ -2250,13 +2361,15 @@ static RelaxSharedConstants make_relax_shared_constants(int width, int height, b
   relaxSharedConstants.confidenceDrivenLuminanceEdgeStoppingRelaxation = 0;
   relaxSharedConstants.confidenceDrivenNormalEdgeStoppingRelaxation = 0;
   relaxSharedConstants.debug = 0;
-  relaxSharedConstants.OrthoMode = 0;
+  relaxSharedConstants.orthoMode = 0;
   relaxSharedConstants.unproject = unproject;
   relaxSharedConstants.framerateScale = frame_rate_scale_relax;
   relaxSharedConstants.checkerboardResolveAccumSpeed = checkerboard_resolve_accum_speed;
   relaxSharedConstants.jitterDelta = jitter_delta;
   relaxSharedConstants.historyFixFrameNum = 4;
   relaxSharedConstants.historyFixBasePixelStride = 14;
+  relaxSharedConstants.historyFixAlternatePixelStride = 14;
+  relaxSharedConstants.historyFixAlternatePixelStrideMaterialID = 999;
   relaxSharedConstants.historyThreshold = 3;
   relaxSharedConstants.viewZScale = 1;
   relaxSharedConstants.minHitDistanceWeight = 0.2;
@@ -2289,17 +2402,21 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
   ENUM_RTR_DENOISED_RELAX_TRANSIENT_NAMES;
 #undef NAME
 
-  TextureInfo ti, tilesTi;
-  rtr_tex->getinfo(ti);
-  rtr_relax_tiles->getinfo(tilesTi);
+  const IPoint2 &resolution = params.halfResolution ? resolution_config.dynRes.halfRes : resolution_config.dynRes.res;
+  const IPoint2 tilesResolution = IPoint2(divide_up(resolution.x, 16), divide_up(resolution.y, 16));
 
-  int width = ti.w, height = ti.h, tilesWidth = tilesTi.w, tilesHeight = tilesTi.h;
+  int width = resolution.x, height = resolution.y, tilesWidth = tilesResolution.x, tilesHeight = tilesResolution.y;
   bool halfRes = params.halfResolution;
 
   GET_DENOISER_TEXTURES(params, halfRes);
 
+  d3d::update_bindless_resource(D3DResourceType::TEX, bindless_range + rtr_normal_roughness_bindless_index, normalRoughness);
+  d3d::resource_barrier(ResourceBarrierDesc(normalRoughness, RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0));
+  ShaderGlobal::set_int(rtr_normal_roughness_bindless_slotVarId, bindless_range + rtr_normal_roughness_bindless_index);
+
   RelaxSharedConstants relaxSharedConstants =
-    make_relax_shared_constants(width, height, params.checkerboard, params.maxStabilizedFrameNum, params.maxFastStabilizedFrameNum);
+    make_relax_shared_constants(IPoint2{resolution_config.rtr.width, resolution_config.rtr.height}, halfRes, params.checkerboard,
+      params.maxStabilizedFrameNum, params.maxFastStabilizedFrameNum);
 
   ShaderGlobal::set_int4(denoiser_resolutionVarId, width, height, 0, 0);
 
@@ -2321,9 +2438,9 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
     d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
-    d3d::set_tex(STAGE_CS, 1, rtr_tex_unfiltered);
-    d3d::set_tex(STAGE_CS, 2, normalRoughness);
-    d3d::set_tex(STAGE_CS, 3, viewZ);
+    d3d::set_tex(STAGE_CS, 1, normalRoughness);
+    d3d::set_tex(STAGE_CS, 2, viewZ);
+    d3d::set_tex(STAGE_CS, 3, rtr_tex_unfiltered);
     d3d::set_rwtex(STAGE_CS, 0, rtr_tex, 0, 0);
 
     relaxSpecularPrepass->dispatch(tilesWidth, tilesHeight, 1);
@@ -2337,29 +2454,29 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
     d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
-    d3d::set_tex(STAGE_CS, 1, rtr_tex);
-    d3d::set_tex(STAGE_CS, 2, motionVectors);
-    d3d::set_tex(STAGE_CS, 3, normalRoughness);
-    d3d::set_tex(STAGE_CS, 4, viewZ);
-    d3d::set_tex(STAGE_CS, 5, relax_spec_illum_responsive_prev);
-    d3d::set_tex(STAGE_CS, 6, relax_spec_illum_prev);
-    d3d::set_tex(STAGE_CS, 7, relax_spec_normal_roughness_prev);
-    d3d::set_tex(STAGE_CS, 8, relax_spec_view_z_prev);
+    d3d::set_tex(STAGE_CS, 1, motionVectors);
+    d3d::set_tex(STAGE_CS, 2, normalRoughness);
+    d3d::set_tex(STAGE_CS, 3, viewZ);
+    d3d::set_tex(STAGE_CS, 4, viewZ); // DUMMY
+    d3d::set_tex(STAGE_CS, 5, relax_spec_normal_roughness_prev);
+    d3d::set_tex(STAGE_CS, 6, relax_spec_view_z_prev);
+    d3d::set_tex(STAGE_CS, 7, relax_spec_history_length_prev);
+    d3d::set_tex(STAGE_CS, 8, relax_spec_material_id_prev);
+    d3d::set_tex(STAGE_CS, 9, rtr_tex);
+    d3d::set_tex(STAGE_CS, 10, relax_spec_illum_responsive_prev);
+    d3d::set_tex(STAGE_CS, 11, relax_spec_illum_prev);
     if ((frame_counter & 1) == 0)
-      d3d::set_tex(STAGE_CS, 9, relax_spec_reflection_hit_t_prev);
+      d3d::set_tex(STAGE_CS, 12, relax_spec_reflection_hit_t_prev);
     else
-      d3d::set_tex(STAGE_CS, 9, relax_spec_reflection_hit_t_curr);
-    d3d::set_tex(STAGE_CS, 10, relax_spec_history_length_prev);
-    d3d::set_tex(STAGE_CS, 11, relax_spec_material_id_prev);
-    d3d::set_tex(STAGE_CS, 12, viewZ); // DUMMY
+      d3d::set_tex(STAGE_CS, 12, relax_spec_reflection_hit_t_curr);
     d3d::set_tex(STAGE_CS, 13, viewZ); // DUMMY
-    d3d::set_rwtex(STAGE_CS, 0, rtr_specIllumPing, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, rtr_specIllumPong, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 0, rtr_historyLength, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, rtr_specIllumPing, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, rtr_specIllumPong, 0, 0);
     if ((frame_counter & 1) == 0)
-      d3d::set_rwtex(STAGE_CS, 2, relax_spec_reflection_hit_t_curr, 0, 0);
+      d3d::set_rwtex(STAGE_CS, 3, relax_spec_reflection_hit_t_curr, 0, 0);
     else
-      d3d::set_rwtex(STAGE_CS, 2, relax_spec_reflection_hit_t_prev, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 3, rtr_historyLength, 0, 0);
+      d3d::set_rwtex(STAGE_CS, 3, relax_spec_reflection_hit_t_prev, 0, 0);
     d3d::set_rwtex(STAGE_CS, 4, rtr_specReprojectionConfidence, 0, 0);
 
     relaxSpecularTemporalAccumulation->dispatch(tilesWidth * 2, tilesHeight, 1);
@@ -2373,10 +2490,10 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
     d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
-    d3d::set_tex(STAGE_CS, 1, rtr_specIllumPing);
-    d3d::set_tex(STAGE_CS, 2, rtr_historyLength);
-    d3d::set_tex(STAGE_CS, 3, normalRoughness);
-    d3d::set_tex(STAGE_CS, 4, viewZ);
+    d3d::set_tex(STAGE_CS, 1, rtr_historyLength);
+    d3d::set_tex(STAGE_CS, 2, normalRoughness);
+    d3d::set_tex(STAGE_CS, 3, viewZ);
+    d3d::set_tex(STAGE_CS, 4, rtr_specIllumPing);
     d3d::set_rwtex(STAGE_CS, 0, rtr_specIllumPong, 0, 0);
 
     relaxSpecularHistoryFix->dispatch(tilesWidth * 2, tilesHeight * 2, 1);
@@ -2391,13 +2508,13 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
     d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
     d3d::set_tex(STAGE_CS, 1, viewZ);
-    d3d::set_tex(STAGE_CS, 2, rtr_tex);
-    d3d::set_tex(STAGE_CS, 3, rtr_specIllumPing);
-    d3d::set_tex(STAGE_CS, 4, rtr_specIllumPong);
-    d3d::set_tex(STAGE_CS, 5, rtr_historyLength);
-    d3d::set_rwtex(STAGE_CS, 0, relax_spec_illum_prev, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 1, relax_spec_illum_responsive_prev, 0, 0);
-    d3d::set_rwtex(STAGE_CS, 2, relax_spec_history_length_prev, 0, 0);
+    d3d::set_tex(STAGE_CS, 2, rtr_historyLength);
+    d3d::set_tex(STAGE_CS, 3, rtr_tex);
+    d3d::set_tex(STAGE_CS, 4, rtr_specIllumPing);
+    d3d::set_tex(STAGE_CS, 5, rtr_specIllumPong);
+    d3d::set_rwtex(STAGE_CS, 0, relax_spec_history_length_prev, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 1, relax_spec_illum_prev, 0, 0);
+    d3d::set_rwtex(STAGE_CS, 2, relax_spec_illum_responsive_prev, 0, 0);
 
     relaxSpecularHistoryClamping->dispatch(tilesWidth * 2, tilesHeight * 2, 1);
   }
@@ -2421,16 +2538,16 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
 
     d3d::set_cb0_data(STAGE_CS, (const float *)&relaxSharedConstants, divide_up(sizeof(relaxSharedConstants), 16));
     d3d::set_tex(STAGE_CS, 0, rtr_relax_tiles);
+    d3d::set_tex(STAGE_CS, 1, rtr_historyLength);
+    d3d::set_tex(STAGE_CS, 2, normalRoughness);
+    d3d::set_tex(STAGE_CS, 3, viewZ);
     if (isSmem)
-      d3d::set_tex(STAGE_CS, 1, relax_spec_illum_prev);
+      d3d::set_tex(STAGE_CS, 4, relax_spec_illum_prev);
     else if (isEven)
-      d3d::set_tex(STAGE_CS, 1, rtr_specIllumPong);
+      d3d::set_tex(STAGE_CS, 4, rtr_specIllumPong);
     else
-      d3d::set_tex(STAGE_CS, 1, rtr_specIllumPing);
-    d3d::set_tex(STAGE_CS, 2, rtr_historyLength);
-    d3d::set_tex(STAGE_CS, 3, rtr_specReprojectionConfidence);
-    d3d::set_tex(STAGE_CS, 4, normalRoughness);
-    d3d::set_tex(STAGE_CS, 5, viewZ);
+      d3d::set_tex(STAGE_CS, 4, rtr_specIllumPing);
+    d3d::set_tex(STAGE_CS, 5, rtr_specReprojectionConfidence);
     d3d::set_tex(STAGE_CS, 6, viewZ); // hasConfidenceInputs
 
     if (isLast)
@@ -2462,7 +2579,7 @@ static void denoise_reflection_relax(const ReflectionDenoiser &params)
     d3d::set_tex(STAGE_CS, 1, viewZ);
     d3d::set_tex(STAGE_CS, 2, motionVectors);
     d3d::set_tex(STAGE_CS, 3, rtr_historyLength);
-    d3d::set_rwtex(STAGE_CS, 0, iter->second.getTex2D(), 0, 0);
+    d3d::set_rwtex(STAGE_CS, 0, iter->second, 0, 0);
 
     relaxValidation->dispatch(tilesWidth * 2, tilesHeight, 1);
   }
@@ -2495,6 +2612,18 @@ void denoise_reflection(const ReflectionDenoiser &params)
   }
 
   d3d::resource_barrier(ResourceBarrierDesc(rtr_tex, RB_STAGE_ALL_SHADERS | RB_RO_SRV, 0, 0));
+}
+
+void denoise_reflection_noop(const ReflectionDenoiser &params)
+{
+  if (resolution_config.useRayReconstruction)
+    return;
+
+  if (params.method != ReflectionMethod::Reblur && params.method != ReflectionMethod::Relax)
+    return;
+
+  GET_DENOISER_TEXTURES(params, params.halfResolution);
+  d3d::resource_barrier(ResourceBarrierDesc(normalRoughness, RB_STAGE_COMPUTE | RB_RO_SRV, 0, 0));
 }
 
 int get_frame_number() { return frame_counter; }

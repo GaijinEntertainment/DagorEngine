@@ -10,6 +10,10 @@ AddIncludes =
   $(Root)/prog/daNetGame
 ;
 
+UseProgLibs +=
+  gameLibs/render/vhsCameraCommon
+;
+
 local AllSrcFolder_CPP = ;
 local AllSrcFolder_ES = ;
 local AllSrcFolder_DAS = ;

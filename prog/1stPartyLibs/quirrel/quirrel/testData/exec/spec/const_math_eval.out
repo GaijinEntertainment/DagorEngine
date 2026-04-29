@@ -1,0 +1,69 @@
+Testing [const a = 1 / 0]
+ERROR: integer division by zero
+
+Testing [const a = 1 % 0]
+ERROR: integer modulo by zero
+
+Testing [const a = (-0x7FFFFFFF-1) / -1]
+2147483648
+
+Testing [const a = (-0x7FFFFFFF_FFFFFFFF-1) / -1]
+ERROR: integer overflow
+
+Testing [const a = (-0x7FFFFFFF_FFFFFFFF-1) % -1]
+0
+
+Testing [const a = (-0x7FFFFFFF_FFFFFFFF-1) % (-0x7FFFFFFF_FFFFFFFF-1)]
+0
+
+Testing [const a = 0x7FFFFFFF_FFFFFFFF + 1]
+-9223372036854775808
+
+Testing [const a = (-0x7FFFFFFF_FFFFFFFF-1) - 1]
+9223372036854775807
+
+Testing [const a = 0x7FFFFFFF_FFFFFFFF * 2]
+-2
+
+Testing [const a = (-0x7FFFFFFF_FFFFFFFF-1) * -1]
+-9223372036854775808
+
+Testing [const a = -(-0x7FFFFFFF-1)]
+2147483648
+
+Testing [const a = -(-0x7FFFFFFF_FFFFFFFF-1)]
+-9223372036854775808
+
+Testing [const a = 1 / 0.0]
+ERROR: float division by zero
+
+Testing [const a = -1 / 0.0]
+ERROR: float division by zero
+
+Testing [const a = 1 % 0.0]
+ERROR: float modulo by zero
+
+Testing [const a = 0.0 / 0.0]
+ERROR: float division by zero
+
+Testing [const a = 1 / -0.0]
+ERROR: float division by zero
+
+Testing [const a = 1e309]
+ERROR: float constant overflow
+
+Testing [const a = 1e-324]
+ERROR: float constant underflow
+
+Testing [const a = (0.0/0.0) + 1.0]
+ERROR: float division by zero
+
+Testing [const a = 0x80000000 << 1]
+4294967296
+
+Testing [const a = (-1) >> 1]
+-1
+
+Testing [const a = (-1) >>> 1]
+9223372036854775807
+

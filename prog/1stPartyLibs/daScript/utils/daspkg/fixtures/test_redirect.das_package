@@ -1,0 +1,14 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("redirect-pkg")
+    package_description("Package that redirects to another repo")
+}
+
+[export]
+def resolve(sdk_version, version : string) {
+    download_redirect("github.com/borisbat/daspkg-test-pure", "v1.0")
+}

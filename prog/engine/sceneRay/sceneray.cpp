@@ -2,6 +2,7 @@
 
 #include <sceneRay/dag_sceneRay.h>
 #include <sceneRay/dag_cachedRtVecFaces.h>
+#include <sceneRay/dag_sceneRayBuildable.h> // for `destroy` impl
 #include <math/dag_math3d.h>
 #include <math/dag_bounds2.h>
 #include <util/dag_bitArray.h>
@@ -16,6 +17,8 @@
 #include <debug/dag_log.h>
 #include <debug/dag_debug.h>
 #include <stdlib.h>
+#include <ioSys/dag_zlibIo.h>
+#include <ioSys/dag_zstdIo.h>
 #include "version.h"
 
 #include <EASTL/bitvector.h>
@@ -31,18 +34,26 @@ static inline unsigned get_u32(const uint16_t &fi) { return StaticSceneRayTracer
 #endif
 
 template <typename FI>
-StaticSceneRayTracerT<FI>::StaticSceneRayTracerT() : skipFlags(USER_INVISIBLE << 24), useFlags(CULL_BOTH << 24), cullFlags(0)
+class EmptyStaticSceneRayTracerWithGridT : public StaticSceneRayTracerT<FI>
 {
-  G_ASSERTF((((intptr_t)(this)) & 15) == 0, "this=%p", this);
-  G_ASSERTF((((intptr_t)(&dump)) & 15) == 0, "this=%p dump=%p", this, &dump);
-  G_ASSERTF((sizeof(dump) & 15) == 0, "sizeof(dump)=%d", sizeof(dump));
-  G_ASSERTF((((intptr_t)(&v_rtBBox)) & 15) == 0, "this=%p v_rtBBox=%p", this, &v_rtBBox);
-  v_bbox3_init_empty(v_rtBBox);
-}
+  RTHierGrid3<typename StaticSceneRayTracerT<FI>::Leaf, 0> emptyGrid;
+
+public:
+  EmptyStaticSceneRayTracerWithGridT() : emptyGrid(0) { StaticSceneRayTracerT<FI>::dump.grid = &emptyGrid; }
+};
+static EmptyStaticSceneRayTracerWithGridT<uint16_t> emptySSRT16;
 
 template <typename FI>
-StaticSceneRayTracerT<FI>::~StaticSceneRayTracerT()
-{}
+void StaticSceneRayTracerT<FI>::destroy() const
+{
+  if constexpr (eastl::is_same_v<FI, uint16_t>)
+    if (this == &emptySSRT16)
+      return;
+  if (dump.version != BuildableStaticSceneRayTracerT<FI>::VER_MAGIC)
+    delete this;
+  else
+    delete static_cast<const BuildableStaticSceneRayTracerT<FI> *>(this);
+}
 
 template <typename FI>
 void StaticSceneRayTracerT<FI>::Node::destroy()
@@ -59,62 +70,47 @@ void StaticSceneRayTracerT<FI>::Node::destroy()
   }
 }
 
-//--------------------------------------------------------------------------
-template <typename FI>
-inline int StaticSceneRayTracerT<FI>::tracerayLNode(const Point3 &p, const Point3 &dir, real &mint, const LNode *lnode,
-  int ignore_face) const
-{
-  //--------------------------------------------------------------------------
-
-  int hit = -1;
-  const FaceIndex *__restrict fIndices = lnode->getFaceIndexStart();
-  const FaceIndex *__restrict fIndicesEnd = lnode->getFaceIndexEnd();
-  for (; fIndices < fIndicesEnd; fIndices++)
-  {
-    int fIndex = *fIndices; //(int)lnode->fc[fi];
-    unsigned faceFlag = get_u32(*fIndices);
-    IF_CONSTEXPR (sizeof(FaceIndex) > 2)
-      if ((faceFlag & skipFlags) || !(faceFlag & useFlags))
-        continue;
-    if (fIndex == ignore_face)
-      continue;
-
-    // check culling
-    faceFlag |= cullFlags;
-
-    const RTface &f = faces(fIndex);
-
-    const Point3_vec4 &vert0 = verts(f.v[0]);
-    const Point3 edge1 = verts(f.v[1]) - vert0;
-    const Point3 edge2 = verts(f.v[2]) - vert0;
-    real u, v;
-    if ((faceFlag & VAL_CULL_BOTH) == VAL_CULL_BOTH)
-    {
-      if (!traceRayToTriangleNoCull(p, dir, mint, vert0, edge1, edge2, u, v))
-        continue;
-    }
-    else if (!traceRayToTriangleCullCCW(p, dir, mint, vert0, edge1, edge2, u, v))
-      continue;
-    hit = fIndex;
-  }
-  return hit;
-}
-
-//--------------------------------------------------------------------------
 // Noinline because tracerayNodeVec called recursively
-
 template <typename FI>
-template <bool noCull>
+template <bool noCull, bool allHits>
 DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayLNodeVec(const vec3f &p, const vec3f &dir, float &t, const LNode *lnode,
-  int ignore_face) const
+  int ignore_face, all_faces_ret_t *hits, float offset_t) const
 {
+  constexpr uint32_t batchSize = 4;
   const FaceIndex *__restrict fIndices = lnode->getFaceIndexStart();
   const FaceIndex *__restrict fIndicesEnd = lnode->getFaceIndexEnd();
-  int fIndex[4];
-  int hit = -1;
+  int fIndex[batchSize];
+  alignas(EA_CACHE_LINE_SIZE) vec4f vert[batchSize][3];
 
-  const uint32_t batchSize = 4;
+  int hit = -1;
   uint32_t count = 0;
+
+  const auto trace = [&](int batch) {
+    IF_CONSTEXPR (allHits)
+    {
+      vec4f ts = v_splats(t);
+      int hitMask = v_signmask(traceray4TrianglesVecMask(p, dir, ts, vert, noCull));
+      if (DAGOR_UNLIKELY(hitMask != 0))
+      {
+        alignas(16) float hitT[4];
+        v_st(&hitT, ts);
+        for (int i = 0; i < batchSize; i++)
+        {
+          if (i >= batch) // unroll hint
+            break;
+          if (((hitMask >> i) & 1) && eastl::find_if(hits->begin(), hits->end(),
+                                        [&](const FaceIntersection &f) { return f.faceId == fIndex[i]; }) == hits->end())
+            hits->emplace_back(FaceIntersection{fIndex[i], hitT[i] + offset_t});
+        }
+      }
+    }
+    else
+    {
+      int ret = traceray4Triangles(p, dir, t, vert, batch, noCull);
+      if (ret >= 0)
+        hit = fIndex[ret];
+    }
+  };
 
   for (; fIndices < fIndicesEnd; fIndices++)
   {
@@ -129,21 +125,16 @@ DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayLNodeVec(const vec3f &p, c
       continue;
     count = 0;
 
-    vec4f vert[batchSize][3];
     for (uint32_t i = 0; i < batchSize * 3; i++)
     {
       const RTface &f = faces(fIndex[i / 3]);
       vert[i / 3][i % 3] = v_ld(&verts(f.v[i % 3]).x);
     }
-
-    int ret = traceray4Triangles(p, dir, t, vert, batchSize, noCull);
-    if (ret >= 0)
-      hit = fIndex[ret];
+    trace(batchSize);
   }
 
   if (count)
   {
-    alignas(EA_CACHE_LINE_SIZE) vec4f vert[batchSize][3];
     for (uint32_t i = 0; i < batchSize; i++)
     {
       if (i >= count) // unroll hint
@@ -153,10 +144,7 @@ DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayLNodeVec(const vec3f &p, c
       vert[i][1] = v_ld(&verts(f.v[1]).x);
       vert[i][2] = v_ld(&verts(f.v[2]).x);
     }
-
-    int ret = traceray4Triangles(p, dir, t, vert, count, noCull);
-    if (ret >= 0)
-      hit = fIndex[ret];
+    trace(count);
   }
 
   return hit;
@@ -221,32 +209,10 @@ VECTORCALL inline int StaticSceneRayTracerT<FI>::rayhitLNodeIdx(vec3f p, vec3f d
 }
 
 
-//--------------------------------------------------------------------------
 template <typename FI>
-int StaticSceneRayTracerT<FI>::tracerayNode(const Point3 &p, const Point3 &dir, real &mint, const Node *node, int ignore_face) const
-{
-  if (!rayIntersectSphere(p, dir, node->bsc, node->bsr2, mint))
-    return -1;
-  if (node->isNode())
-  {
-    // branch node
-    int hit = tracerayNode(p, dir, mint, node->getLeft(), ignore_face);
-    int hit2;
-    if ((hit2 = tracerayNode(p, dir, mint, node->getRight(), ignore_face)) != -1)
-      return hit2;
-    return hit;
-  }
-  else
-  {
-    // leaf node
-    return tracerayLNode(p, dir, mint, (LNode *)node, ignore_face);
-  }
-}
-
-template <typename FI>
-template <bool noCull>
+template <bool noCull, bool allHits>
 DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayNodeVec(const vec3f &p, const vec3f &dir, float &t, const Node *node,
-  int ignore_face) const
+  int ignore_face, all_faces_ret_t *hits, float offset_t) const
 {
   vec4f bsc = v_ld(&node->bsc.x);
   if (!v_test_ray_sphere_intersection(p, dir, v_splats(t), bsc, v_splat_w(bsc)))
@@ -254,14 +220,14 @@ DAGOR_NOINLINE int StaticSceneRayTracerT<FI>::tracerayNodeVec(const vec3f &p, co
   if (node->isNode())
   {
     // branch node
-    int hit0 = tracerayNodeVec<noCull>(p, dir, t, node->getLeft(), ignore_face);
-    int hit1 = tracerayNodeVec<noCull>(p, dir, t, node->getRight(), ignore_face);
+    int hit0 = tracerayNodeVec<noCull, allHits>(p, dir, t, node->getLeft(), ignore_face, hits, offset_t);
+    int hit1 = tracerayNodeVec<noCull, allHits>(p, dir, t, node->getRight(), ignore_face, hits, offset_t);
     return hit1 != -1 ? hit1 : hit0;
   }
   else
   {
     // leaf node
-    return tracerayLNodeVec<noCull>(p, dir, t, (LNode *)node, ignore_face);
+    return tracerayLNodeVec<noCull, allHits>(p, dir, t, (LNode *)node, ignore_face, hits, offset_t);
   }
 }
 //--------------------------------------------------------------------------
@@ -512,9 +478,7 @@ VECTORCALL bool StaticSceneRayTracerT<FI>::tracerayNormalized(vec3f p, vec3f dir
         if (*getLeafRes.leaf)
         {
           float hitT = effectiveT;
-          int faceId = tracerayNodeVec<true>(vEffectiveRayStart, dir, hitT, *getLeafRes.leaf, -1 /*ignore_face*/);
-          if (faceId != -1)
-            hits.emplace_back(FaceIntersection{faceId, shouldStartAt + hitT});
+          tracerayNodeVec<true, true>(vEffectiveRayStart, dir, hitT, *getLeafRes.leaf, -1 /*ignore_face*/, &hits, shouldStartAt);
         }
       }
       else
@@ -871,16 +835,13 @@ int StaticSceneRayTracerT<FI>::getFaces(Tab<int> &face, const BBox3 &box) const
 static StaticSceneRayTracerT<SceneRayI24F8>::GetFacesContext mtCtx32;
 static StaticSceneRayTracerT<uint16_t>::GetFacesContext mtCtx16;
 
-template <>
-StaticSceneRayTracerT<SceneRayI24F8>::GetFacesContext *StaticSceneRayTracerT<SceneRayI24F8>::getMainThreadCtx() const
+template <typename FI>
+typename StaticSceneRayTracerT<FI>::GetFacesContext *StaticSceneRayTracerT<FI>::getMainThreadCtx() const
 {
-  return &mtCtx32;
-}
-
-template <>
-StaticSceneRayTracerT<uint16_t>::GetFacesContext *StaticSceneRayTracerT<uint16_t>::getMainThreadCtx() const
-{
-  return &mtCtx16;
+  if constexpr (eastl::is_same_v<FI, uint16_t>)
+    return &mtCtx16;
+  else
+    return &mtCtx32;
 }
 
 template <typename Node>
@@ -944,24 +905,87 @@ void StaticSceneRayTracerT<FI>::Dump::patch()
     grid->patch(grid, this, [&](Node &node, void *base, void *dump_base) { patch_node(node, base, dump_base); });
 }
 
+
 template <typename FI>
-void StaticSceneRayTracerT<FI>::rearrangeLegacyDump(char *data, uint32_t n)
+StaticSceneRayTracerT<FI> *StaticSceneRayTracerT<FI>::load(IGenLoad &cb)
 {
-  auto *loadedDump = (Dump *)data;
+  unsigned block_rest = cb.readInt();
 
-  DynamicMemGeneralSaveCB gridSave(midmem, n);
-  uintptr_t grid_ofs = uintptr_t(loadedDump->grid.get()) - uintptr_t(loadedDump);
-  loadedDump->grid->serialize(gridSave, loadedDump);
-  while ((grid_ofs & 15) != 8) // align grid on sizeof(vec4f)+8 to force grid::Node alignment to sizeof(vec4f)
-    grid_ofs++;
-  G_ASSERT(grid_ofs + gridSave.size() <= n);
+  uint16_t ver = 0;
+  uint32_t n = 0;
+  char sign[6];
 
-  loadedDump->grid.setPtr(grid_ofs + (char *)loadedDump);
-  memcpy(loadedDump->grid.get(), gridSave.data(), gridSave.size()); //-V780
-  loadedDump->version = CURRENT_VERSION;
-  loadedDump->grid->patch(loadedDump->grid, loadedDump,
-    [&](Node &node, void *base, void *dump_base) { patch_node(node, base, dump_base); });
-  dump = *loadedDump;
+  cb.read(sign, 6);
+  cb.read(&ver, 2);
+  const int version = ver >> 3;
+  FrtCompression compression = FrtCompression(ver & 7);
+  if (memcmp(sign, "RTdump", 6) != 0 ||
+      ((version != LEGACY_VERSION && version != CURRENT_VERSION) || !is_supported_compression(compression)))
+  {
+    DEBUG_CTX("bad signature or version mismatch (sign=%.6s version=%d compression %d ver=%0x)", sign, version, (int)compression, ver);
+    return nullptr;
+  }
+  cb.read(&n, 4);
+  constexpr int dofs = offsetof(StaticSceneRayTracerT<FI>, dump);
+  auto loadedDump = (char *)midmem->alloc(n + dofs) + dofs;
+  if (compression == NoCompression)
+    cb.read(loadedDump, n);
+  else
+  {
+    switch ((int)compression)
+    {
+      case ZlibCompression:
+      {
+        ZlibLoadCB zlib_crd(cb, block_rest - 12);
+        zlib_crd.read(loadedDump, n);
+        break;
+      }
+      case ZstdCompression:
+      {
+        ZstdLoadCB zstd_crd(cb, block_rest - 12);
+        zstd_crd.read(loadedDump, n);
+        break;
+      }
+      default: G_ASSERT(0);
+    }
+  }
+  auto ldump = (Dump *)loadedDump;
+  ldump->version = version;
+  ldump->patch();
+
+  if (version == CURRENT_VERSION) [[likely]]
+    /* no-op */;
+#ifdef LEGACY_VER_42_SUPPORT
+  else if (version == LEGACY_VERSION)
+#else
+  else if constexpr (false)
+#endif
+  {
+    DynamicMemGeneralSaveCB gridSave(midmem, n);
+    uintptr_t grid_ofs = uintptr_t(ldump->grid.get()) - uintptr_t(ldump);
+    ldump->grid->serialize(gridSave, ldump);
+    while ((grid_ofs & 15) != 8) // align grid on sizeof(vec4f)+8 to force grid::Node alignment to sizeof(vec4f)
+      grid_ofs++;
+    G_ASSERT(grid_ofs + gridSave.size() <= n);
+
+    ldump->grid.setPtr(grid_ofs + (char *)ldump);
+    memcpy(ldump->grid.get(), gridSave.data(), gridSave.size()); //-V780
+    ldump->version = CURRENT_VERSION;
+    ldump->grid->patch(ldump->grid, ldump, [&](Node &node, void *base, void *dump_base) { patch_node(node, base, dump_base); });
+  }
+  else
+    G_ASSERTF(0, "Dump of version %d is not supported!", version);
+
+  void *bp = loadedDump - dofs;
+  if constexpr (eastl::is_same_v<FI, uint16_t>)
+    if (!ldump->vertsCount)
+    {
+      G_ASSERT(ldump->facesCount == 0);
+      G_ASSERT(ldump->faceIndicesCount == 0);
+      midmem->free(bp);
+      return &emptySSRT16;
+    }
+  return static_cast<StaticSceneRayTracerT<FI> *>(new (bp, _NEW_INPLACE) StaticSceneRayTracerFlags<FI>); //-V572
 }
 
 #include "serializableSceneRay.cpp"

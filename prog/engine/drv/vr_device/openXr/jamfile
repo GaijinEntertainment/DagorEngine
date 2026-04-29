@@ -6,7 +6,7 @@ Target      = engine/drv/vr_device/openXrDevice.lib ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
-VRDeviceOptional ?= no ;
+VRDeviceOptional ?= yes ;
 
 AddIncludes =
   $(Root)/prog/engine/dagorInclude

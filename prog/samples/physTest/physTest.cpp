@@ -798,8 +798,6 @@ static HeightmapHandler hmap;
 
 #if ALLOW_BUILD_DYNMODEL
 #include <libTools/shaderResBuilder/dynSceneResSrc.h>
-#include <libTools/shaderResBuilder/dynSceneWithTreeResSrc.h>
-#include <shaders/dag_dynSceneWithTreeRes.h>
 #endif
 
 static void loadPhysTestScene(const char *filename)
@@ -840,7 +838,7 @@ static void loadPhysTestScene(const char *filename)
   {
     FullFileLoadCB crd(resFilename);
     G_VERIFY(crd.readInt() == DynamicRenderableSceneLodsResourceCID.id);
-    lods = DynamicRenderableSceneLodsResource::loadResource(crd, 0);
+    lods = DynamicRenderableSceneLodsResource::loadResource(crd, 0, nullptr);
   }
   G_ASSERT(lods);
 
@@ -1256,6 +1254,8 @@ public:
     freeCam->setInvViewMatrix(tm);
     debug_flush(false);
   }
+
+  virtual void sceneDeselected(DagorGameScene * /*prev_scene*/) { close_draw_cached_debug(); }
 
 private:
   IFreeCameraDriver *freeCam;

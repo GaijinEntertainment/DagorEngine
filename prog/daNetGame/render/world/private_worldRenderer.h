@@ -27,11 +27,9 @@
 #include <EASTL/unique_ptr.h>
 #include <scene/dag_occlusion.h>
 #include <shaders/dag_overrideStateId.h>
-#include <mutex>
 #include <render/world/fomShadowsManager.h>
 #include <render/world/deformHeightmap.h>
 #include <render/world/rendInstHeightmap.h>
-#include <render/world/mobileDeferredResources.h>
 #include <render/gpuVisibilityTest.h>
 #include <ioSys/dag_dataBlock.h>
 #include <render/fx/fx.h>
@@ -42,6 +40,8 @@
 #include <render/world/frameGraphNodes/motionBlurNode.h>
 #include <render/world/cameraViewVisibilityManager.h>
 #include <render/deferredRenderer.h>
+#include <render/antialiasing.h>
+#include <render/antiAliasing_legacy.h>
 #include <render/resourceSlot/nodeHandleWithSlotsAccess.h>
 #include <render/motionVectorAccess.h>
 #include <render/heroData.h>
@@ -106,6 +106,7 @@ class GaussMipRenderer;
 union LightShadowParams;
 struct AimRenderingData;
 class DebugLightProbeShapeRenderer;
+class DebugCollisionDensityRenderer;
 class IndoorProbeScenes;
 class DynamicShadowRenderExtender;
 class EnviCover;
@@ -144,7 +145,7 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   friend eastl::fixed_vector<dafg::NodeHandle, 8> makeOpaqueStaticNodes(bool);
 
   friend dafg::NodeHandle makePrepareGbufferNode(
-    uint32_t global_flags, uint32_t gbuf_cnt, eastl::span<uint32_t> main_gbuf_fmts, bool has_motion_vectors);
+    uint32_t global_flags, uint32_t gbuf_cnt, eastl::span<uint32_t> main_gbuf_fmts, bool has_motion_vectors, bool is_rr_enabled);
   friend dafg::NodeHandle makePrepareLightsNode();
   friend dafg::NodeHandle makeDepthWithTransparencyNode();
   friend dafg::NodeHandle makeDownsampleDepthWithTransparencyNode();
@@ -167,35 +168,15 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   friend eastl::array<dafg::NodeHandle, 2> makeExternalFinalFrameControlNodes(bool requires_multisampling);
   friend dafg::NodeHandle makePostfxTargetProducerNode(bool requires_multisampling);
   friend dafg::NodeHandle makeAimDofRestoreNode();
-  friend dafg::NodeHandle mk_occlusion_preparing_mobile_node();
-  friend dafg::NodeHandle mk_postfx_target_producer_mobile_node();
-  friend dafg::NodeHandle mk_postfx_mobile_node();
-  friend dafg::NodeHandle mk_finalize_frame_mobile_node();
-  friend dafg::NodeHandle mk_debug_render_mobile_node();
   friend dafg::NodeHandle makeGroundNode(bool early);
   friend eastl::array<dafg::NodeHandle, 2> makeSceneShadowPassNodes(const DataBlock *level_blk);
   friend dafg::NodeHandle makeTransparentSceneLateNode();
   friend dafg::NodeHandle makeAcesFxTransparentNode();
-  friend eastl::fixed_vector<dafg::NodeHandle, 2, false> makeAcesFxLowresTransparentNodes();
 
   friend dafg::NodeHandle makeAfterWorldRenderNode();
   friend eastl::array<dafg::NodeHandle, 9> makeVolumetricLightsNodes();
-  friend dafg::NodeHandle mk_panorama_prepare_mobile_node();
-  friend dafg::NodeHandle mk_panorama_apply_mobile_node();
-  friend dafg::NodeHandle mk_panorama_apply_forward_node();
   friend dafg::NodeHandle makeWaterNode(WaterRenderMode mode);
-  friend eastl::fixed_vector<dafg::NodeHandle, 2, false> makeWaterSSRNode(WaterRenderMode mode);
-  friend dafg::NodeHandle mk_opaque_setup_mobile_node();
-  friend dafg::NodeHandle mk_opaque_begin_rp_node();
-  friend dafg::NodeHandle mk_opaque_mobile_node();
-  friend dafg::NodeHandle mk_opaque_resolve_mobile_node();
-  friend dafg::NodeHandle mk_opaque_setup_forward_node();
-  friend dafg::NodeHandle mk_static_opaque_forward_node();
-  friend dafg::NodeHandle mk_dynamic_opaque_forward_node();
-  friend dafg::NodeHandle mk_frame_data_setup_node();
-  friend dafg::NodeHandle mk_water_prepare_mobile_node();
-  friend dafg::NodeHandle mk_water_mobile_node();
-  friend dafg::NodeHandle mk_under_water_fog_mobile_node();
+  friend eastl::fixed_vector<dafg::NodeHandle, 4, false> makeWaterSSRNode(WaterRenderMode mode);
   friend void acesfx::finish_update(const TMatrix4 &tm, Occlusion *occlusion);
   friend eastl::fixed_vector<dafg::NodeHandle, 2, false> makeCameraInCameraSetupNodes();
 
@@ -204,7 +185,26 @@ class WorldRenderer final : public IRenderWorld, public IShadowInfoProvider
   // platform/game specific default initialized once
   FeatureRenderFlagMask defaultFeatureRenderFlags;
 
+  struct GiFullInvalidationRequest
+  {
+    bool force;
+  };
+  struct GiPartialInvalidateRequest
+  {
+    BBox3 modelBbox;
+    TMatrix tm;
+    BBox3 approx;
+  };
+  eastl::optional<GiFullInvalidationRequest> pendingFullGiInvalidationRequest;
+  eastl::optional<GiPartialInvalidateRequest> pendingPartialGiInvalidationRequest;
+  void processGIInvalidationRequests();
+
+  bool hasPendingHeroTeleportation = false;
+  void processHeroTeleportation();
+
 public:
+  void onHeroTeleportation() { hasPendingHeroTeleportation = true; };
+
   bool hasFeature(FeatureRenderFlags f) const { return renderer_has_feature(f); }
   FeatureRenderFlagMask getFeatures() const { return get_current_render_features(); }
 
@@ -214,14 +214,15 @@ public:
 
   // IRenderWorld
   virtual void update(float dt, float real_dt, const TMatrix &itm); // can be called independent on draw
-  void setUpView(const TMatrix &view_itm, const DPoint3 &view_pos, const Driver3dPerspective &persp);
+  void setUpView(const TMatrix &view_itm, const DPoint3 &view_pos, const Driver3dPerspective &persp, const TMatrix4D &proj_tm);
   virtual void beforeRender(float scaled_dt,
     float act_dt,
     float real_dt,
     float game_time,
     const TMatrix &view_itm,
     const DPoint3 &view_pos,
-    const Driver3dPerspective &persp) override;
+    const Driver3dPerspective &persp,
+    const TMatrix4D &proj_tm) override;
 
   void updateLodsScaling();
 
@@ -245,6 +246,7 @@ public:
   virtual void onLightmapSet(TEXTUREID lmap_tid);
   // to be called from loading thread
   virtual void onLandmeshLoaded(const DataBlock &level_blk, const char *bin_scene, LandMeshManager *lmesh);
+  void onUIFinished();
 
   virtual void unloadLevel();
   virtual void closeNBSShaders();
@@ -280,28 +282,21 @@ public:
 
   //
   // todo: instead of direct mapping wecan create some grid structire to hide and remove lights which are too far
-  void destroyLight(light_id id)
-  {
-    std::lock_guard<std::mutex> scopedLock(lightLock);
-    lights.destroyLight(id);
-  } // this one has to be replaced with queue
+  void destroyLight(light_id id) { lights.destroyLight(id); } // this one has to be replaced with queue
 
   light_id addOmniLight(const OmniLight &light, OmniLightMaskType mask = OmniLightMaskType::OMNI_LIGHT_MASK_DEFAULT)
   {
-    std::lock_guard<std::mutex> scopedLock(lightLock);
     return lights.addOmniLight(light, mask);
   }
 
   // keep mask
   void setLight(light_id id, const OmniLight &light, bool invalidate_shadow)
   {
-    std::lock_guard<std::mutex> scopedLock(lightLock);
     lights.setLight(id, light, invalidate_shadow);
   } // todo:this one has to be replaced with queue
 
   void setLightWithMask(light_id id, const OmniLight &light, OmniLightMaskType mask, bool invalidate_shadow)
   {
-    std::lock_guard<std::mutex> scopedLock(lightLock);
     lights.setLightWithMask(id, light, mask, invalidate_shadow);
   } // todo:this one has to be replaced with queue
 
@@ -309,16 +304,16 @@ public:
 
   void setLight(light_id id, const SpotLight &light, SpotLightMaskType mask, bool invalidate_shadow)
   {
-    std::lock_guard<std::mutex> scopedLock(lightLock);
     lights.setLight(id, light, mask, invalidate_shadow);
   } // todo:this one has to be replaced with queue
 
   SpotLight getSpotLight(light_id id) const { return lights.getSpotLight(id); }
 
-  light_id addSpotLight(const SpotLight &light, SpotLightMaskType mask)
+  light_id addSpotLight(const SpotLight &light, SpotLightMaskType mask) { return lights.addSpotLight(light, mask); }
+
+  void getSpotLightShadowViewProj(light_id id, mat44f &view_itm, mat44f &proj)
   {
-    std::lock_guard<std::mutex> scopedLock(lightLock);
-    return lights.addSpotLight(light, mask);
+    return lights.getSpotLightShadowViewProj(id, view_itm, proj);
   }
 
   bool isLightVisible(light_id id) const { return lights.isLightVisible(id); }
@@ -372,35 +367,63 @@ public:
   void createNodes();
   // Recreates nodes right before rendering the frame, causing a lag
   // spike. SHould only be used for debug (e.g. pulling convars)
-  void debugRecreateNodesLate();
+  void debugRecreateNodes();
 
-  void createDownsampleDepthNode();
-  void createPrepareMotionVectorsAfterTransparentNode();
-  void createGbufferControlNodes();
   void createFinalOpaqueControlNodes();
-  void createTransparentControlNodes();
-  void createAsyncAnimcharRenderingStartNode();
-  void createHzbResolveNode();
-  void createTransparentParticlesNode();
-  void createDownsampleDepthWithWaterNode();
-  void createEnvironmentNode();
-  void createMotionBlurControlNodes();
-  void createShadowPassNodes();
-  void createOpaqueStaticNodes();
-  void createVolumetricLightsNode();
   void createGiNodes();
-  void createResolveGbufferNode();
-  void createDeferredLightNode();
-  void createUINodes();
-  void createMotionVectorResolveAndEnviCoverNodes();
 
   static WaterRenderMode determineWaterRenderMode(bool underWater, bool belowClouds);
+  struct AntiAliasingAppGlue : public render::antialiasing::AppGlue
+  {
+    TMatrix4 getUvReprojectionToPrevFrameTmNoJitter() const override { return TMatrix4::IDENT; }
+    IPoint2 getInputResolution() const override
+    {
+      if (auto *wr = get_wr())
+      {
+        IPoint2 result;
+        wr->getRenderingResolution(result.x, result.y);
+        return result;
+      }
+      return IPoint2::ZERO;
+    }
+    IPoint2 getOutputResolution() const override
+    {
+      if (auto *wr = get_wr())
+      {
+        IPoint2 result;
+        wr->getPostFxInternalResolution(result.x, result.y);
+        return result;
+      }
+      return IPoint2::ZERO;
+    }
+    IPoint2 getDisplayResolution() const override
+    {
+      if (auto *wr = get_wr())
+      {
+        IPoint2 result;
+        wr->getDisplayResolution(result.x, result.y);
+        return result;
+      }
+      return IPoint2::ZERO;
+    }
+    bool hasMinimumRenderFeatures() const override { return true; }
+    bool isTiledRender() const override { return false; }
+    bool useMobileCodepath() const override { return false; }
+    bool isRayTracingEnabled() const override { return false; }
+    int getTargetFormat() const override { return 0; }
+    int getHangarPassValue() const override { return 0; }
+    SGSR2Interface *createSGSR2(const IPoint2 &, const IPoint2 &) const override { return nullptr; };
+    bool isVrHmdEnabled() const override { return false; }
+    bool pushSSAAoption() const override { return true; }
+
+  private:
+    static WorldRenderer *get_wr() { return static_cast<WorldRenderer *>(get_world_renderer()); }
+  };
 
   void setResolution() override;
   void setAntialiasing();
   void applyAutoResolution();
   void close();
-  void setFadeMul(float mul);
   bool haveVolumeLights() { return volumeLight != nullptr; }
   void enableVolumeFogOptionalShader(const String &shader_name, bool enable);
   void enableEnviCoverOptionalShader(const String &shader_name, bool enable);
@@ -442,35 +465,22 @@ public:
   };
   GiQuality getGiQuality() const;
   bool isThinGBuffer() const;
-  bool isForwardRender() const;
-  bool isMobileDeferred() const;
-  bool isDepthAccessible() const { return !isForwardRender(); }
+  bool isDepthAccessible() const { return true; }
   bool isSSREnabled() const;
   bool isWaterSSREnabled() const;
   bool isLowResLUT() const;
 
-  void invalidateAllShadows() { return lights.invalidateAllShadows(); }
+  bool hasSSRAlternateReflections() const { return ssrWantsAlternateReflections; }
+  bool hasWaterSSRAlternateReflections() const;
+
+  void invalidateAllShadows()
+  {
+    OSSpinlockScopedLock scopedLock{lights.lightLock};
+    return lights.invalidateAllShadows();
+  }
 
   void setPostFx(const ecs::Object &postFx);
   void postFxTonemapperChanged();
-
-  enum class MobileTerrainQuality
-  {
-    Minimum = 0,
-    Low = 1,
-    Medium = 2,
-    High = 3
-  };
-  void initMobileTerrainSettings() const;
-  void setMobileTerrainQuality(const MobileTerrainQuality quality) const;
-  enum class MobileStaticShadowQuality
-  {
-    Off = 0,
-    Fast = 1,
-    FXAA = 2
-  };
-  void initMobileShadowSettings() const;
-  void initMobileShadersSettings() const;
 
   virtual bool getBoxAround(const Point3 &position, TMatrix &box) const override;
 
@@ -492,6 +502,7 @@ public:
   bool forceEnableMotionVectors() const;
   bool needMotionVectors() const;
   bool needSeparatedUI() const override;
+  bool needUIBlendingForScreenshot() const override;
 
   void removePuddlesInCrater(const Point3 &pos, float radius);
   void delayedInvalidateAfterHeightmapChange(const BBox3 &box);
@@ -512,7 +523,6 @@ public:
 protected:
   void ctorCommon();
   void ctorDeferred();
-  void ctorForward();
 
   void initResetable();
   void closeResetable();
@@ -573,7 +583,6 @@ protected:
   void renderDisplacementRiLandclasses(const Point3 &camera_pos);
 
   void renderGround(const LandMeshCullingData &lmesh_culling_data, bool is_first_iter);
-  void renderGroundForward(const LandMeshCullingData &lmesh_culling_data);
 
   void renderStaticSceneOpaque(int shadow_cascade, const Point3 &camera_pos, const TMatrix &view_itm, const Frustum &culling_frustum);
   void renderDynamicOpaque(
@@ -591,17 +600,17 @@ protected:
 
   struct DelayedRenderContext
   {
-    struct
+    struct //-V730
     {
-      bool render;
-      const ManagedTex *texPtr;
+      bool render = false;
+      const ManagedTex *texPtr = nullptr;
       Point3 position;
       int faceNumber;
     } lightProbeData;
 
     struct
     {
-      bool render;
+      bool render = false;
       TMatrix itm;
     } depthAOAboveData;
 
@@ -627,18 +636,6 @@ protected:
     float cockpitDistance = 0.f;
     bool occlusionAvailable = false;
   } vehicleCockpitOcclusionData;
-
-  MobileDeferredResources mobileRp;
-
-  void renderStaticOpaqueForward(const LandMeshCullingData &lmesh_culling_data, const TMatrix &itm);
-  void renderStaticDecalsForward(ManagedTexView depth,
-    const CameraParams &current_camera,
-    const TexStreamingContext tex_ctx,
-    const RiGenVisibility *ri_main_visibility,
-    const TMatrix &prev_view_tm,
-    const TMatrix4 &prev_proj_current_jitter);
-  void renderDynamicOpaqueForward(const TMatrix &itm);
-  bool renderParticlesSpecial(uint8_t render_tag);
   void copyClipmapUAVFeedback();
 
   void onBareMinimumSettingsChanged();
@@ -646,14 +643,14 @@ protected:
   void updateTransformations(const DPoint3 &move,
     const TMatrix4_vec4 &jittered_cam_pos_to_unjittered_history_clip,
     const TMatrix4_vec4 &prev_origo_relative_view_proj_tm);
-  void prepareClipmap(const Point3 &origin, float additional_speed, const TMatrix &view_itm, const TMatrix4 &globtm);
+  void prepareClipmap(const Point3 &origin, const TMatrix &view_itm, const TMatrix4 &globtm, float wk, int minimum_zoom);
   void prepareDeformHmap();
   enum class DistantWater : bool
   {
     No,
     Yes
   };
-  void renderWater(const TMatrix &itm, DistantWater render_distant_water, bool render_ssr);
+  void renderWater(const CameraParams &camera, DistantWater render_distant_water, bool render_ssr);
   void renderWaterSSR(const TMatrix &itm, const Driver3dPerspective &persp);
 
   void generatePaintingTexture();
@@ -685,7 +682,7 @@ protected:
   inline void reinitCube() { reinitCube(enviProbePos); }
 
   bool enviProbeNeedsReload = false;
-  virtual void reloadCube(bool first);
+  void reloadCube(bool first);
 
   void updateSkyProbeDiffuse();
   uint32_t attemptsToUpdateSkySph = 0;
@@ -703,14 +700,21 @@ protected:
   void closeCharacterMicroDetails();
 
   void applySettingsChanged();
-  void createFramegraphNodes();
+
+  bool hasPendingFgRecreation = false;
+  void processPendingFgRecreation();
+  void requestFgRecreation(const char *tag)
+  {
+    debug("WR:mark FG for recompilation [%s]", tag);
+    hasPendingFgRecreation = true;
+  }
+
   IPoint2 getFsrScaledResolution(const IPoint2 &orig_resolution) const;
   void updateLevelGraphicsSettings(const DataBlock &level_blk);
   bool forceStaticResolutionOff = false;
 
   void invalidateLightProbes();
   void initIndoorProbesIfNecessary();
-  void invalidateNodeBasedResources();
 
 protected:
   friend struct PostFxManager;
@@ -732,8 +736,6 @@ protected:
   eastl::unique_ptr<FomShadowsManager> fomShadowManager;
 
   GpuDeformObjectsManager gpuDeformObjectsManager;
-
-  std::mutex lightLock;
 
   eastl::unique_ptr<RenderDynamicCube> cube;
 
@@ -770,8 +772,6 @@ protected:
 
   BaseStreamingSceneHolder *binScene = nullptr; // owned by corresponding entity
   BBox3 binSceneBbox;
-  dafg::NodeHandle binSceneTransparencyNode;
-  void initBinSceneTransparencyNode();
 
   TEXTUREID lightmapTexId = BAD_TEXTUREID;
   LandMeshManager *lmeshMgr = nullptr; // not owned!
@@ -780,6 +780,7 @@ protected:
   int subdivSettings = 0;
   void initSubDivSettings();
   float cameraHeight = 0.f;
+  float cameraActualHeight = 0.f;
   float lodDistanceScaleBase = 1.3f;
 
   // queried in every frame in before draw
@@ -895,18 +896,14 @@ protected:
   bool isStaticUpsampleEnabled() const;
   void applyStaticUpsampleQuality();
 
+  AntiAliasingAppGlue aaGlue;
   AntiAliasingMode currentAntiAliasingMode = AntiAliasingMode::TSR;
-  bool hasDepthHistory = false;
-  dafg::NodeHandle prepareDepthForPostFxNode;
-  void makePrepareDepthForPostFxNode();
-  int msaaQuality = 0;
   eastl::unique_ptr<AntiAliasing> antiAliasing;
 #if !_TARGET_PC && !_TARGET_ANDROID && !_TARGET_IOS && !_TARGET_C3
   IPoint2 fixedPostfxResolution;
   IPoint2 getFixedPostfxResolution(const IPoint2 &orig_resolution) const;
 #endif
 
-  bool isMSAAEnabled() const { return currentAntiAliasingMode == AntiAliasingMode::MSAA; }
   void loadAntiAliasingSettings();
   void applyFXAASettings();
   void loadFsrSettings();
@@ -914,6 +911,8 @@ protected:
   bool hasMotionVectors = false;
   constexpr static int GBUF_TARGET_GLOBAL_FLAGS = TEXCF_ESRAM_ONLY;
   void initTarget();
+  bool isEnviCoverCompatible = false;
+  void updateEnviCoverCompatibility();
   void initGbufferDepthProducer();
   void toggleMotionVectors();
 
@@ -921,11 +920,6 @@ protected:
   float ssaaMipBias = 0.0f;
   bool isSSAAEnabled() const { return currentAntiAliasingMode == AntiAliasingMode::SSAA; }
   IPoint2 getSSAAResolution(const IPoint2 &orig_resolution) const { return orig_resolution * 2; }
-
-  // forward rendering
-  void setResolutionForward();
-  void initResetableForward();
-  void createNodesForward();
 
   void setSettingsSSR();
   void updateSettingsSSR(int w, int h);
@@ -939,9 +933,6 @@ protected:
   AoQuality aoQuality = AoQuality::MEDIUM;
   void resetSSAOImpl();
   FFTWater *water = nullptr;
-  dafg::NodeHandle prepareWaterNode;
-  eastl::array<dafg::NodeHandle, 3> waterNodes;
-  eastl::array<eastl::fixed_vector<dafg::NodeHandle, 2, false>, 3> waterSSRNodes;
   ShoreRenderer shoreRenderer;
   static constexpr int lowresWaterHeightmapSize = 1024;
   UniqueTexHolder lowresWaterHeightmap;
@@ -964,7 +955,6 @@ protected:
   dafg::NodeHandle waterPlanarReflectionCloudsNode;
   dafg::NodeHandle waterPlanarReflectionTerrainNode;
 
-  void recreateWaterNodes();
   void initWaterPlanarReflection();
   void closeWaterPlanarReflection();
   void initWaterPlanarReflectionTerrainNode();
@@ -976,25 +966,28 @@ protected:
 public:
   CollisionResource *getStaticSceneCollisionResource() const { return staticSceneCollisionResource.get(); }
   eastl::unique_ptr<DeferredRT> target;
-  void setupSkyPanoramaAndReflectionFromSetting(bool first_init);
+  void setupSkyPanoramaAndReflectionFromSetting();
   float daGdpRangeScale = 1;
   float gameTime = 0.f;
   float realDeltaTime = 0.f;
+  uint32_t renderedFrames = 0;
   Clipmap *getClipmap() const { return clipmap; }
   bool getBareMinimumPreset() const { return bareMinimumPreset; }
   AntiAliasingMode getAntiAliasingMode() { return currentAntiAliasingMode; }
-  WorldSDF *getWorldSDF() override;
+  DaGI *getGI() override;
   uint32_t getGIHistoryFrames() const;
+  void setGILightsToShader(bool allow_frustum_lights);
 
 private:
-  Point3 panoramaPosition = {0, 10, 0};
-  void setupSkyPanoramaAndReflection(bool use_panorama, bool first_init);
+  void setupSkyPanoramaAndReflection(bool use_panorama);
   void switchVolumetricAndPanoramicClouds(); // for debugging
 
   UniqueTex screenshotSuperFrame;
   PostFxRenderer underWater;
   float cameraSpeed = 0;
+
   Clipmap *clipmap = nullptr;
+  int clipmapCutoffZoom = -1, clipmapCutoffMipsCnt = -1;
 
   eastl::unique_ptr<MultiFramePGF> preIntegratedGF;
 
@@ -1038,15 +1031,10 @@ private:
   bool initClipmapAfterResetDevice = false;
 
   bool ignoreStaticShadowsForGI = false;
+  bool globalGiLightsPrepared = false;
 
-  void fillDebugCollisionDensity(int threshold, const Point3 &cell, bool raster_collision, bool raster_phys);
   void renderDebugCollisionDensity();
-  void initDebugCollisionDensity();
-  void closeDebugCollisionDensity();
-  BufPtr debugCollisionSB, debugCollisionCounterSB;
-  eastl::unique_ptr<ShaderMaterial> drawFacesCountMat;
-  ShaderElement *drawFacesCountElem = 0;
-  int debugVoxelsCount = 0;
+  eastl::unique_ptr<DebugCollisionDensityRenderer> debugCollisionDensityRenderer;
 
   eastl::unique_ptr<DepthAOAboveContext> depthAOAboveCtx;
   ClusteredLights lights;
@@ -1054,6 +1042,7 @@ private:
   PostFxRenderer debugFillGbufferShader;
   shaders::UniqueOverrideStateId specularOverride, diffuseOverride;
 
+  void changeGrassShadowQuality();
   int getDynamicShadowQuality();
   void changeDynamicShadowResolution();
   void setDynamicShadowsMaxUpdatePerFrame();
@@ -1084,7 +1073,6 @@ private:
     return {rendinst_shadows_visibility.data(), rendinst_shadows_visibility.size()};
   }
   bool hasRenderFeature(FeatureRenderFlags f) const override { return hasFeature(f); }
-  bool isForward() const override { return isForwardRender(); }
   BBox3 getStaticShadowsBBox() const override
   {
     BBox3 res = getWorldBBox3();
@@ -1121,8 +1109,11 @@ private:
   float giHmapOffsetFromLow = 8.0, giHmapOffsetFromUp = 32 - 8.0f;
   float giIntersectedAmount = 0.125f, giNonIntersectedAmount = 0.125f;
   float giMaxUpdateHeightAboveFloor = 32.0f;
+  BBox3 giCurrentGlobalLightsBox;
+  bool giGlobalLightsPrepared = false;
   RiGenVisibility *rendinst_voxelize_visibility = nullptr;
   eastl::unique_ptr<LRURendinstCollision> lruCollision;
+  eastl::unique_ptr<DaGISettings> giSettingsOverride;
 
   PostFxRenderer ambientBilateralBlur, ambientPerPixelVoxelsRT;
   eastl::unique_ptr<DataBlock> giBlk;
@@ -1134,8 +1125,13 @@ private:
   void updateGIPos(const Point3 &pos, const TMatrix &view_itm, float hmin, float hmax);
   void drawGIDebug(const Frustum &camera_frustum);
   void invalidateGI(bool force);
+  void doInvalidateGI(const bool force);
+  void doInvalidateGI(const BBox3 &model_bbox, const TMatrix &tm, const BBox3 &approx);
   void setGIQualityFromSettings();
   bool giNeedsReprojection();
+  void overrideGISettings(const DaGISettings &settings) override;
+  void resetGISettingsOverride() override;
+  DaGISettings getGISettings() const;
 
   void initFsr(const IPoint2 &postfx_resolution, const IPoint2 &display_resolution);
   void closeFsr();
@@ -1150,6 +1146,7 @@ private:
   void setFxQuality();
 
   void setEnviromentDetailsQuality();
+  void setNbsQuality();
 
   void resetLatencyMode();
   void resetVsyncMode();
@@ -1159,9 +1156,9 @@ private:
 
   HeroWtmAndBox heroData;
   CameraViewVisibilityMgr mainCameraVisibilityMgr{RI_EXTRA_VB_CTX_ASYNC, "main_cam"};
-  CameraViewVisibilityMgr camcamVisibilityMgr{
-    RI_EXTRA_VB_CTX_CAMCAM_ASYNC, "cam_in_cam", CameraViewVisibilityFlags::DontReprojectCockpitOcclusion};
+  CameraViewVisibilityMgr camcamVisibilityMgr{RI_EXTRA_VB_CTX_CAMCAM_ASYNC, "cam_in_cam", COCKPIT_NO_REPROJECT};
   eastl::optional<CameraParams> camcamParams;
+  eastl::optional<CameraParams> prevCamcamParams;
   CameraParams currentFrameCamera;
   CameraParams prevFrameCamera;
   TexStreamingContext currentTexCtx = TexStreamingContext(0);
@@ -1173,6 +1170,7 @@ public:
   const TMatrix &getCameraViewItm() const { return currentFrameCamera.viewItm; }
   const TMatrix4_vec4 &getCameraProjtm() const { return currentFrameCamera.noJitterProjTm; }
   TexStreamingContext getTexCtx() const { return currentTexCtx; }
+  void setCockpitReprojectionMode(CockpitReprojectionMode mode) { mainCameraVisibilityMgr.setCockpitReprojectionMode(mode); }
 
 private:
   int maxWaterTessellation = 7;
@@ -1197,34 +1195,14 @@ private:
   SatelliteRenderer satelliteRenderer;
 
   eastl::vector<dafg::NodeHandle> fgNodeHandles;
+  eastl::fixed_vector<dafg::NodeHandle, 4> vrsNodeHandles;
   eastl::vector<resource_slot::NodeHandleWithSlotsAccess> resSlotHandles;
   dafg::NodeHandle prepareGbufferDepthFGNode;
   dafg::NodeHandle prepareGbufferFGNode;
-  dafg::NodeHandle reactiveMaskClearNode;
-  eastl::array<dafg::NodeHandle, 3> downsampleDepthFGNodes;
-  dafg::NodeHandle prepareMotionVectorsAfterTransparentNode;
-  dafg::NodeHandle asyncAnimcharRenderingStartFGNode;
 
-  eastl::fixed_vector<dafg::NodeHandle, 3> gbufferCloseupsControlNodes;
-  eastl::fixed_vector<dafg::NodeHandle, 4> gbufferStaticsControlNodes;
-  eastl::fixed_vector<dafg::NodeHandle, 3> gbufferDynamicsControlNodes;
-  eastl::fixed_vector<dafg::NodeHandle, 3> gbufferDecorationsControlNodes;
-  dafg::NodeHandle gbufferPublishNode;
-
-  eastl::fixed_vector<dafg::NodeHandle, 6> transparentControlNodes;
   eastl::fixed_vector<dafg::NodeHandle, 4> finalOpaqueControlNodes;
-  dafg::NodeHandle transparentPublishNode;
 
-  eastl::fixed_vector<dafg::NodeHandle, 5> motionBlurControlNodes;
-  dafg::NodeHandle hzbResolveFGNode;
-  dafg::NodeHandle acesFxTransparentNode;
-  eastl::fixed_vector<dafg::NodeHandle, 2, false> acesFxLowresTransparentNodes;
-  dafg::NodeHandle downsampledDepthWithWaterNode;
-  eastl::fixed_vector<dafg::NodeHandle, 4> environmentFGNodes;
-  eastl::array<dafg::NodeHandle, 2> shadowPassFGNodes;
-  eastl::array<dafg::NodeHandle, 9> volumetricLightsFGNodes;
   eastl::fixed_vector<dafg::NodeHandle, 3> ssrFGNodes;
-  eastl::fixed_vector<dafg::NodeHandle, 8> opaqueStaticNodes;
   eastl::array<dafg::NodeHandle, 3> aoFGNodes;
   dafg::NodeHandle giRenderFGNode;
 
@@ -1233,8 +1211,6 @@ private:
   dafg::NodeHandle giScreenDebugFGNode;
   dafg::NodeHandle giScreenDebugDepthFGNode;
 
-  eastl::array<dafg::NodeHandle, 2> deferredLightNodes;
-  eastl::fixed_vector<dafg::NodeHandle, 2, false> resolveGbufferNodes;
   eastl::fixed_vector<dafg::NodeHandle, 5, false> subSuperSamplingNodes;
   dafg::NodeHandle frameToPresentProducerNode;
   eastl::array<dafg::NodeHandle, 2> externalFinalFrameControlNodes;
@@ -1245,10 +1221,6 @@ private:
   dafg::NodeHandle motionBlurApplyNode;
   MotionBlurNodeStatus motionBlurStatus = MotionBlurNodeStatus::UNINITIALIZED;
   dafg::NodeHandle fxaaNode;
-  eastl::fixed_vector<dafg::NodeHandle, 2> beforeUIControlNodes;
-  dafg::NodeHandle uiRenderNode;
-  dafg::NodeHandle uiBlendNode;
-  eastl::array<dafg::NodeHandle, 3> resolveMotionVectorsAndEnviCoverNodes;
 
   int superPixels = 1;
   int subPixels = 1;

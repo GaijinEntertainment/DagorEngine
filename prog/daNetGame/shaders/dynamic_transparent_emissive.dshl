@@ -3,7 +3,6 @@ include "gbuffer.dshl"
 
 shader dynamic_transparent_emissive
 {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK_TRANS()
   if (dyn_model_render_pass == render_to_depth)
   {
@@ -95,7 +94,7 @@ shader dynamic_transparent_emissive
   static float emission = 0;
   (ps) {
     emission__transparency_mul@f2 = (emission, transparency_mul, 0 ,0);
-    diffuse_tex@static = tex;
+    diffuse_tex@staticSmp = tex;
   }
 
   hlsl(ps) {

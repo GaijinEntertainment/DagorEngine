@@ -7,4 +7,5 @@ void set_exe_path(const char path[]);
 
 const char *get_exe_path();
 const char *get_exe_path_full();
+const char *get_common_data_dir();
 }; // namespace sgg

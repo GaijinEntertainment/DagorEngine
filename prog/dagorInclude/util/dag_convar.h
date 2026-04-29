@@ -8,6 +8,10 @@
 #include <debug/dag_assert.h>
 #include <string.h>
 #include <util/dag_globDef.h> // min/max
+#include <util/dag_simpleString.h>
+
+#include <EASTL/type_traits.h>
+
 
 enum ConVarFlags
 {
@@ -20,8 +24,11 @@ enum class ConVarType
 {
   CVT_BOOL,
   CVT_INT,
-  CVT_FLOAT
+  CVT_FLOAT,
+  CVT_STRING
 };
+
+using ConVarSType = SimpleString;
 
 class ConVarBase
 {
@@ -100,6 +107,8 @@ protected:
 template <typename T>
 class ConVarT<T, true> : public ConVarT<T, false> // partial specialization for range case
 {
+  static_assert(!eastl::is_same_v<T, ConVarSType>);
+
 public:
   using ConVarT<T, false>::operator=;
 
@@ -142,6 +151,8 @@ void ConVarT<float, false>::describeValue(char *buf, size_t buf_size) const;
 template <>
 void ConVarT<bool, false>::describeValue(char *buf, size_t buf_size) const;
 template <>
+void ConVarT<ConVarSType, false>::describeValue(char *buf, size_t buf_size) const;
+template <>
 void ConVarT<int, true>::parseString(const char *buf);
 template <>
 void ConVarT<int, false>::parseString(const char *buf);
@@ -152,6 +163,8 @@ void ConVarT<float, false>::parseString(const char *buf);
 template <>
 void ConVarT<bool, false>::parseString(const char *buf);
 template <>
+void ConVarT<ConVarSType, false>::parseString(const char *buf);
+template <>
 bool ConVarT<int, true>::imguiWidget(const char *label_override);
 template <>
 bool ConVarT<int, false>::imguiWidget(const char *label_override);
@@ -161,6 +174,8 @@ template <>
 bool ConVarT<float, false>::imguiWidget(const char *label_override);
 template <>
 bool ConVarT<bool, false>::imguiWidget(const char *label_override);
+template <>
+bool ConVarT<ConVarSType, false>::imguiWidget(const char *label_override);
 
 template <>
 inline ConVarType ConVarT<int, true>::getType() const
@@ -188,11 +203,23 @@ inline ConVarType ConVarT<bool, false>::getType() const
   return ConVarType::CVT_BOOL;
 }
 
+template <>
+inline ConVarType ConVarT<ConVarSType, false>::getType() const
+{
+  return ConVarType::CVT_STRING;
+}
+template <>
+inline float ConVarT<ConVarSType, false>::getBaseValue() const
+{
+  return 0.0f;
+}
+
 extern template class ConVarT<int, false>;
 extern template class ConVarT<int, true>;
 extern template class ConVarT<float, false>;
 extern template class ConVarT<float, true>;
 extern template class ConVarT<bool, false>;
+extern template class ConVarT<ConVarSType, false>;
 
 class ConVarIterator
 {
@@ -207,10 +234,12 @@ private:
 typedef ConVarT<bool, false> ConVarB;
 typedef ConVarT<float, true> ConVarF;
 typedef ConVarT<int, true> ConVarI;
+typedef ConVarT<ConVarSType, false> ConVarS;
 
 #define CONSOLE_BOOL_VAL(domain, name, defVal, ...) ConVarT<bool, false> name(domain "." #name, defVal, ##__VA_ARGS__)
 #define CONSOLE_INT_VAL(domain, name, defVal, minVal, maxVal, ...) \
   ConVarT<int, true> name(domain "." #name, defVal, minVal, maxVal, ##__VA_ARGS__)
 #define CONSOLE_FLOAT_VAL_MINMAX(domain, name, defVal, minVal, maxVal, ...) \
   ConVarT<float, true> name(domain "." #name, defVal, minVal, maxVal, ##__VA_ARGS__)
-#define CONSOLE_FLOAT_VAL(domain, name, defVal, ...) ConVarT<float, false> name(domain "." #name, defVal, ##__VA_ARGS__)
+#define CONSOLE_FLOAT_VAL(domain, name, defVal, ...)  ConVarT<float, false> name(domain "." #name, defVal, ##__VA_ARGS__)
+#define CONSOLE_STRING_VAL(domain, name, defVal, ...) ConVarS name(domain "." #name, ConVarSType(defVal), ##__VA_ARGS__)

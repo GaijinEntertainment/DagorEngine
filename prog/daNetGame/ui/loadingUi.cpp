@@ -2,7 +2,7 @@
 
 #include "loadingUi.h"
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 namespace loading_ui
 {

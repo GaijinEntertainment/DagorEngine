@@ -41,7 +41,10 @@ void preloadTexturesToBuildRendinstShadows()
     {
       auto texIds = rgl->rtData->riImpTexIds;
       if (DAGOR_LIKELY(i == 0 && tmpList.empty()))
-        return prefetch_and_wait_managed_textures_loaded(texIds);
+      {
+        prefetch_and_wait_managed_textures_loaded(texIds);
+        return;
+      }
       else
         tmpList.insert(tmpList.end(), texIds.begin(), texIds.end());
     }
@@ -118,12 +121,6 @@ void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul, floa
   unitDistMul = distMul;
   unitDistOfs = distOfs;
 
-  // For LOD based culling we want to use the same mul as for lod selection, but with a minimum value
-  // It's supposed to be at least as much as the High graphics preset of settingsDistMul (1.0 in WT)
-  float settingsDistMulForLodCull = max(rendinst::render::settingsMinLodBasedCullDistMul, rendinst::render::settingsDistMul);
-  rendinst::render::globalLodCullDistMul =
-    clamp(unitDistMul * settingsDistMulForLodCull + unitDistOfs, MIN_EFFECTIVE_RENDINST_DIST_MUL, MAX_EFFECTIVE_RENDINST_DIST_MUL);
-
   // But for LOD selection we can use the settings from the graphics preset directly
   rendinst::render::globalDistMul = clamp(unitDistMul * rendinst::render::settingsDistMul + unitDistOfs,
     MIN_EFFECTIVE_RENDINST_DIST_MUL, MAX_EFFECTIVE_RENDINST_DIST_MUL);
@@ -146,7 +143,6 @@ void setDistMul(float distMul, float distOfs, bool force_impostors_and_mul, floa
 void updateSettingsDistMul()
 {
   const DataBlock *graphicsSettings = ::dgs_get_settings()->getBlockByNameEx("graphics");
-  rendinst::render::settingsMinLodBasedCullDistMul = graphicsSettings->getReal("minLodBasedCullDistMul", 1.f);
   updateSettingsDistMul(graphicsSettings->getReal("rendinstDistMul", 1.f));
 }
 
@@ -177,8 +173,11 @@ void updateRIExtraMulScale()
 static float defaultLodsShiftDistMul = 1.0;
 void setLodsShiftDistMult()
 {
-  rendinst::render::lodsShiftDistMul = defaultLodsShiftDistMul =
-    clamp(::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("lodsShiftDistMul", 1.f), 1.f, 1.3f);
+  float value = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("lodsShiftDistMul", 1.f);
+  float clampedValue = clamp(value, 1.f, 1.3f);
+  if (value != clampedValue)
+    logerr("lodsShiftDistMul value (%f) clamped to %f", value, clampedValue);
+  rendinst::render::lodsShiftDistMul = defaultLodsShiftDistMul = clampedValue;
 }
 
 void setLodsShiftDistMult(float mul) { rendinst::render::lodsShiftDistMul = mul; }

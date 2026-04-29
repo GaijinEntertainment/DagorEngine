@@ -2,6 +2,7 @@ include "shader_global.dshl"
 include "pivot_painter.dshl"
 include "rt/bvh_process_tree_vertices_inc.dshl"
 include "bvh_math_util.dshl"
+include_optional "trace_inline_ps5.dshl"
 
 texture perlin_noise3d;
 
@@ -11,11 +12,8 @@ interval bvh_process_tree_vertices_is_pivoted : no < 1, yes;
 int bvh_process_tree_vertices_is_pos_inst;
 interval bvh_process_tree_vertices_is_pos_inst : no < 1, yes;
 
-int bvh_process_tree_vertices_source_const_no = 6 always_referenced;
 int bvh_process_tree_vertices_output_uav_no = 0 always_referenced;
-int bvh_process_tree_vertices_pp_pos_no = 7 always_referenced;
-int bvh_process_tree_vertices_pp_dir_no = 8 always_referenced;
-int bvh_process_tree_vertices_pp_sampler_no = 4 always_referenced;
+int bvh_process_tree_vertices_pp_sampler_no = 6 always_referenced;
 int bvh_process_tree_vertices_params_no = 5 always_referenced;
 
 float tree_wind_branch_amp = 0.5;
@@ -24,6 +22,9 @@ float tree_wind_speed = 0.1;
 float tree_wind_time = 0;
 
 float4 tree_wind_blend_params1 = (1, 0, 0, 0); // treeWindBlendScale; treeWindBlendOutStart; treeDeformStart; treeDeformScale
+
+define_macro_if_not_defined INIT_PS5_INLINE_RT(stage)
+endmacro
 
 block(scene) bvh_process_tree_vertices_block
 {
@@ -39,29 +40,46 @@ block(scene) bvh_process_tree_vertices_block
 shader bvh_process_tree_vertices
 {
   NO_DYNSTCODE()
+  (cs) { immediate_dword_count = 2; }
+
+  if (hardware.ps5)
+  {
+    // For BINDLESS_NON_UNIFORM_TEX_ARRAY
+    INIT_PS5_INLINE_RT(cs)
+  }
 
   supports bvh_process_tree_vertices_block;
 
-  if (compatibility_mode == compatibility_mode_on)
-  {
-    dont_render;
+  if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing) { dont_render; }
+
+  (cs) {
+    pp_sampler@sampler : register(6);
+
+    output@uav : register(0) hlsl {
+      RWByteAddressBuffer output@uav;
+    };
+
+    params_buf@buf : register(5) hlsl {
+      #include "bvh_process_tree_vertices.hlsli"
+      StructuredBuffer<BvhTreeInstanceData> params_buf@buf;
+    }
   }
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
-    Texture2D pp_pos_tex : register(t7);
-    Texture2D pp_dir_tex : register(t8);
+    ##if !hardware.ps5
+      BINDLESS_TEX_ARRAY(Texture2D, bvh_textures, 2);
+      BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
+    ##else
+      BINDLESS_NON_UNIFORM_TEX_ARRAY(Texture2D, bvh_textures, 2);
+      BINDLESS_BUF_ARRAY(ByteAddressBuffer, bvh_geometry, 4);
+    ##endif
 
-    SamplerState pp_sampler : register(s4);
+    static BvhTreeInstanceData params;
 
-    ByteAddressBuffer source : register(t6);
-    RWByteAddressBuffer output : register(u0);
-
-    float4 sample_pp_pos_tex(float2 tc) { return pp_pos_tex.SampleLevel(pp_sampler, tc, 0); }
-    float4 sample_pp_dir_tex(float2 tc) { return pp_dir_tex.SampleLevel(pp_sampler, tc, 0); }
+    float4 sample_pp_pos_tex(float2 tc) { return nonUniformBindlessTex2D(bvh_textures, params.pp_pos_tex_slot).SampleLevel(pp_sampler, tc, 0); }
+    float4 sample_pp_dir_tex(float2 tc) { return nonUniformBindlessTex2D(bvh_textures, params.pp_dir_tex_slot).SampleLevel(pp_sampler, tc, 0); }
 
     #include "bvh_process_tree_vertices.hlsli"
-    ConstantBuffer<BvhTreeInstanceData> params : register(b5);
 
     float3 get_wind_channel_strength() { return params.wind_channel_strength.xyz; }
     float get_wind_noise_speed_base() { return params.wind_noise_speed_base; }
@@ -72,6 +90,10 @@ shader bvh_process_tree_vertices
     float get_wind_motion_damp_base() { return params.wind_motion_damp_base; }
     float get_wind_motion_damp_level_mul() { return params.wind_motion_damp_level_mul; }
     float4 get_wind_per_level_angle_rot_max() { return params.wind_per_level_angle_rot_max ;}
+    float4 get_ground_snap_params() {return params.ground_snap_params; }
+    float4 get_ground_bend_params() {return params.ground_bend_params; }
+    float get_ground_snap_normal_offset() {return params.ground_snap_normal_offset; }
+    float get_ground_snap_limit() {return params.ground_snap_limit; }
   }
 
   // Game specific
@@ -79,18 +101,26 @@ shader bvh_process_tree_vertices
   USE_PACKED_ITM_PRECISE(cs)
 
   hlsl(cs) {
-    #pragma wave32
-
     #include "riextra_per_instance.hlsli"
 
-    [numthreads( 32, 1, 1 )]
+    [numthreads( 64, 1, 1 )]
     void bvh_process_tree_vertices(uint3 dtId : SV_DispatchThreadID)
     {
+      uint instanceId = dtId.y;
+      uint instances = get_immediate_dword_1();
+      if (instanceId >= instances)
+        return;
+
+      uint instanceOffset = get_immediate_dword_0();
+      params = structuredBufferAt(params_buf, instanceOffset + instanceId);
+
       uint vertexId = dtId.x;
       if (vertexId >= params.vertex_count)
         return;
 
-      uint vertexStart = (params.start_vertex + vertexId) * params.vertex_stride;
+      ByteAddressBuffer source  = nonUniformBindlessBAB(bvh_geometry, params.source_slot);
+
+      uint vertexStart = params.sourceOffset + (params.start_vertex + vertexId) * params.vertex_stride;
 
       const uint4 INPUT_ENCODING_OFFSET = uint4(16, 8, 0, 24);
 

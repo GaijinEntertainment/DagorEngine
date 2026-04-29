@@ -1,0 +1,8 @@
+ERROR: malformed number
+testData/diagnostics/compilation_errors/lex_errors/malformed_number.nut:2:8
+
+// EXPECT_ERROR: "malformed number"
+let x = 1.2.3
+        ^--
+
+

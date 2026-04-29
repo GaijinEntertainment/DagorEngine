@@ -21,6 +21,8 @@
 #define SPAWN_MODULE_CUBE_POS 1
 #define SPAWN_MODULE_VELOCITY_BIAS_POS 1
 
+#define DAFX_CULLING_RET_TYPE float4
+
 #define DAFX_PARENT_REN_DATA \
   DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(uint blending;), REN_MODULE_DECL(o.blending = dafx_load_1ui(buf, ofs);), 0) \
   DAFX_MODULE_DATA_DECL(1 * REN_MODULE, REN_MODULE_DECL(float motionScale;), REN_MODULE_DECL(o.motionScale = dafx_load_1f(buf, ofs);), 0) \

@@ -37,7 +37,7 @@ dafx::CullingId dafx_helper_globals::cull_id;
 dafx::CullingId dafx_helper_globals::cull_fom_id;
 dafx::Stats dafx_helper_globals::stats;
 float dafx_helper_globals::dt_mul = 1.f;
-int dafx_helper_globals::particles_resolution_preview = 1;
+int dafx_helper_globals::particles_resolution_preview = 2; // highres
 
 using namespace dafx_helper_globals;
 
@@ -79,12 +79,11 @@ public:
       DAEDITOR3.conError("resource is not fx: %s", name);
       return;
     }
-    GameResource *res = ::get_one_game_resource_ex(GAMERES_HANDLE_FROM_STRING(name), EffectGameResClassId);
-    if (res)
+    if (auto *res = (BaseEffectObject *)::get_one_game_resource_ex(name, EffectGameResClassId))
     {
       nameId = fxNames.addNameId(name);
-      fx = (BaseEffectObject *)((BaseEffectObject *)res)->clone();
-      ::release_game_resource(res);
+      fx = (BaseEffectObject *)res->clone();
+      ::release_game_resource_ex(res, EffectGameResClassId);
     }
   }
 
@@ -244,7 +243,19 @@ public:
         ent[i]->fx->update(dt * dt_mul);
 
     if (ctx)
-      act_dafx(ctx, dt * dt_mul);
+    {
+      if (dng_based_render)
+      {
+        dafx::Config cfg = dafx::get_config(ctx);
+        if (cfg.time_scale != dt_mul)
+        {
+          cfg.time_scale = dt_mul;
+          dafx::set_config(ctx, cfg);
+        }
+      }
+      else
+        act_dafx(ctx, dt * dt_mul);
+    }
   }
   void beforeRenderService() override {}
   void renderService() override {}
@@ -306,8 +317,8 @@ public:
             {
               dafx::remap_culling_state_tag(ctx, cull_id, "lowres", forceHighres ? "highres" : "lowres");
               dafx::remap_culling_state_tag(ctx, cull_id, "highres", forceLowres ? "lowres" : "highres");
+              before_render_dafx(ctx, cull_id, stats, globtmPrev);
             }
-            before_render_dafx(ctx, cull_id, stats, globtmPrev);
           }
           break;
 
@@ -504,12 +515,29 @@ protected:
   TMatrix4 globtmPrev = TMatrix4::IDENT;
 };
 
+static DataBlock projectSettingsBlock;
+
+static void load_project_settings(const char *settings_blk_fn)
+{
+  dblk::load(projectSettingsBlock, settings_blk_fn, dblk::ReadFlag::ROBUST);
+}
+
+const DataBlock *get_project_settings_blk() { return &projectSettingsBlock; }
+
 void init_fxmgr_service(const DataBlock &app_blk)
 {
   if (!IDaEditor3Engine::get().checkVersion())
   {
     DEBUG_CTX("Incorrect version!");
     return;
+  }
+
+  const char *project_specific_settings_fn = app_blk.getBlockByNameEx("game")->getStr("gameSettingsFile", NULL);
+  const char *game_dir = app_blk.getStr("appDir", NULL);
+  if (game_dir && project_specific_settings_fn)
+  {
+    eastl::string settings_path = eastl::string(game_dir) + project_specific_settings_fn;
+    load_project_settings(settings_path.c_str());
   }
 
   const DataBlock &fxBlk = *app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("fx");
@@ -522,4 +550,5 @@ void init_fxmgr_service(const DataBlock &app_blk)
 
   ::register_effect_gameres_factory();
   ::register_all_common_fx_factories();
+  ::register_outdatedFx_factory(app_blk.getBool("outdatedFx", false));
 }

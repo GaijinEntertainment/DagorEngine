@@ -15,7 +15,7 @@ local _DEF_COM_CMDLINE =
   -Wno-deprecated-declarations -Wno-inconsistent-missing-override
   -Wno-null-dereference -Wno-constant-conversion -Wno-unused-value
   -Wno-deprecated-builtins -Wno-unused-command-line-argument
-  -Wno-nan-infinity-disabled
+  -Wno-nan-infinity-disabled -Wno-nontrivial-memcall
   -ffunction-sections -fdata-sections
   -ffast-math -ffinite-math-only -mrecip=none
   -D_TARGET_APPLE=2 -D_TARGET_IOS -D_TARGET_STATIC_LIB
@@ -84,7 +84,7 @@ _LIB          = $(_CLANG_BIN)/libtool $(_CLANG_BIN)/ranlib ;
 _C_COMPILER   = $(_CLANG_BIN)/clang -x c $(_DEF_COM_CMDLINE) $(_DEF_C_CMDLINE) ;
 _CPP_COMPILER = $(_CLANG_BIN)/clang++ -x c++ $(_DEF_COM_CMDLINE) $(_DEF_CPP_CMDLINE) ;
 _OBJC_COMPILER   = $(_CLANG_BIN)/clang -x objective-c -std=c99 $(_DEF_COM_CMDLINE) -fno-objc-exceptions -fobjc-abi-version=2 -fobjc-legacy-dispatch ;
-_OBJCPP_COMPILER = $(_CLANG_BIN)/clang++ -x objective-c++ -std=c++$(CPPStd) $(_DEF_COM_CMDLINE) -fno-objc-exceptions -fobjc-abi-version=2 -fobjc-legacy-dispatch ;
+_OBJCPP_COMPILER = $(_CLANG_BIN)/clang++ -x objective-c++ -std=c++$(CPPStd) $(_DEF_COM_CMDLINE) -fno-objc-exceptions -Wno-c99-designator -Wno-deprecated-enum-enum-conversion -fobjc-abi-version=2 -fobjc-legacy-dispatch ;
 _GAS_COMPILER = $(_CLANG_BIN)/clang -g -c -arch $(PlatformArch) ;
 _SWIFTC_COMPILER = $(_CLANG_BIN)/swiftc -sdk $(_IOS_SDK_ROOT) -target $(_IOS_SWIFT_TARGET) -parse-as-library ;
 

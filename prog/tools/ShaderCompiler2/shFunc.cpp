@@ -80,6 +80,9 @@ int prepareArgs(FunctionId func, FuncArgument *args, int /*num*/)
       return 4;
     case BF_EXISTS_TEX: args[0].vt = shexpr::VT_TEXTURE; return 1;
     case BF_EXISTS_BUF: args[0].vt = shexpr::VT_BUFFER; return 1;
+    case BF_INT2: args[0].vt = shexpr::VT_COLOR4; return 1;
+    case BF_INT3: args[0].vt = shexpr::VT_COLOR4; return 1;
+    case BF_INT4: args[0].vt = shexpr::VT_COLOR4; return 1;
 
     default: G_ASSERT(0);
   }
@@ -110,6 +113,9 @@ int getOpCount(FunctionId func)
     case BF_REQUEST_SAMPLER: return 4;
     case BF_EXISTS_TEX: return 1;
     case BF_EXISTS_BUF: return 1;
+    case BF_INT2: return 1;
+    case BF_INT3: return 1;
+    case BF_INT4: return 1;
     default: G_ASSERT(0);
   }
   return 0;
@@ -139,6 +145,9 @@ shexpr::ValueType getValueType(FunctionId func)
     case BF_REQUEST_SAMPLER: return shexpr::VT_UNDEFINED;
     case BF_EXISTS_TEX: return shexpr::VT_REAL;
     case BF_EXISTS_BUF: return shexpr::VT_REAL;
+    case BF_INT2: return shexpr::VT_COLOR4;
+    case BF_INT3: return shexpr::VT_COLOR4;
+    case BF_INT4: return shexpr::VT_COLOR4;
     default: G_ASSERT(0);
   }
   return shexpr::VT_UNDEFINED;
@@ -167,7 +176,10 @@ bool getValueTypeIsInteger(FunctionId func)
     case BF_REQUEST_SAMPLER: return false;
 
     case BF_EXISTS_TEX:
-    case BF_EXISTS_BUF: return true;
+    case BF_EXISTS_BUF:
+    case BF_INT2:
+    case BF_INT3:
+    case BF_INT4: return true;
 
     default: G_ASSERT(0);
   }
@@ -269,6 +281,12 @@ bool getFuncId(const char *name, FunctionId &ret_func)
     ret_func = BF_EXISTS_TEX;
   else if (dd_stricmp(name, "exists_buf") == 0)
     ret_func = BF_EXISTS_BUF;
+  else if (dd_stricmp(name, "uint2") == 0 || dd_stricmp(name, "int2") == 0)
+    ret_func = BF_INT2;
+  else if (dd_stricmp(name, "uint3") == 0 || dd_stricmp(name, "int3") == 0)
+    ret_func = BF_INT3;
+  else if (dd_stricmp(name, "uint4") == 0 || dd_stricmp(name, "int4") == 0)
+    ret_func = BF_INT4;
   else
     return false;
   return true;

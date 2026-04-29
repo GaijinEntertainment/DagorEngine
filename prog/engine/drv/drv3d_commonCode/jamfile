@@ -47,71 +47,86 @@ if $(Platform) in macOS iOS tvOS {
   ;
 }
 
-if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
-if [ GLOB $(Root)/prog/3rdPartyLibs/streamline : * ] { CPPopt += -DHAS_STREAMLINE ; }
+if $(Platform) in windows && $(PlatformArch) in x86 x86_64 {
+  local NvApiDir = $(_DEVTOOL)/nvapi-$(NvApiVer) ;
+  if ! [ GLOB $(NvApiDir) : * ] { exit FATAL\: \"$(NvApiDir)\" not found!  Please, update DEVTOOLS ; }
 
-if $(Platform) in windows && -DHAS_NVAPI in $(CPPopt) {
-  Sources +=
-    nvLowLatency.cpp
-  ;
+  AddIncludes += $(NvApiDir) ;
+  CPPopt += -DHAS_NVAPI ;
+  Sources += nvLowLatency.cpp ;
   switch $(PlatformArch) {
-    case x86 :    AddLibs += $(Root)/prog/3rdPartyLibs/nvapi/x86/nvapi.lib ;
-    case x86_64 : AddLibs += $(Root)/prog/3rdPartyLibs/nvapi/amd64/nvapi64.lib ;
-    case * : CPPopt = [ StripStrings $(CPPopt) : -DHAS_NVAPI ] ;
+    case x86 :    AddLibs += $(NvApiDir)/x86/nvapi.lib ;
+    case x86_64 : AddLibs += $(NvApiDir)/amd64/nvapi64.lib ;
   }
-}
-else {
-  Sources +=
-    nvLowLatencyStub.cpp
-  ;
+} else {
+  Sources += nvLowLatencyStub.cpp ;
 }
 
-if $(Platform) in windows && $(PlatformArch) in x86_64 && $(UseD3DMultiList) != stub {
-  Sources += amdLowLatency.cpp ;
+if $(Platform) in windows &&
+  $(PlatformArch) in x86_64 &&
+  $(UseD3DMultiList) != stub {
   AddIncludes += $(Root)/prog/3rdPartyLibs/AntiLag2 ;
-}
-else {
+  Sources += amdLowLatency.cpp ;
+} else {
   Sources += amdLowLatencyStub.cpp ;
 }
 
-if $(Platform) = windows && -DHAS_STREAMLINE in $(CPPopt) {
-  Sources +=
-    streamline_adapter.cpp
-  ;
+if $(Platform) in windows &&
+   $(PlatformArch) in x86 x86_64 &&
+   [ GLOB $(Root)/prog/3rdPartyLibs/streamline : * ] {
   AddIncludes +=
     $(Root)/prog/3rdPartyLibs/streamline/include
     $(Root)/prog/3rdPartyLibs/vulkan/include
   ;
+  CPPopt += -DHAS_STREAMLINE ;
+  Sources += streamline_adapter.cpp ;
 } else {
   Sources += streamline_adapter_stub.cpp ;
 }
 
-if $(Platform) in windows xboxOne scarlett ps5 && $(PlatformArch) in x86_64 arm64 && $(UseD3DMultiList) != stub {
+if $(Platform) in windows &&
+   $(PlatformArch) in x86 x86_64 &&
+   [ GLOB $(Root)/prog/3rdPartyLibs/adl_sdk : * ] {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/adl_sdk/include ;
+  CPPopt += -DHAS_ADL ;
+}
+
+if $(Platform) in windows &&
+   $(PlatformArch) in x86 x86_64 &&
+   [ GLOB $(Root)/prog/3rdPartyLibs/AmdDxExt : * ] {
+  AddIncludes += $(Root)/prog/3rdPartyLibs/AmdDxExt ;
+  CPPopt += -DHAS_AMD_DX_EXT ;
+}
+
+if $(Platform) in windows xboxOne scarlett ps5 linux &&
+   $(PlatformArch) in x86_64 arm64 &&
+   $(UseD3DMultiList) != stub && $(Dedicated) != yes && $(UseStubDriver) != yes {
   Sources += amdFsr.cpp ;
 
-  if $(Platform)-$(PlatformArch) = windows-x86_64 && vulkan in $(UseD3DMultiList) {
+  if $(Platform)-$(PlatformArch) in windows-x86_64 && vulkan in $(UseD3DMultiList) {
     opt on amdFsr.cpp += -DAMDFSR_HAS_VULKAN ;
+  } else if $(Platform)-$(PlatformArch) in linux-x86_64 {
+    opt on amdFsr.cpp += -DAMDFSR_HAS_VULKAN ;
+  } else {
+    Target = $(Target:S=~nSpirV.lib) ;
   }
+
   if $(Platform) in xboxOne scarlett || ( $(Platform)-$(PlatformArch) = windows-x86_64 && DX12 in $(UseD3DMultiList) ) {
     opt on amdFsr.cpp += -DAMDFSR_HAS_DX12 ;
+  } else {
+    Target = $(Target:S=~nDX12.lib) ;
   }
-  if ! DX12 in $(UseD3DMultiList) { Target = $(Target:S=~nDX12.lib) ; }
-  if ! vulkan in $(UseD3DMultiList) { Target = $(Target:S=~nSpirV.lib) ; }
-}
-else {
+} else {
   Sources += amdFsr_stub.cpp ;
 }
 
-if ! $(Platform) in xboxOne scarlett {
-  AddIncludes +=
-    $(Root)/prog/3rdPartyLibs/nvapi
-    $(Root)/prog/3rdPartyLibs/adl_sdk
-    $(Root)/prog/3rdPartyLibs/adl_sdk/include
-    $(Root)/prog/3rdPartyLibs/ags_sdk/include
-  ;
-}
+AddIncludes +=
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/engine/drv/drv3d_commonCode
+;
 
 if $(Platform) in ps4 ps5 {
+  AddIncludes += $(Root)/prog/engine/drv/drv3d_commonCode/sony ;
   Sources +=
     sony/base_texture.cpp
     sony/base_buffer.cpp
@@ -124,21 +139,8 @@ if $(Platform) in ps4 ps5 {
     sony/sampler.cpp
     sony/res_heaps.cpp
     sony/memory_block_ptr.cpp
+    sony/crash_dump.cpp
   ;
 }
 
-switch $(Platform)-$(PlatformArch) {
-  case windows-x86    : AddLibs += $(Root)/prog/3rdPartyLibs/adl_sdk/atimgpud_s_x86.lib Advapi32.lib ;
-  case windows-x86_64 : AddLibs += $(Root)/prog/3rdPartyLibs/adl_sdk/atimgpud_s_x64.lib Advapi32.lib ;
-  case windows-arm64  : CPPopt += -DATIMGPUD_DLL ;
-}
-
-AddIncludes +=
-  $(Root)/prog/engine/sharedInclude
-  $(Root)/prog/engine/drv/drv3d_commonCode
-  $(Root)/prog/engine/drv/drv3d_commonCode/sony
-;
-
-
 include $(Root)/prog/_jBuild/build.jam ;
-

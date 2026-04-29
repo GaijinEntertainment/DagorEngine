@@ -143,7 +143,7 @@ public:
     MaskedOcclusionCulling::BackfaceWinding backface_winding = MaskedOcclusionCulling::BACKFACE_CW,
     eastl::fixed_function<sizeof(void *) * 3, void()> &&done_cb = {});
   // Merge rasterized geometry
-  uint32_t mergeRasterizationResults(Occlusion &occlusion);
+  uint32_t mergeRasterizationResults(Occlusion &occlusion, bool active_wait = true);
 
   void waitRasterizeJobs()
   {

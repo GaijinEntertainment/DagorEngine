@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/anim/anim.h>
 #include <ecs/phys/collRes.h>
 #include <gameRes/dag_collisionResource.h>
@@ -28,13 +30,13 @@ static inline void entity_binded_effect_es(const ecs::UpdateStageInfoAct &,
 }
 
 template <typename T>
-inline bool get_animchar_collision_transform_ecs_query(ecs::EntityId eid, T cb);
+inline bool get_animchar_collision_transform_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, T cb);
 bool get_animchar_collision_transform(const ecs::EntityId eid,
   const CollisionResource *&collision,
   const AnimV20::AnimcharBaseComponent *&eid_animchar,
   TMatrix &eid_transform)
 {
-  return get_animchar_collision_transform_ecs_query(eid,
+  return get_animchar_collision_transform_ecs_query(*g_entity_mgr, eid,
     [&](const CollisionResource &collres, const AnimV20::AnimcharBaseComponent &animchar, const TMatrix &transform = TMatrix::IDENT) {
       eid_transform = transform;
       collision = &collres;
@@ -45,12 +47,13 @@ bool get_animchar_collision_transform(const ecs::EntityId eid,
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_REQUIRE(ecs::Tag autodeleteEffectEntity, ecs::auto_type replication, ecs::auto_type effect)
-static inline void validate_auto_delete_tag_on_client_only_entities_es(const ecs::Event &, ecs::EntityId eid)
+static inline void validate_auto_delete_tag_on_client_only_entities_es(
+  const ecs::Event &, ecs::EntityManager &manager, ecs::EntityId eid)
 {
   logerr("unable to autodelete effect entity, because only local (i.e. not networking) "
          "entities can be destroyed by client: eid=%d, template='%s'\n"
          "This logerr may be caused by adding the 'autodeleteEffectEntity' tag to entity that extends the 'replication' template",
-    static_cast<ecs::entity_id_t>(eid), g_entity_mgr->getEntityTemplateName(eid));
+    static_cast<ecs::entity_id_t>(eid), manager.getEntityTemplateName(eid));
 }
 
 ECS_TAG(render)
@@ -69,13 +72,13 @@ ECS_NO_ORDER
 ECS_REQUIRE(ecs::Tag autodeleteEffectEntity)
 ECS_REQUIRE_NOT(ecs::auto_type replication)
 static inline void auto_delete_client_entity_with_effect_component_es(
-  const ecs::UpdateStageInfoAct &, ecs::EntityId eid, const TheEffect &effect)
+  const ecs::UpdateStageInfoAct &, ecs::EntityManager &manager, ecs::EntityId eid, const TheEffect &effect)
 {
   for (const auto &fx : effect.getEffects())
     if (fx.fx->isActive())
       return;
 
-  g_entity_mgr->destroyEntity(eid);
+  manager.destroyEntity(eid);
 }
 
 ecs::EntityId spawn_fx(const TMatrix &fx_tm, const int fx_id)

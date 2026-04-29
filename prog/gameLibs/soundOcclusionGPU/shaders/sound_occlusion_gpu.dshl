@@ -1,0 +1,142 @@
+include "shader_global.dshl"
+include "sound_occlusion_trace.dshl"
+
+buffer snd_occ_input;
+int4 snd_occ_params;
+float4 snd_occ_tuning;
+float4 snd_occ_listener_pos;
+
+shader sound_occlusion_gpu_cs
+{
+  SND_OCC_TRACE(cs)
+
+  (cs) {
+    snd_occ_input@buf = snd_occ_input hlsl {
+      StructuredBuffer<float4> snd_occ_input@buf;
+    }
+    snd_occ_params@i4 = snd_occ_params;
+    snd_occ_tuning@f4 = snd_occ_tuning;
+    snd_occ_listener_pos@f4 = snd_occ_listener_pos;
+  }
+
+  hlsl(cs) {
+    RWStructuredBuffer<float4> snd_occ_results : register(u0);
+
+    // Build orthonormal basis from direction (Frisvad method)
+    void snd_occ_build_ortho_basis(float3 n, out float3 t, out float3 b)
+    {
+      if (n.z < -0.9999999)
+      {
+        t = float3(0, -1, 0);
+        b = float3(-1, 0, 0);
+        return;
+      }
+      float a = 1.0 / (1.0 + n.z);
+      float d = -n.x * n.y * a;
+      t = float3(1.0 - n.x * n.x * a, d, -n.x);
+      b = float3(d, 1.0 - n.y * n.y * a, -n.y);
+    }
+
+    // Step a position out of SDF walls so traces don't start inside geometry
+    float3 snd_occ_step_out(float3 pos)
+    {
+      uint clip = world_sdf_find_clip(pos, 1, 0);
+      if (clip < MAX_WORLD_SDF_CLIPS)
+        world_sdf_step_out_clip_unsafe(pos, world_sdf_voxel_size(clip), clip, world_sdf_voxel_size(clip));
+      return pos;
+    }
+
+    // Trace occlusion using back-forth SDF trace, return [0,1] (0=clear, 1=occluded)
+    float snd_occ_trace_direct(float3 sourcePos, float3 listenerPos, float k)
+    {
+      float shadow = snd_occ_trace_5ray(sourcePos, listenerPos, 0.35, k);
+      return smoothstep(0.15, 1.0, 1.0 - shadow);
+    }
+
+    // Compute reverb occlusion using 10 spread cone traces
+    static const uint SND_OCC_REVERB_CONES = 10;
+
+    float snd_occ_trace_reverb(float3 from, float3 dir, float maxDist, float k,
+                                float coneHalfAngle, uint temporalFrame)
+    {
+      float3 tangent, bitangent;
+      snd_occ_build_ortho_basis(dir, tangent, bitangent);
+
+      float sinAngle = sin(coneHalfAngle);
+      float cosAngle = cos(coneHalfAngle);
+      float temporalRot = float(temporalFrame & 3) * (3.14159265 * 0.05); // slow rotation
+
+      float reverbSum = 0;
+      for (uint i = 0; i < SND_OCC_REVERB_CONES; i++)
+      {
+        float angle = float(i) * (2.0 * 3.14159265 / SND_OCC_REVERB_CONES) + temporalRot;
+        float3 offset = (cos(angle) * tangent + sin(angle) * bitangent) * sinAngle;
+        float3 coneDir = normalize(dir * cosAngle + offset);
+        float coneDist = maxDist / max(dot(coneDir, dir), 0.5);
+        coneDist = min(coneDist, maxDist * 1.5);
+
+        float t = 0;
+        float shadow = world_sdf_trace_shadow(from, coneDir, coneDist, t,
+          1.5, 0.75, k * 0.5, 0, 4);
+        float occ = 1.0 - shadow;
+        reverbSum += smoothstep(0.15, 1.0, occ);
+      }
+      return reverbSum / SND_OCC_REVERB_CONES;
+    }
+
+    [numthreads(64, 1, 1)]
+    void sound_occlusion_gpu_cs(uint dtId : SV_DispatchThreadID)
+    {
+      int activeSourceCount = snd_occ_params.x;
+      uint temporalFrame = (uint)snd_occ_params.y;
+      if ((int)dtId >= activeSourceCount)
+        return;
+
+      float kBase = snd_occ_tuning.x;
+      float coneHalfAngle = snd_occ_tuning.y; // already in radians
+
+      // Listener position from constant
+      float3 listenerPos = snd_occ_listener_pos.xyz;
+
+      // Per-source: float4(sourcePos.xyz, radiusAndMode(radius|mode))
+      float4 d0 = snd_occ_input[dtId];
+      float3 sourcePos = d0.xyz;
+      uint radiusAndMode = asuint(d0.w);
+      uint mode = radiusAndMode & 3u;
+      float sourceRadius = asfloat(radiusAndMode & ~3u);
+
+      // Step both positions out of SDF walls to avoid starting traces inside geometry
+      sourcePos = snd_occ_step_out(sourcePos);
+
+      float3 toSource = sourcePos - listenerPos;
+      float dist = length(toSource);
+
+      // Zero distance or very close: no occlusion
+      if (dist < 0.01)
+      {
+        snd_occ_results[dtId] = float4(0, 0, 0, 0);
+        return;
+      }
+
+      float3 rayDir = toSource / dist;
+
+      // Check if SDF data covers this region
+      uint startClip = world_sdf_find_clip(listenerPos, 1, 0);
+      if (startClip >= MAX_WORLD_SDF_CLIPS)
+      {
+        snd_occ_results[dtId] = float4(0, 0, 0, 0);
+        return;
+      }
+
+      float kEff = kBase / (1.0 + sourceRadius);
+      float4 result = float4(0, 0, 0, 0);
+
+      result.x = snd_occ_trace_direct(sourcePos, listenerPos, kEff);
+      if (mode == 1) // MODE_DIRECT_REVERB
+        result.y = snd_occ_trace_reverb(listenerPos, rayDir, dist, kEff, coneHalfAngle, temporalFrame);
+
+      snd_occ_results[dtId] = result;
+    }
+  }
+  compile("target_cs", "sound_occlusion_gpu_cs");
+}

@@ -2,6 +2,7 @@
 #pragma once
 
 #include <bvh/bvh.h>
+#include <EASTL/unordered_map.h>
 
 namespace bvh
 {
@@ -31,11 +32,13 @@ struct MemoryStatistics
   int64_t scratchBuffersSize;
   int64_t transformBuffersSize;
   int64_t meshMetaSize;
-  int meshCount;
-  int64_t meshBlasSize;
-  int64_t meshVBSize;
-  int64_t meshVBCopySize;
-  int64_t meshIBSize;
+  struct MeshStats
+  {
+    int meshCount = 0;
+    int64_t meshBlasSize = 0;
+    int64_t meshVBSize = 0;
+  };
+  eastl::unordered_map<const char *, MeshStats> meshStats;
   int skinCount;
   int64_t skinBLASSize;
   int64_t skinVBSize;
@@ -44,9 +47,13 @@ struct MemoryStatistics
   int treeCount;
   int64_t treeBLASSize;
   int64_t treeVBSize;
+  int stationaryTreeCount;
+  int64_t stationaryTreeBLASSize;
+  int64_t stationaryTreeVBSize;
   int treeCacheCount;
   int64_t treeCacheBLASSize;
   int64_t dynamicVBAllocatorSize;
+  int64_t dynamicVBAllocatorFreeSize;
   int64_t terrainBlasSize;
   int64_t terrainVBSize;
   int64_t grassBlasSize;
@@ -57,12 +64,25 @@ struct MemoryStatistics
   int64_t cableBLASSize;
   int64_t cableVBSize;
   int64_t cableIBSize;
+  int binSceneCount;
+  int waterCount;
+  int64_t waterBLASSize;
+  int64_t waterVBSize;
+  int64_t waterIBSize;
+  int gpuGrassCount;
+  int64_t gpuGrassMemory;
+  int64_t gpuGrassTexturesMemory;
   int64_t gobjMetaSize;
   int64_t gobjQuerySize;
+  int splineGenCount;
+  int64_t splineGenBLASSize;
+  int64_t splineGenVBSize;
   int blasCount;
   int64_t perInstanceDataSize;
   int64_t compactionSize;
   int64_t peakCompactionSize;
+  int compactionCount;
+  int compactionSizeBufferSize;
   int64_t atmosphereTextureSize;
   int64_t totalMemory;
   int deathRowBufferCount;

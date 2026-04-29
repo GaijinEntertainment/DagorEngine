@@ -8,6 +8,7 @@
 #include <EditorCore/ec_interface.h>
 #include <ioSys/dag_dataBlockUtils.h>
 #include <osApiWrappers/dag_direct.h>
+#include <util/dag_oaHashNameMap.h>
 
 class DngBasedSkiesService : public ISkiesService
 {
@@ -42,9 +43,9 @@ class DngBasedSkiesService : public ISkiesService
     appliedWeather.setStr("weather", "");
     appliedWeather.setReal("lat", 0);
     appliedWeather.setReal("lon", 0);
-    appliedWeather.setInt("year", 1941);
-    appliedWeather.setInt("month", 6);
-    appliedWeather.setInt("day", 22);
+    appliedWeather.setInt("year", DEFAULT_YEAR);
+    appliedWeather.setInt("month", DEFAULT_MONTH);
+    appliedWeather.setInt("day", DEFAULT_DAY);
     appliedWeather.setReal("gmtTime", 0);
     appliedWeather.setReal("locTime", 0);
     appliedWeather.setInt("seed", -1);
@@ -115,7 +116,8 @@ class DngBasedSkiesService : public ISkiesService
   {
     if (auto *daSkies = get_daskies())
     {
-      float lat = 55.f, lon = 37.f;
+      float lon = DEFAULT_LONGITUDE;
+      float lat = DEFAULT_LATITUDE;
       daSkies->getStarsLatLon(lat, lon);
       double jd = daSkies->getStarsJulianDay();
       if (fabs(lastUpdatedTime.jd - jd) > 1e-5 || fabsf(lastUpdatedTime.lat - lat) > 1e-3 || fabsf(lastUpdatedTime.lon - lon) > 1e-3)
@@ -124,9 +126,9 @@ class DngBasedSkiesService : public ISkiesService
         lastUpdatedTime.lat = lat;
         lastUpdatedTime.lon = lon;
 
-        float gmtTime = float(jd - floor(jd)) * 24.0f + 12.0f;
-        float localTime = fmodf(gmtTime + lon * (12.f / 180.f), 24.0f);
-        gmtTime = localTime - lon * (12.f / 180.f);
+        float gmtTime = julian_day_to_gmt(jd);
+        float localTime = gmt_to_localtime(gmtTime, lon);
+        gmtTime = localtime_to_gmt(localTime, lon);
 
         appliedWeather.setReal("lat", lat);
         appliedWeather.setReal("lon", lon);
@@ -187,8 +189,6 @@ protected:
   void reapplyWeather()
   {
     auto *daSkies = get_daskies();
-    if (!daSkies)
-      return;
 
     const char *env = timeOfDay;
     const char *weather = weatherName;
@@ -208,25 +208,24 @@ protected:
         merge_data_block(stars, ovr.stars);
       }
     }
+    if (!daSkies)
+    {
+      setTime(env, stars.isEmpty() ? NULL : &stars);
+      return;
+    }
 
     if (weatherPreset.empty() && !stars.isEmpty())
     {
-      float lat = 55.f, lon = 37.f;
+      float lat = DEFAULT_LATITUDE, lon = DEFAULT_LONGITUDE;
       daSkies->getStarsLatLon(lat, lon);
-      double jd = daSkies->getStarsJulianDay(), _jd0 = jd;
-      float gmtTime = float(jd - floor(jd)) * 24.0f + 12.0f;
-      if (gmtTime >= 24.f)
-      {
-        gmtTime -= 24.f;
-        jd += 1.0;
-      }
-      float localTime = gmtTime + lon * (12.f / 180.f);
+      float gmtTime = julian_day_to_gmt(daSkies->getStarsJulianDay());
+      float localTime = gmt_to_localtime(gmtTime, lon);
       float _lat0 = lat, _lon0 = lon, _gmtTime0 = gmtTime;
 
       lat = stars.getReal("latitude", lat);
       lon = stars.getReal("longitude", lon);
       localTime = stars.getReal("localTime", localTime);
-      gmtTime = localTime - lon * (12.f / 180.f);
+      gmtTime = localtime_to_gmt(localTime, lon);
 
       stars.setReal("latitude", lat);
       stars.setReal("longitude", lon);
@@ -234,7 +233,8 @@ protected:
 
       if (fabsf(lat - _lat0) > 1e-3f || fabsf(lon - _lon0) > 1e-3f || fabsf(gmtTime - _gmtTime0) > 1e-3f)
       {
-        jd += fmodf(gmtTime - _gmtTime0, 24.0f) / 24.0;
+        double jd = julian_day(stars.getInt("year", DEFAULT_YEAR), stars.getInt("month", DEFAULT_MONTH),
+          stars.getInt("day", DEFAULT_DAY), gmtTime);
         daSkies->setStarsLatLon(lat, lon);
         daSkies->setStarsJulianDay(jd);
         daSkies->setAstronomicalSunMoon();
@@ -274,7 +274,7 @@ protected:
     if (global_seed == -1)
       global_seed = weird_seed;
 
-    float waterLevel = ShaderGlobal::get_real_fast(get_shader_variable_id("water_level", true));
+    float waterLevel = ShaderGlobal::get_float(get_shader_variable_id("water_level", true));
     float averageGroundLevel = waterLevel; // fixme; we should read average_ground_level on locations without water
     DataBlock groundBlk;
     DataBlock *ground = groundBlk.addBlock("ground");
@@ -294,9 +294,10 @@ protected:
   }
   void setTime(const char *currentEnvironment, const DataBlock *stars)
   {
-    int dd = 22, mm = 6, yy = 1941;
-    float longitude = 37, latitude = 55;
-    float parsedTime = 4.0f;
+    int dd = DEFAULT_DAY, mm = DEFAULT_MONTH, yy = DEFAULT_YEAR;
+    float longitude = DEFAULT_LONGITUDE;
+    float latitude = DEFAULT_LATITUDE;
+    float parsedTime = DEFAULT_LOCALTIME;
     if (stars)
     {
       longitude = stars->getReal("longitude", longitude);
@@ -311,11 +312,11 @@ protected:
     else
       parsedTime = get_local_time_of_day_exact(currentEnvironment, 0.5f, latitude, yy, mm, dd);
 
-    float gmtTime = parsedTime - longitude * (12.f / 180.f);
+    float gmtTime = localtime_to_gmt(parsedTime, longitude);
     if (stars)
     {
       parsedTime = stars->getReal("localTime", parsedTime);
-      gmtTime = stars->getReal("gmtTime", parsedTime - longitude * (12.f / 180.f));
+      gmtTime = stars->getReal("gmtTime", localtime_to_gmt(parsedTime, longitude));
     }
     appliedWeather.setReal("lat", latitude);
     appliedWeather.setReal("lon", longitude);
@@ -323,7 +324,7 @@ protected:
     appliedWeather.setInt("month", mm);
     appliedWeather.setInt("day", dd);
     appliedWeather.setReal("gmtTime", gmtTime);
-    appliedWeather.setReal("locTime", gmtTime + longitude * (12.f / 180.f));
+    appliedWeather.setReal("locTime", gmt_to_localtime(gmtTime, longitude));
 
     if (auto *daSkies = get_daskies())
     {

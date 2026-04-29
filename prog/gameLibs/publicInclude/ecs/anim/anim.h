@@ -4,10 +4,9 @@
 //
 #pragma once
 
+#include <daECS/anim/animComponent.h>
 #include <daECS/core/entityId.h>
-#include <daECS/core/entityComponent.h>
 #include <daECS/core/event.h>
-#include <animChar/dag_animCharacter2.h>
 #include <anim/dag_animPureInterface.h>
 #include <math/dag_mathUtils.h>
 #include <math/dag_TMatrix.h>
@@ -24,8 +23,6 @@ inline void animchar_copy_nodes(const AnimV20::AnimcharBaseComponent &animchar, 
   root = v_add(nodes.nwtm[0].col3, nodes.wofs);
 }
 
-ECS_DECLARE_RELOCATABLE_TYPE(AnimV20::AnimcharBaseComponent);
-ECS_DECLARE_RELOCATABLE_TYPE(AnimV20::AnimcharRendComponent);
 ECS_DECLARE_RELOCATABLE_TYPE(AnimcharNodesMat44);
 
 #if DAECS_EXTENSIVE_CHECKS

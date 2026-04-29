@@ -4,16 +4,20 @@
 
 #include <osApiWrappers/dag_progGlobals.h>
 #include <debug/dag_debug.h>
-#include <startup/dag_inpDevClsDrv.h>
-#include <drv/hid/dag_hiPointing.h>
-
+#include <EditorCore/ec_input.h>
 #include <EditorCore/ec_rect.h>
+#include <math/integer/dag_IPoint2.h>
+
+#include <imgui/imgui.h>
 
 #if _TARGET_PC_WIN
 
 #include <windows.h>
 
 void capture_cursor(void *handle) { SetCapture((HWND)handle); }
+
+
+void *get_capture() { return GetCapture(); }
 
 
 void release_cursor(void) { ReleaseCapture(); }
@@ -116,14 +120,83 @@ void area_cursor_wrap(const EcRect &rc, int &p1, int &p2, int &wrapedX, int &wra
 
 #else
 
-// TODO: tools Linux porting: !!! captureCursor.cpp !!!
+#include <osApiWrappers/dag_linuxGUI.h>
 
-void capture_cursor(void *handle) {}
+static void *ec_capture_cursor_window = nullptr;
 
-void release_cursor(void) {}
+static IPoint2 area_cursor_wrap_internal(const EcRect &rc)
+{
+  const int left = rc.l + 5;
+  const int right = rc.r - 5;
+  const int top = rc.t + 5;
+  const int bottom = rc.b - 5;
+  if (right <= left || bottom <= top)
+    return IPoint2(0, 0);
 
-void cursor_wrap(int &p1, int &p2, void *handle) {}
+  const IPoint2 oldPos = ec_get_cursor_pos();
+  IPoint2 pos = oldPos;
 
-void area_cursor_wrap(const EcRect &rc, int &p1, int &p2, int &wrapedX, int &wrapedY) {}
+  if (pos.x < left)
+    pos.x = right;
+  else if (pos.x > right)
+    pos.x = left;
+
+  if (pos.y < top)
+    pos.y = bottom;
+  else if (pos.y > bottom)
+    pos.y = top;
+
+  const IPoint2 delta = pos - oldPos;
+  if (delta.x != 0 || delta.y != 0)
+    ec_set_cursor_pos(pos);
+
+  return delta;
+}
+
+void capture_cursor(void *handle)
+{
+  // TODO: tools Linux porting: multi viewport: replace win32_get_main_wnd()
+  G_ASSERT((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) == 0);
+
+  linux_GUI::clip_cursor();
+
+  ec_capture_cursor_window = handle;
+}
+
+void *get_capture() { return ec_capture_cursor_window; }
+
+void release_cursor()
+{
+  linux_GUI::unclip_cursor();
+
+  ec_capture_cursor_window = nullptr;
+}
+
+void cursor_wrap(int &p1, int &p2, void *handle)
+{
+  // TODO: tools Linux porting: multi viewport: get the correct ImGui viewport
+  G_ASSERT((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) == 0);
+
+  const ImGuiViewport *viewport = ImGui::GetMainViewport();
+  if (!viewport)
+    return;
+
+  const EcRect rc{.l = (int)(viewport->Pos.x),
+    .t = (int)(viewport->Pos.y),
+    .r = (int)(viewport->Pos.x + viewport->Size.x),
+    .b = (int)(viewport->Pos.y + viewport->Size.y)};
+  const IPoint2 delta = area_cursor_wrap_internal(rc);
+  p1 += delta.x;
+  p2 += delta.y;
+}
+
+void area_cursor_wrap(const EcRect &rc, int &p1, int &p2, int &wrapedX, int &wrapedY)
+{
+  const IPoint2 delta = area_cursor_wrap_internal(rc);
+  p1 += delta.x;
+  p2 += delta.y;
+  wrapedX += delta.x;
+  wrapedY += delta.y;
+}
 
 #endif

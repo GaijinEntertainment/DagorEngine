@@ -11,7 +11,7 @@ class CompilationContext;
 struct BindumpPackingFlagsBits
 {
   static constexpr uint32_t NONE = 0;
-  static constexpr uint32_t SHADER_GROUPS = 1;
+  static constexpr uint32_t SHADER = 1;
   static constexpr uint32_t WHOLE_BINARY = 1 << 1;
 };
 using BindumpPackingFlags = uint32_t;

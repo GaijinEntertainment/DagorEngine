@@ -43,6 +43,7 @@ void uishared::activate_ui_elem_action_set(dainput::action_set_handle_t ash, boo
 
 void uirender::init() {}
 void uirender::update_all_gui_scenes_mainthread(float) {}
+void uirender::prepare_to_start_ui_before_render_job() {}
 void uirender::start_ui_before_render_job() {}
 void uirender::skip_ui_render_job() {}
 void uirender::start_ui_render_job(bool) {}

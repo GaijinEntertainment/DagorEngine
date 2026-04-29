@@ -245,7 +245,8 @@ public:
   int getBoxViews(const BBox3 &box, ViewTransformData *out_views, int &out_cnt) const;
   bool getCascadeWorldBoxViews(int cascade_id, ViewTransformData *out_views, int &out_cnt) const;
   void setWorldBox(const BBox3 &box); // causes unforced invalidation, if box is different
-  void setDistance(float distance);   // causes forced invalidation, if is different
+  BBox3 getWorldBox() const { return worldBox; }
+  void setDistance(float distance); // causes forced invalidation, if is different
   void setCascadeDistance(int cascade, float distance);
   bool isInside(const BBox3 &box) const;          // returns true, if box covered by static shadows
   bool isCompletelyValid(const BBox3 &box) const; // returns true, if box has no never rendered (empty) or invalid (invalidated)

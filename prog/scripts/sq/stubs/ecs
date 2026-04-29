@@ -1,5 +1,4 @@
 //
-from "debug" import getstackinfos
 import "dagor.math" as dmath
 from "dagor.system" import argv
 //let {log} = require("%sqstd/log.nut")()
@@ -7,7 +6,7 @@ from "dagor.system" import argv
 let isComps = @(c) type(c ?? [])=="array"
 let callableTypes = ["function","table","instance"]
 function isCallable(v) {
-  return callableTypes.indexof(type(v)) != null && (v.getfuncinfos() != null)
+  return callableTypes.contains(type(v)) && (v.getfuncinfos() != null)
 }
 
 let allowedKwargTypes = { table = true, ["class"] = true, instance = true }
@@ -290,6 +289,7 @@ return ecsTypes.__merge({
   })
 
   INVALID_ENTITY_ID = 0
+  INVALID_SCENE_ID = 0xFFFFFFFF
   COMP_FLAG_REPLICATED="COMP_FLAG_REPLICATED"
   COMP_FLAG_CHANGE_EVENT="COMP_FLAG_CHANGE_EVENT"
   EVCAST_UNICAST = "EVCAST_UNICAST"
@@ -308,12 +308,12 @@ return ecsTypes.__merge({
       assert([components?.rw,components?.no,components?.rq].reduce(@(a,b) a && isComps(b), isComps(components?.ro)))
       assert(vargv.len()<2, $"query '{name}' can be created with optional filterstring or without anything")
       if (vargv.len()==1) {
-        assert(["string"].indexof(type(vargv[0]))!=null, $"squery '{name}' ctor can have optional filter string")
+        assert(["string"].contains(type(vargv[0])), $"squery '{name}' ctor can have optional filter string")
       }
     }
     perform = function(...){
       assert(vargv.len() > 0 && vargv.len() <= 3, $"query '{this.name}' number of arguments. Perform should have 1 - 3 args")
-      assert(["integer","function"].indexof(type(vargv[0]))!=null, @() $"query '{this.name}' first argument of perform should be int or callback")
+      assert(["integer","function"].contains(type(vargv[0])), @() $"query '{this.name}' first argument of perform should be int or callback")
       local isSingleEid = type(vargv[0]) == "integer"
       assert(!isSingleEid || vargv.len() > 1, $"query '{this.name}' too few arguments for perform with eid, callback should be second argument")
       local callbackArg = isSingleEid ? vargv[1] : vargv[0]
@@ -324,7 +324,7 @@ return ecsTypes.__merge({
     }
     _call = function(...){
       assert(vargv.len() > 0 && vargv.len() <= 3, $"query '{this.name}' incorrect number of arguments. Perform should have 1 - 3 args")
-      assert(["integer","function"].indexof(type(vargv[1]))!=null, @() $"query '{this.name}' first argument of perform should be int or callback")
+      assert(["integer","function"].contains(type(vargv[1])), @() $"query '{this.name}' first argument of perform should be int or callback")
       local isSingleEid = type(vargv[1]) == "integer"
       assert(!isSingleEid || vargv.len() > 2, $"query '{this.name}' too few arguments for perform with eid, callback should be second argument")
       local callbackArg = isSingleEid ? vargv[2] : vargv[1]

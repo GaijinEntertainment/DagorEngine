@@ -28,12 +28,15 @@ shader calc_radiance_cache_new_cs
     new_radiance_cache_probes_needed@buf = new_radiance_cache_probes_needed hlsl {
       ByteAddressBuffer new_radiance_cache_probes_needed@buf;
     }
+    current_radiance_cache@uav : register(0) hlsl {
+      RWTexture2D<float3> current_radiance_cache@uav;
+    }
+    radiance_cache_dist@uav : register(1) hlsl {
+      RWTexture2D<float> radiance_cache_dist@uav;
+    }
   }
   RADIANCE_CACHE_TRACE_PROBE(cs)
   hlsl(cs) {
-    RWTexture2D<float3> current_radiance_cache: register(u0);
-    RWTexture2D<float> radiance_cache_dist: register(u1);
-
     [numthreads(RADIANCE_CACHE_RADIANCE_RES, RADIANCE_CACHE_RADIANCE_RES, 1)]
     void calc_radiance_cache_new_cs(uint2 gtId : SV_GroupThreadID, uint gId : SV_GroupID, uint tid:SV_GroupIndex)
     {
@@ -82,13 +85,15 @@ shader select_temporal_radiance_cache_cs
     radiance_cache_current_frame@i1 = radiance_cache_current_frame;
     radiance_cache_temporal_recalc_params@i4 = radiance_cache_temporal_recalc_params;
     radiance_cache_temporal_recalc_params2@i4 = radiance_cache_temporal_recalc_params2;
+    radiance_cache_selected_temporal_probes@uav : register(0) hlsl {
+      RWByteAddressBuffer radiance_cache_selected_temporal_probes@uav;
+    }
   }
   RADIANCE_CACHE_TEMPORAL_RECALC_MATH(cs)
   hlsl(cs) {
     #include <waveUtils.hlsl>
     #include <pcg_hash.hlsl>
     //groupshared float3 last_radiance[RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES];
-    RWByteAddressBuffer radiance_cache_selected_temporal_probes: register(u0);
     [numthreads(64, 1, 1)]
     void select_temporal_radiance_cache_cs(uint dtId : SV_DispatchThreadID, uint tid:SV_GroupIndex)
     {
@@ -155,8 +160,10 @@ shader calc_temporal_radiance_cache_cs
   RADIANCE_CACHE_POSITIONS_READ(cs)
   RADIANCE_CACHE_INDIRECTION_SRV(cs)
 
-  hlsl(cs) {
-    RWByteAddressBuffer radiance_cache_age: register(u2);
+  (cs) {
+    radiance_cache_age@uav : register(2) hlsl {
+      RWByteAddressBuffer radiance_cache_age@uav;
+    }
   }
   RADIANCE_CACHE_AGE_READ(cs)
 
@@ -164,12 +171,16 @@ shader calc_temporal_radiance_cache_cs
   {
     radiance_cache_current_frame@i1 = radiance_cache_current_frame;
     radiance_cache_temporal_recalc_params2@i4 = radiance_cache_temporal_recalc_params2;
+    current_radiance_cache@uav : register(0) hlsl {
+      RWTexture2D<float3> current_radiance_cache@uav;
+    }
+    radiance_cache_dist@uav : register(1) hlsl {
+      RWTexture2D<float> radiance_cache_dist@uav;
+    }
   }
   RADIANCE_CACHE_TEMPORAL_RECALC(cs)
   RADIANCE_CACHE_TRACE_PROBE(cs)
   hlsl(cs) {
-    RWTexture2D<float3> current_radiance_cache: register(u0);
-    RWTexture2D<float> radiance_cache_dist: register(u1);
     //groupshared float3 last_radiance[RADIANCE_CACHE_RADIANCE_RES*RADIANCE_CACHE_RADIANCE_RES];
 
     [numthreads(RADIANCE_CACHE_RADIANCE_RES, RADIANCE_CACHE_RADIANCE_RES, 1)]

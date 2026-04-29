@@ -1,7 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/engine/drv/drv3d_vulkan ;
 StrictCompile = yes ;
-LinuxUseX11 ?= yes ;
+LinuxUseGUI ?= yes ;
 
 TargetType  = lib ;
 Target      = engine/drv/drv3d_vulkan.lib ;
@@ -15,12 +15,13 @@ if $(Platform) in windows linux && $(PlatformArch) in x86_64 {
   UseDlss = no ;
 }
 
-if $(Platform) = linux && $(KernelLinkage) != dynamic && $(LinuxUseX11) != yes { Exit $(Target) requires LinuxUseX11\=yes under $(Platform) ; }
+if $(Platform) = linux && $(KernelLinkage) != dynamic && $(LinuxUseGUI) != yes { Exit $(Target) requires LinuxUseGUI\=yes under $(Platform) ; }
 
 Sources =
   #utils
   util/backtrace.cpp
   util/fault_report.cpp
+  util/unsafe_call.cpp
 
   #engine visible interface
   d3d/resource_update_buffer.cpp
@@ -53,6 +54,7 @@ Sources =
   init_d3di.cpp
   buffer.cpp
   buffer_locktransfer.cpp
+  buffer_ref.cpp
   texture.cpp
 
   #common stuff
@@ -68,12 +70,13 @@ Sources =
   vulkan_device.cpp
   format_store.cpp
   vk_to_string.cpp
+  physical_device_set.cpp
 
   #execution
   device_context.cpp
   device_context_fault_report.cpp
-  device_context/execution_context.cpp
-  device_context/render_pass.cpp
+  backend/context.cpp
+  backend/render_pass.cpp
   render_work.cpp
   timelines.cpp
   frame_info.cpp
@@ -87,6 +90,22 @@ Sources =
   device_execution_tracker.cpp
   wrapped_command_buffer.cpp
   resource_readbacks.cpp
+  backend/cmd_buffer.cpp
+  backend/cmd/buffers.cpp
+  backend/cmd/debug.cpp
+  backend/cmd/draw_dispatch.cpp
+  backend/cmd/framebuffer.cpp
+  backend/cmd/misc.cpp
+  backend/cmd/query.cpp
+  backend/cmd/raytrace.cpp
+  backend/cmd/renderpass.cpp
+  backend/cmd/resources.cpp
+  backend/cmd/state.cpp
+  backend/cmd/screen.cpp
+  backend/cmd/sync.cpp
+  backend/cmd/transfer.cpp
+  backend/cmd/vendor_exts.cpp
+  backend/cmd_param_to_string.cpp
 
   #shader
   shader/program.cpp
@@ -128,7 +147,6 @@ Sources =
   sampler_cache.cpp
 
   #debug stuff
-  execution_markers.cpp
   debug_ui.cpp
   debug_ui_memory.cpp
   debug_ui_resources.cpp
@@ -164,7 +182,8 @@ Sources =
   logic_address.cpp
   vk_format_utils.cpp
   vk_error.cpp
-  buffer_alignment.cpp
+  buffer_props.cpp
+  fence_manager.cpp
 
   #uncat
   queries.cpp
@@ -175,6 +194,9 @@ Sources =
   predicted_latency_waiter.cpp
   resource_upload_limit.cpp
   copy_info.cpp
+
+  #vendor
+  amd_anti_lag.cpp
 ;
 
 if $(Platform) in nswitch {
@@ -184,7 +206,6 @@ if $(Platform) in nswitch {
 }
 
 CPPopt = -DINSIDE_DRIVER ;
-if [ GLOB $(Root)/prog/3rdPartyLibs/nvapi : * ]     { CPPopt += -DHAS_NVAPI ; }
 if [ GLOB $(Root)/prog/3rdPartyLibs/streamline : * ] { CPPopt += -DHAS_STREAMLINE ; }
 
 if $(Platform) in android windows linux && $(Config) != rel {
@@ -195,22 +216,23 @@ if $(Platform) in android windows linux && $(Config) != rel {
 
 if $(Platform) in windows {
   Sources +=
-    os_win32.cpp
+    os/win32.cpp
   ;
   AddLibs +=
     Wintrust.lib
   ;
-  if $(PlatformArch) in arm64 { CPPopt = [ StripStrings $(CPPopt) : -DHAS_NVAPI ] ; }
+
+  if $(PlatformArch) in x86 x86_64 {
+    AddIncludes += $(_DEVTOOL)/nvapi-$(NvApiVer) ;
+    CPPopt += -DHAS_NVAPI ;
+  }
 } else if $(Platform) in linux {
   Sources +=
-    os_linux.cpp
-  ;
-  AddLibs +=
-    -lX11
+    os/linux.cpp
   ;
 } else if $(Platform) in nswitch {
   Sources +=
-    os_nswitch.cpp
+    os/nswitch.cpp
   ;
 
   if $(UseNxProfiler) = yes && $(UseNxMemoryTracker) = yes {
@@ -219,11 +241,11 @@ if $(Platform) in windows {
   }
 } else if $(Platform) in android {
   Sources +=
-    os_android.cpp
+    os/android.cpp
   ;
 }
 
-if $(Platform)-$(PlatformArch) = windows-x86_64 {
+if $(Platform)-$(PlatformArch) in windows-x86_64 linux-x86_64 {
   Sources += amdFsrVulkan.cpp ;
   AddIncludes += $(Root)/prog/3rdPartyLibs/fsr3.1/include ;
 }
@@ -248,14 +270,16 @@ if $(Platform) in windows xboxOne scarlett {
     -include $(Root)/$(Location)/driver_defs.h
   ;
 }
-if $(Platform) = linux { CPPopt += -DUSE_X11 ; }
+
+if $(Platform) = linux {
+  UseProgLibs += engine/osApiWrappers/linuxGUI ;
+}
 
 AddIncludes +=
   $(Root)/prog/engine/sharedInclude
   $(Root)/prog/engine/drv/drv3d_commonCode
   $(Root)/prog/engine/drv/drv3d_vulkan
   $(Root)/prog/3rdPartyLibs/vulkan/include
-  $(Root)/prog/3rdPartyLibs/nvapi
   $(Root)/prog/3rdPartyLibs/vulkan/smol-v/source
   $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
   $(Root)/prog/dagorInclude
@@ -264,7 +288,7 @@ AddIncludes +=
 ;
 
 if $(UseDlss) = yes {
-  DlssVersion ?= 310.3.0 ;
+  DlssVersion ?= 310.5.3 ;
   if ! [ GLOB $(_DEVTOOL)/ngx-dlss-$(DlssVersion) : * ] { exit FATAL\: \"$(_DEVTOOL)/ngx-dlss-$(DlssVersion)\" not found!  Please, update DEVTOOLS ; }
 
   AddIncludes += $(_DEVTOOL)/ngx-dlss-$(DlssVersion)/include ;

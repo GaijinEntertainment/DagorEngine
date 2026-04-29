@@ -66,7 +66,7 @@ void AnimTreeAnimationPlayer::clear()
   resetDynModel();
   if (selectedA2d)
   {
-    ::release_game_resource((GameResource *)selectedA2d);
+    ::release_game_resource_ex(selectedA2d, Anim2DataGameResClassId);
     selectedA2d = nullptr;
   }
   selectedA2dName.clear();
@@ -199,7 +199,7 @@ void AnimTreeAnimationPlayer::loadA2dResource(PropPanel::ContainerPropertyContro
 
   if (selectedA2d)
   {
-    ::release_game_resource((GameResource *)selectedA2d);
+    ::release_game_resource_ex(selectedA2d, Anim2DataGameResClassId);
     selectedA2d = nullptr;
   }
   animNodes.clear();
@@ -209,7 +209,7 @@ void AnimTreeAnimationPlayer::loadA2dResource(PropPanel::ContainerPropertyContro
   if (validate_without_error && assetMgr.getAssetNameId(selectedA2dName) == -1)
     return;
 
-  selectedA2d = (AnimV20::AnimData *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(selectedA2dName), Anim2DataGameResClassId);
+  selectedA2d = (AnimV20::AnimData *)::get_game_resource_ex(selectedA2dName, Anim2DataGameResClassId);
   if (!selectedA2d)
     return;
 

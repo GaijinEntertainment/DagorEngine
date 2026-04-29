@@ -10,10 +10,10 @@ ECS_DEF_PULL_VAR(animChar);
 //static constexpr ecs::ComponentDesc animchar__updater_es_comps[] ={};
 static void animchar__updater_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<UpdateAnimcharEvent>());
   animchar__updater_es(static_cast<const UpdateAnimcharEvent&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc animchar__updater_es_es_desc
 (
@@ -81,7 +81,8 @@ static void animchar_update_animstate_es_event_handler_all_events(const ecs::Eve
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_update_animstate_es_event_handler(evt
-        , ECS_RO_COMP(animchar_update_animstate_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(animchar_update_animstate_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(animchar_update_animstate_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RO_COMP(animchar_update_animstate_es_event_handler_comps, "animchar__animStateNames", ecs::Object)
     , ECS_RW_COMP(animchar_update_animstate_es_event_handler_comps, "animchar__animState", ecs::Object)
@@ -404,9 +405,9 @@ static ecs::CompileTimeQueryDesc animchar_pre_update_ecs_query_desc
   make_span(animchar_pre_update_ecs_query_comps+4, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void animchar_pre_update_ecs_query(Callable function)
+inline void animchar_pre_update_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, animchar_pre_update_ecs_query_desc.getHandle(),
+  perform_query(&manager, animchar_pre_update_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -447,9 +448,9 @@ static ecs::CompileTimeQueryDesc animchar_update_ecs_query_desc
   make_span(animchar_update_ecs_query_comps+8, 2)/*no*/
   , 1);
 template<typename Callable>
-inline void animchar_update_ecs_query(Callable function)
+inline void animchar_update_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, animchar_update_ecs_query_desc.getHandle(),
+  perform_query(&manager, animchar_update_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

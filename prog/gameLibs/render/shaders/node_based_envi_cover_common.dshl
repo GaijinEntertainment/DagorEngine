@@ -1,0 +1,35 @@
+include "node_based_common.dshl"
+
+int envi_cover_shader_type always_referenced;
+interval envi_cover_shader_type: envi_cover < 1, envi_cover_combined < 2, envi_cover_norms_packed < 3, envi_cover_combined_norms_packed always_referenced;
+
+bool envi_cover_shader_is_combined = (envi_cover_shader_type == envi_cover_combined) || (envi_cover_shader_type == envi_cover_combined_norms_packed);
+bool envi_cover_shader_pack_norms = (envi_cover_shader_type == envi_cover_norms_packed) || (envi_cover_shader_type == envi_cover_combined_norms_packed);
+
+block(scene) nbs_envi_cover_block
+{
+  NBS_COMMON_BLOCK()
+
+  (cs) {
+    jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
+    prev_zn_zfar@f4 = prev_zn_zfar;
+    emission_decode_color_map@buf = emission_decode_color_map hlsl {
+      StructuredBuffer<float4> emission_decode_color_map@buf;
+    }
+    depth_gbuf@tex2d = depth_gbuf;
+    envi_cover_intensity_map@tex2d = envi_cover_intensity_map;
+    envi_cover_intensity_map_samplerstate@sampler = envi_cover_intensity_map_samplerstate;
+    rendering_res@f4 = rendering_res;
+    envi_cover_is_temporal_aa@i1 = envi_cover_is_temporal_aa;
+    envi_cover_frame_idx@i1 = envi_cover_frame_idx;
+    packed_gbuf_normals@i1 = packed_gbuf_normals;
+    camera_in_camera_prev_vp_ellipse_center@f4 = camera_in_camera_prev_vp_ellipse_center;
+    camera_in_camera_prev_vp_ellipse_xy_axes@f4 = camera_in_camera_prev_vp_ellipse_xy_axes;
+    camera_in_camera_vp_ellipse_center@f4 = camera_in_camera_vp_ellipse_center;
+    camera_in_camera_vp_ellipse_xy_axes@f4 = camera_in_camera_vp_ellipse_xy_axes;
+    camera_in_camera_vp_y_scale@f1 = camera_in_camera_vp_y_scale;
+    camera_in_camera_vp_uv_remapping@f4 = camera_in_camera_vp_uv_remapping;
+    camera_in_camera_postfx_lens_view@f1 = camera_in_camera_postfx_lens_view;
+    camera_in_camera_active@f1 = camera_in_camera_active;
+  }
+}

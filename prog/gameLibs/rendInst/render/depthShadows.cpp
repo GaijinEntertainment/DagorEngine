@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <rendInst/rendInstGen.h>
+#include <rendInst/impostor.h>
 #include "riGen/riGenData.h"
 #include "riGen/riGenRenderer.h"
 #include "riGen/riRotationPalette.h"
@@ -36,7 +37,7 @@ struct ColorDepthTexturePair
 {
   UniqueTex colorTex;
   UniqueTex depthTex;
-  d3d::SamplerHandle sampler;
+  bool colorReadbackPending;
 
   void createTextures(const char *name, int index, uint32_t size, int mips)
   {
@@ -45,25 +46,23 @@ struct ColorDepthTexturePair
     int flags = TEXCF_RTARGET;
     if (mips > 1)
       flags |= TEXCF_GENERATEMIPS;
-    colorTex = dag::create_tex(nullptr, size, size, flags, mips, texName.c_str());
-    d3d::SamplerInfo info;
-    info.address_mode_u = info.address_mode_v = info.address_mode_w = d3d::AddressMode::Border;
-    info.border_color = d3d::BorderColor::Color::TransparentBlack;
-    sampler = d3d::request_sampler(info);
+    colorTex = dag::create_tex(nullptr, size, size, flags, mips, texName.c_str(), RESTAG_RENDINST);
     createDepth(name, index, size);
+    colorReadbackPending = false;
   }
 
   void createDepth(const char *name, int index, uint32_t size)
   {
     depthTex.close();
     TmpString texName{TmpString::CtorSprintf{}, "%sDepth%d", name, index};
-    depthTex = dag::create_tex(nullptr, size, size, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, texName.c_str());
+    depthTex = dag::create_tex(nullptr, size, size, TEXFMT_DEPTH16 | TEXCF_RTARGET, 1, texName.c_str(), RESTAG_RENDINST);
   }
 
   void reset()
   {
     colorTex.close();
     depthTex.close();
+    colorReadbackPending = false;
   }
 };
 
@@ -72,6 +71,7 @@ static dag::Vector<ColorDepthTexturePair> g_fullres_tex;
 static shaders::OverrideStateId g_zfunc_state_id;
 static unsigned int rendinstGlobalShadowTexSize = 0;
 static int shadowBatch = 4;
+static bool is_global_shadows_ready = false;
 
 static eastl::optional<BcCompressor> g_compressor;
 
@@ -87,17 +87,15 @@ void closeImpostorShadowTempTex()
 }
 } // namespace rendinst
 
-static bool areImpostorsReady(bool force_update, const TextureIdSet &tex_ids)
+static bool prefetch_and_check_impostors_textures(const TextureIdSet &tex_ids, bool allow_wait)
 {
-  if (force_update && is_managed_textures_streaming_load_on_demand())
+  if (allow_wait)
   {
-    prefetch_and_wait_managed_textures_loaded(tex_ids);
+    if (is_managed_textures_streaming_load_on_demand())
+      prefetch_and_wait_managed_textures_loaded(tex_ids);
     return true;
   }
-  else if (!force_update && !prefetch_and_check_managed_textures_loaded(tex_ids))
-    return false;
-
-  return true;
+  return prefetch_and_check_managed_textures_loaded(tex_ids);
 }
 
 bool RendInstGenData::RtData::haveNextPoolForShadowImpostors()
@@ -222,8 +220,8 @@ static void prepare_pool_for_render_global_shadows(rendinst::render::RtPoolData 
 #endif
   }
 
-  pool.rendinstGlobalShadowTex =
-    dag::create_array_tex(rendinstGlobalShadowTexSize, rendinstGlobalShadowTexSize, rotation_palette.count, flags, mips, name.c_str());
+  pool.rendinstGlobalShadowTex = dag::create_array_tex(rendinstGlobalShadowTexSize, rendinstGlobalShadowTexSize,
+    rotation_palette.count, flags, mips, name.c_str(), RESTAG_RENDINST);
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Border;
   smpInfo.border_color = d3d::BorderColor::Color::TransparentBlack;
@@ -242,8 +240,9 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
   if (task.phase == GlobalShadowPhase::HIGH_PASS)
   {
     int lockFlags = force_update ? TEXLOCK_READ : (TEXLOCK_READ | TEXLOCK_NOSYSLOCK);
-    if (auto lockedTex = lock_texture_ro(g_lowres_tex[task.batchIndex].colorTex.getTex2D(), 0, lockFlags))
+    if (auto lockedTex = lock_texture<const ImageRawBytes>(g_lowres_tex[task.batchIndex].colorTex.getTex2D(), 0, lockFlags))
     {
+      g_lowres_tex[task.batchIndex].colorReadbackPending = false;
       const uint8_t *data = lockedTex.get();
       const int stride = lockedTex.getByteStride();
       TextureInfo info;
@@ -281,7 +280,12 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
                                                                                                                         // guard
     }
     else
-      return force_update ? GlobalShadowRet::ERR : GlobalShadowRet::WAIT_NEXT_FRAME;
+    {
+      if (force_update)
+        return GlobalShadowRet::ERR;
+      g_lowres_tex[task.batchIndex].colorReadbackPending = true;
+      return GlobalShadowRet::WAIT_NEXT_FRAME;
+    }
   }
 
   Texture *colorTex = nullptr;
@@ -296,6 +300,17 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
   }
   else
   {
+    // make sure we completed readback from target before writing to it
+    if (g_lowres_tex[task.batchIndex].colorReadbackPending)
+    {
+      // wait for old readback to finish first
+      // if we do force update, must complete right away, as it does not guarantie forward progress on GPU timeline
+      if (auto lockedTex = lock_texture<const ImageRawBytes>(g_lowres_tex[task.batchIndex].colorTex.getTex2D(), 0,
+            TEXLOCK_READ | (force_update ? 0 : TEXLOCK_NOSYSLOCK)))
+        g_lowres_tex[task.batchIndex].colorReadbackPending = false;
+      else
+        return GlobalShadowRet::WAIT_NEXT_FRAME;
+    }
     colorTex = g_lowres_tex[task.batchIndex].colorTex.getTex2D();
     depthTex = g_lowres_tex[task.batchIndex].depthTex.getTex2D();
   }
@@ -405,19 +420,18 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
     d3d::set_buffer(STAGE_VS, rendinst::render::instancingTexRegNo, rendinst::render::oneInstanceTmVb);
 
     if (pool.hasImpostor())
-      cb.setInstancing(3, 1, 0,
+      cb.setInstancing(3, 1, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_CONST_BUFFER,
         rendinst::gen::get_rotation_palette_manager()->getImpostorDataBufferOffset({layerIdx, task.poolNo},
           pool.impostorDataOffsetCache));
     else
-      cb.setInstancing(0, 3, 0, 0);
+      cb.setInstancing(0, 3, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_CONST_BUFFER, 0);
     cb.flushPerDraw();
 
     ShaderMesh *mesh = sourceScene->getMesh()->getMesh()->getMesh();
 
     if (task.phase == GlobalShadowPhase::HIGH_PASS && !use_compression)
     {
-      d3d::set_depth(depthTex, DepthAccess::RW);
-      d3d::set_render_target(0, colorTex, task.rotationId, 0);
+      d3d::set_render_target(RenderTarget{depthTex, 0, 0}, DepthAccess::RW, {{colorTex, 0, static_cast<uint32_t>(task.rotationId)}});
     }
     else
       d3d::set_render_target(RenderTarget{depthTex, 0, 0}, DepthAccess::RW, {{colorTex, 0, 0}});
@@ -432,16 +446,9 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
     ShaderGlobal::setBlock(rendinst::render::globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
     bool needToSetBlock = ShaderGlobal::getBlock(ShaderGlobal::LAYER_SCENE) == -1;
     if (needToSetBlock)
-      ShaderGlobal::setBlock(rendinst::render::rendinstSceneBlockId, ShaderGlobal::LAYER_SCENE);
+      ShaderGlobal::setBlock(rendinst::render::rendinstDepthSceneBlockId, ShaderGlobal::LAYER_SCENE);
 
-    RenderStateContext context;
-    for (auto &elem : mesh->getAllElems())
-    {
-      if (!elem.e)
-        continue;
-      SWITCH_STATES()
-      d3d_err(elem.drawIndTriList());
-    }
+    rendinst::render::impostorRenderer.render(mesh->getAllElems());
 
     shaders::overrides::reset();
 
@@ -453,7 +460,10 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
     if (task.phase == GlobalShadowPhase::LOW_PASS)
     {
       if (!force_update)
+      {
         request_readback_nosyslock(colorTex, 0);
+        g_lowres_tex[task.batchIndex].colorReadbackPending = true;
+      }
 
       task.phase = GlobalShadowPhase::HIGH_PASS;
       return GlobalShadowRet::WAIT_NEXT_FRAME;
@@ -472,15 +482,14 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
     g_fullres_tex[task.batchIndex].colorTex->generateMips();
     for (int mip = 0; mip < numMips; ++mip)
     {
-      g_compressor->updateFromMip(g_fullres_tex[task.batchIndex].colorTex.getTexId(), g_fullres_tex[task.batchIndex].sampler, mip,
-        mip);
+      g_compressor->updateFromMip(g_fullres_tex[task.batchIndex].colorTex.getTexId(), mip, mip);
       g_compressor->copyToMip(pool.rendinstGlobalShadowTex.getArrayTex(), mip + task.rotationId * numMips, 0, 0, mip);
     }
   }
   else
   {
     // Slow CPU compression (fallback)
-    if (auto lockedTex = lock_texture_ro(colorTex, 0, TEXLOCK_READ))
+    if (auto lockedTex = lock_texture<const ImageRawBytes>(colorTex, 0, TEXLOCK_READ))
     {
       const char *data = reinterpret_cast<const char *>(lockedTex.get());
       const int stride = lockedTex.getByteStride();
@@ -492,8 +501,8 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
 #else
         const int mode = MODE_BC4;
 #endif
-        Texture *tex = convert_to_custom_dxt_texture(rendinstGlobalShadowTexSize, rendinstGlobalShadowTexSize,
-          TEXCF_UPDATE_DESTINATION, data, stride, numMips, mode, 1, "converttmp");
+        Texture *tex = convert_to_custom_dxt_texture(rendinstGlobalShadowTexSize, rendinstGlobalShadowTexSize, 0, data, stride,
+          numMips, mode, 1, "converttmp");
         int destBaseMip = task.rotationId * numMips;
         for (int i = 0; i < numMips; i++)
           pool.rendinstGlobalShadowTex->updateSubRegion(tex, i, 0, 0, 0, rendinstGlobalShadowTexSize >> i,
@@ -508,6 +517,7 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderGlobalSh
 
 void rendinst::startUpdateRIGenGlobalShadows()
 {
+  is_global_shadows_ready = false;
   FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskDS)
   {
     ScopedLockRead lock(rgl->rtData->riRwCs);
@@ -569,7 +579,8 @@ RendInstGenData::RtData::GlobalShadowRet RendInstGenData::RtData::renderRendinst
   // Process high pass render
   for (auto &task : globalShadowTask)
   {
-    G_ASSERT(task.phase == GlobalShadowPhase::HIGH_PASS);
+    if (task.phase != GlobalShadowPhase::HIGH_PASS)
+      continue;
     res = renderGlobalShadow(task, sun_dir_0, force_update, use_compression);
     if (res == GlobalShadowRet::ERR)
       break;
@@ -616,14 +627,17 @@ bool rendinst::render::renderRIGenGlobalShadowsToTextures(const Point3 &sunDir0,
 {
   TIME_D3D_PROFILE(ri_global_shadows);
 
+  if (force_update)
+    is_global_shadows_ready = false;
+
   FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskDS)
   {
     TextureIdSet texIds(framemem_ptr());
     // riImpTexIds are not mutable, but for a multiframe long wait it is better to pass a copy anyway.
     texIds.assign(rgl->rtData->riImpTexIds.begin(), rgl->rtData->riImpTexIds.end());
-    if (!areImpostorsReady(force_update, texIds)) // prefetch_and_wait_managed_textures_loaded must not be called under GPU lock
-                                                  // because it depends on frames advancing. And therefore calling it under the riRwCs
-                                                  // lock is a bad idea because it is easily interlocked with the GPU lock.
+    // prefetch_and_wait_managed_textures_loaded must not be called under GPU lock because it depends on frames advancing.
+    // And therefore calling it under the riRwCs lock is a bad idea because it is easily interlocked with the GPU lock.
+    if (!prefetch_and_check_impostors_textures(texIds, force_update))
       return false;
 
     {
@@ -664,5 +678,8 @@ bool rendinst::render::renderRIGenGlobalShadowsToTextures(const Point3 &sunDir0,
   }
   if (free_temp_resources)
     rendinst::closeImpostorShadowTempTex();
+  is_global_shadows_ready = true;
   return true;
 }
+
+bool rendinst::render::isRIGenGlobalShadowTexturesReady() { return is_global_shadows_ready; }

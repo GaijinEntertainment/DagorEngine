@@ -5,6 +5,7 @@ include "gbuffer.dshl"
 include "projective_wounds.dshl"
 include "masked_paint_color.dshl"
 include "masked_micro_detail.dshl"
+include "dynamic_destr_disappear_inc.dshl"
 
 
 int xray_render = 0;
@@ -13,17 +14,19 @@ interval xray_render: off < 1, on;
 
 macro COMMON_MASKED_CHROME_SHADER_INIT()
 
+  DYNAMIC_DESTR_DISAPPEAR_INIT()
+
   DYNAMIC_BLOCK()
   if (xray_render == on && dyn_model_render_pass != render_to_depth)
   {
     dont_render;
   }
-  if (compatibility_mode != compatibility_mode_on && mobile_render == off && in_editor_assume == no){ NO_DYNSTCODE() }
+  if (compatibility_mode != compatibility_mode_on && in_editor_assume == no){ NO_DYNSTCODE() }
 
   texture diffuseTex = material.texture.diffuse;
 
   USING_ATEST_HALF_AND(SET_ATEST_IS_ON_DEFINE())
-  (ps) { diffuse_tex@static = diffuseTex; }
+  (ps) { diffuse_tex@staticSmp = diffuseTex; }
 
   texture normalMap = material.texture[2];
   texture aoTex = material.texture[3];
@@ -55,12 +58,13 @@ macro COMMON_MASKED_CHROME_SHADER_INIT()
   }
 
   DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  DYNAMIC_DESTR_DISAPPEAR_USE()
   WOUNDS_AND_BURNING_USE(get_diffuse_tex().smp)
 endmacro
 
 
 macro COMMON_MASKED_CHROME_PS()
-
+  static float thermal_vision_temperature = 0.0;
   if (dyn_model_render_pass != render_pass_normal)
   {
     if (num_bones == four_bones && has_wounds == torn_wounds)
@@ -75,7 +79,7 @@ macro COMMON_MASKED_CHROME_PS()
       }
       else
       {
-        SPECIAL_RENDER_ALPHATEST_CHOOSE()
+        SPECIAL_RENDER_ALPHATEST_CHOOSE(enable_ri_disintegration_animation == enabled)
       }
     }
   }
@@ -86,11 +90,12 @@ macro COMMON_MASKED_CHROME_PS()
     USE_MASKED_MICRODETAIL()
 
     (ps){
-      normalmap_tex@static = normalMap;
+      normalmap_tex@staticSmp = normalMap;
+      thermal_vision_temperature@f1 = thermal_vision_temperature;
     }
     if (aoTex != NULL)
     {
-      (ps){ aoTex@static = aoTex; }
+      (ps){ aoTex@staticSmp = aoTex; }
     }
 
     hlsl(ps) {
@@ -182,7 +187,7 @@ macro COMMON_MASKED_CHROME_PS()
         #endif
 
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
           init_motion_vector(result, motion);
         #endif
         if (special_vision > 0) //thermal vision
@@ -190,8 +195,14 @@ macro COMMON_MASKED_CHROME_PS()
           result.albedo -= 0.5*special_vision;
           result.smoothness += 0.5*special_vision;
           result.metalness -= 0.75*special_vision;
+
+          if (get_thermal_vision_temperature() > 0)
+          {
+            init_emission(result, get_thermal_vision_temperature());
+            init_material(result, SHADING_SELFILLUM);
+          }
           ##if num_bones != no_bones
-            init_albedo(result, special_vision < 1 ? diffuseColor.rgb : 0.35*diffuseColor.rgb);
+            init_albedo(result, 0.35*diffuseColor.rgb);
           ##endif
         }
         return encode_gbuffer(result, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));

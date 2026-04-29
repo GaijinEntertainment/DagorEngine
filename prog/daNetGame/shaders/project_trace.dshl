@@ -1,25 +1,49 @@
 include "bvh.dshl"
+include "rt_pipeline.dshl"
 include "rt/rt_lighting.dshl"
+include "bvh_usable_inc.dshl"
 
 int use_hw_rt_gi;
-interval use_hw_rt_gi : off < 1, on;
+interval use_hw_rt_gi : off < 1, on < 2, raygen;
 
-macro PROJECT_TRACE(code)
-  if (use_hw_rt_gi == on && use_hw_raytracing && compatibility_mode == compatibility_mode_off)
+macro PROJECT_TRACE(code, supports_raygen)
+  bool dagi_project_use_rt = use_hw_rt_gi != on && use_hw_raytracing && compatibility_mode == compatibility_mode_off && bvh_usable == yes;
+  bool dagi_project_use_raygen = dagi_project_use_rt && use_hw_rt_gi == raygen && supports_raygen && hardware.dx12;
+  if (dagi_project_use_rt)
   {
     supports global_const_block;
     INIT_MAIN_BVH(code, 0, false)
-    USE_MAIN_BVH(code, 1, 1, 1, 0, 1, 0, 1, 1)
+    USE_MAIN_BVH(code, 1, 1, 0, 1, 1, 0, 0, 0)
     INIT_RT_SURFACE_PARAMS(code)
     USE_RT_SURFACE_PARAMS(code, true)
 
-    hlsl (code) {
+    if (dagi_project_use_raygen)
+    {
+      USE_GI_PAYLOAD(code)
+    }
+
+    hlsl(code) {
       #define DAGI_PROJECT_TRACE_HAS_RADIANCE 0
       #define DAGI_PROJECT_TRACE_HAS_ALBEDO 1
       #define DAGI_HAS_PROJECT_TRACE 1
-      //#define DAGI_PROJECT_DOES_NOT_NEED_SCREEN_TRACE 1
+      #define DAGI_PROJECT_DOES_NOT_NEED_SCREEN_TRACE 1
       #define USE_TRACE_TO_INF 1
+      #define TRACING_LOD 6
+    }
 
+    if (dagi_project_use_raygen)
+    {
+      hlsl(code)
+      {
+        float pl_get_lod(RayPayload pl)
+        {
+          return TRACING_LOD;
+        }
+      }
+      USE_GENERIC_RAYGEN_AHS(code, true)
+    }
+
+    hlsl (code) {
       struct DaGiProjectHitRes
       {
         float3 hitCamPos, hitNormal;
@@ -28,19 +52,67 @@ macro PROJECT_TRACE(code)
       };
       bool dagi_project_trace_surface(float3 cam_from, float3 origin, float3 worldDir, float maxT, inout DaGiProjectHitRes hit)
       {
-        HitInfo hitInfo;
-        float3 bvhFrom = (origin - bvh_origin) + cam_from;
-        if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupAll, hitInfo, 0.5))
-        {
-          SurfaceParams hitSurface = calc_surface_params(hitInfo, -worldDir, 0);
-          hit.hitAt = hitInfo.t;
-          hit.hitCamPos = cam_from + worldDir*hit.hitAt;
-          hit.hitNormal = hitSurface.normal;
-          hit.hitAlbedo = hitSurface.albedo;
-          return true;
-        }
-        return false;
+        ##if dagi_project_use_raygen
+          RayPayload payload = (RayPayload)0;
+          pl_set_distance(payload, maxT * 2);
+
+          RayDesc ray;
+          ray.Origin = (origin - bvh_origin) + cam_from;
+          ray.Direction = worldDir;
+          ray.TMin = 0;
+          ray.TMax = maxT;
+
+          const uint flags = RAY_FLAG_CULL_BACK_FACING_TRIANGLES;
+
+          TraceRay(bvhMain, flags, bvhGroupGI, 0, 0, 0, ray, payload);
+
+          hit.hitAt = pl_get_distance(payload);
+          hit.hitCamPos = cam_from+ worldDir*hit.hitAt;
+          hit.hitNormal = pl_get_normal(payload);
+          hit.hitAlbedo = pl_get_albedo(payload);
+
+          return hit.hitAt < maxT;
+        ##else
+          HitInfo hitInfo;
+          float3 bvhFrom = (origin - bvh_origin) + cam_from;
+          if (trace_ray(bvhMain, bvhFrom, worldDir, 0, maxT, 0, bvhGroupGI, hitInfo, 0.5))
+          {
+            SurfaceParams hitSurface = calc_surface_params(hitInfo, -worldDir, -TRACING_LOD);
+            hit.hitAt = hitInfo.t;
+            hit.hitCamPos = cam_from + worldDir*hit.hitAt;
+            hit.hitNormal = hitSurface.normal;
+            hit.hitAlbedo = hitSurface.albedo;
+            return true;
+          }
+          return false;
+        ##endif
       }
+
+    ##if dagi_project_use_raygen
+      [shader("closesthit")]
+      void rt_gi_closesthit(inout RayPayload payload, BuiltInTriangleIntersectionAttributes attr)
+      {
+        HitInfo hitInfo = CalcHitInfo<false>(WorldRayOrigin(),
+                                             WorldRayDirection(),
+                                             RayTCurrent(),
+                                             PrimitiveIndex(),
+                                             InstanceID(),
+                                             GeometryIndex(),
+                                             attr.barycentrics,
+                                             ObjectToWorld3x4(),
+                                             WorldToObject3x4(),
+                                             HitKind() == HIT_KIND_TRIANGLE_FRONT_FACE,
+                                             InstanceIndex(),
+                                             1);
+        SurfaceParams hitSurface = calc_surface_params(hitInfo, -WorldRayDirection(), -TRACING_LOD); // Use fix texture LOD
+        pl_set_albedo(payload, hitSurface.albedo);
+        pl_set_normal(payload, hitSurface.normal);
+        pl_set_distance(payload, RayTCurrent());
+      }
+
+      RaytracingShaderConfig shader_config={sizeof(RayPayload), sizeof(BuiltInTriangleIntersectionAttributes)};
+      RaytracingPipelineConfig pipeline_config = {1}; // No recursion
+    ##endif
     }
 
     compile("cs_set_target", "cs_6_5");

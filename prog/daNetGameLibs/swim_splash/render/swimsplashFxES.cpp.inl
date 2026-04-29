@@ -1,8 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/anim/anim.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <render/fx/fx.h>
 #include <camera/sceneCam.h>

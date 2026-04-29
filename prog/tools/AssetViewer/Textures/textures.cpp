@@ -159,7 +159,10 @@ bool TexturesPlugin::begin(DagorAsset *asset)
   texture = ::acquire_managed_tex(texId);
   if (!texture)
     texId = BAD_TEXTUREID;
-  ddsx::tex_pack2_perform_delayed_data_loading();
+  if (!is_managed_textures_streaming_load_on_demand())
+    ddsx::tex_pack2_perform_delayed_data_loading();
+  if (curAsset && curAsset->props.getInt("stubTexIdx", 0) < 0)
+    prefetch_and_wait_managed_textures_loaded({&texId, 1}, true);
 
   mColor = E3DCOLOR(255, 255, 255, 255);
   cMul.set(1, 1, 1, 1), cAdd.set(0, 0, 0, 0);
@@ -228,10 +231,15 @@ bool TexturesPlugin::end()
   return true;
 }
 
+void TexturesPlugin::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  command_system.addCommand(EditorCommandIds::TEXTURES_RESET_SCALE, ImGuiMod_Ctrl | ImGuiKey_0);
+}
+
 void TexturesPlugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *EDITORCORE->getWndManager();
-  wndManager.addViewportAccelerator(CM_TEXTURES_RESET_SCALE, ImGuiMod_Ctrl | ImGuiKey_0);
+  wndManager.addViewportAccelerator(CM_TEXTURES_RESET_SCALE, EditorCommandIds::TEXTURES_RESET_SCALE);
 }
 
 void TexturesPlugin::handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id)

@@ -287,7 +287,14 @@ OpenXRDevice::OpenXRDevice(RenderingAPI rendering_api, const ApplicationData &ap
 {
   d3d::driver_command(Drv3dCommand::REGISTER_DEVICE_RESET_EVENT_HANDLER, static_cast<DeviceResetEventHandler *>(this));
 
-#if _TARGET_ANDROID
+#if _TARGET_PC_WIN
+  // https://github.com/mbucchia/OpenXR-Toolkit/releases
+  // "AS OF 2024, SUPPORT FOR OPENXR TOOLKIT IS DISCONTINUED. THERE IS NO NEW DEVELOPMENT AND NO TECH SUPPORT OF ANY SORT. THE
+  // DEVELOPER DOES NOT RECOMMEND TO INSTALL/USE OPENXR TOOLKIT, AS IT IS KNOWN TO CAUSE ISSUES WITH MANY OF THE NEWER GAMES RELEASED
+  // IN SINCE 2024"
+  // The OpenXR Toolkit cause invalid function call during D3D12 API calls, therefore just prevent to load it.
+  putenv("DISABLE_XR_APILAYER_MBUCCHIA_toolkit=1");
+#elif _TARGET_ANDROID
   LoadPreInitOpenxrFuncs();
   android_app *state = (android_app *)win32_get_instance();
   JavaVM *jVM = state->activity->vm;
@@ -394,10 +401,17 @@ OpenXRDevice::OpenXRDevice(RenderingAPI rendering_api, const ApplicationData &ap
   applicationVersion = application_data.version;
 
   setUpInstance();
+
+  if (::dgs_get_settings()->getBlockByNameEx("xr")->getBool("useBlockingPresent", false))
+  {
+    bool asyncMode = false;
+    d3d::driver_command(Drv3dCommand::SET_PRESENT_ASYNC_MODE, &asyncMode);
+  }
 }
 
 OpenXRDevice::~OpenXRDevice()
 {
+  d3d::driver_command(Drv3dCommand::SET_PRESENT_ASYNC_MODE); // Reset to default
   d3d::driver_command(Drv3dCommand::UNREGISTER_DEVICE_RESET_EVENT_HANDLER, static_cast<DeviceResetEventHandler *>(this));
 
   tearDownSwapchainImages();
@@ -1030,6 +1044,22 @@ eastl::pair<uint64_t, uint64_t> OpenXRDevice::getRequiredGraphicsAPIRange() cons
       return {vreq.minApiVersionSupported, vreq.maxApiVersionSupported};
   }
 #endif // XR_USE_GRAPHICS_API_VULKAN
+#ifdef XR_USE_GRAPHICS_API_D3D11
+  if (renderingAPI == RenderingAPI::D3D11)
+  {
+    XrGraphicsRequirementsD3D11KHR vreq = {XR_TYPE_GRAPHICS_REQUIREMENTS_D3D11_KHR};
+    if (XR_SUCCEEDED(pfnGetD3D11GraphicsRequirementsKHR(oxrInstance, oxrSystemId, &vreq)))
+      return {int64_t(vreq.minFeatureLevel), bitwise_cast<uint64_t>(vreq.adapterLuid)};
+  }
+#endif // XR_USE_GRAPHICS_API_D3D11
+#ifdef XR_USE_GRAPHICS_API_D3D12
+  if (renderingAPI == RenderingAPI::D3D12)
+  {
+    XrGraphicsRequirementsD3D12KHR vreq = {XR_TYPE_GRAPHICS_REQUIREMENTS_D3D12_KHR};
+    if (XR_SUCCEEDED(pfnGetD3D12GraphicsRequirementsKHR(oxrInstance, oxrSystemId, &vreq)))
+      return {int64_t(vreq.minFeatureLevel), bitwise_cast<uint64_t>(vreq.adapterLuid)};
+  }
+#endif // XR_USE_GRAPHICS_API_D3D12
   return {0, 0};
 }
 
@@ -1327,8 +1357,6 @@ void OpenXRDevice::tick(const SessionCallback &cb)
     eventBuffer = {XR_TYPE_EVENT_DATA_BUFFER};
   }
 
-  inputHandler.updateActionsState();
-
   if (callSessionStartedCallbackIfAvailable && callSessionEndedCallbackIfAvailable)
     callSessionStartedCallbackIfAvailable = callSessionEndedCallbackIfAvailable = false;
 
@@ -1522,6 +1550,7 @@ bool OpenXRDevice::prepareFrame(FrameData &frameData, float zNear, float zFar)
   frameData.frameStartedSuccessfully = false;
   frameData.frameId = frameId++;
 
+  inputHandler.updateActionsState();
   inputHandler.updatePoseSpaces(oxrAppSpace, frameState.predictedDisplayTime);
   inputHandler.updateLegacyControllerPoses(oxrAppSpace, frameState.predictedDisplayTime);
   inputHandler.updateHandJoints(oxrAppSpace, frameState.predictedDisplayTime);
@@ -1740,7 +1769,6 @@ void OpenXRDevice::recovery()
   getAdapterId();
   setUpSession();
   setUpSwapchains();
-  setUpSwapchainImages();
 }
 
 bool OpenXRDevice::hasScreenMask()

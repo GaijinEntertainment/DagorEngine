@@ -32,39 +32,37 @@ public:
   virtual void dump(int idx) const = 0;
 };
 
-static void decodeVariant(const shaderbindump::VariantTable &vt, int code)
+static void decodeVariant(ScriptedShadersBinDump const &dump, const shaderbindump::VariantTable &vt, int code)
 {
   using namespace shaderbindump;
   for (int i = 0; i < vt.codePieces.size(); i++)
   {
-    const Interval &ival = ::shBinDump().intervals[vt.codePieces[i].intervalId];
+    const Interval &ival = dump.intervals[vt.codePieces[i].intervalId];
     int mul = vt.codePieces[i].totalMul;
     int subcode = (code / mul) % ival.getValCount();
     debug_("%d ", subcode);
   }
 }
 
-static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, int code_num, const ILocalDumpVariantData &vdump)
+static int find_tex_slot_for_var(dag::ConstSpan<int> init_code, const shaderbindump::VarList &local_vars, int var_name_id)
+{
+  for (int i = 0; i < init_code.size(); i += 2)
+  {
+    int stVarId = init_code[i];
+    if (local_vars.v[stVarId].nameId == var_name_id && shaderopcode::getOp(init_code[i + 1]) == SHCOD_TEXTURE)
+      return shaderopcode::getOp2p1(init_code[i + 1]);
+  }
+  return -1;
+}
+
+static void dump_variant_intervals(ScriptedShadersBinDump const &dump, const shaderbindump::VariantTable &vt, int indent,
+  const shaderbindump::VarList *local_vars = nullptr, dag::ConstSpan<int> init_code = {})
 {
   using namespace shaderbindump;
-  int total_variants = code_num ? 1 : 0;
-  if (vt.codePieces.size() > 0)
-  {
-    const VariantTable::IntervalBind &ib = vt.codePieces.back();
-    total_variants = ::shBinDump().intervals[ib.intervalId].getValCount() * ib.totalMul;
-  }
-
-  switch (vt.mapType)
-  {
-    case VariantTable::MAPTYPE_EQUAL: debug_("[EQUAL, %d->%d]:\n", total_variants, code_num); break;
-    case VariantTable::MAPTYPE_LOOKUP: debug_("[LOOKUP, %d->%d]:\n", total_variants, code_num); break;
-    case VariantTable::MAPTYPE_QDIRECT: debug_("[QDIRECT, %d->%d->%d]:\n", total_variants, vt.mapData.size(), code_num); break;
-    case VariantTable::MAPTYPE_QINTERVAL: debug_("[QLOOKUP, %d->%d->%d]:\n", total_variants, vt.mapData.size(), code_num); break;
-  }
 
   for (int i = 0; i < vt.codePieces.size(); i++)
   {
-    const Interval &ival = ::shBinDump().intervals[vt.codePieces[i].intervalId];
+    const Interval &ival = dump.intervals[vt.codePieces[i].intervalId];
     int mul = vt.codePieces[i].totalMul;
 
     debug_("%*scp[%d]: MUL=%d  ", indent, "", i, mul);
@@ -80,9 +78,19 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
 
       case Interval::TYPE_INTERVAL:
       case Interval::TYPE_GLOBAL_INTERVAL:
-        debug_("%s[%d] %s, 0..%u\n", (const char *)shBinDump().varMap[ival.nameId], ival.nameId,
-          ival.type == Interval::TYPE_INTERVAL ? "local" : "global", ival.getValCount() - 1);
+      {
+        const char *varName = (const char *)dump.varMap[ival.nameId];
+        int texSlot = (ival.type == Interval::TYPE_INTERVAL && local_vars && init_code.size())
+                        ? find_tex_slot_for_var(init_code, *local_vars, ival.nameId)
+                        : -1;
+        if (texSlot >= 0)
+          debug_("%s(tex%d)[%d] %s, 0..%u\n", varName, texSlot, ival.nameId, ival.type == Interval::TYPE_INTERVAL ? "local" : "global",
+            ival.getValCount() - 1);
+        else
+          debug_("%s[%d] %s, 0..%u\n", varName, ival.nameId, ival.type == Interval::TYPE_INTERVAL ? "local" : "global",
+            ival.getValCount() - 1);
         break;
+      }
     }
 
     if (ival.type != Interval::TYPE_MODE)
@@ -90,18 +98,71 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
       debug_("%*sintervals: ", indent + 2, "");
       for (int j = 0; j < ival.maxVal.size(); j++)
         debug_("[%d] < %.3f, ", j, ival.maxVal[j]);
-      debug_("[%d]other\n", ival.maxVal.size());
+      debug_("[%d]other", ival.maxVal.size());
+
+      const VarList *vars = nullptr;
+      if (ival.type == Interval::TYPE_GLOBAL_INTERVAL)
+        vars = &shBinDump().globVars;
+      else if (ival.type == Interval::TYPE_INTERVAL)
+        vars = local_vars;
+
+      if (vars)
+      {
+        int vi = vars->findVar(ival.nameId);
+        if (vi >= 0)
+        {
+          float val = 0;
+          switch (vars->getType(vi))
+          {
+            case SHVT_INT: val = (float)vars->get<int>(vi); break;
+            case SHVT_REAL: val = vars->get<float>(vi); break;
+            case SHVT_COLOR4:
+            {
+              Color4 c = vars->get<Color4>(vi);
+              val = (c.r + c.g + c.b) / 3.f;
+              break;
+            }
+            case SHVT_TEXTURE: val = 0; break;
+            default: break;
+          }
+          debug_("  (default=%d)", ival.getNormalizedValue(val));
+        }
+      }
+
+      debug_("\n");
     }
   }
+}
 
-  debug_("\n%*sTable:\n", indent, "");
+static void dumpVariantTable(ScriptedShadersBinDump const &dump, const shaderbindump::VariantTable &vt, int indent, int code_num,
+  const ILocalDumpVariantData &vdump, const shaderbindump::VarList *local_vars = nullptr, dag::ConstSpan<int> init_code = {})
+{
+  using namespace shaderbindump;
+  int total_variants = code_num ? 1 : 0;
+  if (vt.codePieces.size() > 0)
+  {
+    const VariantTable::IntervalBind &ib = vt.codePieces.back();
+    total_variants = dump.intervals[ib.intervalId].getValCount() * ib.totalMul;
+  }
+
+  switch (vt.mapType)
+  {
+    case VariantTable::MAPTYPE_EQUAL: debug_("[EQUAL, %d->%d]:\n", total_variants, code_num); break;
+    case VariantTable::MAPTYPE_LOOKUP: debug_("[LOOKUP, %d->%d]:\n", total_variants, code_num); break;
+    case VariantTable::MAPTYPE_QDIRECT: debug_("[QDIRECT, %d->%d->%d]:\n", total_variants, vt.mapData.size(), code_num); break;
+    case VariantTable::MAPTYPE_QINTERVAL: debug_("[QLOOKUP, %d->%d->%d]:\n", total_variants, vt.mapData.size(), code_num); break;
+  }
+
+  dump_variant_intervals(dump, vt, indent, local_vars, init_code);
+
+  debug_("%*sTable:\n", indent, "");
   switch (vt.mapType)
   {
     case VariantTable::MAPTYPE_EQUAL:
       for (int i = 0; i < total_variants; i++)
       {
         debug_("%*s%4d -> %5d:   ", indent + 2, "", i, i);
-        decodeVariant(vt, i);
+        decodeVariant(dump, vt, i);
         vdump.dump(i);
       }
       break;
@@ -109,7 +170,7 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
       for (int i = 0; i < total_variants; i++)
       {
         debug_("%*s%4d -> %5d:   ", indent + 2, "", i, vt.mapData[i]);
-        decodeVariant(vt, i);
+        decodeVariant(dump, vt, i);
         vdump.dump(vt.mapData[i]);
       }
       break;
@@ -117,7 +178,7 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
       for (int i = 0; i < vt.mapData.size() / 2; i++)
       {
         debug_("%*s%4d -> %5d:   ", indent + 2, "", vt.mapData[i], vt.mapData[i + vt.mapData.size() / 2]);
-        decodeVariant(vt, vt.mapData[i]);
+        decodeVariant(dump, vt, vt.mapData[i]);
         vdump.dump(vt.mapData[i + vt.mapData.size() / 2]);
       }
       break;
@@ -126,7 +187,7 @@ static void dumpVariantTable(const shaderbindump::VariantTable &vt, int indent, 
       {
         debug_("%*s%4d..%-4d -> %5d:   ", indent + 2, "", vt.mapData[i],
           i < vt.mapData.size() / 2 ? vt.mapData[i + 1] - 1 : vt.mapData[i], vt.mapData[i + vt.mapData.size() / 2]);
-        decodeVariant(vt, vt.mapData[i]);
+        decodeVariant(dump, vt, vt.mapData[i]);
         vdump.dump(vt.mapData[i + vt.mapData.size() / 2]);
       }
       break;
@@ -165,304 +226,346 @@ static void dumpVarImpl(const shaderbindump::VarList &vars, const T &states, int
   }
 }
 
-void shaderbindump::dumpVar(const shaderbindump::VarList &vars, const ShaderVarsState *state, int i)
+void shaderbindump::dumpVar(ScriptedShadersBinDump const &dump, const shaderbindump::VarList &vars, const ShaderVarsState *state,
+  int i)
 {
   int nameId = vars.getNameId(i);
-  debug_("  %d: %s%s[%d]= ", i, vars.isPublic(i) ? "public " : "", (const char *)shBinDump().varMap[nameId], nameId);
+  debug_("  %d: %s%s[%d]= ", i, vars.isPublic(i) ? "public " : "", (const char *)dump.varMap[nameId], nameId);
   if (state)
     dumpVarImpl(vars, *state, i);
   else
     dumpVarImpl(vars, vars, i);
 }
 
-void shaderbindump::dumpVars(const shaderbindump::VarList &vars, const ShaderVarsState *state)
+void shaderbindump::dumpVars(ScriptedShadersBinDump const &dump, const shaderbindump::VarList &vars, const ShaderVarsState *state)
 {
   for (int i = 0; i < vars.size(); i++)
-    dumpVar(vars, state, i);
+    dumpVar(dump, vars, state, i);
 }
 
-void shaderbindump::dumpShaderInfo(const shaderbindump::ShaderClass &cls, bool dump_variants)
+void shaderbindump::getTotalPasses(const shaderbindump::ShaderClass &cls, uint32_t &total_passes, uint32_t &total_unique_shaders)
+{
+  total_passes = 0;
+  total_unique_shaders = 0;
+  ska::flat_hash_set<uint32_t> unique_shader_ids = {};
+  for (const ShaderCode &code : cls.code)
+  {
+    total_passes += code.passes.size();
+    for (const ShaderCode::Pass &pass : code.passes)
+      unique_shader_ids.insert((pass.rpass->vprId << 16) | pass.rpass->fshId);
+  }
+  total_unique_shaders = unique_shader_ids.size();
+}
+
+void shaderbindump::dumpShaderInfo(ScriptedShadersBinDump const &dump, const shaderbindump::ShaderClass &cls, bool dump_variants)
+{
+  shaderbindump::ShaderDumpDetails det = shaderbindump::DumpDetails(shaderbindump::DumpDetails::Preset::DEFAULT).shaderDetails;
+  det.dumpVariants = dump_variants;
+  dumpShaderInfo(dump, cls, det);
+}
+
+void shaderbindump::dumpShaderInfo(ScriptedShadersBinDump const &dump, const shaderbindump::ShaderClass &cls,
+  shaderbindump::ShaderDumpDetails details)
 {
   uint32_t total_passes = 0;
   uint32_t total_unique_shaders = 0;
+  getTotalPasses(cls, total_passes, total_unique_shaders);
+
+  if (details.headerOnly)
   {
-    ska::flat_hash_set<uint32_t> unique_shader_ids = {};
-    for (const ShaderCode &code : cls.code)
-    {
-      total_passes += code.passes.size();
-      for (const ShaderCode::Pass &pass : code.passes)
-        unique_shader_ids.insert((pass.rpass->vprId << 16) | pass.rpass->fshId);
-    }
-    total_unique_shaders = unique_shader_ids.size();
+    debug("\n  shader[%d] - %s\n"
+          "    %d passes, %d unique passes",
+      cls.nameId, (const char *)cls.name, total_passes, total_unique_shaders);
+    return;
   }
 
-  debug("--- shader[%d] %s dump (%d passes, %d unique passes):\n"
-        " timestamp(%lld)\n"
-        " local vars(%d):",
-    cls.nameId, (const char *)cls.name, total_passes, total_unique_shaders, cls.getTimestamp(), cls.localVars.v.size());
-  shaderbindump::dumpVars(cls.localVars, nullptr);
+  debug("\n--- shader[%d] - %s ---\n"
+        "    %d passes, %d unique passes\n"
+        "    timestamp (%lld)\n",
+    cls.nameId, (const char *)cls.name, total_passes, total_unique_shaders, cls.getTimestamp());
 
-  debug_("\n static init(%d):\n", cls.initCode.size() / 2);
-  for (int i = 0; i < cls.initCode.size(); i += 2)
+
+  if (details.localVars)
   {
-    int stVarId = cls.initCode[i];
-    const char *varname = (const char *)shBinDump().varMap[cls.localVars.v[stVarId].nameId];
-
-    switch (shaderopcode::getOp(cls.initCode[i + 1]))
-    {
-      case SHCOD_TEXTURE: debug_("  %s <- texture[%u]\n", varname, shaderopcode::getOp2p1(cls.initCode[i + 1])); break;
-      case SHCOD_DIFFUSE: debug_("  %s <- mat.diff.color\n", varname); break;
-      case SHCOD_EMISSIVE: debug_("  %s <- mat.emis.color\n", varname); break;
-      case SHCOD_SPECULAR: debug_("  %s <- mat.spec.color\n", varname); break;
-      case SHCOD_AMBIENT: debug_("  %s <- mat. amb.color\n", varname); break;
-
-      default:
-        debug_("  unsupported opcode=%08x (%s), var=%s\n", cls.initCode[i + 1],
-          ShUtils::shcod_tokname(shaderopcode::getOp(cls.initCode[i + 1])), varname);
-    }
+    debug(" local vars (%d):", cls.localVars.v.size());
+    shaderbindump::dumpVars(dump, cls.localVars, nullptr);
+    debug("");
   }
 
-  class DumpStVar : public ILocalDumpVariantData
-  {
-  public:
-    virtual void dump(int) const { debug_("\n"); }
-  };
 
-  if (!dump_variants)
+  if (details.staticInit)
   {
-    const auto &vt = cls.stVariants;
-    if (cls.code.size() && vt.codePieces.size() > 0)
+    debug(" static init (%d):", cls.initCode.size() / 2);
+    for (int i = 0; i < cls.initCode.size(); i += 2)
     {
-      const VariantTable::IntervalBind &ib = vt.codePieces.back();
-      int total_variants = ::shBinDump().intervals[ib.intervalId].getValCount() * ib.totalMul;
-      debug("\n static variant table: %d variants (codepieces%s for %d variants)", cls.code.size(),
-        total_variants >= (64 << 10) ? "!" : "", total_variants);
-    }
-    else
-      debug("\n static variant table: %d variants", cls.code.size());
-  }
-  else
-  {
-    debug_("\n static variant table");
-    dumpVariantTable(cls.stVariants, 2, cls.code.size(), DumpStVar());
-  }
+      int stVarId = cls.initCode[i];
+      const char *varname = (const char *)dump.varMap[cls.localVars.v[stVarId].nameId];
 
-  for (int i = 0; i < cls.code.size(); i++)
-  {
-    const ShaderCode &code = cls.code[i];
-
-    debug_("  code[%d]: passes=%d initCode=%d, channels=%d,"
-           " varSize=%d, codeFlags=0x%08x vertexStride=%d\n",
-      i, code.passes.size(), code.initCode.size(), code.channel.size(), code.varSize, code.codeFlags, code.vertexStride);
-
-    debug_("   stvarmap(%d):\n", code.stVarMap.size());
-    for (int j = 0; j < code.stVarMap.size(); j++)
-      debug_("    [%u] %s  -> %u\n", code.stVarMap[j] & 0xFFFF,
-        (const char *)shBinDump().varMap[cls.localVars.v[code.stVarMap[j] & 0xFFFF].nameId], code.stVarMap[j] >> 16);
-
-    debug_("\n  vertex channels(%d):\n", code.channel.size());
-    for (int j = 0; j < code.channel.size(); j++)
-      debug_("   %d: %s: %s%d [%d] %d/%d\n", j, ShUtils::channel_type_name(code.channel[j].t),
-        ShUtils::channel_usage_name(code.channel[j].u), code.channel[j].ui, code.channel[j].mod, code.channel[j].vbu,
-        code.channel[j].vbui);
-
-    class DumpDynVar : public ILocalDumpVariantData
-    {
-      const ShaderCode &code;
-
-    public:
-      DumpDynVar(const ShaderCode &c) : code(c) {}
-      virtual void dump(int idx) const
+      switch (shaderopcode::getOp(cls.initCode[i + 1]))
       {
-        if (idx == 0xFFFE)
-        {
-          debug_("NULL\n");
-          return;
-        }
-        if (idx == 0xFFFF)
-        {
-          debug_("not found\n");
-          return;
-        }
-        const ShaderCode::Pass &p = code.passes[idx];
-        debug_("shref[0]=(v%d,p%d,s%d,s%d)", p.rpass ? p.rpass->vprId : -1, p.rpass ? p.rpass->fshId : -1,
-          p.rpass ? p.rpass->stcodeId : -1, p.rpass ? p.rpass->stblkcodeId : -1);
+        case SHCOD_TEXTURE: debug_("  %s <- texture[%u]\n", varname, shaderopcode::getOp2p1(cls.initCode[i + 1])); break;
+        case SHCOD_DIFFUSE: debug_("  %s <- mat.diff.color\n", varname); break;
+        case SHCOD_EMISSIVE: debug_("  %s <- mat.emis.color\n", varname); break;
+        case SHCOD_SPECULAR: debug_("  %s <- mat.spec.color\n", varname); break;
+        case SHCOD_AMBIENT: debug_("  %s <- mat. amb.color\n", varname); break;
 
-        if (!code.suppBlockUid.empty())
-        {
-          const shader_layout::blk_word_t *sb = code.suppBlockUid[idx].begin();
-          debug_(" supports:");
-          if (!sb || *sb == shader_layout::BLK_WORD_FULLMASK)
-            debug_(" no block");
-          else
-            while (*sb != shader_layout::BLK_WORD_FULLMASK)
-            {
-              int b_frame = decodeBlock(*sb, ShaderGlobal::LAYER_FRAME);
-              int b_scene = decodeBlock(*sb, ShaderGlobal::LAYER_SCENE);
-              int b_obj = decodeBlock(*sb, ShaderGlobal::LAYER_OBJECT);
-
-              debug_(" {%04X}(%s:%s:%s)", *sb, b_frame >= 0 ? (const char *)::shBinDump().blockNameMap[b_frame] : "NULL",
-                b_scene >= 0 ? (const char *)::shBinDump().blockNameMap[b_scene] : "NULL",
-                b_obj >= 0 ? (const char *)::shBinDump().blockNameMap[b_obj] : "NULL");
-              sb++;
-            }
-        }
-
-        debug_("\n");
+        default:
+          debug_("  unsupported opcode=%08x (%s), var=%s\n", cls.initCode[i + 1],
+            ShUtils::shcod_tokname(shaderopcode::getOp(cls.initCode[i + 1])), varname);
       }
-    };
-    if (!dump_variants)
-    {
-      const auto &vt = code.dynVariants;
-      if (code.passes.size() && vt.codePieces.size() > 0)
-      {
-        const VariantTable::IntervalBind &ib = vt.codePieces.back();
-        int total_variants = ::shBinDump().intervals[ib.intervalId].getValCount() * ib.totalMul;
-        debug("\n   dynamic variant table: %d variants (codepieces%s for %d variants)", code.passes.size(),
-          total_variants >= (64 << 10) ? "!" : "", total_variants);
-      }
-      else
-        debug("\n   dynamic variant table: %d variants", code.passes.size());
-      for (int idx = 0; idx < code.passes.size(); idx++)
-      {
-        const shader_layout::blk_word_t *sb = code.suppBlockUid[idx].begin();
-        if (sb && *sb != shader_layout::BLK_WORD_FULLMASK)
-        {
-          debug_("     pass[%d] supports blocks:", idx);
-          while (*sb != shader_layout::BLK_WORD_FULLMASK)
-          {
-            int b_frame = decodeBlock(*sb, ShaderGlobal::LAYER_FRAME);
-            int b_scene = decodeBlock(*sb, ShaderGlobal::LAYER_SCENE);
-            int b_obj = decodeBlock(*sb, ShaderGlobal::LAYER_OBJECT);
+    }
+    debug("");
+  }
 
-            debug_(" {%04X}(%s:%s:%s)", *sb, b_frame >= 0 ? (const char *)::shBinDump().blockNameMap[b_frame] : "NULL",
-              b_scene >= 0 ? (const char *)::shBinDump().blockNameMap[b_scene] : "NULL",
-              b_obj >= 0 ? (const char *)::shBinDump().blockNameMap[b_obj] : "NULL");
-            sb++;
-          }
+
+  if (details.varSummary)
+  {
+    uint32_t totalVariants = 0;
+    uint32_t staticVariants = 0;
+    uint32_t dynamicVariants = 0;
+    dag::Vector<uint32_t> dynamicVariantsPerCode(cls.code.size());
+
+    {
+      const auto &svt = cls.stVariants;
+      if (cls.code.size() > 0 && svt.codePieces.size() > 0)
+      {
+        const VariantTable::IntervalBind &ib = svt.codePieces.back();
+        staticVariants = dump.intervals[ib.intervalId].getValCount() * ib.totalMul;
+      }
+
+      for (int i = 0; i < cls.code.size(); i++)
+      {
+        const ShaderCode &code = cls.code[i];
+        const auto &dvt = code.dynVariants;
+        if (dvt.codePieces.size() > 0)
+        {
+          const VariantTable::IntervalBind &ib = dvt.codePieces.back();
+          dynamicVariantsPerCode[i] = dump.intervals[ib.intervalId].getValCount() * ib.totalMul;
+          dynamicVariants += dynamicVariantsPerCode[i];
+        }
+      }
+
+      totalVariants = staticVariants + dynamicVariants;
+    }
+
+    debug(" variant summmary:\n"
+          "  %d total",
+      totalVariants);
+    if (totalVariants > 0)
+    {
+      debug("   static - %d", staticVariants);
+      if (staticVariants > 0)
+        dump_variant_intervals(dump, cls.stVariants, 4, &cls.localVars, cls.initCode);
+      debug("");
+
+      debug("   dynamic - %d\n", dynamicVariants);
+      if (dynamicVariants > 0)
+      {
+        for (int i = 0; i < cls.code.size(); i++)
+        {
+          debug("    code[%d] - %d", i, dynamicVariantsPerCode[i]);
+          dump_variant_intervals(dump, cls.code[i].dynVariants, 5, &cls.localVars, cls.initCode);
           debug("");
         }
       }
     }
     else
     {
-      debug_("\n   dynamic variant table");
-      dumpVariantTable(code.dynVariants, 4, code.passes.size(), DumpDynVar(code));
+      debug("");
     }
   }
-  debug("--- end of dump ---\n");
+
+
+  if (details.staticVariantTable)
+  {
+    if (!details.dumpVariants)
+    {
+      debug_(" static variant table: %d variants", cls.code.size());
+      const auto &vt = cls.stVariants;
+      if (cls.code.size() && vt.codePieces.size() > 0)
+      {
+        const VariantTable::IntervalBind &ib = vt.codePieces.back();
+        int total_variants = dump.intervals[ib.intervalId].getValCount() * ib.totalMul;
+        debug(" (codepieces%s for %d variants)", total_variants >= (64 << 10) ? "!" : "", total_variants);
+      }
+      else
+      {
+        debug("");
+      }
+    }
+    else
+    {
+      class DumpStVar : public ILocalDumpVariantData
+      {
+      public:
+        virtual void dump(int) const override { debug(""); }
+      };
+
+      debug_(" static variant table ");
+      dumpVariantTable(dump, cls.stVariants, 2, cls.code.size(), DumpStVar(), &cls.localVars, cls.initCode);
+      debug("");
+    }
+  }
+
+
+  if (details.codeBlocks)
+    for (int i = 0; i < cls.code.size(); i++)
+    {
+      const ShaderCode &code = cls.code[i];
+
+      debug("  code[%d]: passes=%d initCode=%d, channels=%d,"
+            " varSize=%d, codeFlags=0x%08x vertexStride=%d",
+        i, code.passes.size(), code.initCode.size(), code.channel.size(), code.varSize, code.codeFlags, code.vertexStride);
+
+      if (details.stvarmap)
+      {
+        debug("   stvarmap (%d):", code.stVarMap.size());
+        for (int j = 0; j < code.stVarMap.size(); j++)
+          debug("    [%u] %s -> %u", code.stVarMap[j] & 0xFFFF,
+            (const char *)dump.varMap[cls.localVars.v[code.stVarMap[j] & 0xFFFF].nameId], code.stVarMap[j] >> 16);
+      }
+
+      if (details.vertexChannels)
+      {
+        debug("   vertex channels (%d):", code.channel.size());
+        for (int j = 0; j < code.channel.size(); j++)
+          debug("    %d: %s: %s%d [%d] %d/%d", j, ShUtils::channel_type_name(code.channel[j].t),
+            ShUtils::channel_usage_name(code.channel[j].u), code.channel[j].ui, code.channel[j].mod, code.channel[j].vbu,
+            code.channel[j].vbui);
+      }
+
+      if (details.dynamicVariantTable)
+      {
+        if (!details.dumpVariants)
+        {
+          debug_("   dynamic variant table: %d variants", code.passes.size());
+          const auto &vt = code.dynVariants;
+          if (code.passes.size() && vt.codePieces.size() > 0)
+          {
+            const VariantTable::IntervalBind &ib = vt.codePieces.back();
+            int total_variants = dump.intervals[ib.intervalId].getValCount() * ib.totalMul;
+            debug(" (codepieces%s for %d variants)", total_variants >= (64 << 10) ? "!" : "", total_variants);
+          }
+          else
+          {
+            debug("");
+          }
+
+          for (int idx = 0; idx < code.passes.size(); idx++)
+          {
+            const shader_layout::blk_word_t *sb = code.suppBlockUid[idx].begin();
+            if (sb && *sb != shader_layout::BLK_WORD_FULLMASK)
+            {
+              debug_("    pass[%d] supports blocks:", idx);
+              while (*sb != shader_layout::BLK_WORD_FULLMASK)
+              {
+                int b_frame = decodeBlock(*sb, ShaderGlobal::LAYER_FRAME);
+                int b_scene = decodeBlock(*sb, ShaderGlobal::LAYER_SCENE);
+                int b_obj = decodeBlock(*sb, ShaderGlobal::LAYER_OBJECT);
+
+                debug_(" {%04X}(%s:%s:%s)", *sb, b_frame >= 0 ? (const char *)dump.blockNameMap[b_frame] : "NULL",
+                  b_scene >= 0 ? (const char *)dump.blockNameMap[b_scene] : "NULL",
+                  b_obj >= 0 ? (const char *)dump.blockNameMap[b_obj] : "NULL");
+                sb++;
+              }
+              debug("");
+            }
+          }
+        }
+        else
+        {
+          class DumpDynVar : public ILocalDumpVariantData
+          {
+            ScriptedShadersBinDump const &dmp;
+            ShaderCode const &code;
+
+          public:
+            DumpDynVar(ScriptedShadersBinDump const &d, const ShaderCode &c) : dmp(d), code(c) {}
+            virtual void dump(int idx) const override
+            {
+              if (idx == 0xFFFE)
+              {
+                debug_("NULL\n");
+                return;
+              }
+              if (idx == 0xFFFF)
+              {
+                debug_("not found\n");
+                return;
+              }
+              const ShaderCode::Pass &p = code.passes[idx];
+              debug_("shref[0]=(v%d,p%d,s%d,s%d)", p.rpass ? p.rpass->vprId : -1, p.rpass ? p.rpass->fshId : -1,
+                p.rpass ? p.rpass->stcodeId : -1, p.rpass ? p.rpass->stblkcodeId : -1);
+
+              if (!code.suppBlockUid.empty())
+              {
+                const shader_layout::blk_word_t *sb = code.suppBlockUid[idx].begin();
+                debug_(" supports:");
+                if (!sb || *sb == shader_layout::BLK_WORD_FULLMASK)
+                  debug_(" no block");
+                else
+                  while (*sb != shader_layout::BLK_WORD_FULLMASK)
+                  {
+                    int b_frame = decodeBlock(*sb, ShaderGlobal::LAYER_FRAME);
+                    int b_scene = decodeBlock(*sb, ShaderGlobal::LAYER_SCENE);
+                    int b_obj = decodeBlock(*sb, ShaderGlobal::LAYER_OBJECT);
+
+                    debug_(" {%04X}(%s:%s:%s)", *sb, b_frame >= 0 ? (const char *)dmp.blockNameMap[b_frame] : "NULL",
+                      b_scene >= 0 ? (const char *)dmp.blockNameMap[b_scene] : "NULL",
+                      b_obj >= 0 ? (const char *)dmp.blockNameMap[b_obj] : "NULL");
+                    sb++;
+                  }
+              }
+
+              debug_("\n");
+            }
+          };
+
+          debug_("   dynamic variant table ");
+          dumpVariantTable(dump, code.dynVariants, 4, code.passes.size(), DumpDynVar(dump, code), &cls.localVars, cls.initCode);
+          debug("");
+        }
+      }
+
+      debug("");
+    }
+
+
+  debug("--- end of dump ---\n\n");
 }
-
-
-#if MEASURE_STCODE_PERF
-static int last_frames = 0;
-static int last_time = 0;
-static int prev_frame_no = 0;
-static int last_frame_no = 0;
-static bool overdraw_to_stencil = false;
-
-void shaderbindump::add_exec_stcode_time(const shaderbindump::ShaderClass &cls, const __int64 &time)
-{
-  if (current_exec_stcode_time.size() != shBinDump().classes.size())
-  {
-    current_exec_stcode_time.resize(shBinDump().classes.size());
-    last_exec_stcode_time.resize(shBinDump().classes.size());
-    mem_set_0(current_exec_stcode_time);
-    mem_set_0(last_exec_stcode_time);
-  }
-
-  if (dagor_frame_no() != prev_frame_no && ::get_time_msec() > last_time + 5000)
-  {
-    last_exec_stcode_time = current_exec_stcode_time;
-    last_frames = dagor_frame_no() - last_frame_no;
-
-    last_time = ::get_time_msec();
-    last_frame_no = dagor_frame_no();
-    mem_set_0(current_exec_stcode_time);
-  }
-
-  prev_frame_no = dagor_frame_no();
-
-  unsigned int shaderNo = &cls - shBinDump().classes.begin();
-  G_ASSERT(shaderNo < shBinDump().classes.size());
-
-  current_exec_stcode_time[shaderNo].count++;
-  current_exec_stcode_time[shaderNo].time += time;
-}
-
-static int sort_by_time(int *a, int *b) { return (int)(last_exec_stcode_time[*b].time - last_exec_stcode_time[*a].time); }
-
-void dump_exec_stcode_time()
-{
-  if (!enable_measure_stcode_perf)
-  {
-    enable_measure_stcode_perf = true;
-    debug("STCODE: stcode profiling enabled");
-    return;
-  }
-
-  using namespace shaderbindump;
-  if (current_exec_stcode_time.size() != ::shBinDump().classes.size() || last_frames == 0)
-    return;
-
-  debug("STCODE: exec_stcode time by shader (count per frame, 1 call average time, 1 frame average time):");
-  int total_time = 0;
-  Tab<int> idxs(tmpmem);
-  idxs.reserve(::shBinDump().classes.size());
-  idxs.resize(::shBinDump().classes.size());
-  for (int i = 0; i < idxs.size(); ++i)
-    idxs[i] = i;
-  dag_qsort(idxs.data(), idxs.size(), sizeof(int), (cmp_func_t)&sort_by_time);
-  for (int i = 0; i < idxs.size(); ++i)
-  {
-    const int shaderNo = idxs[i];
-    ExecStcodeTime &time = last_exec_stcode_time[shaderNo];
-
-    if (time.count == 0)
-      continue;
-
-    debug("STCODE: %4u, %4.2f us, %5.2f us - '%s'", time.count / last_frames, (float)time.time / time.count,
-      (float)time.time / last_frames, ::shBinDump().classes[shaderNo].name.data());
-    total_time += time.time;
-  }
-  debug("STCODE: Total: %.3f ms per frame", 0.001f * total_time / last_frames);
-
-  int num_active_blocks = 0;
-  for (const auto &b : ShaderStateBlock::blocks)
-    num_active_blocks += b.refCount > 0;
-  debug("STCODE: ShaderStateBlock %d blocks(%d total), %d render states", num_active_blocks, ShaderStateBlock::blocks.totalElements(),
-    shaders::render_states::get_count());
-  dump_bindless_states_stat();
-  dump_slot_textures_states_stat();
-}
-
-
-void enable_overdraw_to_stencil(bool enable) { overdraw_to_stencil = enable; }
-
-bool is_overdraw_to_stencil_enabled() { return overdraw_to_stencil; }
-#endif
 
 #include <generic/dag_tab.h>
 #include <util/dag_fastIntList.h>
-static Tab<FastIntList> perShaderMarks(inimem);
-bool shaderbindump::markInvalidVariant(int shader_nid, unsigned short stat_varcode, unsigned short dyn_varcode)
+static ska::flat_hash_map<uint32_t, Tab<FastIntList>> perShaderMarks{};
+bool shaderbindump::markInvalidVariant(ShaderBindumpHandle dump_hnd, int shader_nid, unsigned short stat_varcode,
+  unsigned short dyn_varcode)
 {
-  if (shader_nid >= perShaderMarks.size())
-    perShaderMarks.resize(shader_nid + 1);
-  return perShaderMarks[shader_nid].addInt((unsigned(stat_varcode) << 16) | dyn_varcode);
+  auto listIt = perShaderMarks.find(uint32_t(dump_hnd));
+  if (DAGOR_UNLIKELY(listIt == perShaderMarks.end()))
+  {
+    auto [newListIt, _] = perShaderMarks.emplace(uint32_t(dump_hnd), Tab<FastIntList>{});
+    listIt = newListIt;
+  }
+  auto &list = listIt->second;
+  if (shader_nid >= list.size())
+    list.resize(shader_nid + 1);
+  return list[shader_nid].addInt((unsigned(stat_varcode) << 16) | dyn_varcode);
 }
-bool shaderbindump::hasShaderInvalidVariants(int shader_nid)
+bool shaderbindump::hasShaderInvalidVariants(ShaderBindumpHandle dump_hnd, int shader_nid)
 {
-  if (shader_nid >= perShaderMarks.size())
+  auto listIt = perShaderMarks.find(uint32_t(dump_hnd));
+  if (listIt == perShaderMarks.end())
     return false;
-  return perShaderMarks[shader_nid].getList().size() > 0;
+  auto &list = listIt->second;
+  if (shader_nid >= list.size())
+    return false;
+  return list[shader_nid].getList().size() > 0;
 }
-void shaderbindump::resetInvalidVariantMarks() { clear_and_shrink(perShaderMarks); }
+void shaderbindump::resetInvalidVariantMarks(ShaderBindumpHandle dump_hnd)
+{
+  if (auto listIt = perShaderMarks.find(uint32_t(dump_hnd)); listIt != perShaderMarks.end())
+    clear_and_shrink(listIt->second);
+}
+void shaderbindump::resetAllInvalidVariantMarks() { clear_and_shrink(perShaderMarks); }
 
-#endif
-
-#if !(MEASURE_STCODE_PERF && DAGOR_DBGLEVEL > 0)
-void dump_exec_stcode_time() {}
-void enable_overdraw_to_stencil(bool) {}
-bool is_overdraw_to_stencil_enabled() { return false; }
 #endif

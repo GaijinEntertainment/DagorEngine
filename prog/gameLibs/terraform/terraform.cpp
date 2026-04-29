@@ -290,7 +290,6 @@ void Terraform::updateInternal()
               if ((int(heightRes) < int(origHeight - downwardRaw) || int(heightRes) > int(origHeight + upwardRaw)))
                 changedCoord += hmapCoord;
             }
-            hmap.tesselatePatch(hmapCoord, heightRes != origHeight);
           }
 
         if (renderer)
@@ -818,7 +817,6 @@ void Terraform::addOrigHmapAltSph(const Point2 &pos, float radius, float alt, HS
       if (updated.insert(updKey).second)
       {
         hmap.changedHeightmapCellUnsafe(hmapCoord);
-        hmap.tesselatePatch(hmapCoord, true);
       }
     }
 }

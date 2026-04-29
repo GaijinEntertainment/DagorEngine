@@ -2,9 +2,13 @@ texture bloom_tex;
 float bloom_mul = 0.8;
 
 macro INIT_BLOOM(code)
+INIT_GLOBAL_LINEAR_CLAMP_SAMPLER(code)
 (code) {
-  bloom_tex@smp2d = bloom_tex;
+  bloom_tex@tex2d = bloom_tex;
   bloom_mul@f1 = (bloom_mul);
+}
+hlsl(code) {
+  #define bloom_tex_samplerstate global_linear_clamp_sampler
 }
 endmacro
 

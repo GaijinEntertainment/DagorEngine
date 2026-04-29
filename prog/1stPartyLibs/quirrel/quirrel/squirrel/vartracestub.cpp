@@ -1,3 +1,3 @@
 #include "vartrace.h"
 
-void VarTrace::printStack(SQChar *, int) {}
+void VarTrace::printStack(char *, int) {}

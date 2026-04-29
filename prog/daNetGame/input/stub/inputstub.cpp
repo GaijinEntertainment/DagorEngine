@@ -4,7 +4,13 @@
 #include "input/globInput.h"
 #include "input/uiInput.h"
 #include "input/touchInput.h"
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 
 ECS_DEF_PULL_VAR(input);
 size_t framework_input_pulls = 0;

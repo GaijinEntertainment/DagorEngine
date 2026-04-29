@@ -13,10 +13,7 @@
 class TMatrix;
 class GeomNodeTree;
 class DynamicPhysObjectData;
-
-#ifndef NO_3D_GFX
 class DynamicRenderableSceneInstance;
-#endif
 
 
 #define SimplePhysObject SimplePhysObjectClass<PhysWorld>
@@ -42,7 +39,6 @@ public:
   const TMatrix &getModel2BodyTm() const { return *tmModel2body; }
   const TMatrix &getBody2ModelTm() const { return *tmBody2model; }
 
-#ifndef NO_3D_GFX
   DynamicRenderableSceneInstance *getModel() const { return model; }
   void updateModelTms();
 
@@ -54,7 +50,6 @@ public:
     else
       body->getTm(tm);
   }
-#endif
 
 protected:
   PhysBody *body;
@@ -62,11 +57,9 @@ protected:
   const TMatrix *tmModel2body;
   const TMatrix *tmBody2model;
 
-#ifndef NO_3D_GFX
   DynamicRenderableSceneInstance *model;
   SmallTab<dag::Index16, MidmemAlloc> treeHelpers;
 
   const TMatrix *extRenderTm;
-#endif // NO_3D_GFX
   Ptr<DObject> physRes;
 };

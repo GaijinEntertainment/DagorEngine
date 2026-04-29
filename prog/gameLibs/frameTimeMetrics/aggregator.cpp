@@ -32,6 +32,8 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
     if (!isPixCapturerLoaded.has_value())
       isPixCapturerLoaded = (bool)d3d::driver_command(Drv3dCommand::IS_PIX_CAPTURE_LOADED);
 
+    isBackgroundShadersProcessingInProgress = d3d::driver_command(Drv3dCommand::DRIVER_BACKGROUND_PROCESSING_MODE);
+
     lastAverageFrameTime = (float)(newTime - lastTimeMsec) / (frame_no - lastFrameNo + 0.001f);
 
     lastAverageFps = 1000.f * (frame_no - lastFrameNo) / ((float)(newTime - lastTimeMsec) + 0.001f);
@@ -66,21 +68,26 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
     if (displayMode == PerfDisplayMode::OFF)
       fpsText.clear();
     else if (displayMode == PerfDisplayMode::COMPACT)
-      fpsText.sprintf("FPS:%5.1f", lastAverageFps);
+      fpsText.sprintf("FPS: %1.1f", lastAverageFps);
     else
-      fpsText.sprintf("%s%s FPS:%5.1f (%4.1f<%4.1f %4.1f)", d3d::get_driver_name(), isPixCapturerLoaded.value() ? "(PIX)" : "",
-        lastAverageFps, lastMinFrameTime, lastMaxFrameTime, lastAverageFrameTime);
+      fpsText.sprintf("%s%s FPS: %1.1f (%1.1f<%1.1f %1.1f)%s", d3d::get_driver_name(), isPixCapturerLoaded.value() ? "(PIX)" : "",
+        lastAverageFps, lastMinFrameTime, lastMaxFrameTime, lastAverageFrameTime,
+        isBackgroundShadersProcessingInProgress ? " (PROCESSING)" : "");
 
     if (last_frame_count > 1)
-      fpsText += String(-1, " FG:%u", last_frame_count - 1);
+      fpsText += String(-1, " FG: %u", last_frame_count - 1);
+
+    if (dynamicResolution.has_value())
+      fpsText +=
+        String(-1, " DR: %d%% - %dx%d", int(dynamicResolutionRate.value() * 100 + 0.5), dynamicResolution->x, dynamicResolution->y);
 
     switch (display_mode)
     {
       case PerfDisplayMode::OFF:
       case PerfDisplayMode::FPS: latencyText.clear(); break;
-      case PerfDisplayMode::COMPACT: latencyText.sprintf("%s: %5.1fms", "Latency", latencyData.gameToRenderLatency.avg); break;
+      case PerfDisplayMode::COMPACT: latencyText.sprintf("%s: %1.1fms", "Latency", latencyData.gameToRenderLatency.avg); break;
       case PerfDisplayMode::FULL:
-        latencyText.sprintf("%s:%5.1fms (A:%5.1f R:%5.1f)", "Latency", latencyData.gameToRenderLatency.avg,
+        latencyText.sprintf("%s: %1.1fms (A: %1.1f R: %1.1f)", "Latency", latencyData.gameToRenderLatency.avg,
           latencyData.gameLatency.avg, latencyData.renderLatency.avg);
         break;
     }
@@ -104,6 +111,9 @@ void FrameTimeMetricsAggregator::update(const float current_time_msec, const uin
 
 uint32_t FrameTimeMetricsAggregator::getColorForFpsInfo() const
 {
+  if (isBackgroundShadersProcessingInProgress)
+    return QualityColors::BACKGROUND_SHADERS_PROCESSING;
+
   if (lastMaxFrameTime >= 100.f || achtung)
     return QualityColors::POOR;
 
@@ -115,4 +125,18 @@ uint32_t FrameTimeMetricsAggregator::getColorForFpsInfo() const
     return QualityColors::OKAY;
   else
     return QualityColors::POOR;
+}
+
+void FrameTimeMetricsAggregator::setDynamicResolution(bool enabled, const IPoint2 &resolution, float rate)
+{
+  if (enabled)
+  {
+    dynamicResolution = resolution;
+    dynamicResolutionRate = rate;
+  }
+  else
+  {
+    dynamicResolution.reset();
+    dynamicResolutionRate.reset();
+  }
 }

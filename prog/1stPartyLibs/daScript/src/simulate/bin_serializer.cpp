@@ -179,6 +179,15 @@ namespace das {
         virtual void Bitfield ( uint32_t & data, TypeInfo * ) override {
             serialize(data);
         }
+        virtual void Bitfield8 ( uint8_t & data, TypeInfo * ) override {
+            serialize(data);
+        }
+        virtual void Bitfield16 ( uint16_t & data, TypeInfo * ) override {
+            serialize(data);
+        }
+        virtual void Bitfield64 ( uint64_t & data, TypeInfo * ) override {
+            serialize(data);
+        }
         virtual void Int2 ( int2 & data ) override {
             serialize(data);
         }
@@ -268,7 +277,6 @@ namespace das {
                 DAS_ASSERTF(info,"type info not found. how did we get type, which is not in the typeinfo hash?");
                 uint32_t size = getTypeSize(info) + 16;
                 char * ptr = context->allocate(size);
-                if ( !ptr ) context->throw_out_of_memory(false, size);
                 context->heap->mark_comment(ptr, "lambda (via bin serializer)");
                 memset ( ptr, 0, size );
                 *((TypeInfo **)ptr) = info;
@@ -290,11 +298,7 @@ namespace das {
         writer.walk(args[0], info);
         writer.close();
         Array arr;
-        arr.data = writer.bytesAt;
-        arr.size = writer.bytesWritten;
-        arr.capacity = writer.bytesWritten;
-        arr.lock = 1;
-        arr.flags = 0;
+        array_mark_locked(arr, writer.bytesAt, writer.bytesWritten);
         vec4f arg = cast<char *>::from((char *)&arr);
         context.invoke(*block, &arg, nullptr, &call->debugInfo);
         return v_zero();

@@ -15,6 +15,7 @@ class ContainerPropertyControl;
 
 class DagorAsset;
 class CoolConsole;
+class IEditorCommandSystem;
 class IWndManager;
 class AvTree;
 
@@ -39,6 +40,9 @@ public:
   virtual bool end() = 0;
   virtual IGenEventHandler *getEventHandler() { return this; }
 
+  // Register the available editor commands. Called only once.
+  virtual void registerEditorCommands([[maybe_unused]] IEditorCommandSystem &command_system) {}
+
   // called when user requests switch to this plugin
   virtual void registerMenuAccelerators() {}
 
@@ -55,11 +59,11 @@ public:
   virtual void onLoadLibrary() = 0;
 
   virtual bool getSelectionBox(BBox3 &box) const = 0;
+  virtual bool getGlobalBox(BBox3 &box) const { return getSelectionBox(box); }
   virtual void actObjects(real dt) = 0;
   virtual void beforeRenderObjects() = 0;
   virtual void renderObjects() = 0;
   virtual void renderTransObjects() = 0;
-  void renderUI() override {}
   virtual void updateImgui() {}
 
   virtual bool supportAssetType([[maybe_unused]] const DagorAsset &asset) const { return false; }

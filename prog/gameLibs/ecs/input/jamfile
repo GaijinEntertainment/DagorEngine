@@ -24,10 +24,8 @@ SourceES =
 
 for s in $(SourceES) { GenESSourceFile $(s) ; }
 
-if $(ProjectUseQuirrel) && $(ProjectUseQuirrel) in sq3r sq3r+ {
-  UseProgLibs +=
-    gameLibs/daInput
-  ;
-}
+UseProgLibs +=
+  gameLibs/daInput
+;
 
 include $(Root)/prog/_jBuild/build.jam ;

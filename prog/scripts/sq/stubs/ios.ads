@@ -1,5 +1,6 @@
 return {
   setTestingMode = @(_) null
+  setTimeout = @(_) null
   addProviderInit = @(_provider, _id) false
   addProviderInitWithPriority = @(_, __, ___) null
   isAdsInited = @() false

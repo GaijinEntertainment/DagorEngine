@@ -9,9 +9,9 @@ def shell(cmd):
 
 def main():
   prevd = os.getcwd()
-  shell(["python3", "qdoc_main.py", "-o", "source/api-references/quirrel-modules", "-c", ".quirrel_modules.qdox", "-t", "Dagor Quirrel Modules Docs"])
-  shell(["python3", "qdoc_main.py", "-o", "source/_internal/api-references/projects-quirrel-modules", "-c", ".internal_quirrel_modules.qdox", "-t", "Internal Projects Quirrel Modules Docs", "--quiet"])
-  shell(["python3", "qdoc_main.py", "-o", "source/api-references/dagor-engine-docs", "-c", ".engine.qdox", "-t", "Engine Libraries Docs"])
+  shell(["python", "qdoc_main.py", "-o", "source/api-references/quirrel-modules", "-c", ".quirrel_modules.qdox", "-t", "Dagor Quirrel Modules Docs"])
+  shell(["python", "qdoc_main.py", "-o", "source/_internal/api-references/projects-quirrel-modules", "-c", ".internal_quirrel_modules.qdox", "-t", "Internal Projects Quirrel Modules Docs", "--quiet"])
+  shell(["python", "qdoc_main.py", "-o", "source/api-references/dagor-engine-docs", "-c", ".engine.qdox", "-t", "Engine Libraries Docs"])
   os.chdir(prevd)
 
 if __name__ == "__main__":

@@ -254,7 +254,12 @@ dag::Vector<VkLayerProperties> drv3d_vulkan::build_instance_layer_list(VulkanLoa
 #endif
   if (enable_render_doc_layer)
   {
+// can't load modern rdoc layer inside of app for some cryptic reasons on load order
+// use env ENABLE_VULKAN_RENDERDOC_CAPTURE=1
+#if _TARGET_ANDROID
+    // yet its leaved on android because sometimes there is no other way to load it
     layerWhiteList.push_back("VK_LAYER_RENDERDOC_Capture");
+#endif
   }
 
   String layersDump(4096, "vulkan: layers config\n");

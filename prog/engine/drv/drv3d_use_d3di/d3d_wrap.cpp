@@ -2,6 +2,7 @@
 
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_interface_table.h>
 #include <drv/3d/dag_query.h>
@@ -17,7 +18,8 @@ const char *get_device_name() { return d3di.deviceName; }
 const char *get_last_error() { return d3di.get_last_error(); }
 
 void *get_device() { return nullptr; }
-const Driver3dDesc &get_driver_desc() { return d3di.drvDesc; }
+unsigned get_dedicated_gpu_memory_system_internal_overhead_kb() { return d3di.get_dedicated_gpu_memory_system_internal_overhead_kb(); }
+const DriverDesc &get_driver_desc() { return d3di.drvDesc; }
 
 int driver_command(Drv3dCommand cmd, void *p1, void *p2, void *p3) { return d3di.driver_command(cmd, p1, p2, p3); }
 
@@ -38,25 +40,25 @@ bool issame_texformat(int cflg1, int cflg2) { return d3di.issame_texformat(cflg1
 bool check_cubetexformat(int cflg) { return d3di.check_cubetexformat(cflg); }
 bool check_voltexformat(int cflg) { return d3di.check_voltexformat(cflg); }
 
-Texture *create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
+Texture *create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_tex(img, w, h, flg, levels, stat_name);
+  return d3di.create_tex(img, w, h, flg, levels, stat_name, tag);
 }
-CubeTexture *create_cubetex(int size, int flg, int levels, const char *stat_name)
+CubeTexture *create_cubetex(int size, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_cubetex(size, flg, levels, stat_name);
+  return d3di.create_cubetex(size, flg, levels, stat_name, tag);
 }
-VolTexture *create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name)
+VolTexture *create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_voltex(w, h, d, flg, levels, stat_name);
+  return d3di.create_voltex(w, h, d, flg, levels, stat_name, tag);
 }
-ArrayTexture *create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name)
+ArrayTexture *create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_array_tex(w, h, d, flg, levels, stat_name);
+  return d3di.create_array_tex(w, h, d, flg, levels, stat_name, tag);
 }
-ArrayTexture *create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name)
+ArrayTexture *create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_cube_array_tex(side, d, flg, levels, stat_name);
+  return d3di.create_cube_array_tex(side, d, flg, levels, stat_name, tag);
 }
 
 BaseTexture *create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int levels, const char *stat_name)
@@ -109,26 +111,25 @@ PROGRAM create_program(VPROG vprog, FSHADER fsh, VDECL vdecl, unsigned *strides,
 {
   return d3di.create_program_0(vprog, fsh, vdecl, strides, streams);
 }
-PROGRAM create_program(const uint32_t *vpr_native, const uint32_t *fsh_native, VDECL vdecl, unsigned *strides, unsigned streams)
-{
-  return d3di.create_program_1(vpr_native, fsh_native, vdecl, strides, streams);
-}
 
-PROGRAM create_program_cs(const uint32_t *cs_native, CSPreloaded preloaded) { return d3di.create_program_cs(cs_native, preloaded); }
+PROGRAM create_program_cs(const ShaderSource &cs_native, CSPreloaded preloaded)
+{
+  return d3di.create_program_cs(cs_native, preloaded);
+}
 
 bool set_program(PROGRAM p) { return d3di.set_program(p); }
 void delete_program(PROGRAM p) { return d3di.delete_program(p); }
 
-VPROG create_vertex_shader(const uint32_t *native_code) { return d3di.create_vertex_shader(native_code); }
+VPROG create_vertex_shader(const ShaderSource &native_code) { return d3di.create_vertex_shader(native_code); }
 void delete_vertex_shader(VPROG vs) { return d3di.delete_vertex_shader(vs); }
 
 bool set_const(unsigned stage, unsigned b, const float *data, unsigned num_regs) { return d3di.set_const(stage, b, data, num_regs); }
 
-FSHADER create_pixel_shader(const uint32_t *native_code) { return d3di.create_pixel_shader(native_code); }
+FSHADER create_pixel_shader(const ShaderSource &native_code) { return d3di.create_pixel_shader(native_code); }
 void delete_pixel_shader(FSHADER ps) { return d3di.delete_pixel_shader(ps); }
 
-int set_vs_constbuffer_size(int required_size) { return d3di.set_vs_constbuffer_size(required_size); }
-int set_cs_constbuffer_size(int required_size) { return d3di.set_cs_constbuffer_size(required_size); }
+int set_vs_constbuffer_register_count(int required_count) { return d3di.set_vs_constbuffer_register_count(required_count); }
+int set_cs_constbuffer_register_count(int required_count) { return d3di.set_cs_constbuffer_register_count(required_count); }
 
 bool set_const_buffer(unsigned stage, unsigned slot, Sbuffer *buffer, uint32_t consts_offset, uint32_t consts_size)
 {
@@ -161,6 +162,13 @@ void update_bindless_resource_sto_null(D3DResourceType type, uint32_t index, uin
 {
   d3di.update_bindless_resources_to_null(type, index, count);
 }
+uint32_t add_bindless_resource(D3DResourceType type, D3dResource *res) { return d3di.add_bindless_resource(type, res); }
+
+void add_bindless_resources(dag::StridedConstSpan<D3DResourceType> types, dag::StridedConstSpan<D3dResource *> resources,
+  dag::StridedSpan<uint32_t> ids)
+{
+  d3di.add_bindless_resources(types, resources, ids);
+}
 
 bool set_tex(unsigned shader_stage, unsigned slot, BaseTexture *tex) { return d3di.set_tex(shader_stage, slot, tex); }
 bool set_rwtex(unsigned shader_stage, unsigned slot, BaseTexture *tex, uint32_t face, uint32_t mip, bool as_uint)
@@ -181,12 +189,15 @@ bool discard_tex(BaseTexture *tex) { return d3di.discard_tex(tex); }
 bool set_buffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer) { return d3di.set_buffer(shader_stage, slot, buffer); }
 bool set_rwbuffer(unsigned shader_stage, unsigned slot, Sbuffer *buffer) { return d3di.set_rwbuffer(shader_stage, slot, buffer); }
 
-Vbuffer *create_vb(int sz, int f, const char *name) { return d3di.create_vb(sz, f, name); }
-Ibuffer *create_ib(int size_bytes, int flags, const char *stat_name) { return d3di.create_ib(size_bytes, flags, stat_name); }
-
-Vbuffer *create_sbuffer(int struct_size, int elements, unsigned flags, unsigned texfmt, const char *name)
+Vbuffer *create_vb(int sz, int f, const char *name, ResourceTagType tag) { return d3di.create_vb(sz, f, name); }
+Ibuffer *create_ib(int size_bytes, int flags, const char *stat_name, ResourceTagType tag)
 {
-  return d3di.create_sbuffer(struct_size, elements, flags, texfmt, name);
+  return d3di.create_ib(size_bytes, flags, stat_name, tag);
+}
+
+Vbuffer *create_sbuffer(int struct_size, int elements, unsigned flags, unsigned texfmt, const char *name, ResourceTagType tag)
+{
+  return d3di.create_sbuffer(struct_size, elements, flags, texfmt, name, tag);
 }
 
 bool set_render_target() { return d3di.set_render_target(); }
@@ -234,7 +245,6 @@ bool getview(int &x, int &y, int &w, int &h, float &minz, float &maxz) { return 
 bool clearview(int what, E3DCOLOR c, float z, uint32_t stencil) { return d3di.clearview(what, c, z, stencil); }
 
 bool update_screen(uint32_t frame_id, bool app_active) { return d3di.update_screen(frame_id, app_active); }
-void wait_for_async_present(bool force) { return d3di.wait_for_async_present(force); }
 void begin_frame(uint32_t frame_id, bool allow_wait) { d3di.begin_frame(frame_id, allow_wait); }
 void mark_simulation_start(uint32_t frame_id) { d3di.mark_simulation_start(frame_id); }
 void mark_simulation_end(uint32_t frame_id) { d3di.mark_simulation_end(frame_id); }
@@ -256,11 +266,6 @@ bool draw_base(int type, int start, int numprim, uint32_t num_instances, uint32_
 bool drawind_base(int type, int startind, int numprim, int base_vertex, uint32_t num_instances, uint32_t start_instance)
 {
   return d3di.drawind_base(type, startind, numprim, base_vertex, num_instances, start_instance);
-}
-bool draw_up(int type, int numprim, const void *ptr, int stride_bytes) { return d3di.draw_up(type, numprim, ptr, stride_bytes); }
-bool drawind_up(int type, int minvert, int numvert, int numprim, const uint16_t *ind, const void *ptr, int stride_bytes)
-{
-  return d3di.drawind_up(type, minvert, numvert, numprim, ind, ptr, stride_bytes);
 }
 bool draw_indirect(int type, Sbuffer *args, uint32_t byte_offset) { return d3di.draw_indirect(type, args, byte_offset); }
 bool draw_indexed_indirect(int type, Sbuffer *args, uint32_t byte_offset)

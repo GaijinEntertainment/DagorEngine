@@ -1,7 +1,7 @@
 WARNING: w225 (all-paths-return-value) Not all control paths return a value.
-testData/static_analyzer/w225.nut:3:0
+testData/static_analyzer/w225.nut:1:0
 
-function x(y) { //-declared-never-used
+function _x(y) {
 ^
   if (y == 1)
 

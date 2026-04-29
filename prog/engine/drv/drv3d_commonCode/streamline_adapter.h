@@ -2,11 +2,10 @@
 #pragma once
 
 #include <3d/dag_nvFeatures.h>
-#include <drv/3d/dag_consts.h>
-#include <math/dag_TMatrix4.h>
 #include <math/integer/dag_IPoint2.h>
 #include <osApiWrappers/dag_dynLib.h>
 #include <supp/dag_comPtr.h>
+#include <3d/gpuLatency.h>
 
 #include <EASTL/array.h>
 #include <EASTL/optional.h>
@@ -44,7 +43,15 @@ private:
   eastl::array<eastl::array<bool, MAX_VIEWPORTS>, MAX_CONCURRENT_FRAMES> constantsInitialized = {};
 };
 
-class DLSSSuperResolution : public nv::DLSS
+class DLSSWithSizeQuery : public nv::DLSS
+{
+public:
+  DLSSWithSizeQuery() = default;
+  virtual ~DLSSWithSizeQuery() = default;
+  virtual uint64_t getMemorySize() const = 0;
+};
+
+class DLSSSuperResolution : public DLSSWithSizeQuery
 {
 public:
   DLSSSuperResolution(int viewport_id, void *command_buffer, FrameTracker &frame_tracker);
@@ -52,16 +59,20 @@ public:
 
   bool evaluate(const nv::DlssParams<void> &params, void *command_buffer) override;
   eastl::optional<OptimalSettings> getOptimalSettings(Mode mode, IPoint2 output_resolution) const override;
-  bool setOptions(Mode mode, IPoint2 output_resolution) override;
+  bool setOptions(Mode mode, IPoint2 output_resolution, bool, bool use_legacy_model) override;
 
   static bool isModeAvailableAtResolution(nv::DLSS::Mode mode, const IPoint2 &resolution);
+
+  bool supportRayReconstruction() override { return false; }
+  uint64_t getMemorySize() const override;
 
 private:
   int viewportId;
   FrameTracker &frameTracker;
+  bool initialized = false;
 };
 
-class DLSSRayReconstruction : public nv::DLSS
+class DLSSRayReconstruction : public DLSSWithSizeQuery
 {
 public:
   DLSSRayReconstruction(int viewport_id, void *command_buffer, FrameTracker &frame_tracker);
@@ -69,13 +80,17 @@ public:
 
   bool evaluate(const nv::DlssParams<void> &params, void *command_buffer) override;
   eastl::optional<OptimalSettings> getOptimalSettings(Mode mode, IPoint2 output_resolution) const override;
-  bool setOptions(Mode mode, IPoint2 output_resolution) override;
+  bool setOptions(Mode mode, IPoint2 output_resolution, bool, bool use_legacy_model) override;
+
+  bool supportRayReconstruction() override { return true; }
+  uint64_t getMemorySize() const override;
 
 private:
   int viewportId;
   FrameTracker &frameTracker;
   nv::DLSS::Mode currentMode = nv::DLSS::Mode::DLAA;
   IPoint2 currentOutputResolution = {0, 0};
+  bool initialized = false;
 };
 
 class DLSSFrameGeneration : public nv::DLSSFrameGeneration
@@ -92,6 +107,7 @@ public:
   bool evaluate(const nv::DlssGParams<void> &params, void *commandBuffer);
 
   static int getMaximumNumberOfGeneratedFrames();
+  uint64_t getMemorySize() const;
 
 private:
   int viewportId;
@@ -100,24 +116,53 @@ private:
   int framesToGenerate = 0;
 };
 
-class Reflex : public nv::Reflex
+class Reflex
 {
 public:
+  struct Stats
+  {
+    uint64_t frameID;
+    uint64_t inputSampleTime;
+    uint64_t simStartTime;
+    uint64_t simEndTime;
+    uint64_t renderSubmitStartTime;
+    uint64_t renderSubmitEndTime;
+    uint64_t presentStartTime;
+    uint64_t presentEndTime;
+    uint64_t driverStartTime;
+    uint64_t driverEndTime;
+    uint64_t osRenderQueueStartTime;
+    uint64_t osRenderQueueEndTime;
+    uint64_t gpuRenderStartTime;
+    uint64_t gpuRenderEndTime;
+    uint32_t gpuActiveRenderTimeUs;
+    uint32_t gpuFrameTimeUs;
+  };
+
+  struct State
+  {
+    bool lowLatencyAvailable;
+    bool latencyReportAvailable;
+    bool flashIndicatorDriverControlled;
+    static constexpr size_t FRAME_COUNT = 64;
+    Stats stats[FRAME_COUNT];
+  };
+
   Reflex(FrameTracker &frame_tracker);
 
-  void startFrame(uint32_t frame_id) override;
-  bool setMarker(uint32_t frame_id, lowlatency::LatencyMarkerType marker_type) override;
-  bool setOptions(ReflexMode mode, unsigned frame_limit_us) override;
-  eastl::optional<nv::Reflex::ReflexState> getState() const override;
-  bool sleep(uint32_t frame_id) override;
-  ReflexMode getCurrentMode() const override;
+  void startFrame(uint32_t frame_id);
+  bool setMarker(uint32_t frame_id, lowlatency::LatencyMarkerType marker_type);
+  bool setOptions(GpuLatency::Mode mode, unsigned frame_limit_us);
+  eastl::optional<Reflex::State> getState() const;
+  bool sleep(uint32_t frame_id);
+  GpuLatency::Mode getMode() const { return mode; }
 
 private:
   FrameTracker &frameTracker;
-  nv::Reflex::ReflexMode currentReflexMode = nv::Reflex::ReflexMode::Off;
+  GpuLatency::Mode mode = GpuLatency::Mode::Off;
 };
 
-class StreamlineAdapter : public nv::Streamline
+class StreamlineAdapter final : public nv::Streamline
 {
 private:
   struct InitArgs;
@@ -182,24 +227,24 @@ public:
   nv::SupportState isDlssSupported() const override;
   nv::SupportState isDlssGSupported() const override;
   nv::SupportState isDlssRRSupported() const override;
-  nv::SupportState isReflexSupported() const override;
+  nv::SupportState isReflexSupported() const;
 
   dag::Expected<eastl::string, nv::SupportState> getDlssVersion() const override;
 
   nv::DLSS *createDlssFeature(int viewport_id, IPoint2 output_resolution, void *command_buffer);
   DLSSFrameGeneration *createDlssGFeature(int viewport_id, void *command_buffer);
-  Reflex *createReflexFeature() override;
+  Reflex *createReflexFeature();
 
   nv::DLSS *getDlssFeature(int viewport_id) { return dlssFeatures[viewport_id].get(); }
   nv::DLSSFrameGeneration *getDlssGFeature(int viewport_id)
   {
     return dlssGFeatures[viewport_id] ? &dlssGFeatures[viewport_id].value() : nullptr;
   }
-  nv::Reflex *getReflexFeature() { return reflexFeature ? &reflexFeature.value() : nullptr; }
+  Reflex *getReflexFeature() { return reflexFeature ? &reflexFeature.value() : nullptr; }
 
   void releaseDlssFeature(int viewport_id) { dlssFeatures[viewport_id].reset(); }
   void releaseDlssGFeature(int viewport_id) { dlssGFeatures[viewport_id].reset(); }
-  void releaseReflexFeature() override { reflexFeature.reset(); }
+  void releaseReflexFeature() { reflexFeature.reset(); }
 
   int getMaximumNumberOfGeneratedFrames() const override
   {
@@ -212,6 +257,9 @@ public:
                                                             : false;
   }
 
+  /// Values returned are estimations
+  uint64_t getMemorySize() const;
+
 private:
   eastl::unique_ptr<InitArgs> initArgs;
   SupportOverrideMap supportOverride;
@@ -221,7 +269,7 @@ private:
 
   FrameTracker frameTracker;
   static constexpr size_t MAX_VIEWPORTS = 2;
-  eastl::array<eastl::unique_ptr<nv::DLSS>, MAX_VIEWPORTS> dlssFeatures = {};
+  eastl::array<eastl::unique_ptr<DLSSWithSizeQuery>, MAX_VIEWPORTS> dlssFeatures = {};
   eastl::array<eastl::optional<DLSSFrameGeneration>, MAX_VIEWPORTS> dlssGFeatures = {};
   eastl::optional<Reflex> reflexFeature;
 };

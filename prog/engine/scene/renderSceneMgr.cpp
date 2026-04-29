@@ -82,11 +82,20 @@ void RenderSceneManager::render(const VisibilityFinder &vf, int render_id, unsig
       rs[i]->render(vf, render_id, render_flags_mask);
 }
 
-void RenderSceneManager::renderTrans()
+void RenderSceneManager::renderTrans(bool draw_all)
 {
   for (int i = 0, e = rs.size(); i < e; i++)
     if (rs[i] && rsInfo[i].renderable)
-      rs[i]->render_trans();
+      rs[i]->render_trans(draw_all);
+}
+
+bool RenderSceneManager::isMaterialInited(int stage) const
+{
+  for (int i = 0, e = rs.size(); i < e; i++)
+    if (rs[i] && rsInfo[i].renderable)
+      if (rs[i]->isMaterialInited(stage))
+        return true;
+  return false;
 }
 
 bool RenderSceneManager::setSceneRenderable(unsigned rs_id, bool renderable)

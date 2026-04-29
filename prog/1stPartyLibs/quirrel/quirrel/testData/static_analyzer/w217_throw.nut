@@ -1,6 +1,6 @@
-//expect:w217
+//-file:undefined-global
 
-function foo(x){ //-declared-never-used
+function _foo(x) {
   while (x) {
     if (::a == x)
       ::h(::a, x)
@@ -8,5 +8,3 @@ function foo(x){ //-declared-never-used
     throw "err"
   }
 }
-
-//-file:undefined-global

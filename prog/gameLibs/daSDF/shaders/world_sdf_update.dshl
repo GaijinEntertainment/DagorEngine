@@ -15,14 +15,17 @@ hlsl {
 
 shader world_sdf_clear_cs
 {
-  ENABLE_ASSERT(cs)
   READ_WORLD_SDF_MATH(cs)
   WSDF_COORD_UPDATE(cs)
   PROJECT_WORLD_SDF(cs)
   PROJECT_WORLD_SDF_CLEAR(cs)
 
+  (cs) {
+    world_sdf_clipmap_rasterize@uav : register(2) hlsl {
+      RWByteAddressBuffer world_sdf_clipmap_rasterize@uav;
+    }
+  }
   hlsl(cs) {
-    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
     #include <world_sdf_dist.hlsl>
 
     [numthreads(64, 1, 1)]
@@ -58,18 +61,19 @@ buffer world_sdf_clipmap_rasterize;
 
 shader world_sdf_copy_slice_cs
 {
-  ENABLE_ASSERT(cs)
   READ_WORLD_SDF_MATH(cs)
   WSDF_COORD_UPDATE(cs)
   PROJECT_WORLD_SDF_COPY_SLICE(cs)
   (cs)
   {
     world_sdf_clipmap_rasterize@buf = world_sdf_clipmap_rasterize hlsl { ByteAddressBuffer world_sdf_clipmap_rasterize@buf; }
+    world_sdf_clipmap@uav : register(0) hlsl {
+      RWTexture3D<unorm float> world_sdf_clipmap@uav;
+    }
   }
 
   hlsl(cs) {
     #include <world_sdf_dist.hlsl>
-    RWTexture3D<unorm float> world_sdf_clipmap: register(u0);
 
     //fixme: underutilization, on AMD we have 64 warpsize, and use only 32
     //use division instead (%)
@@ -106,24 +110,31 @@ shader world_sdf_copy_slice_cs
 int4 world_sdf_update_old;
 shader world_sdf_ping_pong_cs, world_sdf_ping_pong_final_cs
 {
-  ENABLE_ASSERT(cs)
   READ_WORLD_SDF_MATH(cs)
   WSDF_COORD_UPDATE(cs)
   if (shader == world_sdf_ping_pong_final_cs)
   {
+    (cs) {
+      world_sdf_clipmap@uav : register(0) hlsl {
+        RWTexture3D<unorm float> world_sdf_clipmap@uav;
+      }
+    }
     hlsl(cs) {
-      RWTexture3D<unorm float> world_sdf_clipmap: register(u0);
       #define WRITE_FINAL_SDF 1
     }
   } else
   {
     (cs){world_sdf_clipmap@tex3d = world_sdf_clipmap;}
   }
-  (cs) {world_sdf_update_old@i4 = world_sdf_update_old;}
+  (cs) {
+    world_sdf_update_old@i4 = world_sdf_update_old;
+    world_sdf_clipmap_rasterize@uav : register(2) hlsl {
+      RWByteAddressBuffer world_sdf_clipmap_rasterize@uav;
+    }
+  }
 
   hlsl(cs) {
     #include <world_sdf_dist.hlsl>
-    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
 
     [numthreads(4, 4, 4)]
     void world_sdf_ping_pong_cs( uint3 dtId : SV_DispatchThreadID, uint threadIndex : SV_GroupIndex)
@@ -142,8 +153,8 @@ shader world_sdf_ping_pong_cs, world_sdf_ping_pong_final_cs
       UNROLL
       for (uint i = 0; i < 27; ++i)
       {
-        int3 ofs = int3(i%3, (i/3)%3, i/9) - 1;
-        if (all(ofs) == 0)
+        int3 ofs = int3(i%3u, (i/3u)%3u, i/9u) - 1;
+        if (all(ofs == 0))
           continue;
         //two ways
         // 1: clamp to update sz. if we render to separate texure - makes sense
@@ -152,12 +163,12 @@ shader world_sdf_ping_pong_cs, world_sdf_ping_pong_final_cs
         //int3 coord = world_coord_from_target_coord(world_sdf_update_mip, uint3(int3(targetCoord) + ofs)%uint3(world_sdf_res.xxy));
         //ofs = int3(coord) - world_coord;
         int3 coord = world_coord + ofs;
-        float toCoordDist = length(float3(ofs)); // conservative  + 0.5*sqrt(3.)
-        float toCoordEncodedDistOfs = toCoordDist*(0.5/MAX_WORLD_SDF_VOXELS_BAND);
+        float toCoordDist = length(float3(ofs));
+        float toCoordEncodedDistOfs = toCoordDist*(1.0/MAX_WORLD_SDF_VOXELS_BAND);
         uint3 rasterTargetCoord = world_sdf_raster_target_coord_from_world(coord);
         #if (TYPED_UAV_LOAD || !WRITE_FINAL_SDF)
           if (all(
-                  uint3(coord - world_sdf_update_old.xyz) < uint3(world_sdf_res.xyz) &&
+                  uint3(coord - world_sdf_update_old.xyz) < uint3(world_sdf_res.xxy) &&
                   uint3(coord - world_sdf_raster_begin() - WORLD_SDF_RASTERIZE_VOXELS_DIST) >= uint3(world_sdf_raster_width().xyz - 2*WORLD_SDF_RASTERIZE_VOXELS_DIST)))
           {
             //only if inside valid part of already rendered clip!

@@ -34,6 +34,11 @@ struct DefaultTextParams : public textlayout::ITextParams
     G_ASSERT(0); // tags are disabled
     return false;
   }
+  virtual bool getEmbeddedComponent(const char * /*tag*/, Sqrat::Object & /*comp*/) override
+  {
+    G_ASSERT(0); // tags are disabled
+    return false;
+  }
 };
 
 
@@ -83,7 +88,7 @@ SQInteger EditableText::get_text(HSQUIRRELVM vm)
 
 SQInteger EditableText::set_text(HSQUIRRELVM vm)
 {
-  if (!Sqrat::check_signature<EditableText *>(vm))
+  if (!Sqrat::check_signature<EditableText *, const char *>(vm))
     return SQ_ERROR;
 
   Sqrat::Var<EditableText *> self(vm, 1);
@@ -132,7 +137,10 @@ void EditableText::bind_script(Sqrat::Table &exports)
 {
   HSQUIRRELVM vm = exports.GetVM();
   Sqrat::Class<EditableText, Sqrat::NoCopy<EditableText>> sqEditableText(vm, "EditableText");
-  sqEditableText.SquirrelCtor(script_ctor, 2, ".s").SquirrelProp("text", &get_text, &set_text);
+  sqEditableText //
+    .SquirrelCtor(script_ctor, 2, ".s")
+    .SquirrelProp("text", &get_text, &set_text)
+    /**/;
 
   exports.Bind("EditableText", sqEditableText);
 }

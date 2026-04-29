@@ -7,10 +7,13 @@
 #include <generic/dag_relocatableFixedVector.h>
 #include <gamePhys/phys/commonPhysBase.h>
 #include <gamePhys/collision/collisionObject.h>
-#include <gamePhys/collision/contactData.h>
 #include <gamePhys/collision/collisionInfo.h>
 #include <debug/dag_log.h>
 #include <generic/dag_carray.h>
+
+#ifndef PHYSOBJ_CLASS_FINAL
+#define PHYSOBJ_CLASS_FINAL final
+#endif
 
 constexpr unsigned PHYS_OBJ_MAX_CACHED_CONTACTS = 8;
 
@@ -19,11 +22,17 @@ namespace rendinst
 struct RendInstDesc;
 }
 
+namespace gamephys
+{
+struct CollisionContactData;
+}; // namespace gamephys
+
 struct PhysObjState
 {
   int32_t atTick = -1;
   int32_t lastAppliedControlsForTick = -2; // < atTick
   bool canBeCheckedForSync = true;
+  bool isSleep = false;
 
   gamephys::Loc location;
   Point3 velocity = Point3(0.f, 0.f, 0.f);
@@ -35,7 +44,6 @@ struct PhysObjState
   Point3 contactPoint = ZERO<Point3>();
   Point3 gravDirection = Point3(0, -1, 0);
   bool logCCD = false;
-  bool isSleep = false;
   bool hadContact = false;
   uint8_t numCachedContacts = 0;
   float sleepTimer = 0.f;
@@ -58,7 +66,6 @@ struct PhysObjState
     static constexpr float velThresholdSq = 0.01f;
     static constexpr float omegaThresholdSq = 1e-4f;
     static constexpr float cosDirThreshold = 0.998629534754f; // cos of 3.0 degrees
-    static constexpr float yprThreshold = 0.05f;
 
     if (lengthSq(location.P - a.location.P) > posThresholdSq)
       return false;
@@ -71,26 +78,19 @@ struct PhysObjState
     if (velSq > 1e-12f && (velocity / sqrtf(velSq)) * (a.velocity * safeinv(sqrtf(aVelSq))) < cosDirThreshold)
       return false;
 
-    const Point3 &ypr = location.O.getYPR();
-    const Point3 &aYpr = a.location.O.getYPR();
+    if (lengthSq(location.O.getQuatAsP4() - a.location.O.getQuatAsP4()) > 1e-6f)
+      return false;
 
-    bool equals = lengthSq(omega - a.omega) < omegaThresholdSq && fabsf(ypr[0] - aYpr[0]) < yprThreshold &&
-                  fabsf(ypr[1] - aYpr[1]) < yprThreshold && fabsf(ypr[2] - aYpr[2]) < yprThreshold && addForce == a.addForce &&
-                  addMoment == a.addMoment;
+    bool equals = lengthSq(omega - a.omega) < omegaThresholdSq && addForce == a.addForce && addMoment == a.addMoment;
     return equals;
   }
 
   bool hasLargeDifferenceWith(const PhysObjState &a) const
   {
-    const Point3 &ypr = location.O.getYPR();
-    const Point3 &aYpr = a.location.O.getYPR();
-
-    const float ANGLE_THRESHOLD = 0.002f;
-
-    bool isLargeDifference = lengthSq(location.P - a.location.P) > 0.01f || fabsf(ypr[0] - aYpr[0]) > ANGLE_THRESHOLD ||
-                             fabsf(ypr[1] - aYpr[1]) > ANGLE_THRESHOLD || fabsf(ypr[2] - aYpr[2]) > ANGLE_THRESHOLD ||
-                             lengthSq(velocity - a.velocity) > 0.1f || lengthSq(omega - a.omega) > 0.01f ||
-                             lengthSq(alpha - a.alpha) > 0.1f || lengthSq(acceleration - a.acceleration) > 0.1f;
+    bool isLargeDifference =
+      lengthSq(location.P - a.location.P) > 0.01f && lengthSq(location.O.getQuatAsP4() - a.location.O.getQuatAsP4()) > 1e-5f ||
+      lengthSq(velocity - a.velocity) > 0.1f || lengthSq(omega - a.omega) > 0.01f || lengthSq(alpha - a.alpha) > 0.1f ||
+      lengthSq(acceleration - a.acceleration) > 0.1f;
     return isLargeDifference;
   }
 };
@@ -127,9 +127,13 @@ struct CCDCheck
   {}
 };
 
-class PhysObj : public PhysicsBase<PhysObjState, PhysObjControlState, CommonPhysPartialState>
+class PhysObj PHYSOBJ_CLASS_FINAL : public PhysicsBase<PhysObjState, PhysObjControlState, CommonPhysPartialState>
 {
 public:
+  bool skipUpdateOnSleep = true;
+  bool shouldTraceGround = false;
+  bool addToWorld = false;
+  bool ignoreCollision = false;
   float mass = 1.f;
   float objDestroyMass = 1.f;
   float linearDamping = 0.f;
@@ -163,16 +167,11 @@ public:
   bool hasGroundCollisionPoint = false;
   bool hasRiDestroyingCollision = false;
   bool hasFrtCollision = false;
-  bool shouldTraceGround = false;
-  bool addToWorld = false;
-  bool skipUpdateOnSleep = false;
-  bool ignoreCollision = false;
   float noSleepAtTheSlopeCos = -1.f; // [-1; 1], where -1 disables the feature
   float sleepDelay = 1.f;
   float omegaMovementDamping = 0.9f;
   float omegaMovementDampingThreshold = 0.1f;
   float movementDampingThreshold = 0.01f;
-  int sleepUpdateFrequency = 0;
   int physMatId = -1;
   Point3 centerOfMass = Point3(0.f, 0.f, 0.f);
 
@@ -202,7 +201,20 @@ public:
 
   void addCollisionToWorld() override;
 
-  virtual void updatePhys(float at_time, float dt, bool is_for_real) override;
+  void additionalCollisionChecks(const CollisionObject &co, const TMatrix &tm, Tab<gamephys::CollisionContactData> &out_contacts);
+  void updateAwakePhys(double at_time, float dt, bool is_for_real);
+  void updateCurrentStateTick(double at_time, float dt)
+  {
+    currentState.atTick = gamephys::nearestPhysicsTickNumber(at_time + dt, timeStep);
+    currentState.lastAppliedControlsForTick = (appliedCT.producedAtTick > 0) ? appliedCT.producedAtTick : currentState.atTick - 1;
+  }
+  void updatePhys(double at_time, float dt, bool is_for_real)
+  {
+    if (currentState.isSleep && skipUpdateOnSleep)
+      updateCurrentStateTick(at_time, dt);
+    else
+      updateAwakePhys(at_time, dt, is_for_real);
+  }
   dag::ConstSpan<CollisionObject> getCollisionObjects() const override { return collision; }
   uint64_t getActiveCollisionObjectsBitMask() const override { return ~0ull; }
   virtual void applyOffset(const Point3 &offset);

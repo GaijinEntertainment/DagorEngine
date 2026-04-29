@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <d3d12_error_handling.h>
 #include <driver.h>
 
 #include <dag/dag_vector.h>
@@ -589,6 +588,13 @@ public:
     DXGI_FORMAT format)
   {
     logCommand<DX12_COMMAND_LOG_ITEM_TYPE::RESOLVE_SUBRESOURCE>(dst_resource, dst_subresource, src_resource, src_subresource, format);
+  }
+
+  void resolveSubresourceRegion(ID3D12Resource *dst_resource, UINT dst_subresource, UINT /*dst_x*/, UINT /*dst_y*/,
+    ID3D12Resource *src_resource, UINT src_subresource, D3D12_RECT * /*src_rect*/, DXGI_FORMAT format, D3D12_RESOLVE_MODE resolve_mode)
+  {
+    logCommand<DX12_COMMAND_LOG_ITEM_TYPE::RESOLVE_SUBRESOURCE_REGION>(dst_resource, dst_subresource, src_resource, src_subresource,
+      format, static_cast<UINT>(resolve_mode));
   }
 
   void clearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE depth_stencil_view, D3D12_CLEAR_FLAGS clear_flags, FLOAT depth, UINT8 stencil,

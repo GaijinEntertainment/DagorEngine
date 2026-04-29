@@ -11,6 +11,7 @@
 #include <debug/dag_assert.h>
 #include <EASTL/string.h>
 #include <EASTL/algorithm.h>
+#include <EASTL/bitvector.h>
 #include <util/dag_string.h>
 #include <util/dag_stlqsort.h>
 #include <generic/dag_enumerate.h>
@@ -230,6 +231,9 @@ eastl::string StcodeExpression::getFunctionCallTemplate(functional::FunctionId f
     case functional::BF_EXISTS_TEX: return string_f("exists_tex(%s)", argsPlaceholder.release().c_str());
     case functional::BF_EXISTS_BUF: return string_f("exists_buf(%s)", argsPlaceholder.release().c_str());
     case functional::BF_REQUEST_SAMPLER: return string_f("request_sampler(%s)", argsPlaceholder.release().c_str());
+    case functional::BF_INT2: return string_f("int4(%s)", argsPlaceholder.release().c_str());
+    case functional::BF_INT3: return string_f("int4(%s)", argsPlaceholder.release().c_str());
+    case functional::BF_INT4: return string_f("int4(%s)", argsPlaceholder.release().c_str());
     default: G_ASSERT_RETURN(0, eastl::string());
   }
 }
@@ -457,7 +461,7 @@ const char *glob_matrix_cb_name(StcodeRoutine::GlobMatrixType type)
   }
 }
 
-void DynamicStcodeRoutine::addShaderGlobMatrix(ShaderStage stage, GlobMatrixType mtype, const char *name, int id)
+void DynamicStcodeRoutine::addShaderGlobMatrix(ShaderStage stage, GlobMatrixType mtype, const char *name, int id, int array_index)
 {
   RET_IF_SHOULD_NOT_COMPILE();
 
@@ -466,12 +470,14 @@ void DynamicStcodeRoutine::addShaderGlobMatrix(ShaderStage stage, GlobMatrixType
 
   addFormattedStatement("float4x4 %s;\n", tempName.c_str());
   addFormattedStatement("%s(&%s);\n", glob_matrix_cb_name(mtype), tempName.c_str());
-  addSetConstStmt("float4x4", 4, location.c_str(), tempName.c_str(), stage_to_const_array_name(stage), 0);
+  addSetConstStmt("float4x4", 4, location.c_str(), tempName.c_str(), stage_to_const_array_name(stage), array_index);
 
-  regsForStage(stage).add(name, id, true, 4);
+  if (array_index == 0)
+    regsForStage(stage).add(name, id, true, 4);
 }
 
-void DynamicStcodeRoutine::addShaderGlobVec(ShaderStage stage, GlobVecType vtype, const char *name, int id, int compId)
+void DynamicStcodeRoutine::addShaderGlobVec(ShaderStage stage, GlobVecType vtype, const char *name, int id, int compId,
+  int array_index)
 {
   RET_IF_SHOULD_NOT_COMPILE();
 
@@ -489,9 +495,10 @@ void DynamicStcodeRoutine::addShaderGlobVec(ShaderStage stage, GlobVecType vtype
 
   addFormattedStatement("float4 %s;\n", tempName.c_str());
   addFormattedStatement("%s(%d, &%s);\n", globVecCbName(vtype), compId, tempName.c_str());
-  addSetConstStmt("float4", 1, location.c_str(), tempName.c_str(), stage_to_const_array_name(stage), 0);
+  addSetConstStmt("float4", 1, location.c_str(), tempName.c_str(), stage_to_const_array_name(stage), array_index);
 
-  regsForStage(stage).add(name, id, true, 1);
+  if (array_index == 0)
+    regsForStage(stage).add(name, id, true, 1);
 }
 
 static const char *resource_cb_name(StcodeRoutine::ResourceType type)
@@ -510,19 +517,21 @@ static const char *resource_cb_name(StcodeRoutine::ResourceType type)
 }
 
 void DynamicStcodeRoutine::addGlobalShaderResource(ShaderStage stage, ResourceType rtype, const char *name, const char *var_name,
-  int id)
+  int id, int array_index)
 {
   RET_IF_SHOULD_NOT_COMPILE();
 
   const eastl::string location(eastl::string::CtorSprintf{}, "%s%s", name, stage_to_name_suffix(stage));
 
-  addFormattedStatement("%s(%s, LOC(%s), %s);\n", resource_cb_name(rtype), stage_to_runtime_const_str(stage), location.c_str(),
-    var_name);
-  regsForStage(stage).add(name, id);
+  addFormattedStatement("%s(%s, LOC(%s)%s, %s);\n", resource_cb_name(rtype), stage_to_runtime_const_str(stage), location.c_str(),
+    array_index == 0 ? "" : string_f(" + %d", array_index).c_str(), var_name);
+
+  if (array_index == 0)
+    regsForStage(stage).add(name, id);
 }
 
 void DynamicStcodeRoutine::addDynamicShaderResource(ShaderStage stage, ResourceType rtype, const char *name, const char *var_name,
-  int id)
+  int id, int array_index)
 {
   RET_IF_SHOULD_NOT_COMPILE();
 
@@ -537,9 +546,11 @@ void DynamicStcodeRoutine::addDynamicShaderResource(ShaderStage stage, ResourceT
   if (rtype == ResourceType::TEXTURE)
     addFormattedStatement("acquire_tex(%s(%s, %s));", varMacroName, var_name, varTypeName);
 
-  addFormattedStatement("%s(%s, LOC(%s), %s(%s, %s));\n", resource_cb_name(rtype), stage_to_runtime_const_str(stage), location.c_str(),
-    varMacroName, var_name, varTypeName);
-  regsForStage(stage).add(name, id);
+  addFormattedStatement("%s(%s, LOC(%s)%s, %s(%s, %s));\n", resource_cb_name(rtype), stage_to_runtime_const_str(stage),
+    location.c_str(), array_index == 0 ? "" : string_f(" + %d", array_index).c_str(), varMacroName, var_name, varTypeName);
+
+  if (array_index == 0)
+    regsForStage(stage).add(name, id);
 }
 
 static const char *get_shader_const_type_name(ShaderVarType type, semantic::VariableType vt)
@@ -654,18 +665,18 @@ StcodeAccumulator StaticStcodeRoutine::releaseAssembledCode(size_t routine_idx, 
           loc.reg - texSmpRange.texBase);
       }
 
-      if (texSmpRange.count > 0)
+      if (texSmpRange.texCount > 0)
       {
         const char *arrName = stage_to_tex_array_name(stage);
-        consts.append_sprintf("  uint %s[%d];\n", arrName, texSmpRange.count);
+        consts.append_sprintf("  uint %s[%d];\n", arrName, texSmpRange.texCount);
       }
     };
 
     appendTexLocations(STAGE_VS);
     appendTexLocations(STAGE_PS);
 
-    const char *vsTexPtr = vs_tex_smp_range.count > 0 ? stage_to_tex_array_name(STAGE_VS) : "nullptr";
-    const char *psTexPtr = ps_tex_smp_range.count > 0 ? stage_to_tex_array_name(STAGE_PS) : "nullptr";
+    const char *vsTexPtr = vs_tex_smp_range.texCount > 0 ? stage_to_tex_array_name(STAGE_VS) : "nullptr";
+    const char *psTexPtr = ps_tex_smp_range.texCount > 0 ? stage_to_tex_array_name(STAGE_PS) : "nullptr";
     const char *constsPtr = const_range.cap > const_range.min ? STATIC_CONSTS_ARRAY_NAME : "nullptr";
 
     eastl::string vsTexRange = string_f("%u", vs_tex_smp_range.raw);
@@ -745,7 +756,7 @@ CryptoHash StaticStcodeRoutine::calcHash(const CryptoHash *base)
 }
 
 /// StcodeGlobalVars ///
-void StcodeGlobalVars::setVar(ShaderVarType shv_type, const char *name, int id_in_final_dump)
+void StcodeGlobalVars::setVar(ShaderVarType shv_type, const char *name, bool is_ptr, int id_in_final_dump)
 {
   RET_IF_SHOULD_NOT_COMPILE();
 
@@ -756,12 +767,15 @@ void StcodeGlobalVars::setVar(ShaderVarType shv_type, const char *name, int id_i
 
   const char *type_name = stcode::shadervar_type_to_stcode_type(shv_type);
 
-  eastl::string varDecl(eastl::string::CtorSprintf{}, "%s *%s", type_name, name);
-  cppCode.emplaceBackFmt("%s = nullptr;\n", varDecl.c_str());
+  eastl::string varDecl(eastl::string::CtorSprintf{}, "%s %s%s", type_name, is_ptr ? "*" : "", name);
 
   switch (type)
   {
-    case Type::MAIN_COLLECTION: fetchersOrFwdCpp.emplaceBackFmt("{(void **)&%s, %d},\n", name, id_in_final_dump); break;
+    case Type::MAIN_COLLECTION:
+      cppCode.emplaceBackFmt("%s = nullptr;\n", varDecl.c_str());
+      fetchersOrFwdCpp.emplaceBackFmt("{(void **)&stcode::cpp::%s, %d},\n", name, id_in_final_dump);
+      break;
+
     case Type::REFERENCED_BY_SHADER: fetchersOrFwdCpp.emplaceBackFmt("extern %s;\n", varDecl.c_str()); break;
   }
 }
@@ -771,6 +785,14 @@ StcodeGlobalVars::Strings StcodeGlobalVars::releaseAssembledCode()
   RET_IF_SHOULD_NOT_COMPILE({});
 
   return Strings{cppCode.release(), fetchersOrFwdCpp.release()};
+}
+
+CryptoHash StcodeGlobalVars::calcHash(const CryptoHash *base)
+{
+  auto hasher = base ? CryptoHasher{*base} : CryptoHasher{};
+  hasher.update(0u);
+  cppCode.iterateFragments([&hasher](const eastl::string &s) { hasher.update(s.c_str(), s.length()); });
+  return hasher.hash();
 }
 
 
@@ -959,6 +981,30 @@ StcodeShader::InterfaceStrings StcodeShader::releaseAssembledInterfaceCode()
   return {regTableStrings.release(), dynamicPointerTableEntries.release(), staticPointerTableEntries.release()};
 }
 
+eastl::string build_sampler_id_defs(const shc::TargetContext &ctx)
+{
+  StcodeBuilder builder;
+
+  // For immutable samplers we don't fill them from stcode, so skip them
+  eastl::bitvector<> immutableSamplerMask{};
+  immutableSamplerMask.resize(ctx.samplers().getSamplers().size(), false);
+  for (auto [id, _] : ctx.samplers().getImmutableSamplers())
+    immutableSamplerMask.set(id, true);
+
+  for (const auto &[i, smp] : enumerate(ctx.samplers().getSamplers()))
+  {
+    if (!immutableSamplerMask.test(i, false))
+    {
+      builder.emplaceBack("int ");
+      builder.emplaceBack(ctx.varNameMap().getName(smp.mNameId));
+      builder.emplaceBack("__id = ");
+      builder.emplaceBack(eastl::to_string(i));
+      builder.emplaceBack(";\n");
+    }
+  }
+  return builder.release();
+}
+
 static int get_table_header_size(bool is_compute)
 {
   // Table is headed by 2 or 4 ints -- csRangeMin/csRangeSize or psRangeMin/psRangeSize and vsRangeMin/vsRangeSize
@@ -975,7 +1021,7 @@ StcodePassRegInfoTable build_pass_stcode_reg_table(const ShaderSemCode &semcode)
       continue;
 
     SemanticShaderPass &p = *pt->pass;
-    if (p.usedConstStatAstNodes.empty())
+    if (p.preshader->usedPreshaderStatements.empty())
     {
       passInfoTable[&p] = StcodePassRegInfo{};
       continue;
@@ -1003,20 +1049,20 @@ StcodePassRegInfoTable build_pass_stcode_reg_table(const ShaderSemCode &semcode)
       }
     };
 
-    info.isCompute = p.cppstcode.cppStcode.isCompute;
+    info.isCompute = p.preshader->isCompute;
     info.psOrCsCstRange = p.psOrCsConstRange;
 
     if (info.isCompute)
     {
-      processRegTable(p.constPackedVarsMaps[STAGE_CS], p.cppstcode.cppStcode.pixelOrComputeRegs, p.psOrCsConstRange,
-        [](const auto &str) { return str + stage_to_name_suffix(STAGE_CS); });
+      processRegTable(p.preshader->constPackedVarsMaps[STAGE_CS], p.preshader->cppStcode.cppStcode.pixelOrComputeRegs,
+        p.psOrCsConstRange, [](const auto &str) { return str + stage_to_name_suffix(STAGE_CS); });
     }
     else
     {
       info.vsCstRange = p.vsConstRange;
-      processRegTable(p.constPackedVarsMaps[STAGE_PS], p.cppstcode.cppStcode.pixelOrComputeRegs, p.psOrCsConstRange,
-        [](const auto &str) { return str + stage_to_name_suffix(STAGE_PS); });
-      processRegTable(p.constPackedVarsMaps[STAGE_VS], p.cppstcode.cppStcode.vertexRegs, p.vsConstRange,
+      processRegTable(p.preshader->constPackedVarsMaps[STAGE_PS], p.preshader->cppStcode.cppStcode.pixelOrComputeRegs,
+        p.psOrCsConstRange, [](const auto &str) { return str + stage_to_name_suffix(STAGE_PS); });
+      processRegTable(p.preshader->constPackedVarsMaps[STAGE_VS], p.preshader->cppStcode.cppStcode.vertexRegs, p.vsConstRange,
         [](const auto &str) { return str + stage_to_name_suffix(STAGE_VS); });
     }
 

@@ -1,0 +1,40 @@
+Root    ?= ../../../.. ;
+Location = prog/engine/osApiWrappers/linuxGUI ;
+StrictCompile = yes ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+TargetType  = lib ;
+Target      = engine/osApiWrappers/linuxGUI.lib ;
+UseX11      ?= yes ;
+UseWayland  ?= yes ;
+
+
+if $(Platform) in linux {
+  AddLibs += -lxkbcommon ;
+  Sources += mux.cpp ;
+  if $(UseWayland) = yes {
+    CPPopt += -DUSE_WAYLAND ;
+    UseProgLibs += 3rdPartyLibs/wayland ;
+    Sources +=
+      wayland.cpp
+      wayland_loader.cpp
+    ;
+    Target = $(Target:S=~wayland.lib) ;
+  }
+  if $(UseX11) = yes {
+    CPPopt += -DUSE_X11 ;
+    AddLibs += -lX11 -lXcursor ;
+    Sources += x11.cpp ;
+    Target = $(Target:S=~x11.lib) ;
+  }
+  if $(UseX11) = no && $(UseWayland) = no {
+    Exit X11 or Wayland must be enabled ;
+  }
+} else {
+  Exit unsupported Platform\=$(Platform) for Target\=$(Target) ;
+}
+
+AddIncludes += $(Root)/prog/engine/sharedInclude ;
+
+include $(Root)/prog/_jBuild/build.jam ;

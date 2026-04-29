@@ -8,10 +8,12 @@ int skies_has_clouds=1;
 int4 cloud_volume_res = (32, 16, 32, 0);
 float cloud_volume_dist = 50000;
 
+int cloud_frame_no = 0;
+
 macro WRITE_BUILD_VOLUME(code)
   local float4 offseted_view_pos = (world_view_pos.x+clouds_origin_offset.x, world_view_pos.y, world_view_pos.z+clouds_origin_offset.y,0);
   SAMPLE_CLOUDS_DENSITY_TEXTURE(code, offseted_view_pos)
-  SAMPLE_CLOUDS_NUKE_INVERSION(code)
+  SAMPLE_CLOUDS_NUKE_INVERSION(code, true)
   VIEW_VEC_OPTIMIZED(code)
   (code) {
     invres@f4 = (1./cloud_volume_res.x, 1./cloud_volume_res.y, 0.5/cloud_volume_res.x, 0.5/cloud_volume_res.y);
@@ -19,11 +21,22 @@ macro WRITE_BUILD_VOLUME(code)
     cloud_volume_dist@f1 = cloud_volume_dist;
     clouds_start_trace@f3 = (offseted_view_pos);
     skies_has_clouds@f1 = (skies_has_clouds);
+    cloud_frame_no@i1 = cloud_frame_no;
   }
   hlsl(code) {
+
+    #ifndef JITTER_MUL
+      #define JITTER_MUL 0.0f
+    #endif
+
     float iterateTransmittance(float2 texcoord, int2 scri, int slice_end)
     {
-      float3 viewVect = getViewVecOptimized(texcoord);//intentionally not normalized
+      int frameNo = cloud_frame_no;
+      frameNo %= 4;
+      int2 jitter = int2(frameNo/2, frameNo%2);
+      float3 initialViewVect = getViewVecOptimized(texcoord); //intentionally not normalized
+      texcoord += invres.zw *(float2(jitter) - 0.5f) * JITTER_MUL;
+      float3 viewVect = getViewVecOptimized(texcoord);        //intentionally not normalized
       float transmittance = 1;
       float lastDist = 0;
       float3 clouds_hole_offset = get_clouds_hole_pos_vec();
@@ -41,13 +54,16 @@ macro WRITE_BUILD_VOLUME(code)
           float heightFraction = alt_fraction_in_clouds(p);
           float cloudDensity = sampleCloudDensity(p, 1, 0, heightFraction);
           ##if nuke_in_atmosphere == on
-            cloudDensity = sampleNukeCloudsInversion(p - clouds_hole_offset, cloudDensity, heightFraction);
+            float fakeShadow = 1.0f;
+            // stub mask for now
+            uint mask = uint(0xFFFFFFFF);
+            cloudDensity = sampleNukeCloudsInversion(p - clouds_hole_offset, cloudDensity, heightFraction, fakeShadow, mask);
           ##endif
           float beers_term = exp2(cloudDensity * sigmaDs);
           transmittance *= beers_term;
         }
         #ifdef EACH_ITERATION
-        EACH_ITERATION(i, transmittance)
+        EACH_ITERATION(i, transmittance, world_view_pos + initialViewVect * cDist)
         #endif
       }
       return transmittance;
@@ -55,17 +71,43 @@ macro WRITE_BUILD_VOLUME(code)
   }
 endmacro
 
+texture prev_clouds_volume_transmittance;
+
+// we don't want to rely on view glob tm's, because for VR mode we have single volume texture for both eyes
+float4 prev_skies_globtm_0;
+float4 prev_skies_globtm_1;
+float4 prev_skies_globtm_2;
+float4 prev_skies_globtm_3;
+
 shader build_dacloud_volume_cs
 {
-  (cs) { slices@u1 = cloud_volume_res.z; }
+  (cs) {
+    slices@u1 = cloud_volume_res.z;
+    cloudsVolumeTransmittance@uav : register(0) hlsl {
+      RWTexture3D<float> cloudsVolumeTransmittance@uav;
+    }
+    prev_glob_tm@f44 = { prev_skies_globtm_0, prev_skies_globtm_1, prev_skies_globtm_2, prev_skies_globtm_3 };
+    prev_clouds_volume_transmittance@smp3d = prev_clouds_volume_transmittance;
+    world_view_pos@f3 =  world_view_pos;
+    cloud_volume_remap@f1 = (1./cloud_volume_dist);
+  }
   hlsl(cs) {
-    RWTexture3D<float> cloudsVolumeTransmittance:register(u0);
-    #define EACH_ITERATION(i, t) texture3DAt(cloudsVolumeTransmittance, int3(scri, i)) = t;
+    ##if prev_clouds_volume_transmittance == NULL
+      #define EACH_ITERATION(i, t, wpos) texture3DAt(cloudsVolumeTransmittance, int3(scri, i)) = t;
+    ##else
+      #define EACH_ITERATION(i, t, wpos) float4 prevTexcoord = mul(float4(wpos, 1), prev_glob_tm); \
+                                         prevTexcoord.xy =  0.5 + float2(0.5, -0.5) * prevTexcoord.xy/prevTexcoord.w; \
+                                         float prevTransmittance = tex3Dlod(prev_clouds_volume_transmittance, float4(prevTexcoord.xy, sqrt(saturate(prevTexcoord.w*cloud_volume_remap)), 0)).x; \
+                                         float reprojectionweight = abs(t-prevTransmittance) <= 0.02 ? 0.4 : 0.9; \  // when transmittance on new frame is 0, reprojection with floating point rounding produce incorrect nonzero values
+                                         reprojectionweight = (prevTexcoord.x > 0 && prevTexcoord.y > 0 && prevTexcoord.x < 1 && prevTexcoord.y < 1) ? reprojectionweight : 0; \
+                                         texture3DAt(cloudsVolumeTransmittance, int3(scri, i)) = lerp(t, prevTransmittance, reprojectionweight);
+
+      #define JITTER_MUL 1.0f
+    ##endif
   }
   WRITE_BUILD_VOLUME(cs)
 
   USE_PS5_WAVE32_MODE()
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
 ##if hardware.ps5
     [numthreads(8, 2, 1)]

@@ -24,13 +24,49 @@ var S_SKIP_POSTPROCESS = 1 << 4;
 var S_RETURN_AS_OBJECT = 1 << 5;
 var S_INOUT_PINS = 1 << 6;
 
+var BRANCH_ON_TAG = 0;
+var NORMAL_TAG = 1;
+var OFF_TAG = 2;
+var CTRL_TAG = 3;
+
+var layerApplyNodes = [
+  "overwrite gbuffer with layer",
+  "lerp gbuffer with layer",
+  "dither gbuffer with layer"
+]
+
+var globalPermutationGroupCount = 0;
+
 var idxToChar = ['x', 'y', 'z', 'w'];
 
+var nonGroupableNodes = [
+  "medium quality filter",
+  "high quality filter"
+]
+
 var cachedSizes = {}
+
+var orderOfBranches = []
 
 function sign(x)
 {
   return x < 0.0 ? -1.0 : x > 0.0 ? 1.0 : 0.0;
+}
+
+function insertIfNotInArray(arr, elem)
+{
+  if (arr.indexOf(elem) < 0)
+    arr.push(elem);
+}
+
+function mergeArraySets(arr1, arr2)
+{
+  var result = [];
+  for (var i = 0; i < arr1.length; i++)
+    insertIfNotInArray(result, arr1[i]);
+  for (var i = 0; i < arr2.length; i++)
+    insertIfNotInArray(result, arr2[i]);
+  return result;
 }
 
 function isPluginMatching(pluginName, expectedName)
@@ -166,6 +202,12 @@ function Connection()
     this.fromDir *= dist;
     this.toDir *= dist;
 
+    var toIsCtrl = (to.desc.pins[this.pinTo].role === "ctrl");
+    var cx1 = this.fromX + this.fromDir;
+    var cy1 = this.fromY;
+    var cx2 = toIsCtrl ? this.toX : this.toX + this.toDir;
+    var cy2 = toIsCtrl ? this.toY + dist : this.toY;
+
     if (!this.svgPath)
     {
       this.svgPath = document.createElementNS(xmlns, "path");
@@ -181,7 +223,7 @@ function Connection()
 
     this.svgPath.setAttributeNS(null, "fill", "transparent");
     this.svgPath.setAttributeNS(null, "d", "M" + this.fromX + " " + this.fromY +
-      "C " + (this.fromX + this.fromDir) + " " + this.fromY + ", " + (this.toX + this.toDir) + " " + this.toY +
+      "C " + cx1 + " " + cy1 + ", " + cx2 + " " + cy2 +
       ", " + this.toX + " " + this.toY);
 
   }
@@ -205,8 +247,11 @@ function Element()
   this.blockHeight = 0;
   this.leftOffset = 0;
   this.propValues = [];
+  this.groupIds = [];
+  this.permutationId = -1;
   this.leftPins = 0;
   this.rightPins = 0;
+  this.ctrlPins = 0;
   this.pinTypes = []; // array of arrays
   this.connected = [];
   this.typeEmitter = [];
@@ -215,12 +260,18 @@ function Element()
 
   this.isPinOut = function(pinIndex)
   {
-    return (this.desc.pins[pinIndex].role !== "in");
+    var role = this.desc.pins[pinIndex].role;
+    return role !== "in" && role !== "ctrl";
   }
 
   this.getRelativePinPos = function(pinIndex)
   {
     var p = this.desc.pins[pinIndex];
+    if (p.role === "ctrl")
+    {
+      var spacing = this.width / (this.ctrlPins + 1);
+      return [spacing * (p.ctrlIndex + 1), this.height, false];
+    }
     return [(p.isOut ? 1 : 0) * this.width, p.colIndex * 20 + 40, p.isOut];
   }
 
@@ -362,58 +413,102 @@ function Element()
 
     var leftPins = 0;
     var rightPins = 0;
+    var ctrlPins = 0;
     var pos = [0, 0];
+
+    var ctrlPinsCount = 0, leftPinsCount = 0, rightPinsCount = 0;
+    for (var i = 0; i < this.desc.pins.length; i++)
+    {
+      if (this.desc.pins[i].hidden) continue;
+      if (this.desc.pins[i].role === "ctrl") ctrlPinsCount++;
+      else if (this.isPinOut(i)) rightPinsCount++;
+      else leftPinsCount++;
+    }
+    this.ctrlPins = ctrlPinsCount;
+    var controlPinAdditionalHight = ctrlPinsCount > 0 ? 20 : 0;
+    this.height = Math.max(leftPinsCount, rightPinsCount) * 20 + 40 + (this.desc.addHeight ? this.desc.addHeight : 0) + controlPinAdditionalHight;
+
     for (var i = 0; i < this.desc.pins.length; i++)
     {
       if (this.desc.pins[i].hidden)
         continue;
 
-      var isOut = this.isPinOut(i);
-      if (isOut)
+      var isCtrl = (this.desc.pins[i].role === "ctrl");
+
+      if (isCtrl)
       {
-        this.desc.pins[i].isOut = true;
-        this.desc.pins[i].colIndex = rightPins++;
+        this.desc.pins[i].isOut = false;
+        this.desc.pins[i].ctrlIndex = ctrlPins++;
       }
       else
       {
-        this.desc.pins[i].isOut = false;
-        this.desc.pins[i].colIndex = leftPins++;
+        this.desc.pins[i].isOut = this.isPinOut(i);
+        if (this.desc.pins[i].isOut)
+          this.desc.pins[i].colIndex = rightPins++;
+        else
+          this.desc.pins[i].colIndex = leftPins++;
       }
 
       pos = this.getRelativePinPos(i);
 
-      var pin = document.createElementNS(xmlns, "rect");
-      group.appendChild(pin);
+      if (isCtrl)
+      {
+        var ctrlPinSize = 6;
+        var pin = document.createElementNS(xmlns, "polygon");
+        pin.setAttributeNS(null, "points",
+          pos[0] + "," + (pos[1] - ctrlPinSize) + " " +
+          (pos[0] + ctrlPinSize) + "," + pos[1] + " " +
+          pos[0] + "," + (pos[1] + ctrlPinSize) + " " +
+          (pos[0] - ctrlPinSize) + "," + pos[1]);
+        pin.setAttributeNS(null, "class", "elemCtrlPinClass");
+        group.appendChild(pin);
+        group.__pinsList.push(pin);
 
-      var pinSize = this.desc.pins[i].main ? 4.5 : 4;
-      pin.setAttributeNS(null, "x", pos[0] - pinSize);
-      pin.setAttributeNS(null, "y", pos[1] - pinSize);
-      pin.setAttributeNS(null, "width", pinSize * 2);
-      pin.setAttributeNS(null, "height", pinSize * 2);
-      pin.setAttributeNS(null, "class", this.desc.pins[i].main ? "elemMainPinClass" : "elemPinClass");
-      group.__pinsList.push(pin);
+        var txt = document.createElementNS(xmlns, "text");
+        group.appendChild(txt);
+        this.lodTexts.push(txt);
+        txt.setAttributeNS(null, "x", pos[0]);
+        txt.setAttributeNS(null, "y", pos[1] - 18);
+        txt.setAttributeNS(null, "text-anchor", "middle");
+        txt.setAttributeNS(null, "class", "elemTextClass");
+        txt.setAttributeNS(null, "id", this.desc.pins[i].name);
+        txt.textContent = this.desc.pins[i].name;
+      }
+      else
+      {
+        var pin = document.createElementNS(xmlns, "rect");
+        group.appendChild(pin);
 
-      var txt = document.createElementNS(xmlns, "text");
-      group.appendChild(txt);
-      this.lodTexts.push(txt);
+        var pinSize = this.desc.pins[i].main ? 4.5 : 4;
+        pin.setAttributeNS(null, "x", pos[0] - pinSize);
+        pin.setAttributeNS(null, "y", pos[1] - pinSize);
+        pin.setAttributeNS(null, "width", pinSize * 2);
+        pin.setAttributeNS(null, "height", pinSize * 2);
+        pin.setAttributeNS(null, "class", this.desc.pins[i].main ? "elemMainPinClass" : "elemPinClass");
+        group.__pinsList.push(pin);
 
-      txt.setAttributeNS(null, "x", pos[0] + (isOut ? -7 : 7));
-      txt.setAttributeNS(null, "y", pos[1] - 16 / 2);
-      txt.setAttributeNS(null, "text-anchor", isOut ? "end" : "start");
-      txt.setAttributeNS(null, "class", "elemTextClass");
-      txt.setAttributeNS(null, "id", this.desc.pins[i].name);
-      txt.textContent = this.desc.pins[i].name;
+        var txt = document.createElementNS(xmlns, "text");
+        group.appendChild(txt);
+        this.lodTexts.push(txt);
 
-      var comm = document.createElementNS(xmlns, "text");
-      group.appendChild(comm);
-      this.lodTexts.push(comm);
+        txt.setAttributeNS(null, "x", pos[0] + (this.desc.pins[i].isOut ? -7 : 7));
+        txt.setAttributeNS(null, "y", pos[1] - 16 / 2);
+        txt.setAttributeNS(null, "text-anchor", this.desc.pins[i].isOut ? "end" : "start");
+        txt.setAttributeNS(null, "class", "elemTextClass");
+        txt.setAttributeNS(null, "id", this.desc.pins[i].name);
+        txt.textContent = this.desc.pins[i].name;
 
-      comm.setAttributeNS(null, "x", pos[0] + (isOut ? 7 : -7));
-      comm.setAttributeNS(null, "y", pos[1] - 16 / 2);
-      comm.setAttributeNS(null, "text-anchor", isOut ? "start" : "end");
-      comm.setAttributeNS(null, "class", "elemCommentClass");
-      comm.setAttributeNS(null, "id", this.desc.pins[i].name + "__comment");
-      comm.textContent = "";
+        var comm = document.createElementNS(xmlns, "text");
+        group.appendChild(comm);
+        this.lodTexts.push(comm);
+
+        comm.setAttributeNS(null, "x", pos[0] + (this.desc.pins[i].isOut ? 7 : -7));
+        comm.setAttributeNS(null, "y", pos[1] - 16 / 2);
+        comm.setAttributeNS(null, "text-anchor", this.desc.pins[i].isOut ? "start" : "end");
+        comm.setAttributeNS(null, "class", "elemCommentClass");
+        comm.setAttributeNS(null, "id", this.desc.pins[i].name + "__comment");
+        comm.textContent = "";
+      }
     }
 
 
@@ -429,7 +524,6 @@ function Element()
     if (this.desc.name !== "comment" && this.desc.name !== "block")
       txt.textContent = this.desc.name;
 
-    this.height = Math.max(leftPins, rightPins) * 20 + 40 + (this.desc.addHeight ? this.desc.addHeight : 0);
     this.leftPins = leftPins;
     this.rightPins = rightPins;
     elem.setAttributeNS(null, "height", this.height);
@@ -836,6 +930,8 @@ function GraphEditor()
 
   this.graphElem = null;
   this.additionalIncludes = [];
+  this.permSubGroups = [];
+  this.branchDescs = []
 
   try { this.typeColors = GE_typeColors; } catch (err) {};
 
@@ -1029,9 +1125,10 @@ function GraphEditor()
     {
       this._explodedSubgraphs = [];
       this._explodedDepths = [];
+      this.permSubGroups = [];
 
       for (var i = 0; i < this.additionalIncludes.length; i++)
-        this._pasteInternal(this.additionalIncludes[i]);
+        this._pasteInternal(this.additionalIncludes[i], false, true);
     }
 
     for (var i = startIndex; i < this.elems.length; i++)
@@ -1759,6 +1856,15 @@ function GraphEditor()
     if (!inOutOk)
       return false;
 
+    var pin1IsCtrl = (pin1.role === "ctrl");
+    var pin2IsCtrl = (pin2.role === "ctrl");
+    if (pin1IsCtrl !== pin2IsCtrl)
+    {
+      var outPin = pin1IsCtrl ? pin2 : pin1;
+      if (outPin.role !== "out" || !outPin.types || outPin.types.indexOf("ctrl_t") < 0)
+        return false;
+    }
+
     var res = true;
 
     // create temporary connection
@@ -2179,18 +2285,101 @@ function GraphEditor()
         c.update();
     }
 
+    var selectedBranchNodes = []
+    for (var i = 0; i < this.selected.length; i++)
+      for (var j = 0; j < this.branchDescs.length; j++)
+        if(this.selected[i] === this.branchDescs[j].nodeId)
+          selectedBranchNodes.push(this.selected[i]);
+
+    function getCorrectBranchColor(elem, elemIdx, selectedList)
+    {
+      var minSelectedOrder = 100000;
+      var minOrder = 100000;
+      var minSelectedGroupIdx = -1;
+      var minGroupIdx = -1;
+      for (var i = 0; i < elem.groupIds.length; i++)
+      {
+        var branchOrder = orderOfBranches.indexOf(elem.groupIds[i].branchNode)
+        if (selectedBranchNodes.indexOf(elem.groupIds[i].branchNode) != -1 && minSelectedOrder > branchOrder)
+        {
+          minSelectedOrder = branchOrder
+          minSelectedGroupIdx = i;
+        }
+
+        if (minOrder > branchOrder)
+        {
+          minOrder = branchOrder;
+          minGroupIdx = i;
+        }
+
+      }
+
+      if (selectedBranchNodes.length > 0 && minSelectedGroupIdx == -1)
+        return [selectedList.indexOf(elemIdx) != -1, NORMAL_TAG];
+
+      if (minSelectedGroupIdx != -1)
+        minGroupIdx = minSelectedGroupIdx;
+
+      return [selectedList.indexOf(elemIdx) != -1, elem.groupIds[minGroupIdx].tag]
+    }
+
     for (var i = 0; i < this.elems.length; i++)
     {
       var e = this.elems[i];
       if (e && e.svgRect)
-        e.svgRect.setAttributeNS(null, "class", "elemRectClass");
-    }
+      {
+        var classType;
 
-    for (var i = 0; i < this.selected.length; i++)
-    {
-      var e = this.elems[editor.selected[i]];
-      if (e && e.svgRect)
-        e.svgRect.setAttributeNS(null, "class", "selectedElemRectClass");
+        if (e.groupIds.length === 0)
+          classType = this.selected.indexOf(i) != -1 ? "selectedElemRectClass" : "elemRectClass";
+        else
+        {
+          var retArray = getCorrectBranchColor(e, i, this.selected);
+          var selected = retArray[0];
+          var tag = retArray[1];
+
+          if (selected)
+          {
+            switch (tag)
+            {
+              case BRANCH_ON_TAG:
+                classType = "branchOnSelectedRectClass";
+                break;
+              case OFF_TAG:
+                classType = "offSelectedRectClass";
+                break;
+              case CTRL_TAG:
+                classType = "ctrlSelectedRectClass";
+                break;
+              case NORMAL_TAG:
+              default:
+                classType = "selectedElemRectClass";
+                break;
+            }
+          }
+          else
+          {
+            switch (tag)
+            {
+              case BRANCH_ON_TAG:
+                classType = "branchOnRectClass";
+                break;
+              case OFF_TAG:
+                classType = "offRectClass";
+                break;
+              case CTRL_TAG:
+                classType = "ctrlRectClass";
+                break;
+              case NORMAL_TAG:
+              default:
+                classType = "elemRectClass";
+                break;
+            }
+          }
+        }
+
+        e.svgRect.setAttributeNS(null, "class", classType);
+      }
     }
 
     var categories = document.getElementById("categoriesDiv");
@@ -2837,54 +3026,75 @@ function GraphEditor()
       return def;
     }
 
-    var processedItems = [];
-    var connectionRemap = [];
-
-    for (var i = 0; i < editor.elems.length; i++)
+    var removeDuplicates = function(hasher, leaveCond, removeCond, searchAll)
     {
-      var e = editor.elems[i];
-      if (!e || !e.desc.isExternal || e.desc.pins.length != 1)
-        continue;
+      var processedItems = [];
+      var connectionRemap = [];
 
-      var hash = e.desc.name + " # " + getElemProperty(e, "name", null);
-      if (processedItems.indexOf(hash) < 0)
+      for (var i = 0; i < editor.elems.length; i++)
       {
-        processedItems.push(hash);
-        for (var j = i + 1; j < editor.elems.length; j++)
+        var e = editor.elems[i];
+        if (!e || !e.desc.isExternal || e.desc.pins.length != 1 || !leaveCond(e))
+          continue;
+
+        var hash = hasher(e);
+        if (processedItems.indexOf(hash) < 0)
         {
-          var other = editor.elems[j];
-          if (!other || !other.desc.isExternal || other.desc.pins.length != 1)
-            continue;
-          var otherHash = other.desc.name + " # " + getElemProperty(other, "name", null);
-          if (otherHash === hash)
+          processedItems.push(hash);
+          for (var j = searchAll ? 0 : i + 1; j < editor.elems.length; j++)
           {
-            connectionRemap.push([j, i]); // j -> i
+            if (j == i)
+              continue;
+            var other = editor.elems[j];
+            if (!other || !other.desc.isExternal || other.desc.pins.length != 1 || !removeCond(other))
+              continue;
+            var otherHash = hasher(other);
+            if (otherHash === hash)
+            {
+              connectionRemap.push([j, i]); // j -> i
+            }
           }
         }
       }
-    }
 
-    if (connectionRemap.length > 0)
-    {
-      for (var i = 0; i < editor.edges.length; i++)
+      if (connectionRemap.length > 0)
       {
-        var c = editor.edges[i];
-        if (!c)
-          continue;
+        for (var i = 0; i < editor.edges.length; i++)
+        {
+          var c = editor.edges[i];
+          if (!c)
+            continue;
+
+          for (var j = 0; j < connectionRemap.length; j++)
+          {
+            if (c.elemFrom === connectionRemap[j][0])
+              editor.addConnection(connectionRemap[j][1], c.pinFrom, c.elemTo, c.pinTo, -1, null, null);
+
+            if (c.elemTo === connectionRemap[j][0])
+              editor.addConnection(c.elemFrom, c.pinFrom, connectionRemap[j][1], c.pinTo, -1, null, null);
+          }
+        }
 
         for (var j = 0; j < connectionRemap.length; j++)
-        {
-          if (c.elemFrom === connectionRemap[j][0])
-            editor.addConnection(connectionRemap[j][1], c.pinFrom, c.elemTo, c.pinTo, -1, null, null);
-
-          if (c.elemTo === connectionRemap[j][0])
-            editor.addConnection(c.elemFrom, c.pinFrom, connectionRemap[j][1], c.pinTo, -1, null, null);
-        }
+          editor.elems[connectionRemap[j][0]].kill();
       }
+    };
 
-      for (var j = 0; j < connectionRemap.length; j++)
-        editor.elems[connectionRemap[j][0]].kill();
-    }
+    removeDuplicates(
+      function(e)
+      {
+        var hash = e.desc.name + " # " + getElemProperty(e, "name", null);
+        hash += " # " + e.permutationId;
+        return hash;
+      },
+      function(e) { return true; },
+      function(e) { return true; },
+      false);
+    removeDuplicates(
+      function(e) { return e.desc.name + " # " + getElemProperty(e, "name", null); },
+      function(e) { return e.permutationId === -1; },
+      function(e) { return e.permutationId !== -1; },
+      true);
   }
 
   this.deleteBypassKeepConnections_ = function(idx)
@@ -3070,6 +3280,8 @@ function GraphEditor()
 
   this.findAndSelectNode = function(text)
   {
+    text = text.toLowerCase();
+
     // remove selection
     editor.selected = [];
 
@@ -3078,14 +3290,22 @@ function GraphEditor()
     for (var t = editor.elems.length - 1; t >= 0; t--)
     {
       var e = editor.elems[t];
-      if (e && e.desc && e.desc.name.indexOf(text) >= 0)
+      if (e && e.desc)
       {
-        editor.selected.push(t);
-        if (this.selectionTargetIndex < 0)
+        var includes = e.desc.name.toLowerCase().indexOf(text) >= 0;
+        for (var i = 0; i < e.desc.properties.length; i++)
+          if (e.desc.properties[i].type == "string" && ("" + e.propValues[i]).toLowerCase().indexOf(text) >= 0)
+            includes = true;
+
+        if (includes)
+        {
+          editor.selected.push(t);
+          if (this.selectionTargetIndex < 0)
           {
             this.selectionTargetIndex = t;
             this.zoomToNode(t);
           }
+        }
       }
     }
 
@@ -3161,36 +3381,49 @@ function GraphEditor()
     editor.bigTextArea.style.visibility = "visible";
     editor.bigTextArea.value =
       " In Editor:\n"
-      +"\n     F1 - This window"
-      +"\n      N - New graph of current type"
-      +"\n Ctrl+O - Open graph"
-      +"\n  Space - Show element filter, element will be placed at cursor position"
-      +"\n    LMB - Select element, create edge, move selected elements when pressed"
-      +"\n Ctrl+LMB - Toggle selection"
-      +"\n DClick - Special select (for node preview etc.)"
-      +"\n MWheel - Zoom, pan when pressed"
-      +"\n    Del - Remove"
-      +"\n BackSp - Remove, keep connection"
-      +"\n      D - Duplicate (Ctrl+D works too)"
-      +"\n Ctrl+C - Copy"
-      +"\n Ctrl+X - Cut"
-      +"\n Ctrl+V - Paste"
-      +"\n      X - Remove edges (cursor must be over pin)"
-      +"\n      A - Modity edge (cursor must be over pin)"
-      +"\n    Tab - Jump to opposite pin (cursor must be over pin)"
-      +"\n Ctrl+A - Select all"
-      +"\n Ctrl+Z - Undo (Ctrl+Shift+Z - Redo)"
-      +"\n Ctrl+G - Make subgraph from selection"
-      +"\n Ctrl+E - Explode subgraph"
-      +"\n      C - Add comment to pin (if comment is empty or comment equals '#' then pin will not be exported)"
-      +"\n Ctrl+Space - Center view on graph"
-      +"\n Shift+Q - Toggle autoupdate"
-      +"\n Ctrl+R - Force rebuild"
-      +"\n     F4 - Show generated code"
-      +"\n Ctrl+F - Find and select node"
-      +"\n Shift+F - Show next selected node"
-      +"\n Ctrl+M - Select nodes with no outputs connected"
-      ;
+      +"\n  === General ======================================================"
+      +"\n        F1 - Show this window"
+      +"\n         N - Create a new graph of the current type"
+      +"\n    Ctrl+O - Open graph"
+      +"\n        F4 - Show generated code"
+
+      +"\n\n  === View & Navigation =========================================="
+      +"\n  Mouse Wheel - Zoom; pan while pressed"
+      +"\n   Ctrl+Space - Center the view on the graph"
+
+      +"\n\n  === Selection =================================================="
+      +"\n       LMB - Select an element, create an edge, or move selected elements while pressed"
+      +"\n  Ctrl+LMB - Toggle selection"
+      +"\n    DClick - Special selection (e.g. node preview)"
+      +"\n    Ctrl+A - Select all"
+      +"\n    Ctrl+M - Select nodes with no connected outputs"
+      +"\n   Shift+F - Show the next selected node"
+      +"\n    Ctrl+F - Find and select a node"
+
+      +"\n\n  === Editing ===================================================="
+      +"\n       Del - Remove"
+      +"\n    BackSp - Remove but keep connections"
+      +"\n         D - Duplicate (Ctrl+D also works)"
+      +"\n    Ctrl+C - Copy"
+      +"\n    Ctrl+X - Cut"
+      +"\n    Ctrl+V - Paste"
+      +"\n    Ctrl+Z - Undo (Ctrl+Shift+Z - Redo)"
+
+      +"\n\n  === Connections ================================================"
+      +"\n         X - Remove edges (cursor must be over a pin)"
+      +"\n         A - Modify edge (cursor must be over a pin)"
+      +"\n       Tab - Jump to the opposite pin (cursor must be over a pin)"
+
+      +"\n\n  === Graph Operations ==========================================="
+      +"\n    Ctrl+G - Create a subgraph from the selection"
+      +"\n    Ctrl+E - Explode subgraph"
+      +"\n   Shift+Q - Toggle auto-update"
+      +"\n    Ctrl+R - Force rebuild"
+
+      +"\n\n  === Misc ======================================================="
+      +"\n     Space - Show element filter; the selected element will be placed at the cursor position"
+      +"\n         C - Add a comment to a pin (if the comment is empty or equals '#', the pin will not be exported)"
+    ;
 
     setTimeout(function(){editor.bigTextArea.focus(); editor.bigTextArea.setSelectionRange(0, 0);}, 10);
   }
@@ -3204,36 +3437,36 @@ function GraphEditor()
     if (editor.bigTextArea.style.visibility === "visible")
       return;
 
-    var del = (event.keyCode == 46 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyF1 = (event.keyCode == 112 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyF4 = (event.keyCode == 115 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyX = (event.keyCode == 88 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyA = (event.keyCode == 65 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyD = (event.keyCode == 68 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyC = (event.keyCode == 67 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyN = (event.keyCode == 78 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyO = (event.keyCode == 79 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyTab = (event.keyCode == 9 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keyBackSpace = (event.keyCode == 8 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var keySpace = (event.keyCode == 32 && !event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlSpace = (event.keyCode == 32 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlD = (event.keyCode == 68 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlA = (event.keyCode == 65 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlX = (event.keyCode == 88 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlC = (event.keyCode == 67 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlV = (event.keyCode == 86 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlZ = (event.keyCode == 90 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlO = (event.keyCode == 79 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlG = (event.keyCode == 71 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlE = (event.keyCode == 69 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlR = (event.keyCode == 82 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var ctrlShiftE = (event.keyCode == 69 && event.ctrlKey && event.shiftKey && !event.altKey);
-    var ctrlShiftZ = (event.keyCode == 90 && event.ctrlKey && event.shiftKey && !event.altKey);
-    var shiftQ = (event.keyCode == 81 && !event.ctrlKey && event.shiftKey && !event.altKey);
-    var shiftT = (event.keyCode == 84 && !event.ctrlKey && event.shiftKey && !event.altKey);
-    var ctrlF = (event.keyCode == 70 && event.ctrlKey && !event.shiftKey && !event.altKey);
-    var shiftF = (event.keyCode == 70 && !event.ctrlKey && event.shiftKey && !event.altKey);
-    var ctrlM = (event.keyCode == 77 && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var del = (event.key == "Delete" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyF1 = (event.code == "F1" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyF4 = (event.code == "F4" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyX = (event.code == "KeyX" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyA = (event.code == "KeyA" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyD = (event.code == "KeyD" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyC = (event.code == "KeyC" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyN = (event.code == "KeyN" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyO = (event.code == "KeyO" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyTab = (event.code == "Tab" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keyBackSpace = (event.key == "Backspace" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var keySpace = (event.code == "Space" && !event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlSpace = (event.code == "Space" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlD = (event.code == "KeyD" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlA = (event.code == "KeyA" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlX = (event.code == "KeyX" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlC = (event.code == "KeyC" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlV = (event.code == "KeyV" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlZ = (event.code == "KeyZ" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlO = (event.code == "KeyO" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlG = (event.code == "KeyG" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlE = (event.code == "KeyE" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlR = (event.code == "KeyR" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var ctrlShiftE = (event.code == "KeyE" && event.ctrlKey && event.shiftKey && !event.altKey);
+    var ctrlShiftZ = (event.code == "KeyZ" && event.ctrlKey && event.shiftKey && !event.altKey);
+    var shiftQ = (event.code == "KeyQ" && !event.ctrlKey && event.shiftKey && !event.altKey);
+    var shiftT = (event.code == "KeyT" && !event.ctrlKey && event.shiftKey && !event.altKey);
+    var ctrlF = (event.code == "KeyF" && event.ctrlKey && !event.shiftKey && !event.altKey);
+    var shiftF = (event.code == "KeyF" && !event.ctrlKey && event.shiftKey && !event.altKey);
+    var ctrlM = (event.code == "KeyM" && event.ctrlKey && !event.shiftKey && !event.altKey);
 
     if (ctrlF)
     {
@@ -3675,6 +3908,67 @@ function GraphEditor()
     return null;
   }
 
+  this.createDependencyLists = function(graph)
+  {
+    graph.dependencyList = new Array(graph.elemCount);
+    graph.reverseDependencyList = new Array(graph.elemCount);
+    for (var edgeIdx = 0; edgeIdx < graph.edgeCount; edgeIdx++)
+    {
+      var edge = graph.edges[edgeIdx];
+      if (!edge)
+        continue;
+
+      var from, to, fromPin, toPin;
+      if(graph.elems[edge.elemA].pins[edge.pinA].role === "out")
+      {
+        from = edge.elemA;
+        to = edge.elemB;
+        fromPin = edge.pinA;
+        toPin = edge.pinB;
+      }
+      else
+      {
+        from = edge.elemB;
+        to = edge.elemA;
+        fromPin = edge.pinB;
+        toPin = edge.pinA;
+      }
+
+      if (graph.dependencyList[to] != null)
+        insertIfNotInArray(graph.dependencyList[to], from)
+      else
+        graph.dependencyList[to] = [from];
+
+      if(graph.reverseDependencyList[from] != null)
+        insertIfNotInArray(graph.reverseDependencyList[from], to)
+      else
+        graph.reverseDependencyList[from] = [to];
+
+      for (var j = 0; j < graph.branchNodesIncompletDescs.length; j++)
+      {
+        if (graph.branchNodesIncompletDescs[j].layout === "two-branch" && graph.branchNodesIncompletDescs[j].nodeId === to)
+        {
+          toPin === 0 ? graph.branchNodesIncompletDescs[j].onStartNode = from : graph.branchNodesIncompletDescs[j].offStartNode = from;
+        }
+        else if (graph.branchNodesIncompletDescs[j].layout === "layer-branch" && graph.branchNodesIncompletDescs[j].nodeId === to)
+        {
+          if (toPin == 0)
+            graph.branchNodesIncompletDescs[j].gbuffInputNode = from;
+          else if (graph.elems[to].pins[toPin].role === "ctrl")
+            graph.branchNodesIncompletDescs[j].ctrlStartNode = from;
+          else
+            graph.branchNodesIncompletDescs[j].layerStartNodes.push(from)
+        }
+        else if (graph.branchNodesIncompletDescs[j].layout === "layer-branch" && graph.branchNodesIncompletDescs[j].nodeId === from)
+        {
+          graph.branchNodesIncompletDescs[j].outputPinIdx = fromPin;
+        }
+      }
+
+    }
+    return graph;
+  }
+
   this.stringifyGraph = function(flags)
   {
     var fullInfo = (flags & S_FULL_INFO) != 0;
@@ -3697,12 +3991,15 @@ function GraphEditor()
     graph.elemCount = this.elems.length;
     graph.edgeCount = this.edges.length;
     graph.hint = "[[generated_graph_hint]]";
+    graph.permSubGroups = this.permSubGroups;
     graph.view =
     {
       posX: this.viewPosX,
       posY: this.viewPosY,
       width: this.viewWidth
     };
+
+    graph.additionalIncludesPermTable = this.additionalIncludesPermTable;
 
     if (!selectedOnly)
     {
@@ -3786,6 +4083,9 @@ function GraphEditor()
         var elem = {
           id: e.myIndex,
           descName: e.desc.name,
+          inGroup: false,
+          permutationId: e.permutationId,
+          groupIds:[],
           properties: propList,
           uid: e.uid,
           view: {x: e.x, y: e.y},
@@ -4006,6 +4306,8 @@ function GraphEditor()
               var newElem = {
                 id: graph.elems.length,
                 descName: expectedDescName,
+                inGroup: false,
+                permutationId: -1,
                 properties: [{
                   "name": "name",
                   "type": "string",
@@ -4154,6 +4456,57 @@ function GraphEditor()
         }
     }
 
+    graph.branchNodesIncompletDescs = [];
+
+    for (var i = 0; i < graph.elems.length; i++)
+    {
+      var element = graph.elems[i];
+      var branchDescs = {
+        layout: null,
+        nodeId: i,
+        permutationId: -1,
+        onStartNode: -1,
+        offStartNode: -1,
+        layerStartNodes:[],
+        ctrlStartNode:-1,
+        gbuffInputNode:-1,
+        var: null,
+        tag: null,
+        value: null,
+        dependecySet: [],
+        onGroup: [],
+        offGroup: [],
+        layerGroup: [],
+        ctrlGroup: [],
+        outputPinIdx: [],
+        processed:false
+      };
+      if (element && element.descName === "medium quality filter")
+      {
+        branchDescs.layout = "two-branch";
+        branchDescs.var = "NBS_QUALITY";
+        branchDescs.tag = "BRANCH";
+        branchDescs.permutationId = element.permutationId,
+        branchDescs.value = 1;
+        graph.branchNodesIncompletDescs.push(branchDescs)
+      }
+      else if(element && element.descName === "high quality filter")
+      {
+        branchDescs.layout = "two-branch";
+        branchDescs.var = "NBS_QUALITY";
+        branchDescs.tag = "BRANCH";
+        branchDescs.permutationId = element.permutationId,
+        branchDescs.value = 2;
+        graph.branchNodesIncompletDescs.push(branchDescs)
+      }
+      else if (element && layerApplyNodes.indexOf(element.descName) != -1)
+      {
+        branchDescs.layout = "layer-branch";
+        branchDescs.tag = "BRANCH";
+        branchDescs.permutationId = element.permutationId;
+        graph.branchNodesIncompletDescs.push(branchDescs);
+      }
+    }
 
     for (var i = 0; i < this.edges.length; i++)
     {
@@ -4221,7 +4574,205 @@ function GraphEditor()
       ee.id += graph.edges.length;
       graph.edges.push(ee);
     }
+    function createDependencyPartition(elemIdx, startDependency, bannedNodeIdxs)
+    {
+      var subGroupDependency = startDependency
+      if (!startDependency.length)
+        subGroupDependency = startDependency ? [startDependency] : [];
+      var subGroup = [elemIdx];
+      var changed = true;
+      while (changed)
+      {
+        changed = false;
+        for (var i = 0; i < subGroupDependency.length; i++)
+        {
+          var elemInFocusIdx = subGroupDependency[i];
 
+          if (bannedNodeIdxs.indexOf(elemInFocusIdx) != -1)
+            continue;
+
+          var movable = true;
+          if(!graph.reverseDependencyList[elemInFocusIdx])
+            continue;
+
+          for (var j = 0; j < graph.reverseDependencyList[elemInFocusIdx].length; j++)
+          {
+            var idx = graph.reverseDependencyList[elemInFocusIdx][j];
+            if(subGroup.indexOf(idx) < 0)
+              movable = false;
+          }
+
+          if (movable)
+          {
+            subGroupDependency.splice(i, 1);
+            subGroup.push(elemInFocusIdx);
+            graph.elems[elemInFocusIdx].inSubGroup = true;
+            graph.elem
+            i--;
+            changed = true;
+          }
+
+          if(!graph.dependencyList[elemInFocusIdx])
+            continue;
+          for (var j = 0; j < graph.dependencyList[elemInFocusIdx].length; j++)
+          {
+            var idx = graph.dependencyList[elemInFocusIdx][j];
+            if(subGroupDependency.indexOf(idx) < 0 && subGroup.indexOf(idx) < 0)
+            {
+              subGroupDependency.push(idx);
+              changed = true;
+            }
+          }
+        }
+      }
+      subGroup.splice(0, 1);
+      return [subGroup, subGroupDependency];
+    }
+
+    function checkBranchDependency(aBranch, bBranch)
+    {
+      function getBranchSize(branch)
+      {
+        return branch.onGroup.length + branch.offGroup.length + 1;
+      }
+
+      var outerBranch = aBranch;
+      var innerBranch = bBranch;
+
+      if (getBranchSize(aBranch) < getBranchSize(bBranch))
+      {
+        outerBranch = bBranch;
+        innerBranch = aBranch;
+
+        var tmp = orderOfBranches[innerBranch.branchIndex]
+        orderOfBranches[innerBranch.branchIndex] = orderOfBranches[outerBranch.branchIndex];
+        orderOfBranches[outerBranch.branchIndex] = tmp;
+      }
+
+      if (outerBranch.layout == "two-branch")
+      {
+        if (outerBranch.onGroup.indexOf(innerBranch.nodeId) != -1)
+          graph.branchDescs[innerBranch.branchIndex].branchDependency.push({"branch":outerBranch.branchIndex, "isOnGroup":true});
+        else if (outerBranch.offGroup.indexOf(innerBranch.nodeId) != -1)
+          graph.branchDescs[innerBranch.branchIndex].branchDependency.push({"branch":outerBranch.branchIndex, "isOnGroup":false});
+      }
+      else
+      {
+        if (outerBranch.layerGroup.indexOf(innerBranch.nodeId) != -1)
+          graph.branchDescs[innerBranch.branchIndex].branchDependency.push({"branch":outerBranch.branchIndex, "isOnGroup":true});
+        else if (outerBranch.ctrlGroup.indexOf(innerBranch.nodeId) != -1)
+          graph.branchDescs[innerBranch.branchIndex].branchDependency.push({"branch":outerBranch.branchIndex, "isOnGroup":false});
+      }
+    }
+
+
+    if (fullInfo)
+    {
+      graph = this.createDependencyLists(graph);
+      graph.branchDescs = []
+      this.branchDescs = []
+      orderOfBranches = []
+
+      for (var i = 0; i < this.elems.length; i++)
+        if(this.elems[i])
+          this.elems[i].groupIds = []
+
+      for (var i = 0; i < graph.branchNodesIncompletDescs.length; i++)
+      {
+        if (graph.branchNodesIncompletDescs[i].layout === "two-branch" && graph.branchNodesIncompletDescs[i].onStartNode != -1 && graph.branchNodesIncompletDescs[i].offStartNode != -1)
+        {
+          var bNode = graph.branchNodesIncompletDescs[i].nodeId;
+
+          var subGOn, subGDepOn, retOnArray;
+          retOnArray = createDependencyPartition(bNode, graph.branchNodesIncompletDescs[i].onStartNode, [graph.branchNodesIncompletDescs[i].offStartNode]);
+          subGOn = retOnArray[0];
+          subGDepOn = retOnArray[1];
+
+          var subGOff, subGDepOff, retOffArray;
+          retOffArray = createDependencyPartition(bNode, graph.branchNodesIncompletDescs[i].offStartNode, [graph.branchNodesIncompletDescs[i].onStartNode]);
+          subGOff = retOffArray[0];
+          subGDepOff = retOffArray[1];
+
+          for (var j = 0; j < subGOn.length; j++)
+          {
+            var elemIdx = subGOn[j]
+            this.elems[elemIdx].groupIds.push({"branchNode":bNode, "tag":BRANCH_ON_TAG});
+            graph.elems[elemIdx].inGroup = true;
+          }
+
+          for (var j = 0; j < subGOff.length; j++)
+          {
+            var elemIdx = subGOff[j]
+            this.elems[elemIdx].groupIds.push({"branchNode":bNode, "tag":OFF_TAG});
+            graph.elems[elemIdx].inGroup = true;
+          }
+
+          graph.elems[bNode].inGroup = true;
+
+          graph.branchNodesIncompletDescs[i].dependecySet = mergeArraySets(subGDepOn, subGDepOff);
+          graph.branchNodesIncompletDescs[i].onGroup = subGOn;
+          graph.branchNodesIncompletDescs[i].offGroup = subGOff;
+          graph.branchNodesIncompletDescs[i].branchIndex = graph.branchDescs.length;
+          graph.branchNodesIncompletDescs[i].branchDependency = [];
+          graph.branchDescs.push(graph.branchNodesIncompletDescs[i]);
+          this.branchDescs.push(graph.branchNodesIncompletDescs[i]);
+          orderOfBranches.push(bNode)
+        }
+        else if (graph.branchNodesIncompletDescs[i].layout === "layer-branch" && graph.branchNodesIncompletDescs[i].layerStartNodes.length > 0  && graph.branchNodesIncompletDescs[i].gbuffInputNode != -1 && graph.branchNodesIncompletDescs[i].ctrlStartNode != -1)
+        {
+          var bNode = graph.branchNodesIncompletDescs[i].nodeId;
+
+          var subGroup, dependencies, retArray;
+          retArray = createDependencyPartition(bNode, graph.branchNodesIncompletDescs[i].layerStartNodes, [graph.branchNodesIncompletDescs[i].gbuffInputNode])
+          subGroup = retArray[0];
+          dependencies = retArray[1];
+
+          graph.branchNodesIncompletDescs[i].layerStartNodes.push(graph.branchNodesIncompletDescs[i].gbuffInputNode)
+          var subCtrlGroup, ctrlDependencies, ctrlRetArray;
+          ctrlRetArray = createDependencyPartition(bNode, graph.branchNodesIncompletDescs[i].ctrlStartNode, graph.branchNodesIncompletDescs[i].layerStartNodes)
+          subCtrlGroup = ctrlRetArray[0];
+          ctrlDependencies = ctrlRetArray[1];
+
+          for (var j = 0; j < subGroup.length; j++)
+          {
+            var elemIdx = subGroup[j]
+            this.elems[elemIdx].groupIds.push({"branchNode":bNode, "tag":BRANCH_ON_TAG});
+            graph.elems[elemIdx].inGroup = true;
+          }
+
+          for (var j = 0; j < subCtrlGroup.length; j++)
+          {
+            var elemIdx = subCtrlGroup[j]
+            this.elems[elemIdx].groupIds.push({"branchNode":bNode, "tag":CTRL_TAG});
+            graph.elems[elemIdx].inGroup = true;
+          }
+
+          graph.elems[bNode].inGroup = true;
+
+          if (dependencies.indexOf(graph.branchNodesIncompletDescs[i].gbuffInputNode) == -1)
+            dependencies.push(graph.branchNodesIncompletDescs[i].gbuffInputNode);
+
+          graph.branchNodesIncompletDescs[i].dependecySet = mergeArraySets(ctrlDependencies, dependencies);
+          graph.branchNodesIncompletDescs[i].layerGroup = subGroup;
+          graph.branchNodesIncompletDescs[i].ctrlGroup = subCtrlGroup;
+          graph.branchNodesIncompletDescs[i].branchIndex = graph.branchDescs.length;
+          graph.branchNodesIncompletDescs[i].branchDependency = [];
+          graph.branchDescs.push(graph.branchNodesIncompletDescs[i]);
+          this.branchDescs.push(graph.branchNodesIncompletDescs[i]);
+          orderOfBranches.push(bNode)
+        }
+      }
+
+      for (var i = 0; i < graph.branchDescs.length - 1; i++)
+      {
+        for (var j = i + 1; j < graph.branchDescs.length; j++)
+        {
+          checkBranchDependency(graph.branchDescs[i], graph.branchDescs[j]);
+        }
+      }
+    }
+
+    this.onSelectionChanged();
 
     if (fullInfo && !skipPostprocress && GE_beforeStringifyGraph)
       GE_beforeStringifyGraph(graph);
@@ -4425,7 +4976,7 @@ function GraphEditor()
     this.onKeyUpFunction = function(){};
   }
 
-  this._pasteInternal = function(table_or_text, custom_paste_center)
+  this._pasteInternal = function(table_or_text, custom_paste_center, addInPermutationGroup)
   {
     var graph = (typeof(table_or_text) === "string") ? JSON.parse(table_or_text) : table_or_text; 
 
@@ -4470,6 +5021,32 @@ function GraphEditor()
       }
     }
 
+    var permSubGroup = {dependencySet : [], subGroup : [], processed : false, idx : -1};
+    if (addInPermutationGroup)
+    {
+      var outputNode = null;
+      if (graph.pluginId && graph.pluginId === "[[plugin:fog_shader_editor]]")
+        outputNode = "result";
+      else if (graph.pluginId && graph.pluginId === "[[plugin:envi_cover_shader_editor]]")
+        outputNode = "gbuffer output"
+
+      if (outputNode != null)
+      {
+        for (var i = 0; i < this.elems.length; i++)
+        {
+          if (this.elems[i] && this.elems[i].desc.name === outputNode)
+          {
+            permSubGroup.dependencySet.push(i);
+          }
+        }
+        permSubGroup.idx = globalPermutationGroupCount;
+      }
+      else
+      {
+        addInPermutationGroup = false;
+      }
+    }
+
 
     for (var i = 0; i < graph.elems.length; i++)
     {
@@ -4482,6 +5059,11 @@ function GraphEditor()
           var idx = this.addElem(e.view.x + 100 + xoffs, e.view.y + 100 + yoffs, desc, -1);
           remap[e.id] = idx;
           this.selected.push(idx);
+          if (addInPermutationGroup)
+          {
+            permSubGroup.subGroup.push(idx);
+            this.elems[idx].permutationId = globalPermutationGroupCount;
+          }
           var newElem = this.elems[idx];
           this._copyElem(e, newElem, false);
         }
@@ -4514,6 +5096,11 @@ function GraphEditor()
           this.addConnectionOnLoad(remap[c.elemA], c.pinA, remap[c.elemB], c.pinB, -1, c.uidA, c.uidB);
         }
       }
+    }
+    if (addInPermutationGroup)
+    {
+      this.permSubGroups.push(permSubGroup);
+      globalPermutationGroupCount++;
     }
   }
 
@@ -4549,13 +5136,14 @@ function GraphEditor()
 
     buf = buf.slice(this.clipboardHeader.length);
 
-    this._pasteInternal(buf, [this.viewPosX + this.viewWidth * 0.5, this.viewPosY + this.viewWidth * 0.5]);
+    this._pasteInternal(buf, [this.viewPosX + this.viewWidth * 0.5, this.viewPosY + this.viewWidth * 0.5], false);
 
     this.hideSelectBox();
     this.applyView();
     this.propagateTypes();
     this.updateAllPinColors();
     this.onSelectionChanged();
+    editor.onChanged();
   }
 
   this.getCenterOfElems = function(graph)
@@ -4891,6 +5479,11 @@ function GraphEditor()
         this.replaceWithSubgraph = undefined;
       }
     }
+  }
+
+  this.setAdditionalIncludesPermutationTable = function(permTable)
+  {
+    this.additionalIncludesPermTable = permTable;
   }
 
   this.parseAdditionalIncludes = function(text)

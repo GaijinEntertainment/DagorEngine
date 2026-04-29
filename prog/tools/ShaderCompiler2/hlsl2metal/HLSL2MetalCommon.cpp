@@ -3,9 +3,6 @@
 #include "HLSL2MetalCommon.h"
 #include "../debugSpitfile.h"
 
-#include <ioSys/dag_zlibIo.h>
-#include <ioSys/dag_memIo.h>
-
 #include <inttypes.h>
 
 SemanticValue semanticTable[] = {{"POSITION", 0, VSDR_POS}, {"POSITION", 1, VSDR_POS2}, {"NORMAL", 0, VSDR_NORM},
@@ -118,36 +115,4 @@ String prependMetaDataAndReplaceFuncs(std::string_view source, const char *shade
   sourceWithData.replaceAll("dFdx", "dfdx");
   sourceWithData.replaceAll("dFdy", "dfdy");
   return sourceWithData;
-}
-
-void compressData(CompileResult &compile_result, const DataAccumulator &header, const std::string_view metal_src_code)
-{
-  const int dataSize = (int)::data_size(metal_src_code);
-  const char *data = metal_src_code.data();
-
-  DynamicMemGeneralSaveCB mcwr(tmpmem, 0, 128 << 10);
-  mcwr.writeInt(_MAKE4C('MTLZ'));
-  mcwr.beginBlock();
-  ZlibSaveCB z_cwr(mcwr, ZlibSaveCB::CL_BestCompression);
-
-  const int headerSize = header.size();
-  constexpr int hashSize = 32;
-
-  z_cwr.writeInt(headerSize + dataSize + hashSize);
-
-  HashMD5 hash;
-  hash.append(header.data(), headerSize);
-  hash.append(data, dataSize);
-  hash.calc();
-
-  z_cwr.write(hash.get(), hashSize);
-  z_cwr.write(header.data(), headerSize);
-  z_cwr.write(data, dataSize);
-
-  z_cwr.finish();
-
-  mcwr.endBlock();
-  mcwr.alignOnDword(mcwr.size());
-
-  compile_result.bytecode.assign((const uint8_t *)mcwr.data(), (const uint8_t *)mcwr.data() + mcwr.size());
 }

@@ -166,6 +166,7 @@ string      <MAIN> ==> string;
 'vulkan' <MAIN> => vulkan;
 'metal' <MAIN> => metal;
 'metaliOS' <MAIN> => metaliOS;
+'android' <MAIN> => android;
 'fsh_4_0' <MAIN> => fsh_4_0;
 'fsh_5_0' <MAIN> => fsh_5_0;
 'fsh_6_0' <MAIN> => fsh_6_0;
@@ -203,7 +204,6 @@ string      <MAIN> ==> string;
 'specular' <MAIN> => specular;
 'always_referenced' <MAIN> => always_referenced;
 'no_warnings' <MAIN> => no_warnings;
-'undefined_value' <MAIN> => undefined_value;
 'static' <MAIN> => static;
 'tc' <MAIN> => tc;
 'texture' <MAIN> => texture;
@@ -230,6 +230,7 @@ string      <MAIN> ==> string;
 'local' <MAIN> => local;
 'global' <MAIN> => global;
 'const' <MAIN> => const;
+'literal' <MAIN> => literal;
 'register' <MAIN> => register;
 'signed_pack' <MAIN> => signed_pack;
 'unsigned_pack' <MAIN> => unsigned_pack;
@@ -298,6 +299,7 @@ keyword ->
   'vulkan' |
   'metal' |
   'metaliOS' |
+  'android' |
   'pc' |
   'dx11' |
   'dx12' |
@@ -349,7 +351,6 @@ keyword ->
   'specular' |
   'always_referenced' |
   'no_warnings' |
-  'undefined_value' |
   'static' |
   'tc' |
   'texture' |
@@ -377,6 +378,7 @@ keyword ->
   'local'|
   'global'|
   'const' |
+  'literal' |
   'register' |
   'bounding_pack' |
   'signed_pack' |

@@ -16,10 +16,10 @@ namespace darg
 BhvProcessGesture bhv_process_gesture;
 BhvProcessGesture::BhvProcessGesture() : Behavior(0, F_HANDLE_TOUCH) {}
 
-int BhvProcessGesture::touchEvent(ElementTree * /*etree*/, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/,
-  int touch_idx, const HumanInput::PointingRawState::Touch &touch, int accum_res)
+int BhvProcessGesture::pointingEvent(ElementTree * /*etree*/, Element *elem, InputDevice, InputEvent event, int touch_idx, int,
+  Point2 pos, int accum_res)
 {
-  return processGesture(elem, event, touch_idx, Point2(touch.x, touch.y), accum_res);
+  return processGesture(elem, event, touch_idx, pos, accum_res);
 }
 
 int BhvProcessGesture::processGesture(Element *elem, InputEvent event, int pointer_id, const Point2 &pos, int accum_res)
@@ -61,11 +61,8 @@ int BhvProcessGesture::processGesture(Element *elem, InputEvent event, int point
       default: break;
     }
 
-    Sqrat::Object sqRes;
-    if (handler.Evaluate(evt, sqRes))
-      return sqRes.GetType() & SQOBJECT_NUMERIC ? sqRes.Cast<int>() : 0;
-    else
-      return 0;
+    auto sqRes = handler.Eval<Sqrat::Object>(evt);
+    return (sqRes && sqRes.value().GetType() & SQOBJECT_NUMERIC) ? sqRes.value().Cast<int>() : 0;
   };
 
   int res = 0;

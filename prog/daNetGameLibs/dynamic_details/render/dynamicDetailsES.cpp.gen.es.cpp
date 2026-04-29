@@ -105,9 +105,9 @@ static ecs::CompileTimeQueryDesc create_dynamic_details_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void create_dynamic_details_ecs_query(ecs::EntityId eid, Callable function)
+inline void create_dynamic_details_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, create_dynamic_details_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, create_dynamic_details_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -134,9 +134,9 @@ static ecs::CompileTimeQueryDesc get_dynamic_details_indices_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_dynamic_details_indices_ecs_query(Callable function)
+inline void get_dynamic_details_indices_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_dynamic_details_indices_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_dynamic_details_indices_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -170,9 +170,9 @@ static ecs::CompileTimeQueryDesc info_dynamic_details_selected_ecs_query_desc
   make_span(info_dynamic_details_selected_ecs_query_comps+2, 5)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void info_dynamic_details_selected_ecs_query(Callable function)
+inline void info_dynamic_details_selected_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, info_dynamic_details_selected_ecs_query_desc.getHandle(),
+  perform_query(&manager, info_dynamic_details_selected_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

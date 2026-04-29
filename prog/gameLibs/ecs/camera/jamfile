@@ -16,6 +16,9 @@ UseProgLibs +=
   3rdPartyLibs/eastl
 ;
 
+Source = ;
+AutoscanBuildLists . : *.cpp : Sources ;
+
 local AllSourcesES = [ GLOB $(Root)/$(Location) : *.cpp.inl ] ;
 SourceES = $(AllSourcesES:D=) ;
 

@@ -9,6 +9,7 @@
 #include <render/dynmodelRenderer.h>
 
 class DynamicRenderableSceneInstance;
+class Occlusion;
 
 namespace gamephys
 {
@@ -38,6 +39,7 @@ struct DestrRendDataDeleter
 void before_render(const Point3 &view_pos, bool has_motion_vectors);
 // Objects with a bounding box radius < min_bbox_radius will be skipped.
 void render(dynrend::ContextId inst_ctx, const Frustum &frustum, float min_bbox_radius);
+void render_depth_prepass(const Point3 &main_cam_pos, const TMatrix &view_tm, const Frustum &culling_frustum, Occlusion *occlusion);
 
 typedef int (*deform_create_instance_cb_type)(const DestrRendData *src, bool fully_deformed);
 typedef void (*deform_destroy_instance_cb_type)(const DestrRendData *src);

@@ -6,8 +6,12 @@
 #include <gamePhys/ballistics/shellBallistics.h>
 #include <gamePhys/ballistics/rocketMotorProps.h>
 #include <gamePhys/ballistics/shellPayloadProps.h>
+
+const ballistics::PropulsionsValue ballistics::propulsionsMultDefault = {1.0f, 0.0f /*...*/};
+
 namespace ballistics
 {
+const PropulsionsValue &get_propulsions_mult_default() { return propulsionsMultDefault; }
 const ProjectileProps *ProjectileProps::get_props(int) { G_ASSERT_RETURN(false, nullptr); }
 const ProjectileProps *ProjectileProps::try_get_props(int) { G_ASSERT_RETURN(false, nullptr); }
 void ProjectileBallistics::setup(const Point3 &in_pos, const Point3 &in_vel, float g_mult) { G_ASSERT(0); }
@@ -28,12 +32,32 @@ void simulate(const ShellEnv &, const ShellBallisticsProperties &, ShellState &,
 
 const RocketMotorProps *RocketMotorProps::get_props(int) { G_ASSERT_RETURN(false, nullptr); }
 
-void calc_rocket_motor_thrust_mass(
-  const RocketMotorProps &, const Point2 &, const Point2 &, float, int &, Point3 &, Point3 &, Point3 &, float &)
+float get_fire_delay_0(const RocketMotorProps &prop)
+{
+  G_ASSERT(0);
+  return 0.0f;
+}
+
+void add_propulsion_time(float, const RocketMotorPropulsionsValue &, RocketMotorPropulsionsValue &) { G_ASSERT(0); }
+
+void calc_rocket_motor_thrust_mass(const RocketMotorProps &,
+  const Point2 &,
+  const Point2 &,
+  const RocketMotorPropulsionsValue &,
+  const RocketMotorPropulsionsValue &,
+  int &,
+  Point3 &,
+  Point3 &,
+  Point3 &,
+  float &)
 {
   G_ASSERT(0);
 }
-void calc_rocket_motor_propulsion_mass(const RocketMotorProps &, float, float &, float &, float &) { G_ASSERT(0); }
+void calc_rocket_motor_propulsion_mass(
+  const RocketMotorProps &, const RocketMotorPropulsionsValue &, const RocketMotorPropulsionsValue &, float &, float &, float &)
+{
+  G_ASSERT(0);
+}
 void apply_rocket_start_speed(const RocketMotorProps &, const Quat &, float, int, Point3 &) { G_ASSERT(0); }
 void apply_rocket_start_orientation(const RocketMotorProps &, float, int, Quat &) { G_ASSERT(0); }
 void apply_rocket_end_speed(const RocketMotorProps &, Point3 &) { G_ASSERT(0); }

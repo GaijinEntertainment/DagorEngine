@@ -6,7 +6,22 @@ options strict_smart_pointers = true
 
 module contracts shared private
 
-require ast
+//! Function argument contract annotations.
+//!
+//! Provides a family of ``[expect_*]`` annotations that constrain function argument types
+//! at specialization time. For example, ``[expect_any_array(arr)]`` ensures that ``arr``
+//! is an array, dynamic array, or C++ vector. Available contracts:
+//!   * ``[expect_any_array]`` — array<T>, T[], or das::vector<T>
+//!   * ``[expect_any_enum]`` — any enumeration type
+//!   * ``[expect_any_bitfield]`` — any bitfield type
+//!   * ``[expect_any_vector_type]`` — int2, float3, range, etc.
+//!   * ``[expect_any_struct]`` — structs (not classes)
+//!   * ``[expect_any_tuple]`` — tuple types
+//!   * ``[expect_any_variant]`` — variant types
+//!   * ``[expect_any_numeric]`` — numeric scalars (int, float, etc.)
+//!   * ``[expect_any_workhorse_raw]`` — non-abstract non-const types
+
+require daslib/ast
 require daslib/ast_boost
 
 def public isYetAnotherVectorTemplate(td : TypeDeclPtr) {
@@ -15,6 +30,8 @@ def public isYetAnotherVectorTemplate(td : TypeDeclPtr) {
 }
 
 class IsAnyType : AstFunctionAnnotation {
+    //! Base class for all ``[expect_*]`` contract annotations.
+    //! Subclasses override ``isCompatible`` to reject argument types that don't meet the contract.
     def override appendToMangledName(func : FunctionPtr; decl : AnnotationDeclaration; var mangledName : das_string) : void {
         mangledName := "{class_info(self).name}:{describe(decl)}"
     }
@@ -91,7 +108,7 @@ class IsAnyBitfieldMacro : IsAnyType {
         for (fna, typ in func.arguments, types) {// note: N^2
             for (argv in decl.arguments) {
                 if (fna.name == argv.name) {
-                    if (length(typ.dim) != 0 || typ.baseType != Type.tBitfield) {
+                    if (!typ.isBitfield) {
                         errors := "argument {argv.name} is not a bitfield"
                         return false
                     }
@@ -123,7 +140,7 @@ class IsAnyVectorType : IsAnyType {
 
 [contract(name="expect_any_struct")]
 class IsAnyStructMacro : IsAnyType {
-    //! [expect_any_struct(argname)] contract, which only accepts structs (byt not classes)
+    //! [expect_any_struct(argname)] contract, which only accepts structs (but not classes)
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
         for (fna, typ in func.arguments, types) {// note: N^2
             for (argv in decl.arguments) {
@@ -214,7 +231,7 @@ class IsAnyTupleNonPtrMacro : IsAnyType {
 
 [contract(name="expect_any_variant")]
 class IsAnyVariantNonPtrMacro : IsAnyType {
-    //! [expected_any_variant(argname)] contract, which only accepts variants
+    //! [expect_any_variant(argname)] contract, which only accepts variants
     def override isCompatible(var func : FunctionPtr; var types : VectorTypeDeclPtr; decl : AnnotationDeclaration; var errors : das_string) : bool {
         for (fna, typ in func.arguments, types) {// note: N^2
             for (argv in decl.arguments) {

@@ -1,10 +1,10 @@
 include "shader_global.dshl"
 include "bvh.dshl"
-include "clipmap.dshl"
 include "rt/rt_lighting.dshl"
 include "tonemapHelpers/use_full_tonemap_lut_inc.dshl"
 include "viewVecVS.dshl"
 include "bvh_common_includes.dshl"
+include "gbuffer.dshl"
 
 texture bvh_debug_target;
 texture bvh_postfx_source;
@@ -17,7 +17,6 @@ float rtsm_sun_angle_multiplier = 0.5;
 int rt_debug_rt_shadow = 1;
 interval rt_debug_rt_shadow: off < 1, on;
 int rt_debug_use_csm = 0;
-interval rt_debug_use_csm: no < 1, yes;
 
 float bvh_debug_intersection_count_threshold = 16.0;
 
@@ -44,8 +43,7 @@ shader bvh_debug
   }
 
   hlsl (cs) {
-    #include <Include/NRDEncoding.hlsli>
-    #include <Include/NRD.hlsli>
+    #include <NRD.hlsli>
 
     #define BVH_DEBUG_MODE_LIT 0
     #define BVH_DEBUG_MODE_TEXTURE_COLOR 1
@@ -66,16 +64,15 @@ shader bvh_debug
   USE_BVH_FX_RENDER(cs)
 
   USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
-  PACK_UNPACK_GBUFFER_BASE(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
+  USE_LOAD_GBUFFER_BASE(cs, false)
 
   USE_ADAPTIVE_RAY_OFFSET(cs)
 
-  INIT_RT_LIGHTING(cs, false, true, true, rt_debug_rt_shadow == on, rt_debug_use_csm == yes, false)
+  INIT_RT_LIGHTING(cs, false, true, true, rt_debug_rt_shadow == on, rt_debug_use_csm, false)
   USE_RT_LIGHTING(cs, 0, false)
   INIT_BVH_ATMOSPHERE(cs)
   USE_BVH_ATMOPHERE(cs)
-
-  ENABLE_ASSERT(cs)
 
   INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_BVH_FLAGS_BASE(cs)
@@ -110,17 +107,17 @@ shader bvh_debug
         SurfaceParams hitSurface = calc_surface_params(hitInfo, -direction, 0);
         if (bvh_debug_mode == BVH_DEBUG_MODE_LIT)
         {
-          result = light_hit_surface(hitSurface, -direction, 0, 100000);
+          result = light_hit_surface(hitSurface, -direction, hitInfo.t, 100000);
           if (bvh_detect_identical_geometry)
           {
 #ifdef BVH_TWO_SIDED
             float2 bvhResolution;
             bvh_gbuf_load.GetDimensions(bvhResolution.x, bvhResolution.y);
             float2 invRes = rcp(bvhResolution);
-            float3 geometryNormal = calc_geometry_normal(thread, invRes, bvhResolution);
-            float rawDepth = loadGbufferDepth(thread);
+            float3 geometryNormal = calc_geometry_normal(rate * bvhResolution, invRes, bvhResolution);
+            float rawDepth = loadGbufferDepth(rate * bvhResolution);
             float w = linearize_z(rawDepth, zn_zfar.zw);
-            float3 relPos = calc_camera_relative_pos(thread, w, invRes);
+            float3 relPos = calc_camera_relative_pos(rate * bvhResolution, w, invRes);
 
             uint bvhFlags = loadBvhFlags(rate * bvhResolution);
 
@@ -171,8 +168,22 @@ shader bvh_debug
           if (get_material_type(hitInfo.material) == bvhMaterialTerrain)
           {
             DetailDesc microdetailDesc;
-            Vtex textures = sample_clipmaps(hitInfo.position + bvh_origin, 0, 0, microdetailDesc);
+            Vtex textures = sample_clipmaps(hitInfo.position + bvh_origin, 0, 0, microdetailDesc, 0);
             result = textures.diffuse.rgb;
+          }
+          else if (get_material_type(hitInfo.material) == bvhMaterialLandclass)
+          {
+            float2 texcoord = hitInfo.texcoord * hitInfo.materialData1.xy + hitInfo.materialData1.zw;
+            float2 spoofedWorldPosXZ = texcoord * ri_landscape_tc_to_world.xy + ri_landscape_tc_to_world.zw;
+            float3 tcWorldPos = float3(spoofedWorldPosXZ.x, hitInfo.position.y, spoofedWorldPosXZ.y);
+
+            int indirectionOffset = 0; // TODO: This should be calculated via get_clipmap_indirection_offset_by_index
+
+            DetailDesc microdetailDesc;
+            Vtex textures = sample_clipmaps(tcWorldPos, 0, 0, microdetailDesc, indirectionOffset);
+
+            // TODO: Due to lack of proper indirectionOffset, we return debug magenta color instead of sample_clipmaps
+            result = float3(1.0, 0.0, 1.0);
           }
           else if (get_material_type(hitInfo.material) == bvhMaterialInterior)
           {
@@ -239,9 +250,7 @@ shader bvh_debug
           }
 
           bool isHit = query.CommittedStatus() == COMMITTED_TRIANGLE_HIT;
-          float translucency;
-          uint instanceIdx;
-          decode_instance_id(query.CommittedInstanceID(), translucency, instanceIdx);
+          uint instanceIdx = query.CommittedInstanceID();
 
           // bit of hashing so that instanceID that are close do not take almost the same color
           instanceIdx = ((instanceIdx >> 16) ^ instanceIdx) * 0x45d9f3b;
@@ -290,7 +299,6 @@ shader bvh_debug_postfx
   {
     dont_render;
   }
-  supports global_const_block;
 
   INIT_HDR(cs)
   USE_HDR(cs)

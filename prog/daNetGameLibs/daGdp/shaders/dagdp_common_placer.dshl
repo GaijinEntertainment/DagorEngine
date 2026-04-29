@@ -37,7 +37,8 @@ macro USE_DAGDP_COMMON_PLACER()
       if (occlusionRange < 0.001)
         return true;
 
-      float occ = compute_simple_sdf_occlusion(worldPos, worldNorm, occlusionRange);
+      const float normalBias = 0.5;
+      float occ = compute_simple_sdf_occlusion(worldPos, worldNorm, occlusionRange, normalBias);
       float w = smoothstep(occlusionMin, occlusionMax, occ);
       return r <= w;
     }
@@ -196,7 +197,7 @@ macro USE_DAGDP_COMMON_PLACER_THREADGROUP(threadgroup_size, g_storage, g_cond)
     {
       // The branch below can confuse FXC and lead to failed uniform flow control checks.
       // This additional sync satifies the compiler, and unlike the previous workaround, prevents device hang on Intel GPUs.
-      ##if hardware.dx11
+      ##if hardware.dx11 || hardware.dx12
         GroupMemoryBarrierWithGroupSync();
       ##endif
 

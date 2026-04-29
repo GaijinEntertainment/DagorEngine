@@ -153,17 +153,12 @@ void StaticFxObjects::init(const RoDataBlock &blk, unsigned bindump_id /*= -1*/,
     const char *name = b->getStr("name", NULL);
 
     if (name && ::get_resource_type_id(name) == EffectGameResClassId)
-    {
-      GameResHandle handle = GAMERES_HANDLE_FROM_STRING(name);
-      BaseEffectObject *base_fx = (BaseEffectObject *)::get_game_resource(handle);
-      if (base_fx)
+      if (BaseEffectObject *base_fx = (BaseEffectObject *)::get_game_resource_ex(name, EffectGameResClassId))
       {
         TMatrix tm = b->getTm("matrix", TMatrix::IDENT);
-
         createOneStaticFxObject(b, base_fx, tm, name, bindump_id, renderable);
+        ::release_game_resource_ex(base_fx, EffectGameResClassId);
       }
-      ::release_game_resource(handle);
-    }
   }
 }
 
@@ -175,8 +170,7 @@ void StaticFxObjects::init(const ObjectsToPlace &o, unsigned bindump_id /*= -1*/
   for (int j = 0; j < o.objs.size(); j++)
   {
     const char *name = o.objs[j].resName;
-    GameResHandle handle = GAMERES_HANDLE_FROM_STRING(name);
-    BaseEffectObject *base_fx = (BaseEffectObject *)::get_game_resource(handle);
+    BaseEffectObject *base_fx = (BaseEffectObject *)::get_game_resource_ex(name, EffectGameResClassId);
     if (!base_fx)
       continue;
 
@@ -187,6 +181,6 @@ void StaticFxObjects::init(const ObjectsToPlace &o, unsigned bindump_id /*= -1*/
 
       createOneStaticFxObject(&b, base_fx, tm, name, bindump_id, renderable);
     }
-    ::release_game_resource(handle);
+    ::release_game_resource_ex(base_fx, EffectGameResClassId);
   }
 }

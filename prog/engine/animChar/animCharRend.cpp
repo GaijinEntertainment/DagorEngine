@@ -32,6 +32,7 @@ namespace AnimCharV20
 static struct RenderContext
 {
   Frustum frustum;
+  eastl::optional<Frustum> bvhFrustum;
   bool isMainCamera = true; // todo: remove
   Occlusion *occlusion = NULL;
   unsigned prepared_in_frame = 0;
@@ -40,14 +41,18 @@ static struct RenderContext
 } // namespace AnimCharV20
 float AnimV20::AnimcharRendComponent::invWkSq = -1;
 
-void AnimCharV20::prepareGlobTm(bool is_main_camera, const Frustum &culling_frustum, float hk, const Point3 &viewPos,
-  Occlusion *occlusion)
+void AnimCharV20::prepareGlobTm(bool is_main_camera, const Frustum &culling_frustum, const Frustum *bvh_frustum, float hk,
+  const Point3 &viewPos, Occlusion *occlusion)
 {
   G_UNUSED(AnimCharV20::context.prepared_in_frame);
 #if DAGOR_DBGLEVEL > 0
   AnimCharV20::context.prepared_in_frame = dagor_frame_no();
 #endif
   AnimCharV20::context.frustum = culling_frustum;
+  if (bvh_frustum)
+    AnimCharV20::context.bvhFrustum = *bvh_frustum;
+  else
+    AnimCharV20::context.bvhFrustum.reset();
   AnimCharV20::context.isMainCamera = is_main_camera;
   AnimCharV20::context.viewPos = viewPos;
 
@@ -61,13 +66,18 @@ void AnimCharV20::prepareGlobTm(bool is_main_camera, const Frustum &culling_frus
     AnimcharRendComponent::invWkSq = -1;
 }
 
-void AnimCharV20::prepareFrustum(bool is_main_camera, const Frustum &culling_frustum, const Point3 &viewPos, Occlusion *occlusion)
+void AnimCharV20::prepareFrustum(bool is_main_camera, const Frustum &culling_frustum, const Frustum *bvh_frustum,
+  const Point3 &viewPos, Occlusion *occlusion)
 {
 #if DAGOR_DBGLEVEL > 0
   AnimCharV20::context.prepared_in_frame = dagor_frame_no();
 #endif
   AnimCharV20::context.isMainCamera = is_main_camera;
   AnimCharV20::context.frustum = culling_frustum;
+  if (bvh_frustum)
+    AnimCharV20::context.bvhFrustum = *bvh_frustum;
+  else
+    AnimCharV20::context.bvhFrustum.reset();
   AnimCharV20::context.viewPos = viewPos;
   AnimCharV20::context.occlusion = occlusion;
 }
@@ -162,8 +172,41 @@ vec4f AnimcharRendComponent::prepareSphere(const AnimcharFinalMat44 &finalWtm) c
   return v_perm_xyzd(finalWtm.bsph, v_max(finalWtm.bsph, v_add(v_sqrt(max_dist2), v_splats(bsphRadExpand))));
 }
 
+vec4f AnimcharRendComponent::prepareSphereAndCalcBox(bbox3f &out_wbb, const AnimcharFinalMat44 &finalWtm) const
+{
+  vec4f localExtents;
+  if (lodres)
+  {
+    bbox3f localBounds;
+    v_bbox3_init(localBounds, finalWtm.nwtm[0], v_ldu_bbox3(lodres->getLocalBoundingBox()));
+    localExtents = v_mul(v_sub(localBounds.bmax, localBounds.bmin), V_C_HALF);
+    out_wbb.bmin = out_wbb.bmax = v_add(localBounds.bmin, localExtents);
+  }
+  else
+  {
+    v_bbox3_init_empty(out_wbb);
+    localExtents = v_zero();
+  }
+
+  vec3f max_dist2 = v_zero();
+  vec3f c = v_sub(finalWtm.bsph, finalWtm.wofs);
+
+  for (int i = 0; i < nodeMap.size(); i++)
+    if (nodeMap[i].nodeIdx != dag::Index16(0))
+    {
+      vec4f nodePos = finalWtm.nwtm[nodeMap[i].nodeIdx.index()].col3;
+      v_bbox3_add_pt(out_wbb, nodePos);
+      max_dist2 = v_max(max_dist2, v_length3_sq(v_sub(c, nodePos)));
+    }
+
+  out_wbb.bmin = v_sub(v_add(out_wbb.bmin, finalWtm.wofs), localExtents);
+  out_wbb.bmax = v_add(v_add(out_wbb.bmax, finalWtm.wofs), localExtents);
+
+  return v_perm_xyzd(finalWtm.bsph, v_max(finalWtm.bsph, v_add(v_sqrt(max_dist2), v_splats(bsphRadExpand))));
+}
+
 uint16_t AnimcharRendComponent::beforeRender(const AnimcharFinalMat44 &finalWtm, vec4f &out_rendBsph, bbox3f &out_rendBbox,
-  const Frustum &f, float inv_wk_sq, Occlusion *occl, const Point3 &cam_pos, float lodDistMul)
+  const Frustum &f, const Frustum *bf, float inv_wk_sq, Occlusion *occl, const Point3 &cam_pos, float lodDistMul)
 {
   sceneBeforeRenderedCalled = false;
   out_rendBsph = finalWtm.bsph;
@@ -203,6 +246,9 @@ uint16_t AnimcharRendComponent::beforeRender(const AnimcharFinalMat44 &finalWtm,
     }
   }
 
+  if (bf && bf->testSphereB(out_rendBsph, v_splat_w(out_rendBsph)))
+    visBits |= VISFLG_BVH;
+
   if (visBits & VISFLG_BSPH) //== trivial heuristic to render shadows when big bsphere in visible
     visBits |= VISFLG_SHADOW;
 
@@ -229,7 +275,8 @@ uint16_t AnimcharRendComponent::beforeRenderLegacy(const AnimcharFinalMat44 &fin
   // G_ASSERTF(AnimCharV20::prepared_in_frame == dagor_frame_no(),
   //   "AnimCharV20::prepareGlobTm() or AnimCharV20::prepareFrustum() last called on frame %d, but current is %d",
   //   AnimCharV20::prepared_in_frame, dagor_frame_no());
-  return beforeRender(finalWtm, out_rendBsph, out_rendBbox, AnimCharV20::context.frustum, AnimcharRendComponent::invWkSq,
+  return beforeRender(finalWtm, out_rendBsph, out_rendBbox, AnimCharV20::context.frustum,
+    AnimCharV20::context.bvhFrustum ? &AnimCharV20::context.bvhFrustum.value() : nullptr, AnimcharRendComponent::invWkSq,
     AnimCharV20::context.occlusion, AnimCharV20::context.viewPos, lodDistMul);
 }
 
@@ -292,10 +339,9 @@ void AnimcharRendComponent::setSceneInstance(DynamicRenderableSceneInstance *ins
 
 void AnimcharRendComponent::updateLodResFromSceneInstance() { lodres = scene->getLodsResource(); }
 
-bool AnimcharRendComponent::load(const AnimCharCreationProps &props, int modelId, const GeomNodeTree &tree,
-  const AnimcharFinalMat44 &finalWtm)
+bool AnimcharRendComponent::load(const AnimCharCreationProps &props, DynamicRenderableSceneLodsResource *model,
+  const GeomNodeTree &tree, const AnimcharFinalMat44 &finalWtm)
 {
-  DynamicRenderableSceneLodsResource *model = (DynamicRenderableSceneLodsResource *)::get_game_resource(modelId);
   if (!model)
     return false;
 
@@ -323,8 +369,6 @@ bool AnimcharRendComponent::load(const AnimCharCreationProps &props, int modelId
   }
   if (!props.createVisInst)
     nodeMap.clear();
-
-  ::release_game_resource(modelId);
   return true;
 }
 

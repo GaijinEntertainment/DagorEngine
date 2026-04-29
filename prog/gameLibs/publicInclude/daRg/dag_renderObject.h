@@ -27,6 +27,8 @@ class Element;
 class RendObjParams;
 struct RenderState;
 
+const char *get_rendobj_factory_name(int id);
+
 
 struct ElemRenderData
 {
@@ -114,6 +116,7 @@ extern int rendobj_text_id;
 extern int rendobj_inscription_id;
 extern int rendobj_textarea_id;
 extern int rendobj_image_id;
+extern int rendobj_srgb_image_id;
 extern int rendobj_world_blur_id;
 
 void register_std_rendobj_factories();

@@ -8,7 +8,7 @@ static constexpr ecs::ComponentDesc dynamic_screen_on_appear_es_comps[] =
 {
 //start of 2 rw components at [0]
   {ECS_HASH("dynamic_screen__texture"), ecs::ComponentTypeInfo<SharedTex>()},
-  {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
+  {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>(), ecs::CDF_OPTIONAL},
 //start of 2 ro components at [2]
   {ECS_HASH("dynamic_screen__texture_size"), ecs::ComponentTypeInfo<IPoint2>()},
   {ECS_HASH("dynamic_screen__texture_mips"), ecs::ComponentTypeInfo<int>()}
@@ -20,7 +20,7 @@ static void dynamic_screen_on_appear_es_all_events(const ecs::Event &__restrict 
         , ECS_RW_COMP(dynamic_screen_on_appear_es_comps, "dynamic_screen__texture", SharedTex)
     , ECS_RO_COMP(dynamic_screen_on_appear_es_comps, "dynamic_screen__texture_size", IPoint2)
     , ECS_RO_COMP(dynamic_screen_on_appear_es_comps, "dynamic_screen__texture_mips", int)
-    , ECS_RW_COMP(dynamic_screen_on_appear_es_comps, "animchar_render", AnimV20::AnimcharRendComponent)
+    , ECS_RW_COMP_PTR(dynamic_screen_on_appear_es_comps, "animchar_render", AnimV20::AnimcharRendComponent)
     );
   while (++comp != compE);
 }

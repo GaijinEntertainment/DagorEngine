@@ -2,6 +2,8 @@
 #pragma once
 
 #include <EASTL/array.h>
+#include <EASTL/functional.h>
+#include <math/dag_Point2.h>
 #include <math/integer/dag_IPoint2.h>
 
 struct ClipmapDebugStats
@@ -31,3 +33,6 @@ struct ClipmapDebugStats
 extern ClipmapDebugStats clipmapDebugStats;
 
 bool clipmap_should_collect_debug_stats();
+
+using InvalidatePointFn = eastl::function<void(const Point2 &world_xz)>;
+void clipmap_debug_before_prepare_feedback(const InvalidatePointFn &invalidatePointFn);

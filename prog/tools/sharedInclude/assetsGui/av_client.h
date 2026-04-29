@@ -6,6 +6,7 @@
 
 namespace PropPanel
 {
+class IMenu;
 class ITreeInterface;
 class TreeBaseWindow;
 } // namespace PropPanel
@@ -25,10 +26,20 @@ public:
   virtual void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) = 0;
 };
 
+class IAssetBrowserHost
+{
+public:
+  virtual void assetBrowserFill() = 0;
+  virtual bool assetBrowserIsOpen() const = 0;
+  virtual void assetBrowserSetOpen(bool open) = 0;
+  virtual void assetBrowserOnAssetSelected(DagorAsset *asset, bool double_clicked) = 0;
+  virtual void assetBrowserOnContextMenu(DagorAsset *asset) = 0;
+};
+
 class IAssetSelectorContextMenuHandler
 {
 public:
-  virtual bool onAssetSelectorContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) = 0;
+  virtual bool onAssetSelectorContextMenu(PropPanel::IMenu &menu, DagorAsset *asset, DagorAssetFolder *asset_folder) = 0;
 };
 
 class IAssetSelectorFavoritesRecentlyUsedHost
@@ -39,4 +50,6 @@ public:
   virtual void goToAsset(const DagorAsset &asset) = 0;
   virtual void onSelectionChanged(const DagorAsset *asset) = 0;
   virtual void onSelectionDoubleClicked(const DagorAsset *asset) = 0;
+  virtual IAssetBrowserHost &getAssetBrowserHost() = 0;
+  virtual IAssetSelectorContextMenuHandler &getAssetSelectorContextMenuHandler() = 0;
 };

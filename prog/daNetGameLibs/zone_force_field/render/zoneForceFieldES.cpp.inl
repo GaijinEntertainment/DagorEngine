@@ -3,7 +3,9 @@
 #include "zoneForceField.h"
 
 #include <3d/dag_lockSbuffer.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/shaderVar.h>
 #include <ecs/render/updateStageRender.h>
 #include "render/renderEvent.h"
@@ -11,12 +13,15 @@
 #include "main/level.h"
 #include <shaders/dag_shaderBlock.h>
 #include <perfMon/dag_statDrv.h>
+#include <render/world/cameraViewVisibilityManager.h>
 #include <render/world/frameGraphHelpers.h>
+#include <render/world/postfxRender.h>
+#include <render/world/wrDispatcher.h>
+#include <math/dag_mathUtils.h>
 
-#define INSIDE_RENDERER 1
-#include "render/world/private_worldRenderer.h"
 #include "render/world/global_vars.h"
 #include <util/dag_convar.h>
+#include <util/dag_stdint.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
@@ -31,51 +36,23 @@ static int forcefield_bilateral_upscale_enabledVarId = -1;
 static CompiledShaderChannelId forcefield_channels[] = {{SCTYPE_FLOAT3, SCUSAGE_POS, 0, 0}};
 
 template <typename Callable>
-inline void zone_force_field_render_ecs_query(Callable fn);
+inline void zone_force_field_render_ecs_query(ecs::EntityManager &manager, Callable fn);
 template <typename Callable>
-inline void local_player_immune_to_forcefield_ecs_query(Callable fn);
+inline void local_player_immune_to_forcefield_ecs_query(ecs::EntityManager &manager, Callable fn);
 template <typename Callable>
-inline void update_transparent_partition_ecs_query(Callable fn);
+inline void update_transparent_partition_ecs_query(ecs::EntityManager &manager, Callable fn);
 
 ECS_TAG(render)
 ECS_NO_ORDER
-static void gather_spheres_es_event_handler(const UpdateStageInfoBeforeRender &evt, ZoneForceFieldRenderer &zone_force_field)
+static void gather_spheres_es_event_handler(
+  const UpdateStageInfoBeforeRender &evt, ecs::EntityManager &manager, ZoneForceFieldRenderer &zone_force_field)
 {
   zone_force_field.gatherForceFields(evt.viewItm, evt.mainCullingFrustum, nullptr);
 
   PartitionSphere closestSphere = zone_force_field.getClosestForceField(evt.camPos);
-  update_transparent_partition_ecs_query([&](PartitionSphere &partition_sphere) { partition_sphere = closestSphere; });
+  update_transparent_partition_ecs_query(manager, [&](PartitionSphere &partition_sphere) { partition_sphere = closestSphere; });
 }
 
-// Calculates radius from which we start to draw back side of the polygonal sphere.
-static bool is_camera_outside_sphere_mesh(
-  Point3 relCamPos, float sphR, uint32_t slices /* count of meridians */, uint32_t stacks /* count of parallels + 1 */)
-{
-  float stackAngle = PI / stacks;
-  float camH = relCamPos.y;
-  float camDistSq = lengthSq(relCamPos);
-  float camDist = sqrtf(camDistSq);
-  // Check if camera closer than the radius of the inscribed sphere of an octahedron (very a low polygon sphere)
-  // Some check is required anyway to avoid division by 0
-  if (camDist < sphR * 0.408f)
-    return false;
-  float camAngleH = safe_acos(camH / camDist); // Angle between cam and positive Y.
-  float camAngleHTrunc = fmod(camAngleH, stackAngle);
-  // Flat radius at cam height.
-  float halfStackAngle = stackAngle * 0.5f;
-  float rH = sphR * cos(halfStackAngle) / cos(camAngleHTrunc - halfStackAngle) * sin(camAngleH);
-
-  float sliceAngle = 2.0f * PI / slices;
-  Point2 camPosFlat = Point2(relCamPos.x, relCamPos.z);
-  float camRad = max(1e-6f, length(camPosFlat));         // to avoid division by 0
-  float camAngleFlat = safe_acos(camPosFlat.x / camRad); // Angle between cam and positive XY quad.
-  float camAngleTrunc = fmod(camAngleFlat, sliceAngle);
-  float halfSliceAngle = sliceAngle * 0.5f;
-  float r = rH * cos(halfSliceAngle) / cos(camAngleTrunc - halfSliceAngle);
-
-  float trSq = r * r + camH * camH;
-  return camDistSq > trSq;
-}
 
 ZoneForceFieldRenderer::~ZoneForceFieldRenderer()
 {
@@ -127,19 +104,8 @@ dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *renderi
 
       registry.allowAsyncPipelines();
 
-      if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
-      {
-        // In Forward Render we are rendering zone force field in two passes
-        // to remove expensive render pass break
-        // which is usefull for Android devices
-        registry.orderMeAfter("frame_data_setup_mobile");
-        const char *fullresDepthSyncNode =
-          renderer_has_feature(FeatureRenderFlags::MOBILE_DEFERRED) ? "opaque_setup_mobile" : "opaque_node";
-        registry.orderMeBefore(fullresDepthSyncNode);
-      }
-
       auto lowResFfHndl =
-        registry.create("low_res_forcefield", dafg::History::No)
+        registry.create("low_res_forcefield")
           .texture(dafg::Texture2dCreateInfo{render_target_fmt | TEXCF_RTARGET, registry.getResolution<2>("main_view", .5f), 1})
           .atStage(dafg::Stage::POST_RASTER)
           .useAs(dafg::Usage::COLOR_ATTACHMENT)
@@ -147,39 +113,39 @@ dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *renderi
 
       // To do this through FG render passes, we need to support clears
       eastl::optional<dafg::VirtualResourceHandle<const Texture, true, false>> maybeDownsampledDepthHndl;
-      if (!renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
-      {
-        maybeDownsampledDepthHndl = registry.read("downsampled_depth_with_early_after_envi_water")
-                                      .texture()
-                                      .atStage(dafg::Stage::PS)
-                                      .useAs(dafg::Usage::DEPTH_ATTACHMENT)
-                                      .handle();
-      }
+
+      maybeDownsampledDepthHndl = registry.read("downsampled_depth_with_early_after_envi_water")
+                                    .texture()
+                                    .atStage(dafg::Stage::PS)
+                                    .useAs(dafg::Usage::DEPTH_ATTACHMENT)
+                                    .handle();
+
 
       // shader does not use half_res_depth_tex on mobile
-      if (!renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
+
+      if (bilateral_upscale && renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED))
       {
-        if (bilateral_upscale && renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED))
-        {
-          registry.read("checkerboard_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_checkerboard_depth_tex");
-          registry.read("checkerboard_depth_sampler")
-            .blob<d3d::SamplerHandle>()
-            .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate");
-        }
-        else
-        {
-          registry.read("far_downsampled_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_far_depth_tex");
-          registry.read("far_downsampled_depth_sampler")
-            .blob<d3d::SamplerHandle>()
-            .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
-        }
+        registry.read("checkerboard_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_checkerboard_depth_tex");
+        registry.read("checkerboard_depth_sampler")
+          .blob<d3d::SamplerHandle>()
+          .bindToShaderVar("downsampled_checkerboard_depth_tex_samplerstate");
+      }
+      else
+      {
+        registry.read("far_downsampled_depth").texture().atStage(dafg::Stage::PS).bindToShaderVar("downsampled_far_depth_tex");
+        registry.read("far_downsampled_depth_sampler")
+          .blob<d3d::SamplerHandle>()
+          .bindToShaderVar("downsampled_far_depth_tex_samplerstate");
       }
 
       registry.requestState().setFrameBlock("global_frame");
 
-      auto cameraHndl = use_camera_in_camera(registry);
+      auto camera = use_camera_in_camera(registry);
+      auto cameraHndl = CameraViewShvars{camera}.bindViewVecs().toHandle();
 
-      return [this, cameraHndl, lowResFfHndl, maybeDownsampledDepthHndl]() {
+      return [this, cameraHndl, lowResFfHndl, maybeDownsampledDepthHndl](const dafg::multiplexing::Index &multiplexing_index) {
+        camera_in_camera::ApplyPostfxState camcam{multiplexing_index, cameraHndl.ref(), camera_in_camera::USE_STENCIL};
+
         TextureInfo info;
         lowResFfHndl.ref().getinfo(info);
         texHt = info.h;
@@ -209,9 +175,6 @@ dafg::NodeHandle ZoneForceFieldRenderer::createRenderingNode(const char *renderi
         }
         // as we are not applying force field right away, we must reset overrides by our own
         shaders::overrides::reset();
-
-        if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
-          d3d::resource_barrier({lowResFfHndl.get(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
       };
     });
 }
@@ -238,25 +201,16 @@ dafg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applying
         d3d::SamplerInfo smpInfo;
         smpInfo.filter_mode = bilateral_upscale && renderer_has_feature(FeatureRenderFlags::FULL_DEFERRED) ? d3d::FilterMode::Point
                                                                                                            : d3d::FilterMode::Linear;
-        registry.create("low_res_forcefield_sampler", dafg::History::No)
+        registry.create("low_res_forcefield_sampler")
           .blob(d3d::request_sampler(smpInfo))
           .bindToShaderVar("low_res_forcefield_samplerstate");
       }
 
-      // Dirty hacks: FG has a crutch where barriers are always late on
-      // vulkan, but we actually want an early barrier here to avoid a
-      // render pass brek. See the forcefield render node, it has an
-      // explicit barrier recorded at the end of execution, while here
-      // the barrier is suppressed by overwriting the request with
-      // unknown usages.
-      // We really need proper mobile RP handling in FG soon...
-      if (renderer_has_feature(FeatureRenderFlags::FORWARD_RENDERING))
-        registry.read("low_res_forcefield").texture().atStage(dafg::Stage::UNKNOWN).useAs(dafg::Usage::UNKNOWN);
-
       registry.read("upscale_sampling_tex").texture().atStage(dafg::Stage::PS).bindToShaderVar("upscale_sampling_tex").optional();
 
       // Distortion is only used in some games
-      registry.read("forcefield_distortion")
+      (registry.root() / "transparent" / "far")
+        .read("forcefield_distortion")
         .texture()
         .atStage(dafg::Stage::PS)
         .bindToShaderVar("forcefield_distortion_res_tex")
@@ -264,7 +218,7 @@ dafg::NodeHandle ZoneForceFieldRenderer::createApplyingNode(const char *applying
       {
         d3d::SamplerInfo smpInfo;
         smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
-        registry.create("forcefield_distortion_sampler", dafg::History::No)
+        registry.create("forcefield_distortion_sampler")
           .blob(d3d::request_sampler(smpInfo))
           .bindToShaderVar("forcefield_distortion_res_tex_samplerstate")
           .optional();
@@ -345,6 +299,7 @@ void ZoneForceFieldRenderer::applyMany() const
   forceFieldManyApplier.render();
 }
 
+
 void ZoneForceFieldRenderer::gatherForceFields(const TMatrix &view_itm, const Frustum &culling_frustum, const Occlusion *occlusion)
 {
   TIME_PROFILE(zone_force_field_gathering);
@@ -352,27 +307,27 @@ void ZoneForceFieldRenderer::gatherForceFields(const TMatrix &view_itm, const Fr
   frameZonesOut.clear();
 
   bool isPlayerImmuneToForcefield = false;
-  local_player_immune_to_forcefield_ecs_query([&](ecs::EntityId possessed, bool is_local) {
+  local_player_immune_to_forcefield_ecs_query(*g_entity_mgr, [&](ecs::EntityId possessed, bool is_local) {
     if (is_local)
       isPlayerImmuneToForcefield = g_entity_mgr->getOr(possessed, ECS_HASH("corruptionInvulnerability"), false);
   });
 
-  zone_force_field_render_ecs_query(
+  zone_force_field_render_ecs_query(*g_entity_mgr,
     [&](const TMatrix &transform, float sphere_zone__radius, ShaderVar zone_pos_radius ECS_REQUIRE(ecs::Tag render_forcefield),
+      uint32_t sphere_zone__slices = ZoneForceFieldRenderer::SLICES, uint32_t sphere_zone__stacks = ZoneForceFieldRenderer::SLICES,
       float forcefieldFog__fadeSlowness = 16.0f, float forcefieldFog__fadeLimit = 0.4f, bool forcefieldAppliesFog = false) {
       Point3 sphC = transform.getcol(3);
       if (forcefieldAppliesFog)
       {
-        WorldRenderer *renderer = ((WorldRenderer *)get_world_renderer());
-
-        if (renderer->haveVolumeLights())
+        const bool hasVolumeLight = WRDispatcher::getVolumeLight();
+        if (hasVolumeLight)
         {
-          ShaderGlobal::set_color4(zone_pos_radius, sphC.x, sphC.y, sphC.z, sphere_zone__radius);
+          ShaderGlobal::set_float4(zone_pos_radius, sphC.x, sphC.y, sphC.z, sphere_zone__radius);
         }
         else
         {
           if (isPlayerImmuneToForcefield)
-            renderer->setFadeMul(1);
+            set_fade_mul(1);
           else
           {
             float zoneDepth = length(sphC - view_itm.getcol(3)) - sphere_zone__radius;
@@ -382,15 +337,15 @@ void ZoneForceFieldRenderer::gatherForceFields(const TMatrix &view_itm, const Fr
             else
               zoneDepth = 1.0f;
 
-            renderer->setFadeMul(zoneDepth);
+            set_fade_mul(zoneDepth);
           }
         }
       }
       if (!culling_frustum.testSphereB(sphC, sphere_zone__radius))
         return;
       Point4 zone = Point4(sphC.x, sphC.y, sphC.z, sphere_zone__radius);
-      bool isCameraOutsideMesh = is_camera_outside_sphere_mesh(view_itm.getcol(3) - sphC, sphere_zone__radius,
-        ZoneForceFieldRenderer::SLICES, ZoneForceFieldRenderer::SLICES);
+      bool isCameraOutsideMesh =
+        is_pos_outside_sphere_mesh(view_itm.getcol(3) - sphC, sphere_zone__radius, sphere_zone__slices, sphere_zone__stacks);
       if (isCameraOutsideMesh)
       {
         zone.w -= radius_offset.get();
@@ -430,16 +385,16 @@ static void resetZoneShadervar()
 {
   int zonePosRadVarId = get_shader_variable_id("zone_pos_radius", true);
   if (zonePosRadVarId >= 0)
-    ShaderGlobal::set_color4(zonePosRadVarId, 0, 0, 0, 1e+06);
+    ShaderGlobal::set_float4(zonePosRadVarId, 0, 0, 0, 1e+06);
 }
 
+ECS_TAG(dngRenderIsActive)
 static __forceinline void zone_reset_on_new_level_es_event_handler(const EventLevelLoaded &)
 {
   // reset zone on level reload for volfog, so it has a big enough radius to have no effect
   resetZoneShadervar();
 
-  WorldRenderer *renderer = ((WorldRenderer *)get_world_renderer());
-
-  if (!renderer->haveVolumeLights())
-    renderer->setFadeMul(1);
+  const bool hasVolumeLight = WRDispatcher::getVolumeLight();
+  if (!hasVolumeLight)
+    set_fade_mul(1);
 }

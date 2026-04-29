@@ -1,7 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ioSys/dag_dataBlock.h>
 #include <math/random/dag_random.h>
 #include <math/dag_mathUtils.h>

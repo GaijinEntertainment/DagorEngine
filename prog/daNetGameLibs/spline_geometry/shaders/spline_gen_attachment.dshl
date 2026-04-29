@@ -9,7 +9,6 @@ shader dynamic_spline_attachment
   {
     cull_mode = none;
   }
-  ENABLE_ASSERT(ps)
 
   USING_ATEST_HALF()
 
@@ -33,7 +32,9 @@ shader dynamic_spline_attachment
 
   channel float3 pos=pos;
   channel float2 tc[0]=tc[0];
-  channel float3 norm=norm;
+  channel color8 norm = norm unsigned_pack;
+
+  USE_UNPACK_UNIT_VECTOR_VS()
 
   hlsl (vs)
   {
@@ -46,6 +47,7 @@ shader dynamic_spline_attachment
 
     VsOutput spline_gen_attachment_vs(VsInput input, uint attachment_instance_id : SV_InstanceID)
     {
+      float3 unpackedNormal = unpack_unit_vector(input.normal);
       ##if in_editor_assume == no
         uint hardwareInstanceId = attachment_instance_id / spline_gen_attachment_max_no;
         InstanceId instanceId = structuredBufferAt(spline_gen_culled_buffer, hardwareInstanceId);
@@ -67,10 +69,10 @@ shader dynamic_spline_attachment
         float3 currBaseWorldPos;
         unpack_tm(currData, currRotScaleMat, currBaseWorldPos);
         float3 currWorldPos = mul(input.position, currRotScaleMat) + currBaseWorldPos;
-        float3 currNormal = normalize(mul(input.normal, currRotScaleMat));
+        float3 currNormal = normalize(mul(unpackedNormal, currRotScaleMat));
       ##else
         float3 currWorldPos = input.position;
-        float3 currNormal = input.normal;
+        float3 currNormal = unpackedNormal;
       ##endif
 
       VsOutput output;
@@ -102,8 +104,8 @@ shader dynamic_spline_attachment
 
   (ps)
   {
-    diffuse_tex@static = tex;
-    normal_tex@static = normal;
+    diffuse_tex@staticSmp = tex;
+    normal_tex@staticSmp = normal;
   }
 
   if (dyn_model_render_pass == render_pass_normal)

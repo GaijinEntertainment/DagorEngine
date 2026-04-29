@@ -1,0 +1,1 @@
+Returns a diagnostic string containing the function's own semantic hash and all non-builtin dependency hashes with their mangled names. Used for comparing AOT-generated hash comments with runtime-computed values to diagnose AOT link failures (error 50101).

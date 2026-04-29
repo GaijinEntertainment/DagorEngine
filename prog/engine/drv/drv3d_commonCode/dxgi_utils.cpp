@@ -6,11 +6,21 @@
 
 #if _TARGET_PC_WIN
 
-#include <util/dag_string.h>
-#include <dxgi.h>
-
 #include <EASTL/vector.h>
+#include <EASTL/string_view.h>
 #include <cmath>
+
+#include <util/dag_string.h>
+#include <startup/dag_globalSettings.h>
+
+#include "winapi_helpers.h"
+
+#if DEBUG_REPORT_REGISTRY_INSPECTION
+#define DEBUG_REG debug
+#else
+#define DEBUG_REG(...)
+#endif
+
 
 static constexpr size_t outputNameSize = 64;
 static_assert(outputNameSize >= sizeof(DXGI_OUTPUT_DESC::DeviceName), "sizeof outputName is too small!");
@@ -254,6 +264,63 @@ eastl::optional<eastl::pair<uint32_t, uint32_t>> get_recommended_resolution(IDXG
   }
 
   return eastl::pair<uint32_t, uint32_t>(PreferredMode.width, PreferredMode.height);
+}
+
+DriverVersion get_driver_version_from_adapter(IDXGIAdapter *adapter)
+{
+  if (LARGE_INTEGER umdVersion; SUCCEEDED(adapter->CheckInterfaceSupport(__uuidof(IDXGIDevice), &umdVersion)))
+  {
+    return {
+      .product = HIWORD(umdVersion.HighPart),
+      .major = LOWORD(umdVersion.HighPart),
+      .minor = HIWORD(umdVersion.LowPart),
+      .build = LOWORD(umdVersion.LowPart),
+    };
+  }
+  return {};
+}
+
+DXGI_GPU_PREFERENCE get_gpu_preference_from_registry()
+{
+  static const char directx_path[] = "Software\\Microsoft\\DirectX\\UserGpuPreferences";
+  static const char gpu_preference[] = "GpuPreference";
+
+  eastl::string_view exeName(dgs_argv[0]);
+
+  REGSAM options = KEY_READ;
+  RegistryKey baseKey{HKEY_CURRENT_USER, directx_path, 0, options};
+  if (!baseKey)
+  {
+    DEBUG_REG("DXGI: Failed...");
+    logdbg("DXGI: Unable to open current user registry path <%s>", directx_path);
+    return DXGI_GPU_PREFERENCE_UNSPECIFIED;
+  }
+
+  auto [valueCount, maxValueLenth, valueSize] = baseKey.queryValueCountMaxLengthAndSize();
+  if (!valueCount)
+  {
+    return DXGI_GPU_PREFERENCE_UNSPECIFIED;
+  }
+
+  dag::Vector<char> nameBuf(maxValueLenth + 1, '\0'), valueBuf(valueSize + 1, '\0');
+  for (DWORD v = 0; v < valueCount; ++v)
+  {
+    auto [valueName, value] = baseKey.enumValueNameAndValue(v, nameBuf, valueBuf);
+    if (valueName == exeName)
+    {
+      eastl::string_view stringValue(value.data(), value.size());
+      if (stringValue.starts_with(gpu_preference))
+      {
+        switch (value[sizeof(gpu_preference)])
+        {
+          case '1': return DXGI_GPU_PREFERENCE_MINIMUM_POWER;
+          case '2': return DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+        }
+      }
+    }
+  }
+
+  return DXGI_GPU_PREFERENCE_UNSPECIFIED;
 }
 
 #endif

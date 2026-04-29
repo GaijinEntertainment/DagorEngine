@@ -3,3 +3,5 @@ static const int TILE_EDGE = 1L << DIVIDE_RESOLUTION_BITS;
 static const int DWORDS_PER_TILE = 16;
 static const int Z_BINS_COUNT = 4096;
 static const int BITS_IN_UINT = 32;
+static const int Z_BINNING_GROUP_SIZE = 256;
+static const int Z_BINNING_LIGHTS_BLOCK_SIZE = 16;

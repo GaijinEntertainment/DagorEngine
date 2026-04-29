@@ -1,6 +1,12 @@
 include "gbuffer.dshl"
 include "dynamic_opaque_inc.dshl"
 include "normaldetail.dshl"
+include "sq_clouds_shadow.dshl"
+include "glass.dshl"
+include "use_gi.dshl"
+include "refraction.dshl"
+include "indoor_light_probes.dshl"
+include "dynamic_trans_inc.dshl"
 
 int spline_gen_slices;
 int spline_gen_stripes;
@@ -8,6 +14,8 @@ int spline_gen_vertex_count;
 buffer spline_gen_instancing_buffer;
 buffer spline_gen_spline_buffer;
 buffer spline_gen_prev_spline_buffer;
+buffer spline_gen_vertex_buffer;
+buffer spline_gen_prev_vertex_buffer;
 buffer spline_gen_indirection_buffer;
 
 buffer spline_gen_culled_buffer;
@@ -21,9 +29,39 @@ float4 prevOrigoRelativeViewProjTm1;
 float4 prevOrigoRelativeViewProjTm2;
 float4 prevOrigoRelativeViewProjTm3;
 
+buffer spline_gen_shape_data_buffer;
+
 texture spline_gen_texture_d;
 texture spline_gen_texture_emissive_mask;
 texture spline_gen_texture_skin_ao;
+
+macro USE_UNIT_VEC_CODEC()
+  hlsl
+  {
+    #define ELEVEN_BITS_MASK 0x7FF
+    #define TEN_BITS_MASK 0x3FF
+    uint encode_unit_vector(float3 unit_vec)
+    {
+      float3 scaledVec = saturate(unit_vec * 0.5 + 0.5);
+      uint3 unpackedVec = uint3(round(scaledVec * float3(ELEVEN_BITS_MASK, ELEVEN_BITS_MASK, TEN_BITS_MASK)));
+      uint packedVec = ((unpackedVec.x & ELEVEN_BITS_MASK) << 21 ) |
+                       ((unpackedVec.y & ELEVEN_BITS_MASK) << 10)  |
+                       (unpackedVec.z & TEN_BITS_MASK);
+      return packedVec;
+    }
+
+    float3 decode_unit_vector(uint packed_vec)
+    {
+      uint3 unpackedVec;
+      unpackedVec.x = (packed_vec >> 21) & ELEVEN_BITS_MASK;
+      unpackedVec.y = (packed_vec >> 10) & ELEVEN_BITS_MASK;
+      unpackedVec.z = packed_vec & TEN_BITS_MASK;
+      float3 scaledVec = float3(unpackedVec) / float3(ELEVEN_BITS_MASK, ELEVEN_BITS_MASK, TEN_BITS_MASK);
+      float3 unitVec = normalize(scaledVec * 2 - 1);
+      return unitVec;
+    }
+  }
+endmacro
 
 macro INIT_SPLINE_GEN_INSTANTIATION_BASE(stage)
   (stage)
@@ -39,6 +77,10 @@ macro INIT_SPLINE_GEN_INSTANTIATION_BASE(stage)
     spline_gen_spline_buffer@buf = spline_gen_spline_buffer hlsl {
       #include "spline_gen_buffer.hlsli"
       StructuredBuffer<SplineGenSpline> spline_gen_spline_buffer@buf;
+    };
+    spline_gen_shape_data_buffer@buf = spline_gen_shape_data_buffer hlsl {
+      #include "spline_gen_buffer.hlsli"
+      StructuredBuffer<SplineGenShapeData> spline_gen_shape_data_buffer@buf;
     };
   }
 endmacro
@@ -108,10 +150,20 @@ macro USE_SPLINE_GEN_INSTANTIATION(stage)
     {
       return instance_id * (spline_gen_stripes + 1) +  local_spline;
     }
+
+    uint get_vb_index(InstanceId instance_id, uint vertex_id)
+    {
+      return instance_id * spline_gen_vertex_count + vertex_id;
+    }
+
+    uint decode_vb_index(InstanceId instance_id, uint2 coord, int2 shift)
+    {
+      return get_vb_index(instance_id, decode_shifted_coord(coord, shift));
+    }
   }
 endmacro
 
-macro USE_VS_SPLINE_GEN(stage)
+macro USE_SPLINE_GEN(stage, needs_uv_scroll, use_vertex_buffer_for_normal_calc)
   hlsl(stage)
   {
     float3x3 get_spline_tm(SplineGenSpline spline)
@@ -119,43 +171,98 @@ macro USE_VS_SPLINE_GEN(stage)
       return float3x3(spline.tangent, spline.bitangent, cross(spline.tangent, spline.bitangent));
     }
 
-    float get_radius(SplineGenSpline spline, SplineGenInstance instance_data, float2 float_coord)
+  ##if needs_uv_scroll
+    float get_radius(SplineGenSpline spline, SplineGenInstance instance_data, float2 texcoord, float2 texcoord2)
+  ##else
+    float get_radius(SplineGenSpline spline, SplineGenInstance instance_data, float2 texcoord)
+  ##endif
     {
-      float2 texcoord = float_coord * instance_data.tcMul;
       float alpha = tex2Dlod(spline_gen_texture_d, float4(texcoord, 0, instance_data.displacementLod)).a;
+    ##if needs_uv_scroll
+      float alpha2 =  tex2Dlod(spline_gen_texture_d, float4(texcoord2, 0, instance_data.displacementLod)).a;
+      alpha = lerp(alpha, alpha2, instance_data.uvInterpolationValue);
+    ##endif
       float radius = spline.radius;
       radius *= 1 + (alpha * 2 - 1) * instance_data.displacementStrength;
       return radius;
     }
 
-    float3 get_world_pos(SplineGenSpline spline, SplineGenInstance instance_data, uint2 coord)
+    float4 sample_shape(int shape_data_ofs, int segment_nr, float2 float_coord, float4 default_value)
+    {
+      float4 retPos = default_value;
+
+      if (shape_data_ofs >= 0)
+      {
+        uint ofs = uint(shape_data_ofs);
+        float distAround = float_coord.x * float(segment_nr);
+        uint nearestIdx = uint(min(floor(distAround), float(segment_nr) - 1.0));
+        SplineGenShapeData data = structuredBufferAt(spline_gen_shape_data_buffer, ofs + nearestIdx);
+        float localT = distAround - float(nearestIdx);
+        retPos = float4(lerp(data.firstPos.xyw, data.lastPos.xyw, localT), float_coord.y);
+      }
+      return retPos;
+    }
+
+    float3 get_world_pos(SplineGenSpline spline, SplineGenInstance instance_data, uint2 coord, out float2 texCoord,
+      float4 uv_offsets = float4(0,0,0,0), float4 uv_scales = float4(1,1,1,1))
     {
       const float3 planeX = float3(0,1,0);
       const float3 planeY = float3(0,0,1);
 
       float2 floatCoord = convert_coord_to_float(coord);
-      float radius = get_radius(spline, instance_data, floatCoord);
 
       float sina, cosa;
-      sincos(floatCoord.x * PI * 2.0, sina, cosa);
-      float3 localPos = cosa * planeX - sina * planeY;
+      sincos((floatCoord.x + instance_data.cylinderStartOffset) * PI * 2.0, sina, cosa);
+      float4 circlePos = float4(cosa, -sina, floatCoord.x, floatCoord.y);
 
+      float4 closestShapeSample = sample_shape(spline.closestShapeOfs, spline.closestShapeSegmentNr, floatCoord, circlePos);
+      float4 secondClosestShapeSample = sample_shape(spline.secondClosestShapeOfs, spline.secondClosestShapeSegmentNr, floatCoord, circlePos);
+      float4 sampledShapePos = lerp(closestShapeSample, secondClosestShapeSample, spline.distToClosest);
+      texCoord = sampledShapePos.zw * instance_data.tcMul;
+
+      float3 localPos = sampledShapePos.x * planeX + sampledShapePos.y * planeY;
+    ##if needs_uv_scroll
+      float2 texCoord2 = texCoord * uv_scales.zw + uv_offsets.zw;
+      float2 tmpTexCoord = texCoord * uv_scales.xy + uv_offsets.xy;
+      float radius = get_radius(spline, instance_data, tmpTexCoord, texCoord2);
+    ##else
+      float radius = get_radius(spline, instance_data, texCoord);
+    ##endif
       float3x3 splineTm = get_spline_tm(spline) * radius;
       return mul(localPos, splineTm) + spline.pos;
     }
 
-    float3 get_world_pos(SplineGenInstance instance_data, InstanceId instance_id, uint2 coord, int2 shift)
+    float3 get_world_pos(SplineGenSpline spline, SplineGenInstance instance_data, uint2 coord, float4 uv_offsets = float4(0,0,0,0), float4 uv_scales = float4(1,1,1,1))
+    {
+      float2 texcoord;
+      return get_world_pos(spline, instance_data, coord, texcoord, uv_offsets, uv_scales);
+    }
+
+    float3 get_world_pos(SplineGenInstance instance_data, InstanceId instance_id, uint2 coord, int2 shift,
+      float4 uv_offsets = float4(0,0,0,0), float4 uv_scales = float4(1,1,1,1))
     {
       uint2 shifted_coord = shift_coord(coord, shift);
       uint decoded_idx = decode_coord(shifted_coord);
       uint splineIndex = get_spline_index(instance_id, shifted_coord.y);
 
       SplineGenSpline spline = structuredBufferAt(spline_gen_spline_buffer, splineIndex);
-      return get_world_pos(spline, instance_data, shifted_coord);
+      return get_world_pos(spline, instance_data, shifted_coord, uv_offsets, uv_scales);
     }
 
+    ##if use_vertex_buffer_for_normal_calc
+      float3 get_world_pos_from_buffer(SplineGenInstance instance_data, InstanceId instance_id, uint2 coord, int2 shift,
+        float4 uv_offsets = float4(0,0,0,0), float4 uv_scales = float4(1,1,1,1))
+      {
+        return structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instance_id, coord, shift)).worldPos;
+      }
+
+      #define get_shifted_world_pos get_world_pos_from_buffer
+    ##else
+      #define get_shifted_world_pos get_world_pos
+    ##endif
+
     void calculate_tangent_space(uint2 coord, uint vertexId, uint instanceId,
-      out float3 tangent, out float3 bitangent, out float3 normal)
+      out float3 tangent, out float3 bitangent, out float3 normal, float4 uv_offsets = float4(0,0,0,0), float4 uv_scales = float4(1,1,1,1))
     {
       uint vbIndex = vertexId;
       SplineGenSpline currSpline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y));
@@ -190,15 +297,15 @@ macro USE_VS_SPLINE_GEN(stage)
         tangent = float3(0,0,0);
         bitangent = float3(0,0,0);
 
-        float3 pos00 = get_world_pos(instanceData, instanceId, coord, int2(0, 0));
-        float3 pos10 = get_world_pos(instanceData, instanceId, coord, int2(1, 0));
-        float3 pos_10 = get_world_pos(instanceData, instanceId, coord, int2(-1, 0));
+        float3 pos00 = get_shifted_world_pos(instanceData, instanceId, coord, int2(0, 0), uv_offsets, uv_scales);
+        float3 pos10 = get_shifted_world_pos(instanceData, instanceId, coord, int2(1, 0), uv_offsets, uv_scales);
+        float3 pos_10 = get_shifted_world_pos(instanceData, instanceId, coord, int2(-1, 0), uv_offsets, uv_scales);
         tangent = pos10 - pos_10;
 
         if (coord.y < spline_gen_stripes)
         {
-          float3 pos01 = get_world_pos(instanceData, instanceId, coord, int2(0, 1));
-          float3 pos_11 = get_world_pos(instanceData, instanceId, coord, int2(-1, 1));
+          float3 pos01 = get_shifted_world_pos(instanceData, instanceId, coord, int2(0, 1), uv_offsets, uv_scales);
+          float3 pos_11 = get_shifted_world_pos(instanceData, instanceId, coord, int2(-1, 1), uv_offsets, uv_scales);
           normal += cross(normalize(pos01 - pos00), normalize(pos10 - pos00));
           normal += cross(normalize(pos_11 - pos00), normalize(pos01 - pos00));
           normal += cross(normalize(pos_10 - pos00), normalize(pos_11 - pos00));
@@ -207,8 +314,8 @@ macro USE_VS_SPLINE_GEN(stage)
         }
         if (coord.y > 0)
         {
-          float3 pos0_1 = get_world_pos(instanceData, instanceId, coord, int2(0, -1));
-          float3 pos1_1 = get_world_pos(instanceData, instanceId, coord, int2(1, -1));
+          float3 pos0_1 = get_shifted_world_pos(instanceData, instanceId, coord, int2(0, -1), uv_offsets, uv_scales);
+          float3 pos1_1 = get_shifted_world_pos(instanceData, instanceId, coord, int2(1, -1), uv_offsets, uv_scales);
           normal += cross(normalize(pos0_1 - pos00), normalize(pos_10 - pos00));
           normal += cross(normalize(pos1_1 - pos00), normalize(pos0_1 - pos00));
           normal += cross(normalize(pos10 - pos00), normalize(pos1_1 - pos00));
@@ -218,12 +325,12 @@ macro USE_VS_SPLINE_GEN(stage)
       }
       else if (prevValid && nextValid)
       {
-        float3 pos11 = get_world_pos(instanceData, instanceId, coord, int2(1, 1));
-        float3 pos_11 = get_world_pos(instanceData, instanceId, coord, int2(-1, 1));
+        float3 pos11 = get_shifted_world_pos(instanceData, instanceId, coord, int2(1, 1), uv_offsets, uv_scales);
+        float3 pos_11 = get_shifted_world_pos(instanceData, instanceId, coord, int2(-1, 1), uv_offsets, uv_scales);
         float3 tangent1 = pos11 - pos_11;
 
-        float3 pos1_1 = get_world_pos(instanceData, instanceId, coord, int2(1, -1));
-        float3 pos_1_1 = get_world_pos(instanceData, instanceId, coord, int2(-1, -1));
+        float3 pos1_1 = get_shifted_world_pos(instanceData, instanceId, coord, int2(1, -1), uv_offsets, uv_scales);
+        float3 pos_1_1 = get_shifted_world_pos(instanceData, instanceId, coord, int2(-1, -1), uv_offsets, uv_scales);
         float3 tangent2 = pos1_1 - pos_1_1;
 
         float3 bitangent1 = pos1_1 - pos11;
@@ -242,8 +349,8 @@ macro USE_VS_SPLINE_GEN(stage)
         int2 shiftUpper = nextValid ? int2(1, 1) : int2(1, -1);
         int2 shiftLower = nextValid ? int2(-1, 1) : int2(-1, -1);
 
-        float3 posUpper = get_world_pos(instanceData, instanceId, coord, shiftUpper);
-        float3 posLower = get_world_pos(instanceData, instanceId, coord, shiftLower);
+        float3 posUpper = get_shifted_world_pos(instanceData, instanceId, coord, shiftUpper, uv_offsets, uv_scales);
+        float3 posLower = get_shifted_world_pos(instanceData, instanceId, coord, shiftLower, uv_offsets, uv_scales);
         tangent = posUpper - posLower;
         bitangent = cross(tangent, normal);
       }
@@ -271,7 +378,10 @@ macro INIT_SPLINE_GEN_ATTACHMENT_BATCHES(stage)
 endmacro
 
 macro DYNAMIC_SPLINE_GEN_VS_COMMON()
-  DYNAMIC_BLOCK()
+  if (shader != dynamic_refractive_spline_gen)
+  {
+    DYNAMIC_BLOCK()
+  }
   hlsl
   {
     ##if dyn_model_render_pass == render_pass_normal && in_editor_assume == no
@@ -292,9 +402,17 @@ macro DYNAMIC_SPLINE_GEN_VS_COMMON()
       float4 out_pos : TEXCOORD3;
       float4 out_prev_pos : TEXCOORD4;
       #endif
-      ##if shader == dynamic_spline_gen || shader == dynamic_emissive_spline_gen || shader == dynamic_skin_spline_gen
+      ##if shader == dynamic_spline_gen || shader == dynamic_emissive_spline_gen || shader == dynamic_skin_spline_gen || shader == dynamic_refractive_spline_gen
       float3 tangent : TEXCOORD5;
       float3 bitangent : TEXCOORD6;
+      ##endif
+      ##if shader == dynamic_refractive_spline_gen
+      float3 fogMul                 : TEXCOORD7;
+      float3 fogAdd                 : TEXCOORD8;
+      float4 clipPos                : TEXCOORD9;
+      float2 thicknessBounds        : TEXCOORD10;
+      float2 glassParams            : TEXCOORD11;
+      float surfaceOpaqueness       : TEXCOORD12;
       ##endif
     };
   }
@@ -349,6 +467,7 @@ macro DYNAMIC_SPLINE_GEN_PS_COMMON()
       init_normal(gbuffer, normal);
       init_smoothness(gbuffer, smoothness);
       init_dynamic(gbuffer, true);
+      init_order(gbuffer, GBUFFER_ORDER_DYNAMIC);
       init_material(gbuffer, SHADING_NORMAL);
 
       ##if shader == dynamic_skin_spline_gen
@@ -376,7 +495,7 @@ macro DYNAMIC_SPLINE_GEN_PS_COMMON()
         if (emissiveMask > 0)
         {
           init_material(gbuffer, SHADING_SELFILLUM);
-          init_emission(gbuffer, emissiveMask * min3(abs(input.emissiveColor.a), input.emissiveIntensity, MAX_EMISSION));
+          init_emission(gbuffer, emissiveMask * min(abs(input.emissiveColor.a) * input.emissiveIntensity, MAX_EMISSION));
           init_emission_color(gbuffer, float4(input.emissiveColor.rgb, emissiveMask));
         }
       ##else // dynamic_spline_gen
@@ -385,7 +504,7 @@ macro DYNAMIC_SPLINE_GEN_PS_COMMON()
       ##endif
 
       #ifdef MOTION_VECTORS_ENABLED
-        float3 motion = encode_motion_vector(input.out_pos, input.out_prev_pos);
+        float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_prev_pos.xyw );
         init_motion_vector(gbuffer, motion);
       #endif
       return encode_gbuffer(gbuffer, input.pointToEye, screenpos);

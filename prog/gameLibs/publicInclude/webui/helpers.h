@@ -100,7 +100,6 @@ inline void YAMemSave::vprintf(const char *f, const DagorSafeArg *arg, int anum)
 }
 
 extern HttpPlugin dagor_http_plugins[];
-extern HttpPlugin squirrel_http_plugins[];
 extern HttpPlugin webview_http_plugins[];
 extern HttpPlugin webview_files_http_plugins[];
 

@@ -4,8 +4,7 @@
 #include "render.h"
 #include <AvailabilityMacros.h>
 #include <osApiWrappers/dag_direct.h>
-
-extern void getCodeFromZ(const char *source, int sz, Tab<char> &code);
+#include "drv_log_defs.h"
 
 namespace drv3d_metal
 {
@@ -35,7 +34,9 @@ namespace drv3d_metal
 
     int data_size = strlen(source) + 1;
 
+#if DAGOR_DBGLEVEL > 0
     src = [[NSString alloc] initWithUTF8String:source];
+#endif
 
     num_tex = 2;
 
@@ -59,22 +60,21 @@ namespace drv3d_metal
     return setup(source, data_size, async);
   }
 
-  bool Shader::loadFromBinary(const char *source, bool async)
+  bool Shader::loadFromBinary(const uint8_t *meta, const char *source, uint64_t hash_override, bool async)
   {
-    int magic = *((int*)source);
-    source += 4;
+    int magic = *((int*)meta);
+    meta += 4;
 
-    int sz = *((int*)source);
-    source += 4;
+    int data_size = *((int*)meta);
+    meta += 4;
 
-    Tab<char> code;
-    getCodeFromZ(source, sz, code);
+    const char* ptr = (const char *)meta;
 
-    char* ptr = &code[0];
+    memcpy(&shader_hash, ptr, sizeof(shader_hash));
+    ptr += sizeof(shader_hash);
 
-    HashMD5 hash;
-    hash.set(ptr);
-    ptr += 32;
+    if (hash_override)
+      shader_hash = hash_override;
 
     shd_type = *((int*)ptr);
     ptr += 4;
@@ -84,6 +84,15 @@ namespace drv3d_metal
 
     memcpy(bufRemap, ptr, sizeof(bufRemap));
     ptr += sizeof(bufRemap);
+
+    uint32_t flags = 0;
+    memcpy(&flags, ptr, sizeof(flags));
+    ptr += sizeof(flags);
+
+    if (flags & ShaderFlags::HasSamplerBiases)
+      has_biases = true;
+    if (flags & ShaderFlags::HasImmediateConstants)
+      immediate_slot = IMMEDIATE_BIND_SLOT;
 
     if (shd_type == 1)
     {
@@ -147,8 +156,6 @@ namespace drv3d_metal
       tex_binding[i] = *((int*)ptr);
       ptr += 4;
 
-      texture_mask |= 1ull << tex_binding[i];
-
       tex_remap[i] = *((int*)ptr);
       ptr += 4;
 
@@ -170,26 +177,31 @@ namespace drv3d_metal
       ptr += 4;
     }
 
-    int data_size = code.size() - (ptr - code.data());
+    bool binary = memcmp(source, "MTLB", 4) == 0;
+#if DAGOR_DBGLEVEL > 0
+    if (!binary)
+      src = [[NSString alloc] initWithCString:source encoding : NSASCIIStringEncoding];
+#endif
+    if (!binary)
+      name = getName(source);
 
-    if (memcmp(ptr, "MTLB", 4))
-      src = [[NSString alloc] initWithCString:ptr encoding : NSASCIIStringEncoding];
-    else
-      data_size -= 1; // binary shouldn't be null terminated
+    if (shd_type == 3)
+    {
+      MTLSize ts = render.device.maxThreadsPerThreadgroup;
+      if (tgrsz_x > ts.width || tgrsz_y > ts.height || tgrsz_z > ts.depth)
+      {
+        D3D_ERROR("Shader %s has incorrect threadgroup size %dx%dx%d", name.c_str(), tgrsz_x, tgrsz_y, tgrsz_z);
+        return false;
+      }
+    }
 
-    shader_hash = std::hash<std::string>{}(hash.get());
-
-    return setup(ptr, data_size, async);
+    return setup(source, data_size, async);
   }
 
   bool Shader::setup(const char *data, int data_size, bool async)
   {
-    #define IMMEDIATE_CB_REGISTER_NO 8
-
-    int remappedImmediate = RemapBufferSlot(CONST_BUFFER, IMMEDIATE_CB_REGISTER_NO);
-    if (bufRemap[remappedImmediate].slot >= 0)
-      immediate_slot = bufRemap[remappedImmediate].slot;
-    bufRemap[remappedImmediate].slot = -1;
+    memset(tex_slot_remap, -1, sizeof(tex_slot_remap));
+    memset(buf_slot_remap, -1, sizeof(buf_slot_remap));
 
     for (int i = CONST_BUFFER_POINT; i < BINDLESS_TEXTURE_ID_BUFFER_POINT; ++i)
     {
@@ -197,9 +209,16 @@ namespace drv3d_metal
       {
         buffers[num_buffers].slot = bufRemap[i].slot;
         buffers[num_buffers].remapped_slot = i;
-        buffer_mask |= 1ull << i;
+        buffer_mask |= 1ull << bufRemap[i].slot;
+        buf_slot_remap[i] = bufRemap[i].slot;
         num_buffers++;
       }
+    }
+
+    for (int i = 0; i < num_tex; i++)
+    {
+      texture_mask |= 1ull << tex_remap[i];
+      tex_slot_remap[tex_binding[i]] = tex_remap[i];
     }
 
     for (int i = BINDLESS_TEXTURE_ID_BUFFER_POINT; i < BUFFER_POINT_COUNT; ++i)
@@ -207,7 +226,8 @@ namespace drv3d_metal
       {
         auto &remap = bindless_buffers[num_bindless_buffers++];
         remap = bufRemap[i];
-        bindless_mask |= 1ull << i;
+        bindless_mask |= 1ull << remap.slot;
+        buf_slot_remap[i] = bufRemap[i].slot;
 
         if (remap.remap_type == EncodedBufferRemap::RemapType::Sampler)
           bindless_type_mask |= BindlessTypeSampler;
@@ -226,23 +246,39 @@ namespace drv3d_metal
         }
       }
 
-    auto func = render.shadersPreCache.getShader(shader_hash, entry, data, data_size, async);
+    auto func = render.shadersPreCache.getShader(this, data, data_size, async);
+#if DAGOR_DBGLEVEL > 0
+    if (func)
+      func.label = [NSString stringWithUTF8String : name.c_str()];
+#endif
     return async || func != nil;
   }
 
-  bool Shader::compileShader(const char* source, bool async)
+  bool Shader::compileShader(const uint8_t *meta, const char* source, uint64_t hash_override, bool async)
   {
-    uint32_t magic = *(uint32_t *)source;
+    uint32_t magic = meta ? *(uint32_t *)meta : 0;
     if (magic == _MAKE4C('MTLM')) // packed mesh shader and friends
     {
-      source += 4;
+      meta += 4;
 
-      uint32_t ms_size = *(uint32_t *)source;
+      uint32_t ms_size = *(uint32_t *)meta;
       G_ASSERT(ms_size);
-      source += 4;
+      meta += sizeof(ms_size);
+
+      uint64_t ms_hash = 0;
+      memcpy(&ms_hash, meta, sizeof(ms_hash));
+      G_ASSERT(ms_hash);
+      meta += sizeof(ms_hash);
+
+      uint32_t as_size = *(uint32_t *)meta;
+      meta += sizeof(as_size);
+
+      uint64_t as_hash = 0;
+      memcpy(&as_hash, meta, sizeof(as_hash));
+      meta += sizeof(as_hash);
 
       this->mesh_shader = new Shader();
-      if (!mesh_shader->compileShader(source + 4, async))
+      if (!mesh_shader->compileShader(meta, source, ms_hash, async))
       {
         this->mesh_shader->release();
         this->mesh_shader = nullptr;
@@ -250,13 +286,10 @@ namespace drv3d_metal
       }
       source += ms_size;
 
-      uint32_t as_size = *(uint32_t *)source;
-      source += 4;
-
       if (as_size)
       {
         this->amplification_shader = new Shader();
-        if (!amplification_shader->compileShader(source + 4, async))
+        if (!amplification_shader->compileShader(meta, source, as_hash, async))
         {
           this->mesh_shader->release();
           this->amplification_shader->release();
@@ -265,13 +298,12 @@ namespace drv3d_metal
           return false;
         }
       }
-      source += as_size;
 
       return true;
     }
     else if (magic == _MAKE4C('MTLZ')) // ordinary metal shader
-      return loadFromBinary(source, async);
-    else if (magic == _MAKE4C('#inc')) // hardcoded shader source
+      return loadFromBinary(meta, source, hash_override, async);
+    else if (strncmp(source, "#inc", 4) == 0) // hardcoded shader source
       return loadFromSource(source, async);
 
     return false;
@@ -283,8 +315,21 @@ namespace drv3d_metal
       this->mesh_shader->release();
     if (amplification_shader)
       this->amplification_shader->release();
-    [src release];
+    if (src)
+      [src release];
 
     delete this;
+  }
+
+  eastl::string Shader::getName(const char *ptr)
+  {
+    bool binary = ptr && memcmp(ptr, "MTLB", 4) == 0;
+    if (!binary)
+    {
+      const char *newline = strstr(ptr, "\n");
+      if (newline)
+        return eastl::string(ptr, newline - ptr);
+    }
+    return "(none)";
   }
 }

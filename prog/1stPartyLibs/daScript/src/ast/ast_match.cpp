@@ -80,6 +80,9 @@ namespace das {
         switch ( ce->baseType ) {
             case Type::tUInt:       return uint64_t ( cast<uint32_t>::to(ce->value) ) == value;
             case Type::tBitfield:   return uint64_t ( cast<uint32_t>::to(ce->value) ) == value;
+            case Type::tBitfield8:  return uint64_t ( cast<uint8_t>::to(ce->value) ) == value;
+            case Type::tBitfield16: return uint64_t ( cast<uint16_t>::to(ce->value) ) == value;
+            case Type::tBitfield64: return cast<uint64_t>::to(ce->value) == value;
             case Type::tUInt8:      return uint64_t ( cast<uint8_t>::to(ce->value) ) == value;
             case Type::tUInt16:     return uint64_t ( cast<uint16_t>::to(ce->value) ) == value;
             case Type::tUInt64:     return cast<uint64_t>::to(ce->value) == value;

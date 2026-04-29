@@ -5,7 +5,7 @@
 #pragma once
 
 #include <daECS/core/entityManager.h>
-#include <ecs/core/utility/ecsBlkUtils.h>
+#include <daECS/core/utility/ecsBlkUtils.h>
 #include <ioSys/dag_dataBlock.h>
 #include <dasModules/aotEcs.h>
 #include <dasModules/dasDataBlock.h>
@@ -144,10 +144,7 @@ inline void getEvSet(const ecs::EntitySystemDesc &sys,
 {
   const ecs::EventSet &eventsSet = sys.getEvSet();
   das::Array arr;
-  arr.data = (char *)eventsSet.cbegin();
-  arr.size = eventsSet.size();
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)eventsSet.cbegin(), eventsSet.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -169,10 +166,7 @@ inline void query_componentsRW(const ecs::EntitySystemDesc &sys,
 {
   auto &comps = sys.componentsRW;
   das::Array arr;
-  arr.data = (char *)comps.data();
-  arr.size = comps.size();
-  arr.capacity = comps.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)comps.data(), comps.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -184,10 +178,7 @@ inline void query_componentsRO(const ecs::EntitySystemDesc &sys,
 {
   auto &comps = sys.componentsRO;
   das::Array arr;
-  arr.data = (char *)comps.data();
-  arr.size = comps.size();
-  arr.capacity = comps.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)comps.data(), comps.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -199,10 +190,7 @@ inline void query_componentsRQ(const ecs::EntitySystemDesc &sys,
 {
   auto &comps = sys.componentsRQ;
   das::Array arr;
-  arr.data = (char *)comps.data();
-  arr.size = comps.size();
-  arr.capacity = comps.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)comps.data(), comps.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);
@@ -214,10 +202,7 @@ inline void query_componentsNO(const ecs::EntitySystemDesc &sys,
 {
   auto &comps = sys.componentsNO;
   das::Array arr;
-  arr.data = (char *)comps.data();
-  arr.size = comps.size();
-  arr.capacity = comps.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)comps.data(), comps.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

@@ -59,7 +59,7 @@ void GroundDisplacementCPU::init(int tex_size, float heightmap_texel_size, float
 
   // detailed tex for depth above render (for small rendinsts/static scene)
   groundPhysDetailsTex.set(
-    d3d::create_tex(NULL, 4 * bufferSize, 4 * bufferSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "ground_microdetails_tex"),
+    d3d::create_tex(NULL, 4 * bufferSize, 4 * bufferSize, TEXCF_RTARGET | TEXFMT_DEPTH16, 1, "ground_microdetails_tex", RESTAG_LAND),
     "ground_microdetails_tex");
   {
     d3d::SamplerInfo smpInfo;
@@ -69,7 +69,7 @@ void GroundDisplacementCPU::init(int tex_size, float heightmap_texel_size, float
 
   // texture for gpu physics simulations
   GPUgroundPhysDetailsTex.set(
-    d3d::create_tex(NULL, 2 * bufferSize, 2 * bufferSize, TEXCF_RTARGET | TEXFMT_R32F, 1, "GPUground_physdetails_tex"),
+    d3d::create_tex(NULL, 2 * bufferSize, 2 * bufferSize, TEXCF_RTARGET | TEXFMT_R32F, 1, "GPUground_physdetails_tex", RESTAG_LAND),
     "GPUground_physdetails_tex");
   ShaderGlobal::set_sampler(::get_shader_variable_id("GPUground_physdetails_tex_samplerstate"), d3d::request_sampler({}));
 
@@ -123,10 +123,10 @@ void GroundDisplacementCPU::updateGroundPhysdetails(IRenderGroundPhysdetailsCB *
     render_depth_cb->renderGroundPhysdetails(centerPos, culling_view_proj, vf);
 
   static int world_to_ground_physdetailsVarId = get_shader_variable_id("world_to_ground_physdetails", true);
-  ShaderGlobal::set_color4(world_to_ground_physdetailsVarId, 0.5f / regionSize, 0.5f / regionSize,
+  ShaderGlobal::set_float4(world_to_ground_physdetailsVarId, 0.5f / regionSize, 0.5f / regionSize,
     0.5f - 0.5f * centerPos.x / regionSize, 0.5f - 0.5f * centerPos.z / regionSize);
   static int ground_physdetails_paramsVarId = get_shader_variable_id("ground_physdetails_params", true);
-  ShaderGlobal::set_color4(ground_physdetails_paramsVarId, centerPos.y - add_height, 2.0f * add_height, 1.0f / (4 * bufferSize), 0);
+  ShaderGlobal::set_float4(ground_physdetails_paramsVarId, centerPos.y - add_height, 2.0f * add_height, 1.0f / (4 * bufferSize), 0);
 }
 
 bool GroundDisplacementCPU::process(float *destData, uint32_t &frame)
@@ -180,7 +180,7 @@ void GroundDisplacementCPU::update(const Point3 &center_pos, ToroidalHeightmap *
     hmap->setHeightmapTex();
 
     static int groundDetails_to_worldVarId = get_shader_variable_id("groundDetails_to_world", true);
-    ShaderGlobal::set_color4(groundDetails_to_worldVarId, worldSize, worldSize, origin.x - 0.5f * worldSize,
+    ShaderGlobal::set_float4(groundDetails_to_worldVarId, worldSize, worldSize, origin.x - 0.5f * worldSize,
       origin.y - 0.5f * worldSize);
 
     static int ground_physdetails_texVarId = ::get_shader_glob_var_id("ground_physdetails_tex");
@@ -203,7 +203,7 @@ void GroundDisplacementCPU::update(const Point3 &center_pos, ToroidalHeightmap *
       Point4(1.0f / worldSize, 1.0f / worldSize, -origin.x + 0.5f * worldSize, -origin.y + 0.5f * worldSize);
 
     static int world_to_groundPhysDetailsVarId = get_shader_variable_id("world_to_groundPhysDetails", true);
-    ShaderGlobal::set_color4(world_to_groundPhysDetailsVarId, gpuworldToDisplacement.x, gpuworldToDisplacement.y,
+    ShaderGlobal::set_float4(world_to_groundPhysDetailsVarId, gpuworldToDisplacement.x, gpuworldToDisplacement.y,
       gpuworldToDisplacement.z, gpuworldToDisplacement.w);
 
     forceUpdateCounter = 0;
@@ -213,10 +213,10 @@ void GroundDisplacementCPU::update(const Point3 &center_pos, ToroidalHeightmap *
 void GroundDisplacementCPU::setMaxPhysicsHeight(const float &height, const float &radius)
 {
   static int displacement_max_phys_heightVarId = get_shader_variable_id("displacement_max_phys_height", true);
-  ShaderGlobal::set_real(displacement_max_phys_heightVarId, height);
+  ShaderGlobal::set_float(displacement_max_phys_heightVarId, height);
 
   static int wheel_static_radiusVarId = get_shader_variable_id("wheel_static_radius", true);
-  ShaderGlobal::set_real(wheel_static_radiusVarId, radius);
+  ShaderGlobal::set_float(wheel_static_radiusVarId, radius);
 }
 
 bool GroundDisplacementCPU::isDisplaced(const Point3 &world_pos) const
@@ -401,4 +401,122 @@ int LandmeshPhysmatsCPU::getPhysmat(const Point3 &world_pos) const
 
   uint8_t matId = getPixel(pixelPos.x, pixelPos.y);
   return matId == 0xff ? -1 : matId;
+}
+
+/////////////////////////////////
+// Puddle block
+/////////////////////////////////
+
+PuddlesWetnessCPU::PuddlesWetnessCPU() { renderPuddles.init("render_puddles_to_physdetails"); }
+
+PuddlesWetnessCPU::~PuddlesWetnessCPU()
+{
+  ringTextures.close();
+  clear_and_shrink(loadedPuddles);
+}
+
+void PuddlesWetnessCPU::init(int tex_size, float puddle_texel_size, float invalidation_scale)
+{
+  bufferSize = tex_size;
+  texelSize = puddle_texel_size;
+  worldSize = bufferSize * texelSize;
+  invalidationScale = invalidation_scale;
+  origin = Point2(0, 0);
+  curOrigin = origin;
+  worldToPuddles = Point4(0, 0, 0, 0);
+
+  // texture for CPU copy
+  ringTextures.init(bufferSize, bufferSize, 1, "CPU_puddles",
+    TEXFMT_R32F | TEXCF_RTARGET | TEXCF_LINEAR_LAYOUT | TEXCF_CPU_CACHED_MEMORY);
+
+  static int puddles_CPU_paramsVarId = get_shader_variable_id("puddles_CPU_params", true);
+  ShaderGlobal::set_float4(puddles_CPU_paramsVarId, worldSize, texelSize, 1.0f / tex_size, 1.0f / tex_size);
+
+  loadedPuddles.resize(bufferSize * bufferSize);
+  mem_set_0(loadedPuddles);
+  forceUpdateCounter = 0;
+}
+
+
+bool PuddlesWetnessCPU::process(float *destData, uint32_t &frame)
+{
+  int stride;
+  uint8_t *data = ringTextures.lock(stride, frame);
+  if (!data)
+    return false;
+  for (int y = 0; y < bufferSize; ++y, destData += bufferSize, data += stride)
+    memcpy(destData, data, bufferSize * sizeof(float));
+  ringTextures.unlock();
+  return true;
+}
+
+void PuddlesWetnessCPU::invalidate()
+{
+  origin = Point2(10000000, 1000000);
+  curOrigin = origin;
+  forceUpdateCounter = 0;
+}
+
+void PuddlesWetnessCPU::update(const Point3 &center_pos)
+{
+  forceUpdateCounter++;
+
+  physDetailsOrigin = center_pos;
+  uint32_t frame2;
+  if (process(loadedPuddles.data(), frame2)) // written data
+  {
+    curOrigin = origin;
+
+    worldToPuddles = Point4(1.0f / worldSize, 1.0f / worldSize, -curOrigin.x + 0.5f * worldSize, -curOrigin.y + 0.5f * worldSize);
+  }
+
+  if (Point2(Point2(center_pos.x, center_pos.z) - curOrigin).length() < worldSize * invalidationScale && forceUpdateCounter < 100)
+    return;
+
+  int frame;
+  Texture *currentTarget = ringTextures.getNewTarget(frame);
+  if (!currentTarget)
+    return;
+  {
+    origin = Point2(texelSize * floorf(center_pos.x / texelSize), texelSize * floorf(center_pos.z / texelSize));
+    SCOPE_RENDER_TARGET;
+
+    static int puddles_CPU_to_worldVarId = get_shader_variable_id("puddles_CPU_to_world", true);
+    ShaderGlobal::set_float4(puddles_CPU_to_worldVarId, worldSize, worldSize, origin.x - 0.5f * worldSize,
+      origin.y - 0.5f * worldSize);
+
+    d3d::set_render_target(currentTarget, 0);
+    renderPuddles.render();
+
+    ringTextures.startCPUCopy();
+
+    forceUpdateCounter = 0;
+  }
+}
+
+bool PuddlesWetnessCPU::isPuddlesAround(const Point3 &world_pos) const
+{
+  if (abs(world_pos.x - curOrigin.x) > worldSize * 0.5f || abs(world_pos.z - curOrigin.y) > worldSize * 0.5f)
+    return false;
+  else
+    return true;
+}
+
+float PuddlesWetnessCPU::getPuddlesWetness(const Point3 &world_pos)
+{
+  Point2 texCoord = Point2((world_pos.x + worldToPuddles.z) * worldToPuddles.x, (world_pos.z + worldToPuddles.w) * worldToPuddles.y);
+
+  if ((texCoord.x >= 1) || (texCoord.x < 0) || (texCoord.y >= 1) || (texCoord.y < 0))
+    return 0.0f;
+
+  Point2 pixelPos = Point2(texCoord.x * bufferSize - 0.5f, texCoord.y * bufferSize - 0.5f);
+  Point2 lerpWeight = Point2(1 - pixelPos.x + floorf(pixelPos.x), 1 - pixelPos.y + floorf(pixelPos.y));
+
+  Point4 pixelWeight = Point4(lerpWeight.x * lerpWeight.y, lerpWeight.x * (1 - lerpWeight.y), (1 - lerpWeight.x) * lerpWeight.y,
+    (1 - lerpWeight.x) * (1 - lerpWeight.y));
+
+  float height = pixelWeight.x * getPixel(pixelPos.x, pixelPos.y) + pixelWeight.y * getPixel(pixelPos.x, pixelPos.y + 1) +
+                 pixelWeight.z * getPixel(pixelPos.x + 1, pixelPos.y) + pixelWeight.w * getPixel(pixelPos.x + 1, pixelPos.y + 1);
+
+  return height;
 }

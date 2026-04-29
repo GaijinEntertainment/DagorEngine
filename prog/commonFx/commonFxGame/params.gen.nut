@@ -426,7 +426,7 @@ let class DynArrayParam (BaseParam) {
   }
 
   function generateTunedMemberText(text) {
-    text.append("".concat("  elems.push_back(create_tuned_array(\"", this.paramName, "\", ", this.typeRef.paramName, "::createTunedElement(\"", this.typeRef.paramName, "\")));\n"))
+    text.append("".concat("  elems.push_back(create_tuned_visibility_array(\"", this.paramName, "\", ", this.typeRef.paramName, "::createTunedElement(\"", this.typeRef.paramName, "\")));\n"))
     if (this.memberToShowInCaption != null)
       text.append("".concat("  set_tuned_array_member_to_show_in_caption(*elems.back(), \"", this.memberToShowInCaption, "\");\n\n"))
   }

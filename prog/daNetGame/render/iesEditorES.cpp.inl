@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <daECS/core/coreEvents.h>
 #include <gui/dag_imgui.h>
 #include <imgui/imgui.h>
@@ -74,12 +76,12 @@ static void ies_edited_light_unselect_es_event_handler(const ecs::Event &,
 }
 
 template <typename Callable>
-inline void selected_light_entity_ecs_query(Callable c);
+inline void selected_light_entity_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void edit_selected_light_entity()
 {
-  selected_light_entity_ecs_query([&](ecs::EntityId eid ECS_REQUIRE(const ecs::string &light__texture_name,
-                                    ecs::Tag daeditor__selected) ECS_REQUIRE_NOT(ecs::Tag ies__editor__editing)) {
+  selected_light_entity_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid ECS_REQUIRE(const ecs::string &light__texture_name,
+                                                   ecs::Tag daeditor__selected) ECS_REQUIRE_NOT(ecs::Tag ies__editor__editing)) {
     add_sub_template_async(eid, "ies_editor_editing");
     return ecs::QueryCbResult::Continue;
   });

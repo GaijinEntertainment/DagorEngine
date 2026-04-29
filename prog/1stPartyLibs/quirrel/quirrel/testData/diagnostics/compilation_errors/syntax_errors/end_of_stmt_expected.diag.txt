@@ -1,0 +1,8 @@
+ERROR: end of statement expected (; or lf)
+testData/diagnostics/compilation_errors/syntax_errors/end_of_stmt_expected.nut:2:10
+
+// EXPECT_ERROR: "end of statement expected"
+let x = 5 let y = 6
+          ^--
+
+

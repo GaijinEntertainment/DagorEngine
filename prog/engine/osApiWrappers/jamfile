@@ -20,6 +20,7 @@ Sources =
   localCmp.cpp
   simplifyFname.cpp
   directoryService.cpp
+  directoryUtils.cpp
   getRealFname.cpp
   wndProcComponent.cpp
   miscApi.cpp
@@ -45,9 +46,18 @@ Sources =
   singleProcessChecker.cpp
   directoryWatch.cpp
   cpuFeatures.cpp
+  versionQuery.cpp
+  winVersionQuery.cpp
 ;
 
 CPPopt = -D__B_KERNEL_LIB ;
+
+if $(Platform)-$(PlatformArch) = windows-x86_64 {
+  # todo: check if it is faster on Xbox as well
+  Sources += fastStackCapture.cpp ;
+} else {
+  Sources += fastStackCaptureStub.cpp ;
+}
 
 if $(Platform) in windows {
   Sources +=
@@ -56,6 +66,7 @@ if $(Platform) in windows {
     winSetTitle.cpp
     stackHlpFill.cpp
     stackHlpGet.cpp
+    addressWaitWinApi.cpp
     winClipboard.cpp
     winHwExceptUtils.cpp
     winXStateFeatures.cpp
@@ -63,16 +74,20 @@ if $(Platform) in windows {
     dynLib.cpp
   ;
 
-  if $(UseGDK) != no {
+  if $(UseGDK) = yes {
     Sources +=
       gdk/app.cpp
       gdk/plm.cpp
+      gdk/ime.cpp
+      gdk/modal_ime.cpp
       gdk/network.cpp
       gdk/queues.cpp
       gdk/storage.cpp
       gdk/handlesDebug.cpp
       gdk/wer.cpp
     ;
+
+    AddLibs += Iphlpapi.lib ;
   }
 
   UseProgLibs =
@@ -89,6 +104,7 @@ if $(Platform) in windows {
     stackHlpGet.cpp
     dbgStr.cpp
     findFile.cpp
+    addressWaitWinApi.cpp
     winClipboard.cpp
     winHwExceptUtils.cpp
     asyncRead.cpp
@@ -96,6 +112,9 @@ if $(Platform) in windows {
     gdk/app.cpp
     gdk/plm.cpp
     gdk/window.cpp
+    gdk/ime.cpp
+    gdk/inline_ime.cpp
+    gdk/modal_ime.cpp
     gdk/network.cpp
     gdk/queues.cpp
     gdk/storage.cpp
@@ -117,13 +136,16 @@ if $(Platform) in windows {
     sony/stackHlpFill.cpp
     sony/stackHlpGet.cpp
     sony/findFile.cpp
-    sony/user.cpp
     sony/dialogs/errorDialog.cpp
     sony/dialogs/systemMessageDialog.cpp
     sony/dialogs/messageBoxDialog.cpp
     sony/asyncRead.cpp
     sony/dynLib.cpp
   ;
+  if $(Platform) != ps4 { Sources += sony/addressWait.cpp ; }
+  if ! -DDAGOR_HOSTED_INTERNAL_SERVER in $(GlobalCPPopt) {
+    Sources += sony/user.cpp ;
+  }
 
   if $(Platform) = ps4 {
     Sources +=
@@ -203,7 +225,6 @@ if $(Platform) in windows {
     dbgStr.cpp
     stackHlpFill.cpp
     stackHlpGet.cpp
-    linux/linuxSetTitle.cpp
     dynLib.cpp
     convertUTF.cpp
   ;
@@ -224,18 +245,26 @@ if $(Platform) in windows {
   }
 
   if $(Platform) in linux {
-    Sources +=
-      posix/posixAIOAsyncRead.cpp
-      linux/linuxClipboard.cpp
-
-    ;
-    if $(LinuxUseX11) = yes {
-      CPPopt += -DUSE_X11 ;
-      Target = $(Target:S=~x11.lib) ;
-      AddLibs += -lX11 ;
+    Sources += posix/posixAIOAsyncRead.cpp ;
+    if $(LinuxUseGUI) = yes {
+      Sources +=
+        linux/linuxSetTitle.cpp
+        linux/linuxClipboard.cpp
+      ;
+      UseProgLibs += engine/osApiWrappers/linuxGUI ;
+      Target = $(Target:S=~linuxGUI.lib) ;
+    } else {
+      Sources +=
+        linux/linuxSetTitleStub.cpp
+        linux/linuxClipboardStub.cpp
+      ;
     }
   }
 }
+
+# Fallback std::condition_variable bucket impl for platforms without native futex
+# Update threadpool's HAVE_NATIVE_FUTEX if you changing this
+if ! $(Platform) in windows xboxOne scarlett ps5 { Sources += addressWaitStdCondVar.cpp ; }
 
 AddIncludes +=
   $(Root)/prog/engine/sharedInclude

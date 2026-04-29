@@ -20,7 +20,6 @@ shader encode_hdr_to_int10, encode_hdr_to_float, encode_hdr_from_linear
     hdr_source_offset@f2 = hdr_source_offset;
   }
 
-  ENABLE_ASSERT(ps)
   POSTFX_VS(1)
 
   HDR_LOGIC(ps)

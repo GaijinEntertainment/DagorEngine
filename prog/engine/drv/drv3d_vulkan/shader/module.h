@@ -11,6 +11,7 @@ namespace drv3d_vulkan
 
 struct ShaderModule
 {
+  ShaderModuleBlob blob;
   VulkanShaderModuleHandle module;
   spirv::HashValue hash;
   uint32_t size;
@@ -19,14 +20,13 @@ struct ShaderModule
   ShaderModule() = default;
   ~ShaderModule() = default;
 
-  ShaderModule(const ShaderModule &) = default;
-  ShaderModule &operator=(const ShaderModule &) = default;
+  ShaderModule(const ShaderModule &) = delete;
+  ShaderModule &operator=(const ShaderModule &) = delete;
 
   ShaderModule(ShaderModule &&) = default;
   ShaderModule &operator=(ShaderModule &&) = default;
 
-  ShaderModule(VulkanShaderModuleHandle m, uint32_t i, const spirv::HashValue &hv, uint32_t sz) : module(m), id(i), hash(hv), size(sz)
-  {}
+  ShaderModule(uint32_t id, const ShaderModuleBlob &blob);
 };
 
 class ShaderModuleStorage
@@ -37,9 +37,12 @@ public:
   ShaderModuleStorage() = default;
   ~ShaderModuleStorage() {}
 
-  void add(const ShaderModuleBlob *sci, uint32_t id);
+  void add(ShaderModuleBlob *sci, uint32_t id);
   void remove(uint32_t id);
   ShaderModule *find(uint32_t id);
+
+  void onDeviceReset();
+  void afterDeviceReset();
 
   eastl::unique_ptr<ShaderModule> *getData() { return data.data(); }
 };

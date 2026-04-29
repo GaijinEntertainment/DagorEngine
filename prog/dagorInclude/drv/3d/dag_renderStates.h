@@ -8,12 +8,11 @@
 
 #include <drv/3d/dag_consts_base.h>
 #include <drv/3d/dag_renderStateId.h>
+#include <drv/3d/dag_stencilState.h>
 #include <math/dag_e3dColor.h>
-#include <shaders/dag_overrideStates.h>
 
 namespace shaders
 {
-
 /**
  * @brief Description of render state.
  */

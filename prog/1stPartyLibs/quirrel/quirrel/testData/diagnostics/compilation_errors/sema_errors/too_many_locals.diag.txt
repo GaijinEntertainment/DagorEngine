@@ -1,0 +1,2 @@
+ERROR: internal compiler error: too many locals
+testData/diagnostics/compilation_errors/sema_errors/too_many_locals.nut:-1:-1

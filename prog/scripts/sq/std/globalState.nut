@@ -5,6 +5,7 @@ from "eventbus" import eventbus_send_foreign, eventbus_subscribe
 from "dagor.debug" import logerr
 from "dagor.memtrace" import is_quirrel_object_larger_than, set_huge_alloc_threshold
 from "dagor.time" import get_time_msec
+from "frp" import this_subscriber_call_may_take_up_to_usec, get_slow_subscriber_threshold_usec
 from "iostream" import blob
 // Disabled due to bug in zstd streaming decompression
 //from "json" import parse_json_from_zstd_stream, object_to_zstd_json
@@ -194,7 +195,13 @@ function hardPersistWatched(key, def=null, big_immutable_data = null) {
   }
   persistOnHardReloadData[key] <- val
   let res = Watched(val)
-  res.subscribe(@(v) persistOnHardReloadData[key] <- v)
+  if (!big_immutable_data)
+    res.subscribe(@(v) persistOnHardReloadData[key] <- v)
+  else
+    res.subscribe(function(v) {
+      this_subscriber_call_may_take_up_to_usec(10 * get_slow_subscriber_threshold_usec())
+      persistOnHardReloadData[key] <- v
+    })
   return res
 }
 

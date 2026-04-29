@@ -27,6 +27,14 @@ public:
   Point2 getCurScale() const { return haveCurScale ? curScale : scale; }
   float getCurRotate() const { return haveCurRotate ? curRotate : rotate; }
 
+  void resetParams()
+  {
+    pivot.set(0.5f, 0.5f);
+    translate.set(0, 0);
+    scale.set(1.0f, 1.0f);
+    rotate = 0;
+  }
+
 public:
   Point2 pivot;
 

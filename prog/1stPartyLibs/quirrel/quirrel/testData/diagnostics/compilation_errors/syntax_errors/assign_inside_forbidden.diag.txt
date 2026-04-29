@@ -1,0 +1,9 @@
+ERROR: '=' inside 'if' is forbidden
+testData/diagnostics/compilation_errors/syntax_errors/assign_inside_forbidden.nut:3:10
+
+local x = 5
+if (x = 10) {
+          ^
+    print("oops")
+
+

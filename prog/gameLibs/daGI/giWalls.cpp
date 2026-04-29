@@ -100,8 +100,9 @@ void GIWalls::updatePos(const Point3 &pos_)
     bufferCount = max((int)256, max((int)activeList.size(), (int)bufferCount * 2));
 
     currentWallsSB.close();
-    currentWallsSB =
-      UniqueBufHolder(dag::buffers::create_persistent_sr_structured(sizeof(Wall), bufferCount, "currentWallsList"), "wallsList");
+    currentWallsSB = UniqueBufHolder(dag::buffers::create_persistent_sr_structured(sizeof(Wall), bufferCount, "currentWallsList",
+                                       d3d::buffers::Init::No, RESTAG_DAGI),
+      "wallsList");
     currentWallsSB.setVar();
   }
   if (planeCount < planeList.size())
@@ -112,7 +113,8 @@ void GIWalls::updatePos(const Point3 &pos_)
     G_ASSERT(planeList.size() < 4096);
 
     currentWallsConvexCB.close();
-    currentWallsConvexCB = UniqueBufHolder(dag::buffers::create_persistent_cb(planeCount, "currentWallsListVB"), "PlanesCbuffer");
+    currentWallsConvexCB =
+      UniqueBufHolder(dag::buffers::create_persistent_cb(planeCount, "currentWallsListVB", RESTAG_DAGI), "PlanesCbuffer");
     currentWallsConvexCB.setVar();
   }
   return validate();
@@ -179,7 +181,7 @@ bool GIWalls::calc()
       d3d::create_sbuffer(sizeof(uint32_t), currentIndSize,
         SBCF_DYNAMIC|SBCF_CPU_ACCESS_WRITE|SBCF_BIND_SHADER_RES|SBCF_MISC_STRUCTURED,
         0,
-        "currentWallsListInd"));
+        "currentWallsListInd", RESTAG_DAGI));
   }
   if (currentIndSize &&
       !currentWallsSBInd->updateDataWithLock(0, cBox.size()*sizeof(uint), cBox.data(), VBLOCK_WRITEONLY|VBLOCK_DISCARD))
@@ -198,9 +200,9 @@ bool GIWalls::calc()
         const SubData &cData = fullList[ci];
         if (!Condition(cData.count))
           continue;
-        ShaderGlobal::set_color4(wallsBoxLtVarId, cData.box[0].x, cData.box[0].y, cData.box[0].z, 0);
-        ShaderGlobal::set_color4(wallsBoxRbVarId, cData.box[1].x, cData.box[1].y, cData.box[1].z, cData.box[1].resv);
-        ShaderGlobal::set_color4(wallsBoxRangeVarId, x*subRes.x, z*subRes.z, cData.first, cData.count);
+        ShaderGlobal::set_float4(wallsBoxLtVarId, cData.box[0].x, cData.box[0].y, cData.box[0].z, 0);
+        ShaderGlobal::set_float4(wallsBoxRbVarId, cData.box[1].x, cData.box[1].y, cData.box[1].z, cData.box[1].resv);
+        ShaderGlobal::set_float4(wallsBoxRangeVarId, x*subRes.x, z*subRes.z, cData.first, cData.count);
         shader->dispatch((subRes.x+sx-1)/sx, (subRes.y+sy-1)/sy, (subRes.z+sz-1)/sz);
       }
   };
@@ -246,8 +248,8 @@ void GIWalls::validate()
   const Point3 res(WALLS_GRID_XZ >> 1, WALLS_GRID_Y >> 1, WALLS_GRID_XZ >> 1);
   Point3 cellSize(cellSizeXZ, cellSizeY, cellSizeXZ);
   Point3 wallsGridLT(centerPos - mul(res, cellSize));
-  ShaderGlobal::set_color4(wallsGridLTVarId, wallsGridLT.x, wallsGridLT.y, wallsGridLT.z, 0.f);
-  ShaderGlobal::set_color4(wallsGridCellSizeVarId, cellSizeXZ, cellSizeY);
+  ShaderGlobal::set_float4(wallsGridLTVarId, wallsGridLT.x, wallsGridLT.y, wallsGridLT.z, 0.f);
+  ShaderGlobal::set_float4(wallsGridCellSizeVarId, cellSizeXZ, cellSizeY);
   ShaderGlobal::set_int(current_walls_countVarId, activeList.size());
   if (calc())
     currentCount = activeList.size();
@@ -312,13 +314,13 @@ void GIWalls::init(eastl::unique_ptr<class scene::TiledScene> &&s)
     {
       currentWallsGridSB =
         UniqueBufHolder(dag::buffers::create_ua_sr_structured(sizeof(WallGridType), currentGridSize, // sizeof(plane3f)*6
-                          "currentWallsGrid"),
+                          "currentWallsGrid", d3d::buffers::Init::No, RESTAG_DAGI),
           "wallsGridList");
       currentWallsGridSB.setVar();
     }
     if (!frameWallsCB)
-      frameWallsCB.reset(d3d::buffers::create_persistent_cb(max_visible_nodes * 6, "currentWallsListVB")); // fixme: auto
-                                                                                                           // resize
+      frameWallsCB.reset(d3d::buffers::create_persistent_cb(max_visible_nodes * 6, "currentWallsListVB", RESTAG_DAGI)); // fixme: auto
+                                                                                                                        // resize
 
     // fill_walls_grid.reset(new_compute_shader("fill_walls_grid_cs"));
     fill_walls_grid_range.reset(new_compute_shader("fill_walls_grid_range_cs"));
@@ -335,7 +337,7 @@ void GI3D::initWalls(eastl::unique_ptr<class scene::TiledScene> &&s)
     cWalls.reset();
   if (!s)
   {
-    ShaderGlobal::set_color4(wallsGridLTVarId, -10000, -10000, -10000, 1);
+    ShaderGlobal::set_float4(wallsGridLTVarId, -10000, -10000, -10000, 1);
     ShaderGlobal::set_int(current_walls_countVarId, 0);
     return;
   }

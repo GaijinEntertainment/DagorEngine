@@ -105,7 +105,7 @@ class DispatchRequest : private detail::DispatchRequestBase
   template <detail::DispatchRequestPolicy>
   friend class DispatchRequest;
 
-  friend class Registry;
+  friend class BaseRegistry;
   DispatchRequest(InternalRegistry *reg, NodeNameId node_id, ShaderNameId shader_id) : Base{reg, node_id, shader_id} {};
 
 public:

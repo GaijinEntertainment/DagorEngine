@@ -8,7 +8,7 @@
 #include <immintrin.h>
 #endif
 
-inline unsigned __ctz_unsafe(unsigned long long value)
+__forceinline unsigned __ctz_unsafe(unsigned long long value)
 {
 #if defined(__clang__) || defined(__GNUC__)
   return __builtin_ctzll(value); // tzcnt or rep bsf or rbit + clz
@@ -31,9 +31,9 @@ inline unsigned __ctz_unsafe(unsigned long long value)
   return (n - ((unsigned)value & 1));
 }
 
-inline unsigned __ctz_unsafe(long long value) { return __ctz_unsafe((unsigned long long)value); }
+__forceinline unsigned __ctz_unsafe(long long value) { return __ctz_unsafe((unsigned long long)value); }
 
-inline unsigned __ctz_unsafe(unsigned int value)
+__forceinline unsigned __ctz_unsafe(unsigned int value)
 {
 #if defined(__clang__) || defined(__GNUC__)
   return __builtin_ctz(value); // tzcnt or rep bsf
@@ -55,9 +55,9 @@ inline unsigned __ctz_unsafe(unsigned int value)
   return (n - ((unsigned)value & 1));
 }
 
-inline unsigned __ctz_unsafe(int value) { return __ctz_unsafe((unsigned int)value); }
+__forceinline unsigned __ctz_unsafe(int value) { return __ctz_unsafe((unsigned int)value); }
 
-inline unsigned __ctz_unsafe(unsigned long value)
+__forceinline unsigned __ctz_unsafe(unsigned long value)
 {
   if constexpr (sizeof(value) == 8)
     return __ctz_unsafe((unsigned long long)value);
@@ -65,17 +65,17 @@ inline unsigned __ctz_unsafe(unsigned long value)
     return __ctz_unsafe((unsigned int)value);
 }
 
-inline unsigned __ctz_unsafe(long value) { return __ctz_unsafe((unsigned long)value); }
+__forceinline unsigned __ctz_unsafe(long value) { return __ctz_unsafe((unsigned long)value); }
 
-inline unsigned __ctz(unsigned long long value) { return value ? __ctz_unsafe(value) : 64; }
+__forceinline unsigned __ctz(unsigned long long value) { return value ? __ctz_unsafe(value) : 64; }
 
-inline unsigned __ctz(long long value) { return __ctz((unsigned long long)value); }
+__forceinline unsigned __ctz(long long value) { return __ctz((unsigned long long)value); }
 
-inline unsigned __ctz(unsigned int value) { return value ? __ctz_unsafe(value) : 32; }
+__forceinline unsigned __ctz(unsigned int value) { return value ? __ctz_unsafe(value) : 32; }
 
-inline unsigned __ctz(int value) { return __ctz((unsigned int)value); }
+__forceinline unsigned __ctz(int value) { return __ctz((unsigned int)value); }
 
-inline unsigned __ctz(unsigned long value)
+__forceinline unsigned __ctz(unsigned long value)
 {
   if constexpr (sizeof(value) == 8)
     return __ctz((unsigned long long)value);
@@ -83,9 +83,9 @@ inline unsigned __ctz(unsigned long value)
     return __ctz((unsigned int)value);
 }
 
-inline unsigned __ctz(long value) { return __ctz((unsigned long)value); }
+__forceinline unsigned __ctz(long value) { return __ctz((unsigned long)value); }
 
-inline unsigned __clz_unsafe(unsigned long long value)
+__forceinline unsigned __clz_unsafe(unsigned long long value)
 {
 #if defined(__arm64__) || defined(__aarch64__) // Apple silicon or ARMv8
   return __builtin_clzll(value);               // clz
@@ -124,9 +124,9 @@ inline unsigned __clz_unsafe(unsigned long long value)
   return n;
 }
 
-inline unsigned __clz_unsafe(long long value) { return __clz_unsafe((unsigned long long)value); }
+__forceinline unsigned __clz_unsafe(long long value) { return __clz_unsafe((unsigned long long)value); }
 
-inline unsigned __clz_unsafe(unsigned int value)
+__forceinline unsigned __clz_unsafe(unsigned int value)
 {
 #if /* Apple silicon or ARMv8 */ defined(__arm64__) || defined(__aarch64__)
   return __builtin_clz(value); // clz
@@ -162,9 +162,9 @@ inline unsigned __clz_unsafe(unsigned int value)
   return n;
 }
 
-inline unsigned __clz_unsafe(int value) { return __clz_unsafe((unsigned int)value); }
+__forceinline unsigned __clz_unsafe(int value) { return __clz_unsafe((unsigned int)value); }
 
-inline unsigned __clz_unsafe(unsigned long value)
+__forceinline unsigned __clz_unsafe(unsigned long value)
 {
   if constexpr (sizeof(value) == 8)
     return __clz_unsafe((unsigned long long)value);
@@ -172,17 +172,17 @@ inline unsigned __clz_unsafe(unsigned long value)
     return __clz_unsafe((unsigned int)value);
 }
 
-inline unsigned __clz_unsafe(long value) { return __clz_unsafe((unsigned long)value); }
+__forceinline unsigned __clz_unsafe(long value) { return __clz_unsafe((unsigned long)value); }
 
-inline unsigned __clz(unsigned long long value) { return value ? __clz_unsafe(value) : 64; }
+__forceinline unsigned __clz(unsigned long long value) { return value ? __clz_unsafe(value) : 64; }
 
-inline unsigned __clz(long long value) { return __clz((unsigned long long)value); }
+__forceinline unsigned __clz(long long value) { return __clz((unsigned long long)value); }
 
-inline unsigned __clz(unsigned int value) { return value ? __clz_unsafe(value) : 32; }
+__forceinline unsigned __clz(unsigned int value) { return value ? __clz_unsafe(value) : 32; }
 
-inline unsigned __clz(int value) { return __clz((unsigned int)value); }
+__forceinline unsigned __clz(int value) { return __clz((unsigned int)value); }
 
-inline unsigned __clz(unsigned long value)
+__forceinline unsigned __clz(unsigned long value)
 {
   if constexpr (sizeof(value) == 8)
     return __clz((unsigned long long)value);
@@ -190,9 +190,9 @@ inline unsigned __clz(unsigned long value)
     return __clz((unsigned int)value);
 }
 
-inline unsigned __clz(long value) { return __clz((unsigned long)value); }
+__forceinline unsigned __clz(long value) { return __clz((unsigned long)value); }
 
-inline unsigned long long __blsr(unsigned long long value)
+__forceinline unsigned long long __blsr(unsigned long long value)
 {
 #if defined(__BMI__) && _TARGET_64BIT
   return _blsr_u64(value);
@@ -201,9 +201,9 @@ inline unsigned long long __blsr(unsigned long long value)
 #endif
 }
 
-inline long long __blsr(long long value) { return __blsr((unsigned long long)value); }
+__forceinline long long __blsr(long long value) { return __blsr((unsigned long long)value); }
 
-inline unsigned int __blsr(unsigned int value)
+__forceinline unsigned int __blsr(unsigned int value)
 {
 #if defined(__BMI__)
   return _blsr_u32(value);
@@ -212,9 +212,9 @@ inline unsigned int __blsr(unsigned int value)
 #endif
 }
 
-inline int __blsr(int value) { return __blsr((unsigned int)value); }
+__forceinline int __blsr(int value) { return __blsr((unsigned int)value); }
 
-inline unsigned long __blsr(unsigned long value)
+__forceinline unsigned long __blsr(unsigned long value)
 {
   if constexpr (sizeof(value) == 8)
     return __blsr((unsigned long long)value);
@@ -222,4 +222,4 @@ inline unsigned long __blsr(unsigned long value)
     return __blsr((unsigned int)value);
 }
 
-inline long __blsr(long value) { return __blsr((unsigned long)value); }
+__forceinline long __blsr(long value) { return __blsr((unsigned long)value); }

@@ -19,7 +19,7 @@
 #include "util/dag_delayedAction.h"
 #include "util/dag_base64.h"
 #include <ecs/scripts/sqEntity.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
 #include <json/json.h>
 #include <rendInst/rendInstExtra.h>
@@ -97,8 +97,21 @@ static bool trace_ray_static_ex(const Point3 &p0, const Point3 &dir, float &dist
   if (!o)
     return trace_ray_static_common(p0, dir, dist, out_norm, nullptr);
 
+  eastl::vector<rendinst::riex_handle_t> exclude_handles;
+
   const rendinst::riex_handle_t riex_handle = extract_ri_extra_from_eid(o->getEid());
-  if (riex_handle == rendinst::RIEX_HANDLE_NULL)
+  if (riex_handle != rendinst::RIEX_HANDLE_NULL)
+    exclude_handles.push_back(riex_handle);
+
+  if (const ecs::EidList *subEids = g_entity_mgr->getNullable<ecs::EidList>(o->getEid(), ECS_HASH("subentityEids")))
+    for (ecs::EntityId childEid : *subEids)
+    {
+      const rendinst::riex_handle_t childHandle = extract_ri_extra_from_eid(childEid);
+      if (childHandle != rendinst::RIEX_HANDLE_NULL)
+        exclude_handles.push_back(childHandle);
+    }
+
+  if (exclude_handles.empty())
     return trace_ray_static_common(p0, dir, dist, out_norm, nullptr);
 
   Point3 p = p0;
@@ -121,8 +134,9 @@ static bool trace_ray_static_ex(const Point3 &p0, const Point3 &dir, float &dist
   rendinst::RendInstDesc ri_desc;
   while (trace_ray_static_common(p, dir, dist, out_norm, &ri_desc))
   {
-    if (skipsLeft <= 0 || !ri_desc.isRiExtra() || riex_handle != ri_desc.getRiExtraHandle() ||
-        trace_ray_static_common(p, dir, dist, out_norm, nullptr, dacoll::ETF_RI))
+    const bool isExcluded = ri_desc.isRiExtra() && eastl::find(exclude_handles.begin(), exclude_handles.end(),
+                                                     ri_desc.getRiExtraHandle()) != exclude_handles.end();
+    if (skipsLeft <= 0 || !isExcluded || trace_ray_static_common(p, dir, dist, out_norm, nullptr, dacoll::ETF_RI))
     {
       dist += dist_sum;
       return true;
@@ -375,6 +389,12 @@ static void on_daed4_changed() { sqeventbus::send_event("entity_editor.onEditorC
 
 void init_da_editor4()
 {
+  if (daEd4Embedded)
+  {
+    debug("daEd4 already initialized %p", daEd4Embedded.get());
+    return;
+  }
+
   daEd4Embedded.reset(create_da_editor4(NULL));
   daEd4 = daEd4Embedded ? daEd4Embedded.get() : &daEd4Stub;
   daEd4->setActivationHandler(on_daed4_activate);

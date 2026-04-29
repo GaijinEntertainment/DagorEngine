@@ -11,24 +11,20 @@ struct SlotTexturesRangeInfo
     struct
     {
       uint8_t texBase;
-      uint8_t smpBase : 4;
-      uint8_t count : 4;
+      uint8_t smpBase;
+      uint8_t texCount;
+      uint8_t smpCount;
     };
-    uint16_t raw = 0;
+    uint32_t raw = 0;
   };
 
   SlotTexturesRangeInfo() = default;
-  explicit SlotTexturesRangeInfo(uint16_t raw_bytes) : raw{raw_bytes} {}
-  SlotTexturesRangeInfo(uint8_t tex_base, uint8_t smp_base, uint8_t tex_count) : texBase{tex_base}, smpBase{smp_base}, count{tex_count}
-  {
-    G_ASSERT(smp_base < (1 << 4));
-    G_ASSERT(tex_count < (1 << 4));
-  }
+  explicit SlotTexturesRangeInfo(uint32_t raw_bytes) : raw{raw_bytes} {}
+  SlotTexturesRangeInfo(uint8_t tex_base, uint8_t smp_base, uint8_t tex_count, uint8_t smp_count) :
+    texBase{tex_base}, smpBase{smp_base}, texCount{tex_count}, smpCount{smp_count}
+  {}
 
-  friend bool operator==(SlotTexturesRangeInfo r1, SlotTexturesRangeInfo r2)
-  {
-    return r1.texBase == r2.texBase && r1.smpBase == r2.smpBase && r1.count == r2.count;
-  }
+  friend bool operator==(SlotTexturesRangeInfo r1, SlotTexturesRangeInfo r2) { return r1.raw == r2.raw; }
 };
 
-G_STATIC_ASSERT(sizeof(SlotTexturesRangeInfo) == 2);
+G_STATIC_ASSERT(sizeof(SlotTexturesRangeInfo) == 4);

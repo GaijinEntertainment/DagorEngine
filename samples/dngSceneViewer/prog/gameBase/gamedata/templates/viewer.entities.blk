@@ -1,5 +1,5 @@
 import:t="%danetlibs/renderer/templates/render_settings.template.blk"
-import:t="dng_lib_entities.blk"
+import:t="lib_entities.blk"
 import:t="lens_flare.blk"
 import:t="game_objects.blk"
 import:t="color_grading_tonemap.blk"
@@ -152,6 +152,7 @@ level{
   level__useGroundHolesCollision:b=no
   level__renderFeaturesOverrideFromLevelBlk:b=no
   "level__renderFeaturesOverrides:object"{}
+  level__render:b=no // load render based on dngRenderIsActive tag
 
   "net__alwaysInScope:tag"{}
 
@@ -545,10 +546,6 @@ dynmat_params_base {
   "additional_data:list<p4>"{
     _tags:t="render"
   }
-  _group{
-    _tags:t=render
-    needImmediateConstPS:b=true
-  }
   "dynamic_material_channels_arr:array" {
     _tags:t="render"
 
@@ -743,7 +740,7 @@ cinematic_mode_settings{
 
     //Force 100% render scale so that super resolution screenshots work
     "video/antiAliasingMode":i=3
-    "video/temporalUpsamplingRatio":r=100
+    "video/antialiasing_upscaling":t="100"
     "video/dynamicResolution/targetFPS":i=0
     "video/fsr":t="off"
     "video/ssaa":b=no

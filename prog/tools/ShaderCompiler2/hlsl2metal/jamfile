@@ -18,7 +18,6 @@ Sources +=
 
 AddIncludes =
   $(Root)/prog/3rdPartyLibs/metal
-  $(Root)/prog/3rdPartyLibs/vulkan/glslang
   $(Root)/prog/3rdPartyLibs/vulkan/include
   $(Root)/prog/3rdPartyLibs/vulkan/spirv-tools/include
   $(Root)/prog/3rdPartyLibs/vulkan/smol-v/source

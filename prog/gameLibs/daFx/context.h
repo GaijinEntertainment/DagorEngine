@@ -17,10 +17,10 @@
 #include <util/dag_threadPool.h>
 #include <util/dag_generationReferencedData.h>
 #include <osApiWrappers/dag_spinlock.h>
+#include <osApiWrappers/dag_events.h>
 
 namespace dafx
 {
-
 struct SamplerHandles
 {
   float mipBias = invalidMipBias;
@@ -46,6 +46,7 @@ struct AsyncPrepareJob final : public cpujobs::IJob
   ContextId cid;
   float dt = 0.f;
   bool gpu_fetch = false;
+  bool clear_debug_lods = false;
   const char *getJobName(bool &) const override { return "dafx_prepare"; }
   void doJob() override;
 };
@@ -79,6 +80,13 @@ struct AsyncCpuCullJob final : public cpujobs::IJob
   void doJob() override;
 };
 
+struct AsyncCpuDefragJob final : public cpujobs::IJob
+{
+  ContextId cid;
+  const char *getJobName(bool &) const override { return "AsyncCpuDefragJob"; }
+  void doJob() override;
+};
+
 struct AsyncStats
 {
   volatile int cpuElemProcessed;
@@ -92,24 +100,82 @@ struct AsyncStats
 };
 
 using WorkersByDepth = eastl::array<eastl::vector<int>, Config::max_system_depth>;
+
+struct Workers
+{
+  WorkersByDepth cpuEmissionWorkers{};
+  WorkersByDepth gpuEmissionWorkers{};
+  WorkersByDepth cpuSimulationWorkers{};
+  WorkersByDepth gpuSimulationWorkers{};
+  eastl::vector<int> allRenderWorkers{};
+  eastl::array<eastl::vector<int>, Config::max_render_tags> cpuRenderWorkers{};
+  eastl::vector<int> gpuTransferWorkers{};
+  eastl::vector<int> allEmissionWorkers{};
+  eastl::vector<int> cullingCpuWorkers{};
+  eastl::vector<int> cullingGpuWorkers{};
+
+  void clear()
+  {
+    for (int i = 0; i < Config::max_system_depth; ++i)
+    {
+      cpuEmissionWorkers[i].clear();
+      gpuEmissionWorkers[i].clear();
+      cpuSimulationWorkers[i].clear();
+      gpuSimulationWorkers[i].clear();
+    }
+    allRenderWorkers.clear();
+    for (int i = 0; i < Config::max_render_tags; ++i)
+      cpuRenderWorkers[i].clear();
+    gpuTransferWorkers.clear();
+    allEmissionWorkers.clear();
+    cullingCpuWorkers.clear();
+    cullingGpuWorkers.clear();
+  }
+};
+
+struct WorkerStats
+{
+  eastl::array<int, Config::max_simulation_lods> cpuElemTotalSimLods{};
+  eastl::array<int, Config::max_simulation_lods> gpuElemTotalSimLods{};
+  int cpuEmissionWorkers = 0;
+  int cpuSimulationWorkers = 0;
+  int allRenderWorkers = 0;
+  int activeInstances = 0;
+  int renderInstances = 0;
+  int genVisibilityLod = 0;
+
+  // @TODO: are these supposed to be reported as well? Were not in orig code.
+  // int gpuEmissionWorkers;
+  // int gpuSimulationWorkers;
+
+  void clear()
+  {
+#if DAFX_STAT
+    memset(this, 0, sizeof(*this));
+#endif
+  }
+};
+
 struct Context
 {
   Config cfg;
+  Config pendingCfg;
   Stats stats;
   AsyncStats asyncStats;
   dag::Vector<SystemUsageStat> systemUsageStats;
-  uint32_t debugFlags;
+  uint32_t debugFlags = 0;
 
   Binds binds;
   Shaders shaders;
   GlobalData globalData;
+  uint32_t lastUploadedGlobalDataFrame = 0;
   GenerationReferencedData<RefDataId, RefData> refDatas;
   eastl::fixed_vector<SamplerHandles, 4, true> samplersCache;
 
   Culling culling;
   StagingRing staging;
   eastl::array<RenderBuffer, Config::max_render_tags> renderBuffers;
-  uint32_t beforeRenderUpdatedTags;
+  uint32_t beforeRenderUpdatedTags = 0;
 
   VDECL instancingVdecl;
   serial_buffer::SerialBufferCounter serialBuf;
@@ -118,7 +184,7 @@ struct Context
 
   static constexpr int multiDrawBufferRingSize = 3;
   eastl::vector<UniqueBuf> multidrawBufers[multiDrawBufferRingSize];
-  eastl::vector<GpuResourcePtr> renderDispatchBuffers;
+  eastl::vector<RenderDispatchBuffer> renderDispatchBuffers;
   eastl::vector<GpuResourcePtr> computeDispatchBuffers;
   int currentRenderDispatchBuffer = 0;
   int currentMutltidrawBuffer = 0;
@@ -128,6 +194,11 @@ struct Context
   Systems systems;
   Instances instances;
   CullingStates cullingStates;
+
+  eastl::vector<Workers> workersPrepByThreads;
+  eastl::vector<WorkerStats> workersPrepStatsByThreads;
+  Workers warmupWorkers{};
+  WorkerStats warmupWorkerStats{};
 
   WorkersByDepth cpuEmissionWorkers;
   WorkersByDepth gpuEmissionWorkers;
@@ -151,30 +222,42 @@ struct Context
   dag::RelocatableFixedVector<AsyncCpuComputeJob, 10> asyncCpuComputeJobs;
   dag::RelocatableFixedVector<AsyncCpuCullJob, 10> asyncCpuCullJobs;
 
+  AsyncCpuDefragJob asyncCpuDefragJob;
+  int nextPageToDefrag = 0;
+
   dag::Vector<bool> activeQueryContainer;
   SimLodGenParams simLodGenParams;
 
   volatile int asyncCounter = -1;
+  os_event_t allAsyncCpuJobsDoneEvent;
+  void asyncCpuJobsCompleted()
+  {
+    interlocked_release_store(asyncCounter, -1);
+    os_event_set(&allAsyncCpuJobsDoneEvent);
+  }
 
   unsigned int currentFrame = 0;
   int renderBufferMaxUsage = 0;
   bool updateInProgress = false;
   bool simulationIsPaused = false;
   bool app_was_inactive = false;
+  bool use32BitIndex = false;
 
   int systemDataVarId = -1;
   int renderCallsVarId = -1;
+  int renderCallsCountVarId = -1;
   int computeDispatchVarId = -1;
-  int updateGpuCullingVarId = -1;
+  int reducedRenderVarId = -1;
   bool supportsNoOverwrite = true;
   volatile int maxTextureSlotsAllocated = 0;
 
   FrameBoundaryBufferManager frameBoundaryBufferManager;
 
   os_spinlock_t queueLock;
+  os_spinlock_t configLock;
 
-  Context() = default;
-  ~Context() = default;
+  Context() { os_event_create(&allAsyncCpuJobsDoneEvent); } //-V730
+  ~Context() { os_event_destroy(&allAsyncCpuJobsDoneEvent); }
   Context(Context &&) = default;
   Context(const Context &) = delete;
   Context &operator=(const Context &) = delete;

@@ -10,7 +10,6 @@ function refreshOnWindowActivate(repeatAmount = 1, refreshPeriodSec = 10.0) {
 
 
 function xxx(_a, _b, _c) {
-
 }
 
 

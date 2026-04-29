@@ -10,8 +10,6 @@ interval fx_debug_editor_mode:base<1, hdr_emission;
 
 shader debug_fx_final_render
 {
-  ENABLE_ASSERT(ps)
-
   z_test = false;
   z_write = false;
   supports none;
@@ -24,7 +22,7 @@ shader debug_fx_final_render
   USE_HDR(ps)
 
   (ps) {
-    color_rt@smp2d = fx_debug_color_rt;
+    color_rt@tex2d = fx_debug_color_rt;
     fx_debug_exposure_threshold@f1 = fx_debug_exposure_threshold;
   }
 

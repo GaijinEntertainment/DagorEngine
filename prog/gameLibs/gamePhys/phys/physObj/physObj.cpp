@@ -165,7 +165,6 @@ void PhysObj::loadLimits(const DataBlock *blk)
 void PhysObj::loadSleepSettings(const DataBlock *blk)
 {
   skipUpdateOnSleep = blk->getBool("skipUpdateOnSleep", skipUpdateOnSleep);
-  sleepUpdateFrequency = blk->getInt("sleepUpdateFrequency", sleepUpdateFrequency);
   noSleepAtTheSlopeCos = blk->getReal("noSleepAtTheSlopeCos", noSleepAtTheSlopeCos);
   sleepDelay = blk->getReal("sleepDelay", sleepDelay);
 }
@@ -282,7 +281,7 @@ void PhysObj::addCollisionToWorld()
 static inline bool apply_impulse_to_ri(rendinst::RendInstDesc &ri_desc, float at_time, Point3 &velocity, float impulse,
   const Point3 &impulse_dir, const Point3 &contact_pos, float speed)
 {
-  if (!rendinst::isRiGenDescValid(ri_desc))
+  if (!rendinst::isRiGenDescInGrid(ri_desc))
     return false;
   CachedCollisionObjectInfo *riCollisionInfo = rendinstdestr::get_or_add_cached_collision_object(ri_desc, at_time);
   if (!riCollisionInfo)
@@ -388,13 +387,6 @@ static void apply_limit(const Point3 &damping_mult, const Point3 &limit, bool is
   }
 }
 
-static inline void update_current_state_tick(PhysObjState &state, const PhysObjControlState &ct, float at_time, float dt,
-  float time_step)
-{
-  state.atTick = gamephys::nearestPhysicsTickNumber(at_time + dt, time_step);
-  state.lastAppliedControlsForTick = (ct.producedAtTick > 0) ? ct.producedAtTick : state.atTick - 1;
-}
-
 void PhysObj::resolveCollision(float dt, dag::ConstSpan<gamephys::CollisionContactData> contacts)
 {
   TMatrix tm;
@@ -453,16 +445,9 @@ void PhysObj::resolveCollision(float dt, dag::ConstSpan<gamephys::CollisionConta
   G_ASSERT(lengthSq(currentState.velocity) < sqr(10000.f));
 }
 
-void PhysObj::updatePhys(float at_time, float dt, bool)
+void PhysObj::updateAwakePhys(double at_time, float dt, bool)
 {
-  if (skipUpdateOnSleep && currentState.isSleep)
-    if (sleepUpdateFrequency > 0 ? (currentState.atTick % sleepUpdateFrequency) != 0 : true) // sometimes we don't want to skip all
-                                                                                             // updates, but like update 1/10 for
-                                                                                             // instance
-    {
-      update_current_state_tick(currentState, appliedCT, at_time, dt, timeStep);
-      return;
-    }
+  G_ASSERT(!currentState.isSleep || !skipUpdateOnSleep);
 
   const int prevStep = dacoll::set_hmap_step(1);
   FINALLY([prevStep]() { dacoll::set_hmap_step(prevStep); });
@@ -492,7 +477,11 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
         frtCollisionNormal = contacts[0].wnormB;
         hasFrtCollision = true;
       }
+      G_ASSERTF(daphys::validate_contacts(contacts, tm.getcol(3), boundingRadius), "Contacts validation failed %p %p %i", &tm,
+        contacts.data(), contacts.size());
       dacoll::test_collision_ri(co, BSphere3(Point3(), 1.f), contacts, true /*collInfo*/, at_time, nullptr, physMatId);
+      G_ASSERTF(daphys::validate_contacts(contacts, tm.getcol(3), boundingRadius), "Contacts validation failed %p %p %i", &tm,
+        contacts.data(), contacts.size());
 
       for (int i = 0; i < contacts.size(); ++i)
       {
@@ -516,6 +505,9 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
 
       int prevCount = contacts.size();
       dacoll::test_collision_lmesh(co, tm, 1.f, -1, contacts, physMatId);
+      G_ASSERTF(daphys::validate_contacts(contacts, tm.getcol(3), boundingRadius), "Contacts validation failed %p %p %i", &tm,
+        contacts.data(), contacts.size());
+      additionalCollisionChecks(co, tm, contacts);
       if (contacts.size() > prevCount)
       {
         hasGroundCollisionPoint = true;
@@ -691,6 +683,7 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
         ccdOffset = offset;
         ccdContactPoint = contactPoint;
         ccdResultVelocity = constrainedVelocity;
+        G_ASSERT(lengthSq(ccdResultVelocity) < sqr(10000.f));
       }
     }
 
@@ -717,15 +710,14 @@ void PhysObj::updatePhys(float at_time, float dt, bool)
     currentState.location.P += centerOfMassInWorldBefore - centerOfMassInWorldAfter;
   }
 
-  // Sleep
-  if (currentState.velocity.lengthSq() + currentState.omega.lengthSq() < 1e-6) // if zero
+  if (currentState.velocity.lengthSq() + currentState.omega.lengthSq() < 1e-6f) // if zero
   {
     currentState.sleepTimer += dt;
-    if (currentState.sleepTimer > sleepDelay)
+    if (currentState.sleepTimer >= sleepDelay)
       putToSleep(); // zero-out velocity/omega as well to avoid denomals
   }
 
-  update_current_state_tick(currentState, appliedCT, at_time, dt, timeStep);
+  updateCurrentStateTick(at_time, dt);
 }
 
 void PhysObj::applyOffset(const Point3 &offset) { currentState.location.P += dpoint3(offset); }
@@ -808,6 +800,7 @@ void PhysObj::addImpulseWorld(const Point3 &point, const Point3 &impulse)
   const Point3 arm = itm * point;
   const Point3 armCrossImpulse = (arm - getCenterOfMass()) % (itm % impulse);
   currentState.omega += hadamard_product(armCrossImpulse, invMoi);
+  G_ASSERT(lengthSq(currentState.velocity) < sqr(10000.f));
 }
 
 void PhysObj::addSoundShockImpulse(float val) { soundShockImpulse += val; }

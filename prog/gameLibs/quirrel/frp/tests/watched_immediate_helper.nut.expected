@@ -1,0 +1,13 @@
+wi initial: 10
+wi deferred: false
+ci initial: 20
+ci deferred: false
+ci after immediate set: 10
+isWatched(w): true
+isWatched(c): true
+isComputed(w): false
+isComputed(c): true
+isObservable(w): true
+isObservable(c): true
+isObservable(42): false
+isObservable(null): false

@@ -64,7 +64,10 @@ class Point2 const StdGuiRender::P2::ZERO = {};
 class Point2 const StdGuiRender::P2::AXIS_X = {};
 class Point2 const StdGuiRender::P2::AXIS_Y = {};
 void StdGuiRender::GuiContext::render_rect_t(float, float, float, float, Point2, Point2) { G_ASSERT(0); }
-void StdGuiRender::GuiContext::set_textures(TEXTUREID, d3d::SamplerHandle, TEXTUREID, d3d::SamplerHandle, bool, bool) { G_ASSERT(0); }
+void StdGuiRender::GuiContext::set_textures(TEXTUREID, d3d::SamplerHandle, TEXTUREID, d3d::SamplerHandle, bool, TexFormat)
+{
+  G_ASSERT(0);
+}
 void StdGuiRender::GuiContext::set_color(E3DCOLOR) { G_ASSERT(0); }
 float StdGuiRender::GuiContext::screen_width() { G_ASSERT_RETURN(false, 0.f); }
 float StdGuiRender::GuiContext::screen_height() { G_ASSERT_RETURN(false, 0.f); }

@@ -1,0 +1,14 @@
+float foam_smoothness = 0.1;
+float foam_reflectance = 0.4;
+float foam_scatterCoeff = 0.9;
+float foam_materialAlphaCoeff = 2.0;
+
+macro INIT_FOAM_PARAMS(code)
+  (code)
+  {
+    foam_smoothness@f1 = foam_smoothness;
+    foam_reflectance@f1 = foam_reflectance;
+    foam_scatterCoeff@f1 = foam_scatterCoeff;
+    foam_materialAlphaCoeff@f1 = foam_materialAlphaCoeff;
+  }
+endmacro

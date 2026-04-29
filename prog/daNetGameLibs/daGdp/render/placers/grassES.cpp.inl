@@ -1,9 +1,16 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <generic/dag_enumerate.h>
 #include <math/dag_hlsl_floatx.h>
+#include <render/renderSettings.h>
 #include "../../shaders/dagdp_heightmap.hlsli"
 #include "../globalManager.h"
 #include "grass.h"
@@ -16,17 +23,40 @@ namespace dagdp
 static inline float pow2f(float x) { return x * x; }
 
 template <typename Callable>
-static inline void grass_settings_ecs_query(Callable);
+static inline void grass_settings_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void grass_placers_ecs_query(Callable);
+static inline void grass_placers_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static inline void manager_ecs_query(Callable);
+static inline void manager_ecs_query(ecs::EntityManager &manager, Callable);
 
+template <typename Callable>
+inline void render_settings_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
+
+
+ECS_TAG(render)
+ECS_TRACK(render_settings__grassRendInstRangeMul)
+ECS_REQUIRE(float render_settings__grassRendInstRangeMul)
+ECS_ON_EVENT(OnRenderSettingsReady)
+ECS_NO_ORDER
+static void grass_on_render_settings_change_es(const ecs::Event &, ecs::EntityManager &manager)
+{
+  manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateViews(); });
+}
+
+ECS_TAG(render)
+ECS_TRACK(dagdp__grass_max_range)
+ECS_REQUIRE(float dagdp__grass_max_range)
+ECS_NO_ORDER
+static void grass_on_level_settings_change_es(const ecs::Event &, ecs::EntityManager &manager)
+{
+  manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateViews(); });
+}
 
 ECS_NO_ORDER
-static inline void grass_view_process_es(const dagdp::EventViewProcess &evt, dagdp::GrassManager &dagdp__grass_manager)
+static inline void grass_view_process_es(
+  const dagdp::EventViewProcess &evt, ecs::EntityManager &manager, dagdp::GrassManager &dagdp__grass_manager)
 {
   FRAMEMEM_REGION;
 
@@ -36,11 +66,18 @@ static inline void grass_view_process_es(const dagdp::EventViewProcess &evt, dag
   auto &grassMaxRange = builder.grassMaxRange;
   grassMaxRange = viewInfo.maxDrawDistance;
 
-  grass_settings_ecs_query([&](ECS_REQUIRE(ecs::Tag dagdp_level_settings) float dagdp__grass_max_range) {
+  grass_settings_ecs_query(manager, [&](ECS_REQUIRE(ecs::Tag dagdp_level_settings) float dagdp__grass_max_range) {
     grassMaxRange = eastl::min(grassMaxRange, dagdp__grass_max_range);
   });
 
-  grass_placers_ecs_query(
+  ecs::EntityId settingsEid = manager.getSingletonEntity(ECS_HASH("render_settings"));
+  render_settings_ecs_query(manager, settingsEid,
+    [&grassMaxRange](float render_settings__grassRendInstRangeMul) { grassMaxRange *= render_settings__grassRendInstRangeMul; });
+
+  if (grassMaxRange <= 0)
+    return;
+
+  grass_placers_ecs_query(manager,
     [&](ECS_REQUIRE(ecs::Tag dagdp_placer_grass) ecs::EntityId eid, const ecs::List<int> &dagdp__biomes, float dagdp__density,
       const ecs::string &dagdp__name, const float *fast_grass__height, const float *fast_grass__height_variance) {
       auto iter = rulesBuilder.placers.find(eid);
@@ -163,16 +200,16 @@ ECS_NO_ORDER static inline void grass_view_finalize_es(const dagdp::EventViewFin
 }
 
 template <typename Callable>
-static inline void manager_ecs_query(Callable);
+static inline void manager_ecs_query(ecs::EntityManager &manager, Callable);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 ECS_ON_EVENT(on_disappear)
 ECS_TRACK(dagdp__name, dagdp__biomes, dagdp__density)
 ECS_REQUIRE(ecs::Tag dagdp_placer_grass, const ecs::string &dagdp__name, const ecs::List<int> &dagdp__biomes, float dagdp__density)
-static void dagdp_placer_grass_changed_es(const ecs::Event &)
+static void dagdp_placer_grass_changed_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  manager_ecs_query([](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
+  manager_ecs_query(manager, [](dagdp::GlobalManager &dagdp__global_manager) { dagdp__global_manager.invalidateRules(); });
 }
 
 } // namespace dagdp

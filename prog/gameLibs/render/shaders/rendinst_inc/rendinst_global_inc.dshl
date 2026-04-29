@@ -17,7 +17,8 @@ buffer ri_gen_multidraw_perDrawArgsBuffer;
 
 int rendinst_perinst_buff_no = 6 always_referenced;  // perinst
 int rendinst_instance_buff_no = 5 always_referenced; // instance_cb
-int per_instance_data_no = 14 always_referenced;
+int per_instance_data_no = 16 always_referenced;
+int ri_additional_instance_offsets_data_no = 17 always_referenced;
 
 float4 impostor_shadow_x = (0,0,0,0);
 float4 impostor_shadow_y = (0,0,0,0);
@@ -31,6 +32,7 @@ float tree_wind_speed = 0.1;
 float tess_quality = 75;
 
 float lods_shift_dist_mul = 1.0;
+float ri_dist_mul_rcp = 1.0;
 
 float4 camera_base_offset = (0, 0, 0, 0);
 float4 prev_camera_base_offset = (0, 0, 0, 0);

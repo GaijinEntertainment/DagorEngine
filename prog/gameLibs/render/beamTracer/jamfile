@@ -1,0 +1,26 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/render/beamTracer ;
+
+TargetType  = lib ;
+Target      = gameLibs/render/beamTracer.lib ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes =
+  $(Root)/prog/dagorInclude
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+SourceES =
+  render/beamTracerClientES.cpp.inl
+;
+
+Sources =
+  render/beamTracers.cpp
+;
+
+
+for s in $(SourceES) { GenESSourceFile $(s) ; }
+
+include $(Root)/prog/_jBuild/build.jam ;
+
+

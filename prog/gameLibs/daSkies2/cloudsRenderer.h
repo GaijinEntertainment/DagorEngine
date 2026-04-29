@@ -3,6 +3,8 @@
 
 #include "cloudsRendererData.h"
 
+#include <daSkies2/cloudsRenderFlags.h>
+
 class CloudsRenderer
 {
 public:
@@ -13,12 +15,15 @@ public:
 
   void setCloudsOffsetVars(float current_clouds_offset, float world_size);
   void setCloudsOffsetVars(CloudsRendererData &data, float world_size) { setCloudsOffsetVars(data.currentCloudsOffset, world_size); }
-  void render(CloudsRendererData &data, const TextureIDPair &depth, const TextureIDPair &prev_depth, const Point2 &wind_change_ofs,
-    float worldSize, const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos = nullptr,
-    const bool acquare_new_resource = true, const bool set_camera_vars = true);
 
-  void renderFull(CloudsRendererData &data, const TextureIDPair &downsampled_depth, TEXTUREID target_depth,
-    const Point4 &target_depth_transform, const TMatrix &view_tm, const TMatrix4 &proj_tm);
+  void renderCloudsPrepare(CloudsRendererData &data, BaseTexture *depth, BaseTexture *prev_depth, const Point2 &wind_change_ofs,
+    float worldSize, const TMatrix &view_tm, const TMatrix4 &proj_tm, const DPoint3 *world_pos = nullptr,
+    const CloudsRenderFlags flags = CloudsRenderFlags::Default, const DynRes *dynamic_resolution = nullptr);
+
+  // apply-only or direct render (eg. for mobile)
+  void renderCloudsApply(CloudsRendererData &data, BaseTexture *downsampled_depth, BaseTexture *target_depth,
+    const Point4 &target_depth_transform, const TMatrix &view_tm, const TMatrix4 &proj_tm,
+    const CloudsRenderFlags flags = CloudsRenderFlags::Default);
 
 private:
   static void set_program(ShaderElement *oe, ShaderElement *ne);

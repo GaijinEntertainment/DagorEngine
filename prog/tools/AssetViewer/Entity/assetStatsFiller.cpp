@@ -30,6 +30,28 @@ float AssetStatsFiller::getLodDistance(const Point3 &camera_pos, const IObjEntit
   return (camera_pos - entityPos).length();
 }
 
+void AssetStatsFiller::fillAssetStatsFromShaderMesh(const ShaderMesh &mesh)
+{
+  auto meshesResult = processedMeshes.emplace(&mesh, 0);
+  if (meshesResult.second) // inserted
+  {
+    meshesResult.first->second = mesh.calcTotalFaces();
+
+    // gatherUsedMat() uses a linear search to check for duplicates, so we deduplicate the material list ourself.
+    // This also allows us to only gather textures for each material once.
+    dag::ConstSpan<ShaderMesh::RElem> elems = mesh.getAllElems();
+    for (const ShaderMesh::RElem &elem : elems)
+      if (elem.mat)
+      {
+        auto materialsResult = materials.emplace(elem.mat);
+        if (materialsResult.second) // inserted
+          elem.mat->gatherUsedTex(textures);
+      }
+  }
+
+  stats.trianglesRenderable += meshesResult.first->second;
+}
+
 int AssetStatsFiller::fillAssetStatsFromRenderableInstanceLodsResource(const RenderableInstanceLodsResource &res, float distance)
 {
   if (res.lods.empty())
@@ -53,9 +75,7 @@ int AssetStatsFiller::fillAssetStatsFromRenderableInstanceLodsResource(const Ren
   if (!mesh)
     return -1;
 
-  stats.trianglesRenderable += mesh->calcTotalFaces();
-  mesh->gatherUsedMat(materials);
-  mesh->gatherUsedTex(textures);
+  fillAssetStatsFromShaderMesh(*mesh->getMesh());
 
   return lod;
 }
@@ -94,9 +114,7 @@ int AssetStatsFiller::fillAssetStatsFromDynamicRenderableSceneInstance(DynamicRe
     if (!shaderMesh)
       continue;
 
-    stats.trianglesRenderable += shaderMesh->calcTotalFaces();
-    shaderMesh->gatherUsedMat(materials);
-    shaderMesh->gatherUsedTex(textures);
+    fillAssetStatsFromShaderMesh(*shaderMesh);
   }
 
   const dag::ConstSpan<PatchablePtr<ShaderSkinnedMeshResource>> skins = meshResource->getSkins();
@@ -117,10 +135,7 @@ int AssetStatsFiller::fillAssetStatsFromDynamicRenderableSceneInstance(DynamicRe
       continue;
 
     const ShaderMesh &shaderMesh = shaderSkinnedMesh->getShaderMesh();
-
-    stats.trianglesRenderable += shaderMesh.calcTotalFaces();
-    shaderMesh.gatherUsedMat(materials);
-    shaderMesh.gatherUsedTex(textures);
+    fillAssetStatsFromShaderMesh(shaderMesh);
   }
 
   return lod;
@@ -128,10 +143,9 @@ int AssetStatsFiller::fillAssetStatsFromDynamicRenderableSceneInstance(DynamicRe
 
 void AssetStatsFiller::fillCompositeAssetStats(ICompositObj &composite, const Point3 &camera_pos, bool &firstLodSet)
 {
-  const int subEntityCount = composite.getCompositSubEntityCount();
-  for (int subEntityIndex = 0; subEntityIndex < subEntityCount; ++subEntityIndex)
+  dag::Span<IObjEntity *> subEntities = composite.getCompositSubEntities();
+  for (IObjEntity *subEntity : subEntities)
   {
-    IObjEntity *subEntity = composite.getCompositSubEntity(subEntityIndex);
     if (!subEntity)
       continue;
 
@@ -176,21 +190,26 @@ void AssetStatsFiller::fillCompositeAssetStats(ICompositObj &composite, const Po
   }
 }
 
-void AssetStatsFiller::fillAssetCollisionNodeStats(AssetStats::GeometryStat &geometry, const CollisionNode &collision_node)
+void AssetStatsFiller::fillAssetCollisionNodeStats(AssetStats::GeometryStat &geometry, const CollisionResource &collision_resource,
+  int node_id)
 {
   G_STATIC_ASSERT(NUM_COLLISION_NODE_TYPES == 6);
 
-  switch (collision_node.type)
+  const CollisionNode *node = collision_resource.getNode(node_id);
+  if (!node)
+    return;
+
+  switch (node->type)
   {
     case COLLISION_NODE_TYPE_MESH:
       ++geometry.meshNodeCount;
-      geometry.meshTriangleCount += collision_node.indices.size() / 3;
+      geometry.meshTriangleCount += collision_resource.getNodeFaceCount(node_id);
       break;
 
     case COLLISION_NODE_TYPE_CONVEX:
     case COLLISION_NODE_TYPE_POINTS:
       ++geometry.convexNodeCount;
-      geometry.convexVertexCount += collision_node.vertices.size();
+      geometry.convexVertexCount += collision_resource.getNodeVertCount(node_id);
       break;
 
     case COLLISION_NODE_TYPE_BOX: ++geometry.boxNodeCount; break;
@@ -199,18 +218,20 @@ void AssetStatsFiller::fillAssetCollisionNodeStats(AssetStats::GeometryStat &geo
 
     case COLLISION_NODE_TYPE_CAPSULE: ++geometry.capsuleNodeCount; break;
 
-    default: logwarn("Unknown collision node type: %d", (int)collision_node.type); break;
+    default: logwarn("Unknown collision node type: %d", (int)node->type); break;
   }
 }
 
 void AssetStatsFiller::fillAssetCollisionStats(CollisionResource &collision_resource)
 {
-  for (const CollisionNode &collisionNode : collision_resource.getAllNodes())
+  const auto allNodes = collision_resource.getAllNodes();
+  for (int ni = 0, ne = (int)allNodes.size(); ni < ne; ++ni)
   {
+    const CollisionNode &collisionNode = allNodes[ni];
     if (collisionNode.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-      fillAssetCollisionNodeStats(stats.physGeometry, collisionNode);
+      fillAssetCollisionNodeStats(stats.physGeometry, collision_resource, ni);
     if (collisionNode.checkBehaviorFlags(CollisionNode::TRACEABLE))
-      fillAssetCollisionNodeStats(stats.traceGeometry, collisionNode);
+      fillAssetCollisionNodeStats(stats.traceGeometry, collision_resource, ni);
   }
 }
 

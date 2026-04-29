@@ -3,7 +3,7 @@ blood_decals_render_manager{
   _tags:t="render"
 
 
-  "blood_decals_manager:RingBufferDecals"{}
+  "blood_decals_manager:RingBufferDecalManager"{}
   blood_decals_init_shader:t= "projective_decal_create_indirect"
   blood_decals_generator_shader:t= "projective_decal_decals_generator"
   blood_decals_render_shader:t= "blood_projective_decal_decals"

@@ -28,6 +28,7 @@
 #include <de3_ICamera.h>
 #include <de3_loghandler.h>
 #include <drv/3d/dag_info.h>
+#include <drv/hid/dag_hiCreate.h>
 
 #include <folders/folders.h>
 #include <EASTL/string.h>
@@ -86,6 +87,7 @@ static void post_shutdown_handler()
   shutdown_game(RESTART_ALL);
   ddsx::shutdown_tex_pack2_data();
   threadpool::shutdown();
+  cpujobs::term(true, 1000);
 }
 
 static void init_threads(const DataBlock &cfg)
@@ -151,9 +153,18 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   ::dagor_init_keyboard_win();
   ::dagor_init_mouse_win();
   ::dagor_init_joystick();
+#elif _TARGET_C1 || _TARGET_C2
+
+
+
+
+
+
+
 #else
   ::dagor_init_mouse_null();
   ::dagor_init_keyboard_null();
+
   ::dagor_init_joystick();
   if (global_cls_drv_joy)
     global_cls_drv_joy->enableAutoDefaultJoystick(true);

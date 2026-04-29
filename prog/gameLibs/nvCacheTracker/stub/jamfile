@@ -1,0 +1,17 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/nvCacheTracker/stub ;
+
+TargetType  = lib ;
+Target      = gameLibs/nvCacheTrackerStub.lib ;
+StrictCompile = yes ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+;
+
+Sources =
+  nvCacheTracker.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;
+

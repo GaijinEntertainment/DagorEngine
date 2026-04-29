@@ -269,6 +269,9 @@ DeviceQueue::~DeviceQueue()
 {
   if (Globals::VK::phy.hasTimelineSemaphore)
     VULKAN_LOG_CALL(Globals::VK::dev.vkDestroySemaphore(Globals::VK::dev.get(), timelineSemaphore, VKALLOC(semaphore)));
+  for (VulkanSemaphoreHandle i : pendingAcquireSemaphores)
+    VULKAN_LOG_CALL(Globals::VK::dev.vkDestroySemaphore(Globals::VK::dev.get(), i, VKALLOC(semaphore)));
+  pendingAcquireSemaphores.clear();
 }
 
 DeviceQueue::DeviceQueue(VulkanQueueHandle h, uint32_t fam, uint32_t idx, uint32_t timestamp_bits) :
@@ -315,8 +318,8 @@ VkResult DeviceQueue::present(const TrimmedPresentInfo &presentInfo)
   {
     VkPresentInfoKHR pi = {};
     pi.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    pi.pWaitSemaphores = ary(&presentInfo.frameReady);
-    pi.waitSemaphoreCount = 1;
+    pi.pWaitSemaphores = presentInfo.frameReadySemaphores;
+    pi.waitSemaphoreCount = presentInfo.frameReadySemaphoreCount;
 
     pi.swapchainCount = presentInfo.swapchainCount;
     pi.pSwapchains = presentInfo.pSwapchains;
@@ -326,7 +329,7 @@ VkResult DeviceQueue::present(const TrimmedPresentInfo &presentInfo)
   }
   else
   {
-    G_ASSERT(is_null(presentInfo.frameReady));
+    G_ASSERT(presentInfo.frameReadySemaphoreCount == 0);
   }
 
   return ret;
@@ -346,34 +349,35 @@ void DeviceQueue::submit(FrameInfo &gpu_frame, const TrimmedSubmitInfo &trimmed_
   si.commandBufferCount = trimmed_info.commandBufferCount;
 
   VkTimelineSemaphoreSubmitInfoKHR tssi = {};
-  VkSemaphore comboSemaphores[2];
-  uint64_t timelineValues[2];
+  eastl::fixed_vector<VkSemaphore, 1 + MAX_SECONDARY_SWAPCHAIN_COUNT, false> comboSemaphores;
+  eastl::fixed_vector<uint64_t, 1 + MAX_SECONDARY_SWAPCHAIN_COUNT, false> comboTimelineValues;
 
   if (Globals::VK::phy.hasTimelineSemaphore)
   {
     ++timelineValue;
-    timelineValues[0] = timelineValue;
+    comboTimelineValues.resize(trimmed_info.signalSemaphoreCount + 1, 0);
+    comboTimelineValues[0] = timelineValue;
     if (!is_null(fence))
     {
       prevLastFencedTimelineValue = lastFencedTimelineValue;
       lastFencedTimelineValue = timelineValue;
     }
 
-    // only one non timeline semaphore is allowed - for swapchain logic
-    G_ASSERTF(trimmed_info.signalSemaphoreCount < 2, "vulkan: too much signals (%u) on submit with timeline semaphores",
-      trimmed_info.signalSemaphoreCount);
+    // only one non timeline semaphore is allowed per present - for swapchain logic
+    G_ASSERTF(trimmed_info.signalSemaphoreCount <= 1 + MAX_SECONDARY_SWAPCHAIN_COUNT,
+      "vulkan: too much signals (%u) on submit with timeline semaphores", trimmed_info.signalSemaphoreCount);
 
-    comboSemaphores[0] = timelineSemaphore;
-    if (trimmed_info.signalSemaphoreCount)
-      comboSemaphores[1] = trimmed_info.pSignalSemaphores[0];
-    si.pSignalSemaphores = &comboSemaphores[0];
+    comboSemaphores.reserve(1 + trimmed_info.signalSemaphoreCount);
+    comboSemaphores.push_back(timelineSemaphore);
+    eastl::copy_n(trimmed_info.pSignalSemaphores, trimmed_info.signalSemaphoreCount, eastl::back_inserter(comboSemaphores));
+    si.pSignalSemaphores = comboSemaphores.data();
     si.signalSemaphoreCount = trimmed_info.signalSemaphoreCount + 1;
 
     tssi.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO_KHR;
     tssi.waitSemaphoreValueCount = waits.semaphores.size();
     tssi.pWaitSemaphoreValues = waits.timelineValues.data();
-    tssi.signalSemaphoreValueCount = si.signalSemaphoreCount;
-    tssi.pSignalSemaphoreValues = timelineValues;
+    tssi.signalSemaphoreValueCount = comboTimelineValues.size();
+    tssi.pSignalSemaphoreValues = comboTimelineValues.data();
     chain_structs(si, tssi);
   }
   else
@@ -382,9 +386,23 @@ void DeviceQueue::submit(FrameInfo &gpu_frame, const TrimmedSubmitInfo &trimmed_
     si.signalSemaphoreCount = trimmed_info.signalSemaphoreCount;
   }
 
+  // treat any error as device lost
+  deviceLostIfFailed(Globals::VK::dev.vkQueueSubmit(handle, 1, &si, fence));
 
-  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkQueueSubmit(handle, 1, &si, fence));
   consumeWaitSemaphores(gpu_frame);
+}
+
+void DeviceQueue::waitAcquireSemaphore(VulkanSemaphoreHandle sem, uint32_t img_idx, FrameInfo &gpu_frame)
+{
+  waitExternSemaphore(sem, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+  if (pendingAcquireSemaphores.size() <= img_idx)
+    pendingAcquireSemaphores.resize(img_idx + 1);
+  else
+  {
+    if (!is_null(pendingAcquireSemaphores[img_idx]))
+      gpu_frame.addPendingSemaphore(pendingAcquireSemaphores[img_idx]);
+  }
+  pendingAcquireSemaphores[img_idx] = sem;
 }
 
 void DeviceQueue::bindSparse(FrameInfo &gpu_frame, uint32_t opaq_img_bind_count,
@@ -417,7 +435,7 @@ void DeviceQueue::bindSparse(FrameInfo &gpu_frame, uint32_t opaq_img_bind_count,
     chain_structs(bsi, tssi);
   }
 
-  VULKAN_EXIT_ON_FAIL(Globals::VK::dev.vkQueueBindSparse(handle, 1, &bsi, VulkanFenceHandle{}));
+  deviceLostIfFailed(Globals::VK::dev.vkQueueBindSparse(handle, 1, &bsi, VulkanFenceHandle{}));
   consumeWaitSemaphores(gpu_frame);
 }
 

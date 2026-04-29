@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<library>
+  <book isbn="978-0131103627" lang="en">
+    <title>The C Programming Language</title>
+    <author>Brian W. Kernighan</author>
+    <author>Dennis M. Ritchie</author>
+    <year>1988</year>
+    <price>67.99</price>
+    <in_stock>true</in_stock>
+  </book>
+  <book isbn="978-0201633610" lang="en">
+    <title>Design Patterns</title>
+    <author>Erich Gamma</author>
+    <author>Richard Helm</author>
+    <author>Ralph Johnson</author>
+    <author>John Vlissides</author>
+    <year>1994</year>
+    <price>54.99</price>
+    <in_stock>true</in_stock>
+  </book>
+  <book isbn="978-0596007126" lang="en">
+    <title>Head First Design Patterns</title>
+    <author>Eric Freeman</author>
+    <author>Elisabeth Robson</author>
+    <year>2004</year>
+    <price>39.99</price>
+    <in_stock>false</in_stock>
+  </book>
+</library>

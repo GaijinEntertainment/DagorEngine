@@ -14,11 +14,11 @@ RenderPrecise::RenderPrecise(const TMatrix &view_tm, const Point3 &view_pos) : s
   offsetedView.setcol(3, Point3::ZERO);
   d3d::settm(TM_VIEW, offsetedView);
 
-  ShaderGlobal::set_color4(camera_base_offsetVarId, -view_pos);
+  ShaderGlobal::set_float4(camera_base_offsetVarId, -view_pos);
 }
 
 RenderPrecise::~RenderPrecise()
 {
-  ShaderGlobal::set_color4(camera_base_offsetVarId, Point4::ZERO);
+  ShaderGlobal::set_float4(camera_base_offsetVarId, Point4::ZERO);
   d3d::settm(TM_VIEW, savedViewTm);
 }

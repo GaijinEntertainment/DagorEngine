@@ -16,17 +16,8 @@ namespace bind_dascript
 {
 void ECS::addEntityWrite(das::ModuleLibrary &lib)
 {
-#define TYPE(type)                                                                                                             \
-  das::addExtern<DAS_BIND_FUN(entitySetHint##type)>(*this, lib, "set", das::SideEffects::modifyExternal,                       \
-    "bind_dascript::entitySetHint" #type)                                                                                      \
-    ->annotations.push_back(annotation_declaration(das::make_smart<EcsSetAnnotation<1, 3, /*optional*/ false>>(#type)));       \
-  auto entitySetExt##type = das::addExtern<DAS_BIND_FUN(entitySet##type)>(*this, lib, "set", das::SideEffects::modifyExternal, \
-    "bind_dascript::entitySet" #type);                                                                                         \
-  entitySetExt##type->annotations.push_back(                                                                                   \
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
-  ECS_BASE_TYPE_LIST
-  ECS_LIST_TYPE_LIST
-#undef TYPE
+  addEntityWriteBase(lib);
+  addEntityWriteList(lib);
 
   das::addExtern<DAS_BIND_FUN(entitySetStrHint)>(*this, lib, "set", das::SideEffects::modifyExternal,
     "bind_dascript::entitySetStrHint");

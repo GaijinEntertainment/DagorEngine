@@ -2,7 +2,7 @@ require ecs
 require math.base
 require soundSystem
 require soundEvent
-require danetlibs.renderer.includes.pufd_events
+require gameLibs.pufd_events.pufd_events
 require sound_utils.modules.sound_player_common
 
 

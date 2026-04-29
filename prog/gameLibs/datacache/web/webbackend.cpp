@@ -194,6 +194,7 @@ Backend *WebBackend::create(WebBackendConfig &config)
   bck->skipKey = config.skipKey;
   config.aioJobId = bck->getOrCreateJobMgr(config.jobMgrName);
 
+  config.csMgr = bck->csMgr;
   bck->filecache = FileBackend::create(config);
   if (bck->filecache)
     DOTRACE1("webcache mounted");
@@ -212,7 +213,6 @@ Backend *WebBackend::create(WebBackendConfig &config)
   bck->maxSyncCheckSize = config.maxSyncCheckSizeKb << 10;
   if (bck->csMgr)
     G_ASSERTF(bck->noIndex && bck->returnStaleData, "noIndex=%d returnStaleData=%d", bck->noIndex, bck->returnStaleData);
-  bck->filecache->control(_MAKE4C('CS'), bck->csMgr);
 
   return bck;
 }
@@ -726,7 +726,7 @@ int WebBackend::getOrCreateJobMgr(const char *jobmgr_name)
       jobmgr_name = tmp; //-V507
     }
     using namespace cpujobs;
-    jobMgr = create_virtual_job_manager(512 << 10, WORKER_THREADS_AFFINITY_MASK, jobmgr_name, DEFAULT_THREAD_PRIORITY,
+    jobMgr = create_virtual_job_manager(192 << 10, WORKER_THREADS_AFFINITY_MASK, jobmgr_name, DEFAULT_THREAD_PRIORITY,
       DEFAULT_IDLE_TIME_SEC / 2);
   }
   return jobMgr;

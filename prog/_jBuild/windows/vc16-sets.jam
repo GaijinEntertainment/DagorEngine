@@ -11,7 +11,7 @@ if $(PlatformArch) = x86_64 { _WIN_SDK_TARGET_SUFFIX = x64 ; }
 if $(PlatformArch) = arm64 { _WIN_SDK_TARGET_SUFFIX = arm64 ; }
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 local _VC_HOST_DIR = Hostx64 ;
-if $(WindowsHostArch) = arm64 { _VC_HOST_DIR = Hostarm64 ; }
+if $(WindowsHostArch) = arm64 && [ GLOB $(_VC_DIR)/bin : Hostarm64 ]  { _VC_HOST_DIR = Hostarm64 ; }
 _VC_DIR_BIN = $(_VC_DIR)/bin/$(_VC_HOST_DIR)/$(_WIN_SDK_TARGET_SUFFIX) ;
 
 local _DEF_C_CMDLINE = -X /c /nologo ;

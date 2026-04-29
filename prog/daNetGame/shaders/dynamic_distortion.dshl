@@ -5,7 +5,6 @@ include "distortion.dshl"
 
 shader dynamic_distortion
 {
-  ENABLE_ASSERT(ps)
   render_stage distortion;
 
   if (dyn_model_render_pass != render_pass_normal)

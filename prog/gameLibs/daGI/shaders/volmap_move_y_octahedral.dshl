@@ -8,9 +8,11 @@ shader move_y_octahderal_distances_cs
   (cs) {
     ssgi_copy_y_indices0@f4 = ssgi_copy_y_indices0;
     ssgi_copy_y_indices1@f4 = ssgi_copy_y_indices1;
+    octahedral_distances@uav : register(7) hlsl {
+      RWTexture2DArray<float2> octahedral_distances@uav;
+    }
   }
   hlsl(cs) {
-    RWTexture2DArray<float2> octahedral_distances : register(u7);
     #include "octahedral_tile_side_length.hlsli"
     [numthreads(OCTAHEDRAL_TILE_SIDE_LENGTH, OCTAHEDRAL_TILE_SIDE_LENGTH, 1)]
     void copy_octahedral_cs(uint3 dtId : SV_DispatchThreadID)

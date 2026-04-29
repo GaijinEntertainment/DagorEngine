@@ -23,7 +23,7 @@ public:
   {
     das::ModuleLibrary lib(this);
     lib.addBuiltInModule();
-    addBuiltinDependency(lib, Module::require("rtti"));
+    addBuiltinDependency(lib, Module::require("rtti_core"));
     // sever
     addAnnotation(das::make_smart<WebSocketServerAnnotation>(lib));
     das::addExtern<DAS_BIND_FUN(make_websocket)>(*this, lib, "make_websocket", das::SideEffects::modifyArgumentAndExternal,

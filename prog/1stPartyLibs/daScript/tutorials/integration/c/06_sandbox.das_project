@@ -1,0 +1,129 @@
+options gen2
+
+// Sandbox project file for C integration tutorial 06.
+//
+// This .das_project defines the security policy for user scripts compiled
+// by the C host. The compiler loads this file first, then invokes its
+// [export] callbacks during compilation of every subsequent script.
+//
+// Callbacks implemented here:
+//   module_get           — resolve require paths to files (REQUIRED)
+//   module_allowed       — whitelist which modules can be loaded
+//   module_allowed_unsafe — control whether unsafe blocks are permitted
+//   option_allowed       — whitelist which `options` directives are accepted
+//   annotation_allowed   — whitelist which annotations are accepted
+
+require strings
+require daslib/strings_boost
+
+// Return type for module_get: (moduleName, fileName, importName)
+typedef module_info = tuple<string; string; string> const
+
+// Set by the C++ runtime to the directory containing this .das_project file.
+var DAS_PAK_ROOT = "./"
+
+// ---------------------------------------------------------------------------
+// module_get — module path resolution (REQUIRED)
+//
+// Called for every `require X` encountered during compilation.
+// Must return a tuple of (moduleName, fileName, importName).
+// When a .das_project is active, the built-in daslib resolution is bypassed
+// entirely — this function is the ONLY path resolver.
+// ---------------------------------------------------------------------------
+[export]
+def module_get(req, from : string) : module_info {
+    let rs <- split_by_chars(req, "./")
+    let mod_name = rs[length(rs) - 1]
+    if (length(rs) == 2 && rs[0] == "daslib") {
+        // daslib/X  →  <das_root>/daslib/X.das
+        return (mod_name, "{get_das_root()}/daslib/{mod_name}.das", "")
+    }
+    // Relative module: resolve from the requiring file's directory
+    var fr <- split_by_chars(from, "/")
+    if (length(fr) > 0) {
+        pop(fr)
+    }
+    for (se in rs) {
+        push(fr, se)
+    }
+    let path_name = join(fr, "/") + ".das"
+    return (mod_name, path_name, "")
+}
+
+// ---------------------------------------------------------------------------
+// module_allowed — module whitelist
+//
+// Called for every native (C++) module encountered during compilation.
+// Return false to block the module with a "NOT ALLOWED" error.
+// Receives the short module name (e.g. "strings"), not the require path.
+// ---------------------------------------------------------------------------
+[export]
+def module_allowed(mod, filename : string) : bool {
+    // Built-in core module (always needed)
+    if (mod == "$") {
+        return true
+    }
+    // Native modules we allow in user scripts
+    if (mod == "math" || mod == "strings") {
+        return true
+    }
+    // daScript modules (.das files) also go through this check after
+    // compilation — their module name (from `module X shared`) is
+    // checked here. We whitelist strings_boost (required by user scripts)
+    // and the user's own helper module.
+    if (mod == "strings_boost" || mod == "sandbox_helpers") {
+        return true
+    }
+    // Block everything else (fio, network, ast, rtti, jit, json, etc.)
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// module_allowed_unsafe — unsafe block policy
+//
+// Called once per compiled module with (moduleName, fileName).
+// Return false to forbid all `unsafe` blocks in that module.
+// For scripts without a `module` declaration, moduleName is "".
+// ---------------------------------------------------------------------------
+[export]
+def module_allowed_unsafe(mod, filename : string) : bool {
+    // No module in the sandbox may use unsafe blocks
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// option_allowed — options whitelist
+//
+// Called for each `options X` declaration during parsing.
+// Return false to reject the option with an "invalid option" error.
+// ---------------------------------------------------------------------------
+[export]
+def option_allowed(opt, from : string) : bool {
+    // Allow only safe, cosmetic options
+    if (opt == "gen2" || opt == "indenting") {
+        return true
+    }
+    if (opt == "no_unused_function_arguments" || opt == "no_unused_block_arguments") {
+        return true
+    }
+    // Block everything else: persistent_heap, no_aot, skip_lock_check,
+    // no_global_variables, etc.
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// annotation_allowed — annotation whitelist
+//
+// Called for each annotation used in the script.
+// Return false to reject it with an "invalid annotation" error.
+// ---------------------------------------------------------------------------
+[export]
+def annotation_allowed(ann, from : string) : bool {
+    // Allow common safe annotations
+    if (ann == "export" || ann == "private") {
+        return true
+    }
+    // Block potentially dangerous annotations: jit, unsafe_deref,
+    // skip_field_lock_check, etc.
+    return false
+}

@@ -36,6 +36,7 @@ def parse_docstring(docstring, comments=None):
 
     # 1. Detect and remove 'pure' with flexible whitespace
     is_pure = False
+    vargved = False
     m = re.match(r'^pure\s+(.*)', docstring, re.IGNORECASE)
     if m:
         is_pure = True
@@ -43,7 +44,7 @@ def parse_docstring(docstring, comments=None):
 
     # 2. Match function signature with flexible spaces:
     #   name ( arg1, [arg2: type = default] ): rtype
-    fn_re = re.match(r'^(\w+)\s*\((.*)\)\s*:\s*([\w\.]+)', docstring)
+    fn_re = re.match(r'^([\w\.]+)\s*\((.*)\)\s*:\s*([\w\.]+)', docstring)
     if not fn_re:
         print("Invalid docstring:", docstring)
         raise ValueError("Invalid docstring: " + docstring)
@@ -99,6 +100,9 @@ def parse_docstring(docstring, comments=None):
             })
             typemask_parts.append(mask)
             paramsnum += 1
+        elif part=="...":
+            # Argument may be vargv type , ...) or , ...:string)
+            vargved=True
         else:
             # Argument may be name only (no type)
             bare_match = re.match(r'^\[?(\w+)\]?$', part)
@@ -131,6 +135,7 @@ def parse_docstring(docstring, comments=None):
         "paramsnum": paramsnum,
         "typemask": typemask,
         "is_pure": is_pure,
+        "vargved": vargved,
         "members": comments.splitlines() if comments else None, #FIXME: parse everything for params and return type and comments
     }
 if __name__ == "__main__":

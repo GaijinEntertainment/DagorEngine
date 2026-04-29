@@ -1,6 +1,7 @@
 
 return {
   logEvent = @(_, __) null
+  logAppsFlyerEvent = @(_, __) null
   getAppsFlyerUID = @() ""
   setAppsFlyerCUID = @(_) null
   setAppsFlyerConsent = @(_,__,___) null
@@ -10,4 +11,7 @@ return {
   clearAppsFlyerDeepLink = @() null
   triggerAppsFlyerDeepLink = @() null
   setUserEmail = @(_) null
+  enableTCFCollection = @(_) null
+  startConnector = @() null
+  stopConnector = @() null
 }

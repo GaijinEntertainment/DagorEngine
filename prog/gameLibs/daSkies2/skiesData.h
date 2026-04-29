@@ -20,6 +20,7 @@ struct SkiesData
   bool flyThrough = false;
   bool autoDetect = true;
   bool cloudsVisible = true;
+  bool strataInLowres = true;
   Point3 preparedOrigin = {0, 0, 0};
 
   ~SkiesData() { destroy_prepared_skies(baseSkies); }

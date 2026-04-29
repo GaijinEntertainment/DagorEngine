@@ -27,6 +27,7 @@ struct GuiTextCache
   SmallTab<GuiVertex> v;
   SmallTab<uint16_t> c;
   SmallTab<d3d::SamplerHandle> samplers;
+  bool allGlyphsWereReady = false;
 
   void discard()
   {
@@ -57,11 +58,16 @@ public:
   int fontTexSu = 32, fontTexSv = 32, fontTexBov = 0;
   int strWidth = 0;
   GuiTextCache guiText;
+  Point2 textSizeCache = Point2(-1, -1);
 
   virtual bool load(const Element *elem) override;
   virtual bool getAnimColor(AnimProp prop, E3DCOLOR **ptr) override;
   virtual bool getAnimFloat(AnimProp prop, float **ptr) override;
-  virtual void discardTextCache() { guiText.discard(); }
+  virtual void discardTextCache()
+  {
+    guiText.discard();
+    textSizeCache = Point2(-1, -1);
+  }
 };
 
 
@@ -144,6 +150,7 @@ public:
 
 class RenderObjectImage : public RenderObject
 {
+protected:
   virtual void render(StdGuiRender::GuiContext &ctx, const Element *elem, const ElemRenderData *, const RenderState &render_state);
 };
 

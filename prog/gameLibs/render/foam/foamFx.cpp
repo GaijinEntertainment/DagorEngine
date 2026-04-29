@@ -90,9 +90,9 @@ GLOBAL_VARS_LIST
 
 FoamFx::FoamFx(int _width, int _height) : width(_width), height(_height)
 {
-  maskTarget = dag::create_tex(nullptr, width, height, TEXFMT_R8 | TEXCF_RTARGET, 1, "foam_mask_target");
+  maskTarget = dag::create_tex(nullptr, width, height, TEXFMT_R8 | TEXCF_RTARGET, 1, "foam_mask_target", RESTAG_WATER);
   debugTextures[FoamTexture::MASK_TARGET] = maskTarget.getBaseTex();
-  maskDepth = dag::create_tex(nullptr, width, height, TEXFMT_DEPTH24 | TEXCF_RTARGET, 1, "foam_mask_depth");
+  maskDepth = dag::create_tex(nullptr, width, height, TEXFMT_DEPTH24 | TEXCF_RTARGET, 1, "foam_mask_depth", RESTAG_WATER);
   debugTextures[FoamTexture::MASK_DEPTH] = maskDepth.getBaseTex();
 
   fullTargetPool = RTargetPool::get(width, height, TEXFMT_R8 | TEXCF_RTARGET, 1);
@@ -150,19 +150,19 @@ FoamFxParams FoamFx::prepareParams(float tile_uv_scale, float distortion_scale, 
 
 void FoamFx::setParams(const FoamFxParams &params)
 {
-  ShaderGlobal::set_real(foam_tile_uv_scaleVarId, params.scale.x);
-  ShaderGlobal::set_real(foam_distortion_scaleVarId, params.scale.y);
-  ShaderGlobal::set_real(foam_normal_scaleVarId, params.scale.z);
-  ShaderGlobal::set_real(foam_pattern_gammaVarId, params.gamma.x);
-  ShaderGlobal::set_real(foam_mask_gammaVarId, params.gamma.y);
-  ShaderGlobal::set_real(foam_gradient_gammaVarId, params.gamma.z);
-  ShaderGlobal::set_real(foam_underfoam_thresholdVarId, params.threshold.x);
-  ShaderGlobal::set_real(foam_overfoam_thresholdVarId, params.threshold.y);
-  ShaderGlobal::set_real(foam_underfoam_weightVarId, params.weight.x);
-  ShaderGlobal::set_real(foam_overfoam_weightVarId, params.weight.y);
-  ShaderGlobal::set_color4(foam_underfoam_colorVarId, params.underfoamColor, 1.0f);
-  ShaderGlobal::set_color4(foam_overfoam_colorVarId, params.overfoamColor, 1.0f);
-  ShaderGlobal::set_real(foam_reflectivityVarId, params.reflectivity);
+  ShaderGlobal::set_float(foam_tile_uv_scaleVarId, params.scale.x);
+  ShaderGlobal::set_float(foam_distortion_scaleVarId, params.scale.y);
+  ShaderGlobal::set_float(foam_normal_scaleVarId, params.scale.z);
+  ShaderGlobal::set_float(foam_pattern_gammaVarId, params.gamma.x);
+  ShaderGlobal::set_float(foam_mask_gammaVarId, params.gamma.y);
+  ShaderGlobal::set_float(foam_gradient_gammaVarId, params.gamma.z);
+  ShaderGlobal::set_float(foam_underfoam_thresholdVarId, params.threshold.x);
+  ShaderGlobal::set_float(foam_overfoam_thresholdVarId, params.threshold.y);
+  ShaderGlobal::set_float(foam_underfoam_weightVarId, params.weight.x);
+  ShaderGlobal::set_float(foam_overfoam_weightVarId, params.weight.y);
+  ShaderGlobal::set_float4(foam_underfoam_colorVarId, params.underfoamColor, 1.0f);
+  ShaderGlobal::set_float4(foam_overfoam_colorVarId, params.overfoamColor, 1.0f);
+  ShaderGlobal::set_float(foam_reflectivityVarId, params.reflectivity);
 
   foamGeneratorTileTex.close();
   foamGeneratorTileTex = SharedTexHolder(dag::get_tex_gameres(params.tileTex), "foam_generator_tile");
@@ -199,7 +199,7 @@ void FoamFx::prepare(const TMatrix4 &view_tm, const TMatrix4 &proj_tm)
   underfoam_downsampled = downTargetPool->acquire();
   RTarget::Ptr temp = tempTargetPool->acquire();
 
-  ShaderGlobal::set_color4(texszVarId, Color4(0.5f, -0.5f, 1.0f / width, 1.0f / height));
+  ShaderGlobal::set_float4(texszVarId, Color4(0.5f, -0.5f, 1.0f / width, 1.0f / height));
 
   d3d::set_render_target(temp->getBaseTex(), 0);
   ShaderGlobal::set_texture(texVarId, underfoam->getTexId());

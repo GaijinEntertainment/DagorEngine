@@ -18,7 +18,7 @@ namespace d3d
 #if _TARGET_PC_WIN
 VPROG create_vertex_shader_hlsl(const char *hlsl_text, unsigned len, const char *entry, const char *profile, String *out_err = NULL);
 FSHADER create_pixel_shader_hlsl(const char *hlsl_text, unsigned len, const char *entry, const char *profile, String *out_err = NULL);
-bool compile_compute_shader_hlsl(const char *hlsl_text, unsigned len, const char *entry, const char *profile,
+bool compile_compute_shader_hlsl(const char *hlsl_text, unsigned len, const char *entry, const char *profile, Tab<uint8_t> &metadata,
   Tab<uint32_t> &shader_bin, String &out_err);
 #endif
 
@@ -44,7 +44,7 @@ VPROG create_vertex_shader_dagor(const VPRTYPE *p, int n);
 FSHADER create_pixel_shader_asm(const char *asm_text);
 FSHADER create_pixel_shader_dagor(const FSHTYPE *p, int n);
 
-#if _TARGET_PC_WIN | _TARGET_PC_MACOSX
+#if _TARGET_PC_WIN | _TARGET_PC_MACOSX | _TARGET_PC_LINUX
 // additional d3d::pcwin interface (PC specific)
 namespace pcwin
 {

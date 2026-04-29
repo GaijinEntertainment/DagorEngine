@@ -1,10 +1,40 @@
-{
-  local z = 0
-  let foo = FUNCTION foo(x, y) {
-    RETURN FUNCTION bar(a, b) {
-      RETURN FUNCTION qux(c, d) {
-        z = x + a - c
-      }
-    }
-  }
-}
+Block isRoot = 1, isBody = 0
+|-VarDecl 'local', name = 'z', type = 'any'
+|   Initializer
+|     LiteralExpr LK_INT 0
+`-VarDecl 'let', name = 'foo', type = 'any'
+    Initializer
+      FunctionExpr name = 'foo', pure = 0, nodiscard = 0, resultType = 'any'
+      |-Parameters count = 2
+      | |-Parameter #1 name = 'x', type = 'any'
+      | `-Parameter #2 name = 'y', type = 'any'
+      `-Body
+          Block isRoot = 0, isBody = 1
+            ReturnStatement
+              FunctionExpr name = 'bar', pure = 0, nodiscard = 0, resultType = 'any'
+              |-Parameters count = 2
+              | |-Parameter #1 name = 'a', type = 'any'
+              | `-Parameter #2 name = 'b', type = 'any'
+              `-Body
+                  Block isRoot = 0, isBody = 1
+                    ReturnStatement
+                      FunctionExpr name = 'qux', pure = 0, nodiscard = 0, resultType = 'any'
+                      |-Parameters count = 2
+                      | |-Parameter #1 name = 'c', type = 'any'
+                      | `-Parameter #2 name = 'd', type = 'any'
+                      `-Body
+                          Block isRoot = 0, isBody = 1
+                            ExprStatement
+                              BinExpr '='
+                              |-Left
+                              |   Id 'z'
+                              `-Right
+                                  BinExpr '-'
+                                  |-Left
+                                  |   BinExpr '+'
+                                  |   |-Left
+                                  |   |   Id 'x'
+                                  |   `-Right
+                                  |       Id 'a'
+                                  `-Right
+                                      Id 'c'

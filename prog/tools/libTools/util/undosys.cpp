@@ -255,6 +255,13 @@ public:
     UndoRedoHolder *h = stack.back();
     dirtyFlag = true;
     h->obj[--curop]->restore(true);
+
+    if (wnd)
+    {
+      String opName;
+      h->obj[curop]->get_description(opName);
+      wnd->onUndoRedo(opName, true);
+    }
   }
 
   bool can_redo() override
@@ -277,6 +284,13 @@ public:
     UndoRedoHolder *h = stack.back();
     dirtyFlag = true;
     h->obj[curop++]->redo();
+
+    if (wnd)
+    {
+      String opName;
+      h->obj[curop - 1]->get_description(opName);
+      wnd->onUndoRedo(opName, false);
+    }
   }
 
   // returns number of (top-level) operations that can be undone

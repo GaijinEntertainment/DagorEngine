@@ -21,7 +21,8 @@
 
 // for ECS events
 #include "render/renderEvent.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
 
 CONSOLE_BOOL_VAL("render", buildLUTEachFrame, false);
 CONSOLE_BOOL_VAL("render", adaptationIlluminance, false);
@@ -53,17 +54,7 @@ void PostFxManager::init(const WorldRenderer &world_renderer)
   if (usePostfxVarId != -1)
     ShaderGlobal::set_int(usePostfxVarId, world_renderer.hasFeature(FeatureRenderFlags::POSTFX));
 
-  if (!world_renderer.hasFeature(FeatureRenderFlags::POSTFX))
-  {
-    debug("POSTFX disabled by render feature flag");
-    G_ASSERTF(!world_renderer.hasFeature(FeatureRenderFlags::GPU_RESIDENT_ADAPTATION),
-      "GPU_RESIDENT_ADAPTATION must be disabled, when POSTFX is disabled");
-    G_ASSERTF(!world_renderer.hasFeature(FeatureRenderFlags::BLOOM), "BLOOM must be disabled, when POSTFX is disabled");
-    G_ASSERTF(world_renderer.hasFeature(FeatureRenderFlags::FORWARD_RENDERING),
-      "FORWARD_RENDERING must be enabled, when POSTFX is disabled");
-
-    return;
-  }
+  G_ASSERT_RETURN(world_renderer.hasFeature(FeatureRenderFlags::POSTFX), );
 
   g_entity_mgr->broadcastEventImmediate(ReloadPostFx());
 
@@ -115,22 +106,20 @@ void WorldRenderer::beforeDrawPostFx()
   }
 }
 
-void PostFxManager::prepare(const TextureIDPair &currentAntiAliasedTarget,
-  ManagedTexView downsampled_frame,
-  ManagedTexView closeDepth,
-  ManagedTexView depth,
+void PostFxManager::prepare(BaseTexture *currentAntiAliasedTarget,
+  BaseTexture *downsampled_frame,
+  BaseTexture *closeDepth,
+  BaseTexture *depth,
   float zn,
   float zf,
   float hk)
 {
   TIME_D3D_PROFILE(postfx_prepare)
-  ShaderGlobal::set_texture(frame_texVarId, currentAntiAliasedTarget.getId());
+  ShaderGlobal::set_texture(frame_texVarId, currentAntiAliasedTarget);
 
   if (downsampled_frame)
   {
-    g_entity_mgr->broadcastEventImmediate(
-      RenderPostFx(TextureIDPair(downsampled_frame.getBaseTex(), downsampled_frame.getTexId()), currentAntiAliasedTarget,
-        TextureIDPair(closeDepth.getBaseTex(), closeDepth.getTexId()), TextureIDPair(depth.getTex2D(), depth.getTexId()), zn, zf, hk));
+    g_entity_mgr->broadcastEventImmediate(RenderPostFx(downsampled_frame, currentAntiAliasedTarget, closeDepth, depth, zn, zf, hk));
   }
 }
 
@@ -160,19 +149,18 @@ void WorldRenderer::setPostFxResolution(int w, int h)
   postfx.setResolution(IPoint2(w, h), rr, *this);
 }
 
-void WorldRenderer::setFadeMul(float mul) { ::setFadeMul(mul); }
-
 static void update_damage_indicator(const ecs::Object &postFx)
 {
   const Point4 damage_indicator__color = postFx.getMemberOr(ECS_HASH("damage_indicator__color"), Point4(1, 0.3, 0.3, 0));
   const float damage_indicator__size = postFx.getMemberOr(ECS_HASH("damage_indicator__size"), 1.f);
-  ShaderGlobal::set_color4(::get_shader_variable_id("damage_indicator_color", true), damage_indicator__color.x,
+  ShaderGlobal::set_float4(::get_shader_variable_id("damage_indicator_color", true), damage_indicator__color.x,
     damage_indicator__color.y, damage_indicator__color.z, damage_indicator__color.w);
-  ShaderGlobal::set_real(::get_shader_variable_id("damage_indicator_size", true), damage_indicator__size);
+  ShaderGlobal::set_float(::get_shader_variable_id("damage_indicator_size", true), damage_indicator__size);
 }
 
 void PostFxManager::set(const ecs::Object &postFx)
 {
+#if DAGOR_DBGLEVEL > 0
   eastl::array<ecs::HashedConstString, 17> depricatedFields = {ECS_HASH("bloom__on"), ECS_HASH("bloom__mul"),
     ECS_HASH("bloom__threshold"), ECS_HASH("bloom__radius"), ECS_HASH("bloom__upSample"), ECS_HASH("adaptation__on"),
     ECS_HASH("adaptation__autoExposureScale"), ECS_HASH("adaptation__highPart"), ECS_HASH("adaptation__maxExposure"),
@@ -182,16 +170,17 @@ void PostFxManager::set(const ecs::Object &postFx)
   for (const ecs::HashedConstString &depricatedField : depricatedFields)
     if (postFx.hasMember(depricatedField))
       logerr("PostFxManager::set: %s is depricated", depricatedField.str);
+#endif
 
   {
     const float increaseTime = postFx.getMemberOr("smoke_blackout_effect__increaseDuration", 3.0f);
     const float decreaseTime = postFx.getMemberOr("smoke_blackout_effect__decreaseDuration", 1.0f);
     const float maxIntensity = postFx.getMemberOr("smoke_blackout_effect__maxIntensity", 1.0f);
     const float minIntensity = postFx.getMemberOr("smoke_blackout_effect__minIntensity", 1.0f);
-    ShaderGlobal::set_real(::get_shader_variable_id("smoke_blackout_effect_increase_duration", true), increaseTime);
-    ShaderGlobal::set_real(::get_shader_variable_id("smoke_blackout_effect_decrease_duration", true), decreaseTime);
-    ShaderGlobal::set_real(::get_shader_variable_id("smoke_blackout_effect_max_intensity", true), maxIntensity);
-    ShaderGlobal::set_real(::get_shader_variable_id("smoke_blackout_effect_min_intensity", true), minIntensity);
+    ShaderGlobal::set_float(::get_shader_variable_id("smoke_blackout_effect_increase_duration", true), increaseTime);
+    ShaderGlobal::set_float(::get_shader_variable_id("smoke_blackout_effect_decrease_duration", true), decreaseTime);
+    ShaderGlobal::set_float(::get_shader_variable_id("smoke_blackout_effect_max_intensity", true), maxIntensity);
+    ShaderGlobal::set_float(::get_shader_variable_id("smoke_blackout_effect_min_intensity", true), minIntensity);
     ShaderGlobal::set_int(::get_shader_variable_id("smoke_blackout_active", true), 0);
   }
 

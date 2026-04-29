@@ -380,7 +380,7 @@ void send_internal_args(const char *metric, ValueType value, const Args &...args
 template <MetricType mtype, typename ValueType>
 void send_internal_tags(const char *metric, ValueType value, std::initializer_list<MetricTag> _tags)
 {
-  eastl::fixed_vector<MetricTag, 3, true, framemem_allocator> tags;
+  eastl::fixed_vector<MetricTag, 5, true, framemem_allocator> tags;
   for (auto &a : _tags)
     tags.push_back(a);
   send_internal(metric, dag::ConstSpan<MetricTag>(tags.data(), tags.size()), mtype, value);

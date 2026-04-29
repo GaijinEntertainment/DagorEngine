@@ -11,6 +11,7 @@
 #include <anim/dag_animBlend.h>
 #include "animFifo.h"
 #include <anim/dag_animIrq.h>
+#include <util/dag_string.h>
 
 using namespace AnimV20;
 
@@ -80,64 +81,76 @@ void AnimCommonStateHolder::init()
       }
     });
 }
-void AnimCommonStateHolder::term() { clear_and_shrink(val); }
+void AnimCommonStateHolder::term()
+{
+  graph.clearBlendNodeAllocatedMemoryFromState(*this);
+  clear_and_shrink(val);
+}
 
 void AnimCommonStateHolder::reset()
 {
-  graph.resetBlendNodes(*this);
   term();
   init();
 }
 
 void AnimCommonStateHolder::setParamFlags(int id, int flags, int mask)
 {
-  G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "id=%d val.size()=%d", id, val.size());
-  G_ASSERTF(isBasicType(paramTypes[id]), "paramTypes[%d]=%d", id, paramTypes[id]);
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "Trying to set parameter flags id=%d but id is out of range 0..%d", id, val.size());
+  G_ASSERTF(isBasicType(paramTypes[id]), "Unexpected (%d) non basic type on param <%s>(%d)", paramTypes[id], paramNames.getName(id),
+    id);
   val[id].flags &= ~mask;
   val[id].flags |= flags & mask;
 }
 int AnimCommonStateHolder::getParamFlags(int id, int mask) const
 {
-  G_ASSERTF_RETURN(id >= 0 && id < val.size(), 0, "id=%d val.size()=%d", id, val.size());
-  G_ASSERTF(isBasicType(paramTypes[id]), "paramTypes[%d]=%d", id, paramTypes[id]);
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), 0, "Trying to get parameter flags id=%d but id is out of range 0..%d", id, val.size());
+  G_ASSERTF(isBasicType(paramTypes[id]), "Unexpected (%d) non basic type on param <%s>(%d)", paramTypes[id], paramNames.getName(id),
+    id);
   return val[id].flags & mask;
 }
 
 
 real *AnimCommonStateHolder::getParamScalarPtr(int id)
 {
-  G_ASSERTF_RETURN(id >= 0 && id < val.size(), nullptr, "id=%d val.size()=%d", id, val.size());
-  G_ASSERT(paramTypes[id] == PT_ScalarParam || paramTypes[id] == PT_TimeParam);
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), nullptr, "Trying to get scalar pointer parameter id=%d but id is out of range 0..%d",
+    id, val.size());
+  G_ASSERTF(paramTypes[id] == PT_ScalarParam || paramTypes[id] == PT_TimeParam,
+    "Unexpected (%d) non scalar or time type on param <%s>(%d)", paramTypes[id], paramNames.getName(id), id);
   return &val[id].scalar;
 }
 
 
 int AnimCommonStateHolder::getTimeScaleParamId(int id) const
 {
-  G_ASSERTF_RETURN(id >= 0 && id < val.size(), -1, "id=%d val.size()=%d", id, val.size());
-  G_ASSERT(paramTypes[id] == PT_TimeParam);
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), -1, "Trying to get scale parameter id=%d but id is out of range 0..%d", id, val.size());
+  G_ASSERTF(paramTypes[id] == PT_TimeParam, "Unexpected (%d) non time type on param <%s>(%d)", paramTypes[id], paramNames.getName(id),
+    id);
   return val[id].timeScaleId;
 }
 
 
 void AnimCommonStateHolder::setTimeScaleParamId(int id, int tspid)
 {
-  G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "id=%d val.size()=%d", id, val.size());
-  G_ASSERT(paramTypes[id] == PT_TimeParam);
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "Trying to set time scale parameter id=%d but id is out of range 0..%d", id,
+    val.size());
+  G_ASSERTF(paramTypes[id] == PT_TimeParam, "Unexpected (%d) non time type on param <%s>(%d)", paramTypes[id], paramNames.getName(id),
+    id);
   val[id].timeScaleId = tspid;
 }
 
 
 int AnimCommonStateHolder::getParamInt(int id) const
 {
-  G_ASSERTF_RETURN(id >= 0 && id < val.size(), 0, "id=%d val.size()=%d", id, val.size());
-  G_ASSERT(paramTypes[id] == PT_ScalarParamInt);
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), 0, "Trying to get int parameter id=%d but id is out of range 0..%d", id, val.size());
+  G_ASSERTF(paramTypes[id] == PT_ScalarParamInt, "Unexpected (%d) non int type on param <%s>(%d)", paramTypes[id],
+    paramNames.getName(id), id);
   return val[id].scalarInt;
 }
 void AnimCommonStateHolder::setParamInt(int id, int value)
 {
-  G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "id=%d val.size()=%d", id, val.size());
-  G_ASSERT(paramTypes[id] == PT_ScalarParamInt);
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), , "Trying to set int parameter id=%d but id is out of range 0..%d", id, val.size());
+  G_ASSERTF(paramTypes[id] == PT_ScalarParamInt, "Unexpected (%d) non int type on param <%s>(%d)", paramTypes[id],
+    paramNames.getName(id), id);
   if (val[id].scalarInt != value)
     val[id].flags |= PF_Changed;
   val[id].scalarInt = value;
@@ -145,8 +158,10 @@ void AnimCommonStateHolder::setParamInt(int id, int value)
 
 float AnimCommonStateHolder::getParamEffTimeScale(int id) const
 {
-  G_ASSERTF_RETURN(id >= 0 && id < val.size(), 1.0f, "id=%d val.size()=%d", id, val.size());
-  G_ASSERT(paramTypes[id] == PT_TimeParam);
+  G_ASSERTF_RETURN(id >= 0 && id < val.size(), 1.0f, "Trying to get time scale parameter id=%d but id is out of range 0..%d", id,
+    val.size());
+  G_ASSERTF(paramTypes[id] == PT_TimeParam, "Unexpected (%d) non time type on param <%s>(%d)", paramTypes[id], paramNames.getName(id),
+    id);
   int tspid = val[id].timeScaleId;
   if (tspid > 0)
   {
@@ -236,6 +251,36 @@ void AnimCommonStateHolder::loadState(IGenLoad &cb)
       case PT_Fifo3: ((AnimFifo3Queue *)&val[i].scalarInt)->load(cb, graph); break;
 
       default: break;
+    }
+  }
+}
+
+void AnimCommonStateHolder::dumpStateText(String &out) const
+{
+  static const char *typeNames[] = {"reserved", "float", "int", "time", "inlinePtr", "inlinePtrCTZ", "fifo3", "effector"};
+  for (int i = 0; i < val.size(); ++i)
+  {
+    const char *name = paramNames.getName(i);
+    unsigned ptype = paramTypes[i];
+    // Skip PT_Reserved - these values will be printed as a part of an inlinePtr
+    if (ptype == PT_Reserved)
+      continue;
+    const char *typeName = ptype < countof(typeNames) ? typeNames[ptype] : "unknown";
+    if (isBasicType(ptype))
+    {
+      const ParamState &s = val[i];
+      if (ptype == PT_ScalarParamInt)
+        out.aprintf(128, "%s: %08X = %d (%s)\n", name ? name : "<null>", (unsigned &)s.scalar, s.scalarInt, typeName);
+      else
+        out.aprintf(128, "%s: %08X = %.6f (%s)\n", name ? name : "<null>", (unsigned &)s.scalar, s.scalar, typeName);
+    }
+    else if (isInlinePtrType(ptype))
+    {
+      int words = getInlinePtrWords(paramTypes, i);
+      out.aprintf(128, "%s: ", name ? name : "<null>");
+      for (int w = 0; w < words; ++w)
+        out.aprintf(16, "%08X ", (unsigned &)val[i + w].scalar);
+      out.aprintf(32, "(%s, %d words)\n", typeName, words);
     }
   }
 }

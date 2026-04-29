@@ -62,8 +62,8 @@ struct CollisionContactDataAnnotation final : das::ManagedStructureAnnotation<ga
     addField<DAS_BIND_MANAGED_FIELD(posA)>("posA");
     addField<DAS_BIND_MANAGED_FIELD(posB)>("posB");
     addField<DAS_BIND_MANAGED_FIELD(depth)>("depth");
-    addField<DAS_BIND_MANAGED_FIELD(riPool)>("riPool");
     addField<DAS_BIND_MANAGED_FIELD(matId)>("matId");
+    addField<DAS_BIND_MANAGED_FIELD(riDesc)>("riDesc");
 
     static_assert(eastl::is_base_of_v<gamephys::CollisionContactDataMin, gamephys::CollisionContactData>);
     parentType = das::makeType<gamephys::CollisionContactDataMin>(ml);
@@ -132,6 +132,9 @@ public:
     das::addExtern<DAS_BIND_FUN(dacoll_tracedown_normalized_with_mat_id_ex)>(*this, lib, "tracedown_normalized_with_mat_id",
       das::SideEffects(uint32_t(das::SideEffects::modifyArgument) | uint32_t(das::SideEffects::accessExternal)),
       "bind_dascript::dacoll_tracedown_normalized_with_mat_id_ex");
+    das::addExtern<DAS_BIND_FUN(dacoll_tracedown_normalized_trace_handle_with_mat_id_ex)>(*this, lib,
+      "tracedown_normalized_with_mat_id", das::SideEffects::modifyArgument,
+      "bind_dascript::dacoll_tracedown_normalized_trace_handle_with_mat_id_ex");
     das::addExtern<DAS_BIND_FUN(dacoll_tracedown_normalized_with_norm)>(*this, lib, "tracedown_normalized",
       das::SideEffects::modifyArgument, "bind_dascript::dacoll_tracedown_normalized_with_norm");
     das::addExtern<DAS_BIND_FUN(dacoll_tracedown_normalized_with_pmid)>(*this, lib, "tracedown_normalized",
@@ -187,6 +190,8 @@ public:
       "bind_dascript::dacoll_sphere_cast_land");
     das::addExtern<DAS_BIND_FUN(dacoll_sphere_cast_ex)>(*this, lib, "sphere_cast_ex", das::SideEffects::modifyArgument,
       "bind_dascript::dacoll_sphere_cast_ex");
+    das::addExtern<DAS_BIND_FUN(dacoll_sphere_cast_ex_ref_trace_handle)>(*this, lib, "sphere_cast_ex_ref_trace_handle",
+      das::SideEffects::modifyArgument, "bind_dascript::dacoll_sphere_cast_ex_ref_trace_handle");
     das::addExtern<DAS_BIND_FUN(dacoll::trace_sphere_cast_ex)>(*this, lib, "trace_sphere_cast_ex", das::SideEffects::modifyArgument,
       "dacoll::trace_sphere_cast_ex");
 
@@ -259,6 +264,8 @@ public:
       das::SideEffects::modifyArgumentAndExternal, "dacoll::set_vert_capsule_shape_size");
     das::addExtern<DAS_BIND_FUN(dacoll::set_collision_sphere_rad)>(*this, lib, "dacoll_set_collision_sphere_rad",
       das::SideEffects::modifyArgumentAndExternal, "dacoll::set_collision_sphere_rad");
+    das::addExtern<DAS_BIND_FUN(dacoll::set_collision_box_extents)>(*this, lib, "dacoll_set_collision_box_extents",
+      das::SideEffects::modifyArgumentAndExternal, "dacoll::set_collision_box_extents");
     das::addExtern<DAS_BIND_FUN(dacoll_draw_collision_object)>(*this, lib, "dacoll_draw_collision_object",
       das::SideEffects::modifyExternal, "bind_dascript::dacoll_draw_collision_object");
 
@@ -295,6 +302,9 @@ public:
     using method_invalidate = DAS_CALL_MEMBER(rendinst::RendInstDesc::invalidate);
     das::addExtern<DAS_CALL_METHOD(method_invalidate)>(*this, lib, "invalidate", das::SideEffects::modifyArgument,
       DAS_CALL_MEMBER_CPP(rendinst::RendInstDesc::invalidate));
+
+    das::addExtern<DAS_BIND_FUN(dacoll::exchange_ttl_for_collision_instances)>(*this, lib,
+      "dacoll_exchange_ttl_for_collision_instances", das::SideEffects::modifyExternal, "dacoll::exchange_ttl_for_collision_instances");
 
     using method_markDirty = DAS_CALL_MEMBER(TraceMeshFaces::markDirty);
     das::addExtern<DAS_CALL_METHOD(method_markDirty)>(*this, lib, "markDirty", das::SideEffects::modifyArgument,

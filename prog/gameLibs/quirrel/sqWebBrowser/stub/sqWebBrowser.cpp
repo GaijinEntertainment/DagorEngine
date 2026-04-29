@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 namespace bindquirrel
 {

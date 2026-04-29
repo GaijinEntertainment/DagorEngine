@@ -1,0 +1,63 @@
+{
+  "name": "vscode-daslang-test",
+  "displayName": "daslang Test Explorer",
+  "description": "Run daslang dastest tests from VSCode Test Explorer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GaijinEntertainment/daScript"
+  },
+  "publisher": "borisbat",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing"
+  ],
+  "activationEvents": [
+    "workspaceContains:**/*.das"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "daslang Test",
+      "properties": {
+        "dascript.compiler": {
+          "type": "string",
+          "default": "",
+          "description": "Path to daslang compiler (auto-detected if empty)"
+        },
+        "dascript.dastestPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to dastest/dastest.das (auto-detected if in daScript repo)"
+        },
+        "dascript.testTimeout": {
+          "type": "number",
+          "default": 120,
+          "description": "Test execution timeout in seconds"
+        },
+        "dascript.isolatedMode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Run tests in isolated processes (catches crashes)"
+        },
+        "dascript.jit": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable JIT compilation for tests"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.3.0"
+  }
+}

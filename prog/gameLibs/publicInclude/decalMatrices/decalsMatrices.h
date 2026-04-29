@@ -110,7 +110,7 @@ public:
   // Return true when this matrix is used by 2 or more different decals which should have their
   // own matrices, but there was no empty space in the buffer with matrices.
   bool isMatrixAliased(uint32_t id) const;
-  void reset() { matricesInvalid = true; }
+  void reset();
   void clearItems();
   void clearAll();
   void setMaxItems(uint32_t max_items);
@@ -124,6 +124,9 @@ public:
   uint32_t registerMatrix(ecs::EntityId eid, const TMatrix &tm);
   uint32_t getMatrixId(ecs::EntityId eid) const;
   const TMatrix &getBasisMatrix(ecs::EntityId eid) const;
+
+  // resets entityComponent to INVALID_MATRIX_ID on all entities referencing this manager
+  void invalidateEntities();
 
   // updates all registered matrices on this entity
   static void entity_update(ecs::EntityId eid, const TMatrix &tm);

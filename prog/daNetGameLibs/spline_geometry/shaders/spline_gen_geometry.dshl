@@ -9,8 +9,95 @@ int spline_gen_culled_buffer_uav_no = 0;
 int spline_gen_params_buffer_uav_no = 1;
 
 int spline_gen_obj_elem_count;
-int spline_gen_attachment_data_uav_no = 0;
 
+int spline_gen_has_generation_phase = 0;
+interval spline_gen_has_generation_phase: no < 1, yes;
+
+int spline_gen_geometry_refractive_variant = 0;
+interval spline_gen_geometry_refractive_variant: no < 1, yes;
+
+int spline_gen_attachment_data_uav_no = 0 always_referenced;
+int spline_gen_vertex_buffer_uav_no = 0 always_referenced;
+
+shader spline_gen_generator, spline_gen_normal_calculator
+{
+  if (in_editor_assume == yes) { dont_render; }
+  INIT_SPLINE_GEN_INSTANTIATION_GENERATE()
+  USE_SPLINE_GEN_INSTANTIATION(cs)
+  USE_SPLINE_GEN(cs, spline_gen_geometry_refractive_variant == yes, true)
+  USE_UNIT_VEC_CODEC()
+
+  (cs)
+  {
+    spline_gen_vertex_buffer@uav : register(spline_gen_vertex_buffer_uav_no) hlsl {
+      #include "spline_gen_buffer.hlsli"
+      RWStructuredBuffer<SplineGenVertex> spline_gen_vertex_buffer@uav;
+    };
+    spline_gen_texture_d@smp2d = spline_gen_texture_d;
+    animation_time@f1 = time_phase(0, 0);
+  }
+
+  if (shader == spline_gen_generator)
+  {
+    hlsl (cs)
+    {
+      [numthreads(SPLINE_GEN_COMPUTE_DIM, 1, 1)]
+      void main(uint2 dispatch_thread_id : SV_DispatchThreadID)
+      {
+        uint hardwareInstanceId = dispatch_thread_id.y;
+        uint vertexId = dispatch_thread_id.x;
+        uint2 coord = get_vertex_coord(vertexId);
+        if (!is_coord_valid(coord))
+          return;
+
+        InstanceId instanceId = bufferAt(spline_gen_indirection_buffer, hardwareInstanceId);
+        SplineGenInstance instanceData = structuredBufferAt(spline_gen_instancing_buffer, instanceId);
+        SplineGenSpline spline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y));
+        SplineGenVertex vertex;
+        float2 floatCoord = convert_coord_to_float(coord);
+        float2 texcoord;
+        float4 uvOffsets = instanceData.uvOffsets * animation_time;
+        float4 uvScales = instanceData.uvScales;
+        vertex.worldPos = get_world_pos(spline, instanceData, coord, texcoord, uvOffsets, uvScales);
+        vertex.texcoord = texcoord;
+        vertex.normal = 0;
+        vertex.tangent = 0;
+        vertex.bitangent = 0;
+
+        structuredBufferAt(spline_gen_vertex_buffer, get_vb_index(instanceId, vertexId)) = vertex;
+      }
+    }
+  }
+  else if (shader == spline_gen_normal_calculator)
+  {
+    hlsl (cs)
+    {
+      [numthreads(SPLINE_GEN_COMPUTE_DIM, 1, 1)]
+      void main(uint2 dispatch_thread_id : SV_DispatchThreadID)
+      {
+        uint hardwareInstanceId = dispatch_thread_id.y;
+        uint vertexId = dispatch_thread_id.x;
+        uint2 coord = get_vertex_coord(vertexId);
+        if (!is_coord_valid(coord))
+          return;
+
+        InstanceId instanceId = bufferAt(spline_gen_indirection_buffer, hardwareInstanceId);
+        SplineGenInstance instanceData = structuredBufferAt(spline_gen_instancing_buffer, instanceId);
+        SplineGenSpline spline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y));
+
+        float4 uvOffsets = 0;
+        float4 uvScales = 1;
+        float3 vertexNormal, vertexTangent, vertexBitangent;
+        calculate_tangent_space(coord, vertexId, instanceId, vertexTangent, vertexBitangent, vertexNormal, uvOffsets, uvScales);
+
+        structuredBufferAt(spline_gen_vertex_buffer, get_vb_index(instanceId, vertexId)).normal = encode_unit_vector(normalize(vertexNormal));
+        structuredBufferAt(spline_gen_vertex_buffer, get_vb_index(instanceId, vertexId)).tangent = encode_unit_vector(normalize(vertexTangent));
+        structuredBufferAt(spline_gen_vertex_buffer, get_vb_index(instanceId, vertexId)).bitangent = encode_unit_vector(normalize(vertexBitangent));
+      }
+    }
+  }
+  compile("target_cs", "main");
+}
 
 shader spline_gen_obj_attacher
 {
@@ -18,8 +105,19 @@ shader spline_gen_obj_attacher
   INIT_SPLINE_GEN_INSTANTIATION_GENERATE()
   USE_SPLINE_GEN_INSTANTIATION(cs)
   INIT_SPLINE_GEN_ATTACHMENT_BATCHES(cs)
-  USE_VS_SPLINE_GEN(cs)
-  ENABLE_ASSERT(cs)
+  USE_UNIT_VEC_CODEC()
+  USE_SPLINE_GEN(cs, false, spline_gen_has_generation_phase == yes)
+
+  if (spline_gen_has_generation_phase == yes)
+  {
+    (cs)
+    {
+      spline_gen_vertex_buffer@buf = spline_gen_vertex_buffer hlsl {
+        #include "spline_gen_buffer.hlsli"
+        StructuredBuffer<SplineGenVertex> spline_gen_vertex_buffer@buf;
+      }
+    }
+  }
 
   (cs)
   {
@@ -83,6 +181,13 @@ shader spline_gen_obj_attacher
 
       CoordEx coordEx = get_hammersley_coord(objectId, instanceData.objCount, instanceData.objStripeMul);
       SplineGenSpline spline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coordEx.coord.y));
+    ##if (spline_gen_has_generation_phase == yes)
+      SplineGenVertex baseVertex0 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coordEx.coord, int2(0, 0)));
+      SplineGenVertex baseVertex1 = structuredBufferAt(spline_gen_vertex_buffer, decode_vb_index(instanceId, coordEx.coord, int2(0, 1)));
+      float3 interpolatedNormal = normalize(lerp(decode_unit_vector(baseVertex0.normal),
+                                                 decode_unit_vector(baseVertex1.normal), coordEx.lerpS));
+      float3 interpolatedWorldPos = lerp(baseVertex0.worldPos, baseVertex1.worldPos, coordEx.lerpS);
+    ##else
       uint vertex_id0 = decode_shifted_coord(coordEx.coord, int2(0, 0));
       uint vertex_id1 = decode_shifted_coord(coordEx.coord, int2(0, 1));
 
@@ -99,6 +204,7 @@ shader spline_gen_obj_attacher
 
       float3 interpolatedNormal = normalize(lerp(vertexNormal0, vertexNormal1, coordEx.lerpS));
       float3 interpolatedWorldPos = lerp(transformedPos0, transformedPos1, coordEx.lerpS);
+    ##endif
       float3x3 rotScaleMat = get_rotation_matrix(instanceId, coordEx, interpolatedNormal);
 
       float size = get_size(instanceData.objSizeMul, spline.radius, instanceData.inverseMaxRadius);
@@ -116,24 +222,75 @@ shader spline_gen_obj_attacher
 
 
 
-shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen
+shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen, dynamic_refractive_spline_gen
 {
   if (in_editor_assume == yes) { dont_render; }
   cull_mode=none;
-  ENABLE_ASSERT(ps)
   NO_ATEST()
 
   DYNAMIC_SPLINE_GEN_VS_COMMON()
-  USE_VS_SPLINE_GEN(vs)
+  USE_SPLINE_GEN(vs, shader == dynamic_refractive_spline_gen, spline_gen_has_generation_phase == yes)
+  USE_UNIT_VEC_CODEC()
+
+  if (spline_gen_has_generation_phase == yes)
+  {
+    (vs)
+    {
+      spline_gen_vertex_buffer@buf = spline_gen_vertex_buffer hlsl {
+        #include "spline_gen_buffer.hlsli"
+        StructuredBuffer<SplineGenVertex> spline_gen_vertex_buffer@buf;
+      }
+      spline_gen_prev_vertex_buffer@buf = spline_gen_prev_vertex_buffer hlsl {
+        #include "spline_gen_buffer.hlsli"
+        StructuredBuffer<SplineGenVertex> spline_gen_prev_vertex_buffer@buf;
+      }
+    }
+  }
+  else
+  {
+    (vs)
+    {
+      spline_gen_prev_spline_buffer@buf = spline_gen_prev_spline_buffer hlsl {
+        #include "spline_gen_buffer.hlsli"
+        StructuredBuffer<SplineGenSpline> spline_gen_prev_spline_buffer@buf;
+      }
+    }
+  }
 
   (vs)
   {
-    spline_gen_prev_spline_buffer@buf = spline_gen_prev_spline_buffer hlsl {
-      #include "spline_gen_buffer.hlsli"
-      StructuredBuffer<SplineGenSpline> spline_gen_prev_spline_buffer@buf;
+    spline_gen_texture_d@smp2d = spline_gen_texture_d;
+    animation_time@f1 = time_phase(0, 0);
+  }
+
+  if (shader == dynamic_refractive_spline_gen)
+  {
+    if (dyn_model_render_pass != render_pass_normal || rendinst_transparent_gbuffer_pass != off)
+    {
+      dont_render;
+    }
+    DYNAMIC_BLOCK_TRANS()
+    render_trans;
+
+    hlsl{
+      // Dummy functions
+      bool get_is_window() { return false; }
+      float4 get_mediumThickness() { return float4(0, 0, 1. / 1.5, 0.04); }
+
+      #define isRefractionGlass 1
+      #define OVERWRITE_GLASS_PROPERTIES_WITH_FUNCTION_ARGS 1
     }
 
-    spline_gen_texture_d@smp2d = spline_gen_texture_d;
+    if (gi_quality != off)
+    {
+      USE_IN_FRUSTUM_GI(ps)
+      hlsl {
+        #define GLASS_USE_GI 1
+      }
+    }
+    USE_BRUNETON_FOG()
+    REFRACTION_USE()
+    USE_GLASS(true)
   }
 
   hlsl (vs)
@@ -145,14 +302,57 @@ shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen
 
       uint2 coord = get_vertex_coord(vertex_id);
       SplineGenSpline spline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y));
+
+      float3 worldPos;
+      float3 normal = 0, tangent = 0, bitangent = 0;
+      float2 texcoord;
+    ##if (spline_gen_has_generation_phase == yes)
+      SplineGenVertex currVertex = structuredBufferAt(spline_gen_vertex_buffer, get_vb_index(instanceId, vertex_id));
+      worldPos = currVertex.worldPos;
+      normal = decode_unit_vector(currVertex.normal);
+      tangent = decode_unit_vector(currVertex.tangent);
+      bitangent = decode_unit_vector(currVertex.bitangent);
+      texcoord = currVertex.texcoord;
+    ##else
       float2 floatCoord = convert_coord_to_float(coord);
-      float2 texcoord = floatCoord * instanceData.tcMul;
-      float3 transformedPos = get_world_pos(spline, instanceData, coord);
+      float4 uvOffsets = instanceData.uvOffsets * animation_time;
+      float4 uvScales = instanceData.uvScales;
+      worldPos = get_world_pos(spline, instanceData, coord, texcoord, uvOffsets, uvScales);
+      ##if (dyn_model_render_pass == render_pass_normal)
+        // We don't care about normals for shadows
+        calculate_tangent_space(coord, vertex_id, instanceId, tangent, bitangent, normal, uvOffsets, uvScales);
+        normal = normalize(normal);
+        tangent = normalize(tangent);
+        bitangent = normalize(bitangent);
+      ##endif
+    ##endif
 
       VsOutput output;
-      output.pos = mul(float4(transformedPos, 1), viewProjTm);
-      output.pointToEye = world_view_pos - transformedPos;
+      output.pos = mul(float4(worldPos, 1), viewProjTm);
+      output.pointToEye = world_view_pos - worldPos;
       output.texcoord = texcoord;
+      output.normal = normal;
+      output.tangent = tangent;
+      output.bitangent = bitangent;
+
+    ##if (shader == dynamic_refractive_spline_gen)
+      half3 fogMul, fogAdd;
+      get_fog(output.pointToEye, fogMul, fogAdd);
+      output.clipPos = output.pos;
+      output.fogMul = fogMul;
+      output.fogAdd = fogAdd;
+      ##if (spline_gen_has_generation_phase == yes)
+        float4 uvOffsets = instanceData.uvOffsets * animation_time;
+        float4 uvScales = instanceData.uvScales;
+      ##endif
+      float2 texcoord1 = texcoord * uvScales.xy + uvOffsets.xy;
+      float2 texcoord2 = texcoord * uvScales.zw + uvOffsets.zw;
+      output.texcoord = lerp(texcoord1, texcoord2, instanceData.uvInterpolationValue);
+      float baseThickness = get_radius(spline, instanceData, texcoord1, texcoord2);
+      output.thicknessBounds = float2(baseThickness + instanceData.additionalThicknessBounds.x, baseThickness + instanceData.additionalThicknessBounds.y);
+      output.glassParams = instanceData.glassParams;
+      output.surfaceOpaqueness = instanceData.surfaceOpaqueness;
+    ##endif
 
     ##if (shader == dynamic_emissive_spline_gen)
       output.emissiveColor = instanceData.emissiveColor;
@@ -160,20 +360,17 @@ shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen
     ##endif
 
     ##if (dyn_model_render_pass == render_pass_normal)
-      // We don't care about normals for shadows
-      float3 vertexNormal, vertexTangent, vertexBitangent;
-      calculate_tangent_space(coord, vertex_id, instanceId, vertexTangent, vertexBitangent, vertexNormal);
-      output.normal = normalize(vertexNormal);
-      output.tangent = normalize(vertexTangent);
-      output.bitangent = normalize(vertexBitangent);
-
       #ifdef MOTION_VECTORS_ENABLED
-        output.out_pos =  output.pos;
-        float3 prevPos = transformedPos;
+        output.out_pos = output.pos;
+        float3 prevPos = worldPos;
         if (instanceData.flags & PREV_SB_VALID)
         {
-          SplineGenSpline prevSpline = structuredBufferAt(spline_gen_spline_buffer, get_spline_index(instanceId, coord.y));
-          prevPos = get_world_pos(prevSpline, instanceData, coord);
+        ##if (spline_gen_has_generation_phase == yes)
+          prevPos = structuredBufferAt(spline_gen_prev_vertex_buffer, get_vb_index(instanceId, vertex_id)).worldPos;
+        ##else
+          SplineGenSpline prevSpline = structuredBufferAt(spline_gen_prev_spline_buffer, get_spline_index(instanceId, coord.y));
+          prevPos = get_world_pos(prevSpline, instanceData, coord, uvOffsets, uvScales);
+        ##endif
         }
         output.out_prev_pos = mul(float4(prevPos, 1), prevOrigoRelativeViewProjTm);
       #endif
@@ -196,13 +393,48 @@ shader dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen
   if (dyn_model_render_pass == render_pass_normal)
   {
     DYNAMIC_SPLINE_GEN_PS_COMMON()
-    hlsl (ps)
+    if (shader == dynamic_refractive_spline_gen)
     {
-      GBUFFER_OUTPUT spline_gen_ps(VsOutput input HW_USE_SCREEN_POS)
+      hlsl (ps)
       {
-        float4 packedDiffuse = tex2D(spline_gen_texture_d, input.texcoord);
-        float4 packedNormalMap = tex2D(spline_gen_texture_n, input.texcoord);
-        return spline_gen_ps_base_impl(input, packedDiffuse, packedNormalMap, GET_SCREEN_POS(input.pos));
+        struct PsOutput
+        {
+          float4 color : SV_Target0;
+          float reactive : SV_Target1;
+        };
+
+        PsOutput spline_gen_ps(VsOutput input HW_USE_SCREEN_POS)
+        {
+          float4 packedDiffuse = tex2D(spline_gen_texture_d, input.texcoord);
+          float4 packedNormalMap = tex2D(spline_gen_texture_n, input.texcoord);
+          float3 normalMap = unpack_ag_normal(packedNormalMap);
+          float3 normal = normalMap.x * input.tangent + normalMap.y * input.bitangent + normalMap.z * input.normal;
+          half smoothness = packedNormalMap.r;
+
+          float3 worldNormal = normalize(normal);
+          float4 screenpos = GET_SCREEN_POS(input.pos);
+          half4 diffuseColor = half4(packedDiffuse.rgb, input.surfaceOpaqueness);
+          float thickness = lerp(input.thicknessBounds.x, input.thicknessBounds.y, packedNormalMap.b);
+          GlassOutput glass = apply_glass_base(input, screenpos, diffuseColor, worldNormal, thickness, smoothness,
+            false, diffuseColor, input.glassParams);
+
+          PsOutput result;
+          result.color = glass.color;
+          result.reactive = glass.color.a;
+          return result;
+        }
+      }
+    }
+    else // dynamic_spline_gen, dynamic_emissive_spline_gen, dynamic_skin_spline_gen
+    {
+      hlsl (ps)
+      {
+        GBUFFER_OUTPUT spline_gen_ps(VsOutput input HW_USE_SCREEN_POS)
+        {
+          float4 packedDiffuse = tex2D(spline_gen_texture_d, input.texcoord);
+          float4 packedNormalMap = tex2D(spline_gen_texture_n, input.texcoord);
+          return spline_gen_ps_base_impl(input, packedDiffuse, packedNormalMap, GET_SCREEN_POS(input.pos));
+        }
       }
     }
     compile("target_ps", "spline_gen_ps");
@@ -219,7 +451,6 @@ shader dynamic_spline_gen_culler
   if (in_editor_assume == yes) { dont_render; }
   INIT_SPLINE_GEN_INSTANTIATION_GENERATE()
   INIT_AND_USE_FRUSTUM_CHECK_CS()
-  ENABLE_ASSERT(cs)
 
   (cs)
   {
@@ -255,6 +486,10 @@ shader dynamic_spline_gen_culler
       return result;
     }
 
+    // For more information regarding DrawIndexedIndirectArgs see dag_decl.h
+    #define INSTANCE_COUNT_OFFSET 1
+    #define DRAW_ARGS_SIZE 5
+
     [numthreads(SPLINE_GEN_COMPUTE_DIM, 1, 1)]
     void main(uint dispatch_thread_id : SV_DispatchThreadID)
     {
@@ -265,11 +500,11 @@ shader dynamic_spline_gen_culler
       if (testBoxB(bbox.lim[0], bbox.lim[1]))
       {
         uint culledIndex;
-        spline_gen_params_buffer.InterlockedAdd(1 * 4, 1u, culledIndex);
+        spline_gen_params_buffer.InterlockedAdd(INSTANCE_COUNT_OFFSET * 4, 1u, culledIndex);
         LOOP
-        for (int i = 0; i < spline_gen_obj_elem_count; i++)
+        for (int i = 1; i < spline_gen_obj_elem_count; i++)
         {
-          uint address = (6 + i * 5) * 4;
+          uint address = (INSTANCE_COUNT_OFFSET + i * DRAW_ARGS_SIZE) * 4;
           spline_gen_params_buffer.InterlockedAdd(uint((CHECK_BUFFER_EXPR(spline_gen_params_buffer, address), address)), uint(spline_gen_attachment_max_no));
         }
         structuredBufferAt(spline_gen_culled_buffer, culledIndex) = sourceIndex;

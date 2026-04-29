@@ -318,7 +318,7 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
 
       panel.createSeparator(0);
       panel.createCheckBox(51, "Use prefabs to build masks", true);
-      panel.createEditInt(52, "Prefabs layer index", 0);
+      panel.createEditInt(52, "Prefabs layer index (default tag)", 0);
 
       panel.createSeparator(0);
       panel.createCheckBox(61, "Honour layers' \"to mask\" properties", true);
@@ -551,24 +551,6 @@ bool HmapLandPlugin::onPluginMenuClick(unsigned id)
           brushDlg->show();
           return true;
         }
-    }
-    break;
-
-    case CM_TAB_RELEASE:
-    {
-      if (brushDlg->isVisible())
-      {
-        // Take away the focus from the dialog so the spin edit can receive the focus lost event, and send onWcChange
-        // before the dialog hides if it was edited by keyboard.
-        // Make sure the hiding gets called at least one ImGui frame (updateImgui) later.
-        // (If we had access to ImGui::GetFrameCount we would store that here and check for inequality in
-        // HmapLandPlugin::updateImgui().)
-        brushDlgHideRequestFrameCountdown = 2;
-
-        IGenViewportWnd *_vp = DAGORED2->getCurrentViewport();
-        if (_vp)
-          _vp->activate();
-      }
     }
     break;
 

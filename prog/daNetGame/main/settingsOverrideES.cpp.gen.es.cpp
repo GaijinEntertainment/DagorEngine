@@ -109,9 +109,9 @@ static ecs::CompileTimeQueryDesc apply_settings_override_entity_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void apply_settings_override_entity_ecs_query(Callable function)
+inline void apply_settings_override_entity_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, apply_settings_override_entity_ecs_query_desc.getHandle(),
+  perform_query(&manager, apply_settings_override_entity_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -137,9 +137,9 @@ static ecs::CompileTimeQueryDesc is_setting_overriden_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void is_setting_overriden_ecs_query(Callable function)
+inline void is_setting_overriden_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, is_setting_overriden_ecs_query_desc.getHandle(),
+  perform_query(&manager, is_setting_overriden_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

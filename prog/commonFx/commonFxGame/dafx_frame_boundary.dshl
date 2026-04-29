@@ -30,8 +30,6 @@ shader fill_fx_keyframe_boundary_legacy
     };
   }
 
-  ENABLE_ASSERT(cs)
-
   hlsl(cs) {
     float4 transformInverseY(float4 boundary)
     {
@@ -86,8 +84,6 @@ int dafx_fill_boundary_opt_start_frame_boundary_tmp_uav_no = 0;
 
 shader fill_fx_keyframe_boundary_opt_start
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     dafx_frame_boundary_tmp@uav : register(dafx_fill_boundary_opt_start_frame_boundary_tmp_uav_no) hlsl {
       RWStructuredBuffer<uint> dafx_frame_boundary_tmp@uav;
@@ -118,8 +114,6 @@ shader fill_fx_keyframe_boundary_approx
       RWStructuredBuffer<uint> dafx_frame_boundary_tmp@uav;
     };
   }
-
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
     #define BOUNDARY_CACHE_SIZE 8
@@ -196,8 +190,6 @@ shader fill_fx_keyframe_boundary_opt
       RWStructuredBuffer<uint> dafx_frame_boundary_tmp@uav;
     };
   }
-
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
     #define BOUNDARY_CACHE_SIZE 8
@@ -281,8 +273,6 @@ shader fill_fx_keyframe_boundary_opt_end
     };
   }
 
-  ENABLE_ASSERT(cs)
-
   hlsl(cs) {
     float4 transformInverseY(float4 boundary)
     {
@@ -328,8 +318,6 @@ shader clear_fx_keyframe_boundary
     };
   }
 
-  ENABLE_ASSERT(cs)
-
   hlsl(cs) {
     [numthreads( 64, 1, 1 )]
     void main_cs( uint dtId : SV_DispatchThreadID )
@@ -356,8 +344,6 @@ shader frame_boundary_debug_update
     dafx_frame_boundary_buffer@buf = dafx_frame_boundary_buffer hlsl { StructuredBuffer<float4> dafx_frame_boundary_buffer@buf; };
     outputTex@uav : register(dafx_frame_boundary_debug_update_outputTex_uav_no) hlsl { RWTexture2D<float4> outputTex@uav; };
   }
-
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
     float4 getTextureResult(uint2 dtId)

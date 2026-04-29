@@ -125,13 +125,6 @@ macro FORCEFIELD_APPLY(get_forcefield_color_fn, is_fullscreen, forcefield_pack_h
   USE_SCREENPOS_TO_TC()
   USE_SCREENPOS_TO_LOWRES_TC()
 
-  if (mobile_render == deferred) {
-    USE_SUBPASS_LOADS()
-    INIT_SUBPASS_LOAD_DEPTH_GBUFFER(SP_PANORAMA_REG_DEPTH, SP_PANORAMA_IA_DEPTH)
-    USE_SUBPASS_LOAD_DEPTH_GBUFFER()
-  }
-
-
   (ps) { low_res_forcefield@smp2d = low_res_forcefield; }
 
   hlsl(ps) {
@@ -140,12 +133,6 @@ macro FORCEFIELD_APPLY(get_forcefield_color_fn, is_fullscreen, forcefield_pack_h
       float4 pos = GET_SCREEN_POS(input.pos);
       float2 tc = pos.xy * screen_pos_to_texcoord.xy;
       float2 lowres_tc = screen_pos_to_lowres_tc(pos.xy);
-
-    ##if mobile_render == deferred
-      float depth = loadGbufferDepth(tc);
-      if (depth >= input.pos.z)
-        discard;
-    ##endif
 
     ##if !use_bilateral_upscale
       float4 outColor = h4tex2Dlod(low_res_forcefield, float4(lowres_tc, 0, 0));

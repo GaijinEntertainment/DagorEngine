@@ -1,6 +1,7 @@
 include "shader_global.dshl"
 include "toroidal_heightmap.dshl"
 include "displacement_inc.dshl"
+include "land_block_common_inc.dshl"
 
 texture tex_hmap_low;
 texture hmap_ofs_thickness;

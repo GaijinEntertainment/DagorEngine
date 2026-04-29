@@ -5,7 +5,13 @@
 #include <EASTL/fixed_string.h>
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_texFlags.h>
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 #include <render/world/cameraParams.h>
 #include <render/daFrameGraph/nodeHandle.h>
 #include "../shaders/dagdp_constants.hlsli"
@@ -120,6 +126,8 @@ enum class ViewKind
 {
   MAIN_CAMERA, // DNG: main camera.
   DYN_SHADOWS, // DNG: dynamic light shadows.
+  BVH,         // DNG: BVH for raytracing
+  CSM_SHADOWS, // DNG: CSM shadows, viewport per cascade.
   // TODO: other types like CSM, probes, etc...
   COUNT
 };
@@ -152,6 +160,7 @@ struct Viewport
   DPoint3 worldPos;
   float maxDrawDistance; // Must be clipped, if greater than the maxDrawDistance of its View.
   Frustum frustum;
+  int csmCascade = -1;
 };
 
 struct ViewPerFrameData

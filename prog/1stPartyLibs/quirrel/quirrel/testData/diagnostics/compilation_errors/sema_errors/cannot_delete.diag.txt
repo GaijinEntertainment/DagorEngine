@@ -1,0 +1,8 @@
+ERROR: can't delete an (outer) local
+testData/diagnostics/compilation_errors/sema_errors/cannot_delete.nut:4:0
+
+local x = 5
+delete x
+^-------
+
+

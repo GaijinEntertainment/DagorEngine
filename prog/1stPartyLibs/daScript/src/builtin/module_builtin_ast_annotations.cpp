@@ -199,6 +199,7 @@ namespace das {
         AstExprCallMacroAnnotation(ModuleLibrary & ml)
             :  AstExprLooksLikeCallAnnotation<ExprCallMacro> ("ExprCallMacro", ml) {
             addField<DAS_BIND_MANAGED_FIELD(macro)>("macro");
+            addField<DAS_BIND_MANAGED_FIELD(inFunction)>("inFunction");
         }
     };
 
@@ -236,7 +237,7 @@ namespace das {
         }
         virtual SimNode * simluate ( Context * context, const ExpressionPtr & expr, string & error ) override {
 
-            if ( !context->thisProgram->isCompilingMacros && !context->thisProgram->folding && !(*daScriptEnvironment::bound)->g_isInAot ) {
+            if ( !context->thisProgram->isCompilingMacros && !context->thisProgram->folding && !daScriptEnvironment::getBound()->g_isInAot ) {
                 if ( !context->thisProgram->options.getBoolOption("rtti",context->thisProgram->policies.rtti) ) {
                     error = "ast_typedecl requires `options rtti` or rtti to be enabled in policies";
                     return nullptr;

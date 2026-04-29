@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 // common resource-like objects managment implementation
-#include <drv/3d/dag_consts.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_res.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_renderStates.h>
@@ -22,6 +22,8 @@
 #include "resourceActivationGeneric.h"
 #include "resource_manager.h"
 #include "device_context.h"
+#include "backend/cmd/misc.h"
+#include "validation.h"
 
 using namespace drv3d_vulkan;
 
@@ -53,7 +55,7 @@ TextureInterfaceBase *drv3d_vulkan::allocate_texture(uint16_t w, uint16_t h, uin
 
 void drv3d_vulkan::free_texture(TextureInterfaceBase *texture) { Globals::Res::tex.free(texture); }
 
-Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
+Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   if (invalidCreationArgs(w, h, flg, stat_name))
     return nullptr;
@@ -64,7 +66,7 @@ Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, con
     h = img->h;
   }
 
-  const Driver3dDesc &dd = d3d::get_driver_desc();
+  const DriverDesc &dd = d3d::get_driver_desc();
   w = clamp<int>(w, dd.mintexw, dd.maxtexw);
   h = clamp<int>(h, dd.mintexh, dd.maxtexh);
 
@@ -108,12 +110,12 @@ Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, con
   return tex;
 }
 
-CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat_name)
+CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   if (invalidCreationArgs(size, size, flg, stat_name))
     return nullptr;
 
-  const Driver3dDesc &dd = d3d::get_driver_desc();
+  const DriverDesc &dd = d3d::get_driver_desc();
   size = get_bigger_pow2(clamp<int>(size, dd.mincubesize, dd.maxcubesize));
 
   TextureInterfaceBase *tex = allocate_texture(size, size, 1, levels, D3DResourceType::CUBETEX, flg, stat_name);
@@ -123,7 +125,7 @@ CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
   return tex;
 }
 
-VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name)
+VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   if (invalidCreationArgs(w, h, flg, stat_name))
     return nullptr;
@@ -138,7 +140,7 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
   return tex;
 }
 
-ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name)
+ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   if (invalidCreationArgs(w, h, flg, stat_name))
     return nullptr;
@@ -150,7 +152,7 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
   return tex;
 }
 
-ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name)
+ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   if (invalidCreationArgs(side, side, flg, stat_name))
     return nullptr;
@@ -186,7 +188,7 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
     *num_textures = Globals::Res::tex.size();
 
   if (total_mem)
-    Globals::Res::tex.iterateAllocated([total_mem](TextureInterfaceBase *tex) { *total_mem += tex->getSize(); });
+    Globals::Res::tex.iterateAllocated([total_mem](TextureInterfaceBase *tex) { *total_mem += tex->getFixedSize(); });
 
   // TODO: make a proper one like in dx11/dx12/etc
   // but now at least make log on app.tex being called
@@ -453,17 +455,17 @@ GenericBufferInterface *drv3d_vulkan::allocate_buffer(uint32_t struct_size, uint
 
 void drv3d_vulkan::free_buffer(GenericBufferInterface *buffer) { Globals::Res::buf.free(buffer); }
 
-Vbuffer *d3d::create_vb(int size, int flg, const char *name)
+Vbuffer *d3d::create_vb(int size, int flg, const char *name, ResourceTagType)
 {
   return allocate_buffer(1, size, flg | SBCF_BIND_VERTEX | SBCF_BIND_SHADER_RES, FormatStore(), true /*managed*/, name);
 }
 
-Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name)
+Ibuffer *d3d::create_ib(int size, int flg, const char *stat_name, ResourceTagType)
 {
   return allocate_buffer(1, size, flg | SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES, FormatStore(), true /*managed*/, stat_name);
 }
 
-Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char *name)
+Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned format, const char *name, ResourceTagType)
 {
   return allocate_buffer(struct_size, elements, flags, FormatStore::fromCreateFlags(format), true /*managed*/, name);
 }
@@ -517,7 +519,7 @@ inline SamplerState translate_d3d_samplerinfo_to_vulkan_samplerstate(const d3d::
   return result;
 }
 
-d3d::SamplerHandle d3d::request_sampler(const d3d::SamplerInfo &sampler_info)
+NO_UBSAN d3d::SamplerHandle d3d::request_sampler(const d3d::SamplerInfo &sampler_info)
 {
   SamplerState state = translate_d3d_samplerinfo_to_vulkan_samplerstate(sampler_info);
   SamplerResource *ret = Globals::samplers.getResource(state);
@@ -571,7 +573,7 @@ void d3d::get_cur_used_res_entries(int &max_tex, int &max_vs, int &max_ps, int &
     int flags = buffer->getFlags();
     if ((flags & SBCF_BIND_MASK) == SBCF_BIND_INDEX)
       ++max_ib;
-    else
+    else if ((flags & SBCF_BIND_MASK) == SBCF_BIND_VERTEX)
       ++max_vb;
   });
 
@@ -581,4 +583,19 @@ void d3d::get_cur_used_res_entries(int &max_tex, int &max_vs, int &max_ps, int &
   G_UNUSED(max_stblk);
 }
 
-IMPLEMENT_D3D_RESOURCE_ACTIVATION_API_USING_GENERIC()
+void d3d::activate_buffer(Sbuffer *buf, ResourceActivationAction action, GpuPipeline gpu_pipeline)
+{
+  res_act_generic::activate_buffer(buf, action, gpu_pipeline);
+}
+
+void d3d::activate_texture(BaseTexture *tex, ResourceActivationAction action, const ResourceClearValue &value,
+  GpuPipeline gpu_pipeline)
+{
+  BaseTex *texture = cast_to_texture_base(tex);
+  Globals::ctx.dispatchCmd<CmdImgActivate>({texture->image});
+  res_act_generic::activate_texture(tex, action, value, gpu_pipeline);
+}
+
+void d3d::deactivate_buffer(Sbuffer *buf, GpuPipeline gpu_pipeline) { res_act_generic::deactivate_buffer(buf, gpu_pipeline); }
+
+void d3d::deactivate_texture(BaseTexture *tex, GpuPipeline gpu_pipeline) { res_act_generic::deactivate_texture(tex, gpu_pipeline); }

@@ -1,8 +1,8 @@
 #ifndef FOG_COMMON_INCLUDED
 #define FOG_COMMON_INCLUDED 1
 
-#define prev_volfog_shadow_samplerstate  land_heightmap_tex_samplerstate
-#define volfog_mask_tex_samplerstate  land_heightmap_tex_samplerstate
+#define prev_volfog_shadow_samplerstate  tex_hmap_low_samplerstate
+#define volfog_mask_tex_samplerstate  tex_hmap_low_samplerstate
 
 
 float depth_to_volume_pos(float v)

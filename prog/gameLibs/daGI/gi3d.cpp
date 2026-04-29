@@ -15,7 +15,7 @@
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_tex3d.h>
 #include <shaders/dag_computeShaders.h>
 #include <perfMon/dag_statDrv.h>
@@ -106,7 +106,8 @@ void GI3D::initDebug()
   drawDebugAllVolmap.init("debug_render_all_volmap", NULL, 0, "debug_render_all_volmap");
   create_debug_render_cs.reset(new_compute_shader("create_debug_render_cs"));
 
-  debugVolmapDrawIndirect = dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, 1, "visibleVoxelsDrawIndirect");
+  debugVolmapDrawIndirect =
+    dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, 1, "visibleVoxelsDrawIndirect", RESTAG_DAGI);
   setDrawIndirect(debugVolmapDrawIndirect.get());
 }
 
@@ -149,7 +150,7 @@ void GI3D::drawDebug(int cascade, DebugVolmapType debug_volmap)
   if (!drawDebugVolmap.shader)
     return;
   bool debugVolmapNonIntersected = debug_volmap <= NON_INTERSECTED;
-  if (debug_volmap > NON_INTERSECTED) // not yet
+  if (debug_volmap > NON_INTERSECTED) //-V1051 // not yet
     return;
   TIME_D3D_PROFILE(debugVolmap);
 
@@ -209,9 +210,12 @@ void GI3D::VolmapCascade::init(const char *name_, const Point2 &sz, int xz, int 
   params.cascade_z_tc_mul_add.y = float(y_from) / y_total;
   params.voxelSize = sz;
 
-  voxelsWeightHistogram = dag::buffers::create_ua_sr_structured(sizeof(uint), HISTOGRAM_SIZE, "voxelsWeightHistogram");
-  voxelChoiceProbability[0] = dag::buffers::create_ua_sr_structured(sizeof(float), MAX_BINS, "voxelsWeightHistogram0");
-  voxelChoiceProbability[1] = dag::buffers::create_ua_sr_structured(sizeof(float), MAX_BINS, "voxelsWeightHistogram1");
+  voxelsWeightHistogram =
+    dag::buffers::create_ua_sr_structured(sizeof(uint), HISTOGRAM_SIZE, "voxelsWeightHistogram", d3d::buffers::Init::No, RESTAG_DAGI);
+  voxelChoiceProbability[0] =
+    dag::buffers::create_ua_sr_structured(sizeof(float), MAX_BINS, "voxelsWeightHistogram0", d3d::buffers::Init::No, RESTAG_DAGI);
+  voxelChoiceProbability[1] =
+    dag::buffers::create_ua_sr_structured(sizeof(float), MAX_BINS, "voxelsWeightHistogram1", d3d::buffers::Init::No, RESTAG_DAGI);
   currentProbability = 0;
   toroidalOrigin = IPoint3(0, -10000, 0);
   resetted = true;
@@ -255,31 +259,34 @@ void GI3D::VolmapCommonData::initCommon()
   random_point_occlusion_ambient_voxels_cs.reset(new_compute_shader("random_point_occlusion_ambient_voxels_cs"));
   temporal_ambient_voxels_cs.reset(new_compute_shader("temporal_ambient_voxels_cs"));
 
-  frustumVisibleAmbientVoxelsCount = dag::buffers::create_ua_sr_structured(4, 1, "visibleAmbientVoxelsCount");
+  frustumVisibleAmbientVoxelsCount =
+    dag::buffers::create_ua_sr_structured(4, 1, "visibleAmbientVoxelsCount", d3d::buffers::Init::No, RESTAG_DAGI);
 
-  visibleAmbientVoxelsIndirect = dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, 5, "visibleVoxelsLitIndirect");
+  visibleAmbientVoxelsIndirect =
+    dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, 5, "visibleVoxelsLitIndirect", RESTAG_DAGI);
   setCSIndirect(visibleAmbientVoxelsIndirect.get(), 5);
   static constexpr int MAX_VISIBLE_FULL_VOXELS = MAX_SELECTED_INTERSECTED_VOXELS + MAX_SELECTED_NON_INTERSECTED_VOXELS;
   static constexpr int MAX_VISIBLE_VOXELS = MAX_VISIBLE_FULL_VOXELS + MAX_SELECTED_INITIAL_VOXELS;
 
-  frustumVisiblePointVoxels =
-    dag::buffers::create_ua_sr_structured(sizeof(VisibleAmbientVoxelPoint), MAX_VISIBLE_VOXELS, "frustum_visible_point_voxels");
+  frustumVisiblePointVoxels = dag::buffers::create_ua_sr_structured(sizeof(VisibleAmbientVoxelPoint), MAX_VISIBLE_VOXELS,
+    "frustum_visible_point_voxels", d3d::buffers::Init::No, RESTAG_DAGI);
 
-  selectedAmbientVoxels =
-    dag::buffers::create_ua_sr_structured(sizeof(VisibleAmbientVoxel), MAX_VISIBLE_FULL_VOXELS, "visibleAmbientVoxels");
+  selectedAmbientVoxels = dag::buffers::create_ua_sr_structured(sizeof(VisibleAmbientVoxel), MAX_VISIBLE_FULL_VOXELS,
+    "visibleAmbientVoxels", d3d::buffers::Init::No, RESTAG_DAGI);
 
-  selectedAmbientVoxelsPlanes =
-    dag::buffers::create_ua_sr_structured(sizeof(AmbientVoxelsPlanes), MAX_VISIBLE_VOXELS, "selectedAmbientVoxelsPlanes");
+  selectedAmbientVoxelsPlanes = dag::buffers::create_ua_sr_structured(sizeof(AmbientVoxelsPlanes), MAX_VISIBLE_VOXELS,
+    "selectedAmbientVoxelsPlanes", d3d::buffers::Init::No, RESTAG_DAGI);
 
   traceRayResults = dag::buffers::create_ua_sr_structured(sizeof(TraceResultAmbientVoxel), MAX_VISIBLE_FULL_VOXELS * NUM_RAY_GROUPS,
-    "traceRayResults");
+    "traceRayResults", d3d::buffers::Init::No, RESTAG_DAGI);
 
-  volmapCB = dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<VolmapCB>(MAX_VOLMAP_CASCADES), "VolmapCBuffer");
+  volmapCB =
+    dag::buffers::create_persistent_cb(dag::buffers::cb_array_reg_count<VolmapCB>(MAX_VOLMAP_CASCADES), "VolmapCBuffer", RESTAG_DAGI);
 
   {
     typedef Point3_vec4 float3;
     poissonBuf = dag::create_sbuffer(16, (sizeof(POISSON_SAMPLES) + 15) / 16, SBCF_CPU_ACCESS_WRITE | SBCF_BIND_SHADER_RES,
-      TEXFMT_A32B32G32R32F, "poissonSamples");
+      TEXFMT_A32B32G32R32F, "poissonSamples", RESTAG_DAGI);
     poissonBuf->updateDataWithLock(0, sizeof(POISSON_SAMPLES), POISSON_SAMPLES, 0);
   }
   ssgi_clear_volmap_cs.reset(new_compute_shader("ssgi_clear_volmap_cs"));
@@ -318,21 +325,22 @@ void GI3D::VolmapCommonData::init(int xz_dimensions, int y_dimensions, int max_v
   initCommon();
   maxVoxels = max_voxels;
   int format = scalar_ao ? TEXFMT_R8 : TEXFMT_R11G11B10F;
-  cube = dag::create_voltex(xz_dimensions, xz_dimensions, y_dimensions * 6, format | TEXCF_UNORDERED, 1, "gi_ambient_volmap");
+  cube =
+    dag::create_voltex(xz_dimensions, xz_dimensions, y_dimensions * 6, format | TEXCF_UNORDERED, 1, "gi_ambient_volmap", RESTAG_DAGI);
   d3d::SamplerInfo smpInfo;
   smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Wrap;
   smpInfo.address_mode_w = d3d::AddressMode::Clamp;
   d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
   ShaderGlobal::set_sampler(::get_shader_variable_id("gi_ambient_volmap_samplerstate", true), smp);
-  ShaderGlobal::set_sampler(::get_shader_variable_id("ssgi_ambient_volmap_temporal_samplerstate", true), smp);
 
   d3d::resource_barrier({cube.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL, 0, 0});
-  ssgiTemporalWeight =
-    dag::create_voltex(xz_dimensions, xz_dimensions, y_dimensions, TEXFMT_R8 | TEXCF_UNORDERED, 1, "ssgi_ambient_volmap_temporal");
+  ssgiTemporalWeight = dag::create_voltex(xz_dimensions, xz_dimensions, y_dimensions, TEXFMT_R8 | TEXCF_UNORDERED, 1,
+    "ssgi_ambient_volmap_temporal", RESTAG_DAGI);
   invalidateTextureContent();
 
   G_ASSERT(maxVoxels > 0);
-  frustumVisibleAmbientVoxels = dag::buffers::create_ua_sr_structured(sizeof(uint), maxVoxels, "frustum_visible_ambient_voxels");
+  frustumVisibleAmbientVoxels = dag::buffers::create_ua_sr_structured(sizeof(uint), maxVoxels, "frustum_visible_ambient_voxels",
+    d3d::buffers::Init::No, RESTAG_DAGI);
 }
 
 void GI3D::VolmapCommonData::RT::initShaders(QualitySettings quality)
@@ -352,8 +360,9 @@ void GI3D::VolmapCommonData::RT::createTextures(QualitySettings quality, int xz_
   if (quality != RAYTRACING)
     return;
   int xzDim = xz_dimensions * OCTAHEDRAL_TILE_SIDE_LENGTH;
-  octahedralDistances = dag::create_array_tex(xzDim, xzDim, y_dim, TEXFMT_R8 | TEXCF_UNORDERED, 1, "octahedral_distances");
-  deadProbes = dag::create_array_tex(xz_dimensions, xz_dimensions, y_dim, TEXFMT_R8 | TEXCF_UNORDERED, 1, "dead_probes");
+  octahedralDistances =
+    dag::create_array_tex(xzDim, xzDim, y_dim, TEXFMT_R8 | TEXCF_UNORDERED, 1, "octahedral_distances", RESTAG_DAGI);
+  deadProbes = dag::create_array_tex(xz_dimensions, xz_dimensions, y_dim, TEXFMT_R8 | TEXCF_UNORDERED, 1, "dead_probes", RESTAG_DAGI);
 }
 
 void GI3D::VolmapCommonData::RT::createOctahedralDistances(int xz_dim, int y_dim)
@@ -514,7 +523,7 @@ void GI3D::setBouncingMode(BouncingMode mode)
       break;
     default: break;
   }
-  ShaderGlobal::set_real(ssgi_temporal_weight_limitVarId, temporalWeightLimit - 0.001);
+  ShaderGlobal::set_float(ssgi_temporal_weight_limitVarId, temporalWeightLimit - 0.001);
 }
 
 bool GI3D::VolmapCascade::setResolution(const Point2 &sz)
@@ -600,9 +609,9 @@ bool GI3D::VolmapCascade::moveY(VolmapCommonData &common, int move_y)
     {
       d3d::resource_barrier({common.ssgiTemporalWeight.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
       d3d::resource_barrier({common.cube.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
-      ShaderGlobal::set_color4(ssgi_copy_y_indices0VarId, getDimXZ(), getDimY(), params.cascade_z_ofs, step);
+      ShaderGlobal::set_float4(ssgi_copy_y_indices0VarId, getDimXZ(), getDimY(), params.cascade_z_ofs, step);
       int to = (i + move_y + getDimY()) % getDimY();
-      ShaderGlobal::set_color4(ssgi_copy_y_indices1VarId, i, to, 0, 0);
+      ShaderGlobal::set_float4(ssgi_copy_y_indices1VarId, i, to, 0, 0);
       // debug("move %d to %d (%d)", i, to, params.cascade_z_ofs);
       d3d::set_rwbuffer(STAGE_CS, 6, common.frustumVisibleAmbientVoxels.getBuf());
       const int cnt = (i + step == endI || maxLines == 1
@@ -629,11 +638,11 @@ bool GI3D::VolmapCascade::moveY(VolmapCommonData &common, int move_y)
       STATE_GUARD_NULLPTR(d3d::set_rwtex(STAGE_CS, OCTAHEDRAL_DISTANCES_REGISTER, VALUE, 0, 0),
         common.rt.octahedralDistances.getArrayTex());
       int step = move_y < 0 ? 1 : -1;
-      ShaderGlobal::set_color4(ssgi_copy_y_indices0VarId, getDimXZ(), getDimY(), params.cascade_z_ofs, step);
+      ShaderGlobal::set_float4(ssgi_copy_y_indices0VarId, getDimXZ(), getDimY(), params.cascade_z_ofs, step);
       for (int i = startI; i != endI; i += step)
       {
         int to = (i + move_y + getDimY()) % getDimY();
-        ShaderGlobal::set_color4(ssgi_copy_y_indices1VarId, i, to, 0, 0);
+        ShaderGlobal::set_float4(ssgi_copy_y_indices1VarId, i, to, 0, 0);
         common.rt.move_y_octahderal_distances_cs->dispatch(getDimXZ(), getDimXZ(), 1);
         common.rt.move_y_dead_probes_cs->dispatch(getDimXZ(), getDimXZ(), 1);
       }
@@ -651,14 +660,14 @@ bool GI3D::VolmapCascade::moveY(VolmapCommonData &common, int move_y)
 void GI3D::VolmapCascade::copyFromNext(VolmapCommonData &common)
 {
   TIME_D3D_PROFILE(ssgi_copy_course);
-  ShaderGlobal::set_color4(ssgi_copy_indicesVarId, 1, getDimXZ(), getDimXZ() * getDimXZ(), 0);
+  ShaderGlobal::set_float4(ssgi_copy_indicesVarId, 1, getDimXZ(), getDimXZ() * getDimXZ(), 0);
   const int maxLines = common.maxVoxels / (getDimXZ() * getDimXZ() * 6);
   G_UNUSED(maxLines);
   G_ASSERT(maxLines >= 4);
   for (int i = 0; i < getDimY(); i += 4)
   {
     d3d::resource_barrier({common.cube.getVolTex(), RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
-    ShaderGlobal::set_color4(ssgi_start_copy_sliceVarId, 0, 0, i, 0);
+    ShaderGlobal::set_float4(ssgi_start_copy_sliceVarId, 0, 0, i, 0);
 
     static int voxelColors_uav_no = ShaderGlobal::get_slot_by_name("ssgi_copy_from_volmap_cs_voxelColors_uav_no");
     d3d::set_rwbuffer(STAGE_CS, voxelColors_uav_no, common.frustumVisibleAmbientVoxels.getBuf());
@@ -700,7 +709,7 @@ bool GI3D::VolmapCascade::toroidalUpdateVolmap(const Point3 &origin, VolmapCommo
   }
   // d3d::set_const_buffer(STAGE_CS, 3, cb.get());
   {
-    ShaderGlobal::set_color4(ambient_voxels_move_ofsVarId, imove.x, imove.y, imove.z, cascadeId); //==00
+    ShaderGlobal::set_float4(ambient_voxels_move_ofsVarId, imove.x, imove.y, imove.z, cascadeId); //==00
     const bool shouldCopyFromCoarse = (cascadeId < last_cascade_id) && getDimY() >= 24; // because we process 4 slices at a time
     // fixme: we'd better organize based on direction, and support dims less than 24
 
@@ -860,7 +869,7 @@ void GI3D::updateOrigin(const Point3 &center, const dagi25d::voxelize_scene_fun_
       1, xz_dimensions, cascadeResolution[1].x, MAX_TRACE_DIST, sceneDistanceXZ(), sceneDistanceMoveThreshold());
   }
 #endif
-  ShaderGlobal::set_color4(ssgi_current_world_originVarId, center.x, center.y, center.z, 0);
+  ShaderGlobal::set_float4(ssgi_current_world_originVarId, center.x, center.y, center.z, 0);
   bool hasSceneTeleported = false;
   if (shouldUpdate3D && common.cube)
   {
@@ -937,8 +946,8 @@ void GI3D::VolmapCascade::cull(VolmapCommonData &common, mat44f_cref globtm)
   v_sti(&starti.x, coordMin);
   if (widthi.x > 0 && widthi.y > 0 && widthi.z > 0)
   {
-    ShaderGlobal::set_color4(ambient_voxels_visible_startVarId, starti.x, starti.y, starti.z, widthi.x * widthi.z);
-    ShaderGlobal::set_color4(ambient_voxels_visible_widthVarId, widthi.x, toroidalOrigin.y - getDimY() / 2, 0,
+    ShaderGlobal::set_float4(ambient_voxels_visible_startVarId, starti.x, starti.y, starti.z, widthi.x * widthi.z);
+    ShaderGlobal::set_float4(ambient_voxels_visible_widthVarId, widthi.x, toroidalOrigin.y - getDimY() / 2, 0,
       widthi.x * widthi.z * widthi.y);
     if (common.warpSize == 64)
       common.cull_ambient_voxels_cs_warp_64->dispatch((widthi.x * widthi.y * widthi.z + 63) / 64, 1, 1);
@@ -947,8 +956,8 @@ void GI3D::VolmapCascade::cull(VolmapCommonData &common, mat44f_cref globtm)
   }
   else
   {
-    ShaderGlobal::set_color4(ambient_voxels_visible_startVarId, starti.x, starti.y, starti.z, 0);
-    ShaderGlobal::set_color4(ambient_voxels_visible_widthVarId, widthi.x, toroidalOrigin.y - getDimY() / 2, 0, 0);
+    ShaderGlobal::set_float4(ambient_voxels_visible_startVarId, starti.x, starti.y, starti.z, 0);
+    ShaderGlobal::set_float4(ambient_voxels_visible_widthVarId, widthi.x, toroidalOrigin.y - getDimY() / 2, 0, 0);
   }
 #endif
   d3d::set_rwbuffer(STAGE_CS, 1, 0);
@@ -1214,7 +1223,8 @@ void GI3D::afterReset()
   invalidateGiCascades();
   scene25D.invalidate();
   irradiance25D.invalidate();
-  invalidateWindows();
+  if (cWindows)
+    cWindows->afterReset();
   invalidateWalls();
 }
 
@@ -1321,13 +1331,14 @@ void GI3D::DebugInlineRt(const TMatrix &view_tm, const TMatrix4 &proj_tm)
   };
   if (!debugInlineRtConstants)
   {
-    debugInlineRtConstants = dag::buffers::create_one_frame_cb((sizeof(ConstData) + 15) / 16, "debug_inline_rt_constants");
+    debugInlineRtConstants =
+      dag::buffers::create_one_frame_cb((sizeof(ConstData) + 15) / 16, "debug_inline_rt_constants", RESTAG_DAGI);
   }
   if (!debugInlineRtTarget)
   {
     int w, h;
     d3d::get_render_target_size(w, h, NULL);
-    debugInlineRtTarget = dag::create_tex(NULL, w, h, TEXCF_UNORDERED, 1, "debugInlineRtTarget");
+    debugInlineRtTarget = dag::create_tex(NULL, w, h, TEXCF_UNORDERED, 1, "debugInlineRtTarget", RESTAG_DAGI);
   }
 
   if (!debug_inline_rt_cs)
@@ -1353,10 +1364,10 @@ void GI3D::DebugInlineRt(const TMatrix &view_tm, const TMatrix4 &proj_tm)
   Point3 viewVectLB = Point3(-1.f, -1.f, 1.f) * viewRotProjInv;
   Point3 viewVectRB = Point3(1.f, -1.f, 1.f) * viewRotProjInv;
 
-  ShaderGlobal::set_color4(view_vecLTVarId, Color4(&viewVectLT.x));
-  ShaderGlobal::set_color4(view_vecRTVarId, Color4(&viewVectRT.x));
-  ShaderGlobal::set_color4(view_vecLBVarId, Color4(&viewVectLB.x));
-  ShaderGlobal::set_color4(view_vecRBVarId, Color4(&viewVectRB.x));
+  ShaderGlobal::set_float4(view_vecLTVarId, Color4(&viewVectLT.x));
+  ShaderGlobal::set_float4(view_vecRTVarId, Color4(&viewVectRT.x));
+  ShaderGlobal::set_float4(view_vecLBVarId, Color4(&viewVectLB.x));
+  ShaderGlobal::set_float4(view_vecRBVarId, Color4(&viewVectRB.x));
 
   cData->pos = Point4::xyz0(worldPos);
   cData->minMax[0] = 0.01f;

@@ -1,0 +1,11 @@
+return {
+  function zip_folder(source_path, dest_zip_path) {
+    assert(["string"].contains(type(source_path)), @() $"type of argument should be one of: 'string'")
+    assert(["string"].contains(type(dest_zip_path)), @() $"type of argument should be one of: 'string'")
+  }
+
+  function unzip_folder(source_zip_path, dest_path) {
+    assert(["string"].contains(type(source_zip_path)), @() $"type of argument should be one of: 'string'")
+    assert(["string"].contains(type(dest_path)), @() $"type of argument should be one of: 'string'")
+  }
+}

@@ -1,0 +1,8 @@
+ERROR: invalid token '..'
+testData/diagnostics/compilation_errors/lex_errors/invalid_token.nut:2:0
+
+// EXPECT_ERROR: "invalid token"
+..
+^-
+
+

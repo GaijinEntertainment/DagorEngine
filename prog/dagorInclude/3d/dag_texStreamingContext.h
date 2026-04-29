@@ -17,8 +17,8 @@ public:
   // 2. TexStreamingContext(FLT_MAX) - all used textures will request maximum quality mip level. Should be avoided if possible,
   //    since it reduces effect from texture streaming with computed mip levels. Better try to use some existing context,
   //    built from perspective and width, or create a new one this way.
-  TexStreamingContext() : multiplicator(-1.f) {}
-  TexStreamingContext(float mul) : multiplicator(mul) {}
+  constexpr TexStreamingContext() : multiplicator(-1.f) {}
+  constexpr TexStreamingContext(float mul) : multiplicator(mul) {}
   // Create a context correctly computing texture mips for streaming
   TexStreamingContext(const Driver3dPerspective &persp, int width);
   int getTexLevel(float texScale, float distSq = 0.0f) const;
@@ -27,3 +27,5 @@ public:
   constexpr static int MIN_NON_STUB_LEVEL = MIN_TEX_LEVEL + 1;
   constexpr static int MAX_TEX_LEVEL = 15;
 };
+
+static constexpr TexStreamingContext TEX_STREAMING_CTX_NULL = {0.f}; //-V1043

@@ -1,12 +1,20 @@
+
+int allow_fsr_distortion = 0 always_referenced;
+interval allow_fsr_distortion : no < 1, yes;
+assume_if_not_assumed allow_fsr_distortion = no; // FSR distortion variants are disabled by default.
+                                                 // To enable FSR distortion support add allow_fsr_distortion:i=1 assumption to game's shaders .blk.
+
 // If the FSR was used during gbuffer rendering, then this var will have YES for the whole frame
-int fsr_distortion = 0;
-interval fsr_distortion: no < 1, yes;
+int use_fsr_distortion = 0;
+interval use_fsr_distortion: no < 1, yes;
+
+bool fsr_distortion_enabled = allow_fsr_distortion == yes && hardware.ps5 && use_fsr_distortion == yes;
 
 int fsr_resolve_lut_id = 0;
 int fsr_distortion_lut_id = 0;
 
 macro USE_FSR(code)
-  if (hardware.ps5 && fsr_distortion == yes)
+  if (fsr_distortion_enabled)
   {
     (code)
     {

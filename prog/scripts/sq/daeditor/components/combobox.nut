@@ -212,6 +212,7 @@ function combobox(watches, options, tooltip=null, combo_style=comboStyle) {
     }
   }
 
+  let key = {} // workaround agains reuse for new unrelated options
 
   return function combo() {
     let labelText = findCurOption(options.get(), wdata).text
@@ -224,6 +225,7 @@ function combobox(watches, options, tooltip=null, combo_style=comboStyle) {
     let onClick = wdisable.get() ? null : @() comboOpen.set(!comboOpen.get())
 
     return (combo_style?.rootBaseStyle ?? {}).__merge({
+      key
       size = flex()
       //behavior = wdisable.get() ? null : Behaviors.Button
       behavior = Behaviors.Button

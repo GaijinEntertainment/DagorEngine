@@ -26,6 +26,8 @@ float water_flowmap_range = 100;
 float water_flowmap_damping = 0.9;
 float water_flowmap_slope = 1.0;
 float4 water_flowmap_foam_detail = float4(0.025, 0.01, 10, 10);
+float4 water_flowmap_offset = float4(1, 1, 0, 0);
+float water_flowmap_blend = 0;
 int water_flowmap_cascades = 0;
 texture water_flowmap_tex_add_0;
 float4 world_to_flowmap_add_0 = (1,1,0,0);
@@ -361,7 +363,7 @@ shader water_flowmap_circular_obstacles
     {
       float w = length(input.tc);
       float a = pow(min(w, 1), water_flowmap_obstacles_power);
-      return lerp(float4(a, a, a, 0), float4(1, 1, 1, a), water_flowmap_obstacles_add);
+      return lerp(float4(a, a, a, 0), float4(a, a, a, 1 - a), water_flowmap_obstacles_add);
     }
   }
 
@@ -427,7 +429,7 @@ shader water_flowmap_rectangular_obstacles
     {
       float2 w = abs(input.tc);
       float a = pow(max(w.x, w.y), water_flowmap_obstacles_power);
-      return lerp(float4(a, a, a, 0), float4(1, 1, 1, a), water_flowmap_obstacles_add);
+      return lerp(float4(a, a, a, 0), float4(a, a, a, 1 - a), water_flowmap_obstacles_add);
     }
   }
 
@@ -450,27 +452,7 @@ shader flowmap_blur_x, flowmap_blur_y
     texsz@f4 = texsz;
   }
 
-  USE_POSTFX_VERTEX_POSITIONS()
-
-  hlsl {
-    struct VsOutput
-    {
-      VS_OUT_POSITION(pos)
-      float2 tc : TEXCOORD0;
-    };
-  }
-
-  hlsl(vs) {
-    VsOutput blur_vs(uint vertex_id : SV_VertexID)
-    {
-      VsOutput output;
-      float2 pos = getPostfxVertexPositionById(vertex_id);
-      float2 tc = screen_to_texcoords(pos);
-      output.pos = float4(pos.x, pos.y, 1, 1);
-      output.tc.xy = tc;
-      return output;
-    }
-  }
+  POSTFX_VS_TEXCOORD(0, tc)
 
   hlsl(ps) {
     #define GAUSSIAN_BLUR_STEPS_COUNT 4
@@ -501,8 +483,56 @@ shader flowmap_blur_x, flowmap_blur_y
     }
   }
 
-  compile("target_vs", "blur_vs");
   compile("target_ps", "blur_ps");
+}
+
+texture tex_1a;
+texture tex_1b;
+texture tex_2a;
+texture tex_2b;
+
+shader flowmap_blend
+{
+  cull_mode=none;
+  z_test=false;
+  z_write=false;
+  no_ablend;
+
+  (ps) {
+    tex_1a@smp2d = tex_1a;
+    tex_1b@smp2d = tex_1b;
+    water_flowmap_offset@f4 = water_flowmap_offset;
+    water_flowmap_blend@f1 = water_flowmap_blend;
+  }
+  if ((tex_2a != NULL) && (tex_2b != NULL))
+  {
+    (ps) {
+      tex_2a@smp2d = tex_2a;
+      tex_2b@smp2d = tex_2b;
+    }
+  }
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  hlsl(ps) {
+    float4 blend_ps(VsOutput input) : SV_Target
+    {
+      float4 tcA = float4(input.tc * water_flowmap_offset.xy + water_flowmap_offset.zw, 0, 0);
+      float4 tcB = float4(input.tc, 0, 0);
+
+      float4 texA = tex2Dlod(tex_1a, tcA);
+      float4 texB = tex2Dlod(tex_1b, tcB);
+
+      ##if (tex_2a != NULL) && (tex_2b != NULL)
+        texA.y = tex2Dlod(tex_2a, tcA).x;
+        texB.y = tex2Dlod(tex_2b, tcB).x;
+      ##endif
+
+      return lerp(texA, texB, water_flowmap_blend);
+    }
+  }
+
+  compile("target_ps", "blend_ps");
 }
 
 shader water_flowmap_fluid
@@ -528,7 +558,7 @@ shader water_flowmap_fluid
     water_flowmap_tex_add_0@smp2d = water_flowmap_tex_add_0;
     world_to_flowmap_add_0@f4 = world_to_flowmap_add_0;
     water_flowmap_fluid_params@f4 = water_flowmap_fluid_params;
-    water_flowmap_fluid_consts@f4 = (0.5 * water_flowmap_fluid_params.x, 1 / water_flowmap_fluid_params.x, 2 * water_flowmap_fluid_params.x / water_flowmap_fluid_params.y, water_flowmap_fluid_params.y / water_flowmap_fluid_params.x);
+    water_flowmap_fluid_consts@f4 = (0.2 * water_flowmap_fluid_params.x, 1 / water_flowmap_fluid_params.x, 2 * water_flowmap_fluid_params.x / water_flowmap_fluid_params.y, water_flowmap_fluid_params.y / water_flowmap_fluid_params.x);
   }
 
   hlsl(ps) {

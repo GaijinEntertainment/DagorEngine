@@ -8,7 +8,6 @@ include "giHelpers/voxelize_gs.dshl"
 
 shader world_sdf_voxelize_collision_cs
 {
-  ENABLE_ASSERT(cs)
   supports none;
   supports global_frame;
   (cs) {immediate_dword_count = 4;}
@@ -22,6 +21,9 @@ shader world_sdf_voxelize_collision_cs
   (cs) {
     world_sdf_cull_update_lt@f4 = world_sdf_cull_update_lt;
     world_sdf_cull_update_rb@f4 = world_sdf_cull_update_rb;
+    world_sdf_clipmap_rasterize@uav : register(2) hlsl {
+      RWByteAddressBuffer world_sdf_clipmap_rasterize@uav;
+    }
   }
   WORLD_SDF_RES_MATH(cs)
   WSDF_COORD_UPDATE(cs)
@@ -37,7 +39,6 @@ shader world_sdf_voxelize_collision_cs
     #include <point_distance.hlsl>
 
     #define UAV_TYPED_LOAD 1//todo: support missing typed load. can be done with atomic on render, or just render to other voltex and then ping pong twice
-    RWByteAddressBuffer world_sdf_clipmap_rasterize : register(u2);
     void writeSDFOnePointCoord(int3 coord, float3 worldPosInVoxels, TrianglePlanes tri)
     {
       if (any(uint3(coord - world_sdf_update_lt_coord.xyz) >= uint3(world_sdf_update_sz_coord.xyz)))//safety first. that's just faster

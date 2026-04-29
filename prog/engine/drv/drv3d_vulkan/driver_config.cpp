@@ -11,6 +11,8 @@
 #include "pipeline_barrier.h"
 #include <EASTL/string_view.h>
 #include <gpuVendor.h>
+#include "backend.h"
+#include "backend_interop.h"
 
 using namespace drv3d_vulkan;
 
@@ -29,15 +31,17 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
   bits.resetCommandPools = cfg->getBool("resetCommandPools", true);
   // default is false, true has the potential to kill performance on some devices (intel)
   bits.resetCommandsReleaseToSystem = cfg->getBool("resetCommandsReleasesToSystem", false);
+  resetCommandsReleasePeriodUs = cfg->getInt64("resetCommandsReleasePeriodUs", 120000000); // 2min
 #if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT
   bits.flushAfterEachDrawAndDispatch = cfg->getBool("flushAndWaitAfterEachDrawAndDispatch", false);
+  flushAfterEachDrawAndDispatchRange.start = cfg->getInt64("flushAndWaitAfterEachDrawAndDispatchStart", 0);
+  flushAfterEachDrawAndDispatchRange.end = cfg->getInt64("flushAndWaitAfterEachDrawAndDispatchEnd", -1);
+  flushAfterEachDrawAndDispatchRange.dumpPeriod = cfg->getInt64("flushAndWaitAfterEachDrawAndDispatchDumpPeriod", -1);
 #endif
   bits.optimizeBufferUploads = cfg->getBool("optimizeBufferUploads", true);
   // mostly for debugging, as the debug layer complains about wrong image states if slices of 3d images are used as 2d or array image
   // this can be removed if the debug layers supports vk_khr_maintenance1 properly
   bits.disableRenderTo3DImage = cfg->getBool("disableRenderTo3DImage", false);
-
-  bits.commandMarkers = cfg->getBool("commandMarkers", false);
 
   // on some platforms (ex. Android) vulkan drivers has issue with corrupted coherent memory state
   bits.useCoherentMemory = cfg->getBool("allowCoherentMemory", true);
@@ -75,6 +79,7 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
   bits.allowDebugMarkers = cfg->getBool("allowDebugMarkers", debugLevel > 0 ? true : false);
 
   bits.recordCommandCaller = cfg->getBool("recordCommandCaller", false);
+  bits.profileResourceMemUsage = cfg->getBool("profileResourceMemUsage", false);
 
   bits.allowDMAlockPath = cfg->getBool("allowBufferDMALockPath", true);
   debug("vulkan: %s DMA lock path", bits.allowDMAlockPath ? "allow" : "disallow");
@@ -87,7 +92,7 @@ void DriverConfig::fillConfigBits(const DataBlock *cfg)
   bits.allowAssertOnValidationFail = cfg->getBool("allowAssertOnValidationFail", false);
   bits.enableRenderDocLayer = cfg->getBool("enableRenderDocLayer", false);
   bits.robustBufferAccess = cfg->getBool("robustBufferAccess", false);
-  bits.highPriorityQueues = cfg->getBool("highPriorityQueues", false);
+  bits.highPriorityQueues = cfg->getBool("highPriorityQueues", true);
   bits.useCustomAllocationCallbacks = cfg->getBool("useCustomAllocationCallbacks", false);
 }
 
@@ -195,7 +200,7 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   }
 
   {
-    const DataBlock *latWaitProp = Globals::cfg.getPerDriverPropertyBlock("latencyWait");
+    const DataBlock *latWaitProp = getPerDriverPropertyBlock("latencyWait");
 
     bits.allowSharedFenceLatencyWait = latWaitProp->getBool("useSharedFenceWait", false);
     bits.allowPredictedLatencyWaitApp = latWaitProp->getBool("waitApp", false);
@@ -213,24 +218,28 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   }
 
   {
-    const DataBlock *execTrackerProp = Globals::cfg.getPerDriverPropertyBlock("executionTracker");
-    bits.enableDeviceExecutionTracker = execTrackerProp->getBool("enabled", false);
+    const DataBlock *execTrackerProp = getPerDriverPropertyBlock("executionTracker");
+    // enable on device reset caused by device lost
+    bits.enableDeviceExecutionTracker = execTrackerProp->getBool("enabled", Backend::interop.deviceLost.load());
     // check only once, to enable tracker for all driver reinits in single app session
     static bool enableTrackerDueToLastCrash = dd_file_exists(getLastRunWasGPUFaultMarkerFile());
-    if (enableTrackerDueToLastCrash && execTrackerProp->getBool("allowAutoEnableOnCrash", true))
+    if (enableTrackerDueToLastCrash && execTrackerProp->getBool("allowAutoEnableOnCrash", true) && !bits.enableDeviceExecutionTracker)
     {
       dd_erase(getLastRunWasGPUFaultMarkerFile());
       bits.enableDeviceExecutionTracker = true;
       logwarn("vulkan: enabled device execution tracker due to GPU fault on last run");
     }
-    executionTrackerBreakpoint = ((uint64_t)execTrackerProp->getInt("breakpointHI", 0) << 32ULL) |
-                                 ((uint64_t)execTrackerProp->getInt("breakpointLO", 0) & 0xFFFFFFFF);
+    executionTrackerBreakpoint = (uint64_t)execTrackerProp->getInt64("breakpoint", 0);
     if (executionTrackerBreakpoint)
       debug("vulkan: will break on execution hash %016llX", executionTrackerBreakpoint);
+
+    executionTrackerDataBreakpoint = (uint64_t)execTrackerProp->getInt64("breakpointData", 0);
+    if (executionTrackerDataBreakpoint)
+      debug("vulkan: will break on execution data hash %016llX", executionTrackerDataBreakpoint);
   }
 
   {
-    const DataBlock *multiQueueProp = Globals::cfg.getPerDriverPropertyBlock("multiQueue");
+    const DataBlock *multiQueueProp = getPerDriverPropertyBlock("multiQueue");
 #if _TARGET_PC
     bool enableMultiQueueByDefault = Globals::VK::phy.hasTimelineSemaphore;
 #else
@@ -260,7 +269,7 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   }
 
   {
-    const DataBlock *barrierMergeProp = Globals::cfg.getPerDriverPropertyBlock("barrierMerge");
+    const DataBlock *barrierMergeProp = getPerDriverPropertyBlock("barrierMerge");
     // only NVIDIA benefit from this so far, so adjust default value to avoid keeping this in every target config blk
     barrierMergeMode = barrierMergeProp->getInt("mode",
       Globals::VK::phy.vendor == GpuVendor::NVIDIA ? PipelineBarrier::MERGE_DST : PipelineBarrier::MERGE_ALL);
@@ -268,21 +277,21 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   }
 
   {
-    const DataBlock *dumpPipelineExecutableStatisticsProp = Globals::cfg.getPerDriverPropertyBlock("dumpPipelineExecutableStatistics");
+    const DataBlock *dumpPipelineExecutableStatisticsProp = getPerDriverPropertyBlock("dumpPipelineExecutableStatistics");
     bits.dumpPipelineExecutableStatistics = dumpPipelineExecutableStatisticsProp->getBool("enabled", false);
     if (bits.dumpPipelineExecutableStatistics)
       debug("vulkan: dumping pipeline executable statistics");
   }
 
   {
-    const DataBlock *memsetOnRubProp = Globals::cfg.getPerDriverPropertyBlock("memsetOnRub");
+    const DataBlock *memsetOnRubProp = getPerDriverPropertyBlock("memsetOnRub");
     bits.memsetOnRub = memsetOnRubProp->getBool("affected", false);
     if (bits.memsetOnRub)
       debug("vulkan: memsetOnRub enabled");
   }
 
   {
-    const DataBlock *disallowedFormatsProp = Globals::cfg.getPerDriverPropertyBlock("disallowedFormats");
+    const DataBlock *disallowedFormatsProp = getPerDriverPropertyBlock("disallowedFormats");
     formatSupportMask.resize(Globals::VK::phy.formatProperties.size());
     for (uint32_t i = 0; i < Globals::VK::phy.formatProperties.size(); ++i)
     {
@@ -298,8 +307,15 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   }
 
   {
-    const DataBlock *swapchainProp = Globals::cfg.getPerDriverPropertyBlock("swapchain");
-    bits.forceSwapchainOnlyBackendAcquire = swapchainProp->getBool("forceOnlyBackendAcquireMode", false);
+    const DataBlock *swapchainProp = getPerDriverPropertyBlock("swapchain");
+    bits.forceSwapchainOnlyBackendAcquire = swapchainProp->getBool("forceOnlyBackendAcquireMode",
+#if _TARGET_PC_LINUX
+      // non NV linux drivers crash on any extra acquire instead of giving timeout error code
+      Globals::VK::phy.vendor != GpuVendor::NVIDIA
+#else
+      false
+#endif
+    );
     bits.useSwapchainAcquireExclusiveTest =
       swapchainProp->getBool("useAcquireExclusiveTest", Globals::VK::phy.vendor == GpuVendor::AMD);
     bits.recreateSwapchainWhenImageAcquired = swapchainProp->getBool("recreteWhenImageAcquired", false);
@@ -314,10 +330,27 @@ void DriverConfig::configurePerDeviceDriverFeatures()
   }
 
   {
-    const DataBlock *disableDepthClampProp = Globals::cfg.getPerDriverPropertyBlock("disableDepthClamp");
+    const DataBlock *disableDepthClampProp = getPerDriverPropertyBlock("disableDepthClamp");
     bits.disableDepthClamp = disableDepthClampProp->getBool("affected", false);
     if (bits.disableDepthClamp)
       debug("vulkan: depth clamp force-disabled");
+  }
+
+  {
+    const DataBlock *logPipelineActionsProp = getPerDriverPropertyBlock("logPipelineActions");
+    bits.logPipelineCompile = logPipelineActionsProp->getBool("compile", false);
+    bits.logPipelineBinds = logPipelineActionsProp->getBool("binds", false);
+    if (bits.logPipelineCompile)
+      debug("vulkan: logging pipeline compilations");
+    if (bits.logPipelineBinds)
+      debug("vulkan: logging pipeline bindings");
+  }
+
+  {
+    const DataBlock *deviceLostProp = getPerDriverPropertyBlock("deviceLost");
+    bits.resetOnDeviceLost = deviceLostProp->getBool("reset", true);
+    if (bits.resetOnDeviceLost)
+      debug("vulkan: device lost can trigger device reset");
   }
 }
 
@@ -382,7 +415,7 @@ const DataBlock *DriverConfig::getPerDriverPropertyBlock(const char *prop_name)
   return ret;
 }
 
-void DriverConfig::extCapsFillConst(Driver3dDesc &caps)
+void DriverConfig::extCapsFillConst(DriverDesc &caps)
 {
   caps.zcmpfunc = 0;
   caps.acmpfunc = 0;
@@ -413,7 +446,7 @@ void DriverConfig::extCapsFillConst(Driver3dDesc &caps)
   caps.is20ArbitrarySwizzleAvailable = true;
 }
 
-void DriverConfig::extCapsFillPCWinOnly(Driver3dDesc &caps)
+void DriverConfig::extCapsFillPCWinOnly(DriverDesc &caps)
 {
   G_UNUSED(caps);
 #if _TARGET_PC_WIN
@@ -437,13 +470,6 @@ void DriverConfig::extCapsFillPCWinOnly(Driver3dDesc &caps)
   caps.caps.hasNVApi = false;
   caps.caps.hasATIApi = false;
   caps.caps.hasStreamOutput = false;
-  // needs VK_NV_shading_rate_image
-  caps.caps.hasVariableRateShading = false;
-  caps.caps.hasVariableRateShadingTexture = false;
-  // no extension supports these yet
-  caps.caps.hasVariableRateShadingShaderOutput = false;
-  caps.caps.hasVariableRateShadingCombiners = false;
-  caps.caps.hasVariableRateShadingBy4 = false;
   caps.caps.hasAliasedTextures = false;
   caps.caps.hasBufferOverlapCopy = false;
   caps.caps.hasBufferOverlapRegionsCopy = false;
@@ -451,6 +477,7 @@ void DriverConfig::extCapsFillPCWinOnly(Driver3dDesc &caps)
   caps.caps.hasDLSS = false;
   caps.caps.hasXESS = false;
   caps.caps.hasMeshShader = false;
+  caps.caps.hasMeshShaderIndirectCount = false;
   caps.caps.hasBasicViewInstancing = false;
   caps.caps.hasOptimizedViewInstancing = false;
   caps.caps.hasAcceleratedViewInstancing = false;
@@ -464,6 +491,8 @@ void DriverConfig::extCapsFillPCWinOnly(Driver3dDesc &caps)
   caps.caps.hasGeometryIndexInRayAccelerationStructure = false;
   caps.caps.hasSkipPrimitiveTypeInRayTracingShaders = false;
   caps.caps.hasNativeRayTracePipelineExpansion = false;
+  caps.caps.hasProperUAVSupport = true;
+  caps.caps.hasBarrierNone = false;
   if (getPerDriverPropertyBlock("clearColorBug")->getBool("affected", false))
   {
     caps.issues.hasClearColorBug = true;
@@ -472,10 +501,63 @@ void DriverConfig::extCapsFillPCWinOnly(Driver3dDesc &caps)
 #endif
 }
 
-void DriverConfig::extCapsFillMultiplatform(Driver3dDesc &caps)
+void DriverConfig::extCapsFillMultiplatform(DriverDesc &caps)
 {
   G_UNUSED(caps);
 #if _TARGET_PC_WIN || _TARGET_PC_LINUX || _TARGET_ANDROID
+  bool validShadingRate = Globals::VK::phy.hasPipelineFragmentShadingRate;
+  if (validShadingRate)
+  {
+    caps.caps.hasVariableRateShading = true;
+    caps.caps.hasVariableRateShadingTexture = has.createRenderPass2 && Globals::VK::phy.hasAttachmentFragmentShadingRate;
+    caps.caps.hasVariableRateShadingShaderOutput = Globals::VK::phy.hasPrimitiveFragmentShadingRate;
+    caps.caps.hasVariableRateShadingCombiners = Globals::VK::phy.fragmentShadingRateProps.fragmentShadingRateNonTrivialCombinerOps;
+    caps.caps.hasVariableRateShadingBy4 = false;
+    uint32_t shadingRateCount = 0;
+    if (VULKAN_OK(Globals::VK::dev.vkGetPhysicalDeviceFragmentShadingRatesKHR(Globals::VK::phy.device, &shadingRateCount, nullptr)))
+    {
+      if (!shadingRateCount)
+        validShadingRate = false;
+      else
+      {
+        dag::Vector<VkPhysicalDeviceFragmentShadingRateKHR> rates;
+        rates.resize(shadingRateCount, {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADING_RATE_KHR, nullptr});
+        if (VULKAN_OK(
+              Globals::VK::dev.vkGetPhysicalDeviceFragmentShadingRatesKHR(Globals::VK::phy.device, &shadingRateCount, rates.data())))
+        {
+          for (const VkPhysicalDeviceFragmentShadingRateKHR &i : rates)
+          {
+            debug("vulkan: supported variable shading rate %u x %u for sample mask %02X", i.fragmentSize.width, i.fragmentSize.height,
+              i.sampleCounts);
+            if (i.fragmentSize.width == 4 && i.fragmentSize.height == 4)
+              caps.caps.hasVariableRateShadingBy4 |= true;
+          }
+        }
+      }
+    }
+  }
+
+  if (!validShadingRate)
+  {
+    caps.caps.hasVariableRateShading = false;
+    caps.caps.hasVariableRateShadingTexture = false;
+    caps.caps.hasVariableRateShadingShaderOutput = false;
+    caps.caps.hasVariableRateShadingCombiners = false;
+    caps.caps.hasVariableRateShadingBy4 = false;
+  }
+  else
+  {
+    debug("vulkan: variable shading tile size min (%u,%u) max (%u, %u) max aspect %u",
+      Globals::VK::phy.fragmentShadingRateProps.maxFragmentShadingRateAttachmentTexelSize.width,
+      Globals::VK::phy.fragmentShadingRateProps.maxFragmentShadingRateAttachmentTexelSize.height,
+      Globals::VK::phy.fragmentShadingRateProps.minFragmentShadingRateAttachmentTexelSize.width,
+      Globals::VK::phy.fragmentShadingRateProps.minFragmentShadingRateAttachmentTexelSize.height,
+      Globals::VK::phy.fragmentShadingRateProps.maxFragmentShadingRateAttachmentTexelSizeAspectRatio);
+    // this tied to VkFragmentShadingRateAttachmentInfoKHR.maxFragmentShadingRateAttachmentTexelSize, must be same!
+    caps.variableRateTextureTileSizeX = Globals::VK::phy.fragmentShadingRateProps.maxFragmentShadingRateAttachmentTexelSize.width;
+    caps.variableRateTextureTileSizeY = Globals::VK::phy.fragmentShadingRateProps.maxFragmentShadingRateAttachmentTexelSize.height;
+  }
+
   caps.caps.hasQuadTessellation = has.tesselationShader;
   caps.caps.hasResourceHeaps = getPerDriverPropertyBlock("resourceHeaps")->getBool("allowed", true);
   if (!caps.caps.hasResourceHeaps)
@@ -526,12 +608,19 @@ void DriverConfig::extCapsFillMultiplatform(Driver3dDesc &caps)
 #if _TARGET_PC_WIN || _TARGET_PC_LINUX || _TARGET_C3 || _TARGET_ANDROID
   caps.caps.hasConditionalRender = has.conditionalRender;
 #endif
+#if _TARGET_PC_WIN || _TARGET_ANDROID
+  if (getPerDriverPropertyBlock("brokenUAVOnlyPasses")->getBool("affected", false))
+  {
+    caps.issues.hasBrokenUAVOnlyPasses = true;
+    debug("vulkan: running on device-driver with hasBrokenUAVOnlyPasses");
+  }
+#endif
 #if _TARGET_PC_WIN || _TARGET_PC_LINUX || _TARGET_ANDROID
-  caps.caps.hasTileBasedArchitecture = Globals::cfg.getPerDriverPropertyBlock("hasTileBasedArchitecture")->getBool("affected", false);
+  caps.caps.hasTileBasedArchitecture = getPerDriverPropertyBlock("hasTileBasedArchitecture")->getBool("affected", false);
 #endif
 }
 
-void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
+void DriverConfig::extCapsFillAndroidOnly(DriverDesc &caps)
 {
   G_UNUSED(caps);
 #if _TARGET_ANDROID
@@ -673,12 +762,19 @@ void DriverConfig::extCapsFillAndroidOnly(Driver3dDesc &caps)
 #endif
 }
 
-void DriverConfig::extCapsFillUniversal(Driver3dDesc &caps)
+void DriverConfig::extCapsFillUniversal(DriverDesc &caps)
 {
   VkPhysicalDeviceProperties &properties = Globals::VK::phy.properties;
 #if !_TARGET_C3
   caps.info.isUMA = properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU;
+  caps.info.driverDate = gpu::get_driver_date(properties.vendorID, properties.deviceID);
 #endif
+  caps.info.driverVersion = {
+    .product = static_cast<uint16_t>(Globals::VK::phy.driverVersionDecoded[0]),
+    .major = static_cast<uint16_t>(Globals::VK::phy.driverVersionDecoded[1]),
+    .minor = static_cast<uint16_t>(Globals::VK::phy.driverVersionDecoded[2]),
+    .build = static_cast<uint16_t>(Globals::VK::phy.driverVersionDecoded[3]),
+  };
   gpu::update_device_attributes(properties.vendorID, properties.deviceID, caps.info);
   caps.caps.hasBindless = false;
   caps.caps.hasRenderPassDepthResolve = Globals::VK::phy.hasDepthStencilResolve;
@@ -762,7 +858,7 @@ void DriverConfig::setBindlessConfig()
   // disable bindless by default, enable bindless by per-project configs
   const bool enableBindless = propsBlk->getBool("enableBindless", false);
   // some drivers have buggy bindless support, allow to disable it there if needed
-  const bool driverDisabledBindless = Globals::cfg.getPerDriverPropertyBlock("disableBindless")->getBool("affected", !enableBindless);
+  const bool driverDisabledBindless = getPerDriverPropertyBlock("disableBindless")->getBool("affected", !enableBindless);
   // we use static sets layout, so we must support MAX possible combo instead of max used
   const bool hasEnoughDescriptorSets =
     Globals::VK::phy.properties.limits.maxBoundDescriptorSets >= spirv::graphics::MAX_SETS + spirv::bindless::MAX_SETS;
@@ -803,7 +899,7 @@ void DriverConfig::setBindlessConfig()
   }
 }
 
-void DriverConfig::fillExternalCaps(Driver3dDesc &caps)
+void DriverConfig::fillExternalCaps(DriverDesc &caps)
 {
   extCapsFillConst(caps);
   extCapsFillUniversal(caps);
@@ -818,5 +914,5 @@ void DriverConfig::fillExternalCaps(Driver3dDesc &caps)
 }
 
 const char *DriverConfig::getFaultVendorDumpFile() { return "vk_fault_vendor_dump.bin"; }
-
 const char *DriverConfig::getLastRunWasGPUFaultMarkerFile() { return "vk_last_run_gpu_fault.bin"; }
+const char *DriverConfig::getSupportQueryFailedMarkerFile() { return "vk_support_query.bin"; }

@@ -9,9 +9,12 @@ static const int SCATTERING_TEXTURE_MU_SIZE = 128;
 static const int SCATTERING_TEXTURE_NU_SIZE = 8;
 static const int IRRADIANCE_TEXTURE_WIDTH = 64;
 static const int IRRADIANCE_TEXTURE_HEIGHT = 16;
-static const int SKIES_OPTIMIZATION_NUM_LAYERS = 5;//actually 3 is also working fine
+static const int SKIES_OPTIMIZATION_NUM_LAYERS = 5; // actually 3 is also working fine
 static const int SKIES_MULTIPLE_SCATTERING_APPROX = 32;
 static const int SKIES_LUT_SIZE_W = 192;
 static const int SKIES_LUT_SIZE_H = 108;
 
 #endif
+
+#define SCATTERING_PARALLEL_Z      8
+#define SCATTERING_PARALLEL_Z_LOG2 3

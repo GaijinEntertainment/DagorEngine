@@ -3,24 +3,66 @@ include "use_volfog.dshl"
 include "frustum.dshl"
 include "projectiveDecals/projective_decals_common.dshl"
 include "static_shadow.dshl"
+include "viewVecVS.dshl"
+include "gbuffer.dshl"
+
+float laser_decal_reproj_max_correction = 0.5;
 
 texture perlin_noise3d;
 
 int laser_decals_debug_mode = 0;
 interval laser_decals_debug_mode: off<1, boxes;
 
+interval special_vision : special_vision_off<1, thermal_vision;
+
+shader laser_decal_generator
+{
+  (cs) {
+    decalsToUpdateCount@u4 : register(projective_decals_to_update_count_const_no);
+    decals@uav : register(projective_decals_original_uav_no) hlsl {
+      #include <laserSight/laser_sight.hlsli>
+      RWStructuredBuffer<LaserDecalInstance> decals@uav;
+    };
+    decalsToUpdateBuf@cbuf : register(1) hlsl {
+      cbuffer decalsToUpdateBuf@cbuf
+      {
+        #include <projectiveDecals/projective_decals_const.hlsli>
+        LaserDecalsToUpdate decalsToUpdate[MAX_DECALS_TO_UPDATE];
+      };
+    }
+  }
+
+   hlsl(cs) {
+    [numthreads( MAX_DECALS_TO_UPDATE, 1, 1 )]
+    void main(uint3 dtId : SV_DispatchThreadID)
+    {
+      uint id = dtId.x;
+      if (id >= decalsToUpdateCount.x)
+        return;
+      uint destId = decalsToUpdate[id].decal_id;
+      decals[destId].pos_size = decalsToUpdate[id].pos_size;
+      uint2 normal_du = encode_normal_up(decalsToUpdate[id].normal, decalsToUpdate[id].right);
+      decals[destId].normal_du_isFps = uint2(normal_du.x, normal_du.y | (decalsToUpdate[id].is_from_fps_view << 16u));
+      decals[destId].color = packHalf2ToUint(decalsToUpdate[id].color);
+      decals[destId].origin_pos = decalsToUpdate[id].origin_pos;
+      decals[destId].pad = 0;
+    }
+  }
+  compile("target_cs", "main");
+}
+
+
 shader laser_decal_cull {
   INIT_AND_USE_FRUSTUM_CHECK_CS()
-  ENABLE_ASSERT(cs)
 
   (cs) {
     numDecals@u4 : register(projective_decals_original_count_const_no);
     original@uav : register(projective_decals_original_uav_no) hlsl {
-      #include <projectiveDecals/projective_decals.hlsli>
-      RWStructuredBuffer<ProjectiveDecalInstance> original@uav;
+      #include <laserSight/laser_sight.hlsli>
+      RWStructuredBuffer<LaserDecalInstance> original@uav;
     };
     target@uav : register(projective_decals_target_uav_no) hlsl {
-      RWStructuredBuffer<ProjectiveDecalInstance> target@uav;
+      RWStructuredBuffer<LaserDecalInstance> target@uav;
     };
     count@uav : register(projective_decals_target_count_uav_no) hlsl {
       RWByteAddressBuffer count@uav;
@@ -34,20 +76,22 @@ shader laser_decal_cull {
     void main(uint3 dtId : SV_DispatchThreadID)
     {
       uint id = dtId.x;
-      if (id >= numDecals.x || structuredBufferAt(original, id).pos_size.w == 0)
+      if (id >= numDecals.x)
+        return;
+
+      if (structuredBufferAt(original, id).pos_size.w == 0)
         return;
 
       float3 normal, du;
-      decode_normal_up(structuredBufferAt(original, id).normal_du_id_matrixId, normal, du);
+      decode_normal_up(structuredBufferAt(original, id).normal_du_isFps, normal, du);
 
       float decalSize = structuredBufferAt(original, id).pos_size.w;
 
-      uint matrixId = (structuredBufferAt(original, id).normal_du_id_matrixId.y>>(16+7))&511;
-      bool alwaysVisible = matrixId == 1;
+      bool isFPS = bool(structuredBufferAt(original, id).normal_du_isFps.y >> 16u);
 
       float radius = 4 * decalSize;
       float3 center = structuredBufferAt(original, id).pos_size.xyz - normal * radius;
-      if (!alwaysVisible && !testSphereB(center, radius))
+      if (!isFPS && !testSphereB(center, radius))
         return;
 
       uint at;
@@ -62,7 +106,12 @@ shader laser_point_decal {
   supports global_frame;
   z_write = false;
   z_test = true;
-  blend_src = sa; blend_dst = isa;
+  blend_src = sa; blend_dst = 1;
+
+  if (special_vision == thermal_vision)
+  {
+    dont_render;
+  }
 
   hlsl {
     #define BLEND_GBUFFER 1
@@ -73,18 +122,25 @@ shader laser_point_decal {
       nointerpolation float4 patchCenter__inv_size : TEXCOORD1;
       nointerpolation float4 tang_id : TEXCOORD2;
       float3 pointToEye : TEXCOORD3;
-      nointerpolation float3 color : TEXCOORD4;
+      nointerpolation float4 color : TEXCOORD4;
     };
   }
 
   PROJECTIVE_DECALS_VS_COMMON()
+  INIT_ZNZFAR_STAGE(vs)
+  USE_AND_INIT_VIEW_VEC(vs)
+  INIT_READ_IS_HERO_COCKPIT(vs)
+  USE_READ_IS_HERO_COCKPIT(vs)
+  INIT_READ_DEPTH_GBUFFER_BASE(vs)
+  USE_READ_DEPTH_GBUFFER_BASE(vs)
 
   (vs) {
     globtm@f44 = globtm;
     decals@buf = decal_buffer hlsl {
-      #include "projectiveDecals/projective_decals.hlsli"
-      StructuredBuffer<ProjectiveDecalInstance> decals@buf;
+      #include <laserSight/laser_sight.hlsli>
+      StructuredBuffer<LaserDecalInstance> decals@buf;
     }
+    laser_decal_reproj_max_correction@f1 = laser_decal_reproj_max_correction;
   }
 
   hlsl(vs) {
@@ -95,44 +151,57 @@ shader laser_point_decal {
       VsOutput output;
       float3 decalPos = structuredBufferAt(decals, decalId).pos_size.xyz; //depends on laser ray length
       float decalSize = structuredBufferAt(decals, decalId).pos_size.w;
-      uint2 normal_du_id_matrixId = structuredBufferAt(decals, decalId).normal_du_id_matrixId;
+      uint2 normal_du_isFps = structuredBufferAt(decals, decalId).normal_du_isFps;
       float width = 0.3;
-      float4 params = decode_float4(structuredBufferAt(decals, decalId).params);
       float3 normal, du;
-      decode_normal_up(normal_du_id_matrixId, normal, du);
-      uint id = (normal_du_id_matrixId.y>>16)&127, matrixId = (normal_du_id_matrixId.y>>(16+7))&511;
-
-      const float rayLength = params.w;
-      const bool alwaysVisible = matrixId == 1;
+      decode_normal_up(normal_du_isFps, normal, du);
+      const bool isFPS = bool(normal_du_isFps.y >> 16u);
       const float sizeMult = 2.0;
-      const float normalMult = alwaysVisible? 0.1f : 4.f;
+      const float3 laserOrigin = structuredBufferAt(decals, decalId).origin_pos;
+      float4 color = unpackHalf2FromUint(structuredBufferAt(decals, decalId).color);
+
+      float4 decalWorldPos = mulPointTm(decalPos, globtm);
+      float2 uv = decalWorldPos.xy / decalWorldPos.w * float2(0.5, -0.5) + 0.5;
+
+      BRANCH
+      if (!isGbufferHeroCockpit(uv))
+      {
+        float rawDepth = readGbufferDepth(uv);
+        float depth = linearize_z(rawDepth, zn_zfar.zw);
+        float3 viewVec = lerp_view_vec(uv);
+        float3 reprojectedDecalCenter = world_view_pos.xyz + viewVec * depth;
+
+        float3 errorVector = reprojectedDecalCenter - decalPos;
+        float3 rayDir = normalize(decalPos - laserOrigin);
+
+        float rDotE = dot(rayDir, errorVector);
+        rDotE = abs(rDotE) > 0.01 ? rDotE : sign(rDotE) * 0.01;
+
+        float x = dot(errorVector, errorVector) / rDotE;
+        if (abs(x) <= laser_decal_reproj_max_correction)
+          decalPos += x * rayDir;
+      }
+      const float normalMult = 4.f;
 
       ProjectiveDecalData decal;
-      if (alwaysVisible)
-      {
-        float3 cameraDir = normalize(decalPos - world_view_pos);
-        float rayLength = length(decalPos - world_view_pos);
-        decal.pos_size = float4(world_view_pos + min(0.3, rayLength) * cameraDir, 0.025f);
-      }
-      else
-        decal.pos_size = float4(decalPos, sizeMult * decalSize);
+      decal.pos_size = float4(decalPos, sizeMult * decalSize);
 
       decal.normal_width = float4(normal, normalMult * decalSize);
       decal.tang_bias = float4(du, 0);
-      decal.matrixId = matrixId;
+      decal.matrixId = 0;
 
       float3 worldDu, worldNormal, worldPos, worldDecalPos;
       calc_world_values(decal, vertexId, 1.0, //input
                         worldDu, worldNormal, worldPos, worldDecalPos); //output
 
-      output.tang_id = float4(worldDu, alwaysVisible? 1.f : 0.f);
+      output.tang_id = float4(worldDu, isFPS ? 1.f : 0.f);
       output.normal.xyz = worldNormal;
       output.pos = mulPointTm(worldPos, globtm);
-      output.normal.w = alwaysVisible? (1.0/params.w) : width;
+      output.normal.w = 0;
       output.patchCenter__inv_size.xyz = decalPos;
       output.patchCenter__inv_size.w = 1.0 / decalSize;
       output.pointToEye.xyz = world_view_pos - worldPos;
-      output.color = params.xyz;
+      output.color = color;
       return output;
     }
   }
@@ -145,7 +214,6 @@ shader laser_point_decal {
   INIT_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
   USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
   USE_AND_INIT_VIEW_VEC_PS()
-  ENABLE_ASSERT(ps)
 
   (ps) {
     screen_pos_to_texcoord@f4 = (1. / screen_pos_to_texcoord.x, 1. / screen_pos_to_texcoord.y, screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
@@ -177,7 +245,7 @@ shader laser_point_decal {
 
   hlsl(ps) {
 
-    fixed4 projective_decals_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    float4 projective_decals_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
     {
       float4 screen = GET_SCREEN_POS(input.pos);
       int2 tci = screen.xy;
@@ -186,28 +254,31 @@ shader laser_point_decal {
       float3 viewVect = lerp_view_vec(scrTc.xy);
       float3 worldPos = world_view_pos.xyz + sceneDepth * viewVect;
 
-      float3 sceneNormal = normalize(cross(ddx(worldPos), ddy(worldPos)));
-      if (dot(sceneNormal, input.normal.xyz) < 0.000001f)
-        discard;
-
       float3 decalTC = get_decal_tex_coord_from_world_pos(worldPos, input.patchCenter__inv_size.xyz, input.normal.xyz, input.tang_id.xyz);
       float3 noise = abs(tex3D(perlin_noise3d, worldPos * 1000.f).xyz);
-      const bool alwaysVisible = (input.tang_id.w > 0.f);
+      const bool isFPS = (input.tang_id.w > 0.f);
       const float INTENSITY_BIAS = 0.01;
 
-      const float3 invSizeMult = alwaysVisible?
-        float3(input.patchCenter__inv_size.w, input.patchCenter__inv_size.w, input.normal.w) :
-        0.5 * float3(input.patchCenter__inv_size.w, input.patchCenter__inv_size.w, input.patchCenter__inv_size.w);
+      const float3 invSizeMult = 0.5 * float3(input.patchCenter__inv_size.w, input.patchCenter__inv_size.w, isFPS ? 0 : input.patchCenter__inv_size.w);
 
       float invSigma2 = 9 * input.patchCenter__inv_size.w * input.patchCenter__inv_size.w;
       float3 tc = abs(decalTC * invSizeMult);
 
       float fade = smoothstep(0, 1, 2*(1 - dot(tc, tc)));
       float intensity = fade*exp(-0.5 * dot(decalTC.xy, decalTC.xy) * invSigma2);
-      half alpha = clamp((intensity - INTENSITY_BIAS), 0, 0.9);
-      intensity += 0.1 * noise.x;
 
-      half3 color = input.color.xyz;
+      float3 c = input.color.xyz;
+      float mx = max3(c.x, c.y, c.z);
+      float maxMul = 30;
+      float minMul = 0.5;
+      float3 centerColor = float3(c.x == mx ? c.x * maxMul : minMul,
+                                c.y == mx ? c.y * maxMul : minMul,
+                                c.z == mx ? c.z * maxMul : minMul);
+      float centerIntensity = fade*exp(-1 * dot(decalTC, decalTC) * invSigma2);
+
+      half alpha = clamp((intensity - INTENSITY_BIAS), 0, 0.9);
+
+      float3 color = lerp(input.color.xyz, centerColor, centerIntensity);
 
     ##if laser_decals_debug_mode == boxes
       if (alpha <= 0.00001)
@@ -218,7 +289,7 @@ shader laser_point_decal {
     ##endif
 
       apply_volfog_with_scattering(color, scrTc, scrTc, input.pointToEye.xyz, sceneDepth);
-      return half4(pack_hdr(color), alpha);
+      return float4(pack_hdr(color), alpha * input.color.a);
     }
   }
 

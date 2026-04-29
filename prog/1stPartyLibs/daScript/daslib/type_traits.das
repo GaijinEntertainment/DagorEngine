@@ -6,6 +6,12 @@ options strict_smart_pointers
 
 module type_traits shared private
 
+//! Compile-time type trait macros.
+//!
+//! Provides ``typeinfo`` extensions: ``fields_count`` (number of struct
+//! fields), ``field_by_index`` (field info by index), and related
+//! compile-time reflection primitives.
+
 require daslib/ast_boost
 require daslib/macro_boost
 
@@ -43,11 +49,11 @@ class TypeInfoHasProperty : AstTypeInfoMacro {
 
             let propName = ".`{expr.subtrait}"
             var res = false
-            get_ptr(compiling_program()) |> for_each_module() <| $(mod) {
+            get_ptr(compiling_program()) |> for_each_module() $(mod) {
                 if (res) {
                     return
                 }
-                mod |> for_each_function(propName) <| $(fn) {
+                mod |> for_each_function(propName) $(fn) {
                     if (fn.moreFlags.propertyFunction && expr.typeexpr |> is_same_type(fn.arguments[0]._type, RefMatters.yes, ConstMatters.no, TemporaryMatters.no)) {
                         res = true
                     }

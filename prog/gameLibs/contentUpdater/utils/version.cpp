@@ -5,6 +5,7 @@
 
 #include <debug/dag_assert.h>
 #include <util/dag_baseDef.h>
+#include <memory/dag_framemem.h>
 
 #include <stdio.h>
 
@@ -38,13 +39,13 @@ namespace updater
 {
 void write_remote_version_file(const char *folder, Version remote_version)
 {
-  const eastl::string doneFile{eastl::string::CtorSprintf{}, "%s/remote.version", folder};
+  const auto doneFile{fs::join_path<framemem_allocator>({folder, "remote.version"})};
   updater::fs::write_file_with_content(doneFile.c_str(), remote_version.to_string());
 }
 } // namespace updater
 
 updater::Version updater::read_remote_version_file(const char *folder)
 {
-  const eastl::string doneFile{eastl::string::CtorSprintf{}, "%s/remote.version", folder};
+  const auto doneFile{fs::join_path<framemem_allocator>({folder, "remote.version"})};
   return updater::Version{updater::fs::read_file_content(doneFile.c_str()).c_str()};
 }

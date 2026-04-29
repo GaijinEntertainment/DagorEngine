@@ -6,7 +6,7 @@
 
 #include <daRg/dag_element.h>
 #include <daRg/dag_stringKeys.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <gui/dag_visualLog.h>
 
 #include <sqext.h>
@@ -17,7 +17,7 @@ namespace darg
 {
 
 
-void script_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
+void script_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
@@ -28,7 +28,7 @@ void script_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
 }
 
 
-void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
+void script_err_print_func(HSQUIRRELVM /*v*/, const char *s, ...)
 {
   va_list vl;
   va_start(vl, s);
@@ -39,10 +39,10 @@ void script_err_print_func(HSQUIRRELVM /*v*/, const SQChar *s, ...)
 }
 
 
-void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity severity, const SQChar *desc, const SQChar *source, SQInteger line,
-  SQInteger column, const SQChar *extra)
+void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity severity, const char *desc, const char *source, SQInteger line,
+  SQInteger column, const char *extra)
 {
-  const SQChar *sevName = "error";
+  const char *sevName = "error";
   if (severity == SEV_HINT)
     sevName = "hint";
   else if (severity == SEV_WARNING)
@@ -125,11 +125,11 @@ bool decode_e3dcolor(const Sqrat::Object &val, E3DCOLOR &color, const char **err
 
   if (type == OT_INSTANCE)
   {
-    if (Sqrat::ClassType<E3DCOLOR>::IsClassInstance(val.GetObject(), false))
+    if (Sqrat::ClassType<E3DCOLOR>::IsClassInstance(val.GetObject()))
       color = val.Cast<E3DCOLOR>();
-    else if (Sqrat::ClassType<Color3>::IsClassInstance(val.GetObject(), false))
+    else if (Sqrat::ClassType<Color3>::IsClassInstance(val.GetObject()))
       color = e3dcolor(*val.Cast<const Color3 *>());
-    else if (Sqrat::ClassType<Color4>::IsClassInstance(val.GetObject(), false))
+    else if (Sqrat::ClassType<Color4>::IsClassInstance(val.GetObject()))
       color = e3dcolor(*val.Cast<const Color4 *>());
     else
     {
@@ -149,7 +149,7 @@ bool decode_e3dcolor(HSQUIRRELVM vm, SQInteger idx, E3DCOLOR &color, const char 
 }
 
 
-bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b) { return sq_direct_is_equal(vm, &a, &b); }
+bool are_sq_obj_equal(HSQUIRRELVM vm, const HSQOBJECT &a, const HSQOBJECT &b) { return sq_obj_is_equal(vm, &a, &b); }
 
 
 bool is_same_immutable_obj(const Sqrat::Object &a, const Sqrat::Object &b)
@@ -188,19 +188,31 @@ void get_closure_full_name(const Sqrat::Object &func, String &out_name)
 }
 
 
-Point2 script_get_point2(Sqrat::Array arr)
+Point2 script_get_point2(Sqrat::Object obj, Point2 def)
 {
-  if (arr.GetType() != OT_ARRAY)
-  {
-    G_ASSERTF(0, "Point2 must be specified via an array");
-    return Point2(0, 0);
-  }
+  Point2 val(def);
 
-  Point2 val(0, 0);
+  if (obj.GetType() == OT_INTEGER || obj.GetType() == OT_FLOAT)
+  {
+    float v = obj.Cast<float>();
+    val[0] = v;
+    val[1] = v;
+    return val;
+  }
+  if (obj.GetType() != OT_ARRAY)
+  {
+    logerr("Point2 must be specified via an array of two elements or via numeric for uniform value");
+    return val;
+  }
+  Sqrat::Array arr(obj);
   SQInteger len = arr.Length();
-  G_ASSERT(len == 2);
-  for (SQInteger i = 0; i < len && i < 2; ++i)
-    val[int(i)] = arr.RawGetSlotValue(i, 0.0f);
+  if (len < 2)
+  {
+    logerr("Point2 must be specified via an array of two elements or via numeric for uniform value");
+    return val;
+  }
+  for (SQInteger i = 0; i < 2; ++i)
+    val[int(i)] = arr.RawGetSlotValue(i, def[int(i)]);
   return val;
 }
 
@@ -232,7 +244,7 @@ float resolve_offset_val(const Element *elem, const Sqrat::Object &o)
   {
     SizeSpec *ss = NULL;
     HSQOBJECT hObj = o.GetObject();
-    if (SQ_SUCCEEDED(sq_direct_getuserdata(&hObj, (SQUserPointer *)&ss)))
+    if (SQ_SUCCEEDED(sq_obj_getuserdata(&hObj, (SQUserPointer *)&ss, nullptr)))
     {
       G_ASSERT(ss);
       if (ss)
@@ -302,7 +314,7 @@ SQInteger locate_element_source(HSQUIRRELVM vm)
   ElementRef *eref = ElementRef::get_from_stack(vm, 2);
   if (eref && eref->elem)
   {
-    SQChar buf[1024];
+    char buf[1024];
     const HSQOBJECT traceContainer = eref->elem->props.scriptDesc.GetObject();
     HSQOBJECT traceKey = eref->elem->csk->rendObj.GetObject();
     Sqrat::Object::iterator it;
@@ -311,7 +323,7 @@ SQInteger locate_element_source(HSQUIRRELVM vm)
     sq_tracevar(vm, &traceContainer, &traceKey, buf, countof(buf));
 
     Sqrat::Table res(vm);
-    res.SetValue("stack", (const SQChar *)buf);
+    res.SetValue("stack", (const char *)buf);
     Sqrat::PushVar(vm, res);
     return 1;
   }

@@ -22,10 +22,8 @@ struct CollisionNodeAnnotation : das::ManagedStructureAnnotation<CollisionNode, 
   CollisionNodeAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("CollisionNode", ml)
   {
     cppName = " ::CollisionNode";
-    addField<DAS_BIND_MANAGED_FIELD(tm)>("tm");
-    addField<DAS_BIND_MANAGED_FIELD(modelBBox)>("modelBBox");
-    addField<DAS_BIND_MANAGED_FIELD(boundingSphere)>("boundingSphere");
-    addField<DAS_BIND_MANAGED_FIELD(capsule)>("capsule");
+    // tm: use collres_get_node_tm() accessor
+    // modelBBox, boundingSphere, capsule: use collres_get_node_bbox/bsphere/capsule() accessors
     addField<DAS_BIND_MANAGED_FIELD(physMatId)>("physMatId");
     addProperty<DAS_BIND_MANAGED_PROP(getNodeIdAsInt)>("geomNodeId", "getNodeIdAsInt");
     addField<DAS_BIND_MANAGED_FIELD(flags)>("flags");
@@ -33,7 +31,6 @@ struct CollisionNodeAnnotation : das::ManagedStructureAnnotation<CollisionNode, 
     addField<DAS_BIND_MANAGED_FIELD(nodeIndex)>("nodeIndex");
     addField<DAS_BIND_MANAGED_FIELD(type)>("nodeType", "type");
     addField<DAS_BIND_MANAGED_FIELD(behaviorFlags)>("behaviorFlags");
-    addFieldEx("name", "name", offsetof(CollisionNode, name), das::makeType<char *>(ml));
   }
 };
 
@@ -79,18 +76,17 @@ public:
     addAnnotation(das::make_smart<IntersectedNodeAnnotation>(lib));
     das::typeFactory<CollResIntersectionsType>::make(lib);
     das::typeFactory<CollResHitNodesType>::make(lib);
-    das::addCtorAndUsing<CollResHitNodesType>(*this, lib, "CollResHitNodesType", "::CollResHitNodesType");
+    das::addUsing<CollResHitNodesType>(*this, lib, "::CollResHitNodesType");
 
     addEnumeration(das::make_smart<EnumerationBehaviorFlag>());
     addEnumeration(das::make_smart<EnumerationCollisionNodeFlag>());
-
-    das::addExtern<DAS_BIND_FUN(collnode_get_name)>(*this, lib, "collnode_get_name", das::SideEffects::none,
-      "bind_dascript::collnode_get_name");
 
     das::addExtern<DAS_BIND_FUN(collres_traceray)>(*this, lib, "collres_traceray", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::collres_traceray");
     das::addExtern<DAS_BIND_FUN(collres_traceray2)>(*this, lib, "collres_traceray", das::SideEffects::modifyArgumentAndAccessExternal,
       "bind_dascript::collres_traceray2");
+    das::addExtern<DAS_BIND_FUN(collres_traceray3)>(*this, lib, "collres_traceray", das::SideEffects::modifyArgumentAndAccessExternal,
+      "bind_dascript::collres_traceray3");
     das::addExtern<DAS_BIND_FUN(collres_traceray_out_mat)>(*this, lib, "collres_traceray",
       das::SideEffects::modifyArgumentAndAccessExternal, "bind_dascript::collres_traceray_out_mat");
     das::addExtern<DAS_BIND_FUN(collres_traceray_out_intersections)>(*this, lib, "collres_traceray",
@@ -128,8 +124,35 @@ public:
     das::addExtern<DAS_BIND_FUN(test_collres_intersection_out_intersections)>(*this, lib, "test_collres_intersection",
       das::SideEffects::modifyArgumentAndExternal, "bind_dascript::test_collres_intersection_out_intersections");
 
-    das::addExtern<DAS_BIND_FUN(get_collnode_geom)>(*this, lib, "get_collnode_geom", das::SideEffects::invoke,
-      "bind_dascript::get_collnode_geom");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_bsphere), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
+      "collres_get_node_bsphere", das::SideEffects::none, "bind_dascript::collres_get_node_bsphere");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_bbox), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib, "collres_get_node_bbox",
+      das::SideEffects::none, "bind_dascript::collres_get_node_bbox");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_capsule)>(*this, lib, "collres_get_node_capsule", das::SideEffects::modifyArgument,
+      "bind_dascript::collres_get_node_capsule");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_name)>(*this, lib, "collres_get_node_name", das::SideEffects::none,
+      "bind_dascript::collres_get_node_name");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_tm), das::SimNode_ExtFuncCallRef>(*this, lib, "collres_get_node_tm",
+      das::SideEffects::none, "bind_dascript::collres_get_node_tm");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_max_tm_scale)>(*this, lib, "collres_get_node_max_tm_scale", das::SideEffects::none,
+      "bind_dascript::collres_get_node_max_tm_scale");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_bsphere_center), das::SimNode_ExtFuncCallAndCopyOrMove>(*this, lib,
+      "collres_get_node_bsphere_center", das::SideEffects::none, "bind_dascript::collres_get_node_bsphere_center");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_bsphere_radius)>(*this, lib, "collres_get_node_bsphere_radius",
+      das::SideEffects::none, "bind_dascript::collres_get_node_bsphere_radius");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_face_count)>(*this, lib, "collres_get_node_face_count", das::SideEffects::none,
+      "bind_dascript::collres_get_node_face_count");
+    das::addExtern<DAS_BIND_FUN(collres_get_node_vert_count)>(*this, lib, "collres_get_node_vert_count", das::SideEffects::none,
+      "bind_dascript::collres_get_node_vert_count");
+    das::addExtern<DAS_BIND_FUN(collres_node_iterate_faces)>(*this, lib, "collres_node_iterate_faces", das::SideEffects::invoke,
+      "bind_dascript::collres_node_iterate_faces_T")
+      ->setAotTemplate();
+    das::addExtern<DAS_BIND_FUN(collres_node_iterate_face_verts)>(*this, lib, "collres_node_iterate_face_verts",
+      das::SideEffects::invoke, "bind_dascript::collres_node_iterate_face_verts_T")
+      ->setAotTemplate();
+    das::addExtern<DAS_BIND_FUN(collres_node_iterate_verts)>(*this, lib, "collres_node_iterate_verts", das::SideEffects::invoke,
+      "bind_dascript::collres_node_iterate_verts_T")
+      ->setAotTemplate();
 
     das::addExtern<DAS_BIND_FUN(collres_check_grid_available)>(*this, lib, "collres_check_grid_available",
       das::SideEffects::accessExternal, "bind_dascript::collres_check_grid_available");

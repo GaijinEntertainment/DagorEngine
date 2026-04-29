@@ -31,7 +31,7 @@ static void fill_clustered_grid(const bbox3f *__restrict boxes, const mat44f *__
     {
       vec3f pMin = v_max(v_floor(v_div(v_sub(boxes[i].bmin, lt), cellSizeV)), v_zero());
       vec3f pMax = v_min(v_floor(v_div(v_sub(boxes[i].bmax, lt), cellSizeV)), gridMin1);
-      if (v_signmask(v_cmp_gt(pMin, pMax)) & 7)
+      if (v_test_xyz_any_true(v_cmp_gt(pMin, pMax)))
         continue;
       alignas(16) int imin[4], imax[4];
       v_sti(imin, v_cvt_vec4i(pMin));

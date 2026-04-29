@@ -7,10 +7,11 @@ namespace denoiser
 {
 bool is_available() { return false; }
 
-void initialize(int, int, bool) {}
+void initialize(int, int, bool, bool) {}
 void teardown() {}
 
 bool is_ray_reconstruction_enabled() { return false; }
+bool is_ptgi_ray_reconstruction_enabled() { return false; }
 
 void get_required_persistent_texture_descriptors(TexInfoMap &, bool) {}
 
@@ -34,5 +35,7 @@ void denoise_gi(const GIDenoiser &) {}
 void denoise_reflection(const ReflectionDenoiser &) {}
 
 int get_frame_number() { return 0; }
+
+Config resolution_config;
 
 } // namespace denoiser

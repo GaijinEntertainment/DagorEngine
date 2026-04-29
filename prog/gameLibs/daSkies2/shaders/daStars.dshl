@@ -20,6 +20,9 @@ interval sky_space_mode: sky_space_off < 1, sky_space_on;
 int disable_volfog_on_stars = 0;
 interval disable_volfog_on_stars: no < 1, yes;
 
+int special_vision;
+interval special_vision: special_vision_off < 1, thermal_vision;
+
 shader daStars, daMoon
 {
   z_write=false;
@@ -64,7 +67,6 @@ shader daStars, daMoon
   GET_ATMO(ps)
   INIT_BOUNDING_VIEW_REPROJECTION_PS()
   USE_BOUNDING_VIEW_REPROJECTION_PS()
-  ENABLE_ASSERT(ps)
 
   (ps) {
     skies_transmittance_texture@smp2d = skies_transmittance_texture;
@@ -153,7 +155,7 @@ shader daStars, daMoon
         float3 inscatterColor = sample_skies_scattering_color_camera(scrTC, view, miePhase).rgb;
       ##endif
 
-##if disable_volfog_on_stars == no
+##if disable_volfog_on_stars == no && special_vision == special_vision_off
       {
         float4 combinedFog = float4(inscatterColor, alpha);
         apply_sky_custom_fog(combinedFog, scrTC, scrTC);

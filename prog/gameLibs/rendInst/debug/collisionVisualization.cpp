@@ -15,10 +15,13 @@
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_render.h>
 #include <render/debug3dSolid.h>
 #include <gui/dag_stdGuiRender.h>
 #include <shaders/dag_postFxRenderer.h>
+#include <shaders/dag_overrideStates.h>
 
 #include <riGen/riGenExtra.h>
 #include <riGen/riGenData.h>
@@ -61,52 +64,39 @@ static void draw_collision_info(const rendinst::CollisionInfo &coll, const Point
       {
         case COLLISION_NODE_TYPE_BOX:
         {
-          draw_debug_solid_cube(meshNode.modelBBox, coll.tm, color * boxColor, shaded);
+          draw_debug_solid_cube(coll.collRes->getNodeBBox(meshNode.nodeIndex), coll.tm, color * boxColor, shaded);
           break;
         }
 
         case COLLISION_NODE_TYPE_MESH:
         {
-          CollisionNode *collNode = coll.collRes->getNode(i);
-          if (collNode != nullptr && collNode->type == COLLISION_NODE_TYPE_MESH)
-          {
-            if (!drawTraceOnly && meshNode.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
-            {
-              draw_debug_solid_mesh(collNode->indices.data(), collNode->indices.size() / 3, &collNode->vertices.data()->x,
-                elem_size(collNode->vertices), collNode->vertices.size(), coll.tm * meshNode.tm,
-                color * Color4(0.5f, 1.0f, 0.5f, 1.0f), shaded, DrawSolidMeshCull::FLIP);
-            }
-            if (!drawPhysOnly && meshNode.checkBehaviorFlags(CollisionNode::TRACEABLE))
-            {
-              draw_debug_solid_mesh(collNode->indices.data(), collNode->indices.size() / 3, &collNode->vertices.data()->x,
-                elem_size(collNode->vertices), collNode->vertices.size(), coll.tm * meshNode.tm,
-                color * Color4(1.0f, 0.5f, 0.5f, 1.0f), shaded, DrawSolidMeshCull::FLIP);
-            }
-          }
+          if (!drawTraceOnly && meshNode.checkBehaviorFlags(CollisionNode::PHYS_COLLIDABLE))
+            draw_debug_solid_collision_node(i, *coll.collRes, coll.tm, color * Color4(0.5f, 1.0f, 0.5f, 1.0f), shaded,
+              DrawSolidMeshCull::FLIP);
+          if (!drawPhysOnly && meshNode.checkBehaviorFlags(CollisionNode::TRACEABLE))
+            draw_debug_solid_collision_node(i, *coll.collRes, coll.tm, color * Color4(1.0f, 0.5f, 0.5f, 1.0f), shaded,
+              DrawSolidMeshCull::FLIP);
           break;
         }
 
         case COLLISION_NODE_TYPE_CONVEX:
         {
-          CollisionNode *collNode = coll.collRes->getNode(i);
-          if (collNode != nullptr && collNode->type == COLLISION_NODE_TYPE_CONVEX)
-          {
-            draw_debug_solid_mesh(collNode->indices.data(), collNode->indices.size() / 3, &collNode->vertices.data()->x,
-              elem_size(collNode->vertices), collNode->vertices.size(), coll.tm * meshNode.tm, color * convexColor, shaded,
-              DrawSolidMeshCull::FLIP);
-          }
+          draw_debug_solid_collision_node(i, *coll.collRes, coll.tm, color * convexColor, shaded, DrawSolidMeshCull::FLIP);
           break;
         }
 
         case COLLISION_NODE_TYPE_SPHERE:
         {
-          draw_debug_solid_sphere(meshNode.boundingSphere.c, meshNode.boundingSphere.r, coll.tm, color * sphereColor, shaded);
+          BSphere3 bsph = coll.collRes->getNodeBSphere(meshNode.nodeIndex);
+          draw_debug_solid_sphere(bsph.c, bsph.r, coll.tm, color * sphereColor, shaded);
           break;
         }
 
         case COLLISION_NODE_TYPE_CAPSULE:
         {
-          draw_debug_solid_capsule(meshNode.capsule, coll.tm, color * capsuleColor, shaded);
+          Capsule cap;
+          if (coll.collRes->getNodeCapsule(meshNode.nodeIndex, cap))
+            draw_debug_solid_capsule(cap, coll.tm, color * capsuleColor, shaded);
           break;
         }
 
@@ -259,7 +249,7 @@ static void get_ri_collision(int layer, mat44f_cref globtm, const Point3 &view_p
 float rendinst_debug_min_size = 0.0f;
 
 static void get_ri_extra_collision(Tab<CollisionInfo> &out_collisions, mat44f_cref globtm, const Point3 &view_pos,
-  const float visibility_max_dist = 500.0f)
+  const float visibility_max_dist = 500.0f, bool for_occlusion = false)
 {
   TIME_D3D_PROFILE(get_ri_extra_collision);
 
@@ -274,6 +264,9 @@ static void get_ri_extra_collision(Tab<CollisionInfo> &out_collisions, mat44f_cr
   {
     rendinst::RiExtraPool &riPool = rendinst::riExtra[i];
     if (riPool.collRes == nullptr)
+      continue;
+
+    if (for_occlusion && (!riPool.isWalls || !riPool.largeOccluder))
       continue;
 
     int pool_vis = frustum.testBox(riPool.fullWabb.bmin, riPool.fullWabb.bmax);
@@ -366,11 +359,11 @@ static shaders::UniqueOverrideStateId debugRiClearDepthStateId;
 void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Point3 &view_pos, bool reverse_depth,
   float max_coll_dist_sq, float max_label_dist_sq)
 {
+  bool drawSWOcclusion = bool(flags & DrawCollisionsFlag::Occlusion);
   bool drawRendinstExtra = bool(flags & DrawCollisionsFlag::RendInstExtra);
   bool drawRendinst = bool(flags & DrawCollisionsFlag::RendInst);
-  bool drawAnyRendinst = drawRendinstExtra || drawRendinst;
+  bool drawAnyRendinst = drawRendinstExtra || drawRendinst || drawSWOcclusion;
   bool drawRendinstCanopy = bool(flags & DrawCollisionsFlag::RendInstCanopy);
-
 
   bool drawPhysOnly = bool(flags & DrawCollisionsFlag::PhysOnly);
   bool drawTraceOnly = bool(flags & DrawCollisionsFlag::TraceOnly);
@@ -389,8 +382,8 @@ void drawDebugCollisions(DrawCollisionsFlags flags, mat44f_cref globtm, const Po
   Tab<rendinst::CollisionInfo> collisions(framemem_ptr());
   collisions.reserve(lastCollisionCount);
 
-  if (drawRendinstExtra || drawRendinstCanopy || drawShaded)
-    get_ri_extra_collision(collisions, globtm, view_pos);
+  if (drawRendinstExtra || drawRendinstCanopy || drawShaded || drawSWOcclusion)
+    get_ri_extra_collision(collisions, globtm, view_pos, 500.0f, drawSWOcclusion);
 
   if (drawRendinst || drawRendinstCanopy || drawShaded)
     FOR_EACH_RG_LAYER_DO (rgl)

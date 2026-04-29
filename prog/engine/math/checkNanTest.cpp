@@ -76,6 +76,8 @@ DAGOR_NOINLINE void verify_nan_finite_checks()
 {
 #if defined(__clang__) || defined(__GNUC__)
   volatile float finf32 = __builtin_inff();
+#elif defined(_MSC_VER)
+  volatile float finf32 = __builtin_huge_val();
 #else
   volatile float finf32 = INFINITY;
 #endif

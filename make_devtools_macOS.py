@@ -142,18 +142,19 @@ else:
     pathlib.Path(fmod_dest_folder+'/studio/macosx/inc').mkdir(parents=True, exist_ok=True)
 
 
-# DXC-1.8.2407
-dxc_dest_folder = dest_dir+'/DXC-1.8.2407'
+# DXC-1.8.2505.1
+dxc_dest_folder = dest_dir+'/DXC-1.8.2505.1'
 if pathlib.Path(dxc_dest_folder).exists():
-  print('=== DXC Jul 2024 1.8.2407 found at {0}, skipping setup'.format(dxc_dest_folder))
+  print('=== DXC May 2025 - Patch 1 -- 1.8.2505.1 found at {0}, skipping setup'.format(dxc_dest_folder))
 else:
-  download_url('https://github.com/GaijinEntertainment/DXC-prebuilt/releases/download/dxc-1.8.2407/DXC-1.8.2407.tar.gz')
-  with tarfile.open(os.path.normpath(dest_dir+'/.packages/DXC-1.8.2407.tar.gz'), 'r:gz') as tar_file:
+  download_url('https://github.com/GaijinEntertainment/DXC-prebuilt/releases/download/dxc-1.8.2505.1/DXC-1.8.2505.1.tar.gz')
+  with tarfile.open(os.path.normpath(dest_dir+'/.packages/DXC-1.8.2505.1.tar.gz'), 'r:gz') as tar_file:
     tar_file.extractall(dest_dir)
     tar_file.close()
     shutil.rmtree(dxc_dest_folder+'/lib/linux64')
     shutil.rmtree(dxc_dest_folder+'/lib/win64')
-    print('+++ DXC Jul 2024 1.8.2407 installed at {0}'.format(dxc_dest_folder))
+    shutil.rmtree(dxc_dest_folder+'/lib/win-arm64')
+    print('+++ DXC May 2025 - Patch 1 -- 1.8.2505.1 installed at {0}'.format(dxc_dest_folder))
 
 # astcenc-4.5.1
 astcenc_dest_folder = dest_dir+'/astcenc-4.6.1'

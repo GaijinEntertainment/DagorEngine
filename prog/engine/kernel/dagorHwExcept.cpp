@@ -146,8 +146,14 @@ void DagorHwException::reportException(DagorException &caught_except, bool termi
 
 int DagorHwException::setHandler(const char * /*thread*/)
 {
-
   ::SetUnhandledExceptionFilter(&hard_except_top_level);
+#if !defined(DAGOR_ADDRESS_SANITIZER) && DAGOR_DBGLEVEL > 0 // In rel we rely on external crashreport subsys like crashpad
+  AddVectoredExceptionHandler(/*first*/ true, [](EXCEPTION_POINTERS *ep) -> LONG {
+    if (ep->ExceptionRecord->ExceptionCode == STATUS_HEAP_CORRUPTION)
+      return hard_except_top_level(ep);
+    return EXCEPTION_CONTINUE_SEARCH;
+  });
+#endif
   return -1;
 }
 

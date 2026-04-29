@@ -15,15 +15,15 @@ hlsl {
 
   #if defined(SP_RADIANCE_OCT_W) && SP_RADIANCE_OCT_W > 4
     #define SP_RADIANCE_SIZE_IS_CONST 1
-    #define SP_RADIANCE_SIZE_IS_WARP 1
+    #define SP_RADIANCE_SIZE_IS_GROUP 1
   #endif
 
-  #define SP_TRACE_WARP_SIZE 64
+  #define SP_TRACE_GROUP_SIZE 64
 
-  #if !SP_RADIANCE_SIZE_IS_WARP
-    #define SP_FILTER_WARP_SIZE 64
+  #if !SP_RADIANCE_SIZE_IS_GROUP
+    #define SP_FILTER_GROUP_SIZE 64
   #else
-    #define SP_FILTER_WARP_SIZE (SP_RADIANCE_OCT_W*SP_RADIANCE_OCT_W)
+    #define SP_FILTER_GROUP_SIZE (SP_RADIANCE_OCT_W*SP_RADIANCE_OCT_W)
   #endif
 
   #include <sp_calc_common.hlsl>

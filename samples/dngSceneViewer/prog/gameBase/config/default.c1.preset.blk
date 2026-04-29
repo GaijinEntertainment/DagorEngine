@@ -7,4 +7,11 @@ MenuCamera.Rotate { dev:i=3; xAxis:i=2; yAxis:i=3; inverseY:b=yes; dzone:r=0; ax
 MenuCamera.LookAround { dev:i=2; btn:i=1; type:i=0; }
 
 CharCtrl.Move { dev:i=3; xAxis:i=0; yAxis:i=1; dzone:r=0.1; axisSnapAngK:r=0.01; }
-CharCtrl.Look { dev:i=3; xAxis:i=2; yAxis:i=3; dzone:r=0.1; axisSnapAngK:r=0.01; }
+CharCtrl.Look { dev:i=3; xAxis:i=2; yAxis:i=3; inverseY:b=yes; dzone:r=0; axisSnapAngK:r=0; nonlin:r=1; maxVal:r=1; sensScale:r=1.8; }
+
+CharCtrl.Jump   { dev:i=3; btn:i=12; } // A
+CharCtrl.Sprint { dev:i=3; btn:i=6; stickyToggle:b=yes; } // LThumb.press
+CharCtrl.Crouch { dev:i=3; btn:i=13; } // B
+CharCtrl.Crawl  { dev:i=3; btn:i=1;  } // DPad.Down
+
+HUD.GameMenu { dev:i=3; btn:i=4; } // Start

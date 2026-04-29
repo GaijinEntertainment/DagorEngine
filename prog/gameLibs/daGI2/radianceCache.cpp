@@ -118,35 +118,37 @@ void RadianceCache::initAtlasInternal(int probes_w, int probes_h, int probe_oct_
   current_radiance_cache.close();
   current_radiance_cache_hit_distance.close();
   current_radiance_cache =
-    dag::create_tex(NULL, atlasSizeInTexelsW, atlasSizeInTexelsH, TEXCF_UNORDERED | texfmt, 1, "current_radiance_cache");
+    dag::create_tex(NULL, atlasSizeInTexelsW, atlasSizeInTexelsH, TEXCF_UNORDERED | texfmt, 1, "current_radiance_cache", RESTAG_DAGI2);
   current_radiance_cache_hit_distance = dag::create_tex(NULL, atlasSizeInTexelsW, atlasSizeInTexelsH, TEXCF_UNORDERED | TEXFMT_R16F, 1,
-    "current_radiance_cache_hit_distance");
+    "current_radiance_cache_hit_distance", RESTAG_DAGI2);
 
 
   radiance_cache_positions.close();
   radiance_cache_positions = dag::create_sbuffer(sizeof(uint32_t), atlasSizeInProbesW * atlasSizeInProbesH,
-    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "radiance_cache_positions");
+    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "radiance_cache_positions", RESTAG_DAGI2);
 
   radiance_cache_selected_temporal_probes.close();
   // fixme: this actually can be smaller than maximum size. we only need 1 + atlasSizeInProbesW*atlasSizeInProbesH/rd_update_in_frames
   temporalProbesPerFrameCount = atlasSizeInProbesW * atlasSizeInProbesH;
   radiance_cache_selected_temporal_probes = dag::create_sbuffer(sizeof(uint32_t), 3 + temporalProbesPerFrameCount,
     debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES | SBCF_UA_INDIRECT, 0,
-    "radiance_cache_selected_temporal_probes");
+    "radiance_cache_selected_temporal_probes", RESTAG_DAGI2);
 
   radiance_cache_age.close();
   radiance_cache_age = dag::create_sbuffer(sizeof(uint32_t), atlasSizeInProbesW * atlasSizeInProbesH * 2,
-    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "radiance_cache_age");
+    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "radiance_cache_age", RESTAG_DAGI2);
   free_radiance_cache_indices_list.close();
   free_radiance_cache_indices_list = dag::create_sbuffer(sizeof(uint32_t), atlasSizeInProbesW * atlasSizeInProbesH + 1,
-    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "free_radiance_cache_indices_list");
+    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "free_radiance_cache_indices_list",
+    RESTAG_DAGI2);
   // not more than total cache size
   new_radiance_cache_probes_needed.close();
   new_radiance_cache_probes_needed = dag::create_sbuffer(sizeof(uint32_t), atlasSizeInProbesW * atlasSizeInProbesH + 1,
-    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "new_radiance_cache_probes_needed");
+    debug_flag | SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "new_radiance_cache_probes_needed",
+    RESTAG_DAGI2);
   radiance_cache_indirect_buffer.close();
   radiance_cache_indirect_buffer = dag::create_sbuffer(sizeof(uint32_t), RADIANCE_CACHE_INDIRECT_BUFFER_SIZE,
-    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_UA_INDIRECT, 0, "radiance_cache_indirect_buffer");
+    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_UA_INDIRECT, 0, "radiance_cache_indirect_buffer", RESTAG_DAGI2);
   validHistory = false;
   frame = 0;
   ShaderGlobal::set_int4(radiance_cache_atlas_sizeiVarId, atlasSizeInProbesW, atlasSizeInProbesH, probeSize,
@@ -246,7 +248,7 @@ void RadianceCache::initIrradiance()
 {
   radiance_cache_irradiance.close();
   radiance_cache_irradiance = dag::create_tex(NULL, atlasSizeInProbesW * probeSize, atlasSizeInProbesH * probeSize,
-    TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "radiance_cache_irradiance");
+    TEXCF_UNORDERED | TEXFMT_R11G11B10F, 1, "radiance_cache_irradiance", RESTAG_DAGI2);
 }
 
 
@@ -277,10 +279,10 @@ void RadianceCache::initClipmap(uint16_t w, uint16_t d, uint8_t clips, float pro
   frame = 0;
   used_radiance_cache_mask.close();
   radiance_cache_indirection_clipmap.close();
-  radiance_cache_indirection_clipmap =
-    dag::buffers::create_ua_sr_structured(sizeof(uint32_t), (w * w * d * clips + 3) & ~3, "radiance_cache_indirection_clipmap");
+  radiance_cache_indirection_clipmap = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), (w * w * d * clips + 3) & ~3,
+    "radiance_cache_indirection_clipmap", d3d::buffers::Init::No, RESTAG_DAGI2);
   used_radiance_cache_mask = dag::create_sbuffer(sizeof(uint32_t), ((w * w * d * clips + 31) / 32 + 3) & ~3,
-    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "used_radiance_cache_mask");
+    SBCF_BIND_UNORDERED | SBCF_MISC_ALLOW_RAW | SBCF_BIND_SHADER_RES, 0, "used_radiance_cache_mask", RESTAG_DAGI2);
   initIrradiance();
   debug("radiance cache indirection res=%dx%dx%d clips=%d probe0 = %f dist %f", w, d, w, clips, getProbeSizeClip(0),
     0.5f * w * getProbeSizeClip(clips - 1));
@@ -291,22 +293,19 @@ void RadianceCache::initClipmap(uint16_t w, uint16_t d, uint8_t clips, float pro
     is_pow_of2(clipD) ? 0 : (max_pos / clipD) * clipD);
 }
 
-enum
-{
-  THRESHOLD = 1
-};
-
-bool RadianceCache::updateClip(uint32_t clip_no)
+bool RadianceCache::updateClip(uint32_t clip_no, const Point3 &world_pos)
 {
   DA_PROFILE_GPU;
-  auto &clip = clipmap[clip_no];
 
-  carray<IBBox3, 6> changed;
-  const IPoint3 oldLt = clip.prevLt;
-  const IPoint3 sz(clipW, clipW, clipD);
-  dag::Span<IBBox3> changedSpan(changed.data(), changed.size());
-  const int changedCnt =
-    move_box_toroidal(clip.lt, (clip.probeSize != clip.prevProbeSize) ? clip.lt - sz * 2 : oldLt, sz, changedSpan);
+  float probeVoxelSize = getProbeSizeClip(clip_no);
+  auto &clip = clipmap[clip_no];
+  const IPoint3 prevLt = clip.lt;
+  auto changed = clip.updatePos(world_pos, clipW, clipD, probeVoxelSize);
+  int changedCnt = changed.size();
+  if (changedCnt == 0)
+    return false;
+
+  set_clip_vars(clip_no, probeVoxelSize, prevLt);
 
   ShaderGlobal::set_int4(radiance_cache_clipmap_update_clip_to_lt_coordVarId, clip.lt.x, clip.lt.y, clip.lt.z, clip_no);
   d3d::set_rwbuffer(STAGE_CS, 0, radiance_cache_indirection_clipmap.getBuf());
@@ -327,19 +326,18 @@ bool RadianceCache::updateClip(uint32_t clip_no)
   return true;
 }
 
-void RadianceCache::set_clip_vars(int clip_no) const
+void RadianceCache::set_clip_vars(int clip_no, float probe_voxel_size, const IPoint3 &prev_lt) const
 {
   auto &clip = clipmap[clip_no];
   ShaderGlobal::set_int4(radiance_cache_clipmap_lt_coordVarId[clip_no], clip.lt.x, clip.lt.y, clip.lt.z,
-    bitwise_cast<uint32_t>(clip.probeSize));
-  ShaderGlobal::set_int4(radiance_cache_clipmap_lt_prev_coordVarId[clip_no], clip.prevLt.x, clip.prevLt.y, clip.prevLt.z,
-    bitwise_cast<uint32_t>(clip.prevProbeSize));
+    bitwise_cast<uint32_t>(probe_voxel_size));
+  ShaderGlobal::set_int4(radiance_cache_clipmap_lt_prev_coordVarId[clip_no], prev_lt.x, prev_lt.y, prev_lt.z, 0);
 #if DAGOR_DBGLEVEL > 0
   if (!is_pow_of2(clipW) || !is_pow_of2(clipD))
   {
     IPoint4 l = radiance_cache_clipmap_sizei_np2VarId.get_int4();
-    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.y)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.y ||
-        l.w < -clip.lt.z)
+    if (min(min(l.z + abs(clip.lt.x), l.z + abs(clip.lt.z)), l.w + abs(clip.lt.y)) < 0 || l.z < -clip.lt.x || l.z < -clip.lt.z ||
+        l.w < -clip.lt.y)
     {
       LOGERR_ONCE("position %@ is too far from center, due to non-pow2 of clip size %dx%d. See magic_np2.txt", clip.lt, clipW, clipD);
     }
@@ -426,58 +424,39 @@ bool RadianceCache::updateClipMapPosition(const Point3 &world_pos, bool updateAl
   d3d::set_rwbuffer(STAGE_CS, 2, free_radiance_cache_indices_list.getBuf());
   d3d::set_rwbuffer(STAGE_CS, 3, radiance_cache_age.getBuf());
 
-  StaticTab<int, MAX_RADIANCE_CACHE_CLIPS> updatedClipmaps;
-  for (int i = clipmap.size() - 1; i >= 0; --i)
-  {
-    auto &clip = clipmap[i];
-    const IPoint3 lt = getNewClipLT(i, world_pos);
-    const IPoint3 move = lt - clip.lt, absMove = abs(move);
-    const float clipProbeSize = getProbeSizeClip(i);
-    if (absMove.x > THRESHOLD || absMove.y > THRESHOLD || absMove.z > THRESHOLD || clip.probeSize != clipProbeSize)
-    {
-      clip.prevProbeSize = clip.probeSize; // fixme: temp variable
-      clip.prevLt = clip.lt;               // fixme: temp variable
-      clip.lt = lt;
-      clip.probeSize = clipProbeSize;
-      updatedClipmaps.push_back(i);
-      set_clip_vars(i);
-      if (!updateAll)
-        break;
-    }
-  }
-
-  if (!updatedClipmaps.empty() && validHistory) // this is faster unless movement is one clip, one slice
+  bool updatedAny = false;
+  if (validHistory) // this is faster unless movement is one clip, one slice
   {
     TIME_D3D_PROFILE(radiance_cache_update_clipmap);
-    if (updatedClipmaps.size() > 1)
+    if (updateAll)
     {
       TIME_D3D_PROFILE(radiance_cache_update_anew);
       // clear_radiance_cache_clipmap_indirection_cs->dispatchThreads((clipW*clipW*clipD*clipmap.size()+3)/4,1,1);
       radiance_cache_free_unused_after_movement_cs->dispatchThreads(atlasSizeInProbesW * atlasSizeInProbesH, 1, 1);
+      updatedAny = true;
     }
     else
     {
       TIME_D3D_PROFILE(radiance_cache_update_toroidal);
-      for (auto clip_no : updatedClipmaps)
-        updateClip(clip_no);
+      for (int i = clipmap.size() - 1; i >= 0; --i)
+      {
+        updatedAny |= updateClip(i, world_pos);
+        if (updatedAny)
+          break;
+      }
     }
     // d3d::resource_barrier({free_radiance_cache_indices_list.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
     d3d::resource_barrier({radiance_cache_age.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
     d3d::resource_barrier({radiance_cache_indirection_clipmap.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
     d3d::resource_barrier({radiance_cache_positions.getBuf(), RB_FLUSH_UAV | RB_SOURCE_STAGE_COMPUTE | RB_STAGE_COMPUTE});
   }
-  for (auto clip_no : updatedClipmaps)
-  {
-    clipmap[clip_no].prevLt = clipmap[clip_no].lt; // fixme: this is by nature temporal variable, it is only used inside
-                                                   // updateClipMapPosition
-    clipmap[clip_no].prevProbeSize = clipmap[clip_no].probeSize;
-  }
+
   d3d::set_rwbuffer(STAGE_CS, 0, nullptr);
   d3d::set_rwbuffer(STAGE_CS, 1, nullptr);
   d3d::set_rwbuffer(STAGE_CS, 2, nullptr);
   d3d::set_rwbuffer(STAGE_CS, 3, nullptr);
   validHistory = true;
-  return !updatedClipmaps.empty();
+  return updatedAny;
 }
 
 void RadianceCache::start_marking()

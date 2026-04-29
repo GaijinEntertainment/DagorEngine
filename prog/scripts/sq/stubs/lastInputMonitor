@@ -3,9 +3,9 @@ return {
         return 0
     }
 
-    DEV_MOUSE = 0
-    DEV_KBD = 0
-    DEV_GAMEPAD = 0
-    DEV_TOUCH = 0
+    DEV_MOUSE = 1
+    DEV_KBD = 2
+    DEV_GAMEPAD = 4
+    DEV_TOUCH = 8
     INPUT_DEVICE_USED_EVENT = "event"
 }

@@ -52,15 +52,6 @@ void RenderViewport::setViewProjTms()
 }
 
 
-void RenderViewport::resetView()
-{
-  int w, h;
-  d3d::get_target_size(w, h);
-  d3d::setview(0, 0, w, h, 0, 1);
-  d3d::setwire(false);
-}
-
-
 void RenderViewport::setPersp(real wk, real hk, real zn, real zf)
 {
   float q = zf / (zf - zn);
@@ -73,21 +64,4 @@ void RenderViewport::setPerspHFov(real fov, real zn, real zf)
   real wk = 1 / tanf(fov * 0.5f);
   real hk = wk * (rb.x - lt.x) / (rb.y - lt.y);
   setPersp(wk, hk, zn, zf);
-}
-
-void RenderViewport::setFullScreenViewRect()
-{
-  lt.x = lt.y = 0;
-
-  Driver3dRenderTarget rt;
-  d3d::get_render_target(rt);
-  d3d::set_render_target();
-
-  int x, y;
-  d3d::get_target_size(x, y);
-
-  rb.x = x;
-  rb.y = y;
-
-  d3d::set_render_target(rt);
 }

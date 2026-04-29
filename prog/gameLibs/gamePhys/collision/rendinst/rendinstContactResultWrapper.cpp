@@ -5,25 +5,26 @@
 #include <gamePhys/phys/rendinstDestr.h>
 #include <rendInst/treeDestr.h>
 #include <math/dag_mathUtils.h>
+#include "riUserInfo.h"
 
-void WrapperRendinstContactResultCB::addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB,
-  const RendinstCollisionUserInfo *user_info, gamephys::CollisionObjectInfo *object_info)
+void WrapperRendinstContactResultCB::addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA,
+  const RendinstCollisionUserInfo &user_info, gamephys::CollisionObjectInfo *object_info)
 {
-  auto &c = WrapperContactResultCB::addSingleResult(cp, userPtrA, userPtrB);
+  auto &c = WrapperContactResultCB::addSingleResult(cp, userPtrA, (obj_user_data_t *)user_info.prevUserPtrB);
   c.objectInfo = object_info;
-  c.riPool = (user_info && !user_info->desc.isRiExtra()) ? user_info->desc.pool : -1;
+  c.riDesc = user_info.desc;
 }
 
 void WrapperRendinstContactResultCB::addSingleResult(contact_data_t &cp, obj_user_data_t *userPtrA, obj_user_data_t *userPtrB)
 {
   const RendinstCollisionUserInfo *userInfo = (const RendinstCollisionUserInfo *)userPtrB;
-  G_ASSERT(!userInfo || userInfo->physObjectType == _MAKE4C('RIUD'));
-  Point3 boxWidth = userInfo ? userInfo->bbox.width() : Point3(0.f, 0.f, 0.f);
-  bool immortal = userInfo ? userInfo->immortal || (boxWidth.y > 4.f || boxWidth.x > 4.f || boxWidth.z > 4.f) : true;
-  bool isSecondLayer = userInfo && userInfo->desc.layer == 1;
-  bool forceBushBehaviour = userInfo && userInfo->bushBehaviour;
-  bool forceTreeBehaviour = userInfo && userInfo->treeBehaviour;
-  if (userInfo && (userInfo->isTree || forceBushBehaviour || forceTreeBehaviour))
+  G_ASSERT(userInfo && userInfo->physObjectType == _MAKE4C('RIUD'));
+  Point3 boxWidth = userInfo->bbox.width();
+  bool immortal = userInfo->immortal || (boxWidth.y > 4.f || boxWidth.x > 4.f || boxWidth.z > 4.f);
+  bool isSecondLayer = userInfo->desc.layer == 1;
+  bool forceBushBehaviour = userInfo->bushBehaviour;
+  bool forceTreeBehaviour = userInfo->treeBehaviour;
+  if (userInfo->isTree || forceBushBehaviour || forceTreeBehaviour)
   {
     const rendinstdestr::TreeDestr &treeDestr = rendinstdestr::get_tree_destr();
 
@@ -37,7 +38,7 @@ void WrapperRendinstContactResultCB::addSingleResult(contact_data_t &cp, obj_use
     else
     {
       userInfo->collided = true;
-      addSingleResult(cp, userPtrA, userPtrB, userInfo, userInfo->objInfoData);
+      addSingleResult(cp, userPtrA, *userInfo, userInfo->objInfoData);
     }
   }
   else if (isSecondLayer)
@@ -45,14 +46,14 @@ void WrapperRendinstContactResultCB::addSingleResult(contact_data_t &cp, obj_use
     // Do nothing with these guys.
     return;
   }
-  else if (userInfo && userInfo->isDestr)
+  else if (userInfo->isDestr)
   {
     userInfo->collided = true;
-    addSingleResult(cp, userPtrA, userPtrB, userInfo, userInfo->objInfoData);
+    addSingleResult(cp, userPtrA, *userInfo, userInfo->objInfoData);
   }
   else if (immortal)
   {
-    addSingleResult(cp, userPtrA, userPtrB, userInfo);
+    addSingleResult(cp, userPtrA, *userInfo);
   }
   else
   {

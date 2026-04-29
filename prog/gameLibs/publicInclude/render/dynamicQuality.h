@@ -9,6 +9,10 @@
 #include <generic/dag_smallTab.h>
 #include <util/dag_string.h>
 #include <math/integer/dag_IPoint2.h>
+namespace ecs
+{
+class EntityManager;
+}
 #include <daECS/core/event.h>
 #include <util/dag_simpleString.h>
 #include <EASTL/array.h>
@@ -32,16 +36,16 @@ class DynamicQuality
   eastl::array<GPUWatchMs, GPU_TIMESTAMP_LATENCY> timings;
   size_t timingIdx = 0;
 
-  void processTimingRecord(uint64_t gpu_time_ms);
-  void broadcastEvent();
+  void processTimingRecord(ecs::EntityManager &mgr, uint64_t gpu_time_ms);
+  void broadcastEvent(ecs::EntityManager &mgr);
   bool allowTracking();
 
 public:
-  DynamicQuality(const DataBlock *cfg);
+  DynamicQuality(ecs::EntityManager &mgr, const DataBlock *cfg);
   ~DynamicQuality();
-  void reset(const DataBlock *cfg);
+  void reset(ecs::EntityManager &mgr, const DataBlock *cfg);
 
-  void onFrameStart();
+  void onFrameStart(ecs::EntityManager &mgr);
   void onFrameEnd();
 
 #if DAGOR_DBGLEVEL > 0

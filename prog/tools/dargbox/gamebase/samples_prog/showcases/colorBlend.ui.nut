@@ -42,7 +42,7 @@ function mkColorBox(color, hoverWatch, override = {}) {
 }
 
 let mkColorTest = @(color) {
-  size = static [hdpx(600), hdpx(120)]
+  size = const [hdpx(600), hdpx(120)]
   children = [
     {
       size = flex()
@@ -50,7 +50,7 @@ let mkColorTest = @(color) {
       children = [0, 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFF800000, 0xFF008000, 0xFF000080]
         .map(@(c) mkColorBox(c, bgColor))
     }
-    mkColorBox(color, fgColor, { margin = static [hdpx(60), hdpx(30), 0, 0] })
+    mkColorBox(color, fgColor, { margin = const [hdpx(60), hdpx(30), 0, 0] })
   ]
 }
 
@@ -70,7 +70,7 @@ let colorInfo = @(colorW, text) @() {
   flow = FLOW_HORIZONTAL
   children = colorW.get() == null ? null
     : [
-        { rendObj = ROBJ_TEXT, text = $"{text}: ", size = static [hdpx(150), SIZE_TO_CONTENT] }
+        { rendObj = ROBJ_TEXT, text = $"{text}: ", size = const [hdpx(150), SIZE_TO_CONTENT] }
         { rendObj = ROBJ_TEXT, text = colorToText(colorW.get()) }
       ]
 }

@@ -6,4 +6,4 @@
 // changing their content, for example when compilation cache pathes change. This version is replicated in the obj cache, compiler
 // binary, shader dump and stcode dll (the last two are checked to be the same on load).
 
-inline constexpr int CPP_STCODE_COMMON_VER = 7;
+inline constexpr int CPP_STCODE_COMMON_VER = 10;

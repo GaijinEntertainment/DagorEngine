@@ -8,7 +8,9 @@
 #include <EASTL/fixed_string.h>
 #include <perfMon/dag_statDrv.h>
 #include "net/net.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/net/object.h>
 #include <util/dag_convar.h>
 #include "game/dasEvents.h"
@@ -18,8 +20,10 @@
 #include <startup/dag_globalSettings.h> // dgs_get_argv
 #include <ioSys/dag_dataBlock.h>
 #include <daECS/net/netbase.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include <gamePhys/phys/queries.h>
+#include <gamePhys/collision/collisionLib.h>
+#include <phys/dag_physics.h>
 
 #include "net/time.h"
 #include "net/netStat.h"
@@ -34,6 +38,7 @@ ECS_REGISTER_EVENT(CmdUpdateRemoteShadow)
 ECS_REGISTER_EVENT(CmdPrePhysUpdate)
 ECS_REGISTER_EVENT(CmdPostPhysUpdate)
 ECS_REGISTER_EVENT(CmdPostPhysUpdateRemoteShadow)
+ECS_REGISTER_EVENT(UpdatePhysEvent);
 ECS_REGISTER_EVENT(QueryPhysActorsNotCollidable);
 ECS_REGISTER_EVENT(QueryPhysActorsOneSideCollidable);
 ECS_DEF_PULL_VAR(netPhysCode);
@@ -283,22 +288,22 @@ void BasePhysActor::initNetPhysId(phys_eids_list_t &eidsList,
       g_entity_mgr->getEntityTemplateName(eid)); // it's server duty to assign it
 }
 
-void BasePhysActor::postPhysUpdate(int32_t tick, float dt, bool is_for_real)
-{
-  g_entity_mgr->sendEventImmediate(eid, CmdPostPhysUpdate(tick, dt, is_for_real));
-}
-
 void BasePhysActor::prePhysUpdate(int32_t tick, float dt, bool is_for_real)
 {
   g_entity_mgr->sendEventImmediate(eid, CmdPrePhysUpdate(tick, dt, is_for_real));
 }
 
-eastl::pair<float, float> phys_get_xpolation_times(int prev_tick, int last_tick, float timestep, float at_time)
+void BasePhysActor::postPhysUpdate(int32_t tick, float dt, bool is_for_real)
+{
+  g_entity_mgr->sendEventImmediate(eid, CmdPostPhysUpdate(tick, dt, is_for_real));
+}
+
+eastl::pair<float, float> phys_get_xpolation_times(int prev_tick, int last_tick, float timestep, double at_time)
 {
   G_ASSERTF(last_tick > prev_tick, "%d <= %d", last_tick, prev_tick);
   float interpTime = (last_tick - prev_tick) * timestep;
-  float cappedTime = min(at_time, last_tick * timestep + cl_max_extrapolation_time.get());
-  float elapsedTime = cappedTime - prev_tick * timestep;
+  double cappedTime = min(at_time, double(last_tick) * timestep + cl_max_extrapolation_time.get());
+  float elapsedTime = cappedTime - double(prev_tick) * timestep;
   return eastl::make_pair(interpTime, elapsedTime);
 }
 
@@ -328,7 +333,7 @@ void stash_controls_msg(ecs::EntityId to_eid, ControlsMsg &&controlsMsg)
   stashedMessagesPtr->emplace_back(to_eid, eastl::move(controlsMsg));
 }
 
-void phys_enqueue_controls(float at_time)
+void phys_enqueue_controls(double at_time)
 {
   TIME_PROFILE(phys_enqueue_controls);
 
@@ -382,6 +387,8 @@ ecs::EntityId find_closest_net_phys_actor(const Point3 &pos)
   return closestEntity;
 }
 
+bool phys_fetch_sim_res(bool wait) { return dacoll::get_phys_world()->fetchSimRes(wait); }
+
 int get_interp_delay_ticks(PhysTickRateType tr_type)
 {
   game::Player *lplr = game::get_local_player();
@@ -395,7 +402,7 @@ IPhysBase *gamephys::phys_by_id(int id)
   return actor ? &actor->getPhys() : nullptr;
 }
 
-int calc_phys_update_to_tick(float at_time, float dt, int ctrl_tick, int ct_produced_at_tick, int last_aas_tick)
+int calc_phys_update_to_tick(double at_time, float dt, int ctrl_tick, int ct_produced_at_tick, int last_aas_tick)
 {
   const int maxTicksDelta = (int)ceilf(PHYS_MAX_CONTROLS_TICKS_DELTA_SEC / dt);
   const int curCeilTick = gamephys::ceilPhysicsTickNumber(at_time, dt);

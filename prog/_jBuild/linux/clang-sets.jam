@@ -72,6 +72,7 @@ if $(Sanitize) != disabled {
   _LINK = $(_LINK) -fsanitize=$(Sanitize) ;
   _LINK_DLL  = $(_LINK_DLL) -fsanitize=$(Sanitize) ;
   _DEF_COM_CMDLINE = $(_DEF_COM_CMDLINE) -fsanitize=$(Sanitize) ;
+  if $(Sanitize) = address { _DEF_C_CMDLINE += -fsanitize-address-use-after-scope -fsanitize-address-use-after-return=always ; }
 }
 
 _LIB          = ar ranlib ;

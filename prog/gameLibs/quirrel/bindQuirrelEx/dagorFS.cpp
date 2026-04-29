@@ -1,6 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <quirrel/sqModules/sqModules.h>
+#include <quirrel/bindQuirrelEx/sqModulesDagor.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
 #include <startup/dag_globalSettings.h>
 #include <ioSys/dag_findFiles.h>
@@ -9,7 +9,9 @@
 #include <osApiWrappers/dag_direct.h>
 #include <osApiWrappers/basePath.h>
 #include <osApiWrappers/dag_vromfs.h>
+#include <osApiWrappers/dag_directUtils.h>
 #include <memory/dag_framemem.h>
+#include <util/dag_string.h>
 
 #if _TARGET_PC_WIN
 #define WIN32_LEAN_AND_MEAN
@@ -144,7 +146,7 @@ static SQInteger read_text_from_file(HSQUIRRELVM vm)
 {
   const char *fn;
   sq_getstring(vm, 2, &fn);
-  const int mode = SqModules::tryOpenFilesFromRealFS ? DF_READ : DF_VROM_ONLY | DF_READ;
+  const int mode = SqModulesDagorFileAccess::tryOpenFilesFromRealFS ? DF_READ : DF_VROM_ONLY | DF_READ;
   FullFileLoadCB cb(fn, mode);
   if (!cb.fileHandle)
     return sqstd_throwerrorf(vm, "Failed to open file '%s'", fn);
@@ -286,10 +288,25 @@ void register_dagor_fs_module(SqModules *module_mgr)
     .Func("remove_file", dd_erase)
     ///@param path s
     ///@return b
+    .Func("remove_dirtree", dag::remove_dirtree)
+    ///@param path s
+    ///@return b
+    .Func("copy_file", dag::copy_file)
+    ///@param src_path s
+    ///@param dest_path s
+    ///@return b
+    .Func("copy_folder", dag::copy_folder)
+    ///@param src_path s
+    ///@param dest_path s
+    ///@return b
+    .Func("move_folder", dag::move_folder)
+    ///@param src_path s
+    ///@param dest_path s
+    ///@return b
     .Func("is_path_absolute", is_path_abs)
     ///@param path s
     ///@return b
-    .SquirrelFunc("scan_folder", sq_scan_folder, 2, ".t")
+    .SquirrelFuncDeclString(sq_scan_folder, "scan_folder(params: table): array")
     /* qdox
     @kwarged
     @param root s : where to start scan
@@ -301,7 +318,7 @@ void register_dagor_fs_module(SqModules *module_mgr)
 
     @return a : array of found files with path on root
     */
-    .SquirrelFunc("find_files", find_files, -2, ".st")
+    .SquirrelFuncDeclString(find_files, "find_files(file_mask: string, [params: table]): array")
     /* qdox
     @param file_mask s : file mask like *.nut or foo/some.nut
     @param params t : table of params, the only possible param is {maxCount:i = -1} (-1 is default, means no limit)
@@ -309,23 +326,23 @@ void register_dagor_fs_module(SqModules *module_mgr)
     @code file_info sq
       {name:s, isDirectory:b, isReadOnly:b, isHidden:b, size:i, accessTime:i, modifyTime:i}
     */
-    .SquirrelFunc("read_text_from_file", read_text_from_file, 2, ".s")
+    .SquirrelFuncDeclString(read_text_from_file, "read_text_from_file(fn: string): string")
     /* qdox
     will open file from in VROMS only in some cases (on platforms different then PC, on not allowed modding)
     @return s : file as string
     */
-    .SquirrelFunc("read_text_from_file_on_disk", read_text_from_file_on_disk, 2, ".s")
+    .SquirrelFuncDeclString(read_text_from_file_on_disk, "read_text_from_file_on_disk(fn: string): string")
     /* qdox
     will open file from disk only
     @return s : file as string
     */
-    .SquirrelFunc("write_text_to_file", write_text_to_file, 3, ".ss")
+    .SquirrelFuncDeclString(write_text_to_file, "write_text_to_file(file_path: string, text: string): int")
     /* qdox
     @param file_path s : path to file to write
     @param text s : text to write to file
     will write text to file, creating directories if needed
     */
-    .SquirrelFunc("stat", stat, 2, ".s")
+    .SquirrelFuncDeclString(stat, "stat(filename: string): table|null")
     /* qdox
     @param filename s : path to file to get info
     @return t|o : file_stat or or null if file not found
@@ -333,7 +350,7 @@ void register_dagor_fs_module(SqModules *module_mgr)
       {size:i, atime:i, mtime:i, ctime:i}
     code@
     */
-    .SquirrelFunc("resolve_mountpoint", sq_resolve_mountpoint, 2, ".s")
+    .SquirrelFuncDeclString(sq_resolve_mountpoint, "resolve_mountpoint(file_path: string): string")
     /* qdox
     @param file_path s : path with mount point
     @return s : path with resolved mount point or path as is
@@ -350,8 +367,8 @@ void register_dagor_fs_vrom_module(SqModules *module_mgr)
   Sqrat::Table exports(vm);
 
   ///@module dagor.fs.vrom
-  exports.SquirrelFunc("scan_vrom_folder", sq_scan_vrom_folder, 2, ".t");
-  exports.SquirrelFunc("get_vromfs_dump_version", sq_get_vromfs_dump_version, 2, ".s");
+  exports.SquirrelFuncDeclString(sq_scan_vrom_folder, "scan_vrom_folder(params: table): array");
+  exports.SquirrelFuncDeclString(sq_get_vromfs_dump_version, "get_vromfs_dump_version(fname: string): int");
 
   module_mgr->addNativeModule("dagor.fs.vrom", exports);
 }

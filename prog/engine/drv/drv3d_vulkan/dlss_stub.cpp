@@ -19,18 +19,20 @@ eastl::optional<nv::DLSS::OptimalSettings> DLSSSuperResolutionDirect::getOptimal
   return eastl::nullopt;
 }
 
-bool DLSSSuperResolutionDirect::setOptions(Mode, IPoint2) { return false; }
+bool DLSSSuperResolutionDirect::setOptions(Mode, IPoint2, bool, bool) { return false; }
 
 void DLSSSuperResolutionDirect::DeleteFeature() {}
 
 nv::DLSS::State DLSSSuperResolutionDirect::getState() { return nv::DLSS::State::NOT_SUPPORTED_INCOMPATIBLE_HARDWARE; }
+
+bool DLSSSuperResolutionDirect::supportRayReconstruction() { return false; }
 
 dag::Expected<eastl::string, nv::SupportState> DLSSSuperResolutionDirect::getVersion() const
 {
   return dag::Unexpected(nv::SupportState::NotSupported);
 }
 
-bool DLSSSuperResolutionDirect::setOptionsBackend(VkCommandBuffer, Mode, IPoint2) { return false; }
+bool DLSSSuperResolutionDirect::setOptionsBackend(VkDevice, VkCommandBuffer, Mode, IPoint2, bool, bool) { return false; }
 
 const eastl::vector<eastl::string> &DLSSSuperResolutionDirect::getRequiredDeviceExtensions(VkInstance, VkPhysicalDevice) const
 {

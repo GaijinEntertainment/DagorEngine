@@ -98,7 +98,7 @@ public:
 #endif
 
   /// returns current reference count
-  int getRefCount() { return ref_count; }
+  int getRefCount() { return interlocked_acquire_load(ref_count); }
 
   /// returns non-zero if this object is a sub-class of the specified class
   KRNLIMP virtual bool isSubOf(DClassID id);

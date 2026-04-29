@@ -841,240 +841,92 @@ public:
 };
 } // namespace d3d::drivercode::matcher
 
-#if _TARGET_XBOXONE
 namespace d3d
 {
-inline constexpr drivercode::matcher::Const<true> xboxOne;
-inline constexpr drivercode::matcher::Const<false> scarlett;
-inline constexpr drivercode::matcher::Const<false> iOS;
-inline constexpr drivercode::matcher::Const<false> tvOS;
-inline constexpr drivercode::matcher::Const<false> nintendoSwitch;
-inline constexpr drivercode::matcher::Const<false> android;
-inline constexpr drivercode::matcher::Const<false> macOSX;
-inline constexpr drivercode::matcher::Const<false> linux;
-inline constexpr drivercode::matcher::Const<false> windows;
-inline constexpr drivercode::matcher::Const<false> dx11;
-inline constexpr drivercode::matcher::ConstID<'DX12', true> dx12;
-inline constexpr drivercode::matcher::Const<false> vulkan;
-inline constexpr drivercode::matcher::Const<false> ps4;
-inline constexpr drivercode::matcher::Const<false> ps5;
-inline constexpr drivercode::matcher::Const<false> metal;
-inline constexpr drivercode::matcher::Const<false> null;
-inline constexpr drivercode::matcher::Const<false> stub;
-} // namespace d3d
-#elif _TARGET_SCARLETT
-namespace d3d
-{
-inline constexpr drivercode::matcher::Const<false> xboxOne;
-inline constexpr drivercode::matcher::Const<true> scarlett;
-inline constexpr drivercode::matcher::Const<false> iOS;
-inline constexpr drivercode::matcher::Const<false> tvOS;
-inline constexpr drivercode::matcher::Const<false> nintendoSwitch;
-inline constexpr drivercode::matcher::Const<false> android;
-inline constexpr drivercode::matcher::Const<false> macOSX;
-inline constexpr drivercode::matcher::Const<false> linux;
-inline constexpr drivercode::matcher::Const<false> windows;
-inline constexpr drivercode::matcher::Const<false> dx11;
-inline constexpr drivercode::matcher::ConstID<'DX12', true> dx12;
-inline constexpr drivercode::matcher::Const<false> vulkan;
-inline constexpr drivercode::matcher::Const<false> ps4;
-inline constexpr drivercode::matcher::Const<false> ps5;
-inline constexpr drivercode::matcher::Const<false> metal;
-inline constexpr drivercode::matcher::Const<false> null;
-inline constexpr drivercode::matcher::Const<false> stub;
-} // namespace d3d
+#define DECLARE_MATCHER__DEFINITELY_NOT(...)      inline constexpr drivercode::matcher::Const<false> __VA_ARGS__
+#define DECLARE_MATCHER__DEFINITELY_IS(DRV, CODE) inline constexpr drivercode::matcher::ConstID<CODE, true> DRV
+#define DECLARE_MATCHER__POSSIBLE(DRV, CODE)      inline constexpr drivercode::matcher::ID<CODE> DRV;
+#define DECLARE_MATCHER__POSSIBLE_STUB_NULL() \
+  DECLARE_MATCHER__POSSIBLE(stub, 'STUB');    \
+  DECLARE_MATCHER__POSSIBLE(null, 0);
+#define DECLARE_MATCHER__EXCLUSIVE(_TRUE_SYM, /*_FALSE_SYMS*/...) \
+  inline constexpr drivercode::matcher::Const<true> _TRUE_SYM;    \
+  inline constexpr drivercode::matcher::Const<false> __VA_ARGS__;
+
+#if DAGOR_HOSTED_INTERNAL_SERVER
+DECLARE_MATCHER__DEFINITELY_IS(stub, 'STUB');
+DECLARE_MATCHER__DEFINITELY_NOT(dx11, dx12, vulkan, ps4, ps5, metal, null);
+#elif _TARGET_XBOXONE | _TARGET_SCARLETT
+DECLARE_MATCHER__DEFINITELY_IS(dx12, 'DX12');
+DECLARE_MATCHER__DEFINITELY_NOT(dx11, vulkan, ps4, ps5, metal, null, stub);
 #elif _TARGET_C1
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #elif _TARGET_C2
 
 
+#elif _TARGET_IOS | _TARGET_TVOS
+DECLARE_MATCHER__DEFINITELY_IS(metal, 'MTL');
+DECLARE_MATCHER__DEFINITELY_NOT(dx11, dx12, vulkan, ps4, ps5, null, stub);
+#elif _TARGET_C3 | _TARGET_ANDROID
+DECLARE_MATCHER__DEFINITELY_IS(vulkan, 'VULK');
+DECLARE_MATCHER__DEFINITELY_NOT(dx11, dx12, ps4, ps5, metal, null, stub);
+#elif _TARGET_PC_MACOSX
+DECLARE_MATCHER__POSSIBLE(metal, 'MTL');
+DECLARE_MATCHER__POSSIBLE_STUB_NULL();
+DECLARE_MATCHER__DEFINITELY_NOT(dx11, dx12, ps4, ps5, vulkan);
+#elif _TARGET_PC_LINUX
+DECLARE_MATCHER__POSSIBLE(vulkan, 'VULK');
+DECLARE_MATCHER__POSSIBLE_STUB_NULL();
+DECLARE_MATCHER__DEFINITELY_NOT(dx11, dx12, ps4, ps5, metal);
+#elif _TARGET_PC_WIN
+DECLARE_MATCHER__POSSIBLE(dx11, 'DX11');
+DECLARE_MATCHER__POSSIBLE(dx12, 'DX12');
+DECLARE_MATCHER__POSSIBLE(vulkan, 'VULK');
+DECLARE_MATCHER__POSSIBLE_STUB_NULL();
+DECLARE_MATCHER__DEFINITELY_NOT(ps4, ps5, metal);
+#else
+//! Matches to true when the current driver is \dx11 and otherwise false
+inline constexpr drivercode::matcher::Unsupported dx11;
+//! Matches to true when the current driver is \dx12 and otherwise false
+inline constexpr drivercode::matcher::Unsupported dx12;
+//! Matches to true when the current driver is \vk and otherwise false
+inline constexpr drivercode::matcher::Unsupported vulkan;
+//! Matches to true when the current platform / driver is \ps4 and otherwise false
+inline constexpr drivercode::matcher::Unsupported ps4;
+//! Matches to true when the current platform / driver is \ps5 and otherwise false
+inline constexpr drivercode::matcher::Unsupported ps5;
+//! Matches to true when the current driver is \metal and otherwise false
+inline constexpr drivercode::matcher::Unsupported metal;
+//! Matches to true when the current driver is null and otherwise false
+inline constexpr drivercode::matcher::Unsupported null;
+//! Matches to true when the current driver is stub and otherwise false
+inline constexpr drivercode::matcher::Unsupported stub;
+#endif
 
+#if _TARGET_XBOXONE
+DECLARE_MATCHER__EXCLUSIVE(xboxOne, /**/ scarlett, iOS, tvOS, nintendoSwitch, android, macOSX, linux, windows);
+#elif _TARGET_SCARLETT
+DECLARE_MATCHER__EXCLUSIVE(scarlett, /**/ xboxOne, iOS, tvOS, nintendoSwitch, android, macOSX, linux, windows);
+#elif _TARGET_C1
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#elif _TARGET_C2
 
 #elif _TARGET_IOS
-namespace d3d
-{
-inline constexpr drivercode::matcher::Const<false> xboxOne;
-inline constexpr drivercode::matcher::Const<false> scarlett;
-inline constexpr drivercode::matcher::Const<true> iOS;
-inline constexpr drivercode::matcher::Const<false> tvOS;
-inline constexpr drivercode::matcher::Const<false> nintendoSwitch;
-inline constexpr drivercode::matcher::Const<false> android;
-inline constexpr drivercode::matcher::Const<false> macOSX;
-inline constexpr drivercode::matcher::Const<false> linux;
-inline constexpr drivercode::matcher::Const<false> windows;
-inline constexpr drivercode::matcher::Const<false> dx11;
-inline constexpr drivercode::matcher::Const<false> dx12;
-inline constexpr drivercode::matcher::Const<false> vulkan;
-inline constexpr drivercode::matcher::Const<false> ps4;
-inline constexpr drivercode::matcher::Const<false> ps5;
-inline constexpr drivercode::matcher::ConstID<'MTL', true> metal;
-inline constexpr drivercode::matcher::Const<false> null;
-inline constexpr drivercode::matcher::Const<false> stub;
-} // namespace d3d
+DECLARE_MATCHER__EXCLUSIVE(iOS, /**/ scarlett, xboxOne, tvOS, nintendoSwitch, android, macOSX, linux, windows);
 #elif _TARGET_TVOS
-namespace d3d
-{
-inline constexpr drivercode::matcher::Const<false> xboxOne;
-inline constexpr drivercode::matcher::Const<false> scarlett;
-inline constexpr drivercode::matcher::Const<false> iOS;
-inline constexpr drivercode::matcher::Const<true> tvOS;
-inline constexpr drivercode::matcher::Const<false> nintendoSwitch;
-inline constexpr drivercode::matcher::Const<false> android;
-inline constexpr drivercode::matcher::Const<false> macOSX;
-inline constexpr drivercode::matcher::Const<false> linux;
-inline constexpr drivercode::matcher::Const<false> windows;
-inline constexpr drivercode::matcher::Const<false> dx11;
-inline constexpr drivercode::matcher::Const<false> dx12;
-inline constexpr drivercode::matcher::Const<false> vulkan;
-inline constexpr drivercode::matcher::Const<false> ps4;
-inline constexpr drivercode::matcher::Const<false> ps5;
-inline constexpr drivercode::matcher::ConstID<'MTL', true> metal;
-inline constexpr drivercode::matcher::Const<false> null;
-inline constexpr drivercode::matcher::Const<false> stub;
-} // namespace d3d
+DECLARE_MATCHER__EXCLUSIVE(tvOS, /**/ scarlett, xboxOne, iOS, nintendoSwitch, android, macOSX, linux, windows);
 #elif _TARGET_C3
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #elif _TARGET_ANDROID
-namespace d3d
-{
-inline constexpr drivercode::matcher::Const<false> xboxOne;
-inline constexpr drivercode::matcher::Const<false> scarlett;
-inline constexpr drivercode::matcher::Const<false> iOS;
-inline constexpr drivercode::matcher::Const<false> tvOS;
-inline constexpr drivercode::matcher::Const<false> nintendoSwitch;
-inline constexpr drivercode::matcher::Const<true> android;
-inline constexpr drivercode::matcher::Const<false> macOSX;
-inline constexpr drivercode::matcher::Const<false> linux;
-inline constexpr drivercode::matcher::Const<false> windows;
-inline constexpr drivercode::matcher::Const<false> dx11;
-inline constexpr drivercode::matcher::Const<false> dx12;
-inline constexpr drivercode::matcher::ConstID<'VULK', true> vulkan;
-inline constexpr drivercode::matcher::Const<false> ps4;
-inline constexpr drivercode::matcher::Const<false> ps5;
-inline constexpr drivercode::matcher::Const<false> metal;
-inline constexpr drivercode::matcher::Const<false> null;
-inline constexpr drivercode::matcher::Const<false> stub;
-} // namespace d3d
+DECLARE_MATCHER__EXCLUSIVE(android, /**/ scarlett, xboxOne, iOS, tvOS, nintendoSwitch, macOSX, linux, windows);
 #elif _TARGET_PC_MACOSX
-namespace d3d
-{
-inline constexpr drivercode::matcher::Const<false> xboxOne;
-inline constexpr drivercode::matcher::Const<false> scarlett;
-inline constexpr drivercode::matcher::Const<false> iOS;
-inline constexpr drivercode::matcher::Const<false> tvOS;
-inline constexpr drivercode::matcher::Const<false> nintendoSwitch;
-inline constexpr drivercode::matcher::Const<false> android;
-inline constexpr drivercode::matcher::Const<true> macOSX;
-inline constexpr drivercode::matcher::Const<false> linux;
-inline constexpr drivercode::matcher::Const<false> windows;
-inline constexpr drivercode::matcher::ConstID<'DX11', false> dx11;
-inline constexpr drivercode::matcher::ConstID<'DX12', false> dx12;
-inline constexpr drivercode::matcher::ID<'VULK'> vulkan;
-inline constexpr drivercode::matcher::Const<false> ps4;
-inline constexpr drivercode::matcher::Const<false> ps5;
-inline constexpr drivercode::matcher::ID<'MTL'> metal;
-inline constexpr drivercode::matcher::ID<0> null;
-inline constexpr drivercode::matcher::ID<'STUB'> stub;
-} // namespace d3d
+DECLARE_MATCHER__EXCLUSIVE(macOSX, /**/ scarlett, xboxOne, iOS, tvOS, nintendoSwitch, android, linux, windows);
 #elif _TARGET_PC_LINUX
-namespace d3d
-{
-inline constexpr drivercode::matcher::Const<false> xboxOne;
-inline constexpr drivercode::matcher::Const<false> scarlett;
-inline constexpr drivercode::matcher::Const<false> iOS;
-inline constexpr drivercode::matcher::Const<false> tvOS;
-inline constexpr drivercode::matcher::Const<false> nintendoSwitch;
-inline constexpr drivercode::matcher::Const<false> android;
-inline constexpr drivercode::matcher::Const<false> macOSX;
-inline constexpr drivercode::matcher::Const<true> linux;
-inline constexpr drivercode::matcher::Const<false> windows;
-inline constexpr drivercode::matcher::ConstID<'DX11', false> dx11;
-inline constexpr drivercode::matcher::ConstID<'DX12', false> dx12;
-inline constexpr drivercode::matcher::ID<'VULK'> vulkan;
-inline constexpr drivercode::matcher::Const<false> ps4;
-inline constexpr drivercode::matcher::Const<false> ps5;
-inline constexpr drivercode::matcher::ConstID<'MTL', false> metal;
-inline constexpr drivercode::matcher::ID<0> null;
-inline constexpr drivercode::matcher::ID<'STUB'> stub;
-} // namespace d3d
+DECLARE_MATCHER__EXCLUSIVE(linux, /**/ scarlett, xboxOne, iOS, tvOS, nintendoSwitch, android, macOSX, windows);
 #elif _TARGET_PC_WIN
-namespace d3d
-{
-inline constexpr drivercode::matcher::Const<false> xboxOne;
-inline constexpr drivercode::matcher::Const<false> scarlett;
-inline constexpr drivercode::matcher::Const<false> iOS;
-inline constexpr drivercode::matcher::Const<false> tvOS;
-inline constexpr drivercode::matcher::Const<false> nintendoSwitch;
-inline constexpr drivercode::matcher::Const<false> android;
-inline constexpr drivercode::matcher::Const<false> macOSX;
-inline constexpr drivercode::matcher::Const<false> linux;
-inline constexpr drivercode::matcher::Const<true> windows;
-inline constexpr drivercode::matcher::ID<'DX11'> dx11;
-inline constexpr drivercode::matcher::ID<'DX12'> dx12;
-inline constexpr drivercode::matcher::ID<'VULK'> vulkan;
-inline constexpr drivercode::matcher::Const<false> ps4;
-inline constexpr drivercode::matcher::Const<false> ps5;
-inline constexpr drivercode::matcher::ConstID<'MTL', false> metal;
-inline constexpr drivercode::matcher::ID<0> null;
-inline constexpr drivercode::matcher::ID<'STUB'> stub;
-} // namespace d3d
+DECLARE_MATCHER__EXCLUSIVE(windows, /**/ scarlett, xboxOne, iOS, tvOS, nintendoSwitch, android, macOSX, linux);
 #else
-namespace d3d
-{
 //! Matches to true when the current platform is \xbone and otherwise false
 inline constexpr drivercode::matcher::Unsupported xboxOne;
 //! Matches to true when the current platform is \scarlett and otherwise false
@@ -1093,24 +945,15 @@ inline constexpr drivercode::matcher::Unsupported macOSX;
 inline constexpr drivercode::matcher::Unsupported linux;
 //! Matches to true when the current platform is \win32 and otherwise false
 inline constexpr drivercode::matcher::Unsupported windows;
-//! Matches to true when the current driver is \dx11 and otherwise false
-inline constexpr drivercode::matcher::Unsupported dx11;
-//! Matches to true when the current driver is \dx12 and otherwise false
-inline constexpr drivercode::matcher::Unsupported dx12;
-//! Matches to true when the current driver is \vk and otherwise false
-inline constexpr drivercode::matcher::Unsupported vulkan;
-//! Matches to true when the current platform / driver is \ps4 and otherwise false
-inline constexpr drivercode::matcher::Unsupported ps4;
-//! Matches to true when the current platform / driver is \ps5 and otherwise false
-inline constexpr drivercode::matcher::Unsupported ps5;
-//! Matches to true when the current driver is \metal and otherwise false
-inline constexpr drivercode::matcher::Unsupported metal;
-//! Matches to true when the current driver is null and otherwise false
-inline constexpr drivercode::matcher::Unsupported null;
-//! Matches to true when the current driver is stub and otherwise false
-inline constexpr drivercode::matcher::Unsupported stub;
-} // namespace d3d
 #endif
+
+#undef DECLARE_MATCHER__DEFINITELY_NOT
+#undef DECLARE_MATCHER__DEFINITELY_IS
+#undef DECLARE_MATCHER__POSSIBLE
+#undef DECLARE_MATCHER__POSSIBLE_STUB_NULL
+#undef DECLARE_MATCHER__EXCLUSIVE
+} // namespace d3d
+
 namespace d3d::drivercode::matcher
 {
 //! Helper type for doxygen, do not use!

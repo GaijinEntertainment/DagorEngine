@@ -39,6 +39,7 @@ using OcclusionSyncWaitFunc = dag::FunctionRef<Occlusion *() const>;
 // dafx::render proxy_cull1
 // dafx::render cull1
 // dafx::render proxy_cull0
+// dafx::start_async_interframe_jobs
 
 namespace dafx
 {
@@ -216,8 +217,9 @@ struct SystemDesc
 {
   enum
   {
-    FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD = 0x01,
-    FLAG_DISABLE_SIM_LODS = 0x02,
+    FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD = 1 << 0,
+    FLAG_DISABLE_SIM_LODS = 1 << 1,
+    FLAG_DISABLE_CULLING = 1 << 2,
   };
 
   EmitterData emitterData;
@@ -253,6 +255,8 @@ struct SimLodGenParams
   bool enabled = true;
   float startDist = 100.f;
   float boxProjScale = 1.f;
+
+  bool operator==(const SimLodGenParams &) const = default;
 };
 
 struct Config;
@@ -271,7 +275,7 @@ SystemId get_dummy_system_id(ContextId cid);
 void release_system(ContextId cid, SystemId sid);
 void release_all_systems(ContextId cid);
 bool get_system_name(ContextId cid, SystemId sid, eastl::string &out_name);
-SystemId get_system_by_name(ContextId cid, const eastl::string &name);
+SystemId get_system_by_name(ContextId cid, const eastl::string &name, const SystemDesc *match_desc_opt);
 int get_system_value_offset(ContextId cid, SystemId sid, eastl::string &name, int ref_size);
 bool prefetch_system_textures(ContextId cid, SystemId sys_id);
 
@@ -306,6 +310,8 @@ void finish_update_cpu_only(ContextId cid); // must be called before finish_upda
 void finish_update_gpu_only(ContextId cid, bool update_gpu_fetch,
   bool beforeRenderFrameFrameBoundary = false); // must be called after finish_update_cpu_only
 
+void start_async_interframe_jobs(ContextId cid, bool tp_wake_up = true);
+
 bool update_finished(ContextId cid);
 void flush_command_queue(ContextId cid);
 void clear_draw_cache(ContextId cid);
@@ -316,7 +322,8 @@ using TextureCallback = void (*)(TEXTUREID);
 
 void before_render(ContextId cid, uint32_t tags_mask = 0xFFFFFFFF);
 void before_render(ContextId cid, const eastl::vector<eastl::string> &tags_name);
-bool render(ContextId ctx_id, CullingId cull_id, const eastl::string &tag, float mip_bias, TextureCallback tc = nullptr);
+bool render(ContextId ctx_id, CullingId cull_id, const eastl::string &tag, float mip_bias, TextureCallback tc = nullptr,
+  float reduced_render = 1.f);
 void reset_samplers_cache(ContextId cid);
 
 void flush_global_values(ContextId cid);
@@ -351,12 +358,15 @@ bool get_instance_value(ContextId cid, InstanceId iid, int offset, void *out_dat
 bool get_subinstances(ContextId cid, InstanceId iid, eastl::vector<InstanceId> &out);
 eastl::string get_instance_info(ContextId cid, InstanceId iid);
 int get_instance_elem_count(ContextId cid, InstanceId iid); // slow and not thread-safe, only for debug!
+void sync_instance_flags(ContextId cid);
 void gather_instance_stats(ContextId cid, InstanceId iid, eastl::vector<eastl::string> &names, eastl::vector<int> &elems,
   eastl::vector<int> &lods); // only for debug use
 
 void render_debug_opt(ContextId cid);
 void set_debug_flags(ContextId cid, uint32_t flags);
-const Config &get_config(ContextId cid);
+Config get_current_config_copy(ContextId cid);
+const Config &get_pending_config(ContextId cid);
+inline const Config &get_config(ContextId cid) { return get_pending_config(cid); }
 bool set_config(ContextId cid, const Config &cfg);
 void set_sim_lod_params(ContextId cid, const SimLodGenParams &params);
 uint32_t get_debug_flags(ContextId cid);
@@ -378,13 +388,15 @@ struct Config
   bool use_async_thread = true;
   bool low_prio_jobs = false;
   bool delayed_release_gpu_buffers = true;
+  bool enable_cpu_defragmentation = true;
   bool screen_area_cull_discard = true;
   bool approx_boundary_computation = false;
+  bool warningOnRenderPrimsLimit = true;
   bool cache_draw_queue = false;      // only worth for VR (saving draw queue per tag for one eye and reusing it for another one). req
                                       // clear_draw_cache call!
   unsigned int max_async_threads = 0; // if 0, threadpool::get_num_workers() will be used
   unsigned int forced_sim_lod_offset = 0;
-  unsigned int prepare_workers_async_thresholld = 0; // if >0, will parralize prepare_workers job, running jobs = workers / this value
+  unsigned int prepare_workers_async_threshold = 0; // if >0, will parralize prepare_workers job, running jobs = workers / this value
 
   int render_buffer_gc_tail = 100;
   int render_buffer_gc_after = 5 * 1024 * 1024;
@@ -397,12 +409,18 @@ struct Config
 
   float emitter_max_distance_travelled = 1000000.f;
 
+  float time_scale = 1.f;
+  float reduced_render = 1.f;
   float render_buffer_shrink_ratio = 0.2f;
   float emission_factor = 1.f;
   float min_emission_factor = 0.2f;
   unsigned int emission_limit = 4096;
-  unsigned int data_buffer_size = 524288;
+  unsigned int cpu_emission_limit = 4096;
+  unsigned int gpu_data_buffer_size = 524288;
+  unsigned int cpu_data_buffer_size = 524288;
   unsigned int staging_buffer_size = 65536;
+  unsigned int cpu_defrag_budget = cpu_data_buffer_size;
+  unsigned int cpu_defrag_page_budget = 1;
   unsigned int warmup_sims_budget = 50; // parent/root instances
   unsigned int max_warmup_steps_per_instance = 10;
   unsigned int max_multidraw_batch_size = 256;
@@ -414,8 +432,9 @@ struct Config
   eastl::vector<eastl::string> unsupportedShaders;
 #endif
   bool has_bvh_shader = false;
+  bool debug_page_allocs = false;
 
-  static const int emission_max_limit = 65536;
+  static constexpr int emission_max_limit = 65536;
 
   static const int max_render_tags = 16;
   static const int max_system_depth = 8;
@@ -429,6 +448,9 @@ struct Config
 
   static inline const char culling_discard_shader[] = "dafx_culling_discard";
   static inline const char dt_global_id[] = "dt";
+  static inline const char quality_global_id[] = "quality";
+
+  bool operator==(const Config &) const = default;
 };
 
 struct Stats

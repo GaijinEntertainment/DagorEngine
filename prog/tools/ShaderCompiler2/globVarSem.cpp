@@ -42,24 +42,10 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
     case SHADER_TOKENS::SHTOK_const_buffer: t = SHVT_BUFFER; break;
     default: G_ASSERT(0);
   }
-  int variableNameID = ctx.varNameMap().addVarId(decl->name->text);
-
-  int v = ctx.globVars().getVarInternalIndex(variableNameID);
-  if (v >= 0)
-  {
-    String message;
-
-    String incStack = parser.get_lexer().build_current_include_stack();
-    message.aprintf(0, "%s\nglobal variable '%s' already declared in %s", incStack.c_str(), decl->name->text,
-      parser.get_lexer().get_symbol_location(variableNameID, SymbolType::GLOBAL_VARIABLE));
-
-    report_error(parser, decl->name, message.c_str());
-    return;
-  }
-
-  parser.get_lexer().register_symbol(variableNameID, SymbolType::GLOBAL_VARIABLE, decl->name);
 
   bool is_array = decl->size != nullptr;
+  bool has_init = false;
+
   if (is_array)
   {
     bool is_valid_syntax = !decl->expr && (t == SHVT_COLOR4 || t == SHVT_INT4);
@@ -68,6 +54,7 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
       report_error(parser, decl->name, "Wrong array assignment");
       return;
     }
+    has_init = decl->arr0 != nullptr;
   }
   else
   {
@@ -77,49 +64,46 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
       report_error(parser, decl->name, "Wrong variable syntax");
       return;
     }
+    has_init = decl->expr != nullptr;
   }
 
-  Tab<ShaderGlobal::Var> &variable_list = ctx.globVars().getMutableVariableList();
   int size = is_array ? semutils::int_number(decl->size->text) : 1;
 
-  if (is_array)
-  {
-    eastl::string array_size_getter_name(eastl::string::CtorSprintf{}, ARRAY_SIZE_GETTER_NAME, decl->name->text);
+  auto &gvarTable = ctx.globVars();
+  Tab<ShaderGlobal::Var> &variable_list = gvarTable.getMutableVariableList();
 
-    v = append_items(variable_list, 1);
-    variable_list[v].type = SHVT_INT;
-    variable_list[v].nameId = ctx.varNameMap().addVarId(array_size_getter_name.c_str());
-    variable_list[v].isAlwaysReferenced = true;
-    variable_list[v].value.i = size;
-  }
+  auto fileName = bindump::string(parser.get_lexer().get_filename(decl->name->file_start));
 
-  for (int i = 0; i < size; i++)
-  {
-    if (i > 0)
-    {
-      eastl::string name(eastl::string::CtorSprintf{}, "%s[%i]", decl->name->text, i);
-      variableNameID = ctx.varNameMap().addVarId(name.c_str());
-    }
+  auto compileServiceVar = [&](int var_name_id, int vt, const ShaderGlobal::StVarValue &value, int array_size,
+                             int index) -> eastl::optional<ShaderGlobal::Var> {
+    ShaderGlobal::Var var{};
+    var.type = vt;
+    var.nameId = var_name_id;
+    var.isAlwaysReferenced = true;
+    var.definesValue = true;
+    var.isLiteral = true;
+    var.fileName = fileName;
+    var.array_size = array_size;
+    var.index = index;
+    var.value = value;
+    return var;
+  };
+  auto compileSingleVar = [&](int var_name_id, int vt, ShaderTerminal::arithmetic_expr *expr, int array_size,
+                            int index) -> eastl::optional<ShaderGlobal::Var> {
+    ShaderGlobal::Var var{};
 
-    v = append_items(variable_list, 1);
-
-    variable_list[v].type = t;
-    variable_list[v].nameId = variableNameID;
-    variable_list[v].isAlwaysReferenced = decl->is_always_referenced ? true : false;
-    variable_list[v].shouldIgnoreValue = decl->undefined ? true : false;
-    variable_list[v].fileName = bindump::string(parser.get_lexer().get_filename(decl->name->file_start));
-    variable_list[v].array_size = size;
-    variable_list[v].index = i;
+    var.type = vt;
+    var.nameId = var_name_id;
+    var.isAlwaysReferenced = decl->is_always_referenced ? true : false;
+    var.definesValue = has_init;
+    var.isLiteral = decl->is_literal ? true : false;
+    var.fileName = fileName;
+    var.array_size = array_size;
+    var.index = index;
 
     const bool expectingInt = t == SHVT_INT || t == SHVT_INT4;
     Color4 val = expectingInt ? Color4{bitwise_cast<float>(0), bitwise_cast<float>(0), bitwise_cast<float>(0), bitwise_cast<float>(1)}
                               : Color4{0, 0, 0, 1};
-
-    ShaderTerminal::arithmetic_expr *expr = nullptr;
-    if (i == 0)
-      expr = is_array ? decl->arr0 : decl->expr;
-    else if (i - 1 < decl->arrN.size())
-      expr = decl->arrN[i - 1];
 
     if (expr)
     {
@@ -133,42 +117,126 @@ void add_global_var(global_var_decl *decl, Parser &parser, shc::TargetContext &c
       else if (t == SHVT_FLOAT4X4)
       {
         report_error(parser, decl->name, "float4x4 default value is not supported");
-        return;
+        return eastl::nullopt;
       }
 
       if (!exprParser.parseConstExpression(*expr, val, ExpressionParser::Context{expectedValType, expectingInt, decl->name}))
       {
         report_error(parser, decl->name, "Wrong expression");
-        return;
+        return eastl::nullopt;
       }
     }
 
     switch (t)
     {
-      case SHVT_COLOR4: variable_list[v].value.c4.set(val); break;
-      case SHVT_REAL: variable_list[v].value.r = val[0]; break;
-      case SHVT_INT: variable_list[v].value.i = bitwise_cast<int>(val[0]); break;
+      case SHVT_COLOR4: var.value.c4.set(val); break;
+      case SHVT_REAL: var.value.r = val[0]; break;
+      case SHVT_INT: var.value.i = bitwise_cast<int>(val[0]); break;
       case SHVT_INT4:
-        variable_list[v].value.i4.set(bitwise_cast<int>(val[0]), bitwise_cast<int>(val[1]), bitwise_cast<int>(val[2]),
-          bitwise_cast<int>(val[3]));
+        var.value.i4.set(bitwise_cast<int>(val[0]), bitwise_cast<int>(val[1]), bitwise_cast<int>(val[2]), bitwise_cast<int>(val[3]));
         break;
       case SHVT_FLOAT4X4:
         // default value is not supported
         break;
       case SHVT_BUFFER:
-        variable_list[v].value.bufId = unsigned(BAD_D3DRESID);
-        variable_list[v].value.buf = NULL;
+        var.value.bufId = unsigned(BAD_D3DRESID);
+        var.value.buf = NULL;
         break;
-      case SHVT_TLAS: variable_list[v].value.tlas = NULL; break;
+      case SHVT_TLAS: var.value.tlas = NULL; break;
       case SHVT_TEXTURE:
-        variable_list[v].value.texId = unsigned(BAD_TEXTUREID);
-        variable_list[v].value.tex = NULL;
+        var.value.texId = unsigned(BAD_TEXTUREID);
+        var.value.tex = NULL;
         break;
       default: G_ASSERT(0);
     }
+
+    return var;
+  };
+  auto validateVariableRedeclaration = [&](const ShaderGlobal::Var &var, ShaderGlobal::Var &existing_var) {
+    String message;
+
+    if (var.definesValue && existing_var.definesValue)
+      message.aprintf(0, "Redefinition of an existing variable with default value: '%s'\n", ctx.varNameMap().getName(var.nameId));
+    if (var.type != existing_var.type)
+      message.aprintf(0, "Different variable types: '%s'\n", ctx.varNameMap().getName(var.nameId));
+    if (var != existing_var)
+      message.aprintf(0, "Different variable values: '%s'\n", ctx.varNameMap().getName(var.nameId));
+    if (var.array_size != existing_var.array_size)
+      message.aprintf(0, "Different variable array sizes: '%s'\n", ctx.varNameMap().getName(var.nameId));
+    if (var.definesValue && existing_var.definesValue && var.isLiteral != existing_var.isLiteral)
+      sh_debug(SHLOG_FATAL, "Different variable literal states: '%s'", ctx.varNameMap().getName(var.nameId));
+
+    if (!message.empty())
+    {
+      String incStack = parser.get_lexer().build_current_include_stack();
+      message.aprintf(0, "%s\nglobal variable '%s' already declared in %s", incStack.c_str(), decl->name->text,
+        parser.get_lexer().get_symbol_location(var.nameId, SymbolType::GLOBAL_VARIABLE));
+      report_error(parser, decl->name, message.c_str());
+      return false;
+    }
+
+    return true;
+  };
+  auto addSingleVar = [&](const char *var_name, int vt, ShaderTerminal::arithmetic_expr *expr, const ShaderGlobal::StVarValue *value,
+                        int array_size, int index, bool is_service_var) {
+    int varNid = ctx.varNameMap().addVarId(var_name);
+    int v = ctx.globVars().getVarInternalIndex(varNid);
+
+    auto varMaybe =
+      is_service_var ? compileServiceVar(varNid, t, *value, array_size, index) : compileSingleVar(varNid, t, expr, array_size, index);
+    if (!varMaybe)
+      return -1;
+    auto &var = *varMaybe;
+
+    if (v >= 0)
+    {
+      auto &existingVar = variable_list[v];
+      if (!validateVariableRedeclaration(var, existingVar))
+        return -1;
+      if (var.definesValue && !existingVar.definesValue)
+      {
+        existingVar.definesValue = true;
+        existingVar.value = var.value;
+      }
+      existingVar.isAlwaysReferenced |= var.isAlwaysReferenced;
+      existingVar.isImplicitlyReferenced |= var.isImplicitlyReferenced;
+    }
+    else
+    {
+      v = append_items(variable_list, 1);
+      variable_list[v] = var;
+      gvarTable.updateVarNameIdMapping(v);
+    }
+
+    return varNid;
+  };
+
+  if (is_array)
+  {
+    eastl::string array_size_getter_name(eastl::string::CtorSprintf{}, ARRAY_SIZE_GETTER_NAME, decl->name->text);
+    ShaderGlobal::StVarValue sizeVal{};
+    sizeVal.i = size;
+    if (addSingleVar(array_size_getter_name.c_str(), SHVT_INT, nullptr, &sizeVal, 0, 0, true) < 0)
+      return;
   }
 
-  ctx.cppStcode().globVars.setVar(ShaderVarType(t), decl->name->text);
+  int variableNameID = addSingleVar(decl->name->text, t, is_array ? decl->arr0 : decl->expr, nullptr, size, 0, false);
+  if (variableNameID < 0)
+    return;
+  parser.get_lexer().register_symbol(variableNameID, SymbolType::GLOBAL_VARIABLE, decl->name);
+
+  if (is_array)
+  {
+    for (int i = 1; i < size; i++)
+    {
+      eastl::string name(eastl::string::CtorSprintf{}, "%s[%i]", decl->name->text, i);
+      variableNameID = addSingleVar(name.c_str(), t, i <= decl->arrN.size() ? decl->arrN[i - 1] : nullptr, nullptr, size, i, false);
+      if (variableNameID < 0)
+        return;
+    }
+  }
+
+  ctx.cppStcode().globVars.setVar(ShaderVarType(t), decl->name->text, true);
 }
 
 void add_sampler(sampler_decl *decl, Parser &parser, shc::TargetContext &ctx) { ctx.samplers().add(*decl, parser); }
@@ -188,6 +256,9 @@ void add_interval(IntervalList &intervals, interval &interv, ShaderVariant::VarT
 
   Interval newInterval(intervalId, type, eastl::move(file_name));
   parser.get_lexer().register_symbol(newInterval.getNameId(), symbol_type, interv.name);
+
+  if (interv.is_always_referenced)
+    newInterval.makeAlwaysReferenced();
 
   for (int i = 0; i < interv.var_decl.size(); i++)
   {

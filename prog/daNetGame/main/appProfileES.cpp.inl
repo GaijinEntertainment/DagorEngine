@@ -3,13 +3,15 @@
 #include <debug/dag_debug.h>
 #include <ioSys/dag_dataBlock.h>
 #include <startup/dag_globalSettings.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <net/dedicated.h>
 #include "appProfile.h"
 #include "game/gameEvents.h"
 #include "settings.h"
 #include "circuit.h"
-#include <crypto/base64.h>
+#include <dagCrypto/base64.h>
 #include <rapidjson/rapidjson.h>
 #include <rapidjson/error/en.h>
 
@@ -47,16 +49,32 @@ static void load_argv(rapidjson::Document &matchingInviteData) // load on first 
 
 void apply_settings_blk(const DataBlock &blk)
 {
-  int oldAppId = profile.appId;
-  profile.appId = get_platformed_value(blk, "app_id", 0);
+  const char *newProjectId = get_platformed_value(blk, "project_id", "");
   if (circuit::is_submission_env())
-    profile.appId = get_platformed_value(blk, "submission_app_id", profile.appId);
+    newProjectId = get_platformed_value(blk, "submission_project_id", newProjectId);
   else if (circuit::is_staging_env())
-    profile.appId = get_platformed_value(blk, "staging_app_id", profile.appId);
+    newProjectId = get_platformed_value(blk, "staging_project_id", newProjectId);
+  G_ASSERT_RETURN(newProjectId != nullptr, );
+
+  int newAppId = get_platformed_value(blk, "app_id", 0);
+  if (circuit::is_submission_env())
+    newAppId = get_platformed_value(blk, "submission_app_id", newAppId);
+  else if (circuit::is_staging_env())
+    newAppId = get_platformed_value(blk, "staging_app_id", newAppId);
+
+  if (newAppId != profile.appId)
+  {
+    debug("apply settings from blk: using appid %d", newAppId);
+    profile.appId = newAppId;
+  }
+
+  if (newProjectId != profile.projectId)
+  {
+    debug("apply settings from blk: using projectId %s", newProjectId);
+    profile.projectId = newProjectId;
+  }
 
   profile.disableRemoteNetServices = dgs_get_settings()->getBool("disableRemoteNetServices", false);
-  if (oldAppId != profile.appId)
-    debug("using appid %u", profile.appId);
 }
 
 ProfileSettings &getRW()

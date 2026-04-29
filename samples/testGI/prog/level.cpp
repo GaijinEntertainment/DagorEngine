@@ -9,11 +9,20 @@
 #include <scene/dag_visibility.h>
 #include <memory/dag_framemem.h>
 
+#define GLOBAL_VARS_OPT_LIST     \
+  VAR(heightmap_region)          \
+  VAR(heightmap_parent_edges_at) \
+  VAR(heightmap_has_morph)       \
+  VAR(heightmap_morph)           \
+  VAR(heightmap_texels)          \
+  VAR(heightmap_edges)
+
+#define VAR(a) static ShaderVariableInfo a##VarId(#a, true);
+GLOBAL_VARS_OPT_LIST
+#undef VAR
+
 CONSOLE_BOOL_VAL("hmap", hmap_render, true);
-CONSOLE_BOOL_VAL("hmap", metrics, true);
-CONSOLE_BOOL_VAL("render", flexgrid, false);
 CONSOLE_INT_VAL("hmap", displacement_quality, 1, 1, 4);
-CONSOLE_BOOL_VAL("render", flexgrid_debug, false);
 
 void set_lmesh_normalmap(LMesh *l, TEXTUREID id);
 bool load_lmesh_hmap(LMesh &l, IGenLoad &crd);
@@ -41,7 +50,7 @@ void StrmSceneHolder::bdlTextureMap(unsigned /*bindump_id*/, dag::ConstSpan<TEXT
 
 void StrmSceneHolder::loadHeightmap(IGenLoad &crd)
 {
-  if (!heightmap.loadDump(crd, true, nullptr))
+  if (!heightmap.loadDump(crd, true))
     logerr("can't load %s", crd.getTargetName());
   else
   {
@@ -90,47 +99,17 @@ void StrmSceneHolder::loadHeightmap(const char *fn)
   return;
 }
 
+float hmap_water_level = -10000;
+
+bool load_heightmap_raw32(HeightmapHandler &heightmap, const char *fn, float cell_size, const Point2 *at);
 void StrmSceneHolder::loadHeightmapRaw(const char *fn, float cell_size)
 {
-  if (!fn)
+  Point2 at = dgs_get_settings()->getPoint2("heightmap_at", Point2(0, 0));
+  if (!load_heightmap_raw32(heightmap, fn, cell_size, dgs_get_settings()->paramExists("heightmap_at") ? &at : nullptr))
     return;
-  FullFileLoadCB crd(fn);
-  if (!crd.fileHandle)
-  {
-    logerr("can't open %s", fn);
-    return;
-  }
-  uint64_t sz = crd.getTargetDataSize();
-  uint32_t w = sqrt(sz / 4);
-  if (w * w * 4 != sz || w == 0)
-  {
-    logerr("%s is not raw32 file", fn);
-    return;
-  }
-  Tab<float> r32;
-  r32.resize(w * w);
-  crd.read(r32.data(), w * w * 4);
-  Tab<uint16_t> r16;
-  r16.resize(w * w);
-  float hMin = r32[0], hMax = r32[0];
-  for (auto f : r32)
-  {
-    hMin = min(f, hMin);
-    hMax = max(f, hMax);
-  }
-  hMax = max(hMax, hMin + 1e-32f);
-  float scale = 65535.f / (hMax - hMin);
-  auto to = r16.data();
-  for (int y = 0; y < w; ++y)
-  {
-    auto from = r32.data() + (w - 1 - y) * w;
-    for (int x = 0; x < w; ++x, ++to, ++from)
-      *to = clamp<int>((*from - hMin) * scale + 0.5f, 0, 65535);
-  }
-
-  heightmap.initRaw(r16.data(), cell_size, w, w, hMin, hMax - hMin, -0.5 * cell_size * Point2(w, w));
-  heightmap.initRender();
-  debug("loaded heightmap from %s", crd.getTargetName());
+  heightmap.initRender(false, hmap_water_level);
+  heightmap.setMaxUpwardDisplacement(1);
+  debug("loaded heightmap from %s", fn);
   state = Loaded;
 }
 
@@ -160,12 +139,11 @@ void StrmSceneHolder::loadHeightmapRaw16(const char *fn, float cell_size, float 
   }
 
   heightmap.initRaw(r16.data(), cell_size, w, w, hMin, hMax - hMin, -0.5 * cell_size * Point2(w, w));
-  heightmap.initRender(false);
-  debug("loaded heightmap from %s", crd.getTargetName());
+  heightmap.initRender(false, hmap_water_level);
+  debug("loaded heightmap from %s", fn);
   state = Loaded;
 }
 
-float hmap_water_level = -10000;
 void StrmSceneHolder::initOnDemand()
 {
   if (state == Loaded)
@@ -174,17 +152,8 @@ void StrmSceneHolder::initOnDemand()
       init_lmesh(*lMesh);
     if (bool(heightmap.getCompressedData()))
     {
-      heightmap.init();
+      heightmap.init(dgs_get_settings()->getInt("heightmap_dim_bits", 4));
       heightmap.invalidateCulling(IBBox2{{0, 0}, {heightmap.hmapWidth.x - 1, heightmap.hmapWidth.y - 1}});
-
-      if (!flexGridRenderer.isInited())
-      {
-        debug("initializing flexGridRenderer");
-        flexGridConfig.maxInstanceCount = 8192;
-        flexGridRenderer.init(flexGridConfig, true);         // NOTE: use flexGridRenderer.close() on level close
-        heightmap.prepare(Point3(), 0.0f, hmap_water_level); // to set hmap_water_level to hmap_handler
-        flexGridRenderer.prepareSubdivisionForHeightmap(heightmap);
-      }
     }
     state = Inited;
   }
@@ -221,36 +190,20 @@ void StrmSceneHolder::renderHeightmap(const vec4f &vp, const Frustum &frustum, c
     camera_height = max(camera_height, viewPos.y - htb);
   }
 
-  if (flexgrid && !frustum.testBoxB(heightmap.vecbox.bmin, heightmap.vecbox.bmax))
-    return;
   DA_PROFILE_GPU;
 
-  if (flexgrid)
+  camera_height = 0;
+  heightmap.makeBookKeeping();
+  heightmap.setVars();
+  if (heightmap.prepare(viewPos, camera_height, hmap_water_level))
   {
-    int subdivCacheUid = 0;
-    bool forceLowQuality = false; // use it with auxiliary render passes: probes baking, reflection, etc
-    TMatrix viewTm;
-    d3d::gettm(TM_VIEW, viewTm);
-    TMatrix4 viewTm4 = TMatrix4(viewTm);
-    heightmap.prepare(viewPos, camera_height, hmap_water_level); // to set hmap_water_level to hmap_handler
-    heightmap.setVars();
-    flexGridRenderer.prepareSubdivision(subdivCacheUid, viewPos, viewTm4, proj, frustum, heightmap, nullptr,
-      displacement_quality.get(), forceLowQuality, flexGridConfig);
-    flexGridRenderer.render(subdivCacheUid, flexGridConfig, flexgrid_debug.get());
-  }
-  else if (!metrics)
-  {
-    camera_height = 0;
-    if (heightmap.prepare(viewPos, camera_height))
-      heightmap.render(0);
-  }
-  else
-  {
-    heightmap.makeBookKeeping();
-    heightmap.setVars();
-    LodGridCullData defaultCullData(framemem_ptr());
-    frustumCulling(defaultCullData, viewPos, hmap_water_level, frustum, NULL, heightmap, proj);
-    heightmap.renderCulled(defaultCullData);
+    LodGridCullData cullData;
+    HeightmapMetricsQuality mq = {proj_to_distance_scale(proj)};
+    if (mq.distanceScale == 0)
+      mq.maxRelativeTexelTess = -4;
+    HeightmapFrustumCullingInfo fi{viewPos, camera_height, 0, frustum, NULL, NULL, 0, 0, 1, mq};
+    heightmap.frustumCulling(cullData, fi); // Independent from prepare for multithreading.
+    heightmap.renderCulled(cullData);
   }
 }
 

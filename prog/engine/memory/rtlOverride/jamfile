@@ -4,11 +4,13 @@ Location = prog/engine/memory/rtlOverride ;
 TargetType  = lib ;
 Target      = engine/memory/rtlOverride.lib ;
 
+AddIncludes = $(Root)/prog/3rdPartyLibs/memAllocators ;
+
 Sources =
   stubRtl.cpp
 ;
 
-
-CPPopt = -D__B_NO_MEM_BASE_INCLUDE ;
+CPPopt = -DUSE_RTL_ALLOC ;
+if $(KernelLinkage) != dynamic { Exit $(Target) doesn't support KernelLinkage=$(KernelLinkage:E=static) ; }
 
 include $(Root)/prog/_jBuild/build.jam ;

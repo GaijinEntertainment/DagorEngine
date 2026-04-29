@@ -12,6 +12,7 @@ struct AnimStatesData
   {
     LEAVE_CUR_CHILD_TYPE = -3,
     EMPTY_CHILD_TYPE = -2,
+    DEFAULT_INIT_FIFO3 = EMPTY_CHILD_TYPE,
     NOT_FOUND_CHILD = -1,
   };
   PropPanel::TLeafHandle handle;

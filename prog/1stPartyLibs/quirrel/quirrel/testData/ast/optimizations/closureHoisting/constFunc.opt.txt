@@ -1,0 +1,67 @@
+Block isRoot = 1, isBody = 0
+|-VarDecl 'let', name = '$ch0', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'regularFn', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 1
+|     |   Parameter #1 name = 'x', type = 'any'
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|           ReturnStatement
+|             BinExpr '*'
+|             |-Left
+|             |   Id 'x'
+|             `-Right
+|                 LiteralExpr LK_INT 2
+|-VarDecl 'let', name = '$ch1', type = 'any'
+|   Initializer
+|     FunctionExpr name = 'inner', pure = 0, nodiscard = 0, resultType = 'any'
+|     |-Parameters count = 0
+|     `-Body
+|         Block isRoot = 0, isBody = 1
+|         |-ConstDecl name = 'constFn', isGlobal = 0
+|         |   UnExpr 'INLINE_CONST'
+|         |     FunctionExpr name = 'constFn', pure = 1, nodiscard = 0, resultType = 'any'
+|         |     |-Parameters count = 2
+|         |     | |-Parameter #1 name = 'a', type = 'any'
+|         |     | `-Parameter #2 name = 'b', type = 'any'
+|         |     `-Body
+|         |         Block isRoot = 0, isBody = 1
+|         |           ReturnStatement
+|         |             BinExpr '+'
+|         |             |-Left
+|         |             |   Id 'a'
+|         |             `-Right
+|         |                 Id 'b'
+|         |-ConstDecl name = 'result', isGlobal = 0
+|         |   CallExpr
+|         |   |-Callee
+|         |   |   Id 'constFn'
+|         |   `-Arguments
+|         |     |-Argument #1
+|         |     |   LiteralExpr LK_INT 1
+|         |     `-Argument #2
+|         |         LiteralExpr LK_INT 2
+|         |-VarDecl 'let', name = 'regularFn', type = 'any'
+|         |   Initializer
+|         |     Id '$ch0'
+|         `-VarDecl 'let', name = 'r', type = 'any'
+|             Initializer
+|               CallExpr
+|               |-Callee
+|               |   Id 'regularFn'
+|               `-Arguments
+|                   Argument #1
+|                     LiteralExpr LK_INT 3
+`-VarDecl 'let', name = 'outer', type = 'any'
+    Initializer
+      FunctionExpr name = 'outer', pure = 0, nodiscard = 0, resultType = 'any'
+      |-Parameters count = 0
+      `-Body
+          Block isRoot = 0, isBody = 1
+          |-VarDecl 'let', name = 'inner', type = 'any'
+          |   Initializer
+          |     Id '$ch1'
+          `-ExprStatement
+              CallExpr
+                Callee
+                  Id 'inner'

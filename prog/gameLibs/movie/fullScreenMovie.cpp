@@ -236,7 +236,7 @@ static void play_movie(const char *fname, const char *audio_fname, const char *s
       // no need to set ti.cflg, default inited to TEXFMT_DEFAULT
     }
 
-    videoTexture = dag::create_tex(nullptr, ti.w, ti.h, (ti.cflg & TEXFMT_MASK) | TEXCF_RTARGET, 1, "video_texture");
+    videoTexture = dag::create_tex(nullptr, ti.w, ti.h, (ti.cflg & TEXFMT_MASK) | TEXCF_RTARGET, 1, "video_texture", RESTAG_VIDEO);
 
     prepare_vr_gui_render();
   }

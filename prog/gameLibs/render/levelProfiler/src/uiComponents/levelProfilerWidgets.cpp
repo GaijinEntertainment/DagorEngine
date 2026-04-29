@@ -102,14 +102,13 @@ void LpSearchBox::clear()
 }
 
 // --- Search Widget ---
-LpSearchWidget::LpSearchWidget(LpProfilerTable *profiler_table, TableColumn table_column, const char *identifier,
+LpSearchWidget::LpSearchWidget(LpProfilerTable * /*profiler_table*/, ColumnIndex /*column_index*/, const char *identifier,
   const char *hint_text, SearchTextChangedCallback on_search_callback, SearchEnterCallback apply_filters_callback)
 {
   searchBox = eastl::make_unique<LpSearchBox>(identifier, hint_text, [on_search_callback, apply_filters_callback](const char *text) {
     on_search_callback(text);
     apply_filters_callback();
   });
-  profiler_table->registerSearchBox(table_column, searchBox.get());
 }
 
 
@@ -117,6 +116,12 @@ LpSearchWidget::~LpSearchWidget() {}
 
 
 const char *LpSearchWidget::getText() const { return searchBox ? searchBox->getText() : ""; }
+
+void LpSearchWidget::draw()
+{
+  if (searchBox)
+    searchBox->draw();
+}
 
 
 void LpSearchWidget::clear()
@@ -128,5 +133,58 @@ void LpSearchWidget::clear()
 // === Selection Widgets ===
 
 // === Range Widgets ===
+
+// === Splitter Widgets ===
+
+namespace
+{
+constexpr float SPLITTER_THICKNESS = 4.0f;
+constexpr float SPLITTER_LINE_OFFSET = 2.0f;
+constexpr float SPLITTER_LINE_THICKNESS = 1.0f;
+} // namespace
+
+LpSplitter::LpSplitter(LpSplitterDirection dir, float initial_ratio, float min_ratio, float max_ratio) :
+  direction(dir), ratio(initial_ratio), minRatio(min_ratio), maxRatio(max_ratio)
+{}
+
+bool LpSplitter::draw(const ImVec2 &available_area)
+{
+  bool ratioChanged = false;
+
+  const bool isHorizontal = (direction == LpSplitterDirection::HORIZONTAL);
+  const char *buttonId = isHorizontal ? "##HSplitter" : "##VSplitter";
+  const ImVec2 buttonSize = isHorizontal ? ImVec2(SPLITTER_THICKNESS, eastl::max(available_area.y, 1.0f))
+                                         : ImVec2(eastl::max(available_area.x, 1.0f), SPLITTER_THICKNESS);
+  const ImGuiMouseCursor cursor = isHorizontal ? ImGuiMouseCursor_ResizeEW : ImGuiMouseCursor_ResizeNS;
+
+  ImGui::InvisibleButton(buttonId, buttonSize);
+
+  if (ImGui::IsItemHovered())
+    ImGui::SetMouseCursor(cursor);
+
+  if (ImGui::IsItemActive())
+  {
+    const ImVec2 mouseDelta = ImGui::GetIO().MouseDelta;
+    const float delta = isHorizontal ? mouseDelta.x / available_area.x : mouseDelta.y / available_area.y;
+
+    ratio += delta;
+    ratio = eastl::clamp(ratio, minRatio, maxRatio);
+    ratioChanged = true;
+  }
+
+  const ImVec2 lineStart = ImGui::GetItemRectMin();
+  const ImVec2 lineEnd = ImGui::GetItemRectMax();
+  const ImU32 lineColor = ImGui::IsItemHovered() || ImGui::IsItemActive() ? ImGui::GetColorU32(ImGuiCol_SeparatorHovered)
+                                                                          : ImGui::GetColorU32(ImGuiCol_Separator);
+
+  const ImVec2 p1 = isHorizontal ? ImVec2(lineStart.x + SPLITTER_LINE_OFFSET, lineStart.y) : lineStart;
+  const ImVec2 p2 = isHorizontal ? ImVec2(lineStart.x + SPLITTER_LINE_OFFSET, lineEnd.y) : lineEnd;
+
+  ImGui::GetWindowDrawList()->AddLine(p1, p2, lineColor, SPLITTER_LINE_THICKNESS);
+
+  return ratioChanged;
+}
+
+void LpSplitter::setRatio(float new_ratio) { ratio = eastl::clamp(new_ratio, minRatio, maxRatio); }
 
 } // namespace levelprofiler

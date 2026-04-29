@@ -11,11 +11,11 @@
 #if _TARGET_C3
 
 #elif _TARGET_PC_WIN
-#include "os_win32.h"
+#include "os/win32.h"
 #elif _TARGET_PC_LINUX
-#include "os_linux.h"
+#include "os/linux.h"
 #elif _TARGET_ANDROID
-#include "os_android.h"
+#include "os/android.h"
 #else
 #error unsupported platform
 #endif
@@ -25,7 +25,8 @@ namespace drv3d_vulkan
 void get_video_modes_list(Tab<String> &list);
 bool validate_vulkan_signature(void *file);
 
-VulkanSurfaceKHRHandle init_window_surface(VulkanInstance &instance);
+VulkanSurfaceKHRHandle init_window_surface(VulkanInstance &instance, void *window);
+VkExtent2D get_window_client_rect_extent(void *window);
 
 void os_restore_display_mode();
 void os_set_display_mode(int res_x, int res_y);

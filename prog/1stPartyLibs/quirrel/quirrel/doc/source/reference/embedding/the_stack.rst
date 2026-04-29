@@ -70,7 +70,7 @@ filled with null values.
 
 The following function pushes a C value into the stack::
 
-    void sq_pushstring(HSQUIRRELVM v,const SQChar *s,SQInteger len);
+    void sq_pushstring(HSQUIRRELVM v,const char *s,SQInteger len);
     void sq_pushfloat(HSQUIRRELVM v,SQFloat f);
     void sq_pushinteger(HSQUIRRELVM v,SQInteger n);
     void sq_pushuserpointer(HSQUIRRELVM v,SQUserPointer p);
@@ -91,8 +91,8 @@ the result can be one of the following values: ::
 
 The following functions convert a quirrel value in the stack to a C value::
 
-    SQRESULT sq_getstring(HSQUIRRELVM v,SQInteger idx,const SQChar **c);
-    SQRESULT sq_getstringandsize(HSQUIRRELVM v,SQInteger idx,const SQChar **c,SQInteger size);
+    SQRESULT sq_getstring(HSQUIRRELVM v,SQInteger idx,const char **c);
+    SQRESULT sq_getstringandsize(HSQUIRRELVM v,SQInteger idx,const char **c,SQInteger size);
     SQRESULT sq_getinteger(HSQUIRRELVM v,SQInteger idx,SQInteger *i);
     SQRESULT sq_getfloat(HSQUIRRELVM v,SQInteger idx,SQFloat *f);
     SQRESULT sq_getuserpointer(HSQUIRRELVM v,SQInteger idx,SQUserPointer *p);

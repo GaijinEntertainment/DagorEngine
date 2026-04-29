@@ -9,8 +9,8 @@
 
 
 #if MODFX_DEBUG_RENDER_ENABLED
-  #undef MODFX_USE_SHADOW
-  #define MODFX_USE_SHADOW 0
+  #undef MODFX_USE_STATIC_SHADOW
+  #define MODFX_USE_STATIC_SHADOW 0
 
   #undef DAFX_USE_CLOUD_SHADOWS
   #define DAFX_USE_CLOUD_SHADOWS 0
@@ -72,11 +72,14 @@
     COLOR_INTERPOLATION float3 emission   : TEXCOORD4;
   #endif
 
-  #if MODFX_USE_SHADOW || DAFX_USE_CLOUD_SHADOWS
+  #if MODFX_USE_STATIC_SHADOW || DAFX_USE_CLOUD_SHADOWS || DAFX_USE_VOXEL_SHADOWS_VS
     float4 lighting   : TEXCOORD7;
-    float fake_brightness : TEXCOORD16;
   #elif MODFX_USE_LIGHTING
     float3 lighting   : TEXCOORD7;
+  #endif
+
+  #if MODFX_USE_FAKE_BRIGHTNESS
+    float fake_brightness : TEXCOORD16;
   #endif
 
   #if MODFX_USE_GI
@@ -111,7 +114,7 @@
   #endif
 
   #if MODFX_SHADER_DISTORTION
-    PARAM_INTERPOLATION float zfar_strength : TEXCOORD5;
+    PARAM_INTERPOLATION float distortion_strength : TEXCOORD5;
   #endif
 
   #if MODFX_USE_FOG
@@ -126,6 +129,10 @@
   #endif
   #endif
     nointerpolation uint draw_call_id : TEXCOORD6;
+
+  #if DAFX_USE_VOXEL_SHADOWS_PS
+    float3 wpos : TEXCOORD17;
+  #endif
   };
 
   bool is_blending_premult(uint flags)
@@ -299,7 +306,7 @@
     z += modfx_wboit_depth_offset;
     // https://jcgt.org/published/0002/02/09/paper.pdf
     //return a * max(pow(10.f, -2.f), min(3*pow(10.f, 3.f), 10.f / (pow(10.f, -5.f) + pow(abs(z)/5.f, 2.f) + pow(abs(z)/200.f, 6.f))));
-    return a * max(0.00001, min(1000.f, 10.f / (1e-05 + pow((z)/5.f, 2.f) + pow((z)/200.f, 6.f))));
+    return a * max(0.00001, min(1000.f, 10.f / (1e-05 + pow2(z*0.2f) + pow6(z*0.005f))));
   }
 #endif
 
@@ -315,14 +322,20 @@
   float4 modfx_render_get_motion_vecs(
     ModfxParentRenData parent_data,
     float4 tc,
-    float frame_blend)
+    float frame_blend,
+    GlobalData gdata)
   {
     float4 mvAB = 0;
   #if MODFX_USE_MOTION_VECS && MODFX_USE_FRAMEBLEND && !MODFX_SHADER_VOLSHAPE_WBOIT_APPLY
+    ModfxDeclMotionVectors motionVecs;
+
+    bool enabled = parent_data.mods_offsets[MODFX_RMOD_MOTION_VECTORS];
+    if (enabled)
+      motionVecs = ModfxDeclMotionVectors_load( 0, parent_data.mods_offsets[MODFX_RMOD_MOTION_VECTORS] );
+
     BRANCH
-    if (parent_data.mods_offsets[MODFX_RMOD_MOTION_VECTORS] )
+    if (enabled && (motionVecs.quality_mask & gdata.quality))
     {
-      ModfxDeclMotionVectors motionVecs = ModfxDeclMotionVectors_load( 0, parent_data.mods_offsets[MODFX_RMOD_MOTION_VECTORS] );
       mvAB = float4(decode_motion_vecs(tex2D(g_tex_1, tc.xy).xy), decode_motion_vecs(tex2D(g_tex_1, tc.zw).xy));
       mvAB *= float2(-frame_blend, 1.0 - frame_blend).xxyy * motionVecs.motion_vectors_strength;
     }

@@ -45,8 +45,8 @@ static eastl::string get_res_owning_shadervars(const D3dResource *res)
       continue;
     int varId = VariableMap::getVariableId(name);
     int varType = ShaderGlobal::get_var_type(varId);
-    if ((varType == SHVT_TEXTURE && D3dResManagerData::getD3dRes(ShaderGlobal::get_tex(varId)) == res) ||
-        (varType == SHVT_BUFFER && D3dResManagerData::getD3dRes(ShaderGlobal::get_buf(varId)) == res))
+    if ((varType == SHVT_TEXTURE && ShaderGlobal::get_tex_ptr(varId) == res) ||
+        (varType == SHVT_BUFFER && ShaderGlobal::get_buf_ptr(varId) == res))
       message.append_sprintf("'%s', ", VariableMap::getVariableName(varId));
   }
   if (!message.empty())
@@ -103,7 +103,7 @@ static bool should_complain(const D3dResource *res)
   "daFG: discovered a frame graph resource '%s' which is bound into " \
   "a d3d register outside of a daFG node, this is UB!"
 
-#define INSIDE_NODE_ERROR_MSSAGE                                      \
+#define INSIDE_NODE_ERROR_MESSAGE                                     \
   "daFG: discovered a frame graph resource '%s' which is bound into " \
   "a d3d register in node '%s' without being requested by it, this is UB!"
 
@@ -120,7 +120,7 @@ static bool should_complain(const D3dResource *res)
 
 #define IN_CPPSTCODE_EXPLANATION                                                    \
   "Reason: the resource was leaked outside of FG through a global shader variable " \
-  "and accessed through it while apply cppstcode routine '%s'. "                    \
+  "and accessed through it while applying cppstcode routine '%s'. "                 \
   "Please, unbind the resource from the following shader variables: %s"
 
 static void validate_shader(const ShaderElement *selem, const D3dResource *res, const char *shader_name)
@@ -132,7 +132,7 @@ static void validate_shader(const ShaderElement *selem, const D3dResource *res, 
     logerr(OUTSIDE_OF_NODE_ERROR_MESSAGE " " IN_SHADER_EXPLANATION, res->getName(), shader_name, get_res_owning_shadervars(res),
       get_res_owning_dynamic_vars(selem, res));
   else
-    logerr(INSIDE_NODE_ERROR_MSSAGE " " IN_SHADER_EXPLANATION, res->getName(), current_node_name, shader_name,
+    logerr(INSIDE_NODE_ERROR_MESSAGE " " IN_SHADER_EXPLANATION, res->getName(), current_node_name, shader_name,
       get_res_owning_shadervars(res), get_res_owning_dynamic_vars(selem, res));
 }
 
@@ -144,7 +144,8 @@ static void validate_block(const D3dResource *res, const char *block_name)
   if (current_node_name.empty())
     logerr(OUTSIDE_OF_NODE_ERROR_MESSAGE " " IN_BLOCK_EXPLANATION, res->getName(), block_name, get_res_owning_shadervars(res));
   else
-    logerr(INSIDE_NODE_ERROR_MSSAGE " " IN_BLOCK_EXPLANATION, res->getName(), block_name, get_res_owning_shadervars(res));
+    logerr(INSIDE_NODE_ERROR_MESSAGE " " IN_BLOCK_EXPLANATION, res->getName(), current_node_name, block_name,
+      get_res_owning_shadervars(res));
 }
 
 static void validate_cppstcode(const D3dResource *res, const char *routine_name)
@@ -155,11 +156,12 @@ static void validate_cppstcode(const D3dResource *res, const char *routine_name)
   if (current_node_name.empty())
     logerr(OUTSIDE_OF_NODE_ERROR_MESSAGE " " IN_CPPSTCODE_EXPLANATION, res->getName(), routine_name, get_res_owning_shadervars(res));
   else
-    logerr(INSIDE_NODE_ERROR_MSSAGE " " IN_CPPSTCODE_EXPLANATION, res->getName(), routine_name, get_res_owning_shadervars(res));
+    logerr(INSIDE_NODE_ERROR_MESSAGE " " IN_CPPSTCODE_EXPLANATION, res->getName(), current_node_name, routine_name,
+      get_res_owning_shadervars(res));
 }
 
 #undef OUTSIDE_OF_NODE_ERROR_MESSAGE
-#undef INSIDE_NODE_ERROR_MSSAGE
+#undef INSIDE_NODE_ERROR_MESSAGE
 #undef IN_SHADER_EXPLANATION
 #undef IN_BLOCK_EXPLANATION
 
@@ -185,13 +187,13 @@ void validation_set_current_node(const InternalRegistry &registry, NodeNameId no
     registry.resourceProviderReference.providedResources.size() + registry.resourceProviderReference.providedHistoryResources.size());
 
   auto addResource = [](const auto &var) {
-    if (auto tex = eastl::get_if<ManagedTexView>(&var); tex != nullptr && *tex)
+    if (auto tex = eastl::get_if<BaseTexture *>(&var); tex != nullptr && *tex)
     {
-      current_node_resources.emplace(static_cast<const D3dResource *>(tex->getBaseTex()));
+      current_node_resources.emplace(static_cast<const D3dResource *>(*tex));
     }
-    else if (auto buf = eastl::get_if<ManagedBufView>(&var); buf != nullptr && *buf)
+    else if (auto buf = eastl::get_if<Sbuffer *>(&var); buf != nullptr && *buf)
     {
-      current_node_resources.emplace(static_cast<const D3dResource *>(buf->getBuf()));
+      current_node_resources.emplace(static_cast<const D3dResource *>(*buf));
     }
   };
 
@@ -204,27 +206,26 @@ void validation_set_current_node(const InternalRegistry &registry, NodeNameId no
 
 void validation_add_resource(const D3dResource *res) { managed_resources.emplace(res); }
 
+void validation_remove_resource(const D3dResource *res) { managed_resources.erase(res); }
+
 void validation_of_external_resources_duplication(
-  const IdIndexedMapping<intermediate::ResourceIndex, eastl::optional<ExternalResource>> &resources,
-  const IdIndexedMapping<intermediate::ResourceIndex, intermediate::DebugResourceName> &resourceNames)
+  const IdSparseIndexedMapping<intermediate::ResourceIndex, ExternalResource> &resources,
+  const IdSparseIndexedMapping<intermediate::ResourceIndex, intermediate::DebugResourceName> &resourceNames)
 {
   static ska::flat_hash_set<D3DRESID, ResKeyHash> alreadyLoggedResources;
 
   FRAMEMEM_VALIDATE; // Reserved amount DEFINITELY should be enough
   ska::flat_hash_map<D3DRESID, intermediate::ResourceIndex, ResKeyHash, eastl::equal_to<D3DRESID>, framemem_allocator>
     setOfExternalResources;
-  setOfExternalResources.reserve(resources.size());
+  setOfExternalResources.reserve(resources.used());
 
-  for (const auto resIdx : IdRange<intermediate::ResourceIndex>(resources.size()))
+  for (auto [resIdx, res] : resources.enumerate())
   {
-    if (!resources[resIdx])
-      continue;
-
     D3DRESID resId;
     static_assert(eastl::variant_size_v<ExternalResource> == 2);
-    if (auto tex = eastl::get_if<ManagedTexView>(&*resources[resIdx]))
+    if (auto tex = eastl::get_if<ManagedTexView>(&res))
       resId = tex->getTexId();
-    else if (auto buf = eastl::get_if<ManagedBufView>(&*resources[resIdx]))
+    else if (auto buf = eastl::get_if<ManagedBufView>(&res))
       resId = buf->getBufId();
 
     if (auto [it, succ] = setOfExternalResources.emplace(resId, resIdx); !succ)

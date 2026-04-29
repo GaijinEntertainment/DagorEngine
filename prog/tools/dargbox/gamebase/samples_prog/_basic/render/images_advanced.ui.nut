@@ -39,7 +39,7 @@ return {
       flow = FLOW_HORIZONTAL
       children = [
         {
-          size = static [sh(40), sh(8)] //means it will keep aspect ratio
+          size = const [sh(40), sh(8)] //means it will keep aspect ratio
           rendObj = ROBJ_IMAGE
           keepAspect = true
           image = picture_from_tga
@@ -47,7 +47,7 @@ return {
           children = {rendObj=ROBJ_FRAME size=flex()}
         }
         {
-          size = static [sh(40), sh(8)] //means it will keep aspect ratio
+          size = const [sh(40), sh(8)] //means it will keep aspect ratio
           rendObj = ROBJ_IMAGE
           keepAspect=true
           image = picture_from_tga
@@ -57,7 +57,7 @@ return {
       ]
     }
     {
-      size = static [sh(40), sh(20)]
+      size = const [sh(40), sh(20)]
       keepAspect = true
       rendObj = ROBJ_IMAGE
       image = picture_from_jpg
@@ -69,14 +69,14 @@ return {
     }
 /*
     {
-      size = static [sh(20), SIZE_TO_CONTENT] //means it will keep aspect ratio
+      size = const [sh(20), SIZE_TO_CONTENT] //means it will keep aspect ratio
       rendObj = ROBJ_IMAGE
       image = picture_from_ddsx
     }
 */
     {
       flow = FLOW_HORIZONTAL
-      size = static [sh(10),sh(5)]
+      size = const [sh(10),sh(5)]
       children = [
         {
           size = sh(5) //means it will keep aspect ratio

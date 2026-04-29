@@ -1,27 +1,16 @@
-float4 frustumPlane03X;
-float4 frustumPlane03Y;
-float4 frustumPlane03Z;
-float4 frustumPlane03W;
-float4 frustumPlane4;
-float4 frustumPlane5;
+include "frustum_planes.dshl"
+
 macro INIT_AND_USE_FRUSTUM_CHECK_BASE(stage)
-  (stage) {
-    frustumPlane03X@f4 = frustumPlane03X;
-    frustumPlane03Y@f4 = frustumPlane03Y;
-    frustumPlane03Z@f4 = frustumPlane03Z;
-    frustumPlane03W@f4 = frustumPlane03W;
-    frustumPlane4@f4 = frustumPlane4;
-    frustumPlane5@f4 = frustumPlane5;
-  }
+  INIT_AND_USE_FRUSTUM_PLANES(stage)
   hlsl(stage) {
     #include "frustum_culling.hlsl"
     bool testSphereB(float3 center, float radius)
     {
-      return baseTestSphereB(center, radius, frustumPlane03X, frustumPlane03Y, frustumPlane03Z, frustumPlane03W, frustumPlane4, frustumPlane5);
+      return baseTestSphereB(center, radius, frustumPlanes);
     }
     bool testBoxExtentB(float3 centerb, float3 extentb)
     {
-      return baseTestBoxExtentB(centerb, extentb, frustumPlane03X, frustumPlane03Y, frustumPlane03Z, frustumPlane03W, frustumPlane4, frustumPlane5);
+      return baseTestBoxExtentB(centerb, extentb, frustumPlanes);
     }
     bool testBoxB(float3 minb, float3 maxb)
     {
@@ -30,11 +19,11 @@ macro INIT_AND_USE_FRUSTUM_CHECK_BASE(stage)
     }
     bool testBoxExtentIntersects(float3 centerb, float3 extentb)
     {
-      return baseTestBoxExtentIntersects(centerb, extentb, frustumPlane03X, frustumPlane03Y, frustumPlane03Z, frustumPlane03W, frustumPlane4, frustumPlane5);
+      return baseTestBoxExtentIntersects(centerb, extentb, frustumPlanes);
     }
     uint testBoxExtent(float3 centerb, float3 extentb)// 0 - outside, 1 - inside, 2 - intersect
     {
-      return baseTestBoxExtent(centerb, extentb, frustumPlane03X, frustumPlane03Y, frustumPlane03Z, frustumPlane03W, frustumPlane4, frustumPlane5);
+      return baseTestBoxExtent(centerb, extentb, frustumPlanes);
     }
     uint testBox(float3 minb, float3 maxb)// 0 - outside, 1 - inside, 2 - intersect
     {

@@ -1,7 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 #include <sqrat.h>
 
@@ -83,7 +83,8 @@ void sqrat_bind_path_finder(SqModules *module_mgr)
     .Func("project_to_nearest_navmesh_point", sq_project_to_nearest_navmesh_point)
     .Func("project_to_nearest_navmesh_point_no_obstacles", sq_project_to_nearest_navmesh_point_no_obstacles)
     .Func("check_path", sq_check_path)
-    .SquirrelFunc("find_path", sq_find_path, -5, ".xxfff")
+    .SquirrelFuncDeclString(sq_find_path,
+      "find_path(from: instance, to: instance, distToPath: float, stepSize: float, slop: float): array|null")
     .Func("traceray_navmesh", sq_traceray_navmesh)
     .SetValue("POLYFLAG_GROUND", pathfinder::POLYFLAG_GROUND)
     .SetValue("POLYFLAG_OBSTACLE", pathfinder::POLYFLAG_OBSTACLE)

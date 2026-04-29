@@ -1,0 +1,9 @@
+ERROR: foreach() key and value names are the same: 'x'
+testData/diagnostics/compilation_errors/sema_errors/same_foreach_kv_names.nut:3:12
+
+let arr = [1, 2, 3]
+foreach (x, x in arr) {
+            ^
+    print(x)
+
+

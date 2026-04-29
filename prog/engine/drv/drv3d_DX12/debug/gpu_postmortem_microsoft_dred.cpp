@@ -12,14 +12,6 @@ bool is_dred_avilable()
   return D3D12_DRED_ENABLEMENT_FORCED_ON == enablement;
 }
 
-void set_name(ID3D12Resource *resource, eastl::string_view name)
-{
-  // lazy way of converting to wchar, this assumes name is not multi byte encoding
-  wchar_t wcharName[1024];
-  *eastl::copy(name.data(), min(name.data() + name.size(), name.data() + 1023), wcharName) = L'\0';
-  resource->SetName(wcharName);
-}
-
 const char *to_string(D3D12_DRED_ALLOCATION_TYPE type)
 {
   switch (type)
@@ -206,12 +198,8 @@ void DeviceRemovedExtendedData::onDeviceRemoved(D3DDevice *device, HRESULT reaso
 
 void DeviceRemovedExtendedData::onDeviceShutdown() {}
 
-void DeviceRemovedExtendedData::nameResource(ID3D12Resource *resource, eastl::string_view name) { set_name(resource, name); }
+void DeviceRemovedExtendedData::nameResource(ID3D12Resource *resource, eastl::string_view name) { set_object_name(resource, name); }
 
-void DeviceRemovedExtendedData::nameResource(ID3D12Resource *resource, eastl::wstring_view name)
-{
-  // technically not correct, when name is a sub-string...
-  resource->SetName(name.data());
-}
+void DeviceRemovedExtendedData::nameResource(ID3D12Resource *resource, eastl::wstring_view name) { set_object_name(resource, name); }
 
 } // namespace drv3d_dx12::debug::gpu_postmortem::microsoft

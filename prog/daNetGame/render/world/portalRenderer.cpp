@@ -19,7 +19,9 @@
 #include <generic/dag_enumerate.h>
 #include <perfMon/dag_statDrv.h>
 #include "render/renderEvent.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <shaders/portal_render.hlsli>
 #include <rendInst/riExtraRenderer.h>
 
@@ -77,17 +79,17 @@ struct ScopedShVars
 
   ScopedShVars(const Point3 &in_pos, const PortalParams &portal_params)
   {
-    originalZnZfar = ShaderGlobal::get_color4(zn_zfarVarId);
-    originalWorldPos = ShaderGlobal::get_color4(world_view_posVarId);
-    originalVolfogParams = ShaderGlobal::get_color4(volfog_froxel_range_paramsVarId);
+    originalZnZfar = ShaderGlobal::get_float4(zn_zfarVarId);
+    originalWorldPos = ShaderGlobal::get_float4(world_view_posVarId);
+    originalVolfogParams = ShaderGlobal::get_float4(volfog_froxel_range_paramsVarId);
     glassDynamicLight = ShaderGlobal::get_int(glass_dynamic_lightVarId);
     disableWind = ShaderGlobal::get_int(var::disable_wind);
     disableObstacleInteraction = ShaderGlobal::get_int(var::disable_obstacle_interaction);
-    ShaderGlobal::set_color4(world_view_posVarId, in_pos.x, in_pos.y, in_pos.z, 1);
-    ShaderGlobal::set_color4(zn_zfarVarId, Z_NEAR, portal_params.portalRange, 0, 0);
-    ShaderGlobal::set_color4(volfog_froxel_range_paramsVarId, 0, 0, 0, 0); // disable volfog
+    ShaderGlobal::set_float4(world_view_posVarId, in_pos.x, in_pos.y, in_pos.z, 1);
+    ShaderGlobal::set_float4(zn_zfarVarId, Z_NEAR, portal_params.portalRange, 0, 0);
+    ShaderGlobal::set_float4(volfog_froxel_range_paramsVarId, 0, 0, 0, 0); // disable volfog
     ShaderGlobal::set_int(var::portal_use_dense_fog, portal_params.useDenseFog);
-    ShaderGlobal::set_real(var::portal_fog_start_distance, portal_params.fogStartDist);
+    ShaderGlobal::set_float(var::portal_fog_start_distance, portal_params.fogStartDist);
     ShaderGlobal::set_int(glass_dynamic_lightVarId, 0);
     ShaderGlobal::set_int(var::disable_wind, 1);
     ShaderGlobal::set_int(var::disable_obstacle_interaction, 1);
@@ -95,11 +97,11 @@ struct ScopedShVars
 
   ~ScopedShVars()
   {
-    ShaderGlobal::set_color4(zn_zfarVarId, originalZnZfar);
-    ShaderGlobal::set_color4(world_view_posVarId, originalWorldPos);
-    ShaderGlobal::set_color4(volfog_froxel_range_paramsVarId, originalVolfogParams);
+    ShaderGlobal::set_float4(zn_zfarVarId, originalZnZfar);
+    ShaderGlobal::set_float4(world_view_posVarId, originalWorldPos);
+    ShaderGlobal::set_float4(volfog_froxel_range_paramsVarId, originalVolfogParams);
     ShaderGlobal::set_int(var::portal_use_dense_fog, 0);
-    ShaderGlobal::set_real(var::portal_fog_start_distance, 0);
+    ShaderGlobal::set_float(var::portal_fog_start_distance, 0);
     ShaderGlobal::set_int(glass_dynamic_lightVarId, glassDynamicLight);
     ShaderGlobal::set_int(var::disable_wind, disableWind);
     ShaderGlobal::set_int(var::disable_obstacle_interaction, disableObstacleInteraction);
@@ -371,7 +373,7 @@ void PortalRenderer::renderCube(int portal_cube_index, CameraParams &camera_para
   {
     TIME_D3D_PROFILE(portal_render_water);
     ShaderGlobal::set_texture(downsampled_far_depth_texVarId, renderTargetGbuf->getDepthId());
-    callbackParams.renderWater(tmpRenderTargetTex.getBaseTex(), view_itm, renderTargetGbuf->getDepth());
+    callbackParams.renderWater(tmpRenderTargetTex.getBaseTex(), camera_params, renderTargetGbuf->getDepth());
   }
 
   {
@@ -732,6 +734,15 @@ int PortalRenderer::getRenderedPortalCubeSlot(int portal_index, TMatrix &portal_
   life = activePortalLifeArr[cubeSlot];
 
   return cubeSlot;
+}
+
+void PortalRenderer::afterDeviceReset()
+{
+  for (auto &data : portalDataVec)
+  {
+    if (data.state == PortalState::Rendered || data.state == PortalState::IsBaking)
+      data.state = PortalState::Dirty;
+  }
 }
 
 

@@ -11,6 +11,9 @@ struct Tex
   PATCHABLE_DATA64(TEXTUREID, texId);
   PATCHABLE_DATA64(BaseTexture *, tex);
 
+  Tex() : texId(BAD_TEXTUREID), tex(NULL) { static_assert(sizeof(Tex) <= 16); }
+
+
   void init(TEXTUREID tid)
   {
     texId = tid;
@@ -38,6 +41,10 @@ struct Tex
     tex = NULL;
     return true;
   }
+
+  bool isTextureUnmanaged() const { return texId == BAD_TEXTUREID && tex != NULL; }
+
+  bool isTextureManaged() const { return !isTextureUnmanaged(); }
 };
 
 struct Buf
@@ -72,5 +79,9 @@ struct Buf
     buf = NULL;
     return true;
   }
+
+  bool isBufferUnmanaged() const { return bufId == BAD_D3DRESID && buf != NULL; }
+
+  bool isBufferManaged() const { return !isBufferUnmanaged(); }
 };
 } // namespace shaders_internal

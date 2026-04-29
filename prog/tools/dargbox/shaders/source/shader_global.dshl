@@ -5,11 +5,9 @@ include "global_consts.dshl"
 int support_texture_array = 0;//should be assumed
 interval support_texture_array : off<1, on;
 
-int mobile_render = 0;
-interval mobile_render: off < 1, forward < 2, deferred;
-
 float4 world_view_pos;
 float global_transp_r;
+int packed_gbuf_normals = 0;
 
 macro NO_ATEST()
   hlsl(ps) {

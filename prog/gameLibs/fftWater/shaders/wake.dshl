@@ -79,7 +79,7 @@ macro USE_WAKE()
       half2 wake_grad0 = tex3Dlod(wake_gradients_tex, float4(wake_tc0.xy,0,0)).xy;
       half2 wake_grad1 = tex3Dlod(wake_gradients_tex, float4(wake_tc1.xy,1,0)).xy;
       half2 wake_grad = wake_grad0+wake_grad1;
-      return half3(wake_grad.xy, sizeInMeters0);
+      return half3(wake_grad.x, sizeInMeters0, wake_grad.y);
     }
     float3 get_wake_normal(float3 worldPos, out half wakeEffect)//should be removed!
     {
@@ -96,7 +96,7 @@ macro USE_WAKE()
       //float3 wake_normal0 = normalize(half3(hor0, ver0, sizeInMeters0));
       //float3 wake_normal1 = normalize(half3(hor1, ver1, sizeInMeters1));
       //float3 wake_normal = RNM_ndetail(wake_normal1, wake_normal0);
-      float3 wake_normal = normalize(half3(wake_grad.xy, sizeInMeters0));
+      float3 wake_normal = normalize(half3(wake_grad.x, sizeInMeters0, wake_grad.y));
       wakeEffect = saturate((wake_strength.x+wake_strength.y)*2);
       return wake_normal;
     }
@@ -105,13 +105,15 @@ macro USE_WAKE()
 
       float3 get_wake_normal(float3 worldPos, out half wakeEffect)
       {
-        float3 norm = get_water_ripples_normal(worldPos);
+        float distort;
+        float3 norm = get_water_ripples_normal(worldPos, distort);
         wakeEffect = (norm.x + norm.z) > 0 ? 1.0 : 0.0;
-        return norm.xzy;
+        return norm;
       }
       half3 get_wake_gradient(float3 worldPos)
       {
-        return get_water_ripples_gradient(worldPos).xzy;
+        float distort;
+        return get_water_ripples_gradient(worldPos, distort);
       }
     ##endif
   }

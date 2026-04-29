@@ -9,6 +9,10 @@ node_collapser{
     // NodeCollapserInfo soa end
 
     "animchar_node_collapser__children:list<i>"{}
+  }
+  _group {
+    _tags:t="render"
+    _track:b=yes
 
     "animchar_node_collapser__nodes:object"{}
   }

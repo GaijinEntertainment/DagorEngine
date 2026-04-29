@@ -1,0 +1,101 @@
+include "clipmap_decals_inc.dshl"
+include "burnt_ground_inc.dshl"
+
+texture clipmap_decal_material_tex;
+texture perlin_noise3d;
+
+shader clipmap_burnt_ground_decal
+{
+  hlsl(ps){
+    #define NO_GRADIENTS_IN_SHADER 1
+  }
+  if (clipmap_writes_height_only == yes)
+  {
+    dont_render;
+  }
+  if (in_editor_assume == yes)
+  {
+    dont_render;
+  }
+
+  INIT_WORLD_HEIGHTMAP_PS()
+  INIT_WATER_HEIGHTMAP_BASE(ps, @smp2d)
+  INIT_RENDINST_HEIGHTMAP_OFS(ps)
+  INIT_BIOMES(ps)
+  INIT_BURNT_GROUND_COMMON(true)
+
+  (ps)
+  {
+    world_to_grass @f4 = world_to_grass;
+    grass_mask_tex @smp2d = grass_mask_tex;
+  }
+
+  USE_HEIGHTMAP_COMMON_PS()
+  USE_WATER_HEIGHTMAP(ps)
+  USE_RENDINST_HEIGHTMAP_OFS(ps)
+  USE_BIOMES(ps)
+  USE_BURNT_GROUND_COMMON()
+
+  if (clipmap_decal_array_tex == off)
+  {
+    (ps) {
+      m_tex@smp2d = clipmap_decal_material_tex;
+    }
+  }
+  else
+  {
+    (ps) {
+      m_tex@smpArray = clipmap_decal_material_tex;
+    }
+  }
+
+  CLIPMAP_DECALS_COMMON()
+
+  hlsl(ps) {
+    MRT_OUPUT landmesh_decal_clipmap_ps(VsOutput input)
+    {
+      MRT_OUPUT ret;
+      float decalSize = input.diffuseTexcoord.w;
+      float3 tc = float3(getBurntGroundTc(input.worldPosXZ), input.diffuseTexcoord.z);
+
+      float4 diffuse_displacement = getDecalTex(d_tex, tc);
+      float3 normal = getDecalTex(n_tex, tc).xyz;
+      float4 material_params = getDecalTex(m_tex, tc);
+      float3 diffuse = diffuse_displacement.rgb;
+      float2 decalCenterXZ = input.worldPosXZ - (input.diffuseTexcoord.xy*2-1)*decalSize;
+      float alpha = getBurntGroundMask(input.worldPosXZ, decalCenterXZ, decalSize, 1);
+      alpha *= getBurntGroundBiomeMask(float3(input.worldPosXZ.x, 0, input.worldPosXZ.y));
+      float detail = material_params.b;
+      float ao = material_params.g;
+      float reflectance = material_params.r;
+      float smoothness = material_params.a;
+      float emission = getBurntGroundEmission(diffuse, input.worldPosXZ, 0);
+
+      ret.height = float4(0, 0, 0, 0);
+      ret.color.rgb = diffuse.rgb;
+      ret.color.a = alpha;
+
+      ret.normal.xyz = float3(normal.xy, smoothness);
+      ret.normal.a = alpha;
+
+      BRANCH
+      if (emission > 0.0)
+      {
+        // Fade out emission by wetness
+        float worldHeight = getWorldHeight(input.worldPosXZ);
+        apply_renderinst_hmap_ofs(input.worldPosXZ, worldHeight);
+        float waterLevel = waterLevel_wetnessAboveRcp.x;
+        get_water_height(input.worldPosXZ, waterLevel);
+        float wetness = saturate((waterLevel - worldHeight) * waterLevel_wetnessAboveRcp.y + 1);
+        float emissionModifier = pow2(1.0 - wetness);
+        emission *= emissionModifier;
+        ret.color.rgb *= emissionModifier;
+      }
+      ret.detail_ao_reflectance = half4(pack_detail_ao_reflectance_emission(detail, ao, reflectance, emission), alpha);
+
+      return ret;
+    }
+  }
+  compile("target_vs", "landmesh_decal_clipmap_vs");
+  compile("target_ps", "landmesh_decal_clipmap_ps");
+}

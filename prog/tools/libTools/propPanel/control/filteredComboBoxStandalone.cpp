@@ -337,7 +337,7 @@ void FilteredComboBoxStandalone::DropdownOpenState::updateImguiComboBoxItems(int
     posMin.y = max(posMin.y, posMin.y + (((posMax.y - posMin.y) - textSize.y) * 0.5f));
     posMax.x = min(posMax.x, posMin.x + textSize.x);
     posMax.y = min(posMax.y, posMin.y + textSize.y);
-    ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), posMin, posMax, posMax.x, posMax.x, message, nullptr, &textSize);
+    ImGui::RenderTextEllipsis(ImGui::GetWindowDrawList(), posMin, posMax, posMax.x, message, nullptr, &textSize);
   }
 }
 

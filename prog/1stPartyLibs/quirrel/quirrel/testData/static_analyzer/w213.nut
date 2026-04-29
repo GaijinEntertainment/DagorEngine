@@ -1,12 +1,10 @@
-//expect:w213
-
-function foo(x) { //-declared-never-used
+function _foo(x) {
   if (x == 1) {
     x /= 4
-    ::print(x)
+    print(x)
   }
   else {
     x /= 4
-    ::print(x)
+    print(x)
   }
 }

@@ -803,13 +803,13 @@ public:
     static Color4 dec_xz_0(0, 0, 0, 0), dec_y_0(0, 0, 0, 0);
     if (landCellShortDecodeXZ != -1)
     {
-      dec_xz_0 = ShaderGlobal::get_color4(landCellShortDecodeXZ);
-      ShaderGlobal::set_color4(landCellShortDecodeXZ, 1.0f / 32767.f, 0, 0, 0);
+      dec_xz_0 = ShaderGlobal::get_float4(landCellShortDecodeXZ);
+      ShaderGlobal::set_float4(landCellShortDecodeXZ, 1.0f / 32767.f, 0, 0, 0);
     }
     if (landCellShortDecodeY != -1)
     {
-      dec_y_0 = ShaderGlobal::get_color4(landCellShortDecodeY);
-      ShaderGlobal::set_color4(landCellShortDecodeY, 1.0f / 32767.f, 0, 0, 0);
+      dec_y_0 = ShaderGlobal::get_float4(landCellShortDecodeY);
+      ShaderGlobal::set_float4(landCellShortDecodeY, 1.0f / 32767.f, 0, 0, 0);
     }
 
     TMatrix4 projtm, viewtm;
@@ -867,9 +867,9 @@ public:
       default: break;
     }
     if (landCellShortDecodeXZ != -1)
-      ShaderGlobal::set_color4(landCellShortDecodeXZ, dec_xz_0);
+      ShaderGlobal::set_float4(landCellShortDecodeXZ, dec_xz_0);
     if (landCellShortDecodeY != -1)
-      ShaderGlobal::set_color4(landCellShortDecodeY, dec_y_0);
+      ShaderGlobal::set_float4(landCellShortDecodeY, dec_y_0);
   }
 
   // IObjEntityMgr interface
@@ -922,7 +922,7 @@ public:
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_EXPORT);
-    uint64_t lh_mask = stage_idx == prefabs::PrefabStage::LOFT_MASK_EXPORT ? IObjEntityFilter::getLayerHiddenMask() : 0;
+    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int i = 0; i < p.size(); i++)
       if (p[i]->checkStageIdx(stage_idx))
         p[i]->addGeometry(cont, StaticGeometryNode::FLG_RENDERABLE, 0, st_mask, lh_mask);
@@ -932,15 +932,17 @@ public:
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION);
+    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int i = 0; i < p.size(); i++)
-      p[i]->addGeometry(cont, StaticGeometryNode::FLG_COLLIDABLE, PrefabEntity::FLG_CLIP_GAME, st_mask);
+      p[i]->addGeometry(cont, StaticGeometryNode::FLG_COLLIDABLE, PrefabEntity::FLG_CLIP_GAME, st_mask, lh_mask);
   }
   void gatherStaticCollisionGeomEditor(StaticGeometryContainer &cont) override
   {
     dag::ConstSpan<PrefabEntityPool *> p = prefabPool.getPools();
     int st_mask = IObjEntityFilter::getSubTypeMask(IObjEntityFilter::STMASK_TYPE_COLLISION);
+    uint64_t lh_mask = IObjEntityFilter::getLayerHiddenMask();
     for (int i = 0; i < p.size(); i++)
-      p[i]->addGeometry(cont, StaticGeometryNode::FLG_COLLIDABLE, PrefabEntity::FLG_CLIP_EDITOR, st_mask);
+      p[i]->addGeometry(cont, StaticGeometryNode::FLG_COLLIDABLE, PrefabEntity::FLG_CLIP_EDITOR, st_mask, lh_mask);
   }
 
   // IDagorEdCustomCollider interface
@@ -1108,7 +1110,7 @@ void init_prefabmgr_service(const DataBlock &app_blk)
         s.shaderRE = new RegExp;
         if (!s.shaderRE->compile(b->getBlock(i)->getStr("shaderRE", "")))
         {
-          DAEDITOR3.conError("bad shaderRE=\"%s\" in application.blk", b->getBlock(i)->getStr("shaderRE", ""));
+          DAEDITOR3.conError("bad shaderRE=\"%s\" in %s", b->getBlock(i)->getStr("shaderRE", ""), app_blk.resolveFilename(true));
           del_it(s.shaderRE);
           obj_scale_setup.pop_back();
           continue;
@@ -1119,7 +1121,8 @@ void init_prefabmgr_service(const DataBlock &app_blk)
             s.tcMask |= 1 << j;
         if (!s.tcMask)
         {
-          DAEDITOR3.conError("shaderRE=\"%s\" in application.blk is not applied to any TC", b->getBlock(i)->getStr("shaderRE", ""));
+          DAEDITOR3.conError("shaderRE=\"%s\" in %s is not applied to any TC", b->getBlock(i)->getStr("shaderRE", ""),
+            app_blk.resolveFilename(true));
           del_it(s.shaderRE);
           obj_scale_setup.pop_back();
           continue;

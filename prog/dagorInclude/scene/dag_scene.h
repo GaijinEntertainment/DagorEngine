@@ -34,7 +34,7 @@ __forceinline uint32_t get_node_pool_flags(mat44f_cref node);
 __forceinline void set_node_flags(mat44f &node, uint16_t flags); // Adds flags to existing ones, doesn't replace all flag bits.
 __forceinline void unset_node_flags(mat44f &node, uint16_t flags);
 
-enum
+enum : uint32_t
 {
   INVALID_POOL = 0xFFFF,
   INVALID_NODE = 0xFFFFFFFF,

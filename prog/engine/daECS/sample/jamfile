@@ -1,0 +1,43 @@
+APP             = ecs30 ;
+APP_FOLDER      = engine/daECS/sample ;
+
+Root    ?= ../../../.. ;
+Location = prog/$(APP_FOLDER) ;
+
+if $(Config) != rel { CheckedContainers ?= yes ; }
+
+include $(Root)/prog/_jBuild/defaults.jam ; # Note - $(Platform) is not defined before this line
+
+OutDir      =  $(Root)/$(Location) ;
+ConsoleExe      = yes ;
+
+TargetType  = exe ;
+Target      = daECS_benchmark ;
+StrictCompile = yes ;
+
+local AllSources = [ GLOB $(Root)/$(Location) : *.cpp ] ;
+Sources = $(AllSources:D=) ;
+
+if $(Platform)-$(PlatformArch) = windows-x86 && $(Config) != rel { UseMemoryDebugLevel = dbg ; }
+
+UseGpu = no ;
+
+UseProgLibs +=
+  engine/osApiWrappers
+  engine/kernel
+  engine/memory
+  engine/perfMon
+  engine/math
+  engine/baseUtil
+  engine/ioSys
+  engine/startup
+  engine/daECS/core
+  engine/daECS/io/datablock
+;
+
+
+if $(Config) = rel {
+  ForceLogs = yes ;
+}
+ForcePdb = yes ;
+include $(Root)/prog/_jBuild/build.jam ;

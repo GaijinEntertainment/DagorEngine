@@ -28,12 +28,12 @@ function logContent(log_state) {
 
 function textLog(log_state) {
   return {
-    size = static [flex(), hdpx(300)]
+    size = const [flex(), hdpx(300)]
     borderColor = Color(120, 120, 120)
     fillColor = Color(0,0,0,120)
     rendObj = ROBJ_BOX
-    borderWidth = static [hdpx(1), 0]
-    padding = static [hdpx(1), 0]
+    borderWidth = const [hdpx(1), 0]
+    padding = const [hdpx(1), 0]
 
     children = makeVertScroll(logContent(log_state), {scrollHandler})
   }
@@ -86,7 +86,7 @@ let hotkeys = {
 return {
   rendObj = ROBJ_SOLID
   color = Color(30,40,50)
-  size = static [flex(), ph(100)]
+  size = const [flex(), ph(100)]
   flow = FLOW_VERTICAL
   children = [
     {rendObj = ROBJ_TEXTAREA behavior=Behaviors.TextArea size  = FLEX_H

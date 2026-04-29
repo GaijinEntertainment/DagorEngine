@@ -9,7 +9,7 @@ shader deferred_light_compute
     dont_render;//deferred are not used in compatibility
   }
 
-  ENABLE_ASSERT(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   INIT_RENDERING_RESOLUTION(cs)

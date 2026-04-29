@@ -58,8 +58,8 @@ public:
   virtual void __stdcall getStat(bool tex_pack, int &processed, int &built, int &failed) = 0;
   virtual int __stdcall getRemovedPackCount() = 0;
 
-  virtual const char *__stdcall getPackName(DagorAsset *asset) = 0;
-  virtual const char *__stdcall getPackNameFromFolder(int fld_idx, bool tex_or_res) = 0;
+  virtual String __stdcall getPackName(DagorAsset *asset) = 0;
+  virtual String __stdcall getPackNameFromFolder(int fld_idx, bool tex_or_res) = 0;
   virtual String __stdcall getPkgName(DagorAsset *asset) = 0;
   virtual bool __stdcall checkUpToDate(dag::ConstSpan<unsigned> tc, dag::Span<int> tc_flags,
     dag::ConstSpan<const char *> packs_to_check, const char *profile = NULL) = 0;
@@ -81,6 +81,8 @@ public:
     dag::Vector<BuildWarning> &warnings, bool &cache_up_to_date) = 0;
 
   virtual void __stdcall setExpCacheSharedData(void *) = 0;
+
+  virtual void __stdcall allowPatchBuild(bool) = 0;
 
   virtual void __stdcall processSrcHashForDestPacks() = 0;
 

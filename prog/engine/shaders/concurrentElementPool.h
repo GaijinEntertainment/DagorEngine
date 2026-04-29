@@ -210,17 +210,10 @@ private:
   uint32_t size(uint32_t bucket) const { return bucket == buckets.size() - 1 ? firstFreeInLastBucket : capacity(bucket); }
   bool last_bucket_full() const { return firstFreeInLastBucket == capacity(buckets.size() - 1); }
 
-  // NOTE: without C++20 we cannot use G_FAST_ASSERT inside of constexpr functions :(
-  static constexpr Id make_index_unsafe(uint8_t bucket, uint16_t offset)
-  {
-    // NOTE: see break_index for the encoding
-    return static_cast<Id>((uint32_t{1} << (OFFSET_BITS_FOR_FIRST_BUCKET + bucket)) | offset);
-  }
-
-  static Id make_index(uint8_t bucket, uint16_t offset)
+  constexpr static Id make_index(uint8_t bucket, uint16_t offset)
   {
     G_FAST_ASSERT(bucket < MAX_BUCKET_COUNT && offset < capacity(bucket));
-    return make_index_unsafe(bucket, offset);
+    return static_cast<Id>((uint32_t{1} << (OFFSET_BITS_FOR_FIRST_BUCKET + bucket)) | offset);
   }
 
   static eastl::tuple<uint8_t, uint16_t> break_index(Id id)
@@ -255,7 +248,7 @@ private:
 public:
   // NOTE: this is located here ONLY because of apple clang being quirky,
   // should be up above with the rest of public stuff...
-  static inline constexpr Id FIRST_ID = make_index_unsafe(0, 0);
+  static inline constexpr Id FIRST_ID = make_index(0, 0);
 };
 
 

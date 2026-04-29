@@ -13,8 +13,6 @@
 namespace drv3d_vulkan
 {
 
-class ExecutionContext;
-
 struct RaytraceASDescription
 {
   bool isTopLevel;
@@ -42,8 +40,8 @@ public:
   bool isEvictable();
   void shutdown();
   bool nonResidentCreation();
-  void restoreFromSysCopy(ExecutionContext &ctx);
-  void makeSysCopy(ExecutionContext &ctx);
+  void restoreFromSysCopy();
+  void makeSysCopy();
   void onDeviceReset();
   void afterDeviceReset();
 

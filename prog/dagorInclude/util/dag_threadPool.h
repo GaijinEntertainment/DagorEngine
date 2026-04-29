@@ -19,7 +19,7 @@ namespace threadpool
 {
 #if _TARGET_C1 | _TARGET_XBOXONE
 static constexpr int MAX_WORKER_COUNT = 6;
-#elif _TARGET_ANDROID
+#elif _TARGET_ANDROID | _TARGET_IOS
 static constexpr int MAX_WORKER_COUNT = 4;
 #elif _TARGET_C3
 

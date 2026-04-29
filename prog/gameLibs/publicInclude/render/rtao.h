@@ -36,9 +36,12 @@ void get_required_transient_texture_descriptors(denoiser::TexInfoMap &transient_
 void initialize(bool half_res);
 void teardown();
 
-void render_noisy(bvh::ContextId context_id, const TMatrix4 &proj_tm, TEXTUREID half_depth, TextureIDPair rtao_tex_unfiltered,
+void render_noisy(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *half_depth, Texture *rtao_tex_unfiltered,
   bool checkerboard = true);
-void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool performance_mode, TEXTUREID half_depth,
+void denoise(bool performance_mode, const denoiser::TexMap &textures, bool checkerboard);
+bool do_trace(bvh::ContextId context_id, const TMatrix4 &proj_tm, Texture *half_depth, const denoiser::TexMap &textures,
+  bool checkerboard);
+void render(bvh::ContextId context_id, const TMatrix4 &proj_tm, bool performance_mode, Texture *half_depth,
   const denoiser::TexMap &textures, bool checkerboard = true);
 
 } // namespace rtao

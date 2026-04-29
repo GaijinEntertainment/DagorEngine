@@ -4,64 +4,49 @@
 //
 #pragma once
 
-#include <phys/dag_physUserData.h>
-
 #include <rendInst/rendInstCollision.h>
 #include <gamePhys/collision/cachedCollisionObject.h>
 
-struct RendinstCollisionUserInfo : public PhysObjectUserData
+#if DAGOR_DBGLEVEL > 0
+extern void (*ri_coll_damage_log)(const char *format_str, ...);
+#else
+static constexpr void (*ri_coll_damage_log)(const char *format_str, ...) = nullptr;
+#endif
+
+class RendinstImpulseThresholdData final : public CachedCollisionObjectInfo
 {
-  class RendinstImpulseThresholdData final : public CachedCollisionObjectInfo
-  {
-    virtual ~RendinstImpulseThresholdData() override;
+  ~RendinstImpulseThresholdData() override;
 
-  public:
-    const rendinst::CollisionInfo collInfo;
-    Point3 finalImpulse;
-    Point3 finalPos;
+public:
+  const rendinst::CollisionInfo collInfo;
+  Point3 finalImpulse;
+  Point3 finalPos;
 
-    RendinstImpulseThresholdData(float impulse, const rendinst::RendInstDesc &ri_desc, float at_time,
-      const rendinst::CollisionInfo &coll_info);
+  RendinstImpulseThresholdData(float impulse, const rendinst::RendInstDesc &ri_desc, float at_time,
+    const rendinst::CollisionInfo &coll_info);
 
-    virtual float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
-      uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, gamephys::ImpulseLogFunc /*log_func*/ = nullptr,
-      const char * /*actor_name*/ = nullptr) override;
-    virtual float getDestructionImpulse() const override;
-    virtual bool isRICollision() const override;
-  };
+  float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
+    uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, const char * /*actor_name*/ = nullptr) override;
+  float getDestructionImpulse() const override { return thresImpulse; }
+  bool isRICollision() const override { return true; }
+};
 
-  class TreeRendinstImpulseThresholdData final : public CachedCollisionObjectInfo
-  {
-    virtual ~TreeRendinstImpulseThresholdData() override;
+class TreeRendinstImpulseThresholdData final : public CachedCollisionObjectInfo
+{
+  ~TreeRendinstImpulseThresholdData() override;
 
-  public:
-    const rendinst::CollisionInfo collInfo;
-    Point3 finalImpulse;
-    Point3 finalPos;
-    float lastPointVel;
-    float lastOmega;
+public:
+  const rendinst::CollisionInfo collInfo;
+  Point3 finalImpulse;
+  Point3 finalPos;
+  float lastPointVel;
+  float lastOmega;
 
-    TreeRendinstImpulseThresholdData(float impulse, const rendinst::RendInstDesc &ri_desc, float at_time,
-      const rendinst::CollisionInfo &coll_info);
+  TreeRendinstImpulseThresholdData(float impulse, const rendinst::RendInstDesc &ri_desc, float at_time,
+    const rendinst::CollisionInfo &coll_info);
 
-    virtual float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
-      uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, gamephys::ImpulseLogFunc /*log_func*/ = nullptr,
-      const char * /*actor_name*/ = nullptr) override;
-    virtual float getDestructionImpulse() const override;
-    virtual bool isTreeCollision() const override;
-  };
-
-  rendinst::RendInstDesc desc;
-  BBox3 bbox;
-  TMatrix tm;
-  bool isTree;
-  bool immortal;
-  bool isDestr;
-  bool bushBehaviour;
-  bool treeBehaviour;
-  CollisionResource *collRes;
-  gamephys::CollisionObjectInfo *objInfoData;
-  mutable bool collided;
-
-  RendinstCollisionUserInfo(const rendinst::RendInstDesc &from_desc);
+  float onImpulse(float impulse, const Point3 &dir, const Point3 &pos, float point_vel, const Point3 & /*collision_normal*/,
+    uint32_t /*flags*/ = CIF_NONE, int32_t user_data = -1, const char * /*actor_name*/ = nullptr) override;
+  float getDestructionImpulse() const override { return thresImpulse; }
+  bool isTreeCollision() const override { return true; }
 };

@@ -2,7 +2,7 @@
 
 #include <dasModules/aotClientNet.h>
 #include <daScript/daScript.h>
-#include <daECS/net/dasEvents.h>
+#include <ecs/net/dasEvents.h>
 #include <dasModules/dasEvent.h>
 #include <dasModules/dasModulesCommon.h>
 

@@ -1,0 +1,3 @@
+;
+use_modules = yes ; enable to use "require()"
+use_libs_by_default = yes ; what to do if library not found in this config

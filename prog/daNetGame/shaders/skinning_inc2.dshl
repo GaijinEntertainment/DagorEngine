@@ -5,6 +5,52 @@ int matrices_stride = 6;
 buffer instance_data_buffer;
 buffer bind_pose_tr_buffer always_referenced;
 
+macro DYNMODEL_SHARED_DECL_BUFFER(code)
+  if (small_sampled_buffers == no)
+  {
+    (code) {
+      instance_data_buffer@buf = instance_data_buffer hlsl { Buffer<float4> instance_data_buffer@buf; }
+    }
+  } else
+  {
+    (code) {
+      instance_data_buffer@buf = instance_data_buffer hlsl { StructuredBuffer<float4> instance_data_buffer@buf; }
+    }
+  }
+endmacro
+
+macro DYNMODEL_SHARED_DECL()
+  supports global_frame;
+  DYNMODEL_SHARED_DECL_BUFFER(vs)
+  DYNMODEL_SHARED_DECL_BUFFER(ps)
+  (vs) {
+    viewProjTm@f44 = viewprojtm;
+    matrices_stride@i1 = (matrices_stride);
+  }
+  (ps) {
+    matrices_stride@i1 = (matrices_stride);
+  }
+endmacro
+
+macro DYNMODEL_SHARED_DECL_IMMEDIATE_BASE(code)
+  if (in_editor_assume == no)
+  {
+    (code) {immediate_dword_count = 2;}
+  }
+endmacro
+
+macro DYNMODEL_SHARED_DECL_IMMEDIATE()
+  DYNMODEL_SHARED_DECL_IMMEDIATE_BASE(vs)
+  DYNMODEL_SHARED_DECL_IMMEDIATE_BASE(ps)
+endmacro
+
+macro DYNMODEL_SHARED_DECL_IMMEDIATE_TOOLS(code)
+  if (in_editor_assume == yes)
+  {
+    (code) {immediate_dword_count = 2;} // the data supplied is different from DYNMODEL_SHARED_DECL_IMMEDIATE_BASE
+  }
+endmacro
+
 macro INIT_WORLD_LOCAL_MATRIX(code)
   (vs) {
     world_local_x_vs@f3 = world_local_x;
@@ -22,7 +68,6 @@ macro INIT_PER_INSTANCE_DATA(code)
   }
   if (in_editor_assume == no)
   {
-    (code) {immediate_dword_count = 2;}//todo: probably move to block
     hlsl(code) {
       // bone data starts from INST_OFFSET_GETTER, additional per-instance data is before it, in reverse order
       #define GET_PER_INSTANCE_DATA(index) \
@@ -159,6 +204,7 @@ endmacro
 macro NO_SKINNING_VS()
 if (in_editor_assume == yes)
 {
+  DYNMODEL_SHARED_DECL_IMMEDIATE_TOOLS(vs)
   hlsl(vs) {
     #define OFFSET_TO_NODE_DATA(rigid_index) ((get_immediate_dword_0() >> 8 & 0xFFFFFF) + uint(rigid_index * 255.001 * (get_immediate_dword_0() & 0xFF)))
     #define OFFSET_TO_INSTANCE_DATA ((int)get_immediate_dword_1())
@@ -167,6 +213,7 @@ if (in_editor_assume == yes)
   WORLD_LOCAL_VS()
 }
 INIT_PER_INSTANCE_DATA(vs)
+INIT_PER_INSTANCE_DATA(ps)
 hlsl(vs) {
   void instance_skinning(
     in VsInput input,
@@ -226,6 +273,7 @@ macro HAS_SKINNING_BASE(code)
 
 if (in_editor_assume == yes)
 {
+  DYNMODEL_SHARED_DECL_IMMEDIATE_TOOLS(code)
   hlsl(code)
   {
     #define OFFSET_TO_NODE_DATA(rigid_index) (get_immediate_dword_0() >> 8 & 0xFFFFFF)
@@ -372,8 +420,8 @@ hlsl(code)
     world_normal = mul_bone3(vertex_normal, skinnedTm);
 
     #if VERTEX_TANGENT
-    world_du = normalize(mul_bone3m(vertex_du, wtm));
-    world_dv = normalize(mul_bone3m(vertex_dv, wtm));
+    world_du = normalize(mul_bone3m(vertex_du, skinnedTm));
+    world_dv = normalize(mul_bone3m(vertex_dv, skinnedTm));
     #else
     world_du = world_dv = 0;
     #endif
@@ -388,6 +436,8 @@ endmacro
 
 macro HAS_SKINNING_VS()
   HAS_SKINNING_BASE(vs)
+  DYNMODEL_SHARED_DECL_IMMEDIATE_TOOLS(ps)
+  INIT_PER_INSTANCE_DATA(ps)
 endmacro
 
 macro OPTIONAL_SKINNING_SHADER()
@@ -541,14 +591,14 @@ endmacro
 macro USE_INITIAL_TM_HASHVAL(code)
   hlsl(code)
   {
-    void get_initial_tm(out float4 initial_tm_0, out float4 initial_tm_1, out float4 initial_tm_2)
+    void get_initial_tm_impl(out float4 initial_tm_0, out float4 initial_tm_1, out float4 initial_tm_2, int file, int ln)
     {
       uint2 offsetCount = 0;
       ##if in_editor_assume == no
         offsetCount = get_offset_count_additional_data(AAD_RAW_INITIAL_TM__HASHVAL);
       ##endif
       BRANCH
-      if (offsetCount.y > 0)
+      if (offsetCount.y >= 3)
       {
         initial_tm_0 = get_additional_data(offsetCount, 3);
         initial_tm_1 = get_additional_data(offsetCount, 2);
@@ -556,10 +606,13 @@ macro USE_INITIAL_TM_HASHVAL(code)
       }
       else
       {
+        ##assert(offsetCount.y == 0, "[%s:%.d] Additional data type INITIAL_TM__HASHVAL has broken size %d, expected 0 or 3.", file, ln, offsetCount.y);
         initial_tm_0 = float4(1, 0, 0, 0);
         initial_tm_1 = float4(0, 1, 0, 0);
         initial_tm_2 = float4(0, 0, 1, 0);
       }
     }
+
+    #define get_initial_tm(initial_tm_0, initial_tm_1, initial_tm_2) get_initial_tm_impl(initial_tm_0, initial_tm_1, initial_tm_2, _FILE_, __LINE__)
   }
 endmacro

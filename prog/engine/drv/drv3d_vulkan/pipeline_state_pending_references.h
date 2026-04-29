@@ -77,7 +77,9 @@ public:
 #endif
   }
 
-  void cleanupAllNonUsed(const PipelineState &front_state, const PipelineState &back_state)
+  // front state copy is used here to make sure res bind pointers are properly updated
+  // cause if command vector is reallocated, we will point to stale memory
+  void cleanupAllNonUsed(PipelineState front_state, const PipelineState &back_state)
   {
     cleanupNonUsed<Image *>(front_state, back_state);
     cleanupNonUsed<Buffer *>(front_state, back_state);

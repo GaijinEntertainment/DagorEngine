@@ -10,7 +10,7 @@
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_texture.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 
 #include <util/dag_console.h>
 #include <gui/dag_imgui.h>
@@ -59,6 +59,24 @@ static bool checkHWSupport()
   return d3d::get_driver_desc().shaderModel >= 5.0_sm;
 }
 
+static int get_max_loaded_mip(TEXTUREID texture_id, Texture *texture)
+{
+  return texture->level_count() - (int)get_managed_res_loaded_lev(texture_id) - 1;
+}
+
+static bool is_texture_ready(TEXTUREID texture_id)
+{
+  Texture *texture = acquire_managed_tex(texture_id);
+  if (!texture)
+    return false;
+
+  int maxLoadedMip = get_max_loaded_mip(texture_id, texture);
+  release_managed_tex(texture_id);
+
+  // empirically selected value, to provide suitable result for frame boundary feature
+  constexpr int MAX_SKIPPED_MIPS = 2;
+  return (maxLoadedMip >= 0 && maxLoadedMip <= MAX_SKIPPED_MIPS);
+}
 
 static bool get_texture_size(TEXTUREID texture_id, IPoint2 &texture_size)
 {
@@ -66,7 +84,7 @@ static bool get_texture_size(TEXTUREID texture_id, IPoint2 &texture_size)
   if (texture)
   {
     TextureInfo textureInfo;
-    texture->getinfo(textureInfo);
+    texture->getinfo(textureInfo, get_max_loaded_mip(texture_id, texture));
     texture_size.x = textureInfo.w;
     texture_size.y = textureInfo.h;
     release_managed_tex(texture_id);
@@ -78,7 +96,7 @@ static bool get_texture_size(TEXTUREID texture_id, IPoint2 &texture_size)
 static dag::Vector<FrameBoundaryBufferManager *> managers; // debug-only
 
 
-FrameBoundaryBufferManager::FrameBoundaryBufferManager()
+FrameBoundaryBufferManager::FrameBoundaryBufferManager() : frameBoundaryAllocator(RESTAG_DEBUG)
 {
   WinAutoLock lock(g_frame_boundary_cs);
 
@@ -91,9 +109,11 @@ FrameBoundaryBufferManager::~FrameBoundaryBufferManager()
   auto it = eastl::find(managers.begin(), managers.end(), this);
   if (it != managers.end())
     managers.erase(it);
+
+  resetUsedTextureId();
 }
 
-FrameBoundaryBufferManager::FrameBoundaryBufferManager(FrameBoundaryBufferManager &&rhs)
+FrameBoundaryBufferManager::FrameBoundaryBufferManager(FrameBoundaryBufferManager &&rhs) : frameBoundaryAllocator(RESTAG_DEBUG)
 {
   WinAutoLock lock(g_frame_boundary_cs);
 
@@ -105,6 +125,8 @@ FrameBoundaryBufferManager::FrameBoundaryBufferManager(FrameBoundaryBufferManage
   frameBoundaryAllocator = eastl::move(rhs.frameBoundaryAllocator);
   frameBoundaryElemArr = eastl::move(rhs.frameBoundaryElemArr);
   dirtyElemArr = eastl::move(rhs.dirtyElemArr);
+
+  usedTextureId = eastl::move(rhs.usedTextureId);
 
   bufferElemCnt = rhs.bufferElemCnt;
 
@@ -287,92 +309,93 @@ void FrameBoundaryBufferManager::updateFrameElems(unsigned int currect_frame)
 
   TIME_D3D_PROFILE(frame_boundary_update);
 
+  // process elements in order of request to avoid frequent switches
+  const auto &elem = dirtyElemArr.front();
 
-  for (auto it = dirtyElemArr.begin(); it != dirtyElemArr.end(); ++it)
+  setUsedTextureId(elem.textureId);
+  if (!prefetch_and_check_managed_texture_loaded(elem.textureId, true) || !is_texture_ready(elem.textureId))
+    return;
+
+  IPoint2 textureSize;
+  if (get_texture_size(elem.textureId, textureSize))
   {
-    const auto &elem = *it;
-    if (!prefetch_and_check_managed_texture_loaded(elem.textureId, true))
-      continue; // skip to another one which is potentially up-to-date
-
-    IPoint2 textureSize;
-    if (get_texture_size(elem.textureId, textureSize))
+    bool res = true;
+    bool approximateFillSkipped = false;
+    if (use_optimized_boundary_calc)
     {
-      bool res = true;
-      if (use_optimized_boundary_calc)
+      const Region &region = frameBoundaryAllocator.get(elem.regionId);
+
+      ShaderGlobal::set_texture(dafx_fill_boundary_texVarId, elem.textureId);
+      ShaderGlobal::set_buffer(dafx_frame_boundary_tmpVarId, frameBoundaryBufferTmp);
+      ShaderGlobal::set_float4(dafx_fill_boundary_paramsVarId, elem.frameDim.x, elem.frameDim.y, textureSize.x, textureSize.y);
+      ShaderGlobal::set_int(dafx_fill_boundary_offsetVarId, region.offset);
+      ShaderGlobal::set_int(dafx_use_experimental_boundary_calcVarId, use_experimental_boundary_calc);
+
       {
-        const Region &region = frameBoundaryAllocator.get(elem.regionId);
-
-        ShaderGlobal::set_texture(dafx_fill_boundary_texVarId, elem.textureId);
-        ShaderGlobal::set_buffer(dafx_frame_boundary_tmpVarId, frameBoundaryBufferTmp);
-        ShaderGlobal::set_color4(dafx_fill_boundary_paramsVarId, elem.frameDim.x, elem.frameDim.y, textureSize.x, textureSize.y);
-        ShaderGlobal::set_int(dafx_fill_boundary_offsetVarId, region.offset);
-        ShaderGlobal::set_int(dafx_use_experimental_boundary_calcVarId, use_experimental_boundary_calc);
-
-        {
-          TIME_D3D_PROFILE(fillBoundaryOptStartCs);
-          static int frame_boundary_tmp_uav_no =
-            ShaderGlobal::get_slot_by_name("dafx_fill_boundary_opt_start_frame_boundary_tmp_uav_no");
-          STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_tmp_uav_no, VALUE), frameBoundaryBufferTmp.getBuf());
-          res = res && fillBoundaryOptStartCs->dispatchThreads(DAFX_FLIPBOOK_MAX_KEYFRAME_DIM * DAFX_FLIPBOOK_MAX_KEYFRAME_DIM, 1, 1);
-        }
-        d3d::resource_barrier({frameBoundaryBufferTmp.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
-        if (approximateFill)
-        {
-          TIME_D3D_PROFILE(fillBoundaryApproxCs);
-          static int frame_boundary_tmp_uav_no = ShaderGlobal::get_slot_by_name("dafx_fill_boundary_approx_frame_boundary_tmp_uav_no");
-          STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_tmp_uav_no, VALUE), frameBoundaryBufferTmp.getBuf());
-          res = res && fillBoundaryApproxCs->dispatchThreads(textureSize.x / (elem.frameDim.x * DAFX_FRAME_BOUNDARY_BLOCK_SIZE * 2),
-                         textureSize.y / (elem.frameDim.y * DAFX_FRAME_BOUNDARY_BLOCK_SIZE * 2), elem.frameDim.x * elem.frameDim.y);
-        }
-        else
-        {
-          TIME_D3D_PROFILE(fillBoundaryOptCs);
-          static int frame_boundary_tmp_uav_no = ShaderGlobal::get_slot_by_name("dafx_fill_boundary_opt_frame_boundary_tmp_uav_no");
-          STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_tmp_uav_no, VALUE), frameBoundaryBufferTmp.getBuf());
-          res = res && fillBoundaryOptCs->dispatchThreads(textureSize.x, textureSize.y, 1);
-        }
-        d3d::resource_barrier({frameBoundaryBufferTmp.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
-        {
-          TIME_D3D_PROFILE(fillBoundaryOptEndCs);
-          static int frame_boundary_result_uav_no =
-            ShaderGlobal::get_slot_by_name("dafx_fill_boundary_opt_end_frame_boundary_result_uav_no");
-          STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_result_uav_no, VALUE), frameBoundaryBuffer.getBuf());
-          res = res && fillBoundaryOptEndCs->dispatchThreads(elem.frameDim.x, elem.frameDim.y, 1);
-          // if this one fails, the final result is still the same as before, no need to clear it
-        }
+        TIME_D3D_PROFILE(fillBoundaryOptStartCs);
+        static int frame_boundary_tmp_uav_no =
+          ShaderGlobal::get_slot_by_name("dafx_fill_boundary_opt_start_frame_boundary_tmp_uav_no");
+        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_tmp_uav_no, VALUE), frameBoundaryBufferTmp.getBuf());
+        res = res && fillBoundaryOptStartCs->dispatchThreads(DAFX_FLIPBOOK_MAX_KEYFRAME_DIM * DAFX_FLIPBOOK_MAX_KEYFRAME_DIM, 1, 1);
+      }
+      d3d::resource_barrier({frameBoundaryBufferTmp.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
+      if (approximateFill)
+      {
+        TIME_D3D_PROFILE(fillBoundaryApproxCs);
+        static int frame_boundary_tmp_uav_no = ShaderGlobal::get_slot_by_name("dafx_fill_boundary_approx_frame_boundary_tmp_uav_no");
+        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_tmp_uav_no, VALUE), frameBoundaryBufferTmp.getBuf());
+        int dispatchSizeX = textureSize.x / (elem.frameDim.x * DAFX_FRAME_BOUNDARY_BLOCK_SIZE * 2);
+        int dispatchSizeY = textureSize.y / (elem.frameDim.y * DAFX_FRAME_BOUNDARY_BLOCK_SIZE * 2);
+        approximateFillSkipped = dispatchSizeX == 0 && dispatchSizeY == 0;
+        res = res && !approximateFillSkipped;
+        res = res && fillBoundaryApproxCs->dispatchThreads(dispatchSizeX, dispatchSizeY, elem.frameDim.x * elem.frameDim.y);
       }
       else
       {
-        TIME_D3D_PROFILE(fillBoundaryLegacyCs);
-        static int frame_boundary_result_uav_no =
-          ShaderGlobal::get_slot_by_name("dafx_fill_boundary_legacy_frame_boundary_result_uav_no");
-        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_result_uav_no, VALUE), frameBoundaryBuffer.getBuf());
-
-        const Region &region = frameBoundaryAllocator.get(elem.regionId);
-
-        ShaderGlobal::set_texture(dafx_fill_boundary_texVarId, elem.textureId);
-        ShaderGlobal::set_color4(dafx_fill_boundary_paramsVarId, elem.frameDim.x, elem.frameDim.y, textureSize.x, textureSize.y);
-        ShaderGlobal::set_int(dafx_fill_boundary_offsetVarId, region.offset);
-
-        res = fillBoundaryLegacyCs->dispatchThreads(elem.frameDim.x, elem.frameDim.y, 1);
+        TIME_D3D_PROFILE(fillBoundaryOptCs);
+        static int frame_boundary_tmp_uav_no = ShaderGlobal::get_slot_by_name("dafx_fill_boundary_opt_frame_boundary_tmp_uav_no");
+        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_tmp_uav_no, VALUE), frameBoundaryBufferTmp.getBuf());
+        res = res && fillBoundaryOptCs->dispatchThreads(textureSize.x, textureSize.y, 1);
       }
-
-      if (!res)
-        logerr("dafx: frameboundary update, dispatch error: %ld, (%d, %d)", (uint32_t)elem.textureId, elem.frameDim.x,
-          elem.frameDim.y);
-
-      d3d::resource_barrier({frameBoundaryBuffer.getBuf(), RB_RO_SRV | RB_STAGE_PIXEL});
+      d3d::resource_barrier({frameBoundaryBufferTmp.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
+      {
+        TIME_D3D_PROFILE(fillBoundaryOptEndCs);
+        static int frame_boundary_result_uav_no =
+          ShaderGlobal::get_slot_by_name("dafx_fill_boundary_opt_end_frame_boundary_result_uav_no");
+        STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_result_uav_no, VALUE), frameBoundaryBuffer.getBuf());
+        res = res && fillBoundaryOptEndCs->dispatchThreads(elem.frameDim.x, elem.frameDim.y, 1);
+        // if this one fails, the final result is still the same as before, no need to clear it
+      }
     }
     else
     {
-      logerr("dafx: frameboundary update, texture not found: %ld, (%d, %d)", (uint32_t)elem.textureId, elem.frameDim.x,
-        elem.frameDim.y);
+      TIME_D3D_PROFILE(fillBoundaryLegacyCs);
+      static int frame_boundary_result_uav_no =
+        ShaderGlobal::get_slot_by_name("dafx_fill_boundary_legacy_frame_boundary_result_uav_no");
+      STATE_GUARD_NULLPTR(d3d::set_rwbuffer(STAGE_CS, frame_boundary_result_uav_no, VALUE), frameBoundaryBuffer.getBuf());
+
+      const Region &region = frameBoundaryAllocator.get(elem.regionId);
+
+      ShaderGlobal::set_texture(dafx_fill_boundary_texVarId, elem.textureId);
+      ShaderGlobal::set_float4(dafx_fill_boundary_paramsVarId, elem.frameDim.x, elem.frameDim.y, textureSize.x, textureSize.y);
+      ShaderGlobal::set_int(dafx_fill_boundary_offsetVarId, region.offset);
+
+      res = fillBoundaryLegacyCs->dispatchThreads(elem.frameDim.x, elem.frameDim.y, 1);
     }
 
-    dirtyElemArr.erase(it);
-    lastUpdatedFrame = currect_frame;
-    break; // update only 1 elem per frame
+    if (!res && !approximateFillSkipped)
+      logerr("dafx: frameboundary update, dispatch error: %ld, (%d, %d)", (uint32_t)elem.textureId, elem.frameDim.x, elem.frameDim.y);
+
+    d3d::resource_barrier({frameBoundaryBuffer.getBuf(), RB_RO_SRV | RB_STAGE_PIXEL});
   }
+  else
+  {
+    logerr("dafx: frameboundary update, texture not found: %ld, (%d, %d)", (uint32_t)elem.textureId, elem.frameDim.x, elem.frameDim.y);
+  }
+
+  resetUsedTextureId();
+  dirtyElemArr.erase(dirtyElemArr.begin());
+  lastUpdatedFrame = currect_frame;
 
   ShaderGlobal::set_texture(dafx_fill_boundary_texVarId, BAD_TEXTUREID);
 }
@@ -391,7 +414,7 @@ void FrameBoundaryBufferManager::updateDebugTexture()
     // use as fallback if needed
     if (!d3d::check_texformat(fmt))
       fmt = TEXFMT_A16B16G16R16F;
-    debugTexture = dag::create_tex(NULL, DEBUG_TEX_SIZE, DEBUG_TEX_SIZE, fmt, 1, "dafx_frame_boundary_debug_tex");
+    debugTexture = dag::create_tex(NULL, DEBUG_TEX_SIZE, DEBUG_TEX_SIZE, fmt, 1, "dafx_frame_boundary_debug_tex", RESTAG_DEBUG);
     d3d::SamplerInfo smpInfo;
     smpInfo.filter_mode = d3d::FilterMode::Point;
     smpInfo.address_mode_u = smpInfo.address_mode_v = d3d::AddressMode::Clamp;
@@ -413,7 +436,7 @@ void FrameBoundaryBufferManager::updateDebugTexture()
   ShaderGlobal::set_int(dafx_fill_boundary_frame_idVarId, debug_frame_id);
 
   ShaderGlobal::set_texture(dafx_fill_boundary_texVarId, elem.textureId);
-  ShaderGlobal::set_color4(dafx_fill_boundary_paramsVarId, elem.frameDim.x, elem.frameDim.y, textureSize.x, textureSize.y);
+  ShaderGlobal::set_float4(dafx_fill_boundary_paramsVarId, elem.frameDim.x, elem.frameDim.y, textureSize.x, textureSize.y);
   ShaderGlobal::set_int(dafx_fill_boundary_offsetVarId, region.offset);
 
   static int outputTex_uav_no = ShaderGlobal::get_slot_by_name("dafx_frame_boundary_debug_update_outputTex_uav_no");
@@ -434,14 +457,15 @@ void FrameBoundaryBufferManager::resetFrameBoundaryResult()
   {
     String bufferName(128, "fx_dafx_frame_boundary_buffer_%p", this);
     frameBoundaryBuffer.close();
-    frameBoundaryBuffer = dag::buffers::create_ua_sr_structured(sizeof(float) * 4, bufferElemCnt, bufferName.c_str());
+    frameBoundaryBuffer = dag::buffers::create_ua_sr_structured(sizeof(float) * 4, bufferElemCnt, bufferName.c_str(),
+      d3d::buffers::Init::No, RESTAG_DEBUG);
   }
 
   {
     String bufferName(128, "fx_dafx_frame_boundary_buffer_tmp_%p", this);
     frameBoundaryBufferTmp.close();
     frameBoundaryBufferTmp = dag::buffers::create_ua_sr_structured(sizeof(uint32_t),
-      4 * DAFX_FLIPBOOK_MAX_KEYFRAME_DIM * DAFX_FLIPBOOK_MAX_KEYFRAME_DIM, bufferName.c_str());
+      4 * DAFX_FLIPBOOK_MAX_KEYFRAME_DIM * DAFX_FLIPBOOK_MAX_KEYFRAME_DIM, bufferName.c_str(), d3d::buffers::Init::No, RESTAG_DEBUG);
   }
 
   ShaderGlobal::set_int(dafx_fill_boundary_countVarId, bufferElemCnt);
@@ -453,6 +477,21 @@ void FrameBoundaryBufferManager::resetFrameBoundaryResult()
   d3d::resource_barrier({frameBoundaryBuffer.getBuf(), RB_RO_SRV | RB_STAGE_PIXEL});
 
   dirtyElemArr = frameBoundaryElemArr;
+  resetUsedTextureId();
+}
+
+void FrameBoundaryBufferManager::setUsedTextureId(TEXTUREID textureId)
+{
+  if (textureId == usedTextureId)
+    return;
+
+  if (usedTextureId != BAD_TEXTUREID)
+    release_managed_tex(usedTextureId);
+
+  if (textureId != BAD_TEXTUREID)
+    acquire_managed_tex(textureId);
+
+  usedTextureId = textureId;
 }
 
 void FrameBoundaryBufferManager::drawDebugWindow()

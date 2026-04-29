@@ -15,5 +15,9 @@ extern void (*dwc_hook_after_frame)();
 //! function may perform useful work when usec_to_next_act > 0 and new frame cannot be started yet
 extern bool (*dwc_can_draw_next_frame)(int frame_no, int usec_to_next_act);
 
+//! this function (if set) called just before new frame rendering starts;
+//! may be used to tell the engine how many frames were presented during the last cycle;
+extern int (*volatile dwc_get_frames_presented)();
+
 extern bool dwc_alloc_perform_delayed_actions;
 extern bool dwc_alloc_perform_delayed_actions_in_internal_winloop;

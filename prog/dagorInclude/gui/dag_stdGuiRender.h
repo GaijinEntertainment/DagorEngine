@@ -53,6 +53,13 @@ enum FontFxType // see gui_default
   FFT_OUTLINE,
 };
 
+enum TexFormat : uint8_t
+{
+  SRGB_IN_UNORM, // texture is in unorm format but values are in sRGB space
+  UNORM,
+  SRGB
+};
+
 struct StdGuiFontContext
 {
   DagorFontBinDump *font;
@@ -108,7 +115,7 @@ public:
   FontFx ff;
 
   BlendMode alphaBlend;
-  bool texInLinear;
+  TexFormat texFormat;
   TEXTUREID getTexId() const { return texId; }
   TEXTUREID getTexId2() const { return texId2; }
   TEXTUREID getFontTexId() const { return fontTexId; }
@@ -177,6 +184,7 @@ public:
 
   uint8_t writeToZ;
   uint8_t testDepth;
+  Point2 textDepth;
 
   void reset();
   void dump() const;
@@ -276,7 +284,7 @@ public:
     leftTop(left, top), rightBottom(right, bottom), applied(false)
   {
     normalize();
-    isNull = isZero();
+    updateNull();
   }
 
   inline GuiViewPort(const GuiViewPort &other) { operator=(other); }
@@ -378,7 +386,7 @@ struct GuiState
 
 struct ExtState // aliased to specific structure
 {
-  uint8_t data[72];
+  uint8_t data[sizeof(Texture *) == 8 ? 80 : 72];
 };
 
 struct CallBackState
@@ -436,7 +444,7 @@ struct StdGuiShader : GuiShader
     Color4 fontTex2ofs;
     Color4 fontTex2rotCCSmS;
     Color4 user[2];
-    uint8_t padding[8];
+    uint8_t padding[sizeof(Texture *) == 8 ? 16 : 8];
 
     void setFontTex2Ofs(GuiVertexTransform &xform, float su, float sv, float x0, float y0);
     //      void setFontFx(FontFxType type, E3DCOLOR col, int factor_x32);
@@ -635,6 +643,9 @@ public:
   // direct write to write_to_z, test_depth intervals
   void setZMode(bool write_to_z, int test_depth);
 
+  void setDepth(const Point2 zw);
+  const Point2 &getDepth() const;
+
   void setRollState(int bits) { rollState |= bits; }
 
   // qCache control
@@ -719,14 +730,16 @@ public:
 
   // set current texture (if texture changed, flush cached data)
   void set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTUREID tex_id2, d3d::SamplerHandle smp_id2, bool font_l8 = false,
-    bool tex_in_linear = false);
+    TexFormat tex_format = TexFormat::SRGB_IN_UNORM);
   inline void reset_textures()
   {
-    set_textures(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, false, false);
+    set_textures(BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, false,
+      TexFormat::SRGB_IN_UNORM);
   }
-  inline void set_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, bool font_l8 = false, bool tex_in_linear = false)
+  inline void set_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, bool font_l8 = false,
+    TexFormat tex_format = TexFormat::SRGB_IN_UNORM)
   {
-    set_textures(tex_id, smp_id, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, font_l8, tex_in_linear);
+    set_textures(tex_id, smp_id, BAD_TEXTUREID, d3d::INVALID_SAMPLER_HANDLE, font_l8, tex_format);
   }
   void set_mask_texture(TEXTUREID tex_id, d3d::SamplerHandle smp_id, Point3 transform0, Point3 transform1);
   void start_font_str(float s);

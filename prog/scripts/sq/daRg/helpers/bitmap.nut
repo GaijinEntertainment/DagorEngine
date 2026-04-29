@@ -2,7 +2,9 @@ from "%darg/ui_imports.nut" import *
 from "base64" import encodeBlob
 from "iostream" import blob
 
-function mkBitmapPicture(w, h, fillcb, prefix="") {
+function mkBitmapPicture(width: number, height: number, fillcb: function|null, prefix: string = "") {
+  let w = width.tointeger()
+  let h = height.tointeger()
   const HEADER_SIZE = 18
   let BITMAP_SIZE = w*h*4
 
@@ -36,14 +38,14 @@ function mkBitmapPicture(w, h, fillcb, prefix="") {
   }
 
   function bufSetAt(idx, byte) {
-    if (idx<0 || idx>BITMAP_SIZE)
+    if (idx<0 || idx>=BITMAP_SIZE)
       throw $"Invalid index {idx} for bitmap of size {w}x{h}"
     b.seek(HEADER_SIZE+idx)
     b.writen(byte, 'b')
   }
 
   function bufGetAt(idx) {
-    if (idx<0 || idx>BITMAP_SIZE)
+    if (idx<0 || idx>=BITMAP_SIZE)
       throw $"Invalid index {idx} for bitmap of size {w}x{h}"
     b.seek(HEADER_SIZE+idx)
     return b.readn('b')
@@ -56,13 +58,19 @@ function mkBitmapPicture(w, h, fillcb, prefix="") {
 
 let cache = {}
 local maxCachedSize = sw(15) * sh(15)
+local isScriptsLoading = false
 //create picture cached by fillCb on call.
-function mkBitmapPictureLazy(w, h, fillCb, prefix = "") {
+function mkBitmapPictureLazy(width: number, height: number, fillCb: function|null, prefix: string = "") {
+  let w = width.tointeger()
+  let h = height.tointeger()
   if (w * h > maxCachedSize)
     logerr($"Queued mkBitmapPictureLazy has size = {w}*{h} = {w*h} bigger than sw(15) * sh(15) = {maxCachedSize}")
   return function() {
-    if (fillCb not in cache)
+    if (fillCb not in cache) {
+      if (isScriptsLoading)
+        logerr($"Call mkBitmapPictureLazy on scripts loading. Use direct mkBitmapPicture instead if need such.")
       cache[fillCb] <- mkBitmapPicture(w, h, fillCb, prefix)
+    }
     return cache[fillCb]
   }
 }
@@ -71,4 +79,5 @@ return freeze({
   mkBitmapPicture
   mkBitmapPictureLazy
   function setMaxCachedSize(size) { maxCachedSize = size }
+  function markScriptsLoading(value) { isScriptsLoading = value }
 })

@@ -58,9 +58,15 @@ public:
   String(const char *s, int sz) : Tab<char>(strmem) { setStr(s, sz); }
 
 /// printf() constructor
+#define DSA_OVERLOADS_PARAM_DECL int est_sz, IMemAlloc *m,
+#define DSA_OVERLOADS_PARAM_PASS est_sz, m,
+  DECLARE_DSA_OVERLOADS_FAMILY(String, void ctor_vprintf_a, ctor_vprintf_a)
+#undef DSA_OVERLOADS_PARAM_DECL
+#undef DSA_OVERLOADS_PARAM_PASS
+
 #define DSA_OVERLOADS_PARAM_DECL int est_sz,
 #define DSA_OVERLOADS_PARAM_PASS est_sz,
-  DECLARE_DSA_OVERLOADS_FAMILY(String, KRNLIMP void ctor_vprintf, ctor_vprintf)
+  DECLARE_DSA_OVERLOADS_FAMILY(String, void ctor_vprintf, ctor_vprintf)
   DECLARE_DSA_OVERLOADS_FAMILY(int printf, KRNLIMP int vprintf, return vprintf);
   DECLARE_DSA_OVERLOADS_FAMILY(int aprintf, KRNLIMP int avprintf, return avprintf);
 #undef DSA_OVERLOADS_PARAM_DECL
@@ -155,8 +161,8 @@ public:
     return l;
   };
 
-  __forceinline const char &operator[](int idx) const { return data()[idx]; }
-  __forceinline char &operator[](int idx) { return data()[idx]; }
+  __forceinline const char &operator[](int idx) const { return c_str()[idx]; }
+  __forceinline char &operator[](int idx) { return c_str()[idx]; }
   String &operator=(const char *s)
   {
     setStr(s);
@@ -337,6 +343,17 @@ public:
     return s;
   }
 };
+
+inline void String::ctor_vprintf_a(int est_sz, IMemAlloc *m, const char *fmt, const DagorSafeArg *arg, int anum)
+{
+  dag::set_allocator(*this, m);
+  vprintf(est_sz, fmt, arg, anum);
+}
+
+inline void String::ctor_vprintf(int est_sz, const char *fmt, const DagorSafeArg *arg, int anum)
+{
+  ctor_vprintf_a(est_sz, strmem, fmt, arg, anum);
+}
 
 inline String operator+(const char *p, const String &s)
 {

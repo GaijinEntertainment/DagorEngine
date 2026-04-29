@@ -4,31 +4,41 @@
 //
 #pragma once
 
-#include <recast.h>
+#include <Recast.h>
 
-#include <detourCommon.h>
-#include <detourNavMesh.h>
-#include <detourTileCache.h>
-#include <detourTileCacheBuilder.h>
-#include <detourNavMeshBuilder.h>
-
+#include <DetourCommon.h>
+#include <DetourNavMesh.h>
+#include <DetourTileCache.h>
+#include <DetourTileCacheBuilder.h>
+#include <DetourNavMeshBuilder.h>
+#include <EASTL/bonus/tuple_vector.h>
 #include <EASTL/unique_ptr.h>
+#include <memory/dag_memPtrAllocator.h>
 #include <math/integer/dag_IPoint2.h>
-
-#define MAX_OFFMESH_CONNECTIONS 512
+#include <pathFinder/pathFinder.h> // POLYFLAG_*/POLYAREA_*
 
 namespace recastnavmesh
 {
+
+enum OffMeshCon
+{
+  Verts,
+  Rads,
+  BiDirs,
+  Areas,
+  Flags,
+  Id
+};
 struct OffMeshConnectionsStorage
 {
-  float m_offMeshConVerts[MAX_OFFMESH_CONNECTIONS * 3 * 2] = {0};
-  float m_offMeshConRads[MAX_OFFMESH_CONNECTIONS] = {0};
-  unsigned char m_offMeshConDirs[MAX_OFFMESH_CONNECTIONS] = {0};
-  unsigned char m_offMeshConAreas[MAX_OFFMESH_CONNECTIONS] = {0};
-  unsigned short m_offMeshConFlags[MAX_OFFMESH_CONNECTIONS] = {0};
-  unsigned int m_offMeshConId[MAX_OFFMESH_CONNECTIONS] = {0};
-  int m_offMeshConCount = 0;
+  eastl::tuple_vector_alloc<dag::MemPtrAllocator, eastl::pair<Point3, Point3>, float, uint8_t, uint8_t, uint16_t, uint32_t> offMeshCon;
 };
+inline void add_off_mesh_connection(OffMeshConnectionsStorage &storage, const float *spos, const float *epos, float rad,
+  unsigned char bidir, unsigned short flags = pathfinder::POLYFLAG_JUMP, unsigned char area = pathfinder::POLYAREA_JUMP)
+{
+  uint32_t count = 1000 + storage.offMeshCon.size();
+  storage.offMeshCon.emplace_back(eastl::make_pair(*(const Point3 *)spos, *(const Point3 *)epos), +rad, +bidir, +area, +flags, +count);
+}
 
 struct BuildTileData
 {
@@ -247,18 +257,20 @@ bool finalize_navmesh_tilecached_tile(rcContext &ctx, const rcConfig &cfg, dtTil
     params.polyFlags = lctx.lmesh->flags;
     params.polyCount = lctx.lmesh->npolys;
     params.nvp = lctx.lmesh->nvp;
-    if (conn_storage)
+
+    if (conn_storage && !conn_storage->offMeshCon.empty())
     {
       // we're feeding offmesh links built for all layers to each separate layer
       // but that's ok, dtCreateNavMeshData will take care of that, it'll strip
       // all offmesh links that don't intersect with this layer.
-      params.offMeshConVerts = conn_storage->m_offMeshConVerts;
-      params.offMeshConRad = conn_storage->m_offMeshConRads;
-      params.offMeshConDir = conn_storage->m_offMeshConDirs;
-      params.offMeshConAreas = conn_storage->m_offMeshConAreas;
-      params.offMeshConFlags = conn_storage->m_offMeshConFlags;
-      params.offMeshConUserID = conn_storage->m_offMeshConId;
-      params.offMeshConCount = conn_storage->m_offMeshConCount;
+      auto offMeshCon0 = conn_storage->offMeshCon.front();
+      params.offMeshConVerts = &eastl::get<OffMeshCon::Verts>(offMeshCon0).first.x; //-V503
+      params.offMeshConRad = &eastl::get<OffMeshCon::Rads>(offMeshCon0);
+      params.offMeshConDir = &eastl::get<OffMeshCon::BiDirs>(offMeshCon0);
+      params.offMeshConAreas = &eastl::get<OffMeshCon::Areas>(offMeshCon0);
+      params.offMeshConFlags = &eastl::get<OffMeshCon::Flags>(offMeshCon0);
+      params.offMeshConUserID = &eastl::get<OffMeshCon::Id>(offMeshCon0);
+      params.offMeshConCount = conn_storage->offMeshCon.size();
     }
     params.walkableHeight = walkableHeight;
     params.walkableRadius = walkableRadius;

@@ -15,7 +15,7 @@ from "math" import max
 let cursors = require("samples_prog/_cursors.nut")
 
 let textFrameState = Watched({
-  size   = static [hdpx(107), hdpx(30)]
+  size   = const [hdpx(107), hdpx(30)]
   pos    = [0, 0]
 })
 
@@ -60,7 +60,7 @@ return {
     flow = FLOW_VERTICAL
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
-    size = static [sw(80),sh(80)]
+    size = const [sw(80),sh(80)]
     gap = 10
     children = [
       dText("This is auto-clipped overflowed text")
@@ -76,9 +76,9 @@ return {
       dText("This is resizable overflowed text, split by chars")
       @(){ watch = textFrameState children = dTextFrame({fontFxColor = Color(255, 155, 0, 0) color = Color(255,255,255) size=textFrameState.get().size})}
       dText("This is autoscrolled text with delay and speed")
-      {clipChildren = true size=static [hdpx(100),SIZE_TO_CONTENT]  children = {behavior = Behaviors.Marquee size = FLEX_H delay = 1 speed = hdpx(50) children = dText("All you need is love and autoscroll", {color=white})}}
+      {clipChildren = true size = const [hdpx(100),SIZE_TO_CONTENT]  children = {behavior = Behaviors.Marquee size = FLEX_H delay = 1 speed = hdpx(50) children = dText("All you need is love and autoscroll", {color=white})}}
       dText("This is autoscrolled text on Hover")
-      {clipChildren = true size=static [hdpx(100),SIZE_TO_CONTENT]  children = {behavior = [Behaviors.Marquee, Behaviors.Button] scrollOnHover = true size = FLEX_H delay = 0.1 speed = hdpx(50) children = dText("All you need is love and autoscroll onHover", {color=white})}}
+      {clipChildren = true size = const [hdpx(100),SIZE_TO_CONTENT]  children = {behavior = [Behaviors.Marquee, Behaviors.Button] scrollOnHover = true size = FLEX_H delay = 0.1 speed = hdpx(50) children = dText("All you need is love and autoscroll onHover", {color=white})}}
     ]
   }
 }

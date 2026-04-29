@@ -4,16 +4,19 @@
 #include <fx/dag_baseFxClasses.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_gameResources.h>
+#include <gameRes/dag_stdGameResId.h>
 #include <3d/dag_texMgr.h>
 #include <shaders/dag_shaders.h>
 #include <math/random/dag_random.h>
-#include <EASTL/unique_ptr.h>
+#include <EASTL/shared_ptr.h>
 #include <EASTL/hash_map.h>
 #include <EASTL/fixed_vector.h>
 #include "dafxCompound_decl.h"
 #include "dafxSystemDesc.h"
 #include "dafxQuality.h"
 #include <math/dag_TMatrix4.h>
+#include "modfx/modfx_flags_decl.hlsli"
+#include "dafxSparkModules/dafx_spark_flags_decl.hlsli"
 
 static const int g_last_ref_slot = 16;
 static dafx::ContextId g_dafx_ctx;
@@ -42,15 +45,6 @@ enum
   PLACEMENT_CYLINDER = 3,
 };
 
-// TODO: These are copy-pasted from modfx_decl.hlsli. It should be refactored later.
-#define MODFX_RFLAG_USE_ETM_AS_WTM        0
-#define MODFX_RFLAG_OMNI_LIGHT_ENABLED    7
-#define MODFX_RFLAG_BACKGROUND_POS_INITED 15
-
-#define DAFX_SPARK_DECL_LOCAL_SPACE             0
-#define DAFX_SPARK_DECL_COLLISION_DISABLED_FLAG 1
-#define DAFX_SPARK_DECL_COLLISION_RELAXED_FLAG  2
-
 extern void dafx_report_broken_res(int game_res_id, const char *fx_type);
 
 void gather_sub_textures(const dafx::SystemDesc &desc, eastl::vector<TEXTUREID> &out)
@@ -74,7 +68,7 @@ __forceinline void _rnd_fvec4(int &seed, float &x, float &y, float &z, float &w)
   x = _frnd(seed), y = _frnd(seed), z = _frnd(seed), w = _frnd(seed);
 }
 
-static void sphere_placement(int &seed, CompositePlacement &placement, Point3 &pos, Point3 &dir)
+static void sphere_placement(int &seed, CompositePlacement const &placement, Point3 &pos, Point3 &dir)
 {
   float latVal, longVal, xVol, yVol, zVol;
   _rnd_fvec4(seed, longVal, xVol, yVol, zVol);
@@ -92,7 +86,7 @@ static void sphere_placement(int &seed, CompositePlacement &placement, Point3 &p
   dir.normalize();
 }
 
-static void cylinder_placement(int &seed, CompositePlacement &placement, Point3 &pos, Point3 &dir)
+static void cylinder_placement(int &seed, CompositePlacement const &placement, Point3 &pos, Point3 &dir)
 {
   float randDegree, xVol, yVol, zVol;
   _rnd_fvec4(seed, randDegree, xVol, yVol, zVol);
@@ -106,7 +100,7 @@ static void cylinder_placement(int &seed, CompositePlacement &placement, Point3 
   dir = Point3(0, 1, 0);
 }
 
-static void sphere_sector_placement(int &seed, CompositePlacement &placement, Point3 &pos, Point3 &dir)
+static void sphere_sector_placement(int &seed, CompositePlacement const &placement, Point3 &pos, Point3 &dir)
 {
   float randDegree1, randDegree2, xVol, yVol, zVol;
   _rnd_fvec4(seed, randDegree1, xVol, yVol, zVol);
@@ -143,13 +137,20 @@ struct SubEffect
     int radiusMax;
     int windCoeff;
     int fakeBrightnessBackgroundPos;
+    int splinePosData;
   };
 
   ValueOffset offsets;
   Point2 fxRadiusRange;
   TMatrix subTransform;
   dafx_ex::TransformType transformType;
+  float transformScalingFactor;
+  float currentCalcdDistanceScale;
   dafx_ex::SystemInfo::DistanceScale distanceScale;
+#if DAFX_USE_GRAVITY_ZONE
+  Point3 gravityUp;
+  Matrix3 rotateToLocalSpace;
+#endif
   uint32_t rflags;
   uint32_t sflags;
 };
@@ -175,28 +176,42 @@ struct DafxCompound : BaseParticleEffect
     Point3 rotation = Point3::ZERO;
   };
 
+  struct SharedData
+  {
+    dafx::SystemDesc pdesc;
+    eastl::vector<TEXTUREID> textures;
+    eastl::vector<PlacementData> placementData; // optional for fx, so no fixed_vector
+    TMatrix lightTm = TMatrix::IDENT;
+    CompositePlacement compositePlacement = {};
+    int maxInstances = 0;
+    int playerReserved = 0;
+    float onePointNumber = 0;
+    float onePointRadius = 0;
+    int gameResId = 0;
+    bool lightOnly = false;
+
+    ~SharedData()
+    {
+      for (TEXTUREID tid : textures)
+        release_managed_tex(tid);
+    }
+  };
+
   dafx::ContextId ctx;
   dafx::SystemId sid;
   dafx::InstanceId iid;
-  eastl::unique_ptr<dafx::SystemDesc> pdesc;
+  eastl::shared_ptr<SharedData const> shared;
   eastl::fixed_vector<SubEffect, 8, true> subEffects;
-  eastl::vector<TEXTUREID> textures;
   eastl::vector<DistanceLag> distanceLagData; // optional for fx, so no fixed_vector
-  eastl::vector<PlacementData> placementData; // optional for fx, so no fixed_vector
 
   float fxScale = 1.f;
   float distanceToCamOnSpawn = 0;
   Point2 fxScaleRange = Point2(1.f, 1.f);
   BaseEffectObject *lightFx = nullptr;
-  TMatrix lightTm = TMatrix::IDENT;
-  bool resLoaded = false;
 
-  int maxInstances = 0;
-  int playerReserved = 0;
-  float onePointNumber = 0;
-  float onePointRadius = 0;
-  int gameResId = 0;
-  CompositePlacement compositePlacement = {};
+  bool hasModFxSubEffects = false; // for an optimization, to know when to compute scale factor
+
+  bool resLoaded = false;
   int rndSeed = 0; // It will get its value during loadParamsDataInternal
 
   DafxCompound() {}
@@ -207,27 +222,17 @@ struct DafxCompound : BaseParticleEffect
     ctx(r.ctx),
     subEffects(r.subEffects),
     lightFx(r.lightFx ? (BaseEffectObject *)r.lightFx->clone() : nullptr),
-    lightTm(r.lightTm),
-    textures(r.textures),
     distanceLagData(r.distanceLagData),
+    hasModFxSubEffects(r.hasModFxSubEffects),
     resLoaded(r.resLoaded),
-    pdesc(r.pdesc ? new dafx::SystemDesc(*r.pdesc) : nullptr),
+    shared(r.shared),
     fxScale(r.fxScale),
-    fxScaleRange(r.fxScaleRange),
-    maxInstances(r.maxInstances),
-    playerReserved(r.playerReserved),
-    onePointNumber(r.onePointNumber),
-    onePointRadius(r.onePointRadius),
-    compositePlacement(r.compositePlacement),
-    placementData(r.placementData),
-    gameResId(r.gameResId)
+    fxScaleRange(r.fxScaleRange)
   {
-    rndSeed = generate_seed(uintptr_t(this->pdesc.get()), gameResId);
-    if (compositePlacement.enabled && compositePlacement.copies_number > 0)
+    G_ASSERT_RETURN(shared, );
+    rndSeed = generate_seed(uintptr_t(&shared->pdesc), shared->gameResId);
+    if (shared->compositePlacement.enabled && shared->compositePlacement.copies_number > 0)
       regeneratePosAndOrientation();
-
-    for (TEXTUREID tid : textures)
-      acquire_managed_tex(tid);
   }
 
   ~DafxCompound()
@@ -237,9 +242,6 @@ struct DafxCompound : BaseParticleEffect
 
     if (lightFx)
       delete lightFx;
-
-    for (TEXTUREID tid : textures)
-      release_managed_tex(tid);
   }
 
   int generate_seed(uint32_t val1, uint32_t val2)
@@ -250,15 +252,15 @@ struct DafxCompound : BaseParticleEffect
 
   void loadParamsData(const char *ptr, int len, BaseParamScriptLoadCB *load_cb) override
   {
-    gameResId = load_cb->getSelfGameResId();
+    int gameResId = load_cb->getSelfGameResId();
     resLoaded = false;
-    if (loadParamsDataInternal(ptr, len, load_cb))
+    if (loadParamsDataInternal(ptr, len, gameResId, load_cb))
       resLoaded = true;
     else
       dafx_report_broken_res(gameResId, "dafx_compound");
   }
 
-  bool loadParamsDataInternal(const char *ptr, int len, BaseParamScriptLoadCB *load_cb)
+  bool loadParamsDataInternal(const char *ptr, int len, int game_res_id, BaseParamScriptLoadCB *load_cb)
   {
     CHECK_FX_VERSION_OPT(ptr, len, 3);
 
@@ -268,14 +270,11 @@ struct DafxCompound : BaseParticleEffect
       return false;
     }
 
-    pdesc.reset(new dafx::SystemDesc());
-    pdesc->gameResId = gameResId;
+    auto builtSharedData = eastl::make_shared<SharedData>();
+
+    builtSharedData->pdesc.gameResId = builtSharedData->gameResId = game_res_id;
     subEffects.clear();
     distanceLagData.clear();
-
-    for (TEXTUREID tid : textures)
-      release_managed_tex(tid);
-    textures.clear();
 
     CompModfx modfxList;
     if (!modfxList.load(ptr, len, load_cb))
@@ -289,18 +288,19 @@ struct DafxCompound : BaseParticleEffect
     if (!parGlobals.load(ptr, len, load_cb))
       return false;
 
-    maxInstances = parGlobals.max_instances;
-    playerReserved = parGlobals.player_reserved;
-    pdesc->emitterData.spawnRangeLimit = -1;
-    onePointNumber = parGlobals.one_point_number;
-    onePointRadius = parGlobals.one_point_radius;
+    builtSharedData->maxInstances = parGlobals.max_instances;
+    builtSharedData->playerReserved = parGlobals.player_reserved;
+    builtSharedData->pdesc.emitterData.spawnRangeLimit = -1;
+    builtSharedData->onePointNumber = parGlobals.one_point_number;
+    builtSharedData->onePointRadius = parGlobals.one_point_radius;
 
     if (modfxList.instance_life_time_min > 0 || modfxList.instance_life_time_max > 0)
     {
       if (modfxList.instance_life_time_min > 0 && modfxList.instance_life_time_max > 0)
       {
-        pdesc->emitterData.globalLifeLimitMin = max(modfxList.instance_life_time_min, 0.f);
-        pdesc->emitterData.globalLifeLimitMax = max(modfxList.instance_life_time_max, modfxList.instance_life_time_min);
+        builtSharedData->pdesc.emitterData.globalLifeLimitMin = max(modfxList.instance_life_time_min, 0.f);
+        builtSharedData->pdesc.emitterData.globalLifeLimitMax =
+          max(modfxList.instance_life_time_max, modfxList.instance_life_time_min);
       }
       else
         logerr("dafx: instance_life_time_min/max should either be 0 or both be > 0");
@@ -334,8 +334,8 @@ struct DafxCompound : BaseParticleEffect
         lightFx->setParam(_MAKE4C('LFXO'), &parLight.allow_game_override);
         if (parLight.override_shadow)
           lightFx->setParam(_MAKE4C('FXSH'), &parLight.shadow);
-        lightTm = TMatrix::IDENT;
-        lightTm.setcol(3, parLight.offset);
+        builtSharedData->lightTm = TMatrix::IDENT;
+        builtSharedData->lightTm.setcol(3, parLight.offset);
       }
     }
 
@@ -357,7 +357,7 @@ struct DafxCompound : BaseParticleEffect
 
     Point3 pos = Point3::ZERO;
     Point3 dir = Point3(0, 1, 0);
-    rndSeed = generate_seed(uintptr_t(this), gameResId);
+    rndSeed = generate_seed(uintptr_t(this), builtSharedData->gameResId);
     placement_func(rndSeed, parGlobals.procedural_placement, pos, dir);
 
     // Load all subeffects for the compound fx
@@ -367,7 +367,7 @@ struct DafxCompound : BaseParticleEffect
       if (par.ref_slot < 1 || par.ref_slot > g_last_ref_slot)
         continue;
 
-      auto pData = placementData.push_back();
+      auto pData = builtSharedData->placementData.push_back();
       pData.offset = par.offset;
       pData.scale = par.scale;
       pData.rotation = par.rotation;
@@ -385,73 +385,86 @@ struct DafxCompound : BaseParticleEffect
       if (!fx->getParam(_MAKE4C('PFXQ'), &sdesc) || !sdesc)
         continue;
 
-      loadSubEffect(subIdx, par, fx, sdesc, pos, dir, parGlobals.procedural_placement.enabled, parGlobals.spawn_range_limit);
+      loadSubEffect(*builtSharedData, subIdx, par, fx, sdesc, pos, dir, parGlobals.procedural_placement.enabled,
+        parGlobals.spawn_range_limit);
       loaded_subsystems.push_back(sdesc);
     }
 
-    compositePlacement = parGlobals.procedural_placement;
-    if (pdesc->emitterData.spawnRangeLimit < 0)
-      pdesc->emitterData.spawnRangeLimit = 0;
+    builtSharedData->compositePlacement = parGlobals.procedural_placement;
+    if (builtSharedData->pdesc.emitterData.spawnRangeLimit < 0)
+      builtSharedData->pdesc.emitterData.spawnRangeLimit = 0;
 
     // Apply procedural placement
-    if (compositePlacement.enabled)
+    if (builtSharedData->compositePlacement.enabled)
     {
       // Less than copies_number because the first one is already loaded
-      G_ASSERT(compositePlacement.copies_number > 0);
-      for (int i = 0; i < compositePlacement.copies_number - 1; i++)
+      G_ASSERT(builtSharedData->compositePlacement.copies_number > 0);
+      for (int i = 0; i < builtSharedData->compositePlacement.copies_number - 1; i++)
       {
-        placement_func(rndSeed, compositePlacement, pos, dir);
+        placement_func(rndSeed, builtSharedData->compositePlacement, pos, dir);
 
-        addSubEffects(subIdx, loaded_subsystems, modfxList.array, pos, dir);
+        addSubEffects(*builtSharedData, subIdx, loaded_subsystems, modfxList.array, pos, dir);
       }
     }
 
-    if (pdesc->subsystems.empty())
+    if (builtSharedData->pdesc.subsystems.empty())
     {
       if (!lightFx)
+      {
         logerr("dafx compound fx is empty");
-      pdesc.reset(nullptr);
+        builtSharedData = nullptr;
+      }
+      else
+      {
+        builtSharedData->lightOnly = true;
+      }
     }
     else
     {
-      gather_sub_textures(*pdesc, textures);
-      for (TEXTUREID tid : textures)
+      gather_sub_textures(builtSharedData->pdesc, builtSharedData->textures);
+      for (TEXTUREID tid : builtSharedData->textures)
         acquire_managed_tex(tid);
 
-      pdesc->emitterData.type = dafx::EmitterType::FIXED;
-      pdesc->emitterData.fixedData.count = 0;
+      builtSharedData->pdesc.emitterData.type = dafx::EmitterType::FIXED;
+      builtSharedData->pdesc.emitterData.fixedData.count = 0;
 
-      pdesc->emissionData.type = dafx::EmissionType::NONE;
-      pdesc->simulationData.type = dafx::SimulationType::NONE;
+      builtSharedData->pdesc.emissionData.type = dafx::EmissionType::NONE;
+      builtSharedData->pdesc.simulationData.type = dafx::SimulationType::NONE;
     }
 
-    release_game_resource((GameResource *)modfxList.fx1);
-    release_game_resource((GameResource *)modfxList.fx2);
-    release_game_resource((GameResource *)modfxList.fx3);
-    release_game_resource((GameResource *)modfxList.fx4);
-    release_game_resource((GameResource *)modfxList.fx5);
-    release_game_resource((GameResource *)modfxList.fx6);
-    release_game_resource((GameResource *)modfxList.fx7);
-    release_game_resource((GameResource *)modfxList.fx8);
-    release_game_resource((GameResource *)modfxList.fx9);
-    release_game_resource((GameResource *)modfxList.fx10);
-    release_game_resource((GameResource *)modfxList.fx11);
-    release_game_resource((GameResource *)modfxList.fx12);
-    release_game_resource((GameResource *)modfxList.fx13);
-    release_game_resource((GameResource *)modfxList.fx14);
-    release_game_resource((GameResource *)modfxList.fx15);
-    release_game_resource((GameResource *)modfxList.fx16);
+    release_game_resource_ex(modfxList.fx1, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx2, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx3, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx4, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx5, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx6, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx7, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx8, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx9, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx10, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx11, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx12, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx13, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx14, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx15, EffectGameResClassId);
+    release_game_resource_ex(modfxList.fx16, EffectGameResClassId);
+
+    shared = eastl::move(builtSharedData);
 
     return true;
   }
 
   void regeneratePosAndOrientation()
   {
-    G_ASSERT_RETURN((subEffects.size() % placementData.size() == 0) &&
-                      (subEffects.size() / placementData.size() == compositePlacement.copies_number), );
+    bool isSubEffectSizeCompatible = (subEffects.size() % shared->placementData.size() == 0) &&
+                                     (subEffects.size() / shared->placementData.size() == shared->compositePlacement.copies_number);
+    G_ASSERTF_RETURN(isSubEffectSizeCompatible, ,
+      "dafx compound: Composite placement is enabled, but the number of subeffects (%d) is not compatible with the number of "
+      "placement data entries (%d) or copies number (%d).",
+      subEffects.size(), shared->placementData.size(), shared->compositePlacement.copies_number);
 
     auto placement_func = sphere_placement;
-    switch (compositePlacement.placement_type)
+    switch (shared->compositePlacement.placement_type)
     {
       default:
       case PLACEMENT_SPHERE: placement_func = sphere_placement; break;
@@ -459,19 +472,21 @@ struct DafxCompound : BaseParticleEffect
       case PLACEMENT_CYLINDER: placement_func = cylinder_placement; break;
     }
 
-    int uniqueSubEffectsNr = subEffects.size() / compositePlacement.copies_number;
+    int uniqueSubEffectsNr = subEffects.size() / shared->compositePlacement.copies_number;
 
-    for (int i = 0; i < compositePlacement.copies_number; i++)
+    for (int i = 0; i < shared->compositePlacement.copies_number; i++)
     {
       Point3 pos = Point3::ZERO;
       Point3 dir = Point3(0, 1, 0);
-      placement_func(rndSeed, compositePlacement, pos, dir);
+      placement_func(rndSeed, shared->compositePlacement, pos, dir);
       for (int j = 0; j < uniqueSubEffectsNr; j++)
       {
         int idx = i * uniqueSubEffectsNr + j;
         SubEffect &subEffect = subEffects[idx];
-        auto &pData = placementData[j];
-        subEffect.subTransform = calculateSubEffectTransform(pData.offset, pData.scale, pData.rotation, pos, dir, true);
+        auto const &pData = shared->placementData[j];
+        subEffect.subTransform = calculateSubEffectTransform(pData.offset, pData.scale * fxScale * subEffect.currentCalcdDistanceScale,
+          pData.rotation, pos, dir, true);
+        subEffect.transformScalingFactor = subEffect.subTransform.getScalingFactor();
       }
     }
   }
@@ -506,7 +521,7 @@ struct DafxCompound : BaseParticleEffect
     return wtm;
   }
 
-  void addSubEffects(int &subIdx, dag::Vector<dafx::SystemDesc *> &subsystems, const SmallTab<ModfxParams> &parArray,
+  void addSubEffects(SharedData &sd, int &subIdx, dag::Vector<dafx::SystemDesc *> &subsystems, const SmallTab<ModfxParams> &parArray,
     const Point3 &pos, const Point3 &dir)
   {
     for (int i = 0; i < subsystems.size(); i++)
@@ -514,10 +529,10 @@ struct DafxCompound : BaseParticleEffect
       SubEffect &subEffect = subEffects.push_back();
       subEffect = subEffects[i];
 
-      pdesc->subsystems.push_back(*subsystems[i]);
+      sd.pdesc.subsystems.push_back(*subsystems[i]);
       const ModfxParams &par = parArray[i];
 
-      auto sdesc = &pdesc->subsystems.back();
+      auto sdesc = &sd.pdesc.subsystems.back();
       dafx::SystemDesc *ddesc = sdesc->subsystems.empty() ? nullptr : &sdesc->subsystems[0];
       G_ASSERT_CONTINUE(ddesc);
 
@@ -534,19 +549,21 @@ struct DafxCompound : BaseParticleEffect
         v.stepSq *= v.stepSq;
       }
 
-      TMatrix wtm = calculateSubEffectTransform(par.offset, par.scale, par.rotation, pos, dir);
+      TMatrix wtm =
+        calculateSubEffectTransform(par.offset, par.scale * fxScale * subEffect.currentCalcdDistanceScale, par.rotation, pos, dir);
       subEffect.subTransform = wtm;
+      subEffect.transformScalingFactor = subEffect.subTransform.getScalingFactor();
     }
   }
 
-  void loadSubEffect(int &subIdx, const ModfxParams &par, BaseEffectObject *fx, dafx::SystemDesc *sdesc, const Point3 &pos,
-    const Point3 &dir, bool usePosDir, float spawn_range_limit)
+  void loadSubEffect(SharedData &sd, int &subIdx, const ModfxParams &par, BaseEffectObject *fx, dafx::SystemDesc *sdesc,
+    const Point3 &pos, const Point3 &dir, bool usePosDir, float spawn_range_limit)
   {
     SubEffect &subEffect = subEffects.push_back();
     SubEffect::ValueOffset &offsets = subEffect.offsets;
 
-    pdesc->subsystems.push_back(*sdesc);
-    sdesc = &pdesc->subsystems.back();
+    sd.pdesc.subsystems.push_back(*sdesc);
+    sdesc = &sd.pdesc.subsystems.back();
     sdesc->qualityFlags = fx_apply_quality_bits(par.quality, sdesc->qualityFlags);
 
     dafx::SystemDesc *ddesc = sdesc->subsystems.empty() ? nullptr : &sdesc->subsystems[0];
@@ -559,9 +576,9 @@ struct DafxCompound : BaseParticleEffect
       ddesc->emitterData.spawnRangeLimit = spawn_range_limit;
 
     if (ddesc->emitterData.spawnRangeLimit == 0)
-      pdesc->emitterData.spawnRangeLimit = 0;
-    else if (pdesc->emitterData.spawnRangeLimit != 0)
-      pdesc->emitterData.spawnRangeLimit = max(pdesc->emitterData.spawnRangeLimit, ddesc->emitterData.spawnRangeLimit);
+      sd.pdesc.emitterData.spawnRangeLimit = 0;
+    else if (sd.pdesc.emitterData.spawnRangeLimit != 0)
+      sd.pdesc.emitterData.spawnRangeLimit = max(sd.pdesc.emitterData.spawnRangeLimit, ddesc->emitterData.spawnRangeLimit);
 
     if (par.mod_part_count != 1 && par.mod_part_count > 0)
     {
@@ -580,14 +597,6 @@ struct DafxCompound : BaseParticleEffect
       else if (ddesc->emitterData.type == dafx::EmitterType::FIXED)
       {
         ddesc->emitterData.fixedData.count = max(ddesc->emitterData.fixedData.count * par.mod_part_count, 1.f);
-      }
-
-      const dafx::Config &cfg = dafx::get_config(g_dafx_ctx);
-      unsigned int lim = dafx::get_emitter_limit(ddesc->emitterData, true);
-      if (lim == 0 || lim >= cfg.emission_limit)
-      {
-        logerr("dafx::emitter, over emitter limit");
-        return;
       }
     }
 
@@ -651,12 +660,9 @@ struct DafxCompound : BaseParticleEffect
     if (!(float_nonzero(par.scale.x) && float_nonzero(par.scale.y) && float_nonzero(par.scale.z)))
     {
       String resName;
-      get_game_resource_name(gameResId, resName);
+      get_game_resource_name(sd.gameResId, resName);
       logerr("dafx: scale must be non-zero! ('%s' sub-fx slot: %d)", resName.c_str(), subIdx);
     }
-
-    TMatrix wtm = calculateSubEffectTransform(par.offset, par.scale, par.rotation, pos, dir, usePosDir);
-    subEffect.subTransform = wtm;
 
     dafx_ex::TransformType trtype = (dafx_ex::TransformType)par.transform_type;
     G_ASSERT(trtype <= dafx_ex::TRANSFORM_LOCAL_SPACE);
@@ -676,6 +682,9 @@ struct DafxCompound : BaseParticleEffect
     offsets.radiusMax = -1;
     offsets.windCoeff = -1;
     offsets.fakeBrightnessBackgroundPos = -1;
+    offsets.splinePosData = -1;
+
+    subEffect.currentCalcdDistanceScale = 1.f;
 
     dafx_ex::SystemInfo *sinfo = nullptr;
     if (fx->getParam(_MAKE4C('PFVR'), &sinfo) && sinfo)
@@ -778,7 +787,19 @@ struct DafxCompound : BaseParticleEffect
       trtype = sinfo->transformType;
     subEffect.transformType = trtype;
     if (sinfo)
+    {
       subEffect.distanceScale = sinfo->distanceScale;
+      subEffect.currentCalcdDistanceScale = subEffect.distanceScale.calcScale(distanceToCamOnSpawn);
+    }
+#if DAFX_USE_GRAVITY_ZONE
+    subEffect.gravityUp = Point3(0, 1, 0);
+    subEffect.rotateToLocalSpace = Matrix3::IDENT;
+#endif
+
+    TMatrix wtm = calculateSubEffectTransform(par.offset, par.scale * fxScale * subEffect.currentCalcdDistanceScale, par.rotation, pos,
+      dir, usePosDir);
+    subEffect.subTransform = wtm;
+    subEffect.transformScalingFactor = subEffect.subTransform.getScalingFactor();
 
     int isModfx = 0;
     if (fx->getParam(_MAKE4C('PFXM'), &isModfx) && isModfx)
@@ -787,6 +808,8 @@ struct DafxCompound : BaseParticleEffect
 
       offsets.flags = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_FLAGS];
       offsets.fxTm = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_TM];
+
+      hasModFxSubEffects |= offsets.flags >= 0;
 
       auto it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_LIGHT_POS);
 
@@ -826,6 +849,10 @@ struct DafxCompound : BaseParticleEffect
       if (it != sinfo->valueOffsets.end())
         offsets.fakeBrightnessBackgroundPos = it->second;
 
+      it = sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_POS_SPLINE_DATA);
+      if (it != sinfo->valueOffsets.end())
+        offsets.splinePosData = it->second;
+
       G_ASSERT(sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_RADIUS_MIN) != sinfo->valueOffsets.end());
       G_ASSERT(sinfo->valueOffsets.find(dafx_ex::SystemInfo::VAL_RADIUS_MAX) != sinfo->valueOffsets.end());
       offsets.radiusMin = sinfo->valueOffsets[dafx_ex::SystemInfo::VAL_RADIUS_MIN];
@@ -855,182 +882,177 @@ struct DafxCompound : BaseParticleEffect
 
   void setParam(unsigned id, void *value) override
   {
-    if (id == _MAKE4C('PFXR'))
+    if (DAGOR_LIKELY(id != _MAKE4C('PFXR') && id != _MAKE4C('PFXE')) && !iid)
+      return;
+    switch (id)
     {
-      // context was recreated and all systems was released
-      if (ctx != g_dafx_ctx)
+      case _MAKE4C('PFXR'):
       {
-        G_ASSERT(!sid && !iid);
-        sid = dafx::SystemId();
-        iid = dafx::InstanceId();
-        ctx = g_dafx_ctx;
+        // context was recreated and all systems was released
+        if (ctx != g_dafx_ctx)
+        {
+          G_ASSERT(!sid && !iid);
+          sid = dafx::SystemId();
+          iid = dafx::InstanceId();
+          ctx = g_dafx_ctx;
 
-        rndSeed = generate_seed(uintptr_t(this), uint32_t(iid));
-      }
+          rndSeed = generate_seed(uintptr_t(this), uint32_t(iid));
+        }
 
-      if (resLoaded && !pdesc)
-        return;
+        if (resLoaded && (!shared || shared->lightOnly))
+          break;
 
-      if (iid)
-        dafx::destroy_instance(g_dafx_ctx, iid);
+        if (iid)
+          dafx::destroy_instance(g_dafx_ctx, iid);
 
-      String resName;
-      get_game_resource_name(gameResId, resName);
+        String resName;
+        get_game_resource_name(shared->gameResId, resName);
 
-      eastl::string name;
-      name.append_sprintf("%s__%d", resName.c_str(), gameResId);
+        eastl::string name;
+        name.append_sprintf("%s__%d", resName.c_str(), shared->gameResId);
 
-      sid = dafx::get_system_by_name(g_dafx_ctx, name);
-      bool forceRecreate = value && *(bool *)value;
-      if (sid && forceRecreate)
-      {
-        dafx::release_system(g_dafx_ctx, sid);
-        sid = dafx::SystemId();
-      }
+        bool forceRecreate = value && *(bool *)value;
+        if (resLoaded && shared)
+          sid = dafx::get_system_by_name(g_dafx_ctx, name, forceRecreate ? nullptr : &shared->pdesc);
+        if (sid && forceRecreate)
+        {
+          dafx::release_system(g_dafx_ctx, sid);
+          sid = dafx::SystemId();
+        }
 
-      if (!sid)
-      {
-        sid = resLoaded ? dafx::register_system(g_dafx_ctx, *pdesc, name) : dafx::get_dummy_system_id(g_dafx_ctx);
         if (!sid)
-          logerr("fx: modfx: failed to register system");
-      }
+        {
+          sid = resLoaded ? dafx::register_system(g_dafx_ctx, shared->pdesc, name) : dafx::get_dummy_system_id(g_dafx_ctx);
+          if (!sid)
+            logerr("fx: modfx: failed to register system");
+        }
 
-      if (sid && forceRecreate)
+        if (sid && forceRecreate)
+        {
+          iid = dafx::create_instance(g_dafx_ctx, sid);
+          G_ASSERT_RETURN(iid, );
+          rndSeed = generate_seed(uintptr_t(this), uint32_t(iid));
+          dafx::set_instance_status(g_dafx_ctx, iid, false);
+          recalcFxScale();
+        }
+        break;
+      }
+      case _MAKE4C('PFXE'):
       {
-        iid = dafx::create_instance(g_dafx_ctx, sid);
-        G_ASSERT_RETURN(iid, );
-        rndSeed = generate_seed(uintptr_t(this), uint32_t(iid));
-        dafx::set_instance_status(g_dafx_ctx, iid, false);
-        recalcFxScale();
+        if (sid && !iid)
+        {
+          iid = dafx::create_instance(g_dafx_ctx, sid);
+          G_ASSERT_RETURN(iid, );
+          recalcFxScale();
+        }
+        if (iid)
+        {
+          G_ASSERT(value);
+          BaseEffectEnabled *dafxe = static_cast<BaseEffectEnabled *>(value);
+          dafx::set_instance_status(g_dafx_ctx, iid, dafxe->enabled, dafxe->distanceToCam);
+          distanceToCamOnSpawn = dafxe->distanceToCam;
+          updateAllDistanceScales(distanceToCamOnSpawn);
+        }
+        break;
       }
-      return;
+      case _MAKE4C('PFXP'):
+      {
+        Point4 pos = *(Point4 *)value;
+        dafx::set_instance_pos(g_dafx_ctx, iid, pos);
+        break;
+      }
+      case _MAKE4C('PFXV'): dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(uint32_t *)value : 0); break;
+      case _MAKE4C('PFXI'): ((eastl::vector<dafx::InstanceId> *)value)->push_back(iid); break;
+      case HUID_TM: setTm((TMatrix *)value); break;
+      case HUID_EMITTER_TM: setEmitterTm((TMatrix *)value); break;
+      case HUID_VELOCITY: setVelocity((Point3 *)value); break;
+      case HUID_ACES_RESET: reset(); break;
+      case HUID_COLOR_MULT: setColorMult((Color3 *)value); break;
+      case HUID_COLOR4_MULT: setColor4Mult((Color4 *)value); break;
+      case _MAKE4C('PFXG'): dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0); break;
+      case _MAKE4C('GZTM'): setGravityTm(*(Matrix3 *)value); break;
+      case _MAKE4C('SPLN'): setSplineControlPoints(*(TMatrix4 *)value); break;
+      default:
+      {
+        if (lightFx) // always last.
+          lightFx->setParam(id, value);
+        break;
+      }
     }
-
-    if (sid && !iid && id == _MAKE4C('PFXE'))
-    {
-      iid = dafx::create_instance(g_dafx_ctx, sid);
-      G_ASSERT_RETURN(iid, );
-      recalcFxScale();
-    }
-
-    if (!iid)
-      return;
-
-    if (id == _MAKE4C('PFXE'))
-    {
-      G_ASSERT(value);
-      BaseEffectEnabled *dafxe = static_cast<BaseEffectEnabled *>(value);
-      dafx::set_instance_status(g_dafx_ctx, iid, dafxe->enabled, dafxe->distanceToCam);
-      distanceToCamOnSpawn = dafxe->distanceToCam;
-    }
-    else if (id == _MAKE4C('PFXP'))
-    {
-      Point4 pos = *(Point4 *)value;
-      dafx::set_instance_pos(g_dafx_ctx, iid, pos);
-    }
-    else if (id == _MAKE4C('PFXV'))
-      dafx::set_instance_visibility(g_dafx_ctx, iid, value ? *(uint32_t *)value : 0);
-    else if (id == _MAKE4C('PFXI'))
-      ((eastl::vector<dafx::InstanceId> *)value)->push_back(iid);
-    else if (id == HUID_TM)
-      setTm((TMatrix *)value);
-    else if (id == HUID_EMITTER_TM)
-      setEmitterTm((TMatrix *)value);
-    else if (id == HUID_VELOCITY)
-      setVelocity((Point3 *)value);
-    else if (id == HUID_ACES_RESET)
-      reset();
-    else if (id == HUID_COLOR_MULT)
-      setColorMult((Color3 *)value);
-    else if (id == HUID_COLOR4_MULT)
-      setColor4Mult((Color4 *)value);
-    else if (id == _MAKE4C('PFXG'))
-      dafx::warmup_instance(g_dafx_ctx, iid, value ? *(float *)value : 0);
-    else if (id == _MAKE4C('GZTM'))
-      setGravityTm(*(Matrix3 *)value);
-    else if (lightFx) // always last.
-      lightFx->setParam(id, value);
   }
 
   void *getParam(unsigned id, void *value) override
   {
-    if (id == _MAKE4C('CACH'))
+    switch (id)
     {
-      return (void *)1; //-V566
-    }
-    else if (id == HUID_ACES_IS_ACTIVE)
-    {
-      *(bool *)value = iid && dafx::is_instance_renderable_active(g_dafx_ctx, iid);
-      return value;
-    }
-    else if (id == _MAKE4C('FXLM'))
-    {
-      *(int *)value = maxInstances;
-    }
-    else if (id == _MAKE4C('FXLP'))
-    {
-      *(int *)value = playerReserved;
-    }
-    else if (id == _MAKE4C('FXLR') && pdesc)
-    {
-      *(float *)value = pdesc->emitterData.spawnRangeLimit;
-    }
-    else if (id == _MAKE4C('FXLX'))
-    {
-      *(Point2 *)value = Point2(onePointNumber, onePointRadius);
-      return value;
-    }
-    else if (id == _MAKE4C('PFXX') && pdesc)
-    {
-      int parentRen = 0;
-      int parentSim = 0;
-      int ren = 0;
-      int sim = 0;
+      case _MAKE4C('CACH'): return (void *)1; //-V566
+      case HUID_ACES_IS_ACTIVE: *(bool *)value = iid && dafx::is_instance_renderable_active(g_dafx_ctx, iid); break;
+      case _MAKE4C('FXLM'): *(int *)value = shared->maxInstances; break;
+      case _MAKE4C('FXLP'): *(int *)value = shared->playerReserved; break;
+      case _MAKE4C('FXLR'):
+        if (!shared || shared->lightOnly)
+          return nullptr;
+        *(float *)value = shared->pdesc.emitterData.spawnRangeLimit;
+        break;
 
-      for (const dafx::SystemDesc &sub : pdesc->subsystems)
+      case _MAKE4C('FXLX'): *(Point2 *)value = Point2(shared->onePointNumber, shared->onePointRadius); break;
+      case _MAKE4C('PFXX'):
       {
-        parentRen += sub.renderElemSize;
-        parentSim += sub.simulationElemSize;
-        ren += sub.subsystems[0].renderElemSize;
-        sim += sub.subsystems[0].simulationElemSize;
+        if (!shared || shared->lightOnly)
+          return nullptr;
+
+        int parentRen = 0;
+        int parentSim = 0;
+        int ren = 0;
+        int sim = 0;
+
+        for (const dafx::SystemDesc &sub : shared->pdesc.subsystems)
+        {
+          if (sub.subsystems.empty())
+            continue;
+
+          parentRen += sub.renderElemSize;
+          parentSim += sub.simulationElemSize;
+          ren += sub.subsystems[0].renderElemSize;
+          sim += sub.subsystems[0].simulationElemSize;
+        }
+
+        ((int *)value)[0] = parentRen;
+        ((int *)value)[1] = parentSim;
+        ((int *)value)[2] = ren;
+        ((int *)value)[3] = sim;
+        break;
       }
 
-      ((int *)value)[0] = parentRen;
-      ((int *)value)[1] = parentSim;
-      ((int *)value)[2] = ren;
-      ((int *)value)[3] = sim;
-      return value;
-    }
-    else if (id == _MAKE4C('PFXT'))
-    {
-      *(dafx::SystemId *)value = sid;
-      return value;
-    }
-    else if (id == _MAKE4C('PFXC') && value)
-    {
-      *(bool *)value = dafx::is_instance_renderable_visible(g_dafx_ctx, iid);
-      return value;
-    }
-    else if (id == _MAKE4C('FXLD'))
-    {
-      if (value)
-        ((eastl::vector<dafx::SystemDesc *> *)value)->push_back(pdesc.get());
-      return value;
-    }
-    else if (id == _MAKE4C('FXIC') && value)
-    {
-      *(int *)value = dafx::get_instance_elem_count(g_dafx_ctx, iid);
-      return value;
-    }
-    else if (id == _MAKE4C('FXID') && value)
-    {
-      *(dafx::InstanceId *)value = iid;
-      return value;
-    }
-    else if (lightFx)
-      return lightFx->getParam(id, value);
+      case _MAKE4C('PFXT'): *(dafx::SystemId *)value = sid; break;
+      case _MAKE4C('PFXC'):
+        if (value)
+          *(bool *)value = dafx::is_instance_renderable_visible(g_dafx_ctx, iid);
+        break;
 
-    return nullptr;
+      case _MAKE4C('FXLD'):
+        if (value) // @TODO: remove? this is not used anywhere
+          ((eastl::vector<dafx::SystemDesc const *> *)value)->push_back(&shared->pdesc);
+        break;
+
+      case _MAKE4C('FXIC'):
+        if (value)
+          *(int *)value = dafx::get_instance_elem_count(g_dafx_ctx, iid);
+        break;
+
+      case _MAKE4C('FXID'):
+        if (value)
+          *(dafx::InstanceId *)value = iid;
+        break;
+
+      default:
+        if (lightFx)
+          return lightFx->getParam(id, value);
+        else
+          return nullptr;
+    }
+
+    return value;
   }
 
   void update(float dt) override
@@ -1081,26 +1103,105 @@ struct DafxCompound : BaseParticleEffect
       lightFx->setColor4Mult(value);
   }
 
+  void setLocalGravity(int i, const TMatrix *stm = nullptr)
+  {
+    if (subEffects[i].offsets.localGravity < 0)
+      return;
+
+#if DAFX_USE_GRAVITY_ZONE
+    if (stm)
+      subEffects[i].rotateToLocalSpace = transpose(Matrix3(stm->array));
+
+    Point3 invUp = subEffects[i].rotateToLocalSpace * subEffects[i].gravityUp;
+#else
+    G_ASSERT(stm);
+    Matrix3 itm = transpose(Matrix3(stm->array));
+    Point3 invUp = itm.getcol(1);
+#endif
+
+    invUp.normalizeF();
+    dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.localGravity, &invUp, sizeof(invUp));
+  }
+
+  void updateDistanceScale(SubEffect &sub_effect, float new_distance)
+  {
+    if (!sub_effect.distanceScale.enabled)
+      return;
+
+    float prevScale = sub_effect.currentCalcdDistanceScale;
+    sub_effect.currentCalcdDistanceScale = sub_effect.distanceScale.calcScale(new_distance);
+    if (!is_equal_float(prevScale, sub_effect.currentCalcdDistanceScale))
+    {
+      float ratio = sub_effect.currentCalcdDistanceScale / prevScale;
+      sub_effect.subTransform.col[0] *= ratio;
+      sub_effect.subTransform.col[1] *= ratio;
+      sub_effect.subTransform.col[2] *= ratio;
+      sub_effect.transformScalingFactor *= ratio;
+    }
+  }
+
+  void updateAllDistanceScales(float new_distance)
+  {
+    for (auto &subEffect : subEffects)
+      updateDistanceScale(subEffect, new_distance);
+  }
+
   void setGravityTm(const Matrix3 &tm)
+  {
+    G_UNUSED(tm);
+#if DAFX_USE_GRAVITY_ZONE
+    if (!iid)
+      return;
+
+    for (int i = 0; i < subEffects.size(); ++i)
+    {
+      bool gravZoneEnabled =
+        subEffects[i].sflags & ((1 << MODFX_SFLAG_GRAVITY_ZONE_PER_EMITTER) | (1 << MODFX_SFLAG_GRAVITY_ZONE_PER_PARTICLE));
+      if (!gravZoneEnabled)
+        continue;
+
+      subEffects[i].gravityUp = tm.getcol(1);
+      setLocalGravity(i);
+
+      int ofs = subEffects[i].offsets.gravityTm;
+      if (ofs >= 0)
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &tm, sizeof(tm));
+    }
+#endif
+  }
+
+  void setSplineControlPoints(const TMatrix4 &data)
   {
     if (!iid)
       return;
 
     for (int i = 0; i < subEffects.size(); ++i)
     {
-      int ofs = subEffects[i].offsets.gravityTm;
+      int ofs = subEffects[i].offsets.splinePosData;
       if (ofs >= 0)
-        dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &tm, sizeof(tm));
+        dafx::set_subinstance_value(g_dafx_ctx, iid, i, ofs, &data, sizeof(data));
     }
   }
 
   void recalcFxScale()
   {
     rndSeed = generate_seed(uintptr_t(this), uint32_t(iid));
+    auto prevScale = fxScale;
     fxScale = lerp(fxScaleRange.x, fxScaleRange.y, _frnd(rndSeed));
+    auto scaleRatio = safediv(fxScale, prevScale);
+    bool shouldScale = !is_equal_float(scaleRatio, 1.f);
 
     for (int i = 0; i < subEffects.size(); ++i)
     {
+      TMatrix &subtm = subEffects[i].subTransform;
+      if (shouldScale)
+      {
+        subtm.col[0] *= scaleRatio;
+        subtm.col[1] *= scaleRatio;
+        subtm.col[2] *= scaleRatio;
+        subEffects[i].transformScalingFactor *= scaleRatio;
+      }
+
       Point2 radius = subEffects[i].fxRadiusRange * fxScale;
       if (subEffects[i].offsets.radiusMin >= 0)
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.radiusMin, &radius.x, sizeof(float));
@@ -1111,54 +1212,64 @@ struct DafxCompound : BaseParticleEffect
 
   void setTransform(const TMatrix &value, dafx_ex::TransformType tr_type)
   {
+    float valueScalingFactor = 0.f;
+    if (hasModFxSubEffects)
+      valueScalingFactor = value.getScalingFactor();
+
     for (int i = 0; i < subEffects.size(); ++i)
     {
       dafx_ex::TransformType type = subEffects[i].transformType;
       if (type == dafx_ex::TRANSFORM_DEFAULT)
         type = tr_type;
 
+      // fxScale and precalculated distanceScale for the subeffect are already baked into the subTransform
       TMatrix stm = value * subEffects[i].subTransform;
-      stm.col[0] *= fxScale;
-      stm.col[1] *= fxScale;
-      stm.col[2] *= fxScale;
-      subEffects[i].distanceScale.apply(stm, distanceToCamOnSpawn);
 
+      // distance lag (distance delay) allow to move spawn N meters behind the emitter
       if (i < distanceLagData.size() && distanceLagData[i].enabled)
       {
         DistanceLag &v = distanceLagData[i];
         if (v.valid)
         {
-          const Point3 &em = stm.getcol(3);
-          const Point3 &pl = v.history[v.historyIdx];
-          if (lengthSq(em - pl) > v.stepSq)
-          {
-            v.historyIdx = (v.historyIdx + 1) % v.historySize;
-            v.history[v.historyIdx] = em;
-          }
-
           // we need to accumulate distance, not only direct point dist cmp, in case of path curvature
-          bool found = false;
-          float distNext = 0.f;
-          float distPrev = 0.f;
-          for (int h = 0; h < v.historySize - 1; ++h)
+          const Point3 &emPos = stm.getcol(3);
+
+          float totalDist = 0;
+          float lastSegDist = 0;
+          Point3 forwardPos = emPos;
+          Point3 foundDir = {0, 0, 0};
+
+          Point3 *historyPtr = v.history.data() + v.historyIdx;
+
+          for (int h = 0; h < v.historySize; ++h)
           {
-            int idx = v.historyIdx + v.historySize - h;
-            const Point3 &p0 = v.history[idx % v.historySize];
-            const Point3 &p1 = h > 0 ? v.history[(idx - 1) % v.historySize] : p0;
-            distPrev = distNext;
-            distNext += length(p0 - p1);
-            if (distNext * distNext > v.distanceSq)
-            {
-              found = true;
-              float overshoot = distNext - v.distance;
-              float ratio = overshoot / (distNext - distPrev);
-              stm.setcol(3, lerp(p0, p1, ratio));
+            const Point3 &backPos = *historyPtr--;
+            foundDir = backPos - forwardPos;
+
+            lastSegDist = length(foundDir);
+            totalDist += lastSegDist;
+
+            if (totalDist >= v.distance)
               break;
-            }
+
+            forwardPos = backPos;
+
+            if (h == v.historyIdx)
+              historyPtr = v.history.data() + v.historySize - 1;
           }
 
-          if (!found) // outside history, attach to the older emmiter pos
-            stm.setcol(3, v.history[(v.historyIdx + 1) % v.historySize]);
+          // if distance is greater than all of history, do a projection (it will be based on last 2 points in history)
+          Point3 foundDirNorm = foundDir * safeinv(lastSegDist);
+          Point3 p = forwardPos + foundDirNorm * (v.distance - totalDist + lastSegDist);
+          stm.setcol(3, p);
+
+          if (lengthSq(emPos - v.history[v.historyIdx])) // add history point
+          {
+            ++v.historyIdx;
+            if (DAGOR_UNLIKELY(v.historyIdx == v.historySize))
+              v.historyIdx = 0;
+            v.history[v.historyIdx] = emPos;
+          }
         }
         else
         {
@@ -1179,12 +1290,7 @@ struct DafxCompound : BaseParticleEffect
             dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.flags, &subEffects[i].rflags, sizeof(uint32_t));
           }
 
-          if (subEffects[i].offsets.localGravity >= 0)
-          {
-            TMatrix itm = orthonormalized_inverse(stm);
-            Point3 vec = itm.getcol(1); // inv-up
-            dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.localGravity, &vec, sizeof(Point3));
-          }
+          setLocalGravity(i, &stm);
         }
         else if (type == dafx_ex::TRANSFORM_WORLD_SPACE)
         {
@@ -1196,7 +1302,8 @@ struct DafxCompound : BaseParticleEffect
         }
 
         TMatrix4 stm4 = stm;
-        stm4[3][3] = stm.getScalingFactor(); // scale is stored in the last component
+        stm4[3][3] = valueScalingFactor * subEffects[i].transformScalingFactor; // scale is stored in the last component
+
         dafx::set_subinstance_value(g_dafx_ctx, iid, i, subEffects[i].offsets.fxTm, &stm4, sizeof(TMatrix4));
       }
       else // sparks
@@ -1220,7 +1327,7 @@ struct DafxCompound : BaseParticleEffect
 
     if (lightFx)
     {
-      TMatrix tm = value * lightTm;
+      TMatrix tm = value * shared->lightTm;
       lightFx->setTm(&tm);
       Point3 lightPos = tm.getcol(3);
       for (int i = 0; i < subEffects.size(); ++i)
@@ -1353,7 +1460,6 @@ struct DafxCompound : BaseParticleEffect
     return v;
   }
 };
-
 
 class DafxCompoundFactory : public BaseEffectFactory
 {

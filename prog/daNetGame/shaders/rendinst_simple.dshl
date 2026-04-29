@@ -4,8 +4,6 @@ include "riextra_per_instance.dshl"
 
 shader rendinst_simple, rendinst_simple_colored
 {
-  ENABLE_ASSERT(ps)
-
   NO_DYNSTCODE()
 
   USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
@@ -50,7 +48,7 @@ shader rendinst_simple, rendinst_simple_colored
   if (!rendinst_render_is_shadow_or_depth)
   {
     USE_PARALLAX()
-    USE_SIMPLE_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo))
+    USE_SIMPLE_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), GBUFFER_ORDER_STATIC)
   }
 
   COMPILE_RI_VS_TARGET("simple_vs")

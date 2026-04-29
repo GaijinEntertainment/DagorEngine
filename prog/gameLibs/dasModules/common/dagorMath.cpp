@@ -37,7 +37,18 @@ struct Color4Annotation final : das::ManagedStructureAnnotation<Color4, false>
 struct E3DCOLORAnnotation final : das::ManagedValueAnnotation<E3DCOLOR>
 {
   E3DCOLORAnnotation(das::ModuleLibrary &ml) : ManagedValueAnnotation(ml, "E3DCOLOR") { cppName = " ::E3DCOLOR"; }
-  virtual void walk(das::DataWalker &walker, void *data) override { walker.UInt(((E3DCOLOR *)data)->u); }
+  virtual void walk(das::DataWalker &walker, void *data) override
+  {
+    if (walker.collecting)
+    {
+      das::ManagedValueAnnotation<E3DCOLOR>::walk(walker, data);
+      return;
+    }
+    if (!walker.reading)
+    {
+      walker.UInt(((E3DCOLOR *)data)->u);
+    }
+  }
 };
 
 struct Mat44fAnnotation final : das::ManagedStructureAnnotation<mat44f, false>
@@ -144,6 +155,11 @@ struct QuatAnnotation final : das::ManagedValueAnnotation<Quat>
 
   virtual void walk(das::DataWalker &walker, void *data) override
   {
+    if (walker.collecting)
+    {
+      das::ManagedValueAnnotation<Quat>::walk(walker, data);
+      return;
+    }
     if (!walker.reading)
       walker.Float4(*(das::float4 *)data);
   }
@@ -171,6 +187,14 @@ struct InterpolateTabFloatAnnotation final : das::ManagedStructureAnnotation<Int
   }
 };
 
+struct InterpolateTabMemPtrFloatAnnotation final : das::ManagedStructureAnnotation<InterpolateTabMemPtrFloat, false>
+{
+  InterpolateTabMemPtrFloatAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("InterpolateTabMemPtrFloat", ml)
+  {
+    cppName = " ::InterpolateTabMemPtrFloat";
+  }
+};
+
 class DagorMath final : public das::Module
 {
 public:
@@ -193,6 +217,7 @@ public:
     addAnnotation(das::make_smart<QuatAnnotation>(lib));
     addAnnotation(das::make_smart<Plane3Annotation>(lib));
     addAnnotation(das::make_smart<InterpolateTabFloatAnnotation>(lib));
+    addAnnotation(das::make_smart<InterpolateTabMemPtrFloatAnnotation>(lib));
     das::addExtern<DAS_BIND_FUN(make_e3dcolor_from_color4)>(*this, lib, "E3DCOLOR", das::SideEffects::none,
       "bind_dascript::make_e3dcolor_from_color4");
     das::addExtern<DAS_BIND_FUN(make_color)>(*this, lib, "E3DCOLOR", das::SideEffects::none, "bind_dascript::make_color");
@@ -381,10 +406,6 @@ public:
     das::addExtern<double (*)(double), &safeinv>(*this, lib, "safeinv", das::SideEffects::none, "safeinv");
     das::addExtern<float (*)(float), &safe_sqrt>(*this, lib, "safe_sqrt", das::SideEffects::none, "safe_sqrt");
     das::addExtern<double (*)(double), &safe_sqrt>(*this, lib, "safe_sqrt", das::SideEffects::none, "safe_sqrt");
-    das::addExtern<float (*)(float), &safe_acos>(*this, lib, "safe_acos", das::SideEffects::none, "safe_acos");
-    das::addExtern<double (*)(double), &safe_acos>(*this, lib, "safe_acos", das::SideEffects::none, "safe_acos");
-    das::addExtern<float (*)(float), &safe_asin>(*this, lib, "safe_asin", das::SideEffects::none, "safe_asin");
-    das::addExtern<double (*)(double), &safe_asin>(*this, lib, "safe_asin", das::SideEffects::none, "safe_asin");
     // don't add safe_atan2. Use atan2 instead. It's safe
 
     // todo: add TMatrix, Capsule functions
@@ -403,6 +424,8 @@ public:
 
     das::addExtern<DAS_BIND_FUN(interpolate_tab_float_interpolate)>(*this, lib, "interpolate_tab_float_interpolate",
       das::SideEffects::none, "bind_dascript::interpolate_tab_float_interpolate");
+    das::addExtern<DAS_BIND_FUN(interpolate_tab_mem_ptr_float_interpolate)>(*this, lib, "interpolate_tab_mem_ptr_float_interpolate",
+      das::SideEffects::none, "bind_dascript::interpolate_tab_mem_ptr_float_interpolate");
 
     das::addCtorAndUsing<Plane3>(*this, lib, "Plane3", " ::Plane3");
     das::addCtorAndUsing<Plane3, real, real, real, real>(*this, lib, "Plane3", " ::Plane3");

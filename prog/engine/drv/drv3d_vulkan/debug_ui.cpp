@@ -20,6 +20,7 @@
 #include "predicted_latency_waiter.h"
 #include "pipeline_barrier.h"
 #include "swapchain.h"
+#include "backend/cmd/debug.h"
 
 using namespace drv3d_vulkan;
 
@@ -118,7 +119,7 @@ void drawFrameHashesHistory()
     uint64_t currentHashes[GPU_TIMELINE_HISTORY_SIZE];
 
     Globals::timelines.get<TimelineManager::GpuExecute>().enumerate([&](size_t index, const FrameInfo &ctx) //
-      { currentHashes[index] = ctx.execTracker.getPrevJobHash(); });
+      { currentHashes[index] = ctx.execTracker().getPrevJobHash(); });
 
     for (uint64_t &itr : currentHashes)
       for (FrameHashHistoryEntry &cmp : frameHashesHistory)
@@ -347,7 +348,7 @@ void drv3d_vulkan::debug_ui_pipelines()
 #else
 
   if (ImGui::Button("Update"))
-    Globals::ctx.updateDebugUIPipelinesData();
+    Globals::ctx.dispatchCmd<CmdUpdateDebugUIPipelinesData>({});
 
   ImGui::SameLine();
   ImGui::SetNextItemWidth(250);
@@ -457,8 +458,10 @@ void drv3d_vulkan::debug_ui_pipelines()
       // See https://github.com/ocornut/imgui/issues/211#issuecomment-902751145
       if (ImGui::Checkbox(String(0, "##program%d", info.program.get()).c_str(), &info.enabled))
       {
-        Globals::ctx.setPipelineUsability(info.program, info.enabled);
-        Globals::ctx.updateDebugUIPipelinesData();
+        Globals::ctx.dispatchCmd<CmdUpdateDebugUIPipelinesData>({});
+#if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT
+        Globals::ctx.dispatchCmd<CmdSetPipelineUsability>({info.program, info.enabled});
+#endif
       }
     }
 
@@ -502,6 +505,9 @@ void drv3d_vulkan::debug_ui_misc()
   if (ImGui::Button("Generate fault report"))
     Globals::ctx.generateFaultReportAtFrameEnd();
 
+  if (ImGui::Button("Simulate device lost"))
+    Backend::interop.deviceLost = true;
+
   ImGui::TextUnformatted(Globals::ctx.isWorkerRunning() ? "Execution: threaded" : "Execution: deferred");
 
   if (ImGui::Button("Switch execution mode"))
@@ -535,7 +541,8 @@ void drv3d_vulkan::debug_ui_swapchain()
     newMode.modifySource = "debug_ui_recreate_surface";
     newMode.setHeadless();
     Frontend::swapchain.setMode(newMode);
-    newMode.surface = init_window_surface(Globals::VK::inst);
+    newMode.surfaceAndWindow = {
+      init_window_surface(Globals::VK::inst, Globals::window.getMainWindow()), Globals::window.getMainWindow()};
     Frontend::swapchain.setMode(newMode);
   }
 

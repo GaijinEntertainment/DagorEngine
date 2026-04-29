@@ -4,7 +4,7 @@ KernelLinkage ?= dynamic ;
 include $(Root)/prog/tools/tools_setup.jam ;
 
 TargetType  = dll ;
-Target      = tools/sceneTools/daEditorX/staticGeom.dll ;
+Target      = tools/sceneTools/daEditorX/staticGeom ;
 
 AddIncludes =
   $(Root)/prog/tools/sceneTools/daEditorX/include

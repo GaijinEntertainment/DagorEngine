@@ -6,6 +6,9 @@ include "decals/decal_inc.dshl"
 include "decals/blend_diffuse_decal_inc.dshl"
 include "decals/modulate2x_decal_inc.dshl"
 include "decals/deferred_decal_inc.dshl"
+include "gbuffer.dshl"
+include "gbuffer_with_mixing.dshl"
+include "emissive.dshl"
 
 texture names_tex;
 
@@ -21,7 +24,7 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
   {
     dont_render;
   }
-  render_stage imm_decal;
+  render_stage decal;
   if (shader != rendinst_names_diffuse_decal && shader != rendinst_blend_normal_decal)
   {
     texture tex = material.texture.diffuse;
@@ -38,15 +41,14 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
     if (normal != NULL)
     {
       USE_PIXEL_TANGENT_SPACE()
-      WRITE_GBUFFER()
-      (ps) { normal_tex@static = normal; }
+      (ps) { normal_tex@staticSmp = normal; }
       hlsl {
         #define HAS_NORMAL 1
       }
     }
   }
 
-  static int draw_order = 0 no_warnings;
+  static int draw_order = -10 no_warnings;
 
   channel float3 pos = pos;
   channel color8 norm = norm unsigned_pack;
@@ -143,9 +145,10 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
     }
   }
 
+  blend_asrc = 0; blend_adst = 1;
   if (shader == rendinst_blend_diffuse_decal)
   {
-    (ps) { diffuse_tex@static = tex; }
+    (ps) { diffuse_tex@staticSmp = tex; }
   } else if (shader == rendinst_blend_normal_decal)
   {
     static int writemask = 1904;//(7<<4)|(7<<8) - normal and material properties
@@ -157,20 +160,20 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
 
   if (shader == rendinst_modulate2x_diffuse_decal)
   {
-    MODULATE_2X_DECAL_PS(false)
+    MODULATE_2X_DECAL_PS(false, false)
   } else if (shader == rendinst_blend_diffuse_decal)
   {
-    BLEND_DIFFUSE_DECAL_PS(false)
+    BLEND_DIFFUSE_DECAL_PS(false, false)
   } else
   {
+    DYNAMIC_FILTER_FOR_MIXING(false, false)
     blend_src = sa; blend_dst = isa;
   }
   if (shader == rendinst_blend_normal_decal)
   {
+    WRITE_GBUFFER_WITH_MIXING(true, true, false)
     USE_CHARACTER_MICRODETAIL()
   }
-  ENABLE_ASSERT(ps)
-  blend_asrc = 0; blend_adst = 1;
   hlsl(ps) {
     ##if (shader == rendinst_blend_normal_decal)
       #if HAS_NORMAL
@@ -196,6 +199,11 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
               sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
               albedo.rgb, worldNormal, reflectance, smoothness);
           }
+
+          #if FILTER_DYNAMIC
+            filterDynamic(GET_SCREEN_POS(input.pos).xy);
+          #endif
+
           UnpackedGbuffer result;
           init_gbuffer(result);
           init_albedo(result, albedo.rgb);
@@ -226,7 +234,7 @@ shader rendinst_blend_diffuse_decal, rendinst_modulate2x_diffuse_decal, rendinst
   }
 }
 
-shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_deferred_normal_decal
+shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_deferred_normal_decal, rendinst_deferred_emissive_decal
 {
   if (instancing_type != tm_vb)
   {
@@ -236,12 +244,13 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
   hlsl {
     #define BLEND_GBUFFER 1
   }
+  blend_asrc = 0; blend_adst = 1;
 
   if (shader != rendinst_deferred_normal_decal)
   {
   texture tex = material.texture.diffuse;
   }
-  if (shader == rendinst_deferred_decal || shader == rendinst_deferred_normal_decal)
+  if (shader == rendinst_deferred_decal || shader == rendinst_deferred_normal_decal || shader == rendinst_deferred_emissive_decal)
   {
     texture normal = material.texture[2];
     if (shader == rendinst_deferred_decal)
@@ -252,15 +261,12 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
     if (normal != NULL)
     {
       USE_PIXEL_TANGENT_SPACE()
-      REDUCE_GBUFFER_MRT_MOBILE()
-      WRITE_GBUFFER()
-      (ps) { normal_tex@static = normal; }
+      (ps) { normal_tex@staticSmp = normal; }
       hlsl {
         #define HAS_NORMAL 1
       }
     } else if (compatibility_mode == compatibility_mode_on)
     {
-      WRITE_GBUFFER()
       hlsl {
         #undef HAS_NORMAL
         #define HAS_NORMAL 1
@@ -270,7 +276,7 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
 
   z_write = false;
 
-  static int draw_order = 0 no_warnings;
+  static int draw_order = 100 no_warnings;
 
   channel float3 pos = pos;
   channel color8 norm = norm unsigned_pack;
@@ -353,35 +359,34 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
       return output;
     }
   }
-  if (shader == rendinst_deferred_decal)
+  if (shader == rendinst_deferred_decal || shader == rendinst_deferred_emissive_decal)
   {
-    (ps) { diffuse_tex@static = tex; }
+    (ps) { diffuse_tex@staticSmp = tex; }
   }
   else if (shader == rendinst_deferred_normal_decal)
   {
     static int writemask = 1904;//(7<<4)|(7<<8) - normal and material properties
     color_write = static writemask;
+
+    WRITE_GBUFFER_WITH_MIXING(true, true, false)
   }
-
-  blend_asrc = 0; blend_adst = 1;
-
   if (shader == rendinst_deferred_normal_decal)
   {
     USE_CHARACTER_MICRODETAIL()
   }
-  ENABLE_ASSERT(ps)
 
   if (shader == rendinst_deferred_decal)
   {
-    BLEND_DIFFUSE_DECAL_PS(true)
+    BLEND_DIFFUSE_DECAL_PS(true, false)
   }
   else if (shader == rendinst_deferred_modulate2x_decal)
   {
-    MODULATE_2X_DECAL_PS(true)
+    MODULATE_2X_DECAL_PS(true, false)
   }
 
   if (shader == rendinst_deferred_normal_decal)
   {
+    DYNAMIC_FILTER_FOR_MIXING(false, false)
     DEFERRED_DECAL_DEPTH()
     blend_src = sa; blend_dst = isa;
 
@@ -418,6 +423,11 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
               sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
               albedo.rgb, worldNormal, reflectance, smoothness);
           }
+
+          #if FILTER_DYNAMIC
+            filterDynamic(GET_SCREEN_POS(input.pos).xy);
+          #endif
+
           UnpackedGbuffer result;
           init_gbuffer(result);
           init_albedo(result, albedo.rgb);
@@ -441,5 +451,115 @@ shader rendinst_deferred_decal, rendinst_deferred_modulate2x_decal, rendinst_def
     compile("target_ps", "deferred_decal_ps");
   }
 
+  if (shader == rendinst_deferred_emissive_decal)
+  {
+    static int emission_anim = 0;
+    interval emission_anim : no < 1, yes;
+
+    no_ablend;
+
+    if (compatibility_mode == compatibility_mode_on)
+    {
+      dont_render;
+    }
+
+    static float emission__attack_time = 1 no_warnings;
+    static float emission__on_time = 1 no_warnings;
+    static float emission__release_time = 1 no_warnings;
+    static float emission__off_time = 1 no_warnings;
+    static float emission__on_brightness = 1 no_warnings;
+    static float emission__off_brightness = 0 no_warnings;
+
+    local float emission_cycle_time = (emission__off_time + emission__attack_time + emission__on_time + emission__release_time);
+
+    if (emission_anim == yes)
+    {
+      (ps)
+      {
+        glow_start@f1 = (emission__off_time) / emission_cycle_time;
+        glow_end@f1 = (emission__off_time + emission__attack_time) / emission_cycle_time;
+        fade_start@f1 = (1 - emission__release_time) / emission_cycle_time;
+        fade_end@f1 = 1;
+        global_time@f1 = time_phase(0, 0);
+        inv_cycle_time@f1 = 1 / emission_cycle_time;
+        off_brightness@f1 = emission__off_brightness;
+        on_brightness@f1 = emission__on_brightness;
+      }
+    }
+
+    DECLARE_DYNAMIC_MATERIAL_PARAMS()
+    assume parameters_channel = from_asset;
+    INIT_EMISSIVE_ANIMCHAR_DYNMAT_PARAMS()
+    USE_EMISSIVE_ANIMCHAR_DYNMAT_PARAMS()
+
+    WRITE_GBUFFER_WITH_MIXING(false, false, false)
+
+    hlsl(ps)
+    {
+      #if HAS_NORMAL
+        ##if emission_anim == yes
+          float getEmissionBrightnessMul()
+          {
+            // Workaround until time_phase supports material params
+            // TODO: Rewrite it once it to time_phase(emission_cycle_time, 0) once it is implemented
+            float emission_timer = frac(global_time * get_inv_cycle_time());
+            float glow = smoothstep(get_glow_start(), get_glow_end(), emission_timer);
+            float fade = 1 - smoothstep(get_fade_start(), get_fade_end(), emission_timer);
+            return lerp(get_off_brightness(), get_on_brightness(), glow * fade);
+          }
+        ##else
+          float getEmissionBrightnessMul() { return 1.f; }
+        ##endif
+
+        [earlydepthstencil]
+        GBUFFER_OUTPUT deferred_decal_ps(VsOutput input HW_USE_SCREEN_POS)
+        {
+          #if FILTER_DYNAMIC
+            filterDynamic(GET_SCREEN_POS(input.pos).xy);
+          #endif
+
+          #if SET_UP_MULTIDRAW
+            SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+          #endif
+
+
+          half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
+          clip(diffuseColor.a - 0.5);
+
+          half3 albedo = diffuseColor.rgb;
+
+          half4 packedNormalMap = tex2DBindless(get_normal_tex(), input.diffuseTexcoord.xy);
+          half smoothness = packedNormalMap.r;
+          half emissionMask = packedNormalMap.b;
+
+          float4 emissiveColor;
+          float emissionAlbedoMult;
+          get_emissive_parameters(emissiveColor, emissionAlbedoMult);
+
+          half3 normalMap = unpack_ag_normal(packedNormalMap);
+          half3 vertexNormal = normalize(input.normal);
+          half3 worldNormal = perturb_normal_precise(normalMap, vertexNormal, input.pointToEye.xyz, input.diffuseTexcoord.xy );
+
+          UnpackedGbuffer result;
+          init_gbuffer(result);
+          init_material(result, SHADING_SELFILLUM);
+          init_albedo(result, albedo);
+          init_smoothness(result, smoothness);
+          init_normal(result, worldNormal);
+          init_emission(result, RemoveSRGBCurve_Fast(emissionMask).x * min(abs(emissiveColor.a), MAX_EMISSION) * getEmissionBrightnessMul());
+          init_emission_color(result, half4(emissiveColor.rgb, emissionAlbedoMult));
+
+
+          return encode_gbuffer(result, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
+        }
+      #else
+        float4 deferred_decal_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
+        {
+          return 0;
+        }
+      #endif
+    }
+    compile("target_ps", "deferred_decal_ps");
+  }
   compile("target_vs", "deferred_decal_vs");
 }

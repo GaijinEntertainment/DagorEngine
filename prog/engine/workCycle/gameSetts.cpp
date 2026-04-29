@@ -3,6 +3,7 @@
 #include <workCycle/dag_gameSettings.h>
 #include <workCycle/dag_genGuiMgr.h>
 #include <workCycle/dag_wcHooks.h>
+#include <workCycle/dag_workCycle.h>
 #include <workCycle/wcPrivHooks.h>
 #include "workCyclePriv.h"
 
@@ -31,8 +32,17 @@ void (*dwc_hook_ts_before_frame)() = NULL;
 void (*dwc_hook_fps_log)(int) = NULL;
 void (*dwc_hook_memory_report)() = NULL;
 bool (*dwc_can_draw_next_frame)(int frame, int usec_to_next_act) = NULL;
+int (*volatile dwc_get_frames_presented)() = NULL;
 
 bool dwc_alloc_perform_delayed_actions = true;
 bool dwc_alloc_perform_delayed_actions_in_internal_winloop = true;
 
 float visibility_range_multiplier = 1.f;
+
+int dagor_get_fixed_act_per_frame() { return workcycle_internal::fixedActPerfFrame; }
+void dagor_set_fixed_act_per_frame(int acts_per_frame)
+{
+  workcycle_internal::fixedActPerfFrame = acts_per_frame;
+  workcycle_internal::curFrameActs = 0;
+}
+void dagor_reset_frame_acts() { workcycle_internal::curFrameActs = 0; }

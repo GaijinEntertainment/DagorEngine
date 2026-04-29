@@ -33,7 +33,7 @@ namespace das {
     }
 
     void builtin_array_reserve ( Array & pArray, int newSize, int stride, Context * context, LineInfoArg * at ) {
-        if ( newSize<0 ) context->throw_error_at(at, "reserving array to negative size %i", newSize);
+        if ( newSize<0 ) return; // no point of displaying errors, if reserve fails
         array_reserve( *context, pArray, newSize, stride, at );
     }
 
@@ -59,11 +59,19 @@ namespace das {
         array_clear(*context, pArray, at);
     }
 
-    void builtin_array_lock ( const Array & arr, Context * context, LineInfoArg * at ) {
+    void builtin_array_lock ( Array & arr, Context * context, LineInfoArg * at ) {
+        array_lock(*context, arr, at);
+    }
+
+    void builtin_array_unlock ( Array & arr, Context * context, LineInfoArg * at ) {
+        array_unlock(*context, arr, at);
+    }
+
+    void builtin_array_lock_mutable ( const Array & arr, Context * context, LineInfoArg * at ) {
         array_lock(*context, const_cast<Array&>(arr), at);
     }
 
-    void builtin_array_unlock ( const Array & arr, Context * context, LineInfoArg * at ) {
+    void builtin_array_unlock_mutable ( const Array & arr, Context * context, LineInfoArg * at ) {
         array_unlock(*context, const_cast<Array&>(arr), at);
     }
 
@@ -116,9 +124,16 @@ namespace das {
         addExtern<DAS_BIND_FUN(builtin_array_lock)>(*this, lib, "__builtin_array_lock",
             SideEffects::modifyArgumentAndExternal, "builtin_array_lock")
                 ->args({"array","context","at"});
+        addExtern<DAS_BIND_FUN(builtin_array_lock_mutable)>(*this, lib, "__builtin_array_lock_mutable",
+            SideEffects::modifyArgumentAndExternal, "builtin_array_lock_mutable")
+                ->args({"array","context","at"});
         addExtern<DAS_BIND_FUN(builtin_array_unlock)>(*this, lib, "__builtin_array_unlock",
             SideEffects::modifyArgumentAndExternal, "builtin_array_unlock")
                 ->args({"array","context","at"});
+        addExtern<DAS_BIND_FUN(builtin_array_unlock_mutable)>(*this, lib, "__builtin_array_unlock_mutable",
+            SideEffects::modifyArgumentAndExternal, "builtin_array_unlock_mutable")
+                ->args({"array","context","at"});
+
         addExtern<DAS_BIND_FUN(builtin_array_clear_lock)>(*this, lib, "__builtin_array_clear_lock",
             SideEffects::modifyArgumentAndExternal, "builtin_array_clear_lock")
                 ->args({"array","context"});

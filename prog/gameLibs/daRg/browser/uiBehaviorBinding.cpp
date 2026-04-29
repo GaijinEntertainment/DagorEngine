@@ -2,7 +2,7 @@
 
 #include "bhvBrowser.h"
 #include <bindQuirrelEx/autoBind.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 namespace darg
 {

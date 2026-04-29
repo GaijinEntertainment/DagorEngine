@@ -7,7 +7,7 @@
 #include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 #include <math/dag_hlsl_floatx.h>
-#include <shaders/capsuledAOOcclusion.hlsli>
+#include <render/capsuledAOOcclusion.hlsli>
 
 #include <render/capsulesAO.cpp.inl>
 ECS_DECLARE_RELOCATABLE_TYPE(CapsulesAOHolder);
@@ -16,7 +16,7 @@ ECS_AUTO_REGISTER_COMPONENT(CapsulesAOHolder, "capsules_ao", nullptr, 0);
 
 #include "game/capsuleApproximation.h"
 template <typename T>
-void get_capsules_ecs_query(T cb);
+void get_capsules_ecs_query(ecs::EntityManager &manager, T cb);
 
 struct GetNodeTreeWtmCB
 {
@@ -34,15 +34,18 @@ struct GetNodeTreeWtmCB
 };
 
 ECS_TAG(render)
-void capsules_ao_es(const UpdateStageInfoBeforeRender &stg, CapsulesAOHolder &capsules_ao, int capsules_ao__max_units_per_cell = 32)
+void capsules_ao_es(const UpdateStageInfoBeforeRender &stg,
+  ecs::EntityManager &manager,
+  CapsulesAOHolder &capsules_ao,
+  int capsules_ao__max_units_per_cell = 32)
 {
   set_capsules_ao<GetNodeTreeWtmCB>(
     stg.camPos, stg.mainCullingFrustum, capsules_ao,
     [&](const GetCapsuleCB<GetNodeTreeWtmCB> &cb) {
-      get_capsules_ecs_query([&](ECS_REQUIRE_NOT(ecs::Tag disable_capsule_ao) ECS_SHARED(CapsuleApproximation) capsule_approximation,
-                               const AnimV20::AnimcharBaseComponent &animchar, const TMatrix &transform) {
-        cb(capsule_approximation.capsuleDatas, GetNodeTreeWtmCB(animchar.getNodeTree()), transform);
-      });
+      get_capsules_ecs_query(manager,
+        [&](ECS_REQUIRE_NOT(ecs::Tag disable_capsule_ao) ECS_SHARED(CapsuleApproximation) capsule_approximation,
+          const AnimV20::AnimcharBaseComponent &animchar,
+          const TMatrix &transform) { cb(capsule_approximation.capsuleDatas, GetNodeTreeWtmCB(animchar.getNodeTree()), transform); });
     },
     capsules_ao__max_units_per_cell);
 }

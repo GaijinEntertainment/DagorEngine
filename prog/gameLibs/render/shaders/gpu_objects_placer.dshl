@@ -8,6 +8,7 @@ include "frustum.dshl"
 include "shore.dshl"
 include "rendinst_heightmap_ofs.dshl"
 include "land_mask_inc.dshl"
+include "gpu_objects_inc.dshl"
 
 float4 gpu_objects_world_coord;
 float gpu_objects_bounding_radius;
@@ -49,6 +50,12 @@ interval gpu_objects_gpu_instancing: off<1, on;
 int gpu_objects_generation_state = 0;
 interval gpu_objects_generation_state: first_generation<1, normal;
 
+int gpu_objects_is_grass = 0;
+interval gpu_objects_is_grass: no<1, yes;
+const_buffer fast_grass_types_buf;
+texture grass_land_color_mask;
+texture land_grass_type_tex;
+
 float4 view_vecLT;
 float4 view_vecRT;
 float4 view_vecLB;
@@ -66,46 +73,9 @@ float4 gpu_objects_bomb_hole_point_radius_1;
 float4 gpu_objects_bomb_hole_point_radius_2;
 float4 gpu_objects_bomb_hole_point_radius_3;
 
-int gpu_objects_bvh_max_count = 0;
-int gpu_objects_use_bvh = 0;
-interval gpu_objects_use_bvh : no < 1, yes;
-
-buffer gpu_objects_bvh_counter;
-buffer gpu_objects_bvh_instances;
-buffer gpu_objects_bvh_mappings;
-
-macro INIT_BVH_GOBJ()
-  if (gpu_objects_use_bvh == yes && (hardware.dx12 || hardware.vulkan || hardware.metal))
-  {
-    hlsl {
-      #define GENERATE_BVH_INTANCES 1
-      static const uint bvhGroupRiExtra = 1 << 2;
-    }
-    (cs) {
-      gpu_objects_bvh_max_count@i1 = gpu_objects_bvh_max_count;
-
-      gpuobjectsBvhCounter@uav = gpu_objects_bvh_counter hlsl { RWByteAddressBuffer gpuobjectsBvhCounter@uav; };
-      gpuobjectsBvhInstances@uav = gpu_objects_bvh_instances hlsl
-      {
-        #include <RTHWInstance.hlsli>
-        RWStructuredBuffer<RTHWInstance> gpuobjectsBvhInstances@uav;
-      };
-      gpuobjectsBvhMappings@buf = gpu_objects_bvh_mappings hlsl
-      {
-        struct GpuObjectsBvhMapping
-        {
-          uint2 blas;
-          uint metaIndex;
-          uint padding;
-        };
-        StructuredBuffer<GpuObjectsBvhMapping> gpuobjectsBvhMappings@buf;
-      };
-    }
-  }
-endmacro
+float4 gpu_objects_random_y_ofs = (0, 0, 0, 0);
 
 macro USE_GPU_OBJECTS_DATA()
-  ENABLE_ASSERT(cs)
   (cs) {
     gpu_objects_world_coord__bounding_radius@f4 = (
       gpu_objects_world_coord.x,
@@ -118,6 +88,7 @@ macro USE_GPU_OBJECTS_DATA()
       gpu_objects_cell_buffer_offset,
       gpu_objects_group_idx);
     up_vector@f4 = (gpu_objects_up_vector);
+    gpu_objects_random_y_ofs@f2 = (gpu_objects_random_y_ofs.x, gpu_objects_random_y_ofs.y);
     scale_rotate_ranges@f4 = gpu_objects_scale_rotate;
     noise_128_tex_hash@smp2d = noise_128_tex_hash;
     color_from@f4 = gpu_objects_color_from;
@@ -208,10 +179,12 @@ shader gpu_objects_rebuild_relems {
 
   (cs) {
     objects_countF@f1 = (gpu_objects_count, 0, 0, 0);
+
+    drawInstancedBuffer@uav : register(4) hlsl {
+      RWByteAddressBuffer drawInstancedBuffer@uav;
+    }
   }
   hlsl(cs) {
-
-    RWByteAddressBuffer drawInstancedBuffer : register(u4);
 
     [numthreads( MAX_GPU_OBJECTS_COUNT, THREAD_COUNT_FOR_EARLY_CULL, 1 )]
     void main(uint3 objNum : SV_GroupThreadID)
@@ -486,17 +459,22 @@ shader gpu_object_rendist_face_areas_cs
   (cs) {
     mesh_params@f4 = gpu_objects_rendinst_mesh_params;
     object_density@f1 = (gpu_objects_on_ri_placing_params.x);
-  }
 
-  hlsl(cs) {
-    RWBuffer<uint> numObjects : register(u0);
-    RWBuffer<float> faceAreasDoubled : register(u1);
-    ByteAddressBuffer indexBuf : register(t14);
-    ByteAddressBuffer vertexBuf : register(t15);
+    numObjects@uav : register(0) hlsl {
+      RWBuffer<uint> numObjects@uav;
+    }
+    faceAreasDoubled@uav : register(1) hlsl {
+      RWBuffer<float> faceAreasDoubled@uav;
+    }
+    indexBuf@buf : register(14) hlsl {
+      ByteAddressBuffer indexBuf@buf;
+    }
+    vertexBuf@buf : register(15) hlsl {
+      ByteAddressBuffer vertexBuf@buf;
+    }
   }
 
   GPU_OBJECTS_LOAD_MESH_TRIANGLE()
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
     #include "gpuObjects/gpu_objects_const.hlsli"
@@ -558,12 +536,14 @@ shader gpu_objects_on_rendinst_get_group_count_cs
   {
     instances_count@i1 = (gpu_object_rendinst_instances_count);
     numObjects@buf = gpu_objects_num_objects_buf hlsl { Buffer<uint> numObjects@buf; };
+
+    group_count@uav : register(0) hlsl {
+      RWBuffer<uint> group_count@uav;
+    }
   }
 
   hlsl(cs) {
     #include "gpuObjects/gpu_objects_const.hlsli"
-
-    RWBuffer<uint> group_count : register(u0);
 
     [numthreads(1, 1, 1)]
     void get_group_count()
@@ -579,10 +559,9 @@ shader gpu_objects_on_rendinst_get_group_count_cs
 
 shader gpu_objects_cs, gpu_objects_on_rendinst_cs
 {
-  if (tex_hmap_low == NULL) {
-    LAND_MASK_TEXCOORD(cs)
-    INIT_AND_USE_LAND_HEIGHT(cs)
-  }
+  LAND_MASK_TEXCOORD(cs)
+  INIT_AND_USE_LAND_HEIGHT(cs)
+
   if (shader == gpu_objects_cs)
   {
     hlsl(cs) {
@@ -628,6 +607,10 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       }
       USE_TOROIDAL_HEIGHTMAP_LOWRES(cs)
       hlsl(cs) {
+        // we use trackdirt offset in rendinst shader, and physical displacement from gpu_objects_placer
+        // this causes problems: ofs_tex and displacement info can be outdated (cuz we cache gpu object cells)
+        // but its lesser evil than sampling of tor hmap in rendinst shaders, they are already too complex
+
         float3 get_displacement(float2 coordsXZ, out float3 surface_normal)
         {
           float height = displacementParams.y * sample_tor_height_lowres(coordsXZ, displacementParams.z) + displacementParams.x;
@@ -639,8 +622,8 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
           float weightOfs = (tc_centered.x*tc_centered.y);
           float ofsTex = tc_ofs.x >= 0 && tc_ofs.y >= 0 && tc_ofs.x < 1 && tc_ofs.y < 1 ?
                            2*tex2Dlod(hmap_ofs_tex, float4(tc_ofs,0,0)).r : 1;
-          float trackdirt = lerp(thickness, thickness*ofsTex, weightOfs)*hmap_ofs_tex_size.y;
-          return float3(0, trackdirt + get_phys_height(height, thickness, ofsTex), 0);
+
+          return float3(0, get_phys_height(height, thickness, ofsTex), 0);
         }
       }
     }
@@ -718,25 +701,66 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
     }
   }
 
+  (cs) {
+    // It is a buffer of 4x4 matrices we can't use structured buffer here, because we copy it to buffer, which is used for RI rendering. RI rendering uses buffer of float4.
+    // Probably, we should use structured buffer of matrices in RI too.
+    gpuObjectsBuffer@uav : register(0) hlsl {
+      RWBuffer<float4> gpuObjectsBuffer@uav;
+    }
+
+    if(shader == gpu_objects_cs) {
+      countersBuffer@uav : register(2) hlsl {
+        RWByteAddressBuffer countersBuffer@uav;
+      }
+      bboxesBuffer@uav : register(1) hlsl {
+        RWStructuredBuffer<int> bboxesBuffer@uav;
+      }
+
+      if (gpu_objects_is_grass == yes) {
+        land_color_tex@smp2d = grass_land_color_mask;
+        land_grass_type_tex@smp2d = land_grass_type_tex;
+
+        VSGrassTypes@cbuf = fast_grass_types_buf hlsl {
+          #include <grassInstance.hlsli>
+          cbuffer VSGrassTypes@cbuf {
+            FastGrassType fast_grass_types[GRASS_MAX_CHANNELS+1];
+          };
+        };
+      }
+    } else {
+      countersBuffer@uav : register(1) hlsl {
+        RWByteAddressBuffer countersBuffer@uav;
+      }
+      indexBuf@buf : register(14) hlsl {
+        ByteAddressBuffer indexBuf@buf;
+      }
+      vertexBuf@buf : register(15) hlsl {
+        ByteAddressBuffer vertexBuf@buf;
+      }
+    }
+  }
+
   hlsl(cs) {
     #include "gpuObjects/gpu_objects_const.hlsli"
 
-    RWBuffer<float4> gpuObjectsBuffer : register(u0); // It is a buffer of 4x4 matrices we can't use structured buffer here, because we copy it to buffer, which is used for RI rendering. RI rendering uses buffer of float4.
-    // Probably, we should use structured buffer of matrices in RI too.
     ##if shader == gpu_objects_cs
+      ##if gpu_objects_is_grass == yes
+        float getHeightAdd(uint grassChannel)
+        {
+          return float(fast_grass_types[min(grassChannel, GRASS_MAX_CHANNELS)].w_to_height_add__height_var & 0xffff) / 0xffff;
+        }
 
-      RWByteAddressBuffer countersBuffer : register(u2);
-      RWStructuredBuffer<int> bboxesBuffer : register(u1);
+        float getHeightVariance(uint grassChannel)
+        {
+          return float((fast_grass_types[min(grassChannel, GRASS_MAX_CHANNELS)].w_to_height_add__height_var >> 16) & 0xffff) / 0xffff;
+        }
+      ##endif
+
       groupshared float4 bboxes[4 * 4 * 2];
 
       ##if gpu_objects_gpu_instancing == on
         DECLARE_GPU_OBJECT_INDIRECT_PARAMETERS
       ##endif
-
-    ##else //shader == gpu_objects_on_rendinst_cs
-      RWByteAddressBuffer countersBuffer : register(u1);
-      ByteAddressBuffer indexBuf : register(t14);
-      ByteAddressBuffer vertexBuf : register(t15);
     ##endif
   }
 
@@ -778,7 +802,7 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       return any(distancesSquared <= gpu_objects_bomb_hole_radiuses_squared);
     }
 
-    void addInstance(float3 pos, float3 direction, float rotate, float scale, inout float4 bbox_min, inout float4 bbox_max, uint flat_group_idx, uint buffer_offset, uint lod_no, float4 color)
+    void addInstance(float3 pos, float3 direction, float rotate, float scale, inout float4 bbox_min, inout float4 bbox_max, uint flat_group_idx, uint buffer_offset, uint lod_no, float4 color, float2 extra)
     {
       if (isInBombHole(pos))
         return;
@@ -825,7 +849,7 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 2) = float4(front * scale, pos.z);
       //@RiExtraTmLayout
       uint c = uint(color.x * 255) | (uint(color.y * 255) << 8) | (uint(color.z * 255) << 16) | (uint(color.w * 255) << 24);
-      bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 3) = float4(asfloat(gpu_objects_ri_pool_id_offset), 0.0, asfloat(c), 0.0);
+      bufferAt(gpuObjectsBuffer, (at + buffer_offset) * 4 + 3) = float4(asfloat(gpu_objects_ri_pool_id_offset), extra.x, asfloat(c), extra.y);
 
       bbox_min = min(bbox_min, float4(pos - bounding_radius, 0));
       bbox_max = max(bbox_max, float4(pos + bounding_radius, 0));
@@ -845,7 +869,7 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
             bvhInstance.transform0 = float4(right * scale, pos.x);
             bvhInstance.transform1 = float4(direction * scale, pos.y);
             bvhInstance.transform2 = float4(front * scale, pos.z);
-            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRiExtra << 24);
+            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRi << 24);
             bvhInstance.instanceOffset_flags = 0;
             bvhInstance.blas = bvhMapping.blas;
             structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;
@@ -891,6 +915,15 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       ##endif
       float seedMultiplier = 1;
       float shoreRotation = 0.0;
+##if gpu_objects_is_grass == yes
+      float3 surfaceNormal = float3(0, 1, 0);
+      float3 displacement = get_displacement(coords, surfaceNormal);
+      bool outOfGrassHeightRange;
+      float2 grassHeightTc = get_land_mask_tc(coords + displacement.xz, outOfGrassHeightRange);
+      float biomeValue = tex2Dlod(land_grass_type_tex, float4(grassHeightTc, 0, 0)).x;
+      uint sampledBiom = uint(floor(biomeValue*255+0.5)) - 1u;
+      sampledBiom = min(sampledBiom, GRASS_MAX_CHANNELS);
+##endif
 ##if (gpu_objects_map != NULL)
       float2 uv = worldPos.xz * map_size_offset.xy + map_size_offset.zw;
       float place = tex2Dlod(map, float4(uv, 0, 0)).r;
@@ -901,7 +934,9 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       BRANCH
       if (!placeAllowed)
       {
-        int sampledBiom = getBiomeIndex(worldPos);
+##if gpu_objects_is_grass == no
+        uint sampledBiom = getBiomeIndex(worldPos);
+##endif
         int i = 0;
         LOOP
         for (; i < gpu_objects_biomes_count; ++i)
@@ -935,18 +970,31 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
       if (placeAllowed && lodNo < MAX_LODS)
 ##endif
       {
+##if gpu_objects_is_grass == no
         float3 surfaceNormal = float3(0, 1, 0);
         float3 displacement = get_displacement(coords, surfaceNormal);
+##endif
         ##if tex_hmap_low != NULL
           float2 tc_low = worldPos.xz*world_to_hmap_low.xy + world_to_hmap_low.zw;
           if (tc_low.x < 0 || tc_low.y < 0 || tc_low.x > 1 || tc_low.y > 1)
             seedMultiplier = -1;
           float landHeight = getWorldHeight(coords + displacement.xz) + displacement.y;
+
+          #if HAS_LAND_MASK_TEXCOORD
+##if gpu_objects_is_grass == no
+            bool outOfGrassHeightRange;
+            float2 grassHeightTc = get_land_mask_tc(coords + displacement.xz, outOfGrassHeightRange);
+##endif
+            if (!outOfGrassHeightRange)
+              landHeight = max(landHeight, get_land_height(grassHeightTc));
+          #endif
         ##else
           float landHeight = 0;
           #if HAS_LAND_MASK_TEXCOORD
+##if gpu_objects_is_grass == no
             bool outOfGrassHeightRange;
             float2 grassHeightTc = get_land_mask_tc(coords + displacement.xz, outOfGrassHeightRange);
+##endif
             if (!outOfGrassHeightRange)
               landHeight = get_land_height(grassHeightTc);
             else
@@ -967,6 +1015,7 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
           if (checkHeightmapHoles(worldPos))
             seedMultiplier = -1;
           apply_renderinst_hmap_ofs(worldPos.xz, landHeight);
+          landHeight += lerp(gpu_objects_random_y_ofs.x, gpu_objects_random_y_ofs.y, randValues.x);
           worldPos = float3(coords.x + displacement.x, landHeight, coords.y + displacement.z);
           surfaceNormal = getWorldNormal(worldPos);
         }
@@ -985,6 +1034,14 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
             weightAccepted = false;
         ##endif
 
+##if gpu_objects_is_grass == yes
+        half4 colorAndWeight = tex2Dlod(land_color_tex, float4(grassHeightTc, 0, 0));
+        if (weight > colorAndWeight.a)
+          weightAccepted = false;
+        if (fast_grass_types[sampledBiom].height <= 0)
+          weightAccepted = false;
+##endif
+
         BRANCH
         if (inclineFactor*seedMultiplier > frac(10.345*randValues.y) && weightAccepted)
         {
@@ -993,7 +1050,13 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
           float rotate = lerp(rotate_range.x, rotate_range.y, randValues.x) + shoreRotation;
           float4 color = lerp(color_from, color_to,  float4(randValues.x, randValues.y,
             (randValues.x + randValues.y) * 0.5, fmod(randValues.y * 255, randValues.x)));
-          addInstance(worldPos, dir, rotate, scale, bboxMin, bboxMax, grid_parameters.w, cell_buffer_offset, lodNo, color);
+##if gpu_objects_is_grass == yes
+          color = float4(colorAndWeight.rgb, (sampledBiom + 0.1) / 255.0);
+          scale *= lerp(getHeightAdd(sampledBiom), 1, colorAndWeight.a);
+          scale *= 1 - getHeightVariance(sampledBiom) * randValues.x;
+          scale *= fast_grass_types[sampledBiom].height;
+##endif
+          addInstance(worldPos, dir, rotate, scale, bboxMin, bboxMax, grid_parameters.w, cell_buffer_offset, lodNo, color, coords);
         }
       }
     ##if gpu_objects_gpu_instancing == off
@@ -1107,7 +1170,7 @@ shader gpu_objects_cs, gpu_objects_on_rendinst_cs
             (randValues.x + randValues.y) * 0.5, fmod(randValues.y * 255, randValues.x)));
           float4 bboxMin = 0; //not used
           float4 bboxMax = 0; //not used
-          addInstance(worldPos, dir, rotate, scale, bboxMin, bboxMax, uint(worldPos_instanceIdx.w), buffer_offset, 0, color);
+          addInstance(worldPos, dir, rotate, scale, bboxMin, bboxMax, uint(worldPos_instanceIdx.w), buffer_offset, 0, color, float2(0, 0));
         }
       }
 
@@ -1128,13 +1191,17 @@ shader gpu_obj_clear_counter_and_bbox_cs
   {
     group_idx@f1 = (gpu_objects_group_idx);
     gpu_object_ints_to_clear@i2 = (gpu_object_ints_to_clear);
+
+    bboxesBuffer@uav : register(1) hlsl {
+      RWStructuredBuffer<int> bboxesBuffer@uav;
+    }
+    cellCount@uav : register(2) hlsl {
+      RWByteAddressBuffer cellCount@uav;
+    }
   }
-  ENABLE_ASSERT(cs)
   hlsl(cs)
   {
     #include "gpuObjects/gpu_objects_const.hlsli"
-    RWStructuredBuffer<int> bboxesBuffer : register(u1);
-    RWByteAddressBuffer cellCount : register(u2);
 
     [numthreads(GPU_OBJ_BBOX_CLEANER_SIZE, 1, 1)]
     void main(uint dispatch_thread_id : SV_DispatchThreadID)
@@ -1156,16 +1223,18 @@ shader gpu_obj_clear_counter_and_bbox_cs
 
 shader gpu_objects_on_rendinst_clean_cs
 {
-  ENABLE_ASSERT(cs)
   GPU_OBJECTS_CS_INSTANCE_DATA_BUFFER()
 
   (cs) {
     count@f1 = (gpu_objects_num_for_placing);
+
+    counters@uav : register(1) hlsl {
+      RWBuffer<uint> counters@uav;
+    }
   }
 
   hlsl(cs) {
     #include "gpuObjects/gpu_objects_const.hlsli"
-    RWBuffer<uint> counters : register(u1);
 
     [numthreads(DISPATCH_WARP_SIZE, 1, 1)]
     void bbox_fill(uint thread_id : SV_DispatchThreadID)
@@ -1191,7 +1260,6 @@ int gpu_objects_matrices_reg_no = 1;
 
 shader gpu_objects_gather_matrices_cs
 {
-  ENABLE_ASSERT(cs)
   INIT_BVH_GOBJ()
   (cs) {
     copy_parameters@i4 = (gpu_objects_gather_target_offset, gpu_objects_max_count_in_cell, gpu_objects_visible_cells, gpu_objects_copy_lod_no);
@@ -1237,7 +1305,7 @@ shader gpu_objects_gather_matrices_cs
             bvhInstance.transform0 = matrices[matrixOffset + 0];
             bvhInstance.transform1 = matrices[matrixOffset + 1];
             bvhInstance.transform2 = matrices[matrixOffset + 2];
-            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRiExtra << 24);
+            bvhInstance.instanceId_mask = bvhMapping.metaIndex | (bvhGroupRi << 24);
             bvhInstance.instanceOffset_flags = 0;
             bvhInstance.blas = bvhMapping.blas;
             structuredBufferAt(gpuobjectsBvhInstances, bvhIndex) = bvhInstance;

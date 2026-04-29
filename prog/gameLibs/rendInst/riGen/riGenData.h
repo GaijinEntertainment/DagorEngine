@@ -7,6 +7,7 @@
 #include <rendInst/rendInstGenDamageInfo.h>
 #include <rendInst/visibility.h>
 #include <rendInst/renderPass.h>
+#include <rendInst/riexHandle.h>
 
 #include <generic/dag_patchTab.h>
 #include <generic/dag_smallTab.h>
@@ -32,7 +33,11 @@
 // use additional data as hashVal only when in Tools (De3X, AV2)
 #define RIGEN_PERINST_ADD_DATA_FOR_TOOLS _TARGET_PC_TOOLS_BUILD
 
-#define RI_VERBOSE_OUTPUT (DAGOR_DBGLEVEL > 0)
+#ifndef FORCE_RI_VERBOSE_OUTPUT
+#define FORCE_RI_VERBOSE_OUTPUT _TARGET_PC || !DAGOR_HOSTED_INTERNAL_SERVER
+#endif
+
+#define RI_VERBOSE_OUTPUT (DAGOR_DBGLEVEL > 0) && FORCE_RI_VERBOSE_OUTPUT
 
 class IGenLoad;
 class Point4;
@@ -42,6 +47,10 @@ class CollisionResource;
 class DynamicPhysObjectData;
 struct Frustum;
 struct RiGenVisibility;
+namespace rendinst
+{
+struct PrepareRiGenVisibilityParams;
+}
 typedef void *file_ptr_t;
 namespace rendinst::gen::land
 {
@@ -183,6 +192,7 @@ struct RendInstGenData
   struct RendinstProperties
   {
     int matId;
+    bool overrideMaterialForTraces;
     bool immortal;
     bool damageable;
     bool stopsBullets;
@@ -340,8 +350,6 @@ struct RendInstGenData
         updateDelayedDebrisRi(dt, movedDebrisBbox);
     }
 
-    void initRiSoundOccluders(const dag::ConstSpan<eastl::pair<const char *, const char *>> &ri_name_to_occluder_type,
-      const dag::ConstSpan<eastl::pair<const char *, float>> &occluders);
     bool debugGetSoundOcclusion(const char *ri_name, float &value);
 
     int riResFirstLod(int ri_idx) const { return riRes[ri_idx]->getQlMinAllowedLod(); }
@@ -402,17 +410,73 @@ struct RendInstGenData
     eastl::unique_ptr<uint8_t[]> sysMemData;
   };
 
+  // actual non-empty pools range for a cell is usually very small, so use this helper
+  // structure to only store this small span of empty pools, while allowing to index everything else
+  struct CellPoolsVec
+  {
+    CellPoolsVec() = default;
+    CellPoolsVec(CellPoolsVec &&) = default;
+    CellPoolsVec &operator=(CellPoolsVec &&) = default;
+
+    const EntPool &operator[](uint32_t idx) const
+    {
+#ifdef _DEBUG_TAB_
+      G_ASSERTF(idx < size(), "CellPoolsVec[]: n=%i size=%i", idx, fullSize);
+#endif
+      idx -= offset;
+      static const EntPool EMPTY = {}; //-V1096
+      return idx < data.size() ? data[idx] : EMPTY;
+    }
+
+    dag::Vector<EntPool> &getNonSealedVec()
+    {
+      G_ASSERT(!isSealed());
+      return data;
+    }
+    bool isSealed() const { return fullSize != 0; }
+    void setDataSpanAndSeal(uint32_t begin, uint32_t end)
+    {
+      G_ASSERT_RETURN(!isSealed(), );
+      G_ASSERT_RETURN(data.size() <= 0xFFFFu, );
+      G_ASSERT_RETURN(begin <= end && end <= data.size(), );
+      fullSize = uint16_t(data.size());
+      if (fullSize == 0)
+        return;
+      offset = uint16_t(begin);
+      decltype(data) sealData(data.begin() + begin, data.begin() + end);
+      data.swap(sealData);
+    }
+    void unseal()
+    {
+      if (!isSealed())
+        return;
+      const uint32_t dataSize = data.size();
+      data.resize(fullSize);
+      memmove(data.data() + offset, data.data(), sizeof(EntPool) * dataSize);
+      memset(data.data(), 0, offset * sizeof(EntPool));
+      memset(data.data() + offset + dataSize, 0, (data.size() - offset - dataSize) * sizeof(EntPool));
+      fullSize = offset = 0;
+    }
+    uint32_t size() const { return eastl::max(fullSize, uint16_t(data.size())); }
+
+  private:
+    dag::Vector<EntPool> data;
+    uint16_t offset = 0;
+    uint16_t fullSize = 0;
+  };
+
   struct CellRtData : CellRtDataLoaded
   {
+    int vbSize = 0;
+    uint32_t heapGen = ~0u;
     vec4f cellOrigin;
-    SmallTab<EntPool, MidmemAlloc> pools;
     bbox3f pregenRiExtraBbox;
     RtData *rtData = nullptr; // parent
     PregenEntRtAdd *pregenAdd = nullptr;
+    dag::Span<rendinst::riex_handle_t> riexHandles = {nullptr, 0};
+    CellPoolsVec pools;
     LinearHeapAllocatorSbuffer::RegionId cellVbId;
     float cellHeight = 0.f;
-    int vbSize = 0;
-    uint32_t heapGen = ~0u;
     enum
     {
       LOADED = 1,
@@ -424,15 +488,15 @@ struct RendInstGenData
     uint32_t cellStateFlags = LOADED;
     bool burned = false;
 
-    CellRtData(int ri_cnt, RtData *parent) : rtData(parent) //-V730
+    CellRtData(int pool_cnt, RtData *parent) : rtData(parent) //-V730
     {
-      clear_and_resize(pools, ri_cnt);
-      mem_set_0(pools);
+      pools.getNonSealedVec().resize(pool_cnt);
+      mem_set_0(pools.getNonSealedVec());
       v_bbox3_init_empty(pregenRiExtraBbox);
     }
     ~CellRtData()
     {
-      clear();
+      clearAllWithRiEx();
       del_it(pregenAdd);
       rtData = nullptr;
     }
@@ -452,7 +516,13 @@ struct RendInstGenData
     bool isDataUploaded() const { return interlocked_acquire_load(dataUploaded); }
     void setDataUploadFlag(bool value) { interlocked_release_store(dataUploaded, value); }
 
+    static void clearRiEx(dag::Span<rendinst::riex_handle_t> &h, unsigned max_time_quant_usec = 5000);
     void clear();
+    void clearAllWithRiEx()
+    {
+      clear();
+      clearRiEx(riexHandles);
+    }
     void allocate(int idx);
     void update(int size, RendInstGenData &rgd); // in bytes
     void applyBurnDecal(const bbox3f &decal_bbox);
@@ -494,7 +564,7 @@ struct RendInstGenData
     bool isLoaded() const
     {
       if (const CellRtData *crt = interlocked_acquire_load_ptr((const CellRtData *const volatile &)rtData))
-        return crt->sysMemData || crt->vbSize <= 0;
+        return crt->sysMemData || crt->riexHandles.data() || (crt->vbSize <= 0 && !crt->riexHandles.size());
       return false;
     }
     bool hasFarVisiblePregenInstances(const RendInstGenData *rgl, float thres_dist, dag::Span<float> riMaxDist) const;
@@ -543,9 +613,7 @@ public:
   void updateOnlyVb(RendInstGenData::CellRtData &crt);
   void onDeviceReset();
   template <bool use_external_filter = false>
-  bool prepareVisibility(const Frustum &frustum, const Point3 &vpos, RiGenVisibility &visibility, bool forShadow,
-    rendinst::LayerFlags layer_flags, Occlusion *use_occlusion, bool for_visual_collision = false,
-    const rendinst::VisibilityExternalFilter &external_filter = {});
+  bool prepareVisibility(RiGenVisibility &visibility, const Frustum &frustum, const rendinst::PrepareRiGenVisibilityParams &params);
   void filterRIGenVisibilityById(const RiGenVisibility &visibility, RiGenVisibility &filteredVis,
     const rendinst::VisibilityExternalIdFilter &id_filter);
   void sortRIGenVisibility(RiGenVisibility &visibility, const Point3 &viewPos, const Point3 &viewDir, float vertivalFov,
@@ -587,6 +655,11 @@ public:
   bool updateLClassColors(const char *name, E3DCOLOR from, E3DCOLOR to); // for tuning
   void clearDelayedRi();
   void updateHeapVbNoLock();
+
+  void generateRiExFromPregenData(int riex_idx, RendInstGenData::CellRtData &crt, vec3f v_cell_add, vec3f v_cell_mul, //
+    uint8_t *ptr, unsigned cnt, unsigned stride, bool zeroInstSeeds, const rendinst::DestroyedCellData &extraDestrData, bool store);
+  void processRiGenFromPregenData(int ri_idx, EntPool &pool, vec3f v_cell_add, vec3f v_cell_mul, uint8_t *ptr, unsigned cnt,
+    int stride, dag::ConstSpan<uint8_t> buf_tm32, dag::ConstSpan<uint8_t> buf_w16, uint8_t *vbPtr, bool from_RIGz);
 
   static RendInstGenData *getGenDataByLayer(const rendinst::RendInstDesc &desc);
 };
@@ -686,7 +759,7 @@ void term_stub_res();
 inline bool is_rendinst_marked_collision_ignored(const int16_t *data, int per_inst_data, int stride)
 {
   if (per_inst_data)
-    return data[stride] == 0xBAD;
+    return data[stride] == RI_SEED_COLLISION_IGNORE;
   return false;
 }
 

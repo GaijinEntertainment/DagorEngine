@@ -155,7 +155,7 @@ inline void set_render_target(RenderTarget depth, DepthAccess depth_access, dag:
 {
   int i = 0;
   for (; i < colors.size() && i < Driver3dRenderTarget::MAX_SIMRT; ++i)
-    set_render_target(i, colors[i].tex, colors[i].mip_level);
+    set_render_target(i, colors[i].tex, colors[i].layer, colors[i].mip_level);
   for (; i < Driver3dRenderTarget::MAX_SIMRT; ++i)
     set_render_target(i, nullptr, 0);
 

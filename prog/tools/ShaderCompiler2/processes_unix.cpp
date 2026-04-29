@@ -284,6 +284,8 @@ void serve_process_output(ExecutionState &state, ProcessHandle &hnd)
   hnd.hasCommunicated = true;
 }
 
+eastl::string convert_message(eastl::string_view msg) { return eastl::string{msg}; }
+
 void send_interrupt_signal_to_process(const ProcessHandle &process) { kill(process.processData->pid, SIGINT); }
 void kill_process(const ProcessHandle &process) { kill(process.processData->pid, SIGKILL); }
 

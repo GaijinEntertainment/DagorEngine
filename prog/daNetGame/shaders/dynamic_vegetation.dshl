@@ -15,7 +15,6 @@ buffer impostor_data_buffer;
 
 shader dynamic_tree_colored
 {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
   (ps) {
     impostor_data_buffer@buf = impostor_data_buffer hlsl {
@@ -60,11 +59,6 @@ shader dynamic_tree_colored
   //---------------------------------------------------
 
   INIT_WEIGHT_FOR_AO()
-
-  if (compatibility_mode == compatibility_mode_on && mobile_render != off && dyn_model_render_pass != render_pass_normal)
-  {
-    INIT_STATIC_SHADOW_PS()
-  }
 
   if (dyn_model_render_pass == render_pass_normal)
   {
@@ -130,11 +124,11 @@ shader dynamic_tree_colored
     USE_PIXEL_TANGENT_SPACE()
     WRITE_GBUFFER()
     USE_WEIGHT_FOR_AO()
-    FILL_CURRENT_GBUFFER(false)
+    FILL_CURRENT_GBUFFER(false, false)
   }
   else
   {
-    (ps) { diffuse_tex@static = tex; }
+    (ps) { diffuse_tex@staticSmp = tex; }
   }
 
   if (atest == atestOn)
@@ -221,7 +215,7 @@ shader dynamic_tree_colored
       #define IS_DYNAMIC 1
     }
 
-    VEGETATION_PS(dyn_model_render_pass == render_to_depth, atest == atestOn, false)
+    VEGETATION_PS(dyn_model_render_pass == render_to_depth, atest == atestOn, false, true, false, GBUFFER_ORDER_DYNAMIC)
   }
   else
   {

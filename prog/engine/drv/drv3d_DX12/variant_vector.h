@@ -6,10 +6,10 @@
 #include <atomic>
 #include <EASTL/numeric.h>
 #include <EASTL/numeric_limits.h>
-#include <EASTL/optional.h>
 #include <EASTL/span.h>
 #include <EASTL/type_traits.h>
 #include <EASTL/unique_ptr.h>
+#include <osApiWrappers/dag_addressWait.h>
 #include <osApiWrappers/dag_lockProfiler.h>
 #include <perfMon/dag_statDrv.h>
 
@@ -64,6 +64,15 @@ struct ExtendedVariant2
   T &cmd;
   eastl::span<P0> p0;
   eastl::span<P1> p1;
+};
+
+template <typename T, typename P0, typename P1, typename P2>
+struct ExtendedVariant3
+{
+  T &cmd;
+  eastl::span<P0> p0;
+  eastl::span<P1> p1;
+  eastl::span<P2> p2;
 };
 
 template <typename T>
@@ -171,7 +180,7 @@ struct MemoryWriter
     auto s = p;
     for (auto &&s : data)
     {
-      ::new (p++) T{eastl::move(data)};
+      ::new (p++) T{eastl::move(s)};
     }
     at = reinterpret_cast<uint8_t *>(p);
     return s;
@@ -184,7 +193,7 @@ struct MemoryWriter
     auto s = p;
     for (auto &&s : data)
     {
-      ::new (p++) T{data};
+      ::new (p++) T{s};
     }
     at = reinterpret_cast<uint8_t *>(p);
     return s;
@@ -415,6 +424,51 @@ protected:
     }
   };
 
+  template <typename T, typename P0, typename P1, typename P2>
+  struct TypeHandlerDestructor<ExtendedVariant3<T, P0, P1, P2>, true>
+  {
+    static size_t destructOp(MemoryInterpreter m)
+    {
+      auto p0Count = m.as<size_t>();
+      auto p1Count = m.as<size_t>();
+      auto p2Count = m.as<size_t>();
+      m.as<T>();
+      m.asArray<P0>(p0Count);
+      m.asArray<P1>(p1Count);
+      m.asArray<P2>(p2Count);
+      return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+             TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count) +
+             TypeMemoryRequirement<P1>::array_of(p1Count) + TypeMemoryRequirement<P2>::array_of(p2Count);
+    }
+  };
+
+  template <typename T, typename P0, typename P1, typename P2>
+  struct TypeHandlerDestructor<ExtendedVariant3<T, P0, P1, P2>, false>
+  {
+    static size_t destructOp(MemoryInterpreter m)
+    {
+      auto p0Count = m.as<size_t>();
+      auto p1Count = m.as<size_t>();
+      auto p2Count = m.as<size_t>();
+      m.as<T>().~T();
+      for (auto p0 : m.asArray<P0>(p0Count))
+      {
+        p0.~P0();
+      }
+      for (auto p1 : m.asArray<P1>(p1Count))
+      {
+        p1.~P1();
+      }
+      for (auto p2 : m.asArray<P2>(p2Count))
+      {
+        p2.~P2();
+      }
+      return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+             TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count) +
+             TypeMemoryRequirement<P1>::array_of(p1Count) + TypeMemoryRequirement<P2>::array_of(p2Count);
+    }
+  };
+
   // third param is to prevent full specialization, as its not allowed in class scope
   template <typename T, bool IsTrivial = false, bool = false>
   struct TypeHandlerCopyConstructor
@@ -450,17 +504,23 @@ protected:
       d.rawWriteArray<P0>(p0, p0_count);
     }
 
-    template <typename G0>
-    static void copyConstructDataGenerator(MemoryWriter d, const T &value, size_t p0_count, G0 g0)
+    template <typename G>
+    static void copyConstructDataGenerator(MemoryWriter d, const T &value, size_t p0_count, G g)
     {
       d.rawWrite<size_t>(&p0_count);
       d.rawWrite<T>(&value);
       auto p0 = d.rawReserveArray<P0>(p0_count);
-      for (size_t i = 0; i < p0_count; ++i)
-      {
-        auto data = g0(i);
-        memcpy(&p0[i], &data, sizeof(P0));
-      }
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      g(p0Push);
     }
 
     static size_t copyOp(MemoryWriter d, MemoryInterpreterConst s)
@@ -483,16 +543,23 @@ protected:
       d.writeArray<P0>(p0, p0_count);
     }
 
-    template <typename G0>
-    static void copyConstructDataGenerator(MemoryWriter d, const T &value, size_t p0_count, G0 g0)
+    template <typename G>
+    static void copyConstructDataGenerator(MemoryWriter d, const T &value, size_t p0_count, G g)
     {
       d.rawWrite<size_t>(&p0_count);
       d.write<T>(value);
       auto p0 = d.rawReserveArray<P0>(p0_count);
-      for (size_t i = 0; i < p0_count; ++i)
-      {
-        ::new (reinterpret_cast<void *>(&p0[i])) T{g0(i)};
-      }
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      g(p0Push);
     }
 
     static size_t copyOp(MemoryWriter d, MemoryInterpreterConst s)
@@ -507,7 +574,7 @@ protected:
   template <typename T, typename P0, typename P1>
   struct TypeHandlerCopyConstructor<ExtendedVariant2<T, P0, P1>, false>
   {
-    static void copyConstruct(MemoryWriter d, const T &value, const P0 *p0, size_t p0_count, const P0 *p1, size_t p1_count)
+    static void copyConstruct(MemoryWriter d, const T &value, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count)
     {
       d.rawWrite<size_t>(&p0_count);
       d.rawWrite<size_t>(&p1_count);
@@ -516,18 +583,35 @@ protected:
       d.writeArray<P1>(p1, p1_count);
     }
 
+    // WTF value should be const T&
     template <typename G>
-    static void copyConstructDataGenerator(MemoryWriter d, const void *value, size_t p0_count, G g)
+    static void copyConstructDataGenerator(MemoryWriter d, const void *value, size_t p0_count, size_t p1_count, G g)
     {
       d.rawWrite<size_t>(&p0_count);
-      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
       d.write<T>(*reinterpret_cast<const T *>(value));
       auto p0 = d.rawReserveArray<P0>(p0_count);
-      auto p1 = d.rawReserveArray<P1>(p0_count);
-      for (size_t i = 0; i < p0_count; ++i)
-      {
-        g(i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
-      }
+      auto p1 = d.rawReserveArray<P1>(p1_count);
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      auto p1Push = [&p1, p1E = p1 + p1_count](auto &&...v) mutable -> P1 & {
+        if (p1 >= p1E)
+        {
+          DAG_FATAL("Too many P1 generated!");
+        }
+        auto r = ::new (p1) P1{eastl::move(v)...};
+        ++p1;
+        return *r;
+      };
+      g(p0Push, p1Push);
     }
     static size_t copyOp(MemoryWriter d, MemoryInterpreterConst s)
     {
@@ -537,7 +621,7 @@ protected:
       d.writeArray<P0>(s.asArray<P0>(p0Count));
       d.writeArray<P1>(s.asArray<P1>(p1Count));
       return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<T>::value +
-             TypeMemoryRequirement<P0>::array_of(p0Count) + TypeMemoryRequirement<P1>::array_of(p0Count);
+             TypeMemoryRequirement<P0>::array_of(p0Count) + TypeMemoryRequirement<P1>::array_of(p1Count);
     }
   };
 
@@ -553,18 +637,35 @@ protected:
       d.rawWriteArray<P1>(p1, p1_count);
     }
 
+    // WTF value should be const T&
     template <typename G>
-    static void copyConstructDataGenerator(MemoryWriter d, const void *value, size_t p0_count, G g)
+    static void copyConstructDataGenerator(MemoryWriter d, const void *value, size_t p0_count, size_t p1_count, G g)
     {
       d.rawWrite<size_t>(&p0_count);
-      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
       d.write<T>(*reinterpret_cast<const T *>(value));
       auto p0 = d.rawReserveArray<P0>(p0_count);
-      auto p1 = d.rawReserveArray<P1>(p0_count);
-      for (size_t i = 0; i < p0_count; ++i)
-      {
-        g(i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
-      }
+      auto p1 = d.rawReserveArray<P1>(p1_count);
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      auto p1Push = [&p1, p1E = p1 + p1_count](auto &&...v) mutable -> P1 & {
+        if (p1 >= p1E)
+        {
+          DAG_FATAL("Too many P1 generated!");
+        }
+        auto r = ::new (p1) P1{eastl::move(v)...};
+        ++p1;
+        return *r;
+      };
+      g(p0Push, p1Push);
     }
 
     static size_t copyOp(MemoryWriter d, MemoryInterpreterConst s)
@@ -575,7 +676,148 @@ protected:
       d.writeArray<P0>(s.asArray<P0>(p0Count));
       d.writeArray<P1>(s.asArray<P1>(p1Count));
       return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<T>::value +
-             TypeMemoryRequirement<P0>::array_of(p0Count) + TypeMemoryRequirement<P1>::array_of(p0Count);
+             TypeMemoryRequirement<P0>::array_of(p0Count) + TypeMemoryRequirement<P1>::array_of(p1Count);
+    }
+  };
+
+  template <typename T, typename P0, typename P1, typename P2>
+  struct TypeHandlerCopyConstructor<ExtendedVariant3<T, P0, P1, P2>, false>
+  {
+    static void copyConstruct(MemoryWriter d, const T &value, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count,
+      const P2 *p2, size_t p2_count)
+    {
+      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
+      d.rawWrite<size_t>(&p2_count);
+      d.rawWrite<T>(&value);
+      d.writeArray<P0>(p0, p0_count);
+      d.writeArray<P1>(p1, p1_count);
+      d.writeArray<P2>(p2, p2_count);
+    }
+
+    template <typename G>
+    static void copyConstructDataGenerator(MemoryWriter d, const T &value, size_t p0_count, size_t p1_count, size_t p2_count, G g)
+    {
+      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
+      d.rawWrite<size_t>(&p2_count);
+      d.rawWrite<T>(&value);
+      auto p0 = d.rawReserveArray<P0>(p0_count);
+      auto p1 = d.rawReserveArray<P1>(p1_count);
+      auto p2 = d.rawReserveArray<P2>(p2_count);
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      auto p1Push = [&p1, p1E = p1 + p1_count](auto &&...v) mutable -> P1 & {
+        if (p1 >= p1E)
+        {
+          DAG_FATAL("Too many P1 generated!");
+        }
+        auto r = ::new (p1) P1{eastl::move(v)...};
+        ++p1;
+        return *r;
+      };
+      auto p2Push = [&p2, p2E = p2 + p2_count](auto &&...v) mutable -> P2 & {
+        if (p2 >= p2E)
+        {
+          DAG_FATAL("Too many P2 generated!");
+        }
+        auto r = ::new (p2) P2{eastl::move(v)...};
+        ++p2;
+        return *r;
+      };
+      g(p0Push, p1Push, p2Push);
+    }
+    static size_t copyOp(MemoryWriter d, MemoryInterpreterConst s)
+    {
+      auto p0Count = d.rawWrite<size_t>(&s.as<size_t>());
+      auto p1Count = d.rawWrite<size_t>(&s.as<size_t>());
+      auto p2Count = d.rawWrite<size_t>(&s.as<size_t>());
+      d.rawWrite<T>(&s.as<T>());
+      d.writeArray<P0>(s.asArray<P0>(p0Count));
+      d.writeArray<P1>(s.asArray<P1>(p1Count));
+      d.writeArray<P2>(s.asArray<P2>(p2Count));
+      return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+             TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count) +
+             TypeMemoryRequirement<P1>::array_of(p1Count) + TypeMemoryRequirement<P2>::array_of(p2Count);
+    }
+  };
+
+  template <typename T, typename P0, typename P1, typename P2>
+  struct TypeHandlerCopyConstructor<ExtendedVariant3<T, P0, P1, P2>, true>
+  {
+    static void copyConstruct(MemoryWriter d, const T &value, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count,
+      const P2 *p2, size_t p2_count)
+    {
+      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
+      d.rawWrite<size_t>(&p2_count);
+      d.rawWrite<T>(&value);
+      d.rawWriteArray<P0>(p0, p0_count);
+      d.rawWriteArray<P1>(p1, p1_count);
+      d.rawWriteArray<P2>(p2, p2_count);
+    }
+
+    template <typename G>
+    static void copyConstructDataGenerator(MemoryWriter d, const T &value, size_t p0_count, size_t p1_count, size_t p2_count, G g)
+    {
+      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
+      d.rawWrite<size_t>(&p2_count);
+      d.write<T>(value);
+      auto p0 = d.rawReserveArray<P0>(p0_count);
+      auto p1 = d.rawReserveArray<P1>(p1_count);
+      auto p2 = d.rawReserveArray<P2>(p2_count);
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      auto p1Push = [&p1, p1E = p1 + p1_count](auto &&...v) mutable -> P1 & {
+        if (p1 >= p1E)
+        {
+          DAG_FATAL("Too many P1 generated!");
+        }
+        auto r = ::new (p1) P1{eastl::move(v)...};
+        ++p1;
+        return *r;
+      };
+      auto p2Push = [&p2, p2E = p2 + p2_count](auto &&...v) mutable -> P2 & {
+        if (p2 >= p2E)
+        {
+          DAG_FATAL("Too many P2 generated!");
+        }
+        auto r = ::new (p2) P2{eastl::move(v)...};
+        ++p2;
+        return *r;
+      };
+      g(p0Push, p1Push, p2Push);
+    }
+
+    static size_t copyOp(MemoryWriter d, MemoryInterpreterConst s)
+    {
+      auto p0Count = d.rawWrite<size_t>(&s.as<size_t>());
+      auto p1Count = d.rawWrite<size_t>(&s.as<size_t>());
+      auto p2Count = d.rawWrite<size_t>(&s.as<size_t>());
+      d.write<T>(s.as<T>());
+      d.writeArray<P0>(s.asArray<P0>(p0Count));
+      d.writeArray<P1>(s.asArray<P1>(p1Count));
+      d.writeArray<P2>(s.asArray<P2>(p2Count));
+      return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+             TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count) +
+             TypeMemoryRequirement<P1>::array_of(p1Count) + TypeMemoryRequirement<P2>::array_of(p2Count);
     }
   };
 
@@ -615,17 +857,23 @@ protected:
       d.rawWriteArray<P0>(p0, p0_count);
     }
 
-    template <typename G0>
-    static void moveContructDataGenerator(MemoryWriter d, T &&value, size_t p0_count, G0 g0)
+    template <typename G>
+    static void moveContructDataGenerator(MemoryWriter d, T &&value, size_t p0_count, G g)
     {
       d.rawWrite<size_t>(&p0_count);
       d.rawWrite<T>(&value);
       auto p0 = d.rawReserveArray<P0>(p0_count);
-      for (size_t i = 0; i < p0_count; ++i)
-      {
-        auto pv0 = g0(i);
-        memcpy(&p0[i], &pv0, sizeof(P0));
-      }
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      g(p0Push);
     }
 
     static size_t moveOp(MemoryWriter d, MemoryInterpreter s)
@@ -652,17 +900,24 @@ protected:
       }
     }
 
-    template <typename G0>
-    static void moveContructDataGenerator(MemoryWriter dst, T &&value, size_t p0_count, G0 g0)
+    template <typename G>
+    static void moveContructDataGenerator(MemoryWriter dst, T &&value, size_t p0_count, G g)
     {
       MemoryWriter d{dst};
       d.rawWrite<size_t>(&p0_count);
       d.writeMove<T>(eastl::forward<T>(value));
-      auto dp0 = d.rawReserveArray<P0>(p0_count);
-      for (size_t i = 0; i < p0_count; ++i)
-      {
-        ::new (reinterpret_cast<void *>(&dp0[i])) T{eastl::move(g0(i))};
-      }
+      auto p0 = d.rawReserveArray<P0>(p0_count);
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      g(p0Push);
     }
 
     static size_t moveOp(MemoryWriter d, MemoryInterpreter s)
@@ -691,17 +946,33 @@ protected:
     }
 
     template <typename G>
-    static void moveContructDataGenerator(MemoryWriter d, T &&value, size_t p0_count, G g)
+    static void moveContructDataGenerator(MemoryWriter d, T &&value, size_t p0_count, size_t p1_count, G g)
     {
       d.rawWrite<size_t>(&p0_count);
-      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
       d.rawWrite<T>(&value);
       auto p0 = d.rawReserveArray<P0>(p0_count);
-      auto p1 = d.rawReserveArray<P1>(p0_count);
-      for (size_t i = 0; i < p0_count; ++i)
-      {
-        g(i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
-      }
+      auto p1 = d.rawReserveArray<P1>(p1_count);
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      auto p1Push = [&p1, p1E = p1 + p1_count](auto &&...v) mutable -> P1 & {
+        if (p1 >= p1E)
+        {
+          DAG_FATAL("Too many P1 generated!");
+        }
+        auto r = ::new (p1) P1{eastl::move(v)...};
+        ++p1;
+        return *r;
+      };
+      g(p0Push, p1Push);
     }
 
     static size_t moveOp(MemoryWriter d, MemoryInterpreter s)
@@ -729,17 +1000,33 @@ protected:
     }
 
     template <typename G>
-    static void moveContructDataGenerator(MemoryWriter d, T &&value, size_t p0_count, G g)
+    static void moveContructDataGenerator(MemoryWriter d, T &&value, size_t p0_count, size_t p1_count, G g)
     {
       d.rawWrite<size_t>(&p0_count);
-      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
       d.writeMove<T>(eastl::forward<T>(value));
       auto p0 = d.rawReserveArray<P0>(p0_count);
-      auto p1 = d.rawReserveArray<P1>(p0_count);
-      for (size_t i = 0; i < p0_count; ++i)
-      {
-        g(i, [t = p0 + i](auto v) { ::new (t) P0{eastl::move(v)}; }, [t = p1 + i](auto v) { ::new (t) P1{eastl::move(v)}; });
-      }
+      auto p1 = d.rawReserveArray<P1>(p1_count);
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      auto p1Push = [&p1, p1E = p1 + p1_count](auto &&...v) mutable -> P1 & {
+        if (p1 >= p1E)
+        {
+          DAG_FATAL("Too many P1 generated!");
+        }
+        auto r = ::new (p1) P1{eastl::move(v)...};
+        ++p1;
+        return *r;
+      };
+      g(p0Push, p1Push);
     }
 
     static size_t moveOp(MemoryWriter d, MemoryInterpreter s)
@@ -747,10 +1034,152 @@ protected:
       auto p0Count = d.rawWrite<size_t>(&s.as<size_t>());
       auto p1Count = d.rawWrite<size_t>(&s.as<size_t>());
       d.writeMove<T>(eastl::move(s.as<T>()));
+      // FIX ME this array copies should move each element!
       d.rawWriteArray<P0>(s.asArray<P0>(p0Count).data(), p0Count);
       d.rawWriteArray<P1>(s.asArray<P1>(p1Count).data(), p1Count);
       return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<T>::value +
              TypeMemoryRequirement<P0>::array_of(p0Count) + TypeMemoryRequirement<P1>::array_of(p1Count);
+    }
+  };
+
+  template <typename T, typename P0, typename P1, typename P2>
+  struct TypeHandlerMoveConstructor<ExtendedVariant3<T, P0, P1, P2>, true>
+  {
+    static void moveContruct(MemoryWriter d, T &&value, P0 *p0, size_t p0_count, P1 *p1, size_t p1_count, P2 *p2, size_t p2_count)
+    {
+      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
+      d.rawWrite<size_t>(&p2_count);
+      d.rawWrite<T>(&value);
+      d.rawWriteArray<P0>(p0, p0_count);
+      d.rawWriteArray<P1>(p1, p1_count);
+      d.rawWriteArray<P2>(p2, p2_count);
+    }
+
+    template <typename G>
+    static void moveContructDataGenerator(MemoryWriter d, T &&value, size_t p0_count, size_t p1_count, size_t p2_count, G g)
+    {
+      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
+      d.rawWrite<size_t>(&p2_count);
+      d.rawWrite<T>(&value);
+      auto p0 = d.rawReserveArray<P0>(p0_count);
+      auto p1 = d.rawReserveArray<P1>(p1_count);
+      auto p2 = d.rawReserveArray<P2>(p2_count);
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      auto p1Push = [&p1, p1E = p1 + p1_count](auto &&...v) mutable -> P1 & {
+        if (p1 >= p1E)
+        {
+          DAG_FATAL("Too many P1 generated!");
+        }
+        auto r = ::new (p1) P1{eastl::move(v)...};
+        ++p1;
+        return *r;
+      };
+      auto p2Push = [&p2, p2E = p2 + p2_count](auto &&...v) mutable -> P2 & {
+        if (p2 >= p2E)
+        {
+          DAG_FATAL("Too many P2 generated!");
+        }
+        auto r = ::new (p2) P2{eastl::move(v)...};
+        ++p2;
+        return *r;
+      };
+      g(p0Push, p1Push, p2Push);
+    }
+
+    static size_t moveOp(MemoryWriter d, MemoryInterpreter s)
+    {
+      auto p0Count = d.rawWrite<size_t>(&s.as<size_t>());
+      auto p1Count = d.rawWrite<size_t>(&s.as<size_t>());
+      auto p2Count = d.rawWrite<size_t>(&s.as<size_t>());
+      d.rawWrite<T>(&s.as<T>());
+      d.rawWriteArray<P0>(s.asArray<P0>(p0Count).data(), p0Count);
+      d.rawWriteArray<P1>(s.asArray<P1>(p1Count).data(), p1Count);
+      d.rawWriteArray<P2>(s.asArray<P2>(p2Count).data(), p2Count);
+      return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+             TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count) +
+             TypeMemoryRequirement<P1>::array_of(p1Count) + TypeMemoryRequirement<P2>::array_of(p2Count);
+    }
+  };
+
+  template <typename T, typename P0, typename P1, typename P2>
+  struct TypeHandlerMoveConstructor<ExtendedVariant3<T, P0, P1, P2>, false>
+  {
+    static void moveContruct(MemoryWriter d, T &&value, P0 *p0, size_t p0_count, P1 *p1, size_t p1_count, P2 *p2, size_t p2_count)
+    {
+      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
+      d.rawWrite<size_t>(&p2_count);
+      d.writeMove<T>(eastl::forward<T>(value));
+      d.writeArray<P0>(p0, p0_count);
+      d.writeArray<P1>(p1, p1_count);
+      d.writeArray<P2>(p2, p2_count);
+    }
+
+    template <typename G>
+    static void moveContructDataGenerator(MemoryWriter d, T &&value, size_t p0_count, size_t p1_count, size_t p2_count, G g)
+    {
+      d.rawWrite<size_t>(&p0_count);
+      d.rawWrite<size_t>(&p1_count);
+      d.rawWrite<size_t>(&p2_count);
+      d.writeMove<T>(eastl::forward<T>(value));
+      auto p0 = d.rawReserveArray<P0>(p0_count);
+      auto p1 = d.rawReserveArray<P1>(p1_count);
+      auto p2 = d.rawReserveArray<P2>(p2_count);
+
+      auto p0Push = [&p0, p0E = p0 + p0_count](auto &&...v) mutable -> P0 & {
+        if (p0 >= p0E)
+        {
+          DAG_FATAL("Too many P0 generated!");
+        }
+        auto r = ::new (p0) P0{eastl::move(v)...};
+        ++p0;
+        return *r;
+      };
+      auto p1Push = [&p1, p1E = p1 + p1_count](auto &&...v) mutable -> P1 & {
+        if (p1 >= p1E)
+        {
+          DAG_FATAL("Too many P1 generated!");
+        }
+        auto r = ::new (p1) P1{eastl::move(v)...};
+        ++p1;
+        return *r;
+      };
+      auto p2Push = [&p2, p2E = p2 + p2_count](auto &&...v) mutable -> P2 & {
+        if (p2 >= p2E)
+        {
+          DAG_FATAL("Too many P2 generated!");
+        }
+        auto r = ::new (p2) P2{eastl::move(v)...};
+        ++p2;
+        return *r;
+      };
+      g(p0Push, p1Push, p2Push);
+    }
+
+    static size_t moveOp(MemoryWriter d, MemoryInterpreter s)
+    {
+      auto p0Count = d.rawWrite<size_t>(&s.as<size_t>());
+      auto p1Count = d.rawWrite<size_t>(&s.as<size_t>());
+      auto p2Count = d.rawWrite<size_t>(&s.as<size_t>());
+      d.writeMove<T>(eastl::move(s.as<T>()));
+      // FIX ME this array copies should move each element!
+      d.rawWriteArray<P0>(s.asArray<P0>(p0Count).data(), p0Count);
+      d.rawWriteArray<P1>(s.asArray<P1>(p1Count).data(), p1Count);
+      d.rawWriteArray<P2>(s.asArray<P2>(p2Count).data(), p2Count);
+      return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+             TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count) +
+             TypeMemoryRequirement<P1>::array_of(p1Count) + TypeMemoryRequirement<P2>::array_of(p2Count);
     }
   };
 
@@ -866,6 +1295,65 @@ protected:
       u(arg, index);
       return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<T>::value +
              TypeMemoryRequirement<P0>::array_of(p0Count) + TypeMemoryRequirement<P1>::array_of(p1Count);
+    }
+
+    static constexpr bool is_valid = true;
+  };
+
+  template <typename T, typename P0, typename P1, typename P2, bool B>
+  struct TypeHandler<ExtendedVariant3<T, P0, P1, P2>, B>
+    : TypeHandlerDestructor<ExtendedVariant3<T, P0, P1, P2>,
+        eastl::is_trivially_destructible<T>::value && eastl::is_trivially_destructible<P0>::value &&
+          eastl::is_trivially_destructible<P1>::value && eastl::is_trivially_destructible<P2>::value>,
+      TypeHandlerCopyConstructor<ExtendedVariant3<T, P0, P1, P2>,
+        eastl::is_trivially_copy_constructible<T>::value && eastl::is_trivially_copy_constructible<P0>::value &&
+          eastl::is_trivially_copy_constructible<P1>::value && eastl::is_trivially_copy_constructible<P2>::value>,
+      TypeHandlerMoveConstructor<ExtendedVariant3<T, P0, P1, P2>,
+        eastl::is_trivially_move_constructible<T>::value && eastl::is_trivially_move_constructible<P0>::value &&
+          eastl::is_trivially_move_constructible<P1>::value && eastl::is_trivially_move_constructible<P2>::value>
+  {
+    static size_t sizeOp(MemoryInterpreterConst m)
+    {
+      auto p0Count = m.as<size_t>();
+      auto p1Count = m.as<size_t>();
+      auto p2Count = m.as<size_t>();
+      return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+             TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count) +
+             TypeMemoryRequirement<P1>::array_of(p1Count) + TypeMemoryRequirement<P2>::array_of(p2Count);
+    }
+
+    template <typename U>
+    static size_t callOp(MemoryInterpreter m, U &&u)
+    {
+      auto p0Count = m.as<size_t>();
+      auto p1Count = m.as<size_t>();
+      auto p2Count = m.as<size_t>();
+      auto &value = m.as<T>();
+      auto p0 = m.asArray<P0>(p0Count);
+      auto p1 = m.asArray<P1>(p1Count);
+      auto p2 = m.asArray<P2>(p2Count);
+      ExtendedVariant3<T, P0, P1, P2> arg{value, p0, p1, p2};
+      u(arg);
+      return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+             TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count) +
+             TypeMemoryRequirement<P1>::array_of(p1Count) + TypeMemoryRequirement<P2>::array_of(p2Count);
+    }
+
+    template <typename U>
+    static size_t callOpAndIndex(MemoryInterpreter m, size_t index, U &&u)
+    {
+      auto p0Count = m.as<size_t>();
+      auto p1Count = m.as<size_t>();
+      auto p2Count = m.as<size_t>();
+      auto &value = m.as<T>();
+      auto p0 = m.asArray<P0>(p0Count);
+      auto p1 = m.asArray<P1>(p1Count);
+      auto p2 = m.asArray<P2>(p2Count);
+      ExtendedVariant3<T, P0, P1, P2> arg{value, p0, p1, p2};
+      u(arg, index);
+      return TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+             TypeMemoryRequirement<T>::value + TypeMemoryRequirement<P0>::array_of(p0Count) +
+             TypeMemoryRequirement<P1>::array_of(p1Count) + TypeMemoryRequirement<P2>::array_of(p2Count);
     }
 
     static constexpr bool is_valid = true;
@@ -1079,6 +1567,40 @@ protected:
     UsedTypeHandler::moveContruct(m, eastl::forward<DT>(value), p0, p0_count, p1, p1_count);
   }
 
+  template <typename T, typename P0, typename P1, typename P2>
+  static void copyConstructAt(DataStoreType *pos, const T &value, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count,
+    const P2 *p2, size_t p2_count)
+  {
+    using DT = typename eastl::decay<T>::type;
+    using DP0 = typename eastl::decay<P0>::type;
+    using DP1 = typename eastl::decay<P1>::type;
+    using DP2 = typename eastl::decay<P2>::type;
+    using EXT = ExtendedVariant3<DT, DP0, DP1, DP2>;
+    using UsedTypeHandler = TypeHandler<EXT, true>;
+    // Prevents creation of meta types
+    G_STATIC_ASSERT(UsedTypeHandler::is_valid);
+    MemoryWriter m{pos};
+    m.write<IndexType>(TypeIndexOf<EXT, ThisTypesPack>::value);
+    UsedTypeHandler::copyConstruct(m, value, p0, p0_count, p1, p1_count, p2, p2_count);
+  }
+
+  template <typename T, typename P0, typename P1, typename P2>
+  static void moveConstructAt(DataStoreType *pos, T &&value, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count,
+    const P2 *p2, size_t p2_count)
+  {
+    using DT = typename eastl::decay<T>::type;
+    using DP0 = typename eastl::decay<P0>::type;
+    using DP1 = typename eastl::decay<P1>::type;
+    using DP2 = typename eastl::decay<P2>::type;
+    using EXT = ExtendedVariant3<DT, DP0, DP1, DP2>;
+    using UsedTypeHandler = TypeHandler<EXT, true>;
+    // Prevents creation of meta types
+    G_STATIC_ASSERT(UsedTypeHandler::is_valid);
+    MemoryWriter m{pos};
+    m.write<IndexType>(TypeIndexOf<EXT, ThisTypesPack>::value);
+    UsedTypeHandler::moveContruct(m, eastl::forward<DT>(value), p0, p0_count, p1, p1_count, p2, p2_count);
+  }
+
   template <typename T, typename P0, typename G0>
   static void copyConstructDataGeneratorAt(DataStoreType *pos, const T &value, size_t p0_count, G0 g0)
   {
@@ -1149,7 +1671,7 @@ protected:
   }
 
   template <typename T, typename P0, typename P1, typename G>
-  static void copyConstructExtended2DataGenerator(DataStoreType *pos, const T &value, size_t p0_count, G g)
+  static void copyConstructExtended2DataGenerator(DataStoreType *pos, const T &value, size_t p0_count, size_t p1_count, G g)
   {
     using DT = typename eastl::decay<T>::type;
     using DP0 = typename eastl::decay<P0>::type;
@@ -1161,81 +1683,94 @@ protected:
     G_STATIC_ASSERT(UsedTypeHandler::is_valid);
     MemoryWriter m{pos};
     m.write<IndexType>(TypeIndexOf<EXT, ThisTypesPack>::value);
-    UsedTypeHandler::copyConstructDataGenerator(m, &value, p0_count, g);
+    UsedTypeHandler::copyConstructDataGenerator(m, &value, p0_count, p1_count, g);
+  }
+
+  template <typename T, typename P0, typename P1, typename P2>
+  static size_t calculateTotalSpaceForExtenedVariant3(size_t p0_count, size_t p1_count, size_t p2_count)
+  {
+    using DT = typename eastl::decay<T>::type;
+    using DP0 = typename eastl::decay<P0>::type;
+    using DP1 = typename eastl::decay<P1>::type;
+    using DP2 = typename eastl::decay<P2>::type;
+    return TypeMemoryRequirement<IndexType>::value + TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<size_t>::value +
+           TypeMemoryRequirement<size_t>::value + TypeMemoryRequirement<DT>::value + TypeMemoryRequirement<DP0>::array_of(p0_count) +
+           TypeMemoryRequirement<DP1>::array_of(p1_count) + TypeMemoryRequirement<DP2>::array_of(p2_count);
+  }
+
+  template <typename T, typename P0, typename P1, typename P2, typename G>
+  static void moveConstructExtended3DataGenerator(DataStoreType *pos, T &&value, size_t p0_count, size_t p1_count, size_t p2_count,
+    G g)
+  {
+    using DT = typename eastl::decay<T>::type;
+    using DP0 = typename eastl::decay<P0>::type;
+    using DP1 = typename eastl::decay<P1>::type;
+    using DP2 = typename eastl::decay<P2>::type;
+    using EXT = ExtendedVariant3<DT, DP0, DP1, DP2>;
+
+    using UsedTypeHandler = TypeHandler<EXT, true>;
+    // Prevents creation of meta types
+    G_STATIC_ASSERT(UsedTypeHandler::is_valid);
+    MemoryWriter m{pos};
+    m.write<IndexType>(TypeIndexOf<EXT, ThisTypesPack>::value);
+    UsedTypeHandler::moveContructDataGenerator(m, eastl::move(value), p0_count, p1_count, p2_count, g);
+  }
+
+  template <typename T, typename P0, typename P1, typename P2, typename G>
+  static void copyConstructExtended3DataGenerator(DataStoreType *pos, const T &value, size_t p0_count, size_t p1_count,
+    size_t p2_count, G g)
+  {
+    using DT = typename eastl::decay<T>::type;
+    using DP0 = typename eastl::decay<P0>::type;
+    using DP1 = typename eastl::decay<P1>::type;
+    using DP2 = typename eastl::decay<P2>::type;
+    using EXT = ExtendedVariant3<DT, DP0, DP1, DP2>;
+
+    using UsedTypeHandler = TypeHandler<EXT, true>;
+    // Prevents creation of meta types
+    G_STATIC_ASSERT(UsedTypeHandler::is_valid);
+    MemoryWriter m{pos};
+    m.write<IndexType>(TypeIndexOf<EXT, ThisTypesPack>::value);
+    UsedTypeHandler::copyConstructDataGenerator(m, value, p0_count, p1_count, p2_count, g);
   }
 };
 
-namespace drv3d_dx12
-{
-#if _TARGET_PC_WIN
-extern eastl::add_pointer_t<decltype(::WaitOnAddress)> WaitOnAddress;
-extern eastl::add_pointer_t<decltype(::WakeByAddressAll)> WakeByAddressAll;
-extern eastl::add_pointer_t<decltype(::WakeByAddressSingle)> WakeByAddressSingle;
-#endif
-} // namespace drv3d_dx12
-
 // With c++20 atomics have wait, notify_one and notify_all to wait on value changes
 // this does this by polling with gradually giving up more cpu cycles to the system.
-// Makes use of WaitOnAddress (win8+), WakeByAddressSingle and WakeByAddressAll when available.
+// Makes use of WaitOnAddress/WakeByAddressSingle/WakeByAddressAll (win10+, DX12 requirement)
 template <typename T>
 inline void wait(std::atomic<T> &adr, T value, std::memory_order order = std::memory_order_seq_cst)
 {
-#if _TARGET_PC_WIN
-  using drv3d_dx12::WaitOnAddress;
-  if (WaitOnAddress) //-V516
-#endif
+  G_STATIC_ASSERT(sizeof(std::atomic<T>) == sizeof(T));
+  // https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitonaddress
+  // Note: WaitOnAddress is guaranteed to return when the address is signaled, but it is also allowed to return for other reasons.
+  // For this reason, after WaitOnAddress returns the caller should compare the new value with the original undesired value to
+  // confirm that the value has actually changed. For example, the following circumstances can result in waking the thread early:
+  // - Low memory conditions
+  // - A previous wake on the same address was abandoned
+  // - Executing code on a checked build of the operating system
+  while (adr.load(order) == value) // to prevent spurious wake ups
   {
-    G_STATIC_ASSERT(sizeof(std::atomic<T>) == sizeof(T));
-    WaitOnAddress(&adr, &value, sizeof(T), INFINITE);
-  }
-#if _TARGET_PC_WIN
-  else
-  {
-    for (uint32_t i = 0;; ++i)
+    if constexpr (sizeof(T) == sizeof(uint32_t))
+      os_wait_on_address(reinterpret_cast<volatile unsigned *>(&adr), reinterpret_cast<unsigned *>(&value));
+    else
     {
-      if (adr.load(order) != value)
-      {
-        break;
-      }
-      if (i < 16)
-      {
-        continue;
-      }
-      if (i < 64)
-      {
-        SwitchToThread();
-        continue;
-      }
-      Sleep(2);
+      static_assert(sizeof(T) == sizeof(uint64_t));
+      os_wait_on_address_64(reinterpret_cast<volatile uint64_t *>(&adr), reinterpret_cast<uint64_t *>(&value));
     }
   }
-#else
-  G_UNUSED(order);
-#endif
 }
 
 template <typename T>
 inline void notify_one(std::atomic<T> &adr)
 {
-#if _TARGET_PC_WIN
-  using drv3d_dx12::WakeByAddressSingle;
-  if (WakeByAddressSingle) //-V516
-#endif
-  {
-    WakeByAddressSingle(&adr);
-  }
+  os_wake_on_address_one(reinterpret_cast<volatile unsigned *>(&adr));
 }
 
 template <typename T>
 inline void notify_all(std::atomic<T> &adr)
 {
-#if _TARGET_PC_WIN
-  using drv3d_dx12::WakeByAddressAll;
-  if (WakeByAddressAll) //-V516
-#endif
-  {
-    WakeByAddressAll(&adr);
-  }
+  os_wake_on_address_all(reinterpret_cast<volatile unsigned *>(&adr));
 }
 
 template <typename, typename>
@@ -1551,10 +2086,9 @@ public:
     commitSpace(allocResult, sizeNeeded, notification_policy);
   }
 
-  template <typename T, typename G0>
+  template <typename P0, typename T, typename G0>
   void pushBack(T &&v, size_t p0_count, G0 g0, ConsumerNotificationPolicy notification_policy)
   {
-    using P0 = decltype(g0(0));
     auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
 
     auto allocResult = allocateSpace(sizeNeeded);
@@ -1579,14 +2113,29 @@ public:
 
   // special variant, creates two extra data segments with equal size and g generates entry "i" of
   // both ranges at the same time
-  template <typename T, typename P0, typename P1, typename G>
-  void pushBack(const T &v, size_t p0_count, G g, ConsumerNotificationPolicy notification_policy)
+  template <typename P0, typename P1, typename T, typename G>
+  void pushBack(const T &v, size_t p0_count, size_t p1_count, G g, ConsumerNotificationPolicy notification_policy)
   {
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p0_count);
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p1_count);
 
     auto allocResult = allocateSpace(sizeNeeded);
 
-    this->template copyConstructExtended2DataGenerator<T, P0, P1>(&store[allocResult % size], v, p0_count, g);
+    this->template copyConstructExtended2DataGenerator<T, P0, P1>(&store[allocResult % size], v, p0_count, p1_count, g);
+
+    commitSpace(allocResult, sizeNeeded, notification_policy);
+  }
+
+  /// This works differently than previous versions, this version will pass 3 callables to g that act like a push back.
+  /// The number of calls to each callable for each p can not exceed the corresponding count, a fatal error will be generated
+  /// should this count be exceeded.
+  template <typename P0, typename P1, typename P2, typename T, typename G>
+  void pushBack(const T &v, size_t p0_count, size_t p1_count, size_t p2_count, G g, ConsumerNotificationPolicy notification_policy)
+  {
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant3<T, P0, P1, P2>(p0_count, p1_count, p2_count);
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template copyConstructExtended3DataGenerator<T, P0, P1, P2>(&store[allocResult % size], v, p0_count, p1_count, p2_count, g);
 
     commitSpace(allocResult, sizeNeeded, notification_policy);
   }
@@ -1826,10 +2375,9 @@ public:
     commitSpace(allocResult, sizeNeeded);
   }
 
-  template <typename T, typename G0>
+  template <typename P0, typename T, typename G0>
   void pushBack(const T &v, size_t p0_count, G0 g0)
   {
-    using P0 = decltype(g0(0));
     auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
 
     auto allocResult = allocateSpace(sizeNeeded);
@@ -1839,10 +2387,9 @@ public:
     commitSpace(allocResult, sizeNeeded);
   }
 
-  template <typename T, typename G0>
+  template <typename P0, typename T, typename G0>
   void pushBack(T &&v, size_t p0_count, G0 g0)
   {
-    using P0 = decltype(g0(0));
     auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant<T, P0>(p0_count);
 
     auto allocResult = allocateSpace(sizeNeeded);
@@ -1866,14 +2413,26 @@ public:
 
   // special variant, creates two extra data segments with equal size and g generates entry "i" of
   // both ranges at the same time
-  template <typename T, typename P0, typename P1, typename G>
-  void pushBack(const T &v, size_t p0_count, G g)
+  template <typename P0, typename P1, typename T, typename G>
+  void pushBack(const T &v, size_t p0_count, size_t p1_count, G g)
   {
-    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p0_count);
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant2<T, P0, P1>(p0_count, p0_count, p1_count);
 
     auto allocResult = allocateSpace(sizeNeeded);
 
-    this->template copyConstructExtended2DataGenerator<T, P0, P1>(allocResult, v, p0_count, g);
+    this->template copyConstructExtended2DataGenerator<T, P0, P1>(allocResult, v, p0_count, p1_count, g);
+
+    commitSpace(allocResult, sizeNeeded);
+  }
+
+  template <typename T, typename P0, typename P1, typename P2>
+  void pushBack(const T &v, const P0 *p0, size_t p0_count, const P1 *p1, size_t p1_count, const P2 *p2, size_t p2_count)
+  {
+    auto sizeNeeded = this->template calculateTotalSpaceForExtenedVariant3<T, P0, P1, P2>(p0_count, p1_count, p2_count);
+
+    auto allocResult = allocateSpace(sizeNeeded);
+
+    this->template copyConstructAt<T, P0, P1, P2>(allocResult, v, p0, p0_count, p1, p1_count, p2, p2_count);
 
     commitSpace(allocResult, sizeNeeded);
   }

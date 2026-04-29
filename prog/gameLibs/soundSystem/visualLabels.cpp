@@ -12,10 +12,10 @@
 #include <soundSystem/debug.h>
 #include <soundSystem/visualLabels.h>
 #include "internal/fmodCompatibility.h"
-#include "internal/attributes.h"
-#include "internal/banks.h"
-#include "internal/visualLabels.h"
-#include "internal/debug.h"
+#include "internal/attributes_internal.h"
+#include "internal/banks_internal.h"
+#include "internal/visualLabels_internal.h"
+#include "internal/debug_internal.h"
 #include <osApiWrappers/dag_atomic_types.h>
 
 static WinCritSec g_labels_cs;

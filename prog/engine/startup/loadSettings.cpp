@@ -35,10 +35,40 @@ void dgs_load_settings_blk(bool apply_cmd, const char *settings_blk_fn, const ch
   if (config_blk_fn)
     if (dd_file_exist(config_blk_fn))
       dblk::load(cfg, config_blk_fn, dblk::ReadFlag::ROBUST);
-  dgs_load_settings_blk_ex(apply_cmd, settings_blk_fn, cfg, force_apply_all, store_cfg_copy, resolve_tex_streaming);
+
+  DataBlock cmdBlk;
+  if (apply_cmd)
+    dgs_apply_command_line_to_config(&cmdBlk);
+
+  dgs_load_settings_blk_ex(cmdBlk, settings_blk_fn, cfg, force_apply_all, store_cfg_copy, resolve_tex_streaming);
 }
-void dgs_load_settings_blk_ex(bool apply_cmd, const char *settings_blk_fn, const DataBlock &config_blk, bool force_apply_all,
-  bool store_cfg_copy, bool resolve_tex_streaming, const SettingsHashMap *changed_settings)
+
+static void strncat_platform_string_id_for_patch(char *dst, const size_t n)
+{
+  const char *stringId = get_platform_string_id();
+
+#if DAGOR_DBGLEVEL > 0 && _TARGET_PC
+  DataBlock cfg;
+  dgs_apply_command_line_to_config(&cfg);
+
+  stringId = cfg.getStr("usePlatformPatch", stringId);
+#endif
+
+  strncat(dst, stringId, n);
+}
+
+template <class... Args>
+static void log_illegal_override(Args... argv)
+{
+#if DAGOR_DBGLEVEL > 0
+  logerr(argv...);
+#else
+  debug(argv...);
+#endif
+}
+
+void dgs_load_settings_blk_ex(const DataBlock &filtered_cmd_blk, const char *settings_blk_fn, const DataBlock &config_blk,
+  bool force_apply_all, bool store_cfg_copy, bool resolve_tex_streaming)
 {
   String stg_fn;
   if (!settings_blk_fn)
@@ -68,7 +98,11 @@ void dgs_load_settings_blk_ex(bool apply_cmd, const char *settings_blk_fn, const
 
   // read and apply platform-specific patch (if exists)
   char patch_fn[DAGOR_MAX_PATH];
-
+  const char *consoleHalfGenPatchName = get_console_model() == ConsoleModel::PS4_PRO         ? "ps4Pro"
+                                        : get_console_model() == ConsoleModel::PS5_PRO       ? "ps5Pro"
+                                        : get_console_model() == ConsoleModel::XBOXONE_X     ? "xboxOneX"
+                                        : get_console_model() == ConsoleModel::XBOX_ANACONDA ? "xboxScarlettX"
+                                                                                             : nullptr;
   for (bool mindHalfGenConsoles : {true, false})
   {
     memset(patch_fn, 0, sizeof(patch_fn));
@@ -76,17 +110,14 @@ void dgs_load_settings_blk_ex(bool apply_cmd, const char *settings_blk_fn, const
     if (char *p = strrchr(patch_fn, '.'))
       if (dd_stricmp(p, ".blk") == 0)
         p[1] = 0;
-    if (mindHalfGenConsoles && get_console_model() == ConsoleModel::PS4_PRO)
-      strcat(patch_fn, "ps4Pro");
-    else if (mindHalfGenConsoles && get_console_model() == ConsoleModel::PS5_PRO)
-      strcat(patch_fn, "ps5Pro");
-    else if (mindHalfGenConsoles && get_console_model() == ConsoleModel::XBOXONE_X)
-      strcat(patch_fn, "xboxOneX");
-    else if (mindHalfGenConsoles && get_console_model() == ConsoleModel::XBOX_ANACONDA)
-      strcat(patch_fn, "xboxScarlettX");
+
+    const auto patchFnFreeSize = [&patch_fn]() { return sizeof(patch_fn) - strlen(patch_fn) - 1; };
+    if (mindHalfGenConsoles && consoleHalfGenPatchName)
+      strncat(patch_fn, consoleHalfGenPatchName, patchFnFreeSize());
     else
-      strcat(patch_fn, get_platform_string_id());
-    strcat(patch_fn, ".patch");
+      strncat_platform_string_id_for_patch(patch_fn, patchFnFreeSize());
+
+    strncat(patch_fn, ".patch", patchFnFreeSize());
 
     int read_flg = DF_READ | DF_IGNORE_MISSING;
 #if DAGOR_DBGLEVEL == 0 // in release we require patch to be read from VROM if settings.blk is read from VROM
@@ -106,16 +137,13 @@ void dgs_load_settings_blk_ex(bool apply_cmd, const char *settings_blk_fn, const
     }
   }
 
-  if (!config_blk.isEmpty() || apply_cmd)
+  if (!config_blk.isEmpty() || !filtered_cmd_blk.isEmpty())
   {
     DataBlock cfg;
     cfg = config_blk;
 
-    if (apply_cmd)
-    {
-      OverrideFilter filter = gen_default_override_filter(changed_settings);
-      dgs_apply_command_line_to_config(&cfg, &filter);
-    }
+    if (!filtered_cmd_blk.isEmpty())
+      merge_data_block(cfg, filtered_cmd_blk);
 
     if (!cfg.isEmpty())
       dgs_apply_config_blk(cfg, force_apply_all, store_cfg_copy);
@@ -129,27 +157,40 @@ void dgs_load_game_params_blk(const char *game_params_blk_fn)
   dblk::load(gameParams, game_params_blk_fn, dblk::ReadFlag::ROBUST | dblk::ReadFlag::RESTORE_FLAGS);
 }
 
-static void copy_blk_params(DataBlock &dst, const DataBlock &src, const DataBlock &aco)
+// force_apply_all=false => keep listed in aco only
+// force_apply_all=true => keep everything except __exclude_allow
+// ignore_excludes=true => ignore __exclude_allow
+static inline void remove_disallowed_params(DataBlock &dst, const DataBlock &aco, bool force_apply_all, bool ignore_excludes)
 {
   bool allow_all = aco.getBool("__allow_all_params", false);
-  const DataBlock *disallow = aco.getBlockByName("__exclude_allow");
-  for (int i = 0; i < src.paramCount(); i++)
-    if ((allow_all || aco.findParam(src.getParamName(i)) >= 0) && !(disallow && disallow->paramExists(src.getParamName(i))))
-      addOverrideParam(dst, src, i, true);
-
-  for (int i = 0; i < src.blockCount(); i++)
-    if (const DataBlock *b = aco.getBlockByName(src.getBlock(i)->getBlockName()))
-      copy_blk_params(*dst.addBlock(src.getBlock(i)->getBlockName()), *src.getBlock(i), *b);
-}
-static void remove_disallowed_params(DataBlock &dst, const DataBlock &aco)
-{
-  if (const DataBlock *disallow = aco.getBlockByName("__exclude_allow"))
-    for (int i = 0; i < disallow->paramCount(); i++)
-      dst.removeParam(disallow->getParamName(i));
+  const DataBlock *disallow = aco.getBlockByNameEx("__exclude_allow");
+  force_apply_all = aco.getBool("__allow_force_apply_all", force_apply_all);
+  for (int i = 0; i < dst.paramCount(); i++)
+    if ((!ignore_excludes && disallow->paramExists(dst.getParamName(i))) ||
+        (!force_apply_all && !allow_all && aco.findParam(dst.getParamName(i)) < 0))
+    {
+      log_illegal_override("Settings: '%s/%s' is not allowed for overwrite! check settings.blk", dst.getBlockName(),
+        dst.getParamName(i));
+      dst.removeParam(i);
+      i--;
+    }
 
   for (int i = 0; i < dst.blockCount(); i++)
     if (const DataBlock *b = aco.getBlockByName(dst.getBlock(i)->getBlockName()))
-      remove_disallowed_params(*dst.getBlock(i), *b);
+      remove_disallowed_params(*dst.getBlock(i), *b, force_apply_all, ignore_excludes);
+    else if (!force_apply_all)
+    {
+      log_illegal_override("Settings: '%s/%s' is not allowed for overwrite! check settings.blk", dst.getBlockName(),
+        dst.getBlock(i)->getBlockName());
+      dst.removeBlock(i);
+      i--;
+    }
+}
+
+void dgs_filter_saved_config(DataBlock &config_blk)
+{
+  const DataBlock *aco = stg.getBlockByNameEx("__allowedSavedConfig");
+  remove_disallowed_params(config_blk, *aco, true, false);
 }
 
 void dgs_apply_config_blk_ex(DataBlock &settings_blk, const DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy,
@@ -158,28 +199,17 @@ void dgs_apply_config_blk_ex(DataBlock &settings_blk, const DataBlock &config_bl
   if (store_cfg_copy)
     settings_blk.addBlock("originalConfigBlk")->setFrom(&config_blk);
   force_apply_all = settings_blk.getBool("__allow_force_apply_all", force_apply_all);
+  bool ignore_excludes = false;
 #if DAGOR_DBGLEVEL > 0
   force_apply_all = config_blk.getBool("__allow_force_apply_all", true);
+  ignore_excludes = config_blk.getBool("__ignore_override_excludes", ignore_excludes);
 #endif
-  const DataBlock *aco = settings_blk.getBlockByName("__allowedConfigOverrides");
-  if (force_apply_all)
-  {
-#if DAGOR_DBGLEVEL > 0
-    if (aco && !config_blk.getBool("__ignore_override_excludes", false))
-#else
-    if (aco)
-#endif
-      remove_disallowed_params(const_cast<DataBlock &>(config_blk), *aco);
-    if (save_order)
-      merge_data_block_and_save_order(settings_blk, config_blk);
-    else
-      merge_data_block(settings_blk, config_blk);
-    return;
-  }
-
-  if (!aco)
-    return;
-  copy_blk_params(settings_blk, config_blk, *aco);
+  const DataBlock *aco = settings_blk.getBlockByNameEx("__allowedConfigOverrides");
+  remove_disallowed_params(const_cast<DataBlock &>(config_blk), *aco, force_apply_all, ignore_excludes);
+  if (save_order)
+    merge_data_block_and_save_order(settings_blk, config_blk);
+  else
+    merge_data_block(settings_blk, config_blk);
 }
 void dgs_apply_config_blk(const DataBlock &config_blk, bool force_apply_all, bool store_cfg_copy, bool save_order)
 {

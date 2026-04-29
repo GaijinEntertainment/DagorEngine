@@ -1,5 +1,5 @@
 WARNING: w214 (operator-returns-same-val) Both branches of operator '<> ? <> : <>' are equivalent.
-testData/static_analyzer/w214.nut:12:7
+testData/static_analyzer/w214.nut:13:7
 
 ::x <- test ? REPLAY.SKIRMISH : REPLAY.SKIRMISH
        ^---------------------------------------

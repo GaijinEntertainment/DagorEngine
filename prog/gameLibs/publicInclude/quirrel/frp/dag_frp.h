@@ -4,22 +4,39 @@
 //
 #pragma once
 
+/*****
+
+FRP (Functional Reactive Programming) for Quirrel and daRg
+
+Graph-owned node architecture:
+  All node data lives in graph-owned NodeSlot pool with generational indices.
+  Script observables (WatchedHandle/ComputedHandle) are lightweight {NodeId, graph*}.
+  Handle destruction calls destroyNode() which frees the node immediately.
+  Stale generational IDs are safely handled by resolve() returning nullptr.
+
+Uses a version-based push-pull propagation model:
+  Write path (.set): store value, increment version, forward-mark dependents as CHECK.
+  Read path (.get):  if not CLEAN, pull -- verify source versions, recompute only if changed.
+  Immediate mode:    write + eagerly pull all downstream nodes (synchronous).
+  Deferred mode:     write + mark dirty; pull happens at updateDeferred() time.
+
+******/
+
+
 #include "dag_frpStateWatcher.h"
 #include <util/dag_compilerDefs.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_fixedVectorSet.h>
+#include <generic/dag_carray.h>
+#include <EASTL/vector_map.h>
 #include <EASTL/hash_set.h>
-#include <EASTL/vector.h>
-#include <EASTL/vector_set.h>
 #include <EASTL/string.h>
-#include <EASTL/intrusive_list.h>
-#include <util/dag_bitArray.h>
+#include <EASTL/unique_ptr.h>
+#include <dag/dag_vector.h>
 #include <util/dag_string.h>
 #include <util/dag_simpleString.h>
 #include <memory/dag_framemem.h>
 #include <sqrat.h>
-#include <squirrel/vartrace.h>
-#include <memory/dag_fixedBlockAllocator.h>
 #include <osApiWrappers/dag_spinlock.h>
 
 
@@ -27,18 +44,25 @@ class SqModules;
 
 namespace sqfrp
 {
-class ScriptValueObservable;
+class WatchedHandle;
+class ComputedHandle;
+class ObservablesGraph;
+struct NodeVarTraces;
 void graph_viewer();
 
+using NodeIdVec = dag::Vector<NodeId, framemem_allocator>;
 
-class NotifyQueue
+struct NodeIdHash
 {
-public:
-  void add(BaseObservable *item);
-  void remove(BaseObservable *item);
-  // typedef eastl::vector<BaseObservable*> Container; // do we need determenistic order?
-  typedef eastl::vector_set<BaseObservable *> Container; // do we need determenistic order?
-  Container container;
+  size_t operator()(const NodeId &id) const { return size_t(id.index) * 2654435761u; }
+};
+
+// Push-pull node state for version-based propagation
+enum class NodeState : uint8_t
+{
+  CLEAN, // Value is up-to-date
+  CHECK, // Some upstream changed; need to verify if sources actually differ
+  DIRTY, // Known to need recomputation
 };
 
 
@@ -57,48 +81,164 @@ struct SubscriberCall
 {
   Sqrat::Function func;
   Sqrat::Object value;
-  bool check;
+  NodeId source;
+  bool check = false;
+};
+
+
+struct SourceEntry
+{
+  NodeId id;
+  uint32_t lastSeenVersion = 0;
+  eastl::string varName; // debug: closure variable name
+};
+
+
+struct NodeSlot
+{
+  // Value (all nodes)
+  HSQOBJECT value;
+
+  // Computed-only
+  HSQOBJECT func;
+  dag::Vector<SourceEntry> sources;
+
+  // Dependency edges
+  dag::Vector<NodeId> dependents;        // downstream computed nodes
+  dag::Vector<IStateWatcher *> watchers; // external: daRg Elements
+  dag::Vector<Sqrat::Function> scriptSubscribers;
+  uint8_t numNoCheckSubscribers = 0; // no-check subscribers occupy indices [0, numNoCheckSubscribers)
+
+  // State
+  uint32_t version = 0;
+  uint32_t generation = 0; // generational index for stale-ID detection
+  NodeState nodeState = NodeState::CLEAN;
+
+  // Flags (packed bitfield)
+  union
+  {
+    struct
+    {
+      bool alive : 1;
+      bool isComputed : 1;
+      bool isDeferred : 1;
+      bool needImmediate : 1;
+      bool computedHasActiveConsumers : 1;
+      bool isInTrigger : 1;
+      bool isIteratingWatchers : 1;
+      bool isPulling : 1;
+      bool isMarked : 1;
+      bool funcAcceptsCurVal : 1;
+    };
+    uint32_t flags = 0;
+  };
+
+  // Diagnostics
+  eastl::unique_ptr<ScriptSourceInfo> initInfo;
+  NodeId lastChangeCause; // may be stale (freed node); consumers use resolve() and handle null
+  uint8_t numDirtySources = 0;
+  uint8_t deferredTriggerStreak = 0;
+  uint16_t lastDeferredTriggerGen = 0;
+  int timeChangeReq = 0;
+  int timeChanged = 0;
+
+  NodeSlot()
+  {
+    sq_resetobject(&value);
+    sq_resetobject(&func);
+  }
 };
 
 
 class ObservablesGraph
 {
-  friend class BaseObservable;
-  void addObservable(BaseObservable *obs);
-  void removeObservable(BaseObservable *obs);
-
-  friend class ComputedValue;
-  template <typename... Args>
-  ComputedValue *allocComputed(Args &&...args);
-
 public:
-  ObservablesGraph(HSQUIRRELVM vm_, const char *graph_name, int compute_pool_initial_size = 1024);
+  ObservablesGraph(HSQUIRRELVM vm_, const char *graph_name);
   ~ObservablesGraph();
 
   void setName(const char *name);
 
-  // Note: wrapper for bin compat across different SQ_VAR_TRACE_ENABLED libs
-  ScriptValueObservable *allocScriptValueObservable();
+  // Node creation
+  NodeId createWatched(HSQOBJECT initial_value);
+  NodeId createComputed(HSQOBJECT func_obj, dag::Vector<SourceEntry> &&sources, bool pass_cur_val);
 
-  bool updateDeferred(String &err_msg);
+  // Node access (inline for cross-TU inlining -- these are tiny and hot)
+  inline NodeSlot &node(NodeId id)
+  {
+    G_ASSERT(id.index < slots.size());
+    NodeSlot &s = slots[id.index];
+    G_ASSERT(s.alive && s.generation == id.generation);
+    return s;
+  }
+  inline const NodeSlot &node(NodeId id) const
+  {
+    G_ASSERT(id.index < slots.size());
+    const NodeSlot &s = slots[id.index];
+    G_ASSERT(s.alive && s.generation == id.generation);
+    return s;
+  }
+  inline NodeSlot *resolve(NodeId id)
+  {
+    if (id.index >= slots.size())
+      return nullptr;
+    NodeSlot &s = slots[id.index];
+    if (!s.alive || s.generation != id.generation)
+      return nullptr;
+    return &s;
+  }
+  inline const NodeSlot *resolve(NodeId id) const
+  {
+    if (id.index >= slots.size())
+      return nullptr;
+    const NodeSlot &s = slots[id.index];
+    if (!s.alive || s.generation != id.generation)
+      return nullptr;
+    return &s;
+  }
+
+  // Value access
+  Sqrat::Object getValue(NodeId id);
+  bool setValue(NodeId id, const Sqrat::Object &new_val);
+
+  // Lifecycle
+  void destroyNode(NodeId id);
   void shutdown(bool exiting);
-  void checkLeaks();
+
+  // Subscriptions
+  void addDependent(NodeId source, NodeId dependent);
+  void removeDependent(NodeId source, NodeId dependent);
+  void subscribeWatcher(NodeId id, IStateWatcher *w);
+  void unsubscribeWatcher(NodeId id, IStateWatcher *w);
+
+  // Graph processing
+  bool trigger(NodeId id);
+  bool updateDeferred();
+  void markDependentsDirty(NodeId id);
   void recalcAllComputedValues();
-  bool callScriptSubscribers(BaseObservable *triggered_node, String &err_msg);
+  bool callScriptSubscribers(NodeId triggered_node, NodeIdVec &notify_queue);
+
+  // Script bindings (static methods operating on WatchedHandle)
+  static SQInteger subscribe(HSQUIRRELVM vm, bool check_behavior);
+  static SQInteger unsubscribe(HSQUIRRELVM vm);
+  static SQInteger sqTrigger(HSQUIRRELVM vm);
+  static SQInteger dbgGetListeners(HSQUIRRELVM vm);
 
   static ObservablesGraph *get_from_vm(HSQUIRRELVM vm);
 
   void onEnterTriggerRoot();
   void onExitTriggerRoot();
-
   void onEnterRecalc();
   void onExitRecalc();
-  int getRecalcDepth() const { return recalcNestDepth; }
 
   static SQInteger register_stub_observable_class(HSQUIRRELVM vm);
   bool isStubObservableInstance(const Sqrat::Object &obj) const;
 
   void notifyGraphChanged();
+
+  // Info and diagnostics
+  void fillInfo(NodeId id, Sqrat::Table &t) const;
+  void fillInfo(NodeId id, String &s) const;
+  void collectScriptSubscribers(NodeId id, Tab<SubscriberCall> &container) const;
 
   struct Stats
   {
@@ -108,30 +248,56 @@ public:
     int computedTotal{0};
     int computedUnused{0};
     int computedUnsubscribed{0};
+    int totalSubscribers{0};
+    int totalWatchers{0};
   };
 
   Stats gatherGraphStats() const;
 
+  // Node iteration (for imgui viewer etc)
+  template <typename F>
+  void forEachNode(F cb) const
+  {
+    for (uint32_t i = 0; i < slots.size(); ++i)
+      if (slots[i].alive)
+        cb(NodeId{i, slots[i].generation}, slots[i]);
+  }
+
+  uint32_t nodeCount() const { return (uint32_t)slots.size() - (uint32_t)freeList.size(); }
+  uint32_t slotsAllocated() const { return (uint32_t)slots.size(); }
+  uint32_t slotsFree() const { return (uint32_t)freeList.size(); }
+
 private:
-  bool checkGcUnreachable();
+  friend class WatchedHandle;
+  friend class ComputedHandle;
   void dumpSubscribersQueue(Tab<SubscriberCall> &queue);
 
-  eastl::intrusive_list<ComputedValue> allComputed;
-  FixedBlockAllocator computedPool; // Note: pool all ComputedValue are allocated from
+  bool triggerRoot(NodeId id);
+  bool notifyWatchers(NodeId id);
+  NodeId allocSlot();
+  void freeSlot(NodeId id);
+  void flushPendingRelease();
+  void releaseMutatorWhiteList(uint32_t slot_index);
+  bool pull(NodeId id, NodeIdVec &changed_nodes);
+  bool recalculate(NodeId id, bool &ok);
+  void ensureUpToDate(NodeId id);
+  void markImmediate(NodeId id);
+  void updateNeedImmediate(NodeId id);
+  void markComputedConsumed(NodeId id);
+  void updateComputedConsumed(NodeId id);
+  void onNodeGraphShutdown(NodeId id, bool exiting, Tab<Sqrat::Object> &cleared_storage);
 
-  template <typename F>
-  void forAllComputed(F cb);
+  dag::Vector<NodeSlot> slots;
+  dag::Vector<uint32_t> freeList;
+  dag::Vector<HSQOBJECT> pendingRelease;
+  eastl::vector_map<uint32_t, dag::Vector<HSQOBJECT>> mutatorWhiteLists;
+  eastl::unique_ptr<NodeVarTraces> varTraces;
 
 public:
   HSQUIRRELVM vm = nullptr;
   SimpleString graphName;
 
-  eastl::hash_set<BaseObservable *> allObservables;
-  OSSpinlock allObservablesLock;        //< this is for external access, the graph only locks it when adding/removing observables
-  bool observablesListModified = false; //< to protect against iterator invalidation
-
-  NotifyQueue notifyQueueCache;
-  NotifyQueue deferredNotifyCache;
+  OSSpinlock slotsLock; //< for external access to slots
 
   int usecUsedComputed = 0;
   int usecUnusedComputed = 0;
@@ -139,6 +305,16 @@ public:
   int usecTrigger = 0;
   int usecUpdateDeferred = 0;
   int computedRecalcs = 0;
+
+  struct SubscriberTiming
+  {
+    String name;
+    int timeUsec = 0;
+  };
+#if DAGOR_DBGLEVEL > 0
+  carray<SubscriberTiming, 8> slowestSubscribersAllTime;
+  carray<SubscriberTiming, 8> slowestSubscribersLastEpisode;
+#endif
 
   void resetPerfTimers()
   {
@@ -149,296 +325,129 @@ public:
     usecUpdateDeferred = 0;
   }
 
-  ComputedValue *inRecalc = nullptr;
+  NodeId inRecalc;
 
+  static constexpr int SLOW_MUL =
 #if DAGOR_THREAD_SANITIZER
-  int slowUpdateThresholdUsec = 1500 * 100;
+    100
+#elif DAGOR_ADDRESS_SANITIZER
+    10
 #else
-  int slowUpdateThresholdUsec = 1500;
+    1
 #endif
-  int generation = 0;
-  bool checkNestedObservable = false;
+    ;
+  int slowUpdateThresholdUsec = 1500 * SLOW_MUL;
+  int slowSubscriberThresholdUsec = 10000 * SLOW_MUL;
+  int curSubscriberThresholdUsec = -1;
   bool forceImmutable = false;
-  bool defaultDeferredComputed = true;
-  bool defaultDeferredWatched = true;
   bool doCollectSourcesRecursively = false;
-  bool needRecalc = false;
   bool reportedSlowUpdate = false;
   bool callingSubscriber = false;
   bool checkSubscribers = false;
 
-private:
-  Tab<ComputedValue *> sortedGraph;
+  // Deferred notify queue: nodes whose subscribers fire at next updateDeferred().
+  eastl::hash_set<NodeId, NodeIdHash> deferredNotifyQueue;
 
+private:
   Tab<SubscriberCall> subscriberCallsQueue, curSubscriberCalls;
+  NodeId currentlyDispatchingSource;
+  uint16_t deferredUpdateGen = 0;
   int maxSubscribersQueueLen = 0;
   int curTriggerSubscribersCounter = 0;
   int triggerNestDepth = 0;
   int recalcNestDepth = 0;
   int slowUpdateFrames = 0;
 #if DAGOR_DBGLEVEL > 0
-  int64_t timeTotalDeps = 0;
-  int64_t timeTotalWatchers = 0;
   int64_t timeTotalRecalc = 0;
   int64_t timeTotalNotify = 0;
-  int timeMaxDeps = 0;
-  int timeMaxWatchers = 0;
   int timeMaxRecalc = 0;
   int timeMaxNotify = 0;
-  int numGraphRebuilds = 0;
 #endif
 
   eastl::vector<Sqrat::Object> stubObservableClases;
 };
 
 
-class BaseObservable
+// Script binding layer: lightweight handle to a graph-owned node
+class WatchedHandle
 {
-  friend class ObservablesGraph;
-
 public:
-  BaseObservable(ObservablesGraph *graph, bool is_computed = false);
-  BaseObservable(BaseObservable &&) = default;
-  BaseObservable(const BaseObservable &) = default;
-  BaseObservable &operator=(BaseObservable &&) = default;
-  BaseObservable &operator=(const BaseObservable &) = default;
-  virtual ~BaseObservable();
+  NodeId id;
+  ObservablesGraph *graph = nullptr;
 
-  ComputedValue *getComputed() { return isComputed ? (ComputedValue *)this : nullptr; }
-  const ComputedValue *getComputed() const { return isComputed ? (const ComputedValue *)this : nullptr; }
-
-  bool triggerRoot(String &err_msg, bool call_subscribers = true);
-
-  void subscribeWatcher(IStateWatcher *watcher);
-  void unsubscribeWatcher(IStateWatcher *watcher);
-
-  static SQInteger subscribe(HSQUIRRELVM vm, bool check_behavior);
-  static SQInteger unsubscribe(HSQUIRRELVM vm);
-  static SQInteger sqTrigger(HSQUIRRELVM vm);
-  static SQInteger dbgGetListeners(HSQUIRRELVM vm);
-
-  virtual Sqrat::Object getValueForNotify() const = 0;
-  virtual void onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_storage);
-  virtual void fillInfo(Sqrat::Table &) const = 0;
-  virtual void fillInfo(String &s) const { clear_and_shrink(s); }
-  virtual const ScriptSourceInfo *getInitInfo() const { return nullptr; }
-  virtual void setName(const char *name);
-  virtual Sqrat::Object trace() { return Sqrat::Object(); }
-  virtual HSQOBJECT getCurScriptInstance();
-
-  inline bool getNeedImmediate() const { return needImmediate; }
-  void updateNeedImmediate(bool certainly_immediate);
-  inline bool getDeferred() const { return isDeferred; }
-  inline void setDeferred(bool v)
+  WatchedHandle() = default;
+  WatchedHandle(NodeId id_, ObservablesGraph *g) : id(id_), graph(g) {}
+  WatchedHandle(WatchedHandle &&o) noexcept : id(o.id), graph(o.graph) { o.graph = nullptr; }
+  WatchedHandle &operator=(WatchedHandle &&o)
   {
-    isDeferred = v;
-    updateNeedImmediate(!v);
-  }
-
-  void collectScriptSubscribers(Tab<SubscriberCall> &container) const;
-
-protected:
-  friend void graph_viewer();
-
-  // all flags
-  union
-  {
-    struct
+    if (this != &o)
     {
-      // BaseObservable
-      bool isIteratingWatchers : 1;
-      bool isInTrigger : 1;
-      bool willNotify : 1;
-      bool isDeferred : 1;
-      bool needImmediate : 1;
-
-      // ScriptValueObservable
-      bool checkNestedObservable : 1;
-
-      // ComputedValue
-      bool isComputed : 1;
-      bool isMarked : 1;
-      bool isCollected : 1;
-      bool wasUpdated : 1;
-      bool wasComputed : 1;
-      bool isStateValid : 1;
-      bool needRecalc : 1;
-      bool maybeRecalc : 1;
-      bool isUsed : 1;
-      bool isShuttingDown : 1;
-      bool funcAcceptsCurVal : 1;
-    };
-    uint32_t flags = 0;
-  };
-
-public:
-  int generation = 0;
-
-protected:
-  dag::Vector<Sqrat::Function> scriptSubscribers;
-  Bitarray subscriberNoCheck;
-  ObservablesGraph *graph;
-
-public:
-  dag::Vector<IStateWatcher *> watchers;
-};
-
-
-class ScriptValueObservable : public BaseObservable
-{
-  friend class ObservablesGraph;
-  ScriptValueObservable(ObservablesGraph *graph);
-
-public:
-  ScriptValueObservable(ObservablesGraph *graph, Sqrat::Object val, bool is_computed = false);
-  ScriptValueObservable(const ScriptValueObservable &) = delete;
-  ScriptValueObservable &operator=(const ScriptValueObservable &) = delete;
-  ~ScriptValueObservable();
-
-  static SQInteger script_ctor(HSQUIRRELVM vm);
-
-  Sqrat::Object getValue()
-  {
-    onValueRequested();
-    return value;
+      if (graph && id.isValid())
+        graph->destroyNode(id);
+      id = o.id;
+      graph = o.graph;
+      o.graph = nullptr;
+    }
+    return *this;
   }
+  WatchedHandle(const WatchedHandle &) = delete;
+  WatchedHandle &operator=(const WatchedHandle &) = delete;
+  virtual ~WatchedHandle();
+
+  Sqrat::Object getValue();
   Sqrat::Object getValueDeprecated();
-  int getTimeChangeReq() { return timeChangeReq; }
-  int getTimeChanged() { return timeChanged; }
-  const Sqrat::Object &getValueRef()
-  {
-    onValueRequested();
-    return value;
-  }
-  virtual Sqrat::Object trace() override;
-  bool setValue(const Sqrat::Object &new_val, String &err_msg);
-
-  virtual Sqrat::Object getValueForNotify() const { return value; }
-
-  virtual void onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_storage) override;
-  virtual void fillInfo(Sqrat::Table &) const override;
-  virtual void fillInfo(String &) const override;
-  virtual HSQOBJECT getCurScriptInstance() override;
-
-  static SQInteger update(HSQUIRRELVM vm, int arg_pos);
-  static SQInteger updateViaCallMm(HSQUIRRELVM vm);
-  static SQInteger updateViaMethod(HSQUIRRELVM vm);
-  static SQInteger updateViaMethodDeprecated(HSQUIRRELVM vm);
-  static SQInteger mutate(HSQUIRRELVM vm);
-  static SQInteger modify(HSQUIRRELVM vm);
-  bool mutateCurValue(HSQUIRRELVM vm, SQInteger closure_pos);
-
-  static SQInteger _newslot(HSQUIRRELVM vm);
-  static SQInteger _delslot(HSQUIRRELVM vm);
-  static SQInteger _tostring(HSQUIRRELVM vm);
-
-  const ScriptSourceInfo *getInitInfo() const override final { return initInfo.get(); }
-  virtual void setName(const char *name) override;
+  bool getDeferred() const;
+  void setDeferred(bool v);
+  int getTimeChangeReq() const;
+  int getTimeChanged() const;
+  Sqrat::Object trace();
 
   void whiteListMutatorClosure(Sqrat::Object closure);
-
-  void reportNestedObservables(HSQUIRRELVM vm, const Sqrat::Object &val);
-  bool checkMutationAllowed(HSQUIRRELVM vm); //< throws script error if mutation is forbidden
-
-
-protected:
-  Sqrat::Object value;
-  eastl::unique_ptr<ScriptSourceInfo> initInfo;
-  int timeChangeReq = 0;
-  int timeChanged = 0;
-
-  dag::Vector<Sqrat::Object> mutatorClosuresWhiteList;
-
-  virtual void onValueRequested() {}
-
-#if SQ_VAR_TRACE_ENABLED // Warn: bin compat change, must be last member of this struct
-  VarTrace varTrace;
-#endif
-};
-
-// Warn: struct layout is not binary compatible across libs that compiled with different SQ_VAR_TRACE_ENABLED
-class ComputedValue final : public ScriptValueObservable, public IStateWatcher, public eastl::intrusive_list_node
-{
-  struct ComputedSource
-  {
-    eastl::string varName;
-    BaseObservable *observable;
-  };
-
-  // Note: expected to be called only by `ObservablesGraph::allocComputed`
-  ComputedValue(ObservablesGraph *g, Sqrat::Function func, dag::Vector<ComputedSource> &&sources_, bool pass_cur_val_to_cb);
-
-public:
-  ComputedValue(const ComputedValue &) = delete;
-  ComputedValue &operator=(const ComputedValue &) = delete;
-  virtual ~ComputedValue();
-  void operator delete(void *ptr) noexcept; // Frees from graph's `computedPool`
-
-  void setupComputed(Sqrat::Object initial_value);
-  virtual ComputedValue *getComputed() override { return this; }
-
-  // Sorted from leaves to root to reduce memory copying on insertions
-  typedef dag::Vector<ComputedValue *, framemem_allocator> DependenciesQueue;
-
-  int collectDependencies(DependenciesQueue &out_queue, int depth);
-  bool onTriggerBegin();
-  bool onTriggerEnd(bool deferred);
-  virtual bool onSourceObservableChanged() override;
-  virtual void onObservableRelease(BaseObservable *observable) override;
-  virtual void onGraphShutdown(bool exiting, Tab<Sqrat::Object> &cleared_storage) override;
-  virtual HSQOBJECT getCurScriptInstance() override;
-  virtual Sqrat::Object dbgGetWatcherScriptInstance() override;
-
-  virtual Sqrat::Object getValueForNotify() const override
-  {
-    G_ASSERT(!needRecalc);
-    G_ASSERT(!maybeRecalc);
-    return value;
-  }
+  bool checkMutationAllowed(HSQUIRRELVM vm);
 
   static SQInteger script_ctor(HSQUIRRELVM vm);
-
-  static SQInteger get_sources(HSQUIRRELVM vm);
+  static SQInteger updateViaMethod(HSQUIRRELVM vm);
+  static SQInteger update(HSQUIRRELVM vm, int arg_pos);
+  static SQInteger mutate(HSQUIRRELVM vm);
+  static SQInteger modify(HSQUIRRELVM vm);
   static SQInteger _tostring(HSQUIRRELVM vm);
-
-  bool dbgTriggerRecalcIfNeeded(String &err_msg);
-
-  inline bool getNeedRecalc() const { return needRecalc; }
-  inline bool getUsed() const { return isUsed; }
-  void updateUsed(bool certainly_used);
-
-  inline bool getMarked() const { return isMarked; }
-
-  ComputedValue *addImplicitSource(ComputedValue *c)
-  {
-    implicitSources.insert(c);
-    return this;
-  }
-  bool isImplicitSource(ComputedValue *c) const { return implicitSources.find(c) != implicitSources.end(); }
-
-private:
-  using VisitedSet = dag::FixedVectorSet<SQRawObjectVal, 4, true, eastl::use_self<SQRawObjectVal>, framemem_allocator>;
-  static bool collect_sources_from_free_vars(ObservablesGraph *graph, HSQUIRRELVM vm, HSQOBJECT func_obj,
-    dag::Vector<ComputedSource> &target, VisitedSet &visited);
-  bool recalculate(bool &ok);
-  bool invalidateWatchers();
-  void removeMaybeRecalc();
-
-  virtual void onValueRequested() override;
-
-protected:
-  friend class ObservablesGraph;
-  friend class BaseObservable;
-  friend void graph_viewer();
-  Sqrat::Function func;
-  dag::Vector<ComputedSource> sources;
-  eastl::vector_set<ComputedValue *> implicitSources;
-  int lastComputeUsec;
 };
 
-void bind_frp_classes(SqModules *module_mgr);
 
-extern bool throw_frp_script_errors;
+class ComputedHandle : public WatchedHandle
+{
+public:
+  using WatchedHandle::WatchedHandle;
+
+  bool getUsed() const;
+
+  static SQInteger script_ctor(HSQUIRRELVM vm);
+  static SQInteger get_sources(HSQUIRRELVM vm);
+  static SQInteger _tostring(HSQUIRRELVM vm);
+};
+
+
+// C++-owned observable node. Unlike WatchedHandle, does NOT detach on destruction.
+// Use create()/destroy() for explicit lifecycle management.
+// Derives from WatchedHandle so script sees it as instanceof Watched.
+class NativeWatched : public WatchedHandle
+{
+public:
+  NativeWatched() = default;
+  ~NativeWatched() override { graph = nullptr; } // prevent base dtor destroyNode
+
+  NativeWatched(const NativeWatched &) = delete;
+  NativeWatched &operator=(const NativeWatched &) = delete;
+
+  void create(ObservablesGraph *g, HSQOBJECT initial_value);
+  void destroy();
+
+  bool setValue(const Sqrat::Object &val);
+  Sqrat::Object getValue();
+};
+
+
+void bind_frp_classes(SqModules *module_mgr);
 
 dag::Vector<ObservablesGraph *> get_all_graphs();
 

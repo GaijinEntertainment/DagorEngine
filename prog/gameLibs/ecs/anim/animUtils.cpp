@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ecs/anim/anim.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <memory/dag_framemem.h>
 #include <ioSys/dag_dataBlock.h>
 #include <ioSys/dag_memIo.h>
@@ -19,7 +21,7 @@ AnimIrqHandler::~AnimIrqHandler()
 
 void anim::dump_animchar_state(AnimV20::AnimcharBaseComponent &animchar, const bool json_format)
 {
-  animchar.createDebugBlenderContext(/*dump_all_nodes*/ true);
+  animchar.createDumpBlenderDataContext(/*dump_all_nodes*/ true);
   const DataBlock *debugBlk = animchar.getDebugBlenderState(/*dump_tm*/ true);
   DynamicMemGeneralSaveCB cwr(framemem_ptr(), 128 << 10, 4 << 10);
   if (json_format)
@@ -29,5 +31,5 @@ void anim::dump_animchar_state(AnimV20::AnimcharBaseComponent &animchar, const b
   cwr.write(ZERO_PTR<char>(), sizeof(char)); // '\0'
   debug("--- animchar blend-state dump ---");
   debug("%s", cwr.data());
-  animchar.destroyDebugBlenderContext();
+  animchar.destroyDumpBlenderDataContext();
 }

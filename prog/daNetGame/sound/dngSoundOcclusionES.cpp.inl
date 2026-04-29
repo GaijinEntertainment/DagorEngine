@@ -17,7 +17,7 @@
 #include "net/time.h"
 
 template <typename Callable>
-static void game_objects_ecs_query(Callable c);
+static void game_objects_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static constexpr float g_cached_indoors_move_theshold = 5.f;
 static constexpr float g_cached_indoors_time_threshold = 1.f;
@@ -48,7 +48,7 @@ static float height_above_ground_impl(const Point3 &pos)
 static void cache_indoors_impl(const Point3 &listener, float radius)
 {
   g_cached_indoors.clear();
-  game_objects_ecs_query([&](const GameObjects &game_objects) {
+  game_objects_ecs_query(*g_entity_mgr, [&](const GameObjects &game_objects) {
     if (game_objects.indoors == nullptr)
       return;
     const BBox3 bbox3(listener, radius);
@@ -111,7 +111,7 @@ static float ground_factor(const Point3 &source, float value)
   return value;
 }
 
-static float trace_occlusion_impl(const Point3 &from, const Point3 &to, float near, float far)
+static float trace_occlusion_impl(const Point3 &from, const Point3 &to, float near, float far, float source_radius)
 {
   float value = 0.f;
 
@@ -122,13 +122,13 @@ static float trace_occlusion_impl(const Point3 &from, const Point3 &to, float ne
   // decrease ray length to prevent unexpected occlusion if source is located almost on collision surface
   // this may not help when large angle between ray and surface normal(need normal)
   // also should move each sound source itself along surface normal a little when possible
-  constexpr const float offset = 0.03;
+  const float radius = max(0.05f, source_radius);
 
-  if (distance > offset + 0.01)
+  if (distance > radius)
   {
     float accumulated = 0.f;
     float maximum = 0.f;
-    dacoll::rayhit_normalized_sound_occlusion(from, dir / distance, distance - offset, g_ray_mat_id, accumulated, maximum);
+    dacoll::rayhit_normalized_sound_occlusion(from, dir / distance, distance - radius, g_ray_mat_id, accumulated, maximum);
 
     value = maximum;
 

@@ -63,18 +63,11 @@ hlsl(stage) {
     float4 linearDepths = linearize_z4(depths, prev_zn_zfar.zw);
     float4 depthDiff = abs(linearDepths - historyUVZ.z);
     float threshold = ssao_dissocclusion_depth_threshold*historyUVZ.z;
-    bool4 mask = depthDiff < threshold;
-
-    if (!any(mask))
-    {
-      newFrameWeight = 1;
-      return;
-    }
 
     float4 bil = float4(fractCrd, 1 - fractCrd);
     float4 upsampleWeights = float4(bil.zx * bil.w, bil.zx * bil.y);
     float4 spatialWeights = exp(-depthDiff * (5.0 / threshold));
-    float4 weights = (spatialWeights * upsampleWeights + 1e-4) * float4(mask);
+    float4 weights = (spatialWeights * upsampleWeights + 1e-4);
     weights /= dot(weights, 1.0);
 
     //float2 uv = (floor(historyCrdf) + 0.5)*prev_downsampled_close_depth_tex_target_size.zw;//todo: one madd
@@ -82,13 +75,13 @@ hlsl(stage) {
     float2 uv = gatherUV;
     historySample.x = dot(ssao_prev_tex.GatherRed(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
 
-    #if SSAO_HAS_GREEN
-    historySample.y = dot(ssao_prev_tex.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
-    #endif
+    ##if ssao_has_green
+      historySample.y = dot(ssao_prev_tex.GatherGreen(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
+    ##endif
 
-    #if SSAO_HAS_BLUE
-    historySample.z = dot(ssao_prev_tex.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
-    #endif
+    ##if ssao_has_blue
+      historySample.z = dot(ssao_prev_tex.GatherBlue(prev_downsampled_close_depth_tex_samplerstate, uv).wzxy, weights);
+    ##endif
 #else
     historySample = tex2Dlod(ssao_prev_tex, float4(historyUVZ.xy, 0, 0)).SSAO_ATTRS;
 #endif
@@ -109,15 +102,18 @@ hlsl(stage) {
 
 
 #if DIFFERENCE_CLAMPING
-    #define VALUE_CLAMP_RANGE 0.5f
-    #define VALUE_CLAMP_OFFSET 0.5f
-    SSAO_TYPE diff = ssao - ssaoHistory;
+    #define VALUE_CLAMP_RANGE 0.4f
+    #define VALUE_CLAMP_OFFSET 0.4f
+    SSAO_TYPE diff = abs(ssao - ssaoHistory);
     SSAO_TYPE valueClampFactor = saturate(diff * (1.0f / VALUE_CLAMP_RANGE) - VALUE_CLAMP_OFFSET);
     SSAO_TYPE newFrameWeightSSAO = newFrameWeight;
     newFrameWeightSSAO = 1 - (1.0f - valueClampFactor)*(1-newFrameWeightSSAO);
 #else
-    float newFrameWeightSSAO = newFrameWeight;
+    SSAO_TYPE newFrameWeightSSAO = newFrameWeight;
 #endif
+    ##if ssao_has_green
+      newFrameWeightSSAO.y = newFrameWeight;
+    ##endif
     ssao = fp16_aware_lerp(ssaoHistory, ssao, newFrameWeightSSAO, 1/0.03);
     //ssao = lerp(ssao, historySample, historyWeight);
   }

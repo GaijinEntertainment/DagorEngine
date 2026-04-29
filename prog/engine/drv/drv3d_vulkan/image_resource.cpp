@@ -6,7 +6,7 @@
 #include "resource_manager.h"
 #include "sampler_cache.h"
 #include "vk_format_utils.h"
-#include "execution_context.h"
+#include "backend/context.h"
 #include "backend.h"
 #include "execution_scratch.h"
 #include "execution_sync.h"
@@ -102,6 +102,10 @@ void ImageCreateInfo::setUsageBitsFromCflags(uint32_t cflag)
     usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
   }
   usage |= (cflag & TEXCF_UNORDERED) ? VK_IMAGE_USAGE_STORAGE_BIT : 0;
+#if VK_KHR_fragment_shading_rate
+  if (cflag & TEXCF_VARIABLE_RATE)
+    usage |= VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+#endif
   D3D_CONTRACT_ASSERT(!(isDepth && (cflag & TEXCF_READABLE)));
 }
 
@@ -138,6 +142,8 @@ void Image::destroyVulkanObject()
 
   Globals::VK::dev.vkDestroyImage(dev.get(), getHandle(), VKALLOC(image));
   setHandle(generalize(Handle()));
+  if (isManaged() && isResident())
+    reportMemUsage(false);
 }
 
 bool Image::useFallbackFormat(VkImageCreateInfo &ici)
@@ -162,7 +168,7 @@ bool Image::useFallbackFormat(VkImageCreateInfo &ici)
   }
 
   desc.format = FormatStore::fromVkFormat(ici.format);
-  return checkImageCreate(ici, desc.format);
+  return checkImageCreate(ici, desc.format, true);
 }
 
 void Image::createVulkanObject()
@@ -204,7 +210,8 @@ void Image::createVulkanObject()
       ici.format = VK_FORMAT_R32_UINT;
     else
     {
-      debug("vulkan: retrying with liniear variant of %s -> %s", desc.format.getNameString(), linearVariant.getNameString());
+      if ((desc.ici.flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) == 0)
+        debug("vulkan: retrying with liniear variant of %s -> %s", desc.format.getNameString(), linearVariant.getNameString());
       ici.format = linearVariant.asVkFormat();
     }
     if (!checkImageCreate(ici, linearVariant))
@@ -261,7 +268,7 @@ VkMemoryRequirements Image::getSharedHandleMemoryReq()
   return {};
 }
 
-void Image::bindMemory()
+void Image::bindAssignedMemoryId()
 {
   G_ASSERT(getBaseHandle());
   G_ASSERT(getMemoryId() != -1);
@@ -272,10 +279,16 @@ void Image::bindMemory()
   VULKAN_EXIT_ON_FAIL(dev.vkBindImageMemory(dev.get(), getHandle(), mem.deviceMemory(), mem.offset));
 }
 
+void Image::bindMemory()
+{
+  bindAssignedMemoryId();
+  reportMemUsage(true);
+}
+
 void Image::bindMemoryFromHeap(MemoryHeapResource *in_heap, ResourceMemoryId heap_mem_id)
 {
   setMemoryId(heap_mem_id);
-  bindMemory();
+  bindAssignedMemoryId();
   setHeap(in_heap);
 }
 
@@ -314,14 +327,14 @@ void Image::afterDeviceReset()
     Backend::bindless.restoreBindlessTexture(i, this);
 }
 
-void Image::restoreFromSysCopy(ExecutionContext &ctx)
+void Image::restoreFromSysCopy()
 {
   // forward patching for layout
   layout.resetTo(hostCopy ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED);
   // was not evicted, created non-residently
   if (!hostCopy)
     return;
-  ctx.queueImageResidencyRestore(this);
+  Backend::ctx.queueImageResidencyRestore(this);
 }
 
 void Image::delayedRestoreFromSysCopy()
@@ -331,7 +344,7 @@ void Image::delayedRestoreFromSysCopy()
   fillImage2BufferCopyData(copies, hostCopy);
 
 
-  ExecutionContext::PrimaryPipelineBarrier layoutSwitch;
+  BEContext::PrimaryPipelineBarrier layoutSwitch;
   layoutSwitch.modifyImageTemplate(this);
   layoutSwitch.modifyImageTemplateStage({VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT});
   layoutSwitch.modifyImageTemplate({VK_ACCESS_NONE, VK_ACCESS_TRANSFER_WRITE_BIT});
@@ -382,14 +395,18 @@ VkBufferImageCopy Image::makeBufferCopyInfo(uint8_t mip, uint16_t arr, VkDeviceS
   return make_copy_info(desc.format, mip, arr, 1, desc.ici.extent, buf_offset);
 }
 
+VkDeviceSize Image::getRawSize()
+{
+  return desc.format.calculateImageSize(desc.ici.extent.width, desc.ici.extent.height, desc.ici.extent.depth, desc.ici.mipLevels) *
+         desc.ici.arrayLayers;
+}
+
 Buffer *Image::getHostCopyBuffer()
 {
   if (!hostCopy)
   {
-    uint32_t size =
-      desc.format.calculateImageSize(desc.ici.extent.width, desc.ici.extent.height, desc.ici.extent.depth, desc.ici.mipLevels) *
-      desc.ici.arrayLayers;
-    hostCopy = Buffer::create(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::NONE);
+    uint32_t size = getRawSize();
+    hostCopy = Buffer::create(size, DeviceMemoryClass::HOST_RESIDENT_HOST_READ_WRITE_BUFFER, 1, BufferMemoryFlags::EVICTION_SYSCOPY);
     if (Globals::cfg.debugLevel > 0)
       hostCopy->setDebugName(String(128, "host copy of img %s", getDebugName()));
   }
@@ -410,12 +427,12 @@ void Image::fillImage2BufferCopyData(carray<VkBufferImageCopy, MAX_MIPMAPS> &cop
   }
 }
 
-void Image::makeSysCopy(ExecutionContext &ctx)
+void Image::makeSysCopy()
 {
   Buffer *buf = getHostCopyBuffer();
   carray<VkBufferImageCopy, MAX_MIPMAPS> copies;
   fillImage2BufferCopyData(copies, buf);
-  ctx.copyImageToBufferOrdered(buf, this, copies.data(), desc.ici.mipLevels);
+  Backend::ctx.copyImageToBufferOrdered(buf, this, copies.data(), desc.ici.mipLevels);
 }
 
 void Image::cleanupReferences()
@@ -485,13 +502,40 @@ static const char *image_type_name[] = {"1D", "2D", "3D"};
 
 static const char *image_tiling_name[] = {"optimal", "linear"};
 
-bool Image::checkImageCreate(const VkImageCreateInfo &ici, FormatStore format)
+bool Image::checkImageCreate(const VkImageCreateInfo &ici, FormatStore format, bool verbose)
 {
-#define FAIL_MESSAGE(extra, ...)                                                                                   \
-  debug("vulkan: image create check failed, for image w=%u, h=%u, d=%u, fmt=%s, "                                  \
-        "type=%s, tilling=%s, usage=[%s], flags=%u, samples = %u" extra,                                           \
-    ici.extent.width, ici.extent.height, ici.extent.depth, format.getNameString(), image_type_name[ici.imageType], \
-    image_tiling_name[ici.tiling], formatImageUsageFlags(ici.usage), ici.flags, ici.samples, __VA_ARGS__)
+#define FAIL_MESSAGE(extra, ...)                                                                                     \
+  if (verbose)                                                                                                       \
+  {                                                                                                                  \
+    debug("vulkan: image create check failed, for image w=%u, h=%u, d=%u, fmt=%s, "                                  \
+          "type=%s, tilling=%s, usage=[%s], flags=%u, samples = %u" extra,                                           \
+      ici.extent.width, ici.extent.height, ici.extent.depth, format.getNameString(), image_type_name[ici.imageType], \
+      image_tiling_name[ici.tiling], formatImageUsageFlags(ici.usage), ici.flags, ici.samples, __VA_ARGS__);         \
+  }
+
+  {
+    VkFormatProperties formatProperties;
+    Globals::VK::inst.vkGetPhysicalDeviceFormatProperties(Globals::VK::phy.device, ici.format, &formatProperties);
+    const VkFormatFeatureFlags tilingFeatures =
+      (ici.tiling == VK_IMAGE_TILING_OPTIMAL) ? formatProperties.optimalTilingFeatures : formatProperties.linearTilingFeatures;
+#define CHECK_FMT_FEATURE(usageBit, featureBit)                                                                \
+  if ((ici.usage & usageBit) && !(tilingFeatures & featureBit))                                                \
+  {                                                                                                            \
+    FAIL_MESSAGE(", because usage %s is declared, while feature %s is not supported", #usageBit, #featureBit); \
+    return false;                                                                                              \
+  }
+
+    CHECK_FMT_FEATURE(VK_IMAGE_USAGE_SAMPLED_BIT, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT);
+    CHECK_FMT_FEATURE(VK_IMAGE_USAGE_STORAGE_BIT, VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT);
+    CHECK_FMT_FEATURE(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT);
+    CHECK_FMT_FEATURE(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+#if VK_KHR_fragment_shading_rate
+    CHECK_FMT_FEATURE(VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR,
+      VK_FORMAT_FEATURE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR);
+#endif
+
+#undef CHECK_FMT_FEATURE
+  }
 
   VkImageFormatProperties properties;
   VkResult result = VULKAN_CHECK_RESULT(Globals::VK::inst.vkGetPhysicalDeviceImageFormatProperties(Globals::VK::phy.device, ici.format,
@@ -656,7 +700,7 @@ VulkanImageViewHandle Image::getImageView(ImageViewState state)
   return iter->view;
 }
 
-bool Image::verifyLinearFilteringSupported(const char *usageContextStr, ExecutionContext *ctx)
+bool Image::verifyLinearFilteringSupported(const char *usageContextStr)
 {
   const VkFormatFeatureFlags fmtFeatures = Globals::VK::fmt.features(getFormat().asVkFormat());
   const bool linearSamplingSupported = fmtFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
@@ -665,15 +709,16 @@ bool Image::verifyLinearFilteringSupported(const char *usageContextStr, Executio
   {
     debug("vulkan: linear filtering for image %s, format %s is not supported (usageContext: %s, commandCaller: %s)", getDebugName(),
       getFormat().getNameString(), usageContextStr ? usageContextStr : "<unknown>",
-      ctx ? ctx->getCurrentCmdCaller().c_str() : "<unknown>");
+      BEContext::active ? Backend::ctx.getCurrentCmdCaller().c_str() : "<unknown>");
     unsupportedLinearFilterReported = true;
   }
 #else
-  G_UNUSED(ctx);
   G_UNUSED(usageContextStr);
 #endif
   return linearSamplingSupported;
 }
+
+void Image::reportMemUsage(bool allocating) { reportToTQL(allocating, getRawSize()); }
 
 void drv3d_vulkan::viewFormatListFrom(FormatStore format, VkImageUsageFlags usage, Image::ViewFormatList &viewFormats)
 {

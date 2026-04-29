@@ -67,6 +67,7 @@ local_omni_light{
     omni_light__dynamic_obj_shadows:b=no
     omni_light__shadow_shrink:i=0
     omni_light__shadow_quality:i=2
+    omni_light__shadow_near_far_planes:p2=0, 0
   }
 
   "destroyable_with_rendinst:tag"{}

@@ -195,10 +195,10 @@ void EditorStartDialog::updateOkButtonState()
       String message;
       if (wspNames.empty())
         message = "Please add a workspace.";
-      else if (::dd_file_exist(wsp.getAppPath()))
+      else if (::dd_file_exist(wsp.getAppBlkPath()))
         message = "Some workspace settings are invalid.";
       else
-        message.printf(0, "\"%s\" cannot be found.", wsp.getAppPath());
+        message.printf(0, "\"%s\" cannot be found.", wsp.getAppBlkPath());
 
       panel->createStatic(ID_START_DIALOG_ERROR_MESSAGE, message);
       panel->setBool(ID_START_DIALOG_ERROR_MESSAGE, true); // Make it bold.
@@ -324,14 +324,14 @@ WorkspaceDialog::WorkspaceDialog(EditorStartDialog *esd, const char *caption, Ed
   _grp->createFileEditBox(PID_APP_FOLDER, "Path to application BLK:");
 
   Tab<String> filters(tmpmem);
-  filters.push_back() = "Application|application.blk";
+  filters.push_back() = "Application|application*.blk";
   filters.push_back() = "BLK files|*.blk";
   _grp->setStrings(PID_APP_FOLDER, filters);
 
   if (is_editing)
   {
     _panel->setText(PID_WSP_NAME, wsp.getName());
-    _panel->setText(PID_APP_FOLDER, wsp.getAppPath());
+    _panel->setText(PID_APP_FOLDER, wsp.getAppBlkPath());
   }
   else
   {
@@ -459,7 +459,7 @@ void WorkspaceDialog::onClick(int pcb_id, PropPanel::ContainerPropertyControl *p
     if (creator.showDialog() == PropPanel::DIALOG_ID_OK)
     {
       panel->setText(PID_WSP_NAME, mWsp.getName());
-      panel->setText(PID_APP_FOLDER, mWsp.getAppPath());
+      panel->setText(PID_APP_FOLDER, mWsp.getAppBlkPath());
     }
   }
 }

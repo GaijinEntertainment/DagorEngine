@@ -4,13 +4,24 @@
 #include "riGen/riUtil.h"
 #include "riGen/riGenExtra.h"
 
-bool rendinst::isRiGenDescValid(const rendinst::RendInstDesc &desc)
+bool rendinst::isRiGenDescInGrid(const rendinst::RendInstDesc &desc)
 {
   if (DAGOR_UNLIKELY(!desc.isValid()))
     return false;
 
   if (desc.isRiExtra())
     return desc.pool < rendinst::riExtra.size() && rendinst::riExtra[desc.pool].isInGrid(desc.idx);
+  else
+    return !riutil::is_rendinst_data_destroyed(desc);
+}
+
+bool rendinst::isRiGenDescValid(const rendinst::RendInstDesc &desc)
+{
+  if (DAGOR_UNLIKELY(!desc.isValid()))
+    return false;
+
+  if (desc.isRiExtra())
+    return desc.pool < rendinst::riExtra.size() && rendinst::riExtra[desc.pool].isValid(desc.idx);
   else
     return !riutil::is_rendinst_data_destroyed(desc);
 }

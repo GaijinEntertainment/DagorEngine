@@ -1,18 +1,23 @@
 Root    ?= ../../.. ;
 
 Location = prog/tools/relay ;
-PlatformArch ?= x86_64 ;
+PlatformArch_windows ?= x86_64 ;
+PlatformSpec_windows ?= clang ;
+UseMemoryAllocator = RTL ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 ConsoleExe = yes ;
 TargetType = exe ;
 Target     = relay ;
-ProjectPath ?= prog/tools/relay ;
 echo $(Root) ;
-echo $(ProjectPath) ;
-GameDir = $(Root)/$(ProjectPath)/game ;
-echo $(GameDir) ;
+if $(ProjectPath) {
+  echo $(ProjectPath) ;
+  GameDir = $(Root)/$(ProjectPath)/game ;
+  echo $(GameDir) ;
+} else {
+  echo ProjectPath not set, building to _Output ;
+}
 
 if $(UseLegacyOutDirPath) = yes {
   OutDir = $(GameDir)/$(LegacyPlatformSuffix) ;
@@ -35,13 +40,13 @@ AddIncludes =
 UseProgLibs =
   engine/osApiWrappers
   engine/kernel
-  engine/memory/rtlStdMemory
+  engine/memory
   engine/ioSys
   engine/startup
   engine/baseUtil
   engine/math
   engine/perfMon/daProfilerStub
-  gameLibs/daNet
+  engine/daNet
 ;
 
 include $(Root)/prog/_jBuild/build.jam ;

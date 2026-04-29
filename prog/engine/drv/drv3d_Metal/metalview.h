@@ -40,11 +40,13 @@
 - (id<MTLTexture>)getSavedBackBuffer;
 
 - (void)acquireDrawable;
+- (int)getDrawableSize;
 - (void)presentDrawable:(id<MTLCommandBuffer>)commandBuffer;
 
 - (MTLPixelFormat)getLayerPixelFormat;
 - (bool)isHDRAvailable;
 - (bool)isHDREnabled;
 - (void)setHDR:(bool)enable;
+- (float)getRelativeHeadroom;
 
 @end

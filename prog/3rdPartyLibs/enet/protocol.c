@@ -8,11 +8,11 @@
 #include "enet/utility.h"
 #include "enet/time.h"
 #include "enet/enet.h"
+#if _DAGOR_ENET_EXT
+#include "enet/enet_dagor.h"
+#endif
 
 #define ENET_MIN_ROUND_TRIP_TIMEOUT (30)
-
-#define HOSTPORT_FMT   "%d.%d.%d.%d:%d"
-#define HOSTPORT(h, p) (h) & 255, ((h) >> 8) & 255, ((h) >> 16) & 255, (h) >> 24, (p)
 
 static size_t commandSizes [ENET_PROTOCOL_COMMAND_COUNT] =
 {
@@ -29,7 +29,7 @@ static size_t commandSizes [ENET_PROTOCOL_COMMAND_COUNT] =
     sizeof (ENetProtocolBandwidthLimit),
     sizeof (ENetProtocolThrottleConfigure),
     sizeof (ENetProtocolSendFragment),
-    sizeof (ENetProtocolPingTargetPortForRelay),
+    _DAGOR_ENET_INJECT_PROTOCOL_TYPES_SIZES
 };
 
 size_t
@@ -119,6 +119,7 @@ enet_protocol_dispatch_incoming_commands (ENetHost * host, ENetEvent * event)
        }
     }
 
+    _DAGOR_ENET_INJECT_UNCONNECTED_PEER_RECEIVE_MESSAGES;
     return 0;
 }
 
@@ -763,22 +764,6 @@ enet_protocol_handle_ping (ENetHost * host, ENetPeer * peer, const ENetProtocol 
 }
 
 static int
-enet_protocol_handle_ping_target_port_for_relay (ENetHost * host, ENetPeer * peer, const ENetProtocol * command)
-{
-    enet_uint16 port = command->pingTargetPortForRelay.port;
-    ENetAddress addr;
-    addr.host = peer->address.host;
-    addr.port = port;
-    enet_uint32 empty_buffer[1] = { 0 };
-    ENetBuffer buffer;
-    buffer.data = (void *)&empty_buffer[0];
-    buffer.dataLength = 1;
-    enet_socket_send(host->socket, &addr, &buffer, 1);
-    enet_logf("punch udp hole for peer " HOSTPORT_FMT, HOSTPORT(addr.host, addr.port));
-    return 0;
-}
-
-static int
 enet_protocol_handle_bandwidth_limit (ENetHost * host, ENetPeer * peer, const ENetProtocol * command)
 {
     if (peer -> state != ENET_PEER_STATE_CONNECTED && peer -> state != ENET_PEER_STATE_DISCONNECT_LATER)
@@ -1025,6 +1010,8 @@ enet_protocol_handle_verify_connect (ENetHost * host, ENetEvent * event, ENetPee
     return 0;
 }
 
+#define HOSTPORT_FMT "%d.%d.%d.%d:%d"
+#define HOSTPORT(h, p) (h)&255,((h)>>8)&255,((h)>>16)&255,(h)>>24,(p)
 
 static int
 enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
@@ -1051,6 +1038,7 @@ enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
     if (host -> checksum != NULL)
       headerSize += sizeof (enet_uint32);
 
+    _DAGOR_ENET_INJECT_DEBUG_LOG_RECEIVED(host, peerID)
     if (peerID == ENET_PROTOCOL_MAXIMUM_PEER_ID)
       peer = NULL;
     else
@@ -1160,7 +1148,8 @@ enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
 
        currentData += commandSize;
 
-       if (peer == NULL && commandNumber != ENET_PROTOCOL_COMMAND_CONNECT)
+       if (peer == NULL && commandNumber != ENET_PROTOCOL_COMMAND_CONNECT
+           _DAGOR_ENET_EXTRA_PEERLESS_COMMANDS(commandNumber))
          break;
          
        command -> header.reliableSequenceNumber = ENET_NET_TO_HOST_16 (command -> header.reliableSequenceNumber);
@@ -1230,11 +1219,7 @@ enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
             goto commandError;
           break;
 
-       case ENET_PROTOCOL_COMMAND_PING_TARGET_PORT_FOR_RELAY:
-          if (enet_protocol_handle_ping_target_port_for_relay (host, peer, command))
-            goto commandError;
-          break;
-
+       _DAGOR_ENET_INJECT_CASES_TO_HANDLE_CUSTOM_COMMANDS;
        default:
           goto commandError;
        }
@@ -1270,13 +1255,14 @@ enet_protocol_handle_incoming_commands (ENetHost * host, ENetEvent * event)
     }
 
 commandError:
+    _DAGOR_ENET_INJECT_CLEAR_NEEDS_DISPATCH_ON_UNCONNECTED_PEER;
     if (event != NULL && event -> type != ENET_EVENT_TYPE_NONE)
       return 1;
 
     return 0;
 }
  
-static int
+int
 enet_protocol_receive_incoming_commands (ENetHost * host, ENetEvent * event)
 {
     int packets;
@@ -1312,18 +1298,11 @@ enet_protocol_receive_incoming_commands (ENetHost * host, ENetEvent * event)
           {
           case 1:
              if (event != NULL && event -> type != ENET_EVENT_TYPE_NONE)
-             {
-               if (event -> type == ENET_EVENT_TYPE_INTERCEPTED)
-               {
-                 if (packets == 255)
-                   return 1;
-               }
-               else
-                 return 1;
-             }
+               _DAGOR_ENET_INTERCEPT_CASE_HANDLING(event, packets)
 
              continue;
-          
+
+          _DAGOR_ENET_INTERCEPT_CASE_HANDLING_CASE_2_FORCE_INTERRUPT(event, packets);
           case -1:
              return -1;
         
@@ -2064,37 +2043,4 @@ enet_host_service (ENetHost * host, ENetEvent * event, enet_uint32 timeout)
     } while (waitCondition & ENET_SOCKET_WAIT_RECEIVE);
 
     return 0; 
-}
-
-
-int
-enet_host_service_only_incoming_commands (ENetHost * host, ENetEvent * event, enet_uint32 timeout)
-{
-  if (event != NULL)
-  {
-    event -> type = ENET_EVENT_TYPE_NONE;
-    event -> peer = NULL;
-    event -> packet = NULL;
-  }
-
-  host -> serviceTime = enet_time_get ();
-
-  timeout += host -> serviceTime;
-
-  switch (enet_protocol_receive_incoming_commands (host, event))
-  {
-  case 1:
-    return 1;
-
-  case -1:
-#ifdef ENET_DEBUG
-    perror ("Error receiving incoming packets");
-#endif
-
-    return -1;
-
-  default:
-    break;
-  }
-  return 0;
 }

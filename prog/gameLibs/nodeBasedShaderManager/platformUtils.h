@@ -1,7 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-static const eastl::array<const char *, NodeBasedShaderManager::PLATFORM::COUNT> PLATFORM_LABELS = {{
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_info.h>
+
+#include <EASTL/array.h>
+
+inline const eastl::array<const char *, NodeBasedShaderManager::PLATFORM::COUNT> PLATFORM_LABELS = {{
   "dx11",
   "xb1",
   "ps4",
@@ -15,8 +20,7 @@ static const eastl::array<const char *, NodeBasedShaderManager::PLATFORM::COUNT>
   "metalb",
 }};
 
-#if !NBSM_COMPILE_ONLY
-static NodeBasedShaderManager::PLATFORM get_nbsm_platform()
+inline NodeBasedShaderManager::PLATFORM get_nbsm_platform()
 {
   return d3d::get_driver_code()
     .map(d3d::xboxOne, NodeBasedShaderManager::PLATFORM::DX12_XBOX_ONE)
@@ -34,4 +38,3 @@ static NodeBasedShaderManager::PLATFORM get_nbsm_platform()
                       : NodeBasedShaderManager::PLATFORM::VULKAN)
     .map(d3d::any, NodeBasedShaderManager::PLATFORM::COUNT);
 }
-#endif

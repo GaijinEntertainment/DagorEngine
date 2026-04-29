@@ -11,9 +11,12 @@
 #include <common/autoResolutionData.h>
 #include <common/bindingType.h>
 #include <frontend/resourceProvider.h>
+#include <id/idIndexedFlags.h>
 #include <id/idIndexedMapping.h>
 #include <id/idHierarchicalNameMap.h>
 
+
+inline bool operator==(const dafg::ExternalResourceProvider &, const dafg::ExternalResourceProvider &) { return false; }
 
 namespace dafg
 {
@@ -46,6 +49,8 @@ struct DynamicParameter
 
   ResourceSubtypeTag projectedTag = ResourceSubtypeTag::Invalid;
   detail::TypeErasedProjector projector = +[](const void *data) { return data; };
+
+  bool operator==(const DynamicParameter &) const = default;
 };
 
 struct VirtualPassRequirements
@@ -199,6 +204,9 @@ struct Binding
   ResNameId resource = ResNameId::Invalid;
   bool history = false;
 
+  // do we need to reset it to default value after node is executed
+  bool reset = false;
+
   ResourceSubtypeTag projectedTag = ResourceSubtypeTag::Invalid;
   detail::TypeErasedProjector projector = +[](const void *data) { return data; };
 };
@@ -220,6 +228,7 @@ inline constexpr uint32_t MAX_VERTEX_STREAMS = 4;
 
 struct NodeData
 {
+  detail::ExecutionCallback execute;
   priority_t priority = PRIO_DEFAULT;
   eastl::optional<multiplexing::Mode> multiplexingMode;
   SideEffects sideEffect = SideEffects::Internal;
@@ -227,10 +236,12 @@ struct NodeData
   bool enabled = true;
   bool allowAsyncPipelines = false;
 
+  eastl::optional<IndexSource> indexSource;
+  eastl::optional<NodeStateRequirements> stateRequirements;
+
   // Keeps track of how many times the node was recreated
   uint16_t generation{0};
   detail::DeclarationCallback declare;
-  detail::ExecutionCallback execute;
 
   dag::FixedVectorSet<NodeNameId, 4> precedingNodeIds;
   dag::FixedVectorSet<NodeNameId, 4> followingNodeIds;
@@ -254,12 +265,9 @@ struct NodeData
   // This is implementable, but not worth it right now.
   dag::FixedVectorMap<ResNameId, ResourceRequest, 16> historyResourceReadRequests;
 
-
-  eastl::optional<NodeStateRequirements> stateRequirements;
   eastl::optional<VirtualPassRequirements> renderingRequirements;
   eastl::variant<eastl::monostate, DispatchRequirements, DrawRequirements> executeRequirements;
   eastl::array<eastl::optional<VertexSource>, MAX_VERTEX_STREAMS> vertexSources;
-  eastl::optional<IndexSource> indexSource;
   BindingsMap bindings;
   ShaderBlockLayersInfo shaderBlockLayers;
 
@@ -268,19 +276,30 @@ struct NodeData
 };
 
 struct DriverDeferredTexture
-{};
+{
+  // All equal because for now it's always the one and only backbuffer.
+  bool operator==(const DriverDeferredTexture &) const = default;
+};
 
 using ResourceCreationInfo = eastl::variant<eastl::monostate, Texture2dCreateInfo, Texture3dCreateInfo, BufferCreateInfo,
   BlobDescription, ExternalResourceProvider, DriverDeferredTexture>;
 
-struct ResourceData
+struct CreatedResourceData
 {
   ResourceCreationInfo creationInfo = eastl::monostate{};
   // TODO: we can and should remove this and simply use createInfo
   eastl::optional<AutoResolutionData> resolution = eastl::nullopt;
   eastl::variant<eastl::monostate, ResourceClearValue, DynamicParameter> clearValue = eastl::monostate{};
+  ResourceClearFlags clearFlags = ResourceClearFlags::RESOURCE_CLEAR_ALL_CONTENT;
   ResourceType type = ResourceType::Invalid;
+
+  bool operator==(const CreatedResourceData &other) const = default;
+};
+
+struct ResourceData
+{
   History history = History::No;
+  eastl::optional<CreatedResourceData> createdResData = eastl::nullopt;
 };
 
 template <class T>
@@ -316,6 +335,7 @@ struct InternalRegistry
   IdIndexedMapping<ResNameId, ResourceData> resources{};
   IdIndexedMapping<NodeNameId, NodeData> nodes{};
   IdIndexedMapping<AutoResTypeNameId, AutoResTypeData> autoResTypes{};
+  IdIndexedFlags<AutoResTypeNameId> autoResTypesChanged{};
   IdIndexedMapping<ResNameId, eastl::optional<SlotData>> resourceSlots{};
 
   // Set of external resources that are considered to be sinks and are

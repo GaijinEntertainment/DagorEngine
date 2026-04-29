@@ -1,6 +1,7 @@
 include "shader_global.dshl"
+include "adaptation_inc.dshl"
+include "gbuffer.dshl"
 
-texture albedo_gbuf;
 buffer ExposureOut;
 buffer RawHistogram;
 buffer Histogram;
@@ -8,11 +9,18 @@ buffer ExposureIn;
 float adaptation_albedo_color_average = 0.3183098861837907;//1/pi
 float adaptation_albedo_color_min = 0.75;//in averages. Should be around 0.25, but due to very dark normandy forests, and just one adaptation_albedo_color_average for everything we have to limit it
 float adaptation_luminance_weight = 0.5;
+int adaptation__includesHeroCockpit = 1;
+interval adaptation__includesHeroCockpit: no < 1, yes;
+float adaptation__minSamples = 9.5;
 
 hlsl {
   half encodeBaseColorLuma(half l) {return sqrt(l);}
   half decodeBaseColorLuma(half l) {return (l*l);}
 }
+
+define_macro_if_not_defined PROJECT_ADAPTATION_SAMPLE_TC_FUNCTION(code)
+  ADAPTATION_CENTER_WEIGHTED_TC_FUNCTION(code)
+endmacro
 
 macro CALC_ALBEDO_LUMA(code)
   INIT_RENDERING_RESOLUTION(code)
@@ -32,7 +40,14 @@ macro CALC_ALBEDO_LUMA(code)
     {
       float2 ofs = rendering_res.zw;
       half baseColorLum = AVERAGE_BASE_COLOR_LUMA;
-      ##if hardware.ps4 || hardware.ps5
+      // other APIs have garbage in gbuffer sky area due to discard support
+      ##if hardware.dx11 || hardware.dx12
+        baseColorLum  = sampleLumaNonSky(tc-ofs);
+        baseColorLum += sampleLumaNonSky(tc + float2(+ofs.x,-ofs.y));
+        baseColorLum += sampleLumaNonSky(tc + float2(-ofs.x,+ofs.y));
+        baseColorLum += sampleLumaNonSky(tc + float2(+ofs.x,+ofs.y));
+        baseColorLum *= 0.25;
+      ##else
       float depth = tex2Dlod(downsampled_close_depth_tex, float4(tc, 0, 0));//1 mip is to get 1/4 resolution, and +2 - as we just choose 1/4 of points anyway
       bool isSky = depth == 0;
       if (!isSky)
@@ -45,12 +60,6 @@ macro CALC_ALBEDO_LUMA(code)
         baseColorLum = max(baseColorLum, adaptation_albedo_color_average.y);//not less than makes physical sense
       }
       //downsampled_close_depth_tex - has to be point filtered!
-      ##else
-        baseColorLum  = sampleLumaNonSky(tc-ofs);
-        baseColorLum += sampleLumaNonSky(tc + float2(+ofs.x,-ofs.y));
-        baseColorLum += sampleLumaNonSky(tc + float2(-ofs.x,+ofs.y));
-        baseColorLum += sampleLumaNonSky(tc + float2(+ofs.x,+ofs.y));
-        baseColorLum *= 0.25;
       ##endif
 
       return lerp(AVERAGE_BASE_COLOR_LUMA, baseColorLum, adaptation_albedo_color_average.z);//simplest sRGB-like gamma
@@ -76,28 +85,26 @@ macro USE_ALBEDO_LUMA(code)
   }
 endmacro
 
-float adaptation_cw_samples_count;
 texture frame_tex;
 texture no_effects_frame_tex;
 int use_albedo_luma_adaptation;
 interval use_albedo_luma_adaptation:off<1, on;
 float adaptation_effects_weight = 0.05;
-float adaptation_center_weighted_param = 0.7;
+float adaptation_use_luminance_trimming = 0.0;
 
 shader GenerateHistogramCenterWeightedFromSourceCS
 {
   (cs)
   {
     frame_tex@smp2d = frame_tex;
-    if (compatibility_mode == compatibility_mode_off && mobile_render == off)
+    adaptation_use_luminance_trimming@f1 = adaptation_use_luminance_trimming;
+    if (compatibility_mode == compatibility_mode_off)
     {
       no_effects_frame_tex@smp2d = no_effects_frame_tex;
       adaptation_effects_weight@f1 = adaptation_effects_weight;
     }
   }
   (cs) {
-    adaptation_center_weighted_param@f1 = adaptation_center_weighted_param;
-    adaptation_cw_samples_count@f1 = (adaptation_cw_samples_count);
     Exposure@buf = ExposureIn hlsl {
       StructuredBuffer<float> Exposure@buf;
     };
@@ -110,24 +117,30 @@ shader GenerateHistogramCenterWeightedFromSourceCS
     CALC_ALBEDO_LUMA(cs)
     USE_ALBEDO_LUMA(cs)
   }
-  ENABLE_ASSERT(cs)
   INIT_HDR(cs)
   USE_HDR(cs)
+  if (adaptation__includesHeroCockpit == no)
+  {
+    INIT_READ_IS_HERO_COCKPIT(cs)
+    USE_READ_IS_HERO_COCKPIT(cs)
+  }
+
+  PROJECT_ADAPTATION_SAMPLE_TC_FUNCTION(cs)
+
   hlsl(cs) {
     float GetLuminance(float3 v)
     {
       float3 bt709 = float3(0.2126, 0.7152, 0.0722);
       return dot(unpack_hdr(v), bt709);
     }
-    #include <tonemapHelpers/centerWeighted.hlsli>
 
     [numthreads( 64, 1, 1 )]
     void main( uint gId : SV_GroupIndex, uint grId : SV_GroupID, uint Index : SV_DispatchThreadID )
     {
-      float2 tc = getCenterWeightedTc(Index, adaptation_cw_samples_count, adaptation_center_weighted_param);
-      ##if mobile_render == off || use_postfx == on
+      float2 tc = getAdaptationSampleTC(Index);
+      ##if use_postfx == on
         float luma = GetLuminance(tex2Dlod(frame_tex, float4(tc,0,0)).xyz);
-        ##if mobile_render == off && compatibility_mode == compatibility_mode_off && no_effects_frame_tex != NULL
+        ##if compatibility_mode == compatibility_mode_off && no_effects_frame_tex != NULL
           float lumaNoFx = GetLuminance(tex2Dlod(no_effects_frame_tex, float4(tc,0,0)).xyz);
           luma = lerp(lumaNoFx, luma, adaptation_effects_weight);
         ##endif
@@ -146,8 +159,15 @@ shader GenerateHistogramCenterWeightedFromSourceCS
       }
       #endif
       uint QuantizedLogLuma = uint(lumaPos*255);
-      //QuantizedLogLuma = Exposure[7]*255;
-      //float depth = texelFetch(downsampled_close_depth_tex, DTid.xy, 1);//to find out if it is sky
+
+##if adaptation__includesHeroCockpit == no
+      if (isGbufferHeroCockpit(tc)) {
+        if (adaptation_use_luminance_trimming > 0.0f) // Can skip this pixel
+          return;
+        else
+          QuantizedLogLuma = 0; // AdaptExposureCS ignores 0 column
+      }
+##endif
       InterlockedAdd(structuredBufferAt(Histogram, (gId&31)*256 + min(255, QuantizedLogLuma)), 1 );
     }
   }
@@ -157,8 +177,6 @@ shader GenerateHistogramCenterWeightedFromSourceCS
 
 shader accumulate_hist_cs
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     RawHistogram@buf = RawHistogram hlsl {
       StructuredBuffer<uint> RawHistogram@buf;
@@ -190,7 +208,7 @@ shader accumulate_hist_cs
   compile("target_cs", "main");
 }
 
-// [0] .x:ExposureLowPercent/100, .y:EyeAdaptationHighPercent/100, .z:EyeAdaptationMin, .w:EyeAdaptationMax
+// [0] .x:LowLuminanceTrimmingBorder, .y:HighLuminanceTrimmingBorder, .z:EyeAdaptationMin, .w:EyeAdaptationMax
 // [1] .x:exp2(ExposureOffset), .y:DeltaWorldTime, .zw: EyeAdaptionSpeedUp/Down
 // [2] .x:Histogram multiply, .y:Histogram add, .z: total pixels .w:unused
 // [3] .x: linear coef of percepted brightness (0.8), .y:power of percepted brightness(0.8), zw unused
@@ -202,17 +220,23 @@ float4 EyeAdaptationParams_3;
 shader AdaptExposureCS
 {
   (cs) {
+    adaptation_use_luminance_trimming@f1 = adaptation_use_luminance_trimming;
     EyeAdaptationParams@f4[] = {
       EyeAdaptationParams_0,
       EyeAdaptationParams_1,
       EyeAdaptationParams_2,
       EyeAdaptationParams_3
     };
+    adaptation__minSamples@f1 = adaptation__minSamples;
     Exposure@uav = ExposureOut hlsl {
       RWStructuredBuffer<float> Exposure@uav;
     };
     Histogram@buf = Histogram hlsl {
       StructuredBuffer<uint> Histogram@buf;
+    };
+
+    exposureNormalizationFactor@uav : register(1) hlsl {
+      RWTexture2D<float> exposureNormalizationFactor@uav;
     };
   }
   hlsl(cs) {

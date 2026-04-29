@@ -40,7 +40,6 @@ class TargetContext
   SCFastNameMap mGlobalMessages{};
   ShaderTargetStorage mDataStorage{};
   ShaderBytecodeCache mShBytecodeCache{}; // @TODO: this lifetime conforms with previous impl. But maybe we want a persistent cache?
-  StcodeBytecodeCache mStcodeBytecodeCache{};
 
   //...
 
@@ -91,9 +90,6 @@ public:
 
   ShaderBytecodeCache &bytecodeCache() { return mShBytecodeCache; }
   const ShaderBytecodeCache &bytecodeCache() const { return mShBytecodeCache; }
-
-  StcodeBytecodeCache &stcodeCache() { return mStcodeBytecodeCache; }
-  const StcodeBytecodeCache &stcodeCache() const { return mStcodeBytecodeCache; }
 
   SourceFileParseState &sourceParseState()
   {

@@ -1,5 +1,6 @@
 include "biomes.dshl"
 include "dagdp_common_heightmap.dshl"
+include "hardware_defines.dshl"
 include "toroidal_grass.dshl"
 
 texture perlin_noise3d;
@@ -58,11 +59,10 @@ int4 dagdp_heightmap__base_tile_int_pos_xz;
 float4 dagdp_heightmap__viewport_pos;
 float dagdp_heightmap__viewport_max_distance;
 int dagdp_heightmap__viewport_index;
+int dagdp_heightmap__visible_tiles_start_offset;
 
 shader dagdp_heightmap_cull_tiles
 {
-  ENABLE_ASSERT(cs)
-
   INIT_WORLD_HEIGHTMAP(cs)
   USE_HEIGHTMAP_COMMON(cs)
   INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
@@ -87,6 +87,7 @@ shader dagdp_heightmap_cull_tiles
     viewport_pos@f3 = dagdp_heightmap__viewport_pos;
     viewport_max_distance@f1 = dagdp_heightmap__viewport_max_distance;
     viewport_index@i1 = dagdp_heightmap__viewport_index;
+    visible_tiles_start_offset@u1 = dagdp_heightmap__visible_tiles_start_offset;
   }
 
   hlsl(cs)
@@ -109,7 +110,7 @@ shader dagdp_heightmap_cull_tiles
         const int2 tileIntPos = structuredBufferAt(tile_positions, dtId);
         const float2 tilePosXZ = base_tile_pos_xz + tile_pos_delta * tileIntPos;
         const float distXZ = max(0.0, distance(viewport_pos.xz, tilePosXZ + 0.5 * tile_pos_delta) - tile_pos_delta * SQRT_1_2); // Lower bound of horizontal distance to tile.
-        const float yRange = sqrt(viewport_max_distance * viewport_max_distance - distXZ * distXZ); // Higher bound of Y viewport range for the tile.
+        const float yRange = sqrt(max(0.0, viewport_max_distance * viewport_max_distance - distXZ * distXZ)); // Higher bound of Y viewport range for the tile.
         const float3 tilePos = float3(tilePosXZ.x, viewport_pos.y - yRange, tilePosXZ.y);
         const float3 tileSize = float3(tile_pos_delta, 2.0 * yRange, tile_pos_delta);
 
@@ -118,7 +119,7 @@ shader dagdp_heightmap_cull_tiles
         {
           uint tileIdx;
           indirect_args.InterlockedAdd(viewport_index * DISPATCH_INDIRECT_BYTE_SIZE, 1, tileIdx);
-          storeBuffer2(visible_tile_positions, tileIdx * TILE_POSITION_BYTE_SIZE, tileIntPos);
+          storeBuffer2(visible_tile_positions, visible_tiles_start_offset + tileIdx * TILE_POSITION_BYTE_SIZE, tileIntPos);
         }
       }
     }
@@ -128,8 +129,6 @@ shader dagdp_heightmap_cull_tiles
 
 shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     instance_data@uav = dagdp__instance_data hlsl {
       RWBuffer<float4> instance_data@uav;
@@ -216,12 +215,17 @@ shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
     viewport_pos@f3 = dagdp_heightmap__viewport_pos;
     viewport_max_distance@f1 = dagdp_heightmap__viewport_max_distance;
     viewport_index@i1 = dagdp_heightmap__viewport_index;
+    visible_tiles_start_offset@u1 = dagdp_heightmap__visible_tiles_start_offset;
 
     grass_color_tex@smp2d = grass_color_tex;
     perlin_noise3d@smp3d = perlin_noise3d;
-    blue_noise_tex@smp2d = blue_noise_tex;
+    blue_noise_tex@tex2d = blue_noise_tex;
+  }
+  hlsl(cs) {
+    #define blue_noise_tex_samplerstate global_linear_wrap_sampler
   }
 
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(cs)
   INIT_BIOMES(cs)
   USE_BIOMES(cs)
   USE_DAGDP_COMMON_HEIGHTMAP(shader == dagdp_heightmap_place_stage1)
@@ -251,7 +255,7 @@ shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
     {
       ##if shader == dagdp_heightmap_place_stage1
         const bool isEarlyExit = structuredBufferAt(dyn_counters, DYN_COUNTERS_INDEX_SKIP_PESSIMISTIC_PLACEMENT) != 0;
-        ##if hardware.dx11
+        ##if hardware.dx11 || hardware.dx12
           // Work around compiler assuming varying flow control.
           BRANCH
           if (threadGroupAnyTrue(isEarlyExit, tId.y))
@@ -267,7 +271,7 @@ shader dagdp_heightmap_place_stage0, dagdp_heightmap_place_stage1
       const uint2 instanceIntPos = uint2(dtId.y / TILE_INSTANCE_COUNT_1D, dtId.y % TILE_INSTANCE_COUNT_1D);
 
       // XZ position of the tile itself.
-      const int2 tileIntPos = loadBuffer2(visible_tile_positions, dtId.x * TILE_POSITION_BYTE_SIZE);
+      const int2 tileIntPos = loadBuffer2(visible_tile_positions, visible_tiles_start_offset + dtId.x * TILE_POSITION_BYTE_SIZE);
 
       const int2 stablePos = (base_tile_int_pos_xz + tileIntPos) * TILE_INSTANCE_COUNT_1D + int2(instanceIntPos);
       float2 randPosJitter = 0.5 + grid_jitter * (float2(stableRand(stablePos, prng_seed_jitter_x), stableRand(stablePos, prng_seed_jitter_z)) - 0.5);

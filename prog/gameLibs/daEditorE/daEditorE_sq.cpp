@@ -5,7 +5,7 @@
 #include <daEditorE/de_interface.h>
 #include <squirrel.h>
 #include <sqrat.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/sqEventBus/sqEventBus.h>
 #include <json/json.h>
 

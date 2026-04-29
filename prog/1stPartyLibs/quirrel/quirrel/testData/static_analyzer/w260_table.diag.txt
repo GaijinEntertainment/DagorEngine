@@ -1,4 +1,4 @@
-WARNING: w260 (named-like-must-return-result) Function 'get_setting_by_blk_path' has name like it should return a value, but not all control paths returns a value.
+WARNING: w260 (named-like-must-return-result) Function 'get_setting_by_blk_path' has name like it should return a value, but not all control paths return a value.
 testData/static_analyzer/w260_table.nut:4:28
 
 ::game <- {

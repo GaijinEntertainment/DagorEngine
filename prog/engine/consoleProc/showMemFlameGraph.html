@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Memory Flame Graph</title>
+  <style>
+    :root{
+      --bg: #0f1724;
+      --panel: #0b1220;
+      --muted: #9aa7b2;
+      --accent: #ff7a59;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%;margin:0;background:var(--bg);color:#e6eef6}
+    .app{display:flex;flex-direction:column;height:100vh;padding:18px;gap:12px;box-sizing:border-box}
+    header{display:flex;align-items:center;gap:12px}
+    h1{font-size:16px;margin:0;font-weight:600}
+    .controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+    .controls input[type=text]{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    .controls button{padding:6px 10px;border-radius:8px;border:0;background:var(--accent);color:#111;font-weight:600;cursor:pointer}
+    main{display:flex;gap:12px;flex:1;min-height:0}
+    .panel{background:var(--panel);border-radius:12px;padding:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6);display:flex;flex-direction:column;flex:1;overflow:hidden}
+    .left{flex:3;display:flex;flex-direction:column;gap:8px;min-width:0}
+    .right{flex:1;max-width:320px}
+    .svg-wrap{flex:1;overflow:auto;padding:6px;background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));border-radius:8px}
+    svg{display:block;max-width:100%;height:auto}
+    .breadcrumb{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+    .breadcrumb span{background:rgba(255,255,255,0.02);padding:4px 8px;border-radius:6px;cursor:pointer}
+    .legend{display:flex;gap:6px;flex-wrap:wrap}
+    .legend .item{font-size:12px;background:rgba(255,255,255,0.02);padding:6px;border-radius:8px}
+    .tooltip{position:fixed;pointer-events:none;background:#071226;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);font-size:13px;color:#dbeafe;z-index:99;box-shadow:0 8px 24px rgba(2,6,23,0.6)}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Memory Flame Graph</h1>
+      <div class="controls">
+        <input id="search" type="text" placeholder="search function... (press Enter)" />
+        <button id="reset">Reset Zoom</button>
+      </div>
+
+      <!-- LOCAL FILE PICKER (Option 1) -->
+      <input id="jsonLoader" type="file" accept=".json" style="margin-left:1rem;" />
+    </header>
+
+    <main>
+      <section class="panel left">
+        <div class="breadcrumb" id="breadcrumb"><span>root</span></div>
+        <div class="svg-wrap" id="svgWrap"></div>
+      </section>
+
+      <aside class="panel right">
+        <strong>Details</strong>
+        <small style="color:var(--muted)">Hover or click a block</small>
+        <div id="details" style="margin-top:12px;font-size:13px;color:var(--muted)">
+          Nothing selected — hover over a block to see details
+        </div>
+        <div style="margin-top:12px" class="legend">
+          <div class="item">Units: bytes (allocated)</div>
+          <div class="item">Click to zoom, double-click to reset</div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="tooltip" class="tooltip" style="display:none"></div>
+
+  <script>
+    let tree = { n: "root", a: 0, children: [] };
+    let currentRoot = tree;
+
+    const config = {
+      width: 1400,
+      rowHeight: 28,
+      rowPadding: 4,
+      fontSize: 12,
+      colorHueStart: 10,
+      colorHueStep: 8
+    };
+
+    function sumValues(node){
+      if(!node) return 0;
+      let total = Number(node.sa) || 0;
+      if(node.children?.length){
+        total += node.children.reduce((s,c)=>s + sumValues(c), 0);
+      }
+      node.a = total;
+      if(node.children?.length)
+        node.children.sort((a, b) => b.a - a.a);
+      return total;
+    }
+
+    function flattenForLayout(root){
+      const rows = [];
+      const total = root.a || 1;
+
+      function place(node, x, y, w){
+        if(!rows[y]) rows[y] = [];
+        rows[y].push({node,x,y,w});
+
+        if(node.children?.length){
+          let curX = x;
+          for(const c of node.children){
+            const cw = (c.a / total) * config.width;
+            place(c, curX, y+1, cw);
+            curX += cw;
+          }
+        }
+      }
+
+      place(root, 0, 0, config.width);
+      return rows;
+    }
+
+    function colorFor(node, depth){
+      const h = (config.colorHueStart + depth * config.colorHueStep) % 360;
+      let hash = 0;
+      for(const ch of node.n || "") hash = (hash*31 + ch.charCodeAt(0))|0;
+      const sat = 60 + (Math.abs(hash)%12);
+      const lig = 55 - Math.min(30, depth*3);
+      return `hsl(${h} ${sat}% ${lig}%)`;
+    }
+
+    function render(root){
+      sumValues(root);
+      const rows = flattenForLayout(root);
+      const height = rows.length * (config.rowHeight + config.rowPadding) + 24;
+
+      const svgNS = "http://www.w3.org/2000/svg";
+      const svg = document.createElementNS(svgNS, "svg");
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("viewBox", `0 0 ${config.width} ${height}`);
+
+      const g = document.createElementNS(svgNS, "g");
+
+      for(let y=0;y<rows.length;y++){
+        for(const item of rows[y]){
+          const {node,x,w} = item;
+          if(w <= 12) continue;
+
+          const ty = y*(config.rowHeight+config.rowPadding) + 8;
+
+          const rect = document.createElementNS(svgNS, "rect");
+          rect.setAttribute("x", x);
+          rect.setAttribute("y", ty);
+          rect.setAttribute("width", w);
+          rect.setAttribute("height", config.rowHeight);
+          rect.setAttribute("rx", 4);
+          rect.setAttribute("fill", colorFor(node,y));
+
+          rect.addEventListener("mouseenter", e=>onHover(e,node));
+          rect.addEventListener("mouseleave", onLeave);
+          rect.addEventListener("mousemove", onMove);
+          rect.addEventListener("click", ()=>{ currentRoot=node; render(node); });
+          rect.addEventListener("dblclick", ()=>{ currentRoot=tree; render(tree); });
+
+          g.appendChild(rect);
+
+          const clipId = "c"+Math.random().toString(36).slice(2);
+          const clip = document.createElementNS(svgNS,"clipPath");
+          clip.setAttribute("id", clipId);
+          const clipRect = document.createElementNS(svgNS,"rect");
+          clipRect.setAttribute("x", x+6);
+          clipRect.setAttribute("y", ty);
+          clipRect.setAttribute("width", w-12);
+          clipRect.setAttribute("height", config.rowHeight);
+          clip.appendChild(clipRect);
+          svg.appendChild(clip);
+
+          const text = document.createElementNS(svgNS, "text");
+          text.setAttribute("x", x+8);
+          text.setAttribute("y", ty+config.rowHeight/2+config.fontSize/2-2);
+          text.setAttribute("font-size", config.fontSize);
+          text.setAttribute("clip-path", `url(#${clipId})`);
+          text.setAttribute("fill", "rgba(255,255,255,0.95)");
+          text.setAttribute("pointer-events", "none");
+          text.textContent = `${node.n} @ ${node.a}`;
+          g.appendChild(text);
+        }
+      }
+
+      svg.appendChild(g);
+      document.getElementById("svgWrap").innerHTML = "";
+      document.getElementById("svgWrap").appendChild(svg);
+
+      updateBreadcrumb(buildPathTo(root));
+    }
+
+    const tooltip = document.getElementById("tooltip");
+
+    function onHover(e,node){
+      tooltip.style.display = "block";
+      tooltip.innerHTML = `<strong>${node.n}</strong>
+        <div style="font-size:12px;color:var(--muted)">
+        self: ${Number(node.sa) || 0}<br>
+        total: ${node.a}</div>`;
+      updateDetails(node);
+    }
+    function onMove(e){
+      tooltip.style.left = e.clientX + 12 + "px";
+      tooltip.style.top = e.clientY + 12 + "px";
+    }
+    function onLeave(){
+      tooltip.style.display = "none";
+    }
+
+    function updateDetails(node){
+      document.getElementById("details").innerHTML = `
+        <strong>${node.n}</strong><br>
+        self: ${Number(node.sa) || 0}<br>
+        total: ${node.a}
+      `;
+    }
+
+    function buildPathTo(rootNode){
+      const path = [];
+      function dfs(n, acc){
+        if(n===rootNode){ path.push(...acc,n); return true; }
+        if(!n.children) return false;
+        for(const c of n.children){ if(dfs(c,[...acc,n])) return true; }
+        return false;
+      }
+      dfs(tree, []);
+      return path;
+    }
+
+    function updateBreadcrumb(path){
+      const bc = document.getElementById("breadcrumb");
+      bc.innerHTML = "";
+      for(const node of path){
+        const span = document.createElement("span");
+        span.textContent = node.name;
+        span.onclick = ()=>{ currentRoot=node; render(node); };
+        bc.appendChild(span);
+      }
+    }
+
+    // SEARCH
+    document.getElementById("search").addEventListener("keydown", e=>{
+      if(e.key!=="Enter") return;
+      const q = e.target.value.trim().toLowerCase();
+      if(!q) return;
+
+      function find(n){
+        if(n.n?.toLowerCase().includes(q)) return n;
+        for(const c of n.children||[]) {
+          const f = find(c);
+          if(f) return f;
+        }
+        return null;
+      }
+
+      const found = find(tree);
+      if(found){ currentRoot=found; render(found); }
+      else alert("No matching node");
+    });
+
+    document.getElementById("reset").onclick = ()=>{ currentRoot=tree; render(tree); };
+
+    // LOCAL FILE PICKER
+    document.getElementById("jsonLoader").addEventListener("change", async e=>{
+      const file = e.target.files[0];
+      if(!file) return;
+
+      try{
+        const text = await file.text();
+        tree = JSON.parse(text);
+        currentRoot = tree;
+        render(tree);
+      }catch(err){
+        console.error(err);
+        alert("Invalid JSON");
+      }
+    });
+  </script>
+</body>
+</html>

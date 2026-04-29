@@ -94,30 +94,24 @@ DAG_DECLARE_RELOCATABLE(DxpBinData);
 
 static void gather_tex_refs(Tab<Tab<int> *> &texIdPerAsset, FastNameMapEx &texList, gamerespackbin::GrpData &grp)
 {
-  FastNameMap list;
   bool (*prev_handler)(const char *msg, const char *call_stack, const char *fn, int ln) = dgs_fatal_handler;
   dgs_fatal_handler = quiet_fatal_handler;
-  for (int k = 0; k < grp.resData.size(); k++)
-    switch (grp.resData[k].classId)
+  for (const auto &r : grp.resData)
+    switch (r.classId)
     {
       case DynModelGameResClassId:
       case RendInstGameResClassId:
       case EffectGameResClassId:
-        list.reset();
-        list.addNameId(grp.getName(grp.resData[k].resId));
-        set_required_res_list_restriction(list);
-        GameResource *res = get_game_resource(grp.resData[k].resId);
-        Tab<int> *texForAsset = texIdPerAsset[k] = new Tab<int>;
+        GameResource *res = get_one_game_resource_ex(grp.getName(r.resId), r.classId);
+        auto *texForAsset = new Tab<int>;
         for (TEXTUREID i = first_managed_texture(1); i != BAD_TEXTUREID; i = next_managed_texture(i, 1))
           texForAsset->push_back(texList.addNameId(TextureMetaData::decodeFileName(get_managed_texture_name(i))));
-        reset_required_res_list_restriction();
-        release_game_resource(res);
-        release_all_not_required_res();
-        if (!texForAsset->size())
-        {
+        release_game_resource_ex(res, r.classId);
+        free_unused_game_resources();
+        if (texForAsset->size())
+          texIdPerAsset[&r - grp.resData.data()] = texForAsset;
+        else
           delete texForAsset;
-          texIdPerAsset[k] = NULL;
-        }
         break;
     }
   dgs_fatal_handler = prev_handler;
@@ -572,7 +566,7 @@ static void extract_grp_contents(gamerespackbin::GrpData &grp, BinDumpReader &cr
         {
           crd.seekto(ofs);
           Ptr<DynamicRenderableSceneLodsResource> srcRes =
-            DynamicRenderableSceneLodsResource::loadResource(crd.getRawReader(), SRLOAD_NO_TEX_REF);
+            DynamicRenderableSceneLodsResource::loadResource(crd.getRawReader(), SRLOAD_NO_TEX_REF, res_name);
 
           DataBlock dmBlk;
           dmBlk.setInt("lods", srcRes->lods.size());
@@ -888,12 +882,11 @@ static void init_stub_drv()
 
   void *n = NULL;
   d3d::init_driver();
-  d3d::init_video(NULL, NULL, NULL, 0, n, NULL, NULL, NULL, NULL);
+  d3d::init_video(NULL, NULL, NULL, 0, n, NULL, NULL, NULL);
   stub_drv_inited = true;
   ::dgs_post_shutdown_handler = shutdown_handler;
 
   set_default_tex_factory(get_symbolic_tex_factory());
-  set_gameres_sys_ver(2);
   register_dynmodel_gameres_factory();
   register_rendinst_gameres_factory();
   register_effect_gameres_factory();

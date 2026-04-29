@@ -1,12 +1,14 @@
 from "%darg/ui_imports.nut" import *
 
-let WND_PARAMS = static {
+let { getNumberOfRegisteredWindows } = require("%daeditor/components/window.nut")
+
+let WND_PARAMS = const {
   key = null //generate automatically when not set
   children= null
   onClick = null //remove current modal window when not set
   halign = ALIGN_CENTER
   valign = ALIGN_CENTER
-  rendObj = ROBJ_WORLD_BLUR
+  rendObj = ROBJ_WORLD_BLUR_PANEL
   size = flex()
   behavior = Behaviors.Button
   stopMouse = true
@@ -34,6 +36,9 @@ function removeModalWindow(key) {
 local lastWndIdx = 0
 function addModalWindow(wnd = null) {
   wnd = wnd ? WND_PARAMS.__merge(wnd) : WND_PARAMS
+  if (wnd?.zOrder == null) {
+    wnd.zOrder <- getNumberOfRegisteredWindows() + 1
+  }
   if (wnd.key != null)
     removeModalWindow(wnd.key)
   else {
@@ -54,7 +59,7 @@ function hideAllModalWindows() {
 
 let modalWindowsComponent = @() {
   watch = modalWindowsGeneration
-  size = static flex()
+  size = const flex()
   children = modalWindows
 }
 

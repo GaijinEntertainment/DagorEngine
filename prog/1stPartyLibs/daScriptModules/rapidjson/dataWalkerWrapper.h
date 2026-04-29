@@ -603,8 +603,10 @@ namespace das
     void handleSimpleType(vec2<V> & value)
     {
       push(State::Structure);
+      handler().handleStructureStart();
       handler().handleField("x", value.x);
       handler().handleField("y", value.y);
+      handler().handleStructureEnd();
       pop();
     }
 
@@ -612,9 +614,11 @@ namespace das
     void handleSimpleType(vec3<V> & value)
     {
       push(State::Structure);
+      handler().handleStructureStart();
       handler().handleField("x", value.x);
       handler().handleField("y", value.y);
       handler().handleField("z", value.z);
+      handler().handleStructureEnd();
       pop();
     }
 
@@ -622,10 +626,12 @@ namespace das
     void handleSimpleType(vec4<V> & value)
     {
       push(State::Structure);
+      handler().handleStructureStart();
       handler().handleField("x", value.x);
       handler().handleField("y", value.y);
       handler().handleField("z", value.z);
       handler().handleField("w", value.w);
+      handler().handleStructureEnd();
       pop();
     }
 
@@ -643,8 +649,10 @@ namespace das
     void handleSimpleType(RangeType<V> & value)
     {
       push(State::Structure);
+      handler().handleStructureStart();
       handler().handleField("from", value.from);
       handler().handleField("to", value.to);
+      handler().handleStructureEnd();
       pop();
     }
 

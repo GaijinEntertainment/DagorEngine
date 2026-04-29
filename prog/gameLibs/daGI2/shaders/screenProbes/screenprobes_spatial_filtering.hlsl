@@ -15,8 +15,9 @@ void add_spatial_radiance(uint2 atlas_probe_coord, float3 probeCamPos, float3 ca
     float angleWeight = toNeighborLen > 1e-6f ? 1.0f - saturate(neighborAngle * invSpatialAngleWeight) : 1.0f;
     cW = weight*angleWeight;
   }
-  #endif
+  #else
     cW = weight;
+  #endif
   cWeight += cW;
   #if SP_SPATIAL_FAVOR_DARK
   neighboorRadiance.xyz = sqrt(neighboorRadiance.xyz); // favor dark

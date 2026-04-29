@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <supp/_platform.h>
+#include <gui/dag_imguiUtil.h>
 #include <gui/dag_stdGuiRender.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_shaderMesh.h>
@@ -318,6 +319,9 @@ void load_dynamic_font(const DataBlock &font_description, int screen_height)
       i--; // recheck this index
     }
   }
+  // need to call DagorFontBinDump::clear() before destructing
+  for (int i = lastId + 1; i < rfont.size(); i++)
+    rfont[i].clear();
   rfont.resize(lastId + 1);
 }
 
@@ -734,7 +738,7 @@ DagorFontBinDump *get_font(int font_id)
 
 void LayerParams::reset()
 {
-  texInLinear = false;
+  texFormat = TexFormat::SRGB_IN_UNORM;
   texId = texId2 = BAD_TEXTUREID;
   fontTexId = BAD_TEXTUREID;
   alphaBlend = NO_BLEND;
@@ -768,7 +772,7 @@ bool LayerParams::cmpEq(const LayerParams &other) const
   {
     return (texId == other.texId && texId2 == other.texId2) && (fontTexId == other.fontTexId) && (alphaBlend == other.alphaBlend) &&
            (texSampler == other.texSampler) && (tex2Sampler == other.tex2Sampler) && (fontTexSampler == other.fontTexSampler) &&
-           (texInLinear == other.texInLinear);
+           (texFormat == other.texFormat);
   }
   return fontTexId == other.fontTexId && fontTexSampler == other.fontTexSampler && memcmp(&ff, &other.ff, sizeof(ff)) == 0;
 }
@@ -782,7 +786,8 @@ void LayerParams::dump() const
 
 void FontFxAttr::dump() const
 {
-  debug("fa fi:%d tex2:%d (%d %d) %d (%d, %d)", fontTex, tex2, tex2su_x32, tex2sv_x32, tex2bv_ofs, tex2su, tex2sv);
+  debug("fa fi:%d tex2:%d (%d %d) %d (%d, %d) (%f %f)", fontTex, tex2, tex2su_x32, tex2sv_x32, tex2bv_ofs, tex2su, tex2sv, textDepth.x,
+    textDepth.y);
 };
 #endif
 
@@ -801,6 +806,7 @@ void FontFxAttr::reset()
 
   writeToZ = 0;
   testDepth = 0;
+  textDepth = Point2{1.0f, 1.0f};
 }
 
 GuiShader::GuiShader() : inited(false)
@@ -855,7 +861,8 @@ static ShaderVariableInfo maskMatrixLine0VarId("mask_matrix_line_0", true), mask
   colorMatrix2VarId("colorMatrix2", true), colorMatrix3VarId("colorMatrix3", true);
 
 static ShaderVariableInfo guiTextDepthVarId("gui_text_depth", true), writeToZVarId("gui_write_to_z", true),
-  testDepthVarId("gui_test_depth", true), maskTexVarId("mask_tex", true), maskTexSamplerVarId("mask_tex_samplerstate", true);
+  testDepthVarId("gui_test_depth", true), depthGbufVarId("depth_gbuf", true), maskTexVarId("mask_tex", true),
+  maskTexSamplerVarId("mask_tex_samplerstate", true);
 static int gui_user_const_ps_no = -1;
 static int gui_user_const_vs_no = -1;
 
@@ -922,13 +929,13 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
     G_UNUSED(targetW);
     G_UNUSED(targetH);
     // switched off because of tactical map clipping
-    /*ShaderGlobal::set_color4(viewportRectId,
+    /*ShaderGlobal::set_float4(viewportRectId,
            Color4( 2.0/targetW/GUI_POS_SCALE,
                   (-2.0*1.0f)/targetH/GUI_POS_SCALE,
                   -1.0, 1.0f));*/
     int w = viewport[2];
     int h = viewport[3];
-    ShaderGlobal::set_color4(viewportRectId,
+    ShaderGlobal::set_float4(viewportRectId,
       Color4(w > 0. ? 2.0 / w / GUI_POS_SCALE : 0, h > 0. ? -(1.0f * 2.0) / h / GUI_POS_SCALE : 0,
         w > 0. ? -2.0 * viewport[0] / w - 1.0 : 0, h > 0. ? 1.0f * (2.0 * viewport[1] / h + 1.0) : 0));
   }
@@ -936,8 +943,8 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
   if (fontAttr.getTex2() != BAD_TEXTUREID)
   {
     if (bool(fontTex2rotCCSmSId))
-      ShaderGlobal::set_color4(fontTex2rotCCSmSId, est.fontTex2rotCCSmS);
-    ShaderGlobal::set_color4(fontTex2ofsId, est.fontTex2ofs);
+      ShaderGlobal::set_float4(fontTex2rotCCSmSId, est.fontTex2rotCCSmS);
+    ShaderGlobal::set_float4(fontTex2ofsId, est.fontTex2ofs);
   }
 
   // if (extstate_changed)
@@ -970,29 +977,30 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
     guiState.fontAttr.dump();
 #endif
     ShaderGlobal::set_int(fontFxTypeId, params.ff.type);
-    ShaderGlobal::set_real(fontFxScaleId, params.ff.factor_x32 / 32.0);
-    ShaderGlobal::set_real(fontFxExtentId, float((params.ff.factor_x32 + 31) / 32));
-    ShaderGlobal::set_color4(fontFxColId, color4(params.ff.col));
-    ShaderGlobal::set_color4(fontFxOfsId, Color4(params.ff.ofsX, params.ff.ofsY, 1.0 / lastFontFxTW, 1.0 / lastFontFxTH));
+    ShaderGlobal::set_float(fontFxScaleId, params.ff.factor_x32 / 32.0);
+    ShaderGlobal::set_float(fontFxExtentId, float((params.ff.factor_x32 + 31) / 32));
+    ShaderGlobal::set_float4(fontFxColId, color4(params.ff.col));
+    ShaderGlobal::set_float4(fontFxOfsId, Color4(params.ff.ofsX, params.ff.ofsY, 1.0 / lastFontFxTW, 1.0 / lastFontFxTH));
   }
   else
     ShaderGlobal::set_int(fontFxTypeId, FFT_NONE);
 
   if (params.getFontTexId() != BAD_TEXTUREID)
   {
-    ShaderGlobal::set_int(enableTextureId, 2);
+    ShaderGlobal::set_int(enableTextureId, 3);
     ShaderGlobal::set_texture(textureVarId, params.getFontTexId());
     ShaderGlobal::set_sampler(textureSamplerVarId, params.getFontTexSampler());
-    ShaderGlobal::set_int(linearSourceVarId, (int)params.texInLinear);
+    ShaderGlobal::set_int(linearSourceVarId, (int)(params.texFormat == TexFormat::UNORM));
   }
   else if (params.getTexId() != BAD_TEXTUREID)
   {
-    ShaderGlobal::set_int(enableTextureId, params.getTexId2() == BAD_TEXTUREID ? 1 : 4); // 4 - two textures
+    ShaderGlobal::set_int(enableTextureId, (params.getTexId2() != BAD_TEXTUREID) ? 5 // 5 - two textures
+                                                                                 : ((params.texFormat == TexFormat::SRGB) ? 2 : 1));
     ShaderGlobal::set_texture(textureVarId, params.getTexId());
     ShaderGlobal::set_sampler(textureSamplerVarId, params.getTexSampler());
     ShaderGlobal::set_texture(textureSdrVarId, params.getTexId2());
     ShaderGlobal::set_sampler(textureSdrSamplerVarId, params.getTex2Sampler());
-    ShaderGlobal::set_int(linearSourceVarId, (int)params.texInLinear);
+    ShaderGlobal::set_int(linearSourceVarId, (int)(params.texFormat == TexFormat::UNORM));
   }
   else
   {
@@ -1005,15 +1013,22 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
   else
   {
     ShaderGlobal::set_int(useColorMatrixId, 1);
-    ShaderGlobal::set_color4(colorMatrix0VarId, Color4(&params.colorM[0]));
-    ShaderGlobal::set_color4(colorMatrix1VarId, Color4(&params.colorM[4]));
-    ShaderGlobal::set_color4(colorMatrix2VarId, Color4(&params.colorM[8]));
-    ShaderGlobal::set_color4(colorMatrix3VarId, Color4(&params.colorM[12]));
+    ShaderGlobal::set_float4(colorMatrix0VarId, Color4(&params.colorM[0]));
+    ShaderGlobal::set_float4(colorMatrix1VarId, Color4(&params.colorM[4]));
+    ShaderGlobal::set_float4(colorMatrix2VarId, Color4(&params.colorM[8]));
+    ShaderGlobal::set_float4(colorMatrix3VarId, Color4(&params.colorM[12]));
   }
 
-  ShaderGlobal::set_color4(guiTextDepthVarId, 1.0f, 1.0f, 0.0f, 0.0f);
+  ShaderGlobal::set_float4(guiTextDepthVarId, fontAttr.textDepth.x, fontAttr.textDepth.y, 0.0f, 0.0f);
   ShaderGlobal::set_int(writeToZVarId, fontAttr.writeToZ);
-  ShaderGlobal::set_int(testDepthVarId, fontAttr.testDepth);
+  if (ShaderGlobal::get_tex_ptr(depthGbufVarId.get_var_id()) != nullptr)
+    ShaderGlobal::set_int(testDepthVarId, fontAttr.testDepth);
+  else
+  {
+    if (fontAttr.testDepth != 0)
+      logerr("gui_test_depth interval requires depth_gbuf texture in gui_default shader");
+    ShaderGlobal::set_int(testDepthVarId, 0);
+  }
 
   ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_OBJECT, false);
 
@@ -1023,8 +1038,8 @@ void StdGuiShader::setStates(const float viewport[4], const GuiState &guiState, 
     ShaderGlobal::set_sampler(maskTexSamplerVarId, params.getMaskTexSampler());
     if (params.getMaskTexId() != BAD_TEXTUREID)
     {
-      ShaderGlobal::set_color4(maskMatrixLine0VarId, P3D(params.maskTransform0), 0);
-      ShaderGlobal::set_color4(maskMatrixLine1VarId, P3D(params.maskTransform1), 0);
+      ShaderGlobal::set_float4(maskMatrixLine0VarId, P3D(params.maskTransform0), 0);
+      ShaderGlobal::set_float4(maskMatrixLine1VarId, P3D(params.maskTransform1), 0);
     }
   }
   TIME_PROFILE_UNIQUE_EVENT_DEV("GuiSetStates");
@@ -1457,9 +1472,10 @@ const GuiViewPort &GuiContext::get_viewport() { return currentViewPort; }
 
 void GuiContext::setTarget()
 {
-  d3d::GpuAutoLock acquire;
-
-  d3d::getview(viewX, viewY, viewW, viewH, viewN, viewF);
+  {
+    d3d::GpuAutoLock acquire;
+    d3d::getview(viewX, viewY, viewW, viewH, viewN, viewF);
+  }
 
   // int screen size
   screenWidth = viewW;
@@ -1525,13 +1541,6 @@ int GuiContext::beginChunk()
     DAG_FATAL("you must call StdGuiRender::end_render() before new StdGuiRender::start_render()!");
   }
 
-  //    debug("%.4f %.4f - %.4f %.4f",
-  //      deviceViewPort.getWidth(), deviceViewPort.getHeight(),
-  //      screenScale.x, screenScale.y);
-
-  renderer->screenOrig = deviceViewPort.leftTop;
-  renderer->screenScale = screenScale;
-
   // set current viewport as fullscreen
   currentViewPort.leftTop = P2::ZERO;
   currentViewPort.rightBottom = screenSize;
@@ -1579,7 +1588,7 @@ void GuiContext::endChunk()
   setBuffer(-1); // calls flushData internally
   isInRender = false;
 
-  renderer->endChunk();
+  renderer->endChunk({deviceViewPort.leftTop, screenScale});
 }
 
 static void renderInscriptionsChunk()
@@ -1735,6 +1744,7 @@ void GuiContext::setZMode(bool write_to_z, int test_depth)
 {
   G_ASSERTF(bool(writeToZVarId), "%s 'gui_write_to_z' shader variable should exist", __FUNCTION__);
   G_ASSERTF(bool(testDepthVarId), "%s 'gui_test_depth' shader variable should exist", __FUNCTION__);
+  G_ASSERTF(bool(depthGbufVarId), "%s 'depth_gbuf' shader variable should exist", __FUNCTION__);
 
   uint8_t write_z = write_to_z ? 1 : 0;
   if (guiState.fontAttr.writeToZ != write_z || guiState.fontAttr.testDepth != test_depth)
@@ -1744,6 +1754,16 @@ void GuiContext::setZMode(bool write_to_z, int test_depth)
     rollState |= ROLL_GUI_STATE;
   }
 }
+
+void GuiContext::setDepth(const Point2 zw)
+{
+  if (guiState.fontAttr.textDepth != zw)
+  {
+    guiState.fontAttr.textDepth = zw;
+    rollState |= ROLL_GUI_STATE;
+  }
+}
+const Point2 &GuiContext::getDepth() const { return guiState.fontAttr.textDepth; }
 
 BlendMode GuiContext::get_alpha_blend() { return guiState.params.alphaBlend; }
 
@@ -1764,7 +1784,7 @@ void GuiContext::set_color(E3DCOLOR color)
 }
 
 void GuiContext::set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTUREID tex_id2, d3d::SamplerHandle smp_id2, bool font_l8,
-  bool tex_in_linear)
+  TexFormat tex_format)
 {
   if (recCb)
     return recCb->setTex(tex_id, smp_id);
@@ -1779,7 +1799,7 @@ void GuiContext::set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTU
       guiState.params.setFontTexId(tex_id, smp_id);
       guiState.params.setTexId2(tex_id2, smp_id2);
       guiState.params.alphaBlend = PREMULTIPLIED;
-      guiState.params.texInLinear = tex_in_linear;
+      guiState.params.texFormat = tex_format;
       update = true;
     }
   }
@@ -1791,7 +1811,7 @@ void GuiContext::set_textures(TEXTUREID tex_id, d3d::SamplerHandle smp_id, TEXTU
       guiState.params.setTexId(tex_id, smp_id);
       guiState.params.setTexId2(tex_id2, smp_id2);
       guiState.params.alphaBlend = PREMULTIPLIED;
-      guiState.params.texInLinear = tex_in_linear;
+      guiState.params.texFormat = tex_format;
       update = true;
     }
   }
@@ -2260,7 +2280,8 @@ void GuiContext::render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, P
   const uint32_t aaMask =
     get_alpha_blend() == NO_BLEND ? 0 : (get_alpha_blend() == NONPREMULTIPLIED ? dag_imgui_drawlist::DAG_IM_COL32_A_MASK : 0xFFFFFFFF);
   // actually texId doesn't matter here anyway
-  imDrawList.AddImageRounded(guiState.params.getTexId(), lt, rb, tc_lefttop, tc_rightbottom, col, rounding, aaMask);
+  imDrawList.AddImageRounded(ImGuiDagor::EncodeTexturePtr<ImTextureID>(D3dResManagerData::getBaseTex(guiState.params.getTexId())), lt,
+    rb, tc_lefttop, tc_rightbottom, col, rounding, aaMask);
   render_imgui_list();
 }
 
@@ -2272,7 +2293,8 @@ void GuiContext::render_rounded_image(Point2 lt, Point2 rb, Point2 tc_lefttop, P
   const uint32_t aaMask =
     get_alpha_blend() == NO_BLEND ? 0 : (get_alpha_blend() == NONPREMULTIPLIED ? dag_imgui_drawlist::DAG_IM_COL32_A_MASK : 0xFFFFFFFF);
   // actually texId doesn't matter here anyway
-  imDrawList.AddImageRounded(guiState.params.getTexId(), lt, rb, tc_lefttop, dx_tc, dy_tc, col, rounding, aaMask);
+  imDrawList.AddImageRounded(ImGuiDagor::EncodeTexturePtr<ImTextureID>(D3dResManagerData::getBaseTex(guiState.params.getTexId())), lt,
+    rb, tc_lefttop, dx_tc, dy_tc, col, rounding, aaMask);
   render_imgui_list();
 }
 
@@ -2971,6 +2993,22 @@ void GuiContext::render_sector_aa(Point2 pos, Point2 radius, Point2 angles, floa
   {
     radius += Point2(line_width * 0.5f, line_width * 0.5f);
 
+    // antialiased endings 1
+    {
+      GuiVertex *qv = qCacheAllocT<GuiVertex>(1);
+
+      Point2 norm;
+      Point2 d0;
+      sincos(angle, d0.x, d0.y);
+      norm.x = -d0.y;
+      norm.y = d0.x;
+
+      MAKEDATA(0, 0, color, pos);
+      MAKEDATA(0, 1, color, pos + Point2(d0.x * radius.x, d0.y * radius.y));
+      MAKEDATA(0, 2, E3DCOLOR(0), pos + Point2(d0.x * radius.x, d0.y * radius.y) + norm);
+      MAKEDATA(0, 3, E3DCOLOR(0), pos + norm);
+    }
+
     for (int ci = 0; ci < count; ci += 2, angle += astep * 2)
     {
       GuiVertex *qv = qCacheAllocT<GuiVertex>(3);
@@ -2997,11 +3035,56 @@ void GuiContext::render_sector_aa(Point2 pos, Point2 radius, Point2 angles, floa
       MAKEDATA(2, 2, color, pos + Point2(d1.x * radius.x, d1.y * radius.y));
       MAKEDATA(2, 3, E3DCOLOR(0), pos + Point2(d1.x * (radius.x + 1), d1.y * (radius.y + 1)));
     }
+
+    // antialiased endings 2
+    {
+      GuiVertex *qv = qCacheAllocT<GuiVertex>(1);
+
+      Point2 norm;
+      Point2 d0;
+      sincos(angles.y, d0.x, d0.y);
+      norm.x = d0.y;
+      norm.y = -d0.x;
+
+      MAKEDATA(0, 0, color, pos);
+      MAKEDATA(0, 1, color, pos + Point2(d0.x * radius.x, d0.y * radius.y));
+      MAKEDATA(0, 2, E3DCOLOR(0), pos + Point2(d0.x * radius.x, d0.y * radius.y) + norm);
+      MAKEDATA(0, 3, E3DCOLOR(0), pos + norm);
+    }
   }
   else // color != fill_color
   {
     Point2 outerR = radius + Point2(line_width, line_width) * 0.5f;
     Point2 innerR = radius - Point2(line_width, line_width) * 0.5f;
+
+    // antialiased ending 1
+    {
+      GuiVertex *qv = qCacheAllocT<GuiVertex>(fill_color ? 3 : 2);
+
+      Point2 norm;
+      Point2 d0;
+      sincos(angle, d0.x, d0.y);
+      norm.x = -d0.y;
+      norm.y = d0.x;
+
+      MAKEDATA(0, 0, mid_color, pos + Point2(d0.x * (innerR.x + 1), d0.y * (innerR.y + 1)));
+      MAKEDATA(0, 1, fill_color, pos + Point2(d0.x * innerR.x, d0.y * innerR.y));
+      MAKEDATA(0, 2, E3DCOLOR(0), pos + Point2(d0.x * innerR.x, d0.y * innerR.y) + norm);
+      MAKEDATA(0, 3, E3DCOLOR(0), pos + Point2(d0.x * (innerR.x + 1), d0.y * (innerR.y + 1)) + norm);
+
+      MAKEDATA(1, 0, color, pos + Point2(d0.x * (outerR.x), d0.y * (outerR.y)));
+      MAKEDATA(1, 1, mid_color, pos + Point2(d0.x * (innerR.x + 1), d0.y * (innerR.y + 1)));
+      MAKEDATA(1, 2, E3DCOLOR(0), pos + Point2(d0.x * (innerR.x + 1), d0.y * (innerR.y + 1)) + norm);
+      MAKEDATA(1, 3, E3DCOLOR(0), pos + Point2(d0.x * (outerR.x), d0.y * (outerR.y)) + norm);
+
+      if (fill_color)
+      {
+        MAKEDATA(2, 0, fill_color, pos);
+        MAKEDATA(2, 1, fill_color, pos + Point2(d0.x * innerR.x, d0.y * innerR.y));
+        MAKEDATA(2, 2, E3DCOLOR(0), pos + Point2(d0.x * innerR.x, d0.y * innerR.y) + norm);
+        MAKEDATA(2, 3, E3DCOLOR(0), pos + norm);
+      }
+    }
 
     for (int ci = 0; ci < count; ci += 2, angle += astep * 2)
     {
@@ -3050,6 +3133,35 @@ void GuiContext::render_sector_aa(Point2 pos, Point2 radius, Point2 angles, floa
         MAKEDATA(6, 1, fill_color, pos + Point2(d2.x * innerR.x, d2.y * innerR.y));
         MAKEDATA(6, 2, fill_color, pos + Point2(d1.x * innerR.x, d1.y * innerR.y));
         MAKEDATA(6, 3, fill_color, pos + Point2(d0.x * innerR.x, d0.y * innerR.y));
+      }
+    }
+
+    // antialiased ending 2
+    {
+      GuiVertex *qv = qCacheAllocT<GuiVertex>(fill_color ? 3 : 2);
+
+      Point2 norm;
+      Point2 d0;
+      sincos(angles.y, d0.x, d0.y);
+      norm.x = d0.y;
+      norm.y = -d0.x;
+
+      MAKEDATA(0, 0, mid_color, pos + Point2(d0.x * (innerR.x + 1), d0.y * (innerR.y + 1)));
+      MAKEDATA(0, 1, fill_color, pos + Point2(d0.x * innerR.x, d0.y * innerR.y));
+      MAKEDATA(0, 2, E3DCOLOR(0), pos + Point2(d0.x * innerR.x, d0.y * innerR.y) + norm);
+      MAKEDATA(0, 3, E3DCOLOR(0), pos + Point2(d0.x * (innerR.x + 1), d0.y * (innerR.y + 1)) + norm);
+
+      MAKEDATA(1, 0, color, pos + Point2(d0.x * (outerR.x), d0.y * (outerR.y)));
+      MAKEDATA(1, 1, mid_color, pos + Point2(d0.x * (innerR.x + 1), d0.y * (innerR.y + 1)));
+      MAKEDATA(1, 2, E3DCOLOR(0), pos + Point2(d0.x * (innerR.x + 1), d0.y * (innerR.y + 1)) + norm);
+      MAKEDATA(1, 3, E3DCOLOR(0), pos + Point2(d0.x * (outerR.x), d0.y * (outerR.y)) + norm);
+
+      if (fill_color)
+      {
+        MAKEDATA(2, 0, fill_color, pos);
+        MAKEDATA(2, 1, fill_color, pos + Point2(d0.x * innerR.x, d0.y * innerR.y));
+        MAKEDATA(2, 2, E3DCOLOR(0), pos + Point2(d0.x * innerR.x, d0.y * innerR.y) + norm);
+        MAKEDATA(2, 3, E3DCOLOR(0), pos + norm);
       }
     }
   }

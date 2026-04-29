@@ -91,7 +91,6 @@ struct FXDesc
 {
   SimpleString name;
   FXType type;
-  SimplePBlock params;
 };
 
 typedef int (*register_mat_props_cb_t)(const char *name, const DataBlock *blk, void *ud);

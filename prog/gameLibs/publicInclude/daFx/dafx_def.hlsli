@@ -34,6 +34,8 @@
 #define DAFX_CULLING_STRIDE 8
 #endif
 
+#define DAFX_INVALID_CULLING_ID 0x00ffffff // culling_id is 24b. can be invalid in case of gpu sim warmup / mark invactive thread. see dafx/shaders.cpp / dafx_shaders.hlsli
+
 #define DAFX_CULLING_SCALE 0.01f
 #define DAFX_CULLING_SCALE_INV ( 1.f / DAFX_CULLING_SCALE )
 

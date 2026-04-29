@@ -1,0 +1,102 @@
+burnt_grass_renderer {
+  _singleton:b=yes
+  _tags:t="render"
+
+  // Config
+  "burnt_grass_renderer__biomeNames:list<t>"{}
+
+  // State
+  "burnt_grass_renderer__prepare_node:dafg::NodeHandle"{}
+  "burnt_grass_renderer:BurntGrassRenderer"{}
+}
+
+burnt_ground {
+  _use:t="replicating"
+  transform:m=[[1,0,0] [0,1,0] [0,0,1] [0,0,0]]
+  burnt_ground__radius:r = 1
+  burnt_ground__placement_time:r = -1000
+}
+
+burnt_ground_biome_query {
+  transform:m=[[1,0,0] [0,1,0] [0,0,1] [0,0,0]]
+  _group{
+    _tags:t="render"
+    burnt_ground_biome_query__attempts_remaining:i = 1
+    burnt_ground_biome_query__biome_query_id:i = -1
+    burnt_ground_biome_query__radius:r = -1
+    burnt_ground_biome_query__adjusted_radius:r = -1 // as it intersect the terrain
+    burnt_ground_biome_query__ground_height:r = -1
+    burnt_ground_biome_query__animated:b = no
+  }
+}
+
+burnt_ground_renderer {
+  _singleton:b=yes
+  _tags:t="render"
+
+  // Static config
+  _group{
+    "burnt_ground_renderer__tex_d:SharedTexHolder"{}
+    "burnt_ground_renderer__tex_n:SharedTexHolder"{}
+    "burnt_ground_renderer__tex_m:SharedTexHolder"{}
+    burnt_ground_renderer__tex_d_res:t = ""
+    burnt_ground_renderer__tex_n_res:t = ""
+    burnt_ground_renderer__tex_m_res:t = ""
+    burnt_ground_renderer__tex_d_var:t = "burnt_ground_decal_tex_d"
+    burnt_ground_renderer__tex_n_var:t = "burnt_ground_decal_tex_n"
+    burnt_ground_renderer__tex_m_var:t = "burnt_ground_decal_tex_m"
+    burnt_ground_renderer__max_clipmap_decal_count:i = 1000
+    burnt_ground_renderer__max_animating_decal_count:i = 128
+    burnt_ground_renderer__edge_noise_scale:r = 1
+    burnt_ground_renderer__edge_width:r = 0.3
+    "burnt_ground_renderer__biomeNames:list<t>"{}
+  }
+
+  // Dynamic config
+  _group{
+    _track:b=yes
+    burnt_ground_renderer__selfillum_color:p4 = 10.0, 10.0, 10.0, -100
+    burnt_ground_renderer__selfillum_strength:r = 1
+    burnt_ground_renderer__selfillum_worldscale:r = 1
+    burnt_ground_renderer__edge_noise_frequency:r = 1
+    burnt_ground_renderer__fadein_duration_sec:r = 1
+    burnt_ground_renderer__fadeout_duration_sec:r = 1
+    burnt_ground_renderer__tile_size:p2 = 1, 1
+  }
+
+  // State
+  _group{
+    "burnt_ground_renderer__decals_staging_buf:UniqueBuf"{}
+    "burnt_ground_renderer__decals_indices_staging_buf:UniqueBuf"{}
+    "burnt_ground_renderer__prepare_decals_node:dafg::NodeHandle"{}
+    burnt_ground_renderer__clipmap_decal_type:i = -1
+    "burnt_ground_renderer__allowed_biome_groups:list<i>"{}
+  }
+}
+
+static_burnt_ground_decal {
+  transform:m=[[1,0,0] [0,1,0] [0,0,1] [0,0,0]]
+  _group{
+    _tags:t="render"
+    static_burnt_ground_decal__radius:r = 1
+  }
+}
+
+burnt_ground_decal_placer {
+  transform:m=[[1,0,0] [0,1,0] [0,0,1] [0,0,0]]
+  _group{
+    _tags:t="render"
+
+    burnt_ground_decal_placer__decal_size:r = 1
+    burnt_ground_decal_placer__radius:r = 1
+    burnt_ground_decal_placer__fade_in_time:r = 1
+    burnt_ground_decal_placer__fade_out_time:r = 1
+
+    burnt_ground_decal_placer__time_passed:r = 0
+  }
+}
+
+// Burnt ground decals and burnt grass
+burnt_ground_fx {
+  burnt_ground__burn_radius:r=1.0
+}

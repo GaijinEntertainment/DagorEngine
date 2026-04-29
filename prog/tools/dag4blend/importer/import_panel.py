@@ -234,6 +234,10 @@ class DAGOR_PT_Import(Panel):
         row.prop(props_import, 'with_destr', toggle = True,
             icon = 'CHECKBOX_HLT' if props_import.with_destr else 'CHECKBOX_DEHLT')
 
+        row = toggles.row()
+        row.prop(props_import, 'with_dm', toggle = True,
+            icon = 'CHECKBOX_HLT' if props_import.with_dm else 'CHECKBOX_DEHLT')
+
         row = box.row()
         row.prop(props_import, "filepath")
 
@@ -256,6 +260,7 @@ class DAGOR_PT_Import(Panel):
         importer.with_dps = props_import.with_dps
         importer.with_dmgs = props_import.with_dmgs
         importer.with_destr = props_import.with_destr
+        importer.with_dm = props_import.with_dm
 
         importer.mopt = props_import.mopt
         importer.preserve_sg = props_import.preserve_sg

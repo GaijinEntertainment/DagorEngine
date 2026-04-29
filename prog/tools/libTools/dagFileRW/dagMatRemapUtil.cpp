@@ -299,7 +299,7 @@ static bool load_node(MatRemapImpBlkReader &rdr, DagData::Node &node)
         DagData::Node::NodeBlock &block = append_block(node, blockTag);
         block.block.start = rdr.tell();
         block.block.tag = blockTag;
-        block.block.data.reserve(rdr.getBlockRest());
+        block.block.data.resize(rdr.getBlockRest());
         READ(block.block.data.data(), rdr.getBlockRest());
         block.block.end = rdr.tell();
         break;
@@ -393,7 +393,7 @@ bool load_scene(const char *fname, DagData &data, bool read_nodes)
       append_items(data.blocks, 1);
       data.blocks.back().start = rdr.tell();
       data.blocks.back().tag = rdr.getBlockTag();
-      data.blocks.back().data.reserve(rdr.getBlockRest());
+      data.blocks.back().data.resize(rdr.getBlockRest());
       rdr.read(data.blocks.back().data.data(), rdr.getBlockRest());
       data.blocks.back().end = rdr.tell();
       append_items(data.nodes, 1);
@@ -413,7 +413,7 @@ bool load_scene(const char *fname, DagData &data, bool read_nodes)
       append_items(data.blocks, 1);
       data.blocks.back().start = rdr.tell();
       data.blocks.back().tag = rdr.getBlockTag();
-      data.blocks.back().data.reserve(rdr.getBlockRest());
+      data.blocks.back().data.resize(rdr.getBlockRest());
       rdr.read(data.blocks.back().data.data(), rdr.getBlockRest());
       data.blocks.back().end = rdr.tell();
     }

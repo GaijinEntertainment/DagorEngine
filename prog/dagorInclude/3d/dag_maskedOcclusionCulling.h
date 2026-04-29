@@ -151,6 +151,13 @@ public:
     VIEW_CULLED = 0x3
   };
 
+  enum CacheMode
+  {
+    CACHE_FILL = 0,         // Walk BVH, emit indices into cache, render from cache
+    CACHE_USE = 1,          // Skip BVH walk, render from pre-filled cache
+    CACHE_INSUFFICIENT = 2, // Cache too small - stream indices in SIMD batches (no persistent cache)
+  };
+
   enum ClipPlanes
   {
     CLIP_PLANE_NONE = 0x00,
@@ -338,6 +345,41 @@ public:
   MOC_VIRTUAL CullingResult RenderTriangles(const float *inVtx, const unsigned short *inTris, int nTris,
     const float *modelToClipMatrix = nullptr, BackfaceWinding bfWinding = BACKFACE_CW,
     ClipPlanes clipPlaneMask = CLIP_PLANE_ALL) MOC_PURE;
+
+  /*!
+   * \brief Renders occluder quads by walking the BLAS quad-BVH tree directly.
+   *        Each BVH node's AABB is tested against the frustum to skip invisible
+   *        subtrees and switch to the no-clip fast path for fully-inside subtrees.
+   *
+   *        Vertices are vert21 (8 bytes each, 21-bit packed).  BVH nodes are 16
+   *        bytes (UINT16 boxes + skip word), leaves are 20 bytes (node + 4-byte
+   *        self-relative vertex offset).  See daBVH/dag_swBLAS_ray.h for the format.
+   *
+   * \param blasData      Pointer to the BLAS buffer (vert21 data + BVH tree).
+   * \param treeStart     Byte offset of the first BVH node in blasData.
+   * \param treeEnd       Byte offset past the last BVH node.
+   * \param rawToClipMatrix 4x4 matrix transforming UnpackVert21Raw output to clip space.
+   *                        Must include the 1/(32*scale) and offset factors, i.e.
+   *                        rawToClip = rawToWorld * worldToClip, where rawToWorld
+   *                        converts 21-bit packed integer coordinates to world space.
+   * \param bfWinding     Backface winding order for culling.
+   * \return VIEW_CULLED if all quads culled, VISIBLE otherwise.
+   */
+  /*!
+   * \brief Renders a BLAS quad-BVH with optional index caching.
+   *
+   *        CACHE_FILL:  Walk BVH with frustum culling, emit triangle indices into
+   *                     cacheIndices, render via indexed vert21 gather. On return
+   *                     *cacheTriCount holds the emitted triangle count.
+   *        CACHE_USE:   Skip BVH walk, render *cacheTriCount triangles from cacheIndices.
+   *        CACHE_INSUFFICIENT: No usable cache - walk BVH and stream indices to provided
+   *                     cacheIndices. It can be faster, if significant chunk of blas is culled
+   *
+   * \param cacheIndices  Caller-owned uint16 buffer, size >= maxTris*3
+   * \param cacheTriCount In/out triangle count. Written by CACHE_FILL, read by CACHE_USE.
+   */
+  MOC_VIRTUAL CullingResult RenderBLAS(const unsigned char *blasData, int treeStart, int treeEnd, const float *rawToClipMatrix,
+    unsigned short *cacheIndices, int *cacheTriCount, CacheMode cacheMode, BackfaceWinding bfWinding = BACKFACE_CW) MOC_PURE;
 
   /*!
    * \brief Occlusion query for a rectangle with a given depth. The rectangle is given

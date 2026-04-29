@@ -18,7 +18,14 @@ namespace das
         __forceinline RangeType() {}
         __forceinline RangeType( TT t ) : from(0), to(t) {}
         __forceinline RangeType( TT f, TT t ) : from(f), to(t) {}
-        __forceinline RangeType(vec4f t) : from(vec_extract<TT>::x(t)), to(vec_extract<TT>::y(t)) {}
+        __forceinline RangeType(vec4f t) {
+            if constexpr (sizeof(TT) <= 4) {
+                from = vec_extract<TT>::x(t);
+                to = vec_extract<TT>::y(t);
+            } else {
+                v_stu((float *)this, t);
+            }
+        }
         __forceinline friend StringWriter & operator<< (StringWriter & stream, const RangeType<TT> & vec) {
             stream << vec.from << DAS_PRINT_VEC_SEPARATROR << vec.to;
             return stream;
@@ -26,7 +33,13 @@ namespace das
         __forceinline bool operator == ( const RangeType<TT> & vec ) const {
             return from==vec.from && to==vec.to;
         }
-        __forceinline operator vec4f() const { return v_ldu_half((float *)this); };
+        __forceinline operator vec4f() const {
+            if constexpr (sizeof(TT) <= 4) {
+                return v_ldu_half((float *)this);
+            } else {
+                return v_ldu((float *)this);
+            }
+        }
     };
 
     typedef struct RangeType<int32_t>  range;

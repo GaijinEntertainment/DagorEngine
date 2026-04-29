@@ -7,9 +7,6 @@ include "dynamic_lights_count.dshl"
 include "flexible_scale_rasterization.dshl"
 include "vr_reprojection.dshl"
 
-int modfx_debug_render = 0;
-interval modfx_debug_render : off < 1, on;
-
 int modfx_wboit_enabled = 0;
 interval modfx_wboit_enabled : off < 1, on;
 
@@ -28,6 +25,10 @@ interval fom_double_intensity: no < 1, yes;
 int modfx_bboard_lighting_from_clustered_lights = 0;
 interval modfx_bboard_lighting_from_clustered_lights: no < 1, yes;
 
+int modfx_use_simplified_vs_lighting = 0;
+interval modfx_use_simplified_vs_lighting: no < 1, yes;
+assume_if_not_assumed modfx_use_simplified_vs_lighting = no;
+
 texture wboit_color;
 texture wboit_alpha;
 
@@ -39,11 +40,43 @@ float modfx_wboit_depth_offset = 20;
 float fx_discard_alpha_threshold = 1.0/255;
 float fx_discard_color_threshold = 1.0/255;
 
+define_macro_if_not_defined DAFXEX_STARTUP()
+endmacro
+
 define_macro_if_not_defined DAFX_USE_CLOUD_SHADOWS()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_VOXEL_SHADOWS()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_GI()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_SHADOW()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_PARTICLE_PLACEMENT()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_RAIN_CULLING()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_SCENE_BLOCK()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_DEPTH_MASK(code)
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_HDR()
+endmacro
+
+define_macro_if_not_defined DAFXEX_USE_FOG()
 endmacro
 
 int dafx_modfx_g_tex_0_const_no = 10;
 int dafx_modfx_g_tex_1_const_no = 11;
+
+int dafx_force_clustered_light_check = 0;
 
 interval modfx_shader: not_set<1, dafx_modfx_bboard_render<2, dafx_modfx_ribbon_render<3, dafx_modfx_ribbon_render_side_only<4, dafx_modfx_bboard_render_atest<5,
   dafx_modfx_bboard_distortion<6 , dafx_modfx_ribbon_distortion<7, dafx_modfx_ribbon_distortion_side_only<8, dafx_modfx_bboard_thermals<9,
@@ -78,8 +111,9 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
   GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_render_xray)
   GET_MODFX_SHADER_INTERVAL_BOOL(dafx_modfx_bboard_water_fx)
 
-  ENABLE_ASSERT(ps)
-  if (fx_apply_volfog_per_pixel == yes && !(dafx_modfx_bboard_distortion || dafx_modfx_ribbon_distortion || dafx_modfx_ribbon_distortion_side_only || dafx_modfx_bboard_rain_distortion || dafx_modfx_bboard_render_fom))
+  DAFXEX_STARTUP()
+
+  if (dafx_apply_volfog_per_pixel && !(dafx_modfx_bboard_distortion || dafx_modfx_ribbon_distortion || dafx_modfx_ribbon_distortion_side_only || dafx_modfx_bboard_rain_distortion || dafx_modfx_bboard_render_fom))
   {
     hlsl
     {
@@ -97,24 +131,28 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
   z_test = true;
   cull_mode = none;
 
-  DAFXEX_USE_SHADOW()
   DAFXEX_USE_GI()
+
+  bool is_distortion_group = dafx_modfx_bboard_distortion || dafx_modfx_ribbon_distortion || dafx_modfx_ribbon_distortion_side_only || dafx_modfx_bboard_rain_distortion;
+  bool is_cluster_light_needed = !is_distortion_group && !dafx_modfx_volshape_render && !dafx_modfx_volshape_wboit_render && !dafx_modfx_volshape_thermal && !dafx_modfx_bboard_render_xray && !dafx_modfx_bboard_render_fom;
 
   hlsl
   {
     #define MODFX_USE_LIGHTING 1
-    #if MOBILE_DEVICE || MODFX_BBOARD_MOBILE_LIGHTING
+    ##if modfx_use_simplified_vs_lighting == yes
       #define SIMPLIFIED_VS_LIGHTING 1
-    #else
+    ##else
       #define SIMPLIFIED_VS_LIGHTING 0
-    #endif
+    ##endif
     #define MODFX_USE_FRAMEBLEND 1
     #define MODFX_USE_MOTION_VECS 1
     #define MODFX_USE_DEPTH_MASK 1
     #define MODFX_USE_COLOR_MATRIX 1
     #define MODFX_USE_COLOR_REMAP 1
     #define MODFX_USE_PACK_HDR 1
-    #define MODFX_USE_FOG 1
+    #ifndef MODFX_USE_FOG
+      #define MODFX_USE_FOG 1
+    #endif
   }
 
   if (dafx_modfx_ribbon_render || dafx_modfx_ribbon_render_side_only || dafx_modfx_ribbon_distortion || dafx_modfx_ribbon_distortion_side_only )
@@ -166,8 +204,6 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
 
         #undef MODFX_USE_DEPTH_MASK
         #undef MODFX_USE_LIGHTING
-        #undef HAS_STATIC_SHADOW
-        #undef MODFX_USE_SHADOW
         #undef MODFX_USE_GI
         #undef MODFX_USE_FOG
         #undef MODFX_USE_PACK_HDR
@@ -176,6 +212,8 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     else
     {
       DAFX_USE_CLOUD_SHADOWS()
+      DAFXEX_USE_SHADOW()
+      DAFXEX_USE_VOXEL_SHADOWS()
     }
 
     blend_src=one;
@@ -193,10 +231,10 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     {
       #define MODFX_SHADER_WATER_FX 1
 
+      #define MODFX_USE_FRAMEBOUNDS 0 // to prevent culling edges of hmap textures
+
       #undef MODFX_USE_DEPTH_MASK
       #undef MODFX_USE_LIGHTING
-      #undef HAS_STATIC_SHADOW
-      #undef MODFX_USE_SHADOW
       #undef MODFX_USE_GI
       #undef MODFX_USE_FOG
       #undef MODFX_USE_PACK_HDR
@@ -250,7 +288,6 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
         {
           #define MODFX_SHADER_THERMALS 1
           #undef MODFX_USE_LIGHTING
-          #undef MODFX_USE_SHADOW
           #undef MODFX_USE_GI
           #include "fx_thermals_render.hlsl"
         }
@@ -276,6 +313,7 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     blend_adst=isa;
 
     DAFX_USE_CLOUD_SHADOWS()
+    DAFXEX_USE_VOXEL_SHADOWS()
     hlsl
     {
       #define MODFX_SHADER_VOLSHAPE_WBOIT 1
@@ -294,13 +332,15 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     blend_src=one;
     blend_dst=zero;
     blend_asrc=zero;
-    blend_adst=isa;
+    blend_adst=zero;
 
     USE_ATEST_HALF()
     DAFX_USE_CLOUD_SHADOWS()
+    DAFXEX_USE_SHADOW()
+    DAFXEX_USE_VOXEL_SHADOWS()
     hlsl { #define MODFX_SHADER_ATEST 1 }
   }
-  else if (  dafx_modfx_bboard_distortion || dafx_modfx_ribbon_distortion || dafx_modfx_ribbon_distortion_side_only || dafx_modfx_bboard_rain_distortion)
+  else if ( is_distortion_group )
   {
     z_write  =true;
     blend_src[0]=one;
@@ -334,13 +374,10 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
       #define MODFX_SHADER_DISTORTION 1
       #define MODFX_USE_DEPTH_OUTPUT 1
 
-      #undef HAS_STATIC_SHADOW
-      #undef MODFX_USE_SHADOW
       #undef MODFX_USE_LIGHTING
       #undef MODFX_USE_GI
       #undef MODFX_USE_FRAMEBLEND
       #undef MODFX_USE_MOTION_VECS
-      #undef MODFX_USE_DEPTH_MASK
       #undef MODFX_USE_COLOR_MATRIX
       #undef MODFX_USE_COLOR_REMAP
       #undef MODFX_USE_PACK_HDR
@@ -360,7 +397,6 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     {
       #define MODFX_SHADER_THERMALS 1
       #undef MODFX_USE_LIGHTING
-      #undef MODFX_USE_SHADOW
       #undef MODFX_USE_GI
       #include "fx_thermals_render.hlsl"
     }
@@ -393,8 +429,6 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     {
       #define MODFX_SHADER_VOLFOG_INJECTION 1
 
-      #undef HAS_STATIC_SHADOW
-      #undef MODFX_USE_SHADOW
       #undef MODFX_USE_LIGHTING
       #undef MODFX_USE_GI
       #undef MODFX_USE_PACK_HDR
@@ -413,8 +447,6 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     hlsl
     {
       #define MODFX_SHADER_FOM 1
-      #undef HAS_STATIC_SHADOW
-      #undef MODFX_USE_SHADOW
       #undef MODFX_USE_LIGHTING
       #undef MODFX_USE_GI
       #undef MODFX_USE_PACK_HDR
@@ -469,7 +501,7 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
 
     #include "modfx/modfx_decl.hlsli"
   }
-  if (modfx_debug_render == off && modfx_bboard_lighting_from_clustered_lights == yes && dynamic_lights_count != lights_off)
+  if (dafx_use_cluster_lights && is_cluster_light_needed)
   {
     INIT_OMNI_LIGHTS_CB(vs)
     INIT_SPOT_LIGHTS_CB(vs)
@@ -477,6 +509,7 @@ macro PREPARE_MODFX_SHADER(shader_to_use)
     INIT_AND_USE_CLUSTERED_LIGHTS(vs)
     INIT_AND_USE_COMMON_LIGHTS_SHADOWS_CB(vs)
     INIT_AND_USE_LIGHT_SHADOWS(vs)
+    (vs) { dafx_force_clustered_light_check@i1 = dafx_force_clustered_light_check; }
     hlsl(vs)
     {
       #include "clustered/punctualLightsMath.hlsl"

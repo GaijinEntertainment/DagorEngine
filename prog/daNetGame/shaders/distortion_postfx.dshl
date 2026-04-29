@@ -1,7 +1,16 @@
-include "antialiasing_type.inc.dshl"
+include "antialiasing_type_inc.dshl"
 include "distortion_postfx_inc.dshl"
 include "heatHazeOffset.dshl"
 include "postfx_common.dshl"
+
+include_optional "distortion_game_modifiers_inc.dshl"
+
+define_macro_if_not_defined PROJECT_DISTORTION_MODIFIER_POSTFX()
+  hlsl(ps) {
+    void apply_distortion_uv_modifier(inout float2 uv) {}
+    void apply_post_distortion_color_modifier(inout float3 color, float2 uv) {}
+  }
+endmacro
 
 shader distortion_postfx {
   color_write = rgba;
@@ -27,6 +36,8 @@ shader distortion_postfx {
   INIT_DISTORTION_POSTFX()
   USE_DISTORTION_POSTFX()
 
+  PROJECT_DISTORTION_MODIFIER_POSTFX()
+
   local float4 frame_tex_resolution = get_dimensions(frame_tex, 0);
 
   (ps) {
@@ -37,6 +48,8 @@ shader distortion_postfx {
   hlsl(ps) {
     float4 distortion_postfx_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target0
     {
+      apply_distortion_uv_modifier(input.tc);
+
     ##if antialiasing_type == tsr
       float pseudoDepth = sampleSceneAlpha(input.tc);
       float alpha = pseudoDepth;
@@ -45,6 +58,8 @@ shader distortion_postfx {
     ##endif
 
       float3 frame = apply_distortion_postfx(input);
+      apply_post_distortion_color_modifier(frame, input.tc);
+
       return float4(frame, alpha);
     }
   }

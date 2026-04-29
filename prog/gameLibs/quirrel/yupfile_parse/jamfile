@@ -1,7 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/quirrel/yupfile_parse ;
 StrictCompile = yes ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 include $(Root)/prog/_jBuild/defaults.jam ;
 

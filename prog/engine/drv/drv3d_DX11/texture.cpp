@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <mutex>
+#include "texture.h"
 
+#include <mutex>
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_texture.h>
@@ -32,15 +33,19 @@
 #include <workCycle/dag_workCycle.h>
 #include <util/dag_watchdog.h>
 #include <validation/texture.h>
+#include <drv/3d/dag_commands.h>
+#include "../drv3d_commonCode/gpuConfig.h"
 
 #include <3d/dag_resourceDump.h>
-#include "resource_size_info.h"
-#include "driver.h"
 #include <supp/dag_comPtr.h>
-#include <d3d9types.h>
 #if HAS_NVAPI && NVAPI_SLI_SYNC
 #include <nvapi.h>
 #endif
+
+#include "resource_size_info.h"
+#include "driver.h"
+#include "render_state.h"
+#include "pools.h"
 
 #if 0
 #define VERBOSE_DEBUG debug
@@ -122,9 +127,9 @@ static int __tex_used = 0;
 
 DXGI_FORMAT mode_pf;
 
-typedef ObjectProxyPtr<BaseTex> TextureProxyPtr;
+typedef drv3d_generic::ObjectProxyPtr<BaseTex> TextureProxyPtr;
 
-static ObjectPoolWithLock<TextureProxyPtr, 2048> g_textures("textures");
+static drv3d_generic::ObjectPoolWithLock<TextureProxyPtr, 2048> g_textures("textures");
 void clear_textures_pool_garbage() { g_textures.clearGarbage(); }
 
 #define MAX_CLEAR_TEXTURE_SIZE 512
@@ -242,7 +247,7 @@ bool add_texture_to_list(BaseTex *t)
   TextureProxyPtr e;
   e.obj = t;
   t->id = g_textures.safeAllocAndSet(e);
-  return t->id != BAD_HANDLE;
+  return t->id != drv3d_generic::BAD_HANDLE;
 }
 
 /*
@@ -722,8 +727,11 @@ uint32_t get_texture_res_size(const BaseTex *bt, int skip = 0)
     if (d > 1)
       d >>= 1;
   };
+  total *= bt->backbufferCount;
 
-  return ((type == D3DResourceType::ARRTEX) ? bt->depth : (type == D3DResourceType::CUBETEX ? 6 : 1)) * total;
+  return ((type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX) ? bt->depth
+                                                                                   : (type == D3DResourceType::CUBETEX ? 6 : 1)) *
+         total;
 }
 
 static const char *stage_names[STAGE_MAX_EXT] = {"cs", "ps", "vs", "rt/csa"};
@@ -1237,7 +1245,7 @@ void BaseTex::destroy()
   if (g_textures.isIndexValid(id))
     g_textures.safeReleaseEntry(id);
   g_textures.unlock();
-  id = BAD_HANDLE;
+  id = drv3d_generic::BAD_HANDLE;
   destroyObject();
 }
 
@@ -1249,6 +1257,9 @@ HRESULT map_without_context_blocking(ID3D11Resource *resource, UINT subresource,
   HRESULT hres;
   if (nosyslock || is_main_thread() || get_current_thread_id() == gpuThreadId)
   {
+    // mostly old intels, they somehow don't wait for GPU completion on resource when mapping for readback
+    if (get_gpu_driver_cfg().forceDx10 && !nosyslock && maptype == D3D11_MAP_READ)
+      d3d::driver_command(Drv3dCommand::D3D_FLUSH);
     ContextAutoLock contextLock;
     hres = dx_context->Map(resource, subresource, maptype, nosyslock ? D3D11_MAP_FLAG_DO_NOT_WAIT : 0, mapped);
   }
@@ -1379,8 +1390,9 @@ bool d3d::check_cubetexformat(int f) { return check_texformat(f, D3DResourceType
 bool d3d::check_voltexformat(int f) { return check_texformat(f, D3DResourceType::VOLTEX); }
 
 
-Texture *drv3d_dx11::create_d3d_tex(ID3D11Texture2D *tex_res, const char *name, int flg)
+Texture *drv3d_dx11::create_d3d_tex(ID3D11Texture2D *tex_res, const char *name, int flg, int backbufferCount)
 {
+  G_ASSERT(backbufferCount < 8);
   D3D11_TEXTURE2D_DESC desc;
   tex_res->GetDesc(&desc);
 
@@ -1401,6 +1413,7 @@ Texture *drv3d_dx11::create_d3d_tex(ID3D11Texture2D *tex_res, const char *name, 
   else
     tex->format = desc.Format;
   tex->wasUsed = 1;
+  tex->backbufferCount = backbufferCount;
   tex->setTexName(name);
   TEXQL_ON_ALLOC(tex);
   return tex;
@@ -1413,10 +1426,13 @@ Texture *drv3d_dx11::create_backbuffer_tex(int id, IDXGI_SWAP_CHAIN *swap_chain)
   ID3D11Texture2D *texRes;
   DXFATAL(swap_chain->GetBuffer(id, __uuidof(ID3D11Texture2D), (void **)&texRes), "SCC");
 
-  return create_d3d_tex(texRes, "backbuffer", TEXFMT_DEFAULT | TEXCF_RTARGET);
+  DXGI_SWAP_CHAIN_DESC desc{};
+  DXFATAL(swap_chain->GetDesc(&desc), "SCC");
+
+  return create_d3d_tex(texRes, "backbuffer", TEXFMT_DEFAULT | TEXCF_RTARGET, desc.BufferCount);
 }
 
-BaseTexture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
+BaseTexture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   check_texture_creation_args(w, h, flg, stat_name);
   D3D_CONTRACT_ASSERT_RETURN(d3d::check_texformat(flg), nullptr);
@@ -1550,7 +1566,7 @@ BaseTexture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels,
   return tex;
 }
 
-BaseTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat_name)
+BaseTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   D3D_CONTRACT_ASSERT_RETURN(d3d::check_cubetexformat(flg), nullptr);
 
@@ -1591,7 +1607,7 @@ BaseTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
 }
 
 
-BaseTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name)
+BaseTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   D3D_CONTRACT_ASSERT_RETURN(d3d::check_voltexformat(flg), nullptr);
 
@@ -1650,7 +1666,7 @@ BaseTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const 
   return tex;
 }
 
-BaseTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name)
+BaseTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   D3D_CONTRACT_ASSERT_RETURN(d3d::check_texformat(flg), nullptr);
 
@@ -1677,13 +1693,13 @@ BaseTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, con
   return tex;
 }
 
-BaseTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name)
+BaseTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   D3D_CONTRACT_ASSERT_RETURN(d3d::check_cubetexformat(flg), nullptr);
 
   fixup_tex_params(side, side, flg, levels);
 
-  BaseTex *tex = BaseTex::create_tex(flg, D3DResourceType::ARRTEX);
+  BaseTex *tex = BaseTex::create_tex(flg, D3DResourceType::CUBEARRTEX);
   set_tex_params(tex, side, side, d, flg, levels, stat_name);
 
   bool res = create_tex2d(tex->tex, tex, side, side, levels, tex->cube_array = true, NULL, d);
@@ -1931,6 +1947,8 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
         totalSizeVol += sz;
       else if (sortedTexturesList[textureNo]->type == D3DResourceType::ARRTEX)
         totalSizeArr += sz;
+      else if (sortedTexturesList[textureNo]->type == D3DResourceType::CUBEARRTEX)
+        totalSizeArr += sz;
     }
   }
 
@@ -1979,10 +1997,16 @@ void d3d::get_texture_statistics(uint32_t *num_textures, uint64_t *total_mem, St
       }
       else
       {
-        add.printf(0, "%5dK q%c  %s %4dx%-4dx%3d, m%2d, %s - '%s'", sz, ql,
-          (tex->type == D3DResourceType::VOLTEX) ? "vol" : ((tex->type == D3DResourceType::ARRTEX) ? "arr" : " ? "), tex->width,
-          tex->height, tex->depth, tex->mipLevels, dxgi_format_to_string(dxgi_format_for_res_auto(tex->format, tex->cflg)),
-          tex->getName());
+        const char *texType = " ? ";
+        if (tex->type == D3DResourceType::VOLTEX)
+          texType = "vol";
+        else if (tex->type == D3DResourceType::ARRTEX)
+          texType = "arr";
+        else if (tex->type == D3DResourceType::CUBEARRTEX)
+          texType = "cube arr";
+
+        add.printf(0, "%5dK q%c  %s %4dx%-4dx%3d, m%2d, %s - '%s'", sz, ql, texType, tex->width, tex->height, tex->depth,
+          tex->mipLevels, dxgi_format_to_string(dxgi_format_for_res_auto(tex->format, tex->cflg)), tex->getName());
       }
 
       add += num_textures ? "\n"
@@ -2038,6 +2062,8 @@ void get_mem_stat(String *out_str)
       else if (tex->type == D3DResourceType::VOLTEX)
         totalSizeVol += sz;
       else if (tex->type == D3DResourceType::ARRTEX)
+        totalSizeArr += sz;
+      else if (tex->type == D3DResourceType::CUBEARRTEX)
         totalSizeArr += sz;
     }
   ITERATE_OVER_OBJECT_POOL_RESTORE(g_textures);

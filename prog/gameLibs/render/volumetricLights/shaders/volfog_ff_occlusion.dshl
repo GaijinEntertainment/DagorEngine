@@ -47,7 +47,6 @@ shader froxel_fog_occlusion_cs
   INIT_ZNZFAR_STAGE(cs)
   BASE_GPU_OCCLUSION(cs)
   VOLUME_DEPTH_CONVERSION(cs)
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
     float checkVolFogBox(float2 coord)

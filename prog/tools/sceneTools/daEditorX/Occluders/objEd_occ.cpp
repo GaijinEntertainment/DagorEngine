@@ -4,6 +4,7 @@
 #include "plugin_occ.h"
 #include "occluder.h"
 
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_ObjectCreator.h>
 #include <coolConsole/coolConsole.h>
@@ -35,6 +36,17 @@ enum
   CM_GATHER_OCCLUDERS,
 };
 
+namespace EditorCommandIds
+{
+
+static constexpr const char *CREATE_OCCLUDER_BOX = "Plugin.Occluders.CreateOccluderBox";
+static constexpr const char *CREATE_OCCLUDER_QUAD = "Plugin.Occluders.CreateOccluderQuad";
+static constexpr const char *SHOW_LOCAL_OCCLUDERS = "Plugin.Occluders.ShowLocalOccluders";
+static constexpr const char *SHOW_ALL_OCCLUDERS = "Plugin.Occluders.ShowAllOccluders";
+static constexpr const char *GATHER_OCCLUDERS = "Plugin.Occluders.GatherOccluders";
+
+} // namespace EditorCommandIds
+
 static int last_mx = 0, last_my = 0, last_inside = 0;
 static IGenViewportWnd *last_wnd = nullptr;
 static bool last_ctrl_key_down = false;
@@ -52,31 +64,45 @@ occplugin::ObjEd::ObjEd() : cloneMode(false), objCreator(NULL)
 
 occplugin::ObjEd::~ObjEd() { dagRender->deleteDynRenderBuffer(ptDynBuf); }
 
+void occplugin::ObjEd::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  ObjectEditor::registerEditorCommands(command_system);
+
+  command_system.addCommand(EditorCommandIds::CREATE_OCCLUDER_BOX, ImGuiKey_1);
+  command_system.addCommand(EditorCommandIds::CREATE_OCCLUDER_QUAD, ImGuiKey_2);
+  command_system.addCommand(EditorCommandIds::SHOW_LOCAL_OCCLUDERS, ImGuiMod_Ctrl | ImGuiKey_1);
+  command_system.addCommand(EditorCommandIds::SHOW_ALL_OCCLUDERS, ImGuiMod_Ctrl | ImGuiKey_2);
+  command_system.addCommand(EditorCommandIds::GATHER_OCCLUDERS, ImGuiKey_F1);
+}
+
 void occplugin::ObjEd::registerViewportAccelerators(IWndManager &wndManager)
 {
   ObjectEditor::registerViewportAccelerators(wndManager);
 
-  wndManager.addViewportAccelerator(CM_CREATE_OCCLUDER_BOX, ImGuiKey_1);
-  wndManager.addViewportAccelerator(CM_CREATE_OCCLUDER_QUAD, ImGuiKey_2);
-  wndManager.addViewportAccelerator(CM_SHOW_LOCAL_OCCLUDERS, ImGuiMod_Ctrl | ImGuiKey_1);
-  wndManager.addViewportAccelerator(CM_SHOW_ALL_OCCLUDERS, ImGuiMod_Ctrl | ImGuiKey_2);
-  wndManager.addViewportAccelerator(CM_GATHER_OCCLUDERS, ImGuiKey_F1);
+  wndManager.addViewportAccelerator(CM_CREATE_OCCLUDER_BOX, EditorCommandIds::CREATE_OCCLUDER_BOX);
+  wndManager.addViewportAccelerator(CM_CREATE_OCCLUDER_QUAD, EditorCommandIds::CREATE_OCCLUDER_QUAD);
+  wndManager.addViewportAccelerator(CM_SHOW_LOCAL_OCCLUDERS, EditorCommandIds::SHOW_LOCAL_OCCLUDERS);
+  wndManager.addViewportAccelerator(CM_SHOW_ALL_OCCLUDERS, EditorCommandIds::SHOW_ALL_OCCLUDERS);
+  wndManager.addViewportAccelerator(CM_GATHER_OCCLUDERS, EditorCommandIds::GATHER_OCCLUDERS);
 }
 
 void occplugin::ObjEd::fillToolBar(PropPanel::ContainerPropertyControl *toolbar)
 {
   PropPanel::ContainerPropertyControl *tb1 = toolbar->createToolbarPanel(0, "");
 
-  addButton(tb1, CM_CREATE_OCCLUDER_BOX, "create_box", "Create box Occluder (1)", true);
-  addButton(tb1, CM_CREATE_OCCLUDER_QUAD, "create_plane", "Create quad Occluder (2)", true);
+  addEditorCommandButton(tb1, CM_CREATE_OCCLUDER_BOX, EditorCommandIds::CREATE_OCCLUDER_BOX, "create_box", "Create box Occluder",
+    true);
+  addEditorCommandButton(tb1, CM_CREATE_OCCLUDER_QUAD, EditorCommandIds::CREATE_OCCLUDER_QUAD, "create_plane", "Create quad Occluder",
+    true);
 
   ObjectEditor::fillToolBar(toolbar);
 
   PropPanel::ContainerPropertyControl *tb2 = toolbar->createToolbarPanel(0, "");
 
-  addButton(tb2, CM_SHOW_LOCAL_OCCLUDERS, "show_loc_occ", "Show local occluders (Ctrl-1)", true);
-  addButton(tb2, CM_SHOW_ALL_OCCLUDERS, "show_occ", "Show all occluders (Ctrl-2)", true);
-  addButton(tb2, CM_GATHER_OCCLUDERS, "compile", "Gather occluders to show (F1)");
+  addEditorCommandButton(tb2, CM_SHOW_LOCAL_OCCLUDERS, EditorCommandIds::SHOW_LOCAL_OCCLUDERS, "show_loc_occ", "Show local occluders",
+    true);
+  addEditorCommandButton(tb2, CM_SHOW_ALL_OCCLUDERS, EditorCommandIds::SHOW_ALL_OCCLUDERS, "show_occ", "Show all occluders", true);
+  addEditorCommandButton(tb2, CM_GATHER_OCCLUDERS, EditorCommandIds::GATHER_OCCLUDERS, "compile", "Gather occluders to show");
 
   // toolBar->checkButton(CM_OBJED_OBJPROP_PANEL, false);
   // toolBar->setBool(CM_OBJED_OBJPROP_PANEL, false);

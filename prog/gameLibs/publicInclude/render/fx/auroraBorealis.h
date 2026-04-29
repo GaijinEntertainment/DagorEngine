@@ -36,7 +36,10 @@ struct AuroraBorealis
   AuroraBorealis();
   ~AuroraBorealis();
 
-  void setParams(const AuroraBorealisParams &parameters, int targetW, int targetH);
+  uint32_t texFmt();
+
+  // NOTE: if targetW=-1 and targetH=-1, caller sets up target texture during beforeRender
+  void setParams(const AuroraBorealisParams &parameters, int targetW = -1, int targetH = -1);
 
   void beforeRender();
   void render();

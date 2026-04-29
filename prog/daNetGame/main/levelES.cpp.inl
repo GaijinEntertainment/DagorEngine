@@ -18,10 +18,14 @@
 #include <landMesh/lmeshManager.h>
 #include <landMesh/lmeshMirroring.h>
 #include <heightmap/heightmapHandler.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/core/utility/ecsBlkUtils.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/utility/ecsBlkUtils.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <ecs/gameres/commonLoadingJobMgr.h>
 #include <daECS/core/updateStage.h>
@@ -51,13 +55,13 @@
 
 #include <render/renderSettings.h>
 #include <render/cables.h>
-#include <3d/dag_gpuConfig.h>
 #include <levelSplines/levelSplines.h>
 #include <levelSplines/splineRegions.h>
 #include <levelSplines/splineRoads.h>
 #include <gamePhys/collision/rendinstCollision.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <gamePhys/phys/rendinstFloating.h>
+#include <image/dag_loadImage.h>
 #include <ioSys/dag_memIo.h>
 #include <ioSys/dag_lzmaIo.h>
 #include <ioSys/dag_zstdIo.h>
@@ -70,6 +74,7 @@
 #include "render/fx/fx.h"
 #include "net/net.h"
 #include "main/ecsUtils.h"
+#include "main/water.h"
 #include "main/appProfile.h"
 #include "main/gameLoad.h"
 #include "render/animatedSplashScreen.h"
@@ -96,13 +101,19 @@ ECS_REGISTER_EVENT(EventGameObjectsEntitiesScheduled)
 ECS_REGISTER_EVENT(EventGameObjectsOptimize)
 ECS_REGISTER_EVENT(EventRIGenExtraRequested)
 
-static enum LevelStatus { LEVEL_NOT_LOADED, LEVEL_LOADING, LEVEL_LOADED, LEVEL_EMPTY } level_status = LEVEL_NOT_LOADED;
+static enum LevelStatus {
+  LEVEL_NOT_LOADED,
+  LEVEL_LOADING,
+  LEVEL_LOADED,
+  LEVEL_LOADED_NO_BINARY,
+  LEVEL_EMPTY
+} level_status = LEVEL_NOT_LOADED;
 static ecs::EntityId level_eid = ecs::INVALID_ENTITY_ID;
 
 static void add_load_level_action(class StrmSceneHolder *scn, const char *bin_name);
 
 template <typename Callable>
-static void level_is_loading_ecs_query(Callable c);
+static void level_is_loading_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static void ecs_tick()
 {
@@ -118,12 +129,12 @@ static void set_level_status(LevelStatus status)
 
 #endif
 
-  level_is_loading_ecs_query([status](bool &level_is_loading) { level_is_loading = (status == LEVEL_LOADING); });
+  level_is_loading_ecs_query(*g_entity_mgr, [status](bool &level_is_loading) { level_is_loading = (status == LEVEL_LOADING); });
 
 #if _TARGET_ANDROID || _TARGET_IOS
   if (status == LEVEL_LOADING)
     androidLevelStatus = eastl::make_unique<crashlytics::AppState>("level_loading");
-  else if (status == LEVEL_LOADED)
+  else if (status == LEVEL_LOADED || status == LEVEL_LOADED_NO_BINARY)
     androidLevelStatus = eastl::make_unique<crashlytics::AppState>("level_loaded");
   else
     androidLevelStatus.reset();
@@ -165,8 +176,8 @@ static void create_efx_objects(Tab<ObjectsToPlace *> &efxToPlace)
 struct WeatherAndDateTime
 {
   float timeOfDay;
-  const char *weatherBlk;
-  const char *weatherChoice;
+  String weatherBlk;
+  String weatherChoice;
   int year, month, day;
   float lat, lon;
 };
@@ -206,11 +217,6 @@ const char *get_rendinst_dmg_blk_fn() { return ::dgs_get_settings()->getStr("ren
 
 static DataBlock saved_level_blk;
 
-static bool is_render_path_replacement_allowed()
-{
-  return ::dgs_get_settings()->getBlockByName("graphics")->getBool("allowRenderReplacementInLvl", false);
-}
-
 class StrmSceneHolder final : public BaseStreamingSceneHolder
 {
 public:
@@ -226,12 +232,11 @@ public:
   bool waterHeightmapLoaded = false;
   eastl::unique_ptr<DataBlock> levelBlk; // Warn: can be accessed only during loading (null after)
   Tab<ObjectsToPlace *> objectsToPlace, efxToPlace;
-  DataBlock riGenExtraConfig;
 
-  StrmSceneHolder(const char *blk_path, const WeatherAndDateTime &wdt, ecs::EntityId eid) : eid(eid)
+  StrmSceneHolder(const char *blk_path, const WeatherAndDateTime &wdt, ecs::EntityId eid, bool load_render) : eid(eid)
   {
     rendinst::tmInst12x32bit = false;
-    load(blk_path, wdt);
+    load(blk_path, wdt, load_render);
   }
   ~StrmSceneHolder()
   {
@@ -243,13 +248,9 @@ public:
     dacoll::set_lmesh_phys_map(nullptr);
     ridestr::shutdown();
     rendinst::clearRIGen();
-    rendinst::registerRIGenExtraConfig(nullptr);
     close_cables_mgr();
     acesfx::reset();
     clean_up_level_entities();
-    // for forward toggle we need to destroy WR
-    if (is_render_path_replacement_allowed())
-      destroy_world_renderer();
   }
 
   virtual bool bdlConfirmLoading(unsigned /*bindump_id*/, int tag)
@@ -339,15 +340,14 @@ public:
         }
       }
 
-      enable_gameres_pack_loading(true);
-      set_required_res_list_restriction(requiredResources, RRL_setAndPreload);
+      preload_game_resources(requiredResources);
 
       /*char hash_str[SHA_STR_DIGEST_LENGTH];
       for (int i = 0; i < rqrl_ronm->map.size(); i ++)
         if (get_resource_type_id(rqrl_ronm->map[i]) == rendinst::HUID_LandClassGameRes &&
-            is_game_resource_loaded(GAMERES_HANDLE_FROM_STRING(rqrl_ronm->map[i]), rendinst::HUID_LandClassGameRes, false))
+            is_game_resource_loaded(rqrl_ronm->map[i], rendinst::HUID_LandClassGameRes, false))
         {
-          GameResource *res = get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(rqrl_ronm->map[i]), rendinst::HUID_LandClassGameRes);
+          GameResource *res = get_game_resource_ex(rqrl_ronm->map[i], rendinst::HUID_LandClassGameRes);
           unsigned hashSHA1[5] = { 0, 0, 0, 0, 0 };
           if (rendinst::get_landclass_data_hash(res, hashSHA1, sizeof(hashSHA1)) == sizeof(hashSHA1))
           {
@@ -356,14 +356,13 @@ public:
           }
           else
             G_ASSERT_LOG(0, "can't get hash from ri res '%s'", rqrl_ronm->map[i]);
-          release_game_resource(res);
+          release_game_resource_ex(res, rendinst::HUID_LandClassGameRes);
         }
       if (levelHash)
         levelHash = ~levelHash; // hash is complete (see calc_crc32())
       */
       memfree(rqrl_ronm, tmpmem);
       // resourcesLoaded = true;
-      enable_gameres_pack_loading(false);
       return true;
     }
     if (tag == _MAKE4C('tm24'))
@@ -374,12 +373,7 @@ public:
     if (tag == _MAKE4C('RIGz'))
     {
       rendinst::RIGenLoadingAutoLock riGenLd;
-      const char *rendinstDmgBlkFn = get_rendinst_dmg_blk_fn();
-      if (dd_file_exists(rendinstDmgBlkFn))
-        riGenExtraConfig.load(rendinstDmgBlkFn);
-      else
-        riGenExtraConfig.reset();
-      rendinst::registerRIGenExtraConfig(&riGenExtraConfig);
+      auto &riGenExtraConfig = *rendinst::getRIGenExtraConfig();
       if (!rendinst::loadRIGen(crd, NULL, false, nullptr, &saved_level_blk))
         return false;
       rendinst::initRiGenDebris(riGenExtraConfig, [](const char *n) { return acesfx::get_type_by_name(n); });
@@ -402,7 +396,13 @@ public:
     if (tag == _MAKE4C('HM2'))
     {
       G_ASSERT(lmeshMgr);
-      if (lmeshMgr->loadHeightmapDump(crd, dataNeeded))
+      // fixme: we should save expected water level in binary, separately.
+      // Also, this is only used for errors, so as long as errors are exported explicitly it is not needed.
+      float waterLevel = 0;
+      if (FFTWater *water = dacoll::get_water())
+        waterLevel = fft_water::get_level(water);
+
+      if (lmeshMgr->loadHeightmapDump(crd, dataNeeded, waterLevel))
       {
         // To consider: init it on first hole addition instead?
         if (g_entity_mgr->getOr<bool>(eid, ECS_HASH("level__useGroundHolesCollision"), false))
@@ -440,14 +440,17 @@ public:
 
     if (tag == _MAKE4C('WHM'))
     {
-      if (FFTWater *water = dacoll::get_water())
+      if (g_entity_mgr->getOr<bool>(eid, ECS_HASH("level__loadWaterHeightmap"), true))
       {
-        fft_water::load_heightmap(crd, water);
-        waterHeightmapLoaded = true;
+        if (FFTWater *water = dacoll::get_water())
+        {
+          fft_water::load_heightmap(crd, water);
+          waterHeightmapLoaded = true;
+        }
+        else
+          logerr("Water heightmap exist in level but there is no water during level load. "
+                 "Make sure that water entity resides before level's one in scene file");
       }
-      else
-        logerr("Water heightmap exist in level but there is no water during level load. "
-               "Make sure that water entity resides before level's one in scene file");
     }
 
     if (tag == _MAKE4C('lmap'))
@@ -601,10 +604,12 @@ public:
 #if _TARGET_ANDROID || _TARGET_IOS
     crashlytics::setCustomKey("level", lvlBinName);
 #endif
-    set_level_status(LEVEL_LOADED);
+    bool isLevelBinEmpty = strcmp(lvlBinName, EMPTY_LEVEL_NAME) == 0;
+    set_level_status(isLevelBinEmpty ? LEVEL_LOADED_NO_BINARY : LEVEL_LOADED);
 #if _TARGET_C3
 
 #endif
+    update_delayed_weather_selection();
     if (get_world_renderer())
     {
       if (needLmeshLoadedCall)
@@ -641,37 +646,7 @@ public:
   }
 
 private:
-  void overrideRenderingPathToCompatibility()
-  {
-    if (dedicated::is_dedicated())
-      return;
-
-    bool usingNonCompatibility = get_corrected_rendering_path() != "default";
-
-    if (!usingNonCompatibility || rendering_path::get_force_default())
-      return;
-
-    d3d::GpuAutoLock gpu_al;
-    const char *sh_bindump_prefix = ::dgs_get_settings()->getStr("compatShaders", "compiledShaders/compatPC/game");
-    load_shaders_bindump(sh_bindump_prefix, 5.0_sm);
-    rendering_path::set_force_default(true);
-  }
-
-  void restoreRenderingPath()
-  {
-    if (!rendering_path::get_force_default() || dedicated::is_dedicated())
-      return;
-
-    d3d::GpuAutoLock gpu_al;
-    const char *sh_bindump_prefix = ::dgs_get_settings()->getStr("forwardShaders", "compiledShaders/gameAndroidForward");
-    String renderPath = get_corrected_rendering_path();
-    if (renderPath == "mobile_deferred")
-      sh_bindump_prefix = ::dgs_get_settings()->getStr("deferredShaders", "compiledShaders/gameAndroidDeferred");
-    load_shaders_bindump(sh_bindump_prefix, 5.0_sm);
-    rendering_path::set_force_default(false);
-  }
-
-  void load(const char *level_fn, const WeatherAndDateTime &wdt)
+  void load(const char *level_fn, const WeatherAndDateTime &wdt, bool load_render)
   {
     G_ASSERT(!levelBlk);
     debug("loading level <%s>", level_fn);
@@ -690,30 +665,29 @@ private:
       if (!blk->getStr(LEVEL_BIN_NAME, NULL))
       {
         G_ASSERTF(0, "level binary is missing in <%s>", level_fn);
-        set_level_status(LEVEL_LOADED);
+        set_level_status(LEVEL_LOADED_NO_BINARY);
         return;
       }
     }
     levelBlk = eastl::move(blk);
     saved_level_blk = DataBlock(*levelBlk);
 
-    if (is_render_path_replacement_allowed())
-    {
-      if (!levelBlk->getBool("overrideForwardWithCompatibility", false))
-        restoreRenderingPath();
-      else
-        overrideRenderingPathToCompatibility();
-    }
-
     prepare_ri_united_vdata_setup(levelBlk.get());
 
-    create_world_renderer();
+    if (load_render)
+      create_world_renderer();
 
     dataNeeded = get_world_renderer() ? LC_TRIVIAL_DATA | LC_DETAIL_DATA | LC_NORMAL_DATA | LC_GRASS_DATA : 0;
 
     ::load(scene_time, *levelBlk->getBlockByNameEx("skies"), wdt.timeOfDay, wdt.year, wdt.month, wdt.day, wdt.lat, wdt.lon);
-    load_daskies(*levelBlk->getBlockByNameEx("skies"), scene_time.timeOfDay, wdt.weatherBlk, scene_time.year, scene_time.month,
-      scene_time.day, scene_time.latitude, scene_time.longtitude);
+    SkiesPanel skiesData;
+    skiesData.time = scene_time.timeOfDay;
+    skiesData.day = scene_time.day;
+    skiesData.month = scene_time.month;
+    skiesData.year = scene_time.year;
+    skiesData.latitude = scene_time.latitude;
+    skiesData.longtitude = scene_time.longtitude;
+    load_daskies(*levelBlk->getBlockByNameEx("skies"), skiesData, wdt.weatherBlk);
     g_entity_mgr->broadcastEventImmediate(EventSkiesLoaded{});
 
     dngsound::reset_listener();
@@ -781,7 +755,8 @@ static void add_load_level_action(StrmSceneHolder *scn, const char *bin_name)
 }
 
 bool is_level_loaded() { return level_status >= LEVEL_LOADED; }
-bool is_level_loaded_not_empty() { return level_status == LEVEL_LOADED; }
+bool is_level_loaded_not_empty() { return level_status == LEVEL_LOADED || level_status == LEVEL_LOADED_NO_BINARY; }
+bool is_level_loaded_no_binary() { return level_status == LEVEL_LOADED_NO_BINARY; }
 bool is_level_loading() { return level_status == LEVEL_LOADING; }
 bool is_level_unloading() { return sceneload::unload_in_progress; }
 ecs::EntityId get_current_level_eid() { return level_eid; }
@@ -803,14 +778,13 @@ static WeatherAndDateTime setup_level_weather_and_datetime(ecs::EntityManager &m
   const char *preset_name = nullptr,
   WeatherCreateOnClient create_on_client = WeatherCreateOnClient::No,
   KeepTimeOfDay keep_time_of_day = KeepTimeOfDay::No,
-  int skies_seed = -1)
+  int skies_seed = -1,
+  const DataBlock *skies_blk = nullptr,
+  bool use_scene_time = false)
 {
   Point2 timeRange = mgr.get<Point2>(eid, ECS_HASH("level__timeRange"));
   const ecs::Array *timeVec = mgr.getNullable<ecs::Array>(eid, ECS_HASH("level__timeVec"));
   int timeSeed = mgr.get<int>(eid, ECS_HASH("level__timeSeed")); // seed to have reproducable time of day
-  int day = mgr.getOr(eid, ECS_HASH("level__day"), 21);
-  int month = mgr.getOr(eid, ECS_HASH("level__month"), 6);
-  int year = mgr.getOr(eid, ECS_HASH("level__year"), 1941);
 
   if (timeSeed == -1)
   {
@@ -819,16 +793,33 @@ static WeatherAndDateTime setup_level_weather_and_datetime(ecs::EntityManager &m
     logdbg("Generated time seed: %d", timeSeed);
   }
 
-  const ecs::Object::value_type *preset = nullptr;
-  if (preset_name)
-    preset = get_preset_by_name(mgr, eid, preset_name);
-  else
-    preset = get_preset_by_seed(mgr, eid);
+  validate_wind_entity_in_weather_presets(mgr, eid);
 
-  if (preset_name && !preset)
+  const char *defaultPresetName = preset_name ? preset_name : "placeholder_weather";
+  const ecs::Object::value_type defaultPreset = ecs::Object::value_type(defaultPresetName, 1.0f);
+  const ecs::Object::value_type *preset = nullptr;
+  if (use_scene_time)
   {
-    logerr("Weather preset <%s> not found in level blk, selecting preset based on seed", preset_name);
-    preset = get_preset_by_seed(mgr, eid);
+    preset = &defaultPreset;
+    if (!preset_name)
+    {
+      logerr(
+        "Weather is being loaded from screenshot, but no preset name was supplied! Falling back to selecting preset based on seed.");
+      preset = get_preset_by_seed(mgr, eid);
+    }
+  }
+  else
+  {
+    if (preset_name)
+      preset = get_preset_by_name(mgr, eid, preset_name);
+    else
+      preset = get_preset_by_seed(mgr, eid);
+
+    if (preset_name && !preset)
+    {
+      logerr("Weather preset <%s> not found in level blk, selecting preset based on seed", preset_name);
+      preset = get_preset_by_seed(mgr, eid);
+    }
   }
 
   const char *weatherBlk = mgr.getOr(eid, ECS_HASH("level__weather"), "");
@@ -880,6 +871,9 @@ static WeatherAndDateTime setup_level_weather_and_datetime(ecs::EntityManager &m
         if (skies_seed >= 0)
           ECS_INIT(init, skies_settings__weatherSeed, skies_seed);
 
+        if (skies_blk)
+          load_daskies_to_components_initializer(init, *skies_blk);
+
         mgr.createEntityAsync(String(0, "%s+weather_choice_created", presetName), eastl::move(init));
       }
     }
@@ -910,33 +904,51 @@ static WeatherAndDateTime setup_level_weather_and_datetime(ecs::EntityManager &m
     }
   }
 
-  float timeOfDay = mgr.get<float>(eid, ECS_HASH("level__timeOfDay"));
-  if (keep_time_of_day == KeepTimeOfDay::No)
+  int day, month, year;
+  float lat, lon, timeOfDay;
+  if (use_scene_time)
   {
-    if (timeVec && !timeVec->empty())
-    {
-      for (auto &elem : *timeVec)
-      {
-        float t = elem.get<float>();
-        if (t < 0.f || t > 24.f)
-          logerr("Invalid value in level.timeVec: %.3f not in [0; 24]", t);
-      }
-      int randIdx = _rnd(timeSeed) % timeVec->size();
-      timeOfDay = (*timeVec)[randIdx].get<float>();
-    }
-    else
-      timeOfDay = _rnd_float(timeSeed, timeRange.x, timeRange.y);
+    day = scene_time.day;
+    month = scene_time.month;
+    year = scene_time.year;
+    lat = scene_time.latitude;
+    lon = scene_time.longtitude;
+    timeOfDay = scene_time.timeOfDay;
   }
+  else
+  {
+    timeOfDay = mgr.get<float>(eid, ECS_HASH("level__timeOfDay"));
+    if (keep_time_of_day == KeepTimeOfDay::No)
+    {
+      if (timeVec && !timeVec->empty())
+      {
+        for (auto &elem : *timeVec)
+        {
+          float t = elem.get<float>();
+          if (t < 0.f || t > 24.f)
+            logerr("Invalid value in level.timeVec: %.3f not in [0; 24]", t);
+        }
+        int randIdx = _rnd(timeSeed) % timeVec->size();
+        timeOfDay = (*timeVec)[randIdx].get<float>();
+      }
+      else
+        timeOfDay = _rnd_float(timeSeed, timeRange.x, timeRange.y);
+    }
 
-  if (timeOfDay == 24.f)
-    timeOfDay = 0.f;
-  mgr.set(eid, ECS_HASH("level__timeOfDay"), timeOfDay);
-  mgr.set(eid, ECS_HASH("level__cloudsHoleEnabled"), cloudsHoleEnabled);
+    if (timeOfDay == 24.f)
+      timeOfDay = 0.f;
+    mgr.set(eid, ECS_HASH("level__timeOfDay"), timeOfDay);
+    mgr.set(eid, ECS_HASH("level__cloudsHoleEnabled"), cloudsHoleEnabled);
+
+    day = mgr.getOr(eid, ECS_HASH("level__day"), 21);
+    month = mgr.getOr(eid, ECS_HASH("level__month"), 6);
+    year = mgr.getOr(eid, ECS_HASH("level__year"), 1941);
+    lat = mgr.getOr<float>(eid, ECS_HASH("level__latitude"), -200.f);
+    lon = mgr.getOr<float>(eid, ECS_HASH("level__longtitude"), -200.f);
+  }
   mgr.set(eid, ECS_HASH("level__weather"), weatherSelectedChoice);
 
-  float lat = mgr.getOr<float>(eid, ECS_HASH("level__latitude"), -200.f);
-  float lon = mgr.getOr<float>(eid, ECS_HASH("level__longtitude"), -200.f);
-  return WeatherAndDateTime{timeOfDay, weatherBlk, weatherSelectedChoice, year, month, day, lat, lon};
+  return WeatherAndDateTime{timeOfDay, String(weatherBlk), String(weatherSelectedChoice), year, month, day, lat, lon};
 }
 
 struct LocationHolder
@@ -956,7 +968,7 @@ struct LocationHolder
     level_eid = eid;
 
     G_ASSERTF(!level, "Attempt to load level without unloading old one first?!");
-    g_entity_mgr->broadcastEventImmediate(EventBeforeLocationEntityCreated());
+    mgr.broadcastEventImmediate(EventBeforeLocationEntityCreated());
 
     const char *blkPath = mgr.getOr(eid, ECS_HASH("level__blk"), "");
     sceneload::set_scene_blk_path(blkPath);
@@ -968,7 +980,8 @@ struct LocationHolder
 
     G_ASSERT_RETURN(*blkPath, );
     unload();
-    level.reset(new StrmSceneHolder(blkPath, wdt, eid));
+    const bool loadRender = mgr.getOr(eid, ECS_HASH("level__render"), true);
+    level.reset(new StrmSceneHolder(blkPath, wdt, eid, loadRender));
     if (level_status != LEVEL_EMPTY)
     {
       add_load_level_action(level.get(), level->levelBlk->getStr(LEVEL_BIN_NAME, "undefined"));
@@ -1018,6 +1031,14 @@ void OnLevelLoadedAction::performAction()
 }
 
 ECS_REQUIRE(LocationHolder level)
+ECS_TAG(dngRenderIsActive)
+static inline void level_render_es(const EventBeforeLocationEntityCreated &, bool *level__render)
+{
+  if (level__render)
+    *level__render = true;
+}
+
+ECS_REQUIRE(LocationHolder level)
 static inline void level_es(const EventLevelLoaded &evt, bool *level__loaded)
 {
   if (level__loaded)
@@ -1027,49 +1048,71 @@ static inline void level_es(const EventLevelLoaded &evt, bool *level__loaded)
 
 ECS_REQUIRE(ecs::Tag world_renderer_tag)
 ECS_ON_EVENT(on_appear)
+ECS_TAG(dngRenderIsActive)
 static inline void world_renderer_es_event_handler(const ecs::Event &) { create_world_renderer(); }
 
 template <typename Callable>
-static void get_level_ecs_query(Callable c);
+static void get_level_ecs_query(ecs::EntityManager &manager, Callable c);
 
 const LandMeshManager *get_landmesh_manager()
 {
   const LandMeshManager *mgr = nullptr;
-  get_level_ecs_query([&](const LocationHolder &level) { mgr = level.getLandMeshManager(); });
+  get_level_ecs_query(*g_entity_mgr, [&](const LocationHolder &level) { mgr = level.getLandMeshManager(); });
   return mgr;
 }
 
 RenderScene *get_rivers()
 {
   RenderScene *rivers = nullptr;
-  get_level_ecs_query([&](const LocationHolder &level) { rivers = level.getRivers(); });
+  get_level_ecs_query(*g_entity_mgr, [&](const LocationHolder &level) { rivers = level.getRivers(); });
   return rivers;
 }
 
 template <typename Callable>
-static void delete_weather_choice_entities_ecs_query(Callable c);
+static void delete_weather_choice_entities_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void query_level_entity_eid_set_seed_ecs_query(Callable c);
+static void query_level_entity_eid_set_seed_ecs_query(ecs::EntityManager &manager, Callable c);
+
+template <typename Callable>
+static void query_set_cloud_hole_ecs_query(ecs::EntityManager &manager, Callable c);
 
 
 template <typename Callable>
-static void query_get_level_seeds_ecs_query(ecs::EntityId, Callable c);
+static void query_get_level_seeds_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static void query_get_level_weather_and_time_seeds_ecs_query(ecs::EntityId, Callable c);
+static void query_get_level_weather_and_time_seeds_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 template <typename Callable>
-static void query_get_skies_seed_ecs_query(Callable c);
+static void query_get_skies_seed_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void query_weather_entity_for_export_ecs_query(Callable c);
+static void query_weather_entity_for_export_ecs_query(ecs::EntityManager &manager, Callable c);
 
+template <typename Callable>
+static void query_get_cloud_hole_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static void delete_weather_choice_entities()
 {
-  delete_weather_choice_entities_ecs_query(
+  delete_weather_choice_entities_ecs_query(*g_entity_mgr,
     [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag weather_choice_tag)) { g_entity_mgr->destroyEntity(eid); });
+}
+
+static void create_weather_entities_from_blk(ecs::EntityManager &mgr, const DataBlock &entities_blk)
+{
+  for (int i = 0; i < entities_blk.blockCount(); ++i)
+  {
+    const DataBlock *entityBlk = entities_blk.getBlock(i);
+    const char *templ = entityBlk->getStr("template", "");
+    if (!*templ)
+      continue;
+
+    const DataBlock *compsBlk = entityBlk->getBlockByNameEx("components");
+    ecs::ComponentsInitializer init;
+    blk_to_components_initializer(init, *compsBlk);
+    mgr.createEntityAsync(String(0, "%s+weather_choice_created", templ), eastl::move(init));
+  }
 }
 
 void save_weather_settings_to_screenshot(DataBlock &blk)
@@ -1078,13 +1121,29 @@ void save_weather_settings_to_screenshot(DataBlock &blk)
   int weatherSeed = 0;
   int timeSeed = 0;
   int skiesSeed = 0;
+  String presetName;
 
-  query_get_level_weather_and_time_seeds_ecs_query(levelEid, [&](const int level__weatherSeed, const int level__timeSeed) {
-    weatherSeed = level__weatherSeed;
-    timeSeed = level__timeSeed;
+  query_get_level_weather_and_time_seeds_ecs_query(*g_entity_mgr, levelEid,
+    [&](const int level__weatherSeed, const int level__timeSeed, ecs::string level__weather, float level__latitude,
+      float level__longtitude, int level__day, int level__month, int level__year) {
+      weatherSeed = level__weatherSeed;
+      timeSeed = level__timeSeed;
+      presetName = level__weather.c_str();
+      blk.setStr("preset_name", presetName);
+      blk.setReal("latitude", level__latitude);
+      blk.setReal("longitude", level__longtitude);
+      blk.setInt("day", level__day);
+      blk.setInt("month", level__month);
+      blk.setInt("year", level__year);
+    });
+
+  query_get_cloud_hole_ecs_query(*g_entity_mgr, [&](const TMatrix &transform, float density ECS_REQUIRE(ecs::Tag clouds_hole_tag)) {
+    blk.setPoint3("cloud_hole_pos", transform.getcol(3));
+    blk.setReal("cloud_hole_density", density);
   });
 
-  query_get_skies_seed_ecs_query([&](const int skies_settings__weatherSeed) { skiesSeed = skies_settings__weatherSeed; });
+  query_get_skies_seed_ecs_query(*g_entity_mgr,
+    [&](const int skies_settings__weatherSeed) { skiesSeed = skies_settings__weatherSeed; });
 
   blk.setInt("weather_seed", weatherSeed);
   blk.setInt("skies_seed", skiesSeed);
@@ -1098,8 +1157,142 @@ void save_weather_settings_to_screenshot(DataBlock &blk)
     blk.setPoint2("clouds_origin", point2(cloudsOrigin));
     blk.setPoint2("strata_clouds_origin", point2(strataCloudsOrigin));
     blk.setReal("time_of_day", timeOfDay);
+    blk.setReal("sky_coord_frame__altitude_offset", get_daskies()->getAltitudeOffset());
   }
+
+  const ecs::TemplateDB &db = g_entity_mgr->getTemplateDB();
+  DataBlock *entitiesBlkPtr = nullptr;
+  bool isPresetNameValid = strcmp(presetName.c_str(), "") != 0;
+  if (!isPresetNameValid)
+    logerr("'level__weather' is not set! This probably indicates a bug!");
+  query_weather_entity_for_export_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag weather_choice_tag)) {
+    eastl::string templateName = g_entity_mgr->getEntityTemplateName(eid);
+    auto plusPos = templateName.find_first_of('+');
+    if (plusPos != eastl::string::npos)
+      templateName.erase(plusPos);
+
+    if (isPresetNameValid && strstr(templateName.c_str(), presetName.c_str()))
+      return;
+
+    const ecs::Template *templ = db.getTemplateByName(templateName);
+    if (!templ)
+      return;
+
+    if (!entitiesBlkPtr)
+      entitiesBlkPtr = blk.addBlock("weather_entities");
+
+    DataBlock &entityBlk = *entitiesBlkPtr->addBlock("entity");
+    entityBlk.setStr("template", templateName.c_str());
+
+    DataBlock &compsBlk = *entityBlk.addBlock("components");
+    const char *prev = nullptr;
+    for (auto iter = g_entity_mgr->getComponentsIterator(eid, false); iter; ++iter)
+    {
+      const auto &comp = *iter;
+      const char *name = comp.first;
+
+      if (prev && !strcmp(prev, name))
+        continue;
+      prev = name;
+
+      const ecs::EntityComponentRef &entityComp = comp.second;
+      const ecs::component_type_t ctype = entityComp.getUserType();
+
+      if (!ecs::is_component_blk_serializable(ctype) || ctype == ecs::ComponentTypeInfo<ecs::EntityId>::type ||
+          ctype == ecs::ComponentTypeInfo<ecs::List<ecs::EntityId>>::type || !strcmp(name, "transform"))
+        continue;
+
+      ecs::HashedConstString nameHash = ECS_HASH_SLOW(name);
+      if (templ->hasComponent(nameHash, db.data()))
+      {
+        const ecs::ChildComponent &templateComp = templ->getComponent(nameHash, db.data());
+        if (templateComp == entityComp)
+          continue;
+      }
+
+      ecs::component_to_blk_param(name, entityComp, &compsBlk);
+    }
+  });
 }
+
+static void load_weather_preset_from_blk(const DataBlock &blk)
+{
+  delete_weather_choice_entities();
+
+  const DataBlock *weatherBlk = blk.getBlockByName("weather");
+  if (!weatherBlk)
+  {
+    logerr("The DataBlock supplied to `load_weather_preset_from_blk` does not contain a `weather` block!");
+    return;
+  }
+
+  if (!weatherBlk->paramExists("weather_seed") || !weatherBlk->paramExists("skies_seed") || !weatherBlk->paramExists("time_seed") ||
+      !weatherBlk->paramExists("day") || !weatherBlk->paramExists("month") || !weatherBlk->paramExists("year") ||
+      !weatherBlk->paramExists("latitude") || !weatherBlk->paramExists("longitude") || !weatherBlk->paramExists("preset_name"))
+  {
+    logerr("[Screenshot-based weather loading] Some of the required params are missing! Might be an outdated screenshot. For those "
+           "use the old method to load them!");
+    return;
+  }
+
+  const float timeOfDay = weatherBlk->getReal("time_of_day", 9.f);
+  const int weatherSeed = weatherBlk->getInt("weather_seed");
+  const int skiesSeed = weatherBlk->getInt("skies_seed");
+  const int timeSeed = weatherBlk->getInt("time_seed");
+  const int day = weatherBlk->getInt("day");
+  const int month = weatherBlk->getInt("month");
+  const int year = weatherBlk->getInt("year");
+  const float latitude = weatherBlk->getReal("latitude");
+  const float longitude = weatherBlk->getReal("longitude");
+  const char *presetName = weatherBlk->getStr("preset_name");
+
+  if (weatherBlk->paramExists("cloud_hole_pos") && weatherBlk->paramExists("cloud_hole_density"))
+  {
+    query_set_cloud_hole_ecs_query(*g_entity_mgr, [&](TMatrix &transform, float &density ECS_REQUIRE(ecs::Tag clouds_hole_tag)) {
+      transform.setcol(3, weatherBlk->getPoint3("cloud_hole_pos"));
+      density = weatherBlk->getReal("cloud_hole_density");
+    });
+  }
+
+  ecs::EntityId levelEid;
+  query_level_entity_eid_set_seed_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid, int &level__weatherSeed, int &level__timeSeed) {
+    levelEid = eid;
+    level__weatherSeed = weatherSeed;
+    level__timeSeed = timeSeed;
+  });
+  ecs_tick();
+
+  ecs::EntityManager &mgr = *g_entity_mgr;
+  if (!blk.getBlockByName("skies"))
+  {
+    logerr("The DataBlock supplied to `load_weather_preset_from_blk` does not contain a `skies` block!");
+    return;
+  }
+  const DataBlock &skiesBlk = *blk.getBlockByName("skies");
+  ::load(scene_time, skiesBlk, timeOfDay, year, month, day, latitude, longitude);
+  WeatherAndDateTime wdt = setup_level_weather_and_datetime(mgr, levelEid, presetName, WeatherCreateOnClient::Yes, KeepTimeOfDay::Yes,
+    skiesSeed, &skiesBlk, true);
+
+  if (const DataBlock *entitiesBlk = weatherBlk->getBlockByName("weather_entities"))
+    create_weather_entities_from_blk(mgr, *entitiesBlk);
+
+  SkiesPanel skiesData = {wdt.timeOfDay, wdt.day, wdt.month, wdt.year, wdt.lat, wdt.lon, skiesSeed};
+  load_daskies(skiesBlk, skiesData, skiesBlk, true);
+
+  g_entity_mgr->broadcastEventImmediate(EventSkiesLoaded{});
+
+  DngSkies *skies = get_daskies();
+  if (skies && weatherBlk->paramExists("sky_coord_frame__altitude_offset"))
+    skies->setAltitudeOffset(weatherBlk->getReal("sky_coord_frame__altitude_offset"));
+  if (skies && weatherBlk->paramExists("clouds_origin"))
+    set_clouds_origin(dpoint2(weatherBlk->getPoint2("clouds_origin")));
+  if (skies && weatherBlk->paramExists("strata_clouds_origin"))
+    set_strata_clouds_origin(dpoint2(weatherBlk->getPoint2("strata_clouds_origin")));
+
+  console::print_d("weather choice: %s", wdt.weatherChoice);
+  console::print_d("time: %f", timeOfDay);
+}
+
 
 void select_weather_preset(const char *preset_name)
 {
@@ -1115,8 +1308,14 @@ void select_weather_preset(const char *preset_name)
     setup_level_weather_and_datetime(*g_entity_mgr, levelEid, preset_name, WeatherCreateOnClient::Yes, KeepTimeOfDay::Yes);
 
   ::load(scene_time, *saved_level_blk.getBlockByNameEx("skies"), wdt.timeOfDay, wdt.year, wdt.month, wdt.day, wdt.lat, wdt.lon);
-  load_daskies(*saved_level_blk.getBlockByNameEx("skies"), scene_time.timeOfDay, wdt.weatherBlk, scene_time.year, scene_time.month,
-    scene_time.day, scene_time.latitude, scene_time.longtitude);
+  SkiesPanel skiesData;
+  skiesData.time = scene_time.timeOfDay;
+  skiesData.day = scene_time.day;
+  skiesData.month = scene_time.month;
+  skiesData.year = scene_time.year;
+  skiesData.latitude = scene_time.latitude;
+  skiesData.longtitude = scene_time.longtitude;
+  load_daskies(*saved_level_blk.getBlockByNameEx("skies"), skiesData, wdt.weatherBlk);
 
   // TODO: this will apply clouds settings twice, once when created, once with EventSkiesLoaded event
   // but it's needed for cinematic mode to know whether entities exist in the template, when it gets EventSkiesLoaded event
@@ -1124,12 +1323,25 @@ void select_weather_preset(const char *preset_name)
   g_entity_mgr->broadcastEventImmediate(EventSkiesLoaded{});
 }
 
+static String delayed_select_preset_name;
+
+void select_weather_preset_delayed(const char *preset_name) { delayed_select_preset_name = preset_name; }
+
+void update_delayed_weather_selection()
+{
+  if (!delayed_select_preset_name.empty())
+  {
+    select_weather_preset(delayed_select_preset_name.c_str());
+    delayed_select_preset_name = "";
+  }
+}
+
 void reroll_weather_choice(
   int weather_seed, int skies_seed = -1, int time_seed = -1, float time_of_day = -1, const char *preset_name = nullptr)
 {
   delete_weather_choice_entities();
   ecs::EntityId levelEid;
-  query_level_entity_eid_set_seed_ecs_query([&](ecs::EntityId eid, int &level__weatherSeed, int &level__timeSeed) {
+  query_level_entity_eid_set_seed_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid, int &level__weatherSeed, int &level__timeSeed) {
     levelEid = eid;
     level__weatherSeed = weather_seed;
     level__timeSeed = time_seed;
@@ -1138,8 +1350,15 @@ void reroll_weather_choice(
   WeatherAndDateTime wdt =
     setup_level_weather_and_datetime(*g_entity_mgr, levelEid, preset_name, WeatherCreateOnClient::No, KeepTimeOfDay::No, skies_seed);
   float timeOfDay = time_of_day < 0 ? wdt.timeOfDay : time_of_day;
-  load_daskies(*saved_level_blk.getBlockByNameEx("skies"), timeOfDay, wdt.weatherBlk, wdt.year, wdt.month, wdt.day, wdt.lat, wdt.lon,
-    skies_seed);
+  SkiesPanel skiesData;
+  skiesData.time = timeOfDay;
+  skiesData.day = wdt.day;
+  skiesData.month = wdt.month;
+  skiesData.year = wdt.year;
+  skiesData.latitude = wdt.lat;
+  skiesData.longtitude = wdt.lon;
+  skiesData.seed = skies_seed;
+  load_daskies(*saved_level_blk.getBlockByNameEx("skies"), skiesData, wdt.weatherBlk);
   g_entity_mgr->broadcastEventImmediate(EventSkiesLoaded{});
 
   console::print_d("weather choice: %s", wdt.weatherChoice);
@@ -1149,13 +1368,14 @@ void reroll_weather_choice(
 static bool skies_setting_test_console_handler(const char *argv[], int argc)
 {
   int found = 0;
-  CONSOLE_CHECK_NAME("level", "reroll_weather_choice", 1, 5)
+  CONSOLE_CHECK_NAME("level", "reroll_weather_choice", 1, 6)
   {
     delete_weather_choice_entities();
     int weatherSeed = -1; //-1 means it'll be randomized in setup_level_weather_and_datetime
     int skiesSeed = -1;
     int timeSeed = -1;
     float timeOfDay = -1;
+    const char *presetName = nullptr;
     if (argc >= 2)
       weatherSeed = console::to_int(argv[1]);
     if (argc >= 3)
@@ -1164,7 +1384,9 @@ static bool skies_setting_test_console_handler(const char *argv[], int argc)
       timeSeed = console::to_int(argv[3]);
     if (argc >= 5)
       timeOfDay = console::to_real(argv[4]);
-    reroll_weather_choice(weatherSeed, skiesSeed, timeSeed, timeOfDay);
+    if (argc >= 6)
+      presetName = argv[5];
+    reroll_weather_choice(weatherSeed, skiesSeed, timeSeed, timeOfDay, presetName);
   }
 
   CONSOLE_CHECK_NAME("level", "select_weather_preset", 2, 2) { select_weather_preset(argv[1]); }
@@ -1190,14 +1412,15 @@ static bool skies_setting_test_console_handler(const char *argv[], int argc)
     String presetName;
     DPoint2 cloudsOrigin = get_clouds_origin();
     DPoint2 strataCloudsOrigin = get_strata_clouds_origin();
-    query_get_level_seeds_ecs_query(levelEid,
+    query_get_level_seeds_ecs_query(*g_entity_mgr, levelEid,
       [&](const int level__weatherSeed, const int level__timeSeed, ecs::string level__weather) {
         weatherSeed = level__weatherSeed;
         timeSeed = level__timeSeed;
         presetName = String(level__weather.c_str());
       });
 
-    query_get_skies_seed_ecs_query([&](const int skies_settings__weatherSeed) { skiesSeed = skies_settings__weatherSeed; });
+    query_get_skies_seed_ecs_query(*g_entity_mgr,
+      [&](const int skies_settings__weatherSeed) { skiesSeed = skies_settings__weatherSeed; });
     slotBlk->setInt("weather_seed", weatherSeed);
     slotBlk->setInt("time_seed", timeSeed);
     slotBlk->setInt("skies_seed", skiesSeed);
@@ -1226,9 +1449,21 @@ static bool skies_setting_test_console_handler(const char *argv[], int argc)
       slotBlk->getReal("time_of_day", -1.0), slotBlk->getStr("preset_name", nullptr));
   }
 
+  CONSOLE_CHECK_NAME("level", "load_weather_from_image", 2, 2)
+  {
+    delete_weather_choice_entities();
+    const char *imagePath = argv[1];
+    DataBlock metaInfo;
+    String errorMessage;
+    if (load_meta_info_from_image(imagePath, metaInfo, errorMessage))
+      load_weather_preset_from_blk(metaInfo);
+    else
+      logerr("%s", errorMessage.c_str());
+  }
+
   CONSOLE_CHECK_NAME("level", "export_weather_gen", 1, 1)
   {
-    query_weather_entity_for_export_ecs_query([&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag weather_choice_tag)) {
+    query_weather_entity_for_export_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid ECS_REQUIRE(ecs::Tag weather_choice_tag)) {
       eastl::string templateName = g_entity_mgr->getEntityTemplateName(eid);
       templateName.erase(templateName.find_first_of('+'));
 

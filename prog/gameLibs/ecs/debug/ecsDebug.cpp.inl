@@ -9,7 +9,6 @@
 
 #define debug(...) logmessage(_MAKE4C('ECS '), __VA_ARGS__)
 
-ECS_DEF_PULL_VAR(ecs_debug);
 
 static bool should_log_destroy = true;
 static int8_t force_ecs_debug_state = -1;

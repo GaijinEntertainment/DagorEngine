@@ -14,6 +14,29 @@ include "taa_inc.dshl"
 include "vertex_density_overlay_inc.dshl"
 include "tree_ellipsoid_normal.dshl"
 include "fast_grass_inc.dshl"
+include_optional "burnt_ground/shaders/burnt_grass.dshl"
+
+define_macro_if_not_defined INIT_BURNT_GRASS()
+endmacro
+
+define_macro_if_not_defined USE_BURNT_GRASS()
+  PACK_UNPACK_GBUFFER()
+
+  hlsl (vs) {
+    float get_instance_burnt_grass_progress(float3 instance_world_pos)
+    {
+      return 0;
+    }
+  }
+  hlsl (ps) {
+    float get_burnt_grass_progress(float instance_burnt_progress, float3 instance_world_pos, float3 tc, float pixel_burn_offset)
+    {
+      return 0;
+    }
+    void apply_burnt_grass_alpha(float progress, inout float alpha) {}
+    void apply_burnt_grass(float progress, inout UnpackedGbuffer gbuffer) {}
+  }
+endmacro
 
 // trees above only requires albedo and ao for gbuffer
 int gbuffer_for_treesabove = 0;
@@ -25,14 +48,23 @@ interval has_discard_without_prepass: discardOff <1, discardOn;
 int has_motion_vectors = 0;
 interval has_motion_vectors: no < 1, yes;
 
+// TODO this is a temporary solution
+//  There is new shader in progress, which is a simplified variant of the tree shader,
+//  that's currently used for the GPU object-based vegetation.
+//  Once that shader is ready, burnt grass can be moved to that and removed from here along with this interval.
+int use_ri_burnt_grass = 0;
+interval use_ri_burnt_grass: no < 1, yes;
+
+int draw_id_const_buffer_reg_no = 7;
+
+int immediate_const_buffer_reg_no_dx12 = 8;
+
 macro DEFINE_PIVOT_POINT_WIND_SCALE()
   hlsl(vs) { static const float AnimWindScale = 0.25; }
 endmacro
 
 shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_alpha_split
 {
-  ENABLE_ASSERT(ps)
-
   VERTEX_DENSITY_INIT_VS()
   VERTEX_DENSITY_WRITE()
 
@@ -99,7 +131,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         rendinst_render_pass == rendinst_render_pass_depth ||
         (rendinst_render_pass == rendinst_render_pass_normal && (in_editor_assume == yes || has_discard_without_prepass == discardOn)))
     {
-      (ps) { alpha_tex@static = alpha_tex; }
+      (ps) { alpha_tex@staticSmp = alpha_tex; }
     }
   }
 
@@ -128,8 +160,9 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     angle_dissolve@f1 = (angle_dissolve);
   }
 
-  if (rendinst_render_pass != rendinst_render_pass_impostor_shadow && rendinst_render_pass != rendinst_render_pass_impostor_color &&
-     (rendinst_render_pass != rendinst_render_pass_depth || instancing_type != tm_vb) && rendinst_render_pass != rendinst_render_pass_to_shadow)
+  if (rendinst_render_pass != rendinst_render_pass_impostor_shadow
+      && (rendinst_render_pass != rendinst_render_pass_depth || instancing_type != tm_vb)
+      && rendinst_render_pass != rendinst_render_pass_to_shadow)
   {
     ENABLE_MULTI_DRAW(atest != atestOn && rendinst_render_pass == rendinst_render_pass_depth)
   }
@@ -138,6 +171,10 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     USE_INDIRECT_DRAW() // For PS4/5. Allow daGDP to invoke this shader with indirect draw call
   }
 
+  if(instancing_type == tm_vb)
+  {
+    USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
+  }
   RENDINST_BLOCK()
   RENDINST_INSTANCING()
   ROTATION_PALETTE_FOR_POS_INST()
@@ -145,6 +182,29 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
   USE_TREE_ELLIPSOID_NORMAL()
 
   DECLARE_APPLY_TREE_WIND()
+
+  bool need_burnt_grass = use_ri_burnt_grass == yes && (shader == rendinst_tree_colored_alpha_split || shader == rendinst_tree_colored) &&
+    (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_to_shadow ||
+                            rendinst_render_pass == rendinst_render_pass_depth);
+  bool need_tree_burning_for_leaves = !need_burnt_grass && (shader == rendinst_tree_colored || shader == rendinst_tree_colored_alpha_split) &&
+    atest == atestOn && instancing_type == tm_vb && rendinst_render_pass != rendinst_render_pass_impostor_color;
+  bool need_tree_burning_for_trunk = !need_burnt_grass && (shader == rendinst_tree_colored || shader == rendinst_tree_colored_alpha_split) &&
+    atest == atestOff && instancing_type == tm_vb && rendinst_render_pass == rendinst_render_pass_normal;
+  bool need_tree_burning = need_tree_burning_for_leaves || need_tree_burning_for_trunk;
+
+  if (need_tree_burning)
+  {
+    bool need_color = rendinst_render_pass != rendinst_render_pass_to_shadow && rendinst_render_pass != rendinst_render_pass_depth;
+    INIT_TREE_BURNING(need_color)
+  }
+
+  if (need_burnt_grass)
+  {
+    hlsl {
+      #define BURNT_GRASS_ENABLED 1
+    }
+    USE_BURNT_GRASS()
+  }
 
   macro DEFAULT_VERTEX_SHADER()
     if (is_pivoted == yes)
@@ -159,7 +219,12 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         PRECISE VS_OUT_POSITION(pos)
         ##if rendinst_render_pass != rendinst_render_pass_depth
           float4 normal                 : TEXCOORD0;
+          #if GRASS_COLORING
+          // pass self-shadow factor in .w
+          float4 ellipsoidNormal             : TEXCOORD7;
+          #else
           float3 ellipsoidNormal             : TEXCOORD7;
+          #endif
           #if COLOR_NEEDED
           nointerpolation float3 colorMul : TEXCOORD3;
           #endif
@@ -185,6 +250,18 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
           float4 out_pos                   : TEXCOORD5;
           float4 out_pos_prev              : TEXCOORD6;
         #endif
+        ##if need_burnt_grass
+          nointerpolation float4 instance_pos__burnt_progress : TEXCOORD8;
+          float3 burnt_tc : TEXCOORD9;
+        ##endif
+        #ifdef TREE_BURNING_VSOUTPUT
+          TREE_BURNING_VSOUTPUT(TEXCOORD8)
+          ##if need_tree_burning_for_trunk
+            float3 originalWorldLocalPos : TEXCOORD9;
+          ##elif need_tree_burning_for_leaves && is_pivoted == yes
+            float4 leavesPivotLength : TEXCOORD9;
+          ##endif
+        #endif
         #if defined(VSOUT_DRAW_ID)
           VSOUT_DRAW_ID
         #endif
@@ -202,6 +279,13 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         grass_ao_max@f1 = fast_grass_ao_max;
         grass_ao_curve@f1 = fast_grass_ao_curve;
         smoothnessfadeParams@f2 = (fast_grass_smoothness_fade_start, 1.0 / max(fast_grass_smoothness_fade_end - fast_grass_smoothness_fade_start, 0.001) );
+        fast_grass_slice_step@f1 = fast_grass_slice_step;
+        fast_grass_aspect_ratio@f1 = fast_grass_aspect_ratio;
+        self_shadow_samples@u1 = fast_grass_self_shadow_samples;
+        pre_half_texel@f1 = 0.5 / get_dimensions(fast_grass_pre_hmap, 0).x;
+        pre_levels@u1 = fast_grass_num_clips;
+        pre_hmap_tex@smpArray = fast_grass_pre_hmap;
+        fast_grass_tex_a@smpArray = fast_grass_tex_a;
         VSGrassTypes@cbuf = fast_grass_types_buf hlsl {
           #include <grassInstance.hlsli>
           cbuffer VSGrassTypes@cbuf
@@ -209,6 +293,19 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
             FastGrassType fast_grass_types[GRASS_MAX_CHANNELS];
           };
         };
+
+        if (in_editor == yes)
+        {
+          heightmap_scale@f4 = heightmap_scale;
+        }
+      }
+
+      // No RI grass self-shadow for SPIRV because of stupid hardcoded registers taking up all the slots.
+      // What's the deal with it? At least in Vulkan, the limit is on descriptor sets, not uniform buffers.
+      // A single descriptor set can hold multiple buffers, why don't we put all the harcoded stuff in one for example?
+      if (fast_grass_self_shadow_samples != off)
+      {
+        USE_FAST_GRASS_CLIP_RECTS(vs)
       }
 
       hlsl(vs)
@@ -220,12 +317,40 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
           return 2.0 * asfloat((n & 0x7FFFFFu) | 0x3F000000u) - 1.0; // Convert to float in 0-1 range.
         }
 
+        ##if fast_grass_self_shadow_samples != off
+        static const float4 tex_lod_factor = float4(0, 0, 0, 3); // fixed mipmap bias, we want blurry shadows
+
+        float3 computePrecompTC(float2 xz)
+        {
+          for (uint clip = 0; clip < pre_levels; clip++)
+          {
+            // Sampling the grass cache clipmap with some margins (1.5 texels low, 2.5 high).
+            // If the clamped texture coordinates are equal to unclamped ones,
+            // we're inside that clipmap level and can use it.
+            // The margins are to avoid artefacts on the clipmap level transitions,
+            // and are mostly determined experimentally.
+            float4 proj = get_world_to_fg_clip(clip);
+            float2 tc = proj.xy * xz + proj.zw;
+            if (all(tc == clamp(tc, pre_half_texel*3, 1 - 5*pre_half_texel)) || clip + 1u == pre_levels)
+              return float3(tc, clip);
+          }
+          return float3(-1, -1, 0);
+        }
+
+        float sampleHeight(float3 worldPos)
+        {
+          float rawh = tex3Dlod(pre_hmap_tex, float4(computePrecompTC(worldPos.xz), 0)).r;
+          return rawh * heightmap_scale.x + heightmap_scale.y;
+        }
+        ##endif
+
         void get_grass_colors(out float3 landColor, out float3 maskR, out float3 maskB, out float3 maskG0, out float3 maskG1,
-          out float grassHeight, float3 worldPos, uint vbInd)
+          out float grassHeight, out uint grassChannel, float3 worldPos, uint vbInd)
         {
           uint3 pdata = asuint(per_instance_data[vbInd+3].yzw);
           landColor = float3(uint3(pdata.x, pdata.x >> 8, pdata.x >> 16) & 0xff) / 255.0;
           uint channel = min(pdata.x >> 24, GRASS_MAX_CHANNELS);
+          grassChannel = channel;
           const uint seed = 0x3C4CC0D7u;
           float rnd1 = stableRand(pdata.y, seed);
           float rnd2 = stableRand(pdata.z, seed);
@@ -235,6 +360,11 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
           maskG1 = fast_grass_types[channel].mask_g_color1.rgb;
           grassHeight = fast_grass_types[channel].height;
         }
+      }
+
+      if (fast_grass_self_shadow_samples != off)
+      {
+        USE_FAST_GRASS_SHADOW(vs)
       }
 
       hlsl(ps)
@@ -249,6 +379,22 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         }
       }
     }
+
+    if (need_tree_burning_for_leaves)
+    {
+      TREE_BURNING_LEAVES_VS()
+    }
+    else if (need_tree_burning_for_trunk)
+    {
+      INIT_AND_USE_RIEXTRA_ORIGINAL_TM(vs)
+      TREE_BURNING_TRUNK_VS()
+    }
+
+    if (instancing_type == tm_vb && rendinst_render_pass == rendinst_render_pass_normal)
+    {
+      INIT_AND_USE_RIEXTRA_PREV_TM(vs)
+    }
+
 
     if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
     {
@@ -294,9 +440,19 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
 
         ##if (is_pivoted == yes && rendinst_render_pass != rendinst_render_pass_impostor_color)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
-          float3 currWorldPos, prevWorldPos;
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, currWorldPos, prevWorldPos, movementAmount);
-          worldPos = currWorldPos;
+          float3 prevWorldPos = worldPos;
+          ##if (instancing_type == tm_vb && rendinst_render_pass == rendinst_render_pass_normal)
+            float3 prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos;
+            LOAD_PREV_WORLD_TM(worldLocalX, worldLocalY, worldLocalZ, worldLocalPos, prevWorldTmX, prevWorldTmY, prevWorldTmZ, prevWorldTmPos)
+            prevWorldPos = localPos.x * prevWorldTmX + localPos.y * prevWorldTmY + localPos.z * prevWorldTmZ + prevWorldTmPos;
+          ##endif
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, prevWorldPos, movementAmount);
+          #ifdef TREE_BURNING_VSOUTPUT
+            ##if need_tree_burning_for_leaves
+              output.leavesPivotLength = float4(Data.localBranchPivotPos[0], Data.branchDirExtent[0].w);
+            ##endif
+          #endif
+          float3 currWorldPos = worldPos;
         ##endif
 
         ##if (atest == atestOn)
@@ -320,11 +476,12 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         #endif
         ##if rendinst_render_pass != rendinst_render_pass_depth
           #if COLOR_NEEDED
-            output.colorMul = get_random_color(worldLocalPos, 0).xyz;
+            output.colorMul = get_random_color(worldLocalPos, paletteId).xyz;
           #endif
           #if GRASS_COLORING
             float grassHeight;
-            get_grass_colors(output.landColor, output.maskR, output.maskB, output.maskG0, output.maskG1, grassHeight, worldPos, vbInd);
+            uint grassChannel;
+            get_grass_colors(output.landColor, output.maskR, output.maskB, output.maskG0, output.maskG1, grassHeight, grassChannel, worldPos, vbInd);
           #endif
           float3 localEllipsoidNormal = getEllipsoidNormal(localPos, bounding_sphere);
           output.ellipsoidNormal.xyz = normalize(localEllipsoidNormal.x * worldLocalX + localEllipsoidNormal.y * worldLocalY + localEllipsoidNormal.z * worldLocalZ);
@@ -336,7 +493,12 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
             float dist = distance(worldPos, world_view_pos);
             float smoothnessfade = 1.0 - saturate((dist - smoothnessfadeParams.x) * smoothnessfadeParams.y);
             ao = lerp(1, ao, smoothnessfade);
-            output.normal.a *= ao;
+            // output.normal.a *= ao; // disabled for now because it gives a better match with fast_grass
+            ##if fast_grass_self_shadow_samples != off
+              output.ellipsoidNormal.w = computeSelfShadow(worldPos, 1, grassChannel, grassHeight, 0.0);
+            ##else
+              output.ellipsoidNormal.w = 1;
+            ##endif
           #endif
         ##endif
         output.pointToEye = pointToEye.xyzz;
@@ -358,7 +520,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
           ##elif use_cross_dissolve == on
             opacity = 1 - get_transition_lod_cross_dissolve_opacity(distToInstance, lods_shift_dist_mul);
           ##else
-            opacity = saturate(eyeDist * rendinst_opacity.x + rendinst_opacity.y);
+            opacity = saturate(eyeDist / length(worldLocalY) * rendinst_opacity.x + rendinst_opacity.y);
           ##endif
 
           output.diffuseTexcoord.z = min(-dissolveDist, opacity-0.9999);
@@ -366,6 +528,19 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         ##endif
 
         writeVertexDensityPos(output.pos);
+
+        ##if need_burnt_grass
+          output.instance_pos__burnt_progress.xyz = worldLocalPos;
+          output.instance_pos__burnt_progress.w = get_instance_burnt_grass_progress(worldLocalPos);
+          output.burnt_tc = localPos / (bounding_sphere.w+bounding_sphere.z);
+        ##endif
+
+        #ifdef TREE_BURNING_VSOUTPUT
+          ##if need_tree_burning_for_trunk
+            LOAD_ORIGINAL_WORLD_POS(worldLocalPos, output.originalWorldLocalPos)
+          ##endif
+          read_tree_burning_additional_data(output, perInstanceRenderDataFlags, perInstanceRenderDataOffset);
+        #endif
 
         return output;
       }
@@ -385,7 +560,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     PACK_UNPACK_GBUFFER()
     USE_PIXEL_TANGENT_SPACE()
     USE_WEIGHT_FOR_AO()
-    FILL_CURRENT_GBUFFER(true)
+    FILL_CURRENT_GBUFFER(true, true)
     USE_RENDINST_IMPOSTOR_SHADOW()
     USE_CLIP_DISSOLVE()
     hlsl(ps) {
@@ -481,6 +656,11 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
       USE_VEGETATION_INTERACTIONS()
     }
 
+    if (need_tree_burning_for_leaves)
+    {
+      (ps) { normal_tex@staticSmp = normal; }
+    }
+
     hlsl {
       struct VsOutput
       {
@@ -488,10 +668,26 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         ##if atest == atestOn
         float2 diffuseTexcoord        : TEXCOORD0;
         ##endif
+        ##if need_burnt_grass
+          nointerpolation float4 instance_pos__burnt_progress : TEXCOORD1;
+          float3 burnt_tc : TEXCOORD2;
+        ##endif
+        #ifdef TREE_BURNING_VSOUTPUT
+          float3 localPos             : TEXCOORD1;
+          TREE_BURNING_VSOUTPUT(TEXCOORD2)
+          ##if need_tree_burning_for_leaves && is_pivoted == yes
+            float4 leavesPivotLength : TEXCOORD3;
+          ##endif
+        #endif
         #if defined(VSOUT_DRAW_ID)
         VSOUT_DRAW_ID
         #endif
       };
+    }
+    if (need_tree_burning_for_leaves)
+    {
+      TREE_BURNING_LEAVES_VS()
+      TREE_BURNING_LEAVES_PS(false)
     }
     hlsl(vs) {
       INSTANCING_BUFFERS
@@ -523,16 +719,33 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         ##if (is_pivoted == yes)
           HierarchyData Data = fetchHierarchyData(input.indirectTexcoord, worldLocalX, worldLocalY, worldLocalZ, worldLocalPos);
           float3 unusedPrevPos;
-          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, worldPos, unusedPrevPos);
+          applyWindAnimationOffset(worldPos, worldNormal, Data, tree_wind_params.x, AnimWindScale, unusedPrevPos);
 
           float3 windVcol = BGRA_SWIZZLE(input.vcol).xyz * get_wind_channel_strength();
           worldPos += ApplyTreeWind(windVcol,tree_wind_params, worldLocalPos, worldPos, input.pos, worldNormal,1,1);
+
+          #ifdef TREE_BURNING_VSOUTPUT
+            ##if need_tree_burning_for_leaves
+              output.leavesPivotLength = float4(Data.localBranchPivotPos[0], Data.branchDirExtent[0].w);
+            ##endif
+          #endif
         ##endif
 
         output.pos = mulPointTm(worldPos + camera_base_offset, globtm);
         ##if atest == atestOn
         output.diffuseTexcoord.xy = input.diffuseTexcoord;
         ##endif
+
+        ##if need_burnt_grass
+          output.instance_pos__burnt_progress.xyz = worldLocalPos;
+          output.instance_pos__burnt_progress.w = get_instance_burnt_grass_progress(worldLocalPos);
+          output.burnt_tc = localPos / (bounding_sphere.w+bounding_sphere.z);
+        ##endif
+
+        #ifdef TREE_BURNING_VSOUTPUT
+          output.localPos = localPos;
+          read_tree_burning_additional_data(output, perInstanceRenderDataFlags, perInstanceRenderDataOffset);
+        #endif
 
         return output;
       }
@@ -543,7 +756,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
     {
       if (shader == rendinst_tree_colored)
       {
-        (ps) { diffuse_tex@static = tex; }
+        (ps) { diffuse_tex@staticSmp = tex; }
       }
 
       hlsl(ps) {
@@ -559,11 +772,42 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
           ##else
             float alpha = tex2DBindless(get_alpha_tex(), input.diffuseTexcoord).x;
           ##endif
+          #if BURNT_GRASS_ENABLED
+            float burntProgress = get_burnt_grass_progress(
+              input.instance_pos__burnt_progress.w, input.instance_pos__burnt_progress.xyz, input.burnt_tc, input.burnt_tc.y);
+            apply_burnt_grass_alpha(burntProgress, alpha);
+          #endif
+          clip(alpha - 0.5);
+
+          ##if need_tree_burning_for_leaves
+            apply_tree_burning_additional_data(input);
+          ##endif
+        }
+      }
+      compile("target_ps", "rendinst_render_to_shadow_ps");
+    }
+    else if (need_burnt_grass)
+    {
+      hlsl(ps) {
+#define __XBOX_FORCE_PS_ZORDER_LATE_Z 1
+
+        void rendinst_render_to_shadow_ps(VsOutput input)
+        {
+          #if SET_UP_MULTIDRAW
+            SET_DRAW_CALL_ID(GET_MATERIAL_OFFSET(input));
+          #endif
+          float alpha = 1;
+          #if BURNT_GRASS_ENABLED
+            float burntProgress = get_burnt_grass_progress(
+              input.instance_pos__burnt_progress.w, input.instance_pos__burnt_progress.xyz, input.burnt_tc, input.burnt_tc.y);
+            apply_burnt_grass_alpha(burntProgress, alpha);
+          #endif
           clip(alpha - 0.5);
         }
       }
       compile("target_ps", "rendinst_render_to_shadow_ps");
-    } else
+    }
+    else
     {
       compile("ps_null", "rendinst_render_depth_black_ps");
     }
@@ -586,7 +830,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         USE_RANDOM_COLOR()
       }
       USE_PIXEL_TANGENT_SPACE()
-      if (mobile_render == deferred || gbuffer_for_treesabove == off)
+      if (gbuffer_for_treesabove == off)
       {
         WRITE_GBUFFER()
       }
@@ -604,7 +848,7 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
       }
       DEFAULT_VERTEX_SHADER()
       USE_WEIGHT_FOR_AO()
-      FILL_CURRENT_GBUFFER(false)
+      FILL_CURRENT_GBUFFER(false, true)
     }
     else
     {
@@ -617,13 +861,25 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         USE_VEGETATION_INTERACTIONS()
       }
       DEFAULT_VERTEX_SHADER()
+      if (need_tree_burning_for_leaves)
+      {
+        (ps) { normal_tex@staticSmp = normal; }
+      }
       NO_DYNSTCODE()
     }
 
     if (atest == atestOn || rendinst_render_pass != rendinst_render_pass_depth)
     {
+      if (need_tree_burning_for_leaves)
+      {
+        TREE_BURNING_LEAVES_PS(rendinst_render_pass != rendinst_render_pass_depth)
+      }
+      else if (need_tree_burning_for_trunk)
+      {
+        TREE_BURNING_TRUNK_PS()
+      }
       if (rendinst_render_pass == rendinst_render_pass_depth) {
-        (ps) { diffuse_tex@static = tex; }
+        (ps) { diffuse_tex@staticSmp = tex; }
       }
       hlsl(ps) {
         ##if rendinst_render_pass == rendinst_render_pass_depth
@@ -631,9 +887,10 @@ shader rendinst_tree_colored, rendinst_tree_colored_alpha_split, rendinst_grass_
         ##endif
       }
 
+      bool alpha_clip_is_on = in_editor_assume == yes || has_discard_without_prepass == discardOn;
       bool alpha_clip_sep = shader != rendinst_tree_colored && atest == atestOn
-        && (rendinst_render_pass == rendinst_render_pass_depth || in_editor_assume == yes || has_discard_without_prepass == discardOn);
-      VEGETATION_PS(rendinst_render_pass == rendinst_render_pass_depth, atest == atestOn, alpha_clip_sep)
+      && (rendinst_render_pass == rendinst_render_pass_depth || in_editor_assume == yes || has_discard_without_prepass == discardOn);
+      VEGETATION_PS(rendinst_render_pass == rendinst_render_pass_depth, atest == atestOn, alpha_clip_sep, alpha_clip_is_on, need_tree_burning, GBUFFER_ORDER_STATIC)
     } else
     {
       compile("ps_null", "rendinst_render_depth_black_ps");

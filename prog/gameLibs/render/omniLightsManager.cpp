@@ -44,33 +44,34 @@ void OmniLightsManager::close()
 
 void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lights_with_camera_inside,
   Tab<uint16_t> &lights_with_camera_outside, Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box,
-  const StaticTab<uint16_t, MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos,
-  OmniLightMaskType require_any_mask) const
+  const StaticTab<uint16_t, MAX_LIGHTS> &shadow, float markSmallLightsAsFarLimit, vec3f cameraPos, OmniLightMaskType require_any_mask,
+  float cutoff_dist_sq) const
 {
   prepare(frustum, lights_with_camera_inside, lights_with_camera_outside, occlusion, inside_box, outside_box, frustum.camPlanes[5],
-    shadow, markSmallLightsAsFarLimit, cameraPos, require_any_mask);
+    shadow, markSmallLightsAsFarLimit, cameraPos, require_any_mask, cutoff_dist_sq);
 }
 
 void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsInside, Tab<uint16_t> &lightsOutside,
   Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane, const StaticTab<uint16_t, MAX_LIGHTS> &shadow,
-  float markSmallLightsAsFarLimit, vec3f cameraPos, OmniLightMaskType require_any_mask) const
+  float markSmallLightsAsFarLimit, vec3f cameraPos, OmniLightMaskType require_any_mask, float cutoff_dist_sq) const
 {
   prepare(frustum, lightsInside, lightsOutside, nullptr, occlusion, inside_box, outside_box, znear_plane, shadow,
-    markSmallLightsAsFarLimit, cameraPos, require_any_mask);
+    markSmallLightsAsFarLimit, cameraPos, require_any_mask, cutoff_dist_sq);
 }
 
 typedef uint16_t shadow_index_t;
 
 void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsInside, Tab<uint16_t> &lightsOutside,
   eastl::bitset<MAX_LIGHTS> *visibleIdBitset, Occlusion *occlusion, bbox3f &inside_box, bbox3f &outside_box, vec4f znear_plane,
-  const StaticTab<uint16_t, MAX_LIGHTS> &shadows, float markSmallLightsAsFarLimit, vec3f cameraPos,
-  OmniLightMaskType require_any_mask) const
+  const StaticTab<uint16_t, MAX_LIGHTS> &shadows, float markSmallLightsAsFarLimit, vec3f cameraPos, OmniLightMaskType require_any_mask,
+  float cutoff_dist_sq) const
 {
   int maxIdx = maxIndex();
   int reserveSize = (maxIdx + 1) / 2;
   lightsInside.reserve(reserveSize);
   lightsOutside.reserve(reserveSize);
   vec4f rad_scale = v_splats(1.1f);
+  vec3f cutoff_dist_sq_v = cutoff_dist_sq > 0 ? v_splats(cutoff_dist_sq) : V_C_INF;
   for (int i = 0; i <= maxIdx; ++i)
   {
     if (require_any_mask && !(require_any_mask & masks[i]))
@@ -90,6 +91,8 @@ void OmniLightsManager::prepare(const Frustum &frustum, Tab<uint16_t> &lightsIns
     vec4f radScaled = v_mul_x(rad_scale, rad);
     vec4f res = v_add_x(v_sub_x(v_dot3_x(lightPosRad, znear_plane), radScaled), v_splat_w(znear_plane));
     vec4f length_sq = v_length3_sq(v_sub(cameraPos, lightPosRad));
+    if (v_test_vec_x_gt(length_sq, cutoff_dist_sq_v))
+      continue;
     vec4f camInSphereVec = v_sub_x(length_sq, v_mul(rad, rad));
 
 #if _TARGET_SIMD_SSE

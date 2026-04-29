@@ -11,9 +11,18 @@ namespace darg
 
 struct BhvTransitionSizeData
 {
-  Point2 currentSize = {-1, -1};
+  // set from props
   Orientation orientation = (Orientation)0;
   float speed = 100;
+  float maxTime = 0;
+
+  // calculated
+  Point2 currentSize = {-1, -1};
+  Point2 minSpeed = {0, 0};
+
+  bool wasErrorReported = false;
+
+  void load(Element *elem, bool initial);
 
   bool isCurSizeValid() { return currentSize.x >= 0 && currentSize.y >= 0; }
 };

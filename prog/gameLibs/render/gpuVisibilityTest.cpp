@@ -10,6 +10,7 @@
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_decl.h>
 #include <perfMon/dag_statDrv.h>
 #include <memory/dag_framemem.h>
@@ -31,7 +32,8 @@ static void safeCopyToEnd(VectorTy &arr, int firstPos, int lastPos)
 
 GpuVisibilityTestManager::GpuVisibilityTestManager(shaders::OverrideState state)
 {
-  bboxesSBuf = dag::buffers::create_one_frame_sr_structured(sizeof(vec4f), MAX_OBJECTS_PER_FRAME * 2, "ri_bboxes_buf");
+  bboxesSBuf =
+    dag::buffers::create_one_frame_sr_structured(sizeof(vec4f), MAX_OBJECTS_PER_FRAME * 2, "ri_bboxes_buf", RESTAG_OCCLUSION);
 
   // One bit (visible or not) per one instance.
   visResultRingBuffer.init(sizeof(uint32_t), MAX_OBJECTS_PER_FRAME / 32, 3, "bbox_vis_readback_buf", SBCF_UA_STRUCTURED_READBACK, 0,
@@ -184,6 +186,8 @@ void GpuVisibilityTestManager::doTestsOnGpu(BaseTexture *depth_tex)
     curTestsIssued.push_back(TestInfo{bboxesToTestCnt, testFrame});
     d3d::resource_barrier({depth_tex, RB_RO_SRV | RB_STAGE_COMPUTE | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
   }
+  else
+    d3d::zero_rwbufi(resultBuffer);
 
   TIME_PROFILE(visibility_tests_copy);
   visResultRingBuffer.startCPUCopy();
@@ -243,6 +247,7 @@ void GpuVisibilityTestManager::resetIssuedTests()
 {
   curObjectToTestId = curGroupId = 0;
   curTestsIssued.clear();
+  visResultRingBuffer.reset();
 }
 
 void GpuVisibilityTestManager::reAddObjectsToTest(int start_obj_id, int count)

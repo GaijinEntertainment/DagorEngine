@@ -10,6 +10,7 @@
 #include "netEvents.h"
 #include "authEvents.h"
 #include <daNet/getTime.h>
+#include <daNet/daNetPeerInterface.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <EASTL/hash_map.h>
@@ -30,7 +31,9 @@
 #if _TARGET_C4
 
 #endif
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/template.h>
 #include <daECS/net/replay.h>
@@ -76,6 +79,7 @@
 #include "main/vromfs.h"
 
 #include <daECS/net/urlUtils.h>
+#include <util/dag_delayedAction.h>
 
 ECS_REGISTER_EVENT(CmdAddInitialEntitiesInNetScope)
 ECS_REGISTER_EVENT(OnNetControlClientCreated)
@@ -131,6 +135,8 @@ extern void finalize_replay_record(const char *rpath);
 extern void ucr_send_hello(const char *); // from daNet
 
 typedef net::INetworkObserver *(*create_net_observer_cb_t)(void *, size_t);
+
+void auth_get_country_code(eastl::string &country) { g_entity_mgr->broadcastEventImmediate(NetAuthGetCountryCodeEvent{&country}); }
 
 struct NetCtx
 {
@@ -188,6 +194,7 @@ struct NetCtx
   void update(int ms) { network.update(ms, NC_REPLICATION); }
 };
 static InitOnDemand<NetCtx, false> net_ctx;
+static int s_connect_gen = 0; // incremented each time a new client driver is created; guards stale deferred connects
 net::CNetwork *get_net_internal()
 {
   return net_ctx ? &net_ctx->getNet() : NULL;
@@ -212,6 +219,7 @@ static int time_to_switch_server_addr = 0;
 static constexpr int DEFAULT_TIME_TO_SWITCH_SERVER_ADDR = 4000;
 // in case of probing of alternative server route, fallback should be fast
 static constexpr int DEFAULT_TIME_TO_SWITCH_SERVER_ADDR_FAST = DEFAULT_TIME_TO_SWITCH_SERVER_ADDR / 2;
+static RelayConnectionCb relay_connection_status_cb;
 
 static const char *select_next_server_url(bool rotate = true)
 {
@@ -284,6 +292,7 @@ static inline NetCtx &get_net_ctx_ref()
 
 static void on_client_disconnected(ecs::EntityManager &manager, DisconnectionCause cause)
 {
+  ++s_connect_gen; // invalidate any pending DelayedConnectAction
   last_client_dc = cause;
   manager.broadcastEvent(EventOnDisconnectedFromServer(cause));
 }
@@ -305,6 +314,7 @@ bool is_true_net_server()
 bool has_network() { return get_net_internal() != NULL; }
 ITimeManager &get_time_mgr() { return *g_time.get(); }
 float get_sync_time() { return get_time_mgr().getSeconds(); }
+double get_sync_time_d() { return get_time_mgr().getSeconds(); }
 void set_time_internal(ITimeManager *tmgr) { g_time.reset(tmgr); }
 
 net::IConnection *get_server_conn()
@@ -661,6 +671,90 @@ static net::INetworkObserver *create_listen_server_net_observer(void *buf, size_
 static net::INetworkObserver *create_listen_server_net_observer(void *, size_t) { return nullptr; }
 #endif
 
+void disconnect_from_relay()
+{
+  if (net_ctx == nullptr || net_ctx->network.getDriver() == nullptr)
+    return;
+  net_ctx->network.getDriver()->disconnect_relay();
+}
+
+bool establish_relay_connection(const char *relay_url)
+{
+  if (net_ctx == nullptr || net_ctx->network.getDriver() == nullptr)
+  {
+    logerr("failed to initiate connection with relay host/port '%s' - no network initialized", relay_url);
+    return false;
+  }
+
+  if (!net_ctx->network.getDriver()->connect(relay_url, 0, true))
+  {
+    logerr("failed to initiate connection with relay host/port '%s' - connection failed", relay_url);
+    return false;
+  }
+  return true;
+}
+
+eastl::string get_received_stun_system_address_str()
+{
+  if (net_ctx == nullptr)
+    return {};
+  SystemAddress addr = net_ctx->network.getStunSystemAddress();
+  if (addr.port == 0)
+    return {};
+  const char *addrStr = addr.ToString();
+  return addrStr ? eastl::string(addrStr) : eastl::string();
+}
+
+void request_udp_punch_via_relay(const char *relay_addr)
+{
+  debug("request_udp_punch_via_relay: '%s'", relay_addr ? relay_addr : "<null>");
+  auto *daif = net_ctx ? static_cast<DaNetPeerInterface *>(net_ctx->network.getDriver()->getControlIface()) : nullptr;
+  if (!daif)
+  {
+    debug("request_udp_punch_via_relay: no active network peer, ignoring");
+    return;
+  }
+  const char *colon = relay_addr ? strrchr(relay_addr, ':') : nullptr;
+  if (!colon)
+  {
+    logerr("request_udp_punch_via_relay: bad address '%s'", relay_addr);
+    return;
+  }
+  char hostBuf[128];
+  size_t hostLen = eastl::min(size_t(colon - relay_addr), sizeof(hostBuf) - 1);
+  memcpy(hostBuf, relay_addr, hostLen);
+  hostBuf[hostLen] = '\0';
+  char *endPtr = nullptr;
+  long port = strtol(colon + 1, &endPtr, 10);
+  if (endPtr == colon + 1 || port <= 0 || port > 65535)
+  {
+    logerr("request_udp_punch_via_relay: bad port in '%s'", relay_addr);
+    return;
+  }
+  SystemAddress addr;
+  addr.SetBinaryAddress(hostBuf);
+  addr.port = (uint16_t)port;
+  if (!addr.host)
+  {
+    logerr("request_udp_punch_via_relay: failed to resolve host in '%s'", relay_addr);
+    return;
+  }
+  daif->SendUnconnected(addr);
+  debug("request_udp_punch_via_relay: queued punch to %s", relay_addr);
+}
+
+bool set_relay_connection_handler(void (*relayConnectionHandler)(bool))
+{
+  if (net_ctx == nullptr || net_ctx->network.getDriver() == nullptr)
+  {
+    logerr("failed to set relay connection handler - no network initialized");
+    return false;
+  }
+
+  net_ctx->network.getDriver()->setRelayConnectionHandler(relayConnectionHandler);
+  return true;
+}
+
 bool net_init_early(ecs::EntityManager &mgr)
 {
   net::INetDriver *drv = dedicated::create_listen_net_driver();
@@ -686,7 +780,7 @@ bool net_init_early(ecs::EntityManager &mgr)
     if (relay_connection)
     {
       debug("initiating relay connection to host/port '%s'", relay_connection);
-      if (!drv->connect(relay_connection, 0, true))
+      if (!establish_relay_connection(relay_connection))
         DAG_FATAL("failed to initiate connection with relay host/port '%s'", relay_connection);
       debug("initiated relay connection to host/port '%s'", relay_connection);
     }
@@ -694,6 +788,7 @@ bool net_init_early(ecs::EntityManager &mgr)
 
   return true;
 }
+
 
 static eastl::string get_platform_uid()
 {
@@ -726,13 +821,36 @@ static void on_msg_sink_created_client(ecs::EntityManager &manager, ecs::EntityI
   send_net_msg(manager, msg_sink_eid, eastl::move(cimsg));
 }
 
-static void net_connect(ecs::EntityManager &mgr, const eastl::string &server_url, net::ConnectParams &&connect_params)
+static void net_do_connect(const eastl::string &url, int gen)
+{
+  if (!net_ctx || s_connect_gen != gen)
+  {
+    debug("net_do_connect: skipped (net_ctx=%s, gen %d vs current %d) for '%s'", net_ctx ? "alive" : "gone", gen, s_connect_gen,
+      url.c_str());
+    return;
+  }
+  debug("net_do_connect: connecting to '%s'", url.c_str());
+  net_ctx->network.getDriver()->connect(url.c_str(), NET_PROTO_VERSION);
+}
+
+struct DelayedConnectAction final : public DelayedAction
+{
+  eastl::string url;
+  int gen;
+  int64_t connectAfter;
+  DelayedConnectAction(eastl::string u, int g, int delay_ms) : url(eastl::move(u)), gen(g), connectAfter(get_time_msec() + delay_ms) {}
+  bool precondition() override { return get_time_msec() >= connectAfter; }
+  void performAction() override { net_do_connect(url, gen); }
+};
+
+static void net_create_client_driver(ecs::EntityManager &mgr, const eastl::string &server_url, net::ConnectParams &&connect_params)
 {
   G_ASSERT(!net_ctx);
-  net::INetDriver *netDrv = net::create_net_driver_connect(server_url.c_str(), NET_PROTO_VERSION), *drv = netDrv;
+  net::INetDriver *netDrv = net::create_net_driver_startup();
+  net::INetDriver *drv = netDrv;
   if (!netDrv)
   {
-    logwarn("failed connect to '%s'", server_url);
+    logwarn("failed to startup net driver for '%s'", server_url);
     on_client_disconnected(mgr, DC_CONNECTION_ATTEMPT_FAILED);
     return;
   }
@@ -752,6 +870,7 @@ static void net_connect(ecs::EntityManager &mgr, const eastl::string &server_url
   }
   if (drv)
   {
+    ++s_connect_gen;
     net_ctx_init_client(mgr, drv);
     net_ctx->encryptionKey = eastl::move(connect_params.encryptKey);
     net::set_msg_sink_created_cb(
@@ -789,8 +908,24 @@ bool net_init_late_client(net::ConnectParams &&connect_params, ecs::EntityManage
         }
       }
       current_server_url_i = 0;
+      eastl::string relayUrl = eastl::move(connect_params.relayStunRequestAddr);
+      debug("net_init_late_client: relayStunRequestAddr='%s'", relayUrl.c_str());
       if (!s_server_urls.empty())
-        net_connect(mgr, s_server_urls.front(), eastl::move(connect_params));
+      {
+        // Bind the socket first; the actual connect call happens below in both branches
+        net_create_client_driver(mgr, s_server_urls.front(), eastl::move(connect_params));
+        if (!relayUrl.empty())
+        {
+          request_udp_punch_via_relay(relayUrl.c_str());
+          // Delay actual connection ~200ms to give STUN/punch a bit of time to open the path
+          add_delayed_action(new DelayedConnectAction(s_server_urls.front(), s_connect_gen, 200));
+        }
+        else
+        {
+          debug("net_init_late_client: no relayStunRequestAddr, connecting immediately");
+          net_do_connect(s_server_urls.front(), s_connect_gen);
+        }
+      }
       else
         logwarn("net_init_late_client failed due to empty server urls list");
       for (int i = 1; i < s_server_urls.size(); ++i) // Note: 0th is sent on connect
@@ -903,6 +1038,7 @@ void net_on_before_emgr_clear()
 void net_destroy(ecs::EntityManager &mgr, bool final)
 {
   net_dump_stats();
+  ++s_connect_gen; // invalidate any pending DelayedConnectAction
   net_ctx.demandDestroy();
   g_time.reset(&dummy_time);
   if (ecs::EntityId msg_sink_eid = net::get_msg_sink())

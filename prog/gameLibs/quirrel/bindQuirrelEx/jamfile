@@ -1,8 +1,7 @@
 Root    ?= ../../../.. ;
 Location = prog/gameLibs/quirrel/bindQuirrelEx ;
 StrictCompile = yes ;
-UseQuirrel = sq3r ;
-ProjectUseQuirrel ?= sq3r ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/quirrel/bindQuirrelEx.lib ;
@@ -15,6 +14,7 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude/quirrel
   $(Root)/prog/3rdPartyLibs/pcre/pcre
   $(Root)/prog/3rdPartyLibs/utf8
+  $(Root)/prog/3rdPartyLibs/arc/libzip/lib
 ;
 
 if $(Platform) in ps4 ps5 {
@@ -26,40 +26,38 @@ Sources =
   sqUtf8.cpp
   autoBind.cpp
   autoCleanup.cpp
+  bindSqrat.cpp
+  sqModulesDagor.cpp
+  fileDropHandler.cpp
+  screenshotMetaInfoLoader.cpp
+  sqratDagorMath.cpp
+  sqratDagorDebug.cpp
+  logerrSqInterceptor.cpp
+  sqratDataBlock.cpp
+  sqratIso8601Time.cpp
+  random.cpp
+  hash.cpp
+  zipArchive.cpp
+  platformMisc.cpp
+  cpuinfo.cpp
+  dagorSystem.cpp
+  dagorSystemFileHandlers.cpp
+  dagorTime.cpp
+  dagorWorkCycle.cpp
+  dagorFS.cpp
+  dagorFolders.cpp
+  dagorShell.cpp
+  dagorClipboard.cpp
+  localization.cpp
+  chinese-hypenation.cpp
+  japanese-hypenation.cpp
+  helpers.cpp
 ;
 
-if $(ProjectUseQuirrel) in sq3r sq3r+ {
+if $(Platform) = macOS {
   Sources +=
-    bindSqrat.cpp
-    fileDropHandler.cpp
-    screenshotMetaInfoLoader.cpp
-    sqratDagorMath.cpp
-    sqratDagorDebug.cpp
-    logerrSqInterceptor.cpp
-    sqratDataBlock.cpp
-    sqratIso8601Time.cpp
-    random.cpp
-    hash.cpp
-    platformMisc.cpp
-    dagorSystem.cpp
-    dagorSystemFileHandlers.cpp
-    dagorTime.cpp
-    dagorWorkCycle.cpp
-    dagorFS.cpp
-    dagorFolders.cpp
-    dagorShell.cpp
-    dagorClipboard.cpp
-    localization.cpp
-    chinese-hypenation.cpp
-    japanese-hypenation.cpp
-    helpers.cpp
+    dagorSystemMac.mm
   ;
-
-  if $(Platform) = macOS {
-    Sources +=
-      dagorSystemMac.mm
-    ;
-  }
 }
 
 if $(Platform) in windows {
@@ -70,7 +68,19 @@ if $(PlatformSpec) in gcc {
   CPPopt += -Wno-uninitialized ; # disable false-positive heuristics from gcc 11
 }
 
+CPPopt += -DZIP_STATIC ;
 
-UseProgLibs = 3rdPartyLibs/pcre gameLibs/iso8601Time 3rdPartyLibs/uuidv7 ;
+UseProgLibs =
+  engine/workCycle
+  3rdPartyLibs/pcre
+  3rdPartyLibs/uuidv7
+  3rdPartyLibs/arc/libzip
+  gameLibs/iso8601Time
+;
+
+if $(Platform) in android linux macOS ps4 ps5 scarlett xboxOne windows && $(PlatformArch) != e2k {
+  UseProgLibs += 3rdPartyLibs/cpu_features ;
+}
+
 
 include $(Root)/prog/_jBuild/build.jam ;

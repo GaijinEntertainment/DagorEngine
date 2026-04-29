@@ -4,7 +4,9 @@
 
 #include <debug/dag_debug.h>
 #include <debug/dag_assert.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <util/dag_delayedAction.h>
 
 #if DAGOR_DBGLEVEL > 0
@@ -19,10 +21,10 @@ CONSOLE_INT_VAL("render", dynQualityOffset, 0, -1000, 1000);
 ECS_REGISTER_EVENT(DynamicQualityChangeEvent)
 
 
-DynamicQuality::DynamicQuality(const DataBlock *cfg)
+DynamicQuality::DynamicQuality(ecs::EntityManager &mgr, const DataBlock *cfg)
 {
   GPUWatchMs::init_freq();
-  reset(cfg);
+  reset(mgr, cfg);
 
 #if DAGOR_DBGLEVEL > 0
   // be aware that debug stuff does not work for multiple instances
@@ -39,13 +41,13 @@ DynamicQuality::~DynamicQuality()
 #endif
 }
 
-void DynamicQuality::reset(const DataBlock *cfg)
+void DynamicQuality::reset(ecs::EntityManager &mgr, const DataBlock *cfg)
 {
   // go back to default range if config changes
   if (currentRange != defaultRange)
   {
     currentRange = defaultRange;
-    broadcastEvent();
+    broadcastEvent(mgr);
   }
 
   balance = 0;
@@ -84,14 +86,14 @@ void DynamicQuality::reset(const DataBlock *cfg)
 #endif
 }
 
-void DynamicQuality::broadcastEvent()
+void DynamicQuality::broadcastEvent(ecs::EntityManager &mgr)
 {
   add_delayed_action(make_delayed_action(
-    [rangeName = ranges[currentRange].name] { g_entity_mgr->broadcastEventImmediate(DynamicQualityChangeEvent(rangeName)); }));
+    [&mgr, rangeName = ranges[currentRange].name] { mgr.broadcastEventImmediate(DynamicQualityChangeEvent(rangeName)); }));
   balance = 0;
 }
 
-void DynamicQuality::processTimingRecord(uint64_t gpu_time_ms)
+void DynamicQuality::processTimingRecord(ecs::EntityManager &mgr, uint64_t gpu_time_ms)
 {
 #if DAGOR_DBGLEVEL > 0
   gpu_time_ms += dynQualityOffset.get();
@@ -110,7 +112,7 @@ void DynamicQuality::processTimingRecord(uint64_t gpu_time_ms)
     }
 
     if (changed)
-      broadcastEvent();
+      broadcastEvent(mgr);
   }
   else
   {
@@ -125,7 +127,7 @@ void DynamicQuality::processTimingRecord(uint64_t gpu_time_ms)
 
 bool DynamicQuality::allowTracking() { return ranges.size() && GPUWatchMs::available(); }
 
-void DynamicQuality::onFrameStart()
+void DynamicQuality::onFrameStart(ecs::EntityManager &mgr)
 {
   if (!allowTracking())
     return;
@@ -134,7 +136,7 @@ void DynamicQuality::onFrameStart()
   timingIdx = (timingIdx + 1) % timings.size();
   if (timings[timingIdx].read(gpuTimeMs))
   {
-    processTimingRecord(gpuTimeMs);
+    processTimingRecord(mgr, gpuTimeMs);
 #if DAGOR_DBGLEVEL > 0
     lastGpuTime = gpuTimeMs;
     timingLatency = 0;

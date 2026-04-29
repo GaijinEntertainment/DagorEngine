@@ -33,7 +33,7 @@ return {
   gap = sh(2)
   children = [
     {
-      size = static [sh(80), sh(50)]
+      size = const [sh(80), sh(50)]
       //size = sh(30)
       rendObj = ROBJ_BOX
       borderWidth = 2

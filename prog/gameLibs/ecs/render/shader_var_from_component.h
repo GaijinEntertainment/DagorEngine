@@ -11,10 +11,10 @@ inline void set_shader_var(int varId, const char *name, const ecs::EntityCompone
 {
   switch (in_attr.getUserType())
   {
-    case ecs::ComponentTypeInfo<E3DCOLOR>::type: ShaderGlobal::set_color4(varId, color4(in_attr.get<E3DCOLOR>())); break;
+    case ecs::ComponentTypeInfo<E3DCOLOR>::type: ShaderGlobal::set_float4(varId, color4(in_attr.get<E3DCOLOR>())); break;
     case ecs::ComponentTypeInfo<int>::type: ShaderGlobal::set_int(varId, in_attr.get<int>()); break;
-    case ecs::ComponentTypeInfo<float>::type: ShaderGlobal::set_real(varId, in_attr.get<float>()); break;
-    case ecs::ComponentTypeInfo<Point4>::type: ShaderGlobal::set_color4(varId, to_color4(in_attr.get<Point4>())); break;
+    case ecs::ComponentTypeInfo<float>::type: ShaderGlobal::set_float(varId, in_attr.get<float>()); break;
+    case ecs::ComponentTypeInfo<Point4>::type: ShaderGlobal::set_float4(varId, to_color4(in_attr.get<Point4>())); break;
     case ecs::ComponentTypeInfo<ecs::string>::type:
     {
       ShaderGlobal::set_texture(varId, get_managed_texture_id(in_attr.get<ecs::string>().c_str()));
@@ -25,7 +25,7 @@ inline void set_shader_var(int varId, const char *name, const ecs::EntityCompone
     case ecs::ComponentTypeInfo<IPoint3>::type:
     {
       const IPoint3 &p3 = in_attr.get<IPoint3>();
-      ShaderGlobal::set_color4(varId, color4(E3DCOLOR(p3.x, p3.y, p3.z), 0));
+      ShaderGlobal::set_float4(varId, color4(E3DCOLOR(p3.x, p3.y, p3.z), 0));
     }
     break;
     default: break;
@@ -46,10 +46,10 @@ static inline void get_shader_var(int varId, ecs::ChildComponent &in_attr) // no
   switch (ShaderGlobal::get_var_type(varId))
   {
     case SHVT_INT: in_attr = ShaderGlobal::get_int_fast(varId); break;
-    case SHVT_REAL: in_attr = ShaderGlobal::get_real_fast(varId); break;
+    case SHVT_REAL: in_attr = ShaderGlobal::get_float(varId); break;
     case SHVT_COLOR4:
     {
-      Color4 c = ShaderGlobal::get_color4_fast(varId);
+      Color4 c = ShaderGlobal::get_float4(varId);
       in_attr = Point4(c.r, c.g, c.b, c.a);
     }
     break;

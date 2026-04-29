@@ -15,6 +15,7 @@ class RaytraceAccelerationStructure;
 
 class DebugNaming
 {
+  static volatile int setObjectNameLock;
   void setVkObjectDebugName(VulkanHandle handle, VkDebugReportObjectTypeEXT type1, VkObjectType type2, const char *name);
 
 public:

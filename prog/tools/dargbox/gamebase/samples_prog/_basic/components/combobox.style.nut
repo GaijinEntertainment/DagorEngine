@@ -97,7 +97,7 @@ return {
   popupBgColor = Color(20, 30, 36)
   popupBdColor = Color(90,90,90)
   popupBorderWidth = hdpx(1)
-  itemGap = {rendObj=ROBJ_FRAME size=static [flex(),hdpx(1)] color=Color(90,90,90)}
+  itemGap = {rendObj=ROBJ_FRAME size = const [flex(),hdpx(1)] color=Color(90,90,90)}
 
   rootBaseStyle = {}
   boxCtor

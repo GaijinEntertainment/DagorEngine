@@ -11,16 +11,30 @@ namespace darg
 {
 
 
+const Offsets Layout::zeroOffsets{};
+const SizeSpec Layout::defaultSizeSpec;
+
+
 Layout::Layout() :
+  ext(nullptr),
+  gap(0),
   flowType(FLOW_PARENT_RELATIVE),
   hAlign(ALIGN_LEFT),
   vAlign(ALIGN_TOP),
   hPlacement(PLACE_DEFAULT),
-  vPlacement(PLACE_DEFAULT),
-  margin(0, 0, 0, 0),
-  padding(0, 0, 0, 0),
-  gap(0)
+  vPlacement(PLACE_DEFAULT)
 {}
+
+
+Layout::~Layout() { delete ext; }
+
+
+LayoutExtended *Layout::ensureExt()
+{
+  if (!ext)
+    ext = new LayoutExtended();
+  return ext;
+}
 
 
 bool Layout::size_spec_from_obj(const Sqrat::Object &obj, SizeSpec &res, const char **err_msg)
@@ -36,7 +50,7 @@ bool Layout::size_spec_from_obj(const Sqrat::Object &obj, SizeSpec &res, const c
   {
     SizeSpec *ss = NULL;
     HSQOBJECT hObj = obj.GetObject();
-    if (SQ_SUCCEEDED(sq_direct_getuserdata(&hObj, (SQUserPointer *)&ss)))
+    if (SQ_SUCCEEDED(sq_obj_getuserdata(&hObj, (SQUserPointer *)&ss, nullptr)))
     {
       G_ASSERT(ss);
       res = *ss;
@@ -92,7 +106,8 @@ bool Layout::size_spec_from_array(const Sqrat::Array &arr, SizeSpec res[2], cons
 
 bool Layout::readPos(const Sqrat::Object &pos_obj, const char **err_msg)
 {
-  invalidatePos();
+  pos[0].reset();
+  pos[1].reset();
 
   SQObjectType tp = pos_obj.GetType();
   if (tp == OT_NULL)
@@ -108,33 +123,37 @@ bool Layout::readPos(const Sqrat::Object &pos_obj, const char **err_msg)
 }
 
 
-bool Layout::readSize(const Sqrat::Object &size_obj, const char **err_msg)
+bool Layout::readSize(const Sqrat::Object &size_obj, const char **err_msg) { return read_size(size_obj, size, err_msg); }
+
+
+bool Layout::read_size(const Sqrat::Object &size_obj, SizeSpec res[2], const char **err_msg)
 {
-  invalidateSize();
+  res[0].reset();
+  res[1].reset();
 
   SQObjectType tp = size_obj.GetType();
   if (tp == OT_NULL)
   {
-    size[0].reset(SizeSpec::CONTENT);
-    size[1].reset(SizeSpec::CONTENT);
+    res[0].reset(SizeSpec::CONTENT);
+    res[1].reset(SizeSpec::CONTENT);
     return true;
   }
   else if (tp == OT_USERPOINTER)
   {
     SizeSpec::Mode mode = script_cast_from_userpointer<SizeSpec::Mode>(size_obj);
     G_ASSERT(mode == SizeSpec::CONTENT);
-    size[0].reset(mode);
-    size[1].reset(mode);
+    res[0].reset(mode);
+    res[1].reset(mode);
     return true;
   }
   else if (tp == OT_USERDATA)
   {
     SizeSpec *ss = NULL;
     HSQOBJECT hObj = size_obj.GetObject();
-    if (SQ_SUCCEEDED(sq_direct_getuserdata(&hObj, (SQUserPointer *)&ss)) && ss)
+    if (SQ_SUCCEEDED(sq_obj_getuserdata(&hObj, (SQUserPointer *)&ss, nullptr)) && ss)
     {
-      size[0] = *ss;
-      size[1] = *ss;
+      res[0] = *ss;
+      res[1] = *ss;
       return true;
     }
     else
@@ -145,14 +164,14 @@ bool Layout::readSize(const Sqrat::Object &size_obj, const char **err_msg)
     }
   }
   else if (tp == OT_ARRAY)
-    return size_spec_from_array(size_obj, size, err_msg);
+    return size_spec_from_array(size_obj, res, err_msg);
   else if (tp & SQOBJECT_NUMERIC)
   {
     SizeSpec ss;
     if (!size_spec_from_obj(size_obj, ss, err_msg))
       return false;
-    size[0] = ss;
-    size[1] = ss;
+    res[0] = ss;
+    res[1] = ss;
     return true;
   }
   else
@@ -161,6 +180,18 @@ bool Layout::readSize(const Sqrat::Object &size_obj, const char **err_msg)
       *err_msg = "Unexpected 'size' field type. Expected array, user pointer or userdata";
     return false;
   }
+}
+
+
+template <typename T>
+static T read_enum_prop(const Properties &props, const Sqrat::Object &key, T def, int min, int after_max, const char *err_msg)
+{
+  int val = props.getInt(key, int(def));
+  if (val >= min && val < after_max)
+    return (T)val;
+
+  darg_assert_trace_var(err_msg, props.scriptDesc, key);
+  return def;
 }
 
 
@@ -183,18 +214,11 @@ void Layout::read(const Element *elem, const Properties &props, const StringKeys
 
   stackCheck.check();
 
-  flowType = props.getInt<LayoutFlow>(csk->flow, FLOW_PARENT_RELATIVE);
-  hAlign = props.getInt<ElemAlign>(csk->halign, ALIGN_LEFT);
-  vAlign = props.getInt<ElemAlign>(csk->valign, ALIGN_TOP);
-  hPlacement = props.getInt<ElemAlign>(csk->hplace, PLACE_DEFAULT);
-  vPlacement = props.getInt<ElemAlign>(csk->vplace, PLACE_DEFAULT);
-
-
-  if (!script_parse_offsets(elem, scriptDesc.RawGetSlot(csk->margin), &margin.x, &errMsg))
-    darg_assert_trace_var(errMsg, scriptDesc, csk->margin);
-
-  if (!script_parse_offsets(elem, scriptDesc.RawGetSlot(csk->padding), &padding.x, &errMsg))
-    darg_assert_trace_var(errMsg, scriptDesc, csk->padding);
+  flowType = read_enum_prop<LayoutFlow>(props, csk->flow, FLOW_PARENT_RELATIVE, FLOW_PARENT_RELATIVE, _NUM_FLOW_TYPES, "Invalid flow");
+  hAlign = read_enum_prop<ElemAlign>(props, csk->halign, ALIGN_LEFT, ALIGN_LEFT, _NUM_ALIGNMENTS, "Invalid halign");
+  vAlign = read_enum_prop<ElemAlign>(props, csk->valign, ALIGN_TOP, ALIGN_TOP, _NUM_ALIGNMENTS, "Invalid valign");
+  hPlacement = read_enum_prop<ElemAlign>(props, csk->hplace, PLACE_DEFAULT, PLACE_DEFAULT, _NUM_ALIGNMENTS, "Invalid hplace");
+  vPlacement = read_enum_prop<ElemAlign>(props, csk->vplace, PLACE_DEFAULT, PLACE_DEFAULT, _NUM_ALIGNMENTS, "Invalid vplace");
 
   Sqrat::Object gapObj = scriptDesc.RawGetSlot(csk->gap);
   if (gapObj.GetType() & SQOBJECT_NUMERIC)
@@ -202,31 +226,44 @@ void Layout::read(const Element *elem, const Properties &props, const StringKeys
   else
     gap = 0;
 
-  if (!size_spec_from_obj(scriptDesc.RawGetSlot(csk->minWidth), minSize[0], &errMsg))
-    darg_assert_trace_var(errMsg, scriptDesc, csk->minWidth);
+  Sqrat::Object marginObj = scriptDesc.RawGetSlot(csk->margin);
+  Sqrat::Object paddingObj = scriptDesc.RawGetSlot(csk->padding);
+  Sqrat::Object minWidthObj = scriptDesc.RawGetSlot(csk->minWidth);
+  Sqrat::Object minHeightObj = scriptDesc.RawGetSlot(csk->minHeight);
+  Sqrat::Object maxWidthObj = scriptDesc.RawGetSlot(csk->maxWidth);
+  Sqrat::Object maxHeightObj = scriptDesc.RawGetSlot(csk->maxHeight);
 
-  if (!size_spec_from_obj(scriptDesc.RawGetSlot(csk->minHeight), minSize[1], &errMsg))
-    darg_assert_trace_var(errMsg, scriptDesc, csk->minHeight);
+  bool needExt = (marginObj.GetType() != OT_NULL || paddingObj.GetType() != OT_NULL || minWidthObj.GetType() != OT_NULL ||
+                  minHeightObj.GetType() != OT_NULL || maxWidthObj.GetType() != OT_NULL || maxHeightObj.GetType() != OT_NULL);
 
-  if (!size_spec_from_obj(scriptDesc.RawGetSlot(csk->maxWidth), maxSize[0], &errMsg))
-    darg_assert_trace_var(errMsg, scriptDesc, csk->maxWidth);
+  if (needExt)
+  {
+    LayoutExtended *e = ensureExt();
+    *e = LayoutExtended();
 
-  if (!size_spec_from_obj(scriptDesc.RawGetSlot(csk->maxHeight), maxSize[1], &errMsg))
-    darg_assert_trace_var(errMsg, scriptDesc, csk->maxHeight);
-}
+    if (!script_parse_offsets(elem, marginObj, e->margin.ptr(), &errMsg))
+      darg_assert_trace_var(errMsg, scriptDesc, csk->margin);
 
+    if (!script_parse_offsets(elem, paddingObj, e->padding.ptr(), &errMsg))
+      darg_assert_trace_var(errMsg, scriptDesc, csk->padding);
 
-void Layout::invalidateSize()
-{
-  size[0].reset();
-  size[1].reset();
-}
+    if (!size_spec_from_obj(minWidthObj, e->minSize[0], &errMsg))
+      darg_assert_trace_var(errMsg, scriptDesc, csk->minWidth);
 
+    if (!size_spec_from_obj(minHeightObj, e->minSize[1], &errMsg))
+      darg_assert_trace_var(errMsg, scriptDesc, csk->minHeight);
 
-void Layout::invalidatePos()
-{
-  pos[0].reset();
-  pos[1].reset();
+    if (!size_spec_from_obj(maxWidthObj, e->maxSize[0], &errMsg))
+      darg_assert_trace_var(errMsg, scriptDesc, csk->maxWidth);
+
+    if (!size_spec_from_obj(maxHeightObj, e->maxSize[1], &errMsg))
+      darg_assert_trace_var(errMsg, scriptDesc, csk->maxHeight);
+  }
+  else
+  {
+    delete ext;
+    ext = nullptr;
+  }
 }
 
 

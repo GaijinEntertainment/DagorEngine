@@ -93,6 +93,7 @@ struct PreparedSkiesParams
     OFF,
     ON
   } reprojection = Reprojection::ON;
+  bool strataInLowres = true;
   PreparedSkiesParams() = default;
   PreparedSkiesParams(int lut, int scr, int slices, int trans, float scale, float range, Panoramic pan, Reprojection rep) :
     skiesLUTQuality(lut),
@@ -166,6 +167,7 @@ public:
   void setCPUConsts();
   bool setStatisticalCloudsInfo(float clouds_ms_contribution, float clouds_ms_attenuation, float clouds_start_altitude2,
     float clouds_end_altitude2, float clouds_shadow_coverage, float global_clouds_sigma);
+  bool isGPUReadbackPending() const { return gpuReadbackStarted; }
 
 protected:
   Color3 getCpuSingleInscatter(const Point3 &camera, const Point3 &viewdir, float d, const Point3 &skies_sun_light_dir, int steps,
@@ -207,6 +209,5 @@ protected:
   eastl::unique_ptr<ComputeShaderElement> skies_integrate_froxel_scattering_cs;
 
   bool gpuReadbackStarted = false;
-  uint32_t multipleScatteringGeneration = 0;
   // for precompute
 };

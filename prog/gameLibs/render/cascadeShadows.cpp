@@ -7,6 +7,7 @@
 #include <drv/3d/dag_renderPass.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
 #include <perfMon/dag_statDrv.h>
 #include <3d/dag_render.h>
@@ -53,23 +54,28 @@ float shadow_render_expand_from_sun_mul = 0.0f;
 
 static int csmShadowFadeOutVarId = -1, shadowCascadeDepthRangeVarId = -1, deferredShadowPassVarId = -1;
 
-#define GLOBAL_VARS_OPTIONAL_LIST   \
-  VAR(csm_world_view_pos)           \
-  VAR(csm_distance)                 \
-  VAR(num_of_cascades)              \
-  VAR(csm_range_cascade_0)          \
-  VAR(csm_range_cascade_1)          \
-  VAR(csm_range_cascade_2)          \
-  VAR(csm_meter_to_uv_cascade_0)    \
-  VAR(csm_meter_to_uv_cascade_1)    \
-  VAR(csm_meter_to_uv_cascade_2)    \
-  VAR(csm_uv_minmax_cascade_0)      \
-  VAR(csm_uv_minmax_cascade_1)      \
-  VAR(csm_uv_minmax_cascade_2)      \
-  VAR(shadow_cascade_data)          \
-  VAR(shadow_cascade_tm_transp)     \
-  VAR(shadow_cascade_tc_mul_offset) \
-  VAR(csm_culling_near_planes)
+#define GLOBAL_VARS_OPTIONAL_LIST         \
+  VAR(csm_world_view_pos)                 \
+  VAR(csm_distance)                       \
+  VAR(num_of_cascades)                    \
+  VAR(csm_range_cascade_0)                \
+  VAR(csm_range_cascade_1)                \
+  VAR(csm_range_cascade_2)                \
+  VAR(csm_meter_to_uv_cascade_0)          \
+  VAR(csm_meter_to_uv_cascade_1)          \
+  VAR(csm_meter_to_uv_cascade_2)          \
+  VAR(csm_uv_minmax_cascade_0)            \
+  VAR(csm_uv_minmax_cascade_1)            \
+  VAR(csm_uv_minmax_cascade_2)            \
+  VAR(shadow_cascade_data)                \
+  VAR(shadow_cascade_tc_mul_offset)       \
+  VAR(csm_culling_near_planes)            \
+  VAR(shadow_cascade_0_tm)                \
+  VAR(shadow_cascade_relative_scale)      \
+  VAR(shadow_cascade_relative_offset)     \
+  VAR(shadow_cascade_rcp_basis_length_sq) \
+  VAR(shadow_cascade_camera_near_plane)   \
+  VAR(shadow_cascade_splits)
 
 #define GLOBAL_CONST_LIST
 
@@ -80,6 +86,39 @@ GLOBAL_VARS_OPTIONAL_LIST
 #define VAR(a) static int a##_const_no = -1;
 GLOBAL_CONST_LIST
 #undef VAR
+
+// Inverse of screen_to_tex_scale_tm() * translation(-0.5).
+__forceinline TMatrix4 inverse_screen_to_centered_tex_scale_tm()
+{
+  return TMatrix4(2.0f, 0.0f, 0.0f, 0.0f, 0.0f, -2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.5f, 1.0f);
+}
+
+__forceinline TMatrix4 matrix_ortho_off_center_lh_inverse(float l, float r, float b, float t, float z_near, float z_far)
+{
+  TMatrix4 result;
+
+  result._11 = (r - l) / 2.0f;
+  result._12 = 0.0f;
+  result._13 = 0.0f;
+  result._14 = 0.0f;
+
+  result._21 = 0.0f;
+  result._22 = (t - b) / 2.0f;
+  result._23 = 0.0f;
+  result._24 = 0.0f;
+
+  result._31 = 0.0f;
+  result._32 = 0.0f;
+  result._33 = z_far - z_near;
+  result._34 = 0.0f;
+
+  result._41 = (l + r) / 2.0f;
+  result._42 = (b + t) / 2.0f;
+  result._43 = z_near;
+  result._44 = 1.0f;
+
+  return result;
+}
 
 class CascadeShadowsPrivate
 {
@@ -112,16 +151,19 @@ public:
   }
   void renderShadowsCascades();
 
-  void renderShadowsCascadesCb(const csm_render_cascades_cb_t &render_cascades_cb, ManagedTexView external_cascades = {});
-  void renderShadowCascadeDepth(int cascadeNo, bool clearPerView, ManagedTexView external_cascades = {});
+  void renderShadowsCascadesCb(const csm_render_cascades_cb_t &render_cascades_cb, BaseTexture *external_cascades = {},
+    bool clear_per_view = false);
+  void renderShadowCascadeDepth(int cascadeNo, bool clearPerView, BaseTexture *external_cascades = {});
+  void renderShadowCascadeDepthCb(int cascadeNo, const csm_render_cascade_depth_cb_t &cb);
   void calcTMs();
-  carray<Color4, CascadeShadows::MAX_CASCADES * 4> getTransposedCSMTm();
   void setSamplingBiasToShader(float value);
   void setCascadesToShader();
   void setNearCullingNearPlaneToShader();
   void disable() { numCascadesToRender = 0; }
   bool isEnabled() const { return numCascadesToRender != 0; }
-  void uploadCSMBuffer(const Color4 *tm, const Color4 *off);
+  void uploadCSMBuffer(const Color4 shadow_cascade_camera_near_plane, const Color4 *shadow_cascade_0_tm,
+    const Color4 *shadow_cascade_splits, const Color4 *cascade_relative_scale, const Color4 *cascade_relative_offset,
+    const Color4 *atlas_tc_mul_offset, const Color4 *cascade_rcp_basis_length_sq);
   void invalidate()
   {
     for (unsigned int cascadeNo = 0; cascadeNo < shadowSplits.size(); cascadeNo++)
@@ -168,6 +210,7 @@ public:
 
 
   BaseTexture *getShadowsCascade() const { return internalCascades.getTex2D(); }
+  ManagedTexView getShadowsCascadeView() const { return internalCascades; }
   d3d::SamplerHandle getShadowsCascadeSampler() const { return internalCascadesSampler; }
   const TextureInfo &getShadowCascadeTexInfo() const { return shadowCascadesTexInfo; }
 
@@ -184,6 +227,7 @@ private:
     TMatrix shadowViewItm;
     TMatrix4_vec4 cameraCullingMatrix; // made with camViewTm
     TMatrix4_vec4 cameraRenderMatrix;
+    TMatrix4_vec4 cameraInverseRenderMatrix;
     TMatrix4_vec4 worldCullingMatrix;
     TMatrix4_vec4 worldRenderMatrix;
     TMatrix4_vec4 renderViewMatrix;
@@ -214,6 +258,14 @@ private:
   carray<ShadowSplit, CascadeShadows::MAX_CASCADES> sparsedShadowSplits;
   carray<Color4, CascadeShadows::MAX_CASCADES * 3> shadowCascadeTm;
   carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeTcMulOffset;
+  // Cascades only differ in scale and offset between each other,
+  // so we can get Nth cascade space position by scaling and offseting 0th cascade space position.
+  carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRelativeScale;
+  carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRelativeOffset;
+  carray<Color4, CascadeShadows::MAX_CASCADES> shadowCascadeRcpBasisLengthSq;
+  carray<Color4, 3> shadowCascade0Tm;
+  Color4 shadowCascadeCameraNearPlane = Color4(0, 0, 1, 0);
+  carray<Color4, 2> shadowCascadeSplits = {};
 
   float csmDistance = 0.0f;
   carray<shaders::UniqueOverrideStateId, CascadeShadows::MAX_CASCADES> cascadeOverride;
@@ -334,9 +386,10 @@ void CascadeShadowsPrivate::createDepthShadow(int splits_w, int splits_h, int wi
 
   if (settings.resourceAccessStrategy == CascadeShadows::Settings::ResourceAccessStrategy::Internal)
   {
-    internalCascades = UniqueTexHolder(dag::create_tex(NULL, shadowCascadesTexInfo.w, shadowCascadesTexInfo.h,
-                                         shadowCascadesTexInfo.cflg, shadowCascadesTexInfo.mipLevels, "shadowCascadeDepthTex2D"),
-      "shadow_cascade_depth_tex");
+    internalCascades =
+      UniqueTexHolder(dag::create_tex(NULL, shadowCascadesTexInfo.w, shadowCascadesTexInfo.h, shadowCascadesTexInfo.cflg,
+                        shadowCascadesTexInfo.mipLevels, "shadowCascadeDepthTex2D", RESTAG_SHADOW),
+        "shadow_cascade_depth_tex");
     d3d_err(internalCascades.getTex2D());
     {
       d3d::SamplerInfo smpInfo;
@@ -358,13 +411,13 @@ void CascadeShadowsPrivate::createDepthShadow(int splits_w, int splits_h, int wi
   {
     const uint32_t rtFmt = TEXFMT_A8R8G8B8 | TEXCF_RTARGET | TEXCF_TRANSIENT;
     shadowCascadesFakeRT =
-      UniqueTex(dag::create_tex(NULL, splits_w * width, splits_h * height, rtFmt, 1, "shadowCascadeDepthTex2D_fakeRT"));
+      UniqueTex(dag::create_tex(NULL, splits_w * width, splits_h * height, rtFmt, 1, "shadowCascadeDepthTex2D_fakeRT", RESTAG_SHADOW));
     createMobileRP(format, rtFmt);
   }
 
   if (shadow_cascade_dataVarId != -1)
     csmBuffer = dag::buffers::create_one_frame_cb(CascadeShadows::MAX_CASCADES * 4 + CascadeShadows::MAX_CASCADES,
-      String(0, "shadow_cascade_data%s", resPostfix.c_str()).c_str());
+      String(0, "shadow_cascade_data%s", resPostfix.c_str()).c_str(), RESTAG_LIGHTS);
 }
 
 
@@ -389,8 +442,8 @@ void CascadeShadowsPrivate::closeDepthShadow()
 }
 
 
-void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb_t &render_cascades_cb,
-  ManagedTexView external_cascades)
+void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb_t &render_cascades_cb, BaseTexture *external_cascades,
+  bool clear_per_view)
 {
   if (numCascadesToRender == 0)
     return;
@@ -407,7 +460,7 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb
 
   d3d::set_render_target();
   d3d::set_render_target(nullptr, 0);
-  bool clearPerView = false;
+  bool clearPerView = clear_per_view;
   for (int cascadeNo = numCascadesToRender - 1; cascadeNo >= 0; cascadeNo--)
   {
     if (!shadowSplits[cascadeNo].shouldUpdate)
@@ -418,10 +471,10 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb
   }
 
   G_ASSERT(settings.resourceAccessStrategy != CascadeShadows::Settings::ResourceAccessStrategy::External || external_cascades);
-  ManagedTexView cascades = settings.resourceAccessStrategy == CascadeShadows::Settings::ResourceAccessStrategy::Internal
-                              ? internalCascades
-                              : external_cascades;
-  d3d::set_depth(cascades.getTex2D(), DepthAccess::RW);
+  BaseTexture *cascades = settings.resourceAccessStrategy == CascadeShadows::Settings::ResourceAccessStrategy::Internal
+                            ? internalCascades.getBaseTex()
+                            : external_cascades;
+  d3d::set_depth(cascades, DepthAccess::RW);
 
   if (!clearPerView && !mobileAreaUpdateRP)
   {
@@ -432,8 +485,8 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb
   if (mobileAreaUpdateRP)
   {
     RenderPassArea area = {0, 0, shadowCascadesTexInfo.w, shadowCascadesTexInfo.h, 0, 1};
-    RenderPassTarget targets[] = {{{cascades.getTex2D(), 0, 0}, make_clear_value(1.0f, 0)},
-      {{shadowCascadesFakeRT.getTex2D(), 0, 0}, make_clear_value(0, 0, 0, 0)}};
+    RenderPassTarget targets[] = {
+      {{cascades, 0, 0}, make_clear_value(1.0f, 0)}, {{shadowCascadesFakeRT.getTex2D(), 0, 0}, make_clear_value(0, 0, 0, 0)}};
 
     d3d::begin_render_pass(mobileAreaUpdateRP, area, targets);
   }
@@ -458,12 +511,8 @@ void CascadeShadowsPrivate::renderShadowsCascadesCb(const csm_render_cascades_cb
     internalCascades.setVar();
   }
 
-  static int start_csm_shadow_blendVarId = get_shader_variable_id("start_csm_shadow_blend", true);
-
-  ShaderGlobal::set_real(start_csm_shadow_blendVarId, shadowSplits[numCascadesToRender - 1].to * 0.98);
-
   static int pcf_lerpVarId = get_shader_variable_id("pcf_lerp", true);
-  ShaderGlobal::set_color4(pcf_lerpVarId, 0.5f / shadowCascadesTexInfo.w, 0.5f / shadowCascadesTexInfo.h, shadowCascadesTexInfo.w,
+  ShaderGlobal::set_float4(pcf_lerpVarId, 0.5f / shadowCascadesTexInfo.w, 0.5f / shadowCascadesTexInfo.h, shadowCascadesTexInfo.w,
     shadowCascadesTexInfo.h);
 }
 
@@ -510,6 +559,8 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
   if (!dbgModeSettings)
     modeSettings = mode_settings;
 
+  shadowCascadeCameraNearPlane = Color4(view_matrix.m[0][2], view_matrix.m[1][2], view_matrix.m[2][2], 0);
+
   if (modeSettings.numCascades <= 0)
   {
     numCascadesToRender = 0;
@@ -549,7 +600,8 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
 
   G_ASSERT(cascades <= distances.size());
   int nRegularCascades = cascades - firstRegularCascade;
-  calculate_cascades(modeSettings.maxDist, modeSettings.powWeight, nRegularCascades, distances.data() + firstRegularCascade,
+  float maxShadowDist = min(modeSettings.maxDist, scene_z_near_far.y);
+  calculate_cascades(maxShadowDist, modeSettings.powWeight, nRegularCascades, distances.data() + firstRegularCascade,
     zNearForCascadeDistribution);
   numCascadesToRender = cascades;
   if (modeSettings.cascade0Dist > 0.f && nRegularCascades > 1)
@@ -585,9 +637,9 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
         firstRegularCascade < cascades ? distances[firstRegularCascade] : SHADOW_FAR_CASCADE_DEPTH_MUL * modeSettings.maxDist;
 
     ShadowSplit ss;
+    ss.frames = 0;
     ss.from = max(prevCascadeDist, znear);
-    ss.to = min(curCascadeDist, scene_z_near_far.y);
-    nextCascadeDist = min(nextCascadeDist, scene_z_near_far.y);
+    ss.to = curCascadeDist;
 
     G_ASSERT(ss.to > ss.from);
 
@@ -598,16 +650,16 @@ void CascadeShadowsPrivate::prepareShadowCascades(const CascadeShadows::ModeSett
 
     if (needSsss && cascadeNo < CascadeShadows::SSSS_CASCADES)
     {
-      ShaderGlobal::set_real(csm_range_cascade_vars[cascadeNo], ss.znzf.y - ss.znzf.x);
+      ShaderGlobal::set_float(csm_range_cascade_vars[cascadeNo], ss.znzf.y - ss.znzf.x);
 
       Point3 cascadeWidth = ss.shadowWidth;
       float shadowTexW = shadowCascadesTexInfo.w, shadowTexH = shadowCascadesTexInfo.h;
       Point2 cascadeUv = Point2(float(ss.viewport.width().x) / shadowTexW, float(ss.viewport.width().y) / shadowTexH);
       Point2 meterToUv = div(cascadeUv, Point2::xy(cascadeWidth));
-      ShaderGlobal::set_real(csm_meter_to_uv_cascade_vars[cascadeNo], max(meterToUv.x, meterToUv.y));
+      ShaderGlobal::set_float(csm_meter_to_uv_cascade_vars[cascadeNo], max(meterToUv.x, meterToUv.y));
       Point4 uvMinMax = Point4(ss.viewport.getMin().x / shadowTexW, ss.viewport.getMin().y / shadowTexH,
         ss.viewport.getMax().x / shadowTexW, ss.viewport.getMax().y / shadowTexH);
-      ShaderGlobal::set_color4(csm_uv_minmax_cascade_vars[cascadeNo], uvMinMax);
+      ShaderGlobal::set_float4(csm_uv_minmax_cascade_vars[cascadeNo], uvMinMax);
     }
 
     if (force_update_shadows)
@@ -707,7 +759,7 @@ void CascadeShadowsPrivate::calcTMs()
   if (numCascadesToRender <= 0)
   {
     setFadeOutToShaders(0.f);
-    ShaderGlobal::set_real(csm_distanceVarId, 0.f);
+    ShaderGlobal::set_float(csm_distanceVarId, 0.f);
     ShaderGlobal::set_int(num_of_cascadesVarId, 0);
     return;
   }
@@ -722,27 +774,64 @@ void CascadeShadowsPrivate::calcTMs()
   }
 
   setFadeOutToShaders(modeSettings.maxDist * settings.fadeOutMul);
-  ShaderGlobal::set_real(csm_distanceVarId, csmDistance);
+  ShaderGlobal::set_float(csm_distanceVarId, csmDistance);
   ShaderGlobal::set_int(num_of_cascadesVarId, numCascadesToRender);
+
+
+  // Same as inverse(shadowSplits[0].cameraRenderMatrix * screen_to_tex_scale_tm() * translation(-0.5))
+  TMatrix4 invCascade0TexTm = inverse_screen_to_centered_tex_scale_tm() * shadowSplits[0].cameraInverseRenderMatrix;
 
   int shadowTexW = shadowCascadesTexInfo.w, shadowTexH = shadowCascadesTexInfo.h;
   for (unsigned int cascadeNo = 0; cascadeNo < numCascadesToRender; cascadeNo++)
   {
     const ShadowSplit &ss = shadowSplits[cascadeNo];
     TMatrix4_vec4 texTm = ss.cameraRenderMatrix * screen_to_tex_scale_tm();
-    shadowCascadeTm[cascadeNo * 3 + 0] = Color4(texTm.m[0][0], texTm.m[1][0], texTm.m[2][0], texTm.m[3][0] - 0.5);
-    shadowCascadeTm[cascadeNo * 3 + 1] = Color4(texTm.m[0][1], texTm.m[1][1], texTm.m[2][1], texTm.m[3][1] - 0.5);
-    shadowCascadeTm[cascadeNo * 3 + 2] = Color4(texTm.m[0][2], texTm.m[1][2], texTm.m[2][2], texTm.m[3][2] - 0.5);
+    texTm.m[3][0] -= 0.5;
+    texTm.m[3][1] -= 0.5;
+    texTm.m[3][2] -= 0.5;
+
+    shadowCascadeTm[cascadeNo * 3 + 0] = Color4(texTm.m[0][0], texTm.m[1][0], texTm.m[2][0], texTm.m[3][0]);
+    shadowCascadeTm[cascadeNo * 3 + 1] = Color4(texTm.m[0][1], texTm.m[1][1], texTm.m[2][1], texTm.m[3][1]);
+    shadowCascadeTm[cascadeNo * 3 + 2] = Color4(texTm.m[0][2], texTm.m[1][2], texTm.m[2][2], texTm.m[3][2]);
     shadowCascadeTcMulOffset[cascadeNo] = Color4(float(ss.viewport.width().x) / shadowTexW, float(ss.viewport.width().y) / shadowTexH,
       float(ss.viewport[0].x) / shadowTexW + float(0.5 * ss.viewport.width().x) / shadowTexW,
       float(ss.viewport[0].y) / shadowTexH + float(0.5 * ss.viewport.width().y) / shadowTexH);
+
+    Point3 col0(texTm.m[0][0], texTm.m[1][0], texTm.m[2][0]);
+    Point3 col1(texTm.m[0][1], texTm.m[1][1], texTm.m[2][1]);
+    Point3 col2(texTm.m[0][2], texTm.m[1][2], texTm.m[2][2]);
+    shadowCascadeRcpBasisLengthSq[cascadeNo] = Color4(1.0f / col0.lengthSq(), 1.0f / col1.lengthSq(), 1.0f / col2.lengthSq(), 1);
+    if (cascadeNo == 0)
+    {
+      shadowCascadeRelativeScale[cascadeNo] = Color4(1, 1, 1, 1);
+      shadowCascadeRelativeOffset[cascadeNo] = Color4(0, 0, 0, 0);
+      memcpy(shadowCascade0Tm.data(), &shadowCascadeTm[cascadeNo * 3], sizeof(Color4) * 3);
+    }
+    else
+    {
+      TMatrix4 tmp = invCascade0TexTm * texTm;
+      Point4 off = tmp.getrow(3);
+      shadowCascadeRelativeScale[cascadeNo] = Color4(tmp[0][0], tmp[1][1], tmp[2][2], 1);
+      shadowCascadeRelativeOffset[cascadeNo] = Color4(off.x, off.y, off.z, 0);
+    }
   }
   for (unsigned int cascadeNo = numCascadesToRender; cascadeNo < CascadeShadows::MAX_CASCADES; cascadeNo++)
   {
     shadowCascadeTm[cascadeNo * 3 + 0] = Color4(0, 0, 0, 1);
     shadowCascadeTm[cascadeNo * 3 + 1] = Color4(0, 0, 0, 1);
     shadowCascadeTm[cascadeNo * 3 + 2] = Color4(0, 0, 0, 1);
-    shadowCascadeTcMulOffset[cascadeNo] = Color4(0, 0, 0, 0);
+    shadowCascadeTcMulOffset[cascadeNo] = Color4(1, 1, 1, 1);
+  }
+
+  shadowCascadeSplits[0] = Color4(0, 0, 0, 0);
+  shadowCascadeSplits[1] = Color4(0, 0, 0, 0);
+  for (int i = 0; i < numCascadesToRender && i < CascadeShadows::MAX_CASCADES; ++i)
+  {
+    float farDist = shadowSplits[i].to;
+    if (i < 4)
+      shadowCascadeSplits[0][i] = farDist;
+    else
+      shadowCascadeSplits[1][i - 4] = farDist;
   }
 }
 
@@ -814,9 +903,11 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
                                                                                   // direction only
   TMatrix shadowViewMatrix3 = tmatrix(shadowViewMatrix); // always the same for all splits! Depends on light direction only
   TMatrix4 shadowWorldViewMatrix = getShadowViewMatrix(dir_to_sun, camera_pos, true);
-
   const float det = view_matrix.det();
-  split.viewPos = fabs(det) > 1e-5 ? inverse(view_matrix, det).getcol(3) : Point3(0, 0, 0);
+  if (fabs(det) > 1e-5)
+    split.viewPos = camera_pos;
+  else
+    split.viewPos = Point3(0, 0, 0);
 
   TMatrix camViewTm = view_matrix;
   camViewTm.setcol(3, 0.f, 0.f, 0.f);
@@ -908,6 +999,7 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
     shadowProjectionBox.lim[0].y, shadowProjectionBox.lim[1].y, split.znzf.x, split.znzf.y);
 
   TMatrix4 shadowProjectionRenderMatrix;
+  TMatrix4 shadowInverseProjectionRenderMatrix;
 #if USE_SHADOW_DEPTH_CLAMP
   shadowProjectionBox.lim[0].z -= shadow_render_expand_mul * expandZnear + shadow_render_expand_to_sun_mul * (split.to - split.from);
   shadowProjectionBox.lim[1].z += shadow_render_expand_mul * expandZfar + shadow_render_expand_from_sun_mul * (split.to - split.from);
@@ -916,13 +1008,18 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
 
   shadowProjectionRenderMatrix = ::matrix_ortho_off_center_lh(shadowProjectionBox.lim[0].x, shadowProjectionBox.lim[1].x,
     shadowProjectionBox.lim[0].y, shadowProjectionBox.lim[1].y, split.znzf.x, split.znzf.y);
+  shadowInverseProjectionRenderMatrix = ::matrix_ortho_off_center_lh_inverse(shadowProjectionBox.lim[0].x,
+    shadowProjectionBox.lim[1].x, shadowProjectionBox.lim[0].y, shadowProjectionBox.lim[1].y, split.znzf.x, split.znzf.y);
 #else
   shadowProjectionRenderMatrix = shadowProjectionCullingMatrix;
+  shadowInverseProjectionRenderMatrix = ::matrix_ortho_off_center_lh_inverse(shadowProjectionBox.lim[0].x,
+    shadowProjectionBox.lim[1].x, shadowProjectionBox.lim[0].y, shadowProjectionBox.lim[1].y, split.znzf.x, split.znzf.y);
 #endif
 
   split.shadowWidth = shadowProjectionBox.width();
   split.cameraCullingMatrix = shadowViewMatrix * shadowProjectionCullingMatrix;
   split.cameraRenderMatrix = shadowViewMatrix * shadowProjectionRenderMatrix;
+  split.cameraInverseRenderMatrix = shadowInverseProjectionRenderMatrix * shadowViewMatrix.transpose();
   split.worldCullingMatrix = shadowWorldViewMatrix * shadowProjectionCullingMatrix;
   split.worldRenderMatrix = shadowWorldViewMatrix * shadowProjectionRenderMatrix;
 
@@ -943,15 +1040,15 @@ void CascadeShadowsPrivate::buildShadowProjectionMatrix(const Point3 &dir_to_sun
 }
 
 
-void CascadeShadowsPrivate::renderShadowCascadeDepth(int cascadeNo, bool clearPerView, ManagedTexView external_cascades)
+void CascadeShadowsPrivate::renderShadowCascadeDepth(int cascadeNo, bool clearPerView, BaseTexture *external_cascades)
 {
   const ShadowSplit &ss = shadowSplits[cascadeNo];
   G_ASSERT(ss.to > ss.from);
 
   G_ASSERT(settings.resourceAccessStrategy != CascadeShadows::Settings::ResourceAccessStrategy::External || external_cascades);
-  ManagedTexView cascades = settings.resourceAccessStrategy == CascadeShadows::Settings::ResourceAccessStrategy::Internal
-                              ? internalCascades
-                              : external_cascades;
+  BaseTexture *cascades = settings.resourceAccessStrategy == CascadeShadows::Settings::ResourceAccessStrategy::Internal
+                            ? internalCascades.getBaseTex()
+                            : external_cascades;
 
   if (ss.shouldUpdate)
   {
@@ -976,72 +1073,91 @@ void CascadeShadowsPrivate::renderShadowCascadeDepth(int cascadeNo, bool clearPe
 }
 
 
+void CascadeShadowsPrivate::renderShadowCascadeDepthCb(int cascadeNo, const csm_render_cascade_depth_cb_t &render_cb)
+{
+  const ShadowSplit &ss = shadowSplits[cascadeNo];
+  G_ASSERT(ss.to > ss.from);
+
+  if (ss.shouldUpdate)
+  {
+    DA_PROFILE_EVENT_DESC(shadow_cascade_render_dap[cascadeNo]);
+    d3d::setview(ss.viewport[0].x, ss.viewport[0].y, ss.viewport.width().x, ss.viewport.width().y, 0, 1);
+    shaders::overrides::set(cascadeOverride[cascadeNo]);
+    render_cb();
+    shaders::overrides::reset();
+  }
+}
+
+
 void CascadeShadowsPrivate::setFadeOutToShaders(float max_dist)
 {
   G_ASSERT(settings.shadowFadeOut > 0.f);
 
   // x,y - fade for csm
   // z,w - fade for next shadow layer (clipmap shadows for example)
-  ShaderGlobal::set_color4(csmShadowFadeOutVarId, -1.f / settings.shadowFadeOut, max_dist / settings.shadowFadeOut,
+  ShaderGlobal::set_float4(csmShadowFadeOutVarId, -1.f / settings.shadowFadeOut, max_dist / settings.shadowFadeOut,
     -1.f / settings.shadowFadeOut, max(max_dist - settings.shadowFadeOut * 1.5f, 0.0f) / settings.shadowFadeOut);
 }
 
-carray<Color4, CascadeShadows::MAX_CASCADES * 4> CascadeShadowsPrivate::getTransposedCSMTm()
-{
-  carray<Color4, CascadeShadows::MAX_CASCADES * 4> transposed{};
-  for (int i = 0; i < numCascadesToRender; ++i)
-  {
-    transposed[i * 4 + 0] = Color4(shadowCascadeTm[i * 3 + 0].r, shadowCascadeTm[i * 3 + 1].r, shadowCascadeTm[i * 3 + 2].r, 0);
-    transposed[i * 4 + 1] = Color4(shadowCascadeTm[i * 3 + 0].g, shadowCascadeTm[i * 3 + 1].g, shadowCascadeTm[i * 3 + 2].g, 0);
-    transposed[i * 4 + 2] = Color4(shadowCascadeTm[i * 3 + 0].b, shadowCascadeTm[i * 3 + 1].b, shadowCascadeTm[i * 3 + 2].b, 0);
-    transposed[i * 4 + 3] = Color4(shadowCascadeTm[i * 3 + 0].a, shadowCascadeTm[i * 3 + 1].a, shadowCascadeTm[i * 3 + 2].a, 0);
-  }
-  for (int i = numCascadesToRender; i < CascadeShadows::MAX_CASCADES; ++i)
-  {
-    transposed[i * 4 + 0] = Color4(0, 0, 0, 0);
-    transposed[i * 4 + 1] = Color4(0, 0, 0, 0);
-    transposed[i * 4 + 2] = Color4(0, 0, 0, 0);
-    transposed[i * 4 + 3] = Color4(1, 1, 1, 0);
-  }
-  return transposed;
-}
-
-void CascadeShadowsPrivate::uploadCSMBuffer(const Color4 *tm, const Color4 *off)
+void CascadeShadowsPrivate::uploadCSMBuffer(const Color4 shadow_cascade_camera_near_plane, const Color4 *shadow_cascade_0_tm,
+  const Color4 *shadow_cascade_splits, const Color4 *cascade_relative_scale, const Color4 *cascade_relative_offset,
+  const Color4 *atlas_tc_mul_offset, const Color4 *cascade_rcp_basis_length_sq)
 {
   if (csmBuffer)
   {
-    Color4 uploadData[CascadeShadows::MAX_CASCADES * 4 + CascadeShadows::MAX_CASCADES];
-    memcpy(uploadData, tm, sizeof(Color4) * CascadeShadows::MAX_CASCADES * 4);
-    memcpy(uploadData + CascadeShadows::MAX_CASCADES * 4, off, sizeof(Color4) * CascadeShadows::MAX_CASCADES);
-
+    struct UploadData
+    {
+      Color4 cameraNearPlane;
+      Color4 cascade0Tm[3];
+      Color4 splits[2];
+      Color4 relativeScale[CascadeShadows::MAX_CASCADES];
+      Color4 relativeOffset[CascadeShadows::MAX_CASCADES];
+      Color4 tcMulOffset[CascadeShadows::MAX_CASCADES];
+      Color4 rcpBasisLengthSq[CascadeShadows::MAX_CASCADES];
+    };
+    UploadData uploadData;
+    uploadData.cameraNearPlane = shadow_cascade_camera_near_plane;
+    memcpy(uploadData.cascade0Tm, shadow_cascade_0_tm, sizeof(uploadData.cascade0Tm));
+    memcpy(uploadData.splits, shadow_cascade_splits, sizeof(uploadData.splits));
+    memcpy(uploadData.relativeScale, cascade_relative_scale, sizeof(uploadData.relativeScale));
+    memcpy(uploadData.relativeOffset, cascade_relative_offset, sizeof(uploadData.relativeOffset));
+    memcpy(uploadData.tcMulOffset, atlas_tc_mul_offset, sizeof(uploadData.tcMulOffset));
+    memcpy(uploadData.rcpBasisLengthSq, cascade_rcp_basis_length_sq, sizeof(uploadData.rcpBasisLengthSq));
     G_ASSERT_RETURN(csmBuffer, );
-    csmBuffer->updateData(0, sizeof(uploadData), uploadData, VBLOCK_DISCARD);
+    csmBuffer->updateData(0, sizeof(uploadData), &uploadData, VBLOCK_DISCARD);
     ShaderGlobal::set_buffer(shadow_cascade_dataVarId, csmBuffer.getBufId());
   }
 
-  ShaderGlobal::set_color4_array(shadow_cascade_tm_transpVarId, tm, maxCascadesPossible * 4);
-  ShaderGlobal::set_color4_array(shadow_cascade_tc_mul_offsetVarId, off, maxCascadesPossible);
+  ShaderGlobal::set_float4(shadow_cascade_camera_near_planeVarId, shadow_cascade_camera_near_plane);
+  ShaderGlobal::set_float4_array(shadow_cascade_0_tmVarId, shadow_cascade_0_tm, 3);
+  ShaderGlobal::set_float4_array(shadow_cascade_splitsVarId, shadow_cascade_splits, 2);
+  ShaderGlobal::set_float4_array(shadow_cascade_relative_scaleVarId, cascade_relative_scale, maxCascadesPossible);
+  ShaderGlobal::set_float4_array(shadow_cascade_relative_offsetVarId, cascade_relative_offset, maxCascadesPossible);
+  ShaderGlobal::set_float4_array(shadow_cascade_tc_mul_offsetVarId, atlas_tc_mul_offset, maxCascadesPossible);
+  ShaderGlobal::set_float4_array(shadow_cascade_rcp_basis_length_sqVarId, cascade_rcp_basis_length_sq, maxCascadesPossible);
 }
 
 void CascadeShadowsPrivate::setSamplingBiasToShader(float value)
 {
-  carray<Color4, CascadeShadows::MAX_CASCADES * 4> transposed = getTransposedCSMTm();
-  for (int i = 0; i < numCascadesToRender; ++i)
-  {
-    // z component of 4-th column of every matrix is resposible for cmp value
-    transposed[i * 4 + 3].b += value;
-  }
-  uploadCSMBuffer(transposed.data(), shadowCascadeTcMulOffset.data());
+  calcTMs();
+  // Bias cascade 0 matrix z translation
+  shadowCascade0Tm[2].a += value;
+  // Cascade 0 bias propagates to cascade N: z = (f(z) + value) * mul + off = f(z) * mul + value * mul + off.
+  // But we expect f(z) * mul + off + value. So we just compensate offset by value - value * mul = value * (1 - mul)
+  for (int i = 1; i < numCascadesToRender; ++i)
+    shadowCascadeRelativeOffset[i].b += value * (1.0f - shadowCascadeRelativeScale[i].b);
+
+  uploadCSMBuffer(shadowCascadeCameraNearPlane, shadowCascade0Tm.data(), shadowCascadeSplits.data(), shadowCascadeRelativeScale.data(),
+    shadowCascadeRelativeOffset.data(), shadowCascadeTcMulOffset.data(), shadowCascadeRcpBasisLengthSq.data());
 }
 
 void CascadeShadowsPrivate::setCascadesToShader()
 {
   calcTMs();
 
-  const carray<Color4, CascadeShadows::MAX_CASCADES * 4> transposed = getTransposedCSMTm();
-
-  uploadCSMBuffer(transposed.data(), shadowCascadeTcMulOffset.data());
-  ShaderGlobal::set_color4(csm_world_view_posVarId, P3D(shadowSplits[0].viewPos), 0);
+  uploadCSMBuffer(shadowCascadeCameraNearPlane, shadowCascade0Tm.data(), shadowCascadeSplits.data(), shadowCascadeRelativeScale.data(),
+    shadowCascadeRelativeOffset.data(), shadowCascadeTcMulOffset.data(), shadowCascadeRcpBasisLengthSq.data());
+  ShaderGlobal::set_float4(csm_world_view_posVarId, P3D(shadowSplits[0].viewPos), 0);
 }
 
 void CascadeShadowsPrivate::setNearCullingNearPlaneToShader()
@@ -1052,7 +1168,7 @@ void CascadeShadowsPrivate::setNearCullingNearPlaneToShader()
     Frustum frustum = getWorldCullingMatrix(i);
     nearPlanes[i] = v_extract_w(frustum.camPlanes[Frustum::FARPLANE]); // Naming is based on reverse Z
   }
-  ShaderGlobal::set_color4(csm_culling_near_planesVarId, -nearPlanes);
+  ShaderGlobal::set_float4(csm_culling_near_planesVarId, -nearPlanes);
 }
 
 void CascadeShadowsPrivate::debugSetParams(float shadow_depth_bias, float shadow_const_depth_bias, float shadow_depth_slope_bias)
@@ -1110,16 +1226,22 @@ void CascadeShadows::prepareShadowCascades(const CascadeShadows::ModeSettings &m
     z_near_for_cascade_distribution);
 }
 
-void CascadeShadows::renderShadowsCascadesCb(const csm_render_cascades_cb_t &render_cascades_cb, ManagedTexView external_cascades)
+void CascadeShadows::renderShadowsCascadesCb(const csm_render_cascades_cb_t &render_cascades_cb, BaseTexture *external_cascades,
+  bool clear_per_view)
 {
-  d->renderShadowsCascadesCb(render_cascades_cb, external_cascades);
+  d->renderShadowsCascadesCb(render_cascades_cb, external_cascades, clear_per_view);
 }
 
 void CascadeShadows::renderShadowsCascades() { d->renderShadowsCascades(); }
 
-void CascadeShadows::renderShadowCascadeDepth(int cascadeNo, bool clearPerView, ManagedTexView external_cascades)
+void CascadeShadows::renderShadowCascadeDepth(int cascadeNo, bool clearPerView, BaseTexture *external_cascades)
 {
   d->renderShadowCascadeDepth(cascadeNo, clearPerView, external_cascades);
+}
+
+void CascadeShadows::renderShadowCascadeDepthCb(int cascadeNo, const csm_render_cascade_depth_cb_t &cb)
+{
+  d->renderShadowCascadeDepthCb(cascadeNo, cb);
 }
 
 void CascadeShadows::setSamplingBiasToShader(float value) { d->setSamplingBiasToShader(value); }
@@ -1193,6 +1315,7 @@ void CascadeShadows::setDepthBiasSettings(const CascadeShadows::Settings &set) {
 void CascadeShadows::setCascadeWidth(int width) { return d->setCascadeWidth(width); }
 
 BaseTexture *CascadeShadows::getShadowsCascade() const { return d->getShadowsCascade(); }
+ManagedTexView CascadeShadows::getShadowsCascadeView() const { return d->getShadowsCascadeView(); }
 d3d::SamplerHandle CascadeShadows::getShadowsCascadeSampler() const { return d->getShadowsCascadeSampler(); }
 const TextureInfo &CascadeShadows::getShadowCascadeTexInfo() const { return d->getShadowCascadeTexInfo(); }
 

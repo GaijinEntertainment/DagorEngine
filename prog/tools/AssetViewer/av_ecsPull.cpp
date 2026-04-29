@@ -1,6 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 
 // asset viewer only pull vars
 #define REG_SYS \

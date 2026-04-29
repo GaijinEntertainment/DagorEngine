@@ -5,17 +5,6 @@
 namespace bind_dascript
 {
 
-struct AbstractStaticClassDataAnnotation : das::ManagedStructureAnnotation<Sqrat::AbstractStaticClassData, false>
-{
-  AbstractStaticClassDataAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("AbstractStaticClassData", ml)
-  {
-    cppName = " Sqrat::AbstractStaticClassData";
-    addField<DAS_BIND_MANAGED_FIELD(className)>("className");
-  }
-
-  void init() { addField<DAS_BIND_MANAGED_FIELD(baseClass)>("baseClass"); }
-};
-
 class DagorQuirrelModule final : public das::Module
 {
   das::ModuleLibrary lib;
@@ -38,9 +27,6 @@ public:
     addBuiltinDependency(lib, require("ecs"));
     addBuiltinDependency(lib, require("DagorMath"));
     addBuiltinDependency(lib, quirrelModule);
-    auto abcdAnnotation = das::make_smart<AbstractStaticClassDataAnnotation>(lib);
-    addAnnotation(abcdAnnotation);
-    initRecAnnotation(abcdAnnotation, lib);
 
 #define BIND_TYPE(C, CN)                                                                                                             \
   das::addExtern<DAS_BIND_FUN(bind_dascript::PushInstanceCopy<C>)>(*this, lib, "PushInstanceCopy", das::SideEffects::accessExternal, \
@@ -67,9 +53,6 @@ public:
     TYPE(IPoint4)
 #undef TYPE
 #undef BIND_TYPE
-
-    das::addExtern<DAS_BIND_FUN(bind_dascript::find_AbstractStaticClassData)>(*this, lib, "find_AbstractStaticClassData",
-      das::SideEffects::accessExternal, "bind_dascript::find_AbstractStaticClassData");
 
     verifyAotReady();
     return true;

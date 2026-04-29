@@ -48,7 +48,8 @@ struct BitStreamWalker : das::DataWalker
     return type == das::Type::tInt16 || type == das::Type::tUInt16 || type == das::Type::tInt || type == das::Type::tUInt ||
            type == das::Type::tInt2 || type == das::Type::tUInt2 || type == das::Type::tInt3 || type == das::Type::tUInt3 ||
            type == das::Type::tInt4 || type == das::Type::tUInt4 || type == das::Type::tRange || type == das::Type::tURange ||
-           type == das::Type::tBitfield || type == das::Type::tEnumeration16 || type == das::Type::tEnumeration;
+           type == das::Type::tBitfield16 || type == das::Type::tBitfield || type == das::Type::tEnumeration16 ||
+           type == das::Type::tEnumeration;
   }
 
   bool isPackableUnitVector(das::TypeInfo *ti)
@@ -341,6 +342,9 @@ struct BitStreamWalker : das::DataWalker
   void Int(int32_t &data) override { processCompressible(data); }
   void UInt(uint32_t &data) override { processCompressible(data); }
   void Bitfield(uint32_t &data, das::TypeInfo *) override { processCompressible(data); }
+  void Bitfield8(uint8_t &data, das::TypeInfo *) override { process(data); }
+  void Bitfield16(uint16_t &data, das::TypeInfo *) override { processCompressible(data); }
+  void Bitfield64(uint64_t &data, das::TypeInfo *) override { process(data); }
   void Int2(das::int2 &data) override { processCompressibleVector<2>(data); }
   void Int3(das::int3 &data) override { processCompressibleVector<3>(data); }
   void Int4(das::int4 &data) override { processCompressibleVector<4>(data); }

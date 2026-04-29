@@ -189,9 +189,7 @@ public:
   virtual void *getUserData() { return userData; }
 
   inline PhysBody *getPhysBody() { return phBody; }
-#ifndef NO_3D_GFX
   void renderDebug() override;
-#endif // NO_3D_GFX
 
 protected:
   void loadParamsFromBlk(const DataBlock *b, const DataBlock &carsBlk);

@@ -5,6 +5,7 @@ float4 world_to_water_heightmap;
 float4 water_heightmap_page_count__det_scale;
 
 texture water_heightmap_tex;
+float4 water_heightmap_tex_region;
 float4 water_heightmap_min_max;
 
 int water_heightmap_tex_enabled = 0;
@@ -54,12 +55,15 @@ macro USE_WATER_HEIGHTMAP(stage)
       ##endif
 
       ##if water_heightmap_tex_enabled == yes
-        BRANCH
         if (water_heightmap_tex_exists)
         {
           float2 tc = worldPosXZ * world_to_water_heightmap.zw + world_to_water_heightmap.xy;
-          float h = tex2Dlod(water_heightmap_tex, float4(tc, 0, 0)).r;
-          height = max(height, h * water_heightmap_min_max.z + water_heightmap_min_max.w);
+          BRANCH
+          if (all(tc >= 0 && tc <= 1))
+          {
+            float h = tex2Dlod(water_heightmap_tex, float4(tc, 0, 0)).r;
+            height = max(height, h * water_heightmap_min_max.z + water_heightmap_min_max.w);
+          }
         }
       ##endif
     }

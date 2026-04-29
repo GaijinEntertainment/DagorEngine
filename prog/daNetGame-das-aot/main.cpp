@@ -7,6 +7,7 @@
 #include <ecs/scripts/dasEs.h>
 #include <debug/dag_logSys.h>
 #include <osApiWrappers/dag_dbgStr.h> //set_debug_console_handle
+#include <osApiWrappers/dag_vromfs.h>
 #if _TARGET_PC_WIN
 #include <windows.h> //set_debug_console_handle
 #endif
@@ -76,6 +77,7 @@ int DagorWinMain(bool debugmode)
   // dng default
   version2syntax = false;
   gen2MakeSyntax = true;
+  VirtualRomFsData *vrom = nullptr;
 
   DataBlock config;
   for (int ai = 0; ai != dgs_argc; ++ai)
@@ -167,6 +169,19 @@ int DagorWinMain(bool debugmode)
     {
       verboseLogs = true;
     }
+    else if (strcmp(dgs_argv[ai], "--ver2") == 0)
+    {
+      version2syntax = true;
+    }
+    else if (strcmp(dgs_argv[ai], "--vfs") == 0)
+    {
+      String vromfsPath = String(dgs_argv[ai + 1 < dgs_argc ? ai + 1 : ai]);
+      vrom = load_vromfs_dump(vromfsPath.c_str(), inimem, nullptr, nullptr, 0);
+      if (vrom)
+        add_vromfs(vrom, false, nullptr);
+      else
+        logerr("Unable to load vromfs file: %s", vromfsPath.c_str());
+    }
   }
 
   if (!dasRoot.empty())
@@ -180,6 +195,10 @@ int DagorWinMain(bool debugmode)
   (*das::daScriptEnvironment::bound)->das_def_tab_size = indenting;
 
   const int res = aot_main(dgs_argc, (char **)dgs_argv);
+
+  if (vrom)
+    remove_vromfs(vrom);
+
   return res != 0 || !strict ? res : strictExit;
 }
 #if _TARGET_PC_LINUX

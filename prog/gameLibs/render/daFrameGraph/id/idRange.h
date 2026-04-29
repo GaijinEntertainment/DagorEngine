@@ -25,14 +25,14 @@ public:
     using reference = EnumType;
     using pointer = void;
     using iterator_category = eastl::input_iterator_tag;
-    using difference_type = eastl::make_signed<Underlying>;
+    using difference_type = eastl::make_signed_t<Underlying>;
 
     EnumType operator*() const { return static_cast<EnumType>(current_); }
     // Yeah, this is intentional. Casting &current_ to a pointer
     // is possible, but reading it will incur UB until C++20 :)
     void operator->() const {}
 
-    Iterator operator++()
+    Iterator &operator++()
     {
       ++current_;
       return *this;
@@ -44,7 +44,7 @@ public:
       return copy;
     }
 
-    Iterator operator--()
+    Iterator &operator--()
     {
       --current_;
       return *this;

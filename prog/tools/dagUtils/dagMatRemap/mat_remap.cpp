@@ -139,6 +139,11 @@ int _cdecl main(int argc, char **argv)
     ::shutdown_dagor();
     return 0;
   }
+
+  // Snapshot DAG material state as BLK before any modification, so we can detect
+  // "no effective change" after applying the remap and skip rewriting the .dag file.
+  DataBlock beforeBlk = make_dag_mats_blk(data);
+
   otherData.matlist.reserve(matBlock.blockCount());
 
   DataBlock *mat;
@@ -253,6 +258,20 @@ int _cdecl main(int argc, char **argv)
     printf("Removing unused textures from total of %d...\n", data.texlist.size());
     printf("%d texture(s) removed\n", unusedTextures);
   }
+
+  // Semantic compare: if the post-remap material state (as BLK) matches the snapshot
+  // taken before the remap, nothing actually changed, so skip writing the .dag file.
+  {
+    DataBlock afterBlk = make_dag_mats_blk(data);
+    if (dblk::are_approximately_equal(beforeBlk, afterBlk))
+    {
+      if (!isQuiet)
+        printf("No effective material changes; skipping .dag save.\n");
+      ::shutdown_dagor();
+      return 0;
+    }
+  }
+
   String tempFile(inFile);
   tempFile += "_temp";
 

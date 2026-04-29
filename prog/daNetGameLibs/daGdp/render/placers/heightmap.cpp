@@ -66,6 +66,7 @@ static ShaderVariableInfo base_tile_int_pos_xz("dagdp_heightmap__base_tile_int_p
 static ShaderVariableInfo viewport_pos("dagdp_heightmap__viewport_pos");
 static ShaderVariableInfo viewport_max_distance("dagdp_heightmap__viewport_max_distance");
 static ShaderVariableInfo viewport_index("dagdp_heightmap__viewport_index");
+static ShaderVariableInfo visible_tiles_start_offset("dagdp_heightmap__visible_tiles_start_offset");
 } // namespace var
 
 namespace dagdp

@@ -60,9 +60,11 @@ public:
   void requestStop();
   void rewind();
   bool isFinished() const;
+  bool isFadingOut() const;
   void skip();
   void skipOnDelete();
   void skipDelay();
+  void setPause(bool on);
 
 protected:
   bool baseUpdate(int64_t dt_usec);
@@ -79,6 +81,7 @@ public:
   AnimDesc desc;
   int64_t t = 0, delayLeft = 0;
   bool isPlayingLoop = false;
+  bool isPaused = false;
   Element *elem;
 };
 
@@ -120,14 +123,15 @@ private:
 class Point2Anim : public Animation
 {
 public:
-  Point2Anim(Element *elem) : Animation(elem) {}
+  Point2Anim(Element *elem, Point2 def) : Animation(elem), defVal(def), cur(def), p2From(def), p2To(def) {}
   virtual void setup(bool initial) override;
   virtual void update(int64_t dt_usec) override;
   virtual void apply() override;
 
 private:
-  Point2 cur = Point2(0, 0);
-  Point2 p2From = Point2(0, 0), p2To = Point2(0, 0);
+  Point2 cur;
+  Point2 p2From, p2To;
+  const Point2 defVal;
 };
 
 

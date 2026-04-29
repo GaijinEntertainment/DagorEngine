@@ -115,24 +115,24 @@ pkg_to_install = ['nasm']
 pkg_install_cmd = ''
 if is_rosa_linux:
   pkg_install_cmd = 'dnf install'
-  pkg_to_install += ['python3-pip', 'gcc', 'gcc-c++', 'clang']
+  pkg_to_install += ['python3-pip', 'gcc', 'gcc-c++', 'clang', 'lib64ubsan-devel']
   pkg_to_install += ['lib64x11-devel', 'lib64xrandr-devel', 'lib64fltk-devel', 'lib64xkbfile-devel', 'lib64udev-devel', 'lib64pulseaudio-devel', 'lib64alsa-oss-devel']
 elif is_altlinux:
   pkg_install_cmd = 'apt-get install'
-  pkg_to_install += ['python3-module-pip']
-  pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libfltk-devel', 'libxkbfile-devel', 'libudev-devel', 'libpulseaudio-devel', 'libalsa-devel']
+  pkg_to_install += ['python3-module-pip', 'clang21.1', 'libclang21', 'libasan-devel-static']
+  pkg_to_install += ['libX11-devel', 'libXrandr-devel', 'libfltk-devel', 'libxkbfile-devel', 'libudev-devel', 'libpulseaudio-devel', 'libalsa-devel', 'libuuid-devel']
 elif is_elbrus_linux:
   pkg_install_cmd = 'apt install'
   pkg_to_install  = ['python3-pip']
-  pkg_to_install += ['libx11', 'libxrandr', 'fltk', 'libxkbfile', 'pulseaudio', 'alsa-lib']
+  pkg_to_install += ['libx11', 'libxrandr', 'fltk', 'libxkbfile', 'pulseaudio', 'alsa-lib', 'uuid']
 elif is_ubuntu:
   pkg_install_cmd = 'apt install'
   pkg_to_install += ['python3-pip', 'gcc', 'clang']
-  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev', 'libpulse-dev']
+  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev', 'libpulse-dev', 'uuid-dev']
 elif is_astra_linux:
   pkg_install_cmd = 'apt install'
   pkg_to_install += ['python3-pip', 'gcc-mozilla', 'clang-10']
-  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev', 'libpulse-dev']
+  pkg_to_install += ['libx11-dev', 'libxrandr-dev', 'libfltk1.3-dev', 'libxkbfile-dev', 'libudev-dev', 'libpulse-dev', 'uuid-dev']
 elif is_centos:
   pkg_install_cmd = 'yum install'
   pkg_to_install += ['python3-pip', 'devtoolset-11', 'llvm-toolset-7.0']
@@ -192,18 +192,18 @@ else:
     pathlib.Path(fmod_dest_folder+'/studio/linux64/inc').mkdir(parents=True, exist_ok=True)
 
 
-# DXC-1.8.2407
-dxc_dest_folder = dest_dir+'/DXC-1.8.2407'
+# DXC-1.8.2505.1
+dxc_dest_folder = dest_dir+'/DXC-1.8.2505.1'
 if pathlib.Path(dxc_dest_folder).exists():
-  print('=== DXC Jul 2024 1.8.2407 found at {0}, skipping setup'.format(dxc_dest_folder))
+  print('=== DXC May 2025 - Patch 1 -- 1.8.2505.1 found at {0}, skipping setup'.format(dxc_dest_folder))
 else:
-  download_url('https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2407/linux_dxc_2024_07_31.x86_64.tar.gz')
-  with tarfile.open(os.path.normpath(dest_dir+'/.packages/linux_dxc_2024_07_31.x86_64.tar.gz'), 'r:gz') as tar_file:
+  download_url('https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2505.1/linux_dxc_2025_07_14.x86_64.tar.gz')
+  with tarfile.open(os.path.normpath(dest_dir+'/.packages/linux_dxc_2025_07_14.x86_64.tar.gz'), 'r:gz') as tar_file:
     tar_file.extractall(dxc_dest_folder)
     tar_file.close()
     pathlib.Path(dxc_dest_folder+'/lib/linux64').mkdir(parents=True, exist_ok=True);
     make_directory_symlink(dxc_dest_folder+'/lib/libdxcompiler.so', dxc_dest_folder+'/lib/linux64/libdxcompiler.so')
-    print('+++ DXC Jul 2024 1.8.2407 installed at {0}'.format(dxc_dest_folder))
+    print('+++ DXC May 2025 - Patch 1 -- 1.8.2505.1 installed at {0}'.format(dxc_dest_folder))
     if linux_arch_type == 'e2k':
       print('!!! arch={0} differs from x86_64, you should rebuild {1} for\n'
             '    your arch and place result binary to {2}/lib/linux64/libdxcompiler.so\n\n'

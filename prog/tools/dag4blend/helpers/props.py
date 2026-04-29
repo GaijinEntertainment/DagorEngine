@@ -2,6 +2,8 @@ import bpy
 
 from .getters               import get_preferences
 
+valid_props_types =['t', 'i', 'b', 'm', 'r', 'p2', 'p3', 'p4', 'ip2', 'ip3']
+
 # returns a string version of a prop value
 def prop_value_to_string(prop_value, prop_type):
     try:
@@ -227,7 +229,7 @@ def guess_type_convert(str):
 
 # trying to set a specific type if possible
 def fix_type(str, expected_type = None):
-    if expected_type != None and type_converters[expected_type] is None:
+    if expected_type != None and type_converters.get(expected_type) is None:
         print(f'Error! Unknown type: "{expected_type}"')
         #  TODO: better warn
         expected_type = None

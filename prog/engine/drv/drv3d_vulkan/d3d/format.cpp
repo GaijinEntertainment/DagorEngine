@@ -91,9 +91,19 @@ bool d3d::check_voltexformat(int cflg)
 unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
 {
   auto fmt = FormatStore::fromCreateFlags(cflg);
-  VkFormatFeatureFlags features = Globals::VK::fmt.features(fmt.asVkFormat());
+  const VkFormatFeatureFlags features =
+    (type == D3DResourceType::SBUF) ? Globals::VK::fmt.buffer_features(fmt.asVkFormat()) : Globals::VK::fmt.features(fmt.asVkFormat());
 
   unsigned result = 0;
+
+  if (type != D3DResourceType::SBUF && fmt.getLinearFormat() != fmt.asVkFormat())
+  {
+    VkFormat linFmt = fmt.getLinearFormat();
+    const VkFormatFeatureFlags linFeatures = Globals::VK::fmt.features(linFmt);
+    if (linFeatures & (VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT))
+      result |= USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
+  }
+
   switch (type)
   {
     case D3DResourceType::TEX:
@@ -123,7 +133,10 @@ unsigned d3d::get_texformat_usage(int cflg, D3DResourceType type)
         result |= USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
       break;
     case D3DResourceType::CUBEARRTEX: break;
-    case D3DResourceType::SBUF: break;
+    case D3DResourceType::SBUF:
+      if (features & VK_FORMAT_FEATURE_STORAGE_TEXEL_BUFFER_BIT)
+        result |= USAGE_UNORDERED | USAGE_UNORDERED_LOAD;
+      break;
   }
   return result | USAGE_PIXREADWRITE;
 }

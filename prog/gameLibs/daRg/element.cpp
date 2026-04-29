@@ -59,8 +59,7 @@ bool XmbData::calcCanFocus()
   {
     HSQUIRRELVM vm = nodeDesc.GetVM();
     Sqrat::Function func(vm, Sqrat::Object(vm), canFocus);
-    bool res = false;
-    return (func.Evaluate(res) && res);
+    return func.Eval<bool>().value_or(false);
   }
 
   return canFocus.Cast<bool>();
@@ -136,6 +135,9 @@ bool Element::isAscendantOf(const Element *child) const
 
 static void call_attach_detach_handler(GuiScene *scene, Element *elem, bool attach)
 {
+  if (elem->etree->isInternalTemporaryTree)
+    return;
+
   const Sqrat::Object *slot = attach ? &elem->csk->onAttach : &elem->csk->onDetach;
 
   const Sqrat::Object &funcName = attach ? elem->csk->onAttach : elem->csk->onDetach;
@@ -273,8 +275,6 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
 {
   G_ASSERT(!comp.scriptDesc.IsNull());
 
-  textSizeCache = Point2(-1, -1);
-
   bool initRendObj = (setup_mode == SM_INITIAL) || (setup_mode == SM_REBUILD_UPDATE && rendObjType != comp.rendObjType);
   if (initRendObj)
   {
@@ -399,7 +399,7 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
   updFlags(F_CLIP_CHILDREN, scriptDesc.RawGetSlotValue(csk->clipChildren, false));
   updFlags(F_HAS_EVENT_HANDLERS, scriptDesc.RawHasKey(csk->eventHandlers));
   updFlags(F_DISABLE_INPUT, scriptDesc.RawGetSlotValue(csk->disableInput, false));
-  updFlags(F_STOP_MOUSE, scriptDesc.RawGetSlotValue(csk->stopMouse, false));
+  updFlags(F_STOP_POINTING, scriptDesc.RawGetSlotValue(csk->stopMouse, false));
   updFlags(F_STOP_HOVER, scriptDesc.RawGetSlotValue(csk->stopHover, false));
   updFlags(F_STOP_HOTKEYS, scriptDesc.RawGetSlotValue(csk->stopHotkeys, false));
   updFlags(F_STICK_CURSOR, stickCursor);
@@ -435,6 +435,10 @@ void Element::setup(const Component &comp, GuiScene *gui_scene, SetupMode setup_
     for (Behavior *bhv : behaviors)
       bhv->onElemSetup(this, setup_mode);
   }
+
+  bool isPanelRoot = etree->screen && etree->screen->panel && !parent;
+  if (isPanelRoot)
+    etree->screen->panel->updatePanelParamsFromScript(scriptDesc);
 }
 
 
@@ -513,9 +517,34 @@ void Element::onScrollHandlerRelease() { scrollHandler = NULL; }
 void Element::readTransform(const Sqrat::Table &desc)
 {
   Sqrat::Table tmDesc = desc.RawGetSlot(csk->transform);
-  if (tmDesc.IsNull())
+  SQObjectType descType = tmDesc.GetType();
+
+  if (descType == OT_NULL)
   {
     del_it(transform);
+    return;
+  }
+
+  if (descType == OT_BOOL)
+  {
+    bool hasTransform = tmDesc.Cast<bool>();
+    if (hasTransform)
+    {
+      if (!transform)
+        transform = new Transform();
+      transform->resetParams();
+    }
+    else
+      del_it(transform);
+    return;
+  }
+
+  if (descType != OT_TABLE)
+  {
+    del_it(transform);
+    eastl::string errMsg(eastl::string::CtorSprintf{}, "Invalid transform type %s (expected table|bool|null)",
+      sq_objtypestr(descType));
+    darg_assert_trace_var(errMsg.c_str(), desc, csk->transform);
     return;
   }
 
@@ -524,15 +553,15 @@ void Element::readTransform(const Sqrat::Table &desc)
 
   Sqrat::Object objPivot = tmDesc.RawGetSlot(csk->pivot);
   if (!objPivot.IsNull())
-    transform->pivot = script_get_point2(objPivot);
+    transform->pivot = script_get_point2(objPivot, Point2(0.5f, 0.5f));
 
   Sqrat::Object objTranslate = tmDesc.RawGetSlot(csk->translate);
   if (!objTranslate.IsNull())
-    transform->translate = script_get_point2(objTranslate);
+    transform->translate = script_get_point2(objTranslate, Point2(0, 0));
 
   Sqrat::Object objScale = tmDesc.RawGetSlot(csk->scale);
   if (!objScale.IsNull())
-    transform->scale = script_get_point2(objScale);
+    transform->scale = script_get_point2(objScale, Point2(1, 1));
 
   transform->rotate = DegToRad(tmDesc.RawGetSlotValue(csk->rotate, 0.0f));
 
@@ -642,8 +671,9 @@ void Element::onElemGroupRelease() { group = nullptr; }
 
 void Element::releaseWatch()
 {
-  for (sqfrp::BaseObservable *w : watch)
-    w->unsubscribeWatcher(this);
+  ObservablesGraph *graph = GuiScene::get_from_elem(this)->frpGraph.get();
+  for (NodeId id : watch)
+    graph->unsubscribeWatcher(id, this);
   watch.clear();
 }
 
@@ -669,34 +699,34 @@ void Element::readWatches(const Sqrat::Table &desc_tbl, const Sqrat::Table &scri
     out.reserve(len);
     for (SQInteger i = 0; i < len; ++i)
     {
-      BaseObservable *obs = try_cast_instance<BaseObservable>(arr.RawGetSlot(i), arr, i, "Reading 'watch' array");
-      if (obs)
-        out.push_back(obs);
+      WatchedHandle *handle = try_cast_instance<WatchedHandle>(arr.RawGetSlot(i), arr, i, "Reading 'watch' array");
+      if (handle)
+        out.push_back(handle->id);
     }
   }
   else
   {
-    BaseObservable *obs = try_cast_instance<BaseObservable>(script_watches, desc_tbl, csk->watch, "Reading 'watch' field");
-    if (obs)
-      out.push_back(obs);
+    WatchedHandle *handle = try_cast_instance<WatchedHandle>(script_watches, desc_tbl, csk->watch, "Reading 'watch' field");
+    if (handle)
+      out.push_back(handle->id);
   }
 }
 
 
 void Element::setupWatch(const Sqrat::Table &desc_tbl)
 {
-  if (!etree->watchesAllowed)
+  if (etree->isInternalTemporaryTree)
     return;
 
   Sqrat::Object watchObj = desc_tbl.RawGetSlot(csk->watch);
   if (watchObj.IsNull() && watch.empty())
     return;
 
-  dag::RelocatableFixedVector<BaseObservable *, 16, true, framemem_allocator> newWatches;
+  dag::RelocatableFixedVector<NodeId, 16, true, framemem_allocator> newWatches;
   if (!watchObj.IsNull())
     readWatches(desc_tbl, watchObj, newWatches);
 
-  if (newWatches.size() == watch.size() && memcmp(newWatches.data(), watch.data(), watch.size() * sizeof(BaseObservable *)) == 0)
+  if (newWatches.size() == watch.size() && memcmp(newWatches.data(), watch.data(), watch.size() * sizeof(NodeId)) == 0)
     return;
 
   if (props.scriptBuilder.IsNull() && !newWatches.empty())
@@ -705,20 +735,22 @@ void Element::setupWatch(const Sqrat::Table &desc_tbl)
     newWatches.clear(); // prevent rebuild
   }
 
-  for (sqfrp::BaseObservable *w : watch)
-    w->unsubscribeWatcher(this);
+  ObservablesGraph *graph = GuiScene::get_from_elem(this)->frpGraph.get();
+
+  for (NodeId id : watch)
+    graph->unsubscribeWatcher(id, this);
 
   watch.assign(newWatches.begin(), newWatches.end());
 
-  for (sqfrp::BaseObservable *w : watch)
-    w->subscribeWatcher(this);
+  for (NodeId id : watch)
+    graph->subscribeWatcher(id, this);
 }
 
 
-void Element::onObservableRelease(BaseObservable *observable)
+void Element::onObservableRelease(NodeId id)
 {
   for (int i = watch.size() - 1; i >= 0; --i)
-    if (watch[i] == observable)
+    if (watch[i] == id)
       watch.erase(watch.begin() + i);
 }
 
@@ -802,7 +834,8 @@ BBox2 Element::calcTransformedBboxPadded() const
   GuiVertexTransform gvtm;
   calcFullTransform(gvtm);
   auto &sc = screenCoord;
-  return scenerender::calcTransformedBbox(sc.screenPos + layout.padding.lt(), sc.screenPos + sc.size - layout.padding.rb(), gvtm);
+  const Offsets pad = layout.padding();
+  return scenerender::calcTransformedBbox(sc.screenPos + pad.lt(), sc.screenPos + sc.size - pad.rb(), gvtm);
 }
 
 
@@ -927,7 +960,7 @@ void Element::renderXmbOverlayDebug(StdGuiRender::GuiContext &ctx) const
   for (size_t iItem = 0, nItems = stack.size(); iItem < nItems; ++iItem)
   {
     const InputEntry &ie = stack[iItem];
-    if (ie.elem == guiScene->getElementTree()->xmbFocus)
+    if (ie.elem == guiScene->xmbFocus)
     {
       focusInputStackDepth = iItem;
       focusZOrder = ie.zOrder;
@@ -935,7 +968,7 @@ void Element::renderXmbOverlayDebug(StdGuiRender::GuiContext &ctx) const
     }
   }
 
-  if (hasFlags(F_STOP_MOUSE))
+  if (hasFlags(F_STOP_POINTING))
   {
     Point2 pos = screenCoord.screenPos;
     Point2 size = screenCoord.size;
@@ -951,7 +984,8 @@ void Element::renderXmbOverlayDebug(StdGuiRender::GuiContext &ctx) const
 
         if (ie.zOrder >= focusZOrder && (focusInputStackDepth >= 0 && iItem > focusInputStackDepth))
         {
-          if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK) || ie.elem->hasFlags(Element::F_STOP_MOUSE))
+          if (ie.elem->hasBehaviors(Behavior::F_HANDLE_MOUSE | Behavior::F_FOCUS_ON_CLICK) ||
+              ie.elem->hasFlags(Element::F_STOP_POINTING))
             includeInCheck = true;
         }
 
@@ -991,7 +1025,7 @@ void Element::renderXmbOverlayDebug(StdGuiRender::GuiContext &ctx) const
     ctx.draw_str(strRB, strRB.length());
   }
 
-  if (this == guiScene->getElementTree()->xmbFocus)
+  if (this == guiScene->xmbFocus)
   {
     ctx.set_font(0);
     BBox2 bbox = calcTransformedBbox();
@@ -1024,7 +1058,7 @@ void Element::postRender(StdGuiRender::GuiContext &ctx, RenderList *rend_list) c
 
 #ifdef DARG_DEBUG_FOCUS
   GuiScene *guiScene = GuiScene::get_from_elem(this);
-  if (this == guiScene->getElementTree()->kbFocus)
+  if (this == guiScene->kbFocus.focus)
   {
     Point2 pos = screenCoord.screenPos;
     Point2 size = screenCoord.size;
@@ -1059,26 +1093,6 @@ void Element::postRender(StdGuiRender::GuiContext &ctx, RenderList *rend_list) c
 bool Element::hasBehaviors(int bhv_flags) const { return (behaviorsSummaryFlags & bhv_flags) != 0; }
 
 
-static bool should_put_to_render(const Element *elem)
-{
-  // if (elem->rendObjType != ROBJ_NONE)
-  //   return true;
-  // if (elem->transform)
-  //   return true;
-  // if (elem->animations.size() || elem->transitions.size())
-  //   return true;
-  // float elemOpacity = elem->props.getCurrentOpacity();
-  // if (elemOpacity < opacity_transp_threshold)
-  //   return true;
-  // return false;
-
-  //// ^ this breaks input processing because screen boxes are calculated on render
-
-  G_UNUSED(elem);
-  return true;
-}
-
-
 static bool are_hotkeys_input_transparent(const dag::Vector<eastl::unique_ptr<HotkeyCombo>> &hotkey_combos)
 {
   for (const auto &hc : hotkey_combos)
@@ -1104,7 +1118,15 @@ void Element::putToSortedStacks(ElemStacks &stacks, ElemStackCounters &counters,
 
   const int order = getZOrder(parent_z_order);
   bool disableInput = parent_disable_input || (flags & F_DISABLE_INPUT);
-  bool putToRender = should_put_to_render(this);
+
+  // Always put all elements to render list.
+  // Not including elements into render list breaks input processing because
+  // screen boxes (transformedBbox, clippedScreenRect) are calculated as a side
+  // effect of the render pass (renderList.cpp).
+  // Elements skipped here get no RCMD_ELEM_RENDER entry, so their boxes are
+  // never computed and hitTest() fails with stale data.
+  // To re-enable, decouple box calculation into a separate tree walk.
+  constexpr bool putToRender = true;
 
   if (putToRender)
   {
@@ -1129,7 +1151,7 @@ void Element::putToSortedStacks(ElemStacks &stacks, ElemStackCounters &counters,
   const int bhvFlagsInput =
     Behavior::F_FOCUS_ON_CLICK | Behavior::F_HANDLE_KEYBOARD | Behavior::F_HANDLE_MOUSE | Behavior::F_HANDLE_TOUCH;
 
-  const int elemInputFlags = F_STOP_HOVER | F_STOP_MOUSE | F_JOYSTICK_SCROLL | F_STOP_HOTKEYS;
+  const int elemInputFlags = F_STOP_HOVER | F_STOP_POINTING | F_JOYSTICK_SCROLL | F_STOP_HOTKEYS;
 
   if (stacks.input && !disableInput && !isDetached())
   {
@@ -1311,14 +1333,14 @@ void Element::calcFixedSizes()
       clampSizeToLimits(axis, screenCoord.size[axis]);
     }
     else if (ssMode == SizeSpec::FLEX && (parent->isFlowAxis(axis) && parent->children.size() != 1))
-      screenCoord.size[axis] = sizeSpecToPixels(layout.minSize[axis], axis);
+      screenCoord.size[axis] = sizeSpecToPixels(layout.minSize(axis), axis);
   }
 }
 
 void Element::calcSizeConstraints(int axis, float *sz_min, float *sz_max) const
 {
-  float szMin = sizeSpecToPixels(layout.minSize[axis], axis);
-  float szMax = sizeSpecToPixels(layout.maxSize[axis], axis);
+  float szMin = sizeSpecToPixels(layout.minSize(axis), axis);
+  float szMax = sizeSpecToPixels(layout.maxSize(axis), axis);
 
   if (szMin > 0 && szMax > 0 && szMax < szMin)
     szMax = szMin;
@@ -1329,7 +1351,7 @@ void Element::calcSizeConstraints(int axis, float *sz_min, float *sz_max) const
 
 static float calc_flowing_spacing(int axis, const Element *prev_child, const Element *cur_child, float gap)
 {
-  return ::max(prev_child->layout.margin.rb()[axis], cur_child->layout.margin.lt()[axis]) + gap;
+  return ::max(prev_child->layout.margin().rb()[axis], cur_child->layout.margin().lt()[axis]) + gap;
 }
 
 void Element::calcConstrainedSizes(int axis)
@@ -1349,6 +1371,7 @@ void Element::calcConstrainedSizes(int axis)
     }
 
     float freeSpace = screenCoord.size[axis];
+    const Offsets pad = layout.padding();
 
     float flexWeightSum = 0;
     int numFlex = 0;
@@ -1388,13 +1411,13 @@ void Element::calcConstrainedSizes(int axis)
         if (prevLayoutFlowChild)
           freeSpace -= calc_flowing_spacing(axis, prevLayoutFlowChild, child, layout.gap);
         else
-          freeSpace -= ::max(layout.padding.lt()[axis], child->layout.margin.lt()[axis]);
+          freeSpace -= ::max(pad.lt()[axis], child->layout.margin().lt()[axis]);
         prevLayoutFlowChild = child;
       }
     }
 
     if (prevLayoutFlowChild)
-      freeSpace -= ::max(layout.padding.rb()[axis], prevLayoutFlowChild->layout.margin.rb()[axis]);
+      freeSpace -= ::max(pad.rb()[axis], prevLayoutFlowChild->layout.margin().rb()[axis]);
 
     // apply flex
     if (numFlex && flexWeightSum > 0 && freeSpace > 0)
@@ -1531,16 +1554,16 @@ void Element::alignChildren(int axis)
     {
       const ScreenCoord &scLast = lastLayoutChild->screenCoord;
       float joinedChildrenSize = scLast.relPos[axis] + scLast.size[axis];
+      const Offsets pad = layout.padding();
 
       float commonOffs = 0;
       ElemAlign align = axis == 0 ? layout.hAlign : layout.vAlign;
       if (align == ALIGN_LEFT_OR_TOP)
-        commonOffs = ::max(firstLayoutChild->layout.margin.lt()[axis], layout.padding.lt()[axis]);
+        commonOffs = ::max(firstLayoutChild->layout.margin().lt()[axis], pad.lt()[axis]);
       else if (align == ALIGN_CENTER)
-        commonOffs = (screenCoord.size[axis] - joinedChildrenSize) / 2 + (layout.padding.lt()[axis] - layout.padding.rb()[axis]) / 2;
+        commonOffs = (screenCoord.size[axis] - joinedChildrenSize) / 2 + (pad.lt()[axis] - pad.rb()[axis]) / 2;
       else if (align == ALIGN_RIGHT_OR_BOTTOM)
-        commonOffs =
-          screenCoord.size[axis] - joinedChildrenSize - ::max(lastLayoutChild->layout.margin.rb()[axis], layout.padding.rb()[axis]);
+        commonOffs = screenCoord.size[axis] - joinedChildrenSize - ::max(lastLayoutChild->layout.margin().rb()[axis], pad.rb()[axis]);
 
       for (Element *child : children)
         child->screenCoord.relPos[axis] += commonOffs;
@@ -1548,6 +1571,7 @@ void Element::alignChildren(int axis)
   }
   else
   {
+    const Offsets pad = layout.padding();
     for (Element *child : children)
     {
       ScreenCoord &chsc = child->screenCoord;
@@ -1560,11 +1584,11 @@ void Element::alignChildren(int axis)
 
       float relPos = 0;
       if (place == ALIGN_LEFT_OR_TOP)
-        relPos = ::max(child->layout.margin.lt()[axis], layout.padding.lt()[axis]);
+        relPos = ::max(child->layout.margin().lt()[axis], pad.lt()[axis]);
       else if (place == ALIGN_RIGHT_OR_BOTTOM)
-        relPos = screenCoord.size[axis] - chsc.size[axis] - ::max(child->layout.margin.rb()[axis], layout.padding.rb()[axis]);
+        relPos = screenCoord.size[axis] - chsc.size[axis] - ::max(child->layout.margin().rb()[axis], pad.rb()[axis]);
       else if (place == ALIGN_CENTER)
-        relPos = (screenCoord.size[axis] - chsc.size[axis]) / 2 + (layout.padding.lt()[axis] - layout.padding.rb()[axis]) / 2;
+        relPos = (screenCoord.size[axis] - chsc.size[axis]) / 2 + (pad.lt()[axis] - pad.rb()[axis]) / 2;
       else
         G_ASSERTF(0, "Unexpected alignment %d", place);
 
@@ -1590,6 +1614,7 @@ void Element::recalcContentSize(int axis) { screenCoord.contentSize[axis] = calc
 float Element::calcContentSizeByAxis(int axis)
 {
   float contentSize = 0;
+  const Offsets pad = layout.padding();
 
   if (isFlowAxis(axis))
   {
@@ -1604,26 +1629,27 @@ float Element::calcContentSizeByAxis(int axis)
       if (prevLayoutChild)
         contentSize += calc_flowing_spacing(axis, prevLayoutChild, child, layout.gap);
       else
-        contentSize += ::max(layout.padding.lt()[axis], child->layout.margin.lt()[axis]);
+        contentSize += ::max(pad.lt()[axis], child->layout.margin().lt()[axis]);
 
       prevLayoutChild = child;
     }
 
     if (prevLayoutChild)
-      contentSize += (::max(layout.padding.rb()[axis], prevLayoutChild->layout.margin.rb()[axis]));
+      contentSize += (::max(pad.rb()[axis], prevLayoutChild->layout.margin().rb()[axis]));
   }
   else
   {
-    for (Element *child : children)
+    for (const Element *child : children)
     {
-      float childSize = child->screenCoord.size[axis] + ::max(layout.padding.lt()[axis], child->layout.margin.lt()[axis]) +
-                        ::max(layout.padding.rb()[axis], child->layout.margin.rb()[axis]);
+      const Offsets cmgn = child->layout.margin();
+      float insetLt = ::max(pad.lt()[axis], cmgn.lt()[axis]);
+      float insetRb = ::max(pad.rb()[axis], cmgn.rb()[axis]);
 
-      if (child->layout.minSize[axis].mode == SizeSpec::CONTENT)
+      float childSize = child->screenCoord.size[axis] + insetLt + insetRb;
+
+      if (child->layout.minSize(axis).mode == SizeSpec::CONTENT)
       {
-        float childContentSize = child->screenCoord.contentSize[axis] +
-                                 ::max(layout.padding.lt()[axis], child->layout.margin.lt()[axis]) +
-                                 ::max(layout.padding.rb()[axis], child->layout.margin.rb()[axis]);
+        float childContentSize = child->screenCoord.contentSize[axis] + insetLt + insetRb;
         childSize = ::max(childSize, childContentSize);
       }
 
@@ -1635,11 +1661,11 @@ float Element::calcContentSizeByAxis(int axis)
   {
     RobjParamsText *rparams = (RobjParamsText *)robjParams;
 
-    if (textSizeCache.x < 0)
+    if (rparams->textSizeCache.x < 0)
     {
       if (!rparams->passChar)
-        textSizeCache = calc_text_size(props.text.c_str(), props.text.length(), rparams->fontId, rparams->spacing, rparams->monoWidth,
-          rparams->fontHt);
+        rparams->textSizeCache = calc_text_size(props.text.c_str(), props.text.length(), rparams->fontId, rparams->spacing,
+          rparams->monoWidth, rparams->fontHt);
       else
       {
         int chars = utf8::distance(props.text.c_str(), props.text.c_str() + props.text.length());
@@ -1647,13 +1673,14 @@ float Element::calcContentSizeByAxis(int axis)
         wtext.resize(chars);
         for (int i = 0; i < chars; i++)
           wtext[i] = rparams->passChar;
-        textSizeCache = calc_text_size_u(wtext.data(), chars, rparams->fontId, rparams->spacing, rparams->monoWidth, rparams->fontHt);
+        rparams->textSizeCache =
+          calc_text_size_u(wtext.data(), chars, rparams->fontId, rparams->spacing, rparams->monoWidth, rparams->fontHt);
       }
     }
 
-    Point2 size = textSizeCache;
+    Point2 size = rparams->textSizeCache;
     size.x += 1; // for caret
-    float axisSz = size[axis] + layout.padding.lt()[axis] + layout.padding.rb()[axis];
+    float axisSz = size[axis] + pad.lt()[axis] + pad.rb()[axis];
 
     contentSize = ::max(contentSize, axisSz);
   }
@@ -1667,17 +1694,23 @@ float Element::calcContentSizeByAxis(int axis)
         box = StdGuiRender::get_inscription_size(params->inscription);
       float w = box.isempty() ? 0 : box.width().x;
       Point2 size(w, params->fullHeight);
-      contentSize = ::max(contentSize, size[axis] + layout.padding.lt()[axis] + layout.padding.rb()[axis]);
+      contentSize = ::max(contentSize, size[axis] + pad.lt()[axis] + pad.rb()[axis]);
     }
   }
   else if (rendObjType == rendobj_textarea_id)
   {
-    Point2 textSize(0, 0);
-    if (eastl::find(behaviors.begin(), behaviors.end(), &bhv_text_area_edit) != behaviors.end())
-      BhvTextAreaEdit::recalc_content(this, axis, screenCoord.size, textSize);
-    else if (eastl::find(behaviors.begin(), behaviors.end(), &bhv_text_area) != behaviors.end())
-      BhvTextArea::recalc_content(this, axis, screenCoord.size, textSize);
-    contentSize = ::max(contentSize, textSize[axis]);
+    // Width drives wrapping; Phase 1 visits flex-width elements before parent
+    // flex distribution resolves size.x. Phase 2 remeasures with the real width.
+    const bool widthReady = layout.size[0].mode != SizeSpec::FLEX || screenCoord.size.x > 0;
+    if (widthReady)
+    {
+      Point2 textSize(0, 0);
+      if (eastl::find(behaviors.begin(), behaviors.end(), &bhv_text_area_edit) != behaviors.end())
+        BhvTextAreaEdit::recalc_content(this, axis, screenCoord.size, textSize);
+      else if (eastl::find(behaviors.begin(), behaviors.end(), &bhv_text_area) != behaviors.end())
+        BhvTextArea::recalc_content(this, axis, screenCoord.size, textSize);
+      contentSize = ::max(contentSize, textSize[axis]);
+    }
   }
   else if (rendObjType == rendobj_image_id)
   {
@@ -1711,8 +1744,9 @@ float Element::calcParentW(float percent) const
   if (!parent)
     return 0;
 
-  float available = parent->screenCoord.size[0] - ::max(layout.margin.left(), parent->layout.padding.left()) -
-                    ::max(layout.margin.right(), parent->layout.padding.right());
+  const Offsets mgn = layout.margin();
+  const Offsets ppad = parent->layout.padding();
+  float available = parent->screenCoord.size[0] - ::max(mgn.l, ppad.l) - ::max(mgn.r, ppad.r);
 
   if (parent->layout.flowType == FLOW_HORIZONTAL)
     available -= parent->layout.gap * (parent->children.size() - 1);
@@ -1727,8 +1761,8 @@ float Element::calcParentWClamped(float percent) const
 
   float res = calcParentW(percent);
 
-  float minSize = sizeSpecToPixels(layout.minSize[0], 0);
-  float maxSize = sizeSpecToPixels(layout.maxSize[0], 0);
+  float minSize = sizeSpecToPixels(layout.minSize(0), 0);
+  float maxSize = sizeSpecToPixels(layout.maxSize(0), 0);
   if (maxSize > 0.0f)
     res = ::min(res, maxSize);
   if (minSize > 0.0f)
@@ -1743,8 +1777,9 @@ float Element::calcParentH(float percent) const
   if (!parent)
     return 0;
 
-  float available = parent->screenCoord.size[1] - ::max(layout.margin.top(), parent->layout.padding.top()) -
-                    ::max(layout.margin.bottom(), parent->layout.padding.bottom());
+  const Offsets mgn = layout.margin();
+  const Offsets ppad = parent->layout.padding();
+  float available = parent->screenCoord.size[1] - ::max(mgn.t, ppad.t) - ::max(mgn.b, ppad.b);
 
   if (parent->layout.flowType == FLOW_VERTICAL)
     available -= parent->layout.gap * (parent->children.size() - 1);
@@ -1760,8 +1795,8 @@ float Element::calcParentHClamped(float percent) const
 
   float res = calcParentH(percent);
 
-  float minSize = sizeSpecToPixels(layout.minSize[1], 1);
-  float maxSize = sizeSpecToPixels(layout.maxSize[1], 1);
+  float minSize = sizeSpecToPixels(layout.minSize(1), 1);
+  float maxSize = sizeSpecToPixels(layout.maxSize(1), 1);
   if (maxSize > 0.0f)
     res = ::min(res, maxSize);
   if (minSize > 0.0f)
@@ -2048,6 +2083,9 @@ void Element::playStateChangeSound(int prev_flags, int cur_flags)
 
 void Element::playSound(const Sqrat::Object &key)
 {
+  if (etree->isInternalTemporaryTree)
+    return;
+
   Sqrat::string sndName;
   Sqrat::Object params;
   float vol;
@@ -2151,7 +2189,7 @@ bool Element::hitTestWithTouchMargin(const Point2 &p, InputDevice device) const
       }
     }
 
-    if (e->hasFlags(Element::F_STOP_MOUSE))
+    if (e->hasFlags(Element::F_STOP_POINTING))
     {
       BBox2 box = e->clippedScreenRect;
       box.inflate(etree->guiScene->config.buttonTouchMargin);
@@ -2186,7 +2224,7 @@ Element *Element::trace_input_stack(GuiScene *scene, InputStack &inputStack, Inp
         return e;
     }
 
-    if (e->hasFlags(Element::F_STOP_MOUSE))
+    if (e->hasFlags(Element::F_STOP_POINTING))
     {
       BBox2 box = e->clippedScreenRect;
       box.inflate(scene->config.buttonTouchMargin);
@@ -2231,6 +2269,8 @@ bool Element::fadeOutFinished() const
 
 void Element::startFadeOutAnims()
 {
+  G_ASSERT(isDetached()); // to make sure that this is consistent with fadeout animations logic
+
   for (auto &anim : animations)
   {
     if (anim->desc.playFadeOut)
@@ -2261,7 +2301,7 @@ void Element::updateFadeOutCountersBeforeDetach()
 }
 
 
-Element *Element::findChildByScriptCtor(const Sqrat::Object &ctor) const
+Element *Element::findChildByScriptCtor(const Sqrat::Object &ctor, bool recursive) const
 {
   if (ctor.IsNull())
     return NULL;
@@ -2275,8 +2315,15 @@ Element *Element::findChildByScriptCtor(const Sqrat::Object &ctor) const
     }
     else
     {
-      if (ctor.IsEqual(props.scriptDesc))
+      if (ctor.IsEqual(child->props.scriptDesc))
         return child;
+    }
+
+    if (recursive)
+    {
+      Element *res = child->findChildByScriptCtor(ctor, true);
+      if (res)
+        return res;
     }
   }
 

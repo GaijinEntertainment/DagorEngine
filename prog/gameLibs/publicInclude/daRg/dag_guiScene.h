@@ -7,6 +7,7 @@
 #include <daRg/dag_inputIds.h>
 #include <daRg/dag_guiConstants.h>
 #include <util/dag_string.h>
+#include <EASTL/string.h>
 #include <drv/hid/dag_hiPointingData.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_e3dColor.h>
@@ -41,11 +42,11 @@ class StringKeys;
 class Profiler;
 class IEventList;
 class Element;
+class ElementTree;
 class BaseScriptHandler;
 struct IGuiScene;
 struct PanelSpatialInfo;
 
-static constexpr int MAIN_SCREEN_ID = 1000000;
 
 enum SceneErrorRenderMode
 {
@@ -113,6 +114,9 @@ struct IGuiSceneCallback
   virtual void onInputConsumersChange(dag::ConstSpan<HotkeyButton> /*device_buttons*/, dag::ConstSpan<String> /*event_hotkeys*/,
     bool /*consume_text_input*/)
   {}
+
+  virtual bool isJoystickManagedExternally() const { return false; }
+  virtual HumanInput::IGenJoystick *getActiveJoystick(int16_t /*ord_id*/) const { return nullptr; }
 };
 
 
@@ -142,6 +146,7 @@ public:
   virtual void flushPanelRender() = 0;
   virtual void refreshGuiContextState() = 0;
 
+  virtual HumanInput::IGenJoystick *getJoystick(int16_t /*ord_id*/ = -1) const { return nullptr; }
   // returns a combination of BehaviorResult flags
   virtual int onMouseEvent(InputEvent event, int data, short mx, short my, int buttons, int prev_result = 0) = 0;
   // returns a combination of BehaviorResult flags
@@ -163,31 +168,27 @@ public:
   virtual void queueScriptHandler(BaseScriptHandler *h) = 0;
   virtual void callScriptHandlers(bool is_shutdown = false) = 0;
 
-  virtual void setKbFocus(Element *elem) = 0;
-
   virtual void onKeyboardLayoutChanged(const char *layout) = 0;
   virtual void onKeyboardLocksChanged(unsigned locks) = 0;
 
-  virtual Element *traceInputHit(InputDevice device, Point2 pos) = 0;
+  virtual Element *traceInputHit(ElementTree *etree, InputDevice device, Point2 pos) = 0;
 
   virtual StringKeys *getStringKeys() const = 0;
 
-  virtual bool hasInteractiveElements() = 0;
-  virtual bool hasInteractiveElements(int bhv_flags) = 0;
-  virtual bool hasActiveCursor() = 0; //< for WT mouse mode management
-  virtual bool getForcedCursorMode(bool &out_value) = 0;
+  virtual bool hasInteractiveElements() const = 0;
+  virtual bool hasInteractiveElements(int bhv_flags) const = 0;
+  virtual bool hasActiveCursor() const = 0; //< for WT mouse mode management
+  virtual bool getForcedCursorMode(bool &out_value) const = 0;
 
   virtual void activateProfiler(bool on) = 0;
-  virtual Profiler *getProfiler() = 0;
+  virtual Profiler *getProfiler() const = 0;
   virtual IEventList &getEvents() = 0;
   virtual void setSceneErrorRenderMode(SceneErrorRenderMode mode) = 0;
+  virtual bool getErrorText(eastl::string &text) const = 0;
 
   virtual void setSceneInputActive(bool active) = 0;
   virtual void notifyInputConsumersCallback() = 0;
   virtual void skipRender() = 0;
-
-  // workaround for VR
-  virtual void ignoreDeviceCursorPos(bool on) = 0;
 
   virtual bool haveActiveCursorOnPanels() const = 0;
   virtual bool isAnyPanelPointedAtWithHand(int hand) const = 0;
@@ -206,6 +207,7 @@ public:
       LeftHand = 0,
       RightHand,
       Generic,
+      Internal,
 
       Total
     };
@@ -227,11 +229,17 @@ public:
   virtual void renderPanelTo(int panel_idx, BaseTexture *dst) = 0;
   virtual void updateSpatialElements(const SpatialSceneData &vr_scene) = 0;
   virtual void refreshVrCursorProjections() = 0;
-  virtual bool hasAnyPanels() = 0;
+  virtual bool hasAnyPanels() const = 0;
   virtual const darg::PanelSpatialInfo *getPanelSpatialInfo(int id) const = 0;
 
   virtual void forceFrpUpdateDeferred() = 0;
   virtual void setPictureDiscardAllowed(bool /*discardAllowed*/) {}
+
+  // Scene inspection for MCP/tooling
+  virtual void inspectSceneTree(eastl::string &out, int max_depth, const char *filter_text, bool include_hidden, bool skip_non_visual,
+    int max_elements) = 0;
+  virtual void inspectElementsAtPos(eastl::string &out, int x, int y) = 0;
+  virtual void findElementsByText(eastl::string &out, const char *text, bool case_sensitive, int max_results) = 0;
 
   // Returns true iff panel was hit.
   // TODO: it is awkward tha GUI has to know about the game world...
@@ -243,7 +251,7 @@ public:
 };
 
 
-IGuiScene *create_gui_scene(StdGuiRender::GuiContext *ctx = nullptr);
+IGuiScene *create_gui_scene();
 IGuiScene *get_scene_from_sqvm(HSQUIRRELVM vm);
 
 } // namespace darg

@@ -22,6 +22,25 @@ struct DeviceResetEventHandler
   virtual void recovery() = 0;
 };
 
+// Controls driver background processing mode. Check https://microsoft.github.io/DirectX-Specs/d3d/BackgroundProcessing.html.
+enum class DriverBackgroundProcessingMode : uint32_t
+{
+  ALLOWED = 0,                      // Default. Drivers may instrument workloads and submit low priority optimization tasks.
+  ALLOW_INTRUSIVE_MEASUREMENTS = 1, // Prioritizes richness of instrumentation over avoiding glitches, for training/profiling.
+  DISABLE_BACKGROUND_WORK = 2,      // Prevents execution of background processing tasks. Requires developer mode.
+  DISABLE_PROFILING_BY_SYSTEM = 3,  // Superset of DISABLE_BACKGROUND_WORK, also avoids behavioral changes. Requires developer mode.
+  KEEP_CURRENT = 4,                 // Does not request any change. Previous mode remains valid.
+};
+
+// Specifies what to do with the results of previous profiling measurements.
+enum class DriverMeasurementsAction : uint32_t
+{
+  KEEP_ALL = 0,                     // Does not request any change. Previous results remain valid.
+  COMMIT_RESULTS = 1,               // Hints that the workload seen so far is complete, kick off optimizations.
+  COMMIT_RESULTS_HIGH_PRIORITY = 2, // Superset of COMMIT_RESULTS, executes tasks at higher priority. Requires developer mode.
+  DISCARD_PREVIOUS = 3,             // Hints that the workload changed significantly, previous measurements are invalid.
+};
+
 enum class Drv3dCommand
 {
   GETVISIBILITYBEGIN,
@@ -55,6 +74,9 @@ enum class Drv3dCommand
   ASYNC_PIPELINE_COMPILE_RANGE_END,
 
   // recives current amount of pipelines in compilation queue
+  // par1 - pointer to uint32_t, if not null, recives amount of frames to complete current frame on GPU
+  // par2 - pointer to size_t, if not null, recives amount of async compiled pipelines from app startup
+  //        par2 is optionally implemented, when implemented value is always > 0, when not implemented value is intact
   GET_PIPELINE_COMPILATION_QUEUE_LENGTH,
   // forms async pipeline compilation feeedback in range of draw commands executed between begin&end
   // par1 - user pointer to uint32_t, pointer must not be released (i.e. permanent pointer!)
@@ -71,6 +93,20 @@ enum class Drv3dCommand
   TIMESTAMPFREQ,
   TIMESTAMPISSUE,
   TIMESTAMPGET,
+
+
+  //! Gets timestamp queries to measure gpu stalls on backbuffer flip waits.
+  // Used to detect gpu vsync stalls.
+  // Timestamp returns 0 until a gpu flip wait occurs (first backbuffer write in the frame).
+  // par1 - begin timestamp
+  // par2 - end timestamp
+  // Warning! Should be issued once per frame!
+  TIMESTAMP_FLIP_STALL_ISSUE,
+
+  //! Releases timestamp issued with TIMESTAMP_FLIP_STALL_ISSUE.
+  // par1 - begin timestamp
+  // par2 - end timestamp
+  TIMESTAMP_FLIP_STALL_RELEASE,
 
   //! Gets CPU and GPU time nearly at the same moment
   // par1 - cpu timestamp
@@ -108,6 +144,7 @@ enum class Drv3dCommand
 
   SET_VS_DEBUG_INFO,
   SET_PS_DEBUG_INFO,
+  SET_CS_DEBUG_INFO,
 
   // MRT clear sequence is an optimization to clear mrt targets with different colors in
   // an optimized fashion for target APIs like Vulkan.
@@ -150,6 +187,7 @@ enum class Drv3dCommand
   IS_HDR_ENABLED,
   INT10_HDR_BUFFER,
   HDR_OUTPUT_MODE,
+  HDR_HEADROOM,
   GET_LUMINANCE,
 
   MEM_STAT, // Single line tex and buffers statistics.
@@ -199,8 +237,9 @@ enum class Drv3dCommand
   IS_XESS_QUALITY_AVAILABLE_AT_RESOLUTION,
 
   // Return current XESS rendering resolution in par1 and par2
-  // par1: int *width
-  // par2: int *height
+  // par1: IPoint2 *optimalResolution
+  // par2: IPoint2 *minResolution
+  // par3: IPoint2 *maxResolution
   GET_XESS_RESOLUTION,
 
   // Returns current XESS version as a string.
@@ -426,11 +465,22 @@ enum class Drv3dCommand
   // par1: CompilePipelineSet*
   COMPILE_PIPELINE_SET,
 
+  // Pauses/resumes pipeline set compilation (spreading over frames).
+  // par1 - if not null, pauses compilation; if null, resumes
+  // returns 1 if supported
+  PAUSE_PIPELINE_SET_COMPILATION,
+
   // par1: Sbuffer*
   // par2: uint64_t*
   GET_BUFFER_GPU_ADDRESS,
 
   ENABLE_WORKER_LOW_LATENCY_MODE,
+
+  // Controls driver background processing. Only dx12 and dev builds. Some of the flags require developer mode to be enabled.
+  // par1: optional pointer to DriverBackgroundProcessingMode, nullptr keeps current mode.
+  // par2: optional pointer to DriverMeasurementsAction, nullptr is treated as KEEP_ALL.
+  // Returns 1 if current processing wants more frames, otherwise 0.
+  DRIVER_BACKGROUND_PROCESSING_MODE,
 
   // par1 enable (if par1 not null)/disable logerr reporting when doing sync readback of textures/buffers
   LOGERR_ON_SYNC,
@@ -458,6 +508,11 @@ enum class Drv3dCommand
   // par2: uint32_t * - place where AS size after compaction will be stored
   GET_PS5_COMPACTED_BLAS_SIZE,
 
+  // par1: RaytraceBottomAccelerationStructure * - array of BLAS to compact
+  // par2: uint64_t - count of BLAS passed to command
+  // each BLAS must be build and available on CPU
+  COMPACT_BLAS,
+
   // Returns a vendor specific implementation of the GpuLatency interface
   // par1: Pointer to the vendor id
   // par2: Pointer to a pointer, reciving the interface
@@ -474,6 +529,10 @@ enum class Drv3dCommand
   //  - delay-continue pair must be completed before flushing/submitting workload to GPU
   DELAY_SYNC,
   CONTINUE_SYNC,
+  // sync completion command to avoid issues over ill formed user barriers when action point is missing
+  // action point - any draw,dispatch,etc. if there is no action point, user barriers are always batched up
+  // sometimes causing ill formed sync, when missing action point is not expected
+  COMPLETE_SYNC,
 
   //
   // Changes GPU queue/pipeline where order dependant action commands will be submitted
@@ -498,6 +557,58 @@ enum class Drv3dCommand
   // A page fault on the GPU will cause it to halt and be reset by the OS.
   // Drivers should only implement this command for development and debug builds.
   CAUSE_GPU_PAGE_FAULT,
+
+  /// This command set a driver internal const buffer to a a slot of a
+  /// pipeline stage with the shader binding table data of the given
+  /// compute program. The provided data will be provided as
+  /// raytrace::RayDispatchGroupTableSet defines it.
+  /// To help with padding with constant buffers, the provided buffer
+  /// is aligned to the 256 byte boundary and padded with zeros.
+  /// This makes it easier to copy the table as a series of uint4's
+  /// (table is 26 uints, so 7 uint4s with padding) into argument
+  /// buffers.
+  /// This command will activate a override for the given const buffer
+  /// slot, for the given shader stage, when the provided program is
+  /// a compute program that uses the RayGen on CS mode, otherwise
+  /// it will deactivate previous overrides of that slot.
+  /// When the override is disabled, the originally set buffer will
+  /// be used again.
+  /// When an override is activated, it will remain active until it
+  /// was deactivated, as described above.
+  /// param1: uintptr_t: Stage: valid values are STAGE_VS, STAGE_PS or STAGE_CS.
+  /// param2: uintptr_t: Slot: any valid const buffer slot index.
+  /// param3: uintptr_t: Program: any compute program that uses the RayGen as CS mode, or BAD_PROGRAM.
+  SET_COMPUTE_ON_RAY_TRACE_SHADER_BINDING_TABLE_CONST_BUFFER,
+
+  /// Set how the `d3d::update_screen` behaves in manner of syncronisation.
+  /// param1: bool*: AsyncMode: If true then the `d3d::update_screen` and the underlying present call can execute asynchronously.
+  /// If false then the `d3d::update_screen` will wait to the present return.
+  /// If the param1 is nullptr, then reset the behavior to the default.
+  /// On DX11 the default is the false case, on other drivers e.g. DX12 the true case is the default.
+  /// Currently it is implemented in DX12 driver.
+  SET_PRESENT_ASYNC_MODE,
+
+  // Use this command to activate low-level driver data trace for production builds.
+  // Traced data will be dumped to clog, when GPU crash is ocurred.
+  // Use it for selected block of code, to get more information about specific GPU crash.
+  // par1: set flag uintptr_t (0 - Disable, !0 - Enable)
+  SET_GPU_POSTMORTEM_DATA_TRACE_ENABLED,
+
+  // Informs backend that we have deleted programs/shaders and the corresponding backing memory is about
+  // to be deleted as well. Useful when backends are able to compile pipelines states/shader in separate
+  // threads and can be used to clean compilation queue from dead shaders/programs. Blocks until async
+  // compilation queue is empty
+  UNLOAD_SHADER_MEMORY,
+
+  // Reports the current allocation status, like max slot index, free regions and how much is left until exhaustion
+  REPORT_BINDLESS_HEAP_ALLOCATION_STATUS_TO_DEBUG_LOG,
+
+  // Reports the current status of all bindless slots until the max allocated slot index.
+  // This consists of free ranges and ranges of textures and buffers.
+  REPORT_BINDLESS_HEAP_SLOT_STATUS_TO_DEBUG_LOG,
+
+  // Called inside coredump handler
+  SONY_ATTACH_CRASH_DUMP_INFO,
 
   USER = 1000,
 };

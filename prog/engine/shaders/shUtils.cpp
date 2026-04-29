@@ -116,6 +116,7 @@ const char *shcod_tokname(int t)
     case SHCOD_SAMPLER: return "SAMPLER";
     case SHCOD_TEXTURE: return "TEXTURE";
     case SHCOD_TEXTURE_VS: return "TEXTURE_VS";
+    case SHCOD_TEXTURE_CS: return "TEXTURE_CS";
     case SHCOD_VPR_CONST: return "VPR_CONST";
     case SHCOD_ADD_REAL: return "ADD_REAL";
     case SHCOD_SUB_REAL: return "SUB_REAL";
@@ -134,8 +135,12 @@ const char *shcod_tokname(int t)
     case SHCOD_IVEC_TOREAL: return "SHCOD_IVEC_TOREAL";
     case SHCOD_REG_BINDLESS: return "REG_BINDLESS";
     case SHCOD_STATIC_MULTIDRAW_BLOCK: return "STATIC_MULTIDRAW_BLOCK";
-    case SHCOD_RWTEX: return "RWTEX";
-    case SHCOD_RWBUF: return "RWBUF";
+    case SHCOD_RWTEX_CS: return "RWTEX_CS";
+    case SHCOD_RWTEX_PS: return "RWTEX_PS";
+    case SHCOD_RWTEX_VS: return "RWTEX_VS";
+    case SHCOD_RWBUF_CS: return "RWBUF_CS";
+    case SHCOD_RWBUF_PS: return "RWBUF_PS";
+    case SHCOD_RWBUF_VS: return "RWBUF_VS";
   }
   logerr("unknown <%d>", t);
   return "?";
@@ -151,7 +156,7 @@ static int resolve_local_var(int ofs, dag::ConstSpan<uint32_t> stVarMap, const s
 
 // dump code table to debug
 void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, const ShaderVarsState *globals_state,
-  const shaderbindump::VarList *locals, dag::ConstSpan<uint32_t> stVarMap, bool embrace_dump)
+  const shaderbindump::VarList *locals, const ScriptedShadersBinDump *dump, dag::ConstSpan<uint32_t> stVarMap, bool embrace_dump)
 {
   if (embrace_dump)
     debug("dump shcode (%p)-----", cod.data());
@@ -230,7 +235,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
         if (v >= 0)
         {
           debug_("%sreg=%d var_ofs=%d  |", str.str(), ro, ofs);
-          shaderbindump::dumpVar(*locals, globals_state, v);
+          shaderbindump::dumpVar(*dump, *locals, globals_state, v);
           continue;
         }
         else
@@ -254,7 +259,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
         if (globals && (uint32_t)ofs < (uint32_t)globals->v.size())
         {
           debug_("%sreg=%d var_ofs=%d  |", str.str(), ro, ofs);
-          shaderbindump::dumpVar(*globals, globals_state, ofs);
+          shaderbindump::dumpVar(*dump, *globals, globals_state, ofs);
           continue;
         }
         else
@@ -265,9 +270,9 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
 
       case SHCOD_CALL_FUNCTION:
       {
-        int functionName = shaderopcode::getOp3p1(cod[i]);
-        int rOut = shaderopcode::getOp3p2(cod[i]);
-        int paramCount = shaderopcode::getOp3p3(cod[i]);
+        int functionName = shaderopcode::getOpFunctionCall_FuncId(cod[i]);
+        int rOut = shaderopcode::getOpFunctionCall_OutReg(cod[i]);
+        int paramCount = shaderopcode::getOpFunctionCall_ArgCount(cod[i]);
 
         str.aprintf(128, "func=%s out=%d", functional::getFuncName(functional::FunctionId(functionName)), rOut);
         for (int j = 0; j < paramCount; j++)
@@ -316,8 +321,13 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
       case SHCOD_CS_CONST:
       case SHCOD_TEXTURE:
       case SHCOD_TEXTURE_VS:
-      case SHCOD_RWTEX:
-      case SHCOD_RWBUF:
+      case SHCOD_TEXTURE_CS:
+      case SHCOD_RWBUF_CS:
+      case SHCOD_RWBUF_PS:
+      case SHCOD_RWBUF_VS:
+      case SHCOD_RWTEX_CS:
+      case SHCOD_RWTEX_PS:
+      case SHCOD_RWTEX_VS:
       case SHCOD_REG_BINDLESS:
       {
         int ind = shaderopcode::getOp2p1(cod[i]);
@@ -334,7 +344,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
         if (v >= 0)
         {
           debug_("%sreg=%d var_ofs=%d  |", str.str(), ro, ofs);
-          shaderbindump::dumpVar(*locals, globals_state, v);
+          shaderbindump::dumpVar(*dump, *locals, globals_state, v);
           continue;
         }
         else
@@ -352,7 +362,7 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
           int ind = shaderopcode::getOpStageSlot_Slot(cod[i]);
           const char *stageStr = stage == STAGE_CS ? "cs" : (stage == STAGE_PS ? "ps" : stage == STAGE_VS ? "vs" : "?");
           debug_("%sstage=%s reg=%d var_ofs=%d  |", str.str(), stageStr, ind, ofs);
-          shaderbindump::dumpVar(*globals, globals_state, ofs);
+          shaderbindump::dumpVar(*dump, *globals, globals_state, ofs);
 #endif
           continue;
         }
@@ -361,15 +371,12 @@ void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals, 
       case SHCOD_STATIC_MULTIDRAW_BLOCK: str.aprintf(128, "// Shader supports packed materials."); [[fallthrough]];
       case SHCOD_STATIC_BLOCK:
       {
-        auto [vsTexBase, vsSamplerBaseAndExtentPacked, psTexBase, psSamplerBaseAndExtentPacked] =
-          shaderopcode::unpackData4(cod[i + 1]);
-        auto [vsSamplerBase, vsCnt] =
-          eastl::pair{uint8_t(vsSamplerBaseAndExtentPacked >> 4), uint8_t(vsSamplerBaseAndExtentPacked & 0xF)};
-        auto [psSamplerBase, psCnt] =
-          eastl::pair{uint8_t(psSamplerBaseAndExtentPacked >> 4), uint8_t(psSamplerBaseAndExtentPacked & 0xF)};
-        str.aprintf(128, "constCnt=%u vsCnt=%u psCnt=%u vsTexBase=%d psTexBase=%d vsSmpBase=%d psSmpBase=%d",
-          shaderopcode::getOp3p1(cod[i]), vsCnt, psCnt, vsTexBase, psTexBase, vsSamplerBase, psSamplerBase);
-        i += 1;
+        auto [vsTexBase, vsTexRangeExtent, vsSamplerBase, vsSmpRangeExtent] = shaderopcode::unpackData4(cod[i + 1]);
+        auto [psTexBase, psTexRangeExtent, psSamplerBase, psSmpRangeExtent] = shaderopcode::unpackData4(cod[i + 2]);
+        str.aprintf(128, "constCnt=%u vsTexbase=%u vsCnt=%u vsSmpBase=%u vsSmpCnt=%u psTexBase=%u psCnt=%u psSmpBase=%u psSmpCnt=%u",
+          shaderopcode::getOp3p1(cod[i]), vsTexBase, vsTexRangeExtent, vsSamplerBase, vsSmpRangeExtent, psTexBase, psTexRangeExtent,
+          psSamplerBase, psSmpRangeExtent);
+        i += 2;
       }
       break;
 

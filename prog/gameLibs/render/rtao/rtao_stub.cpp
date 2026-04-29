@@ -11,7 +11,9 @@ void get_required_transient_texture_descriptors(denoiser::TexInfoMap &) {}
 void initialize(bool) {}
 void teardown() {}
 
-void render_noisy(bvh::ContextId, const TMatrix4 &, TEXTUREID, TextureIDPair, bool) {}
-void render(bvh::ContextId, const TMatrix4 &, bool, TEXTUREID, const denoiser::TexMap &, bool) {}
+void render_noisy(bvh::ContextId, const TMatrix4 &, Texture *, Texture *, bool) {}
+void denoise(bool, const denoiser::TexMap &, bool) {}
+bool do_trace(bvh::ContextId, const TMatrix4 &, Texture *, const denoiser::TexMap &, bool) { return false; }
+void render(bvh::ContextId, const TMatrix4 &, bool, Texture *, const denoiser::TexMap &, bool) {}
 
 } // namespace rtao

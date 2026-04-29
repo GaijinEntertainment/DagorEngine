@@ -7,6 +7,7 @@
 #include <startup/dag_inpDevClsDrv.h>
 #include <ioSys/dag_dataBlock.h>
 #include <debug/dag_debug.h>
+#include <memory/dag_framemem.h>
 #include <perfMon/dag_cpuFreq.h>
 #include <string.h>
 #include <stdlib.h>
@@ -25,8 +26,8 @@
 #include <osApiWrappers/dag_miscApi.h>
 
 HumanInput::CompositeJoystickClassDriver *global_cls_composite_drv_joy = NULL;
-#if _TARGET_PC
-static HumanInput::OnShowIME cb_show_ime_steam = NULL;
+#if _TARGET_PC || _TARGET_C4
+static HumanInput::OnShowIME cb_show_ime = NULL;
 #endif
 
 using namespace HumanInput;
@@ -47,6 +48,7 @@ void HumanInput::enableJoyFx(bool isEnabled)
       joy->enableJoyFx(isEnabled);
     }
 }
+
 
 class HumanInput::CompositeJoystickDevice : public IGenJoystick
 {
@@ -90,6 +92,7 @@ public:
     rumbleDevIdx = -1;
   }
 
+
   ~CompositeJoystickDevice()
   {
     for (int i = 0; i < btnNames.size(); i++)
@@ -100,8 +103,10 @@ public:
       strmem->free(povNames[i]);
   }
 
+
   void updateState(int dt_msec)
   {
+    TIME_PROFILE(HID_CJD_updateState);
     enum
     {
       DATA_SZ = offsetof(JoystickRawState, repeat)
@@ -192,12 +197,15 @@ public:
       client->stateChanged(this, 0);
   }
 
-  virtual const char *getName() const { return "CompositeJoystick"; }
-  virtual const char *getDeviceID() const { return "composite"; }
-  virtual bool getDeviceDesc(DataBlock &) const { return false; }
-  virtual unsigned short getUserId() const { return 0; }
-  virtual const JoystickRawState &getRawState() const { return state; }
-  virtual void setClient(IGenJoystickClient *cli)
+
+  const char *getName() const override { return "CompositeJoystick"; }
+  const char *getDeviceID() const override { return "composite"; }
+  bool getDeviceDesc(DataBlock &) const override { return false; }
+  unsigned short getUserId() const override { return 0; }
+  const JoystickRawState &getRawState() const override { return state; }
+
+
+  void setClient(IGenJoystickClient *cli) override
   {
     if (cli == client)
       return;
@@ -208,12 +216,13 @@ public:
       client->attached(this);
   }
 
-  virtual IGenJoystickClient *getClient() const { return client; }
+  IGenJoystickClient *getClient() const override { return client; }
 
-  virtual bool isStickDeadZoneSetupSupported() const { return true; }
-  virtual float getStickDeadZoneScale(int /*stick_idx*/) const { return 0; }
-  virtual void setStickDeadZoneScale(int /*stick_idx*/, float /*scale*/) {}
-  virtual float getStickDeadZoneAbs(int /*stick_idx*/) const { return 0; }
+  bool isStickDeadZoneSetupSupported() const override { return true; }
+  float getStickDeadZoneScale(int /*stick_idx*/) const override { return 0; }
+  void setStickDeadZoneScale(int /*stick_idx*/, float /*scale*/) override {}
+  float getStickDeadZoneAbs(int /*stick_idx*/) const override { return 0; }
+
 
   int getPairedButtonForAxis(int axis_id) const override
   {
@@ -226,6 +235,8 @@ public:
         }
     return -1;
   }
+
+
   int getPairedAxisForButton(int btn_id) const override
   {
     for (int i = 0; i < devices.size(); i++)
@@ -237,6 +248,7 @@ public:
         }
     return -1;
   }
+
 
   int getJointAxisForAxis(int axis_id) const override
   {
@@ -250,6 +262,7 @@ public:
     return -1;
   }
 
+
 #define FIND_NATIVE_NAME(IDX, FIELD, GET_NAME)                                               \
   if (IDX < 0)                                                                               \
     return NULL;                                                                             \
@@ -262,31 +275,34 @@ public:
   const char *getNativeButtonName(int btn_idx) const { FIND_NATIVE_NAME(btn_idx, Buttons, getButtonName); }
 #undef FIND_NATIVE_NAME
 
-  virtual int getButtonCount() const { return btnNum; }
-  virtual const char *getButtonName(int idx) const
+  int getButtonCount() const override { return btnNum; }
+  const char *getButtonName(int idx) const override
   {
     if (idx >= 0 && idx < btnNames.size())
       return btnNames[idx];
     return "?";
   }
 
-  virtual int getAxisCount() const { return axesNum; }
-  virtual const char *getAxisName(int idx) const
+
+  int getAxisCount() const override { return axesNum; }
+  const char *getAxisName(int idx) const override
   {
     if (idx >= 0 && idx < axisNames.size())
       return axisNames[idx];
     return "?";
   }
 
-  virtual int getPovHatCount() const { return povsNum; }
-  virtual const char *getPovHatName(int idx) const
+
+  int getPovHatCount() const override { return povsNum; }
+  const char *getPovHatName(int idx) const override
   {
     if (idx >= 0 && idx < povNames.size())
       return povNames[idx];
     return "?";
   }
 
-  virtual int getButtonId(const char *name) const
+
+  int getButtonId(const char *name) const override
   {
     if (!name)
       return -1;
@@ -298,7 +314,8 @@ public:
     return -1;
   }
 
-  virtual int getAxisId(const char *name) const
+
+  int getAxisId(const char *name) const override
   {
     if (!name)
       return -1;
@@ -309,7 +326,8 @@ public:
     return -1;
   }
 
-  virtual int getPovHatId(const char *name) const
+
+  int getPovHatId(const char *name) const override
   {
     if (!name)
       return -1;
@@ -320,7 +338,8 @@ public:
     return -1;
   }
 
-  virtual void setAxisLimits(int axis_id, float min_val, float max_val)
+
+  void setAxisLimits(int axis_id, float min_val, float max_val) override
   {
     for (int i = 0; i < devices.size(); i++)
       if (axis_id >= devices[i].ofsAxes && axis_id < devices[i].ofsAxes + devices[i].numAxes)
@@ -328,7 +347,8 @@ public:
           devices[i].dev->setAxisLimits(axis_id - devices[i].ofsAxes, min_val, max_val);
   }
 
-  virtual bool getButtonState(int btn_id) const
+
+  bool getButtonState(int btn_id) const override
   {
     bool btn = false;
     for (int i = 0; i < devices.size(); i++)
@@ -338,7 +358,8 @@ public:
     return btn;
   }
 
-  virtual float getAxisPos(int axis_id) const
+
+  float getAxisPos(int axis_id) const override
   {
     float val = 0.f;
     for (int i = 0; i < devices.size(); i++)
@@ -348,7 +369,8 @@ public:
     return val;
   }
 
-  virtual int getAxisPosRaw(int axis_id) const
+
+  int getAxisPosRaw(int axis_id) const override
   {
     int val = 0;
     for (int i = 0; i < devices.size(); i++)
@@ -357,6 +379,7 @@ public:
           val += devices[i].dev->getAxisPosRaw(axis_id - devices[i].ofsAxes);
     return val;
   }
+
 
   bool isAxisDigital(int axis_id) const
   {
@@ -368,13 +391,15 @@ public:
     return false;
   }
 
-  virtual int getPovHatAngle(int axis_id) const
+
+  int getPovHatAngle(int axis_id) const override
   {
     G_ASSERT(axis_id >= 0 && axis_id < JoystickRawState::MAX_POV_HATS);
     if (axis_id >= 0 && axis_id < JoystickRawState::MAX_POV_HATS)
       return state.povValues[axis_id];
     return -1;
   }
+
 
   IGenJoystick *remapAxes(JoyFfCreateParams &cp)
   {
@@ -394,7 +419,9 @@ public:
     }
     return dev;
   }
-  virtual IJoyFfCondition *createConditionFx(int condfx_type, const JoyFfCreateParams &_cp)
+
+
+  IJoyFfCondition *createConditionFx(int condfx_type, const JoyFfCreateParams &_cp) override
   {
 #if _TARGET_PC_WIN
     if (!isJoyFxEnabled())
@@ -408,7 +435,9 @@ public:
     return NULL;
 #endif
   }
-  virtual IJoyFfConstForce *createConstForceFx(const JoyFfCreateParams &_cp, float force)
+
+
+  IJoyFfConstForce *createConstForceFx(const JoyFfCreateParams &_cp, float force) override
   {
 #if _TARGET_PC_WIN
     if (!isJoyFxEnabled())
@@ -422,7 +451,9 @@ public:
     return NULL;
 #endif
   }
-  virtual IJoyFfPeriodic *createPeriodicFx(int period_type, const JoyFfCreateParams &_cp)
+
+
+  IJoyFfPeriodic *createPeriodicFx(int period_type, const JoyFfCreateParams &_cp) override
   {
 #if _TARGET_PC_WIN
     if (!isJoyFxEnabled())
@@ -436,7 +467,9 @@ public:
     return NULL;
 #endif
   }
-  virtual IJoyFfRampForce *createRampForceFx(const JoyFfCreateParams &_cp, float start_f, float end_f)
+
+
+  IJoyFfRampForce *createRampForceFx(const JoyFfCreateParams &_cp, float start_f, float end_f) override
   {
 #if _TARGET_PC_WIN
     if (!isJoyFxEnabled())
@@ -452,8 +485,10 @@ public:
 #endif
   }
 
-  virtual void doRumble(float lowFreq, float highFreq)
+
+  void doRumble(float lowFreq, float highFreq) override
   {
+    TIME_PROFILE(HID_CJD_doRumble);
     if (rumbleDevIdx >= 0)
     {
       if (rumbleDevIdx < devices.size() && devices[rumbleDevIdx].dev)
@@ -464,7 +499,9 @@ public:
       if (devices[i].dev)
         devices[i].dev->doRumble(lowFreq, highFreq);
   }
-  virtual void setLight(bool set, unsigned char r, unsigned char g, unsigned char b)
+
+
+  void setLight(bool set, unsigned char r, unsigned char g, unsigned char b) override
   {
     if (rumbleDevIdx >= 0)
     {
@@ -477,12 +514,14 @@ public:
         devices[i].dev->setLight(set, r, g, b);
   }
 
+
   void resetSensorsOrientation() override
   {
     for (auto &d : devices)
       if (d.dev)
         d.dev->resetSensorsOrientation();
   }
+
 
   void enableSensorsTiltCorrection(bool enable) override
   {
@@ -491,6 +530,7 @@ public:
         d.dev->enableSensorsTiltCorrection(enable);
   }
 
+
   void reportGyroSensorsAngDelta(bool report_ang_delta) override
   {
     for (auto &d : devices)
@@ -498,8 +538,10 @@ public:
         d.dev->reportGyroSensorsAngDelta(report_ang_delta);
   }
 
-  virtual bool isConnected()
+
+  bool isConnected() override
   {
+    TIME_PROFILE(HID_CJD_isConnected);
     for (int i = 0; i < devices.size(); ++i)
     {
       if (devices[i].dev == NULL)
@@ -560,9 +602,14 @@ public:
       devices[index].ofsAxes = devices[firstX360Index].ofsAxes;
     }
 
+    auto assignUnlessEq = [&](SimpleString &strf, const char *n) {
+      if (strf != n)
+        strf = n;
+    };
+
     devices[index].dev = dev;
-    devices[index].name = dev->getName();
-    devices[index].devID = dev->getDeviceID();
+    assignUnlessEq(devices[index].name, dev->getName());
+    assignUnlessEq(devices[index].devID, dev->getDeviceID());
 
     devices[index].isXInput = is_xinput;
     devices[index].numButtons = dev->getButtonCount();
@@ -576,14 +623,17 @@ public:
       devices[index].numButtons, devices[index].numAxes, devices[index].numPovs);
     */
   }
+
+
   void setupControlNames(int index)
   {
+    TIME_PROFILE(HID_CJD_setupControlNames);
     IGenJoystick *dev = devices[index].dev;
     if (!dev)
       return;
     bool is_xinput = devices[index].isXInput;
 
-    String loc_dev_name_stor;
+    String loc_dev_name_stor(framemem_ptr());
     const char *dev_name = devices[index].name;
     if (localize_composite_joy_dev(dev_name, loc_dev_name_stor, global_cls_composite_drv_joy->getLocClient()))
       dev_name = loc_dev_name_stor;
@@ -596,7 +646,15 @@ public:
       if (devices[index].isXInput)
         is_first_xinput = false;
 
-    String locName, name, fullName;
+    String locName(framemem_ptr()), name(framemem_ptr()), fullName(framemem_ptr());
+    auto assignFullNameUnlessEq = [&](char *&n) {
+      if (strcmp(fullName.c_str(), n) != 0)
+      {
+        strmem->free(n);
+        n = str_dup(fullName.str(), strmem);
+      }
+    };
+
     int b_base = devices[index].ofsButtons;
     int a_base = devices[index].ofsAxes;
     int p_base = devices[index].ofsPovs;
@@ -617,9 +675,9 @@ public:
         else
           fullName.printf(0, "C%d:%s", index + 1, name.str());
 
-        strmem->free(btnNames[b_base + j]);
-        btnNames[b_base + j] = str_dup(fullName.str(), strmem);
+        assignFullNameUnlessEq(btnNames[b_base + j]);
       }
+
     for (int j = 0; j < devices[index].numAxes; j++)
       if (a_base + j < axisNames.size())
       {
@@ -637,9 +695,9 @@ public:
         else
           fullName.printf(0, "C%d:%s:%s", index + 1, dev_name, name.str());
 
-        strmem->free(axisNames[a_base + j]);
-        axisNames[a_base + j] = str_dup(fullName.str(), strmem);
+        assignFullNameUnlessEq(axisNames[a_base + j]);
       }
+
     for (int j = 0; j < devices[index].numPovs; j++)
       if (p_base + j < povNames.size())
       {
@@ -657,10 +715,10 @@ public:
         else
           fullName.printf(0, "C%d:%s", index + 1, name.str());
 
-        strmem->free(povNames[p_base + j]);
-        povNames[p_base + j] = str_dup(fullName.str(), strmem);
+        assignFullNameUnlessEq(povNames[p_base + j]);
       }
   }
+
 
   int getNumDevices() const { return devices.size(); }
   const Device &getDevice(int index) const { return devices[index]; }
@@ -680,6 +738,7 @@ public:
   int rumbleDevIdx;
 };
 
+
 CompositeJoystickClassDriver *CompositeJoystickClassDriver::create() { return new CompositeJoystickClassDriver(); }
 
 CompositeJoystickClassDriver::CompositeJoystickClassDriver() :
@@ -695,6 +754,7 @@ CompositeJoystickClassDriver::CompositeJoystickClassDriver() :
   memset(&classDrvs, 0, sizeof(classDrvs));
   compositeDevice = new CompositeJoystickDevice();
 }
+
 
 CompositeJoystickClassDriver::~CompositeJoystickClassDriver() { delete compositeDevice; }
 
@@ -723,12 +783,14 @@ void CompositeJoystickClassDriver::addClassDrv(IGenJoystickClassDrv *drv, bool i
   debug("[ERROR] CompositeJoystickClassDriver: Too many class drivers.");
 }
 
+
 void CompositeJoystickClassDriver::destroyDevices()
 {
   unacquireDevices();
   if (ffClient)
     ffClient->fxShutdown();
 }
+
 
 void CompositeJoystickClassDriver::enable(bool en)
 {
@@ -737,8 +799,10 @@ void CompositeJoystickClassDriver::enable(bool en)
   prevUpdateRefTime = ::ref_time_ticks();
 }
 
+
 void CompositeJoystickClassDriver::acquireDevices()
 {
+  TIME_PROFILE(HID_CJCD_acquireDevices);
   for (int classDrvNo = 0; classDrvNo < MAX_CLASSDRV; classDrvNo++)
   {
     IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv;
@@ -749,8 +813,10 @@ void CompositeJoystickClassDriver::acquireDevices()
   refreshCompositeDevicesList();
 }
 
+
 void CompositeJoystickClassDriver::unacquireDevices()
 {
+  TIME_PROFILE(HID_CJCD_unacquireDevices);
   for (int classDrvNo = 0; classDrvNo < MAX_CLASSDRV; classDrvNo++)
   {
     IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv;
@@ -759,6 +825,7 @@ void CompositeJoystickClassDriver::unacquireDevices()
   }
   refreshCompositeDevicesList();
 }
+
 
 void CompositeJoystickClassDriver::destroy()
 {
@@ -775,8 +842,10 @@ void CompositeJoystickClassDriver::destroy()
   delete this;
 }
 
+
 void CompositeJoystickClassDriver::updateDevices()
 {
+  TIME_PROFILE(HID_CJCD_updateDevices);
   int dt = get_time_usec(prevUpdateRefTime) / 1000;
   prevUpdateRefTime = ::ref_time_ticks();
 
@@ -812,14 +881,19 @@ void CompositeJoystickClassDriver::updateDevices()
   compositeDevice->updateState(dt);
 }
 
+
 bool CompositeJoystickClassDriver::isDeviceConfigChanged() const { return deviceConfigChanged; }
 
 IGenJoystick *CompositeJoystickClassDriver::getDevice(int idx) const
 {
   if (idx == 0)
     return compositeDevice;
-  return NULL;
+
+  idx = idx - 1;
+  return (compositeDevice && idx >= 0 && idx < compositeDevice->getNumDevices()) ? compositeDevice->getDevice(idx).dev : nullptr;
 }
+
+
 void CompositeJoystickClassDriver::useDefClient(IGenJoystickClient *cli)
 {
   G_ASSERT(compositeDevice);
@@ -828,6 +902,7 @@ void CompositeJoystickClassDriver::useDefClient(IGenJoystickClient *cli)
     compositeDevice->setClient(defClient);
 }
 
+
 IGenJoystick *CompositeJoystickClassDriver::getDeviceByUserId(unsigned short userId) const
 {
   G_UNREFERENCED(userId);
@@ -835,12 +910,14 @@ IGenJoystick *CompositeJoystickClassDriver::getDeviceByUserId(unsigned short use
   return compositeDevice;
 }
 
+
 IGenJoystickClassDrv *CompositeJoystickClassDriver::setSecondaryClassDrv(IGenJoystickClassDrv *drv)
 {
   G_UNREFERENCED(drv);
   G_ASSERT(0);
   return NULL;
 }
+
 
 IGenJoystick *CompositeJoystickClassDriver::getDefaultJoystick() { return compositeDevice; }
 
@@ -858,16 +935,22 @@ int CompositeJoystickClassDriver::getRealDeviceCount(bool logical) const
   }
   return ret;
 }
+
+
 const char *CompositeJoystickClassDriver::getRealDeviceName(int real_dev_idx) const
 {
   G_ASSERT(real_dev_idx >= 0 && real_dev_idx < compositeDevice->getNumDevices());
   return compositeDevice->getDevice(real_dev_idx).name;
 }
+
+
 const char *CompositeJoystickClassDriver::getRealDeviceID(int real_dev_idx) const
 {
   G_ASSERT(real_dev_idx >= 0 && real_dev_idx < compositeDevice->getNumDevices());
   return compositeDevice->getDevice(real_dev_idx).devID;
 }
+
+
 bool CompositeJoystickClassDriver::getRealDeviceDesc(int real_dev_idx, DataBlock &desc) const
 {
   G_ASSERT(real_dev_idx >= 0 && real_dev_idx < compositeDevice->getNumDevices());
@@ -889,20 +972,40 @@ bool CompositeJoystickClassDriver::getRealDeviceDesc(int real_dev_idx, DataBlock
   desc.setInt("axesCnt", compositeDevice->getDevice(real_dev_idx).numAxes);
   return true;
 }
+
+
+CompositeJoystickClassDriver::DeviceDescription CompositeJoystickClassDriver::getRealDeviceDesc(int real_dev_idx) const
+{
+  G_ASSERT_RETURN(real_dev_idx >= 0 && real_dev_idx < compositeDevice->getNumDevices(), {});
+  const Device &d = compositeDevice->getDevice(real_dev_idx);
+  return {.idx = real_dev_idx,
+    .buttons = {.ofs = d.ofsButtons, .count = d.numButtons},
+    .axes = {.ofs = d.ofsAxes, .count = d.numAxes},
+    .isConnected = d.dev != nullptr, // TODO: should be d.dev->isConnected(), but atm it does a slow DI8::Acquire()
+    .isXinputCompatible = d.dev && d.dev->isXinputCompatible(),
+    .name = d.name.c_str(),
+    .deviceIdString = d.devID.c_str()};
+}
+
+
 const char *CompositeJoystickClassDriver::getNativeAxisName(int axis_idx) const
 {
   return compositeDevice ? compositeDevice->getNativeAxisName(axis_idx) : NULL;
 }
+
+
 const char *CompositeJoystickClassDriver::getNativeButtonName(int btn_idx) const
 {
   return compositeDevice ? compositeDevice->getNativeButtonName(btn_idx) : NULL;
 }
+
 
 void CompositeJoystickClassDriver::setRumbleTargetRealDevIdx(int real_dev_idx)
 {
   if (compositeDevice)
     compositeDevice->rumbleDevIdx = real_dev_idx;
 }
+
 
 #define REMAP_ABS2REL(ID, FIELD)                                          \
   for (int i = 0, ie = compositeDevice->getNumDevices(); i < ie; i++)     \
@@ -931,6 +1034,7 @@ int CompositeJoystickClassDriver::remapRelPovHatId(int rel_pov_id, int real_dev_
 #undef REMAP_ABS2REL
 #undef REMAP_REL2ABS
 
+
 void CompositeJoystickClassDriver::setLocClient(ICompositeLocalization *cli, bool refresh)
 {
   locClient = cli;
@@ -938,17 +1042,22 @@ void CompositeJoystickClassDriver::setLocClient(ICompositeLocalization *cli, boo
     refreshCompositeDevicesList();
 }
 
+
 static bool check_main_gamepad(HumanInput::IGenJoystick *dev, bool main_gamepad)
 {
   if (strcmp(dev->getDeviceID(), "x360") == 0 || strcmp(dev->getDeviceID(), "ds4") == 0)
     return main_gamepad;
   return !main_gamepad;
 }
+
+
 float CompositeJoystickClassDriver::getStickDeadZoneScale(int stick_idx, bool main_gamepad) const
 {
   G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, 0);
   return stickDzScale[(main_gamepad ? 0 : 2) + stick_idx];
 }
+
+
 void CompositeJoystickClassDriver::setStickDeadZoneScale(int stick_idx, bool main_gamepad, float scale)
 {
   G_ASSERT_RETURN(stick_idx >= 0 && stick_idx < 2, );
@@ -964,6 +1073,8 @@ void CompositeJoystickClassDriver::setStickDeadZoneScale(int stick_idx, bool mai
               dev->setStickDeadZoneScale(stick_idx, scale);
           }
 }
+
+
 float CompositeJoystickClassDriver::getStickDeadZoneAbs(int stick_idx, bool main_gamepad, IGenJoystick *for_joy) const
 {
   if (!compositeDevice)
@@ -987,6 +1098,7 @@ float CompositeJoystickClassDriver::getStickDeadZoneAbs(int stick_idx, bool main
   return 0;
 }
 
+
 void CompositeJoystickClassDriver::enableGyroscope(bool enable, bool main_dev)
 {
   for (int i = 0; i < MAX_CLASSDRV; i++)
@@ -994,8 +1106,10 @@ void CompositeJoystickClassDriver::enableGyroscope(bool enable, bool main_dev)
       classDrvs[i].drv->enableGyroscope(enable, main_dev);
 }
 
+
 void CompositeJoystickClassDriver::refreshCompositeDevicesList()
 {
+  TIME_PROFILE(HID_CJCD_refreshCompositeDevicesList);
   bool isXInput = false;
 
   if (compositeDevice)
@@ -1006,12 +1120,14 @@ void CompositeJoystickClassDriver::refreshCompositeDevicesList()
       IGenJoystickClassDrv *classDrv = classDrvs[classDrvNo].drv;
       if (classDrv)
       {
-        for (int devNo = 0; devNo < classDrv->getDeviceCount(); devNo++)
+        for (int devNo = 0, total = classDrv->getDeviceCount(); devNo < total; devNo++)
         {
           HumanInput::IGenJoystick *dev = classDrv->getDevice(devNo);
+          G_ASSERTF_CONTINUE(dev != nullptr, "[CTRL][CJCD] no device #%d, but %d reported present by drv #%d", devNo, total,
+            classDrvNo);
           compositeDevice->addDevice(dev, classDrvs[classDrvNo].isXInput);
+          isXInput |= dev->isXinputCompatible();
         }
-        isXInput |= (classDrvs[classDrvNo].isXInput && classDrv->getDeviceCount());
       }
     }
     for (int i = 0; i < compositeDevice->getNumDevices(); i++)
@@ -1023,14 +1139,17 @@ void CompositeJoystickClassDriver::refreshCompositeDevicesList()
     ffClient->fxReinit();
 }
 
+
 void CompositeJoystickClassDriver::resetDevicesList()
 {
   if (compositeDevice)
   {
+    TIME_PROFILE(HID_CJCD_resetDevicesList);
     compositeDevice->resetDevices();
     refreshCompositeDevicesList();
   }
 }
+
 
 bool CompositeJoystickClassDriver::isAxisDigital(int axis_id) const
 {
@@ -1039,17 +1158,18 @@ bool CompositeJoystickClassDriver::isAxisDigital(int axis_id) const
   return false;
 }
 
-#if _TARGET_PC
-bool HumanInput::isImeAvailable() { return cb_show_ime_steam != NULL; }
-bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params, OnFinishIME on_finish_cb, void *userdata)
+
+#if _TARGET_PC || _TARGET_C4
+bool HumanInput::isImeAvailable() { return cb_show_ime != NULL; }
+bool HumanInput::showScreenKeyboard_IME(const DataBlock &init_params, OnUpdateIME on_update_cb, void *userdata)
 {
-  if (cb_show_ime_steam)
-    return (*cb_show_ime_steam)(init_params, on_finish_cb, userdata);
+  if (cb_show_ime)
+    return (*cb_show_ime)(init_params, on_update_cb, userdata);
   return false;
 }
 
 namespace HumanInput
 {
-void reg_cb_show_ime_steam(OnShowIME cb) { cb_show_ime_steam = cb; }
+void reg_cb_show_ime(OnShowIME cb) { cb_show_ime = cb; }
 } // namespace HumanInput
 #endif

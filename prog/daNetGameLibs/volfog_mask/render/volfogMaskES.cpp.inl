@@ -49,14 +49,13 @@ VARS
     smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
     smpInfo.filter_mode = d3d::FilterMode::Linear;
     ShaderGlobal::set_sampler(get_shader_variable_id("volfog_mask_tex_samplerstate", true), d3d::request_sampler(smpInfo));
-    NodeBasedShaderManager::clearAllCachedResources();
   }
 
   Point2 min_bound = Point2(bounds.x, bounds.y);
   Point2 max_bound = Point2(bounds.z, bounds.w);
   float invX = safeinv(max_bound.x - min_bound.x);
   float invY = safeinv(max_bound.y - min_bound.y);
-  ShaderGlobal::set_color4(world_to_volfog_maskVarId, Color4(invX, invY, -invX * min_bound.x, -invY * min_bound.y));
+  ShaderGlobal::set_float4(world_to_volfog_maskVarId, Color4(invX, invY, -invX * min_bound.x, -invY * min_bound.y));
 
   int pos = 0;
   if (tex_holder.getTex2D())

@@ -134,7 +134,7 @@ function mkControl(watch, hasNegative) {
 
 let textStyle = { hplace = ALIGN_LEFT, color = 0xFFA0A0A0 }
 let options = {
-  size = static [hdpx(250), flex()]
+  size = const [hdpx(250), flex()]
   flow = FLOW_VERTICAL
   gap = hdpx(20)
   children = optionsCfg.map(function(o) {

@@ -6,3 +6,4 @@ use_contact_shadows:i=0
 shadows_quality:i=0
 "@override:detect_cockpit_by_distance":i=1
 glass_rt_reflection:i=0
+dafx_use_voxel_shadows:i=0

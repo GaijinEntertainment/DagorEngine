@@ -138,6 +138,7 @@ INLINE Point2 round(const Point2 &a) { return Point2(roundf(a.x), roundf(a.y)); 
 __forceinline Point2 div(const Point2 &a, const Point2 &b) { return Point2(a.x / b.x, a.y / b.y); }
 INLINE Point2 safediv(const Point2 &a, const float b) { return a * safediv(1.0f, b); }
 inline Point2 mul(const Point2 &a, const Point2 &b) { return Point2(a.x * b.x, a.y * b.y); }
+inline Point2 frac(const Point2 &a) { return a - floor(a); }
 
 INLINE Point2 operator*(real a, const Point2 &p) { return Point2(p.x * a, p.y * a); }
 INLINE real lengthSq(const Point2 &a) { return a.x * a.x + a.y * a.y; }

@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "main/levelRoads.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/updateStage.h>
 
 ECS_REGISTER_RELOCATABLE_TYPE(splineroads::SplineRoads, nullptr);

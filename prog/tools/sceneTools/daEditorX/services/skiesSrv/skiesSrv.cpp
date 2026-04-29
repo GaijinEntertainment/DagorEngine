@@ -34,6 +34,7 @@
 #include <render/sphHarmCalc.h>
 #include <startup/dag_globalSettings.h>
 #include <3d/dag_stereoIndex.h>
+#include <drv/3d/dag_lock.h>
 
 static const Color4 HORIZONT_COLOR = Color4(0.2f, 0.2f, 0.2f, 0.f);
 static const int SPH_HARM_FACE_WIDTH = 64;
@@ -47,13 +48,13 @@ static void set_sphharm_values_mono(const SphHarmCalc::values_t &v)
 {
   Color4 normAmbient = v[SphHarmCalc::SH3_SH00].a > 0 ? v[SphHarmCalc::SH3_SH00] / v[SphHarmCalc::SH3_SH00].a : Color4(1, 1, 1, 1);
 
-  ShaderGlobal::set_color4(sphharm_comp_values_varids[0],
+  ShaderGlobal::set_float4(sphharm_comp_values_varids[0],
     Color4(v[SphHarmCalc::SH3_SH00].a, v[SphHarmCalc::SH3_SH1P1].a, v[SphHarmCalc::SH3_SH10].a, v[SphHarmCalc::SH3_SH1M1].a));
 
-  ShaderGlobal::set_color4(sphharm_comp_values_varids[1],
+  ShaderGlobal::set_float4(sphharm_comp_values_varids[1],
     Color4(v[SphHarmCalc::SH3_SH2P1].a, v[SphHarmCalc::SH3_SH2M1].a, v[SphHarmCalc::SH3_SH2M2].a, v[SphHarmCalc::SH3_SH20].a));
 
-  ShaderGlobal::set_color4(sphharm_comp_values_varids[2],
+  ShaderGlobal::set_float4(sphharm_comp_values_varids[2],
     Color4(normAmbient.r, normAmbient.g, normAmbient.b, v[SphHarmCalc::SH3_SH2P2].a));
 }
 
@@ -126,9 +127,9 @@ public:
     appliedWeather.setStr("weather", "");
     appliedWeather.setReal("lat", 0);
     appliedWeather.setReal("lon", 0);
-    appliedWeather.setInt("year", 1941);
-    appliedWeather.setInt("month", 6);
-    appliedWeather.setInt("day", 22);
+    appliedWeather.setInt("year", DEFAULT_YEAR);
+    appliedWeather.setInt("month", DEFAULT_MONTH);
+    appliedWeather.setInt("day", DEFAULT_DAY);
     appliedWeather.setReal("gmtTime", 4.0);
     appliedWeather.setReal("locTime", 4.0);
     appliedWeather.setInt("seed", -1);
@@ -258,6 +259,7 @@ public:
   {
     if (!daSkies)
       return;
+    d3d::GpuAutoLock gpuLock;
     time = 0;
     lastBrTime = 0;
     if (!preset_fn && !env && !weather)
@@ -272,6 +274,7 @@ public:
   }
   void reloadWeather()
   {
+    d3d::GpuAutoLock gpuLock;
     const char *env = timeOfDay;
     const char *weather = weatherName;
     DataBlock stars;
@@ -424,14 +427,13 @@ public:
     if (targetDepthId == BAD_TEXTUREID)
       daSkies->renderEnvi(false, dpoint3(::grs_cur_view.pos), dpoint3(::grs_cur_view.itm.getcol(2)), 0xFF,
         EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(),
-        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(), BAD_TEXTUREID, pov_data, viewTm, projTm,
-        persp);
+        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(), nullptr, pov_data, viewTm, projTm, persp);
     else
     {
       daSkies->prepareSkyAndClouds(false, dpoint3(::grs_cur_view.pos), dpoint3(::grs_cur_view.itm.getcol(2)), 0xFF,
-        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(),
-        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth(), pov_data, viewTm, projTm, UpdateSky::On,
-        false);
+        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth().getTex2D(),
+        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth().getTex2D(), pov_data, viewTm, projTm,
+        UpdateSky::On, false);
       daSkies->renderSky(pov_data, viewTm, projTm, persp);
     }
 
@@ -455,10 +457,8 @@ public:
     TMatrix4 projTm;
     d3d::gettm(TM_VIEW, viewTm);
     d3d::gettm(TM_PROJ, &projTm);
-    daSkies->renderClouds(false,
-      TextureIDPair(EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth().getTex2D(),
-        EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth().getTexId()),
-      tdId, pov_data, viewTm, projTm);
+    daSkies->renderCloudsToTarget(false, EDITORCORE->queryEditorInterface<IDynRenderService>()->getDownsampledFarDepth().getTex2D(),
+      D3dResManagerData::getBaseTex(tdId), pov_data, viewTm, projTm);
 
     d3d::setview(l, t, w, h, minZ, maxZ);
   }
@@ -482,7 +482,7 @@ public:
     if (global_seed == -1)
       global_seed = weird_seed;
 
-    float waterLevel = ShaderGlobal::get_real_fast(get_shader_variable_id("water_level", true));
+    float waterLevel = ShaderGlobal::get_float(get_shader_variable_id("water_level", true));
     // float averageGroundLevel = levelBlk.getReal("average_ground_level", waterLevel);
     float averageGroundLevel = waterLevel; // fixme; we should read average_ground_level on locations without water
     DataBlock groundBlk;
@@ -507,11 +507,20 @@ public:
   void loadWeather(const char *weatherPresetFileName, const char *weather)
   {
     G_ASSERT(daSkies);
+
     DataBlock weatherPresetBlk(weatherPresetFileName);
-    G_ASSERTF(weatherPresetBlk.isValid(), "Invalid weather preset '%s'", weatherPresetFileName);
+    if (!weatherPresetBlk.isValid())
+    {
+      logerr("Invalid weather preset file: '%s'", weatherPresetFileName);
+      return;
+    }
 
     DataBlock weatherTypesBlk(weatherTypesFn);
-    G_ASSERT(weatherTypesBlk.isValid());
+    if (!weatherTypesBlk.isValid())
+    {
+      logerr("Invalid weather types file: '%s'", weatherTypesFn);
+      return;
+    }
 
     DataBlock weatherTypeBlk;
     weatherTypeBlk = *weatherTypesBlk.getBlockByNameEx(weather);
@@ -548,10 +557,10 @@ public:
 
   void setTime(const char *currentEnvironment, const DataBlock *stars)
   {
-    float parsedTime = 8.0f;
-    float longitude = -1.14f;    // normandy, d-day
-    float latitude = 49.4163601; // normandy D-Day
-    int dd = 6, mm = 6, yy = 1944;
+    float parsedTime = DEFAULT_LOCALTIME;
+    float longitude = DEFAULT_LONGITUDE;
+    float latitude = DEFAULT_LATITUDE;
+    int dd = DEFAULT_DAY, mm = DEFAULT_MONTH, yy = DEFAULT_YEAR;
     if (stars)
     {
       longitude = stars->getReal("longitude", longitude);
@@ -566,11 +575,11 @@ public:
     else
       parsedTime = get_local_time_of_day_exact(currentEnvironment, 0.5f, latitude, yy, mm, dd);
 
-    float gmtTime = parsedTime - longitude * (12. / 180);
+    float gmtTime = localtime_to_gmt(parsedTime, longitude);
     if (stars)
     {
       parsedTime = stars->getReal("localTime", parsedTime);
-      gmtTime = stars->getReal("gmtTime", parsedTime - longitude * (12. / 180));
+      gmtTime = stars->getReal("gmtTime", localtime_to_gmt(parsedTime, longitude));
     }
     appliedWeather.setReal("lat", latitude);
     appliedWeather.setReal("lon", longitude);
@@ -578,7 +587,7 @@ public:
     appliedWeather.setInt("month", mm);
     appliedWeather.setInt("day", dd);
     appliedWeather.setReal("gmtTime", gmtTime);
-    appliedWeather.setReal("locTime", gmtTime + longitude * (12. / 180));
+    appliedWeather.setReal("locTime", gmt_to_localtime(gmtTime, longitude));
 
     daSkies->setStarsLatLon(latitude, longitude);
     daSkies->setStarsJulianDay(julian_day(yy, mm, dd, gmtTime));
@@ -642,7 +651,7 @@ public:
         logerr("failed to get LUT tex <%s>, tid=%d", postFxLutTexName, postFxLutTexId);
       }
       G_ASSERT(info.w >= 2 && info.w == info.h && info.w == info.d);
-      ShaderGlobal::set_color4(get_shader_variable_id("postfx_lut_scale"), (info.w - 1) / float(info.w), 0.5f / info.w, 0.f, 0.f);
+      ShaderGlobal::set_float4(get_shader_variable_id("postfx_lut_scale"), (info.w - 1) / float(info.w), 0.5f / info.w, 0.f, 0.f);
       release_managed_tex(postFxLutTexId);
     }
 
@@ -691,6 +700,7 @@ public:
   void setEnvironment()
   {
     G_ASSERT(daSkies);
+    d3d::GpuAutoLock gpuLock;
 
     ltService->setSunCount(1);
     ltService->setSyncLtColors(false);

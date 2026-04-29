@@ -8,7 +8,7 @@ from   bpy.utils    import register_class, unregister_class
 from   bpy.types    import Operator, Panel, PropertyGroup
 
 from ..helpers.texts    import *
-from ..ui.draw_elements import draw_custom_header
+from ..ui.draw_elements import draw_custom_header, draw_custom_toggle
 from ..popup.popup_functions    import show_popup
 from ..helpers.props    import fix_type
 from ..helpers.getters  import get_preferences
@@ -40,7 +40,7 @@ def text_to_props(obj):
                 broken+=line+';'
             elif prop[0].__len__()==0 or prop[1].__len__()==0:
                 broken+=line+';'
-            elif prop[0].endswith(':b') and prop[1] not in ['yes','no']:
+            elif prop[0].endswith(':b') and prop[1].lower() not in ['yes','no', '1', '0', 'true', 'false']:
                 broken+=line+';'
             elif prop[0]=='broken_properties:t':
                 broken+=line[1:-1]+';'
@@ -55,12 +55,19 @@ def props_to_text(obj):
     for key in obj.dagorprops.keys():
         txt.write(key+'=')
         try:
-            value=str(DP[key].to_list())
+            value=f"{DP[key].to_list()}"
             value=value.replace('[','')
             value=value.replace(']','')
         except:
-            value=str(DP[key])
-        txt.write(value+'\n')
+            str_value = f'{DP[key]}'.lower()
+            if str_value == "true":
+                value = "yes"
+            elif str_value == "false":
+                value = "no"
+            else:
+                value = str_value
+        txt.write(f"{value}\n")
+    return
 
 def get_presets_list():
     pref = get_preferences()
@@ -98,7 +105,7 @@ class DAGOR_OT_props_to_text(Operator):
             show_popup(message='No active object',title='Error',icon='ERROR')
             return {'CANCELLED'}
         props_to_text(obj)
-        show_text(get_text('props_temp'))
+        show_text(get_text('props_temp'), cursor_to_start = True)
         show_popup(message='Check "props_temp" in text editor',title='Done',icon='INFO')
         return {'FINISHED'}
 
@@ -279,9 +286,9 @@ class DAGOR_PT_Properties(Panel):
                 prop = prop.column(align = True)
                 rem=prop.row()
                 rem.label(text=key)
-                if DP[key] in['yes','no']:
-                    rem.operator('dt.invert_dagbool',text='',
-                        icon='CHECKBOX_HLT' if DP[key]=='yes' else 'CHECKBOX_DEHLT').prop=key
+                value = DP[key]
+                if value in [True, False]:
+                    draw_custom_toggle(rem, DP, key, on_label = "yes", off_label = "no", is_api_defined = False)
                 else:
                     try:
                         len=(key+str(DP[key].to_list())).__len__()

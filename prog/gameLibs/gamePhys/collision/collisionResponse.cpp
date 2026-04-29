@@ -1,5 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <gamePhys/collision/collisionResponse.h>
 #include <math/dag_Point3.h>
 #include <math/dag_Quat.h>
 #include <math/dag_mathUtils.h>
@@ -9,8 +10,7 @@
 #include <gamePhys/collision/collisionInfo.h>
 #include <memory/dag_framemem.h>
 #include <EASTL/sort.h>
-
-#include <gamePhys/collision/collisionResponse.h>
+#include <rendInst/rendInstAccess.h>
 
 #define DEBUG_ENERGY 0
 
@@ -181,14 +181,20 @@ void daphys::resolve_contacts(const Quat &ori, DPoint3 &vel, DPoint3 &omega, Tab
     return;
 
   Quat invOrient = inverse(ori);
+  DPoint3 prevVel = vel;
   for (int iter = 0; iter < num_iter; ++iter)
   {
     bool hadImpulse = false;
     for (gamephys::SeqImpulseInfo &info : collisions)
     {
-      double a = info.axis1 * vel + info.w1 * omega + info.depth * params.baumgarteFactor;
+      double vn = info.axis1 * vel;
+      double a = vn + info.w1 * omega + info.depth * params.baumgarteFactor;
       double b = info.b;
-      double velAfterContact = max((-info.axis1 * vel * params.bounce) - params.minSpeedForBounce, 0.0);
+      double velAfterContact = 0.0;
+      double startVn = info.axis1 * prevVel;
+      if (startVn < -params.minSpeedForBounce)
+        velAfterContact = -startVn * params.bounce;
+
       double lambda = safediv(velAfterContact - a, b);
       double finalImpulse = max(info.appliedImpulse + lambda, 0.0);
       lambda = finalImpulse - info.appliedImpulse;
@@ -217,7 +223,16 @@ void daphys::resolve_contacts(const Quat &ori, DPoint3 &vel, DPoint3 &omega, Tab
 
     DPoint3 localPos = collision.pos;
     DPoint3 velProj = vel - (vel * collision.axis1) * collision.axis1;
-    info1.axis1 = normalize(velProj);
+    if (lengthSq(velProj) > 1e-12)
+    {
+      info1.axis1 = normalize(velProj);
+    }
+    else
+    {
+      DPoint3 n = collision.axis1;
+      DPoint3 ref = fabs(n.x) < 0.9 ? DPoint3(1, 0, 0) : DPoint3(0, 1, 0);
+      info1.axis1 = normalize(n % ref);
+    }
     info2.axis1 = normalize(collision.axis1 % info1.axis1);
     DPoint3 localAxis1 = dpoint3(invOrient * info1.axis1);
     DPoint3 localAxis2 = dpoint3(invOrient * info2.axis1);
@@ -463,7 +478,7 @@ void daphys::contacts_to_solver_data(const SolverBodyInfo *lhs, const SolverBody
   }
 }
 
-static void consume_impulse_reserve(daphys::SolverBodyInfo &lhs, daphys::SolverBodyInfo &rhs, const gamephys::SeqImpulseInfo &info,
+void daphys::consume_impulse_reserve(daphys::SolverBodyInfo &lhs, daphys::SolverBodyInfo &rhs, const gamephys::SeqImpulseInfo &info,
   double &out_lambda)
 {
   const double commonImpulseLimit = min(lhs.commonImpulseLimit, rhs.commonImpulseLimit);
@@ -494,7 +509,7 @@ static void consume_impulse_reserve(daphys::SolverBodyInfo &lhs, daphys::SolverB
 }
 
 bool daphys::resolve_pair_velocity(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag::Span<gamephys::SeqImpulseInfo> collisions,
-  double fric_k, double bounce_k, int num_iter, BodyInnerConstraints l_constraints, BodyInnerConstraints r_constraints)
+  double fric_k, double bounce_k, int num_iter)
 {
   bool hadCollision = false;
   for (int iteration = 0; iteration < num_iter; ++iteration)
@@ -542,11 +557,6 @@ bool daphys::resolve_pair_velocity(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag
       info.appliedImpulse += lambda;
     }
 
-    if (l_constraints)
-      l_constraints(lhs);
-    if (r_constraints)
-      r_constraints(rhs);
-
     if (!hadImpulse)
       break;
   }
@@ -554,7 +564,7 @@ bool daphys::resolve_pair_velocity(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag
 }
 
 void daphys::resolve_pair_penetration(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag::ConstSpan<gamephys::SeqImpulseInfo> collisions,
-  double erp, int num_iter, BodyInnerConstraints l_constraints, BodyInnerConstraints r_constraints)
+  double erp, int num_iter)
 {
   for (int iteration = 0; iteration < num_iter; ++iteration)
   {
@@ -584,12 +594,35 @@ void daphys::resolve_pair_penetration(SolverBodyInfo &lhs, SolverBodyInfo &rhs, 
       apply_lambda(rhs, n2, w2, lambda, rhs.pseudoVel, rhs.pseudoOmega);
     }
 
-    if (l_constraints)
-      l_constraints(lhs);
-    if (r_constraints)
-      r_constraints(rhs);
-
     if (!hadImpulse)
       break;
   }
+}
+
+bool daphys::validate_contacts(dag::ConstSpan<gamephys::CollisionContactData> contacts, const Point3 &pos, float bounding_rad)
+{
+  bool valid = true;
+  for (const auto &c : contacts)
+  {
+    // some collisions have inaccurate bounding sphere. we want cathch only huge anomalies.
+    float contactDist = lengthSq(c.wpos - pos);
+    float threshold = 1000.f;
+    if (contactDist > sqr(bounding_rad * 4.f + threshold))
+    {
+      logerr("daphys::validate_contacts: wpos %@ too far from %@ dist=%.2f bounding rad=%.2 with %s at %@", c.wpos, pos, contactDist,
+        bounding_rad, rendinst::getRIGenResName(c.riDesc), pos);
+      valid = false;
+    }
+    if (lengthSq(c.wnormB) > sqr(1000.f))
+    {
+      logerr("daphys::validate_contacts: invalid contact normB %@ with %s at %@", c.wnormB, rendinst::getRIGenResName(c.riDesc), pos);
+      valid = false;
+    }
+    if (fabsf(c.depth) > 10000.f)
+    {
+      logerr("daphys::validate_contacts: invalid contact depth %@ with %s at %@", c.depth, rendinst::getRIGenResName(c.riDesc), pos);
+      valid = false;
+    }
+  }
+  return valid;
 }

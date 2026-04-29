@@ -25,6 +25,7 @@
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_files.h>
 #include <osApiWrappers/dag_direct.h>
+#include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_vromfs.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <util/dag_texMetaData.h>
@@ -80,7 +81,7 @@ namespace matvdata
 extern void (*hook_on_add_vdata)(ShaderMatVdata *vd, int add_vdata_sz);
 }
 
-static bool on_get_game_resource(int res_id, dag::Span<GameResourceFactory *> f, GameResource *&out_res)
+static bool on_get_game_resource(int res_id, gameres_rrl_cptr_t, dag::Span<GameResourceFactory *>, GameResource *&)
 {
   if (res_id >= 0)
   {
@@ -146,8 +147,18 @@ static void load_res_package(const char *folder, bool optional, const char *patc
     mntP.printf(0, "%s/%s", patch_root_folder, mnt0);
   bool base_pkg_loaded = false;
 
-  gameres_append_desc(gameres_rendinst_desc, mnt0 + "riDesc.bin", folder);
-  gameres_append_desc(gameres_dynmodel_desc, mnt0 + "dynModelDesc.bin", folder);
+  String riDesc_m = String::mk_str_cat(mnt0, "riDesc.models.bin");
+  String dmDesc_m = String::mk_str_cat(mnt0, "dynModelDesc.models.bin");
+  if (dd_file_exists(riDesc_m) || dd_file_exists(dmDesc_m))
+  {
+    gameres_append_desc(gameres_rendinst_desc, riDesc_m, folder);
+    gameres_append_desc(gameres_dynmodel_desc, dmDesc_m, folder);
+  }
+  else
+  {
+    gameres_append_desc(gameres_rendinst_desc, mnt0 + "riDesc.bin", folder);
+    gameres_append_desc(gameres_dynmodel_desc, mnt0 + "dynModelDesc.bin", folder);
+  }
 
   if (VirtualRomFsData *vrom = load_vromfs_dump(mnt0 + "grp_hdr.vromfs.bin", tmpmem, NULL, NULL, optional ? DF_IGNORE_MISSING : 0))
   {
@@ -245,6 +256,9 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
   char prev_dir[260];
   getcwd(prev_dir, sizeof(prev_dir));
   chdir(root_dir);
+  String start_dirbase_path(0, "%s/", prev_dir);
+  simplify_fname(start_dirbase_path);
+  dd_add_base_path(start_dirbase_path);
 
   refTexAll.reset();
   refResAll.reset();
@@ -253,9 +267,8 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
 
   void *n = NULL;
   d3d::init_driver();
-  d3d::init_video(NULL, NULL, NULL, 0, n, NULL, NULL, NULL, NULL);
+  d3d::init_video(NULL, NULL, NULL, 0, n, NULL, NULL, NULL);
   set_missing_texture_name("", false);
-  set_gameres_sys_ver(env.getInt("gameResSysVer", 2));
 
   int maxTexCount = ::dgs_get_settings()->getBlockByNameEx("video")->getInt("maxTexCount", 128 << 10);
   enable_tex_mgr_mt(true, maxTexCount);
@@ -353,6 +366,7 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
     reset_game_resources();
     cpujobs::term(true);
     chdir(prev_dir);
+    dd_remove_base_path(start_dirbase_path);
     term_dafx();
     return false;
   }
@@ -403,9 +417,7 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
         refRes.addNameId(rqrl_ronm->map[i]);
       memfree(rqrl_ronm, tmpmem);
 
-      set_required_res_list_restriction(refRes);
-      preload_all_required_res();
-      reset_required_res_list_restriction();
+      preload_game_resources(refRes);
     }
     else if (tag == _MAKE4C('DxP2'))
     {
@@ -451,9 +463,7 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
       rendinst::RIGenLoadingAutoLock riGenLd;
       rendinst::loadRIGen(crd, add_resource_cb);
 
-      set_required_res_list_restriction(req_res_list);
-      preload_all_required_res();
-      reset_required_res_list_restriction();
+      preload_game_resources(req_res_list);
 
       rendinst::prepareRIGen();
 
@@ -678,6 +688,7 @@ bool dumpDbldDeps(IGenLoad &crd, const DataBlock &env)
   printf("listing done\n");
 
   chdir(prev_dir);
+  dd_remove_base_path(start_dirbase_path);
   debug("restored %s", prev_dir);
   term_dafx();
   return true;

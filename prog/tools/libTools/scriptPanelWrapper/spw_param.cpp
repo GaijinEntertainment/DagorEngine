@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include <bindQuirrelEx/sqratDagor.h>
 #include <ioSys/dag_dataBlock.h>
-#include <sqplus.h>
+#include <sqrat.h>
 #include <propPanel/control/container.h>
 
 #include <scriptPanelWrapper/spw_main.h>
@@ -30,11 +31,11 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
-      SimpleString value(param.GetString("value"));
+      SimpleString value = param.GetSlotValue<SimpleString>("value", SimpleString(""));
       if (stricmp(value, mValue) != 0)
       {
         mValue = value;
@@ -44,14 +45,13 @@ public:
     }
     else
     {
-      SquirrelObject def = param.GetValue("def");
-      mValue = (!def.IsNull() && def.ToString()) ? def.ToString() : "";
+      mValue = param.GetSlotValue<SimpleString>("def", SimpleString(""));
       setToScript(param);
     }
   }
 
 
-  void setToScript(SquirrelObject &param) override { param.SetValue("value", mValue); }
+  void setToScript(Sqrat::Table &param) override { param.SetValue("value", mValue.str()); }
 
 
   void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
@@ -103,17 +103,17 @@ public:
     mPanel->setMinMaxStep(mPid, mMin, mMax, mStep);
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    mMin = (param.Exists("min")) ? param.GetInt("min") : mMin;
-    mMax = (param.Exists("max")) ? param.GetInt("max") : mMax;
-    mStep = (param.Exists("step")) ? param.GetInt("step") : mStep;
+    mMin = param.GetSlotValue<int>("min", mMin);
+    mMax = param.GetSlotValue<int>("max", mMax);
+    mStep = param.GetSlotValue<int>("step", mStep);
     if (mPanel)
       mPanel->setMinMaxStep(mPid, mMin, mMax, mStep);
 
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
-      int value = param.GetInt("value");
+      int value = param.GetSlotValue<int>("value", 0);
       if (value != mValue)
       {
         mValue = value;
@@ -123,13 +123,12 @@ public:
     }
     else
     {
-      SquirrelObject def = param.GetValue("def");
-      mValue = (!def.IsNull() && def.ToInteger()) ? def.ToInteger() : 0;
+      mValue = param.GetSlotValue<int>("def", 0);
       setToScript(param);
     }
   }
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
     param.SetValue("value", mValue);
     param.SetValue("min", mMin);
@@ -191,17 +190,17 @@ public:
     mPanel->setMinMaxStep(mPid, mMin, mMax, mStep);
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    mMin = (param.Exists("min")) ? param.GetFloat("min") : mMin;
-    mMax = (param.Exists("max")) ? param.GetFloat("max") : mMax;
-    mStep = (param.Exists("step")) ? param.GetFloat("step") : mStep;
+    mMin = param.GetSlotValue<float>("min", mMin);
+    mMax = param.GetSlotValue<float>("max", mMax);
+    mStep = param.GetSlotValue<float>("step", mStep);
     if (mPanel)
       mPanel->setMinMaxStep(mPid, mMin, mMax, mStep);
 
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
-      float value = param.GetFloat("value");
+      float value = param.GetSlotValue<float>("value", 0.0f);
       if (value != mValue)
       {
         mValue = value;
@@ -211,13 +210,12 @@ public:
     }
     else
     {
-      SquirrelObject def = param.GetValue("def");
-      mValue = (!def.IsNull() && def.ToFloat()) ? def.ToFloat() : 0;
+      mValue = param.GetSlotValue("def", 0.0f);
       setToScript(param);
     }
   }
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
     param.SetValue("value", mValue);
     param.SetValue("min", mMin);
@@ -276,11 +274,11 @@ public:
     mPanel->createCheckBox(mPid, mCaption, mValue);
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
-      bool value = param.GetBool("value");
+      bool value = param.GetSlotValue<bool>("value", false);
       if (value != mValue)
       {
         mValue = value;
@@ -290,13 +288,12 @@ public:
     }
     else
     {
-      SquirrelObject def = param.GetValue("def");
-      mValue = (!def.IsNull() && def.ToBool()) ? def.ToBool() : false;
+      mValue = param.GetSlotValue<bool>("def", false);
       setToScript(param);
     }
   }
 
-  void setToScript(SquirrelObject &param) override { param.SetValue("value", mValue); }
+  void setToScript(Sqrat::Table &param) override { param.SetValue("value", mValue); }
 
 
   void onChange(int pid, PropPanel::ContainerPropertyControl &panel) override
@@ -350,18 +347,19 @@ public:
   }
 
 
-  E3DCOLOR getColorFromSQ(SquirrelObject &param, const char param_name[])
+  E3DCOLOR getColorFromSQ(Sqrat::Object &param, const char param_name[])
   {
-    SquirrelObject val = param.GetValue(param_name);
-    if (!val.IsNull() && val.GetType() == OT_ARRAY && val.Len() == 4)
-      return E3DCOLOR(val.GetInt(SQInteger(0)), val.GetInt(1), val.GetInt(2), val.GetInt(3));
+    Sqrat::Object val = param.GetSlot(param_name);
+    if (val.GetType() == OT_ARRAY && Sqrat::Array(val).Length() == 4)
+      return E3DCOLOR(val.GetSlotValue<int>((SQInteger)0, 0), val.GetSlotValue<int>(1, 0), val.GetSlotValue<int>(2, 0),
+        val.GetSlotValue<int>(3, 0));
     return E3DCOLOR(0, 0, 0, 0);
   }
 
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       E3DCOLOR value = getColorFromSQ(param, "value");
 
@@ -379,14 +377,14 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
-    if (param.GetValue("value").IsNull())
+    if (param.GetSlot("value").IsNull())
     {
-      param.SetValue("value", SquirrelVM::CreateArray(4));
+      param.SetValue("value", Sqrat::Array(param.GetVM(), 4));
     }
 
-    SquirrelObject val = param.GetValue("value");
+    Sqrat::Array val = param.GetSlot("value");
     val.SetValue(SQInteger(0), mValue.r);
     val.SetValue(1, mValue.g);
     val.SetValue(2, mValue.b);
@@ -480,17 +478,17 @@ public:
   }
 
 
-  Point2 getPoint2FromSQ(SquirrelObject &param, const char param_name[])
+  Point2 getPoint2FromSQ(Sqrat::Object &param, const char param_name[])
   {
-    SquirrelObject val = param.GetValue(param_name);
-    if (!val.IsNull() && val.GetType() == OT_ARRAY && val.Len() == 2)
-      return Point2(val.GetFloat(SQInteger(0)), val.GetFloat(1));
+    Sqrat::Object val = param.GetSlot(param_name);
+    if (val.GetType() == OT_ARRAY && Sqrat::Array(val).Length() == 2)
+      return Point2(val.GetSlotValue<float>((SQInteger)0, 0.0f), val.GetSlotValue<float>(1, 0.0f));
     return Point2(0, 0);
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       Point2 value = getPoint2FromSQ(param, "value");
 
@@ -508,14 +506,14 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
-    if (param.GetValue("value").IsNull())
+    if (param.GetSlot("value").IsNull())
     {
-      param.SetValue("value", SquirrelVM::CreateArray(2));
+      param.SetValue("value", Sqrat::Array(param.GetVM(), 2));
     }
 
-    SquirrelObject val = param.GetValue("value");
+    Sqrat::Array val = param.GetSlot("value");
     val.SetValue(SQInteger(0), mValue.x);
     val.SetValue(1, mValue.y);
   }
@@ -571,17 +569,17 @@ public:
     mPanel->createPoint3(mPid, mCaption, mValue);
   }
 
-  Point3 getPoint3FromSQ(SquirrelObject &param, const char param_name[])
+  Point3 getPoint3FromSQ(Sqrat::Object &param, const char param_name[])
   {
-    SquirrelObject val = param.GetValue(param_name);
-    if (!val.IsNull() && val.GetType() == OT_ARRAY && val.Len() == 3)
-      return Point3(val.GetFloat(SQInteger(0)), val.GetFloat(1), val.GetFloat(2));
+    Sqrat::Object val = param.GetSlot(param_name);
+    if (val.GetType() == OT_ARRAY && Sqrat::Array(val).Length() == 3)
+      return Point3(val.GetSlotValue<float>((SQInteger)0, 0.0f), val.GetSlotValue<float>(1, 0.0f), val.GetSlotValue<float>(2, 0.0f));
     return Point3(0, 0, 0);
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       Point3 value = getPoint3FromSQ(param, "value");
       if (value != mValue)
@@ -598,14 +596,14 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
-    if (param.GetValue("value").IsNull())
+    if (param.GetSlot("value").IsNull())
     {
-      param.SetValue("value", SquirrelVM::CreateArray(3));
+      param.SetValue("value", Sqrat::Array(param.GetVM(), 3));
     }
 
-    SquirrelObject val = param.GetValue("value");
+    Sqrat::Array val = param.GetSlot("value");
     val.SetValue(SQInteger(0), mValue.x);
     val.SetValue(1, mValue.y);
     val.SetValue(2, mValue.z);
@@ -663,17 +661,18 @@ public:
   }
 
 
-  Point4 getPoint4FromSQ(SquirrelObject &param, const char param_name[])
+  Point4 getPoint4FromSQ(Sqrat::Object &param, const char param_name[])
   {
-    SquirrelObject val = param.GetValue(param_name);
-    if (!val.IsNull() && val.GetType() == OT_ARRAY && val.Len() == 4)
-      return Point4(val.GetFloat(SQInteger(0)), val.GetFloat(1), val.GetFloat(2), val.GetFloat(3));
+    Sqrat::Object val = param.GetSlot(param_name);
+    if (val.GetType() == OT_ARRAY && Sqrat::Array(val).Length() == 4)
+      return Point4(val.GetSlotValue<float>((SQInteger)0, 0.0f), val.GetSlotValue<float>(1, 0.0f), val.GetSlotValue<float>(2, 0.0f),
+        val.GetSlotValue<float>(3, 0.0f));
     return Point4(0, 0, 0, 0);
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       Point4 value = getPoint4FromSQ(param, "value");
       if (value != mValue)
@@ -690,14 +689,14 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
-    if (param.GetValue("value").IsNull())
+    if (param.GetSlot("value").IsNull())
     {
-      param.SetValue("value", SquirrelVM::CreateArray(4));
+      param.SetValue("value", Sqrat::Array(param.GetVM(), 4));
     }
 
-    SquirrelObject val = param.GetValue("value");
+    Sqrat::Array val = param.GetSlot("value");
     val.SetValue(SQInteger(0), mValue.x);
     val.SetValue(1, mValue.y);
     val.SetValue(2, mValue.z);
@@ -757,18 +756,18 @@ public:
   }
 
 
-  IPoint2 getIPoint2FromSQ(SquirrelObject &param, const char param_name[])
+  IPoint2 getIPoint2FromSQ(Sqrat::Object &param, const char param_name[])
   {
-    SquirrelObject val = param.GetValue(param_name);
-    if (!val.IsNull() && val.GetType() == OT_ARRAY && val.Len() == 2)
-      return IPoint2(val.GetInt(SQInteger(0)), val.GetInt(1));
+    Sqrat::Object val = param.GetSlot(param_name);
+    if (val.GetType() == OT_ARRAY && Sqrat::Array(val).Length() == 2)
+      return IPoint2(val.GetSlotValue<int>((SQInteger)0, 0), val.GetSlotValue<int>(1, 0));
     return IPoint2(0, 0);
   }
 
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       IPoint2 value = getIPoint2FromSQ(param, "value");
       if (value != mValue)
@@ -785,14 +784,14 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
-    if (param.GetValue("value").IsNull())
+    if (param.GetSlot("value").IsNull())
     {
-      param.SetValue("value", SquirrelVM::CreateArray(2));
+      param.SetValue("value", Sqrat::Array(param.GetVM(), 2));
     }
 
-    SquirrelObject val = param.GetValue("value");
+    Sqrat::Array val = param.GetSlot("value");
     val.SetValue(SQInteger(0), mValue.x);
     val.SetValue(1, mValue.y);
   }
@@ -852,18 +851,18 @@ public:
   }
 
 
-  IPoint3 getIPoint3FromSQ(SquirrelObject &param, const char param_name[])
+  IPoint3 getIPoint3FromSQ(Sqrat::Object &param, const char param_name[])
   {
-    SquirrelObject val = param.GetValue(param_name);
-    if (!val.IsNull() && val.GetType() == OT_ARRAY && val.Len() == 3)
-      return IPoint3(val.GetInt(SQInteger(0)), val.GetInt(1), val.GetInt(2));
+    Sqrat::Object val = param.GetSlot(param_name);
+    if (val.GetType() == OT_ARRAY && Sqrat::Array(val).Length() == 3)
+      return IPoint3(val.GetSlotValue<int>((SQInteger)0, 0), val.GetSlotValue<int>(1, 0), val.GetSlotValue<int>(2, 0));
     return IPoint3(0, 0, 0);
   }
 
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       IPoint3 value = getIPoint3FromSQ(param, "value");
       if (value != mValue)
@@ -880,14 +879,14 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
-    if (param.GetValue("value").IsNull())
+    if (param.GetSlot("value").IsNull())
     {
-      param.SetValue("value", SquirrelVM::CreateArray(3));
+      param.SetValue("value", Sqrat::Array(param.GetVM(), 3));
     }
 
-    SquirrelObject val = param.GetValue("value");
+    Sqrat::Array val = param.GetSlot("value");
     val.SetValue(SQInteger(0), mValue.x);
     val.SetValue(1, mValue.y);
     val.SetValue(2, mValue.z);
@@ -945,24 +944,24 @@ public:
     mPanel->setPrec(mPid, 2);
   }
 
-  TMatrix getMatrixFromSQ(SquirrelObject &param, const char param_name[])
+  TMatrix getMatrixFromSQ(Sqrat::Object &param, const char param_name[])
   {
     TMatrix val(TMatrix::IDENT);
-    SquirrelObject matrix = param.GetValue(param_name);
-    if (!matrix.IsNull() && matrix.GetType() == OT_ARRAY && matrix.Len() == 4)
-      for (int i = 0; i < matrix.Len(); ++i)
+    Sqrat::Array matrix = param.GetSlot(param_name);
+    if (matrix.GetType() == OT_ARRAY && matrix.Length() == 4)
+      for (int i = 0; i < matrix.Length(); ++i)
       {
-        SquirrelObject col = matrix.GetValue(i);
-        if (!col.IsNull() && col.GetType() == OT_ARRAY && col.Len() == 3)
-          for (int j = 0; j < col.Len(); ++j)
-            val.m[i][j] = col.GetFloat(j);
+        Sqrat::Array col = matrix.GetSlot(i);
+        if (col.GetType() == OT_ARRAY && col.Length() == 3)
+          for (int j = 0; j < col.Length(); ++j)
+            val.m[i][j] = col.GetSlotValue<float>(j, 0.0f);
       }
     return val;
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       TMatrix value = getMatrixFromSQ(param, "value");
       if (value != mValue)
@@ -979,23 +978,23 @@ public:
     }
   }
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
-    if (param.GetValue("value").IsNull())
+    if (param.GetSlot("value").IsNull())
     {
-      param.SetValue("value", SquirrelVM::CreateArray(4));
-      SquirrelObject matrix = param.GetValue("value");
+      Sqrat::Array matrix(param.GetVM(), 4);
+      param.SetValue("value", matrix);
       for (int i = 0; i < 4; ++i)
-        matrix.SetValue(i, SquirrelVM::CreateArray(3));
+        matrix.SetValue(i, Sqrat::Array(param.GetVM(), 3));
     }
 
-    SquirrelObject matrix = param.GetValue("value");
-    if (!matrix.IsNull() && matrix.GetType() == OT_ARRAY && matrix.Len() == 4)
-      for (int i = 0; i < matrix.Len(); ++i)
+    Sqrat::Array matrix = param.GetSlot("value");
+    if (matrix.GetType() == OT_ARRAY && matrix.Length() == 4)
+      for (int i = 0; i < matrix.Length(); ++i)
       {
-        SquirrelObject col = matrix.GetValue(i);
-        if (!col.IsNull() && col.GetType() == OT_ARRAY && col.Len() == 3)
-          for (int j = 0; j < col.Len(); ++j)
+        Sqrat::Array col = matrix.GetSlot(i);
+        if (col.GetType() == OT_ARRAY && col.Length() == 3)
+          for (int j = 0; j < col.Length(); ++j)
             col.SetValue(j, mValue.m[i][j]);
       }
   }
@@ -1051,21 +1050,21 @@ public:
     mPanel->setUserData(mPid, mBaseFolder.str());
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
     clear_and_shrink(mFilter);
-    SquirrelObject options = param.GetValue("options");
-    if (!options.IsNull() && options.GetType() == OT_ARRAY)
-      for (int i = 0; i < options.Len(); ++i)
-        if (options.GetString(i))
-          mFilter.push_back() = options.GetString(i);
+    Sqrat::Array options = param.GetSlot("options");
+    if (options.GetType() == OT_ARRAY)
+      for (int i = 0; i < options.Length(); ++i)
+        if (options.GetSlot(i).GetType() == OT_STRING)
+          mFilter.push_back() = options.GetSlot(i).GetVar<const char *>().value;
     if (mPanel)
       mPanel->setStrings(mPid, mFilter);
 
-    SquirrelObject folder = param.GetValue("folder");
+    Sqrat::Object folder = param.GetSlot("folder");
     if (!folder.IsNull())
     {
-      mBaseFolder = folder.ToString();
+      mBaseFolder = folder.GetVar<const char *>().value;
       if (mPanel)
         mPanel->setUserData(mPid, mBaseFolder.str());
     }
@@ -1098,12 +1097,12 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    SquirrelObject folder = param.GetValue("folder");
+    Sqrat::Object folder = param.GetSlot("folder");
     if (!folder.IsNull())
     {
-      mBaseFolder = folder.ToString();
+      mBaseFolder = folder.GetVar<const char *>().value;
       if (mPanel)
         mPanel->setUserData(mPid, mBaseFolder.str());
     }
@@ -1132,17 +1131,17 @@ public:
     mPanel->createCombo(mPid, mCaption, mVals, mValue);
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
     if (mPanel)
     {
       clear_and_shrink(mVals);
 
-      SquirrelObject options = param.GetValue("options");
-      if (!options.IsNull() && options.GetType() == OT_ARRAY)
-        for (int i = 0; i < options.Len(); ++i)
-          if (options.GetString(i))
-            mVals.push_back() = options.GetString(i);
+      Sqrat::Array options = param.GetSlot("options");
+      if (options.GetType() == OT_ARRAY)
+        for (int i = 0; i < options.Length(); ++i)
+          if (options.GetSlot(i).GetType() == OT_STRING)
+            mVals.push_back() = options.GetSlot(i).GetVar<const char *>().value;
       mPanel->setStrings(mPid, mVals);
     }
 
@@ -1173,16 +1172,16 @@ public:
     mPanel->createCombo(mPid, mCaption, mVals, String(32, "%d", mValue));
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
     if (mPanel)
     {
       clear_and_shrink(mVals);
 
-      SquirrelObject options = param.GetValue("options");
-      if (!options.IsNull() && options.GetType() == OT_ARRAY)
-        for (int i = 0; i < options.Len(); ++i)
-          mVals.push_back(String(32, "%d", options.GetInt(i)));
+      Sqrat::Array options = param.GetSlot("options");
+      if (options.GetType() == OT_ARRAY)
+        for (int i = 0; i < options.Length(); ++i)
+          mVals.push_back(String(32, "%d", options.GetSlotValue<int>(i, 0)));
       mPanel->setStrings(mPid, mVals);
     }
 
@@ -1234,16 +1233,16 @@ public:
     mPanel->createCombo(mPid, mCaption, mVals, formatFloat(mValue));
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
     if (mPanel)
     {
       clear_and_shrink(mVals);
 
-      SquirrelObject options = param.GetValue("options");
-      if (!options.IsNull() && options.GetType() == OT_ARRAY)
-        for (int i = 0; i < options.Len(); ++i)
-          mVals.push_back(formatFloat(options.GetFloat(i)));
+      Sqrat::Array options = param.GetSlot("options");
+      if (options.GetType() == OT_ARRAY)
+        for (int i = 0; i < options.Length(); ++i)
+          mVals.push_back(formatFloat(options.GetSlotValue<float>(i, 0.0f)));
       mPanel->setStrings(mPid, mVals);
     }
 
@@ -1317,11 +1316,11 @@ public:
   }
 
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
-      SimpleString value(param.GetString("value"));
+      SimpleString value = param.GetSlotValue("value", SimpleString(""));
       if (stricmp(value, mValue) != 0)
       {
         mValue = value;
@@ -1331,21 +1330,20 @@ public:
     }
     else
     {
-      SquirrelObject def = param.GetValue("def");
-      mValue = (!def.IsNull() && def.ToString()) ? def.ToString() : "";
+      mValue = param.GetSlotValue("def", SimpleString(""));
       setToScript(param);
     }
 
     if (objType.empty())
     {
-      if (param.Exists("target_type"))
-        objType = param.GetString("target_type");
+      if (param.HasKey("target_type"))
+        objType = param.GetSlotValue("target_type", SimpleString(""));
       else
         objType = (stricmp(mParent->getParamType(param), "target_asset") == 0) ? "asset" : "default";
     }
 
-    if (param.Exists("filter"))
-      objFilter = param.GetString("filter");
+    if (param.HasKey("filter"))
+      objFilter = param.GetSlotValue("filter", SimpleString(""));
   }
 
 
@@ -1483,36 +1481,37 @@ public:
   }
 
 
-  void getGradientFromSQ(PropPanel::PGradient value, SquirrelObject &param, const char param_name[])
+  void getGradientFromSQ(PropPanel::PGradient value, Sqrat::Object &param, const char param_name[])
   {
     clear_and_shrink(*value);
-    SquirrelObject val = param.GetValue(param_name);
-    if (!val.IsNull() && val.GetType() == OT_ARRAY && val.BeginIteration())
+    Sqrat::Array val = param.GetSlot(param_name);
+    if (val.GetType() == OT_ARRAY)
     {
-      SquirrelObject gr_point, key;
-
-      while (val.Next(key, gr_point))
+      SQInteger len = val.Length();
+      for (SQInteger i = 0; i < len; ++i)
+      {
+        Sqrat::Table gr_point = val.GetSlot(i);
         if (gr_point.GetType() == OT_TABLE)
         {
-          float x = (gr_point.Exists("x")) ? gr_point.GetFloat("x") : -1;
-          E3DCOLOR color = E3DCOLOR(0, 0, 0, 0);
+          float x = gr_point.GetSlotValue<float>("x", -1.0f);
+          E3DCOLOR color(0, 0, 0, 0);
 
-          SquirrelObject col = gr_point.GetValue("color");
-          if (!col.IsNull() && col.GetType() == OT_ARRAY && col.Len() == 4)
-            color = E3DCOLOR(col.GetInt(SQInteger(0)), col.GetInt(1), col.GetInt(2), col.GetInt(3));
+          Sqrat::Array col = gr_point.GetSlot("color");
+          if (col.GetType() == OT_ARRAY && col.Length() == 4)
+            color = E3DCOLOR(col.GetSlotValue<int>((SQInteger)0, 0), col.GetSlotValue<int>(1, 0), col.GetSlotValue<int>(2, 0),
+              col.GetSlotValue<int>(3, 0));
 
           value->push_back(PropPanel::GradientKey(x, color));
         }
-
-      val.EndIteration();
+      }
     }
   }
 
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    int min = (param.Exists("min")) ? param.GetInt("min") : mMin;
-    int max = (param.Exists("max")) ? param.GetInt("max") : mMax;
+    int min = param.GetSlotValue<int>("min", mMin);
+    int max = param.GetSlotValue<int>("max", mMax);
     if (min != mMin || max != mMax)
     {
       mMin = (min < 2) ? 2 : min;
@@ -1521,10 +1520,10 @@ public:
         mPanel->setMinMaxStep(mPid, mMin, mMax, 1);
     }
 
-    if (param.Exists("mark") && mPanel)
-      mPanel->setFloat(mPid, param.GetFloat("mark"));
+    if (param.HasKey("mark") && mPanel)
+      mPanel->setFloat(mPid, param.GetSlotValue<float>("mark", 0.0f));
 
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       PropPanel::Gradient value(tmpmem);
       getGradientFromSQ(&value, param, "value");
@@ -1548,7 +1547,7 @@ public:
     }
     else
     {
-      if (param.Exists("def"))
+      if (param.HasKey("def"))
         getGradientFromSQ(&mValue, param, "def");
 
       setToScript(param);
@@ -1556,23 +1555,21 @@ public:
   }
 
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
     param.SetValue("min", mMin);
     param.SetValue("max", mMax);
 
-    SquirrelObject vals, val, col;
-
-    param.SetValue("value", SquirrelVM::CreateArray(mValue.size()));
-    vals = param.GetValue("value");
+    Sqrat::Array vals(param.GetVM(), mValue.size());
+    param.SetValue("value", vals);
 
     for (int i = 0; i < mValue.size(); ++i)
     {
-      vals.SetValue(i, SquirrelVM::CreateTable());
-      val = vals.GetValue(i);
+      Sqrat::Table val(param.GetVM());
+      vals.SetValue(i, val);
       val.SetValue("x", mValue[i].position);
-      val.SetValue("color", SquirrelVM::CreateArray(4));
-      col = val.GetValue("color");
+      Sqrat::Array col(param.GetVM(), 4);
+      val.SetValue("color", col);
       col.SetValue(SQInteger(0), mValue[i].color.r);
       col.SetValue(1, mValue[i].color.g);
       col.SetValue(2, mValue[i].color.b);
@@ -1666,29 +1663,31 @@ public:
   }
 
 
-  void getGradientFromSQ(PropPanel::TextGradient &value, SquirrelObject &param, const char param_name[])
+  void getGradientFromSQ(PropPanel::TextGradient &value, Sqrat::Object &param, const char param_name[])
   {
     clear_and_shrink(value);
-    SquirrelObject val = param.GetValue(param_name);
-    if (!val.IsNull() && val.GetType() == OT_ARRAY && val.BeginIteration())
+    Sqrat::Array val = param.GetSlot(param_name);
+    if (val.GetType() == OT_ARRAY)
     {
-      SquirrelObject gr_point, key;
-      while (val.Next(key, gr_point))
+      SQInteger len = val.Length();
+      for (SQInteger i = 0; i < len; ++i)
+      {
+        Sqrat::Object gr_point = val.GetSlot(i);
         if (gr_point.GetType() == OT_TABLE)
         {
-          float x = (gr_point.Exists("x")) ? gr_point.GetFloat("x") : -1;
-          SimpleString text(gr_point.Exists("text") ? gr_point.GetString("text") : "");
+          float x = gr_point.GetSlotValue<float>("x", -1.0f);
+          SimpleString text = gr_point.GetSlotValue("text", SimpleString(""));
           value.push_back(PropPanel::TextGradientKey(x, text.str()));
         }
-      val.EndIteration();
+      }
     }
   }
 
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    int min = (param.Exists("min")) ? param.GetInt("min") : mMin;
-    int max = (param.Exists("max")) ? param.GetInt("max") : mMax;
+    int min = param.GetSlotValue<int>("min", mMin);
+    int max = param.GetSlotValue<int>("max", mMax);
     if (min != mMin || max != mMax)
     {
       mMin = (min < 2) ? 2 : min;
@@ -1697,10 +1696,10 @@ public:
         mPanel->setMinMaxStep(mPid, mMin, mMax, 1);
     }
 
-    if (param.Exists("mark") && mPanel)
-      mPanel->setFloat(mPid, param.GetFloat("mark"));
+    if (param.HasKey("mark") && mPanel)
+      mPanel->setFloat(mPid, param.GetSlotValue<float>("mark", 0.0f));
 
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       PropPanel::TextGradient value(tmpmem);
       getGradientFromSQ(value, param, "value");
@@ -1724,7 +1723,7 @@ public:
     }
     else
     {
-      if (param.Exists("def"))
+      if (param.HasKey("def"))
         getGradientFromSQ(mValue, param, "def");
 
       setToScript(param);
@@ -1732,9 +1731,9 @@ public:
 
     if (objType.empty())
     {
-      if (param.Exists("target_type"))
+      if (param.HasKey("target_type"))
       {
-        objType = param.GetString("target_type");
+        objType = param.GetSlot("target_type").GetVar<const char *>().value;
         isTarget = true;
       }
       else
@@ -1744,25 +1743,25 @@ public:
       }
     }
 
-    if (param.Exists("filter"))
-      objFilter = param.GetString("filter");
+    if (param.HasKey("filter"))
+      objFilter = param.GetSlot("filter").GetVar<const char *>().value;
   }
 
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
     param.SetValue("min", mMin);
     param.SetValue("max", mMax);
 
-    SquirrelObject vals, val, col;
+    Sqrat::Object val, col;
 
-    param.SetValue("value", SquirrelVM::CreateArray(mValue.size()));
-    vals = param.GetValue("value");
+    Sqrat::Array vals(param.GetVM(), mValue.size());
+    Sqrat::Table(param).SetValue("value", vals);
 
     for (int i = 0; i < mValue.size(); ++i)
     {
-      vals.SetValue(i, SquirrelVM::CreateTable());
-      val = vals.GetValue(i);
+      Sqrat::Table val(param.GetVM());
+      vals.SetValue(i, val);
       val.SetValue("x", mValue[i].position);
       val.SetValue("text", mValue[i].text.str());
     }
@@ -1883,9 +1882,6 @@ private:
 };
 
 
-//-----------------------------------------------------------------------------
-
-
 class SPCurve : public ScriptPanelParam
 {
 public:
@@ -1915,26 +1911,28 @@ public:
   }
 
 
-  void getPointsFromSQ(Tab<Point2> &value, SquirrelObject &param, const char param_name[])
+  void getPointsFromSQ(Tab<Point2> &value, Sqrat::Object &param, const char param_name[])
   {
     clear_and_shrink(value);
-    SquirrelObject val = param.GetValue(param_name);
-    if (!val.IsNull() && val.GetType() == OT_ARRAY && val.BeginIteration())
+    Sqrat::Array val = param.GetSlot(param_name);
+    if (val.GetType() == OT_ARRAY)
     {
-      SquirrelObject key, point;
-      while (val.Next(key, point))
-        if (point.GetType() == OT_ARRAY && point.Len() == 2)
-          value.push_back(Point2(point.GetFloat(SQInteger(0)), point.GetFloat(1)));
-      val.EndIteration();
+      SQInteger len = val.Length();
+      for (SQInteger i = 0; i < len; ++i)
+      {
+        Sqrat::Array point = val.GetSlot(i);
+        if (point.GetType() == OT_ARRAY && point.Length() == 2)
+          value.push_back(Point2(point.GetSlotValue<float>((SQInteger)0, 0.0f), point.GetSlotValue<float>(1, 0.0f)));
+      }
     }
   }
 
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    if (param.Exists("height"))
+    if (param.HasKey("height"))
     {
-      mHeight = hdpi::_pxScaled(param.GetInt("height"));
+      mHeight = hdpi::_pxScaled(param.GetSlotValue<int>("height", 0));
       if (mPanel)
       {
         PropPanel::PropertyControlBase *ctrl = mPanel->getById(mPid);
@@ -1943,8 +1941,8 @@ public:
       }
     }
 
-    int min = (param.Exists("min")) ? param.GetInt("min") : mMin;
-    int max = (param.Exists("max")) ? param.GetInt("max") : mMax;
+    int min = param.GetSlotValue<int>("min", mMin);
+    int max = param.GetSlotValue<int>("max", mMax);
     if (min != mMin || max != mMax)
     {
       mMin = (min < 0) ? 0 : min;
@@ -1953,19 +1951,19 @@ public:
         mPanel->setMinMaxStep(mPid, mMin, mMax, PropPanel::CURVE_MIN_MAX_POINTS);
     }
 
-    if (param.Exists("mark") && mPanel)
-      mPanel->setFloat(mPid, param.GetFloat("mark"));
+    if (param.HasKey("mark") && mPanel)
+      mPanel->setFloat(mPid, param.GetSlotValue<float>("mark", 0.0f));
 
-    SquirrelObject options = param.GetValue("options");
-    if (mPanel && !options.IsNull() && options.GetType() == OT_ARRAY && options.Len() == 4)
+    Sqrat::Array options = param.GetSlot("options");
+    if (mPanel && options.GetType() == OT_ARRAY && options.Length() == 4)
     {
-      mPoint0 = Point2(options.GetFloat(SQInteger(0)), options.GetFloat(1));
-      mPoint1 = Point2(options.GetFloat(2), options.GetFloat(3));
+      mPoint0 = Point2(options.GetSlotValue<float>((SQInteger)0, 0.0f), options.GetSlotValue<float>(1, 0.0f));
+      mPoint1 = Point2(options.GetSlotValue<float>(2, 0.0f), options.GetSlotValue<float>(3, 0.0f));
       mPanel->setMinMaxStep(mPid, mPoint0.x, mPoint1.x, PropPanel::CURVE_MIN_MAX_X);
       mPanel->setMinMaxStep(mPid, mPoint0.y, mPoint1.y, PropPanel::CURVE_MIN_MAX_Y);
     }
 
-    if (param.Exists("value"))
+    if (param.HasKey("value"))
     {
       Tab<Point2> value(tmpmem);
       getPointsFromSQ(value, param, "value");
@@ -1989,7 +1987,7 @@ public:
     }
     else
     {
-      if (param.Exists("def"))
+      if (param.HasKey("def"))
         getPointsFromSQ(mValue, param, "def");
 
       setToScript(param);
@@ -1997,19 +1995,20 @@ public:
   }
 
 
-  void setToScript(SquirrelObject &param) override
+  void setToScript(Sqrat::Table &param) override
   {
     param.SetValue("min", mMin);
     param.SetValue("max", mMax);
 
-    SquirrelObject vals, val;
-    param.SetValue("value", SquirrelVM::CreateArray(mValue.size()));
-    vals = param.GetValue("value");
+    HSQUIRRELVM vm = param.GetVM();
+    Sqrat::Array vals(vm, mValue.size());
+    param.SetValue("value", vals);
 
     for (int i = 0; i < mValue.size(); ++i)
     {
-      vals.SetValue(i, SquirrelVM::CreateArray(2));
-      val = vals.GetValue(i);
+      Sqrat::Array val(vm, 2);
+      vals.SetValue(i, val);
+
       val.SetValue(SQInteger(0), mValue[i].x);
       val.SetValue(1, mValue[i].y);
     }
@@ -2046,7 +2045,6 @@ public:
   {
     if (!paramName.empty())
     {
-
       const DataBlock *curve_blk = blk.getBlockByName(paramName);
       if (curve_blk && (stricmp("curve", curve_blk->getStr("type", "")) == 0))
       {
@@ -2106,12 +2104,12 @@ public:
       grp->setBoolValue(isMinimized);
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    isMinimized = param.Exists("def") ? !param.GetBool("def") : false;
-    mControls = param.GetValue("controls");
-    if (isExt && param.Exists("is_renameble"))
-      isRenameble = param.GetBool("is_renameble");
+    isMinimized = param.HasKey("def") ? !param.GetSlotValue<bool>("def", false) : false;
+    mControls = param.GetSlot("controls");
+    if (isExt && !param.HasKey("is_renameble"))
+      isRenameble = param.GetSlotValue<bool>("is_renameble", false);
   }
 
   void load(const DataBlock &blk) override
@@ -2147,7 +2145,7 @@ public:
 
 protected:
   bool isExt, isMinimized;
-  SquirrelObject mControls;
+  Sqrat::Object mControls;
   bool isRenameble;
   int namePid;
 };
@@ -2167,11 +2165,11 @@ public:
       ScriptPanelContainer::fillParams(grp, mPanelWrapper->getFreePid(), mControls);
   }
 
-  void getValueFromScript(SquirrelObject param) override { mControls = param.GetValue("controls"); }
+  void getValueFromScript(Sqrat::Table param) override { mControls = param.GetSlot("controls"); }
 
 protected:
   bool isExt;
-  SquirrelObject mControls;
+  Sqrat::Object mControls;
 };
 
 
@@ -2193,10 +2191,10 @@ public:
       grp->setBoolValue(isMinimized);
   }
 
-  void getValueFromScript(SquirrelObject param) override
+  void getValueFromScript(Sqrat::Table param) override
   {
-    controls = param.GetValue("controls");
-    isMinimized = param.Exists("def") ? !param.GetBool("def") : false;
+    controls = param.GetSlot("controls");
+    isMinimized = param.HasKey("def") ? !param.GetSlotValue<bool>("def", false) : false;
   }
 
   void load(const DataBlock &blk) override
@@ -2216,19 +2214,19 @@ public:
   }
 
 private:
-  SquirrelObject controls;
+  Sqrat::Object controls;
   bool isMinimized;
 };
 
 //=============================================================================
 
 
-void ScriptPanelContainer::scriptControlFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param)
+void ScriptPanelContainer::scriptControlFactory(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table param)
 {
   ScriptPanelParam *panel_param = NULL;
 
   // extensible containers
-  bool is_ext = (param.Exists("extensible")) ? param.GetBool("extensible") : false;
+  bool is_ext = param.GetSlotValue<bool>("extensible", false);
   if (is_ext && scriptExtFactory(panel, pid, param))
     return;
 
@@ -2238,9 +2236,6 @@ void ScriptPanelContainer::scriptControlFactory(PropPanel::ContainerPropertyCont
   const char *tooltipLocalizationKey = getTooltipLocalizationKey(param);
   const char *defaultTooltip = getDefaultTooltip(param);
   const char *caption = getParamCaption(param, param_name);
-
-  SquirrelObject def = param.GetValue("def");
-  SquirrelObject controls = param.GetValue("controls");
 
   if (stricmp(type, "group") == 0)
     panel_param = new SPGroup(mPanelWrapper, this, param_name, caption, is_ext);

@@ -1,0 +1,9 @@
+ERROR: expression of type 'int|string' cannot be assigned to type 'float'
+testData/diagnostics/compilation_errors/type_inference/test_complex_nullcoalesce.nut:6:0
+
+function maybe_int(): int|null { return 42 }
+local x: float = maybe_int() ?? "default"
+^----------------------------------------
+return x
+
+

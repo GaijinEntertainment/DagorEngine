@@ -42,31 +42,31 @@ Voxelizer::Voxelizer(float world_box_width, float meters_per_voxel_xz, int num_s
   smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Clamp;
   smpInfo.filter_mode = d3d::FilterMode::Point;
   d3d::SamplerHandle smp = d3d::request_sampler(smpInfo);
-  ShaderGlobal::set_sampler(::get_shader_variable_id("cfd_voxel_tex_samplerstate", true), smp);
   ShaderGlobal::set_sampler(::get_shader_variable_id("cfd_prev_boundaries_samplerstate", true), smp);
   ShaderGlobal::set_sampler(::get_shader_variable_id("cfd_next_boundaries_samplerstate", true), smp);
-  voxelTex = dag::create_voltex(voxelTexSize.x, voxelTexSize.y, voxelTexSize.z, TEXFMT_R8 | TEXCF_UNORDERED, 1, "cfd_voxel_tex");
+  voxelTex =
+    dag::create_voltex(voxelTexSize.x, voxelTexSize.y, voxelTexSize.z, TEXFMT_R8 | TEXCF_UNORDERED, 1, "cfd_voxel_tex", RESTAG_WATER);
 
   boundaryCascades.resize(numCascades);
   for (int i = 0; i < numCascades; ++i)
   {
     int width = voxelTexSize.x >> i;
     int height = voxelTexSize.y >> i;
-    boundaryCascades[i] =
-      dag::create_voltex(width, height, voxelTexSize.z, TEXFMT_R8 | TEXCF_UNORDERED, 1, String(0, "cfd_boundary_tex_%d", i));
+    boundaryCascades[i] = dag::create_voltex(width, height, voxelTexSize.z, TEXFMT_R8 | TEXCF_UNORDERED, 1,
+      String(0, "cfd_boundary_tex_%d", i), RESTAG_WATER);
   }
 
   ShaderGlobal::set_int4(cfd_voxel_tex_sizeVarId, IPoint4(voxelTexSize.x, voxelTexSize.y, voxelTexSize.z, 0));
 
   Point4 dummyWorldToVoxel = Point4(1.0f / 1000.f, 1.0f / 1000.f, -100000.f, -100000.f);
-  ShaderGlobal::set_color4(cfd_world_to_voxelVarId, dummyWorldToVoxel);
+  ShaderGlobal::set_float4(cfd_world_to_voxelVarId, dummyWorldToVoxel);
 }
 
 void Voxelizer::prepareWorldBox(const Point3 &world_pos, const Point2 &world_y_min_max)
 {
   metersPerVoxelY = (world_y_min_max.y - world_y_min_max.x) / voxelTexSize.z;
   worldBoxSize.y = world_y_min_max.y - world_y_min_max.x;
-  ShaderGlobal::set_color4(cfd_voxel_sizeVarId, metersPerVoxelXZ, metersPerVoxelY, metersPerVoxelXZ, 0);
+  ShaderGlobal::set_float4(cfd_voxel_sizeVarId, metersPerVoxelXZ, metersPerVoxelY, metersPerVoxelXZ, 0);
 
   const Point2 worldCenterXZ = Point2::xz(world_pos);
   Point2 worldMinXZ = worldCenterXZ - Point2::xz(worldBoxSize) / 2.f;
@@ -76,7 +76,7 @@ void Voxelizer::prepareWorldBox(const Point3 &world_pos, const Point2 &world_y_m
   worldToVoxel = Point4(1.0f / worldBoxSize.x, 1.0f / worldBoxSize.z, worldMinXZ.x, worldMinXZ.y);
   worldToVoxelHeight = Point4(1.0f / worldBoxSize.y, world_y_min_max.x, 0, 0);
 
-  ShaderGlobal::set_color4(cfd_world_box_minVarId, Point4::xyz0(worldMin));
+  ShaderGlobal::set_float4(cfd_world_box_minVarId, Point4::xyz0(worldMin));
 }
 
 void Voxelizer::voxelizeDepthAbove(const BBox2 &area)
@@ -109,8 +109,8 @@ void Voxelizer::voxelizeDepthAbove(const BBox2 &area)
 
 void Voxelizer::setTransformVars()
 {
-  ShaderGlobal::set_color4(cfd_world_to_voxelVarId, worldToVoxel);
-  ShaderGlobal::set_color4(cfd_world_to_voxel_heightVarId, worldToVoxelHeight);
+  ShaderGlobal::set_float4(cfd_world_to_voxelVarId, worldToVoxel);
+  ShaderGlobal::set_float4(cfd_world_to_voxel_heightVarId, worldToVoxelHeight);
 }
 
 TEXTUREID Voxelizer::getVoxelTexId() const { return voxelTex.getTexId(); }

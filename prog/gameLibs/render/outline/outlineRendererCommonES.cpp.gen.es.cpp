@@ -28,9 +28,9 @@ static ecs::CompileTimeQueryDesc outline_render_always_visible_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void outline_render_always_visible_ecs_query(Callable function)
+inline void outline_render_always_visible_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, outline_render_always_visible_ecs_query_desc.getHandle(),
+  perform_query(&manager, outline_render_always_visible_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -72,9 +72,9 @@ static ecs::CompileTimeQueryDesc outline_render_always_visible_ri_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void outline_render_always_visible_ri_ecs_query(Callable function)
+inline void outline_render_always_visible_ri_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, outline_render_always_visible_ri_ecs_query_desc.getHandle(),
+  perform_query(&manager, outline_render_always_visible_ri_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -116,9 +116,9 @@ static ecs::CompileTimeQueryDesc outline_render_always_visible_ri_handle_ecs_que
   empty_span(),
   make_span(outline_render_always_visible_ri_handle_ecs_query_comps+8, 1)/*no*/);
 template<typename Callable>
-inline void outline_render_always_visible_ri_handle_ecs_query(Callable function)
+inline void outline_render_always_visible_ri_handle_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, outline_render_always_visible_ri_handle_ecs_query_desc.getHandle(),
+  perform_query(&manager, outline_render_always_visible_ri_handle_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -138,11 +138,49 @@ inline void outline_render_always_visible_ri_handle_ecs_query(Callable function)
       }
   );
 }
+static constexpr ecs::ComponentDesc outline_render_always_visible_box_ecs_query_comps[] =
+{
+//start of 5 ro components at [0]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+  {ECS_HASH("outline__color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__extcolor"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__always_visible"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("outline__enabled"), ecs::ComponentTypeInfo<bool>()},
+//start of 1 rq components at [5]
+  {ECS_HASH("outline__box"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc outline_render_always_visible_box_ecs_query_desc
+(
+  "outline_render_always_visible_box_ecs_query",
+  empty_span(),
+  make_span(outline_render_always_visible_box_ecs_query_comps+0, 5)/*ro*/,
+  make_span(outline_render_always_visible_box_ecs_query_comps+5, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void outline_render_always_visible_box_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, outline_render_always_visible_box_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          if ( !(ECS_RO_COMP(outline_render_always_visible_box_ecs_query_comps, "outline__always_visible", bool) && ECS_RO_COMP(outline_render_always_visible_box_ecs_query_comps, "outline__enabled", bool)) )
+            continue;
+          function(
+              ECS_RO_COMP(outline_render_always_visible_box_ecs_query_comps, "transform", TMatrix)
+            , ECS_RO_COMP_OR(outline_render_always_visible_box_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
+            , ECS_RO_COMP_OR(outline_render_always_visible_box_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))
+            );
+
+        }while (++comp != compE);
+      }
+  );
+}
 static constexpr ecs::ComponentDesc outline_render_z_pass_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("animchar_visbits"), ecs::ComponentTypeInfo<animchar_visbits_t>()},
-//start of 12 ro components at [1]
+//start of 14 ro components at [1]
   {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("animchar_render"), ecs::ComponentTypeInfo<AnimV20::AnimcharRendComponent>()},
   {ECS_HASH("animchar_bbox"), ecs::ComponentTypeInfo<bbox3f>()},
@@ -150,6 +188,8 @@ static constexpr ecs::ComponentDesc outline_render_z_pass_ecs_query_comps[] =
   {ECS_HASH("additional_data"), ecs::ComponentTypeInfo<ecs::Point4List>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__extcolor"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__depthDiffBlendStart"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__depthDiffBlendEnd"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__always_visible"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__z_fail"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("animchar_render__enabled"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
@@ -160,13 +200,13 @@ static ecs::CompileTimeQueryDesc outline_render_z_pass_ecs_query_desc
 (
   "outline_render_z_pass_ecs_query",
   make_span(outline_render_z_pass_ecs_query_comps+0, 1)/*rw*/,
-  make_span(outline_render_z_pass_ecs_query_comps+1, 12)/*ro*/,
+  make_span(outline_render_z_pass_ecs_query_comps+1, 14)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void outline_render_z_pass_ecs_query(Callable function)
+inline void outline_render_z_pass_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, outline_render_z_pass_ecs_query_desc.getHandle(),
+  perform_query(&manager, outline_render_z_pass_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -182,6 +222,8 @@ inline void outline_render_z_pass_ecs_query(Callable function)
             , ECS_RO_COMP_PTR(outline_render_z_pass_ecs_query_comps, "additional_data", ecs::Point4List)
             , ECS_RO_COMP_OR(outline_render_z_pass_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
             , ECS_RO_COMP_OR(outline_render_z_pass_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))
+            , ECS_RO_COMP_OR(outline_render_z_pass_ecs_query_comps, "outline__depthDiffBlendStart", float(1))
+            , ECS_RO_COMP_OR(outline_render_z_pass_ecs_query_comps, "outline__depthDiffBlendEnd", float(0))
             );
 
         }while (++comp != compE);
@@ -190,13 +232,15 @@ inline void outline_render_z_pass_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc outline_render_z_pass_ri_ecs_query_comps[] =
 {
-//start of 10 ro components at [0]
+//start of 12 ro components at [0]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("ri_extra"), ecs::ComponentTypeInfo<RiExtraComponent>()},
   {ECS_HASH("ri_extra__bboxMin"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("ri_extra__bboxMax"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("outline__color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__extcolor"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__depthDiffBlendStart"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__depthDiffBlendEnd"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__always_visible"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__z_fail"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__enabled"), ecs::ComponentTypeInfo<bool>()},
@@ -206,13 +250,13 @@ static ecs::CompileTimeQueryDesc outline_render_z_pass_ri_ecs_query_desc
 (
   "outline_render_z_pass_ri_ecs_query",
   empty_span(),
-  make_span(outline_render_z_pass_ri_ecs_query_comps+0, 10)/*ro*/,
+  make_span(outline_render_z_pass_ri_ecs_query_comps+0, 12)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void outline_render_z_pass_ri_ecs_query(Callable function)
+inline void outline_render_z_pass_ri_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, outline_render_z_pass_ri_ecs_query_desc.getHandle(),
+  perform_query(&manager, outline_render_z_pass_ri_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -226,6 +270,8 @@ inline void outline_render_z_pass_ri_ecs_query(Callable function)
             , ECS_RO_COMP(outline_render_z_pass_ri_ecs_query_comps, "ri_extra__bboxMax", Point3)
             , ECS_RO_COMP_OR(outline_render_z_pass_ri_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
             , ECS_RO_COMP_OR(outline_render_z_pass_ri_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))
+            , ECS_RO_COMP_OR(outline_render_z_pass_ri_ecs_query_comps, "outline__depthDiffBlendStart", float(1))
+            , ECS_RO_COMP_OR(outline_render_z_pass_ri_ecs_query_comps, "outline__depthDiffBlendEnd", float(0))
             );
 
         }while (++comp != compE);
@@ -234,31 +280,33 @@ inline void outline_render_z_pass_ri_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc outline_render_z_pass_ri_handle_ecs_query_comps[] =
 {
-//start of 10 ro components at [0]
+//start of 12 ro components at [0]
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("ri_extra__handle"), ecs::ComponentTypeInfo<rendinst::riex_handle_t>()},
   {ECS_HASH("ri_extra__bboxMin"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("ri_extra__bboxMax"), ecs::ComponentTypeInfo<Point3>()},
   {ECS_HASH("outline__color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__extcolor"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__depthDiffBlendStart"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__depthDiffBlendEnd"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__always_visible"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__z_fail"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
   {ECS_HASH("outline__enabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("outline__isOccluded"), ecs::ComponentTypeInfo<bool>()},
-//start of 1 no components at [10]
+//start of 1 no components at [12]
   {ECS_HASH("ri_extra"), ecs::ComponentTypeInfo<RiExtraComponent>()}
 };
 static ecs::CompileTimeQueryDesc outline_render_z_pass_ri_handle_ecs_query_desc
 (
   "outline_render_z_pass_ri_handle_ecs_query",
   empty_span(),
-  make_span(outline_render_z_pass_ri_handle_ecs_query_comps+0, 10)/*ro*/,
+  make_span(outline_render_z_pass_ri_handle_ecs_query_comps+0, 12)/*ro*/,
   empty_span(),
-  make_span(outline_render_z_pass_ri_handle_ecs_query_comps+10, 1)/*no*/);
+  make_span(outline_render_z_pass_ri_handle_ecs_query_comps+12, 1)/*no*/);
 template<typename Callable>
-inline void outline_render_z_pass_ri_handle_ecs_query(Callable function)
+inline void outline_render_z_pass_ri_handle_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, outline_render_z_pass_ri_handle_ecs_query_desc.getHandle(),
+  perform_query(&manager, outline_render_z_pass_ri_handle_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -272,6 +320,52 @@ inline void outline_render_z_pass_ri_handle_ecs_query(Callable function)
             , ECS_RO_COMP(outline_render_z_pass_ri_handle_ecs_query_comps, "ri_extra__bboxMax", Point3)
             , ECS_RO_COMP_OR(outline_render_z_pass_ri_handle_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
             , ECS_RO_COMP_OR(outline_render_z_pass_ri_handle_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))
+            , ECS_RO_COMP_OR(outline_render_z_pass_ri_handle_ecs_query_comps, "outline__depthDiffBlendStart", float(1))
+            , ECS_RO_COMP_OR(outline_render_z_pass_ri_handle_ecs_query_comps, "outline__depthDiffBlendEnd", float(0))
+            );
+
+        }while (++comp != compE);
+      }
+  );
+}
+static constexpr ecs::ComponentDesc outline_render_z_pass_box_ecs_query_comps[] =
+{
+//start of 9 ro components at [0]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+  {ECS_HASH("outline__color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__extcolor"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__depthDiffBlendStart"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__depthDiffBlendEnd"), ecs::ComponentTypeInfo<float>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__always_visible"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__z_fail"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__enabled"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("outline__isOccluded"), ecs::ComponentTypeInfo<bool>()},
+//start of 1 rq components at [9]
+  {ECS_HASH("outline__box"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc outline_render_z_pass_box_ecs_query_desc
+(
+  "outline_render_z_pass_box_ecs_query",
+  empty_span(),
+  make_span(outline_render_z_pass_box_ecs_query_comps+0, 9)/*ro*/,
+  make_span(outline_render_z_pass_box_ecs_query_comps+9, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void outline_render_z_pass_box_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, outline_render_z_pass_box_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          if ( !(!ECS_RO_COMP_OR(outline_render_z_pass_box_ecs_query_comps, "outline__always_visible", bool( false)) && !ECS_RO_COMP_OR(outline_render_z_pass_box_ecs_query_comps, "outline__z_fail", bool( false)) && ECS_RO_COMP(outline_render_z_pass_box_ecs_query_comps, "outline__enabled", bool) && ECS_RO_COMP(outline_render_z_pass_box_ecs_query_comps, "outline__isOccluded", bool)) )
+            continue;
+          function(
+              ECS_RO_COMP(outline_render_z_pass_box_ecs_query_comps, "transform", TMatrix)
+            , ECS_RO_COMP_OR(outline_render_z_pass_box_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
+            , ECS_RO_COMP_OR(outline_render_z_pass_box_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))
+            , ECS_RO_COMP_OR(outline_render_z_pass_box_ecs_query_comps, "outline__depthDiffBlendStart", float(1))
+            , ECS_RO_COMP_OR(outline_render_z_pass_box_ecs_query_comps, "outline__depthDiffBlendEnd", float(0))
             );
 
         }while (++comp != compE);
@@ -305,9 +399,9 @@ static ecs::CompileTimeQueryDesc outline_render_z_fail_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void outline_render_z_fail_ecs_query(Callable function)
+inline void outline_render_z_fail_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, outline_render_z_fail_ecs_query_desc.getHandle(),
+  perform_query(&manager, outline_render_z_fail_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -352,9 +446,9 @@ static ecs::CompileTimeQueryDesc outline_render_z_fail_ri_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void outline_render_z_fail_ri_ecs_query(Callable function)
+inline void outline_render_z_fail_ri_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, outline_render_z_fail_ri_ecs_query_desc.getHandle(),
+  perform_query(&manager, outline_render_z_fail_ri_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -397,9 +491,9 @@ static ecs::CompileTimeQueryDesc outline_render_z_fail_ri_handle_ecs_query_desc
   empty_span(),
   make_span(outline_render_z_fail_ri_handle_ecs_query_comps+9, 1)/*no*/);
 template<typename Callable>
-inline void outline_render_z_fail_ri_handle_ecs_query(Callable function)
+inline void outline_render_z_fail_ri_handle_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, outline_render_z_fail_ri_handle_ecs_query_desc.getHandle(),
+  perform_query(&manager, outline_render_z_fail_ri_handle_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -413,6 +507,45 @@ inline void outline_render_z_fail_ri_handle_ecs_query(Callable function)
             , ECS_RO_COMP(outline_render_z_fail_ri_handle_ecs_query_comps, "ri_extra__bboxMax", Point3)
             , ECS_RO_COMP_OR(outline_render_z_fail_ri_handle_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
             , ECS_RO_COMP_OR(outline_render_z_fail_ri_handle_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))
+            );
+
+        }while (++comp != compE);
+      }
+  );
+}
+static constexpr ecs::ComponentDesc outline_render_z_fail_box_ecs_query_comps[] =
+{
+//start of 6 ro components at [0]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+  {ECS_HASH("outline__color"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__extcolor"), ecs::ComponentTypeInfo<E3DCOLOR>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__always_visible"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("outline__enabled"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("outline__z_fail"), ecs::ComponentTypeInfo<bool>()},
+//start of 1 rq components at [6]
+  {ECS_HASH("outline__box"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc outline_render_z_fail_box_ecs_query_desc
+(
+  "outline_render_z_fail_box_ecs_query",
+  empty_span(),
+  make_span(outline_render_z_fail_box_ecs_query_comps+0, 6)/*ro*/,
+  make_span(outline_render_z_fail_box_ecs_query_comps+6, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void outline_render_z_fail_box_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, outline_render_z_fail_box_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          if ( !(!ECS_RO_COMP_OR(outline_render_z_fail_box_ecs_query_comps, "outline__always_visible", bool( false)) && ECS_RO_COMP(outline_render_z_fail_box_ecs_query_comps, "outline__enabled", bool) && ECS_RO_COMP(outline_render_z_fail_box_ecs_query_comps, "outline__z_fail", bool)) )
+            continue;
+          function(
+              ECS_RO_COMP(outline_render_z_fail_box_ecs_query_comps, "transform", TMatrix)
+            , ECS_RO_COMP_OR(outline_render_z_fail_box_ecs_query_comps, "outline__color", E3DCOLOR(0xFFFFFFFF))
+            , ECS_RO_COMP_OR(outline_render_z_fail_box_ecs_query_comps, "outline__extcolor", E3DCOLOR(0))
             );
 
         }while (++comp != compE);
@@ -438,9 +571,9 @@ static ecs::CompileTimeQueryDesc attach_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void attach_ecs_query(ecs::EntityId eid, Callable function)
+inline void attach_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, attach_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, attach_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

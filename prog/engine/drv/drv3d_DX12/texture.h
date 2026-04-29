@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "constants.h"
 #include "device_memory_class.h"
 #include "extents.h"
 #include "format_store.h"
@@ -73,13 +72,21 @@ public:
 #if DAGOR_DBGLEVEL > 0
   bool wasUsed() const { return stateBitSet.test(active_binding_was_used_offset); }
   void setWasUsed() { stateBitSet.set(active_binding_was_used_offset); }
+#else
+  bool wasUsed() const { return true; }
+  void setWasUsed() {}
 #endif
+  void adoptWasUsed(BaseTex *other)
+  {
+    if (other->wasUsed())
+    {
+      other->setWasUsed();
+    }
+  }
   bool isPreallocBeforeLoad() const { return stateBitSet.test(active_binding_is_prealloc_before_load_offset); }
   void setIsPreallocBeforeLoad(bool s) { stateBitSet.set(active_binding_is_prealloc_before_load_offset, s); }
   bool isSampleStencil() const { return stateBitSet.test(active_binding_is_sample_stencil); }
   void setIsSampleStencil(bool s) { stateBitSet.set(active_binding_is_sample_stencil, s); }
-  bool isArrayCube() const { return stateBitSet.test(active_binding_is_array_cube_offset); }
-  void setIsArrayCube(bool s) { stateBitSet.set(active_binding_is_array_cube_offset, s); }
 
   DECLARE_TQL_TID_AND_STUB()
 
@@ -87,7 +94,7 @@ public:
 
   ArrayLayerCount getArrayCount() const;
 
-  BaseTex(D3DResourceType type, uint32_t cflg);
+  BaseTex(D3DResourceType type, uint32_t cflg, ResourceTagType tg);
 
   /// ->>
   void setReadStencil(bool on) override { setIsSampleStencil(on && getFormat().isStencil()); }
@@ -120,8 +127,6 @@ public:
 
   bool allocateTex() override;
   void discardTex() override;
-
-  bool isCubeArray() const override { return isArrayCube(); }
 
   bool updateTexResFormat(unsigned d3d_format) override;
   BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l) override;
@@ -170,6 +175,8 @@ public:
   FormatStore fmt;
 
   SamplerState samplerState;
+
+  ResourceTagType tag = nullptr;
 
   dag::AtomicFlag usedInBindless{};
 
@@ -235,8 +242,7 @@ private:
   static constexpr uint32_t active_binding_was_used_offset = 1 + active_binding_dsv_offset;
   static constexpr uint32_t active_binding_is_prealloc_before_load_offset = 1 + active_binding_was_used_offset;
   static constexpr uint32_t active_binding_is_sample_stencil = 1 + active_binding_is_prealloc_before_load_offset;
-  static constexpr uint32_t active_binding_is_array_cube_offset = 1 + active_binding_is_sample_stencil;
-  static constexpr uint32_t unlock_image_is_upload_skipped = active_binding_is_array_cube_offset + 1;
+  static constexpr uint32_t unlock_image_is_upload_skipped = active_binding_is_sample_stencil + 1;
   static constexpr uint32_t texture_state_bits_count = unlock_image_is_upload_skipped + 1;
   Bitset<texture_state_bits_count> stateBitSet;
   Bitset<dxil::MAX_T_REGISTERS> srvBindingStages[STAGE_MAX_EXT];

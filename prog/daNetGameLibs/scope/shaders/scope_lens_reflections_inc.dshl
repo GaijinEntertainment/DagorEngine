@@ -1,0 +1,74 @@
+float scope_lens_bounding_sphere_radius = 1.0;
+float inv_scope_lens_reflection_texel_size = 0.0;
+
+macro INIT_SCOPE_LENS_REFLECTIONS_MATH(code)
+  (code) {
+    scope_lens_bounding_sphere_radius@f1 = scope_lens_bounding_sphere_radius;
+  }
+endmacro
+
+macro USE_SCOPE_LENS_REFLECTIONS_MATH(code)
+  hlsl(code) {
+    float2 get_scope_lens_reflection_ndc(const float2 lens_plane_input_coord) {
+      return lens_plane_input_coord / scope_lens_bounding_sphere_radius;
+    }
+
+    float2 get_scope_lens_reflection_uv(const float2 lens_plane_input_coord) {
+      float2 ndc = get_scope_lens_reflection_ndc(lens_plane_input_coord);
+      float2 uv = ndc * 0.5 + 0.5;
+      uv.y = 1.0 - uv.y;
+      return uv;
+    }
+  }
+endmacro
+
+macro INIT_AND_USE_SCOPE_LENS_REFLECTIONS_MATH(code)
+  INIT_SCOPE_LENS_REFLECTIONS_MATH(code)
+  USE_SCOPE_LENS_REFLECTIONS_MATH(code)
+endmacro
+
+macro INIT_SCOPE_LENS_REFLECTIONS(code)
+  INIT_SCOPE_LENS_REFLECTIONS_MATH(code)
+  (ps) {
+    scope_lens_reflections@smp2d = scope_lens_reflections;
+    screen_size@f2 = (1.0 / screen_pos_to_texcoord.x, 1.0 / screen_pos_to_texcoord.y);
+    inv_screen_size@f2 = (screen_pos_to_texcoord.x, screen_pos_to_texcoord.y);
+    inv_scope_lens_reflection_texel_size@f1 = inv_scope_lens_reflection_texel_size;
+  }
+endmacro
+
+macro USE_SCOPE_LENS_REFLECTIONS(code)
+  USE_SCOPE_LENS_REFLECTIONS_MATH(code)
+  hlsl(ps) {
+    half3 sample_scope_lens_reflections(VsOutput input, float4 screenpos, float2 lens_input_plane_coord, float4 lens_diffuse_color)
+    {
+      float2 uv = get_scope_lens_reflection_uv(lens_input_plane_coord);
+      float3 centerRadiance = tex2D(scope_lens_reflections, uv).rgb;
+
+      float3 result = 0;
+      float totalWeight = 0.0;
+
+      const int KERNEL_RADIUS = 1;
+
+      for (int x = -KERNEL_RADIUS; x <= KERNEL_RADIUS; ++x)
+        for (int y = -KERNEL_RADIUS; y <= KERNEL_RADIUS; ++y)
+        {
+          float2 neighborUV = uv + float2(x, y) * inv_scope_lens_reflection_texel_size;
+          float3 sampleRadiance = tex2D(scope_lens_reflections, neighborUV).rgb;;
+
+          float weight = exp(-length(centerRadiance - sampleRadiance)) / (4.0);
+
+          result += sampleRadiance * weight;
+          totalWeight += weight;
+        }
+
+      result /= totalWeight;
+      return result.rgb;
+    }
+  }
+endmacro
+
+macro INIT_AND_USE_SCOPE_LENS_REFLECTIONS(code)
+  INIT_SCOPE_LENS_REFLECTIONS(code)
+  USE_SCOPE_LENS_REFLECTIONS(code)
+endmacro

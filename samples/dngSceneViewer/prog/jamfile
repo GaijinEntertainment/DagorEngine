@@ -2,14 +2,15 @@ Game     = dng_scene_viewer ;
 GameMainVromFilePath = dng_scene_viewer.vromfs.bin ;
 Root    ?= ../../.. ;
 Location = samples/dngSceneViewer/prog ;
-PlatformArch_windows = x86_64 ;
-
-TargetType  = exe ;
-Target     ?=  $(Game) ;
 
 NOCARE $(Root)/$(Location)/def.jam ;
 include $(Root)/$(Location)/def.jam ;
+
+PlatformArch_windows ?= host_arch ;
 include $(Root)/prog/_jBuild/defPlatform.jam ;
+
+TargetType  = exe ;
+Target     ?=  $(Game) ;
 
 UseModulesAI = no ;
 UseModulesDM = no ;
@@ -55,16 +56,20 @@ gamePulls_action = make_module_pull_cpp ;
 gamePulls = daECS/core/componentType.h game_pulls
   actInThread_pull
 ;
-Sources += gamePulls.jamvar ;
+AddGamePullsToSources ;
 
-AddIncludes += $(Root)/prog/daNetGameLibs ;
+AddIncludes += 
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/gameLibs
+;
+
 UseProgLibs +=
   daNetGame
   daNetGameLibs/dm/stub
-  gameLibs/ecs/delayedAct
+  engine/daECS/delayedAct
 ;
 
-include $(Root)/$(Location)/_dng_libs.jam ;
+include $(Root)/$(Location)/_libs.jam ;
 
 if $(Platform) in windows {
   if ! $(PlatformArch) in x86_64 arm64 { Exit $(Platform)-$(PlatformArch) is not supported! ; }

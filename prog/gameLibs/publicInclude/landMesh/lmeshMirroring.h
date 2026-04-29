@@ -10,10 +10,6 @@ struct LmeshMirroringParams
   int numBorderCellsXNeg = 2;
   int numBorderCellsZPos = 2;
   int numBorderCellsZNeg = 2;
-  float mirrorShrinkXPos = 0.f;
-  float mirrorShrinkXNeg = 0.f;
-  float mirrorShrinkZPos = 0.f;
-  float mirrorShrinkZNeg = 0.f;
 };
 
 class DataBlock;

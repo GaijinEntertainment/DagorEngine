@@ -2,8 +2,10 @@ include "radiance_cache_filter_common.dshl"
 
 shader filter_temporal_radiance_cache_cs
 {
-  hlsl(cs) {
-    RWTexture2D<float3> current_radiance_cache: register(u0);
+  (cs) {
+    current_radiance_cache@uav : register(0) hlsl {
+      RWTexture2D<float3> current_radiance_cache@uav;
+    }
   }
   GET_SPATIAL_FILTERED_RADIANCE_CACHE(cs)
   RADIANCE_CACHE_TEMPORAL_RECALC(cs)

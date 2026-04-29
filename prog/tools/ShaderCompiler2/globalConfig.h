@@ -28,7 +28,7 @@ namespace shc
 struct CompilerConfig
 {
   // See https://gaijinentertainment.github.io/DagorEngine/dagor-tools/shader-compiler/contributing_to_compiler.html#versioning
-  const char *version = "2.77"; // logging only
+  const char *version = "2.83"; // logging only
 
   const char *singleCompilationShName = nullptr;
   const char *intermediateDir = nullptr;
@@ -66,15 +66,12 @@ struct CompilerConfig
   ShHardwareOptions singleOptions{4.0_sm};
 
   dag::Vector<String> dscIncludePaths;
-  // use power_of_two strategy, because we have good enough hashes for strings
-  ska::flat_hash_map<eastl::string, eastl::string> fileToFullPath;
 
   size_t dictionarySizeInKb = 4096;
-  size_t shGroupSizeInKb = 1024;
 
-  static constexpr int DEFAULT_COMPRESSION_LEVEL = 11;
+  static constexpr int DEFAULT_COMPRESSION_LEVEL = 14;
 
-  int shGroupCompressionLevel = DEFAULT_COMPRESSION_LEVEL;
+  int shShaderCompressionLevel = DEFAULT_COMPRESSION_LEVEL;
   int shDumpCompressionLevel = DEFAULT_COMPRESSION_LEVEL;
 
   unsigned numProcesses = -1;
@@ -84,15 +81,18 @@ struct CompilerConfig
   int hlslMaximumPsfAllowed = 2048;
   int hlslOptimizationLevel = 4;
 
+  const DataBlock *requiredShaders = &DataBlock::emptyBlock;
   const DataBlock *assumedVarsConfig = &DataBlock::emptyBlock;
 
   DebugLevel hlslDebugLevel = DebugLevel::NONE;
 
   shader_layout::ExternalStcodeMode cppStcodeMode = shader_layout::ExternalStcodeMode::NONE;
   StcodeDynlibConfig cppStcodeCompConfig = StcodeDynlibConfig::DEV;
-  StcodeTargetArch cppStcodeArch = StcodeTargetArch::DEFAULT;
+  Tab<StcodeTargetArch> cppStcodeArchs{};
   StcodeTargetPlatform cppStcodePlatform = StcodeTargetPlatform::DEFAULT;
   const char *cppStcodeCustomTag = nullptr;
+
+  String dependencyDumpFile{};
 
   bool generateCppStcodeValidationData : 1 = false;
 
@@ -128,6 +128,8 @@ struct CompilerConfig
   bool suppressLogs : 1 = false;
   bool logExactCompilationTimes : 1 = false;
   bool logFullPerFileCompilationStats : 1 = false;
+  bool dumpRegsAlways : 1 = false;
+  bool dumpRegsMacroCallstacks : 1 = false;
   bool useSha1Cache : 1 = true;
   bool writeSha1Cache : 1 = true;
   bool purgeSha1 : 1 = false;
@@ -135,18 +137,19 @@ struct CompilerConfig
   bool saveDumpOnCrash : 1 = false;
   bool singleBuild : 1 = false;
   bool relinkOnly : 1 = false;
-  bool useThreadpool : 1 = true;
   bool cppStcodeUnityBuild : 1 = false;
   bool cppStcodeDeleteDebugInfo : 1 = true;
+  bool cppStcodeSaveDebugInfoAndSourcesToZip : 1 = false;
   bool disallowHlslHardcodedRegs : 1 = false;
+  bool shaderRequiredByDefault : 1 = false;
+  bool dependencyDumpMode : 1 = false;
 
 #if _CROSS_TARGET_DX12
   dx12::dxil::Platform targetPlatform = dx12::dxil::Platform::PC;
 #elif _CROSS_TARGET_SPIRV
-  bool compilerHlslCc : 1 = false;
-  bool compilerDXC : 1 = false;
   bool usePcToken : 1 = true;
   bool dumpSpirvOnly : 1 = false;
+  bool sortGlobalConstsByOffset : 1 = false;
 #elif _CROSS_TARGET_METAL
   bool useIosToken : 1 = false;
   bool useBinaryMsl : 1 = false;
@@ -162,6 +165,7 @@ struct CompilerConfig
 
   const char *getShaderSrcRoot() const { return shaderSrcRoot.empty() ? nullptr : shaderSrcRoot.c_str(); }
   bool compileCppStcode() const { return cppStcodeMode != shader_layout::ExternalStcodeMode::NONE; }
+  bool shaderIsRequired(const char *shname) const { return requiredShaders->getBool(shname, shaderRequiredByDefault); }
 };
 
 const CompilerConfig &config();

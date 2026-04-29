@@ -192,7 +192,7 @@ void CCameraElem::handleMouseWheel(int delta)
   const real speedChangeMultiplier = clamp(config->speedChangeMultiplier, 0.0001f, 10.0f);
   const real multiplier = delta > 0 ? speedChangeMultiplier : (1.0f / speedChangeMultiplier);
 
-  config->moveStep = clamp(config->moveStep * multiplier, 1.0f / 16.0f, 256.0f);
+  config->moveStep = clamp(config->moveStep * multiplier, 1.0f / 16.0f, 2048.0f);
 
   // For non-MAX cameras the strife speed is always the same as the move speed. (See FreeCameraTab::onOk.)
   config->strifeStep = config->moveStep;

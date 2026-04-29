@@ -88,15 +88,13 @@ public:
     }
   }
 
-  void enqueueItem(real ctime, IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time, real max_lag)
+  void enqueueItem(real ctime, IPureAnimStateHolder &st, IAnimBlendNode *n, real overlap_time)
   {
     if (overlap_time < 0.0f)
       overlap_time = 0.0f;
 
-    (void)(max_lag);
     if (USE_DEBUG)
-      DEBUG_CTX("%p.enqueue: state=%d, ctime=%.3f t0=%.3f n=%p mt=%.3f max_lag=%.3f", this, state, ctime, t0, n, overlap_time,
-        max_lag);
+      DEBUG_CTX("%p.enqueue: state=%d, ctime=%.3f t0=%.3f n=%p mt=%.3f", this, state, ctime, t0, n, overlap_time);
 
     // DEBUG_CTX("enqueue: state=%d, ctime=%.3f t0=%.3f n=%p mt=%.3f max_lag=%.3f\n  node=%p %p %p\n  morph=   %.3f %.3f",
     //   state, ctime, t0, n, overlap_time, max_lag, node[0], node[1], node[2], morphTime[0], morphTime[1]);

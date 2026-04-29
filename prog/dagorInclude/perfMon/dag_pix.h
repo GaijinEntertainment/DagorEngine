@@ -6,18 +6,9 @@
 
 #include <cstdint>
 
-#if _TARGET_XBOX && DAGOR_DBGLEVEL != 0
 
 void PIX_BEGIN_CPU_EVENT(const char *name);
 void PIX_END_CPU_EVENT();
-
-#else
-
-static inline void PIX_BEGIN_CPU_EVENT(const char *) {}
-static inline void PIX_END_CPU_EVENT() {}
-
-#endif
-
 
 namespace perfmon
 {
@@ -39,39 +30,41 @@ public:
 } // namespace perfmon
 
 #if _TARGET_XBOXONE
-#include <d3d11_x.h>
+#include <d3d12_x.h>
+#elif _TARGET_SCARLETT
+#include <d3d12_xs.h>
 #else
-typedef enum D3D11X_PIX_CAPTURE_FLAGS
+typedef enum D3D12XBOX_PIX_CAPTURE_FLAGS
 {
-  D3D11X_PIX_CAPTURE_ALL_ENGINES = 0x2, // Captures data from all engines.
+  D3D12XBOX_PIX_CAPTURE_ALL_ENGINES = 0x2, // Capture data from all engines.
 
-  D3D11X_PIX_CAPTURE_ASYNC_COMPUTE_AS_CPU = 0x4, // Captures the effects of async compute work as memory modifications done by the CPU,
-                                                 // instead of capturing the async compute commands themselves. This can be useful if
-                                                 // you want to capture only graphics commands, without any async compute commands.
-                                                 // However, since the effects of the async compute commands are replicated as memory
-                                                 // updates by the CPU, performance analysis in PIX might not accurately reflect the
-                                                 // title.
+  D3D12XBOX_PIX_CAPTURE_ASYNC_COMPUTE_AS_CPU = 0x4, // Instead of capturing the async compute commands themselves, capture the effects
+                                                    // of async compute work as memory modifications made by the CPU. This can be
+                                                    // useful if you want to capture only graphics commands and avoid capturing async
+                                                    // compute commands. However, because the CPU replicates the effects of the async
+                                                    // compute commands as memory updates, performance analysis in PIX might not
+                                                    // accurately reflect the title’s performance.
 
-  D3D11X_PIX_CAPTURE_DMA_AS_CPU = 0x8, // Captures the effects of DMA work as memory modifications done by the CPU, instead of
-                                       // capturing the DMA commands themselves. This can be useful if you want to capture only
-                                       // graphics commands, without any DMA commands. However, since the effects of the DMA commands
-                                       // are replicated as memory updates by the CPU, performance analysis in PIX might not accurately
-                                       // reflect the title.
+  D3D12XBOX_PIX_CAPTURE_DMA_AS_CPU = 0x8, // Instead of capturing the DMA commands themselves, capture the effects of DMA work as
+                                          // memory modifications made by the CPU. This can be useful if you want to capture only
+                                          // graphics commands and avoid capturing DMA commands. However, because the CPU replicates
+                                          // the effects of the Direct Memory Access (DMA) commands as memory updates, performance
+                                          // analysis in PIX might not accurately reflect the title’s performance.
 
-  D3D11X_PIX_CAPTURE_ALL_MEMORY = 0x10, // Captures all graphics memory allocated by the title, instead of on the memory used by the
-                                        // captured frame. This will produce a capture file which is quite large. PIX analysis of the
-                                        // resulting capture may be significantly slower with this flag.
+  D3D12XBOX_PIX_CAPTURE_ALL_MEMORY = 0x10, // Instead of capturing the memory used by the captured frame, capture all graphics memory
+                                           // allocated by the title. This produces a large capture file. Specifying this flag might
+                                           // slow down the PIX analysis of the capture file.
 
-  D3D11X_PIX_CAPTURE_API = 0x10000, // Performs an API capture that collects all API arguments, in addition to GPU command buffers.
-                                    // This includes the resource names from ID3D11DeviceChild::SetName and shader symbols.
+  D3D12XBOX_PIX_CAPTURE_API = 0x10000, // Capture all API arguments and GPU command buffers. This includes the resource names from
+                                       // SetName and shader symbols.
 
-  D3D11X_PIX_CAPTURE_GOLD_IMAGE = 0x200000 // This member is private; do not use.
-} D3D11X_PIX_CAPTURE_FLAGS;
+  D3D12XBOX_PIX_CAPTURE_GOLD_IMAGE = 0x200000, // Reserved for internal use.
+} D3D12XBOX_PIX_CAPTURE_FLAGS;
 #endif
 
 
 // Example:
-// PIX_GPU_BEGIN_CAPTURE(D3D11X_PIX_CAPTURE_API, L"D:\\PIXCaptureFileName.pix3");
+// PIX_GPU_BEGIN_CAPTURE(D3D12XBOX_PIX_CAPTURE_API, L"D:\\PIXCaptureFileName.pix3");
 // ...
 // PIX_GPU_END_CAPTURE()
 
@@ -110,7 +103,7 @@ typedef enum D3D11X_PIX_CAPTURE_FLAGS
   {                                                                         \
     static uint(CounterName) = (N);                                         \
     if ((CounterName) == (N))                                               \
-      PIX_GPU_BEGIN_CAPTURE(flags, output_filename)                         \
+      PIX_GPU_BEGIN_CAPTURE(flags, output_filename);                        \
     if (!(CounterName--))                                                   \
       PIX_GPU_END_CAPTURE();                                                \
   } while (0)
@@ -125,7 +118,7 @@ struct CaptureAfterLongFrameParams
 {
   uintptr_t thresholdUS = 30000;
   uintptr_t frames = 1;
-  uintptr_t flags = D3D11X_PIX_CAPTURE_API;
+  uintptr_t flags = D3D12XBOX_PIX_CAPTURE_API;
   int captureCountLimit = -1;
 };
 

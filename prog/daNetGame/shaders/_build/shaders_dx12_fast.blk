@@ -4,6 +4,7 @@ include "shaders_pc11.blk"
 {
   file:t = "depth_hierarchy.dshl"
   file:t = "motion_vrs.dshl"
+  file:t = "shading_vrs.dshl"
 }
 
 "@override:outDumpName":t="../../game/compiledShaders/gameDX12"
@@ -14,7 +15,7 @@ include "shaders_pc11.blk"
     use_ssss:i=0
     ssss_quality:i=1
     depth_bounds_support:i=1
-    antialiasing_type:i=2
+    antialiasing_type:i=1
     hdr_ps_output_mode:i=0
     combined_shadows:i=1
     static_shadows_cascades:i=2

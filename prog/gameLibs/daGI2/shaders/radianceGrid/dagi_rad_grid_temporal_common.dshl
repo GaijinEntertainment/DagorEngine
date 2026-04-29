@@ -1,0 +1,153 @@
+include "world_sdf.dshl"
+include "frustum.dshl"
+include "gpu_occlusion.dshl"
+
+int4 dagi_rad_grid_temporal_size;
+int4 dagi_rad_grid_temporal;
+int4 dagi_rad_grid_temporal_indirect;
+float dagi_rad_grid_temporal_average_probes_to_select = 1;
+float dagi_rad_grid_temporal_invisible_probability = 1 / 16;
+float dagi_rad_grid_temporal_in_air_probability = 1 / 16;
+float dagi_rad_grid_temporal_probability_update_weight = 0.07;
+buffer dagi_radiance_grid_selected_probes;
+
+hlsl(cs) {
+  #include <dagi_rad_grid_temporal.hlsl>
+  #define RAD_GRID_DISTR_BITS 12 // Minimum bits needed to represent all possible distributionProbability values.
+  #define RAD_GRID_PROBABILITY_BITS 10 // RAD_GRID_PROBABILITY_BITS + RAD_GRID_DISTR_BITS need to be <= 23 to fit into float without precision loss.
+}
+
+macro DAGI_RAD_GRID_TEMPORAL_SELECT(grid_probes_age, max_quick_update_frames)
+  INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
+  READ_WORLD_SDF(cs)
+  GPU_OCCLUSION(cs)
+
+  (cs)
+  {
+    grid_probes_age@tex = grid_probes_age hlsl {
+      Texture3D<float> grid_probes_age@tex;
+    };
+
+    dagi_rad_grid_temporal_size@i4 = dagi_rad_grid_temporal_size;
+    dagi_rad_grid_temporal@i4 = dagi_rad_grid_temporal;
+    dagi_rad_grid_temporal_indirect@i3 = dagi_rad_grid_temporal_indirect;
+    dagi_radiance_grid_selected_probes@uav : register(0) hlsl {
+      RWByteAddressBuffer dagi_radiance_grid_selected_probes@uav;
+    }
+    quick_update_inv_max_age@f1 = 1.0 / max(max_quick_update_frames - 1.0, 1.0);
+
+    dagi_rad_grid_temporal_invisible_probability@f1 = dagi_rad_grid_temporal_invisible_probability;
+    dagi_rad_grid_temporal_in_air_probability@f1 = dagi_rad_grid_temporal_in_air_probability;
+
+    // batchCount * averageProbesToSelect / totalClipSize
+    batchTemporality@f1 = dagi_rad_grid_temporal.x * dagi_rad_grid_temporal_average_probes_to_select / dagi_rad_grid_temporal_indirect.x;
+  }
+
+  hlsl(cs) {
+    #include <pcg_hash.hlsl>
+
+    struct RadianceGridSelectedProbeInfo
+    {
+      int selectedIndex;
+      int nextRevAge;
+      int3 absCoord;
+      uint encodedProbe;
+    };
+
+    RadianceGridSelectedProbeInfo dagi_rad_grid_temporal_select_probe(uint dtid, float surface_proximity_dist_probes)
+    {
+      uint batchCount = dagi_rad_grid_temporal.x;
+      uint clipFrame = dagi_rad_grid_temporal.y;
+      uint clip = dagi_rad_grid_temporal.z;
+      uint totalClipSize = dagi_rad_grid_temporal_indirect.x;
+      uint clipDataOffset = dagi_rad_grid_temporal_indirect.y;
+      uint maxSelectedCount = dagi_rad_grid_temporal_size.x;
+      uint2 clipSize = dagi_rad_grid_temporal_size.zw;
+
+      uint clipBatch = clipFrame % batchCount;
+      uint probeI = (dtid * batchCount + clipBatch) % totalClipSize;
+      uint3 targetCoord = uint3(probeI % clipSize.x, (probeI / clipSize.x) % clipSize.x, probeI / (clipSize.x * clipSize.x));
+
+      int3 absCoord = dagi_rad_grid_abs_coord_from_wrapped_coord(targetCoord, clip);//fixme:
+      uint3 atlasAgeCoord = targetCoord + uint3(0, 0, clip * dagi_rad_grid_get_clip_size().y);
+      int revAge = min(texture3DAt(grid_probes_age, atlasAgeCoord) * 255, RAD_GRID_TEMPORAL_MAX_ENCODED_AGE);
+      bool isQuickUpdateEnd = revAge == RAD_GRID_TEMPORAL_MIN_QUICK_UPDATE_REV_AGE;
+      int nextRevAge = isQuickUpdateEnd ? 0 : max(0, revAge - 1);
+
+      float ageInvProbability = nextRevAge >= RAD_GRID_TEMPORAL_MIN_QUICK_UPDATE_REV_AGE ?
+        lerp(4.0, 1.0, (nextRevAge - RAD_GRID_TEMPORAL_MIN_QUICK_UPDATE_REV_AGE) * quick_update_inv_max_age) :
+        lerp(16.0, 2.0, nextRevAge * (1.0 / (RAD_GRID_TEMPORAL_MAX_REV_AGE - 1)));
+
+      float probeSize = dagi_rad_grid_probe_size(clip);
+      float extent = surface_proximity_dist_probes * probeSize;
+      float3 center = (absCoord.xzy + 0.5) * probeSize;
+      bool isInFrustum = testBoxExtentB(center, extent);
+      float4 sbox;
+      float2 minMaxBoxRawDepth;
+      bool isInvisible = !isInFrustum || !check_box_occl_visible_base(center - extent, center + extent, sbox, minMaxBoxRawDepth);
+
+      bool isInAir = !world_sdf_closer_to_nearest_surface_than_threshold(center, extent);
+
+      float distributionProbability = max(1.0 / (1 << RAD_GRID_DISTR_BITS),
+        (isInvisible ? dagi_rad_grid_temporal_invisible_probability : 1) *
+        (isInAir ? dagi_rad_grid_temporal_in_air_probability : 1) *
+        rcp(ageInvProbability));
+
+      RadianceGridSelectedProbeInfo result;
+      result.selectedIndex = -1;
+
+      uint4 random = pcg4d_hash_16bit(uint4(absCoord, clipFrame));
+      float minProbabilityMul = float(1 << RAD_GRID_PROBABILITY_BITS) * batchTemporality;
+      float probabilityMul = max(float(loadBuffer(dagi_radiance_grid_selected_probes, clipDataOffset)), minProbabilityMul);
+      uint probability = uint(probabilityMul * distributionProbability + 0.5);
+      if ((random.x >> (16 - RAD_GRID_PROBABILITY_BITS)) > probability)
+        return result;
+
+      uint selectedIndex;
+      dagi_radiance_grid_selected_probes.InterlockedAdd(0, 1, selectedIndex);
+      if (selectedIndex >= maxSelectedCount)
+        return result;
+
+      result.selectedIndex = selectedIndex;
+      result.nextRevAge = nextRevAge;
+      result.absCoord = absCoord;
+      result.encodedProbe = probeI | (nextRevAge << RAD_GRID_TEMPORAL_AGE_SHIFT);
+      result.encodedProbe |= isInAir ? 0 : RAD_GRID_TEMPORAL_SCENE_PROXIMITY_BIT;
+      return result;
+    }
+  }
+endmacro
+
+macro DAGI_RAD_GRID_PROCESS_SELECTED_PROBES_BUFFER()
+  (cs)
+  {
+    dagi_rad_grid_temporal@i1 = dagi_rad_grid_temporal;
+    dagi_rad_grid_temporal_indirect@i4 = dagi_rad_grid_temporal_indirect;
+    dagi_radiance_grid_selected_probes@uav : register(0) hlsl {
+      RWByteAddressBuffer dagi_radiance_grid_selected_probes@uav;
+    }
+    dagi_rad_grid_temporal_average_probes_to_select@f1 = dagi_rad_grid_temporal_average_probes_to_select;
+    dagi_rad_grid_temporal_probability_update_weight@f1 = dagi_rad_grid_temporal_probability_update_weight;
+
+    // batchCount * averageProbesToSelect / totalClipSize
+    batchTemporality@f1 = dagi_rad_grid_temporal.x * dagi_rad_grid_temporal_average_probes_to_select / dagi_rad_grid_temporal_indirect.x;
+  }
+
+  hlsl(cs) {
+    uint dagi_rad_grid_process_selected_probes_buffer()
+    {
+      uint clipDataOffset = dagi_rad_grid_temporal_indirect.y;
+
+      uint selectedCount = loadBuffer(dagi_radiance_grid_selected_probes, 0);
+      float minProbabilityMul = float(1 << RAD_GRID_PROBABILITY_BITS) * batchTemporality;
+      float oldProbabilityMul = max(float(loadBuffer(dagi_radiance_grid_selected_probes, clipDataOffset)), minProbabilityMul);
+      float underselectionRatio = min(dagi_rad_grid_temporal_average_probes_to_select / max(selectedCount, 1), 1 << RAD_GRID_DISTR_BITS);
+      float newProbabilityMul = oldProbabilityMul * lerp(1.0, underselectionRatio, dagi_rad_grid_temporal_probability_update_weight);
+
+      storeBuffer(dagi_radiance_grid_selected_probes, clipDataOffset, uint(newProbabilityMul + 0.5));
+      storeBuffer(dagi_radiance_grid_selected_probes, 0, 0);
+
+      return selectedCount;
+    }
+  }
+endmacro

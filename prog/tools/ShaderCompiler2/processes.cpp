@@ -43,8 +43,8 @@ static void parse_output(internal::OutputSink &sink)
   for (size_t end = bufView.find(sink.messageSep); end != eastl::string_view::npos;
        begin = end + 1, end = begin >= bufView.size() ? eastl::string_view::npos : bufView.find(sink.messageSep, begin))
   {
-    auto message = bufView.substr(begin, end - begin + (shouldPrintSep ? 1 : 0));
-    printf("%.*s", int(message.size()), message.data());
+    auto message = internal::convert_message(bufView.substr(begin, end - begin + (shouldPrintSep ? 1 : 0)));
+    printf("%.*s", int(message.length()), message.c_str());
     fflush(stdout);
   }
 
@@ -140,8 +140,10 @@ static auto start_process(internal::ExecutionState &state, ProcessTask &&task)
   });
 }
 
-bool execute()
+bool execute(int proc_count_override)
 {
+  const int realMaxProcCount = proc_count_override == NO_PROC_COUNT_OVERRIDE ? g_state.maxProcs : proc_count_override;
+
   if (!shc::try_lock_shutdown())
     return false;
 
@@ -184,7 +186,7 @@ bool execute()
   // Scheduling loop
   while (!g_state.tasks.empty())
   {
-    while (g_state.processes.size() >= g_state.maxProcs)
+    while (g_state.processes.size() >= realMaxProcCount)
     {
       if (!awaitProcsAndDecideContinuation())
         goto cancel;

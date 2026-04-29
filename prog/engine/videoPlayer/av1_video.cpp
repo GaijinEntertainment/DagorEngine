@@ -8,6 +8,8 @@
 #include <drv/3d/dag_tex3d.h>
 #include <image/dag_texPixel.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #include <generic/dag_tab.h>
 #include <util/dag_string.h>
 #include <math/integer/dag_IPoint2.h>
@@ -50,7 +52,11 @@ class Av1VideoPlayer : public IGenVideoPlayer, public VideoPlaybackData
   Dav1dData data;
   DemuxerContext *inCtx;
   uint32_t total, timebase[2], fps[2];
-  static int threadsNum;
+#if _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX
+  static inline int threadsNum = 4;
+#else
+  static inline int threadsNum = 2;
+#endif
 
 public:
   virtual void destroy() { delete this; }
@@ -86,6 +92,9 @@ public:
     }
     frameW = dims[0];
     frameH = dims[1];
+
+    if (int tn = ::dgs_get_settings()->getInt("av1ThreadsNum", threadsNum))
+      threadsNum = tn;
 
     dav1d_default_settings(&libSettings);
     libSettings.n_threads = threadsNum;
@@ -495,12 +504,6 @@ IGenVideoPlayer *IGenVideoPlayer::create_av1_video_player(const char *fname, int
 }
 
 #ifdef SUPPORT_AV1
-
-#if _TARGET_C1 | _TARGET_C2 | _TARGET_XBOX
-int Av1VideoPlayer::threadsNum = 4;
-#else
-int Av1VideoPlayer::threadsNum = 2;
-#endif
 
 using namespace console;
 static bool av1_tile_settings(const char *argv[], int argc)

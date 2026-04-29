@@ -20,9 +20,9 @@
 
 static int lagcatcher_deadline_ms = 0;
 
-static void lagcatcher_level_loaded_es_event_handler(const EventLevelLoaded &)
+static void lagcatcher_level_loaded_es_event_handler(const EventLevelLoaded &, ecs::EntityManager &manager)
 {
-  Finally disableLCUpdate([] { delayed_call([] { g_entity_mgr->enableES("lagcatcher_update_es", false); }); });
+  Finally disableLCUpdate([&manager] { delayed_call([&manager] { manager.enableES("lagcatcher_update_es", false); }); });
   const char *lcchstr = dgs_get_argv("lagcatcher");
   if (!lcchstr)
     return;

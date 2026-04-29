@@ -1,6 +1,8 @@
 include "normaldetail.dshl"
 include "decals/decal_painted_inc.dshl"
 include "decals/deferred_decal_inc.dshl"
+include "gbuffer.dshl"
+include "gbuffer_with_mixing.dshl"
 
 
 macro BLEND_DIFFUSE_DECAL_TEXTURES(deferred)
@@ -14,12 +16,7 @@ macro BLEND_DIFFUSE_DECAL_TEXTURES(deferred)
       #define HAS_NORMAL 1
     }
     USE_PIXEL_TANGENT_SPACE()
-    if (deferred)
-    {
-      REDUCE_GBUFFER_MRT_MOBILE()
-    }
-    WRITE_GBUFFER()
-    (ps) { normal_tex@static = normal; }
+    (ps) { normal_tex@staticSmp = normal; }
   }
   else if (deferred && compatibility_mode == compatibility_mode_on)
   {
@@ -27,19 +24,20 @@ macro BLEND_DIFFUSE_DECAL_TEXTURES(deferred)
       #define BLEND_GBUFFER 1
       #define HAS_NORMAL 1
     }
-    WRITE_GBUFFER()
   }
-  (ps) { diffuse_tex@static = tex; }
+  (ps) { diffuse_tex@staticSmp = tex; }
 endmacro
 
-macro BLEND_DIFFUSE_DECAL_PS(deferred)
+macro BLEND_DIFFUSE_DECAL_PS(deferred, is_dynamic)
   blend_src = sa; blend_dst = isa;
   blend_asrc = 0; blend_adst = 1;
-
+  WRITE_GBUFFER_WITH_MIXING(true, true, false)
   if (deferred)
   {
     DEFERRED_DECAL_DEPTH()
   }
+
+  DYNAMIC_FILTER_FOR_MIXING(is_dynamic, false)
 
   static float4 gamma_mask = (1,1,0,0); //x for albedo, y for normal
   (ps) { gamma_mask@f2 = gamma_mask; }
@@ -87,6 +85,10 @@ macro BLEND_DIFFUSE_DECAL_PS(deferred)
           sample_character_micro_detail(input.diffuseTexcoord.xy*get_character_micro_detail_scale().xy, character_micro_detail_layer),
           albedo.rgb, worldNormal, reflectance, smoothness);
       }
+      #if FILTER_DYNAMIC
+        filterDynamic(GET_SCREEN_POS(input.pos).xy);
+      #endif
+
       UnpackedGbuffer result;
       init_gbuffer(result);
       init_albedo(result, albedo.rgb);

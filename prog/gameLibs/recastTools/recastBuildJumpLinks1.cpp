@@ -18,9 +18,6 @@ struct JumpLink
   Edge end;
 };
 
-void add_off_mesh_connection(recastnavmesh::OffMeshConnectionsStorage &storage, const float *spos, const float *epos, float rad,
-  unsigned char bidir, unsigned short flags = pathfinder::POLYFLAG_JUMP, unsigned short area = pathfinder::POLYAREA_JUMP);
-
 template <class T>
 inline void swapVal(T &a, T &b)
 {

@@ -6,13 +6,18 @@ options strict_smart_pointers = true
 
 module sort_boost shared private
 
+//! Extended sorting support.
+//!
+//! Provides the ``qsort`` macro that dispatches to `sort` for built-in arrays
+//! and ``sort(temp_array(...))`` for handled vector types.
+
 require daslib/ast_boost
 require daslib/array_boost public
 require daslib/macro_boost
 
 [call_macro(name="qsort")]
 class QsortMacro : AstCallMacro {
-    //! Implements `qsort` macro. I'ts `qsort(value,block)`.
+    //! Implements `qsort` macro. It's `qsort(value,block)`.
     //! For the regular array<> or dim it's replaced with `sort(value,block)`.
     //! For the handled types like das`vector its replaced with `sort(temp_array(value),block)`.
     def override visit(prog : ProgramPtr; mod : Module?; var expr : smart_ptr<ExprCallMacro>) : ExpressionPtr {

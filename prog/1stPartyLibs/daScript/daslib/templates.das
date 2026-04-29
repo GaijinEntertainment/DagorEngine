@@ -6,8 +6,17 @@ options strict_smart_pointers
 
 module templates shared private
 
-require ast
-require rtti
+//! Template and type-introspection macros.
+//!
+//! Provides ``decltype`` / ``decltype_noref`` macros for obtaining
+//! compile-time ``TypeDecl`` values, and the ``[template]`` function
+//! annotation for removing template-only arguments from instantiated
+//! generic functions.
+//! See also ``templates_boost`` for template substitution and code generation.
+
+require daslib/ast
+require daslib/rtti
+require strings
 require daslib/ast_boost
 
 [call_macro(name="decltype")]
@@ -53,7 +62,7 @@ class TemplateMacro : AstFunctionAnnotation {
     //!
     //!     [template (a), sideeffects]
     //!     def boo ( x : int; a : auto(TT) )   // when boo(1,type<int>)
-    //!         return "{x}_{typeinfo(typename type<TT>)}"
+    //!         return "{x}_{typeinfo typename(type<TT>)}"
     //!     ...
     //!     boo(1,type<int>) // will be replaced with boo(1). instace will print "1_int"
     //!
@@ -62,7 +71,7 @@ class TemplateMacro : AstFunctionAnnotation {
             compiling_program() |> macro_error(expr.at, "expecting inferred function")
             return <- expr
         }
-        let taidx = find_index_if(each(expr.func.annotations)) <| $(ann) {
+        let taidx = find_index_if(each(expr.func.annotations)) $(ann) {
             return ann.annotation.name == "template"
         }
         if (taidx == -1) {
@@ -76,16 +85,17 @@ class TemplateMacro : AstFunctionAnnotation {
         fclone.fromGeneric |> move <| ffunc
         fclone.flags |= FunctionFlags.privateFunction
         newcall.func = null
-        var extra = ""
+        var inscope hashes : array<uint64>
+        hashes |> reserve(length(fclone.annotations[taidx].arguments))
         for (t in fclone.annotations[taidx].arguments) {
-            let argidx = find_index_if(each(fclone.arguments)) <| $(farg) {
+            let argidx = find_index_if(each(fclone.arguments)) $(farg) {
                 return farg.name == t.name
             }
             if (argidx == -1) {
                 errors := "can't find template argument {t.name} (or duplicate)"
                 return <- default<ExpressionPtr>
             }
-            if (true) {
+            {
                 var inscope argExpr := newcall.arguments[argidx]
                 if (argExpr is ExprRef2Value) {
                     let r2v = newcall.arguments[argidx] as ExprRef2Value
@@ -97,13 +107,18 @@ class TemplateMacro : AstFunctionAnnotation {
                     return <- default<ExpressionPtr>
                 }
                 let tname = describe_typedecl(argExpr._type, true, true, true)
-                extra += "`{hash(tname)}"
+                hashes |> push(hash(tname))
             }
             fclone.arguments |> erase(argidx)
             newcall.arguments |> erase(argidx)
         }
         fclone.annotations |> erase(taidx)
-        // name it
+        // name it — build extra from collected hashes
+        let extra = build_string() <| $(var w) {
+            for (h in hashes) {
+                w |> write("`{h}")
+            }
+        }
         fclone.name := "`template{extra}`{fclone.name}"
         newcall.name := "_::{fclone.name}"
         // result

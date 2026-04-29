@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <drv/hid/dag_hiPointing.h>
 #include <daRg/dag_inputIds.h>
 #include <math/dag_Point2.h>
 #include <dag/dag_vector.h>
@@ -20,7 +19,7 @@ public:
     Point2 pos;
   };
 
-  void updateState(InputEvent event, int touch_idx, const HumanInput::PointingRawState::Touch &touch);
+  void updateState(InputEvent event, int touch_idx, Point2 pos);
   bool contains(int id) const;
   eastl::optional<PointerInfo> get(int id) const;
 

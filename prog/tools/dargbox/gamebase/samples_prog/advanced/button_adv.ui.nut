@@ -74,7 +74,7 @@ let button = watchElemState(
   function(sf) {
     let normalBtn = {
       rendObj = ROBJ_BOX
-      size = static [sh(20),SIZE_TO_CONTENT]
+      size = const [sh(20),SIZE_TO_CONTENT]
       padding = sh(2)
       fillColor = Color(0,128,0)
       borderWidth = 0

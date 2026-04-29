@@ -35,153 +35,146 @@ void Trace::walkBreadcumbs(call_stack::Reporter &reporter)
   });
 }
 
-bool Trace::try_load(const Configuration &config, const Direct3D12Enviroment &)
-{
-  if (!config.enableDagorGPUTrace)
-  {
-    logdbg("DX12: Dagor GPU trace is disabled by configuration");
-    return false;
-  }
+bool Trace::checkForContinuousTraceModeFromConfig(const Configuration &config) { return config.enableDagorGPUTrace; }
 
-  logdbg("DX12: Dagor GPU trace is enabled...");
-  return true;
-}
-
-void Trace::beginCommandBuffer(D3DDevice *device, D3DGraphicsCommandList *cmd)
+void Trace::beginCommandBuffer(D3DDevice *device, CommandListIdentifier cmd_id)
 {
+  rangeReporter.markCmdListDataExpired(cmd_id);
   auto &list =
-    commandListTable.beginListWithCallback(cmd, [this, device](auto) { return traceRecoderingPool.allocateTraceRecorder(device); });
+    commandListTable.beginListWithCallback(cmd_id, [this, device](auto) { return traceRecoderingPool.allocateTraceRecorder(device); });
   traceRecoderingPool.beginRecording(list.recorder);
   list.traceList.beginTrace();
 }
 
-void Trace::endCommandBuffer(D3DGraphicsCommandList *cmd)
+void Trace::endCommandBuffer(CommandListIdentifier cmd_id)
 {
-  commandListTable.endList(cmd);
-  lastCheckpoint = {};
+  commandListTable.endList(cmd_id);
+  updateCheckpoint({});
 }
 
-void Trace::beginEvent(D3DGraphicsCommandList *cmd, eastl::span<const char> text, const eastl::string &full_path)
+void Trace::beginEvent(CommandListIdentifier cmd_id, eastl::span<const char> text, const eastl::string &full_path)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   list.traceList.beginEvent(text, full_path);
 }
 
-void Trace::endEvent(D3DGraphicsCommandList *cmd, const eastl::string &full_path)
+void Trace::endEvent(CommandListIdentifier cmd_id, const eastl::string &full_path)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   list.traceList.endEvent(full_path);
 }
 
-void Trace::marker(D3DGraphicsCommandList *cmd, eastl::span<const char> text)
+void Trace::marker(CommandListIdentifier cmd_id, eastl::span<const char> text)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   list.traceList.marker(text);
 }
 
-void Trace::draw(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
-  uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
+void Trace::draw(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  uint32_t count, uint32_t instance_count, uint32_t start, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.draw(id, debug_info, vs, ps, pipeline_base, pipeline, count, instance_count, start, first_instance, topology);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 
-void Trace::drawIndexed(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t count, uint32_t instance_count,
-  uint32_t index_start, int32_t vertex_base, uint32_t first_instance, D3D12_PRIMITIVE_TOPOLOGY topology)
+void Trace::drawIndexed(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  uint32_t count, uint32_t instance_count, uint32_t index_start, int32_t vertex_base, uint32_t first_instance,
+  D3D12_PRIMITIVE_TOPOLOGY topology)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.drawIndexed(id, debug_info, vs, ps, pipeline_base, pipeline, count, instance_count, index_start, vertex_base,
     first_instance, topology);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 
-void Trace::drawIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
-  const BufferResourceReferenceAndOffset &buffer)
-{
-  auto &list = commandListTable.getList(cmd);
-  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
-  list.traceList.drawIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, buffer);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
-}
-
-void Trace::drawIndexedIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+void Trace::drawIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
   const BufferResourceReferenceAndOffset &buffer)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
+  auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
+  list.traceList.drawIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, buffer);
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
+}
+
+void Trace::drawIndexedIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  const BufferResourceReferenceAndOffset &buffer)
+{
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.drawIndexedIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, buffer);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 
-void Trace::dispatchIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+void Trace::dispatchIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &state, ComputePipeline &pipeline, const BufferResourceReferenceAndOffset &buffer)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchIndirect(id, debug_info, state, pipeline, buffer);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 
-void Trace::dispatch(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &state,
-  ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
+void Trace::dispatch(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &state, ComputePipeline &pipeline, uint32_t x, uint32_t y, uint32_t z)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatch(id, debug_info, state, pipeline, x, y, z);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 
-void Trace::dispatchMesh(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd, const PipelineStageStateBase &vs,
-  const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline, uint32_t x, uint32_t y, uint32_t z)
+void Trace::dispatchMesh(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
+  const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
+  uint32_t x, uint32_t y, uint32_t z)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchMesh(id, debug_info, vs, ps, pipeline_base, pipeline, x, y, z);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 
-void Trace::dispatchMeshIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+void Trace::dispatchMeshIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
   const PipelineStageStateBase &vs, const PipelineStageStateBase &ps, BasePipeline &pipeline_base, PipelineVariant &pipeline,
   const BufferResourceReferenceAndOffset &args, const BufferResourceReferenceAndOffset &count, uint32_t max_count)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchMeshIndirect(id, debug_info, vs, ps, pipeline_base, pipeline, args, count, max_count);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 
-void Trace::blit(const call_stack::CommandData &call_stack, D3DGraphicsCommandList *cmd)
+void Trace::blit(const call_stack::CommandData &call_stack, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.blit(id, call_stack);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 
 #if D3D_HAS_RAY_TRACING
-void Trace::dispatchRays(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+void Trace::dispatchRays(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
   const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchParameters &rdp)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchRays(id, debug_info, dispatch_parameters, rbt, rdp);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 
-void Trace::dispatchRaysIndirect(const call_stack::CommandData &debug_info, D3DGraphicsCommandList *cmd,
+void Trace::dispatchRaysIndirect(const call_stack::CommandData &debug_info, CommandListIdentifier cmd_id, D3DGraphicsCommandList *cmd,
   const RayDispatchBasicParameters &dispatch_parameters, const ResourceBindingTable &rbt, const RayDispatchIndirectParameters &rdip)
 {
-  auto &list = commandListTable.getList(cmd);
+  auto &list = commandListTable.getList(cmd_id);
   auto id = traceRecoderingPool.recordTrace(list.recorder, cmd);
   list.traceList.dispatchRaysIndirect(id, debug_info, dispatch_parameters, rbt, rdip);
-  lastCheckpoint = {.commandList = cmd, .progress = id};
+  updateCheckpoint({.commandList = cmd_id, .progress = id});
 }
 #endif
 
@@ -193,7 +186,10 @@ void Trace::onDeviceRemoved(D3DDevice *, HRESULT reason, call_stack::Reporter &r
     return;
   }
 
-  walkBreadcumbs(reporter);
+  // for now we are not reporting those as they are not useful on it own
+  // walkBreadcumbs(reporter);
+
+  rangeReporter.report(*this, reporter);
 }
 
 bool Trace::sendGPUCrashDump(const char *, const void *, uintptr_t) { return false; }
@@ -235,24 +231,125 @@ bool Trace::onDeviceSetup(D3DDevice *device, const Configuration &, const Direct
   return true;
 }
 
-void Trace::reportTraceDataForRange(const TraceCheckpoint &from, const TraceCheckpoint &to, call_stack::Reporter &reporter)
+const Trace::TraceRecording *Trace::getOptionalListForRange(const TraceCheckpoint &from, const TraceCheckpoint &to) const
 {
   if (from.commandList != to.commandList && from.commandList)
   {
     // the tracer can not handle command list jumps, this has to be handled by the caller, by keeping track on per command list
     // identity
     logwarn("DX12: reportTraceDataForRange with from.commandList = %p and to.commandList = %p", from.commandList, to.commandList);
-    return;
+    return nullptr;
   }
 
-  auto list = commandListTable.getOptionalList(to.commandList);
-  if (!list)
-  {
-    return;
-  }
-
-  list->traceList.reportRange(from.progress, to.progress, reporter,
-    [this, list](auto trace_id) { return traceRecoderingPool.readTraceStatus(list->recorder, trace_id); });
+  return commandListTable.getOptionalList(to.commandList);
 }
+
+void Trace::reportTraceDataForRange(const TraceCheckpoint &from, const TraceCheckpoint &to, call_stack::Reporter &reporter)
+{
+  if (auto list = getOptionalListForRange(from, to))
+  {
+    list->traceList.reportRange(from.progress, to.progress, reporter,
+      [this, list](auto trace_id) { return traceRecoderingPool.readTraceStatus(list->recorder, trace_id); });
+  }
+}
+
+bool Trace::reportOnlyLaunchedTrace(const TraceCheckpoint &from, const TraceCheckpoint &to, call_stack::Reporter &reporter)
+{
+  if (auto list = getOptionalListForRange(from, to))
+  {
+    return list->traceList.reportTraceIf(
+      reporter,
+      [this, list, &from, &to](auto trace) {
+        auto traceId = trace.getTraceID();
+        bool isInRange = (traceId > from.progress && traceId <= to.progress);
+        bool isLaunched = (traceRecoderingPool.readTraceStatus(list->recorder, traceId) == TraceStatus::Launched);
+        return isInRange && isLaunched;
+      },
+      [this, list](auto trace_id) { return traceRecoderingPool.readTraceStatus(list->recorder, trace_id); });
+  }
+
+  return false;
+}
+
+void Trace::setTraceEnabled(CommandListIdentifier cmd_id, bool is_enabled)
+{
+  if (traceEnabled == is_enabled)
+    return;
+
+  if (is_enabled)
+  {
+    auto &list = commandListTable.getList(cmd_id);
+    auto progress = traceRecoderingPool.getRecorderProgress(list.recorder);
+    rangeReporter.beginRange({.commandList = cmd_id, .progress = progress});
+  }
+  else
+  {
+    rangeReporter.endRange(getLastValidCheckpoint());
+  }
+
+  traceEnabled = is_enabled;
+}
+
+Trace::RangeReporter::RangeReporter()
+{
+  for (auto &range : traceRangesRing)
+    range = eastl::make_pair(TraceCheckpoint::make_invalid(), TraceCheckpoint::make_invalid());
+}
+
+void Trace::RangeReporter::markCmdListDataExpired(CommandListIdentifier cmd_id)
+{
+  for (auto &range : traceRangesRing)
+    if (range.first.commandList == cmd_id)
+      range = eastl::make_pair(TraceCheckpoint::make_invalid(), TraceCheckpoint::make_invalid());
+}
+
+void Trace::RangeReporter::beginRange(const TraceCheckpoint &checkpoint)
+{
+  traceRangesRing[insertIndex] = eastl::make_pair(checkpoint, TraceCheckpoint::make_invalid());
+}
+
+void Trace::RangeReporter::endRange(const TraceCheckpoint &checkpoint)
+{
+  auto &target = traceRangesRing[insertIndex];
+  if (!target.first.isValid())
+  {
+    // never properly started
+    logwarn("DX12: Trace::RangeReporter::endRange: first was invalid");
+    return;
+  }
+  if ((target.first.commandList == checkpoint.commandList) && (target.first.progress <= checkpoint.progress))
+  {
+    target.second = checkpoint;
+  }
+  else
+  {
+    // checkpoint for end got somehow lost, only option to make it a range of just the first command
+    logwarn("DX12: Trace::RangeReporter::endRange: was given non matching checkpoint: %p == %p && %u <= %u", target.first.commandList,
+      checkpoint.commandList, static_cast<uint32_t>(target.first.progress), static_cast<uint32_t>(checkpoint.progress));
+    target.second = target.first;
+  }
+
+  insertIndex = (insertIndex + 1) % MAX_RANGES_COUNT;
+}
+
+void Trace::RangeReporter::report(Trace &trace, call_stack::Reporter &reporter)
+{
+  bool hasValidReport = false;
+  for (int ofs = 0; ofs < MAX_RANGES_COUNT; ++ofs)
+  {
+    const auto &range = traceRangesRing[(ofs + insertIndex) % MAX_RANGES_COUNT];
+    bool isValid = range.first.isValid() && range.second.isValid();
+    if (!isValid)
+      continue;
+
+    if (trace.reportOnlyLaunchedTrace(range.first, range.second, reporter))
+      hasValidReport = true;
+  }
+
+#if DAGOR_DBGLEVEL == 0
+  if (hasValidReport)
+    D3D_ERROR("Gpu crash postmortem dump");
+#endif
+};
 
 } // namespace drv3d_dx12::debug::gpu_postmortem::dagor

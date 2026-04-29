@@ -137,7 +137,7 @@ public:
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
-    ImguiHelper::separateLineLabel(controlCaption);
+    separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
 
     const float width = mW > 0 ? min((float)mW, ImGui::GetContentRegionAvail().x) : ImGui::GetContentRegionAvail().x;
     curveControl.updateImgui(width, mH);

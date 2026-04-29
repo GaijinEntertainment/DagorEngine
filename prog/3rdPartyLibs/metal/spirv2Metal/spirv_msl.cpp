@@ -11711,6 +11711,7 @@ void CompilerMSL::emit_function_prototype(SPIRFunction &func, const Bitset &)
 	decl += to_name(func.self);
 	decl += "(";
 
+  bool has_something = false;
 	if (!type.array.empty() && msl_options.force_native_arrays)
 	{
 		// Fake arrays returns by writing to an out array instead.
@@ -11720,14 +11721,17 @@ void CompilerMSL::emit_function_prototype(SPIRFunction &func, const Bitset &)
 		decl += type_to_array_glsl(type, 0);
 		if (!func.arguments.empty())
 			decl += ", ";
+    has_something = true;
 	}
 
 	if (processing_entry_point)
 	{
+    size_t old_size = decl.size();
 		if (msl_options.argument_buffers)
 			decl += entry_point_args_argument_buffer(!func.arguments.empty());
 		else
 			decl += entry_point_args_classic(!func.arguments.empty());
+    has_something |= decl.size() != old_size;
 
 		// append entry point args to avoid conflicts in local variable names.
 		local_variable_names.insert(resource_names.begin(), resource_names.end());
@@ -11761,6 +11765,7 @@ void CompilerMSL::emit_function_prototype(SPIRFunction &func, const Bitset &)
 			arg.type = var.basetype;
 			arg.alias_global_variable = true;
 			decl += join(", ", argument_decl(arg), " [[payload]]");
+      has_something = true;
 		}
 	}
 
@@ -11782,6 +11787,7 @@ void CompilerMSL::emit_function_prototype(SPIRFunction &func, const Bitset &)
 		add_local_variable_name(name_id);
 
 		decl += argument_decl(arg);
+    has_something = true;
 
 		bool is_dynamic_img_sampler = has_extended_decoration(arg.id, SPIRVCrossDecorationDynamicImageSampler);
 
@@ -11832,6 +11838,14 @@ void CompilerMSL::emit_function_prototype(SPIRFunction &func, const Bitset &)
 		if (&arg != &func.arguments.back())
 			decl += ", ";
 	}
+
+  bool has_samplers = decl.find(" sampler ") != std::string::npos || decl.find("<sampler>") != std::string::npos;
+  if (processing_entry_point && has_samplers)
+  {
+    if (has_something)
+      decl += ", ";
+    decl += "constant float* global_texture_bias_array [[buffer(3)]]";
+  }
 
 	decl += ")";
 	statement(decl);
@@ -12358,12 +12372,60 @@ string CompilerMSL::to_function_args(const TextureFunctionArguments &args, bool 
 		}
 	}
 
+  string sampler_bias;
+  if (!args.dref && !args.base.is_fetch && !args.base.is_gather && grad_x == 0 && grad_y == 0)
+  {
+    auto *combined = maybe_get<SPIRCombinedImageSampler>(img);
+    assert(combined && combined->sampler);
+
+    auto *var_smp = maybe_get_backing_variable(combined->sampler);
+    assert(var_smp);
+    auto &smp_type = get<SPIRType>(var_smp->basetype);
+    string loc = "unknown";
+    if (smp_type.array.size() == 1 && smp_type.array[0] == 0) // bindless case
+    {
+      std::string smp_str = to_sampler_expression(img);
+      size_t from = smp_str.find_first_of('[');
+      if (from != std::string::npos)
+      {
+        auto tail = std::string_view{smp_str}.substr(from + 1);
+        int balance = 1;
+        auto closing = std::find_if(tail.begin(), tail.end(), [&balance](char c) {
+          if (c == ']')
+            --balance;
+          else if (c == '[')
+            ++balance;
+          return balance == 0;
+        });
+        assert(closing != tail.end());
+        auto len = closing - tail.begin();
+        loc = "16 + " + smp_str.substr(from + 1, len);
+      }
+      else
+      {
+        loc = smp_str;
+      }
+    }
+    else
+      loc = std::to_string(get_metal_resource_index(*var_smp, SPIRType::Sampler));
+
+    sampler_bias = "global_texture_bias_array[" + loc + "]";
+  }
+
 	// LOD Options
 	// Metal does not support LOD for 1D textures.
-	if (bias && (imgtype.image.dim != Dim1D || msl_options.texture_1D_as_2D))
+	if (!args.dref && (imgtype.image.dim != Dim1D || msl_options.texture_1D_as_2D))
 	{
-		forward = forward && should_forward(bias);
-		farg_str += ", bias(" + to_unpacked_expression(bias) + ")";
+    if (bias)
+    {
+      forward = forward && should_forward(bias);
+      if (sampler_bias.empty())
+        farg_str += ", bias(" + to_unpacked_expression(bias) + ")";
+      else
+        farg_str += ", bias(" + sampler_bias + " + " + to_unpacked_expression(bias) + ")";
+    }
+    else if (!sampler_bias.empty() && lod == 0)
+      farg_str += ", bias(" + sampler_bias + ")";
 	}
 
 	// Metal does not support LOD for 1D textures.
@@ -12434,7 +12496,10 @@ string CompilerMSL::to_function_args(const TextureFunctionArguments &args, bool 
 		}
 		else
 		{
-			farg_str += ", level(" + to_unpacked_expression(lod) + ")";
+      if (sampler_bias.empty())
+        farg_str += ", level(" + to_unpacked_expression(lod) + ")";
+      else
+        farg_str += ", level(" + sampler_bias + " + " + to_unpacked_expression(lod) + ")";
 		}
 	}
 	else if (args.base.is_fetch && !lod && (imgtype.image.dim != Dim1D || msl_options.texture_1D_as_2D) &&

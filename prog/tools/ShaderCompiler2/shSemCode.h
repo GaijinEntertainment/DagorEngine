@@ -19,6 +19,7 @@
 #include "shaderVariantSrc.h"
 #include <shaders/slotTexturesRange.h>
 #include "shaderBytecodeCache.h"
+#include "preshaderCompilation.h"
 #include <memory/dag_regionMemAlloc.h>
 #include <EASTL/optional.h>
 
@@ -43,19 +44,18 @@ struct SemanticShaderPass
   };
 
   FSHTYPE fshver;
-  dag::ConstSpan<unsigned> fsh;
-  dag::ConstSpan<unsigned> vpr;
-  dag::ConstSpan<unsigned> hs, ds, gs;
-  dag::ConstSpan<unsigned> cs;
-  dag::ConstSpan<int> stcode, stblkcode;
+  ShaderStageData fsh;
+  ShaderStageData vpr;
+  ShaderStageData hs, ds, gs;
+  ShaderStageData cs;
 
-  StcodePass cppstcode;
+  eastl::optional<ShaderCacheLevelIds> cacheIds[HLSL_COUNT];
+
+  CompiledPreshader *preshader = nullptr;
+
   HlslRegRange psOrCsConstRange, vsConstRange;
   HlslRegRange bufferedConstRange;
   SlotTexturesRangeInfo psTexSmpRange, vsTexSmpRange;
-  ShaderParser::VariablesMerger::MergedVarsMapsPerStage constPackedVarsMaps{};
-  ShaderParser::VariablesMerger::MergedVarsMap bufferedPackedVarsMap{};
-  Tab<uintptr_t> usedConstStatAstNodes{};
   Tab<eastl::pair<uintptr_t, ShVarBool>> boolAstNodesEvaluationResults{};
 
   bool scarlettWave32 = false;
@@ -85,7 +85,7 @@ struct SemanticShaderPass
 
   ShaderCode::Pass *target = nullptr;
 
-  static constexpr eastl::array<dag::ConstSpan<unsigned> SemanticShaderPass::*, HLSL_COUNT> BYTECODE_MEMBERS_MAPPING = {
+  static constexpr eastl::array<ShaderStageData SemanticShaderPass::*, HLSL_COUNT> BYTECODE_MEMBERS_MAPPING = {
     &SemanticShaderPass::fsh, // HLSL_PS
     &SemanticShaderPass::vpr, // HLSL_VS
     &SemanticShaderPass::cs,  // HLSL_CS
@@ -132,48 +132,14 @@ struct SemanticShaderPass
     eastl::fill(blend_aop.begin(), blend_aop.end(), BLENDOP_ADD);
   }
 
-  auto &bytecodeForStage(HlslCompilationStage stage) { return this->*BYTECODE_MEMBERS_MAPPING[stage]; }
-  const auto &bytecodeForStage(HlslCompilationStage stage) const { return this->*BYTECODE_MEMBERS_MAPPING[stage]; }
+  void setCidx(HlslCompilationStage stage, ShaderCacheLevelIds entryIds) { cacheIds[stage] = entryIds; }
 
-  void setCidx(HlslCompilationStage stage, ShaderCacheLevelIds entryIds)
-  {
-    int c1 = (entryIds.l1 << 4) | 3;
-    int cnt = (entryIds.l2 << 16) + entryIds.l3;
-    bytecodeForStage(stage).set((unsigned *)intptr_t(c1), cnt);
-  }
-
-  eastl::optional<ShaderCacheLevelIds> getCidx(HlslCompilationStage stage, bool verify = false) const
-  {
-    const auto &bytecode = bytecodeForStage(stage);
-    const intptr_t p = intptr_t(bytecode.data());
-    uint32_t cnt = bytecode.size();
-    ShaderCacheLevelIds res = {};
-    res.l1 = intptr_t(p) & 0xffffffff;
-    if (intptr_t(res.l1) != p || (res.l1 & 0xF) != 3)
-    {
-      if (verify)
-        sh_debug(SHLOG_ERROR, "Packed indices are corrupted: p=%p, res.l1=%i, cnt=%i, profile=%c", p, res.l1, cnt,
-          hlsl_stage_to_profile_letter(stage));
-      return eastl::nullopt;
-    }
-    res.l1 = res.l1 >> 4;
-    res.l2 = cnt >> 16;
-    res.l3 = cnt & 0xFFFF;
-    return res;
-  }
+  eastl::optional<ShaderCacheLevelIds> getCidx(HlslCompilationStage stage) const { return cacheIds[stage]; }
 
   bool equal(SemanticShaderPass &p);
   void dump(ShaderSemCode &c);
 
-  void clearCppStcodeData()
-  {
-    cppstcode = StcodePass{};
-    for (auto &map : constPackedVarsMaps)
-      clear_and_shrink(map);
-    clear_and_shrink(bufferedPackedVarsMap);
-    clear_and_shrink(usedConstStatAstNodes);
-    clear_and_shrink(boolAstNodesEvaluationResults);
-  }
+  void clearIntermediateData() { clear_and_shrink(boolAstNodesEvaluationResults); }
 };
 
 class ShaderSemCode

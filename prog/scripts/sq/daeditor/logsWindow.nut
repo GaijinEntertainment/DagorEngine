@@ -78,7 +78,7 @@ function listRow(msg, idx) {
       color
       behavior = Behaviors.Button
       onClick = function(){
-        selectedLogIndex.set(selectedLogIndex.get() != idx ? idx : -1)
+        selectedLogIndex.modify(@(v) v != idx ? idx : -1)
       }
       children = {
         rendObj = ROBJ_TEXT
@@ -114,7 +114,7 @@ function selectedLogExpanded() {
   return {
     rendObj = ROBJ_SOLID
     color = logExpandedColor
-    size = static [flex(), hdpx(160)]
+    size = const [flex(), hdpx(160)]
     watch = [logList, selectedLogIndex]
     children = makeVertScroll({
       margin = hdpx(10)
@@ -168,7 +168,7 @@ function logsRoot() {
       {
         size = FLEX_H
         flow = FLOW_HORIZONTAL
-        children = static [
+        children = const [
           { size = [sw(0.2), SIZE_TO_CONTENT] }
           {
             rendObj = ROBJ_TEXT
@@ -206,4 +206,5 @@ return {
   content = logsRoot
   onAttach = @() hasNewLogerr.set(false)
   saveState=true
+  headerText = "Log"
 }

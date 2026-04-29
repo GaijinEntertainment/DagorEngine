@@ -6,7 +6,6 @@ require DagorMath
 require DagorDebug3D
 require DagorDriver3D
 require RendInst
-require WorldRenderer
 
 [ecs_template]
 struct draw_transparency_trace_debug

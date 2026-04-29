@@ -12,8 +12,6 @@ Sources =
   animCharBase.cpp
   animCharRend.cpp
   animate2ndPass.cpp
-  animMkGraphVars.cpp
-  animMkGraphLibF.cpp
 ;
 
 UseProgLibs =

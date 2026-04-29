@@ -1,0 +1,8 @@
+options gen2
+
+require daslib/fio
+
+[export]
+def initialize(project_path : string) {
+    register_native_path("smooth", "smooth", "{project_path}/daslib/smooth.das")
+}

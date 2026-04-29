@@ -16,7 +16,10 @@ let mkCell = @(key, cellSize) {
   color = Color(50, 50, 50)
   skipDirPadNav = true
   behavior = Behaviors.Button
-  onClick = @() set_clipboard_text(key)
+  onClick = function() {
+    vlog(key)
+    set_clipboard_text(key)
+  }
   children = {
     rendObj = ROBJ_TEXT
     text = fa[key]

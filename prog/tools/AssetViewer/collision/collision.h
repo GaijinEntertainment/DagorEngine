@@ -79,10 +79,13 @@ protected:
   bool isSolidMatValid;
   bool drawSolid;
   bool showFaceOrientation;
+  bool showDegenerativeTriangles;
 
   String modelAssetName;
   IObjEntity *modelEntity = nullptr;
   bool showModel = false;
+  DagorAsset *curAsset = nullptr;
+  dag::Vector<DegenerativeNodeData> degenerativeNodes;
 
   void drawObjects(IGenViewportWnd *wnd);
   void printKdopLog();
@@ -97,4 +100,5 @@ void InitCollisionResource(const DagorAsset &asset, CollisionResource **collisio
 void ReleaseCollisionResource(CollisionResource **collision_res, GeomNodeTree **node_tree);
 void RenderCollisionResource(const CollisionResource &collision_res, GeomNodeTree *node_tree, bool show_bbox = false,
   bool show_phys_collidable = false, bool show_traceable = false, bool draw_solid = false, bool show_face_orientation = false,
-  int selected_node_id = -1, bool edit_mode = false, const dag::Vector<bool> &hidden_nodes = {});
+  bool show_degenerate_triangles = false, const dag::Vector<DegenerativeNodeData> &degenerative_nodes = {}, int selected_node_id = -1,
+  bool edit_mode = false, const dag::Vector<bool> &hidden_nodes = {});

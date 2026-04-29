@@ -78,6 +78,30 @@ static ecs::EntitySystemDesc init_blurred_ui_manager_es_es_desc
                        ecs::EventComponentsAppear>::build(),
   0
 ,"render");
+static constexpr ecs::ComponentDesc close_blurred_ui_resources_es_comps[] =
+{
+//start of 1 rq components at [0]
+  {ECS_HASH("blurred_ui__manager"), ecs::ComponentTypeInfo<BlurredUI>()}
+};
+static void close_blurred_ui_resources_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  close_blurred_ui_resources_es(evt
+        );
+}
+static ecs::EntitySystemDesc close_blurred_ui_resources_es_es_desc
+(
+  "close_blurred_ui_resources_es",
+  "prog/daNetGameLibs/blurred_ui/render/blurredUIES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, close_blurred_ui_resources_es_all_events),
+  empty_span(),
+  empty_span(),
+  make_span(close_blurred_ui_resources_es_comps+0, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<ecs::EventEntityDestroyed,
+                       ecs::EventComponentsDisappear>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc update_blurred_ui_es_comps[] =
 {
 //start of 1 rw components at [0]

@@ -1,7 +1,7 @@
 if (__name__ == "__analysis__")
   return
 
-//expect:w210
+//-file:undefined-global
 
 local buildBtnParams = ::kwarg(function(icon=null, option=null, count_list=null, counterFunc=null){ //-declared-never-used
   local list = ::contactsLists[count_list ?? option].list
@@ -10,5 +10,3 @@ local buildBtnParams = ::kwarg(function(icon=null, option=null, count_list=null,
 })
 
 return buildBtnParams
-
-//-file:undefined-global

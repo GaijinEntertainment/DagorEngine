@@ -19,47 +19,21 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
+#include <util/dag_bitwise_cast.h>
 
 // inspired by https://fgiesen.wordpress.com/2012/03/28/half-to-float-done-quic/
-static uint32_t half_to_float_uint32_t(uint16_t h)
+static inline uint32_t half_to_float_uint32_t(uint16_t h)
 {
-  union FP32
-  {
-    uint32_t u;
-    float f;
-  } o;
-  static const FP32 magic = {(254 - 15) << 23};
-  static const FP32 was_infnan = {(127 + 16) << 23};
-
-  o.u = (h & 0x7fff) << 13; // exponent/mantissa bits
-  o.f *= magic.f;           // exponent adjust
-  if (o.f >= was_infnan.f)  // make sure Inf/NaN survive
-    o.u |= 255 << 23;
-  o.u |= (h & 0x8000) << 16; // sign bit
-  return o.u;
+  float f = bitwise_cast<float, uint32_t>(((h & 0x7fff) << 13)) * bitwise_cast<float, uint32_t>((254 - 15) << 23);
+  uint32_t u = bitwise_cast<uint32_t, float>(f) | ((h & 0x8000) << 16);
+  if (f >= bitwise_cast<float, uint32_t>((127 + 16) << 23)) // make sure Inf/NaN survive
+    u |= 255 << 23;
+  return u;
 }
 
-static inline float half_to_float(uint16_t h)
-{
-  union
-  {
-    uint32_t i;
-    float f;
-  } u;
-  u.i = half_to_float_uint32_t(h);
-  return u.f;
-}
+static inline float half_to_float(uint16_t h) { return bitwise_cast<float, uint32_t>(half_to_float_uint32_t(h)); }
 
-static inline uint16_t float_to_half(float f)
-{
-  union
-  {
-    uint32_t i;
-    float f;
-  } u;
-  u.f = f;
-  return half_from_float(u.i);
-}
+static inline uint16_t float_to_half(float f) { return half_from_float(bitwise_cast<uint32_t, float>(f)); }
 
 static inline uint16_t half_sub(uint16_t ha, uint16_t hb)
 {
@@ -81,38 +55,57 @@ static inline uint16_t uint32_t_float_to_half_unsafe(uint32_t fltInt32) // not c
 
 static inline uint16_t float_to_half_unsafe(float f) // not checking corner cases, like NANs, infs, etc
 {
-  union
-  {
-    uint32_t i;
-    float f;
-  } u;
-  u.f = f;
-  return uint32_t_float_to_half_unsafe(u.i);
+  return uint32_t_float_to_half_unsafe(bitwise_cast<uint32_t, float>(f));
 };
 
 // do not handle inf/nan
-static uint32_t half_to_float_uint32_t_unsafe(uint16_t h) // fast only on x64
-{
-  union FP32
-  {
-    uint32_t u;
-    float f;
-  } o;
-  static const FP32 magic = {(254 - 15) << 23};
-
-  o.u = (h & 0x7fff) << 13;  // exponent/mantissa bits
-  o.f *= magic.f;            // exponent adjust
-  o.u |= (h & 0x8000) << 16; // sign bit
-  return o.u;
-}
 
 static inline float half_to_float_unsafe(uint16_t h) // not checking corner cases, like NANs, infs, etc
 {
-  union
+  return bitwise_cast<float, uint32_t>(((h & 0x7fff) << 13) | ((h & 0x8000) << 16)) * bitwise_cast<float, uint32_t>((254 - 15) << 23);
+}
+
+static inline uint32_t half_to_float_uint32_t_unsafe(uint16_t h) // fast only on x64
+{
+  return bitwise_cast<uint32_t, float>(half_to_float_unsafe(h));
+}
+
+static inline uint16_t float_to_half_denorm(float f)
+{
+  uint32_t fi = bitwise_cast<uint32_t, float>(f);
+
+  uint32_t exp8 = (fi >> 23) & 0xFF;
+
+  // Convert exp8  expN: subtract bias diff
+  static constexpr uint32_t HALF_EXP_BITS = 5, HALF_MANTISSA_BITS = 10, HALF_EXP_BIAS = (1 << (HALF_EXP_BITS - 1)) - 1;
+
+  static constexpr int IEEE_EXP_BIAS = 127, HALF_EXP_MAX = (1 << HALF_EXP_BITS) - 1;
+  int expN = (int)exp8 - (IEEE_EXP_BIAS - HALF_EXP_BIAS);
+
+  const uint32_t mant23 = (fi & 0x7FFFFF);
+  const uint16_t sign16 = (fi & 0x80000000) >> 16;
+  if (expN < 0)
   {
-    uint32_t i;
-    float f;
-  } u;
-  u.i = half_to_float_uint32_t_unsafe(h);
-  return u.f;
+    int shift = 24 - HALF_MANTISSA_BITS - expN;
+    return sign16 | ((mant23 | 0x800000UL) >> (shift < 31 ? shift : 31)); // if we would add 0x1000 to mantissa that would make it
+                                                                          // round
+  }
+  else if (expN > HALF_EXP_MAX) // clamps
+    return 0x7FFF | sign16;
+
+  return sign16 | ((uint16_t)((expN << HALF_MANTISSA_BITS) | (mant23 >> (23 - HALF_MANTISSA_BITS))));
+}
+
+static inline float half_to_float_denorm(uint16_t h)
+{
+  static constexpr uint32_t HALF_EXP_BITS = 5, HALF_MANTISSA_BITS = 10, HALF_EXP_BIAS = (1 << (HALF_EXP_BITS - 1)) - 1;
+  const uint16_t uh = h & 0x7FFF;
+  const uint32_t hs = ((h & 0x8000) << 16);
+  if (uh >> HALF_MANTISSA_BITS) // normal float
+    return bitwise_cast<float, uint32_t>((uint32_t(uh) << (23 - HALF_MANTISSA_BITS)) | hs) *
+           bitwise_cast<float, uint32_t>(((254 - HALF_EXP_BIAS) << 23));
+  if (uh == 0)
+    return 0.0f;
+  static constexpr int IEEE_EXP_BIAS = 127;
+  return bitwise_cast<float, uint32_t>(((IEEE_EXP_BIAS - HALF_EXP_BIAS) << 23) | (uh << (23 - HALF_MANTISSA_BITS)) | hs);
 }

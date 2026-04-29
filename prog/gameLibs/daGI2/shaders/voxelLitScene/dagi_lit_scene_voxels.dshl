@@ -98,11 +98,15 @@ endmacro
 
 macro DAGI_SAMPLE_VOXEL_LIT_SCENE_INIT(code)
   DAGI_VOXEL_LIT_SCENE_MATH_INIT(code)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(code)
   (code) {
-    dagi_lit_voxel_scene_alpha@smp3d = dagi_lit_voxel_scene_alpha;
+    dagi_lit_voxel_scene_alpha@tex3d = dagi_lit_voxel_scene_alpha;
     dagi_lit_voxel_scene@tex3d = dagi_lit_voxel_scene;
   }
-  hlsl (code) { #define dagi_lit_voxel_scene_samplerstate dagi_lit_voxel_scene_alpha_samplerstate }
+  hlsl (code) {
+    #define dagi_lit_voxel_scene_samplerstate global_linear_wrap_sampler
+    #define dagi_lit_voxel_scene_alpha_samplerstate global_linear_wrap_sampler
+  }
 endmacro
 
 macro DAGI_SAMPLE_VOXEL_LIT_SCENE_USE(code)

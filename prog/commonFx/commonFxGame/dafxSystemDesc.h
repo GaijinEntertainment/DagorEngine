@@ -3,6 +3,7 @@
 
 #include <EASTL/vector_map.h>
 #include <math/dag_curveParams.h>
+#include <math/dag_mathUtils.h>
 
 namespace dafx_ex
 {
@@ -52,7 +53,24 @@ struct SystemInfo
     float end_distance = 100;
     CubicCurveSampler curve = {};
 
-    void apply(TMatrix &tm, float distance);
+    float calcScale(float distance) const
+    {
+      if (!enabled)
+        return 1.f;
+
+      distance = cvt(distance, begin_distance, end_distance, 0.f, 1.f);
+      return max(curve.sample(distance), 0.f);
+    }
+    void apply(TMatrix &tm, float distance) const
+    {
+      if (!enabled)
+        return;
+
+      float scale = calcScale(distance);
+      tm.col[0] *= scale;
+      tm.col[1] *= scale;
+      tm.col[2] *= scale;
+    }
   } distanceScale;
 
   enum ValueType
@@ -85,6 +103,7 @@ struct SystemInfo
     VAL_LIGHT_COLOR,
     VAL_LIGHT_RADIUS,
     VAL_FAKE_BRIGHTNESS_BACKGROUND_POS,
+    VAL_POS_SPLINE_DATA,
   };
   eastl::vector_map<int, int> valueOffsets;
 };

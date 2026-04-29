@@ -1,0 +1,9 @@
+doubled: 10
+doubled after a=10: 20
+sum: 13
+sum after a=7: 10
+sum after b=8: 15
+chain: x=2, step1=6, step2=7
+chain after x=5: step1=15, step2=16
+name: John Doe
+name after change: Jane Doe

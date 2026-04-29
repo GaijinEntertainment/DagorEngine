@@ -1,0 +1,1 @@
+Parse XML declarations (`<?xml ...?>`).

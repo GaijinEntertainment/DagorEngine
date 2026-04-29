@@ -34,11 +34,23 @@ static const char *asset_stat_names[AssetStatType::Count] = {
   "triangles renderable", "phys geometry", "trace geometry", "material count", "texture count", "current LOD"};
 static bool displayed_asset_stats[AssetStatType::Count] = {true, true, true, true, true, true};
 
+int AssetViewerViewportWindow::onMenuItemClick(unsigned id)
+{
+  switch (id)
+  {
+    case CM_CAMERAS_FREE:
+    case CM_CAMERAS_FPS:
+    case CM_CAMERAS_TPS: static_cast<PropPanel::IMenuEventHandler &>(get_app()).onMenuItemClick(id); break;
+  }
+
+  return ViewportWindow::onMenuItemClick(id);
+}
+
 void AssetViewerViewportWindow::load(const DataBlock &blk)
 {
   ViewportWindow::load(blk);
 
-  showAssetStats = blk.getBool("show_asset_stats", false);
+  showAssetStats = blk.getBool("show_asset_stats", showAssetStats);
 
   const DataBlock *assetStatBlock = blk.getBlockByName("displayed_asset_stat_list");
   if (!assetStatBlock)
@@ -176,11 +188,12 @@ void AssetViewerViewportWindow::paint(int w, int h)
   StdGuiRender::end_render();
 }
 
-void AssetViewerViewportWindow::fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog)
+void AssetViewerViewportWindow::fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog, bool include_camera_distance)
 {
-  ViewportWindow::fillStatSettingsDialog(dialog);
+  ViewportWindow::fillStatSettingsDialog(dialog, include_camera_distance);
 
-  PropPanel::TLeafHandle assetStatsGroup = dialog.addGroup(CM_STATS_SETTINGS_ASSET_STATS_GROUP, "Asset stats", showAssetStats);
+  PropPanel::TLeafHandle assetStatsGroup =
+    dialog.addGroup(CM_STATS_SETTINGS_ASSET_STATS_GROUP, "Asset stats", showAssetStats, DEFAULT_SHOW_ASSET_STATS);
   G_STATIC_ASSERT((CM_STATS_SETTINGS_ASSET_STAT_LAST - CM_STATS_SETTINGS_ASSET_STAT_FIRST + 1) == AssetStatType::Count);
   for (int i = 0; i < AssetStatType::Count; ++i)
     dialog.addOption(assetStatsGroup, CM_STATS_SETTINGS_ASSET_STAT_FIRST + i, asset_stat_names[i], displayed_asset_stats[i]);

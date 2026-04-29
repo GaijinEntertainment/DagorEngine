@@ -42,6 +42,11 @@
 #include <generic/dag_sort.h>
 #include <perfMon/dag_statDrv.h>
 #include <perfMon/dag_cpuFreq.h>
+#include <debug/dag_debug3d.h>
+#include <gui/dag_visualLog.h>
+#include <util/dag_string.h>
+#include <util/dag_finally.h>
+#include <scene/dag_occlusion.h>
 
 #if DAGOR_DBGLEVEL > 0
 #define TREE_DESTR_DEBUG 1
@@ -73,9 +78,25 @@ CONSOLE_FLOAT_VAL("ridestr", canopyImpulseMulOverride, -1.0f);
 CONSOLE_FLOAT_VAL("ridestr", canopyUnderhangMulOverride, -1.0f);
 CONSOLE_FLOAT_VAL("ridestr", velocityThresholdOverride, -1.0f);
 CONSOLE_FLOAT_VAL("ridestr", groundJointBreakVelocityCapOverride, -1.0f);
+CONSOLE_FLOAT_VAL("ridestr", maxAngularVelocityOverride, -1.0f);
 #endif
 
+#if DAGOR_DBGLEVEL > 0
 CONSOLE_BOOL_VAL("ridestr", ri_debug_collision, false);
+#else
+static constexpr bool ri_debug_collision = false;
+#endif
+
+#define RIDESTR_DBG_LOG(fmt, ...)                          \
+  do                                                       \
+  {                                                        \
+    if (ri_debug_collision) [[unlikely]]                   \
+    {                                                      \
+      String msg(256, framemem_ptr(), fmt, ##__VA_ARGS__); \
+      debug("%s", msg.c_str());                            \
+      visuallog::logmsg(msg.c_str());                      \
+    }                                                      \
+  } while (0)
 
 static constexpr int INITIAL_REPLICATION = 1;
 static const Point3 RI_DESTROY_BBOX_MARGIN_UP = Point3(0, 0.05, 0);
@@ -83,13 +104,17 @@ static const float MAX_RI_DESTROY_IMPULSE = 1e8f;
 
 static bool apply_reflection = false;
 static bool apply_pending_destrs = false;
+static bool is_branch_destruction_supported = true; // ULQ doesn't support it
 static rendinstdestr::create_tree_rend_inst_destr_cb create_tree_cb = NULL;
 static rendinstdestr::remove_tree_rendinst_destr_cb rem_tree_cb = NULL;
 static rendinstdestr::remove_physx_collision_object_callback rem_physx_collision_obj_cb = NULL;
 static rendinstdestr::create_apex_actors_callback create_apex_actors_at_point_cb = NULL;
 static rendinstdestr::apex_force_remove_actor_callback apex_force_remove_actor_cb = NULL;
 static rendinstdestr::on_destr_changed_callback on_changed_destr_cb = NULL;
+static rendinstdestr::on_tree_destr_created_callback on_tree_destr_created_cb = NULL;
 static rendinstdestr::get_camera_pos get_current_camera_pos = NULL;
+static rendinstdestr::get_current_time_callback g_get_current_time_cb = NULL;
+static rendinstdestr::get_occlusion_callback get_occlusion_cb = NULL;
 static dag::RelocatableFixedVector<rendinstdestr::on_rendinst_destroyed_callback, 3> on_rendinst_destroyed_callbacks;
 static dag::RelocatableFixedVector<rendinstdestr::restorable_rendinst_callback, 2> restorable_rendinst_callbacks;
 static ri_tree_sound_cb g_tree_sound_cb = nullptr;
@@ -134,9 +159,10 @@ struct DeferredRiDestrData
 {
   rendinst::RendInstDesc riDesc;
   Point3 pos;
-  float at_time;
+  Point3 impulse;
+  float atTime;
   rendinst::DestrOptionFlags flags;
-  bool local_create_destr;
+  bool createDestr;
 };
 struct DeferredRendInstDestrList
 {
@@ -146,16 +172,21 @@ struct DeferredRendInstDestrList
 };
 static DeferredRendInstDestrList g_deferred_ri_destr_list;
 
+static constexpr int RI_DESTR_COLLISION_MAX_QUEUE_CAPACITY = 16;
+static constexpr int RI_DESTR_COLLISION_DISABLED = INT_MIN;
+static constexpr int RI_DESTR_COLLISION_NO_SESSION = -1;
+static BBox3 ri_destr_collision_queue[RI_DESTR_COLLISION_MAX_QUEUE_CAPACITY];
+static int ri_destr_collision_queue_count = RI_DESTR_COLLISION_DISABLED; // DISABLED = feature off, NO_SESSION = enabled but inactive,
+                                                                         // 0+ = active queue
 static Tab<RendInstPhys> riPhys(midmem);
-static FixedBlockAllocator cco_alloc(eastl::max(sizeof(RendinstCollisionUserInfo::RendinstImpulseThresholdData),
-                                       sizeof(RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData)),
-  32);
+static FixedBlockAllocator cco_alloc(eastl::max(sizeof(RendinstImpulseThresholdData), sizeof(TreeRendinstImpulseThresholdData)), 32);
 static Tab<CachedCollisionObjectInfo *> cached_collision_objects(midmem);
 static CollisionObject tree_collision;
 static void do_delayed_ri_extra_destruction_impl();
 
 static bool useDebugTreeInstData;
 static rendinst::TreeInstDebugData debugTreeInstData;
+static int currentCutTreeCount = 0;
 
 #if ENABLE_APEX
 template <>
@@ -199,6 +230,9 @@ class RestorableRendinst
   rendinst::RendInstBufferData riBuffer;
 
 public:
+  bool isRequestSentToServer = false;
+  rendinstdestr::QuantizedDestrImpulsePos serializedLocalPos;
+  rendinstdestr::QuantizedDestrImpulseVec serializedImpulse;
   destructables::id_t destrId = destructables::INVALID_ID;
 
 private:
@@ -234,13 +268,13 @@ public:
 
   rendinst::riex_handle_t restore()
   {
+    if (rem_tree_cb)
+      rem_tree_cb(riDesc);
+    rendinst::delRIGenExtra(generatedHandle);
+    destructables::removeDestructableById(destrId);
     rendinst::riex_handle_t h = rendinst::restoreRiGenDestr(riDesc, riBuffer);
     VERBOSE_SYNC("restored ri (likely no sync received) desc:" FMT_DESC_STR " restored:%i", FMT_DESC_V(riDesc),
       h != rendinst::RIEX_HANDLE_NULL);
-    rendinst::delRIGenExtra(generatedHandle);
-    destructables::removeDestructableById(destrId);
-    if (rem_tree_cb)
-      rem_tree_cb(riDesc);
 #if ENABLE_APEX
     if (rendinst::enable_apex && apex_force_remove_actor_cb && apexDestrId >= 0)
       apex_force_remove_actor_cb(apexDestrId);
@@ -269,6 +303,7 @@ public:
 
   const rendinst::RendInstDesc &getRiDesc() const { return riDesc; }
   float getAtTime() const { return atTime; }
+  float getTtl() const { return ttl; }
   const rendinst::CollisionInfo &getCollInfo() const { return collInfo; }
 };
 static eastl::vector<RestorableRendinst> restorables;
@@ -285,6 +320,7 @@ const rendinstdestr::DestrSettings &rendinstdestr::get_destr_settings() { return
 
 void rendinstdestr::init_ex(rendinstdestr::on_destr_changed_callback on_destr_cb, create_tree_rend_inst_destr_cb create_tree_destr_cb,
   remove_tree_rendinst_destr_cb rem_tree_destr_cb, ri_tree_sound_cb tree_sound_cb, get_camera_pos get_current_camera_pos_,
+  get_current_time_callback get_current_time_cb, bool enable_branch_destruction,
   remove_physx_collision_object_callback remove_physx_obj_cb, create_apex_actors_callback create_apex_actors_cb,
   apex_force_remove_actor_callback apex_remove_actor_cb)
 {
@@ -300,17 +336,22 @@ void rendinstdestr::init_ex(rendinstdestr::on_destr_changed_callback on_destr_cb
   create_apex_actors_at_point_cb = create_apex_actors_cb;
   apex_force_remove_actor_cb = apex_remove_actor_cb;
   get_current_camera_pos = get_current_camera_pos_;
+  g_get_current_time_cb = get_current_time_cb;
   rendinst::registerRIGenExtraInvalidateHandleCb(invalidate_handle_cb);
-  rendinst::do_delayed_ri_extra_destruction = do_delayed_ri_extra_destruction_impl;
+  rendinst::do_delayed_ri_extra_destruction = +[] {
+    rendinst::ScopedRIExtraReadLock rl;
+    do_delayed_ri_extra_destruction_impl();
+  };
   debugTreeInstData.branchDestrFromDamage = get_tree_destr().branchDestrFromDamage;
   debugTreeInstData.branchDestrOther = get_tree_destr().branchDestrOther;
+  is_branch_destruction_supported = enable_branch_destruction;
   riexsync::pool_mapping_change_callback = on_riex_pool_mapping_change;
   riexsync::sync_active = true;
 }
 
-void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, bool apply_pending,
+void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, bool apply_pending, bool enable_branch_destruction,
   create_tree_rend_inst_destr_cb create_tree_destr_cb, remove_tree_rendinst_destr_cb rem_tree_destr_cb, ri_tree_sound_cb tree_sound_cb,
-  get_camera_pos get_camera_pos_cb)
+  get_camera_pos get_camera_pos_cb, get_current_time_callback get_current_time_cb)
 {
   on_changed_destr_cb = on_destr_cb;
   g_delayed_net_destr_list.isEnabled = true;
@@ -318,6 +359,7 @@ void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, b
   rendinst::enable_apex = false;
 
   apply_pending_destrs = apply_pending;
+  is_branch_destruction_supported = enable_branch_destruction;
 
   create_tree_cb = create_tree_destr_cb;
   rem_tree_cb = rem_tree_destr_cb;
@@ -326,6 +368,7 @@ void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, b
   create_apex_actors_at_point_cb = nullptr;
   apex_force_remove_actor_cb = nullptr;
   get_current_camera_pos = get_camera_pos_cb;
+  g_get_current_time_cb = get_current_time_cb;
 
   debugTreeInstData.branchDestrFromDamage = get_tree_destr().branchDestrFromDamage;
   debugTreeInstData.branchDestrOther = get_tree_destr().branchDestrOther;
@@ -333,6 +376,8 @@ void rendinstdestr::init(rendinstdestr::on_destr_changed_callback on_destr_cb, b
   riexsync::sync_active = true;
 }
 
+
+void rendinstdestr::set_occlusion_callback(get_occlusion_callback cb) { get_occlusion_cb = cb; }
 
 void rendinstdestr::clear()
 {
@@ -358,6 +403,8 @@ void rendinstdestr::startSession(void *phys_wld)
 {
   phys_world = static_cast<PhysWorld *>(phys_wld);
   apply_reflection = true;
+  if (ri_destr_collision_queue_count != RI_DESTR_COLLISION_DISABLED)
+    ri_destr_collision_queue_count = 0;
 
   if (pending_initial_destrs.GetNumberOfUnreadBits() > 0 && apply_pending_destrs)
   {
@@ -392,6 +439,170 @@ void rendinstdestr::endSession()
   g_delayed_net_destr_list.clear();
   g_deferred_ri_destr_list.clear();
   simultaneous_destrs_count = 0;
+  if (ri_destr_collision_queue_count != RI_DESTR_COLLISION_DISABLED)
+    ri_destr_collision_queue_count = RI_DESTR_COLLISION_NO_SESSION;
+}
+
+void rendinstdestr::set_ri_destr_collision_enabled(bool enabled)
+{
+  ri_destr_collision_queue_count = enabled ? RI_DESTR_COLLISION_NO_SESSION : RI_DESTR_COLLISION_DISABLED;
+}
+
+static void queue_ri_collision_for_debris(const mat44f &inst_tm, const bbox3f &local_bbox)
+{
+  if (!get_current_camera_pos)
+    return;
+
+  bbox3f wbb;
+  v_bbox3_init(wbb, inst_tm, local_bbox);
+  vec4f margin = v_splats(rendinstdestr::get_destr_settings().destrCollisionMargin);
+  wbb.bmin = v_sub(wbb.bmin, margin);
+  wbb.bmax = v_add(wbb.bmax, margin);
+  BBox3 worldBox;
+  v_stu_bbox3(worldBox, wbb);
+
+  Point3 camPos = get_current_camera_pos();
+  float distSq = v_extract_x(v_distance_sq_to_bbox_x(wbb.bmin, wbb.bmax, v_ldu(&camPos.x)));
+  float maxDist = rendinstdestr::get_destr_settings().destrCollisionMaxCameraDist;
+  if (distSq > maxDist * maxDist)
+    return;
+
+  if (ri_destr_collision_queue_count < 0)
+    return;
+
+  // Try to merge into an existing queued box, pick the candidate with smallest merged volume
+  const rendinstdestr::DestrSettings &settings = rendinstdestr::get_destr_settings();
+  int queueCapacity = min(settings.destrCollisionQueueCapacity, RI_DESTR_COLLISION_MAX_QUEUE_CAPACITY);
+  float newVolume = worldBox.volume();
+  int bestIdx = -1;
+  float bestMergedVolume = FLT_MAX;
+  for (int i = 0; i < ri_destr_collision_queue_count; ++i)
+  {
+    BBox3 merged = ri_destr_collision_queue[i];
+    merged += worldBox;
+    Point3 mergedSize = merged.width();
+    if (mergedSize.x > settings.destrCollisionMaxMergeXZ || mergedSize.z > settings.destrCollisionMaxMergeXZ ||
+        mergedSize.y > settings.destrCollisionMaxMergeY)
+      continue;
+    float mergedVolume = merged.volume();
+    float sumVolume = ri_destr_collision_queue[i].volume() + newVolume;
+    if (mergedVolume < eastl::min(bestMergedVolume, sumVolume * settings.destrCollisionMergeThreshold))
+    {
+      bestIdx = i;
+      bestMergedVolume = mergedVolume;
+    }
+  }
+  if (bestIdx >= 0) // good candidate for merge found, merge with it
+  {
+    ri_destr_collision_queue[bestIdx] += worldBox;
+    if (ri_debug_collision) [[unlikely]]
+    {
+      RIDESTR_DBG_LOG("ridestr: merged box " FMT_P3_02F "-" FMT_P3_02F " into queue[%d], new size " FMT_P3_02F "-" FMT_P3_02F
+                      ", queue size=%d",
+        P3D(worldBox.lim[0]), P3D(worldBox.lim[1]), bestIdx, P3D(ri_destr_collision_queue[bestIdx].lim[0]),
+        P3D(ri_destr_collision_queue[bestIdx].lim[1]), ri_destr_collision_queue_count);
+      draw_debug_box_buffered(worldBox, E3DCOLOR_MAKE(0, 255, 255, 255), 3000);
+    }
+  }
+  else if (ri_destr_collision_queue_count >= queueCapacity) // queue is full, attempt to replace an existing bbox
+  {
+    int furthestIdx = 0;
+    float furthestDistSq = 0.f;
+    for (int i = 0; i < ri_destr_collision_queue_count; ++i)
+    {
+      float d = (ri_destr_collision_queue[i].center() - camPos).lengthSq();
+      if (d > furthestDistSq)
+      {
+        furthestDistSq = d;
+        furthestIdx = i;
+      }
+    }
+    if (distSq >= furthestDistSq)
+    {
+      if (ri_debug_collision) [[unlikely]]
+      {
+        RIDESTR_DBG_LOG("ridestr: queue full (%d), new box not closer than furthest", queueCapacity);
+        draw_debug_box_buffered(worldBox, E3DCOLOR_MAKE(255, 0, 0, 255), 3000);
+      }
+    }
+    else
+    {
+      if (ri_debug_collision) [[unlikely]]
+      {
+        RIDESTR_DBG_LOG("ridestr: queue full (%d), replacing queue[%d] (dist %.1f) with closer box (dist %.1f)", queueCapacity,
+          furthestIdx, sqrtf(furthestDistSq), sqrtf(distSq));
+        draw_debug_box_buffered(worldBox, E3DCOLOR_MAKE(255, 255, 0, 255), 3000);
+      }
+      ri_destr_collision_queue[furthestIdx] = worldBox;
+    }
+  }
+  else // merge didn't happen, and there is place in queue
+  {
+    ri_destr_collision_queue[ri_destr_collision_queue_count++] = worldBox;
+    if (ri_debug_collision) [[unlikely]]
+    {
+      RIDESTR_DBG_LOG("ridestr: queued box " FMT_P3_02F "-" FMT_P3_02F ", queue size=%d", P3D(worldBox.lim[0]), P3D(worldBox.lim[1]),
+        ri_destr_collision_queue_count);
+      draw_debug_box_buffered(worldBox, E3DCOLOR_MAKE(0, 255, 0, 255), 3000);
+    }
+  }
+}
+
+int rendinstdestr::process_ri_collision_queue()
+{
+  if (ri_destr_collision_queue_count <= 0)
+    return 0;
+
+  int count = min(ri_destr_collision_queue_count, get_destr_settings().destrCollisionPerFrameLimit);
+  if (count <= 0)
+    return 0;
+
+  TIME_PROFILE(ridestr_process_ri_collision_queue);
+
+  float prevTtl = dacoll::exchange_ttl_for_collision_instances(get_destr_settings().destrCollisionTTL);
+  FINALLY([&] { dacoll::exchange_ttl_for_collision_instances(prevTtl); });
+  RIDESTR_DBG_LOG("ridestr: process_ri_collision_queue: count=%d, remaining=%d, prevTtl=%.2f, setting TTL=%.2f", count,
+    ri_destr_collision_queue_count - count, prevTtl, get_destr_settings().destrCollisionTTL);
+
+  if (!get_current_camera_pos || !get_occlusion_cb)
+    return 0;
+  const Occlusion *occl = get_occlusion_cb();
+  Point3 camPos = get_current_camera_pos();
+
+  int totalRiCount = 0;
+  for (int i = 0; i < count; ++i)
+  {
+    float skipOccDist = get_destr_settings().destrCollisionSkipOcclusionDist;
+    BBox3 &bbox = ri_destr_collision_queue[i];
+    if (occl && (bbox.center() - camPos).lengthSq() > skipOccDist * skipOccDist)
+    {
+      bbox3f wbb = v_ldu_bbox3(bbox);
+      if (!occl->isVisibleBox(wbb))
+      {
+        if (ri_debug_collision) [[unlikely]]
+          draw_debug_box_buffered(bbox, E3DCOLOR_MAKE(255, 255, 255, 255), 3000);
+        continue;
+      }
+    }
+    int riCount = dacoll::update_ri_cache_in_volume_to_phys_world(bbox);
+    totalRiCount += riCount;
+    if (ri_debug_collision) [[unlikely]]
+    {
+      RIDESTR_DBG_LOG("ridestr:   box[%d]: loaded %d RIs", i, riCount);
+      BBox3 boxToDraw = bbox;
+      boxToDraw.scale(1.1f);
+      draw_debug_box_buffered(boxToDraw, E3DCOLOR_MAKE(0, 0, 255, 255), 3000);
+    }
+  }
+
+  int remaining = ri_destr_collision_queue_count - count;
+  if (remaining > 0)
+    memmove(ri_destr_collision_queue, ri_destr_collision_queue + count, remaining * sizeof(BBox3));
+  ri_destr_collision_queue_count = remaining;
+
+  RIDESTR_DBG_LOG("ridestr: processed %d queued volumes, loaded %d RI collision bodies total", count, totalRiCount);
+
+  return totalRiCount;
 }
 
 void rendinstdestr::testObjToRestorablesIntersection(const BBox3 & /*obj_box*/, const TMatrix & /*obj_tm*/,
@@ -438,7 +649,8 @@ using DestrNeighborsSet =
 static void findRendinstNeighbors(rendinst::RendInstDesc desc, int destroy_neighbour_recursive_depth,
   const rendinst::CollisionInfo *coll_info, DestrNeighborsSet &ri_to_destroy)
 {
-  if (destroy_neighbour_recursive_depth == 0 || !coll_info || !coll_info->isParent || !phys_world || !rendinst::isRiGenDescValid(desc))
+  if (
+    destroy_neighbour_recursive_depth == 0 || !coll_info || !coll_info->isParent || !phys_world || !rendinst::isRiGenDescInGrid(desc))
     return;
 
   if (destroy_neighbour_recursive_depth < 0)
@@ -494,6 +706,11 @@ void rendinstdestr::fill_ri_destructable_params(destructables::DestructableCreat
     params.defaultTimeToLive = rendinst::get_riextra_destr_default_time_to_live(riexHandle);
   }
   params.isDestroyedByExplosion = bool(flags & rendinst::DestrOptionFlag::DestroyedByExplosion);
+  auto disintegrationParams =
+    riexHandle != rendinst::RIEX_HANDLE_NULL ? rendinst::get_riextra_destr_disintegration_params(riexHandle) : Point3(-1.0f, 0, 1);
+  params.timeToStartDisintegration = disintegrationParams.x;
+  params.disintegrationDuration = disintegrationParams.y;
+  params.disintegrationScale = disintegrationParams.z;
 }
 
 static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc desc, bool add_restorable, const Point3 &pos,
@@ -503,7 +720,7 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   TIME_PROFILE(ridestr__destroyRendinstInternal);
   // Note: 'desc' is copied by value in order to avoid situations where desc = &coll_info->desc and
   // 'on_destr_cb' invalidates it.
-  const bool isGenDescValid = rendinst::isRiGenDescValid(desc);
+  const bool isGenDescValid = rendinst::isRiGenDescInGrid(desc);
   if ((add_restorable && !isGenDescValid) || !phys_world) // desc is valid only when we provide it in non-offseted
                                                           // state. otherwise we process tons of destroyRendinsts
     return desc;
@@ -532,7 +749,7 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     offsetedDesc = rendinst::get_restorable_desc(desc); // Desc with offs set to restorable_desc.offs
     offsetedDesc.idx = desc.idx;
   }
-  const bool canAddRestorable = add_restorable && offsetedDesc.isValid() && (offsetedDesc.isRiExtra() || offsetedDesc.layer == 0) &&
+  const bool canAddRestorable = add_restorable && offsetedDesc.isValid() && rendinstdestr::can_sync_ri_destr(offsetedDesc) &&
                                 rendinstdestr::get_destr_settings().isNetClient && coll_info;
 
   rendinst::riex_handle_t createdDestroyedRiexHandle = rendinst::RIEX_HANDLE_NULL; // New riex replacing destroyed
@@ -589,8 +806,8 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     if (apex_destructed_list.find(desc) == apex_destructed_list.end()) // skip duplicates from duplicated server packets
     {
       TIME_PROFILE(destroyRI_create_apex_actors_at_point_cb);
-      apex_destructible_id = create_apex_actors_at_point_cb(getRIGenDestrName(desc), normalizedTm, scale, pos, impulse, desc.pool,
-        apex_dmg_info, desc.idx, bbox, bool(flags & rendinst::DestrOptionFlag::DestroyedByCollision));
+      apex_destructible_id = create_apex_actors_at_point_cb(getRIGenDestrName(desc), normalizedTm, scale, pos, riexInstanceSeed,
+        impulse, desc.pool, apex_dmg_info, desc.idx, bbox, bool(flags & rendinst::DestrOptionFlag::DestroyedByCollision));
       apex_destructed_list.insert(desc);
     }
     else
@@ -612,15 +829,30 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
   destructables::id_t destrId = destructables::INVALID_ID;
   if (!apex_asset_created && poData && create_destr_effects && rendinstdestr::get_destr_settings().createDestr) //-V560
   {
+    // Queue nearby RI collision loading so debris can collide with standing rendinsts
+    {
+      mat44f tm44;
+      v_mat44_make_from_43cu_unsafe(tm44, mainTm.array);
+      if (ri_destr_collision_queue_count >= 0)
+        queue_ri_collision_for_debris(tm44, v_ldu_bbox3(bbox));
+    }
+
     destructables::DestructableCreationParams params;
     params.hashVal = riexInstanceSeed;
     rendinstdestr::fill_ri_destructable_params(params, desc, poData, mainTm, flags);
     gamephys::DestructableObject *destr = nullptr;
-    destrId = destructables::addDestructable(&destr, params, phys_world);
-    if (destr) //-V1051
+    mat44f tm44;
+    v_mat44_make_from_43cu_unsafe(tm44, mainTm.array);
+    bool isDestructableTmNaN = v_test_mat43_nan(tm44);
+    G_ASSERT(!isDestructableTmNaN);
+    if (!isDestructableTmNaN)
     {
-      if (impulse.lengthSq() > 0.f)
-        destr->addImpulse(*phys_world, pos, impulse);
+      destrId = destructables::addDestructable(&destr, params, phys_world);
+      if (destr) //-V1051
+      {
+        if (impulse.lengthSq() > 0.f)
+          destr->addImpulse(*phys_world, pos, impulse);
+      }
     }
   }
 
@@ -632,7 +864,19 @@ static rendinst::RendInstDesc destroyRendinstInternal(rendinst::RendInstDesc des
     rendinst::CollisionInfo tmp = *coll_info;
     tmp.desc = desc;
     VERBOSE_SYNC("added restorable desc:" FMT_DESC_STR " pos:" FMT_P3_02F, FMT_DESC_V(offsetedDesc), P3D(coll_info->tm.getcol(3)));
-    restorables.emplace_back(offsetedDesc, riBuffer, destrId, at_time, tmp, createdDestroyedRiexHandle, apex_destructible_id);
+    RestorableRendinst &restorable =
+      restorables.emplace_back(offsetedDesc, riBuffer, destrId, at_time, tmp, createdDestroyedRiexHandle, apex_destructible_id);
+    bool clamped = false;
+    restorable.serializedImpulse.packPos(impulse, &clamped);
+    if (restorable.serializedImpulse != 0)
+    {
+      Point3_vec4 localImpPos;
+      mat44f tm, itm;
+      v_mat44_make_from_43cu_unsafe(tm, mainTm.array);
+      v_mat44_inverse43(itm, tm);
+      v_st(&localImpPos.x, v_mat44_mul_vec3p(itm, v_ldu(&pos.x)));
+      restorable.serializedLocalPos.packPos(localImpPos, &clamped);
+    }
   }
   else if (desc.isRiExtra() && offsetedDesc.isValid())
     call_restorable_rendinst_cb(offsetedDesc, rendinstdestr::RRS_DESTROYED);
@@ -698,8 +942,8 @@ rendinst::RendInstDesc rendinstdestr::destroyRendinst(rendinst::RendInstDesc des
   TIME_PROFILE(rendinstdestr__destroyRendinst);
   // Note: 'desc' is copied by value in order to avoid situations where desc = &coll_info->desc and
   // 'on_destr_cb' invalidates it.
-  if ((add_restorable && !rendinst::isRiGenDescValid(desc)) || !phys_world) // desc is valid only when we provide it in non-offseted
-                                                                            // state. otherwise we process tons of destroyRendinsts
+  if ((add_restorable && !rendinst::isRiGenDescInGrid(desc)) || !phys_world) // desc is valid only when we provide it in non-offseted
+                                                                             // state. otherwise we process tons of destroyRendinsts
     return desc;
 
   DestrNeighborsSet riToDestroy;
@@ -718,11 +962,20 @@ rendinst::RendInstDesc rendinstdestr::destroyRendinst(rendinst::RendInstDesc des
 void rendinstdestr::destroyRiExtra(rendinst::riex_handle_t riex_handle, const TMatrix &transform, bool create_destr_effects,
   const Point3 &impulse, const Point3 &impulse_pos, rendinst::DestrOptionFlags flags)
 {
+  mat44f tm44;
+  v_mat44_make_from_43cu_unsafe(tm44, transform.array);
+  bool isDestructableTmNaN = v_test_mat43_nan(tm44);
+  G_ASSERT(!isDestructableTmNaN);
   if (DynamicPhysObjectData *poData = rendinst::doRIExGenDestrEx(riex_handle, create_destr_effects ? ri_effect_cb : nullptr);
-      poData != nullptr && rendinstdestr::get_destr_settings().createDestr)
+      poData != nullptr && rendinstdestr::get_destr_settings().createDestr && !isDestructableTmNaN)
   {
+    // Queue nearby RI collision loading so debris can collide with standing rendinsts
+    if (ri_destr_collision_queue_count >= 0)
+      queue_ri_collision_for_debris(tm44, rendinst::riex_get_lbb(rendinst::handle_to_ri_type(riex_handle)));
+
     destructables::DestructableCreationParams params;
     fill_ri_destructable_params(params, rendinst::RendInstDesc(riex_handle), poData, transform, flags);
+
     gamephys::DestructableObject *destr = nullptr;
     destructables::addDestructable(&destr, params, phys_world);
     if (destr && impulse.lengthSq() > 0.f)
@@ -733,9 +986,16 @@ void rendinstdestr::destroyRiExtra(rendinst::riex_handle_t riex_handle, const TM
   }
 }
 
-void rendinstdestr::update_paused(const Frustum *frustum) { update(0.f, frustum); }
+static void cleanup_ri_phys(RendInstPhys &phys)
+{
+  if (phys.treeInstData.cutType == rendinst::TreeInstData::CutType::Top)
+    currentCutTreeCount--;
+  phys.cleanup();
+}
 
-void rendinstdestr::update(float dt, const Frustum *frustum)
+void rendinstdestr::update_paused(float current_time, const Frustum *frustum) { update(0.f, current_time, frustum); }
+
+void rendinstdestr::update(float dt, float current_time, const Frustum *frustum)
 {
   TIME_PROFILE(rendinstdestr_update);
 
@@ -763,31 +1023,38 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
       TMatrix tm;
       int physIdx;
       bool moved;
+      bool forceUpdateDestructionData;
     };
+
+#if TREE_DESTR_DEBUG
+    const float velocityThreshold = velocityThresholdOverride < 0.0f ? 40.0f : velocityThresholdOverride;
+    const float maxAngularVelocity =
+      maxAngularVelocityOverride < 0.0f ? rendinstdestr::get_tree_destr().maxAngularVelocity : maxAngularVelocityOverride;
+    const float groundJointBreakVelocityCap = groundJointBreakVelocityCapOverride < 0.0f ? 15.0f : groundJointBreakVelocityCapOverride;
+#else
+    const float velocityThreshold = 40.0f;
+    const float groundJointBreakVelocityCap = 15.0f;
+    const float maxAngularVelocity = rendinstdestr::get_tree_destr().maxAngularVelocity;
+#endif
+    const int maxDestroyedTreeCount = get_tree_destr().maxDestroyedTreeCount;
 
     eastl::vector<RendInstUpdateTm, framemem_allocator> updateList;
     updateList.reserve(riPhys.size());
     for (int i = 0; i < riPhys.size(); ++i)
     {
       RendInstPhys &phys = riPhys[i];
-      phys.treeInstData.timer += dt;
+
+      bool isRiExtraValid = rendinst::isRiGenExtraValid(phys.ri->riHandle);
 
       bool physObject = phys.physModel->physType == gamephys::DynamicPhysModel::E_PHYS_OBJECT;
       const bool physObjectActive =
         physObject && (phys.physBody && phys.physBody->isActive() && phys.physBody->getInteractionLayer()) ||
         (phys.physBody && phys.additionalBody && phys.additionalBody->isActive() && phys.additionalBody->getInteractionLayer());
 
-      bool actived = phys.ttl >= 0.f;
+      bool actived = phys.ttl >= 0.f && isRiExtraValid;
       bool disableGroundJoint = false;
+      bool forceUpdateDestructionData = false;
 
-#if TREE_DESTR_DEBUG
-      const float velocityThreshold = velocityThresholdOverride < 0.0f ? 40.0f : velocityThresholdOverride;
-      const float groundJointBreakVelocityCap =
-        groundJointBreakVelocityCapOverride < 0.0f ? 15.0f : groundJointBreakVelocityCapOverride;
-#else
-      const float velocityThreshold = 40.0f;
-      const float groundJointBreakVelocityCap = 15.0f;
-#endif
       const float currentVelocitySq = phys.physBody ? lengthSq(phys.physBody->getVelocity()) : 0.0f;
       const bool velocityThresholdExceeded = currentVelocitySq > sqr(velocityThreshold);
       const float groundJointVelocityThreshold = velocityThreshold * 0.5f;
@@ -838,6 +1105,14 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
       }
       if (actived && physObject && phys.physBody && phys.physBody->getInteractionLayer())
       {
+        Point3 angularVelocity = phys.physBody->getAngularVelocity();
+        float angularSpeedSq = angularVelocity.lengthSq();
+        if (angularSpeedSq > sqr(maxAngularVelocity))
+        {
+          angularVelocity = angularVelocity * (maxAngularVelocity / sqrt(angularSpeedSq));
+          phys.physBody->setAngularVelocity(angularVelocity);
+        }
+
         bool disableKinematicCollision = false;
         if (phys.collisionDistLimit >= 0.f)
         {
@@ -898,13 +1173,13 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
         }
       }
       phys.maxTtl -= dt;
-      if (phys.ttl < 0.f)
+      if (phys.ttl < 0.f || !isRiExtraValid)
       {
         if (!physObject)
         {
           if (rendinst::returnRIGenExternalControl(phys.desc, phys.ri))
           {
-            phys.cleanup();
+            cleanup_ri_phys(phys);
             erase_items(riPhys, i, 1);
             i--;
             continue;
@@ -922,13 +1197,14 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
           del_it(phys.additionalBody);
           phys.ttl = 15.f;
           phys.maxTtl = 15.f;
-          phys.treeInstData.disappearStartTime = phys.treeInstData.timer;
+          phys.treeInstData.disappearStartTimeAt = current_time;
+          forceUpdateDestructionData = true;
         }
-        else if (phys.physBody)
+        else if (phys.physBody || !isRiExtraValid)
         {
           if (rendinst::removeRIGenExternalControl(phys.desc, phys.ri))
           {
-            phys.cleanup();
+            cleanup_ri_phys(phys);
             erase_items(riPhys, i, 1);
             i--;
           }
@@ -944,14 +1220,14 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
         if (phys.physBody)
         {
           phys.physBody->getTm(tm);
-          if (ri_debug_collision)
+          if (ri_debug_collision) [[unlikely]]
             dacoll::draw_phys_body(phys.physBody, phys.physBody->getInteractionLayer() & dacoll::EPL_KINEMATIC ? 0xFFFFFF : 0xFF44FF);
         }
         TMatrix additionalTm = TMatrix::IDENT;
         if (phys.additionalBody)
         {
           phys.additionalBody->getTm(additionalTm);
-          if (ri_debug_collision)
+          if (ri_debug_collision) [[unlikely]]
             dacoll::draw_phys_body(phys.additionalBody,
               phys.additionalBody->getInteractionLayer() & dacoll::EPL_KINEMATIC ? 0xFFFFFF : 0xFF44FF);
         }
@@ -969,6 +1245,27 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
         }
         tm *= inverse(phys.centerOfMassTm);
         phys.lastValidTm = tm;
+
+        if (phys.bendHelperBody)
+        {
+          if (ri_debug_collision) [[unlikely]]
+            dacoll::draw_phys_body(phys.bendHelperBody, 0x0000FF);
+          TMatrix bendTm = TMatrix::IDENT;
+          phys.bendHelperBody->getTm(bendTm);
+          Point3 bendPos = bendTm.getcol(3);
+          Point3 bendPosLocal = inverse(tm) * bendPos;
+          phys.treeInstData.bendAnglePrev = phys.treeInstData.bendAngle;
+          phys.treeInstData.bendStrengthPrev = phys.treeInstData.bendStrength;
+          phys.treeInstData.bendAngle = atan2f(bendPosLocal.x, bendPosLocal.z) + PI;
+          float bendStrength = phys.treeInstData.branchDestr.bendStrength;
+#if TREE_DESTR_DEBUG
+          if (useDebugTreeInstData)
+            bendStrength = debugTreeInstData.branchDestrFromDamage.bendStrength;
+#endif
+          phys.treeInstData.bendStrength = sqrt(bendPosLocal.x * bendPosLocal.x + bendPosLocal.z * bendPosLocal.z) * bendStrength;
+          if (phys.treeInstData.bendStrength > 0)
+            forceUpdateDestructionData = true;
+        }
 
         if (phys.additionalBody && phys.treeSound.inited() && !phys.treeSound.falled())
         {
@@ -1025,7 +1322,7 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
       {
         phys.physModel->location.toTM(tm);
         phys.riColObj.body->setTmInstant(tm);
-        if (ri_debug_collision)
+        if (ri_debug_collision) [[unlikely]]
           dacoll::draw_phys_body(phys.riColObj.body);
       }
 
@@ -1044,12 +1341,19 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
             rendinst::RiExtraPerInstanceDataType::INITIAL_TM_3X3);
           phys.treeInstData.originalTmDataId = rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID;
         }
+        if (phys.treeInstData.destructionDataId != rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID)
+        {
+          rendinst::removeRiExtraPerInstanceRenderAdditionalData(phys.treeInstData.destructionDataId,
+            rendinst::RiExtraPerInstanceDataType::DESTR_RENDER_DATA);
+          phys.treeInstData.destructionDataId = rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID;
+        }
         continue;
       }
       RendInstUpdateTm &destrPos = updateList.push_back();
       destrPos.physIdx = i;
       v_mat_43cu_from_mat44(destrPos.tm.array, m44);
       destrPos.moved = physObject;
+      destrPos.forceUpdateDestructionData = forceUpdateDestructionData;
     }
     if (!updateList.empty())
     {
@@ -1059,6 +1363,7 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
       frustum->generateAllPointFrustm(frustumPoints);
       Point3 nearPlaneCenter = (as_point3(&frustumPoints[2]) + as_point3(&frustumPoints[4])) * 0.5f;
 
+      int currentDestroyedTreeCount = 0;
       rendinst::ScopedRIExtraWriteLock wr;
       for (int i = 0; i < updateList.size(); i++)
       {
@@ -1107,11 +1412,52 @@ void rendinstdestr::update(float dt, const Frustum *frustum)
             originalTmRenderData, 3);
         }
 
-        rendinst::moveRIGenExtra43(phys.ri->riHandle, m43, l.moved, true);
+        const bool passedDistanceCheck =
+          (phys.originalTm.col[3] - nearPlaneCenter).lengthSq() < sqr(phys.treeInstData.branchDestr.maxVisibleDistance);
+        const bool destructionAllowed = currentDestroyedTreeCount < maxDestroyedTreeCount && passedDistanceCheck;
 
-        if ((phys.originalTm.col[3] - nearPlaneCenter).lengthSq() < sqr(phys.treeInstData.branchDestr.maxVisibleDistance))
-          rendinst::updateTreeDestrRenderData(phys.ri->riHandle, phys.treeInstData,
+        uint64_t destrDataId = phys.treeInstData.destructionDataId;
+        if (!destructionAllowed)
+          destrDataId = rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID;
+        else if (phys.treeInstData.destructionDataId == rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID ||
+                 useDebugTreeInstData || l.forceUpdateDestructionData)
+        {
+          destrDataId = rendinst::updateTreeDestrRenderData(phys.ri->riHandle, phys.treeInstData,
             useDebugTreeInstData ? &debugTreeInstData : nullptr);
+        }
+
+        if (destrDataId == rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID &&
+            phys.treeInstData.destructionDataId != rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID)
+        {
+          rendinst::removeRiExtraPerInstanceRenderAdditionalData(phys.treeInstData.destructionDataId,
+            rendinst::RiExtraPerInstanceDataType::DESTR_RENDER_DATA);
+          phys.treeInstData.destructionDataId = rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID;
+        }
+        else
+        {
+          G_ASSERT(phys.treeInstData.destructionDataId == rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID ||
+                   phys.treeInstData.destructionDataId == destrDataId);
+          phys.treeInstData.destructionDataId = destrDataId;
+        }
+
+        bool hideInstance = false;
+
+        if (phys.treeInstData.destructionDataId != rendinst::RiExtraAdditionalDataManager::INVALID_DATA_ID)
+          currentDestroyedTreeCount++;
+        else if (phys.treeInstData.cutType == rendinst::TreeInstData::CutType::Bottom)
+          hideInstance = true;
+
+        if (hideInstance)
+        {
+          m43.row0 = v_perm_xyzd(v_zero(), m43.row0);
+          m43.row1 = v_perm_xyzd(v_zero(), m43.row1);
+          m43.row2 = v_perm_xyzd(v_zero(), m43.row2);
+          rendinst::moveRIGenExtra43(phys.ri->riHandle, m43, l.moved, true);
+        }
+        else
+        {
+          rendinst::moveRIGenExtra43(phys.ri->riHandle, m43, l.moved, true);
+        }
       }
     }
   }
@@ -1222,6 +1568,7 @@ bool rendinstdestr::serialize_destr_data(danet::BitStream &bs)
 void rendinstdestr::serialize_destr_update(danet::BitStream &bs, const Point3 *camera_pos, float camera_rad_sq,
   dag::ConstSpan<DestrUpdateDesc> update_data, bool send_by_default, int max_impulses)
 {
+  G_ASSERT(!update_data.empty());
 #ifdef _DEBUG_TAB
   G_ASSERT(eastl::is_sorted(update_data.begin(), update_data.end(), DestrUpdateDesc::lessVerify));
 #endif
@@ -1364,8 +1711,9 @@ static void flush_temp_delayed_destruction_list(TempDelayedDestructionList &&lis
   g_delayed_net_destr_list.isForcedUpdatePending = true;
 }
 
+template <bool IsReadLocked>
 static bool destroy_rend_inst_from_net(rendinst::RendInstDesc &restorable_desc, bool has_impulse, const Point3 &local_impulse_pos,
-  const Point3 &impulse_vec, bool create_destr)
+  const Point3 &impulse_vec, bool create_destr) DAG_TS_NO_THREAD_SAFETY_ANALYSIS // too hard to analyze IsReadLocked flag
 {
   for (RestorableRendinst &restr : restorables)
   {
@@ -1386,6 +1734,8 @@ static bool destroy_rend_inst_from_net(rendinst::RendInstDesc &restorable_desc, 
   G_ASSERT(restorable_desc.idx == 0);
   if (restorable_desc.isRiExtra())
   {
+    if constexpr (!IsReadLocked)
+      rendinst::riex_lock_read();
     ok = false;
     const int idx = rendinst::find_restorable_data_index(restorable_desc);
     if (idx >= 0)
@@ -1393,9 +1743,13 @@ static bool destroy_rend_inst_from_net(rendinst::RendInstDesc &restorable_desc, 
       restorable_desc.idx = idx;
       ok = true;
     }
+    if constexpr (!IsReadLocked)
+      rendinst::riex_unlock_read();
   }
   if (ok)
   {
+    if constexpr (IsReadLocked)
+      rendinst::riex_unlock_read();
     if (rendinst::isRIGenPosInst(restorable_desc))
     {
       int poolIdxBasedSeed = restorable_desc.offs + (restorable_desc.pool) ^ (restorable_desc.cellIdx < 16);
@@ -1425,25 +1779,33 @@ static bool destroy_rend_inst_from_net(rendinst::RendInstDesc &restorable_desc, 
         v_st(&impulsePos.x, v_mat44_mul_vec3p(riTm, v_ldu(&local_impulse_pos.x)));
       }
       VERBOSE_SYNC("destroying rendinst from net, desc:" FMT_DESC_STR, FMT_DESC_V(restorable_desc));
-      rendinstdestr::destroyRendinst(restorable_desc, /*add_restorable*/ false, impulsePos, impulse_vec, /*at_time*/ 0.f,
-        /*coll_info*/ nullptr, create_destr);
+      if (g_deferred_ri_destr_list.isEnabled && false)
+      {
+        auto &data = g_deferred_ri_destr_list.list.push_back();
+        data.riDesc = restorable_desc;
+        data.pos = impulsePos;
+        data.impulse = impulse_vec;
+        data.atTime = 0.f;
+        data.createDestr = create_destr;
+        data.flags = rendinst::DestrOptionFlag::AddDestroyedRi | rendinst::DestrOptionFlag::ForceDestroy;
+      }
+      else
+      {
+        rendinstdestr::destroyRendinst(restorable_desc, /*add_restorable*/ false, impulsePos, impulse_vec, /*at_time*/ 0.f,
+          /*coll_info*/ nullptr, create_destr);
+      }
     }
+    if constexpr (IsReadLocked)
+      rendinst::riex_lock_read();
   }
   return ok;
 }
 
-bool rendinstdestr::deserialize_destr_update(const danet::BitStream &bs)
+template <typename F>
+static void deserialize_destr_update_impl(const danet::BitStream &bs, F &&cb)
 {
-  if (!apply_reflection)
-  {
-    pending_destrs_updates.Write(bs);
-    return false;
-  }
-  VERBOSE_SYNC("deserializing destruction update");
-
   uint8_t readCount = 0;
   eastl::bitset<256, uint32_t> haveImpulseMask;
-  TempDelayedDestructionList delayedRiExtraDestruction;
 
   uint8_t updateSize = 0;
   bs.Read(updateSize);
@@ -1452,8 +1814,6 @@ bool rendinstdestr::deserialize_destr_update(const danet::BitStream &bs)
   bs.ReadCompressed(cellCount);
   for (int i = 0; i < cellCount; i++)
   {
-    bool shouldUpdateVb = false;
-
     int16_t cellIdx = 0;
     uint16_t poolCount = 0;
     bs.Read(cellIdx);
@@ -1481,44 +1841,73 @@ bool rendinstdestr::deserialize_destr_update(const danet::BitStream &bs)
         G_VERIFY(bs.ReadCompressed(offsDiffDivided));
         offs += offsDiffDivided << shift;
 
-        rendinstdestr::QuantizedDestrImpulsePos qpos;
-        rendinstdestr::QuantizedDestrImpulseVec qimp;
-        Point3 localImpulsePos = Point3::ZERO, impulseVec = Point3::ZERO;
+        rendinstdestr::DestrUpdateDesc dd;
+        dd.poolIdx = poolIdx;
+        dd.cellIdx = cellIdx;
+        dd.offs = offs;
         bool haveImpulse = haveImpulseMask[readCount];
-        bool createDestr = true;
         if (haveImpulse)
         {
-          bs.ReadBits((uint8_t *)&qpos.qpos, rendinstdestr::QuantizedDestrImpulsePos::XYZBits);
-          bs.ReadBits((uint8_t *)&qimp.qpos, rendinstdestr::QuantizedDestrImpulseVec::XYZBits);
-          uint32_t maxValue = (1 << rendinstdestr::QuantizedDestrImpulseVec::XYZBits) - 1;
-          if ((qpos.qpos & maxValue) == maxValue && (qimp.qpos & maxValue) == maxValue)
-            createDestr = false;
-          else
-          {
-            localImpulsePos = qpos.unpackPos();
-            impulseVec = qimp.unpackPos();
-          }
+          bs.ReadBits((uint8_t *)&dd.serializedLocalPos.qpos, rendinstdestr::QuantizedDestrImpulsePos::XYZBits);
+          bs.ReadBits((uint8_t *)&dd.serializedImpulse.qpos, rendinstdestr::QuantizedDestrImpulseVec::XYZBits);
         }
         // logerr("Read destr %i %u %u imp %i", int16_t(cellIdx), uint16_t(poolIdx), offs, haveImpulse);
-
-        readCount++;
         rendinst::RendInstDesc desc(cellIdx, 0 /*instIdx*/, poolIdx, offs, 0 /*layer*/);
-        if ((isPoolSyncPending || !destroy_rend_inst_from_net(desc, haveImpulse, localImpulsePos, impulseVec,
-                                    createDestr && --simultaneous_destrs_count >= 0)) &&
-            g_delayed_net_destr_list.isEnabled)
-          delayedRiExtraDestruction.emplace_back(desc, isPoolSyncPending);
-        shouldUpdateVb = true;
+        cb(desc, dd, isPoolSyncPending, haveImpulse);
+        readCount++;
       }
     }
-
-    if (shouldUpdateVb && cellIdx >= 0)
-      rendinst::updateRiGenVbCell(0, cellIdx);
   }
-
-  flush_temp_delayed_destruction_list(eastl::move(delayedRiExtraDestruction));
 
   // logerr("Deserialized %i destrs, %i bytes", readCount, bs.GetNumberOfBytesUsed());
   G_ASSERT(readCount == updateSize);
+}
+
+
+bool rendinstdestr::deserialize_destr_update(const danet::BitStream &bs)
+{
+  if (!apply_reflection)
+  {
+    pending_destrs_updates.Write(bs);
+    return false;
+  }
+  VERBOSE_SYNC("deserializing destruction update");
+
+  bool shouldUpdateVb = false;
+  int32_t prevCellIdx = -1;
+  TempDelayedDestructionList delayedRiExtraDestruction;
+  deserialize_destr_update_impl(bs,
+    [&](rendinst::RendInstDesc desc, const rendinstdestr::DestrUpdateDesc &dd, bool isPoolSyncPending, bool haveImpulse) {
+      if (prevCellIdx != desc.cellIdx)
+      {
+        if (shouldUpdateVb && prevCellIdx >= 0)
+          rendinst::updateRiGenVbCell(0, prevCellIdx);
+        shouldUpdateVb = false;
+        prevCellIdx = desc.cellIdx;
+      }
+
+      const uint32_t maxValue = (1 << rendinstdestr::QuantizedDestrImpulseVec::XYZBits) - 1;
+      bool createDestr = true;
+      Point3 localImpulsePos = Point3::ZERO, impulseVec = Point3::ZERO;
+      if (haveImpulse)
+      {
+        if ((dd.serializedLocalPos.qpos & maxValue) == maxValue && (dd.serializedImpulse.qpos & maxValue) == maxValue)
+          createDestr = false;
+        else
+        {
+          localImpulsePos = dd.serializedLocalPos.unpackPos();
+          impulseVec = dd.serializedImpulse.unpackPos();
+        }
+      }
+      if ((isPoolSyncPending || !destroy_rend_inst_from_net<false>(desc, haveImpulse, localImpulsePos, impulseVec,
+                                  createDestr && --simultaneous_destrs_count >= 0)) &&
+          g_delayed_net_destr_list.isEnabled)
+        delayedRiExtraDestruction.emplace_back(desc, isPoolSyncPending);
+      shouldUpdateVb = true;
+    });
+  if (shouldUpdateVb && prevCellIdx >= 0)
+    rendinst::updateRiGenVbCell(0, prevCellIdx);
+  flush_temp_delayed_destruction_list(eastl::move(delayedRiExtraDestruction));
   return true;
 }
 
@@ -1756,7 +2145,7 @@ bool rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
         for (int offs = range.startOffs; offs < range.endOffs; offs += stride)
         {
           rendinst::RendInstDesc desc(cell.cellId, 0, poolIdx, offs, 0);
-          if ((isPoolSyncPending || !destroy_rend_inst_from_net(desc, false, Point3::ZERO, Point3::ZERO,
+          if ((isPoolSyncPending || !destroy_rend_inst_from_net<false>(desc, false, Point3::ZERO, Point3::ZERO,
                                       /* create_destr */ --newDestrs >= 0)) &&
               g_delayed_net_destr_list.isEnabled)
             delayedRiExtraDestruction.emplace_back(desc, isPoolSyncPending);
@@ -1774,7 +2163,90 @@ bool rendinstdestr::deserialize_destr_data(const danet::BitStream &bs, int apply
   return true;
 }
 
-static void do_delayed_ri_extra_destruction_impl()
+
+bool rendinstdestr::serialize_client_destr_requests(danet::BitStream &bs, float ttl_min, float ttl_max)
+{
+  FRAMEMEM_REGION;
+  FRAMEMEM_VALIDATE;
+  bool anyAtMinTtl = false;
+  for (RestorableRendinst &restorable : restorables)
+  {
+    if (restorable.isRequestSentToServer || !restorable.isRestoreNeeded() || restorable.getTtl() > ttl_min)
+      continue;
+    anyAtMinTtl = true;
+    break;
+  }
+  if (!anyAtMinTtl)
+    return false;
+  dag::RelocatableFixedVector<DestrUpdateDesc, 64, true, framemem_allocator> riDestrData;
+  for (RestorableRendinst &restorable : restorables)
+  {
+    if (restorable.isRequestSentToServer || !restorable.isRestoreNeeded() || restorable.getTtl() > ttl_max)
+      continue;
+    const rendinst::RendInstDesc &desc = restorable.getRiDesc();
+    if (!rendinstdestr::can_sync_ri_destr(desc))
+      continue;
+    const int serverPoolId = riexsync::get_server_ri_pool_id(desc.pool, -1);
+    if (serverPoolId == -1)
+      continue;
+    DestrUpdateDesc &rec = riDestrData.push_back();
+    rec.cellIdx = int16_t(desc.cellIdx);
+    rec.poolIdx = uint16_t(serverPoolId);
+    rec.offs = desc.offs;
+    rec.serializedLocalPos = restorable.serializedLocalPos;
+    rec.serializedImpulse = restorable.serializedImpulse;
+    restorable.isRequestSentToServer = true;
+    G_ASSERT(rec.cellIdx == desc.cellIdx && rec.poolIdx == serverPoolId);
+    VERBOSE_SYNC("requesting confirmation from server [pool:%i(%i) cell:%i offs:%i]", desc.pool, serverPoolId, rec.cellIdx, rec.offs);
+    // deduplicate
+    if (eastl::find(riDestrData.begin(), riDestrData.end() - 1, riDestrData.back()) != riDestrData.end() - 1)
+      riDestrData.pop_back();
+    if (riDestrData.size() == 255)
+      break;
+  }
+  if (riDestrData.empty())
+    return false;
+  stlsort::sort_branchless(riDestrData.begin(), riDestrData.end());
+  // we don't care about camera pos, as these are client updates
+  serialize_destr_update(bs, nullptr, FLT_MAX, make_span_const(riDestrData), true, 255);
+  return true;
+}
+
+
+void rendinstdestr::deserialize_client_destr_requests(const danet::BitStream &bs,
+  dag::FixedMoveOnlyFunction<32, void(const rendinst::RendInstDesc &, bool, const Point3 &, const Point3 &)> cb)
+{
+  deserialize_destr_update_impl(bs,
+    [&](rendinst::RendInstDesc desc, const rendinstdestr::DestrUpdateDesc &dd, bool isPoolSyncPending, bool has_impulse) {
+      G_VERIFY(!isPoolSyncPending); // it is only called on server
+      G_UNUSED(desc);
+
+      bool exists = true;
+      if (!rendinst::isValidRILayerAndPool(desc))
+        exists = false;
+      else if (desc.isRiExtra())
+      {
+        desc.idx = rendinst::find_restorable_data_index(desc);
+        exists = desc.idx >= 0;
+      }
+      exists = exists && rendinst::isRiGenDescInGrid(desc);
+      VERBOSE_SYNC("deserializing client destr request desc:" FMT_DESC_STR " exists:%i", FMT_DESC_V(desc), exists);
+      constexpr uint32_t maxValue = (1 << rendinstdestr::QuantizedDestrImpulseVec::XYZBits) - 1;
+      if ((dd.serializedLocalPos.qpos & maxValue) == maxValue && (dd.serializedImpulse.qpos & maxValue) == maxValue)
+        has_impulse = false;
+      Point3 localPos = Point3::ZERO, impulse = Point3::ZERO;
+      if (has_impulse)
+      {
+        localPos = dd.serializedLocalPos.unpackPos();
+        impulse = dd.serializedImpulse.unpackPos();
+      }
+      cb(desc, exists, localPos, impulse);
+    });
+}
+
+
+// NOTE: Required RI extra to be locked for read!
+static void do_delayed_ri_extra_destruction_impl() DAG_TS_REQUIRES_SHARED(rendinst::ccExtra)
 {
   if (!g_delayed_net_destr_list.isEnabled)
     return;
@@ -1806,7 +2278,7 @@ static void do_delayed_ri_extra_destruction_impl()
     }
 
     // try destroy, skip, if failed, otherwise erase
-    if (destroy_rend_inst_from_net(destr.desc, false, Point3::ZERO, Point3::ZERO, --simultaneous_destrs_count >= 0))
+    if (destroy_rend_inst_from_net<true>(destr.desc, false, Point3::ZERO, Point3::ZERO, --simultaneous_destrs_count >= 0))
     {
       it = g_delayed_net_destr_list.list.erase_unsorted(it);
       destrCnt++;
@@ -1820,7 +2292,7 @@ static void do_delayed_ri_extra_destruction_impl()
       version, destrCnt, int(g_delayed_net_destr_list.list.size()));
 
   {
-    rendinst::ScopedRIExtraReadLock riVersionLock;
+    // NOTE: ccExtra locked for read
     g_delayed_net_destr_list.lastUpdatedWorldVersion = version;
     g_delayed_net_destr_list.isForcedUpdatePending = false;
   }
@@ -1869,11 +2341,7 @@ void rendinstdestr::damage_ri_in_sphere(const Point3 &pos, float rad, const Poin
   rendinst::rigen_collidable_data_t collidableData;
   gatherRIGenCollidableInRadius(collidableData, pos, rad, flags, true /*ignore_immortal*/);
   stlsort::sort_branchless(collidableData.begin(), collidableData.end(),
-    [](const rendinst::RiGenCollidableData &a, const rendinst::RiGenCollidableData &b) {
-      if (a.immortal && b.immortal)
-        return false;
-      return a.dist < b.dist;
-    });
+    [](const rendinst::RiGenCollidableData &a, const rendinst::RiGenCollidableData &b) { return a.dist < b.dist; });
 
   for (rendinst::RiGenCollidableData &targetData : collidableData)
   {
@@ -1965,6 +2433,8 @@ void rendinstdestr::clear_tree_collision()
 
 void rendinstdestr::set_ri_damage_effect_cb(rendinst::ri_damage_effect_cb cb) { ri_effect_cb = cb; }
 
+void rendinstdestr::set_on_tree_destr_created_cb(on_tree_destr_created_callback cb) { on_tree_destr_created_cb = cb; }
+
 void rendinstdestr::register_restorable_rendinst_cb(restorable_rendinst_callback cb)
 {
   if (find_value_idx(restorable_rendinst_callbacks, cb) == -1)
@@ -1996,8 +2466,7 @@ CachedCollisionObjectInfo *rendinstdestr::get_or_add_cached_collision_object(con
     void *p = cco_alloc.allocateOneBlock();
     const float hitPointsToDestrImpulseMult = rendinstdestr::get_destr_settings().hitPointsToDestrImpulseMult;
     float destrImpulse = coll_info.destrImpulse > 0.f ? coll_info.destrImpulse : coll_info.hp * hitPointsToDestrImpulseMult;
-    objInfo =
-      new (p, _NEW_INPLACE) RendinstCollisionUserInfo::RendinstImpulseThresholdData(destrImpulse, coll_info.desc, at_time, coll_info);
+    objInfo = new (p, _NEW_INPLACE) RendinstImpulseThresholdData(destrImpulse, coll_info.desc, at_time, coll_info);
     cached_collision_objects.push_back(objInfo);
   }
   objInfo->refreshTimeToLive();
@@ -2011,8 +2480,7 @@ CachedCollisionObjectInfo *rendinstdestr::get_or_add_cached_tree_collision_objec
   if (!objInfo)
   {
     void *p = cco_alloc.allocateOneBlock();
-    objInfo =
-      new (p, _NEW_INPLACE) RendinstCollisionUserInfo::TreeRendinstImpulseThresholdData(impulse, coll_info.desc, at_time, coll_info);
+    objInfo = new (p, _NEW_INPLACE) TreeRendinstImpulseThresholdData(impulse, coll_info.desc, at_time, coll_info);
     cached_collision_objects.push_back(objInfo);
   }
   objInfo->refreshTimeToLive();
@@ -2038,7 +2506,7 @@ void rendinstdestr::remove_tree_rendinst_destr(const rendinst::RendInstDesc &des
       continue;
 
     rendinst::removeRIGenExternalControl(riPhys[i].desc, riPhys[i].ri);
-    riPhys[i].cleanup();
+    cleanup_ri_phys(riPhys[i]);
     erase_items(riPhys, i, 1);
     return;
   }
@@ -2051,7 +2519,7 @@ void rendinstdestr::clear_phys_objs()
   {
     if (clearExternal && riPhys[i].physBody)
       rendinst::removeRIGenExternalControl(riPhys[i].desc, riPhys[i].ri);
-    riPhys[i].cleanup();
+    cleanup_ri_phys(riPhys[i]);
   }
   clear_and_shrink(riPhys);
 }
@@ -2118,6 +2586,8 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
     return desc;
 
   rendinst::DestroyedRi *ri = create_destr ? rendinst::doRIGenExternalControl(desc, !create_phys) : NULL;
+  if (ri && on_tree_destr_created_cb)
+    on_tree_destr_created_cb(desc, ri->riHandle);
   Point2 impulseDir = normalizeDef(Point2::xz(impulse), {1.f, 0.f});
   rendinst::RendInstDesc offsetedDesc = desc;
   rendinst::DestrOptionFlags flags =
@@ -2165,10 +2635,18 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
   BBox3 canopyBox = bbox;
   if (riProp)
   {
-    rendinst::getRIGenCanopyBBox(*riProp, fullBb, canopyBox);
-    const float canopyCutHt = (canopyBox.width().y * 0.5f) * 0.95f;
-    canopyBox.lim[1].y -= canopyCutHt;
-    canopyBox.lim[0].y += canopyCutHt;
+    const bool hasCanopy = rendinst::getRIGenCanopyBBox(*riProp, fullBb, canopyBox);
+    const float canopyCutHt = (canopyBox.width().y * 0.5f) * 0.95f; // take a height of 10% of its middle
+    if (hasCanopy && canopyBox.lim[1].y > canopyCutHt)
+    {
+      canopyBox.lim[1].y -= canopyCutHt;
+      canopyBox.lim[0].y += canopyCutHt;
+    }
+    else
+    {
+      canopyBox.lim[1].y = bbox.lim[1].y;
+      canopyBox.lim[0].y = bbox.lim[1].y - bbox.width().y * 0.1f;
+    }
   }
   canopyBox.lim[0] *= scale.y;
   canopyBox.lim[1] *= scale.y;
@@ -2256,8 +2734,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
     float impulseDirMult = constrained_phys ? 0.1f * sphRad : 0.f;
     TMatrix sphTm = phys.centerOfMassTm;
     sphTm.setcol(3, Point3(impulseDir.x * impulseDirMult, canopyBox.center().y, impulseDir.y * impulseDirMult));
-    const float reduceCanopyMassK = 0.1f;
-    const float canopyMass = canopyBox.volume() * treeDestr.canopyDensity * reduceCanopyMassK;
+    const float canopyMass = canopyBox.volume() * treeDestr.canopyDensity;
     Point3 canopyInertia = treeDestr.canopyInertia * 0.4f * canopyMass;
     {
       // shape
@@ -2358,11 +2835,13 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_old(const rendinst::Re
       phys.additionalBody->addImpulse((tm * sphTm).getcol(3), additionalImpulseVal * Point3::x0y(impulseDir));
     }
     phys.lastValidTm = tm;
-
+    phys.treeInstData.creationTimeAt = at_time;
     if (!constrained_phys && (coll_info->destrFxId >= 0 || !coll_info->destrFxTemplate.empty()) && ri_effect_cb)
       ri_effect_cb(coll_info->destrFxId, TMatrix::IDENT, tm, coll_info->desc.pool, false, nullptr, coll_info->destrFxTemplate.c_str());
 
-    if (riDestrData.branchDestr->enableBranchDestruction)
+    const bool enableBranchDestr =
+      is_branch_destruction_supported && riDestrData.branchDestr->enableBranchDestruction && at_time > 0.0f;
+    if (enableBranchDestr)
     {
       phys.treeInstData.branchDestr = *riDestrData.branchDestr;
       phys.treeInstData.impactXZ = impulseDir * vel;
@@ -2407,6 +2886,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
   if (check_nan(_impulse) || impulseStrength > MAX_RI_DESTROY_IMPULSE)
   {
     logerr("Bad impulse %@ in create_tree_rend_inst_destr", _impulse);
+    impulseStrength = 0.0f;
     impulse = Point3();
   }
 
@@ -2415,7 +2895,10 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
   if (!riDestrData.branchDestr)
     return desc;
 
-  bool cutTreeInHalf = riDestrData.branchDestr->enableBranchDestruction && create_destr && from_damage && !riDestrData.bushBehaviour;
+  static const float min_cut_height = 0.5f;
+
+  const bool enableBranchDestr = is_branch_destruction_supported && riDestrData.branchDestr->enableBranchDestruction && at_time > 0.0f;
+  bool cutTreeInHalf = enableBranchDestr && create_destr && from_damage && !riDestrData.bushBehaviour;
   if (from_damage)
   {
     // A big tank cannon does about 1000 damage, we want this to have a noticeable increase in rotation speed
@@ -2425,8 +2908,15 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
     float cutInHalfThreshold = riDestrData.branchDestr->cutInHalfDamageThreshold;
     if (useDebugTreeInstData)
       cutInHalfThreshold = debugTreeInstData.branchDestrFromDamage.cutInHalfDamageThreshold;
-    if (cutInHalfThreshold < 0 || cutInHalfThreshold > damageEquivalent)
+    if (cutInHalfThreshold < 0 || cutInHalfThreshold > damageEquivalent || currentCutTreeCount >= treeDestr.maxCutTreeCount)
       cutTreeInHalf = false;
+
+    float cutHeight = impactPos.y - rendinst::getRIGenMatrix(desc).col[3].y;
+    if (cutHeight < min_cut_height)
+    {
+      // this could happen if the collision geometry of the tree reaches below the model origin
+      cutTreeInHalf = false;
+    }
   }
 
   if (useDebugTreeInstData && debugTreeInstData.disableCut)
@@ -2443,13 +2933,16 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
 
   Tab<rendinst::DestroyedRi *> ris =
     create_destr ? rendinst::doRIGenExternalControlMultiple(desc, sliceCount, !create_phys) : Tab<rendinst::DestroyedRi *>();
+  if (on_tree_destr_created_cb)
+    for (const rendinst::DestroyedRi *ri : ris)
+      on_tree_destr_created_cb(desc, ri->riHandle);
   Point2 impulseDir = normalizeDef(Point2::xz(impulse), {1.f, 0.f});
   rendinst::RendInstDesc offsetedDesc = desc;
   rendinst::DestrOptionFlags flags =
     rendinst::DestrOptionFlag::AddDestroyedRi | rendinst::DestrOptionFlag::ForceDestroy | rendinst::DestrOptionFlag::UseFullBbox;
   if (create_phys)
     offsetedDesc = rendinstdestr::destroyRendinst(desc, add_restorable, ZERO<Point3>(), ZERO<Point3>(), at_time, coll_info,
-      create_destr && rendinstdestr::get_destr_settings().createDestr, nullptr, 1, 1.0f, nullptr, flags);
+      create_destr, nullptr, 1, 1.0f, nullptr, flags);
 
   if (destrSettings.hasStaticShadowsInvalidationCallback)
     rendinst::render::avoidStaticShadowRecalc = false;
@@ -2470,6 +2963,10 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
       VTMD(m44));
     return offsetedDesc;
   }
+
+  if (cutTreeInHalf)
+    currentCutTreeCount++;
+
   TMatrix tmOriginal;
   v_mat_43cu_from_mat44(tmOriginal.array, m44);
 
@@ -2567,6 +3064,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
     {
       cutHeight = impactPos.y - tmOriginal.col[3].y;
       cutType = iTreeSlice == 0 ? rendinst::TreeInstData::CutType::Top : rendinst::TreeInstData::CutType::Bottom;
+      cutHeight = clamp(cutHeight, 0.0f, totalTreeHeight);
     }
 
     float height = totalTreeHeight;
@@ -2585,10 +3083,10 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
         rendinst::RiExtraPerInstanceDataPersistence::PERSISTENT, &originalPosRenderData, 1);
     }
 
-    if (totalTreeHeight <= 0)
+    if (totalTreeHeight <= 0 || height <= 0)
     {
-      logerr("%s[%d] gives bbox=%@ and invalid height=%.1f (scale=%@ collisionHeightScale=%g)", desc.isRiExtra() ? "riExtra" : "riGen",
-        desc.pool, bbox, height, scale, riDestrData.collisionHeightScale);
+      logerr("%s[%d] gives bbox=%@ and invalid height=%.1f (scale=%@ collisionHeightScale=%g totalTreeHeight=%0.1f)",
+        desc.isRiExtra() ? "riExtra" : "riGen", desc.pool, bbox, height, scale, riDestrData.collisionHeightScale, totalTreeHeight);
       return offsetedDesc;
     }
 
@@ -2618,6 +3116,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
       riPhys.emplace_back(RendInstPhysType::TREE, desc, tmNoScale, mass, momentOfInertia, scale, Point3(0.f, height * 0.5f, 0.f),
         physModelType, tmOriginal, rendinstdestr::get_destr_settings().rendInstMaxLifeTime, treeDestr.maxLifeDistance, ri);
 
+    phys.treeInstData.creationTimeAt = at_time;
     phys.treeInstData.localImpactPos = localImpactPos;
     phys.treeInstData.cutType = cutType;
 
@@ -2753,7 +3252,16 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
           const PhysCollision *selCanopyCollision = &sphCanopyCollision;
           if (treeDestr.useBoxAsCanopyCollision)
             selCanopyCollision = &boxCanopyCollision;
-          if (riDestrData.canopyTriangle)
+
+          bool usePyramidCanopy = riDestrData.canopyTriangle || riDestrData.branchDestr->forcePyramidCanopy;
+          if (useDebugTreeInstData)
+          {
+            const rendinstdestr::BranchDestr &debugBranchDestr =
+              from_damage ? debugTreeInstData.branchDestrFromDamage : debugTreeInstData.branchDestrOther;
+            if (debugBranchDestr.forcePyramidCanopy)
+              usePyramidCanopy = true;
+          }
+          if (usePyramidCanopy)
           {
             sphTm.setcol(3, Point3::ZERO);
             selCanopyCollision = &pyramidCollision;
@@ -2811,6 +3319,60 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
               dofSpring->setAxisDamping(i, canopyJointDamping);
             }
             dofSpring->setEquilibriumPoint();
+          }
+
+          if (riDestrData.branchDestr->bendStrength > 0.0f && cutType == rendinst::TreeInstData::CutType::None)
+          {
+            // Bend helper body
+            {
+              PhysSphereCollision sphBendHelperShape(0.5f);
+              TMatrix bendHelperTm = TMatrix::IDENT;
+              bendHelperTm.setcol(3, Point3(0, totalTreeHeight, 0));
+
+              PhysBodyCreationData bendHelperPbcd;
+              bendHelperPbcd.linearDamping = treeDestr.bendLinDamping;
+              bendHelperPbcd.angularDamping = treeDestr.bendAngDamping;
+              bendHelperPbcd.autoInertia = true;
+              // disable all collisions (TODO: see if ground collision is needed)
+              bendHelperPbcd.autoMask = false;
+              bendHelperPbcd.mask = 0;
+
+              // body
+              phys.bendHelperBody =
+                new PhysBody(physWorld, treeDestr.bendMass, &sphBendHelperShape, fallDirTm * bendHelperTm, bendHelperPbcd);
+            }
+
+            // bend helper joint
+            {
+              TMatrix physBodyTm, bendHelperBodyTm;
+              phys.physBody->getTmInstant(physBodyTm);
+              phys.bendHelperBody->getTmInstant(bendHelperBodyTm);
+              physBodyTm.setcol(3, phys.physBody->getCenterOfMassPosition());
+              bendHelperBodyTm.setcol(3, phys.bendHelperBody->getCenterOfMassPosition());
+
+              TMatrix jointTm = canopyImpulseDirTm;
+              jointTm.setcol(3, tmNoScale.getcol(3));
+              jointTm.col[3].y += totalTreeHeight;
+
+              TMatrix body0Frame = inverse(physBodyTm) * jointTm;
+              TMatrix body1Frame = inverse(bendHelperBodyTm) * jointTm;
+
+              PhysJoint *joint = physWorld->create6DofSpringJoint(phys.physBody, phys.bendHelperBody, body0Frame, body1Frame);
+              phys.joints.push_back() = joint;
+              Phys6DofSpringJoint *dofSpring = Phys6DofSpringJoint::cast(joint);
+              if (dofSpring)
+              {
+                const float stiffness = treeDestr.bendSpringStiffness;
+                dofSpring->setSpring(0, true, stiffness, 0.0f, Point2::ZERO);
+                dofSpring->setLimit(1, Point2::ZERO);
+                dofSpring->setSpring(2, true, stiffness, 0.0f, Point2::ZERO);
+
+                dofSpring->setSpring(3, true, stiffness, 0.0f, Point2::ZERO);
+                dofSpring->setLimit(4, Point2::ZERO);
+                dofSpring->setSpring(5, true, stiffness, 0.0f, Point2::ZERO);
+                dofSpring->setEquilibriumPoint();
+              }
+            }
           }
         }
         phys.lastValidTm = tmNoScale;
@@ -2878,7 +3440,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
 
       phys.treeInstData.impactXZ = impulseDir * vel;
 
-      if (riDestrData.branchDestr->enableBranchDestruction)
+      if (enableBranchDestr)
       {
         phys.treeInstData.branchDestr = *riDestrData.branchDestr;
         if (!rendinst::fillTreeInstData(desc, from_damage, phys.treeInstData))
@@ -2888,7 +3450,7 @@ static rendinst::RendInstDesc create_tree_rend_inst_destr_new(const rendinst::Re
       }
       phys.lastValidTm = tmNoScale;
 
-      if (!constrained_phys && (coll_info->destrFxId >= 0 || !coll_info->destrFxTemplate.empty()) && ri_effect_cb)
+      if (!constrained_phys && coll_info && (coll_info->destrFxId >= 0 || !coll_info->destrFxTemplate.empty()) && ri_effect_cb)
         ri_effect_cb(coll_info->destrFxId, TMatrix::IDENT, tmNoScale, coll_info->desc.pool, false, nullptr,
           coll_info->destrFxTemplate.c_str());
     }
@@ -2922,12 +3484,17 @@ rendinst::RendInstDesc rendinstdestr::create_tree_rend_inst_destr(const rendinst
   rendinst::RiDestrData riDestrData = rendinst::gather_ri_destr_data(desc, from_damage);
   if (!riDestrData.branchDestr)
     return desc;
+  if (!get_destr_settings().createTreeDestr)
+    create_destr = false;
 
   bool newPhysics = riDestrData.branchDestr->newPhysics;
 #if TREE_DESTR_DEBUG
   if (useDebugTreeInstData)
     newPhysics = from_damage ? debugTreeInstData.branchDestrFromDamage.newPhysics : debugTreeInstData.branchDestrOther.newPhysics;
 #endif
+
+  // at_time is not reliable, in some cases it's set to zero or very high values
+  at_time = g_get_current_time_cb ? g_get_current_time_cb() : 0.0f;
 
   if (newPhysics)
     return create_tree_rend_inst_destr_new(desc, add_restorable, impactPos, _impulse, create_phys, constrained_phys, wanted_omega,
@@ -2945,11 +3512,8 @@ void rendinstdestr::perform_delayed_destruction(int quota_usec)
 
   if (!g_delayed_net_destr_list.list.empty())
   {
-    uint64_t riExtraGlobalVersion;
-    {
-      rendinst::ScopedRIExtraReadLock riVersionLock;
-      riExtraGlobalVersion = rendinst::getRIExtraGlobalWorldVersion(true, false);
-    }
+    rendinst::ScopedRIExtraReadLock riVersionLock;
+    uint64_t riExtraGlobalVersion = rendinst::getRIExtraGlobalWorldVersion(true, false);
     if (g_delayed_net_destr_list.isForcedUpdatePending || g_delayed_net_destr_list.lastUpdatedWorldVersion != riExtraGlobalVersion)
       do_delayed_ri_extra_destruction_impl(); // will set lastUpdatedWorldVersion and isForcedUpdatePending
   }
@@ -2963,8 +3527,8 @@ void rendinstdestr::perform_delayed_destruction(int quota_usec)
     g_deferred_ri_destr_list.list.pop_back();
     rendinst::CollisionInfo collInfo(data.riDesc);
     collInfo = rendinst::getRiGenDestrInfo(data.riDesc);
-    rendinstdestr::destroyRendinst(data.riDesc, true, data.pos, ZERO<Point3>(), data.at_time, &collInfo, data.local_create_destr,
-      nullptr, -1, 1.f, nullptr, data.flags);
+    rendinstdestr::destroyRendinst(data.riDesc, true, data.pos, data.impulse, data.atTime, &collInfo, data.createDestr, nullptr, -1,
+      1.f, nullptr, data.flags);
   }
 }
 
@@ -2989,13 +3553,17 @@ void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, float at_time, bool c
     }
   }
 
+  const bool isForced = bool(flags & rendinst::DestrOptionFlag::ForceDestroy);
   for (int j = 0; j < ri_h.size(); ++j)
   {
     rendinst::RendInstDesc riDesc(-1, rendinst::handle_to_ri_inst(ri_h[j]), rendinst::handle_to_ri_type(ri_h[j]), 0, 0);
-    if (riDesc.pool >= 0 && rendinst::get_riextra_immortality(ri_h[j]) && !(flags & rendinst::DestrOptionFlag::ForceDestroy))
+    if (riDesc.pool >= 0 && rendinst::get_riextra_immortality(ri_h[j]) && !isForced)
       continue;
     rendinst::CollisionInfo collInfo(riDesc);
     collInfo = rendinst::getRiGenDestrInfo(riDesc);
+
+    if (!(collInfo.isDestr || isForced) || collInfo.riPoolRef < 0 || collInfo.tm == TMatrix::ZERO)
+      continue;
 
     Point3 riPos = collInfo.tm.getcol(3);
     if (check_sphere)
@@ -3017,9 +3585,6 @@ void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, float at_time, bool c
     {
       TIME_PROFILE(rendinstdestr__doRIExtraDamageInBox_calc_expl_dmg);
 
-      if (!collInfo.isDestr || collInfo.riPoolRef < 0 || collInfo.tm == TMatrix::ZERO)
-        continue;
-
       float distance = sqrt(point_to_box_distance_sq(inverse(collInfo.tm) * box.center(), collInfo.localBBox));
       float damage = calc_expl_dmg_cb(collInfo, distance);
       if (damage == 0.f)
@@ -3040,8 +3605,9 @@ void rendinstdestr::doRIExtraDamageInBox(const BBox3 &box, float at_time, bool c
       auto &data = g_deferred_ri_destr_list.list.push_back();
       data.riDesc = riDesc;
       data.pos = box.center();
-      data.at_time = at_time;
-      data.local_create_destr = local_create_destr;
+      data.impulse = ZERO<Point3>();
+      data.atTime = at_time;
+      data.createDestr = local_create_destr;
       data.flags = curFlags;
     }
     else
@@ -3074,7 +3640,7 @@ void rendinstdestr::remove_ri_without_collision_in_radius(const Point3 &pos, flo
     }
   } cb;
 
-  rendinst::foreachRIGenInBox(box, rendinst::GatherRiTypeFlag::RiGenOnly, cb);
+  rendinst::foreachRIGenInSphere(BSphere3(pos, radius), rendinst::GatherRiTypeFlag::RiGenOnly, cb);
 
   for (const rendinst::RendInstDesc &desc : cb.riDescToRemove)
   {
@@ -3136,6 +3702,8 @@ static void imguiWindow()
   ImGui::SliderFloat("Horizontal Speed", &branchDestr.horizontalSpeedMul, 0, 20.0f, "%0.3f", ImGuiSliderFlags_Logarithmic);
   ImGui::SliderFloat("Fall Through Ground If Bigger", &branchDestr.fallThroughGroundIfBigger, 0, 20.0f, "%0.3f",
     ImGuiSliderFlags_Logarithmic);
+  ImGui::SliderFloat("Bend Strength", &branchDestr.bendStrength, 0, 0.2f, "%0.3f", ImGuiSliderFlags_Logarithmic);
+  ImGui::Checkbox("Force Pyramid Canopy", &branchDestr.forcePyramidCanopy);
   ImGui::Checkbox("Disable cutting", &debugTreeInstData.disableCut);
   ImGui::Checkbox("Use Cut Height Override", &debugTreeInstData.useCutHeightOverride);
   ImGui::SliderFloat("Cut Height", &debugTreeInstData.cutHeightOverride, 0, 20.0f, "%0.3f", ImGuiSliderFlags_Logarithmic);
@@ -3153,6 +3721,7 @@ static void imguiWindow()
 
   ImGui::Text("Last impulse: %.2f. Chance: %.2f%% (%s)", lastImpulse, chance,
     debugTreeInstData.last_object_was_from_damage ? "From damage" : "Non-damage");
+  ImGui::Text("Cut tree count: %d / %d", currentCutTreeCount, get_tree_destr().maxCutTreeCount);
 
   auto fnActivateTreeDestroyTool = [](bool activate, float damage, float radius, bool weaponDamage) {
     char cmd[100]; // Create a buffer to store the formatted string
@@ -3198,7 +3767,7 @@ static void imguiWindow()
       RendInstPhys &phys = riPhys[i];
       if (rendinst::returnRIGenExternalControl(phys.desc, phys.ri))
       {
-        phys.cleanup();
+        cleanup_ri_phys(phys);
         erase_items(riPhys, i, 1);
         i--;
         continue;
@@ -3209,4 +3778,52 @@ static void imguiWindow()
 
 REGISTER_IMGUI_WINDOW("Render", "Tree Destruction", imguiWindow);
 } // namespace rendinstdestr
+
+static bool ridestr_console_handler(const char *argv[], int argc)
+{
+  int found = 0;
+  CONSOLE_CHECK_NAME("ridestr", "mass_destroy", 1, 3)
+  {
+    // Usage: ridestr.mass_destroy [radius=50] [probability=0.1]
+    // Destroys destructible riExtra instances around the camera with the given probability.
+    if (!get_current_camera_pos)
+    {
+      console::print_d("ridestr.mass_destroy: no camera pos callback");
+      return true;
+    }
+    float radius = argc >= 2 ? console::to_real(argv[1]) : 50.f;
+    float probability = argc >= 3 ? clamp(console::to_real(argv[2]), 0.f, 1.f) : 0.1f;
+
+    if (phys_world)
+      phys_world->fetchSimRes(true);
+
+    Point3 camPos = get_current_camera_pos();
+    BSphere3 sphere(camPos, radius);
+
+    rendinst::riex_collidable_t handles;
+    rendinst::gatherRIGenExtraCollidable(handles, sphere, true);
+
+    int destroyed = 0;
+    int total = 0;
+    for (int i = 0; i < handles.size(); ++i)
+    {
+      rendinst::RendInstDesc desc(handles[i]);
+      rendinst::CollisionInfo collInfo = rendinst::getRiGenDestrInfo(desc);
+      if (!collInfo.isDestr)
+        continue;
+      total++;
+      if (rnd_float(0.f, 1.f) > probability)
+        continue;
+      rendinstdestr::destroyRendinst(desc, true, collInfo.tm.getcol(3), ZERO<Point3>(), 0.f, &collInfo, true, nullptr, -1, 1.f,
+        nullptr, rendinst::DestrOptionFlag::AddDestroyedRi | rendinst::DestrOptionFlag::ForceDestroy);
+      destroyed++;
+    }
+    console::print_d("ridestr.mass_destroy: destroyed %d / %d RIs with debris in radius %.0f (p=%.0f%%)", destroyed, total, radius,
+      probability * 100.f);
+    return true;
+  }
+  return found;
+}
+REGISTER_CONSOLE_HANDLER(ridestr_console_handler);
+
 #endif // TREE_DESTR_DEBUG

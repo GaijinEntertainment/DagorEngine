@@ -3,13 +3,13 @@
 #include "entityMatEditor.h"
 
 #include <assets/assetExporter.h>
+#include <assetsGui/av_assetTreeDragHandler.h>
 #include <gameRes/dag_gameResSystem.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <shaders/dag_shMaterialUtils.h>
 #include <EASTL/algorithm.h>
 #include <propPanel/control/container.h>
 #include <shaders/dag_shaderCommon.h>
-#include <obsolete/dag_cfg.h>
 #include <osApiWrappers/dag_direct.h>
 #include <winGuiWrapper/wgw_input.h>
 #include <winGuiWrapper/wgw_dialogs.h>
@@ -29,23 +29,34 @@
 #include "../../../engine/shaders/scriptSElem.h"
 #include "../../../engine/shaders/scriptSMat.h"
 #include "../av_appwnd.h"
+#include "entityMatEditorUndo.h"
 #include <rendInst/rendInstGen.h>
 #include <rendInst/rendInstExtra.h>
 #include <rendInst/rendInstExtraRender.h>
 
 using hdpi::_pxScaled;
+using PropPanel::DragAndDropResult;
 
 namespace gamereshooks
 {
-int aux_game_res_handle_to_id(GameResHandle h, unsigned cid);
+int aux_game_res_handle_to_id(const char *resname, unsigned cid);
 }
+
+PropPanel::ContainerPropertyControl *get_material_editor_group();
 
 enum
 {
+  // each shader variable consists of maximum three controls:
+  // - ExtGroupPropertyControl (not each variable has a separate group but theoretically they could have)
+  // - ExtensiblePropertyControl
+  // - the variable itself
+  CONTROLS_PER_MATERIAL_VAR = 3,
+
   MAX_MATERIAL_VAR_COUNT = 128,
   MAX_MATERIAL_TEXTURE_COUNT = 64,
   MAX_MATERIAL_EXTRA_CONTROLS_COUNT = 64,
-  MAX_MATERIAL_GROUP_GUI_ELEMENTS_COUNT = MAX_MATERIAL_VAR_COUNT + MAX_MATERIAL_TEXTURE_COUNT + MAX_MATERIAL_EXTRA_CONTROLS_COUNT,
+  MAX_MATERIAL_GROUP_GUI_ELEMENTS_COUNT =
+    (CONTROLS_PER_MATERIAL_VAR * MAX_MATERIAL_VAR_COUNT) + MAX_MATERIAL_TEXTURE_COUNT + MAX_MATERIAL_EXTRA_CONTROLS_COUNT,
 
   MAX_LOD_MATERIAL_COUNT = 64,
   MAX_LOD_EXTRA_CONTROLS_COUNT = 64,
@@ -79,9 +90,14 @@ enum
   LPID_RESET_PARAMS_TO_DAG_BUTTON,
   LPID_ADD_SCRIPT_VARIABLES_BUTTON,
   LPID_REMOVE_SCRIPT_VARIABLES_BUTTON,
-  LPID_SHADER_VARS_BASE,
-  LPID_TEXTURE_LIST_BASE = LPID_SHADER_VARS_BASE + MAX_MATERIAL_VAR_COUNT
+  LPID_SHADER_VARS_PARAMETER_GROUP_BASE,                                                             // for ExtGroupPropertyControl
+  LPID_SHADER_VARS_EXTENSIBLE_BASE = LPID_SHADER_VARS_PARAMETER_GROUP_BASE + MAX_MATERIAL_VAR_COUNT, // for ExtensiblePropertyControl
+  LPID_SHADER_VARS_BASE = LPID_SHADER_VARS_EXTENSIBLE_BASE + MAX_MATERIAL_VAR_COUNT,
+  LPID_TEXTURE_LIST_BASE = LPID_SHADER_VARS_BASE + MAX_MATERIAL_VAR_COUNT,
 };
+
+G_STATIC_ASSERT(
+  LPID_TEXTURE_LIST_BASE == (LPID_SHADER_VARS_PARAMETER_GROUP_BASE + (CONTROLS_PER_MATERIAL_VAR * MAX_MATERIAL_VAR_COUNT)));
 
 #define PERFORM_FOR_ENTITY_LOD_SCENE(entity, action, lod, check)                                 \
   if (auto *getLodsRes = (entity)->queryInterface<IEntityGetDynSceneLodsRes>())                  \
@@ -108,6 +124,144 @@ static String make_shader_button_name(const char *shclass_name) { return String(
 static String make_proxymat_button_name(const char *proxymat_name)
 {
   return String(0, "ProxyMat: %s", *proxymat_name ? proxymat_name : missingResName);
+}
+
+static bool is_var_within_limits(const MatVarDesc &var, const ShaderVariableLimits *limits)
+{
+  if (!limits || !limits->hasMinMaxValue())
+    return true;
+
+  if (var.type == MAT_VAR_TYPE_INT)
+  {
+    const int minValue = (int)floor(limits->minValue);
+    const int maxValue = (int)ceil(limits->maxValue);
+    return var.value.i >= minValue && var.value.i <= limits->maxValue;
+  }
+  else if (var.type == MAT_VAR_TYPE_REAL)
+  {
+    return var.value.r >= limits->minValue && var.value.r <= limits->maxValue;
+  }
+  else if (var.type == MAT_VAR_TYPE_COLOR4)
+  {
+    return var.value.c[0] >= limits->minValue && var.value.c[0] <= limits->maxValue && var.value.c[1] >= limits->minValue &&
+           var.value.c[1] <= limits->maxValue && var.value.c[2] >= limits->minValue && var.value.c[2] <= limits->maxValue &&
+           var.value.c[3] >= limits->minValue && var.value.c[3] <= limits->maxValue;
+  }
+
+  return true;
+}
+
+static void set_up_shader_var_property_internal(PropPanel::ContainerPropertyControl &panel, int property_id, const char *variable_name,
+  const char *description, const char *limits, bool within_limits, const char *default_value, bool value_is_default)
+{
+  static String tooltip;
+
+  const bool hasLimits = limits && *limits;
+  if (within_limits || !hasLimits)
+  {
+    tooltip = variable_name;
+
+    if (description && *description)
+    {
+      tooltip += "\n\n";
+      tooltip += description;
+    }
+
+    if (hasLimits)
+    {
+      tooltip += "\n\nExpected range: ";
+      tooltip += limits;
+    }
+
+    if (default_value && *default_value)
+    {
+      tooltip += hasLimits ? "\n" : "\n\n";
+      tooltip += "Default value: ";
+      tooltip += default_value;
+    }
+
+    // According to the design the default values are highlighted.
+    panel.setValueHighlightById(property_id,
+      value_is_default ? PropPanel::ColorOverride::EDIT_BOX_NON_DEFAULT_VALUE_BACKGROUND : PropPanel::ColorOverride::NONE);
+  }
+  else
+  {
+    tooltip = "WARNING!\nExpected range: ";
+    tooltip += limits;
+
+    if (default_value && *default_value)
+    {
+      tooltip += "\nDefault value: ";
+      tooltip += default_value;
+    }
+
+    panel.setValueHighlightById(property_id, PropPanel::ColorOverride::EDIT_BOX_WRONG_VALUE_BACKGROUND);
+  }
+
+  panel.setTooltipId(property_id, tooltip);
+}
+
+static void set_up_shader_var_property(PropPanel::ContainerPropertyControl &panel, int property_id, const MatVarDesc &var,
+  const ShaderVariableLimits *limits)
+{
+  const bool withinLimits = is_var_within_limits(var, limits);
+
+  String limitsText;
+  if (var.type == MAT_VAR_TYPE_INT && limits && limits->hasMinMaxValue())
+  {
+    const int minValue = (int)floor(limits->minValue);
+    const int maxValue = (int)ceil(limits->maxValue);
+    limitsText.printf(0, "[%d, %d]", minValue, maxValue);
+  }
+  else if (var.type == MAT_VAR_TYPE_REAL && limits && limits->hasMinMaxValue())
+  {
+    limitsText.printf(0, "[%g, %g]", limits->minValue, limits->maxValue);
+  }
+  else if (var.type == MAT_VAR_TYPE_COLOR4 && limits && limits->hasMinMaxValue())
+  {
+    limitsText.printf(0, "[%g, %g] for all components", limits->minValue, limits->maxValue);
+  }
+
+  String defaultText;
+  bool valueIsDefault = true;
+  if (limits && limits->defaultValueType == var.type)
+  {
+    const ShaderMatData::VarValue &def = limits->defaultValue;
+
+    switch (limits->defaultValueType)
+    {
+      case MAT_VAR_TYPE_BOOL:
+        defaultText.printf(0, "%d", def.i == 0 ? 0 : 1);
+        valueIsDefault = var.value.i == def.i;
+        break;
+
+      case MAT_VAR_TYPE_ENUM_LIGHTING:
+        G_STATIC_ASSERT(LIGHTING_NONE == 0);
+        G_STATIC_ASSERT(LIGHTING_TYPE_COUNT == 3);
+        defaultText =
+          (def.i >= LIGHTING_NONE && def.i < LIGHTING_TYPE_COUNT) ? lightingTypeStrs[def.i] : lightingTypeStrs[LIGHTING_NONE];
+        valueIsDefault = var.value.i == def.i;
+        break;
+
+      case MAT_VAR_TYPE_INT:
+        defaultText.printf(0, "%d", def.i);
+        valueIsDefault = var.value.i == def.i;
+        break;
+
+      case MAT_VAR_TYPE_REAL:
+        defaultText.printf(0, "%g", def.r);
+        valueIsDefault = var.value.r == def.r;
+        break;
+
+      case MAT_VAR_TYPE_COLOR4:
+        defaultText.printf(0, "%g, %g, %g, %g", def.c[0], def.c[1], def.c[2], def.c[3]);
+        valueIsDefault = var.value.c4() == def.c4();
+        break;
+    }
+  }
+
+  set_up_shader_var_property_internal(panel, property_id, var.name.c_str(), limits ? limits->description.c_str() : nullptr,
+    limitsText.c_str(), withinLimits, defaultText.c_str(), valueIsDefault);
 }
 
 static bool should_skip_var(const char *var_name)
@@ -259,6 +413,224 @@ static String get_asset_dag_file_path(const DagorAsset &asset, int lod)
   return String(0, "%s/%s.lod%02d.dag", asset.getFolderPath(), asset.getName(), lod);
 }
 
+namespace
+{
+
+struct ShaderParameterGroup
+{
+  SimpleString groupName;
+  SimpleString groupDescription;
+  dag::Vector<MatVarDesc> varsResult;
+  dag::Vector<int> varIndices;
+  dag::Vector<const ShaderVariableLimits *> varLimits;
+};
+
+struct ShaderParameterGroups
+{
+  void fillGroups(const ska::flat_hash_map<eastl::string, ShaderDescriptor> &shader_prop_separators,
+    const ShaderSeparatorToPropsType &shader_separator_to_props, const dag::Vector<MatVarDesc> &vars)
+  {
+    // Global properties
+    auto globalsIt = shader_prop_separators.find("_global_params");
+    ShaderParameterGroup *group = nullptr;
+    if (globalsIt != shader_prop_separators.end())
+    {
+      const ShaderSeparatorToPropsType &props = globalsIt->second.shaderSeparatorToProps;
+      for (const auto &kv : props)
+      {
+        for (int varId = 0; varId < vars.size(); ++varId)
+        {
+          const MatVarDesc &var = vars[varId];
+          if (!var.usedInMaterial)
+            continue;
+          auto propIt = kv.second.shaderVariables.find(var.name.c_str());
+          if (propIt != kv.second.shaderVariables.end() && !isVarInProps(shader_separator_to_props, var.name))
+          {
+            if (!group)
+            {
+              group = &groups.push_back();
+              group->groupName = "Global parameters";
+            }
+
+            group->varsResult.push_back(var);
+            group->varIndices.push_back(varId);
+            group->varLimits.push_back(&propIt->second);
+          }
+        }
+      }
+    }
+
+    // Shader properties
+    for (const auto &kv : shader_separator_to_props)
+    {
+      group = nullptr;
+      for (int varId = 0; varId < vars.size(); ++varId)
+      {
+        const MatVarDesc &var = vars[varId];
+        if (!var.usedInMaterial)
+          continue;
+        const ShaderDescriptorVariableGroup &descriptorGroup = kv.second;
+        auto propIt = descriptorGroup.shaderVariables.find(var.name.c_str());
+        if (propIt != descriptorGroup.shaderVariables.end())
+        {
+          if (!group)
+          {
+            group = &groups.push_back();
+            group->groupName = kv.first.c_str();
+            group->groupDescription = descriptorGroup.description.c_str();
+          }
+
+          group->varsResult.push_back(var);
+          group->varIndices.push_back(varId);
+          group->varLimits.push_back(&propIt->second);
+        }
+      }
+    }
+
+    // Gather shader vars not listed in dagorShaders.blk
+    group = getGroupByName("");
+    for (int varId = 0; varId < vars.size(); ++varId)
+    {
+      const MatVarDesc &var = vars[varId];
+      if (!var.usedInMaterial)
+        continue;
+
+      if (globalsIt != shader_prop_separators.end() && isVarInProps(globalsIt->second.shaderSeparatorToProps, var.name))
+        continue;
+
+      if (isVarInProps(shader_separator_to_props, var.name))
+        continue;
+
+      if (!group)
+        group = &groups.push_back();
+
+      group->varsResult.push_back(var);
+      group->varIndices.push_back(varId);
+      group->varLimits.push_back(nullptr);
+    }
+  }
+
+  ShaderParameterGroup *getGroupByName(const char *name)
+  {
+    for (ShaderParameterGroup &group : groups)
+      if (strcmp(group.groupName.c_str(), name) == 0)
+        return &group;
+    return nullptr;
+  }
+
+  const ShaderParameterGroup *getGroupByVariableIndex(int variable_index)
+  {
+    for (const ShaderParameterGroup &group : groups)
+      for (int index : group.varIndices)
+        if (index == variable_index)
+          return &group;
+    return nullptr;
+  }
+
+  static bool isVarInProps(const ShaderSeparatorToPropsType &props, const SimpleString &var_name)
+  {
+    for (const auto &kv : props)
+      if (kv.second.shaderVariables.find(var_name.c_str()) != kv.second.shaderVariables.end())
+        return true;
+    return false;
+  }
+
+  dag::Vector<ShaderParameterGroup> groups;
+};
+
+void set_up_shader_parameter_group_property(PropPanel::ContainerPropertyControl &panel, const ShaderParameterGroup &group)
+{
+  static String tooltip;
+
+  int outOfLimitCount = 0;
+  for (int i = 0; i < group.varIndices.size(); ++i)
+  {
+    const MatVarDesc &var = group.varsResult[i];
+    const ShaderVariableLimits *variableLimits = group.varLimits.empty() ? nullptr : group.varLimits[i];
+    if (!is_var_within_limits(var, variableLimits))
+      ++outOfLimitCount;
+  }
+
+  if (outOfLimitCount > 1)
+    tooltip.printf(0, "WARNING!\n%d variables are out of range.", outOfLimitCount);
+  else if (outOfLimitCount == 1)
+    tooltip = "WARNING!\nA variable is out of range.";
+  else
+  {
+    tooltip = group.groupName.c_str();
+
+    if (!group.groupDescription.empty())
+    {
+      tooltip += "\n\n";
+      tooltip += group.groupDescription.c_str();
+    }
+  }
+
+  panel.setValueHighlight(
+    outOfLimitCount > 0 ? PropPanel::ColorOverride::EDIT_BOX_WRONG_VALUE_BACKGROUND : PropPanel::ColorOverride::NONE);
+  panel.setTooltip(tooltip);
+}
+
+void update_shader_parameter_group_property(PropPanel::ContainerPropertyControl &panel, int pcb_id,
+  const ska::flat_hash_map<eastl::string, ShaderDescriptor> &shader_prop_separators, const EntityMatProperties &mat_props,
+  int variable_index)
+{
+  const auto shaderIt = shader_prop_separators.find(mat_props.shClassName.c_str());
+  if (shaderIt == shader_prop_separators.end())
+    return;
+
+  const ShaderDescriptor &shaderDescriptor = shaderIt->second;
+  ShaderParameterGroups shaderParameterGroups;
+  shaderParameterGroups.fillGroups(shader_prop_separators, shaderDescriptor.shaderSeparatorToProps, mat_props.vars);
+
+  PropPanel::PropertyControlBase *control = panel.getById(pcb_id);
+  G_ASSERT(control);
+  PropPanel::ContainerPropertyControl *controlParent = control->getParent(); // extensible
+  G_ASSERT(controlParent);
+  controlParent = controlParent->getParent(); // extensible group
+  G_ASSERT(controlParent);
+
+  const ShaderParameterGroup *group = shaderParameterGroups.getGroupByVariableIndex(variable_index);
+  G_ASSERT(group);
+
+  set_up_shader_parameter_group_property(*controlParent, *group);
+}
+
+} // namespace
+
+const ShaderVariableLimits *EntityMaterialEditor::getShaderVariableLimits(const EntityMatProperties &mat_props,
+  const MatVarDesc &var) const
+{
+  const char *matShaderName = mat_props.shClassName.c_str();
+  const auto shaderIt = shaderPropSeparators.find(matShaderName);
+  if (shaderIt == shaderPropSeparators.end())
+    return nullptr;
+
+  // Shader properties
+  const ShaderSeparatorToPropsType &shaderSeparatorToProps = shaderIt->second.shaderSeparatorToProps;
+  for (const auto &kv : shaderSeparatorToProps)
+  {
+    auto propIt = kv.second.shaderVariables.find(var.name.c_str());
+    if (propIt != kv.second.shaderVariables.end())
+      return &propIt->second;
+  }
+
+  // Global properties
+  auto globalsIt = shaderPropSeparators.find("_global_params");
+  if (globalsIt != shaderPropSeparators.end())
+  {
+    const ShaderSeparatorToPropsType &props = globalsIt->second.shaderSeparatorToProps;
+    for (const auto &kv : props)
+    {
+      auto propIt = kv.second.shaderVariables.find(var.name.c_str());
+      if (propIt != kv.second.shaderVariables.end())
+        return &propIt->second;
+    }
+  }
+
+  return nullptr;
+}
+
 int EntityMaterialEditor::getMaterialIndexByName(const DagMatFileResourcesHandler &file_res, const char *name)
 {
   const int count = file_res.getMaterialCount();
@@ -347,7 +719,7 @@ void EntityMaterialEditor::begin(DagorAsset *asset, IObjEntity *asset_entity)
   }
 
   end();
-  if (!asset)
+  if (!asset || !entity)
     return;
 
   assetSrcFolderPath = asset->getFolderPath();
@@ -355,9 +727,18 @@ void EntityMaterialEditor::begin(DagorAsset *asset, IObjEntity *asset_entity)
 
   if (appBlk.isEmpty())
   {
-    appBlk = DataBlock(::get_app().getWorkspace().getAppPath());
+    appBlk.load(::get_app().getWorkspace().getAppBlkPath());
     shaderPropSeparators = gatherParameterSeparators(appBlk, ::get_app().getWorkspace().getAppDir());
+
+    for (auto &shClass : shBinDump().classes)
+    {
+      const char *shaderName = (const char *)shClass.name;
+      set_defaults_from_shader_bin_dump(shaderName, shaderPropSeparators[shaderName]);
+    }
   }
+
+  proxymatDropHandler.reset(new ProxymatAssetDragAndDropHandler(this));
+  textureDropHandler.reset(new TextureAssetDragAndDropHandler(this));
 
   const DataBlock *curTypeBlk = appBlk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx(
     DAEDITOR3.getAssetTypeName(asset_entity->getAssetTypeId()));
@@ -436,6 +817,10 @@ bool EntityMaterialEditor::end()
     }
   }
 
+  UndoSystem *undoSystem = get_app().getUndoSystem();
+  G_ASSERT(undoSystem);
+  undoSystem->clear();
+
   active = false;
   return true;
 }
@@ -483,30 +868,78 @@ void EntityMaterialEditor::fillPropPanel(PropPanel::ContainerPropertyControl &pa
 }
 
 void EntityMaterialEditor::addShaderProps(int mat_gui_elements_baseid, PropPanel::ContainerPropertyControl &mat_panel,
-  const dag::Vector<MatVarDesc> &vars, const dag::Vector<int> &var_indices)
+  const dag::Vector<MatVarDesc> &vars, const dag::Vector<int> &var_indices, dag::ConstSpan<const ShaderVariableLimits *> var_limits)
 {
+  auto createExtensible = [&mat_panel](int id) {
+    PropPanel::ContainerPropertyControl *extensible = mat_panel.createExtensible(id, true, "delete", "Remove parameter");
+    extensible->setIntValue(1 << PropPanel::EXT_BUTTON_SINGLE_ACTION);
+    return extensible;
+  };
+
   for (int varId = 0; varId < vars.size(); ++varId)
   {
     const MatVarDesc &var = vars[varId];
     if (!var.usedInMaterial)
       continue;
-    int propVarId = var_indices.size() ? var_indices[varId] : varId;
-    int propId = mat_gui_elements_baseid + LPID_SHADER_VARS_BASE + propVarId;
+    const int propVarId = var_indices.size() ? var_indices[varId] : varId;
+    const int extensiblePropId = mat_gui_elements_baseid + LPID_SHADER_VARS_EXTENSIBLE_BASE + propVarId;
+    const int propId = mat_gui_elements_baseid + LPID_SHADER_VARS_BASE + propVarId;
+    G_ASSERT(propVarId >= 0);
+    G_ASSERT(propVarId < MAX_MATERIAL_VAR_COUNT);
+    G_ASSERT(propId == (extensiblePropId + MAX_MATERIAL_VAR_COUNT));
     switch (var.type)
     {
-      case MAT_VAR_TYPE_BOOL: mat_panel.createCheckBox(propId, var.name.c_str(), var.value.i); break;
+      case MAT_VAR_TYPE_BOOL:
+      {
+        PropPanel::ContainerPropertyControl *extensible = createExtensible(extensiblePropId);
+        extensible->createCheckBox(propId, var.name.c_str(), var.value.i);
+        set_up_shader_var_property(*extensible, propId, var, var_limits.empty() ? nullptr : var_limits[varId]);
+        break;
+      }
+
       case MAT_VAR_TYPE_ENUM_LIGHTING:
       {
+        PropPanel::ContainerPropertyControl *extensible = createExtensible(extensiblePropId);
+
         Tab<String> vals(tmpmem);
         vals.reserve(LIGHTING_TYPE_COUNT);
         for (int i = 0; i < LIGHTING_TYPE_COUNT; ++i)
           vals.push_back(String(lightingTypeStrs[i]));
-        mat_panel.createCombo(propId, var.name.c_str(), vals, var.value.i);
+        extensible->createCombo(propId, var.name.c_str(), vals, var.value.i);
+        set_up_shader_var_property(*extensible, propId, var, var_limits.empty() ? nullptr : var_limits[varId]);
         break;
       }
-      case MAT_VAR_TYPE_INT: mat_panel.createEditInt(propId, var.name.c_str(), var.value.i); break;
-      case MAT_VAR_TYPE_REAL: mat_panel.createEditFloat(propId, var.name.c_str(), var.value.r); break;
-      case MAT_VAR_TYPE_COLOR4: mat_panel.createPoint4(propId, var.name.c_str(), Point4(var.value.c, Point4::CTOR_FROM_PTR)); break;
+
+      case MAT_VAR_TYPE_INT:
+      {
+        PropPanel::ContainerPropertyControl *extensible = createExtensible(extensiblePropId);
+        extensible->createEditInt(propId, var.name.c_str(), var.value.i);
+        set_up_shader_var_property(*extensible, propId, var, var_limits.empty() ? nullptr : var_limits[varId]);
+        break;
+      }
+
+      case MAT_VAR_TYPE_REAL:
+      {
+        PropPanel::ContainerPropertyControl *extensible = createExtensible(extensiblePropId);
+        extensible->createEditFloat(propId, var.name.c_str(), var.value.r);
+        set_up_shader_var_property(*extensible, propId, var, var_limits.empty() ? nullptr : var_limits[varId]);
+        break;
+      }
+
+      case MAT_VAR_TYPE_COLOR4:
+      {
+        PropPanel::ContainerPropertyControl *extensible = createExtensible(extensiblePropId);
+
+        const ShaderVariableLimits *limits = var_limits.empty() ? nullptr : var_limits[varId];
+        if (limits && limits->editAsColor)
+          extensible->createColorBox(propId, var.name.c_str(), e3dcolor(var.value.c4()), true, true, false);
+        else
+          extensible->createPoint4(propId, var.name.c_str(), Point4(var.value.c, Point4::CTOR_FROM_PTR));
+
+        set_up_shader_var_property(*extensible, propId, var, limits);
+        break;
+      }
+
       default: break;
     }
   }
@@ -515,84 +948,112 @@ void EntityMaterialEditor::addShaderProps(int mat_gui_elements_baseid, PropPanel
 void EntityMaterialEditor::addShaderPropsCategories(int mat_gui_elements_baseid, PropPanel::ContainerPropertyControl &mat_panel,
   const dag::Vector<MatVarDesc> &vars, const ShaderSeparatorToPropsType &shaderSeparatorToProps)
 {
-  auto isVarInProps = [](const ShaderSeparatorToPropsType &props, const SimpleString &var_name) {
-    for (const auto &kv : props)
-      if (kv.second.find(var_name.c_str()) != kv.second.end())
-        return true;
-    return false;
-  };
+  ShaderParameterGroups shaderParameterGroups;
+  shaderParameterGroups.fillGroups(shaderPropSeparators, shaderSeparatorToProps, vars);
 
-  // Global properties
-  auto globalsIt = shaderPropSeparators.find("_global_params");
-  if (globalsIt != shaderPropSeparators.end())
+  eastl::sort(shaderParameterGroups.groups.begin(), shaderParameterGroups.groups.end(),
+    [](const ShaderParameterGroup &a, const ShaderParameterGroup &b) {
+      if (a.groupName.empty() || b.groupName.empty())
+        return a.groupName.empty() < b.groupName.empty();
+
+      return strcmp(a.groupName, b.groupName) < 0;
+    });
+
+  for (const ShaderParameterGroup &group : shaderParameterGroups.groups)
   {
-    dag::Vector<MatVarDesc> varsResult;
-    dag::Vector<int> varIndices;
-    const ShaderSeparatorToPropsType &props = globalsIt->second;
-    for (const auto &kv : props)
-    {
-      for (int varId = 0; varId < vars.size(); ++varId)
-      {
-        const MatVarDesc &var = vars[varId];
-        if (!var.usedInMaterial)
-          continue;
-        if (kv.second.find(var.name.c_str()) != kv.second.end() && !isVarInProps(shaderSeparatorToProps, var.name))
-        {
-          varsResult.push_back(var);
-          varIndices.push_back(varId);
-        }
-      }
-      if (!varsResult.empty())
-      {
-        mat_panel.createStatic(0, "Global parameters");
-        addShaderProps(mat_gui_elements_baseid, mat_panel, varsResult, varIndices);
-      }
-    }
+    const int groupId = mat_gui_elements_baseid + LPID_SHADER_VARS_PARAMETER_GROUP_BASE + group.varIndices[0];
+    const char *groupName = group.groupName.empty() ? (shaderParameterGroups.groups.size() == 1 ? "Parameters" : "Other parameters")
+                                                    : group.groupName.c_str();
+    PropPanel::ContainerPropertyControl *groupContainer =
+      mat_panel.createExtGroup(groupId, groupName, "delete", "Remove all parameters in this group");
+    groupContainer->setIntValue(1 << PropPanel::EXT_BUTTON_SINGLE_ACTION);
 
-    // Shader properties
-    for (const auto &kv : shaderSeparatorToProps)
-    {
-      dag::Vector<MatVarDesc> varsResult;
-      dag::Vector<int> varIndices;
-      for (int varId = 0; varId < vars.size(); ++varId)
-      {
-        const MatVarDesc &var = vars[varId];
-        if (!var.usedInMaterial)
-          continue;
-        if (kv.second.find(var.name.c_str()) != kv.second.end())
-        {
-          varsResult.push_back(var);
-          varIndices.push_back(varId);
-        }
-      }
-      if (!varsResult.empty())
-      {
-        mat_panel.createSeparator();
-        if (!kv.first.empty())
-          mat_panel.createStatic(0, kv.first.c_str());
-        addShaderProps(mat_gui_elements_baseid, mat_panel, varsResult, varIndices);
-      }
-    }
-
-    // Gather shader vars not listed in dagorShaders.cfg
-    dag::Vector<MatVarDesc> unlistedVars;
-    varIndices.clear();
-    for (int varId = 0; varId < vars.size(); ++varId)
-    {
-      const MatVarDesc &var = vars[varId];
-      if (!var.usedInMaterial)
-        continue;
-      const ShaderSeparatorToPropsType &props = globalsIt->second;
-      if (!isVarInProps(props, var.name) && !isVarInProps(shaderSeparatorToProps, var.name))
-      {
-        unlistedVars.push_back(var);
-        varIndices.push_back(varId);
-      }
-    }
-
-    mat_panel.createSeparator();
-    addShaderProps(mat_gui_elements_baseid, mat_panel, unlistedVars, varIndices);
+    addShaderProps(mat_gui_elements_baseid, *groupContainer, group.varsResult, group.varIndices, group.varLimits);
+    set_up_shader_parameter_group_property(*groupContainer, group);
   }
+}
+
+DragAndDropResult ProxymatAssetDragAndDropHandler::handleDropTarget(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+{
+  int lod, matId, matLocalPropId;
+  if (!get_panel_property_address(pcb_id, lod, matId, matLocalPropId))
+    return DragAndDropResult::NONE;
+
+  const int matGuiElementsBaseId = get_mat_group_panel_base_pid(lod, matId);
+  if (pcb_id != (matGuiElementsBaseId + LPID_PROXYMAT_BUTTON))
+    return DragAndDropResult::NONE;
+
+  const ImGuiPayload *dragAndDropPayload = PropPanel::acceptDragDropPayloadBeforeDelivery(ASSET_DRAG_AND_DROP_TYPE);
+  if (!dragAndDropPayload)
+    return DragAndDropResult::NONE;
+
+  AssetDragData dragData;
+  PropPanel::getDragAndDropPayloadData<AssetDragData>(dragAndDropPayload, &dragData);
+
+  // Only allow dropping into the same asset type!
+  DagorAsset *asset = dragData.asset;
+  if (asset == nullptr || strcmp(asset->getTypeStr(), "proxymat") != 0)
+    return DragAndDropResult::NOT_ALLOWED;
+
+  const char *newProxyMatName = asset->getName();
+  if (!newProxyMatName)
+    return DragAndDropResult::NONE;
+
+  if (dragAndDropPayload->IsDelivery())
+  {
+    matEditor->performSwitchToNewProxyMat(lod, matId, newProxyMatName);
+
+    PropPanel::ContainerPropertyControl *editor_panel = panel;
+    auto lod_panel = panel->getParent();
+    if (lod_panel != nullptr)
+    {
+      editor_panel = lod_panel;
+      auto material_editor_panel = lod_panel->getParent();
+      if (material_editor_panel != nullptr)
+        editor_panel = material_editor_panel;
+    }
+    matEditor->refillMatPropPanel(lod, matId, *editor_panel);
+
+    return DragAndDropResult::ACCEPTED;
+  }
+
+  return DragAndDropResult::NONE;
+}
+
+DragAndDropResult TextureAssetDragAndDropHandler::handleDropTarget(int pcb_id, PropPanel::ContainerPropertyControl *panel)
+{
+  int lod, matId, matLocalPropId;
+  if (!get_panel_property_address(pcb_id, lod, matId, matLocalPropId))
+    return DragAndDropResult::NONE;
+
+  const ImGuiPayload *dragAndDropPayload = PropPanel::acceptDragDropPayloadBeforeDelivery(ASSET_DRAG_AND_DROP_TYPE);
+  if (!dragAndDropPayload)
+    return DragAndDropResult::NONE;
+
+  AssetDragData dragData;
+  PropPanel::getDragAndDropPayloadData<AssetDragData>(dragAndDropPayload, &dragData);
+
+  // Only allow dropping into the same asset type!
+  DagorAsset *asset = dragData.asset;
+  if (asset == nullptr || asset->getType() != asset->getMgr().getTexAssetTypeId())
+    return DragAndDropResult::NOT_ALLOWED;
+
+  const char *newMatTexName = asset->getName();
+  if (!newMatTexName)
+    return DragAndDropResult::NONE;
+
+  if (dragAndDropPayload->IsDelivery())
+  {
+    const int matGuiElementsBaseId = get_mat_group_panel_base_pid(lod, matId);
+    int texSlot = pcb_id - (matGuiElementsBaseId + LPID_TEXTURE_LIST_BASE);
+    matEditor->matDataPerLod[lod].matProperties[matId].textures[texSlot] = newMatTexName;
+    matEditor->updateAssetShaderMaterial(lod, matId);
+    panel->setText(pcb_id, newMatTexName);
+
+    return DragAndDropResult::ACCEPTED;
+  }
+
+  return DragAndDropResult::NONE;
 }
 
 void EntityMaterialEditor::fillMatPropPanel(int lod, int mat_id, PropPanel::ContainerPropertyControl &mat_panel)
@@ -609,14 +1070,21 @@ void EntityMaterialEditor::fillMatPropPanel(int lod, int mat_id, PropPanel::Cont
     mat_panel.setCaptionValue(matProps.matName.c_str());
 
   mat_panel.createButton(matGuiElementsBaseId + LPID_SHADER_BUTTON, make_shader_button_name(matShaderName));
-  SimpleString proxyMatName = matDataPerLod[lod].fileRes->getCurProxyMatName(matProps.dagMatId);
-  mat_panel.createButton(matGuiElementsBaseId + LPID_PROXYMAT_BUTTON, make_proxymat_button_name(proxyMatName.c_str()));
 
   const auto it = shaderPropSeparators.find(matShaderName);
-  if (it == eastl::end(shaderPropSeparators))
+  const ShaderDescriptor *shaderDescriptor = it == shaderPropSeparators.end() ? nullptr : &it->second;
+  if (shaderDescriptor && !shaderDescriptor->description.empty())
+    mat_panel.setTooltipId(matGuiElementsBaseId + LPID_SHADER_BUTTON, shaderDescriptor->description.c_str());
+
+  SimpleString proxyMatName = matDataPerLod[lod].fileRes->getCurProxyMatName(matProps.dagMatId);
+  const int proxymatButtonId = matGuiElementsBaseId + LPID_PROXYMAT_BUTTON;
+  mat_panel.createButton(proxymatButtonId, make_proxymat_button_name(proxyMatName.c_str()));
+  mat_panel.setDropTargetHandler(proxymatDropHandler.get());
+
+  if (!shaderDescriptor)
     addShaderProps(matGuiElementsBaseId, mat_panel, matProps.vars);
   else
-    addShaderPropsCategories(matGuiElementsBaseId, mat_panel, matProps.vars, it->second);
+    addShaderPropsCategories(matGuiElementsBaseId, mat_panel, matProps.vars, shaderDescriptor->shaderSeparatorToProps);
 
   mat_panel.createSeparator();
   mat_panel.createButton(matGuiElementsBaseId + LPID_SAVE_PARAMS_BUTTON, "Save parameters");
@@ -643,6 +1111,7 @@ void EntityMaterialEditor::fillMatPropPanel(int lod, int mat_id, PropPanel::Cont
       const char *label = !matProps.textures[texSlot].empty() ? matProps.textures[texSlot].c_str() : missingResName;
       grpTextures->createButton(matGuiElementsBaseId + LPID_TEXTURE_LIST_BASE + texSlot, label);
     }
+    grpTextures->setDropTargetHandler(textureDropHandler.get());
     grpTextures->setBoolValue(true);
   }
 
@@ -655,6 +1124,61 @@ void EntityMaterialEditor::refillMatPropPanel(int lod, int mat_id, PropPanel::Co
     editor_panel.getContainerById(get_mat_group_panel_base_pid(lod, mat_id) + LPID_MATERIAL_GROUP);
   if (grpMat)
     fillMatPropPanel(lod, mat_id, *grpMat);
+}
+
+int EntityMaterialEditor::swapTexture(int for_lod, const char *old_tex_name, const DagorAsset *new_tex,
+  PropPanel::ContainerPropertyControl &panel)
+{
+  const char *newMatTexName = new_tex->getName();
+  if (!newMatTexName)
+    return 0;
+
+  int swapped = 0;
+  for (int lod = 0; lod < matDataPerLod.size(); ++lod)
+  {
+    if (for_lod > -1 && lod != for_lod)
+      continue;
+
+    PropPanel::ContainerPropertyControl *grpLodMatList =
+      panel.getContainerById(lod * MAX_LOD_GROUP_GUI_ELEMENTS_COUNT + LPID_MATERIAL_GROUP);
+    if (!grpLodMatList)
+      continue;
+
+    for (int matId = 0; matId < matDataPerLod[lod].matProperties.size(); ++matId)
+    {
+      PropPanel::ContainerPropertyControl *grpMat =
+        grpLodMatList->getContainerById(get_mat_group_panel_base_pid(lod, matId) + LPID_MATERIAL_GROUP);
+      if (!grpMat)
+        continue;
+
+      EntityMatProperties &matProps = matDataPerLod[lod].matProperties[matId];
+      const char *matShaderName = matProps.shClassName.c_str();
+      const int matGuiElementsBaseId = get_mat_group_panel_base_pid(lod, matId);
+      PropPanel::ContainerPropertyControl *grpTextures = grpMat->getContainerById(matGuiElementsBaseId + LPID_TEXTURE_GROUP);
+      if (!grpTextures)
+        continue;
+
+      bool updateMaterial = false;
+      unsigned usedTexMask = get_shclass_used_tex_mask(matShaderName);
+      for (int texSlot = 0; texSlot < matProps.textures.size(); ++texSlot)
+      {
+        if (!(usedTexMask & (1 << texSlot)))
+          continue;
+
+        SimpleString &texName = matProps.textures[texSlot];
+        if (texName == old_tex_name)
+        {
+          texName = newMatTexName;
+          grpTextures->setText(matGuiElementsBaseId + LPID_TEXTURE_LIST_BASE + texSlot, newMatTexName);
+          updateMaterial = true;
+          swapped++;
+        }
+      }
+      if (updateMaterial)
+        updateAssetShaderMaterial(lod, matId);
+    }
+  }
+  return swapped;
 }
 
 void EntityMaterialEditor::updateAssetShaderMaterialInternal(int lod, int mat_id)
@@ -733,13 +1257,9 @@ void EntityMaterialEditor::updateAssetShaderMaterialInternal(int lod, int mat_id
         shaderElement->releaseTexRefs();
   }
 
+  PERFORM_FOR_ENTITY_LOD_SCENE(entity, updateShaderElems(), lod, CHECK);
   if (entity->getAssetTypeId() == DAEDITOR3.getAssetTypeId("rendInst"))
-  {
-    int resIdx = rendinst::addRIGenExtraResIdx(assetName.c_str(), -1, -1, rendinst::AddRIFlag::UseShadow);
-    RenderableInstanceLodsResource *res = rendinst::getRIGenExtraRes(resIdx);
-    res->updateShaderElems();
     rendinst::render::reinitOnShadersReload();
-  }
 }
 
 void EntityMaterialEditor::updateAssetShaderMaterial(int lod, int mat_id)
@@ -831,25 +1351,33 @@ const char *EntityMaterialEditor::performProxyMatSelection(int lod, int mat_id)
   const char *newProxyMatName = DAEDITOR3.selectAssetX(curProxyMatName.c_str(), "Select proxymat", "proxymat");
   if (newProxyMatName)
   {
-    lodMatData.fileRes->switchToProxyMat(matProps.dagMatId, newProxyMatName);
-
-    SimpleString oldShClassName = matProps.shClassName;
-    matProps.shClassName = lodMatData.fileRes->getShaderClass(matProps.dagMatId);
-    matProps.vars = lodMatData.fileRes->getVars(matProps.dagMatId);
-    matProps.textures = lodMatData.fileRes->getTextureNames(matProps.dagMatId);
-
-    if (oldShClassName != matProps.shClassName)
-    {
-      if (applyMaterialOverride(lod, mat_id))
-        reloadCurrentAsset();
-    }
-    else
-    {
-      updateAssetShaderMaterial(lod, mat_id);
-    }
+    performSwitchToNewProxyMat(lod, mat_id, newProxyMatName);
   }
 
   return newProxyMatName;
+}
+
+void EntityMaterialEditor::performSwitchToNewProxyMat(int lod, int mat_id, const char *new_proxy_mat_name)
+{
+  EntityLodMatData &lodMatData = matDataPerLod[lod];
+  EntityMatProperties &matProps = lodMatData.matProperties[mat_id];
+
+  lodMatData.fileRes->switchToProxyMat(matProps.dagMatId, new_proxy_mat_name);
+
+  SimpleString oldShClassName = matProps.shClassName;
+  matProps.shClassName = lodMatData.fileRes->getShaderClass(matProps.dagMatId);
+  matProps.vars = lodMatData.fileRes->getVars(matProps.dagMatId);
+  matProps.textures = lodMatData.fileRes->getTextureNames(matProps.dagMatId);
+
+  if (oldShClassName != matProps.shClassName)
+  {
+    if (applyMaterialOverride(lod, mat_id))
+      reloadCurrentAsset();
+  }
+  else
+  {
+    updateAssetShaderMaterial(lod, mat_id);
+  }
 }
 
 bool EntityMaterialEditor::setMatTexture(int lod, int mat_id, int tex_slot, const char *tex_name)
@@ -1073,10 +1601,13 @@ void EntityMaterialEditor::onChange(int pcb_id, PropPanel::ContainerPropertyCont
   if (matLocalPropId < LPID_TEXTURE_LIST_BASE && matLocalPropId >= LPID_SHADER_VARS_BASE)
   {
     int varId = matLocalPropId - LPID_SHADER_VARS_BASE;
-    MatVarDesc &var = matDataPerLod[lod].matProperties[matId].vars[varId];
+    EntityMatProperties &matProps = matDataPerLod[lod].matProperties[matId];
+    MatVarDesc &var = matProps.vars[varId];
+    const ShaderVariableLimits *limits = getShaderVariableLimits(matProps, var);
     switch (var.type)
     {
       case MAT_VAR_TYPE_BOOL: var.value.i = panel->getBool(pcb_id); break;
+
       case MAT_VAR_TYPE_ENUM_LIGHTING:
       {
         SimpleString valStr = panel->getText(pcb_id);
@@ -1088,16 +1619,30 @@ void EntityMaterialEditor::onChange(int pcb_id, PropPanel::ContainerPropertyCont
         var.value.i = val;
         break;
       }
+
       case MAT_VAR_TYPE_INT: var.value.i = panel->getInt(pcb_id); break;
+
       case MAT_VAR_TYPE_REAL: var.value.r = panel->getFloat(pcb_id); break;
+
       case MAT_VAR_TYPE_COLOR4:
       {
-        Point4 val = panel->getPoint4(pcb_id);
-        var.value.c4() = Color4(val.x, val.y, val.z, val.w);
+        if (limits && limits->editAsColor)
+        {
+          E3DCOLOR color = panel->getColor(pcb_id);
+          var.value.c4() = Color4(color);
+        }
+        else
+        {
+          Point4 val = panel->getPoint4(pcb_id);
+          var.value.c4() = Color4(val.x, val.y, val.z, val.w);
+        }
         break;
       }
+
       case MAT_VAR_TYPE_NONE: break; // to prevent the unhandled switch case error
     }
+    set_up_shader_var_property(*panel, pcb_id, var, limits);
+    update_shader_parameter_group_property(*panel, pcb_id, shaderPropSeparators, matProps, varId);
     updateAssetShaderMaterial(lod, matId);
   }
 }
@@ -1149,6 +1694,45 @@ void EntityMaterialEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
     if (newMatTexName)
       panel->setText(pcb_id, newMatTexName);
   }
+  else if (matLocalPropId >= LPID_SHADER_VARS_PARAMETER_GROUP_BASE && matLocalPropId < LPID_SHADER_VARS_EXTENSIBLE_BASE)
+  {
+    const int groupFirstVarId = matLocalPropId - LPID_SHADER_VARS_PARAMETER_GROUP_BASE;
+    const EntityMatProperties &matProps = matDataPerLod[lod].matProperties[matId];
+    const char *matShaderName = matProps.shClassName.c_str();
+    const auto shaderIt = shaderPropSeparators.find(matShaderName);
+    const ShaderDescriptor *shaderDescriptor = shaderIt == shaderPropSeparators.end() ? nullptr : &shaderIt->second;
+
+    if (shaderDescriptor)
+    {
+      beginUndo(lod, matId, matProps);
+
+      ShaderParameterGroups shaderParameterGroups;
+      shaderParameterGroups.fillGroups(shaderPropSeparators, shaderDescriptor->shaderSeparatorToProps, matProps.vars);
+
+      if (const ShaderParameterGroup *group = shaderParameterGroups.getGroupByVariableIndex(groupFirstVarId))
+        for (int varId : group->varIndices)
+          matDataPerLod[lod].matProperties[matId].vars[varId].usedInMaterial = false;
+
+      updateAssetShaderMaterial(lod, matId);
+      refillMatPropPanel(lod, matId, *panel);
+
+      endUndo("Removing parameter group", true);
+    }
+  }
+  else if (matLocalPropId >= LPID_SHADER_VARS_EXTENSIBLE_BASE && matLocalPropId < LPID_SHADER_VARS_BASE)
+  {
+    EntityMatProperties &matProps = matDataPerLod[lod].matProperties[matId];
+    const int varId = matLocalPropId - LPID_SHADER_VARS_EXTENSIBLE_BASE;
+    MatVarDesc &var = matProps.vars[varId];
+
+    beginUndo(lod, matId, matProps);
+
+    var.usedInMaterial = false;
+    updateAssetShaderMaterial(lod, matId);
+    refillMatPropPanel(lod, matId, *panel);
+
+    endUndo("Removing parameter", true);
+  }
   else
   {
     EntityLodMatData &lodMatData = matDataPerLod[lod];
@@ -1159,7 +1743,13 @@ void EntityMaterialEditor::onClick(int pcb_id, PropPanel::ContainerPropertyContr
       {
         const char *newShaderClassName = performShaderClassSelection(lod, matId);
         if (newShaderClassName)
+        {
           panel->setText(pcb_id, make_shader_button_name(newShaderClassName));
+
+          const auto it = shaderPropSeparators.find(newShaderClassName);
+          const ShaderDescriptor *shaderDescriptor = it == shaderPropSeparators.end() ? nullptr : &it->second;
+          panel->setTooltipId(pcb_id, shaderDescriptor ? shaderDescriptor->description.c_str() : "");
+        }
         break;
       }
       case LPID_PROXYMAT_BUTTON:
@@ -1285,8 +1875,7 @@ dag::Vector<DagorAsset *> EntityMaterialEditor::getLoadedRendInstAssets(const Da
   for (DagorAsset *asset : assets)
     if (asset->getType() == rendInstAssetType)
     {
-      const GameResHandle resHandle = GAMERES_HANDLE_FROM_STRING(asset->getName());
-      const int resId = gamereshooks::aux_game_res_handle_to_id(resHandle, RendInstGameResClassId);
+      const int resId = gamereshooks::aux_game_res_handle_to_id(asset->getName(), RendInstGameResClassId);
       if (rendInstGameResFactory && rendInstGameResFactory->isResLoaded(resId))
         rendInstAssets.push_back(asset);
     }
@@ -1335,4 +1924,101 @@ void EntityMaterialEditor::modifyAllAffectedLoadedAssets(const char *proxy_mat_N
     // in WindowBaseHandler::controlProc.
     add_delayed_callback((delayed_callback)&notify_asset_changed, asset);
   }
+}
+
+void EntityMaterialEditor::beginUndo(int lod, int material_index, const EntityMatProperties &material_properties)
+{
+  UndoSystem *undoSystem = get_app().getUndoSystem();
+  G_ASSERT(undoSystem);
+
+  undoSystem->begin();
+  undoSystem->put(new MaterialEditorUndoObject(*this, lod, material_index));
+}
+
+void EntityMaterialEditor::endUndo(const char *operation_name, bool accept)
+{
+  UndoSystem *undoSystem = get_app().getUndoSystem();
+  G_ASSERT(undoSystem);
+
+  if (accept)
+    undoSystem->accept(operation_name);
+  else
+    undoSystem->cancel();
+}
+
+void EntityMaterialEditor::saveForUndo(int lod, int material_index, EntityMatProperties &undo_material_properties)
+{
+  if (lod < 0 || lod >= matDataPerLod.size())
+  {
+    logdbg("EntityMaterialEditor: invalid LOD index (%d/%d). Undo will not saved.", lod, matDataPerLod.size());
+    return;
+  }
+
+  EntityLodMatData &lodMaterialData = matDataPerLod[lod];
+
+  if (material_index < 0 || material_index >= lodMaterialData.matProperties.size())
+  {
+    logdbg("EntityMaterialEditor: invalid material index (%d/%d). Undo will not be saved.", material_index,
+      lodMaterialData.matProperties.size());
+    return;
+  }
+
+  undo_material_properties = matDataPerLod[lod].matProperties[material_index];
+}
+
+void EntityMaterialEditor::loadFromUndo(int lod, int material_index, const EntityMatProperties &undo_material_properties)
+{
+  if (!active)
+    return;
+
+  PropPanel::ContainerPropertyControl *materialEditorGroup = get_material_editor_group();
+  G_ASSERT(materialEditorGroup);
+
+  if (lod < 0 || lod >= matDataPerLod.size())
+  {
+    logdbg("EntityMaterialEditor: invalid LOD index in the undo object (%d/%d). Undo will not be applied.", lod, matDataPerLod.size());
+    return;
+  }
+
+  EntityLodMatData &lodMaterialData = matDataPerLod[lod];
+
+  if (material_index < 0 || material_index >= lodMaterialData.matProperties.size())
+  {
+    logdbg("EntityMaterialEditor: invalid material index in the undo object (%d/%d). Undo will not be applied.", material_index,
+      lodMaterialData.matProperties.size());
+    return;
+  }
+
+  EntityMatProperties &materialProperties = lodMaterialData.matProperties[material_index];
+
+  if (undo_material_properties.vars.size() != materialProperties.vars.size())
+  {
+    logdbg("EntityMaterialEditor: different variable count in the undo object (%d) and in the editor (%d). Undo will not be applied.",
+      undo_material_properties.vars.size(), materialProperties.vars.size());
+    return;
+  }
+
+  for (int variableIndex = 0; variableIndex < materialProperties.vars.size(); ++variableIndex)
+  {
+    const MatVarDesc &undoVar = undo_material_properties.vars[variableIndex];
+    const MatVarDesc &var = materialProperties.vars[variableIndex];
+
+    if (strcmp(undoVar.name, var.name) != 0)
+    {
+      logdbg("EntityMaterialEditor: different variable order in the undo object (%d, %s) and in the editor (%d, %s). Undo will not be "
+             "applied.",
+        variableIndex, undoVar.name.c_str(), variableIndex, var.name.c_str());
+      return;
+    }
+  }
+
+  for (int variableIndex = 0; variableIndex < undo_material_properties.vars.size(); ++variableIndex)
+  {
+    const MatVarDesc &undoVar = undo_material_properties.vars[variableIndex];
+    MatVarDesc &var = materialProperties.vars[variableIndex];
+    var.usedInMaterial = undoVar.usedInMaterial;
+  }
+
+  updateAssetShaderMaterial(lod, material_index);
+  refillMatPropPanel(lod, material_index, *materialEditorGroup);
 }

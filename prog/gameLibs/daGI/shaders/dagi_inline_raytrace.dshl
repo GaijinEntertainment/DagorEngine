@@ -32,9 +32,6 @@ macro RAY_CAST_INLINE_RT(code)
 
   SSGI_INIT_VOLMAP_GI_VARS_RT(code)
   SSGI_JUST_USE_VOLMAP_GI_AMBIENT_VOLMAP(code)
-  ENABLE_ASSERT(code)
-
-  supports global_const_block;
 
   (code) {
     ssgi_current_frame@f2 = (ssgi_current_frame * ssgi_total_scene_mark_dipatch, ssgi_total_scene_mark_dipatch,0,0);

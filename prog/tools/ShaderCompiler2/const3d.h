@@ -35,6 +35,11 @@ static constexpr bool UAVS_CONTEND_WITH_RTVS = false;
 
 #else
 
+// @TODO: make per-platform limits for all platforms & drivers
+
+inline constexpr int MAX_T_REGISTERS = 32;
+inline constexpr int MAX_B_REGISTERS = 14;
+
 #if _CROSS_TARGET_DX11
 inline constexpr int MAX_U_REGISTERS = 8;
 #elif _CROSS_TARGET_METAL
@@ -44,15 +49,15 @@ inline constexpr int MAX_U_REGISTERS = 13;
 #endif
 
 #if _CROSS_TARGET_DX11
-static constexpr bool UAVS_CONTEND_WITH_RTVS = true;
+inline constexpr bool UAVS_CONTEND_WITH_RTVS = true;
 #else
-static constexpr bool UAVS_CONTEND_WITH_RTVS = false;
+inline constexpr bool UAVS_CONTEND_WITH_RTVS = false;
 #endif
 
-// @TODO: make per-platform limits for all platforms & drivers
+#if _CROSS_TARGET_C2
 
-inline constexpr int MAX_T_REGISTERS = 32;
+#else
 inline constexpr int MAX_S_REGISTERS = 16;
-inline constexpr int MAX_B_REGISTERS = 14;
+#endif
 
 #endif

@@ -3,7 +3,6 @@
 
 #include "constants.h"
 #include "device_caps_and_shader_model.h"
-#include "format_store.h"
 #include "frame_buffer.h"
 #include "render_state.h"
 #include "shader.h"
@@ -130,23 +129,33 @@ struct ComputePipelineSignature
     dxil::ShaderResourceUsageTable registers = {};
     RootSignatureGlobalLayout layout;
     RootSignatureStageLayout csLayout;
+    union
+    {
+      uint32_t rawBits = 0;
+      struct
+      {
 #if _TARGET_SCARLETT
-    bool hasAccelerationStructure = false;
+        bool hasAccelerationStructure : 1;
 #endif
+        bool useResourceDescriptorHeapIndexing : 1;
+        bool useSamplerDescriptorHeapIndexing : 1;
+      };
+    };
   } def;
 
   // const buffer is different, there each cbv is one entry directly at the signature and not a
   // range
   template <typename C>
-  void updateCBVRange(C cmd, D3D12_GPU_VIRTUAL_ADDRESS *cbvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
+  void updateCBVRange(C &cmd, D3D12_GPU_VIRTUAL_ADDRESS *cbvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
     Bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty, bool compacted_buffer_array) const
   {
     uint32_t index = def.csLayout.getConstBufferDescriptorIndex();
     if (def.csLayout.usesConstBufferRootDescriptors())
     {
+      const uint32_t bRegisters = def.registers.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK;
       if (!compacted_buffer_array)
       {
-        for (auto i : LsbVisitor{def.registers.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+        for (auto i : LsbVisitor{bRegisters})
         {
           if (dirty_mask.test(i))
           {
@@ -157,10 +166,11 @@ struct ComputePipelineSignature
       }
       else
       {
-        const uint32_t constCount = __popcount(def.registers.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX));
-        for (uint32_t i = 0; i < constCount; ++i)
+        const uint32_t constCount = __popcount(bRegisters);
+        for (auto cbv : eastl::span{cbvs, constCount})
         {
-          cmd.setComputeRootConstantBufferView(index + i, cbvs[i]);
+          cmd.setComputeRootConstantBufferView(index, cbv);
+          ++index;
         }
       }
     }
@@ -170,7 +180,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateSRVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
+  void updateSRVRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.tRegisterUseMask)
     {
@@ -178,7 +188,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateUAVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
+  void updateUAVRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.uRegisterUseMask)
     {
@@ -186,7 +196,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateSamplerRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
+  void updateSamplerRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.sRegisterUseMask)
     {
@@ -194,7 +204,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateUnboundedSRVRanges(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
+  void updateUnboundedSRVRanges(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.bindlessUsageMask & dxil::BINDLESS_RESOURCES_SPACE_BITS_MASK)
     {
@@ -202,7 +212,7 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateBindlessSamplerRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
+  void updateBindlessSamplerRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset) const
   {
     if (def.registers.bindlessUsageMask & dxil::BINDLESS_SAMPLERS_SPACE_BITS_MASK)
     {
@@ -210,16 +220,14 @@ struct ComputePipelineSignature
     }
   }
   template <typename C>
-  void updateRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits) const
+  void updateRootConstants(C &cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits) const
   {
-    if (def.registers.rootConstantDwords)
+    const auto firstBit = dirty_bits.find_first();
+    // only update if the region we cover was dirty
+    if (firstBit < def.registers.rootConstantDwords)
     {
-      // only update if the region we cover was dirty
-      if (dirty_bits.find_first() < def.registers.rootConstantDwords)
-      {
-        // TODO this could be optimized by only updating dirty region
-        cmd.setComputeRoot32BitConstants(def.csLayout.rootConstantsParamIndex, def.registers.rootConstantDwords, values, 0);
-      }
+      // TODO this could be optimized by only updating dirty region
+      cmd.setComputeRoot32BitConstants(def.csLayout.rootConstantsParamIndex, def.registers.rootConstantDwords, values, 0);
     }
   }
 };
@@ -244,11 +252,21 @@ struct GraphicsPipelineSignature
     RootSignatureStageLayout gsLayout;
     RootSignatureStageLayout hsLayout;
     RootSignatureStageLayout dsLayout;
-    bool hasVertexInputs = false;
-    bool hasStreamOutput = false;
+    union
+    {
+      uint32_t rawBits = 0;
+      struct
+      {
+        bool hasVertexInputs : 1;
+        bool hasStreamOutput : 1;
 #if _TARGET_SCARLETT
-    bool hasAccelerationStructure = false;
+        bool hasAccelerationStructure : 1;
+        bool hasAmplificationShader : 1;
 #endif
+        bool useResourceDescriptorHeapIndexing : 1;
+        bool useSamplerDescriptorHeapIndexing : 1;
+      };
+    };
   } def;
   uint32_t vsCombinedTRegisterMask = 0;
   uint32_t vsCombinedSRegisterMask = 0;
@@ -279,13 +297,13 @@ struct GraphicsPipelineSignature
 
   // const buffer is different, there each cbv is one entry directly at the signature and not a range
   template <typename C>
-  void updateVertexCBVRange(C cmd, D3D12_GPU_VIRTUAL_ADDRESS *bcvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
+  void updateVertexCBVRange(C &cmd, D3D12_GPU_VIRTUAL_ADDRESS *bcvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
     Bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty)
   {
     if (def.psLayout.usesConstBufferRootDescriptors(def.vsLayout, def.gsLayout, def.hsLayout, def.dsLayout))
     {
       uint32_t index = def.vsLayout.getConstBufferDescriptorIndex();
-      for (auto i : LsbVisitor{def.vertexShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      for (auto i : LsbVisitor{def.vertexShaderRegisters.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK})
       {
         if (dirty_mask.test(i))
         {
@@ -294,7 +312,7 @@ struct GraphicsPipelineSignature
         ++index;
       }
       index = def.gsLayout.getConstBufferDescriptorIndex();
-      for (auto i : LsbVisitor{def.geometryShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      for (auto i : LsbVisitor{def.geometryShaderRegisters.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK})
       {
         if (dirty_mask.test(i))
         {
@@ -303,7 +321,7 @@ struct GraphicsPipelineSignature
         ++index;
       }
       index = def.hsLayout.getConstBufferDescriptorIndex();
-      for (auto i : LsbVisitor{def.hullShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      for (auto i : LsbVisitor{def.hullShaderRegisters.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK})
       {
         if (dirty_mask.test(i))
         {
@@ -312,7 +330,7 @@ struct GraphicsPipelineSignature
         ++index;
       }
       index = def.dsLayout.getConstBufferDescriptorIndex();
-      for (auto i : LsbVisitor{def.domainShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      for (auto i : LsbVisitor{def.domainShaderRegisters.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK})
       {
         if (dirty_mask.test(i))
         {
@@ -323,29 +341,29 @@ struct GraphicsPipelineSignature
     }
     else if (descriptor_range_dirty)
     {
-      if (def.vertexShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX))
+      if (def.vertexShaderRegisters.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK)
       {
         cmd.setGraphicsRootDescriptorTable(def.vsLayout.getConstBufferDescriptorIndex(), offset);
       }
 
-      if (def.geometryShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX))
+      if (def.geometryShaderRegisters.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK)
       {
         cmd.setGraphicsRootDescriptorTable(def.gsLayout.getConstBufferDescriptorIndex(), offset);
       }
 
-      if (def.hullShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX))
+      if (def.hullShaderRegisters.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK)
       {
         cmd.setGraphicsRootDescriptorTable(def.hsLayout.getConstBufferDescriptorIndex(), offset);
       }
 
-      if (def.domainShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX))
+      if (def.domainShaderRegisters.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK)
       {
         cmd.setGraphicsRootDescriptorTable(def.dsLayout.getConstBufferDescriptorIndex(), offset);
       }
     }
   }
   template <typename C>
-  void updateVertexSRVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateVertexSRVRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
   {
     if (def.vertexShaderRegisters.tRegisterUseMask)
     {
@@ -365,7 +383,7 @@ struct GraphicsPipelineSignature
     }
   }
   template <typename C>
-  void updateVertexUAVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateVertexUAVRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
   {
     if (def.vertexShaderRegisters.uRegisterUseMask)
     {
@@ -385,7 +403,7 @@ struct GraphicsPipelineSignature
     }
   }
   template <typename C>
-  void updateVertexSamplerRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateVertexSamplerRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
   {
     if (def.vertexShaderRegisters.sRegisterUseMask)
     {
@@ -407,13 +425,13 @@ struct GraphicsPipelineSignature
 
   // const buffer is different, there each cbv is one entry directly at the signature and not a range
   template <typename C>
-  void updatePixelCBVRange(C cmd, D3D12_GPU_VIRTUAL_ADDRESS *cbvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
+  void updatePixelCBVRange(C &cmd, D3D12_GPU_VIRTUAL_ADDRESS *cbvs, D3D12_GPU_DESCRIPTOR_HANDLE offset,
     Bitset<dxil::MAX_B_REGISTERS> dirty_mask, bool descriptor_range_dirty)
   {
     uint32_t index = def.psLayout.getConstBufferDescriptorIndex();
     if (def.psLayout.usesConstBufferRootDescriptors())
     {
-      for (auto i : LsbVisitor{def.pixelShaderRegisters.bRegisterUseMask & ~(1u << ROOT_CONSTANT_BUFFER_INDEX)})
+      for (auto i : LsbVisitor{def.pixelShaderRegisters.bRegisterUseMask & ROOT_CONSTANT_BUFFER_MASK})
       {
         if (dirty_mask.test(i))
         {
@@ -428,7 +446,7 @@ struct GraphicsPipelineSignature
     }
   }
   template <typename C>
-  void updatePixelSRVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updatePixelSRVRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
   {
     if (def.pixelShaderRegisters.tRegisterUseMask)
     {
@@ -436,7 +454,7 @@ struct GraphicsPipelineSignature
     }
   }
   template <typename C>
-  void updatePixelUAVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updatePixelUAVRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
   {
     if (def.pixelShaderRegisters.uRegisterUseMask)
     {
@@ -444,7 +462,7 @@ struct GraphicsPipelineSignature
     }
   }
   template <typename C>
-  void updatePixelSamplerRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updatePixelSamplerRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
   {
     if (def.pixelShaderRegisters.sRegisterUseMask)
     {
@@ -452,65 +470,51 @@ struct GraphicsPipelineSignature
     }
   }
   template <typename C>
-  void updateVertexRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits)
+  void updateVertexRootConstants(C &cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits)
   {
-    auto first_bit = dirty_bits.find_first();
-    if (def.vertexShaderRegisters.rootConstantDwords)
+    const auto firstBit = dirty_bits.find_first();
+    // only update if the region we cover was dirty
+    if (firstBit < def.vertexShaderRegisters.rootConstantDwords)
     {
-      // only update if the region we cover was dirty
-      if (first_bit < def.vertexShaderRegisters.rootConstantDwords)
-      {
-        // TODO this could be optimized by only updating dirty region
-        cmd.setGraphicsRoot32BitConstants(def.vsLayout.rootConstantsParamIndex, def.vertexShaderRegisters.rootConstantDwords, values,
-          0);
-      }
+      // TODO this could be optimized by only updating dirty region
+      cmd.setGraphicsRoot32BitConstants(def.vsLayout.rootConstantsParamIndex, def.vertexShaderRegisters.rootConstantDwords, values, 0);
     }
-    if (def.geometryShaderRegisters.rootConstantDwords)
+
+    // only update if the region we cover was dirty
+    if (firstBit < def.geometryShaderRegisters.rootConstantDwords)
     {
-      // only update if the region we cover was dirty
-      if (first_bit < def.geometryShaderRegisters.rootConstantDwords)
-      {
-        // TODO this could be optimized by only updating dirty region
-        cmd.setGraphicsRoot32BitConstants(def.gsLayout.rootConstantsParamIndex, def.geometryShaderRegisters.rootConstantDwords, values,
-          0);
-      }
+      // TODO this could be optimized by only updating dirty region
+      cmd.setGraphicsRoot32BitConstants(def.gsLayout.rootConstantsParamIndex, def.geometryShaderRegisters.rootConstantDwords, values,
+        0);
     }
-    if (def.hullShaderRegisters.rootConstantDwords)
+
+    // only update if the region we cover was dirty
+    if (firstBit < def.hullShaderRegisters.rootConstantDwords)
     {
-      // only update if the region we cover was dirty
-      if (first_bit < def.hullShaderRegisters.rootConstantDwords)
-      {
-        // TODO this could be optimized by only updating dirty region
-        cmd.setGraphicsRoot32BitConstants(def.hsLayout.rootConstantsParamIndex, def.hullShaderRegisters.rootConstantDwords, values, 0);
-      }
+      // TODO this could be optimized by only updating dirty region
+      cmd.setGraphicsRoot32BitConstants(def.hsLayout.rootConstantsParamIndex, def.hullShaderRegisters.rootConstantDwords, values, 0);
     }
-    if (def.domainShaderRegisters.rootConstantDwords)
+
+    // only update if the region we cover was dirty
+    if (firstBit < def.domainShaderRegisters.rootConstantDwords)
     {
-      // only update if the region we cover was dirty
-      if (first_bit < def.domainShaderRegisters.rootConstantDwords)
-      {
-        // TODO this could be optimized by only updating dirty region
-        cmd.setGraphicsRoot32BitConstants(def.dsLayout.rootConstantsParamIndex, def.domainShaderRegisters.rootConstantDwords, values,
-          0);
-      }
+      // TODO this could be optimized by only updating dirty region
+      cmd.setGraphicsRoot32BitConstants(def.dsLayout.rootConstantsParamIndex, def.domainShaderRegisters.rootConstantDwords, values, 0);
     }
   }
   template <typename C>
-  void updatePixelRootConstants(C cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits)
+  void updatePixelRootConstants(C &cmd, uint32_t values[MAX_ROOT_CONSTANTS], Bitset<MAX_ROOT_CONSTANTS> dirty_bits)
   {
-    if (def.pixelShaderRegisters.rootConstantDwords)
+    const auto firstBit = dirty_bits.find_first();
+    // only update if the region we cover was dirty
+    if (firstBit < def.pixelShaderRegisters.rootConstantDwords)
     {
-      // only update if the region we cover was dirty
-      if (dirty_bits.find_first() < def.pixelShaderRegisters.rootConstantDwords)
-      {
-        // TODO this could be optimized by only updating dirty region
-        cmd.setGraphicsRoot32BitConstants(def.psLayout.rootConstantsParamIndex, def.pixelShaderRegisters.rootConstantDwords, values,
-          0);
-      }
+      // TODO this could be optimized by only updating dirty region
+      cmd.setGraphicsRoot32BitConstants(def.psLayout.rootConstantsParamIndex, def.pixelShaderRegisters.rootConstantDwords, values, 0);
     }
   }
   template <typename C>
-  void updateBindlessSamplerRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateBindlessSamplerRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
   {
     if (allCombinedBindlessMask & dxil::BINDLESS_SAMPLERS_SPACE_BITS_MASK)
     {
@@ -518,7 +522,7 @@ struct GraphicsPipelineSignature
     }
   }
   template <typename C>
-  void updateBindlessSRVRange(C cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
+  void updateBindlessSRVRange(C &cmd, D3D12_GPU_DESCRIPTOR_HANDLE offset)
   {
     if (allCombinedBindlessMask & dxil::BINDLESS_RESOURCES_SPACE_BITS_MASK)
     {
@@ -528,8 +532,7 @@ struct GraphicsPipelineSignature
 };
 
 #if D3D_HAS_RAY_TRACING
-struct RaytracePipelineSignature : ComputePipelineSignature
-{};
+using RaytracePipelineSignature = ComputePipelineSignature;
 #endif
 
 struct GraphicsPipelineBaseCacheIdTag
@@ -597,7 +600,7 @@ public:
     D3D12_CACHED_PIPELINE_STATE &blob_target);
   D3D12_PRIMITIVE_TOPOLOGY_TYPE
   getGraphicsPipelineVariantDesc(GraphicsPipelineBaseCacheId base_id, size_t index, InputLayout &input_layout, bool &is_wire_frame,
-    RenderStateSystem::StaticState &static_state, FramebufferLayout &fb_layout) const;
+    RenderStateSystem::StaticState &static_state, FramebufferLayout &fb_layout);
   ComPtr<ID3D12PipelineState> loadGraphicsPipelineVariantFromIndex(GraphicsPipelineBaseCacheId base_id, size_t index,
     D3D12_PIPELINE_STATE_STREAM_DESC desc, D3D12_CACHED_PIPELINE_STATE &blob_target);
   bool containsGraphicsPipeline(const BasePipelineIdentifier &ident);
@@ -606,15 +609,20 @@ public:
   ComPtr<ID3D12PipelineState> loadCompute(const dxil::HashValue &shader, D3D12_PIPELINE_STATE_STREAM_DESC desc,
     D3D12_CACHED_PIPELINE_STATE &blob_target);
 
+  void addSignature(const auto &def, ID3DBlob *blob, auto &signature)
+  {
+    auto from = static_cast<const uint8_t *>(blob->GetBufferPointer());
+    new (signature.push_back_uninitialized()) eastl::decay_t<decltype(signature)>::value_type{
+      .def = def,
+      .blob = {from, from + blob->GetBufferSize()},
+    };
+    hasChanged = true;
+  }
+
   // NOTE: no checks for duplicates are performed
   void addComputeSignature(const ComputePipelineSignature::Definition &def, ID3DBlob *blob)
   {
-    ComputeSignatureBlob csb;
-    csb.def = def;
-    auto from = reinterpret_cast<const uint8_t *>(blob->GetBufferPointer());
-    csb.blob.assign(from, from + blob->GetBufferSize());
-    computeSignatures.push_back(eastl::move(csb));
-    hasChanged = true;
+    addSignature(def, blob, computeSignatures);
   }
   template <typename T>
   void enumrateComputeSignatures(T clb)
@@ -626,12 +634,7 @@ public:
   // NOTE: no checks for duplicates are performed
   void addGraphicsSignature(const GraphicsPipelineSignature::Definition &def, ID3DBlob *blob)
   {
-    GraphicsSignatureBlob gsb;
-    gsb.def = def;
-    auto from = reinterpret_cast<const uint8_t *>(blob->GetBufferPointer());
-    gsb.blob.assign(from, from + blob->GetBufferSize());
-    graphicsSignatures.push_back(eastl::move(gsb));
-    hasChanged = true;
+    addSignature(def, blob, graphicsSignatures);
   }
   template <typename T>
   void enumerateGraphicsSignatures(T clb)
@@ -642,12 +645,7 @@ public:
 
   void addGraphicsMeshSignature(const GraphicsPipelineSignature::Definition &def, ID3DBlob *blob)
   {
-    GraphicsSignatureBlob gsb;
-    gsb.def = def;
-    auto from = reinterpret_cast<const uint8_t *>(blob->GetBufferPointer());
-    gsb.blob.assign(from, from + blob->GetBufferSize());
-    graphicsMeshSignatures.push_back(eastl::move(gsb));
-    hasChanged = true;
+    addSignature(def, blob, graphicsMeshSignatures);
   }
   template <typename T>
   void enumerateGraphicsMeshSignatures(T clb)
@@ -832,6 +830,7 @@ private:
   dag::Vector<RenderStateSystem::StaticState> staticRenderStates;
   dag::Vector<InputLayout> inputLayouts;
   dag::Vector<FramebufferLayout> framebufferLayouts;
+  OSSpinlock pipelineCacheGuard = {};
   uint32_t shaderInDumpCount = 0;
   dxil::HashValue shaderInDumpHash{};
   D3D12_SHADER_CACHE_SUPPORT_FLAGS deviceFeatures = D3D12_SHADER_CACHE_SUPPORT_NONE;

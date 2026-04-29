@@ -37,7 +37,7 @@ function mkBtn(handler, style = null){
   let children = {
     key = up
     animations
-    transform = {}
+    transform = true
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
     children = [
@@ -58,7 +58,7 @@ function mkBtn(handler, style = null){
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
     skipDirPadNav=true
-    transform = {}
+    transform = true
     children
     hplace = ALIGN_CENTER
   }.__update(style ?? {})

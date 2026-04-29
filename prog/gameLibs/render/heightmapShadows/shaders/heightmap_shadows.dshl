@@ -1,15 +1,10 @@
 include "shader_global.dshl"
-include "heightmap_common.dshl"
 include "heightmap_shadows_common.dshl"
 include "project_heightmap_shadows.dshl"
 
 define_macro_if_not_defined PROJECT_BASE_HEIGHTMAP_LEVEL(code)
   hlsl(code) {
     void get_project_base_heightmap(uint cascade, float2 worldPosXZ, inout float height, inout float high_hmap){}
-    bool get_project_base_heightmap_tc_valid(float2 hmap_tc)
-    {
-      return all(abs(hmap_tc*2 - 1) < 1);
-    }
   }
 endmacro
 
@@ -42,11 +37,8 @@ int4 heightmap_shadow_calc_z;
 macro HMAP_SHADOW_CALC_COMMON(code)
   INIT_HMAP_SHADOWS_MATH(code)
   USE_HMAP_SHADOWS_MATH(code)
-  ENABLE_ASSERT(code)
   PROJECT_ABOVE_HEIGHTMAP_LEVEL(code)
   PROJECT_BASE_HEIGHTMAP_LEVEL(code)
-  INIT_WORLD_HEIGHTMAP_BASE(code)
-  USE_HEIGHTMAP_COMMON_BASE(code)
   (code) {
     heightmap_shadow_shadow_step@f4 = heightmap_shadow_shadow_step;
     heightmap_shadow_cascade@i1 = (heightmap_shadow_cascade, 0,0,0);
@@ -55,29 +47,20 @@ macro HMAP_SHADOW_CALC_COMMON(code)
     filterSize@f1 = (heightmap_shadow_render_penumbra.y,0,0,0);
     heightmap_shadow_move@i4 = heightmap_shadow_move;
     heightmap_shadow_calc_z@i4 = heightmap_shadow_calc_z;
+
+    heightmap_shadow_start@uav : register(0) hlsl {
+      RWByteAddressBuffer heightmap_shadow_start@uav;
+    }
   }
   hlsl(code) {
     uint wrap_filtered_abs_coord(int absX)
     {
       return uint(heightmap_shadow_szi_np2.y + absX)%uint(heightmap_shadow_szi_np2.x + 2*HMAP_SHADOWS_FILTER_SIZE);
     }
-    RWByteAddressBuffer heightmap_shadow_start:register(u0);
     void sample_hmaps(float2 worldPosXZ, out float low_hmap, out float high_hmap)
     {
-      #if 0
-        low_hmap = 0;
-        get_project_base_heightmap(heightmap_shadow_cascade, worldPosXZ, low_hmap, high_hmap, heightmap_shadow_shadow_step.w);
-        high_hmap = low_hmap;
-        return;
-      #endif
-      //todo: add holes support
-      float2 hmap_tc = calcTcLow(worldPosXZ);
-      high_hmap = low_hmap = decode_height(getHeightLowLod(hmap_tc, 0));
-      if (!get_project_base_heightmap_tc_valid(hmap_tc))
-      {
-        high_hmap = low_hmap = decode_height(0);
-        get_project_base_heightmap(heightmap_shadow_cascade, worldPosXZ, low_hmap, high_hmap, heightmap_shadow_shadow_step.w);
-      }
+      low_hmap = high_hmap = heightmap_shadow_height_encoding.w;
+      get_project_base_heightmap(heightmap_shadow_cascade, worldPosXZ, low_hmap, high_hmap, heightmap_shadow_shadow_step.w);
 
       get_project_upper_heightmap(heightmap_shadow_cascade, worldPosXZ, high_hmap);
       low_hmap = heightmap_shadow_height_encoding.x*low_hmap + heightmap_shadow_height_encoding.y;
@@ -90,7 +73,6 @@ endmacro
 
 shader copy_last_row_heightmap_shadows_cs
 {
-  ENABLE_ASSERT(cs)
   HMAP_SHADOW_CALC_COMMON(cs)
   hlsl(cs) {
     #pragma hlsl2021
@@ -111,7 +93,6 @@ shader copy_last_row_heightmap_shadows_cs
 
 shader start_heightmap_shadows_cs
 {
-  ENABLE_ASSERT(cs)
   HMAP_SHADOW_CALC_COMMON(cs)
   (cs) {
     heightmap_shadow_read@smpArray = heightmap_shadow;
@@ -126,7 +107,7 @@ shader start_heightmap_shadows_cs
       float texelSize = heightmap_shadow_shadow_step.w;
       float lightAltOffset = heightmap_shadow_shadow_step.z;
       float lightPenumbraAltOffset = penumbra_sun_tan;// const and different by tan(sunAngle)
-      float prevShadowAlt = -100000, prevHighHmap = -100000, prevShadowPenumbraAlt = 0;
+      float prevShadowAlt = -1000000, prevHighHmap = -100000, prevShadowPenumbraAlt = 0;
       int z = heightmap_shadow_calc_z.x, preSteps = heightmap_shadow_calc_z.y;
 
       //fixme: optimize me
@@ -202,10 +183,14 @@ shader start_heightmap_shadows_cs
 
 shader calc_heightmap_shadows_cs
 {
-  ENABLE_ASSERT(cs)
   HMAP_SHADOW_CALC_COMMON(cs)
+
+  (cs) {
+    heightmap_shadow@uav : register(1) hlsl {
+      RWTexture2DArray<float4> heightmap_shadow@uav;
+    }
+  }
   hlsl(cs) {
-    RWTexture2DArray<float4> heightmap_shadow:register(u1);
     #if HMAP_SHADOWS_FILTER_SIZE > 0 && HMAP_SHADOWS_FILTER
     groupshared float2 current_shared_shadow[WARP];
     #endif
@@ -308,14 +293,15 @@ shader calc_heightmap_shadows_cs
 
 shader copy_heightmap_shadows_cs
 {
-  ENABLE_ASSERT(cs)
   (cs) {
     heightmap_shadow_szi_np2@i4 = heightmap_shadow_szi_np2;
     heightmap_shadow@smpArray = heightmap_shadow;
+
+    heightmap_shadow_to@uav : register(0) hlsl {
+      RWTexture2DArray<float4> heightmap_shadow_to@uav;
+    }
   }
   hlsl(cs) {
-    RWTexture2DArray<float4> heightmap_shadow_to:register(u0);
-
     [numthreads(8, 8, 1)]
     void copy_heightmap_shadows_cs(uint3 dtId : SV_DispatchThreadID)
     {

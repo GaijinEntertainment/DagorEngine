@@ -22,5 +22,6 @@ struct ImpostorOptions
   bool dryMode = false;
   bool skipGen = false;
   bool forceRebake = false;
+  bool profile = false;
   FolderBlkGenMode folderBlkGenMode = FolderBlkGenMode::REPLACE;
 };

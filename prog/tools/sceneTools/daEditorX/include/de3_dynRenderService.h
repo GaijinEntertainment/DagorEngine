@@ -69,7 +69,7 @@ public:
 
   virtual TexStreamingContext getMainViewStreamingContext() = 0;
   virtual void renderViewportFrame(ViewportWindow *vpw) = 0;
-  virtual void renderScreenshot() = 0;
+  virtual void renderScreenshot(const Driver3dPerspective &persp, bool is_ortho, bool force_disable_wireframe) = 0;
 
   virtual dag::ConstSpan<int> getSupportedRenderTypes() const = 0;
   virtual int getRenderType() const = 0;

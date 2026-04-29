@@ -10,6 +10,7 @@
 #include <render/world/antiAliasingMode.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/global_vars.h>
+#include "render/screencap.h"
 
 // todo: fix dof render implementation dependencies on bloom
 static bool should_prepare_aim_dof(const ScopeAimRenderingData &scopeAimData)
@@ -26,12 +27,11 @@ dafg::NodeHandle makeAimDofPrepareNode()
 
     const bool hasStencilTest = renderer_has_feature(FeatureRenderFlags::CAMERA_IN_CAMERA);
     const uint32_t gbufDepthFormat = get_gbuffer_depth_format(hasStencilTest);
-    auto lensDofDepthHndl = registry
-                              .createTexture2d("lens_dof_blend_depth_tex", dafg::History::No,
-                                {gbufDepthFormat | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
-                              .atStage(dafg::Stage::PS)
-                              .useAs(dafg::Usage::DEPTH_ATTACHMENT)
-                              .handle();
+    auto lensDofDepthHndl =
+      registry.createTexture2d("lens_dof_blend_depth_tex", {gbufDepthFormat | TEXCF_RTARGET, registry.getResolution<2>("main_view")})
+        .atStage(dafg::Stage::PS)
+        .useAs(dafg::Usage::DEPTH_ATTACHMENT)
+        .handle();
 
     auto depthHndl =
       registry.readTexture("depth_for_transparency").atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT).handle();
@@ -47,7 +47,7 @@ dafg::NodeHandle makeAimDofPrepareNode()
 
     auto aimRenderingDataHndl = registry.readBlob<AimRenderingData>("aim_render_data").handle();
     auto scopeAimRenderingDataHndl = registry.readBlob<ScopeAimRenderingData>("scope_aim_render_data").handle();
-    auto aimDofHndl = registry.createBlob<AimDofSettings>("aimDof", dafg::History::No).handle();
+    auto aimDofHndl = registry.createBlob<AimDofSettings>("aimDof").handle();
     auto strmCtxHndl = registry.readBlob<TexStreamingContext>("tex_ctx").handle();
     auto antiAliasingModeHndl = registry.readBlob<AntiAliasingMode>("anti_aliasing_mode").handle();
 
@@ -66,10 +66,9 @@ dafg::NodeHandle makeAimDofPrepareNode()
       if (should_prepare_aim_dof(scopeAimRenderData))
         prepare_aim_dof(scopeAimRenderData, aimRenderData, aimDof, lensDofDepthHndl.get(), strmCtxHndl.ref());
 
-      set_dof_blend_depth_tex(shouldRenderLensDofDepth ? lensDofDepthHndl.d3dResId() : depthView.getTexId());
-      if (antiAliasingModeHndl.ref() == AntiAliasingMode::TSR)
-        ShaderGlobal::set_int(antialiasing_typeVarId,
-          shouldRenderLensDofDepth ? DofAntiAliasingType::AA_TYPE_DLSS : DofAntiAliasingType::AA_TYPE_TSR);
+      set_dof_blend_depth_tex(shouldRenderLensDofDepth ? lensDofDepthHndl.view().getBaseTex() : depthView.getBaseTex());
+      if (antiAliasingModeHndl.ref() == AntiAliasingMode::TSR && !screencap::is_screenshot_scheduled())
+        ShaderGlobal::set_int(antialiasing_typeVarId, shouldRenderLensDofDepth ? AntiAliasingType::TEMPORAL : AntiAliasingType::TSR);
 
       bool isFirstIteration = multiplexing_index == dafg::multiplexing::Index{};
       if (isFirstIteration)
@@ -87,6 +86,9 @@ dafg::NodeHandle makeAimDofRestoreNode()
     auto aimDofSettingsHndl = registry.readBlob<AimDofSettings>("aimDof").handle();
     registry.executionHas(dafg::SideEffects::External);
 
-    return [aimDofSettingsHndl]() { restore_scope_aim_dof(aimDofSettingsHndl.ref()); };
+    return [aimDofSettingsHndl]() {
+      set_dof_blend_depth_tex(nullptr);
+      restore_scope_aim_dof(aimDofSettingsHndl.ref());
+    };
   });
 }

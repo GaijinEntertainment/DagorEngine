@@ -11,6 +11,7 @@
 #include "guiScene.h"
 #include "scriptUtil.h"
 #include "eventData.h"
+#include "kbFocus.h"
 
 #include <drv/hid/dag_hiKeybIds.h>
 #include <drv/hid/dag_hiMouseIds.h>
@@ -125,14 +126,8 @@ bool BhvButton::willHandleClick(Element *elem)
 }
 
 
-int BhvButton::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int data, short mx,
-  short my, int /*buttons*/, int accum_res)
-{
-  return pointerEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-}
-
-int BhvButton::pointerEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
-  const Point2 &pointer_pos, int accum_res)
+int BhvButton::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int button_id,
+  Point2 pointer_pos, int accum_res)
 {
   BhvButtonData *btnData = BhvButton::getData(elem);
   if (!btnData)
@@ -150,12 +145,12 @@ int BhvButton::pointerEvent(ElementTree *etree, Element *elem, InputDevice devic
       if (button_margin_debug)
       {
         BBox2 elemBox = elem->clippedScreenRect;
-        etree->guiScene->spawnDebugRenderBox(elemBox, E3DCOLOR(0, 50, 0, 50), E3DCOLOR(200, 200, 0), 0.8f);
+        etree->screen->spawnDebugRenderBox(elemBox, E3DCOLOR(0, 50, 0, 50), E3DCOLOR(200, 200, 0), 0.8f);
 
         BBox2 clickBox;
         clickBox += pointer_pos;
         clickBox.inflate(10);
-        etree->guiScene->spawnDebugRenderBox(clickBox, E3DCOLOR(50, 0, 0, 50), E3DCOLOR(200, 0, 0), 0.8f);
+        etree->screen->spawnDebugRenderBox(clickBox, E3DCOLOR(50, 0, 0, 50), E3DCOLOR(200, 0, 0), 0.8f);
       }
 
       if (!eventPassThrough)
@@ -198,8 +193,8 @@ int BhvButton::pointerEvent(ElementTree *etree, Element *elem, InputDevice devic
           call_click_handler(etree->guiScene, elem, device, isDouble, button_id, pointer_pos.x, pointer_pos.y);
           btnData->saveClick(curTime, pointer_pos);
 
-          if (elem->props.getBool(elem->csk->focusOnClick, false) && !etree->hasCapturedKbFocus())
-            etree->setKbFocus(elem);
+          if (elem->props.getBool(elem->csk->focusOnClick, false) && !etree->guiScene->kbFocus.hasCapturedFocus())
+            etree->guiScene->kbFocus.setFocus(elem);
         }
       }
       btnData->release();
@@ -238,14 +233,6 @@ int BhvButton::pointerEvent(ElementTree *etree, Element *elem, InputDevice devic
   }
 
   return result;
-}
-
-
-int BhvButton::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing *pnt, int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch, int accum_res)
-{
-  G_UNUSED(pnt);
-  return pointerEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
 }
 
 
@@ -316,15 +303,30 @@ int BhvButton::update(UpdateStage /*stage*/, Element *elem, float /*dt*/)
 }
 
 
+static void deactivate_input_impl(Element *elem, BhvButtonData *btnData)
+{
+  elem->clearGroupStateFlags(active_state_flags_for_device(btnData->pressedByDevice));
+  btnData->release();
+}
+
+
 int BhvButton::onDeactivateInput(Element *elem, InputDevice device, int pointer_id)
 {
   BhvButtonData *btnData = BhvButton::getData(elem);
   G_ASSERT_RETURN(btnData, 0);
   if (btnData->isPressedBy(device, pointer_id))
-  {
-    elem->clearGroupStateFlags(active_state_flags_for_device(btnData->pressedByDevice));
-    btnData->release();
-  }
+    deactivate_input_impl(elem, btnData);
+  return 0;
+}
+
+
+int BhvButton::onDeactivateAllInput(Element *elem)
+{
+  BhvButtonData *btnData = BhvButton::getData(elem);
+  G_ASSERT_RETURN(btnData, 0);
+  if (btnData->isPressed())
+    deactivate_input_impl(elem, btnData);
+
   return 0;
 }
 
@@ -334,11 +336,17 @@ int BhvButton::simulateClick(ElementTree *etree, Element *elem, InputEvent event
   if (!elem->isInMainTree())
     return 0;
 
-  Point2 mpos = etree->guiScene->getMousePos();
-  if (event == INP_EV_PRESS && elem != etree->screen->getInputStack().hitTest(mpos, Behavior::F_HANDLE_MOUSE, Element::F_STOP_MOUSE))
+  GuiScene *scene = etree->guiScene;
+
+  Point2 mpos;
+  if (!etree->screen->displayToLocal(etree->guiScene->activePointerPos(), scene->lastCameraTransform, scene->lastCameraFrustum, mpos))
     return 0;
 
-  return pointerEvent(etree, elem, dev_id, event, 0, btn_idx, mpos, accum_res);
+  if (
+    event == INP_EV_PRESS && elem != etree->screen->getInputStack().hitTest(mpos, Behavior::F_HANDLE_MOUSE, Element::F_STOP_POINTING))
+    return 0;
+
+  return pointingEvent(etree, elem, dev_id, event, 0, btn_idx, mpos, accum_res);
 }
 
 
@@ -358,7 +366,7 @@ int BhvButton::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, int
   if (repeat)
     return 0;
 
-  if (elem == etree->kbFocus)
+  if (elem == etree->guiScene->kbFocus.focus)
   {
     // Keep this behavior just in case we need to force the element to process keyboard events for some reason
     // Should we remove this?
@@ -373,7 +381,10 @@ int BhvButton::kbdEvent(ElementTree *etree, Element *elem, InputEvent event, int
         if (elem->getStateFlags() & Element::S_KBD_ACTIVE)
         {
           elem->clearGroupStateFlags(Element::S_KBD_ACTIVE);
-          Point2 mpos = etree->guiScene->getMousePos();
+          Point2 mpos;
+          if (!etree->screen->displayToLocal(etree->guiScene->activePointerPos(), etree->guiScene->lastCameraTransform,
+                etree->guiScene->lastCameraFrustum, mpos))
+            mpos.set(-999, -999); // dummy value
           call_click_handler(etree->guiScene, elem, DEVID_KEYBOARD, false, -1, mpos.x, mpos.y);
         }
       }

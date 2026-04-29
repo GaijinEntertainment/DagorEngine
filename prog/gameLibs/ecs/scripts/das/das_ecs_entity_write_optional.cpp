@@ -16,17 +16,8 @@ namespace bind_dascript
 {
 void ECS::addEntityWriteOptional(das::ModuleLibrary &lib)
 {
-#define TYPE(type)                                                                                                       \
-  das::addExtern<DAS_BIND_FUN(entitySetOptionalHint##type)>(*this, lib, "setOptional", das::SideEffects::modifyExternal, \
-    "bind_dascript::entitySetOptionalHint" #type)                                                                        \
-    ->annotations.push_back(annotation_declaration(das::make_smart<EcsSetAnnotation<1, 3, /*optional*/ true>>(#type)));  \
-  auto entitySetOptionalExt##type = das::addExtern<DAS_BIND_FUN(entitySetOptional##type)>(*this, lib, "setOptional",     \
-    das::SideEffects::modifyExternal, "bind_dascript::entitySetOptional" #type);                                         \
-  entitySetOptionalExt##type->annotations.push_back(                                                                     \
-    annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1, /*only fast call*/ true>>()));
-  ECS_BASE_TYPE_LIST
-  ECS_LIST_TYPE_LIST
-#undef TYPE
+  addEntityWriteOptionalBase(lib);
+  addEntityWriteOptionalList(lib);
 
   das::addExtern<DAS_BIND_FUN(entitySetOptionalStrHint)>(*this, lib, "setOptional", das::SideEffects::modifyExternal,
     "bind_dascript::entitySetOptionalStrHint");

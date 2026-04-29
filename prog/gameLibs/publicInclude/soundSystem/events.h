@@ -6,6 +6,7 @@
 
 #include <math/dag_Point3.h>
 #include <soundSystem/handle.h>
+#include <soundSystem/vars.h>
 #include <generic/dag_span.h>
 #include <util/dag_index16.h>
 
@@ -214,6 +215,15 @@ __forceinline void delayed_oneshot(const char *name, const char *path, const Poi
 __forceinline void delayed_oneshot(const char *name, const char *path, float delay)
 {
   play_oneshot(name, path, nullptr, IEF_ONESHOT, delay);
+}
+
+__forceinline EventHandle set_var_optional_and_play(const char *param_name, float value, const char *name, const char *path,
+  const Point3 &pos)
+{
+  EventHandle handle = init_event(name, path, pos);
+  set_var_optional(handle, param_name, value);
+  start(handle, pos);
+  return handle;
 }
 
 typedef void (*debug_init_event_failed_cb_t)(const char *event_path, const char *fmod_error_message, bool as_oneshot);

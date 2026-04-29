@@ -16,16 +16,15 @@ public:
 
   virtual int kbdEvent(ElementTree *, Element *, InputEvent /*event*/, int /*key_idx*/, bool /*repeat*/, wchar_t /*wc*/,
     int /*accum_res*/);
-  virtual int mouseEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent /*event*/, int /*pointer_id*/, int /*btn_idx*/,
-    short /*mx*/, short /*my*/, int /*buttons*/, int /*accum_res*/);
+  virtual int pointingEvent(ElementTree *, Element *, InputDevice /*device*/, InputEvent /*event*/, int /*pointer_id*/, int /*btn_id*/,
+    Point2 pos, int /*accum_res*/);
   virtual int joystickBtnEvent(ElementTree *, Element *, const HumanInput::IGenJoystick *, InputEvent /*event*/, int /*key_idx*/,
     int /*device_number*/, const HumanInput::ButtonBits & /*buttons*/, int /*accum_res*/);
-  virtual int touchEvent(ElementTree *, Element *, InputEvent /*event*/, HumanInput::IGenPointing * /*pnt*/, int /*touch_idx*/,
-    const HumanInput::PointingRawState::Touch & /*touch*/, int /*accum_res*/) override;
   virtual bool willHandleClick(Element *) override { return true; }
 
   virtual void onAttach(Element *);
   virtual void onDetach(Element *, DetachMode);
+  virtual void onKbFocusChange(Element *, bool focused) override;
 
 private:
   static void scroll_to_cursor(Element *elem);

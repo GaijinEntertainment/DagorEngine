@@ -12,6 +12,8 @@ bool cpu_feature_avx_checked = false;
 bool cpu_feature_avx2_checked = false;
 bool cpu_feature_f16c_checked = false;
 bool cpu_feature_fast_256bit_avx_checked = false;
+bool cpu_feature_avx_vnni_checked = false;
+bool cpu_family_haswell_or_better = false;
 
 #ifdef _TARGET_SIMD_SSE
 
@@ -54,7 +56,9 @@ static bool dag_check_cpu_features()
   };
   enum CpuFeatures70Ebx : uint32_t // eax=7, ecx=0
   {
-    AVX2_BIT = 1 << 5
+    BMI1_BIT = 1 << 3,
+    AVX2_BIT = 1 << 5,
+    BMI2_BIT = 1 << 8,
   };
   uint32_t eax, ebx, ecx, edx;
 
@@ -73,11 +77,11 @@ static bool dag_check_cpu_features()
   cpu_feature_popcnt_checked = ecx & CpuFeatures1Ecx::POPCNT_BIT;
   cpu_feature_fma_checked = ecx & CpuFeatures1Ecx::FMA3_BIT;
   bool osxsave = ecx & CpuFeatures1Ecx::OSXSAVE_BIT;
-  cpu_feature_f16c_checked = ecx & CpuFeatures1Ecx::F16C_BIT;
 #if _TARGET_PC_WIN
   osxsave &= isAvxXStateFeatureEnabled();
 #endif
   cpu_feature_avx_checked = (ecx & CpuFeatures1Ecx::AVX_BIT) && osxsave;
+  cpu_feature_f16c_checked = (ecx & CpuFeatures1Ecx::F16C_BIT) && osxsave;
 
   uint32_t amdJaguarFamily = 0x16;
   uint32_t amdCpuFamily = (eax >> 8) & 0xf; // base family
@@ -87,6 +91,13 @@ static bool dag_check_cpu_features()
 
   __get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx);
   cpu_feature_avx2_checked = (ebx & CpuFeatures70Ebx::AVX2_BIT) && osxsave;
+  bool cpu_feature_bmi_checked = (ebx & CpuFeatures70Ebx::BMI1_BIT) && (ebx & CpuFeatures70Ebx::BMI2_BIT);
+  cpu_family_haswell_or_better = cpu_feature_avx2_checked && cpu_feature_bmi_checked;
+
+  // AVX-VNNI: CPUID(7,1).EAX bit 4 -- VPDPBUSD on 128/256-bit VEX regs
+  __get_cpuid_count(7, 1, &eax, &ebx, &ecx, &edx);
+  cpu_feature_avx_vnni_checked = (eax & (1u << 4)) && osxsave && cpu_feature_avx2_checked;
+
   return true;
 }
 static bool initialized = dag_check_cpu_features();

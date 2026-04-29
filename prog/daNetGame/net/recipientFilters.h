@@ -3,8 +3,12 @@
 
 #include <EASTL/string.h>
 #include <generic/dag_tab.h>
-#include <ecs/core/entityManager.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <daECS/net/message.h>
 #include <daECS/net/recipientFilters.h>
 

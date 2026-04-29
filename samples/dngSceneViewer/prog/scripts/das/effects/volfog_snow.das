@@ -25,4 +25,4 @@ def volfog_snow_update(info : UpdateStageInfoAct; volfog_snow__intensitySpeed : 
 
   volfog_snow__intensity = volfog_snow__intensity + volfog_snow__intensitySpeed * info.dt
   volfog_snow__intensity = clamp(volfog_snow__intensity, 0f, maxIntensity)
-  DagorShaders::set_real(volfog_snow_intensityVarId, volfog_snow__intensity)
+  DagorShaders::set_float(volfog_snow_intensityVarId, volfog_snow__intensity)

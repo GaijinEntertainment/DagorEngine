@@ -22,7 +22,7 @@
 #include "bhv/bhvReplayFreeCameraControl.h"
 #include "bhv/bhvViewAzimuth.h"
 #include "bhv/bhvUiStateControl.h"
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 
 namespace ui

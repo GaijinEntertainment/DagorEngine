@@ -16,6 +16,7 @@ static void exec_physmap_patch_data_creation_request_es_event_handler_all(const 
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE);
   do
     exec_physmap_patch_data_creation_request_es_event_handler(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(exec_physmap_patch_data_creation_request_es_event_handler_comps, "eid", ecs::EntityId)
     );
   while (++comp != compE);
@@ -61,6 +62,31 @@ static ecs::EntitySystemDesc init_physmap_patch_es_event_handler_es_desc
   empty_span(),
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
+  0
+,"render");
+static constexpr ecs::ComponentDesc physmap_patch_after_device_reset_es_event_handler_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("physmap_patch_last_update_pos"), ecs::ComponentTypeInfo<Point2>()}
+};
+static void physmap_patch_after_device_reset_es_event_handler_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    physmap_patch_after_device_reset_es_event_handler(evt
+        , ECS_RW_COMP(physmap_patch_after_device_reset_es_event_handler_comps, "physmap_patch_last_update_pos", Point2)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc physmap_patch_after_device_reset_es_event_handler_es_desc
+(
+  "physmap_patch_after_device_reset_es",
+  "prog/daNetGame/render/world/physmapPatchES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, physmap_patch_after_device_reset_es_event_handler_all_events),
+  make_span(physmap_patch_after_device_reset_es_event_handler_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<AfterDeviceReset>::build(),
   0
 ,"render");
 static constexpr ecs::ComponentDesc gather_physmap_patch_updated_regions_es_comps[] =

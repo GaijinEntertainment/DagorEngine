@@ -21,9 +21,9 @@ public:
   void changeResolution(int w, int h);
   // frame: frame or (w+1)/2 downsampled frame
   // fov_scale: can be just p.hk, which mean dof is set for 90 fov
-  void perform(const TextureIDPair &frame, const TextureIDPair &close_depth, float zn, float zf, float fov_scale);
+  void perform(BaseTexture *frame, BaseTexture *close_depth, float zn, float zf, float fov_scale);
   void apply(); // to current render target
-  void setBlendDepthTex(TEXTUREID tex_id);
+  void setBlendDepthTex(BaseTexture *tex);
   void setDoFParams(const DOFProperties &focus_) { nFocus = focus_; }
   const DOFProperties &getDoFParams() const { return nFocus; }
   const DOFProperties &getUsedDoFParams() const { return cFocus; }

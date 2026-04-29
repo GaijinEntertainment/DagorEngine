@@ -53,7 +53,8 @@ bool AnimStatesTreeEventHandler::onTreeContextMenu(PropPanel::ContainerPropertyC
         (data->type == AnimStatesType::ENUM || data->type == AnimStatesType::ENUM_ITEM || data->type == AnimStatesType::ENUM_ROOT ||
           data->type == AnimStatesType::STATE || data->type == AnimStatesType::CHAN || data->type == AnimStatesType::STATE_ALIAS ||
           data->type == AnimStatesType::STATE_DESC || data->type == AnimStatesType::INIT_ANIM_STATE ||
-          data->type == AnimStatesType::ROOT_PROPS))
+          data->type == AnimStatesType::ROOT_PROPS || data->type == AnimStatesType::POST_BLEND_CTRL_ORDER ||
+          data->type == AnimStatesType::INIT_FIFO3))
     {
       selData = data;
       PropPanel::IMenu &menu = tree_interface.createContextMenu();
@@ -67,12 +68,14 @@ bool AnimStatesTreeEventHandler::onTreeContextMenu(PropPanel::ContainerPropertyC
       else // case when select state or chan or state_alias or state_desc leaf
       {
         G_ASSERT(data->type == AnimStatesType::STATE || data->type == AnimStatesType::CHAN ||
-                 data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE_DESC);
+                 data->type == AnimStatesType::STATE_ALIAS || data->type == AnimStatesType::STATE_DESC ||
+                 data->type == AnimStatesType::POST_BLEND_CTRL_ORDER || data->type == AnimStatesType::INIT_FIFO3);
         menu.addSubMenu(PropPanel::ROOT_MENU_ITEM, ContextMenu::ADD, "Add");
         menu.addItem(ContextMenu::ADD, ContextMenu::ADD_STATE, "State");
         menu.addItem(ContextMenu::ADD, ContextMenu::ADD_CHAN, "Channel");
         menu.addItem(ContextMenu::ADD, ContextMenu::ADD_STATE_ALIAS, "State alias");
-        if (data->type == AnimStatesType::STATE)
+        if (data->type == AnimStatesType::STATE || data->type == AnimStatesType::POST_BLEND_CTRL_ORDER ||
+            data->type == AnimStatesType::INIT_FIFO3)
           menu.addItem(PropPanel::ROOT_MENU_ITEM, ContextMenu::DRAW_CHILDS_TREE, "Draw childs tree");
         if (data->type == AnimStatesType::STATE_DESC)
           add_include_file_menu_items(menu);
@@ -113,7 +116,7 @@ int AnimStatesTreeEventHandler::onMenuItemClick(unsigned id)
       if (!dialog.isVisible())
       {
         if (!dialog.hasEverBeenShown())
-          dialog.positionLeftToWindow("Properties", /*use_same_height*/ true);
+          dialog.positionBesideWindow("Properties");
         dialog.show();
       }
       break;

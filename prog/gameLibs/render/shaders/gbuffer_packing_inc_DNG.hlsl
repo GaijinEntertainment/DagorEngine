@@ -1,5 +1,3 @@
-// This is for DNG only, but it is required for NBS, so it needs to stay in gameLibs
-
 #define EMISSION_COLOR_REPLACE_ENC 0x3F // min saturation, max hue: replaced by white
 #define EMISSION_COLOR_SUBSTITUTE_ENC 0x0 // min saturation, min hue: used as substitute for the replaced color
 
@@ -41,6 +39,19 @@ half decodeEmissionStrength(half x)
 half encodeEmissionStrength(half x)
 {
   return half(sqrt(x / MAX_EMISSION));
+}
+half2 encodeEmissionStrengthTwoParts(half x)
+{
+  float scaled = (float)encodeEmissionStrength(x) * 65535.f;
+  float hi = floor(scaled / 256.f);
+  float lo = scaled - hi * 256.f;
+  return half2(float2(hi, lo) / 255.f);
+}
+
+half decodeEmissionStrengthFromTwoParts(half2 val)
+{
+  half combined = half(dot(float2(val), float2(256.f * 255.f / 65535.f, 255.f / 65535.f)));
+  return decodeEmissionStrength(combined);
 }
 half encodeReflectance(half2 reflectance)
 {

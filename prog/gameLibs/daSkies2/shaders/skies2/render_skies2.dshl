@@ -70,6 +70,7 @@ endmacro
 float4 skies_sun_moon_effect;
 
 macro SKIES_VIEW_LUT_TEX_PREPARE(code)
+  SKIES_RAINMAP(code)
   (code) {
     prev_skies_view_lut_tex@smp2d = prev_skies_view_lut_tex;
     prev_skies_view_lut_mie_tex@smp2d = prev_skies_view_lut_mie_tex;
@@ -209,12 +210,17 @@ shader skies_view_lut_tex_prepare_cs
 {
   cull_mode=none;
   z_write=false;
-  ENABLE_ASSERT(cs)
   USE_PS5_WAVE32_MODE()
   SKIES_VIEW_LUT_TEX_PREPARE(cs)
+  (cs) {
+    output0@uav : register(0) hlsl {
+      RWTexture2D<float4> output0@uav;
+    }
+    output1@uav : register(1) hlsl {
+      RWTexture2D<float4> output1@uav;
+    }
+  }
   hlsl(cs) {
-    RWTexture2D<float4> output0 : register(u0);
-    RWTexture2D<float4> output1 : register(u1);
 ##if hardware.ps5
     [numthreads(8, 2, 1)]
 ##else
@@ -345,6 +351,7 @@ shader skies_render_screen
   INIT_BRUNETON_FOG(ps)
   BASE_USE_BRUNETON_FOG(ps)
   TRACE_SKY(ps, skies_world_view_pos, skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.z, skies_primary_sun_light_dir.y)//this is only for shadows on earth in WT
+  SKIP_SKY_POLARIZATION_FILTER_TERM_INIT()
   RENDER_SKIES()
   INIT_HDR(ps)
   USE_HDR(ps)
@@ -426,6 +433,7 @@ shader skies_render_screen
         float miePhase = MiePhaseFunctionDivideByRayleighOptimized(theAtmosphere.mie_phase_consts, primaryNu)*RayleighPhaseFunction(primaryNu);
         float4 skyInscatter = sample_skies_scattering_color_tc(skiesLutTC, view, miePhase);
       #endif
+      skyInscatter.rgb *= apply_sky_polarization_filter();
       return renderSkyWithGround(data, r, skyInscatter, view, scatteringLutTC, true);
     }
     float4 daskies_sky_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
@@ -523,6 +531,8 @@ shader skyPanorama
   z_write=false;
   USE_SPECIAL_VISION()
   USE_POSTFX_VERTEX_POSITIONS()
+  USE_SKY_POLARIZATION_FILTER_TERM(ps)
+  SKIES_RAINMAP(ps)
   TRACE_SKY(ps, prepare_origin, skies_primary_sun_light_dir.x, skies_primary_sun_light_dir.z, skies_primary_sun_light_dir.y)
   RENDER_SKIES()
   INIT_AND_USE_PANORAMA_VIEW_VECT(ps)
@@ -576,7 +586,7 @@ shader skyPanorama
         //todo: remove shadows from moon, use only statistical shadows. it is not correct anyway
         skyInscatter += traceSky(shadow_origin, view, skies_secondary_sun_light_dir.xzy, 0, float2(12,24), transmittance2,noMie, mie, addLight)*skies_secondary_sun_color.rgb;
       }
-      float3 res = skyInscatter;
+      float3 res = skyInscatter * apply_sky_polarization_filter();
       float distToEarthKm;
       PreparedGroundData data;
       prepare_ground_data(view.xzy, max(0, dist_to_plane(view.y, -1)), data);

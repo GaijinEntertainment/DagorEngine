@@ -221,8 +221,8 @@ void PostFx::restart(const DataBlock *level_settings, const DataBlock *game_sett
     DEBUG_CTX("HDR mode: %s, maxoverbr = %g", hdr_modes[::hdr_render_mode], ::hdr_max_overbright);
 
   ShaderGlobal::set_int(::get_shader_variable_id("hdr_mode", true), ::hdr_render_mode);
-  ShaderGlobal::set_real(::get_shader_variable_id("hdr_overbright", true), ::hdr_max_overbright);
-  ShaderGlobal::set_real(::get_shader_variable_id("max_hdr_overbright", true), ::hdr_max_overbright);
+  ShaderGlobal::set_float(::get_shader_variable_id("hdr_overbright", true), ::hdr_max_overbright);
+  ShaderGlobal::set_float(::get_shader_variable_id("max_hdr_overbright", true), ::hdr_max_overbright);
 
   if (const char *pfx = level_settings->getStr("postfx", game_settings->getStr("postfx", NULL)))
   {
@@ -419,7 +419,7 @@ bool PostFx::updateSettings(const DataBlock *level_settings, const DataBlock *ga
   if (hdr_mode != ::hdr_render_mode || hdr_fmt != ::hdr_render_format)
     return false;
 
-  ShaderGlobal::set_real(::get_shader_variable_id("hdr_overbright", true), ::hdr_max_overbright);
+  ShaderGlobal::set_float(::get_shader_variable_id("hdr_overbright", true), ::hdr_max_overbright);
 
   if (const char *pfx = level_settings->getStr("postfx", game_settings->getStr("postfx", NULL)))
   {
@@ -458,8 +458,7 @@ TEXTUREID PostFx::downsample(Texture *input_tex, TEXTUREID input_id)
   return BAD_TEXTUREID;
 }
 
-void PostFx::apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTUREID targtexId, const TMatrix &view_tm,
-  const TMatrix4 &proj_tm, bool force_disable_motion_blur)
+void PostFx::apply(Texture *source, Texture *target, const TMatrix &view_tm, const TMatrix4 &proj_tm, bool force_disable_motion_blur)
 {
   G_UNREFERENCED(force_disable_motion_blur);
   if (genPostFx)
@@ -470,10 +469,10 @@ void PostFx::apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTURE
     d3d::get_render_target(rt);
 
     d3d::set_render_target(target, 0);
-    ShaderGlobal::set_texture(varId, sourceId);
+    ShaderGlobal::set_texture(varId, source);
     ShaderGlobal::set_sampler(samplerVarId, d3d::request_sampler({}));
     genPostFx->render();
-
+    ShaderGlobal::set_texture(varId, nullptr);
     d3d::set_render_target(rt);
     return;
   }
@@ -488,10 +487,10 @@ void PostFx::apply(Texture *source, TEXTUREID sourceId, Texture *target, TEXTURE
   {
     createTempTex();
     d3d_err(d3d::stretch_rect(source, tempTex));
-    demonPostFx->apply(false, tempTex, tempTexId, target, targtexId, view_tm, proj_tm);
+    demonPostFx->apply(false, tempTex, target, view_tm, proj_tm);
   }
   else
-    demonPostFx->apply(false, source, sourceId, target, targtexId, view_tm, proj_tm);
+    demonPostFx->apply(false, source, target, view_tm, proj_tm);
 }
 
 
@@ -500,7 +499,7 @@ void PostFx::createTempTex()
   if (tempTex)
     return;
 
-  tempTex = d3d::create_tex(NULL, targetW, targetH, ::hdr_render_format | TEXCF_RTARGET, 1);
+  tempTex = d3d::create_tex(NULL, targetW, targetH, ::hdr_render_format | TEXCF_RTARGET, 1, RESTAG_POSTFX);
   d3d_err(tempTex);
   tempTexId = register_managed_tex("postfx@temp", tempTex);
 }

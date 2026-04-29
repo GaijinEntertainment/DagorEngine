@@ -121,7 +121,7 @@ rule GenESSourceFile
   local src = $(Location)/$(1) ;
   local dst = $(Location)/$(dst_nm) ;
   local tgt = $(Target) ;
-  if $(UseQuirrel) && $(TargetType) = lib { tgt = $(tgt:S=~$(UseQuirrel).lib) ; }
+
 
   LOCATE on $(src) = $(Root) ;
   LOCATE on $(dst) = $(Root) ;
@@ -241,11 +241,13 @@ rule StrToCIdent
 
 rule AutoscanBuildLists # folder_list : wildcard : dest_var : excl_regexp
 {
+  local excl_regexp = $(4) ;
+  if ! $(excl_regexp) && $(2) = *.cpp { excl_regexp = \\.cpp\\.gen\\.es\\.cpp$ ; }
   for sd in $(1) {
     local s = [ GLOB $(Root)/$(Location)/$(sd) : $(2) ] ;
     s = $(s:D=$(sd)) ;
-    if $(4) {
-      for f in $(s) { if ! [ MATCH "($(4))" : $(f) ] { $(3) += $(f) ; } }
+    if $(excl_regexp) {
+      for f in $(s) { if ! [ MATCH "($(excl_regexp))" : $(f) ] { $(3) += $(f) ; } }
     } else {
       $(3) += $(s) ;
     }
@@ -257,7 +259,7 @@ if $(OS) = NT {
   {
     echo * copy file to:   $(file)
     set_filter nul /1 file\(s\) copied/
-    call_filtered $(ComSpec) /C copy /Y /B /V #\( "$(2)" "$(1)" )\#
+    call_filtered $(ComSpec) /C copy /Y /B /V #\( "$(2)" "$(1)" )\# >nul
     clr_filters
     if not exist $(1) set errorlevel=13
   }
@@ -267,6 +269,30 @@ if $(OS) = NT {
     echo * copy file to:   $(file)
     call cp $(2) $(1)
     $(post_copy_cmd)
+    if not exist $(1) set errorlevel=13
+  }
+}
+
+if $(OS) = NT {
+  rule ProcessBundleSymlink
+  {
+    local dest = $(1[1]) ;
+    local rel_src = $(1[2]) ;
+
+    MakeDirectory all : $(OutDir)/$(dest:D) ;
+    Depends $(OutDir)/$(dest) : $(OutDir)/$(dest:D)/$(rel_src) ;
+    NOCARE $(OutDir)/$(dest:D)/$(rel_src) ;
+    Depends all : $(OutDir)/$(dest) ;
+    src on $(OutDir)/$(dest) = $(rel_src) ;
+    raw_sym_link $(OutDir)/$(dest) : $(OutDir)/$(dest:D)/$(rel_src) ;
+
+    if $(1[3]) { ProcessBundleSymlink $(1[3-]) ; }
+  }
+
+  actions together quietly raw_sym_link
+  {
+    echo * make rel symlink:  $(1) <-- $(1)/$(src)
+    call $(ComSpec) /c mklink /J #\( $(1) "$(1)/$(src)" )\# >nul
     if not exist $(1) set errorlevel=13
   }
 }

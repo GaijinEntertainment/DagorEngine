@@ -2,7 +2,6 @@
 
 #include "device.h"
 
-#include <gui/dag_imgui.h>
 #include <imgui.h>
 // #include <ioSys/dag_dataBlock.h>
 // #include <implot.h>
@@ -14,7 +13,7 @@ namespace
 {
 bool begin_sub_section(const char *id, const char *caption, int height)
 {
-  if (ImGui::BeginChild(id, ImVec2(0, height), ImGuiChildFlags_Border, ImGuiWindowFlags_MenuBar))
+  if (ImGui::BeginChild(id, ImVec2(0, height), ImGuiChildFlags_Borders, ImGuiWindowFlags_MenuBar))
   {
     if (ImGui::BeginMenuBar())
     {
@@ -187,15 +186,15 @@ char *translate_to_string(char (&buf)[N], ResourceBarrier barrier)
     at += count;
   };
 #define CAT_STATE_R(name)                                           \
-  if (uint32_t(name) == (uint32_t(name) & uint32_t(barrier)))       \
+  if (uint64_t(name) == (uint64_t(name) & uint64_t(barrier)))       \
   {                                                                 \
-    barrier = ResourceBarrier(uint32_t(barrier) & ~uint32_t(name)); \
+    barrier = ResourceBarrier(uint64_t(barrier) & ~uint64_t(name)); \
     concat(#name);                                                  \
   }
 #define CAT_STATE_A2(name, name2)                                   \
-  if (uint32_t(name) == (uint32_t(name) & uint32_t(barrier)))       \
+  if (uint64_t(name) == (uint64_t(name) & uint64_t(barrier)))       \
   {                                                                 \
-    barrier = ResourceBarrier(uint32_t(barrier) & ~uint32_t(name)); \
+    barrier = ResourceBarrier(uint64_t(barrier) & ~uint64_t(name)); \
     concat(#name " / " #name);                                      \
   }
 
@@ -236,6 +235,8 @@ char *translate_to_string(char (&buf)[N], ResourceBarrier barrier)
   CAT_STATE_R(RB_RO_VERTEX_BUFFER);
   CAT_STATE_R(RB_RO_CONSTANT_BUFFER);
   CAT_STATE_R(RB_RO_SRV);
+  CAT_STATE_R(RB_RO_OPACITY_MICRO_MAP_BUILD_INPUT_BUFFER);
+  CAT_STATE_R(RB_RO_OPACITY_MICRO_MAP_BUILD_DESCRIPTION_BUFFER);
   CAT_STATE_R(RB_RW_BLIT_DEST);
   CAT_STATE_R(RB_RW_COPY_DEST);
   CAT_STATE_R(RB_RW_UAV);

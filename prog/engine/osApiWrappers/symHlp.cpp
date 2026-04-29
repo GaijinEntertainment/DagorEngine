@@ -75,16 +75,16 @@ bool symhlp_find_module_addr(const char *pe_img_name, uintptr_t &base_addr, uint
   do
   {
     /*
-    debug( "\n     MODULE NAME:     %s",           me32.szModule );
-    debug( "     executable     = %s",             me32.szExePath );
-    debug( "     process ID     = 0x%08X",         me32.th32ProcessID );
-    debug( "     ref count (g)  =     0x%04X",     me32.GlblcntUsage );
-    debug( "     ref count (p)  =     0x%04X",     me32.ProccntUsage );
-    debug( "     base address   = 0x%08X", (DWORD) me32.modBaseAddr );
-    debug( "     base size      = %d",             me32.modBaseSize );
+    debug("\n     MODULE NAME:     %s", me32.szModule);
+    debug("     executable     = %s", me32.szExePath);
+    debug("     process ID     = 0x%08X", me32.th32ProcessID);
+    debug("     ref count (g)  =     0x%04X", me32.GlblcntUsage);
+    debug("     ref count (p)  =     0x%04X", me32.ProccntUsage);
+    debug("     base address   = 0x%08X", (DWORD)me32.modBaseAddr);
+    debug("     base size      = %d", me32.modBaseSize);
     */
 
-    if (dd_fname_equal(me32.szExePath, pe_img_name) || dd_fname_equal(me32.szModule, pe_img_name))
+    if (dd_fname_equal(me32.szExePath, pe_img_name) || dd_fname_equal(me32.szModule, dd_get_fname(pe_img_name)))
     {
       CloseHandle(hModuleSnap);
       base_addr = (uintptr_t)me32.modBaseAddr;
@@ -118,11 +118,11 @@ bool symhlp_load(const char *pe_img_name, uintptr_t base_addr, uintptr_t module_
 
 bool symhlp_unload(const char *pe_img_name, uintptr_t base_addr)
 {
-  uintptr_t module_size;
+  uintptr_t module_size = 0;
 
   if (base_addr == 0)
     symhlp_find_module_addr(pe_img_name, base_addr, module_size);
-  // DEBUG_CTX("symhlp_unload: <%s> %08X %d", pe_img_name, base_addr);
+  // DEBUG_CTX("symhlp_unload: <%s> %08X %d", pe_img_name, base_addr, module_size);
   if (base_addr == 0)
     return false;
   return SymUnloadModule((char *)pe_img_name, base_addr);

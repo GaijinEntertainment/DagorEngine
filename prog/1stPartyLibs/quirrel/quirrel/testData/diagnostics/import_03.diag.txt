@@ -1,0 +1,8 @@
+ERROR: missing "*/" in comment
+testData/diagnostics/import_03.nut:1:0
+
+/*
+^--------------------
+import "a" as x
+
+

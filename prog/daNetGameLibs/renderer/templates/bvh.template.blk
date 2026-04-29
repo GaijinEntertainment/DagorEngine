@@ -5,16 +5,22 @@ bvh{
   bvh__initialized:b=no
   "bvh__update_node:dafg::NodeHandle"{}
   "denoiser_prepare_node:dafg::NodeHandle"{}
-  "rtsm_node:dafg::NodeHandle"{}
-  "rtsm_dynamic_node:dafg::NodeHandle"{}
-  "rtr_node:dafg::NodeHandle"{}
+  "bvh_register_gbuffer_node:dafg::NodeHandle"{}
+  "bvh_register_fom_shadows:dafg::NodeHandle"{}
+  "rtsm_prepare_node:dafg::NodeHandle"{}
+  "rtsm_trace_node:dafg::NodeHandle"{}
+  "rtsm_denoise_node:dafg::NodeHandle"{}
+  "rtr_prepare_node:dafg::NodeHandle"{}
+  "rtr_trace_node:dafg::NodeHandle"{}
+  "rtr_denoise_node:dafg::NodeHandle"{}
   "rttr_node:dafg::NodeHandle"{}
-  "rtao_node:dafg::NodeHandle"{}
+  "rtao_prepare_node:dafg::NodeHandle"{}
+  "rtao_trace_node:dafg::NodeHandle"{}
+  "rtao_denoise_node:dafg::NodeHandle"{}
   "ptgi_node:dafg::NodeHandle"{}
   "water_rt_early_before_envi_node:dafg::NodeHandle"{}
   "water_rt_early_after_envi_node:dafg::NodeHandle"{}
   "bvh_debug_dynmodels_node:dafg::NodeHandle"{}
-  bvh_debug_dynmodels_console_command:i=0
   "water_rt_late_node:dafg::NodeHandle"{}
   "bvh__rendinst_visibility:RiGenVisibilityECS"{}
   "bvh__rendinst_oof_visibility:RiGenVisibilityECS"{}

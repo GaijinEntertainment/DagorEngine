@@ -5,12 +5,14 @@ include "bvh.dshl"
 include "blue_noise.dshl"
 include "rtsm_sun_dir.dshl"
 include "bvh_common_includes.dshl"
+include "camera_in_camera.dshl"
 
 float4x4 inv_proj_tm;
 
 texture rtao_target;
 
 float4 rtao_hit_dist_params;
+float4 rtao_resolution = (1,1,1,1);
 int4 rtao_resolutionI = (1,1,1,1);
 int rtao_res_mul = 1;
 
@@ -23,18 +25,19 @@ float impostor_shadow_offset = -10;
 
 shader rt_ao
 {
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
+
   if (compatibility_mode == compatibility_mode_on || !use_hw_raytracing)
   {
     dont_render;
   }
-  ENABLE_ASSERT(cs)
 
   RTSM_SUN_DIR()
   (cs) {
     inv_proj_tm@f44 = inv_proj_tm;
     world_view_pos@f3 = world_view_pos;
     resolution@u2 = rtao_resolutionI.xy;
-    inv_aligned_resolution@f2 = (rtao_res_mul*screen_pos_to_texcoord.xy);
+    inv_aligned_resolution@f2 = (1.0 / rtao_resolution.xy);
     hit_dist_params@f4 = rtao_hit_dist_params;
     rtao_checkerboard@i1 = rtao_checkerboard;
     output@uav = rtao_target hlsl { RWTexture2D<float> output@uav; };
@@ -44,20 +47,19 @@ shader rt_ao
   hlsl(cs) {
     #define DISABLE_TOONSHADING 1
 
-    #include <Include/NRDEncoding.hlsli>
-    #include <Include/NRD.hlsli>
+    #include <NRD.hlsli>
   }
+
+  INIT_BVH(cs, 0, true)
+  USE_BVH_FOR_AO(cs)
 
   USE_AND_INIT_VIEW_VEC_CS()
   INIT_ZNZFAR_STAGE(cs)
-  INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
+  INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_EMISSION_DECODE_COLOR_MAP_STUB(cs)
-  INIT_LOAD_GBUFFER_BASE(cs)
-  INIT_LOAD_BVH_FLAGS_BASE(cs)
   USE_LOAD_GBUFFER_BASE(cs, true)
-  INIT_BVH(cs, 0, true)
-  USE_BVH_FOR_AO(cs)
 
   if (rtao_res_mul == on)
   {
@@ -111,8 +113,18 @@ shader rt_ao
       if (any(rayIndex >= resolution))
         return;
 
+    float2 tc = float2(rayIndex + 0.5) * inv_aligned_resolution;
+    DISCARD_IF_INVALID_VIEW_AREA_CS(tc);
+
+    ##if rtao_res_mul == on
+      const float gbufferTcScale = 2.0;
+    ##else
+      const float gbufferTcScale = 1.0;
+    ##endif
+      float2 gbufferTC = tc * gbufferTcScale;
+
       ##if rtao_res_mul == on
-        UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex * 2));
+        UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex * gbufferTcScale));
         float rawDepth = texture2DAt(half_res_depth_tex, rayIndex).r;
       ##else
         UnpackedGbuffer gbuffer = unpackGbuffer(loadPackedGbuffer(rayIndex));
@@ -133,13 +145,12 @@ shader rt_ao
       BRANCH
       if (underwaterFade == 0)
       {
-        texture2DAt(output, outputIndex) = calc_output_value(NRD_FP16_MAX, NRD_FP16_MAX, 0);
+        texture2DAt(output, outputIndex) = calc_output_value(NRD_FP16_MAX, w, 0);
         return;
       }
 
       bool isImpostor = gbuffer.impostorMask > 0.5;
-      bool isGrass = gbuffer.isGrass;
-      bool isTwoSided = gbuffer.isTwoSided;
+      bool isGrass = processGbuffer(gbuffer).isGrass;
       bool isFoliage = gbuffer.material == SHADING_FOLIAGE;
 
       float3 relPos = calc_camera_relative_pos(rayIndex, w, inv_aligned_resolution);
@@ -164,7 +175,10 @@ shader rt_ao
       else if (isGrass)
         groupMask &= ~bvhGroupGrass;
       if (isFoliage)
+      {
         minT = bvh_foliage_bias;
+        groupMask &= ~bvhGroupGPUFoliage;
+      }
 
       float aoDistance = hit_dist_params.x;
 

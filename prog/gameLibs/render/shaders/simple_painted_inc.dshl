@@ -24,15 +24,15 @@ macro INIT_SIMPLE_PAINTED()
 endmacro
 
 // If use_translucency is set to true, translucent_inc.dshl:INIT_TRANSLUCENCY_SETTING(ps) should be called before
-macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_microdetail_sampler) //not for depth or shadow, for them use RENDER_TO_SHADOW_PS()
+macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_microdetail_sampler, order) //not for depth or shadow, for them use RENDER_TO_SHADOW_PS()
   USE_PIXEL_TANGENT_SPACE()
   if (is_writing_gbuffer)
   {
     WRITE_GBUFFER()
   }
   (ps) {
-    diffuse_tex@static = tex;
-    normal_tex@static = normal;
+    diffuse_tex@staticSmp = tex;
+    normal_tex@staticSmp = normal;
   }
 
   if (compatibility_mode == compatibility_mode_off)
@@ -43,6 +43,10 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_micr
   USE_CONST_COLOR_OVERRIDES()
 
   hlsl(ps) {
+    #ifndef handle_if_two_sided
+      #define handle_if_two_sided(gbuffer)
+    #endif
+
     #if VOXELIZE_ALBEDO_PASS
       void simple_painted_ps(VsOutput input)
     #else
@@ -58,9 +62,6 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_micr
       #endif
       #ifndef IS_DYNAMIC
         #define IS_DYNAMIC 0
-      #endif
-      #ifndef FORCE_AUTO_MOTION_VECTOR
-        #define FORCE_AUTO_MOTION_VECTOR 0
       #endif
 
       float2 texCoord = input.diffuseTexcoord.xy;
@@ -149,10 +150,9 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_micr
         handle_if_two_sided(gbuffer);
 
         init_dynamic(gbuffer,IS_DYNAMIC);
-        init_order(gbuffer, GBUFFER_ORDER_STATIC);
-        init_auto_motion_vector(gbuffer, FORCE_AUTO_MOTION_VECTOR);
+        init_order(gbuffer, order);
         #ifdef MOTION_VECTORS_ENABLED
-          float3 motion = encode_motion_vector( input.out_pos, input.out_pos_prev );
+          float3 motion = encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw );
           init_motion_vector(gbuffer, motion);
         #endif
         #ifdef PLOD_PS_GEN
@@ -165,6 +165,6 @@ macro SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, has_char_micr
   compile("target_ps", "simple_painted_ps");
 endmacro
 
-macro SIMPLE_PAINTED_PS(is_writing_gbuffer, use_translucency)
-  SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, true)
+macro SIMPLE_PAINTED_PS(is_writing_gbuffer, use_translucency, order)
+  SIMPLE_PAINTED_PS_IMPL(is_writing_gbuffer, use_translucency, true, order)
 endmacro

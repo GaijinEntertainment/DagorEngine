@@ -1,0 +1,59 @@
+laser_decals_manager{
+  _use:t="replicating"
+  _singleton:b=yes
+  _tags:t="render"
+
+  laser_decals_initial_count:i=128
+  laser_decals_generator_shader:t="laser_decal_generator"
+  laser_decals_render_shader:t="laser_point_decal"
+  laser_point_decal_culler_shader:t="laser_decal_cull"
+  laser_decal_init_shader:t="projective_decal_create_indirect"
+
+
+  "laser_decals_manager:LaserDecalManager"{}
+  "laser_screen_spot_buffer:UniqueBufHolder"{}
+  laser_screen_spot_count:i = 0
+  laser_decal_manager__is_compatible:b=true
+  laser_decal_reproj_max_correction:r=1
+}
+
+laser_sight{
+  laserBeamStartOffset:p3 = 0, 0, 0
+  laserBeamColor:p3 = 0.35, 0, 0
+  laserBeamDotColor:p3 = 1, 0, 0
+  laserBeamMaxLength:r = 75
+  laserStartSize:r = 0.02
+  laserMaxSize:r = 0.2
+  laserCrownAngle:r = 5.0
+  laserAlpha:r = 0.2
+  laserStartIntensity:r = 1.0
+  laserMaxIntensity:r = 1.0
+  laserActive:b = no
+  laserScrollingSpeed:r= 5.0
+  laser__fxNodeName:t="laser_fx"
+  laser__fxNodeIdx:i=-1
+  _replicated:t="laserActive"
+  _tracked:t="laserActive"
+  laserAvailable:b = yes
+  _replicated:t="laserAvailable"
+  _tracked:t="laserAvailable"
+  "laserBeamTracerId:i"{
+    _tags:t="render"
+    value:i=-1
+  }
+  "laserDecalId:i"{
+    _tags:t="render"
+    value:i=-1
+  }
+
+  laser_data__rayHit:p3 = 0, 0, 0
+  laser_data__fxPos:p3 = 0, 0, 0
+  laser_data__fxDir:p3 = 1, 0, 0
+  laser_data__laserLen:r = 1.
+  laser_data__intesity:r = 1.
+  laser_data__dotIntensity:r = 1
+  laser_data__crownSize:r = 0.5
+  "laser_data__gunOwner:eid" {}
+  "laser_data__playerId:eid" {}
+  laser_sight__is_compatible:b=true
+}

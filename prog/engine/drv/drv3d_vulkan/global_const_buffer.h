@@ -4,6 +4,9 @@
 #include <EASTL/bitset.h>
 #include "driver.h"
 #include "device_memory.h"
+#include "buffer_ref.h"
+#include "frontend.h"
+#include "pipeline_state.h"
 
 namespace drv3d_vulkan
 {
@@ -38,6 +41,10 @@ struct GlobalConstBuffer
 
   DirtyState::Type dirtyState = ~DirtyState::Type(0);
 
+  // runtime limits derived from device maxUniformBufferRange (initialized via initDeviceLimits)
+  uint32_t maxVertexRegisters = VERTEX_SHADER_MAX_REGISTERS;
+  uint32_t maxComputeRegisters = MAX_COMPUTE_CONST_REGISTERS;
+
   // current sizes of the register space sections (eg what needs uploading)
   uint32_t registerSpaceSizes[STAGE_MAX] = {MIN_COMPUTE_CONST_REGISTERS, FRAGMENT_SHADER_REGISTERS, VERTEX_SHADER_MIN_REGISTERS};
   // one big chunk to provide memory for register backing
@@ -69,10 +76,17 @@ struct GlobalConstBuffer
     return modified;
   }
 
+  void initDeviceLimits(uint32_t max_uniform_buffer_range)
+  {
+    uint32_t maxRegsFromDevice = max_uniform_buffer_range / SHADER_REGISTER_SIZE;
+    maxVertexRegisters = min(VERTEX_SHADER_MAX_REGISTERS, maxRegsFromDevice);
+    maxComputeRegisters = min(MAX_COMPUTE_CONST_REGISTERS, maxRegsFromDevice);
+  }
+
   uint32_t setComputeConstRegisterCount(uint32_t cnt)
   {
     if (cnt)
-      cnt = clamp<uint32_t>(nextPowerOfTwo(cnt), MIN_COMPUTE_CONST_REGISTERS, MAX_COMPUTE_CONST_REGISTERS);
+      cnt = clamp<uint32_t>(nextPowerOfTwo(cnt), MIN_COMPUTE_CONST_REGISTERS, maxComputeRegisters);
     else
       cnt = MIN_COMPUTE_CONST_REGISTERS; // TODO update things to allow 0 (eg shader can tell how many it needs)
     markDirty(DirtyState::COMPUTE_CONST_REGISTERS, registerSpaceSizes[STAGE_CS] < cnt);
@@ -82,7 +96,7 @@ struct GlobalConstBuffer
   uint32_t setVertexConstRegisterCount(uint32_t cnt)
   {
     if (cnt)
-      cnt = clamp<uint32_t>(nextPowerOfTwo(cnt), VERTEX_SHADER_MIN_REGISTERS, VERTEX_SHADER_MAX_REGISTERS);
+      cnt = clamp<uint32_t>(nextPowerOfTwo(cnt), VERTEX_SHADER_MIN_REGISTERS, maxVertexRegisters);
     else
       cnt = VERTEX_SHADER_MIN_REGISTERS; // TODO update things to allow 0 (eg shader can tell how many it needs)
     markDirty(DirtyState::VERTEX_CONST_REGISTERS, registerSpaceSizes[STAGE_VS] < cnt);
@@ -93,15 +107,21 @@ struct GlobalConstBuffer
   {
     auto ds = static_cast<DirtyState::Bits>(DirtyState::COMPUTE_CONST_REGISTERS + stage);
     G_ASSERT(ds < DirtyState::INVALID);
+    G_ASSERTF(offset + blob.size() <= registerSpaceSizes[stage] * SHADER_REGISTER_SIZE,
+      "vulkan: OOB writing to GCB stage %u offset %u size %u limit %u", stage, offset, blob.size(),
+      registerSpaceSizes[stage] * SHADER_REGISTER_SIZE);
     markDirty(ds, registerMemoryUpdate(stage, offset, blob));
   }
 
   template <typename ContextClass>
-  void setGlobalCbToStage(ContextClass &ctx, uint32_t stage)
+  void setGlobalCbToStage(ContextClass &ctx, uint32_t raw_stage)
   {
-    ctx.setConstRegisterBuffer(
-      ctx.uploadToDeviceFrameMem(registerSpaceSizes[stage] * SHADER_REGISTER_SIZE, getRegisterSectionStart(stage)),
-      (ShaderStage)stage);
+    BufferRef ref =
+      ctx.uploadToDeviceFrameMem(registerSpaceSizes[raw_stage] * SHADER_REGISTER_SIZE, getRegisterSectionStart(raw_stage));
+    ShaderStage stage = (ShaderStage)raw_stage;
+    auto &resBinds = Frontend::State::pipe.getStageResourceBinds(stage);
+    if (resBinds.set<StateFieldGlobalConstBuffer, BufferRef>(ref))
+      Frontend::State::pipe.markResourceBindDirty(stage);
   }
 
   template <typename ContextClass>

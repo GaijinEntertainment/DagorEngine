@@ -361,48 +361,42 @@ static unsigned fill_stack_walk_naked_unsafe(void **stack, unsigned size, CONTEX
   // so, if we are calling those functions on suspended thread, we can face a deadlock
   // prevent it with tls and checking that tls
   int frameIter = -frames_to_skip;
-  for (; context.EIP_REG && frameIter < (int)size; ++frameIter)
-  {
-    if (uint32_t(frameIter) < size)
-      stack[frameIter] = (void *)(uintptr_t)context.EIP_REG;
-
-    PRUNTIME_FUNCTION pRuntimeFunction = nullptr;
-    ULONG64 imageBase = 0;
 #define TRY       __try
 #define EXCEPT(a) __except (a)
-    TRY { pRuntimeFunction = (PRUNTIME_FUNCTION)RtlLookupFunctionEntry(context.EIP_REG, &imageBase, NULL); }
-    EXCEPT(EXCEPTION_EXECUTE_HANDLER) { break; }
-
-    if (pRuntimeFunction)
+  TRY
+  {
+    for (; context.EIP_REG && frameIter < (int)size; ++frameIter)
     {
-      VOID *handlerData = NULL;
-      ULONG64 framePointers[2] = {0, 0};
-      // Under at least the XBox One platform, RtlVirtualUnwind can crash here.
-      TRY
+      if (uint32_t(frameIter) < size)
+        stack[frameIter] = (void *)(uintptr_t)context.EIP_REG;
+
+      PRUNTIME_FUNCTION pRuntimeFunction = nullptr;
+      ULONG64 imageBase = 0;
+      pRuntimeFunction = (PRUNTIME_FUNCTION)RtlLookupFunctionEntry(context.EIP_REG, &imageBase, NULL);
+
+      if (pRuntimeFunction)
       {
+        VOID *handlerData = NULL;
+        ULONG64 framePointers[2] = {0, 0};
+        // Under at least the XBox One platform, RtlVirtualUnwind can crash here.
         RtlVirtualUnwind(UNW_FLAG_NHANDLER, imageBase, context.EIP_REG, pRuntimeFunction, &context, &handlerData, framePointers, NULL);
       }
-      EXCEPT(EXCEPTION_EXECUTE_HANDLER)
+      else
       {
-        context.EIP_REG = 0;
-        context.ContextFlags = 0;
+        // If we don't have a RUNTIME_FUNCTION, then we've encountered an error of some sort (mostly likely only for cases of
+        // corruption) or leaf function (which doesn't make sense, given that we are moving up in the call sequence). Adjust the stack
+        // appropriately. we can do if (context.ESP_REG && is_address_readable((const void*)context.ESP_REG, false))
+        //{
+        //  context.EIP_REG  = (ULONG64)(*(PULONG64)context.ESP_REG);
+        //  context.ESP_REG += 8;
+        //} else
+        break; // but since we use this function only in rare cases of crashes and in sampling, just skip reminding callstack
       }
     }
-    else
-    {
-      // If we don't have a RUNTIME_FUNCTION, then we've encountered an error of some sort (mostly likely only for cases of corruption)
-      // or leaf function (which doesn't make sense, given that we are moving up in the call sequence). Adjust the stack appropriately.
-      // we can do
-      // if (context.ESP_REG && is_address_readable((const void*)context.ESP_REG, false))
-      //{
-      //  context.EIP_REG  = (ULONG64)(*(PULONG64)context.ESP_REG);
-      //  context.ESP_REG += 8;
-      //} else
-      break; // but since we use this function only in rare cases of crashes and in sampling, just skip reminding callstack
-    }
+  }
+  EXCEPT(EXCEPTION_EXECUTE_HANDLER) {}
 #undef TRY
 #undef EXCEPT
-  }
   return frameIter > 0 ? frameIter : 0;
 }
 
@@ -439,7 +433,7 @@ unsigned stackhlp_fill_stack(void **stack, unsigned max_size, int skip_frames)
 #else
   CONTEXT ctx;
   RtlCaptureContext(&ctx);
-  const unsigned nframes = fill_stack_walk(stack, max_size, ctx, skip_frames);
+  const unsigned nframes = fill_stack_walk_naked(stack, max_size, ctx, skip_frames);
 #endif
   if (nframes < max_size)
     stack[nframes] = (void *)(~uintptr_t(0));
@@ -463,11 +457,16 @@ unsigned stackhlp_fill_stack_exact(void **stack, unsigned max_size, const void *
 #include <string.h>
 
 int g_in_backtrace = 0; // for reading in signal handlers
-unsigned stackhlp_fill_stack(void **stack, unsigned max_size, int /*skip_frames*/)
+unsigned stackhlp_fill_stack(void **stack, unsigned max_size, int skip_frames)
 {
+  void *tempStack[96];
+  const unsigned bt_max = skip_frames ? (max_size + skip_frames > 96 ? 96u : max_size + skip_frames) : max_size;
   __atomic_fetch_add(&g_in_backtrace, 1, __ATOMIC_RELAXED);
-  const unsigned nframes = clamp0(backtrace((void **)stack, max_size));
+  const int nframes_ = backtrace(skip_frames ? tempStack : stack, bt_max);
   __atomic_fetch_sub(&g_in_backtrace, 1, __ATOMIC_RELAXED);
+  const unsigned nframes = clamp0(nframes_ - skip_frames);
+  if (skip_frames)
+    memcpy(stack, tempStack + skip_frames, nframes * sizeof(void *));
   if (nframes < max_size)
     stack[nframes] = (void *)(~uintptr_t(0));
   return nframes;
@@ -510,7 +509,7 @@ unsigned stackhlp_fill_stack(void **stack, unsigned max_size, int skip_frames)
 
   const unsigned nframes = max(int(it - stack) - skip_frames, 0);
   if (nframes != 0 && skip_frames > 0)
-    ::memmove(stack, stack + skip_frames, nframes);
+    ::memmove(stack, stack + skip_frames, nframes * sizeof(void *));
 
   if (nframes < max_size)
   {

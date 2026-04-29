@@ -1,0 +1,19 @@
+float4 frustumPlane03X;
+float4 frustumPlane03Y;
+float4 frustumPlane03Z;
+float4 frustumPlane03W;
+float4 frustumPlane4;
+float4 frustumPlane5;
+
+macro INIT_AND_USE_FRUSTUM_PLANES(stage)
+  (stage) {
+    frustumPlanes@f4[] = {
+      frustumPlane03X,
+      frustumPlane03Y,
+      frustumPlane03Z,
+      frustumPlane03W,
+      frustumPlane4,
+      frustumPlane5
+    }
+  }
+endmacro

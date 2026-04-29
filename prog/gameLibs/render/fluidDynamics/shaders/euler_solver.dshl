@@ -55,8 +55,6 @@ hlsl {
 
 shader fill_initial_conditions
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     velocity_density@uav = velocity_density_tex hlsl {
       RWTexture3D<float4> velocity_density@uav;
@@ -87,8 +85,6 @@ shader fill_initial_conditions
 
 shader fill_initial_conditions_from_tex
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     velocity_density@uav = velocity_density_tex hlsl {
       RWTexture3D<float4> velocity_density@uav;
@@ -120,8 +116,6 @@ shader fill_initial_conditions_from_tex
 
 shader euler_simulation_cs
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     tex_size@i3 = (tex_size.x, tex_size.y, tex_size.z, 0);
 
@@ -132,14 +126,16 @@ shader euler_simulation_cs
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
 
     solid_boundaries@smp3d = cfd_solid_boundaries_tex;
+
+    velocity_density@tex3d : register(1);
+    next_velocity_density@uav : register(0) hlsl {
+      RWTexture3D<float4> next_velocity_density@uav;
+    }
   }
 
   hlsl(cs) {
     #define x_ofs uint3(1, 0, 0)
     #define y_ofs uint3(0, 1, 0)
-
-    Texture3D<float4> velocity_density : register(t1);
-    RWTexture3D<float4> next_velocity_density : register(u0);
 
     float2 frictionForce(uint3 coord, float2 v)
     {
@@ -236,8 +232,6 @@ interval euler_implicit_mode: hor<1, vert;
 
 shader euler_simulation_explicit_implicit_cs
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     tex_size@i2 = (tex_size.x, tex_size.y, 0, 0);
 
@@ -248,7 +242,7 @@ shader euler_simulation_explicit_implicit_cs
     standard_density@f1 = (standard_density, 0, 0, 0);
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
 
-    velocity_density@smp2d = velocity_density_tex;
+    velocity_density@tex2d = velocity_density_tex;
     next_velocity_density@uav = next_velocity_density_tex hlsl {
       RWTexture2D<float4> next_velocity_density@uav;
     };
@@ -425,8 +419,6 @@ float euler_centralBlurWeight = 1000.0;
 // TODO: fix this issue inside solver
 shader blur_result_cs
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     tex_size@i3 = (tex_size.x, tex_size.y, tex_size.z, 0);
     simulation_time@f1 = (simulation_time, 0, 0, 0)
@@ -435,14 +427,16 @@ shader blur_result_cs
     standard_density@f1 = (standard_density, 0, 0, 0);
     standard_velocity@f2 = (standard_velocity.x, standard_velocity.y, 0, 0);
     solid_boundaries@smp3d = cfd_solid_boundaries_tex;
+
+    velocity_density@tex3d : register(1);
+    next_velocity_density@uav : register(0) hlsl {
+      RWTexture3D<float4> next_velocity_density@uav;
+    }
   }
 
   hlsl(cs) {
     #define x_ofs uint3(1, 0, 0)
     #define y_ofs uint3(0, 1, 0)
-
-    Texture3D<float4> velocity_density : register(t1);
-    RWTexture3D<float4> next_velocity_density : register(u0);
 
     void blurer(int3 coord, float t)
     {

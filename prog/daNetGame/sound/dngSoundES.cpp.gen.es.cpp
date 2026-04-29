@@ -12,7 +12,9 @@ static constexpr ecs::ComponentDesc dng_sound_debug_draw_es_comps[] =
 static void dng_sound_debug_draw_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
   G_UNUSED(components);
-    dng_sound_debug_draw_es(*info.cast<ecs::UpdateStageInfoRenderDebug>());
+    dng_sound_debug_draw_es(*info.cast<ecs::UpdateStageInfoRenderDebug>()
+    , components.manager()
+    );
 }
 static ecs::EntitySystemDesc dng_sound_debug_draw_es_es_desc
 (
@@ -56,10 +58,10 @@ static constexpr ecs::ComponentDesc sound_begin_update_es_comps[] =
 };
 static void sound_begin_update_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<ParallelUpdateFrameDelayed>());
   sound_begin_update_es(static_cast<const ParallelUpdateFrameDelayed&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc sound_begin_update_es_es_desc
 (
@@ -113,9 +115,9 @@ static ecs::CompileTimeQueryDesc dng_sound_listener_ecs_query_desc
   make_span(dng_sound_listener_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void dng_sound_listener_ecs_query(Callable function)
+inline void dng_sound_listener_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, dng_sound_listener_ecs_query_desc.getHandle(),
+  perform_query(&manager, dng_sound_listener_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

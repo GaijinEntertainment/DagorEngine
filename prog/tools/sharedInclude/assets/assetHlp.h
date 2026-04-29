@@ -11,6 +11,7 @@ class IDaBuildInterface;
 class ILogWriter;
 class DataBlock;
 class IGenSave;
+class FastIntList;
 class String;
 namespace ddsx
 {
@@ -87,6 +88,42 @@ bool saveBlk(const char *rel_path, const DataBlock &src);
 } // namespace assetlocalprops
 
 
+// manage tags data for assets
+namespace assettags
+{
+//! writes assets-tags.blk to assets local props folder
+//! each tag with positive ref count is written out with the names of all the tagged assets
+bool save(const DagorAssetMgr &mgr);
+//! reads assets-tags.blk from assets local props fodler
+//! creating tags (names) and fills the tagged assets table
+bool load(const DagorAssetMgr &mgr);
+
+//! returns number of tag data changes since init
+int getVersion();
+
+//! returns the count of created tags (including non-referenced ones!)
+int getCount();
+//! add a (new) tag with the given name; returns its id regardless of being new name or not
+int addTagName(const char *name);
+//! returns the id of the tag based on its name; -1 means that no tag exists with such name
+int getTagNameId(const char *name);
+//! returns the tag name for a given tag based on its id; nullptr means no such tag is present
+const char *getTagName(int tag_id);
+//! returns the number of references for a given tag based on its id; -1 means no such tag is present
+int getTagRefCount(int tag_id);
+//! returns the count of referenced tags (not including only non-referenced ones!)
+int getReferencedTagCount();
+
+//! add a list of tags (ids) to a given asset; only existing tags will be added without duplication
+//! returns the number of tags added to the asset
+int addTagIds(const DagorAsset &asset, const FastIntList &tag_ids);
+//! del a list of tags (ids) from a given asset
+//! returns the number of tags deleted from the asset
+int delTagIds(const DagorAsset &asset, const FastIntList &tag_ids);
+//! returns the list of tags (ids) of a given asset; empty tmp list is returns for assets withou tags
+const FastIntList &getTagIds(const DagorAsset &asset);
+} // namespace assettags
+
 //! cache for texture assets requiring conversion (can cooperate with daBuild when present)
 namespace texconvcache
 {
@@ -141,11 +178,11 @@ bool validate_exp_blk(bool has_pkgs, const DataBlock &expBlk, const char *target
 
 //! builds and returns both dest_base and pack_fname_prefix for given package
 void build_package_dest_strings(String &out_dest_base, String &out_pack_fname_prefix, const DataBlock &expBlk, const char *pkg_name,
-  const char *app_dir, const char *target_str, const char *profile);
+  const char *app_dir, const char *target_str, const char *profile, bool patch_build = false);
 
 //! builds and returns dest_base for given package
 void build_package_dest(String &out_dest_base, const DataBlock &expBlk, const char *pkg_name, const char *app_dir,
-  const char *target_str, const char *profile);
+  const char *target_str, const char *profile, bool patch_build = false);
 
 //! builds and returns pack_fname_prefix for given package
 void build_package_pack_fname_prefix(String &out_pack_fname_prefix, const DataBlock &expBlk, const char *pkg_name, const char *app_dir,

@@ -10,8 +10,7 @@
 #include <osApiWrappers/dag_files.h>
 #include <utf8/utf8.h>
 
-#include <sqplus.h>
-#include <sqModules/sqModules.h>
+#include <bindQuirrelEx/sqModulesDagor.h>
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <quirrel_json/quirrel_json.h>
@@ -28,6 +27,9 @@
 #include <quirrel/sqJwt/sqJwt.h>
 #include <quirrel/base64/base64.h>
 #include <asyncHTTPClient/asyncHTTPClient.h>
+#if _TARGET_PC_WIN
+#include <quirrel/win_registry/win_registry.h>
+#endif
 
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_direct.h>
@@ -36,7 +38,7 @@
 #include <sqstdsystem.h>
 #include <sqstdio.h>
 #include <sqstdblob.h>
-#include <sqastio.h>
+#include <sqio.h>
 
 #include <osApiWrappers/dag_basePath.h>
 #include <osApiWrappers/dag_fileIoErr.h>
@@ -49,7 +51,12 @@
 #include <helpers/keyValueFile.h>
 
 #include <EASTL/unordered_map.h>
+#include <EASTL/vector_set.h>
+#include <EASTL/sort.h>
 
+#ifdef assert
+#undef assert // -V1059
+#endif
 #define assert G_ASSERT // -V1059
 #include <squirrel/sqpcheader.h>
 #include <squirrel/sqvm.h>
@@ -57,11 +64,8 @@
 #include <squirrel/sqstate.h>
 #include <squirrel/sqfuncproto.h>
 #include <squirrel/sqclosure.h>
-#include <squirrel/sqtypeparser.h>
+#include <squirrel/compiler/sqtypeparser.h>
 
-
-#define MODULE_PARSE_STL eastl
-#include <helpers/importParser/importParser.h>
 #include <algorithm>
 #include <string>
 #include <set>
@@ -70,10 +74,7 @@
 #include "scriptapi.h"
 
 
-using namespace sqimportparser;
-
-
-#define APP_VERSION "1.0.30"
+#define APP_VERSION "1.0.34"
 
 // Stubs
 
@@ -100,7 +101,10 @@ static bool check_fname_case = false;
 static bool do_static_analysis = false;
 static bool dump_bytecode = false;
 static bool dump_ast = false;
+static bool dump_ast_nodes_location = false;
 static bool check_stack_mode = false;
+static bool closure_hoisting_optimization = false;
+static bool hide_compilation_error = false;
 static String sqconfig_dir;
 
 static HSQUIRRELVM sqvm = nullptr;
@@ -141,7 +145,7 @@ static void report_error(const char *msg)
   output_error_text("\n");
 }
 
-static void script_print_function(HSQUIRRELVM v, const SQChar *s, ...)
+static void script_print_function(HSQUIRRELVM v, const char *s, ...)
 {
   G_UNUSED(v);
   const int maxlen = 65536;
@@ -155,7 +159,7 @@ static void script_print_function(HSQUIRRELVM v, const SQChar *s, ...)
   output_text(temp);
 }
 
-static void script_error_function(HSQUIRRELVM v, const SQChar *s, ...)
+static void script_error_function(HSQUIRRELVM v, const char *s, ...)
 {
   G_UNUSED(v);
   const int maxlen = 65536;
@@ -285,12 +289,17 @@ static Module modules[] = {
   {"register_utf8", "roottable: class utf8, utf8.strtr, utf8.charCount ...", [] { bindquirrel::register_utf8(module_manager); }},
   {"sqrat_bind_datablock_module", "'DataBlock' module", [] { bindquirrel::sqrat_bind_datablock(module_manager); }},
   {"register_json", "'json' module", [] { register_json(module_manager); }},
+#if _TARGET_PC_WIN
+  {"register_win_registry", "'win.registry' module", [] { bindquirrel::register_windows_registry_module(module_manager); }},
+#endif
   {"sqrat_bind_dagor_math_module", "'dagor.math', 'dagor.random' and 'hash' modules: Point2, Point3, TMatrix, Color4 ...",
     [] {
       bindquirrel::sqrat_bind_dagor_math(module_manager);
       bindquirrel::register_random(module_manager);
       bindquirrel::register_hash(module_manager);
     }},
+  {"register_dagor_workcycle", "'dagor.workcycle' module",
+    [] { bindquirrel::bind_dagor_workcycle(module_manager, false, "csq_main"); }},
   {"register_dagor_http", "'dagor.http' module",
     [] {
       bindquirrel::bind_http_client(module_manager);
@@ -368,34 +377,6 @@ static String read_file_ignoring_utf8bom(const char *filename)
 }
 
 
-static void import_error_cb(void *filename, const char *message, int line, int column)
-{
-  printf("Error: %s\nat %s:%d:%d\n", message, (const char *)filename, line, column);
-}
-
-
-static bool remove_import_from_code(const char *code, const char *filename)
-{
-  const char *c = code;
-  ImportParser importParser(import_error_cb, (void *)filename);
-  int firstLineAfterImport = 1;
-  int importEndCol = 0;
-  eastl::vector<eastl::string> directives;
-  eastl::vector<eastl::pair<const char *, const char *>> keepRanges;
-  eastl::vector<ModuleImport> importModules;
-  if (!importParser.parse(&c, firstLineAfterImport, importEndCol, importModules, &directives, &keepRanges))
-    return false;
-
-  (void)firstLineAfterImport;
-  (void)importEndCol;
-  (void)directives;
-
-  ImportParser::replaceImportBySpaces((char *)code, (char *)c, keepRanges);
-
-  return true;
-}
-
-
 static void check_syntax(SqModules *module_mgr, const char *filename)
 {
   G_ASSERT(module_mgr->getVM() == sqvm);
@@ -408,9 +389,6 @@ static void check_syntax(SqModules *module_mgr, const char *filename)
   module_mgr->bindModuleApi(hBindings, stateStorage, refHolder, SqModules::__main__, filename);
   module_mgr->bindRequireApi(hBindings);
   module_mgr->bindBaseLib(hBindings);
-
-  if (!remove_import_from_code(source.str(), filename))
-    quit_game(1, false);
 
   SQCompilation::SqASTData *ast =
     sq_parsetoast(sqvm, source.str(), source.length(), filename, /*static analysis*/ false, /* raise error*/ true);
@@ -466,15 +444,15 @@ static void compiler_diag_cb(HSQUIRRELVM, const SQCompilerMessage *msg)
 }
 
 
-static void compiler_error_cb(HSQUIRRELVM v, SQMessageSeverity severity, const SQChar *sErr, const SQChar *sSource, SQInteger line,
-  SQInteger column, const SQChar *extra)
+static void compiler_error_cb(HSQUIRRELVM v, SQMessageSeverity severity, const char *sErr, const char *sSource, SQInteger line,
+  SQInteger column, const char *extra)
 {
   if (severity > SEV_HINT && !::dgs_get_argv("suppress-hints-errors"))
     has_errors = true;
-  script_print_function(v, _SC("%s\n"), sErr);
-  script_print_function(v, _SC("%s:%d:%d\n"), sSource, (int)line, (int)column);
+  script_print_function(v, "%s\n", sErr);
+  script_print_function(v, "%s:%d:%d\n", sSource, (int)line, (int)column);
   if (extra)
-    script_print_function(v, _SC("%s\n"), extra);
+    script_print_function(v, "%s\n", extra);
 }
 
 
@@ -484,7 +462,7 @@ static void dump_ast_callback(HSQUIRRELVM vm, SQCompilation::SqASTData *ast_data
   if (!ast_data)
     return;
   FileOutputStream fos(stdout);
-  sq_dumpast(vm, ast_data, &fos);
+  sq_dumpast(vm, ast_data, dump_ast_nodes_location, &fos);
 }
 
 
@@ -503,20 +481,24 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   int indexCounter = 0;
   out_module_name = "<unknown>";
 
-  SquirrelVM::Init(SquirrelVM::SF_IGNORE_DEFAULT_LIBRARIES);
-  sqvm = SquirrelVM::GetVMPtr();
+  sqvm = sq_open(1280);
+  sqstd_seterrorhandlers(sqvm);
+
   sq_forbidglobalconstrewrite(sqvm, true);
   sq_setprintfunc(sqvm, ::script_print_function, ::script_error_function);
-  sq_setcompilererrorhandler(sqvm, ::compiler_error_cb);
+  sq_setcompilererrorhandler(sqvm, hide_compilation_error ? nullptr : ::compiler_error_cb);
 
   bool useLibsByDefault = config_blk.getBool("use_libs_by_default", true);
 
-  module_manager = new SqModules(sqvm, SqModulesConfigBits::PermissiveModuleNames); // allow stub native modules with script files
+  SqModulesDagorFileAccess fileAccess(false, SqModulesConfigBits::PermissiveModuleNames); // allow stub native modules with script
+                                                                                          // files
 
   if (::dgs_get_argv("absolute-path"))
   {
-    module_manager->compilationOptions.useAbsolutePath = true;
+    fileAccess.useAbsolutePath = true;
   }
+
+  module_manager = new SqModules(sqvm, &fileAccess);
 
   if (do_static_analysis)
   {
@@ -538,6 +520,8 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   {
     sq_setdiagnosticstatebyname(diagName, false);
   }
+
+  sq_setcompilationoption(sqvm, CompilationOptions::CO_CLOSURE_HOISTING_OPT, closure_hoisting_optimization);
 
   if (do_static_analysis)
   {
@@ -598,12 +582,24 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
     module_manager->forEachNativeModule([&](const char *mn, const Sqrat::Object &) {
       printf("\nModule: %s\n", mn);
       String code(0,
+        "let { get_function_decl_string } = require(\"debug\")\n"
         "local a = []\n"
+        "function type_with_decl(v) {"
+        "  local t = typeof v\n"
+        "  if (t == \"function\") {\n"
+        "    let decl = get_function_decl_string(v)\n"
+        "    if (decl)\n"
+        "      t += \" \" + decl.replace(\"(table|userdata|instance|class|null).\", \"\")\n"
+        "  }\n"
+        "  return t\n"
+        "}\n"
         "foreach (k, v in require(\"%s\")) {\n"
-        "  a.append($\"  {k} - {typeof v}\")\n"
+        "  a.append($\"  {k} - {type_with_decl(v)}\")\n"
         "  if (typeof v == \"class\") {\n"
         "    local a2 = []\n"
-        "    foreach (k2, v2 in v) a2.append($\"    {k}.{k2} - {typeof v2}\")\n"
+        "    foreach (k2, v2 in v) {\n"
+        "      a2.append($\"    {k}.{k2} - {type_with_decl(v2)}\")\n"
+        "    }\n"
         "    a[a.len() - 1] += $\"\\n{\"\\n\".join(a2.sort())}\"\n"
         "  }\n"
         "}\n"
@@ -685,10 +681,10 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
           out_module_name.printf(0, "execute_file \"%s\"", s);
           String nutName = String(0, "%s%s", sqconfig_dir.str(), s);
           Sqrat::Object exports;
-          String errMsg;
+          Sqrat::string errMsg;
           if (!module_manager->requireModule(nutName, true, SqModules::__fn__, exports, errMsg))
           {
-            sq_error_handler(Sqrat::string(errMsg));
+            sq_error_handler(errMsg);
             printf("In script: %s\n\n", s);
             quit_game(1, false);
           }
@@ -711,7 +707,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
   else
   {
     Sqrat::Object ret;
-    String errorMsg;
+    Sqrat::string errorMsg;
     success = true;
 
     if (const char *diagOutFn = ::dgs_get_argv("message-output-file"))
@@ -735,7 +731,7 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
                errorMsg))
     {
       success = false;
-      report_error(errorMsg);
+      report_error(errorMsg.c_str());
     }
   }
 
@@ -764,23 +760,15 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 
   if (const char *file_list_name = ::dgs_get_argv("visited-files-list"))
   {
-    std::set<std::string> existed_files;
+    eastl::vector_set<eastl::string> existed_files;
     FILE *files_list_file = fopen(file_list_name, "wb");
     if (files_list_file)
     {
-      auto &visitedModules = module_manager->modules;
-
-      for (auto &m : visitedModules)
-      {
-        const char *resolved_fn = m.fn.c_str();
-
-        auto r = existed_files.emplace(resolved_fn);
-        if (r.second)
-        {
-          fprintf(files_list_file, "%s\n", resolved_fn);
-        }
-      }
-
+      eastl::vector<eastl::string> visitedFiles;
+      module_manager->getLoadedModules(visitedFiles);
+      eastl::sort(visitedFiles.begin(), visitedFiles.end());
+      for (auto &fn : visitedFiles)
+        fprintf(files_list_file, "%s\n", fn.c_str());
       fclose(files_list_file);
     }
   }
@@ -794,18 +782,19 @@ static bool process_file(const char *filename, const char *code, const KeyValueF
 
   bindquirrel::clear_logerr_interceptors(sqvm);
   bindquirrel::http_client_on_vm_shutdown(sqvm);
+  bindquirrel::cleanup_dagor_workcycle_module(sqvm);
   sqeventbus::unbind(sqvm);
 #if HAS_CHARSQ
   charsq::shutdown();
 #endif
+  sq_close(sqvm);
   sqvm = nullptr;
-  SquirrelVM::Shutdown(false);
   if (cpujobs::is_inited())
     cpujobs::term(true);
 
   if (frp_graph)
   {
-    G_ASSERT(frp_graph->allObservables.empty());
+    G_ASSERT(frp_graph->nodeCount() == 0);
     frp_graph.reset();
   }
 
@@ -845,8 +834,11 @@ static void print_usage()
   printf("  --D:<diagnostic_id> - disable diagnostic by text id\n");
   printf("  --dump-bytecode - dump bytecode and line infos of compiled script\n");
   printf("  --dump-ast - dump AST of compiled script\n");
+  printf("  --nodes-location - dump AST nodes location in format [line:column]\n");
   printf("  --parse-types - just parse function types in given files, one type per line\n");
   printf("  --stack-check - check stack state after script execution\n");
+  printf("  --opt-closure-hoisting - enable closure hoisting optimization\n");
+  printf("  --hide-compilation-error - don't print compilation error text, just show common message\n");
   printf("  --sqversion - print version of quirrel\n");
   printf("  --version - print version of csq\n");
   printf("  -- - ignore arguments after '--', but these arguments are still available in '__argv' array\n");
@@ -1159,15 +1151,15 @@ int DagorWinMain(bool debugmode)
 
   if (::dgs_get_argv("parse-types"))
   {
-    SquirrelVM::Init(SquirrelVM::SF_IGNORE_DEFAULT_LIBRARIES);
-    sqvm = SquirrelVM::GetVMPtr();
+    sqvm = sq_open(1280);
+    // parse_types_from_file() doesn't execute any code or throw errors - no need for handlers
 
     for (int i = 0; i < inputFiles.size(); i++)
       if (!parse_types_from_file(inputFiles[i].str()))
         return 1;
 
+    sq_close(sqvm);
     sqvm = nullptr;
-    SquirrelVM::Shutdown(false);
     return check_unused_args();
   }
 
@@ -1180,6 +1172,11 @@ int DagorWinMain(bool debugmode)
   if (::dgs_get_argv("static-analysis"))
   {
     do_static_analysis = true;
+  }
+
+  if (::dgs_get_argv("opt-closure-hoisting"))
+  {
+    closure_hoisting_optimization = true;
   }
 
   if (::dgs_get_argv("check-fname-case"))
@@ -1197,9 +1194,19 @@ int DagorWinMain(bool debugmode)
     dump_ast = true;
   }
 
+  if (::dgs_get_argv("nodes-location"))
+  {
+    dump_ast_nodes_location = true;
+  }
+
   if (::dgs_get_argv("check-stack"))
   {
     check_stack_mode = true;
+  }
+
+  if (::dgs_get_argv("hide-compilation-error"))
+  {
+    hide_compilation_error = true;
   }
 
   if (const char *dir = ::dgs_get_argv("set-blk-root"))

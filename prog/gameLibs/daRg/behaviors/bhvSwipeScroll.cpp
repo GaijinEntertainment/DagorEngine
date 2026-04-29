@@ -94,16 +94,17 @@ int BhvSwipeScroll::onDeactivateInput(Element *elem, InputDevice device, int poi
   return 0;
 }
 
-int BhvSwipeScroll::mouseEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id, int data,
-  short mx, short my, int /*buttons*/, int accum_res)
+int BhvSwipeScroll::onDeactivateAllInput(Element *elem)
 {
-  return pointingEvent(etree, elem, device, event, pointer_id, data, Point2(mx, my), accum_res);
-}
+  BhvSwipeScrollData *bhvData = elem->props.storage.RawGetSlotValue<BhvSwipeScrollData *>(dataSlotName, nullptr);
+  G_ASSERT_RETURN(bhvData, 0);
 
-int BhvSwipeScroll::touchEvent(ElementTree *etree, Element *elem, InputEvent event, HumanInput::IGenPointing * /*pnt*/, int touch_idx,
-  const HumanInput::PointingRawState::Touch &touch, int accum_res)
-{
-  return pointingEvent(etree, elem, DEVID_TOUCH, event, touch_idx, 0, Point2(touch.x, touch.y), accum_res);
+  if (bhvData->isActive())
+  {
+    elem->clearGroupStateFlags(active_state_flags_for_device(bhvData->activeDevice));
+    bhvData->finish();
+  }
+  return 0;
 }
 
 static int getChildIdx(Element *elem, Element *scroll)
@@ -137,7 +138,7 @@ static int getChildIdx(Element *elem, Element *scroll)
 }
 
 int BhvSwipeScroll::pointingEvent(ElementTree *etree, Element *elem, InputDevice device, InputEvent event, int pointer_id,
-  int button_id, const Point2 &pointer_pos, int accum_res)
+  int button_id, Point2 pointer_pos, int accum_res)
 {
   BhvSwipeScrollData *bhvData = elem->props.storage.RawGetSlotValue<BhvSwipeScrollData *>(dataSlotName, nullptr);
   if (!bhvData)

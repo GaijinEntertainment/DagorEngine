@@ -2,7 +2,7 @@
 
 #include <bindQuirrelEx/autoBind.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <sqrat.h>
 #include <ecs/scripts/sqEntity.h>
 #include <ecs/scripts/sqBindEvent.h>

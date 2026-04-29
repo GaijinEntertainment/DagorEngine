@@ -1019,12 +1019,6 @@ Value::empty() const
 }
 
 
-bool
-Value::operator!() const
-{
-   return isNull();
-}
-
 
 void 
 Value::clear()
@@ -1373,13 +1367,6 @@ Value::getMemberNames() const
 //}
 //
 //# endif
-
-
-bool
-Value::isNull() const
-{
-   return type_ == nullValue;
-}
 
 
 bool 

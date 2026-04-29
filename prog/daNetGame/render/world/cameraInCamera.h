@@ -13,11 +13,20 @@ struct CameraParams;
 namespace camera_in_camera
 {
 void setup(const bool has_feature);
+bool is_frame_after_deactivation();
+int get_frame_number();
 bool activate_view();
 void update_transforms(const CameraParams &main_view, const CameraParams &prev_main_view, const CameraParams &lens_view);
 bool is_lens_render_active();
 bool is_lens_only_zoom_enabled();
 bool is_main_view(const dafg::multiplexing::Index &);
+
+class ActivateOnly
+{
+public:
+  ActivateOnly();
+  ~ActivateOnly();
+};
 
 class RenderMainViewOnly
 {
@@ -30,22 +39,21 @@ private:
   bool isCamCamRenderActive = false;
 };
 
+enum class OpaqueFlags : uint8_t
+{
+  Default = 0,
+  NoStencil = 1
+};
+
 class ApplyMasterState
 {
 public:
-  explicit ApplyMasterState(const dafg::multiplexing::Index &index);
-  ApplyMasterState(const dafg::multiplexing::Index &index, const CameraParams &view);
+  explicit ApplyMasterState(const dafg::multiplexing::Index &index, const OpaqueFlags flags = OpaqueFlags::Default);
   ~ApplyMasterState();
 
 private:
   bool isMainView = true;
   bool hasStencilTest = false;
-  bool hasSavedState = false;
-
-  Color4 savedViewVecLT;
-  Color4 savedViewVecRT;
-  Color4 savedViewVecLB;
-  Color4 savedViewVecRB;
 };
 
 enum
@@ -91,10 +99,5 @@ private:
   Color4 savedGlobtmNoOfsPsf1;
   Color4 savedGlobtmNoOfsPsf2;
   Color4 savedGlobtmNoOfsPsf3;
-
-  Color4 savedViewVecLT;
-  Color4 savedViewVecRT;
-  Color4 savedViewVecLB;
-  Color4 savedViewVecRB;
 };
 } // namespace camera_in_camera

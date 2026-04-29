@@ -9,13 +9,13 @@
 #elif _CROSS_TARGET_C2
 
 #elif _CROSS_TARGET_METAL
-static const uint32_t sha1_cache_version = 34;
+static const uint32_t sha1_cache_version = 44;
 #elif _CROSS_TARGET_SPIRV
-static const uint32_t sha1_cache_version = 38;
+static const uint32_t sha1_cache_version = 47;
 #elif _CROSS_TARGET_EMPTY
-static const uint32_t sha1_cache_version = 4;
+static const uint32_t sha1_cache_version = 9;
 #elif _CROSS_TARGET_DX12
-static const uint32_t sha1_cache_version = 40;
+static const uint32_t sha1_cache_version = 51;
 #elif _CROSS_TARGET_DX11 //_TARGET_PC is also defined
-static const uint32_t sha1_cache_version = 7;
+static const uint32_t sha1_cache_version = 14;
 #endif

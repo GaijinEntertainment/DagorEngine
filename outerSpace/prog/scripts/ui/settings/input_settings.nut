@@ -17,7 +17,8 @@ let { BTN_pressed, BTN_pressed_long, BTN_pressed2, BTN_pressed3,
           BTN_released, BTN_released_long, BTN_released_short } = dainput
 let control = require("control")
 let DataBlock = require("DataBlock")
-let { isGamepad } = require("%scripts/ui/settings/active_input.nut")
+let {isGamepad, forcedControlsType, ControlsTypes} = require("%scripts/ui/settings/active_input.nut")
+let {set_setting_by_blk_path_and_save} = require("settings")
 
 let {
   importantGroups, generation, nextGeneration, availablePresets, haveChanges, Preset,
@@ -311,7 +312,7 @@ function recordingWindow() {
     flow = FLOW_VERTICAL
     gap = fsh(8)
     children = [
-      {size=static [0, flex(3)]}
+      {size=const [0, flex(3)]}
       dtext(locActionName(name), {color = Color(100,100,100)}.__update(h2_txt))
       mediumText(text, {
         function onAttach() {
@@ -322,7 +323,7 @@ function recordingWindow() {
           gui_scene.clearTimer(checkRecordingFinished)
         }
       })
-      {size=static [0, flex(5)]}
+      {size=const [0, flex(5)]}
     ]
   }
 }
@@ -578,7 +579,22 @@ function mkWindowButtons(width) {
     children = wrap([
       textButton(loc("controls/btnResetToDefaults", "Reset to default"), resetToDefault, skipDirPadNav)
       haveChanges.get() ? textButton(loc("mainmenu/btnDiscard", "Discard changes"), onDiscardChanges, skipDirPadNav) : null
-      {size = static [flex(), 0]}
+      {size = const [40, 0]}
+      mkCombo({
+        title = loc("controls/forcedControlsType", "Force controls type")
+        var = forcedControlsType
+        values = ControlsTypes.keys()
+        getValue = function() {
+          let v = forcedControlsType.get()
+          return ControlsTypes?[v] ?? ControlsTypes.findindex(@(i) i == ControlsTypes.AUTO)
+        }
+        setValue = function(v) {
+          let a = ControlsTypes?[v]
+          forcedControlsType.set(a)
+          set_setting_by_blk_path_and_save("debug/forcedControlsType", v)
+        }
+      })
+      {size = const [flex(), 0]}
       actionButtons
       textButton(loc(haveChanges.get() ? "Apply" : "Ok"), onApply, skipDirPadNav.__merge(applyHotkeys, {hplace = ALIGN_RIGHT}))
     ], {width, flowElemProto = {size = FLEX_H halign = ALIGN_RIGHT, padding = fsh(0.5), gap = hdpx(10)}})
@@ -601,8 +617,8 @@ function mkActionRowLabel(name, group=null){
     rendObj = ROBJ_TEXT
     color = TextNormal
     text = locActionName(name)
-    margin = static [0, fsh(1), 0, 0]
-    size = static [flex(1.5), SIZE_TO_CONTENT]
+    margin = const [0, fsh(1), 0, 0]
+    size = const [flex(1.5), SIZE_TO_CONTENT]
     halign = ALIGN_RIGHT
     group
   }.__update(body_txt)
@@ -611,7 +627,7 @@ function mkActionRowLabel(name, group=null){
 function mkActionRowCells(label, columns){
   let children = [label].extend(columns)
   if (columns.len() < 2)
-    children.append({size=static [flex(0.75), 0]})
+    children.append({size=const [flex(0.75), 0]})
   return children
 }
 
@@ -798,7 +814,7 @@ function bindingsPage(_section_name=null) {
 
     return {
       size = flex()
-      padding = static [fsh(1), 0]
+      padding = const [fsh(1), 0]
       flow = FLOW_VERTICAL
       key = {}
       animations = pageAnim
@@ -818,7 +834,7 @@ function optionRowContainer(children, isOdd, params) {
     rendObj = ROBJ_SOLID
     color = menuRowColor(sf, isOdd)
     gap = fsh(2)
-    padding = static [0, fsh(2)]
+    padding = const [0, fsh(2)]
   }))
 }
 
@@ -828,7 +844,7 @@ function optionRow(labelText, comp, isOdd) {
     color = TextNormal
     text = labelText
     margin = fsh(1)
-    size = static [flex(1), SIZE_TO_CONTENT]
+    size = const [flex(1), SIZE_TO_CONTENT]
     //halign = ALIGN_CENTER
     halign = ALIGN_RIGHT
   }.__update(body_txt)
@@ -922,9 +938,10 @@ let sensRanges = [
 ]
 
 function sensitivitySlider(action_names, column) {
-  let params = sensRanges[column].__merge({
+  let params = sensRanges[column]
+//  .__merge({
 //    scaling = slider.scales.logarithmic
-  })
+//  })
   return axisSetupSlider(action_names, column, "sensScale", params)
 }
 
@@ -958,7 +975,7 @@ function sectionHeader(text) {
     rendObj = ROBJ_TEXT
     text
     color = TextNormal
-    padding = static [fsh(3), fsh(1), fsh(1)]
+    padding = const [fsh(3), fsh(1), fsh(1)]
   }.__update(h2_txt), false, {
     halign = ALIGN_CENTER
   })
@@ -1127,7 +1144,7 @@ function axisSetupWindow() {
       flow = FLOW_VERTICAL
       key = "axis"
       size = FLEX_H
-      padding = static [fsh(1), 0]
+      padding = const [fsh(1), 0]
       clipChildren = true
       children = rows
     })
@@ -1152,7 +1169,7 @@ function axisSetupWindow() {
     }
 
     children = {
-      size = static [sw(80), sh(80)]
+      size = const [sw(80), sh(80)]
       rendObj = ROBJ_WORLD_BLUR
       color = Color(120,120,120,255)
       flow = FLOW_VERTICAL
@@ -1251,7 +1268,7 @@ function buttonSetupWindow() {
   }
 
   let isStickyToggle = {
-    margin = static [fsh(1), 0, 0, fsh(0.4)]
+    margin = const [fsh(1), 0, 0, fsh(0.4)]
     children = checkbox({var = stickyToggle, title = loc("controls/digital/mode/toggle", "toggle")})
   }
 
@@ -1317,7 +1334,7 @@ function buttonSetupWindow() {
     }
 
     children = {
-      size = static [sw(80), sh(80)]
+      size = const [sw(80), sh(80)]
       rendObj = ROBJ_WORLD_BLUR
       color = Color(120,120,120,255)
       flow = FLOW_VERTICAL
@@ -1345,7 +1362,7 @@ function controlsMenuUi() {
     children = [
       {
         size = flex()
-        padding=static [hdpx(5),hdpx(10)]
+        padding=const [hdpx(5),hdpx(10)]
         children = bindingsPage()
       },
       mkWindowButtons(width)
@@ -1354,7 +1371,7 @@ function controlsMenuUi() {
 
   let root = {
     key = "controls"
-    size = static [sw(100), sh(100)]
+    size = const [sw(100), sh(100)]
     halign = ALIGN_CENTER
     valign = ALIGN_CENTER
     watch = [
@@ -1364,7 +1381,7 @@ function controlsMenuUi() {
 
     children = [
       {
-        size = static [sw(100), sh(100)]
+        size = const [sw(100), sh(100)]
         stopHotkeys = true
         stopMouse = true
         rendObj = ROBJ_WORLD_BLUR

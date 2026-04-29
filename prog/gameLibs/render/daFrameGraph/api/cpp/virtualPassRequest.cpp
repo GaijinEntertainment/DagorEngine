@@ -3,7 +3,7 @@
 #include <render/daFrameGraph/virtualPassRequest.h>
 #include <frontend/internalRegistry.h>
 #include <render/daFrameGraph/detail/virtualResourceRequestBase.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 
 
 namespace dafg

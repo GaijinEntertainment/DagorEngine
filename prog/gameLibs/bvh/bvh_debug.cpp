@@ -15,6 +15,8 @@
 #include <gui/dag_imguiUtil.h>
 #include <util/dag_console.h>
 #include <render/denoiser.h>
+#include <imgui/implot.h>
+#include <drv/3d/dag_shaderConstants.h>
 
 namespace bvh
 {
@@ -31,13 +33,17 @@ extern float rtr_max_water_depth;
 } // namespace bvh
 namespace bvh::grass
 {
-void get_memory_statistics(int64_t &vb, int64_t &ib, int64_t &blas, int64_t &meta, int64_t &query);
+void get_memory_statistics(ContextId context_id, int64_t &vb, int64_t &ib, int64_t &blas, int64_t &meta, int64_t &query);
 void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count);
 } // namespace bvh::grass
 namespace bvh::gobj
 {
 void get_memory_statistics(int64_t &meta, int64_t &query);
 }
+namespace bvh::gpugrass
+{
+void get_memory_statistics(ContextId context_id, int &gpuGrassCount, int64_t &gpuGrassMemory, int64_t &gpuGrassTexturesMemory);
+} // namespace bvh::gpugrass
 
 namespace bvh
 {
@@ -52,8 +58,8 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
 
   context_id->getDeathRowStats(stats.deathRowBufferCount, stats.deathRowBufferSize);
 
-  WinAutoLock lock(context_id->cutdownTreeLock);
-  WinAutoLock lock2(context_id->purgeSkinBuffersLock);
+  WinAutoLock lock(context_id->tidyUpTreesLock);
+  WinAutoLock lock2(context_id->tidyUpSkinsLock);
 
   auto &ip = ProcessorInstances::getIndexProcessor();
   stats.indexProcessorBufferCount = countof(ip.outputs);
@@ -62,23 +68,25 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
 
   for (auto &object : context_id->objects)
   {
-    stats.meshBlasSize += as(object.second.blas);
+    auto &statBucket = stats.meshStats[object.second.tag];
+    statBucket.meshBlasSize += as(object.second.blas);
     for (auto &mesh : object.second.meshes)
     {
-      stats.meshCount++;
-      stats.meshVBSize += bs(mesh.processedVertices);
-      stats.meshVBSize += bs(mesh.ahsVertices);
-      stats.meshIBSize += bs(mesh.processedIndices);
+      statBucket.meshCount++;
+      statBucket.meshVBSize += bs(mesh.geometry.processedVertexBuffer);
+      statBucket.meshVBSize += context_id->getSourceBufferSize(mesh.geometry.heapIndex, mesh.geometry.bufferRegion);
+      statBucket.meshVBSize += bs(mesh.ahsVertices);
     }
   }
   for (auto &object : context_id->impostors)
   {
-    stats.meshBlasSize += as(object.second.blas);
+    auto &statBucket = stats.meshStats["impostor"];
+    statBucket.meshBlasSize += as(object.second.blas);
     for (auto &mesh : object.second.meshes)
     {
-      stats.meshCount++;
-      stats.meshVBSize += bs(mesh.processedVertices);
-      stats.meshIBSize += bs(mesh.processedIndices);
+      statBucket.meshCount++;
+      statBucket.meshVBSize += bs(mesh.geometry.processedVertexBuffer);
+      statBucket.meshVBSize += context_id->getSourceBufferSize(mesh.geometry.heapIndex, mesh.geometry.bufferRegion);
     }
   }
 
@@ -87,7 +95,7 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
     {
       stats.skinCount++;
       stats.skinBLASSize += as(u.second.blas);
-      stats.skinVBSize += u.second.buffer.allocator;
+      stats.skinVBSize += u.second.buffer.size;
     }
 
   for (auto &uu : context_id->freeUniqueSkinBLASes)
@@ -102,7 +110,7 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
     {
       stats.skinCount++;
       stats.skinBLASSize += as(u.second.blas);
-      stats.skinVBSize += u.second.buffer.allocator;
+      stats.skinVBSize += u.second.buffer.size;
     }
 
   for (auto &uu : context_id->uniqueDeformedBuffers)
@@ -110,8 +118,15 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
     {
       stats.skinCount++;
       stats.skinBLASSize += as(u.second.blas);
-      stats.skinVBSize += u.second.buffer.allocator;
+      stats.skinVBSize += u.second.buffer.size;
     }
+
+  for (auto &u : context_id->uniqueSplinegenBuffers)
+  {
+    stats.splineGenCount++;
+    stats.splineGenBLASSize += as(u.second.blas);
+    stats.splineGenVBSize += u.second.buffer.size;
+  }
 
   for (auto &lod : context_id->uniqueTreeBuffers)
     for (auto &uu : lod)
@@ -119,21 +134,21 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
       {
         stats.treeCount++;
         stats.treeBLASSize += as(u.second.blas);
-        stats.treeVBSize += u.second.buffer.allocator;
+        stats.treeVBSize += u.second.buffer.size;
       }
   for (auto &uu : context_id->uniqueRiExtraTreeBuffers)
     for (auto &u : uu.second)
     {
       stats.treeCount++;
       stats.treeBLASSize += as(u.second.blas);
-      stats.treeVBSize += u.second.buffer.allocator;
+      stats.treeVBSize += u.second.buffer.size;
     }
   for (auto &uu : context_id->uniqueRiExtraFlagBuffers)
     for (auto &u : uu.second)
     {
       stats.treeCount++;
       stats.treeBLASSize += as(u.second.blas);
-      stats.treeVBSize += u.second.buffer.allocator;
+      stats.treeVBSize += u.second.buffer.size;
     }
   for (auto &uu : context_id->freeUniqueTreeBLASes)
     for (auto &blas : uu.second.blases)
@@ -142,9 +157,18 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
       stats.treeCacheBLASSize += as(blas);
     }
 
-  for (auto &allocator : context_id->processBufferAllocators)
-    for (auto &pool : allocator.second.pools)
-      stats.dynamicVBAllocatorSize += pool.buffer->getSize();
+  for (auto &[allocator, _] : context_id->processBufferAllocator)
+  {
+    stats.dynamicVBAllocatorSize += allocator.getHeapSize();
+    stats.dynamicVBAllocatorFreeSize += allocator.getHeapSize() - allocator.allocated();
+  }
+
+  for (auto &[object_id, tree] : context_id->stationaryTreeBuffers)
+  {
+    stats.stationaryTreeCount++;
+    stats.stationaryTreeVBSize += tree.buffer.size;
+    stats.stationaryTreeBLASSize += as(tree.blas);
+  }
 
   stats.tlasSize = as(context_id->tlasMain) + as(context_id->tlasTerrain) + as(context_id->tlasParticles);
   stats.tlasUploadSize =
@@ -169,9 +193,23 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
   for (auto &blas : context_id->cableBLASes)
     stats.cableBLASSize += as(blas);
 
-  bvh::grass::get_memory_statistics(stats.grassVBSize, stats.grassIBSize, stats.grassBlasSize, stats.grassMetaSize,
+  stats.binSceneCount = context_id->binSceneObjectIds.size();
+
+  stats.waterIBSize = bs(context_id->waterFlatIb) + bs(context_id->waterHeightIb);
+  stats.waterBLASSize = 0;
+  stats.waterCount = 0;
+  stats.waterVBSize = 0;
+  for (auto &patch : context_id->water_patches)
+  {
+    stats.waterBLASSize += as(patch.blas);
+    stats.waterVBSize += bs(patch.vertexBuffer);
+    stats.waterCount += patch.instances.size();
+  }
+
+  bvh::grass::get_memory_statistics(context_id, stats.grassVBSize, stats.grassIBSize, stats.grassBlasSize, stats.grassMetaSize,
     stats.grassQuerySize);
   bvh::gobj::get_memory_statistics(stats.gobjMetaSize, stats.gobjQuerySize);
+  bvh::gpugrass::get_memory_statistics(context_id, stats.gpuGrassCount, stats.gpuGrassMemory, stats.gpuGrassTexturesMemory);
 
   stats.atmosphereTextureSize = context_id->atmosphereTexture ? context_id->atmosphereTexture->getSize() : 0;
   stats.scratchBuffersSize = bvh::get_scratch_buffers_memory_statistics();
@@ -182,17 +220,24 @@ MemoryStatistics get_memory_statistics(ContextId context_id)
     if (compaction.has_value())
     {
       stats.compactionSize += as(compaction->compactedBlas);
-      stats.compactionSize += bs(compaction->compactedSize);
     }
   }
 
-  stats.totalMemory = stats.tlasSize + stats.tlasUploadSize + stats.scratchBuffersSize + stats.transformBuffersSize +
-                      stats.meshMetaSize + stats.meshBlasSize + stats.meshVBSize + stats.meshVBCopySize + stats.meshIBSize +
-                      stats.skinBLASSize + stats.treeBLASSize + stats.treeCacheBLASSize + stats.terrainBlasSize + stats.terrainVBSize +
-                      stats.grassBlasSize + stats.grassVBSize + stats.grassIBSize + stats.grassMetaSize + stats.grassQuerySize +
-                      stats.cableBLASSize + stats.cableVBSize + stats.cableIBSize + stats.gobjMetaSize + stats.gobjQuerySize +
-                      stats.perInstanceDataSize + stats.compactionSize + stats.atmosphereTextureSize + stats.dynamicVBAllocatorSize +
-                      stats.deathRowBufferSize + stats.indexProcessorBufferSize;
+  stats.compactionCount = (int)context_id->blasCompactionsAccel.size();
+  stats.compactionSizeBufferSize = bs(context_id->compactedSizeBuffer);
+
+  int64_t meshMemSize = 0;
+  for (auto &[_, bucket] : stats.meshStats)
+    meshMemSize += bucket.meshBlasSize + bucket.meshVBSize;
+
+  stats.totalMemory =
+    stats.tlasSize + stats.tlasUploadSize + stats.scratchBuffersSize + stats.transformBuffersSize + stats.meshMetaSize + meshMemSize +
+    stats.skinBLASSize + stats.treeBLASSize + stats.treeCacheBLASSize + stats.terrainBlasSize + stats.terrainVBSize +
+    stats.grassBlasSize + stats.grassVBSize + stats.grassIBSize + stats.grassMetaSize + stats.grassQuerySize + stats.cableBLASSize +
+    stats.cableVBSize + stats.cableIBSize + stats.waterBLASSize + stats.waterVBSize + stats.waterIBSize + stats.splineGenBLASSize +
+    stats.splineGenVBSize + stats.gpuGrassMemory + stats.gpuGrassTexturesMemory + stats.gobjMetaSize + stats.gobjQuerySize +
+    stats.perInstanceDataSize + stats.compactionSize + stats.atmosphereTextureSize + stats.dynamicVBAllocatorSize +
+    stats.deathRowBufferSize + stats.indexProcessorBufferSize + stats.stationaryTreeBLASSize + stats.stationaryTreeVBSize;
 
   return stats;
 }
@@ -233,10 +278,15 @@ bool bvh_particles_enable = true;
 
 bool bvh_cables_enable = true;
 
+
+bool bvh_splinegen_enable = true;
+
 float intersection_count_threshold = 16.f;
 
 extern int bvh_terrain_lod_count;
 extern bool bvh_terrain_lock;
+
+int bvh_memory_pie_chart_merge_threshold = 0;
 
 inline const char *operator!(bvh::DebugMode mode)
 {
@@ -290,19 +340,105 @@ static void imguiWindow()
     auto stats = bvh::get_memory_statistics(debugged_context_id);
     auto mb = [](auto v) { return int(v == 0 ? 0 : eastl::max((v + 1024 * 1024 - 1) / (1024 * 1024), decltype(v)(1))); };
 
+    if (ImGui::CollapsingHeader("Memory Pie Chart"))
+    {
+      ImGui::SliderInt("Merge Threshold Size (MB)", &bvh_memory_pie_chart_merge_threshold, 0, 100);
+
+      // ImPlot::SetNextAxesLimits(0, 1, 0, 1, ImGuiCond_Always);
+      if (ImPlot::BeginPlot("##BvhMemoryPie", NULL, NULL, ImVec2(-1, 0), ImPlotFlags_Equal | ImPlotFlags_NoMouseText,
+            ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations))
+      {
+        struct PlotElement
+        {
+          String label;
+          int size;
+        };
+        eastl::vector<PlotElement> plotElements;
+        int otherSize = 0;
+        // Build pie chart data (skip zero-sized categories to keep chart readable)
+        auto addElem = [&](const char *label, int64_t size_raw, const char *tag = nullptr) {
+          int sizeMB = mb(size_raw);
+          if (sizeMB > bvh_memory_pie_chart_merge_threshold)
+          {
+            if (tag)
+              plotElements.push_back(PlotElement{String(0, "%s - %s: %d", tag, label, sizeMB), sizeMB});
+            else
+              plotElements.push_back(PlotElement{String(0, "%s: %d", label, sizeMB), sizeMB});
+          }
+          else
+            otherSize += sizeMB;
+        };
+        addElem("TLAS", stats.tlasSize);
+        addElem("TLAS Upload", stats.tlasUploadSize);
+        addElem("Scratch", stats.scratchBuffersSize);
+        addElem("Transform", stats.transformBuffersSize);
+        addElem("Mesh Meta", stats.meshMetaSize);
+        for (auto &[tag, bucket] : stats.meshStats)
+        {
+          addElem("Mesh BLAS", bucket.meshBlasSize, tag);
+          addElem("Mesh VB", bucket.meshVBSize, tag);
+        }
+        addElem("Skin BLAS", stats.skinBLASSize);
+        addElem("Tree BLAS", stats.treeBLASSize);
+        addElem("Tree Cache BLAS", stats.treeCacheBLASSize);
+        addElem("Terrain BLAS", stats.terrainBlasSize);
+        addElem("Terrain VB", stats.terrainVBSize);
+        addElem("Grass BLAS", stats.grassBlasSize);
+        addElem("Grass VB", stats.grassVBSize);
+        addElem("Grass IB", stats.grassIBSize);
+        addElem("Grass Meta", stats.grassMetaSize);
+        addElem("Grass Query", stats.grassQuerySize);
+        addElem("Cable BLAS", stats.cableBLASSize);
+        addElem("Cable VB", stats.cableVBSize);
+        addElem("Cable IB", stats.cableIBSize);
+        addElem("Water BLAS", stats.waterBLASSize);
+        addElem("Water VB", stats.waterVBSize);
+        addElem("Water IB", stats.waterIBSize);
+        addElem("SplineGen BLAS", stats.splineGenBLASSize);
+        addElem("SplineGen VB", stats.splineGenVBSize);
+        addElem("GPUGrass Memory", stats.gpuGrassMemory);
+        addElem("GPUGrass Textures Memory", stats.gpuGrassTexturesMemory);
+        addElem("GPU Obj Meta", stats.gobjMetaSize);
+        addElem("GPU Obj Query", stats.gobjQuerySize);
+        addElem("Per Instance", stats.perInstanceDataSize);
+        addElem("Compaction", stats.compactionSize);
+        addElem("Atmosphere", stats.atmosphereTextureSize);
+        addElem("Dynamic VB Alloc", stats.dynamicVBAllocatorSize);
+        addElem("Death Row", stats.deathRowBufferSize);
+        addElem("IndexProcessor", stats.indexProcessorBufferSize);
+        addElem("Stat Tree BLAS", stats.stationaryTreeBLASSize);
+        addElem("Stat Tree VB", stats.stationaryTreeVBSize);
+
+        if (otherSize > 0)
+          plotElements.push_back(PlotElement{String(0, "Other: %d", otherSize), otherSize});
+
+        eastl::vector<const char *> labelVec;
+        eastl::vector<int> sizeVec;
+        for (auto &elem : plotElements)
+        {
+          labelVec.push_back(elem.label.data());
+          sizeVec.push_back(elem.size);
+        }
+
+        ImPlot::PlotPieChart(labelVec.data(), sizeVec.data(), labelVec.size(), 0.6, 0.4, 0.4, "%.0f");
+        ImPlot::EndPlot();
+      }
+    }
+
     ImGui::Text("TLAS: %d MB - Upload: %d MB", mb(stats.tlasSize), mb(stats.tlasUploadSize));
     ImGui::Text("Scratch space: %d MB", mb(stats.scratchBuffersSize));
     ImGui::Text("Transform buffers: %d MB", mb(stats.transformBuffersSize));
-    ImGui::Text("Mesh count: %d", stats.meshCount);
-    ImGui::SameLine();
-    ImGui::Text("Mesh VB: %d MB", mb(stats.meshVBSize));
-    ImGui::SameLine();
-    ImGui::Text("Mesh VB copy: %d MB", mb(stats.meshVBCopySize));
-    ImGui::SameLine();
-    ImGui::Text("Mesh IB: %d MB", mb(stats.meshIBSize));
+    for (auto &[tag, bucket] : stats.meshStats)
+    {
+      ImGui::Text("* %s - ", tag ? tag : "untagged");
+      ImGui::SameLine();
+      ImGui::Text("Mesh count: %d", bucket.meshCount);
+      ImGui::SameLine();
+      ImGui::Text("Mesh VB: %d MB", mb(bucket.meshVBSize));
+      ImGui::SameLine();
+      ImGui::Text("Mesh BLAS: %d MB", mb(bucket.meshBlasSize));
+    }
     ImGui::Text("Mesh meta: %d MB", mb(stats.meshMetaSize));
-    ImGui::SameLine();
-    ImGui::Text("Mesh BLAS: %d MB", mb(stats.meshBlasSize));
     ImGui::Text("Skin count: %d", stats.skinCount);
     ImGui::SameLine();
     ImGui::Text("Skin VB: %d MB", mb(stats.skinVBSize));
@@ -316,11 +452,17 @@ static void imguiWindow()
     ImGui::Text("Tree VB: %d MB", mb(stats.treeVBSize));
     ImGui::SameLine();
     ImGui::Text("Tree BLAS: %d MB", mb(stats.treeBLASSize));
+    ImGui::Text("Stat tree count: %d", stats.stationaryTreeCount);
+    ImGui::SameLine();
+    ImGui::Text("Stat tree VB: %d MB", mb(stats.stationaryTreeVBSize));
+    ImGui::SameLine();
+    ImGui::Text("Stat tree BLAS: %d MB", mb(stats.stationaryTreeBLASSize));
     ImGui::Text("Tree cache count: %d", stats.treeCacheCount);
     ImGui::SameLine();
     ImGui::Text("Tree cache BLAS: %d MB", mb(stats.treeCacheBLASSize));
-    ImGui::SameLine();
     ImGui::Text("Dynamic allocation size: %d MB", mb(stats.dynamicVBAllocatorSize));
+    ImGui::SameLine();
+    ImGui::Text("free: %d MB", mb(stats.dynamicVBAllocatorFreeSize));
     ImGui::Text("Terrain BLAS: %d MB", mb(stats.terrainBlasSize));
     ImGui::SameLine();
     ImGui::Text("Terrain VB: %d MB", mb(stats.terrainVBSize));
@@ -340,9 +482,28 @@ static void imguiWindow()
     ImGui::Text("Cable VB: %d MB", mb(stats.cableVBSize));
     ImGui::SameLine();
     ImGui::Text("Cable IB: %d MB", mb(stats.cableIBSize));
+    ImGui::Text("bin scene instances: %d", stats.binSceneCount);
+    ImGui::Text("Water instances: %d", stats.waterCount);
+    ImGui::SameLine();
+    ImGui::Text("Water BLAS: %d MB", mb(stats.waterBLASSize));
+    ImGui::SameLine();
+    ImGui::Text("Water VB: %d MB", mb(stats.waterVBSize));
+    ImGui::SameLine();
+    ImGui::Text("Water IB: %d MB", mb(stats.waterIBSize));
+    ImGui::Text("SplineGen count: %d", stats.splineGenCount);
+    ImGui::SameLine();
+    ImGui::Text("SplineGen VB: %d MB", mb(stats.splineGenVBSize));
+    ImGui::SameLine();
+    ImGui::Text("SplineGen BLAS: %d MB", mb(stats.splineGenBLASSize));
+    ImGui::Text("GPUGrass instances: %d", stats.gpuGrassCount);
+    ImGui::SameLine();
+    ImGui::Text("GPUGrass memory: %d MB", mb(stats.gpuGrassMemory));
+    ImGui::SameLine();
+    ImGui::Text("GPUGrass Textures memory: %d MB", mb(stats.gpuGrassTexturesMemory));
     ImGui::Text("GPU object query: %d MB", mb(stats.gobjQuerySize));
     ImGui::Text("Per instance data: %d MB", mb(stats.perInstanceDataSize));
-    ImGui::Text("Compaction data: %d MB - Peak: %d MB", mb(stats.compactionSize), mb(stats.peakCompactionSize));
+    ImGui::Text("Compaction data: %d MB - Peak: %d MB - Count: %d - SizeBufferSize: %d", mb(stats.compactionSize),
+      mb(stats.peakCompactionSize), stats.compactionCount, stats.compactionSizeBufferSize);
     ImGui::Text("Atmosphere texture: %d MB", mb(stats.atmosphereTextureSize));
     ImGui::Text("BLAS count: %d", stats.blasCount);
     ImGui::Text("Death row buffer count: %d", stats.deathRowBufferCount);
@@ -354,6 +515,9 @@ static void imguiWindow()
     ImGui::Separator();
     ImGui::Text("Total: %d MB", mb(stats.totalMemory));
   }
+
+  ImGui::Text("riGen index type per frame: %d", debugged_context_id->riGenIndexTypePerFrame);
+  ImGui::Text("riGen process time: %dus", debugged_context_id->lastRiGenProcessTimeUs);
 
   ImGui::Checkbox("Enable riExtra range", &bvh_ri_extra_range_enable);
   if (bvh_ri_extra_range_enable)
@@ -378,6 +542,7 @@ static void imguiWindow()
   ImGui::Checkbox("Enable grass", &bvh_grass_enable);
   ImGui::Checkbox("Enable particles", &bvh_particles_enable);
   ImGui::Checkbox("Enable cables", &bvh_cables_enable);
+  ImGui::Checkbox("Enable splinegen", &bvh_splinegen_enable);
 
   ImGui::Separator();
 
@@ -406,9 +571,11 @@ static void imguiWindow()
     console::command("render.pix_capture_n_frames");
 
   int availableWidth = max(ImGui::GetContentRegionAvail().x * (do_super_sampling ? 2 : 1), 10.0f);
+
   if (availableWidth != last_available_width)
     resolution_change_cooldown = debugTex ? 50 : 0;
-  else if (resolution_change_cooldown > 0)
+
+  if (resolution_change_cooldown > 0)
     resolution_change_cooldown--;
   else
     target_width = availableWidth;
@@ -495,8 +662,8 @@ void render_debug_context(ContextId context_id, float min_t)
 
   auto createTargetTex = [](const char *name) {
     float aspect = d3d::get_screen_aspect_ratio();
-    UniqueTex tex =
-      dag::create_tex(nullptr, target_width, max(int(target_width / aspect), 1), TEXCF_UNORDERED | TEXFMT_A16B16G16R16F, 1, name);
+    UniqueTex tex = dag::create_tex(nullptr, target_width, max(int(target_width / aspect), 1), TEXCF_UNORDERED | TEXFMT_A16B16G16R16F,
+      1, name, RESTAG_BVH);
     return tex;
   };
 
@@ -525,14 +692,14 @@ void render_debug_context(ContextId context_id, float min_t)
   ShaderGlobal::set_int(bvh_debug_use_atmosphere, use_atmosphere ? 1 : 0);
   ShaderGlobal::set_int(bvh_detect_identical_geometryVarId, detect_identical_geometry ? 1 : 0);
   ShaderGlobal::set_int(rtr_shadowVarId, 1);
-  ShaderGlobal::set_real(bvh_debug_intersection_count_thresholdVarId, intersection_count_threshold);
-  ShaderGlobal::set_real(bvh_debug_min_tVarId, min_t);
+  ShaderGlobal::set_float(bvh_debug_intersection_count_thresholdVarId, intersection_count_threshold);
+  ShaderGlobal::set_float(bvh_debug_min_tVarId, min_t);
 
-  bvh::bind_tlas_stage(context_id, ShaderStage::STAGE_CS);
+  d3d::set_cs_constbuffer_register_count(192);
 
   debugShader->dispatchThreads(ti.w, ti.h, 1);
 
-  bvh::unbind_tlas_stage(ShaderStage::STAGE_CS);
+  d3d::set_cs_constbuffer_register_count(0);
 
   if (debug_mode == DebugMode::Lit)
   {

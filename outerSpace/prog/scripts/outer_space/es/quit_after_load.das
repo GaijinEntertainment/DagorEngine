@@ -10,8 +10,7 @@ struct QuitAfterLoadTime
   quit_after_load_time : float
   quitAtTime : float
 
-[es(tag=dev, on_event=EventOnLocalSceneEntitiesCreated)]
-def add_quit_entity_from_args(evt : Event)
+def create_quit_entity_from_args()
   let arg = dgs_get_argv("quit_in_time")
   if arg == ""
     return
@@ -40,8 +39,15 @@ def add_quit_entity_from_args(evt : Event)
       init |> set("quitAtTime", -1.0)
     print("Created new quit_after_load_time {time} from command line param")
 
+[es(tag=dev, on_event=EventOnLocalSceneEntitiesCreated)]
+def add_quit_entity_from_args(evt : Event)
+  create_quit_entity_from_args()
 
-[es(tag=dev, on_event=EventOnLocalSceneEntitiesCreated, on_appear, after=add_quit_entity_from_args)]
+[es(tag=gameClient, on_appear, REQUIRE=player)]
+def on_player_created_client_check_quit(evt : Event)
+  create_quit_entity_from_args()
+
+[es(tag=dev, on_appear)]
 def set_quit_time_on_appear(evt : Event; quit_after_load_time : float; var quitAtTime : float&)
   quitAtTime = get_sync_time() + quit_after_load_time
   print("Will auto quit at time {quitAtTime}")

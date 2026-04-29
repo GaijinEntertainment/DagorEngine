@@ -6,8 +6,8 @@
 #include <userSystemInfo/systemInfo.h>
 #include <rendInst/rendInstGen.h>
 #include <drv/3d/dag_renderTarget.h>
-#include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/dag_vr.h>
 #include <ioSys/dag_dataBlock.h>
 #include <drv/hid/dag_hiComposite.h>
 #include <3d/dag_gpuConfig.h>
@@ -63,6 +63,8 @@ void get_user_system_info(DataBlock *blk, const char *gfx_preset)
     return;
   }
 
+  auto &drvDesc = d3d::get_driver_desc();
+
   // Attention! order is important
   cachedSysInfo.addStr("platform", ::get_platform_string_id());
 
@@ -115,7 +117,7 @@ void get_user_system_info(DataBlock *blk, const char *gfx_preset)
   cachedSysInfo.addBool("vsync", blkVideo.getBool("vsync", false));
 
   bool compatibilityMsaaEnabled = false;
-  if (renderCompatibility && d3d::get_driver_desc().caps.hasReadMultisampledDepth && d3d::get_driver_code().is(d3d::dx11))
+  if (renderCompatibility && drvDesc.caps.hasReadMultisampledDepth && d3d::get_driver_code().is(d3d::dx11))
   {
     compatibilityMsaaEnabled = ::dgs_get_settings()->getBlockByNameEx("directx")->getInt("msaa", 0) > 1;
   }
@@ -141,22 +143,21 @@ void get_user_system_info(DataBlock *blk, const char *gfx_preset)
   if (d3d::get_driver_code().is(d3d::dx11)) // only valid after initialization has been called
   {
     cachedSysInfo.addStr("dx11_caps",
-      d3d::get_driver_desc()
+      drvDesc
         .shaderModel //
         .map(5.0_sm, "hw_dx11")
         .map(4.1_sm, "hw_dx10_1")
-        .map(4.0_sm, d3d::get_driver_desc().caps.hasResourceCopyConversion ? "hw_dx10plus" : "hw_dx10")
+        .map(4.0_sm, drvDesc.caps.hasResourceCopyConversion ? "hw_dx10plus" : "hw_dx10")
         .map(d3d::smAny, "hw_dx9"));
   }
 
-  cachedSysInfo.addBool("isNvApi", d3d::get_driver_desc().caps.hasNVApi);
+  cachedSysInfo.addBool("isNvApi", drvDesc.caps.hasNVApi);
 
-  cachedSysInfo.addBool("isAtiApi", d3d::get_driver_desc().caps.hasATIApi);
+  cachedSysInfo.addBool("isAtiApi", drvDesc.caps.hasATIApi);
 
   const GpuUserConfig &gpuCfg = d3d_get_gpu_cfg();
 
-  cachedSysInfo.addStr("videoCardDriverVer",
-    String(32, "%u.%u.%u.%u", gpuCfg.driverVersion[0], gpuCfg.driverVersion[1], gpuCfg.driverVersion[2], gpuCfg.driverVersion[3]));
+  cachedSysInfo.addStr("videoCardDriverVer", drvDesc.info.driverVersion.toString().c_str());
 
   if (gpuCfg.hardwareDx10)
     cachedSysInfo.addBool("hardwareDx10", true);
@@ -274,6 +275,10 @@ void get_user_system_info(DataBlock *blk, const char *gfx_preset)
   cachedSysInfo.addBool("inlineRaytracingAvailable", systeminfo::get_inline_raytracing_available());
 
   cachedSysInfo.addInt("isTablet", systeminfo::is_tablet());
+
+  cachedSysInfo.addBool("hdrAvailable", d3d::driver_command(Drv3dCommand::IS_HDR_AVAILABLE));
+  cachedSysInfo.addBool("hdrEnabled", d3d::driver_command(Drv3dCommand::IS_HDR_ENABLED));
+  cachedSysInfo.addBool("vrEnabled", VRDevice::getInstance() != nullptr);
 
   blk->setFrom(&cachedSysInfo);
 }

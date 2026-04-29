@@ -7,8 +7,8 @@
 
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_lock.h>
-#include <drv/3d/dag_info.h>
 
 #include <util/dag_convar.h>
 #include <osApiWrappers/dag_miscApi.h>
@@ -108,7 +108,7 @@ void GenNoise::init()
       genCurl2dPs.init("gen_curl_clouds_2d_ps");
     cloudsCurl2d.close();
     cloudsCurl2d = dag::create_tex(0, CLOUD_CURL_RES, CLOUD_CURL_RES, TEXFMT_R8G8S | (genCurl2d ? TEXCF_UNORDERED : TEXCF_RTARGET), 1,
-      "clouds_curl_2d");
+      "clouds_curl_2d", RESTAG_DASKIES2);
     if (!cloudsCurl2d)
       return;
     ShaderGlobal::set_sampler(::get_shader_variable_id("clouds_curl_2d_samplerstate"), d3d::request_sampler({}));
@@ -150,10 +150,10 @@ void GenNoise::initCompressor()
   cloud1Compressed.close();
   cloud2Compressed.close();
   auto cflg = TEXCF_UPDATE_DESTINATION | TEXFMT_ATI1N | CLOUDS_ESRAM_ONLY;
-  cloud1Compressed =
-    dag::create_voltex(shapeRes, shapeRes, shapeRes / 4, cflg, get_blocked_mips(cloud1), "gen_cloud_shape_compressed");
-  cloud2Compressed =
-    dag::create_voltex(detailRes, detailRes, detailRes, cflg, get_blocked_mips(cloud2), "gen_cloud_detail_compressed");
+  cloud1Compressed = dag::create_voltex(shapeRes, shapeRes, shapeRes / 4, cflg, get_blocked_mips(cloud1), "gen_cloud_shape_compressed",
+    RESTAG_DASKIES2);
+  cloud2Compressed = dag::create_voltex(detailRes, detailRes, detailRes, cflg, get_blocked_mips(cloud2), "gen_cloud_detail_compressed",
+    RESTAG_DASKIES2);
 
   compress3D.init("compress_voltex_bc4_cs", "compress_voltex_bc4_ps");
 }
@@ -176,7 +176,6 @@ void GenNoise::compressBC4(const ManagedTex &tex, const ManagedTex &dest)
   TextureInfo ti;
   tex->getinfo(ti);
   ShaderGlobal::set_texture(compress_voltex_bc4_sourceVarId, tex);
-  ShaderGlobal::set_sampler(compress_voltex_bc4_source_samplerstateVarId, d3d::request_sampler({}));
   for (int mips_count = dest->level_count(), i = 0; i < mips_count; ++i)
   {
     tex->texmiplevel(i, i);
@@ -230,7 +229,6 @@ void GenNoise::generateMips3d(const ManagedTex &tex)
   tex->getinfo(ti);
   ShaderGlobal::set_int(clouds_gen_mips_3d_one_layerVarId, 0);
   ShaderGlobal::set_texture(clouds_gen_mips_3d_sourceVarId, tex.getTexId());
-  ShaderGlobal::set_sampler(clouds_gen_mips_3d_source_samplerstateVarId, d3d::request_sampler({}));
   for (int mips_count = tex->level_count(), i = 1; i < mips_count; ++i)
   {
     d3d::resource_barrier({tex.getVolTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, (unsigned)(i - 1), 1});

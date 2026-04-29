@@ -37,7 +37,7 @@ class GuiContext;
 
 namespace sqfrp
 {
-class BaseObservable;
+class WatchedHandle;
 }
 
 namespace darg
@@ -123,7 +123,7 @@ public:
     F_SIZE_CALCULATED = 0x0010,
     F_HAS_EVENT_HANDLERS = 0x0020,
     F_DISABLE_INPUT = 0x0040,
-    F_STOP_MOUSE = 0x0080,
+    F_STOP_POINTING = 0x0080,
     F_STOP_HOVER = 0x0100,
     F_STOP_HOTKEYS = 0x0200,
     F_STICK_CURSOR = 0x0400,
@@ -169,6 +169,7 @@ public:
   void calcSizeConstraints(int axis, float *sz_min, float *sz_max) const;
   void calcFixedSizes();
   void calcConstrainedSizes(int axis);
+  bool isFlowAxis(int axis) const;
 
   void putToSortedStacks(ElemStacks &stacks, ElemStackCounters &counters, int parent_z_order, bool parent_disable_input);
   void traceHit(const Point2 &p, InputStack *stack, int parent_z_order, int &hier_order);
@@ -211,7 +212,7 @@ public:
   bool isDetached() const { return hasFlags(F_DETACHED); }
   bool bboxIsClippedOut() const { return hasFlags(F_SCREEN_BOX_CLIPPED_OUT); }
 
-  Element *findChildByScriptCtor(const Sqrat::Object &ctor) const;
+  Element *findChildByScriptCtor(const Sqrat::Object &ctor, bool recursive) const;
 
   bool hitTest(const Point2 &p) const;
   bool hitTest(float x, float y) const { return hitTest(Point2(x, y)); }
@@ -231,7 +232,7 @@ public:
   void delayedCallElemStateHandler();
 
   // IStateWatcher implementation
-  virtual void onObservableRelease(sqfrp::BaseObservable *observable) override;
+  virtual void onObservableRelease(sqfrp::NodeId id) override;
   virtual bool onSourceObservableChanged() override;
   virtual Sqrat::Object dbgGetWatcherScriptInstance() override;
 
@@ -288,7 +289,6 @@ private:
   Point2 calcParentRelPos();
   void alignChildren(int axis);
   float calcContentSizeByAxis(int axis);
-  bool isFlowAxis(int axis) const;
 
   void playStateChangeSound(int prev_flags, int cur_flags);
 
@@ -324,7 +324,7 @@ public:
   Properties props;
   dag::Vector<Transition> transitions;
 
-  dag::Vector<sqfrp::BaseObservable *> watch;
+  dag::Vector<sqfrp::NodeId> watch;
 
   Transform *transform = nullptr;
 
@@ -334,8 +334,6 @@ public:
   ScrollHandler *scrollHandler = nullptr;
 
   XmbData *xmb = nullptr;
-
-  Point2 textSizeCache = Point2(-1, -1);
 
   Point2 scrollVel = Point2(0, 0);
   ElementRef *ref = nullptr;

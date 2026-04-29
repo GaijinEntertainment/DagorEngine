@@ -14,22 +14,22 @@
 #include <math/integer/dag_IBBox2.h>
 #include "heightmapRenderer.h"
 #include "heightmapCulling.h"
-#include "heightmapTesselationData.h"
 #include "heightmapPhysHandler.h"
 #include "lodGrid.h"
 #include <EASTL/span.h>
+#include <EASTL/unique_ptr.h>
 #include <ska_hash_map/flat_hash_map2.hpp>
 
 class IGenLoad;
-class GlobalSharedMemStorage;
 class Occlusion;
+class SimpleHeightmapRenderer;
+struct MetricsErrors;
 struct Frustum;
 
 struct HeightmapFrustumCullingInfo;
 
 class HeightmapHandler : public HeightmapPhysHandler
 {
-  friend HMapTesselationData;
 
 protected:
   struct HeightmapRenderData
@@ -50,14 +50,14 @@ public:
     preparedWaterLevel(HeightmapHeightCulling::NO_WATER_ON_LEVEL),
     lodDistance(1),
     lodCount(BASE_HMAP_LOD_COUNT),
-    hmapDimBits(0),
-    hmapTData(*this)
+    hmapDimBits(0)
   {}
 
   bool init(int dim_bits = 0);
   void afterDeviceReset();
   void close();
-  bool loadDump(IGenLoad &loadCb, bool load_render_data, GlobalSharedMemStorage *sharedMem);
+  bool loadDump(IGenLoad &loadCb, bool load_render_data, float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL,
+    float shore_error = 2.0f);
   void fillHmapTextures();
   bool fillHmapRegion(int region_index, bool NVworkaround_applyOnNextFrame = false);
 
@@ -92,9 +92,6 @@ public:
     int changesIndex = cell.x / HMAP_BSIZE + cell.y / HMAP_BSIZE * heightsStride;
     heightChangesIndex.insert(changesIndex);
   }
-  void tesselatePatch(const IPoint2 &cell, bool enable) { hmapTData.tesselatePatch(cell, enable); }
-  void addTessSphere(const Point2 &pos, float radius) { hmapTData.addTessSphere(pos, radius); }
-  void addTessRect(const TMatrix &transform, bool project_volume) { hmapTData.addTessRect(transform, project_volume); }
 
   int getLodDistance() const { return lodDistance; }
   void setLodDistance(int lodD) { lodDistance = lodD; }
@@ -108,22 +105,24 @@ public:
 
   eastl::unique_ptr<HeightmapHeightCulling> heightmapHeightCulling;
   bool pushHmapModificationOnPrepare = true;
-  void initRender(bool clamp = true);
+  void initRender(bool clamp = true, float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL, float shore_error = 2.0f);
   const UniqueTex *getTexture() const { return renderData ? &renderData->heightmap : nullptr; }
   void setTexture(UniqueTex &&);
   void setSampler(d3d::SamplerHandle &&);
   void setVars();
   void makeBookKeeping();
   const HeightmapRenderer &getRenderer() const { return renderer; }
+  bool isMirror() const { return mirror; }
+  const MetricsErrors *getMetricsRaw() const { return metrics; }
 
 protected:
   int calcLod(int min_lod, const Point3 &origin_pos, float camera_height) const;
   void fillHmapRegionDetailed(IPoint2 region_pivot, IPoint2 region_width, bool updateMips, BaseTexture *upload_tex,
-    LockedImage2D upload_texlock, eastl::span<uint16_t> temp_mem, bool NVworkaround_applyOnNextFrame = false);
+    LockedImageRawBytes upload_texlock, eastl::span<uint16_t> temp_mem, bool NVworkaround_applyOnNextFrame = false);
   HeightmapRenderer renderer;
   Point3 preparedOriginPos;
   float preparedCameraHeight;
-  float preparedWaterLevel;
+  float preparedWaterLevel; // this is constant loaded water level
   eastl::unique_ptr<HeightmapRenderData> renderData;
   bool fillHmapTexturesNeeded = false;
   int hmapDimBits;
@@ -134,11 +133,13 @@ protected:
   float maxDownwardDisplacement = 0.0f;
   ska::flat_hash_set<int> heightChangesIndex;
   ska::flat_hash_map<uint32_t, uint16_t> visualHeights;
-  HMapTesselationData hmapTData;
   UniqueTex hmapUploadTex;
   int lastRegionUpdated_NVworkaround = -1;
+  float shoreErrorMeters = 2.0f;
   bool needUpdate = true;
   bool enabledMipsUpdating = true;
   bool forceCsRegionCopy = false;
   int terrainStateVersion = 0;
+  MetricsErrors *metrics = nullptr;
+  SimpleHeightmapRenderer *metricsRenderer = nullptr;
 };

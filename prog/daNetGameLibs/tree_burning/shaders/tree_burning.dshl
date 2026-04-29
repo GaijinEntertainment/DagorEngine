@@ -1,0 +1,276 @@
+buffer tree_burning_sources;
+
+float4 tree_burning_burnt_leaves_color = float4(0.01, 0.008, 0.005, 0); // (rgb, 0)
+float4 tree_burning_emission_color = float4(1, 0.2, 0, 0.3); // (rgb, intensity: in [0, 1])
+float4 tree_burning_gradient_points = float4(0.1, 0.25, 0.2, 0); // (emission start, emission end, black start)
+float4 tree_burning_range_params = float4(0.5, 2.0, 0, 0); // (initial burning radius, max burning distance from source sphere)
+float4 tree_burning_noise_params = float4(1.0, 1.7, 0.4, 0); // (noise scale, noise strength, middle noise range)
+float4 tree_burning_burnt_trunk_params = float4(0.1, 0.75, 0.3, 0.4); // (color multiplier, min ao, smoothness multiplier, emission noise scale)
+float4 tree_burning_burnt_trunk_blend_range = float4(0.35, 0.55, 0.65, 0.75); // xy - blend from original tex to burnt tex, zw - blend to emissive tex
+float4 tree_burning_burnt_trunk_emission_fade = float4(0.25, 0.75, 1.25, 2.5); // xy - fade in (start, end), zw - fade out (start, end)
+float4 tree_burning_burnt_trunk_emission_color = float4(1.0, 0.3, 0, 0.4);
+
+texture tree_burning_bark_burnt_tex_d;
+texture tree_burning_bark_burnt_tex_n;
+texture tree_burning_bark_emissive_tex_d;
+
+
+macro INIT_TREE_BURNING_FOR_RI_BLOCK()
+  (ps) {
+    burning_sources@cbuf = tree_burning_sources hlsl {
+      #include "tree_burning.hlsli"
+      cbuffer burning_sources@cbuf
+      {
+        float4 burning_sources[MAX_TREE_BURNING_SOURCES];
+      };
+    }
+    tree_burning_range_params@f3 = (tree_burning_range_params.x, tree_burning_range_params.y, 1.0 / tree_burning_range_params.y);
+    tree_burning_noise_params@f3 = tree_burning_noise_params;
+  }
+endmacro
+
+macro INIT_TREE_BURNING(need_color)
+  hlsl{
+    #define TREE_BURNING_VSOUTPUT(t1) nointerpolation uint burningSourcesOfsCnt : t1;
+    #define HAS_TREE_BURNING_VSOUTPUT 1
+  }
+
+  if (need_color)
+  {
+    (ps){
+      burnt_leaves_color@f3 = tree_burning_burnt_leaves_color;
+      tree_burning_emission_color@f4 = tree_burning_emission_color;
+      tree_burning_gradient_points@f3 = tree_burning_gradient_points;
+
+      burnt_trunk_params@f4 = tree_burning_burnt_trunk_params;
+      burnt_trunk_blend_range@f4 = tree_burning_burnt_trunk_blend_range;
+      burnt_trunk_emission_fade@f4 = (tree_burning_burnt_trunk_emission_fade.x,
+                                      1.0 / (tree_burning_burnt_trunk_emission_fade.y - tree_burning_burnt_trunk_emission_fade.x),
+                                      tree_burning_burnt_trunk_emission_fade.z,
+                                      tree_burning_burnt_trunk_emission_fade.w);
+      burnt_trunk_emission_color@f4 = tree_burning_burnt_trunk_emission_color;
+
+      tree_burning_bark_burnt_tex_d@tex2d = tree_burning_bark_burnt_tex_d;
+      tree_burning_bark_burnt_tex_n@tex2d = tree_burning_bark_burnt_tex_n;
+      tree_burning_bark_emissive_tex_d@tex2d = tree_burning_bark_emissive_tex_d;
+    }
+  }
+endmacro
+
+
+macro TREE_BURNING_VS(allow_discard)
+  hlsl(vs){
+    #include "tree_burning.hlsli"
+
+  #ifdef VS_OUTPUT
+    void read_tree_burning_additional_data(inout VS_OUTPUT output, uint perInstanceRenderDataFlags, uint perInstanceRenderDataOffset)
+  #else
+    void read_tree_burning_additional_data(inout VsOutput output, uint perInstanceRenderDataFlags, uint perInstanceRenderDataOffset)
+  #endif
+    {
+      uint dataOffset = RIEXTRA_PER_INSTANCE_RENDER_DATA__TREE_BURNING__OFFSET(perInstanceRenderDataFlags);
+      output.burningSourcesOfsCnt = asuint(LOAD_RIEXTRA_PID(dataOffset, RIEXTRA_PER_INSTANCE_RENDER_DATA__TREE_BURNING__FLAG, 0)).x;
+      ##if allow_discard
+        if (output.burningSourcesOfsCnt == FULLY_BURNT_TREE)
+          output.pos = 0;
+      ##endif
+    }
+  }
+endmacro
+
+macro TREE_BURNING_LEAVES_VS()
+  TREE_BURNING_VS(true)
+endmacro
+
+macro TREE_BURNING_TRUNK_VS()
+  TREE_BURNING_VS(false)
+endmacro
+
+macro TREE_BURNING_COMMON_PS(is_leaves_burning)
+  hlsl(ps){
+    ##if is_leaves_burning
+      float get_tree_burning_progress(uint burning_sources_offset_count, float3 local_pos, float4 leaves_pivot_length, float translucency)
+    ##else
+      float get_tree_burning_progress(uint burning_sources_offset_count, float3 local_pos)
+    ##endif
+    {
+      // todo: iterating over burning sources can be moved to VS stage
+      uint offset = burning_sources_offset_count >> 16;
+      uint count = burning_sources_offset_count & 0xffff;
+      float progress = 0;
+      for (uint i = 0; i < count; ++i)
+      {
+        float3 burnSourcePos = burning_sources[offset + i].xyz;
+        float burnSourceSize = burning_sources[offset + i].w;
+        float distance = length(local_pos - burnSourcePos) - burnSourceSize;
+        float burningDistance = lerp(tree_burning_range_params.x, tree_burning_range_params.y, sqrt(burnSourceSize * tree_burning_range_params.z));
+        ##if is_leaves_burning && is_pivoted == yes
+          // Do not allow fully burning down by growing sphere, otherwise pivots may be discarded before leaves tips
+          const float maxSphereProgress = 0.66;
+          progress = max(progress, min(1 - distance / burningDistance, maxSphereProgress));
+
+          float3 leavesPivot = leaves_pivot_length.xyz;
+          float leavesLength = max(leaves_pivot_length.w, 0.001);
+          float pivotDistance = length(leavesPivot - burnSourcePos) - burnSourceSize;
+          const float leavesFullDiscardRatio = 0.5; // At what point whole leaf will be fully burnt down
+          float leavesBurnDistance = leavesFullDiscardRatio * leavesLength;
+          // Here we calculate another progress, which will be same for whole palm leaf (or for branch with small leaves)
+          // We need it to prevent unburned leaves hanging in air when their pivot is burnt down
+          float leavesBurningProgress = 1 - (pivotDistance + leavesBurnDistance) / (burningDistance + leavesBurnDistance);
+          // And we still want fire propagation effect, so our progress will be modified by multiplier which
+          // depends on both leaf distance from pivot and time since leaf burning began (`pivotDistance` < `burningDistance`)
+          float leavesDistanceRatio = saturate((distance - pivotDistance) / leavesLength);
+          float firePropagationOnLeavesTipStart = 0.2 * leavesLength;
+          float firePropagationOnLeavesTipEnd = 0.35 * leavesLength;
+          float firePropagationStart = lerp(-burningDistance, firePropagationOnLeavesTipStart, leavesDistanceRatio);
+          float firePropagationEnd = lerp(-burningDistance, firePropagationOnLeavesTipEnd, leavesDistanceRatio);
+          leavesBurningProgress *= smoothstep(firePropagationStart, firePropagationEnd, -pivotDistance);
+
+          progress = max(progress, leavesBurningProgress);
+        ##else
+          progress = max(progress, 1 - distance / burningDistance);
+        ##endif
+        ##if is_leaves_burning
+          if (progress >= 1)
+            return 1.0f;
+        ##endif
+      }
+      ##if is_leaves_burning
+        // One more trick to make burning more interesting/realistic. Branches usually have 0 translucency in our textures,
+        // so we can use this to burn leaves faster and leave empty branches for some time
+        const float minTranslucencyFactor = 0.75;   // translucency == 1, faster progress for leaves
+        const float middleTranslucencyFactor = 1.0; // translucency == 0.5, no changes for progress
+        const float maxTranslucencyFactor = 3;      // translucency == 0, slower progress for small branches
+        float translucencyFactor = max(
+          maxTranslucencyFactor - 2 * (maxTranslucencyFactor - middleTranslucencyFactor) * translucency,
+          2 * middleTranslucencyFactor - minTranslucencyFactor + 2 * (minTranslucencyFactor - middleTranslucencyFactor) * translucency);
+        progress = pow(progress, translucencyFactor);
+      ##endif
+      float noiseScale = tree_burning_noise_params.x;
+      float noiseStrength = tree_burning_noise_params.y;
+      float3 noise = tex3Dlod(perlin_noise3d, float4(local_pos * noiseScale, 0)).rgb * 2 - 1;
+      float middleNoiseRange = tree_burning_noise_params.z;
+      float middleNoise = smoothstep(0, saturate(1 - middleNoiseRange) * 0.5, min(progress, 1 - progress)) * noise.x;
+      float2 borderNoise = sqrt(abs(noise.yz));
+      progress += noiseStrength * (middleNoise + lerp(-borderNoise.x, borderNoise.y, min(progress, 1)));
+      ##if is_leaves_burning
+        return saturate(progress);
+      ##else
+        return progress;
+      ##endif
+    }
+  }
+endmacro
+
+macro TREE_BURNING_LEAVES_PS(need_color)
+  TREE_BURNING_COMMON_PS(true)
+  hlsl(ps){
+  ##if need_color
+    void apply_tree_burning_additional_data(VsOutput input, inout UnpackedGbuffer gbuffer)
+  ##else
+    void apply_tree_burning_additional_data(VsOutput input)
+  ##endif
+    {
+      BRANCH
+      if (input.burningSourcesOfsCnt == 0)
+        return;
+
+      ##if need_color
+        float translucency = gbuffer.translucency;
+      ##else
+        float translucency = tex2DBindless(get_normal_tex(), input.diffuseTexcoord.xy).b;
+      ##endif
+
+      ##if is_pivoted == yes
+        float4 leavesPivotLength = input.leavesPivotLength;
+      ##else
+        float4 leavesPivotLength = 0;
+      ##endif
+
+      float progress = get_tree_burning_progress(input.burningSourcesOfsCnt, input.localPos.xyz, leavesPivotLength, translucency);
+      if (progress >= 1)
+        discard;
+
+      ##if need_color
+        if (progress > 0)
+        {
+          float2 emissionRange = tree_burning_gradient_points.xy;
+          gbuffer.albedo.rgb = lerp(gbuffer.albedo.rgb, burnt_leaves_color.rgb, clamp(progress / tree_burning_gradient_points.z, 0, 1));
+          float4 emission = tree_burning_emission_color;
+
+          float emissionState = 1.0 - pow2((progress - emissionRange.x) / (emissionRange.y - emissionRange.x) * 2.0 - 1.0);
+          emission.a *= max(emissionState, 0);
+
+          if (emission.a > 0)
+          {
+            init_material(gbuffer, SHADING_SELFILLUM);
+            init_emission(gbuffer, emission.a * MAX_EMISSION);
+            init_emission_color(gbuffer, half4(emission.rgb, 0));
+          }
+        }
+      ##endif
+    }
+  }
+endmacro
+
+macro TREE_BURNING_TRUNK_PS()
+  TREE_BURNING_COMMON_PS(false)
+  hlsl(ps){
+    // Sampler from material textures looks much better because of mipmap_bias
+    void apply_tree_burning_additional_data(VsOutput input, inout UnpackedGbuffer gbuffer, SamplerState tex_samplerstate)
+    {
+      float progress;
+      float maxProgress = burnt_trunk_emission_fade.w;
+      BRANCH
+      if (input.burningSourcesOfsCnt == 0)
+        return;
+      else if (input.burningSourcesOfsCnt == FULLY_BURNT_TREE)
+        progress = maxProgress;
+      else
+        progress = get_tree_burning_progress(input.burningSourcesOfsCnt, input.localPos.xyz);
+      float4 originalBurntColor = float4(luminance(gbuffer.albedo.rgb) * burnt_trunk_params.xxx, 0.3);
+      float4 burntTexColor = tree_burning_bark_burnt_tex_d.Sample(tex_samplerstate, input.diffuseTexcoord.xy);
+      float4 emissiveColor = tree_burning_bark_emissive_tex_d.Sample(tex_samplerstate, input.diffuseTexcoord.xy);
+
+      float noiseScale = burnt_trunk_params.w;
+      float3 worldPos = input.originalWorldLocalPos + input.localPos.xyz;
+      float3 noiseTc = (worldPos + worldPos.y * float3(0.17, 0, 0.27)) * noiseScale;
+      float noise = tex3Dlod(perlin_noise3d, float4(noiseTc, 0)).r;
+
+      float emissiveWeight = smoothstep(burnt_trunk_blend_range.z, burnt_trunk_blend_range.w, noise);
+      float2 emissionFadeIn = burnt_trunk_emission_fade.xy;
+      float2 emissionFadeOut = float2(burnt_trunk_emission_fade.w, 1.0) / (burnt_trunk_emission_fade.w - burnt_trunk_emission_fade.z);
+      float dynamicEmissiveWeight = saturate(min((progress - emissionFadeIn.x) * emissionFadeIn.y,
+          emissionFadeOut.x - progress * emissionFadeOut.y));
+      emissiveWeight = max(emissiveWeight, dynamicEmissiveWeight);
+      burntTexColor = lerp(burntTexColor, emissiveColor, emissiveWeight);
+      float burntTexWeight = smoothstep(burnt_trunk_blend_range.x, burnt_trunk_blend_range.y, noise);
+      float3 burntColor = lerp(originalBurntColor.xyz, burntTexColor.xyz, burntTexWeight);
+
+      progress = saturate(progress);
+      if (progress > 0 && emissiveWeight > 0)
+      {
+        progress = 1;
+        float3 difference = burntColor - burnt_trunk_emission_color.xyz;
+        float sqDiff = dot(difference, difference);
+        if (sqDiff < burnt_trunk_emission_color.w)
+        {
+          init_material(gbuffer, SHADING_SELFILLUM);
+
+          float normDiff = (burnt_trunk_emission_color.w - sqDiff) / burnt_trunk_emission_color.w;
+          init_emission(gbuffer, normDiff * MAX_EMISSION);
+          init_emission_color(gbuffer, 1);
+        }
+      }
+
+      float4 packedNormalMap = tree_burning_bark_burnt_tex_n.Sample(tex_samplerstate, input.diffuseTexcoord.xy);
+      float3 normalMap = unpack_ag_normal(packedNormalMap);
+      float3 worldNormal = perturb_normal_precise(normalMap, normalize(input.normal.xyz), input.pointToEye.xyz, input.diffuseTexcoord.xy);
+      gbuffer.normal = normalize(lerp(gbuffer.normal, worldNormal, progress * burntTexWeight));
+
+      gbuffer.albedo.rgb = lerp(gbuffer.albedo.rgb, burntColor, progress);
+      gbuffer.ao = lerp(gbuffer.ao, max(gbuffer.ao, burnt_trunk_params.y), progress);
+      gbuffer.smoothness = lerp(gbuffer.smoothness, gbuffer.smoothness * burnt_trunk_params.z, progress);
+    }
+  }
+endmacro

@@ -33,7 +33,7 @@ public:
 
     radius = 0.05;
 
-    DataBlock appBlk(::get_app().getWorkspace().getAppPath());
+    DataBlock appBlk(::get_app().getWorkspace().getAppBlkPath());
     nodeFilterMasksBlk = *appBlk.getBlockByNameEx("nodeFilterMasks");
   }
 

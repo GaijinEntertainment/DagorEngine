@@ -1,0 +1,1 @@
+Macro that executes as an additional inference pass during compilation. Allows injecting custom analysis and transformation logic into the type-inference pipeline.

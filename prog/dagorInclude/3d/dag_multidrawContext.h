@@ -21,8 +21,12 @@
  *
  * This class incapsulates logic of filling multidraw buffers.
  * It implements draw call id/per draw parameters passing for different platforms and manages buffers required for it.
+ * \tparam PerDrawDataT Type of per draw parameters structure. If only draw call id is required, use uint32_t. When dword is enough
+ * there won't be any indirection for per draw parameter reading in the shader. \tparam DrawIdBits Number of bits used for draw call id
+ * storage inside draw arguments structure. Default is 20 bits. Other bits could be used by user for per draw data, so this data could
+ * be read without indirections.
  */
-template <typename PerDrawDataT>
+template <typename PerDrawDataT, uint32_t DrawIdBits = 20>
 class MultidrawContext
 {
   /**
@@ -59,18 +63,6 @@ class MultidrawContext
   uint32_t actualStart = 0;
 
   /**
-   * @brief Extended draw call arguments structure.
-   *
-   * This structure is used for platforms that pass draw call id/per draw parameters using per draw root constants.
-   * Currently it is used only for DX12.
-   */
-  struct ExtendedDrawIndexedIndirectArgs
-  {
-    uint32_t drawcallId;
-    DrawIndexedIndirectArgs args;
-  };
-
-  /**
    * @brief Checks if extended draw call arguments structure is used.
    */
 #if _TARGET_PC_WIN
@@ -80,13 +72,13 @@ class MultidrawContext
   {
     if (DAGOR_UNLIKELY(!bytesCountPerDrawcall))
       bytesCountPerDrawcall =
-        d3d::get_driver_code().is(d3d::dx12) ? sizeof(ExtendedDrawIndexedIndirectArgs) : sizeof(DrawIndexedIndirectArgs);
-    static_assert(sizeof(ExtendedDrawIndexedIndirectArgs) != sizeof(DrawIndexedIndirectArgs));
-    return bytesCountPerDrawcall == sizeof(ExtendedDrawIndexedIndirectArgs);
+        d3d::get_driver_code().is(d3d::dx12) ? sizeof(DrawIndexedIndirectArgsWithId) : sizeof(DrawIndexedIndirectArgs);
+    static_assert(sizeof(DrawIndexedIndirectArgsWithId) != sizeof(DrawIndexedIndirectArgs));
+    return bytesCountPerDrawcall == sizeof(DrawIndexedIndirectArgsWithId);
   }
 #elif _TARGET_XBOX
 #define CONSTEXPR_EXT_MULTIDRAW constexpr
-  static constexpr uint8_t bytesCountPerDrawcall = sizeof(ExtendedDrawIndexedIndirectArgs);
+  static constexpr uint8_t bytesCountPerDrawcall = sizeof(DrawIndexedIndirectArgsWithId);
   static constexpr bool usesExtendedMultiDrawStruct() { return true; } // DX12
 #else
 #define CONSTEXPR_EXT_MULTIDRAW constexpr
@@ -112,6 +104,12 @@ class MultidrawContext
   static constexpr bool needPerDrawParamsBuffer() { return sizeof(PerDrawDataT) != sizeof(uint32_t); }
 
 public:
+  /**
+   * @brief Number of free bits in draw call arguments structure for user data.
+   */
+  static_assert(DrawIdBits < 32);
+  const uint32_t DRAW_DWORD_FREE_BITS = 32 - DrawIdBits;
+
   /**
    * @brief Default constructor.
    * @param name must be unique for each context.
@@ -210,7 +208,7 @@ public:
 #if USE_STAGING_MULTIDRAW_BUF
       multidrawArguments.close();
       multidrawArguments = dag::create_sbuffer(sizeof(uint32_t), bytesCountPerDrawcall * allocatedDrawcallsInBuffer / sizeof(uint32_t),
-        SBCF_INDIRECT, 0, name.c_str());
+        SBCF_INDIRECT, 0, name.c_str(), RESTAG_ENGINE);
       multidrawArgsStagingBuffer.close();
       multidrawArgsStagingBuffer.init(allocatedDrawcallsInBuffer, bytesCountPerDrawcall, sizeof(uint32_t), SBCF_DYNAMIC, 0,
         getMultidrawStagingBufferName().c_str());
@@ -223,16 +221,15 @@ public:
       {
         perDrawArgsBuffer.close();
         perDrawArgsBuffer = dag::create_sbuffer(sizeof(PerDrawDataT), allocatedDrawcallsInBuffer,
-          SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_DYNAMIC, 0, getPerDrawArgsBufferName().c_str());
+          SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES | SBCF_DYNAMIC, 0, getPerDrawArgsBufferName().c_str(), RESTAG_ENGINE);
       }
     }
 
-    eastl::variant<eastl::monostate, LockedBuffer<DrawIndexedIndirectArgs>, LockedBuffer<ExtendedDrawIndexedIndirectArgs>>
-      multidrawArgs;
+    eastl::variant<eastl::monostate, LockedBuffer<DrawIndexedIndirectArgs>, LockedBuffer<DrawIndexedIndirectArgsWithId>> multidrawArgs;
     bool bufferLocked = true;
     if CONSTEXPR_EXT_MULTIDRAW (extMultiDraw)
     {
-      multidrawArgs = multidrawArgsBuf.lockBufferAs<ExtendedDrawIndexedIndirectArgs>(drawcalls_count, actualStart);
+      multidrawArgs = multidrawArgsBuf.lockBufferAs<DrawIndexedIndirectArgsWithId>(drawcalls_count, actualStart);
       bufferLocked = (bool)eastl::get<2>(multidrawArgs);
     }
     else
@@ -261,10 +258,19 @@ public:
       auto &dc = extMultiDraw ? eastl::get<2>(multidrawArgs)[i].args : eastl::get<1>(multidrawArgs)[i];
       dc.startInstanceLocation = 0;
       uint32_t &drawcallId = extMultiDraw ? eastl::get<2>(multidrawArgs)[i].drawcallId : dc.startInstanceLocation;
-      PerDrawDataT &perDrawData = needPerDrawParamsBuffer() ? perDrawArgs.value()[i] : reinterpret_cast<PerDrawDataT &>(drawcallId);
-      set_cb(i, dc.indexCountPerInstance, dc.instanceCount, dc.startIndexLocation, dc.baseVertexLocation, perDrawData);
       if constexpr (needPerDrawParamsBuffer())
-        drawcallId = i;
+      {
+        drawcallId = 0;
+        set_cb(i, dc.indexCountPerInstance, dc.instanceCount, dc.startIndexLocation, dc.baseVertexLocation, perDrawArgs.value()[i],
+          drawcallId);
+        G_ASSERTF((i < (1u << DrawIdBits)), "Draw call index %d exceeds maximum allowed value %d for DrawIdBits=%d", i,
+          (1u << DrawIdBits) - 1, DrawIdBits);
+        drawcallId |= (i << DRAW_DWORD_FREE_BITS);
+      }
+      else
+      {
+        set_cb(i, dc.indexCountPerInstance, dc.instanceCount, dc.startIndexLocation, dc.baseVertexLocation, drawcallId);
+      }
     }
 
 #if USE_STAGING_MULTIDRAW_BUF

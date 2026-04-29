@@ -1,0 +1,1 @@
+The ``[tag_function]`` function annotation — attaches named tags to a function so that ``[tag_function_macro]``-based annotations can discover and process it.

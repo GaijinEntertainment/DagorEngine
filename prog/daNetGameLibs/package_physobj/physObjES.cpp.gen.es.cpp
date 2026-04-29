@@ -83,9 +83,12 @@ static constexpr ecs::ComponentDesc phys_obj_phys_es_comps[] =
   {ECS_HASH("phys_obj_net_phys"), ecs::ComponentTypeInfo<PhysObjActor>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("net_phys__prevTick"), ecs::ComponentTypeInfo<int>(), ecs::CDF_OPTIONAL},
-//start of 1 ro components at [3]
+//start of 4 ro components at [3]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
   {ECS_HASH("phys__broadcastAAS"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL},
-//start of 1 no components at [4]
+  {ECS_HASH("initial_transform"), ecs::ComponentTypeInfo<TMatrix>(), ecs::CDF_OPTIONAL},
+  {ECS_HASH("initial_velocity"), ecs::ComponentTypeInfo<Point3>(), ecs::CDF_OPTIONAL},
+//start of 1 no components at [7]
   {ECS_HASH("disableUpdate"), ecs::ComponentTypeInfo<ecs::Tag>()}
 };
 static void phys_obj_phys_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
@@ -93,10 +96,14 @@ static void phys_obj_phys_es_all_events(const ecs::Event &__restrict evt, const 
   G_FAST_ASSERT(evt.is<UpdatePhysEvent>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     phys_obj_phys_es(static_cast<const UpdatePhysEvent&>(evt)
-        , ECS_RW_COMP(phys_obj_phys_es_comps, "phys_obj_net_phys", PhysObjActor)
+        , components.manager()
+    , ECS_RO_COMP(phys_obj_phys_es_comps, "eid", ecs::EntityId)
+    , ECS_RW_COMP(phys_obj_phys_es_comps, "phys_obj_net_phys", PhysObjActor)
     , ECS_RW_COMP(phys_obj_phys_es_comps, "transform", TMatrix)
     , ECS_RW_COMP_PTR(phys_obj_phys_es_comps, "net_phys__prevTick", int)
     , ECS_RO_COMP_PTR(phys_obj_phys_es_comps, "phys__broadcastAAS", ecs::Tag)
+    , ECS_RO_COMP_PTR(phys_obj_phys_es_comps, "initial_transform", TMatrix)
+    , ECS_RO_COMP_PTR(phys_obj_phys_es_comps, "initial_velocity", Point3)
     );
   while (++comp != compE);
 }
@@ -106,9 +113,9 @@ static ecs::EntitySystemDesc phys_obj_phys_es_es_desc
   "prog/daNetGameLibs/package_physobj/./physObjES.cpp.inl",
   ecs::EntitySystemOps(nullptr, phys_obj_phys_es_all_events),
   make_span(phys_obj_phys_es_comps+0, 3)/*rw*/,
-  make_span(phys_obj_phys_es_comps+3, 1)/*ro*/,
+  make_span(phys_obj_phys_es_comps+3, 4)/*ro*/,
   empty_span(),
-  make_span(phys_obj_phys_es_comps+4, 1)/*no*/,
+  make_span(phys_obj_phys_es_comps+7, 1)/*no*/,
   ecs::EventSetBuilder<UpdatePhysEvent>::build(),
   0
 ,nullptr,nullptr,"after_net_phys_sync","before_net_phys_sync");

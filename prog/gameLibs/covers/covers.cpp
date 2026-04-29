@@ -48,11 +48,6 @@ bool load(IGenLoad &crd, Tab<Cover> &covers_out)
     LOGERR_CTX("Could not load covers: broken data: data size = %d, cover size = %d", dataSize, sizeof(Cover));
     return false;
   }
-  if (!dataSize)
-  {
-    LOGERR_CTX("Could not load covers: empty data");
-    return false;
-  }
 
   IGenLoad *dcrd = (fmt == 1) ? (IGenLoad *)new (alloca(sizeof(ZstdLoadCB)), _NEW_INPLACE) ZstdLoadCB(crd, crd.getBlockRest())
                               : (IGenLoad *)new (alloca(sizeof(LzmaLoadCB)), _NEW_INPLACE) LzmaLoadCB(crd, crd.getBlockRest());

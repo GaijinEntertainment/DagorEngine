@@ -39,7 +39,8 @@ public:
   void savePreparedVisCtx(int render_id);
   void restorePreparedVisCtx(int render_id);
   void render(const VisibilityFinder &vf, int render_id, unsigned render_flags_mask);
-  void renderTrans();
+  void renderTrans(bool draw_all = false);
+  bool isMaterialInited(int stage) const;
 
   int loadScene(const char *lmdir, unsigned rs_id);
   int addScene(RenderScene *rs, unsigned rs_id);

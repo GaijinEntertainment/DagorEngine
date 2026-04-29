@@ -40,6 +40,7 @@
 // #define TIMER
 #include <unordered_set>
 #include <unordered_map>
+#include <map>
 #include "Timer.hpp"
 #ifdef TIMER
 #define INTERVAL(name, elapsed, type) TimerInterval timerInterval(name, elapsed, type)
@@ -64,7 +65,9 @@ std::string wideToStr(const TCHAR *sw);
 M_STD_STRING strToWide(const char *sz);
 bool is_default_layer(const ILayer &layer);
 
-#include "cfg.h"
+std::wstring fix_empty_param_values(const std::wstring &_script, const std::wstring &classname);
+std::wstring normalize_param_values(const std::wstring &script, const std::wstring &classname);
+
 #include "layout.h"
 #include "common.h"
 
@@ -987,6 +990,16 @@ static inline void adjwtm(Matrix3 &tm)
   tm.ClearIdentFlag(ROT_IDENT | SCL_IDENT);
 }
 
+struct EMat
+{
+  std::wstring name;
+  Mtl *mtl;
+  INode *node;
+  DWORD wirecolor;
+
+  EMat(const std::wstring &nm, Mtl *m, INode *n, DWORD wc) : name(nm), mtl(m), node(n), wirecolor(wc) {}
+};
+
 struct ExpMat
 {
   DagMater m;
@@ -994,7 +1007,7 @@ struct ExpMat
   Mtl *mtl;
   DWORD wirecolor;
 
-  ExpMat() { name = classname = script = NULL; }
+  ExpMat() : name(0), classname(0), script(0), mtl(0), wirecolor(0) {}
 };
 
 class MyExpTMAnimCB : public ExpTMAnimCB
@@ -1155,12 +1168,23 @@ struct ExpNoteTrack
 
 const char origin_lin_vel_node_name[] = "origin_lin_vel_node_name";
 const char origin_ang_vel_node_name[] = "origin_ang_vel_node_name";
-static TCHAR filename[MAX_PATH];
 #ifdef TIMER
 static Timer timer;
 static double mtlElapsed = 0., procAddMtl = 0., dagorMatElapsed = 0., dagorMatEarlyExitElapsed = 0.;
 static int mtlCount = 0, procNodeCount = 0;
 #endif
+
+static bool any_explicit_normals_set(const MeshNormalSpec *normalSpec)
+{
+#if defined(MAX_RELEASE_R26) && MAX_RELEASE >= MAX_RELEASE_R26
+  return normalSpec->AnyExplicitNormalsSet();
+#else
+  for (int i = 0, num = normalSpec->GetNumNormals(); i < num; ++i)
+    if (normalSpec->GetNormalExplicit(i))
+      return true;
+  return false;
+#endif
+}
 
 class ExportENCB : public ENodeCB
 {
@@ -1174,6 +1198,8 @@ public:
   Tab<TCHAR *> tex;
   Tab<TCHAR *> klabel;
   Tab<ExpNoteTrack *> ntrack;
+  std::vector<EMat> matList;
+  std::unordered_map<DWORD, std::wstring> wcmap;
   int max_pkeys, max_rkeys, max_skeys;
   INode *max_pkeys_n, *max_rkeys_n, *max_skeys_n;
   INodeTab nonort_nodes;
@@ -1188,10 +1214,9 @@ public:
   bool hasAbsolutePaths;
   bool a2dExported;
   TCHAR *default_material;
-  CfgShader *cfg;
-  M_STD_STRING value[DAGTEXNUM];
+
   M_STD_STRING tex_slot[DAGTEXNUM];
-  std::MAP_TYPE<std::wstring, StringVector> shaderParamsMap;
+  std::MAP_TYPE<std::wstring, std::vector<M_STD_STRING>> shaderParamsMap;
 
   ExportENCB(TimeValue t, bool a2d)
   {
@@ -1214,23 +1239,10 @@ public:
 #endif
     a2dExported = a2d;
     default_material = NULL;
-
-
-    CfgShader::GetCfgFilename(_T("DagorShaders.cfg"), filename);
-    cfg = new CfgShader(filename);
-    cfg->GetSettingsParams();
-    for (int i = 0; i < DAGTEXNUM; ++i)
-    {
-      if (i >= cfg->settings_params.size())
-        continue;
-      value[i] = cfg->GetParamValue(CFG_SETTINGS_NAME, cfg->settings_params.at(i));
-      tex_slot[i] = cfg->settings_params.at(i);
-    }
   }
 
   ~ExportENCB() override
   {
-    delete cfg;
     int i;
     for (i = 0; i < mat.Count(); ++i)
     {
@@ -1388,218 +1400,271 @@ public:
     return true;
   }
 
+  void prepare_expmat()
+  {
+    for (const auto &em : matList)
+    {
+      if (!em.mtl)
+      {
+        assert(mat.Count() != 0xFFFF);
+        if (mat.Count() >= 0xFFFF)
+          return;
+
+        ExpMat e;
+        e.name = _tcsdup(em.name.data());
+        e.mtl = 0;
+        e.wirecolor = em.wirecolor;
+
+        e.m.flags = 0;
+        e.m.amb = e.m.diff = Color(em.wirecolor);
+        e.m.spec = e.m.emis = Color(0, 0, 0);
+        e.m.power = 0;
+
+        for (int i = 0; i < DAGTEXNUM; ++i)
+          e.m.texid[i] = DAGBADMATID;
+
+        mtls.push_back(std::SET_TYPE<Mtl *>());
+        mat.Append(1, &e);
+        continue;
+      }
+
+      if (em.mtl->NumSubMtls())
+        continue;
+
+      Class_ID cid = em.mtl->ClassID();
+      if (cid == Class_ID(DMTL_CLASS_ID, 0))
+      {
+        INTERVAL("DagorMat", dagorMatElapsed, TimerIntervalType::GATHER);
+        explogWarning(_T("'%s' has standard material '%s'\r\n"), em.node->GetName(), em.name.data());
+        hasNonDagorMaterials = true;
+
+        assert(mat.Count() != 0xFFFF);
+        if (mat.Count() >= 0xFFFF)
+          return;
+
+        StdMat *m = (StdMat *)em.mtl;
+
+        ExpMat e;
+        e.name = _tcsdup(em.name.data());
+        e.mtl = em.mtl;
+        e.wirecolor = 0;
+
+        e.m.flags = DAG_MF_16TEX;
+        if (m->GetTwoSided())
+          e.m.flags |= DAG_MF_2SIDED;
+
+        float si = m->GetSelfIllum(time);
+        e.m.amb = m->GetAmbient(time) * (1 - si);
+        e.m.diff = m->GetDiffuse(time) * (1 - si);
+        e.m.spec = m->GetSpecular(time) * m->GetShinStr(time);
+        e.m.emis = m->GetDiffuse(time) * si;
+        e.m.power = powf(2.0f, m->GetShininess(time) * 10.0f) * 4.0f;
+
+        for (int i = 0; i < DAGTEXNUM; ++i)
+          e.m.texid[i] = DAGBADMATID;
+
+        Texmap *tex = m->GetSubTexmap(ID_DI);
+        if (tex)
+          if (tex->ClassID() == Class_ID(BMTEX_CLASS_ID, 0))
+          {
+            BitmapTex *b = (BitmapTex *)tex;
+            e.m.texid[0] = add_tex(makeCheckedRelPath(em.node, em.mtl, b->GetMapName()));
+            if (e.m.texid[0] != DAGBADMATID)
+            {
+              e.m.amb = e.m.diff = Color(1, 1, 1) * (1 - si);
+              e.m.emis = Color(1, 1, 1) * si;
+            }
+          }
+        e.classname = _tcsdup(_T("simple"));
+        e.script = _tcsdup(_T("lighting=vltmap"));
+
+        mtls.push_back(std::SET_TYPE<Mtl *>());
+        mtls.back().insert(em.mtl);
+        mat.Append(1, &e);
+        continue;
+      }
+
+      if (cid == DagorMat_CID || cid == DagorMat2_CID)
+      {
+        INTERVAL("DagorMat", dagorMatElapsed, TimerIntervalType::GATHER);
+
+        assert(mat.Count() != 0xFFFF);
+        if (mat.Count() >= 0xFFFF)
+          return;
+
+        IDagorMat *m = (IDagorMat *)em.mtl->GetInterface(I_DAGORMAT);
+        assert(m);
+
+        ExpMat e;
+        e.name = _tcsdup(em.name.data());
+        e.mtl = em.mtl;
+        e.wirecolor = 0;
+
+        e.m.flags = DAG_MF_16TEX;
+        if (m->get_2sided() == IDagorMat::Sides::DoubleSided)
+          e.m.flags |= DAG_MF_2SIDED;
+
+        e.m.amb = m->get_amb();
+        e.m.diff = m->get_diff();
+        e.m.spec = m->get_spec();
+        e.m.emis = m->get_emis();
+        e.m.power = m->get_power();
+
+        for (int i = 0; i < DAGTEXNUM; ++i)
+          e.m.texid[i] = DAGBADMATID;
+
+        e.classname = _tcsdup(m->get_classname());
+        assert(e.classname);
+
+        e.script = _tcsdup(m->get_script());
+        assert(e.script);
+
+        if (!isProxymatName(e.classname))
+          for (int i = 0; i < DAGTEXNUM; ++i)
+            e.m.texid[i] = add_tex(makeCheckedRelPath(em.node, em.mtl, m->get_texname(i)));
+
+        em.mtl->ReleaseInterface(I_DAGORMAT, m);
+
+        mtls.push_back(std::SET_TYPE<Mtl *>());
+        mtls.back().insert(em.mtl);
+        mat.Append(1, &e);
+        continue;
+      }
+
+      explogWarning(_T("'%s' has material '%s' of unknown type\r\n"), em.node->GetName(), em.name.data());
+      hasNonDagorMaterials = true;
+    }
+  }
+
+  bool equal_dagormats(const ExpMat &mat_a, const ExpMat &mat_b)
+  {
+    if (mat_a.mtl == mat_b.mtl)
+      return true;
+
+    if (!mat_a.classname || !*mat_a.classname)
+      return false;
+
+    if (!mat_b.classname || !*mat_b.classname)
+      return false;
+
+    bool is_proxy_a = isProxymatName(mat_a.classname);
+    bool is_proxy_b = isProxymatName(mat_b.classname);
+    if (is_proxy_a != is_proxy_b)
+      return false;
+
+    if (is_proxy_a)
+      return !_tcsicmp(mat_a.classname, mat_b.classname);
+    else
+    {
+      if (_tcsicmp(mat_a.classname, mat_b.classname))
+        return false;
+    }
+
+    if ((mat_a.m.flags & DAG_MF_2SIDED) != (mat_b.m.flags & DAG_MF_2SIDED))
+      return false;
+
+    if (memcmp(&mat_a.m.diff, &mat_b.m.diff, sizeof(mat_a.m.diff)) != 0)
+      return false;
+
+    for (int i = 0; i < DAGTEXNUM; ++i)
+    {
+      unsigned short texid_a = mat_a.m.texid[i];
+      unsigned short texid_b = mat_b.m.texid[i];
+
+      // skip empty slot
+      if (texid_a == DAGBADMATID && texid_b == DAGBADMATID)
+        continue;
+
+      // empty != non-empty
+      if (texid_a == DAGBADMATID || texid_b == DAGBADMATID)
+        return false;
+
+      // FIXME special symbols
+      const TSTR tex_a = extract_filename(tex[texid_a]);
+      const TSTR tex_b = extract_filename(tex[texid_b]);
+      if (_tcsicmp(tex_a.data(), tex_b.data()))
+        return false;
+    }
+
+    return doesScriptMatch(normalize_param_values(mat_a.script, mat_a.classname).data(),
+      normalize_param_values(mat_b.script, mat_b.classname).data());
+  }
+
+  void optimize_materials(Tab<bool> &matUsed)
+  {
+    for (size_t i = 0; i < mat.Count(); ++i)
+    {
+      const auto &m = mat[i];
+      if (!matUsed[i])
+        continue;
+
+      for (size_t j = i + 1; j < mat.Count(); ++j)
+      {
+        const auto &em = mat[j];
+        if (!matUsed[j])
+          continue;
+
+        if (equal_dagormats(em, m))
+        {
+          mtls[i].insert(em.mtl);
+          matUsed[j] = false;
+        }
+      }
+    }
+  }
+
+  std::wstring makeUniqueMatName()
+  {
+    TCHAR buf[64];
+    for (int i = 0;; ++i)
+    {
+      _stprintf(buf, _T("autoNamedMat_%d"), i);
+      std::wstring name;
+      if (std::find_if(matList.begin(), matList.end(), [&name](EMat &em) { return em.name == name; }) == matList.end())
+        return buf;
+    }
+  }
+
   void add_mtl(INode *node, Mtl *mtl, int subm = 0, DWORD wirecolor = 0xFFFFFF)
   {
 #ifdef TIMER
     ++mtlCount;
 #endif
-    if (!mtl)
+
+    std::wstring mtl_name;
+
+    if (mtl)
     {
-      int i;
-      for (i = 0; i < mat.Count(); ++i)
-        if ((mat[i].mtl == NULL || mtls[i].empty()) && mat[i].wirecolor == wirecolor)
-          return;
-      assert(mat.Count() != 0xFFFF);
-      if (mat.Count() >= 0xFFFF)
-        return;
-      ExpMat e;
-      e.m.flags = 0;
-      e.mtl = NULL;
-      e.wirecolor = wirecolor;
-      e.m.amb = e.m.diff = Color(wirecolor);
-      e.m.spec = e.m.emis = Color(0, 0, 0);
-      e.m.power = 0;
-      for (i = 0; i < DAGTEXNUM; ++i)
-        e.m.texid[i] = DAGBADMATID;
-      e.name = validateMatName(e.name);
-      mat.Append(1, &e);
-      mtls.push_back(std::SET_TYPE<Mtl *>());
-      return;
-    }
-    int num = mtl->NumSubMtls();
-    if (num)
-    {
-      if (subm)
+      mtl_name = mtl->GetName().data();
+      if (mtl_name.empty())
+        mtl_name = makeUniqueMatName();
+
+      int num_sub_mtls = mtl->NumSubMtls();
+      if (num_sub_mtls && subm)
       {
-        explogWarning(_T("'%s' has Multi/Sub-Object material '%s' in Multi/Sub-Object material\r\n"), node->GetName(), mtl->GetName());
+        explogWarning(_T("'%s' has Multi/Sub-Object material '%s' in Multi/Sub-Object material\r\n"), node->GetName(),
+          mtl_name.data());
         hasSubSubMaterials = true;
         return;
       }
-      for (int i = 0; i < num; ++i)
-        add_mtl(node, mtl->GetSubMtl(i), 1);
+
+      for (int i = 0; i < num_sub_mtls; ++i)
+        add_mtl(node, mtl->GetSubMtl(i), true);
+    }
+    else // mtl == 0
+    {
+      if (wcmap.find(wirecolor) != wcmap.end())
+        return;
+
+      mtl_name = makeUniqueMatName();
+      wcmap.emplace(wirecolor, mtl_name);
+    }
+
+    auto it = std::find_if(matList.begin(), matList.end(), [mtl](EMat &em) { return em.mtl == mtl; });
+    if (it != matList.end())
       return;
-    }
-    {
-      INTERVAL("DagorMatEarlyExit", dagorMatEarlyExitElapsed, TimerIntervalType::ACC);
-      for (int i = 0; i < mat.Count(); ++i)
-        if (mat[i].mtl == mtl)
-        {
-          mtls[i].insert(mtl);
-          return;
-        }
-    }
-    Class_ID cid = mtl->ClassID();
-    if (cid == Class_ID(DMTL_CLASS_ID, 0))
-    {
-      INTERVAL("DagorMat", dagorMatElapsed, TimerIntervalType::GATHER);
-      explogWarning(_T("'%s' has standard material '%s'\r\n"), node->GetName(), mtl->GetName());
-      hasNonDagorMaterials = true;
 
-      assert(mat.Count() != 0xFFFF);
-      if (mat.Count() >= 0xFFFF)
-        return;
-      StdMat *m = (StdMat *)mtl;
-      ExpMat e;
-      e.m.flags = DAG_MF_16TEX;
-      e.mtl = mtl;
-      if (m->GetTwoSided())
-        e.m.flags |= DAG_MF_2SIDED;
-      float si = m->GetSelfIllum(time);
-      e.m.amb = m->GetAmbient(time) * (1 - si);
-      e.m.diff = m->GetDiffuse(time) * (1 - si);
-      e.m.spec = m->GetSpecular(time) * m->GetShinStr(time);
-      e.m.emis = m->GetDiffuse(time) * si;
-      e.m.power = powf(2.0f, m->GetShininess(time) * 10.0f) * 4.0f;
-      e.name = _tcsdup(mtl->GetName());
-      e.wirecolor = 0;
-      for (int i = 0; i < DAGTEXNUM; ++i)
-        e.m.texid[i] = DAGBADMATID;
-      Texmap *tex = m->GetSubTexmap(ID_DI);
-      if (tex)
-        if (tex->ClassID() == Class_ID(BMTEX_CLASS_ID, 0))
-        {
-          BitmapTex *b = (BitmapTex *)tex;
-
-          e.m.texid[0] = add_tex(makeCheckedRelPath(node, mtl, b->GetMapName()));
-          if (e.m.texid[0] != DAGBADMATID)
-          {
-            e.m.amb = e.m.diff = Color(1, 1, 1) * (1 - si);
-            e.m.emis = Color(1, 1, 1) * si;
-          }
-        }
-      e.classname = _tcsdup(_T("simple"));
-      e.script = _tcsdup(_T("lighting=vltmap"));
-
-      e.name = validateMatName(e.name);
-
-      for (int i = 0; i < mat.Count(); ++i)
-      {
-        if (mat[i].mtl == mtl || (mat[i].m == e.m && (useMOpt() || !_tcscmp(mat[i].name, e.name)) &&
-                                   !_tcscmp(mat[i].classname, e.classname) && doesScriptMatch(mat[i].script, e.script)))
-        {
-          mtls[i].insert(mtl);
-          return;
-        }
-      }
-      mtls.push_back(std::SET_TYPE<Mtl *>());
-      mtls.back().insert(mtl);
-      mat.Append(1, &e);
-    }
-    else if (cid == DagorMat_CID || cid == DagorMat2_CID)
-    {
-      INTERVAL("DagorMat", dagorMatElapsed, TimerIntervalType::GATHER);
-      assert(mat.Count() != 0xFFFF);
-      if (mat.Count() >= 0xFFFF)
-        return;
-      IDagorMat *m = (IDagorMat *)mtl->GetInterface(I_DAGORMAT);
-      assert(m);
-      ExpMat e;
-      e.m.flags = DAG_MF_16TEX;
-      e.mtl = mtl;
-      if (m->get_2sided() == IDagorMat::Sides::DoubleSided)
-        e.m.flags |= DAG_MF_2SIDED;
-      e.m.amb = m->get_amb();
-      e.m.diff = m->get_diff();
-      e.m.spec = m->get_spec();
-      e.m.emis = m->get_emis();
-      e.m.power = m->get_power();
-      e.classname = _tcsdup(m->get_classname());
-      assert(e.classname);
-      e.script = _tcsdup(m->get_script());
-      assert(e.script);
-      e.name = _tcsdup(mtl->GetName());
-      e.wirecolor = 0;
-
-      for (int i = 0; i < DAGTEXNUM; ++i)
-      {
-        if (i >= cfg->settings_params.size())
-        {
-          e.m.texid[i] = DAGBADMATID;
-          continue;
-        }
-
-        M_STD_STRING value = this->value[i];
-        if (_tcslen(e.classname))
-        {
-          std::wstring className = e.classname;
-          auto it = shaderParamsMap.find(className);
-          StringVector *shaderParams;
-          if (it == shaderParamsMap.end())
-          {
-            cfg->GetShaderParams(e.classname);
-            shaderParams = &cfg->shader_params;
-          }
-          else
-            shaderParams = &it->second;
-          for (int j = 0; j < shaderParams->size(); ++j)
-            if (shaderParams->at(j) == tex_slot[i])
-            {
-              value = cfg->GetParamValue(e.classname, tex_slot[i].c_str());
-              break;
-            }
-        }
-
-        e.m.texid[i] = (value == _T("")) ? DAGBADMATID : add_tex(makeCheckedRelPath(node, mtl, m->get_texname(i)));
-      }
-
-      mtl->ReleaseInterface(I_DAGORMAT, m);
-
-      e.name = validateMatName(e.name);
-      for (int i = 0; i < mat.Count(); ++i)
-      {
-        if (mat[i].mtl == mtl || (mat[i].m == e.m && (useMOpt() || !_tcscmp(mat[i].name, e.name)) &&
-                                   !_tcscmp(mat[i].classname, e.classname) && doesScriptMatch(mat[i].script, e.script)))
-        {
-          mtls[i].insert(mtl);
-          return;
-        }
-      }
-      mtls.push_back(std::SET_TYPE<Mtl *>());
-      mtls.back().insert(mtl);
-      mat.Append(1, &e);
-    }
-    else
-    {
-      explogWarning(_T("'%s' has material '%s' of unknown type\r\n"), node->GetName(), mtl->GetName());
-      hasNonDagorMaterials = true;
-    }
-  }
-
-  TCHAR *validateMatName(TCHAR *mat_name)
-  {
-    DebugPrint(_T("validateMatName <%s>"), mat_name);
-    if (mat_name && *mat_name)
-      return mat_name;
-
-    TCHAR buf[64];
-    int name_idx = 0;
-    if (mat_name)
-      free(mat_name);
-    for (;;)
-    {
-      bool found = false;
-      _stprintf(buf, _T("autoNamedMat_%d"), name_idx);
-      for (int i = 0; i < mat.Count(); i++)
-        if (_tcscmp(buf, mat[i].name) == 0)
-        {
-          found = true;
-          break;
-        }
-      if (!found)
-        return _tcsdup(buf);
-      name_idx++;
-    }
-    return NULL;
+    matList.emplace_back(EMat(mtl_name, mtl, node, wirecolor));
   }
 
   int proc(INode *n) override
@@ -1880,6 +1945,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
 
       TSTR s;
       n->GetUserPropBuffer(s);
+      std::wstring trimmed = trim_params(s.data());
+
       //      DataBlock blk;
       //      RollupPanel::saveUserPropBufferToBlk(blk, n);
 
@@ -1899,7 +1966,7 @@ bool wr_hlp( const void * p, int l, FILE * h )
       //        }
       //      }
 
-      std::string scr = wideToStr(s);
+      std::string scr = wideToStr(trimmed.data());
       if (useMOpt())
       {
         for (int i = 0; i < mtls.size(); ++i)
@@ -1908,14 +1975,15 @@ bool wr_hlp( const void * p, int l, FILE * h )
           if (pos != std::string::npos)
           {
             for (std::SET_TYPE<Mtl *>::iterator mtlIt = mtls[i].begin(); mtlIt != mtls[i].end(); ++mtlIt)
-            {
-              std::string matName = wideToStr((*mtlIt)->GetName());
-              if (matName == wideToStr(mat[i].name))
-                continue;
-              size_t posVal = scr.find(matName.c_str(), pos, matName.length());
-              if (posVal != std::string::npos)
-                scr.replace(posVal, matName.length(), wideToStr(mat[i].name));
-            }
+              if (*mtlIt)
+              {
+                std::string matName = wideToStr((*mtlIt)->GetName());
+                if (matName == wideToStr(mat[i].name))
+                  continue;
+                size_t posVal = scr.find(matName.c_str(), pos, matName.length());
+                if (posVal != std::string::npos)
+                  scr.replace(posVal, matName.length(), wideToStr(mat[i].name));
+              }
           }
         }
       }
@@ -2589,11 +2657,11 @@ bool wr_hlp( const void * p, int l, FILE * h )
           {
 
             MeshNormalSpec *normalSpec = m.GetSpecifiedNormals();
-            if (normalSpec && !(util.expflg & EXP_NO_VNORM) && normalSpec->GetNumFaces() == m.numFaces && normalSpec->GetNumNormals())
+            if (normalSpec && any_explicit_normals_set(normalSpec) && !(util.expflg & EXP_NO_VNORM) &&
+                normalSpec->GetNumFaces() == m.numFaces && normalSpec->GetNumNormals())
             {
               Tab<FaceNGr> fngr;
-              normalSpec->BuildNormals();
-              normalSpec->ComputeNormals();
+              normalSpec->CheckNormals();
               int numNormals = normalSpec->GetNumNormals();
               fngr.Resize(m.numFaces);
               fngr.SetCount(m.numFaces);
@@ -2943,6 +3011,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
 
   int save(FILE *h, Interface *ip, TCHAR **textures, int max_textures)
   {
+    prepare_expmat();
+
     if (util.expflg & EXP_MESH)
     {
       Tab<bool> matUsed;
@@ -3008,6 +3078,10 @@ bool wr_hlp( const void * p, int l, FILE * h )
             matUsed[mat] = true;
         }
       }
+
+      if (useMOpt())
+        optimize_materials(matUsed);
+
 #ifdef TIMER
       double end = Timer::NowMs();
       explog(_T("matUsed: %g ms\r\n"), end - start);
@@ -3019,6 +3093,8 @@ bool wr_hlp( const void * p, int l, FILE * h )
       explog(_T("dagorMatEarlyExitElapsed: %g\r\n"), dagorMatEarlyExitElapsed);
       explog(_T("mtls: %d mat: %d\r\n"), mtls.size(), mat.Count());
 #endif
+      std::wstring unused_mtls, unused_tex;
+
       Tab<int> tex_remap;
       Tab<TCHAR *> new_tex;
       tex_remap.SetCount(tex.Count());
@@ -3044,7 +3120,10 @@ bool wr_hlp( const void * p, int l, FILE * h )
         }
         else
         {
-          explog(_T("mat %s UNUSED\r\n"), mat[i].name);
+          unused_mtls += L"\r\n        '";
+          unused_mtls += mat[i].name;
+          unused_mtls += L"'";
+
           // reset unused material props
           if (mat[i].classname)
             free(mat[i].classname);
@@ -3057,14 +3136,21 @@ bool wr_hlp( const void * p, int l, FILE * h )
             mat[i].m.texid[j] = DAGBADMATID;
         }
 
-
       for (i = 0; i < tex.Count(); ++i)
         if (tex_remap[i] < 0)
         {
-          explog(_T("tex %s UNUSED\r\n"), tex[i]);
+          unused_tex += L"\r\n        '";
+          unused_tex += tex[i];
+          unused_tex += L"'";
           free(tex[i]);
         }
       tex = new_tex;
+
+      if (!unused_mtls.empty())
+        explog(_T("these materials are UNUSED:%s\r\n"), unused_mtls.data());
+
+      if (!unused_tex.empty())
+        explog(_T("these textures are UNUSED:%s\r\n"), unused_tex.data());
     }
 
     {
@@ -3166,13 +3252,15 @@ bool wr_hlp( const void * p, int l, FILE * h )
       else
         wr("\0", 1);
 
-      if (mat[i].script)
+      // don't export parameters of proxymats
+      if (mat[i].script && !isProxymatName(mat[i].classname))
       {
-        std::string s = wideToStr(mat[i].script);
+        std::string s = wideToStr(fix_empty_param_values(mat[i].script, mat[i].classname).data());
         size_t l = s.length();
         if (l)
           wr(s.c_str(), l);
       }
+
       eblk;
     }
 
@@ -4930,7 +5018,7 @@ void ExpUtil::checkDupesAndSpaces(Tab<INode *> &node_list)
       if ((expflg & EXP_SEL) && !node_list[j]->Selected())
         continue;
 
-      if (node_list[i]->GetName() == node_list[j]->GetName())
+      if (!_tcsicmp(node_list[i]->GetName(), node_list[j]->GetName()))
       {
         explogWarning(_T ("duplicate node name \"%s\"\r\n"), node_list[i]->GetName());
         hasDupes = true;

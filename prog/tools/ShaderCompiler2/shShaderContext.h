@@ -8,8 +8,10 @@
 #include "shcode.h"
 #include "shsem.h"
 #include "shMessages.h"
+#include "codeBlocks.h"
 #include "shaderVariant.h"
 #include "shSemCode.h"
+#include "preshaderCompilation.h"
 
 
 namespace shc
@@ -36,12 +38,16 @@ class ShaderContext
   IntervalList mIntervals{};
   BoolVarTable mBoolVarTable{};
   PerHlslStage<String> mLocalHlslSource{};
+  PerHlslStage<CodeSourceBlocks> mHlslCodeBlocks{};
+  PreshaderCompilationCache mPreshaderCache{};
   ShaderAssumesTable mLocalAssumes;
   ShaderMessages mMessages{};
   bool mDebugModeEnabled = false;
 
   TargetContext &mParent;
   const CompilationContext &mCompParent;
+
+  carray<ShaderTerminal::external_state_block *, STAGE_MAX> mShaderAssertPreshaderBlocks{};
 
 public:
   PINNED_TYPE(ShaderContext)
@@ -73,14 +79,39 @@ public:
   auto &localHlslSrc() { return mLocalHlslSource; }
   const auto &localHlslSrc() const { return mLocalHlslSource; }
 
+  auto &hlslCodeBlocks() { return mHlslCodeBlocks; }
+  const auto &hlslCodeBlocks() const { return mHlslCodeBlocks; }
+
+  PreshaderCompilationCache &preshaderCache() { return mPreshaderCache; }
+  const PreshaderCompilationCache &preshaderCache() const { return mPreshaderCache; }
+
   ShaderAssumesTable &assumes() { return mLocalAssumes; }
   const ShaderAssumesTable &assumes() const { return mLocalAssumes; }
 
   ShaderMessages &messages() { return mMessages; }
   const ShaderMessages &messages() const { return mMessages; }
 
+  ShaderTerminal::external_state_block *debugBlock(uint32_t stage) { return mShaderAssertPreshaderBlocks[stage]; }
+
   bool isDebugModeEnabled() const { return mDebugModeEnabled; }
-  void setDebugModeEnabled(bool val) { mDebugModeEnabled = val; }
+  void setDebugModeEnabled(bool val)
+  {
+    mDebugModeEnabled = val;
+    if (!mDebugModeEnabled)
+      return;
+
+    auto compile = [this](uint32_t stage, const char *name) {
+      // See assert.dshl for the definition of __ASSERT_PRESHADER(stage)
+      String text = String(0, "\n__ASSERT_PRESHADER(%s)\n", name);
+      auto *assert_stat = ShaderParser::parse_shader_stat(text, text.length(), tgtCtx(), nullptr);
+      G_ASSERT(assert_stat && assert_stat->external_block);
+      mShaderAssertPreshaderBlocks[stage] = assert_stat->external_block;
+    };
+    for (auto stage : {STAGE_VS, STAGE_PS, STAGE_CS})
+      compile(stage, SHADER_STAGE_SHORT_NAMES[stage]);
+    // compile(STAGE_VS + 1, "ms");
+    // compile(STAGE_VS + 2, "as");
+  }
 
   VariantContext makeVariantContext(ShaderVariant::VariantInfo variant, ShaderSemCode &target_code,
     ShaderSemCode::PassTab *target_pass = nullptr, bool use_branches_for_cppstcode = false);

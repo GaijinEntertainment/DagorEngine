@@ -2724,10 +2724,10 @@ namespace IMGUIZMO_NAMESPACE
          CubeFace* a = (CubeFace*)_a;
          CubeFace* b = (CubeFace*)_b;
          if (a->z < b->z)
-         {
-            return 1;
-         }
-         return -1;
+             return 1;
+         if (a->z > b->z)
+             return -1;
+         return 0;
          });
       // draw face with lighter color
       for (int iFace = 0; iFace < cubeFaceCount; iFace++)

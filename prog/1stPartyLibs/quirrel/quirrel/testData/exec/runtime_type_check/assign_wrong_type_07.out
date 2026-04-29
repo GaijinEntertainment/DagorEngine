@@ -1,0 +1,12 @@
+
+AN ERROR HAS OCCURRED [type 'float' differs from the declared type 'table']
+
+CALLSTACK
+*FUNCTION [__main__()] testData/exec/runtime_type_check/assign_wrong_type_07.nut:2
+
+LOCALS
+[y] 4
+[arr] ARRAY=[4]
+[vargv] ARRAY=[]
+[this] NULL
+Error [Failed to run script testData/exec/runtime_type_check/assign_wrong_type_07.nut (testData/exec/runtime_type_check/assign_wrong_type_07.nut)]

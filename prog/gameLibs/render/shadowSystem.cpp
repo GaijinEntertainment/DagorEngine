@@ -98,8 +98,8 @@ void ShadowSystem::changeResolution(int atlasW, int max_shadow_size, int min_sha
   if (tinfo.w != atlasWidth || tinfo.h != atlasHeight || texFormatChanged)
   {
     dynamic_light_shadows.close();
-    dynamic_light_shadows =
-      dag::create_tex(NULL, atlasWidth, atlasHeight, textureFormat | TEXCF_RTARGET, 1, getResName("dynamic_light_shadows").c_str());
+    dynamic_light_shadows = dag::create_tex(NULL, atlasWidth, atlasHeight, textureFormat | TEXCF_RTARGET, 1,
+      getResName("dynamic_light_shadows").c_str(), RESTAG_SHADOW);
     ShaderGlobal::set_texture(dynamic_light_shadowsVarId, dynamic_light_shadows);
     ShaderGlobal::set_sampler(dynamic_light_shadows_samplerstateVarId, shadowSampler);
     d3d::resource_barrier({dynamic_light_shadows.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
@@ -112,12 +112,12 @@ void ShadowSystem::changeResolution(int atlasW, int max_shadow_size, int min_sha
   if (maxShadow != tinfo.w || texFormatChanged)
   {
     tempCopy.close();
-    tempCopy =
-      dag::create_tex(NULL, maxShadow, maxShadow, textureFormat | TEXCF_RTARGET, 1, getResName("temp_dynamic_light_shadows").c_str());
+    tempCopy = dag::create_tex(NULL, maxShadow, maxShadow, textureFormat | TEXCF_RTARGET, 1,
+      getResName("temp_dynamic_light_shadows").c_str(), RESTAG_SHADOW);
 
     octahedral_temp_shadow.close();
     octahedral_temp_shadow = dag::create_array_tex(maxOctahedralTempShadow, maxOctahedralTempShadow, 6, textureFormat | TEXCF_RTARGET,
-      1, getResName("octahedral_temp_shadow").c_str());
+      1, getResName("octahedral_temp_shadow").c_str(), RESTAG_SHADOW);
     ShaderGlobal::set_texture(octahedral_temp_shadowVarId, octahedral_temp_shadow);
   }
   if (!copyDepth)
@@ -127,6 +127,12 @@ void ShadowSystem::changeResolution(int atlasW, int max_shadow_size, int min_sha
   }
   if (!trace_shadow_depth_region.getElem())
     trace_shadow_depth_region.init("trace_shadow_depth_region", true);
+}
+
+void ShadowSystem::setRetainShadowSizeMul(float retain_size_mul)
+{
+  G_ASSERT_RETURN(retain_size_mul >= 1.f && retain_size_mul <= 2.f, );
+  retainShadowSizeMul = retain_size_mul;
 }
 
 void ShadowSystem::close()
@@ -166,8 +172,10 @@ int ShadowSystem::allocateVolume(ShadowCastersFlag casters, bool hint_dynamic, u
     id = appendVolume();
   }
   auto &volume = volumes[id];
-  volume.flags = ((casters & DYNAMIC_CASTERS) ? 0 : volume.ONLY_STATIC) | (hint_dynamic ? volume.DYNAMIC_LIGHT : 0) |
-                 ((casters & APPROXIMATE_STATIC_CASTERS) ? volume.APPROXIMATE_STATIC : 0);
+  volume.flags = (((casters & ShadowCastersFlag::Dynamic) != ShadowCastersFlag::None) ? 0 : volume.ONLY_STATIC) |
+                 (hint_dynamic ? volume.DYNAMIC_LIGHT : 0) |
+                 (((casters & ShadowCastersFlag::ApproximateStatic) != ShadowCastersFlag::None) ? volume.APPROXIMATE_STATIC : 0) |
+                 (((casters & ShadowCastersFlag::TwoSided) != ShadowCastersFlag::None) ? volume.TWO_SIDED : 0);
   volume.quality = (uint8_t)min(quality + 1, 255);
   volume.sizeShift = min(shadow_size_srl, uint8_t(get_log2i(maxShadow / minShadow)));
   volume.priority = min(priority, (uint8_t)MAX_PRIORITY);
@@ -182,10 +190,11 @@ void ShadowSystem::destroyVolume(uint32_t id)
   G_ASSERT_RETURN(!volumes[id].isDestroyed(), );
   {
     Volume &volume = volumes[id];
-    atlasFree(volume.dynamicShadow);
-    volume.dynamicShadow.reset();
 
+    atlasFree(volume.dynamicShadow);
     atlasFree(volume.shadow);
+
+    volume.dynamicShadow.reset();
     volume.shadow.reset();
   }
   freeVolumes.push_back(id);
@@ -200,8 +209,10 @@ bool ShadowSystem::getShadowProperties(uint32_t id, ShadowCastersFlag &casters, 
   G_ASSERT_RETURN(id < volumes.size() && !volumes[id].isDestroyed(), false);
   auto &volume = volumes[id];
   hint_dynamic = volume.isDynamic();
-  casters = ShadowCastersFlag((volume.isApproximatelyTracedStaticCasters() ? APPROXIMATE_STATIC_CASTERS : STATIC_CASTERS) |
-                              (volume.hasOnlyStaticCasters() ? 0 : DYNAMIC_CASTERS));
+  casters =
+    ShadowCastersFlag((volume.isApproximatelyTracedStaticCasters() ? ShadowCastersFlag::ApproximateStatic : ShadowCastersFlag::None) |
+                      (volume.hasOnlyStaticCasters() ? ShadowCastersFlag::None : ShadowCastersFlag::Dynamic)) |
+    (volume.isTwoSided() ? ShadowCastersFlag::TwoSided : ShadowCastersFlag::None);
   quality = volumes[id].quality - 1;
   shadow_size_srl = volumes[id].sizeShift;
   priority = volumes[id].priority;
@@ -221,6 +232,31 @@ Point4 ShadowSystem::getShadowUvMinMax(uint32_t id) const
   return Point4(safediv((float)shadow.x, (float)atlasWidth), safediv((float)shadow.y, (float)atlasHeight),
     safediv((float)shadow.x + (float)shadow.width, (float)atlasWidth),
     safediv((float)shadow.y + (float)shadow.height, (float)atlasHeight));
+}
+
+uint32_t ShadowSystem::getShadowRectPacked(uint32_t id) const
+{
+  constexpr uint32_t POSITION_BITS = SPOT_LIGHT_SHADOW_ATLAS_RECT_POS_BITS;
+  constexpr uint32_t EXPONENT_BITS = SPOT_LIGHT_SHADOW_ATLAS_RECT_EXP_BITS;
+  G_STATIC_ASSERT((1u << EXPONENT_BITS) >= POSITION_BITS);
+  constexpr uint32_t TOTAL_BITS = POSITION_BITS * 2u + EXPONENT_BITS;
+  G_STATIC_ASSERT(SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_MASK == (1u << (POSITION_BITS * 2u + EXPONENT_BITS)) - 1u);
+  G_STATIC_ASSERT(TOTAL_BITS + SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_OFFSET <= 32u);
+  G_STATIC_ASSERT(((SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_MASK << SPOT_LIGHT_SHADOW_ATLAS_RECT_BITS_OFFSET) & SPOT_LIGHT_ROLL_MASK) == 0);
+  G_ASSERT(atlasWidth / minShadow < int(1u << POSITION_BITS));
+
+  const AtlasRect &shadow = volumes[id].dynamicShadow.isEmpty() ? volumes[id].shadow : volumes[id].dynamicShadow;
+  G_ASSERT(atlasWidth == atlasHeight);
+  G_ASSERT(shadow.width == shadow.height);
+  if (shadow.width == 0)
+    return 0; // empty shadow - no atlas rect needed, 0 will unpack to unit rect
+  const uint32_t relSize = atlasWidth / shadow.width;
+  G_ASSERT(is_pow_of2(relSize));
+  const uint32_t exp = get_log2i(relSize);
+  const uint32_t x = shadow.x / shadow.width;
+  const uint32_t y = shadow.y / shadow.width;
+  G_ASSERT(exp < (1u << EXPONENT_BITS) && x < (1u << POSITION_BITS) && y < (1u << POSITION_BITS));
+  return x | (y << POSITION_BITS) | (exp << (POSITION_BITS * 2u));
 }
 
 void ShadowSystem::Volume::buildProj(mat44f &proj) const { v_mat44_make_persp_reverse(proj, wk, wk, zn, zf); }
@@ -479,9 +515,9 @@ void ShadowSystem::startRenderVolumes(const dag::ConstSpan<uint16_t> &volumesToR
       d3d::set_render_target((Texture *)NULL, 0);
       d3d::set_depth(dynamic_light_shadows.getTex2D(), DepthAccess::RW);
       const int sizeInRegs = sizeof(TraceLightInfo) / 16;
-      const int quant = d3d::set_vs_constbuffer_size(51 * sizeInRegs) / sizeInRegs + 1; // 51 must match shader
+      const int quant = d3d::set_vs_constbuffer_register_count(51 * sizeInRegs) / sizeInRegs + 1; // 51 must match shader
       G_ASSERT(quant > 0);
-      ShaderGlobal::set_color4(octahedral_texture_sizeVarId, tinfo.w, tinfo.h, 1. / tinfo.w, 1. / tinfo.h);
+      ShaderGlobal::set_float4(octahedral_texture_sizeVarId, tinfo.w, tinfo.h, 1. / tinfo.w, 1. / tinfo.h);
 
       d3d::setvsrc(0, 0, 0);
       trace_shadow_depth_region.getElem()->setStates(0, true);
@@ -494,7 +530,7 @@ void ShadowSystem::startRenderVolumes(const dag::ConstSpan<uint16_t> &volumesToR
       }
       shaders::overrides::set(originalState);
       d3d::resource_barrier({dynamic_light_shadows.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
-      d3d::set_vs_constbuffer_size(0);
+      d3d::set_vs_constbuffer_register_count(0);
       ShaderGlobal::setBlock(oldBlock, ShaderGlobal::LAYER_FRAME);
     }
   }
@@ -526,7 +562,8 @@ void ShadowSystem::copyAtlasRegion(int src_x, int src_y, int dst_x, int dst_y, i
 
   // copy is faster
   // dx11 has different issues syncing copies of depth with followup usage
-  if (!d3d::get_driver_code().is(d3d::dx11))
+  // dx12 DS formats disallows copy of region (only whole subresource)
+  if (!d3d::get_driver_code().is(d3d::dx11 || d3d::dx12))
   {
     tempCopy.getTex2D()->updateSubRegion(dynamic_light_shadows.getTex2D(), 0, src_x, src_y, 0, w, h, 1, 0, 0, 0, 0);
     dynamic_light_shadows.getTex2D()->updateSubRegion(tempCopy.getTex2D(), 0, 0, 0, 0, w, h, 1, 0, dst_x, dst_y, 0);
@@ -772,8 +809,8 @@ void ShadowSystem::packOctahedral(uint16_t id, bool additional_dynamic_content)
   IPoint2 extent = getOctahedralTempShadowExtent(volume);
   G_ASSERTF(OMNI_SHADOW_MARGIN * 2 < extent.x && OMNI_SHADOW_MARGIN * 2 < extent.y, "The margin is larger than the texture itself");
   int margin = min(OMNI_SHADOW_MARGIN, min(extent.x, extent.y) / 2);
-  ShaderGlobal::set_color4(octahedral_texture_sizeVarId, extent.x, extent.y, float(margin) / extent.x, float(margin) / extent.y);
-  ShaderGlobal::set_color4(octahedral_shadow_zn_zfarVarId, volume.zn, volume.zf, 0, 0);
+  ShaderGlobal::set_float4(octahedral_texture_sizeVarId, extent.x, extent.y, float(margin) / extent.x, float(margin) / extent.y);
+  ShaderGlobal::set_float4(octahedral_shadow_zn_zfarVarId, volume.zn, volume.zf, 0, 0);
 
   ShaderGlobal::set_texture(octahedral_temp_shadowVarId, octahedral_temp_shadow);
 
@@ -1064,10 +1101,15 @@ void ShadowSystem::endPrepareShadows(dynamic_shadow_render::VolumesVector &volum
         float(maxShadowSize + shadowStep));
 
       sideSize *= notEnoughSpaceMul;
-      int targetShadowSize = clamp(int(sideSize), minShadow - shadowStep, maxShadowSize + shadowStep);
-      targetShadowSize = get_bigger_pow2(targetShadowSize);
-      if (volume.shadow.isEmpty() || abs(targetShadowSize - volume.shadow.height) > shadowStep) // not about same size, we have to
-                                                                                                // update it
+      const auto calcTargetShadowSize = [&](float side_size) {
+        return get_bigger_pow2(clamp(int(side_size), minShadow - shadowStep, maxShadowSize + shadowStep));
+      };
+      int targetShadowSize = calcTargetShadowSize(sideSize);
+      const int retainShadowSize = calcTargetShadowSize(sideSize * retainShadowSizeMul);
+      // update if no shadow or shadow is not about same size, but also avoid decreasing size right away, as size boundary distance is
+      // passed, to prevent it from constantly being recalculated at that boundary
+      if (volume.shadow.isEmpty() ||
+          (abs(targetShadowSize - volume.shadow.height) > shadowStep && volume.shadow.height != retainShadowSize))
       {
         targetShadowSize = clamp(targetShadowSize, minShadow, maxShadowSize);
         insertToAtlas(id, targetShadowSize);
@@ -1184,12 +1226,12 @@ bool ShadowSystem::insertToAtlas(uint16_t id, uint16_t targetSize)
   if (volume.shadow.height == targetSize)
     return true;
 
-  const AtlasRect oldRect = volume.shadow;
+  AtlasRect oldRect = volume.shadow;
 
   atlasFree(volume.dynamicShadow);
-  volume.dynamicShadow.reset();
-
   atlasFree(volume.shadow);
+
+  volume.dynamicShadow.reset();
   volume.shadow.reset();
 
   volume.shadow = atlasInsert(targetSize);

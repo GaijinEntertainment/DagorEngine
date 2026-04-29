@@ -1,4 +1,5 @@
 file:t = "rendinst_glass.dshl"
+file:t = "rendinst_simple_glass.dshl"
 file:t = "rendinst_emissive.dshl"
 //file:t = "rendinst_translucent.dshl"
 //file:t = "rendinst_projective_decal.dshl"

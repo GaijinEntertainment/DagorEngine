@@ -5,14 +5,26 @@ hlsl {
   #include <smokeTracers.hlsli>
 }
 
+float tracer_head_radius_coeff = 0.0125;
+
 shader create_tracer_commands_cs
 {
-  ENABLE_ASSERT(cs)
-  hlsl(cs) {
-    RWStructuredBuffer<GPUSmokeTracerVertices> tracerVerts : register(u0);
-    RWStructuredBuffer<GPUSmokeTracerDynamic>  tracersDynamic : register(u1);
-    RWStructuredBuffer<GPUSmokeTracer>  tracers : register(u2);
+  (cs) {
+    tracerVerts@uav : register(0) hlsl {
+      #include <smokeTracers.hlsli>
+      RWStructuredBuffer<GPUSmokeTracerVertices> tracerVerts@uav;
+    }
+    tracersDynamic@uav : register(1) hlsl {
+      #include <smokeTracers.hlsli>
+      RWStructuredBuffer<GPUSmokeTracerDynamic> tracersDynamic@uav;
+    }
+    tracers@uav : register(2) hlsl {
+      #include <smokeTracers.hlsli>
+      RWStructuredBuffer<GPUSmokeTracer> tracers@uav;
+    }
+  }
 
+  hlsl(cs) {
     float currentTime: register(c2);
     uint commandsCount: register(c3);
     TracerCreateCommand commands[TRACER_SMOKE_MAX_CREATE_COMMANDS] : register(c4);
@@ -50,11 +62,22 @@ shader create_tracer_commands_cs
 
 shader update_tracer_commands_cs
 {
-  ENABLE_ASSERT(cs)
+  (cs) {
+    tracerVerts@uav : register(0) hlsl {
+      #include <smokeTracers.hlsli>
+      RWStructuredBuffer<GPUSmokeTracerVertices> tracerVerts@uav;
+    }
+    tracersDynamic@uav : register(1) hlsl {
+      #include <smokeTracers.hlsli>
+      RWStructuredBuffer<GPUSmokeTracerDynamic> tracersDynamic@uav;
+    }
+    tracers@buf : register(0) hlsl {
+      #include <smokeTracers.hlsli>
+      StructuredBuffer<GPUSmokeTracer> tracers@buf;
+    }
+  }
+
   hlsl(cs) {
-    RWStructuredBuffer<GPUSmokeTracerVertices> tracerVerts : register(u0);
-    RWStructuredBuffer<GPUSmokeTracerDynamic>  tracersDynamic : register(u1);
-    StructuredBuffer<GPUSmokeTracer>  tracers : register(t0);
     float currentTime: register(c2);
     uint commandsCount: register(c3);
     TracerUpdateCommand commands[TRACER_SMOKE_MAX_UPDATE_COMMANDS] : register(c4);
@@ -124,16 +147,35 @@ shader cull_tracers_cs
     world_view_pos@f3 = world_view_pos;
     globtm_psf@f44 = { globtm_psf_0, globtm_psf_1, globtm_psf_2, globtm_psf_3 };
     local_view_z@f3 = local_view_z;
+    tracer_head_radius_coeff@f1 = tracer_head_radius_coeff;
+
+    culled_tracer_heads@uav : register(0) hlsl {
+      #include <smokeTracers.hlsli>
+      RWStructuredBuffer<GPUSmokeTracerHeadRender> culled_tracer_heads@uav;
+    }
+    culled_tracer_tails@uav : register(1) hlsl {
+      #include <smokeTracers.hlsli>
+      RWStructuredBuffer<GPUSmokeTracerTailRender> culled_tracer_tails@uav;
+    }
+    tracersDynamic@uav : register(2) hlsl {
+      #include <smokeTracers.hlsli>
+      RWStructuredBuffer<GPUSmokeTracerDynamic> tracersDynamic@uav;
+    }
+    tracer_indirection_buffer@uav : register(3) hlsl {
+      RWByteAddressBuffer tracer_indirection_buffer@uav;
+    }
+    tracers@buf : register(8) hlsl {
+      #include <smokeTracers.hlsli>
+      StructuredBuffer<GPUSmokeTracer> tracers@buf;
+    }
+    tracerVerts@buf : register(9) hlsl {
+      #include <smokeTracers.hlsli>
+      StructuredBuffer<GPUSmokeTracerVertices> tracerVerts@buf;
+    }
   }
 
   INIT_AND_USE_FRUSTUM_CHECK_CS()
   hlsl(cs) {
-    RWStructuredBuffer<GPUSmokeTracerHeadRender>  culled_tracer_heads : register(u0);
-    RWStructuredBuffer<GPUSmokeTracerTailRender>  culled_tracer_tails : register(u1);
-    RWStructuredBuffer<GPUSmokeTracerDynamic>  tracersDynamic : register(u2);//only RW for updating firstVert!
-    RWByteAddressBuffer tracer_indirection_buffer : register(u3);
-    StructuredBuffer<GPUSmokeTracer>  tracers : register(t8);
-    StructuredBuffer<GPUSmokeTracerVertices>  tracerVerts : register(t9);
     float4 smoke_trace_current_time: register(c12);
     uint commandsCount: register(c13);
     uint4 tracerIds[TRACER_MAX_CULL_COMMANDS] : register(c14);
@@ -241,32 +283,32 @@ shader cull_tracers_cs
         float3 dir = (p1-p0);
         float time_to_exposure = exposure_time-decayTime;//+1./120.; //(120hz)
         float prev_head_time = (tracerVerts[vertId1].time+tracers[id].startTime);
-        float3 vel = (p1.xyz-p0.xyz)/(head_time-prev_head_time);
         float start_p1_length = length(p1 - tracers[id].p0);
-        float vel_length = length(vel);
-        float vel_multiplier = min(time_to_exposure, tracerTime-decayTime);
-        if (vel_length > 0.0)
-          vel_multiplier = clamp(vel_multiplier, 0.0, start_p1_length / vel_length);
-        renderBox.p0.xyz = p1.xyz - vel*vel_multiplier;
+        float dirLen = length(dir);
+        float maxExtensionMul = start_p1_length / dirLen;
+        float extensionMul = time_to_exposure / max(head_time - prev_head_time, 1e-6);
+        float3 renderP0 = p1 - min(maxExtensionMul, extensionMul) * dir;
+        renderBox.p0.xyz = renderP0;
         renderBox.p1 = p1;
-        float viewDist = distance(world_view_pos, p1);
-        float pixel_radius = 1.5*viewDist * smoke_trace_current_time.w;
-        float tracerRadius = radiusStart*0.0125;
-        float cRadius = max(tracerRadius, pixel_radius);
-        float fade = sqrt(tracerRadius / cRadius);
-        float boxRadius = cRadius;
-        renderBox.radius = boxRadius;
+        float2 viewDists = float2(distance(world_view_pos, renderP0), distance(world_view_pos, p1));
+        float2 pixel_radiuses = 1.5*viewDists * smoke_trace_current_time.w;
+        float2 tracerRadius = radiusStart.xx*tracer_head_radius_coeff;
+        float2 cRadiuses = max(tracerRadius, pixel_radiuses);
+        float fadeAtP1 = sqrt(tracerRadius.x / cRadiuses.y);
+        float maxBoxRadius = max(cRadiuses.x, cRadiuses.y);
+        renderBox.radius0 = cRadiuses.x;
+        renderBox.radius1 = cRadiuses.y;
         float time_opacity = 1;
         time_opacity *= burnEffect;
-        float density = time_opacity*fade;
+        float densityAtP1 = time_opacity*fadeAtP1;
         float3 tracer_color = tracers[id].headColor;
         float startFade = saturate(tracerTime * tracers[id].startMult);
         tracer_color = lerp(tracers[id].startHeadColor, tracer_color, startFade);
         const float HEAD_COLOR_MULT_BY = 8.0;
         tracer_color *= HEAD_COLOR_MULT_BY;
-        renderBox.color = float4(tracer_color*burnEffect, density);
+        renderBox.color = float4(tracer_color*burnEffect, densityAtP1);
         float3 boxMin = min(renderBox.p0.xyz, renderBox.p1.xyz), boxMax = max(renderBox.p0.xyz, renderBox.p1.xyz);
-        boxMin -= boxRadius; boxMax += boxRadius;
+        boxMin -= maxBoxRadius; boxMax += maxBoxRadius;
 
         if (testBoxB(boxMin, boxMax))
         {
@@ -282,10 +324,12 @@ shader cull_tracers_cs
 
 shader clear_indirect_buffers
 {
-  ENABLE_ASSERT(cs)
+  (cs) {
+    tracer_indirection_buffer@uav : register(3) hlsl {
+      RWByteAddressBuffer tracer_indirection_buffer@uav;
+    }
+  }
   hlsl(cs) {
-    RWByteAddressBuffer tracer_indirection_buffer : register(u3);
-
     [numthreads( 2, 1, 1 )]
     void main(uint dtId : SV_DispatchThreadID)
     {

@@ -27,6 +27,12 @@ public:
   // Return a unicode char index of a substring in UTF8 string.
   int indexof(HSQUIRRELVM v);
 
+  // Convert all characters to lower case and return new string.
+  const char *toLower();
+
+  // Convert all characters to upper case and return new string.
+  const char *toUpper();
+
 private:
   String utf8;   // UTF8 string
   String result; // storage for return string (byte array)

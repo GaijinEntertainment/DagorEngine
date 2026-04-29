@@ -15,21 +15,21 @@ void set_shadervars_for_reprojection(const TMatrix4 &tr_proj_tm, const TMatrix4 
   const TMatrix4 &prev_glob_tm, const DPoint3 &prev_world_pos, const DPoint3 &world_pos, const Point4 &prev_view_vec_lt,
   const Point4 &prev_view_vec_rt, const Point4 &prev_view_vec_lb, const Point4 &prev_view_vec_rb)
 {
-  ShaderGlobal::set_color4(globtm_no_ofs_psf_0VarId, Color4(glob_tm[0]));
-  ShaderGlobal::set_color4(globtm_no_ofs_psf_1VarId, Color4(glob_tm[1]));
-  ShaderGlobal::set_color4(globtm_no_ofs_psf_2VarId, Color4(glob_tm[2]));
-  ShaderGlobal::set_color4(globtm_no_ofs_psf_3VarId, Color4(glob_tm[3]));
+  ShaderGlobal::set_float4(globtm_no_ofs_psf_0VarId, Color4(glob_tm[0]));
+  ShaderGlobal::set_float4(globtm_no_ofs_psf_1VarId, Color4(glob_tm[1]));
+  ShaderGlobal::set_float4(globtm_no_ofs_psf_2VarId, Color4(glob_tm[2]));
+  ShaderGlobal::set_float4(globtm_no_ofs_psf_3VarId, Color4(glob_tm[3]));
 
-  ShaderGlobal::set_color4(projtm_psf_0VarId, Color4(tr_proj_tm[0]));
-  ShaderGlobal::set_color4(projtm_psf_1VarId, Color4(tr_proj_tm[1]));
-  ShaderGlobal::set_color4(projtm_psf_2VarId, Color4(tr_proj_tm[2]));
-  ShaderGlobal::set_color4(projtm_psf_3VarId, Color4(tr_proj_tm[3]));
+  ShaderGlobal::set_float4(projtm_psf_0VarId, Color4(tr_proj_tm[0]));
+  ShaderGlobal::set_float4(projtm_psf_1VarId, Color4(tr_proj_tm[1]));
+  ShaderGlobal::set_float4(projtm_psf_2VarId, Color4(tr_proj_tm[2]));
+  ShaderGlobal::set_float4(projtm_psf_3VarId, Color4(tr_proj_tm[3]));
 
   // beware: this is correct code for both forward and reverse z, but float point precision is insufficient for forward case
   // better than set nothing
   const float zfar = -safediv(prev_tr_proj_tm._34, prev_tr_proj_tm._33);
   const float znear = -safediv(double(prev_tr_proj_tm._34), double(prev_tr_proj_tm._33) - 1.);
-  ShaderGlobal::set_color4(prev_zn_zfarVarId, znear < zfar ? znear : zfar, znear < zfar ? zfar : znear, 0, 0);
+  ShaderGlobal::set_float4(prev_zn_zfarVarId, znear < zfar ? znear : zfar, znear < zfar ? zfar : znear, 0, 0);
 
   const DPoint3 move = world_pos - prev_world_pos;
 
@@ -45,22 +45,22 @@ void set_shadervars_for_reprojection(const TMatrix4 &tr_proj_tm, const TMatrix4 
   float reprojected_world_pos[4] = {(float)reprojected_world_pos_d[0], (float)reprojected_world_pos_d[1],
     (float)reprojected_world_pos_d[2], (float)reprojected_world_pos_d[3]};
 
-  ShaderGlobal::set_color4(reprojected_world_view_posVarId, Color4(reprojected_world_pos));
+  ShaderGlobal::set_float4(reprojected_world_view_posVarId, Color4(reprojected_world_pos));
   TMatrix4 prev_glob_tm_ofs = prev_glob_tm;
   prev_glob_tm_ofs.setcol(3, reprojected_world_pos[0], reprojected_world_pos[1], reprojected_world_pos[2],
     reprojected_world_pos[3]); // prev_glob_tm_set.getcol(3) +
-  ShaderGlobal::set_color4(prev_globtm_no_ofs_psf_0VarId, Color4(prev_glob_tm_ofs[0]));
-  ShaderGlobal::set_color4(prev_globtm_no_ofs_psf_1VarId, Color4(prev_glob_tm_ofs[1]));
-  ShaderGlobal::set_color4(prev_globtm_no_ofs_psf_2VarId, Color4(prev_glob_tm_ofs[2]));
-  ShaderGlobal::set_color4(prev_globtm_no_ofs_psf_3VarId, Color4(prev_glob_tm_ofs[3]));
+  ShaderGlobal::set_float4(prev_globtm_no_ofs_psf_0VarId, Color4(prev_glob_tm_ofs[0]));
+  ShaderGlobal::set_float4(prev_globtm_no_ofs_psf_1VarId, Color4(prev_glob_tm_ofs[1]));
+  ShaderGlobal::set_float4(prev_globtm_no_ofs_psf_2VarId, Color4(prev_glob_tm_ofs[2]));
+  ShaderGlobal::set_float4(prev_globtm_no_ofs_psf_3VarId, Color4(prev_glob_tm_ofs[3]));
 
-  ShaderGlobal::set_color4(move_world_view_posVarId, move.x, move.y, move.z, length(move));
+  ShaderGlobal::set_float4(move_world_view_posVarId, move.x, move.y, move.z, length(move));
 
-  ShaderGlobal::set_color4(prev_view_vecLTVarId, Color4::xyzw(prev_view_vec_lt));
-  ShaderGlobal::set_color4(prev_view_vecRTVarId, Color4::xyzw(prev_view_vec_rt));
-  ShaderGlobal::set_color4(prev_view_vecLBVarId, Color4::xyzw(prev_view_vec_lb));
-  ShaderGlobal::set_color4(prev_view_vecRBVarId, Color4::xyzw(prev_view_vec_rb));
-  ShaderGlobal::set_color4(prev_world_view_posVarId, Color4(prev_world_pos.x, prev_world_pos.y, prev_world_pos.z, 0));
+  ShaderGlobal::set_float4(prev_view_vecLTVarId, Color4::xyzw(prev_view_vec_lt));
+  ShaderGlobal::set_float4(prev_view_vecRTVarId, Color4::xyzw(prev_view_vec_rt));
+  ShaderGlobal::set_float4(prev_view_vecLBVarId, Color4::xyzw(prev_view_vec_lb));
+  ShaderGlobal::set_float4(prev_view_vecRBVarId, Color4::xyzw(prev_view_vec_rb));
+  ShaderGlobal::set_float4(prev_world_view_posVarId, Color4(prev_world_pos.x, prev_world_pos.y, prev_world_pos.z, 0));
 }
 
 void set_shadervars_for_reprojection(const TMatrix4 &tr_proj_tm, const TMatrix4 &glob_tm, const TMatrix4 &prev_glob_tm,
@@ -92,7 +92,7 @@ void set_reprojection(const TMatrix4 &proj_tm, const TMatrix4 &glob_tm, const Po
 {
   set_reprojection(proj_tm, glob_tm, proj_tm, prev_glob_tm, view_vec_lt, view_vec_rt, view_vec_lb, view_vec_rb, prev_view_vec_lt,
     prev_view_vec_rt, prev_view_vec_lb, prev_view_vec_rb, world_pos, prev_world_pos);
-  ShaderGlobal::set_color4(prev_zn_zfarVarId, prev_zn_zfar.x, prev_zn_zfar.y, 0, 0);
+  ShaderGlobal::set_float4(prev_zn_zfarVarId, prev_zn_zfar.x, prev_zn_zfar.y, 0, 0);
 }
 
 void set_reprojection(const TMatrix &view_tm, const TMatrix4 &proj_tm, TMatrix4 &prev_proj_tm, DPoint3 &prev_world_pos,
@@ -147,13 +147,13 @@ void set_reprojection(const TMatrix &view_tm, const TMatrix4 &proj_tm, const Poi
   TMatrix4 prev_proj_tm = proj_tm;
   set_reprojection(view_tm, proj_tm, prev_proj_tm, prev_world_pos, prev_glob_tm, prev_view_vec_lt, prev_view_vec_rt, prev_view_vec_lb,
     prev_view_vec_rb, world_pos);
-  ShaderGlobal::set_color4(prev_zn_zfarVarId, prev_zn_zfar.x, prev_zn_zfar.y, 0, 0);
+  ShaderGlobal::set_float4(prev_zn_zfarVarId, prev_zn_zfar.x, prev_zn_zfar.y, 0, 0);
 }
 
-#define VAR(a) a = ShaderGlobal::get_color4(a##VarId);
+#define VAR(a) a = ShaderGlobal::get_float4(a##VarId);
 ScopeReprojection::ScopeReprojection() { SET_REPROJECTION_VARS_LIST; }
 #undef VAR
 
-#define VAR(a) ShaderGlobal::set_color4(a##VarId, a);
+#define VAR(a) ShaderGlobal::set_float4(a##VarId, a);
 ScopeReprojection::~ScopeReprojection() { SET_REPROJECTION_VARS_LIST; }
 #undef VAR

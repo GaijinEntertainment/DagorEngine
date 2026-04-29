@@ -22,9 +22,9 @@ try {
     println($"OK: '$bar' is not a built-in member of table and access raised exectpion: \"{e}\"")
 }
 
-#forbid-implicit-default-delegates
+#forbid-implicit-type-methods
 
-println("Forbid implicit default delegates")
+println("Forbid implicit type methods")
 
 try {
     let rg1 = t.rawget
@@ -55,9 +55,9 @@ try {
     println($"FAIL: Safe access of built-in method 'keys' failed. Exception: \"{e}\"")
 }
 
-#allow-implicit-default-delegates
+#allow-implicit-type-methods
 
-println("Allow implicit default delegates")
+println("Allow implicit type methods")
 
 try {
     let rg1 = t.rawget

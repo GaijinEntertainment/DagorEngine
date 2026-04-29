@@ -33,7 +33,6 @@ shader point_lights, spot_lights
   USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
 
   USE_DECODE_DEPTH()
-  ENABLE_ASSERT(ps)
 
   hlsl(ps) {
     #include "pbr/pbr.hlsl"

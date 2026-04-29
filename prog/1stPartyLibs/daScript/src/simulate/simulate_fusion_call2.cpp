@@ -11,6 +11,7 @@
 #include "daScript/simulate/sim_policy.h"
 #include "daScript/ast/ast.h"
 #include "daScript/simulate/simulate_visit_op.h"
+#include "vecmath/dag_vecMathDecl.h"
 
 namespace das {
 
@@ -67,7 +68,7 @@ namespace das {
 #undef IMPLEMENT_OP2_NODE_ANYR
 #define IMPLEMENT_OP2_NODE_ANYR(INLINE,OPNAME,TYPE,CTYPE,COMPUTEL) \
     struct SimNode_##OPNAME##_Any_##COMPUTEL : SimNode_Op2Call2 { \
-        INLINE vec4f compute ( Context & context ) { \
+        NO_ASAN_INLINE vec4f compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             vec4f argValues[2]; \
             argValues[0] = l.subexpr->eval(context); \
@@ -84,7 +85,7 @@ namespace das {
 #undef IMPLEMENT_OP2_NODE_ANYL
 #define IMPLEMENT_OP2_NODE_ANYL(INLINE,OPNAME,TYPE,CTYPE,COMPUTER) \
     struct SimNode_##OPNAME##_##COMPUTER##_Any : SimNode_Op2Call2 { \
-        INLINE auto compute ( Context & context ) { \
+        NO_ASAN_INLINE auto compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             vec4f argValues[2]; \
             argValues[0] = v_ldu((const float *)l.compute##COMPUTER(context)); \
@@ -101,7 +102,7 @@ namespace das {
 #undef IMPLEMENT_OP2_NODE
 #define IMPLEMENT_OP2_NODE(INLINE,OPNAME,TYPE,CTYPE,COMPUTEL,COMPUTER) \
     struct SimNode_##OPNAME##_##COMPUTEL##_##COMPUTER : SimNode_Op2Call2 { \
-        INLINE auto compute ( Context & context ) { \
+        NO_ASAN_INLINE auto compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             vec4f argValues[2]; \
             argValues[0] = v_ldu((const float *)l.compute##COMPUTEL(context)); \
@@ -140,7 +141,7 @@ IMPLEMENT_ANY_OP2(__forceinline, Call, Ptr, StringPtr)
 #undef IMPLEMENT_OP2_NODE_ANYR
 #define IMPLEMENT_OP2_NODE_ANYR(INLINE,OPNAME,TYPE,CTYPE,COMPUTEL) \
     struct SimNode_##OPNAME##_Any_##COMPUTEL : SimNode_Op2Call2 { \
-        __forceinline char * compute ( Context & context ) { \
+        NO_ASAN_INLINE char * compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             auto cmres = cmresEval->evalPtr(context); \
             vec4f argValues[2]; \
@@ -155,7 +156,7 @@ IMPLEMENT_ANY_OP2(__forceinline, Call, Ptr, StringPtr)
 #undef IMPLEMENT_OP2_NODE_ANYL
 #define IMPLEMENT_OP2_NODE_ANYL(INLINE,OPNAME,TYPE,CTYPE,COMPUTER) \
     struct SimNode_##OPNAME##_##COMPUTER##_Any : SimNode_Op2Call2 { \
-        __forceinline char * compute ( Context & context ) { \
+        NO_ASAN_INLINE char * compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             auto cmres = cmresEval->evalPtr(context); \
             vec4f argValues[2]; \
@@ -170,7 +171,7 @@ IMPLEMENT_ANY_OP2(__forceinline, Call, Ptr, StringPtr)
 #undef IMPLEMENT_OP2_NODE
 #define IMPLEMENT_OP2_NODE(INLINE,OPNAME,TYPE,CTYPE,COMPUTEL,COMPUTER) \
     struct SimNode_##OPNAME##_##COMPUTEL##_##COMPUTER : SimNode_Op2Call2 { \
-        __forceinline char * compute ( Context & context ) { \
+        NO_ASAN_INLINE char * compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             auto cmres = cmresEval->evalPtr(context); \
             vec4f argValues[2]; \
@@ -191,7 +192,7 @@ IMPLEMENT_ANY_OP2(__forceinline, CallAndCopyOrMove, Ptr, StringPtr)
 #undef IMPLEMENT_OP2_NODE_ANYR
 #define IMPLEMENT_OP2_NODE_ANYR(INLINE,OPNAME,TYPE,CTYPE,COMPUTEL) \
     struct SimNode_##OPNAME##_Any_##COMPUTEL : SimNode_Op2Call2 { \
-        INLINE auto compute ( Context & context ) { \
+        NO_ASAN_INLINE auto compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             vec4f argValues[2]; \
             argValues[0] = l.subexpr->eval(context); \
@@ -213,7 +214,7 @@ IMPLEMENT_ANY_OP2(__forceinline, CallAndCopyOrMove, Ptr, StringPtr)
 #undef IMPLEMENT_OP2_NODE_ANYL
 #define IMPLEMENT_OP2_NODE_ANYL(INLINE,OPNAME,TYPE,CTYPE,COMPUTER) \
     struct SimNode_##OPNAME##_##COMPUTER##_Any : SimNode_Op2Call2 { \
-        INLINE auto compute ( Context & context ) { \
+        NO_ASAN_INLINE auto compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             vec4f argValues[2]; \
             argValues[0] = v_ldu((const float *)l.compute##COMPUTER(context)); \
@@ -235,7 +236,7 @@ IMPLEMENT_ANY_OP2(__forceinline, CallAndCopyOrMove, Ptr, StringPtr)
 #undef IMPLEMENT_OP2_NODE
 #define IMPLEMENT_OP2_NODE(INLINE,OPNAME,TYPE,CTYPE,COMPUTEL,COMPUTER) \
     struct SimNode_##OPNAME##_##COMPUTEL##_##COMPUTER : SimNode_Op2Call2 { \
-        INLINE auto compute ( Context & context ) { \
+        NO_ASAN_INLINE auto compute ( Context & context ) { \
             DAS_PROFILE_NODE \
             vec4f argValues[2]; \
             argValues[0] = v_ldu((const float *)l.compute##COMPUTEL(context)); \
@@ -258,9 +259,9 @@ IMPLEMENT_ANY_OP2(__forceinline, CallAndCopyOrMove, Ptr, StringPtr)
 IMPLEMENT_ANY_OP2(__forceinline, FastCall, Ptr, StringPtr)
 
     void createFusionEngine_call2() {
-        (**g_fusionEngine)["Call"].emplace_back(new FusionPoint_Call_StringPtr());
-        (**g_fusionEngine)["CallAndCopyOrMove"].emplace_back(new FusionPoint_CallAndCopyOrMove_StringPtr());
-        (**g_fusionEngine)["FastCall"].emplace_back(new FusionPoint_FastCall_StringPtr());
+        (*getFusionEngine())["Call"].emplace_back(new FusionPoint_Call_StringPtr());
+        (*getFusionEngine())["CallAndCopyOrMove"].emplace_back(new FusionPoint_CallAndCopyOrMove_StringPtr());
+        (*getFusionEngine())["FastCall"].emplace_back(new FusionPoint_FastCall_StringPtr());
     }
 }
 

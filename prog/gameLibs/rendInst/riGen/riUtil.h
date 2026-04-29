@@ -24,7 +24,7 @@ int16_t *get_data_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::C
 bool is_rendinst_data_destroyed(const rendinst::RendInstDesc &desc);
 bool get_rendinst_matrix(const rendinst::RendInstDesc &desc, RendInstGenData *ri_gen, const int16_t *data,
   const RendInstGenData::Cell *cell, mat44f &out_tm);
-bool get_cell_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell);
+RendInstGenData::CellRtData *get_cell_rtdata_by_desc(const rendinst::RendInstDesc &desc, RendInstGenData::Cell **pcell = nullptr);
 
 int16_t *get_data_by_desc_no_subcell(const rendinst::RendInstDesc &desc, RendInstGenData::Cell *&cell);
 int get_data_offs_from_start(const rendinst::RendInstDesc &desc);

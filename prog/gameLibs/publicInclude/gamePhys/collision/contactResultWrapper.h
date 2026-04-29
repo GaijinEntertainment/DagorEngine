@@ -37,6 +37,8 @@ struct WrapperContactResultCB
 
     dest_c.userPtrA = userPtrA;
     dest_c.userPtrB = userPtrB;
+
+    G_ASSERT(lengthSq(dest_c.wpos - dest_c.wposB) < 1000.f && lengthSq(dest_c.wnormB) < 1000.f && dest_c.depth < 1000.f);
     return dest_c;
   }
 

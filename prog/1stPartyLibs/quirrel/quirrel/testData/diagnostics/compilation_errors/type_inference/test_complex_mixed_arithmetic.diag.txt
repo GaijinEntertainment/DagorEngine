@@ -1,0 +1,9 @@
+ERROR: expression of type 'int|string' cannot be assigned to type 'bool'
+testData/diagnostics/compilation_errors/type_inference/test_complex_mixed_arithmetic.nut:7:0
+
+local n: int = 10
+local x: bool = get_flag() ? ((1 + 2) * 3 + n) : typeof "x"
+^----------------------------------------------------------
+return x
+
+

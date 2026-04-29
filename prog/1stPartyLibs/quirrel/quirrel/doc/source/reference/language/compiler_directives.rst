@@ -2,11 +2,11 @@
 
 
 =========================
-Complier directives
+Compiler directives
 =========================
 
 .. index::
-    single: Complier directives
+    single: Compiler directives
 
 Quirrel has a way to for flexibly customize language features.
 
@@ -24,11 +24,11 @@ Example
    }
 
 
-Prefix directive with 'default:' to apply it to entire VM, otherwise directive applies to clojure in where it is declared.
+Prefix directive with 'default:' to apply it to entire VM, otherwise directive applies to closure in which it is declared.
 
 
 =============================
-List of Complier directives
+List of Compiler directives
 =============================
 
 

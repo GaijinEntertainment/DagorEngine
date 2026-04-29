@@ -15,22 +15,24 @@ namespace dafg
 class DependencyDataCalculator
 {
 public:
-  DependencyDataCalculator(InternalRegistry &reg, const NameResolver &nameRes, FrontendRecompilationData &recompData) :
-    registry{reg}, nameResolver{nameRes}, frontendRecompilationData{recompData}
-  {}
+  DependencyDataCalculator(InternalRegistry &reg, const NameResolver &nameRes) : registry{reg}, nameResolver{nameRes} {}
 
   DependencyData depData;
 
-  void recalculate();
+
+  using NodesChanged = IdIndexedFlags<NodeNameId, framemem_allocator>;
+  using ResourcesChanged = IdIndexedFlags<ResNameId, framemem_allocator>;
+
+  ResourcesChanged recalculate(const NodesChanged &node_changed);
 
 private:
   InternalRegistry &registry;
   const NameResolver &nameResolver;
-  FrontendRecompilationData &frontendRecompilationData;
 
-  void recalculateResourceLifetimes();
+  DependencyData depDataClone;
+
+  ResourcesChanged recalculateResourceLifetimes(const NodesChanged &node_changed);
   void resolveRenaming();
-  void updateRenamedResourceProperties();
 };
 
 } // namespace dafg

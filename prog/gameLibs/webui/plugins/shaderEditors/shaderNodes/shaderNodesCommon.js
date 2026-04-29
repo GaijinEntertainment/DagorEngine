@@ -17,7 +17,8 @@ var GE_typeColors =
     "NBSGbuffer": "#a1a",
     "material_t": "#864",
     "Layer_t":"#f40",
-    "mask_t":"#4f0"
+    "mask_t":"#4f0",
+    "ctrl_t": "rgba(134, 0, 0, 1)"
   };
 
 var texTypes =
@@ -27,6 +28,7 @@ var texTypes =
   "texture2DArray":"texture2DArray"
 }
 
+var branchTypes = ["bool", "int", "uint", "float", "float2", "float3", "float4", "NBSGbuffer", "Layer_t", "material_t", "mask_t"]
 
 var GE_conversions =
   [// from      to        user data
@@ -54,6 +56,11 @@ var GE_defaultValuesZero =
     "polynom4":   "float4(0.0, 0.0, 0.0, 0.0)",
     "linear4":    "linear4_zero",
     "monotonic4": "monotonic4_zero",
+    "NBSGbuffer" : "(NBSGbuffer)0",
+    "Layer_t" : "(Layer_t)0",
+    "material_t" : "(material_t)0",
+    "mask_t" : "(mask_t)0"
+
   };
 
 var GE_defaultValuesOne =
@@ -2158,10 +2165,12 @@ var GE_nodeDescriptionsCommon = [
       {name:"world pos", types:["float3"], singleConnect:true, role:"in"},
       {name:"normal", types:["float3"], singleConnect:true, role:"in"},
       {name:"range", types:["float"], singleConnect:true, role:"in", data:{def_val:"%range%"}},
-      {name:"occlusion", types:["float"], singleConnect:false, role:"out", data:{code:"compute_simple_sdf_occlusion($world pos$, $normal$, $range$)"}}
+      {name:"occlusion", types:["float"], singleConnect:false, role:"out", data:{code:"compute_simple_sdf_occlusion($world pos$, $normal$, $range$, $normal_bias$)"}},
+      {name:"normal_bias", types:["float"], singleConnect:true, role:"in", data:{def_val:"%normal_bias%"}}
     ],
     properties:[
       {name:"range", type:"float", minVal:"0", maxVal:"50", step:"0.01", val:"1"},
+      {name:"normal_bias", type:"float", minVal:"0", maxVal:"5", step:"0.01", val:"0.5"},
     ],
     allowLoop:false,
     width:160
@@ -2202,6 +2211,65 @@ var GE_nodeDescriptionsCommon = [
     allowLoop:false,
     width:220,
   },
+  {
+    name:"medium quality filter",
+    category:"Quality",
+    synonyms:"gravity, get, dir",
+    pins:[
+      { name: "on", types: branchTypes, typeGroup:"group1", singleConnect: true, role: "in" },
+      { name: "off", types: branchTypes, typeGroup:"group1", singleConnect: true, role: "in" },
+      { name: "value", types: branchTypes, typeGroup:"group1", singleConnect: false, role: "out", data:
+        {code: "branchVariable%#%"}},
+    ],
+    properties:[
+    ],
+    isExternal:true,
+    allowLoop:false,
+    width:220,
+  },
+  {
+    name:"high quality filter",
+    category:"Quality",
+    synonyms:"gravity, get, dir",
+    pins:[
+      { name: "on", types: branchTypes, typeGroup:"group1", singleConnect: true, role: "in" },
+      { name: "off", types: branchTypes, typeGroup:"group1", singleConnect: true, role: "in" },
+      { name: "value", types: branchTypes, typeGroup:"group1", singleConnect: false, role: "out", data:
+        {code: "branchVariable%#%"}},
+    ],
+    properties:[
+    ],
+    isExternal:true,
+    allowLoop:false,
+    width:220,
+  },
+  {
+    name:"get rain cloud height",
+    category:"Quality",
+    synonyms:"cloud, get, rain, cloud",
+    pins:[
+      { name: "world pos", types: ["float3"], singleConnect: true, role: "in" },
+      {name:"density limit", caption:"density limit", types:["float"], singleConnect:true, role:"in"},
+      { name: "weight", types: ["float"], singleConnect: false, role: "out", data:
+        {code: "getRainCoverage_impl($world pos$, $density limit$)"}},
+    ],
+    properties:[
+    ],
+    isExternal:true,
+    allowLoop:false,
+    width:220,
+  },
+  {
+    name:"read nbs params",
+    category:"Input",
+    synonyms:"nbs, params, read",
+    pins:[
+      {name:"nbs_params", types:["float4"], singleConnect: false, role:"out", data:{code:"nbs_params"}}
+    ],
+    properties:[],
+    allowLoop:false,
+    width:150,
+  },
 ]
 
 var GE_defaultExternalsCommon =
@@ -2228,8 +2296,13 @@ var GE_defaultExternalsCommon =
   {type: "float4", name:"land_detail_mul_offset"},
   {type: "float",  name:"global_time_phase"},
   {type: "texture2D", name:"noise_64_tex_l8"},
-  {type: "texture2D", name:"land_heightmap_tex"},
-  {type: "texture2D_nosampler", name:"tex_hmap_low"},
+  {type: "texture2D_nosampler", name:"hmapMain"},
+  {type: "texture2D", name:"tex_hmap_low"},
+  {type: "texture2D", name:"clouds_rain_map_tex", texture_type:"float2"},
+  {type: "float4", name:"clouds_rain_map_offset_scale"},
+  {type: "int", name:"clouds_rain_map_valid"},
+  {type: "float", name:"clouds_rain_map_max_height"},
+  {type: "float", name:"nbs_clouds_start_altitude2_meters"},
   {type: "float", name:"water_level"},
   {type: "texture2D_nosampler", name:"distant_heightmap_tex"},
   {type: "float4",  name:"distant_world_to_hmap_low"},
@@ -2251,6 +2324,7 @@ var GE_defaultExternalsCommon =
   {type: "CBuffer", name:"world_sdf_params"},
   {type: "float4", name:"world_sdf_to_atlas_decode__gradient_offset"},
   {type: "texture3D", name:"world_sdf_clipmap"},
+  {type: "float4", name:"nbs_params"},
 
 ]
 
@@ -2321,8 +2395,8 @@ function GE_verifyDescriptions()
       if (pin.caption && pin.caption.indexOf("$") >= 0)
         alert("ERROR: only properties can be used in pin caption (pin '" + pin.name + "' in '" + desc.name + "')");
 
-      if (pin.role != "out" && pin.role != "in" && pin.role != "any")
-        alert("ERROR: pin role can be only 'in', 'out' or 'any' (pin '" + pin.name + "' in '" + desc.name + "')");
+      if (pin.role != "out" && pin.role != "in" && pin.role != "any" && pin.role != "ctrl")
+        alert("ERROR: pin role can be only 'in', 'out', 'ctrl' or 'any' (pin '" + pin.name + "' in '" + desc.name + "')");
 
       if (pin.makeInternalVar && (pin.role != "in" || !pin.hidden))
         alert("ERROR: pin attribute makeInternalVar can be only used on pins with role 'in', and hidden:'true'! Problematic node and pin: '" + desc.name + "': " + pin.name);
@@ -2430,7 +2504,7 @@ function generateAdditionalText(graph, useVarPool)
 
     var from = graph.elems[edge.elemA];
     var to = graph.elems[edge.elemB];
-    if (from.pins[edge.pinA].role === "in")
+    if (from.pins[edge.pinA].role === "in" || from.pins[edge.pinA].role === "ctrl")
     {
       var p = graph.elems[edge.elemA].pins[edge.pinA];
       p.connectElem = edge.elemB;
@@ -2440,7 +2514,7 @@ function generateAdditionalText(graph, useVarPool)
       p.connected = true;
       graph.elems[edge.elemB].pins[edge.pinB].connected = true;
     }
-    if (to.pins[edge.pinB].role === "in")
+    if (to.pins[edge.pinB].role === "in" || to.pins[edge.pinB].role === "ctrl")
     {
       var p = graph.elems[edge.elemB].pins[edge.pinB];
       p.connectElem = edge.elemA;
@@ -2797,27 +2871,6 @@ function generateAdditionalText(graph, useVarPool)
     return type === "texture2D" || type === "texture3D" || type === "texture2DArray" || type === "texture2D_shdArray" || type === "texture2D_nosampler" || type === "texture3D_nosampler";
   }
 
-  for (var i = 0; i < GE_defaultExternals.length; i++)
-  {
-    var d = GE_defaultExternals[i];
-    inputs[d.type].push({
-      elem: -1,
-      pin: -1,
-      externalName: d.name
-    });
-
-    if (typeof d.buffer_struct != "undefined")
-      inputs[d.type][inputs[d.type].length - 1].customBufferStruct = d.buffer_struct;
-
-    if (typeof d.texture_type != "undefined")
-      inputs[d.type][inputs[d.type].length - 1].texture_type = d.texture_type;
-
-    if (isTextureType(d.type))
-      inputs[d.type][inputs[d.type].length - 1].customSamplerName = d.name;
-
-  }
-
-
   var outputs = [];
   var gravZonesUsed = false;
   for (var ii = 0; ii < graph.elemCount; ii++)
@@ -2858,7 +2911,7 @@ function generateAdditionalText(graph, useVarPool)
           if (!foundInExternals)
           {
             if (isTextureType(pinType))
-              p.customVarName = "sampler" + inputs[pinType].length;
+              p.customVarName = "sampler_" + pinType + "_" + inputs[pinType].length;
 
             inputs[pinType].push({
               elem: i,
@@ -2961,10 +3014,23 @@ function generateAdditionalText(graph, useVarPool)
 
         var name = getProperty(e, "buffer_name", null);
 
+        var bufferExists = false;
+        for (var buffIdx = 0; buffIdx < inputs["Buffer"].length; buffIdx++)
+        {
+          if(inputs["Buffer"][buffIdx].externalName === name)
+          {
+            bufferExists = true;
+            break;
+          }
+        }
+        if (bufferExists)
+          continue;
+
         inputs["Buffer"].push({
           elem: i,
           pin: j,
-          externalName: name
+          externalName: name,
+          customBufferStruct: "NBSSphere"
         });
         inputs["int"].push({
           elem: i,
@@ -3120,45 +3186,186 @@ function generateAdditionalText(graph, useVarPool)
     "texture2D", "texture3D", "texture2DArray", "texture2D_shdArray", "texture2D_nosampler", "texture3D_nosampler", "Buffer", "CBuffer"];
   var cbufferTypes = ["int", "float", "int4", "float2", "float3", "float4", "float4x4"];
 
-  var addedExtNames = [];
 
-  var cbuffer = indent + "cbuffer global : register(b0) {" + newLine;
+  var dshl_excludedNames = [];
+  for (var j = 0; j < GE_defaultExternals.length; j++)
+  {
+    dshl_excludedNames.push(GE_defaultExternals[j].name);
+  }
 
+  var dshl_inputTypesToGvarTypesMapping = ["int", "float", "int4", "float4", "float4", "float4", "float4x4",
+    "texture", "texture", "texture", "texture", "texture", "texture", "buffer", "const_buffer"];
+  var dshl_inputTypesToPreshaderTypesMapping = ["i1", "f1", "i4", "f2", "f3", "f4", "f44",
+    "tex2d", "tex3d", "texArray", "texArray", "tex2d", "tex3d", "buf", "cbuf"];
+  var dshl_inputTypesToPreshaderSamplerTypesMapping = ["", "", "", "", "", "", "",
+    "sampler", "sampler", "sampler", "cmpSampler", "", "", "", ""];
+
+  var dshl_varNameToPermDecl = {};
+
+  var dshl_splitArrName = function(varNameWithArrlen)
+  {
+    var subscript = varNameWithArrlen.indexOf("[");
+    if (subscript < 0)
+      return {name: varNameWithArrlen, arrsuff: ""};
+    return {name: varNameWithArrlen.slice(0, subscript), arrsuff: "[]"};
+  };
+
+  var dshl_condPreshaderDo = function(permutationId, cb)
+  {
+    if (permutationId === -1)
+    {
+      return;
+    }
+    if (graph.additionalIncludesPermTable.length <= permutationId)
+    {
+      alert("Internal error: additional includes permutation table was not set.");
+      return;
+    }
+
+    cb(graph.additionalIncludesPermTable[permutationId]);
+  };
+  var dshl_condPreshaderStart = function(inp, name)
+  {
+    dshl_condPreshaderDo(
+      graph.elems[inp.elem].permutationId,
+      function(permInfo)
+      {
+        dshl_preshader += indent + "if (nbsPermIdG" + permInfo.g + " == p" + permInfo.p;
+        var previousDecls = dshl_varNameToPermDecl[name];
+        if (previousDecls != undefined)
+        {
+          for (var j = 0; j < previousDecls.length; ++j)
+          {
+            var otherPerm = previousDecls[j];
+            if (otherPerm.g != permInfo.g)
+              dshl_preshader += "&& nbsPermIdG" + otherPerm.g + " != p" + otherPerm.p;
+          }
+        }
+        else
+        {
+          dshl_varNameToPermDecl[name] = new Array();
+        }
+        dshl_varNameToPermDecl[name].push(permInfo);
+        dshl_preshader += ") {" + newLine;
+      });
+  };
+  var dshl_condPreshaderEnd = function(inp)
+  {
+    dshl_condPreshaderDo(
+      graph.elems[inp.elem].permutationId,
+      function(permInfo) { dshl_preshader += indent + "}" + newLine; });
+  };
+
+  var dshl_addedGvarNames = [];
+  var dshl_preshader = "";
+  blk += 'dshl_gvars:t="""' + newLine + newLine;
   for (var j = 0; j < inputTypes.length; j++)
   {
     var key = inputTypes[j];
-    var isCbuffer = cbufferTypes.indexOf(key) >= 0;
-    blk += "inputs_" + key + " {" + newLine;
-
-    var cnt = 0;
+    var gvarType = dshl_inputTypesToGvarTypesMapping[j];
+    var preshaderType = dshl_inputTypesToPreshaderTypesMapping[j];
+    var samplerType = dshl_inputTypesToPreshaderSamplerTypesMapping[j];
+    var isGlobalCbufConst = cbufferTypes.indexOf(key) >= 0;
+    var requiresPairSampler = samplerType !== "";
     for (var i = 0; i < inputs[key].length; i++)
     {
       var extName = inputs[key][i].externalName;
-      if (addedExtNames.indexOf(extName) < 0)
+      if (dshl_excludedNames.indexOf(extName) >= 0)
       {
-        blk += indent + 'name:t="' + extName + '" // index=' + cnt + newLine;
-        cnt++;
-        addedExtNames.push(extName);
-
-        if (isCbuffer)
-        {
-          cbuffer += indent + indent + key + " " + inputs[key][i].externalName + ";" + newLine;
-        }
+        continue;
+      }
+      if (dshl_addedGvarNames.indexOf(extName) < 0)
+      {
+        blk += indent + gvarType + " " + extName + ";" + newLine;
+        dshl_addedGvarNames.push(extName);
+      }
+      if (isGlobalCbufConst)
+      {
+        var extNameSplit = dshl_splitArrName(extName);
+        dshl_condPreshaderStart(inputs[key][i], extNameSplit.name);
+        dshl_preshader += indent + extNameSplit.name + "@" + preshaderType + extNameSplit.arrsuff + " = " + extNameSplit.name + ";" + newLine;
+        dshl_condPreshaderEnd(inputs[key][i]);
+      }
+      else if (requiresPairSampler)
+      {
+        var samplerSuffix = samplerType == "cmpSampler" ? "_cmpSampler" : "_samplerstate";
+        dshl_condPreshaderStart(inputs[key][i], extName + samplerSuffix);
+        blk += indent + "sampler " + extName + samplerSuffix + ";" + newLine;
+        dshl_condPreshaderEnd(inputs[key][i]);
       }
     }
-
-    blk += "}" + newLine + newLine;
   }
 
-  cbuffer += indent + "};" + newLine + newLine;
+  for (var i = 0; i < inputs["CBuffer"].length; i++)
+  {
+    var d = inputs["CBuffer"][i];
+    var extNameSplit = dshl_splitArrName(d.externalName);
+    if (dshl_excludedNames.indexOf(extNameSplit.name) >= 0)
+    {
+      continue;
+    }
+    dshl_condPreshaderStart(inputs["CBuffer"][i], extNameSplit.name);
+    dshl_preshader += indent + extNameSplit.name + "@cbuf" + extNameSplit.arrsuff + " = " + extNameSplit.name + " hlsl {" + newLine;
+    dshl_preshader += indent + indent + "cbuffer " + d.externalName + "@cbuf {" + newLine;
+    dshl_preshader += indent + indent + indent + "CBUFF_STRUCTURE_" + extNameSplit.name + newLine;
+    dshl_preshader += indent + indent + "};" + newLine;
+    dshl_preshader += indent + "};" + newLine;
+    dshl_condPreshaderEnd(inputs["CBuffer"][i]);
+  }
 
+  var dshl_fillPreshaderTexture = function(typeStr, preshaderType, samplerType, samplerSuffix)
+  {
+    for (var i = 0; i < inputs[typeStr].length; i++)
+    {
+      var d = inputs[typeStr][i];
+      var extNameSplit = dshl_splitArrName(d.externalName);
+      if (dshl_excludedNames.indexOf(extNameSplit.name) >= 0)
+      {
+        continue;
+      }
+      var nameStr = d.customSamplerName ? d.customSamplerName : ("sampler_" + typeStr + "_" + i);
+      dshl_condPreshaderStart(inputs[typeStr][i], nameStr);
+      var texTypeStr = "";
+      if (typeof d.texture_type != "undefined")
+        texTypeStr = "<" + d.texture_type + ">";
+      dshl_preshader += indent + nameStr + "@" + preshaderType + extNameSplit.arrsuff + " = " + extNameSplit.name + ";" + newLine;
+      if (samplerType)
+        dshl_preshader += indent + nameStr + samplerSuffix + "@" + samplerType + extNameSplit.arrsuff + " = " + extNameSplit.name + samplerSuffix + ";" + newLine;
+      dshl_condPreshaderEnd(inputs[typeStr][i]);
+    }
+  }
 
-  if (resultColors > 1)
-    blk += "outputs:i=" + resultColors + newLine;
+  dshl_fillPreshaderTexture("texture2D", "tex2d", "sampler", "_samplerstate");
+  dshl_fillPreshaderTexture("texture3D", "tex3d", "sampler", "_samplerstate");
+  dshl_fillPreshaderTexture("texture2DArray", "texArray", "sampler", "_samplerstate");
+  dshl_fillPreshaderTexture("texture2D_shdArray", "texArray", "cmpSampler", "_cmpSampler");
+  dshl_fillPreshaderTexture("texture2D_nosampler", "tex2d", null, null);
+  dshl_fillPreshaderTexture("texture3D_nosampler", "tex3d", null, null);
 
-  blk += newLine + 'input_declaration:t="""' + newLine + newLine;
+  for (var i = 0; i < inputs["Buffer"].length; i++)
+  {
+    var d = inputs["Buffer"][i];
+    var bufferStructure = d.customBufferStruct ? d.customBufferStruct : "float4";
+    var extNameSplit = dshl_splitArrName(d.externalName);
+    if (dshl_excludedNames.indexOf(extNameSplit.name) >= 0)
+    {
+      continue;
+    }
+    dshl_condPreshaderStart(inputs["Buffer"][i], extNameSplit.name);
+    dshl_preshader += indent + extNameSplit.name + "@buf" + extNameSplit.arrsuff + " = " + extNameSplit.name + " hlsl {" + newLine;
+    // @HACK: this is required because preshader hlsl goes above any user defined hlsl.
+    // Make sure this file is also included in the templates for correct source gathering.
+    if (bufferStructure == "NBSSphere")
+      dshl_preshader += indent + indent + "#include \"../../../publicInclude/render/nbs_spheres.hlsli\"" + newLine;
+    dshl_preshader += indent + indent + "StructuredBuffer<" + bufferStructure + "> " + extNameSplit.name + "@buf;" + newLine;
+    dshl_preshader += indent + "};" + newLine;
+    dshl_condPreshaderEnd(inputs["Buffer"][i]);
+  }
 
-  blk += cbuffer;
+  blk += '"""' + newLine + newLine;
+  blk += 'dshl_preshader:t="""' + newLine + newLine;
+  blk += dshl_preshader;
+  blk += '"""' + newLine + newLine;
 
   mrtOutputsDecl += indent + "struct MRTOutput {";
 
@@ -3169,65 +3376,6 @@ function generateAdditionalText(graph, useVarPool)
   }
 
   mrtOutputsDecl += "};" + newLine;
-
-  // fillBlkExtraCBuffer
-  var cbufferOffset = 1;
-  for (var i = 0; i < inputs["CBuffer"].length; i++)
-  {
-    var d = inputs["CBuffer"][i];
-    blk += indent + "cbuffer " + d.externalName + ":register(b" + cbufferOffset++ + ")" + newLine;
-    blk += indent + "{" + newLine;
-    blk += indent + indent + "CBUFF_STRUCTURE_" + d.externalName + newLine
-    blk += indent + "};" + newLine;
-  }
-
-  var fillBlkTexture = function(typeStr, codeStr, registerOffset, samplerType)
-  {
-    for (var i = 0; i < inputs[typeStr].length; i++)
-    {
-      var d = inputs[typeStr][i];
-      var registerId = registerOffset + i;
-      var texTypeStr = "";
-      if (typeof d.texture_type != "undefined")
-        texTypeStr = "<" + d.texture_type + ">"
-      if (d.customSamplerName)
-      {
-        blk += indent + codeStr + texTypeStr + " " + d.customSamplerName + ":register(t" + registerId + ");" + newLine;
-        if (samplerType == 1)
-          blk += indent + "SamplerState " + d.customSamplerName + "_samplerstate:register(s" + registerId + ");" + newLine;
-        else if (samplerType == 2)
-          blk += indent + "SamplerComparisonState " + d.customSamplerName + "_cmpSampler:register(s" + registerId + ");" + newLine;
-      }
-      else
-      {
-        blk += indent + codeStr + texTypeStr + " sampler" + i + ":register(t" + registerId + ");" + newLine;
-        if (samplerType == 1)
-          blk += indent + "SamplerState sampler" + i + "_samplerstate:register(s" + registerId + ");" + newLine;
-        else if (samplerType == 2)
-          blk += indent + "SamplerComparisonState sampler" + i + "_cmpSampler:register(s" + registerId + ");" + newLine;
-      }
-    }
-    return inputs[typeStr].length;
-  }
-
-  var registerOffset = 0;
-  registerOffset += fillBlkTexture("texture2D", "Texture2D", registerOffset, 1);
-  registerOffset += fillBlkTexture("texture3D", "Texture3D", registerOffset, 1);
-  registerOffset += fillBlkTexture("texture2DArray", "Texture2DArray", registerOffset, 1);
-  registerOffset += fillBlkTexture("texture2D_shdArray", "Texture2DArray", registerOffset, 2);
-  registerOffset += fillBlkTexture("texture2D_nosampler", "Texture2D", registerOffset, 0);
-  registerOffset += fillBlkTexture("texture3D_nosampler", "Texture3D", registerOffset, 0);
-
-  for (var i = 0; i < inputs["Buffer"].length; i++)
-  {
-    var d = inputs["Buffer"][i];
-    var bufferStructure = d.customBufferStruct ? d.customBufferStruct : "float4";
-    blk += indent + "StructuredBuffer<" + bufferStructure + "> " + d.externalName + ":register(t" + (registerOffset + i) + ");" + newLine;
-  }
-
-
-  blk += newLine + '"""' + newLine + newLine;
-
 
   var processed = new Array(graph.elemCount);
   for (var i = 0; i < processed.length; i++)
@@ -3278,11 +3426,195 @@ function generateAdditionalText(graph, useVarPool)
   for (var i = 0; i < processed.length; i++)
     processed[i] = false;
 
-  function processGraphElem(elemIndex)
+  function getPinType(e, p)
+  {
+    var t = p.types[0];
+
+    if (p.types.length > 1 && p.group)
+    {
+      for (var k = 0; k < e.pins.length; k++)
+        if (k != j && e.pins[k].group === p.group && e.pins[k].types.length == 1)
+        {
+          t = e.pins[k].types[0];
+          break;
+        }
+    }
+
+    return t;
+  }
+
+  function processSubGroup(subGroup, branchStack, permutationId)
+  {
+    var changed = true;
+    while (subGroup.length != 0 && changed)
+    {
+      changed = false;
+      for (var i = 0; i < subGroup.length; i++)
+      {
+        if(processGraphElem(subGroup[i], branchStack, permutationId))
+          changed = true;
+
+        if (processed[subGroup[i]])
+        {
+          subGroup.splice(i, 1);
+          i--;
+          changed = true;
+        }
+      }
+    }
+  }
+
+  function processPermutation(subGroup, branchStack, permutationId)
+  {
+    if (graph.additionalIncludesPermTable.length <= permutationId)
+    {
+      alert("Internal error: additional includes permutation table was not set.");
+      return;
+    }
+
+    var permInfo = graph.additionalIncludesPermTable[permutationId];
+    hlsl += indent + "##if (nbsPermIdG" + permInfo.g + " == p" + permInfo.p + ")" + newLine;
+
+    processSubGroup(subGroup, branchStack, permutationId);
+
+    hlsl += indent + "##endif" + newLine;
+  }
+
+  function incrementIndent()
+  {
+    indent += singleIndent
+  }
+
+  function decrementIndent()
+  {
+    var currIndentNum = indent.length / singleIndent.length;
+    indent = ""
+    for(var i = 0; i < currIndentNum - 1; i++)
+      indent += singleIndent
+  }
+
+  function removeBranchDependencies(branchIdx, isOnGroup)
+  {
+    for (var i = 0; i < graph.branchDescs.length; i++)
+    {
+      var branch = graph.branchDescs[i];
+      for (var j = 0; j < branch.branchDependency.length; j++)
+      {
+        var dependency = branch.branchDependency[j];
+        if (dependency.branch === branchIdx && dependency.isOnGroup === isOnGroup)
+        {
+          branch.branchDependency.splice(j, 1);
+        }
+      }
+    }
+  }
+
+
+  function processBranch(branch, branchStack, permutationId)
+  {
+    if (branch.layout === "two-branch")
+    {
+      var branchNode = graph.elems[branch.nodeId];
+      var type = getPinType(branchNode, branchNode.pins[2]);
+      var branchVar = "branchVariable" + branch.nodeId;
+      hlsl += indent + type + " " + branchVar + " = " + GE_defaultValuesZero[type] + ";" + newLine;
+
+      if (branch.tag)
+        hlsl += indent + branch.tag + newLine;
+
+      hlsl += indent + "if (" + branch.var + ">=" + branch.value + ")" + newLine;
+      hlsl += indent + "{" + newLine;
+
+      var newStack = branchStack;
+      newStack.push(branch.branchIndex);
+
+      incrementIndent()
+      removeBranchDependencies(branch.branchIndex, true);
+      processSubGroup(branch.onGroup, newStack, permutationId);
+      hlsl += indent + branchVar + " = " + substitute("$" + branchNode.pins[0].name + "$", branchNode) + ";" + newLine;
+
+      decrementIndent();
+      hlsl += indent + "}" + newLine;
+      hlsl += indent + "else" + newLine;
+      hlsl += indent + "{" + newLine;
+
+      incrementIndent();
+      removeBranchDependencies(branch.branchIndex, false);
+      processSubGroup(branch.offGroup, newStack, permutationId);
+      hlsl += indent + branchVar + " = " + substitute("$" + branchNode.pins[1].name + "$", branchNode) + ";" + newLine;
+
+      decrementIndent();
+      hlsl += indent + "}" + newLine;
+
+      branch.processed = true;
+      processGraphElem(branch.nodeId, newStack, permutationId);
+    }
+    else
+    {
+      var outputVar = "outputVariable" + branch.nodeId;
+      var branchNode = graph.elems[branch.nodeId];
+      var outputName = "_v_" + branch.nodeId + "_" + branch.outputPinIdx;
+
+      var newStack = branchStack;
+      newStack.push(branch.branchIndex);
+
+      hlsl += indent + "NBSGbuffer " + outputVar + " = " + substitute("$gbuffer$", branchNode) + ";" + newLine;
+      hlsl += indent + "// Control Gen for " + outputVar +  ";" + newLine;
+      removeBranchDependencies(branch.branchIndex, false);
+      processSubGroup(branch.ctrlGroup, newStack, permutationId);
+
+      if (branch.tag)
+        hlsl += indent + branch.tag + newLine;
+
+      hlsl += indent + "if (" + substitute("$control$", branchNode) + ")" + newLine;
+      hlsl += indent + "{" + newLine;
+
+      incrementIndent();
+      removeBranchDependencies(branch.branchIndex, true);
+      processSubGroup(branch.layerGroup, newStack, permutationId);
+
+      processGraphElem(branch.nodeId, newStack, permutationId);
+      hlsl += indent + outputVar + " = " + outputName + ";" + newLine;
+
+      decrementIndent();
+      hlsl += indent + "}" + newLine;
+      hlsl += indent + "NBSGbuffer " + outputName + " = " + outputVar + ";" + newLine;
+
+      branch.processed = true;
+    }
+
+  }
+
+  function processGraphElem(elemIndex, branchStack, permutationId)
   {
     var e = graph.elems[elemIndex];
 
-    if (e && !processed[elemIndex])
+    for(var i = 0; i < graph.branchDescs.length; i++)
+    {
+      var branch = graph.branchDescs[i];
+      if(branch.permutationId === permutationId && branch.dependecySet.length === 0 && !branch.processed && branch.branchDependency.length == 0 && branchStack.indexOf(branch.branchIndex) == -1)
+      {
+        processBranch(branch, branchStack, permutationId);
+        return true;
+      }
+    }
+
+    if (permutationId === -1)
+    {
+      for(var i = 0; i < graph.permSubGroups.length; i++)
+      {
+        var permSubGroup = graph.permSubGroups[i];
+        if (permSubGroup.dependencySet.length === 0 && !permSubGroup.processed)
+        {
+          processPermutation(permSubGroup.subGroup, [], permSubGroup.idx);
+          permSubGroup.processed = true;
+          return true;
+        }
+      }
+    }
+
+    var groupCheckPassed = e && (!e.inGroup || branchStack.length != 0);
+    if (groupCheckPassed && !processed[elemIndex] && e.permutationId === permutationId)
     {
       var allInProcessed = true;
       for (var pinIndex = 0; pinIndex < e.pins.length; pinIndex++)
@@ -3298,6 +3630,21 @@ function generateAdditionalText(graph, useVarPool)
       if (allInProcessed)
       {
         processed[elemIndex] = true;
+        for(var i = 0; i < graph.branchDescs.length; i++)
+        {
+          var branch = graph.branchDescs[i];
+          var removeIndex = branch.dependecySet.indexOf(elemIndex);
+          if (removeIndex >= 0)
+            branch.dependecySet.splice(removeIndex, 1);
+        }
+
+        for (var i = 0; i < graph.permSubGroups.length; i++)
+        {
+          var permSubGroup = graph.permSubGroups[i];
+          var removeIdx = permSubGroup.dependencySet.indexOf(elemIndex);
+          if (removeIdx >= 0)
+            permSubGroup.dependencySet.splice(removeIdx, 1);
+        }
 
         for (var j = 0; j < e.pins.length; j++)
         {
@@ -3314,17 +3661,7 @@ function generateAdditionalText(graph, useVarPool)
               hlsl += indent + substitute(p.data.code, e) + ";" + newLine;
             else // out
             {
-              var t = p.types[0];
-
-              if (p.types.length > 1 && p.group)
-              {
-                for (var k = 0; k < e.pins.length; k++)
-                  if (k != j && e.pins[k].group === p.group && e.pins[k].types.length == 1)
-                  {
-                    t = e.pins[k].types[0];
-                    break;
-                  }
-              }
+              var t = getPinType(e, p);
 
               if (p.connected)
               {
@@ -3360,7 +3697,7 @@ function generateAdditionalText(graph, useVarPool)
       changed = false;
       for (var i = 0; i < earlyExitConnections.length; i++)
       {
-        if (processGraphElem(earlyExitConnections[i]))
+        if (processGraphElem(earlyExitConnections[i], [], -1))
         {
           changed = true;
         }
@@ -3373,12 +3710,12 @@ function generateAdditionalText(graph, useVarPool)
   }
 
   var changed = true;
-  for (var iteration = 0; changed && iteration < graph.elemCount; iteration++)
+  for (var iteration = 0; iteration < graph.elemCount; iteration++)
   {
     changed = false;
     for (var i = 0; i < graph.elemCount; i++)
     {
-      if (processGraphElem(i))
+      if (processGraphElem(i, [], -1))
       {
         changed = true;
       }

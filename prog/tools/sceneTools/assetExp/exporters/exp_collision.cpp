@@ -945,12 +945,13 @@ public:
         if (n.type == COLLISION_NODE_TYPE_MESH)
         {
           MeshData m;
-          if (!*label && n.tm.det() > 0) // require left matrix in initial data
+          const TMatrix &nTm = coll.getNodeTm(n.nodeIndex);
+          if (!*label && nTm.det() > 0) // require left matrix in initial data
           {
             if (report_inverted_mesh_tm)
-              log.addMessage(log.ERROR, "%s: bad mesh node \"%s\" tm=%@", a.getName(), n.name, n.tm);
+              log.addMessage(log.ERROR, "%s: bad mesh node \"%s\" tm=%@", a.getName(), coll.getNodeName(n.nodeIndex), nTm);
             else
-              logwarn("%s: bad mesh node \"%s\" tm=%@", a.getName(), n.name, n.tm);
+              logwarn("%s: bad mesh node \"%s\" tm=%@", a.getName(), coll.getNodeName(n.nodeIndex), nTm);
             bad_tm_cnt++;
           }
           m.vert.resize(n.vertices.size());
@@ -961,22 +962,24 @@ public:
             for (unsigned fi = 0; fi < 3; fi++)
               m.face[i].v[fi] = n.indices[i * 3 + fi];
 
-          float weld_eps = a.props.getReal("meshVertWeldEps", 1e-3f) * safeinv(n.cachedMaxTmScale);
+          float maxTmScale = coll.getNodeMaxTmScale(n.nodeIndex);
+          float weld_eps = a.props.getReal("meshVertWeldEps", 1e-3f) * safeinv(maxTmScale);
           unsigned zeroarea_faces_cnt = 0;
           m.kill_unused_verts(weld_eps * weld_eps);
           m.kill_bad_faces();
-          if (n.cachedMaxTmScale <= 1.0f)
+          if (maxTmScale <= 1.0f)
             for (unsigned i = 0; i < m.face.size(); i++)
               if (lengthSq((m.vert[m.face[i].v[1]] - m.vert[m.face[i].v[0]]) % (m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]])) <
                   degenerate_tri_area_threshold_sq)
               {
                 zeroarea_faces_cnt++;
-                logerr("%s: %sdegenerate tri %d,%d,%d: %@, %@, %@ (edge len: %g, %g, %g; area threshold %g) node \"%s\" TV=%@, %@, %@",
+                logwarn("%s: %sdegenerate tri %d,%d,%d: %@, %@, %@ (edge len: %g, %g, %g; area thres. %g) node \"%s\" TV=%@, %@, %@",
                   a.getName(), label, m.face[i].v[0], m.face[i].v[1], m.face[i].v[2], //
                   m.vert[m.face[i].v[0]], m.vert[m.face[i].v[1]], m.vert[m.face[i].v[2]],
                   length(m.vert[m.face[i].v[0]] - m.vert[m.face[i].v[1]]), length(m.vert[m.face[i].v[1]] - m.vert[m.face[i].v[2]]),
-                  length(m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]]), sqrtf(degenerate_tri_area_threshold_sq), n.name,
-                  n.tm * m.vert[m.face[i].v[0]], n.tm * m.vert[m.face[i].v[1]], n.tm * m.vert[m.face[i].v[2]]);
+                  length(m.vert[m.face[i].v[2]] - m.vert[m.face[i].v[0]]), sqrtf(degenerate_tri_area_threshold_sq),
+                  coll.getNodeName(n.nodeIndex), nTm * m.vert[m.face[i].v[0]], nTm * m.vert[m.face[i].v[1]],
+                  nTm * m.vert[m.face[i].v[2]]);
                 m.removeFacesFast(i, 1);
                 i--;
               }
@@ -989,12 +992,12 @@ public:
               degenerate_meshes_cnt++;
               if (degenerative_mesh_strategy == DEGENERATIVE_MESH_DO_ERROR)
                 log.addMessage(log.ERROR, "%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@",
-                  a.getName(), label, n.name, n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(),
-                  n.cachedMaxTmScale, weld_eps, n.modelBBox);
+                  a.getName(), label, coll.getNodeName(n.nodeIndex), n.vertices.size(), m.vert.size(), n.indices.size() / 3,
+                  m.face.size(), maxTmScale, weld_eps, coll.getNodeBBox(n.nodeIndex));
               else
                 logwarn("%s: %sdegenerate mesh node \"%s\": vert=%d->%d face=%d->%d maxTmScale=%g eps=%g bbox=%@", a.getName(), label,
-                  n.name, n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), n.cachedMaxTmScale, weld_eps,
-                  n.modelBBox);
+                  coll.getNodeName(n.nodeIndex), n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), maxTmScale,
+                  weld_eps, coll.getNodeBBox(n.nodeIndex));
               for (unsigned i = 0; i < n.vertices.size(); i++)
                 debug("  v[%3d]=%+g,%+g,%+g", i, n.vertices[i].x, n.vertices[i].y, n.vertices[i].z);
               for (unsigned i = 0; i < n.indices.size(); i += 3)
@@ -1011,11 +1014,11 @@ public:
 
             if (zeroarea_faces_cnt)
               logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g (%d zero-area faces removed)",
-                a.getName(), label, n.name, n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), weld_eps,
-                zeroarea_faces_cnt);
+                a.getName(), label, coll.getNodeName(n.nodeIndex), n.vertices.size(), m.vert.size(), n.indices.size() / 3,
+                m.face.size(), weld_eps, zeroarea_faces_cnt);
             else
-              logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g", a.getName(), label, n.name,
-                n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), weld_eps);
+              logwarn("%s: %soptimized mesh node \"%s\": vert=%d->%d face=%d->%d, weld_eps=%g", a.getName(), label,
+                coll.getNodeName(n.nodeIndex), n.vertices.size(), m.vert.size(), n.indices.size() / 3, m.face.size(), weld_eps);
 
             if (n.vertices.size() != m.vert.size())
               n.resetVertices({memalloc_typed<Point3_vec4>(m.vert.size(), midmem), (int)m.vert.size()});
@@ -1074,6 +1077,11 @@ public:
       }
     }
 
+    // do last verification after collapse, because Jolt uses quantization
+    bool skipJoltValidation = a.props.getBool("skipJoltValidation", false);
+    if (!skipJoltValidation && !coll.validateVerticesForJolt(a.getName()))
+      return false;
+
     // write back uncompressed data in modern format
     mcwr.reset(128 << 10);
     writeCollisionData(coll, mcwr);
@@ -1121,27 +1129,34 @@ public:
     cwr.writeFloat32e(c.boundingSphereRad);
     cwr.writeInt32e(c.collisionFlags);
 
+    auto serTracer = [&](auto &t) {
+      using T = eastl::remove_const_t<typename eastl::remove_cvref_t<decltype(t)>::element_type>;
+      const_cast<T *>(t.get())->serialize(cwr.getRawWriter(), cwr.WRITE_BE, nullptr, false);
+    };
     if (c.collisionFlags & COLLISION_RES_FLAG_HAS_TRACE_FRT)
-      c.gridForTraceable.tracer->serialize(cwr.getRawWriter(), cwr.WRITE_BE, nullptr, false);
+      serTracer(c.gridForTraceable.tracer);
     if ((c.collisionFlags & COLLISION_RES_FLAG_HAS_COLL_FRT) && !(c.collisionFlags & COLLISION_RES_FLAG_REUSE_TRACE_FRT))
-      c.gridForCollidable.tracer->serialize(cwr.getRawWriter(), cwr.WRITE_BE, nullptr, false);
+      serTracer(c.gridForCollidable.tracer);
 
     cwr.writeInt32e(c.allNodesList.size());
     for (const auto &n : c.allNodesList)
     {
-      cwr.writeDwString(n.name);
+      cwr.writeDwString(c.getNodeName(n.nodeIndex));
       cwr.writeDwString(n.physMatId != PHYSMAT_INVALID ? phmatNames.getName(n.physMatId) : "");
-      cwr.write32ex(&n.modelBBox, sizeof(n.modelBBox));
-      cwr.write32ex(&n.boundingSphere, sizeof(n.boundingSphere));
+      BBox3 nodeBBox = c.getNodeBBox(n.nodeIndex);
+      BSphere3 nodeBSphere = c.getNodeBSphere(n.nodeIndex);
+      cwr.write32ex(&nodeBBox, sizeof(nodeBBox));
+      cwr.write32ex(&nodeBSphere, sizeof(nodeBSphere));
       cwr.writeInt16e(n.behaviorFlags);
       cwr.writeInt8e(n.flags);
       cwr.writeInt8e(n.type);
-      cwr.writeFloat32e(n.cachedMaxTmScale);
-      cwr.write32ex(&n.tm, sizeof(n.tm));
+      cwr.writeFloat32e(c.getNodeMaxTmScale(n.nodeIndex));
+      const TMatrix &sTm = c.getNodeTm(n.nodeIndex);
+      cwr.write32ex(&sTm, sizeof(sTm));
       cwr.writeInt16e(n.insideOfNode);
 
-      cwr.writeInt16e(n.convexPlanes.size());
-      cwr.write32ex(n.convexPlanes.data(), data_size(n.convexPlanes));
+      cwr.writeInt16e(c.getNodeConvexPlanes(n.nodeIndex).size());
+      cwr.write32ex(c.getNodeConvexPlanes(n.nodeIndex).data(), data_size(c.getNodeConvexPlanes(n.nodeIndex)));
 
       cwr.writeInt32e(n.vertices.size());
       if ((n.flags & n.FLAG_VERTICES_ARE_REFS) && n.vertices.size())

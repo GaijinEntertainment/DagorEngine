@@ -11,6 +11,7 @@
 #include <heightmap/lodGrid.h>
 #include <3d/dag_resPtr.h>
 #include <EASTL/optional.h>
+#include <heightmap/heightmapCullingQuality.h>
 
 
 class HeightmapHandler;
@@ -20,13 +21,10 @@ struct LodGridVertexData
   Ibuffer *ib = nullptr;
   Ibuffer *quadsIb = nullptr;
   int patchDim = 0;
-  int faceCnt = 0;
-  int quadsCnt = 0;
-  int verticesCnt = 0, indicesCnt = 0, quadsIndicesCnt = 0;
   volatile int refCnt = 0;
   bool recreateBuffers = false;
   void close();
-  bool init(int dim);
+  bool init(int dim_start);
   bool createBuffers();
   void beforeResetDevice();
   void afterResetDevice();
@@ -104,27 +102,44 @@ struct LodGridCullData
     ADD_TRICNT
   };
   carray<Tab<LodGridPatchParams>, ADD_TRICNT> additionalTriPatches;
+  Tab<uint8_t> edgesData;
+  Tab<uint32_t> morphData;
   bool hasAdditionalTriPatches() const
   {
     return !additionalTriPatches[0].empty() || !additionalTriPatches[1].empty() || !additionalTriPatches[2].empty();
   }
   bool hasPatches() const { return !patches.empty() || hasAdditionalTriPatches(); }
+  uint32_t morph_at = 0, morph_no_edges_at = 0, edges_at = 0;
   int startFlipped = 1000000;      // starting from startFlipped, patches triangulation is flipped
   Point2 originPos = Point2::ZERO; // just in case
   float scaleX = 1;
   uint32_t lod0PatchesCount = 0;
   LodGrid lodGrid;
   Point4 worldToLod0 = Point4::ZERO;
+  float maxDisplacementErrAtMaxLod = 0.f;
   bool useHWTesselation = true;
+  bool exact_edges = false;
   eastl::optional<Frustum> frustum;
 
-  LodGridCullData(IMemAlloc *mem = midmem) : patches(mem) {}
+  LodGridCullData(IMemAlloc *mem = midmem) : patches(mem), edgesData(mem), morphData(mem) {}
   int getCount() const { return patches.size(); }
-  void eraseAll() { patches.clear(); }
+  void eraseAll()
+  {
+    morph_at = morph_no_edges_at = edges_at = 0;
+    edgesData.clear();
+    morphData.clear();
+    patches.clear();
+    for (int i = 0; i < additionalTriPatches.size(); ++i)
+      additionalTriPatches[i].clear();
+    startFlipped = 1000000;
+  }
 };
 
 class Occlusion;
 class HMapTesselationData;
+
+static inline float proj_to_distance_scale(const TMatrix4 &proj) { return proj._34 > 0 ? max(fabsf(proj._11), fabsf(proj._22)) : 0; }
+
 struct HeightmapFrustumCullingInfo
 {
   Point3 world_pos = {0, 0, 0};
@@ -132,25 +147,22 @@ struct HeightmapFrustumCullingInfo
   float water_level = HeightmapHeightCulling::NO_WATER_ON_LEVEL;
   Frustum frustum;
   const Occlusion *occlusion = nullptr;
+  const vec4f *world_bbox_xzs = nullptr;
   int min_tank_lod = 0;
   int lod0subdiv = 0;
   float lod0scale = 1.0f;
-  // this is view projection, not current projection. it is used for finding the distance scale (zoom). For CSM it is main camera one.
-  TMatrix4 proj = TMatrix4::IDENT;
-  float maxRelativeTexelTess = 0; // if maxRelativeTexelTess > 0, we won't tesselate more than said amount of texels. 2 means at most
-                                  // over tesselation of 2, 0.5 - under tesselation of 0.5
-  enum : uint8_t
-  {
-    FASTEST = 0,
-    USE_MORPH = 1,
-    EXACT_EDGES = 2,
-    BEST = USE_MORPH | EXACT_EDGES
-  } quality = BEST;
+  HeightmapMetricsQuality metrics;
 };
 
 
 void cull_lod_grid(const LodGrid &lodGrid, int max_lod, float originPosX, float originPosY, float scaleX, float scaleY, float alignX,
   float alignY, float hMin, float hMax, const Frustum *frustum, const BBox2 *clip, LodGridCullData &cull_data,
   const Occlusion *occlusion, float &out_lod0_area_radius, int hmap_tess_factorVarId = -1, int dim = default_patch_dim,
-  bool fight_t_junctions = true, const HeightmapHeightCulling *handler = NULL, const HMapTesselationData *hmap_tdata = NULL,
-  BBox2 *lodsRegion = nullptr, float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL, const Point3 *viewPos = nullptr);
+  bool fight_t_junctions = true, const HeightmapHeightCulling *handler = NULL, BBox2 *lodsRegion = nullptr,
+  float waterLevel = HeightmapHeightCulling::NO_WATER_ON_LEVEL, const Point3 *viewPos = nullptr,
+  eastl::function<bool(const Point3_vec4 &pos, const Point3_vec4 &posRB)> cullCb = {});
+
+struct MetricsErrors;
+void cull_lod_grid3(const MetricsErrors &errors, LodGridCullData &cull_data, const Frustum &frustum, const Occlusion *use_occlusion,
+  float hMin, float hMax, const BBox2 &clip, float maxUpwardDisplacement, float maxDownwardDisplacement, bool mirror, vec3f vp,
+  const vec4f *bbox2, const HeightmapMetricsQuality &q);

@@ -7,6 +7,8 @@
 #include <osApiWrappers/dag_spinlock.h>
 #include "texture.h"
 #include "buffer.h"
+#include "async_completion_state.h"
+#include "resource_update_buffer.h"
 
 namespace drv3d_vulkan
 {
@@ -81,6 +83,24 @@ struct BufferPool : public ExternalResourcePool<GenericBufferInterface>
     OSSpinlockScopedLock lock{guard};
 
     return data.allocate(struct_size, element_count, flags, format, managed, stat_name);
+  }
+};
+
+struct EventQueryPool : public ExternalResourcePool<AsyncCompletionState>
+{
+  AsyncCompletionState *allocate()
+  {
+    OSSpinlockScopedLock lock{guard};
+    return data.allocate();
+  }
+};
+
+struct ResUpdateBufferPool : public ExternalResourcePool<ResUpdateBufferImp>
+{
+  ResUpdateBufferImp *allocate()
+  {
+    OSSpinlockScopedLock lock{guard};
+    return data.allocate();
   }
 };
 

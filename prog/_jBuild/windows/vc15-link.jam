@@ -16,26 +16,34 @@ rule SignPackageRule
 
 rule ProcessLinkTarget
 {
-  local _WIN_LIBS = user32.lib ole32.lib kernel32.lib gdi32.lib winmm.lib dbghelp.lib ;
+  if $(PlatformArch) = x86 { BaseAddress ?= 0x00400000 ; }
+
+  local _ADD_LIBS = $(1) ;
+  _LINK_OPT = ;
   if $(Sanitize) = address {
-    if $(PlatformSpec) = vc17 {
-      _WIN_LIBS += clang_rt.asan_static_runtime_thunk-x86_64.lib ;
-    } else {
-      _WIN_LIBS += clang_rt.asan-x86_64.lib ;
+    if $(PlatformSpec) != clang || $(CLangVer) >= 20 {
+      # Implicit `/INFERASANLIBS` should do the right thing by default (https://devblogs.microsoft.com/cppblog/msvc-address-sanitizer-one-dll-for-all-runtime-configurations/)
+    }
+    else {
+      if $(TargetType) = exe {
+          _ADD_LIBS += clang_rt.asan-x86_64.lib ;
+          _LINK_OPT += /WHOLEARCHIVE:clang_rt.asan-x86_64.lib ;
+      }
+      else if $(TargetType) = dll { _ADD_LIBS += clang_rt.asan_dll_thunk-x86_64.lib ; }
+      if $(CLangVer) >= 16 {
+        _LINK_OPT += -inferasanlibs:no ; # to avoid duplicate symbols linker error https://learn.microsoft.com/en-us/cpp/sanitizers/asan-building?view=msvc-170#inferasanlibsno-linker-option
+      }
     }
   }
-  _WIN_LIBS += $(AdditionalWinLibs) ;
-  if $(PlatformArch) = x86 { BaseAddress ?= 0x00400000 ; }
 
   if $(TargetType) = exe
   {
-    _LINK_OPT = -nologo $(FileAlignLinkOption):512 -base:$(BaseAddress) -incremental:no ;
+    local _WIN_LIBS = user32.lib ole32.lib kernel32.lib gdi32.lib winmm.lib dbghelp.lib ;
+    _WIN_LIBS += $(AdditionalWinLibs) ;
+    _LINK_OPT += -nologo $(FileAlignLinkOption):512 -base:$(BaseAddress) -incremental:no ;
     if $(PlatformArch) = x86 { _LINK_OPT += /LARGEADDRESSAWARE ; }
     if $(Sanitize) != disabled {
       _LINK_OPT += /FUNCTIONPADMIN ;
-      if $(Sanitize) = address && $(PlatformSpec) = clang && $(CLangVer:B) in 16.0 17.0 18.1 19.1 {
-        _LINK_OPT += -inferasanlibs:no ; # to avoid duplicate simbols linker error https://learn.microsoft.com/en-us/cpp/sanitizers/asan-building?view=msvc-170#inferasanlibsno-linker-option
-      }
     }
 
     local __sstype = windows ; local __ssver = 5.02 ;
@@ -68,7 +76,7 @@ rule ProcessLinkTarget
       }
     }
 
-    if $(UseGDK) != no {
+    if $(UseGDK) = yes {
       CopyGDKMedia ;
       CopyGDKDlls ;
       ProcessGDKManifest ;
@@ -100,6 +108,8 @@ rule ProcessLinkTarget
     LinkExeSetMap $(Target) : ;
     LinkExeSetBuildStamp $(Target) ;
     LinkAddManifest $(Target) : $(OutDir) ;
+
+    _ADD_LIBS += $(_WIN_LIBS) ;
   }
   else if $(TargetType) = lib
   {
@@ -112,7 +122,7 @@ rule ProcessLinkTarget
   }
   else if $(TargetType) = dll
   {
-    _LINK_OPT = -nologo -dll -subsystem:windows -base:$(BaseAddress) -incremental:no ;
+    _LINK_OPT += -nologo -dll -subsystem:windows -base:$(BaseAddress) -incremental:no ;
     if $(PlatformArch) = x86 { _LINK_OPT += /LARGEADDRESSAWARE ; }
     if $(Config) != dbg {
       _LINK_OPT += -opt:ref ;
@@ -128,11 +138,6 @@ rule ProcessLinkTarget
     LinkDllSetMapExpLib $(Target) : $(OutDir) : ;
   }
 
-  local _ADD_LIBS = $(1) ;
-
-  if $(TargetType) = exe {
-    _ADD_LIBS += $(_WIN_LIBS) ;
-  }
 
   $(Target)__LINK_LIBS = $(_ADD_LIBS) ;
 }

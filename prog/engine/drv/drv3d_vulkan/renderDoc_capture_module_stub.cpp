@@ -6,6 +6,7 @@ namespace drv3d_vulkan
 {
 void RenderDocCaptureModule::init() {}
 void RenderDocCaptureModule::shutdown() {}
+void RenderDocCaptureModule::setCapturePathTemplate(const wchar_t * /*name*/) {}
 void RenderDocCaptureModule::triggerCapture(uint32_t /*count*/){};
 void RenderDocCaptureModule::beginCapture() {}
 void RenderDocCaptureModule::endCapture() {}

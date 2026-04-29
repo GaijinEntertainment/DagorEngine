@@ -5,6 +5,7 @@
 #include "shVariantContext.h"
 #include "variantSemantic.h"
 #include "commonUtils.h"
+#include <dag/dag_vectorSet.h>
 
 class StcodeBranchedBuildEvalCB : public ShaderParser::ShaderEvalCB
 {
@@ -13,11 +14,15 @@ class StcodeBranchedBuildEvalCB : public ShaderParser::ShaderEvalCB
   // Cached from ctx
   Parser &parser;
 
+  StcodePass &cppStcode;
+
   ska::flat_hash_map<uintptr_t, ShVarBool> boolEvalResults{};
   ska::flat_hash_set<const state_block_stat *> preshaderStatementsUsedInAnyVariant{};
 
+  dag::VectorSet<const Terminal *> preshaderVarsNeedingSamplerAsm{};
+
 public:
-  explicit StcodeBranchedBuildEvalCB(shc::VariantContext &a_ctx);
+  StcodeBranchedBuildEvalCB(StcodePass &built_cppstcode, shc::VariantContext &a_ctx);
 
   PINNED_TYPE(StcodeBranchedBuildEvalCB)
 

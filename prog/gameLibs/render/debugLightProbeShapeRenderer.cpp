@@ -37,7 +37,7 @@ void draw_transformed_cylinder_shape(mat44f_cref m, const BBox3 &box, E3DCOLOR c
   v_mat_43ca_from_mat44(tm.m[0], m);
 
   Point3 boxSize(v_extract_x(v_length3_x(m.col0)), v_extract_x(v_length3_x(m.col1)), v_extract_x(v_length3_x(m.col2)));
-  float width = min(boxSize.x, min(boxSize.y, boxSize.z));
+  float width = min(boxSize.x, boxSize.y);
   float radius = width / 2.0f;
 
   Point3 a(0, 0, 0.5f);

@@ -1,2 +1,3 @@
 file:t = "spline_geometry/shaders/spline_gen_geometry.dshl"
 file:t = "spline_geometry/shaders/spline_gen_attachment.dshl"
+file:t = "spline_geometry/shaders/bvh_process_splinegen_vertices.dshl"

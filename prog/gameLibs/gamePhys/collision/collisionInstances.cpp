@@ -53,7 +53,7 @@ static CollisionObject create_bullet_scaled_copy(const CollisionObject &obj, con
 
 void set_add_instances_to_world(bool flag) { add_instances_to_world = flag; }
 
-void set_ttl_for_collision_instances(float value) { default_time_to_live = value; }
+float exchange_ttl_for_collision_instances(float value) { return eastl::exchange(default_time_to_live, value); }
 
 extern void push_non_empty_ri_instance_list(CollisionInstances &ci);
 
@@ -202,24 +202,32 @@ CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc,
     cobj.body->patchCollisionScaledCopy(scaledInstance->scale, originalObj.body);
   }
 
-  if (!instant)
-    cobj.body->setTm(normTm);
-  else
-    cobj.body->setTmInstant(normTm);
-
+  auto setTm = [&](const TMatrix &ntm) {
+    if (!instant)
+      cobj.body->setTm(ntm);
+    else
+      cobj.body->setTmInstant(ntm);
+  };
   if (created)
   {
+    setTm(normTm);
     cobj.body->setGroupAndLayerMask(EPL_STATIC, EPL_ALL & ~(EPL_KINEMATIC | EPL_STATIC));
     if (add_instances_to_world)
       get_phys_world()->addBody(cobj.body, /*kinematic*/ false); // After initial tm setup
   }
+  else
+#ifdef USE_JOLT_PHYSICS
+    cobj.body->setTmWhenChanged(normTm);
+#else
+    setTm(normTm);
+#endif
 
   return cobj;
 }
 
 CollisionObject CollisionInstances::updateTm(const rendinst::RendInstDesc &desc, const Point3 &vel, const Point3 &omega)
 {
-  if (!rendinst::isRiGenDescValid(desc) || !isCollisionObjectEnabled(desc))
+  if (!rendinst::isRiGenDescInGrid(desc) || !isCollisionObjectEnabled(desc))
     return CollisionObject();
   TMatrix tm = rendinst::getRIGenMatrix(desc);
   if (CollisionObject cobj = updateTm(desc, tm))

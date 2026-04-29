@@ -21,19 +21,12 @@ void writeHistory32(danet::BitStream &bs, uint32_t data);
 
 // Time
 double alignTime(double time, float fixed_dt);
-inline int floorPhysicsTickNumber(float time, float fixed_dt)
+inline int floorPhysicsTickNumber(double time, float fixed_dt)
 {
   return int(time / fixed_dt); // conversion to int always truncates (round-to-zero)
 }
-inline int nearestPhysicsTickNumber(float time, float fixed_dt)
-{
-#if _TARGET_SIMD_SSE > 0
-  return _mm_cvtss_si32(_mm_set_ss(time / fixed_dt));
-#else
-  return int(time / fixed_dt + 0.5f);
-#endif
-}
-inline int ceilPhysicsTickNumber(float time, float fixed_dt)
+inline int nearestPhysicsTickNumber(double time, float fixed_dt) { return ::round(time / fixed_dt); }
+inline int ceilPhysicsTickNumber(double time, float fixed_dt)
 {
   // Note: difference from std ceil() - for exactly divisible by fixed_dt time N this gives N+1 tick (i.e. 123.0 -> 124)
   // This is intentional, since this is how our controls/physics works

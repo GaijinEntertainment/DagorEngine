@@ -23,6 +23,7 @@ class CascadeShadowsPrivate;
 class BaseTexture;
 
 typedef eastl::fixed_function<sizeof(void *) * 5, void(int num_cascades_to_render, bool clear_per_view)> csm_render_cascades_cb_t;
+typedef eastl::fixed_function<sizeof(void *) * 5, void()> csm_render_cascade_depth_cb_t;
 
 class ICascadeShadowsClient
 {
@@ -103,8 +104,9 @@ public:
   void setDepthBiasSettings(const Settings &set);
   void setCascadeWidth(int cascadeWidth);
   void renderShadowsCascades();
-  void renderShadowsCascadesCb(const csm_render_cascades_cb_t &cb, ManagedTexView external_cascades = {});
-  void renderShadowCascadeDepth(int cascadeNo, bool clearPerView, ManagedTexView external_cascades = {});
+  void renderShadowsCascadesCb(const csm_render_cascades_cb_t &cb, BaseTexture *external_cascades = {}, bool clear_per_view = false);
+  void renderShadowCascadeDepth(int cascadeNo, bool clearPerView, BaseTexture *external_cascades = {});
+  void renderShadowCascadeDepthCb(int cascadeNo, const csm_render_cascade_depth_cb_t &cb);
 
   void setSamplingBiasToShader(float value);
   void setCascadesToShader();
@@ -132,6 +134,7 @@ public:
   float getMaxShadowDistance() const;
   const Frustum &getWholeCoveredFrustum() const;
   BaseTexture *getShadowsCascade() const;
+  ManagedTexView getShadowsCascadeView() const;
   d3d::SamplerHandle getShadowsCascadeSampler() const;
   const TextureInfo &getShadowCascadeTexInfo() const;
   const Point2 &getZnZf(int cascade_no) const;

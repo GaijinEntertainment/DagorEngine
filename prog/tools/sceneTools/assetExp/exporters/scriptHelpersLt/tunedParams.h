@@ -29,6 +29,10 @@ public:
   virtual void fillPropPanel(ObjectParameters &, int &, IPropPanelCB &) {}
   virtual void getValues(ObjectParameters &, int &) {}
   virtual bool onPPButtonPressed(int, IPropPanelCB &) { return false; }
+  virtual void setValue(int, IPropPanelCB &) {}
+  virtual TunedElement *findById(const int, int &) { return nullptr; }
+  virtual bool isArrayActionById(const int, int &) { return false; }
+  virtual bool undoOperation(int, IPropPanelCB &, TunedElement *) { return false; }
 
   virtual void saveData(mkbindump::BinDumpSaveCB &cwr, SaveDataCB *save_cb) = 0;
 
@@ -177,6 +181,7 @@ TunedElement *create_tuned_gradient_box(const char *name);
 TunedElement *create_tuned_ref_slot(const char *name, const char *type_name);
 
 TunedElement *create_tuned_array(const char *name, TunedElement *base_element);
+TunedElement *create_tuned_visibility_array(const char *name, TunedElement *base_element);
 
 TunedGroup *create_tuned_struct(const char *name, int version, dag::ConstSpan<TunedElement *> elems);
 

@@ -1,0 +1,21 @@
+options gen2
+
+require daslib/daspkg
+require strings
+
+[export]
+def package() {
+    package_name("sdk-aware-pkg")
+    package_description("Package with SDK-aware version resolution")
+}
+
+[export]
+def resolve(sdk_version, version : string) {
+    if (version == "" || version == "latest") {
+        download_tag("v2.0")
+    } elif (version == "1.x") {
+        download_tag("v1.5")
+    } else {
+        download_tag("v{version}")
+    }
+}

@@ -8,7 +8,8 @@ include $(Root)/prog/_jBuild/defaults.jam ;
 
 AddIncludes = 
   $(Root)/prog/gameLibs/publicInclude
-  $(Root)/prog/3rdPartyLibs/Detour/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/Detour/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/DetourTileCache/Include
   $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
 ;
 
@@ -19,11 +20,16 @@ Sources =
 ;
 
 UseProgLibs +=
-  3rdPartyLibs/Detour
-  3rdPartyLibs/arc/fastlz
+  3rdPartyLibs/recastnavigation/Detour
+  3rdPartyLibs/recastnavigation/DetourTileCache
   3rdPartyLibs/arc/zstd-$(ZstdVer)
   gameLibs/gameMath
 ;
 if $(BuildingTools) = yes { Target = $(Target:S=~t.lib) ; CPPopt = -D_TARGET_PC_TOOLS_BUILD ; }
+if $(PathFinderFastLzSupport) = yes {
+  UseProgLibs += 3rdPartyLibs/arc/fastlz ;
+  Target = $(Target:S=~flz.lib) ;
+  opt on tileCacheCommon.cpp += -DFAST_LZ_SUPPORTED ;
+}
 
 include $(Root)/prog/_jBuild/build.jam ;

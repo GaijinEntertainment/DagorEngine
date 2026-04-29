@@ -4,9 +4,11 @@
 #include <hash/BLAKE3/blake3.h>
 #include <cstring>
 
+inline constexpr size_t BLAKE3_DIGEST_LENGTH = 32;
+
 struct CryptoHash
 {
-  uint8_t data[32];
+  uint8_t data[BLAKE3_DIGEST_LENGTH];
   bool operator==(const CryptoHash &a) const { return memcmp(data, a.data, sizeof(data)) == 0; }
 };
 struct CryptoHasher
@@ -29,7 +31,7 @@ struct CryptoHasher
   }
 };
 
-static inline unsigned int get_hash(const char *string)
+inline unsigned int get_hash(const char *string)
 {
   if (!string)
     return 0;
@@ -39,4 +41,11 @@ static inline unsigned int get_hash(const char *string)
     hash = ((hash << 2) ^ *pos) ^ (hash >> 30);
 
   return hash ^ (hash >> 16);
+}
+
+inline CryptoHash blake3_csum(const unsigned char *input, size_t len)
+{
+  CryptoHasher hasher{};
+  hasher.update(input, len);
+  return hasher.hash();
 }

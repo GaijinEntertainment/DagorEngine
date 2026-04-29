@@ -29,7 +29,6 @@ shader bvh_process_dynrend_indices
     output@uav : register(bvh_process_dynrend_indices_output_uav_no) hlsl { RWByteAddressBuffer output@uav; };
   }
 
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     [numthreads( 64, 1, 1 )]
     void bvh_process_dynrend_indices(uint3 dtId : SV_DispatchThreadID)

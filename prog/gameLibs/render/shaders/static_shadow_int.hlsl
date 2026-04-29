@@ -23,15 +23,21 @@
   #endif
 
   //To keep the same interface as the toroidal shadow map
-  float3 get_static_shadow_tc_base(float3 worldPos, float4 shadowWorldRenderMatrix0, float4 shadowWorldRenderMatrix1, float4 shadowWorldRenderMatrix2, float4 shadowWorldRenderMatrix3)
+  float3 get_static_shadow_tc_base(float3 worldPos, float3 shadowWorldRenderMatrix0, float3 shadowWorldRenderMatrix1, float3 shadowWorldRenderMatrix2, float3 shadowWorldRenderMatrix3)
   {
     return worldPos.x*shadowWorldRenderMatrix0.xyz + worldPos.y*shadowWorldRenderMatrix1.xyz + worldPos.z*shadowWorldRenderMatrix2.xyz + shadowWorldRenderMatrix3.xyz;
   }
+
+  float3 get_static_shadow_tc_no_vignette(float3 tc, float2 ofs_tor)
+  {
+    return float3(tc.xy * 0.5 + ofs_tor, tc.z);//todo: check xbox microcode, may be we can optimize it by smashing into one constant, i.e. tc.xy*ofs_tor.x + ofs_tor.yz
+  }
+
   float4 get_static_shadow_tc(float3 tc, float2 ofs_tor, float dither, bool hard_vignette)
   {
     float2 vignette = saturate(abs(tc.xy) * 20 - 19);
     float vignetteVal = hard_vignette ? max(abs(tc.x), abs(tc.y)) < 511./512+dither*-1./256: saturate(1.0 - dot(vignette, vignette)) ;
-    float3 uv = float3(tc.xy * 0.5 + ofs_tor, tc.z);//todo: check xbox microcode, may be we can optimize it by smashing into one constant, i.e. tc.xy*ofs_tor.x + ofs_tor.yz
+    float3 uv = get_static_shadow_tc_no_vignette(tc, ofs_tor);
     return float4(uv, vignetteVal);
   }
 

@@ -2,7 +2,7 @@
 
 #include "scriptBindings.h"
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <bindQuirrelEx/autoBind.h>
@@ -11,7 +11,6 @@
 #include <quirrel/sqEventBus/sqEventBus.h>
 #include <quirrel/base64/base64.h>
 #include <quirrel/sqDataCache/datacache.h>
-#include <quirrel/lastInputMonitor/lastInputMonitor.h>
 #if HAS_MATCHING_MODULE
 #include <quirrel/matchingModule/matchingModule.h>
 #endif
@@ -24,6 +23,9 @@
 #include "main.h"
 #include "gamelib/sound.h"
 #include "gamelib/input.h"
+#if _TARGET_PC_WIN
+#include <quirrel/win_registry/win_registry.h>
+#endif
 
 
 extern void reload_scripts(bool full_reinit);
@@ -61,15 +63,15 @@ void bind_dargbox_script_api(SqModules *module_mgr)
   bindquirrel::register_utf8(module_mgr);
   bindquirrel::register_platform_module(module_mgr);
   bindquirrel::bind_datacache(module_mgr);
-  inputmonitor::register_sq_module(module_mgr);
 
-  inputmonitor::register_input_handler();
 #if HAS_MATCHING_MODULE
   bindquirrel::matching_module::bind(module_mgr, get_io_events_poll());
 #endif
   bindquirrel::udp::bind(module_mgr);
-
-  sqeventbus::bind(module_mgr, "ui", sqeventbus::ProcessingMode::IMMEDIATE);
+#if _TARGET_PC_WIN
+  bindquirrel::register_windows_registry_module(module_mgr);
+#endif
+  sqeventbus::bind(module_mgr, "ui", sqeventbus::ProcessingMode::MANUAL_PUMP);
   gamelib::sound::bind_script(module_mgr);
   gamelib::input::bind_script(module_mgr);
 

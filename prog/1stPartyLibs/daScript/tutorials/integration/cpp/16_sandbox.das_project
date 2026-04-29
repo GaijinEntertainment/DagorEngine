@@ -1,0 +1,95 @@
+options gen2
+
+// Sandbox policy file for C++ integration tutorial 16.
+//
+// This .das_project is loaded by the host application and defines the
+// security policy for user scripts.  The compiler invokes these [export]
+// callbacks during compilation to decide what is allowed.
+//
+// Callbacks:
+//   module_get             — resolve `require` paths to files (REQUIRED)
+//   module_allowed         — whitelist which modules can be loaded
+//   module_allowed_unsafe  — control whether unsafe blocks are permitted
+//   option_allowed         — whitelist which `options` directives are accepted
+//   annotation_allowed     — whitelist which annotations are accepted
+
+require strings
+require daslib/strings_boost
+
+// Return type for module_get: (moduleName, fileName, importName)
+typedef module_info = tuple<string; string; string> const
+
+// Set by the runtime to the directory containing this .das_project file.
+var DAS_PAK_ROOT = "./"
+
+// ---------------------------------------------------------------------------
+// module_get — module path resolution (REQUIRED)
+// ---------------------------------------------------------------------------
+[export]
+def module_get(req, from : string) : module_info {
+    let rs <- split_by_chars(req, "./")
+    let mod_name = rs[length(rs) - 1]
+    if (length(rs) == 2 && rs[0] == "daslib") {
+        return (mod_name, "{get_das_root()}/daslib/{mod_name}.das", "")
+    }
+    // Relative module: resolve from the requiring file's directory
+    var fr <- split_by_chars(from, "/")
+    if (length(fr) > 0) {
+        pop(fr)
+    }
+    for (se in rs) {
+        push(fr, se)
+    }
+    let path_name = join(fr, "/") + ".das"
+    return (mod_name, path_name, "")
+}
+
+// ---------------------------------------------------------------------------
+// module_allowed — module whitelist
+// ---------------------------------------------------------------------------
+[export]
+def module_allowed(mod, filename : string) : bool {
+    if (mod == "$") {
+        return true         // built-in core (always needed)
+    }
+    if (mod == "math" || mod == "strings") {
+        return true         // safe native modules
+    }
+    if (mod == "strings_boost") {
+        return true         // safe daslib module
+    }
+    return false            // block fio, network, ast, json, etc.
+}
+
+// ---------------------------------------------------------------------------
+// module_allowed_unsafe — no module may use unsafe blocks
+// ---------------------------------------------------------------------------
+[export]
+def module_allowed_unsafe(mod, filename : string) : bool {
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// option_allowed — only safe, cosmetic options
+// ---------------------------------------------------------------------------
+[export]
+def option_allowed(opt, from : string) : bool {
+    if (opt == "gen2" || opt == "indenting") {
+        return true
+    }
+    if (opt == "no_unused_function_arguments" || opt == "no_unused_block_arguments") {
+        return true
+    }
+    return false
+}
+
+// ---------------------------------------------------------------------------
+// annotation_allowed — only common safe annotations
+// ---------------------------------------------------------------------------
+[export]
+def annotation_allowed(ann, from : string) : bool {
+    if (ann == "export" || ann == "private") {
+        return true
+    }
+    return false
+}

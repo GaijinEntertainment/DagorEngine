@@ -55,7 +55,7 @@ static void init_hmap_displacement_invalidation_es(const ecs::Event &, UniqueBuf
 }
 
 template <typename Callable>
-static void add_hmap_displacement_invalidator_ecs_query(ecs::EntityId eid, Callable c);
+static void add_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
@@ -71,7 +71,7 @@ static void add_hmap_displacement_invalidator_es(const ecs::Event &,
     return;
 
   const Point3 &objectPos = transform.getcol(3);
-  add_hmap_displacement_invalidator_ecs_query(invalidatorsManagerEid,
+  add_hmap_displacement_invalidator_ecs_query(manager, invalidatorsManagerEid,
     [&objectPos, hmap_displacement_invalidator__inner_radius, hmap_displacement_invalidator__outer_radius, eid](
       bool &hmap_displacement_invalidators__count_over_limit, UniqueBufHolder &hmap_displacement_invalidators__buffer,
       HmapDisplacementInvalidators &hmap_displacement_invalidators__data) {
@@ -89,7 +89,7 @@ static void add_hmap_displacement_invalidator_es(const ecs::Event &,
 }
 
 template <typename Callable>
-static void move_hmap_displacement_invalidator_ecs_query(ecs::EntityId eid, Callable c);
+static void move_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 ECS_TAG(render)
 ECS_TRACK(transform)
@@ -102,7 +102,7 @@ static void move_hmap_displacement_invalidator_es(
     return;
 
   const Point3 &newOjectPos = transform.getcol(3);
-  move_hmap_displacement_invalidator_ecs_query(invalidatorsManagerEid,
+  move_hmap_displacement_invalidator_ecs_query(manager, invalidatorsManagerEid,
     [&newOjectPos, eid](UniqueBufHolder &hmap_displacement_invalidators__buffer,
       HmapDisplacementInvalidators &hmap_displacement_invalidators__data) {
       if (auto it = eastl::find_if(hmap_displacement_invalidators__data.begin(), hmap_displacement_invalidators__data.end(),
@@ -121,7 +121,7 @@ static void move_hmap_displacement_invalidator_es(
 }
 
 template <typename Callable>
-static void remove_hmap_displacement_invalidator_ecs_query(ecs::EntityId eid, Callable c);
+static void remove_hmap_displacement_invalidator_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable c);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_disappear)
@@ -132,7 +132,7 @@ static void remove_hmap_displacement_invalidator_es(const ecs::Event &, ecs::Ent
   if (!invalidatorsManagerEid)
     return;
 
-  remove_hmap_displacement_invalidator_ecs_query(invalidatorsManagerEid,
+  remove_hmap_displacement_invalidator_ecs_query(manager, invalidatorsManagerEid,
     [eid](bool &hmap_displacement_invalidators__count_over_limit, UniqueBufHolder &hmap_displacement_invalidators__buffer,
       HmapDisplacementInvalidators &hmap_displacement_invalidators__data) {
       if (auto it = eastl::find_if(hmap_displacement_invalidators__data.begin(), hmap_displacement_invalidators__data.end(),

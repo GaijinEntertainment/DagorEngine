@@ -39,6 +39,8 @@ uint32_t getPipelineSignificantAppVersion()
 
 void PipelineCacheFile::load(const char *path)
 {
+  TIME_PROFILE(vulkan_load_pipeline_cache);
+
   const DataBlock *cfgBlk = Globals::cfg.getPerDriverPropertyBlock("pipelineCompiler");
   const bool allowPipelineCache = ::dgs_get_settings()->getBlockByNameEx("vulkan")->getBool("allowPipelineCache", true) &&
                                   cfgBlk->getBool("allowPipelineCache", true);
@@ -365,7 +367,14 @@ void PipelineCacheFile::storeCacheFor(const UUID &id, dag::ConstSpan<uint8_t> da
     }
   }
 
-  LocalCacheEntry &entry = localCache.push_back();
+  bool overwriteOld = localCache.size() >= MAX_UIDS;
+  if (overwriteOld)
+  {
+    for (uint32_t i = 0; i < localCache.size() - 1; ++i)
+      localCache[i] = localCache[i + 1];
+  }
+
+  LocalCacheEntry &entry = overwriteOld ? localCache.back() : localCache.push_back();
   entry.id = id;
   entry.data = data;
 }

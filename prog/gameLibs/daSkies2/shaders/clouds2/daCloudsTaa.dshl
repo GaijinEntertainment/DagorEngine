@@ -4,6 +4,7 @@ include "distanceToClouds2.dshl"
 include "clouds_tiled_dist.dshl"
 include "clouds_close_layer_outside.dshl"
 include "camera_in_camera.dshl"
+include "dynamic_resolution.dshl"
 
 float4 globtm_no_ofs_psf_0;
 float4 globtm_no_ofs_psf_1;
@@ -58,6 +59,8 @@ texture clouds_prev_taa_weight;
 float clouds_restart_taa;
 float clouds_taa_min_new_frame_weight = 0.0;
 
+int clouds_invalidate_taa_frames = 0;
+
 macro CLOUDS_TAA(code)
   (code) {
     //move_world_view_pos@f3 = move_world_view_pos;
@@ -77,7 +80,7 @@ macro CLOUDS_TAA(code)
     clouds_depth_gbuf@smp2d = clouds_depth_gbuf;
 
     clouds_color_prev@smp2d = clouds_color_prev;
-    clouds_alpha_prev@smp2d = clouds_alpha_prev;
+    clouds_alpha_prev@tex2d = clouds_alpha_prev;
     prev_globtm_no_ofs_psf@f44 = { prev_globtm_no_ofs_psf_0, prev_globtm_no_ofs_psf_1, prev_globtm_no_ofs_psf_2, prev_globtm_no_ofs_psf_3 };
     globtm_no_ofs_psf@f44 = { globtm_no_ofs_psf_0, globtm_no_ofs_psf_1, globtm_no_ofs_psf_2, globtm_no_ofs_psf_3 };
     move_world_view_pos@f3 = move_world_view_pos;
@@ -86,10 +89,12 @@ macro CLOUDS_TAA(code)
     //prev_view_vecLB@f3 = prev_view_vecLB;
     //prev_view_vecRB@f3 = prev_view_vecRB;
     clouds_color_dimensions@f4= (clouds2_resolution.x, clouds2_resolution.y, 1./clouds2_resolution.x, 1./clouds2_resolution.y);
-    //cloud_layers_altitudes_tex@smp = cloud_layers_altitudes_tex hlsl {Texture2D<float4> cloud_layers_altitudes_tex@smp;}
+    //cloud_layers_altitudes_tex@tex = cloud_layers_altitudes_tex hlsl {Texture2D<float4> cloud_layers_altitudes_tex@tex;}
     clouds_restart_taa@f1 = (clouds_restart_taa);
     clouds_tiles_threshold@f1 = (clouds_tiled_res.x*clouds_tiled_res.y*0.9,0,0,0);//90% of non empty tiles is enough to skip doing optimization
     clouds_taa_min_new_frame_weight@f1 = (clouds_taa_min_new_frame_weight);
+
+    clouds_invalidate_taa_frames@i1 = clouds_invalidate_taa_frames;
   }
   USE_CLOUDS_DISTANCE(code)
   USE_CLOUDS_DISTANCE_STUB(code)
@@ -97,6 +102,7 @@ macro CLOUDS_TAA(code)
   CLOSE_LAYER_EARLY_EXIT_STUB(code)
   VIEW_VEC_OPTIMIZED(code)
   INIT_ZNZFAR_STAGE(code)
+  INIT_DYNAMIC_RESOLUTION(code)
   hlsl(code){
     ##if (clouds_prev_depth_gbuf == NULL)
       #define DONT_CHECK_DEPTH_DISCONTINUITY 1
@@ -147,7 +153,7 @@ macro CLOUDS_TAA(code)
           clouds_depth_gbuf, clouds_depth_gbuf_samplerstate,
           clouds_prev_depth_gbuf, clouds_prev_depth_gbuf_samplerstate,
           clouds_prev_taa_weight, clouds_prev_taa_weight_samplerstate,
-          tc, clouds_color_dimensions.xy, clouds_color_dimensions.zw, TONEMAPPED_SCENE_EXPOSURE);
+          tc * current_dynamic_resolution_scale, clouds_color_dimensions.xy, clouds_color_dimensions.zw, TONEMAPPED_SCENE_EXPOSURE);
       return ret;
     }
   }
@@ -155,7 +161,7 @@ endmacro
 
 shader clouds2_taa_ps, clouds2_taa_ps_has_empty, clouds2_taa_ps_no_empty
 {
-  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(ps)
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA_WITH_EDGE_BIAS(ps)
 
   cull_mode=none;
   z_write=false;
@@ -230,7 +236,7 @@ shader clouds2_taa_ps, clouds2_taa_ps_has_empty, clouds2_taa_ps_no_empty
 
 shader clouds2_taa_cs, clouds2_taa_cs_has_empty, clouds2_taa_cs_no_empty
 {
-  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
+  INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA_WITH_EDGE_BIAS(cs)
 
   hlsl {
     #define SUPPORT_TEXTURE_GATHER 1
@@ -247,12 +253,18 @@ shader clouds2_taa_cs, clouds2_taa_cs_has_empty, clouds2_taa_cs_no_empty
     }
   }
   CLOUDS_TAA(cs)
-  (cs) { invres@f4 = (1./clouds2_resolution.x, 1./clouds2_resolution.y, 0.5/clouds2_resolution.x, 0.5/clouds2_resolution.y); }
+  (cs) {
+    invres@f4 = (1./clouds2_resolution.x, 1./clouds2_resolution.y, 0.5/clouds2_resolution.x, 0.5/clouds2_resolution.y);
+    target0@uav : register(0) hlsl {
+      RWTexture2D<float4> target0@uav;
+    }
+    target1@uav : register(1) hlsl {
+      RWTexture2D<float> target1@uav;
+    }
+  }
   //(cs) { clouds2_dispatch_groups@f2 = (clouds2_dispatch_groups); }
 
   hlsl(cs) {
-    RWTexture2D<float4> target0: register(u0);
-    RWTexture2D<float> target1: register(u1);
     #include <cloud_settings.hlsli>
     #include <L2_cache_friendly_dispatch.hlsl>
 

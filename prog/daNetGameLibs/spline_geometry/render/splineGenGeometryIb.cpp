@@ -17,7 +17,7 @@ void SplineGenGeometryIb::resize(int stripes)
     int ibSize = sizeof(uint16_t) * count;
     indexBuffer.close();
     String buffName = String(0, "SplineGenGeometryIb_%d", slices);
-    indexBuffer = dag::create_ib(ibSize, SBCF_BIND_INDEX, buffName);
+    indexBuffer = dag::create_ib(ibSize, SBCF_BIND_INDEX | SBCF_BIND_SHADER_RES, buffName);
     fillIndexBuffer(count);
   }
 }

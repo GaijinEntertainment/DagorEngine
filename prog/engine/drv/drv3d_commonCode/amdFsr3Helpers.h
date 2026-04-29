@@ -4,10 +4,10 @@
 #include "amdFsr.h"
 
 #include <osApiWrappers/dag_unicode.h>
-#if __has_include(<ffx_upscale.hpp>) // Vulkan is currently not supported in SDK 2.0
-#include <ffx_upscale.hpp>           // AMD FidelityFX™ SDK 2.0.0
-#else                                //
-#include <ffx_api/ffx_upscale.hpp>   // AMD FidelityFX™ SDK 1.1.4
+#if __has_include(<ffx_upscale.h>) // Vulkan is currently not supported in SDK 2.0
+#include <ffx_upscale.h>           // AMD FidelityFX™ SDK 2.0.0
+#else                              //
+#include <ffx_api/ffx_upscale.hpp> // AMD FidelityFX™ SDK 1.1.4
 #endif
 
 namespace amd
@@ -48,13 +48,23 @@ inline uint32_t convert(FSR::UpscalingMode mode)
   }
 }
 
-inline ffx::CreateContextDescUpscale convert(const FSR::ContextArgs &args, ffxApiHeader &next)
+inline ffxCreateContextDescUpscale convert(const FSR::ContextArgs &args, ffxApiHeader &next)
 {
-  ffx::CreateContextDescUpscale desc{};
-  desc.header.pNext = &next;
-  desc.maxUpscaleSize = {args.outputWidth, args.outputHeight};
-  desc.maxRenderSize = {args.outputWidth, args.outputHeight};
-  desc.flags = FFX_UPSCALE_ENABLE_AUTO_EXPOSURE;
+  ffxCreateContextDescUpscale desc{
+    .header{
+      .type = FFX_API_CREATE_CONTEXT_DESC_TYPE_UPSCALE,
+      .pNext = &next,
+    },
+    .flags = FFX_UPSCALE_ENABLE_AUTO_EXPOSURE,
+    .maxRenderSize{
+      .width = args.outputWidth,
+      .height = args.outputHeight,
+    },
+    .maxUpscaleSize{
+      .width = args.outputWidth,
+      .height = args.outputHeight,
+    },
+  };
   if (args.invertedDepth)
     desc.flags |= FFX_UPSCALE_ENABLE_DEPTH_INVERTED;
   if (args.enableHdr)
@@ -75,22 +85,30 @@ inline ffx::CreateContextDescUpscale convert(const FSR::ContextArgs &args, ffxAp
   return desc;
 }
 
-inline Point2 get_next_jitter(uint32_t render_width, uint32_t output_width, uint32_t &jitter_index, ffxContext context,
+inline Point2 get_next_jitter(uint32_t render_width, uint32_t output_width, int32_t &jitter_index, ffxContext context,
   PfnFfxQuery query)
 {
   ++jitter_index;
 
   Point2 jitter;
 
-  ffx::QueryDescUpscaleGetJitterOffset jitterDesc{};
-  jitterDesc.index = jitter_index;
-  jitterDesc.pOutX = &jitter.x;
-  jitterDesc.pOutY = &jitter.y;
+  ffxQueryDescUpscaleGetJitterOffset jitterDesc{
+    .header{
+      .type = FFX_API_QUERY_DESC_TYPE_UPSCALE_GETJITTEROFFSET,
+    },
+    .index = jitter_index,
+    .pOutX = &jitter.x,
+    .pOutY = &jitter.y,
+  };
 
-  ffx::QueryDescUpscaleGetJitterPhaseCount phaseCountDesc{};
-  phaseCountDesc.renderWidth = render_width;
-  phaseCountDesc.displayWidth = output_width;
-  phaseCountDesc.pOutPhaseCount = &jitterDesc.phaseCount;
+  ffxQueryDescUpscaleGetJitterPhaseCount phaseCountDesc{
+    .header{
+      .type = FFX_API_QUERY_DESC_TYPE_UPSCALE_GETJITTERPHASECOUNT,
+    },
+    .renderWidth = render_width,
+    .displayWidth = output_width,
+    .pOutPhaseCount = &jitterDesc.phaseCount,
+  };
   query(&context, &phaseCountDesc.header);
 
   query(&context, &jitterDesc.header);
@@ -99,38 +117,49 @@ inline Point2 get_next_jitter(uint32_t render_width, uint32_t output_width, uint
 }
 
 template <typename TFN>
-inline bool apply_upscaling(const FSR::UpscalingPlatformArgs &args, void *command_list, const ffxContext context,
+bool apply_upscaling(const FSR::UpscalingPlatformArgs &args, void *command_list, const ffxContext context,
   const PfnFfxDispatch dispatch, TFN tfn)
 {
   G_ASSERT(context);
 
-  ffx::DispatchDescUpscale desc{};
-
-  desc.commandList = command_list;
-  desc.color = tfn(args.colorTexture, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-  desc.depth = tfn(args.depthTexture, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-  desc.motionVectors = tfn(args.motionVectors, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-  desc.exposure = tfn(args.exposureTexture, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-  desc.output = tfn(args.outputTexture, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-  desc.reactive = tfn(nullptr, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-  desc.transparencyAndComposition = tfn(nullptr, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ);
-  desc.jitterOffset.x = args.jitter.x;
-  desc.jitterOffset.y = args.jitter.y;
-  desc.motionVectorScale.x = args.motionVectorScale.x;
-  desc.motionVectorScale.y = args.motionVectorScale.y;
-  desc.reset = args.reset;
-  desc.enableSharpening = args.sharpness > 0;
-  desc.sharpness = args.sharpness;
-  desc.frameTimeDelta = args.timeElapsed * 1000.0f; // FSR expects milliseconds
-  desc.preExposure = args.preExposure;
-  desc.renderSize.width = args.inputResolution.x;
-  desc.renderSize.height = args.inputResolution.y;
-  desc.upscaleSize.width = args.outputResolution.x;
-  desc.upscaleSize.height = args.outputResolution.y;
-  desc.cameraFovAngleVertical = args.fovY;
-  desc.cameraFar = args.farPlane;
-  desc.cameraNear = args.nearPlane;
-  desc.flags = args.debugView ? FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW : 0;
+  ffxDispatchDescUpscale desc{
+    .header{
+      .type = FFX_API_DISPATCH_DESC_TYPE_UPSCALE,
+    },
+    .commandList = command_list,
+    .color = tfn(args.colorTexture, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+    .depth = tfn(args.depthTexture, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+    .motionVectors = tfn(args.motionVectors, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+    .exposure = tfn(args.exposureTexture, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+    .reactive = tfn(nullptr, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+    .transparencyAndComposition = tfn(nullptr, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+    .output = tfn(args.outputTexture, FFX_API_RESOURCE_STATE_PIXEL_COMPUTE_READ),
+    .jitterOffset{
+      .x = args.jitter.x,
+      .y = args.jitter.y,
+    },
+    .motionVectorScale{
+      .x = args.motionVectorScale.x,
+      .y = args.motionVectorScale.y,
+    },
+    .renderSize{
+      .width = uint32_t(args.inputResolution.x),
+      .height = uint32_t(args.inputResolution.y),
+    },
+    .upscaleSize{
+      .width = uint32_t(args.outputResolution.x),
+      .height = uint32_t(args.outputResolution.y),
+    },
+    .enableSharpening = args.sharpness > 0,
+    .sharpness = args.sharpness,
+    .frameTimeDelta = args.timeElapsed * 1000.0f, // FSR expects milliseconds
+    .preExposure = args.preExposure,
+    .reset = args.reset,
+    .cameraNear = args.nearPlane,
+    .cameraFar = args.farPlane,
+    .cameraFovAngleVertical = args.fovY,
+    .flags = args.debugView ? FFX_UPSCALE_FLAG_DRAW_DEBUG_VIEW : 0u,
+  };
 
   dispatch(const_cast<ffxContext *>(&context), &desc.header);
 
@@ -140,17 +169,21 @@ inline bool apply_upscaling(const FSR::UpscalingPlatformArgs &args, void *comman
 inline IPoint2 get_rendering_resolution(FSR::UpscalingMode mode, const IPoint2 &target_resolution, ffxContext context,
   PfnFfxQuery query)
 {
-  IPoint2 result;
+  uint32_t outRenderWidth, outRenderHeight;
 
-  ffx::QueryDescUpscaleGetRenderResolutionFromQualityMode desc{};
-  desc.displayWidth = target_resolution.x;
-  desc.displayHeight = target_resolution.y;
-  desc.qualityMode = convert(mode);
-  desc.pOutRenderWidth = (uint32_t *)&result.x;
-  desc.pOutRenderHeight = (uint32_t *)&result.y;
+  ffxQueryDescUpscaleGetRenderResolutionFromQualityMode desc{
+    .header{
+      .type = FFX_API_QUERY_DESC_TYPE_UPSCALE_GETRENDERRESOLUTIONFROMQUALITYMODE,
+    },
+    .displayWidth = uint32_t(target_resolution.x),
+    .displayHeight = uint32_t(target_resolution.y),
+    .qualityMode = convert(mode),
+    .pOutRenderWidth = &outRenderWidth,
+    .pOutRenderHeight = &outRenderHeight,
+  };
   query(const_cast<ffxContext *>(&context), &desc.header);
 
-  return result;
+  return {int(outRenderWidth), int(outRenderHeight)};
 }
 
 } // namespace amd

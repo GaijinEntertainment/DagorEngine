@@ -52,7 +52,8 @@ struct BVHConnection : public bvh::BVHConnection
     if (!mapping.mapping)
     {
       String bname(64, "bvh_gpuobject_mapping_%d", id);
-      mapping.mapping = dag::buffers::create_persistent_sr_structured(sizeof(GpuObjectsBvhMapping), maxLodCount, bname);
+      mapping.mapping = dag::buffers::create_persistent_sr_structured(sizeof(GpuObjectsBvhMapping), maxLodCount, bname,
+        d3d::buffers::Init::No, RESTAG_BVH);
 
       HANDLE_LOST_DEVICE_STATE(mapping.mapping, false);
     }

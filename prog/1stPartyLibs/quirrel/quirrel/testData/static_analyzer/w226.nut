@@ -1,4 +1,3 @@
-//expect:w226
 //-file:declared-never-used
 //-file:plus-string
 

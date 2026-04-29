@@ -2,6 +2,7 @@
 
 #include "daScript/simulate/simulate.h"
 #include "daScript/simulate/heap.h"
+#include "daScript/misc/memory_model.h"
 #include "daScript/misc/debug_break.h"
 
 namespace das {
@@ -14,6 +15,13 @@ namespace das {
         g_breakpoint_string = id;
     }
 #endif
+
+    StackAllocator::StackAllocator(uint32_t size, void *mem) {
+        stackSize = size;
+        stack = stackSize ? (char*)(mem ? mem : das_aligned_alloc16(stackSize)) : nullptr;
+        reset();
+    }
+
 
     char * AnyHeapAllocator::impl_allocateIterator ( uint32_t size, const char * name, const LineInfo * info ) {
         char * data = impl_allocate(size + 16);
@@ -41,6 +49,8 @@ namespace das {
         }
         return nullptr;
     }
+
+    PersistentHeapAllocator::PersistentHeapAllocator() {}
 
     bool PersistentHeapAllocator::mark() {
         model.shoe.beforeGC();
@@ -126,6 +136,35 @@ namespace das {
         }
     }
 
+    char * PersistentHeapAllocator::impl_allocate ( uint32_t size ) {
+        if ( limit==0 || model.bytesAllocated()+size<=limit ) {
+            totalAllocations ++;
+            totalBytesAllocated += size;
+            return model.allocate(size);
+        } else {
+            return nullptr;
+        }
+    }
+    char * PersistentHeapAllocator::impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) {
+        if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
+            totalAllocations ++;
+            totalBytesAllocated += newSize-oldSize;
+            return model.reallocate(ptr,oldSize,newSize);
+        } else {
+            return nullptr;
+        }
+    }
+    int PersistentHeapAllocator::depth() const { return model.depth(); }
+    uint64_t PersistentHeapAllocator::bytesAllocated() const { return model.bytesAllocated(); }
+    uint64_t PersistentHeapAllocator::totalAlignedMemoryAllocated() const { return model.totalAlignedMemoryAllocated(); }
+
+    bool PersistentHeapAllocator::isOwnPtr ( char * ptr, uint32_t size ) { return model.isOwnPtr(ptr,size); }
+    bool PersistentHeapAllocator::isValidPtr ( char * ptr, uint32_t size ) { return model.isAllocatedPtr(ptr,size); }
+    void PersistentHeapAllocator::setInitialSize ( uint32_t size ) { model.setInitialSize(size); }
+    int32_t PersistentHeapAllocator::getInitialSize() const { return model.initialSize; }
+    void PersistentHeapAllocator::setGrowFunction ( CustomGrowFunction && fun ) { model.customGrow = fun; };
+
+    PersistentStringAllocator::PersistentStringAllocator() { model.alignMask = 3; }
     void PersistentStringAllocator::forEachString ( const callable<void (const char *)> & fn ) {
         for ( uint32_t si=0; si!=DAS_MAX_SHOE_CUNKS; ++si ) {
             for ( auto ch=model.shoe.chunks[si]; ch; ch=ch->next ) {
@@ -147,6 +186,27 @@ namespace das {
         }
     }
 
+    void LinearHeapAllocator::impl_free( char * ptr, uint32_t size ) {
+            totalBytesDeleted += size;
+            model.free(ptr,size);
+    }
+
+    char * LinearHeapAllocator::impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) {
+        if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
+            totalAllocations ++;
+            totalBytesAllocated += newSize-oldSize;
+            return model.reallocate(ptr,oldSize,newSize);
+        } else {
+            return nullptr;
+        }
+    }
+
+    int LinearHeapAllocator::depth() const { return model.depth(); }
+    uint64_t LinearHeapAllocator::bytesAllocated() const { return model.bytesAllocated(); }
+    uint64_t LinearHeapAllocator::totalAlignedMemoryAllocated() const { return model.totalAlignedMemoryAllocated(); }
+    void LinearHeapAllocator::reset() { model.reset(); }
+    void LinearHeapAllocator::shrink() { model.shrink(); }
+
     void LinearHeapAllocator::report() {
         LOG tout(LogLevel::debug);
         for ( auto ch=model.chunk; ch; ch=ch->next ) {
@@ -154,6 +214,11 @@ namespace das {
                 << ch->offset << " of " << ch->size << "\n";
         }
     }
+
+    bool LinearHeapAllocator::isOwnPtr ( char * ptr, uint32_t ) { return model.isOwnPtr(ptr); }
+    void LinearHeapAllocator::setInitialSize ( uint32_t size ) { model.setInitialSize(size); }
+    int32_t LinearHeapAllocator::getInitialSize() const { return model.initialSize; }
+    void LinearHeapAllocator::setGrowFunction ( CustomGrowFunction && fun ) { model.customGrow = fun; }
 
     void StringHeapAllocator::setIntern(bool on) {
         needIntern = on;
@@ -166,6 +231,12 @@ namespace das {
     void StringHeapAllocator::reset() {
         das_string_set empty;
         swap ( internMap, empty );
+    }
+
+    void StringHeapAllocator::shrink() {
+        if constexpr (has_shrink_to_fit<decltype(internMap)>::value) {
+            internMap.shrink_to_fit();
+        }
     }
 
     char * StringHeapAllocator::intern(const char * str, uint32_t length) const {
@@ -254,6 +325,40 @@ namespace das {
         return buf;
     }
 
+    char * PersistentStringAllocator::impl_allocate ( uint32_t size ) {
+        if ( limit==0 || model.bytesAllocated()+size<=limit ) {
+            totalAllocations ++;
+            totalBytesAllocated += size;
+            return model.allocate(size);
+        } else {
+            return nullptr;
+        }
+    }
+    void PersistentStringAllocator::impl_free ( char * ptr, uint32_t size ) {
+        totalBytesDeleted += size;
+        model.free(ptr,size);
+    }
+    char * PersistentStringAllocator::impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) {
+        if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
+            totalAllocations ++;
+            totalBytesAllocated += newSize-oldSize;
+            return model.reallocate(ptr,oldSize,newSize);
+        } else {
+            return nullptr;
+        }
+    }
+    int PersistentStringAllocator::depth() const { return model.depth(); }
+    uint64_t PersistentStringAllocator::bytesAllocated() const { return model.bytesAllocated(); }
+    uint64_t PersistentStringAllocator::totalAlignedMemoryAllocated() const { return model.totalAlignedMemoryAllocated(); }
+    void PersistentStringAllocator::reset() { model.reset(); }
+    void PersistentStringAllocator::shrink() { model.shrink(); }
+    bool PersistentStringAllocator::isOwnPtr ( char * ptr, uint32_t size ) { return model.isOwnPtr(ptr,size); }
+    bool PersistentStringAllocator::isValidPtr ( char * ptr, uint32_t size ) { return model.isAllocatedPtr(ptr,size); }
+    void PersistentStringAllocator::setInitialSize ( uint32_t size ) { model.setInitialSize(size); }
+    int32_t PersistentStringAllocator::getInitialSize() const { return model.initialSize; }
+    void PersistentStringAllocator::setGrowFunction ( CustomGrowFunction && fun ) { model.customGrow = fun; }
+
+
     bool PersistentStringAllocator::mark ( char * ptr, uint32_t len ) {
         auto size = (len + 15) & ~15; // model.alignMask
 #if !DAS_TRACK_ALLOCATIONS
@@ -326,6 +431,42 @@ namespace das {
             tout << " big stuff total size:" << (totalBigStuff + 1023) / 1024 << " kb\n";
         }
     }
+
+    LinearStringAllocator::LinearStringAllocator() { model.alignMask = 3; }
+
+    char * LinearStringAllocator::impl_allocate ( uint32_t size ) {
+        if ( limit==0 || model.bytesAllocated()+size<=limit ) {
+            totalAllocations ++;
+            totalBytesAllocated += size;
+            return model.allocate(size);
+        } else {
+            return nullptr;
+        }
+    }
+    void LinearStringAllocator::impl_free ( char * ptr, uint32_t size ) {
+        totalBytesDeleted += size;
+        model.free(ptr,size);
+    }
+
+    char * LinearStringAllocator::impl_reallocate ( char * ptr, uint32_t oldSize, uint32_t newSize ) {
+        if ( limit==0 || model.bytesAllocated()+newSize-oldSize<=limit ) {
+            totalAllocations ++;
+            totalBytesAllocated += newSize-oldSize;
+            return model.reallocate(ptr,oldSize,newSize);
+        } else {
+            return nullptr;
+        }
+    }
+
+    int LinearStringAllocator::depth() const { return model.depth(); }
+    uint64_t LinearStringAllocator::bytesAllocated() const { return model.bytesAllocated(); }
+    uint64_t LinearStringAllocator::totalAlignedMemoryAllocated() const { return model.totalAlignedMemoryAllocated(); }
+    void LinearStringAllocator::reset() { model.reset(); }
+    void LinearStringAllocator::shrink() { model.shrink(); }
+    bool LinearStringAllocator::isOwnPtr ( char * ptr, uint32_t ) { return model.isOwnPtr(ptr); }
+    void LinearStringAllocator::setInitialSize ( uint32_t size ) { model.setInitialSize(size); }
+    int32_t LinearStringAllocator::getInitialSize() const { return model.initialSize; }
+    void LinearStringAllocator::setGrowFunction( CustomGrowFunction && fun ) { model.customGrow = fun; }
 
     void LinearStringAllocator::report() {
         LOG tout(LogLevel::debug);

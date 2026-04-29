@@ -45,10 +45,30 @@ public:
   void addObjectWrite(das::ModuleLibrary &ml);
   void addObjectRW(das::ModuleLibrary &ml);
   void addList(das::ModuleLibrary &ml);
+  void addSharedList(das::ModuleLibrary &ml);
   void addListFn(das::ModuleLibrary &ml);
   void addInitializers(das::ModuleLibrary &lib);
   void addCompMap(das::ModuleLibrary &lib);
   void addEvents(das::ModuleLibrary &lib);
   void addTemplates(das::ModuleLibrary &);
+
+  void addArrayBase(das::ModuleLibrary &ml);
+  void addArrayList(das::ModuleLibrary &ml);
+  void addObjectReadBase(das::ModuleLibrary &ml);
+  void addObjectReadList(das::ModuleLibrary &ml);
+  void addObjectWriteBase(das::ModuleLibrary &ml);
+  void addObjectWriteList(das::ModuleLibrary &ml);
+  void addObjectRWBase(das::ModuleLibrary &ml);
+  void addObjectRWList(das::ModuleLibrary &ml);
+  void addEntityReadBase(das::ModuleLibrary &ml);
+  void addEntityReadList(das::ModuleLibrary &ml);
+  void addEntityWriteBase(das::ModuleLibrary &ml);
+  void addEntityWriteList(das::ModuleLibrary &ml);
+  void addEntityWriteOptionalBase(das::ModuleLibrary &ml);
+  void addEntityWriteOptionalList(das::ModuleLibrary &ml);
+  void addEntityRWBase(das::ModuleLibrary &ml);
+  void addEntityRWList(das::ModuleLibrary &ml);
+  void addChildComponentBase(das::ModuleLibrary &ml);
+  void addChildComponentList(das::ModuleLibrary &ml);
 };
 } // namespace bind_dascript

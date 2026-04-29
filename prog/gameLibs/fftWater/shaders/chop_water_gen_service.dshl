@@ -1,0 +1,317 @@
+include "shader_global.dshl"
+
+texture wavelet_texture;
+texture tex_noise_white_64x64;
+
+float global_time_seconds = 0.0;
+
+float num_waves = 0.0;
+
+float size_in_meters = 1.0;
+float inv_size_in_meters = 1.0;
+float size_in_meters_over_4 = 1.0;
+float domain_max_wave_height = 1.0;
+float domain_significant_wave_height = 1.0;
+float foam_retention = 1.0;
+float4 wind_dir = 0;
+
+buffer wave_params_0;
+buffer wave_params_1;
+
+hlsl { #define MAX_WAVES_PER_DOMAIN 64 }
+
+shader chop_waves_gen_heightmap
+{
+  supports none;
+  supports global_frame;
+
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+  no_ablend;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  (ps) {
+    wavelet_texture@smp2d = wavelet_texture;
+
+    num_waves@f1 = num_waves;
+    size_in_meters@f1 = size_in_meters;
+    inv_size_in_meters@f1 = inv_size_in_meters;
+    size_in_meters_over_4@f1 = size_in_meters_over_4;
+    global_time_seconds@f1 = global_time_seconds;
+
+    wave_params_0@buf = wave_params_0 hlsl {StructuredBuffer<float4> wave_params_0@buf; }
+    wave_params_1@buf = wave_params_1 hlsl {StructuredBuffer<float4> wave_params_1@buf; }
+  }
+
+  hlsl(ps) {
+    struct PsOutput
+    {
+      float maskTex: SV_Target0;
+    };
+
+    PsOutput chop_waves_gen_heightmap_ps(VsOutput input)
+    {
+      PsOutput ret;
+
+      ret.maskTex = 0;
+      for(uint i = 0; i < min(MAX_WAVES_PER_DOMAIN, uint(num_waves)); ++i)
+      {
+        float2 wave_dir = wave_params_0[i].xy;
+        float wave_length = wave_params_0[i].z;
+        float wave_amp = wave_params_0[i].w;
+        float wave_speed = wave_params_1[i].x;
+        float wave_phase = wave_params_1[i].y;
+
+        float3 dir_y = float3(wave_dir, 0.0);
+        float3 dir_x = cross(dir_y, float3(0.0, 0.0, 1.0));
+
+        float2 uv = input.tc.x * dir_x.xy + input.tc.y * dir_y.xy;
+        uv.y += (global_time_seconds * wave_speed + wave_phase * size_in_meters) * inv_size_in_meters;
+        uv *= size_in_meters_over_4 / wave_length;
+
+        ret.maskTex += tex2Dlod(wavelet_texture, float4(uv.x, uv.y * 4.0, 0, 0)).r * wave_amp;
+      }
+
+      return ret;
+    }
+  }
+
+  compile("target_ps", "chop_waves_gen_heightmap_ps");
+}
+
+texture water_detail_wavelet_texture;
+buffer detail_wave_params;
+float num_detail_waves = 1.0;
+float detail_waves_amp = 0.0;
+
+shader chop_detail_waves_gen
+{
+  supports none;
+  supports global_frame;
+
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+  no_ablend;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+
+  (ps) {
+    wavelet_texture@smp2d = wavelet_texture;
+
+    num_waves@f1 = num_waves;
+    size_in_meters@f1 = size_in_meters;
+    inv_size_in_meters@f1 = inv_size_in_meters;
+    size_in_meters_over_4@f1 = size_in_meters_over_4;
+    global_time_seconds@f1 = global_time_seconds;
+
+    wave_params_0@buf = wave_params_0 hlsl {StructuredBuffer<float4> wave_params_0@buf; }
+    wave_params_1@buf = wave_params_1 hlsl {StructuredBuffer<float4> wave_params_1@buf; }
+
+    // detail
+    water_detail_wavelet_texture@smp2d = water_detail_wavelet_texture;
+
+    num_detail_waves@f1 = num_detail_waves;
+    detail_waves_amp@f1 = detail_waves_amp;
+    detail_wave_params@buf = detail_wave_params hlsl {StructuredBuffer<float4> detail_wave_params@buf; }
+  }
+
+  hlsl(ps) {
+    struct PsOutput
+    {
+      float maskTex: SV_Target0;
+    };
+
+    PsOutput chop_detail_gen_heightmap_ps(VsOutput input)
+    {
+      PsOutput ret;
+
+      float gestner = 0;
+      for(uint i = 0; i < min(MAX_WAVES_PER_DOMAIN, uint(num_waves)); ++i)
+      {
+        float2 wave_dir = wave_params_0[i].xy;
+        float wave_length = wave_params_0[i].z;
+        float wave_amp = wave_params_0[i].w;
+        float wave_speed = wave_params_1[i].x;
+        float wave_phase = wave_params_1[i].y;
+
+        float3 dir_y = float3(wave_dir, 0.0);
+        float3 dir_x = cross(dir_y, float3(0.0, 0.0, 1.0));
+
+        float2 uv = input.tc.x * dir_x.xy + input.tc.y * dir_y.xy;
+        uv.y += (global_time_seconds * wave_speed + wave_phase * size_in_meters) * inv_size_in_meters;
+        uv *= size_in_meters_over_4 / wave_length;
+
+        gestner += tex2Dlod(wavelet_texture, float4(uv.x, uv.y * 4.0, 0, 0)).r * wave_amp;
+      }
+
+      // detail
+      float detail = 0;
+      float weight = 0;
+      for(uint j = 0; j < min(MAX_WAVES_PER_DOMAIN, uint(num_detail_waves)); ++j)
+      {
+        float2 offset = (float)j / max(0.001, num_detail_waves);
+        float2 tc = input.tc + detail_wave_params[j].xy;
+        float4 w4 = water_detail_wavelet_texture.SampleLevel(global_linear_wrap_sampler, tc + offset, 0) * 2.0 - 1.3; // detail wavelet
+        float w = 0;
+
+        float idx_band = detail_wave_params[j].z;
+        if(abs(idx_band - 0.0) < 0.001){w = w4.x;}else
+        if(abs(idx_band - 1.0) < 0.001){w = w4.y;}else
+        if(abs(idx_band - 2.0) < 0.001){w = w4.z;}else
+        if(abs(idx_band - 3.0) < 0.001){w = w4.w;}
+
+        w *= detail_wave_params[j].w;
+        detail += w;
+        weight += detail_wave_params[j].w;
+      }
+      detail /= weight;
+      detail *= detail_waves_amp;
+
+      ret.maskTex = gestner + detail;
+      return ret;
+    }
+  }
+
+  compile("target_ps", "chop_detail_gen_heightmap_ps");
+}
+
+texture hm_wave_texture;
+
+shader chop_waves_heightmap_tiling
+{
+  supports none;
+  supports global_frame;
+
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+  no_ablend;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+
+  (ps) {
+    hm_wave_texture@smp2d = hm_wave_texture;
+  }
+
+  hlsl(ps) {
+    struct PsOutput
+    {
+      float maskTex: SV_Target0;
+    };
+    #include "fftWater/chop_water_defines.hlsli"
+    #include "fftWater/chop_water_gen_tiling.hlsli"
+    PsOutput chop_waves_heightmap_tiling_ps(VsOutput input)
+    {
+      PsOutput ret;
+      ret.maskTex = SampleLinearWrapTiled(input.tc, CHOP_TILING_OVERLAP);
+
+      return ret;
+    }
+  }
+
+  compile("target_ps", "chop_waves_heightmap_tiling_ps");
+}
+
+texture hm_wave_texture_tiled;
+texture hm_normal_prev_array;
+int hm_normal_prev_layer = 0;
+float wave_texture_tiled_pixel_size = 1.0;
+
+shader chop_waves_gen_normal
+{
+  if (shaderlod == low)
+  {
+    hlsl { #define CHOP_WATER_FOAM_DIR_MASK 0 }
+  }
+  else
+  {
+    hlsl { #define CHOP_WATER_FOAM_DIR_MASK 1 }
+  }
+
+  supports none;
+  supports global_frame;
+
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+  no_ablend;
+
+  POSTFX_VS_TEXCOORD(0, tc)
+  INIT_GLOBAL_LINEAR_WRAP_SAMPLER(ps)
+
+  (ps) {
+    tex_noise_white_64x64@tex2d = tex_noise_white_64x64;
+    hm_wave_texture_tiled@tex2d = hm_wave_texture_tiled;
+    hm_normal_prev_array@texArray = hm_normal_prev_array;
+    hm_normal_prev_layer@i1 = hm_normal_prev_layer;
+    wave_texture_tiled_pixel_size@f4 = wave_texture_tiled_pixel_size;
+
+    size_in_meters@f1 = size_in_meters;
+    domain_max_wave_height@f1 = domain_max_wave_height;
+    domain_significant_wave_height@f1 = domain_significant_wave_height;
+    foam_retention@f1 = foam_retention;
+    wind_dir@f4 = wind_dir;
+  }
+
+  hlsl(ps) {
+    struct PsOutput
+    {
+      float4 maskTex: SV_Target0;
+    };
+
+    PsOutput chop_waves_gen_normal_ps(VsOutput input)
+    {
+      PsOutput ret;
+
+      float RT_PIXEL_SIZE = wave_texture_tiled_pixel_size.x * 0.5;
+
+      float h = hm_wave_texture_tiled.SampleLevel(global_linear_wrap_sampler, input.tc, 0).r;
+
+      float h_xneg = hm_wave_texture_tiled.SampleLevel(global_linear_wrap_sampler, input.tc - float2(RT_PIXEL_SIZE, 0), 0).r;
+      float h_xpos = hm_wave_texture_tiled.SampleLevel(global_linear_wrap_sampler, input.tc + float2(RT_PIXEL_SIZE, 0), 0).r;
+      float h_yneg = hm_wave_texture_tiled.SampleLevel(global_linear_wrap_sampler, input.tc - float2(0, RT_PIXEL_SIZE), 0).r;
+      float h_ypos = hm_wave_texture_tiled.SampleLevel(global_linear_wrap_sampler, input.tc + float2(0, RT_PIXEL_SIZE), 0).r;
+
+      float xy_ = size_in_meters * RT_PIXEL_SIZE * 2.0; // was /= RT_RESOLUTION_X
+      float3 bx = float3(xy_, h_xpos - h_xneg, 0.0);
+      float3 by = float3(0.0, h_ypos - h_yneg, xy_);
+      float3 n = normalize(cross(by, bx));
+
+      // direction mask
+      float foam_dir_mask = 1.0;
+      float2 offset = 0;
+      #if CHOP_WATER_FOAM_DIR_MASK
+        float2 pos = input.tc;
+        float2 wd = float2(wind_dir.x, -wind_dir.y);
+        float2 step = wd * 0.004;
+        float h0 = hm_wave_texture_tiled.SampleLevel(global_linear_wrap_sampler, pos - step * 1.5, 0).r / (domain_significant_wave_height * 0.5);
+        float h1 = hm_wave_texture_tiled.SampleLevel(global_linear_wrap_sampler, pos - step * 0.5, 0).r / (domain_significant_wave_height * 0.5);
+        float h2 = hm_wave_texture_tiled.SampleLevel(global_linear_wrap_sampler, pos + step * 0.5, 0).r / (domain_significant_wave_height * 0.5);
+        float h3 = hm_wave_texture_tiled.SampleLevel(global_linear_wrap_sampler, pos + step * 1.5, 0).r / (domain_significant_wave_height * 0.5);
+        foam_dir_mask = (h1 - h0) + (h2 - h1) + (h3 - h2);
+        foam_dir_mask = smoothstep(-1.0, 0.0, foam_dir_mask); // damping foam from wind_dir
+
+        float2 wind_tangent = cross(float3(wind_dir.xy, 0.0), float3(0.0, 0.0, 1.0)).xy;
+        float2 noise_uv = input.tc.x * wind_tangent + input.tc.y * wind_dir.xy;
+        noise_uv.x *= 4.0;
+        float noise = tex_noise_white_64x64.SampleLevel(global_linear_wrap_sampler, noise_uv, 0).r;
+        offset = wd * noise + wind_tangent * (noise * 2.0 - 1.0);
+        offset *= 0.0002; // better foam shape on stormy foam
+      #endif
+
+      float foam_curr = saturate((h / (domain_significant_wave_height * 0.5)) * 0.5 + 0.5) * foam_dir_mask;
+      float foam_prev = hm_normal_prev_array.SampleLevel(global_linear_wrap_sampler, float3(input.tc + offset, hm_normal_prev_layer), 0).a;
+      float foam = max(foam_curr * 0.95, lerp(foam_curr, foam_prev, foam_retention));
+
+      ret.maskTex = float4(n.xz, h, foam);
+
+      return ret;
+    }
+  }
+
+  compile("target_ps", "chop_waves_gen_normal_ps");
+}

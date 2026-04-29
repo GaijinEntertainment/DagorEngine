@@ -27,7 +27,7 @@ function checkInterface(klass, methods){
         continue
       }
       local {varargs, parameters} = klass[name].getfuncinfos()
-      if (isVargved && varargs<1){
+      if (isVargved && !varargs){
         failedMethods.append([name, "should be vargved"])
       }
       if (params == null)
@@ -56,16 +56,16 @@ function checkInterface(klass, methods){
   of, flatMap, map
 */
 let class Monad {
-  //of, pure :: a -> M a
+  //of, pure : a -> M a
   static function of(_){
     throw("pure method needs to be implemented")
   }
-  //flatMap :: # M a -> (a -> M b) -> M b
+  //flatMap : # M a -> (a -> M b) -> M b
   function flatMap(_){
     throw("flatMap method needs to be implemented")
   }
   isMonad = @() true
-  //map :: # M a -> (a -> b) -> M b
+  //map : # M a -> (a -> b) -> M b
   function map(f){
     let next = this.flatMap(@(x) this.of(f(x)))
     assert(next?.isMonad(), ASSERT_MSG)
@@ -75,7 +75,7 @@ let class Monad {
     local next = this
     foreach (f in vargv){
       let fn = f
-      next = this.flatMap(@(x) this.of(fn(x)))
+      next = next.flatMap(@(x) this.of(fn(x)))
       assert(next?.isMonad(), ASSERT_MSG)
     }
     return next
@@ -107,9 +107,9 @@ _Maybe = class (Monad) {
        : Some(a)
   }
   filter = @(fn) this.isNone() ? none : _Maybe.of(fn(this._value) ? this._value : null)
-  //nothing :: a -> nothing a
+  //nothing : a -> nothing a
   static nothing = @(...) none
-  //some :: a -> Some a
+  //some : a -> Some a
   static some = @(a) Some(a)
   function flatMap(fn){
     if (this.isNone())
@@ -184,7 +184,7 @@ local Right
 local Left
 
 Either = class (Monad) {
-  //pure :: a -> Either a
+  //pure : a -> Either a
   static function of(value){
     return Right(value)
   }
@@ -192,7 +192,7 @@ Either = class (Monad) {
     throw("Either can't be created, use Left or Right")
   }
   isEither = @() true
-  //flatMap :: # Either a -> (a -> Either b) -> Either b
+  //flatMap : # Either a -> (a -> Either b) -> Either b
   function flatMap(f){
     if (this.isLeft())
       return this
@@ -255,6 +255,7 @@ Either = class (Monad) {
     if (this.isLeft()) {
       let next = fn(this._value)
       assert(next instanceof Either || next?.isEither(), ASSERT_MSG)
+      return next
     }
     return this
   }
@@ -263,6 +264,7 @@ Either = class (Monad) {
       if (this.isLeft()) {
         let next = fn(this._value)
         assert(next instanceof Either || next?.isEither(), ASSERT_MSG)
+        return next
       }
       return this
     }
@@ -283,7 +285,8 @@ Either = class (Monad) {
   function effect(onLeft, onRight){
     if (this.isLeft())
       onLeft(this._value)
-    onRight(this._value)
+    else
+      onRight(this._value)
   }
   function cata(onLeft, onRight) {
     let next = this.isLeft() ? onLeft(this._value) : onRight(this._value)
@@ -325,7 +328,7 @@ Right = class (Either) {
     this._value = v
   }
   function flatMap(f) {
-    let next = f(this.value)
+    let next = f(this._value)
     assert(next instanceof Either || next?.isEither(), ASSERT_MSG)
     return next
   }

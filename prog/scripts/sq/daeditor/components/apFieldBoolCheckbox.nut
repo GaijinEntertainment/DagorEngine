@@ -45,7 +45,7 @@ function fieldBoolCheckbox(params = {}) {
         rendObj = ROBJ_SOLID
         color = curRO ? colors.ReadOnly : (hoverFlag.get() != 0) ? colors.Hover : colors.Interactive
         group
-        size = static [pw(50), ph(50)]
+        size = const [pw(50), ph(50)]
         hplace = ALIGN_CENTER
         vplace = ALIGN_CENTER
       }
@@ -53,14 +53,14 @@ function fieldBoolCheckbox(params = {}) {
 
     return {
       key = comp_name
-      size = static [flex(), fontH(100)]
+      size = [flex(), fontH(100)]
       halign = ALIGN_LEFT
       valign = ALIGN_CENTER
 
       watch = [curVal, hoverFlag]
 
       children = {
-        size = static [fontH(80), fontH(80)]
+        size = [fontH(80), fontH(80)]
         rendObj = ROBJ_SOLID
         color = colors.ControlBg
 

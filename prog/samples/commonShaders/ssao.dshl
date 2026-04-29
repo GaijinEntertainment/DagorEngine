@@ -362,7 +362,6 @@ macro SS_BENT_CONES()
       if (dot(bentNormal, 1) != 0.0) {
         bentNormal *= rcp(visibilityRays);
         resultNormal.xyz = bentNormal-wsNormal;
-        //resultNormal.xyz = clamp(bentNormal-wsNormal,-1,1);//outBNAO.xyz = encodeNormal(bentNormal-wsNormal);
       }
       outBNAO = encodeBNAO(resultNormal, resultAO);
       outBNAO.w*=outBNAO.w;

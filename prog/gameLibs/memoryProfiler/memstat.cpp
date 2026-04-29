@@ -63,7 +63,7 @@ void begin_memory_allocation(const char *name, MemoryInfo &current, MemoryInfo &
       BEGIN_MEM(allocations_itself);
       END_MEM(allocations_itself);
       (aa + 1)->mem.dagorMemoryChunks = 1;
-      (aa + 1)->mem.dagorMemoryBytes = (int)midmem->getSize(allocations.data());
+      (aa + 1)->mem.dagorMemoryBytes = midmem->getSize(allocations.data());
     }
     memset(aa, 0, sizeof(*aa));
     aa->name = heap_ptr ? str_dup(name, strmem) : name;
@@ -79,8 +79,8 @@ void begin_memory_allocation(const char *name, MemoryInfo &current, MemoryInfo &
 
   memset(&current, 0, sizeof(current));
 
-  current.dagorMemoryBytes = (int)dagor_memory_stat::get_memory_allocated();
-  current.dagorMemoryChunks = (int)dagor_memory_stat::get_memchunk_count();
+  current.dagorMemoryBytes = dagor_memory_stat::get_memory_allocated();
+  current.dagorMemoryChunks = dagor_memory_stat::get_memchunk_count();
 
 #if MEM_STAT_ENABLED > 1
 #endif // MEM_STAT_ENABLED > 1
@@ -94,19 +94,19 @@ void end_memory_allocation(const char *name, const MemoryInfo &prev_current, con
   MemoryInfo new_current, new_total;
   begin_memory_allocation(name, new_current, new_total, false);
 
-  for (uint32_t dataNo = 0; dataNo < (sizeof(MemoryInfo) / sizeof(uint32_t)); dataNo++)
+  for (uint32_t dataNo = 0; dataNo < (sizeof(MemoryInfo) / sizeof(int64_t)); dataNo++)
   {
-    ((int *)&memory_allocation_total)[dataNo] +=
-      ((int *)&new_current)[dataNo] - ((int *)&prev_current)[dataNo] - (((int *)&new_total)[dataNo] - ((int *)&prev_total)[dataNo]);
+    ((int64_t *)&memory_allocation_total)[dataNo] += ((int64_t *)&new_current)[dataNo] - ((int64_t *)&prev_current)[dataNo] -
+                                                     (((int64_t *)&new_total)[dataNo] - ((int64_t *)&prev_total)[dataNo]);
   }
 
   for (uint32_t allocationNo = 0; allocationNo < allocations.size(); allocationNo++)
   {
     if (!strcmp(allocations[allocationNo].name, name))
     {
-      for (uint32_t dataNo = 0; dataNo < (sizeof(MemoryInfo) / sizeof(uint32_t)); dataNo++)
+      for (uint32_t dataNo = 0; dataNo < (sizeof(MemoryInfo) / sizeof(int64_t)); dataNo++)
       {
-        ((int *)&allocations[allocationNo].mem)[dataNo] += ((int *)&new_current)[dataNo] - ((int *)&prev_current)[dataNo];
+        ((int64_t *)&allocations[allocationNo].mem)[dataNo] += ((int64_t *)&new_current)[dataNo] - ((int64_t *)&prev_current)[dataNo];
       }
       if (allocations[allocationNo].pushed)
       {
@@ -127,23 +127,29 @@ void clear_allocations_by(const char *str)
       memset(&allocations[i].mem, 0, sizeof(MemoryInfo));
 }
 
-static int sort_by_mem(int *a, int *b) { return allocations[*b].mem.dagorMemoryBytes - allocations[*a].mem.dagorMemoryBytes; }
-
-static int print_a_stat(int allocationNo, int &rec_level, char *buf)
+static int sort_by_mem(int *a, int *b)
 {
-  int my_size = 0;
+  int64_t d = allocations[*b].mem.dagorMemoryBytes - allocations[*a].mem.dagorMemoryBytes;
+  return d ? (d > 0 ? 1 : -1) : 0;
+}
+
+static int64_t print_a_stat(int allocationNo, int &rec_level, char *buf)
+{
+  int64_t my_size = 0;
   if ((uint32_t)allocationNo < (uint32_t)allocations.size())
   {
     const AllocationInfo &ai = allocations[allocationNo];
     if (memcmp(ZERO_PTR<MemoryInfo>(), &ai.mem, sizeof(MemoryInfo)) != 0 &&
-        (ai.mem.xmemTex2dBytes || ai.mem.xmemD3DBytes || abs(ai.mem.dagorMemoryBytes) > MEM_BYTES_SHOW_THRESHOLD))
+        (ai.mem.xmemTex2dBytes || ai.mem.xmemD3DBytes ||
+          (ai.mem.dagorMemoryBytes < 0 ? -ai.mem.dagorMemoryBytes : ai.mem.dagorMemoryBytes) > MEM_BYTES_SHOW_THRESHOLD))
     {
       G_ASSERT(rec_level * 4 < 64);
       memset(buf, ' ', rec_level * 4);
       buf[rec_level * 4] = 0;
-      debug("%s%5.1fMb, %5.1fMb, %5.1fMb - %s           (%d/%d, %d/%d, %d/%d)", buf, ai.mem.dagorMemoryBytes / 1024 / 1024.f,
-        ai.mem.xmemTex2dBytes / 1024 / 1024.f, ai.mem.xmemD3DBytes / 1024 / 1024.f, ai.name, ai.mem.dagorMemoryBytes,
-        ai.mem.dagorMemoryChunks, ai.mem.xmemTex2dBytes, ai.mem.xmemTex2dChunks, ai.mem.xmemD3DBytes, ai.mem.xmemD3DChunks);
+      debug("%s%5.1fMb, %5.1fMb, %5.1fMb - %s           (%lld/%lld, %lld/%lld, %lld/%lld)", buf,
+        ai.mem.dagorMemoryBytes / 1024 / 1024.f, ai.mem.xmemTex2dBytes / 1024 / 1024.f, ai.mem.xmemD3DBytes / 1024 / 1024.f, ai.name,
+        ai.mem.dagorMemoryBytes, ai.mem.dagorMemoryChunks, ai.mem.xmemTex2dBytes, ai.mem.xmemTex2dChunks, ai.mem.xmemD3DBytes,
+        ai.mem.xmemD3DChunks);
     }
     my_size = ai.mem.dagorMemoryBytes;
   }
@@ -158,7 +164,7 @@ static int print_a_stat(int allocationNo, int &rec_level, char *buf)
   dag_qsort(idxs.data(), idxs.size(), sizeof(int), (cmp_func_t)&sort_by_mem);
   if ((uint32_t)allocationNo < (uint32_t)allocations.size())
     ++rec_level;
-  int mem_sum = 0;
+  int64_t mem_sum = 0;
   for (int i = 0; i < idxs.size(); ++i)
   {
     int rl = rec_level;
@@ -170,8 +176,8 @@ static int print_a_stat(int allocationNo, int &rec_level, char *buf)
     G_ASSERT(rec_level * 4 < 64);
     memset(buf, ' ', rec_level * 4);
     buf[rec_level * 4] = 0;
-    debug("%s%5.1fMb, %5.1fMb, %5.1fMb - %s           (%d/%d, %d/%d, %d/%d)", buf, (my_size - mem_sum) / 1024.f / 1024.f, 0.f, 0.f,
-      "_dark_matter_", (my_size - mem_sum), 0, 0, 0, 0, 0);
+    debug("%s%5.1fMb, %5.1fMb, %5.1fMb - %s           (%lld/%d, %d/%d, %d/%d)", buf, //
+      (my_size - mem_sum) / 1024.f / 1024.f, 0.f, 0.f, "_dark_matter_", (my_size - mem_sum), 0, 0, 0, 0, 0);
   }
   return my_size;
 }
@@ -181,10 +187,11 @@ void dump_statistics()
   const char *f = "Allocation statistics: dagormem, tex2d, xmemD3D";
   debug("%s", f);
   debug("-----------------------------------------------");
-  debug("%.1fMb, %.1fMb, %.1fMb - %s           (%d/%d, %d/%d, %d/%d)", memory_allocation_total.dagorMemoryBytes / 1024.f / 1024.f,
-    memory_allocation_total.xmemTex2dBytes / 1024.f / 1024.f, memory_allocation_total.xmemD3DBytes / 1024.f / 1024.f, "Total",
-    memory_allocation_total.dagorMemoryBytes, memory_allocation_total.dagorMemoryChunks, memory_allocation_total.xmemTex2dBytes,
-    memory_allocation_total.xmemTex2dChunks, memory_allocation_total.xmemD3DBytes, memory_allocation_total.xmemD3DChunks);
+  debug("%.1fMb, %.1fMb, %.1fMb - %s           (%lld/%lld, %lld/%lld, %lld/%lld)",
+    memory_allocation_total.dagorMemoryBytes / 1024.f / 1024.f, memory_allocation_total.xmemTex2dBytes / 1024.f / 1024.f,
+    memory_allocation_total.xmemD3DBytes / 1024.f / 1024.f, "Total", memory_allocation_total.dagorMemoryBytes,
+    memory_allocation_total.dagorMemoryChunks, memory_allocation_total.xmemTex2dBytes, memory_allocation_total.xmemTex2dChunks,
+    memory_allocation_total.xmemD3DBytes, memory_allocation_total.xmemD3DChunks);
 
   char spaceBuf[64];
   int rec_level;

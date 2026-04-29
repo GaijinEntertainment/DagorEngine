@@ -16,6 +16,7 @@ Sources =
   assetStatsFiller.cpp
   entity.cpp
   entityMatEditor.cpp
+  entityMatEditorUndo.cpp
   entityMatFileResource.cpp
   entityMatProperties.cpp
   objPropEditor.cpp

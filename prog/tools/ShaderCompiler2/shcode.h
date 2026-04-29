@@ -23,29 +23,6 @@ namespace shc
 class TargetContext;
 }
 
-class SerializableSlice
-{
-  bindump::Address<int> mPtr;
-  uint32_t mCount;
-
-public:
-  void set(int *p, intptr_t n)
-  {
-    mPtr = p;
-    mCount = n;
-  }
-  void reset()
-  {
-    mPtr = nullptr;
-    mCount = 0;
-  }
-  const int *data() const { return mPtr; }
-  intptr_t size() const { return mCount; }
-
-  const int &operator[](int idx) const { return mPtr.get()[idx]; }
-  int &operator[](int idx) { return mPtr.get()[idx]; }
-};
-
 class ShaderCode
 {
 public:

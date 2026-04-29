@@ -2,6 +2,7 @@
 #pragma once
 
 #include <propPanel/control/propertyControlBase.h>
+#include <propPanel/imguiHelper.h>
 #include "../messageQueueInternal.h"
 #include "../scopedImguiBeginDisabled.h"
 #include "../c_constants.h"
@@ -21,6 +22,11 @@ public:
   unsigned getTypeMaskForGet() const override { return 0; }
 
   void setTextValue(const char value[]) override { controlCaption = value; }
+
+  int getTextValue(char *buffer, int buflen) const override
+  {
+    return ImguiHelper::getTextValueForString(controlCaption, buffer, buflen);
+  }
 
   void setCaptionValue(const char value[]) override { controlCaption = value; }
 

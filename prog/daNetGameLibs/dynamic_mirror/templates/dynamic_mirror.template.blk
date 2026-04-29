@@ -1,0 +1,21 @@
+// The animchar entity holding an active mirror should extend this template.
+// Only one entity can have an active mirror at a given time.
+dynamic_mirror_holder {
+  _tags:t="render"
+  dynamic_mirror_holder__mirrorNormal:p3=0,0,0
+}
+
+dynamic_mirror_renderer {
+  _singleton:b=yes
+  "dynamic_mirror_prepare_node:dafg::NodeHandle"{}
+  "dynamic_mirror_prepass_node:dafg::NodeHandle"{}
+  "dynamic_mirror_end_prepass_node:dafg::NodeHandle"{}
+  "dynamic_mirror_render_dynamic_node:dafg::NodeHandle"{}
+  "dynamic_mirror_render_static_node:dafg::NodeHandle"{}
+  "dynamic_mirror_render_ground_node:dafg::NodeHandle"{}
+  "dynamic_mirror_resolve_gbuf_node:dafg::NodeHandle"{}
+  "dynamic_mirror_resolve_node:dafg::NodeHandle"{}
+  "dynamic_mirror_envi_node:dafg::NodeHandle"{}
+  "dynamic_mirror_renderer:DynamicMirrorRenderer"{}
+  _tags:t="render"
+}

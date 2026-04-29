@@ -4,6 +4,7 @@
 #include "das_serialization.h"
 #include <startup/dag_globalSettings.h>
 #include <osApiWrappers/dag_vromfs.h>
+#include <memory/dag_dbgMem.h>
 #if _TARGET_PC_WIN
 #include <direct.h> // getcwd
 #elif _TARGET_PC_LINUX || _TARGET_PC_MACOSX
@@ -24,6 +25,7 @@ static bool ends_with_suffix(const eastl::string_view &fname, const char **suffi
 
 bool Scripts::loadScript(const das::string &fname, das::smart_ptr<DagFileAccess> access, LoadScriptCtx ctx)
 {
+  DagDbgMem::ForcedProfileCallStackRAII st_raii;
 #if DAGOR_DBGLEVEL > 0
   if (profileLoading)
   {
@@ -36,6 +38,7 @@ bool Scripts::loadScript(const das::string &fname, das::smart_ptr<DagFileAccess>
     return loadScriptInternal(fname, access, ctx);
   }
 }
+
 bool Scripts::unloadScript(const char *fname, bool strict)
 {
   if (scripts.empty())
@@ -98,6 +101,78 @@ void Scripts::unloadTemporaryScript()
   temporaryScripts.clear();
 }
 
+#if DAS_HAS_DIRECTORY_WATCH
+static void ClearSharedModules(const ska::flat_hash_set<eastl::string> &changedFiles)
+{
+  if (enable_das_rtti())
+  {
+    return;
+  }
+
+  // Attempt a selective clear instead of killing the entirety of shared modules.
+  // To do that, we would build a transitive closure of dependencies and
+  // evict only the modules that were affected by the change
+  // A change of a leaf script (a non-shared module) will not cause any module deletion
+  // a change of a shared module will invalidate all its dependencies (both shared modules and simple scripts)
+  ska::flat_hash_set<das::Module *> toDeleteSet;
+  ska::flat_hash_map<das::Module *, eastl::vector<das::Module *>> requiredBy;
+  eastl::vector<das::Module *> worklist;
+
+  // Phase 1: build the initial work list as well as a reverse dependency map
+  das::Module::foreach([&](das::Module *mod) {
+    if (!mod->promoted)
+    {
+      return true;
+    }
+    if (!mod->fileName.empty() && changedFiles.count(mod->fileName))
+    {
+      toDeleteSet.insert(mod);
+      worklist.push_back(mod);
+    }
+    for (const auto &dep : mod->requireModule)
+    {
+      if (dep.first)
+      {
+        requiredBy[dep.first].push_back(mod);
+      }
+    }
+    return true;
+  });
+
+  // Phase 2: traverse the dependency map, visiting every module only once
+  while (!worklist.empty())
+  {
+    das::Module *evicted = worklist.back();
+    worklist.pop_back();
+    auto it = requiredBy.find(evicted);
+    if (it == requiredBy.end())
+    {
+      continue;
+    }
+    for (das::Module *dependent : it->second)
+    {
+      if (toDeleteSet.insert(dependent).second)
+      {
+        worklist.push_back(dependent);
+      }
+    }
+  }
+
+  for (das::Module *mod : toDeleteSet)
+  {
+    delete mod;
+  }
+}
+#endif
+
+static void ClearSharedModules()
+{
+  if (!enable_das_rtti())
+  {
+    das::Module::ClearSharedModules();
+  }
+}
+
 ReloadResult Scripts::reloadAllChanged(AotMode aot_mode, LogAotErrors log_aot_errors)
 {
 #if DAS_HAS_DIRECTORY_WATCH
@@ -109,8 +184,14 @@ ReloadResult Scripts::reloadAllChanged(AotMode aot_mode, LogAotErrors log_aot_er
     DasSyntax syntax;
     EnableDebugger hasDebugger;
     void *userData;
+    bool verySafeContext;
+    bool forceInscopePod;
   };
+  // scriptsToReload holds the potential reload candidates (dependencies),
+  // while changedFiles holds the actually changed files and
+  // in case of the leaf file both will contain the same single name
   ska::flat_hash_set<eastl::string> scriptsToReload;
+  ska::flat_hash_set<eastl::string> changedFiles;
   ska::flat_hash_map<eastl::string, ChangedScript, ska::power_of_two_std_hash<eastl::string>> changed;
 
   for (auto &[file, info] : changedFileToScripts)
@@ -121,6 +202,7 @@ ReloadResult Scripts::reloadAllChanged(AotMode aot_mode, LogAotErrors log_aot_er
     {
       debug("file %s: removed, reload %d scripts", file.c_str(), info.scriptsToReload.size());
       scriptsToReload.insert(info.scriptsToReload.begin(), info.scriptsToReload.end());
+      changedFiles.insert(file);
     }
     else if (buf.mtime > info.lastWriteTime && info.lastWriteTime != -1) // if it is -1, than it is loaded from vrom, so we can't
                                                                          // re-load it
@@ -128,6 +210,7 @@ ReloadResult Scripts::reloadAllChanged(AotMode aot_mode, LogAotErrors log_aot_er
       debug("file %s has new time: mtime = %d was %d", file.c_str(), buf.mtime, info.lastWriteTime);
       info.lastWriteTime = buf.mtime;
       scriptsToReload.insert(info.scriptsToReload.begin(), info.scriptsToReload.end());
+      changedFiles.insert(file);
       if (globalFileAccess)
       {
         auto globalFile = globalFileAccess->filesOpened.find_as(file.c_str());
@@ -148,18 +231,20 @@ ReloadResult Scripts::reloadAllChanged(AotMode aot_mode, LogAotErrors log_aot_er
       continue;
     changed.insert_or_assign(fname,
       ChangedScript{scriptIt->second.syntax, scriptIt->second.hasDebugger ? EnableDebugger::YES : EnableDebugger::NO,
-        scriptIt->second.ctx ? scriptIt->second.ctx->userData : nullptr});
+        scriptIt->second.ctx ? scriptIt->second.ctx->userData : nullptr, scriptIt->second.verySafeContext,
+        scriptIt->second.forceInscopePod});
   }
   ReloadResult ret = changed.empty() ? NO_CHANGES : RELOADED;
   if (!changed.empty())
   {
     freeSourceData();
-    das::Module::ClearSharedModules();
+    ClearSharedModules(changedFiles);
   }
   for (const eastl::pair<eastl::string, ChangedScript> &c : changed)
   {
     if (!loadScript(c.first.c_str(), das::make_smart<DagFileAccess>(getFileAccess(), HotReload::ENABLED),
-          LoadScriptCtx{aot_mode, ResolveECS::YES, log_aot_errors, c.second.syntax, c.second.hasDebugger, c.second.userData}))
+          LoadScriptCtx{aot_mode, ResolveECS::YES, log_aot_errors, c.second.syntax, c.second.hasDebugger, c.second.userData,
+            /*reload*/ true, c.second.verySafeContext, c.second.forceInscopePod}))
       ret = ERRORS;
   }
   compileErrorsCount = -1; // Can't count errors because not all files have been processed.
@@ -193,7 +278,7 @@ void Scripts::cleanupMemoryUsage()
 {
   freeSourceData();
   das::clearGlobalAotLibrary();
-  das::Module::ClearSharedModules();
+  ClearSharedModules();
 }
 void Scripts::thisThreadDone()
 {
@@ -423,13 +508,97 @@ void Scripts::unloadAllScripts(UnloadDebugAgents unload_debug_agents)
 size_t Scripts::dumpMemory()
 {
   size_t globals = 0, stack = 0, code = 0, codeTotal = 0, debugInfo = 0, debugInfoTotal = 0, constStrings = 0, constStringsTotal = 0,
-         heap = 0, heapTotal = 0, string = 0, stringTotal = 0, shared = 0, unique = 0;
+         heap = 0, heapTotal = 0, string = 0, stringTotal = 0, shared = 0;
+
+  size_t maxGlobals = 0, maxStack = 0, maxCode = 0, maxCodeTotal = 0, maxDebugInfo = 0, maxDebugInfoTotal = 0, maxConstStrings = 0,
+         maxConstStringsTotal = 0, maxHeap = 0, maxHeapTotal = 0, maxString = 0, maxStringTotal = 0, maxShared = 0;
+
+  eastl::string maxGlobalsIdx, maxStackIdx, maxCodeIdx, maxCodeTotalIdx, maxDebugInfoIdx, maxDebugInfoTotalIdx, maxConstStringsIdx,
+    maxConstStringsTotalIdx, maxHeapIdx, maxHeapTotalIdx, maxStringIdx, maxStringTotalIdx, maxSharedIdx;
+
   for (const auto &sc : scripts)
   {
     auto &s = sc.second;
-    // globals += s.ctx->globalsSize;//currently is protected!
-    globals = 0;
-    stack += s.ctx->stack.size();
+    if (!s.ctx)
+      continue;
+
+    debug("daScript: %@: globals %@ stack %@ code %@ codeTotal %@ constStrings %@ constStringsTotal %@ debugInfo %@ debugInfoTotal %@ "
+          "heap %@ "
+          "heapTotal %@ string %@ stringTotal %@ shared %@",
+      s.ctx->name, s.ctx->getGlobalSize(), s.ctx->ownStack ? s.ctx->stack.size() : 0, s.ctx->code->bytesAllocated(),
+      s.ctx->code->totalAlignedMemoryAllocated(), s.ctx->constStringHeap->bytesAllocated(),
+      s.ctx->constStringHeap->totalAlignedMemoryAllocated(), s.ctx->debugInfo->bytesAllocated(),
+      s.ctx->debugInfo->totalAlignedMemoryAllocated(), s.ctx->heap->bytesAllocated(), s.ctx->heap->totalAlignedMemoryAllocated(),
+      s.ctx->stringHeap->bytesAllocated(), s.ctx->stringHeap->totalAlignedMemoryAllocated(), s.ctx->getSharedSize());
+
+    if (s.ctx->getGlobalSize() > maxGlobals)
+    {
+      maxGlobals = s.ctx->getGlobalSize();
+      maxGlobalsIdx = sc.first;
+    }
+    if (s.ctx->ownStack && s.ctx->stack.size() > maxStack)
+    {
+      maxStack = s.ctx->stack.size();
+      maxStackIdx = sc.first;
+    }
+    if (s.ctx->code->bytesAllocated() > maxCode)
+    {
+      maxCode = s.ctx->code->bytesAllocated();
+      maxCodeIdx = sc.first;
+    }
+    if (s.ctx->code->totalAlignedMemoryAllocated() > maxCodeTotal)
+    {
+      maxCodeTotal = s.ctx->code->totalAlignedMemoryAllocated();
+      maxCodeTotalIdx = sc.first;
+    }
+    if (s.ctx->constStringHeap->bytesAllocated() > maxConstStrings)
+    {
+      maxConstStrings = s.ctx->constStringHeap->bytesAllocated();
+      maxConstStringsIdx = sc.first;
+    }
+    if (s.ctx->constStringHeap->totalAlignedMemoryAllocated() > maxConstStringsTotal)
+    {
+      maxConstStringsTotal = s.ctx->constStringHeap->totalAlignedMemoryAllocated();
+      maxConstStringsTotalIdx = sc.first;
+    }
+    if (s.ctx->debugInfo->bytesAllocated() > maxDebugInfo)
+    {
+      maxDebugInfo = s.ctx->debugInfo->bytesAllocated();
+      maxDebugInfoIdx = sc.first;
+    }
+    if (s.ctx->debugInfo->totalAlignedMemoryAllocated() > maxDebugInfoTotal)
+    {
+      maxDebugInfoTotal = s.ctx->debugInfo->totalAlignedMemoryAllocated();
+      maxDebugInfoTotalIdx = sc.first;
+    }
+    if (s.ctx->heap->bytesAllocated() > maxHeap)
+    {
+      maxHeap = s.ctx->heap->bytesAllocated();
+      maxHeapIdx = sc.first;
+    }
+    if (s.ctx->heap->totalAlignedMemoryAllocated() > maxHeapTotal)
+    {
+      maxHeapTotal = s.ctx->heap->totalAlignedMemoryAllocated();
+      maxHeapTotalIdx = sc.first;
+    }
+    if (s.ctx->stringHeap->bytesAllocated() > maxString)
+    {
+      maxString = s.ctx->stringHeap->bytesAllocated();
+      maxStringIdx = sc.first;
+    }
+    if (s.ctx->stringHeap->totalAlignedMemoryAllocated() > maxStringTotal)
+    {
+      maxStringTotal = s.ctx->stringHeap->totalAlignedMemoryAllocated();
+      maxStringTotalIdx = sc.first;
+    }
+    if (s.ctx->getSharedSize() > maxShared)
+    {
+      maxShared = s.ctx->getSharedSize();
+      maxSharedIdx = sc.first;
+    }
+
+    globals += s.ctx->getGlobalSize();
+    stack += s.ctx->ownStack ? s.ctx->stack.size() : 0;
     code += s.ctx->code->bytesAllocated();
     codeTotal += s.ctx->code->totalAlignedMemoryAllocated();
     constStrings += s.ctx->constStringHeap->bytesAllocated();
@@ -440,18 +609,34 @@ size_t Scripts::dumpMemory()
     heapTotal += s.ctx->heap->totalAlignedMemoryAllocated();
     string += s.ctx->stringHeap->bytesAllocated();
     stringTotal += s.ctx->stringHeap->totalAlignedMemoryAllocated();
-    shared += s.ctx->getSharedMemorySize();
-    unique += s.ctx->getUniqueMemorySize();
+    shared += s.ctx->getSharedSize();
   }
+
+  debug("daScript: max globals mem usage %@ in %@", maxGlobals, maxGlobalsIdx.c_str());
+  if (!maxStackIdx.empty())
+    debug("daScript: max stack mem usage %@ in %@", maxStack, maxStackIdx.c_str());
+  debug("daScript: max code mem usage %@ in %@", maxCode, maxCodeIdx.c_str());
+  debug("daScript: max codeTotal mem usage %@ in %@", maxCodeTotal, maxCodeTotalIdx.c_str());
+  debug("daScript: max constStrings mem usage %@ in %@", maxConstStrings, maxConstStringsIdx.c_str());
+  debug("daScript: max constStringsTotal mem usage %@ in %@", maxConstStringsTotal, maxConstStringsTotalIdx.c_str());
+  debug("daScript: max debugInfo mem usage %@ in %@", maxDebugInfo, maxDebugInfoIdx.c_str());
+  debug("daScript: max debugInfoTotal mem usage %@ in %@", maxDebugInfoTotal, maxDebugInfoTotalIdx.c_str());
+  debug("daScript: max heap mem usage %@ in %@", maxHeap, maxHeapIdx.c_str());
+  debug("daScript: max heapTotal mem usage %@ in %@", maxHeapTotal, maxHeapTotalIdx.c_str());
+  debug("daScript: max string mem usage %@ in %@", maxString, maxStringIdx.c_str());
+  debug("daScript: max stringTotal mem usage %@ in %@", maxStringTotal, maxStringTotalIdx.c_str());
+  if (!maxSharedIdx.empty())
+    debug("daScript: max shared mem usage %@ in %@", maxShared, maxSharedIdx.c_str());
+
   size_t total = stack + globals + codeTotal + constStringsTotal + debugInfoTotal + heapTotal + stringTotal;
   size_t waste = constStringsTotal - constStrings + debugInfoTotal - debugInfo + heapTotal - heap + stringTotal - string;
-  G_UNUSED(total);
-  G_UNUSED(waste);
+
   debug("daScript: memory usage total = %d, waste=%d\n"
         "globals=%d, stack=%d, code=%d(%d), constStr=%d(%d) debugInfo=%d(%d),heap=%d(%d),string=%d(%d),"
-        "shared=%d, unique = %d",
+        "shared=%d",
     total, waste, globals, stack, code, codeTotal, constStrings, constStringsTotal, debugInfo, debugInfoTotal, heap, heapTotal, string,
-    stringTotal, shared, unique);
+    stringTotal, shared);
+
   return total;
 }
 #if DAS_HAS_DIRECTORY_WATCH
@@ -605,13 +790,23 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
   policies.fail_on_no_aot = false;
   policies.debugger = ldr_ctx.enableDebugger == EnableDebugger::YES;
   policies.no_unsafe = sandboxMode;
+  policies.very_safe_context = ldr_ctx.verySafeContext;
+  policies.force_inscope_pod = ldr_ctx.forceInscopePod;
   policies.no_aliasing = true;
+  // ClearSharedModules can't be used with rtti, so we heed to reload shared modules on reload in this case
+  // (it's slower then just clearing them)
+  const bool forceReloadWithRtti = enable_das_rtti() && ldr_ctx.reload;
+  policies.ignore_shared_modules = forceReloadWithRtti;
+  // force rtti to prevent crashes on reload when rtti is enabled in one of the scripts
+  policies.rtti = forceReloadWithRtti;
   policies.strict_unsafe_delete = true;
   policies.gen2_make_syntax = ldr_ctx.syntax == DasSyntax::V1_5;
   policies.version_2_syntax = ldr_ctx.syntax == DasSyntax::V2_0;
+  policies.heap_size_hint = DAS_INITIAL_HEAP_SIZE;
+  policies.string_heap_size_hint = DAS_INITIAL_STRING_HEAP_SIZE;
   policies.stack = 4096;
   policies.export_all = is_in_documentation();
-  debug("daScript: load script <%s> syntax %@", fname.c_str(), (int)ldr_ctx.syntax);
+  // debug("daScript: load script <%s> syntax %@", fname.c_str(), (int)ldr_ctx.syntax);
 
   das::ProgramPtr program;
 
@@ -687,9 +882,9 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
 
     das::shared_ptr<EsContext> ctx = das::make_shared<EsContext>(mgr, program->unsafe ? program->getContextStackSize() : 0);
     ctx->userData = ldr_ctx.userData;
-#if DAS_HAS_DIRECTORY_WATCH
-    ctx->name = fname;
-#endif
+    if (keepFileName)
+      ctx->name = fname;
+
     bool simulateRes = false;
     if (!program->unsafe)
     {
@@ -740,17 +935,10 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
                " or remove this error if you really need this",
           fname.c_str());
     }
-    else
-    {
-      if (!ctx->persistent && program->options.getBoolOption("gc", false))
-        logerr("`%s`: options gc - is allowed only for debug/console scripts.", fname.c_str());
-      if (program->options.getBoolOption("rtti", false))
-        logerr("`%s`: options rtti - is allowed only for debug/console/macro scripts.", fname.c_str());
-    }
 
     AotModeIsRequired aotModeIsRequired = !debugScript ? AotModeIsRequired::YES : AotModeIsRequired::NO;
     LoadedScript script(eastl::move(program), eastl::move(ctx), access, aotModeOverride, aotModeIsRequired, ldr_ctx.syntax,
-      ldr_ctx.enableDebugger);
+      ldr_ctx.enableDebugger, ldr_ctx.verySafeContext, ldr_ctx.forceInscopePod);
     gatherDependencies(fname, access, *dummyLibGroup);
 
 
@@ -798,6 +986,21 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
         "*");
     }
 
+#if DAGOR_DBGLEVEL > 0
+    script.ctx->reportHeap = true;
+    script.ctx->reportStringHeap = true;
+    if (const uint64_t heapLimit = script.ctx->heap->getLimit())
+    {
+      script.ctx->heapLimit = heapLimit;
+      debug("daScript: set heap limit %@ for script <%s>", heapLimit, fname.c_str());
+    }
+    if (const uint64_t stringHeapLimit = script.ctx->stringHeap->getLimit())
+    {
+      script.ctx->stringHeapLimit = stringHeapLimit;
+      debug("daScript: set string heap limit %@ for script <%s>", stringHeapLimit, fname.c_str());
+    }
+#endif
+
 
     das::lock_guard<das::recursive_mutex> guard(mutex); // scripts
 
@@ -824,7 +1027,8 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
       it->second.unload();
     }
 
-    if (!enableSerialization && !is_in_documentation())
+    const bool hasRtti = script.program->options.getBoolOption("rtti", script.program->policies.rtti);
+    if (!enableSerialization && !hasRtti && !is_in_documentation())
       dummyLibGroup->reset(); // cleanup submodules to reduce memory usage
 
     script.moduleGroup = eastl::move(dummyLibGroup);
@@ -834,7 +1038,7 @@ bool Scripts::loadScriptInternal(const das::string &fname, das::smart_ptr<DagFil
 
     // Note: In case of serialization we cannot reset now, as the data will be needed later
     // The clean up is moved to "after the load" stage if we are reading, or after the write if we are writing.
-    if (!enableSerialization && !script.program->options.getBoolOption("rtti", false) && !das::is_in_aot() && !is_in_documentation())
+    if (!enableSerialization && !hasRtti && !das::is_in_aot() && !is_in_documentation())
       script.program.reset(); // we don't need program to be loaded. Saves memory
 
     scripts[fname] = eastl::move(script);
@@ -862,7 +1066,9 @@ bool Scripts::postLoadScript(LoadedScript &script, const das::string &fname, uin
     res = false;
   }
 
-  if (script.moduleGroup && !keepModuleGroupUserData(fname, *script.moduleGroup) && !enableSerialization && !is_in_documentation())
+  if (!enableSerialization && !is_in_documentation() && script.program &&
+      !script.program->options.getBoolOption("rtti", script.program->policies.rtti) && script.moduleGroup &&
+      !keepModuleGroupUserData(fname, *script.moduleGroup))
     script.moduleGroup->reset();
 
   return res;

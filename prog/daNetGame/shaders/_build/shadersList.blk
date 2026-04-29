@@ -12,4 +12,6 @@
   file:t = "../deferred_shadow_compute.dshl"
   file:t = "../deferred_shadow_classify_tiles.dshl"
   file:t = "../deferred_shadow_debug_tiles.dshl"
+  file:t = "../dynamic_lights.dshl"
   file:t = "caustics_render.dshl"
+  file:t = "aurora_borealis.dshl"

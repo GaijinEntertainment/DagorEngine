@@ -1,0 +1,7 @@
+WARNING: w318 (merge-empty-table) '__merge({})' with an empty table is equivalent to 'clone'. Use 'clone' instead.
+testData/static_analyzer/w318_merge_empty_table.nut:5:8
+
+let a = t.__merge({}) //warning:merge-empty-table
+        ^------------
+
+

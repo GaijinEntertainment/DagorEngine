@@ -591,6 +591,11 @@ void AssetExportCache::createSharedData(const char *fname)
   if (!sharedData->load(sharedDataFilename))
     sharedData->reset();
 }
+void AssetExportCache::releaseSharedData()
+{
+  sharedDataFilename.clear();
+  sharedDataStorage.reset();
+}
 void AssetExportCache::reloadSharedData()
 {
   if (!sharedData)

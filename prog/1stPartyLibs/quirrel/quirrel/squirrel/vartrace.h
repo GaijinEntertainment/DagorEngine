@@ -6,8 +6,8 @@
 
 #define VAR_TRACE_SAVE_VALUES 0
 
-#define VAR_TRACE_STACK_DEPTH 4
-#define VAR_TRACE_STACK_HISTORY 4
+#define VAR_TRACE_CALLSTACK_DEPTH 4
+#define VAR_TRACE_HISTORY_SIZE 4
 #define STACK_NOT_INITIALIZED (-2)
 
 
@@ -15,23 +15,23 @@ struct VarTrace
 {
   struct VarStackRecord
   {
-    const SQChar * fileName;
+    const char * fileName;
     int line;
   };
 
   struct HistoryRecord
   {
-    VarStackRecord stack[VAR_TRACE_STACK_DEPTH];
+    VarStackRecord stack[VAR_TRACE_CALLSTACK_DEPTH];
 #if VAR_TRACE_SAVE_VALUES != 0
     int count;
-    SQChar val[31];
-    SQChar flags;
+    char val[31];
+    char flags;
 #endif
   };
 
   int pos;
   int setCnt;
-  HistoryRecord history[VAR_TRACE_STACK_HISTORY];
+  HistoryRecord history[VAR_TRACE_HISTORY_SIZE];
 
   VarTrace()
   {
@@ -46,7 +46,7 @@ struct VarTrace
 #if VAR_TRACE_SAVE_VALUES != 0
     history[0].count = 0;
 #endif
-    for (int i = 0; i < VAR_TRACE_STACK_HISTORY; i++)
+    for (int i = 0; i < VAR_TRACE_HISTORY_SIZE; i++)
     {
       history[i].stack[0].line = STACK_NOT_INITIALIZED;
 #if VAR_TRACE_SAVE_VALUES != 0

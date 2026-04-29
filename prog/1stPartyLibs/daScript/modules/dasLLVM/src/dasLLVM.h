@@ -10,7 +10,6 @@ protected:
 virtual bool initDependencies() override;
 	void initMain ();
 	virtual ModuleAotType aotRequire ( TextWriter & tw ) const override;
-	#include "dasLLVM.func.decl.inc"
 public:
 	ModuleLibrary lib;
 	bool initialized = false;

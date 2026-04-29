@@ -2,7 +2,7 @@
 
 #include <bindQuirrelEx/bindQuirrelEx.h>
 #include <osApiWrappers/dag_miscApi.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <osApiWrappers/dag_unicode.h>
 #if _TARGET_PC_WIN | _TARGET_XBOX
 #include <windows.h>
@@ -106,8 +106,8 @@ static Sqrat::Table make_platform_exports(HSQUIRRELVM vm)
   Sqrat::Table tbl(vm);
   /// @module platform
   tbl //
-    .SquirrelFunc("get_locale_lang", &sq_marshal_locale_attr<get_locale_lang>, 1, ".")
-    .SquirrelFunc("get_locale_country", &sq_marshal_locale_attr<get_locale_country>, 1, ".")
+    .SquirrelFuncDeclString(&sq_marshal_locale_attr<get_locale_lang>, "get_locale_lang(): string")
+    .SquirrelFuncDeclString(&sq_marshal_locale_attr<get_locale_country>, "get_locale_country(): string")
     .Func("get_platform_string_id", get_platform_string_id)
     .Func("get_host_platform", get_host_platform_string)
     .Func("get_host_arch", get_host_arch_string)

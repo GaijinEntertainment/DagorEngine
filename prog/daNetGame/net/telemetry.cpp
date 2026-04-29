@@ -11,8 +11,9 @@
 #include <debug/dag_logSys.h>
 #include <util/dag_string.h>
 #include <startup/dag_globalSettings.h>
+#include <drv/3d/dag_decl.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
-#include <3d/dag_gpuConfig.h>
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -168,7 +169,7 @@ int on_debug_log(int lev_tag, const char *fmt, const void *arg, int anum, const 
     {
       params.collection = "client_d3d_errorlog";
       params.meta["d3d_driver"] = d3d::get_driver_name();
-      params.meta["gpu_vendor"] = d3d_get_vendor_name(d3d_get_gpu_cfg().primaryVendor);
+      params.meta["gpu_vendor"] = d3d_get_vendor_name(d3d::get_driver_desc().info.vendor);
       params.meta["gpu_name"] = d3d::get_device_name();
     }
     if (!app_profile::get().serverSessionId.empty())

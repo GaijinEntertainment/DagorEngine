@@ -1,5 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "basetex.h"
+
 #include <memory/dag_fixedBlockAllocator.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_platform_pc.h>
@@ -28,15 +30,16 @@
 #include <workCycle/dag_workCycle.h>
 #include <util/dag_watchdog.h>
 #include <math/dag_mathUtils.h>
+
 #include <validateUpdateSubRegion.h>
 #include <validation.h>
+#include "drv_assert_defs.h"
+#include "drv_log_defs.h"
 
 #include "driver.h"
-#include <d3d9types.h>
+#include "states.h"
+#include "render_state.h"
 #include <d3d11_1.h>
-#if HAS_NVAPI
-#include <nvapi.h>
-#endif
 
 
 #if 0
@@ -171,24 +174,21 @@ static bool createResView(TextureView &tv, BaseTex *tex, uint32_t face, uint32_t
     }
     else if (type == D3DResourceType::ARRTEX)
     {
-      if (tex->cube_array)
-      {
-        D3D11_TEXCUBE_ARRAY_SRV d;
-        set_res_view_mip(d, mip_level, mip_count);
-        d.First2DArrayFace = face;
-        d.NumCubes = tex->depth - face;
-        desc.TextureCubeArray = d;
-        desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
-      }
-      else
-      {
-        D3D11_TEX2D_ARRAY_SRV d;
-        set_res_view_mip(d, mip_level, mip_count);
-        d.FirstArraySlice = face;
-        d.ArraySize = tex->depth - face;
-        desc.Texture2DArray = d;
-        desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
-      }
+      D3D11_TEX2D_ARRAY_SRV d;
+      set_res_view_mip(d, mip_level, mip_count);
+      d.FirstArraySlice = face;
+      d.ArraySize = tex->depth - face;
+      desc.Texture2DArray = d;
+      desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+    }
+    else if (type == D3DResourceType::CUBEARRTEX)
+    {
+      D3D11_TEXCUBE_ARRAY_SRV d;
+      set_res_view_mip(d, mip_level, mip_count);
+      d.First2DArrayFace = face;
+      d.NumCubes = tex->depth - face;
+      desc.TextureCubeArray = d;
+      desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
     }
   }
   else
@@ -213,7 +213,7 @@ static bool createResView(TextureView &tv, BaseTex *tex, uint32_t face, uint32_t
       desc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
       D3D_CONTRACT_ASSERT(mip_level == 0 && mip_count == -1);
     }
-    else if (type == D3DResourceType::ARRTEX)
+    else if (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX)
     {
       D3D11_TEX2D_ARRAY_SRV d;
       d.MostDetailedMip = mip_level;
@@ -316,7 +316,7 @@ static bool createTexView(TextureView &tv, BaseTex *tex, uint32_t face, uint32_t
         desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2DARRAY;
         D3D_CONTRACT_ASSERT(mip_count == 1);
       }
-      else if (type == D3DResourceType::ARRTEX)
+      else if (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX)
       {
         D3D11_TEX2D_ARRAY_RTV d;
         d.MipSlice = mip_level;
@@ -382,7 +382,7 @@ static bool createTexView(TextureView &tv, BaseTex *tex, uint32_t face, uint32_t
     desc.Flags = (cflg & TEXCF_SRGBWRITE) ? (D3D11_DSV_READ_ONLY_DEPTH | D3D11_DSV_READ_ONLY_STENCIL) : 0;
     if (!is_stencil_format_flg(cflg))
       desc.Flags &= ~D3D11_DSV_READ_ONLY_STENCIL;
-    if (type == D3DResourceType::ARRTEX)
+    if (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX)
     {
       D3D_CONTRACT_ASSERT(mip_level == 0 && mip_count == 1);
       desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
@@ -844,7 +844,7 @@ ID3D11UnorderedAccessView *BaseTex::getUaView(uint32_t face, uint32_t mip_level,
       descView.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE3D;
       D3D_CONTRACT_ASSERT(face == 0);
     }
-    else if (type == D3DResourceType::ARRTEX)
+    else if (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX)
     {
       descView.Texture2DArray.MipSlice = mip_level;
       descView.Texture2DArray.FirstArraySlice = face;
@@ -1002,7 +1002,8 @@ bool BaseTex::allocateTex()
     case D3DResourceType::TEX:
     case D3DResourceType::CUBETEX:
       return create_tex2d(tex, this, width, height, mipLevels, type == D3DResourceType::CUBETEX, nullptr, 1);
-    case D3DResourceType::ARRTEX: return create_tex2d(tex, this, width, height, mipLevels, cube_array, nullptr, depth);
+    case D3DResourceType::ARRTEX:
+    case D3DResourceType::CUBEARRTEX: return create_tex2d(tex, this, width, height, mipLevels, cube_array, nullptr, depth);
     case D3DResourceType::VOLTEX: return create_tex3d(tex, this, width, height, depth, cflg, mipLevels, nullptr);
     default: return false;
   }
@@ -1033,7 +1034,7 @@ bool BaseTex::markTexelsUninitialized() const
 
 bool BaseTex::releaseTex(bool recreate_after)
 {
-  if (type == D3DResourceType::ARRTEX)
+  if (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX)
   {
     D3D_CONTRACT_ASSERT(lockFlags == 0); // locked?
   }
@@ -1113,7 +1114,7 @@ int BaseTex::recreate()
     return recreate_if_stub_used([this] { return create_tex3d(tex, this, 4, 4, 1, cflg, 1, NULL); });
   }
 
-  if (type == D3DResourceType::ARRTEX)
+  if (type == D3DResourceType::ARRTEX || type == D3DResourceType::CUBEARRTEX)
   {
     VERBOSE_DEBUG("%s <%s> recreate %dx%dx%d (%s)", strLabel(), getName(), width, height, depth, "rt|dyn");
     return create_tex2d(tex, this, width, height, mipLevels, cube_array, NULL, depth);
@@ -1139,8 +1140,12 @@ int BaseTex::recreate_if_stub_used(CreateTexCallback &&create_placeholder_tex)
 
 static const int GUARD = 64 * 1024;
 
-int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
+int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags) { return lockimg(p, stride, 0, lev, flags); }
+
+int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
 {
+  D3D_CONTRACT_ASSERTF_RETURN(D3DResourceType::VOLTEX != type, 0, "DX11: lockimg called on 3D texture %p <%s>", this, getName());
+
   if (device_is_lost != S_OK)
   {
     D3D_ERROR("lockimg during reset");
@@ -1158,7 +1163,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
   }
 
   if (!tex.tex2D && (flags & TEXLOCK_WRITE) && !(flags & TEXLOCK_READ))
-    if (!create_tex2d(tex, this, width, height, mipLevels, false, NULL))
+    if (!allocateTex())
     {
       D3D_ERROR("failed to auto-create tex.tex2D on lockImg");
       return 0;
@@ -1166,7 +1171,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
   stride = 0;
 
   uint32_t prevFlags = lockFlags;
-  if (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED))
+  if (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED | TEXCF_UPDATE_DESTINATION))
   {
 #if DAGOR_DBGLEVEL > 0
     wasUsed = 1;
@@ -1175,12 +1180,14 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
     lockFlags = 0;
     if (tex.stagingTex2D == NULL)
     {
+      const bool cube =
+        (type == D3DResourceType::CUBETEX) || (type == D3DResourceType::ARRTEX && cube_array) || (type == D3DResourceType::CUBEARRTEX);
       resourceCopied = false;
       D3D11_TEXTURE2D_DESC desc;
       desc.Width = width;
       desc.Height = height;
       desc.MipLevels = mipLevels;
-      desc.ArraySize = (type == D3DResourceType::CUBETEX) ? 6 : 1;
+      desc.ArraySize = (cube ? 6 : 1) * depth;
       desc.Format = format;
       desc.SampleDesc.Quality = 0;
       desc.SampleDesc.Count = 1;
@@ -1250,11 +1257,13 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
   {
     if (tex.stagingTex2D == NULL && (cflg & (TEXCF_DYNAMIC | TEXCF_SYSMEM)) == 0)
     {
+      const bool cube =
+        (type == D3DResourceType::CUBETEX) || (type == D3DResourceType::ARRTEX && cube_array) || (type == D3DResourceType::CUBEARRTEX);
       D3D11_TEXTURE2D_DESC desc;
       desc.Width = width;
       desc.Height = height;
       desc.MipLevels = mipLevels;
-      desc.ArraySize = (type == D3DResourceType::CUBETEX) ? 6 : 1;
+      desc.ArraySize = (cube ? 6 : 1) * depth;
       desc.Format = format;
       desc.SampleDesc.Quality = 0;
       desc.SampleDesc.Count = 1;
@@ -1284,9 +1293,7 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
     if (!res)
       return 0;
 
-    //    enter_lock_resources();
-
-    mappedSubresource = D3D11CalcSubresource(lev, 0, 1);
+    mappedSubresource = D3D11CalcSubresource(level, face, mipLevels);
     D3D11_MAP mapAccess = D3D11_MAP_READ;
     if (!(cflg & TEXCF_RTARGET))
     {
@@ -1324,138 +1331,16 @@ int BaseTex::lockimg(void **p, int &stride, int lev, unsigned flags)
 
     stride = lockMsr.RowPitch;
     lockFlags = flags;
-    lockedLevel = lev;
+    lockedLevel = level;
     return 1;
   }
   lockFlags = flags;
   return 1;
 }
 
-int BaseTex::lockimg(void **p, int &stride, int face, int level, unsigned flags)
-{
-  if (device_is_lost != S_OK)
-  {
-    D3D_ERROR("lockimg during reset");
-    if (p)
-      *p = NULL;
-    return 0;
-  }
-
-  stride = 0;
-
-  uint32_t prevFlags = lockFlags;
-  if ((flags & TEXLOCK_RWMASK) != TEXLOCK_READ && p)
-  {
-    D3D_CONTRACT_ERROR("cannot lock cube tex image for write - n/a!");
-    return 0;
-  }
-  if (cflg & (TEXCF_RTARGET | TEXCF_UNORDERED))
-  {
-#if DAGOR_DBGLEVEL > 0
-    wasUsed = 1;
-#endif
-    bool resourceCopied = (lockFlags == TEX_COPIED);
-    lockFlags = 0;
-    if (is_depth_format_flg(cflg))
-    {
-      D3D_CONTRACT_ERROR("can't lock depth format");
-      return 0;
-    }
-    if (tex.stagingTex2D == NULL)
-    {
-      const bool cube = (type == D3DResourceType::CUBETEX) || (type == D3DResourceType::ARRTEX && cube_array);
-      wasCopiedToStage = 0;
-      resourceCopied = false;
-      D3D11_TEXTURE2D_DESC desc;
-      desc.Width = width;
-      desc.Height = height;
-      desc.MipLevels = mipLevels;
-      desc.ArraySize = (cube ? 6 : 1) * depth;
-      desc.Format = format;
-      desc.SampleDesc.Quality = 0;
-      desc.SampleDesc.Count = 1;
-      desc.Usage = D3D11_USAGE_STAGING;
-      desc.BindFlags = 0;
-
-      desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-      desc.MiscFlags = (type == D3DResourceType::CUBETEX) ? D3D11_RESOURCE_MISC_TEXTURECUBE : 0;
-
-      {
-        HRESULT hr = dx_device->CreateTexture2D(&desc, NULL, &tex.stagingTex2D);
-        RETRY_CREATE_STAGING_TEX(hr, getSize(), dx_device->CreateTexture2D(&desc, NULL, &tex.stagingTex2D));
-        if (FAILED(hr))
-        {
-          D3D_ERROR("can't create staging tex");
-          if (!device_should_reset(hr, "CreateTexture2D(rtarget stagingTex2D)"))
-            DXFATAL(hr, "CreateTexture2D(stagingTex2D)");
-          if (p)
-            *p = NULL;
-          return 0;
-        }
-      }
-
-      G_ASSERT(tex.stagingTex2D != NULL);
-    }
-
-    if (((!resourceCopied || !p) && !wasCopiedToStage))
-    {
-      ContextAutoLock contextLock;
-      disable_conditional_render_unsafe();
-      VALIDATE_GENERIC_RENDER_PASS_CONDITION(!g_render_state.isGenericRenderPassActive,
-        "DX11: BaseTex::lockimg uses CopyResource in an active generic render pass");
-      dx_context->CopyResource(tex.stagingTex2D, tex.tex2D);
-      wasCopiedToStage = 1;
-    }
-    if (!p)
-    {
-      lockFlags = TEX_COPIED;
-      stride = 0;
-      return 1;
-    }
-    ID3D11Resource *res = tex.stagingTex2D ? tex.stagingTex2D : tex.tex2D;
-    G_ASSERT(tex.stagingTex2D);
-
-    //    enter_lock_resources();
-    mappedSubresource = D3D11CalcSubresource(level, face, mipLevels);
-    D3D11_MAP mapAccess = D3D11_MAP_READ;
-    if (!(cflg & TEXCF_RTARGET))
-    {
-      if (!tex.stagingTex2D && !(cflg & TEXCF_SYSMEM))
-        mapAccess = D3D11_MAP_WRITE_DISCARD;
-      else if (!(lockFlags & (TEXLOCK_WRITE | TEXLOCK_DELSYSMEMCOPY)))
-        mapAccess = D3D11_MAP_READ; // -V1048
-      else if ((lockFlags & TEXLOCK_RWMASK) == TEXLOCK_WRITE)
-        mapAccess = D3D11_MAP_WRITE;
-      else
-        mapAccess = D3D11_MAP_READ_WRITE;
-    }
-
-    last_hres = map_without_context_blocking(res, mappedSubresource, mapAccess, flags & TEXLOCK_NOSYSLOCK, &lockMsr);
-
-    if (FAILED(last_hres))
-    {
-      if (prevFlags == TEX_COPIED && last_hres == DXGI_ERROR_WAS_STILL_DRAWING)
-        lockFlags = prevFlags;
-      return 0;
-    }
-    *p = lockMsr.pData;
-
-    stride = lockMsr.RowPitch;
-    lockFlags = flags;
-    lockedLevel = level;
-    return 1;
-  }
-  else
-  {
-    D3D_CONTRACT_ERROR("cannot lock non rtarget cube tex image - n/a!");
-    return 0;
-  }
-  return 0;
-}
-
 int BaseTex::unlockimg()
 {
-  if (type == D3DResourceType::TEX)
+  if (type != D3DResourceType::VOLTEX)
   {
     if ((cflg & (TEXCF_RTARGET | TEXCF_UNORDERED)) && (lockFlags == TEX_COPIED))
       return 1;
@@ -1475,9 +1360,10 @@ int BaseTex::unlockimg()
     debugLockData = NULL;
 #endif
 
-    ddsx::Header &hdr = *(ddsx::Header *)texCopy.data();
-    if ((cflg & TEXCF_SYSTEXCOPY) && data_size(texCopy) && lockMsr.pData && !hdr.compressionType())
+    const ddsx::Header *maybeHdr = (const ddsx::Header *)texCopy.data();
+    if ((cflg & TEXCF_SYSTEXCOPY) && data_size(texCopy) && lockMsr.pData && !maybeHdr->compressionType())
     {
+      const ddsx::Header &hdr = *maybeHdr;
       int rpitch = hdr.getSurfacePitch(lockedLevel);
       int h = hdr.getSurfaceScanlines(lockedLevel);
       uint8_t *src = (uint8_t *)lockMsr.pData;
@@ -1514,7 +1400,7 @@ int BaseTex::unlockimg()
 #if BLACK_TEXTURES_WORKAROUND
         for (int mimNo = 0; mimNo < mipLevels; mimNo++)
         {
-          mappedSubresource = D3D11CalcSubresource(mimNo, 0, mipLevels);
+          mappedSubresource = D3D11CalcSubresource(mimNo, lockedLevel, mipLevels);
           dx_context->CopySubresourceRegion(tex.tex2D, mappedSubresource, 0, 0, 0, tex.stagingTex2D, mappedSubresource, NULL);
         }
 #else
@@ -1534,25 +1420,6 @@ int BaseTex::unlockimg()
     lockFlags = 0;
     return 1;
   }
-  else if (type == D3DResourceType::CUBETEX || type == D3DResourceType::ARRTEX)
-  {
-    if ((cflg & TEXCF_RTARGET) && (lockFlags == TEX_COPIED))
-      return 1;
-    if (lockFlags & TEXLOCK_RWMASK)
-    {
-      ContextAutoLock contextLock;
-      dx_context->Unmap(tex.stagingTex2D ? tex.stagingTex2D : tex.tex2D, mappedSubresource);
-    }
-
-    if ((lockFlags & TEXLOCK_DELSYSMEMCOPY) && tex.stagingTex2D != NULL)
-    {
-      tex.stagingTex2D->Release();
-      tex.stagingTex2D = NULL;
-    }
-
-    lockFlags = 0;
-    return 1;
-  }
 
   return 0;
 }
@@ -1561,6 +1428,10 @@ int BaseTex::generateMips()
 {
   ID3D11ShaderResourceView *resView = getResView(0, 0, 0);
   G_ASSERT(resView);
+
+  if (!(cflg & TEXCF_GENERATEMIPS))
+    LOGWARN_ONCE("generateMips called on %s texture without TEXCF_GENERATEMIPS flag", getTexName());
+
   if (mipLevels > 1 && resView)
   {
     ContextAutoLock lock;

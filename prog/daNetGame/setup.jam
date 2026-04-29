@@ -3,7 +3,7 @@ if ! $(Root) { Exit Root must be defined before including setup.jam ; }
 # !!!WARNING!!!! PLATFORM IS NOT DEFINED HERE !!!WARNING!!!
 # do not use Platform variable until defPlatform is included
 
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 PhysName  ?= Jolt ;
 
 StrictCompile ?= yes ;
@@ -41,6 +41,7 @@ if $(Dedicated) != yes {
 } else {
   IsHeadless = yes ;
   HaveRenderer = no ;
+  if $(TargetType) = dll { UseD3DMultiForced ?= no-force ; }
   if $(OS) = LINUX { # before inclusion of 'defaults.jam' $(Platform) is not defined unless passed in command line
     NetPeerAuth ?= yes ; # TODO: move this default to project builds
     if $(Sanitize) != address {
@@ -52,7 +53,7 @@ if $(Dedicated) != yes {
     UseSystemOpenSSL ?= yes ;
   }
   if $(NetPeerAuth) = yes {
-    if $(Platform) = windows {
+    if $(Platform) in windows xboxOne scarlett {
       opt on net/dedicated/netded.cpp = -DNET_PEER_AUTH /Y- ; # Exclude from PCH
     } else {
       opt on net/dedicated/netded.cpp = -DNET_PEER_AUTH ;
@@ -61,13 +62,13 @@ if $(Dedicated) != yes {
 }
 
 if $(IsHeadless) = no {
-  LinuxUseX11 = yes ;
+  LinuxUseGUI = yes ;
 } else
 {
-  LinuxUseX11 = no ;
+  LinuxUseGUI = no ;
 }
 
-if $(Config) = rel {
+if $(Config) in rel irel {
   ForceLogs = yes ;
 }
 
@@ -77,7 +78,9 @@ include $(Root)/prog/_jBuild/defPlatform.jam ; # Note - $(Platform) is not defin
 
 if $(Platform) in windows linux macOS {
   UseD3DMulti ?= yes ;
-  UseD3DMultiForced = windows ; # we want same output for client/dedicated/aot on Windows to speed compilation
+  # we want same output for client/dedicated/aot on Windows to speed compilation
+  # (except for cases where we explicitly don't want it)
+  if $(UseD3DMultiForced) != no-force { UseD3DMultiForced = windows ; }
   if $(IsHeadless) != yes {
     local list ;
     if $(Platform) = windows && $(Config) != rel { list += stub ; }
@@ -159,10 +162,8 @@ if $(NeedDasAotCompile) = yes && $(AotCompilerBaseName) {
   if ! $(jam) { Exit AotJamfile not defined for NeedDasAotCompile\=yes ; }
 
   if $(Platform) in ps4 ps5 xboxOne scarlett android nswitch ||
-     #modify setting for building on native arm64 environment
-     #$(Platform)-$(PlatformArch) in windows-x86_64 windows-arm64 { host_platform = windows ; host_arch = x86_64 ; }
-	 $(Platform)-$(PlatformArch) in windows-x86_64 { host_platform = windows ; host_arch = x86_64 ; }
-  else if $(Platform)-$(PlatformArch) in windows-arm64 { host_platform = windows ; host_arch = arm64 ; }
+     $(Platform)-$(PlatformArch) in windows-x86_64 { host_platform = windows ; host_arch = x86_64 ; }
+  else if $(Platform)-$(PlatformArch) = windows-arm64 { host_platform = windows ; host_arch = $(WindowsHostArch) ; }
   else if $(Platform)-$(PlatformArch) = windows-x86 { host_platform = windows ; }
   else if $(Platform) in linux { host_platform = linux ; }
   else if $(Platform) in macOS iOS tvOS { host_platform = macOS ; }
@@ -179,7 +180,10 @@ if $(NeedDasAotCompile) = yes && $(AotCompilerBaseName) {
     BuildJams = $(jam) ;
     platform on $(jam:G=JAM) = -sPlatform=$(host_platform) -sPlatformArch=$(host_arch) ;
     config on $(jam:G=JAM) = -sConfig=dev ;
-    if $(host_platform) = linux { config on $(jam:G=JAM) += -sPlatformOutputDir=$(PlatformOutputDir) ; }
+    if $(host_platform) = linux {
+      if $(MAbi) && $(MAbi) != 64 { config on $(jam:G=JAM) += -sMAbi=$(MAbi) -sPlatformOutputDir=$(PlatformOutputDir)~m$(MAbi) ; }
+      else { config on $(jam:G=JAM) += -sPlatformOutputDir=$(PlatformOutputDir) ; }
+    }
     platform_spec on $(jam:G=JAM) = \  ;
     platform_spec_xx on $(jam:G=JAM) = \  ;
     nopdb on $(jam:G=JAM) = \  ;
@@ -202,7 +206,7 @@ if $(Platform) in nswitch {
   EnableBreakpad = no ;
 }
 
-if $(UseGDK) != no {
+if $(UseGDK) = yes {
   if $(GdkRequiresXCurl) = yes {
     UseSystemLibcurl = yes ;
   }
@@ -281,7 +285,8 @@ AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/gameLibs/publicInclude/quirrel
   $(Root)/prog/commonFx/commonFxGame
-  $(Root)/prog/3rdPartyLibs/Detour/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/Detour/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/DetourTileCache/Include
   $(Root)/prog/1stPartyLibs/jsoncpp/include
   $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
   $(Root)/prog/3rdPartyLibs/arc/zlib-$(UseZlibVer)
@@ -291,11 +296,6 @@ AddIncludes =
   $(Root)/prog/1stPartyLibs/daScript/include
   $(Root)/prog/1stPartyLibs/daScript/modules/dasQuirrel/src
 ;
-
-if $(UseSystemLibcurl) != yes {
-  AddIncludes += $(Root)/prog/3rdPartyLibs/libcurl/include ;
-}
-
 
 if $(HaveRenderer) = yes && $(Platform) in windows {
   LowLatencyFrameworkCompilation ?= yes ;

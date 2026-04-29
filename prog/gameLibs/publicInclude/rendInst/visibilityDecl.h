@@ -18,6 +18,7 @@ enum class VisibilityRenderingFlag
   Static = 1 << 0,
   Dynamic = 1 << 1,
   All = Static | Dynamic,
+  AllowSeparateRendering = 1 << 2,
 };
 using VisibilityRenderingFlags = BitFlagsMask<VisibilityRenderingFlag>;
 BITMASK_DECLARE_FLAGS_OPERATORS(VisibilityRenderingFlag);

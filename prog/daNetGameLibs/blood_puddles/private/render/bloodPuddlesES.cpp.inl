@@ -4,7 +4,7 @@
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_resetDevice.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include <ecs/render/updateStageRender.h>
 #include <gameRes/dag_gameResources.h>
 #include <ioSys/dag_dataBlock.h>
@@ -14,7 +14,9 @@
 #include <util/dag_console.h>
 
 #include <decalMatrices/decalsMatrices.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/rendInst/riExtra.h>
 #include <gamePhys/collision/collisionLib.h>
 #include <render/viewVecs.h>
@@ -34,22 +36,22 @@ void init_blood_puddles_mgr() { blood_puddles_mgr = eastl::make_unique<BloodPudd
 void close_blood_puddles_mgr() { blood_puddles_mgr.reset(); }
 
 template <typename Callable>
-inline void is_bood_enabled_ecs_query(Callable c);
+inline void is_bood_enabled_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-inline void get_blood_color_ecs_query(Callable c);
+inline void get_blood_color_ecs_query(ecs::EntityManager &manager, Callable c);
 
 bool is_blood_enabled()
 {
   bool isEnabled = true;
-  is_bood_enabled_ecs_query([&](const bool isBloodEnabled) { isEnabled = isBloodEnabled; });
+  is_bood_enabled_ecs_query(*g_entity_mgr, [&](const bool isBloodEnabled) { isEnabled = isBloodEnabled; });
   return isEnabled;
 }
 
 Color4 get_blood_color()
 {
   Color4 bloodColor(1.f, 1.f, 1.f, 1.f);
-  get_blood_color_ecs_query([&](const bool isBloodEnabled, const E3DCOLOR &disabledBloodColor) {
+  get_blood_color_ecs_query(*g_entity_mgr, [&](const bool isBloodEnabled, const E3DCOLOR &disabledBloodColor) {
     if (!isBloodEnabled)
       bloodColor = color4(disabledBloodColor);
   });
@@ -106,28 +108,22 @@ float BloodPuddles::addRandomToSize(int group, float size) const
   return lerp(size, rnd_float(sizeRanges[group].x, sizeRanges[group].y), additionalRandomInfl);
 }
 
-// static void register_ri_matrix_data(rendinst::riex_handle_t riex_handle, uint32_t &matrix_id, TMatrix &itm)
-// {
-//   if (get_blood_puddles_mgr())
-//   {
-//     DecalsMatrices *matrixMgr = get_blood_puddles_mgr()->getMatrixManager();
-//     ecs::EntityId riexEid = find_ri_extra_eid(riex_handle);
-//     const TMatrix &riexTm = matrixMgr->getBasisMatrix(riexEid);
-//     matrix_id = matrixMgr->registerMatrix(riexEid, riexTm);
-//     matrixMgr->useMatrixId(matrix_id);
-//     itm = inverse(riexTm);
-//   }
-//   else
-//   {
-//     matrix_id = 0;
-//     itm = TMatrix::IDENT;
-//   }
-// }
-
-static void register_ri_matrix_data(rendinst::riex_handle_t, uint32_t &matrix_id, TMatrix &itm)
+static void register_ri_matrix_data(rendinst::riex_handle_t riex_handle, uint32_t &matrix_id, TMatrix &itm)
 {
-  matrix_id = 0;
-  itm = TMatrix::IDENT;
+  if (get_blood_puddles_mgr())
+  {
+    DecalsMatrices *matrixMgr = get_blood_puddles_mgr()->getMatrixManager();
+    ecs::EntityId riexEid = find_ri_extra_eid(riex_handle);
+    const TMatrix &riexTm = matrixMgr->getBasisMatrix(riexEid);
+    matrix_id = matrixMgr->registerMatrix(riexEid, riexTm);
+    matrixMgr->useMatrixId(matrix_id);
+    itm = inverse(riexTm);
+  }
+  else
+  {
+    matrix_id = 0;
+    itm = TMatrix::IDENT;
+  }
 }
 
 int BloodPuddles::getDecalVariant(const int group, Point3 decal_normal) const
@@ -277,7 +273,7 @@ void BloodPuddles::putDecal(int group,
 
   uint32_t matrixId = 0;
   TMatrix itm = TMatrix::IDENT;
-  if (riDesc.isValid() && riDesc.isDynamicRiExtra())
+  if (riex_handle != rendinst::RIEX_HANDLE_NULL)
     register_ri_matrix_data(riex_handle, matrixId, itm);
 
   putDecal(group, itm * pos, itm % normal, dir, size, hit_pos, projective, variant, strength, matrixId, isLandscape);

@@ -58,22 +58,20 @@ public:
   bool isResLoaded(int res_id) override { return findResData(::validate_game_res_id(res_id)) >= 0; }
   bool checkResPtr(GameResource *res) override { return findPhys((FastPhysSystem *)res) >= 0; }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
-    // get real-res id
     if (::validate_game_res_id(res_id) == NULL_GAMERES_ID)
       return NULL;
 
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findResData(res_id);
-
-    // no resource - load pack
     if (id < 0)
     {
-      ::load_game_resource_pack(res_id);
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
       id = findResData(res_id);
-      if (id < 0)
-        return NULL;
     }
+    if (id < 0)
+      return NULL;
 
     ffData[id].refCount++;
     return (GameResource *)ffData[id].fastPhys.data();
@@ -126,12 +124,12 @@ public:
   }
 
 
-  bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/) override
   {
     bool result = false;
     for (int i = ffData.size() - 1; i >= 0; --i)
     {
-      if (get_refcount_game_resource_pack_by_resid(ffData[i].resId) > 0)
+      if (rrl && is_res_required(rrl, ffData[i].resId))
         continue;
       if (ffData[i].refCount != 0)
       {
@@ -169,7 +167,7 @@ public:
     WinAutoLock lock(cs);
     ffData.push_back(FastPhysData{res_id, 0, eastl::move(fastPhys)});
   }
-  void createGameResource(int /*res_id*/, const int * /*reference_ids*/, int /*num_refs*/) override {}
+  void createGameResource(RRL, int, const int *, int) override {}
 
   void reset() override { ffData.clear(); }
 
@@ -186,13 +184,12 @@ void register_fast_phys_gameres_factory()
 
 FastPhysSystem *create_fast_phys_from_gameres(const char *res_name)
 {
-  GameResHandle handle = GAMERES_HANDLE_FROM_STRING(res_name);
-  const unsigned *data = (const unsigned *)get_game_resource_ex(handle, FastPhysDataGameResClassId);
+  const unsigned *data = (const unsigned *)get_game_resource_ex(res_name, FastPhysDataGameResClassId);
   if (!data)
     return NULL;
   FastPhysSystem *fp = new FastPhysSystem;
   InPlaceMemLoadCB crd(data + 1, data[0]);
   fp->load(crd);
-  release_game_resource((GameResource *)data);
+  release_game_resource_ex(data, FastPhysDataGameResClassId);
   return fp;
 }

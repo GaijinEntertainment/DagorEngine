@@ -6,7 +6,6 @@
 
 #include <generic/dag_patchTab.h>
 #include <util/dag_stdint.h>
-#include <stdlib.h>
 #include <string.h>
 
 
@@ -70,9 +69,13 @@ public:
 };
 
 /// Read-only fast name map with abitrary id mapping (to be constructed from binary dump)
-struct RoNameMapEx : public RoNameMap
+/// Note: protected inherited to prevent accidental calling wrong `getNameId` method
+struct RoNameMapEx : protected RoNameMap
 {
 public:
+  using RoNameMap::map;
+  using RoNameMap::nameCount;
+
   PatchableTab<uint16_t> id;
 
 public:
@@ -81,6 +84,8 @@ public:
     int n = RoNameMap::getNameId(name);
     return (n >= 0) ? id[n] : -1;
   }
+
+  int getRawNameId(const char *name) const { return RoNameMap::getNameId(name); }
 
   void patchData(void *base)
   {

@@ -17,7 +17,9 @@ class TextureDescriptorProvider : public ImageObjectProvider
 {
   using BaseType = ImageObjectProvider;
 
-  DescriptorHeap<ShaderResourceViewStagingPolicy> srvHeap;
+  static constexpr uint32_t DESCRIPTOR_BLOCK_SIZE = 1024;
+
+  DescriptorHeap<ShaderResourceViewStagingPolicy<DESCRIPTOR_BLOCK_SIZE>> srvHeap;
   DescriptorHeap<RenderTargetViewPolicy> rtvHeap;
   DescriptorHeap<DepthStencilViewPolicy> dsvHeap;
 
@@ -94,7 +96,9 @@ class BufferDescriptorProvider : public TextureDescriptorProvider
 {
   using BaseType = TextureDescriptorProvider;
 
-  ContainerMutexWrapper<DescriptorHeap<ShaderResourceViewStagingPolicy>, OSSpinlock> srvHeap;
+  static constexpr uint32_t DESCRIPTOR_BLOCK_SIZE = 1024;
+
+  ContainerMutexWrapper<DescriptorHeap<ShaderResourceViewStagingPolicy<DESCRIPTOR_BLOCK_SIZE>>, OSSpinlock> srvHeap;
 
 protected:
   BufferDescriptorProvider() = default;
@@ -130,8 +134,11 @@ protected:
     for (auto &descriptor : eastl::span{descriptors.get(), count})
     {
       descriptor = srvHeapAccess->allocate(device);
-      device->CreateShaderResourceView(buffer, &desc, descriptor);
-      desc.Buffer.FirstElement += desc.Buffer.NumElements;
+      if (descriptor.ptr)
+      {
+        device->CreateShaderResourceView(buffer, &desc, descriptor);
+        desc.Buffer.FirstElement += desc.Buffer.NumElements;
+      }
     }
     return descriptors;
   }
@@ -144,8 +151,11 @@ protected:
     for (auto &descriptor : eastl::span{descriptors.get(), count})
     {
       descriptor = srvHeapAccess->allocate(device);
-      device->CreateUnorderedAccessView(buffer, nullptr, &desc, descriptor);
-      desc.Buffer.FirstElement += desc.Buffer.NumElements;
+      if (descriptor.ptr)
+      {
+        device->CreateUnorderedAccessView(buffer, nullptr, &desc, descriptor);
+        desc.Buffer.FirstElement += desc.Buffer.NumElements;
+      }
     }
     return descriptors;
   }

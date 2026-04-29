@@ -15,9 +15,7 @@ shader dynamic_collimator
 }
 
 shader collimator, gyro_sight {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK_TRANS()
-  supports global_const_block;
 
   texture collimator_tex = material.texture[1];
 
@@ -26,7 +24,7 @@ shader collimator, gyro_sight {
     texture gyro_sight_tex = material.texture[2];
   }
 
-  if (glass_normal_pass == yes)
+  if (rendinst_transparent_gbuffer_pass == generate)
   {
     dont_render;
   }
@@ -167,11 +165,11 @@ shader collimator, gyro_sight {
 
   if (shader == gyro_sight)
   {
-    (ps) { gyro_sight_tex@static = gyro_sight_tex; }
+    (ps) { gyro_sight_tex@staticSmp = gyro_sight_tex; }
   }
 
   (ps) {
-    collimator_tex@static = collimator_tex;
+    collimator_tex@staticSmp = collimator_tex;
     // brightness function with clamping between 0.05 and 1 like in WT from dag_color.h
     // sRGB to intensity with NTSC Weights: r=.299 g=.587 b=.114
     collimator_lighting_intensity@f1 = max(0.05, min(1.0, (sun_color_0.x * 0.299 + sun_color_0.y * 0.587 + sun_color_0.z * 0.114) + 2.0 * (sky_color.x * 0.299 + sky_color.y * 0.587 + sky_color.z * 0.114)));

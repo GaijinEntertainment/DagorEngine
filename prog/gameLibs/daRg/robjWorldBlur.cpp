@@ -74,7 +74,8 @@ void RobjBlurBase::renderTexRect(StdGuiRender::GuiContext &ctx, const ElemRender
   E3DCOLOR color = color_apply_opacity(params->color, (uiBlurTexId == BAD_TEXTUREID) ? 0.25f : render_state.opacity);
   ctx.set_alpha_blend(blend_mode);
   ctx.set_color(color);
-  ctx.set_textures(uiBlurTexId, uiBlurTexSampler, uiBlurTexSdrId, uiBlurTexSdrSampler, false, hdrrender::is_hdr_enabled());
+  ctx.set_textures(uiBlurTexId, uiBlurTexSampler, uiBlurTexSdrId, uiBlurTexSdrSampler, false,
+    hdrrender::is_hdr_enabled() ? TexFormat::UNORM : TexFormat::SRGB_IN_UNORM);
   if (params->saturateFactor != 1.0f)
     ctx.set_picquad_color_matrix_saturate(params->saturateFactor);
 

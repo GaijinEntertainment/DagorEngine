@@ -27,7 +27,6 @@
 #include "sampler_resource.h"
 #include "memory_heap_resource.h"
 #include "predicted_latency_waiter.h"
-#include "stacked_profile_events.h"
 #include "execution_scratch.h"
 #include "frontend.h"
 
@@ -102,6 +101,7 @@ class DeviceContext //-V553
 
   // internal state
   dag::Vector<FrameEvents *> frameEventCallbacks;
+  eastl::vector<DeviceResetEventHandler *> deviceResetEventHandlers;
 
   OSSpinlock mutex;
 
@@ -132,18 +132,25 @@ public:
   OSSpinlock &getFrontLock() { return mutex; }
 
   template <typename CmdType>
-  __forceinline void dispatchCommand(const CmdType &cmd)
+  __forceinline void dispatchCmd(const CmdType &cmd)
   {
     OSSpinlockScopedLock lockedDevice(mutex);
-    dispatchCommandNoLock(cmd);
+    dispatchCmdNoLock(cmd);
   }
 
   template <typename CmdType>
-  __forceinline void dispatchCommandWithStateSet(const CmdType &cmd)
+  __forceinline void dispatchCmdNoLock(const CmdType &cmd)
+  {
+    Frontend::replay->pushCmd(cmd);
+    verifyExecutionMode();
+  }
+
+  template <typename CmdType>
+  __forceinline void dispatchCmdWithStateSet(const CmdType &cmd)
   {
     OSSpinlockScopedLock lockedDevice(mutex);
     setPipelineState();
-    dispatchCommandNoLock(cmd);
+    dispatchCmdNoLock(cmd);
   }
 
   template <typename CmdType>
@@ -152,16 +159,9 @@ public:
     {
       OSSpinlockScopedLock lockedDevice(mutex);
       setPipelineState();
-      dispatchCommandNoLock(cmd);
+      dispatchCmdNoLock(cmd);
     }
     executeDebugFlush(exec_type);
-  }
-
-  template <typename CmdType>
-  __forceinline void dispatchCommandNoLock(const CmdType &cmd)
-  {
-    Frontend::replay->pushCommand(cmd);
-    verifyExecutionMode();
   }
 
   void shutdown();
@@ -186,26 +186,10 @@ public:
 
   void waitForItemPushSpace();
 
-  void updateDebugUIPipelinesData();
-  void setPipelineUsability(ProgramID program, bool value);
   void captureRenderPasses(bool capture_call_stack);
-  void setConstRegisterBuffer(const BufferRef &ref, ShaderStage stage);
-
   void bindVertexBuffer(uint32_t stream, Buffer *buffer, uint32_t offset);
   void bindVertexStride(uint32_t stream, uint32_t stride);
 
-  void compileGraphicsPipeline(const VkPrimitiveTopology top);
-  void compileComputePipeline();
-  uint64_t getTimestampResult(QueryId query_id);
-  QueryId insertTimestamp();
-
-  int getOcclusionQueryResult(QueryId query_id);
-  QueryId startOcclusionQuery();
-  void endOcclusionQuery(QueryId query_id);
-
-  void clearView(int clear_flags);
-  void allowOpLoad();
-  void nativeRenderPassChanged();
   // workaround for pass splits
   //   will auto reorder copy before native render pass if copy requested inside native render pass
   //   this must be avoided, but higher level code can't provide proper usage due to old api / legacy reasons
@@ -216,44 +200,40 @@ public:
   void copyBufferDiscardReorderable(const BufferRef &source, BufferRef &dest, uint32_t src_offset, uint32_t dst_offset,
     uint32_t data_size);
   void copyBuffer(const BufferRef &source, const BufferRef &dest, uint32_t src_offset, uint32_t dst_offset, uint32_t data_size);
-  void pushEvent(const char *name);
   void clearDepthStencilImage(Image *image, const VkImageSubresourceRange &area, const VkClearDepthStencilValue &value,
     bool unordered = false);
   void clearColorImage(Image *image, const VkImageSubresourceRange &area, const VkClearColorValue &value, bool unordered = false);
-  void copyImage(Image *src, Image *dst, const VkImageCopy *regions, uint32_t region_count, uint32_t src_mip, uint32_t dst_mip,
-    uint32_t mip_count, bool unordered = false);
-  void resolveMultiSampleImage(Image *src, Image *dst);
   void flushDraws();
-  void executeDebugFlush(const char *caller);
+
+#if VULKAN_ENABLE_DEBUG_FLUSHING_SUPPORT
+  void executeDebugFlush(const char *caller)
+  {
+    if (Globals::cfg.bits.flushAfterEachDrawAndDispatch)
+      executeDebugFlushImpl(caller);
+  }
+  void executeDebugFlushImpl(const char *caller);
+#else
+  void executeDebugFlush(const char *) {};
+#endif
+
   void copyImageToBuffer(Image *image, Buffer *buffer, uint32_t region_count, VkBufferImageCopy *regions, AsyncCompletionState *sync);
   void copyBufferToImage(Buffer *src, Image *dst_id, uint32_t region_count, VkBufferImageCopy *regions, bool ordered_copy = false);
-  void blitImage(Image *src, Image *dst, const VkImageBlit &region, bool whole_subres);
   void processAllPendingWork();
   void wait();
-  void beginSurvey(uint32_t name);
-  void endSurvey(uint32_t name);
   // allows upload region overlap, keeps uploads ordered between each other
   void uploadBufferOrdered(const BufferRef &src, const BufferRef &dst, uint32_t src_offset, uint32_t dst_offset, uint32_t size);
   void uploadBuffer(const BufferRef &src, const BufferRef &dst, uint32_t src_offset, uint32_t dst_offset, uint32_t size);
   void downloadBuffer(const BufferRef &src, Buffer *dst, uint32_t src_offset, uint32_t dst_offset, uint32_t size);
-  void destroyBuffer(Buffer *buffer);
-  BufferRef discardBuffer(const BufferRef &srcRef, DeviceMemoryClass memory_class, FormatStore view_format, uint32_t bufFlags,
-    uint32_t dynamic_size);
   BufferRef uploadToFrameMem(DeviceMemoryClass memory_class, uint32_t size, const void *src);
   // upload to framemem with memory class that is optimal to be used for device reads
   BufferRef uploadToDeviceFrameMem(uint32_t size, const void *src);
-  void destroyRenderPassResource(RenderPassResource *rp);
-  void destroyImage(Image *img);
-  void present();
+  void present(uint32_t engine_present_frame_id);
   void shutdownImmediateConstBuffers();
-  void addRenderState(shaders::DriverRenderStateId id, const shaders::RenderState &render_state_data);
-  void addPipelineCache(VulkanPipelineCacheHandle cache);
-  void generateMipmaps(Image *img);
   void flushBufferToHost(const BufferRef &buffer, ValueRange<uint32_t> range);
   void waitForIfPending(AsyncCompletionState &sync);
-  void resourceBarrier(ResourceBarrierDesc desc, GpuPipeline gpu_pipeline);
 
-  bool updateBindlessResource(uint32_t index, D3dResource *res, bool stub_swap = false);
+  bool updateBindlessResource(uint32_t index, D3dResource *res);
+  void updateBindlessResourceRange(D3DResourceType type, uint32_t index, const dag::ConstSpan<D3dResource *> &resources);
   void updateBindlessSampler(uint32_t index, const SamplerResource *sampler_res);
   void copyBindlessDescriptors(D3DResourceType type, uint32_t src, uint32_t dst, uint32_t count);
   void updateBindlessResourcesToNull(D3DResourceType type, uint32_t index, uint32_t count);
@@ -262,44 +242,12 @@ public:
   void generateFaultReport();
   void generateFaultReportAtFrameEnd();
 
-  void writeDebugMessage(const char *msg, intptr_t msg_length, intptr_t severity);
-
-  void executeFSR(amd::FSR *fsr, const amd::FSR::UpscalingArgs &params);
-  void executeDLSS(const nv::DlssParams<BaseTexture> &params);
-  void initializeDLSS(int mode, int width, int height);
-  void initializeStreamlineDlss(int width, int height);
-  void executeStreamlineDlss(const nv::DlssParams<BaseTexture> &dlss_params, int view_index);
-
-#if VULKAN_HAS_RAYTRACING
-  void deleteRaytraceBottomAccelerationStructure(RaytraceBottomAccelerationStructure *desc);
-  void deleteRaytraceTopAccelerationStructure(RaytraceTopAccelerationStructure *desc);
-  void traceRays(Buffer *ray_gen_table, uint32_t ray_gen_offset, Buffer *miss_table, uint32_t miss_offset, uint32_t miss_stride,
-    Buffer *hit_table, uint32_t hit_offset, uint32_t hit_stride, Buffer *callable_table, uint32_t callable_offset,
-    uint32_t callable_stride, uint32_t width, uint32_t height, uint32_t depth);
-#endif
-
-  void addShaderModule(uint32_t id, eastl::unique_ptr<ShaderModuleBlob> shdr_module);
-  void removeShaderModule(uint32_t blob_id);
-
-  void addGraphicsProgram(ProgramID program, const ShaderModuleUse &vs_blob, const ShaderModuleUse &fs_blob,
-    const ShaderModuleUse *gs_blob, const ShaderModuleUse *tc_blob, const ShaderModuleUse *te_blob);
-  void addComputeProgram(ProgramID program, eastl::unique_ptr<ShaderModuleBlob> shdr_module, const ShaderModuleHeader &header);
-  void removeProgram(ProgramID program);
-
-#if VULKAN_LOAD_SHADER_EXTENDED_DEBUG_DATA
-  void attachComputeProgramDebugInfo(ProgramID program, eastl::unique_ptr<ShaderDebugInfo> dbg);
-#endif
-
-  void placeAftermathMarker(const char *name);
-
   int getFramerateLimitingFactor();
-
   void advanceAndCheckTimingRecord();
 
   void registerFrameEventsCallback(FrameEvents *callback, bool useFront);
   void callFrameEndCallbacks();
-
-  void getWorkerCpuCore(int *core, int *thread_id);
+  eastl::vector<DeviceResetEventHandler *> &getDeviceResetEventHandlers() { return deviceResetEventHandlers; }
 };
 
 } // namespace drv3d_vulkan

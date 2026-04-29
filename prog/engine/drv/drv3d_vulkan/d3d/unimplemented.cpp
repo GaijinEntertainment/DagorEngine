@@ -13,6 +13,7 @@
 #include <drv/3d/dag_shaderLibrary.h>
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_resourceTag.h>
 
 bool d3d::is_window_occluded() { return false; }
 bool d3d::should_use_compute_for_image_processing(std::initializer_list<unsigned>) { return false; }
@@ -73,25 +74,8 @@ VPROG d3d::create_vertex_shader_hlsl(const char *, unsigned, const char *, const
 }
 
 bool d3d::pcwin::set_capture_full_frame_buffer(bool /*ison*/) { return false; }
-void d3d::pcwin::set_present_wnd(void *) {}
-bool d3d::pcwin::can_render_to_window() { return false; }
-BaseTexture *d3d::pcwin::get_swapchain_for_window(void *) { return nullptr; }
-void d3d::pcwin::present_to_window(void *) {}
 void *d3d::pcwin::get_native_surface(BaseTexture *) { return nullptr; }
 #endif
-
-// variable shading rate
-
-void d3d::set_variable_rate_shading(unsigned, unsigned, VariableRateShadingCombiner, VariableRateShadingCombiner)
-{
-  // needs VK_NV_shading_rate_image to support it
-  // or VK_KHR_variable_rate_shading
-}
-void d3d::set_variable_rate_shading_texture(BaseTexture *)
-{
-  // needs VK_NV_shading_rate_image to support it
-  // or VK_KHR_variable_rate_shading
-}
 
 void d3d::set_stream_output_buffer(int, const StreamOutputBufferSetup &) {}
 
@@ -113,5 +97,11 @@ ArrayTexture *d3d::alias_cube_array_tex(ArrayTexture *, int, int, int, int, cons
 
 bool d3d::discard_tex(BaseTexture *) { return false; }
 
+void d3d::visit_tagged_resources(const ResourceTypeFilter &filter, const ResourceVisitor &visitor)
+{
+  G_UNUSED(filter);
+  G_UNUSED(visitor);
+  G_ASSERTF(false, "Not implemented");
+}
 
 #include <legacyCaptureImpl.cpp.inl>

@@ -622,19 +622,20 @@ static constexpr ecs::ComponentDesc create_fx_based_on_biome_es_comps[] =
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("biome_query__state"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("biome_query__groupId"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("hit_fx_name"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("fx_name_to_spawn"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("biome_query__desiredBiomeName"), ecs::ComponentTypeInfo<ecs::string>(), ecs::CDF_OPTIONAL}
 };
 static void create_fx_based_on_biome_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     create_fx_based_on_biome_es(evt
-        , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "transform", TMatrix)
     , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "biome_query__state", int)
     , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "biome_query__groupId", int)
     , ECS_RW_COMP(create_fx_based_on_biome_es_comps, "biome_query__color", Point4)
-    , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "hit_fx_name", ecs::string)
+    , ECS_RO_COMP(create_fx_based_on_biome_es_comps, "fx_name_to_spawn", ecs::string)
     , ECS_RO_COMP_OR(create_fx_based_on_biome_es_comps, "biome_query__desiredBiomeName", ecs::string(""))
     );
   while (++comp != compE);
@@ -742,7 +743,8 @@ static void validate_emit_range_limit_es_all_events(const ecs::Event &__restrict
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     validate_emit_range_limit_es(evt
-        , ECS_RO_COMP(validate_emit_range_limit_es_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(validate_emit_range_limit_es_comps, "eid", ecs::EntityId)
     );
   while (++comp != compE);
 }
@@ -867,9 +869,9 @@ static ecs::CompileTimeQueryDesc get_replacement_color_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_replacement_color_ecs_query(Callable function)
+inline void get_replacement_color_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_replacement_color_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_replacement_color_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -902,9 +904,9 @@ static ecs::CompileTimeQueryDesc pause_effects_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void pause_effects_ecs_query(Callable function)
+inline void pause_effects_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, pause_effects_ecs_query_desc.getHandle(),
+  perform_query(&manager, pause_effects_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

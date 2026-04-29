@@ -7,10 +7,11 @@
 #include <stdio.h>
 #include <osApiWrappers/dag_miscApi.h>
 #include <osApiWrappers/dag_localConv.h>
+#include <osApiWrappers/dag_winVersionQuery.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
-#include <3d/dag_gpuConfig.h>
 
 
 #if USE_CPU_FEATURES
@@ -444,13 +445,25 @@ bool get_cpu_info(String &cpu, String &cpuFreq, String &cpuVendor, String &cpu_s
 
 bool get_soc_info(String &) { return false; }
 
+int get_mem_page_size()
+{
+#if _TARGET_PC_WIN
+  SYSTEM_INFO sysInfo;
+  ::GetSystemInfo(&sysInfo);
+  return (int)sysInfo.dwPageSize;
+#else
+  return (int)sysconf(_SC_PAGESIZE);
+#endif
+}
+
+
 bool get_video_info(String &desktopResolution, String &videoCard, String &videoVendor)
 {
   char buffer[128];
 
   desktopResolution = "";
   videoCard = d3d::get_device_name();
-  videoVendor = d3d_get_vendor_name(d3d_get_gpu_cfg().primaryVendor);
+  videoVendor = d3d_get_vendor_name(d3d::get_driver_desc().info.vendor);
 #if _TARGET_PC_WIN
   DEVMODE devMode;
   ZeroMemory(&devMode, sizeof(DEVMODE));
@@ -625,10 +638,7 @@ constexpr DWORD WINDOWS_SERVER_2022 = 20348;
 
 static bool get_windows_version(bool &isWorkstation, DWORD &versionMajor, DWORD &versionMinor, DWORD &buildNumber)
 {
-  OSVERSIONINFOEXW osvi;
-  ZeroMemory(&osvi, sizeof(osvi));
-  osvi.dwOSVersionInfoSize = sizeof(osvi);
-
+  OSVERSIONINFOEXW osvi{.dwOSVersionInfoSize = sizeof(osvi)};
   if (!get_version_ex(&osvi))
     return false;
 
@@ -644,11 +654,11 @@ static bool get_windows_version(bool &isWorkstation, DWORD &versionMajor, DWORD 
 }
 
 
-static void get_windows_name(bool isWorkstation, DWORD versionMajor, DWORD versionMinor, String &osName)
+static void get_windows_name(bool isWorkstation, DWORD versionMajor, DWORD versionMinor, DWORD buildNumber, String &osName)
 {
   char buf[128];
-  SNPRINTF(buf, sizeof(buf), "Windows %s v%d.%d %s", isWorkstation ? "Workstation" : "Server", (int)versionMajor, (int)versionMinor,
-    is_64bit_os() ? "64-bit" : "32-bit");
+  SNPRINTF(buf, sizeof(buf), "Windows %s v%d.%d (%d) %s", isWorkstation ? "Workstation" : "Server", (int)versionMajor,
+    (int)versionMinor, (int)buildNumber, is_64bit_os() ? "64-bit" : "32-bit");
   osName = buf;
 }
 
@@ -661,7 +671,7 @@ bool get_os(String &osName)
   bool isWorkstation;
   DWORD versionMajor, versionMinor, buildNumber;
   if (get_windows_version(isWorkstation, versionMajor, versionMinor, buildNumber))
-    get_windows_name(isWorkstation, versionMajor, versionMinor, osName);
+    get_windows_name(isWorkstation, versionMajor, versionMinor, buildNumber, osName);
   else
     osName = "Unknown Windows version";
 
@@ -1124,6 +1134,8 @@ bool get_cpu_info(String &cpu, String & /*cpuFreq*/, String &cpuVendor, String &
 
 bool get_soc_info(String &) { return false; }
 
+int get_mem_page_size() { return (int)sysconf(_SC_PAGESIZE); }
+
 bool get_physical_memory_free(int &res)
 {
   res = ios_get_available_memory() >> 20;
@@ -1176,7 +1188,7 @@ int get_battery_from_device_list()
   }();
 
   const auto returnDefault = [&](const char *errMsg) {
-    logerr(errMsg);
+    logwarn(errMsg);
     return UNKNOWN_CAPACITY;
   };
 
@@ -1302,12 +1314,14 @@ bool get_soc_info(String &soc)
   return true;
 }
 
+int get_mem_page_size() { return (int)sysconf(_SC_PAGESIZE); }
+
 bool get_video_info(String &desktopResolution, String &videoCard, String &videoVendor)
 {
   // todo get desktop resolution
   desktopResolution = "";
   videoCard = d3d::get_device_name();
-  videoVendor = d3d_get_vendor_name(d3d_get_gpu_cfg().primaryVendor);
+  videoVendor = d3d_get_vendor_name(d3d::get_driver_desc().info.vendor);
 
   return true;
 }
@@ -1411,6 +1425,7 @@ bool get_proc_mem_info(ProcMemInfo & /*mem_info*/) { return false; }
 bool get_cpu_times(CpuTimes & /*cpu_times*/) { return false; }
 bool get_cpu_info(String &, String &, String &, String &, int &) { return false; }
 bool get_soc_info(String &) { return false; }
+int get_mem_page_size() { return -1; }
 bool get_video_info(String &, String &, String &) { return false; }
 bool get_system_location_2char_code(String &location) { return false; }
 ThermalStatus get_thermal_state() { return ThermalStatus::Normal; }

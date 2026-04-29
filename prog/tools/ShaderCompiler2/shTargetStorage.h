@@ -17,6 +17,10 @@ struct ShaderTargetStorage
 
   Tab<dag::ConstSpan<unsigned>> shadersFsh{};
   Tab<dag::ConstSpan<unsigned>> shadersVpr{};
+  Tab<dag::ConstSpan<uint8_t>> shadersFshMetadata{};
+  Tab<dag::ConstSpan<uint8_t>> shadersVprMetadata{};
+  Tab<TabShaderMetadata> ldShFshMetadata{};
+  Tab<TabShaderMetadata> ldShVprMetadata{};
   Tab<TabFsh> ldShFsh{};
   Tab<TabVpr> ldShVpr{};
   Tab<SmallTab<unsigned, TmpmemAlloc> *> shadersCompProg{};

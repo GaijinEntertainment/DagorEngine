@@ -7,7 +7,6 @@ include "optional_puddle_access.dshl"
 
 shader rendinst_perlin_layered
 {
-  ENABLE_ASSERT(ps)
   USE_RIEXTRA_PER_INSTANCE_RENDER_DATA(vs)
   INIT_COMMON_RENDINST_TESSELLATION_VARS()
   COMMON_RENDINST_SIMPLE_INIT(true)
@@ -27,7 +26,7 @@ shader rendinst_perlin_layered
   }
 
   COMMON_RENDINST_INIT_PAINT(pn_triangulation_enabled)
-  COMMON_RENDINST_INIT_HMAP()
+  COMMON_RENDINST_INIT_HMAP(true)
 
   COMMON_RENDINST_VS_IO_DEFINES()
 
@@ -103,7 +102,7 @@ shader rendinst_perlin_layered
       PACK_UNPACK_GBUFFER_BASE(ps)
       USE_RI_PUDDLES()
     }
-    PERLIN_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), true)
+    PERLIN_LAYERED_PS((rendinst_render_pass != rendinst_render_pass_voxelize_albedo), true, GBUFFER_ORDER_STATIC)
   }
 
   if (pn_triangulation_enabled)

@@ -41,9 +41,9 @@ void FluidWind::update(float dt, const Point3 &origin)
   int dz2 = desc.dimZ / 4;
   fixedTimeStep = clamp(lerp(fixedTimeStep, dt * FIXED_TIME_STEP, saturate(dt * 0.5f)), 1.0f, FIXED_TIME_STEP);
 
-  ShaderGlobal::set_color4(fluidWindOriginDeltaVarId, Color4(originDelta.x, originDelta.y, originDelta.z, 0));
-  ShaderGlobal::set_color4(fluidWindOriginVarId, Color4(lastOrigin.x, lastOrigin.y, lastOrigin.z, 0));
-  ShaderGlobal::set_real(fluidWindTimeStepVarId, 1.0f / fixedTimeStep);
+  ShaderGlobal::set_float4(fluidWindOriginDeltaVarId, Color4(originDelta.x, originDelta.y, originDelta.z, 0));
+  ShaderGlobal::set_float4(fluidWindOriginVarId, Color4(lastOrigin.x, lastOrigin.y, lastOrigin.z, 0));
+  ShaderGlobal::set_float(fluidWindTimeStepVarId, 1.0f / fixedTimeStep);
 
   if (!isInSleep())
   {
@@ -128,11 +128,11 @@ void FluidWind::update(float dt, const Point3 &origin)
       phase *= sqr(1.0 - motor.time / motor.duration);
     }
 
-    ShaderGlobal::set_color4(fluidMotorCenterRadiusVarId, Color4(centerLocal.x, centerLocal.y, centerLocal.z, radiusLocalMax));
-    ShaderGlobal::set_color4(fluidMotorDirectionDurationVarId,
+    ShaderGlobal::set_float4(fluidMotorCenterRadiusVarId, Color4(centerLocal.x, centerLocal.y, centerLocal.z, radiusLocalMax));
+    ShaderGlobal::set_float4(fluidMotorDirectionDurationVarId,
       Color4(directionLocal.x, directionLocal.y, directionLocal.z, motor.duration));
-    ShaderGlobal::set_real(fluidMotorStrengthVarId, strengthLocalMax * phase);
-    ShaderGlobal::set_real(fluidMotorTimeVarId, motor.duration > 0 ? min(motor.time, motor.duration) : motor.time);
+    ShaderGlobal::set_float(fluidMotorStrengthVarId, strengthLocalMax * phase);
+    ShaderGlobal::set_float(fluidMotorTimeVarId, motor.duration > 0 ? min(motor.time, motor.duration) : motor.time);
 
     // draw source
     d3d::set_tex(STAGE_CS, 0, speedTexCur[1]->getVolTex());
@@ -253,10 +253,10 @@ void FluidWind::init()
   fluidWindStatusVarId = ::get_shader_glob_var_id("fluid_wind_status");
   fluidWindTimeStepVarId = ::get_shader_glob_var_id("fluid_wind_timestep");
 
-  ShaderGlobal::set_color4(::get_shader_glob_var_id("fluid_wind_dim"), Color4(desc.dimX, desc.dimY, desc.dimZ));
+  ShaderGlobal::set_float4(::get_shader_glob_var_id("fluid_wind_dim"), Color4(desc.dimX, desc.dimY, desc.dimZ));
   ShaderGlobal::set_int(::get_shader_glob_var_id("fluid_wind_width"), FLUID_RT_WIDTH);
   ShaderGlobal::set_int(::get_shader_glob_var_id("fluid_wind_height"), FLUID_RT_HEIGHT);
-  ShaderGlobal::set_color4(::get_shader_glob_var_id("fluid_wind_world_size"),
+  ShaderGlobal::set_float4(::get_shader_glob_var_id("fluid_wind_world_size"),
     Color4(desc.worldSize.x, desc.worldSize.y, desc.worldSize.z, 0));
 
   clearData.reset(new_compute_shader("fluid_wind_clear"));
@@ -279,17 +279,20 @@ void FluidWind::init()
   for (int i = 0; i < 2; ++i)
   {
     String texName(0, "windSpeedTex%d", i);
-    speedTex[i] = dag::create_voltex(desc.dimX, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str());
+    speedTex[i] =
+      dag::create_voltex(desc.dimX, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str(), RESTAG_WIND);
 
     texName = String(0, "windPressureTex%d", i);
-    pressureTex[i] = dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str());
+    pressureTex[i] =
+      dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, texName.str(), RESTAG_WIND);
   }
 
-  divergenceTex =
-    dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "windDivergenceTex");
+  divergenceTex = dag::create_voltex(desc.dimX / 4, desc.dimY, desc.dimZ, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1,
+    "windDivergenceTex", RESTAG_WIND);
 
 #if DEBUG_OUTPUT
-  outputTex = dag::create_tex(NULL, FLUID_RT_WIDTH, FLUID_RT_HEIGHT, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "windOutputTex");
+  outputTex =
+    dag::create_tex(NULL, FLUID_RT_WIDTH, FLUID_RT_HEIGHT, TEXFMT_A16B16G16R16F | TEXCF_UNORDERED, 1, "windOutputTex", RESTAG_WIND);
 #endif
 }
 

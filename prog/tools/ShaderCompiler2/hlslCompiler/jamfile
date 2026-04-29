@@ -14,8 +14,6 @@ TargetType = dll ;
 
 include $(Root)/prog/tools/tools_setup_outdir_util.jam ;
 
-DontUseVulkanGlslang = yes ;
-
 include $(Root)/prog/_jBuild/defaults.jam ;
 
 Sources =
@@ -26,6 +24,7 @@ Sources =
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/prog/tools/sharedInclude
+  $(Root)/prog/engine/drv/drv3d_commonCode
 ;
 
 UseProgLibs =
@@ -68,7 +67,8 @@ if $(Platform) = windows {
     tools/ShaderCompiler2/hlsl2spirv
   ;
 
-  if [ GLOB $(_DEVTOOL)/ps4.sdk.$(PS4SdkVer) : * ] && [ GLOB $(Root)/prog/tools/ShaderCompiler2/ps4transcode : jamfile ] {
+  if $(PlatformArch) = x86_64 &&
+     [ GLOB $(_DEVTOOL)/ps4.sdk.$(PS4SdkVer) : * ] && [ GLOB $(Root)/prog/tools/ShaderCompiler2/ps4transcode : jamfile ] {
 
     Sources +=
       ps4.cpp

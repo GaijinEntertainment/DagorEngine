@@ -20,6 +20,7 @@ static void delete_sphere_es_all(const ecs::UpdateStageInfo &__restrict info, co
     if ( !(ECS_RO_COMP(delete_sphere_es_comps, "triggerDeleteSphere", bool)) )
       continue;
     delete_sphere_es(*info.cast<ecs::UpdateStageInfoAct>()
+    , components.manager()
     , ECS_RO_COMP(delete_sphere_es_comps, "eid", ecs::EntityId)
     );
   }
@@ -93,7 +94,8 @@ static void operate_camera_bounded_sphere_es_all_events(const ecs::Event &__rest
     if ( !(ECS_RO_COMP(operate_camera_bounded_sphere_es_comps, "isFixedToCamera", bool)) )
       continue;
     operate_camera_bounded_sphere_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-          , ECS_RW_COMP(operate_camera_bounded_sphere_es_comps, "transform", TMatrix)
+          , components.manager()
+      , ECS_RW_COMP(operate_camera_bounded_sphere_es_comps, "transform", TMatrix)
       , ECS_RO_COMP(operate_camera_bounded_sphere_es_comps, "cameraOffset", Point3)
       );
   } while (++comp != compE);
@@ -171,9 +173,9 @@ static ecs::CompileTimeQueryDesc current_camera_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void current_camera_ecs_query(ecs::EntityId eid, Callable function)
+inline void current_camera_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, current_camera_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, current_camera_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

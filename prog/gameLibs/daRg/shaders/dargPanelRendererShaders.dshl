@@ -6,12 +6,6 @@ include "vr_multiview.dshl"
 
 texture panel_texture;
 float panel_brightness;
-texture panel_pointer_texture1;
-float4 panel_pointer_uv_tl_iwih1;
-float4 panel_pointer_color1;
-texture panel_pointer_texture2;
-float4 panel_pointer_uv_tl_iwih2;
-float4 panel_pointer_color2;
 
 float panel_smoothness  = 1;
 float panel_reflectance = 0;
@@ -20,6 +14,7 @@ float panel_metalness   = 0;
 float4x4 panel_world;
 float4x4 panel_world_normal;
 float4x4 panel_prev_globtm;
+float4 jitter_offset_uv;
 
 define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(stage)
 endmacro
@@ -33,6 +28,7 @@ define_macro_if_not_defined GLOBAL_FRAME_CONTENT()
     from_sun_direction@f3 = from_sun_direction;
     sun_color_0@f3 = sun_color_0;
     toonshading@i1 = (toonshading, 0, 0, 0);
+    packed_gbuf_normals@i1 = packed_gbuf_normals;
   }
 
   if (compatibility_mode == compatibility_mode_on)
@@ -57,7 +53,7 @@ endmacro
 define_macro_if_not_defined INIT_SPECIAL_VISION(code)
 endmacro
 
-shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbuffer, darg_panel_depth
+shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbuffer, darg_panel_depth, darg_panel_reactive_mask
 {
   DARG_PANEL_SHADER_SETUP()
   GLOBAL_FRAME_CONTENT()
@@ -76,12 +72,11 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
     endmacro
 
     INIT_MOTION_VECTORS()
-    hlsl
-    {
-      #define EDGE_BLEND_WIDTH 2.f
-    }
   }
-
+  hlsl
+  {
+    #define EDGE_BLEND_WIDTH 2.f
+  }
   cull_mode = none;
 
   channel float3 pos = pos;
@@ -95,16 +90,12 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
 
   (vs) {
     globtm@f44 = globtm;
+    panel_jitter_ndc@f2 = (jitter_offset_uv.x * 2, jitter_offset_uv.y * -2);
   }
   (ps) {
     panel_texture@smp2d = panel_texture;
     panel_brightness@f1 = (panel_brightness);
-    panel_pointer_texture1@smp2d = panel_pointer_texture1;
-    panel_pointer_uv_tl_iwih1@f4 = panel_pointer_uv_tl_iwih1;
-    panel_pointer_color1@f4 = panel_pointer_color1;
-    panel_pointer_texture2@smp2d = panel_pointer_texture2;
-    panel_pointer_uv_tl_iwih2@f4 = panel_pointer_uv_tl_iwih2;
-    panel_pointer_color2@f4 = panel_pointer_color2;
+    panel_jitter_ndc@f2 = (jitter_offset_uv.x * 2, jitter_offset_uv.y * -2);
   }
 
   if (shader == darg_panel_gbuffer)
@@ -134,7 +125,10 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
         #ifdef MOTION_VECTORS_ENABLED
           float4 out_pos                      : TEXCOORD4;
           float4 out_pos_prev                 : TEXCOORD5;
+          float3 out_pos_unjittered : TEXCOORD6;
         #endif
+      ##elif shader == darg_panel_frame_buffer_no_depth || shader == darg_panel_frame_buffer
+         float3 out_pos_unjittered : TEXCOORD2;
       ##endif
     };
   }
@@ -165,37 +159,31 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
         #ifdef MOTION_VECTORS_ENABLED
           float4 out_pos_prev = mul(pos4, panel_prev_globtm);
           VR_MULTIVIEW_PREPARE_MOTION_ATTRIBUTES(output, out_pos_prev);
+          output.out_pos_unjittered = float3(output.pos.xy - panel_jitter_ndc * output.pos.w, output.pos.w);
         #endif
+      ##elif shader == darg_panel_frame_buffer_no_depth || shader == darg_panel_frame_buffer
+        output.out_pos_unjittered = float3(output.pos.xy - panel_jitter_ndc * output.pos.w, output.pos.w);
       ##endif
+
       return output;
     }
   }
 
   hlsl(ps) {
-    void add_cursor(inout half4 color, float2 texcoord)
-    {
-      ##if panel_pointer_texture1 != NULL
-      {
-        float2 pointer_uv = (texcoord - panel_pointer_uv_tl_iwih1.xy) * panel_pointer_uv_tl_iwih1.zw;
-        half4 pointer = tex2D(panel_pointer_texture1, pointer_uv) * panel_pointer_color1;
-        color.rgb = lerp(color.rgb, pointer.rgb, pointer.a);
-      }
-      ##endif
-
-      ##if panel_pointer_texture2 != NULL
-      {
-        float2 pointer_uv = (texcoord - panel_pointer_uv_tl_iwih2.xy) * panel_pointer_uv_tl_iwih2.zw;
-        half4 pointer = tex2D(panel_pointer_texture2, pointer_uv) * panel_pointer_color2;
-        color.rgb = lerp(color.rgb, pointer.rgb, pointer.a);
-      }
-      ##endif
-    }
-
     half4 panel_color(float2 texcoord)
     {
       half4 color = tex2D(panel_texture, texcoord);
       color.rgb *= panel_brightness;
       return color;
+    }
+
+    // Remove the TAA sub-pixel jitter from panel texture UV coordinates.
+    float2 panel_texcoord_dejitter(float2 texcoord, float3 out_pos_unjittered)
+    {
+      float2 ndc_unjit = out_pos_unjittered.xy / out_pos_unjittered.z;
+      return texcoord
+        + panel_jitter_ndc.x * ddx(texcoord) / ddx(ndc_unjit.x)
+        + panel_jitter_ndc.y * ddy(texcoord) / ddy(ndc_unjit.y);
     }
   }
 
@@ -210,6 +198,7 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
 
     USE_MOTION_VEC_MASK_ONLY()
     USE_MOTION_VEC_ENCODE(ps)
+    MOTION_MASK_NOJITTER(ps)
 
     hlsl(ps) {
       struct PsOutput
@@ -221,29 +210,32 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
       PsOutput darg_panel_shader_frame_buffer_ps(VsOutput input)
       {
         PsOutput output;
-        half4 color = panel_color(input.texcoord);
-
-        add_cursor(color, input.texcoord);
+        float2 texcoord = panel_texcoord_dejitter(input.texcoord, input.out_pos_unjittered);
+        half4 color = panel_color(texcoord);
 
         clip_alpha(color.a);
 
         output.color = float4(pack_hdr(color.rgb), color.a);
-        output.motion = float4(encode_motion_mask().xy, 0, step(0, color.a));
+        output.motion = float4(encode_motion_mask_no_jitter().xy, 0, step(0, color.a));
 
         return output;
       }
     }
     compile("target_ps", "darg_panel_shader_frame_buffer_ps");
   }
-
+if (shader == darg_panel_reactive_mask)
+  {
+    hlsl(ps) {
+      float darg_panel_reactive_mask_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS) : SV_Target1
+      {
+        return .5f;
+      }
+    }
+    compile("target_ps", "darg_panel_reactive_mask_ps");
+  }
   if (shader == darg_panel_gbuffer)
   {
-
-    if (mobile_render != off)
-    {
-      INIT_STATIC_SHADOW_PS()
-    }
-    else if (compatibility_mode == compatibility_mode_on)
+    if (compatibility_mode == compatibility_mode_on)
     {
       INIT_SKY_DIFFUSE()
       INIT_BRUNETON_FOG(ps)
@@ -255,14 +247,18 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
     USE_MOTION_VEC_MASK_ONLY()
     USE_MOTION_VEC_ENCODE(ps)
     USE_NO_LIGHTING_EMISSIVE_SHADING(ps)
+    MOTION_MASK_NOJITTER(ps)
 
     hlsl(ps) {
       GBUFFER_OUTPUT darg_panel_gbuffer_ps(VsOutput input INPUT_VFACE HW_USE_SCREEN_POS)
       {
-        half4 color = panel_color(input.texcoord);
+        #ifdef MOTION_VECTORS_ENABLED
+          float2 texcoord = panel_texcoord_dejitter(input.texcoord, input.out_pos_unjittered);
+        #else
+          float2 texcoord = input.texcoord;
+        #endif
+        half4 color = panel_color(texcoord);
         clip_alpha(color.a);
-
-        add_cursor(color, input.texcoord);
 
         UnpackedGbuffer result;
         init_gbuffer(result);
@@ -288,9 +284,8 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
         #ifdef MOTION_VECTORS_ENABLED
           float2 edgeBias = EDGE_BLEND_WIDTH*(abs(ddx(input.texcoord)) + abs(ddy(input.texcoord)));
           bool rejectTemporalHistory = all(input.texcoord > 0 + edgeBias && input.texcoord < 1 - edgeBias);
-          init_motion_vector(result, rejectTemporalHistory ? encode_motion_mask() : encode_motion_vector(input.out_pos, input.out_pos_prev));
+          init_motion_vector(result, rejectTemporalHistory ? encode_motion_mask_no_jitter() : encode_motion_vector( input.out_pos.xyw, input.out_pos_prev.xyw ));
         #endif
-
         return encode_gbuffer(result, input.pointToEye.xyz, GET_SCREEN_POS(input.pos));
       }
     }
@@ -304,7 +299,12 @@ shader darg_panel_frame_buffer, darg_panel_frame_buffer_no_depth, darg_panel_gbu
     hlsl(ps) {
       void darg_panel_depth_ps(VsOutput input)
       {
-        half4 color = panel_color(input.texcoord);
+        #ifdef MOTION_VECTORS_ENABLED
+          float2 texcoord = panel_texcoord_dejitter(input.texcoord, input.out_pos_unjittered);
+        #else
+          float2 texcoord = input.texcoord;
+        #endif
+        half4 color = panel_color(texcoord);
         clip_alpha(color.a);
       }
     }

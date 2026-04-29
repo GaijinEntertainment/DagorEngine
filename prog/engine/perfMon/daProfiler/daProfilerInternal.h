@@ -15,7 +15,9 @@
 #include "daProfilerDescriptions.h"
 
 class IGenSave;
-#define DA_PROFILE_NET_IS_POSSIBLE (DAPROFILER_DEBUGLEVEL > 0)
+#ifndef DA_PROFILE_NET_IS_POSSIBLE
+#define DA_PROFILE_NET_IS_POSSIBLE (DAPROFILER_DEBUGLEVEL != 0)
+#endif
 class IGenLoad;
 
 class TimeIntervalNode;
@@ -23,7 +25,7 @@ struct TimeIntervalInfo;
 typedef void (*ProfilerDumpFunctionPtr)(void *ctx, uintptr_t cNode, uintptr_t pNode, const char *, const TimeIntervalInfo &);
 namespace da_profiler
 {
-static constexpr bool combine_ring_captures = (DAPROFILER_DEBUGLEVEL > 0) ? false : true;
+static constexpr bool combine_ring_captures = (DAPROFILER_DEBUGLEVEL != 0) ? false : true;
 using UniqueEventDataStorage = ChunkedStorage<UniqueEventData *, 1, VirtualPageAllocator>;
 
 struct ThreadStorage

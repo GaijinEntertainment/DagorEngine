@@ -25,21 +25,21 @@ void software_downsample_2x(unsigned char *dstPixel, const unsigned char *srcPix
 }
 
 Texture *convert_to_dxt_texture(int w, int h, unsigned flags, const char *linearData, int stride, int numMips, bool dxt5,
-  const char *stat_name)
+  const char *stat_name, ResourceTagType tag)
 {
-  return convert_to_custom_dxt_texture(w, h, flags, linearData, stride, numMips, dxt5 ? MODE_DXT5 : MODE_DXT1, 0, stat_name);
+  return convert_to_custom_dxt_texture(w, h, flags, linearData, stride, numMips, dxt5 ? MODE_DXT5 : MODE_DXT1, 0, stat_name, tag);
 }
 
 Texture *convert_to_bc4_texture(int w, int h, unsigned flags, const char *linearData, int row_stride, int numMips, int pixel_offset,
-  const char *stat_name)
+  const char *stat_name, ResourceTagType tag)
 {
-  return convert_to_custom_dxt_texture(w, h, flags, linearData, row_stride, numMips, MODE_BC4, pixel_offset, stat_name);
+  return convert_to_custom_dxt_texture(w, h, flags, linearData, row_stride, numMips, MODE_BC4, pixel_offset, stat_name, tag);
 }
 
 // todo gamma mip
 
 Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, const char *linearData, int row_stride, int numMips, int mode,
-  int pixel_offset, const char *stat_name)
+  int pixel_offset, const char *stat_name, ResourceTagType tag)
 {
   flags = (flags & (~TEXFMT_MASK));
 
@@ -53,7 +53,7 @@ Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, const char 
   else if (mode == MODE_R8)
     fmt = TEXFMT_R8;
 
-  Texture *tex = d3d::create_tex(NULL, w, h, flags | fmt, numMips, stat_name ? stat_name : "dxt_texture");
+  Texture *tex = d3d::create_tex(NULL, w, h, flags | fmt, numMips, stat_name ? stat_name : "dxt_texture", tag);
   if (!tex)
     return NULL;
 
@@ -67,8 +67,8 @@ Texture *convert_to_custom_dxt_texture(int w, int h, unsigned flags, const char 
       memcpy(allocated_buffer.data() + i * w * 4, linearData + i * row_stride, w * 4);
   }
   for (unsigned int mipNo = 0; mipNo < numMips; mipNo++)
-    if (auto lockedTex =
-          lock_texture(tex, mipNo, TEXLOCK_WRITE | ((mipNo != numMips - 1) ? TEXLOCK_DONOTUPDATE : TEXLOCK_DELSYSMEMCOPY)))
+    if (auto lockedTex = lock_texture<ImageRawBytes>(tex, mipNo,
+          TEXLOCK_WRITE | ((mipNo != numMips - 1) ? TEXLOCK_DONOTUPDATE : TEXLOCK_DELSYSMEMCOPY)))
     {
       uint8_t *dxtData = lockedTex.get();
       int dxtPitch = lockedTex.getByteStride();

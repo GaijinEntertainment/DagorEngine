@@ -1,17 +1,21 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include <vecmath/dag_vecMathDecl.h>
+
+#include <drv/3d/dag_decl.h>
+#include <math/dag_Point3.h>
 #include <math/dag_TMatrix.h>
 #include <math/dag_TMatrix4.h>
-#include <math/dag_Point3.h>
 #include <math/dag_frustum.h>
-#include <vecmath/dag_vecMathDecl.h>
-#include <drv/3d/dag_decl.h>
+
+#include <render/viewVecs.h>
 
 
 class CameraViewVisibilityMgr;
 struct CameraParams
 {
+  TMatrix4 viewRotProjTm = TMatrix4::IDENT;
   TMatrix4 viewRotJitterProjTm = TMatrix4::IDENT;
   TMatrix4 viewRotTm = TMatrix4::IDENT;
 
@@ -34,6 +38,7 @@ struct CameraParams
 
   Frustum noJitterFrustum;
   Frustum jitterFrustum;
+  ViewVecs viewVecs;
   float znear = 0.01, zfar = 1000;
   uint16_t subSampleIndex = 0, subSamples = 1;
   uint16_t superSampleIndex = 0, superSamples = 1;

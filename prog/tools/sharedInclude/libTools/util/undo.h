@@ -112,6 +112,7 @@ class IUndoRedoWndClient
 {
 public:
   virtual void updateUndoRedoMenu() = 0;
+  virtual void onUndoRedo([[maybe_unused]] const char *nm, [[maybe_unused]] bool wasUndo) {}
 };
 
 // create UndoSystem object

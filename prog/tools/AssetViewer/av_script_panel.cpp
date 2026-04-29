@@ -10,6 +10,7 @@
 #include <debug/dag_debug.h>
 #include <assetsGui/av_selObjDlg.h>
 #include <assets/asset.h>
+#include <de3_interface.h>
 
 #include "av_script_panel.h"
 #include "av_appwnd.h"
@@ -172,24 +173,18 @@ const char *AVScriptPanelEditor::selectAsset(const char *old_choise, dag::ConstS
 {
   static String result;
   G_ASSERT(get_app().getPropPanel() && "Plugin panel closed!");
-  DagorAssetMgr *amgr = const_cast<DagorAssetMgr *>(&get_app().getAssetMgr());
 
-  SelectAssetDlg dlg(0, amgr, "Select asset", "Select asset", "Reset asset", masks);
-  dlg.selectObj(old_choise);
-  dlg.setManualModalSizingEnabled();
-  if (!dlg.hasEverBeenShown())
-    dlg.positionLeftToWindow("Properties", true);
+  SelectAssetDlgOptions dlgOptions;
+  dlgOptions.selectableAssetTypes = masks;
+  dlgOptions.initiallySelectedAsset = old_choise;
+  dlgOptions.positionBesideWindow = "Properties";
 
-  int ret = dlg.showDialog();
-  if (ret == PropPanel::DIALOG_ID_CLOSE)
+  const eastl::optional<String> dlgResult = DAEDITOR3.selectAsset(dlgOptions);
+  if (!dlgResult.has_value())
     return old_choise;
-  if (ret == PropPanel::DIALOG_ID_OK)
-  {
-    result = dlg.getSelObjName();
-    return result.str();
-  }
 
-  return "";
+  result = dlgResult.value();
+  return result.str();
 }
 
 

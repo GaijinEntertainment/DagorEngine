@@ -8,6 +8,7 @@
 #include <shaders/dag_DynamicShaderHelper.h>
 #include <ioSys/dag_dataBlock.h>
 #include <render/toroidalHelper.h>
+#include <render/daFrameGraph/daFG.h>
 
 
 class LandMeshManager;
@@ -45,6 +46,7 @@ private:
   float puddlesDist = 512;
   int puddleLod = 1;
   DataBlock puddlesSettings;
+  dafg::NodeHandle puddleNode;
 
   shaders::UniqueOverrideStateId blendMaxState;
 

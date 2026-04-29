@@ -70,6 +70,9 @@ String select_file(void *hwnd, const char fn[], const char mask[], const char in
   if (strlen(def_ext))
     ofn.lpstrDefExt = (LPSTR)def_ext;
 
+  wchar_t cwd[MAXIMUM_PATH_LEN];
+  GetCurrentDirectoryW(MAXIMUM_PATH_LEN, cwd);
+
   if (!save_nopen)
   {
     ofn.Flags = OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_HIDEREADONLY;
@@ -85,6 +88,7 @@ String select_file(void *hwnd, const char fn[], const char mask[], const char in
     eventHandler->afterModalDialogShown();
 
   wingw::set_busy(_busy);
+  SetCurrentDirectoryW(cwd);
 
   if (result)
   {
@@ -145,6 +149,12 @@ bool select_color(void *hwnd, E3DCOLOR &value)
 
 int message_box(int flags, const char *caption, const char *text, const DagorSafeArg *arg, int anum)
 {
+  if (INativeModalDialogEventHandler *eventHandler = get_native_modal_dialog_events())
+  {
+    if (!eventHandler->allowShowingModalDialog())
+      return get_default_ret_value(flags);
+  }
+
   bool _busy = wingw::set_busy(false);
 
   if (INativeModalDialogEventHandler *eventHandler = get_native_modal_dialog_events())
@@ -155,7 +165,14 @@ int message_box(int flags, const char *caption, const char *text, const DagorSaf
   String msg;
   msg.vprintf(2048, text, arg, anum);
 
-  ret = ::MessageBox(FindWindow("EDITOR_LAYOUT_DE_WINDOW", NULL), msg, caption, flags);
+  bool builtInDialog = false;
+  if (INativeModalDialogEventHandler *eventHandler = get_native_modal_dialog_events())
+    builtInDialog = eventHandler->tryShowingMessageBox(flags, caption, msg, ret);
+
+  if (!builtInDialog)
+  {
+    ret = ::MessageBox(FindWindow("EDITOR_LAYOUT_DE_WINDOW", NULL), msg, caption, flags);
+  }
 
   if (INativeModalDialogEventHandler *eventHandler = get_native_modal_dialog_events())
     eventHandler->afterModalDialogShown();

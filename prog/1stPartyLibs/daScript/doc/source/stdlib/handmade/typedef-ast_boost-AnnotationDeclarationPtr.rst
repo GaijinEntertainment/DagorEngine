@@ -1,0 +1,1 @@
+Type alias for ``smart_ptr<AnnotationDeclaration>``, used when constructing or attaching annotation declarations to functions, blocks, or structures.

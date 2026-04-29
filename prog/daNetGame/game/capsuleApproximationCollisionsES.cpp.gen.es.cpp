@@ -15,7 +15,8 @@ static void capsules_collision_on_appear_es_all_events(const ecs::Event &__restr
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     capsules_collision_on_appear_es(evt
-        , ECS_RW_COMP(capsules_collision_on_appear_es_comps, "capsule_approximation_collisions_names", ecs::StringList)
+        , components.manager()
+    , ECS_RW_COMP(capsules_collision_on_appear_es_comps, "capsule_approximation_collisions_names", ecs::StringList)
     , ECS_RW_COMP(capsules_collision_on_appear_es_comps, "animchar_attach__attachedTo", ecs::EntityId)
     , ECS_RW_COMP(capsules_collision_on_appear_es_comps, "capsule_approximation_collisions_ids", ecs::IntList)
     );
@@ -46,7 +47,8 @@ static void capsules_collisions_es_all_events(const ecs::Event &__restrict evt, 
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     capsules_collisions_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(capsules_collisions_es_comps, "animchar_attach__attachedTo", ecs::EntityId)
+        , components.manager()
+    , ECS_RW_COMP(capsules_collisions_es_comps, "animchar_attach__attachedTo", ecs::EntityId)
     , ECS_RW_COMP(capsules_collisions_es_comps, "capsule_approximation_collisions_ids", ecs::IntList)
     , ECS_RW_COMP(capsules_collisions_es_comps, "additional_data", ecs::Point4List)
     );
@@ -79,9 +81,9 @@ static ecs::CompileTimeQueryDesc get_attached_to_capsules_preprocess_ecs_query_d
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_attached_to_capsules_preprocess_ecs_query(ecs::EntityId eid, Callable function)
+inline void get_attached_to_capsules_preprocess_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, get_attached_to_capsules_preprocess_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, get_attached_to_capsules_preprocess_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -110,9 +112,9 @@ static ecs::CompileTimeQueryDesc get_attached_to_capsules_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_attached_to_capsules_ecs_query(ecs::EntityId eid, Callable function)
+inline void get_attached_to_capsules_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, get_attached_to_capsules_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, get_attached_to_capsules_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

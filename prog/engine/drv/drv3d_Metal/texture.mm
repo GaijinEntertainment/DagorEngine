@@ -59,7 +59,7 @@ namespace drv3d_metal
       case TEXFMT_DXT5:       return MTLPixelFormatBC3_RGBA;
       case TEXFMT_ATI1N:      return MTLPixelFormatBC4_RUnorm;
       case TEXFMT_ATI2N:      return MTLPixelFormatBC5_RGUnorm;
-      case TEXFMT_BC6H:       return MTLPixelFormatBC6H_RGBFloat;
+      case TEXFMT_BC6H:       return MTLPixelFormatBC6H_RGBUfloat;
       case TEXFMT_BC7:      return MTLPixelFormatBC7_RGBAUnorm;
 #else
       case TEXFMT_ASTC4:          return MTLPixelFormatASTC_4x4_LDR;
@@ -468,9 +468,28 @@ namespace drv3d_metal
     : base(base)
   {
     texture = tex;
-    rt_texture = tex;
+    if (base->metal_format != base->metal_rt_format)
+    {
+      G_ASSERT(base->memoryless == false);
+      rt_texture = [texture newTextureViewWithPixelFormat : base->metal_rt_format];
+    }
+    else
+      rt_texture = tex;
     sub_texture = texture;
     sub_texture_no_srgb = texture;
+
+    bool as_uint = (base->cflg & TEXCF_UNORDERED) && canAliasToUint(base->base_format & TEXFMT_MASK);
+    if (as_uint)
+      texture_as_uint = [texture newTextureViewWithPixelFormat : MTLPixelFormatR32Uint];
+
+    if (base->metal_format == MTLPixelFormatDepth32Float_Stencil8 && !base->memoryless)
+    {
+      G_ASSERT(base->type != D3DResourceType::ARRTEX && base->type != D3DResourceType::CUBETEX && base->type != D3DResourceType::CUBEARRTEX);
+      stencil_read_texture = [texture newTextureViewWithPixelFormat : MTLPixelFormatX32_Stencil8
+                                                        textureType : base->metal_type
+                                                             levels : NSMakeRange(0, base->mipLevels)
+                                                             slices : NSMakeRange(0, 1)];
+    }
 
     SubMip sub_mip;
 
@@ -760,7 +779,6 @@ namespace drv3d_metal
 
     base_format = flg & TEXFMT_MASK;
 
-
     metal_format = cflg & TEXCF_SRGBREAD ? format2MetalsRGB(base_format) : format2Metal(base_format);
     metal_rt_format = cflg & TEXCF_RTARGET ? (cflg & TEXCF_SRGBWRITE ? format2MetalsRGB(base_format) : format2Metal(base_format)) : metal_format;
 
@@ -771,7 +789,7 @@ namespace drv3d_metal
     if (base_format == TEXFMT_DXT1 || base_format == TEXFMT_DXT3 || base_format == TEXFMT_DXT5 ||
       base_format == TEXFMT_ATI1N || base_format == TEXFMT_ATI2N ||
       base_format == TEXFMT_BC6H || base_format == TEXFMT_BC7 ||
-      base_format == TEXFMT_ETC2_RGBA || base_format == TEXFMT_ETC2_RG)
+      base_format == TEXFMT_ETC2_RGBA || base_format == TEXFMT_ETC2_RG || base_format == TEXFMT_ASTC4)
     {
       use_dxt = 1;
     }
@@ -800,6 +818,8 @@ namespace drv3d_metal
 
   uint32_t Texture::getSize() const
   {
+    if (isStub())
+      return 0;
     return apiTex ? apiTex->texture_size : 0;
   }
 
@@ -937,6 +957,13 @@ namespace drv3d_metal
     return 1;
   }
 
+  void Texture::setReadStencil(bool on)
+  {
+    if (read_stencil != on && apiTex->stencil_read_texture)
+      render.markTextureDirty(this);
+    read_stencil = on;
+  }
+
   id<MTLTexture> Texture::ApiTexture::allocateOrCreateSubmip(int set_minlevel, int set_maxlevel, bool is_uav, int slice)
   {
     G_ASSERT(base);
@@ -991,7 +1018,7 @@ namespace drv3d_metal
     return sub_mip.tex;
   }
 
-  void Texture::apply(id<MTLTexture>& out_tex, bool is_read_stencil, int mip_level, int slice, bool is_uav, bool as_uint)
+  void Texture::apply(id<MTLTexture>& out_tex, int mip_level, int slice, bool is_uav, bool as_uint)
   {
     G_ASSERT(apiTex);
     D3D_CONTRACT_ASSERT(isStub() || apiTex->base == this || apiTex->base == nullptr);
@@ -1001,7 +1028,7 @@ namespace drv3d_metal
       D3D_CONTRACT_ASSERT(apiTex->texture_as_uint);
       out_tex = apiTex->texture_as_uint;
     }
-    else if (is_read_stencil && apiTex->stencil_read_texture)
+    else if (read_stencil && apiTex->stencil_read_texture)
       out_tex = apiTex->stencil_read_texture;
     else
       out_tex = is_uav ? apiTex->sub_texture_no_srgb : apiTex->sub_texture;
@@ -1009,14 +1036,14 @@ namespace drv3d_metal
     {
       D3D_CONTRACT_ASSERT(mip_level == 0);
       D3D_CONTRACT_ASSERT(!as_uint);
-      D3D_CONTRACT_ASSERT(!(is_read_stencil && apiTex->stencil_read_texture));
+      D3D_CONTRACT_ASSERT(!(read_stencil && apiTex->stencil_read_texture));
       out_tex = apiTex->allocateOrCreateSubmip(0, mipLevels, is_uav, slice);
     }
     else if (mip_level)
     {
       D3D_CONTRACT_ASSERT(slice == 0);
       D3D_CONTRACT_ASSERT(!as_uint);
-      D3D_CONTRACT_ASSERT(!(is_read_stencil && apiTex->stencil_read_texture));
+      D3D_CONTRACT_ASSERT(!(read_stencil && apiTex->stencil_read_texture));
       out_tex = apiTex->allocateOrCreateSubmip(mip_level, mip_level+1, is_uav, 0);
     }
   }
@@ -1077,6 +1104,9 @@ namespace drv3d_metal
     {
       return 1;
     }
+
+    if (!(cflg & TEXCF_GENERATEMIPS))
+      LOGWARN_ONCE("generateMips called on %s texture without TEXCF_GENERATEMIPS flag", getTexName());
 
     render.generateMips(this);
     return 1;
@@ -1166,7 +1196,9 @@ namespace drv3d_metal
       force_readback = true;
     }
 
-    if ((lockFlags & TEXLOCK_READ))
+    // TEXCF_SYSMEM is never written from GPU so nothing to readback
+    // sysmem copy is always up to date
+    if ((lockFlags & TEXLOCK_READ) && !(cflg & TEXCF_SYSMEM))
     {
       D3D_CONTRACT_ASSERT(!(lockFlags & TEXLOCK_DONOTUPDATE));
       if (readback || force_readback)
@@ -1227,7 +1259,7 @@ namespace drv3d_metal
       allocate();
     }
 
-    bool keep_upload_buffer = (cflg & TEXCF_READABLE) || (lockFlags & TEXLOCK_READ);
+    bool keep_upload_buffer = (cflg & (TEXCF_READABLE|TEXCF_SYSMEM)) || (lockFlags & TEXLOCK_READ);
     for (int i=0; i<sys_images.size();i++)
     {
       SysImage& sys_image = sys_images[i];

@@ -63,6 +63,29 @@ public:
     initCurveControl(ppcb);
   }
 
+  void setValue(int pid, PropPanel::ContainerPropertyControl &panel) override
+  {
+    if (curveType != panel.getInt(typePid))
+    {
+      initCurveControl(panel);
+    }
+    Tab<Point2> setControl;
+    for (int i = 0; i < ptCnt; ++i)
+      setControl.emplace_back(position[i]);
+    panel.setControlPoints(controlPid, setControl);
+  }
+
+  TunedElement *findById(const int pid, int &cur_pid) override
+  {
+    return pid == ++cur_pid || pid == ++cur_pid ? cloneElem() : nullptr; /*First incriment is Curve type, second CruveEdit*/
+  }
+
+  bool isArrayActionById(const int pid, int &cur_pid) override
+  {
+    cur_pid += 2; // Skip Curve type and CruveEdit
+    return false;
+  }
+
   void initCurveControl(PropPanel::ContainerPropertyControl &ppcb)
   {
     if (curveType == 0)

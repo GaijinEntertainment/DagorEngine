@@ -9,6 +9,7 @@
 #include "buffer_components.h"
 #include "raytrace_acceleration_structure.h"
 #include <container_mutex_wrapper.h>
+#include <drv_assert_defs.h>
 #include <driver.h>
 
 #include <dag/dag_vector.h>
@@ -148,6 +149,9 @@ public:
     const ::raytrace::TopAccelerationStructurePlacementInfo &info);
   RaytraceAccelerationStructure *createAccelerationStructure(::raytrace::AccelerationStructurePool pool,
     const ::raytrace::BottomAccelerationStructurePlacementInfo &info);
+  RaytraceAccelerationStructure *createAccelerationStructure(::raytrace::AccelerationStructurePool pool,
+    const ::raytrace::OpacityMicroMapTriangleArrayPlacementInfo &info);
+
   void destroyAccelerationStructurePoolOnFrameCompletion(::raytrace::AccelerationStructurePool pool)
   {
     accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>([=](auto &data) {
@@ -170,9 +174,19 @@ public:
     {
       rts = reinterpret_cast<RaytraceAccelerationStructure *>(structure.bottom);
     }
+    else if (structure.omm)
+    {
+      rts = reinterpret_cast<RaytraceAccelerationStructure *>(structure.omm);
+    }
 
     if (rts)
     {
+      if (DAGOR_UNLIKELY(!rts->isAlive))
+      {
+        D3D_ERROR("DX12: Double delete of acceleration structure (pool path, size=%u, type=%u)", rts->size,
+          static_cast<uint32_t>(rts->type));
+        return;
+      }
       asPool->subStructures.free(rts);
     }
   }
@@ -211,12 +225,14 @@ private:
   RaytraceAccelerationStructureHeap allocAccelStructHeap(Device &device, uint32_t size) DAG_TS_REQUIRES(rtasSpinlock);
   void freeAccelStructHeap(RaytraceAccelerationStructureHeap &&heap) DAG_TS_REQUIRES(rtasSpinlock);
 
-  RaytraceAccelerationStructure *allocAccelStruct(Device &device, uint32_t size);
+  RaytraceAccelerationStructure *allocAccelStruct(Device &device, uint32_t size, ResourceTagType tag,
+    RaytraceAccelerationStructure::Type type);
   void freeAccelStruct(RaytraceAccelerationStructure *accelStruct);
 
 protected:
   struct PendingForCompletedFrameData : BaseType::PendingForCompletedFrameData
   {
+    dag::Vector<RaytraceAccelerationStructure *> deletedOpacityMicroMapTriangleArrays;
     dag::Vector<RaytraceAccelerationStructure *> deletedBottomAccelerationStructure;
     dag::Vector<RaytraceAccelerationStructure *> deletedTopAccelerationStructure;
   };
@@ -236,9 +252,16 @@ protected:
         recordRaytraceBottomStructureFreed(as->requestedSize);
         freeAccelStruct(as);
       }
+      for (auto omm : data.deletedOpacityMicroMapTriangleArrays)
+      {
+        G_ASSERT(omm->descriptor == D3D12_CPU_DESCRIPTOR_HANDLE{});
+        recordRaytraceOpacityMicroMapTriangleArrayFreed(omm->requestedSize);
+        freeAccelStruct(omm);
+      }
     }
     data.deletedTopAccelerationStructure.clear();
     data.deletedBottomAccelerationStructure.clear();
+    data.deletedOpacityMicroMapTriangleArrays.clear();
 
     BaseType::completeFrameExecution(info, data);
   }
@@ -266,8 +289,9 @@ public:
     return memoryUsed;
   }
 
-  RaytraceAccelerationStructure *newRaytraceTopAccelerationStructure(Device &device, uint64_t size);
-  RaytraceAccelerationStructure *newRaytraceBottomAccelerationStructure(Device &device, uint64_t size);
+  RaytraceAccelerationStructure *newRaytraceTopAccelerationStructure(Device &device, uint64_t size, ResourceTagType tag);
+  RaytraceAccelerationStructure *newRaytraceBottomAccelerationStructure(Device &device, uint64_t size, ResourceTagType tag);
+  RaytraceAccelerationStructure *createOpacityMicroMapTriangleArray(Device &device, uint64_t size, ResourceTagType tag);
 
   void deleteRaytraceTopAccelerationStructureOnFrameCompletion(RaytraceAccelerationStructure *ras)
   {
@@ -278,6 +302,11 @@ public:
   {
     accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>(
       [=](auto &data) { data.deletedBottomAccelerationStructure.push_back(ras); });
+  }
+  void deleteRaytraceOpacityMicroMapTriangleArrayOnFrameCompletion(RaytraceAccelerationStructure *ras)
+  {
+    accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>(
+      [=](auto &data) { data.deletedOpacityMicroMapTriangleArrays.push_back(ras); });
   }
 };
 } // namespace drv3d_dx12::resource_manager

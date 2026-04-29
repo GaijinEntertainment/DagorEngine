@@ -111,33 +111,15 @@ unsigned TextureRemapHelper::getTexturesSize(unsigned target) const
   for (int i = 0; i < getDDSxTexturesCount(); i++)
     size += getDDSxTextureSize(i);
 
-  if (::get_gameres_sys_ver() == 2)
-  {
-    int actype = assetrefs::get_tex_type();
-    for (int i = 0; i < texname.nameCount(); ++i)
-    {
-      DagorAsset *a = DAEDITOR3.getAssetByName(texname.getName(i), actype);
-      int sz = get_tex_asset_data_size(a, target, getTexQ(a->getName()));
-      if (sz < 0)
-        DAEDITOR3.conWarning("cannot get size of %s texture asset", texname.getName(i));
-      size += sz;
-    }
-    return size;
-  }
-
+  int actype = assetrefs::get_tex_type();
   for (int i = 0; i < texname.nameCount(); ++i)
   {
-    file_ptr_t f;
-
-    f = ::df_open(texname.getName(i), DF_READ);
-
-    if (f)
-    {
-      size += ::df_length(f);
-      ::df_close(f);
-    }
+    DagorAsset *a = DAEDITOR3.getAssetByName(texname.getName(i), actype);
+    int sz = get_tex_asset_data_size(a, target, getTexQ(a->getName()));
+    if (sz < 0)
+      DAEDITOR3.conWarning("cannot get size of %s texture asset", texname.getName(i));
+    size += sz;
   }
-
   return size;
 }
 
@@ -212,78 +194,18 @@ int TextureRemapHelper::getDDSxTextureSize(int i) const
     return mkbindump::le2be32_cond(((const ddsx::Header *)ddsxTex[i].ptr)->memSz, dagor_target_code_be(targetCode));
   return 0;
 }
-bool TextureRemapHelper::saveTextures(mkbindump::BinDumpSaveCB &cwr, const char *exp_fname_without_ext, ILogWriter &log) const
+bool TextureRemapHelper::saveTextures(mkbindump::BinDumpSaveCB &cwr, const char *exp_fname_without_ext, ILogWriter &) const
 {
-  if (::get_gameres_sys_ver() == 2)
-  {
-    cwr.beginTaggedBlock(_MAKE4C('DxP2'));
-    cwr.writeDwString("~");
-    cwr.writeInt32e(texname.nameCount());
-    for (int i = 0; i < texname.nameCount(); i++)
-    {
-      // debug("export texref[%d]: %s", i, texname.getName(i));
-      cwr.writeDwString(String(260, "%s*", texname.getName(i)));
-    }
-    cwr.align8();
-    cwr.endBlock();
-    write_textures(cwr, ddsxTexName, ddsxTex, exp_fname_without_ext);
-    return true;
-  }
-
-  SmallTab<char, TmpmemAlloc> buf;
+  cwr.beginTaggedBlock(_MAKE4C('DxP2'));
+  cwr.writeDwString("~");
+  cwr.writeInt32e(texname.nameCount());
   for (int i = 0; i < texname.nameCount(); i++)
   {
     // debug("export texref[%d]: %s", i, texname.getName(i));
-
-    TextureMetaData tmd;
-    const char *name = tmd.decode(texname.getName(i));
-
-    cwr.beginTaggedBlock(_MAKE4C('TEX'));
-    cwr.writeDwString(name);
-
-    // debug("export tex: %s", name);
-
-    file_ptr_t handle = df_open(name, DF_READ);
-    if (handle)
-    {
-      const int len = df_length(handle);
-      if (buf.size() < len)
-        clear_and_resize(buf, len);
-      df_read(handle, buf.data(), len);
-      df_close(handle);
-
-      ddsx::Buffer b;
-      ddsx::ConvertParams cp;
-      cp.addrU = tmd.d3dTexAddr(tmd.addrU);
-      cp.addrV = tmd.d3dTexAddr(tmd.addrV);
-      cp.hQMip = tmd.hqMip;
-      cp.mQMip = tmd.mqMip;
-      cp.lQMip = tmd.lqMip;
-      cp.mipOrdRev = true;
-
-      if (ddsx::convert_dds(cwr.getTarget(), b, buf.data(), len, cp))
-      {
-        cwr.writeInt32e(b.len);
-        cwr.writeRaw(b.ptr, b.len);
-        // DEBUG_CTX("DDS(%d)->DDSx(%d)= +%d b", len, b.len, b.len-len);
-        b.free();
-      }
-      else
-      {
-        cwr.writeInt32e(0);
-        log.addMessage(ILogWriter::ERROR, "Can't export image: %s", ddsx::get_last_error_text());
-        return false;
-      }
-    }
-    else
-    {
-      cwr.writeInt32e(0);
-      log.addMessage(ILogWriter::ERROR, "can't open %s", (char *)name);
-      return false;
-    }
-    cwr.align8();
-    cwr.endBlock();
+    cwr.writeDwString(String(260, "%s*", texname.getName(i)));
   }
+  cwr.align8();
+  cwr.endBlock();
   write_textures(cwr, ddsxTexName, ddsxTex, exp_fname_without_ext);
   return true;
 }
@@ -295,35 +217,23 @@ int TextureRemapHelper::addTextureName(const char *src_fname)
   const char *dec_fn = TextureMetaData::decodeFileName(src_fname, &tmp_stor);
   String fname(DagorAsset::fpath2asset(dec_fn));
   String name;
-  if (::get_gameres_sys_ver() == 2)
+  DagorAsset *a = DAEDITOR3.getAssetByName(fname, assetrefs::get_tex_type());
+  if (!a && trail_strcmp(fname, "*"))
   {
-    DagorAsset *a = DAEDITOR3.getAssetByName(fname, assetrefs::get_tex_type());
-    if (!a && trail_strcmp(fname, "*"))
-    {
-      name = fname;
-      remove_trailing_string(name, "*");
-      a = DAEDITOR3.getAssetByName(name, assetrefs::get_tex_type());
-    }
-    else if (!a && dd_get_fname_ext(dec_fn))
-      a = DAEDITOR3.getAssetByName(dec_fn, assetrefs::get_tex_type());
-    if (!a)
-    {
-      DAEDITOR3.conError("cannot resolve texture ref: %s", fname);
-      return -1;
-    }
-    name = a->getName();
-    dd_strlwr(name);
-    return texname.addNameId(name);
+    name = fname;
+    remove_trailing_string(name, "*");
+    a = DAEDITOR3.getAssetByName(name, assetrefs::get_tex_type());
   }
-
-  if (!get_global_tex_name_resolver()->resolveTextureName(fname, name))
+  else if (!a && dd_get_fname_ext(dec_fn))
+    a = DAEDITOR3.getAssetByName(dec_fn, assetrefs::get_tex_type());
+  if (!a)
   {
     DAEDITOR3.conError("cannot resolve texture ref: %s", fname);
     return -1;
   }
+  name = a->getName();
   dd_strlwr(name);
-
-  return (validateTexture_(name)) ? texname.addNameId(name) : -1;
+  return texname.addNameId(name);
 }
 int TextureRemapHelper::addDDSxTexture(const char *fname, ddsx::Buffer &b)
 {
@@ -345,34 +255,23 @@ int TextureRemapHelper::getTextureOrdinal(const char *src_fname) const
   int id = ddsxTexName.getNameId(src_fname);
   if (id >= 0)
     return texname.nameCount() + id;
-  if (::get_gameres_sys_ver() == 2)
-  {
-    DagorAsset *a = DAEDITOR3.getAssetByName(fname, assetrefs::get_tex_type());
-    if (!a && trail_strcmp(fname, "*"))
-    {
-      name = fname;
-      remove_trailing_string(name, "*");
-      a = DAEDITOR3.getAssetByName(name, assetrefs::get_tex_type());
-    }
-    else if (!a && dd_get_fname_ext(dec_fn))
-      a = DAEDITOR3.getAssetByName(dec_fn, assetrefs::get_tex_type());
-    if (!a)
-    {
-      DAEDITOR3.conError("cannot resolve texture ref: %s", fname);
-      return -1;
-    }
-    name = a->getName();
-    dd_strlwr(name);
-    return texname.getNameId(name);
-  }
 
-  if (!get_global_tex_name_resolver()->resolveTextureName(fname, name))
+  DagorAsset *a = DAEDITOR3.getAssetByName(fname, assetrefs::get_tex_type());
+  if (!a && trail_strcmp(fname, "*"))
+  {
+    name = fname;
+    remove_trailing_string(name, "*");
+    a = DAEDITOR3.getAssetByName(name, assetrefs::get_tex_type());
+  }
+  else if (!a && dd_get_fname_ext(dec_fn))
+    a = DAEDITOR3.getAssetByName(dec_fn, assetrefs::get_tex_type());
+  if (!a)
   {
     DAEDITOR3.conError("cannot resolve texture ref: %s", fname);
     return -1;
   }
+  name = a->getName();
   dd_strlwr(name);
-
   return texname.getNameId(name);
 }
 
@@ -850,10 +749,7 @@ static DagorAsset *resolve_texture_id(TEXTUREID tid, DagorAssetMgr &assetMgr)
 template <class RES, unsigned CLSID>
 static inline void addUsedTextures(DagorAsset &a, OAHashNameMap<true> &resTexList, OAHashNameMap<true> *bakedImpTexList = nullptr)
 {
-  FastNameMap resNameMap;
-  resNameMap.addNameId(a.getName());
-  ::set_required_res_list_restriction(resNameMap);
-  if (auto res = (RES *)::get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(a.getName()), CLSID))
+  if (auto res = (RES *)::get_one_game_resource_ex(a.getName(), CLSID))
   {
     TextureIdSet tex_id_list;
     res->gatherUsedTex(tex_id_list);
@@ -875,11 +771,10 @@ static inline void addUsedTextures(DagorAsset &a, OAHashNameMap<true> &resTexLis
         if (!runtime_arrtex)
           logwarn("failed to resolve tex asset: tid=0x%x, name=<%s> for asset <%s>", tid, get_managed_texture_name(tid), a.getName());
       }
-    release_game_resource((GameResource *)res);
+    release_game_resource_ex(res, CLSID);
   }
   else
     logerr("failed to get/build gameres <%s>", a.getName());
-  ::reset_required_res_list_restriction();
 }
 
 static void add_tex_refs_recursive(DagorAsset &a, OAHashNameMap<true> &resList, OAHashNameMap<true> &resTexList,
@@ -993,7 +888,7 @@ static bool cmp_data_eq(mkbindump::BinDumpSaveCB &cwr, const char *pack_fname)
 static bool loadLevelSettingsBlk(DataBlock &levelSettingsBlk)
 {
   String app_root(DAGORED2->getWorkspace().getAppDir());
-  DataBlock appblk(String::mk_str_cat(app_root, "/application.blk"));
+  DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
   String fn(0, "levels/%s", DAGORED2->getProjectFileName());
   remove_trailing_string(fn, ".level.blk");
   fn += ".blk";
@@ -1087,7 +982,6 @@ bool DagorEdAppWindow::gatherUsedResStats(dag::ConstSpan<IBinaryDataBuilder *> e
   DAEDITOR3.conNote("Approx. level textures size is %s", ::bytes_to_mb(out_texSize));
 
   // Gather and measure textures used by resources
-  if (::get_gameres_sys_ver() == 2)
   {
     OAHashNameMap<true> resList, resTexList, bakedImpTexList;
     int64_t levelTexSize = out_texSize;
@@ -1236,7 +1130,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
   static const int HASH_SZ = 20;
 
   DataBlock appBlk;
-  appBlk.load(DAGORED2->getWorkspace().getAppPath());
+  appBlk.load(DAGORED2->getWorkspace().getAppBlkPath());
   if (const DataBlock *b = appBlk.getBlockByNameEx("SDK")->getBlockByName("levelExpSHA1Tags"))
     for (int i = 0, nid = b->getNameId("tag"); i < b->paramCount(); i++)
       if (b->getParamNameId(i) == nid && b->getParamType(i) == b->TYPE_STRING)
@@ -1602,7 +1496,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
       }
     }
     else
-      console->addMessage(ILogWriter::WARNING, "Whole level metrics not found in \"%s\" file.", (const char *)wsp->getAppPath());
+      console->addMessage(ILogWriter::WARNING, "Whole level metrics not found in '%s'", wsp->getAppBlkShortName());
 
     if (!metrixFailed)
     {
@@ -1671,7 +1565,7 @@ void DagorEdAppWindow::exportLevelToGame(int target_code)
   }
   else
   {
-    console->addMessage(ILogWriter::WARNING, "No metrics found in \"%s\" file. Level metrics validation skiped.", wsp->getAppPath());
+    console->addMessage(ILogWriter::WARNING, "No metrics found in '%s'. Level metrics validation skiped.", wsp->getAppBlkShortName());
   }
   lastExportPathWithFailedMetrics = NULL;
 

@@ -321,6 +321,7 @@ bool gameres_optional::update_gameres_from_ready_packs(dag::ConstSpan<PackId> pa
   return true;
 }
 
+// TODO: move this to separate module (something akin "gameResConsole.cpp")
 #include <util/dag_console.h>
 static bool gameres_console_handler(const char *argv[], int argc)
 {
@@ -381,6 +382,7 @@ static bool gameres_console_handler(const char *argv[], int argc)
     else
       console::print_d("no missing optional packs");
   }
+  CONSOLE_CHECK_NAME("gameres", "free_unused_game_resources", 1, 1) { free_unused_game_resources(); }
   return found;
 }
 REGISTER_CONSOLE_HANDLER(gameres_console_handler);

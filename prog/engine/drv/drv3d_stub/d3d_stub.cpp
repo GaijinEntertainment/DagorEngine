@@ -16,6 +16,7 @@
 #include <drv/3d/dag_dispatchMesh.h>
 #include <drv/3d/dag_dispatch.h>
 #include <drv/3d/dag_draw.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
@@ -34,6 +35,7 @@
 #include <drv/3d/dag_resUpdateBuffer.h>
 #include <drv/3d/dag_shaderLibrary.h>
 #include <drv/3d/dag_capture.h>
+#include <drv/3d/dag_resourceTag.h>
 #include <3d/ddsxTex.h>
 #include <3d/tql.h>
 #include "pools.h"
@@ -91,7 +93,7 @@ class DummyTexture;
   DECLARE_TQL_TID_AND_STUB()                                                 \
   BaseTexture *makeTmpTexResCopy(int w, int h, int d, int l) override        \
   {                                                                          \
-    auto *tmp = new TEX_TYPE;                                                \
+    auto *tmp = TEX_TYPE::create();                                          \
     tmp->ti = ti;                                                            \
     tmp->ti.w = w, tmp->ti.h = h, tmp->ti.d = d, tmp->ti.mipLevels = l;      \
     tmp->setName(String::mk_str_cat("tmp:", getName()));                     \
@@ -99,7 +101,7 @@ class DummyTexture;
   }                                                                          \
   void replaceTexResObject(BaseTexture *&new_tex) override                   \
   {                                                                          \
-    delete static_cast<TEX_TYPE *>(new_tex);                                 \
+    TEX_TYPE::dispose(static_cast<TEX_TYPE *>(new_tex));                     \
     new_tex = nullptr;                                                       \
   }                                                                          \
   bool updateTexResFormat(unsigned /*d3d_format*/) override { return true; } \
@@ -760,7 +762,7 @@ static float screen_aspect_ratio = 1.0;
 
 
 static bool drv_inited = false;
-static Driver3dDesc stub_desc = {
+static DriverDesc stub_desc = {
   0, 0, // int zcmpfunc,acmpfunc;
   0, 0, // int sblend,dblend;
 
@@ -824,6 +826,7 @@ bool d3d::init_driver()
   stub_desc.caps.hasQuadTessellation = true;
   stub_desc.caps.hasGather4 = true;
   stub_desc.caps.hasUAVOnEveryStage = true;
+  stub_desc.caps.hasProperUAVSupport = true;
 #endif
 
 #if _TARGET_PC_WIN || _TARGET_C1 || _TARGET_C1
@@ -841,7 +844,9 @@ bool d3d::init_driver()
   stub_desc.caps.hasConditionalRender = true;
 #endif
 
+#if !DAGOR_HOSTED_INTERNAL_SERVER
   stub_desc.shaderModel = 5.0_sm;
+#endif
 
 #if _TARGET_PC
   if (::dgs_get_settings()->getBlockByNameEx("video")->getBlockByNameEx("stub")->getBool("enableBindlessAndRt", false))
@@ -867,6 +872,7 @@ bool d3d::is_inited() { return drv_inited; }
 
 #if _TARGET_PC_WIN
 static main_wnd_f *main_wnd_proc = NULL;
+static void *owned_mainwnd = nullptr;
 
 static LRESULT FAR PASCAL WindowProcProxy(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -887,8 +893,8 @@ static LRESULT FAR PASCAL WindowProcProxy(HWND hWnd, UINT message, WPARAM wParam
 #define DEF_W 1280
 #define DEF_H 720
 
-bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int /*ncmdshow*/, void *&mainwnd, void *renderwnd,
-  void *hicon, const char * /*title*/, Driver3dInitCallback * /*cb*/)
+bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int /*ncmdshow*/, void *&mainwnd, void *hicon,
+  const char * /*title*/, Driver3dInitCallback * /*cb*/)
 {
   DataBlock empty;
   bool has_stg = (dgs_get_settings && dgs_get_settings());
@@ -941,20 +947,24 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
     wndClass.lpszClassName = L"DagorStubD3DWndClass";
 
     if (!RegisterClassW(&wndClass))
-      return false;
+    {
+      int err = GetLastError();
+      if (err && err != ERROR_ALREADY_EXISTS && err != ERROR_CLASS_ALREADY_EXISTS)
+        return false;
+    }
   }
 
   // Create the render window
-  if (!renderwnd && wcname)
+  G_ASSERT(!owned_mainwnd);
+  if (!mainwnd && wcname)
   {
     mainwnd = CreateWindowExW(WS_EX_APPWINDOW, L"DagorStubD3DWndClass", L"", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 320,
       240, NULL, NULL, (HINSTANCE)hinst, NULL);
 
     if (!mainwnd)
       return false;
+    owned_mainwnd = mainwnd;
   }
-  else
-    mainwnd = renderwnd;
 
   // Show the window
   if (mainwnd)
@@ -967,7 +977,6 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   (void)wnd_proc;
   (void)wcname;
   (void)mainwnd;
-  (void)renderwnd;
   (void)hicon;
 #endif
 
@@ -977,10 +986,22 @@ bool d3d::init_video(void *hinst, main_wnd_f *wnd_proc, const char *wcname, int 
   return true;
 }
 
-void d3d::release_driver() { drv_inited = false; }
+void d3d::release_driver()
+{
+#if _TARGET_PC_WIN
+  if (auto *w = owned_mainwnd)
+  {
+    owned_mainwnd = nullptr;
+    DestroyWindow((HWND)w);
+  }
+#endif
+  drv_inited = false;
+}
 
 #include "driver_code.h"
+#if !DAGOR_HOSTED_INTERNAL_SERVER
 DriverCode d3d::get_driver_code() { return DriverCode::make(d3d::stub); }
+#endif
 const char *d3d::get_driver_name() { return "d3d/dummy"; }
 const char *d3d::get_device_name() { return "device/dummy"; }
 const char *d3d::get_last_error() { return "n/a"; }
@@ -988,14 +1009,22 @@ uint32_t d3d::get_last_error_code() { return 0; }
 const char *d3d::get_device_driver_version() { return "1.0"; }
 
 void d3d::prepare_for_destroy() { on_before_window_destroyed(); }
-void d3d::window_destroyed(void * /*hwnd*/) {}
+void d3d::window_destroyed(void *hwnd)
+{
+  G_UNUSED(hwnd);
+#if _TARGET_PC_WIN
+  if (owned_mainwnd == hwnd)
+    owned_mainwnd = nullptr;
+#endif
+}
 
 void *d3d::get_device() { return NULL; }
+unsigned d3d::get_dedicated_gpu_memory_system_internal_overhead_kb() { return 0; }
 
 /// returns driver description (pointer to static object)
-const Driver3dDesc &d3d::get_driver_desc() { return stub_desc; }
+const DriverDesc &d3d::get_driver_desc() { return stub_desc; }
 
-int d3d::driver_command(Drv3dCommand command, void * /*par1*/, void * /*par2*/, void * /*par3*/)
+int d3d::driver_command(Drv3dCommand command, void *par1, void * /*par2*/, void * /*par3*/)
 {
   // of course we can actually track when we need mt sync or not (just like in drv3d_DX9, see needMtSync var),
   // but much simpler just always lock & unlock
@@ -1003,6 +1032,16 @@ int d3d::driver_command(Drv3dCommand command, void * /*par1*/, void * /*par2*/, 
     dummy_crit.lock();
   else if (command == Drv3dCommand::RELEASE_OWNERSHIP)
     dummy_crit.unlock();
+  else if (command == Drv3dCommand::GET_VIDEO_MEMORY_BUDGET)
+  {
+    uint32_t gpuMaxAvailableKb =
+      ::dgs_get_settings()->getBlockByNameEx("video")->getBlockByNameEx("stub")->getInt("gpuMaxAvailableMemoryKB", 0);
+
+    if (par1)
+      *reinterpret_cast<uint32_t *>(par1) = gpuMaxAvailableKb;
+
+    return gpuMaxAvailableKb;
+  }
   return 0;
 }
 
@@ -1034,7 +1073,7 @@ bool d3d::check_cubetexformat(int /*cflg*/) { return true; }
 
 bool d3d::check_voltexformat(int /*cflg*/) { return true; }
 
-Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name)
+Texture *d3d::create_tex(TexImage32 *img, int w, int h, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   if (img)
   {
@@ -1098,7 +1137,7 @@ BaseTexture *d3d::create_ddsx_tex(IGenLoad &crd, int flg, int quality_id, int le
 }
 
 
-CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat_name)
+CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   RETURN_NULL_ON_ZERO_SIZE(!size);
   DummyCubeTexture *tex = DummyCubeTexture::create();
@@ -1109,7 +1148,7 @@ CubeTexture *d3d::create_cubetex(int size, int flg, int levels, const char *stat
   return tex;
 }
 
-VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name)
+VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   RETURN_NULL_ON_ZERO_SIZE(!w || !h || !d);
   DummyVolTexture *tex = DummyVolTexture::create();
@@ -1120,7 +1159,7 @@ VolTexture *d3d::create_voltex(int w, int h, int d, int flg, int levels, const c
   return tex;
 }
 
-ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name)
+ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   RETURN_NULL_ON_ZERO_SIZE(!w || !h || !d);
   DummyArrTexture *tex = DummyArrTexture::create();
@@ -1131,7 +1170,7 @@ ArrayTexture *d3d::create_array_tex(int w, int h, int d, int flg, int levels, co
   return tex;
 }
 
-ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name)
+ArrayTexture *d3d::create_cube_array_tex(int side, int d, int flg, int levels, const char *stat_name, ResourceTagType)
 {
   RETURN_NULL_ON_ZERO_SIZE(!side || !d);
   DummyArrTexture *tex = DummyArrTexture::create();
@@ -1150,21 +1189,24 @@ bool d3d::stretch_rect(BaseTexture * /*src*/, BaseTexture * /*dst*/, const RectI
 bool d3d::copy_from_current_render_target(BaseTexture * /*to_tex*/) { return true; }
 
 // Texture states setup
-VPROG d3d::create_vertex_shader(const uint32_t * /*native_code*/) { return 1; }
+VPROG d3d::create_vertex_shader(const ShaderSource & /*native_code*/) { return 1; }
 void d3d::delete_vertex_shader(VPROG /*vs*/) {}
 
 bool d3d::set_const(unsigned, unsigned /*reg_base*/, const void * /*data*/, unsigned /*num_regs*/) { return true; }
 bool d3d::set_immediate_const(unsigned, const uint32_t *, unsigned) { return true; }
 
-int d3d::set_cs_constbuffer_size(int required_size) { return required_size; }
-int d3d::set_vs_constbuffer_size(int required_size) { return required_size > 0 ? required_size : 256; }
-FSHADER d3d::create_pixel_shader(const uint32_t * /*native_code*/) { return 1; }
+int d3d::set_cs_constbuffer_register_count(int required_count) { return required_count; }
+int d3d::set_vs_constbuffer_register_count(int required_count) { return required_count > 0 ? required_count : 256; }
+FSHADER d3d::create_pixel_shader(const ShaderSource & /*native_code*/) { return 1; }
 void d3d::delete_pixel_shader(FSHADER /*ps*/) {}
 
 #if _TARGET_PC_WIN
 VPROG d3d::create_vertex_shader_hlsl(const char *, unsigned, const char *, const char *, String *) { return 1; }
 FSHADER d3d::create_pixel_shader_hlsl(const char *, unsigned, const char *, const char *, String *) { return 1; }
-bool d3d::compile_compute_shader_hlsl(const char *, unsigned, const char *, const char *, Tab<uint32_t> &, String &) { return true; }
+bool d3d::compile_compute_shader_hlsl(const char *, unsigned, const char *, const char *, Tab<uint8_t> &, Tab<uint32_t> &, String &)
+{
+  return true;
+}
 #endif
 PROGRAM d3d::get_debug_program() { return 1; }
 #if (_TARGET_PC | _TARGET_XBOX)
@@ -1177,9 +1219,7 @@ PROGRAM d3d::create_program(VPROG, FSHADER, VDECL, unsigned *, unsigned) { retur
 // if strides & streams are unset, will get them from VDECL
 //  should be deleted externally
 
-PROGRAM d3d::create_program(const uint32_t *, const uint32_t *, VDECL, unsigned *, unsigned) { return 1; }
-
-PROGRAM d3d::create_program_cs(const uint32_t * /*cs_native*/, CSPreloaded) { return 1; }
+PROGRAM d3d::create_program_cs(const ShaderSource & /*cs_native*/, CSPreloaded) { return 1; }
 
 bool d3d::set_program(PROGRAM) { return true; }
 void d3d::delete_program(PROGRAM) {}
@@ -1189,13 +1229,13 @@ bool d3d::set_vertex_shader(VPROG) { return true; }
 VDECL d3d::get_program_vdecl(PROGRAM) { return 1; }
 #endif
 
-Vbuffer *d3d::create_vb(int b_size, int flags, const char *stat_name)
+Vbuffer *d3d::create_vb(int b_size, int flags, const char *stat_name, ResourceTagType)
 {
   RETURN_NULL_ON_ZERO_SIZE(!b_size);
   DummyVBuffer *vb = DummyVBuffer::create(b_size, 0, flags | SBCF_BIND_VERTEX, stat_name);
   return vb;
 }
-Ibuffer *d3d::create_ib(int b_size, int flags, const char *stat_name)
+Ibuffer *d3d::create_ib(int b_size, int flags, const char *stat_name, ResourceTagType)
 {
   RETURN_NULL_ON_ZERO_SIZE(!b_size);
   return DummyIBuffer::create(b_size, 0, flags | SBCF_BIND_INDEX, stat_name);
@@ -1211,7 +1251,8 @@ Sbuffer *create_sbuffer(int struct_size, int elements, unsigned flags, const cha
   return NULL;
 }
 
-Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned /*format*/, const char *stat_name)
+Vbuffer *d3d::create_sbuffer(int struct_size, int elements, unsigned flags, unsigned /*format*/, const char *stat_name,
+  ResourceTagType)
 {
   RETURN_NULL_ON_ZERO_SIZE(struct_size * elements == 0);
   return DummyVBuffer::create(struct_size * elements, 0, flags, stat_name);
@@ -1365,16 +1406,16 @@ bool d3d::update_screen(uint32_t /*frame_id*/, bool /*app_active*/)
   static unsigned int lastFrameNo = 0;
   if (::get_time_msec() > lastFpsTime + 3000)
   {
-    debug("%5d: FPS=%.1f", ::dagor_frame_no(), 1000.f * (::dagor_frame_no() - lastFrameNo) / (float)(::get_time_msec() - lastFpsTime));
+    debug("%5d: FPS=%.1f", ::dagor_frame_no(),
+      1000.f * (::dagor_frames_presented() - lastFrameNo) / (float)(::get_time_msec() - lastFpsTime));
 
     lastFpsTime = ::get_time_msec();
-    lastFrameNo = ::dagor_frame_no();
+    lastFrameNo = ::dagor_frames_presented();
   }
 #endif
   return true;
 }
 
-void d3d::wait_for_async_present(bool) {}
 void d3d::begin_frame(uint32_t, bool) {}
 void d3d::mark_simulation_start(uint32_t) {}
 void d3d::mark_simulation_end(uint32_t) {}
@@ -1394,12 +1435,6 @@ void d3d::delete_vdecl(VDECL /*vdecl*/) {}
 bool d3d::draw_base(int /*type*/, int /*start*/, int /*numprim*/, uint32_t /*num_inst*/, uint32_t /*start_instance*/) { return true; }
 bool d3d::drawind_base(int /*type*/, int /*startind*/, int /*numprim*/, int /*base_vertex*/, uint32_t /*num_inst*/,
   uint32_t /*start_instance*/)
-{
-  return true;
-}
-bool d3d::draw_up(int /*type*/, int /*numprim*/, const void * /*ptr*/, int /*stride_bytes*/) { return true; }
-bool d3d::drawind_up(int /*type*/, int /*minvert*/, int /*numvert*/, int /*numprim*/, const uint16_t * /*ind*/, const void * /*ptr*/,
-  int /*stride_bytes*/)
 {
   return true;
 }
@@ -1460,8 +1495,40 @@ uint32_t d3d::register_bindless_sampler([[maybe_unused]] SamplerHandle hnd)
 uint32_t d3d::allocate_bindless_resource_range(D3DResourceType, uint32_t) { return 0; }
 uint32_t d3d::resize_bindless_resource_range(D3DResourceType, uint32_t, uint32_t, uint32_t) { return 0; }
 void d3d::free_bindless_resource_range(D3DResourceType, uint32_t, uint32_t) {}
+void d3d::update_bindless_resource_range(D3DResourceType, uint32_t, const dag::ConstSpan<D3dResource *> &) {}
 bool d3d::update_bindless_resource(D3DResourceType, uint32_t, D3dResource *) { return false; }
 void d3d::update_bindless_resources_to_null(D3DResourceType, uint32_t, uint32_t) {}
+uint32_t d3d::add_bindless_resource(D3DResourceType type, D3dResource *res)
+{
+  uint32_t index = d3d::allocate_bindless_resource_range(type, 1);
+  d3d::update_bindless_resource(type, index, res);
+  return index;
+}
+void d3d::add_bindless_resources(dag::StridedConstSpan<D3DResourceType> types, dag::StridedConstSpan<D3dResource *> resources,
+  dag::StridedSpan<uint32_t> ids)
+{
+  D3D_CONTRACT_ASSERT(ids.size() != 0);
+  D3D_CONTRACT_ASSERT(ids.stride_bytes() != 0);
+  D3D_CONTRACT_ASSERT(types.size() == ids.size());
+  D3D_CONTRACT_ASSERT(resources.size() == ids.size());
+  // NOTE:
+  // - resources.stride_bytes() may be 0, which means all are the same
+  // - types.stride_bytes() may be 0, which means all are the same
+  for (size_t i = 0; i < types.size(); ++i)
+  {
+    auto type = types[i];
+    auto id = ids[i] = d3d::allocate_bindless_resource_range(type, 1);
+    auto res = resources[i];
+    if (res)
+    {
+      d3d::update_bindless_resource(type, id, res);
+    }
+    else
+    {
+      d3d::update_bindless_resources_to_null(type, id, 1);
+    }
+  }
+}
 
 bool d3d::set_tex(unsigned, unsigned, BaseTexture *) { return true; }
 bool d3d::set_rwtex(unsigned, unsigned, BaseTexture *, uint32_t, uint32_t, bool) { return true; }
@@ -1536,11 +1603,13 @@ void *d3d::pcwin::get_native_surface(BaseTexture *) { return nullptr; }
 
 #endif
 
-#if _TARGET_PC | _TARGET_XBOX
+#if _TARGET_PC | _TARGET_XBOX | DAGOR_HOSTED_INTERNAL_SERVER
 bool d3d::get_vrr_supported() { return false; }
 bool d3d::get_vsync_enabled() { return false; }
 bool d3d::enable_vsync(bool enable) { return !enable; }
+#if !DAGOR_HOSTED_INTERNAL_SERVER
 void d3d::get_video_modes_list(Tab<String> &list) { clear_and_shrink(list); }
+#endif
 #endif
 
 #if _TARGET_ANDROID
@@ -1632,7 +1701,8 @@ static void estimate_scratch_buffer_sizes_for_tlas(uint32_t as_size, RaytraceBui
 }
 
 RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(RaytraceGeometryDescription *geom_desc,
-  uint32_t count, RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  uint32_t count, RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes,
+  ResourceTagType)
 {
   const uint32_t estimatedSize = estimate_blas_size({geom_desc, intptr_t(count)});
   estimate_scratch_buffer_sizes_for_blas(estimatedSize, flags, build_scratch_size_in_bytes, update_scratch_size_in_bytes);
@@ -1640,7 +1710,7 @@ RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_st
   return DummyBLAS::create(estimatedSize);
 }
 
-RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(uint32_t size)
+RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_structure(uint32_t size, ResourceTagType)
 {
   return DummyBLAS::create(align_as_size(size));
 }
@@ -1648,7 +1718,7 @@ RaytraceBottomAccelerationStructure *d3d::create_raytrace_bottom_acceleration_st
 void d3d::delete_raytrace_bottom_acceleration_structure(RaytraceBottomAccelerationStructure *as) { DummyBLAS::dispose(as); }
 
 RaytraceTopAccelerationStructure *d3d::create_raytrace_top_acceleration_structure(uint32_t elements, RaytraceBuildFlags flags,
-  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes)
+  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType)
 {
   const uint32_t estimatedSize = estimate_tlas_size(elements);
   estimate_scratch_buffer_sizes_for_tlas(estimatedSize, flags, build_scratch_size_in_bytes, update_scratch_size_in_bytes);
@@ -1702,7 +1772,7 @@ RaytraceAccelerationStructureGpuHandle d3d::raytrace::get_pool_base_address(::ra
         estimatedSize = estimate_tlas_size(info.elementCount);
         estimate_scratch_buffer_sizes_for_tlas(estimatedSize, info.flags, buildScratchSize, &updateScratchSize);
       }
-      else
+      else if constexpr (IS(info, ::raytrace::BottomAccelerationStructureSizeCalculcationInfo))
       {
         estimatedSize = estimate_blas_size(info.geometryDesc);
         estimate_scratch_buffer_sizes_for_blas(estimatedSize, info.flags, buildScratchSize, &updateScratchSize);
@@ -1833,11 +1903,12 @@ ResourceAllocationProperties d3d::get_resource_allocation_properties(const Resou
   G_UNUSED(desc);
   return {};
 }
-ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags)
+ResourceHeap *d3d::create_resource_heap(ResourceHeapGroup *heap_group, size_t size, ResourceHeapCreateFlags flags, ResourceTagType tag)
 {
   G_UNUSED(heap_group);
   G_UNUSED(size);
   G_UNUSED(flags);
+  G_UNUSED(tag);
   return nullptr;
 }
 void d3d::destroy_resource_heap(ResourceHeap *heap) { G_UNUSED(heap); }
@@ -1955,4 +2026,10 @@ void d3d::stop_capture() {}
 
 #if _TARGET_PC_MACOSX && !defined(_TARGET_WAS_MULTI)
 void destroy_cached_window_data(void *) {}
+#if !DAGOR_HOSTED_INTERNAL_SERVER
+GpuVendor d3d::guess_gpu_vendor(String *, uint32_t *, DagorDateTime *, uint32_t *) { return {}; }
+unsigned d3d::get_dedicated_gpu_memory_size_kb() { return 0; }
 #endif
+#endif
+
+void d3d::visit_tagged_resources(const ResourceTypeFilter &, const ResourceVisitor &) {}

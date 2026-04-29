@@ -659,7 +659,7 @@ void SplineExporter::savePaths(mkbindump::BinDumpSaveCB &cwr)
     for (int i = 0; i < table.size(); ++i)
     {
       const IntersectionTableRecord &rec = table[i];
-      cwr.writeInt32e(rec.dist);
+      cwr.writeReal(rec.dist);
       cwr.writeInt16e(rec.nextPoint.nodeId);
       cwr.writeInt8e(rec.nextPoint.nodePointId);
       cwr.writeInt8e(0);

@@ -1,0 +1,29 @@
+ModuleDependsOnVars = HaveRenderer ;
+HaveRenderer ?= yes ;
+
+Root    ?= ../../.. ;
+Module = billboard_decals ;
+Location = prog/daNetGameLibs/$(Module) ;
+local DasModule = daNetGameLibs_billboard_decals_DAS_pull_AOT ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/daNetGame
+  $(Root)/prog/daNetGameLibs
+  $(Root)/prog/1stPartyLibs/daScript/include
+;
+
+local AllSrcFolder_CPP = ;
+local AllSrcFolder_DAS = ;
+local AllSrcFolder_ES = ;
+
+if $(HaveRenderer) = yes {
+  AllSrcFolder_CPP +=
+    dasModules
+  ;
+  AllSrcFolder_ES +=
+    render
+  ;
+}
+
+include $(Root)/prog/daNetGameLibs/build_module.jam ;

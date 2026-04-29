@@ -33,13 +33,15 @@ class ShCompilationInfo
 {
 public:
   ShCompilationInfo(const char *dest_base_filename, const char *intermediate_dir, Tab<String> &&source_list,
-    const BlkHashBytes &blk_hash, StcodeCompilationDirs &&stcode_dirs, const ShHardwareOptions &a_opt = DEFAULT_HW_OPTS) :
+    const BlkHashBytes &blk_hash, StcodeCompilationDirs &&stcode_dirs, bool is_additional_dump,
+    const ShHardwareOptions &a_opt = DEFAULT_HW_OPTS) :
     sourceFilesList(eastl::move(source_list)),
     intermediateDir(intermediate_dir),
     blkHash(blk_hash),
     stcodeInfo(eastl::move(stcode_dirs)),
     opt(a_opt),
-    destFname(dest_base_filename)
+    destFname(dest_base_filename),
+    isAdditionalDump(is_additional_dump)
   {
     opt.appendOptsTo(destFname);
     destFname = intermediateDir + "/" + destFname + ".lib.bin";
@@ -53,6 +55,7 @@ public:
   ShHardwareOptions hwopts() const { return opt; }
   const String &dest() const { return destFname; }
   const StcodeCompilationDirs &stcodeDirs() const { return stcodeInfo; }
+  bool compilingAdditionalDump() const { return isAdditionalDump; }
 
 private:
   Tab<String> sourceFilesList;
@@ -61,4 +64,5 @@ private:
   StcodeCompilationDirs stcodeInfo;
   ShHardwareOptions opt;
   String destFname;
+  bool isAdditionalDump;
 };

@@ -31,6 +31,15 @@ SubpassDep::BarrierScope SubpassDep::depthR()
     VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT};
 }
 
+SubpassDep::BarrierScope SubpassDep::shadingRateR()
+{
+#if VK_KHR_fragment_shading_rate
+  return {VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR, VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR};
+#else
+  return {};
+#endif
+}
+
 SubpassDep::BarrierScope SubpassDep::depthShaderR() { return {VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_ACCESS_SHADER_READ_BIT}; }
 
 SubpassDep::SubpassDep(VkSubpassDependency &target) : dep(target)

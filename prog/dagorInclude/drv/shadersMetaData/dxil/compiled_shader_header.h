@@ -376,8 +376,9 @@ struct FileHeader
 
 BINDUMP_BEGIN_LAYOUT(Shader)
   BINDUMP_USING_EXTENSION()
-  ShaderHeader shaderHeader;
-  VecHolder<uint8_t> bytecode;
+  ShaderHeader shaderHeader = {};
+  uint32_t bytecodeOffset = 0;
+  uint32_t bytecodeSize = 0;
   Compressed<VecHolder<char>> shaderSource;
 BINDUMP_END_LAYOUT()
 
@@ -404,6 +405,9 @@ enum class StoredShaderType : uint16_t
   singleShader,
   combinedVertexShader,
   meshShader,
+  // eg for CS on RayGen, uses shaderLibraryContainerAsShader
+  // uses Shader as a base and bytecode is of type ShaderLibraryContainerAsShader
+  shaderLibraryContainerAsShader
 };
 
 struct ShaderContainerType // -V730 All members are initialized
@@ -471,6 +475,38 @@ BINDUMP_BEGIN_LAYOUT(ShaderLibraryContainer)
   LibraryResourceInformation resourceUsageInfo;
   /// Hash value of the data of driverBinary
   ShaderHashValue binaryHash;
+BINDUMP_END_LAYOUT()
+
+struct RayGenGroup
+{
+  uint32_t rayGenIndex;
+};
+
+struct HitGroup
+{
+  uint16_t anyHitIndex;
+  uint16_t closestHitIndex;
+};
+
+struct MissGroup
+{
+  uint32_t missIndex;
+};
+
+/// Wrapper type to wrap ShaderLibraryContainer to be used as a "shader", used for CS on RayGen stage
+/// Currently lib can export only one function, the ray gen shader, future versions may allow more.
+BINDUMP_BEGIN_LAYOUT(ShaderLibraryContainerAsShader)
+  BINDUMP_USING_EXTENSION()
+  /// Storage of ShaderLibraryContainer
+  VecHolder<uint8_t> libBinary;
+  /// Names needed for the library, nameTable[i] is the name for shader of lib.shaderProperties[i]
+  VecHolder<StrHolder> nameTable;
+  /// Table of hit group definitions
+  VecHolder<HitGroup> hitGroups;
+  /// Table of miss group definitions
+  VecHolder<MissGroup> missGroups;
+  /// Definition of ray gen group
+  RayGenGroup rayGenGroup;
 BINDUMP_END_LAYOUT()
 
 struct LibraryShaderPropertiesCompileResult

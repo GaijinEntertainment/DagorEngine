@@ -20,7 +20,8 @@ static void spline_gen_geometry_select_lod_es_all_events(const ecs::Event &__res
   G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     spline_gen_geometry_select_lod_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
-        , ECS_RW_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry_renderer", SplineGenGeometry)
+        , components.manager()
+    , ECS_RW_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry_renderer", SplineGenGeometry)
     , ECS_RO_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry__lods_eid", ecs::EntityId)
     , ECS_RW_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry__lod", int)
     , ECS_RW_COMP(spline_gen_geometry_select_lod_es_comps, "spline_gen_geometry__is_rendered", bool)
@@ -66,7 +67,7 @@ static ecs::EntitySystemDesc spline_gen_geometry_manager_update_buffers_es_es_de
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"render",nullptr,"spline_gen_geometry_update_instancing_data_es");
+,"render",nullptr,"spline_gen_geometry_request_active_state_es","spline_gen_geometry_select_lod_es");
 static constexpr ecs::ComponentDesc spline_gen_geometry_request_active_state_es_comps[] =
 {
 //start of 2 rw components at [0]
@@ -101,12 +102,49 @@ static ecs::EntitySystemDesc spline_gen_geometry_request_active_state_es_es_desc
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"render",nullptr,nullptr,"spline_gen_geometry_select_lod_es");
+,"render",nullptr,"spline_gen_geometry_update_instancing_data_es","spline_gen_geometry_manager_update_buffers_es");
+static constexpr ecs::ComponentDesc spline_gen_geometry_decode_used_shapes_es_comps[] =
+{
+//start of 3 rw components at [0]
+  {ECS_HASH("spline_gen_geometry_renderer"), ecs::ComponentTypeInfo<SplineGenGeometry>()},
+  {ECS_HASH("spline_gen_geometry__cached_shape_ofs_data"), ecs::ComponentTypeInfo<ecs::List<IPoint2>>()},
+  {ECS_HASH("spline_gen_geometry__used_shapes_changed"), ecs::ComponentTypeInfo<bool>()},
+//start of 2 ro components at [3]
+  {ECS_HASH("spline_gen_geometry__used_shapes"), ecs::ComponentTypeInfo<ecs::List<ecs::string>>()},
+  {ECS_HASH("spline_gen_geometry__is_rendered"), ecs::ComponentTypeInfo<bool>()}
+};
+static void spline_gen_geometry_decode_used_shapes_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<UpdateStageInfoBeforeRender>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+  {
+    if ( !(ECS_RO_COMP(spline_gen_geometry_decode_used_shapes_es_comps, "spline_gen_geometry__is_rendered", bool)) )
+      continue;
+    spline_gen_geometry_decode_used_shapes_es(static_cast<const UpdateStageInfoBeforeRender&>(evt)
+          , ECS_RW_COMP(spline_gen_geometry_decode_used_shapes_es_comps, "spline_gen_geometry_renderer", SplineGenGeometry)
+      , ECS_RO_COMP(spline_gen_geometry_decode_used_shapes_es_comps, "spline_gen_geometry__used_shapes", ecs::List<ecs::string>)
+      , ECS_RW_COMP(spline_gen_geometry_decode_used_shapes_es_comps, "spline_gen_geometry__cached_shape_ofs_data", ecs::List<IPoint2>)
+      , ECS_RW_COMP(spline_gen_geometry_decode_used_shapes_es_comps, "spline_gen_geometry__used_shapes_changed", bool)
+      );
+  } while (++comp != compE);
+}
+static ecs::EntitySystemDesc spline_gen_geometry_decode_used_shapes_es_es_desc
+(
+  "spline_gen_geometry_decode_used_shapes_es",
+  "prog/daNetGameLibs/spline_geometry/render/splineGenGeometryES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, spline_gen_geometry_decode_used_shapes_es_all_events),
+  make_span(spline_gen_geometry_decode_used_shapes_es_comps+0, 3)/*rw*/,
+  make_span(spline_gen_geometry_decode_used_shapes_es_comps+3, 2)/*ro*/,
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
+  0
+,"render",nullptr,"spline_gen_geometry_update_instancing_data_es","spline_gen_geometry_request_active_state_es");
 static constexpr ecs::ComponentDesc spline_gen_geometry_update_instancing_data_es_comps[] =
 {
 //start of 1 rw components at [0]
   {ECS_HASH("spline_gen_geometry_renderer"), ecs::ComponentTypeInfo<SplineGenGeometry>()},
-//start of 11 ro components at [1]
+//start of 23 ro components at [1]
   {ECS_HASH("spline_gen_geometry__radii"), ecs::ComponentTypeInfo<ecs::List<Point2>>()},
   {ECS_HASH("spline_gen_geometry__emissive_points"), ecs::ComponentTypeInfo<ecs::List<Point3>>()},
   {ECS_HASH("spline_gen_geometry__emissive_color"), ecs::ComponentTypeInfo<Point4>()},
@@ -116,6 +154,18 @@ static constexpr ecs::ComponentDesc spline_gen_geometry_update_instancing_data_e
   {ECS_HASH("spline_gen_geometry__points"), ecs::ComponentTypeInfo<ecs::List<Point3>>()},
   {ECS_HASH("spline_gen_geometry__obj_size_mul"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("spline_gen_geometry__meter_between_objs"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("spline_gen_geometry__cached_shape_ofs_data"), ecs::ComponentTypeInfo<ecs::List<IPoint2>>()},
+  {ECS_HASH("spline_gen_geometry__shape_positions"), ecs::ComponentTypeInfo<ecs::List<Point2>>()},
+  {ECS_HASH("spline_gen_geometry__cylinder_start_offset"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("spline_gen_geometry__index_of_refraction"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("spline_gen_geometry__first_normal"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("spline_gen_geometry__first_bitangent"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("spline_gen_geometry__use_last_point_to_orient_spline"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("spline_gen_geometry__uv_scroll_first_offset_and_scale"), ecs::ComponentTypeInfo<Point4>()},
+  {ECS_HASH("spline_gen_geometry__uv_scroll_second_offset_and_scale"), ecs::ComponentTypeInfo<Point4>()},
+  {ECS_HASH("spline_gen_geometry__uv_scroll_interpolation_value"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("spline_gen_geometry__surface_opaqueness"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("spline_gen_geometry__additional_thickness_bounds"), ecs::ComponentTypeInfo<Point2>()},
   {ECS_HASH("spline_gen_geometry__is_rendered"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("spline_gen_geometry__renderer_active"), ecs::ComponentTypeInfo<bool>()}
 };
@@ -137,6 +187,18 @@ static void spline_gen_geometry_update_instancing_data_es_all_events(const ecs::
       , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__points", ecs::List<Point3>)
       , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__obj_size_mul", float)
       , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__meter_between_objs", float)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__cached_shape_ofs_data", ecs::List<IPoint2>)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__shape_positions", ecs::List<Point2>)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__cylinder_start_offset", float)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__index_of_refraction", float)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__first_normal", Point3)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__first_bitangent", Point3)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__use_last_point_to_orient_spline", bool)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__uv_scroll_first_offset_and_scale", Point4)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__uv_scroll_second_offset_and_scale", Point4)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__uv_scroll_interpolation_value", float)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__surface_opaqueness", float)
+      , ECS_RO_COMP(spline_gen_geometry_update_instancing_data_es_comps, "spline_gen_geometry__additional_thickness_bounds", Point2)
       );
   } while (++comp != compE);
 }
@@ -146,12 +208,12 @@ static ecs::EntitySystemDesc spline_gen_geometry_update_instancing_data_es_es_de
   "prog/daNetGameLibs/spline_geometry/render/splineGenGeometryES.cpp.inl",
   ecs::EntitySystemOps(nullptr, spline_gen_geometry_update_instancing_data_es_all_events),
   make_span(spline_gen_geometry_update_instancing_data_es_comps+0, 1)/*rw*/,
-  make_span(spline_gen_geometry_update_instancing_data_es_comps+1, 11)/*ro*/,
+  make_span(spline_gen_geometry_update_instancing_data_es_comps+1, 23)/*ro*/,
   empty_span(),
   empty_span(),
   ecs::EventSetBuilder<UpdateStageInfoBeforeRender>::build(),
   0
-,"render",nullptr,nullptr,"spline_gen_geometry_request_active_state_es");
+,"render",nullptr,nullptr,"spline_gen_geometry_decode_used_shapes_es");
 static constexpr ecs::ComponentDesc spline_gen_geometry_update_attachment_batchids_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -235,6 +297,58 @@ static ecs::EntitySystemDesc spline_gen_geometry_render_opaque_es_es_desc
   ecs::EventSetBuilder<UpdateStageInfoRender>::build(),
   0
 ,"render");
+static constexpr ecs::ComponentDesc spline_gen_geometry_add_to_bvh_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("spline_gen_repository"), ecs::ComponentTypeInfo<SplineGenGeometryRepository>()}
+};
+static void spline_gen_geometry_add_to_bvh_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<GatherSplinegenBVHDataEvent>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    spline_gen_geometry_add_to_bvh_es(static_cast<const GatherSplinegenBVHDataEvent&>(evt)
+        , ECS_RW_COMP(spline_gen_geometry_add_to_bvh_es_comps, "spline_gen_repository", SplineGenGeometryRepository)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc spline_gen_geometry_add_to_bvh_es_es_desc
+(
+  "spline_gen_geometry_add_to_bvh_es",
+  "prog/daNetGameLibs/spline_geometry/render/splineGenGeometryES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, spline_gen_geometry_add_to_bvh_es_all_events),
+  make_span(spline_gen_geometry_add_to_bvh_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<GatherSplinegenBVHDataEvent>::build(),
+  0
+,"render");
+static constexpr ecs::ComponentDesc spline_gen_geometry_remove_bvh_context_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("spline_gen_repository"), ecs::ComponentTypeInfo<SplineGenGeometryRepository>()}
+};
+static void spline_gen_geometry_remove_bvh_context_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<RemoveSplinegenBVHEvent>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    spline_gen_geometry_remove_bvh_context_es(static_cast<const RemoveSplinegenBVHEvent&>(evt)
+        , ECS_RW_COMP(spline_gen_geometry_remove_bvh_context_es_comps, "spline_gen_repository", SplineGenGeometryRepository)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc spline_gen_geometry_remove_bvh_context_es_es_desc
+(
+  "spline_gen_geometry_remove_bvh_context_es",
+  "prog/daNetGameLibs/spline_geometry/render/splineGenGeometryES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, spline_gen_geometry_remove_bvh_context_es_all_events),
+  make_span(spline_gen_geometry_remove_bvh_context_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  empty_span(),
+  empty_span(),
+  ecs::EventSetBuilder<RemoveSplinegenBVHEvent>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc register_to_lods_ecs_query_comps[] =
 {
 //start of 2 ro components at [0]
@@ -249,9 +363,9 @@ static ecs::CompileTimeQueryDesc register_to_lods_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void register_to_lods_ecs_query(Callable function)
+inline void register_to_lods_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, register_to_lods_ecs_query_desc.getHandle(),
+  perform_query(&manager, register_to_lods_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -279,9 +393,9 @@ static ecs::CompileTimeQueryDesc get_lod_data_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_lod_data_ecs_query(ecs::EntityId eid, Callable function)
+inline void get_lod_data_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, get_lod_data_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, get_lod_data_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -309,9 +423,9 @@ static ecs::CompileTimeQueryDesc reset_spline_gen_geometry_renderer_ecs_query_de
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void reset_spline_gen_geometry_renderer_ecs_query(Callable function)
+inline void reset_spline_gen_geometry_renderer_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, reset_spline_gen_geometry_renderer_ecs_query_desc.getHandle(),
+  perform_query(&manager, reset_spline_gen_geometry_renderer_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -338,9 +452,9 @@ static ecs::CompileTimeQueryDesc reset_spline_gen_repository_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void reset_spline_gen_repository_ecs_query(Callable function)
+inline void reset_spline_gen_repository_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, reset_spline_gen_repository_ecs_query_desc.getHandle(),
+  perform_query(&manager, reset_spline_gen_repository_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

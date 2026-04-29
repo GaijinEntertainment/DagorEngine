@@ -17,6 +17,9 @@ dafg::NodeHandle makeRenderOpticsPrepassNode();
 dafg::NodeHandle makeRenderLensFrameNode();
 dafg::NodeHandle makeRenderLensOpticsNode();
 dafg::NodeHandle makeRenderCrosshairNode();
+dafg::NodeHandle makeRenderCrosshairGUINode();
 
 dafg::NodeHandle makeAimDofPrepareNode();
 dafg::NodeHandle makeAimDofRestoreNode();
+
+dafg::NodeHandle makeRenderReflectionsNode();

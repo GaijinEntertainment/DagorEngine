@@ -23,10 +23,7 @@ inline vec4f get_active_capzones_on_pos(Point3 pos, const char *tag_to_have,
   game::get_active_capzones_on_pos(pos, tag_to_have, zones_in);
 
   das::Array arr;
-  arr.data = (char *)zones_in.data();
-  arr.size = zones_in.size();
-  arr.capacity = zones_in.size();
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)zones_in.data(), zones_in.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

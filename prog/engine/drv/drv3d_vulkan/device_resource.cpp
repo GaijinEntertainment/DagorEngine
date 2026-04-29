@@ -5,6 +5,8 @@
 #include "globals.h"
 #include "resource_manager.h"
 #include "driver_config.h"
+#include "backend.h"
+#include "backend/context.h"
 
 using namespace drv3d_vulkan;
 
@@ -40,6 +42,19 @@ bool Resource::tryReuseHandle(const AllocationDesc &dsc)
   sharedHandle = tryAllocMemory(dsc);
   return sharedHandle;
 }
+
+#if DAGOR_DBGLEVEL > 0
+void Resource::checkAccessAfterDeviceReset(bool is_write)
+{
+  if (is_write)
+    emptyAfterDeviceReset = false;
+  else if (emptyAfterDeviceReset)
+  {
+    D3D_ERROR("vulkan: reading garbage left by device reset in %s %p:%s from %s", resTypeString(), this, getDebugName(),
+      Backend::ctx.getCurrentCmdCaller());
+  }
+}
+#endif
 
 void Resource::freeMemory()
 {
@@ -107,17 +122,24 @@ String Resource::printStatLog()
   }
 }
 
-void Resource::reportOutOfMemory()
+void Resource::reportOutOfMemory(VkDeviceSize required_size)
 {
   // print full info dump so crash can be analyzed for good
   Globals::Mem::res.printStats(true, true);
+  logwarn("vulkan: OOM at request of %u bytes", required_size);
   DAG_FATAL("vulkan: Out of memory. Try lowering graphics settings and/or closing other memory consuming applications");
 }
 
 void Resource::reportToTQL(bool is_allocating)
 {
   int kbz = tql::sizeInKb(getMemory().size);
-  tql::on_buf_changed(is_allocating, is_allocating ? kbz : -kbz);
+  tql::on_persistent_changed(is_allocating, is_allocating ? kbz : -kbz);
+}
+
+void Resource::reportToTQL(bool is_allocating, VkDeviceSize already_tracked_size)
+{
+  int kbz = tql::sizeInKb(getMemory().size - already_tracked_size);
+  tql::on_persistent_changed(is_allocating, is_allocating ? kbz : -kbz);
 }
 
 #if DAGOR_DBGLEVEL > 0

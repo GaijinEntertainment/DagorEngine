@@ -74,6 +74,8 @@ protected:
 
   const char *getDataPath();
 
+  static constexpr uint32_t MAX_UIDS = 3;
+
 public:
   // tries to load the data from ram cache
   bool getCacheFor(const UUID &id, Tab<uint8_t> &target);

@@ -20,7 +20,7 @@ using size_t = decltype(sizeof(int));
 
 #ifdef DAGOR_PREFER_HEAP_ALLOCATION
 #elif defined(__clang__) && defined(__has_feature)
-#if __has_feature(address_sanitizer)
+#if __has_feature(address_sanitizer) || __has_feature(hwaddress_sanitizer)
 #define DAGOR_PREFER_HEAP_ALLOCATION 1
 #endif
 #elif defined(__GNUC__) && defined(__SANITIZE_ADDRESS__)

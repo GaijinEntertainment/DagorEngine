@@ -10,6 +10,6 @@
 #include <projectiveDecals/projectiveDecals.h>
 #include <decalMatrices/decalsMatrices.h>
 
-ECS_DECLARE_RELOCATABLE_TYPE(ResizableDecals)
-ECS_DECLARE_RELOCATABLE_TYPE(RingBufferDecals)
+ECS_DECLARE_RELOCATABLE_TYPE(ResizableDecalManager)
+ECS_DECLARE_RELOCATABLE_TYPE(RingBufferDecalManager)
 ECS_DECLARE_BOXED_TYPE(DecalsMatrices)

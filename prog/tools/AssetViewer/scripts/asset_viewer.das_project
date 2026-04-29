@@ -2,5 +2,6 @@ include %danetlibs/dascript_base/base_project.das_project
 
 let
   mountPointPrefixes <- {
-    "danetlibs" => "%danetlibs"
+    "danetlibs" => "%danetlibs",
+    "gameLibs" => "%gameLibs"
   }

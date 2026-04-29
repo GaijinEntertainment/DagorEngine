@@ -69,19 +69,19 @@ public:
   /// @copydoc IGenEventHandler::handleMouseRBRelease()
   bool handleMouseRBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override;
 
-  bool handleMouseCBPress(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
-  bool handleMouseCBRelease(IGenViewportWnd *wnd, int x, int y, bool inside, int buttons, int key_modif) override { return false; }
+  bool handleMouseCBPress(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
+  bool handleMouseCBRelease(IGenViewportWnd *, int, int, bool, int, int) override { return false; }
 
-  bool handleMouseWheel(IGenViewportWnd *wnd, int wheel_d, int x, int y, int key_modif) override { return false; }
-  bool handleMouseDoubleClick(IGenViewportWnd *wnd, int x, int y, int key_modif) override { return false; }
+  bool handleMouseWheel(IGenViewportWnd *, int, int, int, int) override { return false; }
+  bool handleMouseDoubleClick(IGenViewportWnd *, int, int, int) override { return false; }
 
   //@}
 
   //*******************************************************
   ///@name Viewport redraw/change events handlers.
   //@{
-  void handleViewportPaint(IGenViewportWnd *wnd) override {}
-  void handleViewChange(IGenViewportWnd *wnd) override {}
+  void handleViewportPaint(IGenViewportWnd *) override {}
+  void handleViewChange(IGenViewportWnd *) override {}
   //@}
 
 private:

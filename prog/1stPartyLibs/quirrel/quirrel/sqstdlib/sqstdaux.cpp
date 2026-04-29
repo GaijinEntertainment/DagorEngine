@@ -20,7 +20,7 @@
 
 #ifdef SQ_STACK_DUMP_SECRET_PREFIX
     #define STRINGIZE(x) #x
-    #define SQ_STRING_EXPAND(x) _SC(STRINGIZE(x))
+    #define SQ_STRING_EXPAND(x) STRINGIZE(x)
     #define SECRET_PREFIX SQ_STRING_EXPAND(SQ_STACK_DUMP_SECRET_PREFIX)
 #endif
 
@@ -34,31 +34,31 @@ static void print_simple_value(HSQUIRRELVM v, PrintFunc pf, SQObjectPtr &val, bo
             if (v->ToString(val, valStr))
             {
                 if (string_quotes)
-                    pf(v, _SC("\"%s\""), _stringval(valStr));
+                    pf(v, "\"%s\"", _stringval(valStr));
                 else
-                    pf(v, _SC("%s"), _stringval(valStr));
+                    pf(v, "%s", _stringval(valStr));
             }
             break;
         case OT_CLOSURE:
             if (v->ToString(_closure(val)->_function->_name, valStr))
-                pf(v, _SC("FN:%s"), _stringval(valStr));
+                pf(v, "FN:%s", _stringval(valStr));
             break;
         case OT_NATIVECLOSURE:
             if (v->ToString(_nativeclosure(val)->_name, valStr))
-                pf(v, _SC("FN:%s"), _stringval(valStr));
+                pf(v, "FN:%s", _stringval(valStr));
             break;
         case OT_TABLE:
-            pf(v, _SC("TABLE"));
+            pf(v, "TABLE");
             break;
         case OT_ARRAY:
-            pf(v, _SC("ARRAY"));
+            pf(v, "ARRAY");
             break;
         case OT_CLASS:
-            pf(v, _SC("CLASS"));
+            pf(v, "CLASS");
             break;
         default:
             if (v->ToString(val, valStr))
-                pf(v, _SC("%s"), _stringval(valStr));
+                pf(v, "%s", _stringval(valStr));
         break;
     }
 }
@@ -70,11 +70,11 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
     SQStackInfos si;
     SQInteger i;
     SQFloat f;
-    const SQChar *s;
+    const char *s;
     SQInteger level=0;
-    const SQChar *name=0;
+    const char *name=0;
     SQInteger seq=0;
-    pf(v,_SC("\nCALLSTACK\n"));
+    pf(v,"\nCALLSTACK\n");
     while(SQ_SUCCEEDED(sq_stackinfos(v,level,&si)))
     {
         if (si.line < 0 && level == 0) { // skip top native function
@@ -82,15 +82,15 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
             continue;
         }
 
-        const SQChar *fn=_SC("unknown");
-        const SQChar *src=_SC("unknown");
+        const char *fn="unknown";
+        const char *src="unknown";
         if(si.funcname)fn=si.funcname;
         if(si.source)src=si.source;
-        pf(v,_SC("*FUNCTION [%s()] %s:%d\n"),fn,src,si.line);
+        pf(v,"*FUNCTION [%s()] %s:%d\n",fn,src,si.line);
         level++;
     }
     level=0;
-    pf(v,_SC("\nLOCALS\n"));
+    pf(v,"\nLOCALS\n");
 
     for(level=0;level<10;level++){
         seq=0;
@@ -98,7 +98,7 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
         {
             seq++;
 #ifdef SQ_STACK_DUMP_SECRET_PREFIX
-            bool should_keep_secret = (strncmp(name, SECRET_PREFIX, sizeof(SECRET_PREFIX)/sizeof(SQChar) - 1) == 0);
+            bool should_keep_secret = (strncmp(name, SECRET_PREFIX, sizeof(SECRET_PREFIX)/sizeof(char) - 1) == 0);
             if (should_keep_secret) {
                 sq_pop(v, 1);
                 continue;
@@ -107,26 +107,26 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
             switch(sq_gettype(v,-1))
             {
             case OT_NULL:
-                pf(v,_SC("[%s] NULL\n"),name);
+                pf(v,"[%s] NULL\n",name);
                 break;
             case OT_INTEGER:
                 sq_getinteger(v,-1,&i);
-                pf(v,_SC("[%s] ") _SC("%" PRId64) _SC("\n"),name, int64_t(i));
+                pf(v,"[%s] %" PRId64 "\n",name, int64_t(i));
                 break;
             case OT_FLOAT:
                 sq_getfloat(v,-1,&f);
-                pf(v,_SC("[%s] %.14g\n"),name,f);
+                pf(v,"[%s] %.14g\n",name,f);
                 break;
             case OT_USERPOINTER:
-                pf(v,_SC("[%s] USERPOINTER\n"),name);
+                pf(v,"[%s] USERPOINTER\n",name);
                 break;
             case OT_STRING:
                 sq_getstring(v,-1,&s);
-                pf(v,_SC("[%s] \"%s\"\n"),name,s);
+                pf(v,"[%s] \"%s\"\n",name,s);
                 break;
             case OT_TABLE:
                 {
-                    pf(v,_SC("[%s] TABLE={"),name);
+                    pf(v,"[%s] TABLE={",name);
                     SQTable * t = _table(stack_get(v, -1));
                     SQObjectPtr refidx, key, val;
                     SQInteger idx;
@@ -134,25 +134,25 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
                     while((idx = t->Next(false, refidx, key, val)) != -1) {
                         refidx = idx;
                         print_simple_value(v, pf, key, false);
-                        pf(v,_SC("="));
+                        pf(v,"=");
                         print_simple_value(v, pf, val);
                         count++;
                         if (count != t->CountUsed())
-                            pf(v,_SC(", "));
+                            pf(v,", ");
                         if (count + 1 > TABLE_ELEMENTS_IN_BRIEF_DUMP && count != t->CountUsed()) {
-                            pf(v,_SC("..."), int(t->CountUsed()));
+                            pf(v,"...", int(t->CountUsed()));
                             break;
                         }
                     }
                     if (t->CountUsed() > TABLE_ELEMENTS_IN_BRIEF_DUMP)
-                        pf(v,_SC("} (%d)\n"), int(t->CountUsed()));
+                        pf(v,"} (%d)\n", int(t->CountUsed()));
                     else
-                        pf(v,_SC("}\n"));
+                        pf(v,"}\n");
                 }
                 break;
             case OT_ARRAY:
                 {
-                    pf(v,_SC("[%s] ARRAY=["),name);
+                    pf(v,"[%s] ARRAY=[",name);
                     SQArray * a = _array(stack_get(v, -1));
                     SQObjectPtr val;
                     for (SQInteger i = 0; i < a->Size(); i++) {
@@ -160,53 +160,53 @@ static void collect_stack_string(HSQUIRRELVM v, PrintFunc pf)
                         print_simple_value(v, pf, val);
                         if (i + 1 < a->Size())
                         {
-                            pf(v,_SC(", "));
+                            pf(v,", ");
                             if (i > ARRAY_ELEMENTS_IN_BRIEF_DUMP - 2) {
-                                pf(v,_SC("..."));
+                                pf(v,"...");
                                 break;
                             }
                         }
                     }
                     if (a->Size() > ARRAY_ELEMENTS_IN_BRIEF_DUMP)
-                        pf(v,_SC("] (%d)\n"), int(a->Size()));
+                        pf(v,"] (%d)\n", int(a->Size()));
                     else
-                        pf(v,_SC("]\n"),name);
+                        pf(v,"]\n",name);
                 }
                 break;
             case OT_CLOSURE:
-                pf(v,_SC("[%s] CLOSURE="),name);
+                pf(v,"[%s] CLOSURE=",name);
                 print_simple_value(v, pf, stack_get(v, -1));
-                pf(v,_SC("\n"));
+                pf(v,"\n");
                 break;
             case OT_NATIVECLOSURE:
-                pf(v,_SC("[%s] NATIVECLOSURE="),name);
+                pf(v,"[%s] NATIVECLOSURE=",name);
                 print_simple_value(v, pf, stack_get(v, -1));
-                pf(v,_SC("\n"));
+                pf(v,"\n");
                 break;
             case OT_GENERATOR:
-                pf(v,_SC("[%s] GENERATOR\n"),name);
+                pf(v,"[%s] GENERATOR\n",name);
                 break;
             case OT_USERDATA:
-                pf(v,_SC("[%s] USERDATA\n"),name);
+                pf(v,"[%s] USERDATA\n",name);
                 break;
             case OT_THREAD:
-                pf(v,_SC("[%s] THREAD\n"),name);
+                pf(v,"[%s] THREAD\n",name);
                 break;
             case OT_CLASS:
-                pf(v,_SC("[%s] CLASS\n"),name);
+                pf(v,"[%s] CLASS\n",name);
                 break;
             case OT_INSTANCE:
-                pf(v,_SC("[%s] INSTANCE="),name);
+                pf(v,"[%s] INSTANCE=",name);
                 print_simple_value(v, pf, stack_get(v, -1));
-                pf(v,_SC("\n"));
+                pf(v,"\n");
                 break;
             case OT_WEAKREF:
-                pf(v,_SC("[%s] WEAKREF\n"),name);
+                pf(v,"[%s] WEAKREF\n",name);
                 break;
             case OT_BOOL:{
                 SQBool bval;
                 sq_getbool(v,-1,&bval);
-                pf(v,_SC("[%s] %s\n"),name,bval == SQTrue ? _SC("true"):_SC("false"));
+                pf(v,"[%s] %s\n",name,bval == SQTrue ? "true":"false");
                 break;
             }
             default:
@@ -231,26 +231,29 @@ SQRESULT sqstd_formatcallstackstring(HSQUIRRELVM v)
 {
     int memlen = 128;
     SQAllocContext alloc_ctx = sq_getallocctx(v);
-    SQChar* mem = (SQChar*)sq_malloc(alloc_ctx, memlen*sizeof(SQChar));
+    char* mem = (char*)sq_malloc(alloc_ctx, memlen*sizeof(char));
     if (!mem)
-      return sq_throwerror(v, _SC("Cannot allocate memory"));
+      return sq_throwerror(v, "Cannot allocate memory");
 
-    SQChar* dst = mem;
+    char* dst = mem;
 
-    collect_stack_string(v, [alloc_ctx, &mem, &dst, &memlen](HSQUIRRELVM, const SQChar *fmt, ...) {
+    collect_stack_string(v, [alloc_ctx, &mem, &dst, &memlen](HSQUIRRELVM, const char *fmt, ...) {
         const int appendBlock = 128;
         va_list args;
+        va_list argsCopy;
 
         va_start(args, fmt);
-        int nappend = vsnprintf(0, 0, fmt, args);
-        va_end(args);
+        va_copy(argsCopy, args);
+
+        int nappend = vsnprintf(0, 0, fmt, argsCopy) + 1;
+        va_end(argsCopy);
 
         int poffset = int(dst - mem);
         int memleft = memlen - poffset;
         if (memleft < nappend) {
             int nrequire = nappend - memleft;
             int newlen = memlen + ((nrequire / appendBlock) + 1) * appendBlock;
-            SQChar *newmem = (SQChar *)sq_realloc(alloc_ctx, mem, memlen*sizeof(SQChar), newlen*sizeof(SQChar));
+            char *newmem = (char *)sq_realloc(alloc_ctx, mem, memlen*sizeof(char), newlen*sizeof(char));
             if (!newmem)
                 return;
             mem = newmem;
@@ -258,7 +261,6 @@ SQRESULT sqstd_formatcallstackstring(HSQUIRRELVM v)
             dst = mem + poffset;
         }
 
-        va_start(args, fmt);
         dst += vsnprintf(dst, memlen - poffset, fmt, args);
         va_end(args);
     });
@@ -272,13 +274,13 @@ static SQInteger _sqstd_aux_printerror(HSQUIRRELVM v)
 {
     SQPRINTFUNCTION pf = sq_geterrorfunc(v);
     if(pf) {
-        const SQChar *sErr = 0;
+        const char *sErr = 0;
         if(sq_gettop(v)>=1) {
             if(SQ_SUCCEEDED(sq_getstring(v,2,&sErr)))   {
-                pf(v,_SC("\nAN ERROR HAS OCCURRED [%s]\n"),sErr);
+                pf(v,"\nAN ERROR HAS OCCURRED [%s]\n",sErr);
             }
             else{
-                pf(v,_SC("\nAN ERROR HAS OCCURRED [unknown]\n"));
+                pf(v,"\nAN ERROR HAS OCCURRED [unknown]\n");
             }
             sqstd_printcallstack(v);
         }
@@ -286,14 +288,14 @@ static SQInteger _sqstd_aux_printerror(HSQUIRRELVM v)
     return 0;
 }
 
-void _sqstd_compiler_message(HSQUIRRELVM v,SQMessageSeverity severity,const SQChar *sErr,const SQChar *sSource,SQInteger line,SQInteger column, const SQChar *extra)
+void _sqstd_compiler_message(HSQUIRRELVM v,SQMessageSeverity severity,const char *sErr,const char *sSource,SQInteger line,SQInteger column, const char *extra)
 {
     SQPRINTFUNCTION pf = sq_geterrorfunc(v);
     if(pf) {
-        pf(v, _SC("%s\n"), sErr);
-        pf(v, _SC("%s:%d:%d\n"),sSource,(int)line,(int)column);
+        pf(v, "%s\n", sErr);
+        pf(v, "%s:%d:%d\n",sSource,(int)line,(int)column);
         if (extra)
-          pf(v, _SC("%s\n"), extra);
+          pf(v, "%s\n", extra);
     }
 }
 
@@ -305,20 +307,20 @@ void sqstd_seterrorhandlers(HSQUIRRELVM v)
 }
 
 
-SQRESULT sqstd_throwerrorf(HSQUIRRELVM v,const SQChar *err,...)
+SQRESULT sqstd_throwerrorf(HSQUIRRELVM v,const char *err,...)
 {
     SQInteger n=256;
     va_list args;
 begin:
     va_start(args,err);
-    SQChar *b=sq_getscratchpad(v,n);
+    char *b=sq_getscratchpad(v,n);
     SQInteger r=vsnprintf(b,n,err,args);
     va_end(args);
     if (r>=n) {
         n=r+1;//required+null
         goto begin;
     } else if (r<0) {
-        return sq_throwerror(v,_SC("@failed to generate formatted error message"));
+        return sq_throwerror(v,"@failed to generate formatted error message");
     } else {
         return sq_throwerror(v,b);
     }

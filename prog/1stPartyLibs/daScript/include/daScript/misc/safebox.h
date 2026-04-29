@@ -281,6 +281,15 @@ namespace das {
             tryResolve();
         }
         template <typename TT>
+        __forceinline void foreach ( TT && closure ) const {
+            auto saveLock = locked;
+            locked = true;
+            for ( auto & obj : objectsInOrder ) {
+                closure(obj);
+            }
+            locked = saveLock;
+        }
+        template <typename TT>
         __forceinline void foreach_with_hash ( TT && closure ) {
             auto saveLock = locked;
             locked = true;
@@ -386,6 +395,6 @@ namespace das {
         safebox_map<ValueType>           objects;
         vector<ValueType>                objectsInOrder;
         vector<pair<uint64_t,ValueType>> postponed;
-        bool                             locked = false;
+        mutable bool                     locked = false;
     };
 }

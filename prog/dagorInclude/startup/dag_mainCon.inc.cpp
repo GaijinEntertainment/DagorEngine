@@ -7,6 +7,8 @@
 #if _TARGET_PC_WIN
 #include <direct.h>
 #include <eh.h>
+#else
+#include <signal.h>
 #endif //_TARGET_PC_WIN
 
 #include <stdlib.h>
@@ -42,15 +44,19 @@ extern void default_crt_init_core_lib();
 extern void messagebox_report_fatal_error(const char *title, const char *msg, const char *call_stk);
 static int dagor_program_exec(int argc, char **argv, int debugmode);
 
-int __argc;
-char **__argv;
+#if !_TARGET_PC_WIN
+int __argc = 0;
+char **__argv = nullptr;
+#endif
 
 int __cdecl main(int argc, char **argv)
 {
+#if !_TARGET_PC_WIN
   __argc = argc;
   __argv = (char **)malloc(sizeof(char *) * argc);
   for (int i = 0; i < argc; ++i)
     __argv[i] = argv[i];
+#endif
   win_recover_systemroot_env();
 
   setvbuf(stdout, NULL, _IONBF, 0);
@@ -76,6 +82,11 @@ int __cdecl main(int argc, char **argv)
     noeh = 1;
 
   symhlp_init_default();
+
+#if !_TARGET_PC_WIN
+  // writing to a socket closed by the peer leads to SIGPIPE, process will exit if it is not ignored
+  signal(SIGPIPE, SIG_IGN);
+#endif
 
   int retcode = 0;
   if (!noeh)
@@ -115,6 +126,11 @@ int __cdecl main(int argc, char **argv)
   }
 
   flush_debug_file();
+#if !_TARGET_PC_WIN
+  free(__argv);
+  __argc = 0;
+  __argv = nullptr;
+#endif
   return retcode;
 }
 

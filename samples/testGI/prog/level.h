@@ -3,7 +3,6 @@
 
 #include <streaming/dag_streamingBase.h>
 #include <heightmap/heightmapHandler.h>
-#include <heightmap/flexGridRenderer.h>
 #include <EASTL/utility.h>
 #include "dag_cur_view.h"
 
@@ -21,9 +20,7 @@ public:
   typedef BaseStreamingSceneHolder base;
   using BaseStreamingSceneHolder::mainBindump;
   HeightmapHandler heightmap;
-
-  FlexGridConfig flexGridConfig;
-  FlexGridRenderer flexGridRenderer;
+  UniqueBuf heightmap_edges, heightmap_morph;
 
   const HeightmapHandler *getHeightmap() const;
   struct LmeshDeleter

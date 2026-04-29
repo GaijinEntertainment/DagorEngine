@@ -46,6 +46,7 @@ void reloadRIExtraResources(const char *) { G_ASSERT(0); }
 int cloneRIGenExtraResIdx(const char *, const char *) { G_ASSERT_RETURN(false, 0); }
 bool delRIGenExtra(riex_handle_t) { G_ASSERT_RETURN(false, false); }
 void foreachRIGenInBox(const BBox3 &, GatherRiTypeFlags, ForeachCB &) { G_ASSERT(0); }
+void foreachRIGenInSphere(const BSphere3 &, GatherRiTypeFlags, ForeachCB &) { G_ASSERT(0); }
 uint32_t setMaxNumRiCollisionCb(uint32_t) { G_ASSERT_RETURN(false, 0); };
 void testObjToRendInstIntersection(const BSphere3 &, RendInstCollisionCB &, GatherRiTypeFlags, const TraceMeshFaces *, PhysMat::MatID,
   bool)
@@ -101,9 +102,10 @@ bool traceTransparencyRayRIGenNormalizedWithDist(const Point3 &, const Point3 &,
 void setRiGenExtraHp(riex_handle_t, float) { G_ASSERT(0); }
 float getHP(riex_handle_t) { G_ASSERT_RETURN(false, 0.f); }
 float getInitialHP(riex_handle_t) { G_ASSERT_RETURN(false, 0.f); }
+bool isInvincible(riex_handle_t) { G_ASSERT_RETURN(false, false); }
 bool isRiGenExtraValid(riex_handle_t) { G_ASSERT_RETURN(false, false); }
 const char *getRIGenExtraName(uint32_t) { G_ASSERT_RETURN(false, nullptr); }
-void iterateRIExtraMap(eastl::fixed_function<sizeof(void *) * 3, void(int, const char *)>) { G_ASSERT(0); }
+void iterateRIExtraMap(const eastl::fixed_function<sizeof(void *) * 4, void(int, const char *)> &) { G_ASSERT(0); }
 void setRIGenExtraImmortal(uint32_t, bool) { G_ASSERT(0); }
 bool isRIGenExtraImmortal(uint32_t) { G_ASSERT_RETURN(false, false); }
 bool isRIGenExtraWalls(uint32_t) { G_ASSERT_RETURN(false, false); }
@@ -122,19 +124,10 @@ bool restoreRIGenExtraInGrid(riex_handle_t) { G_ASSERT_RETURN(false, false); }
 
 const DataBlock *registerRIGenExtraConfig(const DataBlock *) { G_ASSERT_RETURN(false, nullptr); }
 
-RendInstDesc::RendInstDesc(riex_handle_t) { G_ASSERT(0); }
-
 bool RendInstDesc::isDynamicRiExtra() const { G_ASSERT_RETURN(false, false); }
-
-riex_handle_t RendInstDesc::getRiExtraHandle() const { G_ASSERT_RETURN(false, RIEX_HANDLE_NULL); }
 
 void gpuobjects::erase_inside_sphere(const Point3 &, const float) { G_ASSERT(0); }
 
-void initRiSoundOccluders(const dag::ConstSpan<eastl::pair<const char *, const char *>> &,
-  const dag::ConstSpan<eastl::pair<const char *, float>> &)
-{
-  G_ASSERT(0);
-}
 float debugGetSoundOcclusion(const char *, float def_value)
 {
   G_ASSERT(0);

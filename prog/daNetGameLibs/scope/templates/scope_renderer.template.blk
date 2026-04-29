@@ -5,38 +5,6 @@ scope_full_deferred_renderer{
   "scope__full_deferred_fg_nodes:dag::Vector<dafg::NodeHandle>"{}
 }
 
-scope_mobile_deferred_renderer{
-  _singleton:b=yes
-  _tags:t="render"
-  "scope__mobile_deferred__manager:ScopeMobileDeferredManager"{}
-
-  "scope__mobile_deferred__begin_rp_node:dafg::NodeHandle"{}
-  "scope__mobile_deferred__prepass_node:dafg::NodeHandle"{}
-  "scope__mobile_deferred__node:dafg::NodeHandle"{}
-  "scope__mobile_deferred__lens_mask_node:dafg::NodeHandle"{}
-  "scope__mobile_deferred__depth_cut_node:dafg::NodeHandle"{}
-
-  "scope__lens_mobile_node:dafg::NodeHandle"{}
-
-  "setup_scope_aim_rendering_data_node:dafg::NodeHandle"{}
-}
-
-scope_forward_renderer{
-  _singleton:b=yes
-  _tags:t="render"
-  "forward__setup_aim_rendering_data_node:dafg::NodeHandle"{}
-
-  "scope__forward__prepass_node:dafg::NodeHandle"{}
-  "scope__forward__node:dafg::NodeHandle"{}
-  "scope__forward__lens_mask_node:dafg::NodeHandle"{}
-  "scope__forward__vrs_mask_node:dafg::NodeHandle"{}
-  "scope__forward__lens_hole_node:dafg::NodeHandle"{}
-
-  "scope__lens_mobile_node:dafg::NodeHandle"{}
-
-  "setup_scope_aim_rendering_data_node:dafg::NodeHandle"{}
-}
-
 scope_additional_data{
   _singleton:b=yes
   _tags:t="render"

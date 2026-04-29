@@ -1,0 +1,1 @@
+Smart pointer to a `Function` object. Used for creating and manipulating function declarations in the AST.

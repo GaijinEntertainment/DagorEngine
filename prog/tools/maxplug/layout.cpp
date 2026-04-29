@@ -1,10 +1,11 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-// temporarily disabled due to visible artifacts
-#if defined(ENABLE_LAYOUT) && defined(MAX_RELEASE_R22) && MAX_RELEASE >= MAX_RELEASE_R22
-
 #include <max.h>
 #include "layout.h"
+
+#ifndef uint8_t
+typedef unsigned char uint8_t;
+#endif
 
 extern HINSTANCE hInstance;
 
@@ -49,8 +50,6 @@ static void update_layout(const DialogLayout *self, HWND hWnd, LPARAM lParam)
 
   int deltaW = LOWORD(lParam) - r.right;
   int deltaH = HIWORD(lParam) - r.bottom;
-  if (deltaW < 0 || deltaH < 0)
-    return;
 
   for (size_t i = 0; i < self->items.size() / 5; ++i)
   {
@@ -90,11 +89,12 @@ struct Resource
 {
   const uint8_t *ptr;
   size_t num;
+  Resource(const uint8_t *p, size_t n) : ptr(p), num(n) {}
 };
 
 static Resource load_resource(LPCWSTR lpName, LPCWSTR type)
 {
-  static const Resource nores{0, 0};
+  static const Resource nores(0, 0);
 
   HRSRC hResInfo = FindResourceW(hInstance, lpName, type);
   if (!hResInfo)
@@ -112,7 +112,7 @@ static Resource load_resource(LPCWSTR lpName, LPCWSTR type)
   if (!ptr)
     return nores;
 
-  return {static_cast<uint8_t *>(ptr), size};
+  return Resource(static_cast<uint8_t *>(ptr), size);
 }
 
 static std::vector<uint8_t> read_afx_dialog_layout(Resource res)
@@ -135,6 +135,7 @@ struct DlgExInfo
 {
   short w, h;
   WORD num_items;
+  DlgExInfo(short w_, short h_, WORD n_) : w(w_), h(h_), num_items(n_) {}
 };
 
 static DlgExInfo read_dialog_ex(Resource &res)
@@ -158,10 +159,10 @@ static DlgExInfo read_dialog_ex(Resource &res)
   if (tpl->signature != 0xFFFF)
   {
     DebugPrint(L"Layout: Only DIALOGEX is supported");
-    return {0, 0, 0};
+    return DlgExInfo(0, 0, 0);
   }
 
-  DlgExInfo dlg_info{tpl->cx, tpl->cy, tpl->cDlgItems};
+  DlgExInfo dlg_info(tpl->cx, tpl->cy, tpl->cDlgItems);
   res.ptr += sizeof(DLGTEMPLATEEX);
 
   const WORD *wp = reinterpret_cast<const WORD *>(res.ptr);
@@ -379,5 +380,3 @@ void attach_layout_to_dialog(HWND hWnd, LPCWSTR dialog_name)
   DialogLayout *layout = load_dialog_layout(dialog_name);
   SetProp(hWnd, PROP_LAYOUT, (HANDLE)layout);
 }
-
-#endif

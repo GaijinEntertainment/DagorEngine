@@ -1,6 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 
 extern size_t pull_das_daFrameGraph_aot_lib();
 
@@ -27,12 +33,13 @@ extern size_t pull_das_daFrameGraph_aot_lib();
   RS(computeShader)          \
   RS(shaders)                \
   RS(lightning)              \
+  RS(light)                  \
   RS(decals)                 \
   RS(samplerHandle)          \
   RS(skiesSettings)          \
   RS(camouflageOverrideParams)
 
-#define REG_SQM RS(bind_screencap)
+#define REG_SQM RS(bind_screencap) RS(bind_render)
 
 #define RS(x) ECS_DECL_PULL_VAR(x);
 REG_SYS

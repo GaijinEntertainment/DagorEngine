@@ -1,0 +1,33 @@
+WARNING: w322 (callback-should-not-return) Callback passed to 'each' should not return a value.
+testData/static_analyzer/w322.nut:10:9
+
+// each with explicit return value
+arr.each(@(v) v * 2)
+         ^---------
+
+
+WARNING: w322 (callback-should-not-return) Callback passed to 'each' should not return a value.
+testData/static_analyzer/w322.nut:13:9
+
+// each with block body returning value
+arr.each(function(v) { return v * 2 })
+         ^---------------------------
+
+
+WARNING: w322 (callback-should-not-return) Callback passed to 'each' should not return a value.
+testData/static_analyzer/w322.nut:16:9
+
+// table each with return
+tbl.each(@(v) v + 1)
+         ^---------
+
+
+WARNING: w322 (callback-should-not-return) Callback passed to 'each' should not return a value.
+testData/static_analyzer/w322.nut:19:18
+
+// each with binding that returns
+let returningFn = function(v) { return v * 2 }
+                  ^---------------------------
+arr.each(returningFn)
+
+

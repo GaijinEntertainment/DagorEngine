@@ -29,13 +29,22 @@ int checkerboard_jitter = 0;
 texture downsample_depth_from;
 texture downsample_closest_depth_from;
 texture resolved_motion_vectors;
+texture unpacked_normal_tex;
 
 float4x4 motion_vec_reproject_tm;
 int resolve_motion_vectors = 0;
 interval resolve_motion_vectors: no < 1, yes;
 
+int normal_repacking_needed = 0;
+interval normal_repacking_needed : no < 1, yes;
+
+// Dumy macro for samples
+define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
+endmacro
+
 macro DOWNSAMPLE_DEPTH2X_CORE(code)
-  ENABLE_ASSERT(code)
+  INIT_PACK_UNPACK_DYNSTCODE(code)
+  INIT_RENDERING_RESOLUTION(code)
 
   hlsl(code) { #define toonshading 0 }
 
@@ -53,7 +62,7 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
         }
         else {
           (code) {
-            downsample_motion_from@smp2d = motion_gbuf;
+            downsample_motion_from@tex2d = motion_gbuf;
             motion_uv_transform@f4 = downsample_uv_transform;
           }
         }
@@ -75,7 +84,7 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
     {
       hlsl { #define HAS_NORMAL 1 }
       INIT_LOAD_GBUFFER_BASE(code)
-      hlsl {#define decodeEmissionColor(a) float3(0,0,0)}
+      hlsl {#define decodeEmissionColor(a) half3(0,0,0)}
       USE_LOAD_GBUFFER_BASE(code, false)
     }
   }
@@ -131,9 +140,16 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
     if (has_checkerboard_depth != yes) {dont_render;}
     hlsl { #define CHECKER_DEPTH_FORMAT 1 }
   }
+  if (normal_repacking_needed == yes)
+  {
+    hlsl { #define NEED_NORMAL_REPACKING 1}
+    USE_EMISSION_DECODE_COLOR_MAP(code)
+    PACK_UNPACK_GBUFFER_BASE(code)
+  }
 
   (code) {
-    downsample_far_depth_from@smp2d = downsample_depth_from;
+    downsample_far_depth_from@tex2d = downsample_depth_from;
+    unpacked_normal_tex@smp2d = unpacked_normal_tex;
     downsample_from@f4 = (downsample_from.x, downsample_from.y, 1.0/downsample_from.x, 1.0/downsample_from.y);
     downsample_to@f4 = (downsample_to.x, downsample_to.y, 1.0/downsample_to.x, 1.0/downsample_to.y);
     downsample_uv_transform@f4 = downsample_uv_transform;
@@ -154,6 +170,10 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
       float4 normal;
       motion_type motion;
     };
+
+    #if NEED_NORMAL_REPACKING
+      RWTexture2D<unorm float4> normal_gbuf_to_merge : register(u5);
+    #endif
 
     #define depth_min(a,b) max(a,b)
     #define depth_max(a,b) min(a,b)
@@ -204,11 +224,39 @@ macro DOWNSAMPLE_DEPTH2X_CORE(code)
       int2 nrmTcOfst = depthToCheck == src0 ? int2(0,0) : (depthToCheck == src1 ? int2(1,0) : (depthToCheck == src2 ? int2(0,1) : int2(1,1)));
       int2 depthTargetScr = scr + nrmTcOfst;
 
+      #if NEED_NORMAL_REPACKING
+          float3 readNormal;
+          float2 gatherTc = scr * rendering_res.zw;
+          float4 alphas = unpacked_normal_tex.GatherAlpha(unpacked_normal_tex_samplerstate, gatherTc, int2(1, 1));
+          float4 normalXs = unpacked_normal_tex.GatherRed(unpacked_normal_tex_samplerstate, gatherTc, int2(1, 1));
+          float4 normalYs = unpacked_normal_tex.GatherGreen(unpacked_normal_tex_samplerstate, gatherTc, int2(1, 1));
+          float4 normalZs = unpacked_normal_tex.GatherBlue(unpacked_normal_tex_samplerstate, gatherTc, int2(1, 1));
+          BRANCH
+          if (any(alphas <= 0))
+          {
+            [unroll]
+            for (uint i = 0; i < 4; i++)
+            {
+              int2 nOffset = int2(i % 3 != 0, i < 2);
+              float3 norm = float3(normalXs[i], normalYs[i], normalZs[i]);
+              half2 encodedNormal = pack_normal_so(half3(norm) * 2.0h - 1.h);
+              texture2DAt(normal_gbuf_to_merge, scr + nOffset) = float4(encodedNormal, texture2DAt(normal_gbuf_to_merge, scr + nOffset).zw);
+            }
+          }
+          int correctIdx = nrmTcOfst.x + nrmTcOfst.y * 2;
+          readNormal = float3(normalXs[correctIdx], normalYs[correctIdx], normalZs[correctIdx]);
+      #endif
+
       #if HAS_NORMAL
-        float3 normal;
-        half smoothness;
-        loadPackedGbufferNormalSmoothness(depthTargetScr, normal, smoothness);
-        result.normal = float4(normal*0.5+0.5, depthToCheck == 0 ? 0 : smoothness);
+        #if !NEED_NORMAL_REPACKING
+          float3 normal;
+          half smoothness;
+          loadPackedGbufferNormalSmoothness(depthTargetScr, normal, smoothness);
+          result.normal = float4(normal*0.5+0.5, depthToCheck == 0 ? 0 : smoothness);
+        #else
+          result.normal = float4(readNormal, loadSmoothness(depthTargetScr));
+        #endif
+
       #endif
 
       #if HAS_MOTION_VEC
@@ -338,23 +386,42 @@ shader downsample_depth2x_cs
   {
     DOWNSAMPLE_DEPTH2X_CORE(cs)
 
-    hlsl(cs) {
-      #if HAS_FAR_DEPTH
-        RWTexture2D< float > farDepth : register(u0);
-      #endif
-      #if HAS_CLOSE_DEPTH
-        RWTexture2D< float > closeDepth : register(u1);
-      #endif
-      #if HAS_CHECKER_DEPTH
-        RWTexture2D< float > checkerDepth : register(u2);
-      #endif
-      #if HAS_NORMAL
-        RWTexture2D< float4 > normal : register(u3);
-      #endif
-      #if HAS_MOTION_VEC
-        RWTexture2D< motion_type > motion : register(u4);
-      #endif
+    (cs) {
+      if (has_far_depth) {
+        farDepth@uav : register(0) hlsl {
+          RWTexture2D< float > farDepth@uav;
+        };
+      }
+      if (has_close_depth) {
+        closeDepth@uav : register(1) hlsl {
+          RWTexture2D< float > closeDepth@uav;
+        };
+      }
+      if (has_checkerboard_depth == yes) {
+        checkerDepth@uav : register(2) hlsl {
+          RWTexture2D< float > checkerDepth@uav;
+        };
+      }
+      if (has_normal == yes) {
+        normal@uav : register(3) hlsl {
+          RWTexture2D< float4 > normal@uav;
+        };
+      }
+      if (has_motion_vectors == yes) {
+        // ugly but motion_type is unusable here
+        if (ds_motion_vectors_with_z == yes) {
+          motion@uav : register(4) hlsl {
+              RWTexture2D< float3 > motion@uav;
+          };
+        } else {
+          motion@uav : register(4) hlsl {
+              RWTexture2D< float2 > motion@uav;
+          };
+        }
+      }
+    }
 
+    hlsl(cs) {
       [numthreads( 8, 8, 1 )]
       void downsample_cs(uint3 DTid : SV_DispatchThreadID)
       {
@@ -406,9 +473,13 @@ shader copy_depth
   color_write=0;
 
   POSTFX_VS_TEXCOORD(0, tc)
+
+  (ps) {
+    tex@tex2d : register(15);
+    tex_samplerstate@sampler : register(15);
+  }
+
   hlsl(ps) {
-    Texture2D tex:register(t15);
-    SamplerState tex_samplerstate:register(s15);
     void downsample_ps(VsOutput IN, out float depth : SV_Depth)
     {
       depth = tex2D(tex, IN.tc).x;

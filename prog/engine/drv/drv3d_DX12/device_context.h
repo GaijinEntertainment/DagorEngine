@@ -23,24 +23,28 @@
 #include "resource_memory_heap.h"
 #include "resource_state_tracker.h"
 #include "ring_pipes.h"
+#include "stacked_profile_events.h"
 #include "stateful_command_buffer.h"
 #include "streamline_adapter.h"
 #include "swapchain.h"
+#include "synced_command_store.h"
 #include "tagged_handles.h"
 #include "texture.h"
-#include "variant_vector.h"
 #include "viewport_state.h"
 #include "xess_wrapper.h"
-#include "synced_command_store.h"
+
+#if USE_DLSS_WITHOUT_STREAMLINE
+#include "dlss.h"
+#endif
 
 #include <dag/dag_vector.h>
 #include <drv/3d/dag_commands.h>
 #include <drv/3d/dag_renderPass.h>
-#include <drv_returnAddrStore.h>
 #include <EASTL/optional.h>
 #include <EASTL/unique_ptr.h>
 #include <osApiWrappers/dag_events.h>
 #include <osApiWrappers/dag_threads.h>
+#include <gpuVendorNvidia.h>
 
 
 struct FrameEvents;
@@ -302,8 +306,15 @@ public:
     {
       updateProgressFor(textureReadBack.image, frame_progress);
 
-      resource_state.useTextureAsReadBack(barrier_batcher, split_transition_tracker, textureReadBack.image,
-        SubresourceIndex::make(textureReadBack.copyInfo.subresourceIndex));
+      // Workaround: transition ALL subresources to COMMON, not just the one being read back.
+      // Per D3D12 spec: "subresources used in Copy queues MUST be in the state D3D12_RESOURCE_STATE_COMMON".
+      // We only need to copy one subresource, but transitioning just that subresource causes gpu validation error:
+      // ID3D12CommandQueue1::ExecuteCommandLists: Using ResourceBarrier on Command List (0x000001E98DB225C0:'Unnamed
+      // ID3D12GraphicsCommandList Object'): Before state (0x4: D3D12_RESOURCE_STATE_RENDER_TARGET) of resource
+      // (0x000001E9F7BF4C30:'clear_color_renderTarget') (subresource: 1) specified by transition barrier does not match with the state
+      // (0x0: D3D12_RESOURCE_STATE_[COMMON|PRESENT]) specified in preceding ResourceBarrier or as InitialState
+      resource_state.useTextureAsCopySourceForWholeCopyOnReadbackQueue(barrier_batcher, split_transition_tracker,
+        textureReadBack.image);
 
       src.pResource = textureReadBack.image->getHandle();
       src.SubresourceIndex = textureReadBack.copyInfo.subresourceIndex;
@@ -589,15 +600,40 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 
     GraphicsState graphicsState;
     ComputeState computeState;
-#if D3D_HAS_RAY_TRACING
-    RaytraceState raytraceState;
-#endif
     PipelineStageStateBase stageState[STAGE_MAX_EXT];
 
     StatefulCommandBuffer cmdBuffer = {};
+    uint32_t cmdBufferDebugUniqueIndex = 0;
+    // it is possible that the GPU fault detection kicks in after we reused the trace recorder for the faulting frame and overwrite
+    // its contents, to fix this we have two trace set we hop back and forth on each round trip.
+    uint32_t cmdBufferDebugFrameHistoryPingPong = 0;
     dag::Vector<eastl::pair<size_t, size_t>> renderTargetSplitStarts;
 
     ActivePipeline activePipeline = ActivePipeline::Graphics;
+
+    // on next present we should place render submit latency marker
+    // because it should happen after submit yet before present
+    bool needRenderSubmitLatencyMarkerBeforePresent = false;
+
+    void nextFrame()
+    {
+      frames.advance();
+      cmdBufferDebugUniqueIndex = 0;
+      // one bit per frame index
+      cmdBufferDebugFrameHistoryPingPong ^= 1u << frames.getIndex();
+    }
+
+    debug::CommandListIdentifier getCommandListDebugIdentifier() const
+    {
+      return debug::make_command_list_identfier(
+        (frames.getIndex() << 1) | (1u & (cmdBufferDebugFrameHistoryPingPong >> frames.getIndex())), cmdBufferDebugUniqueIndex);
+    }
+
+    debug::CommandListIdentifier nextCommandListDebugIdentifier()
+    {
+      ++cmdBufferDebugUniqueIndex;
+      return getCommandListDebugIdentifier();
+    }
 
     void switchActivePipeline(ActivePipeline active_pipeline)
     {
@@ -624,9 +660,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     {
       graphicsState.onFlush();
       computeState.onFlush();
-#if D3D_HAS_RAY_TRACING
-      raytraceState.onFlush();
-#endif
 
       for (auto &stage : stageState)
       {
@@ -650,9 +683,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     {
       graphicsState.onFrameStateInvalidate(null_ct);
       computeState.onFrameStateInvalidate();
-#if D3D_HAS_RAY_TRACING
-      raytraceState.onFrameStateInvalidate();
-#endif
 
       for (auto &stage : stageState)
       {
@@ -776,7 +806,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 
     static stackhelp::ext::CallStackResolverCallbackAndSizePair on_ext_call_stack_capture(stackhelp::CallStackInfo stack,
       void *context);
-    static unsigned on_ext_call_stack_resolve(char *buf, unsigned max_buf, stackhelp::CallStackInfo stack);
+    static stackhelp::ext::ResolvedRecord on_ext_call_stack_resolve(char *buf, unsigned max_buf, stackhelp::CallStackInfo stack);
 
     // TODO when we have different execution queues then this needs to be for a specific one
     void dirtyBufferState(BufferGlobalId ident)
@@ -885,12 +915,27 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
       D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, bool update, RaytraceAccelerationStructure *dst,
       RaytraceAccelerationStructure *src, BufferResourceReferenceAndAddress scratch_buffer,
       BufferResourceReferenceAndAddress compacted_size);
+#if HAS_NVAPI
+    void buildBottomAccelerationStructureNvidia(RaytraceAccelerationStructure *as, RaytraceBuildFlags flags, bool update,
+      BufferResourceReferenceAndAddress scratch_buffer, BufferResourceReferenceAndAddress compacted_size,
+      ExtraDataArray<const NVAPI_D3D12_RAYTRACING_GEOMETRY_DESC_EX>::RangeType descs,
+      RaytraceGeometryDescriptionBufferResourceReferenceSetListRef::RangeType resource_refs);
+#endif
     void buildTopAccelerationStructure(uint32_t batch_size, uint32_t batch_index, uint32_t instance_count,
       BufferResourceReferenceAndAddress instance_buffer, D3D12_RAYTRACING_ACCELERATION_STRUCTURE_BUILD_FLAGS flags, bool update,
       RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, BufferResourceReferenceAndAddress scratch);
-    void copyRaytracingAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact);
+    void copyRaytracingAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact,
+      RaytraceAccelerationStructureType type);
+    void buildOpacityMicroMapTriangleArrayBatchBegin(::raytrace::AccelerationStructureBuildMode mode,
+      ExtraDataArray<const RayTraceOpacityMicroMapTriangleArrayBuildBufferSet>::RangeType buffer_sets);
+    void buildOpacityMicroMapTriangleArrayBatchEntry(bool auto_flush, ::raytrace::AccelerationStructureBuildMode mode,
+      RaytraceOpacityMicroMapTriangleArray *omm, RaytraceBuildFlags flags, BufferResourceReferenceAndAddress input_buffer,
+      BufferResourceReferenceAndAddress description_buffer, uint32_t description_stride,
+      BufferResourceReferenceAndAddress compacted_size_output_buffer, BufferResourceReferenceAndAddress scratch_buffer,
+      ExtraDataArray<const ::raytrace::OpacityMicroMapDescription>::RangeType descs);
 #endif
     void continuePipelineSetCompilation() const;
+    void beginFrame(uint32_t frame_id);
     void finishFrame(uint64_t progress, Drv3dTimings *timing_data, int64_t kickoff_stamp, uint32_t front_frame, uint32_t frame_id,
       const PresentInfo &present_info);
     void dispatch(uint32_t x, uint32_t y, uint32_t z);
@@ -900,7 +945,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void clearBufferFloat(BufferResourceReferenceAndClearView buffer, const float values[4]);
     void clearBufferUint(BufferResourceReferenceAndClearView buffer, const uint32_t values[4]);
     void clearDepthStencilImage(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor,
-      const ClearDepthStencilValue &value, const eastl::optional<D3D12_RECT> &rect);
+      const ClearDepthStencilValue &value, D3D12_CLEAR_FLAGS depth_clear_flags, const eastl::optional<D3D12_RECT> &rect);
     void clearColorImage(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, const ClearColorValue &value,
       const eastl::optional<D3D12_RECT> &rect);
     void copyImage(Image *src, Image *dst, const ImageCopy &copy);
@@ -929,6 +974,10 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void flushGraphicsResourceBindings();
     void flushGraphicsMeshState();
     void flushGraphicsState(D3D12_PRIMITIVE_TOPOLOGY top);
+    bool loadGraphicsPipelineVariant(D3D12_PRIMITIVE_TOPOLOGY_TYPE topType, const InputLayout &inputLayout,
+      const RenderStateSystem::StaticState &staticRenderState);
+    bool loadMeshPipelineVariant(const RenderStateSystem::StaticState &staticRenderState);
+    bool loadComputePipeline(ComputePipeline *pipeline);
     void flushIndexBuffer();
     void flushVertexBuffers();
     void flushStreamOutputBuffer();
@@ -936,15 +985,16 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void flushGraphicsStateResourceBindings();
     // handled by flush, could be moved into this though
     void ensureActivePass();
-    void changePresentMode(PresentationMode mode);
+    void changePresentInterval(int interval);
     void updateVertexShaderName(ShaderID shader, StringIndexRef::RangeType name);
     void updatePixelShaderName(ShaderID shader, StringIndexRef::RangeType name);
     void clearUAVTextureI(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, const uint32_t values[4]);
     void clearUAVTextureF(Image *image, ImageViewState view, D3D12_CPU_DESCRIPTOR_HANDLE view_descriptor, const float values[4]);
-    void setRootConstants(unsigned stage, const RootConstatInfo &values);
+    void setRootConstants(unsigned stage, eastl::span<uint32_t> values);
     void registerStaticRenderState(StaticRenderStateID ident, const RenderStateSystem::StaticState &state);
     void beginVisibilityQuery(Query *q);
     void endVisibilityQuery(Query *q);
+    void cancelQuery(Query *q);
 #if _TARGET_PC_WIN
     void changePresentWindow(uint32_t index) { self.back.swapchain.setPresentWindow(index); }
 #endif
@@ -958,6 +1008,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 #endif
     void registerInputLayout(InputLayoutID ident, const InputLayout &layout);
     void createDlssFeature(bool stereo_render, int output_width, int output_height);
+    void createDlssFeature(int mode, int output_width, int output_height, bool use_rr, bool use_legacy_model);
     void releaseDlssFeature(bool stereo_render);
     void executeDlss(const nv::DlssParams<Image> &dlss_params, int view_index);
     void executeDlssG(const nv::DlssGParams<Image> &dlss_g_params, int view_index);
@@ -999,15 +1050,13 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void writeDebugMessage(StringIndexRef::RangeType message, int severity);
 
     void bindlessSetResourceDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
+    void deferBindlessSetResourceDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
     void bindlessSetSamplerDescriptor(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
     void bindlessCopyResourceDescriptors(uint32_t src, uint32_t dst, uint32_t count);
 
     void registerFrameCompleteEvent(os_event_t event);
 
     void registerFrameEventsCallback(FrameEvents *callback);
-#if !DX12_USE_AUTO_PROMOTE_AND_DECAY
-    void resetBufferState(BufferResourceReference buffer);
-#endif
     void onBeginCPUTextureAccess(Image *image);
     void onEndCPUTextureAccess(Image *image);
 
@@ -1020,7 +1069,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 
 #if _TARGET_PC_WIN
     void onDeviceError(HRESULT remove_reason);
-    void commandFence(std::atomic_bool &signal);
+    void commandFence(std::atomic_uint32_t &signal);
 #endif
 
 #if _TARGET_PC_WIN
@@ -1042,7 +1091,9 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     void twoPhaseCopyBuffer(BufferResourceReferenceAndOffset source, uint64_t destination_offset, ScratchBuffer scratch_memory,
       uint64_t data_size);
     void moveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to);
+    void twoPhaseMoveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to, ScratchBuffer scratch_memory);
     void moveTexture(Image *from, Image *to);
+    void twoPhaseMoveTexture(Image *from, Image *to, ScratchBuffer scratch_memory);
 
     void transitionBuffer(BufferResourceReference buffer, D3D12_RESOURCE_STATES state);
 
@@ -1073,6 +1124,10 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
       DynamicArray<cacheBlk::ComputeClassUse> &&compute_pipelines, DynamicArray<cacheBlk::GraphicsVariantGroup> &&graphics_pipelines,
       DynamicArray<cacheBlk::GraphicsVariantGroup> &&graphics_with_null_override_pipelines, ShaderID null_pixel_shader);
 
+#if _TARGET_PC_WIN
+    void setAsyncPsoCompilationMode(PipelineManager::AsyncPsoMode mode);
+#endif
+
     void switchActivePipeline(ActivePipeline pipeline);
 
 #if D3D_HAS_RAY_TRACING
@@ -1086,10 +1141,22 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
 #endif
     void executeFaultyTextureRead(D3D12_CPU_DESCRIPTOR_HANDLE src_descriptor, Image *dst_image, ImageViewState dst_view,
       D3D12_CPU_DESCRIPTOR_HANDLE dst_descriptor);
+
+    void switchSyncMode(bool postpone);
+
+    void setGpuPostmortemDataTraceEnabled(bool is_enabled);
+
+    void profileMarker(da_profiler::desc_id_t marker) { self.profilerStack.pushChained(marker); }
+    void popProfileMarker() { self.profilerStack.popChained(); }
+
+#if D3D_HAS_RAY_TRACING
+    void setComputeOnRayTraceShaderBindingTableConstBuffer(uint32_t stage, uint32_t slot, ProgramID program);
+#endif
+
+  private:
+    static void validate_globals_size(const dxil::ShaderHeader &header, const PipelineStageStateBase &stage_state, ShaderStage stage,
+      ID3D12PipelineState *pipeline);
   };
-
-
-  std::atomic<uint32_t> finishedFrameIndex = 0;
 
   struct FrontendFrameLatchedData
   {
@@ -1120,14 +1187,18 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     {
       int64_t thresholdUS = -1;
       int64_t captureId = 0;
-      UINT flags = 0x10000 /* D3D11X_PIX_CAPTURE_API */;
+      UINT flags = 0x10000 /* D3D12XBOX_PIX_CAPTURE_API */;
       int frameCount = 1;
       int captureCountLimit = -1;
       int ignoreNextFrames = 5;
     } captureAfterLongFrames;
 #endif
 #endif
+#if _TARGET_PC
+    bool isGpuLatencyEnabled = true;
+    OSSpinlock latencyWaitGuard;
     alignas(std::hardware_constructive_interference_size) std::atomic_uint32_t waitForSwapchainCount = 0;
+#endif
   };
   struct Backend
   {
@@ -1157,13 +1228,14 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   CommandExecutionMode executionMode = CommandExecutionMode::IMMEDIATE;
   bool isImmediateFlushSuppressed = false;
 #endif
-  WIN_MEMBER bool isWaitForASyncPresent = false;
+  WIN_MEMBER std::atomic_bool isWaitForAsyncPresent = false;
 #if ENABLE_GENERIC_RENDER_PASS_VALIDATION
   eastl::optional<RenderPassArea> activeRenderPassArea;
 #endif
 
   Frontend front;
   Backend back = {};
+
 #if _TARGET_XBOX
   EventPointer enteredSuspendedStateEvent;
   EventPointer resumeExecutionEvent;
@@ -1172,10 +1244,19 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   EventsPool eventsPool;
 
   XessWrapper xessWrapper;
-#if !_TARGET_XBOX
+#if _TARGET_PC_WIN
   eastl::optional<StreamlineAdapter> streamlineAdapter;
 #endif
   Fsr2Wrapper fsr2Wrapper;
+
+#if USE_DLSS_WITHOUT_STREAMLINE
+  DLSSSuperResolutionDirect dlssInterface;
+#endif
+
+  StackedProfileEvents profilerStack;
+  uint32_t minPipelinesToCompilePerFrame = 10;
+
+  alignas(std::hardware_constructive_interference_size) std::atomic_uint32_t presentedFrameId = 0;
 
 #if DX12_FIXED_EXECUTION_MODE
   constexpr bool isImmediateMode() const { return false; }
@@ -1218,7 +1299,6 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   }
 #endif
 
-  void replayCommandsWithProfiler(ExecutionContext &execution_context);
   bool replayCommands(ExecutionContext &execution_context);
   void replayCommandsConcurrently(volatile int &terminate);
 
@@ -1228,6 +1308,7 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
     SyncPoint,
   };
   void frontFlush(TidyFrameMode tidy_mode);
+  void flushCommandsAndFrontend();
   bool waitForLatchedFrame();
   void manageLatchedState(TidyFrameMode tidy_mode);
 
@@ -1241,6 +1322,8 @@ class DeviceContext : protected ResourceUsageHistoryDataSetDebugger,
   void initMode(CommandExecutionMode mode);
 #endif
   void shutdownWorkerThread();
+
+  void discardTextureInternal(Image *image, uint32_t tex_flags);
 
   // assumes frontend and backend are synced and locked so that access to front and back is safe
   void resizeSwapchain(Extent2D size, uint32_t swapchain_index);
@@ -1318,14 +1401,14 @@ public:
   void setComputePipeline(ProgramID program);
   void setGraphicsPipeline(GraphicsProgramID program);
   void copyBuffer(BufferResourceReferenceAndOffset source, BufferResourceReferenceAndOffset dest, uint32_t data_size);
-  void updateBuffer(HostDeviceSharedMemoryRegion update, BufferResourceReferenceAndOffset dest);
+  void updateBufferNoLock(HostDeviceSharedMemoryRegion update, BufferResourceReferenceAndOffset dest);
   void clearBufferFloat(BufferResourceReferenceAndClearView buffer, const float values[4]);
   void clearBufferInt(BufferResourceReferenceAndClearView buffer, const unsigned values[4]);
   void pushEvent(const char *name);
   void popEvent();
   void updateViewports(dag::ConstSpan<ViewportState> viewports);
   void clearDepthStencilImage(Image *image, const ImageSubresourceRange &area, const ClearDepthStencilValue &value,
-    const eastl::optional<D3D12_RECT> &rect);
+    D3D12_CLEAR_FLAGS depth_clear_flags, const eastl::optional<D3D12_RECT> &rect);
   void clearColorImage(Image *image, const ImageSubresourceRange &area, const ClearColorValue &value,
     const eastl::optional<D3D12_RECT> &rect);
   void copyImage(Image *src, Image *dst, const ImageCopy &copy);
@@ -1341,16 +1424,15 @@ public:
   BufferState discardBuffer(BufferState to_discared, DeviceMemoryClass memory_class, FormatStore format, uint32_t struct_size,
     bool raw_view, bool struct_view, D3D12_RESOURCE_FLAGS flags, uint32_t cflags, const char *name);
   void checkFramebufferIntegityNoLock(Image *img);
-  void destroyImage(Image *img, bool is_rt);
-  // blocks the main thread until the previously started swapchain present on the backend thread finishes
-  void waitForAsyncPresent();
+  void destroyImageNoLock(Image *img, bool is_rt);
   // blocks the input sampling until the GPU finished the running frame
   void gpuLatencyWait();
   void beginFrame(uint32_t frame_id, bool allow_wait);
   void setLatencyMarker(uint32_t frame_id, lowlatency::LatencyMarkerType type);
   void finishFrame(uint32_t frame_id, bool present_on_swapchain = true);
-  void changePresentMode(PresentationMode mode);
-  void changeCurrentSwapchainExtents(Extent2D size);
+  void changePresentInterval(int interval);
+  int getPresentInterval();
+  void changeCurrentSwapchainExtents(Extent2D size, bool should_change_hdr);
 #if _TARGET_PC_WIN
   void changePresentWindowNoLock(uint32_t index);
   void changeSwapchainExtents(Extent2D size, uint32_t swapchian_index);
@@ -1364,14 +1446,18 @@ public:
   void setFramebuffer(Image **image_list, ImageViewState *view_list, bool read_only_depth);
 #if D3D_HAS_RAY_TRACING
   void raytraceBuildBottomAccelerationStructure(uint32_t batch_size, uint32_t batch_index, RaytraceBottomAccelerationStructure *as,
-    const RaytraceGeometryDescription *desc, uint32_t count, RaytraceBuildFlags flags, bool update,
+    const RaytraceGeometryDescription *descs, uint32_t count, RaytraceBuildFlags flags, bool update,
     BufferResourceReferenceAndAddress scratch_buf, BufferResourceReferenceAndAddress compacted_size);
   void raytraceBuildTopAccelerationStructure(uint32_t batch_size, uint32_t batch_index, RaytraceTopAccelerationStructure *as,
     BufferReference instance_buffer, uint32_t instance_count, RaytraceBuildFlags flags, bool update,
     BufferResourceReferenceAndAddress scratch_buf);
-  void raytraceCopyAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact);
+  void buildOpacityMicroMapTriangleArray(eastl::span<const ::raytrace::BatchedOpacityMicroMapTriangleArrayBuildInfo> builds,
+    bool auto_flush, ::raytrace::AccelerationStructureBuildMode mode);
+  void raytraceCopyAccelerationStructure(RaytraceAccelerationStructure *dst, RaytraceAccelerationStructure *src, bool compact,
+    RaytraceAccelerationStructureType type);
   void deleteRaytraceBottomAccelerationStructure(RaytraceBottomAccelerationStructure *desc);
   void deleteRaytraceTopAccelerationStructure(RaytraceTopAccelerationStructure *desc);
+  void deleteRaytraceOpacityMicroMapTriangleArray(RaytraceOpacityMicroMapTriangleArray *desc);
   void setRaytraceAccelerationStructure(uint32_t stage, size_t unit, RaytraceAccelerationStructure *as);
 #endif
   void beginConditionalRender(int name);
@@ -1397,19 +1483,17 @@ public:
   void beginGenericRenderPassChecks(const RenderPassArea &renderPassArea);
   void endGenericRenderPassChecks();
 #if _TARGET_PC_WIN
-  void preRecovery();
+  void preRecovery(bool is_device_lost);
   void recover(const dag::Vector<D3D12_CPU_DESCRIPTOR_HANDLE> &unbounded_samplers);
 #endif
   void deleteTexture(BaseTex *tex);
   void resetBindlessReferences(BaseTex *tex);
   void resetBindlessReferences(BufferState &buffer);
-  void removeBindlessReferences(BaseTex *tex);
-  void removeBindlessReferences(BufferState &buffer);
-  void updateBindlessReferences(D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor, D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor);
+  bool updateBindlessReferences(D3D12_CPU_DESCRIPTOR_HANDLE old_descriptor, D3D12_CPU_DESCRIPTOR_HANDLE new_descriptor);
   void freeMemory(HostDeviceSharedMemoryRegion allocation);
   void freeMemoryOfUploadBuffer(HostDeviceSharedMemoryRegion allocation);
-  void uploadToBuffer(BufferResourceReferenceAndRange target, HostDeviceSharedMemoryRegion memory, size_t m_offset);
-  void readBackFromBuffer(HostDeviceSharedMemoryRegion memory, size_t m_offset, BufferResourceReferenceAndRange source);
+  void uploadToBufferNoLock(BufferResourceReferenceAndRange target, HostDeviceSharedMemoryRegion memory, size_t m_offset);
+  void readBackFromBufferNoLock(HostDeviceSharedMemoryRegion memory, size_t m_offset, BufferResourceReferenceAndRange source);
   void uploadToImage(const BaseTex &dst_tex, const BufferImageCopy *regions, uint32_t region_count,
     HostDeviceSharedMemoryRegion memory, DeviceQueueType queue, bool is_discard);
   // Return value is the progress the caller can wait on to ensure completion of this operation
@@ -1475,18 +1559,25 @@ public:
 
   void preRecoverStreamline();
   void recoverStreamline(DXGIAdapter *adapter);
-#if !_TARGET_XBOX
-  nv::Streamline *getStreamline() { return streamlineAdapter ? &streamlineAdapter.value() : nullptr; }
+#if _TARGET_PC_WIN
+  eastl::optional<StreamlineAdapter> &getStreamlineAdapter() { return streamlineAdapter; }
+#endif
+#if USE_DLSS_WITHOUT_STREAMLINE
+  nv::DLSS &getDlss() { return dlssInterface; }
 #endif
   bool isXessQualityAvailableAtResolution(uint32_t target_width, uint32_t target_height, int xess_quality) const
   {
     return xessWrapper.isXessQualityAvailableAtResolution(target_width, target_height, xess_quality);
   }
-  void getXessRenderResolution(int &w, int &h) const { xessWrapper.getXeSSRenderResolution(w, h); }
+  void getXessRenderResolution(int &w, int &h, int &minw, int &minh, int &maxw, int &maxh) const
+  {
+    xessWrapper.getXeSSRenderResolution(w, h, minw, minh, maxw, maxh);
+  }
   dag::Expected<eastl::string, XessWrapper::ErrorKind> getXessVersion() const { return xessWrapper.getVersion(); }
   void getFsr2RenderResolution(int &width, int &height) { fsr2Wrapper.getFsr2RenderingResolution(width, height); }
   void setXessVelocityScale(float x, float y) { xessWrapper.setVelocityScale(x, y); }
   void createDlssFeature(bool stereo_render, int output_width, int output_height);
+  void createDlssFeature(int mode, int output_width, int output_height, bool use_rr, bool use_legacy_dlss);
   void releaseDlssFeature(bool stereo_render);
   void executeDlss(const nv::DlssParams<BaseTexture> &dlss_params, int view_index);
   void executeDlssG(const nv::DlssGParams<BaseTexture> &dlss_g_params, int view_index);
@@ -1516,6 +1607,7 @@ public:
 #endif
   void bindlessSetResourceDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
   void bindlessSetResourceDescriptorNoLock(uint32_t slot, Image *texture, ImageViewState view);
+  void deferredBindlessSetResourceDescriptorNoLock(uint32_t slot, Image *texture, ImageViewState view);
   void bindlessSetSamplerDescriptorNoLock(uint32_t slot, D3D12_CPU_DESCRIPTOR_HANDLE descriptor);
   void bindlessCopyResourceDescriptorsNoLock(uint32_t src, uint32_t dst, uint32_t count);
 
@@ -1551,7 +1643,7 @@ public:
   void addSwapchainView(Image *image, ImageViewInfo info);
 
   // caller needs to hold the context lock
-  void pushBufferUpdate(BufferResourceReferenceAndOffset buffer, const void *data, uint32_t data_size);
+  void pushBufferUpdateNoLock(BufferResourceReferenceAndOffset buffer, const void *data, uint32_t data_size);
 
   void updateFenceProgress();
 
@@ -1565,8 +1657,11 @@ public:
   void aliasFlush(GpuPipeline gpu_pipeline);
   HostDeviceSharedMemoryRegion allocatePushMemory(uint32_t size, uint32_t alignment);
 
-  void moveBuffer(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to);
+  void moveBufferNoLock(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to);
+  void twoPhaseMoveBufferNoLock(BufferResourceReferenceAndOffset from, BufferResourceReferenceAndRange to,
+    const ScratchBuffer &scratch);
   void moveTextureNoLock(Image *from, Image *to);
+  void twoPhaseMoveTextureNoLock(Image *from, Image *to, ScratchBuffer scratch_memory);
 
 #if DX12_FIXED_EXECUTION_MODE
   constexpr bool hasWorkerThread() const { return true; }
@@ -1607,6 +1702,10 @@ public:
     const DataBlock *compute_pipeline_set, const DataBlock *full_graphics_set, const DataBlock *null_override_graphics_set,
     const DataBlock *signature, const char *default_format, ShaderID null_pixel_shader);
 
+#if _TARGET_PC_WIN
+  void setAsyncPsoCompilationMode(PipelineManager::AsyncPsoMode mode);
+#endif
+
 #if D3D_HAS_RAY_TRACING
   void dispatchRays(const ::raytrace::ResourceBindingTable &rbt, const ::raytrace::Pipeline &pipeline,
     const ::raytrace::RayDispatchParameters &rdv);
@@ -1626,6 +1725,22 @@ public:
 #endif
 
   void executeFaultyTextureRead(D3D12_CPU_DESCRIPTOR_HANDLE texture_descriptor);
+
+  void postponeSync();
+  void continueSync();
+
+  void setPresentAsyncMode([[maybe_unused]] bool mode)
+  {
+#if _TARGET_PC_WIN
+    isWaitForAsyncPresent.store(!mode);
+#endif
+  }
+
+  void setGpuPostmortemDataTraceEnabled(bool is_enabled);
+
+#if D3D_HAS_RAY_TRACING
+  void setComputeOnRayTraceShaderBindingTableConstBuffer(uint32_t stage, uint32_t slot, ProgramID program);
+#endif
 };
 
 class ScopedCommitLock

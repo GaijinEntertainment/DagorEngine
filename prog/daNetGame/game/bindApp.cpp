@@ -14,7 +14,7 @@
 #include "main/main.h"
 #include "ui/overlay.h"
 #include "game/gameLauncher.h"
-#include "game/hostedServerLauncher.h"
+#include "main/hostedServerLauncher.h"
 #include "main/localStorage.h"
 #include "main/app.h"
 #include "net/replay.h" // load_replay_meta_info
@@ -25,7 +25,7 @@
 #include "net/userid.h"
 #include "main/version.h"
 #include <daEditorE/editorCommon/inGameEditor.h>
-#include <crypto/base64.h>
+#include <dagCrypto/base64.h>
 
 int app_profile_get_app_id() { return app_profile::get().appId; }
 
@@ -69,7 +69,7 @@ void bind_local_storage(HSQUIRRELVM vm, Sqrat::Table &ns, FuncStore store, FuncL
 static SQInteger switch_scene_sq(HSQUIRRELVM vm)
 {
   SQInteger nArgs = sq_gettop(vm);
-  const SQChar *sceneName = nullptr;
+  const char *sceneName = nullptr;
   G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 2, &sceneName)));
   eastl::vector<eastl::string> imports;
   if (nArgs > 2 && sq_gettype(vm, 3) != OT_NULL)
@@ -101,7 +101,7 @@ static SQInteger switch_scene_sq(HSQUIRRELVM vm)
 
 static SQInteger switch_scene_and_update_sq(HSQUIRRELVM vm)
 {
-  const SQChar *sceneName = nullptr;
+  const char *sceneName = nullptr;
   G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm, 2, &sceneName)));
   debug("SQ switch_scene_and_update(%s)", sceneName);
   sceneload::switch_scene_and_update(sceneName);
@@ -152,6 +152,10 @@ static SQInteger connect_to_session_sq(HSQUIRRELVM vm)
 
   if (Sqrat::Object encKeyObj = params.GetSlot("encKey"); encKeyObj.GetType() == OT_STRING)
     connectParams.encryptKey = base64::decode<dag::Vector<uint8_t>>(encKeyObj.GetString());
+
+  if (Sqrat::Object relayUrlObj = params.GetSlot("relayStunRequestAddr"); relayUrlObj.GetType() == OT_STRING)
+    connectParams.relayStunRequestAddr = relayUrlObj.Cast<eastl::string>();
+  debug("connect_to_session_sq: relayStunRequestAddr='%s'", connectParams.relayStunRequestAddr.c_str());
 
   sceneload::connect_to_session(eastl::move(connectParams), eastl::move(ugmCtx));
   return 0;
@@ -227,7 +231,7 @@ SQ_DEF_AUTO_BINDING_MODULE_EX(bind_app, "app", sq::VM_ALL)
       })
     .Func("replay_get_play_file", []() { return app_profile::get().replay.playFile.c_str(); })
     .Func("exit_game", script_exit_game)
-    .Func("is_app_terminated", dng_is_app_terminated)
+    .Func("is_app_terminating", dng_is_app_terminating)
     .Func("is_user_game_mod", sceneload::is_user_game_mod)
     .SquirrelFunc("get_circuit_conf", get_circuit_conf, 1)
     .SetValue("circuit_name", circuit::get_name().data())
@@ -250,7 +254,7 @@ SQ_DEF_AUTO_BINDING_MODULE_EX(bind_app, "app", sq::VM_ALL)
     /**/;
 
   gamelauncher::bind_game_launcher(tbl);
-  bind_hosting_internal_dedicated_server(tbl);
+  bind_hosting_internal_server(tbl);
 
   Sqrat::Table localStorage(vm);
   tbl.Bind("local_storage", localStorage);

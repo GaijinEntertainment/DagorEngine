@@ -1,11 +1,14 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "spline.h"
+#include <de3_genObjAlongSpline.h>
+
 namespace rendinst::gen
 {
 extern bool custom_get_height(Point3 &pos, Point3 *out_norm = NULL);
 }
 
-static Point3 getPtEffRelBezierIn(dag::ConstSpan<ISplineGenObj::SplinePt> pts, int arrId, int t)
+Point3 SplineGenEntity::getPtEffRelBezierIn(dag::ConstSpan<ISplineGenObj::SplinePt> pts, int arrId, int t)
 {
   const ISplineGenObj::SplinePt &pt = pts[arrId];
   if (pt.cornerType != -2)
@@ -18,7 +21,7 @@ static Point3 getPtEffRelBezierIn(dag::ConstSpan<ISplineGenObj::SplinePt> pts, i
     return normalize(pts[arrId - 1].pt - pt.pt) * 0.05;
   return normalize(pt.pt - pts[arrId + 1].pt) * 0.05;
 }
-static Point3 getPtEffRelBezierOut(dag::ConstSpan<ISplineGenObj::SplinePt> pts, int arrId, int t)
+Point3 SplineGenEntity::getPtEffRelBezierOut(dag::ConstSpan<ISplineGenObj::SplinePt> pts, int arrId, int t)
 {
   const ISplineGenObj::SplinePt &pt = pts[arrId];
   if (pt.cornerType != -2)
@@ -71,8 +74,8 @@ void SplineGenEntity::build_ground_spline(BezierSpline3d &gndSpl, dag::ConstSpan
       pt_gnd[pi * 3 + 0] = tm * points[pi].pt;
       rendinst::gen::custom_get_height(pt_gnd[pi * 3 + 0], NULL);
 
-      pt_gnd[pi * 3 + 1] = tm % getPtEffRelBezierIn(points, pi, corner_type);
-      pt_gnd[pi * 3 + 2] = tm % getPtEffRelBezierOut(points, pi, corner_type);
+      pt_gnd[pi * 3 + 1] = tm % SplineGenEntity::getPtEffRelBezierIn(points, pi, corner_type);
+      pt_gnd[pi * 3 + 2] = tm % SplineGenEntity::getPtEffRelBezierOut(points, pi, corner_type);
     }
 
     Point3 *catmul[4];
@@ -107,7 +110,7 @@ void SplineGenEntity::build_ground_spline(BezierSpline3d &gndSpl, dag::ConstSpan
   {
     int wpi = pi % points.size();
     pts[pi * 3 + 1] = pt_gnd[wpi * 3 + 0];
-    if (poly && !poly_smooth)
+    if ((poly && !poly_smooth) || points[wpi].isRealCross)
       pts[pi * 3 + 0] = pts[pi * 3 + 2] = pts[pi * 3 + 1];
     else
     {
@@ -119,8 +122,8 @@ void SplineGenEntity::build_ground_spline(BezierSpline3d &gndSpl, dag::ConstSpan
   gndSpl.calculate(pts.data(), pts.size(), false);
 }
 
-void SplineGenEntity::generateObjects(BezierSpline3d &effSpline, int start_seg, int end_seg, int splineSubTypeId, int editLayerIdx,
-  int rndSeed, int perInstSeed, Tab<cable_handle_t> *cablesPool)
+void SplineGenEntity::generateObjects(BezierSpline3d &effSpline, int start_seg, int end_seg, int splineSubTypeId, int rndSeed,
+  int perInstSeed, Tab<cable_handle_t> *cablesPool)
 {
   // debug("%p.gen(%d, %d) cls=%s", this, start_seg, end_seg,
   //   EDITORCORE->queryEditorInterface<IAssetService>()->getSplineClassDataName(splineClass));

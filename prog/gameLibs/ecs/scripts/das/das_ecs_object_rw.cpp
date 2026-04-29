@@ -12,20 +12,8 @@ namespace bind_dascript
 {
 void ECS::addObjectRW(das::ModuleLibrary &lib)
 {
-#define TYPE(type)                                                                                                                \
-  das::addExtern<DAS_BIND_FUN(getObjectRWHint##type)>(*this, lib, "getRW_" #type, das::SideEffects::modifyArgument,               \
-    "bind_dascript::getObjectRWHint" #type);                                                                                      \
-  auto getObjectRWExt##type = das::addExtern<DAS_BIND_FUN(getObjectRW##type)>(*this, lib, "getRW_" #type,                         \
-    das::SideEffects::modifyArgument, "bind_dascript::getObjectRW" #type);                                                        \
-  getObjectRWExt##type->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));          \
-  das::addExtern<DAS_BIND_FUN(getObjectPtrRWHint##type)>(*this, lib, "getRW_" #type, das::SideEffects::modifyArgumentAndExternal, \
-    "bind_dascript::getObjectPtrRWHint" #type);                                                                                   \
-  auto getObjectPtrRWHint##type = das::addExtern<DAS_BIND_FUN(getObjectPtrRW##type)>(*this, lib, "getRW_" #type,                  \
-    das::SideEffects::modifyArgumentAndExternal, "bind_dascript::getObjectPtrRW" #type);                                          \
-  getObjectPtrRWHint##type->annotations.push_back(annotation_declaration(das::make_smart<BakeHashFunctionAnnotation<1>>()));
-  ECS_BASE_TYPE_LIST
-  ECS_LIST_TYPE_LIST
-#undef TYPE
+  addObjectRWBase(lib);
+  addObjectRWList(lib);
 
   das::addExtern<DAS_BIND_FUN(objectGetRWChildHint)>(*this, lib, "getRW_child", das::SideEffects::none,
     "bind_dascript::objectGetRWChildHint");

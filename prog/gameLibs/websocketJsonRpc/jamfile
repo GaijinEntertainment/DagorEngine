@@ -1,0 +1,31 @@
+Root           ?= ../../.. ;
+Location        = prog/gameLibs/websocketJsonRpc ;
+StrictCompile   = yes ;
+TargetType      = lib ;
+Target          = gameLibs/websocketJsonRpc.lib ;
+
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+AddIncludes +=
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/3rdPartyLibs/arc/zstd-$(ZstdVer)
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+;
+
+UseProgLibs +=
+  engine/crypto
+  gameLibs/websocket
+  3rdPartyLibs/arc/zstd-$(ZstdVer)
+;
+
+local AllSrcFolder_CPP =
+  .
+;
+
+AutoscanBuildLists $(AllSrcFolder_CPP) : *.cpp : Sources ;
+
+if $(Platform) in windows {
+  CPPopt += /FC ;        # enable full path in __FILE__ macro (useful when navigating output with for IDE)
+}
+
+include $(Root)/prog/_jBuild/build.jam ;

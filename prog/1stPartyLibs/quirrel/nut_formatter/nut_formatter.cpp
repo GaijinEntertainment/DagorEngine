@@ -15,7 +15,7 @@ static bool stdinout = false;
 static const char * tokens_str[] =
 {
   "<=>", "...", ">>>",
-  "<<", ">>", "++", "--", "<=", ">=", "!=", "==", "+=", "-=", "*=", "/=", "^=", "&=", "|=", "||", "&&", "::", "<-", ":=",
+  "<<", ">>", "++", "--", "<=", ">=", "!=", "==", "+=", "-=", "*=", "/=", "%=", "^=", "&=", "|=", "||", "&&", "::", "<-", ":=",
   "??", "?[", "?(", "?.",
   "/>", "</",
 };
@@ -119,15 +119,86 @@ struct Formatter
     return false;
   }
 
+  bool isLambdaParamClose(int closeParenIdx)
+  {
+    int openParen = findOpenBracket(closeParenIdx);
+    if (openParen <= 0 || openParen == closeParenIdx)
+      return false;
+
+    int before = openParen - 1;
+    if (tokens[before].eq("@"))
+      return true;
+
+    if (isalpha(tokens[before].text[0]) || tokens[before].text[0] == '_')
+      if (before >= 1 && (tokens[before - 1].eq("@") || tokens[before - 1].eq("]")))
+        return true;
+
+    return false;
+  }
+
   bool isUnary(int idx)
   {
     if (tokens[idx].eq("-") || tokens[idx].eq("+"))
     {
       Token & prev = tokens[idx - 1];
-      return prev.eq("return") || prev.eq("yield") || prev.eq("(") || prev.eq("[") ||
-        prev.eq(",") || mustHaveSpacesAround(prev.text.c_str());
+      if (prev.eq("return") || prev.eq("yield") || prev.eq("(") || prev.eq("[") ||
+        prev.eq(",") || mustHaveSpacesAround(prev.text.c_str()))
+        return true;
+
+      // after return type annotation: @(params): type -expr
+      if (isTypeName(prev.text) && idx >= 2 && isTypeAnnotationColon(idx - 2))
+        return true;
+
+      // after lambda param close: @(params) -expr
+      if (prev.eq(")") && isLambdaParamClose(idx - 1))
+        return true;
     }
     return false;
+  }
+
+  static bool isTypeName(const string & s)
+  {
+    const char * c = s.c_str();
+    return !strcmp(c, "int") || !strcmp(c, "float") || !strcmp(c, "number") || !strcmp(c, "string") ||
+      !strcmp(c, "bool") || !strcmp(c, "table") || !strcmp(c, "array") || !strcmp(c, "null") ||
+      !strcmp(c, "any") || !strcmp(c, "userdata") || !strcmp(c, "function") || !strcmp(c, "generator") ||
+      !strcmp(c, "userpointer") || !strcmp(c, "thread") || !strcmp(c, "instance") || !strcmp(c, "class") ||
+      !strcmp(c, "weakref");
+  }
+
+  bool isTypeAnnotationColon(int i)
+  {
+    int next = i + 1;
+    while (next < int(tokens.size()) && tokens[next].isComment())
+      next++;
+    if (next >= int(tokens.size()))
+      return false;
+    if (!isTypeName(tokens[next].text) && !tokens[next].eq("("))
+      return false;
+
+    int prev = i - 1;
+    while (prev >= 0 && tokens[prev].isComment())
+      prev--;
+    if (prev < 0)
+      return false;
+
+    const char * ps = tokens[prev].text.c_str();
+    return isalpha(ps[0]) || ps[0] == '_' || tokens[prev].eq("...") || tokens[prev].eq(")");
+  }
+
+  bool isTypeUnionPipe(int i)
+  {
+    int prev = i - 1;
+    while (prev >= 0 && tokens[prev].isComment())
+      prev--;
+    int next = i + 1;
+    while (next < int(tokens.size()) && tokens[next].isComment())
+      next++;
+    if (prev < 0 || next >= int(tokens.size()))
+      return false;
+
+    return (isTypeName(tokens[prev].text) || tokens[prev].eq(")")) &&
+      (isTypeName(tokens[next].text) || tokens[next].eq("("));
   }
 
 
@@ -162,7 +233,7 @@ struct Formatter
 
     if (isdigit(*p) || (*p == '.' && isdigit(p[1])))
     {
-      while (!eof && (isalnum(*p) || *p == '.' || ((*p == 'e' || *p == 'E') && (p[1] == '-' || p[1] == '+' || isdigit(p[1])))))
+      while (!eof && (isalnum(*p) || *p == '.' || *p == '_' || ((*p == 'e' || *p == 'E') && (p[1] == '-' || p[1] == '+' || isdigit(p[1])))))
       {
         if ((*p == 'e' || *p == 'E') && (p[1] == '-' || p[1] == '+'))
           nextChar();
@@ -351,9 +422,26 @@ struct Formatter
     return idx;
   }
 
+  int findOpenBracket(int idx)
+  {
+    int count = 0;
+    for (int i = idx; i >= 0; i--)
+    {
+      if (tokens[i].eq(")") || tokens[i].eq("}") || tokens[i].eq("]"))
+        count++;
+      if (tokens[i].eq("(") || tokens[i].eq("{") || tokens[i].eq("[") || tokens[i].eq("?[") || tokens[i].eq("?("))
+        count--;
+      if (!count)
+        return i;
+    }
+
+    return idx;
+  }
+
   void fmtSpaceAfterKeyword()
   {
     for (int i = 1; i < int(tokens.size()); i++)
+    {
       if (tokens[i].eq("("))
       {
         const Token & prev = tokens[i - 1];
@@ -361,6 +449,10 @@ struct Formatter
           if (!tokens[i].newLines)
             tokens[i].spaces = 1;
       }
+      if (tokens[i].eq("{") && tokens[i - 1].eq("try"))
+        if (!tokens[i].newLines && !tokens[i].spaces)
+          tokens[i].spaces = 1;
+    }
   }
 
   void removeNewLine(int idx)
@@ -475,7 +567,7 @@ struct Formatter
       if (tokens[i].eq(";"))
       {
         Token & next = tokens[i + 1];
-        if (!next.newLines && !next.spaces)
+        if (!next.newLines && !next.spaces && !next.eq(";") && !next.text.empty())
           next.spaces = 1;
       }
   }
@@ -508,9 +600,23 @@ struct Formatter
     for (int i = 1; i < int(tokens.size()) - 1; i++)
     {
       if (tokens[i].eq("{") && !tokens[i + 1].newLines && !tokens[i + 1].spaces && !tokens[i + 1].eq("}"))
-        tokens[i + 1].spaces = 1;
+      {
+        bool singleToken = (i + 2 < int(tokens.size()) && tokens[i + 2].eq("}"));
+        bool afterLetLocal = (i >= 1 && (tokens[i - 1].eq("let") || tokens[i - 1].eq("local")));
+        bool jsLikeTable = (tokens[i + 1].text[0] == '"' || tokens[i + 1].text[0] == '\'');
+        if ((!singleToken || afterLetLocal) && !jsLikeTable)
+          tokens[i + 1].spaces = 1;
+      }
       if (tokens[i].eq("}") && !tokens[i].newLines && !tokens[i].spaces && !tokens[i - 1].eq("{"))
-        tokens[i].spaces = 1;
+      {
+        bool singleToken = (i >= 2 && tokens[i - 2].eq("{"));
+        bool afterLetLocal = (i >= 3 && (tokens[i - 3].eq("let") || tokens[i - 3].eq("local")));
+        int openBrace = findOpenBracket(i);
+        bool jsLikeTable = (openBrace < i && openBrace + 1 < int(tokens.size()) &&
+          (tokens[openBrace + 1].text[0] == '"' || tokens[openBrace + 1].text[0] == '\''));
+        if ((!singleToken || afterLetLocal) && !jsLikeTable)
+          tokens[i].spaces = 1;
+      }
     }
   }
 
@@ -518,11 +624,6 @@ struct Formatter
   {
     for (int i = 1; i < int(tokens.size()) - 1; i++)
     {
-      if (tokens[i].eq("else") && tokens[i - 1].eq("}") && tokens[i - 1].newLines && !tokens[i].newLines)
-      {
-        tokens[i].newLines = 1;
-        tokens[i].spaces = tokens[i - 1].spaces;
-      }
       if (tokens[i].eq("else") && tokens[i + 1].eq("if") && tokens[i + 1].newLines)
       {
         removeNewLine(i + 1);
@@ -539,6 +640,9 @@ struct Formatter
       if (tokens[i].eq("case") || tokens[i].eq("default"))
         insideCase = tokens[i].lineInSource;
 
+      if (tokens[i].isComment())
+        continue;
+
       if (mustHaveSpacesAround(tokens[i].text.c_str()))
       {
         if (tokens[i].eq(":") && insideCase)
@@ -546,6 +650,33 @@ struct Formatter
           insideCase = false;
           continue;
         }
+
+        if (tokens[i].eq(":") && isTypeAnnotationColon(i))
+        {
+          if (!tokens[i + 1].newLines && !tokens[i + 1].spaces)
+            tokens[i + 1].spaces = 1;
+          continue;
+        }
+
+        if (tokens[i].eq(":") && i >= 2 &&
+          (tokens[i - 1].text[0] == '"' || tokens[i - 1].text[0] == '\''))
+        {
+          // JS-like table colon only if the string key follows { or ,
+          int pp = i - 2;
+          while (pp >= 0 && tokens[pp].isComment())
+            pp--;
+          if (pp >= 0 && (tokens[pp].eq("{") || tokens[pp].eq(",")))
+          {
+            if (!tokens[i].newLines)
+              tokens[i].spaces = 0;
+            if (!tokens[i + 1].newLines && !tokens[i + 1].spaces)
+              tokens[i + 1].spaces = 1;
+            continue;
+          }
+        }
+
+        if (tokens[i].eq("|") && isTypeUnionPipe(i))
+          continue;
 
         if (isUnary(i))
         {
@@ -612,7 +743,8 @@ struct Formatter
                 break;
             }
 
-          if (elsePos != -1 && !tokens[elsePos].newLines && !tokens[elsePos].isComment())
+          if (elsePos != -1 && !tokens[elsePos].newLines && !tokens[elsePos].isComment() &&
+            (elsePos < 1 || !tokens[elsePos - 1].eq("}")))
           {
             tokens[elsePos].newLines = 1;
             tokens[elsePos].spaces = tokens[i].spaces;
@@ -842,6 +974,8 @@ void print_usage()
   printf("  --no-backup - don't create backup files.\n");
   printf("  --line-width:140 - fit to line width (unlimited by default).\n");
   printf("  --std - get source from stdin, write result to stdout.\n");
+  printf("  --check - check only, don't modify files. Exit code 1 if formatting needed.\n");
+  printf("  --check:<N> - same as --check, but exit with code N (0..125).\n");
 }
 
 int main(int argc, char ** argv)
@@ -855,6 +989,8 @@ int main(int argc, char ** argv)
   vector<string> fileList;
 
   bool createBackup = true;
+  bool checkOnly = false;
+  int checkExitCode = 1;
 
   for (int i = 1; i < argc; i++)
   {
@@ -867,6 +1003,16 @@ int main(int argc, char ** argv)
 
     if (!strcmp(arg, "--no-backup"))
       createBackup = false;
+
+    if (!strcmp(arg, "--check"))
+      checkOnly = true;
+
+    if (!strncmp(arg, "--check:", 8))
+    {
+      checkOnly = true;
+      int code = atoi(arg + 8);
+      checkExitCode = (code >= 0 && code <= 125) ? code : 1;
+    }
 
     if (!strcmp(arg, "--std"))
       stdinout = true;
@@ -924,6 +1070,8 @@ int main(int argc, char ** argv)
   }
 
 
+  int badFiles = 0;
+
   for (const string & fileName : fileList)
   {
     Formatter f;
@@ -935,9 +1083,16 @@ int main(int argc, char ** argv)
       return 1;
     }
     string code = string((std::istreambuf_iterator<char>(tmp)), std::istreambuf_iterator<char>());
+    tmp.close();
     string formatted = f.format(code.c_str());
     if (formatted != code)
     {
+      printf("%s\n", fileName.c_str());
+      badFiles++;
+
+      if (checkOnly)
+        continue;
+
       if (createBackup)
       {
         std::ofstream bak(fileName + ".bak");
@@ -954,6 +1109,13 @@ int main(int argc, char ** argv)
       fmt << formatted;
       fmt.close();
     }
+  }
+
+  if (badFiles > 0)
+  {
+    printf("\n%d file(s) %s.\n", badFiles, checkOnly ? "need formatting" : "reformatted");
+    if (checkOnly)
+      return checkExitCode;
   }
 
   return 0;

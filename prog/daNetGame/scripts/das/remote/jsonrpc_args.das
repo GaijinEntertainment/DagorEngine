@@ -122,8 +122,10 @@ def as_uint(js : JsonValue?) : uint
     return 0u
   if js is _number
     return uint(js as _number)
+  if js is _longint
+    return uint(js as _longint)
   if js is _bool
     return js as _bool ? 1u : 0u
   if js is _string
-    return uint(to_float(js as _string))
+    return uint(double(js as _string))
   return 0u

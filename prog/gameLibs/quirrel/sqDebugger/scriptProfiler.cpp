@@ -27,7 +27,7 @@
 #include <squirrel/sqclosure.h>
 #include <squirrel/sqclass.h>
 
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/sqStackChecker.h>
 
 #include <util/dag_stlqsort.h>
@@ -103,7 +103,7 @@ public:
       else
       {
         G_ASSERT(_name);
-        const char *fnSlash = ::max(strrchr(source_name, '/'), strrchr(source_name, _SC('\\')));
+        const char *fnSlash = ::max(strrchr(source_name, '/'), strrchr(source_name, '\\'));
         dapFuncName.printf(0, "%s(%s:%d)", _name, fnSlash ? (fnSlash + 1) : source_name, source_line);
       }
       dapDescription = DA_PROFILE_ADD_DESCRIPTION(sourceName, source_line, dapFuncName.c_str());
@@ -130,7 +130,7 @@ public:
 };
 
 
-static void sq_profiler_debug_hook(HSQUIRRELVM v, SQInteger type, const SQChar *sourcename, SQInteger line, const SQChar *funcname)
+static void sq_profiler_debug_hook(HSQUIRRELVM v, SQInteger type, const char *sourcename, SQInteger line, const char *funcname)
 {
   G_UNUSED(sourcename);
   G_UNUSED(line);
@@ -416,7 +416,7 @@ public:
   void get_closure_source_info(const SQFunctionProto *proto, const char **fn, int *line)
   {
     *fn = sq_type(proto->_sourcename) == OT_STRING ? _stringval(proto->_sourcename) : nullptr;
-    *line = proto->_lineinfos[0]._line;
+    *line = proto->_lineinfos->_first_line;
   }
 
   void recurse_collect_global_functions(HSQUIRRELVM vm, const String &base, Tab<SQTable *> &ptableNodes)
@@ -544,7 +544,7 @@ public:
       SQFunctionProto *proto = (SQFunctionProto *)closure; //====
       if (sq_type(proto->_name) == OT_STRING)
       {
-        G_STATIC_ASSERT(sizeof(SQChar) == 1);
+        G_STATIC_ASSERT(sizeof(char) == 1);
 
         const char *sourceName = nullptr;
         int sourceLine = -1;
@@ -726,9 +726,9 @@ void scriptprofile::register_profiler_module(HSQUIRRELVM vm, SqModules *module_m
     .Func("reset_values", reset_values)
     .Func("get_total_time", get_total_time)
     .Func("detect_slow_calls", detect_slow_calls)
-    .SquirrelFunc("start", start_profiler_sq, 1)
-    .SquirrelFunc("stop", stop_profiler_sq, 1)
-    .SquirrelFunc("stop_and_save_to_file", stop_and_save_to_file_sq, 2, ".s")
+    .SquirrelFuncDeclString(start_profiler_sq, "start(): null")
+    .SquirrelFuncDeclString(stop_profiler_sq, "stop(): null")
+    .SquirrelFuncDeclString(stop_and_save_to_file_sq, "stop_and_save_to_file(filename: string): null")
     /**/;
 
   module_mgr->addNativeModule("dagor.profiler", exports);
@@ -736,6 +736,8 @@ void scriptprofile::register_profiler_module(HSQUIRRELVM vm, SqModules *module_m
 
 
 void scriptprofile::shutdown(HSQUIRRELVM vm) { g_PerfProfile.shutdown(vm); }
+
+void scriptprofile::actualStop() { g_PerfProfile.actualStop(); }
 
 
 #endif

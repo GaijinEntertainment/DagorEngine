@@ -22,7 +22,7 @@ void init_clouds(const char *clouds_tex_name, const Point2 &scale, const Point2 
     ShaderGlobal::set_texture_fast(enviCloudsTextureParamId, enviCloudsTextureId);
 
     enviTexMoveParamId = ::get_shader_glob_var_id("environmentCloudsMove");
-    ShaderGlobal::set_color4_fast(enviTexMoveParamId, Color4(scale.x, scale.y, speed.x, speed.y));
+    ShaderGlobal::set_float4(enviTexMoveParamId, Color4(scale.x, scale.y, speed.x, speed.y));
   }
 }
 

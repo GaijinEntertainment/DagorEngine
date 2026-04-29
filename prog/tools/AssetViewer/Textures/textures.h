@@ -30,6 +30,7 @@ public:
 
   bool begin(DagorAsset *asset) override;
   bool end() override;
+  void registerEditorCommands(IEditorCommandSystem &command_system) override;
   void registerMenuAccelerators() override;
   void handleViewportAcceleratorCommand([[maybe_unused]] IGenViewportWnd &wnd, [[maybe_unused]] unsigned id) override;
   bool reloadAsset(DagorAsset *asset) override;

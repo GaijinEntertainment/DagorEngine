@@ -16,6 +16,7 @@
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_overrideStates.h>
 #include <render/debug3dSolid.h>
+#include <gameRes/dag_collisionResource.h>
 
 #include <ioSys/dag_dataBlock.h>
 #include <3d/dag_resPtr.h>
@@ -42,6 +43,8 @@ static dynrender::RElem capsuleCylElem;
 static ShaderMaterial *debugCollisionMatShaded = NULL;
 static dynrender::RElem debugCollisionElemShaded;
 SharedTexHolder debugTex;
+UniqueBuf debugVb;
+UniqueBuf debugIb;
 static shaders::OverrideStateId flip_face_ovid;
 
 void close_debug_solid()
@@ -70,6 +73,8 @@ void close_debug_solid()
   debugCollisionElemShaded.shElem = nullptr;
   debugTex.close();
   shaders::overrides::destroy(flip_face_ovid);
+  debugVb = UniqueBuf();
+  debugIb = UniqueBuf();
 }
 
 static bool init()
@@ -131,7 +136,7 @@ static bool init_shaded()
   const auto debug_triplanar_tex_sizeVarID = get_shader_variable_id("debug_triplanar_tex_size", false);
   const auto debug_ri_wire_colorVarID = get_shader_variable_id("debug_ri_wire_color", false);
   ShaderGlobal::set_int(debug_triplanar_tex_sizeVarID, texSize);
-  ShaderGlobal::set_color4(debug_ri_wire_colorVarID, wireColor);
+  ShaderGlobal::set_float4(debug_ri_wire_colorVarID, wireColor);
 
   if (!flip_face_ovid)
   {
@@ -163,8 +168,8 @@ static void create_shape_relem(dynrender::RElem &relem, SHAPE_TYPE shape)
   uint32_t ibSize = faceCount * sizeof(uint16_t) * 3;
 
   // Create the mesh
-  Vbuffer *vb = d3d::create_vb(vbSize, 0, "solid_sphere");
-  Ibuffer *ib = d3d::create_ib(ibSize, 0, "solid_sphere_ib");
+  Vbuffer *vb = d3d::create_vb(vbSize, 0, "solid_sphere", RESTAG_DEBUG);
+  Ibuffer *ib = d3d::create_ib(ibSize, 0, "solid_sphere_ib", RESTAG_DEBUG);
 
   uint8_t *vertices = NULL;
   uint8_t *indices = NULL;
@@ -295,7 +300,19 @@ void draw_debug_solid_mesh(const uint16_t *indices, int faces_count, const float
   (shaded ? debugCollisionElemShaded : debugCollisionElem).shElem->setStates(0, true);
   set_world(tm);
   d3d::set_vs_const1(COLOR_REG, color.r, color.g, color.b, color.a);
-  d3d::drawind_up(PRIM_TRILIST, 0, vertices_count, faces_count, (uint16_t *)indices, (void *)xyz_pos, vertex_size);
+  if (!debugVb || debugVb->getSize() < vertices_count * vertex_size)
+    debugVb = dag::create_vb(vertices_count * vertex_size, SBCF_BIND_VERTEX | SBCF_DYNAMIC | SBCF_FRAMEMEM, "debug_solid_mesh_vb");
+  if (!debugIb || debugIb->getSize() < faces_count * sizeof(uint16_t) * 3)
+    debugIb =
+      dag::create_ib(faces_count * sizeof(uint16_t) * 3, SBCF_BIND_INDEX | SBCF_DYNAMIC | SBCF_FRAMEMEM, "debug_solid_mesh_ib");
+  debugVb->updateData(0, vertices_count * vertex_size, xyz_pos, VBLOCK_DISCARD);
+  debugIb->updateData(0, faces_count * sizeof(uint16_t) * 3, indices, VBLOCK_DISCARD);
+  d3d::setvsrc(0, debugVb.getBuf(), vertex_size);
+  d3d::setind(debugIb.getBuf());
+
+  d3d::drawind(PRIM_TRILIST, 0, faces_count, 0);
+  d3d::setind(nullptr);
+  d3d::setvsrc(0, nullptr, 0);
   ShaderElement::invalidate_cached_state_block();
   if (cull == DrawSolidMeshCull::FLIP)
     shaders::overrides::reset();
@@ -350,6 +367,57 @@ void draw_debug_solid_cone(const Point3 pos, Point3 norm, float radius, float he
   vertices[vertexCount - 2] = pos;
 
   draw_debug_solid_mesh(indices.data(), indexCount / 3, &vertices[0].x, sizeof(Point3), vertexCount, TMatrix::IDENT, color);
+}
+
+void draw_debug_solid_collision_node(int node_id, const CollisionResource &collres, const TMatrix &additional_tm, const Color4 &color,
+  bool shaded, DrawSolidMeshCull cull, const GeomNodeTree *geom_node_tree)
+{
+  const CollisionNode *node = collres.getNode(node_id);
+  if (!node)
+    return;
+
+  switch (node->type)
+  {
+    case COLLISION_NODE_TYPE_MESH:
+    case COLLISION_NODE_TYPE_CONVEX:
+    {
+      const int nodeId = node->nodeIndex;
+      const int faceCount = collres.getNodeFaceCount(nodeId);
+      const int vertCount = collres.getNodeVertCount(nodeId);
+      if (faceCount > 0 && vertCount > 0)
+      {
+        TMatrix node_tm;
+        collres.getCollisionNodeTm(node, additional_tm, geom_node_tree, node_tm);
+        SmallTab<uint16_t, TmpmemAlloc> tmpIdx;
+        tmpIdx.resize(faceCount * 3);
+        collres.iterateNodeFaces(nodeId, [&](int fi, uint16_t i0, uint16_t i1, uint16_t i2) {
+          tmpIdx[fi * 3 + 0] = i0;
+          tmpIdx[fi * 3 + 1] = i1;
+          tmpIdx[fi * 3 + 2] = i2;
+        });
+        SmallTab<Point3_vec4, TmpmemAlloc> tmpVerts;
+        tmpVerts.resize(vertCount);
+        collres.iterateNodeVerts(nodeId, [&](int vi, vec4f v) { v_st(&tmpVerts[vi].x, v); });
+        draw_debug_solid_mesh(tmpIdx.data(), faceCount, &tmpVerts[0].x, elem_size(tmpVerts), vertCount, node_tm, color, shaded, cull);
+      }
+      break;
+    }
+    case COLLISION_NODE_TYPE_BOX: draw_debug_solid_cube(collres.getNodeBBox(node->nodeIndex), additional_tm, color, shaded); break;
+    case COLLISION_NODE_TYPE_SPHERE:
+    {
+      BSphere3 bsph = collres.getNodeBSphere(node->nodeIndex);
+      draw_debug_solid_sphere(bsph.c, bsph.r, additional_tm, color, shaded);
+      break;
+    }
+    case COLLISION_NODE_TYPE_CAPSULE:
+    {
+      Capsule cap;
+      if (collres.getNodeCapsule(node->nodeIndex, cap))
+        draw_debug_solid_capsule(cap, additional_tm, color, shaded);
+      break;
+    }
+    default: break;
+  }
 }
 
 static void debug_solid_after_reset_device(bool) { close_debug_solid(); }

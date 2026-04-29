@@ -25,7 +25,7 @@ shader random_point_occlusion_ambient_voxels_cs
   (cs) {
     world_view_pos@f3 = world_view_pos;
     ssgi_current_frame@f1 = (ssgi_current_frame);
-    ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+    ssgi_ambient_volmap_temporal@tex3d = ssgi_ambient_volmap_temporal;
     frustum_visible_ambient_voxels@buf = frustum_visible_ambient_voxels hlsl{
       StructuredBuffer<uint> frustum_visible_ambient_voxels@buf;
     }
@@ -45,7 +45,6 @@ shader random_point_occlusion_ambient_voxels_cs
   }
   //INIT_READ_DEPTH_GBUFFER()
   //USE_READ_DEPTH_GBUFFER_BASE(cs)
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
     void add_pos(uint voxel, uint to)
@@ -130,7 +129,6 @@ int ssgi_change_probability_cs_voxelsWeightHistogram_uav_no = 2;
 shader ssgi_change_probability_cs
 {
   SSGI_USE_VOLMAP_GI_COORD(cs)
-  ENABLE_ASSERT(cs)
 
   (cs) {
     prev_probability@buf : register(ssgi_change_probability_cs_prev_probability_const_no) hlsl {
@@ -237,7 +235,6 @@ shader temporal_ambient_voxels_cs
   //INIT_READ_DEPTH_GBUFFER()
   //USE_READ_DEPTH_GBUFFER_BASE(cs)
   CALC_CLOSEST_PLANES()
-  ENABLE_ASSERT(cs)
   hlsl(cs) {
     void add_pos(uint at, VisibleAmbientVoxelPoint pt)
     {

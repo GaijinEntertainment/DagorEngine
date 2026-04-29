@@ -14,7 +14,7 @@ function mkhttpButton(text, request){
   return @() {
     rendObj = ROBJ_SOLID
     color = Color(0,25,205)
-    size = static [200,50]
+    size = const [200,50]
     behavior = Behaviors.Button
     valign = ALIGN_CENTER
     halign = ALIGN_CENTER
@@ -28,6 +28,7 @@ function mkhttpButton(text, request){
   }
 }
 function callback(response){
+  vlog("response", response)
   vlog($"status = {response?.status}")
   vlog($"http_code = {response?.http_code} ({statusText?[response?.http_code]})")
   vlog($"body = {response?.body?.as_string?()}")
@@ -37,13 +38,6 @@ function callback(response){
 let sampleGetButton = mkhttpButton("GET",{
   method = "GET"
   url = "https://gaijin.net/"
-  callback
-})
-
-let fatalPostButton = mkhttpButton("FATAL POST",{
-  method = "POST"
-  url = "http://localhost/api/add_results/1122"
-  headers = {a=1,b=2}
   callback
 })
 
@@ -96,7 +90,6 @@ function Root() {
         gap = hdpx(10)
         children = [
           sampleGetButton
-          fatalPostButton
           sampleFormPostButton
           sampleJsonStrPostButton
           sampleJsonObjPostButton

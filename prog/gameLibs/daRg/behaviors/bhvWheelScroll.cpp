@@ -21,18 +21,20 @@ BhvWheelScroll bhv_wheel_scroll;
 BhvWheelScroll::BhvWheelScroll() : Behavior(0, F_HANDLE_MOUSE | F_ALLOW_AUTO_SCROLL) {}
 
 
-int BhvWheelScroll::mouseEvent(ElementTree * /*etree*/, Element *elem, InputDevice /*device*/, InputEvent event, int /*pointer_id*/,
-  int data, short mx, short my, int /*buttons*/, int accum_res)
+int BhvWheelScroll::pointingEvent(ElementTree * /*etree*/, Element *elem, InputDevice /*device*/, InputEvent event, int /*pointer_id*/,
+  int data, Point2 pos, int accum_res)
 {
   int result = 0;
 
-  if (event == INP_EV_MOUSE_WHEEL && !(accum_res & R_PROCESSED) && elem->hitTest(mx, my))
+  if (
+    event == INP_EV_MOUSE_WHEEL && !(accum_res & R_PROCESSED) && (elem->hitTest(pos) || elem->props.getBool(elem->csk->globalScroll)))
   {
     const float wheelStep = elem->props.scriptDesc.RawGetSlotValue("wheelStep", 0.2f);
+    const float delta = truncf(data * wheelStep);
     if (elem->props.scriptDesc.RawGetSlotValue(elem->csk->orientation, O_VERTICAL) == O_VERTICAL)
-      elem->scroll(Point2(0, -data * wheelStep));
+      elem->scroll(Point2(0, -delta));
     else
-      elem->scroll(Point2(-data * wheelStep, 0));
+      elem->scroll(Point2(-delta, 0));
 
     Sqrat::Table &scriptDesc = elem->props.scriptDesc;
     Sqrat::Function onWheelScroll(scriptDesc.GetVM(), scriptDesc, scriptDesc.RawGetSlot(elem->csk->onWheelScroll));
@@ -42,7 +44,7 @@ int BhvWheelScroll::mouseEvent(ElementTree * /*etree*/, Element *elem, InputDevi
       G_VERIFY(get_closure_info(onWheelScroll, &nparams, &nfreevars));
 
       if (nparams == 2)
-        onWheelScroll(data * wheelStep);
+        onWheelScroll(delta);
       else
         darg_assert_trace_var("onWheelScroll must have 1 param", scriptDesc, elem->csk->onWheelScroll);
     }

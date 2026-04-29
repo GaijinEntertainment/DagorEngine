@@ -5,7 +5,6 @@ interval show_shadows: static_shadows<1, csm_shadows<2, csm_cascades<3, contact_
 
 shader debug_shadows
 {
-  ENABLE_ASSERT(ps)
   assume depth_bounds_support = no;
   cull_mode = none;
   z_write = false;
@@ -15,6 +14,7 @@ shader debug_shadows
   USE_EMISSION_DECODE_COLOR_MAP(ps)
   INIT_COMBINE_SHADOWS()
   USE_COMBINE_SHADOWS()
+  INIT_PACK_UNPACK_DYNSTCODE(ps)
   INIT_READ_IS_HERO_COCKPIT(ps)
   USE_READ_IS_HERO_COCKPIT(ps)
   USE_SSSS_TRANSMITTANCE_DECODE(ps)

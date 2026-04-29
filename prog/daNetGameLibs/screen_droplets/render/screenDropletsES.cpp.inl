@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <render/screenDroplets.h>
 #include <render/resolution.h>
@@ -15,15 +17,9 @@
 #include <gamePhys/collision/collisionLib.h>
 #include <render/rendererFeatures.h>
 #include "screenDroplets.h"
-#include "render/renderLibsAllowed.h"
 #include <render/world/wrDispatcher.h>
 
 static const Point3 RAIN_DIR = Point3(0, -1, 0);
-
-static bool is_supported()
-{
-  return is_render_lib_allowed("screen_droplets") && renderer_has_feature(FeatureRenderFlags::POSTFX) && WRDispatcher::isReadyToUse();
-}
 
 ECS_TRACK(isInVehicle, bindedCamera)
 ECS_REQUIRE(ecs::EntityId bindedCamera)
@@ -77,30 +73,45 @@ static void screen_droplets_settings_es_event_handler(const ecs::Event &,
   }
 }
 
+ECS_TAG(render)
+ECS_ON_EVENT(SetResolutionEvent, ScreenDropletsReset)
+void screen_droplets_resolution_es(const ecs::Event &evt)
+{
+  if (!WRDispatcher::isReadyToUse())
+    return;
+
+  IPoint2 current_resolution = ::get_rendering_resolution();
+  IPoint2 max_resolution = ::get_max_possible_rendering_resolution();
+
+  if (const SetResolutionEvent *resEvt = evt.cast<SetResolutionEvent>();
+      resEvt && resEvt->type == SetResolutionEvent::Type::DYNAMIC_RESOLUTION)
+    dafg::set_dynamic_resolution("droplets", ScreenDroplets::getSuggestedResolution(current_resolution, max_resolution));
+  else
+    dafg::set_resolution("droplets", ScreenDroplets::getSuggestedResolution(max_resolution, max_resolution));
+}
+
 template <typename Callable>
-static void is_in_vehicle_on_screen_droplets_reset_ecs_query(Callable c);
+static void is_in_vehicle_on_screen_droplets_reset_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
-ECS_ON_EVENT(OnRenderSettingsReady, SetResolutionEvent, ChangeRenderFeatures)
+ECS_ON_EVENT(OnRenderSettingsReady, ChangeRenderFeatures)
 ECS_TRACK(render_settings__screenSpaceWeatherEffects, render_settings__bare_minimum)
 static void reset_screen_droplets_es(
-  const ecs::Event &, bool render_settings__screenSpaceWeatherEffects, bool render_settings__bare_minimum)
+  const ecs::Event &, ecs::EntityManager &manager, bool render_settings__screenSpaceWeatherEffects, bool render_settings__bare_minimum)
 {
   close_screen_droplets_mgr();
-  if (render_settings__screenSpaceWeatherEffects && !render_settings__bare_minimum && is_supported())
+  if (render_settings__screenSpaceWeatherEffects && !render_settings__bare_minimum &&
+      renderer_has_feature(FeatureRenderFlags::POSTFX) && WRDispatcher::isReadyToUse())
   {
-    int w, h;
-    get_rendering_resolution(w, h);
-    IPoint2 resolution = ScreenDroplets::getSuggestedResolution(w, h);
-    init_screen_droplets_mgr(resolution.x, resolution.y, true, 0.5f, -0.25f);
+    init_screen_droplets_mgr(true, 0.5f, -0.25f);
     get_screen_droplets_mgr()->setEnabled(true);
 
     bool cameraInsideVehicle = false;
-    is_in_vehicle_on_screen_droplets_reset_ecs_query(
+    is_in_vehicle_on_screen_droplets_reset_ecs_query(manager,
       [&cameraInsideVehicle](ECS_REQUIRE(ecs::EntityId bindedCamera) bool isInVehicle) { cameraInsideVehicle = isInVehicle; });
     get_screen_droplets_mgr()->setInVehicle(cameraInsideVehicle);
   }
-  g_entity_mgr->broadcastEventImmediate(ScreenDropletsReset{});
+  manager.broadcastEventImmediate(ScreenDropletsReset{});
 }
 
 ECS_TAG(render)

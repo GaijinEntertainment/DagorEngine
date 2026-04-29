@@ -63,7 +63,7 @@ UseProgLibs =
   gameLibs/render/nodeBasedShader/stub
   gameLibs/gamePhys/collision/rendinst/stub
   gameLibs/ecs/rendInst/stub
-  gameLibs/daECS/gameResStub
+  engine/daECS/gameResStub
 
   tools/libTools/shaderResBuilder
   tools/sceneTools/pointCloudGen/generator

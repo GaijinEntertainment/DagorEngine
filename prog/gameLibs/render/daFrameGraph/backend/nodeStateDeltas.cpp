@@ -8,6 +8,7 @@
 #include <util/dag_globDef.h>
 #include <drv/3d/dag_renderPass.h>
 #include <generic/dag_enumerate.h>
+#include <generic/dag_pairwiseView.h>
 #include <memory/dag_framemem.h>
 
 
@@ -16,14 +17,6 @@ namespace dafg
 
 namespace intermediate
 {
-
-// NOTE: clears must be ignored when diffing RenderPasses
-static bool operator==(const RenderPass &first, const RenderPass &second)
-{
-  return first.depthAttachment == second.depthAttachment && first.depthReadOnly == second.depthReadOnly &&
-         first.isLegacyPass == second.isLegacyPass && first.vrsRateAttachment == second.vrsRateAttachment &&
-         first.colorAttachments == second.colorAttachments && first.resolves == second.resolves;
-}
 
 static bool operator<(const Binding &first, const Binding &second)
 {
@@ -49,6 +42,92 @@ namespace sd
 
 DeltaCalculator::DeltaCalculator(const intermediate::Graph &_graph) : graph(_graph) {}
 
+void DeltaCalculator::invalidateCachesForAutoResType(AutoResTypeNameId id)
+{
+  if (!rpCacheKeysByAutoResType.isMapped(id))
+    return;
+  auto &keys = rpCacheKeysByAutoResType[id];
+  for (const auto &key : keys)
+    rpCache.erase(key);
+  keys.clear();
+}
+
+IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> DeltaCalculator::precomputeResourceState(
+  const BarrierScheduler::EventsCollection &events,
+  const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed)
+{
+  using ResourceIndex = intermediate::ResourceIndex;
+  const auto totalResources = graph.resources.totalKeys();
+
+  // Allocate the output first so it's at the BOTTOM of the framemem stack. The prev*
+  // snapshots below must be freed (at function exit) while the output is still alive
+  // and returned to the caller -- which only works LIFO if prev* sit ABOVE the output.
+  IdIndexedFlags<ResourceIndex, framemem_allocator> dirtyResources(resources_changed);
+
+  // Snapshot the previous values before we overwrite the class members. New slots
+  // (resources that didn't exist on the previous compile) get default "unseen" values
+  // so they compare unequal against any actual activation / access below and get
+  // flagged dirty automatically. Scoped so they're freed before the function returns.
+
+  IdIndexedMapping<ResourceIndex, uint16_t, framemem_allocator> prevFirstActivationPosition(firstActivationPosition.begin(),
+    firstActivationPosition.end());
+  if (prevFirstActivationPosition.size() < totalResources)
+    prevFirstActivationPosition.resize(totalResources, UINT16_MAX);
+  IdIndexedMapping<ResourceIndex, uint16_t, framemem_allocator> prevFirstAccessPosition(firstAccessPosition.begin(),
+    firstAccessPosition.end());
+  if (prevFirstAccessPosition.size() < totalResources)
+    prevFirstAccessPosition.resize(totalResources, UINT16_MAX);
+  IdIndexedFlags<ResourceIndex, framemem_allocator> prevBaseInitialized(baseInitialized);
+  if (prevBaseInitialized.size() < totalResources)
+    prevBaseInitialized.resize(totalResources, false);
+
+  firstActivationPosition.assign(totalResources, UINT16_MAX);
+  firstAccessPosition.assign(totalResources, UINT16_MAX);
+  baseInitialized.assign(totalResources, false);
+
+  for (auto idx : graph.resources.keys())
+  {
+    const auto &res = graph.resources[idx];
+    if (res.isExternal() || res.isDriverDeferredTexture())
+      baseInitialized[idx] = true;
+    if (res.isScheduled() && res.asScheduled().isGpuResource() && res.asScheduled().clearStage == intermediate::ClearStage::Activation)
+      baseInitialized[idx] = true;
+  }
+
+  uint16_t pos = 0;
+  for (auto [nodeIdx, nodeState] : graph.nodeStates.enumerate())
+  {
+    for (int frame = 0; frame < BarrierScheduler::SCHEDULE_FRAME_WINDOW; ++frame)
+      for (const auto &ev : events[frame][nodeIdx])
+        if (eastl::holds_alternative<BarrierScheduler::Event::Activation>(ev.data))
+          firstActivationPosition[ev.resource] = eastl::min(firstActivationPosition[ev.resource], pos);
+
+    if (nodeState.pass.has_value() && !nodeState.pass->isLegacyPass)
+    {
+      for (const auto &maybeAtt : nodeState.pass->colorAttachments)
+        if (maybeAtt)
+          firstAccessPosition[maybeAtt->resource] = eastl::min(firstAccessPosition[maybeAtt->resource], pos);
+      if (nodeState.pass->depthAttachment)
+        firstAccessPosition[nodeState.pass->depthAttachment->resource] =
+          eastl::min(firstAccessPosition[nodeState.pass->depthAttachment->resource], pos);
+      if (nodeState.pass->vrsRateAttachment)
+        firstAccessPosition[nodeState.pass->vrsRateAttachment->resource] =
+          eastl::min(firstAccessPosition[nodeState.pass->vrsRateAttachment->resource], pos);
+    }
+
+    ++pos;
+  }
+
+  // Merge internal state changes into the output.
+  for (auto resIdx : graph.resources.keys())
+    if (firstActivationPosition[resIdx] != prevFirstActivationPosition[resIdx] ||
+        firstAccessPosition[resIdx] != prevFirstAccessPosition[resIdx] || baseInitialized[resIdx] != prevBaseInitialized[resIdx])
+      dirtyResources[resIdx] = true;
+
+
+  return dirtyResources;
+}
+
 shaders::UniqueOverrideStateId DeltaCalculator::delta(const eastl::optional<shaders::OverrideState> &current,
   const eastl::optional<shaders::OverrideState> &) const
 {
@@ -56,7 +135,7 @@ shaders::UniqueOverrideStateId DeltaCalculator::delta(const eastl::optional<shad
 }
 
 RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::RenderPass> &current,
-  const eastl::optional<intermediate::RenderPass> &previous)
+  const eastl::optional<intermediate::RenderPass> &previous, uint16_t schedule_position)
 {
   PassChange result;
 
@@ -81,17 +160,31 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
       // +1 here is for the depth/stencil attachment
       const auto approxTotalAttachments = current->colorAttachments.size() + current->resolves.size() + 1;
 
-      RPsDescKey rpDescKey;
+      RPsDescKey rpDescKey{};
+
       dag::RelocatableFixedVector<RenderPassTargetDesc, 8> &targets = rpDescKey.targets;
       targets.reserve(approxTotalAttachments);
       dag::RelocatableFixedVector<RenderPassBind, 16> &binds = rpDescKey.binds;
       binds.reserve(approxTotalAttachments);
 
-      const auto processAttachment = [&targets, &binds, &start, &current, this](int32_t slot, RenderPassTargetAction main_action,
+      dag::VectorSet<intermediate::ResourceIndex, eastl::less<intermediate::ResourceIndex>, framemem_allocator> localAccessedThisNode;
+      localAccessedThisNode.reserve(approxTotalAttachments);
+
+      dag::VectorSet<AutoResTypeNameId, eastl::less<AutoResTypeNameId>, framemem_allocator> usedAutoResTypes;
+      usedAutoResTypes.reserve(approxTotalAttachments);
+
+      const auto collectAutoResType = [&usedAutoResTypes](const intermediate::Resource &r) {
+        if (r.isScheduled() && r.asScheduled().resolutionType.has_value())
+          usedAutoResTypes.insert(r.asScheduled().resolutionType->id);
+      };
+
+      const auto processAttachment = [&targets, &binds, &start, &current, &localAccessedThisNode, &collectAutoResType,
+                                       schedule_position, this](int32_t slot, RenderPassTargetAction main_action,
                                        RenderPassTargetAction final_action, const intermediate::SubresourceRef &subres) {
-        const bool cleared = resourceAccessed[subres.resource];
+        const bool cleared = firstAccessPosition[subres.resource] < schedule_position || localAccessedThisNode.count(subres.resource);
         const auto &res = graph.resources[subres.resource];
-        resourceAccessed[subres.resource] = true;
+        localAccessedThisNode.insert(subres.resource);
+        collectAutoResType(res);
         eastl::variant<ResourceClearValue, dafg::intermediate::DynamicParameter> clearValue = {ResourceClearValue{}};
         bool shouldClear = false;
         if (!cleared)
@@ -106,10 +199,41 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
         {
           const auto attIdx = static_cast<int32_t>(targets.size());
 
-          const bool initialized = resourceInitialized[subres.resource];
+          const bool initialized =
+            baseInitialized.test(subres.resource, false) || firstActivationPosition[subres.resource] < schedule_position;
+
+          auto targetClearAction = RP_TA_LOAD_CLEAR;
+
+          if (shouldClear)
+          {
+            if (slot == RenderPassExtraIndexes::RP_SLOT_DEPTH_STENCIL)
+            {
+              const auto scheduledResClearFlags = res.asScheduled().clearFlags;
+
+              bool clearDepth = (scheduledResClearFlags & ResourceClearFlags::RESOURCE_CLEAR_DEPTH);
+              bool clearStencil = (scheduledResClearFlags & ResourceClearFlags::RESOURCE_CLEAR_STENCIL);
+
+              G_ASSERT_LOG(clearDepth || clearStencil,
+                "invalid resource clear flags: clear stage is RenderPass, but DEPTH and STENCIL flags are both not set");
+
+              if (!clearDepth || !clearStencil)
+              {
+                if (clearDepth)
+                {
+                  targetClearAction = RP_TA_LOAD_STENCIL_READ | RP_TA_LOAD_CLEAR;
+                }
+                else
+                {
+                  // stencil only clear
+                  targetClearAction = RP_TA_LOAD_READ | RP_TA_LOAD_STENCIL_CLEAR;
+                }
+              }
+            }
+          }
+
 
           const auto totalMainAction =
-            main_action | (shouldClear ? RP_TA_LOAD_CLEAR : (initialized ? RP_TA_LOAD_READ : RP_TA_LOAD_NO_CARE));
+            main_action | (shouldClear ? targetClearAction : (initialized ? RP_TA_LOAD_READ : RP_TA_LOAD_NO_CARE));
 
           binds.push_back(RenderPassBind{attIdx, 0, slot, totalMainAction, {}});
 
@@ -135,6 +259,7 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
           }
 
           const auto &resolveTgt = graph.resources[resolveTgtResIdx];
+          collectAutoResType(resolveTgt);
           {
             const auto texcf = resolveTgt.isScheduled() ? resolveTgt.asScheduled().getGpuDescription().asBasicTexRes.cFlags
                                                         : eastl::get<TextureInfo>(resolveTgt.asExternal().info).cflg;
@@ -164,6 +289,14 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
         processAttachment(DS, mainDepthAction, finalDepthAction, *maybeAtt);
       }
 
+      start.useVrs = false;
+      if (auto maybeAtt = current->vrsRateAttachment)
+      {
+        constexpr auto VRSslot = RenderPassExtraIndexes::RP_SLOT_VRS_TEXTURE;
+        processAttachment(VRSslot, RP_TA_SUBPASS_VRS_READ, RP_TA_STORE_NONE, *maybeAtt);
+        start.useVrs = true;
+      }
+
       {
         d3d::RenderPass *newRP = nullptr;
 
@@ -173,6 +306,8 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
           newRP = d3d::create_render_pass(
             {nodeName, rpDescKey.targets.size(), rpDescKey.binds.size(), rpDescKey.targets.data(), rpDescKey.binds.data(), 0});
           rpCache.emplace(rpDescKey, eastl::unique_ptr<d3d::RenderPass, RpDestroyer>(newRP));
+          for (auto typeId : usedAutoResTypes)
+            rpCacheKeysByAutoResType.get(typeId).insert(rpDescKey);
         }
         else
         {
@@ -180,12 +315,6 @@ RenderPassDelta DeltaCalculator::delta(const eastl::optional<intermediate::Rende
         }
 
         start.rp = newRP;
-      }
-
-      // TODO: when NRPs support VRS, use that instead of this hackaround
-      if (auto maybeAtt = current->vrsRateAttachment)
-      {
-        start.vrsRateAttachment = Attachment{maybeAtt->resource, maybeAtt->mipLevel, maybeAtt->layer, {}};
       }
     }
   }
@@ -219,7 +348,7 @@ sd::BindingsMap DeltaCalculator::delta(const intermediate::BindingsMap &old_bind
   // Unbind stuff
   for (auto &[k, v] : oldWithoutNew)
     if (result.find(k) == result.end())
-      result[k] = {v.type, eastl::nullopt, false, v.projectedTag};
+      result[k] = {v.type, eastl::nullopt, false, v.reset, v.projectedTag};
 
   // Transfer to regular heap memory
   return {result.begin(), result.end()};
@@ -262,7 +391,7 @@ eastl::optional<intermediate::IndexSource> DeltaCalculator::delta(const eastl::o
 }
 
 NodeStateDelta DeltaCalculator::getStateDelta(const intermediate::RequiredNodeState &first,
-  const intermediate::RequiredNodeState &second, bool force_pass_break)
+  const intermediate::RequiredNodeState &second, bool force_pass_break, uint16_t schedule_position)
 {
   NodeStateDelta result;
 
@@ -280,7 +409,7 @@ NodeStateDelta DeltaCalculator::getStateDelta(const intermediate::RequiredNodeSt
 #undef DELTA
 
   if (force_pass_break || first.pass != second.pass)
-    result.pass.emplace(delta(second.pass, first.pass));
+    result.pass.emplace(delta(second.pass, first.pass, schedule_position));
 
   result.bindings = delta(first.bindings, second.bindings);
   result.shaderBlockLayers = delta(first.shaderBlockLayers, second.shaderBlockLayers);
@@ -291,56 +420,119 @@ NodeStateDelta DeltaCalculator::getStateDelta(const intermediate::RequiredNodeSt
   return result;
 }
 
-NodeStateDeltas DeltaCalculator::calculatePerNodeStateDeltas(const BarrierScheduler::EventsCollectionRef &events)
+IdIndexedFlags<intermediate::NodeIndex> DeltaCalculator::computeDirtyDeltas(const NodeStateDeltas &result,
+  const BarrierScheduler::EventsCollection &events, const IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> &nodes_changed,
+  const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &dirty_resources)
 {
-  NodeStateDeltas result;
-  result.reserve(graph.nodeStates.size() + 1);
+  FRAMEMEM_VALIDATE;
 
+  using NodeIndex = intermediate::NodeIndex;
+
+  IdIndexedFlags<NodeIndex> dirtyDeltas(eastl::max(graph.nodeStates.totalKeys(), result.totalKeys()), false);
+
+  const auto needsPassBreak = [&](NodeIndex node_idx) {
+    if (node_idx == graph.nodeStates.frontKey())
+      return true;
+    for (int frame = 0; frame < BarrierScheduler::SCHEDULE_FRAME_WINDOW; ++frame)
+      for (const auto &ev : events[frame][node_idx])
+        if (eastl::holds_alternative<BarrierScheduler::Event::Barrier>(ev.data))
+          return true;
+    return false;
+  };
+
+  // First run: everything dirty
+  if (result.empty())
+  {
+    dirtyDeltas.assign(graph.nodeStates.totalKeys(), true);
+
+    cachedForcePassBreak.resize(graph.nodeStates.totalKeys(), false);
+    for (auto nodeIdx : graph.nodeStates.keys())
+      cachedForcePassBreak[nodeIdx] = needsPassBreak(nodeIdx);
+
+    return dirtyDeltas;
+  }
+
+  for (auto [cur, next] : dag::PairwiseView(result.keys()))
+    if (!graph.nodeStates.isMapped(cur))
+      dirtyDeltas[cur] = dirtyDeltas[next] = true;
+
+  const auto requestedResChanged = [&](intermediate::NodeIndex cur) {
+    for (const auto &req : graph.nodes[cur].resourceRequests)
+      if (dirty_resources[req.resource])
+        return true;
+    return false;
+  };
+
+  for (auto [cur, next] : dag::PairwiseView(graph.nodeStates.keys()))
+    if (nodes_changed[cur] || requestedResChanged(cur))
+      dirtyDeltas[cur] = dirtyDeltas[next] = true;
+
+  cachedForcePassBreak.resize(graph.nodeStates.totalKeys(), false);
+  for (auto nodeIdx : graph.nodeStates.keys())
+  {
+    const bool fpb = needsPassBreak(nodeIdx);
+    if (cachedForcePassBreak[nodeIdx] != fpb)
+      dirtyDeltas[nodeIdx] = true;
+    cachedForcePassBreak[nodeIdx] = fpb;
+  }
+
+  return dirtyDeltas;
+}
+
+void DeltaCalculator::calculatePerNodeStateDeltas(NodeStateDeltas &result, const BarrierScheduler::EventsCollection &events,
+  const IdIndexedFlags<intermediate::NodeIndex, framemem_allocator> &nodes_changed,
+  const IdIndexedFlags<intermediate::ResourceIndex, framemem_allocator> &resources_changed)
+{
   if (graph.nodeStates.empty())
   {
-    result.appendNew();
-    return result;
+    result.clear();
+    result.emplaceAt(intermediate::NodeIndex{0});
+    return;
   }
 
-  resourceInitialized = {graph.resources.size(), false};
-  resourceAccessed = {graph.resources.size(), false};
+  auto dirtyResources = precomputeResourceState(events, resources_changed);
+  auto dirtyDeltas = computeDirtyDeltas(result, events, nodes_changed, dirtyResources);
 
-  // TODO: check whether the external and driver deferred resources were actually activated or not instead of assuming they are.
-  for (uint32_t i = 0; i < graph.resources.size(); i++)
+  // Erase entries for removed nodes and dirty deltas (will be recomputed below).
   {
-    intermediate::ResourceIndex idx = intermediate::ResourceIndex(i);
-
-    const auto &res = graph.resources[idx];
-    if (res.isExternal() || res.isDriverDeferredTexture())
-      resourceInitialized[idx] = true;
-  }
-
-  nodeName = graph.nodeNames.front().c_str();
-  result.appendNew(getStateDelta({}, graph.nodeStates.front(), true));
-  for (uint32_t i = 1; i < graph.nodeStates.size(); ++i)
-  {
-    bool forcePassBreak = false;
-    for (int frame = 0; frame < BarrierScheduler::SCHEDULE_FRAME_WINDOW; ++frame)
+    auto enumView = result.enumerate();
+    for (auto it = enumView.begin(); it != enumView.end();)
     {
-      for (const auto &ev : events[frame][i])
-        if (eastl::holds_alternative<BarrierScheduler::Event::Barrier>(ev.data))
-          forcePassBreak = true;
-
-      // here we check for the earliest occurence of a resource being initialized by checking
-      // if the previous node has activated it
-      for (const auto &ev : events[frame][i - 1])
-        if (eastl::holds_alternative<BarrierScheduler::Event::Activation>(ev.data))
-          resourceInitialized[ev.resource] = true;
+      auto [key, _] = *it;
+      if (!graph.nodeStates.isMapped(key) || dirtyDeltas[key])
+        it = result.erase(key);
+      else
+        ++it;
     }
-
-    const auto &prevState = graph.nodeStates[static_cast<intermediate::NodeIndex>(i - 1)];
-    const auto &currState = graph.nodeStates[static_cast<intermediate::NodeIndex>(i)];
-    nodeName = graph.nodeNames[static_cast<intermediate::NodeIndex>(i)].c_str();
-    result.appendNew(getStateDelta(prevState, currState, forcePassBreak));
   }
-  result.appendNew(getStateDelta(graph.nodeStates.back(), {}, true));
 
-  return result;
+  // First node: no predecessor in the schedule, so its delta transitions from {} to
+  // its own state. In practice the first node is the IR graph's source sentinel with
+  // empty state, making this a no-op -- but computing it explicitly keeps the code
+  // correct for any ordering.
+  const auto firstNodeIdx = graph.nodeStates.frontKey();
+  if (dirtyDeltas[firstNodeIdx])
+  {
+    nodeName = graph.nodeNames[firstNodeIdx].c_str();
+    result.emplaceAt(firstNodeIdx, getStateDelta({}, graph.nodeStates[firstNodeIdx], true, 0));
+  }
+
+  // Remaining nodes: each delta compares against its schedule predecessor. The final
+  // pair is (last_real_node, destination_sentinel); since the dst sentinel's state is
+  // empty, that delta naturally encodes the end-of-frame state reset -- no separate
+  // cleanup slot is needed.
+  uint16_t schedulePos = 1;
+  for (auto [prev, cur] : dag::PairwiseView(graph.nodeStates.enumerate()))
+  {
+    const auto curIdx = eastl::get<0>(cur);
+    if (dirtyDeltas[curIdx])
+    {
+      nodeName = graph.nodeNames[curIdx].c_str();
+      const bool fpb = cachedForcePassBreak[curIdx];
+      result.emplaceAt(curIdx, getStateDelta(eastl::get<1>(prev), eastl::get<1>(cur), fpb, schedulePos));
+    }
+    ++schedulePos;
+  }
 }
 
 } // namespace sd

@@ -9,6 +9,9 @@ struct EcRect;
 /// Capture mouse cursor and hold it inside main Editor window.
 void capture_cursor(void *handle);
 
+// Returns a handle to the window that has capture
+void *get_capture();
+
 /// Release mouse cursor captured by capture_cursor().
 void release_cursor();
 

@@ -12,6 +12,9 @@
 
 #include <EASTL/unique_ptr.h>
 
+#include <rendInst/constants.h>
+#include <rendInst/renderPass.h>
+
 
 struct RiGenVisibility;
 
@@ -22,14 +25,18 @@ struct RenderRiExtraJob final : public cpujobs::IJob
   GlobalVariableStates gvars;
   TexStreamingContext texContext = TexStreamingContext(0);
   int vbExtraCtxId = 0;
+  rendinst::RenderPass renderPass = rendinst::RenderPass::Normal;
+  rendinst::RiExtraRenderingSubset renderingSubset = rendinst::RiExtraRenderingSubset::All;
 
-  RenderRiExtraJob(int vb_extra_ctx_id);
+  RenderRiExtraJob(int vb_extra_ctx_id, rendinst::RenderPass pass = rendinst::RenderPass::Normal);
 
   void prepare(RiGenVisibility &v, int frame_stblk, bool enable, TexStreamingContext texCtx);
+  void prepare(RiGenVisibility &v, int frame_stblk, int scene_stblk, bool enable, TexStreamingContext texCtx);
   void start(RiGenVisibility &v, bool wake);
-  const char *getJobName(bool &) const override { return "prepare_render_riex_opaque"; }
+  const char *getJobName(bool &) const override { return "RenderRiExtraJob"; }
   void doJob() override;
 
   void waitVbFill(const RiGenVisibility *v);
   rendinst::render::RiExtraRenderer *wait(const RiGenVisibility *v);
+  void resetRiExtraCtx();
 };

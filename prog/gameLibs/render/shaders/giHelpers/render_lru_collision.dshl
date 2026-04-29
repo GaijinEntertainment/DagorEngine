@@ -12,7 +12,6 @@ interval rasterize_collision_type : debug<1, gbuf<2, depth;
 
 shader render_lru_collision
 {
-  ENABLE_ASSERT(ps)
 //  supports none;
   supports global_frame;
   //cull_mode = none;

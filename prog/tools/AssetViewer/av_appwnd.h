@@ -7,9 +7,11 @@
 #include <propPanel/messageQueue.h>
 #include <propPanel/control/panelWindow.h>
 
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_genappwnd.h>
+#include <EditorCore/ec_modelessWindowControllerList.h>
 #include <EditorCore/ec_wndPublic.h>
 
 #include <libTools/dagFileRW/textureNameResolver.h>
@@ -17,6 +19,7 @@
 #include <assets/assetMgr.h>
 #include <assets/assetChangeNotify.h>
 #include <assetsGui/av_client.h>
+#include <assetsGui/av_tagManagement.h>
 
 #include <util/dag_string.h>
 #include <util/dag_simpleString.h>
@@ -29,7 +32,7 @@ enum
 };
 
 
-void init_all_editor_plugins();
+void init_all_editor_plugins(const DataBlock &appblk);
 
 class ImpostorGenerator;
 
@@ -37,6 +40,11 @@ namespace plod
 {
 class PointCloudGenerator;
 } // namespace plod
+
+namespace PropPanel
+{
+class ToolbarContainerPropertyControl;
+}
 
 struct ImpostorOptions;
 
@@ -55,9 +63,8 @@ class AssetViewerApp : public GenericEditorAppWindow,
                        public PropPanel::ControlEventHandler,
                        public IAssetBaseViewClient,
                        public IAssetSelectorContextMenuHandler,
-                       public IConsoleCmd,
                        public IWndManagerWindowHandler,
-                       public PropPanel::IDelayedCallbackHandler,
+                       public IEditorCommandKeyChordChangeEventHandler,
                        public IMainWindowImguiRenderingService
 {
 public:
@@ -85,7 +92,7 @@ public:
   // query/get interfaces
   void *queryEditorInterfacePtr(unsigned huid) override;
 
-  void screenshotRender(bool skip_debug_objects) override;
+  void screenshotRender(const Driver3dPerspective &persp, bool is_ortho, bool skip_debug_objects) override;
 
   // register/unregister plugins(every plugin should be registered once)
   bool registerPlugin(IGenEditorPlugin *plugin) override;
@@ -115,6 +122,8 @@ public:
   void deleteCustomPanel(PropPanel::ContainerPropertyControl *) override {}
   PropPanel::DialogWindow *createDialog(hdpi::Px w, hdpi::Px h, const char *title) override;
   void deleteDialog(PropPanel::DialogWindow *dlg) override;
+  eastl::unique_ptr<PropPanel::IMenu> createContextMenu() override;
+  bool renderContextMenu(PropPanel::IMenu &menu) override;
 
   // viewport methods
   void updateViewports() override;
@@ -138,6 +147,7 @@ public:
   float getMaxTraceDistance() const override { return 1500; }
 
   bool getSelectionBox(BBox3 &box) override;
+  bool getGlobalBox(BBox3 &box) override;
   void zoomAndCenter() override;
 
   String getScreenshotNameMask(bool cube) const override;
@@ -209,9 +219,8 @@ public:
   void *onWmCreateWindow(int type) override;
   bool onWmDestroyWindow(void *window) override;
 
-  // IConsoleCmd
-  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override;
-  const char *onConsoleCommandHelp(const char *cmd) override;
+  // IGridSettingChangeEventHandler
+  void onSnapSettingChanged() override;
 
   void drawAssetInformation(IGenViewportWnd *wnd);
   void afterUpToDateCheck(bool changed);
@@ -224,17 +233,22 @@ public:
   void refillTree();
   void selectAsset(const DagorAsset &asset);
 
+  AssetLightData &getAssetLightData() { return assetLtData; }
   CompositeEditor &getCompositeEditor() { return compositeEditor; }
   ImpostorGenerator *getImpostorGenerator() const { return impostorApp.get(); }
   plod::PointCloudGenerator *getPointcloudGenerator() const { return pointCloudGen.get(); }
   bool canRenderEnvi() const { return !skipRenderEnvi; }
   bool isCompositeEditorShown() const;
   void showCompositeEditor(bool show);
+  void showTagManager(bool show);
   void setShowMessageAt(int, int, const SimpleString &) override {}
   void showMessageAt() override {}
   bool dngBasedSceneRenderUsed() const { return useDngBasedSceneRender; }
   void setCurrentTexQualityLimit(TexQL ql);
   TexQL getCurrentTexQualityLimit() const { return curMaxTexQL; }
+
+  int getToolbarScalePercent() const { return toolbarScalePercent; }
+  void setToolbarScalePercent(int scale_percent);
 
 protected:
   bool handleNewProject(bool) override { return false; }
@@ -253,6 +267,7 @@ protected:
   void getDocTitleText(String &text) override;
   bool canCloseScene(const char *title) override;
 
+  void registerEditorCommands();
   void addAccelerators();
 
   int findPlugin(IGenEditorPlugin *p);
@@ -272,14 +287,18 @@ protected:
   void onAvSelectFolder(DagorAssetFolder *asset_folder, const char *asset_folder_name) override;
 
   // IAssetSelectorContextMenuHandler
-  bool onAssetSelectorContextMenu(PropPanel::TreeBaseWindow &tree_base_window, PropPanel::ITreeInterface &tree) override;
+  bool onAssetSelectorContextMenu(PropPanel::IMenu &menu, DagorAsset *asset, DagorAssetFolder *asset_folder) override;
 
   void onAssetSelectionChanged(DagorAsset *asset, DagorAssetFolder *asset_folder);
 
   // Menu
   int onMenuItemClick(unsigned id) override;
 
-  void makeDefaultLayout();
+  void makeDefaultLayout(bool for_initial_layout);
+  void saveLayout(const char *path);
+  bool loadLayout(const DataBlock &blk);
+  void loadLastUsedLayout();
+
   void fillTree();
   void saveTreeState();
   void loadGlobalSettings();
@@ -304,12 +323,14 @@ private:
   int allUpToDateFlags;
 
   MainAssetSelector *mTreeView;
+  AssetTagManager *mTagManager;
+
   DataBlock propPanelState;
   DataBlock propPanelStateOfTheAssetToInitiallySelect;
   PropPanel::PanelWindowPropertyControl *mPropPanel;
-  PropPanel::ContainerPropertyControl *mToolPanel;
-  PropPanel::ContainerPropertyControl *mPluginTool;
-  PropPanel::ContainerPropertyControl *themeSwitcherToolPanel = nullptr;
+  PropPanel::ToolbarContainerPropertyControl *mToolPanel;
+  PropPanel::ToolbarContainerPropertyControl *mPluginTool;
+  PropPanel::ToolbarContainerPropertyControl *themeSwitcherToolPanel = nullptr;
 
   eastl::unique_ptr<ImpostorGenerator> impostorApp;
   eastl::unique_ptr<plod::PointCloudGenerator> pointCloudGen;
@@ -340,10 +361,6 @@ private:
   void showPropWindow(bool is_show);
   void showAdditinalToolWindow(bool is_show);
 
-  bool runShadersListVars(dag::ConstSpan<const char *> params);
-  bool runShadersSetVar(dag::ConstSpan<const char *> params);
-  bool runShadersReload(dag::ConstSpan<const char *> params);
-
   void generate_impostors(const ImpostorOptions &options);
   void clear_impostors(const ImpostorOptions &options);
 
@@ -352,6 +369,11 @@ private:
   void createAssetsTree();
   void createToolbar();
   void createThemeSwitcherToolbar();
+
+  ModelessWindowControllerList getModelessWindowControllers();
+
+  // IEditorCommandKeyChordChangeEventHandler
+  void onEditorCommandKeyChordChanged() override;
 
   void renderUIViewport(ViewportWindow &viewport, const Point2 &size, float item_spacing, bool vr_mode);
   void renderUIViewports(bool vr_mode);
@@ -371,17 +393,20 @@ private:
     ShowWhenSelected,
   };
 
-  static const int LATEST_DOCK_SETTINGS_VERSION = 1; // Increasing this will reset the dock settings.
+  static const int LATEST_DOCK_SETTINGS_VERSION = 3; // Increasing this will reset the dock settings.
 
   Point2 viewportSplitRatio = Point2(0.5f, 0.5f);
   bool makingDefaultLayout = false;
+  bool lastUsedLayoutLoaded = false;
   bool dockPositionsInitialized = false;
   bool consoleCommandsAndVariableWindowsVisible = false;
   bool consoleWindowVisible = false;
   bool imguiDebugWindowsVisible = false;
+  bool dabuildWindowVisible = true;
   bool useDngBasedSceneRender = false;
   AssetBuildWarningDisplay assetBuildWarningDisplay = AssetBuildWarningDisplay::ShowWhenBuilding;
   String assetToInitiallySelect;
+  int toolbarScalePercent = 100;
 };
 
 

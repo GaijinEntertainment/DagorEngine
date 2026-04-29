@@ -3,30 +3,27 @@
 
 #include <EASTL/string_view.h>
 #include <ioSys/dag_dataBlock.h>
-#include <startup/dag_globalSettings.h>
 
 
 namespace drv3d_dx12::debug
 {
-union Configuration
+struct Configuration
 {
-  struct
-  {
-    bool enableGPUCapturers : 1;
-    bool loadPIXCapturer : 1;
-    bool enableAftermath : 1;
-    bool enableShaderErrorReporting : 1;
-    bool enableGPUDumps : 1;
-    bool enableDRED : 1;
-    bool ignoreDREDAvailability : 1;
-    bool trackPageFaults : 1;
-    bool enableDagorGPUTrace : 1;
-    bool enableCPUValidation : 1;
-    bool enableGPUValidation : 1;
-    bool enableNVRTValidation : 1;
-    bool enableAgsTrace : 1;
-    bool enableAgsProfile : 1;
-  };
+  bool enableGPUCapturers : 1 = false;
+  bool loadPIXCapturer : 1 = false;
+  bool enableAftermath : 1 = false;
+  bool enableShaderErrorReporting : 1 = false;
+  bool enableGPUDumps : 1 = false;
+  bool enableDRED : 1 = false;
+  bool ignoreDREDAvailability : 1 = false;
+  bool trackPageFaults : 1 = false;
+  bool enableDagorGPUTrace : 1 = false;
+  bool enableCPUValidation : 1 = false;
+  bool enableGPUValidation : 1 = false;
+  bool enableNVRTValidation : 1 = false;
+  bool enableAgsTrace : 1 = false;
+  bool enableAgsProfile : 1 = false;
+  bool loadRenderDoc : 1 = false;
 
   bool anyValidation() const { return enableGPUValidation || enableCPUValidation; }
 
@@ -43,77 +40,47 @@ union Configuration
 
   void applyReleaseDefaults()
   {
-    enableGPUCapturers = false;
-    loadPIXCapturer = false;
     enableAftermath = true;
-    enableAgsTrace = false;
-    enableAgsProfile = false;
-    enableDagorGPUTrace = false;
-    trackPageFaults = false;
-    enableShaderErrorReporting = false;
-    enableDRED = false;
-    ignoreDREDAvailability = false;
-    // no words on how not helpful the pvs message here is
-    enableGPUDumps = enableAftermath; // -V547
-    enableCPUValidation = false;
-    enableGPUValidation = false;
-    enableNVRTValidation = false;
+    enableGPUDumps = true;
   }
 
   void applyDevDefaults()
   {
     enableGPUCapturers = true;
-    loadPIXCapturer = false;
     enableAftermath = true;
-    enableAgsTrace = false;
-    enableAgsProfile = false;
-    enableDagorGPUTrace = true;
-    trackPageFaults = true;
-    enableShaderErrorReporting = false;
+    enableGPUDumps = true;
     enableDRED = true;
-    ignoreDREDAvailability = false;
-    // no words on how not helpful the pvs message here is
-    enableGPUDumps = enableAftermath; // -V547
-    enableCPUValidation = false;
-    enableGPUValidation = false;
-    enableNVRTValidation = false;
+    trackPageFaults = true;
+    enableDagorGPUTrace = true;
   }
 
   void applyDebugDefaults()
   {
     enableGPUCapturers = true;
-    loadPIXCapturer = false;
     enableAftermath = true;
-    enableAgsTrace = false;
-    enableAgsProfile = false;
-    enableDagorGPUTrace = true;
-    trackPageFaults = true;
     enableShaderErrorReporting = true;
+    enableGPUDumps = true;
     enableDRED = true;
     ignoreDREDAvailability = false;
-    // no words on how not helpful the pvs message here is
-    enableGPUDumps = enableAftermath; // -V547
+    trackPageFaults = true;
+    enableDagorGPUTrace = true;
     enableCPUValidation = true;
-    enableGPUValidation = false;
-    enableNVRTValidation = false;
   }
 
   void applyPIXProfile() { enableGPUCapturers = loadPIXCapturer = true; }
 
-  void applyRenderDocProfile() { enableGPUCapturers = loadPIXCapturer = false; }
+  void applyRenderDocProfile() { loadRenderDoc = true; }
 
   void applyGenericCaptureToolProfile() { enableGPUCapturers = loadPIXCapturer = true; }
 
   void applyShaderDebugProfile()
   {
     enableAftermath = true;
-    enableDagorGPUTrace = true;
-    trackPageFaults = true;
     enableShaderErrorReporting = true;
-    enableDRED = true;
-    ignoreDREDAvailability = false;
     enableGPUDumps = true;
-    enableCPUValidation = false;
+    enableDRED = true;
+    trackPageFaults = true;
+    enableDagorGPUTrace = true;
     enableGPUValidation = true;
     enableNVRTValidation = true;
   }
@@ -121,69 +88,39 @@ union Configuration
   void applyTraceProfile()
   {
     enableAftermath = true;
-    enableAgsTrace = true;
-    enableAgsProfile = false;
-    enableDagorGPUTrace = true;
-    trackPageFaults = true;
     enableShaderErrorReporting = true;
-    enableDRED = true;
-    ignoreDREDAvailability = false;
     enableGPUDumps = true;
-    enableCPUValidation = false;
-    enableGPUValidation = false;
-    enableNVRTValidation = false;
+    enableDRED = true;
+    trackPageFaults = true;
+    enableDagorGPUTrace = true;
+    enableAgsTrace = true;
   }
 
   void applyAftermathProfile()
   {
     enableAftermath = true;
-    enableAgsTrace = false;
-    enableAgsProfile = false;
-    enableDagorGPUTrace = false;
-    trackPageFaults = true;
     enableShaderErrorReporting = true;
-    enableDRED = false;
-    ignoreDREDAvailability = false;
     enableGPUDumps = true;
-    enableCPUValidation = false;
-    enableGPUValidation = false;
-    enableNVRTValidation = false;
+    trackPageFaults = true;
   }
 
   void applyDREDProfile()
   {
-    enableAftermath = false;
-    enableAgsTrace = false;
-    enableAgsProfile = false;
-    enableDagorGPUTrace = false;
-    trackPageFaults = true;
     enableDRED = true;
     ignoreDREDAvailability = true;
-    enableGPUDumps = false;
+    trackPageFaults = true;
   }
 
   void applyDagorTraceProfile()
   {
-    enableAftermath = false;
-    enableAgsTrace = false;
-    enableAgsProfile = false;
-    enableDagorGPUTrace = true;
     trackPageFaults = true;
-    enableDRED = false;
-    ignoreDREDAvailability = false;
-    enableGPUDumps = false;
+    enableDagorGPUTrace = true;
   }
 
   void applyAgsProfile()
   {
-    enableAftermath = false;
-    enableAgsTrace = false;
-    enableAgsProfile = true;
-    enableDagorGPUTrace = false;
     trackPageFaults = true;
-    enableDRED = false;
-    ignoreDREDAvailability = false;
-    enableGPUDumps = false;
+    enableAgsProfile = true;
   }
 
   void applyDebugProfile(eastl::string_view profile)
@@ -194,14 +131,20 @@ union Configuration
     }
     if (0 == profile.compare("release"))
     {
+      // *Defaults methods assume all are default initialized
+      *this = {};
       applyReleaseDefaults();
     }
     else if (0 == profile.compare("dev"))
     {
+      // *Defaults methods assume all are default initialized
+      *this = {};
       applyDevDefaults();
     }
     else if (0 == profile.compare("debug"))
     {
+      // *Defaults methods assume all are default initialized
+      *this = {};
       applyDebugDefaults();
     }
     else if (0 == profile.compare("pix"))
@@ -293,6 +236,7 @@ union Configuration
     enableCPUValidation = settings->getBool("cpuValidation", enableCPUValidation || debugLevel > 1);
     enableGPUValidation = settings->getBool("gpuValidation", enableGPUValidation || debugLevel > 2);
     enableNVRTValidation = modernSettings->getBool("nvRTValidation", enableNVRTValidation || debugLevel > 1);
+    loadRenderDoc = modernSettings->getBool("loadRenderDoc", loadRenderDoc);
 
     applyDebugProfile(modernSettings->getStr("profile", ""));
   }

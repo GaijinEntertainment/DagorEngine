@@ -4,7 +4,8 @@
 #include <dasModules/dasModulesCommon.h>
 #include <ecs/scripts/sqBindEvent.h>
 #include <quirrel/bindQuirrelEx/autoBind.h>
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
+#include <util/dag_string.h>
 
 
 // sq ----
@@ -107,9 +108,6 @@ void bind_das_events(SqModules *modules_mgr)
     .SquirrelFunc("_get", dascript_evt_get, 2, "xs")
     /**/;
 
-  Sqrat::ClassData<DasEvent> *sqDasEventClassData = Sqrat::ClassType<DasEvent>::getClassData(vm);
-  G_ASSERT(sqDasEventClassData);
-
   Sqrat::Table eventClasses(vm);
 
   const ecs::EventsDB &eventsDb = g_entity_mgr->getEventsDb();
@@ -126,7 +124,7 @@ void bind_das_events(SqModules *modules_mgr)
     sq_pushinteger(vm, eventType);
     sq_rawset(vm, -3);
 
-    G_VERIFY(SQ_SUCCEEDED(sq_settypetag(vm, -1, sqDasEventClassData->staticData.get())));
+    G_VERIFY(SQ_SUCCEEDED(sq_settypetag(vm, -1, Sqrat::TypeTag<DasEvent>::get())));
 
     Sqrat::Var<Sqrat::Object> eventClass(vm, -1);
     eventClasses.SetValue(eventName, eventClass.value);

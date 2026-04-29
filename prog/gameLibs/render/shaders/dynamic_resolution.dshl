@@ -1,0 +1,16 @@
+float4 current_dynamic_resolution = (1, 1, 1, 1);
+float4 prev_dynamic_resolution = (1, 1, 1, 1);
+
+macro INIT_DYNAMIC_RESOLUTION(stage)
+  BEGIN_ONCE_STAGE(dynamic_resolution_included, stage)
+  (stage) {
+    current_dynamic_resolution@f2 = current_dynamic_resolution.xy;
+    current_dynamic_resolution_scale@f2 = current_dynamic_resolution.xy / current_dynamic_resolution.zw;
+    current_inv_dynamic_resolution_scale@f2 = 1.0 / (current_dynamic_resolution.xy / current_dynamic_resolution.zw);
+
+    prev_dynamic_resolution@f2 = prev_dynamic_resolution.xy;
+    prev_dynamic_resolution_scale@f2 = prev_dynamic_resolution.xy / prev_dynamic_resolution.zw;
+    prev_inv_dynamic_resolution_scale@f2 = 1.0 / (prev_dynamic_resolution.xy / prev_dynamic_resolution.zw);
+  }
+  END_ONCE()
+endmacro

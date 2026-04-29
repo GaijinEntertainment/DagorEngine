@@ -27,4 +27,13 @@ if $(Platform) in windows && ( $(UseD3DMulti) != yes || DX12 in $(UseD3DMultiLis
       @$(AgsSdkDir)/lib/amd_ags_x64.dll amd_ags_x64.dll
     ;
   }
+
+  local FidelityFXSDKDir = $(_DEVTOOL)/FidelityFX-SDK-$(FidelityFXVer)/Kits/FidelityFX ;
+  if [ GLOB $(FidelityFXSDKDir) : * ] {
+    BundleCopy +=
+      @$(FidelityFXSDKDir)/signedbin/amd_fidelityfx_loader_dx12.dll amd_fidelityfx_loader_dx12.dll
+      @$(FidelityFXSDKDir)/signedbin/amd_fidelityfx_framegeneration_dx12.dll amd_fidelityfx_framegeneration_dx12.dll
+      @$(FidelityFXSDKDir)/signedbin/amd_fidelityfx_upscaler_dx12.dll amd_fidelityfx_upscaler_dx12.dll
+    ;
+  }
 }

@@ -151,13 +151,44 @@ static ecs::EntitySystemDesc lens_flare_config_on_disappear_es_es_desc
                        ecs::EventComponentsDisappear>::build(),
   0
 ,"render");
+static constexpr ecs::ComponentDesc lens_flare_after_device_reset_es_comps[] =
+{
+//start of 9 rq components at [0]
+  {ECS_HASH("lens_flare_config__use_occlusion"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("lens_flare_config__scale"), ecs::ComponentTypeInfo<Point2>()},
+  {ECS_HASH("lens_flare_config__elements"), ecs::ComponentTypeInfo<ecs::Array>()},
+  {ECS_HASH("lens_flare_config__name"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("lens_flare_config__depth_bias"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("lens_flare_config__exposure_reduction"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("lens_flare_config__intensity"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("lens_flare_config__smooth_screen_fadeout_distance"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("lens_flare_config__spotlight_cone_angle_deg"), ecs::ComponentTypeInfo<float>()}
+};
+static void lens_flare_after_device_reset_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_UNUSED(components);
+  lens_flare_after_device_reset_es(evt
+        );
+}
+static ecs::EntitySystemDesc lens_flare_after_device_reset_es_es_desc
+(
+  "lens_flare_after_device_reset_es",
+  "prog/gameLibs/render/lensFlare/render/lensFlareCommonES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, lens_flare_after_device_reset_es_all_events),
+  empty_span(),
+  empty_span(),
+  make_span(lens_flare_after_device_reset_es_comps+0, 9)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<AfterDeviceReset>::build(),
+  0
+,"render");
 static constexpr ecs::ComponentDesc prepare_sun_flares_ecs_query_comps[] =
 {
 //start of 2 rw components at [0]
   {ECS_HASH("sun_flare_provider__cached_id"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("sun_flare_provider__cached_flare_config_id"), ecs::ComponentTypeInfo<int>()},
 //start of 2 ro components at [2]
-  {ECS_HASH("enabled"), ecs::ComponentTypeInfo<bool>()},
+  {ECS_HASH("sun_flare_provider__enabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("sun_flare_provider__flare_config"), ecs::ComponentTypeInfo<ecs::string>()}
 };
 static ecs::CompileTimeQueryDesc prepare_sun_flares_ecs_query_desc
@@ -168,15 +199,15 @@ static ecs::CompileTimeQueryDesc prepare_sun_flares_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void prepare_sun_flares_ecs_query(Callable function)
+inline void prepare_sun_flares_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, prepare_sun_flares_ecs_query_desc.getHandle(),
+  perform_query(&manager, prepare_sun_flares_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
-              ECS_RO_COMP(prepare_sun_flares_ecs_query_comps, "enabled", bool)
+              ECS_RO_COMP(prepare_sun_flares_ecs_query_comps, "sun_flare_provider__enabled", bool)
             , ECS_RO_COMP(prepare_sun_flares_ecs_query_comps, "sun_flare_provider__flare_config", ecs::string)
             , ECS_RW_COMP(prepare_sun_flares_ecs_query_comps, "sun_flare_provider__cached_id", int)
             , ECS_RW_COMP(prepare_sun_flares_ecs_query_comps, "sun_flare_provider__cached_flare_config_id", int)
@@ -191,8 +222,8 @@ static constexpr ecs::ComponentDesc prepare_point_flares_ecs_query_comps[] =
 //start of 2 rw components at [0]
   {ECS_HASH("point_lens_flare_provider__cached_id"), ecs::ComponentTypeInfo<int>()},
   {ECS_HASH("point_lens_flare_provider__cached_flare_config_id"), ecs::ComponentTypeInfo<int>()},
-//start of 11 ro components at [2]
-  {ECS_HASH("enabled"), ecs::ComponentTypeInfo<bool>()},
+//start of 12 ro components at [2]
+  {ECS_HASH("point_lens_flare_provider__enabled"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
   {ECS_HASH("point_lens_flare_provider__flare_config"), ecs::ComponentTypeInfo<ecs::string>()},
   {ECS_HASH("point_lens_flare_provider__color"), ecs::ComponentTypeInfo<E3DCOLOR>()},
@@ -202,25 +233,26 @@ static constexpr ecs::ComponentDesc prepare_point_flares_ecs_query_comps[] =
   {ECS_HASH("point_lens_flare_provider__distance_cutoff"), ecs::ComponentTypeInfo<float>()},
   {ECS_HASH("point_lens_flare_provider__angle_attenuation"), ecs::ComponentTypeInfo<bool>()},
   {ECS_HASH("point_lens_flare_provider__cached_params"), ecs::ComponentTypeInfo<Point2>()},
-  {ECS_HASH("point_lens_flare_provider__dir"), ecs::ComponentTypeInfo<Point3>()}
+  {ECS_HASH("point_lens_flare_provider__dir"), ecs::ComponentTypeInfo<Point3>()},
+  {ECS_HASH("lensFlareNonOptionalProvider"), ecs::ComponentTypeInfo<ecs::Tag>(), ecs::CDF_OPTIONAL}
 };
 static ecs::CompileTimeQueryDesc prepare_point_flares_ecs_query_desc
 (
   "prepare_point_flares_ecs_query",
   make_span(prepare_point_flares_ecs_query_comps+0, 2)/*rw*/,
-  make_span(prepare_point_flares_ecs_query_comps+2, 11)/*ro*/,
+  make_span(prepare_point_flares_ecs_query_comps+2, 12)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void prepare_point_flares_ecs_query(Callable function)
+inline void prepare_point_flares_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, prepare_point_flares_ecs_query_desc.getHandle(),
+  perform_query(&manager, prepare_point_flares_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
-              ECS_RO_COMP(prepare_point_flares_ecs_query_comps, "enabled", bool)
+              ECS_RO_COMP(prepare_point_flares_ecs_query_comps, "point_lens_flare_provider__enabled", bool)
             , ECS_RO_COMP(prepare_point_flares_ecs_query_comps, "transform", TMatrix)
             , ECS_RO_COMP(prepare_point_flares_ecs_query_comps, "point_lens_flare_provider__flare_config", ecs::string)
             , ECS_RW_COMP(prepare_point_flares_ecs_query_comps, "point_lens_flare_provider__cached_id", int)
@@ -233,6 +265,7 @@ inline void prepare_point_flares_ecs_query(Callable function)
             , ECS_RO_COMP(prepare_point_flares_ecs_query_comps, "point_lens_flare_provider__angle_attenuation", bool)
             , ECS_RO_COMP(prepare_point_flares_ecs_query_comps, "point_lens_flare_provider__cached_params", Point2)
             , ECS_RO_COMP(prepare_point_flares_ecs_query_comps, "point_lens_flare_provider__dir", Point3)
+            , ECS_RO_COMP_PTR(prepare_point_flares_ecs_query_comps, "lensFlareNonOptionalProvider", ecs::Tag)
             );
 
         }while (++comp != compE);
@@ -255,9 +288,9 @@ static ecs::CompileTimeQueryDesc prepare_point_light_flares_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void prepare_point_light_flares_ecs_query(Callable function)
+inline void prepare_point_light_flares_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, prepare_point_light_flares_ecs_query_desc.getHandle(),
+  perform_query(&manager, prepare_point_light_flares_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -293,9 +326,9 @@ static ecs::CompileTimeQueryDesc gather_flare_configs_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void gather_flare_configs_ecs_query(Callable function)
+inline void gather_flare_configs_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, gather_flare_configs_ecs_query_desc.getHandle(),
+  perform_query(&manager, gather_flare_configs_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -329,9 +362,9 @@ static ecs::CompileTimeQueryDesc schedule_update_flares_renderer_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void schedule_update_flares_renderer_ecs_query(Callable function)
+inline void schedule_update_flares_renderer_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, schedule_update_flares_renderer_ecs_query_desc.getHandle(),
+  perform_query(&manager, schedule_update_flares_renderer_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

@@ -12,7 +12,6 @@ texture cfd_terrain_tex;
 
 shader voxelize_depth_above
 {
-  ENABLE_ASSERT(cs)
   INIT_DEPTH_ABOVE(cs, blurred_depth)
   USE_DEPTH_ABOVE_TC(cs)
 
@@ -84,8 +83,6 @@ int4 cfd_next_boundaries_tex_size;
 
 shader cfd_generate_boundaries
 {
-  ENABLE_ASSERT(cs)
-
   (cs) {
     prev_boundaries@smp3d = cfd_prev_boundaries;
     next_boundaries@uav = cfd_next_boundaries hlsl {

@@ -70,9 +70,8 @@ enum
   RSHADER_DISTORTION = 2,
   RSHADER_BBOARD_VOLSHAPE = 3,
   RSHADER_BBOARD_RAIN = 4,
-  RSHADER_BBOARD_RAIN_DISTORTION = 5,
-  RSHADER_BBOARD_XRAY = 6,
-  RSHADER_BBOARD_WATER_FX = 7,
+  RSHADER_BBOARD_XRAY = 5,
+  RSHADER_BBOARD_WATER_FX = 6,
 };
 
 enum
@@ -90,6 +89,7 @@ enum
   POSINIT_CONE = 2,
   POSINIT_BOX = 3,
   POSINIT_SPHERE_SECTOR = 4,
+  POSINIT_SPLINE_BASED = 5,
 };
 
 enum
@@ -280,8 +280,8 @@ int push_prebake_grad(eastl::vector<unsigned char> &out, const GradientBoxSample
   return ofs;
 }
 
-bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *load_cb, dafx::ContextId ctx, dafx::SystemDesc &sdesc,
-  dafx_ex::SystemInfo &sinfo, dafx_ex::EmitterDebug *&emitter_debug)
+bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *load_cb, dafx::ContextId ctx, // -V553
+  dafx::SystemDesc &sdesc, dafx_ex::SystemInfo &sinfo, dafx_ex::EmitterDebug *&emitter_debug)
 {
   CHECK_FX_VERSION_OPT(ptr, len, 15);
 
@@ -358,6 +358,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   GDATA(depth_size_for_collision);
   GDATA(depth_size_rcp_for_collision);
   GDATA(camera_velocity);
+  GDATA(quality);
 
 #undef GDATA
 
@@ -370,6 +371,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   }
 
   // emitter
+  int maximumParticleEmissionCount = 0;
   if (parSpawn.type == SPAWN_LINEAR)
   {
     ddesc.emitterData.type = dafx::EmitterType::LINEAR;
@@ -377,6 +379,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.emitterData.linearData.countMax = max(parSpawn.linear.count_max, max(1, int(ddesc.emitterData.linearData.countMin)));
     ddesc.emitterData.linearData.lifeLimit = parLife.part_life_max;
     ddesc.emitterData.linearData.instant = true;
+    maximumParticleEmissionCount = ddesc.emitterData.linearData.countMax;
   }
   else if (parSpawn.type == SPAWN_BURST)
   {
@@ -386,6 +389,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.emitterData.burstData.lifeLimit = parLife.part_life_max;
     ddesc.emitterData.burstData.cycles = parSpawn.burst.cycles;
     ddesc.emitterData.burstData.period = parSpawn.burst.period;
+    maximumParticleEmissionCount = ddesc.emitterData.burstData.countMax;
 
     if (parSpawn.burst.cycles == 0 && parSpawn.burst.period == 0)
       ddesc.emitterData.burstData.cycles = 1;
@@ -398,26 +402,44 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.emitterData.distanceBasedData.lifeLimit = parLife.part_life_max;
     ddesc.emitterData.distanceBasedData.idlePeriod = parSpawn.distance_based.idle_period;
     ddesc.specialFlags |= dafx::SystemDesc::FLAG_DISABLE_SIM_LODS; // distance based fx are very sensitive for skipped frames
+    maximumParticleEmissionCount = ddesc.emitterData.distanceBasedData.elemLimit;
   }
   else if (parSpawn.type == SPAWN_FIXED)
   {
     ddesc.emitterData.type = dafx::EmitterType::FIXED;
     ddesc.emitterData.fixedData.count = parSpawn.fixed.count;
+    maximumParticleEmissionCount = ddesc.emitterData.fixedData.count;
   }
 
   ddesc.emitterData.minEmissionFactor = clamp(parGlobals.emission_min, 0.f, 1.f);
 
-  const dafx::Config &cfg = dafx::get_config(ctx);
-  unsigned int lim = dafx::get_emitter_limit(ddesc.emitterData, true);
-  if (lim == 0 || lim >= cfg.emission_limit)
+  bool force_gpu_sim = false;
+  dafx_ex::TransformType transformType = static_cast<dafx_ex::TransformType>(parGlobals.transform_type);
+  const dafx::Config cfg = dafx::get_current_config_copy(ctx); // copy with spinlock, to avoid thread race
+  if (maximumParticleEmissionCount >= cfg.cpu_emission_limit)
   {
-    logerr("fx: modfx over emitter limit");
+    if (transformType == dafx_ex::TRANSFORM_WORLD_SPACE)
+    {
+      force_gpu_sim = true;
+    }
+    else
+    {
+      logerr("fx: modfx: (CPU) Emission count limit exceeded, GPU sim would be forced, but effect isn't using world space transform. "
+             "(Required for GPU sim)");
+    }
+  }
+
+  if (maximumParticleEmissionCount > cfg.emission_limit)
+  {
+    String resName;
+    get_game_resource_name(sdesc.gameResId, resName);
+    logerr("fx: modfx: Emission count limit exceeded (for %s). Max allowed: %d, required by effect: %d ; If this is intentional, then "
+           "increase 'fxEmissionLimit' in config.",
+      resName, cfg.emission_limit, maximumParticleEmissionCount);
     return false;
   }
 
   sdesc.qualityFlags = fx_apply_quality_bits(parQuality, 0xffffffff);
-  const bool qualityAllowed = cfg.qualityMask & sdesc.qualityFlags;
-
   ddesc.emitterData.delay = max(parLife.inst_life_delay, 0.f);
 
   // param validation
@@ -425,6 +447,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
                                    parPos.gpu_placement.use_water || parPos.gpu_placement.use_water_flowmap);
 
   bool isMotionVectorsEnabled = false;
+  uint32_t motionVectorQualityMask = 0;
   if (parTex.enabled && parTex.animation.enabled && parTex.animation.animated_flipbook && parRenderShape.type == RSHAPE_TYPE_BBOARD)
   {
     if (parTex.animation.motion_vectors && parLighting.type == LIGHT_NORMALMAP)
@@ -445,34 +468,43 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       motionVectorQuality.low_quality = parTex.animation.motion_vectors_min_quality <= MOTION_VECTOR_MIN_QUALITY_LOW;
       motionVectorQuality.medium_quality = parTex.animation.motion_vectors_min_quality <= MOTION_VECTOR_MIN_QUALITY_MEDIUM;
       motionVectorQuality.high_quality = parTex.animation.motion_vectors_min_quality <= MOTION_VECTOR_MIN_QUALITY_HIGH;
-      const bool motionVectorQualityAllowed = cfg.qualityMask & fx_apply_quality_bits(motionVectorQuality, 0xffffffff);
-      if (!motionVectorQualityAllowed)
-        parTex.animation.motion_vectors = false;
+      motionVectorQualityMask = fx_apply_quality_bits(motionVectorQuality, 0xffffffff);
     }
 
-    if (parTex.animation.motion_vectors && !qualityAllowed) // TODO: do not load textures from effects that are disabled
-    {
-      // so we can implicitly disable secondary texture as well, in loading time
-      parTex.animation.motion_vectors = false;
-    }
     isMotionVectorsEnabled = parTex.animation.motion_vectors;
   }
 
-  const bool canLoadSecondaryTexture = [&parTex, &parRenderShape, &parLighting, &parRenderShader]() -> bool {
+  auto setAndLogerrIfItWasSet = [](const bool cond, bool &variable, const char *msg) -> void {
+    if (cond)
+    {
+      if (variable)
+        logerr(msg);
+      variable = true;
+    }
+  };
+
+  const bool canLoadSecondaryTexture = [&parTex, &parRenderShape, &parLighting, &parRenderShader, &setAndLogerrIfItWasSet]() -> bool {
+    bool secondaryTexNeeded = false;
     if (!parTex.enabled)
       return false;
     if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
-      return true;
+      secondaryTexNeeded = true;
     if (parRenderShape.type == RSHAPE_TYPE_BBOARD)
     {
       if (parRenderShader.shader == RSHADER_BBOARD_WATER_FX && parRenderShader.modfx_bboard_water_fx.use_height_tex_1)
-        return true;
-      if (parLighting.type == LIGHT_NORMALMAP)
-        return true;
-      if (parTex.animation.enabled && parTex.animation.animated_flipbook && parTex.animation.motion_vectors)
-        return true;
+        secondaryTexNeeded = true;
+      setAndLogerrIfItWasSet(parLighting.type == LIGHT_NORMALMAP, secondaryTexNeeded,
+        "fx: modfx: Multiple features require secondary texture: both water fx height tex and normalmap based lighting is enabled. "
+        "These are colliding.");
+      setAndLogerrIfItWasSet(parTex.animation.enabled && parTex.animation.animated_flipbook && parTex.animation.motion_vectors,
+        secondaryTexNeeded,
+        "fx: modfx: Multiple features require secondary texture: More than 1 of the following is enabled: Motion vectors; Normalmap "
+        "based lighting; Water fx height tex");
+      setAndLogerrIfItWasSet(parRenderShader.has_distortion_as_a_component, secondaryTexNeeded,
+        "fx: modfx: Multiple features require secondary texture:  More than 1 of the following is enabled: Motion vectors; Normalmap "
+        "based lighting; Water fx height tex; Distortion as a component");
     }
-    return false;
+    return secondaryTexNeeded;
   }();
 
   if (parRenderShader.shader == RSHADER_BBOARD_ATEST)
@@ -487,20 +519,29 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     parBlending.type = RBLEND_PREMULT;
   }
 
-  // validate gpu-only features and quality
-  if (parPos.enabled && parPos.gpu_placement.enabled)
+  if (parRenderShader.has_distortion_as_a_component && (parTex.frames_x != 1 || parTex.frames_y != 1))
   {
-    if (parQuality.low_quality)
+    String resName;
+    get_game_resource_name(sdesc.gameResId, resName);
+    logerr("fx: modfx: Distortion as a component is not supported with effects that have multiple frames! (effect: %s)",
+      resName.c_str());
+    parRenderShader.has_distortion_as_a_component = false;
+  }
+
+  // validate gpu-only features and quality
+  if (parPos.enabled && (parPos.gpu_placement.enabled || parPos.rain_map_based_density.enabled))
+  {
+    if (parQuality.low_quality && parPos.gpu_placement.enabled)
     {
       logerr("fx: modfx: gpu_placement is not compatible with low quality");
       parPos.gpu_placement.enabled = false;
     }
 
-    dafx_ex::TransformType transformType = static_cast<dafx_ex::TransformType>(parGlobals.transform_type);
     if (transformType != dafx_ex::TRANSFORM_WORLD_SPACE)
     {
-      logerr("fx: modfx: gpu_placement requires world_space transform_type");
+      logerr("fx: modfx: gpu_placement (and rain_map_based_density) requires world_space transform_type");
       parPos.gpu_placement.enabled = false;
+      parPos.rain_map_based_density.enabled = false;
     }
   }
 
@@ -516,6 +557,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
 
   bool gpuFeatures = parVelocity.collision.enabled && parVelocity.enabled && parPos.enabled;
   gpuFeatures |= parPos.gpu_placement.enabled && parPos.enabled;
+  gpuFeatures |= parPos.rain_map_based_density.enabled && parPos.enabled;
+  gpuFeatures |= force_gpu_sim;
   if (gpuFeatures)
   {
     ddesc.emissionData.shader = "dafx_modfx_emission_adv";
@@ -591,8 +634,6 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   }
   else if (parRenderShader.shader == RSHADER_BBOARD_RAIN && logerr_if_ribbon("modfx_bboard_rain"))
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_rain"});
-  else if (parRenderShader.shader == RSHADER_BBOARD_RAIN_DISTORTION && logerr_if_ribbon("modfx_bboard_rain_distortion"))
-    ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_bboard_rain_distortion"});
   else if (parRenderShader.shader == RSHADER_BBOARD_VOLSHAPE && logerr_if_ribbon("modfx_vol_shape"))
   {
     ddesc.renderDescs.push_back({dafx_ex::renderTags[rtag], "dafx_modfx_volshape_render"});
@@ -618,8 +659,27 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
     ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_FOM], "dafx_modfx_bboard_render_fom"});
   }
 
-  if (parRenderShader.shader != RSHADER_DISTORTION && parRenderShader.shader != RSHADER_BBOARD_RAIN_DISTORTION &&
-      parRenderShape.type != RSHAPE_TYPE_RIBBON && (!parThermalEmission.enabled || parThermalEmission.value >= 0))
+  if (parRenderShader.has_distortion_as_a_component)
+  {
+    if (parRenderShader.shader != RSHADER_BBOARD_RAIN)
+    {
+      if (parRenderShape.type == RSHAPE_TYPE_RIBBON)
+        if (parRenderShape.ribbon.type == RSHAPE_RIBBON_SIDE_ONLY)
+          ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_DISTORTION], "dafx_modfx_ribbon_distortion_side_only"});
+        else
+          logerr("fx: modfx: Distortion as a component for ribbons is only supported for side only ribbons! (Due to texture slot "
+                 "limitations)");
+      else
+        ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_DISTORTION], "dafx_modfx_bboard_distortion"});
+    }
+    else
+    {
+      ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_DISTORTION], "dafx_modfx_bboard_rain_distortion"});
+    }
+  }
+
+  if (parRenderShader.shader != RSHADER_DISTORTION && parRenderShape.type != RSHAPE_TYPE_RIBBON &&
+      (!parThermalEmission.enabled || parThermalEmission.value >= 0))
   {
     ddesc.renderDescs.push_back({dafx_ex::renderTags[dafx_ex::RTAG_THERMAL],
       parRenderShader.shader == RSHADER_BBOARD_VOLSHAPE ? "dafx_modfx_volshape_thermal" : "dafx_modfx_bboard_thermals"});
@@ -800,6 +860,20 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       emitter_debug->type = dafx_ex::SPHERESECTOR;
       emitter_debug->sphereSector = {pp.vec, pp.radius, pp.sector};
     }
+    else if (parPos.type == POSINIT_SPLINE_BASED)
+    {
+      if (transformType != dafx_ex::TRANSFORM_WORLD_SPACE)
+      {
+        logerr("fx: modfx: spline_gen placement requires world_space transform_type");
+      }
+      else
+      {
+        int ofs = push_system_data(simulationData, TMatrix4::ZERO);
+        simOffsets[MODFX_SMOD_POS_SPLINE_BASED] = ofs;
+        ENABLE_SOFS(VAL_POS_SPLINE_DATA, ofs);
+        ENABLE_MOD(smods, MODFX_SMOD_POS_SPLINE_BASED);
+      }
+    }
 
     if (parPos.gpu_placement.enabled)
     {
@@ -821,6 +895,12 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       pp.height_limit = parPos.height_limit.height_limit;
       simOffsets[MODFX_SMOD_HEIGHT_LIMIT] = push_system_data(simulationData, pp);
       ENABLE_MOD(smods, MODFX_SMOD_HEIGHT_LIMIT);
+    }
+
+    if (parPos.rain_map_based_density.enabled)
+    {
+      simOffsets[MODFX_SMOD_POS_RAIN_MAP] = push_system_data(simulationData, parPos.rain_map_based_density.min_cloud_density);
+      ENABLE_MOD(smods, MODFX_SMOD_POS_RAIN_MAP);
     }
   }
 
@@ -999,8 +1079,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   }
 
   // thermal
-  if (parThermalEmission.enabled && parRenderShader.shader != RSHADER_DISTORTION &&
-      parRenderShader.shader != RSHADER_BBOARD_RAIN_DISTORTION)
+  if (parThermalEmission.enabled && parRenderShader.shader != RSHADER_DISTORTION)
   {
     renOffsets[MODFX_RMOD_THERMAL_EMISSION] = push_system_data(renderData, parThermalEmission.value);
     ENABLE_MOD(rmods, MODFX_RMOD_THERMAL_EMISSION);
@@ -1524,6 +1603,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
         {
           ModfxDeclMotionVectors motionVecParams;
           motionVecParams.motion_vectors_strength = parTex.animation.motion_vectors_strength;
+          motionVecParams.quality_mask = motionVectorQualityMask;
           renOffsets[MODFX_RMOD_MOTION_VECTORS] = push_system_data(renderData, motionVecParams);
           ENABLE_MOD(rmods, MODFX_RMOD_MOTION_VECTORS);
         }
@@ -1804,9 +1884,8 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
       ENABLE_MOD(rmods, MODFX_RMOD_LIGHTING_INIT);
 
       if (parLighting.specular_enabled && pp.specular_power > 0 && pp.specular_strength > 0)
-        ENABLE_FLAG(rflags, MODFX_RFLAG_LIGHTING_SPECULART_ENABLED);
-      if (parLighting.ambient_enabled)
-        ENABLE_FLAG(rflags, MODFX_RFLAG_LIGHTING_AMBIENT_ENABLED);
+        ENABLE_FLAG(rflags, MODFX_RFLAG_LIGHTING_SPECULAR_ENABLED);
+
       if (parLighting.external_lights_enabled)
         ENABLE_FLAG(rflags, MODFX_RFLAG_EXTERNAL_LIGHTS_ENABLED);
 
@@ -1907,17 +1986,22 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   if (!parRenderShader.allow_screen_proj_discard)
     ddesc.specialFlags |= dafx::SystemDesc::FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD;
 
-  if (parRenderShader.shader == RSHADER_DISTORTION || parRenderShader.shader == RSHADER_BBOARD_RAIN_DISTORTION)
+  if (force_gpu_sim)
   {
-    float strength = parRenderShader.shader == RSHADER_DISTORTION
-                       ? (float)parRenderShader.modfx_bboard_distortion.distortion_strength
-                       : (float)parRenderShader.modfx_bboard_rain_distortion.distortion_strength;
-    renOffsets[MODFX_RMOD_DISTORTION_STRENGTH] = push_system_data(renderData, strength);
-    ENABLE_MOD(rmods, MODFX_RMOD_DISTORTION_STRENGTH);
+    ddesc.specialFlags |= dafx::SystemDesc::FLAG_DISABLE_CULLING; // culling slows down gpu sim if there are many alive particles
+    ddesc.specialFlags |= dafx::SystemDesc::FLAG_SKIP_SCREEN_PROJ_CULL_DISCARD; // no point of projection based culling either
+    ENABLE_FLAG(rflags, MODFX_RFLAG_SKIP_CULLING); // to avoid having a huge overhead from atomics in bbox calc
   }
 
-  if (parRenderShader.shader == RSHADER_DISTORTION)
+  if (parRenderShader.has_distortion_as_a_component)
+    ENABLE_FLAG(rflags, MODFX_RFLAG_DISTORTION_IS_A_COMPONENT);
+
+  if (parRenderShader.shader == RSHADER_DISTORTION || parRenderShader.has_distortion_as_a_component)
   {
+    float strength = (float)parRenderShader.modfx_bboard_distortion.distortion_strength;
+    renOffsets[MODFX_RMOD_DISTORTION_STRENGTH] = push_system_data(renderData, strength);
+    ENABLE_MOD(rmods, MODFX_RMOD_DISTORTION_STRENGTH);
+
     ModfxDeclDistortionFadeColorColorStrength pp;
     pp.fadeRange = (float)parRenderShader.modfx_bboard_distortion.distortion_fade_range;
     pp.fadePower = (float)parRenderShader.modfx_bboard_distortion.distortion_fade_power;
@@ -1995,8 +2079,12 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   if (sinfo.transformType == dafx_ex::TRANSFORM_LOCAL_SPACE)
     ENABLE_FLAG(rflags, MODFX_RFLAG_USE_ETM_AS_WTM);
 
+  bool subframeEmission = parSpawn.type == SPAWN_LINEAR && parSpawn.linear.subframe_emittion;
+  if (subframeEmission)
+    ENABLE_FLAG(sflags, MODFX_SFLAG_ALLOW_VELOCITY_CALC_IN_EMISSION);
+
   // service data (shared data)
-  if (parSpawn.type == SPAWN_DISTANCE_BASED || (parSpawn.type == SPAWN_LINEAR && parSpawn.linear.subframe_emittion))
+  if (parSpawn.type == SPAWN_DISTANCE_BASED || subframeEmission)
   {
     ModfxDeclServiceTrail par;
     par.last_emitter_pos = Point3(0, 0, 0);
@@ -2163,6 +2251,7 @@ bool dafx_modfx_system_load(const char *ptr, int len, BaseParamScriptLoadCB *loa
   for (auto &it : rvals)
     sinfo.valueOffsets[it.first] = it.second + rheadOffset + renOffsets.size() * sizeof(int);
 
+  G_ASSERT(sdesc.emissionData.renderRefData.size() % DAFX_ELEM_STRIDE == 0); // It will be padded by `dafx::register_subsystem`
   for (auto &it : svals)
     sinfo.valueOffsets[it.first] = it.second + sheadOffset + simOffsets.size() * sizeof(int) + sdesc.emissionData.renderRefData.size();
 

@@ -17,11 +17,11 @@ void StateFieldExecutionStageCloser::dumpLog(const BackScopeStateStorage &) cons
 }
 
 template <>
-void StateFieldExecutionStageCloser::applyTo(BackScopeStateStorage &, ExecutionContext &) const
+void StateFieldExecutionStageCloser::applyTo(BackScopeStateStorage &, BEContext &) const
 {}
 
 template <>
-void StateFieldActiveExecutionStage::applyTo(ExecutionStateStorage &state, ExecutionContext &)
+void StateFieldActiveExecutionStage::applyTo(ExecutionStateStorage &state, BEContext &)
 {
   auto from = oldData;
   auto to = data;

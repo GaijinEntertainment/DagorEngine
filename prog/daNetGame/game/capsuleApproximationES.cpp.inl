@@ -1,7 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <ecs/anim/anim.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
 #include "capsuleApproximation.h"
 #include <ecs/phys/collRes.h>
 #include <daECS/core/coreEvents.h>
@@ -20,16 +21,16 @@ ECS_AUTO_REGISTER_COMPONENT_DEPS(
   ecs::SharedComponent<CapsuleApproximation>, "capsule_approximation", nullptr, 0, "collres", "animchar");
 
 template <typename Callable>
-static void capsule_approximation_debug_ecs_query(Callable c);
+static void capsule_approximation_debug_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_NO_ORDER
 ECS_TAG(render, dev)
-static __forceinline void debug_draw_capsule_approximation_es(const UpdateStageInfoRenderDebug &)
+static __forceinline void debug_draw_capsule_approximation_es(const UpdateStageInfoRenderDebug &, ecs::EntityManager &manager)
 {
   if (!capsule_approximation_debug_draw.get())
     return;
   begin_draw_cached_debug_lines();
-  capsule_approximation_debug_ecs_query(
+  capsule_approximation_debug_ecs_query(manager,
     [](ECS_SHARED(CapsuleApproximation) capsule_approximation, const AnimV20::AnimcharBaseComponent &animchar) {
       if (capsule_approximation.capsuleDatas.empty())
         return;
@@ -66,20 +67,20 @@ bool CapsuleApproximation::onLoaded(const ecs::EntityManager &mgr, ecs::EntityId
   const CollisionResource &collres = mgr.get<CollisionResource>(eid, ECS_HASH("collres"));
   const AnimV20::AnimcharBaseComponent &animchar = mgr.get<AnimV20::AnimcharBaseComponent>(eid, ECS_HASH("animchar"));
 
-  auto checkNode = [eid](const char *nodeName, dag::Index16 nodeIdx, const CollisionNode *collisionNode) {
+  auto checkNode = [eid, &mgr](const char *nodeName, dag::Index16 nodeIdx, const CollisionNode *collisionNode) {
     G_UNUSED(nodeName);
     G_UNUSED(eid);
     if (!nodeIdx)
     {
 #if DAGOR_DBGLEVEL > 0
-      logerr("Unknown animchar node (%s) on template <%s>", nodeName, g_entity_mgr->getEntityTemplateName(eid));
+      logerr("Unknown animchar node (%s) on template <%s>", nodeName, mgr.getEntityTemplateName(eid));
 #endif
       return false;
     }
     if (!collisionNode)
     {
 #if DAGOR_DBGLEVEL > 0
-      logerr("Unknown collision node (%s) on template <%s>", nodeName, g_entity_mgr->getEntityTemplateName(eid));
+      logerr("Unknown collision node (%s) on template <%s>", nodeName, mgr.getEntityTemplateName(eid));
 #endif
       return false;
     }
@@ -90,7 +91,7 @@ bool CapsuleApproximation::onLoaded(const ecs::EntityManager &mgr, ecs::EntityId
     const auto nodeIdx = animchar.getNodeTree().findINodeIndex(nodeName);
     const CollisionNode *collisionNode = collres.getNodeByName(nodeName);
     if (checkNode(nodeName, nodeIdx, collisionNode))
-      addCapsuleData(nodeIdx, collisionNode->nodeIndex, collisionNode->modelBBox);
+      addCapsuleData(nodeIdx, collisionNode->nodeIndex, collres.getNodeBBox(collisionNode->nodeIndex));
   };
   if (nodeNames)
     for (const ecs::ChildComponent &node : *nodeNames)
@@ -118,14 +119,14 @@ bool CapsuleApproximation::onLoaded(const ecs::EntityManager &mgr, ecs::EntityId
     {
       rootNodeIdx = nodeIdx;
       rootCollNodeId = collisionNode->nodeIndex;
-      box = collisionNode->modelBBox;
+      box = collres.getNodeBBox(collisionNode->nodeIndex);
     }
     else
     {
       TMatrix localTM;
       animchar.getNodeTree().getNodeTmScalar(nodeIdx, localTM);
       tm *= localTM;
-      BBox3 addBox = tm * collisionNode->modelBBox;
+      BBox3 addBox = tm * collres.getNodeBBox(collisionNode->nodeIndex);
       const Point3 size = abs(box.center() - addBox.center());
       int maxSide = 0;
       if (size[1] > size[maxSide])

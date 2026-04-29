@@ -20,22 +20,31 @@ FastSeqReader::FastSeqReader()
 {
   memset(&file, 0, sizeof(file));
   memset(buf, 0, sizeof(buf));
-
-  for (int i = 0; i < BUF_CNT; i++)
-  {
-    buf[i].mask = 1 << i;
-#if _TARGET_PC_WIN | \
-  _TARGET_XBOX // MS require special aligment for non_cached reads (see
-               // https://msdn.microsoft.com/en-us/library/windows/desktop/cc644950(v=vs.85).aspx#ALIGNMENT_AND_FILE_ACCESS_REQUIREMENTS)
-    buf[i].data = (char *)tmpmem->allocAligned(BUF_SZ, 4096);
+#if _TARGET_PC_WIN | _TARGET_XBOX
+  // MS require 4K alignment for non-cached reads (FILE_FLAG_NO_BUFFERING):
+  // https://learn.microsoft.com/en-us/windows/win32/fileio/file-buffering?#alignment-and-file-access-requirements
+  static constexpr uintptr_t BUF_ALIGN_MASK = 4095;
+  static_assert(BUF_SZ % (BUF_ALIGN_MASK + 1) == 0);
 #else
-    buf[i].data = (char *)tmpmem->allocAligned(BUF_SZ, 32);
+  static constexpr uintptr_t BUF_ALIGN_MASK = 0;
 #endif
+  rawBufMem = (char *)tmpmem->alloc(BUF_CNT * BUF_SZ + BUF_ALIGN_MASK);
+  char *adata = (char *)(((uintptr_t)rawBufMem + BUF_ALIGN_MASK) & ~BUF_ALIGN_MASK);
+  for (unsigned i = 0, m = 1; i < BUF_CNT; i++, m <<= 1, adata += BUF_SZ)
+  {
+    buf[i].mask = m;
+    buf[i].data = adata;
     buf[i].handle = dfa_alloc_asyncdata();
-    G_ASSERT(buf[i].handle >= 0 && "FastSeqReader ran out of async handles?");
+    G_ASSERTF(buf[i].handle >= 0, "FastSeqReader ran out of async handles?");
   }
-  pendMask = doneMask = readAheadPos = maxBackSeek = lastSweepPos = 0;
-  cBuf = NULL;
+}
+
+FastSeqReader::~FastSeqReader()
+{
+  reset();
+  for (auto &b : buf)
+    dfa_free_asyncdata(b.handle);
+  tmpmem->free(rawBufMem);
 }
 
 void FastSeqReader::assignFile(void *handle, unsigned base_ofs, int size, const char *fname, int min_chunk_size, int max_back_seek)
@@ -71,18 +80,6 @@ void FastSeqReader::reset()
   curThreadId = -1;
 }
 
-void FastSeqReader::closeData()
-{
-  reset();
-  for (int i = 0; i < BUF_CNT; i++)
-    if (buf[i].data)
-    {
-      dfa_free_asyncdata(buf[i].handle);
-      tmpmem->freeAligned(buf[i].data);
-    }
-  memset(&file, 0, sizeof(file));
-  memset(buf, 0, sizeof(buf));
-}
 void FastSeqReader::waitForBuffersFull()
 {
   placeRequests();
@@ -218,7 +215,7 @@ void FastSeqReader::readCompleted(int i, int bit, int sz)
 #if DAGOR_EXCEPTIONS_ENABLED
     DAGOR_THROW(LoadException("async read failed", buf[i].sa)); // To consider: store copy of string within DagorException?
 #else
-    DAG_FATAL("exception: LoadException(\"async read from '%s' failed with error %d\")", targetFilename.c_str(), sz);
+    DAG_FATAL("exception: LoadException(\"async read from '%s' failed with error %d\")", targetFilename.c_str(), -sz);
 #endif
   }
   G_ASSERT(sz);

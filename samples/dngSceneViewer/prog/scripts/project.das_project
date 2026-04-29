@@ -7,11 +7,12 @@ var
 
 let
   commonMountPointPrefixes <- {
-    "ecs" => "%dasGameLibs/ecs",
-    "math" => "%dasGameLibs/math",
-    "daFrameGraph" => "%dasGameLibs/daFrameGraph",
+    "ecs" => "%gameLibs/das/ecs",
+    "math" => "%gameLibs/das/math",
+    "daFrameGraph" => "%gameLibs/das/daFrameGraph",
     "daslib" => "%daslib",
     "danetlibs" => "%danetlibs",
+    "gameLibs" => "%gameLibs",
     "imgui" => "%dasImgui",
     "debug" => "%dngdas/das/debug",
     "remote" => "%dngdas/das/remote",
@@ -21,7 +22,7 @@ let
     "common_sounds" => "%danetlibs/sound/common_sounds",
     "environment_sounds" => "%danetlibs/sound/environment_sounds"}
   commonAliasPath <- {
-    "daFrameGraph" => "%dasGameLibs/daFrameGraph.daFG.das"
+    "daFrameGraph" => "%gameLibs/das/daFrameGraph.daFG.das"
   }
 
 [export]

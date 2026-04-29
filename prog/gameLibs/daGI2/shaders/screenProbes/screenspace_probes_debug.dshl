@@ -11,7 +11,6 @@ float exposure = 1;
 texture current_radiance_distance;
 shader screenspace_probes_draw_debug
 {
-  supports global_const_block;
   supports global_frame;
   supports none;
   (vs) {
@@ -30,7 +29,6 @@ shader screenspace_probes_draw_debug
     screenspace_probes_temporal@i2 = screenspace_probes_temporal;
     exposure@f1 = exposure;
   }
-  ENABLE_ASSERT(ps)
   SCREENSPACE_PROBES_POSITIONS(vs)
   SCREENSPACE_PROBES_POSITIONS(ps)
   PREV_SCREENSPACE_PROBES_POSITIONS(ps)
@@ -195,7 +193,6 @@ include "project_is_dynamic_point.dshl"
 
 shader screenspace_probes_draw_debug_classificator
 {
-  supports global_const_block;
   //supports global_frame;
   supports none;
   cull_mode  = none;
@@ -208,7 +205,6 @@ shader screenspace_probes_draw_debug_classificator
     //}
     //screenspace_probe_res@i4 = screenspace_probe_res;
   }
-  ENABLE_ASSERT(ps)
   SCREENSPACE_PROBES_POSITIONS(ps)
   //SCREENSPACE_PROBES_POSITIONS_COMMON_MATH(ps)
   z_test = false;
@@ -241,6 +237,7 @@ shader screenspace_probes_draw_debug_classificator
   }
 
 
+  INIT_PACK_UNPACK_DYNSTCODE(ps)
   INIT_READ_DEPTH_GBUFFER_BASE(ps)
   USE_READ_DEPTH_GBUFFER_BASE(ps)
   PROJECT_DO_NOT_UPDATE_FROM_POINT(ps)

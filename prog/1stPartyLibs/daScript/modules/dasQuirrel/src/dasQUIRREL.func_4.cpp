@@ -51,9 +51,6 @@ void Module_dasQUIRREL::initFunctions_4() {
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:301:19
 	addExtern< void (*)(SQVM *,SQInteger) , sq_weakref >(*this,lib,"sq_weakref",SideEffects::worstDefault,"sq_weakref")
 		->args({"v","idx"});
-// from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:302:23
-	addExtern< SQRESULT (*)(SQVM *,tagSQObjectType) , sq_getdefaultdelegate >(*this,lib,"sq_getdefaultdelegate",SideEffects::worstDefault,"sq_getdefaultdelegate")
-		->args({"v","t"});
 // from D:\Work\daScript\Modules\dasQuirrel\libquirrel\include\squirrel.h:303:23
 	addExtern< SQRESULT (*)(SQVM *,SQInteger,tagSQMemberHandle *) , sq_getmemberhandle >(*this,lib,"sq_getmemberhandle",SideEffects::worstDefault,"sq_getmemberhandle")
 		->args({"v","idx","handle"});

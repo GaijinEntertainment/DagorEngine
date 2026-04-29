@@ -56,8 +56,8 @@ struct VrInput
   virtual ActionSetIndex addActionSet(ActionSetId action_set_id, const char *name, int priority = 0,
     const char *localized_name = nullptr) = 0;
 
-  using ActionIndex = int;
-  static const ActionIndex INVALID_ACTION = -1;
+  using ActionIndex = uint16_t;
+  static const ActionIndex INVALID_ACTION = 0xFFFF;
   enum class ActionType
   {
     DIGITAL,
@@ -74,12 +74,12 @@ struct VrInput
   virtual bool completeActionsInit() = 0;
 
   virtual Bindings getCurrentBindings() const = 0;
-  virtual ButtonBits getCurrentBindingsMask(ActionId a) const = 0;
-  virtual ActionBindings getCurrentBindings(ActionId a) const = 0;
+  virtual ButtonBits getCurrentBindingsMask(ActionIndex idx) const = 0;
+  virtual ActionBindings getCurrentBindings(ActionIndex idx) const = 0;
   virtual eastl::string getBindingName(ActionBindingId b) const = 0;
   virtual eastl::string getLocalizedBindingName(ActionBindingId b) const = 0;
 
-  // Get Last Action States
+  // Get Last Action States. *ByIdx() versions are faster, but require idx returned by addAction
   struct DigitalAction
   {
     bool isActive = false;
@@ -87,6 +87,7 @@ struct VrInput
     bool hasChanged = false;
   };
   virtual DigitalAction getDigitalActionState(ActionId a) const = 0;
+  virtual DigitalAction getDigitalActionStateByIdx(ActionIndex idx) const = 0;
 
   struct AnalogAction
   {
@@ -95,6 +96,7 @@ struct VrInput
     bool hasChanged = false;
   };
   virtual AnalogAction getAnalogActionState(ActionId a) const = 0;
+  virtual AnalogAction getAnalogActionStateByIdx(ActionIndex idx) const = 0;
 
   struct StickAction
   {
@@ -103,6 +105,7 @@ struct VrInput
     bool hasChanged = false;
   };
   virtual StickAction getStickActionState(ActionId a) const = 0;
+  virtual StickAction getStickActionStateByIdx(ActionIndex idx) const = 0;
 
   struct PoseAction
   {
@@ -120,7 +123,7 @@ struct VrInput
     friend bool operator!=(const PoseAction &lhs, const PoseAction &rhs) { return !(lhs == rhs); }
   };
   virtual PoseAction getPoseActionState(ActionId a) const = 0;
-
+  virtual PoseAction getPoseActionStateByIdx(ActionIndex idx) const = 0;
 
   enum Hands
   {

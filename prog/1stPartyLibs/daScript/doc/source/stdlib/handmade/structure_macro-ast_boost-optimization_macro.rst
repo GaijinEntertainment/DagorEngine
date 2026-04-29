@@ -1,0 +1,1 @@
+The ``[optimization_macro]`` structure annotation — registers an ``AstPassMacro`` subclass that is invoked during the optimization compilation pass.

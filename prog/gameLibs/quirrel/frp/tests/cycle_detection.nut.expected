@@ -1,0 +1,3 @@
+initial: a=1, b=1
+after: a=5, b=3
+no crash

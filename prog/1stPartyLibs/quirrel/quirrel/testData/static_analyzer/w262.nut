@@ -1,3 +1,4 @@
+//-file:invalid-indentation
 
 local x = 10
 local y = 20

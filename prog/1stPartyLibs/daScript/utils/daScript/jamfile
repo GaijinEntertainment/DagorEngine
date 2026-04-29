@@ -1,6 +1,7 @@
 Root    ?= ../../../../.. ;
 Location = prog/1stPartyLibs/daScript/utils/daScript ;
 ConsoleExe = yes ;
+UseMemoryAllocator = RTL ;
 
 TargetType  = exe ;
 Target      = 3rdPartyLibs/scripts/das ;
@@ -14,25 +15,28 @@ if $(Platform)-$(PlatformArch) = windows-x86_64 { Target = $(Target)-64 ; }
 
 Sources =
   main.cpp
+  unitTest.cpp
   ../../dagorAdapter/da_dummy.cpp
   ../../dagorAdapter/da.cpp
+  ../../modules/dasUnitTest/bytecode.cpp
+  ../../modules/dasUnitTest/test_enum.cpp
+  ../../modules/dasUnitTest/test_handles.cpp
 ;
 
 UseProgLibs =
   engine/osApiWrappers
   engine/kernel
   engine/perfMon
-  engine/memory/rtlStdMemory
-#  engine/memory/rtlOverride
+  engine/memory
   engine/baseUtil
-#  engine/ioSys
+  engine/ioSys
   engine/startup
   engine/math
 
   3rdPartyLibs/eastl
   1stPartyLibs/daScript
   1stPartyLibs/daScript/utils/dasFormatter
-  gameLibs/daECS/core
+  engine/daECS/core
   gameLibs/ecs/scripts/das
   gameLibs/dasModules/common
   engine/perfMon/daProfilerStub
@@ -46,9 +50,10 @@ if $(Platform) in windows && $(PlatformSpec) != clang  {
 #  CPPopt += /wd6269 /wd6202 /wd6386 /wd4312 ;
 }
 
+GlobalCPPopt += -DDAS_USE_BASE_CRASH_HANDLER=1 ;
+
 AddIncludes =
-  $(Root)/prog/engine/dagorInclude
-  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude # FIXME_BROKEN_DEP
   $(Root)/prog/1stPartyLibs/daScript/include
 ;
 Copt   = $(CPPopt) ;

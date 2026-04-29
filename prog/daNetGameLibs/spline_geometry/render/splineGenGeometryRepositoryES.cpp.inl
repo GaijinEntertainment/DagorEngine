@@ -1,45 +1,68 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
+#include "render/world/frameGraphHelpers.h"
+#include "render/world/frameGraphNodes/prevFrameTexRequests.h"
 #include "splineGenGeometryRepository.h"
 #include "splineGenGeometryShaderVar.h"
 #include <shaders/dag_shaders.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/entityId.h>
 
 SplineGenGeometryRepository::SplineGenGeometryRepository() {}
 
-SplineGenGeometryIb &SplineGenGeometryRepository::getOrMakeIb(uint32_t slices, uint32_t stripes)
+SplineGenGeometryIbPtr SplineGenGeometryRepository::getOrMakeIb(uint32_t slices, uint32_t stripes)
 {
   auto it = ibs.find(slices);
   if (it != ibs.end())
   {
     it->second->resize(stripes);
-    return *it->second;
+    return it->second;
   }
 
-  return *ibs.emplace(slices, eastl::make_unique<SplineGenGeometryIb>(slices, stripes)).first->second;
+  return ibs.emplace(slices, eastl::make_shared<SplineGenGeometryIb>(slices, stripes)).first->second;
 }
 
-SplineGenGeometryAsset &SplineGenGeometryRepository::getOrMakeAsset(const eastl::string &asset_name)
+SplineGenGeometryAssetPtr SplineGenGeometryRepository::getOrMakeAsset(const eastl::string &asset_name)
 {
   auto it = assets.find(asset_name);
   if (it != assets.end())
   {
-    return *it->second;
+    return it->second;
   }
 
-  return *assets.emplace(asset_name, eastl::make_unique<SplineGenGeometryAsset>(asset_name)).first->second;
+  return assets.emplace(asset_name, eastl::make_shared<SplineGenGeometryAsset>(asset_name)).first->second;
+}
+
+void SplineGenGeometryRepository::createTransparentSplineGenNode()
+{
+  if (transparentSplineGenNode)
+    return;
+
+  auto nodeNs = dafg::root() / "transparent" / "close";
+  transparentSplineGenNode = nodeNs.registerNode("spline_gen", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
+    registry.requestState().allowWireframe().setFrameBlock("global_frame");
+    read_prev_frame_tex(registry);
+    request_common_published_transparent_state(registry, true);
+    return [](const dafg::multiplexing::Index &multiplexing_index) {
+      const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
+
+      for (auto &managerPair : get_spline_gen_repository().getManagers())
+        managerPair.second->renderTransparent();
+    };
+  });
 }
 
 template <typename Callable>
-static void load_spline_gen_template_params_ecs_query(Callable c);
+static void load_spline_gen_template_params_ecs_query(ecs::EntityManager &manager, Callable c);
 
-SplineGenGeometryManager &SplineGenGeometryRepository::getOrMakeManager(const eastl::string &template_name)
+SplineGenGeometryManagerPtr SplineGenGeometryRepository::getOrMakeManager(const eastl::string &template_name)
 {
   auto it = managers.find(template_name);
   if (it != managers.end())
   {
-    return *it->second;
+    return it->second;
   }
 
   bool found = false;
@@ -52,7 +75,7 @@ SplineGenGeometryManager &SplineGenGeometryRepository::getOrMakeManager(const ea
   eastl::string aoTexName;
   eastl::string shaderType;
   uint32_t assetLod;
-  load_spline_gen_template_params_ecs_query(
+  load_spline_gen_template_params_ecs_query(*g_entity_mgr,
     [&](const ecs::string &spline_gen_template__template_name, int spline_gen_template__slices, int spline_gen_template__stripes,
       const ecs::string &spline_gen_template__diffuse_name, const ecs::string &spline_gen_template__normal_name,
       const ecs::string &spline_gen_template__asset_name, const ecs::string &spline_gen_template__shader_type,
@@ -74,10 +97,33 @@ SplineGenGeometryManager &SplineGenGeometryRepository::getOrMakeManager(const ea
       }
     });
   G_ASSERTF(found, "spline_gen_template %s not found!", template_name.c_str());
-  return *managers
-            .emplace(template_name, eastl::make_unique<SplineGenGeometryManager>(template_name, slices, stripes, diffuseName,
-                                      normalName, emissiveMaskName, aoTexName, assetName, shaderType, assetLod))
-            .first->second;
+  return managers
+    .emplace(template_name, eastl::make_shared<SplineGenGeometryManager>(template_name, slices, stripes, diffuseName, normalName,
+                              emissiveMaskName, aoTexName, assetName, shaderType, assetLod))
+    .first->second;
+}
+
+template <typename Callable>
+static void load_spline_gen_shapes_ecs_query(ecs::EntityManager &manager, Callable c);
+
+SplineGenGeometryShapeManagerPtr SplineGenGeometryRepository::getOrMakeShapeManager()
+{
+  if (!shapeManager)
+  {
+    shapeManager = eastl::make_unique<SplineGenGeometryShapeManager>();
+    load_spline_gen_shapes_ecs_query(*g_entity_mgr,
+      [&](ecs::Point4List &spline_gen_shape__points, const ecs::string &spline_gen_shape__shape_name) {
+        if (spline_gen_shape__shape_name.empty())
+        {
+          logerr("spline_gen_shape__shape_name is empty. Unnamed shape?");
+          return;
+        }
+
+        shapeManager->addShape(spline_gen_shape__points, spline_gen_shape__shape_name);
+      });
+    shapeManager->createAndFillBuffer();
+  }
+  return shapeManager;
 }
 
 void SplineGenGeometryRepository::reset()
@@ -87,14 +133,14 @@ void SplineGenGeometryRepository::reset()
   managers.clear();
 }
 
-ska::flat_hash_map<uint32_t, eastl::unique_ptr<SplineGenGeometryIb>> &SplineGenGeometryRepository::getIbs() { return ibs; }
+ska::flat_hash_map<uint32_t, eastl::shared_ptr<SplineGenGeometryIb>> &SplineGenGeometryRepository::getIbs() { return ibs; }
 
-ska::flat_hash_map<eastl::string, eastl::unique_ptr<SplineGenGeometryAsset>> &SplineGenGeometryRepository::getAssets()
+ska::flat_hash_map<eastl::string, eastl::shared_ptr<SplineGenGeometryAsset>> &SplineGenGeometryRepository::getAssets()
 {
   return assets;
 }
 
-ska::flat_hash_map<eastl::string, eastl::unique_ptr<SplineGenGeometryManager>> &SplineGenGeometryRepository::getManagers()
+ska::flat_hash_map<eastl::string, eastl::shared_ptr<SplineGenGeometryManager>> &SplineGenGeometryRepository::getManagers()
 {
   return managers;
 }
@@ -103,12 +149,13 @@ ECS_REGISTER_BOXED_TYPE(SplineGenGeometryRepository, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(SplineGenGeometryRepository, "spline_gen_repository", nullptr, 0);
 
 template <typename Callable>
-void get_spline_gen_ecs_query(Callable);
+void get_spline_gen_ecs_query(ecs::EntityManager &manager, Callable);
 
 SplineGenGeometryRepository &get_spline_gen_repository()
 {
   SplineGenGeometryRepository *spline_instance = nullptr;
-  get_spline_gen_ecs_query([&](SplineGenGeometryRepository &spline_gen_repository) { spline_instance = &spline_gen_repository; });
+  get_spline_gen_ecs_query(*g_entity_mgr,
+    [&](SplineGenGeometryRepository &spline_gen_repository) { spline_instance = &spline_gen_repository; });
   G_ASSERT_EX(spline_instance, "need spline_gen_repository entity");
   return *spline_instance;
 }

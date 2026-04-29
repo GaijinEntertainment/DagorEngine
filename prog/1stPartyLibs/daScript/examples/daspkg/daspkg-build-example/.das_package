@@ -1,0 +1,15 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("daspkg-build-example")
+    package_description("Example project demonstrating daspkg with C/C++ module builds")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("../packages/daspkg-example-c")
+    require_package("../packages/daspkg-example-cpp")
+}

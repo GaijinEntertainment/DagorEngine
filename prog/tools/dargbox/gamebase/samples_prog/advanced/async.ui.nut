@@ -84,7 +84,7 @@ function checkHttpTask(){
 */
 
 let console = @() {
-  watch = consoleStream vplace = ALIGN_BOTTOM rendObj = ROBJ_SOLID size = static [sw(30), flex()] clipChildren = true color = Color(10,10,10) valign = ALIGN_BOTTOM
+  watch = consoleStream vplace = ALIGN_BOTTOM rendObj = ROBJ_SOLID size = const [sw(30), flex()] clipChildren = true color = Color(10,10,10) valign = ALIGN_BOTTOM
   children = vflow(consoleStream.get().map(txt), Gap(hdpx(2)))
 }
 let setTimeout = @(func, timeout) gui_scene.setTimeout(timeout, func)

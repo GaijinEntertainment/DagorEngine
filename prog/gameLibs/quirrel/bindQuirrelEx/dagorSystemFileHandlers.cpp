@@ -2,7 +2,7 @@
 
 #include "fileDropHandler.h"
 #include "screenshotMetaInfoLoader.h"
-#include <quirrel/sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <quirrel/bindQuirrelEx/bindQuirrelEx.h>
 
 namespace bindquirrel

@@ -6,10 +6,12 @@
 #include "assetMgrPrivate.h"
 #include <util/dag_fastIntList.h>
 #include <util/dag_globDef.h>
+#include <util/dag_finally.h>
 #include <perfMon/dag_cpuFreq.h>
 
 inline eastl::vector<DagorAssetMgr::AssetMap>::const_iterator DagorAssetMgr::findAssetByName(unsigned name) const
 {
+  ReadGuard guard(mutex);
   auto cbegin = amap.cbegin(), cend = amap.cend();
   auto ci = eastl::binary_search_i(cbegin, cend, AssetMap{name, 0, 0});
   if (ci != cend)
@@ -23,6 +25,7 @@ DagorAsset *DagorAssetMgr::findAsset(const char *name) const
   if (!name || !name[0])
     return NULL;
 
+  ReadGuard guard(mutex);
   int name_id = assetNames.getNameId(name);
   if (name_id == -1)
     return NULL;
@@ -40,6 +43,7 @@ DagorAsset *DagorAssetMgr::findAsset(const char *name, int type_id) const
   if (!name || !name[0])
     return NULL;
 
+  ReadGuard guard(mutex);
   int name_id = assetNames.getNameId(name);
   if (name_id == -1)
     return NULL;
@@ -60,6 +64,7 @@ DagorAsset *DagorAssetMgr::findAsset(const char *name, dag::ConstSpan<int> types
   if (!name || !name[0] || types.size() < 1)
     return NULL;
 
+  ReadGuard guard(mutex);
   int name_id = assetNames.getNameId(name);
   if (name_id == -1)
     return NULL;
@@ -75,6 +80,7 @@ DagorAsset *DagorAssetMgr::findAsset(const char *name, dag::ConstSpan<int> types
 
 void DagorAssetMgr::getFolderAssetIdxRange(int folder_idx, int &start_idx, int &end_idx) const
 {
+  ReadGuard guard(mutex);
   G_ASSERT(folder_idx >= 0 && folder_idx < folders.size());
 
   start_idx = perFolderStartAssetIdx[folder_idx];
@@ -86,6 +92,7 @@ bool DagorAssetMgr::isAssetNameUnique(const DagorAsset &asset, dag::ConstSpan<in
   if (asset.isGloballyUnique())
     return true;
 
+  ReadGuard guard(mutex);
   int cnt = 0;
   for (int i = 0; i < types.size(); i++)
     if (types[i] >= 0 && types[i] < perTypeNameIds.size())
@@ -98,8 +105,19 @@ bool DagorAssetMgr::isAssetNameUnique(const DagorAsset &asset, dag::ConstSpan<in
   return true;
 }
 
+#if defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wthread-safety-analysis"
+#endif
 void DagorAssetMgr::rebuildAssetMap() const
 {
+  mutex.unlockRead(); // this method is only called under read lock
+  mutex.lockWrite();
+  FINALLY([this] {
+    mutex.unlockWrite();
+    mutex.lockRead();
+  });
+
   int t0 = get_time_msec();
   amap.resize(assets.size());
   for (int i = 0; i < assets.size(); i++)
@@ -113,3 +131,6 @@ void DagorAssetMgr::rebuildAssetMap() const
   });
   debug("rebuilt assetMap (used for faster searches) for %d msec (%d assets)", get_time_msec() - t0, assets.size());
 }
+#if defined(__clang__)
+#pragma GCC diagnostic pop
+#endif

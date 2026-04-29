@@ -1,0 +1,1 @@
+The ``[capture_macro]`` structure annotation — registers an ``AstCaptureMacro`` subclass as a named capture macro that can customize lambda capture behavior.

@@ -234,7 +234,7 @@ static rapidjson::Value sqval_to_json(Sqrat::Object val, rapidjson::Document::Al
     case OT_FLOAT: return rapidjson::Value(val.Cast<float>());
     case OT_STRING:
     {
-      auto str = val.GetVar<const SQChar *>();
+      auto str = val.GetVar<const char *>();
       return rapidjson::Value(str.value, str.valueLen, allocator);
     }
     case OT_BOOL: return rapidjson::Value(val.Cast<bool>());
@@ -279,7 +279,7 @@ static rapidjson::Document sqval_to_json_doc(Sqrat::Object val)
     }
     case OT_STRING:
     {
-      auto str = val.GetVar<const SQChar *>();
+      auto str = val.GetVar<const char *>();
       rapidjson::Document doc(rapidjson::Type::kStringType);
       doc.SetString(str.value, str.valueLen, doc.GetAllocator());
       return doc;

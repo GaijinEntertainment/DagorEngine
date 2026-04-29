@@ -63,10 +63,23 @@ using std::chrono::milliseconds;
 #define DAS_BIND_EXTERNAL 0
 
 #define DAS_SMART_PTR_TRACKER 0
+#if defined(_DEBUG_TAB_)
+#define DAS_SMART_PTR_MAGIC 1
+#else
+#define DAS_SMART_PTR_MAGIC 0
+#endif
 
 #define DAS_NO_GLOBAL_NEW_AND_DELETE 1
 
 #define DAS_FAST_INTEGER_MOD 0 // fast-math does not work with integer mod
+
+#ifdef __SANITIZE_ADDRESS__
+#define DAS_SAFE_HASH 1
+#elif defined(__has_feature)
+#if __has_feature(address_sanitizer) || __has_feature(hwaddress_sanitizer)
+#define DAS_SAFE_HASH 1
+#endif
+#endif
 
 #define DAS_ASSERT    G_ASSERT
 #define DAS_ASSERTF   G_ASSERTF
@@ -79,10 +92,14 @@ using std::chrono::milliseconds;
 #define DAS_NO_FILEIO 1
 #endif
 
+#ifndef DAS_USE_BASE_CRASH_HANDLER
+#define DAS_USE_BASE_CRASH_HANDLER 0
+#endif
+
 #include <vecmath/dag_vecMathDecl.h>
 
 #define DAS_ALIGNED_ALLOC 1
-inline void *das_aligned_alloc16(uint32_t size) { return new char[size]; }
+inline void *das_aligned_alloc16(uint64_t size) { return new char[size]; }
 inline void das_aligned_free16(void *ptr) { delete[] (char *)ptr; }
 inline size_t das_aligned_memsize(void *ptr) { return defaultmem->getSize(ptr); }
 
@@ -142,7 +159,6 @@ using das_safe_set = eastl::set<K, C>;
 #ifndef das_to_stdout_level_prefix_text
 #define das_to_stdout_level_prefix_text(level, prefix, text)        \
   {                                                                 \
-    (void)prefix;                                                   \
     logmessage_(level >= das::LogLevel::error     ? LOGLEVEL_ERR    \
                 : level >= das::LogLevel::warning ? LOGLEVEL_WARN   \
                                                   : LOGLEVEL_DEBUG, \

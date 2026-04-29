@@ -157,11 +157,8 @@ static int __forceinline traceray4Triangles(vec3f from, vec3f dir, float &min_t,
   vec4f valid = traceray4TrianglesVecMask(from, dir, T, p0, p1, p2, no_cull);
   valid = v_and(valid, mask);
 
-#if _TARGET_SIMD_SSE
-  int validMask = v_signmask(valid); // slow on neon
-  if (validMask == 0x0)
+  if (v_test_all_bits_zeros(valid))
     return -1;
-#endif
 
   T = v_sel(V_C_MAX_VAL, T, valid);
   vec4f minT = v_min(v_rot_1(T), T);
@@ -171,22 +168,8 @@ static int __forceinline traceray4Triangles(vec3f from, vec3f dir, float &min_t,
 
   // select one valid element by min t
   vec4f resultMask = v_cmp_eq(minT, T);
-#if _TARGET_SIMD_SSE
   int signMask = v_signmask(resultMask);
   return __bsf_unsafe(signMask);
-#else
-  vec4i iResultMask = v_cast_vec4i(v_and(resultMask, valid));
-  int ret = -1;
-  if (v_extract_wi(iResultMask))
-    ret = 3;
-  if (v_extract_zi(iResultMask))
-    ret = 2;
-  if (v_extract_yi(iResultMask))
-    ret = 1;
-  if (v_extract_xi(iResultMask))
-    ret = 0;
-  return ret;
-#endif
 }
 
 static int __forceinline traceray4TrianglesNoCull(vec3f from, vec3f dir, float &min_t, mat43f p0, mat43f p1, mat43f p2)
@@ -247,11 +230,8 @@ static int __forceinline get4TrianglesMaxHtId(vec3f from, vec4f &maxht, mat43f p
   valid = v_and(valid, v_cmp_gt(ht, maxht));
   if (below)
     valid = v_and(valid, v_cmp_gt(v_splat_y(from), ht));
-#if _TARGET_SIMD_SSE
-  int validMask = v_signmask(valid); // slow on neon
-  if (validMask == 0x0)
+  if (v_test_all_bits_zeros(valid))
     return -1;
-#endif
 
   ht = v_sel(V_C_MIN_VAL, ht, valid);
   vec4f maxHT = v_max(v_rot_1(ht), ht);
@@ -261,22 +241,8 @@ static int __forceinline get4TrianglesMaxHtId(vec3f from, vec4f &maxht, mat43f p
 
   // select one valid element by maxHT
   vec4f resultMask = v_cmp_eq(maxHT, ht);
-#if _TARGET_SIMD_SSE
   int signMask = v_signmask(resultMask);
-  return signMask ? __bsf(signMask) : -1;
-#else
-  vec4i iResultMask = v_cast_vec4i(v_and(resultMask, valid));
-  int ret = -1;
-  if (v_extract_wi(iResultMask))
-    ret = 3;
-  if (v_extract_zi(iResultMask))
-    ret = 2;
-  if (v_extract_yi(iResultMask))
-    ret = 1;
-  if (v_extract_xi(iResultMask))
-    ret = 0;
-  return ret;
-#endif
+  return __bsf_unsafe(signMask);
 }
 
 // return 0 or 1
@@ -289,22 +255,15 @@ static int __forceinline get4TrianglesMaxHt(vec3f from, vec4f &maxht, mat43f p0,
   valid = v_and(valid, v_cmp_gt(ht, maxht));
   if (below)
     valid = v_and(valid, v_cmp_gt(v_splat_y(from), ht));
-#if _TARGET_SIMD_SSE
-  int validMask = _mm_movemask_ps(valid); // slow on neon
-  if (validMask == 0x0)
+  if (v_test_all_bits_zeros(valid))
     return 0;
-#endif
 
   ht = v_sel(V_C_MIN_VAL, ht, valid);
   ht = v_max(v_rot_1(ht), ht);
   ht = v_max(v_rot_2(ht), ht);
   maxht = v_max(ht, maxht);
 
-#if _TARGET_SIMD_SSE
   return 1;
-#else
-  return !v_test_vec_x_eqi(ht, V_C_MIN_VAL);
-#endif
 }
 
 static void __forceinline v_mat44_transpose_to_mat43(vec4f r0, vec4f r1, vec4f r2, vec4f r3, vec4f &c0, vec4f &c1, vec4f &c2)
@@ -500,6 +459,15 @@ static inline bool traceDownTrianglesMultiRay(const vec4f *__restrict triangles,
   }
 
   return true;
+}
+
+static vec4f __forceinline traceray4TrianglesVecMask(vec4f from, vec4f dir, vec4f &min_t, vec4f vertices[4][3], bool no_cull)
+{
+  mat43f p0, p1, p2;
+  v_mat44_transpose_to_mat43(vertices[0][0], vertices[1][0], vertices[2][0], vertices[3][0], p0.row0, p0.row1, p0.row2);
+  v_mat44_transpose_to_mat43(vertices[0][1], vertices[1][1], vertices[2][1], vertices[3][1], p1.row0, p1.row1, p1.row2);
+  v_mat44_transpose_to_mat43(vertices[0][2], vertices[1][2], vertices[2][2], vertices[3][2], p2.row0, p2.row1, p2.row2);
+  return traceray4TrianglesVecMask(from, dir, min_t, p0, p1, p2, no_cull);
 }
 
 static int __forceinline traceray4Triangles(vec4f from, vec4f dir, float &min_t, vec4f vertices[4][3], int count, bool no_cull)

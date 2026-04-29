@@ -113,8 +113,7 @@ struct Capsule
   BSphere3 getBoundingSphereScalar() const
   {
     BSphere3 bsph;
-    v_stu(&bsph.c.x, getBoundingSphere());
-    bsph.r2 = sqr(bsph.r);
+    v_stu_bsphere3(bsph, getBoundingSphere());
     return bsph;
   }
   bool isInside(vec3f p) const { return distToAxisSq(p) < sqr(v_extract_w(v_ldu(&a.x))); }

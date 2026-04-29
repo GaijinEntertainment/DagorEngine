@@ -2,7 +2,9 @@
 
 #include <render/graphicsAutodetect.h>
 #include <render/gpuBenchmarkEntity.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/entityId.h>
 #include <daECS/core/entityComponent.h>
 #include <daECS/core/coreEvents.h>
@@ -27,16 +29,17 @@ static void graphics_autodetect_wrapper_on_appear_es_event_handler(const ecs::Ev
 }
 
 template <typename Callable>
-static void get_graphics_autodetect_ecs_query(Callable c);
+static void get_graphics_autodetect_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
 ECS_REQUIRE(GraphicsAutodetectWrapper &graphics_auto_detect)
-static void delete_graphics_autodetect_ecs_query(Callable c);
+static void delete_graphics_autodetect_ecs_query(ecs::EntityManager &manager, Callable c);
 
 GraphicsAutodetect *gpubenchmark::get_graphics_autodetect()
 {
   GraphicsAutodetect *result = nullptr;
-  get_graphics_autodetect_ecs_query([&](GraphicsAutodetectWrapper &graphics_auto_detect) { result = graphics_auto_detect.get(); });
+  get_graphics_autodetect_ecs_query(*g_entity_mgr,
+    [&](GraphicsAutodetectWrapper &graphics_auto_detect) { result = graphics_auto_detect.get(); });
   return result;
 }
 void gpubenchmark::make_graphics_autodetect_entity(gpubenchmark::Selfdestruct selfdestruct)
@@ -47,7 +50,7 @@ void gpubenchmark::make_graphics_autodetect_entity(gpubenchmark::Selfdestruct se
 }
 void gpubenchmark::destroy_graphics_autodetect_entity()
 {
-  delete_graphics_autodetect_ecs_query([&](ecs::EntityId eid) { g_entity_mgr->destroyEntity(eid); });
+  delete_graphics_autodetect_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid) { g_entity_mgr->destroyEntity(eid); });
 }
 
 ECS_TAG(render)

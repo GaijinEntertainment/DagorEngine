@@ -1,1 +1,0 @@
-DECS prefix check.

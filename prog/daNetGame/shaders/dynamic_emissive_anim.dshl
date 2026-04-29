@@ -6,7 +6,6 @@ include "emissive/emission_anim_inc.dshl"
 
 shader dynamic_emissive_anim
 {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
   EMISSIVE_INIT_WITH_DYNAMIC_PARAMS()
   INIT_AND_USE_EMISSIVE_ANIM(2, 3)
@@ -41,6 +40,6 @@ shader dynamic_emissive_anim
       #define IS_DYNAMIC 1
       #define get_special_anim_params get_emissive_anim
     }
-    EMISSIVE_PS(true)
+    EMISSIVE_PS()
   }
 }

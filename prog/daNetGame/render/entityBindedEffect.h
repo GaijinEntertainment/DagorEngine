@@ -1,7 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 #include <math/dag_color.h>
 
 namespace AnimV20

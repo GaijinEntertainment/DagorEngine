@@ -1,1 +1,2 @@
-file:t = "render_debug/shaders/debug_indoor_probe_boxes.dshl"
+file:t = "debug_indoor_probe_boxes.dshl"
+file:t = "render_debug/shaders/gpu_debug_render.dshl"

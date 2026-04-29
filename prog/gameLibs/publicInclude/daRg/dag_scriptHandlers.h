@@ -42,7 +42,7 @@ public:
     SQFunctionInfo fi;
     if (SQ_SUCCEEDED(sq_ext_getfuncinfo(func.GetFunc(), &fi)))
     {
-      const char *fnSlash = ::max(strrchr(fi.source, '/'), strrchr(fi.source, _SC('\\')));
+      const char *fnSlash = ::max(strrchr(fi.source, '/'), strrchr(fi.source, '\\'));
       dapFuncName.printf(0, "%s(%s:%d)", fi.name, fnSlash ? (fnSlash + 1) : fi.source, fi.source);
       dapDescription = DA_PROFILE_ADD_DESCRIPTION(fi.source, fi.line, dapFuncName.c_str());
     }

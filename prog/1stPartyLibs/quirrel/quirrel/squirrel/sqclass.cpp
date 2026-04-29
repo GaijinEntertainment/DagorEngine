@@ -10,23 +10,25 @@
 
 
 
-SQClass::SQClass(SQVM *v, SQClass *base) :
-    _defaultvalues(_ss(v)->_alloc_ctx),
-    _methods(_ss(v)->_alloc_ctx)
+SQClass::SQClass(SQSharedState *ss, SQClass *base) :
+    _defaultvalues(ss->_alloc_ctx),
+    _methods(ss->_alloc_ctx),
+    _nativefields(ss->_alloc_ctx)
 {
-    SQSharedState *ss = _ss(v);
-
     _base = base;
     _typetag = 0;
     _hook = NULL;
     _udsize = 0;
     _constructoridx = -1;
     _lockedTypeId = 0;
+    _is_builtin_type = false;
+    _builtin_type_id = OT_NULL;
     if(_base) {
         _constructoridx = _base->_constructoridx;
         _udsize = _base->_udsize;
         _defaultvalues.copy(base->_defaultvalues);
         _methods.copy(base->_methods);
+        _nativefields.copy(base->_nativefields);
         _COPY_VECTOR(_metamethods,base->_metamethods,MT_NUM_METHODS);
         __ObjAddRef(_base);
     }
@@ -40,6 +42,7 @@ SQClass::SQClass(SQVM *v, SQClass *base) :
 void SQClass::Finalize() {
     _NULL_SQOBJECT_VECTOR(_defaultvalues,_defaultvalues.size());
     _methods.resize(0);
+    _nativefields.resize(0);
     _NULL_SQOBJECT_VECTOR(_metamethods,MT_NUM_METHODS);
     __ObjRelease(_members);
     if(_base) {
@@ -56,13 +59,20 @@ SQClass::~SQClass()
 
 SQClass* SQClass::Create(SQVM *v,SQClass *base)
 {
-    if (base && !base->isLocked()) {
-        if (!base->Lock(v))
+    if (base) {
+        if (base->_is_builtin_type) {
+            v->Raise_Error("Cannot inherit from built-in type '%s'", IdType2Name(base->_builtin_type_id));
             return nullptr;
+        }
+
+        if (!base->isLocked()) {
+            if (!base->Lock(v))
+                return nullptr;
+        }
     }
 
     SQClass *newclass = (SQClass *)SQ_MALLOC(_ss(v)->_alloc_ctx, sizeof(SQClass));
-    new (newclass) SQClass(v, base);
+    new (newclass) SQClass(_ss(v), base);
     return newclass;
 }
 
@@ -73,14 +83,17 @@ bool SQClass::NewSlot(SQSharedState *ss,const SQObjectPtr &key,const SQObjectPtr
     bool belongs_to_static_table = sq_type(val) == OT_CLOSURE || sq_type(val) == OT_NATIVECLOSURE || bstatic;
     if(isLocked() && !belongs_to_static_table)
         return false; //the class already has an instance so cannot be modified
-    if(_members->Get(key,temp) && _isfield(temp)) //overrides the default value
-    {
-        _defaultvalues[_member_idx(temp)].val = val;
-        return true;
+    if(_members->Get(key,temp)) {
+        if (_isfield(temp)) { //overrides the default value
+            _defaultvalues[_member_idx(temp)].val = val;
+            return true;
+        }
+        if (_isnativefield(temp))
+            return false; // native fields cannot be overridden from script
     }
-	if (_members->CountUsed() >= MEMBER_MAX_COUNT) {
-		return false;
-	}
+    if (_members->CountUsed() >= MEMBER_MAX_COUNT) {
+        return false;
+    }
     if(belongs_to_static_table) {
         SQInteger mmidx;
         if((sq_type(val) == OT_CLOSURE || sq_type(val) == OT_NATIVECLOSURE) &&
@@ -95,8 +108,7 @@ bool SQClass::NewSlot(SQSharedState *ss,const SQObjectPtr &key,const SQObjectPtr
                 __ObjAddRef(_base); //ref for the closure
             }
             if(sq_type(temp) == OT_NULL) {
-                bool isconstructor;
-                SQVM::IsEqual(ss->_constructorstr, key, isconstructor);
+                bool isconstructor = SQVM::IsEqual(ss->_constructorstr, key);
                 if(isconstructor) {
                     _constructoridx = (SQInteger)_methods.size();
                 }
@@ -136,6 +148,9 @@ SQInteger SQClass::Next(const SQObjectPtr &refpos, SQObjectPtr &outkey, SQObject
             SQObjectPtr &o = _defaultvalues[_member_idx(oval)].val;
             outval = _realval(o);
         }
+        else if(_isnativefield(oval)) {
+            outval.Null(); // no instance context
+        }
         else {
             outval = _methods[_member_idx(oval)].val;
         }
@@ -167,6 +182,28 @@ bool SQClass::Lock(SQVM *v)
     _lockedTypeId = currentHint();
 
     return success;
+}
+
+bool SQClass::RegisterNativeField(SQSharedState *ss, const SQObjectPtr &key, uint16_t offset, uint8_t type)
+{
+    if (isLocked())
+        return false;
+    if (_udsize <= 0)
+        return false;
+    static const uint8_t type_sizes[] = {4, 8, 4, 8, 1}; // float32, float64, int32, int64, bool
+    if (type > SQNFT_BOOL || offset + type_sizes[type] > (uint32_t)_udsize)
+        return false;
+    if (_members->CountUsed() >= MEMBER_MAX_COUNT)
+        return false;
+    SQObjectPtr temp;
+    if (_members->Get(key, temp))
+        return false; // name already taken
+    SQNativeFieldDesc desc;
+    desc.offset = offset;
+    desc.type = type;
+    _members->NewSlot(key, SQObjectPtr(_make_native_field_idx(_nativefields.size())));
+    _nativefields.push_back(desc);
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -225,9 +262,9 @@ bool SQInstance::GetMetaMethod(SQVM* SQ_UNUSED_ARG(v),SQMetaMethod mm,SQObjectPt
     return false;
 }
 
-bool SQInstance::InstanceOf(SQClass *trg)
+bool SQInstance::InstanceOf(const SQClass *trg) const
 {
-    SQClass *parent = _class;
+    const SQClass *parent = _class;
     while(parent != NULL) {
         if(parent == trg)
             return true;

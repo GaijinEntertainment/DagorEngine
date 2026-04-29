@@ -5,6 +5,7 @@
 #include <rendInst/gpuObjects.h>
 #include <rendInst/rotation_palette_consts.hlsli>
 #include <rendInst/impostorTextureMgr.h>
+#include <rendInst/impostor.h>
 #include <rendInst/rendInstExtraRender.h>
 
 #include "riGen/riGenExtra.h"
@@ -13,7 +14,6 @@
 #include "riGen/riRotationPalette.h"
 #include "riGen/riGenRenderer.h"
 #include "render/genRender.h"
-#include "render/impostor.h"
 #include "render/extraRender.h"
 #include "render/gpuObjects.h"
 #include "render/riShaderConstBuffers.h"
@@ -46,6 +46,7 @@
 
 #include <debug/dag_debug3d.h>
 #include <drv/3d/dag_resetDevice.h>
+#include <drv/3d/dag_driverDesc.h>
 
 
 #define debug(...) logmessage(_MAKE4C('RGEN'), __VA_ARGS__)
@@ -91,6 +92,12 @@ static struct
 
 RenderStateContext::RenderStateContext() { d3d_err(d3d::setind(unitedvdata::riUnitedVdata.getIB())); }
 
+namespace rendinst
+{
+static ImpostorTextureCallback impostor_texture_callback = nullptr;
+void set_impostor_iexture_callback(ImpostorTextureCallback callback) { impostor_texture_callback = callback; }
+} // namespace rendinst
+
 namespace rendinst::render
 {
 
@@ -127,7 +134,6 @@ float globalDistMul = 1;
 float globalCullDistMul = 1;
 float globalLodCullDistMul = 1;
 float settingsDistMul = 1;
-float settingsMinLodBasedCullDistMul = 1.f;
 float settingsMinCullDistMul = 0.f;
 float lodsShiftDistMul = 1;
 float additionalRiExtraLodDistMul = 1;
@@ -168,6 +174,7 @@ bool setBlock(int block_id, const UniqueBuf &per_draw_data)
 int rendinstRenderPassVarId = -1;
 int rendinstShadowTexVarId = -1;
 int lods_shift_dist_mul_varId = -1;
+int ri_dist_mul_rcp_varId = -1;
 
 int gpuObjectDecalVarId = -1;
 int disable_rendinst_alpha_for_normal_pass_with_zprepassVarId = -1;
@@ -178,6 +185,8 @@ float rendinst_ao_mul = 2.0f;
 // mip map build
 
 bool use_ri_depth_prepass = true;
+bool is_tool_shaders = false;
+
 static bool depth_prepass_for_cells = true;
 static bool depth_prepass_for_impostors = false;
 
@@ -213,12 +222,12 @@ static __forceinline void get_local_up_left(const Point3 &imp_fwd, const Point3 
   out_up = normalize(fwd % out_left);
 }
 
-void rendinst::render::renderRendinstShadowsToTextures(const Point3 &sunDir0)
+void rendinst::render::renderRendinstShadowsToTextures(const Point3 &sunDir0, bool render_clipmap_shadows, bool render_global_shadows)
 {
-  if (rendinstClipmapShadows)
+  if (rendinstClipmapShadows && render_clipmap_shadows)
     spin_wait([&] { return !renderRIGenClipmapShadowsToTextures(sunDir0, false) && !d3d::device_lost(nullptr); });
 
-  if (rendinstGlobalShadows)
+  if (rendinstGlobalShadows && render_global_shadows)
     spin_wait([&] { return !renderRIGenGlobalShadowsToTextures(sunDir0) && !d3d::device_lost(nullptr); });
 }
 
@@ -363,7 +372,7 @@ void ensurePerDrawBufferExists(int layer)
     name[name.size() - 2] = '0' + layer;
     riGenPerDrawData =
       dag::create_sbuffer(sizeof(Point4), riGenElements, SBCF_BIND_SHADER_RES | (riUseStructuredBuffer ? SBCF_MISC_STRUCTURED : 0),
-        riUseStructuredBuffer ? 0 : TEXFMT_A32B32G32R32F, name.c_str());
+        riUseStructuredBuffer ? 0 : TEXFMT_A32B32G32R32F, name.c_str(), RESTAG_RENDINST);
   }
 }
 
@@ -378,11 +387,11 @@ static void allocatePaletteVB()
     const int vecsCnt = maxCount * 3;
     // TODO: Fill the buffer on device reset
     if (rendinst::render::useCellSbuffer)
-      rendinst::render::rotationPaletteTmVb =
-        d3d::buffers::create_persistent_sr_structured(sizeof(Point4), vecsCnt, "rotationPaletteTmVb");
+      rendinst::render::rotationPaletteTmVb = d3d::buffers::create_persistent_sr_structured(sizeof(Point4), vecsCnt,
+        "rotationPaletteTmVb", d3d::buffers::Init::No, RESTAG_RENDINST);
     else
-      rendinst::render::rotationPaletteTmVb =
-        d3d::buffers::create_persistent_sr_tbuf(vecsCnt, TEXFMT_A32B32G32R32F, "rotationPaletteTmVb");
+      rendinst::render::rotationPaletteTmVb = d3d::buffers::create_persistent_sr_tbuf(vecsCnt, TEXFMT_A32B32G32R32F,
+        "rotationPaletteTmVb", d3d::buffers::Init::No, RESTAG_RENDINST);
     d3d_err(rendinst::render::rotationPaletteTmVb);
   }
 }
@@ -394,16 +403,18 @@ static void allocateRendInstVBs()
   rendinst::render::init_instances_tb();
   // Create VB to render one instance of rendinst using IB converted to VB.
   if (rendinst::render::useCellSbuffer)
-    rendinst::render::oneInstanceTmVb = d3d::buffers::create_persistent_sr_structured(sizeof(TMatrix4), 1, "oneInstanceTmVb");
+    rendinst::render::oneInstanceTmVb =
+      d3d::buffers::create_persistent_sr_structured(sizeof(TMatrix4), 1, "oneInstanceTmVb", d3d::buffers::Init::No, RESTAG_RENDINST);
   else
-    rendinst::render::oneInstanceTmVb = d3d::buffers::create_persistent_sr_tbuf(4, TEXFMT_A32B32G32R32F, "oneInstanceTmVb");
+    rendinst::render::oneInstanceTmVb =
+      d3d::buffers::create_persistent_sr_tbuf(4, TEXFMT_A32B32G32R32F, "oneInstanceTmVb", d3d::buffers::Init::No, RESTAG_RENDINST);
 
   d3d_err(rendinst::render::oneInstanceTmVb);
 
   G_STATIC_ASSERT(sizeof(rendinst::render::RiShaderConstBuffers) <= 256); // we just keep it smaller than 256 bytes for performance
                                                                           // reasons
-  rendinst::render::perDrawCB =
-    d3d::buffers::create_one_frame_cb(dag::buffers::cb_struct_reg_count<rendinst::render::RiShaderConstBuffers>(), "perDrawInstCB");
+  rendinst::render::perDrawCB = d3d::buffers::create_one_frame_cb(
+    dag::buffers::cb_struct_reg_count<rendinst::render::RiShaderConstBuffers>(), "perDrawInstCB", RESTAG_RENDINST);
   d3d_err(rendinst::render::perDrawCB);
 
   int elements, riGenElements;
@@ -412,7 +423,7 @@ static void allocateRendInstVBs()
 
   rendinst::render::riExtraPerDrawData =
     dag::create_sbuffer(sizeof(Point4), elements, SBCF_BIND_SHADER_RES | (riUseStructuredBuffer ? SBCF_MISC_STRUCTURED : 0),
-      riUseStructuredBuffer ? 0 : TEXFMT_A32B32G32R32F, "riExtraPerDrawInstanceData");
+      riUseStructuredBuffer ? 0 : TEXFMT_A32B32G32R32F, "riExtraPerDrawInstanceData", RESTAG_RENDINST);
 
   rendinst::render::ensurePerDrawBufferExists(0);
 
@@ -492,8 +503,10 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
     MIN_SETTINGS_RENDINST_DIST_MUL, MAX_SETTINGS_RENDINST_DIST_MUL);
   rendinst::render::globalDistMul = rendinst::render::settingsDistMul;
   rendinst::render::riExtraMulScale = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("riExtraMulScale", 1.0f);
-  rendinst::render::lodsShiftDistMul =
-    clamp(::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("lodsShiftDistMul", 1.f), 1.f, 1.3f);
+  float lodsShiftDistMulConfigValue = ::dgs_get_settings()->getBlockByNameEx("graphics")->getReal("lodsShiftDistMul", 1.f);
+  rendinst::render::lodsShiftDistMul = clamp(lodsShiftDistMulConfigValue, 1.f, 1.3f);
+  if (lodsShiftDistMulConfigValue != rendinst::render::lodsShiftDistMul)
+    logerr("lodsShiftDistMul value (%f) clamped to %f", lodsShiftDistMulConfigValue, rendinst::render::lodsShiftDistMul);
 
   rendinst::render::use_color_padding =
     use_color_padding && ::dgs_get_settings()->getBlockByNameEx("graphics")->getBool("riColorPadding", true);
@@ -546,7 +559,7 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
 
   rendinst::render::dynamic_impostor_texture_const_no =
     ShaderGlobal::get_int_fast(::get_shader_glob_var_id("dynamic_impostor_texture_const_no"));
-  rendinst::render::rendinst_ao_mul = ShaderGlobal::get_real_fast(::get_shader_glob_var_id("rendinst_ao_mul", true));
+  rendinst::render::rendinst_ao_mul = ShaderGlobal::get_float(::get_shader_glob_var_id("rendinst_ao_mul", true));
 
   invLod0RangeVarId = ::get_shader_glob_var_id("rendinst_inv_lod0_range", true);
 
@@ -561,6 +574,7 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
 
   rendinst::render::instancingTypeVarId = ::get_shader_glob_var_id("instancing_type");
   rendinst::render::lods_shift_dist_mul_varId = ::get_shader_glob_var_id("lods_shift_dist_mul");
+  rendinst::render::ri_dist_mul_rcp_varId = ::get_shader_glob_var_id("ri_dist_mul_rcp");
 
   auto graphicsBlk = ::dgs_get_settings()->getBlockByNameEx("graphics");
   rendinst::render::use_tree_lod0_offset = graphicsBlk->getBool("useTreeLod0Offset", true);
@@ -570,6 +584,13 @@ void RendInstGenData::initRenderGlobals(bool use_color_padding, bool should_init
     sqrtf(rendinst::render::lods_by_distance_range_sq));
 
   rendinst::render::use_bbox_in_cbuffer = ::get_shader_variable_id("useBboxInCbuffer", true) >= 0;
+
+  const int inEditorAssumeVarId = get_shader_variable_id("in_editor_assume", true);
+  if (ShaderGlobal::is_var_assumed(inEditorAssumeVarId) && ShaderGlobal::get_interval_assumed_value(inEditorAssumeVarId) == 1)
+  {
+    rendinst::render::is_tool_shaders = true;
+    debug("rendinst: tool shaders are used");
+  }
 
   rendinst::render::initClipmapShadows();
   rendinst::render::per_instance_visibility = d3d::get_driver_desc().caps.hasInstanceID;
@@ -696,6 +717,9 @@ void RendInstGenData::initRender(const DataBlock *level_blk)
           }
 
           rtData->riImpTexIds.add(rtData->riRes[i]->getImpostorTextures().albedo_alpha);
+
+          if (::rendinst::impostor_texture_callback)
+            ::rendinst::impostor_texture_callback(rtData->riRes[i]);
         }
         rtData->riRes[i]->gatherUsedTex(rtData->riImpTexIds);
       }
@@ -850,8 +874,9 @@ void RendInstGenData::RtData::setTextureMinMipWidth(int textureSize, int imposto
 
     ShaderMaterial *mat = elems[0].mat;
 
-    if (!strstr(mat->getInfo().str(), "rendinst_impostor") && !strstr(mat->getInfo().str(), "rendinst_baked_impostor")) // has impostor
-                                                                                                                        // lod
+    if (!strstr(mat->getShaderClassName(), "rendinst_impostor") &&
+        !strstr(mat->getShaderClassName(), "rendinst_baked_impostor")) // has impostor
+                                                                       // lod
       continue;
 
     ShaderMesh *impostorSourceMesh = riResLodScene(poolNo, riResLodCount(poolNo) - 2)->getMesh()->getMesh()->getMesh();
@@ -860,7 +885,7 @@ void RendInstGenData::RtData::setTextureMinMipWidth(int textureSize, int imposto
     {
       mat = imp_elems[elemNo].mat;
 
-      if (!strstr(mat->getInfo().str(), "tree"))
+      if (!strstr(mat->getShaderClassName(), "tree"))
         continue;
 
       TEXTUREID texId = mat->get_texture(0);
@@ -930,9 +955,12 @@ void RendInstGenData::CellRtData::clear()
 }
 
 RendInstGenData::RtData::RtData(int layer_idx) :
-  cellsVb(SbufferHeapManager(String(128, "cells_vb_%d", layer_idx), //-V730
-    RENDER_ELEM_SIZE, SBCF_BIND_SHADER_RES | (rendinst::render::useCellSbuffer ? SBCF_MISC_STRUCTURED : 0),
-    rendinst::render::useCellSbuffer ? 0 : (RENDINST_FLOAT_POS ? rendinst::render::unpacked_format : rendinst::render::packed_format)))
+  cellsVb(
+    SbufferHeapManager(String(128, "cells_vb_%d", layer_idx), //-V730
+      RENDER_ELEM_SIZE, SBCF_BIND_SHADER_RES | (rendinst::render::useCellSbuffer ? SBCF_MISC_STRUCTURED : 0),
+      rendinst::render::useCellSbuffer ? 0
+                                       : (RENDINST_FLOAT_POS ? rendinst::render::unpacked_format : rendinst::render::packed_format)),
+    RESTAG_RENDINST)
 {
   cellsVb.getManager().setShouldCopyToNewHeap(false);
   layerIdx = layer_idx;
@@ -941,7 +969,12 @@ RendInstGenData::RtData::RtData(int layer_idx) :
   maxDebris[0] = maxDebris[1] = curDebris[0] = curDebris[1] = 0;
   rendinstDistMul = rendinstDistMulFar = rendinstDistMulImpostorTrees = rendinstDistMulFarImpostorTrees =
     impostorsFarDistAdditionalMul = impostorsDistAdditionalMul = 1.0f;
+
+#if defined(__clang__) // Fix for a clang 20+ bug. Just omits generating assembly for __builtin_inff();
   impostorsMinRange = INFINITY;
+#else
+  impostorsMinRange = eastl::numeric_limits<float>::infinity();
+#endif
   rendinstFarPlane = 1.f;
   rendinstMaxLod0Dist = 1.f;
   rendinstMaxDestructibleSizeSum = 1.f;
@@ -1032,7 +1065,7 @@ void RendInstGenData::CellRtData::update(int size, RendInstGenData &rgd)
 
       constexpr int unpackRatio = RENDER_ELEM_SIZE_UNPACKED / RENDER_ELEM_SIZE_PACKED;
 
-      int transferSize = 0;
+      int transferSize = 0, pad_transferSize = 0;
       dag::Vector<uint8_t, framemem_allocator> tmpMem;
 
       for (int p = 0, pe = pools.size(); p < pe; ++p)
@@ -1041,11 +1074,14 @@ void RendInstGenData::CellRtData::update(int size, RendInstGenData &rgd)
         bool posInst = rtData->riPosInst[p];
         int srcStride = RIGEN_STRIDE_B(posInst, rtData->riZeroInstSeeds[p], rgd.perInstDataDwords);
         int dstStride = srcStride * unpackRatio;
-        int dstSize = pool.total * dstStride;
+        int instCnt = pool.total ? pool.total - pool.avail : 0;
+        if (pool.avail > 0)
+          pad_transferSize += pool.avail * dstStride;
 
-        if (pool.total == 0)
+        if (instCnt == 0)
           continue;
 
+        int dstSize = instCnt * dstStride;
         if (tmpMem.size() < dstSize)
           tmpMem.resize(dstSize);
 
@@ -1054,7 +1090,7 @@ void RendInstGenData::CellRtData::update(int size, RendInstGenData &rgd)
         uint8_t *dst = tmpMem.data();
         if (posInst)
         {
-          for (int i = 0; i < pool.total; ++i)
+          for (int i = 0; i < instCnt; ++i)
           {
             vec4f pos, scale;
             vec4i palette_id;
@@ -1067,7 +1103,7 @@ void RendInstGenData::CellRtData::update(int size, RendInstGenData &rgd)
         }
         else
         {
-          for (int i = 0; i < pool.total; ++i)
+          for (int i = 0; i < instCnt; ++i)
           {
             mat44f tm;
             rendinst::gen::unpack_tm_full(tm, (const int16_t *)(src + i * srcStride), v_cell_add, v_cell_mul);
@@ -1094,8 +1130,8 @@ void RendInstGenData::CellRtData::update(int size, RendInstGenData &rgd)
         }
         rtData->cellsVb.getHeap().getBuf()->updateData(vbInfo.offset + pool.baseOfs * unpackRatio, dstSize, dst, VBLOCK_WRITEONLY);
       }
-      G_ASSERTF(transferSize == size * unpackRatio, "RendInstGenData::CellRtData::update dstSize != transferSize (%d/%d)",
-        size * unpackRatio, transferSize);
+      G_ASSERTF(transferSize + pad_transferSize == size * unpackRatio,
+        "RendInstGenData::CellRtData::update dstSize < transferSize (%d/%d+%d)", size * unpackRatio, transferSize, pad_transferSize);
       G_UNUSED(size);
     }
     else
@@ -1158,8 +1194,9 @@ void RendInstGenData::renderOptimizationDepthPrepass(const RiGenVisibility &visi
     rendinst::isRgLayerPrimary(rtData->layerIdx) ? "ri_depth_prepass" : "ri_depth_prepass_sec");
 
   set_up_left_to_shader(view_itm);
-  ShaderGlobal::set_real_fast(rendinst::render::lods_shift_dist_mul_varId,
+  ShaderGlobal::set_float(rendinst::render::lods_shift_dist_mul_varId,
     rendinst::render::lodsShiftDistMul / rtData->rendinstDistMulImpostorTrees / rtData->impostorsDistAdditionalMul);
+  ShaderGlobal::set_float(rendinst::render::ri_dist_mul_rcp_varId, safediv(1.0f, visibility.riDistMul));
 
   int layerIdx = rtData->layerIdx;
   rendinst::render::setPerDrawData(rendinst::render::riGenPerDrawDataForLayer[layerIdx]);
@@ -1325,8 +1362,9 @@ void RendInstGenData::renderPreparedOpaque(rendinst::RenderPass render_pass, ren
     return;
 
   set_up_left_to_shader(view_itm);
-  ShaderGlobal::set_real_fast(rendinst::render::lods_shift_dist_mul_varId,
+  ShaderGlobal::set_float(rendinst::render::lods_shift_dist_mul_varId,
     rendinst::render::lodsShiftDistMul / rtData->rendinstDistMulImpostorTrees / rtData->impostorsDistAdditionalMul);
+  ShaderGlobal::set_float(rendinst::render::ri_dist_mul_rcp_varId, safediv(1.0f, visibility.riDistMul));
 
   const int blockToSet = (render_pass == rendinst::RenderPass::Depth) || (render_pass == rendinst::RenderPass::ToShadow)
                            ? rendinst::render::rendinstDepthSceneBlockId
@@ -1340,7 +1378,7 @@ void RendInstGenData::renderPreparedOpaque(rendinst::RenderPass render_pass, ren
   ShaderGlobal::set_int_fast(rendinst::render::baked_impostor_multisampleVarId, 1);
   ShaderGlobal::set_int_fast(rendinst::render::vertical_impostor_slicesVarId, rendinst::render::vertical_billboards ? 1 : 0);
 
-  ShaderGlobal::set_real_fast(globalTranspVarId, 1.f); // Force not-transparent branch.
+  ShaderGlobal::set_float(globalTranspVarId, 1.f); // Force not-transparent branch.
 
   rendinst::render::RiGenRenderer renderer(render_pass, layer_flags, false, depth_optimized,
     rendinst::render::depth_prepass_for_impostors, rendinst::render::depth_prepass_for_cells, perInstDataDwords, drawOrderVarId);
@@ -1434,7 +1472,7 @@ void rendinst::render::renderGpuObjectsFromVisibility(RenderPass render_pass, co
 
 void rendinst::render::renderRIGen(RenderPass render_pass, const RiGenVisibility *visibility, const TMatrix &view_itm,
   LayerFlags layer_flags, OptimizeDepthPass depth_optimized, uint32_t instance_count_mul, AtestStage atest_stage,
-  const RiExtraRenderer *riex_renderer, TexStreamingContext texCtx)
+  const RiExtraRenderer *riex_renderer, TexStreamingContext texCtx, RiExtraRenderingSubset ri_extra_rendering_subset)
 {
   if (!RendInstGenData::renderResRequired || RendInstGenData::isLoading || !unitedvdata::riUnitedVdata.getIB())
     return;
@@ -1455,9 +1493,10 @@ void rendinst::render::renderRIGen(RenderPass render_pass, const RiGenVisibility
     if ((layer_flags & LayerFlag::Opaque) && ri_extra_render_enabled)
     {
       renderRIGenExtra(visibility[0], render_pass, optimize_depth, OptimizeDepthPrepass::No, IgnoreOptimizationLimits::No,
-        LayerFlag::Opaque, instance_count_mul, texCtx, atest_stage, riex_renderer);
+        LayerFlag::Opaque, instance_count_mul, texCtx, atest_stage, riex_renderer, ri_extra_rendering_subset);
 
-      gpuobjects::render_layer(render_pass, visibility, layer_flags, LayerFlag::Opaque);
+      if (ri_extra_rendering_subset != RiExtraRenderingSubset::OnlyDynamic)
+        gpuobjects::render_layer(render_pass, visibility, layer_flags, LayerFlag::Opaque);
     }
 
     if ((layer_flags & LayerFlag::RendinstClipmapBlend) && ri_extra_render_enabled)
@@ -1519,8 +1558,9 @@ void rendinst::render::renderRIGenOptimizationDepth(RenderPass render_pass, cons
 
   G_ASSERT(visibility);
   ShaderGlobal::set_int_fast(rendinstRenderPassVarId, eastl::to_underlying(render_pass));
-  renderRIGenExtra(visibility[0], render_pass, OptimizeDepthPass::Yes, OptimizeDepthPrepass::Yes, ignore_optimization_instances_limits,
-    LayerFlag::Opaque, instance_count_mul, texCtx);
+  if (ri_extra_render_enabled)
+    renderRIGenExtra(visibility[0], render_pass, OptimizeDepthPass::Yes, OptimizeDepthPrepass::Yes,
+      ignore_optimization_instances_limits, LayerFlag::Opaque, instance_count_mul, texCtx);
 
   if (visibility[0].gpuObjectsCascadeId != -1 && gpu_objects == RenderGpuObjects::Yes)
     gpuobjects::render_optimization_depth(render_pass, visibility, ignore_optimization_instances_limits, instance_count_mul);
@@ -1581,7 +1621,8 @@ void rendinst::render::renderRIGen(RenderPass render_pass, mat44f_cref globtm, c
       disableRendinstAlphaForNormalPassWithZPrepass();
 
     FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskO)
-      if (rgl->prepareVisibility(frustum, view_pos, visibility, for_shadow, layer_flags, nullptr))
+      if (rgl->prepareVisibility(visibility, frustum,
+            PrepareRiGenVisibilityParams{.layerFlags = layer_flags, .viewPos = view_pos, .forShadow = for_shadow}))
         rgl->render(render_pass, visibility, view_itm,
           (layer_flags & LayerFlag::Transparent) ? LayerFlag::Transparent : (layer_flags & ~LayerFlag::Decals), false);
 
@@ -1596,7 +1637,8 @@ void rendinst::render::renderRIGen(RenderPass render_pass, mat44f_cref globtm, c
 #if _TARGET_PC_TOOLS_BUILD // only render decals for riGen in Tools
     disableRendinstAlphaForNormalPassWithZPrepass();
     FOR_EACH_RG_LAYER_RENDER (rgl, rgRenderMaskO)
-      if (rgl->prepareVisibility(frustum, view_pos, visibility, for_shadow, layer_flags, nullptr))
+      if (rgl->prepareVisibility(visibility, frustum,
+            PrepareRiGenVisibilityParams{.layerFlags = layer_flags, .viewPos = view_pos, .forShadow = for_shadow}))
         rgl->render(render_pass, visibility, view_itm, LayerFlag::Decals, false);
     restoreRendinstAlphaForNormalPassWithZPrepass();
 #endif
@@ -1647,8 +1689,6 @@ static void rendinst_afterDeviceReset(bool /*full_reset*/)
 
   FOR_EACH_RG_LAYER_DO (rgl)
     rgl->onDeviceReset();
-
-  rendinst::gpuobjects::after_device_reset();
 }
 
 void RendInstGenData::renderDebug()
@@ -1709,14 +1749,24 @@ int rendinst::render::getRIGenRenderMode() { return rendinst::ri_game_render_mod
 
 bool rendinst::render::pendingRebuild() { return interlocked_acquire_load(pendingRebuildCnt) != 0; }
 
-void rendinst::render::before_draw(RenderPass render_pass, const RiGenVisibility *visibility, const Frustum &frustum,
-  const Occlusion *occlusion, const char *mission_name, const char *map_name, bool gpu_instancing)
+void rendinst::render::before_draw(RenderPass render_pass, dag::Span<const RiBeforeDrawPerViewParams> per_view_params,
+  const char *mission_name, const char *map_name, bool gpu_instancing)
 {
-  rendinst::gpuobjects::before_draw(render_pass, visibility, frustum, occlusion, mission_name, map_name, gpu_instancing);
+  for (const auto &viewParams : per_view_params)
+    rendinst::gpuobjects::before_draw(render_pass, viewParams.visibility, *viewParams.frustum, viewParams.occlusion, mission_name,
+      map_name, gpu_instancing);
+
   rendinst::render::ensureElemsRebuiltRIGenExtra(gpu_instancing);
   FOR_EACH_RG_LAYER_DO (rgl)
     if (rgl->rtData)
       RiGenRenderer::updatePackedData(rgl->rtData->layerIdx);
+}
+
+void rendinst::render::before_draw(RenderPass render_pass, const RiGenVisibility *visibility, const Frustum &frustum,
+  const Occlusion *occlusion, const char *mission_name, const char *map_name, bool gpu_instancing)
+{
+  const RiBeforeDrawPerViewParams perViewParams{visibility, &frustum, occlusion};
+  rendinst::render::before_draw(render_pass, {&perViewParams, 1}, mission_name, map_name, gpu_instancing);
 }
 
 void rendinst::updateHeapVb()
@@ -1763,7 +1813,7 @@ void rendinst::render::log_riex_number(const RiGenVisibility *visibility)
   eastl::string riInfo;
   for (int instPerLod : visibility->instNumberCounter)
     riInfo += eastl::string(eastl::string::CtorSprintf(), "%s%d", riInfo.empty() ? "" : "/", instPerLod);
-  debug("RI lods: %s", riInfo);
+  debug("RI lods: %s", riInfo.c_str());
 }
 
 bool rendinst::render::verify_riex_number(const RiGenVisibility *visibility)

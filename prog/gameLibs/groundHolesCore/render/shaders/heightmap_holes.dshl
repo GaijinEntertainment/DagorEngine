@@ -116,7 +116,7 @@ shader heightmap_holes_prepare
 macro INIT_AND_USE_HOLES_PROCESS(stage)
   (stage) {
     hmap_hole_ofs_size@f4 = hmap_hole_ofs_size;
-    temp_heightmap_holes_tex@smp2d = temp_heightmap_holes_tex;
+    temp_heightmap_holes_tex@tex2d = temp_heightmap_holes_tex;
   }
   hlsl(stage) {
     float get_packed_ground_hole(uint2 pos)
@@ -164,11 +164,13 @@ shader heightmap_holes_process_cs
   {
     heightmap_holes_tmp_write_offset_size@f4 = heightmap_holes_tmp_write_offset_size;
     heightmap_holes_tex_dim@f2 = get_dimensions(heightmap_holes_tex, 0);
+
+    outputTex@uav : register(7) hlsl {
+      RWTexture2D<float> outputTex@uav;
+    }
   }
 
   hlsl(cs) {
-    RWTexture2D<float> outputTex : register(u7);
-
     [numthreads( 8, 8, 1)]
     void process_cs( uint2 dtId : SV_DispatchThreadID )
     {

@@ -1,0 +1,9 @@
+WARNING: w238 (named-like-should-return) Function name '__merge' implies a return value, but its result is never used.
+testData/static_analyzer/w238_merge.nut:7:2
+
+function _x() {
+  ::a.__merge(::table2)
+  ^--------------------
+}
+
+

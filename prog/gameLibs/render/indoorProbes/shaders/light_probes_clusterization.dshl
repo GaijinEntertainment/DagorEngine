@@ -19,13 +19,14 @@ shader light_probes_clusterization_cs
         float4 indoor_probe_types[QUARTER_OF_ACTIVE_PROBES];
       }
     }
+    actualProbes@uav : register(0) hlsl {
+      RWStructuredBuffer<uint4> actualProbes@uav;
+    }
   }
-  ENABLE_ASSERT(cs)
   USE_INDOOR_LIGHT_PROBE_DFS(cs)
   hlsl(cs) {
     #include <transform_box.hlsl>
 
-    RWStructuredBuffer<uint4> actualProbes: register(u0);
     groupshared float distanceFromViewWeights[MAX_ACTIVE_PROBES];
 
     [numthreads(GRID_SIDE, GRID_HEIGHT, 1)]

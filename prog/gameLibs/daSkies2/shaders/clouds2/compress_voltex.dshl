@@ -16,8 +16,8 @@ macro USE_COMPRESS_VOLTEX_BC4(stage)
     #endif
   }
   (stage) {
-    source@smp = compress_voltex_bc4_source hlsl {
-      Texture3D<float> source@smp;
+    source@tex = compress_voltex_bc4_source hlsl {
+      Texture3D<float> source@tex;
     }
   }
   USE_BC4_COMPRESSION(stage)
@@ -48,11 +48,14 @@ endmacro
 //todo: we can actually generate directly to int2/BC4 block
 shader compress_voltex_bc4_cs
 {
-  ENABLE_ASSERT(cs)
   USE_COMPRESS_VOLTEX_BC4(cs)
   COMPRESS_VOLTEX_BC4_MAIN(cs)
+  (cs) {
+    output@uav : register(0) hlsl {
+      RWTexture3D<uint2> output@uav;
+    }
+  }
   hlsl(cs) {
-    RWTexture3D<uint2> output : register(u0);
 
     [numthreads(4, 4, 4)]
     void cs_main(uint3 tid : SV_DispatchThreadID) {
@@ -68,7 +71,6 @@ shader compress_voltex_bc4_ps
   {
     dont_render;
   }
-  ENABLE_ASSERT(ps)
   WRITE_TO_VOLTEX_TC()
   USE_COMPRESS_VOLTEX_BC4(ps)
   COMPRESS_VOLTEX_BC4_MAIN(ps)
@@ -86,16 +88,17 @@ int clouds_gen_mips_3d_one_layer = 0;
 interval clouds_gen_mips_3d_one_layer: no <1, yes;
 shader clouds_gen_mips_3d_cs, clouds_gen_mips_2d_cs
 {
-  ENABLE_ASSERT(cs)
   if (shader == clouds_gen_mips_3d_cs)
   {
     (cs) {
-      source@smp = clouds_gen_mips_3d_source hlsl {
-        Texture3D<float> source@smp;
+      source@tex = clouds_gen_mips_3d_source hlsl {
+        Texture3D<float> source@tex;
+      }
+      output@uav : register(0) hlsl {
+        RWTexture3D<float> output@uav;
       }
     }
     hlsl(cs) {
-      RWTexture3D<float> output : register(u0);
       [numthreads(4, 4, 4)]
       void cs_main(uint3 tid : SV_DispatchThreadID) {
         uint3 inp = tid*2;
@@ -111,13 +114,15 @@ shader clouds_gen_mips_3d_cs, clouds_gen_mips_2d_cs
   } else
   {
     (cs) {
-      source@smp = clouds_gen_mips_2d_source hlsl {
-        Texture2D<float> source@smp;
+      source@tex = clouds_gen_mips_2d_source hlsl {
+        Texture2D<float> source@tex;
+      }
+      output@uav : register(0) hlsl {
+        RWTexture2D<float> output@uav;
       }
     }
 
     hlsl(cs) {
-      RWTexture2D<float> output : register(u0);
       [numthreads(8, 8, 1)]
       void cs_main(uint2 tid : SV_DispatchThreadID) {
         uint2 inp = tid*2;
@@ -137,8 +142,8 @@ shader clouds_gen_mips_3d_ps
   WRITE_TO_VOLTEX_TC()
 
   (ps) {
-    source@smp = clouds_gen_mips_3d_source hlsl {
-      Texture3D<float> source@smp;
+    source@tex = clouds_gen_mips_3d_source hlsl {
+      Texture3D<float> source@tex;
     }
   }
   hlsl(ps) {

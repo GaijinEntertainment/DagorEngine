@@ -9,29 +9,70 @@ namespace das
         arr.size = 0;
     }
 
+    void array_mark_locked ( Array & arr, void * data, uint32_t capacity ) {
+        arr.data = (char *)data;
+        arr.size = arr.capacity = capacity;
+        arr.lock = 1;
+        arr.magic = DAS_ARRAY_MAGIC;
+    }
+
+    void array_mark_locked ( Array & arr, void * data, uint32_t size, uint32_t capacity ) {
+        arr.data = (char *)data;
+        arr.size = size;
+        arr.capacity = capacity;
+        arr.lock = 1;
+        arr.magic = DAS_ARRAY_MAGIC;
+    }
+
     void array_lock ( Context & context, Array & arr, LineInfo * at ) {
         if ( arr.shared || arr.hopeless ) return;
-        arr.lock ++;
-        if ( arr.lock==0 ) context.throw_error_at(at, "array lock overflow");
+        if ( arr.lock==0 ) {
+            if ( arr.magic != 0 ) {
+                context.throw_error_at(at, "array magic mismatch on first lock, was it moved or overwritten?");
+            }
+            arr.lock = 1;
+            arr.magic = DAS_ARRAY_MAGIC;
+        } else {
+            if ( arr.magic != DAS_ARRAY_MAGIC ) {
+                context.throw_error_at(at, "array magic mismatch on lock, was it moved or overwritten?");
+            }
+            arr.lock ++;
+            if ( arr.lock==0 ) {
+                context.throw_error_at(at, "array lock overflow, was it moved or overwritten?");
+            }
+        }
     }
 
     void array_unlock ( Context & context, Array & arr, LineInfo * at ) {
         if ( arr.shared || arr.hopeless ) return;
-        if ( arr.lock==0 ) context.throw_error_at(at, "array lock underflow");
+        if ( arr.magic != DAS_ARRAY_MAGIC ) {
+            context.throw_error_at(at, "array magic mismatch on unlock, was it moved or overwritten?");
+        }
+        if ( arr.lock==0 ) {
+            context.throw_error_at(at, "array lock underflow, was it moved or overwritten?");
+        }
         arr.lock --;
+        if ( arr.lock==0 ) {
+            arr.magic = 0;
+        }
     }
 
     void array_reserve(Context & context, Array & arr, uint32_t newCapacity, uint32_t stride, LineInfo * at) {
         if ( arr.isLocked() ) context.throw_error_at(at, "can't change capacity of a locked array");
         if ( arr.capacity >= newCapacity ) return;
+        uint64_t memSize64 = uint64_t(newCapacity) * uint64_t(stride);
+        if ( memSize64>=0xffffffff ) {
+            context.throw_error_at(at, "can't grow array, out of index space [capacity=%i] [stride=%i]", newCapacity, stride);
+        }
         char * newData = nullptr;
         if ( context.verySafeContext ) {
             newData = (char *)context.allocate(newCapacity*stride, at);
-            memcpy(newData, arr.data, arr.size*stride);
+            if ( newData && arr.data ) {
+                memcpy(newData, arr.data, arr.size*stride);
+            }
         } else {
             newData = (char *)context.reallocate(arr.data, arr.capacity*stride, newCapacity*stride, at);
         }
-        if ( !newData ) context.throw_out_of_memory(false, newCapacity*stride, at);
         context.heap->mark_comment(newData, "array");
         if ( newData != arr.data ) {
             // memcpy(newData, arr.data, arr.capacity);
@@ -85,7 +126,6 @@ namespace das
         vec4f ll = source->eval(context);
         Array * arr = cast<Array *>::to(ll);
         char * iter = context.allocateIterator(sizeof(GoodArrayIterator),"array<> iterator", &debugInfo);
-        if ( !iter ) context.throw_out_of_memory(false, sizeof(GoodArrayIterator)+16, &debugInfo);
         new (iter) GoodArrayIterator(arr, stride, &debugInfo);
         return cast<char *>::from(iter);
     }
@@ -119,7 +159,6 @@ namespace das
         vec4f ll = source->eval(context);
         char * data = cast<char *>::to(ll);
         char * iter = context.allocateIterator(sizeof(FixedArrayIterator),"fixed array iterator", &debugInfo);
-        if ( !iter ) context.throw_out_of_memory(false, sizeof(FixedArrayIterator)+16, &debugInfo);
         new (iter) FixedArrayIterator(data, size, stride, &debugInfo);
         return cast<char *>::from(iter);
     }

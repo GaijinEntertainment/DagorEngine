@@ -5,16 +5,13 @@ texture perlin_noise3d;
 
 macro GLOBE_MODEL_GAME_SPECIFICS()
   STANDARD_BRDF_SHADING()
-  //UGLY inline resolving of gbuffer into a float4
-  //Assume forward rendering for this, since that does that anyway.
-  //The shader needs variables from global frame, but can't actually support it, because assumes here won't change that block.
   assume compatibility_mode = compatibility_mode_on;
-  assume mobile_render = forward;
   GLOBAL_FRAME_CONTENT()
   hlsl {
     #define FORWARD_NO_STATIC_SHADOW 1
   }
-  WRITE_GBUFFER()
+  INIT_GBUFFER_FORWARD()
+  WRITE_GBUFFER_FORWARD()
   (ps)
   {
     perlin_noise3d@smp3d = perlin_noise3d;

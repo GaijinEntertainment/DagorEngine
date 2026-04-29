@@ -232,18 +232,15 @@ public:
     // try load dump (only when built for PC)
     if (target_code == _MAKE4C('PC'))
     {
-      DeserializedStaticSceneRayTracer *drt = new DeserializedStaticSceneRayTracer;
       MemoryLoadCB crd(bdcwr.getMem(), false);
       crd.seekrel(4);
-
-      if (!drt->serializedLoad(crd))
+      auto drt = DeserializedStaticSceneRayTracer::load(crd);
+      if (!drt)
       {
         logerr("Can't load raytracer dump from");
-        delete drt;
         return false;
       }
-
-      delete drt;
+      destroy_it(drt);
     }
 
     if (fcnt && vcnt)

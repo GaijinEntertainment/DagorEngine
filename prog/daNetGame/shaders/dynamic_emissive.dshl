@@ -5,7 +5,6 @@ include "emissive.dshl"
 
 shader dynamic_emissive
 {
-  ENABLE_ASSERT(ps)
   SUPPORT_MULTIDRAW(false)
   DYNAMIC_BLOCK()
   EMISSIVE_INIT_WITH_DYNAMIC_PARAMS()
@@ -36,6 +35,6 @@ shader dynamic_emissive
     hlsl(ps) {
       #define IS_DYNAMIC 1
     }
-    EMISSIVE_PS(true)
+    EMISSIVE_PS()
   }
 }

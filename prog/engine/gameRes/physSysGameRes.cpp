@@ -58,19 +58,18 @@ public:
   virtual bool isResLoaded(int res_id) { return findRes(::validate_game_res_id(res_id)) >= 0; }
   virtual bool checkResPtr(GameResource *res) { return findRes((PhysicsResource *)res) >= 0; }
 
-  virtual GameResource *getGameResource(int res_id)
+  virtual GameResource *getGameResource(RRL rrl, int res_id)
   {
-    // get real-res id
     if (::validate_game_res_id(res_id) == NULL_GAMERES_ID)
       return NULL;
 
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
-
-    // no resource - load pack
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0)
       return NULL;
 
@@ -119,12 +118,12 @@ public:
   }
 
 
-  virtual bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/)
+  virtual bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/)
   {
     bool result = false;
     for (int i = resData.size() - 1; i >= 0; --i)
     {
-      if (!resData[i].resource || get_refcount_game_resource_pack_by_resid(resData[i].resId) > 0)
+      if (!resData[i].resource || (rrl && is_res_required(rrl, resData[i].resId)))
         continue;
       if (resData[i].resource->getRefCount() > 1)
       {
@@ -162,7 +161,7 @@ public:
       logerr("Error loading PhysSys resource %s", name);
     }
   }
-  virtual void createGameResource(int /*res_id*/, const int * /*reference_ids*/, int /*num_refs*/) {}
+  virtual void createGameResource(RRL, int, const int *, int) override {}
 
   virtual void reset() { resData.clear(); }
 

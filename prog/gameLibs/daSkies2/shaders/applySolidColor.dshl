@@ -1,0 +1,52 @@
+include "sky_shader_global.dshl"
+include "viewVecVS.dshl"
+
+float4 solid_color;
+
+texture uav_depth_texture;
+
+shader applySolidColor
+{
+  cull_mode = none;
+  z_write = false;
+  if (uav_depth_texture == NULL)
+  {
+    z_test = true;
+  }
+  else
+  {
+    z_test = false;
+  }
+
+  USE_AND_INIT_VIEW_VEC_VS()
+  POSTFX_VS_TEXCOORD_VIEWVEC(0, texcoord, viewVect)
+
+  (ps) {
+    solid_color@f4 = solid_color;
+  }
+
+  if (uav_depth_texture != NULL)
+  {
+    (ps) {
+      uav_depth_texture@tex2d = uav_depth_texture;
+    }
+  }
+
+  hlsl(ps) {
+    float4 envi_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+    {
+      ##if uav_depth_texture != NULL
+        float4 screenpos = GET_SCREEN_POS(input.pos);
+        float depth = texelFetch(uav_depth_texture, screenpos.xy, 0).r;
+        if (depth != 0)
+        {
+          discard;
+          return 0;
+        }
+      ##endif
+
+      return solid_color;
+    }
+  }
+  compile("target_ps", "envi_ps");
+}

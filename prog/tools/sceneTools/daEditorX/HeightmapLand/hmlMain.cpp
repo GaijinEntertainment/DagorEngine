@@ -10,6 +10,7 @@ bool HmapLandPlugin::defMipOrdRev = false;
 bool HmapLandPlugin::preferZstdPacking = false;
 bool HmapLandPlugin::allowOodlePacking = false;
 bool HmapLandPlugin::pcPreferASTC = false;
+bool HmapLandPlugin::includeHiddenLayersInExportedNavMesh = false;
 static HmapLandPlugin *plugin = nullptr;
 
 DE3_DLL_PLUGIN_LINKAGE int DE3_DLL_PLUGIN_CALLCONV get_plugin_version() { return IGenEditorPlugin::VERSION_1_1; }
@@ -18,7 +19,7 @@ DE3_DLL_PLUGIN_LINKAGE IGenEditorPlugin *DE3_DLL_PLUGIN_CALLCONV register_plugin
 {
   daeditor3_init_globals(editor);
 
-  DataBlock app_blk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock app_blk(DAGORED2->getWorkspace().getAppBlkPath());
   const char *mgr_type = app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("hmap")->getStr("type", NULL);
 #if defined(USE_HMAP_ACES)
   if (!mgr_type || strcmp(mgr_type, "aces") != 0)
@@ -52,6 +53,12 @@ DE3_DLL_PLUGIN_LINKAGE IGenEditorPlugin *DE3_DLL_PLUGIN_CALLCONV register_plugin
   {
     HmapLandPlugin::pcPreferASTC = true;
     debug("landscape prefers ASTC format for PC");
+  }
+
+  if (app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("hmap")->getBool("includeHiddenLayersInExportedNavMesh", false))
+  {
+    HmapLandPlugin::includeHiddenLayersInExportedNavMesh = true;
+    debug("Hidden layers will be included in the exported nav mesh.");
   }
 
   ::plugin = ::new (inimem) HmapLandPlugin;

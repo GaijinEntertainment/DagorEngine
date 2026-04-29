@@ -6,7 +6,7 @@
     this is NOT a general purpose replacement of std::function
     this concept wraps around lambda, which is passed on the stack, and only exists at eval time, i.e
         foo ( callable([&](...){}) )
-    this is as close to daScript block, as we can get
+    this is as close to daslang block, as we can get
 */
 
 namespace das {
@@ -32,6 +32,7 @@ namespace das {
             : invoke_f(reinterpret_cast<invoke_fn_t>(invoke_fn<Functor>))
             , data_ptr(reinterpret_cast<const char *>(&f)) {
         }
+        DAS_SUPPRESS_UB
         __forceinline R operator()(Args... args) const {
             return this->invoke_f(this->data_ptr, das::forward<Args>(args)...);
         }
@@ -55,6 +56,8 @@ namespace das {
             : invoke_f(reinterpret_cast<invoke_fn_t>(invoke_fn<Functor>))
             , data_ptr(reinterpret_cast<const char *>(&f)) {
         }
+
+        DAS_SUPPRESS_UB
         __forceinline void operator()(Args... args) const {
             this->invoke_f(this->data_ptr, das::forward<Args>(args)...);
         }

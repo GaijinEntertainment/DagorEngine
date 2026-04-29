@@ -145,7 +145,7 @@ struct DataBlockShared
     return getData() + at;
   }
 
-  bool isROBlock(const DataBlock *db) const { return getROBlockUnsafe(0) <= db && db - getROBlockUnsafe(0) < roDataBlocks; }
+  bool isROBlock(const DataBlock *db) const { return uintptr_t(db - getROBlockUnsafe(0)) < uintptr_t(roDataBlocks); }
   uint32_t roDataSize() const { return blocksStartsAt + roDataBlocks * sizeof(DataBlock) + sizeof(*this); }
 
   // protected:

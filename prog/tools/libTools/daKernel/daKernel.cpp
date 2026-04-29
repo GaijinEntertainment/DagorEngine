@@ -9,10 +9,6 @@
 bool g_enable_time_profiler = false; // legacy way
 bool g_gpu_profiler_on = false;      // legacy way
 
-#if _TARGET_64BIT
-size_t dagormem_first_pool_sz = size_t(8192) << 20;
-size_t dagormem_next_pool_sz = size_t(512) << 20;
-#endif
 namespace dblk
 {
 KRNLIMP void save_to_bbf3(const DataBlock &blk, IGenSave &cwr);
@@ -23,11 +19,11 @@ int pull_dll_sum =
 #if _TARGET_PC
   (int)(intptr_t)(void *)(&da_profiler::dump_frames) + dll_pull_osapiwrappers_asyncRead + dll_pull_osapiwrappers_basePathMgr +
   dll_pull_osapiwrappers_critsec + dll_pull_osapiwrappers_timed_critsec + dll_pull_osapiwrappers_dbgStr +
-  dll_pull_osapiwrappers_dbgStrFmt + dll_pull_osapiwrappers_directoryService + dll_pull_osapiwrappers_directory_watch +
-  dll_pull_osapiwrappers_findFile + dll_pull_osapiwrappers_getRealFname + dll_pull_osapiwrappers_localCmp +
-  dll_pull_osapiwrappers_cpuJobs + dll_pull_osapiwrappers_miscApi + dll_pull_osapiwrappers_simplifyFname +
-  dll_pull_osapiwrappers_progGlobals + dll_pull_osapiwrappers_setThreadName + dll_pull_osapiwrappers_setTitle +
-  dll_pull_osapiwrappers_ip2str +
+  dll_pull_osapiwrappers_dbgStrFmt + dll_pull_osapiwrappers_directoryService + dll_pull_osapiwrappers_directoryUtils +
+  dll_pull_osapiwrappers_directory_watch + dll_pull_osapiwrappers_findFile + dll_pull_osapiwrappers_getRealFname +
+  dll_pull_osapiwrappers_localCmp + dll_pull_osapiwrappers_cpuJobs + dll_pull_osapiwrappers_miscApi +
+  dll_pull_osapiwrappers_simplifyFname + dll_pull_osapiwrappers_progGlobals + dll_pull_osapiwrappers_setThreadName +
+  dll_pull_osapiwrappers_setTitle + dll_pull_osapiwrappers_ip2str +
 #if _TARGET_PC_WIN
   dll_pull_osapiwrappers_winXSaveFeatures +
 #endif
@@ -36,12 +32,13 @@ int pull_dll_sum =
   dll_pull_osapiwrappers_sharedMem + dll_pull_osapiwrappers_spinlock + dll_pull_osapiwrappers_symHlp + dll_pull_osapiwrappers_dynLib +
   dll_pull_osapiwrappers_shellExecute + dll_pull_osapiwrappers_messageBox + dll_pull_osapiwrappers_sockets +
   dll_pull_osapiwrappers_mmap + dll_pull_osapiwrappers_virtualMem + dll_pull_osapiwrappers_cpuFeatures +
+  dll_pull_osapiwrappers_versionQuery + dll_pull_osapiwrappers_winVersionQuery +
 
-  dll_pull_kernel_cpuFreq + dll_pull_kernel_dagorHwExcept + dll_pull_kernel_debug + dll_pull_kernel_fatalerr +
-  dll_pull_kernel_kernelGlobalSetting + dll_pull_kernel_log + dll_pull_kernel_debugDumpStack + dll_pull_kernel_cpu_control +
-  dll_pull_kernel_perfTimer + dll_pull_perfMon_daProfilerLogDump +
+  dll_pull_kernel_cpuFreq + dll_pull_kernel_dagorHwBreakpoint + dll_pull_kernel_dagorHwExcept + dll_pull_kernel_debug +
+  dll_pull_kernel_fatalerr + dll_pull_kernel_kernelGlobalSetting + dll_pull_kernel_log + dll_pull_kernel_debugDumpStack +
+  dll_pull_kernel_cpu_control + dll_pull_kernel_perfTimer + dll_pull_perfMon_daProfilerLogDump +
 
-  dll_pull_memory_dagmem + dll_pull_memory_mspaceAlloc + dll_pull_memory_framemem + dll_pull_memory_physmem +
+  dll_pull_memory_profile + dll_pull_memory_dagmem + dll_pull_memory_mspaceAlloc + dll_pull_memory_framemem + dll_pull_memory_physmem +
 
   dll_pull_iosys_asyncIo + dll_pull_iosys_asyncIoCached + dll_pull_iosys_asyncWrite + dll_pull_iosys_baseIo + dll_pull_iosys_fileIo +
   dll_pull_iosys_ioUtils + dll_pull_iosys_memIo + dll_pull_iosys_obsolete_cfg + dll_pull_iosys_zlibIo + dll_pull_iosys_lzmaDecIo +

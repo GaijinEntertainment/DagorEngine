@@ -32,7 +32,6 @@ shader bvh_debug
   INIT_BVH(cs, 0, true)
   USE_BVH(cs, 1, 1, 1, 1, 1, 0, 1, 1)
 
-  ENABLE_ASSERT(cs)
   hlsl(cs)
   {
     RT_GROUP_SIZE
@@ -56,8 +55,8 @@ shader bvh_debug
           {
             if (hitInfo.albedoTextureIndex != 0xFFFF)
             {
-              SamplerState bvh_sampler = bvh_samplers[hitInfo.albedoSamplerIndex];
-              float4 texel = bvh_textures[bvh_textures_range_start + hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
+              SamplerState bvh_sampler = bvh_samplers[NonUniformResourceIndex(hitInfo.albedoSamplerIndex)];
+              float4 texel = bvh_textures[hitInfo.albedoTextureIndex].SampleLevel(bvh_sampler, hitInfo.texcoord, 0);
               debug_target[thread] = float4(texel.rgb, 1);
             }
             else

@@ -1,0 +1,7 @@
+VARIANT 1: TP_STRING len=0xFFFFFFFF -> sq_getscratchpad(vm, ~4GB)
+  caught: String too large during deserialization
+VARIANT 2: TP_ARRAY size=0xFFFFFFFF -> sq_newarray(vm, ~4GB)
+  caught: Array too large during deserialization
+VARIANT 3: TP_TABLE size=0xFFFFFFFF -> sq_newtableex(vm, ~4GB)
+  caught: Table too large during deserialization
+done

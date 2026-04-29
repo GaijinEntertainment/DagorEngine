@@ -26,9 +26,9 @@ static ecs::CompileTimeQueryDesc collidable_grid_obj_eid_ecs_query_desc
   empty_span(),
   make_span(collidable_grid_obj_eid_ecs_query_comps+7, 1)/*no*/);
 template<typename Callable>
-inline void collidable_grid_obj_eid_ecs_query(ecs::EntityId eid, Callable function)
+inline void collidable_grid_obj_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, collidable_grid_obj_eid_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, collidable_grid_obj_eid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -62,9 +62,9 @@ static ecs::CompileTimeQueryDesc base_phys_grid_obj_eid_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void base_phys_grid_obj_eid_ecs_query(ecs::EntityId eid, Callable function)
+inline void base_phys_grid_obj_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, base_phys_grid_obj_eid_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, base_phys_grid_obj_eid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -94,9 +94,9 @@ static ecs::CompileTimeQueryDesc trace_grid_object_eid_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void trace_grid_object_eid_ecs_query(ecs::EntityId eid, Callable function)
+inline void trace_grid_object_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, trace_grid_object_eid_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, trace_grid_object_eid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -126,9 +126,9 @@ static ecs::CompileTimeQueryDesc trace_grid_object_by_capsule_eid_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void trace_grid_object_by_capsule_eid_ecs_query(ecs::EntityId eid, Callable function)
+inline void trace_grid_object_by_capsule_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, trace_grid_object_by_capsule_eid_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, trace_grid_object_by_capsule_eid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -158,9 +158,9 @@ static ecs::CompileTimeQueryDesc intersected_eid_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void intersected_eid_ecs_query(ecs::EntityId eid, Callable function)
+inline void intersected_eid_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, intersected_eid_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, intersected_eid_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;

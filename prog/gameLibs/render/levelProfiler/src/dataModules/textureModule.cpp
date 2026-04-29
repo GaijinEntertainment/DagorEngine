@@ -3,9 +3,11 @@
 #include <EASTL/sort.h>
 #include <EASTL/algorithm.h>
 #include <3d/dag_texIdSet.h>
+#include <3d/dag_texPackMgr2.h>
 #include <drv/3d/dag_rwResource.h>
+#include <drv/3d/dag_texture.h>
 #include <shaders/dag_shaderResUnitedData.h>
-#include "levelProfilerUI.h"
+#include <gui/dag_imguiUtil.h>
 #include "textureModule.h"
 
 namespace levelprofiler
@@ -25,9 +27,6 @@ static constexpr int RGBA_CHANNELS_MASK = (1 << RGBA_CHANNEL_COUNT) - 1;
 
 // Number of style colors pushed for channel buttons (Button, ButtonHovered, ButtonActive)
 static const int CHANNEL_BUTTON_STYLE_COUNT = 3;
-
-// Number of frames to process one texture during data collection
-static constexpr int FRAMES_PER_TEXTURE = 3; // 3-5 frames is enough to download texture in memory
 
 TextureModule::TextureModule()
 {
@@ -66,37 +65,79 @@ void TextureModule::clearImpl()
 
   totalCount = filteredCount = 0;
   totalMemorySize = filteredMemorySize = 0;
-
-  isCollectingData = false;
-  texturesToCollect.clear();
-  currentCollectionIndex = 0;
-  collectionFrameCounter = 0;
 }
 
 void TextureModule::collect()
 {
   clear();
 
-  // Primary collection - get plug data
-  for (TEXTUREID id = first_managed_texture(1); id != BAD_TEXTUREID; id = next_managed_texture(id, 1))
+  for (TEXTUREID tid = first_managed_texture(1); tid != BAD_TEXTUREID; tid = next_managed_texture(tid, 1))
   {
-    if (auto texturePtr = acquire_managed_tex(id))
+    BaseTexture *tex = acquire_managed_tex(tid);
+    if (!tex)
+      continue;
+
+    TextureData textureData;
+    textureData.name = get_managed_texture_name(tid);
+
+    ProfilerString textureName = TextureMetaData::decodeFileName(textureData.name.c_str());
+    ddsx::DDSxDataPublicHdr desc;
+    int texSize = ddsx::read_ddsx_header(textureName.c_str(), desc, true);
+
+    if (texSize < 0)
     {
-      TextureInfo textureInfo;
-      texturePtr->getinfo(textureInfo);
+      TextureInfo ti;
+      tex->getinfo(ti, 0);
 
-      // Only track 2D textures with valid dimensions
-      if (textureInfo.w > 0 && textureInfo.h > 0)
-      {
-        uint64_t sizeBytes = texturePtr->getSize();
-        TextureData textureData(textureInfo, sizeBytes);
-        textures.insert({ProfilerString(texturePtr->getTexName()), textureData});
-      }
-
-      release_managed_tex(id);
+      desc.w = ti.w;
+      desc.h = ti.h;
+      desc.depth = max<int>(ti.d, ti.a);
+      desc.levels = ti.mipLevels;
+      if (ti.type == D3DResourceType::CUBETEX)
+        desc.flags |= desc.FLG_CUBTEX;
+      else if (ti.type == D3DResourceType::VOLTEX)
+        desc.flags |= desc.FLG_VOLTEX;
+      texSize = tex->getSize();
     }
+
+    TextureInfo ti;
+    tex->getinfo(ti, 0);
+
+    ti.w = desc.w;
+    ti.h = desc.h;
+    ti.mipLevels = desc.levels;
+
+    if (desc.flags & desc.FLG_VOLTEX)
+      ti.d = desc.depth;
+    else if (desc.flags & desc.FLG_CUBTEX)
+      ti.a = 6;
+    else if (desc.depth > 1)
+      ti.a = desc.depth;
+
+    textureData.info = ti;
+
+    if (get_managed_texture_refcount(tid) > 0)
+      textureData.sizeBytes = texSize;
+    else
+      textureData.sizeBytes = 0;
+
+    release_managed_tex(tid);
+
+    textures[textureData.name] = textureData;
   }
 
+  calculateFilterRanges();
+
+  filteredTextures.clear();
+  filteredTextures.reserve(textures.size());
+  for (const auto &[textureName, textureData] : textures)
+    filteredTextures.push_back(textureName);
+
+  recalculateStatistics();
+}
+
+void TextureModule::calculateFilterRanges()
+{
   mipMinDefault = INT_MAX;
   mipMaxDefault = INT_MIN;
   sizeMinDefault = FLT_MAX;
@@ -112,194 +153,14 @@ void TextureModule::collect()
     sizeMaxDefault = eastl::max(sizeMaxDefault, currentSizeMB);
   }
 
-  // Handle edge cases for empty data
   if (mipMinDefault > mipMaxDefault)
     mipMinDefault = mipMaxDefault = 0;
 
   if (sizeMinDefault > sizeMaxDefault)
     sizeMinDefault = sizeMaxDefault = 0.0f;
-
-  filteredTextures.clear();
-  filteredTextures.reserve(textures.size());
-  for (const auto &[textureName, textureData] : textures)
-    filteredTextures.push_back(textureName);
-
-  recalculateStatistics();
 }
 
-void TextureModule::startDataCollection()
-{
-  isCollectingData = true;
-  currentCollectionIndex = 0;
-  collectionFrameCounter = 0;
-
-  texturesToCollect.clear();
-  texturesToCollect.reserve(textures.size());
-  for (const auto &[textureName, textureData] : textures)
-    texturesToCollect.push_back(textureName);
-
-  debug("TextureModule: Starting data collection for %zu textures", texturesToCollect.size());
-
-  if (texturesToCollect.empty())
-  {
-    isCollectingData = false;
-    debug("TextureModule: No textures to collect, aborting");
-  }
-}
-
-const ProfilerString &TextureModule::getCurrentCollectionTexture() const
-{
-  static ProfilerString empty;
-  if (!isCollectingData || texturesToCollect.empty() || currentCollectionIndex >= texturesToCollect.size())
-    return empty;
-
-  return selectedTextureName;
-}
-
-void TextureModule::updateDataCollection()
-{
-  if (!isCollectingData || texturesToCollect.empty())
-    return;
-
-  // process one texture for several frames
-  if (currentCollectionIndex < texturesToCollect.size())
-  {
-    const ProfilerString &currentTexture = texturesToCollect[currentCollectionIndex];
-
-    if (collectionFrameCounter == 0)
-    {
-      // First frame -select the texture for the preview
-      selectTexture(currentTexture.c_str());
-
-      // Update the choice in the table through Ilevelprofler
-      if (ILevelProfiler *profiler = ILevelProfiler::getInstance())
-      {
-        if (ProfilerTab *tab = profiler->getTab(0); tab && tab->module)
-        {
-          TextureProfilerUI *ui = static_cast<TextureProfilerUI *>(tab->module);
-          if (ui && ui->getTextureTable())
-            ui->getTextureTable()->setSelectedTexture(currentTexture);
-        }
-      }
-
-      debug("TextureModule: Selected texture %s for preview (%zu/%zu)", currentTexture.c_str(), currentCollectionIndex + 1,
-        texturesToCollect.size());
-    }
-    else if (collectionFrameCounter >= 2 && collectionFrameCounter < FRAMES_PER_TEXTURE - 1)
-    {
-      // Medium frames - force the loading of texture
-      if (TEXTUREID id = get_managed_texture_id(currentTexture.c_str()); id != BAD_TEXTUREID)
-      {
-        if (auto texturePtr = acquire_managed_tex(id))
-        {
-          texturePtr->texmiplevel(0, 0);
-
-          TextureInfo tempInfo;
-          texturePtr->getinfo(tempInfo, 0);
-
-          release_managed_tex(id);
-        }
-      }
-    }
-    else if (collectionFrameCounter == FRAMES_PER_TEXTURE - 1)
-    {
-      // Last frame -collect data after drawing
-      if (TEXTUREID id = get_managed_texture_id(currentTexture.c_str()); id != BAD_TEXTUREID)
-      {
-        if (auto texturePtr = acquire_managed_tex(id))
-        {
-          texturePtr->texmiplevel(0, 0);
-
-          TextureInfo textureInfo;
-          texturePtr->getinfo(textureInfo, 0);
-
-          uint64_t sizeBytes = texturePtr->getSize();
-          TextureData textureData(textureInfo, sizeBytes);
-
-          auto oldData = textures[currentTexture];
-          if (oldData.info.w != textureInfo.w || oldData.info.h != textureInfo.h || oldData.info.mipLevels != textureInfo.mipLevels ||
-              oldData.sizeBytes != sizeBytes)
-          {
-            debug("TextureModule: Updated %s - old: %dx%d (%d mips, %llu bytes), new: %dx%d (%d mips, %llu bytes)",
-              currentTexture.c_str(), oldData.info.w, oldData.info.h, oldData.info.mipLevels, oldData.sizeBytes, textureInfo.w,
-              textureInfo.h, textureInfo.mipLevels, sizeBytes);
-          }
-
-          // update data with correct values of source
-          textures[currentTexture] = textureData;
-
-          release_managed_tex(id);
-        }
-      }
-    }
-
-    collectionFrameCounter++;
-
-    // Go to the next texture
-    if (collectionFrameCounter >= FRAMES_PER_TEXTURE)
-    {
-      collectionFrameCounter = 0;
-      currentCollectionIndex++;
-    }
-  }
-  else
-  {
-    isCollectingData = false;
-    selectedTextureName.clear();
-    collectionFrameCounter = 0;
-
-    debug("TextureModule: Data collection complete for %zu textures", texturesToCollect.size());
-
-    mipMinDefault = INT_MAX;
-    mipMaxDefault = INT_MIN;
-    sizeMinDefault = FLT_MAX;
-    sizeMaxDefault = 0.0f;
-
-    for (const auto &[textureName, textureData] : textures)
-    {
-      mipMinDefault = eastl::min(mipMinDefault, (int)textureData.info.mipLevels);
-      mipMaxDefault = eastl::max(mipMaxDefault, (int)textureData.info.mipLevels);
-
-      float currentSizeMB = getTextureMemorySize(textureData);
-      sizeMinDefault = eastl::min(sizeMinDefault, currentSizeMB);
-      sizeMaxDefault = eastl::max(sizeMaxDefault, currentSizeMB);
-    }
-
-    if (mipMinDefault > mipMaxDefault)
-      mipMinDefault = mipMaxDefault = 0;
-
-    if (sizeMinDefault > sizeMaxDefault)
-      sizeMinDefault = sizeMaxDefault = 0.0f;
-
-    recalculateStatistics();
-
-    texturesToCollect.clear();
-
-    if (ILevelProfiler *profiler = ILevelProfiler::getInstance())
-    {
-      if (ProfilerTab *tab = profiler->getTab(0); tab && tab->module)
-      {
-        TextureProfilerUI *ui = static_cast<TextureProfilerUI *>(tab->module);
-        if (ui && ui->getTextureTable())
-          ui->getTextureTable()->setSelectedTexture("");
-      }
-    }
-  }
-}
-
-float TextureModule::getCollectionProgress() const
-{
-  if (!isCollectingData || texturesToCollect.empty())
-    return 1.0f; // if the collection does not go, we think that it is completed
-
-  return (float)currentCollectionIndex / (float)texturesToCollect.size();
-}
-
-void TextureModule::drawUI()
-{
-  // UI is processed in TextureProfilerui
-  // Updatedatacollection is now called from LevelProfailerui :: DRAWUI
-}
+void TextureModule::drawUI() {}
 
 const eastl::hash_map<ProfilerString, TextureData> &TextureModule::getTextures() const { return textures; }
 
@@ -336,16 +197,6 @@ void TextureModule::drawTextureView(const char *texture_name)
   TEXTUREID textureId = get_managed_texture_id(currentTextureName.c_str());
   if (textureId == BAD_TEXTUREID)
     return;
-
-  // If the data is collected, force the loading of the basic mine
-  if (isCollectingData)
-  {
-    if (auto texturePtr = acquire_managed_tex(textureId))
-    {
-      texturePtr->texmiplevel(0, 0);
-      release_managed_tex(textureId);
-    }
-  }
 
   // Get texture info for UI
   auto &currentTextureData = iterator->second;
@@ -442,7 +293,7 @@ void TextureModule::drawTextureView(const char *texture_name)
   else
     displayHeight = displayWidth / textureAspectRatio; // Constrained by width
 
-  ImGui::Image(reinterpret_cast<ImTextureID>(unsigned(textureId)), ImVec2(displayWidth, displayHeight));
+  ImGui::Image(ImGuiDagor::EncodeTexturePtr(D3dResManagerData::getBaseTex(textureId)), ImVec2(displayWidth, displayHeight));
 
   if (ImGui::IsItemHovered())
   {
@@ -562,12 +413,12 @@ void TextureModule::sortFilteredTextures(ImGuiTableSortSpecs *sort_specs)
       // Compare based on column type
       switch (currentSortSpec->ColumnUserID)
       {
-        case COL_NAME: comparisonResult = textureNameA.compare(textureNameB); break;
-        case COL_FORMAT: comparisonResult = strcmp(getFormatName(dataA.info.cflg), getFormatName(dataB.info.cflg)); break;
-        case COL_WIDTH: comparisonResult = dataA.info.w - dataB.info.w; break;
-        case COL_HEIGHT: comparisonResult = dataA.info.h - dataB.info.h; break;
-        case COL_MIPS: comparisonResult = dataA.info.mipLevels - dataB.info.mipLevels; break;
-        case COL_MEM_SIZE:
+        case *TextureColumn::NAME: comparisonResult = textureNameA.compare(textureNameB); break;
+        case *TextureColumn::FORMAT: comparisonResult = strcmp(getFormatName(dataA.info.cflg), getFormatName(dataB.info.cflg)); break;
+        case *TextureColumn::WIDTH: comparisonResult = dataA.info.w - dataB.info.w; break;
+        case *TextureColumn::HEIGHT: comparisonResult = dataA.info.h - dataB.info.h; break;
+        case *TextureColumn::MIPS: comparisonResult = dataA.info.mipLevels - dataB.info.mipLevels; break;
+        case *TextureColumn::MEM_SIZE:
         {
           float sizeDifference = getTextureMemorySize(dataA) - getTextureMemorySize(dataB);
           comparisonResult = (sizeDifference < 0) ? -1 : (sizeDifference > 0 ? 1 : 0);

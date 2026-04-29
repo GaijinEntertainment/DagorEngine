@@ -3,10 +3,14 @@
 #include "gameObjects.h"
 #include <scene/dag_objsToPlace.h>
 #include <daECS/core/updateStage.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/template.h>
-#include <ecs/core/attributeEx.h>
-#include <ecs/core/utility/ecsRecreate.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/utility/ecsRecreate.h>
 #include "level.h"
 #include <debug/dag_debug3d.h>
 #include <daEditorE/editorCommon/inGameEditor.h>
@@ -25,7 +29,7 @@ ECS_REGISTER_RELOCATABLE_TYPE(GameObjects, nullptr);
 ECS_AUTO_REGISTER_COMPONENT(GameObjects, "game_objects", nullptr, 0);
 
 template <typename Callable>
-static void all_grid_holders_ecs_query(Callable fn);
+static void all_grid_holders_ecs_query(ecs::EntityManager &manager, Callable fn);
 
 scene::TiledScene *create_ladders_scene(GameObjects &game_objects)
 {
@@ -232,6 +236,7 @@ static void game_objects_bspheres_es(const UpdateStageInfoRenderDebug &info) { g
 
 ECS_TAG(server)
 static void game_objects_events_es_event_handler(const EventGameObjectsCreated &,
+  ecs::EntityManager &manager,
   GameObjects &game_objects,
   const int *game_objects__seed,
   const ecs::Object *game_objects__syncCreation,
@@ -242,7 +247,7 @@ static void game_objects_events_es_event_handler(const EventGameObjectsCreated &
   int count = 0;
   for (const auto &instances : game_objects.objects)
   {
-    if (!g_entity_mgr->getTemplateDB().getTemplateByName(instances.first))
+    if (!manager.getTemplateDB().getTemplateByName(instances.first))
     {
       logwarn("missing template <%s> for game_object", instances.first);
       continue;
@@ -282,17 +287,18 @@ static void game_objects_events_es_event_handler(const EventGameObjectsCreated &
       }
 
       if (!(game_objects__syncCreation && game_objects__syncCreation->getMemberOr(instanceHash, false)))
-        g_entity_mgr->createEntityAsync(templName.c_str(), eastl::move(attrs));
+        manager.createEntityAsync(templName.c_str(), eastl::move(attrs));
       else
-        g_entity_mgr->createEntitySync(templName.c_str(), eastl::move(attrs));
+        manager.createEntitySync(templName.c_str(), eastl::move(attrs));
       count++;
     }
   }
-  g_entity_mgr->broadcastEvent(EventGameObjectsEntitiesScheduled(count));
+  manager.broadcastEvent(EventGameObjectsEntitiesScheduled(count));
 }
 
 ECS_TAG(gameClient)
-static void game_objects_client_events_es_event_handler(const EventGameObjectsOptimize &, GameObjects &game_objects)
+static void game_objects_client_events_es_event_handler(
+  const EventGameObjectsOptimize &, ecs::EntityManager &manager, GameObjects &game_objects)
 {
   if (has_in_game_editor()) // we keep objects for visibility
     return;
@@ -304,7 +310,7 @@ static void game_objects_client_events_es_event_handler(const EventGameObjectsOp
       continue;
     }
     bool to_remove = instances->first == "loot_box" || instances->first == "loot_crate"; // hardcoded loot boxes
-    if (to_remove || !g_entity_mgr->getTemplateDB().getTemplateByName(instances->first))
+    if (to_remove || !manager.getTemplateDB().getTemplateByName(instances->first))
     {
       debug("keep game_obj %s", instances->first.c_str());
       instances++;
@@ -316,7 +322,8 @@ static void game_objects_client_events_es_event_handler(const EventGameObjectsOp
 }
 
 ECS_TAG(server)
-static void game_objects_events_es_event_handler(const EventGameObjectsOptimize &, GameObjects &game_objects)
+static void game_objects_events_es_event_handler(
+  const EventGameObjectsOptimize &, ecs::EntityManager &manager, GameObjects &game_objects)
 {
   if (has_in_game_editor()) // we keep objects for visibility
     return;
@@ -327,7 +334,7 @@ static void game_objects_events_es_event_handler(const EventGameObjectsOptimize 
       instances++;
       continue;
     }
-    if (!g_entity_mgr->getTemplateDB().getTemplateByName(instances->first))
+    if (!manager.getTemplateDB().getTemplateByName(instances->first))
     {
       debug("keep game_obj %s", instances->first.c_str());
       instances++;

@@ -1,0 +1,225 @@
+include "gpu_debug_render.inc.dshl"
+include "shader_global.dshl"
+
+buffer gpu_debug_render_flat_spheres_indirect_buf;
+buffer gpu_debug_render_lines_indirect_buf;
+
+
+shader gpu_debug_renderer_clear_cs
+{
+  (cs) {
+    gpu_debug_render_flat_spheres_count_buf@uav = gpu_debug_render_flat_spheres_count_buf hlsl {
+      RWStructuredBuffer<uint> gpu_debug_render_flat_spheres_count_buf@uav;
+    }
+
+    gpu_debug_render_lines_count_buf@uav = gpu_debug_render_lines_count_buf hlsl {
+      RWStructuredBuffer<uint> gpu_debug_render_lines_count_buf@uav;
+    }
+  }
+
+  hlsl(cs) {
+    [numthreads(1,1,1)]
+    void clear_cs()
+    {
+      structuredBufferAt(gpu_debug_render_flat_spheres_count_buf, 0) = 0;
+      structuredBufferAt(gpu_debug_render_lines_count_buf, 0) = 0;
+    }
+  }
+
+  compile("cs_5_0", "clear_cs");
+}
+
+shader gpu_debug_renderer_create_draw_indirect_cs
+{
+  (cs) {
+    gpu_debug_render_flat_spheres_count_buf@buf = gpu_debug_render_flat_spheres_count_buf hlsl {
+      StructuredBuffer<uint> gpu_debug_render_flat_spheres_count_buf@buf;
+    }
+
+    gpu_debug_render_flat_spheres_indirect_buf@uav = gpu_debug_render_flat_spheres_indirect_buf hlsl {
+      RWByteAddressBuffer gpu_debug_render_flat_spheres_indirect_buf@uav;
+    }
+
+    gpu_debug_render_lines_count_buf@buf = gpu_debug_render_lines_count_buf hlsl {
+      StructuredBuffer<uint> gpu_debug_render_lines_count_buf@buf;
+    }
+
+    gpu_debug_render_lines_indirect_buf@uav = gpu_debug_render_lines_indirect_buf hlsl {
+      RWByteAddressBuffer gpu_debug_render_lines_indirect_buf@uav;
+    }
+  }
+
+  hlsl(cs){
+    #include "render/spheres_consts.hlsli"
+    #include "gpu_debug_render_structs.hlsli"
+
+    #define BILLBOARD_VERTEX_COUNT 6
+
+    [numthreads(1,1,1)]
+    void create_draw_indirect_cs()
+    {
+      // ignore the last one because we allow to overwrite it
+      // and it is most likely a garbage
+      const uint maxShapeCount = GPU_DEBUG_RENDER_MAX_ELEMS_PER_TYPE - 1;
+
+      // Spheres
+      //================================================================================================================
+      const uint spheresCount = min(
+        maxShapeCount,
+        structuredBufferAt(gpu_debug_render_flat_spheres_count_buf, 0)
+      );
+
+      storeBuffer(gpu_debug_render_flat_spheres_indirect_buf, 0 * 4, SPHERES_INDICES_TO_DRAW);//nverts
+      storeBuffer(gpu_debug_render_flat_spheres_indirect_buf, 1 * 4, spheresCount);//instances
+      storeBuffer(gpu_debug_render_flat_spheres_indirect_buf, 2 * 4, 0);//start index
+      storeBuffer(gpu_debug_render_flat_spheres_indirect_buf, 3 * 4, 0);//base vertex
+      storeBuffer(gpu_debug_render_flat_spheres_indirect_buf, 4 * 4, 0);//base instance
+
+      // Lines
+      //================================================================================================================
+      const uint linesCount = min(
+        maxShapeCount,
+        structuredBufferAt(gpu_debug_render_lines_count_buf, 0)
+      );
+
+      storeBuffer(gpu_debug_render_lines_indirect_buf, 0 * 4, BILLBOARD_VERTEX_COUNT);//nverts
+      storeBuffer(gpu_debug_render_lines_indirect_buf, 1 * 4, linesCount);//instances
+      storeBuffer(gpu_debug_render_lines_indirect_buf, 2 * 4, 0);//start index
+      storeBuffer(gpu_debug_render_lines_indirect_buf, 3 * 4, 0);//base vertex
+      storeBuffer(gpu_debug_render_lines_indirect_buf, 4 * 4, 0);//base instance
+    }
+
+  }
+
+  compile("cs_5_0", "create_draw_indirect_cs");
+}
+
+shader gpu_debug_renderer_draw_indirect_flat_spheres_ps
+{
+  supports global_frame;
+  supports none;
+
+  z_test = true;
+  z_write = false;
+
+  no_ablend;
+
+  (vs) {
+    globtm@f44 = globtm;
+
+    gpu_debug_render_flat_spheres_buf@buf = gpu_debug_render_flat_spheres_buf hlsl {
+      #include "gpu_debug_render_structs.hlsli"
+      StructuredBuffer<GpuDrivenDebugRenderFlatSphere> gpu_debug_render_flat_spheres_buf@buf;
+    }
+    gpu_debug_render_flat_spheres_count_buf@buf = gpu_debug_render_flat_spheres_count_buf hlsl {
+      StructuredBuffer<uint> gpu_debug_render_flat_spheres_count_buf@buf;
+    }
+  }
+
+  hlsl {
+    #include "spheres_vertices.hlsl"
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 color : TEXCOORD3;
+    };
+  }
+
+  hlsl (vs) {
+    VsOutput flat_sphere_vs(uint sphere_id : SV_InstanceID, uint vertId : SV_VertexID)
+    {
+      GpuDrivenDebugRenderFlatSphere sphere = structuredBufferAt(gpu_debug_render_flat_spheres_buf, sphere_id);
+
+      float3 vertexLocalPos = get_sphere_vertex_pos_low(vertId);
+      float3 worldPos = sphere.centerWpos + vertexLocalPos * sphere.radius;
+
+      VsOutput o = (VsOutput)0;
+      o.pos = mul(float4(worldPos, 1), globtm);
+      o.color = sphere.color;
+
+      return o;
+    }
+  }
+
+  hlsl(ps) {
+    float4 flat_sphere_ps(VsOutput input) : SV_Target0
+    {
+      return input.color;
+    }
+  }
+
+  compile("vs_5_0", "flat_sphere_vs");
+  compile("ps_5_0", "flat_sphere_ps");
+}
+
+shader gpu_debug_renderer_draw_indirect_lines
+{
+  supports global_frame;
+  supports none;
+
+  z_test = true;
+  z_write = false;
+
+  no_ablend;
+
+  (vs) {
+    globtm@f44 = globtm;
+
+    gpu_debug_render_lines_buf@buf = gpu_debug_render_lines_buf hlsl {
+      #include "gpu_debug_render_structs.hlsli"
+      StructuredBuffer<GpuDrivenDebugRenderLine> gpu_debug_render_lines_buf@buf;
+    }
+    gpu_debug_render_lines_count_buf@buf = gpu_debug_render_lines_count_buf hlsl {
+      StructuredBuffer<uint> gpu_debug_render_lines_count_buf@buf;
+    }
+  }
+
+  hlsl {
+    struct VsOutput
+    {
+      VS_OUT_POSITION(pos)
+      float4 color : TEXCOORD3;
+    };
+  }
+
+  hlsl (vs) {
+    VsOutput line_vs(uint line_id : SV_InstanceID, uint vertex_id : SV_VertexID)
+    {
+      GpuDrivenDebugRenderLine debug_line = structuredBufferAt(gpu_debug_render_lines_buf, line_id);
+      uint local_id = vertex_id % 6;
+      static const float2 quad_uvs[6] = {
+          float2(0, 0), float2(1, 0), float2(0, 1),
+          float2(0, 1), float2(1, 0), float2(1, 1)
+      };
+      float2 delta = quad_uvs[local_id];
+
+      float3 diff = debug_line.endWpos - debug_line.startWpos;
+      float3 lineLength = length(diff);
+      float3 center = debug_line.startWpos + diff * 0.5;
+      float3 yAxis = diff / max(lineLength, 0.0001);
+      float3 zAxis = normalize(world_view_pos - center);
+      float3 xAxis = cross(yAxis, zAxis);
+
+      float radius = delta.y * debug_line.endSize + (1 - delta.y) * debug_line.startSize;
+      float4 color = delta.y * debug_line.endColor + (1 - delta.y) * debug_line.startColor;
+
+      float3 worldPos = center + (delta.x - 0.5) * radius * xAxis + (delta.y - 0.5) * lineLength * yAxis;
+
+      VsOutput o = (VsOutput)0;
+      o.pos = mul(float4(worldPos, 1), globtm);
+      o.color = color;
+
+      return o;
+    }
+  }
+
+  hlsl(ps) {
+    float4 line_ps(VsOutput input) : SV_Target0
+    {
+      return input.color;
+    }
+  }
+
+  compile("vs_5_0", "line_vs");
+  compile("ps_5_0", "line_ps");
+}

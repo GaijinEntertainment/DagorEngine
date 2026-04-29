@@ -8,6 +8,7 @@ include "brunetonSky.dshl"
 include "light_mask_helpers.dshl"
 include "clusteredViewLights.dshl"
 include "draw_indirect_buffer_layout.dshl"
+include "dynamic_resolution.dshl"
 
 // Used by the compute shader to prepare the instances
 int lens_flare_prepare_flare_type;
@@ -34,6 +35,7 @@ float lens_flare_prepare_spot_lights_cone_angle_cos = 0;
 float4x4 lens_flare_perpare_globtm;
 float lens_flare_prepare_exposure_pow_param;
 int lens_flare_prepare_far_depth_mip = 0;
+float lens_flare_prepare_screen_aspect_ratio = 1;
 int lens_flare_visibility_history_frame_id = 0;
 int lens_flare_visibility_history_buf_size = 0;
 int lens_flare_max_visibility_history_size = 0;
@@ -58,14 +60,13 @@ shader prepare_lens_flare
     dont_render;
   }
 
-  ENABLE_ASSERT(cs)
-
   hlsl {
     #define DISABLE_TOONSHADING 1
   }
 
   USE_DRAW_INDIRECT_BUFFER_LAYOUT()
   INIT_ZNZFAR_STAGE(cs)
+  INIT_PACK_UNPACK_DYNSTCODE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_EMISSION_DECODE_COLOR_MAP(cs)
@@ -94,6 +95,8 @@ shader prepare_lens_flare
   INIT_VOLUMETRIC_LIGHT_TRANSPARENT(cs)
   USE_VOLUMETRIC_LIGHT_TRANSPARENT(cs)
 
+  INIT_DYNAMIC_RESOLUTION(cs)
+
   if (lens_flare_prepare_has_fom_shadows == yes)
   {
     INIT_FOM_SHADOWS(cs)
@@ -118,6 +121,7 @@ shader prepare_lens_flare
     downsampled_far_depth_tex@smp2d = downsampled_far_depth_tex;
     far_depth_mip@i1 = lens_flare_prepare_far_depth_mip;
     far_depth_mip_resolution@f2 = get_dimensions(downsampled_far_depth_tex, lens_flare_prepare_far_depth_mip);
+    screen_aspect_ratio@f1 = lens_flare_prepare_screen_aspect_ratio;
 
     preCulledInstanceIndices@uav = lens_flare_prepare_pre_culled_instance_indices_buf hlsl {
       RWStructuredBuffer<uint> preCulledInstanceIndices@uav;
@@ -198,7 +202,7 @@ shader prepare_lens_flare
 
       float2 screenTc = (lightScreenPos*float2(1, -1)*0.5+0.5);
       float2 angleSinCos = lengthSq(lightScreenPos) > 0.000001
-        ? normalize(lightScreenPos)
+        ? normalize(lightScreenPos * float2(screen_aspect_ratio, 1))
         : float2(0, 1);
 
 
@@ -208,7 +212,7 @@ shader prepare_lens_flare
         // A texel in downsampled depth at mip level (far_depth_mip) covers the maximum area
         // If the area is not perfectly aligned with the downsampled depth texel, 4 samples are needed to cover it
         int2 depthMipResolution = int2(far_depth_mip_resolution); //gbuffer_depth_size_load >> (far_depth_mip+1);
-        float2 mipTexCoord = screenTc * depthMipResolution;
+        float2 mipTexCoord = screenTc * depthMipResolution * current_dynamic_resolution_scale;
         int2 topLeftCorner = int2(mipTexCoord - float2(0.5, 0.5));
         float4 farDepths = float4(
           getDownsampledFarDepth(topLeftCorner + int2( 0, 0), depthMipResolution),
@@ -386,12 +390,13 @@ shader prepare_lens_flare
           return false;
 
         RenderSpotLight sl = spot_lights_cb[light_id];
-        float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+        float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
+        float lightRollAngle = decode_light_roll_angle(sl);
         float3 lightDir = sl.lightDirectionAngleOffset.xyz;
         float lightAngleScale = sl.lightColorAngleScale.a;
         float lightAngleOffset = sl.lightDirectionAngleOffset.a;
 
-        float3 dirFromLight = camera_pos - sl.lightPosRadius.xyz;
+        float3 dirFromLight = camera_pos - sl.lightPos_halfRadius_halfCullRadius.xyz;
         const float sqrDistanceOffset = 0.5*0.5; // add offset to avoid really intense flare close up
         float intensity = rcp(dot(dirFromLight, dirFromLight) + sqrDistanceOffset);
         float3 dirFromLightNormalized = normalize(dirFromLight);
@@ -401,9 +406,9 @@ shader prepare_lens_flare
           : 0;
         float spotlightAngleAttenuation = getAngleAtt(dirFromLightNormalized, lightDir, lightAngleScale, lightAngleOffset);
         intensity *= lerp(spotlightAngleAttenuation, 1, flareAngleAttenuation);
-        intensity = applyPhotometryIntensity(dirFromLightNormalized, lightDir, texId_scale.x, texId_scale.y, intensity);
+        intensity = applySpotLightPhotometry(dirFromLightNormalized, lightDir, lightRollAngle, texId_scale.x, texId_scale.y, intensity);
 
-        result.pos = float4(sl.lightPosRadius.xyz, 1);
+        result.pos = float4(sl.lightPos_halfRadius_halfCullRadius.xyz, 1);
         result.intensity = intensity;
         result.color = sl.lightColorAngleScale.rgb;
         result.fadeoutDistance = dynamic_lights_fadeout_distance;
@@ -459,8 +464,6 @@ shader prepare_lens_flare
 
 shader lens_flare_occlusion
 {
-  ENABLE_ASSERT(cs)
-
   INIT_ZNZFAR_STAGE(cs)
   INIT_LOAD_DEPTH_GBUFFER_BASE(cs)
   USE_LOAD_DEPTH_GBUFFER_BASE(cs)
@@ -512,9 +515,11 @@ shader lens_flare_occlusion
       {
         pixelVisible = 1;
 
+      ##if depth_gbuf != NULL
         float rawDepth = loadGbufferDepth(texCoord);
         if (rawDepth > instanceData.raw_depth)
           pixelVisible = 0;
+      ##endif
       }
 
       BRANCH
@@ -575,8 +580,6 @@ shader lens_flare_occlusion
 
 shader lens_flare
 {
-  ENABLE_ASSERT(ps)
-
   supports global_frame;
   z_write = false;
   z_test = false;

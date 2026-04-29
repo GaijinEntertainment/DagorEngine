@@ -4,6 +4,7 @@
 #include <EASTL/fixed_vector.h>
 #include <free_list_utils.h>
 #include <value_range.h>
+#include <drv/3d/dag_resourceTag.h>
 
 #if _TARGET_XBOX
 #define REPORT_HEAP_INFO 1
@@ -57,18 +58,27 @@ protected:
   }
 
   void freeView(const ImageViewInfo &view);
+  static eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> calculate_texture_desc_allocation_info(ID3D12Device *device,
+    Image *original);
 
 public:
+  uint64_t getDeviceResidentImageMemoryFreeRangesTotalSize();
   ImageCreateResult createTexture(DXGIAdapter *adapter, Device &device, const ImageInfo &ii, const char *name);
   Image *adoptTexture(ID3D12Resource *texture, const char *name);
 #if _TARGET_PC_WIN
-  Image *cloneRenderTarget(DXGIAdapter *adapter, ID3D12Device *device, Image *original,
+  Image *cloneRenderTarget(DXGIAdapter *adapter, Device &device, Image *original,
     D3D12_RESOURCE_STATES initialState = D3D12_RESOURCE_STATE_RENDER_TARGET);
 #endif
 
   void destroyTextureOnFrameCompletion(Image *texture)
   {
     accessRecodingPendingFrameCompletion<PendingForCompletedFrameData>([=](auto &data) { data.deletedImages.push_back(texture); });
+  }
+
+  void destroyTextureOnFrameCompletionNoLock(Image *texture) DAG_TS_REQUIRES(recodingPendingFrameCompletionMutex)
+  {
+    accessRecodingPendingFrameCompletionNoLock<PendingForCompletedFrameData>(
+      [=](auto &data) { data.deletedImages.push_back(texture); });
   }
 
   bool tryDestroyTextureOnFrameCompletion(Image *texture)
@@ -86,8 +96,25 @@ public:
     return !isAlreadyRemoved;
   }
 
+  bool tryDestroyTextureOnFrameCompletionNoLock(Image *texture) DAG_TS_REQUIRES(recodingPendingFrameCompletionMutex)
+  {
+    bool isAlreadyRemoved = false;
+    accessRecodingPendingFrameCompletionNoLock<PendingForCompletedFrameData>([=, &isAlreadyRemoved](auto &data) {
+      auto it = eastl::find(data.deletedImages.begin(), data.deletedImages.end(), texture);
+      if (it != data.deletedImages.end())
+      {
+        isAlreadyRemoved = true;
+        return;
+      }
+      data.deletedImages.push_back(texture);
+    });
+    return !isAlreadyRemoved;
+  }
+
   Image *tryCloneTexture(DXGIAdapter *adapter, ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initialState,
     AllocationFlags allocation_flags);
+  Image *tryCloneTextureToMemory(ID3D12Device *device, Image *original, D3D12_RESOURCE_STATES initial_state,
+    const D3D12_RESOURCE_DESC &desc, const ResourceMemory &memory, ImagePoolState::AccessToken &access);
 
 protected:
   void destroyTextures(eastl::span<Image *> textures, frontend::BindlessManager &bindless_manager);
@@ -108,6 +135,7 @@ class AliasHeapProvider : public TextureImageFactory
     dag::Vector<Image *> images;
     dag::Vector<BufferGlobalId> buffers;
     TypedBitSet<Flag> flags;
+    ResourceTagType tag = nullptr;
 #if _TARGET_XBOX
     HANDLE heapRegHandle = nullptr;
 #endif
@@ -175,8 +203,8 @@ protected:
         continue;
       ResourceHeapProperties properties;
       properties.raw = heap.memory.getHeapID().group;
-      recordDeletedUserResourceHeap(heap.memory.size(), !properties.isCPUVisible());
-      free(heap.memory, false);
+      recordDeletedUserResourceHeap(heap.memory.size(), properties.isOnDevice(getFeatureSet()));
+      free(heap.memory);
       heap.reset();
     }
     BaseType::preRecovery();
@@ -184,7 +212,7 @@ protected:
 
 public:
   ::ResourceHeap *newUserHeap(DXGIAdapter *adapter, Device &device, ::ResourceHeapGroup *group, size_t size,
-    ResourceHeapCreateFlags flags);
+    ResourceHeapCreateFlags flags, ResourceTagType tag);
   // assumes mutex is locked
   void freeUserHeap(ID3D12Device *device, ::ResourceHeap *ptr);
   ResourceAllocationProperties getResourceAllocationProperties(ID3D12Device *device, const ResourceDescription &desc);
@@ -302,7 +330,7 @@ protected:
       }
       else
       {
-        heap->free(memory, false);
+        heap->free(memory);
       }
 
       return DX12_CHECK_OK(errorCode);
@@ -337,7 +365,7 @@ protected:
     {
       if (buffer)
       {
-        buffer.reset(heap);
+        buffer.reset(heap, true);
       }
     }
   };
@@ -348,8 +376,7 @@ protected:
   static constexpr size_t scartch_buffer_min_size = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 
 protected:
-  BasicBuffer allocateNewScratchBuffer(DXGIAdapter *adapter, ID3D12Device *device, uint32_t size, AllocationFlags allocation_flags,
-    ScratchBufferWrapper::AccessToken &scratchBufferAccess)
+  static eastl::pair<D3D12_RESOURCE_DESC, D3D12_RESOURCE_ALLOCATION_INFO> get_scratch_buffer_desc_alloc_info(size_t size)
   {
     D3D12_RESOURCE_DESC desc{};
     desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
@@ -368,6 +395,16 @@ protected:
     allocInfo.SizeInBytes = desc.Width;
     allocInfo.Alignment = desc.Alignment;
 
+    G_ASSERT(size >= scartch_buffer_min_size);
+
+    return {desc, allocInfo};
+  }
+
+  BasicBuffer allocateNewScratchBuffer(DXGIAdapter *adapter, ID3D12Device *device, uint32_t size, AllocationFlags allocation_flags,
+    ScratchBufferWrapper::AccessToken &scratchBufferAccess)
+  {
+    const auto [desc, allocInfo] = get_scratch_buffer_desc_alloc_info(size);
+
     auto memoryProperties =
       getProperties(D3D12_RESOURCE_FLAG_NONE, DeviceMemoryClass::DEVICE_RESIDENT_BUFFER, D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT);
     auto memory = allocate(adapter, device, memoryProperties, allocInfo, allocation_flags);
@@ -383,7 +420,7 @@ protected:
       updateMemoryRangeUse(memory, ScratchBufferReference{scratchBufferAccess->buffer.getResourcePtr()});
     }
     else
-      free(memory, allocation_flags.test(AllocationFlag::DEFRAGMENTATION_OPERATION));
+      free(memory);
     return newBuffer;
   }
 
@@ -429,7 +466,7 @@ public:
     for (auto &buffer : data.deletedScratchBuffers)
     {
       recordScratchBufferFreed(buffer.getBufferMemorySize());
-      buffer.reset(this);
+      buffer.reset(this, true);
     }
     data.deletedScratchBuffers.clear();
 
@@ -584,6 +621,36 @@ void defragLogdbg(ARG_TYPE... args)
 
 class HeapFragmentationManager : public SamplerDescriptorProvider
 {
+public:
+  struct DefragmentationState
+  {
+    bool isInProgress : 1;
+    bool wasMemoryUpdated : 1;
+  };
+
+  eastl::pair<uint64_t, float> getFreeMemorySizeAndFragmentation(uint64_t group);
+
+  void processDefragmentationForAllGroups(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager);
+  void processDefragmentationForGroup(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager,
+    uint32_t group);
+
+  DefragmentationState processGroup(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+    frontend::BindlessManager &bindless_manager, uint32_t index, bool is_emergency_defragmentation);
+
+  DefragmentationState tryDefragmentHeap(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+    frontend::BindlessManager &bindless_manager, uint32_t index, bool is_emergency_defragmentation);
+
+  DefragmentationState recomposeGroup(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device,
+    frontend::BindlessManager &bindless_manager, uint32_t group_index);
+
+  void beforeEmergencyDefragmentation(uint32_t group_index);
+  void afterEmergencyDefragmentation(uint32_t group_index);
+  bool isDefragmentationRequired(uint32_t group_index);
+  bool isDefragmentationRequiredOom(uint32_t group_index, bool in_progress, uint32_t requested_group, bool is_alternate_heap_allowed,
+    bool is_uav, bool is_rtv, uint64_t requested_size, bool is_dedicated_heap);
+  static uint32_t constexpr get_memory_groups_count() { return ResourceHeapProperties::group_count; }
+
+private:
   using BaseType = SamplerDescriptorProvider;
 
   enum class ResourceMoveResolution
@@ -600,15 +667,17 @@ class HeapFragmentationManager : public SamplerDescriptorProvider
     STAYING,
   };
 
-  void onMoveStandbyBufferEntriesSuccess(const dag::Vector<Heap> &buffer_heaps,
-    BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, BufferGlobalId old_buffer, BufferGlobalId moved_buffer,
-    HeapID heap_id, bool is_emergency_defragmentation);
+  uint64_t getEnoughFreeSpaceSizeRequirement(ResourceHeapProperties props);
+  BudgetPressureLevels getMemoryBudgetPressureLevel(ResourceHeapProperties props);
+
   void moveBufferDeviceObject(GenericBufferInterface *buffer_object, BufferGlobalId moved_buffer,
     frontend::BindlessManager &bindless_manager, DeviceContext &ctx, ID3D12Device *device,
     BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation);
   void findBufferOwnersAndReplaceDeviceObjects(BufferGlobalId old_buffer, BufferGlobalId moved_buffer,
     frontend::BindlessManager &bindless_manager, DeviceContext &ctx, ID3D12Device *device,
-    BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation);
+    BufferHeapStateWrapper::AccessToken &buffer_heap_state_access, bool is_emergency_defragmentation,
+    const ScratchBuffer &scratch = {});
+  bool hasLockedOwners(BufferGlobalId buffer_id);
 
   ResourceMoveResolution moveResourceAway(DeviceContext &, DXGIAdapter *, ID3D12Device *, frontend::BindlessManager &, HeapID,
     eastl::monostate, AllocationFlags, bool)
@@ -647,11 +716,75 @@ class HeapFragmentationManager : public SamplerDescriptorProvider
     frontend::BindlessManager &bindless_manager, HeapID heap_id, PersistentBidirectionalBufferReference ref,
     AllocationFlags allocation_flags, bool is_emergency_defragmentation);
 
-  bool processGroup(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device, frontend::BindlessManager &bindless_manager,
-    uint32_t index);
+  enum class ResourceLocationUpdateResult
+  {
+    UPDATED,
+    IMMOVABLE,
+    QUEUED_FOR_DELETION,
+    FAILED
+  };
 
-  bool tryDefragmentHeap(DeviceContext &ctx, DXGIAdapter *adapter, ID3D12Device *device, frontend::BindlessManager &bindless_manager,
-    uint32_t index, bool is_emergency_defragmentation);
+  struct DefragmentationAccessTokens
+  {
+    TexturePoolWrapper::AccessToken texturePool;
+    ImagePoolState::AccessToken imagePool;
+    ScratchBufferWrapper::AccessToken scratchBuffer;
+    BufferHeapStateWrapper::AccessToken bufferHeapState;
+    PushRingMemoryStateWrapper::AccessToken pushRingState;
+    UploadRingMemoryStateWrapper::AccessToken uploadRingState;
+    TempMemoryStateWrapper::AccessToken tempBufferState;
+  };
+
+  struct SystemResources
+  {
+    DeviceContext *ctx;
+    DXGIAdapter *adapter;
+    ID3D12Device *device;
+    frontend::BindlessManager *bindlessManager;
+  };
+
+  struct ResourceLocation
+  {
+    HeapID heapId;
+    uint32_t freeRangeIndex;
+    bool hasOverlap;
+  };
+
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &, eastl::monostate, const ResourceLocation &,
+    DefragmentationAccessTokens &);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, Image *texture,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, BufferGlobalId buffer_id,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, AliasHeapReference ref,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, ScratchBufferReference ref,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, PushRingBufferReference ref,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, UploadRingBufferReference ref,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, TempUploadBufferReference ref,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, PersistentUploadBufferReference ref,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, PersistentReadBackBufferReference ref,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+  ResourceLocationUpdateResult updateResourceLocation(SystemResources &system_resources, PersistentBidirectionalBufferReference ref,
+    const ResourceLocation &new_location, DefragmentationAccessTokens &access);
+
+  uint64_t getAlignmentRequirement(eastl::monostate, ID3D12Device *, DefragmentationAccessTokens &) { return 0; }
+  uint64_t getAlignmentRequirement(Image *texture, ID3D12Device *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(BufferGlobalId buffer_id, ID3D12Device *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(AliasHeapReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(ScratchBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(PushRingBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(UploadRingBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(TempUploadBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(PersistentUploadBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(PersistentReadBackBufferReference ref, ID3D12Device *device, DefragmentationAccessTokens &access);
+  uint64_t getAlignmentRequirement(PersistentBidirectionalBufferReference ref, ID3D12Device *device,
+    DefragmentationAccessTokens &access);
 
   using HeapIterator = dag::Vector<ResourceHeap>::iterator;
   using RangeIterator = ResourceHeap::FreeRangeSetType::iterator;
@@ -707,15 +840,6 @@ protected:
 
   void completeFrameRecording(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager,
     uint32_t history_index);
-
-  void processEmergencyDefragmentationForGroup(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager,
-    uint32_t group_index);
-
-public:
-  void processEmergencyDefragmentation(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager,
-    uint32_t group_index, bool is_alternate_heap_allowed, bool is_uav, bool is_rtv);
-
-  void processDefragmentationForAllGroups(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager);
 };
 
 class FrameFinalizer : public HeapFragmentationManager
@@ -745,7 +869,6 @@ protected:
   {
     // On shutdown we run over all finalizer data to be sure everything has been cleaned up
     CompletedFrameExecutionInfo info;
-    info.progressIndex = 0xFFFFFFFFFFFFFFFFull;
     info.historyIndex = 0;
     info.bindlessManager = bindless_manager;
 #if _TARGET_PC_WIN
@@ -770,7 +893,6 @@ protected:
   {
     // Also here we run over all data to be sure its properly cleaned up
     CompletedFrameExecutionInfo info;
-    info.progressIndex = 0xFFFFFFFFFFFFFFFFull;
     info.historyIndex = 0;
     info.bindlessManager = bindless_manager;
 #if _TARGET_PC_WIN
@@ -856,6 +978,9 @@ private:
     StatusFlags statusFlags;
     MetricBits shownBits{};
     char eventObjectNameFilter[MAX_OBJECT_NAME_LENGTH]{};
+#if DX12_DEBUG_RESOURCE_ALLOCATOR_ENABLED
+    eastl::array<int, ResourceHeapProperties::group_count> debugAllocationSizeMb{};
+#endif
   };
   MetricsVisualizerState metricsVisualizerState;
 
@@ -908,6 +1033,12 @@ protected:
 
   void setShownMetric(Metric metric, bool value) { metricsVisualizerState.shownBits.set(metric, value); }
 
+#if DX12_DEBUG_RESOURCE_ALLOCATOR_ENABLED
+  int getDebugAllocationSizeMb(int group) { return metricsVisualizerState.debugAllocationSizeMb[group]; }
+
+  void setDebugAllocationSizeMb(int group, int value) { metricsVisualizerState.debugAllocationSizeMb[group] = value; }
+#endif
+
   void storeViewSettings();
   void restoreViewSettings();
 };
@@ -920,7 +1051,7 @@ class MetricsVisualizer : public DebugViewBase
 private:
   struct PlotData
   {
-    ConcurrentMetricsStateAccessToken &self;
+    ConcurrentMetricsState::AccessToken &self;
     ValueRange<uint64_t> viewRange;
     uint64_t selectedFrameIndex;
 
@@ -977,7 +1108,7 @@ private:
   GraphDisplayInfo drawGraphViewControls(Graph graph);
   void setupPlotY2CountRange(uint64_t max_value, bool has_data);
   void setupPlotYMemoryRange(uint64_t max_value, bool has_data);
-  PlotData setupPlotXRange(ConcurrentMetricsStateAccessToken &access, const GraphDisplayInfo &display_state, bool has_data);
+  PlotData setupPlotXRange(ConcurrentMetricsState::AccessToken &access, const GraphDisplayInfo &display_state, bool has_data);
 
 protected:
   void drawMetricsCaptureControls();
@@ -1006,6 +1137,7 @@ protected:
   void drawPersistenReadBackMemoryPlot();
   void drawPersistenBidirectioanlMemoryPlot();
   void drawRaytraceSummaryTable();
+  void drawDebugAllocationControls();
 };
 #else
 class MetricsVisualizer : public DebugViewBase
@@ -1039,6 +1171,7 @@ protected:
   void drawPersistenReadBackMemoryPlot();
   void drawPersistenBidirectioanlMemoryPlot();
   void drawRaytraceSummaryTable();
+  void drawDebugAllocationControls();
 };
 #endif
 
@@ -1087,11 +1220,63 @@ public:
 #else
 using DebugView = FrameFinalizer;
 #endif
+
+class DebugResourceAllocator : public DebugView
+{
+private:
+  using BaseType = DebugView;
+
+#if DX12_DEBUG_RESOURCE_ALLOCATOR_ENABLED
+  eastl::array<ComPtr<ID3D12Heap>, ResourceHeapProperties::group_count> debugAllocations{};
+
+  void processDebugAllocations(ID3D12Device1 *device);
+  void clearDebugAllocations();
+#endif
+
+protected:
+#if DX12_DEBUG_RESOURCE_ALLOCATOR_ENABLED
+  struct SetupInfo : BaseType::SetupInfo
+  {
+    int debugAllocationGroup = 0;
+    int debugAllocationSizeMb = 0;
+  };
+
+  void setup(const SetupInfo &setup)
+  {
+    BaseType::setup(setup);
+    if (setup.debugAllocationGroup < 0 || setup.debugAllocationGroup >= ResourceHeapProperties::group_count)
+    {
+      D3D_ERROR("DX12: Invalid debug allocation group (%d)", setup.debugAllocationGroup);
+      return;
+    }
+    setDebugAllocationSizeMb(setup.debugAllocationGroup, setup.debugAllocationSizeMb);
+  }
+#endif
+
+  void completeFrameRecording(Device &device, DXGIAdapter *adapter, frontend::BindlessManager &bindless_manager,
+    uint32_t history_index);
+
+  void shutdown(DXGIAdapter *adapter, frontend::BindlessManager *bindless_manager)
+  {
+#if DX12_DEBUG_RESOURCE_ALLOCATOR_ENABLED
+    clearDebugAllocations();
+#endif
+    BaseType::shutdown(adapter, bindless_manager);
+  }
+
+  void preRecovery(DXGIAdapter *adapter, frontend::BindlessManager *bindless_manager)
+  {
+#if DX12_DEBUG_RESOURCE_ALLOCATOR_ENABLED
+    clearDebugAllocations();
+#endif
+    BaseType::preRecovery(adapter, bindless_manager);
+  }
+};
 } // namespace resource_manager
 
-class ResourceMemoryHeap : private resource_manager::DebugView
+class ResourceMemoryHeap : private resource_manager::DebugResourceAllocator
 {
-  using BaseType = resource_manager::DebugView;
+  using BaseType = DebugResourceAllocator;
 
 public:
   ResourceMemoryHeap() = default;
@@ -1120,7 +1305,9 @@ public:
 #if D3D_HAS_RAY_TRACING
   using BaseType::createAccelerationStructure;
   using BaseType::createAccelerationStructurePool;
+  using BaseType::createOpacityMicroMapTriangleArray;
   using BaseType::deleteRaytraceBottomAccelerationStructureOnFrameCompletion;
+  using BaseType::deleteRaytraceOpacityMicroMapTriangleArrayOnFrameCompletion;
   using BaseType::deleteRaytraceTopAccelerationStructureOnFrameCompletion;
   using BaseType::destroyAccelerationStructureOnFrameCompletion;
   using BaseType::destroyAccelerationStructurePoolOnFrameCompletion;
@@ -1210,6 +1397,7 @@ public:
   using BaseType::createBufferTextureUAV;
   using BaseType::discardBuffer;
   using BaseType::freeBufferOnFrameCompletion;
+  using BaseType::isBufferPlacedInUserHeap;
   using BaseType::newBufferObject;
   using BaseType::visitBufferObjects;
   using BaseType::visitBufferObjectsExplicit;
@@ -1220,9 +1408,9 @@ public:
 #if _TARGET_PC_WIN
   using BaseType::getDeviceLocalPhysicalLimit;
 #endif
+  using BaseType::getFeatureSet;
   using BaseType::getHostLocalAvailablePoolBudget;
   using BaseType::getHostLocalBudget;
-  using BaseType::isUMASystem;
 
   using BaseType::setTempBufferShrinkThresholdSize;
 
@@ -1231,8 +1419,16 @@ public:
 
   using BaseType::completeFrameRecording;
 
+  using BaseType::afterEmergencyDefragmentation;
+  using BaseType::beforeEmergencyDefragmentation;
+  using BaseType::get_memory_groups_count;
+  using BaseType::getDeviceResidentImageMemoryFreeRangesTotalSize;
+  using BaseType::getFreeMemorySizeAndFragmentation;
+  using BaseType::isDefragmentationRequired;
+  using BaseType::isDefragmentationRequiredOom;
   using BaseType::processDefragmentationForAllGroups;
-  using BaseType::processEmergencyDefragmentation;
+  using BaseType::processDefragmentationForGroup;
+  using BaseType::tryDefragmentHeap;
 
 #if DX12_USE_ESRAM
   using BaseType::aliasESRamTexture;
@@ -1261,7 +1457,7 @@ public:
         logdbg("DX12: Waiting for too long, exiting, risking crashes...");
         break;
       }
-      logdbg("DX12: Wating 10ms to complete temporary memory uses...");
+      logdbg("DX12: Waiting 10ms to complete temporary memory uses...");
       sleep_msec(10);
     }
     logdbg("DX12: Finished waiting for temporary memory uses...");
@@ -1285,5 +1481,7 @@ public:
   using BaseType::createSampler;
   using BaseType::getSampler;
   using BaseType::getSamplerInfo;
+
+  void visitTaggedResources(ID3D12Device *device, const ResourceTypeFilter &filter, const ResourceVisitor &visitor);
 };
 } // namespace drv3d_dx12

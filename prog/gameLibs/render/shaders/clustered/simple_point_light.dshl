@@ -37,6 +37,7 @@ macro INIT_AND_USE_SIMPLE_POINT_LIGHT(code)
           gbuffer.extracted_albedo_ao,
           gbuffer.ao, simple_point_light_pos_radius,
           simple_point_light_color_spec, float4(0, 0, 0, 0),
+          float2(0, 0),
           screenpos);
         dynamicLighting *= enviAO * 0.5 + 0.5;
       }

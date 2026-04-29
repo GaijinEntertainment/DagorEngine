@@ -1,0 +1,9 @@
+ERROR: expression of type 'table' cannot be assigned to type 'int'
+testData/diagnostics/compilation_errors/type_inference/test_freeze_type_mismatch.nut:2:0
+
+// EXPECTED: compile-time error - freeze({}) returns table, assigned to int variable
+local x: int = freeze({a = 1})
+^-----------------------------
+return x
+
+

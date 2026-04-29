@@ -1,9 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
-#include "ecsEditableObject.h"
 #include "ecsObjectEditor.h"
+#include "ecsEntityObject.h"
 
+#include <daECS/core/entityManager.h>
+#include <daECS/core/updateStage.h>
+#include <EditorCore/ec_rendEdObject.h>
 #include <libTools/util/undo.h>
 
 class ECSHierarchicalUndoGroup : public UndoRedoObject
@@ -16,7 +19,7 @@ public:
   }
 
   // objects directly changed by the operation (for example they were selected and the gizmo moved them)
-  void addDirectlyChangedObject(ECSEditableObject &object)
+  void addDirectlyChangedObject(RenderableEditableObject &object)
   {
     UndoRedoData &data = directlyChangedObjects.push_back();
     data.object = &object;
@@ -25,7 +28,7 @@ public:
   }
 
   // objects indirectly changed by the operation (e.g.: parent moves children)
-  void addIndirectlyChangedObject(ECSEditableObject &object) { indirectlyChangedObjects.push_back(&object); }
+  void addIndirectlyChangedObject(RenderableEditableObject &object) { indirectlyChangedObjects.push_back(&object); }
 
   void saveTransformComponentOfAllObjects()
   {
@@ -34,10 +37,20 @@ public:
     g_entity_mgr->update(ecs::UpdateStageInfoAct(0.0f, 0.0f));
 
     for (UndoRedoData &undoRedoObject : directlyChangedObjects)
-      ECSObjectEditor::saveComponent(undoRedoObject.object->getEid(), "transform");
+    {
+      if (const auto *entObj = RTTI_cast<ECSEntityObject>(undoRedoObject.object))
+      {
+        ECSObjectEditor::saveComponent(entObj->getEid(), "transform");
+      }
+    }
 
-    for (Ptr<ECSEditableObject> &object : indirectlyChangedObjects)
-      ECSObjectEditor::saveComponent(object->getEid(), "transform");
+    for (Ptr<RenderableEditableObject> &object : indirectlyChangedObjects)
+    {
+      if (const auto *entObj = RTTI_cast<ECSEntityObject>(object))
+      {
+        ECSObjectEditor::saveComponent(entObj->getEid(), "transform");
+      }
+    }
   }
 
   void undo()
@@ -49,32 +62,38 @@ public:
 private:
   struct Data
   {
-    void setFromEntity(const ECSEditableObject &o)
+    void setFromEntity(RenderableEditableObject &o)
     {
       wtm = o.getWtm();
 
-      const TMatrix *ht = g_entity_mgr->getNullable<TMatrix>(o.getEid(), ECS_HASH("hierarchy_transform"));
-      hierarchyTransform = ht ? *ht : TMatrix::IDENT;
+      if (const auto *entObj = RTTI_cast<ECSEntityObject>(&o))
+      {
+        const TMatrix *ht = g_entity_mgr->getNullable<TMatrix>(entObj->getEid(), ECS_HASH("hierarchy_transform"));
+        hierarchyTransform = ht ? *ht : TMatrix::IDENT;
 
-      const TMatrix *hplt = g_entity_mgr->getNullable<TMatrix>(o.getEid(), ECS_HASH("hierarchy_parent_last_transform"));
-      hierarchyParentLastTransform = hplt ? *hplt : TMatrix::IDENT;
+        const TMatrix *hplt = g_entity_mgr->getNullable<TMatrix>(entObj->getEid(), ECS_HASH("hierarchy_parent_last_transform"));
+        hierarchyParentLastTransform = hplt ? *hplt : TMatrix::IDENT;
+      }
     }
 
-    void applyToEntity(ECSEditableObject &o)
+    void applyToEntity(RenderableEditableObject &o)
     {
       o.setWtm(wtm);
 
-      TMatrix *t = g_entity_mgr->getNullableRW<TMatrix>(o.getEid(), ECS_HASH("transform"));
-      if (t)
-        *t = wtm; // Needed because setWtm() only sets the transform in ECS if the object is selected.
+      if (const auto *entObj = RTTI_cast<ECSEntityObject>(&o))
+      {
+        TMatrix *t = g_entity_mgr->getNullableRW<TMatrix>(entObj->getEid(), ECS_HASH("transform"));
+        if (t)
+          *t = wtm; // Needed because setWtm() only sets the transform in ECS if the object is selected.
 
-      TMatrix *ht = g_entity_mgr->getNullableRW<TMatrix>(o.getEid(), ECS_HASH("hierarchy_transform"));
-      if (ht)
-        *ht = hierarchyTransform;
+        TMatrix *ht = g_entity_mgr->getNullableRW<TMatrix>(entObj->getEid(), ECS_HASH("hierarchy_transform"));
+        if (ht)
+          *ht = hierarchyTransform;
 
-      TMatrix *hplt = g_entity_mgr->getNullableRW<TMatrix>(o.getEid(), ECS_HASH("hierarchy_parent_last_transform"));
-      if (hplt)
-        *hplt = hierarchyParentLastTransform;
+        TMatrix *hplt = g_entity_mgr->getNullableRW<TMatrix>(entObj->getEid(), ECS_HASH("hierarchy_parent_last_transform"));
+        if (hplt)
+          *hplt = hierarchyParentLastTransform;
+      }
     }
 
     TMatrix wtm;
@@ -84,7 +103,7 @@ private:
 
   struct UndoRedoData
   {
-    Ptr<ECSEditableObject> object;
+    Ptr<RenderableEditableObject> object;
     Data oldData, redoData;
   };
 
@@ -113,5 +132,5 @@ private:
   void get_description(String &s) override { s = "HierarchicalUndoEnd"; }
 
   dag::Vector<UndoRedoData> directlyChangedObjects;
-  PtrTab<ECSEditableObject> indirectlyChangedObjects;
+  PtrTab<RenderableEditableObject> indirectlyChangedObjects;
 };

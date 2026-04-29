@@ -405,6 +405,57 @@ INLINE const T *ZERO_PTR()
   return &ZERO<T>();
 }
 
+// From https://gist.github.com/Marc-B-Reynolds/739a46f55c2a9ead54f4d0629ee5e417
+
+INLINE float f32_cbrt_ki_(float x, uint32_t xi)
+{
+  // authors optimized Halley's method first step
+  // given their "magic" constant (in 1)
+  const float c0 = 0x1.c09806p0f;
+  const float c1 = -0x1.403e6cp0f;
+  const float c2 = 0x1.04cdb2p-1f;
+
+  // initial guess
+  xi = 0x548c2b4b - xi / 3; // (1)
+
+  // modified Halley's method
+  float y = bitwise_cast<float>(xi);
+  float c = (x * y) * (y * y); // (2)
+
+  y = y * fmaf(c, fmaf(c2, c, c1), c0);
+
+  return y;
+}
+
+INLINE float f32_cbrt_newton_fast_(float x, float y)
+{
+  const float f32_third = 0x1.555556p-2f;
+  float a = x * y;
+  float d = a * y;
+  float c = fmaf(d, y, -1.f);
+  float t = fmaf(c, -f32_third, 1.f);
+  y = d * (t * t);
+
+  return y;
+}
+
+INLINE float cbrt_approx_nonneg(float x) // x must be positive
+{
+  float y = f32_cbrt_ki_(x, bitwise_cast<uint32_t>(x));
+  return f32_cbrt_newton_fast_(x, y);
+}
+
+INLINE float cbrt_approx(float x)
+{
+  constexpr uint32_t SIGNMASK = (1u << 31);
+  uint32_t xi = bitwise_cast<uint32_t>(x);
+  uint32_t s = SIGNMASK & xi;
+  uint32_t axi = xi & ~SIGNMASK;
+  float ax = bitwise_cast<float>(axi);
+  float acbrt = cbrt_approx_nonneg(ax);
+  return bitwise_cast<float>(bitwise_cast<uint32_t>(acbrt) | s);
+}
+
 #undef INLINE
 
 /// @}

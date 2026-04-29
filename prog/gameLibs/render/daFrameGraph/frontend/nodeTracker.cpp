@@ -8,7 +8,6 @@
 #include <frontend/dumpInternalRegistry.h>
 #include <frontend/dependencyDataCalculator.h>
 #include <frontend/internalRegistry.h>
-#include <frontend/recompilationData.h>
 
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_meshShaders.h>
@@ -41,8 +40,7 @@ static T *steal_and_reverse_list(T *&list)
   return prev;
 }
 
-NodeTracker::NodeTracker(InternalRegistry &reg, const DependencyData &deps, FrontendRecompilationData &recompData) :
-  registry{reg}, depData{deps}, frontendRecompilationData{recompData}
+NodeTracker::NodeTracker(InternalRegistry &reg) : registry{reg}
 {
   // We pre-generate IDs for namespaces/nodes when pre-registering them via
   // simple searches in the linked lists w/ strcmps (because registry is not)
@@ -153,51 +151,47 @@ void NodeTracker::unregisterNode(NodeNameId nodeId, uint16_t gen)
   // clear from it the cache
   deferredDeclarationQueue.erase(nodeId);
 
-  auto evictResId = [this](ResNameId res_id) {
-    // Invalidate all renamed versions of this resource
-    for (;;)
-    {
-      if (registry.resources.isMapped(res_id))
-      {
-        // History needs to be preserved, as it is determined by
-        // the virtual resource itself and not inhereted from the
-        // thing that was renamed into it. Everything else should be
-        // reset to the defaults.
-        auto &res = registry.resources.get(res_id);
-        auto oldHist = res.history;
-        res = {};
-        res.history = oldHist;
-      }
+  // Preserve the illusion that a node is deleted immediately upon request.
+  cleanupNodeContextDependentData(nodeId);
 
-      if (!depData.renamingChains.isMapped(res_id) || depData.renamingChains[res_id] == res_id)
-        break;
-
-      res_id = depData.renamingChains[res_id];
-    }
-  };
-
-  auto &nodeData = registry.nodes[nodeId];
-
-  // Evict all resNameIds *produced* by this node
-  for (const auto &[to, _] : nodeData.renamedResources)
-    evictResId(to);
-
-  for (const auto &resId : nodeData.createdResources)
-    evictResId(resId);
-
-  // Clear node data
-  nodeData = {};
-  nodeData.generation = gen + 1;
+  registry.nodes[nodeId].generation = gen + 1;
   nodeToContext.set(nodeId, {});
 
   unregisteredNodes.emplace(nodeId);
+}
+
+void NodeTracker::cleanupNodeContextDependentData(NodeNameId nodeId)
+{
+  auto &nodeData = registry.nodes[nodeId];
+
+  // All of these callback MIGHT hold references to context-managed data.
+  // Note that we reset the function references themselves to a default-constructed value,
+  // not the wrapping optional/unique_ptrs, as we want to preserve the knowledge that
+  // something WAS there previously and so we cannot reuse this resource's data.
+
+  nodeData.execute = {};
+  nodeData.declare = {};
+
+  for (const auto &resId : nodeData.createdResources)
+  {
+    auto &resourceData = registry.resources[resId];
+    if (!registry.resources.isMapped(resId) || !resourceData.createdResData)
+      continue;
+
+    if (ExternalResourceProvider *provider = eastl::get_if<ExternalResourceProvider>(&resourceData.createdResData->creationInfo))
+      *provider = {};
+
+    if (BlobDescription *blobDesc = eastl::get_if<BlobDescription>(&resourceData.createdResData->creationInfo);
+        blobDesc && blobDesc->ctorOverride)
+      *blobDesc->ctorOverride = {};
+  }
 }
 
 void NodeTracker::collectCreatedBlobs(NodeNameId node_id, ResourceWipeSet &into) const
 {
   for (const auto resId : registry.nodes[node_id].createdResources)
   {
-    if (registry.resources[resId].type != ResourceType::Blob)
+    if (registry.resources[resId].createdResData->type != ResourceType::Blob)
       continue;
     into.insert(resId);
   }
@@ -260,7 +254,7 @@ static uint32_t get_argument_value(const DispatchTextureResolutionArg &arg, cons
   auto providedRes = provider.providedResources.find(arg.res);
   G_ASSERT_RETURN(providedRes != provider.providedResources.end(), 0);
 
-  auto texture = eastl::get_if<ManagedTexView>(&providedRes->second);
+  auto texture = eastl::get_if<BaseTexture *>(&providedRes->second);
   G_ASSERT_RETURN(texture, 0);
   TextureInfo info{};
   (*texture)->getinfo(info);
@@ -298,9 +292,9 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
       },
       args.x, args.y, args.z);
 
-    if constexpr (eastl::is_base_of_v<T, DispatchRequirements::Threads>)
+    if constexpr (eastl::is_base_of_v<DispatchRequirements::Threads, T>)
       shader.dispatchThreads(x, y, z);
-    else if constexpr (eastl::is_base_of_v<T, DispatchRequirements::Groups>)
+    else if constexpr (eastl::is_base_of_v<DispatchRequirements::Groups, T>)
       shader.dispatchGroups(x, y, z);
   };
 }
@@ -331,45 +325,45 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
       logerr("daFG: Max count is not set for %s!", shader_name);
   }
 
-  return [&registry, shader = DispatchShader(shader_name), &args](dafg::multiplexing::Index) {
-    auto providedRes = registry.resourceProviderReference.providedResources.find(args.res);
+  return [&registry, shader = DispatchShader(shader_name), args = eastl::unique_ptr<T>(new T(args))](dafg::multiplexing::Index) {
+    auto providedRes = registry.resourceProviderReference.providedResources.find(args->res);
     G_ASSERT(providedRes != registry.resourceProviderReference.providedResources.end());
 
-    auto buffer = eastl::get_if<ManagedBufView>(&providedRes->second);
+    auto buffer = eastl::get_if<Sbuffer *>(&providedRes->second);
     G_ASSERT(buffer);
 
     uint32_t offset =
-      eastl::visit([&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args.offset);
+      eastl::visit([&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args->offset);
 
     if constexpr (isComputeDispatch)
-      shader.dispatchIndirect(buffer->getBuf(), offset);
+      shader.dispatchIndirect(*buffer, offset);
     else
     {
       uint32_t stride =
-        eastl::visit([&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args.stride);
+        eastl::visit([&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args->stride);
 
       if constexpr (isMeshIndirect)
       {
         uint32_t count =
-          eastl::visit([&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args.count);
+          eastl::visit([&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args->count);
 
-        shader.dispatchIndirect(buffer->getBuf(), count, offset, stride);
+        shader.dispatchIndirect(*buffer, count, offset, stride);
       }
       else
       {
-        auto providedCountRes = registry.resourceProviderReference.providedResources.find(args.countRes);
+        auto providedCountRes = registry.resourceProviderReference.providedResources.find(args->countRes);
         G_ASSERT(providedCountRes != registry.resourceProviderReference.providedResources.end());
 
-        auto countbuffer = eastl::get_if<ManagedBufView>(&providedCountRes->second);
+        auto countbuffer = eastl::get_if<Sbuffer *>(&providedCountRes->second);
         G_ASSERT(countbuffer);
 
-        uint32_t countOffset =
-          eastl::visit([&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args.countOffset);
+        uint32_t countOffset = eastl::visit(
+          [&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args->countOffset);
 
         uint32_t maxCount =
-          eastl::visit([&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args.maxCount);
+          eastl::visit([&](const auto &arg) { return get_argument_value(arg, registry.resourceProviderReference); }, args->maxCount);
 
-        shader.dispatchIndirectCount(buffer->getBuf(), offset, stride, countbuffer->getBuf(), countOffset, maxCount);
+        shader.dispatchIndirectCount(*buffer, offset, stride, *countbuffer, countOffset, maxCount);
       }
     }
   };
@@ -378,13 +372,18 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
 static detail::ExecutionCallback get_builtin_execute(const char *shader_name, dafg::InternalRegistry &registry,
   const DrawRequirements::DirectNonIndexedArgs &args)
 {
-  eastl::unique_ptr<ShaderMaterial> mat(new_shader_material_by_name(shader_name));
-  eastl::unique_ptr<ShaderElement> elem(mat->make_elem());
+  Ptr<ShaderMaterial> mat(new_shader_material_by_name(shader_name));
+  if (DAGOR_UNLIKELY(!mat))
+  {
+    logerr("daFG: Failed to create shader material for %s!", shader_name);
+    return {};
+  }
+  Ptr<ShaderElement> elem(mat->make_elem());
 
   if (DAGOR_UNLIKELY(!is_valid_argument(args.primitiveCount)))
     logerr("daFG: Primitive count is not set for %s!", shader_name);
 
-  return [&registry, mat = eastl::move(mat), elem = eastl::move(elem), &args](dafg::multiplexing::Index) {
+  return [&registry, mat = eastl::move(mat), elem = eastl::move(elem), args](dafg::multiplexing::Index) {
     uint32_t startVertex = 0;
     uint32_t primitiveCount = 0;
     uint32_t instanceCount = 0;
@@ -408,13 +407,19 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
 static detail::ExecutionCallback get_builtin_execute(const char *shader_name, dafg::InternalRegistry &registry,
   const DrawRequirements::DirectIndexedArgs &args)
 {
-  eastl::unique_ptr<ShaderMaterial> mat(new_shader_material_by_name(shader_name));
-  eastl::unique_ptr<ShaderElement> elem(mat->make_elem());
+  Ptr<ShaderMaterial> mat(new_shader_material_by_name(shader_name));
+  if (DAGOR_UNLIKELY(!mat))
+  {
+    logerr("daFG: Failed to create shader material for %s!", shader_name);
+    return {};
+  }
+  Ptr<ShaderElement> elem(mat->make_elem());
 
   if (DAGOR_UNLIKELY(!is_valid_argument(args.primitiveCount)))
     logerr("daFG: Primitive count is not set for %s!", shader_name);
 
-  return [&registry, mat = eastl::move(mat), elem = eastl::move(elem), &args](dafg::multiplexing::Index) {
+  return [&registry, mat = eastl::move(mat), elem = eastl::move(elem),
+           args = eastl::make_unique<DrawRequirements::DirectIndexedArgs>(args)](dafg::multiplexing::Index) {
     uint32_t startIndex = 0;
     uint32_t baseVertex = 0;
     uint32_t primitiveCount = 0;
@@ -427,13 +432,13 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
         instanceCount = get_argument_value(instance_count, registry.resourceProviderReference);
         startInstance = get_argument_value(start_instance, registry.resourceProviderReference);
       },
-      args.startIndex, args.baseVertex, args.instanceCount, args.startInstance);
+      args->startIndex, args->baseVertex, args->instanceCount, args->startInstance);
     eastl::visit(
       [&](const auto &primitive_count) { primitiveCount = get_argument_value(primitive_count, registry.resourceProviderReference); },
-      args.primitiveCount);
+      args->primitiveCount);
 
     elem->setStates();
-    d3d::drawind_instanced(get_d3d_primitive(args.primitive), startIndex, primitiveCount, baseVertex, instanceCount, startInstance);
+    d3d::drawind_instanced(get_d3d_primitive(args->primitive), startIndex, primitiveCount, baseVertex, instanceCount, startInstance);
   };
 }
 
@@ -441,8 +446,13 @@ template <typename T>
   requires(eastl::is_base_of_v<DrawRequirements::IndirectArgs, T>)
 static detail::ExecutionCallback get_builtin_execute(const char *shader_name, dafg::InternalRegistry &registry, const T &args)
 {
-  eastl::unique_ptr<ShaderMaterial> mat(new_shader_material_by_name(shader_name));
-  eastl::unique_ptr<ShaderElement> elem(mat->make_elem());
+  Ptr<ShaderMaterial> mat(new_shader_material_by_name(shader_name));
+  if (DAGOR_UNLIKELY(!mat))
+  {
+    logerr("daFG: Failed to create shader material for %s!", shader_name);
+    return {};
+  }
+  Ptr<ShaderElement> elem(mat->make_elem());
 
   if constexpr (eastl::is_base_of_v<DrawRequirements::MultiIndirectArgs, T>)
   {
@@ -452,11 +462,11 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
       logerr("daFG: Stride is not set for %s!", shader_name);
   }
 
-  return [&registry, mat = eastl::move(mat), elem = eastl::move(elem), &args](dafg::multiplexing::Index) {
+  return [&registry, mat = eastl::move(mat), elem = eastl::move(elem), args](dafg::multiplexing::Index) {
     auto providedRes = registry.resourceProviderReference.providedResources.find(args.buffer);
     G_ASSERT(providedRes != registry.resourceProviderReference.providedResources.end());
 
-    auto buffer = eastl::get_if<ManagedBufView>(&providedRes->second);
+    auto buffer = eastl::get_if<Sbuffer *>(&providedRes->second);
     G_ASSERT(buffer);
 
     size_t offset =
@@ -465,9 +475,9 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
     elem->setStates();
 
     if constexpr (eastl::is_same_v<T, DrawRequirements::IndirectNonIndexedArgs>)
-      d3d::draw_indirect(get_d3d_primitive(args.primitive), buffer->getBuf(), offset);
+      d3d::draw_indirect(get_d3d_primitive(args.primitive), *buffer, offset);
     else if constexpr (eastl::is_same_v<T, DrawRequirements::IndirectIndexedArgs>)
-      d3d::draw_indexed_indirect(get_d3d_primitive(args.primitive), buffer->getBuf(), offset);
+      d3d::draw_indexed_indirect(get_d3d_primitive(args.primitive), *buffer, offset);
     else
     {
       uint32_t stride = 0;
@@ -479,32 +489,38 @@ static detail::ExecutionCallback get_builtin_execute(const char *shader_name, da
         },
         args.stride, args.drawCount);
       if constexpr (eastl::is_same_v<T, DrawRequirements::MultiIndirectNonIndexedArgs>)
-        d3d::multi_draw_indirect(get_d3d_primitive(args.primitive), buffer->getBuf(), offset, count, stride);
+        d3d::multi_draw_indirect(get_d3d_primitive(args.primitive), *buffer, offset, count, stride);
       else if constexpr (eastl::is_same_v<T, DrawRequirements::MultiIndirectIndexedArgs>)
-        d3d::multi_draw_indexed_indirect(get_d3d_primitive(args.primitive), buffer->getBuf(), offset, count, stride);
+        d3d::multi_draw_indexed_indirect(get_d3d_primitive(args.primitive), *buffer, offset, count, stride);
     }
   };
 }
 
 void NodeTracker::updateNodeDeclaration(NodeNameId node_id)
 {
-  frontendRecompilationData.nodeUnchanged.set(node_id, false);
-
   auto &node = registry.nodes[node_id];
 
   // Reset everything first to avoid funny side-effects later on
   if (node.execute)
   {
     auto declare = eastl::move(node.declare);
+    auto source = eastl::move(node.nodeSource);
     const auto gen = node.generation;
     node = {};
     node.generation = gen;
     node.declare = eastl::move(declare);
+    node.nodeSource = eastl::move(source);
   }
 
   if (auto &declare = node.declare)
+  {
+    // The node's declaration may use framemem for internal purposes
+    // It is assumed that framemem is used correctly, so we can clear the node's framemem area
+    // This helps avoid false positives from the framemem validator
+    // when the framemem vector has been reallocated inside the node declaration callback
+    FRAMEMEM_REGION;
     node.execute = declare(node_id, &registry);
-
+  }
   eastl::visit(
     [&](const auto &requirements) {
       using T = eastl::remove_cvref_t<decltype(requirements)>;
@@ -528,14 +544,28 @@ void NodeTracker::updateNodeDeclaration(NodeNameId node_id)
     node.executeRequirements);
 }
 
-void NodeTracker::updateNodeDeclarations()
+NodeTracker::Changes NodeTracker::updateNodeDeclarations()
 {
-  frontendRecompilationData.nodeUnchanged.clear();
-  frontendRecompilationData.nodeUnchanged.resize(registry.knownNames.nameCount<NodeNameId>(), true);
+  dag::VectorMap<ResNameId, eastl::optional<CreatedResourceData>, eastl::less<ResNameId>, Alloc> removedResources;
 
+  // First, steal & wipe old node/res data for later comparisons against it.
   for (auto nodeId : unregisteredNodes)
-    frontendRecompilationData.nodeUnchanged.set(nodeId, false);
-  unregisteredNodes.clear();
+  {
+    auto &node = registry.nodes[nodeId];
+    for (auto resId : node.createdResources)
+      if (registry.resources.isMapped(resId))
+        removedResources.emplace(resId, eastl::exchange(registry.resources[resId].createdResData, eastl::nullopt));
+
+    {
+      auto declare = eastl::move(node.declare);
+      auto source = eastl::move(node.nodeSource);
+      const auto gen = node.generation;
+      node = {};
+      node.generation = gen;
+      node.declare = eastl::move(declare);
+      node.nodeSource = eastl::move(source);
+    }
+  }
 
   if (randomize_order.get())
     eastl::random_shuffle(deferredDeclarationQueue.begin(), deferredDeclarationQueue.end(),
@@ -544,17 +574,51 @@ void NodeTracker::updateNodeDeclarations()
   for (auto nodeId : deferredDeclarationQueue)
     updateNodeDeclaration(nodeId);
 
+  NodeTracker::Changes result;
+  auto &[nodeChanged, resChanged] = result;
+  nodeChanged.resize(registry.knownNames.nameCount<NodeNameId>(), false);
+  resChanged.resize(registry.knownNames.nameCount<ResNameId>(), false);
+
+  for (auto nodeId : unregisteredNodes)
+    nodeChanged[nodeId] = true;
+  for (auto nodeId : deferredDeclarationQueue)
+    nodeChanged[nodeId] = true;
+
+  for (const auto &[resId, oldData] : removedResources)
+  {
+    const auto &newData = registry.resources[resId].createdResData;
+    if (oldData != newData)
+      resChanged[resId] = true;
+  }
+
+  // Freshly created resources are changed too!
+  // Deleted ones will be marked as changed above.
+  for (auto nodeId : deferredDeclarationQueue)
+    for (auto resId : registry.nodes[nodeId].createdResources)
+      resChanged[resId] = true;
+
+  unregisteredNodes.clear();
   deferredDeclarationQueue.clear();
 
   // Makes sure that further code doesn't go out of bounds on any of these
   registry.resources.resize(registry.knownNames.nameCount<ResNameId>());
   registry.nodes.resize(registry.knownNames.nameCount<NodeNameId>());
   registry.autoResTypes.resize(registry.knownNames.nameCount<AutoResTypeNameId>());
+  registry.autoResTypesChanged.resize(registry.knownNames.nameCount<AutoResTypeNameId>(), false);
   registry.resourceSlots.resize(registry.knownNames.nameCount<ResNameId>());
+
+  for (auto [resId, changed] : resChanged.enumerate())
+    if (registry.resources[resId].createdResData)
+      if (auto &resolution = registry.resources[resId].createdResData->resolution)
+        if (registry.autoResTypesChanged.test(resolution->id))
+          changed = true;
+  registry.autoResTypesChanged.assign(registry.autoResTypesChanged.size(), false);
 
   // If we are recompiling the entire graph before contexts are destroyed,
   // the resources will be wiped automatically if need be.
   deferredResourceWipeSets.clear();
+
+  return result;
 }
 
 void NodeTracker::scheduleAllNodeRedeclaration()

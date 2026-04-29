@@ -15,4 +15,15 @@ return {
   mute_player_by_name = @(name) assert(type(name)=="string")
   unmute_player_by_name = @(name) assert(type(name)=="string")
   enable_local_mic_for = @(uri, val) assert(type(uri)=="string" && type(val)=="bool")
+  join_proximity_chat_room = @(...) null
+  leave_proximity_chat_room = @(...) null
+  is_player_muted = @(...) null
+  enable_voice_for = @(...) null
+  mute_player_by_name_for = @(...) null
+  unmute_player_by_name_for = @(...) null
+  mute_player_by_uid_for = @(...) null
+  unmute_player_by_uid_for = @(...) null
+  set_playback_volume_for = @(...) null
+  get_record_devs = @(...) null
+  get_playback_devs = @(...) null
 }

@@ -21,7 +21,7 @@
 #include <sqstdstring.h>
 #include <sqstdaux.h>
 #include <sqmodules.h>
-#include <sqastio.h>
+#include <sqio.h>
 #include <sqstddebug.h>
 #include <squirrel/sqtypeparser.h>
 
@@ -30,7 +30,7 @@
 #define scvprintf vfprintf
 
 
-void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
+void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const char *s,...)
 {
   va_list vl;
   va_start(vl, s);
@@ -40,7 +40,7 @@ void printfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
 
 static FILE *errorStream = stderr;
 
-void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const SQChar *s,...)
+void errorfunc(HSQUIRRELVM SQ_UNUSED_ARG(v),const char *s,...)
 {
   va_list vl;
   va_start(vl, s);
@@ -94,7 +94,7 @@ void run(HSQUIRRELVM v, const char * buffer, int length)
   sq_pop(v, 1); // bindingsTable
 
   SQInteger oldtop = sq_gettop(v);
-  if (SQ_SUCCEEDED(sq_compile(v, buffer, length, _SC("buffer"), SQTrue, &bindingsTable))) {
+  if (SQ_SUCCEEDED(sq_compile(v, buffer, length, "buffer", SQTrue, &bindingsTable))) {
     sq_pushroottable(v);
     SQInteger retval = 0;
     sq_call(v, 1, retval, SQTrue);

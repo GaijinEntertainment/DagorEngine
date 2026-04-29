@@ -142,9 +142,11 @@ private:
 
 static int prevMode = -1;
 
-void debug_render_gbuffer(const PostFxRenderer &debugRenderer, DeferredRT &gbuffer, int mode)
+void debug_render_gbuffer(const PostFxRenderer &debugRenderer, DeferredRT &gbuffer, Texture *depth, int mode)
 {
   gbuffer.setVar();
+  if (depth)
+    ShaderGlobal::set_texture(get_shader_variable_id("depth_gbuf"), depth);
 
   if (mode == USE_DEBUG_GBUFFER_MODE)
     mode = (int)show_gbuffer;
@@ -156,11 +158,11 @@ void debug_render_gbuffer(const PostFxRenderer &debugRenderer, DeferredRT &gbuff
     if (mode != prevMode)
     {
       bool found = false;
-      const Driver3dDesc &dsc = d3d::get_driver_desc();
+      auto shaderModel = d3d::get_driver_desc().shaderModel;
 
       for (auto version : d3d::smAll)
       {
-        if (dsc.shaderModel < version)
+        if (shaderModel < version)
           continue;
 
         if (load_shaders_debug_bindump(version))
@@ -188,11 +190,11 @@ void debug_render_gbuffer(const PostFxRenderer &debugRenderer, DeferredRT &gbuff
     if (mode != prevMode)
     {
       bool found = false;
-      const Driver3dDesc &dsc = d3d::get_driver_desc();
+      auto shaderModel = d3d::get_driver_desc().shaderModel;
 
       for (auto version : d3d::smAll)
       {
-        if (dsc.shaderModel < version)
+        if (shaderModel < version)
           continue;
 
         if (unload_shaders_debug_bindump(version))
@@ -214,7 +216,7 @@ void debug_render_gbuffer(const PostFxRenderer &debugRenderer, DeferredRT &gbuff
   }
 
   prevMode = mode;
-  debug_render_gbuffer(debugRenderer, gbuffer.getDepth(), mode);
+  debug_render_gbuffer(debugRenderer, depth ? depth : gbuffer.getDepth(), mode);
 }
 
 void debug_render_gbuffer_with_vectors(const DynamicShaderHelper &debugVecShader, DeferredRT &gbuffer, int mode, int vec_count,
@@ -255,9 +257,9 @@ void debug_render_gbuffer_with_vectors(const DynamicShaderHelper &debugVecShader
   if (mode >= 0)
   {
     static int vec_countVarId = get_shader_variable_id("gbuffer_debug_vec_count");
-    ShaderGlobal::set_real(vec_countVarId, float(vec_count));
+    ShaderGlobal::set_float(vec_countVarId, float(vec_count));
     static int vec_scaleVarId = get_shader_variable_id("gbuffer_debug_vec_scale");
-    ShaderGlobal::set_real(vec_scaleVarId, vec_scale);
+    ShaderGlobal::set_float(vec_scaleVarId, vec_scale);
     ShaderGlobal::setBlock(-1, ShaderGlobal::LAYER_FRAME);
 
     DebugGbufferRenderScope scope(depth);

@@ -1,11 +1,11 @@
 if (__name__ == "__analysis__")
   return
 
-//expect:w266
+//-file:suspicious-formatting
+//-file:undefined-global
+//-file:invalid-indentation
 
 {
   ::x++
 } while (::x)
 ::x--
-
-//-file:undefined-global

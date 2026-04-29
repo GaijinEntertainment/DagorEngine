@@ -19,16 +19,17 @@
 
 #include "internal/fmodCompatibility.h"
 #include "internal/framememString.h"
-#include "internal/attributes.h"
-#include "internal/banks.h"
-#include "internal/delayed.h"
+#include "internal/attributes_internal.h"
+#include "internal/banks_internal.h"
+#include "internal/delayed_internal.h"
 #include "internal/releasing.h"
-#include "internal/visualLabels.h"
-#include "internal/vars.h"
-#include "internal/events.h"
+#include "internal/visualLabels_internal.h"
+#include "internal/vars_internal.h"
+#include "internal/events_internal.h"
 #include "internal/pool.h"
-#include "internal/occlusion.h"
-#include "internal/debug.h"
+#include "internal/occlusion_internal.h"
+#include "internal/occlusionGPU_internal.h"
+#include "internal/debug_internal.h"
 
 namespace sndsys
 {
@@ -184,6 +185,13 @@ static FMOD_RESULT F_CALLBACK event_instance_callback(FMOD_STUDIO_EVENT_CALLBACK
   }
   else if (callback_type == FMOD_STUDIO_EVENT_CALLBACK_DESTROY_PROGRAMMER_SOUND)
   {
+    FMOD::Studio::EventInstance *eventInstance = (FMOD::Studio::EventInstance *)event_instance;
+    if (eventInstance->isValid())
+    {
+      auto cbd = get_instance_cb_with_data(*eventInstance);
+      if (cbd.first)
+        cbd.first(callback_type, eventInstance, parameters, cbd.second);
+    }
     FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES *props = (FMOD_STUDIO_PROGRAMMER_SOUND_PROPERTIES *)parameters;
     FMOD_RESULT result = FMOD_OK;
     if (props->sound)
@@ -307,14 +315,15 @@ static inline void release_event_instance(const EventAttributes *attributes, FMO
   {
     stop_impl(event_instance);
     event_instance.release();
+
+    if (attributes && attributes->hasOcclusion())
+      occlusion_gpu::on_release(&event_instance);
     return;
   }
 
   if (attributes && attributes->hasOcclusion())
-  {
     if (occlusion::release(&event_instance))
       return;
-  }
 
   releasing::track(&event_instance);
 }
@@ -459,7 +468,10 @@ static __forceinline void set_3d_attr_internal(EventHandle event_handle, const A
   {
     set_3d_attr_impl(*eventInstance, attributes_3d);
     if (attributes.hasOcclusion())
+    {
       occlusion::set_pos(*eventInstance, as_point3(attributes_3d.position));
+      occlusion_gpu::set_pos(eventInstance, as_point3(attributes_3d.position));
+    }
   }
 }
 
@@ -566,8 +578,10 @@ EventHandle init_event(const char *name, const char *path, ieff_t flags, const P
   }
 
   if (attributes.hasOcclusion() && position)
+  {
     occlusion::append(descAndInstance.second, descAndInstance.first, *position);
-
+    occlusion_gpu::append_new_instance(descAndInstance.second, descAndInstance.first, *position);
+  }
   return handle;
 }
 
@@ -653,7 +667,10 @@ EventHandle init_event(const FMODGUID &event_id, const Point3 *position /* = nul
     set_3d_attr(handle, *position);
 
     if (attributes.hasOcclusion())
+    {
       occlusion::append(descAndInstance.second, descAndInstance.first, *position);
+      occlusion_gpu::append_new_instance(descAndInstance.second, descAndInstance.first, *position);
+    }
   }
 
   return handle;
@@ -752,7 +769,7 @@ static const char *get_property_impl(const FMOD::Studio::EventDescription &event
   return def_val;
 }
 
-static inline bool should_delay(EventHandle event_handle, float delay)
+bool should_delay(EventHandle event_handle, float delay)
 {
   if (delay > 0.f || delayed::is_delayed(event_handle))
     return true;
@@ -772,7 +789,7 @@ static inline bool should_delay(EventHandle event_handle, float delay)
   return delayed::is_far_enough_for_distant_delay(pos);
 }
 
-static inline bool should_delay(EventHandle event_handle, const Point3 &pos, float delay)
+bool should_delay(EventHandle event_handle, const Point3 &pos, float delay)
 {
   if (delay > 0.f || delayed::is_delayed(event_handle))
     return true;
@@ -815,7 +832,7 @@ void release(EventHandle &event_handle, float delay /* = 0.f*/, bool is_stop /*=
     release_immediate(event_handle, is_stop);
 }
 
-static inline bool is_playing(FMOD::Studio::EventInstance &event_instance)
+static inline bool is_really_playing(FMOD::Studio::EventInstance &event_instance)
 {
   FMOD_STUDIO_PLAYBACK_STATE playbackState = {};
   SOUND_VERIFY_AND_DO(event_instance.getPlaybackState(&playbackState), return false);
@@ -825,7 +842,7 @@ static inline bool is_playing(FMOD::Studio::EventInstance &event_instance)
 bool is_playing(EventHandle event_handle)
 {
   if (FMOD::Studio::EventInstance *eventInstance = get_valid_event_instance_impl(event_handle))
-    return is_playing(*eventInstance) || delayed::is_starting(event_handle);
+    return is_really_playing(*eventInstance) || delayed::is_starting(event_handle);
   return false;
 }
 
@@ -888,7 +905,7 @@ static inline bool keyoff_impl(FMOD::Studio::EventInstance &event_instance, cons
 {
   if (attributes.hasSustainPoint())
   {
-    if (is_playing(event_instance))
+    if (is_really_playing(event_instance))
     {
 #if FMOD_VERSION >= 0x00020200
       SOUND_VERIFY_AND_DO(event_instance.keyOff(), return false);
@@ -975,7 +992,7 @@ bool is_valid_event_instance(EventHandle event_handle) { return get_valid_event_
 
 static __forceinline void start_impl(FMOD::Studio::EventInstance &event_instance)
 {
-  if (is_playing(event_instance))
+  if (is_really_playing(event_instance))
     stop_impl(event_instance);
   SOUND_VERIFY_AND_DO(event_instance.start(), return);
 }
@@ -1058,8 +1075,10 @@ bool play_oneshot(const char *name, const char *path, const Point3 *position, ie
     }
 
     if (attributes.hasOcclusion() && position)
+    {
       occlusion::append(descAndInstance.second, descAndInstance.first, *position);
-
+      occlusion_gpu::append_new_instance(descAndInstance.second, descAndInstance.first, *position);
+    }
     delayed::start(handle, delay);
     delayed::abandon(handle, 0.f);
     return true;
@@ -1068,8 +1087,10 @@ bool play_oneshot(const char *name, const char *path, const Point3 *position, ie
   start_impl(*descAndInstance.second);
 
   if (attributes.hasOcclusion() && position)
+  {
     occlusion::append(descAndInstance.second, descAndInstance.first, *position);
-
+    occlusion_gpu::append_new_instance(descAndInstance.second, descAndInstance.first, *position);
+  }
   abandon_impl(*descAndInstance.second, attributes);
 
   if (!attributes.isOneshot() || attributes.hasSustainPoint())

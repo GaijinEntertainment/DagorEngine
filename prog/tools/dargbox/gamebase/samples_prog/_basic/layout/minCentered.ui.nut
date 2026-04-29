@@ -58,7 +58,7 @@ function itemTrick(text, hasIcon = false) {
 
 return {
   rendObj = ROBJ_SOLID
-  size = static [sw(25), SIZE_TO_CONTENT]
+  size = const [sw(25), SIZE_TO_CONTENT]
   vplace = ALIGN_CENTER
   hplace = ALIGN_CENTER
   halign = ALIGN_CENTER

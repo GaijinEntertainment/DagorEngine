@@ -66,10 +66,10 @@ protected:
     eastl::unique_ptr<PhysBody> body;
     Tab<TmHelper> tmHelpers;
 
-    Body(PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup, uint16_t fmask,
+    Body(const PhysicsResource::Body &res_body, PhysWorld *world, const TMatrix *tm, void *userData, uint16_t fgroup, uint16_t fmask,
       bool has_joints);
 
-    void updateTms(PhysicsResource::Body &res_body, const TMatrix &scale_tm);
+    void updateTms(const PhysicsResource::Body &res_body, const TMatrix &scale_tm);
   };
 
 

@@ -8,6 +8,8 @@
 struct TexImage32;
 struct TexPixel32;
 class IGenLoad;
+class DataBlock;
+class String;
 
 
 struct IAllocImg
@@ -40,3 +42,4 @@ TexImage32 *load_image(const char *fn, IMemAlloc *mem, bool *out_alpha_used = NU
 TexImage32 *load_image(IGenLoad &crd, const char *fn_ext, IMemAlloc *mem, bool *out_alpha_used = NULL);
 void *load_image2(const char *fn, IAllocImg &a, const char *fn_ext = NULL);
 void *load_image2(IGenLoad &crd, const char *fn_ext, IAllocImg &a);
+bool load_meta_info_from_image(const char *fn, DataBlock &meta_info, String &error_message);

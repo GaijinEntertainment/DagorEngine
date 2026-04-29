@@ -1,3 +1,6 @@
+include "dynamic_resolution.dshl"
+include"motion_vector_access.dshl"
+
 hlsl {
   #define COMPLICATED_DOF 1
   #define MAX_COC  4
@@ -30,7 +33,7 @@ macro USE_DOF_COMPOSITE_NEAR(code)
       cLayerNear.rgb = cLayerNear.rgb / (cLayerNear.a > 0 ? cLayerNear.a : 1.0f);
 
     ##if dof_focus_near_mode == linear
-      float depth = tex2Dlod(dof_blend_depth_tex, float4(tc.xy, 0, 0)).x;
+      float depth = tex2Dlod(dof_blend_depth_tex, float4(tc.xy * current_dynamic_resolution_scale, 0, 0)).x;
       float zVal = linearize_z(depth, zn_zfar.zw);
       cLayerNear.a = 1.0 - saturate(zVal * dof_focus_linear_params.x + dof_focus_linear_params.y);
     ##else
@@ -44,7 +47,8 @@ endmacro
 
 macro USE_DOF_COMPOSITE_FAR(code)
   (code) {
-    dlss_jitter_offset_screen_size@f4 = (dlss_jitter_offset.x, dlss_jitter_offset.y, rendering_res.z, rendering_res.w);
+    currentFrameJitter@f2 = jitter_offset_uv.xy;
+    screen_size@f2 = (rendering_res.zw, 0, 0);
     dof_far_layer@smp2d = dof_far_layer;
     dof_focus_params@f4 = dof_focus_params;
     dof_blend_tex@smp2d = dof_blend_tex;
@@ -58,30 +62,30 @@ macro USE_DOF_COMPOSITE_FAR(code)
       half4 cLayerFar = tex2D_bicubic_lod(dof_far_layer, dof_far_layer_samplerstate, tc.xy, dof_resolution, 0);
 
     ##if dof_focus_far_mode == linear
-      float depth = tex2Dlod(dof_blend_depth_tex, float4(tc.xy, 0, 0)).x;
+      float depth = tex2Dlod(dof_blend_depth_tex, float4(tc.xy * current_dynamic_resolution_scale, 0, 0)).x;
       float zVal = linearize_z(depth, zn_zfar.zw);
       cLayerFar.a = saturate(zVal * dof_focus_linear_params.z + dof_focus_linear_params.w);
     ##else
-      #if DOF_FAR_POSTFX_DLSS
+      #if DOF_FAR_POSTFX_9_TAP
         // DLSS requires special handling. It can't upscale and unjitter mask texture for DoF
         // (this is done in current solution for TAA). Trying to put mask to alpha channel
         // of DLSS upscaled target also doesn't result in desired behaviour (mask edges are still jittering).
         // So current solution for DLSS simply mades transition to DoF more blurry and less noticeable.
         // It is based on computing FarCircleOfConfusion for 9 depth values and returning weighted average of results.
-        float2 jitteredTc = tc.xy + dlss_jitter_offset_screen_size.xy*dlss_jitter_offset_screen_size.zw;
+        float2 jitteredTc = tc.xy * current_dynamic_resolution_scale + currentFrameJitter;
         cLayerFar.a = ComputeFarCircleOfConfusion(tex2Dlod(dof_blend_depth_tex, float4(jitteredTc, 0, 0)).x, dof_focus_params) * 0.25;
         float4 depth4 = float4(
-          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(-1, -1)*dlss_jitter_offset_screen_size.zw, 0, 0)).x,
-          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(-1, 1)*dlss_jitter_offset_screen_size.zw, 0, 0)).x,
-          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(1, -1)*dlss_jitter_offset_screen_size.zw, 0, 0)).x,
-          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(1, 1)*dlss_jitter_offset_screen_size.zw, 0, 0)).x
+          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(-1, -1)*screen_size, 0, 0)).x,
+          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(-1, 1)*screen_size, 0, 0)).x,
+          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(1, -1)*screen_size, 0, 0)).x,
+          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(1, 1)*screen_size, 0, 0)).x
         );
         cLayerFar.a += dot(ComputeFarCircleOfConfusion4(depth4, dof_focus_params), float4(0.0625, 0.0625, 0.0625, 0.0625));
         depth4 = float4(
-          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(0, -1)*dlss_jitter_offset_screen_size.zw, 0, 0)).x,
-          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(0, 1)*dlss_jitter_offset_screen_size.zw, 0, 0)).x,
-          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(-1, 0)*dlss_jitter_offset_screen_size.zw, 0, 0)).x,
-          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(1, 0)*dlss_jitter_offset_screen_size.zw, 0, 0)).x
+          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(0, -1)*screen_size, 0, 0)).x,
+          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(0, 1)*screen_size, 0, 0)).x,
+          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(-1, 0)*screen_size, 0, 0)).x,
+          tex2Dlod(dof_blend_depth_tex, float4(jitteredTc + float2(1, 0)*screen_size, 0, 0)).x
         );
         cLayerFar.a += dot(ComputeFarCircleOfConfusion4(depth4, dof_focus_params), float4(0.125, 0.125, 0.125, 0.125));
       #elif DOF_FAR_POSTFX_TAA
@@ -105,6 +109,7 @@ macro USE_DOF_COMPOSITE_NEAR_FAR(code)
   (code) { dof_blend_depth_tex@smp2d = dof_blend_depth_tex; }
   USE_DOF_COMPOSITE_FAR(code)
   USE_DOF_COMPOSITE_NEAR(code)
+  INIT_DYNAMIC_RESOLUTION(code)
   hlsl(code) {
     half4 cLayerNear,cLayerFar;
     void get_dof_near_far(float2 tc, float2 dof_resolution, out half4 cLayerNear, out half4 cLayerFar)
@@ -118,7 +123,8 @@ endmacro
 macro USE_DOF_COMPOSITE_NEAR_FAR_OPTIONAL_STAGE(code)
   (code) { dof_focus_linear_params@f4 = dof_focus_linear_params; }
 
-  if (dof_focus_near_mode != off || dof_focus_far_mode != off)
+  bool has_dof_focus = dof_focus_near_mode != off || dof_focus_far_mode != off;
+  if (has_dof_focus)
   {
     (code) { dof_blend_depth_tex@smp2d = dof_blend_depth_tex; }
   }
@@ -130,6 +136,8 @@ macro USE_DOF_COMPOSITE_NEAR_FAR_OPTIONAL_STAGE(code)
   {
     USE_DOF_COMPOSITE_FAR(code)
   }
+
+  INIT_DYNAMIC_RESOLUTION(code)
 
   hlsl(code) {
     void apply_dof(float2 uv, inout float3 color)

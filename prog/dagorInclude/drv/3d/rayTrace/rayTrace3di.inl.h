@@ -1,11 +1,12 @@
 #pragma once
 #if D3D_HAS_RAY_TRACING
 RaytraceBottomAccelerationStructure *(*create_raytrace_bottom_acceleration_structure_0)(RaytraceGeometryDescription *desc,
-  uint32_t count, RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes);
-RaytraceBottomAccelerationStructure *(*create_raytrace_bottom_acceleration_structure_1)(uint32_t size);
+  uint32_t count, RaytraceBuildFlags flags, uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes,
+  ResourceTagType tag);
+RaytraceBottomAccelerationStructure *(*create_raytrace_bottom_acceleration_structure_1)(uint32_t size, ResourceTagType tag);
 void (*delete_raytrace_bottom_acceleration_structure)(RaytraceBottomAccelerationStructure *as);
 RaytraceTopAccelerationStructure *(*create_raytrace_top_acceleration_structure)(uint32_t elements, RaytraceBuildFlags flags,
-  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes);
+  uint32_t &build_scratch_size_in_bytes, uint32_t *update_scratch_size_in_bytes, ResourceTagType tag);
 void (*delete_raytrace_top_acceleration_structure)(RaytraceTopAccelerationStructure *as);
 void (*set_top_acceleration_structure)(ShaderStage stage, uint32_t index, RaytraceTopAccelerationStructure *as);
 void (*build_bottom_acceleration_structure)(RaytraceBottomAccelerationStructure *as,

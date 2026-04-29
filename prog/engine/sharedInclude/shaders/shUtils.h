@@ -6,11 +6,13 @@
 ************************************************************************/
 
 #include "shader_layout.h"
+#include <drv/3d/dag_shaderModelVersion.h>
 
 namespace shaderbindump
 {
 using VarList = bindump::Mapper<shader_layout::VarList>;
 }
+using ScriptedShadersBinDump = bindump::Mapper<shader_layout::ScriptedShadersBinDump>;
 
 class ShaderVarsState;
 
@@ -30,5 +32,5 @@ const char *fshVerToString(int fsh);
 // dump code table
 void shcod_dump(dag::ConstSpan<int> cod, const shaderbindump::VarList *globals = nullptr,
   const ShaderVarsState *globals_state = nullptr, const shaderbindump::VarList *locals = nullptr,
-  dag::ConstSpan<uint32_t> stVarMap = {}, bool embrace_dump = true);
+  const ScriptedShadersBinDump *dump = nullptr, dag::ConstSpan<uint32_t> stVarMap = {}, bool embrace_dump = true);
 } // namespace ShUtils

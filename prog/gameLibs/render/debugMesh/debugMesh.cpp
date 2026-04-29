@@ -28,7 +28,7 @@ Type debug_gbuffer_mode_to_type(DebugGbufferMode mode)
 
 bool enable_debug(Type type)
 {
-  ShaderGlobal::set_real(overdraw_rangeVarId, (float)overdraw_range.get());
+  ShaderGlobal::set_float(overdraw_rangeVarId, (float)overdraw_range.get());
 
   if (debug_counter == type)
     return false;

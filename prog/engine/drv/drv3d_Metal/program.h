@@ -108,11 +108,21 @@ public:
 
   VDecl *vdecl = nullptr;
 
-  Shader *vshader = nullptr;
-  Shader *pshader = nullptr;
-  Shader *cshader = nullptr;
-  Shader *mshader = nullptr;
-  Shader *ashader = nullptr;
+  union
+  {
+    // the order matters
+    struct
+    {
+      Shader *cshader = nullptr;
+      Shader *pshader = nullptr;
+      Shader *vshader = nullptr;
+      Shader *mshader = nullptr;
+      Shader *ashader = nullptr;
+    };
+    Shader *shaders[STAGE_TOTAL];
+  };
+
+  eastl::string name = "(none)";
 
   id<MTLComputePipelineState> csPipeline;
 

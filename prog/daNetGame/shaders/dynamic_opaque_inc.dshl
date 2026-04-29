@@ -5,6 +5,7 @@ include "wind/wind_simulation_inc.dshl"
 include "dynamic_render_deform_hmap_inc.dshl"
 include "cloth_optional.dshl"
 include "overlay_color_map_inc.dshl"
+include "dynamic_destr_disappear_inc.dshl"
 
 texture dynamic_decals_atlas;
 texture perlin_noise3d;
@@ -44,6 +45,9 @@ macro SPECIAL_RENDER_ALPHATEST_USE()
         #endif
         half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord);
         clip_alpha(diffuseColor.a);
+        #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+          apply_destr_disappear(input.destr_params);
+        #endif
       }
     }
     compile("target_ps", "render_depth_ps");
@@ -54,11 +58,18 @@ macro SPECIAL_RENDER_ALPHATEST_USE()
   }
 endmacro
 
-macro SPECIAL_RENDER_NOALPHATEST()
+macro SPECIAL_RENDER_NOALPHATEST(use_ri_disintegration)
 
   if (dyn_model_render_pass == render_to_depth)
   {
-    compile("ps_null", "null_ps");
+    if (use_ri_disintegration)
+    {
+       compile("target_ps", "render_depth_disintegration_ps");
+    }
+    else
+    {
+      compile("ps_null", "null_ps");
+    }
   }
   else if (dyn_model_render_pass == render_to_deform_hmap)
   {
@@ -68,18 +79,18 @@ endmacro
 
 
 
-macro SPECIAL_RENDER_ALPHATEST_CHOOSE()
+macro SPECIAL_RENDER_ALPHATEST_CHOOSE(use_ri_disintegration)
   if (atest == atestOn)
   {
     SPECIAL_RENDER_ALPHATEST_USE()
   } else
   {
-    SPECIAL_RENDER_NOALPHATEST()
+    SPECIAL_RENDER_NOALPHATEST(use_ri_disintegration)
   }
 endmacro
 
 macro INIT_TANK_COCKPIT_LIGHTING()
-  if (compatibility_mode == compatibility_mode_on && mobile_render == off)
+  if (compatibility_mode == compatibility_mode_on)
   {
     (ps) {
       tank_cockpit__bsphere@f4 = tank_cockpit__bsphere;
@@ -92,8 +103,7 @@ float4 prev_to_cur_origin_move;
 
 block(scene) dynamic_scene
 {
-  DYNAMIC_SIMPLE_VS_SHARED_DECL()
-  DYNAMIC_SIMPLE_SHARED_DECL(ps)
+  DYNMODEL_SHARED_DECL()
   INIT_BURNED_DIFFUSE_FUNCTION_BLOCK()
   INIT_PROJECTIVE_WOUNDS_BLOCK()
   INIT_AMBIENT_WIND(vs)
@@ -110,6 +120,7 @@ block(scene) dynamic_scene
     jitteredCamPosToUnjitteredHistoryClip@f44 = jitteredCamPosToUnjitteredHistoryClip;
     prev_to_cur_origin_move@f3 = prev_to_cur_origin_move;
     paint_details_tex@smp2d = paint_details_tex;
+    params_validation_debug_color@f4 = params_validation_debug_color;
   }
 
   (ps) {
@@ -121,20 +132,18 @@ block(scene) dynamic_scene
     special_vision@i1 = special_vision;
     disable_dynmat_params@i1 = disable_dynmat_params;
     layered_material_detail_quality@i1 = layered_material_detail_quality;
+    params_validation_debug_color@f4 = params_validation_debug_color;
+    real_skies_sun_light_dir@f4 = real_skies_sun_light_dir;
   }
   INIT_USE_CHARACTER_MICRODETAIL()
   INIT_DYNAMICS_WETNESS()
 
-  if (mobile_render != off)
-  {
-    INIT_STATIC_SHADOW_PS()
-  }
   INIT_TANK_COCKPIT_LIGHTING()
 }
 
 block(scene) dynamic_depth_scene
 {
-  DYNAMIC_SIMPLE_VS_SHARED_DECL()
+  DYNMODEL_SHARED_DECL()
   INIT_PROJECTIVE_WOUNDS_BLOCK()
   INIT_AMBIENT_WIND(vs)
   INIT_AMBIENT_WIND_BASE(ps)
@@ -146,7 +155,7 @@ block(scene) dynamic_depth_scene
   }
 }
 
-macro DYNAMIC_BLOCK()
+macro DYNAMIC_BLOCK_BASE()
 if (dyn_model_render_pass == render_pass_normal)
 {
   supports dynamic_scene;
@@ -162,9 +171,15 @@ else if (dyn_model_render_pass == render_to_depth || dyn_model_render_pass == re
 }
 endmacro
 
+macro DYNAMIC_BLOCK()
+  DYNMODEL_SHARED_DECL_IMMEDIATE()
+  DYNAMIC_BLOCK_BASE()
+endmacro
+
 macro DYNAMIC_BLOCK_XRAY()
   if (shader == hatching_simple || shader == hatching_sphere)
   {
+    DYNMODEL_SHARED_DECL_IMMEDIATE()
     supports global_frame;
 
     (vs) {
@@ -217,6 +232,9 @@ DYNAMIC_SIMPLE_HELPER_PS()
       half4 diffuseColor = tex2DBindless(get_diffuse_tex(), input.diffuseTexcoord.xy);
       clip_alpha(diffuseColor.a);
       ##endif
+      #if DYNAMIC_DESTR_DISAPPEAR_ENABLED
+        apply_destr_disappear(input.destr_params);
+      #endif
     }
   }
   compile("target_ps", "dynamic_simple_ps");

@@ -54,7 +54,7 @@ static Tab<BBox3> updated_regions;
 struct TireTrackNode
 {
   Point4 pos; // pos xz, side vector * width
-  Point4 tc;  // tc, opacity, omnidir blend
+  Point4 tc;  // tc, omnidir blend, opacity
 };
 
 static int default_texture_idx = 0;
@@ -182,7 +182,7 @@ public:
 
   // emit new track (start new or continue existing)
   bool emit(const Point3 &norm, const Point3 &pos, const Point3 &movedir, real opacity, int tex_id, float additional_width,
-    float omnidirectional_tex_blend, bool correct_previous_node)
+    float omnidirectional_tex_blend, bool correct_previous_node, bool direction_changed)
   {
     lastNorm = normalize(norm);
     if (lastNorm.y < 0)
@@ -214,6 +214,9 @@ public:
       auto getPrevIdx = [this](int idx) { return (idx - 1 < 0 && track.size() == MAX_NODES_PER_TRACK) ? track.size() - 1 : idx - 1; };
       int prevIdx = getPrevIdx(currentIdx);
       int secondPrevIdx = getPrevIdx(prevIdx);
+
+      if (direction_changed)
+        track[prevIdx].tc.w = 0.f;
 
       Point4 &prevNodePos = track[prevIdx].pos;
       Point4 &secondPrevNodePos = track[secondPrevIdx].pos;
@@ -509,7 +512,7 @@ void init(const char *blk_file, bool has_normalmap, bool stub_render_mode)
   nodeCount = maxTrackCount * (4 + MAX_NODES_PER_TRACK);
 
   renderDataVS = dag::create_sbuffer(sizeof(Point4), nodeCount * sizeof(TireTrackNode) / sizeof(Point4),
-    SBCF_DYNAMIC | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, TEXFMT_A32B32G32R32F, String(0, "tire_tracks_data_vs"));
+    SBCF_DYNAMIC | SBCF_BIND_SHADER_RES | SBCF_CPU_ACCESS_WRITE, TEXFMT_A32B32G32R32F, String(0, "tire_tracks_data_vs"), RESTAG_TRACK);
 
   trackMaterial.init(shaderName, NULL, 0, "tire_track shader");
 }
@@ -522,9 +525,9 @@ void setShaderVars(int track_type_no)
   ShaderGlobal::set_texture(tires_drift_texVarId, driftTexId);
 
   ShaderGlobal::set_int(tires_frame_countVarId, trackTypes[track_type_no].frameCount);
-  ShaderGlobal::set_real(tires_texture_widthVarId, trackTypes[track_type_no].textureWidth);
+  ShaderGlobal::set_float(tires_texture_widthVarId, trackTypes[track_type_no].textureWidth);
 
-  ShaderGlobal::set_color4(track_smoothness_reflectanceVarId, trackTypes[track_type_no].smoothness,
+  ShaderGlobal::set_float4(track_smoothness_reflectanceVarId, trackTypes[track_type_no].smoothness,
     trackTypes[track_type_no].reflectance, 0, 0);
 }
 void release()
@@ -625,7 +628,7 @@ void before_render(float /*dt*/, const Point3 &origin)
     lastSize = renderData.size();
   }
 
-  ShaderGlobal::set_real(tires_base_yVarId, origin.y);
+  ShaderGlobal::set_float(tires_base_yVarId, origin.y);
 
   uint32_t lockCount = min(renderData.size(), nodeCount);
 
@@ -729,13 +732,13 @@ int create_emitter(float width, float /*texture_length_factor*/, float min_time,
 }
 
 bool emit(int emitterId, const Point3 &norm, const Point3 &pos, const Point3 &movedir, real opacity, int tex_id,
-  float additional_width, float omnidirectional_tex_blend, bool correct_previous_node)
+  float additional_width, float omnidirectional_tex_blend, bool correct_previous_node, bool direction_changed)
 {
   if (emitterId < 0 || emitterId >= emitters.size())
     return false;
 
   return emitters[emitterId].emit(norm, pos, movedir, opacity, tex_id, additional_width, omnidirectional_tex_blend,
-    correct_previous_node);
+    correct_previous_node, direction_changed);
 }
 
 // delete track emitter.

@@ -6,7 +6,9 @@
 #include "render/fx/fx.h"
 #include <effectManager/effectManager.h>
 #include "main/level.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 
 void ri_destr_start_effect(
   int type, const TMatrix &, const TMatrix &fx_tm, int pool_idx, bool is_player, AcesEffect **locked_fx, const char *effect_template)

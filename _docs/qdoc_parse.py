@@ -404,6 +404,7 @@ def parse(file_path, data, parsed_result = None, print_res=False):
       name = parsed["name"]
       typemask = parsed["typemask"]
       paramsnum = parsed["paramsnum"]
+      vargved = parsed["vargved"]
       members = parsed["members"]
       params = parsed["args"]
       retdesc = {"rtype": parsed["rtype"], "description": None}

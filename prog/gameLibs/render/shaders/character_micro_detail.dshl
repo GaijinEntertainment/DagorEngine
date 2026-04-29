@@ -136,7 +136,11 @@ macro USE_CHARACTER_MICRODETAIL_IMPL(has_sampler, extended_params)
 
   USE_CHARACTER_MICRODETAIL_COMMON(has_sampler)
   hlsl(ps) {
-    #define character_micro_detail_layer (get_character_micro_detail_scale().z)
+    ##if compatibility_mode == compatibility_mode_off
+      #define character_micro_detail_layer (get_character_micro_detail_scale().z)
+    ##else
+      #define character_micro_detail_layer -1
+    ##endif
 
     half4 sample_character_micro_detail(float2 uv, int arrayNo)
     {

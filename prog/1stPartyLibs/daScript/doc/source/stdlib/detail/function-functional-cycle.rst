@@ -1,1 +1,0 @@
-endlessly iterates over `src`

@@ -10,6 +10,7 @@ shader single_pass_blur11
   cull_mode=none;
   z_test=false;
   z_write=false;
+  color_write=r;
   no_ablend;
 
 

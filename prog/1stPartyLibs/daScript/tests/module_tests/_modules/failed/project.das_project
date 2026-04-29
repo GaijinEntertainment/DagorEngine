@@ -1,0 +1,26 @@
+// failed/project.das_project — Module resolver that blocks strings_boost
+//
+// Includes the base resolution logic from common.das_project, then adds
+// a module_allowed() function that returns false for "strings_boost".
+// This causes compilation to fail when main.das tries to
+// `require daslib/strings_boost`.
+//
+// This is the negative test case: it verifies that the module permission
+// system works correctly by ensuring that blocked modules actually cause
+// compilation errors.
+
+options gen2
+require strings
+require daslib/strings_boost
+
+include common.das_project
+
+[export]
+def module_allowed(mod, filename : string) {
+    if (mod == "strings_boost") {
+        print("strings boost is not allowed\n")
+        return false
+    }
+    print("is module allowed {mod} {filename}\n")
+    return true
+}

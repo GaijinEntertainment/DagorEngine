@@ -10,6 +10,7 @@ Target      = gameLibs/textureGen.lib ;
 AddIncludes =
   $(Root)/prog/gameLibs/publicInclude
   $(Root)/$(Location)
+  $(Root)/prog/3rdPartyLibs/imgui
 ;
 
 Sources =
@@ -25,6 +26,9 @@ Sources =
   textureGenCache.cpp
   textureDataCache.cpp
   textureGenPseudoDLA.cpp
+  textureGenRenderText.cpp
+  textureGenImgToGradient.cpp
+  textureGenHeightmapOcclusion.cpp
 ;
 
 UseProgLibs +=

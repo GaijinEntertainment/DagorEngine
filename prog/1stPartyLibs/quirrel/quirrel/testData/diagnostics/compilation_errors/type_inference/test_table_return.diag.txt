@@ -1,0 +1,9 @@
+ERROR: expression of type 'table' cannot be assigned to type 'array'
+testData/diagnostics/compilation_errors/type_inference/test_table_return.nut:3:4
+
+function make_table(): array {
+    return { a = 1, b = 2 }
+    ^----------------------
+}
+
+

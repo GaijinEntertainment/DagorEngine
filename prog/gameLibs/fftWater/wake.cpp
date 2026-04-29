@@ -113,11 +113,11 @@ bool Wake::init(int res)
   for (int i = 0; i < height.size(); ++i)
   {
     String texName(128, "%s_height%d", name, i);
-    height[i] = dag::create_tex(NULL, resolution, resolution, TEXCF_RTARGET | fmt, 1, texName.str());
+    height[i] = dag::create_tex(NULL, resolution, resolution, TEXCF_RTARGET | fmt, 1, texName.str(), RESTAG_WATER);
   }
 
   String texName(128, "%s_gradients", name);
-  wakeGradients = dag::create_array_tex(resolution, resolution, 2, TEXCF_RTARGET | gradFmt, 1, texName.str());
+  wakeGradients = dag::create_array_tex(resolution, resolution, 2, TEXCF_RTARGET | gradFmt, 1, texName.str(), RESTAG_WATER);
 
   ShaderGlobal::set_int(wake_resolutionVarId, resolution);
   cleared_flag = false;
@@ -126,9 +126,13 @@ bool Wake::init(int res)
   moveOfs = Point2(0, 0);
 
   // common for all wakes (if ever many)!
-  verticalDerivative = dag::create_tex(NULL, resolution, resolution, TEXCF_RTARGET | vdfmt, 1, "wakeVdTex"); // todo: if there are many
-                                                                                                             // wakes, we still need
-                                                                                                             // only one vdTex
+  verticalDerivative = dag::create_tex(NULL, resolution, resolution, TEXCF_RTARGET | vdfmt, 1, "wakeVdTex", RESTAG_WATER); // todo: if
+                                                                                                                           // there are
+                                                                                                                           // many
+                                                                                                                           // wakes, we
+                                                                                                                           // still
+                                                                                                                           // need only
+                                                                                                                           // one vdTex
   makeDerivatives.init("make_derivatives");
   makeHeightmap.init("make_wake_heightmap");
   copyHeightmap.init("copy_wake_heightmap");
@@ -175,7 +179,7 @@ void Wake::close()
 void Wake::setLevel(float water_level)
 {
   waterLevel = water_level;
-  ShaderGlobal::set_real(wake_water_levelVarId, waterLevel);
+  ShaderGlobal::set_float(wake_water_levelVarId, waterLevel);
 }
 
 Wake::~Wake() { close(); }
@@ -239,7 +243,7 @@ void Wake::renderMove(const Point2 &ofs)
     return;
   if (!height[0].getTex2D())
     return;
-  ShaderGlobal::set_color4(wake_move_ofsVarId, ofs.x, ofs.y, 0, 0);
+  ShaderGlobal::set_float4(wake_move_ofsVarId, ofs.x, ofs.y, 0, 0);
 
   d3d::set_render_target(height[currentHeight].getTex2D(), 0);
   for (int i = 0; i < height.size(); ++i)
@@ -291,8 +295,8 @@ void Wake::simulateDt(const Point2 &origin, float dt)
   worldToWake = Point4(1.0 / regionSize, -(lastPos.x - regionSize * 0.5) / regionSize, -(lastPos.y - regionSize * 0.5) / regionSize,
     2.0f * texelSize);
 
-  ShaderGlobal::set_color4(next_wake_ofsVarId, (origin.x - lastPos.x) / regionSize, (origin.y - lastPos.y) / regionSize, 0, 0);
-  ShaderGlobal::set_color4(world_to_wakeVarId, Color4::xyzw(worldToWake));
+  ShaderGlobal::set_float4(next_wake_ofsVarId, (origin.x - lastPos.x) / regionSize, (origin.y - lastPos.y) / regionSize, 0, 0);
+  ShaderGlobal::set_float4(world_to_wakeVarId, Color4::xyzw(worldToWake));
 
   Driver3dRenderTarget prevRt;
   d3d::get_render_target(prevRt);
@@ -341,14 +345,14 @@ void Wake::simulateDt(const Point2 &origin, float dt)
   ShaderGlobal::set_texture(wake_ht_texVarId, height[curheight]);
   makeDerivatives.render(); // todo:we can totally separate and call it somewhere else, to save cache flush gpu wait time after it
 
-  ShaderGlobal::set_real(wake_alphaVarId, cvt(actualDt, 0.02, 0.03f, alpha, 2 * alpha)); // to fight with instabilities
+  ShaderGlobal::set_float(wake_alphaVarId, cvt(actualDt, 0.02, 0.03f, alpha, 2 * alpha)); // to fight with instabilities
   ShaderGlobal::set_texture(wake_vd_texVarId, verticalDerivative);
   ShaderGlobal::set_texture(wake_pht_texVarId, height[prevheight]);
   ShaderGlobal::set_texture(wake_cht_texVarId, height[curheight]);
-  ShaderGlobal::set_real(wake_dtVarId, actualDt);
+  ShaderGlobal::set_float(wake_dtVarId, actualDt);
   ShaderGlobal::set_int(wake_obstacles_countVarId, obstacles.size());
-  ShaderGlobal::set_color4(wake_main_positionVarId, mainPos.x, mainPos.y, mainPos.z, mainSpeed);
-  ShaderGlobal::set_color4(wake_main_dirVarId, mainDir.x, mainDir.y, 1.0f / max(0.01f, dirSize.x), 1.0 / max(0.01f, dirSize.y));
+  ShaderGlobal::set_float4(wake_main_positionVarId, mainPos.x, mainPos.y, mainPos.z, mainSpeed);
+  ShaderGlobal::set_float4(wake_main_dirVarId, mainDir.x, mainDir.y, 1.0f / max(0.01f, dirSize.x), 1.0 / max(0.01f, dirSize.y));
 
   if (obstacles.size() > 0)
     d3d::set_ps_const(wake_obstacles_const_no, (float *)obstacles.data(), obstacles.size());

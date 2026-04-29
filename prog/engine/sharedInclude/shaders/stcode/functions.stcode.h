@@ -2,14 +2,16 @@
 #pragma once
 
 #include "scalarTypes.h"
-#include <math/dag_mathBase.h>
+#include "callbacks.stcode.h"
+#include <cmath>
+
+#define FLOAT4_TYPE stcode::cpp::float4
+#define DAG_FATAL   stcode::cpp::fatal
+#include <shaders/commonStcodeFunctions.h>
 
 #ifndef __GENERATED_STCODE_FILE
 #error This file can only be included in generated stcode
 #endif
-
-// These will be used further down the includes
-#include <shaders/commonStcodeFunctions.h>
 
 namespace stcode::cpp
 {

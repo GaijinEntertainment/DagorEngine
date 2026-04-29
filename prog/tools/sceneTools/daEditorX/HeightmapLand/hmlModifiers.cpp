@@ -2,49 +2,15 @@
 
 #include "hmlPlugin.h"
 #include "hmlSplineObject.h"
+#include "hmlSplinePoint.h"
 
 #include <de3_hmapService.h>
 #include <de3_interface.h>
+#include <math/dag_math2d.h>
 #include <coolConsole/coolConsole.h>
 #include <perfMon/dag_cpuFreq.h>
 
 bool guard_det_border = false;
-
-static inline real distance_point_to_line_segment_squared(float pt_x, float pt_y, float p1_x, float p1_y, float p2_x, float p2_y,
-  float &out_t)
-{
-  float dp_x = pt_x - p1_x;
-  float dp_y = pt_y - p1_y;
-  float dir_x = p2_x - p1_x;
-  float dir_y = p2_y - p1_y;
-  real len2 = dir_x * dir_x + dir_y * dir_y;
-
-  if (len2 == 0)
-  {
-    out_t = 0;
-    return dp_x * dp_x + dp_y * dp_y;
-  }
-
-  real t = (dp_x * dir_x + dp_y * dir_y) / len2;
-
-  if (t <= 0)
-  {
-    out_t = 0;
-    return dp_x * dp_x + dp_y * dp_y;
-  }
-  if (t >= 1)
-  {
-    out_t = 1;
-    float diff_x = pt_x - p2_x;
-    float diff_y = pt_y - p2_y;
-    return diff_x * diff_x + diff_y * diff_y;
-  }
-
-  out_t = t;
-
-  real crossProduct = dp_x * dir_y - dp_y * dir_x;
-  return (crossProduct * crossProduct) / len2;
-}
 
 struct SplineCache
 {
@@ -52,7 +18,7 @@ struct SplineCache
   BBox3 bbox;
   float minDist;
   float maxDist;
-  float maxDistSq;
+  bool usePerPointWidth;
 };
 
 struct SplineSegmentInfo
@@ -61,6 +27,8 @@ struct SplineSegmentInfo
   Point3 segDir;
   real segLen;
   float minDist, maxDist;
+  float startMinDist, startMaxDist; // per-point width at start
+  float endMinDist, endMaxDist;     // per-point width at end
   BBox3 bbox;
 };
 
@@ -115,19 +83,21 @@ static void AddHeightbakeSplineWithClipCheck(SplineObject *spline, dag::Vector<S
 
   SplineCache cache;
   cache.ptr = spline;
+  cache.usePerPointWidth = spline->getProps().modifParams.usePerPointWidth;
   spline->getWorldBox(cache.bbox);
   float w1 = spline->getProps().modifParams.width;
-  float w2 = w1 + spline->getProps().modifParams.smooth;
-  cache.bbox[0] -= Point3(w2, w2, w2);
-  cache.bbox[1] += Point3(w2, w2, w2);
+  float smooth = spline->getProps().modifParams.smooth;
+
+  float maxW2 = (w1 + smooth) * spline->getProps().modifParams.maxWidthScale;
+
+  cache.bbox[0] -= Point3(maxW2, maxW2, maxW2);
+  cache.bbox[1] += Point3(maxW2, maxW2, maxW2);
 
   if (cache.bbox[0].x <= dirtyClipMaxWorld.x && cache.bbox[1].x >= dirtyClipMinWorld.x && cache.bbox[0].z <= dirtyClipMaxWorld.y &&
       cache.bbox[1].z >= dirtyClipMinWorld.y)
   {
     cache.minDist = w1;
-    cache.maxDist = w2;
-    cache.maxDistSq = cache.maxDist * cache.maxDist;
-
+    cache.maxDist = maxW2;
     delaunaySplines.push_back(cache);
   }
 }
@@ -166,6 +136,19 @@ static IBBox2 applyHeightBake(HeightMapStorage &hm, dag::Vector<SplineCache> &de
 
     Point3 pt = bezierSpline.segs[0].point(0);
     int segId = 0;
+    float prevLocT = 0.0f;
+    int prevSegId = 0;
+
+    // Interpolate scale_w between control points at a position on the Bezier spline.
+    auto getInterpolatedScaleW = [&](int bezSegId, float locT) -> float {
+      int numPts = spline.ptr->points.size();
+      if (bezSegId < 0 || bezSegId >= numPts)
+        return 1.0f;
+      float s0 = max(spline.ptr->points[bezSegId]->getProps().attr.scale_w, 1e-3f);
+      int nextPtIdx = min(bezSegId + 1, numPts - 1);
+      float s1 = max(spline.ptr->points[nextPtIdx]->getProps().attr.scale_w, 1e-3f);
+      return s0 + (s1 - s0) * locT;
+    };
 
     const int numSteps = int(maxLen / step) + 1;
     for (int stepIdx = 0; stepIdx < numSteps; ++stepIdx)
@@ -184,6 +167,23 @@ static IBBox2 applyHeightBake(HeightMapStorage &hm, dag::Vector<SplineCache> &de
       segInfo.minDist = spline.minDist;
       segInfo.maxDist = spline.maxDist;
 
+      // Per-point width scaling (only when enabled at spline level)
+      if (spline.usePerPointWidth)
+      {
+        float startScale = getInterpolatedScaleW(prevSegId, prevLocT);
+        float endScale = getInterpolatedScaleW(next_segId, locT);
+        segInfo.startMinDist = spline.minDist * startScale;
+        segInfo.endMinDist = spline.minDist * endScale;
+        float smooth = spline.maxDist - spline.minDist;
+        segInfo.startMaxDist = segInfo.startMinDist + smooth * startScale;
+        segInfo.endMaxDist = segInfo.endMinDist + smooth * endScale;
+      }
+      else
+      {
+        segInfo.startMinDist = segInfo.endMinDist = spline.minDist;
+        segInfo.startMaxDist = segInfo.endMaxDist = spline.maxDist;
+      }
+
       Point3 segDir = pt_next - pt;
       real segLen = segDir.length();
       if (segLen > 1e-6f)
@@ -192,12 +192,14 @@ static IBBox2 applyHeightBake(HeightMapStorage &hm, dag::Vector<SplineCache> &de
         segInfo.segDir = segDir;
         segInfo.segLen = segLen;
 
-        segInfo.bbox[0] = Point3(min(pt.x, pt_next.x) - spline.maxDist,
+        float segMaxDist = spline.usePerPointWidth ? max(segInfo.startMaxDist, segInfo.endMaxDist) : spline.maxDist;
+
+        segInfo.bbox[0] = Point3(min(pt.x, pt_next.x) - segMaxDist,
           0.f, // not needed
-          min(pt.z, pt_next.z) - spline.maxDist);
-        segInfo.bbox[1] = Point3(max(pt.x, pt_next.x) + spline.maxDist,
+          min(pt.z, pt_next.z) - segMaxDist);
+        segInfo.bbox[1] = Point3(max(pt.x, pt_next.x) + segMaxDist,
           0.f, // not needed
-          max(pt.z, pt_next.z) + spline.maxDist);
+          max(pt.z, pt_next.z) + segMaxDist);
 
         if (segInfo.bbox[0].x <= clipMaxWorld.x && segInfo.bbox[1].x >= clipMinWorld.x && segInfo.bbox[0].z <= clipMaxWorld.y &&
             segInfo.bbox[1].z >= clipMinWorld.y)
@@ -206,6 +208,8 @@ static IBBox2 applyHeightBake(HeightMapStorage &hm, dag::Vector<SplineCache> &de
 
       pt = pt_next;
       segId = next_segId;
+      prevSegId = next_segId;
+      prevLocT = locT;
     }
   }
 
@@ -326,6 +330,8 @@ static IBBox2 applyHeightBake(HeightMapStorage &hm, dag::Vector<SplineCache> &de
             const SplineCache &spline = delaunaySplines[splineIdx];
 
             real minDistSq = MAX_REAL;
+            int bestSegIdx = -1;
+            float bestLineT = 0.0f;
 
             for (int slotIdx = 0; slotIdx < data.entryCount; ++slotIdx)
             {
@@ -334,21 +340,35 @@ static IBBox2 applyHeightBake(HeightMapStorage &hm, dag::Vector<SplineCache> &de
 
               float line_t;
               real distSq =
-                distance_point_to_line_segment_squared(worldPos.x, worldPos.z, seg.start.x, seg.start.z, seg.end.x, seg.end.z, line_t);
+                sq_distance_point_to_line_segment(Point2::xz(worldPos), Point2::xz(seg.start), Point2::xz(seg.end), line_t);
               Point3 projPoint = seg.start + (seg.end - seg.start) * line_t;
 
               if (distSq < minDistSq)
               {
                 minDistSq = distSq;
                 bestProjPoint = projPoint;
+                bestSegIdx = segmentIdx;
+                bestLineT = line_t;
               }
             }
 
-            if (minDistSq < spline.maxDistSq)
+            // Compute effective minDist/maxDist (per-point or spline-level)
+            float effMinDist = spline.minDist;
+            float effMaxDist = spline.maxDist;
+            if (bestSegIdx >= 0 && spline.usePerPointWidth)
+            {
+              const SplineSegmentInfo &bestSeg = splineSegments[splineIdx][bestSegIdx];
+              effMinDist = bestSeg.startMinDist + (bestSeg.endMinDist - bestSeg.startMinDist) * bestLineT;
+              effMaxDist = bestSeg.startMaxDist + (bestSeg.endMaxDist - bestSeg.startMaxDist) * bestLineT;
+            }
+
+            if (minDistSq < effMaxDist * effMaxDist)
             {
               real dist = sqrtf(minDistSq);
-              float weight =
-                (dist <= spline.minDist) ? 1.0f : 1.0f - saturate((dist - spline.minDist) / (spline.maxDist - spline.minDist));
+              float smoothDist = effMaxDist - effMinDist;
+              float weight = (dist <= effMinDist)   ? 1.0f
+                             : (smoothDist > 1e-9f) ? 1.0f - saturate((dist - effMinDist) / smoothDist)
+                                                    : 0.0f;
 
               if ((weight > bestWeight) || (fabsf(weight - bestWeight) < 1e-5f && dist < bestDist))
               {
@@ -585,7 +605,7 @@ void HmapLandPlugin::applyHmModifiers(bool gen_colors, bool reset_final, bool fi
 
   if (colors_changed)
   {
-    generateLandColors(&sum_dirty);
+    generateLandColors(&sum_dirty, true, false);
     recalcLightingInRect(sum_dirty);
     // resetRenderer();
     hmlService->invalidateClipmap(false);

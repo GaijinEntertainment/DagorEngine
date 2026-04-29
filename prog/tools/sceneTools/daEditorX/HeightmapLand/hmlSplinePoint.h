@@ -213,7 +213,7 @@ public:
   unsigned short visible : 1, segChanged : 1;
   // real cross (mean, not road joint and not mere spline/road cross) must be checked together with isCross
   unsigned short isCross : 1, isRealCross : 1;
-  SplineObject *spline;
+  Ptr<SplineObject> spline;
   Point3 tmpUpDir; //< computed when generating straight segments, used when generating cross roads
 
   static E3DCOLOR norm_col, sel_col, sel2_col, hlp_col, norm_col_start_point;

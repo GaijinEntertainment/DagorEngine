@@ -21,6 +21,8 @@
 #include <osApiWrappers/dag_progGlobals.h>
 #include <direct.h>
 #include <eh.h>
+#include <osApiWrappers/dag_unicode.h>
+#include <util/dag_simpleString.h>
 
 #if _TARGET_C4
 
@@ -50,10 +52,49 @@ static int dagor_program_exec(int nCmdShow, int debugmode, WinDeferredStartupLog
 
 static void __cdecl abort_handler(int) { DAG_FATAL("SIGABRT"); }
 
-int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLine*/, int nCmdShow)
+static struct DagorUtf8ArgsStorage
+{
+  Tab<SimpleString> args_utf8;
+  Tab<char *> args_ptr;
+  char *arg0_ptr = arg0;
+  char arg0[1024 - 2 * sizeof(Tab<char *>) - sizeof(char *)] = {0};
+
+  void init()
+  {
+    Tab<char> cvtBuf;
+    args_utf8.resize(__argc);
+    args_ptr.resize(__argc);
+    for (int i = 0; i < __argc; ++i)
+    {
+      args_utf8[i] = convert_to_utf8(cvtBuf, __wargv[i]);
+      if (i == 0)
+      {
+        strncpy(arg0, args_utf8[i].c_str(), sizeof(arg0) - 1);
+        arg0[sizeof(arg0) - 1] = '\0';
+        args_utf8[i] = nullptr;
+        args_ptr[i] = arg0;
+      }
+      else
+        args_ptr[i] = args_utf8[i].c_str();
+    }
+    __argv = args_ptr.data();
+  }
+  ~DagorUtf8ArgsStorage()
+  {
+    dgs_argc = 1;
+    dgs_argv = &arg0_ptr;
+    __argv = nullptr;
+    clear_and_shrink(args_utf8);
+    clear_and_shrink(args_ptr);
+  }
+} args_utf8;
+
+int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR /*lpCmdLine*/, int nCmdShow)
 {
   int retcode = 0;
   WinDeferredStartupLogs deferredLogs{};
+
+  args_utf8.init();
 
   win_set_process_dpi_aware(deferredLogs);
   win_recover_systemroot_env();
@@ -62,7 +103,12 @@ int PASCAL WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR /*lpCmdLi
   setvbuf(stdout, NULL, _IONBF, 0);
   setvbuf(stderr, NULL, _IONBF, 0);
 
-  dgs_init_argv(__argc, __argv);
+  int argc = __argc;
+  char **argv = __argv;
+#if defined OPTIONAL_ADD_ARGS
+  OPTIONAL_ADD_ARGS(argc, argv);
+#endif
+  dgs_init_argv(argc, argv);
   dgs_report_fatal_error = messagebox_win_report_fatal_error;
   apply_hinstance(hInstance, hPrevInstance);
   ::dgs_execute_quiet = ::dgs_get_argv("quiet");

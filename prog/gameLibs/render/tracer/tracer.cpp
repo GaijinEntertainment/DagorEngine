@@ -11,12 +11,11 @@
 #include <3d/dag_render.h>
 #include <drv/3d/dag_draw.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
-#include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
-#include <drv/3d/dag_platform.h>
-#include <3d/dag_materialData.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <3d/dag_materialData.h>
 #include <debug/dag_debug.h>
 #include <util/dag_oaHashNameMap.h>
 #include <supp/dag_prefetch.h>
@@ -145,7 +144,7 @@ struct TracerMgrThreadGuard
 
 Tracer::Tracer(TracerManager *in_owner, uint32_t in_idx, const Point3 &start_pos, const Point3 &in_speed, int type_no,
   unsigned int mesh_no, float tail_particle_half_size_from, float tail_particle_half_size_to, float tail_deviation,
-  const Color4 &tail_color, float in_caliber, float spawn_time, float amplify_scale) :
+  const Color4 &tail_color, float in_caliber, float spawn_time, float amplify_scale, AmplificationBehavior amplification_behavior) :
   owner(in_owner),
   idx(in_idx),
   startPos(start_pos),
@@ -170,6 +169,7 @@ Tracer::Tracer(TracerManager *in_owner, uint32_t in_idx, const Point3 &start_pos
   wasPrepared(false),
   minLen(0),
   queueSegmentAddition(false),
+  amplificationBehavior(amplification_behavior),
   positionQueued(0, 0, 0)
 {
   G_UNREFERENCED(in_caliber);
@@ -209,12 +209,11 @@ void Tracer::flushSegmentAdditions()
     }
 
     // do not pilled up append. This is especially true when window is minimized
-    if (owner->tracerBuffer.cmdCount() > MAX_SEGMENTS_BUFFER_QUEUE)
-      return;
-
-    segments[segmentsNum++].pos = positionQueued;
-    appendToSegmentBuffer(segmentsNum - 1);
-    queueSegmentAddition = false;
+    if (appendToSegmentBuffer(segmentsNum, MAX_SEGMENTS_BUFFER_QUEUE))
+    {
+      segments[segmentsNum++].pos = positionQueued;
+      queueSegmentAddition = false;
+    }
   }
 }
 
@@ -265,11 +264,12 @@ void Tracer::decay(const Point3 &in_pos)
 
 float Tracer::getCurLifeTime() const { return owner->curTime - spawnTime; }
 
-void Tracer::appendToSegmentBuffer(uint32_t segment_id)
+bool Tracer::appendToSegmentBuffer(uint32_t segment_id, int max_cmd_count)
 {
   GPUFxSegment segment;
   segment.worldPos = pos;
-  owner->segmentBuffer.append(idx * MAX_FX_SEGMENTS + segment_id, dag::ConstSpan<uint8_t>((uint8_t *)&segment, sizeof(GPUFxSegment)));
+  return owner->segmentBuffer.append(idx * MAX_FX_SEGMENTS + segment_id,
+    dag::ConstSpan<uint8_t>((uint8_t *)&segment, sizeof(GPUFxSegment)), 1, max_cmd_count);
 }
 
 void Tracer::appendToTracerBuffer(uint32_t tracer_id)
@@ -337,19 +337,20 @@ void Tracer::updateSegments()
 }
 
 
-TracerManager::DrawBuffer::DrawBuffer() : structSize(0), cmdSize(0), cmd() {}
+TracerManager::DrawBuffer::DrawBuffer() : structSize(0), cmdSize(0) {}
 
 void TracerManager::DrawBuffer::createGPU(int struct_size, int cmd_size, int elements, unsigned flags, unsigned texfmt,
   const char *name)
 {
   structSize = struct_size;
   cmdSize = cmd_size;
-  buf = dag::create_sbuffer(struct_size, elements, flags, texfmt, name);
+  buf = dag::create_sbuffer(struct_size, elements, flags, texfmt, name, RESTAG_TRACER);
   if (cmd_size)
   {
+    G_ASSERT(cmd_size % dag::buffers::CBUFFER_REGISTER_SIZE == 0);
     const int commandSizeInRegs = cmd_size / dag::buffers::CBUFFER_REGISTER_SIZE;
     createCmdBuf = dag::buffers::create_one_frame_cb(commandSizeInRegs * FX_TRACER_MAX_CREATE_COMMANDS,
-      String(0, "tracer_create_commands_%s", name));
+      String(0, "tracer_create_commands_%s", name), RESTAG_TRACER);
   }
 }
 
@@ -372,8 +373,9 @@ void TracerManager::DrawBuffer::close()
 {
   buf.close();
   clear_and_shrink(data);
-  cmds.clear_and_shrink();
-  cmd = 0;
+
+  OSSpinlockScopedLock lock(cmdsLock);
+  clear_and_shrink(cmds);
 }
 
 int TracerManager::DrawBuffer::lock(uint32_t ofs_bytes, uint32_t size_bytes, void **p, int flags)
@@ -391,21 +393,32 @@ void TracerManager::DrawBuffer::unlock()
     buf->unlock();
 }
 
-void TracerManager::DrawBuffer::append(uint32_t id, dag::ConstSpan<uint8_t> elem, int amount)
+bool TracerManager::DrawBuffer::append(uint32_t id, dag::ConstSpan<uint8_t> elem, int amount, int max_cmd_count)
 {
-  G_ASSERT(structSize == elem.size() || amount > 1);
+  G_ASSERT(structSize * amount == elem.size());
 
   if (buf)
   {
+    G_ASSERT(id + amount <= buf->getNumElements());
+    G_ASSERT(cmdSize > 0 && cmdSize % 16 == 0 && structSize + sizeof(uint32_t) <= cmdSize);
+
+    OSSpinlockScopedLock lock(cmdsLock);
+
+    if (max_cmd_count > 0 && cmds.size() > max_cmd_count)
+      return false;
+
+    const uint32_t insertPoint = cmds.size();
+    cmds.resize_noinit(cmds.size() + cmdSize * amount);
+
+    uint8_t *dst = &cmds[insertPoint];
     for (int i = 0; i < amount; i++)
     {
-      G_ASSERT(cmdSize > 0 && (cmdSize % 16) == 0 && structSize + sizeof(uint32_t) <= cmdSize);
-      cmds.writeNext(true, cmdSize, [&](dag::Span<uint8_t> span) {
-        memcpy(span.data(), &elem[i * structSize], structSize);
-        memcpy(span.data() + structSize, &id, sizeof(id));
-        memset(span.data() + structSize + sizeof(id), 0, cmdSize - structSize - sizeof(id));
-      });
-      interlocked_increment(cmd);
+      uint32_t currentId = id + i;
+      memcpy(dst, &elem[i * structSize], structSize);
+      memcpy(dst + structSize, &currentId, sizeof(currentId));
+      memset(dst + structSize + sizeof(currentId), 0, cmdSize - structSize - sizeof(currentId));
+
+      dst += cmdSize;
     }
   }
 
@@ -413,11 +426,13 @@ void TracerManager::DrawBuffer::append(uint32_t id, dag::ConstSpan<uint8_t> elem
   {
     memcpy(&data[id * structSize], elem.data(), structSize * amount);
   }
+
+  return true;
 }
 
 void TracerManager::DrawBuffer::process(ComputeShaderElement *cs, int fx_create_cmd, int element_count)
 {
-  if (!buf || cmds.empty())
+  if (!buf)
     return;
 
   G_ASSERT(is_main_thread());
@@ -425,19 +440,17 @@ void TracerManager::DrawBuffer::process(ComputeShaderElement *cs, int fx_create_
   if (cs)
   {
     ShaderGlobal::set_int(fx_create_cmdVarId, fx_create_cmd);
-
     ShaderGlobal::set_buffer(tracer_data_bufferVarId, buf.getBufId());
-    uint32_t elemSize = cmdSize;
-    G_ASSERT((elemSize % 16) == 0);
-    int elemCount = cmds.size() / elemSize;
 
-    G_ASSERT(elemCount >= cmd);
+    OSSpinlockScopedLock lock(cmdsLock);
 
-    for (int i = max(elemCount - cmd, 0); i < elemCount;)
+    G_ASSERT(cmdSize > 0 && cmdSize % 16 == 0 && cmds.size() % cmdSize == 0);
+
+    int elemCount = cmds.size() / cmdSize;
+    for (int i = 0; i < elemCount;)
     {
       int batch_size = min(elemCount - i, FX_TRACER_MAX_CREATE_COMMANDS);
-
-      createCmdBuf->updateData(0, batch_size * cmdSize, &cmds[i * elemSize], VBLOCK_DISCARD);
+      createCmdBuf->updateData(0, batch_size * cmdSize, &cmds[i * cmdSize], VBLOCK_DISCARD);
 
       ShaderGlobal::set_int(tracer_batch_sizeVarId, batch_size);
       ShaderGlobal::set_buffer(tracer_create_commandsVarId, createCmdBuf.getBufId());
@@ -447,8 +460,7 @@ void TracerManager::DrawBuffer::process(ComputeShaderElement *cs, int fx_create_
       i += batch_size;
     }
 
-    cmd = 0;
-    erase_items(cmds, 0, elemSize * max(elemCount, 0));
+    cmds.clear();
   }
   else
   {
@@ -523,28 +535,28 @@ void TracerManager::readBlk(const DataBlock *blk)
 
   headVibratingRate = tracersBlk->getReal("headVibratingRate", 30.0f);
 
-  ShaderGlobal::set_color4(head_noise_paramsVarId,
+  ShaderGlobal::set_float4(head_noise_paramsVarId,
     Color4(tracersBlk->getReal("headNoiseFreq", 0.3f), tracersBlk->getReal("headNoiseScale", 0.03f),
       tracersBlk->getReal("headNoiseViewScale", 50.0f), tracersBlk->getReal("headBorderPixelRadius", 1.0f)));
 
   headShapeParams = Point4(tracersBlk->getReal("headArrowLen", 0.05f), tracersBlk->getReal("headHdrMultiplierCompatibility", 2.0f),
     tracersBlk->getReal("headFadeLenInv", 2.0f), tracersBlk->getReal("headHdrMultiplier", 25.0f));
-  ShaderGlobal::set_color4(head_shape_paramsVarId, Color4::xyzw(headShapeParams));
+  ShaderGlobal::set_float4(head_shape_paramsVarId, Color4::xyzw(headShapeParams));
 
-  ShaderGlobal::set_real(tail_lighting_directional_scaleVarId, tracersBlk->getReal("tailDirectionalScale", 1.f));
+  ShaderGlobal::set_float(tail_lighting_directional_scaleVarId, tracersBlk->getReal("tailDirectionalScale", 1.f));
 
   tailParticleExtension = tracersBlk->getReal("tailParticleExtension", 0.5f);
   tailFadeInRcp = 1.f / tracersBlk->getReal("tailFadeInDistance", 10.f);
 
-  ShaderGlobal::set_real(tailParticleExtensionVarId, tailParticleExtension);
-  ShaderGlobal::set_real(tailFadeInRcpVarId, tailFadeInRcp);
+  ShaderGlobal::set_float(tailParticleExtensionVarId, tailParticleExtension);
+  ShaderGlobal::set_float(tailFadeInRcpVarId, tailFadeInRcp);
 
   numTailParticles = tracersBlk->getInt("numTailParticles", 2000);
   G_ASSERT(numTailParticles > 0 && numTailParticles * 2 < FX_TRACER_BITS_PART_COUNT);
   G_STATIC_ASSERT(MAX_FX_SEGMENTS <= FX_TRACER_BITS_SEGMENT);
   G_STATIC_ASSERT(MAX_FX_TRACERS <= FX_HEAD_BITS_TRACER);
   G_STATIC_ASSERT((MAX_TRACER_TYPES - 1) <= (UINT32_MAX / FX_TRACER_BITS_SEGMENT / FX_HEAD_BITS_TRACER));
-  ShaderGlobal::set_real(tail_num_particlesVarId, numTailParticles);
+  ShaderGlobal::set_float(tail_num_particlesVarId, numTailParticles);
 
   numTailLods = tracersBlk->getInt("numTailLods", 5);
   tailFartherLodDist = tracersBlk->getReal("tailFartherLodDist", 1000.f);
@@ -554,7 +566,7 @@ void TracerManager::readBlk(const DataBlock *blk)
   tailAngleLod0 = DEG_TO_RAD * tracersBlk->getReal("tailAngleLod0", 0.05f);
   tailAngleLod1 = DEG_TO_RAD * tracersBlk->getReal("tailAngleLod1", 0.2f);
 
-  ShaderGlobal::set_real(tail_length_metersVarId, tailLengthMeters);
+  ShaderGlobal::set_float(tail_length_metersVarId, tailLengthMeters);
 
   const DataBlock *tracerColorsBlk = blk->getBlockByNameEx("tracerColors");
   G_ASSERT(tracerColorsBlk->blockCount() > 0);
@@ -576,6 +588,8 @@ void TracerManager::readBlk(const DataBlock *blk)
     tracerType.fxName = tracerColorBlk->getStr("tracerFxType", "");
     tracerType.amplifyScale = tracerColorBlk->getReal("amplifyScale", 1.0f);
     tracerType.headTaper = tracerColorBlk->getReal("headTaper", 1.0f);
+    tracerType.enemyAmplifyScale = tracerColorBlk->getReal("enemyAmplifyScale", 1.0f);
+    tracerType.amplifyDistanceStart = tracerColorBlk->getReal("enemyAmplifyScaleDistanceStart", 2000.0f);
 
     float distScaleStart = tracerColorBlk->getReal("distScaleStart", 0.f);
     float distScaleEnd = tracerColorBlk->getReal("distScaleEnd", 1.f);
@@ -626,7 +640,7 @@ void TracerManager::resetConfig()
 
 void TracerManager::afterResetDevice()
 {
-  G_ASSERT(!preparing);
+  finishPreparingIfNecessary();
 
   // Bullets still hold pointers to tracers.
   // We mustn't invalidate them at device reset.
@@ -634,10 +648,10 @@ void TracerManager::afterResetDevice()
   initHeads();
   initTrails();
 
-  restoreSegmentBuffers();
+  restoreBuffers();
 }
 
-void TracerManager::restoreSegmentBuffers()
+void TracerManager::restoreBuffers()
 {
   for (uint32_t tn = 0, bit = 1, processed = 0; tn < tracers.size() && processed < numTracers; ++tn, bit = (bit << 1) | (bit >> 31))
   {
@@ -645,6 +659,8 @@ void TracerManager::restoreSegmentBuffers()
       continue;
     ++processed;
     Tracer *__restrict t = &tracers[tn];
+
+    t->appendToTracerBuffer(tn);
 
     segmentBuffer.append(t->idx * MAX_FX_SEGMENTS,
       dag::ConstSpan<uint8_t>((uint8_t *)&t->segments, sizeof(GPUFxSegment) * t->segmentsNum), t->segmentsNum);
@@ -658,7 +674,7 @@ void TracerManager::update(float dt)
 
   curTime += dt;
   float vibX = fmodf(curTime * headVibratingRate, 1.0f);
-  ShaderGlobal::set_real(tracer_beam_timeVarId, 0.5 + 0.5 * (int(curTime * headVibratingRate) % 2 ? 1.0 - vibX : vibX));
+  ShaderGlobal::set_float(tracer_beam_timeVarId, 0.5 + 0.5 * (int(curTime * headVibratingRate) % 2 ? 1.0 - vibX : vibX));
 
   PREFETCH_DATA(0, &tracers);
   const float decayInc = dt / tailLengthMeters;
@@ -821,6 +837,20 @@ void TracerManager::doJob()
                                        (tracer->lastSegment + tracer->firstSegment * FX_TRACER_BITS_SEGMENT) * FX_TRACER_PACK_BIT;
     tracerDynamic.amplifyScale = tracer->amplifyScale;
 
+    if (tracer->amplificationBehavior == Tracer::INGOING_TRACER)
+    {
+      const TracerType &tracerType = tracerTypes[tracer->typeNo];
+      Point3 distVec = tracer->pos - viewPos;
+      float eyeDist = distVec.length();
+      float lerpStart = tracerType.amplifyDistanceStart;
+      float lerpEnd = tracerType.amplifyDistanceStart - tracerType.amplifyDistanceStart * 0.3;
+      float t = (lerpStart - eyeDist) / (lerpStart - lerpEnd);
+      t = clamp(t, 0.0f, 1.0f);
+
+      tracerDynamic.amplifyScale = 1.0f + (tracer->amplifyScale - 1.0f) * t;
+    }
+
+
     tracer->wasPrepared = true;
   }
   G_ASSERT(segmentDrawCount == totalSegmentCount);
@@ -876,7 +906,12 @@ void TracerManager::initTrails()
   if (!texture)
     texture = dag::get_tex_gameres("tracer_tail_tex");
   G_ASSERT(texture);
+
+  // Hack for validation of acquired shvar ids (debug mode) -- without this line,
+  // the shvar id for "tracer_tail_tex" is acquired twice in the middle of assignment
+  tailTex = SharedTexHolder{};
   tailTex = SharedTexHolder(eastl::move(texture), "tracer_tail_tex");
+
   ShaderGlobal::set_sampler(tracer_tail_tex_samplerstateVarId, get_texture_separate_sampler(tailTex.getTexId()));
   Ptr<MaterialData> matNull = new MaterialData;
   matNull->className = "tracer_tail";
@@ -925,7 +960,7 @@ void TracerManager::initTrails()
   }
 
   uint32_t vbTotalParticles = numTailParticles * (1 - pow(0.5f, (float)numTailLods)) / (1 - 0.5f);
-  tailVb = dag::create_vb(vbTotalParticles * FX_VERTICES_PER_PARTICLE * vertexSize, 0, "tailVb");
+  tailVb = dag::create_vb(vbTotalParticles * FX_VERTICES_PER_PARTICLE * vertexSize, 0, "tailVb", RESTAG_TRACER);
   G_ASSERT(tailVb);
 
   uint8_t *tailVbData;
@@ -955,7 +990,7 @@ void TracerManager::initTrails()
     }
   tailVb->unlock();
 
-  tailIb = dag::create_ib(numTailParticles * FX_INDICES_PER_PARTICLE * sizeof(uint16_t), 0, "tailIb");
+  tailIb = dag::create_ib(numTailParticles * FX_INDICES_PER_PARTICLE * sizeof(uint16_t), 0, "tailIb", RESTAG_TRACER);
   G_ASSERT(tailIb);
 
   uint16_t *tailIbData;
@@ -980,7 +1015,7 @@ void TracerManager::initTrails()
       VSD_REG(VSDR_TEXC0, VSDT_SHORT2), VSD_END};
     tailInstancingVdecl = d3d::create_vdecl(vsdInstancing);
     tailRendElem.vDecl = tailInstancingVdecl;
-    tailInstancesIds = dag::create_vb(MAX_FX_TRACERS * MAX_FX_SEGMENTS * sizeof(uint32_t), 0, "tailInstancesId");
+    tailInstancesIds = dag::create_vb(MAX_FX_TRACERS * MAX_FX_SEGMENTS * sizeof(uint32_t), 0, "tailInstancesId", RESTAG_TRACER);
     d3d_err(!!tailInstancesIds);
     short *data;
     tailInstancesIds->lock(0, 0, (void **)&data, VBLOCK_WRITEONLY);
@@ -1144,7 +1179,7 @@ void TracerManager::initHeads()
     headRendElem.startIndex = 0;
     headRendElem.numPrim = FX_PRIMITIVES_PER_PARTICLE;
 
-    headVb = dag::create_vb(MAX_FX_TRACERS * FX_HEAD_VERTICES_PER_PARTICLE * sizeof(HeadVertex), 0, "headVb");
+    headVb = dag::create_vb(MAX_FX_TRACERS * FX_HEAD_VERTICES_PER_PARTICLE * sizeof(HeadVertex), 0, "headVb", RESTAG_TRACER);
     G_ASSERT(headVb);
 
     uint8_t *headVbData;
@@ -1162,7 +1197,7 @@ void TracerManager::initHeads()
     headVb->unlock();
   }
 
-  headIb = dag::create_ib(MAX_FX_TRACERS * FX_HEAD_INDICES_PER_PARTICLE * sizeof(uint16_t), 0, "headIb");
+  headIb = dag::create_ib(MAX_FX_TRACERS * FX_HEAD_INDICES_PER_PARTICLE * sizeof(uint16_t), 0, "headIb", RESTAG_TRACER);
   G_ASSERT(headIb);
 
   uint16_t *headIbData;
@@ -1226,7 +1261,8 @@ void TracerManager::renderHeads(const Point3 &view_pos, const TMatrix &view_itm)
     tracerTypeBuffer.getSbuffer() ? FX_HEAD_MAX_SUPPORTED_NUM_REGISTERS : FX_HEAD_MIN_SUPPORTED_NUM_REGISTERS;
   int numRegisters = tracerTypeBuffer.getSbuffer() ? FX_HEAD_H_NUM_REGISTERS : FX_HEAD_NUM_REGISTERS;
   int batchInstNum =
-    (d3d::set_vs_constbuffer_size(FX_HEAD_MAXIUM_REGISTERS + FX_TRACER_DATA_REGISTER_NO) - FX_TRACER_DATA_REGISTER_NO) / numRegisters;
+    (d3d::set_vs_constbuffer_register_count(FX_HEAD_MAXIUM_REGISTERS + FX_TRACER_DATA_REGISTER_NO) - FX_TRACER_DATA_REGISTER_NO) /
+    numRegisters;
   int curInstNum = 0;
 
   for (uint32_t tracerNo = 0, bit = 1, processed = 0; tracerNo < tracers.size() && processed < numVisibleTracers;
@@ -1290,7 +1326,7 @@ void TracerManager::renderHeads(const Point3 &view_pos, const TMatrix &view_itm)
     curInstNum = 0;
   }
 
-  d3d::set_vs_constbuffer_size(0);
+  d3d::set_vs_constbuffer_register_count(0);
 
   if (tracerTypeBuffer.getSbuffer())
     d3d::set_buffer(STAGE_VS, FX_TRACER_TYPE_REGISTER_NO, NULL);
@@ -1355,7 +1391,7 @@ void TracerManager::renderTrans(const Point3 &view_pos, const TMatrix &view_itm,
   if (!numVisibleTracers)
     return;
 
-  ShaderGlobal::set_real(head_projection_hkVarId, persp_hk);
+  ShaderGlobal::set_float(head_projection_hkVarId, persp_hk);
   ShaderGlobal::set_int(tracer_prim_typeVarId, oldTracers ? -1 : head_prim_type);
 
   ShaderGlobal::setBlock(tracerBlockId, ShaderGlobal::LAYER_SCENE);
@@ -1393,7 +1429,7 @@ void TracerManager::finishPreparingIfNecessary()
 }
 
 Tracer *TracerManager::createTracer(const Point3 &start_pos, const Point3 &speed, int tracerType, int trailType, float caliber,
-  bool force, bool forceNoTrail, float cur_life_time, bool amplify)
+  bool force, bool forceNoTrail, float cur_life_time, Tracer::AmplificationBehavior amplify)
 {
   TracerMgrThreadGuard guard(this);
   G_ASSERT(!preparing);
@@ -1450,11 +1486,13 @@ space_found_:
 
   float tailDeviation = trailTypes[trailType].deviation;
   maxTracerNo = numTracers == 1 ? fi : max(fi, maxTracerNo);
+  float amplifyScale = amplify == Tracer::OUTGOING_TRACER
+                         ? tracerTypes[tracerType].amplifyScale
+                         : (amplify == Tracer::INGOING_TRACER ? tracerTypes[tracerType].enemyAmplifyScale : 1.0f);
 
-  Tracer *tracer = new (&tracers[fi], _NEW_INPLACE)
-    Tracer(this, fi, start_pos, speed, tracerType, grnd(), forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeFrom,
-      forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeTo, tailDeviation, color4(trailTypes[trailType].color), caliber,
-      curTime - cur_life_time, amplify ? tracerTypes[tracerType].amplifyScale : 1.0f);
+  Tracer *tracer = new (&tracers[fi], _NEW_INPLACE) Tracer(this, fi, start_pos, speed, tracerType, grnd(),
+    forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeFrom, forceNoTrail ? 0.f : trailTypes[trailType].particleHalfSizeTo,
+    tailDeviation, color4(trailTypes[trailType].color), caliber, curTime - cur_life_time, amplifyScale, amplify);
   return tracer;
 }
 

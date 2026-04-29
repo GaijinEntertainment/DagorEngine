@@ -8,7 +8,6 @@
 #include "riGen/rendInstTiledScene.h"
 
 #include <vecmath/dag_vecMathDecl.h>
-#include <osApiWrappers/dag_rwLock.h>
 #include <util/dag_oaHashNameMap.h>
 #include <scene/dag_physMat.h>
 #include <dag/dag_vector.h>
@@ -62,7 +61,6 @@ extern RiExtraPoolsVec riExtra;
 extern FastNameMap riExtraMap;
 extern eastl::bitvector<> riExtraPoolWasNotSavedToElems; // Parallel to `riExtra`
 
-extern SmartReadWriteFifoLock ccExtra;
 extern int maxExtraRiCount;
 extern float extendTreeRiExtraTreeBbox;
 
@@ -77,6 +75,7 @@ void termRIGenExtra();
 
 bool isRIGenExtraObstacle(const char *nm);
 bool isRIGenExtraUsedInDestr(const char *nm);
+void update_deferred_push_res();
 bool rayHitRIGenExtraCollidable(const Point3 &p0, const Point3 &norm_dir, float len, rendinst::RendInstDesc &ri_desc,
   const MaterialRayStrat &strategy, float min_r);
 void reapplyLodRanges();
@@ -90,6 +89,7 @@ enum
 typedef TiledScenesGroup<4> RITiledScenes;
 extern RITiledScenes riExTiledScenes;
 extern float riExTiledSceneMaxDist[RITiledScenes::MAX_COUNT];
+extern float riExTiledSceneMaxSize[RITiledScenes::MAX_COUNT];
 
 using RiExPerInstanceParameters = uint32_t;
 

@@ -2,15 +2,18 @@
 
 #include "dlss.h"
 
-#include "wrapped_command_buffer.h"
-#include "globals.h"
-#include "backend.h"
-#include "device_context.h"
-
 #include <nvsdk_ngx.h>
 #include <nvsdk_ngx_vk.h>
 #include <nvsdk_ngx_helpers.h>
 #include <nvsdk_ngx_helpers_vk.h>
+#include <nvsdk_ngx_helpers_dlssd.h>
+#include <nvsdk_ngx_helpers_dlssd_vk.h>
+#include "wrapped_command_buffer.h"
+#include "globals.h"
+#include "backend.h"
+#include "device_context.h"
+#include "backend/cmd/vendor_exts.h"
+
 
 /* On Linux, need to link against
  * libsdk_nvngx.a
@@ -70,6 +73,16 @@ static NVSDK_NGX_FeatureDiscoveryInfo discoveryInfo = {
   .FeatureInfo = &commonInfo,
 };
 
+static NVSDK_NGX_FeatureDiscoveryInfo discoveryInfoRR = {
+  .SDKVersion = NVSDK_NGX_Version_API,
+  .FeatureID = NVSDK_NGX_Feature_RayReconstruction,
+  .Identifier{
+    .IdentifierType = NVSDK_NGX_Application_Identifier_Type_Application_Id,
+  },
+  .ApplicationDataPath = L"",
+  .FeatureInfo = &commonInfo,
+};
+
 DLSSSuperResolutionDirect::DLSSSuperResolutionDirect() {}
 
 DLSSSuperResolutionDirect::~DLSSSuperResolutionDirect() {}
@@ -79,6 +92,7 @@ bool DLSSSuperResolutionDirect::Initialize(VkInstance vk_instance, VkPhysicalDev
   G_ASSERT(!ngxInitialized);
 
   discoveryInfo.Identifier.v.ApplicationId = ::dgs_get_settings()->getInt("nvidia_app_id", 0);
+  discoveryInfoRR.Identifier.v.ApplicationId = ::dgs_get_settings()->getInt("nvidia_app_id", 0);
 
   auto onFailure = [&]() {
     Teardown(vk_device);
@@ -86,6 +100,7 @@ bool DLSSSuperResolutionDirect::Initialize(VkInstance vk_instance, VkPhysicalDev
   };
 
   isSupported = false;
+  isRRSupported = false;
 
   // Need to specify log folder here?
   CHECK_NVAPI(NVSDK_NGX_VULKAN_Init(discoveryInfo.Identifier.v.ApplicationId, L".", vk_instance, vk_phys, vk_device, nullptr, nullptr,
@@ -131,7 +146,9 @@ bool DLSSSuperResolutionDirect::Initialize(VkInstance vk_instance, VkPhysicalDev
   }
 
   NVSDK_NGX_FeatureRequirement req = {};
+  NVSDK_NGX_FeatureRequirement reqRR = {};
   CHECK_NVAPI(NVSDK_NGX_VULKAN_GetFeatureRequirements(vk_instance, vk_phys, &discoveryInfo, &req), return onFailure());
+  CHECK_NVAPI(NVSDK_NGX_VULKAN_GetFeatureRequirements(vk_instance, vk_phys, &discoveryInfoRR, &reqRR), return onFailure());
 
   if (req.FeatureSupported != NVSDK_NGX_FeatureSupportResult_Supported)
   {
@@ -139,11 +156,22 @@ bool DLSSSuperResolutionDirect::Initialize(VkInstance vk_instance, VkPhysicalDev
     return onFailure();
   }
 
+  logdbg("DLSS is supported on the current system.");
+
+  if (reqRR.FeatureSupported != NVSDK_NGX_FeatureSupportResult_Supported)
+  {
+    logdbg("DLSS-RR is not supported on the current system.");
+    isRRSupported = false;
+  }
+  else
+  {
+    logdbg("DLSS-RR is supported on the current system.");
+    isRRSupported = true;
+  }
+
   /* This code can be used to search for updated DLSS presets.
     CHECK_NVAPI(NVSDK_NGX_UpdateFeature(appId, NVSDK_NGX_Feature_SuperSampling), );
   */
-
-  logdbg("DLSS is supported on the current system.");
 
   isSupported = true;
   return true;
@@ -203,27 +231,61 @@ bool DLSSSuperResolutionDirect::evaluate(const nv::DlssParams<void> &params, voi
   auto motionVectorsResource = texture_to_resource(params.inMotionVectors);
   auto depthResource = texture_to_resource(params.inDepth);
   auto exposureResource = texture_to_resource(params.inExposure);
+  auto albedoResource = texture_to_resource(params.inAlbedo);
+  auto specularAlbedoResource = texture_to_resource(params.inSpecularAlbedo);
+  auto normalRoughnessResource = texture_to_resource(params.inNormalRoughness);
+  auto ssssGuideResource = texture_to_resource(params.inSsssGuide);
+  auto hitDistResource = texture_to_resource(params.inHitDist);
 
-  NVSDK_NGX_VK_DLSS_Eval_Params evalParams = {
-    .Feature{
+  if (useRR)
+  {
+    NVSDK_NGX_VK_DLSSD_Eval_Params evalParams = {
+      .pInDiffuseAlbedo = albedoResource ? &albedoResource.value() : nullptr,
+      .pInSpecularAlbedo = specularAlbedoResource ? &specularAlbedoResource.value() : nullptr,
+      .pInNormals = normalRoughnessResource ? &normalRoughnessResource.value() : nullptr,
       .pInColor = unresolvedColorResource ? &unresolvedColorResource.value() : nullptr,
       .pInOutput = resolvedColorResource ? &resolvedColorResource.value() : nullptr,
-    },
-    .pInDepth = depthResource ? &depthResource.value() : nullptr,
-    .pInMotionVectors = motionVectorsResource ? &motionVectorsResource.value() : nullptr,
-    .InJitterOffsetX = params.inJitterOffsetX,
-    .InJitterOffsetY = params.inJitterOffsetY,
-    .InRenderSubrectDimensions{
-      .Width = info.extent.width,
-      .Height = info.extent.height,
-    },
-    .InReset = 0, // We need to support this eventually.
-    .InMVScaleX = params.inMVScaleX * info.extent.width,
-    .InMVScaleY = params.inMVScaleY * info.extent.height,
-    .pInExposureTexture = exposureResource ? &exposureResource.value() : nullptr,
-  };
+      .pInDepth = depthResource ? &depthResource.value() : nullptr,
+      .pInMotionVectors = motionVectorsResource ? &motionVectorsResource.value() : nullptr,
+      .InJitterOffsetX = params.inJitterOffsetX,
+      .InJitterOffsetY = params.inJitterOffsetY,
+      .InRenderSubrectDimensions{
+        .Width = info.extent.width,
+        .Height = info.extent.height,
+      },
+      .InReset = 0, // We need to support this eventually.
+      .InMVScaleX = params.inMVScaleX * info.extent.width,
+      .InMVScaleY = params.inMVScaleY * info.extent.height,
+      .pInExposureTexture = exposureResource ? &exposureResource.value() : nullptr,
+      .pInScreenSpaceSubsurfaceScatteringGuide = ssssGuideResource ? &ssssGuideResource.value() : nullptr,
+      .pInSpecularHitDistance = hitDistResource ? &hitDistResource.value() : nullptr,
+    };
 
-  CHECK_NVAPI(NGX_VULKAN_EVALUATE_DLSS_EXT(vk_cmd, dlssFeature, ngxParams, &evalParams), return false);
+    CHECK_NVAPI(NGX_VULKAN_EVALUATE_DLSSD_EXT(vk_cmd, dlssFeature, ngxParams, &evalParams), return false);
+  }
+  else
+  {
+    NVSDK_NGX_VK_DLSS_Eval_Params evalParams = {
+      .Feature{
+        .pInColor = unresolvedColorResource ? &unresolvedColorResource.value() : nullptr,
+        .pInOutput = resolvedColorResource ? &resolvedColorResource.value() : nullptr,
+      },
+      .pInDepth = depthResource ? &depthResource.value() : nullptr,
+      .pInMotionVectors = motionVectorsResource ? &motionVectorsResource.value() : nullptr,
+      .InJitterOffsetX = params.inJitterOffsetX,
+      .InJitterOffsetY = params.inJitterOffsetY,
+      .InRenderSubrectDimensions{
+        .Width = info.extent.width,
+        .Height = info.extent.height,
+      },
+      .InReset = 0, // We need to support this eventually.
+      .InMVScaleX = params.inMVScaleX * info.extent.width,
+      .InMVScaleY = params.inMVScaleY * info.extent.height,
+      .pInExposureTexture = exposureResource ? &exposureResource.value() : nullptr,
+    };
+
+    CHECK_NVAPI(NGX_VULKAN_EVALUATE_DLSS_EXT(vk_cmd, dlssFeature, ngxParams, &evalParams), return false);
+  }
 
   return true;
 }
@@ -249,19 +311,29 @@ eastl::optional<nv::DLSS::OptimalSettings> DLSSSuperResolutionDirect::getOptimal
       &renderOptimalHeight, &renderMaxWidth, &renderMaxHeight, &renderMinWidth, &renderMinHeight, &sharpness),
     return eastl::nullopt);
 
+  if (renderOptimalWidth == 0 || renderOptimalHeight == 0)
+  {
+    logdbg("NGX_DLSS_GET_OPTIMAL_SETTINGS reported success but returned 0x0 resolution!");
+    return eastl::nullopt;
+  }
+
   return OptimalSettings{
     .renderWidth = renderOptimalWidth,
     .renderHeight = renderOptimalHeight,
+    .renderMinWidth = renderMinWidth,
+    .renderMinHeight = renderMinHeight,
+    .renderMaxWidth = renderMaxWidth,
+    .renderMaxHeight = renderMaxHeight,
     .rayReconstruction = false,
   };
 }
 
-bool DLSSSuperResolutionDirect::setOptions(Mode mode, IPoint2 output_resolution)
+bool DLSSSuperResolutionDirect::setOptions(Mode mode, IPoint2 output_resolution, bool use_rr, bool use_legacy_model)
 {
   if (!isSupported)
     return false;
 
-  Globals::ctx.initializeDLSS(int(mode), output_resolution.x, output_resolution.y);
+  Globals::ctx.dispatchCmd<CmdInitializeDLSS>({int(mode), output_resolution.x, output_resolution.y, use_rr, use_legacy_model});
   return true;
 }
 
@@ -274,26 +346,59 @@ void DLSSSuperResolutionDirect::DeleteFeature()
   }
 }
 
-bool DLSSSuperResolutionDirect::setOptionsBackend(VkCommandBuffer vk_cmd, Mode mode, IPoint2 output_resolution)
+static void set_preset(NVSDK_NGX_Parameter *params, uint32_t preset)
+{
+  NVSDK_NGX_Parameter_SetUI(params, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_DLAA, preset);
+  NVSDK_NGX_Parameter_SetUI(params, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Quality, preset);
+  NVSDK_NGX_Parameter_SetUI(params, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Balanced, preset);
+  NVSDK_NGX_Parameter_SetUI(params, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_Performance, preset);
+  NVSDK_NGX_Parameter_SetUI(params, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraPerformance, preset);
+  NVSDK_NGX_Parameter_SetUI(params, NVSDK_NGX_Parameter_DLSS_Hint_Render_Preset_UltraQuality, preset);
+}
+
+bool DLSSSuperResolutionDirect::setOptionsBackend(VkDevice vk_device, VkCommandBuffer vk_cmd, Mode mode, IPoint2 output_resolution,
+  bool use_rr, bool use_legacy_model)
 {
   DeleteFeature();
 
   auto optimalSettings = getOptimalSettings(mode, output_resolution, ngxParams);
   G_ASSERT_RETURN(optimalSettings, false);
 
-  NVSDK_NGX_DLSS_Create_Params dlssCreateParams = {
-    .Feature{
+  if (use_rr)
+  {
+    NVSDK_NGX_DLSSD_Create_Params dlssCreateParams = {
+      .InDenoiseMode = NVSDK_NGX_DLSS_Denoise_Mode_DLUnified,
+      .InRoughnessMode = NVSDK_NGX_DLSS_Roughness_Mode_Packed,
+      .InUseHWDepth = NVSDK_NGX_DLSS_Depth_Type_HW,
       .InWidth = optimalSettings->renderWidth,
       .InHeight = optimalSettings->renderHeight,
       .InTargetWidth = (uint32_t)output_resolution.x,
       .InTargetHeight = (uint32_t)output_resolution.y,
       .InPerfQualityValue = convert_to_dlss(mode),
-    },
-    .InFeatureCreateFlags =
-      NVSDK_NGX_DLSS_Feature_Flags_AutoExposure | NVSDK_NGX_DLSS_Feature_Flags_DepthInverted | NVSDK_NGX_DLSS_Feature_Flags_MVLowRes,
-  };
+      .InFeatureCreateFlags = NVSDK_NGX_DLSS_Feature_Flags_AutoExposure | NVSDK_NGX_DLSS_Feature_Flags_DepthInverted |
+                              NVSDK_NGX_DLSS_Feature_Flags_MVLowRes | NVSDK_NGX_DLSS_Feature_Flags_IsHDR,
+    };
 
-  CHECK_NVAPI(NGX_VULKAN_CREATE_DLSS_EXT(vk_cmd, 1, 1, &dlssFeature, ngxParams, &dlssCreateParams), return false);
+    CHECK_NVAPI(NGX_VULKAN_CREATE_DLSSD_EXT1(vk_device, vk_cmd, 1, 1, &dlssFeature, ngxParams, &dlssCreateParams), return false);
+  }
+  else
+  {
+    NVSDK_NGX_DLSS_Create_Params dlssCreateParams = {
+      .Feature{
+        .InWidth = optimalSettings->renderWidth,
+        .InHeight = optimalSettings->renderHeight,
+        .InTargetWidth = (uint32_t)output_resolution.x,
+        .InTargetHeight = (uint32_t)output_resolution.y,
+        .InPerfQualityValue = convert_to_dlss(mode),
+      },
+      .InFeatureCreateFlags =
+        NVSDK_NGX_DLSS_Feature_Flags_AutoExposure | NVSDK_NGX_DLSS_Feature_Flags_DepthInverted | NVSDK_NGX_DLSS_Feature_Flags_MVLowRes,
+    };
+
+    set_preset(ngxParams, use_legacy_model ? NVSDK_NGX_DLSS_Hint_Render_Preset_K : NVSDK_NGX_DLSS_Hint_Render_Preset_Default);
+
+    CHECK_NVAPI(NGX_VULKAN_CREATE_DLSS_EXT(vk_cmd, 1, 1, &dlssFeature, ngxParams, &dlssCreateParams), return false);
+  }
 
   return true;
 }
@@ -303,7 +408,9 @@ nv::DLSS::State DLSSSuperResolutionDirect::getState()
   return isSupported ? nv::DLSS::State::SUPPORTED : nv::DLSS::State::NOT_SUPPORTED_INCOMPATIBLE_HARDWARE;
 }
 
-dag::Expected<eastl::string, nv::SupportState> DLSSSuperResolutionDirect::getVersion() const { return "310.3.0"; }
+bool DLSSSuperResolutionDirect::supportRayReconstruction() { return isRRSupported; }
+
+dag::Expected<eastl::string, nv::SupportState> DLSSSuperResolutionDirect::getVersion() const { return "310.5.3"; }
 
 const eastl::vector<eastl::string> &DLSSSuperResolutionDirect::getRequiredDeviceExtensions(VkInstance vk_instance,
   VkPhysicalDevice vk_phys) const

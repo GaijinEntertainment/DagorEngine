@@ -8,6 +8,7 @@ include "clustered/lights_cb.dshl"
 include "taa_inc.dshl"
 include "use_tiled_lights.dshl"
 include "motion_vector_access.dshl"
+include "csm.dshl"
 
 macro MODE(mode, num)
   mode < num,
@@ -32,7 +33,7 @@ define_macro_if_not_defined USE_EMISSION_DECODE_COLOR_MAP(code)
 endmacro
 
 float overdraw_range;
-float lights_degug_mode = 0;
+float lights_debug_mode = 0;
 
 float gbuf_debug_scale = 1;
 
@@ -44,9 +45,9 @@ shader debug_final_gbuffer
   z_write = false;
   z_test = false;
 
+  INIT_PACK_UNPACK_DYNSTCODE(ps)
 
   INIT_ZNZFAR()
-  ENABLE_ASSERT(ps)
   USE_EMISSION_DECODE_COLOR_MAP(ps)
 
   INIT_READ_DEPTH_GBUFFER()
@@ -54,133 +55,33 @@ shader debug_final_gbuffer
   INIT_LOAD_DEPTH_GBUFFER()
   INIT_LOAD_STENCIL_GBUFFER()
 
+  INIT_OMNI_LIGHTS_CB(ps)
+  INIT_SPOT_LIGHTS_CB(ps)
+
   (ps) {
     viewport@f4 = get_viewport();
     show_gbuffer@i1 = (show_gbuffer);
     overdraw_range@f1 = (overdraw_range);
-    lights_degug_mode@f1 = (lights_degug_mode);
+    lights_debug_mode@f1 = (lights_debug_mode);
     gbuf_debug_scale@f1 = (gbuf_debug_scale);
 
     lights_list@buf = lights_list hlsl { StructuredBuffer<uint> lights_list@buf; };
     z_binning_lookup@buf = z_binning_lookup hlsl { StructuredBuffer<uint> z_binning_lookup@buf; };
-    inv_lights_distance@f1 = (1 / max_lights_distance, 0, 0, 0);
+    lights_distance@f2 = (max_lights_distance, 1.0 / max_lights_distance, 0, 0);
 
     if (show_gbuffer == mip || show_gbuffer == texelDensity)
     {
       dbg_gbuff_tex@tex2d = dbg_gbuff_tex;
     }
+    world_view_pos@f3 = world_view_pos;
   }
+
+
+  USE_TILED_LIGHTS_COMMON(ps)
 
   hlsl(ps) {
     #define toonshading 0
-    #include <tiled_light_consts.hlsli>
-
-    ##if !(hardware.ps4 || hardware.ps5)
-      uint BitFieldMask(uint ones_width, uint offset)
-      {
-        return ((1U << ones_width) - 1) << offset;
-      }
-    ##endif
-
-    #define MERGE_MASK(m) (m)
-    uint depth_to_z_bin(float depth)
-    {
-      return clamp(int((depth * inv_lights_distance) * Z_BINS_COUNT), 0, Z_BINS_COUNT - 1);
-    }
-
-    uint2 screen_uv_to_tile_idx(float2 screenpos)
-    {
-      return uint2(screenpos) / TILE_EDGE;
-    }
-
-    half4 get_dynamic_lights_count(float3 worldPos, float w, float2 screenpos)
-    {
-      half3 result = 0;
-      uint2 tiledGridSize = (viewport.zw + TILE_EDGE - 1) / TILE_EDGE;
-
-      uint2 tileIdx = screen_uv_to_tile_idx(screenpos);
-      uint tileOffset = (tileIdx.x * tiledGridSize.y + tileIdx.y) * DWORDS_PER_TILE;
-
-      half3 dynamicLighting = 0;
-
-      uint zbinsOmni = structuredBufferAt(z_binning_lookup, depth_to_z_bin(w));
-      uint omniBinsBegin = zbinsOmni >> 16;
-      uint omniBinsEnd = zbinsOmni & 0xFFFF;
-      uint mergedOmniBinsBegin = MERGE_MASK(omniBinsBegin);
-      uint mergedOmniBinsEnd = MERGE_MASK(omniBinsEnd);
-      uint omniLightsBegin = mergedOmniBinsBegin >> 5;
-      uint omniLightsEnd = mergedOmniBinsEnd >> 5;
-      uint omniMaskWidth = clamp((int)omniBinsEnd - (int)omniBinsBegin + 1, 0, 32);
-      uint omniWord = 0;
-
-      for (omniWord = omniLightsBegin; omniWord <= omniLightsEnd; ++omniWord)
-      {
-        uint mask = structuredBufferAt(lights_list, tileOffset + omniWord);
-        //return float(mask)*0.1;
-        // Mask by ZBin mask
-        uint localMin = clamp((int)omniBinsBegin - (int)(omniWord << 5), 0, 31);
-        // BitFieldMask op needs manual 32 size wrap support
-        uint zbinMask = omniMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(omniMaskWidth, localMin);
-        mask &= zbinMask;
-        uint mergedMask = MERGE_MASK(mask);
-
-        LOOP
-        while (mergedMask)
-        {
-          uint bitIdx = firstbitlow(mergedMask);
-          uint omni_light_index = omniWord * BITS_IN_UINT + bitIdx;
-          mergedMask ^= (1U << bitIdx);
-
-          dynamicLighting += float3(0, 0.05, 1);
-        }
-      }
-
-      uint zbinsSpot = structuredBufferAt(z_binning_lookup, depth_to_z_bin(w) + Z_BINS_COUNT);
-      uint spotBinsBegin = zbinsSpot >> 16;
-      uint spotBinsEnd = zbinsSpot & 0xFFFF;
-      uint mergedSpotBinsBegin = MERGE_MASK(spotBinsBegin);
-      uint mergedSpotBinsEnd = MERGE_MASK(spotBinsEnd);
-      uint spotLightsBegin = (mergedSpotBinsBegin >> 5) + DWORDS_PER_TILE / 2;
-      uint spotLightsEnd = (mergedSpotBinsEnd >> 5) + DWORDS_PER_TILE / 2;
-      uint spotMaskWidth = clamp((int)spotBinsEnd - (int)spotBinsBegin + 1, 0, 32);
-      uint spotWord = DWORDS_PER_TILE / 2;
-
-      for (spotWord = spotLightsBegin; spotWord <= spotLightsEnd; ++spotWord)
-      {
-        uint mask = structuredBufferAt(lights_list, tileOffset + spotWord);
-        // Mask by ZBin mask
-        uint localMin = clamp((int)spotBinsBegin - (int)((spotWord - DWORDS_PER_TILE / 2) << 5), 0, 31);
-        // BitFieldMask op needs manual 32 size wrap support
-        uint zbinMask = spotMaskWidth == 32 ? (uint)(0xFFFFFFFF) : BitFieldMask(spotMaskWidth, localMin);
-        mask &= zbinMask;
-        uint mergedMask = MERGE_MASK(mask);
-
-        LOOP
-        while (mergedMask)
-        {
-          uint bitIdx = firstbitlow(mergedMask);
-          uint spot_light_index = (spotWord - DWORDS_PER_TILE / 2) * BITS_IN_UINT + bitIdx;
-          mergedMask ^= (1U << bitIdx);
-
-          dynamicLighting += float3(0.05, 0, 1);
-        }
-      }
-      if (lights_degug_mode > 0)
-        return float4(dynamicLighting.xy, 1, 1);
-      if (dynamicLighting.z > 30)
-        return float4(1, 1, 1, 1);
-      if (dynamicLighting.z > 24)
-        return float4(1, 0, 1, 1);
-      if (dynamicLighting.z > 16)
-        return float4(0.8, 0, 0, 1);
-      if (dynamicLighting.z > 8)
-        return float4(0, 0.8, 0.8, 1);
-      if (dynamicLighting.z > 4)
-        return float4(0, 0.8, 0, 1);
-      if (dynamicLighting.z > 0)
-        return float4(0, 0.5, 0, 1);
-      return float4(0, 0, 0, 1);
-    }
+    #include "dynamic_lights_count.hlsl"
   }
 
   INIT_UPSCALE_SAMPLING()
@@ -201,6 +102,12 @@ shader debug_final_gbuffer
   USE_READ_RESOLVED_MOTION_BUFFER_BASE(ps)
   INIT_HDR(ps)
   USE_HDR(ps)
+
+  if (show_gbuffer == shadowCascades)
+  {
+    INIT_CSM_SHADOW(ps)
+    BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(ps)
+  }
 
   if (show_gbuffer >= debug_mesh)
   {
@@ -241,66 +148,23 @@ shader debug_final_gbuffer
   hlsl(ps) {
     ##if show_gbuffer == mip
       #include "debug_gbuffer_tex_constants.hlsli"
+      #include "debug_gbuffer_tex_colors.hlsl"
 
       half4 get_mip_overlay_color(float2 texCoord, half3 albedo)
       {
-        static const half3 DBG_MIP_COLOR[MAX_DEBUG_MIP_LEVELS_DISPLAYED + 1] = {
-          half3(1,1,1),      // 0 : White
-          half3(1,0,0),      // 1 : Red
-          half3(1, 0.5, 0),  // 2 : Orange
-          half3(1, 1, 0),    // 3 : Yellow
-          half3(0.2, 1, 0),  // 4 : Neon Green
-          half3(0, 0.5, 0),  // 5 : Dark Green
-          half3(0, 0.5, 0.5),// 6 : Dark Cyan
-          half3(0, 1, 1),    // 7 : Bright Cyan
-          half3(0, 0, 1),    // 8 : Bright Blue
-          half3(0, 0, 0.5),  // 9 : Dark Blue
-          half3(0.5, 0, 0.5),//10 : Purple
-          half3(1, 0, 1),    //11+: Magenta
-        };
-
         float2 res;
         dbg_gbuff_tex.GetDimensions(res.x, res.y);
-
-        float mip_level = texelFetch(dbg_gbuff_tex, (int2)floor(texCoord * res), 0).x * (MAX_DEBUG_MIP_LEVELS_DISPLAYED + 1);
-
-        int idxFloor = clamp((int)floor(mip_level), 0, MAX_DEBUG_MIP_LEVELS_DISPLAYED);
-        int idxCeil = clamp((int)ceil(mip_level), 0, MAX_DEBUG_MIP_LEVELS_DISPLAYED);
-
-        half3 mipColor = lerp(DBG_MIP_COLOR[idxFloor], DBG_MIP_COLOR[idxCeil], frac(mip_level));
-
-        return half4(lerp(mipColor, albedo, mip_level <= MAX_DEBUG_MIP_LEVELS_DISPLAYED ? 0.2 : 1.0), 1);
+        return mip_overlay_color(texelFetch(dbg_gbuff_tex, (int2)floor(texCoord * res), 0).x, albedo);
       }
   ##endif
     ##if show_gbuffer == texelDensity
+      #include "debug_gbuffer_tex_constants.hlsli"
+      #include "debug_gbuffer_tex_colors.hlsl"
       half4 get_texel_density_overlay_color(float2 texCoord, half3 albedo)
       {
-        #include "debug_gbuffer_tex_constants.hlsli"
-
         float2 res;
         dbg_gbuff_tex.GetDimensions(res.x, res.y);
-
-        float texDensity = texelFetch(dbg_gbuff_tex, (int2) floor(texCoord * res), 0).x * (MAX_TEXEL_DENSITY_DISPLAYED + 1);
-
-        half3 texDensityColor;
-        if (texDensity > 9.5)
-        {
-          texDensityColor = half3(1, 1, 0);
-        }
-        else if (texDensity > 1)
-        {
-          texDensityColor = lerp(half3(1,1,1), half3(1,0,0), (texDensity - 1.0) / 5.0);
-        }
-        else if(texDensity > 0.1)
-        {
-          texDensityColor = lerp(half3(0,0,1), half3(1,1,1), texDensity);
-        }
-        else
-        {
-          texDensityColor = half3(1, 0, 1);
-        }
-
-        return half4(lerp(texDensityColor, albedo, texDensity <= MAX_TEXEL_DENSITY_DISPLAYED + 0.99 ? 0.2 : 1), 1);
+        return texel_density_overlay_color(texelFetch(dbg_gbuff_tex, (int2) floor(texCoord * res), 0).x, albedo);
       }
     ##endif
 
@@ -312,11 +176,12 @@ shader debug_final_gbuffer
       float2 screenpos = GET_SCREEN_POS(input.pos).xy - viewport.xy;
       float2 distortedTc = screenpos / viewport.zw;
       ##if show_gbuffer < debug_mesh
-      float w = linearize_z(readGbufferDepth(distortedTc), zn_zfar.zw);
-
+      float rawDepth = readGbufferDepth(distortedTc);
       BRANCH
-      if (w >= zn_zfar.y)
+      if (rawDepth <= 0.0)
         return 0;
+      float w = linearize_z(rawDepth, zn_zfar.zw);
+
       // TODO on Bare Mininmum with the full deferred capability it should use getSSAOSimple
       SSAO_TYPE ssao = getSSAO(w, distortedTc * rendering_res.xy).SSAO_ATTRS;
 
@@ -330,7 +195,8 @@ shader debug_final_gbuffer
       float NoV = abs( NdotV ) + 1e-5;
 
       ##if show_gbuffer == lights
-        return get_dynamic_lights_count(viewVect*w, w, input.tcLinear.xy * viewport.zw);
+        float4 debugLights = get_dynamic_lights_count(world_view_pos.xyz + viewVect*w, w, input.tcLinear.xy * viewport.zw, viewport.zw, lights_debug_mode);
+        return float4(debugLights.xyz * (0.5 + 0.5 * NoV), 1);
       ##elif show_gbuffer == emission
         return half4(gbuffer.emissionColor, 1);
       ##elif show_gbuffer >= debug_mesh
@@ -371,6 +237,8 @@ shader debug_final_gbuffer
         return half4(ssao.xxx, 1);
       ##elif show_gbuffer == wsao
         return ssao.WSAO_ATTR;
+      ##elif show_gbuffer == contactShadows
+        return half4(ssao.CONTACT_SHADOWS_ATTR.xxx, 1);
       ##elif show_gbuffer == preshadow
         return gbuffer.shadow;
       ##elif show_gbuffer == ao
@@ -385,11 +253,7 @@ shader debug_final_gbuffer
       ##elif show_gbuffer == ssrStrength
         return getSSR(gbuffer.linearRoughness, distortedTc, screenpos).a;
       ##elif show_gbuffer == materialType
-        #ifdef GBUFFER_HAS_DYNAMIC_BIT
-          half one = 1 - 0.5 * gbuffer.dynamic;
-        #else
-          half one = 1 - 0.5 * gbuf.motionMask;
-        #endif
+        half one = 1 - 0.5 * gbuffer.dynamic;
         if (gbuffer.material == 2)
           return half4(0, one, 0, 1);
         else if (gbuffer.material == 1)
@@ -402,7 +266,7 @@ shader debug_final_gbuffer
       ##elif show_gbuffer == motionGbuf
         return half4(saturate(readMotionBuffer(distortedTc).xyz * gbuf_debug_scale * 0.5 + 0.5), 1);
       ##elif show_gbuffer == motionResolvedXY || show_gbuffer == motionResolvedDepth
-        float3 outColor = saturate(readResolvedMotionBuffer(distortedTc)).xyz * gbuf_debug_scale * 0.5 + 0.5;
+        float3 outColor = saturate(readResolvedMotionBuffer(distortedTc).xyz * gbuf_debug_scale * 0.5 + 0.5);
         ##if show_gbuffer == motionResolvedXY
           return half4(outColor.xy, 0, 1);
         ##elif show_gbuffer == motionResolvedDepth
@@ -410,12 +274,34 @@ shader debug_final_gbuffer
         ##endif
       ##elif show_gbuffer == isHeroCockpit && gbuffer_has_hero_cockpit
         return half4(gbuffer.isHeroCockpit.xxx, 1);
+      ##elif show_gbuffer == isDynamic
+        return half4(gbuffer.dynamic.xxx, 1);
       ##elif show_gbuffer == mip
         return get_mip_overlay_color(distortedTc, gbuffer.diffuseColor);
       ##elif show_gbuffer == texelDensity
         return get_texel_density_overlay_color(distortedTc, gbuffer.diffuseColor);
       ##elif show_gbuffer == impostorMask
         return half4(gbuf.impostorMask.xxx, 1);
+      ##elif show_gbuffer == emission_strength
+        return half4(gbuf.emission_strength.xxx, 1);
+      ##elif show_gbuffer == emission_mult
+        return half4(gbuf.emission_color.aaa, 1);
+      ##elif show_gbuffer == shadowCascades
+        float3 worldPos = world_view_pos.xyz + viewVect * w;
+        float3 pointToEye = world_view_pos.xyz - worldPos;
+        uint cascadeId;
+        float csmEffect;
+        get_csm_shadow_tc(pointToEye, cascadeId, csmEffect);
+        static const half3 CASCADE_COLORS[7] = {
+          half3(1, 0, 0),
+          half3(0, 1, 0),
+          half3(0, 0, 1),
+          half3(1, 1, 0),
+          half3(1, 0, 1),
+          half3(0, 1, 1),
+          half3(0.3, 0.3, 0.3),
+        };
+        return half4(CASCADE_COLORS[min(cascadeId, 6u)] * NoV, 1);
       ##endif
       return 0;
     }
@@ -467,6 +353,7 @@ shader debug_final_gbuffer_vec
   }
 
   INIT_ZNZFAR_STAGE(vs)
+  INIT_PACK_UNPACK_DYNSTCODE(vs)
   INIT_READ_DEPTH_GBUFFER_BASE(vs)
   USE_READ_DEPTH_GBUFFER_BASE(vs)
 

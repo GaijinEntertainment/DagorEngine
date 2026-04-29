@@ -93,9 +93,7 @@ public:
 
   const char *resTypeString() { return "VariatedGraphicsPipeline"; }
 
-  VariatedGraphicsPipeline(ProgramID inProg, VulkanPipelineCacheHandle, LayoutType *l, const CreationInfo &info) :
-    DebugAttachedPipeline(l), modules(info.modules), variations(info.varStorage), program(inProg), seenBefore(info.seenBefore)
-  {}
+  VariatedGraphicsPipeline(ProgramID inProg, VulkanPipelineCacheHandle, LayoutType *l, const CreationInfo &info);
 
   GraphicsPipeline *getVariant(CompilationContext &comp_ctx, const GraphicsPipelineVariantDescription &dsc);
 
@@ -111,12 +109,15 @@ public:
 
   bool pendingCompilation();
 
+  InputLayoutID getBaseInputLayout() { return inputLayout; }
+
 private:
   GraphicsPipelineShaderSet<const ShaderModule *> modules;
 
   dag::Vector<eastl::pair<GraphicsPipelineVariantDescription::Hash, GraphicsPipeline *>> items;
   GraphicsPipelineVariationStorage &variations;
   ProgramID program;
+  InputLayoutID inputLayout;
   bool seenBefore;
 };
 

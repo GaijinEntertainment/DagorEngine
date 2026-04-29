@@ -67,20 +67,19 @@ public:
   virtual bool isResLoaded(int res_id) { return findRes(res_id) >= 0; }
   virtual bool checkResPtr(GameResource *res) { return findGameRes(res) >= 0; }
 
-  virtual GameResource *getGameResource(int res_id)
+  virtual GameResource *getGameResource(RRL rrl, int res_id)
   {
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
-
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
-
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0)
       return NULL;
 
     resData[id].refCount++;
-
     return (GameResource *)resData[id].carData;
   }
 
@@ -125,14 +124,14 @@ public:
   }
 
 
-  virtual bool freeUnusedResources(bool force, bool /*once*/)
+  virtual bool freeUnusedResources(RRL rrl, bool force, bool /*once*/)
   {
     bool result = false;
     for (int i = resData.size() - 1; i >= 0; --i)
     {
       if (resData[i].refCount != 0)
         continue;
-      if (get_refcount_game_resource_pack_by_resid(resData[i].resId) > 0)
+      if (rrl && is_res_required(rrl, resData[i].resId))
         continue;
 
       erase_items(resData, i, 1);
@@ -162,7 +161,7 @@ public:
   }
 
 
-  void createGameResource(int /*res_id*/, const int * /*ref_ids*/, int /*num_refs*/) override {}
+  void createGameResource(RRL, int, const int *, int) override {}
   void reset() override
   {
     if (!resData.empty())
@@ -197,13 +196,13 @@ public:
     ~ResData()
     {
       if (carCreationData->carDataPtr)
-        release_game_resource((GameResource *)carCreationData->carDataPtr);
+        release_game_resource_ex(carCreationData->carDataPtr, VehicleDescGameResClassId);
       if (carCreationData->bodyPhObjData)
-        release_game_resource((GameResource *)carCreationData->bodyPhObjData);
+        release_game_resource_ex(carCreationData->bodyPhObjData, PhysObjGameResClassId);
       if (carCreationData->frontWheelModel)
-        release_game_resource((GameResource *)(carCreationData->frontWheelModel.get()));
+        release_game_resource_ex(carCreationData->frontWheelModel.get(), DynModelGameResClassId);
       if (carCreationData->rearWheelModel)
-        release_game_resource((GameResource *)(carCreationData->rearWheelModel.get()));
+        release_game_resource_ex(carCreationData->rearWheelModel.get(), DynModelGameResClassId);
 
       delete carCreationData;
     }
@@ -242,20 +241,19 @@ public:
   virtual bool isResLoaded(int res_id) { return findRes(res_id) >= 0; }
   virtual bool checkResPtr(GameResource *res) { return findGameRes(res) >= 0; }
 
-  virtual GameResource *getGameResource(int res_id)
+  virtual GameResource *getGameResource(RRL rrl, int res_id)
   {
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
-
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
-
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0)
       return NULL;
 
     resData[id].refCount++;
-
     return (GameResource *)resData[id].carCreationData;
   }
 
@@ -300,14 +298,14 @@ public:
   }
 
 
-  virtual bool freeUnusedResources(bool force, bool /*once*/)
+  virtual bool freeUnusedResources(RRL rrl, bool force, bool /*once*/)
   {
     bool result = false;
     for (int i = resData.size() - 1; i >= 0; --i)
     {
       if (resData[i].refCount != 0)
         continue;
-      if (get_refcount_game_resource_pack_by_resid(resData[i].resId) > 0)
+      if (rrl && is_res_required(rrl, resData[i].resId))
         continue;
 
       erase_items(resData, i, 1);
@@ -321,7 +319,7 @@ public:
   void loadGameResourceData(int /*res_id*/, IGenLoad & /*cb*/) override {}
 
 
-  void createGameResource(int res_id, const int *ref_ids, int num_refs) override
+  void createGameResource(RRL rrl, int res_id, const int *ref_ids, int num_refs) override
   {
     WinAutoLock lock(get_gameres_main_cs());
     if (findRes(res_id) >= 0)
@@ -332,20 +330,18 @@ public:
     int rdi = append_items(resData, 1);
     lock.unlockFinal();
 
-    G_ASSERT((unsigned int)::get_game_res_class_id(ref_ids[3]) == VehicleDescGameResClassId);
-    resData[rdi].carCreationData->carDataPtr = (PhysCarSettings2 *)::get_game_resource(ref_ids[3]);
+    G_ASSERT(::get_game_res_class_id(ref_ids[3]) == VehicleDescGameResClassId);
+    resData[rdi].carCreationData->carDataPtr = (PhysCarSettings2 *)get_game_resource(ref_ids[3], rrl);
 
-    G_ASSERT((unsigned int)::get_game_res_class_id(ref_ids[0]) == PhysObjGameResClassId);
-    resData[rdi].carCreationData->bodyPhObjData = (DynamicPhysObjectData *)::get_game_resource(ref_ids[0]);
+    G_ASSERT(::get_game_res_class_id(ref_ids[0]) == PhysObjGameResClassId);
+    resData[rdi].carCreationData->bodyPhObjData = (DynamicPhysObjectData *)get_game_resource(ref_ids[0], rrl);
     G_ASSERT(resData[rdi].carCreationData->bodyPhObjData);
 
-#ifndef NO_3D_GFX
-    G_ASSERT((unsigned int)::get_game_res_class_id(ref_ids[1]) == DynModelGameResClassId);
-    resData[rdi].carCreationData->frontWheelModel = (DynamicRenderableSceneLodsResource *)::get_game_resource(ref_ids[1]);
+    G_ASSERT(::get_game_res_class_id(ref_ids[1]) == DynModelGameResClassId);
+    resData[rdi].carCreationData->frontWheelModel = (DynamicRenderableSceneLodsResource *)get_game_resource(ref_ids[1], rrl);
 
-    G_ASSERT((unsigned int)::get_game_res_class_id(ref_ids[2]) == DynModelGameResClassId);
-    resData[rdi].carCreationData->rearWheelModel = (DynamicRenderableSceneLodsResource *)::get_game_resource(ref_ids[2]);
-#endif
+    G_ASSERT(::get_game_res_class_id(ref_ids[2]) == DynModelGameResClassId);
+    resData[rdi].carCreationData->rearWheelModel = (DynamicRenderableSceneLodsResource *)get_game_resource(ref_ids[2], rrl);
     resData[rdi].resId = res_id;
   }
 
@@ -388,7 +384,7 @@ bool load_raywheel_car_info(const char *res_name, const char *car_name, class Ph
   if (info)
   {
     String descResName = String(res_name) + "_vehicleDesc";
-    GameResource *descRes = get_game_resource_ex(GAMERES_HANDLE_FROM_STRING(descResName), VehicleDescGameResClassId);
+    GameResource *descRes = get_game_resource_ex(descResName, VehicleDescGameResClassId);
     if (!descRes)
       DAG_FATAL("Error loading vehicle description resource '%s'", descResName.str());
 
@@ -397,7 +393,7 @@ bool load_raywheel_car_info(const char *res_name, const char *car_name, class Ph
     info->setDefaultValues(carSettings->frontSusp, carSettings->rearSusp);
     info->load(b, carsBlk);
 
-    release_game_resource(descRes);
+    release_game_resource_ex(descRes, VehicleDescGameResClassId);
   }
 
   if (gbox)

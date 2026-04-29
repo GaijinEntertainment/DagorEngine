@@ -72,7 +72,7 @@ static bool repush(HSQUIRRELVM vm_from, SQInteger idx, HSQUIRRELVM vm_to, int de
     }
     case OT_STRING:
     {
-      const SQChar *val = nullptr;
+      const char *val = nullptr;
       G_VERIFY(SQ_SUCCEEDED(sq_getstring(vm_from, idx, &val)));
       sq_pushstring(vm_to, val, -1);
       break;
@@ -87,7 +87,7 @@ static bool repush(HSQUIRRELVM vm_from, SQInteger idx, HSQUIRRELVM vm_to, int de
       for (SQInteger i = 0; i < len; ++i)
       {
         sq_pushinteger(vm_from, i);
-        G_VERIFY(SQ_SUCCEEDED(sq_get_noerr(vm_from, srcArrIdx))); // for array must always succeed
+        G_VERIFY(SQ_SUCCEEDED(sq_get(vm_from, srcArrIdx))); // for array must always succeed
         SQInteger srcValIdx = sq_gettop(vm_from);
         sq_pushinteger(vm_to, i);
         if (!repush(vm_from, srcValIdx, vm_to, depth + 1, err_msg))

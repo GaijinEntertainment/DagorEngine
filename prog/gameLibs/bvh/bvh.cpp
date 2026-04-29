@@ -5,8 +5,9 @@
 #include <drv/3d/dag_bindless.h>
 #include <drv/3d/dag_buffers.h>
 #include <drv/3d/dag_resUpdateBuffer.h>
-#include <3d/dag_lockSbuffer.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_info.h>
+#include <3d/dag_lockSbuffer.h>
 #include <shaders/dag_computeShaders.h>
 #include <shaders/dag_shaderVariableInfo.h>
 #include <shaders/dag_shStateBlockBindless.h>
@@ -27,20 +28,26 @@
 #include <math/dag_dxmath.h>
 #include <math/dag_half.h>
 #include <util/dag_threadPool.h>
+#include <EASTL/array.h>
 #include <EASTL/unique_ptr.h>
 #include <EASTL/optional.h>
 #include <EASTL/unordered_map.h>
 #include <EASTL/numeric.h>
 #include <gui/dag_visualLog.h>
 #include <userSystemInfo/systemInfo.h>
+#include <util/dag_convar.h>
 
 #include "bvh_context.h"
 #include "bvh_debug.h"
 #include "bvh_add_instance.h"
 #include "shaders/dag_shaderVar.h"
+#include "bvh_tools.h"
 
-static constexpr int per_frame_blas_model_budget[3] = {10, 15, 30};
-static constexpr int per_frame_compaction_budget[3] = {20, 30, 60};
+CONSOLE_INT_VAL("render", bvh_riGen_budget_us, 10000, 100, 10000);
+CONSOLE_BOOL_VAL("render", bvh_disable_parallel_instance_processing_finish, false);
+
+static eastl::array<int, 3> per_frame_blas_model_budget = {10, 15, 30};
+static eastl::array<int, 3> per_frame_compaction_budget = {20, 30, 60};
 
 static constexpr float animation_distance_rate = 20;
 
@@ -53,6 +60,7 @@ extern bool bvh_gpuobject_enable;
 extern bool bvh_grass_enable;
 extern bool bvh_particles_enable;
 extern bool bvh_cables_enable;
+extern bool bvh_splinegen_enable;
 #endif
 
 #if BVH_PROFILING_ENABLED
@@ -65,7 +73,7 @@ namespace bvh
 
 namespace terrain
 {
-dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2, bool>> get_blases(ContextId context_id);
+dag::Vector<eastl::tuple<uint64_t, MeshMetaAllocator::AllocId, Point2>> get_blases(ContextId context_id);
 
 void init();
 void init(ContextId context_id);
@@ -75,8 +83,8 @@ void teardown(ContextId context_id);
 
 namespace ri
 {
-void init();
-void teardown();
+void init(int single_lod_filter_max_faces, float single_lod_filter_max_range, float _ri_lod_dist_bias);
+void teardown(bool device_reset);
 void init(ContextId context_id);
 void teardown(ContextId context_id);
 void on_scene_loaded(ContextId context_id);
@@ -84,32 +92,35 @@ void on_unload_scene(ContextId context_id);
 void prepare_ri_extra_instances();
 // instances in view_frustum in ri_gen_visibilities[1] will be discarded!
 void update_ri_gen_instances(ContextId context_id, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities,
-  const Point3 &view_position, const Frustum &view_frustum, threadpool::JobPriority prio);
+  const Point3 &view_position, const Point3 &light_direction, const Frustum &view_frustum, threadpool::JobPriority prio);
 void update_ri_extra_instances(ContextId context_id, const Point3 &view_position, const Frustum &bvh_frustum,
   const Frustum &view_frustum, threadpool::JobPriority prio);
 void wait_ri_gen_instances_update(ContextId context_id);
-void wait_ri_extra_instances_update(ContextId context_id, bool do_work);
-void cut_down_trees(ContextId context_id);
-void wait_cut_down_trees();
+void wait_ri_extra_instances_update(ContextId context_id);
+void tidy_up_trees(ContextId context_id);
+void wait_tidy_up_trees();
 void set_dist_mul(float mul);
 void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc);
+void readdRendinst(ContextId context_id, const RenderableInstanceLodsResource *resource);
 } // namespace ri
 
 namespace dyn
 {
-void init();
-void teardown();
+void init(int single_lod_filter_max_faces, float single_lod_filter_max_range, bool discard_destr_assets);
+void teardown(bool device_reset, bool zero_bvh_ids);
 void init(ContextId context_id);
 void teardown(ContextId context_id);
+void enable_dynamic_planar_decals(bool enable);
 void on_unload_scene(ContextId context_id);
 void update_dynrend_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
   dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position);
 void wait_dynrend_instances();
 void update_animchar_instances(ContextId bvh_context_id, dynrend::ContextId dynrend_context_id,
   dynrend::ContextId dynrend_no_shadow_context_id, const Point3 &view_position, dynrend::BVHIterateCallback iterate_callback);
+void debug_update();
 void set_up_dynrend_context_for_processing(dynrend::ContextId dynrend_context_id);
-void purge_skin_buffers(ContextId context_id);
-void wait_purge_skin_buffers();
+void tidy_up_skins(ContextId context_id);
+void wait_tidy_up_skins();
 } // namespace dyn
 
 namespace gobj
@@ -156,6 +167,35 @@ void teardown();
 void teardown(ContextId context_id);
 } // namespace cables
 
+namespace binscene
+{
+void init();
+void teardown();
+void add_meshes(ContextId context_id, BaseStreamingSceneHolder &bin_scene);
+void update_instances(ContextId context_id);
+void on_unload_scene(ContextId context_id);
+} // namespace binscene
+
+namespace fftwater
+{
+void init();
+void teardown();
+void create_patches(ContextId context_id, FFTWater &fft_water);
+void on_unload_scene(ContextId context_id);
+} // namespace fftwater
+
+namespace gpugrass
+{
+void init();
+void teardown();
+void init(ContextId context_id);
+void teardown(ContextId context_id);
+void on_unload_scene(ContextId context_id);
+void generate_instances(ContextId context_id, bool has_grass);
+void make_meta(ContextId context_id, const GPUGrassBase &grass);
+void get_instances(ContextId context_id, Sbuffer *&instances, Sbuffer *&instance_count);
+} // namespace gpugrass
+
 namespace debug
 {
 void init(ContextId context_id);
@@ -164,9 +204,28 @@ void teardown();
 void render_debug_context(ContextId context_id, float min_t);
 } // namespace debug
 
+namespace dagdp
+{
+void init(ContextId context_id);
+void teardown(ContextId context_id);
+::BVHInstanceMapper *get_mapper(ContextId context_id);
+::BVHInstanceMapper::InstanceBuffers get_buffers(ContextId context_id);
+} // namespace dagdp
+
+namespace splinegen
+{
+void teardown(ContextId context_id);
+void on_unload_scene(ContextId context_id);
+void add_meshes(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &meshes,
+  uint32_t instance_vertex_count, uint32_t &bvh_id);
+void update_instances(ContextId context_id, const Point3 &view_pos);
+} // namespace splinegen
+
+bool use_batched_skinned_vertex_processor = false;
 bool is_in_lost_device_state = false;
 
 elem_rules_fn elem_rules = nullptr;
+screenshot_fn screenshot_function = nullptr;
 
 dag::AtomicInteger<uint32_t> bvh_id_gen = 0;
 
@@ -182,13 +241,172 @@ int ri_thread_count_ofset = 0;
 
 float debug_min_t = 0;
 
+bool delay_sync = false;
+
+bool bvh_prioritize_compactions = false;
+bool bvh_use_fast_tlas_build = false;
+
+static void copyHwInstancesCpu(void *dst, const NativeInstance *src, size_t instance_count)
+{
+#if _TARGET_APPLE
+  d3d::driver_command(Drv3dCommand::CONVERT_TLAS_INSTANCES, (void *)dst, (void *)src, (void *)instance_count);
+#else
+  memcpy(dst, src, sizeof(NativeInstance) * instance_count);
+#endif
+}
+
+namespace parallel_instance_processing
+{
+static dag::AtomicInteger<int> jobGroupReleaseCounter;
+static constexpr int COPY_DONE_VALUE = -666;
+
+enum class TargetFrame
+{
+  Current,
+  Next
+};
+static bool upload_heavy_stuff(ContextId context_id, TargetFrame target_frame)
+{
+  for (int i = 0; i < ri_gen_thread_count; i++)
+    G_ASSERT_RETURN(context_id->impostorInstances[i].size() == context_id->impostorInstanceData[i].size(), false);
+
+  for (int i = 0; i < ri_extra_thread_count; i++)
+    G_ASSERT_RETURN(context_id->riExtraInstances[i].size() == context_id->riExtraInstanceData[i].size(), false);
+
+  int impostorCount = 0;
+  for (auto &instances : context_id->impostorInstanceData)
+    impostorCount += instances.size();
+
+  int riExtraCount = 0;
+  for (auto &instances : context_id->riExtraInstanceData)
+    riExtraCount += instances.size();
+
+  const int uploadCount = impostorCount + riExtraCount;
+  if (uploadCount == 0)
+    return true;
+
+  auto tlasBuf = target_frame == TargetFrame::Next ? context_id->tlasUploadMain.getNextBuf() : context_id->tlasUploadMain.getBuf();
+  auto perInstanceDataBuf =
+    target_frame == TargetFrame::Next ? context_id->perInstanceData.getNextBuf() : context_id->perInstanceData.getBuf();
+
+  const uint32_t HW_INSTANCE_SIZE = d3d::get_driver_desc().raytrace.topAccelerationStructureInstanceElementSize;
+
+  if (!tlasBuf || tlasBuf->getSize() < uploadCount * HW_INSTANCE_SIZE)
+    return false;
+
+  if (!perInstanceDataBuf || perInstanceDataBuf->getSize() < uploadCount * sizeof(PerInstanceData))
+    return false;
+
+  {
+    auto upload = lock_sbuffer<uint8_t>(tlasBuf, 0, uploadCount * HW_INSTANCE_SIZE, VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE);
+    if (!upload)
+      return false;
+
+    auto cursor = upload.get();
+    for (auto &instances : context_id->impostorInstances)
+    {
+      TIME_PROFILE(memcpy_impostors)
+
+      copyHwInstancesCpu(cursor, instances.data(), instances.size());
+      cursor += instances.size() * HW_INSTANCE_SIZE;
+    }
+
+    for (auto &instances : context_id->riExtraInstances)
+    {
+      TIME_PROFILE(memcpy_ri_extra)
+      copyHwInstancesCpu(cursor, instances.data(), instances.size());
+      cursor += instances.size() * HW_INSTANCE_SIZE;
+    }
+  }
+
+  {
+    auto upload =
+      lock_sbuffer<uint8_t>(perInstanceDataBuf, 0, uploadCount * sizeof(PerInstanceData), VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE);
+    if (!upload)
+      return false;
+
+    int offset = 0;
+    {
+      TIME_D3D_PROFILE(upload_per_instance_data_heavy);
+
+      for (auto &instanceData : context_id->impostorInstanceData)
+      {
+        memcpy(upload.get() + offset, instanceData.data(), instanceData.size() * sizeof(PerInstanceData));
+        offset += instanceData.size() * sizeof(PerInstanceData);
+      }
+      for (auto &instanceData : context_id->riExtraInstanceData)
+      {
+        memcpy(upload.get() + offset, instanceData.data(), instanceData.size() * sizeof(PerInstanceData));
+        offset += instanceData.size() * sizeof(PerInstanceData);
+      }
+    }
+  }
+
+  return true;
+}
+
+static void on_parallel_jobs_finished(ContextId context_id)
+{
+  if (bvh_disable_parallel_instance_processing_finish)
+    return;
+
+  TIME_PROFILE(on_parallel_jobs_finished)
+
+  bool result = upload_heavy_stuff(context_id, TargetFrame::Next);
+  if (!result)
+    return;
+
+  int prevValue = jobGroupReleaseCounter.exchange(COPY_DONE_VALUE);
+  G_UNUSED(prevValue);
+  G_ASSERT(prevValue == 0);
+}
+
+void start_frame(ContextId context_id)
+{
+  G_UNUSED(context_id);
+  jobGroupReleaseCounter.store(1); // add +1, so we won't finish before adding all the jobs that can contribute
+}
+
+void finish_adding_jobs(ContextId context_id)
+{
+  G_UNUSED(context_id);
+  // remove the +1 we added in start_frame, now the counter reflects the number of jobs that can contribute to the release
+  // if the jobs finish before this call, there is not much to copy anyway, and we can do it separately
+  jobGroupReleaseCounter.sub_fetch(1);
+}
+
+void before_job_start(ContextId context_id)
+{
+  G_UNUSED(context_id);
+  int counter = jobGroupReleaseCounter.add_fetch(1);
+  G_UNUSED(counter);
+  G_ASSERT(counter > 0);
+}
+
+void after_job_end(ContextId context_id)
+{
+  G_UNUSED(context_id);
+  int counter = jobGroupReleaseCounter.sub_fetch(1);
+  if (counter != 0)
+    return;
+
+  on_parallel_jobs_finished(context_id);
+}
+
+bool is_parallel_jobs_finished(ContextId context_id)
+{
+  G_UNUSED(context_id);
+  return jobGroupReleaseCounter.load() == COPY_DONE_VALUE;
+}
+} // namespace parallel_instance_processing
+
 struct BVHLinearBufferManager
 {
   struct Buffer
   {
     Buffer(size_t alignment, size_t struct_size, size_t elem_count, uint32_t flags, const char *name) : alignment(alignment)
     {
-      buffer = dag::create_sbuffer(struct_size, elem_count, flags, 0, name);
+      buffer = dag::create_sbuffer(struct_size, elem_count, flags, 0, name, RESTAG_BVH);
     }
 
     void startNewFrame() { cursor = 0; }
@@ -227,10 +445,16 @@ struct BVHLinearBufferManager
 
   Sbuffer *alloc(uint32_t elems, uint32_t &offset)
   {
+    if (!elems)
+    {
+      offset = 0;
+      return nullptr;
+    }
+
     if (elems > elemCount)
     {
       offset = 0;
-      auto buffer = d3d::create_sbuffer(structSize, elems, flags, 0, String(0, "%s_large_%u", name, largeBuffers.size()));
+      auto buffer = d3d::create_sbuffer(structSize, elems, flags, 0, String(0, "%s_large_%u", name, largeBuffers.size()), RESTAG_BVH);
       HANDLE_LOST_DEVICE_STATE(buffer, nullptr);
       largeBuffers.push_back(buffer);
       return buffer;
@@ -267,19 +491,72 @@ struct BVHLinearBufferManager
 
 struct CreateCompactedBLASJob : public cpujobs::IJob
 {
-  Context::BLASCompaction *compaction = nullptr;
+  eastl::vector<Context::BLASCompaction *> compactions;
+  ContextId contextId;
 
-  static void start(Context::BLASCompaction *compaction)
+  static void start(eastl::vector<Context::BLASCompaction *> &&queue, ContextId context_id)
   {
     auto job = new CreateCompactedBLASJob;
-    job->compaction = compaction;
-    compaction->blasCreateJob = job;
-    threadpool::add(job, threadpool::PRIO_LOW, false);
+    context_id->createCompactedBLASJobQueue.push_back().reset(job);
+    job->compactions = eastl::move(queue);
+    job->contextId = context_id;
+    for (auto compaction : job->compactions)
+      compaction->blasCreateJob = job;
+    threadpool::add(job, threadpool::PRIO_NORMAL);
   }
 
   const char *getJobName(bool &) const override { return "CreateCompactedBLASJob"; }
-  void doJob() override { compaction->compactedBlas = UniqueBLAS::create(compaction->compactedSizeValue); }
+  void doJob() override
+  {
+    for (auto compaction : compactions)
+    {
+      compaction->compactedBlas = UniqueBLAS::create(compaction->compactedSizeValue);
+      compaction->blasCreateJob = nullptr;
+      contextId->numCompactionBlasesBeingCreated--;
+      contextId->numCompactionBlasesWaitingBuild++;
+    }
+  }
 };
+
+static struct BVHUploadMetaJob : public cpujobs::IJob
+{
+  ContextId contextId;
+
+  void start(ContextId context_id)
+  {
+    contextId = context_id;
+
+    int metaCount = contextId->meshMetaAllocator.size();
+
+    if (contextId->meshMeta && contextId->meshMeta->getNumElements() < metaCount)
+      contextId->meshMeta.close();
+
+    if (!contextId->meshMeta)
+      HANDLE_LOST_DEVICE_STATE(contextId->meshMeta.allocate(sizeof(MeshMeta), metaCount, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED,
+                                 "bvh_meta", contextId), );
+
+    threadpool::add(this, threadpool::JobPriority::PRIO_HIGH);
+  }
+  void doJob() override
+  {
+    if (auto upload = lock_sbuffer<MeshMeta>(contextId->meshMeta.getBuf(), 0, 0, VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE))
+    {
+      auto dst = upload.get();
+      int poolIndex = 0;
+      while (auto src = contextId->meshMetaAllocator.data(poolIndex++))
+      {
+        memcpy(dst, src, MeshMetaAllocator::PoolSize * sizeof(MeshMeta));
+        dst += MeshMetaAllocator::PoolSize;
+      }
+    }
+  }
+  const char *getJobName(bool &) const override { return "BVHUploadMetaJob"; }
+  void wait()
+  {
+    TIME_PROFILE(wait_bvh_upload_meta_job)
+    threadpool::wait(this);
+  }
+} bvh_upload_meta_job;
 
 static BVHLinearBufferManager scratch_buffer_manager(1, 2 * 1024 * 1024, SBCF_USAGE_ACCELLERATION_STRUCTURE_BUILD_SCRATCH_SPACE,
   "bvh_scratch_buffer");
@@ -328,11 +605,11 @@ bool has_enough_vram_for_rt()
     return true;
 
   auto gfx = dgs_get_settings()->getBlockByNameEx("graphics");
-  auto memoryRequiredKB = gfx->getInt("bvhMinRequiredMemoryGB", 5) * 1100 * 1000;        // intentionally not 1024
-  auto memoryRequiredUMAKB = gfx->getInt("bvhMinRequiredMemoryGBUMA", 15) * 1100 * 1000; // intentionally not 1024
+  auto memoryRequiredKB = gfx->getInt("bvhMinRequiredMemoryGB", 5) * 1100 * 950;        // intentionally not 1024
+  auto memoryRequiredUMAKB = gfx->getInt("bvhMinRequiredMemoryGBUMA", 15) * 1100 * 950; // intentionally not 1024
 
-  auto &desc = d3d::get_driver_desc();
-  if (desc.caps.hasRayQuery && desc.info.isUMA)
+  auto &drvDesc = d3d::get_driver_desc();
+  if (drvDesc.caps.hasRayQuery && drvDesc.info.isUMA)
   {
     // For UMA GPUs we check the system memory instead of the VRAM.
 
@@ -371,69 +648,104 @@ inline bool logonce(const char *msg)
   return false;
 }
 
-bool is_available()
+bool is_available() { return is_available_verbose() == BvhAvailabilityCode::AVAILABLE; }
+
+BvhAvailabilityCode is_available_verbose()
 {
   if (dgs_get_settings()->getBlockByNameEx("gameplay")->getBool("enableVR", false))
   {
     logonce("bvh::is_available is failed because VR is enabled.");
-    return false;
+    return BvhAvailabilityCode::VR_ENABLED;
   }
   if (!d3d::get_driver_desc().caps.hasRayQuery)
   {
     logonce("bvh::is_available is failed because of no ray query support.");
-    return false;
+    return BvhAvailabilityCode::NOT_SUPPORTED;
   }
   if (!d3d::get_driver_desc().caps.hasBindless)
   {
     logonce("bvh::is_available is failed because of no bindless support.");
-    return false;
+    return BvhAvailabilityCode::NOT_SUPPORTED;
   }
   if (!denoiser::is_available())
   {
     logonce("bvh::is_available is failed because of no denoiser support.");
-    return false;
+    return BvhAvailabilityCode::NOT_SUPPORTED;
   }
 #if _TARGET_SCARLETT || _TARGET_C2
   static bool hasEnoughVRAM = true;
 #elif _TARGET_PC
   if (!d3d::is_inited())
-    return true;
+    return BvhAvailabilityCode::AVAILABLE;
   static bool hasEnoughVRAM = has_enough_vram_for_rt_initial_check();
 #else
   static bool hasEnoughVRAM = false;
 #endif
-  if (hasEnoughVRAM)
-    logonce("bvh::is_available is success.");
-  else
+  if (!hasEnoughVRAM)
+  {
     logonce("bvh::is_available is failed because of not enough VRAM.");
+    return BvhAvailabilityCode::NOT_ENOUGH_MEMORY;
+  }
 
-  return hasEnoughVRAM;
+  static bool isGPUValid = []() {
+    if (
+      const DataBlock *bvhBlacklistGPUBlk = ::dgs_get_settings()->getBlockByNameEx("graphics")->getBlockByNameEx("bvh_blacklist_gpu"))
+    {
+      bool isValid = true;
+      for (int i = 0; i < bvhBlacklistGPUBlk->paramCount(); i++)
+      {
+        isValid = isValid && strcmp(bvhBlacklistGPUBlk->getStr(i), d3d::get_device_name()) != 0;
+      }
+      return isValid;
+    }
+    return true;
+  }();
+
+  if (!isGPUValid)
+  {
+    logonce("bvh::is_available is failed because of gpu is not valid, check bvh gpu blacklist.");
+    return BvhAvailabilityCode::BLACKLISTED_GPU;
+  }
+  logonce("bvh::is_available is success.");
+  return BvhAvailabilityCode::AVAILABLE;
 }
 
-void init(elem_rules_fn elem_rules_init)
+void init(elem_rules_fn elem_rules_init, screenshot_fn screenshot, AdditionalSettings settings)
 {
+  delay_sync = d3d::get_driver_code().is(d3d::vulkan) || d3d::get_driver_code().is(d3d::ps5) || d3d::get_driver_code().is(d3d::dx12);
+  bvh_prioritize_compactions = settings.prioritizeCompactions;
+  bvh_use_fast_tlas_build = settings.use_fast_tlas_build;
+
   elem_rules = elem_rules_init;
+  screenshot_function = screenshot;
+  use_batched_skinned_vertex_processor = settings.batchedSkinning;
 
   scratch_buffer_manager.alignment = d3d::get_driver_desc().raytrace.accelerationStructureBuildScratchBufferOffsetAlignment;
 
   terrain::init();
-  ri::init();
-  dyn::init();
+  ri::init(settings.singleLodFilterMaxFaces, settings.singleLodFilterMaxRange, settings.riLodDistBias);
+  dyn::init(settings.singleLodFilterMaxFaces, settings.singleLodFilterMaxRange, settings.discardDestrAssets);
   gobj::init();
   grass::init();
   fx::init();
   cables::init();
+  binscene::init();
+  fftwater::init();
+  gpugrass::init();
 }
 
-void teardown()
+void teardown(bool device_reset, bool zero_bvh_ids)
 {
   terrain::teardown();
-  ri::teardown();
-  dyn::teardown();
+  ri::teardown(device_reset);
+  dyn::teardown(device_reset, zero_bvh_ids);
   gobj::teardown();
   grass::teardown();
   fx::teardown();
   cables::teardown();
+  binscene::teardown();
+  fftwater::teardown();
+  gpugrass::teardown();
   debug::teardown();
   hwInstanceCopyShader.reset();
   ProcessorInstances::teardown();
@@ -442,6 +754,8 @@ void teardown()
 
   is_in_lost_device_state = false;
 }
+
+void enable_dynamic_planar_decals(bool enable) { dyn::enable_dynamic_planar_decals(enable); }
 
 ContextId create_context(const char *name, Features features)
 {
@@ -455,26 +769,36 @@ ContextId create_context(const char *name, Features features)
   dyn::init(context_id);
   grass::init(context_id);
   fx::init(context_id);
+  gpugrass::init(context_id);
   if (context_id->has(Features::Cable))
     cables::init(context_id);
+  dagdp::init(context_id);
   debug::init(context_id);
   return context_id;
 }
 
+bool has_features(ContextId context_id, uint32_t features)
+{
+  if (!context_id)
+    return false;
+  return context_id->has(features);
+}
+
 static void unbind_tlases()
 {
+  // The shadervars are optional, since this function might get called after switching to compatibility binary
 #if !_TARGET_C2
-  static int bvh_mainVarId = get_shader_variable_id("bvh_main");
-  static int bvh_terrainVarId = get_shader_variable_id("bvh_terrain");
-  static int bvh_particlesVarId = get_shader_variable_id("bvh_particles");
+  static int bvh_mainVarId = get_shader_variable_id("bvh_main", true);
+  static int bvh_terrainVarId = get_shader_variable_id("bvh_terrain", true);
+  static int bvh_particlesVarId = get_shader_variable_id("bvh_particles", true);
   ShaderGlobal::set_tlas(bvh_mainVarId, nullptr);
   ShaderGlobal::set_tlas(bvh_terrainVarId, nullptr);
   ShaderGlobal::set_tlas(bvh_particlesVarId, nullptr);
 #endif
 
-  static int bvh_main_validVarId = get_shader_variable_id("bvh_main_valid");
-  static int bvh_terrain_validVarId = get_shader_variable_id("bvh_terrain_valid");
-  static int bvh_particles_validVarId = get_shader_variable_id("bvh_particles_valid");
+  static int bvh_main_validVarId = get_shader_variable_id("bvh_main_valid", true);
+  static int bvh_terrain_validVarId = get_shader_variable_id("bvh_terrain_valid", true);
+  static int bvh_particles_validVarId = get_shader_variable_id("bvh_particles_valid", true);
   ShaderGlobal::set_int(bvh_main_validVarId, 0);
   ShaderGlobal::set_int(bvh_terrain_validVarId, 0);
   ShaderGlobal::set_int(bvh_particles_validVarId, 0);
@@ -491,14 +815,17 @@ void teardown(ContextId &context_id)
   gobj::teardown(context_id);
   grass::teardown(context_id);
   fx::teardown(context_id);
+  gpugrass::teardown(context_id);
   if (context_id->has(Features::Cable))
     cables::teardown(context_id);
+  dagdp::teardown(context_id);
+  splinegen::teardown(context_id);
   debug::teardown(context_id);
 
-  for (auto &mesh : context_id->objects)
-    mesh.second.teardown(context_id);
-  for (auto &mesh : context_id->impostors)
-    mesh.second.teardown(context_id);
+  for (auto &[object_id, object] : context_id->objects)
+    object.teardown(context_id, object_id);
+  for (auto &[object_id, object] : context_id->impostors)
+    object.teardown(context_id, object_id);
 
   G_ASSERT(context_id->usedTextures.empty());
   G_ASSERT(context_id->usedBuffers.empty());
@@ -512,6 +839,8 @@ void teardown(ContextId &context_id)
 
 void start_frame()
 {
+  ri::debug_update();
+  dyn::debug_update();
   scratch_buffer_manager.startNewFrame();
   transform_buffer_manager.startNewFrame();
 }
@@ -519,13 +848,14 @@ void start_frame()
 void add_instance(ContextId context_id, uint64_t object_id, mat43f_cref transform)
 {
   add_instance(context_id, context_id->genericInstances, object_id, transform, nullptr, false,
-    Context::Instance::AnimationUpdateMode::DO_CULLING, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+    Context::Instance::AnimationUpdateMode::DO_CULLING, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
     MeshMetaAllocator::INVALID_ALLOC_ID);
 }
 
-void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position, const Frustum &bvh_frustum,
-  const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id,
-  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate, threadpool::JobPriority prio)
+void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction,
+  const Frustum &bvh_frustum, const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id,
+  dynrend::ContextId *dynrend_no_shadow_context_id, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities,
+  dynrend::BVHIterateCallback dynrend_iterate, threadpool::JobPriority prio)
 {
   bvh_context_id->genericInstances.clear();
   for (auto &instances : bvh_context_id->dynrendInstances)
@@ -538,52 +868,67 @@ void update_instances_impl(ContextId bvh_context_id, const Point3 &view_position
     data.clear();
   for (auto &instances : bvh_context_id->riExtraTreeInstances)
     instances.clear();
+  for (auto &instances : bvh_context_id->riExtraFlagInstances)
+    instances.clear();
   for (auto &instances : bvh_context_id->impostorInstances)
     instances.clear();
   for (auto &data : bvh_context_id->impostorInstanceData)
     data.clear();
+
+  binscene::update_instances(bvh_context_id);
+  splinegen::update_instances(bvh_context_id, view_position);
 
   if (!dynrend_iterate)
     ri_thread_count_ofset = -1;
   else
     ri_thread_count_ofset = 0;
 
-  if (bvh_context_id->has(Features::DynrendRigidFull | Features::DynrendRigidBaked | Features::DynrendSkinnedFull))
+  if (bvh_context_id->has(Features::AnyDynrend))
     if (!dynrend_iterate)
       dyn::update_dynrend_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position);
 
-  if (bvh_context_id->has(Features::RIFull | Features::RIBaked))
+  if (bvh_context_id->has(Features::AnyRI))
   {
-    ri::wait_cut_down_trees();
-    ri::update_ri_gen_instances(bvh_context_id, ri_gen_visibilities, view_position, view_frustum, prio);
+    ri::wait_tidy_up_trees();
+    parallel_instance_processing::start_frame(bvh_context_id);
+    ri::update_ri_gen_instances(bvh_context_id, ri_gen_visibilities, view_position, light_direction, view_frustum, prio);
     ri::update_ri_extra_instances(bvh_context_id, view_position, bvh_frustum, view_frustum, prio);
+    parallel_instance_processing::finish_adding_jobs(bvh_context_id);
   }
 
-  if (bvh_context_id->has(Features::DynrendRigidFull | Features::DynrendRigidBaked | Features::DynrendSkinnedFull))
+  if (bvh_context_id->has(Features::DynrendSkinnedFull))
   {
-    dyn::wait_purge_skin_buffers();
+    dyn::wait_tidy_up_skins();
     if (dynrend_iterate)
       dyn::update_animchar_instances(bvh_context_id, *dynrend_context_id, *dynrend_no_shadow_context_id, view_position,
         dynrend_iterate);
   }
 }
 
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Frustum &bvh_frustum, const Frustum &view_frustum,
-  dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id, RiGenVisibility *ri_gen_visibility,
-  threadpool::JobPriority prio)
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const Frustum &bvh_frustum,
+  const Frustum &view_frustum, dynrend::ContextId *dynrend_context_id, dynrend::ContextId *dynrend_no_shadow_context_id,
+  RiGenVisibility *ri_gen_visibility, threadpool::JobPriority prio)
 {
-  update_instances_impl(bvh_context_id, view_position, bvh_frustum, view_frustum, dynrend_context_id, dynrend_no_shadow_context_id,
-    {ri_gen_visibility}, nullptr, prio);
+  update_instances_impl(bvh_context_id, view_position, light_direction, bvh_frustum, view_frustum, dynrend_context_id,
+    dynrend_no_shadow_context_id, {ri_gen_visibility}, nullptr, prio);
 }
 
 // daNetGame doesn't use dynrend, but these can be used to identify contexts in BVH
 static dynrend::ContextId bvh_dynrend_context = dynrend::ContextId{-1};
 static dynrend::ContextId bvh_dynrend_no_shadow_context = dynrend::ContextId{-2};
-void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Frustum &bvh_frustum, const Frustum &view_frustum,
-  const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate, threadpool::JobPriority prio)
+void update_instances(ContextId bvh_context_id, const Point3 &view_position, const Point3 &light_direction, const Frustum &bvh_frustum,
+  const Frustum &view_frustum, const dag::Vector<RiGenVisibility *> &ri_gen_visibilities, dynrend::BVHIterateCallback dynrend_iterate,
+  threadpool::JobPriority prio)
 {
-  update_instances_impl(bvh_context_id, view_position, bvh_frustum, view_frustum, &bvh_dynrend_context, &bvh_dynrend_no_shadow_context,
-    ri_gen_visibilities, dynrend_iterate, prio);
+  update_instances_impl(bvh_context_id, view_position, light_direction, bvh_frustum, view_frustum, &bvh_dynrend_context,
+    &bvh_dynrend_no_shadow_context, ri_gen_visibilities, dynrend_iterate, prio);
+}
+
+static __forceinline bool need_winding_flip(Mesh &mesh, const Context::Instance &instance)
+{
+  if (!mesh.needWindingFlip.has_value())
+    mesh.needWindingFlip = need_winding_flip(instance.transform);
+  return mesh.needWindingFlip.value();
 }
 
 static BufferProcessor::ProcessArgs build_args(uint64_t object_id, const Mesh &mesh, const Context::Instance *instance, bool recycled)
@@ -625,19 +970,24 @@ static BufferProcessor::ProcessArgs build_args(uint64_t object_id, const Mesh &m
     args.setTransformsFn = instance->setTransformsFn;
     args.getHeliParamsFn = instance->getHeliParamsFn;
     args.getDeformParamsFn = instance->getDeformParamsFn;
+    args.getSplineDataFn = instance->getSplineDataFn;
     args.tree = instance->tree;
     args.flag = instance->flag;
   }
+  args.tree.ppPositionBindless = mesh.ppPositionBindless;
+  args.tree.ppDirectionBindless = mesh.ppDirectionBindless;
   return args;
 }
 
-static bool process(ContextId context_id, Sbuffer *buffer, UniqueOrReferencedBVHBuffer &processedBuffer,
-  const BufferProcessor *processor, BufferProcessor::ProcessArgs &args, bool skipProcessing, bool &need_blas_build)
+static bool process(ContextId context_id, Sbuffer *source_buffer, int source_buffer_offset, uint32_t source_buffer_bindless,
+  UniqueOrReferencedBVHBuffer &processedBuffer, uint32_t &bindless_id, const BufferProcessor *processor,
+  BufferProcessor::ProcessArgs &args, bool skipProcessing, bool &need_blas_build)
 {
   bool didProcessing = false;
   if (processedBuffer.needAllocation() || !processor->isOneTimeOnly())
   {
-    need_blas_build |= processor->process(context_id, buffer, processedBuffer, args, skipProcessing);
+    need_blas_build |= processor->process(context_id, source_buffer, source_buffer_offset, source_buffer_bindless, processedBuffer,
+      bindless_id, args, skipProcessing);
     didProcessing = true;
   }
 
@@ -646,25 +996,66 @@ static bool process(ContextId context_id, Sbuffer *buffer, UniqueOrReferencedBVH
   return didProcessing;
 }
 
-static void process_vertices(ContextId context_id, uint64_t object_id, Mesh &mesh, const Context::Instance *instance,
-  const Frustum *frustum, vec4f_const view_pos, vec4f_const light_direction, UniqueOrReferencedBVHBuffer &transformed_vertices,
-  bool processed_vertices_recycled, bool &need_blas_build, MeshMeta &meta, MeshMeta &base_meta, bool batched)
+static void process_mesh_vertices(ContextId context_id, uint64_t object_id, Mesh &mesh,
+  UniqueOrReferencedBVHBuffer &transformed_vertices, bool &need_blas_build, MeshMeta &meta)
 {
   if (mesh.vertexProcessor)
   {
-    auto needProcessing = transformed_vertices.needAllocation();
-    auto hasVertexAnimation = !mesh.vertexProcessor->isOneTimeOnly();
+    auto args = build_args(object_id, mesh, nullptr, false);
+    bool canProcess = mesh.vertexProcessor->isReady(args);
+
+    // Only do the processing if we either has a per instance output to process into, or the
+    // initial processing on the mesh is not yet done. Otherwise it would just process the same
+    // mesh again and again for no reason.
+    if (canProcess && transformed_vertices.needAllocation())
+    {
+      bool needProcessing = transformed_vertices.needAllocation();
+      bool hadProcessedVertices = transformed_vertices.isAllocated();
+
+      uint32_t bindlessIndex;
+      if (process(context_id, mesh.geometry.getVertexBuffer(context_id), mesh.geometry.vbOffset, mesh.pvBindlessIndex,
+            transformed_vertices, bindlessIndex, mesh.vertexProcessor, args, !needProcessing, need_blas_build))
+      {
+        d3d::resource_barrier(ResourceBarrierDesc(transformed_vertices.get(), bindlessSRVBarrier));
+
+        // Mesh should only change if this is not an animating mesh
+        mesh.positionOffset = args.positionOffset;
+        mesh.processedPositionFormat = args.positionFormat;
+
+        meta.setTexcoordFormat(args.texcoordFormat);
+        meta.startVertex = args.startVertex;
+        meta.texcoordOffset = args.texcoordOffset;
+        meta.normalOffset = args.normalOffset;
+        meta.colorOffset = args.colorOffset;
+        meta.vertexStride = args.vertexStride;
+      }
+
+      if (!hadProcessedVertices && transformed_vertices.isAllocated())
+        mesh.pvBindlessIndex = bindlessIndex;
+
+      meta.setVertexBufferIndex(mesh.pvBindlessIndex);
+    }
+  }
+}
+
+static void process_instance_vertices(ContextId context_id, uint64_t object_id, const Mesh &mesh, const Context::Instance *instance,
+  const Frustum *frustum, vec4f_const view_pos, vec4f_const light_direction, UniqueOrReferencedBVHBuffer &transformed_vertices,
+  bool processed_vertices_recycled, bool &need_blas_build, MeshMeta &meta, uint32_t &processed_position_format)
+{
+  if (mesh.vertexProcessor)
+  {
+    bool needProcessing = transformed_vertices.needAllocation();
+    bool hasVertexAnimation = !mesh.vertexProcessor->isOneTimeOnly();
     if (hasVertexAnimation)
     {
       G_ASSERT(instance);
       G_ASSERT(frustum);
 
-      if (instance && instance->animationUpdateMode == Context::Instance::AnimationUpdateMode::FORCE_ON)
+      if (instance->animationUpdateMode == Context::Instance::AnimationUpdateMode::FORCE_ON)
       {
         needProcessing = true;
-        context_id->animatedInstanceCount++;
       }
-      else if (instance && frustum && instance->animationUpdateMode == Context::Instance::AnimationUpdateMode::DO_CULLING)
+      else if (instance->animationUpdateMode == Context::Instance::AnimationUpdateMode::DO_CULLING)
       {
         mat44f tm44;
         v_mat43_transpose_to_mat44(tm44, instance->transform);
@@ -684,70 +1075,39 @@ static void process_vertices(ContextId context_id, uint64_t object_id, Mesh &mes
           auto rate = v_extract_x(v_mul(v_div(distance, v_splat_w(worldBounds)), V_C_HALF));
 
           if (rate < animation_distance_rate)
-          {
             needProcessing = true;
-            context_id->animatedInstanceCount++;
-          }
         }
       }
     }
 
     auto args = build_args(object_id, mesh, instance, processed_vertices_recycled);
-
     bool canProcess = mesh.vertexProcessor->isReady(args);
 
     // Only do the processing if we either has a per instance output to process into, or the
     // initial processing on the mesh is not yet done. Otherwise it would just process the same
     // mesh again and again for no reason.
-    if (canProcess && (transformed_vertices.needAllocation() || (instance && instance->uniqueTransformedBuffer)))
+    if (canProcess)
     {
       bool hadProcessedVertices = transformed_vertices.isAllocated();
 
-      if (hadProcessedVertices && batched)
+      if (hadProcessedVertices && !delay_sync)
         d3d::resource_barrier(ResourceBarrierDesc(transformed_vertices.get(), RB_NONE));
 
-      if (process(context_id, mesh.processedVertices.get(), transformed_vertices, mesh.vertexProcessor, args, !needProcessing,
-            need_blas_build))
+      uint32_t bindlessIndex;
+      if (process(context_id, mesh.geometry.getVertexBuffer(context_id), mesh.geometry.vbOffset, mesh.pvBindlessIndex,
+            transformed_vertices, bindlessIndex, mesh.vertexProcessor, args, !needProcessing, need_blas_build))
       {
-        if (!batched)
-          d3d::resource_barrier(ResourceBarrierDesc(transformed_vertices.get(), bindlessSRVBarrier));
-
-        // Mesh should only change if this is not an animating mesh
-        if (!instance)
-          mesh.positionOffset = args.positionOffset;
-        mesh.processedPositionFormat = args.positionFormat;
-
         meta.setTexcoordFormat(args.texcoordFormat);
         meta.startVertex = args.startVertex;
         meta.texcoordOffset = args.texcoordOffset;
         meta.normalOffset = args.normalOffset;
         meta.colorOffset = args.colorOffset;
         meta.vertexStride = args.vertexStride;
-
-        base_meta.setTexcoordFormat(args.texcoordFormat);
-        base_meta.startVertex = meta.startVertex;
-        base_meta.texcoordOffset = meta.texcoordOffset;
-        base_meta.normalOffset = meta.normalOffset;
-        base_meta.colorOffset = meta.colorOffset;
-        base_meta.vertexStride = meta.vertexStride;
+        processed_position_format = args.positionFormat;
       }
 
       if (!hadProcessedVertices && transformed_vertices.isAllocated())
-      {
-        uint32_t bindlessIndex;
-        context_id->holdBuffer(transformed_vertices.get(), bindlessIndex);
-        if (instance && instance->uniqueTransformedBuffer)
-        {
-          meta.setVertexBufferIndex(bindlessIndex);
-        }
-        else
-          mesh.pvBindlessIndex = bindlessIndex;
-      }
-
-      if (!instance || !instance->uniqueTransformedBuffer)
-      {
-        meta.setVertexBufferIndex(mesh.pvBindlessIndex);
-      }
+        meta.setVertexBufferIndex(bindlessIndex);
     }
   }
 }
@@ -759,6 +1119,7 @@ static void process_ahs_vertices(ContextId context_id, Mesh &mesh, MeshMeta &met
     G_ASSERT(mesh.indexFormat);
     G_ASSERT(mesh.indexCount);
 
+    uint32_t bindlessIndex;
     if (meta.materialType & MeshMeta::bvhMaterialImpostor)
     {
       int8_t texcoordOffset = meta.texcoordOffset;
@@ -769,8 +1130,8 @@ static void process_ahs_vertices(ContextId context_id, Mesh &mesh, MeshMeta &met
       G_ASSERT(colorOffset > -1);
       G_ASSERT(vertexStride > -1);
 
-      ProcessorInstances::getAHSProcessor().process(mesh.processedIndices.get(), mesh.processedVertices.get(), mesh.ahsVertices,
-        mesh.indexFormat, mesh.indexCount, texcoordOffset, VSDT_FLOAT2, vertexStride, colorOffset);
+      ProcessorInstances::getAHSProcessor().process(context_id, mesh.geometry, mesh.ahsVertices, bindlessIndex, mesh.indexFormat,
+        mesh.indexCount, texcoordOffset, VSDT_FLOAT2, vertexStride, colorOffset);
     }
     else
     {
@@ -778,12 +1139,9 @@ static void process_ahs_vertices(ContextId context_id, Mesh &mesh, MeshMeta &met
       G_ASSERT(mesh.texcoordOffset != MeshInfo::invalidOffset);
       G_ASSERT(mesh.texcoordFormat);
 
-      ProcessorInstances::getAHSProcessor().process(mesh.processedIndices.get(), mesh.processedVertices.get(), mesh.ahsVertices,
-        mesh.indexFormat, mesh.indexCount, mesh.texcoordOffset, mesh.texcoordFormat, mesh.vertexStride, -1);
+      ProcessorInstances::getAHSProcessor().process(context_id, mesh.geometry, mesh.ahsVertices, bindlessIndex, mesh.indexFormat,
+        mesh.indexCount, mesh.texcoordOffset, mesh.texcoordFormat, mesh.vertexStride, -1);
     }
-
-    uint32_t bindlessIndex;
-    context_id->holdBuffer(mesh.ahsVertices.get(), bindlessIndex);
 
     meta.indexCount = mesh.indexCount;
     meta.setAhsVertexBufferIndex(bindlessIndex);
@@ -817,14 +1175,17 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
     if (iter->second.blas)
       return 0;
 
-    iter->second.teardown(context_id);
+    iter->second.teardown(context_id, object_id);
     context_id->cancelCompaction(object_id);
     context_id->halfBakedObjects.erase(object_id);
   }
 
   auto &object = (iter != objectMap.end()) ? iter->second : objectMap[object_id];
+  object.tag = object_info.tag;
   object.meshes = decltype(object.meshes)(object_info.meshes.size());
   object.isAnimated = object_info.isAnimated;
+  object.hasVertexProcessor =
+    eastl::any_of(object_info.meshes.begin(), object_info.meshes.end(), [](const auto &m) { return m.vertexProcessor; });
   auto metaRegion = object.createAndGetMeta(context_id, object_info.meshes.size());
   for (auto [info, mesh, meta] : zip(object_info.meshes, object.meshes, metaRegion))
   {
@@ -832,6 +1193,8 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
     mesh.alphaTextureId = info.alphaTextureId;
     mesh.normalTextureId = info.normalTextureId;
     mesh.extraTextureId = info.extraTextureId;
+    mesh.ppPositionTextureId = info.ppPositionTextureId;
+    mesh.ppDirectionTextureId = info.ppDirectionTextureId;
     mesh.indexCount = info.indexCount;
     mesh.indexFormat = info.indices->getFlags() & SBCF_INDEX32 ? 4 : 2;
     mesh.vertexCount = info.vertexCount;
@@ -860,11 +1223,16 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
     mesh.impostorSliceClippingLines1 = info.impostorSliceClippingLines1;
     mesh.impostorSliceClippingLines2 = info.impostorSliceClippingLines2;
     mesh.isHeliRotor = info.isHeliRotor;
+    mesh.hasColorMod = info.hasColorMod;
     memcpy(mesh.impostorOffsets, info.impostorOffsets, sizeof(mesh.impostorOffsets));
     if (info.isInterior)
       mesh.materialType = MeshMeta::bvhMaterialInterior;
     else if (info.isClipmap)
       mesh.materialType = MeshMeta::bvhMaterialTerrain;
+    else if (info.isRiLandclass)
+      mesh.materialType = MeshMeta::bvhMaterialLandclass;
+    else if (info.isMonochrome)
+      mesh.materialType = MeshMeta::bvhMaterialMonochrome;
     else
       mesh.materialType = MeshMeta::bvhMaterialRendinst;
 
@@ -905,6 +1273,9 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
     if (info.isEye)
       mesh.materialType |= MeshMeta::bvhMaterialEye;
 
+    if (info.hasAnimcharDecals)
+      mesh.materialType |= MeshMeta::bvhMaterialAnimcharDecals;
+
     meta.markInitialized();
 
     meta.materialType = mesh.materialType;
@@ -916,21 +1287,31 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
     meta.startIndex = info.startIndex;
     meta.startVertex = info.baseVertex;
     meta.texcoordScale = info.texcoordScale;
+    meta.forceNonMetal = info.forceNonMetal;
+    meta.hasColorMod = info.hasColorMod;
     meta.setIndexBufferIndex(0);
     meta.setVertexBufferIndex(0);
 
     meta.holdAlphaTex(context_id, mesh.alphaTextureId);
     meta.holdNormalTex(context_id, mesh.normalTextureId);
     meta.holdExtraTex(context_id, mesh.extraTextureId);
-    auto albedoTexture = meta.holdAlbedoTex(context_id, mesh.albedoTextureId);
+    meta.holdAlbedoTex(context_id, mesh.albedoTextureId);
 
     if (info.albedoTextureId != BAD_TEXTUREID)
     {
-      TextureInfo ti;
-      albedoTexture->getinfo(ti);
-
       mesh.albedoTextureLevel = D3dResManagerData::getLevDesc(info.albedoTextureId.index(), TQL_thumb);
       mark_managed_tex_lfu(info.albedoTextureId, mesh.albedoTextureLevel);
+    }
+
+    if (info.ppPositionTextureId != BAD_TEXTUREID)
+    {
+      uint32_t dummy;
+      context_id->holdTexture(info.ppPositionTextureId, mesh.ppPositionBindless, dummy);
+    }
+    if (info.ppDirectionTextureId != BAD_TEXTUREID)
+    {
+      uint32_t dummy;
+      context_id->holdTexture(info.ppDirectionTextureId, mesh.ppDirectionBindless, dummy);
     }
 
     if (mesh.materialType & MeshMeta::bvhMaterialAlphaTest && info.alphaTextureId == BAD_TEXTUREID)
@@ -987,70 +1368,85 @@ static int do_add_object(ContextId context_id, uint64_t object_id, const ObjectI
       // tile2diffuse is normalTextureAndSamplerIndex
     }
 
+    if (info.isRiLandclass)
     {
-      // Always process indices to be independent from the streaming system.
+      meta.materialData1 = info.landclassMapping;
+      meta.materialData2 = float4(eastl::bit_cast<float>(info.riLandclassIndex), 0.0, 0.0, 0.0);
+    }
 
-      G_ASSERT(mesh.indexFormat == 2);
+    if (info.isMonochrome)
+    {
+      meta.materialData1 = info.colorOverride;
+      meta.materialData2 = info.monochromeData;
+    }
 
-      {
-        TIME_PROFILE(index_buffer_alloc)
-        static int counter = 0;
-        eastl::string name(eastl::string::CtorSprintf{}, "bvh_indices_%u", ++counter);
-        auto dwordCount = (info.indexCount + 1) / 2;
-        mesh.processedIndices.buffer.reset(d3d::buffers::create_persistent_sr_byte_address(dwordCount, name.c_str()));
-      };
-      mesh.processedIndices.offset = 0;
+    // Always process indices/vertices to be independent from the streaming system.
 
-      HANDLE_LOST_DEVICE_STATE(mesh.processedIndices.buffer, 1);
+    G_ASSERT(mesh.indexFormat == 2);
 
-      ProcessorInstances::getIndexProcessor().process(info.indices, mesh.processedIndices, mesh.indexFormat, mesh.indexCount,
-        mesh.startIndex, mesh.startVertex);
-      G_ASSERT(mesh.processedIndices);
+    int ibDwordCount = (info.indexCount + 1) / 2;
+    int vbDwordCount = (mesh.vertexStride * mesh.vertexCount + 3) / 4;
 
-      mesh.startIndex = meta.startIndex = 0;
-      meta.setIndexBit(mesh.indexFormat);
+    bool forceUniqueGeomBuffer = !!info.vertexProcessor; // TODO: fix the root cause that breaks these
 
-      uint32_t bindlessIndex;
-      context_id->holdBuffer(mesh.processedIndices.get(), bindlessIndex);
-      mesh.piBindlessIndex = bindlessIndex;
+    {
+      TIME_PROFILE(geometry_buffer_alloc);
+      auto dwordCount = ibDwordCount + vbDwordCount;
+      auto alloc = context_id->allocateSourceGeometry(dwordCount, forceUniqueGeomBuffer);
 
-      meta.setIndexBufferIndex(bindlessIndex);
+      mesh.geometry.heapIndex = alloc.heapIx;
+      mesh.geometry.bindlessIndex = alloc.bindlessId;
+      mesh.geometry.bufferRegion = alloc.region;
+      mesh.geometry.ibOffset = context_id->getSourceBufferOffset(alloc.heapIx, alloc.region);
+      mesh.geometry.vbOffset = mesh.geometry.ibOffset + ibDwordCount * 4;
 
-      d3d::resource_barrier(ResourceBarrierDesc(mesh.processedIndices.get(), bindlessSRVBarrier));
+      G_ASSERT(mesh.geometry.ibOffset % 4 == 0);
+      G_ASSERT(mesh.geometry.vbOffset % 4 == 0);
+
+      HANDLE_LOST_DEVICE_STATE(mesh.geometry, 1);
     }
 
     {
-      // Always copy the vertices to be independent from the streaming system.
+      // Indices
 
-      {
-        TIME_PROFILE(vertex_buffer_alloc)
-        static int nameGen = 0;
-        int bufferSize = mesh.vertexStride * mesh.vertexCount;
-        int dwordCount = (bufferSize + 3) / 4;
-        eastl::string name(eastl::string::CtorSprintf{}, "bvh_vb_%d", nameGen++);
-        mesh.processedVertices.buffer.reset(d3d::buffers::create_persistent_sr_byte_address(dwordCount, name.c_str()));
-      }
-      mesh.processedVertices.offset = 0;
+      ProcessorInstances::getIndexProcessor().process(info.indices, mesh.geometry, mesh.indexFormat, mesh.indexCount, mesh.startIndex,
+        mesh.startVertex, context_id);
 
-      HANDLE_LOST_DEVICE_STATE(mesh.processedVertices.buffer, 1);
+      // Subtracts mesh.startVertex from all indices
 
-      info.vertices->copyTo(mesh.processedVertices.get(), 0, mesh.vertexStride * (mesh.baseVertex + mesh.startVertex),
-        mesh.vertexStride * mesh.vertexCount);
+      mesh.startIndex = meta.startIndex = mesh.geometry.ibOffset / mesh.indexFormat;
+      mesh.piBindlessIndex = mesh.geometry.bindlessIndex;
+      meta.setIndexBit(mesh.indexFormat);
+      meta.setIndexBufferIndex(mesh.piBindlessIndex);
+
+      // Vertices
+
+      info.vertices->copyTo(mesh.geometry.getVertexBuffer(context_id), mesh.geometry.vbOffset,
+        mesh.vertexStride * (mesh.baseVertex + mesh.startVertex), mesh.vertexStride * mesh.vertexCount);
       mesh.startVertex = 0;
       mesh.baseVertex = 0;
       meta.startVertex = 0;
+      meta.vertexOffset = mesh.geometry.vbOffset;
+      mesh.pvBindlessIndex = mesh.geometry.bindlessIndex;
 
-      uint32_t bindlessIndex;
-      context_id->holdBuffer(mesh.processedVertices.get(), bindlessIndex);
-      mesh.pvBindlessIndex = bindlessIndex;
+      meta.setVertexBufferIndex(mesh.pvBindlessIndex);
 
-      meta.setVertexBufferIndex(bindlessIndex);
-
-      d3d::resource_barrier(ResourceBarrierDesc(mesh.processedVertices.get(), bindlessSRVBarrier));
+      // Also transitions the vertex buffer (in fact the whole heap)
+      d3d::resource_barrier(ResourceBarrierDesc(mesh.geometry.getIndexBuffer(context_id), bindlessSRVBarrier));
     }
 
     if (!info.isImpostor)
       process_ahs_vertices(context_id, mesh, meta);
+  }
+
+  if (object_info.isAnimated && object_info.meshes[0].vertexProcessor == &ProcessorInstances::getTreeVertexProcessor())
+  {
+    if (auto iter = context_id->stationaryTreeBuffers.find(object_id); iter == context_id->stationaryTreeBuffers.end())
+    {
+      ReferencedTransformData data;
+      data.metaAllocId = context_id->allocateMetaRegion(1);
+      context_id->stationaryTreeBuffers.insert({object_id, eastl::move(data)});
+    }
   }
 
   if (!object_info.isAnimated)
@@ -1069,32 +1465,79 @@ void add_object(ContextId context_id, uint64_t object_id, const ObjectInfo &info
   }
 #endif
 
-  context_id->hasPendingMeshAddActions.store(true, dag::memory_order_relaxed);
-  OSSpinlockScopedLock lock(context_id->pendingMeshAddActionsLock);
+  uint32_t order = context_id->pendingObjectActionOrderCounter.add_fetch(1);
+
+  context_id->hasPendingObjectAddActions.store(true, dag::memory_order_relaxed);
+  OSSpinlockScopedLock lock(context_id->pendingObjectActionsLock);
   if (auto iter = context_id->pendingObjectAddActions.find(object_id); iter != context_id->pendingObjectAddActions.end())
-    iter->second = info;
+  {
+    iter->second.first = order;
+    iter->second.second = info;
+  }
   else
-    context_id->pendingObjectAddActions.insert({object_id, eastl::move(info)});
+    context_id->pendingObjectAddActions.insert({object_id, {order, eastl::move(info)}});
 }
 
 void remove_object(ContextId context_id, uint64_t object_id)
 {
-  OSSpinlockScopedLock lock(context_id->pendingMeshRemoveActionsLock);
-  context_id->pendingObjectRemoveActions.insert(object_id);
+  OSSpinlockScopedLock lock(context_id->pendingObjectActionsLock);
+  uint32_t order = context_id->pendingObjectActionOrderCounter.add_fetch(1);
+  context_id->pendingObjectRemoveActions.insert({object_id, order});
+}
+
+void before_object_action(ContextId context_id, uint64_t object_id)
+{
+  OSSpinlockScopedLock lock(context_id->pendingObjectActionsLock);
+  uint32_t order = context_id->pendingObjectActionOrderCounter.add_fetch(1);
+  context_id->pendingObjectPreChangeActions.insert({object_id, order});
+}
+
+static int calc_mesh_add_budget(ContextId context_id, BuildBudget budget)
+{
+  const int initialMeshBudget = per_frame_blas_model_budget[int(budget)];
+  if (!bvh_prioritize_compactions)
+    return initialMeshBudget;
+
+  const int compactionBudget = per_frame_compaction_budget[int(budget)];
+  int meshBudget = compactionBudget;
+  for (auto iter = context_id->blasCompactions.begin(); meshBudget > 0 && iter != context_id->blasCompactions.end(); iter++)
+    if (iter->has_value())
+      --meshBudget;
+  return min(meshBudget, initialMeshBudget);
 }
 
 static void handle_pending_mesh_actions(ContextId context_id, BuildBudget budget)
 {
   TIME_PROFILE(handle_pending_mesh_actions);
 
-  OSSpinlockScopedLock lock(context_id->pendingMeshAddActionsLock);
+  for (auto ri : context_id->pendingStaticBLASRequestActions)
+    ri::readdRendinst(context_id, ri);
+  context_id->pendingStaticBLASRequestActions.clear();
+
+  OSSpinlockScopedLock lock(context_id->pendingObjectActionsLock);
 
   {
-    OSSpinlockScopedLock removeLock(context_id->pendingMeshRemoveActionsLock);
+    DA_PROFILE_TAG(handle_pending_mesh_actions, "%u pre change in queue", context_id->pendingObjectPreChangeActions.size());
 
-    DA_PROFILE_TAG(handle_pending_mesh_actions, String(32, "%u removal in queue", context_id->pendingObjectRemoveActions.size()));
+    for (auto [object_id, order] : context_id->pendingObjectPreChangeActions)
+    {
+      // If there is an add action pending, and that is older than the change action, then we can
+      // discard the add action, as it is not valid anymore and there is a new one coming
+      if (auto iter = context_id->pendingObjectAddActions.find(object_id); iter != context_id->pendingObjectAddActions.end())
+        if (iter->second.first < order)
+          context_id->pendingObjectAddActions.erase(iter);
 
-    for (auto object_id : context_id->pendingObjectRemoveActions)
+      context_id->cancelCompaction(object_id);
+      context_id->halfBakedObjects.erase(object_id);
+    }
+
+    context_id->pendingObjectPreChangeActions.clear();
+  }
+
+  {
+    DA_PROFILE_TAG(handle_pending_mesh_actions, "%u removal in queue", context_id->pendingObjectRemoveActions.size());
+
+    for (auto [object_id, order] : context_id->pendingObjectRemoveActions)
     {
       TIME_PROFILE(bvh::do_remove_object);
 
@@ -1104,7 +1547,7 @@ static void handle_pending_mesh_actions(ContextId context_id, BuildBudget budget
       if (iter != context_id->objects.end())
       {
         DA_PROFILE_TAG(bvh::do_remove_object, "object");
-        iter->second.teardown(context_id);
+        iter->second.teardown(context_id, object_id);
         context_id->objects.erase(iter);
       }
       else
@@ -1113,21 +1556,25 @@ static void handle_pending_mesh_actions(ContextId context_id, BuildBudget budget
         if (iter != context_id->impostors.end())
         {
           DA_PROFILE_TAG(bvh::do_remove_object, "impostor");
-          iter->second.teardown(context_id);
+          iter->second.teardown(context_id, object_id);
           context_id->impostors.erase(iter);
         }
       }
 
       context_id->halfBakedObjects.erase(object_id);
-      context_id->pendingObjectAddActions.erase(object_id);
+
+      // Only remove the add action itself if it is older than the remove action.
+      if (auto iter = context_id->pendingObjectAddActions.find(object_id); iter != context_id->pendingObjectAddActions.end())
+        if (iter->second.first < order)
+          context_id->pendingObjectAddActions.erase(iter);
     }
 
     context_id->pendingObjectRemoveActions.clear();
   }
 
-  DA_PROFILE_TAG(handle_pending_mesh_actions, String(32, "%u additions in queue", context_id->pendingObjectAddActions.size()));
+  DA_PROFILE_TAG(handle_pending_mesh_actions, "%u additions in queue", context_id->pendingObjectAddActions.size());
 
-  int meshBudget = per_frame_blas_model_budget[int(budget)];
+  int meshBudget = calc_mesh_add_budget(context_id, budget);
 
   int counter = 0;
   for (auto iter = context_id->pendingObjectAddActions.begin();
@@ -1138,11 +1585,11 @@ static void handle_pending_mesh_actions(ContextId context_id, BuildBudget budget
     // When the mesh is already added, but not yet built, we need to remove it as the build data is not valid anymore.
 
     context_id->halfBakedObjects.erase(iter->first);
-    counter += do_add_object(context_id, iter->first, iter->second);
+    counter += do_add_object(context_id, iter->first, iter->second.second);
     iter = context_id->pendingObjectAddActions.erase(iter);
   }
 
-  context_id->hasPendingMeshAddActions.store(!context_id->pendingObjectAddActions.empty(), dag::memory_order_relaxed);
+  context_id->hasPendingObjectAddActions.store(!context_id->pendingObjectAddActions.empty(), dag::memory_order_relaxed);
 }
 
 void process_meshes(ContextId context_id, BuildBudget budget)
@@ -1152,9 +1599,11 @@ void process_meshes(ContextId context_id, BuildBudget budget)
     logdbg("[BVH] Device is in reset mode.");
     return;
   }
-  TIME_D3D_PROFILE_NAME(bvh_process_meshes, String(128, "bvh_process_meshes for %s", context_id->name.data()));
+  TIME_D3D_PROFILE(bvh_process_meshes);
 
   CHECK_LOST_DEVICE_STATE();
+
+  FRAMEMEM_REGION;
 
   handle_pending_mesh_actions(context_id, budget);
 
@@ -1164,8 +1613,8 @@ void process_meshes(ContextId context_id, BuildBudget budget)
   int triangleCount = 0;
   int blasCount = 0;
 
-  dag::Vector<RaytraceGeometryDescription> geomDescriptors;
-  dag::Vector<raytrace::BatchedBottomAccelerationStructureBuildInfo> blasBuildInfos;
+  dag::Vector<RaytraceGeometryDescription, framemem_allocator> geomDescriptors;
+  dag::Vector<raytrace::BatchedBottomAccelerationStructureBuildInfo, framemem_allocator> blasBuildInfos;
 
   const uint32_t MAX_GEOMETRIES_PER_BLAS = 32;
   geomDescriptors.resize(MAX_GEOMETRIES_PER_BLAS * blasModelBudget);
@@ -1185,8 +1634,9 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
   dag::Vector<Context::BLASCompaction *, framemem_allocator> pendingCompactions;
 
-  for (auto iter = context_id->halfBakedObjects.begin();
-       iter != context_id->halfBakedObjects.end() && blasModelBudget > 0 && !is_in_lost_device_state;)
+  for (auto iter = context_id->halfBakedObjects.begin(); iter != context_id->halfBakedObjects.end() && blasModelBudget > 0 &&
+                                                         !is_in_lost_device_state &&
+                                                         context_id->compactedSizeWritesInQueue < context_id->compactedSizeBufferSize;)
   {
     TIME_PROFILE(half_baked_mesh);
 
@@ -1219,7 +1669,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
       bool needBlasBuild = false;
       UniqueBVHBuffer transformedVertices;
       UniqueOrReferencedBVHBuffer pb(transformedVertices);
-      process_vertices(context_id, objectId, mesh, nullptr, nullptr, V_C_ONE, V_C_ONE, pb, false, needBlasBuild, meta, meta, false);
+      process_mesh_vertices(context_id, objectId, mesh, pb, needBlasBuild, meta);
 
       CHECK_LOST_DEVICE_STATE();
 
@@ -1229,9 +1679,9 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
       if (transformedVertices)
       {
-        context_id->releaseBuffer(mesh.processedVertices.get());
-        mesh.processedVertices.buffer.swap(transformedVertices);
-        mesh.processedVertices.offset = 0;
+        mesh.geometry.processedVertexBuffer.swap(transformedVertices);
+        mesh.geometry.vbOffset = 0;
+        meta.vertexOffset = 0;
         transformedVertices.reset();
       }
 
@@ -1241,12 +1691,12 @@ void process_meshes(ContextId context_id, BuildBudget budget)
       bool hasAlphaTest = mesh.materialType & MeshMeta::bvhMaterialAlphaTest;
 
       desc[i].type = RaytraceGeometryDescription::Type::TRIANGLES;
-      desc[i].data.triangles.vertexBuffer = mesh.processedVertices.get();
-      desc[i].data.triangles.indexBuffer = mesh.processedIndices.get();
+      desc[i].data.triangles.vertexBuffer = mesh.geometry.getVertexBuffer(context_id);
+      desc[i].data.triangles.indexBuffer = mesh.geometry.getIndexBuffer(context_id);
       desc[i].data.triangles.vertexCount = mesh.vertexCount;
       desc[i].data.triangles.vertexStride = meta.vertexStride;
       desc[i].data.triangles.vertexOffset = mesh.baseVertex;
-      desc[i].data.triangles.vertexOffsetExtraBytes = mesh.positionOffset;
+      desc[i].data.triangles.vertexOffsetExtraBytes = mesh.positionOffset + mesh.geometry.vbOffset;
       desc[i].data.triangles.vertexFormat = mesh.processedPositionFormat;
       desc[i].data.triangles.indexCount = mesh.indexCount;
       desc[i].data.triangles.indexOffset = meta.startIndex;
@@ -1300,12 +1750,13 @@ void process_meshes(ContextId context_id, BuildBudget budget)
         desc[i + 1].type = RaytraceGeometryDescription::Type::TRIANGLES;
         desc[i + 1].data.triangles.transformBuffer = desc[i].data.triangles.transformBuffer;
         desc[i + 1].data.triangles.transformOffset = desc[i].data.triangles.transformOffset;
-        desc[i + 1].data.triangles.vertexBuffer = mesh.processedVertices.get();
-        desc[i + 1].data.triangles.indexBuffer = mesh.processedIndices.get();
+        desc[i + 1].data.triangles.vertexBuffer = mesh.geometry.getVertexBuffer(context_id);
+        desc[i + 1].data.triangles.indexBuffer = mesh.geometry.getIndexBuffer(context_id);
         desc[i + 1].data.triangles.vertexCount = mesh.vertexCount;
         desc[i + 1].data.triangles.vertexOffset = mesh.vertexCount;
         desc[i + 1].data.triangles.vertexStride = meta.vertexStride;
         desc[i + 1].data.triangles.vertexFormat = mesh.processedPositionFormat;
+        desc[i + 1].data.triangles.vertexOffsetExtraBytes = mesh.geometry.vbOffset;
         desc[i + 1].data.triangles.indexCount = mesh.indexCount;
         desc[i + 1].data.triangles.indexOffset = meta.startIndex;
         desc[i + 1].data.triangles.flags =
@@ -1318,14 +1769,16 @@ void process_meshes(ContextId context_id, BuildBudget budget)
     }
 
     raytrace::BottomAccelerationStructureBuildInfo buildInfo{};
-    buildInfo.flags = RaytraceBuildFlags::FAST_TRACE;
+    buildInfo.flags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
 
     Context::BLASCompaction *compaction = context_id->beginBLASCompaction(objectId);
     if (compaction)
     {
       buildInfo.flags |= RaytraceBuildFlags::ALLOW_COMPACTION;
-      buildInfo.compactedSizeOutputBuffer = compaction->compactedSize.get();
+      buildInfo.compactedSizeOutputBuffer = context_id->compactedSizeBuffer.get();
+      buildInfo.compactedSizeOutputBufferOffsetInBytes = compaction->compactedSizeOffset * sizeof(uint64_t);
       pendingCompactions.push_back(compaction);
+      ++context_id->compactedSizeWritesInQueue;
     }
 
     object.blas = UniqueBLAS::create(desc, descCount, buildInfo.flags);
@@ -1349,10 +1802,82 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
   if (!is_in_lost_device_state)
   {
-    d3d::build_bottom_acceleration_structures(blasBuildInfos.data(), blasBuildInfos.size());
+    TIME_PROFILE(compaction_update);
+
+    d3d::raytrace::build_acceleration_structure({
+      .bottomBuilds = blasBuildInfos,
+      .flushAfterBottomBuild = true,
+    });
 
     for (auto compaction : pendingCompactions)
-      compaction->beginSizeQuery();
+      if (compaction->stage == Context::BLASCompaction::Stage::Created)
+        compaction->stage = Context::BLASCompaction::Stage::SizeQueried;
+
+    if (context_id->compactedSizeQueryRunning)
+    {
+      if (d3d::get_event_query_status(context_id->compactedSizeQuery.get(), false))
+      {
+        context_id->compactedSizeQueryRunning = false;
+#if _TARGET_C2
+
+#else
+        constexpr bool bufferReadback = true;
+#endif
+        void *values = nullptr;
+        // on PS5 compactedSizeBuffer is not used and readback is not issued. Compacted size fetching happens in handling
+        // BLASCompaction::Stage::SizeReceived case
+        if (context_id->compactedSizeBufferReadback && context_id->compactedSizeBufferReadback->lock(0, 0, &values, VBLOCK_READONLY))
+        {
+          G_ASSERT(
+            context_id->compactedSizeBufferReadback->getSize() == context_id->compactedSizeBufferValues.size() * sizeof(uint64_t));
+          memcpy(context_id->compactedSizeBufferValues.data(), values, context_id->compactedSizeBuffer->getSize());
+          context_id->compactedSizeBufferReadback->unlock();
+        }
+
+        uint32_t count = 0;
+        for (auto &compaction : context_id->blasCompactions)
+          if (compaction.has_value())
+          {
+            if (compaction->stage == Context::BLASCompaction::Stage::SizeBeingRead)
+            {
+              ++count;
+              compaction->stage = Context::BLASCompaction::Stage::SizeReceived;
+              if constexpr (bufferReadback)
+                compaction->compactedSizeValue = context_id->compactedSizeBufferValues[compaction->compactedSizeOffset];
+            }
+          }
+
+        if constexpr (bufferReadback)
+        {
+          G_ASSERTF(count <= context_id->compactedSizeBufferSize,
+            "bvh: too much compactions was requested increase compactedSizeBufferSize above %u", count);
+        }
+      }
+    }
+
+    if (!pendingCompactions.empty() || context_id->compactedSizeWritesInQueue)
+    {
+      if (!context_id->compactedSizeQueryRunning)
+      {
+        if (context_id->compactedSizeBuffer && context_id->compactedSizeBufferReadback)
+        {
+          context_id->compactedSizeBuffer.get()->copyTo(context_id->compactedSizeBufferReadback.get());
+          if (context_id->compactedSizeBufferReadback->lock(0, 0, static_cast<void **>(nullptr), VBLOCK_READONLY))
+            context_id->compactedSizeBufferReadback->unlock();
+        }
+
+        d3d::issue_event_query(context_id->compactedSizeQuery.get());
+        context_id->compactedSizeQueryRunning = true;
+        context_id->compactedSizeWritesInQueue = 0;
+
+        for (auto &compaction : context_id->blasCompactions)
+          if (compaction.has_value())
+          {
+            if (compaction->stage == Context::BLASCompaction::Stage::SizeQueried)
+              compaction->stage = Context::BLASCompaction::Stage::SizeBeingRead;
+          }
+      }
+    }
   }
 
   blasBuildInfos.clear();
@@ -1364,10 +1889,11 @@ void process_meshes(ContextId context_id, BuildBudget budget)
     for (auto iter = context_id->blasCompactions.begin(); iter != context_id->blasCompactions.end() && !iter->has_value();)
       iter = context_id->blasCompactions.erase(iter);
 
+    eastl::vector<Context::BLASCompaction *> creationQueue;
+
     int activeCompactions = 0;
     int maxActiveCompactions = per_frame_compaction_budget[int(budget)];
-    for (auto iter = context_id->blasCompactions.begin();
-         iter != context_id->blasCompactions.end() && !is_in_lost_device_state && activeCompactions < maxActiveCompactions;)
+    for (auto iter = context_id->blasCompactions.begin(); iter != context_id->blasCompactions.end() && !is_in_lost_device_state;)
     {
       // Inactive compactions are skipped. They will be removed eventually when they get to the front.
       if (!iter->has_value())
@@ -1384,56 +1910,50 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
       auto &compaction = iter->value();
 
-      ++activeCompactions;
-
       switch (compaction.stage)
       {
         case Context::BLASCompaction::Stage::MovedFrom:
-        case Context::BLASCompaction::Stage::Prepared: G_ASSERT(false); break;
-        case Context::BLASCompaction::Stage::WaitingSize:
+        case Context::BLASCompaction::Stage::Created: G_ASSERT(false); break;
+        case Context::BLASCompaction::Stage::SizeQueried: break;
+        case Context::BLASCompaction::Stage::SizeBeingRead: break;
+        case Context::BLASCompaction::Stage::SizeReceived:
         {
-          if (d3d::get_event_query_status(compaction.query.get(), false))
-          {
-            compaction.compactedSizeValue = 0;
 #if _TARGET_C2
 
 
 
 
+
 #else
-            if (auto bufferData = lock_sbuffer<const uint64_t>(compaction.compactedSize.get(), 0, 0, VBLOCK_READONLY))
-            {
-              compaction.compactedSizeValue = bufferData[0];
-            }
 #if DAGOR_DBGLEVEL > 0
-            // In stub driver, data read from a locked buffer has no meaning, so the size has to be estimated instead
-            if (DAGOR_UNLIKELY(d3d::is_stub_driver()))
-            {
-              // Emulation of dx12 beh -- compacted size was observed to be around 0.25 of initial
-              compaction.compactedSizeValue = d3d::get_raytrace_acceleration_structure_size(getBlas(compaction)->get()) / 4;
-            }
-#endif
-#endif
-            context_id->compactedSizeBufferCache.push_back();
-            context_id->compactedSizeBufferCache.back().swap(compaction.compactedSize);
-
-            if (!compaction.compactedSizeValue)
-            {
-              cancelCompaction(context_id, iter);
-              continue;
-            }
-            else
-            {
-              CreateCompactedBLASJob::start(&compaction);
-              compaction.stage = Context::BLASCompaction::Stage::WaitingGPUTime;
-            }
+          // In stub driver, data read from a locked buffer has no meaning, so the size has to be estimated instead
+          if (DAGOR_UNLIKELY(d3d::is_stub_driver()))
+          {
+            // Emulation of dx12 beh -- compacted size was observed to be around 0.25 of initial
+            compaction.compactedSizeValue = d3d::get_raytrace_acceleration_structure_size(getBlas(compaction)->get()) / 4;
           }
-
+#endif
+#endif
+          if (!compaction.compactedSizeValue)
+          {
+            cancelCompaction(context_id, iter);
+            continue;
+          }
+          else if (
+            context_id->numCompactionBlasesBeingCreated + context_id->numCompactionBlasesWaitingBuild < maxActiveCompactions * 2)
+          {
+            creationQueue.push_back(&compaction);
+            compaction.stage = Context::BLASCompaction::Stage::WaitingGPUTime;
+            context_id->numCompactionBlasesBeingCreated++;
+          }
           break;
         }
         case Context::BLASCompaction::Stage::WaitingGPUTime:
         {
           if (!compaction.compactedBlas)
+            break;
+
+          if (activeCompactions >= maxActiveCompactions)
             break;
 
           if (isCompactionCheap || blasModelBudget > 0)
@@ -1450,11 +1970,14 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
             d3d::issue_event_query(compaction.query.get());
 
+            ++activeCompactions;
+            context_id->numCompactionBlasesWaitingBuild--;
+
             compaction.stage = Context::BLASCompaction::Stage::WaitingCompaction;
 
             // Compacting is a heavy operation.
             if (!isCompactionCheap)
-              blasModelBudget -= 10;
+              blasModelBudget -= 1;
           }
           break;
         }
@@ -1475,8 +1998,18 @@ void process_meshes(ContextId context_id, BuildBudget budget)
       ++iter;
     }
 
+    eastl::erase_if(context_id->createCompactedBLASJobQueue, [](const auto &job) { return interlocked_acquire_load(job->done); });
+
+    if (!creationQueue.empty())
+      CreateCompactedBLASJob::start(eastl::move(creationQueue), context_id);
+
     DA_PROFILE_TAG(blas_compactions, "%d of %d active compactions were processed", activeCompactions,
       (int)context_id->blasCompactionsAccel.size());
+
+    // This is frequently needed for debugging.
+    // logdbg("%d of %d active compactions were processed - creating: %d, waiting: %d", activeCompactions,
+    //  (int)context_id->blasCompactionsAccel.size(), context_id->numCompactionBlasesBeingCreated.load(),
+    //  context_id->numCompactionBlasesWaitingBuild.load());
   }
 
   auto regGameTex = [&](int var_id, int sampler_id, bvh::Context::BindlessTexHolder &holder, uint32_t *size) {
@@ -1501,7 +2034,7 @@ void process_meshes(ContextId context_id, BuildBudget budget)
 
       holder.texSampler = samplerId;
       context_id->holdTexture(holder.texId, holder.bindlessTexture, holder.bindlessSampler, samplerId);
-      context_id->releaseTexure(holder.texId);
+      context_id->releaseTexture(holder.texId);
     }
   };
 
@@ -1512,45 +2045,46 @@ void process_meshes(ContextId context_id, BuildBudget budget)
   static int dynamic_mfd_texVarId = get_shader_variable_id("dynamic_mfd_tex", true);
   static int dynamic_mfd_tex_samplerstateVarId = get_shader_variable_id("dynamic_mfd_tex_samplerstate", true);
   static int cache_tex0VarId = get_shader_variable_id("cache_tex0", true);
-  static int cache_tex0_samplerstateVarId = get_shader_variable_id("cache_tex0_samplerstate", true);
+  static int cache_tex0_samplerstateVarId = get_shader_variable_id("CacheTex0Sampler", true);
   static int indirection_texVarId = get_shader_variable_id("indirection_tex", true);
   static int cache_tex1VarId = get_shader_variable_id("cache_tex1", true);
   static int cache_tex2VarId = get_shader_variable_id("cache_tex2", true);
   static int last_clip_texVarId = get_shader_variable_id("last_clip_tex", true);
-  static int last_clip_tex_samplerstateVarId = get_shader_variable_id("last_clip_tex_samplerstate", true);
+  static int last_clip_tex_samplerstateVarId = get_shader_variable_id("LastClipTexSampler", true);
+  static int dynamic_decals_atlasVarId = get_shader_variable_id("dynamic_decals_atlas", true);
+  static int dynamic_decals_atlas_samplerstateVarId = get_shader_variable_id("dynamic_decals_atlas_samplerstate", true);
 
-  regGameTex(dynamic_mfd_texVarId, dynamic_mfd_tex_samplerstateVarId, context_id->dynamic_mfd_texBindless, nullptr);
-  regGameTex(paint_details_texVarId, paint_details_tex_samplerstateVarId, context_id->paint_details_texBindless,
-    &context_id->paintTexSize);
-  regGameTex(grass_land_color_maskVarId, grass_land_color_mask_samplerstateVarId, context_id->grass_land_color_maskBindless, nullptr);
-  regGameTex(cache_tex0VarId, cache_tex0_samplerstateVarId, context_id->cache_tex0Bindless, nullptr);
-  regGameTex(indirection_texVarId, -1, context_id->indirection_texBindless, nullptr);
-  regGameTex(cache_tex1VarId, -1, context_id->cache_tex1Bindless, nullptr);
-  regGameTex(cache_tex2VarId, -1, context_id->cache_tex2Bindless, nullptr);
-  regGameTex(last_clip_texVarId, last_clip_tex_samplerstateVarId, context_id->last_clip_texBindless, nullptr);
+  {
+    TIME_PROFILE(regGameTex);
+    regGameTex(dynamic_mfd_texVarId, dynamic_mfd_tex_samplerstateVarId, context_id->dynamic_mfd_texBindless, nullptr);
+    regGameTex(paint_details_texVarId, paint_details_tex_samplerstateVarId, context_id->paint_details_texBindless,
+      &context_id->paintTexSize);
+    regGameTex(grass_land_color_maskVarId, grass_land_color_mask_samplerstateVarId, context_id->grass_land_color_maskBindless,
+      nullptr);
+    regGameTex(cache_tex0VarId, cache_tex0_samplerstateVarId, context_id->cache_tex0Bindless, nullptr);
+    regGameTex(indirection_texVarId, -1, context_id->indirection_texBindless, nullptr);
+    regGameTex(cache_tex1VarId, -1, context_id->cache_tex1Bindless, nullptr);
+    regGameTex(cache_tex2VarId, -1, context_id->cache_tex2Bindless, nullptr);
+    regGameTex(last_clip_texVarId, last_clip_tex_samplerstateVarId, context_id->last_clip_texBindless, nullptr);
+    regGameTex(dynamic_decals_atlasVarId, dynamic_decals_atlas_samplerstateVarId, context_id->dynamic_decals_atlasBindless, nullptr);
+  }
 
-  for (auto iter = context_id->camoTextures.begin(); iter != context_id->camoTextures.end();)
-    if (get_managed_res_refcount(TEXTUREID(iter->first)) < 2)
-    {
-      context_id->releaseTexure(TEXTUREID(iter->first));
-      iter = context_id->camoTextures.erase(iter);
-    }
-    else
-      ++iter;
+  {
+    TIME_PROFILE(camo_texture_cleanup);
+    for (auto iter = context_id->camoTextures.begin(); iter != context_id->camoTextures.end();)
+      if (get_managed_res_refcount(TEXTUREID(iter->first)) < 2)
+      {
+        context_id->releaseTexture(TEXTUREID(iter->first));
+        iter = context_id->camoTextures.erase(iter);
+      }
+      else
+        ++iter;
+  }
 
   static bool showBVHBuildEvents = dgs_get_settings()->getBlockByNameEx("graphics")->getBool("showBVHBuildEvents", false);
 
   if (showBVHBuildEvents && triangleCount > 0)
     visuallog::logmsg(String(0, "The BVH build %d triangles for %d BLASes.", triangleCount, blasCount));
-}
-
-static void copyHwInstancesCpu(void *dst, const HWInstance *src, size_t instance_count)
-{
-#if _TARGET_C2 || _TARGET_APPLE
-  d3d::driver_command(Drv3dCommand::CONVERT_TLAS_INSTANCES, (void *)dst, (void *)src, (void *)instance_count);
-#else
-  memcpy(dst, src, sizeof(HWInstance) * instance_count);
-#endif
 }
 
 static void copyHwInstances(Sbuffer *instanceCount, Sbuffer *instances, Sbuffer *uploadBuffer, int bufferSize, int startInstance)
@@ -1565,7 +2099,8 @@ static void copyHwInstances(Sbuffer *instanceCount, Sbuffer *instances, Sbuffer 
     static int instance_count_const_no = ShaderGlobal::get_slot_by_name("bvh_hwinstance_copy_instance_count_const_no");
     static int output_uav_no = ShaderGlobal::get_slot_by_name("bvh_hwinstance_copy_output_uav_no");
 
-    TIME_D3D_PROFILE_NAME(copy_hwinstances, String(64, "copy hw instance: %d", bufferSize));
+    TIME_D3D_PROFILE(copy_hwinstances);
+    DA_PROFILE_TAG(copy_hwinstances, "%d instances", bufferSize);
 
     ShaderGlobal::set_int(bvh_hwinstance_copy_start_instanceVarId, startInstance);
     ShaderGlobal::set_int(bvh_hwinstance_copy_instance_slotsVarId, bufferSize);
@@ -1579,53 +2114,281 @@ static void copyHwInstances(Sbuffer *instanceCount, Sbuffer *instances, Sbuffer 
   }
 }
 
-static struct BVHCopyToTLASJob : public cpujobs::IJob
+static struct BVHFallbackUploadHeavyDataJob : public cpujobs::IJob
 {
-  int uploadCount;
   ContextId contextId;
-  void start(ContextId context_id, int impostorCount, int riExtraCount)
+  void start(ContextId context_id)
   {
     contextId = context_id;
-    static int bvh_impostor_start_offsetVarId = get_shader_variable_id("bvh_impostor_start_offset");
-    static int bvh_impostor_end_offsetVarId = get_shader_variable_id("bvh_impostor_end_offset");
-
-    static constexpr int impostorStartOffset = 0;
-    ShaderGlobal::set_int(bvh_impostor_start_offsetVarId, impostorStartOffset);
-    ShaderGlobal::set_int(bvh_impostor_end_offsetVarId, impostorStartOffset + impostorCount);
-
-    uploadCount = impostorCount + riExtraCount;
-    if (uploadCount > 0)
-      threadpool::add(this, threadpool::JobPriority::PRIO_HIGH, true);
+    threadpool::add(this, threadpool::JobPriority::PRIO_HIGH, true);
   }
   void doJob() override
   {
-    const uint32_t HW_INSTANCE_SIZE = d3d::get_driver_desc().raytrace.topAccelerationStructureInstanceElementSize;
-    auto upload = lock_sbuffer<uint8_t>(contextId->tlasUploadMain.getBuf(), 0, uploadCount * HW_INSTANCE_SIZE,
-      VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE);
-    HANDLE_LOST_DEVICE_STATE(upload, );
-
-    auto cursor = upload.get();
-    for (auto &instances : contextId->impostorInstances)
-    {
-      TIME_PROFILE(memcpy_impostors)
-      copyHwInstancesCpu(cursor, instances.data(), instances.size());
-      cursor += instances.size() * HW_INSTANCE_SIZE;
-    }
-
-    for (auto &instances : contextId->riExtraInstances)
-    {
-      TIME_PROFILE(memcpy_ri_extra)
-      copyHwInstancesCpu(cursor, instances.data(), instances.size());
-      cursor += instances.size() * HW_INSTANCE_SIZE;
-    }
+    bool result = parallel_instance_processing::upload_heavy_stuff(contextId, parallel_instance_processing::TargetFrame::Current);
+    G_ASSERT(result);
+    G_UNUSED(result);
   }
-  const char *getJobName(bool &) const override { return "BVHCopyToTLASJob"; }
+  const char *getJobName(bool &) const override { return "BVHFallbackUploadHeavyDataJob"; }
   void wait()
   {
-    TIME_PROFILE(wait_bvh_copy_to_tlas_job)
+    TIME_PROFILE(wait_bvh_fallback_upload_heavy_data_job)
     threadpool::wait(this);
   }
-} bvh_copy_to_tlas_job;
+} bvh_fallback_upload_heavy_data_job;
+
+
+static void add_instances(ContextId context_id, const Context::InstanceMap &instances, dag::Vector<NativeInstance> &outInstances,
+  uint32_t group_mask, bool is_camera_relative, const char *name, const Point3 &light_direction, const Point3 &camera_pos,
+  eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator> &allBlasUpdatesAs,
+  const Frustum &frustumAbsolute, const Frustum &frustumRelative, const BufferProcessor *assumed_buffer_processor)
+{
+  CHECK_LOST_DEVICE_STATE();
+
+  TIME_PROFILE_NAME(addInstance, name);
+  DA_PROFILE_TAG(addInstance, "Instance count: %d", instances.size());
+
+  const float maxLightDistForBvhShadow = 20.0f;
+  const auto lightDirection = v_mul(v_ldu_p3_safe(&light_direction.x), v_splats(maxLightDistForBvhShadow * 2));
+  auto &perInstanceData = context_id->perInstanceDataCpu;
+  auto &blasUpdates = context_id->blasUpdates;
+  auto &updateGeoms = context_id->updateGeoms;
+
+  const auto &frustum = is_camera_relative ? &frustumRelative : &frustumAbsolute;
+  const auto cameraPos = is_camera_relative ? v_zero() : v_ldu_p3_safe(&camera_pos.x);
+
+  eastl::vector_set<int, eastl::less<int>, framemem_allocator> updateIndices;
+  {
+    // Calculate the skip pattern. Update indices hold the indices to be updated.
+    updateIndices.set_capacity(context_id->riGenIndexTypePerFrame);
+
+    float step = float(Context::MaxTreeAnimIndices) / context_id->riGenIndexTypePerFrame;
+    for (int ix = 0; ix < context_id->riGenIndexTypePerFrame; ++ix)
+    {
+      int ui = (context_id->riGenStartIndexType + int(step * ix + 0.5)) % Context::MaxTreeAnimIndices;
+      updateIndices.insert(ui);
+    }
+  }
+
+  for (auto &instance : instances)
+  {
+    BVH_PROFILE(add_one_instance);
+    CHECK_LOST_DEVICE_STATE();
+
+    if (context_id->halfBakedObjects.count(instance.objectId))
+      continue;
+
+    auto iter = context_id->objects.find(instance.objectId);
+    if (iter == context_id->objects.end())
+      continue;
+
+    auto &object = iter->second;
+    auto &blas = instance.uniqueBlas ? *instance.uniqueBlas : object.blas;
+    auto metaAllocId = MeshMetaAllocator::is_valid(instance.metaAllocId) ? instance.metaAllocId : object.metaAllocId;
+    auto metaRegion = context_id->meshMetaAllocator.get(metaAllocId);
+    auto baseMetaRegion = context_id->meshMetaAllocator.get(object.metaAllocId);
+    auto stationary = instance.uniqueIsStationary;
+    auto skipUpdate = false;
+    if (instance.animIndex > -1)
+      skipUpdate = updateIndices.count(instance.animIndex) == 0;
+
+    if (object.hasVertexProcessor)
+    {
+      bool needBlasBuild = false;
+
+      auto &geoms = updateGeoms.emplace_back();
+
+      for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
+      {
+        if (!mesh.vertexProcessor)
+          continue;
+        G_ASSERT(!mesh.vertexProcessor->isOneTimeOnly() && instance.uniqueTransformedBuffer);
+
+        auto animatedVertices = UniqueOrReferencedBVHBuffer(*instance.uniqueTransformedBuffer); //-V595
+        auto verticesRecycled = instance.uniqueIsRecycled;
+
+        if (instance.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID && !meta.isInitialized())
+        {
+          // The meta is specific to an instance and not yet initialized.
+          meta = baseMeta;
+          meta.markInitialized();
+        }
+
+        if (instance.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
+        {
+          // It is possible that the mesh for the instance was unloaded and loaded again. When that
+          // happens, the mesh has new buffers and textures, so we need to make sure the meta has
+          // the correct indices.
+          if ((meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures) == 0)
+          {
+            meta.alphaTextureIndex = baseMeta.alphaTextureIndex;
+            meta.alphaSamplerIndex = baseMeta.alphaSamplerIndex;
+            meta.albedoTextureIndex = baseMeta.albedoTextureIndex;
+            meta.albedoAndNormalSamplerIndex = baseMeta.albedoAndNormalSamplerIndex;
+            meta.normalTextureIndex = baseMeta.normalTextureIndex;
+            meta.extraTextureIndex = baseMeta.extraTextureIndex;
+            meta.extraSamplerIndex = baseMeta.extraSamplerIndex;
+          }
+          meta.ahsVertexBufferIndex = baseMeta.ahsVertexBufferIndex;
+          // Copy the index buffer index only, the vertex buffer is part of the instance
+          meta.indexBufferIndex = baseMeta.indexBufferIndex;
+        }
+
+#if DAGOR_DBGLEVEL > 0
+        static bool check_alpha = true;
+        if (
+          check_alpha && (meta.materialType & MeshMeta::bvhMaterialAlphaTest) && meta.ahsVertexBufferIndex == BVH_BINDLESS_BUFFER_MAX)
+        {
+          if (screenshot_function)
+          {
+            screenshot_function();
+            logerr("There is a bad alpha tested model in the BVH. A screenshot is made. Please report with the screenshot!");
+          }
+          else
+            logerr("There is a bad alpha tested model in the BVH. Please make a screenshot and report with it!");
+
+          check_alpha = false;
+        }
+#endif
+
+        uint32_t processedPositionFormat = mesh.processedPositionFormat;
+        if ((!stationary && !skipUpdate) || !animatedVertices.get())
+          process_instance_vertices(context_id, instance.objectId, mesh, &instance, frustum, cameraPos, lightDirection,
+            animatedVertices, verticesRecycled, needBlasBuild, meta, processedPositionFormat);
+
+        CHECK_LOST_DEVICE_STATE();
+
+        meta.vertexOffset = animatedVertices.getOffset();
+        bool hasAlphaTest = mesh.materialType & MeshMeta::bvhMaterialAlphaTest;
+        auto &geom = *(RaytraceGeometryDescription *)geoms.push_back_uninitialized();
+
+        geom.type = RaytraceGeometryDescription::Type::TRIANGLES;
+        geom.data.triangles.transformBuffer = nullptr;
+        geom.data.triangles.vertexBuffer = animatedVertices.get();
+        geom.data.triangles.indexBuffer = mesh.geometry.getIndexBuffer(context_id);
+        geom.data.triangles.transformOffset = 0;
+        geom.data.triangles.vertexCount = mesh.vertexCount;
+        geom.data.triangles.vertexStride = meta.vertexStride;
+        geom.data.triangles.vertexOffset = 0;
+        geom.data.triangles.vertexOffsetExtraBytes = animatedVertices.getOffset();
+        geom.data.triangles.vertexFormat = processedPositionFormat;
+        geom.data.triangles.indexCount = mesh.indexCount;
+        geom.data.triangles.indexOffset = meta.startIndex;
+        geom.data.triangles.flags =
+          (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
+        geom.extraDataAvailableMask.hasOpacityMicroMapLinkage = false;
+      }
+
+      // If the BLAS is not unique, then only build it when it has not been built at all.
+      if (needBlasBuild && (!blas || instance.uniqueBlas))
+      {
+        RaytraceBuildFlags flags =
+          (object.isAnimated && !stationary)
+            ? RaytraceBuildFlags::FAST_BUILD | RaytraceBuildFlags::ALLOW_UPDATE | RaytraceBuildFlags::LOW_MEMORY
+            : RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
+        bool isNew = false;
+
+        if (!blas)
+        {
+          blas = UniqueBLAS::create(geoms.data(), geoms.size(), flags);
+          isNew = true;
+
+          HANDLE_LOST_DEVICE_STATE(blas, );
+
+          if (object.blas && object.blas != blas && !stationary)
+          {
+            d3d::copy_raytrace_acceleration_structure(blas.get(), object.blas.get());
+            isNew = false;
+          }
+        }
+
+        if (!allBlasUpdatesAs.insert(blas.get()).second)
+        {
+          logerr("[BVH] Duplicate AS instance found! This should not happen. Report it with a screenshot!");
+          updateGeoms.pop_back();
+          continue;
+        }
+
+        auto &update = blasUpdates.emplace_back();
+        update.as = blas.get();
+        update.basbi.flags = flags;
+        update.basbi.geometryDesc = geoms.data();
+        update.basbi.geometryDescCount = geoms.size();
+        update.basbi.doUpdate = object.isAnimated && !isNew;
+        update.basbi.scratchSpaceBufferSizeInBytes = update.basbi.doUpdate ? blas.getUpdateScratchSize() : blas.getBuildScratchSize();
+        update.basbi.scratchSpaceBuffer =
+          alloc_scratch_buffer(update.basbi.scratchSpaceBufferSizeInBytes, update.basbi.scratchSpaceBufferOffsetInBytes);
+
+        if (update.basbi.scratchSpaceBufferSizeInBytes)
+          HANDLE_LOST_DEVICE_STATE(update.basbi.scratchSpaceBuffer, );
+
+        // After building the first instance, a copy of it is made into the mesh structure.
+        // This copy is used when new instances needs to be made, and with the new instance,
+        // there is no need to build the BLAS topology, only an update, which is about 50
+        // times faster.
+        // If the template is being created, we build immediately.
+        if (!object.blas)
+        {
+          if (assumed_buffer_processor)
+            assumed_buffer_processor->end(true);
+          // inside delay/continue sync we must use only that work that can be batched together
+          // otherwise we can't properly generate barriers, so simply make another batch when we need to build BLAS
+          if (delay_sync)
+            d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
+
+          G_ASSERT(update.basbi.scratchSpaceBufferSizeInBytes > 0);
+
+          for (auto &geom : geoms)
+            d3d::resource_barrier(ResourceBarrierDesc(geom.data.triangles.vertexBuffer, bindlessSRVBarrier));
+
+          d3d::build_bottom_acceleration_structure(update.as, update.basbi);
+
+          for (auto &geom : geoms)
+            d3d::resource_barrier(ResourceBarrierDesc(geom.data.triangles.vertexBuffer, bindlessUAVBarrier));
+
+          // build_bottom_acceleration_structure is not flushing the BLAS,
+          // so we flush it here, before cloning it.
+          d3d::resource_barrier(ResourceBarrierDesc(update.as));
+
+          object.blas = UniqueBLAS::create(geoms.data(), geoms.size(), update.basbi.flags);
+          d3d::copy_raytrace_acceleration_structure(object.blas.get(), update.as);
+
+          allBlasUpdatesAs.erase(blasUpdates.back().as);
+          blasUpdates.pop_back();
+          updateGeoms.pop_back();
+
+          if (delay_sync)
+            d3d::driver_command(Drv3dCommand::DELAY_SYNC);
+
+          if (assumed_buffer_processor)
+            assumed_buffer_processor->begin();
+        }
+      }
+      else
+      {
+        updateGeoms.pop_back();
+      }
+    }
+
+    bool flipWinding = need_winding_flip(object.meshes[0], instance);
+
+    perInstanceData.emplace_back(instance.perInstanceData.value_or(PerInstanceData::ZERO));
+
+    HWInstance desc;
+    desc.transform = instance.transform;
+    desc.instanceID = MeshMetaAllocator::decode(metaAllocId);
+    desc.instanceMask = instance.noShadow ? bvhGroupNoShadow : group_mask;
+    desc.instanceContributionToHitGroupIndex = 0;
+    desc.flags = flipWinding ? RaytraceGeometryInstanceDescription::TRIANGLE_CULL_FLIP_WINDING
+                             : RaytraceGeometryInstanceDescription::TRIANGLE_CULL_DISABLE;
+    desc.blasGpuAddress = blas.getGPUAddress();
+
+    if (!is_camera_relative)
+      realign(desc.transform, camera_pos);
+
+    outInstances.push_back(convert_instance(desc));
+  }
+}
+
 
 void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, const Point3 &camera_pos, const Point3 &light_direction)
 {
@@ -1638,15 +2401,17 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   FRAMEMEM_REGION;
 
-  TIME_D3D_PROFILE_NAME(bvh_build, String(128, "bvh_build for %s", context_id->name.data()));
+  TIME_D3D_PROFILE(bvh_build);
 
-  if (context_id->has(Features::DynrendRigidFull | Features::DynrendRigidBaked | Features::DynrendSkinnedFull))
+  if (context_id->has(Features::AnyDynrend))
     dyn::wait_dynrend_instances();
-  if (context_id->has(Features::RIFull | Features::RIBaked))
+  if (context_id->has(Features::AnyRI))
   {
     ri::wait_ri_gen_instances_update(context_id);
-    ri::wait_ri_extra_instances_update(context_id, true);
+    ri::wait_ri_extra_instances_update(context_id);
   }
+
+  const bool isParallelJobsFinished = parallel_instance_processing::is_parallel_jobs_finished(context_id);
 
   Sbuffer *grassInstances = nullptr;
   Sbuffer *grassInstanceCount = nullptr;
@@ -1660,6 +2425,14 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   Sbuffer *fxInstanceCount = nullptr;
   fx::get_instances(context_id, fxInstances, fxInstanceCount);
 
+  auto dgdpBuffers = dagdp::get_buffers(context_id);
+  Sbuffer *dagdpInstances = dgdpBuffers.instances;
+  Sbuffer *dagdpInstancesCount = dgdpBuffers.instanceCount;
+
+  Sbuffer *gpuGrassInstances = nullptr;
+  Sbuffer *gpuGrassInstanceCount = nullptr;
+  gpugrass::get_instances(context_id, gpuGrassInstances, gpuGrassInstanceCount);
+
   int cablesMetaAllocId = -1;
   auto cableBlases = &cables::get_blases(context_id, cablesMetaAllocId);
 
@@ -1668,11 +2441,15 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   {
     grassInstances = nullptr;
     grassInstanceCount = nullptr;
+    gpuGrassInstances = nullptr;
+    gpuGrassInstanceCount = nullptr;
   }
   if (!bvh_gpuobject_enable)
   {
     gobjInstances = nullptr;
     gobjInstanceCount = nullptr;
+    dagdpInstances = nullptr;
+    dagdpInstancesCount = nullptr;
   }
   if (!bvh_particles_enable)
   {
@@ -1691,6 +2468,8 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   int grassBufferSize = grassInstances ? grassInstances->getNumElements() : 0;
   int gobjBufferSize = gobjInstances ? gobjInstances->getNumElements() : 0;
   int fxBufferSize = fxInstances ? fxInstances->getNumElements() : 0;
+  int dagdpBufferSize = dagdpInstances ? dagdpInstances->getNumElements() : 0;
+  int gpuGrassBufferSize = gpuGrassInstances ? gpuGrassInstances->getNumElements() : 0;
 
   int impostorCount = 0;
   for (auto &instances : context_id->impostorInstances)
@@ -1708,21 +2487,41 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   for (auto &instances : context_id->riExtraTreeInstances)
     riExtraTreeCount += instances.size();
 
+  int riExtraFlagCount = 0;
+  for (auto &instances : context_id->riExtraFlagInstances)
+    riExtraFlagCount += instances.size();
+
   int dynrendCount = 0;
   for (auto &instances : context_id->dynrendInstances)
     dynrendCount += instances.second.size();
 
-  auto terrainBlases = terrain::get_blases(context_id);
+  int waterCount = 0;
+  for (auto &patch : context_id->water_patches)
+    waterCount += patch.instances.size();
 
-  auto instanceCount = context_id->genericInstances.size() + riGenCount + riExtraCount + riExtraTreeCount + dynrendCount +
-                       terrainBlases.size() + (cableBlases ? cableBlases->size() : 0) + impostorCount; //-V547
+  int splinegenCount = context_id->splineGenInstances.size();
+
+  int cableCount = cableBlases ? cableBlases->size() : 0; //-V547
+
+  auto terrainBlases = terrain::get_blases(context_id);
+  int terrainCount = terrainBlases.size();
+
+  const int precalcedInstanceCount = impostorCount + riExtraCount; // these are calculated right after the parallel jobs
+  const int nonGpuZeroDataInstanceCount = terrainCount + cableCount + waterCount;
+  const int dynamicDataInstanceCount =
+    context_id->genericInstances.size() + riGenCount + riExtraTreeCount + riExtraFlagCount + dynrendCount + splinegenCount;
+
+  const int instanceCount = dynamicDataInstanceCount + nonGpuZeroDataInstanceCount + precalcedInstanceCount;
+
+  const int gpuInstanceCount = grassBufferSize + gobjBufferSize + dagdpBufferSize + gpuGrassBufferSize;
+  const int allInstancesCount = instanceCount + gpuInstanceCount;
 
   // Mark them invalid for now. They will be marked valid later as they are getting uploaded.
   context_id->tlasMainValid = false;
   context_id->tlasTerrainValid = false;
   context_id->tlasParticlesValid = false;
 
-  if (!instanceCount && !grassBufferSize && !gobjBufferSize && !fxBufferSize)
+  if (!instanceCount && !grassBufferSize && !gobjBufferSize && !fxBufferSize && !dagdpBufferSize && !gpuGrassInstances)
     return;
 
   Context::RingBuffers::step();
@@ -1740,7 +2539,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   auto round_up = [](uint32_t value, uint32_t alignment) { return (value + alignment - 1) & ~(alignment - 1); };
 
-  auto uploadSizeMain = max(round_up(instanceCount + grassBufferSize + gobjBufferSize, 1024 << 3), 1U << 17);
+  auto uploadSizeMain = max(round_up(allInstancesCount, 1024 << 3), 1U << 17);
   auto uploadSizeTerrain = round_up(terrainBlases.size() + 1, 64);
   auto uploadSizeParticles = max(round_up(fxBufferSize, 1024), 1U << 13);
 
@@ -1750,428 +2549,213 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     context_id->tlasUploadTerrain.close();
   if (context_id->tlasUploadParticles && uploadSizeParticles > context_id->tlasUploadParticles->getNumElements())
     context_id->tlasUploadParticles.close();
+  if (context_id->perInstanceData && context_id->perInstanceData->getNumElements() < allInstancesCount)
+    context_id->perInstanceData.close();
+
+  // These buffers are tied together in the same job. Must be reallocated together, or nooverwrite can break (and crash on PS5)
+  if ((!isParallelJobsFinished && !bvh_disable_parallel_instance_processing_finish) || !context_id->tlasUploadMain ||
+      !context_id->perInstanceData)
+  {
+    context_id->tlasUploadMain.close();
+    context_id->perInstanceData.close();
+  }
 
   bool reallocateMainTlas = !context_id->tlasUploadMain;
   bool reallocateTerrainTlas = !context_id->tlasUploadTerrain;
   bool reallocateParticlesTlas = !context_id->tlasUploadParticles;
+  bool reallocatePerInstanceData = !context_id->perInstanceData;
 
   if (reallocateMainTlas)
   {
     TIME_PROFILE(allocate_main_tlas_upload);
     HANDLE_LOST_DEVICE_STATE(context_id->tlasUploadMain.allocate(HW_INSTANCE_SIZE, uploadSizeMain, SBCF_UA_SR_STRUCTURED,
                                "bvh_tlas_upload_main", context_id), );
+    logdbg("tlasUploadMain resized to %u", uploadSizeMain);
   }
   if (reallocateTerrainTlas)
   {
     TIME_PROFILE(allocate_terrain_tlas_upload);
     HANDLE_LOST_DEVICE_STATE(context_id->tlasUploadTerrain.allocate(HW_INSTANCE_SIZE, uploadSizeTerrain, SBCF_UA_SR_STRUCTURED,
                                "bvh_tlas_upload_terrain", context_id), );
+    logdbg("tlasUploadTerrain resized to %u", uploadSizeTerrain);
   }
 
   if (!context_id->tlasUploadParticles)
   {
     TIME_PROFILE(allocate_particle_buffer);
-    context_id->tlasUploadParticles =
-      dag::buffers::create_ua_sr_structured(HW_INSTANCE_SIZE, uploadSizeParticles, ccn(context_id, "bvh_tlas_upload_particles"));
+    context_id->tlasUploadParticles = dag::buffers::create_ua_sr_structured(HW_INSTANCE_SIZE, uploadSizeParticles,
+      ccn(context_id, "bvh_tlas_upload_particles"), d3d::buffers::Init::No, RESTAG_BVH);
     HANDLE_LOST_DEVICE_STATE(context_id->tlasUploadParticles, );
     logdbg("tlasUploadParticles resized to %u", uploadSizeParticles);
   }
 
-  bvh_copy_to_tlas_job.start(context_id, impostorCount, riExtraCount);
+  if (reallocatePerInstanceData)
+  {
+    const int perInstanceDataNumElements = max(allInstancesCount, 1);
+    HANDLE_LOST_DEVICE_STATE(context_id->perInstanceData.allocate(sizeof(PerInstanceData), perInstanceDataNumElements,
+                               SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, "bvh_per_instance_data", context_id), );
+    logdbg("perInstanceData resized to %u", perInstanceDataNumElements);
+  }
 
-  context_id->animatedInstanceCount = 0;
+  if (!isParallelJobsFinished || reallocateMainTlas || reallocatePerInstanceData)
+    bvh_fallback_upload_heavy_data_job.start(context_id);
 
   auto &instanceDescs = context_id->instanceDescsCpu;
-  auto &perInstanceData = context_id->perInstanceDataCpu;
+
+  auto &dynamicPerInstanceData = context_id->perInstanceDataCpu;
+  dynamicPerInstanceData.clear();
+  dynamicPerInstanceData.reserve(dynamicDataInstanceCount);
 
   instanceDescs.clear();
   instanceDescs.reserve(instanceCount);
-
-  perInstanceData.clear();
-  if (use_icthgi_for_per_instance_data)
-  {
-    // This is expected to store camo only, the rest can be packed into InstanceContributionToHitGroupIndex
-    perInstanceData.reserve(dynrendCount + 1);
-    perInstanceData.push_back(UPoint2{0, 0});
-  }
-  else
-  {
-    TIME_PROFILE(patch_per_instance_data)
-    perInstanceData.reserve(instanceCount);
-
-    for (auto &instanceData : context_id->impostorInstanceData)
-    {
-      auto preSize = perInstanceData.size();
-      perInstanceData.resize(preSize + instanceData.size());
-      memcpy(perInstanceData.data() + preSize, instanceData.data(), instanceData.size() * sizeof(UPoint2));
-    }
-    for (auto &instanceData : context_id->riExtraInstanceData)
-    {
-      auto preSize = perInstanceData.size();
-      perInstanceData.resize(preSize + instanceData.size());
-      memcpy(perInstanceData.data() + preSize, instanceData.data(), instanceData.size() * sizeof(UPoint2));
-    }
-  }
-
-  dag::Vector<::raytrace::BatchedBottomAccelerationStructureBuildInfo, framemem_allocator> blasUpdates;
-  constexpr size_t MAX_GEOMS = 32;
-  dag::Vector<eastl::fixed_vector<RaytraceGeometryDescription, MAX_GEOMS>, framemem_allocator> updateGeoms;
-  eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator> allBlasUpdatesAs;
-  {
-    TIME_PROFILE(allocate_update);
-    blasUpdates.reserve(512);
-    updateGeoms.reserve(512);
-  }
 
   auto itmRelative = itm;
   itmRelative.setcol(3, Point3::ZERO);
   auto frustumRelative = Frustum(TMatrix4(orthonormalized_inverse(itmRelative)) * projTm);
   auto frustumAbsolute = Frustum(TMatrix4(orthonormalized_inverse(itm)) * projTm);
 
-  auto addInstances = [&](const Context::InstanceMap &instances, dag::Vector<HWInstance> &hwInstances, uint32_t group_mask,
-                        bool is_camera_relative, const char *name) {
-    CHECK_LOST_DEVICE_STATE();
-
-    TIME_PROFILE_NAME(addInstance, name);
-
-    const float maxLightDistForBvhShadow = 20.0f;
-    auto lightDirection = v_mul(v_ldu_p3_safe(&light_direction.x), v_splats(maxLightDistForBvhShadow * 2));
-    auto cameraPos = v_ldu_p3_safe(&camera_pos.x);
-
-    for (auto &instance : instances)
-    {
-      BVH_PROFILE(add_one_instance);
-      CHECK_LOST_DEVICE_STATE();
-
-      if (context_id->halfBakedObjects.count(instance.objectId))
-        continue;
-
-      auto iter = context_id->objects.find(instance.objectId);
-      if (iter == context_id->objects.end())
-        continue;
-
-      auto &object = iter->second;
-      auto &blas = instance.uniqueBlas ? *instance.uniqueBlas : object.blas;
-      auto metaAllocId = MeshMetaAllocator::is_valid(instance.metaAllocId) ? instance.metaAllocId : object.metaAllocId;
-      auto metaRegion = context_id->meshMetaAllocator.get(metaAllocId);
-      auto baseMetaRegion = context_id->meshMetaAllocator.get(object.metaAllocId);
-
-      if (eastl::any_of(object.meshes.begin(), object.meshes.end(), [](const auto &m) { return m.vertexProcessor; }))
-      {
-        bool needBlasBuild = false;
-
-        auto &geoms = updateGeoms.emplace_back();
-
-        for (auto [mesh, meta, baseMeta] : zip(object.meshes, metaRegion, baseMetaRegion))
-        {
-          G_ASSERT(!mesh.vertexProcessor->isOneTimeOnly() && instance.uniqueTransformedBuffer);
-
-          auto animatedVertices = UniqueOrReferencedBVHBuffer(*instance.uniqueTransformedBuffer); //-V595
-          auto verticesRecycled = instance.uniqueIsRecycled;
-
-          if (instance.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID && !meta.isInitialized())
-          {
-            // The meta is specific to an instance and not yet initialized.
-            meta = baseMeta;
-            meta.markInitialized();
-          }
-
-          if (instance.metaAllocId != MeshMetaAllocator::INVALID_ALLOC_ID)
-          {
-            // It is possible that the mesh for the instance was unloaded and loaded again. When that
-            // happens, the mesh has new buffers and textures, so we need to make sure the meta has
-            // the correct indices.
-            if ((meta.materialType & MeshMeta::bvhMaterialUseInstanceTextures) == 0)
-            {
-              meta.alphaTextureIndex = baseMeta.alphaTextureIndex;
-              meta.alphaSamplerIndex = baseMeta.alphaSamplerIndex;
-              meta.albedoTextureIndex = baseMeta.albedoTextureIndex;
-              meta.albedoAndNormalSamplerIndex = baseMeta.albedoAndNormalSamplerIndex;
-              meta.normalTextureIndex = baseMeta.normalTextureIndex;
-              meta.extraTextureIndex = baseMeta.extraTextureIndex;
-              meta.extraSamplerIndex = baseMeta.extraSamplerIndex;
-            }
-            meta.ahsVertexBufferIndex = baseMeta.ahsVertexBufferIndex;
-            // Copy the index buffer index only, the vertex buffer is part of the instance
-            meta.indexBufferIndex = baseMeta.indexBufferIndex;
-          }
-
-          if (meta.materialType & MeshMeta::bvhMaterialAlphaTest)
-            G_ASSERT(meta.ahsVertexBufferIndex != BVH_BINDLESS_BUFFER_MAX);
-
-          process_vertices(context_id, instance.objectId, mesh, &instance, is_camera_relative ? &frustumRelative : &frustumAbsolute,
-            is_camera_relative ? v_zero() : cameraPos, lightDirection, animatedVertices, verticesRecycled, needBlasBuild, meta,
-            baseMeta, true);
-
-          CHECK_LOST_DEVICE_STATE();
-
-          meta.vertexOffset = animatedVertices.getOffset();
-          bool hasAlphaTest = mesh.materialType & MeshMeta::bvhMaterialAlphaTest;
-          auto &geom = geoms.emplace_back();
-
-          geom.type = RaytraceGeometryDescription::Type::TRIANGLES;
-          geom.data.triangles.vertexBuffer = animatedVertices.get();
-          geom.data.triangles.vertexOffsetExtraBytes = animatedVertices.getOffset();
-          geom.data.triangles.indexBuffer = mesh.processedIndices.get();
-          geom.data.triangles.vertexCount = mesh.vertexCount;
-          geom.data.triangles.vertexStride = meta.vertexStride;
-          geom.data.triangles.vertexFormat = mesh.processedPositionFormat;
-          geom.data.triangles.indexCount = mesh.indexCount;
-          geom.data.triangles.indexOffset = meta.startIndex;
-          geom.data.triangles.flags =
-            (hasAlphaTest) ? RaytraceGeometryDescription::Flags::NONE : RaytraceGeometryDescription::Flags::IS_OPAQUE;
-        }
-
-        // If the BLAS is not unique, then only build it when it has not been built at all.
-        if (needBlasBuild && (!blas || instance.uniqueBlas))
-        {
-
-          RaytraceBuildFlags flags =
-            object.isAnimated ? RaytraceBuildFlags::FAST_BUILD | RaytraceBuildFlags::ALLOW_UPDATE : RaytraceBuildFlags::FAST_TRACE;
-          bool isNew = false;
-
-          if (!blas)
-          {
-            blas = UniqueBLAS::create(geoms.data(), geoms.size(), flags);
-            isNew = true;
-
-            HANDLE_LOST_DEVICE_STATE(blas, );
-
-            if (object.blas && object.blas != blas)
-            {
-              d3d::copy_raytrace_acceleration_structure(blas.get(), object.blas.get());
-              isNew = false;
-            }
-          }
-
-          if (!allBlasUpdatesAs.insert(blas.get()).second)
-          {
-            logerr("[BVH] Duplicate AS instance found! This should not happen. Report it with a screenshot!");
-            updateGeoms.pop_back();
-            continue;
-          }
-
-          auto &update = blasUpdates.emplace_back();
-          update.as = blas.get();
-          update.basbi.flags = flags;
-          update.basbi.geometryDesc = geoms.data();
-          update.basbi.geometryDescCount = geoms.size();
-          update.basbi.doUpdate = object.isAnimated && !isNew;
-          update.basbi.scratchSpaceBufferSizeInBytes =
-            update.basbi.doUpdate ? blas.getUpdateScratchSize() : blas.getBuildScratchSize();
-          update.basbi.scratchSpaceBuffer =
-            alloc_scratch_buffer(update.basbi.scratchSpaceBufferSizeInBytes, update.basbi.scratchSpaceBufferOffsetInBytes);
-
-          HANDLE_LOST_DEVICE_STATE(update.basbi.scratchSpaceBuffer, );
-
-          // After building the first instance, a copy of it is made into the mesh structure.
-          // This copy is used when new instances needs to be made, and with the new instance,
-          // there is no need to build the BLAS topology, only an update, which is about 50
-          // times faster.
-          // If the template is being created, we build immediately.
-          if (!object.blas)
-          {
-            // inside delay/continue sync we must use only that work that can be batched together
-            // otherwise we can't properly generate barriers, so simply make another batch when we need to build BLAS
-            const bool delaySync = d3d::get_driver_code().is(d3d::vulkan) || d3d::get_driver_code().is(d3d::ps5);
-            if (delaySync)
-              d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
-
-            G_ASSERT(update.basbi.scratchSpaceBufferSizeInBytes > 0);
-
-            for (auto &geom : geoms)
-              d3d::resource_barrier(ResourceBarrierDesc(geom.data.triangles.vertexBuffer, bindlessSRVBarrier));
-
-            d3d::build_bottom_acceleration_structure(update.as, update.basbi);
-
-            for (auto &geom : geoms)
-              d3d::resource_barrier(ResourceBarrierDesc(geom.data.triangles.vertexBuffer, bindlessUAVBarrier));
-
-            // build_bottom_acceleration_structure is not flushing the BLAS,
-            // so we flush it here, before cloning it.
-            d3d::resource_barrier(ResourceBarrierDesc(update.as));
-
-            object.blas = UniqueBLAS::create(geoms.data(), geoms.size(), update.basbi.flags);
-            d3d::copy_raytrace_acceleration_structure(object.blas.get(), update.as);
-
-            allBlasUpdatesAs.erase(blasUpdates.back().as);
-            blasUpdates.pop_back();
-            updateGeoms.pop_back();
-
-            if (delaySync)
-              d3d::driver_command(Drv3dCommand::DELAY_SYNC);
-          }
-        }
-        else
-        {
-          updateGeoms.pop_back();
-        }
-      }
-
-      bool hasPerInstanceData = instance.perInstanceData.has_value();
-      bool isPerInstanceDataColor = instance.hasInstanceColor;
-      bool isPerInstanceDataAlbedo = hasPerInstanceData && instance.perInstanceData.value().x == 0xA1B3D0U;
-      uint32_t perInstanceDataIndex = 0;
-      if (!use_icthgi_for_per_instance_data || !isPerInstanceDataColor || !isPerInstanceDataAlbedo)
-      {
-        perInstanceDataIndex = perInstanceData.size();
-        perInstanceData.emplace_back(instance.perInstanceData.value_or(UPoint2{0, 0}));
-      }
-
-      auto &desc = hwInstances.emplace_back();
-      desc.transform = instance.transform;
-      desc.instanceID = MeshMetaAllocator::decode(metaAllocId);
-      desc.instanceMask = instance.noShadow ? bvhGroupNoShadow : group_mask;
-      desc.instanceContributionToHitGroupIndex = [&]() -> uint32_t {
-        if (hasPerInstanceData)
-        {
-          if (use_icthgi_for_per_instance_data)
-          {
-            if (isPerInstanceDataColor)
-              return ICTHGI_USE_AS_777_ISTANCE_COLOR | pack_color8_to_color777(instance.perInstanceData.value().x);
-            else if (isPerInstanceDataAlbedo)
-              return ICTHGI_REPLACE_ALBEDO_TEXTURE | (((instance.perInstanceData.value().y >> 16) & 0xFFFFu) << 3);
-            else
-              return ICTHGI_LOAD_PER_INSTANCE_DATA_WITH_ICTHGI_INDEX | (perInstanceDataIndex << 3);
-          }
-          else
-            return ICTHGI_LOAD_PER_INSTANCE_DATA_WITH_INSTANCE_INDEX;
-        }
-        else
-          return ICTHGI_NO_PER_INSTANCE_DATA;
-      }();
-      desc.flags = RaytraceGeometryInstanceDescription::TRIANGLE_CULL_DISABLE;
-      desc.blasGpuAddress = blas.getGPUAddress();
-
-      if (!is_camera_relative)
-        realign(desc.transform, camera_pos);
-    }
-  };
+  eastl::unordered_set<void *, eastl::hash<void *>, eastl::equal_to<void *>, framemem_allocator> allBlasUpdatesAs;
 
   {
     TIME_D3D_PROFILE(add_and_animate_instances);
 
-    int bufferCount = 0;
-    for (auto &alloc : context_id->processBufferAllocators)
-      bufferCount += alloc.second.pools.size();
+    context_id->blasUpdates.clear();
+    context_id->updateGeoms.clear();
+
+    int bufferCount = context_id->processBufferAllocator.size();
+
+    DA_PROFILE_TAG(add_and_animate_instances, "bufferCount: %d", bufferCount);
 
     dag::Vector<Sbuffer *, framemem_allocator> rbBuffers;
     rbBuffers.reserve(bufferCount);
 
-    for (auto &alloc : context_id->processBufferAllocators)
-      for (auto &pool : alloc.second.pools)
-        rbBuffers.push_back(pool.buffer.get());
+    for (auto &alloc : context_id->processBufferAllocator)
+      rbBuffers.push_back(alloc.first.getHeap().getBuf());
 
-    // vulkan don't allow barrier mixing used to batch prepare  dx12 barriers
-    // ps5 driver doesn't support user barriers and currently only DELAY_SYNC command can be used to allow parallel execution of
-    // dispatches
-    const bool delaySync = d3d::get_driver_code().is(d3d::vulkan) || d3d::get_driver_code().is(d3d::ps5);
-    if (!rbBuffers.empty() && !delaySync)
+    if (!rbBuffers.empty())
     {
-      dag::Vector<ResourceBarrier, framemem_allocator> rb(rbBuffers.size(), bindlessUAVBarrier);
+      TIME_PROFILE(rbBuffers_barrier);
+      dag::Vector<ResourceBarrier, framemem_allocator> rb(rbBuffers.size(), bindlessUAVComputeBarrier);
       d3d::resource_barrier(ResourceBarrierDesc(rbBuffers.data(), rb.data(), rbBuffers.size())); // -V512
     }
-    else
+    if (delay_sync)
       d3d::driver_command(Drv3dCommand::DELAY_SYNC);
 
-    addInstances(context_id->genericInstances, instanceDescs, bvhGroupRiExtra, false, "generic");
-    CHECK_LOST_DEVICE_STATE();
+    if (!context_id->genericInstances.empty())
+    {
+      add_instances(context_id, context_id->genericInstances, instanceDescs, bvhGroupRi, false, "generic", light_direction, camera_pos,
+        allBlasUpdatesAs, frustumAbsolute, frustumRelative, nullptr);
+      CHECK_LOST_DEVICE_STATE();
+    }
 
     {
+      context_id->riGenStartIndexType = (context_id->riGenStartIndexType + 1) % Context::MaxTreeAnimIndices;
+
       ProcessorInstances::getTreeVertexProcessor().begin();
 
+      auto startRef = profile_ref_ticks();
       for (auto &instances : context_id->riGenInstances)
       {
-        addInstances(instances, instanceDescs, bvhGroupRiGen, false, "riGen");
+        add_instances(context_id, instances, instanceDescs, bvhGroupRi, false, "riGen", light_direction, camera_pos, allBlasUpdatesAs,
+          frustumAbsolute, frustumRelative, &ProcessorInstances::getTreeVertexProcessor());
         CHECK_LOST_DEVICE_STATE();
       }
+      auto riGenTimeUs = profile_time_usec(startRef);
+      context_id->lastRiGenProcessTimeUs = riGenTimeUs;
+
+      int toleranceRange = (5 * bvh_riGen_budget_us) / 100; // tolerance is 5% up and down
+      if (riGenTimeUs > bvh_riGen_budget_us + toleranceRange)
+        context_id->riGenIndexTypePerFrame = max(context_id->riGenIndexTypePerFrame - 1, 1);
+      else if (riGenTimeUs < bvh_riGen_budget_us - toleranceRange)
+        context_id->riGenIndexTypePerFrame = min(context_id->riGenIndexTypePerFrame + 1, Context::MaxTreeAnimIndices);
+
       for (auto &instances : context_id->riExtraTreeInstances)
       {
-        addInstances(instances, instanceDescs, bvhGroupRiGen, false, "riExtraTree");
+        add_instances(context_id, instances, instanceDescs, bvhGroupRi, false, "riExtraTree", light_direction, camera_pos,
+          allBlasUpdatesAs, frustumAbsolute, frustumRelative, &ProcessorInstances::getTreeVertexProcessor());
         CHECK_LOST_DEVICE_STATE();
       }
-
-      ProcessorInstances::getTreeVertexProcessor().end();
+      ProcessorInstances::getTreeVertexProcessor().end(false);
     }
+
+    for (auto &instances : context_id->riExtraFlagInstances)
+    {
+      add_instances(context_id, instances, instanceDescs, bvhGroupRi, false, "riExtraFlag", light_direction, camera_pos,
+        allBlasUpdatesAs, frustumAbsolute, frustumRelative, nullptr);
+      CHECK_LOST_DEVICE_STATE();
+    }
+
+    if (use_batched_skinned_vertex_processor)
+      ProcessorInstances::getSkinnedVertexProcessorBatched().begin();
     for (auto &instances : context_id->dynrendInstances)
     {
       if (instances.first >= dynrend::ContextId{0})
         dyn::set_up_dynrend_context_for_processing(instances.first);
-      addInstances(instances.second, instanceDescs, bvhGroupDynrend, true, "dynrend");
+      add_instances(context_id, instances.second, instanceDescs, bvhGroupDynrend, true, "dynrend", light_direction, camera_pos,
+        allBlasUpdatesAs, frustumAbsolute, frustumRelative,
+        use_batched_skinned_vertex_processor ? &ProcessorInstances::getSkinnedVertexProcessorBatched() : nullptr);
+      CHECK_LOST_DEVICE_STATE();
+    }
+    if (use_batched_skinned_vertex_processor)
+      ProcessorInstances::getSkinnedVertexProcessorBatched().end(false);
+
+    if (!context_id->splineGenInstances.empty())
+    {
+      add_instances(context_id, context_id->splineGenInstances, instanceDescs, bvhGroupDynrend, true, "splinegen", light_direction,
+        camera_pos, allBlasUpdatesAs, frustumAbsolute, frustumRelative, nullptr);
       CHECK_LOST_DEVICE_STATE();
     }
 
     CHECK_LOST_DEVICE_STATE();
 
-    if (!rbBuffers.empty() && !delaySync)
+    if (delay_sync)
+      d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
+    if (!rbBuffers.empty())
     {
       dag::Vector<ResourceBarrier, framemem_allocator> rb(rbBuffers.size(), bindlessSRVBarrier);
       d3d::resource_barrier(ResourceBarrierDesc(rbBuffers.data(), rb.data(), rbBuffers.size())); // -V512
     }
-    else
-      d3d::driver_command(Drv3dCommand::CONTINUE_SYNC);
   }
 
-  {
-    TIME_PROFILE(UploadMeta)
-    int metaCount = context_id->meshMetaAllocator.size();
+  bvh_upload_meta_job.start(context_id);
 
-    if (context_id->meshMeta && context_id->meshMeta->getNumElements() < metaCount)
-      context_id->meshMeta.close();
-
-    if (!context_id->meshMeta)
-      HANDLE_LOST_DEVICE_STATE(context_id->meshMeta.allocate(sizeof(MeshMeta), metaCount, SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED,
-                                 "bvh_meta", context_id), );
-
-    if (auto upload = lock_sbuffer<MeshMeta>(context_id->meshMeta.getBuf(), 0, 0, VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE))
-    {
-      auto dst = upload.get();
-      int poolIndex = 0;
-      while (auto src = context_id->meshMetaAllocator.data(poolIndex++))
-      {
-        memcpy(dst, src, MeshMetaAllocator::PoolSize * sizeof(MeshMeta));
-        dst += MeshMetaAllocator::PoolSize;
-      }
-    }
-  }
+  int terrainDescIndex = instanceDescs.size();
 
   {
-    TIME_D3D_PROFILE_NAME(procedural_blas_builds, String(64, "procedural_blas_builds: %d", blasUpdates.size()));
+    TIME_D3D_PROFILE(procedural_blas_builds);
+    DA_PROFILE_TAG(procedural_blas_builds, "blas count: %d", context_id->blasUpdates.size());
     if (showProceduralBLASBuildCount)
-      visuallog::logmsg(String(64, "Procedural BLAS builds: %d", blasUpdates.size()));
+      visuallog::logmsg(String(64, "Procedural BLAS builds: %d", context_id->blasUpdates.size()));
 
-    for (auto [geoms, update] : zip(updateGeoms, blasUpdates))
+    for (auto [geoms, update] : zip(context_id->updateGeoms, context_id->blasUpdates))
     {
       update.basbi.geometryDesc = geoms.data();
       update.basbi.geometryDescCount = geoms.size();
     }
 
-    d3d::build_bottom_acceleration_structures(blasUpdates.data(), blasUpdates.size());
+    d3d::build_bottom_acceleration_structures(context_id->blasUpdates.data(), context_id->blasUpdates.size());
   }
 
-  int terrainDescIndex = instanceDescs.size();
-
+  if (terrainCount > 0) //-v1051
   {
     TIME_D3D_PROFILE(terrain);
 
     for (auto [blasIx, blas] : enumerate(terrainBlases))
     {
-      bool hasHole = eastl::get<3>(blas);
       auto &origin = eastl::get<2>(blas);
 
-      auto &desc = instanceDescs.emplace_back();
+      HWInstance desc;
       desc.transform.row0 = v_make_vec4f(1, 0, 0, origin.x - camera_pos.x);
       desc.transform.row1 = v_make_vec4f(0, 1, 0, 0 - camera_pos.y);
       desc.transform.row2 = v_make_vec4f(0, 0, 1, origin.y - camera_pos.z);
 
       desc.instanceID = MeshMetaAllocator::decode(eastl::get<1>(blas));
       desc.instanceMask = bvhGroupTerrain;
-      desc.instanceContributionToHitGroupIndex = ICTHGI_NO_PER_INSTANCE_DATA;
-      desc.flags = hasHole ? RaytraceGeometryInstanceDescription::FORCE_NO_OPAQUE : RaytraceGeometryInstanceDescription::NONE;
+      desc.instanceContributionToHitGroupIndex = 0;
+      desc.flags = RaytraceGeometryInstanceDescription::NONE;
       desc.blasGpuAddress = eastl::get<0>(blas);
 
-      if (!use_icthgi_for_per_instance_data)
-        perInstanceData.emplace_back(UPoint2{0, 0});
+      instanceDescs.push_back(convert_instance(desc));
     }
   }
 
@@ -2181,28 +2765,49 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
     for (auto [blasIx, blas] : enumerate(*cableBlases))
     {
-      auto &desc = instanceDescs.emplace_back();
+      HWInstance desc;
       desc.transform.row0 = v_make_vec4f(1, 0, 0, -camera_pos.x);
       desc.transform.row1 = v_make_vec4f(0, 1, 0, -camera_pos.y);
       desc.transform.row2 = v_make_vec4f(0, 0, 1, -camera_pos.z);
 
       desc.instanceID = cablesMetaAllocId;
-      desc.instanceMask = bvhGroupRiExtra;
-      desc.instanceContributionToHitGroupIndex = ICTHGI_NO_PER_INSTANCE_DATA;
+      desc.instanceMask = bvhGroupRi;
+      desc.instanceContributionToHitGroupIndex = 0;
       desc.flags = RaytraceGeometryInstanceDescription::TRIANGLE_CULL_DISABLE;
       desc.blasGpuAddress = blas.getGPUAddress();
-
-      if (!use_icthgi_for_per_instance_data)
-        perInstanceData.emplace_back(UPoint2{0, 0});
+      instanceDescs.push_back(convert_instance(desc));
     }
   }
+
+  if (waterCount > 0)
+  {
+    TIME_D3D_PROFILE(water);
+
+    for (auto &patch : context_id->water_patches)
+    {
+      for (auto &instance : patch.instances)
+      {
+        HWInstance desc;
+        desc.transform.row0 = v_make_vec4f(instance.scale.x, 0, 0, instance.position.x - camera_pos.x);
+        desc.transform.row1 = v_make_vec4f(0, 1, 0, 0 - camera_pos.y);
+        desc.transform.row2 = v_make_vec4f(0, 0, instance.scale.y, instance.position.y - camera_pos.z);
+
+        desc.instanceID = MeshMetaAllocator::decode(patch.metaAllocId);
+        desc.instanceMask = bvhGroupWater;
+        desc.instanceContributionToHitGroupIndex = 0;
+        desc.flags = 0;
+        desc.blasGpuAddress = patch.blas.getGPUAddress();
+        instanceDescs.push_back(convert_instance(desc));
+      }
+    }
+  }
+
+  bvh_fallback_upload_heavy_data_job.wait();
 
   int cpuInstanceCount = 0;
 
   {
     TIME_D3D_PROFILE(copy_to_tlas_main_upload);
-
-    bvh_copy_to_tlas_job.wait();
 
     cpuInstanceCount += impostorCount + riExtraCount;
 
@@ -2218,7 +2823,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
         copyHwInstancesCpu(cursor, instanceDescs.data(), instanceDescs.size());
         cursor += instanceDescs.size() * HW_INSTANCE_SIZE;
       }
-      cpuInstanceCount += (cursor - upload.get()) / HW_INSTANCE_SIZE;
+      cpuInstanceCount += instanceDescs.size();
     }
 
     G_ASSERT(cpuInstanceCount <= instanceCount);
@@ -2234,28 +2839,41 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
       copyHwInstances(gobjInstanceCount, gobjInstances, context_id->tlasUploadMain.getBuf(), gobjBufferSize, cpuInstanceCount);
       cpuInstanceCount += gobjBufferSize;
     }
+
+    {
+      TIME_D3D_PROFILE(memcpy_dagdp)
+      copyHwInstances(dagdpInstancesCount, dagdpInstances, context_id->tlasUploadMain.getBuf(), dagdpBufferSize, cpuInstanceCount);
+      cpuInstanceCount += dagdpBufferSize;
+    }
+
+    {
+      TIME_D3D_PROFILE(memcpy_gpu_grass)
+      copyHwInstances(gpuGrassInstanceCount, gpuGrassInstances, context_id->tlasUploadMain.getBuf(), gpuGrassBufferSize,
+        cpuInstanceCount);
+      cpuInstanceCount += gpuGrassBufferSize;
+    }
   }
 
-  if (!use_icthgi_for_per_instance_data)
-  {
-    TIME_PROFILE(patch_per_instance_data);
-    if ((grassBufferSize + gobjBufferSize) > 0)
-      perInstanceData.resize(perInstanceData.size() + grassBufferSize + gobjBufferSize, {0, 0});
-  }
+  const int zeroDataInstanceCount = nonGpuZeroDataInstanceCount + gpuInstanceCount;
+  const int dynamicDataUploadCount = dynamicPerInstanceData.size() + zeroDataInstanceCount;
+  G_ASSERT(precalcedInstanceCount + dynamicDataUploadCount <= allInstancesCount);
 
-  if (!perInstanceData.empty())
+  if (dynamicDataUploadCount > 0)
   {
     TIME_D3D_PROFILE(upload_per_instance_data);
 
-    if (context_id->perInstanceData && context_id->perInstanceData->getNumElements() < perInstanceData.size())
-      context_id->perInstanceData.close();
+    G_ASSERT(context_id->perInstanceData && context_id->perInstanceData->getNumElements() >= dynamicDataUploadCount);
 
-    if (!context_id->perInstanceData)
-      HANDLE_LOST_DEVICE_STATE(context_id->perInstanceData.allocate(sizeof(UPoint2), perInstanceData.size(),
-                                 SBCF_BIND_SHADER_RES | SBCF_MISC_STRUCTURED, "bvh_per_instance_data", context_id), );
+    if (auto upload = lock_sbuffer<uint8_t>(context_id->perInstanceData.getBuf(), precalcedInstanceCount * sizeof(PerInstanceData),
+          dynamicDataUploadCount * sizeof(PerInstanceData), VBLOCK_WRITEONLY | VBLOCK_NOOVERWRITE))
+    {
+      TIME_D3D_PROFILE(upload_per_instance_data_etc);
+      int offset = 0;
+      memcpy(upload.get() + offset, dynamicPerInstanceData.data(), dynamicPerInstanceData.size() * sizeof(PerInstanceData));
 
-    context_id->perInstanceData->updateDataWithLock(0, perInstanceData.size() * sizeof(UPoint2), perInstanceData.data(),
-      VBLOCK_NOOVERWRITE);
+      offset += dynamicPerInstanceData.size() * sizeof(PerInstanceData);
+      memset(upload.get() + offset, 0, zeroDataInstanceCount * sizeof(PerInstanceData));
+    }
   }
 
   {
@@ -2279,9 +2897,13 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   if (reallocateParticlesTlas && context_id->tlasParticles)
     context_id->tlasParticles.reset();
 
+  RaytraceBuildFlags tlasBuildFlags = RaytraceBuildFlags::FAST_TRACE | RaytraceBuildFlags::LOW_MEMORY;
+  if (bvh_use_fast_tlas_build)
+    tlasBuildFlags |= RaytraceBuildFlags::FAST_BUILD;
+
   if (!context_id->tlasMain && context_id->tlasUploadMain)
   {
-    context_id->tlasMain = UniqueTLAS::create(context_id->tlasUploadMain->getNumElements(), RaytraceBuildFlags::FAST_TRACE, "main");
+    context_id->tlasMain = UniqueTLAS::create(context_id->tlasUploadMain->getNumElements(), tlasBuildFlags, "main");
     HANDLE_LOST_DEVICE_STATE(context_id->tlasMain, );
     HANDLE_LOST_DEVICE_STATE(context_id->tlasMain.getScratchBuffer(), );
 
@@ -2291,8 +2913,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   if (!context_id->tlasTerrain && context_id->tlasUploadTerrain)
   {
-    context_id->tlasTerrain =
-      UniqueTLAS::create(context_id->tlasUploadTerrain->getNumElements(), RaytraceBuildFlags::FAST_TRACE, "terrain");
+    context_id->tlasTerrain = UniqueTLAS::create(context_id->tlasUploadTerrain->getNumElements(), tlasBuildFlags, "terrain");
     HANDLE_LOST_DEVICE_STATE(context_id->tlasTerrain, );
     HANDLE_LOST_DEVICE_STATE(context_id->tlasTerrain.getScratchBuffer(), );
 
@@ -2303,8 +2924,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
 
   if (!context_id->tlasParticles && context_id->tlasUploadParticles)
   {
-    context_id->tlasParticles =
-      UniqueTLAS::create(context_id->tlasUploadParticles->getNumElements(), RaytraceBuildFlags::FAST_TRACE, "particle");
+    context_id->tlasParticles = UniqueTLAS::create(context_id->tlasUploadParticles->getNumElements(), tlasBuildFlags, "particle");
     HANDLE_LOST_DEVICE_STATE(context_id->tlasParticles, );
     HANDLE_LOST_DEVICE_STATE(context_id->tlasParticles.getScratchBuffer(), );
 
@@ -2336,7 +2956,7 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
       tasbi.scratchSpaceBufferSizeInBytes = tlas.getBuildScratchSize();
       tasbi.scratchSpaceBufferOffsetInBytes = 0;
       tasbi.scratchSpaceBuffer = tlas.getScratchBuffer();
-      tasbi.flags = RaytraceBuildFlags::FAST_TRACE;
+      tasbi.flags = tlasBuildFlags;
       ++tlasCount;
 
       HANDLE_LOST_DEVICE_STATE(tasbi.scratchSpaceBuffer, );
@@ -2364,20 +2984,28 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
   }
 
   {
-    TIME_PROFILE(update_bindings)
+    TIME_PROFILE(markChangedTextures)
     context_id->markChangedTextures();
-    context_id->bindlessTextureAllocator.getHeap().updateBindings();
-    context_id->bindlessCubeTextureAllocator.getHeap().updateBindings();
-    context_id->bindlessBufferAllocator.getHeap().updateBindings();
   }
 
   static int bvh_originVarId = get_shader_variable_id("bvh_origin");
-  ShaderGlobal::set_color4(bvh_originVarId, camera_pos);
+  ShaderGlobal::set_float4(bvh_originVarId, camera_pos);
+
+  {
+    static int bvh_impostor_start_offsetVarId = get_shader_variable_id("bvh_impostor_start_offset");
+    static int bvh_impostor_end_offsetVarId = get_shader_variable_id("bvh_impostor_end_offset");
+
+    static constexpr int impostorStartOffset = 0;
+    ShaderGlobal::set_int(bvh_impostor_start_offsetVarId, impostorStartOffset);
+    ShaderGlobal::set_int(bvh_impostor_end_offsetVarId, impostorStartOffset + impostorCount);
+  }
+
+  bvh_upload_meta_job.wait();
 
   debug::render_debug_context(context_id, debug_min_t);
 
-  ri::cut_down_trees(context_id);
-  dyn::purge_skin_buffers(context_id);
+  ri::tidy_up_trees(context_id);
+  dyn::tidy_up_skins(context_id);
 
   context_id->processDeathrow();
 
@@ -2392,21 +3020,31 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     logdbg("TLAS: %d MB - Upload: %d MB", mb(stats.tlasSize), mb(stats.tlasUploadSize));
     logdbg("Scratch space: %d MB", mb(stats.scratchBuffersSize));
     logdbg("Transform buffers: %d MB", mb(stats.transformBuffersSize));
-    logdbg("Mesh count %d, Mesh VB: %d MB, Mesh VB copy: %d MB, Mesh IB: %d MB", stats.meshCount, mb(stats.meshVBSize),
-      mb(stats.meshVBCopySize), mb(stats.meshIBSize));
-    logdbg("Mesh meta: %d MB, Mesh BLAS: %d MB", mb(stats.meshMetaSize), mb(stats.meshBlasSize));
+    for (auto &[tag, bucket] : stats.meshStats)
+      logdbg("* %s - Mesh count %d, Mesh VB: %d MB, Mesh BLAS: %d MB", tag ? tag : "untagged", bucket.meshCount, mb(bucket.meshVBSize),
+        mb(bucket.meshBlasSize));
+    logdbg("Mesh meta: %d MB", mb(stats.meshMetaSize));
     logdbg("Skin BLAS: %d MB, Skin VB: %d MB, Skin count: %d", mb(stats.skinBLASSize), mb(stats.skinVBSize), stats.skinCount);
+    logdbg("Skin cache BLAS: %d MB, Skin cache count: %d", mb(stats.skinCacheBLASSize), stats.skinCacheCount);
     logdbg("Tree BLAS: %d MB, Tree VB: %d MB, Tree count: %d", mb(stats.treeBLASSize), mb(stats.treeVBSize), stats.treeCount);
+    logdbg("Stat tree BLAS: %d MB, Stat tree VB: %d MB, Stat tree count: %d", mb(stats.stationaryTreeBLASSize),
+      mb(stats.stationaryTreeVBSize), stats.stationaryTreeCount);
     logdbg("Tree cache BLAS: %d MB, Tree cache count: %d", mb(stats.treeCacheBLASSize), stats.treeCacheCount);
-    logdbg("Dynamic VB allocator: %d MB", mb(stats.dynamicVBAllocatorSize));
+    logdbg("Dynamic VB allocator: %d MB, free %d MB", mb(stats.dynamicVBAllocatorSize), mb(stats.dynamicVBAllocatorFreeSize));
     logdbg("Terrain BLAS: %d MB, Terrain VB: %d MB", mb(stats.terrainBlasSize), mb(stats.terrainVBSize));
     logdbg("Grass BLAS: %d MB, Grass VB: %d MB, Grass IB: %d MB, Grass meta: %d MB, Grass query: %d MB", mb(stats.grassBlasSize),
       mb(stats.grassVBSize), mb(stats.grassIBSize), mb(stats.grassMetaSize), mb(stats.grassQuerySize));
     logdbg("Cable BLAS: %d MB, Cable VB: %d MB, Cable IB: %d MB", mb(stats.cableBLASSize), mb(stats.cableVBSize),
       mb(stats.cableIBSize));
+    logdbg("bin scene instances: %d", stats.binSceneCount);
+    logdbg("Water instances: %d Water BLAS: %d MB, Water VB: %d MB, Water IB: %d MB", stats.waterCount, mb(stats.waterBLASSize),
+      mb(stats.waterVBSize), mb(stats.waterIBSize));
+    logdbg("GPUGrass instances: %d GPUGrass Memory: %d MB GPUGrass Textures Memory: %d MB", stats.gpuGrassCount,
+      mb(stats.gpuGrassMemory), mb(stats.gpuGrassTexturesMemory));
     logdbg("GPU object meta: %d MB, GPU object query: %d MB", mb(stats.gobjMetaSize), mb(stats.gobjQuerySize));
     logdbg("Per instance data: %d MB", mb(stats.perInstanceDataSize));
-    logdbg("Compaction data: %d MB - Peak: %d MB", mb(stats.compactionSize), mb(stats.peakCompactionSize));
+    logdbg("Compaction data: %d MB - Peak: %d MB - Count: %d - SizeBufferSize: %d", mb(stats.compactionSize),
+      mb(stats.peakCompactionSize), stats.compactionCount, stats.compactionSizeBufferSize);
     logdbg("Atmosphere texture: %d MB", mb(stats.atmosphereTextureSize));
     logdbg("BLAS count: %d", stats.blasCount);
     logdbg("Death row buffer count: %d, buffers size: %d MB", stats.deathRowBufferCount, mb(stats.deathRowBufferSize));
@@ -2417,6 +3055,9 @@ void build(ContextId context_id, const TMatrix &itm, const TMatrix4 &projTm, con
     logdbg("-------------------------");
   }
 }
+
+void set_rigen_cpu_budget(int budget_us) { bvh_riGen_budget_us = budget_us; }
+
 
 static struct BVHUpdateAtmosphereJob : public cpujobs::IJob
 {
@@ -2474,12 +3115,66 @@ static void upload_atmosphere(ContextId context_id)
   }
 }
 
+void bind_gbuffer_textures(ContextId context_id, Texture *gbuffer_albedo, Texture *gbuffer_normal, Texture *gbuffer_material,
+  Texture *gbuffer_motion, Texture *gbuffer_depth)
+{
+  static int bvh_gbuffer_range_startVarId = get_shader_variable_id("bvh_gbuffer_range_start");
+
+  enum
+  {
+    bvhGbufferAlbedo = 0,
+    bvhGbufferNormal = 1,
+    bvhGbufferMaterial = 2,
+    bvhGbufferMotion = 3,
+    bvhGbufferDepth = 4,
+  };
+
+  if (context_id->gbufferBindlessRange < 0)
+    context_id->gbufferBindlessRange = d3d::allocate_bindless_resource_range(D3DResourceType::TEX, 5);
+
+  d3d::update_bindless_resources_to_null(D3DResourceType::TEX, context_id->gbufferBindlessRange, 5);
+
+  auto registerGbufferTexture = [br = context_id->gbufferBindlessRange](Texture *t, int i) {
+    d3d::resource_barrier({t, RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
+    d3d::update_bindless_resource(D3DResourceType::TEX, br + i, t);
+  };
+
+  if (gbuffer_albedo)
+    registerGbufferTexture(gbuffer_albedo, bvhGbufferAlbedo);
+  if (gbuffer_normal)
+    registerGbufferTexture(gbuffer_normal, bvhGbufferNormal);
+  if (gbuffer_material)
+    registerGbufferTexture(gbuffer_material, bvhGbufferMaterial);
+  if (gbuffer_motion)
+    registerGbufferTexture(gbuffer_motion, bvhGbufferMotion);
+  if (gbuffer_depth)
+    registerGbufferTexture(gbuffer_depth, bvhGbufferDepth);
+
+  ShaderGlobal::set_int(bvh_gbuffer_range_startVarId, context_id->gbufferBindlessRange);
+}
+
+void bind_fom_textures(ContextId context_id, Texture *fom_sin, Texture *fom_cos, const d3d::SamplerHandle *fom_sampler)
+{
+  if (!fom_sin || !fom_cos || !fom_sampler)
+    return;
+
+  static int fom_shadows_bindless_slotsVarId = get_shader_variable_id("fom_shadows_bindless_slots");
+
+  if (context_id->fomShadowsBindlessRange < 0)
+    context_id->fomShadowsBindlessRange = d3d::allocate_bindless_resource_range(D3DResourceType::TEX, 2);
+
+  d3d::resource_barrier({fom_sin, RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+  d3d::update_bindless_resource(D3DResourceType::TEX, context_id->fomShadowsBindlessRange + 0, fom_sin);
+  d3d::resource_barrier({fom_cos, RB_RO_SRV | RB_STAGE_COMPUTE, 0, 0});
+  d3d::update_bindless_resource(D3DResourceType::TEX, context_id->fomShadowsBindlessRange + 1, fom_cos);
+
+  ShaderGlobal::set_int4(fom_shadows_bindless_slotsVarId, context_id->fomShadowsBindlessRange, context_id->fomShadowsBindlessRange + 1,
+    d3d::register_bindless_sampler(*fom_sampler), 0);
+}
+
 void bind_resources(ContextId context_id, int render_width)
 {
   G_ASSERT(context_id);
-  static int bvh_textures_range_startVarId = get_shader_variable_id("bvh_textures_range_start");
-  static int bvh_cube_textures_range_startVarId = get_shader_variable_id("bvh_cube_textures_range_start");
-  static int bvh_buffers_range_startVarId = get_shader_variable_id("bvh_buffers_range_start");
   static int bvh_meta_countVarId = get_shader_variable_id("bvh_meta_count");
   static int bvh_metaVarId = get_shader_variable_id("bvh_meta");
   static int bvh_per_instance_dataVarId = get_shader_variable_id("bvh_per_instance_data");
@@ -2491,6 +3186,10 @@ void bind_resources(ContextId context_id, int render_width)
   static int bvh_land_color_smp_slotVarId = get_shader_variable_id("bvh_land_color_smp_slot", true);
   static int bvh_dynamic_mfd_color_tex_slotVarId = get_shader_variable_id("bvh_dynamic_mfd_color_tex_slot", true);
   static int bvh_dynamic_mfd_color_smp_slotVarId = get_shader_variable_id("bvh_dynamic_mfd_color_smp_slot", true);
+  static int bvh_dynamic_decals_atlas_tex_slotVarId = get_shader_variable_id("bvh_dynamic_decals_atlas_tex_slot", true);
+  static int bvh_dynamic_decals_atlas_smp_slotVarId = get_shader_variable_id("bvh_dynamic_decals_atlas_smp_slot", true);
+  static int bvh_dynamic_decals_atlas_buf_slotVarId = get_shader_variable_id("bvh_dynamic_decals_atlas_buf_slot", true);
+  static int bvh_initial_nodes_buf_slotVarId = get_shader_variable_id("bvh_initial_nodes_buf_slot", true);
 
   static int cache_tex0_tex_slotVarId = get_shader_variable_id("cache_tex0_tex_slot", true);
   static int cache_tex0_smp_slotVarId = get_shader_variable_id("cache_tex0_smp_slot", true);
@@ -2507,6 +3206,10 @@ void bind_resources(ContextId context_id, int render_width)
   static int bvh_mainVarId = get_shader_variable_id("bvh_main");
   static int bvh_terrainVarId = get_shader_variable_id("bvh_terrain");
   static int bvh_particlesVarId = get_shader_variable_id("bvh_particles");
+#else
+
+
+
 #endif
   static int bvh_main_validVarId = get_shader_variable_id("bvh_main_valid");
   static int bvh_terrain_validVarId = get_shader_variable_id("bvh_terrain_valid");
@@ -2520,15 +3223,18 @@ void bind_resources(ContextId context_id, int render_width)
   ShaderGlobal::set_tlas(bvh_mainVarId, context_id->tlasMainValid ? context_id->tlasMain.get() : nullptr);
   ShaderGlobal::set_tlas(bvh_terrainVarId, context_id->tlasTerrainValid ? context_id->tlasTerrain.get() : nullptr);
   ShaderGlobal::set_tlas(bvh_particlesVarId, context_id->tlasParticlesValid ? context_id->tlasParticles.get() : nullptr);
+#else
+
+
+
+
+
 #endif
 
   ShaderGlobal::set_int(bvh_main_validVarId, context_id->tlasMainValid ? 1 : 0);
   ShaderGlobal::set_int(bvh_terrain_validVarId, context_id->tlasTerrainValid ? 1 : 0);
   ShaderGlobal::set_int(bvh_particles_validVarId, context_id->tlasParticlesValid ? 1 : 0);
 
-  ShaderGlobal::set_int(bvh_textures_range_startVarId, context_id->bindlessTextureAllocator.getHeap().location());
-  ShaderGlobal::set_int(bvh_cube_textures_range_startVarId, context_id->bindlessCubeTextureAllocator.getHeap().location());
-  ShaderGlobal::set_int(bvh_buffers_range_startVarId, context_id->bindlessBufferAllocator.getHeap().location());
   ShaderGlobal::set_int(bvh_meta_countVarId, context_id->meshMetaAllocator.size());
   ShaderGlobal::set_buffer(bvh_metaVarId, context_id->meshMeta.getBufId());
   ShaderGlobal::set_buffer(bvh_per_instance_dataVarId, context_id->perInstanceData.getBufId());
@@ -2549,52 +3255,28 @@ void bind_resources(ContextId context_id, int render_width)
   ShaderGlobal::set_int(cache_tex2_tex_slotVarId, context_id->cache_tex2Bindless.bindlessTexture);
   ShaderGlobal::set_int(last_clip_tex_tex_slotVarId, context_id->last_clip_texBindless.bindlessTexture);
   ShaderGlobal::set_int(last_clip_tex_smp_slotVarId, context_id->last_clip_texBindless.bindlessSampler);
-
+  ShaderGlobal::set_int(bvh_dynamic_decals_atlas_tex_slotVarId, context_id->dynamic_decals_atlasBindless.bindlessTexture);
+  ShaderGlobal::set_int(bvh_dynamic_decals_atlas_smp_slotVarId, context_id->dynamic_decals_atlasBindless.bindlessSampler);
+  ShaderGlobal::set_int(bvh_dynamic_decals_atlas_buf_slotVarId, context_id->decalDataHolderBindlessSlot);
+  ShaderGlobal::set_int(bvh_initial_nodes_buf_slotVarId, context_id->initialNodesHolderBindlessSlot);
 
   ShaderGlobal::set_texture(bvh_atmosphere_textureVarId, context_id->atmosphereTexture);
-  ShaderGlobal::set_real(bvh_atmosphere_texture_distanceVarId, Context::atmMaxDistance);
+  ShaderGlobal::set_float(bvh_atmosphere_texture_distanceVarId, Context::atmMaxDistance);
 
-  ShaderGlobal::set_real(bvh_mip_rangeVarId, mip_range);
-  ShaderGlobal::set_real(bvh_mip_scaleVarId, mip_scale);
-  ShaderGlobal::set_real(bvh_mip_biasVarId, max(log2f(3840.0f / render_width), 0.0f));
-  ShaderGlobal::set_real(bvh_max_water_distanceVarId, max_water_distance);
-  ShaderGlobal::set_real(bvh_water_fade_powerVarId, water_fade_power);
-  ShaderGlobal::set_real(bvh_max_water_depthVarId, max_water_depth);
-  ShaderGlobal::set_real(rtr_max_water_depthVarId, rtr_max_water_depth);
+  ShaderGlobal::set_float(bvh_mip_rangeVarId, mip_range);
+  ShaderGlobal::set_float(bvh_mip_scaleVarId, mip_scale);
+  ShaderGlobal::set_float(bvh_mip_biasVarId, max(log2f(3840.0f / render_width), 0.0f));
+  ShaderGlobal::set_float(bvh_max_water_distanceVarId, max_water_distance);
+  ShaderGlobal::set_float(bvh_water_fade_powerVarId, water_fade_power);
+  ShaderGlobal::set_float(bvh_max_water_depthVarId, max_water_depth);
+  ShaderGlobal::set_float(rtr_max_water_depthVarId, rtr_max_water_depth);
 }
 
-#if !_TARGET_C2
-void bind_tlas_stage(ContextId, ShaderStage) {}
-void unbind_tlas_stage(ShaderStage) {}
-#else
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#endif
-
-
 void set_for_gpu_objects(ContextId context_id) { gobj::init(context_id); }
+
+void add_bin_scene(ContextId context_id, BaseStreamingSceneHolder &bin_scene) { binscene::add_meshes(context_id, bin_scene); }
+
+void add_water(ContextId context_id, FFTWater &water) { fftwater::create_patches(context_id, water); }
 
 void prepare_ri_extra_instances() { ri::prepare_ri_extra_instances(); }
 
@@ -2617,6 +3299,10 @@ void on_unload_scene(ContextId context_id)
   grass::on_unload_scene(context_id);
   gobj::on_unload_scene(context_id);
   fx::on_unload_scene(context_id);
+  binscene::on_unload_scene(context_id);
+  splinegen::on_unload_scene(context_id);
+  fftwater::on_unload_scene(context_id);
+  gpugrass::on_unload_scene(context_id);
   for (auto &instances : context_id->impostorInstances)
   {
     instances.clear();
@@ -2638,8 +3324,11 @@ void on_unload_scene(ContextId context_id)
     data.shrink_to_fit();
   }
   for (auto &texture : context_id->camoTextures)
-    context_id->releaseTexure(TEXTUREID(texture.first));
+    context_id->releaseTexture(TEXTUREID(texture.first));
   context_id->camoTextures.clear();
+
+  for (auto &[alloc, _] : context_id->processBufferAllocator)
+    context_id->releaseBuffer(alloc.getHeap().getBuf());
 
   context_id->atmosphereDirty = true;
 
@@ -2647,9 +3336,11 @@ void on_unload_scene(ContextId context_id)
   context_id->instanceDescsCpu.shrink_to_fit();
   context_id->perInstanceDataCpu.clear();
   context_id->perInstanceDataCpu.shrink_to_fit();
-
-  for (auto &alloc : context_id->processBufferAllocators)
-    alloc.second.reset();
+  context_id->processBufferAllocator.clear();
+  context_id->blasUpdates.clear();
+  context_id->blasUpdates.shrink_to_fit();
+  context_id->updateGeoms.clear();
+  context_id->updateGeoms.shrink_to_fit();
 
   context_id->clearDeathrow();
 }
@@ -2681,6 +3372,7 @@ void ChannelParser::enum_shader_channel(int usage, int usage_index, int type, in
   ATTRIB(texcoord, vb_, SCUSAGE_TC, 0);
   ATTRIB(secTexcoord, vb_, SCUSAGE_TC, 1);
   ATTRIB(thirdTexcoord, vb_, SCUSAGE_TC, 2);
+  ATTRIB(fourthTexcoord, vb_, SCUSAGE_TC, 3);
   ATTRIB(color, vb_, SCUSAGE_VCOL, 0);
   ATTRIB(normal, vb_, SCUSAGE_NORM, 0);
   ATTRIB(indices, , SCUSAGE_EXTRA, 0);
@@ -2701,17 +3393,19 @@ void on_cables_changed(Cables *cables, ContextId context_id) { cables::on_cables
 
 bool is_building(ContextId context_id)
 {
-  return !context_id->halfBakedObjects.empty() || context_id->hasPendingMeshAddActions.load(dag::memory_order_relaxed);
+  return !context_id->halfBakedObjects.empty() || context_id->hasPendingObjectAddActions.load(dag::memory_order_relaxed);
 }
 
 void set_grass_range(ContextId context_id, float range) { context_id->grassRange = range; }
+
+void set_grass_fraction_to_keep(ContextId context_id, float fraction) { context_id->grassFraction = fraction; }
 
 void start_async_atmosphere_update(ContextId context_id, const Point3 &view_pos, atmosphere_callback callback)
 {
   if (!context_id->atmosphereTexture)
   {
     context_id->atmosphereTexture =
-      dag::create_array_tex(Context::atmTexWidth, Context::atmTexHeight, 2, TEXCF_DYNAMIC, 1, "bvh_atmosphere_tex");
+      dag::create_array_tex(Context::atmTexWidth, Context::atmTexHeight, 2, TEXCF_DYNAMIC, 1, "bvh_atmosphere_tex", RESTAG_BVH);
     HANDLE_LOST_DEVICE_STATE(context_id->atmosphereTexture, );
     {
       d3d::SamplerInfo smpInfo;
@@ -2756,4 +3450,43 @@ void override_out_of_camera_ri_dist_mul(float dist_sq_mul_ooc) { ri::override_ou
 
 void set_debug_view_min_t(float min_t) { debug_min_t = min_t; }
 
+void connect_dagdp(ContextId context_id, dagdp_connect_callback callback) { callback(dagdp::get_mapper(context_id)); }
+
+void gpu_grass_make_meta(ContextId context_id, const GPUGrassBase &grass) { gpugrass::make_meta(context_id, grass); }
+
+void generate_gpu_grass_instances(ContextId context_id, bool has_grass) { gpugrass::generate_instances(context_id, has_grass); }
+
+void gather_splinegen_instances(ContextId context_id, Sbuffer *vertex_buffer, eastl::vector<eastl::pair<uint32_t, MeshInfo>> &meshes,
+  uint32_t instance_vertex_count, uint32_t &bvh_id)
+{
+#if DAGOR_DBGLEVEL > 0
+  if (!bvh_splinegen_enable)
+    return;
+#endif
+
+  splinegen::add_meshes(context_id, vertex_buffer, meshes, instance_vertex_count, bvh_id);
+}
+
+void remove_spline_gen_instances(ContextId context_id) { splinegen::teardown(context_id); }
+
 } // namespace bvh
+
+size_t BVHInstanceMapper::getHWInstanceSize() { return sizeof(bvh::HWInstance); }
+
+Sbuffer *BVHGeometryBufferWithOffset::getIndexBuffer(bvh::ContextId context_id) const
+{
+  return context_id->sourceGeometryAllocators[heapIndex].first->getHeap().getBuf();
+}
+
+Sbuffer *BVHGeometryBufferWithOffset::getVertexBuffer(bvh::ContextId context_id) const
+{
+  return processedVertexBuffer ? processedVertexBuffer.get() : getIndexBuffer(context_id);
+}
+
+void BVHGeometryBufferWithOffset::close(bvh::ContextId context_id)
+{
+  context_id->freeSourceGeometry(heapIndex, bufferRegion);
+  processedVertexBuffer.reset();
+  vbOffset = 0;
+  ibOffset = 0;
+}

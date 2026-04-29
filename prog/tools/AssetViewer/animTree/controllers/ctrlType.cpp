@@ -7,7 +7,8 @@ const char *get_ctrl_icon_name(CtrlType type)
 {
   switch (type)
   {
-    case ctrl_type_paramSwitch: return CTRL_PARAM_SWITCH_ICON;
+    case ctrl_type_paramSwitch:
+    case ctrl_type_paramSwitchS: return CTRL_PARAM_SWITCH_ICON;
     case ctrl_type_condHide: return CTRL_COND_HIDE_ICON;
     case ctrl_type_attachNode: return CTRL_ATTACH_NODE_ICON;
     case ctrl_type_hub: return CTRL_HUB_ICON;
@@ -23,4 +24,13 @@ const char *get_ctrl_icon_name(CtrlType type)
 
     default: return ANIM_BLEND_CTRL_ICON;
   }
+}
+
+bool is_post_blend_ctrl(CtrlType type)
+{
+  for (CtrlType pbcType : post_blend_ctrl_type)
+    if (type == pbcType)
+      return true;
+
+  return false;
 }

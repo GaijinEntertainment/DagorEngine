@@ -1,7 +1,6 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "de_appwnd.h"
-#include "de_batch.h"
 #include <de3_lightService.h>
 #include <de3_interface.h>
 #include <de3_editorEvents.h>
@@ -9,6 +8,7 @@
 #include <de3_skiesService.h>
 #include <de3_waterSrv.h>
 
+#include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_startup.h>
 #include <libTools/dtx/ddsxPlugin.h>
 #include <libTools/util/makeBindump.h>
@@ -20,7 +20,6 @@
 #include <workCycle/dag_startupModules.h>
 
 #include <shaders/dag_dynSceneRes.h>
-#include <shaders/dag_dynSceneWithTreeRes.h>
 
 #include <gameRes/dag_stdGameRes.h>
 #include <gameRes/dag_gameResSystem.h>
@@ -40,12 +39,24 @@
 #include <obsolete/dag_cfg.h>
 
 #include <drv/3d/dag_resetDevice.h>
+#include <drv/3d/dag_driverDesc.h>
+#include <drv/3d/dag_info.h>
 #include <3d/dag_texPackMgr2.h>
 #include <libTools/util/strUtil.h>
 #include <render/dynmodelRenderer.h>
 
 #include <scene/dag_visibility.h>
 #include <gui/dag_imgui.h>
+
+namespace workcycle_internal
+{
+extern bool window_initing;
+}
+
+bool is_generic_water_service_initialized();
+
+static constexpr const char *INITIAL_CAPTION = "DaEditorX";
+static constexpr const char *INITIAL_ICON = "RES_DE_ICON";
 
 static struct DagorEdReset3DCallback : public IDrv3DResetCB
 {
@@ -69,8 +80,13 @@ static struct DagorEdReset3DCallback : public IDrv3DResetCB
       drSrv->afterD3DReset(full_reset);
     if (ISkiesService *skiesSrv = EDITORCORE->queryEditorInterface<ISkiesService>())
       skiesSrv->afterD3DReset(full_reset);
-    if (IWaterService *waterSrv = EDITORCORE->queryEditorInterface<IWaterService>())
-      waterSrv->afterD3DReset(full_reset);
+
+    // Querying IWaterService will initialize it. The initialization in WaterService::initSrv() disables the service if
+    // the "fft_source_texture_no" shader variable does not exist, so prevent calling it too early (for example from the
+    // project selector).
+    if (is_generic_water_service_initialized())
+      if (IWaterService *waterSrv = EDITORCORE->queryEditorInterface<IWaterService>())
+        waterSrv->afterD3DReset(full_reset);
 
     if (full_reset)
     {
@@ -143,22 +159,36 @@ void load_exp_shaders_for_target(unsigned tc)
     DAG_FATAL("failed to load shaders: %s", fn);
 }
 
+static E3DCOLOR load_window_background_color()
+{
+  const String settingsPath = make_full_path(sgg::get_exe_path_full(), "../.local/de3_settings.blk");
+  DataBlock settingsBlock;
+  dblk::load(settingsBlock, settingsPath, dblk::ReadFlag::ROBUST);
+  const DataBlock *settingsThemeBlock = settingsBlock.getBlockByNameEx("theme");
+  const char *themeName = settingsThemeBlock->getStr("name", "light");
+  return editor_core_load_window_background_color(String::mk_str_cat(themeName, ".blk"));
+}
+
 void init3d_early()
 {
-  dgs_all_shader_vars_optionals = true;
-  EDITORCORE->getWndManager()->init3d(de3_drv_name, nullptr);
+  // Initialize the startup scene before init3d(), so VideoRestartProc can use it to draw the first frame.
+  startup_editor_core_select_startup_scene(load_window_background_color());
 
-  ::startup_shaders(String(260, "%s/../commonData/guiShaders", sgg::get_exe_path_full()));
+  dgs_all_shader_vars_optionals = true;
+  EDITORCORE->getWndManager()->init3d(de3_drv_name, nullptr, INITIAL_CAPTION, INITIAL_ICON);
+
+  const char *commonData = sgg::get_common_data_dir();
+  ::startup_shaders(String(260, "%s/guiShaders", commonData));
   ::startup_game(RESTART_ALL);
   ShaderGlobal::enableAutoBlockChange(true);
 
   DataBlock fontsBlk;
-  fontsBlk.addBlock("fontbins")->addStr("name", String(260, "%s/../commonData/default", sgg::get_exe_path_full()));
+  fontsBlk.addBlock("fontbins")->addStr("name", String(260, "%s/default", commonData));
   if (auto *b = fontsBlk.addBlock("dynamicGen"))
   {
     b->setInt("texCount", 2);
     b->setInt("texSz", 256);
-    b->setStr("prefix", String(260, "%s/../commonData", sgg::get_exe_path_full()));
+    b->setStr("prefix", commonData);
   }
   StdGuiRender::init_dynamic_buffers(32 << 10, 8 << 10);
   StdGuiRender::init_fonts(fontsBlk);
@@ -179,20 +209,29 @@ extern void destroy();
 void init3d()
 {
   const char *appdir = DAGORED2->getWorkspace().getAppDir();
-  DataBlock appblk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock appblk(DAGORED2->getWorkspace().getAppBlkPath());
   String sh_file;
   if (appblk.getStr("shaders", NULL))
     sh_file.printf(260, "%s/%s", appdir, appblk.getStr("shaders", NULL));
   else
-    sh_file.printf(260, "%s/../commonData/compiledShaders/classic/tools", sgg::get_exe_path_full());
+    sh_file.printf(260, "%s/compiledShaders/classic/tools", sgg::get_common_data_dir());
 
   // shutdown imGui, render, shaders, d3d before reiniting
   imgui_shutdown();
   StdGuiRender::close_fonts();
   StdGuiRender::close_render();
   enable_res_mgr_mt(false, 0);
-  ::startup_shaders(sh_file); // set new name before restarting
+
+  // Shut down shaders explicitly because it would restart earlier than the d3d driver, and shaders expect d3d to be inited.
+  shutdown_shaders();
+
+  // By setting window_initing to true we prevent the destruction of the main window mark the application inactive in main_wnd_proc().
+  // window_initing will be set true when the device is recreated by init3d(), so the application would remain in erroneous inactive
+  // state without this prevention.
+  workcycle_internal::window_initing = true;
   shutdown_game(RESTART_VIDEODRV | RESTART_VIDEO);
+  workcycle_internal::window_initing = false;
+
   tools3d::destroy();
 
   // reinit 3d with actual shaders and texStreaming/texMgr setup for a project
@@ -214,13 +253,15 @@ void init3d()
     }
 
   DataBlock texStreamingBlk;
-  ::load_tex_streaming_settings(DAGORED2->getWorkspace().getAppPath(), &texStreamingBlk);
-  EDITORCORE->getWndManager()->init3d(de3_drv_name, &texStreamingBlk);
+  ::load_tex_streaming_settings(DAGORED2->getWorkspace().getAppBlkPath(), &texStreamingBlk);
+  EDITORCORE->getWndManager()->init3d(de3_drv_name, &texStreamingBlk, INITIAL_CAPTION, INITIAL_ICON);
   if (int resv_tid_count = appblk.getInt("texMgrReserveTIDcount", 128 << 10))
   {
     enable_res_mgr_mt(false, 0);
     enable_res_mgr_mt(true, resv_tid_count);
   }
+
+  ::startup_shaders(sh_file);
 
   if (const char *gp_file = appblk.getBlockByNameEx("game")->getStr("params", NULL))
   {
@@ -229,8 +270,11 @@ void init3d()
     b->removeBlock("rendinstExtra");
     b->removeBlock("rendinstOpt");
   }
-  const_cast<DataBlock *>(dgs_get_game_params())->setBool("rendinstExtraAutoSubst", false);
-  const_cast<DataBlock *>(dgs_get_game_params())->setInt("rendinstExtraMaxCnt", 0);
+
+  bool forceRiExtra =
+    appblk.getBlockByNameEx("assets")->getBlockByNameEx("build")->getBlockByNameEx("rendInst")->getBool("forceRiExtra", false);
+  const_cast<DataBlock *>(dgs_get_game_params())->setBool("rendinstExtraAutoSubst", forceRiExtra && !d3d::is_stub_driver());
+  const_cast<DataBlock *>(dgs_get_game_params())->setInt("rendinstExtraMaxCnt", 4096);
 
   const char *ver_suffix = "ps50.shdump.bin";
   String full_sh_file;
@@ -290,13 +334,14 @@ void init3d()
   ::startup_game(RESTART_ALL);
   ShaderGlobal::enableAutoBlockChange(true);
 
+  const char *commonData = sgg::get_common_data_dir();
   DataBlock fontsBlk;
-  fontsBlk.addBlock("fontbins")->addStr("name", String(260, "%s/../commonData/default", sgg::get_exe_path_full()));
+  fontsBlk.addBlock("fontbins")->addStr("name", String(260, "%s/default", commonData));
   if (auto *b = fontsBlk.addBlock("dynamicGen"))
   {
     b->setInt("texCount", 2);
     b->setInt("texSz", 256);
-    b->setStr("prefix", String(260, "%s/../commonData", sgg::get_exe_path_full()));
+    b->setStr("prefix", commonData);
   }
   StdGuiRender::init_dynamic_buffers(appblk.getInt("guiMaxQuad", 256 << 10), appblk.getInt("guiMaxVert", 64 << 10));
   StdGuiRender::init_fonts(fontsBlk);
@@ -305,6 +350,9 @@ void init3d()
 
   ShaderGlobal::set_int(get_shader_variable_id("in_editor"), 1);
   ShaderGlobal::set_int(get_shader_variable_id("fake_lighting_computations", true), 1);
+
+  ShaderGlobal::set_int(get_shader_variable_id("dgs_tex_anisotropy", true), ::dgs_tex_anisotropy);
+  ShaderGlobal::set_float(get_shader_variable_id("mip_bias", true), 0.f);
 
   if (appblk.getBool("useDynrend", false))
     dynrend::init();

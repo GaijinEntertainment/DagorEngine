@@ -13,7 +13,7 @@ void set_gamma_shadervar(real p)
 {
   cur_gamma = p;
   static int shader_gammaVarId = get_shader_variable_id("shader_gamma");
-  ShaderGlobal::set_real(shader_gammaVarId, p);
+  ShaderGlobal::set_float(shader_gammaVarId, p);
 }
 
 real get_current_gamma() { return cur_gamma; }

@@ -13,6 +13,8 @@
 #include <generic/dag_span.h>
 
 
+namespace render::imgui_profiler
+{
 struct Event
 {
   int root;
@@ -608,8 +610,6 @@ REGISTER_IMGUI_WINDOW("render", "Profiler", imGuiWindow);
 #endif
 
 
-namespace render::imgui_profiler
-{
 void update_profiler(int frameNo)
 {
   if (pCtx.enableAutoUpdate && frameNo % pCtx.updateFreq == 0)

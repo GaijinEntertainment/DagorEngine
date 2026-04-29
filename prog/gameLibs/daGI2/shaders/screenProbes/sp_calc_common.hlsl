@@ -11,7 +11,7 @@
 
 #define SP_MATCH_PROBES_OFFSETED 0 // we don't use probes ofsetting when marking, due to lower stability (probe Normal). However, it could increase quality
 
-#define SP_BACK_COLOR_WARP 64
+#define SP_BACK_COLOR_GROUP_SIZE 64
 
 // about 'bright points'
 // if DEPTH_ONLY_WEIGHTENING 0, we use plane weightening. I.e. we measure not probes rel depth from point, but probes distance to plane at point + worldNormal.

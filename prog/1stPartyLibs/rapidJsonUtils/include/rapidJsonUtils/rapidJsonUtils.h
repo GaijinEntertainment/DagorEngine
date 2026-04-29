@@ -122,6 +122,40 @@ namespace jsonutils
     set(doc, rapidjson::Value(eastl::forward<KeyType>(key), doc.GetAllocator()), eastl::forward<ValueType>(value), err_str);
   }
 
+  inline void set_key_copy(rapidjson::Document &doc, const char *key, const char *value, eastl::string /*out*/ *err_str = nullptr)
+  {
+    set(doc, rapidjson::Value(key, doc.GetAllocator()), rapidjson::Value(value, doc.GetAllocator()), err_str);
+  }
+
+  inline void set_key_copy(rapidjson::Document &doc, const char *key, const char *value, size_t value_length, eastl::string /*out*/ *err_str = nullptr)
+  {
+    set(doc, rapidjson::Value(key, doc.GetAllocator()), rapidjson::Value(value, value_length, doc.GetAllocator()), err_str);
+  }
+
+  template<typename ValueType>
+  inline void set_key_copy(rapidjson::Value &json_value, const char *key, ValueType &&value, rapidjson::Document::AllocatorType &allocator)
+  {
+    if (!json_value.IsObject())
+      json_value.SetObject();
+
+    rapidjson::Value::MemberIterator it = json_value.FindMember(key);
+
+    if (it != json_value.MemberEnd())
+      it->value = eastl::forward<ValueType>(value);
+    else
+      json_value.AddMember(rapidjson::Value(key, allocator), rapidjson::Value(eastl::forward<ValueType>(value)), allocator);
+  }
+
+  inline void set_key_copy(rapidjson::Value &json_value, const char *key, const char *value, rapidjson::Document::AllocatorType &allocator)
+  {
+    set_key_copy(json_value, key, rapidjson::Value(value, allocator), allocator);
+  }
+
+  inline void set_key_copy(rapidjson::Value &json_value, const char *key, const char *value, size_t value_length, rapidjson::Document::AllocatorType &allocator)
+  {
+    set_key_copy(json_value, key, rapidjson::Value(value, value_length, allocator), allocator);
+  }
+
   void set_copy(
     rapidjson::Document &doc,
     rapidjson::Value::StringRefType key,

@@ -3,10 +3,10 @@ options gen2
 // options log_generics = true
 options rtti
 
-require fio
-require rtti
-require ast
-require debugapi
+require daslib/fio
+require daslib/rtti
+require daslib/ast
+require daslib/debugger
 require daslib/ast_boost
 require daslib/cpp_bind
 

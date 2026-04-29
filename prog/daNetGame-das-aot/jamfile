@@ -1,11 +1,12 @@
 DasAotCompilerBuild = yes ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 PhysName  ?= Jolt ;
 UseD3DMulti       ?= yes ;
 UseD3DMultiList   ?= null ;
 UseD3DMultiForced ?= windows ;
 CheckedContainers ?= yes ;
 Exceptions        ?= no ;
+UseMemoryAllocator = RTL ;
 if $(UseWholeOpt) != yes { UseLLDLink ?= yes ; }
 
 Root    ?= ../.. ;
@@ -13,6 +14,7 @@ Location = . ;
 AotSrcDir = prog/daNetGame-das-aot ;
 ConsoleExe = yes ;
 IsHeadless = yes ;
+UseGpu     = no ;
 
 TargetType  = exe ;
 TargetCodeName = _aot ;
@@ -20,8 +22,9 @@ if ! $(OutDir) { Exit OutDir not set ; }
 
 include $(Root)/prog/_jBuild/defPlatform.jam ;
 if $(Platform) = windows {
-  if $(PlatformArch) = x86_64 {
+  if $(PlatformArch) in x86_64 arm64 {
     PlatformSpec ?= clang ;
+    SSEVersion ?= 4 ;
   } else {
     PlatformSpec ?= vc17 ;
   }
@@ -51,7 +54,8 @@ Sources +=
   prog/1stPartyLibs/daScript/dagorAdapter/da_dummy.cpp
   prog/daNetGame/dasModules/actor.cpp
   prog/daNetGame/dasModules/app.cpp
-  prog/daNetGame/dasModules/auth.cpp
+  prog/gameLibs/dasModules/auth/auth.cpp
+  prog/gameLibs/dasModules/appTime/appTime.cpp
   prog/daNetGame/dasModules/camera.cpp
   prog/daNetGame/dasModules/cameraShaker.cpp
   prog/daNetGame/dasModules/capsuleApproximation.cpp
@@ -86,13 +90,14 @@ Sources +=
   prog/daNetGame/render/dasModules/worldRenderer.cpp
   prog/daNetGame/render/dasModules/heightmapQueryManager.cpp
   prog/daNetGame/render/dasModules/portalRenderer.cpp
-  prog/daNetGame/render/dasModules/renderLibsAllowed.cpp
-  prog/daNetGame/render/renderLibsAllowed.cpp
 
   prog/daNetGame/main/dedicated/dasModules/dngMatching.cpp
 
   prog/daNetGame-das-aot/stub.cpp
   prog/gameLibs/daRg/dasBinding.cpp
+
+  prog/1stPartyLibs/daScript/modules/dasStdDlg/src/dasStdDlg.cpp
+  prog/1stPartyLibs/daScript/modules/dasStdDlg/src/dasStdDlgNotImplemented.cpp
 ;
 include $(Root)/prog/gameLibs/render/daFrameGraph/_aot.jam ;
 include $(Root)/prog/gameLibs/render/resourceSlot/_aot.jam ;
@@ -101,7 +106,7 @@ include $(Root)/prog/gameLibs/ecs/deferToAct/_aot.jam ;
 include $(Root)/prog/gameLibs/rendInst/_aot.jam ;
 include $(Root)/prog/gameLibs/daEditorE/_aot.jam ;
 
-if $(Platform) in windows linux macOS && $(Config) != rel {
+if $(Platform) in windows linux macOS {
   Sources +=
     prog/daNetGame/dasModules/websocket/webSocket.cpp
     prog/daNetGame/dasModules/websocket/webSocketServer.cpp
@@ -128,10 +133,9 @@ UseProgLibs +=
   engine/perfMon
   engine/math
   engine/gameRes
-  engine/memory/rtlStdMemory
+  engine/memory
   engine/consoleProc
   engine/drv/drv3d_null
-#  engine/memory/rtlOverride
   engine/baseUtil
 #  engine/ioSys
   engine/startup
@@ -149,10 +153,10 @@ UseProgLibs +=
   1stPartyLibs/daScript/modules/dasQuirrel
   gameLibs/ecs/game/generic
   gameLibs/ecs/game/zones
-  gameLibs/daECS/core
-  gameLibs/daECS/gameResStub
-  gameLibs/daECS/io/datablock
-  gameLibs/daECS/utility
+  engine/daECS/core
+  engine/daECS/gameResStub
+  engine/daECS/io/datablock
+  engine/daECS/utility
   gameLibs/ecs/scripts/das
   gameLibs/dasModules/common
   gameLibs/dasModules/quirrel
@@ -181,8 +185,9 @@ UseProgLibs +=
   gameLibs/dasModules/landMesh
   gameLibs/dasModules/systemInfo
   gameLibs/dasModules/compressionUtils
+  gameLibs/dasModules/localization
   gameLibs/daGame/timers
-  gameLibs/daECS/net
+  engine/daECS/net
   gameLibs/grid
   gameLibs/jsonUtils
   gameLibs/ecs/scripts/sq
@@ -205,6 +210,7 @@ UseProgLibs +=
   gameLibs/gamePhys/phys/stub
   gameLibs/gamePhys/props/stub
   gameLibs/render/debug3dSolid/stub
+  gameLibs/dasModules/perFrameStat
 ;
 if [ GLOB $(Root)/prog/gameLibs/gamePhys/ballistics : * ] {
   Sources += prog/daNetGame-das-aot/stub_ballistics.cpp ;
@@ -224,7 +230,7 @@ AddIncludes +=
   $(Root)/prog/1stPartyLibs/quirrel/quirrel/include
   $(Root)/prog/1stPartyLibs/jsoncpp/include
   $(Root)/prog/1stPartyLibs/rapidJsonUtils/include
-  $(Root)/prog/3rdPartyLibs/Detour/Include
+  $(Root)/prog/3rdPartyLibs/recastnavigation/Detour/Include
 ;
 
 

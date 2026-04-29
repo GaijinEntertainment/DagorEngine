@@ -374,11 +374,6 @@ BINDUMP_BEGIN_LAYOUT(ShaderBlock)
   }
 BINDUMP_END_LAYOUT()
 
-BINDUMP_BEGIN_LAYOUT(ShGroup)
-  BINDUMP_USING_EXTENSION()
-  VecHolder<VecHolder<uint8_t>> shaders;
-BINDUMP_END_LAYOUT()
-
 BINDUMP_BEGIN_LAYOUT(ScriptedShadersBinDump)
   BINDUMP_USING_EXTENSION()
   VecHolder<shaders::RenderState> renderStates;
@@ -417,13 +412,9 @@ BINDUMP_BEGIN_LAYOUT(ScriptedShadersBinDump)
   VecHolder<ShaderHashValue> shaderHashes;
 
   // compressed shaders
-  struct ShGroupsMapping
-  {
-    uint16_t groupId = 0;
-    uint16_t indexInGroup = 0;
-  };
-  VecHolder<ShGroupsMapping> shGroupsMapping;
-  VecHolder<Compressed<Field<ShGroup>>> shGroups;
+  VecHolder<uint32_t> uncompressed_shader_sizes;
+  VecHolder<VecHolder<uint8_t>> shaders_metadata;
+  VecHolder<VecHolder<uint8_t>> shaders;
   VecHolder<char> dictionary;
 
   const Field<ShaderClass> *findShaderClass(const char *name) const;
@@ -434,6 +425,7 @@ struct ScriptedShadersBinDumpCompressedHeader
   uint32_t magicPart1 = 0, magicPart2 = 0;
   uint32_t version = 0;
   uint8_t checksumHash[32] = {};
+  uint8_t buildBlkHash[20] = {}; // For compiler use only (incremental builds)
 };
 
 BINDUMP_BEGIN_LAYOUT(ScriptedShadersBinDumpCompressed)
@@ -554,14 +546,35 @@ struct StcodeConstValidationMask
   }
 };
 
+struct ImmutableSamplerMapping
+{
+  uint16_t samplerId = uint16_t(-1);
+  uint16_t globalVarId = uint16_t(-1);
+};
+
 BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV3, ScriptedShadersBinDumpV2)
   BINDUMP_USING_EXTENSION()
   VecHolder<d3d::SamplerInfo> samplers;
+  VecHolder<ImmutableSamplerMapping> immutableSamplersMap;
 
   ExternalStcodeMode externalStcodeMode = ExternalStcodeMode::NONE;
   uint32_t externalStcodeVersion = 0;
   uint8_t externalStcodeHash[32] = {};
 
   VecHolder<StcodeConstValidationMask> stcodeConstValidationMasks;
+BINDUMP_END_LAYOUT()
+
+struct ShaderGvarMetadata
+{
+  uint8_t isRef : 1 = false;
+  uint8_t isLiteral : 1 = false;
+  uint8_t pad_ : 6 = 0;
+};
+static_assert(sizeof(ShaderGvarMetadata) == 1);
+
+BINDUMP_BEGIN_EXTEND_LAYOUT(ScriptedShadersBinDumpV4, ScriptedShadersBinDumpV3)
+  BINDUMP_USING_EXTENSION()
+  int32_t externalPsoCacheVersion = 0;
+  VecHolder<ShaderGvarMetadata> globVarsMetadata;
 BINDUMP_END_LAYOUT()
 } // namespace shader_layout

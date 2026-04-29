@@ -11,7 +11,9 @@ ECS_DEF_PULL_VAR(shadowOcclusionDbgRender);
 static void shadow_occlusion_render_debug_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
   G_UNUSED(components);
-    shadow_occlusion_render_debug_es(*info.cast<ecs::UpdateStageInfoRenderDebug>());
+    shadow_occlusion_render_debug_es(*info.cast<ecs::UpdateStageInfoRenderDebug>()
+    , components.manager()
+    );
 }
 static ecs::EntitySystemDesc shadow_occlusion_render_debug_es_es_desc
 (
@@ -40,9 +42,9 @@ static ecs::CompileTimeQueryDesc animchar_shadow_cull_bounds_debug_render_ecs_qu
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void animchar_shadow_cull_bounds_debug_render_ecs_query(Callable function)
+inline void animchar_shadow_cull_bounds_debug_render_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, animchar_shadow_cull_bounds_debug_render_ecs_query_desc.getHandle(),
+  perform_query(&manager, animchar_shadow_cull_bounds_debug_render_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

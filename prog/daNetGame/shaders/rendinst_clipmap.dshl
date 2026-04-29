@@ -16,6 +16,13 @@ include "heightmap_tessellation_inc.dshl"
 include "tessellation_intervals_inc.dshl"
 include "clipmap_common_inc.dshl"
 include "invalidate_hmap_displacement_inc.dshl"
+include_optional "burnt_ground/shaders/burnt_ground_landmesh_inc.dshl"
+
+define_macro_if_not_defined INIT_BURNT_GROUND(need_perlin_noise)
+endmacro
+define_macro_if_not_defined USE_BURNT_GROUND()
+endmacro
+
 
 
 shader rendinst_clipmap, rendinst_landclass
@@ -25,6 +32,18 @@ shader rendinst_clipmap, rendinst_landclass
 
   static int material_has_edge_vcol_mask = 0 no_warnings;
   interval material_has_edge_vcol_mask: no < 1, yes;
+
+  static int material_use_mix_textures = 0 no_warnings;
+  interval material_use_mix_textures: no < 1, yes;
+
+  static float mix_tex_alpha_offset = 0 no_warnings;
+  static int mix_tex_alpha_invert = 0 no_warnings;
+  static float mix_tex_material_softness = 0.01 no_warnings;
+
+  static float mix_tex_min_displacement = -0.025 no_warnings;
+  static float mix_tex_max_displacement = 0.05 no_warnings;
+  static float mix_tex_displacement_lod = 0 no_warnings;
+  static float mix_tex_displacement_softness = 0.01 no_warnings;
 
   if (shader == rendinst_landclass)
   {
@@ -54,6 +73,8 @@ shader rendinst_clipmap, rendinst_landclass
        rendinst_render_pass == rendinst_render_pass_depth ||
        rendinst_render_pass == rendinst_render_pass_to_shadow);
 
+  bool mix_texture_tesselation_enabled = material_use_mix_textures == yes && pn_triangulation_enabled;
+
   bool grassify_enabled = (grassify == grassify_on && material_grassify == on) &&
       (shader == rendinst_landclass &&
       rendinst_render_pass == rendinst_render_pass_grassify);
@@ -64,6 +85,7 @@ shader rendinst_clipmap, rendinst_landclass
 
   DECLARE_CLIPMAP_INDIRECTION_OFFSET(shader == rendinst_landclass)
   INIT_CLIPMAP_INDIRECTION_OFFSET(ps, shader == rendinst_landclass)
+  USE_HEIGHTMAP_COMMON_VS()
 
   if (pn_triangulation_enabled)
   {
@@ -126,10 +148,59 @@ shader rendinst_clipmap, rendinst_landclass
 
   channel float3 pos = pos;
   channel color8 norm = norm unsigned_pack;
+  channel float2 tc[0] = tc[0];
   if (shader == rendinst_landclass)
   {
-    channel float2 tc[0] = tc[0];
+    channel float2 tc[3] = tc[1]; // channel 1 and 2 are used for domain UV
+  }
+
+  if (shader == rendinst_landclass || material_use_mix_textures == yes)
+  {
     channel color8 vcol=vcol;
+  }
+
+  if (mix_texture_tesselation_enabled)
+  {
+    (vs){
+      diffuse_mix_tex@staticSmp = diffuseMixTexture;
+      mix_tex_min_displacement@f1 = mix_tex_min_displacement;
+      mix_tex_max_displacement@f1 = mix_tex_max_displacement;
+      mix_tex_displacement_lod@f1 = mix_tex_displacement_lod;
+      mix_tex_alpha_offset@f1 = mix_tex_alpha_offset;
+      mix_tex_alpha_invert@f1 = mix_tex_alpha_invert;
+      mix_tex_displacement_softness_scale_offset@f2 = (1 / (2 * mix_tex_displacement_softness + 0.0001), mix_tex_displacement_softness / (2 * mix_tex_displacement_softness + 0.0001));
+    }
+    hlsl { #define HAS_DOMAIN_UV 1 }
+  }
+
+  if (material_use_mix_textures == yes)
+  {
+    texture diffuseMixTexture = material.texture[0];
+    texture normalMixTexture = material.texture[2];
+    (ps){
+      diffuse_mix_tex@staticSmp = diffuseMixTexture;
+      normal_mix_tex@staticSmp = normalMixTexture;
+      mix_tex_alpha_offset@f1 = mix_tex_alpha_offset;
+      mix_tex_alpha_invert@f1 = mix_tex_alpha_invert;
+      mix_tex_material_softness_scale_offset@f2 = (1 / (2 * mix_tex_material_softness + 0.0001), mix_tex_material_softness / (2 * mix_tex_material_softness + 0.0001));
+    }
+
+    hlsl { #define USE_MIX_TEXTURES 1 }
+    hlsl
+    {
+      float get_mix_tex_alpha(float mix_tex_alpha, float vcol, float2 softness_scale_offset)
+      {
+        mix_tex_alpha = get_mix_tex_alpha_invert() ? 1 - mix_tex_alpha : mix_tex_alpha;
+        float alpha = mix_tex_alpha - (1 - vcol) + get_mix_tex_alpha_offset();
+        return clamp(alpha * softness_scale_offset.x + softness_scale_offset.y, 0, 1);
+      }
+    }
+
+    if (material_pn_triangulation == on)
+    {
+      DECLARE_DOMAINT_UV_CHANNELS()
+    }
+    INIT_DOMAIN_UV()
   }
 
   (ps) {
@@ -153,22 +224,33 @@ shader rendinst_clipmap, rendinst_landclass
   {
     hlsl {
       #if SET_UP_MULTIDRAW && DRAW_ID_USES_INSTANCE_OFFSET_ID
-        #define GET_DRAW_CALL_ID_TRIANGULATION(src) get_material_offset_external_draw_id(src.drawId)
+        ##if hardware.ps4 || hardware.ps5
+          #define GET_DRAW_CALL_ID_TRIANGULATION(src) (WaveReadFirstLane(src.drawId) & MATERIAL_OFFSET_MASK)
+        ##else
+          #define GET_DRAW_CALL_ID_TRIANGULATION(src) (src.drawId & MATERIAL_OFFSET_MASK)
+        ##endif
       #else
         #define GET_DRAW_CALL_ID_TRIANGULATION(src) GET_MATERIAL_OFFSET
       #endif
     }
   }
 
-  ENABLE_ASSERT(ps)
   RENDINST_BLOCK()
   RI_VOXELIZE_ALBEDO()
   if (grassify_enabled)
   {
     RI_GRASSIFY()
   }
+  else if (rendinst_render_pass == rendinst_render_pass_normal)
+  {
+    (ps) {
+      grass_mask_tex@smp2d = grass_mask_tex;
+      world_to_grass@f4 = world_to_grass;
+    }
+
+    INIT_BURNT_GROUND(false)
+  }
   RENDINST_INSTANCING()
-  USE_HEIGHTMAP_COMMON_VS()
 
   hlsl {
     ##if (rendinst_render_pass == rendinst_render_pass_normal || rendinst_render_pass == rendinst_render_pass_voxelize_albedo || rendinst_render_pass == rendinst_render_pass_grassify)
@@ -214,6 +296,11 @@ shader rendinst_clipmap, rendinst_landclass
         nointerpolation float3 objectCenterPos : TEXCOORD6;
         VOXEL_CENTROID float grassifyDiscardWeight : TEXCOORD7;
       #endif
+      #if USE_MIX_TEXTURES
+        VOXEL_CENTROID float2 diffuseMixTc : TEXCOORD8;
+        DOMAIN_UV_OUTPUT_MEMBERS
+        VOXEL_CENTROID float diffuseMixWeight : TEXCOORD11;
+      #endif
       VSOUT_DRAW_ID
     };
     struct HsInput
@@ -229,6 +316,11 @@ shader rendinst_clipmap, rendinst_landclass
       #if USE_VCOL_GRASSIFY_DISCARD
         nointerpolation float3 objectCenterPos : TEXCOORD6;
         VOXEL_CENTROID float grassifyDiscardWeight : TEXCOORD7;
+      #endif
+      #if USE_MIX_TEXTURES
+        VOXEL_CENTROID float2 diffuseMixTc : TEXCOORD8;
+        DOMAIN_UV_OUTPUT_MEMBERS
+        VOXEL_CENTROID float diffuseMixWeight : TEXCOORD11;
       #endif
       VSOUT_DRAW_ID
     };
@@ -265,11 +357,15 @@ shader rendinst_clipmap, rendinst_landclass
       #endif
       #if NEED_TC_WORLDPOS
         ##if (shader == rendinst_landclass)
-        float2 texcoord           : TEXCOORD0;
+        float2 texcoord           : TEXCOORD3;
         ##endif
       #endif
-      #if USE_VCOL_GRASSIFY_DISCARD
+      #if USE_VCOL_GRASSIFY_DISCARD || USE_MIX_TEXTURES
         float4 vcol : COLOR0;
+      #endif
+      #if USE_MIX_TEXTURES
+        float2 diffuseMixTc : TEXCOORD0;
+        DOMAIN_UV_VTX_INPUT_MEMBERS
       #endif
     };
   }
@@ -338,7 +434,6 @@ shader rendinst_clipmap, rendinst_landclass
     COMPILE_GRASSIFY_PS()
   } else
   {
-    NO_VERTICAL_TEX_USE()
     USE_DERIVATIVE_MAPS()
     if (rendinst_render_pass != rendinst_render_pass_voxelize_albedo)
     {
@@ -350,14 +445,15 @@ shader rendinst_clipmap, rendinst_landclass
       PACK_UNPACK_GBUFFER()
     }
     USE_CLIPMAP_NORMAL()
-    USE_LAND_NORMAL()
     USE_HEIGHTMAP_COMMON_BASE(ps)
+    INIT_HEIGHTMAP_GATHERED_SAMPLING(ps)
+    USE_HEIGHTMAP_GATHERED_SAMPLING(ps)
     USE_UAV_RENDERING_FEEDBACK_RENDINST()
     USE_NORMAL_DETAIL()
     USE_LAND_MICRODETAILS_PS()
     USE_LAND_MICRODETAIL_PARAMS_PS()
     USE_LAND_SHORE()
-    DETECT_LAND_SELFILLUM()
+    DETECT_LAND_SELFILLUM(true)
     if (rendinst_render_pass != rendinst_render_pass_normal)
     {
       INIT_WETNESS()
@@ -366,6 +462,11 @@ shader rendinst_clipmap, rendinst_landclass
     HEIGHTMAP_CALCULATIONS()
     USE_AND_CALCULATE_PUDDLES()
     USE_SPARKLES()
+    if (rendinst_render_pass == rendinst_render_pass_normal)
+    {
+      USE_BURNT_GROUND()
+    }
+
 
     if (shader == rendinst_landclass)
     {
@@ -405,7 +506,7 @@ shader rendinst_clipmap, rendinst_landclass
     if (in_editor_assume == yes)
     {
       INIT_TOROIDAL_HEIGHTMAP(vs)
-      USE_TOROIDAL_HEIGHTMAP_VS()
+      USE_TOROIDAL_HEIGHTMAP(vs)
     }
     INIT_HEIGHTMAP_DISPLACEMENT(vs)
 
@@ -429,6 +530,11 @@ shader rendinst_clipmap, rendinst_landclass
         #endif
         #if NEED_UP_VEC
           VOXEL_CENTROID float3 upVec                 : TEXCOORD2;
+        #endif
+        #if USE_MIX_TEXTURES
+          VOXEL_CENTROID float2 diffuseMixTc : TEXCOORD8;
+          DOMAIN_UV_OUTPUT_MEMBERS
+          VOXEL_CENTROID float diffuseMixWeight : TEXCOORD11;
         #endif
         VSOUT_DRAW_ID
       };
@@ -471,12 +577,21 @@ shader rendinst_clipmap, rendinst_landclass
         #if NEED_UP_VEC
           PROXY_FIELD_VALUE(upVec);
         #endif
+        #if USE_MIX_TEXTURES
+          PROXY_FIELD_VALUE(diffuseMixTc);
+          PROXY_FIELD_VALUE(diffuseMixWeight);
+          RI_PROXY_FIELD_VALUE_DOMAIN_DATA
+        #endif
       }
     }
 
     USE_LANDCLASS_DISPLACEMENT(ds, landclass_displacement_enabled)
     INIT_HMAP_DISPLACEMENT_INVALIDATION(vs)
     USE_HMAP_DISPLACEMENT_INVALIDATION(ds, xyz)
+    if (mix_texture_tesselation_enabled)
+    {
+      USE_DOMAIN_UV()
+    }
 
     hlsl(ds)
     {
@@ -489,23 +604,42 @@ shader rendinst_clipmap, rendinst_landclass
         #if NEED_UP_VEC
           FIELD_BARYCENTRIC_VALUE(upVec);
         #endif
+        #if USE_MIX_TEXTURES
+          FIELD_BARYCENTRIC_VALUE(diffuseMixTc);
+          FIELD_BARYCENTRIC_VALUE(diffuseMixWeight);
+          RI_FIELD_BARYCENTRIC_VALUE_DOMAIN_DATA
+        #endif
 
         // TODO only works on rendinst_clipmap properly, it should sample displacement and puddle using the spoofed positions
         // in rendinst_landclass, but displace actual world position with the TM applied to the displacement.
         float3 worldPos = output.pos.xyz;
         float3 worldNormal = output.normal.xyz;
+        float mixTexAlpha = 0;
+
+        #if USE_MIX_TEXTURES && HAS_DOMAIN_UV
+          float2 displacementTC = get_modified_domaint_uv(input, output.diffuseMixTc, uvw);
+          float displacementFromTex  = tex2DLodBindless(get_diffuse_mix_tex(), float4(displacementTC, 0, get_mix_tex_displacement_lod().x)).a;
+          mixTexAlpha = get_mix_tex_alpha(displacementFromTex, output.diffuseMixWeight, get_mix_tex_displacement_softness_scale_offset());
+
+          if (mixTexAlpha > 0)
+          {
+            half3 heightInMeters = (get_mix_tex_max_displacement() - get_mix_tex_min_displacement()) * displacementFromTex * mixTexAlpha + get_mix_tex_min_displacement();
+            worldPos += tessellation_transition_weight * heightInMeters * output.normal.xyz;
+          }
+        #endif
 
 ##if (landclass_displacement_enabled)
         uint indirectionOffset = get_clipmap_indirection_offset();
+        float clipmapAlpha = 1 - mixTexAlpha;
         BRANCH
-        if (indirectionOffset > 0 && !is_clipmap_indirection_invalid(indirectionOffset) && tessellation_transition_weight > 0)
+        if (clipmapAlpha > 0 && indirectionOffset > 0 && !is_clipmap_indirection_invalid(indirectionOffset) && tessellation_transition_weight > 0)
         {
           int riLandclassIndex = (int)indirectionOffset - 1;
           float displacementEffectLandclass = 1;
           float heightOffset = get_hmap_ofs_ri_landclass(riLandclassIndex, output.tcWorldPos.xz, displacementEffectLandclass);
           float reducedHmapDisplacement = 1. - get_hmap_displacement_reduction(worldPos);
           displacementEffectLandclass *= reducedHmapDisplacement;
-          worldPos += output.upVec * (heightOffset * reducedHmapDisplacement * tessellation_transition_weight);
+          worldPos += output.upVec * (heightOffset * reducedHmapDisplacement * tessellation_transition_weight) * clipmapAlpha;
         }
 ##endif
 

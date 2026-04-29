@@ -3,8 +3,9 @@ from "%darg/ui_imports.nut" import *
 
 let entity_editor = require_optional("entity_editor")
 let { selectedEntity, selectedEntities, selectedEntitiesSetKeyVal, selectedEntitiesDeleteKey,
-      selectedCompName,
-      markedScenes} = require("state.nut")
+      selectedCompName, markedScenes, sceneIdMap } = require("state.nut")
+let { fileName } = require("%sqstd/path.nut")
+let ecs = require("%sqstd/ecs.nut")
 
 // DO NOT add extra components here as this code is not game specific.
 // if you want extra entity info, use DAS game specific code instead
@@ -58,53 +59,6 @@ function getSceneLoadTypeText(v) {
   return loadType
 }
 
-function getSceneId(loadType, index) {
-  return (index << 2) | loadType
-}
-
-function getSceneIdOf(scene) {
-  return getSceneId(scene.loadType, scene.index)
-}
-
-function getSceneIdLoadType(sceneId) {
-  return (sceneId & (1 | 2))
-}
-
-function getSceneIdIndex(sceneId) {
-  return (sceneId >> 2)
-}
-
-function getSceneIndicies(scenes) {
-  local sceneCounts = [0, /* common */ 0, /* client */ 0, /* import */ 0, /* const */ 0]
-  foreach (scene in scenes) {
-    sceneCounts[scene.loadType] += 1
-  }
-  return [0, 0, sceneCounts[1], sceneCounts[1] + sceneCounts[2]]
-}
-
-const loadTypeConst = 4
-let sceneGenerated = {
-  id = 0
-  asText = "[GENERATED]"
-  // for sorting
-  loadType = loadTypeConst
-  index = 1
-  entityCount = -2
-  path = "\0"
-}
-sceneGenerated.id = getSceneIdOf(sceneGenerated)
-
-let sceneSaved = {
-  id = 0
-  asText = "[ALL FILES]"
-  // for sorting
-  loadType = loadTypeConst
-  index = 2
-  entityCount = -1
-  path = "\0\0"
-}
-sceneSaved.id = getSceneIdOf(sceneSaved)
-
 function getNumMarkedScenes() {
   local nSel = 0
   foreach (_sceneId, marked in markedScenes.get()) {
@@ -114,35 +68,71 @@ function getNumMarkedScenes() {
   return nSel
 }
 
-function matchSceneEntity(eid, saved, generated) {
-  local isSaved = entity_editor?.get_instance().isSceneEntity(eid)
-  return (saved && isSaved) || (generated && !isSaved)
+function matchEntityByScene(eid) {
+  local id = entity_editor?.get_instance().getEntityRecordSceneId(eid)
+  if (markedScenes.get()?[id])
+    return true
+  return entity_editor?.get_instance().isSceneEntity(eid)
 }
 
-function matchEntityByScene(eid, saved, generated) {
-  local eLoadType = entity_editor?.get_instance().getEntityRecordLoadType(eid)
-  local eIndex = entity_editor?.get_instance().getEntityRecordIndex(eid)
-  local sceneId = getSceneId(eLoadType, eIndex)
-  if (markedScenes.get()?[sceneId])
+function getScenePrettyName(index) {
+  return entity_editor?.get_instance().getScenePrettyName(index) ?? ""
+}
+
+function sceneToComboboxEntry(scene) {
+  if (scene.importDepth == 0 && !scene.hasParent) {
+    return "MAIN"
+  }
+
+  local prettyName = getScenePrettyName(scene.id)
+  local strippedPath = fileName(scene.path)
+  local loadType = getSceneLoadTypeText(scene)
+  return $"{loadType}:{scene.id}:{prettyName.len() == 0 ? strippedPath : $"{prettyName} ({strippedPath})"}"
+}
+
+function canSceneBeModified(scene) {
+  if (scene == null) {
+    return false
+  }
+
+  while (scene?.loadType != null) {
+    if (scene.loadType != 3 || (scene.importDepth != 0 && !entity_editor?.get_instance().isChildScene(scene.id))) {
+      return false
+    }
+
+    if (entity_editor?.get_instance()?.isSceneInLockedHierarchy(scene.id)) {
+      return false
+    }
+
+    scene = sceneIdMap?.get()[scene.parent]
+  }
+
+  return true
+}
+
+function isEntityInLockedHierarchy(eid) {
+  if (entity_editor?.get_instance()?.isEntityLocked(eid) ?? false) {
     return true
-  return matchSceneEntity(eid, saved, generated)
+  }
+
+  let sceneId = entity_editor?.get_instance()?.getEntityRecordSceneId(eid) ?? ecs.INVALID_SCENE_ID
+  if (sceneId == ecs.INVALID_SCENE_ID) {
+    return false
+  }
+
+  return entity_editor?.get_instance()?.isSceneInLockedHierarchy(sceneId) ?? false
 }
 
 return {
   getEntityExtraName
 
   getSceneLoadTypeText
-  getSceneId
-  getSceneIdOf
-  getSceneIdLoadType
-  getSceneIdIndex
-  getSceneIndicies
-
-  loadTypeConst
-  sceneGenerated
-  sceneSaved
 
   getNumMarkedScenes
-  matchSceneEntity
   matchEntityByScene
+
+  getScenePrettyName
+  sceneToComboboxEntry
+  canSceneBeModified
+  isEntityInLockedHierarchy
 }

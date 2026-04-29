@@ -1,4 +1,5 @@
 include "grass_generate_inc.dshl"
+include "rt/grass_generate_rt_inc.dshl"
 include "toroidal_grass.dshl"
 include "heightmap_ofs.dshl"
 include "frustum.dshl"
@@ -49,6 +50,11 @@ macro COMPILE_GRASSIFY_PS()
     grassify_vcol_discard_move_weight@f1 = grassify_vcol_discard_move_weight;
   }
 
+  INIT_GPU_GRASS_BVH_RANGE(ps)
+  USE_GPU_GRASS_BVH_RANGE(ps)
+  INIT_GPU_GRASS_BVH_RANDOM_DISCARD(ps)
+  USE_GPU_GRASS_BVH_RANDOM_DISCARD(ps)
+
   hlsl(ps) {
     #define ht_displacement (water_level_displacement.zw)
 
@@ -67,8 +73,9 @@ macro COMPILE_GRASSIFY_PS()
         const float ht_ext = grass_average_ht__ht_extent__avg_hor__hor_extent.y; //0.5 * max_grass_height
         const float avg_hor = grass_average_ht__ht_extent__avg_hor__hor_extent.z; //grass_grid_params.z*0.5
         const float hor_ext = grass_average_ht__ht_extent__avg_hor__hor_extent.w;//grass_grid_params.z*0.5 + max_grass_size*0.5
-        if (!testBoxExtentB(float3(worldPos.xz+avg_hor.xx, worldPos.y+avg_ht).xzy,
-                            float2(hor_ext, ht_ext).xyx))
+        float3 boxCenter = float3(worldPos.xz+avg_hor.xx, worldPos.y+avg_ht).xzy;
+        float3 boxExtent = float2(hor_ext, ht_ext).xyx;
+        if (!testBoxExtentB(boxCenter, boxExtent) && !keep_grass_for_bvh_extent(boxCenter, boxExtent, world_view_pos))
           discard;
       }
 
@@ -150,7 +157,10 @@ macro COMPILE_GRASSIFY_PS()
       if (min(min(height_horSize.x, height_horSize.y) - HEIGHT_THRESHOLD, probability-grassTypeRand) < 0)
         discard;
 
-      if (!testSphereB(worldPos+float3(0,height_horSize.x*0.5,0), 0.5*length(height_horSize)))
+      float3 boundingSphereWpos = worldPos+float3(0,height_horSize.x*0.5,0);
+      float boundingSphereRadius = 0.5*length(height_horSize);
+      worldPos = round_grass_world_pos_for_bvh(worldPos);
+      if (!testSphereB(boundingSphereWpos, boundingSphereRadius) && !(keep_grass_for_bvh_sphere(boundingSphereWpos, boundingSphereRadius, world_view_pos) && keep_grass_randomly(worldPos)))
         discard;
 
       uint grassVariation = (uint)floor(random4_high.w*255+0.5f);

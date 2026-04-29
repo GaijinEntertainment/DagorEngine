@@ -1,0 +1,42 @@
+include "shader_global.dshl"
+include "postfx_inc.dshl"
+
+float4 darg_frame_params;
+float4 darg_cursor_params;
+float4 darg_params0;
+float4 darg_params1;
+float4 darg_params2;
+float4 darg_params3;
+
+// Sets up render state, uniforms, VS, and compatibility defines for a darg pixel shader.
+// After calling this macro, add an hlsl(ps) block with #include of the .hlsl file
+// followed by the entry point wrapper. See darg_test_plasma.dshl for example.
+//
+// C++ sets darg_frame_params as (time, opacity, res_x, res_y)
+// and darg_cursor_params as (cx, cy, 0, 0).
+// The #defines give user code the same scalar accessors
+// as the dev-path runtime preamble (darg_time, darg_opacity, darg_resolution, darg_cursor).
+macro DARG_PIXEL_SHADER_SETUP()
+  z_test = false;
+  z_write = false;
+  cull_mode = none;
+  blend_src = sa; blend_dst = isa;
+
+  POSTFX_VS_TEXCOORD(0, texcoord)
+
+  (ps) {
+    darg_frame_params@f4 = darg_frame_params;
+    darg_cursor_params@f4 = darg_cursor_params;
+    darg_params0@f4 = darg_params0;
+    darg_params1@f4 = darg_params1;
+    darg_params2@f4 = darg_params2;
+    darg_params3@f4 = darg_params3;
+  }
+
+  hlsl(ps) {
+    #define darg_time       darg_frame_params.x
+    #define darg_opacity    darg_frame_params.y
+    #define darg_resolution darg_frame_params.zw
+    #define darg_cursor     darg_cursor_params
+  }
+endmacro

@@ -163,7 +163,7 @@ function riSortUserGroups() {
   riGroupsData.sort(function(a,b) {
     if (a?.index != null) {
       if (b?.index != null)
-        return a.index < b.index ? -1 : 1
+        return a.index <=> b.index
       return -1
     }
     if (b?.index != null)
@@ -372,15 +372,9 @@ let riEditGroupName = Watched("")
 let riEditGroupNameMode = Watched(0)
 let riEditGroupNameElem = nameFilter(riEditGroupName, {
   placeholder = "Group name"
-  function onChange(text) {
-    riEditGroupName.set(text)
-  }
-  function onEscape() {
-    set_kb_focus(null)
-  }
-  function onReturn() {
-    set_kb_focus(null)
-  }
+  onChange = @(text) riEditGroupName.set(text)
+  onEscape = @() set_kb_focus(null)
+  onReturn = @() set_kb_focus(null)
 })
 
 function riGroupRename() {
@@ -625,17 +619,13 @@ function riGotoPageByValue(v) {
 
 let riNameFilter = nameFilter(riFilter, {
   placeholder = "Filter by name"
-  function onChange(text) {
+  onChange = function(text) {
     riFilter.set(text)
     riGotoPageByValue(riSelectValue.get())
   }
-  function onEscape() {
-    set_kb_focus(null)
-  }
-  function onReturn() {
-    set_kb_focus(null)
-  }
-  function onClear() {
+  onEscape = @() set_kb_focus(null)
+  onReturn = @() set_kb_focus(null)
+  onClear = function() {
     riFilter.set("")
     set_kb_focus(null)
   }
@@ -989,7 +979,7 @@ function riGroupUpdate(v) {
 }
 let riGroupCombo = combobox({value=riGroup, changeVarOnListUpdate=false, update=riGroupUpdate}, riGroups)
 
-let riSelectWindow = function() {
+function riSelectWindow() {
   let mkRI = mkSelectLine({
     selected = riSelectValue
     onSelect = @(v) riSelectChange(v)

@@ -3,7 +3,7 @@ from "%darg/ui_imports.nut" import *
 let cursors = require("samples_prog/_cursors.nut")
 
 let pic = Picture("ui/chat.svg")
-let pic_custom_size = Picture("ui/chat.svg:400:400.5")
+let pic_custom_size = Picture("ui/chat.svg:400:400")
 let pic_custom_size_k = Picture("ui/chat.svg:200:200:K")
 //local pic_custom_size_f = Picture("ui/chat.svg:200:200:F")
 

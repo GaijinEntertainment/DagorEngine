@@ -102,6 +102,4 @@ public:
   };
 
   eastl::optional<MeshData> getModelData(int modelId) const;
-
-  static bool useSRVBuffers;
 };

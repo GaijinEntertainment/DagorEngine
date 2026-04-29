@@ -8,6 +8,7 @@
 #include <generic/dag_span.h>
 
 class TextureIDPair;
+struct DynRes;
 
 namespace downsample_depth
 {
@@ -27,31 +28,31 @@ void init(const char *ps_name, const char *wave_cs_name = nullptr, const char *c
 // framegraph and should only be used if you know what you are doing
 // resource barriers wise.
 
-void downsample(const TextureIDPair &from_depth, int w, int h, const TextureIDPair &far_depth, const TextureIDPair *close_depth,
-  const TextureIDPair *far_normals, const TextureIDPair *motion_vectors = nullptr, const TextureIDPair *checkerboard_depth = nullptr,
+void downsample(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth, BaseTexture *far_normals,
+  BaseTexture *normal_gbuf = nullptr, BaseTexture *motion_vectors = nullptr, BaseTexture *checkerboard_depth = nullptr,
   bool external_barriers = false);
 
 // ResPtr version
 void downsample(const ManagedTex &from_depth, int w, int h, const ManagedTex &far_depth, const ManagedTex &close_depth,
-  const ManagedTex &far_normals, const ManagedTex &motion_vectors, const ManagedTex &checkerboard_depth,
+  const ManagedTex &far_normals, const ManagedTex &normal_gbuf, const ManagedTex &motion_vectors, const ManagedTex &checkerboard_depth,
   bool external_barriers = false);
 
 // Downsample depth in pixel shader using chain of FS draw passes or in compute shader if available.
-void downsamplePS(const TextureIDPair &from_depth, int w, int h, const TextureIDPair *far_depth, const TextureIDPair *close_depth,
-  const TextureIDPair *far_normals, const TextureIDPair *motion_vectors = nullptr, const TextureIDPair *checkerboard_depth = nullptr,
-  bool external_barriers = false, const Point4 &source_uv_transform = Point4(1, 1, 0, 0));
+void downsamplePS(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth, BaseTexture *far_normals,
+  BaseTexture *normal_gbuf = nullptr, BaseTexture *motion_vectors = nullptr, BaseTexture *checkerboard_depth = nullptr,
+  bool external_barriers = false, const Point4 &source_uv_transform = Point4(1, 1, 0, 0), const DynRes *dynamic_resolution = nullptr);
 
-void downsamplePS(const TextureIDPair &from_depth, int w, int h, dag::Span<const TextureIDPair> far_depth_mips,
-  const TextureIDPair *close_depth, const TextureIDPair *far_normals, const TextureIDPair *motion_vectors = nullptr,
-  const TextureIDPair *checkerboard_depth = nullptr, bool external_barriers = false,
-  const Point4 &source_uv_transform = Point4(1, 1, 0, 0));
+void downsamplePS(BaseTexture *from_depth, int w, int h, dag::Span<BaseTexture *> far_depth_mips, BaseTexture *close_depth,
+  BaseTexture *far_normals, BaseTexture *normal_gbuf = nullptr, BaseTexture *motion_vectors = nullptr,
+  BaseTexture *checkerboard_depth = nullptr, bool external_barriers = false, const Point4 &source_uv_transform = Point4(1, 1, 0, 0),
+  const DynRes *dynamic_resolution = nullptr);
 
 void generate_depth_mips(const TextureIDPair &tex);
 
 void generate_depth_mips(const TextureIDPair *depth_mips, int depth_mip_count);
 
 // Downsample depth using single compute shader pass
-void downsampleWithWaveIntin(const TextureIDPair &from_depth, int w, int h, const TextureIDPair &far_depth,
-  const TextureIDPair *close_depth, const TextureIDPair *far_normals, const TextureIDPair *motion_vectors = nullptr,
-  const TextureIDPair *checkerboard_depth = nullptr, bool external_barriers = false);
+void downsampleWithWaveIntin(BaseTexture *from_depth, int w, int h, BaseTexture *far_depth, BaseTexture *close_depth,
+  BaseTexture *far_normals, BaseTexture *normal_gbuf = nullptr, BaseTexture *motion_vectors = nullptr,
+  BaseTexture *checkerboard_depth = nullptr, bool external_barriers = false);
 }; // namespace downsample_depth

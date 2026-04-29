@@ -1,0 +1,49 @@
+// Copyright 2016 The Draco Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// CMake Template File - Processed by CMake's configure_file() command
+// This produces draco_features.h during the CMake configuration step
+//
+#ifndef DRACO_DRACO_FEATURES_H_
+#define DRACO_DRACO_FEATURES_H_
+
+// DRACO_MESH_COMPRESSION_SUPPORTED indicates that mesh compression is supported
+// This is checked by assimp to determine if Draco is properly configured
+#define DRACO_MESH_COMPRESSION_SUPPORTED 1
+
+// DO NOT EDIT - Set by CMake during configure
+#define DRACO_VERSION_MAJOR @DRACO_VERSION_MAJOR@
+#define DRACO_VERSION_MINOR @DRACO_VERSION_MINOR@
+#define DRACO_VERSION_PATCH @DRACO_VERSION_PATCH@
+
+// Feature flags - Set by CMake based on build options
+#cmakedefine DRACO_ENABLE_ENCODER
+#cmakedefine DRACO_ENABLE_DECODER
+#cmakedefine DRACO_MESH_COMPRESSION
+#cmakedefine DRACO_POINT_CLOUD_COMPRESSION
+#cmakedefine DRACO_ANIMATION_COMPRESSION
+#cmakedefine DRACO_ATTRIBUTE_QUANTIZATION
+#cmakedefine DRACO_STANDARD_EDGEBREAKER
+
+// Optional optimizations
+#cmakedefine DRACO_USE_INTRINSICS
+#cmakedefine DRACO_FAST_PATH
+
+// Platform detection
+#cmakedefine DRACO_WINDOWS
+#cmakedefine DRACO_MAC
+#cmakedefine DRACO_LINUX
+#cmakedefine DRACO_ANDROID
+
+#endif  // DRACO_DRACO_FEATURES_H_

@@ -7,7 +7,7 @@ The Input/Output library
 the i/o library implements basic input/output routines.
 
 --------------
-Squirrel API
+Quirrel API
 --------------
 
 ++++++++++++++
@@ -195,10 +195,10 @@ File Object
 Script loading and serialization
 ++++++++++++++++++++++++++++++++
 
-.. c:function:: SQRESULT sqstd_loadfile(HSQUIRRELVM v, const SQChar* filename, SQBool printerror)
+.. c:function:: SQRESULT sqstd_loadfile(HSQUIRRELVM v, const char* filename, SQBool printerror)
 
     :param HSQUIRRELVM v: the target VM
-    :param SQChar* filename: path of the script that has to be loaded
+    :param char* filename: path of the script that has to be loaded
     :param SQBool printerror: if true the compiler error handler will be called if a error occurs
     :returns: an SQRESULT
 
@@ -207,10 +207,10 @@ Script loading and serialization
     UTF8 with and without prefix and UCS-2 prefixed(both big endian an little endian).
     If the source stream is not prefixed UTF8 encoding is used as default.
 
-.. c:function:: SQRESULT sqstd_dofile(HSQUIRRELVM v, const SQChar* filename, SQBool retval, SQBool printerror)
+.. c:function:: SQRESULT sqstd_dofile(HSQUIRRELVM v, const char* filename, SQBool retval, SQBool printerror)
 
     :param HSQUIRRELVM v: the target VM
-    :param SQChar* filename: path of the script that has to be loaded
+    :param char* filename: path of the script that has to be loaded
     :param SQBool retval: if true the function will push the return value of the executed script in the stack.
     :param SQBool printerror: if true the compiler error handler will be called if a error occurs
     :returns: an SQRESULT
@@ -223,12 +223,12 @@ Script loading and serialization
     If the source stream is not prefixed, UTF8 encoding is used as default. ::
 
         sq_pushroottable(v); //push the root table(were the globals of the script will are stored)
-        sqstd_dofile(v, _SC("test.nut"), SQFalse, SQTrue);// also prints syntax errors if any
+        sqstd_dofile(v, "test.nut", SQFalse, SQTrue);// also prints syntax errors if any
 
-.. c:function:: SQRESULT sqstd_writeclosuretofile(HSQUIRRELVM v, const SQChar* filename)
+.. c:function:: SQRESULT sqstd_writeclosuretofile(HSQUIRRELVM v, const char* filename)
 
     :param HSQUIRRELVM v: the target VM
-    :param SQChar* filename: destination path of serialized closure
+    :param char* filename: destination path of serialized closure
     :returns: an SQRESULT
 
     serializes the closure at the top position in the stack as bytecode in

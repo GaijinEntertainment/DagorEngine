@@ -34,9 +34,9 @@ static ecs::CompileTimeQueryDesc players_search_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void players_search_ecs_query(Callable function)
+inline void players_search_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, players_search_ecs_query_desc.getHandle(),
+  perform_query(&manager, players_search_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -66,9 +66,9 @@ static ecs::CompileTimeQueryDesc players_search_by_platfrom_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void players_search_by_platfrom_ecs_query(Callable function)
+inline void players_search_by_platfrom_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, players_search_by_platfrom_ecs_query_desc.getHandle(),
+  perform_query(&manager, players_search_by_platfrom_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -98,9 +98,9 @@ static ecs::CompileTimeQueryDesc players_search_by_name_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void players_search_by_name_ecs_query(Callable function)
+inline void players_search_by_name_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, players_search_by_name_ecs_query_desc.getHandle(),
+  perform_query(&manager, players_search_by_name_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -132,9 +132,9 @@ static ecs::CompileTimeQueryDesc players_connection_ecs_query_desc
   make_span(players_connection_ecs_query_comps+1, 1)/*rq*/,
   make_span(players_connection_ecs_query_comps+2, 1)/*no*/);
 template<typename Callable>
-inline void players_connection_ecs_query(Callable function)
+inline void players_connection_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, players_connection_ecs_query_desc.getHandle(),
+  perform_query(&manager, players_connection_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -165,9 +165,9 @@ static ecs::CompileTimeQueryDesc players_eid_connection_ecs_query_desc
   make_span(players_eid_connection_ecs_query_comps+4, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void players_eid_connection_ecs_query(Callable function)
+inline void players_eid_connection_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, players_eid_connection_ecs_query_desc.getHandle(),
+  perform_query(&manager, players_eid_connection_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -200,9 +200,9 @@ static ecs::CompileTimeQueryDesc players_ecs_query_desc
   make_span(players_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void players_ecs_query(Callable function)
+inline void players_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, players_ecs_query_desc.getHandle(),
+  perform_query(&manager, players_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

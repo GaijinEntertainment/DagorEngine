@@ -51,6 +51,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *   KHR_materials_transmission full
  *   KHR_materials_volume full
  *   KHR_materials_ior full
+ *   KHR_materials_emissive_strength: full
  */
 #ifndef GLTF2ASSET_H_INC
 #define GLTF2ASSET_H_INC
@@ -121,6 +122,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assimp/GltfMaterial.h>
 
 #include "AssetLib/glTF/glTFCommon.h"
+#include <memory>
 
 namespace glTF2 {
 
@@ -565,8 +567,8 @@ struct Accessor : public Object {
     AttribType::Value type; //!< Specifies if the attribute is a scalar, vector, or matrix. (required)
     eastl::vector<double> max; //!< Maximum value of each component in this attribute.
     eastl::vector<double> min; //!< Minimum value of each component in this attribute.
-    eastl::unique_ptr<Sparse> sparse;
-    eastl::unique_ptr<Buffer> decodedBuffer; // Packed decoded data, returned instead of original bufferView if present
+    std::unique_ptr<Sparse> sparse;
+    std::unique_ptr<Buffer> decodedBuffer; // Packed decoded data, returned instead of original bufferView if present
 
     unsigned int GetNumComponents();
     unsigned int GetBytesPerComponent();
@@ -805,6 +807,13 @@ struct MaterialIOR {
     void SetDefaults();
 };
 
+struct MaterialEmissiveStrength {
+    float emissiveStrength = 0.f;
+
+    MaterialEmissiveStrength() { SetDefaults(); }
+    void SetDefaults();
+};
+
 //! The material appearance of a primitive.
 struct Material : public Object {
     //PBR metallic roughness properties
@@ -836,7 +845,10 @@ struct Material : public Object {
 
     //extension: KHR_materials_ior
     Nullable<MaterialIOR> materialIOR;
-    
+
+    //extension: KHR_materials_emissive_strength
+    Nullable<MaterialEmissiveStrength> materialEmissiveStrength;
+
     //extension: KHR_materials_unlit
     bool unlit;
 
@@ -1110,6 +1122,7 @@ public:
         bool KHR_materials_transmission;
         bool KHR_materials_volume;
         bool KHR_materials_ior;
+        bool KHR_materials_emissive_strength;
         bool KHR_draco_mesh_compression;
         bool FB_ngon_encoding;
         bool KHR_texture_basisu;
@@ -1124,6 +1137,7 @@ public:
                 KHR_materials_transmission(false), 
                 KHR_materials_volume(false),
                 KHR_materials_ior(false),
+                KHR_materials_emissive_strength(false),
                 KHR_draco_mesh_compression(false),
                 FB_ngon_encoding(false),
                 KHR_texture_basisu(false) {

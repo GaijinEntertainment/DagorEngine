@@ -1,0 +1,33 @@
+define_macro_if_not_defined INIT_TREE_BURNING_FOR_RI_BLOCK()
+endmacro
+
+define_macro_if_not_defined INIT_TREE_BURNING(need_color)
+endmacro
+
+define_macro_if_not_defined TREE_BURNING_LEAVES_VS()
+  hlsl(vs){
+    void read_tree_burning_additional_data(inout VsOutput output, uint perInstanceRenderDataFlags, uint perInstanceRenderDataOffset) {}
+  }
+endmacro
+
+define_macro_if_not_defined TREE_BURNING_TRUNK_VS()
+  hlsl(vs){
+    void read_tree_burning_additional_data(inout VsOutput output, uint perInstanceRenderDataFlags, uint perInstanceRenderDataOffset) {}
+  }
+endmacro
+
+define_macro_if_not_defined TREE_BURNING_LEAVES_PS(need_color)
+  hlsl(ps){
+  ##if need_color
+    void apply_tree_burning_additional_data(VsOutput input, inout UnpackedGbuffer gbuffer) {}
+  ##else
+    void apply_tree_burning_additional_data(VsOutput input) {}
+  ##endif
+  }
+endmacro
+
+define_macro_if_not_defined TREE_BURNING_TRUNK_PS()
+  hlsl(ps){
+    void apply_tree_burning_additional_data(VsOutput input, inout UnpackedGbuffer gbuffer, SamplerState tex_samplerstate) {}
+  }
+endmacro

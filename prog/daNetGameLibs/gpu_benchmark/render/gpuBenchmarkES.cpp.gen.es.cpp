@@ -76,9 +76,9 @@ static ecs::CompileTimeQueryDesc get_graphics_autodetect_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_graphics_autodetect_ecs_query(Callable function)
+inline void get_graphics_autodetect_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_graphics_autodetect_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_graphics_autodetect_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -106,9 +106,9 @@ static ecs::CompileTimeQueryDesc delete_graphics_autodetect_ecs_query_desc
   make_span(delete_graphics_autodetect_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void delete_graphics_autodetect_ecs_query(Callable function)
+inline void delete_graphics_autodetect_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, delete_graphics_autodetect_ecs_query_desc.getHandle(),
+  perform_query(&manager, delete_graphics_autodetect_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

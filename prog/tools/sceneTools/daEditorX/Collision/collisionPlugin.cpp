@@ -46,6 +46,7 @@
 #include <winGuiWrapper/wgw_dialogs.h>
 #include <winGuiWrapper/wgw_input.h>
 
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_wndGlobal.h>
 #include "physMesh.h"
 #include <generic/dag_tab.h>
@@ -101,7 +102,7 @@ const char *CollisionPlugin::getPhysMatPath(ILogWriter *rep)
     return NULL;
   }
 
-  errorReport(rep, "PhysMat: no set 'physmat' in application.blk", ILogWriter::WARNING);
+  errorReport(rep, String(0, "PhysMat: no set 'physmat' in %s", DAGORED2->getWorkspace().getAppBlkShortName()), ILogWriter::WARNING);
   return NULL;
 }
 
@@ -182,13 +183,28 @@ void CollisionPlugin::unregistered()
 
 
 //==============================================================================
+void CollisionPlugin::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  command_system.addCommand(EditorCommandIds::IMPORT, ImGuiMod_Ctrl | ImGuiKey_O);
+  command_system.addCommand(EditorCommandIds::VIEW_DAG_LIST);
+  command_system.addCommand(EditorCommandIds::CLEAR_DAG_LIST);
+  command_system.addCommand(EditorCommandIds::COLLISION_SHOW_PROPS, ImGuiKey_P);
+  command_system.addCommand(EditorCommandIds::COMPILE_COLLISION);
+  command_system.addCommand(EditorCommandIds::COMPILE_GAME_COLLISION, ImGuiMod_Ctrl | ImGuiKey_B);
+}
+
+
+//==============================================================================
 void CollisionPlugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *DAGORED2->getWndManager();
 
-  wndManager.addViewportAccelerator(CM_IMPORT, ImGuiMod_Ctrl | ImGuiKey_O);
-  wndManager.addViewportAccelerator(CM_COMPILE_GAME_COLLISION, ImGuiMod_Ctrl | ImGuiKey_B);
-  wndManager.addViewportAccelerator(CM_COLLISION_SHOW_PROPS, ImGuiKey_P);
+  wndManager.addViewportAccelerator(CM_IMPORT, EditorCommandIds::IMPORT);
+  wndManager.addViewportAccelerator(CM_VIEW_DAG_LIST, EditorCommandIds::VIEW_DAG_LIST);
+  wndManager.addViewportAccelerator(CM_CLEAR_DAG_LIST, EditorCommandIds::CLEAR_DAG_LIST);
+  wndManager.addViewportAccelerator(CM_COLLISION_SHOW_PROPS, EditorCommandIds::COLLISION_SHOW_PROPS);
+  wndManager.addViewportAccelerator(CM_COMPILE_COLLISION, EditorCommandIds::COMPILE_COLLISION);
+  wndManager.addViewportAccelerator(CM_COMPILE_GAME_COLLISION, EditorCommandIds::COMPILE_GAME_COLLISION);
 }
 
 
@@ -196,15 +212,19 @@ void CollisionPlugin::registerMenuAccelerators()
 bool CollisionPlugin::begin(int toolbar_id, unsigned menu_id)
 {
   PropPanel::IMenu *mainMenu = DAGORED2->getMainMenu();
+  IEditorCommandSystem *commandSystem = DAGORED2->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
 
-  mainMenu->addItem(menu_id, CM_IMPORT, "Add collision from DAG...\tCtrl+O");
-  mainMenu->addItem(menu_id, CM_VIEW_DAG_LIST, "View DAG list...");
-  mainMenu->addItem(menu_id, CM_CLEAR_DAG_LIST, "Clear DAG list");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_IMPORT, EditorCommandIds::IMPORT, "Add collision from DAG...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_VIEW_DAG_LIST, EditorCommandIds::VIEW_DAG_LIST, "View DAG list...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_CLEAR_DAG_LIST, EditorCommandIds::CLEAR_DAG_LIST, "Clear DAG list");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_COLLISION_SHOW_PROPS, "Show collision params\tP");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_COLLISION_SHOW_PROPS, EditorCommandIds::COLLISION_SHOW_PROPS,
+    "Show collision params");
   mainMenu->addSeparator(menu_id);
-  mainMenu->addItem(menu_id, CM_COMPILE_COLLISION, "Compile collision...");
-  mainMenu->addItem(menu_id, CM_COMPILE_GAME_COLLISION, "Compile collision for game (PC)...\tCtrl+B");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_COMPILE_COLLISION, EditorCommandIds::COMPILE_COLLISION, "Compile collision...");
+  commandSystem->addMenuItem(*mainMenu, menu_id, CM_COMPILE_GAME_COLLISION, EditorCommandIds::COMPILE_GAME_COLLISION,
+    "Compile collision for game (PC)...");
 
   toolBarId = toolbar_id;
   PropPanel::ContainerPropertyControl *toolbar = DAGORED2->getCustomPanel(toolbar_id);
@@ -213,18 +233,19 @@ bool CollisionPlugin::begin(int toolbar_id, unsigned menu_id)
   toolbar->setEventHandler(this);
   PropPanel::ContainerPropertyControl *tool = toolbar->createToolbarPanel(CM_TOOL, "");
 
-  tool->createButton(CM_IMPORT, "Add collision from DAG (Ctrl+O)");
+  commandSystem->createToolbarButton(*tool, CM_IMPORT, EditorCommandIds::IMPORT, "Add collision from DAG");
   tool->setButtonPictures(CM_IMPORT, "import_dag");
 
-  tool->createButton(CM_CLEAR_DAG_LIST, "Clear DAG list");
+  commandSystem->createToolbarButton(*tool, CM_CLEAR_DAG_LIST, EditorCommandIds::CLEAR_DAG_LIST, "Clear DAG list");
   tool->setButtonPictures(CM_CLEAR_DAG_LIST, "clear");
   tool->createSeparator(0);
 
-  tool->createCheckBox(CM_COLLISION_SHOW_PROPS, "Show collision params (P)");
+  commandSystem->createToolbarToggleButton(*tool, CM_COLLISION_SHOW_PROPS, EditorCommandIds::COLLISION_SHOW_PROPS,
+    "Show collision params");
   tool->setButtonPictures(CM_COLLISION_SHOW_PROPS, "show_panel");
   tool->createSeparator(0);
 
-  tool->createButton(CM_COMPILE_COLLISION, "Compile collision");
+  commandSystem->createToolbarButton(*tool, CM_COMPILE_COLLISION, EditorCommandIds::COMPILE_COLLISION, "Compile collision");
   tool->setButtonPictures(CM_COMPILE_COLLISION, "compile");
 
   IWndManager *manager = IEditorCoreEngine::get()->getWndManager();
@@ -1472,7 +1493,8 @@ bool CollisionPlugin::compileCollision(bool for_game, Tab<int> &plugs, int physe
   if (!PhysMat::getMaterials().size())
   {
     DAEDITOR3.conError("No phys materials found - collision expoprt aborted.\n"
-                       "Check for properly configured physmat.blk path in application.blk");
+                       "Check for properly configured physmat.blk path in %s",
+      DAGORED2->getWorkspace().getAppBlkShortName());
     return false;
   }
 
@@ -1563,7 +1585,7 @@ bool CollisionPlugin::compileCollision(bool for_game, Tab<int> &plugs, int physe
       filter->applyFiltering(IObjEntityFilter::STMASK_TYPE_COLLISION, true);
   }
 
-  DataBlock app_blk(DAGORED2->getWorkspace().getAppPath());
+  DataBlock app_blk(DAGORED2->getWorkspace().getAppBlkPath());
   const char *mgr_type = app_blk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("hmap")->getStr("type", NULL);
   bool removeInvisibleFacesLand = false;
   static int lmeshObj = 1 << IDaEditor3Engine::get().registerEntitySubTypeId("lmesh_obj");

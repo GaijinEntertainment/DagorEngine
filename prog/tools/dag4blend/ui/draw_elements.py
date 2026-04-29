@@ -27,14 +27,27 @@ def draw_custom_header(layout, label, control_owner, control_name, index = None,
         header.prop(control_owner, control_name, text = "",    index = index, emboss = False, expand = True, icon = icon)
     return header
 
-def draw_custom_toggle(layout, property_owner, property_name, is_api_defined = True):
+def draw_custom_toggle(layout, property_owner, property_name, on_label = None, off_label = None, is_api_defined = True):
     row = layout.row()
     if is_api_defined:
+        text = property_name
         value = getattr(property_owner, property_name)
+        if on_label and value:
+            text = on_label
+        if off_label and not value:
+            text = off_label
         row.prop(property_owner,property_name, toggle = True,
+                    text = text,
                     icon = 'CHECKBOX_HLT' if value else 'CHECKBOX_DEHLT')
     else:
         value = property_owner[property_name]
+        if on_label and value:
+            text = on_label
+        elif off_label and (not value):
+            text = off_label
+        else:
+            text = property_name
         row.prop(property_owner, f'["{property_name}"]', toggle = True,
+                    text = text,
                     icon = 'CHECKBOX_HLT' if value else 'CHECKBOX_DEHLT')
     return

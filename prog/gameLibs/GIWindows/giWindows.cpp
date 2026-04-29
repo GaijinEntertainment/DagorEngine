@@ -64,8 +64,9 @@ void GIWindows::updatePos(const Point3 &pos_)
     bufferCount = max((int)256, max((int)activeList.size(), (int)bufferCount * 2));
 
     currentWindowsSB.close();
-    currentWindowsSB =
-      UniqueBufHolder(dag::buffers::create_persistent_sr_structured(sizeof(Window), bufferCount, "currentWindowsList"), "windows");
+    currentWindowsSB = UniqueBufHolder(dag::buffers::create_persistent_sr_structured(sizeof(Window), bufferCount, "currentWindowsList",
+                                         d3d::buffers::Init::No, RESTAG_DAGI),
+      "windows");
     currentWindowsSB.setVar();
   }
   return validate();
@@ -126,13 +127,13 @@ bool GIWindows::calc()
   {
     currentIndSize = max((int)256, max((int)cBox.size(), (int)currentIndSize * 2));
     currentWindowsSBInd.close();
-    currentWindowsSBInd = UniqueBufHolder(
-      dag::buffers::create_persistent_sr_structured(sizeof(uint32_t), currentIndSize, "currentWindowsListInd"), "windows_grid_ind");
+    currentWindowsSBInd = UniqueBufHolder(dag::buffers::create_persistent_sr_structured(sizeof(uint32_t), currentIndSize,
+                                            "currentWindowsListInd", d3d::buffers::Init::No, RESTAG_DAGI),
+      "windows_grid_ind");
     currentWindowsSBInd.setVar();
   }
 
-  if (cBox.empty() ||
-      !currentWindowsSBInd.getBuf()->updateDataWithLock(0, cBox.size() * sizeof(uint32_t), cBox.data(), VBLOCK_WRITEONLY))
+  if (cBox.empty() || !currentWindowsSBInd.getBuf()->updateData(0, cBox.size() * sizeof(uint32_t), cBox.data(), VBLOCK_WRITEONLY))
   {
     d3d::zero_rwbufi(currentWindowsGridSB.getBuf());
     d3d::resource_barrier({currentWindowsGridSB.getBuf(), RB_RO_SRV | RB_STAGE_COMPUTE});
@@ -151,9 +152,9 @@ bool GIWindows::calc()
           continue;
         d3d::resource_barrier({currentWindowsGridSB.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
         d3d::resource_barrier({gridCntSB.getBuf(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
-        ShaderGlobal::set_color4(windowsBoxLtVarId, cData.box[0].x, cData.box[0].y, cData.box[0].z, 0);
-        ShaderGlobal::set_color4(windowsBoxRbVarId, cData.box[1].x, cData.box[1].y, cData.box[1].z, cData.box[1].resv);
-        ShaderGlobal::set_color4(windowsBoxRangeVarId, x * subRes.x, z * subRes.z, cData.first, cData.count);
+        ShaderGlobal::set_float4(windowsBoxLtVarId, cData.box[0].x, cData.box[0].y, cData.box[0].z, 0);
+        ShaderGlobal::set_float4(windowsBoxRbVarId, cData.box[1].x, cData.box[1].y, cData.box[1].z, cData.box[1].resv);
+        ShaderGlobal::set_float4(windowsBoxRangeVarId, x * subRes.x, z * subRes.z, cData.first, cData.count);
         shader->dispatch((subRes.x + sx - 1) / sx, (subRes.y + sy - 1) / sy, (subRes.z + sz - 1) / sz);
       }
   };
@@ -182,7 +183,7 @@ void GIWindows::validate()
     return;
   }
   if (activeList.size() &&
-      currentWindowsSB.getBuf()->updateDataWithLock(0, activeList.size() * sizeof(Window), activeList.data(), VBLOCK_WRITEONLY))
+      currentWindowsSB.getBuf()->updateData(0, activeList.size() * sizeof(Window), activeList.data(), VBLOCK_WRITEONLY))
   {
     const float cellSize = dist / (WINDOW_GRID_XZ / 2);
     const IPoint3 res(WINDOW_GRID_XZ, WINDOW_GRID_Y, WINDOW_GRID_XZ);
@@ -190,8 +191,8 @@ void GIWindows::validate()
     Point4 windowsGridInv = Point4(-windowsGridLT.x, -windowsGridLT.y, -windowsGridLT.z, 1.f) / windowsGridLT.w;
 
     ShaderGlobal::set_int(current_windows_countVarId, activeList.size());
-    ShaderGlobal::set_color4(windowsGridLTVarId, windowsGridLT.x, windowsGridLT.y, windowsGridLT.z, windowsGridLT.w);
-    ShaderGlobal::set_color4(windowsGridInvVarId, windowsGridInv.x, windowsGridInv.y, windowsGridInv.z, windowsGridInv.w);
+    ShaderGlobal::set_float4(windowsGridLTVarId, windowsGridLT.x, windowsGridLT.y, windowsGridLT.z, windowsGridLT.w);
+    ShaderGlobal::set_float4(windowsGridInvVarId, windowsGridInv.x, windowsGridInv.y, windowsGridInv.z, windowsGridInv.w);
 
     currentCount = calc() ? activeList.size() : 0;
   }
@@ -205,8 +206,8 @@ void GIWindows::validate()
   {
     ShaderGlobal::set_int(current_windows_countVarId, 0);
     const Point4 windowsGridLT(-10000, -100000, -10000, 1), windowsGridInv(-1000, -1000, -1000, 0);
-    ShaderGlobal::set_color4(windowsGridLTVarId, windowsGridLT.x, windowsGridLT.y, windowsGridLT.z, windowsGridLT.w);
-    ShaderGlobal::set_color4(windowsGridInvVarId, windowsGridInv.x, windowsGridInv.y, windowsGridInv.z, windowsGridInv.w);
+    ShaderGlobal::set_float4(windowsGridLTVarId, windowsGridLT.x, windowsGridLT.y, windowsGridLT.z, windowsGridLT.w);
+    ShaderGlobal::set_float4(windowsGridInvVarId, windowsGridInv.x, windowsGridInv.y, windowsGridInv.z, windowsGridInv.w);
   }
 }
 
@@ -219,19 +220,26 @@ void GIWindows::init(eastl::unique_ptr<class scene::TiledScene> &&s)
     return;
   windows->rearrange(128.f); // todo: may be better tile heuresitcs
   if (!gridCntSB)
-    gridCntSB = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), 1, "gridCntSB");
+    gridCntSB = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), 1, "gridCntSB", d3d::buffers::Init::No, RESTAG_DAGI);
   currentGridSize = WINDOW_GRID_XZ * WINDOW_GRID_Y * WINDOW_GRID_XZ * 2;
   if (!currentWindowsGridSB.getBuf())
-    currentWindowsGridSB =
-      UniqueBufHolder(dag::buffers::create_ua_sr_structured(sizeof(uint32_t), currentGridSize, "currentWindowsGrid"), "windowsGrid");
+    currentWindowsGridSB = UniqueBufHolder(dag::buffers::create_ua_sr_structured(sizeof(uint32_t), currentGridSize,
+                                             "currentWindowsGrid", d3d::buffers::Init::No, RESTAG_DAGI),
+      "windowsGrid");
   currentWindowsGridSB.setVar();
   fill_windows_grid_range.reset(new_compute_shader("fill_windows_grid_range_cs"));
   fill_windows_grid_range_fast.reset(new_compute_shader("fill_windows_grid_range_fast_cs"));
   clear_windows_grid_range.reset(new_compute_shader("clear_windows_grid_range_cs"));
 }
 
+void GIWindows::afterReset()
+{
+  invalidate();
+  currentCount = -1;
+}
+
 GIWindows::~GIWindows()
 {
-  ShaderGlobal::set_color4(windowsGridLTVarId, -10000, -10000, -10000, 1);
+  ShaderGlobal::set_float4(windowsGridLTVarId, -10000, -10000, -10000, 1);
   ShaderGlobal::set_int(current_windows_countVarId, 0);
 }

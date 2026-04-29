@@ -4,6 +4,7 @@
 #include <sqrat.h>
 #include <util/dag_globDef.h>
 #include <quirrel/sqStackChecker.h>
+#include <math/dag_Point2.h>
 
 
 namespace darg
@@ -12,10 +13,10 @@ namespace darg
 class Element;
 
 
-void script_print_func(HSQUIRRELVM v, const SQChar *s, ...);
-void script_err_print_func(HSQUIRRELVM v, const SQChar *s, ...);
-void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity severity, const SQChar *desc, const SQChar *source, SQInteger line,
-  SQInteger column, const SQChar *);
+void script_print_func(HSQUIRRELVM v, const char *s, ...);
+void script_err_print_func(HSQUIRRELVM v, const char *s, ...);
+void compile_error_handler(HSQUIRRELVM v, SQMessageSeverity severity, const char *desc, const char *source, SQInteger line,
+  SQInteger column, const char *);
 SQInteger runtime_error_handler(HSQUIRRELVM v);
 SQInteger encode_e3dcolor(HSQUIRRELVM vm);
 bool decode_e3dcolor(const Sqrat::Object &val, E3DCOLOR &color, const char **err_msg);
@@ -42,7 +43,7 @@ T *try_cast_instance(const Sqrat::Object &obj, const Sqrat::Object &trace_contai
 }
 
 
-Point2 script_get_point2(Sqrat::Array arr);
+Point2 script_get_point2(Sqrat::Object obj, Point2 def);
 E3DCOLOR script_get_color(Sqrat::Array arr);
 
 // Margins, paddings, border widths etc

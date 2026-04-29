@@ -1,6 +1,7 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "render/wind/ambientWind.h"
+#include <EASTL/unique_ptr.h>
 
 float AmbientWind::beaufort_to_meter_per_second(float) { return 0; }
 
@@ -25,6 +26,7 @@ void AmbientWind::update() {}
 
 void AmbientWind::enable() {}
 void AmbientWind::disable() {}
+void AmbientWind::afterDeviceReset() {};
 
 // This functions are for use in non-ECS projects only
 static eastl::unique_ptr<AmbientWind> ambient_wind;

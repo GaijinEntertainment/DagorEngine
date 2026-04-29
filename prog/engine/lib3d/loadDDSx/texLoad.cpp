@@ -315,7 +315,7 @@ static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUR
   }
 
   RMGR_TRACE("tex=%p(%s) cflg=0x%08x type=%d %dx%dx%d,L%d fmt=0x%x (to read to %dx%dx%d,L%d)", tex, TEX_NAME(tex, tid), ti.cflg,
-    tex ? tex->getType() : D3DResourceType::TEX, max(hdr.w >> skip_lev, 1), max(hdr.h >> skip_lev, 1),
+    tex ? (int)tex->getType() : (int)D3DResourceType::TEX, max(hdr.w >> skip_lev, 1), max(hdr.h >> skip_lev, 1),
     max<int>(hdr.depth >> skip_lev, ti.a), rd_lev, hdr.d3dFormat, max(ti.w >> start_lev, 1), max(ti.h >> start_lev, 1),
     max<int>(ti.d >> start_lev, ti.a), min(rd_lev, ti.mipLevels - start_lev));
   if (start_lev + rd_lev > ti.mipLevels)
@@ -333,6 +333,7 @@ static TexLoadRes load_ddsx_tex_contents(BaseTexture *tex, TEXTUREID tid, TEXTUR
     smpInfo.address_mode_u = (d3d::AddressMode)hdr.getAddrU();
     smpInfo.address_mode_v = (d3d::AddressMode)hdr.getAddrV();
     set_texture_separate_sampler(tid, smpInfo);
+    texmgr_internal::apply_mip_bias_rules(tex, RMGR.getName(tid.index()));
   }
 
   if ((hdr.flags & hdr.FLG_HOLD_SYSMEM_COPY) && tid != BAD_TEXTUREID)
@@ -406,7 +407,7 @@ static TexLoadRes load_ddsx_to_slice(BaseTexture *tex, int slice, const ddsx::He
   }
 
   RMGR_TRACE("tex=%p(%s) cflg=0x%08x type=%d %dx%d,L%d fmt=0x%x (to read to %dx%d,L%d) to slice %d", tex, tex->getTexName(), ti.cflg,
-    tex->getType(), max(hdr.w >> skip_lev, 1), max(hdr.h >> skip_lev, 1), rd_lev, hdr.d3dFormat, max(ti.w >> start_lev, 1),
+    (int)tex->getType(), max(hdr.w >> skip_lev, 1), max(hdr.h >> skip_lev, 1), rd_lev, hdr.d3dFormat, max(ti.w >> start_lev, 1),
     max(ti.h >> start_lev, 1), rd_lev, slice);
 
   UnifiedTexGenLoad ucrd(crd, hdr);

@@ -58,6 +58,8 @@ extern const unsigned char texture_128x128_rg8[];
 
 void init_tex_noises()
 {
+  for (auto &c : noiseTexCounter)
+    c = 0;
   for (auto &l : noiseTexLock)
     os_spinlock_init(&l);
 }
@@ -301,7 +303,7 @@ static bool generate_perlin_noise_3d(SharedTexHolder &t, Point3 &min_r, Point3 &
     int mips, noiseW;
     generate_perlin_3d_texture(noiseW, max_r, min_r, texData, mips, fmt);
 
-    TexPtr perlinNoise3D = dag::create_voltex(noiseW, noiseW, noiseW, fmt, mips, "perlin_noise3d");
+    TexPtr perlinNoise3D = dag::create_voltex(noiseW, noiseW, noiseW, fmt, mips, "perlin_noise3d", RESTAG_NOISE);
     if (!perlinNoise3D)
       return false;
     {
@@ -426,7 +428,8 @@ private:
   {
     for (int level = 0, e = texture.getTex2D()->level_count(); level < e; level++)
     {
-      if (auto lockedTex = lock_texture(texture.getTex2D(), level, TEXLOCK_WRITE | (level == e - 1 ? TEXLOCK_DELSYSMEMCOPY : 0)))
+      if (auto lockedTex =
+            lock_texture<ImageRawBytes>(texture.getTex2D(), level, TEXLOCK_WRITE | (level == e - 1 ? TEXLOCK_DELSYSMEMCOPY : 0)))
         stridedMemcpy(lockedTex.get(), image->getPixels(), image->w * image->h * sizeof(PixelType), image->w * sizeof(PixelType),
           lockedTex.getByteStride());
       else
@@ -469,7 +472,7 @@ static bool init_blue_noise(const SharedTexHolder &t)
   TextureInfo info;
   t.getTex2D()->getinfo(info);
 
-  if (auto lockedTex = lock_texture(t.getTex2D(), 0, TEXLOCK_WRITE))
+  if (auto lockedTex = lock_texture<ImageRawBytes>(t.getTex2D(), 0, TEXLOCK_WRITE))
     stridedMemcpy(lockedTex.get(), blue_noise_data::texture_128x128_rg8, BLUE_NOISE_W * BLUE_NOISE_W * 2, BLUE_NOISE_W * 2,
       lockedTex.getByteStride());
   else
@@ -482,15 +485,14 @@ template <typename CB>
 static inline const SharedTexHolder &init_and_get_noise(int index, CB cb)
 {
   NoiseTexLock lock(&noiseTexLock[index]);
-  if (noiseTex[index].getBaseTex())
+  if (noiseTex[index].getBaseTex() == nullptr)
   {
-    noiseTexCounter[index]++;
-    return noiseTex[index];
+    cb(noiseTex[index]);
+    noiseTex[index].setVar();
   }
-  cb(noiseTex[index]);
-  noiseTex[index].setVar();
-  G_ASSERT(noiseTexCounter[index] == 0);
-  noiseTexCounter[index] = 1;
+  else
+    G_ASSERT(noiseTexCounter[index] > 0);
+  noiseTexCounter[index]++;
   return noiseTex[index];
 }
 
@@ -499,7 +501,7 @@ const SharedTexHolder &init_and_get_argb8_64_noise()
   return init_and_get_noise(NOISE_TEX_ARGB, [](SharedTexHolder &t) {
     if (!VariableMap::isVariablePresent(get_shader_variable_id("noise_64_tex", true)))
       return false;
-    t = dag::create_tex(NULL, NOISE_W, NOISE_W, 0, 1, "noise_64_tex");
+    t = dag::create_tex(NULL, NOISE_W, NOISE_W, 0, 1, "noise_64_tex", RESTAG_NOISE);
     ShaderGlobal::set_sampler(get_shader_variable_id("noise_64_tex_samplerstate"), d3d::request_sampler({}));
     return init_argb8_64_noise(t);
   });
@@ -510,7 +512,7 @@ const SharedTexHolder &init_and_get_l8_64_noise()
   return init_and_get_noise(NOISE_TEX_L8, [](SharedTexHolder &t) {
     if (!VariableMap::isVariablePresent(get_shader_variable_id("noise_64_tex_l8", true)))
       return false;
-    t = dag::create_tex(NULL, NOISE_W, NOISE_W, TEXFMT_R8, 1, "noise_64_tex_l8");
+    t = dag::create_tex(NULL, NOISE_W, NOISE_W, TEXFMT_R8, 1, "noise_64_tex_l8", RESTAG_NOISE);
     ShaderGlobal::set_sampler(get_shader_variable_id("noise_64_tex_l8_samplerstate"), d3d::request_sampler({}));
     return init_l8_64_noise(t);
   });
@@ -531,7 +533,7 @@ const SharedTexHolder &init_and_get_hash_128_noise()
     if (!VariableMap::isVariablePresent(get_shader_variable_id("noise_128_tex_hash", true)))
       return false;
     const size_t mipLevels = 6;
-    t = dag::create_tex(NULL, HASH_NOISE_W, HASH_NOISE_W, TEXFMT_R8G8, mipLevels, "noise_128_tex_hash");
+    t = dag::create_tex(NULL, HASH_NOISE_W, HASH_NOISE_W, TEXFMT_R8G8, mipLevels, "noise_128_tex_hash", RESTAG_NOISE);
     ShaderGlobal::set_sampler(get_shader_variable_id("noise_128_tex_hash_samplerstate"), d3d::request_sampler({}));
     return init_hash_noise(t);
   });
@@ -542,7 +544,7 @@ const SharedTexHolder &init_and_get_blue_noise()
   return init_and_get_noise(NOISE_BLUE_RG8, [](SharedTexHolder &t) {
     if (!VariableMap::isVariablePresent(get_shader_variable_id("blue_noise_tex", true)))
       return false;
-    t = dag::create_tex(NULL, BLUE_NOISE_W, BLUE_NOISE_W, TEXFMT_R8G8, 1, "blue_noise_tex");
+    t = dag::create_tex(NULL, BLUE_NOISE_W, BLUE_NOISE_W, TEXFMT_R8G8, 1, "blue_noise_tex", RESTAG_NOISE);
 
     return init_blue_noise(t);
   });

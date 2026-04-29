@@ -1,11 +1,12 @@
 include "hmap_blend_inc.dshl"
 
 
-macro COMMON_RENDINST_INIT_HMAP()
+macro COMMON_RENDINST_INIT_HMAP(is_color_pass) // workaround for different rendinst pass names in WT and DNG
 
   INIT_HMAP_BLEND_STATIC()
 
-  if (rendinst_render_pass != rendinst_render_pass_to_shadow && rendinst_render_pass != rendinst_render_pass_depth )
+  bool should_use = is_color_pass && rendinst_render_pass != rendinst_render_pass_to_shadow && rendinst_render_pass != rendinst_render_pass_depth;
+  if (should_use)
   {
     USE_HMAP_BLEND_VS_PARAMS()
   }

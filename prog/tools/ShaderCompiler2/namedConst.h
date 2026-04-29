@@ -2,6 +2,7 @@
 #pragma once
 
 #include "shaderSave.h"
+#include "shlexterm.h"
 #include "variablesMerger.h"
 #include <generic/dag_tab.h>
 #include "nameMap.h"
@@ -24,6 +25,7 @@ class TargetContext;
 
 class ShaderStateBlock;
 class StcodeRoutine;
+class CompiledPreshader;
 
 static bool operator==(const Tab<bindump::Address<ShaderStateBlock>> &a, const Tab<bindump::Address<ShaderStateBlock>> &b)
 {
@@ -46,6 +48,7 @@ struct NamedConstBlock
     int regIndex = -1;
     short size = 0;
     bool isDynamic = false;
+    const Terminal *declTerm = nullptr;
     String hlslDecl, hlslPostfix;
   };
 
@@ -70,10 +73,10 @@ struct NamedConstBlock
     friend bool operator!=(CstHandle l, CstHandle r) = default;
 
     static CstHandle makeInvalidHandle(ShaderStage stage, bool is_cbuf_const) { return {stage, -1, is_cbuf_const}; }
+    static CstHandle makeErrorHandle(ShaderStage stage, bool is_cbuf_const) { return {stage, -2, is_cbuf_const}; }
   };
   friend bool is_valid(CstHandle hnd) { return hnd.id >= 0; }
-
-  using MergedVariablesData = ShaderParser::VariablesMerger;
+  friend bool is_error(CstHandle hnd) { return hnd.id == -2; }
 
   BINDUMP_BEGIN_NON_SERIALIZABLE();
   RegisterProperties pixelProps, vertexProps;
@@ -100,11 +103,11 @@ struct NamedConstBlock
 
   NamedConstBlock() : suppBlk(midmem) {}
 
-  CstHandle addConst(int stage, const char *name, HlslRegisterSpace reg_space, int sz, int hardcoded_reg, bool is_dynamic,
-    bool is_global_const_block);
+  CstHandle addConst(int stage, const char *name, Terminal *decl_term, Lexer &lexer, HlslRegisterSpace reg_space, int sz,
+    int hardcoded_reg, bool is_dynamic, bool is_global_const_block);
 
   // @TODO: error message
-  bool initSlotTextureSuballocators(int vs_tex_count, int ps_tex_count);
+  bool initSlotTextureSuballocators(int vs_tex_count, int vs_smp_count, int ps_tex_count, int ps_smp_count, Lexer &lexer);
 
   NamedConst &getSlot(CstHandle hnd)
   {
@@ -115,27 +118,23 @@ struct NamedConstBlock
 
   void addHlslDecl(CstHandle hnd, String &&hlsl_decl, String &&hlsl_postfix);
 
-  void patchHlsl(String &src, ShaderStage stage, const MergedVariablesData &merged_vars, int &max_const_no_used,
+  void patchHlsl(String &src, ShaderStage stage, const CompiledPreshader &preshader, Lexer &lexer, int &max_const_no_used,
     eastl::string_view hw_defines, bool uses_dual_source_blending);
 
-  CryptoHash getDigest(ShaderStage stage, const MergedVariablesData &merged_vars) const;
+  CryptoHash getDigest(ShaderStage stage, const CompiledPreshader &preshader) const;
 
   void buildDrawcallIdHlslDecl(String &out_text) const;
-  void buildStaticConstBufHlslDecl(String &out_text, const MergedVariablesData &merged_vars) const;
+  void buildStaticConstBufHlslDecl(String &out_text, const CompiledPreshader &preshader) const;
   void buildGlobalConstBufHlslDecl(String &out_text) const;
-  void buildHlslDeclText(String &out_text, ShaderStage stage) const
-  {
-    eastl::vector_set<const NamedConstBlock *> builtBlocks{};
-    doBuildHlslDeclText(out_text, stage, builtBlocks);
-  }
+  void buildHlslDeclText(String &out_text, ShaderStage stage) const;
 
-  void buildAllHlsl(String *out_text, const MergedVariablesData &merged_vars, ShaderStage stage) const
+  void buildAllHlsl(String *out_text, const CompiledPreshader &preshader, ShaderStage stage) const
   {
     String &cache = stage == STAGE_VS ? cachedVertexHlsl : cachedPixelOrComputeHlsl;
     if (cache.empty())
     {
       buildDrawcallIdHlslDecl(cache);
-      buildStaticConstBufHlslDecl(cache, merged_vars);
+      buildStaticConstBufHlslDecl(cache, preshader);
       buildHlslDeclText(cache, stage);
     }
 
@@ -148,17 +147,16 @@ struct NamedConstBlock
     clear_and_shrink(cachedPixelOrComputeHlsl);
   }
 
-  void doBuildHlslDeclText(String &out_text, ShaderStage stage, eastl::vector_set<const NamedConstBlock *> &built_blocks) const;
-
-  eastl::pair<int, int> getStaticTexRange(ShaderStage stage) const;
+  void preprocessHlslDecls(String &out_text, ShaderStage stage, eastl::vector_set<const NamedConstBlock *> &built_blocks,
+    eastl::vector<const NamedConst *> &out_gathered_consts) const;
 
   struct AllocatedRegInfo
   {
-    eastl::string name;
+    eastl::string desc;
     int size;
   };
 
-  auto makeInfoProvider(const RegisterProperties NamedConstBlock::*props, HlslRegisterSpace rspace) const;
+  auto makeInfoProvider(const RegisterProperties NamedConstBlock::*props_field, HlslRegisterSpace rspace, Lexer &lexer) const;
 };
 
 enum class ShaderBlockLevel
@@ -235,28 +233,62 @@ public:
   void link(Tab<ShaderStateBlock *> &loaded_blocks, dag::ConstSpan<int> stcode_remap, dag::ConstSpan<int> external_stcode_remap);
 };
 
-inline auto NamedConstBlock::makeInfoProvider(const RegisterProperties NamedConstBlock::*props, HlslRegisterSpace rspace) const
+inline auto NamedConstBlock::makeInfoProvider(const RegisterProperties NamedConstBlock::*props_field, HlslRegisterSpace rspace,
+  Lexer &lexer) const
 {
-  return [this, props, rspace](int reg) {
+  return [this, props_field, rspace, &lexer](int reg) {
     auto getInfoForReg = [&](const RegisterProperties &props) {
       for (const auto &[ind, cst] : enumerate(props.sc))
       {
         if (cst.rspace == rspace && cst.regIndex == reg)
-          return eastl::make_tuple(props.sn.getName(ind), int(cst.size));
+        {
+          eastl::optional<eastl::string> sourceRef{};
+          if (const auto *t = cst.declTerm; t && t->num == SHADER_TOKENS::SHTOK_ident)
+            if (const char *fn = lexer.get_filename(t->file_start))
+            {
+              sourceRef.emplace(eastl::string::CtorSprintf{}, "%s(%i,%i)", fn, t->line_start, t->col_start);
+              if (shc::config().dumpRegsMacroCallstacks && !t->macro_call_stack.empty())
+              {
+                sourceRef->append("\n      Call stack:\n    ");
+                for (auto it = t->macro_call_stack.rbegin(); it != t->macro_call_stack.rend(); ++it)
+                  sourceRef->append_sprintf("  %s()\n          %s(%i)\n    ", it->name, lexer.get_filename(it->file), it->line);
+              }
+            }
+          return eastl::make_tuple(props.sn.getName(ind), sourceRef, int(cst.size));
+        }
       }
-      return eastl::make_tuple((const char *)nullptr, 1);
+      return eastl::make_tuple((const char *)nullptr, eastl::optional<eastl::string>{}, 1);
+    };
+
+    auto getInfoForBlockReg = [&](const ShaderStateBlock *blk) -> eastl::optional<AllocatedRegInfo> {
+      if (!blk)
+        return eastl::nullopt;
+      if (auto [name, ref, size] = getInfoForReg(blk->shConst.*props_field); name)
+      {
+        return AllocatedRegInfo{
+          eastl::string{name} + ", <block " + blk->name.c_str() + ", " + (ref ? ref->c_str() : "unknown source location") + ">\n",
+          size};
+      }
+      return eastl::nullopt;
+    };
+
+    auto getInfoForBlockRecursive = [&](const ShaderStateBlock *blk, auto &&self) -> eastl::optional<AllocatedRegInfo> {
+      if (!blk)
+        return eastl::nullopt;
+      if (auto info = self(blk->shConst.globConstBlk, self))
+        return eastl::move(*info);
+      for (const auto &sblk : blk->shConst.suppBlk)
+        if (auto info = self(sblk, self))
+          return eastl::move(*info);
+      return getInfoForBlockReg(blk);
     };
 
     for (const auto &blk : suppBlk)
-    {
-      if (auto [name, size] = getInfoForReg(blk->shConst.*props); name)
-      {
-        return AllocatedRegInfo{eastl::string{name} + ", <block " + blk->name.c_str() + ">", size};
-      }
-    }
-    if (auto [name, size] = getInfoForReg(this->*props); name)
-      return AllocatedRegInfo{eastl::string{name} + ", <shader>", size};
+      if (auto info = getInfoForBlockRecursive(blk, getInfoForBlockRecursive))
+        return eastl::move(*info);
+    if (auto [name, ref, size] = getInfoForReg(this->*props_field); name)
+      return AllocatedRegInfo{eastl::string{name} + ", <shader, " + (ref ? ref->c_str() : "unknown source location") + ">\n", size};
 
-    return AllocatedRegInfo{"<unnamed>", 1};
+    return AllocatedRegInfo{"<unnamed>\n", 1};
   };
 }

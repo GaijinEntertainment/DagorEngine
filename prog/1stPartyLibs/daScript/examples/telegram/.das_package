@@ -1,0 +1,14 @@
+options gen2
+
+require daslib/daspkg
+
+[export]
+def package() {
+    package_name("telegram-example")
+    package_description("Telegram echo bot using dasTelegram package")
+}
+
+[export]
+def dependencies(version : string) {
+    require_package("dasTelegram")
+}

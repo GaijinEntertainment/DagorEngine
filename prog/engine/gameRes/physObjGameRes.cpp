@@ -7,11 +7,14 @@
 #include <ioSys/dag_genIo.h>
 #include <generic/dag_tab.h>
 #include <generic/dag_initOnDemand.h>
+#include <startup/dag_globalSettings.h>
+#include <ioSys/dag_dataBlock.h>
 #include <EASTL/utility.h>
 #include <debug/dag_log.h>
 #include <gameRes/dag_dumpResRefCountImpl.h>
 #include <osApiWrappers/dag_critSec.h>
 
+// Note: out-of line due to forward declaration of `DynamicRenderableSceneLodsResource`
 DynamicPhysObjectData::DynamicPhysObjectData() = default;
 DynamicPhysObjectData::~DynamicPhysObjectData() = default;
 
@@ -74,15 +77,15 @@ public:
   bool isResLoaded(int res_id) override { return findRes(res_id) >= 0; }
   bool checkResPtr(GameResource *res) override { return findRes(res) >= 0; }
 
-  GameResource *getGameResource(int res_id) override
+  GameResource *getGameResource(RRL rrl, int res_id) override
   {
+    WinAutoLock lock(get_gameres_main_cs());
     int id = findRes(res_id);
-
     if (id < 0)
-      ::load_game_resource_pack(res_id);
-
-    id = findRes(res_id);
-
+    {
+      load_game_resource_pack_gameres_main_cs_locked(res_id, rrl);
+      id = findRes(res_id);
+    }
     if (id < 0)
       return NULL;
 
@@ -146,12 +149,12 @@ public:
   }
 
 
-  bool freeUnusedResources(bool forced_free_unref_packs, bool once /*= false*/) override
+  bool freeUnusedResources(RRL rrl, bool forced_free_unref_packs, bool once /*= false*/) override
   {
     bool result = false;
     for (int i = gameRes.size() - 1; i >= 0; --i)
     {
-      if (get_refcount_game_resource_pack_by_resid(gameRes[i].resId) > 0)
+      if (rrl && is_res_required(rrl, gameRes[i].resId))
         continue;
       if (gameRes[i].refCount != 0)
       {
@@ -162,7 +165,7 @@ public:
       }
 
       if (gameRes[i].data->nodeTree)
-        ::release_game_resource((GameResource *)gameRes[i].data->nodeTree);
+        ::release_game_resource_ex(gameRes[i].data->nodeTree, GeomNodeTreeGameResClassId);
 
       erase_items(gameRes, i, 1);
       result = true;
@@ -170,10 +173,12 @@ public:
         break;
     }
 
-    if (result)
-      for (int j = resData.size() - 1; j >= 0; j--)
-        if (resData[j].resource->getRefCount() == 1)
-          erase_items(resData, j, 1);
+    for (int j = resData.size() - 1; j >= 0; j--)
+      if (resData[j].resource->getRefCount() == 1)
+      {
+        erase_items(resData, j, 1);
+        result = true;
+      }
 
     return result;
   }
@@ -203,6 +208,68 @@ public:
     {
       rrd.modelCount = 1;
       rrd.resource = PhysicsResource::loadResource(cb, 0);
+#if _TARGET_PC || DAGOR_DBGLEVEL > 0
+      {
+#if _TARGET_PC && DAGOR_DBGLEVEL > 0
+        static const float maxPhysObjDens = dgs_get_settings()->getReal("maxPhysObjDensity", 1e4f);
+        int dll = (maxPhysObjDens != 0) ? (maxPhysObjDens > 0.f ? LOGLEVEL_WARN : LOGLEVEL_ERR) : -1;
+        auto calcBodyVolume = [](const PhysicsResource::Body &b, int &cm) {
+          float vol = 0.f;
+          for (auto &c : b.sphColl)
+          {
+            vol += 4.f / 3.f * PI * sqr(c.radius) * c.radius;
+            cm |= 1;
+          }
+          for (auto &c : b.boxColl)
+          {
+            vol += c.size.x * c.size.y * c.size.z;
+            cm |= 2;
+          }
+          for (auto &c : b.capColl)
+          {
+            vol += PI * sqr(c.radius) * (length(c.extent) + 4.f / 3.f * c.radius);
+            cm |= 4;
+          }
+          return vol > 0.f ? vol : /*vol of 1mm cube*/ 1e-9f;
+        };
+
+#endif
+        String resname;
+        auto getResName = [&]() {
+          if (resname.empty())
+            get_game_resource_name(res_id, resname);
+          return resname.c_str();
+        };
+        for (const auto &bodies = rrd.resource->getBodies(); auto &b : bodies)
+        {
+          if (vec3f vmj = v_perm_xyzz(v_ldu(&b.momj.x)); !v_test_all_bits_zeros(v_cmp_lt(vmj, v_zero())))
+          {
+            Point3 size =
+              b.boxColl.size() == 1 ? b.boxColl[0].size : (b.sphColl.size() == 1 ? Point3(b.sphColl[0].radius, 0, 0) : Point3{});
+            int ll = (b.mass < 0.f && dgs_get_settings()->getBool("physObjAllowNegativeMass", false)) ? LOGLEVEL_WARN : LOGLEVEL_ERR;
+            logmessage(ll,
+              "<%s> body[%d]=%s has negative moment of inertia (%g,%g,%g) mass=%g size=(%g,%g,%g) # box/sph/cap=%d/%d/%d; %s",
+              getResName(), &b - bodies.data(), b.name.c_str(), P3D(b.momj), b.mass, P3D(size), b.boxColl.size(), b.sphColl.size(),
+              b.capColl.size(),
+              b.mass >= 0 ? "re-export physObj gameres" : "run with \"physObjAllowNegativeMass:b=no\" to disable this logerr");
+          }
+#if DAGOR_DBGLEVEL > 0
+          for (auto &bc : b.boxColl)
+            if (vec3f vbsz = v_perm_xyzz(v_ldu(&bc.size.x)); !v_test_all_bits_zeros(v_cmp_lt(vbsz, v_zero())))
+              logerr("<%s> body[%d]=%s box[%d] has negative size (%g,%g,%g)!", getResName(), &b - bodies.data(), b.name.c_str(),
+                &bc - b.boxColl.data(), P3D(bc.size));
+#endif
+#if _TARGET_PC && DAGOR_DBGLEVEL > 0
+          int cm = 0;
+          double vol = (dll >= 0) ? calcBodyVolume(b, cm) : 0;
+          if (cm)
+            if (double dens = b.mass / vol; dens > fabsf(maxPhysObjDens))
+              logmessage(dll, "<%s> body[%d]=%s has density of %g > maxPhysObjDens (%g); mass=%g volume=%g collTypeMask=%d",
+                getResName(), &b - bodies.data(), b.name.c_str(), dens, fabsf(maxPhysObjDens), b.mass, vol, cm);
+#endif
+        }
+      }
+#endif
     }
 
     WinAutoLock lock(cs);
@@ -210,7 +277,7 @@ public:
   }
 
 
-  void createGameResource(int res_id, const int *ref_ids, int num_refs) override
+  void createGameResource(RRL rrl, int res_id, const int *ref_ids, int num_refs) override
   {
     WinCritSec &cs = get_gameres_main_cs();
     PhysicsResource *resource;
@@ -241,21 +308,23 @@ public:
 
     for (int index = 0; index < modelCount; index++)
     {
-      auto m = (DynamicRenderableSceneLodsResource *)::get_game_resource(ref_ids[index]);
+      auto m = (DynamicRenderableSceneLodsResource *)get_game_resource(ref_ids[index], rrl);
       data->models.push_back(m);
-      ::release_game_resource((GameResource *)m);
+      if (m)
+        ::release_game_resource_ex(m, DynModelGameResClassId);
     }
 
     if (resource)
     {
       data->physRes = resource;
-      data->nodeTree = (num_refs < modelCount + 1) ? NULL : (GeomNodeTree *)::get_game_resource(ref_ids[modelCount]);
+      data->nodeTree = (num_refs < modelCount + 1) ? NULL : (GeomNodeTree *)get_game_resource(ref_ids[modelCount], rrl);
     }
     else
     {
-      data->physRes = (PhysicsResource *)::get_game_resource(ref_ids[modelCount]);
-      ::release_game_resource((GameResource *)data->physRes.get());
-      data->nodeTree = (GeomNodeTree *)::get_game_resource(ref_ids[modelCount + 1]);
+      data->physRes = (PhysicsResource *)get_game_resource(ref_ids[modelCount], rrl);
+      if (data->physRes)
+        ::release_game_resource_ex(data->physRes, PhysSysGameResClassId);
+      data->nodeTree = (GeomNodeTree *)get_game_resource(ref_ids[modelCount + 1], rrl);
     }
 
     WinAutoLock lock2(cs);

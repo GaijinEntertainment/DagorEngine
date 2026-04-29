@@ -17,6 +17,7 @@ class CollisionResource;
 namespace rendinst
 {
 
+inline SmartReadWriteFifoLock riXYZRLock;
 
 struct RiExtraPool
 {
@@ -26,6 +27,11 @@ struct RiExtraPool
   RenderableInstanceLodsResource *res = nullptr;
   CollisionResource *collRes = nullptr;
   void *collHandle = nullptr;
+  uint8_t hideMask = 0;
+  bool scaleDebris = false;
+  bool isDestroyedPhysResExist = false;
+  bool isDynamicRendinst = false;
+  int tsIndex = -1;
 
   vec4f bsphXYZR = v_make_vec4f(0, 0, 0, 1);
 
@@ -42,7 +48,6 @@ struct RiExtraPool
   unsigned patchesHeightmap : 1, usingClipmap : 1;
   unsigned killsNearEffects : 1, hasTransitionLod : 1;
   unsigned isGrassify : 1;
-  uint8_t hideMask = 0;
   struct ElemMask
   {
     uint32_t atest, cullN, tessellation, plod;
@@ -81,11 +86,11 @@ struct RiExtraPool
         lastDmgTime = t;
     }
   };
-
+  int parentForDestroyedRiIdx = -1;
   Tab<mat43f> riTm;
   Tab<vec4f> riXYZR; // R<0 mean 'not in grid'
   E3DCOLOR poolColors[2] = {};
-  Tab<uint16_t> uuIdx;
+  Tab<uint32_t> uuIdx;
   Tab<HPandLDT> riHP;
   Tab<ElemUniqueData> riUniqueData; // This way we'll identify them after generation, so we can keep them synced
   bbox3f lbb = {};
@@ -93,17 +98,14 @@ struct RiExtraPool
   bbox3f fullWabb = {};
 
   dag::Vector<uint32_t> tsNodeIdx; //(2:20) TiledScene node_index for each instanse (highest 2 bits select TileScene index)
-  int tsIndex = -1;
 
   dag::Vector<int> variableIdsToUpdateMaxHeight;
   float initialHP = -1;
   float regenHpRate = 0;
   int destroyedRiIdx = -1;
-  int parentForDestroyedRiIdx = -1;
-  bool scaleDebris = false;
   int destrDepth = 0;
   class DynamicPhysObjectData *destroyedPhysRes = nullptr;
-  bool isDestroyedPhysResExist = false;
+  float scaleForPrepasses = 1.0f;
   int destrFxType = -1;
   int destrCompositeFxId = -1;
   float destrFxScale = 0;
@@ -111,19 +113,21 @@ struct RiExtraPool
   float destrDefaultTimeToLive = -1.f;
   float destrTimeToKinematic = -1.f;
   float destrTimeToSinkUnderground = -1.f;
+  float destrTimeToStartDisintegration = -1.0f;
+  float destrDisintegrationDuration = 0;
+  float destrDisintegrationScale = 1;
   int dmgFxType = -1;
   float dmgFxScale = 1.f;
   float damageThreshold = 0;
   uint8_t destrStopsBullets : 1;
-
+  bool isRendinstClipmap = false;
+  bool isPaintFxOnHit = false;
+  bool indestructibleByNuke = false;
   float sphereRadius = 1.f;
   float sphCenterY = 0.f;
   float radiusFadeDrown = 0.f;
   float radiusFade = 0.f;
   unsigned lodLimits = defLodLimits;
-  bool isRendinstClipmap = false;
-  bool isPaintFxOnHit = false;
-  bool isDynamicRendinst = false;
 
   struct RiLandclassCachedData
   {
@@ -143,8 +147,6 @@ struct RiExtraPool
   SimpleString destrFxTemplate;
 
   SimpleString materialMarkedForHiding;
-
-  float scaleForPrepasses = 1.0f;
 
   // NOTE: bitfields can only be default-initialized in C++20
   RiExtraPool() :
@@ -184,6 +186,7 @@ struct RiExtraPool
   bool isValid(uint32_t idx) const { return idx < riTm.size() && riex_is_instance_valid(riTm.data()[idx]); }
   bool isInGrid(int idx) const
   {
+    ScopedLockRead lock(riXYZRLock);
     if (idx < 0 || idx >= riXYZR.size())
       return false;
     uint32_t r_code = ((uint32_t *)&riXYZR[idx])[3];
@@ -207,11 +210,25 @@ struct RiExtraPool
     else if (hp != 0.0f) // -1 or > 0
       riHP[idx].makeNonRegenerating();
   }
-  scene::node_index getNodeIdx(int idx) const
+  bool isInvincible(int idx)
+  {
+    if (idx < 0 || idx >= riHP.size())
+      return false;
+    return riHP[idx].isInvincible();
+  }
+
+  struct NodeIdxAndTs
+  {
+    uint32_t tsIndex;
+    scene::node_index nodeIdx;
+  };
+
+  NodeIdxAndTs getNodeIdx(int idx) const
   {
     if (idx < 0 || idx >= tsNodeIdx.size())
-      return scene::INVALID_NODE;
-    return tsNodeIdx.data()[idx] & 0x3fffffff;
+      return {0, scene::INVALID_NODE};
+    uint32_t tsData = tsNodeIdx.data()[idx];
+    return {tsData >> 30u, tsData & 0x3fffffffu};
   }
   float bsphRad() const { return v_extract_w(bsphXYZR); }
 

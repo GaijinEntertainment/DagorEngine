@@ -11,6 +11,34 @@ static ecs::LTComponentList transform_component(ECS_HASH("transform"), transform
 #include "levelES.cpp.inl"
 ECS_DEF_PULL_VAR(level);
 #include <daECS/core/internal/performQuery.h>
+static constexpr ecs::ComponentDesc level_render_es_comps[] =
+{
+//start of 1 rw components at [0]
+  {ECS_HASH("level__render"), ecs::ComponentTypeInfo<bool>(), ecs::CDF_OPTIONAL},
+//start of 1 rq components at [1]
+  {ECS_HASH("level"), ecs::ComponentTypeInfo<LocationHolder>()}
+};
+static void level_render_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
+{
+  G_FAST_ASSERT(evt.is<EventBeforeLocationEntityCreated>());
+  auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
+    level_render_es(static_cast<const EventBeforeLocationEntityCreated&>(evt)
+        , ECS_RW_COMP_PTR(level_render_es_comps, "level__render", bool)
+    );
+  while (++comp != compE);
+}
+static ecs::EntitySystemDesc level_render_es_es_desc
+(
+  "level_render_es",
+  "prog/daNetGame/main/levelES.cpp.inl",
+  ecs::EntitySystemOps(nullptr, level_render_es_all_events),
+  make_span(level_render_es_comps+0, 1)/*rw*/,
+  empty_span(),
+  make_span(level_render_es_comps+1, 1)/*rq*/,
+  empty_span(),
+  ecs::EventSetBuilder<EventBeforeLocationEntityCreated>::build(),
+  0
+,"dngRenderIsActive");
 static constexpr ecs::ComponentDesc level_es_comps[] =
 {
 //start of 1 rw components at [0]
@@ -62,7 +90,7 @@ static ecs::EntitySystemDesc world_renderer_es_event_handler_es_desc
   ecs::EventSetBuilder<ecs::EventEntityCreated,
                        ecs::EventComponentsAppear>::build(),
   0
-);
+,"dngRenderIsActive");
 static constexpr ecs::ComponentDesc level_is_loading_ecs_query_comps[] =
 {
 //start of 1 rw components at [0]
@@ -76,9 +104,9 @@ static ecs::CompileTimeQueryDesc level_is_loading_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void level_is_loading_ecs_query(Callable function)
+inline void level_is_loading_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, level_is_loading_ecs_query_desc.getHandle(),
+  perform_query(&manager, level_is_loading_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -104,9 +132,9 @@ static ecs::CompileTimeQueryDesc get_level_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_level_ecs_query(Callable function)
+inline void get_level_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_level_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_level_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -134,9 +162,9 @@ static ecs::CompileTimeQueryDesc delete_weather_choice_entities_ecs_query_desc
   make_span(delete_weather_choice_entities_ecs_query_comps+1, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void delete_weather_choice_entities_ecs_query(Callable function)
+inline void delete_weather_choice_entities_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, delete_weather_choice_entities_ecs_query_desc.getHandle(),
+  perform_query(&manager, delete_weather_choice_entities_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -151,21 +179,27 @@ inline void delete_weather_choice_entities_ecs_query(Callable function)
 }
 static constexpr ecs::ComponentDesc query_get_level_weather_and_time_seeds_ecs_query_comps[] =
 {
-//start of 2 ro components at [0]
+//start of 8 ro components at [0]
   {ECS_HASH("level__weatherSeed"), ecs::ComponentTypeInfo<int>()},
-  {ECS_HASH("level__timeSeed"), ecs::ComponentTypeInfo<int>()}
+  {ECS_HASH("level__timeSeed"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("level__weather"), ecs::ComponentTypeInfo<ecs::string>()},
+  {ECS_HASH("level__latitude"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("level__longtitude"), ecs::ComponentTypeInfo<float>()},
+  {ECS_HASH("level__day"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("level__month"), ecs::ComponentTypeInfo<int>()},
+  {ECS_HASH("level__year"), ecs::ComponentTypeInfo<int>()}
 };
 static ecs::CompileTimeQueryDesc query_get_level_weather_and_time_seeds_ecs_query_desc
 (
   "query_get_level_weather_and_time_seeds_ecs_query",
   empty_span(),
-  make_span(query_get_level_weather_and_time_seeds_ecs_query_comps+0, 2)/*ro*/,
+  make_span(query_get_level_weather_and_time_seeds_ecs_query_comps+0, 8)/*ro*/,
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void query_get_level_weather_and_time_seeds_ecs_query(ecs::EntityId eid, Callable function)
+inline void query_get_level_weather_and_time_seeds_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, query_get_level_weather_and_time_seeds_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, query_get_level_weather_and_time_seeds_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -173,9 +207,47 @@ inline void query_get_level_weather_and_time_seeds_ecs_query(ecs::EntityId eid, 
           function(
               ECS_RO_COMP(query_get_level_weather_and_time_seeds_ecs_query_comps, "level__weatherSeed", int)
             , ECS_RO_COMP(query_get_level_weather_and_time_seeds_ecs_query_comps, "level__timeSeed", int)
+            , ECS_RO_COMP(query_get_level_weather_and_time_seeds_ecs_query_comps, "level__weather", ecs::string)
+            , ECS_RO_COMP(query_get_level_weather_and_time_seeds_ecs_query_comps, "level__latitude", float)
+            , ECS_RO_COMP(query_get_level_weather_and_time_seeds_ecs_query_comps, "level__longtitude", float)
+            , ECS_RO_COMP(query_get_level_weather_and_time_seeds_ecs_query_comps, "level__day", int)
+            , ECS_RO_COMP(query_get_level_weather_and_time_seeds_ecs_query_comps, "level__month", int)
+            , ECS_RO_COMP(query_get_level_weather_and_time_seeds_ecs_query_comps, "level__year", int)
             );
 
         }
+    }
+  );
+}
+static constexpr ecs::ComponentDesc query_get_cloud_hole_ecs_query_comps[] =
+{
+//start of 2 ro components at [0]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+  {ECS_HASH("density"), ecs::ComponentTypeInfo<float>()},
+//start of 1 rq components at [2]
+  {ECS_HASH("clouds_hole_tag"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc query_get_cloud_hole_ecs_query_desc
+(
+  "query_get_cloud_hole_ecs_query",
+  empty_span(),
+  make_span(query_get_cloud_hole_ecs_query_comps+0, 2)/*ro*/,
+  make_span(query_get_cloud_hole_ecs_query_comps+2, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void query_get_cloud_hole_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, query_get_cloud_hole_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(query_get_cloud_hole_ecs_query_comps, "transform", TMatrix)
+            , ECS_RO_COMP(query_get_cloud_hole_ecs_query_comps, "density", float)
+            );
+
+        }while (++comp != compE);
     }
   );
 }
@@ -192,15 +264,77 @@ static ecs::CompileTimeQueryDesc query_get_skies_seed_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void query_get_skies_seed_ecs_query(Callable function)
+inline void query_get_skies_seed_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, query_get_skies_seed_ecs_query_desc.getHandle(),
+  perform_query(&manager, query_get_skies_seed_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
         {
           function(
               ECS_RO_COMP(query_get_skies_seed_ecs_query_comps, "skies_settings__weatherSeed", int)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc query_weather_entity_for_export_ecs_query_comps[] =
+{
+//start of 1 ro components at [0]
+  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
+//start of 1 rq components at [1]
+  {ECS_HASH("weather_choice_tag"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc query_weather_entity_for_export_ecs_query_desc
+(
+  "query_weather_entity_for_export_ecs_query",
+  empty_span(),
+  make_span(query_weather_entity_for_export_ecs_query_comps+0, 1)/*ro*/,
+  make_span(query_weather_entity_for_export_ecs_query_comps+1, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void query_weather_entity_for_export_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, query_weather_entity_for_export_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RO_COMP(query_weather_entity_for_export_ecs_query_comps, "eid", ecs::EntityId)
+            );
+
+        }while (++comp != compE);
+    }
+  );
+}
+static constexpr ecs::ComponentDesc query_set_cloud_hole_ecs_query_comps[] =
+{
+//start of 2 rw components at [0]
+  {ECS_HASH("transform"), ecs::ComponentTypeInfo<TMatrix>()},
+  {ECS_HASH("density"), ecs::ComponentTypeInfo<float>()},
+//start of 1 rq components at [2]
+  {ECS_HASH("clouds_hole_tag"), ecs::ComponentTypeInfo<ecs::Tag>()}
+};
+static ecs::CompileTimeQueryDesc query_set_cloud_hole_ecs_query_desc
+(
+  "query_set_cloud_hole_ecs_query",
+  make_span(query_set_cloud_hole_ecs_query_comps+0, 2)/*rw*/,
+  empty_span(),
+  make_span(query_set_cloud_hole_ecs_query_comps+2, 1)/*rq*/,
+  empty_span());
+template<typename Callable>
+inline void query_set_cloud_hole_ecs_query(ecs::EntityManager &manager, Callable function)
+{
+  perform_query(&manager, query_set_cloud_hole_ecs_query_desc.getHandle(),
+    [&function](const ecs::QueryView& __restrict components)
+    {
+        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
+        {
+          function(
+              ECS_RW_COMP(query_set_cloud_hole_ecs_query_comps, "transform", TMatrix)
+            , ECS_RW_COMP(query_set_cloud_hole_ecs_query_comps, "density", float)
             );
 
         }while (++comp != compE);
@@ -223,9 +357,9 @@ static ecs::CompileTimeQueryDesc query_level_entity_eid_set_seed_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void query_level_entity_eid_set_seed_ecs_query(Callable function)
+inline void query_level_entity_eid_set_seed_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, query_level_entity_eid_set_seed_ecs_query_desc.getHandle(),
+  perform_query(&manager, query_level_entity_eid_set_seed_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -255,9 +389,9 @@ static ecs::CompileTimeQueryDesc query_get_level_seeds_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void query_get_level_seeds_ecs_query(ecs::EntityId eid, Callable function)
+inline void query_get_level_seeds_ecs_query(ecs::EntityManager &manager, ecs::EntityId eid, Callable function)
 {
-  perform_query(g_entity_mgr, eid, query_get_level_seeds_ecs_query_desc.getHandle(),
+  perform_query(&manager, eid, query_get_level_seeds_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         constexpr size_t comp = 0;
@@ -272,36 +406,6 @@ inline void query_get_level_seeds_ecs_query(ecs::EntityId eid, Callable function
     }
   );
 }
-static constexpr ecs::ComponentDesc query_weather_entity_for_export_ecs_query_comps[] =
-{
-//start of 1 ro components at [0]
-  {ECS_HASH("eid"), ecs::ComponentTypeInfo<ecs::EntityId>()},
-//start of 1 rq components at [1]
-  {ECS_HASH("weather_choice_tag"), ecs::ComponentTypeInfo<ecs::Tag>()}
-};
-static ecs::CompileTimeQueryDesc query_weather_entity_for_export_ecs_query_desc
-(
-  "query_weather_entity_for_export_ecs_query",
-  empty_span(),
-  make_span(query_weather_entity_for_export_ecs_query_comps+0, 1)/*ro*/,
-  make_span(query_weather_entity_for_export_ecs_query_comps+1, 1)/*rq*/,
-  empty_span());
-template<typename Callable>
-inline void query_weather_entity_for_export_ecs_query(Callable function)
-{
-  perform_query(g_entity_mgr, query_weather_entity_for_export_ecs_query_desc.getHandle(),
-    [&function](const ecs::QueryView& __restrict components)
-    {
-        auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
-        {
-          function(
-              ECS_RO_COMP(query_weather_entity_for_export_ecs_query_comps, "eid", ecs::EntityId)
-            );
-
-        }while (++comp != compE);
-    }
-  );
-}
-static constexpr ecs::component_t effect__name_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char, eastl::allocator>>::type; }
+static constexpr ecs::component_t effect__name_get_type(){return ecs::ComponentTypeInfo<eastl::basic_string<char>>::type; }
 static constexpr ecs::component_t skies_settings__weatherSeed_get_type(){return ecs::ComponentTypeInfo<int>::type; }
 static constexpr ecs::component_t transform_get_type(){return ecs::ComponentTypeInfo<TMatrix>::type; }

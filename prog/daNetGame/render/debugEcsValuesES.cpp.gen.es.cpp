@@ -8,7 +8,9 @@ ECS_DEF_PULL_VAR(debugEcsValues);
 static void debug_draw_ecs_values_es_all(const ecs::UpdateStageInfo &__restrict info, const ecs::QueryView & __restrict components)
 {
   G_UNUSED(components);
-    debug_draw_ecs_values_es(*info.cast<UpdateStageInfoRenderDebug>());
+    debug_draw_ecs_values_es(*info.cast<UpdateStageInfoRenderDebug>()
+    , components.manager()
+    );
 }
 static ecs::EntitySystemDesc debug_draw_ecs_values_es_es_desc
 (
@@ -38,9 +40,9 @@ static ecs::CompileTimeQueryDesc items_with_debug_values_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void items_with_debug_values_ecs_query(Callable function)
+inline void items_with_debug_values_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, items_with_debug_values_ecs_query_desc.getHandle(),
+  perform_query(&manager, items_with_debug_values_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

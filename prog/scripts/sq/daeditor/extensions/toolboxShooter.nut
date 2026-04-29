@@ -53,7 +53,7 @@ function toolboxCmd_toggleGroups() {
   setToolboxState("showGroups", !getToolboxState("showGroups"))
 }
 
-let respawnsBtnText = function() {
+function respawnsBtnText() {
   let mode = getToolboxState("respawns")
   return mode == 1 ? "Respawns +" : mode == 2 ? "Respawns..." : "Respawns"
 }

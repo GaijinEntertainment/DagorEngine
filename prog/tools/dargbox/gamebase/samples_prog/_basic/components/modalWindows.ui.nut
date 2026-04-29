@@ -11,9 +11,9 @@ let someWindow = freeze({
   flow = FLOW_VERTICAL
   size = flex()
   children = [
-    {size = static [0, sh(20)]}
+    {size = const [0, sh(20)]}
     {rendObj=ROBJ_TEXT text = "Modal Window" }
-    {size = static [0, sh(20)]}
+    {size = const [0, sh(20)]}
     {rendObj=ROBJ_TEXT text = "this is modal window. Click anywhere to close it" }
   ]
 })

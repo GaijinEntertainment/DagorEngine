@@ -13,7 +13,8 @@ static void flash_blind_es_all_events(const ecs::Event &__restrict evt, const ec
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     flash_blind_es(evt
-        , ECS_RO_COMP(flash_blind_es_comps, "flash_blind__intensity", float)
+        , components.manager()
+    , ECS_RO_COMP(flash_blind_es_comps, "flash_blind__intensity", float)
     );
   while (++comp != compE);
 }
@@ -37,9 +38,9 @@ static constexpr ecs::ComponentDesc flash_blind_stop_es_comps[] =
 };
 static void flash_blind_stop_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   flash_blind_stop_es(evt
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc flash_blind_stop_es_es_desc
 (
@@ -67,9 +68,9 @@ static ecs::CompileTimeQueryDesc flash_blind_finish_init_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void flash_blind_finish_init_ecs_query(Callable function)
+inline void flash_blind_finish_init_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, flash_blind_finish_init_ecs_query_desc.getHandle(),
+  perform_query(&manager, flash_blind_finish_init_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -99,9 +100,9 @@ static ecs::CompileTimeQueryDesc start_flash_blind_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void start_flash_blind_ecs_query(Callable function)
+inline void start_flash_blind_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, start_flash_blind_ecs_query_desc.getHandle(),
+  perform_query(&manager, start_flash_blind_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -131,9 +132,9 @@ static ecs::CompileTimeQueryDesc stop_flash_blind_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void stop_flash_blind_ecs_query(Callable function)
+inline void stop_flash_blind_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, stop_flash_blind_ecs_query_desc.getHandle(),
+  perform_query(&manager, stop_flash_blind_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

@@ -22,7 +22,6 @@ interval special_vision : special_vision_off<1, thermal_vision;
 
 shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
 {
-  ENABLE_ASSERT(ps)
   SUPPORT_MULTIDRAW(false)
   NO_DEFORM_HMAP()
   static int num_bones = 0;
@@ -35,7 +34,7 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
 
   INIT_AND_USE_GLASS_ICON_RENDER(ps)
   if (render_to_icon == yes) {
-    if (special_vision != special_vision_off || dyn_model_render_pass != render_pass_normal || glass_normal_pass != no) {
+    if (special_vision != special_vision_off || dyn_model_render_pass != render_pass_normal || rendinst_transparent_gbuffer_pass > off) {
       dont_render;
     }
   }
@@ -43,7 +42,7 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
   if (shader != dynamic_glass_chrome)
   {
     texture tex = material.texture.diffuse;
-    (ps) { diffuse_tex@static = tex; }
+    (ps) { diffuse_tex@staticSmp = tex; }
   }
 
   if (dyn_model_render_pass != render_to_depth)
@@ -55,7 +54,7 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
     else
     {
       z_write = false;
-      if (shader == dynamic_glass_chrome && use_glass_dual_source_blending == yes)
+      if (shader == dynamic_glass_chrome && rendinst_transparent_gbuffer_pass != generate && use_glass_dual_source_blending == yes)
       {
         blend_src = one; blend_dst = sc1;
         hlsl(ps) {
@@ -114,8 +113,6 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
     }
   }
 
-  supports global_const_block;
-
   DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
   BASE_USE_BRUNETON_FOG(vs)
 
@@ -166,14 +163,11 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
     }
 
     BASE_USE_BRUNETON_FOG(ps)
-    USE_CSM_SHADOW(ps, 2, dummy)
+    USE_CSM_SHADOW_DEFAULT(ps, 2)
     if (in_editor_assume == no)
     {
       SQ_CLOUDS_SHADOW(ps)
-      if (mobile_render == off)
-      {
-        USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
-      }
+      USE_VOLUMETRIC_LIGHT_TRANSPARENT(ps)
     }
 
     STANDARD_BRDF_SHADING()
@@ -216,7 +210,7 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
       hlsl(ps) {
         struct PsOutput
         {
-          ##if (glass_normal_pass == yes)
+          ##if (rendinst_transparent_gbuffer_pass == generate)
             float4 normal : SV_Target0;
           ##else
             #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
@@ -257,7 +251,7 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
           half3 worldNormal = normalize(input.normal);
           worldNormal = MUL_VFACE(worldNormal);
 
-        ##if (glass_normal_pass == yes)
+        ##if (rendinst_transparent_gbuffer_pass == generate)
           PsOutput result;
           result.normal = float4(worldNormal * 0.5 + 0.5, 1);
           return result;
@@ -300,7 +294,7 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
             result.color.rgb *= pow(invExposure, 1.5);
           #endif
 
-          ##if mobile_render == off && in_editor_assume == no
+          ##if in_editor_assume == no
           #if APPLY_BRUNETON_FOG
             get_volfog_with_precalculated_scattering(
               screenUV,
@@ -338,13 +332,11 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
             result.color.gb = 0;
           ##endif
 
-          ##if mobile_render == off
-            #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
-              result.addend.rgb = pack_hdr(result.addend.rgb);
-            #else
-              result.color.rgb = pack_hdr(result.color.rgb);
-            #endif
-          ##endif
+          #if GLASS_DUAL_SOURCE_BLENDING_ENABLED
+            result.addend.rgb = pack_hdr(result.addend.rgb);
+          #else
+            result.color.rgb = pack_hdr(result.color.rgb);
+          #endif
 
           return result;
         ##endif
@@ -370,7 +362,7 @@ shader glass_crack, dynamic_masked_glass_chrome, dynamic_glass_chrome
             SET_DRAW_CALL_ID(GET_DRAW_ID(input) & MATERIAL_OFFSET_MASK);
           #endif
 
-          ##if (glass_normal_pass == yes)
+          ##if (rendinst_transparent_gbuffer_pass == generate)
             float3 worldNormal = normalize(input.normal.xyz);
             worldNormal = normalize(MUL_VFACE(worldNormal));
             return float4(worldNormal * 0.5 + 0.5, 1);

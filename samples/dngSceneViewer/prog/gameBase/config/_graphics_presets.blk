@@ -16,7 +16,7 @@ low {
     tsrQuality:i=1
   }
   video {
-    antiAliasingMode:i=3
+    antialiasing_mode:t="tsr"
     temporalUpsamplingRatio:r=50
   }
 }
@@ -39,7 +39,7 @@ medium {
     tsrQuality:i=0
   }
   video {
-    antiAliasingMode:i=3
+    antialiasing_mode:t="tsr"
     temporalUpsamplingRatio:r=100
   }
 }
@@ -62,7 +62,7 @@ ultra {
     tsrQuality:i=1
   }
   video {
-    antiAliasingMode:i=3
+    antialiasing_mode:t="tsr"
     temporalUpsamplingRatio:r=100
   }
 }

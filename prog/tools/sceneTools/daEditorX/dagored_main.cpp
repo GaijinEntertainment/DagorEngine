@@ -1,10 +1,10 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include "de_appwnd.h"
-#include "de_batch.h"
 #include <EditorCore/ec_IEditorCore.h>
 #include <EditorCore/ec_imguiInitialization.h>
 #include <EditorCore/ec_input.h>
+#include <EditorCore/ec_startup.h>
 
 #include <workCycle/dag_gameSettings.h>
 #include <startup/dag_globalSettings.h>
@@ -20,27 +20,26 @@
 #include <EditorCore/ec_wndGlobal.h>
 #include <libTools/util/strUtil.h>
 #include <libTools/dtx/ddsxPlugin.h>
+#include <coolConsole/conBatch.h>
 
 #include <winGuiWrapper/wgw_dialogs.h>
 
 #include <util/dag_oaHashNameMap.h>
 #include <util/dag_delayedAction.h>
 #include <stdio.h>
-#include <time.h>
 #undef ERROR
 
 #include "splashScreen.h"
 
 #include <perfMon/dag_cpuFreq.h>
 #include <perfMon/dag_daProfilerSettings.h>
+#include <perfMon/dag_daProfiler.h>
 
 #if _TARGET_PC_LINUX
-#include <unistd.h>
+#include <unistd.h> // _exit
 #endif
 
 using editorcore_extapi::dagConsole;
-
-extern "C" const char *dagor_get_build_stamp_str(char *buf, size_t bufsz, const char *suffix);
 
 static InitOnDemand<SplashScreen> screen;
 
@@ -60,7 +59,7 @@ OAHashNameMap<true> cmdline_force_enabled_plugins, cmdline_force_disabled_plugin
 FastNameMap cmdline_include_dll_re, cmdline_exclude_dll_re;
 
 void (*on_batch_exit)() = NULL;
-static DeBatch *global_batch = NULL;
+static ConBatch *global_batch = NULL;
 static String global_batch_fn;
 static bool batch_exit_done = false;
 
@@ -78,7 +77,7 @@ static void on_global_batch_exit()
   con.saveToFile(global_batch_fn + (ok ? ".log" : ".err"));
 }
 
-static void quiet_report_fatal_error(const char *title, const char *msg, const char *call_stack)
+static void quiet_report_fatal_error(const char *, const char *msg, const char *call_stack)
 {
   if (on_batch_exit && !batch_exit_done)
   {
@@ -95,6 +94,7 @@ static void quiet_report_fatal_error(const char *title, const char *msg, const c
   _exit(13);
 }
 
+
 class AppManager : public IWndManagerEventHandler
 {
 public:
@@ -104,6 +104,7 @@ public:
 
     const char *openFname = NULL;
     const char *batchFname = NULL;
+    bool asyncBatch = false;
     const char *useWorkspace = NULL;
 
     // test switches
@@ -125,6 +126,8 @@ public:
         useWorkspace = dgs_argv[i] + 4;
       else if (!openFname && trail_strcmp(dgs_argv[i], ".level.blk") && ::dd_file_exist(dgs_argv[i]))
         openFname = dgs_argv[i];
+      else if (stricmp(dgs_argv[i], "-async_batch") == 0)
+        asyncBatch = true;
     }
 
     //----------------------------------
@@ -138,9 +141,9 @@ public:
     int pc = ddsx::load_plugins(::make_full_path(sgg::get_exe_path_full(), "plugins/ddsx"));
     debug("loaded %d DDSx export plugin(s)", pc);
 
-    if (batchFname)
+    if (batchFname && !asyncBatch)
     {
-      DeBatch batch;
+      ConBatch batch;
       if (d3d::get_driver_code().is(!d3d::stub))
         dgs_report_fatal_error = quiet_report_fatal_error;
 
@@ -151,10 +154,12 @@ public:
       debug("start batch: %s", global_batch_fn.str());
       SplashScreen::kill();
       batch.runBatch(global_batch_fn);
+      DAGORED2->getConsole().runCommand("exit no");
     }
     else if (d3d::get_driver_code().is(d3d::stub))
     {
       SplashScreen::kill();
+      wingw::set_native_modal_dialog_events(nullptr);
       const char *message = "The stub driver can only be used in batch mode but no batch file (a file with .dcmd extension) has been "
                             "specified in the command line arguments.";
       logerr("%s", message);
@@ -169,6 +174,7 @@ public:
       {
         if (DAGORED2)
           DAGORED2->getConsole().addMessage(ILogWriter::ERROR, "DaEditorX failed to start");
+        wingw::set_native_modal_dialog_events(nullptr);
         wingw::message_box(wingw::MBS_EXCL, "Fatal error", "DaEditorX failed to start");
         flush_debug_file();
         fflush(stdout);
@@ -176,6 +182,20 @@ public:
         _exit(13);
       }
       DAGORED2->preparePluginsListmenu();
+    }
+
+    if (batchFname && asyncBatch)
+    {
+      ConBatch batch;
+      if (d3d::get_driver_code().is(!d3d::stub))
+        dgs_report_fatal_error = quiet_report_fatal_error;
+
+      global_batch_fn = ::make_full_path(sgg::get_start_path(), batchFname);
+      global_batch = get_cmd_queue_batch();
+      on_batch_exit = &on_global_batch_exit;
+
+      debug("start async batch: %s", global_batch_fn.str());
+      batch.runBatch(global_batch_fn, true);
     }
   }
 
@@ -224,9 +244,9 @@ bool de3_default_fatal_handler(const char *msg, const char *call_stack, const ch
     logerr("skip fatal from non-main thread; message will be posted to console from main thread");
     return false;
   }
-  if (dagConsole)
+  if (dagConsole && DAGORED2)
   {
-    if (strncmp(msg, "assert failed in", 16) == 0)
+    if (msg && strncmp(msg, "assert failed in", 16) == 0)
       DAGORED2->getConsole().addMessage(ILogWriter::ERROR, msg);
     else
       DAGORED2->getConsole().addMessage(ILogWriter::ERROR, "FATAL: %s,%d:\n    %s", file, line, msg);
@@ -235,17 +255,7 @@ bool de3_default_fatal_handler(const char *msg, const char *call_stack, const ch
   return prev_dev_fatal_handler ? prev_dev_fatal_handler(msg, call_stack, file, line) : true;
 }
 
-static E3DCOLOR load_window_background_color()
-{
-  const String settingsPath = make_full_path(sgg::get_exe_path_full(), "../.local/de3_settings.blk");
-  DataBlock settingsBlock;
-  dblk::load(settingsBlock, settingsPath, dblk::ReadFlag::ROBUST);
-  const DataBlock *settingsThemeBlock = settingsBlock.getBlockByNameEx("theme");
-  const char *themeName = settingsThemeBlock->getStr("name", "light");
-  return editor_core_load_window_background_color(String::mk_str_cat(themeName, ".blk"));
-}
-
-int DagorWinMain(int nCmdShow, bool /*debugmode*/)
+int DagorWinMain(int, bool /*debugmode*/)
 {
   AppManager appManager;
 
@@ -254,10 +264,12 @@ int DagorWinMain(int nCmdShow, bool /*debugmode*/)
   prev_dev_fatal_handler = dgs_fatal_handler;
   dgs_fatal_handler = de3_default_fatal_handler;
 
+  da_profiler::tick_frame();
+
   EditorMainWindow mainWindow(appManager);
-  mainWindow.run(
-    "DaEditorX", "RES_DE_ICON", [&appManager](const dag::Vector<String> &files) -> bool { return appManager.onDropFiles(files); },
-    load_window_background_color());
+  mainWindow.run([&appManager](const dag::Vector<String> &files) -> bool { return appManager.onDropFiles(files); });
+
+  da_profiler::shutdown();
 
   return 0;
 }
@@ -295,28 +307,18 @@ void DagorWinMainInit(int, bool)
       de3_drv_name = dgs_argv[i] + 5;
       if (strcmp(de3_drv_name, "stub") == 0)
         minimize_dabuild_usage = true;
+      const_cast<DataBlock *>(::dgs_get_settings())->addBlock("video")->setStr("driver", de3_drv_name);
     }
     else if (stricmp(dgs_argv[i], "-lateSceneSelect") == 0)
       de3_late_scene_select = true;
-    else if (strnicmp(dgs_argv[i], "-profiler:", 10) == 0)
-    {
-      DataBlock profilerSettings;
-      profilerSettings.addStr("profiler", dgs_argv[i] + 10);
-      da_profiler::set_profiling_settings(profilerSettings);
-    }
 
   if (classic_dbg)
     start_classic_debug_system("debug");
   else
     start_debug_system(dgs_argv[0]);
 
-  char stamp_buf[256], start_time_buf[32] = {0};
-  time_t start_at_time = time(nullptr);
-  const char *asctimeResult = asctime(gmtime(&start_at_time));
-  strcpy(start_time_buf, asctimeResult ? asctimeResult : "???");
-  if (char *p = strchr(start_time_buf, '\n'))
-    *p = '\0';
-  debug("%s [started at %s UTC+0]\n", dagor_get_build_stamp_str(stamp_buf, sizeof(stamp_buf), ""), start_time_buf);
+  ec_log_startup_info();
+
   if (d3d::get_driver_code().is(d3d::stub))
     dgs_report_fatal_error = quiet_report_fatal_error;
   if (!dabuild_usage_allowed)

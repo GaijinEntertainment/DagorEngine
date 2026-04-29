@@ -110,18 +110,31 @@ struct BTTriMeshShapeWithInlineBvh final : public btBvhTriangleMeshShape
   btIndexedMesh meshPart;
 
   BTTriMeshShapeWithInlineBvh() = delete;
+  // Frees the vertex/index buffer owned by meshPart.m_vertexBase (originally allocated
+  // in create_bt_collision_shape_no_margin as OwnedIndexVertexArray, ownership transferred here).
+  ~BTTriMeshShapeWithInlineBvh() { delete[] meshPart.m_vertexBase; }
   void constructInlineExtra()
   {
+    // m_meshInterface points to an OwnedIndexVertexArray allocated in create_bt_collision_shape_no_margin().
+    // That subclass owns a vertex/index buffer via m_indexedMeshes[0].m_vertexBase (freed in its dtor).
+    // We transfer all data into inline members below; the original object is then raw-freed.
     auto meshInterface = static_cast<btTriangleIndexVertexArray *>(m_meshInterface);
     memcpy((void *)&meshIface, (void *)meshInterface, sizeof(meshIface));
     if (meshInterface->getNumSubParts() == 1)
     {
+      // Copy the single btIndexedMesh (including m_vertexBase pointer) into inline meshPart.
+      // initializeFromBuffer re-points meshIface's internal array to &meshPart and frees the
+      // original AlignedObjectArray backing store (clear->deallocate, since m_ownsMemory is true).
       memcpy(&meshPart, &meshInterface->getIndexedMeshArray()[0], sizeof(meshPart));
       meshIface.getIndexedMeshArray().initializeFromBuffer(&meshPart, 1, 1);
     }
-    memfree(meshInterface, defaultmem); // dtor is intentionally not called (it's internal data moved to meshIface)
+    // meshInterface's AlignedObjectArray buffer was already freed by initializeFromBuffer above.
+    // Raw-free the object without dtor: OwnedIndexVertexArray::~dtor would delete[] m_vertexBase,
+    // but that buffer is now owned by meshPart and freed in ~BTTriMeshShapeWithInlineBvh.
+    memfree(meshInterface, defaultmem);
     m_meshInterface = &meshIface;
     (new (&bvh, _NEW_INPLACE) btOptimizedBvh())->build(&meshIface, usesQuantizedAabbCompression(), m_localAabbMin, m_localAabbMax);
+    // setOptimizedBvh sets m_ownsBvh=false, so ~btBvhTriangleMeshShape won't try to free the inline bvh.
     setOptimizedBvh(&bvh, meshIface.getScaling());
   }
 };
@@ -139,7 +152,9 @@ struct BTRigidWithInlineTriMesh final : public btRigidBody
     MEMCPY_COLL(&triMesh, shape, btBvhTriangleMeshShape);
     triMesh.constructInlineExtra();
     btRigidBody::setCollisionShape(&triMesh);
-    memfree(shape, defaultmem); // dtor is intentionally not called
+    // shape was created with buildBvh=false so m_bvh=0 and m_ownsBvh=false; its dtor is a no-op.
+    // m_meshInterface (the OwnedIndexVertexArray) was already freed inside constructInlineExtra.
+    memfree(shape, defaultmem);
   }
   ~BTRigidWithInlineTriMesh()
   {

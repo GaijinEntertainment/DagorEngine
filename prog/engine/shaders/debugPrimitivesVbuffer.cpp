@@ -222,12 +222,12 @@ void DebugPrimitivesVbuffer::endCache()
   }
 
   const size_t vbuffer_size = vertexList.size() * sizeof(Point3);
-  vbuffer = d3d::create_vb((int)(vbuffer_size), 0, name);
+  vbuffer = d3d::create_vb((int)(vbuffer_size), 0, name, RESTAG_DEBUG);
   vbuffer->updateData(0, (uint32_t)vbuffer_size, (void *)vertexList.data(), 0);
 
   String ibName = String(0, "%s_ib", name);
   const size_t ibuffer_size = indices.size() * sizeof(int);
-  ibuffer = d3d::create_ib((int)ibuffer_size, SBCF_INDEX32, ibName);
+  ibuffer = d3d::create_ib((int)ibuffer_size, SBCF_INDEX32, ibName, RESTAG_DEBUG);
   ibuffer->updateData(0, (uint32_t)ibuffer_size, (void *)indices.data(), 0);
 
   clear_and_shrink(linesCache);
@@ -254,7 +254,7 @@ void DebugPrimitivesVbuffer::renderEx(bool z_test, bool z_write, bool z_func_les
   for (Pass &pass : trianglesPasses)
   {
     Color4 color = Color4(pass.color) * color_multiplier;
-    ShaderGlobal::set_color4(::get_shader_variable_id("debug_line_color"), color);
+    ShaderGlobal::set_float4(::get_shader_variable_id("debug_line_color"), color);
     shaderElem->setStates();
 
     const int startIndex = trianglesStartIndex + 3 * pass.firstPrimitive;
@@ -264,7 +264,7 @@ void DebugPrimitivesVbuffer::renderEx(bool z_test, bool z_write, bool z_func_les
   for (Pass &pass : linesPasses)
   {
     Color4 color = Color4(pass.color) * color_multiplier;
-    ShaderGlobal::set_color4(::get_shader_variable_id("debug_line_color"), color);
+    ShaderGlobal::set_float4(::get_shader_variable_id("debug_line_color"), color);
     shaderElem->setStates();
 
     const int startIndex = 2 * pass.firstPrimitive;

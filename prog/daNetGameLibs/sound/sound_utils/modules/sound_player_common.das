@@ -146,8 +146,8 @@ def play_name_path(name : string;
   return invalid_sound_event_handle()
 
 
-def get_name(desc : Object; is_watched_sound : bool; def_ = "")
-  return is_watched_sound ? (desc.hero ?? desc.name ?? def_) : (desc.enemy ?? desc.name ?? def_)
+def get_name(desc : Object; is_watched_sound : bool)
+  return is_watched_sound ? (desc.hero ?? desc.name ?? "") : (desc.enemy ?? desc.name ?? "")
 
 
 def play_desc_path(desc : Object;
@@ -301,7 +301,7 @@ def play(desc_id : string;
     if is_valid(*desc, tags)
       var path = ""
       if get_option_path(path_obj, tags, is_watched_sound, path)
-        let name = get_name(*desc, is_watched_sound, desc_id)
+        let name = get_name(*desc, is_watched_sound)
         if !empty(name)
           return play_name_path(name, apply_watched_prefix(path, is_watched_sound), pos, is_abandon, desc?.delay ?? 0.)
     return invalid_sound_event_handle()
@@ -323,7 +323,7 @@ def play(desc_id : string;
     if is_valid(*desc, tags)
       var path = ""
       if get_option_path(path_obj, tags, is_watched_sound, path)
-        let name = get_name(*desc, is_watched_sound, desc_id)
+        let name = get_name(*desc, is_watched_sound)
         if !empty(name)
           return play_name_path(name, apply_watched_prefix(path, is_watched_sound), id, pos, group, desc?.delay ?? 0.)
     return invalid_sound_event_handle()

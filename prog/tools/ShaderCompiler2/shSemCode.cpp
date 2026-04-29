@@ -93,11 +93,10 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
 
   code->channel = channel;
 
-  // compute var offsets
   Tab<int> cvar(tmpmem);
   cvar.resize(vars.size());
-  int ofs = 0;
 
+  Tab<eastl::pair<int, int>> var_size_pairs(tmpmem);
   for (int i = 0; i < vars.size(); ++i)
   {
     int sz;
@@ -111,15 +110,34 @@ ShaderCode *ShaderSemCode::generateShaderCode(const ShaderVariant::VariantTableS
       case SHVT_SAMPLER: sz = sizeof(d3d::SamplerHandle); break;
       default: G_ASSERT(0); sz = 0;
     }
-    cvar[i] = ofs;
-    staticStcodeVars.patch(i, ofs);
+    var_size_pairs.push_back({i, sz});
+  }
+
+  // Sort by size (descending) to ensure larger variables are placed first,
+  // achieving natural alignment, and by idx within size groups to preserve
+  // the code order.
+  fast_sort(var_size_pairs, [](const auto &a, const auto &b) {
+    if (a.second != b.second)
+      return a.second > b.second;
+    return a.first < b.first;
+  });
+
+  int ofs = 0;
+  for (const auto &[orig_idx, sz] : var_size_pairs)
+  {
+    cvar[orig_idx] = ofs;
+    staticStcodeVars.patch(orig_idx, ofs);
     ofs += sz;
-    if (shc::config().addTextureType && vars[i].slot >= 0)
+
+    // Assert proper alignment (should always be true due to sorted order)
+    G_ASSERT(ofs % 4 == 0);
+
+    if (shc::config().addTextureType && vars[orig_idx].slot >= 0)
     {
-      if (vars[i].slot >= code->staticTextureTypes.size())
-        for (int j = code->staticTextureTypes.size(); j <= vars[i].slot; j++)
+      if (vars[orig_idx].slot >= code->staticTextureTypes.size())
+        for (int j = code->staticTextureTypes.size(); j <= vars[orig_idx].slot; j++)
           code->staticTextureTypes.push_back(ShaderVarTextureType::SHVT_TEX_UNKNOWN);
-      code->staticTextureTypes[vars[i].slot] = vars[i].texType;
+      code->staticTextureTypes[vars[orig_idx].slot] = vars[orig_idx].texType;
     }
   }
 
@@ -219,12 +237,17 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, const Tab
       case SHCOD_GLOB_SAMPLER:
       case SHCOD_TEXTURE:
       case SHCOD_TEXTURE_VS:
+      case SHCOD_TEXTURE_CS:
       case SHCOD_REG_BINDLESS:
       case SHCOD_BUFFER:
       case SHCOD_CONST_BUFFER:
       case SHCOD_TLAS:
-      case SHCOD_RWTEX:
-      case SHCOD_RWBUF:
+      case SHCOD_RWTEX_CS:
+      case SHCOD_RWTEX_PS:
+      case SHCOD_RWTEX_VS:
+      case SHCOD_RWBUF_CS:
+      case SHCOD_RWBUF_PS:
+      case SHCOD_RWBUF_VS:
       case SHCOD_GET_GINT:
       case SHCOD_GET_GREAL:
       case SHCOD_GET_GTEX:
@@ -250,14 +273,14 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, const Tab
       case SHCOD_COPY_VEC: break;
 
       case SHCOD_STATIC_BLOCK:
-      case SHCOD_STATIC_MULTIDRAW_BLOCK:
+      case SHCOD_STATIC_MULTIDRAW_BLOCK: i += 2; break;
       case SHCOD_IMM_REAL:
       case SHCOD_MAKE_VEC: i++; break;
 
       case SHCOD_IMM_VEC: i += 4; break;
 
       case SHCOD_CALL_FUNCTION:
-        i += shaderopcode::getOp3p3(cod[i]); // skip params
+        i += shaderopcode::getOpFunctionCall_ArgCount(cod[i]); // skip params
         break;
 
       case SHCOD_GET_TEX:
@@ -288,7 +311,7 @@ void ShaderSemCode::convert_stcode(dag::Span<int> cod, Tab<int> &cvar, const Tab
 
 void ShaderSemCode::convert_passes(SemanticShaderPass &semP, ShaderCode::Pass &p, Tab<int> &cvar, const Tab<int> &var_map)
 {
-  if (semP.cs.size())
+  if (!semP.cs.empty())
   {
     p.fsh = add_fshader(semP.cs, ctx);
     p.vprog = -1;
@@ -314,34 +337,42 @@ void ShaderSemCode::convert_passes(SemanticShaderPass &semP, ShaderCode::Pass &p
   }
 
   // convert state code
-  Tab<int> stblkcode{};
-  stblkcode = semP.stblkcode;
-  convert_stcode(make_span(stblkcode), cvar, var_map);
-  p.stblkcodeNo = add_stcode(stblkcode, ctx);
-  if (shc::config().compileCppStcode())
+  if (!semP.preshader->postedToTarget)
   {
-    if (shc::config().generateCppStcodeValidationData)
-      add_stcode_validation_mask(p.stblkcodeNo, semP.cppstcode.cppStblkcode.constMask.release(), ctx);
-
-    // @NOTE: we don't use branches for stblkcode due to the fact that they have to access global vars from threads
-    p.branchlessCppStblkcodeId = ctx.cppStcode().addCode(eastl::move(semP.cppstcode.cppStblkcode), semP.bufferedConstRange,
-      semP.psTexSmpRange, semP.vsTexSmpRange);
-  }
-
-  Tab<int> stcode{};
-  stcode = semP.stcode;
-  convert_stcode(make_span(stcode), cvar, var_map);
-  p.stcodeNo = add_stcode(stcode, ctx);
-  if (shc::config().compileCppStcode())
-  {
-    if (shc::config().generateCppStcodeValidationData)
-      add_stcode_validation_mask(p.stcodeNo, semP.cppstcode.cppStcode.constMask.release(), ctx);
-    if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHLESS_CPP)
+    convert_stcode(make_span(semP.preshader->stBlkBytecode), cvar, var_map);
+    semP.preshader->stblkcodeNo = add_stcode(semP.preshader->stBlkBytecode, ctx);
+    if (shc::config().compileCppStcode())
     {
-      p.branchlessCppStcodeId =
-        ctx.cppStcode().addCode(eastl::move(semP.cppstcode.cppStcode), semP.psOrCsConstRange, semP.vsConstRange);
+      if (shc::config().generateCppStcodeValidationData)
+        add_stcode_validation_mask(p.stblkcodeNo, semP.preshader->cppStcode.cppStblkcode.constMask.release(), ctx);
+
+      // @NOTE: we don't use branches for stblkcode due to the fact that they have to access global vars from threads
+      semP.preshader->cppStblkcodeId = ctx.cppStcode().addCode(eastl::move(semP.preshader->cppStcode.cppStblkcode),
+        semP.bufferedConstRange, semP.psTexSmpRange, semP.vsTexSmpRange);
     }
+
+    convert_stcode(make_span(semP.preshader->dynStBytecode), cvar, var_map);
+    semP.preshader->stcodeNo = add_stcode(semP.preshader->dynStBytecode, ctx);
+
+    if (shc::config().compileCppStcode())
+    {
+      if (shc::config().generateCppStcodeValidationData)
+        add_stcode_validation_mask(p.stcodeNo, semP.preshader->cppStcode.cppStcode.constMask.release(), ctx);
+
+      if (shc::config().cppStcodeMode == shader_layout::ExternalStcodeMode::BRANCHLESS_CPP)
+      {
+        semP.preshader->cppStcodeId =
+          ctx.cppStcode().addCode(eastl::move(semP.preshader->cppStcode.cppStcode), semP.psOrCsConstRange, semP.vsConstRange);
+      }
+    }
+
+    semP.preshader->postedToTarget = true;
   }
+
+  p.stblkcodeNo = semP.preshader->stblkcodeNo;
+  p.stcodeNo = semP.preshader->stcodeNo;
+  p.branchlessCppStblkcodeId = semP.preshader->cppStblkcodeId;
+  p.branchlessCppStcodeId = semP.preshader->cppStcodeId;
 
   p.renderStateNo = add_render_state(semP, ctx);
   p.threadGroupSizes = semP.threadGroupSizes;

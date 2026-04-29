@@ -1,0 +1,9 @@
+ERROR: expected line number after #pos:
+testData/diagnostics/compilation_errors/syntax_errors/expected_linenum.nut:2:0
+
+// EXPECT_ERROR: "expected line number after #pos:"
+#pos:abc
+^-------
+let x = 1
+
+

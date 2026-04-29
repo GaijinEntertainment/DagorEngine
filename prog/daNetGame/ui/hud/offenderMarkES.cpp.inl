@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <gui/dag_stdGuiRenderEx.h>
 #include <math/dag_easingFunctions.h>
 #include <math/dag_mathUtils.h>

@@ -198,6 +198,10 @@ bool check_modified_files(dag::ConstSpan<SimpleString> file_paths)
     return true;
   }
   output.clear();
+  execute_cmd("git branch --show-current", output);
+  if (output != "master\n" && output != "master")
+    return false;
+  output.clear();
   execute_cmd("git rev-list --count HEAD --not origin/master", output);
   const bool hasLocalCommits = output.empty() || output[0] != '0';
   if (hasLocalCommits)

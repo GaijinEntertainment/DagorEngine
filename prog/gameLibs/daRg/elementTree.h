@@ -57,15 +57,11 @@ public:
   void requestAnimStop(const Sqrat::Object &trigger);
   void skipAnim(const Sqrat::Object &trigger);
   void skipAnimDelay(const Sqrat::Object &trigger);
+  void pauseAnimation(const Sqrat::Object &trigger, bool set_pause);
   void updateAnimations(float dt, bool *finished_any);
   void updateTransitions(float dt);
   void updateKineticScroll(float dt);
   void skipAllOneShotAnims();
-
-  void setKbFocus(Element *elem, bool capture = false);
-  void captureKbFocus(Element *elem) { setKbFocus(elem, true); }
-  bool hasCapturedKbFocus() const;
-  void applyNextKbFocus();
 
   void startKineticScroll(Element *elem, const Point2 &vel);
   void stopKineticScroll(Element *elem);
@@ -77,6 +73,7 @@ public:
   Element *findElementByKey(const Sqrat::Object &key);
 
   int deactivateInput(InputDevice device, int pointer_id);
+  int deactivateAllInput();
 
   void setOverscroll(Element *elem, const Point2 &delta);
   void releaseOverscroll(Element *elem);
@@ -102,9 +99,8 @@ private:
 
 public:
   Element *root = nullptr;
-  Element *xmbFocus = nullptr;
 
-  bool watchesAllowed = true;
+  bool isInternalTemporaryTree = false; // For element size calculation only. No side effects allowed.
   bool canHandleInput = true;
 
   typedef ska::flat_hash_set<Element *> ElementSet;
@@ -122,16 +118,10 @@ public:
 
   Tab<Element *> withBehaviors;
 
-  Element *kbFocus = nullptr;
-  bool kbFocusCaptured = false;
   eastl::vector_set<Element *> topLevelHovers;
-  Element *nextKbFocus = nullptr;
-  bool nextKbFocusQueued = false;
-  bool nextKbFocusNeedCapture = false;
 
   GuiScene *guiScene = nullptr;
   Screen *screen = nullptr;
-  // Panel *panel = nullptr;
 
   int rebuildFlagsAccum = 0;
   int sceneStateFlags = 0;

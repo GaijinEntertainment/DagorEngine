@@ -7,16 +7,24 @@
 #include <math/dag_mathBase.h>
 #include <math/dag_Point2.h>
 #include <math/dag_Point3.h>
+#include <math/dag_Quat.h>
+#include <vecmath/dag_vecMath.h>
 
 // angles names:
 // heading - y rotate; attitude - z; bank - x
 
 // converts Euler angles to quaternion
-void euler_to_quat(real heading, real attitude, real bank, Quat &quat);
+inline void euler_to_quat(real heading, real attitude, real bank, Quat &quat)
+{
+  v_stu(&quat.x, v_quat_from_euler(v_make_vec4f(heading, attitude, bank, bank)));
+}
 void euler_heading_to_quat(real heading, Quat &quat);
 void euler_attitude_to_quat(real attitude, Quat &quat);
 void euler_bank_to_quat(real bank, Quat &quat);
-void euler_heading_attitude_to_quat(real heading, real attitude, Quat &quat);
+inline void euler_heading_attitude_to_quat(real heading, real attitude, Quat &quat)
+{
+  v_stu(&quat.x, v_quat_from_euler(v_insert_y(v_set_x(heading), attitude)));
+}
 void euler_attitude_bank_to_quat(real attitude, real bank, Quat &quat);
 // gets Euler angles from quaternion
 void quat_to_euler(const Quat &quat, real &heading, real &attitude, real &bank);

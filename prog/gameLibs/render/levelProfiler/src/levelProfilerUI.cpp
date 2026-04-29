@@ -2,6 +2,7 @@
 
 #include <cstring>
 #include "levelProfilerUI.h"
+#include "levelProfilerRiTable.h"
 #include "riModule.h"
 
 static_assert(levelprofiler::ImGuiConstants::WITH_BORDER == true, "WITH_BORDER constant must match ImGui boolean true value");
@@ -13,12 +14,17 @@ namespace levelprofiler
 // --- TextureProfilerUI ---
 
 TextureProfilerUI::TextureProfilerUI(TextureModule *texture_module, RIModule *ri_module) :
-  textureModule(texture_module), riModule(ri_module), exporter(texture_module)
+  textureModule(texture_module),
+  riModule(ri_module),
+  exporter(texture_module),
+  horizontalSplitter(LpSplitterDirection::HORIZONTAL, 0.6f),
+  verticalSplitter(LpSplitterDirection::VERTICAL, 0.7f)
 {
   // Connect RIModule to filters for texture usage filtering
   filterManager.setRIModule(ri_module);
 
   textureTable = eastl::make_unique<LpTextureTable>(this);
+  exporter.setTextureTable(textureTable.get());
 }
 
 TextureProfilerUI::~TextureProfilerUI() {}
@@ -41,8 +47,7 @@ void TextureProfilerUI::shutdown() {}
 void TextureProfilerUI::drawUI()
 {
   ImVec2 availableArea = ImGui::GetContentRegionAvail();
-  static float leftPanelRatio = 0.6f; // 60% for left panel by default
-  float leftPanelWidth = availableArea.x * leftPanelRatio;
+  float leftPanelWidth = availableArea.x * horizontalSplitter.getRatio();
 
   // Left panel: table and filters
   ImGui::BeginChild("PoolLeft", ImVec2(leftPanelWidth, 0), ImGuiConstants::WITH_BORDER);
@@ -51,23 +56,7 @@ void TextureProfilerUI::drawUI()
 
   ImGui::SameLine();
 
-  // InvisibleButton as a splitter handle
-  ImGui::InvisibleButton("##HSplitter", ImVec2(4.0f, eastl::max(availableArea.y, 1.0f)));
-
-  // Handle splitter dragging
-  if (ImGui::IsItemActive())
-  {
-    leftPanelRatio += ImGui::GetIO().MouseDelta.x / availableArea.x;
-    leftPanelRatio = eastl::clamp(leftPanelRatio, 0.2f, 0.8f); // Constrain to reasonable range
-  }
-
-  // Draw visual splitter line
-  {
-    ImVec2 p0 = ImGui::GetItemRectMin();
-    ImVec2 p1 = ImGui::GetItemRectMax();
-    ImU32 col = ImGui::GetColorU32(ImGuiCol_Separator);
-    ImGui::GetWindowDrawList()->AddLine(ImVec2(p0.x + 2.0f, p0.y), ImVec2(p0.x + 2.0f, p1.y), col, 1.0f);
-  }
+  horizontalSplitter.draw(availableArea);
 
   // Right panel: preview and Usage list
   ImGui::SameLine();
@@ -78,64 +67,30 @@ void TextureProfilerUI::drawUI()
 
 void TextureProfilerUI::drawLeftPanel()
 {
-  // If the data is collected, we only show progress for the entire panel
-  if (textureModule->isCollecting())
+  float tableRegionHeight = ImGui::GetContentRegionAvail().y - ImGui::GetTextLineHeightWithSpacing() * 2.5f;
+
+  ImGui::BeginChild("TableRegion", ImVec2(0, tableRegionHeight), ImGuiConstants::NO_BORDER);
+  if (textureTable)
   {
-    ImVec2 availableSize = ImGui::GetContentRegionAvail();
-    float centerY = availableSize.y / 2.0f - ImGui::GetTextLineHeightWithSpacing() * 2;
+    if (textureTable->isSortActive())
+      textureTable->sortFilteredTextures();
 
-    ImGui::Dummy(ImVec2(0, centerY));
-
-    // Title
-    ImGui::SetCursorPosX((availableSize.x - ImGui::CalcTextSize("Collecting texture data...").x) / 2.0f);
-    ImGui::Text("Collecting texture data...");
-
-    // progress have
-    ImGui::Spacing();
-    float progress = textureModule->getCollectionProgress();
-    ImGui::ProgressBar(progress, ImVec2(-1, 0));
-
-    // Information about the current texture
-    if (const ProfilerString &currentTexture = textureModule->getCurrentCollectionTexture(); !currentTexture.empty())
-    {
-      ImGui::Spacing();
-      char statusText[256];
-      snprintf(statusText, sizeof(statusText), "Processing: %s", currentTexture.c_str());
-      ImGui::SetCursorPosX((availableSize.x - ImGui::CalcTextSize(statusText).x) / 2.0f);
-      ImGui::Text("%s", statusText);
-    }
+    textureTable->draw();
   }
-  else
-  {
-    // Default mode -table and statistics
-    // Reserve space at bottom for statistics
-    float tableRegionHeight = ImGui::GetContentRegionAvail().y - ImGui::GetTextLineHeightWithSpacing() * 2.5f;
+  ImGui::EndChild();
 
-    ImGui::BeginChild("TableRegion", ImVec2(0, tableRegionHeight), ImGuiConstants::NO_BORDER);
-    if (textureTable)
-    {
-      // Sort table if needed
-      if (textureTable->isSorted())
-        textureTable->sortFilteredTextures();
+  ImGui::Separator();
 
-      textureTable->draw();
-    }
-    ImGui::EndChild();
-
-    ImGui::Separator();
-
-    // Display statistics
-    ImGui::Text("Textures: %u / %u", textureModule->getFilteredTextureCount(), textureModule->getTotalTextureCount());
-    ImGui::Text("Memory: %.2f / %.2f MB", textureModule->getFilteredTotalMemorySize(), textureModule->getTotalMemorySize());
-  }
+  // Display statistics
+  ImGui::Text("Textures: %u / %u", textureModule->getFilteredTextureCount(), textureModule->getTotalTextureCount());
+  ImGui::Text("Memory: %.2f / %.2f MB", textureModule->getFilteredTotalMemorySize(), textureModule->getTotalMemorySize());
 }
 
 void TextureProfilerUI::drawRightPanel()
 {
   // Calculate available area and divide vertically
   ImVec2 availablePanelArea = ImGui::GetContentRegionAvail();
-  static float previewPaneRatio = 0.7f; // 70% for preview by default
-  float previewPaneHeight = availablePanelArea.y * previewPaneRatio;
+  float previewPaneHeight = availablePanelArea.y * verticalSplitter.getRatio();
 
   // Preview pane (top)
   ImGui::BeginChild("PreviewPane", ImVec2(0, previewPaneHeight), ImGuiConstants::NO_BORDER);
@@ -143,34 +98,18 @@ void TextureProfilerUI::drawRightPanel()
     const auto &filteredTextureNames = textureModule->getFilteredTextures();
     ProfilerString selectedTextureName = textureTable->getSelectedTexture();
 
-    // If the data collection is ongoing, SelectededTexturename will already be installed through Selecttexture
-    if (selectedTextureName.empty() && !filteredTextureNames.empty() && !textureModule->isCollecting())
+    if (selectedTextureName.empty() && !filteredTextureNames.empty())
     {
-      // Auto-select first texture if none selected (only when the data is not collected)
       selectedTextureName = filteredTextureNames[0];
       textureTable->setSelectedTexture(selectedTextureName);
     }
 
     if (!selectedTextureName.empty())
-    {
-      if (textureModule->isCollecting())
-        ImGui::Text("Collecting data - Processing texture:");
-
       textureModule->drawTextureView(selectedTextureName.c_str());
-    }
   }
   ImGui::EndChild();
 
-  // Horizontal splitter
-  ImGui::InvisibleButton("##Splitter", ImVec2(eastl::max(availablePanelArea.x, 1.0f), 4.0f));
-  ImGui::GetWindowDrawList()->AddLine(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), ImGui::GetColorU32(ImGuiCol_Separator), 1.0f);
-
-  // Handle splitter dragging
-  if (ImGui::IsItemActive() && ImGui::GetIO().MouseDelta.y != 0.0f)
-  {
-    previewPaneRatio += ImGui::GetIO().MouseDelta.y / availablePanelArea.y;
-    previewPaneRatio = eastl::clamp(previewPaneRatio, 0.2f, 0.8f); // Constrain to reasonable range
-  }
+  verticalSplitter.draw(availablePanelArea);
 
   // Texture Usage pane (bottom)
   ImGui::BeginChild("TextureUsagePane", ImVec2(0, 0), ImGuiConstants::WITH_BORDER);
@@ -194,9 +133,22 @@ void TextureProfilerUI::drawRightPanel()
       {
         ImGui::BeginChild("TextureUsageList", ImVec2(0, 0), ImGuiConstants::NO_BORDER);
 
+        const auto &riCounts = riModule->getRiInstanceCounts();
         for (const auto &assetName : iterator->second)
-          if (bool isSelected = (selectedAssetName == assetName); ImGui::Selectable(assetName.c_str(), isSelected))
+        {
+          int count = 0;
+          if (auto itCnt = riCounts.find(assetName); itCnt != riCounts.end())
+            count = itCnt->second;
+          char displayBuf[256];
+          if (count > 0)
+            snprintf(displayBuf, sizeof(displayBuf), "%s (%d)", assetName.c_str(), count);
+          else
+            snprintf(displayBuf, sizeof(displayBuf), "%s", assetName.c_str());
+
+          bool isSelected = (selectedAssetName == assetName);
+          if (ImGui::Selectable(displayBuf, isSelected))
             selectedAssetName = assetName;
+        }
 
         ImGui::EndChild();
       }
@@ -287,36 +239,117 @@ ProfilerString TextureProfilerUI::generateFullTextureInfo(const ProfilerString &
 
 // --- RIProfilerUI ---
 
-RIProfilerUI::RIProfilerUI(RIModule *ri_module) : riModule(ri_module) {}
+RIProfilerUI::RIProfilerUI(RIModule *ri_module) : riModule(ri_module) { riTable = eastl::make_unique<LpRiTable>(ri_module); }
 
 RIProfilerUI::~RIProfilerUI() {}
 
-void RIProfilerUI::init() {}
+void RIProfilerUI::init()
+{
+  if (riTable)
+    riTable->setCopyManager(getCopyManager());
+}
 
 void RIProfilerUI::shutdown() {}
 
 void RIProfilerUI::drawUI()
 {
-  // Just a placeholder for future implementation
-  ImGui::Text("LOD statistics not yet implemented.");
+  float tableRegionHeight = ImGui::GetContentRegionAvail().y - ImGui::GetTextLineHeightWithSpacing() * 2.5f;
+
+  ImGui::BeginChild("RiTableRegion", ImVec2(0, tableRegionHeight), ImGuiConstants::NO_BORDER);
+
+  if (riTable && riModule)
+  {
+    if (const auto &riData = riModule->getRiData(); !riData.empty())
+      riTable->draw();
+    else
+      ImGui::Text("No RI assets found. Please collect data first.");
+  }
+  else
+    ImGui::Text("No RI module available");
+
+  ImGui::EndChild();
+
+  ImGui::Separator();
+
+  if (riTable)
+    ImGui::Text("RI Assets: %u / %u", (unsigned)riTable->getFilteredRiCount(), (unsigned)riTable->getTotalRiCount());
 }
+
+void RIProfilerUI::collectAndDisplayData()
+{
+  if (!riModule)
+    return;
+
+  riModule->collect();
+}
+
+void RIProfilerUI::updateFilter() {}
 
 CopyResult RIProfilerUI::handleGlobalCopy() const
 {
-  // No copy functionality implemented yet for RI tab
+  if (riTable)
+  {
+    const ProfilerString &selectedRi = riTable->getSelectedRi();
+    if (!selectedRi.empty())
+      return CopyResult(selectedRi, "RI asset name copied");
+  }
+
   return CopyResult();
 }
 
-CopyResult RIProfilerUI::handleContextCopy(const CopyRequest & /* request */) const
+CopyResult RIProfilerUI::handleContextCopy(const CopyRequest &request) const
 {
-  // No context copy functionality implemented yet for RI tab
-  return CopyResult();
+  if (request.customData.empty())
+    return CopyResult();
+
+  ProfilerString notificationMsg;
+  switch (request.type)
+  {
+    case CopyType::CONTEXT_CELL: notificationMsg = "Cell copied"; break;
+    case CopyType::CONTEXT_ROW: notificationMsg = "Row copied"; break;
+    case CopyType::CONTEXT_CUSTOM: notificationMsg = "Info copied"; break;
+    default: notificationMsg = "Copied to clipboard";
+  }
+
+  return CopyResult(request.customData, notificationMsg);
 }
 
-eastl::vector<ProfilerString> RIProfilerUI::getContextMenuItems() const
+eastl::vector<ProfilerString> RIProfilerUI::getContextMenuItems() const { return {}; }
+
+GlobalCopyManager *RIProfilerUI::getCopyManager() const
 {
-  // No context menu items for RI tab yet
-  return {};
+  auto levelProfiler = static_cast<LevelProfilerUI *>(ILevelProfiler::getInstance());
+  return levelProfiler->getCopyManager();
+}
+
+ProfilerString RIProfilerUI::generateFullRiInfo(const ProfilerString &ri_name) const
+{
+  const RiData *riDataItem = riModule->getRiDataByName(ri_name);
+  if (!riDataItem)
+    return ProfilerString{};
+
+  ProfilerString info;
+  info += "RI Asset: " + ri_name + "\n";
+  info += "Count on map: " + eastl::to_string(riDataItem->countOnMap) + "\n";
+  info += "BSphere radius: " + eastl::to_string(riDataItem->bSphereRadius) + "\n";
+  info += "BBox radius: " + eastl::to_string(riDataItem->bBoxRadius) + "\n";
+
+  for (size_t i = 0; i < riDataItem->lods.size(); ++i)
+  {
+    const auto &lod = riDataItem->lods[i];
+    info += "LOD" + eastl::to_string(i) + " - Dips: " + eastl::to_string(lod.drawCalls);
+    info += ", Tris: " + eastl::to_string(lod.totalFaces);
+    info += ", Dist: " + eastl::to_string(lod.lodDistance);
+    info += ", Screen%: " + eastl::to_string(lod.screenPercent) + "\n";
+  }
+
+  if (riDataItem->collision.physTriangles > 0 || riDataItem->collision.traceTriangles > 0)
+  {
+    info += "Collision - Phys: " + eastl::to_string(riDataItem->collision.physTriangles);
+    info += ", Trace: " + eastl::to_string(riDataItem->collision.traceTriangles) + "\n";
+  }
+
+  return info;
 }
 
 // --- LevelProfilerUI ---
@@ -334,13 +367,14 @@ LevelProfilerUI::LevelProfilerUI()
 void LevelProfilerUI::initialize()
 {
   toastAdapter = eastl::make_unique<ToastNotificationAdapter>(&textureProfilerUI->getExporter().getToast());
+  textureProfilerUI->getExporter().setNotificationHandler(toastAdapter.get());
   globalCopyManager.setNotificationHandler(toastAdapter.get());
 
   globalCopyManager.registerProvider(textureProfilerUI.get(), "Texture pool");
   globalCopyManager.registerProvider(riProfilerUI.get(), "Lods statistic");
 
-  addTab("Texture pool", textureProfilerUI.get());
-  addTab("Lods statistic", riProfilerUI.get());
+  addTab("Texture pool", textureProfilerUI.get(), [](LevelProfilerUI *self) { self->collectTextureData(); });
+  addTab("Lods statistic", riProfilerUI.get(), [](LevelProfilerUI *self) { self->collectRiData(); });
 }
 
 LevelProfilerUI::~LevelProfilerUI()
@@ -375,21 +409,35 @@ void LevelProfilerUI::drawUI()
 
   globalCopyManager.update();
 
-  // Update the data collection process if it is active
-  if (textureModule->isCollecting())
-    textureModule->updateDataCollection();
+  if (toastAdapter)
+    toastAdapter->update();
 
   if (ImGui::Button("Collect Data"))
     collectData();
 
   ImGui::SameLine();
 
-  // Export button - handled by TextureProfilerUI
-  if (currentTabIndex == 0 && !tabs.empty())
+  // Export button (shared exporter currently owned by texture tab UI)
+  if (!tabs.empty())
   {
-    TextureProfilerUI *currentTextureUI = static_cast<TextureProfilerUI *>(tabs[0].module);
-    currentTextureUI->getExporter().drawExportButton();
-    currentTextureUI->getExporter().drawExportMenu();
+    TextureProfilerUI *texUI = static_cast<TextureProfilerUI *>(tabs[0].module);
+    if (currentTabIndex == 0)
+    {
+      texUI->getExporter().setFilenameBase(tabs[0].name);
+      texUI->getExporter().setTextureTable(texUI->getTextureTable());
+      texUI->getExporter().setRiTable(nullptr);
+      texUI->getExporter().drawExportButton();
+      texUI->getExporter().drawExportMenu();
+    }
+    else if (currentTabIndex == 1 && riProfilerUI)
+    {
+      texUI->getExporter().setFilenameBase(tabs[1].name);
+      texUI->getExporter().setTextureTable(nullptr);
+      if (LpRiTable *riTablePtr = riProfilerUI->getRiTable())
+        texUI->getExporter().setRiTable(riTablePtr);
+      texUI->getExporter().drawExportButton();
+      texUI->getExporter().drawExportMenu();
+    }
   }
 
   ImGui::Separator();
@@ -398,31 +446,53 @@ void LevelProfilerUI::drawUI()
   drawRenamePopup();
 
   ImGui::End();
+
+  if (toastAdapter)
+    toastAdapter->draw();
 }
 
 void LevelProfilerUI::collectData()
 {
-  textureModule->clear();
-  riModule->clear();
+  if (currentTabIndex < 0 || currentTabIndex >= (int)tabs.size())
+    return;
 
-  textureModule->collect();
-  riModule->collect();
+  ProfilerTab &tab = tabs[currentTabIndex];
+  if (tab.collectFn)
+    tab.collectFn(this);
+}
 
-  textureModule->initializeFilteredTextures();
+void LevelProfilerUI::collectTextureData()
+{
+  if (!textureModule)
+    return;
 
-  if (!tabs.empty() && currentTabIndex == 0)
+  if (riModule)
   {
-    if (TextureProfilerUI *currentTextureUI = static_cast<TextureProfilerUI *>(tabs[0].module))
-    {
-      currentTextureUI->getFilterManager().resetAllFilters();
-      currentTextureUI->getFilterManager().applyFilters();
-    }
+    riModule->clear();
+    riModule->collect();
+    if (riProfilerUI)
+      riProfilerUI->init();
   }
 
-  for (auto &tab : tabs)
-    tab.module->init();
+  textureModule->clear();
+  textureModule->collect();
+  textureModule->initializeFilteredTextures();
 
-  textureModule->startDataCollection();
+  for (auto &tab : tabs)
+    if (tab.module == textureProfilerUI.get())
+      tab.module->init();
+}
+
+void LevelProfilerUI::collectRiData()
+{
+  if (!riModule)
+    return;
+
+  riModule->clear();
+  riModule->collect();
+
+  if (riProfilerUI)
+    riProfilerUI->init();
 }
 
 void LevelProfilerUI::clearData()
@@ -431,7 +501,10 @@ void LevelProfilerUI::clearData()
   riModule->clear();
 }
 
-void LevelProfilerUI::addTab(const char *name, IProfilerModule *module_ptr) { tabs.push_back(ProfilerTab(name, module_ptr)); }
+void LevelProfilerUI::addTab(const char *name, IProfilerModule *module_ptr, void (*collectFn)(LevelProfilerUI *))
+{
+  tabs.push_back(ProfilerTab(name, module_ptr, collectFn));
+}
 
 ProfilerTab *LevelProfilerUI::getTab(int index)
 {
@@ -455,10 +528,7 @@ void LevelProfilerUI::drawTabBar()
     {
       ImGui::PushID(i);
 
-      // Set selected tab flag
-      ImGuiTabItemFlags tabDisplayFlags = (currentTabIndex == i ? ImGuiTabItemFlags_SetSelected : 0);
-
-      bool isTabVisible = ImGui::BeginTabItem(tabs[i].name.c_str(), nullptr, tabDisplayFlags);
+      bool isTabVisible = ImGui::BeginTabItem(tabs[i].name.c_str());
 
       // Handle right-click for renaming
       bool isTabHovered = ImGui::IsItemHovered();
@@ -466,10 +536,12 @@ void LevelProfilerUI::drawTabBar()
 
       if (isTabVisible)
       {
-        currentTabIndex = i;
-
-        if (ICopyProvider *provider = tabs[i].module->getCopyProvider())
-          globalCopyManager.setActiveProvider(provider);
+        if (currentTabIndex != i)
+        {
+          currentTabIndex = i;
+          if (ICopyProvider *provider = tabs[i].module->getCopyProvider())
+            globalCopyManager.setActiveProvider(provider);
+        }
 
         tabs[i].module->drawUI();
         ImGui::EndTabItem();

@@ -82,6 +82,7 @@ def water_sound_field_update(evt : Event;
                              water_sound_field__numCells : int2;
                              water_sound_field__cells : UInt8List;
                              water_sound_field__path : string;
+                             water_sound_field__waterLevel : float;
                              var water_sound_field__eventRadius : float&;
                              var water_sound_field__event : SoundEvent&;
                              var water_sound_field__eventPos : float3&)
@@ -110,6 +111,7 @@ def water_sound_field_update(evt : Event;
 
   var shouldPlay = vol > (water_sound_field__event.enabled ? 0. : 0.05)
   water_sound_field__eventPos = floor_on_water(cam2d)
+  water_sound_field__eventPos.y += water_sound_field__waterLevel
   if sound_banks_is_master_preset_loaded()
     if shouldPlay
       if water_sound_field__eventRadius <= 0.

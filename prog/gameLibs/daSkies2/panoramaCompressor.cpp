@@ -20,11 +20,6 @@ PanoramaCompressor::PanoramaCompressor(ManagedTex &srcTexture, uint32_t compress
   GLOBAL_VARS_LIST
 #undef VAR
 
-  d3d::SamplerInfo smpInfo;
-  smpInfo.address_mode_u = d3d::AddressMode::Wrap;
-  smpInfo.address_mode_v = d3d::AddressMode::Clamp;
-  sampler = d3d::request_sampler(smpInfo);
-
   getPanoramaResolution();
 }
 
@@ -54,13 +49,13 @@ void PanoramaCompressor::updateCompressedTexture(Texture *dstTex, float rgbmScal
 {
   initCompression();
 
-  ShaderGlobal::set_real(rgbm_conversion_scaleVarId, rgbmScale);
+  ShaderGlobal::set_float(rgbm_conversion_scaleVarId, rgbmScale);
   ShaderGlobal::set_int(panorama_stride_countVarId, strideAmt);
   ShaderGlobal::set_int(panorama_heightVarId, panoramaHeight);
   for (int i = 0; i < strideAmt; i++)
   {
-    ShaderGlobal::set_color4(panorama_rectVarId, 1, strideAmt, 0, i * (1.f / strideAmt));
-    cloudsPanoramaCompressor->update(panoramaTex.getTexId(), sampler, 1);
+    ShaderGlobal::set_float4(panorama_rectVarId, 1, strideAmt, 0, i * (1.f / strideAmt));
+    cloudsPanoramaCompressor->update(panoramaTex.getTexId(), 1);
     cloudsPanoramaCompressor->copyTo(dstTex, 0, i * strideHeight, 0, 0, panoramaWidth, strideHeight);
   }
 }

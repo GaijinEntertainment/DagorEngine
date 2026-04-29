@@ -1,7 +1,9 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <ecs/render/updateStageRender.h>
 #include <ioSys/dag_dataBlock.h>
 #include <perfMon/dag_statDrv.h>
@@ -28,14 +30,14 @@ Rain::Rain()
 
 Rain::~Rain()
 {
-  ShaderGlobal::set_color4(wetness_paramsVarId, Color4(0, 0, 0.65, 0));
-  ShaderGlobal::set_real(puddle_increaseVarId, 0);
+  ShaderGlobal::set_float4(wetness_paramsVarId, Color4(0, 0, 0.65, 0));
+  ShaderGlobal::set_float(puddle_increaseVarId, 0);
 }
 
 void Rain::update(float dt, float growthRate, float limit)
 {
   growth = min(growth + parDensity * growthRate * dt, limit);
-  ShaderGlobal::set_real(puddle_increaseVarId, growth);
+  ShaderGlobal::set_float(puddle_increaseVarId, growth);
 }
 
 ECS_REGISTER_RELOCATABLE_TYPE(Rain, nullptr);
@@ -62,10 +64,11 @@ static void update_drop_effects_es(const ecs::Event &, const float &drop_splash_
 }
 
 template <typename Callable>
-inline void set_params_for_splashes_ecs_query(ecs::EntityId, Callable c);
+inline void set_params_for_splashes_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 ECS_ON_EVENT(on_appear)
 ECS_TRACK(*)
 static void rain_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
   TMatrix &transform,
   Rain &rain,
   float far_rain__length,
@@ -78,6 +81,8 @@ static void rain_es_event_handler(const ecs::Event &,
   TheEffect &effect,
   const ecs::string &drop_fx_template,
   ecs::EntityId &drop_splashes__splashesFxId,
+  const ecs::string &rain_map_renderer_template,
+  ecs::EntityId &rain_map_rendererEntityId,
   float far_rain__maxDensity = 10)
 {
   float spawnRate = far_rain__density / far_rain__maxDensity;
@@ -95,11 +100,11 @@ static void rain_es_event_handler(const ecs::Event &,
     fx.fx->setVelocity(Point3(0, -far_rain__speed / far_rain__length, 0));
   }
 
-  Color4 wetnessParams = ShaderGlobal::get_color4(wetness_paramsVarId);
+  Color4 wetnessParams = ShaderGlobal::get_float4(wetness_paramsVarId);
   wetnessParams.r = wetness__strength;
   wetnessParams.b = 1;
-  ShaderGlobal::set_color4(wetness_paramsVarId, wetnessParams);
-  ShaderGlobal::set_real(droplets_speedVarId, 1 / (max(wetness__strength, 0.f) + 0.5f));
+  ShaderGlobal::set_float4(wetness_paramsVarId, wetnessParams);
+  ShaderGlobal::set_float(droplets_speedVarId, 1 / (max(wetness__strength, 0.f) + 0.5f));
 
   if (rain.getUseDropSplashes())
   {
@@ -110,19 +115,28 @@ static void rain_es_event_handler(const ecs::Event &,
       effectTm.m[3][1] = drop_splashes__spriteYPos;
       attrs[ECS_HASH("transform")] = effectTm;
       attrs[ECS_HASH("drop_splash_fx__spawnRate")] = spawnRate;
-      drop_splashes__splashesFxId = g_entity_mgr->createEntityAsync(drop_fx_template.c_str(), eastl::move(attrs));
+      drop_splashes__splashesFxId = manager.createEntityAsync(drop_fx_template.c_str(), eastl::move(attrs));
     }
     else
     {
-      set_params_for_splashes_ecs_query(drop_splashes__splashesFxId,
+      set_params_for_splashes_ecs_query(manager, drop_splashes__splashesFxId,
         [&](float &drop_splash_fx__spawnRate) { drop_splash_fx__spawnRate = spawnRate; });
     }
+  }
+
+  if (!rain_map_renderer_template.empty())
+  {
+    rain_map_rendererEntityId = manager.createEntityAsync(rain_map_renderer_template.c_str());
   }
 }
 
 ECS_ON_EVENT(on_disappear)
 ECS_REQUIRE(Rain &rain)
-static void detach_rain_es_event_handler(const ecs::Event &, ecs::EntityId &drop_splashes__splashesFxId)
+static void detach_rain_es_event_handler(const ecs::Event &,
+  ecs::EntityManager &manager,
+  ecs::EntityId &drop_splashes__splashesFxId,
+  ecs::EntityId &rain_map_rendererEntityId)
 {
-  g_entity_mgr->destroyEntity(drop_splashes__splashesFxId);
+  manager.destroyEntity(drop_splashes__splashesFxId);
+  manager.destroyEntity(rain_map_rendererEntityId);
 }

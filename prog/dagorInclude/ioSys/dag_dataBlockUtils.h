@@ -19,6 +19,7 @@
 #include <math/dag_e3dColor.h>
 #include <math/dag_interpolator.h>
 #include <util/dag_base64.h>
+#include <util/dag_hash.h>
 #include <memory/dag_framemem.h>
 #include <math/random/dag_random.h>
 #include <dag_noise/dag_uint_noise.h>
@@ -113,12 +114,7 @@ inline void addOverrideParam(DataBlock &dst, const DataBlock &src, int idx, bool
 
 inline bool equalDataBlocks(const DataBlock &a, const DataBlock &b)
 {
-  DynamicMemGeneralSaveCB cwr_a(tmpmem, 0, 4 << 10), cwr_b(tmpmem, 0, 4 << 10);
-
-  cwr_a.seekto(0);
-  cwr_a.resize(0);
-  cwr_b.seekto(0);
-  cwr_b.resize(0);
+  DynamicMemGeneralSaveCB cwr_a(framemem_ptr(), 0, 4 << 10), cwr_b(framemem_ptr(), 0, 4 << 10);
 
   a.saveToTextStream(cwr_a);
   b.saveToTextStream(cwr_b);
@@ -455,6 +451,14 @@ inline DataBlock *verifyDataBlockPtr(DataBlock &blk)
 
 #define REMOVE_CURRENT_BLOCK(blockName) blockName##_br->removeBlock(blockName##_i)
 
+inline void blk_obsolete_param_logerr(const DataBlock *blk, const char *param_name, const DataBlock::ParamType param_type)
+{
+  const int paramNum = blk->findParam(param_name);
+  if (paramNum >= 0 && blk->getParamType(paramNum) == param_type)
+    logerr("Obsolete parameter %s:%s found in %s - please replace", param_name, dblk::resolve_short_type(param_type),
+      blk->resolveFilename());
+}
+
 namespace blkutil
 {
 template <typename T>
@@ -697,13 +701,13 @@ inline void merge_data_block(DataBlock &dst, const DataBlock &src, T &strategy)
     eastl::vector_set<uint32_t, eastl::less<uint32_t>, framemem_allocator> initialDstBlocks;
     initialDstBlocks.reserve(dst.blockCount());
     for (int bi = 0, bn = dst.blockCount(); bi < bn; bi++)
-      initialDstBlocks.emplace(eastl::hash<const char *>()(dst.getBlock(bi)->getBlockName()));
+      initialDstBlocks.emplace(str_hash_fnv1(dst.getBlock(bi)->getBlockName()));
 
     for (int bi = 0; bi < sbn; bi++)
     {
       const DataBlock *sub_src = src.getBlock(bi);
       const char *ssbn = sub_src->getBlockName();
-      DataBlock *dstSubBlk = initialDstBlocks.count(eastl::hash<const char *>()(ssbn)) ? dst.addBlock(ssbn) : dst.addNewBlock(ssbn);
+      DataBlock *dstSubBlk = initialDstBlocks.count(str_hash_fnv1(ssbn)) ? dst.addBlock(ssbn) : dst.addNewBlock(ssbn);
       merge_data_block<T>(*dstSubBlk, *sub_src, strategy);
     }
   }

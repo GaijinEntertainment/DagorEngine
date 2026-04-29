@@ -64,6 +64,8 @@ struct PairCollisionCB
 
 struct RIAddToWorldCB : public rendinst::RendInstCollisionCB
 {
+  mutable int count = 0;
+
   void processCollisionInstance(const rendinst::CollisionInfo &info) const
   {
     if (info.handle)
@@ -71,26 +73,31 @@ struct RIAddToWorldCB : public rendinst::RendInstCollisionCB
       dacoll::CollisionInstances *instance = dacoll::get_collision_instances_by_handle(info.handle);
       G_ASSERTF(instance, "Cannot find collision for ri at " FMT_P3, P3D(info.tm.getcol(3)));
       if (instance)
+      {
         instance->updateTm(info.desc, info.tm);
+#if DAGOR_DBGLEVEL > 0
+        count++;
+#endif
+      }
     }
   }
 
   virtual void addCollisionCheck(const rendinst::CollisionInfo &info) { processCollisionInstance(info); }
-
   virtual void addTreeCheck(const rendinst::CollisionInfo &info) { processCollisionInstance(info); }
 };
 
 
-void update_ri_cache_in_volume_to_phys_world(const BBox3 &box)
+int update_ri_cache_in_volume_to_phys_world(const BBox3 &box)
 {
   if (!get_phys_world())
-    return;
+    return 0;
 
   get_phys_world()->fetchSimRes(true);
 
   RIAddToWorldCB callback;
   rendinst::testObjToRendInstIntersection(box, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, nullptr /*cache*/, PHYSMAT_INVALID,
     true /*unlock_before_cb*/);
+  return callback.count;
 }
 
 bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys::CollisionContactData> &out_contacts,
@@ -146,15 +153,12 @@ bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<ga
   WrapperContactResultCB contactCb(out_contacts, mat_id, dacoll::get_collision_object_collapse_threshold(co));
   PairCollisionCB pairColl(co, contactCb);
   RICollisionCB<PairCollisionCB> callback(pairColl);
+  vec4f wbsph = v_ldu_bsphere3(tm, sphere);
 
   if (trace_cache)
   {
-    mat44f vtm;
-    v_mat44_make_from_43cu_unsafe(vtm, tm.array);
-    vec4f bsph;
-    v_bsph_init(bsph, vtm, v_ldu(&sphere.c.x), v_set_x(sphere.r));
     bbox3f castBox;
-    v_bbox3_init_by_bsph(castBox, bsph, v_splat_w(bsph));
+    v_bbox3_init_by_bsph(castBox, wbsph, v_splat_w(wbsph));
     bool res = try_use_trace_cache(castBox, trace_cache);
 
     BBox3 wbox;
@@ -164,7 +168,9 @@ bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<ga
       trace_cache = nullptr;
   }
 
-  rendinst::testObjToRendInstIntersection(sphere, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
+  BSphere3 wSphere;
+  v_stu_bsphere3(wSphere, wbsph);
+  rendinst::testObjToRendInstIntersection(wSphere, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
     true /*unlock_before_cb*/);
   return out_contacts.size() > prev_cont;
 }
@@ -201,6 +207,44 @@ bool test_collision_ri(const CollisionObject &co, const BBox3 &box, Tab<gamephys
   }
 
   rendinst::testObjToRendInstIntersection(box, tm, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
+    true /*unlock_before_cb*/);
+
+  return out_contacts.size() > prev_cont;
+}
+
+bool test_collision_ri(const CollisionObject &co, const BSphere3 &sphere, Tab<gamephys::CollisionContactData> &out_contacts,
+  bool provide_coll_info, float at_time, const TraceMeshFaces *trace_cache, int mat_id, bool process_tree_behaviour)
+{
+  if (!get_phys_world())
+    return false;
+
+  get_phys_world()->fetchSimRes(true);
+
+  int prev_cont = out_contacts.size();
+
+  TMatrix tm;
+  co.body->getTmInstant(tm);
+
+  WrapperRendinstContactResultCB contactCb(out_contacts, 0, mat_id, process_tree_behaviour);
+  WrapperRendInstCollisionCB callback(co, contactCb, provide_coll_info, at_time);
+  vec4f wbsph = v_ldu_bsphere3(tm, sphere);
+
+  if (trace_cache)
+  {
+    bbox3f castBox;
+    v_bbox3_init_by_bsph(castBox, wbsph, v_splat_w(wbsph));
+    bool res = try_use_trace_cache(castBox, trace_cache);
+
+    BBox3 wbox;
+    v_stu_bbox3(wbox, castBox);
+    trace_utils::draw_trace_handle_debug_cast_result(trace_cache, wbox, res, false);
+    if (!res)
+      trace_cache = nullptr;
+  }
+
+  BSphere3 wSphere;
+  v_stu_bsphere3(wSphere, wbsph);
+  rendinst::testObjToRendInstIntersection(wSphere, callback, rendinst::GatherRiTypeFlag::RiGenAndExtra, trace_cache, mat_id,
     true /*unlock_before_cb*/);
 
   return out_contacts.size() > prev_cont;

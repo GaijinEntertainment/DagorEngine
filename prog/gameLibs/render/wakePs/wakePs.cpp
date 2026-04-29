@@ -43,7 +43,7 @@ void ComputeMultiBuffer::createGPU(int struct_size, int elements, const char *ge
   G_ASSERT(cmd_size > 0 && (cmd_size % 16) == 0 && struct_size + sizeof(uint32_t) <= cmd_size);
   structSize = struct_size;
   cmdSize = cmd_size;
-  buf = dag::create_sbuffer(struct_size, elements, flags, texfmt, name);
+  buf = dag::create_sbuffer(struct_size, elements, flags, texfmt, name, RESTAG_WATER);
   genShader.reset(gen_shader ? new_compute_shader(gen_shader) : NULL);
   genWarp = gen_warp;
 }
@@ -121,8 +121,8 @@ void ComputeMultiBuffer::process()
     int elemCount = cmds.size() / elemSize;
 
     const int commandSizeInConsts = (elemSize + 15) / 16;
-    const int reqSize = 1 + elemCount * commandSizeInConsts;
-    const int cbufferSize = d3d::set_cs_constbuffer_size(reqSize);
+    constexpr int reqSize = 1024;
+    const int cbufferSize = d3d::set_cs_constbuffer_register_count(reqSize);
     uint32_t v[4] = {0};
 
     for (int i = elemCount - cmd; i < elemCount; i += (cbufferSize - 1) / commandSizeInConsts)
@@ -138,7 +138,7 @@ void ComputeMultiBuffer::process()
     cmd = 0;
     erase_items(cmds, 0, elemSize * elemCount);
 
-    d3d::set_cs_constbuffer_size(0);
+    d3d::set_cs_constbuffer_register_count(0);
     d3d::set_rwbuffer(STAGE_CS, 0, 0);
     d3d::resource_barrier({buf.get(), RB_RO_SRV | RB_STAGE_COMPUTE});
   }
@@ -157,6 +157,8 @@ ParticleSystem::ParticleSystem(EffectManager *in_manager, const MainParams &main
   G_ASSERT(main_params.diffuseTexId != BAD_TEXTUREID);
 
   diffuseTexVarId = ::get_shader_variable_id("wfx_diffuse");
+  diffuseMVTexVarId = ::get_shader_variable_id("wfx_diffuse_mv", true);
+  diffuseMVScaleVarId = ::get_shader_variable_id("wfx_diffuse_mv_scale", true);
   diffuseTex_samplerstateVarId = ::get_shader_variable_id("wfx_diffuse_samplerstate", true);
   distortionTexVarId = ::get_shader_variable_id("wfx_distortion");
   distortionTex_samplerstateVarId = ::get_shader_variable_id("wfx_distortion_samplerstate", true);
@@ -259,9 +261,9 @@ void ParticleSystem::reserveEmitters(uint32_t count)
       addGPUEmiter(emitterNo, emitters[emitterNo].params);
 
     particleBuffer = dag::buffers::create_ua_sr_structured(sizeof(GPUParticle), newCount * MAX_PARTICLES_PER_EMITTER,
-      "wfxParticleBuffer", dag::buffers::Init::Zero);
+      "wfxParticleBuffer", dag::buffers::Init::Zero, RESTAG_WATER);
     particleRenderBuffer = dag::buffers::create_ua_sr_structured(sizeof(GPUParticleRender), newCount * MAX_PARTICLES_PER_EMITTER,
-      "wfxParticleRenderBuffer");
+      "wfxParticleRenderBuffer", d3d::buffers::Init::No, RESTAG_WATER);
   }
 }
 
@@ -336,7 +338,7 @@ void ParticleSystem::setRenderType(RenderType renderType) { mainParams.renderTyp
 
 void ParticleSystem::initRes()
 {
-  indirectBuffer = dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, 1, "wfxIndirectBuffer");
+  indirectBuffer = dag::buffers::create_ua_indirect(dag::buffers::Indirect::DrawIndexed, 1, "wfxIndirectBuffer", RESTAG_WATER);
   DrawIndexedIndirectArgs *indirectData;
   if (indirectBuffer->lock(0, 0, (void **)&indirectData, VBLOCK_WRITEONLY) && indirectData)
   {
@@ -413,6 +415,8 @@ bool ParticleSystem::render()
 
   d3d::set_buffer(STAGE_VS, PARTICLE_RENDER_BUFFER_REGISTER, particleRenderBuffer.get());
   ShaderGlobal::set_texture(diffuseTexVarId, mainParams.diffuseTexId);
+  ShaderGlobal::set_texture(diffuseMVTexVarId, mainParams.diffuseMVTexId);
+  ShaderGlobal::set_float(diffuseMVScaleVarId, mainParams.diffuseMVScale);
   ShaderGlobal::set_sampler(diffuseTex_samplerstateVarId, mainParams.diffuseSampler);
   if ((mainParams.renderType == RENDER_HEIGHT_DISTORTED) || (mainParams.renderType == RENDER_FOAM_DISTORTED) ||
       (mainParams.renderType == RENDER_FOAM_MASK))
@@ -486,8 +490,8 @@ void ParticleSystem::emit(float dt)
 
   if (!emitterDynData.empty())
   {
-    const int reqSize = EMITTER_DYN_BUFFER_REGISTER + emitterDynData.size() * regPerEmitter;
-    const int cbufferSize = d3d::set_cs_constbuffer_size(reqSize);
+    const int reqSize = EMITTER_DYN_BUFFER_REGISTER + MAX_EMITTER_GEN_COMMANDS * regPerEmitter;
+    const int cbufferSize = d3d::set_cs_constbuffer_register_count(reqSize);
     const int batchSize = (cbufferSize - EMITTER_DYN_BUFFER_REGISTER) / regPerEmitter;
 
     d3d::set_buffer(STAGE_CS, EMITTER_BUFFER_REGISTER, emitterBuffer.getSbuffer());
@@ -508,7 +512,7 @@ void ParticleSystem::emit(float dt)
     d3d::set_rwbuffer(STAGE_CS, PARTICLE_BUFFER_REGISTER, NULL);
     d3d::resource_barrier({particleBuffer.get(), RB_FLUSH_UAV | RB_STAGE_COMPUTE | RB_SOURCE_STAGE_COMPUTE});
 
-    d3d::set_cs_constbuffer_size(0);
+    d3d::set_cs_constbuffer_register_count(0);
   }
 }
 
@@ -566,7 +570,8 @@ void EffectManager::initRes()
   for (int renderType = 0; renderType < ParticleSystem::RENDER_TYPE_END; renderType++)
     renderShaders[renderType].init(SHADER_NAMES[renderType], NULL, 0, SHADER_NAMES[renderType]);
 
-  randomBuffer = dag::create_tex(NULL, RANDOM_BUFFER_RESOLUTION_X, RANDOM_BUFFER_RESOLUTION_Y, TEXFMT_A8R8G8B8, 1, "wfxRandomBuffer");
+  randomBuffer =
+    dag::create_tex(NULL, RANDOM_BUFFER_RESOLUTION_X, RANDOM_BUFFER_RESOLUTION_Y, TEXFMT_A8R8G8B8, 1, "wfxRandomBuffer", RESTAG_WATER);
   uint8_t *randomBufferData = NULL;
   int randomBufferStride = 0;
   if (!randomBuffer->lockimg((void **)&randomBufferData, randomBufferStride, 0, TEXLOCK_WRITE) || !randomBufferData)
@@ -621,7 +626,7 @@ void EffectManager::update(float dt)
   for (auto &pSystem : pSystems)
     pSystem->emitterBuffer.process();
 
-  ShaderGlobal::set_real(fTimeVarId, dt);
+  ShaderGlobal::set_float(fTimeVarId, dt);
 
   for (auto &pSystem : pSystems)
   {

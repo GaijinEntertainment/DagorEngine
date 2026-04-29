@@ -17,7 +17,7 @@ def init_rope_phys(evt : Event; rope_phys__numPoints : int; rope_phys__length : 
     spline_gen_geometry__points[i] = p
     rope_phys__prevPos[i] = p
 
-[es(no_order)]
+[es(no_order, REQUIRE_NOT=rope_phys__customUpdate)]
 def update_rope_phys(info : UpdateStageInfoAct; rope_phys__segmentLen : float;
                      var spline_gen_geometry__points : Point3List&; var rope_phys__prevPos : Point3List&;
                      rope_phys__lastFixed : bool = true)
@@ -48,6 +48,9 @@ def update_rope_phys(info : UpdateStageInfoAct; rope_phys__segmentLen : float;
       let nextPos = spline_gen_geometry__points[i + 1]
       let dirToNext = nextPos - curPos
       let distToNext = length(dirToNext)
+      if distToNext < VERY_SMALL_NUMBER
+        continue
+
       let diff = rope_phys__segmentLen - distToNext
       let curFixed = i == 0
       let nextFixed = i + 1 == length(spline_gen_geometry__points) - 1 && rope_phys__lastFixed

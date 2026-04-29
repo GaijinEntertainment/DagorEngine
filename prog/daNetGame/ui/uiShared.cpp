@@ -14,7 +14,9 @@
 #include <daRg/dag_joystick.h>
 #include <daRg/dag_guiScene.h>
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 
 #include <ioSys/dag_dataBlock.h>
 
@@ -200,9 +202,7 @@ static void notify_gamepad_type_change()
   if (vendor_id != prev_gamepad_vendor_id && vendor_id != HumanInput::GAMEPAD_VENDOR_UNKNOWN)
   {
     prev_gamepad_vendor_id = vendor_id;
-    Json::Value data;
-    data["ctype"] = vendor_id;
-    sqeventbus::send_event("input_gamepad_type", data);
+    sqeventbus::write_event_main_thread("input_gamepad_type", [=](auto &data) { data["ctype"] = vendor_id; });
   }
 }
 
@@ -238,9 +238,7 @@ static void notify_input_devices_used()
 
     if (needEvent)
     {
-      Json::Value msg;
-      msg["val"] = last_type;
-      sqeventbus::send_event("input_dev_used", msg);
+      sqeventbus::write_event_main_thread("input_dev_used", [](auto &msg) { msg["val"] = last_type; });
       need_initial_dev_type_notify = false;
     }
   }
@@ -270,6 +268,9 @@ void update()
   const bool isOverlayCursorModeForced =
     overlay_ui::gui_scene() && overlay_ui::gui_scene()->getForcedCursorMode(forcedOverlayCursorActive);
 
+  const bool isUiCursorModeForced =
+    (isOverlayCursorModeForced && forcedOverlayCursorActive) || (isUserUiCursorModeForced && forcedUserUiCursorActive);
+
   if (overlay_ui::gui_scene())
     overlay_ui::gui_scene()->setSceneInputActive(setUiScenesActive || (isOverlayCursorModeForced && forcedOverlayCursorActive));
 
@@ -294,7 +295,7 @@ void update()
 
     const bool absoluteForImGui = imgui_get_state() == ImGuiState::ACTIVE;
 
-    const bool newRelative = (!hasDargClickableGui || relativeDueToFreeCam) && !absoluteForImGui;
+    const bool newRelative = (!hasDargClickableGui || relativeDueToFreeCam) && !absoluteForImGui && !isUiCursorModeForced;
     const bool isRelative = mouse->getRelativeMovementMode();
 
     // window rect for the cursor can be outdated at this point (driver mode reset is AFTER UI and cursor update),

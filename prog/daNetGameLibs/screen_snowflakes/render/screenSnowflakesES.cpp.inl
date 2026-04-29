@@ -4,6 +4,7 @@
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/coreEvents.h>
+#include <daECS/core/entityManager.h>
 #include <drv/3d/dag_draw.h>
 #include <ecs/render/updateStageRender.h>
 #include <ecs/render/resPtr.h>
@@ -28,65 +29,66 @@ ECS_REGISTER_RELOCATABLE_TYPE(SnowflakeInstances, nullptr);
 SCREEN_SNOWFLAKES_VARS
 #undef VAR
 
-static void create_or_destroy_screen_snowflakes_renderer_entity(bool render_snowflakes)
+static void create_or_destroy_screen_snowflakes_renderer_entity(ecs::EntityManager &manager, bool render_snowflakes)
 {
   if (render_snowflakes && renderer_has_feature(FeatureRenderFlags::POSTFX) &&
-      g_entity_mgr->getTemplateDB().getTemplateByName("screen_snowflakes_renderer"))
-    g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH("screen_snowflakes_renderer"));
+      manager.getTemplateDB().getTemplateByName("screen_snowflakes_renderer"))
+    manager.getOrCreateSingletonEntity(ECS_HASH("screen_snowflakes_renderer"));
   else
-    g_entity_mgr->destroyEntity(g_entity_mgr->getSingletonEntity(ECS_HASH("screen_snowflakes_renderer")));
+    manager.destroyEntity(manager.getSingletonEntity(ECS_HASH("screen_snowflakes_renderer")));
 }
 
 template <typename Callable>
-static void snow_enabled_on_level_ecs_query(Callable c);
+static void snow_enabled_on_level_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void snowflakes_enabled_global_setting_ecs_query(Callable c);
+static void snowflakes_enabled_global_setting_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
 ECS_ON_EVENT(OnRenderSettingsReady, SetResolutionEvent, ChangeRenderFeatures)
 ECS_TRACK(render_settings__screenSpaceWeatherEffects, render_settings__bare_minimum)
 static void create_screen_snowflakes_renderer_entity_on_settings_changed_es(
-  const ecs::Event &, bool render_settings__screenSpaceWeatherEffects, bool render_settings__bare_minimum)
+  const ecs::Event &, ecs::EntityManager &manager, bool render_settings__screenSpaceWeatherEffects, bool render_settings__bare_minimum)
 {
   bool renderSnowflakes = false;
-  snow_enabled_on_level_ecs_query([&renderSnowflakes](ecs::Tag snow_tag) {
+  snow_enabled_on_level_ecs_query(manager, [&renderSnowflakes](ecs::Tag snow_tag) {
     G_UNUSED(snow_tag);
     renderSnowflakes = true;
   });
   renderSnowflakes = renderSnowflakes && render_settings__screenSpaceWeatherEffects && !render_settings__bare_minimum;
-  create_or_destroy_screen_snowflakes_renderer_entity(renderSnowflakes);
+  create_or_destroy_screen_snowflakes_renderer_entity(manager, renderSnowflakes);
 }
 
 ECS_TAG(render)
 ECS_REQUIRE(ecs::Tag snow_tag)
 ECS_ON_EVENT(on_appear)
-static void create_screen_snowflakes_renderer_entity_on_snow_appearance_es(const ecs::Event &)
+static void create_screen_snowflakes_renderer_entity_on_snow_appearance_es(const ecs::Event &, ecs::EntityManager &manager)
 {
   bool renderSnowflakes = false;
-  snowflakes_enabled_global_setting_ecs_query([&renderSnowflakes](bool render_settings__screenSpaceWeatherEffects) {
+  snowflakes_enabled_global_setting_ecs_query(manager, [&renderSnowflakes](bool render_settings__screenSpaceWeatherEffects) {
     renderSnowflakes = render_settings__screenSpaceWeatherEffects;
   });
-  create_or_destroy_screen_snowflakes_renderer_entity(renderSnowflakes);
+  create_or_destroy_screen_snowflakes_renderer_entity(manager, renderSnowflakes);
 }
 
 ECS_TAG(render)
 ECS_REQUIRE(ecs::Tag snow_tag)
 ECS_ON_EVENT(on_disappear)
-static void destroy_screen_snowflakes_renderer_entity_es(const ecs::Event &)
+static void destroy_screen_snowflakes_renderer_entity_es(const ecs::Event &, ecs::EntityManager &manager)
 {
-  create_or_destroy_screen_snowflakes_renderer_entity(false);
+  create_or_destroy_screen_snowflakes_renderer_entity(manager, false);
 }
 
 template <typename Callable>
-static void render_screen_snowflakes_ecs_query(Callable c);
+static void render_screen_snowflakes_ecs_query(ecs::EntityManager &manager, Callable c);
 
 template <typename Callable>
-static void vehicle_camera_on_screen_snowflakes_init_ecs_query(Callable c);
+static void vehicle_camera_on_screen_snowflakes_init_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TAG(render)
 ECS_ON_EVENT(on_appear)
 static void init_screen_snowflakes_es(const ecs::Event &,
+  ecs::EntityManager &manager,
   bool &screen_snowflakes__enabled_on_level,
   bool &screen_snowflakes__camera_inside_vehicle,
   int screen_snowflakes__max_count,
@@ -95,7 +97,7 @@ static void init_screen_snowflakes_es(const ecs::Event &,
 {
   screen_snowflakes__enabled_on_level = true;
 
-  vehicle_camera_on_screen_snowflakes_init_ecs_query(
+  vehicle_camera_on_screen_snowflakes_init_ecs_query(manager,
     [&screen_snowflakes__camera_inside_vehicle](ECS_REQUIRE(ecs::EntityId bindedCamera) bool isInVehicle) {
       screen_snowflakes__camera_inside_vehicle = isInVehicle;
     });
@@ -103,15 +105,14 @@ static void init_screen_snowflakes_es(const ecs::Event &,
   screen_snowflakes__instances_buf =
     dag::buffers::create_one_frame_sr_structured(sizeof(Snowflake), screen_snowflakes__max_count, "screen_snowflakes_buf");
 
-  screen_snowflakes__node = dafg::register_node("screen_snowflakes_node", DAFG_PP_NODE_SRC, [](dafg::Registry registry) {
-    auto screenSnowflakesTexHndl = registry
-                                     .createTexture2d("screen_snowflakes_tex", dafg::History::No,
-                                       {TEXFMT_R16F | TEXCF_RTARGET, registry.getResolution<2>("post_fx", 0.5f)})
-                                     .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
+  screen_snowflakes__node = dafg::register_node("screen_snowflakes_node", DAFG_PP_NODE_SRC, [&manager](dafg::Registry registry) {
+    auto screenSnowflakesTexHndl =
+      registry.createTexture2d("screen_snowflakes_tex", {TEXFMT_R16F | TEXCF_RTARGET, registry.getResolution<2>("post_fx", 0.5f)})
+        .clear(make_clear_value(0.f, 0.f, 0.f, 0.f));
     registry.requestRenderPass().color({screenSnowflakesTexHndl});
 
-    return [renderer = DynamicShaderHelper("screen_snowflakes")]() {
-      render_screen_snowflakes_ecs_query([&renderer](const SnowflakeInstances &screen_snowflakes__instances) {
+    return [renderer = DynamicShaderHelper("screen_snowflakes"), &manager]() {
+      render_screen_snowflakes_ecs_query(manager, [&renderer](const SnowflakeInstances &screen_snowflakes__instances) {
         if (screen_snowflakes__instances.empty())
           return;
         d3d::setvsrc_ex(0, NULL, 0, 0);
@@ -138,13 +139,13 @@ static void destroy_screen_snowflakes_es(const ecs::Event &,
 }
 
 template <typename Callable>
-static void screen_snowflakes_on_vehicle_camera_change_ecs_query(Callable c);
+static void screen_snowflakes_on_vehicle_camera_change_ecs_query(ecs::EntityManager &manager, Callable c);
 
 ECS_TRACK(isInVehicle, bindedCamera)
 ECS_REQUIRE(ecs::EntityId bindedCamera)
-static void screen_snowflakes_on_vehicle_camera_change_es(const ecs::Event &, bool isInVehicle)
+static void screen_snowflakes_on_vehicle_camera_change_es(const ecs::Event &, ecs::EntityManager &manager, bool isInVehicle)
 {
-  screen_snowflakes_on_vehicle_camera_change_ecs_query(
+  screen_snowflakes_on_vehicle_camera_change_ecs_query(manager,
     [isInVehicle](ECS_REQUIRE(eastl::true_type screen_snowflakes__enabled_on_level) bool &screen_snowflakes__camera_inside_vehicle) {
       screen_snowflakes__camera_inside_vehicle = isInVehicle;
     });
@@ -153,17 +154,18 @@ static void screen_snowflakes_on_vehicle_camera_change_es(const ecs::Event &, bo
 static float exponential_distribution(float u, float rate) { return -log(u) / rate; }
 
 template <typename Callable>
-static void screen_snowflakes_before_render_ecs_query(ecs::EntityId, Callable c);
+static void screen_snowflakes_before_render_ecs_query(ecs::EntityManager &manager, ecs::EntityId, Callable c);
 
 ECS_TAG(render)
 ECS_REQUIRE(eastl::true_type screen_snowflakes__enabled_on_level)
 static void screen_snowflakes_before_render_es(const UpdateStageInfoBeforeRender &info,
+  ecs::EntityManager &manager,
   UniqueBufHolder &screen_snowflakes__instances_buf,
   float &screen_snowflakes__time_until_next_spawn,
   SnowflakeInstances &screen_snowflakes__instances,
   bool screen_snowflakes__camera_inside_vehicle)
 {
-  ecs::EntityId settingsEid = g_entity_mgr->getSingletonEntity(ECS_HASH("screen_snowflakes_settings"));
+  ecs::EntityId settingsEid = manager.getSingletonEntity(ECS_HASH("screen_snowflakes_settings"));
   if (!settingsEid)
     return;
 
@@ -174,7 +176,7 @@ static void screen_snowflakes_before_render_es(const UpdateStageInfoBeforeRender
   bool spawnSnowlakes = !screen_snowflakes__camera_inside_vehicle && !dacoll::rayhit_normalized_ri(cameraPos, -SNOWFALL_DIRECTION, t);
   screen_snowflakes__time_until_next_spawn -= info.dt;
 
-  screen_snowflakes_before_render_ecs_query(settingsEid,
+  screen_snowflakes_before_render_ecs_query(manager, settingsEid,
     [&](float screen_snowflakes__spawn_rate, float screen_snowflakes__min_size, float screen_snowflakes__max_size,
       float screen_snowflakes__restricted_radius, float screen_snowflakes__lifetime) {
       if (spawnSnowlakes && screen_snowflakes__time_until_next_spawn < 0.f)

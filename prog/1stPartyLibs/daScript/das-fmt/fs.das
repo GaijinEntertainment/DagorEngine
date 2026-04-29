@@ -3,7 +3,7 @@ options indenting = 4
 
 module fs shared
 
-require fio
+require daslib/fio
 require strings
 require uriparser
 

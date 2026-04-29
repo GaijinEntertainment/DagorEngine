@@ -12,6 +12,7 @@ require soundSystem
 require math.color
 require math.base
 require DagorDebug3D
+require DagorDataBlock
 require DagorSystem
 
 def get_cur_cam_entity()
@@ -45,9 +46,7 @@ def trace_ri(var intersection_out : float3&; var bestT : float&; var sel_ri_name
         if (uint(node.behaviorFlags) & uint(BehaviorFlag.PHYS_COLLIDABLE)) != 0u
           valid = true
           if node.nodeType == CollisionResourceNodeType.COLLISION_NODE_TYPE_MESH
-            get_collnode_geom(node) <| $(indices; vertices)
-              numFaces += length(indices) / 3
-              numFaces += length(vertices) * 0
+            numFaces += collres_get_node_face_count(*collres, int(node.nodeIndex))
 
       if valid
         intersection_out = cameraPos + cameraDir * bestT
@@ -98,11 +97,11 @@ def copy_to_clipboard(sound_occlusion__ri_name_to_occluder_type : Object&)
     nameType.name = string(it.key)
     nameType.typ = it.value as string ?? ""
   namesTypes |> sort() <| $(a, b)
-    return a.typ != b.typ ? a.typ < b.typ : a.name < b.name
+    return a.name < b.name
   for it in namesTypes
     if !empty(text)
       text += "\n"
-    text += "    {it.name}:t=\"{it.typ}\""
+    text += "  {it.name}:t=\"{it.typ}\""
   if !empty(text)
     set_clipboard_ansi_text(text)
     sound_debug("copied to clipboard")
@@ -133,10 +132,49 @@ def copy_occluders_to_clipboard__console_cmd()
     copy_to_clipboard(sound_occlusion__ri_name_to_occluder_type)
 
 
+def load_occluders_impl(filepath : string;
+                        var sound_occluders_debug : Object&;
+                        var sound_occluders_types : Object&)
+  var success = false
+  clear(sound_occluders_debug)
+  using() <| $(var blk : DataBlock)
+    if datablock_load(blk, filepath)
+      datablock_get_block(blk, "soundOccluders") <| $(soundOccluders)
+        for i in range(soundOccluders.paramCount)
+          let name = soundOccluders |> datablock_getParamName(uint(i))
+          let typ = soundOccluders |> datablock_getStr(i)
+          sound_occluders_debug |> set(name, typ)
+      sound_debug("loaded {length(sound_occluders_debug)} objects from '{filepath}_sound_occluders.blk'")
+      success = true
+  if success
+    success = false
+    clear(sound_occluders_types)
+    using() <| $(var blk : DataBlock)
+      if datablock_load(blk, filepath)
+        datablock_get_block(blk, "soundOccluderTypes") <| $(soundOccluders)
+          for i in range(soundOccluders.paramCount)
+            let name = soundOccluders |> datablock_getParamName(uint(i))
+            let value = soundOccluders |> datablock_getReal(i)
+            sound_occluders_types |> set(name, value)
+        sound_debug("loaded {length(sound_occluders_types)} types from '{filepath}_sound_occluder_types.blk'")
+        success = true
+  if !success
+    logerr("something is wrong (load_occluders from \"{filepath}\")")
+    clear(sound_occluders_debug)
+    clear(sound_occluders_types)
+
+
+
 [console_cmd(name="snd.debug_occluders")]
 def snd_debug_occluders__console_cmd()
-  query() <| $ [es] (var sound_occlusion__debug : bool&)
+  query() <| $ [es] (var sound_occlusion__debug : bool&;
+                     var sound_occlusion__ri_name_to_occluder_type : Object&;
+                     var sound_occlusion__occluderTypes : Object&;
+                     sound_load_occluders_debug__filepath : string)
     sound_occlusion__debug = !sound_occlusion__debug
+    if sound_occlusion__debug
+      load_occluders_impl(sound_load_occluders_debug__filepath, sound_occlusion__ri_name_to_occluder_type, sound_occlusion__occluderTypes)
+
 
 
 [console_cmd(name="snd.set_occluders_dist")]
@@ -207,12 +245,14 @@ def draw_occluders(name : string; value : float;
                    var verts : array<float3>&;
                    is_sel : bool;
                    debug_dist : float)
+  var maxFaces = 1024
   let resIdx = get_rigen_extra_res_idx(name)
   if resIdx != -1
     get_ri_gen_extra_instances(resIdx) <| $(handles : array<riex_handle_t>#)
       for handle in handles
         let desc = RendInstDesc(handle)
         let collres = getRiGenCollisionResource(desc)
+
         if collres != null
           let tm = getRIGenMatrix(desc)
           let box = getRIGenBBox(desc)
@@ -222,27 +262,24 @@ def draw_occluders(name : string; value : float;
             continue
 
           let numNodes = collres_get_nodesCount(*collres)
-          var maxFaces = 2048
           for i in range(numNodes)
             let node = collres_get_node(*collres, i)
             if (uint(node.behaviorFlags) & uint(BehaviorFlag.PHYS_COLLIDABLE)) != 0u
               var nodeTm : float3x4
               collres_get_collision_node_tm(*collres, i, tm, null, nodeTm)
 
-              assume nodeBox = node.modelBBox
+              let nodeBox = collres_get_node_bbox(*collres, i)
               if is_sel
                 begin_draw_cached_debug_lines(false, false, false)
                 set_cached_debug_lines_wtm(nodeTm)
                 draw_cached_debug_box(nodeBox, make_color_temp(value, 200u))
                 end_draw_cached_debug_lines()
 
-              if distance_sq(listener, nodeTm[3]) > square(SOLID_BOX_DIST + maxBound)
-
+              if !is_sel
                 begin_draw_cached_debug_lines(false, false, false)
                 set_cached_debug_lines_wtm(nodeTm)
                 draw_cached_debug_box(nodeBox, make_color_temp(value, 100u))
                 end_draw_cached_debug_lines()
-
               else
                 let color = value >= 0. ? make_color_temp(value, is_sel ? 200u : 100u) : E3DCOLOR(0x40FFFFFF)
 
@@ -255,25 +292,17 @@ def draw_occluders(name : string; value : float;
                 let inside = bbox3f_test_pt_inside(box3f, pt) != 0
 
                 if node.nodeType == CollisionResourceNodeType.COLLISION_NODE_TYPE_MESH
-                  get_collnode_geom(node) <| $(indices; vertices)
-                    let numFaces = length(indices) / 3
-                    let drawFaces = min(numFaces, maxFaces)
-                    if drawFaces <= 0
-                      return
+                  let numFaces = collres_get_node_face_count(*collres, int(node.nodeIndex))
+                  let drawFaces = min(numFaces, maxFaces)
+                  if drawFaces > 0
                     maxFaces -= drawFaces
                     clear(verts)
                     reserve(verts, drawFaces)
-                    let inc = max(1, numFaces / drawFaces)
-                    var idx = 0
 
                     begin_draw_cached_debug_lines(is_sel ? false : true, false, false)
                     set_cached_debug_lines_wtm(nodeTm)
 
-                    while idx < numFaces
-                      let v0 = vertices[int(indices[idx * 3 + 0])].xyz
-                      let v1 = vertices[int(indices[idx * 3 + 1])].xyz
-                      let v2 = vertices[int(indices[idx * 3 + 2])].xyz
-
+                    collres_node_iterate_face_verts(*collres, int(node.nodeIndex)) <| $ [unused_argument(idx)] (idx : int; v0, v1, v2 : float3)
                       if is_sel
                         draw_cached_debug_line(v0, v1, color)
                         draw_cached_debug_line(v1, v2, color)
@@ -283,7 +312,6 @@ def draw_occluders(name : string; value : float;
                       push(verts, v0 + norm)
                       push(verts, v1 + norm)
                       push(verts, v2 + norm)
-                      idx += inc
 
                     if !inside
                       draw_cached_debug_trilist(verts, color)

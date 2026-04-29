@@ -111,6 +111,26 @@ struct SoundEventsPreloadAnnotation final : das::ManagedStructureAnnotation<Soun
   bool canMove() const override { return false; }
   bool canClone() const override { return false; }
 };
+
+struct SoundOcclusionBlobAnnotation final : das::ManagedStructureAnnotation<SoundOcclusionBlob, false>
+{
+  SoundOcclusionBlobAnnotation(das::ModuleLibrary &ml) : ManagedStructureAnnotation("SoundOcclusionBlob", ml)
+  {
+    cppName = " ::SoundOcclusionBlob";
+  }
+  void walk(das::DataWalker &walker, void *data) override
+  {
+    if (!walker.reading)
+    {
+      const SoundOcclusionBlob *t = (SoundOcclusionBlob *)data;
+      int32_t eidV = int32_t(sndsys::sound_handle_t(t->handle));
+      walker.Int(eidV);
+    }
+  }
+  bool canCopy() const override { return false; }
+  bool canMove() const override { return false; }
+  bool canClone() const override { return false; }
+};
 } // namespace soundevent_bind_dascript
 
 #define SND_BIND_FUN_EX(FUN, NAME, SIDE_EFFECTS) \
@@ -132,6 +152,7 @@ public:
     addAnnotation(das::make_smart<SoundGroupAnnotation>(lib));
     addAnnotation(das::make_smart<VisualLabelAnnotation>(lib));
     addAnnotation(das::make_smart<SoundEventsPreloadAnnotation>(lib));
+    addAnnotation(das::make_smart<SoundOcclusionBlobAnnotation>(lib));
 
     das::addFunctionBasic<sndsys::EventHandle>(*this, lib);
     das::addFunctionBasic<SoundVarId>(*this, lib);
@@ -140,7 +161,6 @@ public:
     addFunction(das::make_smart<das::BuiltInFn<das::Sim_BoolNot<SoundVarId>, bool, SoundVarId>>("!", lib, "BoolNot"));
 
     das::addCtorAndUsing<sndsys::VisualLabel>(*this, lib, "VisualLabel", "::sndsys::VisualLabel");
-    das::addCtorAndUsing<sndsys::VisualLabels>(*this, lib, "VisualLabels", "::sndsys::VisualLabels");
 
     SND_BIND_FUN_EX(add_sound, "add_sound", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(__add_sound, "add_sound", das::SideEffects::modifyArgumentAndExternal);
@@ -174,6 +194,8 @@ public:
     SND_BIND_FUN_EX(play_with_name_path_pos, "play", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(play_with_name_path_pos_far, "play_far", das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(delayed_play_with_name_path_pos, "delayed_play", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(set_var_optional_and_play_sound_with_name_path_pos, "set_var_optional_and_play",
+      das::SideEffects::modifyArgumentAndExternal);
 
     SND_BIND_FUN_EX(play_sound_with_name, "play", das::SideEffects::modifyArgumentAndExternal);
     SND_BIND_FUN_EX(play_sound_with_name_pos, "play", das::SideEffects::modifyArgumentAndExternal);
@@ -273,6 +295,8 @@ public:
 
     SND_BIND_FUN(set_occlusion_group, das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(set_occlusion_group_eid, "set_occlusion_group", das::SideEffects::modifyExternal);
+    SND_BIND_FUN(set_occlusion_radius, das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__set_occlusion_radius, "set_occlusion_radius", das::SideEffects::modifyExternal);
 
     SND_BIND_FUN(set_occlusion_pos, das::SideEffects::modifyExternal);
     SND_BIND_FUN_EX(set_occlusion_pos_eid, "set_occlusion_pos", das::SideEffects::modifyExternal);
@@ -290,6 +314,21 @@ public:
     SND_BIND_FUN(get_num_event_instances, das::SideEffects::accessExternal);
     SND_BIND_FUN_EX(__get_num_event_instances, "get_num_event_instances", das::SideEffects::accessExternal);
     SND_BIND_FUN_EX(get_num_event_instances_with_name_path, "get_num_event_instances", das::SideEffects::accessExternal);
+
+    SND_BIND_FUN_EX(occlusion_gpu__create_blob, "create_blob", das::SideEffects::modifyArgumentAndExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__delete_blob, "delete_blob", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__set_pos, "set_pos", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__is_valid_handle_value, "is_valid_handle_value", das::SideEffects::accessExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__attach_to_blob, "attach_to_blob", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__occlusion_gpu__attach_to_blob, "attach_to_blob", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__detach_instance, "detach_occlusion", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__occlusion_gpu__detach_instance, "detach_occlusion", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__drop_instance, "drop_occlusion", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(__occlusion_gpu__drop_instance, "drop_occlusion", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__is_inside_active_range, "is_inside_active_occlusion_range", das::SideEffects::modifyExternal);
+    SND_BIND_FUN_EX(occlusion_gpu__set_blob_active_range, "set_blob_active_range", das::SideEffects::modifyExternal);
+
+    SND_BIND_FUN(get_music_spectrum, das::SideEffects::modifyArgumentAndExternal);
 
     verifyAotReady();
   }

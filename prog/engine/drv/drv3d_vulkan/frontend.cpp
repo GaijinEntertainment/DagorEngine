@@ -26,6 +26,8 @@ FramememBufferManager Frontend::frameMemBuffers;
 ExecutionSyncCapture Frontend::syncCapture;
 ResourceReadbacks Frontend::readbacks;
 Swapchain Frontend::swapchain;
+Swapchain *Frontend::currentSwapchainToPresent = &Frontend::swapchain;
+SecondarySwapchainStorage Frontend::secondarySwapchains;
 
 PipelineState Frontend::State::pipe;
 FrontendPODState Frontend::State::pod;

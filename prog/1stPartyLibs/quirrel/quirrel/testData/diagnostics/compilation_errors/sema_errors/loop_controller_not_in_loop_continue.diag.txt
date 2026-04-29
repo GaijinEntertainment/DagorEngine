@@ -1,0 +1,9 @@
+ERROR: 'continue' has to be in a loop block
+testData/diagnostics/compilation_errors/sema_errors/loop_controller_not_in_loop_continue.nut:3:4
+
+function foo() {
+    continue
+    ^-------
+}
+
+

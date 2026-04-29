@@ -23,9 +23,12 @@
 #include <util/dag_convar.h>
 #include <landMesh/biomeQuery.h>
 #include <scene/dag_physMat.h>
+#include <generic/dag_align.h>
 
 // for FPS cam check, TODO: not really
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include "camera/sceneCam.h"
 #include <game/player.h>
 #include <game/gameEvents.h>
@@ -88,7 +91,7 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
   {
     logerr("DeformHeightmap: 'maskTexSize' (%d) is not divisible by 'DEFORM_HMAP_THREADGROUP_WIDTH' (%d)! "
            "The shaders are intentionally not handling this situation explicitly!",
-      texSize, DEFORM_HMAP_THREADGROUP_WIDTH);
+      maskTexSize, DEFORM_HMAP_THREADGROUP_WIDTH);
   }
 
   for (size_t i = 0; i < depthTextures.size(); i++)
@@ -136,7 +139,11 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
     indirectBuffer = dag::buffers::create_ua_indirect(dag::buffers::Indirect::Dispatch, 2, bufName);
   }
 
-  reprojectPostFx = eastl::make_unique<PostFxRenderer>("deform_hmap_reproject");
+  clearReprojectionIndirect.reset(new_compute_shader("deform_hmap_clear_reprojection_indirect_cs", true));
+  classifyReprojectionTiles.reset(new_compute_shader("deform_hmap_classify_reprojection_tiles_cs", true));
+
+  reprojectPostFx =
+    eastl::make_unique<PostFxRenderer>(supportsTiledReprojection() ? "deform_hmap_reproject_tiled" : "deform_hmap_reproject");
   clearMaskCs.reset(new_compute_shader("deform_hmap_clearmask_cs", true));
   deformCs.reset(new_compute_shader("deform_hmap_deform_cs", true));
   clearIndirect.reset(new_compute_shader("deform_hmap_clearindirect_cs", true));
@@ -144,6 +151,18 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
   edgeDetectCs.reset(new_compute_shader("deform_hmap_edge_detect_cs", true));
   blurCs.reset(new_compute_shader("deform_hmap_blur_cs", true));
   clearerCs.reset(new_compute_shader("deform_hmap_clearer_cs", true));
+
+  if (supportsTiledReprojection())
+  {
+    const uint32_t classificationBitsPerWg = max((uint32_t)classifyReprojectionTiles->getThreadGroupSizes()[0], 32u);
+    const uint32_t bitvectorDwordsSize = dag::align_up(maskTexSize * maskTexSize, classificationBitsPerWg) / 32;
+    deformOccupiedTilesBitvector = dag::buffers::create_ua_sr_structured(sizeof(uint32_t), bitvectorDwordsSize,
+      "deform_occupied_tiles_bitvector", dag::buffers::Init::Zero);
+    deformInfoTexClearTilesIndices =
+      dag::buffers::create_ua_sr_structured(sizeof(uint32_t), (maskTexSize * maskTexSize), "deform_hmap_info_tex_clear_tiles_indices");
+    reprojectionIndirectBuf =
+      dag::buffers::create_ua_indirect(dag::buffers::Indirect::Draw, 1, "deform_hmap_reprojection_indirect_buf");
+  }
 
   shaders::OverrideState state = shaders::OverrideState();
   state.set(shaders::OverrideState::Z_FUNC);
@@ -155,7 +174,7 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
 #undef VAR
 
   ShaderGlobal::set_int(deform_hmap_tex_sizeVarId, texSize);
-  ShaderGlobal::set_color4(deform_hmap_zn_zfVarId, zn, zf, 0, 0);
+  ShaderGlobal::set_float4(deform_hmap_zn_zfVarId, zn, zf, 0, 0);
 
   iViewTm.identity();
   viewTm.identity();
@@ -172,6 +191,19 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
     logerr("DeformHeightmap: Not all deform hmap related shaders and shadervars were found, initialization failed.");
 
   const int physMatCount = PhysMat::physMatCount();
+  hmapDeformParamsBuffer = dag::buffers::create_persistent_sr_structured(sizeof(Point4), physMatCount, "hmap_deform_params_buffer");
+  fillDeformParams();
+}
+
+DeformHeightmap::~DeformHeightmap() { instance = nullptr; }
+
+bool DeformHeightmap::isValid() const { return instance != nullptr; }
+
+bool DeformHeightmap::isEnabled() const { return deform_enabled.get(); }
+
+void DeformHeightmap::fillDeformParams()
+{
+  const int physMatCount = PhysMat::physMatCount();
   const PhysMat::MaterialData &defaultPhysMat = PhysMat::getMaterial("default");
   const Point2 &defaultVehicleHmapDeformParams = defaultPhysMat.vehicleHeightmapDeformation;
   dag::Vector<Point4, framemem_allocator> deformParams(physMatCount,
@@ -182,16 +214,8 @@ DeformHeightmap::DeformHeightmap(const DeformHeightmapDesc &desc) :
     const Point2 &vehicleHmapDeformParams = currentPhysMat.vehicleHeightmapDeformation;
     deformParams[physmatId] = {vehicleHmapDeformParams.x, vehicleHmapDeformParams.y, currentPhysMat.humanHeightmapDeformation, 0};
   }
-
-  hmapDeformParamsBuffer = dag::buffers::create_persistent_sr_structured(sizeof(Point4), physMatCount, "hmap_deform_params_buffer");
   hmapDeformParamsBuffer.getBuf()->updateData(0, (uint32_t)(physMatCount * sizeof(Point4)), deformParams.data(), VBLOCK_WRITEONLY);
 }
-
-DeformHeightmap::~DeformHeightmap() { instance = nullptr; }
-
-bool DeformHeightmap::isValid() const { return instance != nullptr; }
-
-bool DeformHeightmap::isEnabled() const { return deform_enabled.get(); }
 
 void DeformHeightmap::clear()
 {
@@ -254,7 +278,7 @@ void DeformHeightmap::beforeRenderWorld(const Point3 &cam_pos)
   Point2 deltaCamPosRoundedToTexels = point2(deltaCamPosInTexels) * texelSize;
   currentCamPosXZ = prevCamPosXZ + deltaCamPosRoundedToTexels;
 
-  ShaderGlobal::set_color4(deform_hmap_world_to_uv_scale_biasVarId, 1.0f / boxSize, 1.0f / boxSize,
+  ShaderGlobal::set_float4(deform_hmap_world_to_uv_scale_biasVarId, 1.0f / boxSize, 1.0f / boxSize,
     -currentCamPosXZ.x / boxSize + 0.5f, -currentCamPosXZ.y / boxSize + 0.5f);
 
   iViewTm.setcol(0, Point3(1, 0, 0));
@@ -266,7 +290,7 @@ void DeformHeightmap::beforeRenderWorld(const Point3 &cam_pos)
   projTm = matrix_ortho_lh_reverse(boxSize, boxSize, zn, zf);
 
   float camDist = cam_dist_forced.get() < 0.00001 ? fpsCamDist : cam_dist_forced.get();
-  ShaderGlobal::set_real(deform_fps_cam_distVarId, isCameraInFpsView() ? camDist : 0);
+  ShaderGlobal::set_float(deform_fps_cam_distVarId, isCameraInFpsView() ? camDist : 0);
 }
 
 void DeformHeightmap::beforeRenderDepth()
@@ -281,19 +305,39 @@ void DeformHeightmap::beforeRenderDepth()
     clear();
     needClearDepth = false;
   }
-
-  TIME_D3D_PROFILE(deform_hmap_beforeRenderDepth);
-
-  d3d::set_render_target(deformInfoTextures[currentRtIdx].getTex2D(), 0);
-  d3d::set_depth(depthTextures[currentRtIdx].getTex2D(), DepthAccess::RW);
-
   Point2 deltaCamXZ = currentCamPosXZ - prevCamPosXZ;
   Point2 uvOffset = deltaCamXZ / boxSize;
   ShaderGlobal::set_texture(deform_hmap_postfx_source_texVarId, depthTextures[prevRtIdx]);
   ShaderGlobal::set_texture(deform_hmap_info_texVarId, deformInfoTextures[prevRtIdx]);
-  ShaderGlobal::set_color4(deform_hmap_reproject_uv_offsetVarId, uvOffset.x, uvOffset.y, 0, 0);
+  ShaderGlobal::set_float4(deform_hmap_reproject_uv_offsetVarId, uvOffset.x, uvOffset.y, 0, 0);
+  d3d::set_render_target({depthTextures[currentRtIdx].getTex2D(), 0, 0}, DepthAccess::RW,
+    {{deformInfoTextures[currentRtIdx].getTex2D(), 0, 0}});
   shaders::overrides::set(zFuncAlwaysStateId);
-  reprojectPostFx->render();
+  if (supportsTiledReprojection())
+  {
+    {
+      TIME_D3D_PROFILE(deform_hmap_clearReprojectionIndirect);
+      clearReprojectionIndirect->dispatchThreads(1, 1, 1);
+    }
+    const uint32_t maxTilesCount = numThreadGroupsOnTexXY * numThreadGroupsOnTexXY;
+    const uint32_t maxTilesBits =
+      dag::align_up(maxTilesCount, max((uint32_t)classifyReprojectionTiles->getThreadGroupSizes()[0], 32u));
+    ShaderGlobal::set_int(get_shader_variable_id("deform_tiles_count_hor"), maskTexSize);
+    {
+      TIME_D3D_PROFILE(deform_hmap_classifyReprojectionTiles);
+      classifyReprojectionTiles->dispatchThreads(maxTilesBits, 1, 1);
+    }
+
+    TIME_D3D_PROFILE(deform_hmap_beforeRenderDepth_tiled);
+    d3d::clearview(CLEAR_TARGET | CLEAR_ZBUFFER, 0, 0, 0);
+    reprojectPostFx->getElem()->setStates();
+    d3d::draw_indirect(PRIM_TRILIST, reprojectionIndirectBuf.getBuf(), 0);
+  }
+  else
+  {
+    TIME_D3D_PROFILE(deform_hmap_beforeRenderDepth);
+    reprojectPostFx->render();
+  }
   shaders::overrides::reset();
 
   d3d::settm(TM_VIEW, viewTm);
@@ -307,11 +351,14 @@ void DeformHeightmap::afterRenderDepth()
 
   TIME_D3D_PROFILE(deform_hmap_afterRenderDepth);
 
+  if (supportsTiledReprojection())
+    d3d::zero_rwbufi(deformOccupiedTilesBitvector.getBuf());
+
   // So rtarget will be available for set as deform_hmap_postfx_source_tex
   d3d::set_depth(nullptr, DepthAccess::RW);
   d3d::resource_barrier({depthTextures[currentRtIdx].getBaseTex(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
 
-  d3d::set_render_target(nullptr, 0);
+  d3d::set_render_target({}, DepthAccess::RW, {});
   d3d::resource_barrier({deformInfoTextures[currentRtIdx].getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL | RB_STAGE_COMPUTE, 0, 0});
 
   // Clear mask in advance in a separate pass because deform pass needs to fill it in a way threadgroups write
@@ -420,6 +467,8 @@ void DeformHeightmap::restoreStates()
   d3d_set_render_target(origRt);
 }
 
+bool DeformHeightmap::supportsTiledReprojection() const { return clearReprojectionIndirect.get() != nullptr; }
+
 static bool deform_hmap_console_handler(const char *argv[], int argc)
 {
   int found = 0;
@@ -431,10 +480,16 @@ static bool deform_hmap_console_handler(const char *argv[], int argc)
   return found;
 }
 
+void DeformHeightmap::afterDeviceReset()
+{
+  requestClear();
+  fillDeformParams();
+}
+
 static void deform_hmap_after_device_reset(bool full_reset)
 {
   if (full_reset && instance != nullptr)
-    instance->requestClear();
+    instance->afterDeviceReset();
 }
 
 REGISTER_CONSOLE_HANDLER(deform_hmap_console_handler);

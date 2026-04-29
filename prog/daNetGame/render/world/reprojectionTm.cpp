@@ -31,7 +31,8 @@ static TMatrix4 calc_motion_vec_reprojection_tm(const CameraParams &current, con
 ReprojectionTransforms calc_reprojection_transforms(const CameraParams &prev_frame_camera, const CameraParams &current_frame_camera)
 {
   const DPoint3 move = current_frame_camera.cameraWorldPos - prev_frame_camera.cameraWorldPos;
-  const Point2 jitterOffset = current_frame_camera.jitterOffsetUv;
+  auto uvToNdc = [](const Point2 &uv) { return Point2(uv.x * 2.0f, -uv.y * 2.0f); };
+  const Point2 jitterOffset = uvToNdc(current_frame_camera.jitterOffsetUv);
 
   TMatrix prevViewTm = prev_frame_camera.viewTm;
   prevViewTm.setcol(3, 0, 0, 0);

@@ -25,3 +25,4 @@ commonClientScenes{
   scene:t="gamedata/scenes/_common_render_scene.blk"//should be created before WorldRenderer
   scene:t="gamedata/scenes/_common_sound_scene.blk"//should be created before WorldRenderer
 }
+debugRiTexture:t="_white_ao"

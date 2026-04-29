@@ -7,6 +7,7 @@
 
 #include <3d/dag_sbufferIDHolder.h>
 #include <drv/3d/dag_driver.h>
+#include <drv/3d/dag_rwResource.h>
 #include <shaders/dag_shaders.h>
 #include <memory/dag_framemem.h>
 
@@ -29,6 +30,21 @@ static unsigned int pack_value(float value, float precision, float min, float ma
 {
   int endValue = roundf((value - min) / (max - min) * precision);
   return endValue;
+}
+
+void ClusterWindRenderer::afterResetDevice()
+{
+  if (fillClusterGPUBuffer())
+  {
+    if (cluster_buf_prev.getBuf())
+      cluster_buf.getBuf()->copyTo(cluster_buf_prev.getBuf());
+  }
+  else
+  {
+    d3d::zero_rwbufi(cluster_buf.getBuf());
+    if (cluster_buf_prev.getBuf())
+      d3d::zero_rwbufi(cluster_buf_prev.getBuf());
+  }
 }
 
 void ClusterWindRenderer::updateClusterBuffer(const void *clusters, int num)
@@ -102,13 +118,8 @@ void ClusterWindRenderer::updateSecondClusterWindGridsDesc()
   }
 }
 
-void ClusterWindRenderer::updateRenderer()
+bool ClusterWindRenderer::fillClusterGPUBuffer()
 {
-  TIME_PROFILE(ClusterWindUpdateGPU);
-
-  if (cluster_buf_prev.getBuf())
-    cluster_buf.getBuf()->copyTo(cluster_buf_prev.getBuf());
-
   uint8_t *data = nullptr;
   if (!cluster_buf.getBuf()->lock(0, 0, (void **)&data, VBLOCK_WRITEONLY | VBLOCK_DISCARD) || !data)
   {
@@ -118,7 +129,7 @@ void ClusterWindRenderer::updateRenderer()
       logwarn("clusterWind Buffer fail to lock");
       warned = true;
     }
-    return;
+    return false;
   }
   const size_t cascadeDataSize = MAXIMUM_GRID_BOX_CASCADE * sizeof(uint4);
   const size_t gridsDataSize = ((MAX_BOX_PER_GRID * MAXIMUM_GRID_BOX_CASCADE) / 4) * sizeof(uint4);
@@ -134,13 +145,25 @@ void ClusterWindRenderer::updateRenderer()
         cascadeDescArr[currentClusterIndex].size(), gridsIdArr[currentClusterIndex].size(),
         clusterDescArr[currentClusterIndex].size());
     }
-    G_ASSERT_RETURN(false, );
+    G_ASSERT_RETURN(false, false);
   }
   memcpy(data, cascadeDescArr[currentClusterIndex].data(), cascadeDescArr[currentClusterIndex].size() * sizeof(uint4));
   memcpy(data + cascadeDataSize, gridsIdArr[currentClusterIndex].data(), gridsIdArr[currentClusterIndex].size() * sizeof(uint4));
   memcpy(data + cascadeDataSize + gridsDataSize, clusterDescArr[currentClusterIndex].data(),
     clusterDescArr[currentClusterIndex].size() * sizeof(uint4));
   cluster_buf.getBuf()->unlock();
+  return true;
+}
+
+void ClusterWindRenderer::updateRenderer()
+{
+  TIME_PROFILE(ClusterWindUpdateGPU);
+
+  if (cluster_buf_prev.getBuf())
+    cluster_buf.getBuf()->copyTo(cluster_buf_prev.getBuf());
+
+  fillClusterGPUBuffer();
+
   cluster_buf.setVar();
   cluster_buf_prev.setVar();
 }
@@ -148,12 +171,12 @@ void ClusterWindRenderer::updateRenderer()
 void ClusterWindRenderer::loadBendingMultConst(float treeMult, float impostorMult, float grassMult, float treeAnimationMult,
   float grassAnimationMult)
 {
-  ShaderGlobal::set_real(treeBendingMultVarId, treeMult);
-  ShaderGlobal::set_real(impostorBendingMultVarId, impostorMult);
-  ShaderGlobal::set_real(grassBendingMultVarId, grassMult);
+  ShaderGlobal::set_float(treeBendingMultVarId, treeMult);
+  ShaderGlobal::set_float(impostorBendingMultVarId, impostorMult);
+  ShaderGlobal::set_float(grassBendingMultVarId, grassMult);
 
-  ShaderGlobal::set_real(treeBendingAnimationMultVarId, treeAnimationMult);
-  ShaderGlobal::set_real(grassBendingAnimationMultVarId, grassAnimationMult);
+  ShaderGlobal::set_float(treeBendingAnimationMultVarId, treeAnimationMult);
+  ShaderGlobal::set_float(grassBendingAnimationMultVarId, grassAnimationMult);
 }
 
 void ClusterWindRenderer::updateCurrentRendererIndex()
@@ -182,10 +205,10 @@ ClusterWindRenderer::ClusterWindRenderer(bool need_historical_buffer)
 {
   int bufferSize = (MAXIMUM_GRID_BOX_CASCADE + (MAX_BOX_PER_GRID * MAXIMUM_GRID_BOX_CASCADE) / 4 + MAX_CLUSTER);
 
-  cluster_buf.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf"), "cluster_buf");
+  cluster_buf.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf", RESTAG_WIND), "cluster_buf");
 
   if (need_historical_buffer)
-    cluster_buf_prev.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf_prev"), "cluster_buf_prev");
+    cluster_buf_prev.set(d3d::buffers::create_persistent_cb(bufferSize, "cluster_buf_prev", RESTAG_WIND), "cluster_buf_prev");
 
   treeBendingMultVarId = get_shader_variable_id("cluster_wind_tree_bending_mult");
   impostorBendingMultVarId = get_shader_variable_id("cluster_wind_impostor_bending_mult");

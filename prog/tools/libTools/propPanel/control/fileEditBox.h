@@ -104,7 +104,7 @@ public:
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
-    ImguiHelper::separateLineLabel(controlCaption);
+    separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
     setFocusToNextImGuiControlIfRequested();
 
     const float buttonWidth = ImGui::GetFrameHeight(); // Simply use a square button.

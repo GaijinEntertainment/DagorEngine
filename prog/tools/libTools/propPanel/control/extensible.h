@@ -1,9 +1,12 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 #pragma once
 
+#include "../imageHelper.h"
 #include "../messageQueueInternal.h"
 #include "../scopedImguiBeginDisabled.h"
+#include "../tooltipHelper.h"
 #include <propPanel/control/container.h>
+#include <propPanel/iconWithNameAndSize.h>
 #include <propPanel/imguiHelper.h>
 #include <stdio.h>
 
@@ -14,9 +17,11 @@ class ExtensiblePropertyControl : public ContainerPropertyControl
 {
 public:
   ExtensiblePropertyControl(ControlEventHandler *event_handler, ContainerPropertyControl *parent, int id, int x, int y, hdpi::Px w,
-    hdpi::Px h) :
-    ContainerPropertyControl(id, event_handler, parent, x, y, w, h)
-  {}
+    hdpi::Px h, const char *menu_button_icon = nullptr, const char *menu_button_tooltip = nullptr) :
+    ContainerPropertyControl(id, event_handler, parent, x, y, w, h), menuButtonTooltip(menu_button_tooltip)
+  {
+    menuButtonIcon.setFileName(menu_button_icon);
+  }
 
   unsigned getTypeMaskForSet() const override { return CONTROL_DATA_TYPE_STRING | CONTROL_DATA_TYPE_INT; }
   unsigned getTypeMaskForGet() const override { return CONTROL_DATA_TYPE_INT; }
@@ -44,6 +49,8 @@ public:
     for (PropertyControlBase *control : mControlArray)
       control->setEnabled(enabled);
   }
+
+  void setButtonPictureValues(const char *fname) override { menuButtonIcon.setFileName(fname); }
 
   bool isRealContainer() override { return false; }
 
@@ -75,9 +82,11 @@ public:
       // "t" stands for table. It could be anything.
       if (ImGui::BeginTable("##t", 2, ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_SizingFixedFit))
       {
-        const float menuButtonWidth = ImGui::GetFrameHeight(); // Simply use a square button.
+        const float fontSize = ImGui::GetFontSize();
+        const ImVec2 menuButtonSize = ImVec2(fontSize, fontSize); // Simply use a square button.
+        const float menuButtonWidthWithFramePadding = menuButtonSize.x + (ImGui::GetStyle().FramePadding.x * 2.0f);
         const float columnPadding = ImGui::GetStyle().ItemSpacing.x;
-        const float column2Width = columnPadding + menuButtonWidth;
+        const float column2Width = columnPadding + menuButtonWidthWithFramePadding;
         const float column1Width = ImGui::GetContentRegionAvail().x - column2Width;
 
         ImGui::TableSetupColumn(nullptr, ImGuiTableColumnFlags_WidthFixed, column1Width);
@@ -88,7 +97,7 @@ public:
 
         ImGui::TableNextColumn();
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + columnPadding);
-        makeMenuButton(menuButtonWidth);
+        makeMenuButton(menuButtonSize);
 
         ImGui::EndTable();
       }
@@ -106,9 +115,36 @@ protected:
     message_queue.sendDelayedOnWcClick(*this, mId);
   }
 
-  void makeMenuButton(float menuButtonWidth)
+  void makeMenuButton(const ImVec2 &menu_button_size)
   {
-    ImGui::Button("...", ImVec2(menuButtonWidth, 0.0f));
+    ScopedImguiBeginDisabled scopedDisabled(buttonFlags == 0);
+    const IconId iconId = menuButtonIcon.getIconId();
+    bool buttonClicked;
+
+    if (iconId == IconId::Invalid)
+    {
+      const ImVec2 framePadding = ImGui::GetStyle().FramePadding;
+      const ImVec2 finalSize(menu_button_size.x + (framePadding.x * 2.0f), menu_button_size.y + (framePadding.y * 2.0f));
+      buttonClicked = ImGui::Button("...", finalSize);
+    }
+    else
+    {
+      const ImTextureID icon = image_helper.getImTextureIdFromIconId(iconId);
+      buttonClicked = ImGui::ImageButton("ib", icon, menu_button_size);
+    }
+
+    tooltip_helper.setPreviousImguiControlTooltip((const void *)((uintptr_t)ImGui::GetItemID()), menuButtonTooltip.c_str(),
+      menuButtonTooltip.c_str() + menuButtonTooltip.length());
+
+    if (isButtonFlagEnabled(EXT_BUTTON_SINGLE_ACTION))
+    {
+      if (buttonClicked)
+      {
+        buttonStatus = EXT_BUTTON_SINGLE_ACTION;
+        message_queue.sendDelayedOnWcClick(*this, mId);
+      }
+      return;
+    }
 
     // With nullptr as the parameter this uses the previous ID, so the ID of the ... button.
     if (!ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonLeft))
@@ -156,6 +192,8 @@ protected:
   bool controlEnabled = true;
   mutable int buttonStatus = EXT_BUTTON_NONE;
   int buttonFlags = 0;
+  IconWithName menuButtonIcon;
+  SimpleString menuButtonTooltip;
 };
 
 } // namespace PropPanel

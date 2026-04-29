@@ -17,6 +17,7 @@
 #include <walkerAi/aiEnums.h>
 
 MAKE_TYPE_FACTORY(LastTarget, walkerai::LastTarget);
+MAKE_TYPE_FACTORY(AccuracyParams, walkerai::AccuracyParams);
 MAKE_TYPE_FACTORY(Aiming, walkerai::Aiming);
 MAKE_TYPE_FACTORY(EntityAgent, walkerai::EntityAgent);
 MAKE_TYPE_FACTORY(ObstacleEx, walkerai::ObstacleEx);
@@ -47,6 +48,12 @@ inline void walker_agent_nav_areaUpdateCylinder(walkerai::EntityAgent &agent, in
   Point3 tmp(radius.x, radius.y, radius.x);
   agent.getCustomNav()->areaUpdateCylinder(area_id, BBox3(p - tmp, p + tmp), w1, w2, optimize);
 }
+inline void walker_custom_nav_areaUpdateFadingCylinder(pathfinder::CustomNav &custom_nav, int area_id, const Point3 &p,
+  const Point2 &radius, float w1, float w2, float fadeTimeStart, float fadeTimeEnd, bool optimize)
+{
+  Point3 tmp(radius.x, radius.y, radius.x);
+  custom_nav.areaUpdateCylinder(area_id, BBox3(p - tmp, p + tmp), w1, w2, fadeTimeStart, fadeTimeEnd, optimize);
+}
 inline void walker_custom_nav_areaUpdateCylinder(pathfinder::CustomNav &custom_nav, int area_id, const Point3 &p, const Point2 &radius,
   float w1, float w2, bool optimize)
 {
@@ -59,22 +66,62 @@ inline void walker_agent_nav_areaUpdateBoxThres(walkerai::EntityAgent &agent, in
   agent.getCustomNav()->areaUpdateBox(area_id, tm, oobb, w1, w2, optimize, posThreshold, angCosThreshold);
 }
 inline void walker_agent_nav_areaUpdateCylinderThres(walkerai::EntityAgent &agent, int area_id, const Point3 &p, const Point2 &radius,
-  float w1, float w2, bool optimize, float posThreshold, float angCosThreshold)
+  float w1, float w2, bool optimize, float posThreshold)
 {
   Point3 tmp(radius.x, radius.y, radius.x);
-  agent.getCustomNav()->areaUpdateCylinder(area_id, BBox3(p - tmp, p + tmp), w1, w2, optimize, posThreshold, angCosThreshold);
+  agent.getCustomNav()->areaUpdateCylinder(area_id, BBox3(p - tmp, p + tmp), w1, w2, optimize, posThreshold);
 }
 inline void walker_agent_nav_areaRemove(walkerai::EntityAgent &agent, int area_id) { agent.getCustomNav()->areaRemove(area_id); }
 inline void walker_custom_nav_areaRemove(pathfinder::CustomNav &custom_nav, int area_id) { custom_nav.areaRemove(area_id); }
+
+inline float walker_custom_nav_getWeight(const pathfinder::CustomNav &custom_nav, const Point3 &p)
+{
+  return custom_nav.getWeightAtPointFromCylinderAreasOnly(p);
+}
+
+inline Point2 walker_custom_nav_getAreaCurrentWeight(const pathfinder::CustomNav &custom_nav, int area_id)
+{
+  return custom_nav.getAreaCurrentWeight(area_id);
+}
+
+inline BBox3 walker_custom_nav_getAreaBBox(const pathfinder::CustomNav &custom_nav, int area_id)
+{
+  return custom_nav.getAreaBBox(area_id);
+}
+
+inline void walker_custom_nav_setAreaUserTagData(pathfinder::CustomNav &custom_nav, int area_id, int user_tag, int user_data)
+{
+  custom_nav.setAreaUserTagData(area_id, user_tag, user_data);
+}
+
+inline void walker_custom_nav_getNearCylAreasByUserTag(const pathfinder::CustomNav &custom_nav, const Point3 &p, float search_dist,
+  int search_user_tag, const das::TBlock<bool, int, int> &block, das::Context *context, das::LineInfoArg *at)
+{
+  vec4f args[2];
+  context->invokeEx(
+    block, args, nullptr,
+    [&](das::SimNode *code) {
+      custom_nav.getNearCylAreasByUserTag(p, search_dist, search_user_tag, [&](int area_id, int user_data) {
+        args[0] = das::cast<int>::from(area_id);
+        args[1] = das::cast<int>::from(user_data);
+        return code->evalBool(*context);
+      });
+    },
+    at);
+}
+
+inline Point4 walker_custom_nav_getCylAreaBBoxPosRadius(const pathfinder::CustomNav &custom_nav, int area_id)
+{
+  return custom_nav.getCylAreaBBoxPosRadius(area_id);
+}
+
+inline void walker_custom_nav_updateFadeSyncTime(float time) { pathfinder::CustomNav::updateFadeSyncTime(time); }
 
 inline void get_agent_path(const walkerai::EntityAgent &agent,
   const das::TBlock<void, const das::TTemporary<const das::TArray<das::float3>>> &block, das::Context *context, das::LineInfoArg *at)
 {
   das::Array arr;
-  arr.data = (char *)agent.path.data();
-  arr.size = uint32_t(agent.path.size());
-  arr.capacity = arr.size;
-  arr.lock = 1;
+  das::array_mark_locked(arr, (char *)agent.path.data(), agent.path.size());
   arr.flags = 0;
   vec4f arg = das::cast<das::Array *>::from(&arr);
   context->invoke(block, &arg, nullptr, at);

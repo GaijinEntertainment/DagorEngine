@@ -7,12 +7,14 @@ options no_aot = true
 
 module quirrel_boost shared private
 
-require ast
-require rtti
+require daslib/ast
+require daslib/rtti
 require strings public
 require daslib/ast_boost
 require daslib/templates_boost
 require daslib/strings_boost
+require daslib/apply
+require daslib/contracts
 require quirrel public
 
 
@@ -176,6 +178,16 @@ def public pushValue(var vm : SQVM?; val : float) { sq_pushfloat(vm, val); }
 def public pushValue(var vm : SQVM?; val : bool) { sq_pushbool(vm, val ? 1ul : 0ul); }
 def public pushValue(var vm : SQVM?; val : string) { sq_pushstring(vm, val, int64(length(val))); }
 
+[expect_any_struct(val)]
+def public pushValue(var vm : SQVM?; val : auto) {
+    sq_newtable(vm)
+    apply(val) <| $(name : string; field) {
+        _::pushValue(vm, name)
+        _::pushValue(vm, field)
+        sq_rawset(vm, -3l)
+    }
+}
+
 def public pushValue(var vm : SQVM?; val : array<auto(T)>) {
     sq_newarray(vm, int64(length(val)))
     for (it, idx in val, iter_range(val)) {
@@ -209,7 +221,8 @@ def public paramcheck(typ) {
                 || typ.baseType == Type.tInt64 || typ.baseType == Type.tUInt || typ.baseType == Type.tUInt8
                 || typ.baseType == Type.tUInt16 || typ.baseType == Type.tUInt64
                 || typ.baseType == Type.tEnumeration || typ.baseType == Type.tEnumeration8 || typ.baseType == Type.tEnumeration16
-                || typ.baseType == Type.tVariant || typ.baseType == Type.tBitfield)
+                || typ.baseType == Type.tVariant
+                || typ.baseType == Type.tBitfield || typ.baseType == Type.tBitfield8 || typ.baseType == Type.tBitfield16 || typ.baseType == Type.tBitfield64)
     return "n" if (typ.baseType == Type.tFloat)
     return "b" if (typ.baseType == Type.tBool)
     return "s|o" if (typ.baseType == Type.tString)

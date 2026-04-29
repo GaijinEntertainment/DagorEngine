@@ -12,11 +12,10 @@ int bvh_hwinstance_copy_output_uav_no = 0;
 
 shader bvh_hwinstance_copy
 {
-  if (compatibility_mode == compatibility_mode_on)
+  if (compatibility_mode == compatibility_mode_on || !hardware.metal)
   {
     dont_render;
   }
-  ENABLE_ASSERT(cs)
 
   (cs) {
     start_instance@i1 = bvh_hwinstance_copy_start_instance;
@@ -97,7 +96,7 @@ shader bvh_hwinstance_copy
 
       outInstance.options = 0;
 
-      uint flags = instance.instanceOffset_flags & 0xff;
+      uint flags = (instance.instanceOffset_flags >> 24) & 0xff;
       if (flags & RT_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE)
         outInstance.options |= MTLAccelerationStructureInstanceOptionDisableTriangleCulling;
       if (flags & RT_INSTANCE_FLAG_TRIANGLE_CULL_FLIP_WINDING)

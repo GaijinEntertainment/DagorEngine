@@ -45,7 +45,7 @@ function mkLinearGradSvgTxtImpl(points, width, height, x1=0, y1=0, x2=null, y2=0
   assert(width>1 && height>1 && width+height > 7, "gradient should be created with some reasonable sizes")
   spreadMethod=spreadMethod ?? GRADSPREAD.PAD
   if (transform != null)
-    transform = " ".join(transform.reduce(function(prev, v, k) {prev.append($"{k}({v}))"); return prev;}, []))
+    transform = " ".join(transform.reduce(function(prev, v, k) {prev.append($"{k}({v})"); return prev;}, []))
   let gradientTransformStr = transform!=null ? $"gradientTransform='{transform}'" : ""
   let header = $"<svg xmlns='http://www.w3.org/2000/svg' version='1.1'><defs>\n  <linearGradient spreadMethod='{spreadMethod}' id='gradient' {gradientTransformStr} x1='{x1}' y1='{y1}' x2='{x2}' y2='{y2}'>"
   let footer = $"  </linearGradient>\n</defs>\n<rect width='{width}' height='{height}' y='0' x='0' fill='url(#gradient)'/></svg>"
@@ -67,7 +67,7 @@ function mkRadialGradSvgTxtImpl(points, width, height, cx=null, cy=null, r=null,
   assert(width>1 && height>1 && width+height > 15, "gradient should be created with some reasonable sizes")
   spreadMethod=spreadMethod ?? GRADSPREAD.PAD
   if (transform != null)
-    transform = " ".join(transform.reduce(function(prev, v, k) {prev.append($"{k}({v}))"); return prev;}, []))
+    transform = " ".join(transform.reduce(function(prev, v, k) {prev.append($"{k}({v})"); return prev;}, []))
   let focus = " ".join([
     fx != null ? $"fx='{fx}'" : "",
     fy != null ? $"fy='{fy}'" : ""

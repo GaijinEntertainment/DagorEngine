@@ -1,3 +1,6 @@
+include "wind/wind_simulation_inc.dshl"
+include "obstacles_inc.dshl"
+
 int grass_use_quads always_referenced;
 interval grass_use_quads : no < 1, yes;
 int grass_instancing = 0;
@@ -14,6 +17,9 @@ float4 grass_average_ht__ht_extent__avg_hor__hor_extent;
 
 buffer grass_draw_instances_indirect_buffer;
 buffer grass_draw_instances_buffer;
+
+const_buffer grass_colors_buf;
+float grass_inv_vis_distance = 0.01;
 
 macro INIT_GRASS_GENERATE_NO_UAV(code)
   (code) {
@@ -46,40 +52,33 @@ macro INIT_GRASS_GENERATE(code)
   }
 endmacro
 
-macro USE_GRASS_GENERATE(code)
-  hlsl(code) {
-    #define GRASS_LOD_ON 1
-
+macro USE_GRASS_COMPRESSION(code)
+  hlsl(code)
+  {
     #include <grassInstance.hlsli>
-    #ifndef MAX_HEIGHT
-    #define MAX_HEIGHT 2.0f
-    #define MAX_SIZE 2.0f
-    #endif
+
     #if UNCOMPRESSED
       #define compress_instance(from) from
       #define uncompress_instance(from) from
     #else
-      uint encode_float2_to_uint(float2 val)
-      {
-        uint2 ival = f32tof16(val);
-        return ival.x|(ival.y<<16);
-      }
+      #include <pixelPacking/Half2ToUint.hlsl>
+
       uint compress_normal_float(float v) {return v*127+127;}
       float uncompress_normal_float(uint v) {return v/127.0f - 1.f;}
       GrassInstance compress_instance(GrassInstanceUncompressed from)
       {
         GrassInstance to;
-        //to.position_xz = encode_float2_to_uint(from.position.xz);
+        //to.position_xz = packHalf2ToUint(from.position.xz);
         from.position.xz = 65535*from.position.xz;
         //from.position.xz = clamp((from.position.xz*(65535.0/3.)+65535.0/3.0), 0, 65535);//instead of just 0..1 position we have to encode -1..2, due to toroidal update. Can be fixed
         to.position_xz = uint(from.position.x)|(uint(from.position.z)<<16);
-        to.vAngle_height = encode_float2_to_uint(float2(from.vAngle, from.height));
+        to.vAngle_height = packHalf2ToUint(from.vAngle, from.height);
         to.random_size_rotation = f32tof16(from.size);
         to.random_size_rotation |= uint(from.random*255)<<16;
         to.random_size_rotation |= uint(from.rotation*(255.0f*0.5) + 0.5*255.0f)<<24;
         to.landColor_tv = uint(floor(from.landColor.r*255+0.5f)) | (uint(floor(from.landColor.g*255+0.5f))<<8) | (uint(floor(from.landColor.b*255+0.5f))<<16);
         to.landColor_tv |= (from.grassType<<24)|(from.grassVariation<<29);
-        to.land_normal = encode_float2_to_uint(from.landNormal.xz);//compress_normal_float(from.landNormal.x)|(compress_normal_float(from.landNormal.z)<<8);
+        to.land_normal = packHalf2ToUint(from.landNormal.xz);//compress_normal_float(from.landNormal.x)|(compress_normal_float(from.landNormal.z)<<8);
         to.position_y = from.position.y;
         to.opacity_porosity = (uint(floor(saturate(from.opacity) * 65535)) << 16) | uint(floor(saturate(from.porosity) * 65535));
         to.lodNo = (from.lodNo << 2) | (sign(from.landNormal.y) >= 0) << 1 | from.worldYOrientation;
@@ -93,7 +92,7 @@ macro USE_GRASS_GENERATE(code)
         //to.position.x = (from.position_xz&0xFFFF)*3.0/65535.0 - 1;
         //to.position.z = (from.position_xz>>16)*3.0/65535.0 - 1;
         to.position.y = from.position_y;
-        to.height = f16tof32(from.vAngle_height>>16);
+        unpackHalf2FromUint(from.vAngle_height, to.vAngle, to.height);
         to.size = f16tof32(from.random_size_rotation);
         to.random = ((from.random_size_rotation>>16)&255)*(1.0f/255.f);
         to.rotation = ((from.random_size_rotation>>24)*(2.*2.*PI/255.0f) - 2*PI);
@@ -102,10 +101,8 @@ macro USE_GRASS_GENERATE(code)
         to.grassVariation = (from.landColor_tv>>29);
         //to.landNormal.x = uncompress_normal_float(from.land_normal&0xff);
         //to.landNormal.z = uncompress_normal_float((from.land_normal>>8)&0xff);
-        to.landNormal.x = f16tof32(from.land_normal);
-        to.landNormal.z = f16tof32(from.land_normal>>16);
+        to.landNormal.xz = unpackHalf2FromUint(from.land_normal);
         to.landNormal.y = sqrt(1-to.landNormal.x*to.landNormal.x - to.landNormal.z*to.landNormal.z);
-        to.vAngle = f16tof32(from.vAngle_height);
         to.opacity = float(from.opacity_porosity >> 16) * (1.f / 65535.f);
         to.porosity = float(from.opacity_porosity & 0x0000FFFF) * (1.f / 65535.f);
         to.lodNo = from.lodNo >> 2;
@@ -114,6 +111,18 @@ macro USE_GRASS_GENERATE(code)
         to.worldYOrientation = from.lodNo & 1;
         return to;
       }
+    #endif
+  }
+endmacro
+
+macro USE_GRASS_GENERATE(code)
+  USE_GRASS_COMPRESSION(code)
+  hlsl(code) {
+    #define GRASS_LOD_ON 1
+
+    #ifndef MAX_HEIGHT
+    #define MAX_HEIGHT 2.0f
+    #define MAX_SIZE 2.0f
     #endif
 
     float fast_atan2(float y, float x)
@@ -289,6 +298,281 @@ macro USE_GRASS_PUSH_INSTANCE(code)
       ##endif
       if (at < grass_max_instance_count)
         grass[at] = compressedInstance;
+    }
+  }
+endmacro
+
+macro INIT_GRASS_COLORS_CBUF(code)
+  (code)
+  {
+    VSGrassColors@cbuf = grass_colors_buf hlsl {
+      #include <grassInstance.hlsli>
+      cbuffer VSGrassColors@cbuf
+      {
+        GrassColorVS grass_colors_vs[GRASS_MAX_TYPES];
+      };
+    };
+  }
+endmacro
+
+macro INIT_GPU_GRASS_CORNER_POS(code)
+  INIT_GRASS_COLORS_CBUF(code)
+  INIT_USE_COMBINED_WIND(code)
+  INIT_OBSTACLES(code)
+  INIT_OBSTACLES_PREV(code)
+  (code)
+  {
+    grass_inv_vis_distance@f1 = (grass_inv_vis_distance);
+  }
+endmacro
+
+macro USE_GPU_GRASS_CORNER_POS(code)
+  USE_OBSTACLES(code)
+  hlsl(code)
+  {
+    float TriangleWave(float x)
+    {
+      float y = abs(frac(x + 0.5) * 2. - 1.);
+      return y * y * (3. - 2. * y);
+    }
+
+    // Dynamic indexing on NVIDIA Vk can be compiled differently based on register preassure
+    // which can cause differences in color and depth pass -> this workaround fixes that issue
+    // (Note: This should be ensured by precise flag, but seemingly NVIDIA chooses to ignore it)
+    float getGrassStiffness(uint grassType)
+    {
+      ##if hardware.vulkan
+      if (grassType ==  0) return grass_colors_vs[ 0].stiffness;
+      if (grassType ==  1) return grass_colors_vs[ 1].stiffness;
+      if (grassType ==  2) return grass_colors_vs[ 2].stiffness;
+      if (grassType ==  3) return grass_colors_vs[ 3].stiffness;
+      if (grassType ==  4) return grass_colors_vs[ 4].stiffness;
+      if (grassType ==  5) return grass_colors_vs[ 5].stiffness;
+      if (grassType ==  6) return grass_colors_vs[ 6].stiffness;
+      if (grassType ==  7) return grass_colors_vs[ 7].stiffness;
+      if (grassType ==  8) return grass_colors_vs[ 8].stiffness;
+      if (grassType ==  9) return grass_colors_vs[ 9].stiffness;
+      if (grassType == 10) return grass_colors_vs[10].stiffness;
+      if (grassType == 11) return grass_colors_vs[11].stiffness;
+      if (grassType == 12) return grass_colors_vs[12].stiffness;
+      if (grassType == 13) return grass_colors_vs[13].stiffness;
+      if (grassType == 14) return grass_colors_vs[14].stiffness;
+      if (grassType == 15) return grass_colors_vs[15].stiffness;
+      if (grassType == 16) return grass_colors_vs[16].stiffness;
+      if (grassType == 17) return grass_colors_vs[17].stiffness;
+      if (grassType == 18) return grass_colors_vs[18].stiffness;
+      if (grassType == 19) return grass_colors_vs[19].stiffness;
+      if (grassType == 20) return grass_colors_vs[20].stiffness;
+      if (grassType == 21) return grass_colors_vs[21].stiffness;
+      if (grassType == 22) return grass_colors_vs[22].stiffness;
+      if (grassType == 23) return grass_colors_vs[23].stiffness;
+      if (grassType == 24) return grass_colors_vs[24].stiffness;
+      if (grassType == 25) return grass_colors_vs[25].stiffness;
+      if (grassType == 26) return grass_colors_vs[26].stiffness;
+      if (grassType == 27) return grass_colors_vs[27].stiffness;
+      if (grassType == 28) return grass_colors_vs[28].stiffness;
+      if (grassType == 29) return grass_colors_vs[29].stiffness;
+      if (grassType == 30) return grass_colors_vs[30].stiffness;
+      ##endif
+      return grass_colors_vs[grassType].stiffness;
+    }
+    float3 compute_grass_wind_offset(float3 pos, float height, float noise_speed_mult, float stiffness, float random_wind_amp, bool use_prev_time)
+    {
+      FLATTEN
+      if (height>0.0001)
+      {
+        const float WIND_TIME_MULT = 0.25;
+        const float WIND_MULT = 0.03;
+        float3 wind = use_prev_time ? sampleWindPreviousTime(pos, noise_speed_mult, 0) : sampleWindCurrentTime(pos,noise_speed_mult, 0);
+        float wind_speed = length(wind);
+        float t = WIND_TIME_MULT * ((use_prev_time ? ambient_wind__speed__current_time__previous_time.z : ambient_wind__speed__current_time__previous_time.y) + wind_speed);
+        wind.xz += random_wind_amp * wind_speed*float2(TriangleWave(pos.x + t),TriangleWave(pos.z + t));
+        wind *= WIND_MULT * stiffness;
+        wind = wind * height / length(wind + float3(0,height,0));
+        return wind;
+      }
+      return 0;
+    }
+
+    struct GrassCorner
+    {
+      float3 worldCornerPos;
+      float3 worldPos;
+      float3 normal;
+      float height_from_ground;
+      float3 p2e;
+#ifdef MOTION_VECTORS_ENABLED
+      float3 worldPosPrev;
+      float3 p2ePrev;
+#endif
+    };
+
+GrassCorner get_gpu_grass_corner_pos(GrassInstanceUncompressed grass, float2 localPos
+#ifdef MOTION_VECTORS_ENABLED
+    , float3 instanceWorldPosPrev
+#endif
+    )
+    {
+      uint grassType = grass.grassType;
+      float cornerX = localPos.x, cornerY = localPos.y;
+      float3 instanceWorldPos = grass.position;
+      float2 height_horSize = float2(grass.height, grass.size);
+      //float height = structuredBufferAt(grass, instance).height;
+      float normalizedViewRadius = length(instanceWorldPos.xz-world_view_pos.xz)*grass_inv_vis_distance;
+      float normalizedScale = saturate(5-normalizedViewRadius*5);
+      height_horSize.x = height_horSize.x*normalizedScale;//fixme: get height from type and position
+#ifdef MOTION_VECTORS_ENABLED
+      float2 height_horSizePrev = float2(grass.height, grass.size);
+      float normalizedViewRadiusPrev = length(instanceWorldPosPrev.xz-prev_world_view_pos.xz)*grass_inv_vis_distance;
+      float normalizedScalePrev = saturate(5-normalizedViewRadiusPrev*5);
+      height_horSizePrev.x = height_horSizePrev.x*normalizedScalePrev;
+#endif
+      //instancePos = 0;
+      //instancePos.z = instance;
+      //height = 1;
+
+      half xPos = (cornerX-0.5)*height_horSize.y;
+      bool is_horizontal = grass.rotation < 0;
+      float vHeight = (is_horizontal ? cornerY - 0.5 : cornerY) * height_horSize.x;
+#ifdef MOTION_VECTORS_ENABLED
+      float vHeightPrev = (is_horizontal ? cornerY - 0.5 : cornerY) * height_horSizePrev.x;
+#endif
+
+      half angle = grass.rotation;
+      half2 rotSC;
+      sincos(angle, rotSC.x, rotSC.y);
+
+      half vAngle = grass.vAngle;
+      half2 rotVSC;
+      sincos(vAngle, rotVSC.x, rotVSC.y);
+
+      //float3 worldPos = instanceWorldPos+ float3((rotSC.y*xPos), (vHeight), (rotSC.x*xPos));//no rotation
+      //float zPos = (rotSC.x*xPos);
+      //float3x3 rotYTM = float3x3(float3(rotSC.y,0,rotSC.x), float3(0,1,0), float3(-rotSC.x,0,rotSC.y));
+      //float3x3 rotXTM = float3x3(float3(1,0,0), float3(0,rotVSC.y,rotVSC.x), float3(0,-rotVSC.x,rotVSC.y));
+      //float3x3 ntm = mul(rotYTM, rotXTM);
+      /*rotSC.y, 0, rotSC.x
+        0,     1,    0
+      -rotSC.x, 0, rotSC.y
+
+      1,     0,        0
+      0, rotVSC.y, rotVSC.x
+      0, -rotVSC.x, rotVSC.y*/
+
+      //float3x3 ntm = float3x3(float3(rotSC.y, -rotSC.x*rotVSC.x, rotSC.x*rotVSC.y),
+      //                        float3(0,        rotVSC.y,         rotVSC.x),
+      //                        float3(-rotSC.x,-rotSC.y*rotVSC.x, rotSC.y*rotVSC.y));
+      //float3 worldCornerPos = mul(ntm, float3(xPos, vHeight, 0));//no rotation
+      float3 worldCornerPos = float3(rotSC.y*xPos - rotSC.x*(rotVSC.x*vHeight), (vHeight)*rotVSC.y, -rotSC.x*xPos - rotSC.y*(rotVSC.x*vHeight));//no rotation
+#ifdef MOTION_VECTORS_ENABLED
+      float3 worldCornerPosPrev = float3(rotSC.y*xPos - rotSC.x*(rotVSC.x*vHeightPrev), (vHeightPrev)*rotVSC.y, -rotSC.x*xPos - rotSC.y*(rotVSC.x*vHeightPrev));//no rotation
+#endif
+      FLATTEN
+      if (is_horizontal)
+      {
+        float2 rotatedPos = float2(xPos*rotSC.y + vHeight*rotSC.x, -xPos*rotSC.x + vHeight*rotSC.y);
+        worldCornerPos.y = -dot(grass.landNormal.xz, rotatedPos);
+        worldCornerPos.xz = rotatedPos;
+#ifdef MOTION_VECTORS_ENABLED
+        float2 rotatedPosPrev = float2(xPos*rotSC.y + vHeightPrev*rotSC.x, -xPos*rotSC.x + vHeightPrev*rotSC.y);
+        worldCornerPosPrev.y = -dot(grass.landNormal.xz, rotatedPosPrev);
+        worldCornerPosPrev.xz = rotatedPosPrev;
+#endif
+      }
+
+      // Rotate around land normal
+      BRANCH
+      if (!grass.worldYOrientation)
+      {
+        float3 xVector = cross(float3(0.0, 0.0, 1.0), grass.landNormal);
+        // Fix rare case when normal is equal to (0,0,1)
+        xVector = dot(xVector, xVector) < 1E-4 ?  float3(1.0, 0.0, 0.0) : normalize(xVector);
+
+        float3x3 ntm = float3x3(xVector, grass.landNormal, cross(grass.landNormal, xVector) );
+        worldCornerPos = mul(worldCornerPos, ntm);
+#ifdef MOTION_VECTORS_ENABLED
+        worldCornerPosPrev = mul(worldCornerPosPrev, ntm);
+#endif
+      }
+
+      // Apply wind simulation
+      float3 worldPos = instanceWorldPos + worldCornerPos;//no rotation
+#ifdef MOTION_VECTORS_ENABLED
+      float3 worldPosPrev = instanceWorldPosPrev + worldCornerPosPrev;
+#endif
+
+      float stiffness = getGrassStiffness(grassType);
+      float wind_speed_mult = 2 - stiffness;
+      float wind_amp_mult = is_horizontal ? 0 : stiffness;
+
+      if (cornerY > 0.001)
+      {
+        worldPos.xyz += compute_grass_wind_offset(worldPos.xyz, vHeight, wind_speed_mult*cornerY, wind_amp_mult ,0.4, false);
+#ifdef MOTION_VECTORS_ENABLED
+        worldPosPrev.xyz += compute_grass_wind_offset(worldPosPrev.xyz, vHeightPrev, wind_speed_mult*cornerY, wind_amp_mult, 0.4, true);
+#endif
+      }
+
+      //float3 unit_pos = world_view_pos;//float3(-324, 7.42, 48.15);
+      //float unit_aspect = 1, unit_radius = 1;
+      //float2 unit_dir = float2(0,1);
+      BRANCH
+      if (!is_horizontal)
+      {
+        worldPos += apply_obstacles(instanceWorldPos, worldPos, cornerY, height_horSize);
+#ifdef MOTION_VECTORS_ENABLED
+        worldPosPrev += apply_obstacles_prev(instanceWorldPosPrev, worldPosPrev, cornerY, height_horSizePrev);
+#endif
+      }
+
+      /*
+      worldCornerPos.xz += vWavesSum.xy * amp;
+      float fBendScale = 0.2;
+      float windGustPosFreq = 0.25, windGustTimeFreq = 1;
+      float2 windDir=float2(1,0);
+      float windGust = dot(sin((instanceWorldPos.xz*windGustPosFreq+wind_time*windGustTimeFreq*windDir)), 0.25)*3/2 + 0.25;//better use perlin noise
+      float fBF = cornerY * fBendScale;
+      // Smooth bending factor and increase its nearby height limit.
+      fBF += 1.0;
+      fBF *= fBF;
+      fBF = fBF * fBF - fBF;
+      float fLength = length(worldCornerPos);
+      float2 vWind = windDir*(windGust*wind_strength);
+      worldCornerPos.xz += vWind.xy * fBF;
+      // Rescale
+      worldCornerPos = normalize(worldCornerPos.xyz)* fLength;
+      worldPos = worldCornerPos+instanceWorldPos;*/
+
+
+
+      //float3 worldPos = instanceWorldPos+ float3(rotSC.y*xPos, (vHeight)*rotVSC.y+zPos*rotVSC.x, zPos*rotVSC.y-(vHeight)*rotVSC.x);//no rotation
+
+      worldCornerPos = worldPos - instanceWorldPos;
+#ifdef MOTION_VECTORS_ENABLED
+      worldCornerPosPrev = worldPosPrev - instanceWorldPosPrev;
+#endif
+
+      GrassCorner output;
+      output.worldCornerPos = worldCornerPos;
+      output.worldPos = worldPos;
+      output.p2e.xyz = world_view_pos-worldPos;
+      //output.normal = float3(-rotSC.x, 0, rotSC.y); //rotSC.y,0,rotSC.x
+      //rotSC.y, rotVSC.y+rotSC.x*rotVSC.x, rotSC.x*rotVSC.y-rotVSC.x
+      //1, rotVSC.y, -rotVSC.x
+      //0, rotVSC.y+rotVSC.x, rotVSC.y-rotVSC.x
+      output.normal = float3(rotSC.x*rotVSC.y, rotVSC.x, rotSC.y*rotVSC.y);
+      if (dot(output.normal, output.p2e)<0)
+        output.normal = -output.normal;
+      if (is_horizontal || localPos.y == 0)
+        output.normal = grass.landNormal*0.75;//float3(0,1,0);
+      //output.normal = mul(float3(0,0,1), transpose(ntm));
+      output.height_from_ground = vHeight*pow4(saturate(3-normalizedViewRadius*3));
+#ifdef MOTION_VECTORS_ENABLED
+      output.worldPosPrev = worldPosPrev;
+      output.p2ePrev.xyz = prev_world_view_pos-worldPosPrev;
+#endif
+
+      return output;
     }
   }
 endmacro

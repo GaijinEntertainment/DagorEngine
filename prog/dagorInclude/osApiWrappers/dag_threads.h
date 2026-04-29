@@ -12,6 +12,7 @@
 #include <osApiWrappers/dag_events.h>
 #include <osApiWrappers/dag_atomic.h>
 #include <EASTL/utility.h>
+#include <math/dag_intrin.h>
 #include <osApiWrappers/dag_cpuJobs.h>
 #include <debug/dag_assert.h>
 #include <debug/dag_log.h>
@@ -37,13 +38,11 @@
 #define WORKER_THREADS_AFFINITY_USE (cpujobs::get_core_count() >= 4 ? (1ull << (cpujobs::get_core_count() - 2)) - 1 : ~0ull)
 #define NUM_WORKERS_DEFAULT         (max(1, cpujobs::get_core_count() - 2))
 #else
-#define MAIN_THREAD_AFFINITY \
-  (cpujobs::get_core_count() >= 3 ? 0x4ull : 0x1ull) // Core2 - Not the Core0, favorite core of different tools,
-// not the Core1 that is affected by HT from Core0,
-// and not the last core that Nvidia likes.
-#define RESERVED_FOR_MAIN_HT \
-  (cpujobs::get_core_count() >= 8 ? 0xCull : MAIN_THREAD_AFFINITY) // Don't reserve an additional thread on 2/4 or 4/4 CPUs,
-// and there are no 3/6 CPUs, so don't reserve on 6/6 either.
+KRNLIMP extern uint64_t dgs_main_thread_affinity;
+#define MAIN_THREAD_AFFINITY dgs_main_thread_affinity
+#define RESERVED_FOR_MAIN_HT                                                                                            \
+  (cpujobs::get_core_count() >= 8 ? ((1ull << (__ctz_unsafe(dgs_main_thread_affinity) + 1)) | dgs_main_thread_affinity) \
+                                  : MAIN_THREAD_AFFINITY)
 #define WORKER_THREADS_AFFINITY_USE \
   (cpujobs::get_core_count() >= 3 ? ~RESERVED_FOR_MAIN_HT : ~0ull) // All but reserved for the main thread.
 #define NUM_WORKERS_DEFAULT                                            \

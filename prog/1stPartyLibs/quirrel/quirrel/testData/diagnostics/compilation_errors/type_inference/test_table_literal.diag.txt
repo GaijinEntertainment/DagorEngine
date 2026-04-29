@@ -1,0 +1,9 @@
+ERROR: expression of type 'table' cannot be assigned to type 'array'
+testData/diagnostics/compilation_errors/type_inference/test_table_literal.nut:2:0
+
+// EXPECTED: compile-time error - table literal assigned to array variable
+local x: array = { a = 1, b = 2 }
+^--------------------------------
+return x
+
+

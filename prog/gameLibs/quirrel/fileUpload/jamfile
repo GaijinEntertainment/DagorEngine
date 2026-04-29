@@ -1,0 +1,25 @@
+Root    ?= ../../../.. ;
+Location = prog/gameLibs/quirrel/fileUpload ;
+StrictCompile = yes ;
+UseQuirrel = yes ;
+
+TargetType  = lib ;
+Target      = gameLibs/quirrel/fileUpload.lib ;
+
+AddIncludes =
+  $(Root)/prog/gameLibs/publicInclude
+  $(Root)/prog/gameLibs/publicInclude/quirrel
+  $(Root)/prog/engine/sharedInclude
+  $(Root)/prog/3rdPartyLibs/rapidjson/include
+  $(Root)/prog/1stPartyLibs/jsoncpp/include
+;
+
+UseProgLibs =
+  gameLibs/quirrel/sqEventBus
+;
+
+Sources =
+  fileUpload.cpp
+;
+
+include $(Root)/prog/_jBuild/build.jam ;

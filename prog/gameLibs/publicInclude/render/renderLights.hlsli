@@ -12,15 +12,47 @@ struct RenderOmniLight
   float4 boxR1;
   float4 boxR2;
   float4 posRelToOrigin_cullRadius;
+  float4 shadowZnZf_pad;
 };
 
 struct RenderSpotLight
 {
-  float4 lightPosRadius;
+  float4 lightPos_halfRadius_halfCullRadius;
   float4 lightColorAngleScale;
   float4 lightDirectionAngleOffset;
-  float4 texId_scale_illuminatingplane_shadow_contactshadow;
+  float4 texId_scale_illuminatingplane_packedDataBits;
 };
+
+#ifndef __cplusplus
+float decode_light_roll_angle(RenderSpotLight sl)
+{
+  return float((asuint(sl.texId_scale_illuminatingplane_packedDataBits.w) & SPOT_LIGHT_ROLL_MASK) >> SPOT_LIGHT_ROLL_BIT_OFFSET) / SPOT_LIGHT_ROLL_MAX_VALUE;
+}
+
+float2 decode_spot_light_radius_and_culling_radius(float encoded_value)
+{
+  return float2(f16tof32(asuint(encoded_value)), f16tof32(asuint(encoded_value) >> 16));
+}
+
+float2 decode_spot_light_radius_and_culling_radius(RenderSpotLight sl)
+{
+  return decode_spot_light_radius_and_culling_radius(sl.lightPos_halfRadius_halfCullRadius.w);
+}
+
+float4 decode_spot_light_pos_radius(float4 encoded_value)
+{
+  float4 posRadius;
+  posRadius.xyz = encoded_value.xyz;
+  posRadius.w = f16tof32(asuint(encoded_value.w));
+  return posRadius;
+}
+
+float4 decode_spot_light_pos_radius(RenderSpotLight sl)
+{
+  return decode_spot_light_pos_radius(sl.lightPos_halfRadius_halfCullRadius);
+}
+
+#endif
 
 struct SpotlightShadowDescriptor
 {

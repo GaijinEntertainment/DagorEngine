@@ -2,6 +2,7 @@
 
 #include <perfMon/dag_statDrv.h>
 #include <daGI2/lruCollisionVoxelization.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_vertexIndexBuffer.h>
 
 LRUCollisionVoxelization::~LRUCollisionVoxelization()

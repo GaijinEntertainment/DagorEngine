@@ -83,6 +83,7 @@ char InputFile::get()
     const FilePos &p = incstk.back();
     curfile = p.file;
     curpos = p.pos;
+    at_eof = p.at_eof;
     if (lexer)
     {
       lexer->set_cur_file(curfile);
@@ -132,10 +133,12 @@ bool InputFile::include(int f)
       fp.col = 1;
     }
     fp.pos = curpos;
+    fp.at_eof = at_eof;
     incstk.push_back(fp);
   }
   curfile = f;
   curpos = 0;
+  at_eof = false;
   if (lexer)
   {
     lexer->set_cur_file(curfile);
@@ -249,7 +252,8 @@ int InputFile::get_include_file_index(const char *fn)
     df_close(fp);
     return -1;
   }
-  incfile[f].text = (char *)memalloc(sz, strmem);
+  uint32_t sizeWithNlAndNull = sz + 2;
+  incfile[f].text = (char *)memalloc(sizeWithNlAndNull, strmem);
   if (!incfile[f].text)
   {
     err_nomem();
@@ -258,7 +262,9 @@ int InputFile::get_include_file_index(const char *fn)
   }
 
   sz = (int)df_read(fp, incfile[f].text, sz);
-  incfile[f].text = (char *)strmem->realloc(incfile[f].text, sz);
+  incfile[f].text[sz] = '\n';
+  incfile[f].text[sz + 1] = '\0';
+  incfile[f].text = (char *)strmem->realloc(incfile[f].text, sizeWithNlAndNull);
   df_close(fp);
 
   // remove /r and replace \0 and EOF with spaces

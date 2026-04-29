@@ -16,6 +16,24 @@ static bool matches_search_text(const char *haystack, const char *needle)
 
 OutlinerTreeItem::~OutlinerTreeItem() { outlinerModel.onOutlinerTreeItemDeleted(*this); }
 
+void OutlinerTreeItem::setParent(OutlinerTreeItem *in_parent)
+{
+  if (in_parent == parent)
+    return;
+
+  parent = in_parent;
+  markLinearizedTreeItemsDirty();
+}
+
+void OutlinerTreeItem::setExpanded(bool in_expanded)
+{
+  if (in_expanded == expanded)
+    return;
+
+  expanded = in_expanded;
+  markLinearizedTreeItemsDirty();
+}
+
 void OutlinerTreeItem::setExpandedRecursive(bool in_expanded)
 {
   setExpanded(in_expanded);
@@ -33,6 +51,8 @@ void OutlinerTreeItem::setSelected(bool in_selected)
   selected = in_selected;
   outlinerModel.onTreeItemSelectionChanged(*this);
 }
+
+void OutlinerTreeItem::markLinearizedTreeItemsDirty() { outlinerModel.markLinearizedTreeItemsDirty(); }
 
 bool ObjectAssetNameTreeItem::doesItemMatchSearch(IOutliner &tree_interface) const
 {

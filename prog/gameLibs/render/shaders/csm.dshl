@@ -1,221 +1,283 @@
+include "csm_inc.dshl"
 include "hardware_defines.dshl"
 
 buffer shadow_cascade_data;
 
-float4 shadow_cascade_tm_transp[24];    // max value of num_of_cascades (6) * 4
+texture shadow_cascade_depth_tex;
+
+float4 shadow_cascade_camera_near_plane;
+float4 shadow_cascade_0_tm[3];
+float4 shadow_cascade_splits[2];
+float4 shadow_cascade_relative_scale[6];
+float4 shadow_cascade_relative_offset[6];
+float4 shadow_cascade_rcp_basis_length_sq[6];
 float4 shadow_cascade_tc_mul_offset[6];
 
 float4 csm_world_view_pos;
 
-macro INIT_CSM_SHADOW_STCODE(stage)
-  (stage) {
-    shadow_cascade_tm_transp@f4[] = shadow_cascade_tm_transp;
-    shadow_cascade_tc_mul_offset@f4[] = shadow_cascade_tc_mul_offset;
-  }
-endmacro
-
-macro INIT_CSM_SHADOW_STCODE_CBUF(stage)
-  (stage) {
-    shadow_cascade_data@cbuf = shadow_cascade_data hlsl {
-      cbuffer shadow_cascade_data@cbuf
-      {
-        float4 shadow_cascade_tm_transp[24];
-        float4 shadow_cascade_tc_mul_offset[6];
-      };
-    }
-  }
-endmacro
-
-texture shadow_cascade_depth_tex;
+float4 csm_shadow_fade_out = (0, -1, 0, 0);
 float4 pcf_lerp = (0, 0, 0, 0);
-float4 sc_pcf_lerp = (0, 0, 0, 0);
-float start_csm_shadow_blend = 100;
-float start_sc_shadow_blend = 50;
-
-int assume_downsampled_shadows;
-interval assume_downsampled_shadows: off<1, on;
-
-int num_of_cascades = 4;
-interval num_of_cascades:one<2, two<3, three<4, four;
-
-float4 csm_culling_near_planes;
 
 float csm_dither_cascade_scale = 0.1;
 
-texture downsampled_shadows;
-macro INIT_ESM_SHADOW(stage)
-if (assume_downsampled_shadows == on)
-{
+int num_of_cascades = 4;
+interval num_of_cascades:csm_off<1, one<2, two<3, three<4, four<5, five<6, six;
+
+macro BASE_USE_CSM_SHADOW_DEF_NUM(code, get_csm_shadow_func)
+  if (num_of_cascades == one)
+  {
+    USE_CSM_SHADOW(code, 1, get_csm_shadow_func)
+  }
+  else if (num_of_cascades == two)
+  {
+    USE_CSM_SHADOW(code, 2, get_csm_shadow_func)
+  }
+  else if (num_of_cascades == three)
+  {
+    USE_CSM_SHADOW(code, 3, get_csm_shadow_func)
+  }
+  else if (num_of_cascades == four)
+  {
+    USE_CSM_SHADOW(code, 4, get_csm_shadow_func)
+  }
+  else if (num_of_cascades == five)
+  {
+    USE_CSM_SHADOW(code, 5, get_csm_shadow_func)
+  }
+  else
+  {
+    USE_CSM_SHADOW(code, 6, get_csm_shadow_func)
+  }
+endmacro
+
+macro INIT_CSM_SHADOW_COMMON_NO_TEX(stage)
   (stage) {
-    downsampled_shadows@shd = downsampled_shadows;
-  }
-}
-endmacro
-
-macro USE_ESM_SHADOW(code)
-  hlsl(code) {
-    ##if (assume_downsampled_shadows == on)
-    #define HAS_DOWNSAMPLED_SHADOWS 1
-    half get_downsampled_shadows(float3 uv_z)
-    {
-      return half(shadow2D(downsampled_shadows, uv_z));
-    }
-    ##else
-    half get_downsampled_shadows(float3 uv_z){return 1;}
-    ##endif
-  }
-endmacro
-
-macro INIT_CSM_SHADOW(code)
-  (code){
-    shadow_cascade_depth_tex@shd = shadow_cascade_depth_tex;
-    start_csm_shadow_blend__pcf@f3 = (start_csm_shadow_blend, pcf_lerp.x, pcf_lerp.y, 0);
+    pcf_lerp@f2 = pcf_lerp;
+    csm_shadow_fade_out@f2 = (csm_shadow_fade_out.x, csm_shadow_fade_out.y, 0, 0);
     csm_dither_cascade_scale@f1 = csm_dither_cascade_scale;
   }
 endmacro
 
-macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
+macro INIT_CSM_SHADOW_COMMON(stage)
+  INIT_CSM_SHADOW_COMMON_NO_TEX(stage)
+  (stage) {
+    shadow_cascade_depth_tex@shd = shadow_cascade_depth_tex;
+  }
+endmacro
+
+macro INIT_CSM_SHADOW_STCODE_BASE(stage)
+  (stage) {
+    shadow_cascade_camera_near_plane@f4 = shadow_cascade_camera_near_plane;
+    shadow_cascade_0_tm@f4[] = shadow_cascade_0_tm;
+    shadow_cascade_splits@f4[] = shadow_cascade_splits;
+    shadow_cascade_relative_scale@f4[] = shadow_cascade_relative_scale;
+    shadow_cascade_relative_offset@f4[] = shadow_cascade_relative_offset;
+    shadow_cascade_tc_mul_offset@f4[] = shadow_cascade_tc_mul_offset;
+    shadow_cascade_rcp_basis_length_sq@f4[] = shadow_cascade_rcp_basis_length_sq;
+  }
+endmacro
+
+macro INIT_CSM_SHADOW_STCODE(stage)
+  INIT_CSM_SHADOW_COMMON(stage)
+  INIT_CSM_SHADOW_STCODE_BASE(stage)
+endmacro
+
+macro INIT_CSM_SHADOW_CBUF_BASE(stage)
+  (stage) {
+    shadow_cascade_data@cbuf = shadow_cascade_data hlsl {
+      cbuffer shadow_cascade_data@cbuf
+      {
+        float4 shadow_cascade_camera_near_plane;
+        float4 shadow_cascade_0_tm[3];
+        float4 shadow_cascade_splits[2];
+        float4 shadow_cascade_relative_scale[6];
+        float4 shadow_cascade_relative_offset[6];
+        float4 shadow_cascade_tc_mul_offset[6];
+        float4 shadow_cascade_rcp_basis_length_sq[6];
+      };
+    }
+  }
+endmacro
+
+macro INIT_CSM_SHADOW_CBUF(stage)
+  INIT_CSM_SHADOW_COMMON(stage)
+  INIT_CSM_SHADOW_CBUF_BASE(stage)
+endmacro
+
+macro INIT_CSM_SHADOW(code)
+  if (use_extended_global_frame_block == no)
+  {
+    INIT_CSM_SHADOW_STCODE(code)
+  }
+endmacro
+
+float4 csm_culling_near_planes;
+
+macro USE_CSM_SHADOW_INTERNAL(code, num_cascades, get_csm_shadow_func)
   hlsl(code) {
     #ifndef NUM_CASCADES
-    # define NUM_CASCADES num_cascades
+    #define NUM_CASCADES num_cascades
     #endif
 
-    #define USE_ESM_OPTIMIZATION 0
+    ##if hardware.vulkan
+    //vulkan shader compiler do not see difference between
+    //movc dst compare l(0,0,0,0) l(0.0,0.0,1.0,0.0)
+    //and
+    //movc dst compare l(0,0,0,0) l(0,0,1,0)
+    //first one is treated as
+    //movc dst compare l(0,0,0,0) l(1,1,1,1)
+    //when dst is int
+    #define HW_VULKAN 1
+    ##endif
+
+    #define CSM_CASCADE_SELECTION_PROJECTION_BOUNDS 0
+    #define CSM_CASCADE_SELECTION_VIEW_DEPTH 1
+
     #include "./csm_shadow_tc.hlsl"
+    #include "noise/poisson_disc_8.hlsl"
 
-    #define start_csm_shadow_blend start_csm_shadow_blend__pcf.x
-    #define csm_pcf_lerp (start_csm_shadow_blend__pcf.yy)
+    half texCSMShadow(float2 uv, float z)
+    {
+      // return half(shadow2D(shadow_cascade_depth_tex, float3(uv, z)));
+      return (half)shadow_cascade_depth_tex.SampleCmpLevelZero(shadow_cascade_depth_tex_cmpSampler, uv, z);
+    }
 
-      fixed texCSMShadow ( float2 uv, float z)
-      {
-        return fixed(shadow2D(shadow_cascade_depth_tex, float3(uv, z)));
-      }
-
-      fixed texCSMDepth ( float2 uv)
-      {
-        return fixed(tex2Dlod(shadow_cascade_depth_tex, float4(uv, 0,0)).x);
-      }
-      #define texCSMShadow3(a,b,c) texCSMDepth(a)
-
-    #define texCSMShadow2(a,b,c) texCSMShadow(a, b)
     half get_pcf_csm_shadow_fxaa(float3 depthShadowTC)
     {
-      float2 fxaaConsoleRcpFrameOpt = csm_pcf_lerp.x;
+      float2 fxaaConsoleRcpFrameOpt = pcf_lerp.xy;
       float2 pos = depthShadowTC.xy;
       float4 fxaaConsolePosPos = float4(pos - fxaaConsoleRcpFrameOpt, pos + fxaaConsoleRcpFrameOpt);
-      fixed4 luma = fixed4(
-               texCSMShadow2(fxaaConsolePosPos.xy, depthShadowTC.z, depthShadowTC.w),
-               texCSMShadow2(fxaaConsolePosPos.xw, depthShadowTC.z, depthShadowTC.w),
-               texCSMShadow2(fxaaConsolePosPos.zy, depthShadowTC.z, depthShadowTC.w),
-               texCSMShadow2(fxaaConsolePosPos.zw, depthShadowTC.z, depthShadowTC.w));
-       fixed4 dir = fixed4(
-         dot(luma, fixed4(-1,1,-1,1)),
-         dot(luma, fixed4(1,1,-1,-1)),
+      half4 luma = half4(
+              (half)texCSMShadow(fxaaConsolePosPos.xy, depthShadowTC.z),
+              (half)texCSMShadow(fxaaConsolePosPos.xw, depthShadowTC.z),
+              (half)texCSMShadow(fxaaConsolePosPos.zy, depthShadowTC.z),
+              (half)texCSMShadow(fxaaConsolePosPos.zw, depthShadowTC.z));
+       half4 dir = half4(
+         dot(luma, half4(-1,1,-1,1)),
+         dot(luma, half4(1,1,-1,-1)),
          0,0
        );
-       float2 scaledDir = (csm_pcf_lerp.x * 2) * dir.xy;
-       fixed3 grad = fixed3(
-         texCSMShadow2(depthShadowTC.xy, depthShadowTC.z, depthShadowTC.w).r,
-         texCSMShadow2(depthShadowTC.xy - scaledDir, depthShadowTC.z, depthShadowTC.w).r,
-         texCSMShadow2(depthShadowTC.xy + scaledDir, depthShadowTC.z, depthShadowTC.w).r
+       float2 scaledDir = (pcf_lerp.xy * 2) * dir.xy;
+       half3 grad = half3(
+         (half)texCSMShadow(depthShadowTC.xy, depthShadowTC.z).r,
+         (half)texCSMShadow(depthShadowTC.xy - scaledDir, depthShadowTC.z).r,
+         (half)texCSMShadow(depthShadowTC.xy + scaledDir, depthShadowTC.z).r
        );
-       return saturate(dot(grad, fixed3(0.2, 0.4, 0.4) ));
+       return saturate(dot(grad, half3(0.2, 0.4, 0.4) ));
     }
-    half get_pcf_csm_shadow_16(float3 depthShadowTC)
-    {
-      float sum = 0;
-      UNROLL
-      for (float y = -3; y <= 3; y += 2.0)
-      {
-        UNROLL
-        for (float x = -3; x <= 3; x += 2.0)
-          sum += texCSMShadow2(depthShadowTC.xy + float2(x, y)*csm_pcf_lerp.x, depthShadowTC.z, depthShadowTC.w);
-        }
-      return half(sum/16);
-    }
-    half get_pcf_csm_shadow_4x4(float3 depthShadowTC)
-    {
-      //depthShadowTC.xyz /= depthShadowTC.w;
-      float4 CSMSizes = float4(0.5/csm_pcf_lerp.xx,csm_pcf_lerp.xx);
-      float4 CSMpcf4x4_1 = float4(-3*CSMSizes.zw, -CSMSizes.zw);
-      float4 CSMpcf4x4_2 = float4(CSMSizes.z, -3*CSMSizes.w, 3*CSMSizes.z, -CSMSizes.w);
 
-      float4 pcfWeights[4] = {
-          CSMpcf4x4_1,
-          CSMpcf4x4_2,
-         -CSMpcf4x4_2.zwxy,
-         -CSMpcf4x4_1.zwxy
-      };
-      half selfShadow = 0;
-      half2 baseTexCoord = half2(depthShadowTC.xy - CSMSizes.zw);
-
-      half4   shadowMapWeights[4];
-      half4   shadowMapVals[4];
-      half2 pFrac = half2(frac(baseTexCoord.xy * CSMSizes.xy));
-      half2 invpFrac = 1-pFrac;
-      shadowMapWeights[0] = half4( invpFrac.y, invpFrac.x, 1, invpFrac.x*invpFrac.y );
-      shadowMapWeights[1] = half4( invpFrac.y*pFrac.x, 1, pFrac.x, invpFrac.y );
-      shadowMapWeights[2] = half4( 1, invpFrac.x*pFrac.y, pFrac.y, invpFrac.x);
-      shadowMapWeights[3] = half4( pFrac.x, pFrac.y, pFrac.x*pFrac.y, 1 );
-      //half dist = 0;
-      UNROLL
-      for(int i =0; i < 4; ++i)
-      {
-        //##if hardware_vendor == ati_fetch4
-        //  shadowMapVals[i] = tex2D(depthshadow, depthShadowTC + pcfWeights[i]);
-        //##else
-          shadowMapVals[i].r = texCSMShadow3(depthShadowTC.xy + pcfWeights[i].xy, depthShadowTC.z, depthShadowTC.w);
-          shadowMapVals[i].g = texCSMShadow3(depthShadowTC.xy + pcfWeights[i].zy, depthShadowTC.z, depthShadowTC.w);
-          shadowMapVals[i].b = texCSMShadow3(depthShadowTC.xy + pcfWeights[i].xw, depthShadowTC.z, depthShadowTC.w);
-          shadowMapVals[i].a = texCSMShadow3(depthShadowTC.xy + pcfWeights[i].zw, depthShadowTC.z, depthShadowTC.w);
-        //##endif
-        half4 inLight;
-        inLight = ( depthShadowTC.zzzz < shadowMapVals[i]);
-        selfShadow += dot(inLight, shadowMapWeights[i]);
-      }
-      selfShadow *= 1.0/9.0;
-      return selfShadow;
-      //*/
-    }
-    #include <interleavedGradientNoise.hlsl>
-    #define NUM_CSM_SHADOW_SAMPLES 8
-    static const float2 shadow_offsets[NUM_CSM_SHADOW_SAMPLES] = {
-      float2( -0.7071,  0.7071),
-      float2( -0.0000, -0.8750),
-      float2(  0.5303,  0.5303),
-      float2( -0.6250, -0.0000),
-      float2(  0.3536, -0.3536),
-      float2( -0.0000,  0.3750),
-      float2( -0.1768, -0.1768),
-      float2(  0.1250,  0.0000)
-    };
     half get_csm_shadow_8_tap(float3 depthShadowTC, float dither, float radius_scale = 4)
     {
       float2 rotation;
       sincos((2.0f*PI)*dither, rotation.x, rotation.y);
       float2x2 rotationMatrix = {rotation.x, rotation.y, -rotation.y, rotation.x};
-      const int NUM_SAMPLES = NUM_CSM_SHADOW_SAMPLES;
-      float radius = csm_pcf_lerp.x*radius_scale;
-      rotationMatrix *= radius;
+      const int NUM_SAMPLES = 8;
+      float2 radius2 = pcf_lerp.xy*radius_scale;
+      rotationMatrix[0] *= radius2;
+      rotationMatrix[1] *= radius2;
       half shadow = 0;
       UNROLL
       for (int i = 0; i < NUM_SAMPLES; ++i)
       {
-        float2 sampleOffset = mul(shadow_offsets[i], rotationMatrix);
+        float2 sampleOffset = mul(g_poisson_disc_8[i], rotationMatrix);
         shadow += texCSMShadow(depthShadowTC.xy+sampleOffset, depthShadowTC.z);
-        //shadow += texCSMShadow(depthShadowTC.xy+sampleOffset.yx, depthShadowTC.z);
       }
       return half(shadow*(1./NUM_SAMPLES));
     }
-    #define get_pcf_csm_shadow(a) get_pcf_csm_shadow_fxaa(a)
+
+    float get_csm_shadow_8_tap_normal_adj(float3 depthShadowTC, float3 normal, uint cascade_id, float dither, float radius_scale)
+    {
+      const int NUM_SAMPLES = 8;
+
+      float2 rotation;
+      sincos((2.0f * PI) * dither, rotation.x, rotation.y);
+
+      float2 radius2 = pcf_lerp.xy * radius_scale;
+
+      // instead of matrix transform. same amount of ALU, easier to use later
+      float2 axis0 = float2(rotation.x, rotation.y) * radius2.x;
+      float2 axis1 = float2(-rotation.y, rotation.x) * radius2.y;
+
+      // To avoid additional local-world space calculations per sample, we transform worlds-space normal to cascade space.
+      // We can't transform normals with ordinary transform when non uniform scale is involved.
+      // We have to use adjugate transpose (or at least inverse transpose) matrix to correctly transform normals.
+      // To avoid passing one more matrix for each cascade inverse transpose is derived by exploiting ordinary transform:
+      // M = tc_mul_offset * WorldToShadowMap = S * WorldToShadowMap
+      // WorldToShadowMap can be split into two separate transforms: Rotation matrix and Diagonal scale matrix
+      // that contains projection scale as well as scale to shadow map space. So we have:
+      // inv is inverse, t() is transpose.
+      // M = S * D * R
+      // inv(M) = t(R) * inv(D) * inv(S)
+      // t(inv(M)) = t(t(R) * inv(D) * inv(S)) = inv(S) * inv(D) * R
+      // shadow_cascade_0_tm * shadow_cascade_relative_scale contains D * R. Transform by it.
+      float3 normalTcSpace = float3(dot(shadow_cascade_0_tm[0].xyz, normal), dot(shadow_cascade_0_tm[1].xyz, normal), dot(shadow_cascade_0_tm[2].xyz, normal)) * shadow_cascade_relative_scale[cascade_id].xyz;
+      // normalTcSpace now contains scale from D, so we have to divide by square of D coefficients to compensate.
+      float3 invDSq = shadow_cascade_rcp_basis_length_sq[cascade_id].xyz;
+      normalTcSpace = normalTcSpace * invDSq;
+      // Divide by S.
+      float2 tcMulOffsetRcp = rcp(shadow_cascade_tc_mul_offset[cascade_id].xy);
+      normalTcSpace.xy *= tcMulOffsetRcp;
+
+      // (very) optimized version of bi-dir ray intersection, ray dir is -z (as it already in shadow tc space)
+      float d = -normalTcSpace.z; // dot(normalTcSpace, float3(0,0,-1))
+      float ds = sign(d);
+      float da = abs(d); // can be 'd * ds', but abs should be faster
+      float d_rcp = rcp(max(da, 1e-7f)) * ds; // we want to keep the direction, even if it approach inf (super grazing angle)
+      float d_rcp_half = d_rcp * 0.5f;
+
+      // this is zOfs precalc optimizations, see bellow
+      float zAxis0 = dot(normalTcSpace.xy, axis0) * d_rcp_half;
+      float zAxis1 = dot(normalTcSpace.xy, axis1) * d_rcp_half;
+
+      // radius2 is half_texel * radius_of_kernel.
+      // Rescale it to cascade size.
+      // Limit Z offset by maximum range of the kernel.
+      float maxZOfs = max(radius2.x * tcMulOffsetRcp.x, radius2.y * tcMulOffsetRcp.y);
+
+      float shadow = 0;
+
+      UNROLL
+      for (int i = 0; i < NUM_SAMPLES; ++i)
+      {
+        float2 p = g_poisson_disc_8[i];
+        float2 uvOfs = axis0 * p.x + axis1 * p.y;
+
+        // this is optimized version of:
+        // float zOfs = dot(normalTcSpace.xy, uvOfs.xy) * d_rcp * 0.5
+        // we can precompute part of it, using dot product linearity (and reduce amount of ALU in loop)
+        // dot(normalTcSpace.xy, uvOfs.xy) ->
+        //  dot(normalTcSpace.xy, axis0 * p.x + axis1 * p.y) ->
+        //   dot(normalTcSpace.xy, axis0 * p.x) + dot(normalTcSpace.xy, axis1 * p.y) ->
+        //     p.x * dot(normalTcSpace.xy, axis0) + p.y *dot(normalTcSpace.xy, axis1) ->
+        //      p.x * ool_precompute1 + p.y *ool_precompute1
+        float zOfs = clamp(zAxis0 * p.x + zAxis1 * p.y, -maxZOfs, maxZOfs);
+
+        shadow += texCSMShadow(depthShadowTC.xy + uvOfs, depthShadowTC.z + zOfs);
+      }
+      return half(shadow*(1./NUM_SAMPLES));
+    }
+
+    half get_csm_shadow_8_tap_normal_adj(float3 depthShadowTC, float3 normal, uint cascade_id, float dither, float2 unused_screenPos, float radius_scale)
+    {
+      return get_csm_shadow_8_tap_normal_adj(depthShadowTC, normal, cascade_id, dither, radius_scale);
+    }
+
+    half get_csm_shadow_8_tap(float3 depthShadowTC, float3 unused_normal, uint unused_cascade_id, float dither, float2 screenPos, float radiusScale = 4)
+    {
+      return get_csm_shadow_8_tap(depthShadowTC, dither, radiusScale);
+    }
+
+    half get_pcf_csm_shadow(float3 depthShadowTC, float3 unused_normal, uint unused_cascade_id, float unused_dither, float2 screenPos, float radiusScale)
+    {
+      return get_pcf_csm_shadow_fxaa(depthShadowTC);
+    }
 
     half2 get_csm_shadow_cascade_id(float3 pointToEye, out uint cascade_id)
     {
-      float shadowEffect = 0;
-      float3 t = get_csm_shadow_tc(pointToEye, cascade_id, shadowEffect);
+      float3 t = get_csm_shadow_tc(pointToEye, cascade_id);
       FLATTEN
       if (t.z < 1)
-        return half2(get_pcf_csm_shadow(t), 0);
+        return half2(get_pcf_csm_shadow_fxaa(t), 0);
       return half2( 1, 1 );
     }
     half2 get_csm_shadow(float3 pointToEye)
@@ -223,6 +285,7 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
       uint cascade_id;
       return get_csm_shadow_cascade_id( pointToEye, cascade_id);
     }
+
     half2 get_csm_shadow_dithered(float3 pointToEye, float dither, out uint cascade_id, out float3 shadow_tc, float radiusScale = 4)
     {
       float csmEffect = 1;
@@ -238,35 +301,64 @@ macro USE_CSM_SHADOW_INTERNAL(code, num_cascades)
       float3 shadowTc;
       return get_csm_shadow_dithered(pointToEye, dither, cascadeId, shadowTc);
     }
+
+    half get_csm_shadow_simple(float3 shadowTc, float3 unused_normal, uint unused_cascade_id, float unused_dither, float2 screenPos, float radiusScale = 4)
+    {
+      return texCSMShadow(shadowTc.xy, shadowTc.z);
+    }
+
+    half3 get_csm_shadow(float3 pointToEye, float3 normal, float dither, float2 screenPos, float radiusScale)
+    {
+      uint cascade_id;
+      float csmEffect = 1;
+
+      #if SHADOWS_USE_DITHER
+      float3 t = get_csm_shadow_tc_scaled(pointToEye, cascade_id, csmEffect, 1.0 + dither*0.1);
+      #else
+      float3 t = get_csm_shadow_tc(pointToEye, cascade_id, csmEffect);
+      #endif
+
+      float a = float(cascade_id);
+      FLATTEN
+      if (t.z<1)
+        return half3( get_csm_shadow_func(t, normal, cascade_id, dither, screenPos, radiusScale), half(float(cascade_id)), saturate(csmEffect*10-9) );
+
+      return half3(1.0, half(float(cascade_id)), 0.0 );
+    }
+
+    half3 get_csm_shadow(float3 pointToEye, float dither, float2 screenPos, float radiusScale = 4)
+    {
+      return get_csm_shadow(pointToEye, float3(0, 0, 0), dither, screenPos, radiusScale);
+    }
+
+    half get_csm_fade_out(float dist)
+    {
+      return saturate(dist * csm_shadow_fade_out.x + csm_shadow_fade_out.y);
+    }
+
+    half apply_csm_fade_out(float dist, half shadow)
+    {
+      // apply a smooth fade at culling ranges
+      float fadeOut = get_csm_fade_out(dist);
+      return (half)lerp(half(1.0), shadow, fadeOut);
+    }
   }
 endmacro
 
-macro USE_CSM_SHADOW(code, num_cascades, for_compatibility)
-  INIT_CSM_SHADOW_STCODE(code)
-  USE_CSM_SHADOW_INTERNAL(code, num_cascades)
+macro USE_CSM_SHADOW_DEF_NUM(get_csm_shadow_func)
+  BASE_USE_CSM_SHADOW_DEF_NUM(ps, get_csm_shadow_func)
 endmacro
 
-macro BASE_USE_CSM_SHADOW_DEF_NUM(code)
-  if (num_of_cascades == one)
-  {
-    USE_CSM_SHADOW(code, 1, dummy)
-  }
-  else if (num_of_cascades == three)
-  {
-    USE_CSM_SHADOW(code, 3, dummy)
-  }
-  else if (num_of_cascades == three)
-  {
-    USE_CSM_SHADOW(code, 3, dummy)
-  }
-  else
-  {
-    USE_CSM_SHADOW(code, 4, dummy)
-  }
+macro BASE_USE_CSM_SHADOW_DEF_NUM_DEFAULT(code)
+  BASE_USE_CSM_SHADOW_DEF_NUM(code, get_pcf_csm_shadow)
 endmacro
 
-macro USE_CSM_SHADOW_DEF_NUM()
-  BASE_USE_CSM_SHADOW_DEF_NUM(ps)
+macro USE_CSM_SHADOW_DEF_NUM_DEFAULT()
+  BASE_USE_CSM_SHADOW_DEF_NUM(ps, get_pcf_csm_shadow)
+endmacro
+
+macro USE_CSM_SHADOW_DEFAULT(code, num_cascades)
+  USE_CSM_SHADOW(code, num_cascades, get_pcf_csm_shadow)
 endmacro
 
 macro INIT_CSM_OFFSET_TO_CULLING_NEAR_PLANE(code)

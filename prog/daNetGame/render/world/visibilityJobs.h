@@ -168,6 +168,7 @@ struct GroundCullingJob final : public cpujobs::IJob
   float hmapCameraHeight = 0.0f;
   float waterLevel = 0.0f;
   int displacementSubDiv = 1;
+  float displacementRadius = 90;
 
   void start(const VisibilityJobsContext *jobs,
     LandMeshCullingData *culling_data,
@@ -180,6 +181,7 @@ struct GroundCullingJob final : public cpujobs::IJob
     const float hmap_camera_height,
     const float water_level,
     const int displacement_sub_div,
+    const float displacement_radius,
     threadpool::JobPriority prio);
   const char *getJobName(bool &) const override { return "GroundCullingJob"; }
   void doJob() override;

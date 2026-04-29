@@ -34,18 +34,38 @@ enum
   MB_ID_NO = 7,
 };
 
+inline int get_default_ret_value(int flags)
+{
+  if (flags & MBS_OKCANCEL)
+    return MB_ID_OK;
+  if (flags & MBS_ABORTRETRYIGNORE)
+    return MB_ID_ABORT;
+  if (flags & (MBS_YESNOCANCEL | MBS_YESNO))
+    return MB_ID_YES;
+  return MB_ID_OK;
+}
+
 enum
 {
   MAXIMUM_PATH_LEN = 2048,
 };
 
 // Native dialogs and message boxes in winGuiWrapper use this interface to make it possible
-// to easily do something before and after showing a dialog or message box.
+// to use built-in implementations of message boxes and to easily do something
+// before and after showing a dialog or message box.
 class INativeModalDialogEventHandler
 {
 public:
   // Called before a modal dialog or message box is shown.
+  // When it returns false the modal dialog or message box won't show up
+  // and the other (before/after) calls of the handler will not be fired.
+  virtual bool allowShowingModalDialog() = 0;
+
+  // Called before a modal dialog or message box is shown.
   virtual void beforeModalDialogShown() = 0;
+
+  // Called to possibly show a message box using a built-in modal dialog if possible instead of a native one.
+  virtual bool tryShowingMessageBox(int flags, const char *caption, String &msg, int &ret) = 0;
 
   // Called after a modal dialog or message box has been shown.
   virtual void afterModalDialogShown() = 0;

@@ -5,7 +5,7 @@
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/componentTypes.h>
 #include <daECS/core/entitySystem.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include <ecs/render/resPtr.h>
 #include <ecs/render/updateStageRender.h>
 #include <gamePhys/collision/collisionLib.h>
@@ -26,19 +26,20 @@ static ToroidalHelper toroidal_helper;
 ECS_TAG(render)
 ECS_NO_ORDER
 ECS_REQUIRE(ecs::Tag create_physmap_patch_data)
-static void exec_physmap_patch_data_creation_request_es_event_handler(const ecs::UpdateStageInfoAct &, const ecs::EntityId &eid)
+static void exec_physmap_patch_data_creation_request_es_event_handler(
+  const ecs::UpdateStageInfoAct &, ecs::EntityManager &manager, const ecs::EntityId &eid)
 {
-  if (!g_entity_mgr->getTemplateDB().getTemplateByName("physmap_patch_data"))
+  if (!manager.getTemplateDB().getTemplateByName("physmap_patch_data"))
   {
-    g_entity_mgr->destroyEntity(eid);
+    manager.destroyEntity(eid);
     return;
   }
 
   const PhysMap *physMap = dacoll::get_lmesh_phys_map();
   if (physMap)
   {
-    g_entity_mgr->getOrCreateSingletonEntity(ECS_HASH("physmap_patch_data"));
-    g_entity_mgr->destroyEntity(eid);
+    manager.getOrCreateSingletonEntity(ECS_HASH("physmap_patch_data"));
+    manager.destroyEntity(eid);
   }
 }
 
@@ -50,7 +51,8 @@ static void init_physmap_patch_es_event_handler(
   const PhysMap *physMap = dacoll::get_lmesh_phys_map();
 
   physmap_patch_tex.close();
-  physmap_patch_tex = dag::create_tex(nullptr, physmap_patch_tex_size, physmap_patch_tex_size, TEXFMT_R8UI, 1, "physmap_patch_tex");
+  physmap_patch_tex = dag::create_tex(nullptr, physmap_patch_tex_size, physmap_patch_tex_size, TEXFMT_R8UI | TEXCF_CLEAR_ON_CREATE, 1,
+    "physmap_patch_tex");
   physmap_patch_invscale = physMap->invScale;
 
   toroidal_helper.texSize = physmap_patch_tex_size;
@@ -102,11 +104,23 @@ static struct GatherPhysmapPatchUpdatedRegionsJob final : public cpujobs::IJob
 } gather_physmap_patch_updated_regions_job;
 
 ECS_TAG(render)
+ECS_ON_EVENT(AfterDeviceReset)
+static void physmap_patch_after_device_reset_es_event_handler(const ecs::Event &, Point2 &physmap_patch_last_update_pos)
+{
+  toroidal_helper.curOrigin = IPoint2{-100000, -100000};
+  physmap_patch_last_update_pos = IPoint2{100000, 100000};
+}
+
+ECS_TAG(render)
 static void gather_physmap_patch_updated_regions_es(const ParallelUpdateFrameDelayed &,
   int physmap_patch_tex_size,
   float physmap_patch_update_distance_squared,
   Point2 &physmap_patch_last_update_pos)
 {
+  // avoid stalling for GPU wait by uploading every gpu latency frames, not every asked for update frame
+  constexpr unsigned int GPU_UPLOAD_LATENCY = 4;
+  if (dagor_frame_no() % GPU_UPLOAD_LATENCY != 0)
+    return;
   vec3f camPosXZ = v_perm_xzxz(v_ldu(&(get_cam_itm().getcol(3)).x));
   vec3f lastUpdatePos = v_ldu_half(&physmap_patch_last_update_pos.x);
   if (v_extract_x(v_length2_sq_x(v_sub(lastUpdatePos, camPosXZ))) < physmap_patch_update_distance_squared)
@@ -154,7 +168,7 @@ static void update_physmap_patch_tex_es(
           data.at(lt.x + i, lt.y + j) = regionsTexelData[regionNo][j * wd.x + i];
     }
   }
-  ShaderGlobal::set_color4(physmap_patch_origin_invscale_sizeVarId, gather_physmap_patch_updated_regions_job.patchOrigin,
+  ShaderGlobal::set_float4(physmap_patch_origin_invscale_sizeVarId, gather_physmap_patch_updated_regions_job.patchOrigin,
     physmap_patch_invscale, physmap_patch_tex_size);
   gather_physmap_patch_updated_regions_job.patchNeedsUpdate = false;
 }

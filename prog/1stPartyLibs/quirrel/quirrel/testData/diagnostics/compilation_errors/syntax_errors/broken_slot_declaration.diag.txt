@@ -1,0 +1,8 @@
+ERROR: cannot break deref/or comma needed after [exp]=exp slot declaration
+testData/diagnostics/compilation_errors/syntax_errors/broken_slot_declaration.nut:4:0
+
+t
+[0] = 1
+^
+
+

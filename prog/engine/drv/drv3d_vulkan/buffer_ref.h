@@ -53,6 +53,8 @@ struct BufferRef
     return (l.buffer == r.buffer) && (l.offset == r.offset) && (l.frameReference == r.frameReference);
   }
   friend bool operator!=(const BufferRef &l, const BufferRef &r) { return !(l == r); }
+
+  BufferRef discard(DeviceMemoryClass memory_class, FormatStore view_format, uint32_t bufFlags, uint32_t dynamic_size);
 };
 
 inline BufferRef::BufferRef(Buffer *bfr, uint32_t visible_data_size) :
@@ -78,7 +80,7 @@ inline VulkanBufferViewHandle BufferRef::getView() const
 
 inline void BufferRef::addOffset(uint32_t in_offset)
 {
-  G_ASSERTF(visibleDataSize > in_offset, "vulkan: trying to add offset %u that is over visible range %u in buffer %p:%s reference",
+  G_ASSERTF(visibleDataSize >= in_offset, "vulkan: trying to add offset %u that is over visible range %u in buffer %p:%s reference",
     in_offset, visibleDataSize, buffer, buffer->getDebugName());
   offset += in_offset;
   visibleDataSize -= in_offset;

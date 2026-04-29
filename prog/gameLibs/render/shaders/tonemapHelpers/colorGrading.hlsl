@@ -3,15 +3,35 @@
 //like daVinci and others, works in linear HDR space.
 //exact space doesn't matter for anything except luma calculations, that's why we pass luma as parameters
 
+float saturation(float3 c)
+{
+    float cMax  = max3(c.r, c.g, c.b);
+    float cMin  = min3(c.r, c.g, c.b);
+    float delta = cMax - cMin;
+    return saturate(delta / max(cMax, 1e-6));
+}
+
+float3 vibrance(float3 workingColor, float4 colorSaturationHigh, float4 colorSaturationLow, float colorSaturationHighVsLowCurve)
+{
+    float t = pow(saturation(workingColor.rgb), max(colorSaturationHighVsLowCurve, 1e-6));
+    float3 low  = colorSaturationLow.xyz  * colorSaturationLow.w;
+    float3 high = colorSaturationHigh.xyz * colorSaturationHigh.w;
+    return lerp(low, high, t);
+}
+
 float3 colorCorrect( float3 workingColor,
   float4 colorSaturation,
+  float4 colorSaturationLow,
+  float4 colorSaturationHigh,
+  float colorSaturationHighVsLowCurve,
   float4 colorContrast,
   float4 colorGamma,
   float4 colorGain,
   float4 colorOffset,
   float luma )
 {
-  workingColor = max( 0, lerp( luma.xxx, workingColor, colorSaturation.xyz*colorSaturation.w ) );
+  float3 colorVibrance = vibrance( workingColor, colorSaturationHigh, colorSaturationLow, colorSaturationHighVsLowCurve );
+  workingColor = max( 0, lerp( luma.xxx, workingColor, colorSaturation.xyz*colorSaturation.w*colorVibrance ) );
   workingColor = pow( workingColor * (1.0 / 0.18), colorContrast.xyz*colorContrast.w ) * 0.18;
   workingColor = pow( workingColor, 1.0 / (colorGamma.xyz*colorGamma.w) );
   workingColor = workingColor * (colorGain.xyz * colorGain.w) + (colorOffset.xyz + colorOffset.w);
@@ -24,6 +44,9 @@ float3 colorCorrect( float3 workingColor,
 //perceptedLuma = dot(workingColor, *2_Luma)
 float3 colorCorrectSMH( float3 workingColor, float perceptedLuma,
   float4 colorSaturation,
+  float4 colorSaturationLow,
+  float4 colorSaturationHigh,
+  float colorSaturationHighVsLowCurve,
   float4 colorContrast,
   float4 colorGamma,
   float4 colorGain,
@@ -54,6 +77,9 @@ float3 colorCorrectSMH( float3 workingColor, float perceptedLuma,
 
   float3 gradedColorShadows = colorCorrect(workingColor,
     colorSaturationShadows*colorSaturation,
+    colorSaturationLow,
+    colorSaturationHigh,
+    colorSaturationHighVsLowCurve,
     colorContrastShadows*colorContrast,
     colorGammaShadows*colorGamma,
     colorGainShadows*colorGain,
@@ -62,6 +88,9 @@ float3 colorCorrectSMH( float3 workingColor, float perceptedLuma,
 
   float3 gradedColorHighlights = colorCorrect(workingColor,
     colorSaturationHighlights*colorSaturation,
+    colorSaturationLow,
+    colorSaturationHigh,
+    colorSaturationHighVsLowCurve,
     colorContrastHighlights*colorContrast,
     colorGammaHighlights*colorGamma,
     colorGainHighlights*colorGain,
@@ -70,6 +99,9 @@ float3 colorCorrectSMH( float3 workingColor, float perceptedLuma,
 
   float3 gradedColorMidtones = colorCorrect(workingColor,
     colorSaturationMidtones*colorSaturation,
+    colorSaturationLow,
+    colorSaturationHigh,
+    colorSaturationHighVsLowCurve,
     colorContrastMidtones*colorContrast,
     colorGammaMidtones*colorGamma,
     colorGainMidtones*colorGain,

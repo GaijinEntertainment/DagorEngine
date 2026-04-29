@@ -24,6 +24,9 @@ void ec_set_cursor_pos(IPoint2 pos);
 // Set the mouse cursor's visibility.
 void ec_show_cursor(bool show);
 
+// Checks whether the cursor is visible
+bool ec_is_cursor_visible();
+
 // Set busy (waiting) cursor for the application.
 // Returns with the previous busy state.
 bool ec_set_busy(bool busy);
@@ -42,3 +45,14 @@ bool ec_is_ctrl_key_down();
 
 // Checks whether the Shift key is currently pressed.
 bool ec_is_shift_key_down();
+
+// Set busy cursor for a code block and then restore the cursor's previous state.
+class EcAutoBusy
+{
+public:
+  EcAutoBusy() : oldBusy(ec_set_busy(true)) {}
+  ~EcAutoBusy() { ec_set_busy(oldBusy); }
+
+private:
+  const bool oldBusy;
+};

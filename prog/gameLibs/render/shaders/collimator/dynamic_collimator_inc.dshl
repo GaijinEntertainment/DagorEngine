@@ -1,5 +1,4 @@
 macro DYNAMIC_COLLIMATOR_SHADER()
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK_TRANS()
   texture tex = material.texture.diffuse;
   render_trans;
@@ -19,7 +18,7 @@ macro DYNAMIC_COLLIMATOR_SHADER()
     dont_render;
   }
   SUPPORT_MULTIDRAW(false)
-  (ps){ diffuse_tex@static = tex; }
+  (ps){ diffuse_tex@staticSmp = tex; }
   if (two_sided)
   {
     cull_mode = none;

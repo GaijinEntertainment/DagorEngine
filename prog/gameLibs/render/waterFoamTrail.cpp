@@ -322,8 +322,9 @@ struct Renderer
 
     shElem = shMat->make_elem();
 
-    activeBuffer = d3d::create_vb(g_settings.activeVertexCount * sizeof(Vertex), SBCF_DYNAMIC, "water_foam_trail_a");
-    finalizedBuffer = d3d::create_vb(g_settings.finalizedVertexCount * sizeof(Vertex), SBCF_DYNAMIC, "water_foam_trail_f");
+    activeBuffer = d3d::create_vb(g_settings.activeVertexCount * sizeof(Vertex), SBCF_DYNAMIC, "water_foam_trail_a", RESTAG_WATER);
+    finalizedBuffer =
+      d3d::create_vb(g_settings.finalizedVertexCount * sizeof(Vertex), SBCF_DYNAMIC, "water_foam_trail_f", RESTAG_WATER);
 
     SharedTex maskTexRes = dag::get_tex_gameres(g_settings.texName);
     G_ASSERT(maskTexRes);
@@ -332,13 +333,6 @@ struct Renderer
       ddsx::tex_pack2_perform_delayed_data_loading();
 
     maskTex = SharedTexHolder(eastl::move(maskTexRes), "water_foam_trail_mask");
-    ShaderGlobal::set_sampler(::get_shader_variable_id("water_foam_trail_mask_samplerstate", true),
-      get_texture_separate_sampler(maskTex.getTexId()));
-
-    texArrayVarId = ::get_shader_variable_id("water_foam_trail");
-    d3d::SamplerInfo smpInfo;
-    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
-    ShaderGlobal::set_sampler(::get_shader_variable_id("water_foam_trail_samplerstate", true), d3d::request_sampler(smpInfo));
 
     shaders::OverrideState blendOpState;
     blendOpState.set(shaders::OverrideState::BLEND_OP | shaders::OverrideState::BLEND_OP_A);
@@ -346,6 +340,7 @@ struct Renderer
     blendOpState.blendOpA = BLENDOP_MIN;
     blendOpStateId = shaders::overrides::create(blendOpState);
 
+    texArrayVarId = ::get_shader_variable_id("water_foam_trail");
     resetTex();
   }
 
@@ -456,9 +451,9 @@ struct Renderer
       int mat0VarId = matVarId[ci * 2 + 0];
       int mat1VarId = matVarId[ci * 2 + 1];
 
-      ShaderGlobal::set_color4_fast(mat0VarId, Color4(c.mat[0][0], c.mat[1][0], c.mat[2][0], c.mat[3][0]));
+      ShaderGlobal::set_float4(mat0VarId, Color4(c.mat[0][0], c.mat[1][0], c.mat[2][0], c.mat[3][0]));
 
-      ShaderGlobal::set_color4_fast(mat1VarId, Color4(c.mat[0][1], c.mat[1][1], c.mat[2][1], c.mat[3][1]));
+      ShaderGlobal::set_float4(mat1VarId, Color4(c.mat[0][1], c.mat[1][1], c.mat[2][1], c.mat[3][1]));
     }
   }
 
@@ -545,10 +540,10 @@ struct Renderer
     }
 
     static int currentGenVarId = ::get_shader_variable_id("water_foam_trail_gen");
-    ShaderGlobal::set_real(currentGenVarId, ctx->currentGen);
+    ShaderGlobal::set_float(currentGenVarId, ctx->currentGen);
 
     static int paramsVarId = ::get_shader_variable_id("water_foam_trail_params");
-    ShaderGlobal::set_color4(paramsVarId, 1.f / g_settings.fadeInTime, 1.f / g_settings.fadeOutTime, g_settings.forwardExpand, 0.f);
+    ShaderGlobal::set_float4(paramsVarId, 1.f / g_settings.fadeInTime, 1.f / g_settings.fadeOutTime, g_settings.forwardExpand, 0.f);
   }
 
   void resetTex()
@@ -558,10 +553,18 @@ struct Renderer
     ShaderGlobal::set_texture(texArrayVarId, BAD_TEXTUREID);
     ShaderGlobal::reset_from_vars_and_release_managed_tex_verified(texArrayId, texArray);
 
+    ShaderGlobal::set_sampler(::get_shader_variable_id("water_foam_trail_mask_samplerstate", true),
+      d3d::request_sampler(get_sampler_info(get_texture_meta_data(maskTex.getTexId()))));
+
+    d3d::SamplerInfo smpInfo;
+    smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = d3d::AddressMode::Wrap;
+    smpInfo.anisotropic_max = ::dgs_tex_anisotropy;
+    ShaderGlobal::set_sampler(::get_shader_variable_id("water_foam_trail_samplerstate", true), d3d::request_sampler(smpInfo));
+
     if (g_settings.useTexArray)
     {
       texArray = d3d::create_array_tex(g_settings.texSize, g_settings.texSize, cascades.size(), TEXFMT_R8 | TEXCF_RTARGET, 1,
-        "water_foam_trail");
+        "water_foam_trail", RESTAG_WATER);
 
       texArrayId = register_managed_tex("water_foam_trail", texArray);
     }

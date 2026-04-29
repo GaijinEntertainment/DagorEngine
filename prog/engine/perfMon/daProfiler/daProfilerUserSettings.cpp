@@ -64,7 +64,7 @@ bool read_settings(IGenLoad &load_cb, UserSettings &settings, uint32_t len)
   char buf[64];
   for (; lenLeft > 0;)
   {
-    const size_t sz = min(sizeof(buf), (size_t)len);
+    const size_t sz = min(sizeof(buf), (size_t)lenLeft);
     load_cb.read(buf, sz);
     lenLeft -= int(sz);
   }

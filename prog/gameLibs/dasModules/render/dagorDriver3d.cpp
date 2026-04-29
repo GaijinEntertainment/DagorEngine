@@ -28,6 +28,14 @@ DAS_BASE_BIND_ENUM(d3d::BorderColor::Color, BorderColor_Color, TransparentBlack,
 DAS_BASE_BIND_ENUM_BOTH(DAS_BIND_ENUM_QUALIFIED_HELPER, d3d::SamplerHandle, SamplerHandle, EnumerationSamplerHandle, // -V1008
   Invalid);
 
+DAS_BIND_ENUM_CAST(DriverBackgroundProcessingMode);
+DAS_BASE_BIND_ENUM(DriverBackgroundProcessingMode, DriverBackgroundProcessingMode, ALLOWED, ALLOW_INTRUSIVE_MEASUREMENTS,
+  DISABLE_BACKGROUND_WORK, DISABLE_PROFILING_BY_SYSTEM, KEEP_CURRENT);
+
+DAS_BIND_ENUM_CAST(DriverMeasurementsAction);
+DAS_BASE_BIND_ENUM(DriverMeasurementsAction, DriverMeasurementsAction, KEEP_ALL, COMMIT_RESULTS, COMMIT_RESULTS_HIGH_PRIORITY,
+  DISCARD_PREVIOUS);
+
 void bind_driver_consts(das::Module &module);
 
 struct ShadersECSAnnotation : das::ManagedStructureAnnotation<ShadersECS, false>
@@ -137,6 +145,8 @@ public:
     addEnumeration(das::make_smart<EnumerationBorderColor_Color>());
     addAnnotation(das::make_smart<BorderColorAnnotation>(lib));
     addAnnotation(das::make_smart<SamplerInfoAnnotation>(lib));
+    addEnumeration(das::make_smart<EnumerationDriverBackgroundProcessingMode>());
+    addEnumeration(das::make_smart<EnumerationDriverMeasurementsAction>());
 
     das::addUsing<shaders::OverrideState>(*this, lib, "shaders::OverrideState");
 
@@ -184,6 +194,7 @@ public:
     BIND_WRAP_FUNC(d3d_resource_barrier_tex, "d3d_resource_barrier", modifyExternal);
     BIND_WRAP_FUNC(d3d_resource_barrier_buf, "d3d_resource_barrier", modifyExternal);
     BIND_WRAP_FUNC(d3d_get_vsync_refresh_rate, "d3d_get_vsync_refresh_rate", accessExternal);
+    BIND_WRAP_FUNC(d3d_driver_background_processing_mode, "d3d_driver_background_processing_mode", modifyExternal);
 
     das::addCtor<PostFxRenderer, const char *>(*this, lib, "PostFxRenderer", "PostFxRenderer");
     CLASS_MEMBER(PostFxRenderer::render, "render", das::SideEffects::modifyExternal)

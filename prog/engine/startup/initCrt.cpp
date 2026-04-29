@@ -5,6 +5,9 @@
 #include <osApiWrappers/dag_localConv.h>
 #include <osApiWrappers/setProgGlobals.h>
 #include <osApiWrappers/dag_threads.h>
+#if _TARGET_PC_WIN
+#include <osApiWrappers/dag_addressWait.h>
+#endif
 #include <startup/dag_globalSettings.h>
 #include <perfMon/dag_perfTimer.h>
 #include <math/random/dag_random.h>
@@ -29,6 +32,7 @@ void default_crt_init_kernel_lib()
   init_main_thread_id();
 #endif
 #if _TARGET_PC_WIN
+  init_win_wait_on_address();
   DaThread::setCurrentThreadName("Main Thread");
 #endif
 }

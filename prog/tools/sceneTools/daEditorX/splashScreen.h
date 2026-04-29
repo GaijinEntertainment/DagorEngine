@@ -3,6 +3,8 @@
 
 #if _TARGET_PC_WIN // TODO: tools Linux porting: SplashScreen
 
+#include <windows.h>
+
 class SplashScreen
 {
 public:
@@ -19,7 +21,7 @@ private:
   static int bmpH;
 
   static unsigned registerSplashClass();
-  static int __stdcall wndProc(void *h_wnd, unsigned msg, void *w_param, void *l_param);
+  static LRESULT CALLBACK wndProc(HWND h_wnd, UINT msg, WPARAM w_param, LPARAM l_param);
 };
 
 #else

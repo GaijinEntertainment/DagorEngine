@@ -1,7 +1,7 @@
 Root    ?= ../../.. ;
 Location = prog/gameLibs/daRg ;
 StrictCompile = yes ;
-UseQuirrel = sq3r ;
+UseQuirrel = yes ;
 
 TargetType  = lib ;
 Target      = gameLibs/daRg.lib ;
@@ -36,7 +36,6 @@ AutoscanBuildLists $(AllSrcFolder) : *.cpp  : Sources ;
 UseProgLibs +=
   3rdPartyLibs/eastl
   1stPartyLibs/daScript
-  gameLibs/quirrel/sqModules
   gameLibs/quirrel/frp
   gameLibs/frameTimeMetrics
   gameLibs/forceFeedback

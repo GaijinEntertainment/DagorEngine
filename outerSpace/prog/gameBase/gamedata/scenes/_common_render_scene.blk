@@ -5,3 +5,7 @@ entity{
 entity{
   _template:t="blurred_ui"
 }
+
+entity{
+  _template:t="dynamic_lighting"
+}

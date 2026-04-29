@@ -41,8 +41,10 @@
 #include "behaviors/bhvTrackMouse.h"
 #include "behaviors/bhvMoveToArea.h"
 #include "behaviors/bhvProcessPointingInput.h"
+#include "behaviors/bhvProcessKeyInput.h"
 #include "behaviors/bhvProcessGesture.h"
 #include "behaviors/bhvTextAreaEdit.h"
+#include "behaviors/bhvJoystickScroll.h"
 #include "guiGlobals.h"
 
 #include "scriptUtil.h"
@@ -64,7 +66,7 @@
 #include <videoPlayer/dag_videoPlayer.h>
 #include <sound/dag_genAudio.h>
 
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include <drv/hid/dag_hiXInputMappings.h>
 #include <gesture/gestureDetector.h>
 
@@ -162,6 +164,10 @@ static void register_constants(HSQUIRRELVM vm)
 
     .CONST(O_HORIZONTAL)
     .CONST(O_VERTICAL)
+
+    .Const("TEXFMT_SRGB_IN_UNORM", SRGB_IN_UNORM)
+    .Const("TEXFMT_UNORM", UNORM)
+    .Const("TEXFMT_SRGB", SRGB)
 
     .CONST(TOVERFLOW_CLIP)
     .CONST(TOVERFLOW_CHAR)
@@ -422,7 +428,7 @@ Keeps Aspect ratio and cover all component size. So image can be outside compone
 
 static SQInteger get_def_font(HSQUIRRELVM vm)
 {
-  const SQChar *name;
+  const char *name;
   sq_getstring(vm, 2, &name);
   logerr("UI font %s not found", name ? name : "<n/a>");
   sq_pushinteger(vm, 0);
@@ -684,12 +690,16 @@ static void register_std_behaviors(SqModules *module_mgr)
   BHV(MoveToArea, bhv_move_to_area)
   ///@const ProcessPointingInput
   BHV(ProcessPointingInput, bhv_process_pointing_input)
+  ///@const ProcessKeyInput
+  BHV(ProcessKeyInput, bhv_process_key_input)
   ///@const ProcessGesture
   BHV(ProcessGesture, bhv_process_gesture)
   ///@const EatInput
   BHV(EatInput, bhv_eat_input)
   ///@const TextAreaEdit
   BHV(TextAreaEdit, bhv_text_area_edit)
+  ///@const JoystickScroll
+  BHV(JoystickScroll, bhv_joystick_scroll)
 
 #undef BHV
   ///@resetscope
@@ -814,8 +824,10 @@ SQInteger calc_str_box(HSQUIRRELVM vm)
     {
       G_ASSERT(tp == OT_CLOSURE || tp == OT_NATIVECLOSURE);
       Sqrat::Function f(vm, Sqrat::Object(vm), Sqrat::Var<Sqrat::Object>(vm, arg).value);
-      if (!f.Evaluate(params))
+      auto evalRes = f.Eval<Sqrat::Object>();
+      if (!evalRes)
         return sq_throwerror(vm, "Function call failed");
+      params = SQRAT_STD::move(evalRes.value());
       if (params.GetType() != OT_TABLE && params.GetType() != OT_NULL)
         return sq_throwerror(vm, "Function must return table or null");
     }
@@ -850,12 +862,12 @@ SQInteger calc_str_box(HSQUIRRELVM vm)
   Offsets padding;
   Sqrat::Object objPadding = params.RawGetSlot(csk->padding);
   const char *errMsg = nullptr;
-  if (!script_parse_offsets(nullptr, objPadding, &padding.x, &errMsg))
+  if (!script_parse_offsets(nullptr, objPadding, padding.ptr(), &errMsg))
     darg_assert_trace_var(errMsg, params, csk->padding);
 
   Sqrat::Array res(vm, 2);
-  res.SetValue(SQInteger(0), box.x + padding.left() + padding.right());
-  res.SetValue(SQInteger(1), box.y + padding.top() + padding.bottom());
+  res.SetValue(SQInteger(0), box.x + padding.l + padding.r);
+  res.SetValue(SQInteger(1), box.y + padding.t + padding.b);
   sq_pushobject(vm, res);
   return 1;
 }
@@ -879,7 +891,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   G_ASSERT(sqvm == exports.GetVM());
 
   ///@class daRg/ScrollHandler
-  Sqrat::DerivedClass<ScrollHandler, BaseObservable, Sqrat::NoCopy<ScrollHandler>> scrollHandler(sqvm, "ScrollHandler");
+  Sqrat::DerivedClass<ScrollHandler, WatchedHandle, Sqrat::NoCopy<ScrollHandler>> scrollHandler(sqvm, "ScrollHandler");
   scrollHandler //
     .SquirrelCtor(scrollhandler_ctor, 1, "x")
     .Func("scrollToX", &ScrollHandler::scrollToX)
@@ -889,7 +901,8 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
     /**/;
 
   ///@class daRg/JoystickAxisObservable
-  Sqrat::DerivedClass<JoystickAxisObservable, BaseObservable> joyAxisObservable(sqvm, "JoystickAxisObservable");
+  Sqrat::DerivedClass<JoystickAxisObservable, WatchedHandle, Sqrat::NoCopy<JoystickAxisObservable>> joyAxisObservable(sqvm,
+    "JoystickAxisObservable");
   joyAxisObservable //
     .Func("get", &JoystickAxisObservable::getValue)
     .Prop("value", &JoystickAxisObservable::getValue)
@@ -906,7 +919,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   ///@class daRg/Picture
   Sqrat::Class<Picture, Sqrat::NoCopy<Picture>> pictureClass(sqvm, "Picture");
   pictureClass //
-    .SquirrelCtor(picture_script_ctor<Picture>, 0, ".o|s")
+    .SquirrelCtor(picture_script_ctor<Picture>, 0, ". o|s o|t")
     .Func("getLoadedPicSize", &Picture::getLoadedPicSize)
     /**/;
 
@@ -914,7 +927,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
   ///@extends Picture
   Sqrat::DerivedClass<PictureImmediate, Picture, Sqrat::NoCopy<PictureImmediate>> immediatePictureClass(sqvm, "PictureImmediate");
   immediatePictureClass //
-    .SquirrelCtor(picture_script_ctor<PictureImmediate>, 0, ".o|s")
+    .SquirrelCtor(picture_script_ctor<PictureImmediate>, 0, ". o|s o|t")
     .Func("getLoadedPicSize", &PictureImmediate::getLoadedPicSize)
     /**/;
 
@@ -986,7 +999,7 @@ void bind_script_classes(SqModules *module_mgr, Sqrat::Table &exports)
     .SquirrelFuncDeclString(calc_screen_w_percent, "pure sw(percent: number): number")
     .SquirrelFuncDeclString(calc_screen_h_percent, "pure sh(percent: number): number")
     .SquirrelFuncDeclString(make_size<SizeSpec::FLEX>, "pure flex([weight: number]): userdata")
-    .SquirrelFunc("fontH", make_size<SizeSpec::FONT_H>, 2, ".n")
+    .SquirrelFuncDeclString(make_size<SizeSpec::FONT_H>, "pure fontH(percent: number): userdata")
     .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_W>, "pure pw(percent: number): userdata")
     .SquirrelFuncDeclString(make_size<SizeSpec::PARENT_H>, "pure ph(percent: number): userdata")
     .SquirrelFuncDeclString(make_size<SizeSpec::ELEM_SELF_W>, "pure elemw(percent: number): userdata")

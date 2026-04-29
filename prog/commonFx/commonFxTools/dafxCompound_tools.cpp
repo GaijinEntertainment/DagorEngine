@@ -181,7 +181,7 @@ ScriptHelpers::TunedElement *CompModfx::createTunedElement(const char *name)
   Tab<ScriptHelpers::TunedElement *> elems(tmpmem);
   elems.reserve(21);
 
-  elems.push_back(create_tuned_array("array", ModfxParams::createTunedElement("ModfxParams")));
+  elems.push_back(create_tuned_visibility_array("array", ModfxParams::createTunedElement("ModfxParams")));
   set_tuned_array_member_to_show_in_caption(*elems.back(), "ref_slot");
 
   elems.push_back(ScriptHelpers::create_tuned_real_param("instance_life_time_min", 0));

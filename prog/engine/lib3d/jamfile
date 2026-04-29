@@ -77,6 +77,8 @@ AddIncludes =
   $(Root)/prog/engine/drv/drv3d_commonCode
 ;
 
+if $(BuildingTools) = yes { Target = $(Target:S=~t.lib) ; CPPopt += -D_TARGET_PC_TOOLS_BUILD ; }
+
 UseProgLibs =
   3rdPartyLibs/eastl
 ;

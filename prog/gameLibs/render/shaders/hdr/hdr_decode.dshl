@@ -20,7 +20,6 @@ shader decode_hdr_to_sdr
         hdr_params@f4 = (paper_white_nits, paper_white_nits * 100, max(-0.5, 1 - hdr_shadows), 1 / (hdr_brightness + 0.01));
     }
 
-    ENABLE_ASSERT(ps)
     POSTFX_VS(1)
 
     hlsl(ps)

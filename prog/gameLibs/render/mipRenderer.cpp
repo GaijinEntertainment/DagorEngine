@@ -8,12 +8,14 @@
 #include <drv/3d/dag_texture.h>
 #include <drv/3d/dag_driver.h>
 #include <drv/3d/dag_tex3d.h>
+#include <drv/3d/dag_sampler.h>
 #include <shaders/dag_shaders.h>
 #include <shaders/dag_computeShaders.h>
 #include <math/integer/dag_IPoint2.h>
 
 #define GLOBAL_VARS_LIST \
   VAR(mip_target_size)   \
+  VAR(mip_target_level)  \
   VAR(gaussian_mipchain_srgb)
 
 #define VAR(a) static int a##VarId = -1;
@@ -26,7 +28,9 @@ MipRenderer::MipRenderer() {}
 
 MipRenderer::~MipRenderer() { close(); }
 
-bool MipRenderer::init(const char *shader)
+bool MipRenderer::init(const char *shader, d3d::AddressMode addressMode) { return init(shader, addressMode, d3d::FilterMode::Linear); }
+
+bool MipRenderer::init(const char *shader, d3d::AddressMode addressMode, d3d::FilterMode filterMode)
 {
 #define VAR(a) a##VarId = get_shader_variable_id(#a, true);
   GLOBAL_VARS_LIST
@@ -39,6 +43,11 @@ bool MipRenderer::init(const char *shader)
 
   auto cshader = String(shader) += "_cs";
   mipRendererCS.reset(new_compute_shader(cshader.data(), true));
+
+  d3d::SamplerInfo smpInfo;
+  smpInfo.address_mode_u = smpInfo.address_mode_v = smpInfo.address_mode_w = addressMode;
+  smpInfo.filter_mode = filterMode;
+  sampler = d3d::request_sampler(smpInfo);
 
   return true;
 }
@@ -59,11 +68,11 @@ void MipRenderer::renderTo(BaseTexture *src, BaseTexture *dst, const IPoint2 &ta
 
   src->getinfo(texInfo);
   d3d::set_render_target(dst, 0);
-  ShaderGlobal::set_color4(mip_target_sizeVarId, target_size.x, target_size.y, 1.0f / target_size.x, 1.0f / target_size.y);
+  ShaderGlobal::set_float4(mip_target_sizeVarId, target_size.x, target_size.y, 1.0f / target_size.x, 1.0f / target_size.y);
   src->texmiplevel(0, 0);
   d3d::resource_barrier({src, RB_RO_SRV | RB_STAGE_PIXEL, 0, 1});
   d3d::set_tex(STAGE_PS, prev_mip_tex_register_const_no, src);
-  d3d::set_sampler(STAGE_PS, prev_mip_tex_register_const_no, d3d::request_sampler({}));
+  d3d::set_sampler(STAGE_PS, prev_mip_tex_register_const_no, sampler);
   mipRenderer.render();
   src->texmiplevel(-1, -1);
 }
@@ -85,11 +94,12 @@ void MipRenderer::render(BaseTexture *tex, uint8_t max_level) const
 
   const int levelCount = min(tex->level_count(), int(max_level) + 1);
 
-  d3d::set_sampler(isCS ? STAGE_CS : STAGE_PS, prev_mip_tex_register_const_no, d3d::request_sampler({}));
+  d3d::set_sampler(isCS ? STAGE_CS : STAGE_PS, prev_mip_tex_register_const_no, sampler);
   for (int i = 1; i < levelCount; ++i)
   {
     int w = max(texInfo.w >> i, 1), h = max(texInfo.h >> i, 1);
-    ShaderGlobal::set_color4(mip_target_sizeVarId, w, h, 1.0f / w, 1.0f / h);
+    ShaderGlobal::set_float4(mip_target_sizeVarId, w, h, 1.0f / w, 1.0f / h);
+    ShaderGlobal::set_float(mip_target_levelVarId, (float)i);
     tex->texmiplevel(i - 1, i - 1);
     d3d::set_tex(isCS ? STAGE_CS : STAGE_PS, prev_mip_tex_register_const_no, tex);
 

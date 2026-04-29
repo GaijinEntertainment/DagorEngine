@@ -2,6 +2,7 @@
 #pragma once
 
 #include "shVariantContext.h"
+#include <EASTL/variant.h>
 
 namespace semantic
 {
@@ -36,24 +37,41 @@ public:
 
 eastl::optional<ShaderStage> parse_state_block_stage(const char *stage_str);
 
-#define TYPE_LIST_FLOAT() TYPE(f1) TYPE(f2) TYPE(f3) TYPE(f4) TYPE(f44)
-#define TYPE_LIST_INT()   TYPE(i1) TYPE(i2) TYPE(i3) TYPE(i4)
-#define TYPE_LIST_UINT()  TYPE(u1) TYPE(u2) TYPE(u3) TYPE(u4)
-#define TYPE_LIST_BUF()   TYPE(buf) TYPE(cbuf)
-#define TYPE_LIST_TEX()   TYPE(tex) TYPE(tex2d) TYPE(tex3d) TYPE(texArray) TYPE(texCube) TYPE(texCubeArray)
-#define TYPE_LIST_SMP()   TYPE(smp) TYPE(smp2d) TYPE(smp3d) TYPE(smpArray) TYPE(smpCube) TYPE(smpCubeArray) TYPE(sampler)
-#define TYPE_LIST_OTHER() \
-  TYPE(shd) TYPE(shdArray) TYPE(staticCube) TYPE(staticTexArray) TYPE(staticTex3D) TYPE(staticCubeArray) TYPE(uav) TYPE(tlas)
+#define PRESHADER_VARIABLE_TYPE_LIST_FLOAT() TYPE(f1) TYPE(f2) TYPE(f3) TYPE(f4) TYPE(f44)
+#define PRESHADER_VARIABLE_TYPE_LIST_INT()   TYPE(i1) TYPE(i2) TYPE(i3) TYPE(i4)
+#define PRESHADER_VARIABLE_TYPE_LIST_UINT()  TYPE(u1) TYPE(u2) TYPE(u3) TYPE(u4)
+#define PRESHADER_VARIABLE_TYPE_LIST_BUF()   TYPE(buf) TYPE(cbuf)
+#define PRESHADER_VARIABLE_TYPE_LIST_TEX()   TYPE(tex) TYPE(tex2d) TYPE(tex3d) TYPE(texArray) TYPE(texCube) TYPE(texCubeArray)
+#define PRESHADER_VARIABLE_TYPE_LIST_SMP() \
+  TYPE(smp) TYPE(smp2d) TYPE(smp3d) TYPE(smpArray) TYPE(smpCube) TYPE(smpCubeArray) TYPE(sampler) TYPE(cmpSampler)
+#define PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP() \
+  TYPE(staticSmp) TYPE(staticSmpCube) TYPE(staticSmpArray) TYPE(staticSmp3D) TYPE(staticSmpCubeArray)
+#define PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX() \
+  TYPE(staticTex) TYPE(staticTexCube) TYPE(staticTexArray) TYPE(staticTex3D) TYPE(staticTexCubeArray)
+#define PRESHADER_VARIABLE_TYPE_LIST_OTHER() TYPE(shd) TYPE(shdArray) TYPE(uav) TYPE(tlas)
 
-#define TYPE_LIST TYPE_LIST_FLOAT() TYPE_LIST_INT() TYPE_LIST_UINT() TYPE_LIST_BUF() TYPE_LIST_TEX() TYPE_LIST_SMP() TYPE_LIST_OTHER()
+#define PRESHADER_VARIABLE_TYPE_LIST        \
+  PRESHADER_VARIABLE_TYPE_LIST_FLOAT()      \
+  PRESHADER_VARIABLE_TYPE_LIST_INT()        \
+  PRESHADER_VARIABLE_TYPE_LIST_UINT()       \
+  PRESHADER_VARIABLE_TYPE_LIST_BUF()        \
+  PRESHADER_VARIABLE_TYPE_LIST_TEX()        \
+  PRESHADER_VARIABLE_TYPE_LIST_SMP()        \
+  PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX() \
+  PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP() \
+  PRESHADER_VARIABLE_TYPE_LIST_OTHER()
+
+// @NOTE: disallowing partial vectors due to packing, smpXXX and shdXXX because they are are 2 bindings each, and static textures
+#define ARRAY_ELIGIBLE_PRESHADER_VARIABLE_TYPE_LIST \
+  TYPE(f4)                                          \
+  TYPE(f44) TYPE(i4) TYPE(u4) PRESHADER_VARIABLE_TYPE_LIST_BUF() PRESHADER_VARIABLE_TYPE_LIST_TEX() TYPE(sampler) TYPE(uav) TYPE(tlas)
 
 enum class VariableType
 {
   Unknown,
 #define TYPE(type) type,
-  TYPE_LIST
+  PRESHADER_VARIABLE_TYPE_LIST
 #undef TYPE
-    staticSampler
 };
 
 inline constexpr bool vt_is_numeric(VariableType vt)
@@ -61,15 +79,17 @@ inline constexpr bool vt_is_numeric(VariableType vt)
   switch (vt)
   {
 #define TYPE(type) case VariableType::type:
-    TYPE_LIST_INT()
-    TYPE_LIST_UINT()
-    TYPE_LIST_FLOAT()
+    PRESHADER_VARIABLE_TYPE_LIST_INT()
+    PRESHADER_VARIABLE_TYPE_LIST_UINT()
+    PRESHADER_VARIABLE_TYPE_LIST_FLOAT()
     return true;
 
-    TYPE_LIST_BUF()
-    TYPE_LIST_TEX()
-    TYPE_LIST_SMP()
-    TYPE_LIST_OTHER()
+    PRESHADER_VARIABLE_TYPE_LIST_BUF()
+    PRESHADER_VARIABLE_TYPE_LIST_TEX()
+    PRESHADER_VARIABLE_TYPE_LIST_SMP()
+    PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX()
+    PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP()
+    PRESHADER_VARIABLE_TYPE_LIST_OTHER()
     return false;
 #undef TYPE
   }
@@ -82,15 +102,17 @@ inline constexpr bool vt_is_integer(VariableType vt)
   switch (vt)
   {
 #define TYPE(type) case VariableType::type:
-    TYPE_LIST_INT()
-    TYPE_LIST_UINT()
+    PRESHADER_VARIABLE_TYPE_LIST_INT()
+    PRESHADER_VARIABLE_TYPE_LIST_UINT()
     return true;
 
-    TYPE_LIST_FLOAT()
-    TYPE_LIST_BUF()
-    TYPE_LIST_TEX()
-    TYPE_LIST_SMP()
-    TYPE_LIST_OTHER()
+    PRESHADER_VARIABLE_TYPE_LIST_FLOAT()
+    PRESHADER_VARIABLE_TYPE_LIST_BUF()
+    PRESHADER_VARIABLE_TYPE_LIST_TEX()
+    PRESHADER_VARIABLE_TYPE_LIST_SMP()
+    PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX()
+    PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP()
+    PRESHADER_VARIABLE_TYPE_LIST_OTHER()
     return false;
 #undef TYPE
   }
@@ -103,7 +125,7 @@ inline constexpr bool vt_is_sampled_texture(VariableType vt)
   switch (vt)
   {
 #define TYPE(type) case VariableType::type:
-    TYPE_LIST_SMP()
+    PRESHADER_VARIABLE_TYPE_LIST_SMP()
     return true;
 #undef TYPE
 
@@ -115,8 +137,29 @@ inline constexpr bool vt_is_sampled_texture(VariableType vt)
 
 inline constexpr bool vt_is_static_texture(VariableType vt)
 {
-  return vt == VariableType::staticSampler || vt == VariableType::staticTex3D || vt == VariableType::staticCube ||
-         vt == VariableType::staticCubeArray || vt == VariableType::staticTexArray;
+  switch (vt)
+  {
+#define TYPE(type) case VariableType::type:
+    PRESHADER_VARIABLE_TYPE_LIST_STATIC_TEX()
+    PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP()
+    return true;
+#undef TYPE
+
+    default: return false;
+  }
+}
+
+inline constexpr bool vt_is_static_sampled_texture(VariableType vt)
+{
+  switch (vt)
+  {
+#define TYPE(type) case VariableType::type:
+    PRESHADER_VARIABLE_TYPE_LIST_STATIC_SMP()
+    return true;
+#undef TYPE
+
+    default: return false;
+  }
 }
 
 inline constexpr int vt_float_size(VariableType vt)
@@ -145,9 +188,9 @@ inline VariableType name_space_to_type(const char *name_space)
 {
   static const eastl::vector_map<eastl::string_view, VariableType> var_types = {
 #define TYPE(type) {"@" #type, VariableType::type},
-    TYPE_LIST
+    PRESHADER_VARIABLE_TYPE_LIST
 #undef TYPE
-    {"@static", VariableType::staticSampler}};
+  };
 
   auto found = var_types.find(name_space);
   if (found == var_types.end())
@@ -155,15 +198,6 @@ inline VariableType name_space_to_type(const char *name_space)
 
   return found->second;
 }
-
-#undef TYPE_LIST_FLOAT
-#undef TYPE_LIST_INT
-#undef TYPE_LIST_UINT
-#undef TYPE_LIST_BUF
-#undef TYPE_LIST_TEX
-#undef TYPE_LIST_SMP
-#undef TYPE_LIST_OTHER
-#undef TYPE_LIST
 
 struct NamedConstInitializerElement
 {
@@ -261,6 +295,8 @@ struct NamedConstDefInfo
   Terminal *builtinVarTerm = nullptr;
   Terminal *sizeVarTerm = nullptr;
   SHTOK_hlsl_text *hlsl = nullptr;
+  SHTOK_intnum *literalReg = nullptr;
+  SHTOK_intnum *literalSize = nullptr;
 
   int bindlessVarId = -1;
 
@@ -304,7 +340,7 @@ struct LocalVarDefInfo
   eastl::unique_ptr<ShaderParser::ComplexExpression> expr;
 };
 
-eastl::optional<LocalVarDefInfo> parse_local_var_decl(local_var_decl &decl, shc::VariantContext &ctx,
+eastl::optional<LocalVarDefInfo> parse_local_var_decl(const local_var_decl &decl, shc::VariantContext &ctx,
   bool ignore_color_dimension_mismatch = false, bool allow_override = false);
 
 } // namespace semantic

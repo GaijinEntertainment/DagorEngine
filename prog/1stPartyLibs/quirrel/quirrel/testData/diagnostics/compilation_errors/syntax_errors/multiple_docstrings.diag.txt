@@ -1,0 +1,9 @@
+ERROR: multiple docstrings in a single block
+testData/diagnostics/compilation_errors/syntax_errors/multiple_docstrings.nut:3:0
+
+@@"first docstring"
+@@"second docstring"
+^-------------------
+function foo() {
+
+

@@ -81,7 +81,6 @@ shader ssgi_mark_scene_voxels_from_gbuf_cs
   INIT_VOXELS(cs)
   USE_VOXELS(cs)
   SAMPLE_VOXELS(cs)
-  ENABLE_ASSERT(cs)
   //USE_AND_INIT_VIEW_VEC_CS()
   (cs) {
     ssgi_current_frame@f2 = (ssgi_current_frame*ssgi_total_scene_mark_dipatch,ssgi_total_scene_mark_dipatch,0,0);
@@ -89,6 +88,13 @@ shader ssgi_mark_scene_voxels_from_gbuf_cs
     has_physobj_in_cascade@i1 = (has_physobj_in_cascade);
     ssgi_restricted_update_bbox_min@f3 = (ssgi_restricted_update_bbox_min);
     ssgi_restricted_update_bbox_max@f3 = (ssgi_restricted_update_bbox_max);
+    dispatchIndirectBuffer@uav : register(0) hlsl {
+      RWByteAddressBuffer dispatchIndirectBuffer@uav;
+    }
+    gbuf_voxels@uav : register(1) hlsl {
+      #include "dagi_scene_common_types.hlsli"
+      RWStructuredBuffer<GBUF_VOXEL> gbuf_voxels@uav;
+    }
   }
   hlsl(cs) {
     #define FILTER_BY_NORMAL_WEIGHT 0.05
@@ -106,8 +112,6 @@ shader ssgi_mark_scene_voxels_from_gbuf_cs
   hlsl(cs) {
     #include <pcg_hash.hlsl>
     #include <dagi_brigthnes_lerp.hlsl>
-    RWByteAddressBuffer dispatchIndirectBuffer : register( u0 );
-    RWStructuredBuffer<GBUF_VOXEL> gbuf_voxels: register(u1);
 
     float randPos(float3 p)
     {
@@ -229,9 +233,14 @@ shader ssgi_temporal_scene_voxels_cs
   USE_VOXELS(cs)
   SSGE_WRITE_VOXEL_DATA(cs, color_reg_no, alpha_reg_no)
 
-  hlsl(cs) {
-    StructuredBuffer<GBUF_VOXEL> temporal_voxels: register(t15);
+  (cs) {
+    temporal_voxels@buf : register(15) hlsl {
+      #include "dagi_scene_common_types.hlsli"
+      StructuredBuffer<GBUF_VOXEL> temporal_voxels@buf;
+    }
+  }
 
+  hlsl(cs) {
     [numthreads(MARK_VOXELS_WARP_SIZE, 1, 1)]
     void mark_voxels_cs( uint dtId : SV_DispatchThreadID )
     {
@@ -247,9 +256,12 @@ shader ssgi_temporal_scene_voxels_cs
 }
 
 shader ssgi_temporal_scene_voxels_create_cs {
-  ENABLE_ASSERT(cs)
+  (cs) {
+    dispatchIndirectBuffer@uav : register(0) hlsl {
+      RWByteAddressBuffer dispatchIndirectBuffer@uav;
+    }
+  }
   hlsl(cs) {
-    RWByteAddressBuffer dispatchIndirectBuffer : register( u0 );
     [numthreads( 1, 1, 1 )]
     void main()
     {
@@ -274,7 +286,6 @@ shader ssgi_clear_scene_cs
   USE_VOXELS(cs)
   INIT_VOXELS_SCENE_HELPERS(cs)
   INIT_VOXELS(cs)
-  ENABLE_ASSERT(cs)
   (cs) {
     scene_voxels_invalid_start@f4 = scene_voxels_invalid_start;
     scene_voxels_invalid_width@f4 = scene_voxels_invalid_width;

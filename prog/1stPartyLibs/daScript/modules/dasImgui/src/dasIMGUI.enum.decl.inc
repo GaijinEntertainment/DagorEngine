@@ -69,6 +69,8 @@ DAS_BASE_BIND_ENUM_GEN(ImGuiTableRowFlags_,ImGuiTableRowFlags);
 
 DAS_BASE_BIND_ENUM_GEN(ImGuiTableBgTarget_,ImGuiTableBgTarget);
 
+DAS_BASE_BIND_ENUM_GEN(ImGuiListClipperFlags_,ImGuiListClipperFlags);
+
 DAS_BASE_BIND_ENUM_GEN(ImGuiMultiSelectFlags_,ImGuiMultiSelectFlags);
 
 DAS_BASE_BIND_ENUM_GEN(ImGuiSelectionRequestType,ImGuiSelectionRequestType);
@@ -77,7 +79,13 @@ DAS_BASE_BIND_ENUM_GEN(ImDrawFlags_,ImDrawFlags);
 
 DAS_BASE_BIND_ENUM_GEN(ImDrawListFlags_,ImDrawListFlags);
 
+DAS_BASE_BIND_ENUM_GEN(ImTextureFormat,ImTextureFormat);
+
+DAS_BASE_BIND_ENUM_GEN(ImTextureStatus,ImTextureStatus);
+
 DAS_BASE_BIND_ENUM_GEN(ImFontAtlasFlags_,ImFontAtlasFlags);
+
+DAS_BASE_BIND_ENUM_GEN(ImFontFlags_,ImFontFlags);
 
 DAS_BASE_BIND_ENUM_GEN(ImGuiViewportFlags_,ImGuiViewportFlags);
 

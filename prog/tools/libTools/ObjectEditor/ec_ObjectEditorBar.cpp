@@ -198,7 +198,7 @@ void ObjectEditorPropPanelBar::fillPanel()
 {
   G_ASSERT(propPanel && "ObjectEditorPropPanelBar::fillPanel: ppanel is NULL!");
 
-  if (objects.size() && objects[0].get() && propPanel->getById(ID_NAME))
+  if (objects.size() && objects[0].get() && propPanel && propPanel->getById(ID_NAME))
     objects[0]->onPPClear(*propPanel, mk_slice(objects));
 
   clear_and_shrink(objects);
@@ -282,7 +282,7 @@ PropPanel::ContainerPropertyControl *ObjectEditorPropPanelBar::createPanelGroup(
 }
 
 
-void ObjectEditorPropPanelBar::createPanelTransform(int mode)
+void ObjectEditorPropPanelBar::createPanelTransform(int mode, bool read_only)
 {
   if (!propPanel)
     return;
@@ -310,9 +310,9 @@ void ObjectEditorPropPanelBar::createPanelTransform(int mode)
       default: G_ASSERT_FAIL("ObjectEditorPropPanelBar::createPanelTransform: unsupported mode!"); return;
     }
 
-    transformGrp->createEditFloatWidthEx(pid, "x:", 0.0f, prec, true, true, false);
-    transformGrp->createEditFloatWidthEx(pid + 1, "y:", 0.0f, prec, true, false, false);
-    transformGrp->createEditFloatWidthEx(pid + 2, "z:", 0.0f, prec, true, false, false);
+    transformGrp->createEditFloatWidthEx(pid, "x:", 0.0f, prec, !read_only, true, false);
+    transformGrp->createEditFloatWidthEx(pid + 1, "y:", 0.0f, prec, !read_only, false, false);
+    transformGrp->createEditFloatWidthEx(pid + 2, "z:", 0.0f, prec, !read_only, false, false);
 
     // Ugly, but important! Pt is not always cached in objEd
     // before transforming the object (selection is not enough)

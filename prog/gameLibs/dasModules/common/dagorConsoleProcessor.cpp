@@ -27,9 +27,15 @@ bool ConsoleProcessorFunctionAnnotation::apply(const das::FunctionPtr &fn, das::
 }
 
 bool ConsoleProcessorFunctionAnnotation::finalize(const das::FunctionPtr &fn, das::ModuleGroup &, const das::AnnotationArgumentList &,
-  const das::AnnotationArgumentList &, eastl::string &)
+  const das::AnnotationArgumentList &, eastl::string &err)
 {
   das::lock_guard<das::recursive_mutex> lock(registryMutex);
+  if (!fn->result->isBool())
+  {
+    err = "function must return bool (was console command handled by this processor)";
+    return false;
+  }
+
   registry[fn->name] = ConsoleProcessorFunction(fn->getMangledNameHash());
   return true;
 }
@@ -73,10 +79,7 @@ bool ConsoleProcessorFunctionAnnotation::processCommand(const char *argv[], int 
     args[i] = argv[i];
 
   das::Array argsArr;
-  argsArr.data = (char *)&args[0];
-  argsArr.size = uint32_t(args.size());
-  argsArr.capacity = argsArr.size;
-  argsArr.lock = 1;
+  das::array_mark_locked(argsArr, &args[0], args.size());
   argsArr.flags = 0;
 
   ConsoleProcessorHints hints;

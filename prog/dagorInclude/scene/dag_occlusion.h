@@ -116,14 +116,16 @@ public:
   }
 
   bool hasGPUFrame() const { return occ->hasGPUFrame(); }
-  void prepareNextFrame(float zn, float zf, TextureIDPair mipped_depth, Texture *depth = nullptr)
+  void prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth = nullptr,
+    const DynRes *dynamic_resolution = nullptr)
   {
-    occ->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth);
+    occ->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, dynamic_resolution);
   }
 
-  void prepareNextFrame(float zn, float zf, TextureIDPair mipped_depth, Texture *depth, StereoIndex stereo_index)
+  void prepareNextFrame(float zn, float zf, Texture *mipped_depth, Texture *depth, StereoIndex stereo_index,
+    const DynRes *dynamic_resolution = nullptr)
   {
-    occ->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, stereo_index);
+    occ->prepareNextFrame(curViewPos, curView, curProj, curViewProj, zn, zf, mipped_depth, depth, stereo_index, dynamic_resolution);
   }
 
   VECTORCALL bool isVisibleSphere(vec3f sph_center, vec4f radius, vec4f threshold = v_zero()) const
@@ -144,7 +146,8 @@ public:
   {
     int visibility = occ->testVisibility(bmin, bmax, threshold, curViewProj);
 #if CAN_DEBUG_OCCLUSION
-    interlocked_increment(objects[visibility]);
+    if (countOccludees)
+      interlocked_increment(objects[visibility]);
 #endif
     return visibility == occ->VISIBLE;
   }
@@ -152,7 +155,8 @@ public:
   {
     int visibility = occ->testVisibility(bmin, bmax, threshold, worldViewProjTm);
 #if CAN_DEBUG_OCCLUSION
-    interlocked_increment(objects[visibility]);
+    if (countOccludees)
+      interlocked_increment(objects[visibility]);
 #endif
     return (visibility == occ->VISIBLE);
   }
@@ -191,7 +195,8 @@ public:
         debugNotOccludedBoxes.push_back(box);
         debugNotOccludedBoxes.unlock();
       }
-      interlocked_increment(objects[occ->VISIBLE]);
+      if (countOccludees)
+        interlocked_increment(objects[occ->VISIBLE]);
       return false;
     }
     if (storeOccludees)
@@ -203,7 +208,8 @@ public:
       debugOccludedBoxes.push_back(box);
       debugOccludedBoxes.unlock();
     }
-    interlocked_increment(objects[occ->CULL_OCCLUSION]);
+    if (countOccludees)
+      interlocked_increment(objects[occ->CULL_OCCLUSION]);
     return true;
 #else
     return visibility == occ->CULL_OCCLUSION;
@@ -215,10 +221,12 @@ public:
 #if CAN_DEBUG_OCCLUSION
     if (visibility != occ->CULL_OCCLUSION)
     {
-      interlocked_increment(objects[occ->VISIBLE]);
+      if (countOccludees)
+        interlocked_increment(objects[occ->VISIBLE]);
       return false;
     }
-    interlocked_increment(objects[occ->CULL_OCCLUSION]);
+    if (countOccludees)
+      interlocked_increment(objects[occ->CULL_OCCLUSION]);
     return true;
 #else
     return visibility == occ->CULL_OCCLUSION;
@@ -263,6 +271,8 @@ public:
 #if CAN_DEBUG_OCCLUSION
   dag::ConstSpan<bbox3f> getDebugOccludedBoxes() const { return debugOccludedBoxes; }
   dag::ConstSpan<bbox3f> getDebugNotOccludedBoxes() const { return debugNotOccludedBoxes; }
+  inline void setCountOccludees(bool on) { countOccludees = on; }
+  inline bool getCountOccludees() const { return countOccludees; }
   inline void setStoreOccludees(bool on) { storeOccludees = on; }
   inline bool getStoreOccludees() const { return storeOccludees; }
   inline void setStoreNotOccluded(bool on) { storeOccludeesNotOccluded = on; }
@@ -275,6 +285,8 @@ public:
 #else
   dag::ConstSpan<bbox3f> getDebugOccludedBoxes() const { return {}; }
   dag::ConstSpan<bbox3f> getDebugNotOccludedBoxes() const { return {}; }
+  inline void setCountOccludees(bool) {}
+  inline bool getCountOccludees() const { return false; }
   inline void setStoreOccludees(bool) {}
   inline bool getStoreOccludees() const { return false; }
   inline void setStoreNotOccluded(bool) {}
@@ -301,7 +313,7 @@ protected:
   int rasterizedBoxOccluders = 0, rasterizedQuadOccluders = 0, rasterizedTriOccluders = 0;
   bool hasMergedOcclusion = false;
 #if CAN_DEBUG_OCCLUSION
-  bool storeOccludees = false, storeOccludeesNotOccluded = false;
+  bool countOccludees = false, storeOccludees = false, storeOccludeesNotOccluded = false;
   mutable TabWithLock<bbox3f> debugOccludedBoxes;
   mutable TabWithLock<bbox3f> debugNotOccludedBoxes;
   mutable int objects[3] = {0};

@@ -2,7 +2,6 @@
 #pragma once
 
 #include "Brushes/hmlBrush.h"
-#include <squirrel.h>
 
 #include <EditorCore/ec_brush.h>
 #include <EditorCore/ec_ObjectEditor.h>
@@ -17,7 +16,6 @@
 #include <de3_genObjHierMask.h>
 #include <de3_fileTracker.h>
 #include <de3_landmesh.h>
-#include <coolConsole/iConsoleCmd.h>
 #include <math/dag_color.h>
 
 #include <3d/dag_texMgr.h>
@@ -137,13 +135,13 @@ class HmapLandPlugin : public IGenEditorPlugin,
                        public IRenderingService,
                        public IOnExportNotify,
                        public IPluginAutoSave,
+                       public IPluginBeforeClose,
                        public PropPanel::ControlEventHandler,
                        public IWndManagerWindowHandler,
                        public IPostProcessGeometry,
 #if defined(USE_HMAP_ACES)
                        public IEnvironmentSettings,
 #endif
-                       public IConsoleCmd,
                        public IExportToDag,
                        public IAssetUpdateNotify
 {
@@ -165,11 +163,13 @@ public:
   static bool preferZstdPacking;
   static bool allowOodlePacking;
   static bool pcPreferASTC;
+  static bool includeHiddenLayersInExportedNavMesh;
   static bool useASTC(unsigned tc) { return tc == _MAKE4C('iOS') || (tc == _MAKE4C('PC') && pcPreferASTC); }
 
   static IHmapService *hmlService;
   static IBitMaskImageMgr *bitMaskImgMgr;
   static IDagorPhys *dagPhys;
+  static ISplineGenService *splSrv;
 
   Tab<uint8_t> lcRemap;
 
@@ -210,6 +210,7 @@ public:
   void beforeMainLoop() override;
 
   void registerMenuSettings(unsigned menu_id, int base_id) override;
+  void registerEditorCommands(IEditorCommandSystem &command_system) override;
   void registerMenuAccelerators() override;
   bool begin(int toolbar_id, unsigned menu_id) override;
   bool end() override;
@@ -223,12 +224,14 @@ public:
   void clearObjects() override;
   void onNewProject() override;
   void autoSaveObjects(DataBlock &local_data) override;
+  void beforeClose() override;
   void saveObjects(DataBlock &blk, DataBlock &local_data, const char *base_path) override;
   void loadObjects(const DataBlock &blk, const DataBlock &local_data, const char *base_path) override;
   bool acceptSaveLoad() const override { return true; }
 
   void selectAll() override { objEd.selectAll(); }
   void deselectAll() override { objEd.unselectAll(); }
+  void invertSelection() override { objEd.invertSelection(); }
   void invalidateObjectProps() { objEd.invalidateObjectProps(); }
 
   void actObjects(float dt) override;
@@ -264,7 +267,6 @@ public:
   // IRenderingService
   void renderGeometry(Stage stage) override;
   void prepare(const Point3 &center_pos, const BBox3 &box) override;
-  int setSubDiv(int lod) override;
 
   // IGenEventHandler
   IGenEventHandler *getWrappedHandler() override { return &objEd; }
@@ -287,10 +289,6 @@ public:
 
   // IWriteAddLtinputData
   void writeAddLtinputData(IGenSave &cwr) override;
-
-  // IConsoleCmd
-  bool onConsoleCommand(const char *cmd, dag::ConstSpan<const char *> params) override;
-  const char *onConsoleCommandHelp(const char *cmd) override;
 
   // ILandmesh
   BBox3 getBBoxWithHMapWBBox() const override;
@@ -430,8 +428,6 @@ public:
 
     virtual void save(DataBlock &blk) = 0;
     virtual void load(const DataBlock &blk) = 0;
-
-    virtual void setToScript(HSQUIRRELVM vm) = 0;
 
     virtual bool onPPChangeEx(int pid, PropPanel::ContainerPropertyControl &panel)
     {
@@ -609,7 +605,6 @@ public:
     return true;
   }
 
-  bool usesGenScript() const { return !colorGenScriptFilename.empty(); }
   PropPanel::ContainerPropertyControl *getPropPanel() const;
 
   bool insideDetRectC(int x, int y) const
@@ -629,6 +624,8 @@ public:
 
   void onObjectSelectionChanged(RenderableEditableObject *obj);
   void onObjectsRemove();
+
+  bool runLandLtmapCmd(dag::ConstSpan<const char *> params);
 
 private:
   // Caches datailed textures for LandMesh
@@ -700,6 +697,8 @@ private:
 
     int hm2displacementQ;
     bool showFinalHM;
+    bool useMetricsHM;
+    bool useHm2Mirror;
 
     RenderParams() { init(); }
 
@@ -782,8 +781,8 @@ private:
   int numDetailTextures;
   Tab<SimpleString> detailTexBlkName;
 
-  String lastHmapImportPath, lastLandExportPath, lastHmapExportPath, lastColormapExportPath, colorGenScriptFilename, lastTexImportPath,
-    lastGATExportPath, lastWaterHeightmapImportPath, lastHmapImportPathDet, lastHmapImportPathMain, lastWaterHeightmapImportPathDet,
+  String lastHmapImportPath, lastLandExportPath, lastHmapExportPath, lastColormapExportPath, lastTexImportPath, lastGATExportPath,
+    lastWaterHeightmapImportPath, lastHmapImportPathDet, lastHmapImportPathMain, lastWaterHeightmapImportPathDet,
     lastWaterHeightmapImportPathMain;
   struct FileChangeStat
   {
@@ -933,7 +932,7 @@ private:
   bool exportLandMesh(mkbindump::BinDumpSaveCB &cwr, IWriterToLandmesh *land_modifier, LandRayTracer *raytracer,
     bool tools_internal = false);
 
-  void generateLandColors(const IBBox2 *in_rect = NULL, bool finished = true);
+  void generateLandColors(const IBBox2 *in_rect = NULL, bool finished = true, bool may_rebuild_lmesh_if_needed = true);
 
   void onLandRegionChanged(int x0, int y0, int x1, int y1, bool recalc_all = false, bool finished = true);
   void onWholeLandChanged();
@@ -968,12 +967,6 @@ private:
 
   void rebuildWaterSurface(Tab<Point3> *loft_pt_cloud = NULL, Tab<Point3> *water_border_polys = NULL,
     Tab<Point2> *hmap_sweep_polys = NULL);
-
-  bool compileAndRunColorGenScript(bool &was_inited, SQPRINTFUNCTION &old_print_func, SQPRINTFUNCTION &old_err_func);
-  void closeColorGenScript(bool &was_inited, SQPRINTFUNCTION &old_print_func, SQPRINTFUNCTION &old_err_func);
-  bool createDefaultScript(const char *path) const;
-
-  bool getColorGenVarsFromScript();
 
   bool loadGenLayers(const DataBlock &blk);
   bool saveGenLayers(DataBlock &blk);

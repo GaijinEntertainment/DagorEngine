@@ -139,7 +139,7 @@ void NavmeshAreasProcessing::deleteSelectedAreas()
 {
   PtrTab<SplineObject> splineObjects;
   dag::Vector<PropPanel::TLeafHandle> selectedLeafs;
-  tree->getSelectedLeafs(selectedLeafs);
+  tree->getSelectedLeafs(selectedLeafs, false, false);
   for (int i = 0; i < selectedLeafs.size(); ++i)
   {
     int idx = getAreaIndexByLeaf(selectedLeafs[i]);
@@ -156,7 +156,7 @@ void NavmeshAreasProcessing::selectAreas()
     areasData[i].spline->selectObject(false);
 
   dag::Vector<PropPanel::TLeafHandle> selectedLeafs;
-  tree->getSelectedLeafs(selectedLeafs);
+  tree->getSelectedLeafs(selectedLeafs, false, false);
   for (int i = 0; i < selectedLeafs.size(); ++i)
   {
     int idx = getAreaIndexByLeaf(selectedLeafs[i]);
@@ -194,7 +194,7 @@ void NavmeshAreasProcessing::updateButtons()
   if (areasData.size() > 1)
   {
     dag::Vector<PropPanel::TLeafHandle> selectedLeafs;
-    tree->getSelectedLeafs(selectedLeafs);
+    tree->getSelectedLeafs(selectedLeafs, false, false);
     enableDelete = selectedLeafs.size() > 0 && selectedLeafs.size() < areasData.size();
   }
   panel->setEnabledById(baseOfs + NM_PARAM_AREAS_DELETE, enableDelete);
@@ -245,7 +245,7 @@ bool NavmeshAreasProcessing::onTreeContextMenu(PropPanel::ContainerPropertyContr
   contextMenu.setEventHandler(this);
 
   dag::Vector<PropPanel::TLeafHandle> selectedLeafs;
-  tree_panel.getSelectedLeafs(selectedLeafs);
+  tree_panel.getSelectedLeafs(selectedLeafs, false, false);
   const bool isMultipleSelected = selectedLeafs.size() > 1;
 
   contextMenu.addItem(PropPanel::ROOT_MENU_ITEM, (unsigned)MenuItemId::HideAreas, isMultipleSelected ? "Hide areas" : "Hide area");
@@ -261,7 +261,7 @@ int NavmeshAreasProcessing::onMenuItemClick(unsigned id)
   {
     const bool show = id == (unsigned)MenuItemId::ShowAreas;
     dag::Vector<PropPanel::TLeafHandle> selectedLeafs;
-    tree->getSelectedLeafs(selectedLeafs);
+    tree->getSelectedLeafs(selectedLeafs, false, false);
     for (int i = 0; i < selectedLeafs.size(); ++i)
     {
       int idx = getAreaIndexByLeaf(selectedLeafs[i]);

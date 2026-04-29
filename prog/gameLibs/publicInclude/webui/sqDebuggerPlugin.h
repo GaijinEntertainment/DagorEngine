@@ -4,18 +4,10 @@
 //
 #pragma once
 
-namespace webui
-{
-struct RequestInfo;
-}
-
-void on_sqdebug_internal(int debugger_index, webui::RequestInfo *params);
+class SqModules;
 
 namespace webui
 {
-template <int N>
-void on_sqdebug(RequestInfo *params)
-{
-  on_sqdebug_internal(N, params);
-}
+void register_quirrel_debugger(SqModules *module_mgr, const char *url_name, const char *description);
+void shutdown_quirrel_debugger(SqModules *module_mgr);
 } // namespace webui

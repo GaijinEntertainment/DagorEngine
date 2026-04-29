@@ -4,7 +4,7 @@ let backImage = Picture("ui/loading.jpg")
 
 let mkBlur = @(color) {
   rendObj = ROBJ_WORLD_BLUR
-  size = static [flex(), 30]
+  size = const [flex(), 30]
   color
 }
 
@@ -38,7 +38,7 @@ let liteBlock = {
 
 return {
   rendObj = ROBJ_IMAGE
-  size = static [pw(100), ph(100)]
+  size = const [pw(100), ph(100)]
   keepAspect = true
   image = backImage
   vplace = ALIGN_CENTER

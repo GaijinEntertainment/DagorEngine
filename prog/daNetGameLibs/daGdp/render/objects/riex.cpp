@@ -11,17 +11,22 @@
 #include <drv/3d/dag_vertexIndexBuffer.h>
 #include <drv/3d/dag_shaderConstants.h>
 #include <drv/3d/dag_buffers.h>
+#include <drv/3d/dag_matricesAndPerspective.h>
 #include <gameRes/dag_gameResources.h>
 #include <gameRes/dag_stdGameResId.h>
 #include <render/renderer.h>
 #include <render/world/frameGraphHelpers.h>
 #include <render/world/defaultVrsSettings.h>
+#include "render/world/shadowsManager.h"
+#include "render/world/global_vars.h"
+#include "render/world/dynModelRenderPass.h"
 #include <3d/dag_lockSbuffer.h>
 #include <shaders/scriptSElem.h>
 #include <shaders/dag_rendInstRes.h>
 #include <shaders/dag_shStateBlockBindless.h>
 #include <shaders/dag_shaderResUnitedData.h>
 #include <shaders/dag_shaderBlock.h>
+#include <fx/dag_leavesWind.h>
 #include <rendInst/packedMultidrawParams.hlsli>
 #include <rendInst/riShaderConstBuffers.h>
 #include <rendInst/rendInstGenRender.h>
@@ -37,6 +42,9 @@
 #include "riex.h"
 #include <render/world/renderPrecise.h>
 #include <render/externalResourceWrapper/externalResourceWrapper.h>
+#include "../bvh_dagdp.h"
+#include <generic/dag_enumerate.h>
+#include <drv/3d/dag_rwResource.h>
 
 extern ShaderBlockIdHolder rendinstDepthSceneBlockId;
 namespace var
@@ -66,7 +74,9 @@ enum class SubPass
   PRE_PASS_ALL = 0,
   NORMAL_PASS_OPAQUE,
   NORMAL_PASS_DECALS,
+  NORMAL_PASS_HAZE,
   DYN_SHADOW_PASS_ALL,
+  BVH,
   COUNT
 };
 
@@ -83,8 +93,10 @@ static inline SubPass begin(const SubPassRange &range) { return range.first; }
 static inline SubPass end(const SubPassRange &range) { return SubPass(1 + eastl::to_underlying(range.last)); }
 
 static constexpr SubPassRange VIEW_KIND_SUBPASSES[VIEW_KIND_COUNT] = {
-  {SubPass::PRE_PASS_ALL, SubPass::NORMAL_PASS_DECALS},         // MAIN_CAMERA
+  {SubPass::PRE_PASS_ALL, SubPass::NORMAL_PASS_HAZE},           // MAIN_CAMERA
   {SubPass::DYN_SHADOW_PASS_ALL, SubPass::DYN_SHADOW_PASS_ALL}, // DYN_SHADOWS
+  {SubPass::BVH, SubPass::BVH},                                 // BVH
+  {SubPass::DYN_SHADOW_PASS_ALL, SubPass::DYN_SHADOW_PASS_ALL}, // CSM_SHADOWS
 };
 
 static constexpr size_t SUBPASS_COUNT = eastl::to_underlying(SubPass::COUNT);
@@ -100,22 +112,28 @@ static constexpr const char *MAIN_CAMERA_SUBPASS_NODE_NAMES[SUBPASS_COUNT] = {
   "dagdp_riex_pre",
   "dagdp_riex_opaque",
   "dagdp_riex_decal",
-  nullptr // DYN_SHADOW_PASS_ALL
+  "dagdp_riex_haze",
+  nullptr, // DYN_SHADOW_PASS_ALL
+  nullptr  // BVH
   // clang-format on
 };
 
 static constexpr StageRange SUBPASS_STAGES[SUBPASS_COUNT] = {
-  {ShaderMesh::STG_atest, ShaderMesh::STG_atest},      // PRE_PASS_ALL
-  {ShaderMesh::STG_opaque, ShaderMesh::STG_imm_decal}, // NORMAL_PASS_OPAQUE
-  {ShaderMesh::STG_decal, ShaderMesh::STG_decal},      // NORMAL_PASS_DECALS
-  {ShaderMesh::STG_opaque, ShaderMesh::STG_atest},     // DYN_SHADOW_PASS_ALL
+  {ShaderMesh::STG_atest, ShaderMesh::STG_atest},           // PRE_PASS_ALL
+  {ShaderMesh::STG_opaque, ShaderMesh::STG_imm_decal},      // NORMAL_PASS_OPAQUE
+  {ShaderMesh::STG_decal, ShaderMesh::STG_decal},           // NORMAL_PASS_DECALS
+  {ShaderMesh::STG_distortion, ShaderMesh::STG_distortion}, // NORMAL_PASS_HAZE
+  {ShaderMesh::STG_opaque, ShaderMesh::STG_atest},          // DYN_SHADOW_PASS_ALL
+  {ShaderMesh::STG_opaque, ShaderMesh::STG_atest},          // BVH
 };
 
 static constexpr rendinst::RenderPass SUBPASS_RI_RENDER_PASS[SUBPASS_COUNT] = {
   rendinst::RenderPass::Depth,  // PRE_PASS_ALL
   rendinst::RenderPass::Normal, // NORMAL_PASS_OPAQUE
   rendinst::RenderPass::Normal, // NORMAL_PASS_DECALS
+  rendinst::RenderPass::Normal, // NORMAL_PASS_HAZE
   rendinst::RenderPass::Depth,  // DYN_SHADOW_PASS_ALL
+  rendinst::RenderPass::Depth,  // BVH, unused
 };
 
 // TODO: duplicates dag_multidrawContext.h
@@ -141,6 +159,8 @@ struct ProtoDrawCall
   shaders::CombinedDynVariantState dvState;
   int vbIndex;
   int vbStride;
+
+  DagdpBvhPreMapping preMapping;
 };
 
 // Each of these corresponds to V spans of draw calls, where V is the number of viewports.
@@ -159,6 +179,8 @@ struct MultiDrawCall
   shaders::CombinedDynVariantState dvState;
   int vbIndex;
   int vbStride;
+
+  dag::Vector<DagdpBvhPreMapping> preMappings;
 };
 
 #define COMPARE_FIELDS     \
@@ -225,6 +247,8 @@ struct RiexCache
   dag::VectorSet<shaders::ConstStateIdx> packedConstStates;
   dag::Vector<MultiDrawCall> multiCalls;
   eastl::array<dag::Span<MultiDrawCall>, SUBPASS_COUNT> multiCallSpans;
+
+  FGExternalUniqueBuf bvhMappingBuffer;
 };
 
 struct RiexRenderableViewInfo
@@ -241,7 +265,6 @@ struct RiexPersistentData
   dag::Vector<RiexResource> resources;
   CallbackToken rElemsUpdatedToken;
   shaders::UniqueOverrideStateId afterPrePassOverride;
-  int riAdditionalInstanceOffsetRegNo = -1;
 
   dag::Vector<RiexRenderableViewInfo> renderablesInfo;
   eastl::hash_set<const RenderableInstanceLodsResource *> usedRI;
@@ -261,17 +284,17 @@ class ExternalShaderVarsScope
 public:
   ExternalShaderVarsScope(rendinst::RenderPass renderPass)
   {
-    global_transp_r = ShaderGlobal::get_real(external_var::global_transp_r);
+    global_transp_r = ShaderGlobal::get_float(external_var::global_transp_r);
     instancing_type = ShaderGlobal::get_int(external_var::instancing_type);
     rendinst_render_pass = ShaderGlobal::get_int(external_var::rendinst_render_pass);
-    ShaderGlobal::set_real(external_var::global_transp_r, 1.0f);
+    ShaderGlobal::set_float(external_var::global_transp_r, 1.0f);
     ShaderGlobal::set_int(external_var::instancing_type, 0);
     ShaderGlobal::set_int(external_var::rendinst_render_pass, eastl::to_underlying(renderPass));
   }
 
   ~ExternalShaderVarsScope()
   {
-    ShaderGlobal::set_real(external_var::global_transp_r, global_transp_r);
+    ShaderGlobal::set_float(external_var::global_transp_r, global_transp_r);
     ShaderGlobal::set_int(external_var::instancing_type, instancing_type);
     ShaderGlobal::set_int(external_var::rendinst_render_pass, rendinst_render_pass);
   }
@@ -405,6 +428,7 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
   cache.multiCalls.clear();
   for (auto &span : cache.multiCallSpans)
     span.reset();
+  cache.bvhMappingBuffer = {};
 
   dag::Vector<ProtoDrawCall, framemem_allocator> protoDrawCallsFmem; // Same for each viewport.
   protoDrawCallsFmem.reserve(constants.maxDrawCallsPerViewport);
@@ -426,7 +450,7 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
         const auto &lodRes = renderable.info.lodsRes->lods[renderable.info.lodIndex];
         const ShaderMesh *shaderMesh = lodRes.scene->getMesh()->getMesh()->getMesh();
 
-        for (const auto &rElem : shaderMesh->getElems(stage, stage))
+        for (const auto [stageElemIdx, rElem] : enumerate(shaderMesh->getElems(stage, stage)))
         {
           if (rElem.vertexData->isEmpty()) // Not loaded yet, skip it.
             continue;
@@ -449,6 +473,14 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
           call.dvState = dvState;
           call.vbIndex = rElem.vertexData->getVbIdx();
           call.vbStride = rElem.vertexData->getStride();
+
+          int elemIdx = stageElemIdx;
+          if (stage > stages.first)
+            elemIdx += shaderMesh->getElemsCount(stages.first, stage - 1);
+          Color4 wind_channel_strength = Color4(0, 0, 0, 0); // Off by default!
+          static int wind_channel_strengthVarId = get_shader_variable_id("wind_channel_strength");
+          rElem.mat->getColor4Variable(wind_channel_strengthVarId, wind_channel_strength);
+          call.preMapping = DagdpBvhPreMapping{renderable.info.lodsRes, renderable.info.lodIndex, elemIdx, wind_channel_strength};
         }
       }
     }
@@ -481,6 +513,9 @@ static void rebuild_cache(RiexPersistentData &persistent_data)
 
         lastMulti = &multiCall;
       }
+
+      if (constants.viewInfo.kind == ViewKind::BVH)
+        lastMulti->preMappings.push_back(call.preMapping);
 
       currentByteOffset += constants.argsStride;
       last = &call;
@@ -537,23 +572,8 @@ static void render(SubPass sub_pass,
   Ibuffer *ib = unitedvdata::riUnitedVdata.getIB();
   d3d_err(d3d::setind(ib));
 
-  // This is a special wrapper for RI-specific data that we need to init and bind.
-  // See this in rendinst_inc.dshl:
-  //
-  // bool useCbufferParams = (cb_inst_offset.z & 1) == 0;
-  // ...
-  // #define GET_PER_DRAW_OFFSET asint(per_instance_data[instNo * 4 + INST_OFFSET_GETTER + 3].y);
-  // ...
-  // perDrawOffset = GET_PER_DRAW_OFFSET; \
-  // useCbufferParams = perDrawOffset == 0; \
-  //
-  // (If cb_inst_offset.z is set to 1, then useCbufferParams will originally be 0)
-  // When the last "unused" per-instance TM row has y == 0, the CB data will be used.
-  //
-  // It works without this cb as well but it might be better to leave it here as a fallback.
-  // (in case perDrawOffset is 0)
   rendinst::render::RiShaderConstBuffers cb;
-  cb.setInstancing(0, 4, 0x1, 0);
+  cb.setInstancing(0, 4, RI_CBUFFER_FLAGS__PER_DRAW_DATA_FROM_GLOBAL_BUFFER | RI_CBUFFER_FLAGS__INSTANCE_OFFSET_FROM_CBUFFER, 0);
   cb.setOpacity(0, 1);
   const E3DCOLOR defaultColors[] = {E3DCOLOR(0x80808080), E3DCOLOR(0x80808080)};
   cb.setRandomColors(defaultColors);
@@ -572,8 +592,7 @@ static void render(SubPass sub_pass,
   // static ShaderVariableInfo perDrawDataVarId("perDrawInstanceData");
   // ShaderGlobal::set_buffer(perDrawDataVarId, get_per_draw_gathered_data());
 
-  if (persistent_data.riAdditionalInstanceOffsetRegNo != -1)
-    d3d::set_buffer(STAGE_VS, persistent_data.riAdditionalInstanceOffsetRegNo, draw_args_buf);
+  d3d::set_buffer(STAGE_VS, rendinst::render::additionalInstancingTexRegNo, draw_args_buf);
 
   Vbuffer *lastVb = nullptr;
   int lastVbStride = 0;
@@ -671,6 +690,8 @@ static void render(SubPass sub_pass,
   d3d::set_immediate_const(STAGE_VS, nullptr, 0);
   d3d::set_immediate_const(STAGE_PS, nullptr, 0);
   shaders::overrides::reset();
+
+  d3d::set_buffer(STAGE_VS, rendinst::render::additionalInstancingTexRegNo, nullptr);
 }
 
 static auto get_draw_args_handle(dafg::Registry registry, const RiexConstants &constants)
@@ -696,11 +717,13 @@ static auto get_instance_data_handle(dafg::Registry registry, const RiexConstant
 static dafg::NodeHandle create_main_camera_subpass_node(SubPass sub_pass, const eastl::shared_ptr<RiexPersistentData> &persistent_data)
 {
   // Use a special namespace in order for nodes to draw into GBuffer at the correct time.
-  const dafg::NameSpace ns = dafg::root() / "opaque" / (sub_pass == SubPass::NORMAL_PASS_DECALS ? "decorations" : "statics");
+  const bool areNormalsPacked = renderer_has_feature(GBUFFER_PACKED_NORMALS);
+  const dafg::NameSpace ns =
+    dafg::root() / "opaque" / (sub_pass == SubPass::NORMAL_PASS_DECALS ? (areNormalsPacked ? "mixing" : "decorations") : "statics");
   const char *nodeName = MAIN_CAMERA_SUBPASS_NODE_NAMES[eastl::to_underlying(sub_pass)];
   G_ASSERT(nodeName);
 
-  return ns.registerNode(nodeName, DAFG_PP_NODE_SRC, [sub_pass, persistent_data](dafg::Registry registry) {
+  return ns.registerNode(nodeName, DAFG_PP_NODE_SRC, [sub_pass, persistent_data, areNormalsPacked](dafg::Registry registry) {
     const RiexConstants &constants = persistent_data->constants;
 
     eastl::optional<dafg::VirtualPassRequest> pass;
@@ -708,31 +731,238 @@ static dafg::NodeHandle create_main_camera_subpass_node(SubPass sub_pass, const 
       pass = render_to_gbuffer_prepass(registry);
     else if (sub_pass == SubPass::NORMAL_PASS_DECALS)
       pass = render_to_gbuffer_but_sample_depth(registry);
+    else if (sub_pass == SubPass::NORMAL_PASS_HAZE)
+      pass = registry.requestRenderPass().color({"early_haze_offset", "early_haze_color", "early_haze_depth"});
     else
       pass = render_to_gbuffer(registry);
+
+    if (sub_pass == SubPass::NORMAL_PASS_DECALS && areNormalsPacked)
+    {
+      registry.modifyBlob<OrderingToken>("dagdp_decals_rendered");
+      registry.readBlob<OrderingToken>("dynamic_decals_rendered");
+    }
 
     auto drawArgsHandle = get_draw_args_handle(registry, constants);
     auto instanceDataHandle = get_instance_data_handle(registry, constants);
 
-    (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
+    (registry.root() / "dagdp")
       .read("per_draw_gathered_data")
       .buffer()
       .atStage(dafg::Stage::VS)
       .bindToShaderVar("perDrawInstanceData");
 
-    // Note: set up like opaqueStaticNodes.cpp
-    auto [cameraHndl, state] = request_common_opaque_state(registry);
+    auto grassNs = registry.root() / "burnt_grass";
+    grassNs.readBlob<OrderingToken>("burnt_grass_prepared_token").optional();
 
-    eastl::move(state).setSceneBlock(sub_pass == SubPass::PRE_PASS_ALL ? "rendinst_depth_scene" : "rendinst_scene");
+    // Note: set up like opaqueStaticNodes.cpp
+    auto [cameraHndl, _] = request_common_opaque_state(registry);
+
     eastl::move(*pass).vrsRate(VRS_RATE_TEXTURE_NAME);
 
-    return [sub_pass, persistent_data, instanceDataHandle, drawArgsHandle, cameraHndl = cameraHndl](
+    return [sub_pass, persistent_data, instanceDataHandle, drawArgsHandle, cameraHndl = cameraHndl,
+             blockId = ShaderGlobal::getBlockId(sub_pass == SubPass::PRE_PASS_ALL ? "rendinst_depth_scene" : "rendinst_scene")](
              const dafg::multiplexing::Index &multiplexing_index) {
       const camera_in_camera::ApplyMasterState camcam{multiplexing_index};
 
       RenderPrecise renderPrecise(cameraHndl.ref().viewTm, cameraHndl.ref().cameraWorldPos);
+      SCENE_LAYER_GUARD(blockId);
       const uint32_t viewportIndex = 0; // Main camera only has one viewport.
       render(sub_pass, viewportIndex, *persistent_data, instanceDataHandle.view().getBuf(), drawArgsHandle.view().getBuf());
+    };
+  });
+}
+
+static dafg::NodeHandle create_bvh_indirect_args_node(const eastl::shared_ptr<RiexPersistentData> &persistent_data)
+{
+  return dafg::register_node("bvh_dagdp_indirect_args_node", DAFG_PP_NODE_SRC, [persistent_data](dafg::Registry registry) {
+    registry.multiplex(dafg::multiplexing::Mode::None);
+
+    auto mappingHndl = registry.create("dagdp_bvh_mappings")
+                         .buffer(dafg::BufferCreateInfo{sizeof(DagdpBvhMapping), persistent_data->constants.maxDrawCallsPerViewport,
+                           SBCF_MISC_STRUCTURED | SBCF_BIND_SHADER_RES, 0})
+                         .atStage(dafg::Stage::CS)
+                         .bindToShaderVar()
+                         .handle();
+
+    auto indirectArgsHndl = registry.create("dagdp_bvh_indirect_args")
+                              .indirectBuffer(d3d::buffers::Indirect::Dispatch, 1)
+                              .atStage(dafg::Stage::CS)
+                              .bindToShaderVar()
+                              .handle();
+
+    const RiexConstants &constants = persistent_data->constants;
+    (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str() / "riex")
+      .read("draw_args")
+      .buffer()
+      .atStage(dafg::Stage::CS)
+      .bindToShaderVar("dagdp_bvh_draw_args");
+
+
+    return [persistent_data, mappingHndl, indirectArgsHndl, dagdp_bvh_drawcallsVarId = get_shader_variable_id("dagdp_bvh_drawcalls"),
+             dagdp_bvh_draw_args_dwordsVardId = get_shader_variable_id("dagdp_bvh_draw_args_dwords")]() {
+      auto bvhManager = get_bvh_manager();
+      G_ASSERT_RETURN(bvhManager, );
+
+      dag::Vector<DagdpBvhMapping, framemem_allocator> mappingData;
+      const auto &multiCallSpan = persistent_data->cache.multiCallSpans[eastl::to_underlying(SubPass::BVH)];
+      for (auto multiCall : multiCallSpan)
+      {
+        for (auto preMapping : multiCall.preMappings)
+        {
+          auto data = bvhManager->getMappingData(preMapping);
+          if (data.blas.x == 0 && data.blas.y == 0)
+            bvhManager->requestStaticBLAS(preMapping.riRes);
+          mappingData.push_back(data);
+        }
+      }
+      mappingHndl.get()->updateData(0, data_size(mappingData), mappingData.data(), VBLOCK_WRITEONLY);
+
+      uint32_t data[] = {mappingData.size(), 0, 1};
+      indirectArgsHndl.get()->updateData(0, sizeof(data), data, VBLOCK_WRITEONLY);
+
+      const RiexConstants &constants = persistent_data->constants;
+      ShaderGlobal::set_int(dagdp_bvh_draw_args_dwordsVardId, constants.argsDwords);
+
+      ShaderGlobal::set_int(dagdp_bvh_drawcallsVarId, mappingData.size());
+      bvhManager->makeIndirectArgs->dispatchThreads(mappingData.size(), 1, 1);
+    };
+  });
+}
+
+static dafg::NodeHandle create_bvh_hardware_instances_node(const eastl::shared_ptr<RiexPersistentData> &persistent_data,
+  uint32_t max_instances)
+{
+  return dafg::register_node("bvh_dagdp_make_rthwinstances", DAFG_PP_NODE_SRC,
+    [persistent_data, max_instances](dafg::Registry registry) {
+      registry.multiplex(dafg::multiplexing::Mode::None);
+
+      // Outputs
+      auto bvhCounterHndl =
+        registry.create("dagdp_bvh_counter").byteAddressBuffer(1).atStage(dafg::Stage::CS).bindToShaderVar().handle();
+      const uint32_t HWINSTANCE_SIZE = dagdp::BvhManager::hw_instance_size();
+      auto instancesHndl = registry.create("dagdp_bvh_instances")
+                             .buffer(dafg::BufferCreateInfo{HWINSTANCE_SIZE, max_instances, SBCF_UA_SR_STRUCTURED, 0})
+                             .atStage(dafg::Stage::CS)
+                             .bindToShaderVar()
+                             .handle();
+      registry.read("dagdp_bvh_mappings").buffer().atStage(dafg::Stage::CS).bindToShaderVar();
+
+      auto indirectArgsHndl =
+        registry.read("dagdp_bvh_indirect_args").buffer().atStage(dafg::Stage::CS).useAs(dafg::Usage::INDIRECTION_BUFFER).handle();
+
+      const RiexConstants &constants = persistent_data->constants;
+      (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str() / "riex")
+        .read("draw_args")
+        .buffer()
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("dagdp_bvh_draw_args");
+      (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str())
+        .read("instance_data")
+        .buffer()
+        .atStage(dafg::Stage::CS)
+        .bindToShaderVar("dagdp_bvh_instance_data");
+      (registry.root() / "dagdp" / constants.viewInfo.uniqueName.c_str() / "riex")
+        .read("patches")
+        .buffer()
+        .atStage(dafg::Stage::COMPUTE)
+        .bindToShaderVar("dagdp_riex__patches");
+
+      auto grassNs = registry.root() / "burnt_grass";
+      grassNs.readBlob<OrderingToken>("burnt_grass_prepared_token").optional();
+
+      return [persistent_data, bvhCounterHndl, instancesHndl, indirectArgsHndl, max_instances,
+               dagdp_bvh_max_countVarId = get_shader_variable_id("dagdp_bvh_max_count"),
+               dagdp_bvh_draw_args_dwordsVardId = get_shader_variable_id("dagdp_bvh_draw_args_dwords")]() {
+        d3d::zero_rwbufi(bvhCounterHndl.get());
+        d3d::zero_rwbufi(instancesHndl.get());
+
+        auto bvhManager = get_bvh_manager();
+        G_ASSERT_RETURN(bvhManager, );
+        ShaderGlobal::set_int(dagdp_bvh_max_countVarId, max_instances);
+
+        const RiexConstants &constants = persistent_data->constants;
+        ShaderGlobal::set_int(dagdp_bvh_draw_args_dwordsVardId, constants.argsDwords);
+        bvhManager->makeRTHWInstances->dispatch_indirect(indirectArgsHndl.view().getBuf(), 0);
+      };
+    });
+}
+
+static void safe_znzf(Point2 &znzf)
+{
+  if (abs(znzf.x) < VERY_SMALL_NUMBER)
+    znzf.x = znzf.x < 0 ? -VERY_SMALL_NUMBER : VERY_SMALL_NUMBER;
+  if (abs(znzf.y) < VERY_SMALL_NUMBER)
+    znzf.y = znzf.y < 0 ? -VERY_SMALL_NUMBER : VERY_SMALL_NUMBER;
+}
+
+static dafg::NodeHandle create_csm_subpass_node(const eastl::shared_ptr<RiexPersistentData> &persistent_data)
+{
+  const dafg::NameSpace ns = dafg::root() / "dagdp" / "csm" / "riex";
+  return ns.registerNode("render_csm", DAFG_PP_NODE_SRC, [persistent_data](dafg::Registry registry) {
+    const RiexConstants &constants = persistent_data->constants;
+    registry.executionHas(dafg::SideEffects::External);
+
+    auto drawArgsHandle = get_draw_args_handle(registry, constants);
+    auto instanceDataHandle = get_instance_data_handle(registry, constants);
+
+    (registry.root() / "dagdp")
+      .read("per_draw_gathered_data")
+      .buffer()
+      .atStage(dafg::Stage::VS)
+      .bindToShaderVar("perDrawInstanceData");
+
+    registry.requestState().setFrameBlock("global_frame");
+
+    registry.root().modifyTexture("csm_texture").atStage(dafg::Stage::PS).useAs(dafg::Usage::DEPTH_ATTACHMENT);
+    auto csmHandle = registry.root().read("cascade_shadows").blob<CascadeShadows *>().handle();
+
+    auto grassNs = registry.root() / "burnt_grass";
+    grassNs.readBlob<OrderingToken>("burnt_grass_prepared_token").optional();
+
+    return [persistent_data, instanceDataHandle, drawArgsHandle, csmHandle](const dafg::multiplexing::Index &) {
+      auto csm = csmHandle.ref();
+      if (!csm || !csm->isEnabled())
+        return;
+
+      Color4 zn_zfar_old = ShaderGlobal::get_float4(zn_zfarVarId);
+      d3d::driver_command(Drv3dCommand::OVERRIDE_MAX_ANISOTROPY_LEVEL, reinterpret_cast<void *>(1));
+
+      csm->setCascadesToShader();
+      csm->renderShadowsCascadesCb(
+        [&](int num_cascades_to_render, bool clear_per_view) {
+          G_UNUSED(clear_per_view);
+          num_cascades_to_render =
+            eastl::min(num_cascades_to_render, static_cast<int>(persistent_data->constants.viewInfo.maxViewports));
+          for (int cascade = 0; cascade < num_cascades_to_render; ++cascade)
+            csm->renderShadowCascadeDepthCb(cascade, [&] {
+              TIME_D3D_PROFILE(dagdpRiexCSMShadow);
+
+              Point2 safeZnzf = csm->getZnZf(cascade);
+              safe_znzf(safeZnzf);
+              ShaderGlobal::set_float4(zn_zfarVarId, safeZnzf.x, safeZnzf.y, 0.f, 0.f);
+              ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Depth));
+
+              SCOPE_VIEW_PROJ_MATRIX;
+              const TMatrix4 &viewTm = csm->getRenderViewMatrix(cascade);
+
+              RenderPrecise renderPrecise(tmatrix(viewTm), csm->getRenderCameraWorldViewPos(cascade));
+              d3d::settm(TM_PROJ, &csm->getRenderProjMatrix(cascade));
+
+              ShaderGlobal::setBlock(globalFrameBlockId, ShaderGlobal::LAYER_FRAME);
+              SCENE_LAYER_GUARD(rendinstDepthSceneBlockId);
+
+              const TMatrix &shadowViewItm = csm->getShadowViewItm(cascade);
+              LeavesWindEffect::setNoAnimShaderVars(shadowViewItm.getcol(0), shadowViewItm.getcol(1), shadowViewItm.getcol(2));
+
+              render(SubPass::DYN_SHADOW_PASS_ALL, cascade, *persistent_data, instanceDataHandle.view().getBuf(),
+                drawArgsHandle.view().getBuf());
+            });
+        },
+        {}, true);
+
+      d3d::driver_command(Drv3dCommand::OVERRIDE_MAX_ANISOTROPY_LEVEL);
+      ShaderGlobal::set_float4(zn_zfarVarId, zn_zfar_old);
+      ShaderGlobal::set_int(dyn_model_render_passVarId, eastl::to_underlying(dynmodel::RenderPass::Color));
     };
   });
 }
@@ -747,12 +977,12 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
   const dafg::NameSpace ns = dafg::root() / "dagdp" / view_info.uniqueName.c_str() / "riex";
   auto persistentData = eastl::make_shared<RiexPersistentData>();
   RiexConstants &constants = persistentData->constants;
+  constants.viewInfo = view_info;
 
   shaders::OverrideState prePassOverrideState;
   prePassOverrideState.set(shaders::OverrideState::Z_FUNC | shaders::OverrideState::Z_WRITE_DISABLE);
   prePassOverrideState.zFunc = CMPF_EQUAL;
   persistentData->afterPrePassOverride.reset(shaders::overrides::create(prePassOverrideState));
-  ShaderGlobal::get_int_by_name("ri_additional_instance_offsets_data_no", persistentData->riAdditionalInstanceOffsetRegNo);
 
   persistentData->rElemsUpdatedToken = unitedvdata::riUnitedVdata.on_mesh_relems_updated.subscribe(
     [self = persistentData.get()](const RenderableInstanceLodsResource *ri, bool, int) {
@@ -780,7 +1010,6 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
     constants.maxDrawCallsPerViewport += value;
 
   constants.haveDynamicRegions = view_builder.dynamicInstanceRegion.maxCount > 0;
-  constants.viewInfo = view_info;
   constants.isExtendedArgs = uses_extended_multi_draw_struct();
 
   // See rendinst_inc.dshl, inst_offset_getter()
@@ -844,10 +1073,14 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
     registry.modify("draw_args").buffer().atStage(dafg::Stage::TRANSFER);
     registry.modify("patches").buffer().atStage(dafg::Stage::TRANSFER);
 
-    return [persistentData] {
+    return [persistentData, use_ri_burnt_grassVarId = get_shader_variable_id("use_ri_burnt_grass", true)] {
       // Rebuilding the cache will update the draw_args, patch buffers.
       if (!persistentData->isCacheValid)
+      {
+        ShaderGlobal::set_int(use_ri_burnt_grassVarId, 1);
         rebuild_cache(*persistentData);
+        ShaderGlobal::set_int(use_ri_burnt_grassVarId, 0);
+      }
 
       // TODO: the code below looks like it could be implemented in an ECS system instead.
 
@@ -920,6 +1153,18 @@ void riex_finalize_view(const ViewInfo &view_info, const ViewBuilder &view_build
     case ViewKind::DYN_SHADOWS:
     {
       manager.currentDynShadowViews.push_back(persistentData);
+      break;
+    }
+    case ViewKind::BVH:
+    {
+      node_inserter(create_bvh_indirect_args_node(persistentData));
+      node_inserter(create_bvh_hardware_instances_node(persistentData, view_builder.totalMaxInstances));
+      break;
+    }
+    case ViewKind::CSM_SHADOWS:
+    {
+      if (constants.haveSubPass[eastl::to_underlying(SubPass::DYN_SHADOW_PASS_ALL)])
+        node_inserter(create_csm_subpass_node(persistentData));
       break;
     }
     default: G_ASSERTF(false, "Unknown view kind");

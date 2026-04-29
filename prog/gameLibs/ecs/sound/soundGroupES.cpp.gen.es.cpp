@@ -7,10 +7,10 @@ ECS_DEF_PULL_VAR(soundGroup);
 //static constexpr ecs::ComponentDesc update_sound_group_using_animchar_es_comps[] ={};
 static void update_sound_group_using_animchar_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<ParallelUpdateFrameDelayed>());
   update_sound_group_using_animchar_es(static_cast<const ParallelUpdateFrameDelayed&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc update_sound_group_using_animchar_es_es_desc
 (
@@ -27,10 +27,10 @@ static ecs::EntitySystemDesc update_sound_group_using_animchar_es_es_desc
 //static constexpr ecs::ComponentDesc update_sound_group_using_transform_es_comps[] ={};
 static void update_sound_group_using_transform_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<ParallelUpdateFrameDelayed>());
   update_sound_group_using_transform_es(static_cast<const ParallelUpdateFrameDelayed&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc update_sound_group_using_transform_es_es_desc
 (
@@ -87,9 +87,9 @@ static ecs::CompileTimeQueryDesc sound_group_with_animchar_ecs_query_desc
   make_span(sound_group_with_animchar_ecs_query_comps+2, 1)/*rq*/,
   empty_span());
 template<typename Callable>
-inline void sound_group_with_animchar_ecs_query(Callable function)
+inline void sound_group_with_animchar_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, sound_group_with_animchar_ecs_query_desc.getHandle(),
+  perform_query(&manager, sound_group_with_animchar_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do
@@ -120,9 +120,9 @@ static ecs::CompileTimeQueryDesc sound_group_with_transform_ecs_query_desc
   empty_span(),
   make_span(sound_group_with_transform_ecs_query_comps+2, 1)/*no*/);
 template<typename Callable>
-inline void sound_group_with_transform_ecs_query(Callable function)
+inline void sound_group_with_transform_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, sound_group_with_transform_ecs_query_desc.getHandle(),
+  perform_query(&manager, sound_group_with_transform_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

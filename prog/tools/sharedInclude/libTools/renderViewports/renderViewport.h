@@ -17,8 +17,7 @@ public:
   const TMatrix4 &getProjectionMatrix() const { return projectionMatrix; }
   const Point2 &getlt() const { return lt; }
   const Point2 &getrb() const { return rb; }
-  void setlt(const Point2 &lt1) { lt = lt1; }
-  void setrb(const Point2 &rb1) { rb = rb1; }
+  void setViewportRect(const Point2 &lt1, const Point2 &rb1) { lt = lt1, rb = rb1; }
 
   bool wireframe;
 
@@ -31,21 +30,8 @@ public:
 
   void setView(real minz = 0, real maxz = 1);
 
-  // setups d3d for each viewport before rendering
-  void setViewAndTms(real minz = 0, real maxz = 1)
-  {
-    setView(minz, maxz);
-    setViewProjTms();
-  }
-
-  static void resetView();
-
-
   void setPersp(real wk, real hk, real zn, real zf);
 
   // set perspective projection tm with specified horizontal FOV
   void setPerspHFov(real fov_angle_radians, real zn, real zf);
-
-  // sets lt, rb to cover all screen
-  void setFullScreenViewRect();
 };

@@ -23,6 +23,8 @@ static ShaderVariableInfo draw_order_var_info("draw_order");
 using namespace dynmodel_renderer;
 using AnimcharAdditionalDataView = animchar_additional_data::AnimcharAdditionalDataView;
 
+const PathFilterView PathFilterView::NULL_FILTER = PathFilterView(dag::ConstSpan<uint8_t>());
+
 static struct DynModelRendering
 {
   // if we don't support map nooverwrite it will be one buffer for each shadow cascade, dyn shadow, and two main passes (transparent &
@@ -62,12 +64,10 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   const DynamicRenderableSceneInstance *scene,
   const DynamicRenderableSceneResource *lodResource,
   const AnimcharAdditionalDataView additional_data,
-  bool need_previous_matrices,
-  ShaderElement *shader_override,
-  const uint8_t *path_filter,
-  uint32_t path_filter_size,
+  NeedPreviousMatrices need_previous_matrices,
+  DynamicShaderOverrides shader_overrides,
+  const PathFilterView path_filter,
   uint8_t render_mask,
-  bool need_immediate_const_ps,
   RenderPriority priority,
   const GlobalVariableStates *gvars_state,
   TexStreamingContext texCtx,
@@ -76,12 +76,12 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   G_ASSERT(scene->getLodsResource()->getInstanceRefCount() > 0);
   int lodNo = max(scene->getCurrentLodNo(), 0);
 
-  const bool addPreviousMatrices = need_previous_matrices;
+  const bool addPreviousMatrices = need_previous_matrices == NeedPreviousMatrices::Yes;
   matrixStride = addPreviousMatrices ? MATRIX_ROWS * 2 : MATRIX_ROWS; // 3 rows for matrix and 3 for previous matrix
   float distSq = scene->getDistSq();
   int reqLevel = texCtx.getTexLevel(scene->getLodsResource()->getTexScale(lodNo), distSq);
 
-  auto addMeshToList = [&](const ShaderMesh &mesh, int instId, int bindposeBufferOffset) {
+  auto addMeshToList = [&](const ShaderMesh &mesh, int instId, int bindposeBufferOffset, ShaderElement *shader_override) {
     if (output_offset)
       output_offset->emplace_back(instId);
     if (mode == ONLY_PER_INSTANCE_DATA)
@@ -128,10 +128,10 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
         }
         if (!is_packed_material(cstate))
           list.emplace_back(s, curVar, prog, state, rstate, tstate, cstate, elem.vertexData, reqLevel, renderPriority,
-            (uint8_t)counter, instId, elem.si, elem.numf, elem.baseVertex, need_immediate_const_ps, bindposeBufferOffset);
+            (uint8_t)counter, instId, elem.si, elem.numf, elem.baseVertex, bindposeBufferOffset);
         else
           multidrawList.emplace_back(s, curVar, prog, state, rstate, tstate, cstate, elem.vertexData, reqLevel, renderPriority,
-            (uint8_t)counter, instId, elem.si, elem.numf, elem.baseVertex, need_immediate_const_ps, bindposeBufferOffset);
+            (uint8_t)counter, instId, elem.si, elem.numf, elem.baseVertex, bindposeBufferOffset);
       }
   };
   // rigids
@@ -141,8 +141,8 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
     int maxBlockNo = -1;
     for (const auto &o : lodResource->getRigidsConst())
     {
-      if ((!path_filter && !scene->isNodeHidden(o.nodeId)) ||
-          (path_filter && (o.nodeId >= path_filter_size || (path_filter[o.nodeId] & render_mask) == render_mask)))
+      if ((path_filter.empty() && !scene->isNodeHidden(o.nodeId)) ||
+          (!path_filter.empty() && (o.nodeId >= path_filter.size() || (path_filter[o.nodeId] & render_mask) == render_mask)))
       {
         const int nodeId = currentRigidNo; // or may be rigid no
         const int currentBlockNo = currentRigidNo >> 8;
@@ -167,7 +167,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
         if (addPreviousMatrices)
           writeInst(scene->getPrevNodeWtm(o.nodeId), 3);
         const int dataAt = currentInstanceData + addDataSizeSum + (currentRigidNo & ~0xFF) * matrixStride;
-        addMeshToList(*o.mesh->getMesh(), dataAt, 0);
+        addMeshToList(*o.mesh->getMesh(), dataAt, 0, shader_overrides.rigidsShader);
       }
       currentRigidNo++;
     }
@@ -183,6 +183,7 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
     // but for simplification we use it anyway
     auto skins = lodResource->getSkins();
     const int currentInstanceData = instanceData.size();
+    G_ASSERTF_RETURN(skins[0], , "Please make full dump");
     const ShaderSkinnedMesh &skin = *skins[0]->getMesh();
     instanceData.resize(instanceData.size() + additional_data.size() + ADDITIONAL_BONE_MTX_OFFSET + skin.bonesCount() * matrixStride);
     vec4f *__restrict instanceDataPtr = (vec4f *__restrict)&instanceData[currentInstanceData];
@@ -201,10 +202,10 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
 
     auto skinNodes = lodResource->getSkinNodes();
     for (int i = 0, e = skinNodes.size(); i < e; i++)
-      if ((!path_filter && !scene->isNodeHidden(skinNodes[i])) ||
-          (path_filter && (skinNodes[i] >= path_filter_size || ((path_filter[skinNodes[i]]) & render_mask) == render_mask)))
+      if ((path_filter.empty() && !scene->isNodeHidden(skinNodes[i])) ||
+          (!path_filter.empty() && (skinNodes[i] >= path_filter.size() || ((path_filter[skinNodes[i]]) & render_mask) == render_mask)))
         addMeshToList(skins[i]->getMesh()->getShaderMesh(), currentInstanceData + additional_data.size(),
-          lodResource->getBindposeBufferIndex(i));
+          lodResource->getBindposeBufferIndex(i), shader_overrides.skinsShader);
   }
 }
 
@@ -212,12 +213,10 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   uint32_t end_stage,
   const DynamicRenderableSceneInstance *scene,
   const AnimcharAdditionalDataView additional_data,
-  bool need_previous_matrices,
-  ShaderElement *shader_override,
-  const uint8_t *path_filter,
-  uint32_t path_filter_size,
+  NeedPreviousMatrices need_previous_matrices,
+  DynamicShaderOverrides shader_overrides,
+  const PathFilterView path_filter,
   uint8_t render_mask,
-  bool need_immediate_const_ps,
   RenderPriority priority,
   const GlobalVariableStates *gvars_state,
   TexStreamingContext texCtx)
@@ -225,8 +224,8 @@ void DynModelRenderingState::process_animchar(uint32_t start_stage,
   const DynamicRenderableSceneResource *lodResource = scene->getCurSceneResource();
   if (lodResource)
     process_animchar(start_stage, end_stage, // inclusive range of stages
-      scene, lodResource, additional_data, need_previous_matrices, shader_override, path_filter, path_filter_size, render_mask,
-      need_immediate_const_ps, priority, gvars_state, texCtx);
+      scene, lodResource, additional_data, need_previous_matrices, shader_overrides, path_filter, render_mask, priority, gvars_state,
+      texCtx);
 }
 
 namespace dynmodel_renderer
@@ -392,14 +391,13 @@ void DynModelRenderingState::render_no_packed(int offset) const
 
   TIME_D3D_PROFILE(render_dynm);
 #if DAGOR_DBGLEVEL > 0
-  if (d3d::get_driver_desc().caps.hasWellSupportedIndirect && d3d::get_driver_desc().caps.hasBindless)
+  if (auto &caps = d3d::get_driver_desc().caps; caps.hasWellSupportedIndirect && caps.hasBindless)
     LOGWARN_ONCE("Shader \"%s\" doesn't use multidraw indirect!", list.front().curShader->getShaderClassName());
 #endif
   G_ASSERTF(ShaderGlobal::get_int(matrices_strideVarId) == matrixStride, "matrices stride should be set correctly");
   GlobalVertexData *vdata = NULL;
   int instanceId = -1;
   int bindposeBufferOffset = -1;
-  bool needPsImmConst = false;
   for (auto rliI = list.begin(), e = list.end(); rliI != e;)
   {
     auto &rli = *rliI;
@@ -424,23 +422,19 @@ void DynModelRenderingState::render_no_packed(int offset) const
     debug_mesh::set_debug_value(rli.lodNo);
 
     const bool instanceIdChanged = instanceId != rli.instanceId || bindposeBufferOffset != rli.bindposeBufferOffset;
-    const bool psImmChanged = rli.needImmediateConstPS != needPsImmConst;
-    if (instanceIdChanged || psImmChanged)
+    if (instanceIdChanged)
     {
       instanceId = rli.instanceId;
       bindposeBufferOffset = rli.bindposeBufferOffset;
-      needPsImmConst = rli.needImmediateConstPS;
 
       constexpr int immediateConstCount = 2;
       const uint32_t immediateConsts[immediateConstCount] = {(uint32_t)(offset + instanceId), (uint32_t)rli.bindposeBufferOffset * 3};
 
       if (instanceIdChanged)
+      {
         d3d::set_immediate_const(STAGE_VS, immediateConsts, immediateConstCount);
-
-      if (rli.needImmediateConstPS)
         d3d::set_immediate_const(STAGE_PS, immediateConsts, immediateConstCount);
-      else if (psImmChanged)
-        d3d::set_immediate_const(STAGE_PS, nullptr, 0);
+      }
     }
     rli.curShader->setReqTexLevel(rli.reqTexLevel);
     set_states_for_variant(rli.curShader->native(), rli.curVar, rli.prog, rli.state);

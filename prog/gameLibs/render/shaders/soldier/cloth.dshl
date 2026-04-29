@@ -35,8 +35,8 @@ macro INIT_CLOTH_WIND(texture_index)
   texture clothNoiseCombinedTex = material.texture[texture_index];  // RGB - noise gradient, A - noise value
   if (clothNoiseCombinedTex != NULL)
   {
-    (vs){ clothNoiseCombinedTex@static = clothNoiseCombinedTex; }
-    (ps){ clothNoiseCombinedTex@static = clothNoiseCombinedTex; }
+    (vs){ clothNoiseCombinedTex@staticSmp = clothNoiseCombinedTex; }
+    (ps){ clothNoiseCombinedTex@staticSmp = clothNoiseCombinedTex; }
   }
 
   INIT_CLOTH_WIND_NOISE()
@@ -298,9 +298,35 @@ macro USE_CLOTH_WIND_NORMAL_BLENDING()
   }
 endmacro
 
-macro USE_CLOTH_WIND_VS_POST_FUNCTION(has_additional_data, use_burning_and_wounds, render_pass_normal)
+macro USE_CLOTH_WIND_VS_POST_FUNCTION(use_burning_and_wounds, render_pass_normal)
   hlsl(vs) {
-    void vs_post_function(VsInput input, inout VsOutput output)
+    void get_velocity_from_additional_data(VsInput input, out float3 charCurrentVelocity, out float3 charPreviousVelocity, out float2 noiseOffset)
+    {
+      uint2 offset_count = get_offset_count_additional_data(AAD_CLOTH_WIND_PARAMS);
+      BRANCH
+      if (offset_count.y > 0)
+      {
+        float4 data0 = get_additional_data_unsafe(offset_count, 0);
+        charCurrentVelocity = data0.xyz;
+        noiseOffset.x = data0.w;
+
+        float4 data1 = get_additional_data_unsafe(offset_count, 1);
+        charPreviousVelocity = data1.xyz;
+        noiseOffset.y = data1.w;
+      }
+      else
+      {
+        ##assert(false, "No additional data for cloth wind params");
+      }
+    }
+  }
+  USE_CLOTH_WIND_VS_POST_FUNCTION_IMPL(use_burning_and_wounds, render_pass_normal, get_velocity_from_additional_data)
+endmacro
+
+macro USE_CLOTH_WIND_VS_POST_FUNCTION_IMPL(use_burning_and_wounds, render_pass_normal, get_velocity_func)
+  hlsl(vs) {
+    #define POST_FUNCTION_MODIFIES_POSITION 1
+    void vs_post_function(VsInput input, inout VsOutput output, inout float4 prevPos)
     {
       ##if render_pass_normal
         output.windNormalBlendParams = float2(0.0, 0.0);
@@ -321,44 +347,18 @@ macro USE_CLOTH_WIND_VS_POST_FUNCTION(has_additional_data, use_burning_and_wound
         float3 charCurrentVelocity = float3(0, 0, 0);
         float3 charPreviousVelocity = float3(0, 0, 0);
         float2 noiseOffset = float2(0, 0);
-        ##if (in_editor_assume == no && has_additional_data)
-        uint2 offset_count = get_offset_count_additional_data(AAD_CLOTH_WIND_PARAMS);
-        BRANCH
-        if (offset_count.y > 0)
-        {
-          float4 data0 = get_additional_data_unsafe(offset_count, 0);
-          charCurrentVelocity = data0.xyz;
-          noiseOffset.x = data0.w;
-
-          float4 data1 = get_additional_data_unsafe(offset_count, 1);
-          charPreviousVelocity = data1.xyz;
-          noiseOffset.y = data1.w;
-        }
-        else
-        {
-          ##assert(false, "No additional data for cloth wind params");
-        }
+        ##if in_editor_assume == no
+          get_velocity_func(input, charCurrentVelocity, charPreviousVelocity, noiseOffset);
         ##endif
 
         apply_cloth_collision(output.pos, worldPos);
         ##if render_pass_normal
-          #ifdef MOTION_VECTORS_ENABLED
-            #define prevPos output.out_pos_prev
-          #else
-            float4 prevPos = 0.0;
-          #endif
-
           apply_cloth_wind_position_offset(input, output.pos, prevPos, output.windNormalBlendParams, dirDataW, worldPos,
                                           localPos, charCurrentVelocity, charPreviousVelocity, noiseOffset);
           output.localPos = localPos.xyz;
-
-          #ifdef MOTION_VECTORS_ENABLED
-            output.out_pos = output.pos;
-          #endif
         ##else
           float2 dummyWindNormalBlendParams = float2(0.0, 0.0);
-          float4 dummyPrevPos = 0.0;
-          apply_cloth_wind_position_offset(input, output.pos, dummyPrevPos, dummyWindNormalBlendParams, dirDataW, worldPos,
+          apply_cloth_wind_position_offset(input, output.pos, prevPos, dummyWindNormalBlendParams, dirDataW, worldPos,
                                           localPos, charCurrentVelocity, charPreviousVelocity, noiseOffset);
         ##endif
       }

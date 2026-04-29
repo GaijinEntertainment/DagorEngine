@@ -10,7 +10,7 @@ let oneOf = @(...) vargv.contains(platformId)
 let consoleModel = get_console_model()
 let isModel = @(model) consoleModel == model
 let consoleRevision = get_console_model_revision(consoleModel)
-let pcPlatforms = ["win32", "win64", "macosx", "linux64"]
+let pcPlatforms = ["win32", "win64", "macosx", "linux64"].totable()
 
 let is_pc = oneOf("win32", "win64", "macosx", "linux64")
 let is_sony = oneOf("ps4", "ps5")
@@ -48,13 +48,12 @@ let platformAlias = is_sony ? "sony"
   : is_pc && is_gdk ? "xbox"
   : is_mobile ? "mobile"
   : is_pc ? "pc"
-  : is_android ? "android"
   : platformId
 
 function getPlatformAlias(pl) {
   return isPlatformXbox(pl) ? "xbox"
     : isPlatformSony(pl) ? "sony"
-    : pcPlatforms.contains(pl) ? "pc"
+    : (pl in pcPlatforms) ? "pc"
     : ["iOS", "android"].contains(pl) ? "mobile"
     : pl
 }

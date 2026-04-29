@@ -7,14 +7,6 @@
 #include <util/dag_stdint.h>
 #include <osApiWrappers/dag_lockProfiler.h>
 #include <supp/dag_define_KRNLIMP.h>
-#if _TARGET_SIMD_SSE
-#ifdef _MSC_VER
-extern "C" void _mm_pause(void);
-#pragma intrinsic(_mm_pause)
-#else
-#include <emmintrin.h> // _mm_pause
-#endif
-#endif
 
 
 #define SPINS_BEFORE_SLEEP 8192
@@ -28,10 +20,21 @@ KRNLIMP void sleep_msec(int time_msec);
 KRNLIMP void sleep_usec(uint64_t time_usec);
 
 //! signals to the processor that the thread is doing nothing. Not relevant to OS thread scheduling.
+#undef cpu_yield
 #if _TARGET_SIMD_SSE
+#if defined(_MSC_VER) && !defined(__clang__)
+extern "C" void _mm_pause(void);
+#pragma intrinsic(_mm_pause)
 #define cpu_yield _mm_pause
-#elif defined(__arm__) || defined(__aarch64__)
-#define cpu_yield() __asm__ __volatile__("yield")
+#else
+#define cpu_yield __builtin_ia32_pause
+#endif
+#elif defined(__arm__) || defined(__arm64__) || defined(__aarch64__)
+#define cpu_yield __builtin_arm_yield
+#elif defined(_M_ARM) || defined(_M_ARM64) || defined(_M_ARM64EC)
+extern "C" void __yield(void);
+#pragma intrinsic(__yield)
+#define cpu_yield __yield // To consider: prepend with `__dmb(_ARM64_BARRIER_ISHST)` as in `YieldProcessor`?
 #else
 #define cpu_yield() ((void)0)
 #endif
@@ -158,22 +161,6 @@ KRNLIMP void flash_window(void *wnd_handle = NULL, bool always_flash = false);
 
 KRNLIMP void *get_console_window_handle();
 
-#if _TARGET_PC_WIN
-//! replacement of GetVersionEx that is working on all versions from Windows XP to Windows 10 build 1511.
-typedef struct _OSVERSIONINFOEXW OSVERSIONINFOEXW;
-KRNLIMP bool get_version_ex(OSVERSIONINFOEXW *osversioninfo);
-#endif
-
-struct WindowsVersion
-{
-  uint32_t MajorVersion;
-  uint32_t MinorVersion;
-  uint32_t BuildNumber;
-};
-
-// On Windows will return the current OS' version number, on other platform will return 0 initialized object.
-KRNLIMP WindowsVersion get_windows_version();
-
 // Returns true if the current process is being debugged (either
 // running under the debugger or has a debugger attached post facto).
 KRNLIMP bool is_debugger_present();
@@ -201,25 +188,34 @@ KRNLIMP ConsoleModel get_console_model();
 KRNLIMP const char *get_console_model_revision(ConsoleModel model);
 
 template <typename F>
-__forceinline void spin_wait_no_profile(F keep_waiting_cb, int init_spins = SPINS_BEFORE_SLEEP)
+__forceinline void spin_wait_no_profile(F keep_waiting_cb, int init_spins = SPINS_BEFORE_SLEEP / 16)
 {
-  int spinsLeftBeforeSleep = init_spins;
+  int spinsLeftBeforeSleep = init_spins, yieldsBackoff = 1;
   while (keep_waiting_cb())
   {
     if (--spinsLeftBeforeSleep > 0)
-      cpu_yield();
-    else if (spinsLeftBeforeSleep > -(init_spins / 8))
+    {
+      for (int i = 0; i < yieldsBackoff; ++i)
+        cpu_yield();
+      if (yieldsBackoff < 16)
+        yieldsBackoff *= 2;
+    }
+    else if (spinsLeftBeforeSleep > -init_spins)
       sleep_usec(0);
     else
     {
+#if _TARGET_ANDROID || _TARGET_IOS
       sleep_usec(1000);
+#else
+      sleep_usec(500);
+#endif
       spinsLeftBeforeSleep = 0;
     }
   }
 }
 
 template <typename F>
-inline void spin_wait(F keep_waiting_cb, int spins = SPINS_BEFORE_SLEEP, uint32_t token = da_profiler::DescSleep,
+inline void spin_wait(F keep_waiting_cb, int spins = SPINS_BEFORE_SLEEP / 16, uint32_t token = da_profiler::DescSleep,
   uint32_t threshold_us = DEFAULT_LOCK_PROFILER_USEC_THRESHOLD)
 {
   if (!LOCK_PROFILER_ENABLED || keep_waiting_cb()) //-V547

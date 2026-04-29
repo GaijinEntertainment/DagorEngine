@@ -12,7 +12,7 @@ namespace das {
 #define MAKE_TYPE_FACTORY(TYPE, CTYPE)                                      \
 namespace das {                                                             \
     template <>                                                             \
-    struct typeFactory<CTYPE> {                                             \
+    struct DAS_MOD_API typeFactory<CTYPE> {                                 \
         static ___noinline TypeDeclPtr make(const ModuleLibrary & library ) { \
             return makeHandleType(library, #TYPE);                           \
         }                                                                   \
@@ -34,7 +34,7 @@ namespace das {                                                             \
     struct typeFactory;                                                     \
                                                                             \
     template <>                                                             \
-    struct typeFactory<CTYPE> {                                             \
+    struct DAS_MOD_API typeFactory<CTYPE> {                                 \
         static ___noinline TypeDeclPtr make(const ModuleLibrary & library );\
     };                                                                      \
                                                                             \

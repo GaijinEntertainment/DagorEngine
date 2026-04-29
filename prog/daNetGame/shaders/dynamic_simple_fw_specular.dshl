@@ -5,7 +5,6 @@ include "simple_inc.dshl"
 
 shader dynamic_simple_fw_specular
 {
-  ENABLE_ASSERT(ps)
   DYNAMIC_BLOCK()
   if (in_editor_assume == no) { NO_DYNSTCODE() }
 
@@ -42,8 +41,8 @@ shader dynamic_simple_fw_specular
       #define IS_DYNAMIC 1
     }
 
-    USE_SIMPLE_PS(true)
+    USE_SIMPLE_PS(true, GBUFFER_ORDER_DYNAMIC)
   }
   else
-    SPECIAL_RENDER_NOALPHATEST()
+    SPECIAL_RENDER_NOALPHATEST(false)
 }

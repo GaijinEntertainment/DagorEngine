@@ -9,7 +9,7 @@ let txtBtn = function(text, handler=null, opts = null) {
   return @() {
     rendObj = ROBJ_BOX
     watch = stateFlags
-    padding = static [hdpx(5), hdpx(10)]
+    padding = const [hdpx(5), hdpx(10)]
     children = txt(text)
     onClick = handler
     onElemState = @(s) stateFlags.set(s)

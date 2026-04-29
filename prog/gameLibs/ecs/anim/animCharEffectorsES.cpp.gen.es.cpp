@@ -17,7 +17,8 @@ static void animchar_effectors_init_es_event_handler_all_events(const ecs::Event
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     animchar_effectors_init_es_event_handler(evt
-        , ECS_RO_COMP(animchar_effectors_init_es_event_handler_comps, "eid", ecs::EntityId)
+        , components.manager()
+    , ECS_RO_COMP(animchar_effectors_init_es_event_handler_comps, "eid", ecs::EntityId)
     , ECS_RO_COMP(animchar_effectors_init_es_event_handler_comps, "animchar", AnimV20::AnimcharBaseComponent)
     , ECS_RO_COMP(animchar_effectors_init_es_event_handler_comps, "animchar_effectors__effectorsList", ecs::Array)
     , ECS_RW_COMP(animchar_effectors_init_es_event_handler_comps, "animchar_effectors__effectorsState", ecs::Object)

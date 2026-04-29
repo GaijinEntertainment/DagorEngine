@@ -17,8 +17,12 @@ namespace darg
 {
 
 
-ScrollHandler::ScrollHandler(HSQUIRRELVM vm) : sqfrp::BaseObservable(GuiScene::get_from_sqvm(vm)->frpGraph.get()), elem(nullptr)
+ScrollHandler::ScrollHandler(HSQUIRRELVM vm) : elem(nullptr)
 {
+  graph = GuiScene::get_from_sqvm(vm)->frpGraph.get();
+  HSQOBJECT initial;
+  sq_resetobject(&initial);
+  id = graph->createWatched(initial);
   initInfo.init(vm);
 }
 
@@ -88,11 +92,11 @@ static BBox2 calc_children_bbox(const Element *elem, Sqrat::Function &finder, in
   BBox2 bbox;
   for (const Element *child : elem->children)
   {
-    bool select = false;
-    if (!finder.Evaluate(child->props.scriptDesc, select))
+    auto select = finder.Eval<bool>(child->props.scriptDesc);
+    if (!select)
       continue;
 
-    if (select)
+    if (select.value())
     {
       bbox += rel_pos_offs + child->screenCoord.relPos;
       bbox += rel_pos_offs + child->screenCoord.relPos + child->screenCoord.size;
@@ -100,7 +104,7 @@ static BBox2 calc_children_bbox(const Element *elem, Sqrat::Function &finder, in
 
     if (depth_left > 1)
     {
-      BBox2 sub = calc_children_bbox(child, finder, depth_left - 1, child->screenCoord.relPos);
+      BBox2 sub = calc_children_bbox(child, finder, depth_left - 1, rel_pos_offs + child->screenCoord.relPos);
       bbox += sub;
     }
   }
@@ -136,14 +140,6 @@ void ScrollHandler::scrollToChildren(Sqrat::Object finder, int depth, bool x, bo
     }
   }
 }
-
-
-Sqrat::Object ScrollHandler::getValueForNotify() const { return Sqrat::Object(graph->vm); }
-
-
-void ScrollHandler::fillInfo(Sqrat::Table &t) const { initInfo.fillInfo(t); }
-
-void ScrollHandler::fillInfo(String &s) const { initInfo.toString(s); }
 
 
 Sqrat::Object ScrollHandler::getElem() const

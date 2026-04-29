@@ -6,16 +6,8 @@ include "dafx_helpers.dshl"
 int fx_test_disable_velocity_spawn_tm_normalization = 1;
 interval fx_test_disable_velocity_spawn_tm_normalization: no < 1, yes;
 
-
-shader dafx_culling_discard
-{
-  ENABLE_ASSERT(cs)
-  DAFX_CULLING_DISCARD_USE()
-}
-
 shader dafx_sparks_ps_emission, dafx_sparks_ps_simulation
 {
-  ENABLE_ASSERT(cs)
   DAFXEX_USE_DEPTH_FOR_COLLISION(cs)
   USE_SPARKFX_SYSTEM_COMMON()
 
@@ -41,7 +33,6 @@ shader dafx_sparks_ps_emission, dafx_sparks_ps_simulation
 
 shader sparks_ps, sparks_thermal
 {
-  ENABLE_ASSERT(ps)
   DAFXEX_USE_DEPTH_MASK(ps)
   USE_DAFX_RENDER_COMMON()
   DAFXEX_USE_SCENE_BLOCK()
@@ -161,11 +152,18 @@ shader sparks_ps, sparks_thermal
     VsOutput sparks_fx_vs(uint vertexId: SV_VertexID, uint instance_id: SV_InstanceID, uint draw_call_id : TEXCOORD0)
     {
       GlobalData gparams = global_data_load();
+      VsOutput output = (VsOutput)0;
 
       uint gid;
       uint data_ofs;
       uint parent_ofs;
-      dafx_gen_render_data(instance_id, vertexId, draw_call_id, gid, data_ofs, parent_ofs);
+      bool discarded;
+      dafx_gen_render_data(instance_id, vertexId, draw_call_id, gid, data_ofs, parent_ofs, discarded);
+      if (discarded)
+      {
+        output.pos = float4(-2, -2, 1, 1);
+        return output;
+      }
 
       RenData p = unpack_ren_data( 0, data_ofs );
       ParentRenData ps = unpack_parent_ren_data( 0, parent_ofs );
@@ -202,11 +200,13 @@ shader sparks_ps, sparks_thermal
 
       float4 projPos = mul(float4(worldPos, 1.0), gparams.globtm);
       float distAlpha = saturate(pow2(p.width / pixWorldSize));
-      distAlpha *= saturate((projPos.w - projPos.z - 0.5) / 1.0);
+      if (DAFX_SPARK_SMOOTH_FADE_ENABLED(ps.flags))
+      {
+        distAlpha *= saturate((projPos.w - projPos.z - 0.5) / 1.0);
+      }
 
       float viewDot = saturate(dot(eyeVecNorm, -from_sun_direction.xyz) * 0.5 + 0.5);
 
-      VsOutput output = (VsOutput)0;
       output.pos = projPos;
       output.color = unpack_uint_to_n4f(p.color);
       // Use ySize for x dimension to make an arrowed shape

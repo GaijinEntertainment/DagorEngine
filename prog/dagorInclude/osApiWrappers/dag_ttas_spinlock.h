@@ -16,33 +16,6 @@
 // will sleep after few iterations, preferrable
 inline void ttas_spinlock_lock(volatile int &lock, int taken = 1, int free = 0)
 {
-#if defined(__aarch64__) || defined(_M_ARM64) || defined(__arm__) || defined(_M_ARM)
-  // Optimistically assume the lock is free on the first try
-  uint32_t spins = 0; // limit amount of spins. On ARM, there is no any guarantee we will see memory changes in relaxed load
-  do
-  {
-    if (interlocked_exchange_acquire(lock, taken) == free)
-      return;
-    // Wait for lock to be released without generating cache misses
-    static constexpr int SPINS_BEFORE_EXCHANGE = 1024;
-    uint32_t i = SPINS_BEFORE_EXCHANGE;
-    do
-    {
-      cpu_yield();
-      if (interlocked_relaxed_load(lock) == free)
-        break;
-    } while (--i);
-    spins += SPINS_BEFORE_EXCHANGE;
-  } while (spins < SPINS_BEFORE_SLEEP);
-
-  // use can use interlocked_compare_exchange_weak_acquire to decrease BUS trafic, but since we are _sleeping_ it is not much of the
-  // trafic anyway
-  for (spins = SPINS_BEFORE_SLEEP - spins; interlocked_exchange_acquire(lock, taken) != free; ++spins)
-  {
-    if (spins > SPINS_BEFORE_SLEEP)
-      sleep_msec(spins > 2 * SPINS_BEFORE_SLEEP);
-  }
-#else
   // Optimistically assume the lock is free on the first try
   if (DAGOR_UNLIKELY(interlocked_exchange_acquire(lock, taken) != free))
     do
@@ -54,7 +27,6 @@ inline void ttas_spinlock_lock(volatile int &lock, int taken = 1, int free = 0)
       // Note: intentionally use CMPXCHG here intead of XCHG as otherwise clang seems to refuse
       // put away this contended loop from critical code path
     } while (interlocked_compare_exchange(lock, taken, free) != free);
-#endif
 }
 
 // busy loop, never sleeps
@@ -72,17 +44,6 @@ inline void ttas_spinlock_busylock(volatile int &lock, int taken = 1, int free =
     // Optimistically assume the lock is free on the first try
     if (interlocked_exchange_acquire(lock, taken) == free)
       return;
-#if defined(__aarch64__) || defined(_M_ARM64) || defined(__arm__) || defined(_M_ARM)
-    // Wait for lock to be released without generating cache misses
-    // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
-    // hyper-threads
-    int spins = 1000; // limit amount of spins before exchange. On ARM, there is no any guarantee we will see memory changes in relaxed
-                      // load only
-    do
-    {
-      cpu_yield();
-    } while (interlocked_relaxed_load(lock) != free && --spins);
-#else
     // Wait for lock to be released without generating cache misses
     // Issue X86 PAUSE or ARM YIELD instruction to reduce contention between
     // hyper-threads
@@ -90,7 +51,6 @@ inline void ttas_spinlock_busylock(volatile int &lock, int taken = 1, int free =
     {
       cpu_yield();
     } while (interlocked_relaxed_load(lock) != free);
-#endif
   }
 }
 

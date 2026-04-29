@@ -1,0 +1,31 @@
+
+include "hardware_defines.dshl"
+
+texture downsampled_shadows;
+
+// TODO: spare this interval, use a stub texture instead
+int assume_downsampled_shadows;
+interval assume_downsampled_shadows: off<1, on;
+
+macro INIT_ESM_SHADOW(stage)
+if (assume_downsampled_shadows == on)
+{
+  (stage) {
+    downsampled_shadows@shd = downsampled_shadows;
+  }
+}
+endmacro
+
+macro USE_ESM_SHADOW(code)
+  hlsl(code) {
+    ##if (assume_downsampled_shadows == on)
+    #define HAS_DOWNSAMPLED_SHADOWS 1
+    half get_downsampled_shadows(float3 uv_z)
+    {
+      return half(shadow2D(downsampled_shadows, uv_z));
+    }
+    ##else
+    half get_downsampled_shadows(float3 uv_z){return 1;}
+    ##endif
+  }
+endmacro

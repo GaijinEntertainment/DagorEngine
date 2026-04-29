@@ -1,6 +1,8 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
 #include <daECS/core/sharedComponent.h>
 
@@ -21,19 +23,19 @@ wchar_t *utf8_to_wcs(const char *utf8_str, wchar_t *wcs_buf, int wcs_buf_len);
 ECS_REGISTER_RELOCATABLE_TYPE(CinematicMode, nullptr);
 
 template <typename Callable>
-static void get_cinematic_mode_manager_ecs_query(Callable);
+static void get_cinematic_mode_manager_ecs_query(ecs::EntityManager &manager, Callable);
 
 
 CinematicMode *get_cinematic_mode()
 {
   CinematicMode *cinematicMode = nullptr;
-  get_cinematic_mode_manager_ecs_query(
+  get_cinematic_mode_manager_ecs_query(*g_entity_mgr,
     [&cinematicMode](CinematicMode &cinematic_mode__manager) { cinematicMode = &cinematic_mode__manager; });
   return cinematicMode;
 }
 
 template <typename Callable>
-static void set_video_recording_ecs_query(Callable c);
+static void set_video_recording_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void process_video_encoder(BaseTexture *final_render_target)
 {
@@ -43,7 +45,7 @@ void process_video_encoder(BaseTexture *final_render_target)
     if (!cinematicMode->getVideoEncoder().process(final_render_target))
     {
       logerr("Can't write video sample. Stopping video record.");
-      set_video_recording_ecs_query([&](bool &cinematic_mode__recording) { cinematic_mode__recording = false; });
+      set_video_recording_ecs_query(*g_entity_mgr, [&](bool &cinematic_mode__recording) { cinematic_mode__recording = false; });
     }
   }
 }
@@ -245,25 +247,28 @@ static void cinematic_mode_settings_changed_es_event_handler(const ecs::Event &,
 }
 
 template <typename Callable>
-static void get_bloom_threshold_ecs_query(Callable);
+static void get_bloom_threshold_ecs_query(ecs::EntityManager &manager, Callable);
 
 template <typename Callable>
-static void set_bloom_threshold_ecs_query(Callable);
+static void set_bloom_threshold_ecs_query(ecs::EntityManager &manager, Callable);
 
 ECS_ON_EVENT(on_appear)
-static void cinematic_mode_save_bloom_threshold_es(
-  const ecs::Event &, float &cinematic_mode__saved_bloom_threshold, float cinematic_mode__default_bloom_threshold = 1.0)
+static void cinematic_mode_save_bloom_threshold_es(const ecs::Event &,
+  ecs::EntityManager &manager,
+  float &cinematic_mode__saved_bloom_threshold,
+  float cinematic_mode__default_bloom_threshold = 1.0)
 {
-  get_bloom_threshold_ecs_query([&](float &bloom__threshold) {
+  get_bloom_threshold_ecs_query(manager, [&](float &bloom__threshold) {
     cinematic_mode__saved_bloom_threshold = bloom__threshold;
     bloom__threshold = cinematic_mode__default_bloom_threshold;
   });
 }
 
 ECS_ON_EVENT(on_disappear)
-static void cinematic_mode_restore_bloom_threshold_es(const ecs::Event &, float cinematic_mode__saved_bloom_threshold)
+static void cinematic_mode_restore_bloom_threshold_es(
+  const ecs::Event &, ecs::EntityManager &manager, float cinematic_mode__saved_bloom_threshold)
 {
-  set_bloom_threshold_ecs_query([=](float &bloom__threshold) { bloom__threshold = cinematic_mode__saved_bloom_threshold; });
+  set_bloom_threshold_ecs_query(manager, [=](float &bloom__threshold) { bloom__threshold = cinematic_mode__saved_bloom_threshold; });
 }
 
 ECS_TAG(render)
@@ -279,7 +284,7 @@ static void flare_render_es(
 
 template <typename Callable>
 ECS_REQUIRE(ecs::Tag tonemapper)
-static void delete_color_grading_ecs_query(Callable c);
+static void delete_color_grading_ecs_query(ecs::EntityManager &manager, Callable c);
 
 static void select_color_grading(const ecs::string &selected, const ecs::StringList &options)
 {
@@ -299,7 +304,7 @@ static void select_color_grading(const ecs::string &selected, const ecs::StringL
     return;
 
   bool hasSelected = false;
-  delete_color_grading_ecs_query([&](ecs::EntityId eid) {
+  delete_color_grading_ecs_query(*g_entity_mgr, [&](ecs::EntityId eid) {
     if (selected != g_entity_mgr->getTemplateName(g_entity_mgr->getEntityTemplateId(eid)))
       g_entity_mgr->destroyEntity(eid);
     else
@@ -320,14 +325,15 @@ static void cinematic_mode_color_grading_es_event_handler(const ecs::Event &,
 }
 
 template <typename Callable>
-static void get_default_color_grade_ecs_query(Callable c);
+static void get_default_color_grade_ecs_query(ecs::EntityManager &manager, Callable c);
 
 void reset_default_color_grading()
 {
   const ecs::StringList *options = nullptr;
-  get_default_color_grade_ecs_query([&](const ecs::SharedComponent<ecs::StringList> &cinematic_mode__colorGradingOptions) {
-    options = cinematic_mode__colorGradingOptions.get();
-  });
+  get_default_color_grade_ecs_query(*g_entity_mgr,
+    [&](const ecs::SharedComponent<ecs::StringList> &cinematic_mode__colorGradingOptions) {
+      options = cinematic_mode__colorGradingOptions.get();
+    });
   // Do not reset the color grading when quitting the game
   if (options)
   {

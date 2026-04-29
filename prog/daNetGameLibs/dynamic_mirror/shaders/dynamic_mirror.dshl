@@ -1,0 +1,152 @@
+include "dynamic_opaque_inc.dshl"
+include "gbuffer.dshl"
+include "normaldetail.dshl"
+include "psh_derivate.dshl"
+include "psh_tangent.dshl"
+include "taa_inc.dshl"
+
+float4 mirror_proj_transform = (0.5, 0.5, 0.5, 0.5);
+texture dynamic_mirror_tex;
+
+int dynamic_texture_hdr_pass = 0;
+interval dynamic_texture_hdr_pass : no < 1, yes;
+
+macro USE_ADAPTIVE_SAMPLE()
+
+  hlsl(ps) {
+    half4 AdaptiveSample(float2 pos)
+    {
+      uint2 dim;
+      color_texture.GetDimensions(dim.x, dim.y);
+      float2 texSize = float2(dim);
+      float2 invSize = rcp(texSize);
+      //invSize*=0.5;
+      half2 halfInvSize = 0.5*invSize.xy;
+      //half3 lumaC = invSize.x*half3(0.299,0.587,0.114);//more correct, less halo, but less detail
+      float2 dir;
+      //more smoother cross NE/SW/NW/SE - more alu
+      float4 fxaaConsolePosPos = float4(pos - invSize, pos + invSize);
+      half4 Nw = h4tex2D(color_texture, fxaaConsolePosPos.xy);
+      half4 Sw = h4tex2D(color_texture, fxaaConsolePosPos.xw);
+      half4 Ne = h4tex2D(color_texture, fxaaConsolePosPos.zy);
+      half4 Se = h4tex2D(color_texture, fxaaConsolePosPos.zw);
+
+      half lumaNw = luminance(Nw.rgb);
+      half lumaSw = luminance(Sw.rgb);
+      half lumaNe = luminance(Ne.rgb);
+      half lumaSe = luminance(Se.rgb);
+
+      half dirSwMinusNe = lumaSw - lumaNe;
+      half dirSeMinusNw = lumaSe - lumaNw;
+
+      dir.x = dirSwMinusNe + dirSeMinusNw;
+      dir.y = dirSwMinusNe - dirSeMinusNw;
+      //dir *= texSize;
+      half4 centerTap = h4tex2D(color_texture, pos);
+
+      dir *= invSize;
+      dir = clamp(dir, -halfInvSize.xy, halfInvSize.xy);//limit halo
+      //dir = clamp(dir, -invSize*0.5, invSize*0.5);//reduces 'halo'
+
+      //dir1 *= 2.0;//can improve detail, but produces 'halo'
+      half4 rgbyN1 = h4tex2D(color_texture, pos.xy - dir);
+      half4 rgbyP1 = h4tex2D(color_texture, pos.xy + dir);
+
+      half4 rgbyA = (rgbyN1 + rgbyP1) * 0.5;
+      //float2 maxDXDY = abs(ddx(pos)+ddy(pos));
+      //half weight = 0.5*saturate(max(maxDXDY.x, maxDXDY.y)/invSize.x)+0.5;
+      float2 maxDXDY = fwidth(pos);
+      half weight = saturate(max(maxDXDY.x*texSize.x, maxDXDY.y*texSize.y));
+      return lerp(rgbyA, centerTap, weight);
+    }
+  }
+endmacro
+
+shader dynamic_mirror
+{
+  DYNAMIC_BLOCK()
+
+  NO_DEFORM_HMAP()
+
+  static int num_bones = 0;
+  interval num_bones: no_bones<1, four_bones;
+
+  if (dyn_model_render_pass == render_pass_normal)
+  {
+    hlsl {
+      #define MOTION_VECTORS_ENABLED
+      #define DYNAMIC_SIMPLE_CUSTOM_VSOUTPUT
+      #define NEED_POINT_TO_EYE 1
+      #define NEED_TC 1
+      struct VsOutput
+      {
+        PRECISE VS_OUT_POSITION(pos)
+        float2 diffuseTexcoord        : TEXCOORD0;
+        float3 pointToEye             : TEXCOORD1;
+        float3 normal                 : TEXCOORD2;
+        float4 reflectionTexcoord     : TEXCOORD3;
+        float4 out_pos                : TEXCOORD4;
+        float4 out_pos_prev           : TEXCOORD5;
+      };
+    }
+  }
+
+  (vs) { mirror_proj_transform@f4 = mirror_proj_transform; }
+
+  DYNAMIC_SIMPLE_VS_BASE_PREAMBLE()
+  hlsl(vs) {
+    void vs_post_function(VsInput input, inout VsOutput output)
+    {
+##if dyn_model_render_pass == render_pass_normal
+      float4 unpackedOutputPos = output.pos;
+      output.reflectionTexcoord.xy = unpackedOutputPos.xy*mirror_proj_transform.xy + unpackedOutputPos.w*mirror_proj_transform.zw;
+      output.reflectionTexcoord.zw = unpackedOutputPos.zw;
+##endif
+    }
+  }
+  DYNAMIC_SIMPLE_VS_BASE_SHADERBODY()
+
+  //---------------------------------------------------
+  // PS stuff.
+  //---------------------------------------------------
+  if (dyn_model_render_pass != render_pass_normal)
+  {
+    SPECIAL_RENDER_NOALPHATEST(false)
+  }
+  else
+  {
+    USE_PIXEL_TANGENT_SPACE()
+    WRITE_GBUFFER()
+    USE_MOTION_VEC_MASK_ONLY()
+
+    (ps)
+    {
+      dynamic_mirror_tex@smp2d = dynamic_mirror_tex
+      hlsl { #define color_texture dynamic_mirror_tex };
+    }
+    USE_ADAPTIVE_SAMPLE()
+    hlsl(ps) {
+      ##if dynamic_texture_hdr_pass == yes
+        half4 dynamic_mirror_ps(VsOutput input HW_USE_SCREEN_POS) : SV_Target
+        {
+          half3 reflection = AdaptiveSample(input.reflectionTexcoord.xy / input.reflectionTexcoord.w).xyz;
+          return half4(reflection, 1);
+        }
+      ##else
+        GBUFFER_OUTPUT dynamic_mirror_ps(VsOutput input HW_USE_SCREEN_POS)
+        {
+          UnpackedGbuffer result;
+          init_gbuffer(result);
+          init_albedo(result, 1);
+          init_smoothness(result, 1);
+          init_normal(result, input.normal.xyz);
+          #ifdef MOTION_VECTORS_ENABLED
+            init_motion_vector(result, encode_motion_mask());
+          #endif
+          return encode_gbuffer(result, input.pointToEye, GET_SCREEN_POS(input.pos));
+        }
+      ##endif
+    }
+    compile("target_ps", "dynamic_mirror_ps");
+  }
+}

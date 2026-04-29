@@ -1,7 +1,104 @@
 Root    ?= ../../.. ;
 Location = prog/engine/memory ;
 
-TargetType  = lib ;
-Target      = engine/memory.lib ;
+local valid_UseMemoryAllocator_values = def dlmalloc mimalloc RTL minRTL imported ;
+local valid_UseMemoryDebugLevel_values = def off min dbg dbg2 ;
 
-include $(Root)/$(Location)/jamfile-mem ;
+UseMemoryAllocator  ?= def ;
+UseMemoryDebugLevel ?= def ;
+
+if ! $(UseMemoryAllocator) in $(valid_UseMemoryAllocator_values) {
+  exit unsupported UseMemoryAllocator=$(UseMemoryAllocator:J), must be one of: $(valid_UseMemoryAllocator_values) ;
+}
+if ! $(UseMemoryDebugLevel) in $(valid_UseMemoryDebugLevel_values) {
+  exit unsupported UseMemoryDebugLevel=$(UseMemoryDebugLevel:J), must be one of: $(valid_UseMemoryDebugLevel_values) ;
+}
+
+StrictCompile = yes ;
+include $(Root)/prog/_jBuild/defaults.jam ;
+
+if $(UseMemoryAllocator) = def {
+  if $(Sanitize) = disabled && $(Platform) in windows xboxOne scarlett {
+    UseMemoryAllocator = dlmalloc ;
+  } else {
+    UseMemoryAllocator = RTL ;
+  }
+}
+if $(UseMemoryAllocator) = imported { UseMemoryProfiler = disabled ; }
+
+TargetType  = lib ;
+Target      = engine/memory~$(UseMemoryAllocator).lib ;
+
+AddIncludes +=
+  $(Root)/prog/engine/sharedInclude
+;
+
+Sources +=
+  dagmem.cpp
+  mspaceAlloc.cpp
+  framemem.cpp
+  physMem.cpp
+;
+
+if $(Platform) in windows xboxOne scarlett { Sources += dagmem_start.c ; }
+
+if $(UseMemoryDebugLevel) in def off min || $(UseMemoryProfiler) = disabled {
+  Sources += daProfileMemStub.cpp ;
+} else {
+  Sources += daProfileMem.cpp ;
+}
+
+if $(UseMemoryAllocator) = RTL {
+  CPPopt += -DUSE_RTL_ALLOC ;
+  if $(Platform) in windows xboxOne scarlett {
+    Sources += msRtlNativeAddr.cpp ;
+    opt on msRtlNativeAddr.cpp = /EHac ;
+  }
+} else if $(UseMemoryAllocator) = minRTL {
+  CPPopt += -DUSE_RTL_ALLOC ;
+  Sources = ; # clear sources list
+  Sources += rtlStdMemoryMin/rtlStdMemoryMin.cpp ;
+} else if $(UseMemoryAllocator) = dlmalloc {
+  CPPopt += -DUSE_DLMALLOC ;
+  AddIncludes += $(Root)/prog/3rdPartyLibs/memAllocators ;
+  UseProgLibs += 3rdPartyLibs/memAllocators/dlmalloc ;
+} else if $(UseMemoryAllocator) = mimalloc {
+  if $(MimDebug) != 0 { Target = $(Target:B)-D$(MimDebug).lib ; }
+  CPPopt += -DUSE_MIMALLOC -DMI_DEBUG=$(MimDebug) ;
+
+  AddIncludes +=
+    $(Root)/prog/3rdPartyLibs/memAllocators/mimalloc/include
+    $(Root)/prog/3rdPartyLibs/memAllocators/mimalloc/mimalloc/include
+  ;
+
+  UseProgLibs += 3rdPartyLibs/memAllocators/mimalloc ;
+} else if $(UseMemoryAllocator) = imported {
+  CPPopt += -DUSE_IMPORTED_ALLOC ;
+}
+
+if $(UseMemoryAllocator) in mimalloc RTL && $(Platform) in ps4 ps5 {
+  if $(UseMemoryAllocator) = mimalloc {
+    if $(Platform) = ps4 { AddIncludes += $(Root)/prog/3rdPartyLibs/posix/include/ps4 ; } # for stdatomic.h which is missing on ps4
+    CPPopt += -DMI_PADDING=0 ; # TLS is failing to init with padding. TODO? figure out whats wrong
+    Sources += sony/mimalloc.c ;
+  } else if $(Sanitize) = address {
+    Sources += sony/sanitizedMspace.cpp ;
+  } else {
+    Sources += sony/mspace.cpp ;
+  }
+  Sources += sony/sharedMemArea.cpp ;
+}
+
+switch $(UseMemoryDebugLevel)
+{
+  case def  : CPPopt += ;
+  case off  : CPPopt += -DMEM_DEBUGALLOC=-1 ; Target = $(Target:S=-nd.lib) ;
+  case min  : CPPopt += -DMEM_DEBUGALLOC=0 ;  Target = $(Target:S=-d0.lib) ;
+  case dbg  : CPPopt += -DMEM_DEBUGALLOC=1 ;  Target = $(Target:S=-d1.lib) ;
+  case dbg2 : CPPopt += -DMEM_DEBUGALLOC=2 ;  Target = $(Target:S=-d2.lib) ;
+  case * : Exit Unsupported UseMemoryDebugLevel \= $(UseMemoryDebugLevel) ;
+}
+
+CPPopt += -D__B_KERNEL_LIB ;
+
+include $(Root)/prog/_jBuild/build.jam ;

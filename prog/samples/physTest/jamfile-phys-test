@@ -1,14 +1,14 @@
-PlatformArch_windows ?= x86_64 ;
-PlatformSpec_windows ?= clang ;
-
 Location = prog/samples/physTest ;
-
-TargetType  = exe ;
-Target      = samples/physTest$(PhysEngine) ;
-
 UseD3DMulti = yes ;
 UseD3DMultiList = DX11 vulkan Metal ;
 if $(Headless) = yes { UseD3DMultiList = stub ; }
+
+PlatformArch_windows ?= host_arch ;
+PlatformSpec_windows ?= clang ;
+include $(Root)/prog/_jBuild/defPlatform.jam ;
+
+TargetType  = exe ;
+Target      = samples/physTest$(PhysEngine)-$(Platform)-$(PlatformArch) ;
 
 OutDir      = $(Root)/samples/physTest ;
 include $(Root)/prog/_jBuild/defaults.jam ;

@@ -4,6 +4,8 @@ include "writeToTex.dshl"
 include "globtm.dshl"
 include "clouds_hole_pos.dshl"
 include "camera_in_camera.dshl"
+include "nuke_atmospheric_effects.dshl"
+include "dynamic_resolution.dshl"
 
 float4 clouds_field_res;//.xy - xz&y of res, .zw - xz&y of target res
 texture clouds_field_volume;
@@ -13,14 +15,16 @@ float min_ground_offset;
 
 shader downsample_cloud_field
 {
-  ENABLE_ASSERT(cs)
   (cs) {
     clouds_field_res@f4 = (clouds_field_res.x, clouds_field_res.y, 1./clouds_field_res.x, 1./clouds_field_res.y);
     clouds_field_volume@smp3d = clouds_field_volume;
     clouds_field_downsample_ratio@f1 = (clouds_field_downsample_ratio,0,0,0);
+    output@uav : register(0) hlsl {
+      ACCESS_FORMAT(r8)
+      RWTexture3D<float> output@uav;
+    }
   }
   hlsl(cs) {
-    RWTexture3D<float> output : register(u0);//todo: that should be buffer
     groupshared uint thread_result[4*4*4];
 
     uint getDownsampled2(uint3 src)
@@ -125,13 +129,6 @@ include "clouds_weather.dshl"
 include "viewVecVS.dshl"
 include "frustum.dshl"
 
-float4 nuke_pos;
-// x - radius, y - blend distance, z - fade, w - cloud extinction radius
-float4 nuke_wave;
-
-int nuke_in_atmosphere = 0;
-interval nuke_in_atmosphere: off<1, on;
-
 texture clouds_field_volume_low;
 
 shader clouds_close_layer_outside
@@ -165,7 +162,11 @@ shader clouds_close_layer_outside
   }
   INIT_AND_USE_FRUSTUM_CHECK_BASE(cs)
   SIMPLIFIED_CLOUDS_ALT_FRACTION(cs)
-  ENABLE_ASSERT(cs)
+  (cs) {
+    output@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> output@uav;
+    }
+  }
   hlsl(cs) {
     #define USE_HIGH_RES 4
     uint get_close_clouds_is_outside(uint3 gtid)
@@ -237,7 +238,6 @@ shader clouds_close_layer_outside
     }
 
     groupshared uint thread_result[USE_HIGH_RES*USE_HIGH_RES*USE_HIGH_RES];
-    RWStructuredBuffer<uint> output : register(u0);
     [numthreads(USE_HIGH_RES, USE_HIGH_RES, USE_HIGH_RES)]
     void cs_main(uint3 gtid:SV_GroupThreadID, uint flatIdx : SV_GroupIndex)
     {
@@ -270,18 +270,21 @@ shader clouds_close_layer_outside
 
 shader clouds_close_layer_clear
 {
-  ENABLE_ASSERT(cs)
+  (cs) {
+    output@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> output@uav;
+    }
+  }
   hlsl(cs) {
-    RWStructuredBuffer<uint> output : register(u0);
     [numthreads(1, 1, 1)]
     void cs_main() { structuredBufferAt(output, 0) = 0; structuredBufferAt(output, 1) = 0;}
   }
   compile("cs_5_0", "cs_main")
 }
 
-macro USE_CLOUDS_TILED_DISTANCE_LOOP(code, loop_function_name, func, step_size)
+macro USE_CLOUDS_TILED_DISTANCE_LOOP(code, loop_function_name, func)
   hlsl(code) {
-    bool loop_function_name(inout float distance, float till, float realStart, float3 clouds_hole_offset, float3 view)
+    bool loop_function_name(inout float distance, float till, float realStart, float step_size, float3 clouds_hole_offset, float3 view)
     {
       float3 samplePos = clouds_start_trace + clouds_hole_offset + view*realStart, rayStep = view*step_size;
       for (float dist = realStart; dist <= till; dist += step_size, samplePos+=rayStep)
@@ -307,9 +310,8 @@ macro GET_TILED_DISTANCE(code)
     clouds_field_volume@smp3d = clouds_field_volume;
     step_size_small@f1 = 0.95*texel_size;
     step_size_big@f1 = 0.95*clouds_field_downsample_ratio*texel_size;
-    nuke_pos@f3 = (nuke_pos.x + clouds_origin_offset.x, nuke_pos.y, nuke_pos.z+clouds_origin_offset.y, 0);
-    nuke_wave@f4 = (nuke_wave.x, 1/(nuke_wave.y + 0.000001), nuke_wave.z, nuke_wave.w);
   }
+  SAMPLE_CLOUDS_NUKE_INVERSION(code, false)
   CLOUDS_ALT_FRACTION(code, offseted_view_pos)
 
   (code) {
@@ -338,24 +340,20 @@ macro GET_TILED_DISTANCE(code)
       // 2. optimize for extinction
       bool checkNuke(float3 p)
       {
-        float waveDistance = nuke_wave.x;
-        // we have symmetrical transition zone around shockwave
-        float waveProfile = abs(nuke_wave.y* (length(p - nuke_pos.xyz) - waveDistance));
-        float waveFade = nuke_wave.z;
-        // inversion zone expands 3 times as wave fading
-        float inversion = saturate(1 - 0.15 * waveProfile - 0.35 * waveProfile *  waveFade);
-
-        inversion*=waveFade;
-        return inversion>0;
+        float heightFraction = precise_alt_fraction_in_clouds(p);//todo: change it to partially linear (same as clouds)? otherwise it isn't exct
+        return checkNukeCloudsInversion(p, 0, heightFraction);
       }
+
+      #define COARSE_PHASE_SUBSTEPS_NEEDED CONDENSATION_CLOUDS_SUPPORT
+
     ##else
       #define checkNuke(param) false
     ##endif
   }
-  USE_CLOUDS_TILED_DISTANCE_LOOP(code, check_tiled_distance_fine_phase, checkCloudDensityHigh, step_size_small)
-  USE_CLOUDS_TILED_DISTANCE_LOOP(code, check_tiled_distance_coarse_phase, checkCloudDensity, step_size_big)
+  USE_CLOUDS_TILED_DISTANCE_LOOP(code, check_tiled_distance_fine_phase, checkCloudDensityHigh)
+  USE_CLOUDS_TILED_DISTANCE_LOOP(code, check_tiled_distance_coarse_phase, checkCloudDensity)
   hlsl(code) {
-    float getTiledDistance(float3 view)
+    float getTiledDistance(float3 view, float2 texcoord)
     {
       float distanceToClouds0, distanceToClouds1;
       distance_to_clouds(-view, distanceToClouds0, distanceToClouds1);
@@ -380,12 +378,29 @@ macro GET_TILED_DISTANCE(code)
       const float firstPhaseDist = 8192;
 
       float distance = 0;
-      if (check_tiled_distance_fine_phase(distance, min(end, firstPhaseDist), realStart, clouds_hole_offset, view))
+      if (check_tiled_distance_fine_phase(distance, min(end, firstPhaseDist), realStart, step_size_small, clouds_hole_offset, view))
         return distance;
 
       realStart = max(realStart, firstPhaseDist);
 
-      if (check_tiled_distance_coarse_phase(distance, end, realStart, clouds_hole_offset, view))
+      float stepSize = step_size_big;
+
+      #if COARSE_PHASE_SUBSTEPS_NEEDED
+        // check for nuke effect bitmask usage, compatibility_mode checked in CONDENSATION_CLOUDS_SUPPORT
+        ##if !hardware.metal
+          uint2 texelCoords = uint2(texcoord * nuke_masks_tex_size);
+          uint nukeVolumMask = texelFetch(nuke_volumetrics_mask_tex, texelCoords, 0).r;
+        ##else
+          float nukeVolumMask = tex2Dlod(nuke_volumetrics_mask_tex, float4(texcoord, 0, 0));
+        ##endif
+        BRANCH
+        if (nukeVolumMask > 0)
+        {
+          stepSize /= 4.0;
+        }
+      #endif
+
+      if (check_tiled_distance_coarse_phase(distance, end, realStart, stepSize, clouds_hole_offset, view))
         return distance;
 
       return 0;
@@ -396,7 +411,6 @@ endmacro
 shader clouds_tile_dist_prepare_cs
 {
   INIT_AND_USE_ON_TOP_CAMERA_IN_CAMERA(cs)
-  ENABLE_ASSERT(cs)
 
   (cs) {
     view_vecLT@f3 = view_vecLT;
@@ -404,11 +418,13 @@ shader clouds_tile_dist_prepare_cs
     view_vecLB_minus_view_vecLT@f3 = (view_vecLB-view_vecLT);
     clouds_tiled_resInv@f4 = (1./clouds_tiled_res.x, 1./clouds_tiled_res.y, 0.5/clouds_tiled_res.x, 0.5/clouds_tiled_res.y);
     clouds_tiled_res@u2 = clouds_tiled_res;
+    tiledDist@uav : register(0) hlsl {
+      RWTexture2D<float> tiledDist@uav;
+    }
   }
   GET_TILED_DISTANCE(cs)
 
   hlsl(cs) {
-    RWTexture2D<float> tiledDist:register(u0);
     [numthreads(8, 8, 1)]//downsample 4 times, and +2 times in each thread
     void cs_main(uint2 tid : SV_DispatchThreadID)
     {
@@ -419,7 +435,10 @@ shader clouds_tile_dist_prepare_cs
       DISCARD_IF_INVALID_VIEW_AREA_CS(texcoord);
 
       float3 viewVect = view_vecLT + (view_vecRT_minus_view_vecLT)*texcoord.x + (view_vecLB_minus_view_vecLT)*texcoord.y;
-      texture2DAt(tiledDist, tid) = getTiledDistance(normalize(viewVect));
+      #if !COARSE_PHASE_SUBSTEPS_NEEDED
+        texcoord = float2(0, 0);
+      #endif
+      texture2DAt(tiledDist, tid) = getTiledDistance(normalize(viewVect), texcoord);
     }
   }
 
@@ -438,6 +457,9 @@ shader clouds_tile_dist_prepare_ps
     {
       VS_OUT_POSITION(pos)
       float3 viewVect : TEXCOORD1;
+      #if COARSE_PHASE_SUBSTEPS_NEEDED
+        float2 texcoord : TEXCOORD2;
+      #endif
     };
   }
 
@@ -451,6 +473,9 @@ shader clouds_tile_dist_prepare_ps
       float2 pos = getPostfxVertexPositionById(vertexId);
       output.pos = float4(pos.xy, 1, 1);
       output.viewVect = get_view_vec_by_vertex_id(vertexId);
+      #if COARSE_PHASE_SUBSTEPS_NEEDED
+        output.texcoord = screen_to_texcoords(pos);
+      #endif
       return output;
     }
   }
@@ -459,7 +484,11 @@ shader clouds_tile_dist_prepare_ps
   hlsl(ps) {
     float clouds_ps(VsOutput input HW_USE_SCREEN_POS):SV_Target0
     {
-      return getTiledDistance(normalize(input.viewVect));
+      float2 texcoord = float2(0, 0);
+      #if COARSE_PHASE_SUBSTEPS_NEEDED
+        texcoord = input.texcoord;
+      #endif
+      return getTiledDistance(normalize(input.viewVect), texcoord);
     }
   }
 
@@ -469,7 +498,7 @@ shader clouds_tile_dist_prepare_ps
 
 texture clouds_tile_distance_tmp;
 macro CLOUDS_TILE_FILTER(code)
-  (code) {clouds_tile_distance_tmp@smp2d = clouds_tile_distance_tmp;}
+  (code) {clouds_tile_distance_tmp@tex2d = clouds_tile_distance_tmp;}
   hlsl(code) {
     float filter_tiled_dist(int2 scri)
     {
@@ -523,12 +552,15 @@ shader clouds_tile_dist_min_ps
 
 shader clouds_tile_dist_min_cs
 {
-  ENABLE_ASSERT(cs)
   CLOUDS_TILE_FILTER(cs)
-  (cs) {clouds_tiled_res@u2 = clouds_tiled_res;}
+  (cs) {
+    clouds_tiled_res@u2 = clouds_tiled_res;
+    tiledDist@uav : register(0) hlsl {
+      RWTexture2D<float> tiledDist@uav;
+    }
+  }
 
   hlsl(cs) {
-    RWTexture2D<float> tiledDist:register(u0);
     [numthreads(8, 8, 1)]//downsample 4 times, and +2 times in each thread
     void cs_main(uint2 tid : SV_DispatchThreadID)
     {
@@ -543,15 +575,17 @@ shader clouds_tile_dist_min_cs
 
 shader clouds_tile_dist_count_cs
 {
+  INIT_DYNAMIC_RESOLUTION(cs)
   USE_CLOUDS_DISTANCE(cs)
-  ENABLE_ASSERT(cs)
   (cs)
   {
     clouds_tiled_res@u2 = clouds_tiled_res;
+    non_empty_count@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> non_empty_count@uav;
+    }
   }
 
   hlsl(cs) {
-    RWStructuredBuffer<uint> non_empty_count:register(u0);
     groupshared uint thread_result[64];
 
     [numthreads(8, 8, 1)]//todo: downsample 4 times in each thread
@@ -620,10 +654,13 @@ endmacro
 
 shader clouds_refine_altitudes
 {
-  ENABLE_ASSERT(cs)
   USE_REFINE_ALTITUDES(cs)
+  (cs) {
+    output@uav : register(0) hlsl {
+      RWTexture2D<float4> output@uav;
+    }
+  }
   hlsl (cs) {
-    RWTexture2D<float4> output : register(u0);
     [numthreads(1, 1, 1)]
     void cs_main() {
       float first, last, firstRadius, lastRadius;

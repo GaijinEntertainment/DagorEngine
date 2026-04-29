@@ -1,0 +1,4 @@
+return {
+  is_auto_preset_available = @() false
+  get_preset_for_each_available_target_fps = @() [[], [], []]
+}

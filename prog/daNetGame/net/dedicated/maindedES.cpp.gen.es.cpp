@@ -7,10 +7,10 @@ ECS_DEF_PULL_VAR(mainded);
 //static constexpr ecs::ComponentDesc dedicated_init_on_appstart_es_comps[] ={};
 static void dedicated_init_on_appstart_es_all_events(const ecs::Event &__restrict evt, const ecs::QueryView &__restrict components)
 {
-  G_UNUSED(components);
   G_FAST_ASSERT(evt.is<EventOnGameAppStarted>());
   dedicated::dedicated_init_on_appstart_es(static_cast<const EventOnGameAppStarted&>(evt)
-        );
+        , components.manager()
+    );
 }
 static ecs::EntitySystemDesc dedicated_init_on_appstart_es_es_desc
 (

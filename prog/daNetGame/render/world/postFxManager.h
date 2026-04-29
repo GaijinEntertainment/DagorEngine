@@ -26,10 +26,10 @@ struct PostFxManager
   void setResolution(const IPoint2 &postfx_resolution, const IPoint2 &rendering_resolution, const WorldRenderer &world_renderer);
   void init(const WorldRenderer &world_renderer);
   void set(const ecs::Object &postFx);
-  void prepare(const TextureIDPair &currentAntiAliasedTarget,
-    ManagedTexView downsampled_frame,
-    ManagedTexView closeDepth,
-    ManagedTexView depth,
+  void prepare(BaseTexture *currentAntiAliasedTarget,
+    BaseTexture *downsampled_frame,
+    BaseTexture *closeDepth,
+    BaseTexture *depth,
     float zn,
     float zf,
     float hk);

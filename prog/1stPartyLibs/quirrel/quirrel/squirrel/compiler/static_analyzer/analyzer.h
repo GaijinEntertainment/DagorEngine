@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../sqast.h"
-#include "../sqcompilationcontext.h"
+#include "compiler/ast.h"
+#include "compiler/compilationcontext.h"
 
 namespace SQCompilation {
 
@@ -18,7 +18,7 @@ public:
   static void mergeKnownBindings(const HSQOBJECT *bindings);
   static void reportGlobalNamesWarnings(HSQUIRRELVM vm);
 
-  static void checkTrailingWhitespaces(HSQUIRRELVM vm, const SQChar *sn, const SQChar *code, size_t codeSize);
+  static void checkTrailingWhitespaces(HSQUIRRELVM vm, const char *sn, const char *code, size_t codeSize);
 };
 
 }

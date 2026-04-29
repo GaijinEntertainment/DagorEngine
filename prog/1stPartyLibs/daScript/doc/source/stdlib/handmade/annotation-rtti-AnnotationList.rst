@@ -1,0 +1,1 @@
+Handled type representing all annotations attached to a single object (function, structure, or variable), iterable via ``each``.

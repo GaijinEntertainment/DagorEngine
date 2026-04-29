@@ -8,35 +8,35 @@
 #include <math/dag_dxmath.h>
 #include <vecmath/dag_vecMath_common.h>
 
-bool dafg::set_color3_helper(int var, const Color3 &val) { return ShaderGlobal::set_color4(var, val); }
-bool dafg::set_point2_helper(int var, const Point2 &val) { return ShaderGlobal::set_color4(var, val); }
-bool dafg::set_point3_helper(int var, const Point3 &val) { return ShaderGlobal::set_color4(var, val); }
+bool dafg::set_color3_helper(int var, const Color3 &val) { return ShaderGlobal::set_float4(var, val); }
+bool dafg::set_point2_helper(int var, const Point2 &val) { return ShaderGlobal::set_float4(var, val); }
+bool dafg::set_point3_helper(int var, const Point3 &val) { return ShaderGlobal::set_float4(var, val); }
 bool dafg::set_vec4f_helper(int var, vec4f val)
 {
   alignas(16) Point4 p4;
   v_st(&p4.x, val);
-  return ShaderGlobal::set_color4(var, p4.x, p4.y, p4.z, p4.w);
+  return ShaderGlobal::set_float4(var, p4.x, p4.y, p4.z, p4.w);
 }
 bool dafg::set_bool_helper(int var, bool val) { return ShaderGlobal::set_int(var, static_cast<int>(val)); }
 
 Color3 dafg::get_color3_helper(int var)
 {
-  const auto value = ShaderGlobal::get_color4(var);
+  const auto value = ShaderGlobal::get_float4(var);
   return {value.r, value.g, value.b};
 }
 Point2 dafg::get_point2_helper(int var)
 {
-  const auto value = ShaderGlobal::get_color4(var);
+  const auto value = ShaderGlobal::get_float4(var);
   return {value.r, value.g};
 }
 Point3 dafg::get_point3_helper(int var)
 {
-  const auto value = ShaderGlobal::get_color4(var);
+  const auto value = ShaderGlobal::get_float4(var);
   return {value.r, value.g, value.b};
 }
 Point4 dafg::get_point4_helper(int var)
 {
-  const auto value = ShaderGlobal::get_color4(var);
+  const auto value = ShaderGlobal::get_float4(var);
   return {value.r, value.g, value.b, value.a};
 }
 bool dafg::get_bool_helper(int var)
@@ -47,12 +47,12 @@ bool dafg::get_bool_helper(int var)
 }
 E3DCOLOR dafg::get_e3dcolor_helper(int var)
 {
-  const auto value = ShaderGlobal::get_color4(var);
+  const auto value = ShaderGlobal::get_float4(var);
   return E3DCOLOR_MAKE(int(value.r * 255), int(value.g * 255), int(value.b * 255), int(value.a * 255));
 }
 XMFLOAT4 dafg::get_xmfloat4_helper(int var)
 {
-  const auto value = ShaderGlobal::get_color4(var);
+  const auto value = ShaderGlobal::get_float4(var);
   return {value.r, value.g, value.b, value.a};
 }
 XMFLOAT4X4 dafg::get_xmfloat4x4_helper(int var)
@@ -78,7 +78,7 @@ XMMATRIX dafg::get_xmmatrix_helper(int var)
   return result;
 }
 
-bool dafg::ShaderVarBindingValidationHelper<float, float>::validate(const float &a, const float &b) { return abs(b - a) == 0; }
+bool dafg::ShaderVarBindingValidationHelper<float, float>::validate(const float &a, const float &b) { return a == b; }
 
 bool dafg::ShaderVarBindingValidationHelper<XMVECTOR, DirectX::XMFLOAT4>::validate(const XMVECTOR &a, const DirectX::XMFLOAT4 &b)
 {
@@ -86,14 +86,14 @@ bool dafg::ShaderVarBindingValidationHelper<XMVECTOR, DirectX::XMFLOAT4>::valida
   return memcmp(&a.vector4_f32[0], &b.x, sizeof(b)) == 0;
 #else
   XMVECTOR v_b = v_make_vec4f(b.x, b.y, b.z, b.w);
-  return v_signmask(v_cmp_eq(a, v_b)) == 0b1111;
+  return v_check_xyzw_all_true(v_cmp_eq(a, v_b));
 #endif
 }
 #if defined(_XM_NO_INTRINSICS_)
 bool dafg::ShaderVarBindingValidationHelper<vec4f, DirectX::XMFLOAT4>::validate(const vec4f &a, const DirectX::XMFLOAT4 &b)
 {
   vec4f v_b = v_make_vec4f(b.x, b.y, b.z, b.w);
-  return v_signmask(v_cmp_eq(a, v_b)) == 0b1111;
+  return v_check_xyzw_all_true(v_cmp_eq(a, v_b));
 }
 #endif
 

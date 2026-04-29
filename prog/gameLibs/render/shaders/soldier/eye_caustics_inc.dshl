@@ -72,7 +72,7 @@ macro USE_EYE_CAUSTICS()
   if (in_editor_assume == no)
   {
     USE_STATIC_SHADOW_ONE_CASCADE(ps)
-    USE_CSM_SHADOW_DEF_NUM()
+    USE_CSM_SHADOW_DEF_NUM_DEFAULT()
     SQ_CLOUDS_SHADOW(ps)
 
     hlsl(ps)
@@ -187,6 +187,7 @@ macro USE_EYE_CAUSTICS()
                   float4 pos_and_radius = ol.posRadius;
                   float4 color_and_specular = getFinalColor(ol, worldPos);
                   float4 shadowTcToAtlas = getOmniLightShadowData(omni_light_index);
+                  float2 shadowZnZfar = ol.shadowZnZf_pad.xy;
 
                   float3 point2light = pos_and_radius.xyz-worldPos.xyz;
                   float distSqFromLight = dot(point2light,point2light);
@@ -201,7 +202,7 @@ macro USE_EYE_CAUSTICS()
                   float NoL = 1;
                   half shadowTerm = attenuation;//no shadows
                   float3 shadowPos = worldPos + point2light * input.shadowOffset;
-                  shadowTerm *= getOmniShadow(shadowTcToAtlas, pos_and_radius, shadowPos, NoL, input.screenpos);
+                  shadowTerm *= getOmniShadow(shadowTcToAtlas, pos_and_radius, shadowPos, NoL, input.screenpos, shadowZnZfar);
 
                   float omniCaustics = calculate_eye_caustics(input, lightDir);
                   omniCaustics = max(0, omniCaustics * shadowTerm);
@@ -245,12 +246,13 @@ macro USE_EYE_CAUSTICS()
                   mergedMask ^= (1U << bitIdx);
 
                   RenderSpotLight sl = spot_lights_cb[spot_light_index];
-                  float4 lightPosRadius = sl.lightPosRadius;
+                  float4 lightPosRadius = decode_spot_light_pos_radius(sl);
                   float4 lightColor = sl.lightColorAngleScale;
                   float4 lightDirection = sl.lightDirectionAngleOffset;
-                  float2 texId_scale = sl.texId_scale_illuminatingplane_shadow_contactshadow.xy;
+                  float2 texId_scale = sl.texId_scale_illuminatingplane_packedDataBits.xy;
                   float3 toLightDir = normalize(lightPosRadius.xyz - worldPos);
                   float3 shadowPos = worldPos + toLightDir * input.shadowOffset;
+                  float lightRollAngle = decode_light_roll_angle(sl);
 
                   float lightAngleScale = lightColor.a;
                   float lightAngleOffset = lightDirection.a;
@@ -271,8 +273,7 @@ macro USE_EYE_CAUSTICS()
                     spotShadow = 1-dynamic_shadow_sample(lightShadowTC.xy, lightShadowTC.z);
                   }
                   attenuation *= spotShadow;
-                  attenuation = applyPhotometryIntensity(-dirFromLight, lightDirection.xyz, texId_scale.x,
-                                                          texId_scale.y, attenuation);
+                  attenuation = applySpotLightPhotometry(-dirFromLight, lightDirection.xyz, lightRollAngle, texId_scale.x, texId_scale.y, attenuation);
 
                   float spotCaustics = calculate_eye_caustics(input, toLightDir);
                   spotCaustics = max(0, spotCaustics * attenuation);

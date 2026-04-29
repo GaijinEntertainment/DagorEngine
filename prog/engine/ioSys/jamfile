@@ -48,8 +48,8 @@ UseProgLibs =
   3rdPartyLibs/arc/zstd-$(ZstdVer)
   3rdPartyLibs/arc/lzma-9.20
   3rdPartyLibs/arc/brotli
-  3rdPartyLibs/eastl
 ;
+if $(KernelLinkage) != dynamic { UseProgLibs += 3rdPartyLibs/eastl ; }
 
 local oodle_ver = ;
 if $(ProjectAllowsOodle) = yes && ! [ GLOB $(_DEVTOOL) : oodle.* ] { Echo OODLE is missing, ignored ; ProjectAllowsOodle = no ; }

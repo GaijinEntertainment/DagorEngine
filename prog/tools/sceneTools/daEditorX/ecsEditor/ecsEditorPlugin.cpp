@@ -4,6 +4,7 @@
 #include "ecsEditorCm.h"
 
 #include <de3_interface.h>
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_IEditorCore.h>
 #include <gui/dag_stdGuiRenderEx.h>
 #include <libTools/util/strUtil.h>
@@ -171,10 +172,21 @@ void *ECSEditorPlugin::queryInterfacePtr(unsigned huid)
 
 void ECSEditorPlugin::handleViewportAcceleratorCommand(unsigned id) { objEd->onClick(id, nullptr); }
 
+void ECSEditorPlugin::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  objEd->registerEditorCommands(command_system);
+
+  command_system.addCommand(EditorCommandIds::ECS_EDITOR_LOAD_FROM_DEFAULT_LOCATION);
+  command_system.addCommand(EditorCommandIds::ECS_EDITOR_LOAD_FROM_CUSTOM_LOCATION);
+}
+
 void ECSEditorPlugin::registerMenuAccelerators()
 {
   IWndManager &wndManager = *DAGORED2->getWndManager();
   objEd->registerViewportAccelerators(wndManager);
+
+  wndManager.addAccelerator(CM_ECS_EDITOR_LOAD_FROM_DEFAULT_LOCATION, EditorCommandIds::ECS_EDITOR_LOAD_FROM_DEFAULT_LOCATION);
+  wndManager.addAccelerator(CM_ECS_EDITOR_LOAD_FROM_CUSTOM_LOCATION, EditorCommandIds::ECS_EDITOR_LOAD_FROM_CUSTOM_LOCATION);
 }
 
 String ECSEditorPlugin::getDefaultSceneBlkPath() const
@@ -183,7 +195,7 @@ String ECSEditorPlugin::getDefaultSceneBlkPath() const
 
   if (sceneFolders.empty())
   {
-    DataBlock appBlk(String(260, "%s/application.blk", DAGORED2->getWorkspace().getAppDir()));
+    DataBlock appBlk(DAGORED2->getWorkspace().getAppBlkPath());
     const DataBlock *sceneFoldersBlk =
       appBlk.getBlockByNameEx("projectDefaults")->getBlockByNameEx("ecsEditor")->getBlockByName("sceneFolders");
     if (sceneFoldersBlk)
@@ -283,8 +295,10 @@ void ECSEditorPlugin::updateMenu()
   G_ASSERT(menuId != 0);
 
   PropPanel::IMenu *menu = DAGORED2->getMainMenu();
-  menu->clearMenu(menuId);
+  IEditorCommandSystem *commandSystem = DAGORED2->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
 
+  menu->clearMenu(menuId);
   menu->addItem(menuId, CM_ECS_EDITOR_CURRENT_SCENE_TITLE,
     customSceneBlkPath.empty() ? "Current scene (default):" : "Current scene (custom path):");
   menu->setEnabledById(CM_ECS_EDITOR_CURRENT_SCENE_TITLE, false);
@@ -292,8 +306,10 @@ void ECSEditorPlugin::updateMenu()
   menu->setEnabledById(CM_ECS_EDITOR_CURRENT_SCENE_PATH, false);
   menu->addSeparator(menuId);
 
-  menu->addItem(menuId, CM_ECS_EDITOR_LOAD_FROM_DEFAULT_LOCATION, "Load scene from default path");
-  menu->addItem(menuId, CM_ECS_EDITOR_LOAD_FROM_CUSTOM_LOCATION, "Load scene from custom path...");
+  commandSystem->addMenuItem(*menu, menuId, CM_ECS_EDITOR_LOAD_FROM_DEFAULT_LOCATION,
+    EditorCommandIds::ECS_EDITOR_LOAD_FROM_DEFAULT_LOCATION, "Load scene from default path");
+  commandSystem->addMenuItem(*menu, menuId, CM_ECS_EDITOR_LOAD_FROM_CUSTOM_LOCATION,
+    EditorCommandIds::ECS_EDITOR_LOAD_FROM_CUSTOM_LOCATION, "Load scene from custom path...");
 
   if (recentCustomPaths.size() > 0)
   {
@@ -323,7 +339,9 @@ void ECSEditorPlugin::loadSceneManually(const char *custom_path)
   }
 
   UndoSystem *undoSystem = IEditorCoreEngine::get()->getUndoSystem();
-  const bool hasPotentiallyUnsavedChanged = undoSystem && (undoSystem->can_undo() || undoSystem->can_redo() || undoSystem->isDirty());
+  const bool hasPotentiallyUnsavedChanged =
+    (undoSystem && (undoSystem->can_undo() || undoSystem->can_redo() || undoSystem->isDirty())) ||
+    ecs::g_scenes->getActiveScene().hasUnsavedChanges();
   if (hasPotentiallyUnsavedChanged && wingw::message_box(wingw::MBS_QUEST | wingw::MBS_OKCANCEL, "Confirm scene opening",
                                         "Load the selected scene?\n\n(Unsaved changes will be lost.)") != wingw::MB_ID_OK)
     return;

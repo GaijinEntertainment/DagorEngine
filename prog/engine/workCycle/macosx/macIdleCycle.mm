@@ -13,6 +13,8 @@ void dagor_process_sys_messages(bool input_only)
 {
   if (input_only) //== implement properly [to be usable]
     return;
+  if (!is_main_thread())
+    return;
   NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
   while (NSEvent *event =
     [NSApp
@@ -30,13 +32,13 @@ void dagor_process_sys_messages(bool input_only)
   [pool release];
 }
 
-void dagor_idle_cycle(bool input_only)
+void dagor_idle_cycle(bool input_only, bool is_work_cycle)
 {
   TIME_PROFILE(dagor_idle_cycle);
   int curent_time = get_time_msec();
   if (last_cycle_time && (curent_time - last_cycle_time) > cycle_warning_threshold_ms)
     logwarn("[MAC] we haven't being idling for %d ms", (curent_time - last_cycle_time));
-  perform_regular_actions_for_idle_cycle();
+  perform_regular_actions_for_idle_cycle(is_work_cycle);
   int delayed_actions_time = get_time_msec();
   if ((delayed_actions_time - curent_time) > cycle_warning_threshold_ms)
     logwarn("[MAC] we have being executing delayed actions for %d ms", (delayed_actions_time - curent_time));

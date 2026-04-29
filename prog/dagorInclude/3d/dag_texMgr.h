@@ -221,29 +221,27 @@ void add_anisotropy_exception(TEXTUREID id);
 //! \param tex_name_filter Substring filter to match texture names
 void reset_anisotropy(const char *tex_name_filter = nullptr);
 
+//! \brief Attempts to load multiple textures for usage on the current frame and check for immediate success.
+//! \param tex_list List of texture IDs to load and check
+//! \param fq_loaded `true` to load and check for full quality, `false` for any quality
+//! \returns `true` if all textures are loaded, `false` otherwise
+bool prefetch_and_check_managed_textures_loaded(dag::ConstSpan<TEXTUREID> tex_list, bool fq_loaded = false);
+
 //! \brief Attempts to load the texture for usage on the current frame and simply checks for immediate success.
 //! \param id ID of the texture to load and check
-//! \param fq_loaded `true` to check for full quality, `false` for any quality
+//! \param fq_loaded `true` to load and check for full quality, `false` for any quality
 //! \returns `true` if the texture is loaded, `false` otherwise
 inline bool prefetch_and_check_managed_texture_loaded(TEXTUREID id, bool fq_loaded = false)
 {
-  if (check_managed_texture_loaded(id, fq_loaded))
-    return true;
-  bool loaded = is_managed_textures_streaming_load_on_demand() ? prefetch_managed_texture(id) : false;
-  mark_managed_tex_lfu(id);
-  return (loaded && fq_loaded) ? check_managed_texture_loaded(id, fq_loaded) : loaded;
+  return prefetch_and_check_managed_textures_loaded({&id, 1}, fq_loaded);
 }
-
-//! \brief Attempts to load multiple textures for usage on the current frame and check for immediate success.
-//! \param tex_list List of texture IDs to load and check
-//! \param fq_loaded `true` to check for full quality, `false` for any quality
-//! \returns `true` if all textures are loaded, `false` otherwise
-bool prefetch_and_check_managed_textures_loaded(dag::ConstSpan<TEXTUREID> tex_list, bool fq_loaded = false);
 
 //! \brief Synchronously loads a list of textures, blocking the current thread until all textures are loaded.
 //! \param tex_list List of texture IDs to load
 //! \param fq_loaded `true` to wait for full quality, `false` for any quality
-void prefetch_and_wait_managed_textures_loaded(dag::ConstSpan<TEXTUREID> tex_list, bool fq_loaded = false);
+//! \param timeout_usec is the timeout in microseconds, or 0 for default value
+//! \returns whether all textures could be loaded successfully before the timeout
+bool prefetch_and_wait_managed_textures_loaded(dag::ConstSpan<TEXTUREID> tex_list, bool fq_loaded = false, int timeout_usec = 0);
 
 //! \brief Utility for iterating all managed textures.
 //! \details Managed textures form a linked list, so for an arbitrary ID, this function returns the "next" ID in the list.

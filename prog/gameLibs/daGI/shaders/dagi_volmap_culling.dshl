@@ -24,18 +24,21 @@ shader cull_ambient_voxels_cs, cull_ambient_voxels_cs_warp_64
     temporal_weight_limit@f1 = (ssgi_temporal_weight_limit);
     ambient_voxels_visible_start@f4 = ambient_voxels_visible_start;
     ambient_voxels_visible_width@f4 = ambient_voxels_visible_width;
-    ssgi_ambient_volmap_temporal@smp3d = ssgi_ambient_volmap_temporal;
+    ssgi_ambient_volmap_temporal@tex3d = ssgi_ambient_volmap_temporal;
+    voxelCount@uav : register(0) hlsl {
+      RWStructuredBuffer<uint> voxelCount@uav;
+    }
+    visible_ambient_voxels@uav : register(1) hlsl {
+      RWStructuredBuffer<uint> visible_ambient_voxels@uav;
+    }
   }
 
   INIT_VOXELS(cs)
   USE_VOXELS(cs)
   SAMPLE_VOXELS(cs)
   VOXEL_SCENE_INTERSECTION(cs)
-  ENABLE_ASSERT(cs)
 
   hlsl(cs) {
-    RWStructuredBuffer<uint> visible_ambient_voxels: register(u1);
-    RWStructuredBuffer<uint> voxelCount : register( u0 );
     //StructuredBuffer<BestBins> current_bins: register(t14);
     //Texture3D<float> volmapTemporalWeight: register(t13);
 
@@ -117,10 +120,15 @@ shader cull_ambient_voxels_cs, cull_ambient_voxels_cs_warp_64
 }
 
 shader create_point_occlusion_dispatch_cs {
-  ENABLE_ASSERT(cs)
+  (cs) {
+    dispatchIndirectBuffer@uav : register(0) hlsl {
+      RWByteAddressBuffer dispatchIndirectBuffer@uav;
+    }
+    voxelCount@buf : register(1) hlsl {
+        StructuredBuffer<uint> voxelCount@buf;
+    }
+  }
   hlsl(cs) {
-    RWByteAddressBuffer dispatchIndirectBuffer : register( u0 );
-    StructuredBuffer<uint> voxelCount : register( t1 );
     [numthreads( 1, 1, 1 )]
     void main()
     {

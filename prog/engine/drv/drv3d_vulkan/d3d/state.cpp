@@ -8,6 +8,7 @@
 #include <drv/3d/dag_rwResource.h>
 #include <drv/3d/dag_shader.h>
 #include <drv/3d/dag_texture.h>
+#include <drv/3d/dag_variableRateShading.h>
 #include "globals.h"
 #include "global_lock.h"
 #include "frontend.h"
@@ -17,6 +18,7 @@
 #include "texture.h"
 #include "sampler_cache.h"
 #include <perfMon/dag_graphStat.h>
+#include "validation.h"
 
 using namespace drv3d_vulkan;
 
@@ -264,7 +266,7 @@ bool d3d::set_rwtex(unsigned shader_stage, unsigned unit, BaseTexture *tex, uint
 
 bool d3d::set_buffer(unsigned shader_stage, unsigned unit, Sbuffer *buffer)
 {
-  D3D_CONTRACT_ASSERT((nullptr == buffer) || buffer->getFlags() & SBCF_BIND_SHADER_RES || buffer->getFlags() & SBCF_BIND_UNORDERED);
+  D3D_CONTRACT_ASSERT((nullptr == buffer) || buffer->getFlags() & SBCF_BIND_SHADER_RES);
   LocalAccessor la;
 
   auto &resBinds = la.pipeState.getStageResourceBinds((ShaderStage)shader_stage);
@@ -285,7 +287,7 @@ bool d3d::set_rwbuffer(unsigned shader_stage, unsigned unit, Sbuffer *buffer)
   return true;
 }
 
-void d3d::set_sampler(unsigned shader_stage, unsigned unit, d3d::SamplerHandle sampler)
+NO_UBSAN void d3d::set_sampler(unsigned shader_stage, unsigned unit, d3d::SamplerHandle sampler)
 {
   LocalAccessor la;
 
@@ -297,4 +299,20 @@ void d3d::set_sampler(unsigned shader_stage, unsigned unit, d3d::SamplerHandle s
   SRegister sReg(samplerResource);
   if (resBinds.set<StateFieldSRegisterSet, StateFieldSRegister::Indexed>({unit, sReg}))
     la.pipeState.markResourceBindDirty((ShaderStage)shader_stage);
+}
+
+// if there is mismatch - add conversion logic
+static_assert(uint8_t(VariableRateShadingCombiner::VRS_PASSTHROUGH) == VK_FRAGMENT_SHADING_RATE_COMBINER_OP_KEEP_KHR);
+static_assert(uint8_t(VariableRateShadingCombiner::VRS_OVERRIDE) == VK_FRAGMENT_SHADING_RATE_COMBINER_OP_REPLACE_KHR);
+static_assert(uint8_t(VariableRateShadingCombiner::VRS_MIN) == VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MIN_KHR);
+static_assert(uint8_t(VariableRateShadingCombiner::VRS_MAX) == VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MAX_KHR);
+static_assert(uint8_t(VariableRateShadingCombiner::VRS_SUM) == VK_FRAGMENT_SHADING_RATE_COMBINER_OP_MUL_KHR);
+
+void d3d::set_variable_rate_shading(unsigned rate_x, unsigned rate_y, VariableRateShadingCombiner vertex_combiner,
+  VariableRateShadingCombiner pixel_combiner)
+{
+  D3D_CONTRACT_ASSERTF(Globals::VK::phy.hasPipelineFragmentShadingRate, "vulkan: VRS used on device without VRS support!");
+  LocalAccessor la;
+  la.pipeState.set<StateFieldGraphicsShadingRate, uint32_t, FrontGraphicsState>(
+    StateFieldGraphicsShadingRate::encode((uint8_t)rate_x, (uint8_t)rate_y, (uint8_t)vertex_combiner, (uint8_t)pixel_combiner));
 }

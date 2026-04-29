@@ -22,7 +22,8 @@ static void storm_es_event_handler_all_events(const ecs::Event &__restrict evt, 
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     storm_es_event_handler(evt
-        , ECS_RW_COMP(storm_es_event_handler_comps, "transform", TMatrix)
+        , components.manager()
+    , ECS_RW_COMP(storm_es_event_handler_comps, "transform", TMatrix)
     , ECS_RO_COMP(storm_es_event_handler_comps, "storm__speed", float)
     , ECS_RO_COMP(storm_es_event_handler_comps, "storm__width", float)
     , ECS_RO_COMP(storm_es_event_handler_comps, "storm__density", float)
@@ -61,9 +62,9 @@ static ecs::CompileTimeQueryDesc get_wind_strength_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline void get_wind_strength_ecs_query(Callable function)
+inline void get_wind_strength_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  perform_query(g_entity_mgr, get_wind_strength_ecs_query_desc.getHandle(),
+  perform_query(&manager, get_wind_strength_ecs_query_desc.getHandle(),
     [&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

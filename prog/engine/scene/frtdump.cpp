@@ -43,7 +43,7 @@ FastRtDump::FastRtDump(StaticSceneRayTracer *_rt) : rt(NULL), active(true) { set
 //==============================================================================
 void FastRtDump::unloadData()
 {
-  del_it(rt);
+  destroy_it(rt);
   clear_and_shrink(pmid);
 }
 
@@ -59,13 +59,9 @@ void FastRtDump::loadData(IGenLoad &crd)
   if (versionId == MAKE4C(0xff, 'v', '1', 0xff))
   {
     int start_pos = crd.tell();
-    drt = new (midmem) DeserializedStaticSceneRayTracer;
-
-    if (!drt->serializedLoad(crd))
-    {
-      delete drt;
+    drt = DeserializedStaticSceneRayTracer::load(crd);
+    if (!drt)
       return;
-    }
 
     // read phys mat id for faces
     clear_and_resize(pmid, drt->getFacesCount());

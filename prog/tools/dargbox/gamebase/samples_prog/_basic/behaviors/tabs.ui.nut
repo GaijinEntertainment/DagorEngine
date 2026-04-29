@@ -56,7 +56,7 @@ function tabs_header() {
   return {
     rendObj = ROBJ_SOLID
     color=Color(80,120,120)
-    size = static [flex(),sh(5)]
+    size = const [flex(),sh(5)]
     flow=FLOW_HORIZONTAL
     valign = ALIGN_CENTER
     padding=sh(0.1)
@@ -69,7 +69,7 @@ function tabs_header() {
 function tabs_component (){
   return {
     watch = current_tab
-    size = static [sh(30),sh(20)]
+    size = const [sh(30),sh(20)]
     rendObj=ROBJ_SOLID
     color = Color(70,70,70)
     flow=FLOW_VERTICAL

@@ -24,20 +24,20 @@ public:
 
   void clear() override;
   int getFirstPid() override;
-  bool getParamVisible(SquirrelObject param) override;
+  bool getParamVisible(Sqrat::Table param) override;
 
   bool onMessage(int pid, int msg, void *arg) override;
 
 protected:
   void createControl() override;
-  void getValueFromScript(SquirrelObject param) override;
+  void getValueFromScript(Sqrat::Table param) override;
   void setVisible(bool visible) override;
   void setEnabled(bool enabled) override;
   void saveExt(DataBlock &blk);
 
-  bool scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, SquirrelObject param) override;
+  bool scriptExtFactory(PropPanel::ContainerPropertyControl *panel, int &pid, Sqrat::Table param) override;
   int searchPidIndex(int pid);
-  void setDefValues(SquirrelObject so);
+  void setDefValues(Sqrat::Table so);
 
   virtual void appendExBlock();
   virtual bool insertExBlock(int pid, int ind = -1);
@@ -61,7 +61,7 @@ public:
   ScriptExtGroup(CSQPanelWrapper *wrapper, ScriptPanelContainer *parent, const char *name, const char *caption);
 
 protected:
-  void getValueFromScript(SquirrelObject param) override;
+  void getValueFromScript(Sqrat::Table param) override;
   void appendExBlock() override;
   bool insertExBlock(int pid, int ind = -1) override;
   int getItemPid(int pid) override { return pid; }

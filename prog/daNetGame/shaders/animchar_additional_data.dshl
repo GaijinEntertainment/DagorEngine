@@ -48,14 +48,14 @@ macro USE_ANIMCHAR_ADDITIONAL_DATA(code)
       return get_additional_data_unsafe_raw(offset_count.x + index);
     }
 
-    float4 get_additional_data_impl(uint2 offset_count, uint index, int file, int ln)
+    float4 get_additional_data_impl(uint2 offset_count, uint index, float4 debug_value, int file, int ln)
     {
       if (index < offset_count.y)
         return get_additional_data_unsafe_impl(offset_count, index, file, ln);
       else
       {
         ##assert(false, "[%s:%.d] Out of bounds: additional data type has size %d, but access to %d.", file, ln, offset_count.y, index);
-        return NaN; //if we try to read garbage data it is better return nans
+        return debug_value;
       }
     }
 
@@ -64,7 +64,13 @@ macro USE_ANIMCHAR_ADDITIONAL_DATA(code)
       return get_optional_per_instance_data(offset_count.x + index, offset_count.y > index, default_result);
     }
 
+    // Unsafe version: no bounds checking
     #define get_additional_data_unsafe(offset_count, index) get_additional_data_unsafe_impl(offset_count, index, _FILE_, __LINE__)
-    #define get_additional_data(offset_count, index) get_additional_data_impl(offset_count, index, _FILE_, __LINE__)
+
+    // Generic version: returns NaN for out-of-bounds access
+    #define get_additional_data(offset_count, index) get_additional_data_impl(offset_count, index, NaN, _FILE_, __LINE__)
+
+    // Version with default value for out-of-bounds access
+    #define get_additional_data_with_default(offset_count, index, default_value) get_additional_data_impl(offset_count, index, default_value, _FILE_, __LINE__)
   }
 endmacro

@@ -371,7 +371,7 @@ bool save_tex_as_ddsx(Texture *tex, const char *filename, bool srgb)
   if (!(ti.cflg & (TEXCF_RTARGET | TEXCF_SYSMEM | TEXCF_UNORDERED | TEXCF_READABLE)))
   {
     ti.cflg &= ~TEXCF_SYSTEXCOPY;
-    texCopy = d3d::create_tex(NULL, ti.w, ti.h, ti.cflg | TEXCF_SYSMEM, tex->level_count(), "tmp");
+    texCopy = d3d::create_tex(NULL, ti.w, ti.h, ti.cflg | TEXCF_SYSMEM, tex->level_count(), "tmp", RESTAG_DEBUG);
     d3d_err(texCopy->update(tex));
     tex = texCopy;
   }
@@ -429,13 +429,13 @@ bool save_cubetex_as_ddsx(CubeTexture *tex, const char *filename, bool srgb)
   if (!(ti.cflg & (TEXCF_RTARGET | TEXCF_SYSMEM | TEXCF_UNORDERED | TEXCF_READABLE)))
   {
     ti.cflg &= ~TEXCF_SYSTEXCOPY;
-    texCopy = d3d::create_cubetex(ti.w, ti.cflg | TEXCF_SYSMEM, ti.mipLevels, "tmp");
+    texCopy = d3d::create_cubetex(ti.w, ti.cflg | TEXCF_SYSMEM, ti.mipLevels, "tmp", RESTAG_DEBUG);
     d3d_err(texCopy->update(tex));
     tex = texCopy;
   }
 
-  for (int ci = 0; ci < 6; ci++)
-    for (int level = 0; level < hdr.levels; level++)
+  for (int level = 0; level < hdr.levels; level++)
+    for (int ci = 0; ci < 6; ci++)
     {
       void *ptr;
       int stride, ddsx_stride = hdr.getSurfacePitch(level);
@@ -488,7 +488,7 @@ bool save_voltex_as_ddsx(VolTexture *tex, const char *filename, bool srgb)
   if ((ti.cflg & (TEXCF_RTARGET | TEXCF_DYNAMIC)))
   {
     ti.cflg &= ~(TEXCF_RTARGET | TEXCF_DYNAMIC | TEXCF_SYSTEXCOPY);
-    texCopy = d3d::create_voltex(ti.w, ti.h, ti.d, ti.cflg | TEXCF_SYSMEM, tex->level_count(), "tmp");
+    texCopy = d3d::create_voltex(ti.w, ti.h, ti.d, ti.cflg | TEXCF_SYSMEM, tex->level_count(), "tmp", RESTAG_DEBUG);
     d3d_err(texCopy->update(tex));
     tex = texCopy;
   }

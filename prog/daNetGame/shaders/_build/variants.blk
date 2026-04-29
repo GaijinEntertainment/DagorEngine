@@ -1,3 +1,10 @@
 // each invalid block denotes an AND relationship between the given variants
 invalid {gi_quality:i=0;ssr_alternate_reflections:i=1;}
 invalid {motion_vector_type:i=1;}
+
+// DNG only uses 4 cascades at most
+invalid {num_of_cascades:i=5;}
+invalid {num_of_cascades:i=6;}
+
+invalid {hasTexture:i=5;}
+invalid {hasTexture:i=2;}

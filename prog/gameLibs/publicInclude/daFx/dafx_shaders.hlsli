@@ -4,25 +4,11 @@
 #ifdef __cplusplus
 DAFX_INLINE
 void update_culling_data( uint cull_id, BBox bbox, int4 *data )
-#else
-void update_culling_data( uint cull_id, BBox bbox )
-#endif
 {
-#ifndef __cplusplus // cpp culling is always valid
- #if !DAFX_UPDATE_GPU_CULLING // for warmup and presim we skip culling completely
-    return;
- #endif
-#endif
-
-#if DAFX_DEBUG_CULLING_FETCH
-  #ifdef __cplusplus
+  #if DAFX_DEBUG_CULLING_FETCH
     data[cull_id * 2].w = cull_id;
     data[cull_id * 2 + 1].w = cull_id;
-  #else
-    structuredBufferAt(dafx_culling_data,( cull_id * 2 + 0 ) * 4 + 3) = cull_id;
-    structuredBufferAt(dafx_culling_data,( cull_id * 2 + 1 ) * 4 + 3) = cull_id;
   #endif
-#endif
 
   if ( bbox.bmin.x >= bbox.bmax.x )
     return;
@@ -33,7 +19,6 @@ void update_culling_data( uint cull_id, BBox bbox )
   int3 i0 = int3( bbox.bmin.x, bbox.bmin.y, bbox.bmin.z );
   int3 i1 = int3( bbox.bmax.x, bbox.bmax.y, bbox.bmax.z );
 
-#ifdef __cplusplus
   int4 &line0 = data[cull_id * 2 + 0];
   int4 &line1 = data[cull_id * 2 + 1];
 
@@ -45,7 +30,79 @@ void update_culling_data( uint cull_id, BBox bbox )
   line1.x = max( line1.x, i1.x );
   line1.y = max( line1.y, i1.y );
   line1.z = max( line1.z, i1.z );
+}
+
 #else
+
+#if DAFX_USE_OPTIMIZED_GPU_CULLING
+groupshared float3 fx_culling_bbox_cache_min[DAFX_DEFAULT_WARP];
+groupshared float3 fx_culling_bbox_cache_max[DAFX_DEFAULT_WARP];
+groupshared int fx_culling_bbox_cache_alive_cnt[DAFX_DEFAULT_WARP];
+groupshared int fx_culling_id_in_group;
+#endif
+
+void update_culling_data( uint tid, uint cull_id, BBox bbox )
+{
+ // cpp culling is always valid
+  bool valid_cull_id = cull_id < DAFX_INVALID_CULLING_ID;
+ #if DAFX_USE_OPTIMIZED_GPU_CULLING
+  const bool isValid = bbox.bmin.x < bbox.bmax.x && valid_cull_id;
+  BRANCH if (tid == 0)
+    fx_culling_id_in_group = cull_id;
+  GroupMemoryBarrierWithGroupSync();
+  const bool isPartOfGroup = fx_culling_id_in_group == cull_id;
+  {
+    const float DAFX_INF = 1e20f;
+    const bool isValidAndPartOfGroup = isValid && isPartOfGroup;
+    fx_culling_bbox_cache_min[tid] = isValidAndPartOfGroup ? bbox.bmin : DAFX_INF;
+    fx_culling_bbox_cache_max[tid] = isValidAndPartOfGroup ? bbox.bmax : -DAFX_INF;
+    fx_culling_bbox_cache_alive_cnt[tid] = isValidAndPartOfGroup ? 1 : 0;
+  }
+  GroupMemoryBarrierWithGroupSync();
+  UNROLL for (uint stride = DAFX_DEFAULT_WARP / 2; stride > 0; stride >>= 1)
+  {
+    if (tid < stride)
+    {
+      fx_culling_bbox_cache_min[tid] = min(fx_culling_bbox_cache_min[tid], fx_culling_bbox_cache_min[tid + stride]);
+      fx_culling_bbox_cache_max[tid] = max(fx_culling_bbox_cache_max[tid], fx_culling_bbox_cache_max[tid + stride]);
+      fx_culling_bbox_cache_alive_cnt[tid] = fx_culling_bbox_cache_alive_cnt[tid] + fx_culling_bbox_cache_alive_cnt[tid + stride];
+    }
+    GroupMemoryBarrierWithGroupSync();
+  }
+
+  const bool isThreadDone = isPartOfGroup && tid != 0;
+  const int aliveCnt = isPartOfGroup ? fx_culling_bbox_cache_alive_cnt[0] : (isValid ? 1 : 0);
+ #else // DAFX_USE_OPTIMIZED_GPU_CULLING
+  const bool isThreadDone = false;
+  const int aliveCnt = bbox.bmin.x < bbox.bmax.x ? 1 : 0;
+  if (!valid_cull_id)
+    return;
+ #endif
+
+#if DAFX_DEBUG_CULLING_FETCH
+  if (!isThreadDone)
+  {
+    structuredBufferAt(dafx_culling_data,( cull_id * 2 + 0 ) * 4 + 3) = cull_id;
+    structuredBufferAt(dafx_culling_data,( cull_id * 2 + 1 ) * 4 + 3) = cull_id;
+  }
+#endif
+
+  BRANCH if (aliveCnt == 0 || isThreadDone || !valid_cull_id)
+    return;
+
+ #if DAFX_USE_OPTIMIZED_GPU_CULLING
+  if (isPartOfGroup)
+  {
+    bbox.bmin = fx_culling_bbox_cache_min[0];
+    bbox.bmax = fx_culling_bbox_cache_max[0];
+  }
+ #endif
+
+  bbox.bmin *= DAFX_CULLING_SCALE_INV;
+  bbox.bmax *= DAFX_CULLING_SCALE_INV;
+
+  int3 i0 = int3( bbox.bmin.x, bbox.bmin.y, bbox.bmin.z );
+  int3 i1 = int3( bbox.bmax.x, bbox.bmax.y, bbox.bmax.z );
 
   #if (_HARDWARE_VULKAN || _HARDWARE_METAL) && SHADER_COMPILER_DXC
     //DXC can't write to component of buffer when reflected to Spir-V
@@ -58,19 +115,19 @@ void update_culling_data( uint cull_id, BBox bbox )
   InterlockedMin( structuredBufferAt(dafx_culling_data, ( cull_id * 2 + 0 ) * 4 + 0) CULLING_COMPONENT, i0.x );
   InterlockedMin( structuredBufferAt(dafx_culling_data, ( cull_id * 2 + 0 ) * 4 + 1) CULLING_COMPONENT, i0.y );
   InterlockedMin( structuredBufferAt(dafx_culling_data, ( cull_id * 2 + 0 ) * 4 + 2) CULLING_COMPONENT, i0.z );
-  InterlockedAdd( structuredBufferAt(dafx_culling_data, ( cull_id * 2 + 0 ) * 4 + 3) CULLING_COMPONENT, 1 ); // alive parts
+  InterlockedAdd( structuredBufferAt(dafx_culling_data, ( cull_id * 2 + 0 ) * 4 + 3) CULLING_COMPONENT, aliveCnt ); // alive parts
 
   InterlockedMax( structuredBufferAt(dafx_culling_data, ( cull_id * 2 + 1 ) * 4 + 0) CULLING_COMPONENT, i1.x );
   InterlockedMax( structuredBufferAt(dafx_culling_data, ( cull_id * 2 + 1 ) * 4 + 1) CULLING_COMPONENT, i1.y );
   InterlockedMax( structuredBufferAt(dafx_culling_data, ( cull_id * 2 + 1 ) * 4 + 2) CULLING_COMPONENT, i1.z );
-#endif
 }
+#endif
 
 #ifdef __cplusplus
 DAFX_INLINE
 void update_culling_data( uint cull_id, float4_cref v, int4 *data )
 #else
-void update_culling_data( uint cull_id, float4_cref v )
+void update_culling_data( uint tid, uint cull_id, float4_cref v )
 #endif
 {
   BBox bbox;
@@ -79,7 +136,7 @@ void update_culling_data( uint cull_id, float4_cref v )
 #ifdef __cplusplus
   update_culling_data(cull_id, bbox, data);
 #else
-  update_culling_data(cull_id, bbox );
+  update_culling_data(tid, cull_id, bbox );
 #endif
 }
 
@@ -125,7 +182,11 @@ void dafx_parse_dispatch_desc(DispatchDesc ddesc, out uint rnd_seed, out uint cu
     #undef DAFX_SHADER_INC_CALL
   }
 
+#if defined(__cplusplus) && _TARGET_PC_WIN
+  __declspec(noinline) // For better debugging experience
+#else
   DAFX_INLINE
+#endif
   void dafx_simulation_shader( dafx::CpuExecData &data )
   {
 #if DAFX_PRELOAD_PARENT_DATA
@@ -196,7 +257,7 @@ void dafx_parse_dispatch_desc(DispatchDesc ddesc, out uint rnd_seed, out uint cu
 
   #if DAFX_EMISSION_SHADER_ENABLED
   [numthreads( DAFX_DEFAULT_WARP, 1, 1)]
-  void dafx_emission_shader( uint3 t_id : SV_DispatchThreadID )
+  void dafx_emission_shader( uint dtId: SV_DispatchThreadID, uint tid : SV_GroupThreadID )
   {
 #if DAFX_PRELOAD_PARENT_DATA
   #define DAFX_SHADER_INC_CALL dafx_emission_shader_cb(cdesc, 0, parentRenData, parentSimData, float( count - localId - 1 ) / count, globalData)
@@ -210,7 +271,7 @@ void dafx_parse_dispatch_desc(DispatchDesc ddesc, out uint rnd_seed, out uint cu
 
   #if DAFX_SIMULATION_SHADER_ENABLED
   [numthreads( DAFX_DEFAULT_WARP, 1, 1)]
-  void dafx_simulation_shader( uint3 t_id : SV_DispatchThreadID )
+  void dafx_simulation_shader( uint dtId : SV_DispatchThreadID, uint tid : SV_GroupThreadID )
   {
 #if DAFX_PRELOAD_PARENT_DATA
   #define DAFX_SHADER_INC_CALL dafx_simulation_shader_cb(cdesc, 0, parentRenData, parentSimData, globalData)

@@ -1,0 +1,77 @@
+base_skeleton_attach{
+  "skeleton_attach__skeletonRemap:list<u16>"{}
+  "skeleton_attach__skeletonRecalcBranch:list<u8>"{}
+}
+
+skeleton_attach_inited{
+  "skeletonAttachInited:tag" {}
+}
+
+skeleton_attached{
+  skeleton_attach__attached:b=no
+  _replicated:t="skeleton_attach__attached"
+  _replicated:t="animchar_attach__attachedTo"
+  _tracked:t="animchar_attach__attachedTo"
+
+  "animchar_attach__attachedTo:eid"{}
+}
+
+saved_animchar{
+  saved_animchar{ _tags:t="render" }
+}
+
+animchar_with_attaches{
+  "attaches_list:list<eid>"{}
+  _skipInitialReplication:t="attaches_list" // client will fill it anyway
+  animchar_attaches_bbox{
+    _tags:t="render"
+  }
+  animchar_attaches_bbox_precalculated{
+    _tags:t="render"
+  }
+}
+
+attachable_scaled_item{
+  _group{
+    _track:b=yes
+    _replicate:b=yes
+    "animchar__scaledWtmNodeIds:list<i>"{}
+    "animchar__scaledWtmScales:list<p3>"{}
+    "animchar__scaledWtmRecalc:list<b>"{}
+  }
+}
+
+animchar_bbox{
+  animchar_render__root_pos{
+    _tags:t="render"
+  }
+
+  "animchar__usePrecalculatedData:b"{
+    _tags:t="render"
+    value:b=no
+  }
+
+  animchar_bsph{
+    _tags:t="render"
+  }
+
+  animchar_bsph_precalculated{
+    _tags:t="render"
+  }
+
+  animchar_bbox{
+    _tags:t="render"
+  }
+
+  "animchar_bbox_precalculated:BBox3"{
+    _tags:t="render"
+  }
+
+  animchar_shadow_cull_bbox{
+    _tags:t="render"
+  }
+
+  "animchar_shadow_cull_bbox_precalculated:BBox3"{
+    _tags:t="render"
+  }
+}

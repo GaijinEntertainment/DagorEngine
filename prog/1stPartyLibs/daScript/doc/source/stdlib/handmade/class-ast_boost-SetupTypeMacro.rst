@@ -1,0 +1,1 @@
+Base class for creating type macros via the ``[type_macro]`` structure annotation; registers an ``AstTypeMacro`` with the compiler.

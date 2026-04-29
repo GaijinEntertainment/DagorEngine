@@ -4,7 +4,7 @@ from "dagor.math" import Point2
 let { Watched, Computed } = require("%sqstd/frp.nut")
 let { log } = require("%sqstd/log.nut")()
 
-const N = 5000
+const N = 500000
 /*
 function stest(fn, pref=""){
   let ct = get_time_msec()

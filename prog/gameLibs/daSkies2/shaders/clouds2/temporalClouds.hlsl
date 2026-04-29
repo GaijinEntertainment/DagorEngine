@@ -425,7 +425,7 @@ void TAA(out float4 result_color, out float taaWeight,
   float reprojectionDepth = current.nearestDepth;
 
   #if !DONT_CHECK_DEPTH_DISCONTINUITY
-    float viewVecLen = length(getViewVecOptimized(screenUV));
+    float viewVecLen = length(getViewVecOptimized(screenUV * current_inv_dynamic_resolution_scale));
     float rawDepth = tex2Dlod(nativeDepthTex, float4(screenUV,0,0)).x;
     float linearDepthW = linearize_z(rawDepth, zn_zfar.zw);
     float linearDepth = linearDepthW*viewVecLen;
@@ -442,14 +442,12 @@ void TAA(out float4 result_color, out float taaWeight,
     float2 motionVector = TAAGetReprojectedMotionVector(reprojectionDepth, current.motionVectorUV, depthScreenSize, motionVectorPixelLengthTolerance);//, reprojectionMatrix
     float2 historyUV = (screenUV - current.motionVectorUV + motionVector);
   #else
-    float2 historyUV = TAAGetReprojectedMotionVector(reprojectionDepth, screenUV, depthScreenSize, motionVectorPixelLengthTolerance);//, reprojectionMatrix
+    float2 historyUV = TAAGetReprojectedMotionVector(reprojectionDepth, screenUV * current_inv_dynamic_resolution_scale, depthScreenSize, motionVectorPixelLengthTolerance) * prev_dynamic_resolution_scale; //, reprojectionMatrix
     float2 motionVector = historyUV-screenUV;
   #endif
 
   const bool cameFromDifferentViewArea = invalidate_mvec_to_invalid_view_area(screenUV, motionVector);
-  bool bOffscreen = cameFromDifferentViewArea || historyUV.x >= 1.0 || historyUV.x <= TAA_RESTART_TEMPORAL_X || historyUV.y >= 1.0 || historyUV.y <= 0.0;
-
-
+  bool bOffscreen = cameFromDifferentViewArea || historyUV.x >= prev_dynamic_resolution_scale.x || historyUV.x <= TAA_RESTART_TEMPORAL_X || historyUV.y >= prev_dynamic_resolution_scale.y || historyUV.y <= 0.0;
 
   bool bilinear = TAA_BILINEAR;
 
@@ -457,7 +455,7 @@ void TAA(out float4 result_color, out float taaWeight,
   if (!bOffscreen)
   {
     float acceptanceThreshold = move_world_view_pos_tolerance + 0.02*linearDepth;
-    float historyViewVecLenScale = length(getPrevViewVecOptimized(historyUV));
+    float historyViewVecLenScale = length(getPrevViewVecOptimized(historyUV * prev_inv_dynamic_resolution_scale));
 
     float2 histCrd = historyUV*depthScreenSize - 0.5;//should be 0.5, but for some reason it is not
     float2 histCrdFloored = floor(histCrd);
@@ -542,6 +540,11 @@ void TAA(out float4 result_color, out float taaWeight,
     }
   }
   #endif
+
+  FLATTEN
+  if (clouds_invalidate_taa_frames)
+    bOffscreen = true;
+
   FLATTEN
 
   //motionVectorPixelLengthTolerance = length(motionVector*screenSize);

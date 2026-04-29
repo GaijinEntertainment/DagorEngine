@@ -10,7 +10,7 @@
 #include <propPanel/c_control_event_handler.h>
 #include <daECS/core/entityManager.h>
 #include <daECS/io/blk.h>
-#include <ecsPropPanel/ecsEditableObjectPropertyPanel.h>
+#include <ecsPropPanel/ecsEntityObjectPropertyPanel.h>
 #include <ecsPropPanel/ecsBasicObjectEditor.h>
 
 static inline ecs::ComponentsInitializer complist_to_compinitializer(ecs::ComponentsList &&clist)
@@ -91,7 +91,11 @@ class EcsTemplatePreviewPlugin : public IGenEditorPlugin, public PropPanel::Cont
 {
 public:
   EcsTemplatePreviewPlugin() {}
-  ~EcsTemplatePreviewPlugin() override { g_entity_mgr->destroyEntity(entity); }
+  ~EcsTemplatePreviewPlugin() override
+  {
+    if (g_entity_mgr.get())
+      g_entity_mgr->destroyEntity(entity);
+  }
 
   const char *getInternalName() const override { return "EcsTemplatePreviewer"; }
 
@@ -101,16 +105,26 @@ public:
   bool begin(DagorAsset *asset) override
   {
     templateName = asset->props.getStr("template", asset->getName());
+
+    nonOwnedSingleton = false;
+    if (g_entity_mgr->getTemplateDB().getTemplateByName(templateName.c_str())->isSingleton())
+    {
+      entity = g_entity_mgr->getSingletonEntity(ECS_HASH_SLOW(templateName.c_str()));
+      if (entity != ecs::INVALID_ENTITY_ID)
+      {
+        nonOwnedSingleton = true;
+        fillPluginPanel();
+        return true;
+      }
+    }
+
     ecs::ComponentsList clist;
     clist.emplace_back("transform", eastl::move(ecs::ChildComponent(getInitialTm())));
     if (const DataBlock *b = asset->props.getBlockByName("components"))
       ecs::load_comp_list_from_blk(*g_entity_mgr, *b, clist);
 
     execute_safe( //
-      [&]() {
-        entity = g_entity_mgr->createEntityAsync(templateName, complist_to_compinitializer(eastl::move(clist)));
-        g_entity_mgr->tick(true);
-      },
+      [&]() { entity = g_entity_mgr->createEntitySync(templateName, complist_to_compinitializer(eastl::move(clist))); },
       [&]() {
         logerr("exception while creating entity using template: %s", templateName);
         entity = ecs::INVALID_ENTITY_ID;
@@ -122,7 +136,9 @@ public:
   {
     if (spEditor)
       spEditor->destroyPanel();
-    g_entity_mgr->destroyEntity(entity);
+    if (!nonOwnedSingleton)
+      g_entity_mgr->destroyEntity(entity);
+    nonOwnedSingleton = false;
     return true;
   }
 
@@ -155,15 +171,21 @@ public:
     panel.createButton(PID_RECREATE_ENTITY, "Re-create entity");
     panel.createButton(PID_SAVE_ENTITY_ASSET, "Save as ECS entity asset...");
     panel.createSeparator();
-    ECSEditableObjectPropertyPanel editableObjectPropertyPanel(panel);
-    editableObjectPropertyPanel.fillProps(entity, &objEd);
+    if (g_entity_mgr->getTemplateDB().getTemplateByName(templateName.c_str())->isSingleton())
+    {
+      panel.createStatic(PID_SINGLETON_LABEL, "Template is SINGLETON");
+      if (nonOwnedSingleton)
+        panel.createStatic(PID_SINGLETON_CREATED_LABEL, "<singleton is already created in scene>");
+    }
+    ECSEntityObjectPropertyPanel entityObjectPropertyPanel(objEd, panel);
+    entityObjectPropertyPanel.fillProps(entity);
   }
   void postFillPropPanel() override {}
 
   void onChange(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
-    ECSEditableObjectPropertyPanel editableObjectPropertyPanel(*panel);
-    editableObjectPropertyPanel.onPPChange(pcb_id, /*edit_finished*/ true, entity, &objEd);
+    ECSEntityObjectPropertyPanel entityObjectPropertyPanel(objEd, *panel);
+    entityObjectPropertyPanel.onPPChange(pcb_id, /*edit_finished*/ true, entity);
   }
   void onClick(int pcb_id, PropPanel::ContainerPropertyControl *panel) override
   {
@@ -214,10 +236,10 @@ public:
     }
 
     String cur_templ(g_entity_mgr->getEntityTemplateName(entity));
-    ECSEditableObjectPropertyPanel editableObjectPropertyPanel(*panel);
+    ECSEntityObjectPropertyPanel entityObjectPropertyPanel(objEd, *panel);
     execute_safe(
       [&]() {
-        editableObjectPropertyPanel.onPPBtnPressed(pcb_id, entity, &objEd);
+        entityObjectPropertyPanel.onPPBtnPressed(pcb_id, entity);
         g_entity_mgr->tick(true);
       },
       []() {});
@@ -230,12 +252,15 @@ public:
   {
     PID_RECREATE_ENTITY = 10000,
     PID_SAVE_ENTITY_ASSET,
+    PID_SINGLETON_LABEL,
+    PID_SINGLETON_CREATED_LABEL,
   };
 
 private:
   ecs::EntityId entity = ecs::INVALID_ENTITY_ID;
   ECSBasicObjectEditor objEd;
   String templateName;
+  bool nonOwnedSingleton = false;
 
   TMatrix getInitialTm() const
   {

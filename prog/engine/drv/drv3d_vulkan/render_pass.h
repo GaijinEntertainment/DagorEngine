@@ -24,7 +24,7 @@ public:
   // spec for details.
   struct Identifier
   {
-    static constexpr int VERSION = 7;
+    static constexpr int VERSION = 8;
 
     enum
     {
@@ -47,6 +47,9 @@ public:
 
     uint8_t colorTargetMask;
     uint8_t depthState;
+    bool shadingRateAttachment;
+    FormatStore shadingRateAttachmentFormat;
+    uint8_t shadingRateAttachmentSamples;
 
     Identifier() { clear(); }
 
@@ -77,6 +80,9 @@ public:
       depthSamples = UCHAR_MAX;
       for (auto &&cs : colorSamples)
         cs = UCHAR_MAX;
+      shadingRateAttachment = false;
+      shadingRateAttachmentFormat = FormatStore{};
+      shadingRateAttachmentSamples = UCHAR_MAX;
     }
 
     friend bool operator==(const Identifier &l, const Identifier &r)
@@ -84,7 +90,9 @@ public:
       return l.colorTargetMask == r.colorTargetMask && l.depthState == r.depthState &&
              eastl::equal(eastl::begin(l.colorFormats), eastl::end(l.colorFormats), eastl::begin(r.colorFormats)) &&
              l.depthStencilFormat == r.depthStencilFormat && l.colorSamplesPacked == r.colorSamplesPacked &&
-             l.depthSamples == r.depthSamples;
+             l.depthSamples == r.depthSamples && l.shadingRateAttachment == r.shadingRateAttachment &&
+             l.shadingRateAttachmentFormat == r.shadingRateAttachmentFormat &&
+             l.shadingRateAttachmentSamples == r.shadingRateAttachmentSamples;
     }
     friend bool operator!=(const Identifier &l, const Identifier &r) { return !(l == r); }
 
@@ -98,10 +106,10 @@ public:
     };
     // squashes the set of color targets into a linear set of color targets and depth stencil target
     template <typename R, typename T = R, typename F = Identity>
-    StaticTab<R, Driver3dRenderTarget::MAX_SIMRT + 1> squash(size_t colorSize, const T *colorAttachments,
-      const T &depthStencilAttachment, F &&functor = {}) const
+    StaticTab<R, Driver3dRenderTarget::MAX_SIMRT + MRT_EXTRA_SLOTS> squash(size_t colorSize, const T *colorAttachments,
+      const T &depthStencilAttachment, const T &shadingRateAttachmentRef, F &&functor = {}) const
     {
-      StaticTab<R, Driver3dRenderTarget::MAX_SIMRT + 1> set;
+      StaticTab<R, Driver3dRenderTarget::MAX_SIMRT + MRT_EXTRA_SLOTS> set;
       if (auto mask = colorTargetMask)
       {
         for (int i = 0; i < colorSize && mask; ++i, mask >>= 1)
@@ -110,6 +118,8 @@ public:
       }
       if (depthState != NO_DEPTH)
         set.push_back(functor(depthStencilAttachment));
+      if (shadingRateAttachment)
+        set.push_back(functor(shadingRateAttachmentRef));
       return set;
     }
 
@@ -163,6 +173,7 @@ public:
 
     AttachmentInfo colorAttachments[Driver3dRenderTarget::MAX_SIMRT] = {};
     AttachmentInfo depthStencilAttachment = {};
+    AttachmentInfo shadingRateAttachment = {};
     VkExtent2D extent = {};
 
     void clear()
@@ -170,14 +181,10 @@ public:
       for (auto &&ca : colorAttachments)
         ca = AttachmentInfo{};
       depthStencilAttachment = AttachmentInfo{};
+      shadingRateAttachment = AttachmentInfo{};
       extent.width = 0;
       extent.height = 0;
     }
-
-    void setColorAttachment(uint32_t index, Image *image, ImageViewState view);
-    void resetColorAttachment(uint32_t index);
-    void setDepthStencilAttachment(Image *image, ImageViewState view);
-    void resetDepthStencilAttachment();
 
     VkExtent2D makeDrawArea(VkExtent2D def = {});
     bool contains(VulkanImageViewHandle view) const;
@@ -191,6 +198,8 @@ public:
           return false;
       if (!depthStencilAttachment.compatibleTo(cmp.depthStencilAttachment))
         return false;
+      if (!shadingRateAttachment.compatibleTo(cmp.shadingRateAttachment))
+        return false;
       return true;
     }
     bool compatibleToImageless(const FramebufferDescription &cmp) const
@@ -201,6 +210,8 @@ public:
         if (!colorAttachments[i].compatibleToImageless(cmp.colorAttachments[i]))
           return false;
       if (!depthStencilAttachment.compatibleToImageless(cmp.depthStencilAttachment))
+        return false;
+      if (!shadingRateAttachment.compatibleToImageless(cmp.shadingRateAttachment))
         return false;
       return true;
     }

@@ -20,6 +20,7 @@ Sources =
   dumpSysInfo.cpp
   userSystemInfo.cpp
   uuidgen.cpp
+  redistInfo.cpp
 ;
 if [ GLOB $(Root)/$(Location) : systemInfo_private.cpp ] {
   Sources += systemInfo_private.cpp ;
@@ -45,7 +46,7 @@ if $(Platform) in macOS {
     macosx_spec.mm
   ;
 
-  AddLibs += -framework DiskArbitration ;
+  AddLibs += "-framework DiskArbitration" "-framework IOKit" ;
 }
 
 if $(Platform) in iOS {
@@ -74,6 +75,9 @@ if $(Platform) in android linux macOS ps4 ps5 scarlett xboxOne windows && $(Plat
   CPPopt += -DUSE_CPU_FEATURES ;
 }
 
-UseProgLibs += 3rdPartyLibs/hash ;
+UseProgLibs +=
+  3rdPartyLibs/hash
+  engine/drv/vr_device
+;
 
 include $(Root)/prog/_jBuild/build.jam ;

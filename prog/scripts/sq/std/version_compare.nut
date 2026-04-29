@@ -1,7 +1,7 @@
 from "dagor.debug" import logerr
 from "string.nut" import startsWith, toIntegerSafe
 
-let maskAny = static { x = true, X = true, ["*"] = true }
+let maskAny = const { x = true, X = true, ["*"] = true }
 
 let arrToInt = @(list) list.reduce(@(res, val)
   (res << 16) + toIntegerSafe(val), 0)

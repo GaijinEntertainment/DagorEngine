@@ -24,8 +24,31 @@ Sources =
   memoryReport.cpp
   memoryReportVramQuery.cpp
   memoryReportLog.cpp
-  pix.cpp
 ;
+
+if $(Config) != rel {
+  Sources += alternateProfiler.cpp ;
+
+  if $(Platform) = windows && $(PlatformArch) in arm64 x86_64 && [ GLOB $(Root)/prog/3rdPartyLibs/winpixeventruntime : * ] {
+    AddIncludes += $(Root)/prog/3rdPartyLibs/winpixeventruntime/Include/WinPixEventRuntime ;
+    if $(PlatformArch) = arm64 {
+      AddLibs += $(Root)/prog/3rdPartyLibs/winpixeventruntime/bin/ARM64/WinPixEventRuntime.lib ;
+    } else if $(PlatformArch) = x86_64 {
+      AddLibs += $(Root)/prog/3rdPartyLibs/winpixeventruntime/bin/x64/WinPixEventRuntime.lib ;
+    }
+    AddLibs += delayimp.lib -delayload:WinPixEventRuntime.dll ;
+    Sources += pix.cpp ;
+    opt on pix.cpp += -DUSE_PIX -DPIX_USE_GPU_MARKERS_V2 ;
+  } else if $(Platform) in xboxOne scarlett {
+    AddLibs += PIXEvt.lib ;
+    Sources += pix.cpp ;
+    opt on pix.cpp += -DUSE_PIX ;
+  } else {
+    Sources += stub/pix.cpp ;
+  }
+} else {
+  Sources += stub/pix.cpp ;
+}
 
 UseGpu ?= yes ;
 
@@ -33,6 +56,7 @@ if $(UseGpu) = yes {
   Sources += gpuProfiler.cpp ;
 }
 else {
+  Target = $(Target:S=~noGPU.lib) ;
   UseProgLibs += engine/perfMon/gpuProfilerStub ;
 }
 

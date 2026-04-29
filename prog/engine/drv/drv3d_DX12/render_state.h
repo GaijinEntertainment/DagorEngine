@@ -7,12 +7,10 @@
 #include "tagged_handles.h"
 #include "format_store.h"
 
-#include <drv/3d/dag_consts.h>
 #include <drv/3d/dag_decl.h>
-#include <drv/3d/dag_info.h>
+#include <drv/3d/dag_driverDesc.h>
 #include <drv/3d/dag_renderStates.h>
 #include <drv/shadersMetaData/dxil/compiled_shader_header.h>
-#include <EASTL/vector.h>
 #include <ioSys/dag_dataBlock.h>
 #include <osApiWrappers/dag_spinlock.h>
 #include <util/dag_string.h>
@@ -698,7 +696,7 @@ public:
     return e.second;
   }
 
-  static bool is_compatible(const Driver3dDesc &desc, const StaticState &state)
+  static bool is_compatible(const DriverDesc &desc, const StaticState &state)
   {
     // either support the feature or don't use it
     if ((desc.caps.hasDepthBoundsTest || 0 == state.enableDepthBounds) &&
@@ -723,7 +721,7 @@ public:
     return false;
   }
 
-  DynamicArray<StaticRenderStateIDWithHash> loadStaticStatesFromBlk(DeviceContext &ctx, const Driver3dDesc &desc, const DataBlock *blk,
+  DynamicArray<StaticRenderStateIDWithHash> loadStaticStatesFromBlk(DeviceContext &ctx, const DriverDesc &desc, const DataBlock *blk,
     const char *default_format);
 
 private:

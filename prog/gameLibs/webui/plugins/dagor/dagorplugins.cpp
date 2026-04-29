@@ -21,12 +21,7 @@
 #include <debug/dag_debug.h>
 #include <debug/dag_logSys.h>
 #include <workCycle/dag_delayedAction.h>
-#include <math/random/dag_random.h>
 #include <perfMon/dag_cpuFreq.h>
-#if _TARGET_PC_WIN
-#include <windows.h>
-#endif
-#include <osApiWrappers/dag_stackHlp.h>
 #include <stdlib.h>
 #include "webui_internal.h"
 #include <perfMon/dag_statDrv.h>
@@ -695,179 +690,6 @@ static void vromfs_enumerator(RequestInfo *params)
   html_response(params->conn, buf.mem);
 }
 
-#if _TARGET_PC_WIN && !_TARGET_64BIT && DAGOR_DBGLEVEL > 0
-
-#define BYTES_PER_PIXEL (32)
-#define MAX_PIC_X       1280
-struct DebugChunk
-{
-  int generation;
-  int dataSize;
-  void *stack[18]; // hardcode
-  IMemAlloc *allocator;
-  DebugChunk *prev, *next;
-  unsigned frontGuard[1];
-};
-
-static void memory_map(RequestInfo *params) // Note: not thread safe
-{
-  int bytes_per_pixel = BYTES_PER_PIXEL;
-  int skipBytes = INT_MAX;
-  char **pars = params->params;
-  while (pars && *pars)
-  {
-    const char *cmds[] = {"rc", "bpp", "skip"};
-    int cmdi = lup(*pars, cmds, countof(cmds));
-    errno = 0;
-    switch (cmdi)
-    {
-      case 0: // rc
-      {
-        DebugChunk *dc_ptr = (DebugChunk *)strtoul(*(pars + 1), NULL, 0); // Not 64-bit ready
-        if (errno != 0 || !dc_ptr)
-          return html_response(params->conn, NULL, HTTP_BAD_REQUEST);
-#if _TARGET_PC_WIN
-        if (::IsBadReadPtr(dc_ptr, sizeof(DebugChunk)))
-          return html_response(params->conn, NULL, HTTP_BAD_REQUEST);
-#endif
-        if (dc_ptr->generation != 0x100)
-          return html_response(params->conn, NULL, HTTP_BAD_REQUEST);
-
-        YAMemSave buf;
-        buf.printf("%d bytes (%d K)\n\n", dc_ptr->dataSize, dc_ptr->dataSize >> 10);
-        buf.printf("%s", stackhlp_get_call_stack_str(dc_ptr->stack, countof(dc_ptr->stack)).str());
-        return text_response(params->conn, buf.mem, (int)buf.offset);
-      }
-      break;
-
-      case 1: // bpp
-      {
-        int bpp = strtol(*(pars + 1), NULL, 0);
-        if (errno != 0 || bpp < 4 || (bpp & (bpp - 1)) != 0)
-          return html_response(params->conn, NULL, HTTP_BAD_REQUEST);
-        bytes_per_pixel = bpp;
-      }
-      break;
-
-      case 2: // skip
-      {
-        skipBytes = strtol(*(pars + 1), NULL, 0);
-        if (errno != 0)
-          return html_response(params->conn, NULL, HTTP_BAD_REQUEST);
-      }
-      break;
-    };
-    pars += 2; // next pair
-  }
-
-  YAMemSave buf(16 << 20);
-
-  DebugChunk *dc = ((DebugChunk *)buf.mem) - 1;
-  if (dc->generation != 0x100)
-    return html_response(params->conn, NULL, HTTP_SERVER_ERROR);
-
-  DebugChunk *top = dc;
-  do
-  {
-#if _TARGET_PC_WIN
-    if (::IsBadReadPtr(top, sizeof(DebugChunk)))
-      return html_response(params->conn, NULL, HTTP_SERVER_ERROR);
-#endif
-    if (!top->next)
-      break;
-    top = top->next;
-  } while (1);
-
-  buf.printf("<svg xmlns=\"http://www.w3.org/2000/svg\" version=\"1.1\">\n");
-  const char *ajax_op = "<script type=\"text/javascript\"><![CDATA[\n"
-                        "function rc(dc_ptr)\n"
-                        "{\n"
-                        "  var x = new XMLHttpRequest();\n"
-                        "  x.onreadystatechange=function()\n"
-                        "  {\n"
-                        "    if (x.readyState==4 && x.status==200)\n"
-                        "      alert(x.responseText)\n"
-                        "  }\n"
-                        "  x.open('GET','memory_map?rc='+dc_ptr, true);\n"
-                        "  x.send();\n"
-                        "}\n"
-                        "]]></script>\n";
-  buf.printf("%s", ajax_op);
-
-  int curx = 0, cury = 0;
-  int maxx = MAX_PIC_X;
-  for (DebugChunk *c = top; c; c = c->prev)
-  {
-    if (((void *)(c + 1)) == (void *)buf.mem)
-      continue;
-    int l = c->dataSize; // dlmalloc_get_usable_size()?
-    if (l < bytes_per_pixel || l > skipBytes)
-      continue; // too small or too big
-    int lpix = (l + bytes_per_pixel - 1) / bytes_per_pixel;
-    int rand_seed = 0;
-    for (int j = 0; j < 8; ++j)
-      rand_seed += (int)c->stack[j];
-    int cr = _rnd(rand_seed) & 255;
-    int cg = _rnd(rand_seed) & 255;
-    int cb = _rnd(rand_seed) & 255;
-    size_t saved_offset = buf.offset;
-    int rx = curx, ry = cury;
-    while (lpix)
-    {
-      int new_curx = min(curx + lpix, maxx);
-      buf.printf("<line x1=\"%d\" y1=\"%d\" x2=\"%d\" y2=\"%d\" style=\"stroke:rgb(%d,%d,%d)\" "
-                 "onclick=\"rc(0x%p)\" />\n",
-        curx, cury, new_curx, cury, cr, cg, cb, c);
-      lpix -= min(lpix, maxx - curx);
-      if (new_curx == maxx)
-      {
-        cury += 1;
-        curx = 0;
-      }
-      else
-        curx = new_curx;
-    }
-    // need generate polygon?
-    if (cury > ry)
-    {
-      buf.offset = saved_offset; // override lines with poly
-      buf.printf("<polygon points=\"");
-      // top poly half
-      if (rx != 0)
-      {
-        buf.printf("%d,%d ", 0, ry + 1);
-        buf.printf("%d,%d ", rx, ry + 1);
-        buf.printf("%d,%d ", rx, ry);
-        buf.printf("%d,%d ", maxx, ry);
-      }
-      else
-      {
-        buf.printf("%d,%d ", 0, ry);
-        buf.printf("%d,%d ", maxx, ry);
-      }
-      // bottom poly half
-      if (curx != 0)
-      {
-        buf.printf("%d,%d ", maxx, cury - 1);
-        buf.printf("%d,%d ", curx, cury - 1);
-        buf.printf("%d,%d ", curx, cury);
-        buf.printf("%d,%d ", 0, cury);
-      }
-      else
-      {
-        buf.printf("%d,%d ", maxx, cury - 1);
-        buf.printf("%d,%d ", 0, cury - 1);
-      }
-      buf.mem[--buf.offset] = 0; // remove extra space
-      buf.printf("\" style=\"fill:rgb(%d,%d,%d)\" onclick=\"rc(0x%p)\" />\n", cr, cg, cb, c);
-    }
-  }
-  buf.printf("</svg>\n<body>\n<html>");
-
-  html_response_raw(params->conn, buf.mem);
-}
-#endif // _TARGET_PC && DAGOR_DBGLEVEL > 0
-
 struct QuitAction : public DelayedAction
 {
   void performAction()
@@ -883,6 +705,11 @@ static void on_quit(RequestInfo *params)
   return html_response_raw(params->conn, "<html><body><h1>Good Bye</h1></body></html>");
 }
 
+namespace webui
+{
+extern void memory_map(RequestInfo *);
+}
+
 #define DEF_TO_STR(x)     DEF_TO_STR_IMP(x)
 #define DEF_TO_STR_IMP(x) #x
 
@@ -895,7 +722,7 @@ webui::HttpPlugin webui::dagor_http_plugins[] = {{"quit", "quit from game", NULL
 #endif
   {"console", "execute commands", NULL, console_gen},
   {"vromfs", "show content of virtual file systems (vromfs)", NULL, vromfs_enumerator},
-#if _TARGET_PC_WIN && !_TARGET_64BIT && DAGOR_DBGLEVEL > 0
-  {"memory_map", "visual memory allocations map (pc only, experimental)", NULL, memory_map},
+#if DAGOR_DBGLEVEL > 0 && !defined(_TARGET_PC_TOOLS_BUILD)
+  {"memory_map", "visual memory allocations map (require build with -sUseMemoryDebugLevel=dbg*)", NULL, webui::memory_map},
 #endif
   {NULL}};

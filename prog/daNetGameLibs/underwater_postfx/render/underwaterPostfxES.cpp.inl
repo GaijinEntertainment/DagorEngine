@@ -5,7 +5,7 @@
 #include <daECS/core/entitySystem.h>
 #include <daECS/core/componentTypes.h>
 #include <render/renderEvent.h>
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
 #include <render/priorityManagedShadervar.h>
 #include <main/water.h>
 #include <ecs/render/updateStageRender.h>
@@ -27,9 +27,9 @@ static void underwater_update_shadervars_es(
     static int chromatic_aberration_paramsVarId = get_shader_variable_id("chromatic_aberration_params");
     if (is_underwater())
     {
-      PriorityShadervar::set_color4(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY,
+      PriorityShadervar::set_float4(chromatic_aberration_paramsVarId, CHROMATIC_ABERRATION_PRIORITY,
         Point4::xyz0(underwater_postfx__chromatic_aberration));
-      PriorityShadervar::set_real(vignette_strengthVarId, VIGNETTE_PRIORITY, underwater_postfx__vignette_strength);
+      PriorityShadervar::set_float(vignette_strengthVarId, VIGNETTE_PRIORITY, underwater_postfx__vignette_strength);
     }
     else
     {

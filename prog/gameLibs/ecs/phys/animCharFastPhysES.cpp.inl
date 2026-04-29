@@ -1,15 +1,19 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/entityComponent.h>
 #include <ecs/anim/anim.h>
 #include <animChar/dag_animCharacter2.h>
 #include <debug/dag_assert.h>
 #include <phys/dag_fastPhys.h>
 #include <gameRes/dag_stdGameRes.h>
 #include <gamePhys/props/atmosphere.h>
-#include <ecs/delayedAct/actInThread.h>
+#include <daECS/delayedAct/actInThread.h>
 #include "fastPhysTag.h"
 
 

@@ -357,42 +357,12 @@ rule ProcessTargetVariables
     DestDir = ;
     CopyFileRule = ;
   } else if $(TargetType) != util {
-    local prev_ProjectUseQuirrel = ;
-    if $(UseQuirrel) && $(UseQuirrel) != none
+    if $(UseQuirrel) = yes
     {
       if $(TargetType) = lib && $(MultiTarget) { Exit UseQuirrel is not supported for TargetType=$(TargetType) and MultiTarget ; }
 
-      if ! $(ProjectUseQuirrel) {
-        ProjectUseQuirrel = $(UseQuirrel[1]) ;
-      } else if ! $(ProjectUseQuirrel) in $(UseQuirrel) {
-        local jfile = $(t_jamfile) ;
-        jfile ?= $(JAMFILESRC) ;
-
-        local sq_major = [ MATCH ^(sq[1-9]) : $(ProjectUseQuirrel) ] ;
-        if $(sq_major) {
-          for s in $(UseQuirrel) {
-            local sq_major_cmp = [ MATCH ^(sq[1-9]) : $(s) ] ;
-            if $(sq_major) = $(sq_major_cmp) {
-              prev_ProjectUseQuirrel = $(ProjectUseQuirrel) ;
-              ProjectUseQuirrel = $(s) ;
-              break ;
-            }
-          }
-        }
-
-        if ! $(ProjectUseQuirrel) in $(UseQuirrel) {
-          Exit ProjectUseQuirrel\=\"$(ProjectUseQuirrel)\" but UseQuirrel has only \"$(UseQuirrel)\" in $(jfile) ;
-        }
-      }
-
-      include $(Root)/prog/1stPartyLibs/quirrel/add_quirrel_includes.jam ;
-      CPPopt += -DUSE_SQRAT_CONFIG ;
-      if $(TargetType) = lib { Target = $(Target:S=~$(ProjectUseQuirrel).lib) ; }
+      include $(Root)/prog/_jBuild/add_quirrel.jam ;
     }
-    if ( $(ProjectUseQuirrel) && $(TargetType) in exe dll ) || $(UseQuirrel) {
-      include $(Root)/prog/1stPartyLibs/quirrel/add_quirrel_libs.jam ;
-    }
-    if $(prev_ProjectUseQuirrel) { ProjectUseQuirrel = $(prev_ProjectUseQuirrel) ; prev_ProjectUseQuirrel = ; }
     UseQuirrel = ;
 
     if $(MultiTarget) {
@@ -524,11 +494,6 @@ rule ProcessTargetVariables
     if $(FrameworkResBundle) {
       CopyFrameworkResBundle $(FrameworkResBundle) ;
       FrameworkResBundle = ;
-    }
-
-    if $(EmbeddedFrameworks) {
-      ProcessEmbeddedFrameworks $(EmbeddedFrameworks) ;
-      EmbeddedFrameworks = ;
     }
 
     if $(AndroidSources) {
@@ -822,7 +787,11 @@ rule CreatePCH
 
 rule BuildArtifactForTarget
 {
-  local namesToPreserve = Root Platform PlatformArch Config PlatformSpec _OutputRoot KernelLinkage NoMemBaseInclude ;
+  local namesToPreserve =
+    Root Platform PlatformArch Config PlatformSpec _OutputRoot KernelLinkage NoMemBaseInclude
+    CPPStd CLangVer UseSystemOpenSSL UseLLDLink
+    UseMemoryAllocator UseMemoryDebugLevel UseMemoryProfiler
+  ;
   local target = $(1) ;
   local art_name = $(2) ;
   local art_jam = $(Root)/prog/$(art_name)/jamfile ;
@@ -1211,6 +1180,12 @@ rule CompileJamVarCpp
   local dest_cpp = $(1:S=.cpp) ;
   local dest_jam_cmp = $(dest_cpp:S=.jam) ;
 
+  on $(2) if $(redirect_to_var) {
+    $(2)           = $($(redirect_to_var)) ;
+    $(2)_action   ?= $($(redirect_to_var)_action) ;
+    $(2)_dep_rule ?= $($(redirect_to_var)_dep_rule) ;
+  }
+
   MakeDirectory $(1) : $(1:D) ;
   MakeDirectory $(dest_cpp) : $(1:D) ;
   Depends ALL_CODEGEN_TARGET : $(dest_cpp) ;
@@ -1261,29 +1236,40 @@ rule CompileJamVarCpp
   compile_cpp $(1) : $(dest_cpp) ;
 }
 
-# rule how to compile .das to .cpp
-#   params: ( target_filename : sources : target : tmp_output_dir )
-#   returns: ( target_filename )
+# rule how to compile list of .das to .cpp
+#   params: ( das_sources : target : tmp_output_dir )
+#   returns: ( target_filenames )
 rule AotCompileDAS
 {
   if $(DumpBuildCmds) = yes { return ; }
   if ! $(DAS_AOT_COMPILER) {
-    echo DAS_AOT_COMPILER not set, skip compiling $(2) ;
+    echo DAS_AOT_COMPILER not set, skip compiling $(location) ;
     return ;
   }
-
-  local dest_cpp = $(4)/$(1) ;
-
   if ! [ GLOB $(DAS_AOT_COMPILER:D) : $(DAS_AOT_COMPILER:D=) ] {
     NOCARE $(DAS_AOT_COMPILER) ;
     ALWAYS $(dest_cpp) ;
-    echo compiler $(DAS_AOT_COMPILER) is missing, so will try build \"$(1)\" after compiler is rebuilt ;
+    echo compiler $(DAS_AOT_COMPILER) is missing, so will try build \"$(src)\" after compiler is rebuilt ;
   }
-
-  Depends $(dest_cpp) : $(Root)/$(2) $(DAS_AOT_COMPILER) ;
-  MakeDirectory $(dest_cpp) : $(dest_cpp:D) ;
-  aot_compile_das $(dest_cpp) : $(Root)/$(2) ;
-  return $(1) ;
+  local cmd = ;
+  local dest_all = ;
+  local src_all = ;
+  for src in $(1) {
+    local dest_cpp = $(3)/$(src:S=_das_AOT.cpp) ;
+    dest_all += $(dest_cpp) ;
+    src_all += $(Root)/$(location)/$(src) ;
+    Depends $(dest_cpp) : $(Root)/$(location)/$(src) $(DAS_AOT_COMPILER) ;
+    cmd += -aot $(Root)/$(location)/$(src) $(dest_cpp) ;
+  }
+  # `dest_all` should depend on directory, `dest_cpp` is not enough
+  for src in $(1) {
+    local dest_cpp = $(3)/$(src:S=_das_AOT.cpp) ;
+    MakeDirectory $(dest_all) : $(dest_cpp:D) ;
+  }
+  if $(ForceDasAotRebuild) = yes { ALWAYS $(dest_all) ; }
+  input_files on $(dest_all) = $(cmd) ;
+  aot_compile_das $(dest_all) : $(src_all) ;
+  return $(dest_all) ;
 }
 
 # makes action commands to write jamfile with list of strings
@@ -1320,8 +1306,12 @@ actions quietly exec_scripted_command
   $(cmd_caption)
 }
 
-# rule how to compile generated _das_AOT.cpp in batch to .obj
-#   params: ( _das_AOT_files : target : tmp_output_dir : batch_size )
+# rule how to compile generated .das into batches and to .obj
+#
+# `das_files` input files
+# without it `jam` fails to deduce dependencies.
+#
+#   params: ( das_files : target : tmp_output_dir : batch_size )
 rule AotCompileBatchedGeneratedDAS
 {
   if $(DumpBuildCmds) = yes { return ; }
@@ -1330,9 +1320,12 @@ rule AotCompileBatchedGeneratedDAS
   # 'list_of_includes' is list of relative paths from directory of .cpp batch to *_AOT.cpp, they actually locates in neighbours folders
   local list = v1 ;
   local list_of_includes = v1 ;
+  local list_of_das = v1 ;
   for i in $(1) {
-    list += $(3)/$(i) ;
-    list_of_includes += ../$(i) ;
+    list_of_das += $(i) ;
+    local das_cpp = $(i:S=_das_AOT.cpp) ;
+    list += $(3)/$(das_cpp) ;
+    list_of_includes += ../$(das_cpp) ;
   }
   local list_rel = [ ReplaceRootPrefix $(list) ] ;
   local obj_list = ;
@@ -1358,19 +1351,23 @@ rule AotCompileBatchedGeneratedDAS
   }
   list = $(list[2-]) ;
   list_of_includes = $(list_of_includes[2-]) ;
+  list_of_das = $(list_of_das[2-]) ;
   while $(list) {
     local dest_cpp = $(base_dest_cpp)$(digits0[1])$(digits1[1]).cpp ;
     local batch_list = $(list[1-$(das_batch_size)]) ;
     local batch_of_includes = $(list_of_includes[1-$(das_batch_size)]) ;
+    local batch_of_das = $(list_of_das[1-$(das_batch_size)]) ;
     local dest_obj = $(dest_cpp:S=$(_OBJ_SUFFIX)) ;
 
-    Depends $(dest_cpp) : $(batch_list) ;
+    local aotted_cpp = ;
+    aotted_cpp += [ AotCompileDAS $(batch_of_das) : $(2) : $(3) ] ;
+    Depends $(dest_cpp) : $(aotted_cpp) ;
     if $(das_list_changed) = yes { ALWAYS $(dest_cpp) ; }
     exec_cmd on $(dest_cpp) = [ MakeBatchCpp $(dest_cpp) : $(batch_of_includes) ] ;
     cmd_caption on $(dest_cpp) = echo generated DAS batch: $(dest_cpp:B) ;
     exec_scripted_command $(dest_cpp) ;
 
-    Depends $(dest_obj) : $(dest_cpp) $(batch_list) ;
+    Depends $(dest_obj) : $(dest_cpp) $(batch_list) $(aotted_cpp) ;
     local use_pch = [ IncludePch $(dest_cpp) : $(2) ] ;
     MakeDirectory $(dest_obj) : $(dest_obj:D) ;
     if $(GLOBAL_CacheDryRun) {
@@ -1390,6 +1387,8 @@ rule AotCompileBatchedGeneratedDAS
     list = $(list[2-]) ;
     list_of_includes = $(list_of_includes[$(das_batch_size)-]) ;
     list_of_includes = $(list_of_includes[2-]) ;
+    list_of_das = $(list_of_das[$(das_batch_size)-]) ;
+    list_of_das = $(list_of_das[2-]) ;
     if $(digits1[2-]) {
       digits1 = $(digits1[2-]) ;
     } else {
@@ -1411,11 +1410,13 @@ rule AotCompileBatchedGeneratedDAS
   }
   return $(obj_list) ;
 }
+
 actions quietly aot_compile_das
 {
 #async
   echo AOT  $(2:D=)
-  call $(DAS_AOT_COMPILER) -aot $(2) $(1) -q $(DAS_AOT_COMPILER_OPT)
+  # `force-overwrite` is needed to help jam track dependencies.
+  call $(DAS_AOT_COMPILER) $(Root)/prog/1stPartyLibs/daScript/utils/aot/main.das $(DAS_AOT_COMPILER_OPT) -force-overwrite -gen1 true -gen2-make true $(input_files)
   if errorlevel 1 goto failed
   if not exist $(1) goto failed
   goto end
@@ -1488,7 +1489,8 @@ rule LinkDllSetMapExpLib
     MakeDirectory $(target_path) : $(implib:D) ;
     $(t)__LINK_OPT += -implib:$(implib)-imp.lib -map:$(implib).map $(3) ;
 
-    if $(Config) != rel { $(t)__PDB ?= $(OutDir)/$(t:B).pdb ; }
+    if $(Config) != rel || $(ForcePdb) = yes { $(t)__PDB ?= $(OutDir)/$(t:B).pdb ; }
+    on $(t) if $(need_buildstamp) = yes { LinkExeSetBuildStamp $(t) ; }
   }
 }
 
@@ -1509,25 +1511,6 @@ rule ProcessLicense  # lic_dir : dest_list_var : dest_err_var
     }
   }
   else for f in $(lic) { $(2) += $(f) ; }
-}
-rule MakeLicenseBuildScript # lic_target_file : lic_list : target_name
-{
-  local cmd = echo $(3) uses libraries\: >$(1)$(NEWLINE_STR_) ;
-  if $(OS) = NT { cmd += set_filter nul /./$(NEWLINE_STR_) ; }
-  for s in $(2) {
-    local dir = $(s:D) ;
-    cmd += echo \=\=\=\= $(dir:D=) >$(1).tmp1$(NEWLINE_STR_) ;
-    cmd += echo  >$(1).tmp2$(NEWLINE_STR_) ;
-    if $(OS) = NT {
-      cmd += call_filtered $(ComSpec) /C copy /B \#\\($(1)+$(1).tmp1+$(s)+$(1).tmp2 $(1))\\\#$(NEWLINE_STR_) ;
-    } else {
-      cmd += call $(SHELL) -c \"cat $(1).tmp1 $(s) $(1).tmp2 >> $(1)\"$(NEWLINE_STR_) ;
-    }
-  }
-  cmd += del $(1).tmp1$(NEWLINE_STR_) del $(1).tmp2$(NEWLINE_STR_) ;
-  if $(OS) = NT { cmd += clr_filters$(NEWLINE_STR_) ; }
-  cmd += if not exist $(1) set errorlevel=13$(NEWLINE_STR_) ;
-  return $(cmd) ;
 }
 
 #
@@ -1811,7 +1794,7 @@ if $(SkipLicenseBuild) != yes && $(lic_file_list) {
     Depends $(lic_target) : $(lic_file_list) ;
     MakeDirectory $(lic_target) : $(lic_target:D) ;
     ALWAYS $(lic_target) ;
-    exec_cmd on $(lic_target) = [ MakeLicenseBuildScript $(lic_target) : $(lic_file_list) : $(lic_exe_name) ] ;
+    exec_cmd on $(lic_target) = call $(PYTHON_EXE) $(Root)/prog/_jBuild/_scripts/join_text_files.py $(lic_target) $(lic_exe_name) $(lic_file_list) ;
     cmd_caption on $(lic_target) = echo generated $(lic_target:B) ;
     exec_scripted_command $(lic_target) ;
     for copy_tdir in $($(t)__CopyTo) {
@@ -2244,6 +2227,7 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
     }
 
     local das_sources = ;
+    local das_src = ;
     for src in $(sources) {
       if $(src:S) = .ui {
         CompileUI  $(location)/ui_$(src:S=.h) : $(location)/$(src) : $(target) ;
@@ -2251,7 +2235,8 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
         CompileMOC $(tmp_dir)/$(src:S=_MOC.cpp) : $(location)/$(src:S=.h) : $(target) ;
         objs += $(src:S=_MOC$(_OBJ_SUFFIX)) ;
       } else if $(src:S) = .das {
-        das_sources += [ AotCompileDAS $(src:S=_das_AOT.cpp) : $(location)/$(src) : $(target) : $(tmp_dir) ] ;
+        das_sources += $(src:S=_das_AOT.cpp) ;
+        das_src += $(src) ;
       } else if $(src:S) = .qrc {
         CompileQRC $(tmp_dir)/$(src:S=_qrc.cpp) : $(location)/$(src) : $(target) ;
         objs += $(src:S=_qrc$(_OBJ_SUFFIX)) ;
@@ -2266,7 +2251,7 @@ for t_lev in 0 1 2 3 4 5 6 7 8 {
     if $(das_sources) {
       local batch_size = $(AotBatchSize) ;
       batch_size ?= 10 ;
-      objs += [ AotCompileBatchedGeneratedDAS $(das_sources) : $(target) : $(tmp_dir) : $(batch_size) ] ;
+      objs += [ AotCompileBatchedGeneratedDAS $(das_src) : $(target) : $(tmp_dir) : $(batch_size) ] ;
     }
 
     ProcessTargetDigest $(target) : $(das_sources) ;

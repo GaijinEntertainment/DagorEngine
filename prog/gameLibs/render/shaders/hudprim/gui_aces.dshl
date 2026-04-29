@@ -116,12 +116,12 @@ shader gui_aces
           #define OGL_SET_SCREEN_POSITION(OUT, OUTpos) OUT.screenPosition = OUTpos.xyw;
         }
         hlsl(ps) {
-          #ifdef FSR_DISTORTION
+          ##if fsr_distortion_enabled
             #define OGL_DEPTH_TEST(VSOUT) {clip(linearize_z(loadGbufferDepth(GET_SCREEN_POS(VSOUT.pos).xy), zn_zfar.zw)-gui_cockpit_depth);}
-          #else
+          ##else
             #define OGL_DEPTH_TEST(VSOUT) {float2 ftc=(VSOUT.screenPosition.xy * rcp(VSOUT.screenPosition.z))*RT_SCALE_HALF+HALF_PLUS_HALF_PIXEL_OFS;\
             clip(linearize_z(readGbufferDepth(ftc), zn_zfar.zw)-gui_cockpit_depth);}
-          #endif
+          ##endif
         }
       } else
       {
@@ -130,12 +130,12 @@ shader gui_aces
           #define OGL_SET_SCREEN_POSITION(OUT, OUTpos) OUT.screenPosition = OUTpos.xyw;
         }
         hlsl(ps) {
-          #ifdef FSR_DISTORTION
+          ##if fsr_distortion_enabled
             #define OGL_DEPTH_TEST(VSOUT) {clip(linearize_z(loadGbufferDepth(GET_SCREEN_POS(VSOUT.pos).xy), zn_zfar.zw)-VSOUT.screenPosition.z);}
-          #else
+          ##else
             #define OGL_DEPTH_TEST(VSOUT) {float2 ftc=(VSOUT.screenPosition.xy *rcp(VSOUT.screenPosition.z))*RT_SCALE_HALF+HALF_PLUS_HALF_PIXEL_OFS;\
             clip(linearize_z(readGbufferDepth(ftc), zn_zfar.zw)-VSOUT.screenPosition.z);}
-          #endif
+          ##endif
         }
       }
     } else

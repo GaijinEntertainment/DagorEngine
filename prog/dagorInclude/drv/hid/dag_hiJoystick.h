@@ -118,6 +118,9 @@ public:
   // returns device connection status
   virtual bool isConnected() = 0;
   virtual bool isRemoteController() const { return false; }
+  // not all devices are gamepads, android/ios has sensors
+  virtual bool isDeviceGyro() const { return false; }
+  virtual bool isXinputCompatible() const { return false; }
 
   virtual void enableSensorsTiltCorrection(bool /*enable*/) { /* VOID */ }
   virtual void reportGyroSensorsAngDelta(bool /*report_ang_delta*/) { /* VOID */ }

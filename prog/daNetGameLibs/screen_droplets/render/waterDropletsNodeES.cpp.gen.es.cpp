@@ -14,7 +14,8 @@ static void update_water_droplets_node_es_all_events(const ecs::Event &__restric
 {
   auto comp = components.begin(), compE = components.end(); G_ASSERT(comp!=compE); do
     update_water_droplets_node_es(evt
-        , ECS_RW_COMP(update_water_droplets_node_es_comps, "water_droplets_node", dafg::NodeHandle)
+        , components.manager()
+    , ECS_RW_COMP(update_water_droplets_node_es_comps, "water_droplets_node", dafg::NodeHandle)
     , ECS_RW_COMP(update_water_droplets_node_es_comps, "screen_droplets__visible", bool)
     );
   while (++comp != compE);
@@ -68,9 +69,9 @@ static ecs::CompileTimeQueryDesc find_water_droplets_needs_ecs_query_desc
   empty_span(),
   empty_span());
 template<typename Callable>
-inline ecs::QueryCbResult find_water_droplets_needs_ecs_query(Callable function)
+inline ecs::QueryCbResult find_water_droplets_needs_ecs_query(ecs::EntityManager &manager, Callable function)
 {
-  return perform_query(g_entity_mgr, find_water_droplets_needs_ecs_query_desc.getHandle(),
+  return perform_query(&manager, find_water_droplets_needs_ecs_query_desc.getHandle(),
     ecs::stoppable_query_cb_t([&function](const ecs::QueryView& __restrict components)
     {
         auto comp = components.begin(), compE = components.end(); G_ASSERT(comp != compE); do

@@ -4,11 +4,7 @@
 #include <EditorCore/ec_wndGlobal.h>
 #include <workCycle/dag_startupModules.h>
 #include <workCycle/dag_gameSettings.h>
-#include <drv/3d/dag_viewScissor.h>
-#include <drv/3d/dag_renderTarget.h>
-#include <drv/3d/dag_driver.h>
-#include <drv/3d/dag_lock.h>
-#include <drv/3d/dag_info.h>
+#include <workCycle/dag_workCycle.h>
 #include <3d/dag_texMgr.h>
 #include <startup/dag_globalSettings.h>
 #include <startup/dag_restart.h>
@@ -22,6 +18,8 @@
 #if _TARGET_PC_WIN
 #define _WIN32_WINNT 0x500
 #include <windows.h>
+#else
+#define SW_SHOWMINIMIZED 0
 #endif
 
 extern void default_crt_init_kernel_lib();
@@ -33,70 +31,14 @@ namespace workcycle_internal
 intptr_t main_window_proc(void *, unsigned, uintptr_t, intptr_t);
 }
 
-#if _TARGET_PC_WIN
-static LRESULT FAR PASCAL d3dWindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-  PAINTSTRUCT ps;
-  switch (message)
-  {
-    // Prevent the window from being resized or becoming visible.
-    // For example in case of device reset d3d::reset_device() would make it visible.
-    case WM_WINDOWPOSCHANGING:
-    {
-      WINDOWPOS *windowPos = reinterpret_cast<WINDOWPOS *>(lParam);
-      windowPos->x = 0;
-      windowPos->y = 0;
-      windowPos->cx = GetSystemMetrics(SM_CXSCREEN);
-      windowPos->cy = GetSystemMetrics(SM_CYSCREEN);
-      windowPos->flags = (windowPos->flags & ~SWP_SHOWWINDOW) | SWP_HIDEWINDOW;
-      return 0;
-    }
-
-    case WM_ERASEBKGND: return 1;
-    case WM_PAINT:
-      SetCursor(NULL);
-      BeginPaint(hWnd, &ps);
-      EndPaint(hWnd, &ps);
-      return 1;
-  }
-  return workcycle_internal::main_window_proc(hWnd, message, wParam, lParam);
-}
-#endif
-
 bool tools3d::inited = false;
 
-bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
+bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming, const char *caption, void *icon)
 {
   if (inited)
     return true;
 
-#if _TARGET_PC_WIN
-  // Register a window class
-  WNDCLASSW WndClass;
-  memset(&WndClass, 0, sizeof(WndClass));
-  WndClass.style = 0;
-  WndClass.lpfnWndProc = d3dWindowProc;
-  WndClass.cbClsExtra = 0;
-  WndClass.cbWndExtra = 0;
-  WndClass.hInstance = (HINSTANCE)win32_get_instance();
-  WndClass.hIcon = NULL;
-  WndClass.hCursor = NULL;
-  WndClass.hbrBackground = NULL;
-  WndClass.lpszMenuName = NULL;
-  WndClass.lpszClassName = L"engine3d-srv";
-  RegisterClassW(&WndClass);
-
-  // create invisible window (sized as desktop)
-  void *handle = CreateWindowExW(0, L"engine3d-srv", NULL, 0, 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN), NULL,
-    NULL, (HINSTANCE)win32_get_instance(), NULL);
-
-  // perform dagor init
-  win32_set_main_wnd(handle);
-#else
-  void *handle = nullptr;
-#endif
-
-  dgs_load_settings_blk(true, String(260, "%s/../commonData/startup_editors.blk", sgg::get_exe_path_full()), nullptr);
+  dgs_load_settings_blk(true, String(260, "%s/startup_editors.blk", sgg::get_common_data_dir()), nullptr);
 
   DataBlock *global_settings_blk = const_cast<DataBlock *>(::dgs_get_settings());
 
@@ -115,12 +57,14 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
     dx_blk->setBool("immutable_textures", dx_blk->getBool("immutable_textures", false));
     dx_blk->setInt("inline_vb_size", dx_blk->getInt("inline_vb_size", 32 << 20));
     dx_blk->setInt("inline_ib_size", dx_blk->getInt("inline_ib_size", 2 << 20));
+    dx_blk->setBool("ignore_resource_leaks_on_exit", true);
   }
 
   if (DataBlock *video_blk = global_settings_blk->addBlock("video"))
   {
     video_blk->setBool("windowed_ext", true);
-    video_blk->setStr("mode", "windowed");
+    video_blk->setStr("mode", "resizablewindowed");
+    video_blk->setBool("threadedWindow", false);
     video_blk->setInt("min_target_size", video_blk->getInt("min_target_size", 0));
     video_blk->setStr("instancing", video_blk->getStr("instancing", "auto"));
     video_blk->setStr("driver", drv_name ? drv_name : video_blk->getStr("driver", "auto"));
@@ -128,8 +72,18 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
 
   global_settings_blk->addBlock("physx")->setBool("disable_hardware", true);
 
-  ::dgs_limit_fps = true;
-  ::dgs_dont_use_cpu_in_background = true;
+  // VideoRestartProc::startup() uses this graphics/limitfps setting but we set it to limitFps that the daNetGame-based
+  // projects use.
+  // (When using the daNetGame-based renderer dgs_limit_fps will be also set by app_start().)
+  global_settings_blk->addBlock("graphics")->setBool("limitfps", global_settings_blk->getBool("limitFps", true));
+
+  const DataBlock *debugBlock = ::dgs_get_settings()->getBlockByNameEx("debug");
+  ::dgs_dont_use_cpu_in_background = debugBlock->getBool("dontUseCpuInBackground", true);
+  if (!::dgs_dont_use_cpu_in_background)
+  {
+    logdbg("dagor_enable_idle_priority OFF");
+    dagor_enable_idle_priority(false); // It is true by default.
+  }
 
   if (blkTexStreaming)
   {
@@ -139,27 +93,13 @@ bool tools3d::init(const char *drv_name, const DataBlock *blkTexStreaming)
     init_managed_textures_streaming_support();
   }
 
-  if (!d3d::init_driver())
-    DAG_FATAL("Error initializing 3D driver:\n%s", d3d::get_last_error());
-
-  dgs_set_window_mode(WindowMode::WINDOWED_NO_BORDER);
-
-  if (!d3d::init_video(win32_get_instance(), NULL, NULL, 0, handle, handle, 0, "", NULL))
-    return false;
+  // wgw_dialogs.cpp also uses the EDITOR_LAYOUT_DE_WINDOW window class to find the main window.
+  // Create the window minimized to avoid showing the still unpainted window. The window is white on Windows and would
+  // make an annoying flash.
+  ::dagor_init_video("EDITOR_LAYOUT_DE_WINDOW", SW_SHOWMINIMIZED, icon, caption);
 
   ::dagor_common_startup();
   ::startup_game(RESTART_ALL);
-
-  // clear backbuffer once and forever
-  {
-    d3d::GpuAutoLock gpuLock;
-
-    int targetW, targetH;
-    d3d::set_render_target();
-    d3d::get_target_size(targetW, targetH);
-    d3d::setview(0, 0, targetW, targetH, 0, 1);
-    d3d::clearview(CLEAR_TARGET, E3DCOLOR(10, 10, 64, 0), 0, 0);
-  }
 
   enable_tex_mgr_mt(true, 64 << 10);
   inited = true;
@@ -170,17 +110,9 @@ void tools3d::destroy()
 {
   if (!inited)
     return;
-  debug("+++ destroy 3d");
-  d3d::window_destroyed(win32_get_main_wnd());
 
   debug("destroy 3d renderer");
   ::shutdown_game(RESTART_ALL);
-  debug("release 3d resource");
-  d3d::release_driver();
-
-#if _TARGET_PC_WIN
-  DestroyWindow((HWND)win32_get_main_wnd());
-#endif
 
   inited = false;
 }

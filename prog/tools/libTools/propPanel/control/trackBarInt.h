@@ -63,7 +63,7 @@ public:
   {
     ScopedImguiBeginDisabled scopedDisabled(!controlEnabled);
 
-    ImguiHelper::separateLineLabel(controlCaption);
+    separateLineLabelWithTooltip(controlCaption.begin(), controlCaption.end());
 
     const float remainingWidthAfterTheLabel = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemInnerSpacing.x;
     const float spinEditWidth = ImguiHelper::getDefaultRightSideEditWidth();

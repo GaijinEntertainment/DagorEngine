@@ -1,22 +1,5 @@
 WARNING: w266 (forgotten-do) 'while' after the statement list (forgot 'do' ?)
-testData/static_analyzer/w266.nut:8:2
-
-  ::x++
-} while (::x)
-  ^
-::x--
-
-
-WARNING: w262 (suspicious-formatting) Suspicious code formatting.
-testData/static_analyzer/w266.nut:9:0
-
-} while (::x)
-::x--
-^----
-
-
-WARNING: w315 (invalid-indentation) Invalid indentation. Pay attention to lines 6 and 8.
-testData/static_analyzer/w266.nut:8:2
+testData/static_analyzer/w266.nut:10:2
 
   ::x++
 } while (::x)

@@ -1,0 +1,190 @@
+// Copyright (C) Gaijin Games KFT.  All rights reserved.
+
+#include <daECS/core/componentTypes.h>
+#include "motionMatching.h"
+#include "motionMatchingMetrics.h"
+#include "motionMatchingTags.h"
+#include "featureNormalization.h"
+
+// No need to jump on last frames in animation or specific interval with tags because it ends
+// very soon and can cause infinite cycling between 2 last frames of different animations
+constexpr int IGNORE_LAST_FRAMES = 5;
+
+constexpr int IGNORE_SURROUNDING_FRAMES = 10;
+static inline bool is_transition_allowed(int cur_clip_idx, int target_clip_idx, int cur_frame, int target_frame)
+{
+  return cur_clip_idx != target_clip_idx || abs(target_frame - cur_frame) > IGNORE_SURROUNDING_FRAMES;
+}
+
+template <bool use_brute_force>
+static inline MatchingResult motion_matching_impl(const AnimationDataBase &dataBase, MatchingResult current_state,
+  const AnimationFilterTags &current_tags, const FeatureWeights &weights,
+  dag::ConstSpan<FrameFeaturesData::value_type> current_feature)
+{
+  int featureSize = dataBase.featuresSize;
+
+  G_ASSERT(featureSize == weights.featureWeights.size());
+  G_ASSERT(featureSize * dataBase.featuresNormalizationGroups.nameCount() == current_feature.size());
+  const vec4f *featureWeightsPtr = weights.featureWeights.data();
+
+  int cur_clip = current_state.clip;
+  int cur_frame = current_state.frame;
+
+  vec4f bestResult = v_splats(current_state.metrica);
+  int best_clip = cur_clip;
+  int best_frame = cur_frame;
+
+  for (int next_clip = 0, clip_count = dataBase.clips.size(); next_clip < clip_count; next_clip++)
+  {
+    const AnimationClip &nextClip = dataBase.clips[next_clip];
+    const auto &smallBoundsMin = nextClip.boundsSmallMin;
+    const auto &smallBoundsMax = nextClip.boundsSmallMax;
+    const auto &largeBoundsMin = nextClip.boundsLargeMin;
+    const auto &largeBoundsMax = nextClip.boundsLargeMax;
+    int featuresOffset = nextClip.featuresNormalizationGroup * featureSize;
+    const vec3f *goalFeaturePtr = current_feature.data() + featuresOffset;
+    float costBias = cur_clip == next_clip ? 0.0f : nextClip.featuresCostBias;
+
+    G_ASSERT(nextClip.features.data.size() == (nextClip.tickDuration + 1) * featureSize);
+
+    for (const AnimationInterval &interval : nextClip.intervals)
+    {
+      if (!current_tags.isMatch(interval.tags))
+        continue;
+
+      const vec3f *nextFeaturePtr = nextClip.features.data.data() + interval.from * featureSize;
+
+      int i = interval.from;
+      int searchEnd = interval.to == nextClip.tickDuration && nextClip.looped ? interval.to : interval.to - IGNORE_LAST_FRAMES;
+      if (next_clip == cur_clip && nextClip.looped)
+      {
+        i = max(i, cur_frame + IGNORE_SURROUNDING_FRAMES - nextClip.tickDuration);
+        searchEnd = min(searchEnd, cur_frame + nextClip.tickDuration - IGNORE_SURROUNDING_FRAMES);
+      }
+      if (dataBase.playOnlyFromStartTag >= 0 && interval.tags.test(dataBase.playOnlyFromStartTag))
+        searchEnd = interval.from + 1;
+
+      if constexpr (use_brute_force)
+      {
+        while (i < searchEnd)
+        {
+          if (is_transition_allowed(cur_clip, next_clip, cur_frame, i) &&
+              feature_metric_need_update(bestResult, goalFeaturePtr, nextFeaturePtr, featureWeightsPtr, costBias, featureSize))
+          {
+            best_clip = next_clip;
+            best_frame = i;
+          }
+          i++;
+          nextFeaturePtr += featureSize;
+        }
+      }
+      else
+      {
+        while (i < searchEnd)
+        {
+
+          int largeBoundIdx = i / BOUNDS_LARGE_SIZE;
+          int largeBoundIdxNext = (largeBoundIdx + 1) * BOUNDS_LARGE_SIZE;
+          const vec4f *minBounds = largeBoundsMin.data() + largeBoundIdx * featureSize;
+          const vec4f *maxBounds = largeBoundsMax.data() + largeBoundIdx * featureSize;
+          if (!feature_bounded_metric_need_update(bestResult, goalFeaturePtr, minBounds, maxBounds, featureWeightsPtr, costBias,
+                featureSize))
+          {
+            i = largeBoundIdxNext;
+            nextFeaturePtr = nextClip.features.data.data() + i * featureSize;
+            continue;
+          }
+          while (i < largeBoundIdxNext && i < searchEnd)
+          {
+            int smallBoundIdx = i / BOUNDS_SMALL_SIZE;
+            int smallBoundIdxNext = (smallBoundIdx + 1) * BOUNDS_SMALL_SIZE;
+            const vec4f *minBounds = smallBoundsMin.data() + smallBoundIdx * featureSize;
+            const vec4f *maxBounds = smallBoundsMax.data() + smallBoundIdx * featureSize;
+            if (!feature_bounded_metric_need_update(bestResult, goalFeaturePtr, minBounds, maxBounds, featureWeightsPtr, costBias,
+                  featureSize))
+            {
+              i = smallBoundIdxNext;
+              nextFeaturePtr = nextClip.features.data.data() + i * featureSize;
+              continue;
+            }
+
+            if (is_transition_allowed(cur_clip, next_clip, cur_frame, i) &&
+                feature_metric_need_update(bestResult, goalFeaturePtr, nextFeaturePtr, featureWeightsPtr, costBias, featureSize))
+            {
+              best_clip = next_clip;
+              best_frame = i;
+            }
+            i++;
+            nextFeaturePtr += featureSize;
+          }
+        }
+      }
+    }
+  }
+
+  return MatchingResult{best_clip, best_frame, v_extract_x(bestResult)};
+}
+
+
+MatchingResult motion_matching(const AnimationDataBase &dataBase, const MatchingResult &current_state,
+  const AnimationFilterTags &current_tags, const FeatureWeights &weights, const MotionMatchingSearchFeatures &current_feature)
+{
+  return motion_matching_impl<false>(dataBase, current_state, current_tags, weights, current_feature);
+}
+
+MatchingResult motion_matching_brute_force(const AnimationDataBase &dataBase, const MatchingResult &current_state,
+  const AnimationFilterTags &current_tags, const FeatureWeights &weights, const MotionMatchingSearchFeatures &current_feature)
+{
+  return motion_matching_impl<true>(dataBase, current_state, current_tags, weights, current_feature);
+}
+
+void prepare_features_for_mm_search(const AnimationDataBase &data_base, const FrameFeatures &denormalized_features_in,
+  MotionMatchingSearchFeatures &normalized_search_features_out)
+{
+  G_ASSERT(denormalized_features_in.data.size() == data_base.featuresSize);
+  int normalizationGroupsCount = data_base.featuresNormalizationGroups.nameCount();
+  normalized_search_features_out.resize(data_base.featuresSize * normalizationGroupsCount);
+  for (int i = 0; i < normalizationGroupsCount; ++i)
+  {
+    int offset = i * data_base.featuresSize;
+    normalize_feature(make_span(normalized_search_features_out.data() + offset, data_base.featuresSize),
+      denormalized_features_in.data.data(), data_base.featuresAvg.data() + offset, data_base.featuresStd.data() + offset);
+  }
+}
+
+float calculate_trajectory_features_cost(const AnimationDataBase &dataBase, int clip_idx, int frame_idx, const FeatureWeights &weights,
+  const MotionMatchingSearchFeatures &features)
+{
+  const AnimationClip &curClip = dataBase.clips[clip_idx];
+  const vec4f *frameFeatures = curClip.features.data.data() + frame_idx * dataBase.featuresSize;
+  const vec4f *currentFeatures = features.data() + curClip.featuresNormalizationGroup * dataBase.featuresSize;
+  int trajectoryFeaturesSize = curClip.features.trajectorySizeInVec4f;
+  return feature_distance_metric(currentFeatures, frameFeatures, weights.featureWeights.data(), trajectoryFeaturesSize);
+}
+
+float calculate_features_cost(const AnimationDataBase &dataBase, int clip_idx, int frame_idx, const FeatureWeights &weights,
+  const MotionMatchingSearchFeatures &features)
+{
+  const AnimationClip &curClip = dataBase.clips[clip_idx];
+  const vec4f *frameFeatures = curClip.features.data.data() + frame_idx * dataBase.featuresSize;
+  const vec4f *currentFeatures = features.data() + curClip.featuresNormalizationGroup * dataBase.featuresSize;
+  float cost = feature_distance_metric(currentFeatures, frameFeatures, weights.featureWeights.data(), dataBase.featuresSize);
+  return cost + curClip.featuresCostBias;
+}
+
+void calculate_features_cost_detailed(const AnimationDataBase &dataBase, int clip_idx, int frame_idx, const FeatureWeights &weights,
+  const MotionMatchingSearchFeatures &features, float &total_cost, float &trajectory_cost, float &pose_cost)
+{
+  const AnimationClip &curClip = dataBase.clips[clip_idx];
+  const vec4f *frameFeatures = curClip.features.data.data() + frame_idx * dataBase.featuresSize;
+  const vec4f *currentFeatures = features.data() + curClip.featuresNormalizationGroup * dataBase.featuresSize;
+  const vec4f *featureWeights = weights.featureWeights.data();
+  int trajectoryFeaturesSize = curClip.features.trajectorySizeInVec4f;
+  int poseFeaturesSize = curClip.features.featuresSizeInVec4f - trajectoryFeaturesSize;
+  trajectory_cost = feature_distance_metric(currentFeatures, frameFeatures, featureWeights, trajectoryFeaturesSize);
+  frameFeatures += trajectoryFeaturesSize;
+  currentFeatures += trajectoryFeaturesSize;
+  featureWeights += trajectoryFeaturesSize;
+  pose_cost = feature_distance_metric(currentFeatures, frameFeatures, featureWeights, poseFeaturesSize);
+  total_cost = trajectory_cost + pose_cost + curClip.featuresCostBias;
+}

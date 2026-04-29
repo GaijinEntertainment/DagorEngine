@@ -13,10 +13,10 @@
 #endif
 
 #if DAS_SMART_PTR_TRACKER
-    das::atomic<uint64_t> das::g_smart_ptr_total {0};
+    DAS_API das::atomic<uint64_t> das::g_smart_ptr_total {0};
 #endif
 
-void os_debug_break()
+DAS_API void os_debug_break()
 {
 #ifdef _MSC_VER
     __debugbreak();
@@ -27,7 +27,7 @@ void os_debug_break()
 
 namespace das {
     class Context;
-    void os_keepalive_call ( Context * ) {}
-    void os_keepalive_loop ( Context * ) {}
+    DAS_API void os_keepalive_call ( Context * ) {}
+    DAS_API void os_keepalive_loop ( Context * ) {}
 }
 

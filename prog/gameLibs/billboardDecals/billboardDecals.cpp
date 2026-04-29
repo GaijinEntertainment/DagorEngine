@@ -108,9 +108,14 @@ bool BillboardDecals::init(float hard_dist, float soft_dist, unsigned max_holes,
   clearSphereShader = new_compute_shader(clear_sphere_shader_name);
   if (!clearSphereShader)
     return false;
-  holesInstances =
-    dag::buffers::create_ua_sr_structured(sizeof(BillboardDecalInstance), maxHoles, holes_buffer_name, dag::buffers::Init::Zero);
+  holesInstances = dag::buffers::create_ua_sr_structured(sizeof(BillboardDecalInstance), maxHoles, holes_buffer_name,
+    dag::buffers::Init::Zero, RESTAG_DECALS);
   if (!holesInstances)
+    return false;
+
+  holesToUpdateBuf =
+    d3d::buffers::create_one_frame_cb((sizeof(BillboardToUpdate) * MAX_DECALS_TO_UPDATE) >> 4, "holesToUpdateCB", RESTAG_DECALS);
+  if (!holesToUpdateBuf)
     return false;
 
   // VB and IB.
@@ -140,6 +145,7 @@ void BillboardDecals::close()
   numFreeDecals = 0;
   freeDecalIds.clear();
   recentlyFreedIds.clear();
+  del_d3dres(holesToUpdateBuf);
 }
 
 BillboardDecals::~BillboardDecals() { close(); }
@@ -159,10 +165,12 @@ void BillboardDecals::prepareRender(const Frustum & /*frustum*/, const Point3 & 
   if (holesToUpdate.size())
   {
     // todo: on DX9/Dx10 replace that with shader that writes to texture (rendering points to texture).
+    holesToUpdateBuf->updateData(0, holesToUpdate.size() * sizeof(BillboardToUpdate), holesToUpdate.data(),
+      VBLOCK_WRITEONLY | VBLOCK_DISCARD);
 
     IPoint4 params(nextHoleNo, holesToUpdate.size(), maxHoles, 0);
     d3d::set_cs_const(billboard_decals_nextHole__holesToUpdate__maxHoles_const_no.get_int(), (float *)&params.x, 1);
-    d3d::set_cs_const(1, (float *)&holesToUpdate[0], holesToUpdate.size() * ((elem_size(holesToUpdate) + 15) / 16));
+    d3d::set_const_buffer(STAGE_CS, 1, holesToUpdateBuf);
     d3d::set_rwbuffer(STAGE_CS, billboard_decals_generator_holes_uav_no.get_int(), holesInstances.getBuf());
     holesGenerator->dispatch(1, (holesToUpdate.size() + DECALS_WARP_X * DECALS_WARP_X - 1) / (DECALS_WARP_X * DECALS_WARP_X), 1);
     d3d::set_rwbuffer(STAGE_CS, billboard_decals_generator_holes_uav_no.get_int(), 0);
@@ -205,7 +213,7 @@ void BillboardDecals::clearInSphere(const Point3 &pos, float sphere_radius)
 void BillboardDecals::render()
 {
   index_buffer::use_quads_16bit();
-  ShaderGlobal::set_color4(billboard_decals_depth_maskVarId, 1.f + hardDistance / softnessDistance, -1.f / softnessDistance, w, h);
+  ShaderGlobal::set_float4(billboard_decals_depth_maskVarId, 1.f + hardDistance / softnessDistance, -1.f / softnessDistance, w, h);
 
   // todo: on Dx9 we need vertex buffer. It can be as simple as vertexId in each vertex (4 bytes per vertices)
   d3d::setvsrc(0, 0, 0);

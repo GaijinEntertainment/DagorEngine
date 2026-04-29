@@ -20,4 +20,6 @@ UseProgLibs =
   3rdPartyLibs/imgui
 ;
 
+include $(Root)/prog/engine/imgui/addNetImgui.jam ;
+
 include $(Root)/prog/_jBuild/build.jam ;

@@ -19,17 +19,17 @@ class GenerationRefId
   G_STATIC_ASSERT(generation_bits <= 16);
 
 public:
-  GenerationRefId() = default;
-  explicit GenerationRefId(uint32_t h) : handle(h) {}
-  explicit operator uint32_t() const { return handle; }
-  explicit operator bool() const { return handle != INVALID_ID; }
-  bool operator==(const GenerationRefId &rhs) const { return handle == rhs.handle; }
-  bool operator!=(const GenerationRefId &rhs) const { return handle != rhs.handle; }
-  bool operator<(const GenerationRefId &rhs) const { return handle < rhs.handle; }
-  bool operator>(const GenerationRefId &rhs) const { return handle > rhs.handle; }
-  void reset() { handle = INVALID_ID; }
-  unsigned index() const { return handle & INDEX_MASK; }
-  unsigned generation() const { return (handle >> INDEX_BITS); }
+  constexpr GenerationRefId() = default;
+  constexpr explicit GenerationRefId(uint32_t h) : handle(h) {}
+  constexpr explicit operator uint32_t() const { return handle; }
+  constexpr explicit operator bool() const { return handle != INVALID_ID; }
+  constexpr bool operator==(const GenerationRefId &rhs) const { return handle == rhs.handle; }
+  constexpr bool operator!=(const GenerationRefId &rhs) const { return handle != rhs.handle; }
+  constexpr bool operator<(const GenerationRefId &rhs) const { return handle < rhs.handle; }
+  constexpr bool operator>(const GenerationRefId &rhs) const { return handle > rhs.handle; }
+  constexpr void reset() { handle = INVALID_ID; }
+  constexpr unsigned index() const { return handle & INDEX_MASK; }
+  constexpr unsigned generation() const { return (handle >> INDEX_BITS); }
   enum : uint32_t
   {
     INVALID_ID = ~0u,
@@ -38,7 +38,7 @@ public:
     INDEX_MASK = (1 << INDEX_BITS) - 1,
     GENERATION_MASK = ~INDEX_MASK
   };
-  static inline GenerationRefId make(uint32_t index, uint32_t gen)
+  static constexpr GenerationRefId make(uint32_t index, uint32_t gen)
   {
     return GenerationRefId((index & INDEX_MASK) | (gen << INDEX_BITS));
   }

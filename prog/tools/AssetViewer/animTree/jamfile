@@ -15,6 +15,7 @@ Sources =
   animTree.cpp
   animTreeUtils.cpp
   animTreeAnimationPlayer.cpp
+  animTreeDragListHandler.cpp
   childsDialog.cpp
   animStates/animStatesTreeEventHandler.cpp
   animStates/stateListSettingsEventHandler.cpp
@@ -24,18 +25,29 @@ Sources =
   animStates/animStatesType.cpp
   animStates/state.cpp
   animStates/rootProps.cpp
+  animStates/initFifo3.cpp
+  animStates/postBlendCtrlOrder.cpp
   controllers/ctrlTreeEventHandler.cpp
   controllers/ctrlListSettingsEventHandler.cpp
   controllers/ctrlType.cpp
-  controllers/moveNode.cpp
-  controllers/rotateNode.cpp
   controllers/paramSwitch.cpp
   controllers/randomSwitch.cpp
   controllers/hub.cpp
   controllers/linearPoly.cpp
-  controllers/rotateAroundNode.cpp
-  controllers/eyeCtrl.cpp
-  controllers/fifo3.cpp
+  controllers/footLockerIK.cpp
+  controllers/simpleControllers.cpp
+  controllers/nodesFromAttachement.cpp
+  controllers/effFromAttachment.cpp
+  controllers/attachNode.cpp
+  controllers/defClampCtrl.cpp
+  controllers/alias.cpp
+  controllers/aim.cpp
+  controllers/legsIK.cpp
+  controllers/multiChainFABRIK.cpp
+  controllers/animateNode.cpp
+  controllers/condHide.cpp
+  controllers/paramsCtrl.cpp
+  controllers/paramsCtrlDragDropHandlers.cpp
   blendNodes/blendNodeType.cpp
   blendNodes/single.cpp
   blendNodes/continuous.cpp

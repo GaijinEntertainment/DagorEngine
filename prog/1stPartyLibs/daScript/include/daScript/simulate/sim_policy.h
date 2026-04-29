@@ -1,5 +1,7 @@
 #pragma once
 
+#include <daScript/simulate/simulate.h>
+
 namespace  das {
 
     class Context;
@@ -7,14 +9,14 @@ namespace  das {
     // POLICY BASED OPERATIONS
 
     template <typename TT>
-    struct SimPolicy_CoreType {
+    struct DAS_API SimPolicy_CoreType {
         static __forceinline void Set ( TT & a, TT b, Context &, LineInfo * ) { a = b;}
         static __forceinline bool Equ     ( TT a, TT b, Context &, LineInfo * ) { return a == b;  }
         static __forceinline bool NotEqu  ( TT a, TT b, Context &, LineInfo * ) { return a != b;  }
     };
 
     template <typename TT>
-    struct SimPolicy_GroupByAdd : SimPolicy_CoreType<TT> {
+    struct DAS_API SimPolicy_GroupByAdd : SimPolicy_CoreType<TT> {
         static __forceinline TT Unp ( TT x, Context &, LineInfo * ) { return x; }
         static __forceinline TT Unm ( TT x, Context &, LineInfo * ) { return -x; }
         static __forceinline TT Add ( TT a, TT b, Context &, LineInfo * ) { return a + b; }
@@ -24,7 +26,7 @@ namespace  das {
     };
 
     template <typename TT>
-    struct SimPolicy_Ordered {
+    struct DAS_API SimPolicy_Ordered {
         // ordered
         static __forceinline bool LessEqu ( TT a, TT b, Context &, LineInfo * ) { return a <= b;  }
         static __forceinline bool GtEqu   ( TT a, TT b, Context &, LineInfo * ) { return a >= b;  }
@@ -33,7 +35,7 @@ namespace  das {
     };
 
     template <typename TT>
-    struct SimPolicy_Type : SimPolicy_GroupByAdd<TT>, SimPolicy_Ordered<TT> {
+    struct DAS_API SimPolicy_Type : SimPolicy_GroupByAdd<TT>, SimPolicy_Ordered<TT> {
         // numeric
         static __forceinline TT Inc ( TT & x, Context &, LineInfo * ) { return ++x; }
         static __forceinline TT Dec ( TT & x, Context &, LineInfo * ) { return --x; }
@@ -51,7 +53,7 @@ namespace  das {
         static __forceinline void SetMul  ( TT & a, TT b, Context &, LineInfo * ) { a *= b; }
     };
 
-    struct SimPolicy_Bool : SimPolicy_CoreType<bool> {
+    struct DAS_API SimPolicy_Bool : SimPolicy_CoreType<bool> {
         static __forceinline bool BoolNot ( bool x, Context &, LineInfo * ) { return !x; }
         static __forceinline bool BoolAnd ( bool a, bool b, Context &, LineInfo * ) { return a && b; }
         static __forceinline bool BoolOr  ( bool a, bool b, Context &, LineInfo * ) { return a || b; }
@@ -62,7 +64,7 @@ namespace  das {
     };
 
     template <typename TT, typename UTT>
-    struct SimPolicy_Bin : SimPolicy_Type<TT> {
+    struct DAS_API SimPolicy_Bin : SimPolicy_Type<TT> {
         enum { BITS = sizeof(TT)*8 };
         static __forceinline TT Mod ( TT a, TT b, Context & context, LineInfo * at ) {
             if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
@@ -106,7 +108,7 @@ namespace  das {
     };
 
     template <typename TT, typename UTT, TT INTMIN>
-    struct SimPolicy_IntBin : SimPolicy_Bin<TT,UTT> {
+    struct DAS_API SimPolicy_IntBin : SimPolicy_Bin<TT,UTT> {
         static __forceinline TT Div ( TT a, TT b, Context & context, LineInfo * at ) {
             if ( b==0 ) context.throw_error_at(at, "division by zero");
             else if ( a==INTMIN && b==-1 ) context.throw_error_at(at, "division overflow");
@@ -125,7 +127,7 @@ namespace  das {
     };
 
     template <typename TT>
-    struct SimPolicy_MathTT {
+    struct DAS_API SimPolicy_MathTT {
         static __forceinline TT Min   ( TT a, TT b, Context &, LineInfo * ) { return a < b ? a : b; }
         static __forceinline TT Max   ( TT a, TT b, Context &, LineInfo * ) { return a > b ? a : b; }
         static __forceinline TT Sat   ( TT a, Context &, LineInfo * )    { return a > 0 ? (a < 1 ? a : 1) : 0; }
@@ -136,7 +138,7 @@ namespace  das {
     };
 
 #if DAS_FAST_INTEGER_MOD
-    struct SimPolicy_Int : SimPolicy_IntBin<int32_t,uint32_t,INT32_MIN>, SimPolicy_MathTT<int32_t> {
+    struct DAS_API SimPolicy_Int : SimPolicy_IntBin<int32_t,uint32_t,INT32_MIN>, SimPolicy_MathTT<int32_t> {
          static __forceinline int32_t Mod ( int32_t a, int32_t b, Context & context, LineInfo * at ) {
             if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
             double A = a, B = b;
@@ -149,7 +151,7 @@ namespace  das {
         }
     };
 
-    struct SimPolicy_UInt : SimPolicy_Bin<uint32_t,uint32_t>, SimPolicy_MathTT<uint32_t> {
+    struct DAS_API SimPolicy_UInt : SimPolicy_Bin<uint32_t,uint32_t>, SimPolicy_MathTT<uint32_t> {
         static __forceinline int32_t Mod ( uint32_t a, uint32_t b, Context & context, LineInfo * at ) {
             if ( b==0 ) context.throw_error_at(at, "division by zero in modulo");
             double A = a, B = b;
@@ -162,25 +164,30 @@ namespace  das {
         }
     };
 #else
-    struct SimPolicy_Int : SimPolicy_IntBin<int32_t,uint32_t,INT32_MIN>, SimPolicy_MathTT<int32_t> {};
-    struct SimPolicy_UInt : SimPolicy_Bin<uint32_t,uint32_t>, SimPolicy_MathTT<uint32_t> {};
+    struct DAS_API SimPolicy_Int : SimPolicy_IntBin<int32_t,uint32_t,INT32_MIN>, SimPolicy_MathTT<int32_t> {};
+    struct DAS_API SimPolicy_UInt : SimPolicy_Bin<uint32_t,uint32_t>, SimPolicy_MathTT<uint32_t> {};
 #endif
 
-    struct SimPolicy_Int64 : SimPolicy_IntBin<int64_t,uint64_t,INT64_MIN>, SimPolicy_MathTT<int64_t> {};
-    struct SimPolicy_UInt64 : SimPolicy_Bin<uint64_t,uint64_t>, SimPolicy_MathTT<uint64_t> {};
+    struct DAS_API SimPolicy_Int64 : SimPolicy_IntBin<int64_t,uint64_t,INT64_MIN>, SimPolicy_MathTT<int64_t> {};
+    struct DAS_API SimPolicy_UInt64 : SimPolicy_Bin<uint64_t,uint64_t>, SimPolicy_MathTT<uint64_t> {};
 
-    struct SimPolicy_Float : SimPolicy_Type<float> {
+    struct DAS_API SimPolicy_Float : SimPolicy_Type<float> {
         static __forceinline float Div ( float a, float b, Context &, LineInfo * ) { return a / b; }
         static __forceinline void SetDiv  ( float & a, float b, Context &, LineInfo * ) { a /= b; }
         static __forceinline float Mod ( float a, float b, Context &, LineInfo * ) { return (float)fmod(a,b); }
         static __forceinline void SetMod ( float & a, float b, Context &, LineInfo * ) { a = (float)fmod(a,b); }
     };
 
-    struct SimPolicy_Double : SimPolicy_Type<double>, SimPolicy_MathTT<double> {
+    struct DAS_API SimPolicy_Double : SimPolicy_Type<double>, SimPolicy_MathTT<double> {
         static __forceinline double Div ( double a, double b, Context &, LineInfo * ) { return a / b; }
         static __forceinline void SetDiv  ( double & a, double b, Context &, LineInfo * ) { a /= b; }
         static __forceinline double Mod ( double a, double b, Context &, LineInfo * ) { return fmod(a,b); }
         static __forceinline void SetMod ( double & a, double b, Context &, LineInfo * ) { a = fmod(a,b); }
+        static __forceinline double Floor    ( double a, Context &, LineInfo * )          { return ::floor(a); }
+        static __forceinline double Ceil     ( double a, Context &, LineInfo * )          { return ::ceil(a); }
+        static __forceinline double Round    ( double a, Context &, LineInfo * )          { return ::round(a); }
+        static __forceinline double Fract    ( double a, Context &, LineInfo * )          { return a - ::floor(a); }
+        static __forceinline double Sat      ( double a, Context &, LineInfo * )          { return a > 0 ? (a < 1.0 ? a : 1.0) : 0.0; }
         static __forceinline int Trunci ( double a, Context &, LineInfo * )          { return int(trunc(a)); }
         static __forceinline int Roundi ( double a, Context &, LineInfo * )          { return int(round(a)); }
         static __forceinline int Floori ( double a, Context &, LineInfo * )          { return int(floor(a)); }
@@ -188,10 +195,10 @@ namespace  das {
         static __forceinline double Lerp ( double a, double b, double t, Context &, LineInfo * ) { return (b-a)*t +a; }
     };
 
-    struct SimPolicy_Pointer : SimPolicy_CoreType<void *> {
+    struct DAS_API SimPolicy_Pointer : SimPolicy_CoreType<void *> {
     };
 
-    struct SimPolicy_MathVecI {
+    struct DAS_API SimPolicy_MathVecI {
         static __forceinline vec4f Min   ( vec4f a, vec4f b, Context &, LineInfo * ) { return v_cast_vec4f(v_mini(v_cast_vec4i(a),v_cast_vec4i(b))); }
         static __forceinline vec4f Max   ( vec4f a, vec4f b, Context &, LineInfo * ) { return v_cast_vec4f(v_maxi(v_cast_vec4i(a),v_cast_vec4i(b))); }
         static __forceinline vec4f Sat   ( vec4f a, Context &, LineInfo * ) {
@@ -206,7 +213,7 @@ namespace  das {
         }
     };
 
-    struct SimPolicy_MathVecU {
+    struct DAS_API SimPolicy_MathVecU {
         static __forceinline vec4f Min   ( vec4f a, vec4f b, Context &, LineInfo * ) { return v_cast_vec4f(v_minu(v_cast_vec4i(a),v_cast_vec4i(b))); }
         static __forceinline vec4f Max   ( vec4f a, vec4f b, Context &, LineInfo * ) { return v_cast_vec4f(v_maxu(v_cast_vec4i(a),v_cast_vec4i(b))); }
         static __forceinline vec4f Sat   ( vec4f a, Context &, LineInfo * ) {
@@ -223,7 +230,7 @@ namespace  das {
         }
     };
 
-    struct SimPolicy_MathFloat {
+    struct DAS_API SimPolicy_MathFloat {
         static __forceinline float Sign     ( float a, Context &, LineInfo * )          { return a == 0.0f ? 0.0f : (a > 0.0f) ? 1.0f : -1.0f; }
         static __forceinline float Abs      ( float a, Context &, LineInfo * )          { return v_extract_x(v_abs(v_set_x(a))); }
         static __forceinline float Floor    ( float a, Context &, LineInfo * )          { return v_extract_x(v_floor(v_set_x(a))); }
@@ -264,14 +271,14 @@ namespace  das {
         static __forceinline float ATan2_est ( float a, float b, Context &, LineInfo * ) { return v_extract_x(v_atan2_est_x(v_set_x(a), v_set_x(b))); }
     };
 
-    struct SimPolicy_F2IVec {
+    struct DAS_API SimPolicy_F2IVec {
         static __forceinline vec4f Trunci ( vec4f a, Context &, LineInfo * )          { return v_cast_vec4f(v_cvt_vec4i(a)); }
         static __forceinline vec4f Roundi ( vec4f a, Context &, LineInfo * )          { return v_cast_vec4f(v_cvt_roundi(a)); }
         static __forceinline vec4f Floori ( vec4f a, Context &, LineInfo * )          { return v_cast_vec4f(v_cvt_floori(a)); }
         static __forceinline vec4f Ceili  ( vec4f a, Context &, LineInfo * )          { return v_cast_vec4f(v_cvt_ceili(a)); }
     };
 
-    struct SimPolicy_MathVec {
+    struct DAS_API SimPolicy_MathVec {
 
         static __forceinline vec4f Sign     ( vec4f a, Context &, LineInfo * ) {
             return v_or(v_and(v_splats(1.0f), v_cmp_gt(a, v_zero())), v_and(v_splats(-1.0f), v_cmp_lt(a, v_zero())));
@@ -313,7 +320,7 @@ namespace  das {
     };
 
     template <typename TT, int mask>
-    struct SimPolicy_Vec {
+    struct DAS_API SimPolicy_Vec {
         static __forceinline void Set  ( char * a, vec4f b, Context &, LineInfo * ) {
             TT * pa = (TT *) a;
             *pa = cast<TT>::to ( b );
@@ -407,7 +414,7 @@ namespace  das {
     };
 
     template <typename TT, int mask>
-    struct SimPolicy_iVec {
+    struct DAS_API SimPolicy_iVec {
         static __forceinline void Set  ( char * a, vec4f b, Context &, LineInfo * ) {
             TT * pa = (TT *) a;
             *pa = cast<TT>::to ( b );
@@ -579,7 +586,7 @@ namespace  das {
     };
 
     template <typename TT, int mask>
-    struct SimPolicy_uVec : SimPolicy_iVec<TT,mask> {
+    struct DAS_API SimPolicy_uVec : SimPolicy_iVec<TT,mask> {
         static __forceinline vec4f setXYZW ( uint32_t x, uint32_t y, uint32_t z, uint32_t w ) {
             return v_cast_vec4f(v_make_vec4i(x, y, z, w));
         }
@@ -686,7 +693,7 @@ namespace  das {
         }
     };
 
-    struct SimPolicy_Range64 {
+    struct DAS_API SimPolicy_Range64 {
         enum { mask=1+2+4+8 };
         static __forceinline void Set  ( char * a, vec4f b, Context &, LineInfo * ) {
             range64 * pa = (range64 *) a;
@@ -714,7 +721,7 @@ namespace  das {
         }
     };
 
-    struct SimPolicy_URange64 {
+    struct DAS_API SimPolicy_URange64 {
         enum { mask=1+2+4+8 };
         static __forceinline void Set  ( char * a, vec4f b, Context &, LineInfo * ) {
             urange64 * pa = (urange64 *) a;
@@ -742,10 +749,10 @@ namespace  das {
         }
     };
 
-    struct SimPolicy_Range : SimPolicy_iVec<range,3> {};
-    struct SimPolicy_URange : SimPolicy_uVec<urange,3> {};
+    struct DAS_API SimPolicy_Range : SimPolicy_iVec<range,3> {};
+    struct DAS_API SimPolicy_URange : SimPolicy_uVec<urange,3> {};
 
-    extern const char * rts_null;
+    extern DAS_API const char * rts_null;
 
     __forceinline const char * to_rts ( vec4f a ) {
         const char * s = cast<const char *>::to(a);
@@ -756,7 +763,7 @@ namespace  das {
         return s ? s : rts_null;
     }
 
-    struct SimPolicy_String {
+    struct DAS_API SimPolicy_String {
         // even more basic
         static __forceinline void Set     ( char * & a, char * b, Context &, LineInfo * ) { a = b;}
         static __forceinline bool Equ     ( char * a, char * b, Context &, LineInfo * ) { return strcmp(to_rts(a), to_rts(b))==0; }
@@ -776,7 +783,7 @@ namespace  das {
     // generic SimPolicy<X>
 
     template <typename TT>
-    struct SimPolicy;
+    struct DAS_API SimPolicy;
 
     template <> struct SimPolicy<bool> : SimPolicy_Bool {};
     template <> struct SimPolicy<int32_t> : SimPolicy_Int {};

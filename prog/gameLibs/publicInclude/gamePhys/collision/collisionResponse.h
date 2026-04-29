@@ -4,9 +4,14 @@
 //
 #pragma once
 
+#include <generic/dag_tabFwd.h>
 #include <gamePhys/collision/collisionInfo.h>
 #include <gamePhys/collision/solverBodyInfo.h>
 
+namespace gamephys
+{
+struct CollisionContactData;
+}; // namespace gamephys
 
 namespace daphys
 {
@@ -52,14 +57,15 @@ void cache_solved_contacts(dag::ConstSpan<gamephys::SeqImpulseInfo> collisions, 
 void energy_conservation_vel_patch(const Tab<gamephys::SeqImpulseInfo> &collisions, DPoint3 &vel, DPoint3 &omega,
   const ResolveContactParams &params);
 
-typedef eastl::fixed_function<64, void(SolverBodyInfo &)> BodyInnerConstraints;
+void consume_impulse_reserve(daphys::SolverBodyInfo &lhs, daphys::SolverBodyInfo &rhs, const gamephys::SeqImpulseInfo &info,
+  double &out_lambda);
 
 void contacts_to_solver_data(const SolverBodyInfo *lhs, const SolverBodyInfo *rhs,
   dag::ConstSpan<gamephys::CollisionContactData> contacts, Tab<gamephys::SeqImpulseInfo> &collisions);
 bool resolve_pair_velocity(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag::Span<gamephys::SeqImpulseInfo> collisions,
-  double fric_k = 0.7, double bounce = 0.0, int num_iter = 5, BodyInnerConstraints l_constraints = BodyInnerConstraints(),
-  BodyInnerConstraints r_constraints = BodyInnerConstraints());
+  double fric_k = 0.7, double bounce = 0.0, int num_iter = 5);
 void resolve_pair_penetration(SolverBodyInfo &lhs, SolverBodyInfo &rhs, dag::ConstSpan<gamephys::SeqImpulseInfo> collisions,
-  double erp = 2.0, int num_iter = 5, BodyInnerConstraints l_constraints = BodyInnerConstraints(),
-  BodyInnerConstraints r_constraints = BodyInnerConstraints());
+  double erp = 2.0, int num_iter = 5);
+
+bool validate_contacts(dag::ConstSpan<gamephys::CollisionContactData> contacts, const Point3 &pos, float bounding_rad);
 } // namespace daphys

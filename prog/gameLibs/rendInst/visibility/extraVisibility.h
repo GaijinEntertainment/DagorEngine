@@ -3,6 +3,7 @@
 
 #include "riGen/riExtraPool.h"
 #include "render/extraRender.h"
+#include <rendInst/visibilityDecl.h>
 
 #include <generic/dag_smallTab.h>
 
@@ -14,6 +15,7 @@ struct RiGenExtraVisibility
 
   bool forcedLocalPoolOrder = false; // ri res order won't be overwritten by a global pool order (must-have if same visibility is used
                                      // for multiple frames)
+  rendinst::VisibilityRenderingFlags rendering = rendinst::VisibilityRenderingFlag::All;
   int forcedExtraLod = -1;
   struct Order
   {
@@ -29,12 +31,14 @@ struct RiGenExtraVisibility
   SmallTab<SmallTab<Order>> riexLarge[LARGE_LOD_CNT]; // temp array
   SmallTab<SmallTab<vec4f>> riexData[rendinst::RiExtraPool::MAX_LODS];
   SmallTab<float> minSqDistances[rendinst::RiExtraPool::MAX_LODS];
-  SmallTab<float> minAllowedSqDistances[rendinst::RiExtraPool::MAX_LODS];
-  SmallTab<IPoint2> vbOffsets[rendinst::RiExtraPool::MAX_LODS]; // after copied to buffer
+  SmallTab<float> approxInvDensities[rendinst::RiExtraPool::MAX_LODS];
+  float invDensityToMinSqAllowedDistance = 0.f;
+  SmallTab<unsigned int> vbOffsets[rendinst::RiExtraPool::MAX_LODS];
+  SmallTab<unsigned short> vbCounts[rendinst::RiExtraPool::MAX_LODS];
   SmallTab<unsigned short> riexPoolOrder;
 
   rendinst::render::VbExtraCtx *vbexctx = nullptr;
-  volatile uint32_t vbExtraGeneration = INVALID_VB_EXTRA_GEN;
+  mutable volatile uint32_t vbExtraGeneration = INVALID_VB_EXTRA_GEN;
 
   uint32_t riExLodNotEmpty = 0;
   int riexInstCount = 0;
@@ -49,7 +53,7 @@ struct RiGenExtraVisibility
   SmallTab<PerInstanceElem> sortedTransparentElems;
   uint32_t partitionedElemsCount = 0;
 
-  static constexpr uint32_t maxHideMarkedMaterialForInstances = 64;
+  static constexpr uint32_t maxHideMarkedMaterialForInstances = 512;
   struct HideMarkedMaterialForInstance
   {
     uint16_t poolId = -1;
@@ -61,4 +65,12 @@ struct RiGenExtraVisibility
     }
   };
   SmallTab<HideMarkedMaterialForInstance> hideMarkedMaterialsForInstances;
+
+  struct DynamicRiExtraInstances
+  {
+    uint32_t instancesOffset;
+    uint16_t poolId;
+    uint16_t lod;
+  };
+  SmallTab<DynamicRiExtraInstances> dynamicRiExtraInstances;
 };

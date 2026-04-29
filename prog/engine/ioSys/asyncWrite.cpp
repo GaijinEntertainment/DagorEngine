@@ -6,7 +6,7 @@
 #include <osApiWrappers/dag_unicode.h>
 #include <memory/dag_framemem.h>
 
-#if _TARGET_APPLE | _TARGET_PC_LINUX
+#if _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID | _TARGET_IOS
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -66,7 +66,7 @@ public:
   {
     (done == WRITE_IN_PROGRESS) ? (void)SleepEx(0, TRUE) : ((void)0);
   } // aleartable sleep to be able get AIO callbacks
-#elif _TARGET_APPLE | _TARGET_PC_LINUX
+#elif _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID | _TARGET_IOS
   void poll_aio_result();
 #else
   inline void poll_aio_result() {}
@@ -125,7 +125,7 @@ AsyncWriterCB::AsyncWriterCB(int buf_size) :
 
 bool AsyncWriterCB::open(const char *fname, AsyncWriterMode mode)
 {
-#if _TARGET_APPLE | _TARGET_PC_LINUX
+#if _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID | _TARGET_IOS
   fileHandle = ::open(fname, O_WRONLY | O_CREAT | (mode == AsyncWriterMode::TRUNC ? O_TRUNC : O_APPEND), 0666);
 #elif _TARGET_PC_WIN | _TARGET_XBOX
   Tab<wchar_t> fname_u16(framemem_ptr());
@@ -140,7 +140,7 @@ bool AsyncWriterCB::open(const char *fname, AsyncWriterMode mode)
 
 bool AsyncWriterCB::openTemp(char *fname)
 {
-#if _TARGET_APPLE | _TARGET_PC_LINUX
+#if _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID | _TARGET_IOS
   fileHandle = mkstemp(fname);
 #elif _TARGET_PC_WIN | _TARGET_XBOX
   Tab<wchar_t> fname_u16(tmpmem);
@@ -160,7 +160,7 @@ void AsyncWriterCB::close()
   if (fileHandle == INVALID_FILE_HANDLE)
     return;
   flush();
-#if _TARGET_APPLE | _TARGET_PC_LINUX
+#if _TARGET_APPLE | _TARGET_PC_LINUX | _TARGET_ANDROID | _TARGET_IOS
   G_VERIFY(::close(fileHandle) == 0);
 #elif _TARGET_PC_WIN | _TARGET_XBOX
   G_VERIFY(CloseHandle(fileHandle));
@@ -207,6 +207,49 @@ void AsyncWriterCB::poll_aio_result()
         break;
       default: done = WRITE_FAILED; break;
     }
+}
+#elif _TARGET_ANDROID | _TARGET_IOS
+void AsyncWriterCB::poll_aio_result()
+{
+  if (done != WRITE_IN_PROGRESS)
+    return;
+
+  if (buf.empty())
+  {
+    done = WRITE_DONE;
+    return;
+  }
+
+  if (offs >= 0 && ::lseek(fileHandle, offs, SEEK_SET) < 0)
+  {
+    done = WRITE_FAILED;
+    return;
+  }
+
+  int left = buf.size();
+  const char *p = buf.data();
+  while (left > 0)
+  {
+    const ssize_t w = ::write(fileHandle, p, left);
+    if (w > 0)
+    {
+      p += w;
+      left -= (int)w;
+      offs += (int)w;
+    }
+    else if (errno == EINTR)
+    {
+      continue;
+    }
+    else
+    {
+      done = WRITE_FAILED;
+      return;
+    }
+  }
+
+  buf.clear();
+  done = WRITE_DONE;
 }
 #endif
 

@@ -32,6 +32,19 @@ namespace ShaderParser
  *********************************/
 class GatherVarShaderEvalCB : public ShaderEvalCB, public ShaderBoolEvalCB
 {
+  struct ConditionsNestState
+  {
+    Tab<bool> stack = Tab<bool>(tmpmem);
+    int count = 0;
+    bool hasFlag = false;
+  };
+
+  ConditionsNestState dynState{}, staticState{};
+  SCFastNameMap staticVars, dynamicVars;
+
+  shc::ShaderContext &ctx;
+  Parser &parser; // Cached ref from ctx
+
 public:
   explicit GatherVarShaderEvalCB(shc::ShaderContext &ctx);
 
@@ -67,22 +80,8 @@ public:
   void eval(immediate_const_block &) override;
 
 private:
-  shc::ShaderContext &ctx;
-
-  // Cached refs from ctx
-  shc::TypeTables &types;
-  Parser &parser;
-
-  // Internal pass state
-  Tab<bool> dynStack;
-  int dynCount;
-  bool hasDynFlag;
-
-  SCFastNameMap staticVars, dynamicVars;
-
-  ShVarBool addInterval(const char *intervalName, Terminal *terminal, bool_value *e);
-
-  ShVarBool addTextureInterval(const char *textureName, Terminal *terminal, bool_value &e);
+  ShVarBool addIntervalRef(const char *intervalName, Terminal *terminal, bool_value *e);
+  ShVarBool addTextureIntervalRef(const char *textureName, Terminal *terminal, bool_value &e);
 };
 } // namespace ShaderParser
 

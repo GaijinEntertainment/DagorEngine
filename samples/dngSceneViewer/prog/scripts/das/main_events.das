@@ -5,6 +5,7 @@ require ecs
 struct ParallelUpdateFrameDelayed
   curTime : float
   dt : float
+  curTimeD : double
 
 [event(broadcast)]
 struct PhysUpdateEvent

@@ -8,12 +8,12 @@ int mip_blur_filter_nan_validation = 0;
 interval mip_blur_filter_nan_validation: no < 1, yes;
 
 macro GAUSSIAN_MIP_CORE(code)
-  hlsl(code) {
-    Texture2D prev_mip_tex: register(t4);
-    SamplerState prev_mip_tex_samplerstate: register(s4);
-  }
+  (code) {
+    mip_target_size@f4 = mip_target_size;
 
-  (code) { mip_target_size@f4 = mip_target_size; }
+    prev_mip_tex@tex2d : register(4);
+    prev_mip_tex_samplerstate@sampler : register(4);
+  }
 
   hlsl(code)
   {
@@ -84,6 +84,7 @@ macro GAUSSIAN_MIP_CORE(code)
   }
 endmacro
 
+
 shader gaussian_mipchain
 {
   no_ablend;
@@ -135,11 +136,12 @@ interval gaussian_mipchain_srgb: no < 1, yes;
 
 shader gaussian_mipchain_cs
 {
-  ENABLE_ASSERT(cs)
   GAUSSIAN_MIP_CORE(cs)
 
-  hlsl(cs) {
-    RWTexture2D<float4> mip_target : register(u0);
+  (cs) {
+    mip_target@uav : register(0) hlsl {
+        RWTexture2D<float4> mip_target@uav;
+    };
   }
 
   hlsl(cs)
@@ -163,11 +165,12 @@ shader gaussian_mipchain_cs
 
 shader gaussian_mipchain_alpha_cs
 {
-  ENABLE_ASSERT(cs)
   GAUSSIAN_MIP_CORE(cs)
 
-  hlsl(cs) {
-    RWTexture2D<float4> mip_target : register(u0);
+  (cs) {
+    mip_target@uav : register(0) hlsl {
+        RWTexture2D<float4> mip_target@uav;
+    };
   }
 
   hlsl(cs)
@@ -196,19 +199,18 @@ shader bloom_filter_mipchain
   supports none;
   supports global_frame;
 
-  hlsl(ps) {
-    Texture2D prev_mip_tex: register(t4);
-    SamplerState prev_mip_tex_samplerstate: register(s4);
-  }
-
   cull_mode = none;
   z_write = false;
   z_test = false;
 
   POSTFX_VS_TEXCOORD(0, texcoord00)
-  ENABLE_ASSERT(ps)
 
-  (ps) { mip_target_size@f4 = mip_target_size; }
+  (ps) {
+    mip_target_size@f4 = mip_target_size;
+
+    prev_mip_tex@tex2d : register(4);
+    prev_mip_tex_samplerstate@sampler : register(4);
+  }
 
   hlsl(ps)
   {

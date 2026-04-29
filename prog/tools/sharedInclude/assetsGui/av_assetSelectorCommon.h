@@ -24,6 +24,7 @@ public:
   static void copyAssetFolderPathToClipboard(const DagorAsset &asset);
   static void copyAssetFolderPathToClipboard(const DagorAssetFolder &folder);
   static void copyAssetNameToClipboard(const DagorAsset &asset);
+  static void copyAssetTagsToClipboard(const DagorAsset &asset);
   static void copyAssetFolderNameToClipboard(const DagorAssetFolder &folder);
   static const DagorAsset *getAssetByName(const DagorAssetMgr &asset_mgr, const char *_name, dag::ConstSpan<int> asset_types);
   static PropPanel::IconId getAssetTypeIcon(int type) { return assetTypeIcons[type]; }

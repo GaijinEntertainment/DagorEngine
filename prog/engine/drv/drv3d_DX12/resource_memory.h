@@ -56,6 +56,8 @@ public:
 
   uintptr_t getAddress() const { return reinterpret_cast<uintptr_t>(heap); }
 
+  ValueRange<uint8_t *> getRange() const { return {heap, heap + sz}; }
+
   uint8_t *asPointer() const { return heap; }
 
   ResourceMemory subRange(uint64_t offset, uint64_t o_size) const

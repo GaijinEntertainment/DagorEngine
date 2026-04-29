@@ -28,13 +28,21 @@ namespace PropPanel
 class IMenu;
 }
 
+class IEditorCommandSystem;
+class ModelessWindowControllerList;
+
+class BaseEditorCoreConsoleCmdHandler;
+
 /// Editor's main window.
 /// In EditorCore based editors main window is usually derived from
 /// GenericEditorAppWindow and IEditorCoreEngine classes.
 /// @ingroup EditorCore
 /// @ingroup EditorBaseClasses
 /// @ingroup AppWindow
-class GenericEditorAppWindow : public PropPanel::IMenuEventHandler, public IUndoRedoWndClient
+class GenericEditorAppWindow : public PropPanel::IMenuEventHandler,
+                               public PropPanel::IDelayedCallbackHandler,
+                               public IUndoRedoWndClient,
+                               public IGridSettingChangeEventHandler
 {
 public:
   /// Constructor.
@@ -58,6 +66,10 @@ public:
   /// update Undo / Redo menu items.
   /// update undo / redo menu text - set names for undo / redo operations.
   void updateUndoRedoMenu() override;
+
+  /// IGridSettingChangeEventHandler
+  /// Called when the snap settings have changed.
+  void onSnapSettingChanged() override;
 
   /// Save viewports parameters to BLK file.
   /// @param[in] blk - Data Block that contains data to save (see DataBlock)
@@ -180,15 +192,16 @@ protected:
   void onChangeFov();
   void onShowConsole();
 
-  void fillCommonToolbar(PropPanel::ContainerPropertyControl &tb);
+  void registerCommonEditorCommands(IEditorCommandSystem &command_system);
+  void fillCommonToolbar(PropPanel::ContainerPropertyControl &tb, IEditorCommandSystem &command_system);
+
+  void getModelessWindowControllers(ModelessWindowControllerList &controllers, ScreenshotDlgMode mode);
 
   // screenshot routine
   virtual String getScreenshotNameMask(bool cube) const = 0;
-  virtual void screenshotRender(bool skip_debug_objects) = 0;
+  virtual void screenshotRender(const Driver3dPerspective &persp, bool is_ortho, bool skip_debug_objects) = 0;
 
   String getScreenshotName(bool cube) const;
-  void setScreenshotOptions(ScreenshotDlgMode mode);
-  void closeScreenshotSettingsDialog();
 
   Texture *renderInTex(int w, int h, const TMatrix *tm, bool skip_debug_objects = false,
     bool should_make_orthogonal_screenshot = false, bool should_use_z_buffer = true, float world_x0 = 0.f, float world_x1 = 0.f,
@@ -204,8 +217,14 @@ protected:
   // IMenuEventHandler
   int onMenuItemClick(unsigned id) override;
 
+  static constexpr unsigned DELAYED_CALLBACK_VIEWPORT_COMMAND_BIT = 1 << ((sizeof(unsigned) * 8) - 1);
+
+  // IDelayedCallbackHandler
+  void onImguiDelayedCallback([[maybe_unused]] void *user_data) override {}
+
 private:
   class FovDlg;
+  friend BaseEditorCoreConsoleCmdHandler;
 
   EditorWorkspace mWSpace;
   eastl::unique_ptr<PropPanel::IMenu> mainMenu;

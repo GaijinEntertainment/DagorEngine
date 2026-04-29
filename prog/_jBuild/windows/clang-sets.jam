@@ -1,24 +1,22 @@
 #  Setup for Clang-CL C/C++ compiler for Windows (to be included from jBuild.jam)
 _OBJ_SUFFIX  = .obj ;
 
-_CLANG_LIB_FOLDER = $(CLangVer:B) ;
+local _CLANG_LIB_FOLDER = $(CLangVer:B) ;
 _CLANG_LIB_FOLDER = $(_CLANG_LIB_FOLDER:B) ;
 local COMPILER_AND_STL_VERSION_MISMATCH = ;
 
-if $(_CLANG_LIB_FOLDER) = 15 {
-  _VC_DIR         = $(_DEVTOOL)/vc2019_16.11.34 ;
-  _MSC_VER        = 19.29.30154 ;
-    _CLANG_LIB_FOLDER = $(CLangVer) ;
-} else if $(_CLANG_LIB_FOLDER) in 16 17 18 19 20 21 {
+if $(CLangVer) >= 16 { # Lex cmp
   _VC_DIR         = $(_DEVTOOL)/vc2022_17.9.5 ;
   _MSC_VER        = 19.39.33523 ;
-  if ! [ GLOB $(_VC_DIR)    : * ] {
+  if $(CLangVer) >= 19 || ! [ GLOB $(_VC_DIR)    : * ] {
     _VC_DIR         = $(_DEVTOOL)/vc2022_17.14.4 ;
     _MSC_VER        = 19.44.35209 ;
-    if $(_CLANG_LIB_FOLDER) in 16 17 18 { COMPILER_AND_STL_VERSION_MISMATCH = -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH ; }
+    if $(CLangVer) < 19 { COMPILER_AND_STL_VERSION_MISMATCH = -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH ; }
   }
-} else {
-    exit Unknown CLangVer $(CLangVer) ;
+} else { # 15
+  _VC_DIR         = $(_DEVTOOL)/vc2019_16.11.34 ;
+  _MSC_VER        = 19.29.30154 ;
+  _CLANG_LIB_FOLDER = $(CLangVer) ;
 }
 _CLANG_DIR = $(_DEVTOOL)/LLVM-$(CLangVer) ;
 
@@ -29,7 +27,8 @@ _VC_CRT_TYPE = -MT ;
 if $(PlatformArch) = x86_64 { _WIN_SDK_TARGET_SUFFIX = x64 ; }
 if $(PlatformArch) = arm64 { _WIN_SDK_TARGET_SUFFIX = arm64 ; }
 
-if $(UseGDK) != no {
+if $(UseGDK) = yes {
+  _VC_CRT_TYPE = -MD ;
   include $(Root)/prog/_jBuild/_gdk/setup.jam ;
   WinSdkVer = win.sdk.100 ;
   WinSdkUpdateVer = $(GdkWinSdk) ;
@@ -37,7 +36,7 @@ if $(UseGDK) != no {
 include $(Root)/prog/_jBuild/_vc/win_sdk.jam ;
 
 local _VC_HOST_DIR = Hostx64 ;
-if $(WindowsHostArch) = arm64 { _VC_HOST_DIR = Hostarm64 ; }
+if $(WindowsHostArch) = arm64 && [ GLOB $(_VC_DIR)/bin : Hostarm64 ] { _VC_HOST_DIR = Hostarm64 ; }
 _VC_DIR_BIN = $(_VC_DIR)/bin/$(_VC_HOST_DIR)/$(_WIN_SDK_TARGET_SUFFIX) ;
 
 if ! [ GLOB $(_DEVTOOL)/nasm : * ] { exit FATAL\: \"$(_DEVTOOL)/nasm\" not found!  Please, update DEVTOOLS ; }
@@ -93,6 +92,8 @@ if $(Analyze) = yes { _DEF_C_CMDLINE = [ StripStrings $(_DEF_C_CMDLINE) : -D_USI
 
 if $(Sanitize) != disabled {
   _DEF_C_CMDLINE += -fsanitize=$(Sanitize) ;
+  if $(Sanitize) = address { _DEF_C_CMDLINE += -fsanitize-address-use-after-scope -fsanitize-address-use-after-return=always ; }
+  if $(Sanitize) = undefined { _DEF_C_CMDLINE += -fsanitize-ignorelist=$(Root)/prog/ubsan.ignore ; }
   if $(PlatformArch) = x86 { _DEF_C_CMDLINE += -mllvm -asan-use-private-alias=1 ; }
 }
 

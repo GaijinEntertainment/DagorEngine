@@ -1,9 +1,11 @@
 if (__name__ == "__analysis__")
   return
 
+//-file:undefined-global
+
 function fn(x) {
-    return ::y(x)
-  }
+  return ::y(x)
+}
 
 let _c1 = ::a > 2 || ::a > 100
 

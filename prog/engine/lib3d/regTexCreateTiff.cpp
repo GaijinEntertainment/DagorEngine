@@ -118,7 +118,7 @@ public:
 
     int tiffStride = TIFFScanlineSize(image);
     Tab<uint8_t> tiffLine(tiffStride, 0);
-    t = d3d::create_tex(NULL, width, height, fm.dagorFormat, 1, fn);
+    t = d3d::create_tex(NULL, width, height, fm.dagorFormat, 1, fn, RESTAG_REGTEX);
 
     if (t)
     {

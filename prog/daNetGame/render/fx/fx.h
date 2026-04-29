@@ -5,6 +5,8 @@
 #include <gameRes/dag_gameResources.h>
 #include <math/dag_bounds3.h>
 #include <math/dag_TMatrix.h>
+#include <math/dag_color.h>
+#include <EASTL/optional.h>
 #include <daFx/dafx.h>
 #include <daECS/core/event.h>
 
@@ -129,6 +131,7 @@ void reset();
 void draw_debug_opt(const TMatrix4 &glob_tm);
 FxResolutionSetting getFxResolutionSetting();
 FxQuality getFxQualityMask();
+uint32_t getFxGPUBufferSizeBasedOnQuality(FxQuality quality);
 
 void set_rt_override(FxRenderTargetOverride v);
 FxRenderTargetOverride get_rt_override();
@@ -148,7 +151,13 @@ struct StartEffectEvent : public ecs::Event
   {}
 };
 
-ECS_BROADCAST_EVENT_TYPE(StartEffectPosNormEvent, int /*type*/, Point3 /*pos*/, Point3 /*norm*/, bool /*is_player*/, float /*scale*/);
+ECS_BROADCAST_EVENT_TYPE(StartEffectPosNormEvent,
+  int /*type*/,
+  Point3 /*pos*/,
+  Point3 /*norm*/,
+  bool /*is_player*/,
+  float /*scale*/,
+  eastl::optional<Color4> /*color_mult*/);
 
 void start_effect(int type,
   const TMatrix &emitter_tm,
@@ -188,6 +197,7 @@ void before_reset();
 void after_reset();
 void notify_fx_managers_update_started();
 void notify_fx_managers_update_finished();
+void start_fx_interframe_jobs();
 
 bool renderTransLowRes(dafx::CullingId cull_id = dafx::CullingId());
 bool renderTransHighRes(dafx::CullingId cull_id = dafx::CullingId());
@@ -197,7 +207,6 @@ bool renderTransSpecial(uint8_t render_tag, dafx::CullingId cull_id = dafx::Cull
 void renderTransHaze();
 void renderTransWaterFoam();
 void renderTransWaterProj(const TMatrix4 &view, const TMatrix4 &proj, const Point3 &pos, float mip_bias);
-void renderToGbuffer(int global_frame_id);
 
 void killEffectsInSphere(const BSphere3 &bsph);
 

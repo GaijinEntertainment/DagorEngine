@@ -53,7 +53,7 @@ namespace das {
         void * oldData = box.data;
         box.data = das_invoke<void *>::invoke<void *>(context, at, blk, box.data);
         if ( oldData != box.data ) {
-            box.from = context->shared_from_this();
+            box.setFrom(context);
             box.type = ti;
         }
     }
@@ -100,6 +100,33 @@ namespace das {
             pipe.pop_front();
         }
         das_invoke<void>::invoke<void *>(context, at, blk, tail.data);
+    }
+
+    bool Channel::tryPop ( const TBlock<void,void *> & blk, Context * context, LineInfoArg * at ) {
+        lock_guard<mutex> guard(mCompleteMutex);
+        if ( pipe.empty() ) {
+            return false;
+        }
+        tail = das::move(pipe.front());
+        pipe.pop_front();
+        das_invoke<void>::invoke<void *>(context, at, blk, tail.data);
+        return true;
+    }
+
+    bool Channel::popWithTimeout ( int timeoutMs, const TBlock<void,void *> & blk, Context * context, LineInfoArg * at ) {
+        unique_lock<mutex> uguard(mCompleteMutex);
+        if ( !mCond.wait_for(uguard, chrono::milliseconds(timeoutMs), [&]() {
+            return !pipe.empty() || mRemaining <= 0;
+        }) ) {
+            return false;
+        }
+        if ( pipe.empty() ) {
+            return false;
+        }
+        tail = das::move(pipe.front());
+        pipe.pop_front();
+        das_invoke<void>::invoke<void *>(context, at, blk, tail.data);
+        return true;
     }
 
     bool Channel::isEmpty() const {
@@ -194,6 +221,16 @@ namespace das {
         ch->pop(blk,context,at);
     }
 
+    bool channelTryPop ( Channel * ch, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at ) {
+        if ( !ch ) context->throw_error_at(at, "channelTryPop: channel is null");
+        return ch->tryPop(blk,context,at);
+    }
+
+    bool channelPopWithTimeout ( Channel * ch, int32_t timeoutMs, const TBlock<void,void*> & blk, Context * context, LineInfoArg * at ) {
+        if ( !ch ) context->throw_error_at(at, "channelPopWithTimeout: channel is null");
+        return ch->popWithTimeout(timeoutMs,blk,context,at);
+    }
+
     int jobAppend ( JobStatus * ch, int size, Context * context, LineInfoArg * at ) {
         if ( !ch ) context->throw_error_at(at, "jobAppend: job is null");
         return ch->append(size);
@@ -217,8 +254,9 @@ namespace das {
     }
 
     void channelRemove( Channel * & ch, Context * context, LineInfoArg * at ) {
+        if ( !ch ) context->throw_error_at(at, "channelRemove: channel is null");
         if (!ch->isValid()) context->throw_error_at(at, "channel is invalid (already deleted?)");
-        if (ch->releaseRef()) context->throw_error_at(at, "channel beeing deleted while being used");
+        if (ch->releaseRef()) context->throw_error_at(at, "channel being deleted while being used");
         delete ch;
         ch = nullptr;
     }
@@ -234,8 +272,8 @@ namespace das {
             return TypeDecl::gcFlag_heap | TypeDecl::gcFlag_stringHeap;
         }
         virtual void walk(DataWalker & walker, void * data) override {
-            bool gResolve = (*daScriptEnvironment::bound)->g_resolve_annotations;
-            (*daScriptEnvironment::bound)->g_resolve_annotations = false;
+            bool gResolve = daScriptEnvironment::getBound()->g_resolve_annotations;
+            daScriptEnvironment::getBound()->g_resolve_annotations = false;
             BasicStructureAnnotation::walk(walker, data);
             Channel * ch = (Channel *) data;
             if ( !ch->isValid() ) {
@@ -245,7 +283,7 @@ namespace das {
                     walker.walk((char *)&data, ti);
                 });
             }
-            (*daScriptEnvironment::bound)->g_resolve_annotations = gResolve;
+            daScriptEnvironment::getBound()->g_resolve_annotations = gResolve;
         }
     };
 
@@ -266,8 +304,9 @@ namespace das {
     }
 
     void lockBoxRemove( LockBox * & ch, Context * context, LineInfoArg * at ) {
+        if ( !ch ) context->throw_error_at(at, "lockBoxRemove: lock box is null");
         if (!ch->isValid()) context->throw_error_at(at, "lock box is invalid (already deleted?)");
-        if (ch->releaseRef()) context->throw_error_at(at, "lock box beeing deleted while being used");
+        if (ch->releaseRef()) context->throw_error_at(at, "lock box being deleted while being used");
         delete ch;
         ch = nullptr;
     }
@@ -304,8 +343,8 @@ namespace das {
             return TypeDecl::gcFlag_heap | TypeDecl::gcFlag_stringHeap;
         }
         virtual void walk(DataWalker & walker, void * data) override {
-            bool gResolve = (*daScriptEnvironment::bound)->g_resolve_annotations;
-            (*daScriptEnvironment::bound)->g_resolve_annotations = false;
+            bool gResolve = daScriptEnvironment::getBound()->g_resolve_annotations;
+            daScriptEnvironment::getBound()->g_resolve_annotations = false;
             BasicStructureAnnotation::walk(walker, data);
             LockBox * ch = (LockBox *) data;
             if ( !ch->isValid() ) {
@@ -315,7 +354,7 @@ namespace das {
                     walker.walk((char *)&data, ti);
                 });
             }
-            (*daScriptEnvironment::bound)->g_resolve_annotations = gResolve;
+            daScriptEnvironment::getBound()->g_resolve_annotations = gResolve;
         }
     };
 
@@ -343,21 +382,20 @@ namespace das {
 das::Context* get_clone_context( das::Context * ctx, uint32_t category );//link time resolved dependencies
 
 namespace das {
-
     void new_job_invoke ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo ) {
         if ( !g_jobQue ) context->throw_error_at(lineinfo, "need to be in 'with_job_que' block");
         shared_ptr<Context> forkContext;
         forkContext.reset(get_clone_context(context, uint32_t(ContextCategory::job_clone)));
+        forkContext->sharedPtrContext = true;
         auto ptr = forkContext->allocate(lambdaSize + 16,lineinfo);
-        if ( !ptr ) context->throw_out_of_memory(false, lambdaSize + 16, lineinfo);
         forkContext->heap->mark_comment(ptr, "new [[ ]] in new_job");
         memset ( ptr, 0, lambdaSize + 16 );
         ptr += 16;
         das_invoke_function<void>::invoke(forkContext.get(), lineinfo, fn, ptr, lambda.capture);
         das_delete<Lambda>::clear(context, lambda);
-        auto bound = *daScriptEnvironment::bound;
+        auto bound = daScriptEnvironment::getBound();
         g_jobQue->push([=]() mutable {
-            *daScriptEnvironment::bound = bound;
+            daScriptEnvironment::setBound(bound);
             Lambda flambda(ptr);
             das_invoke_lambda<void>::invoke(forkContext.get(), lineinfo, flambda);
             das_delete<Lambda>::clear(forkContext.get(), flambda);
@@ -374,17 +412,17 @@ namespace das {
     void new_thread_invoke ( Lambda lambda, Func fn, int32_t lambdaSize, Context * context, LineInfoArg * lineinfo ) {
         shared_ptr<Context> forkContext;
         forkContext.reset(get_clone_context(context, uint32_t(ContextCategory::thread_clone)));
+        forkContext->sharedPtrContext = true;
         auto ptr = forkContext->allocate(lambdaSize + 16,lineinfo);
-        if ( !ptr ) context->throw_out_of_memory(false, lambdaSize + 16, lineinfo);
         forkContext->heap->mark_comment(ptr, "new [[ ]] in new_thread");
         memset ( ptr, 0, lambdaSize + 16 );
         ptr += 16;
         das_invoke_function<void>::invoke(forkContext.get(), lineinfo, fn, ptr, lambda.capture);
         das_delete<Lambda>::clear(context, lambda);
         g_jobQueTotalThreads ++;
-        auto bound = *daScriptEnvironment::bound;
+        auto bound = daScriptEnvironment::getBound();
         thread([=]() mutable {
-            *daScriptEnvironment::bound = bound;
+            daScriptEnvironment::setBound(bound);
             Lambda flambda(ptr);
             das_invoke_lambda<void>::invoke(forkContext.get(), lineinfo, flambda);
             das_delete<Lambda>::clear(forkContext.get(), flambda);
@@ -413,9 +451,10 @@ namespace das {
         debugger_started.store(true);
         shared_ptr<Context> forkContext;
         forkContext.reset(get_clone_context(context, uint32_t(ContextCategory::thread_clone)));
-        auto bound = *daScriptEnvironment::bound;
+        forkContext->sharedPtrContext = true;
+        auto bound = daScriptEnvironment::getBound();
         thread([=]() mutable {
-            *daScriptEnvironment::bound = bound;
+            daScriptEnvironment::setBound(bound);
             das_invoke<void>::invoke(forkContext.get(), lineinfo, lambda);
             forkContext.reset();
             stop_debugger();
@@ -465,8 +504,9 @@ namespace das {
     }
 
     void jobStatusRemove( JobStatus * & ch, Context * context, LineInfoArg * at ) {
+        if ( !ch ) context->throw_error_at(at, "jobStatusRemove: job status is null");
         if (!ch->isValid()) context->throw_error_at(at, "job status is invalid (already deleted?)");
-        if (ch->releaseRef()) context->throw_error_at(at, "job status beeing deleted while being used");
+        if (ch->releaseRef()) context->throw_error_at(at, "job status being deleted while being used");
         delete ch;
         ch = nullptr;
     }
@@ -478,12 +518,12 @@ namespace das {
 
     void notifyJob ( JobStatus * status, Context * context, LineInfoArg * at ) {
         if ( !status ) context->throw_error_at(at, "notifyJob: status is null");
-        status->Notify();
+        if ( !status->Notify() ) context->throw_error_at(at, "notifyJob: nothing to notify");
     }
 
     void notifyAndReleaseJob ( JobStatus * & status, Context * context, LineInfoArg * at ) {
         if ( !status ) context->throw_error_at(at, "notifyAndReleaseJob: status is null");
-        status->NotifyAndRelease();
+        if ( !status->NotifyAndRelease() ) context->throw_error_at(at, "notifyAndReleaseJob: nothing to notify");
         status = nullptr;
     }
 
@@ -591,6 +631,12 @@ namespace das {
             addExtern<DAS_BIND_FUN(channelPop)>(*this, lib,  "_builtin_channel_pop",
                 SideEffects::modifyArgumentAndExternal, "channelPop")
                     ->args({"channel","block","context","line"});
+            addExtern<DAS_BIND_FUN(channelTryPop)>(*this, lib,  "_builtin_channel_try_pop",
+                SideEffects::modifyArgumentAndExternal, "channelTryPop")
+                    ->args({"channel","block","context","line"});
+            addExtern<DAS_BIND_FUN(channelPopWithTimeout)>(*this, lib,  "_builtin_channel_pop_with_timeout",
+                SideEffects::modifyArgumentAndExternal, "channelPopWithTimeout")
+                    ->args({"channel","timeout_ms","block","context","line"});
             addExtern<DAS_BIND_FUN(channelGather)>(*this, lib,  "_builtin_channel_gather",
                 SideEffects::modifyArgumentAndExternal, "channelGather")
                     ->args({"channel","block","context","line"});

@@ -197,7 +197,7 @@ public:
       delete_mesh(open_poly);
 #if REMOVE_OPEN_WITH_TRACE
       for (int i = 0; i < sceneRay.size(); ++i)
-        del_it(sceneRay[i]);
+        destroy_it(sceneRay[i]);
 #endif
       del_it(openSkip);
     }

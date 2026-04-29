@@ -1,0 +1,7 @@
+WARNING: w319 (empty-array-resize) '[].resize(...)' is slower than 'array(...)'. Use 'array(...)' instead.
+testData/static_analyzer/w319_empty_array_resize.nut:3:8
+
+let a = [].resize(10, 0) //warning:empty-array-resize
+        ^---------------
+
+

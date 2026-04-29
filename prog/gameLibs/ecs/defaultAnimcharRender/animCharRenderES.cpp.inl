@@ -1,8 +1,13 @@
 // Copyright (C) Gaijin Games KFT.  All rights reserved.
 
-#include <ecs/core/entitySystem.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/ecsQuery.h>
 #include <daECS/core/coreEvents.h>
-#include <ecs/core/attributeEx.h>
+#include <daECS/core/component.h>
+#include <daECS/core/componentsMap.h>
+#include <daECS/core/componentTypes.h>
+#include <daECS/core/entityComponent.h>
+#include <daECS/core/entityManager.h>
 #include <daECS/core/updateStage.h>
 #include <ecs/anim/anim.h>
 #include <perfMon/dag_statDrv.h>

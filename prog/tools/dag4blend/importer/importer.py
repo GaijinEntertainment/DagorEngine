@@ -24,7 +24,7 @@ from ..dagormat.build_node_tree     import build_dagormat_node_tree
 from ..dagormat.rw_dagormat_text    import dagormat_to_string
 from ..dagormat.compare_dagormats   import compare_dagormats
 from ..object_properties            import object_properties
-from ..helpers.props                import fix_type, dagormat_prop_add
+from ..helpers.props                import fix_type, dagormat_prop_add, valid_props_types
 from ..helpers.texts                import log
 from ..popup.popup_functions        import show_popup
 from ..helpers.version              import get_blender_version
@@ -220,6 +220,11 @@ class DagImporter(Operator, ImportHelper):
     with_destr: BoolProperty(
         name = "Import destr",
         description = "Search for dynamic destr asset",
+        default = False)
+
+    with_dm: BoolProperty(
+        name = "Import dm",
+        description = "Search for dynamic dm asset",
         default = False)
 
 #Optimization
@@ -506,18 +511,34 @@ class DagImporter(Operator, ImportHelper):
             return
         dagorprops = o.dagorprops
         lines=objProps.split('\r\n')
-        broken=''
+        broken_properties = []
         for line in lines:
-            if line!='':
-                prop=line.split('=')
-                if prop.__len__()!=2:
-                    broken+=line+';'
-                elif prop[0].__len__()==0 or prop[1].__len__()==0 or prop[0].find(':')==-1:
-                    broken+=line+';'
-                else:
-                    dagorprops[prop[0]]=fix_type(prop[1])
-        if broken.__len__()>0:
-            dagorprops['broken_properties:t']=broken
+            if line == "":
+                continue
+            name_type_value = line.split('=')
+            if name_type_value.__len__() != 2:
+                broken_properties.append(line)
+                continue
+            name_type, value = name_type_value
+            if name_type.__len__() == 0:  # no name
+                broken_properties.append(line)
+                continue
+            if name_type == "broken_properties:t":
+                broken_properties.append(value)
+                continue
+            if name_type.split(":").__len__() != 2:  # no type or multiple types
+                broken_properties.append(line)
+                continue
+            name,type = name_type.split(':')
+            if not (type in valid_props_types):
+                broken_properties.append(line)
+                continue
+            if name.__len__() == 0 or type.__len__() == 0:
+                broken_properties.append(line)
+                continue
+            dagorprops[name_type]=fix_type(value, expected_type = type)
+        if broken_properties.__len__() > 0:
+            dagorprops['broken_properties:t'] = ";".join(broken_properties)
         return
 
     def DM_set_params(_self, script):
@@ -1000,6 +1021,7 @@ class DagImporter(Operator, ImportHelper):
         lods =  self.with_lods
         dmg =   self.with_dmgs
         destr = self.with_destr
+        dm =    self.with_dm
         lod_info = re.search("\\.lod\\d\\d\\.dag$", filename)  # '\d' == '[0-9]'
         if lod_info is None:  # can not find variantions for non-standard names
             return f"^{filename}$"
@@ -1010,6 +1032,8 @@ class DagImporter(Operator, ImportHelper):
         dmg_re = "(_dmg|)" if dmg else "()"
         lods_re = "\\.lod\\d\\d" if lods else f"\\.{base_lod}"
         variants_re = f"^{base_name}{dp_re}{dmg_re}{lods_re}\\.dag$"
+        if dm:
+            variants_re = f"({variants_re})|(^{base_name}_dm\\.dag$)"
         if not destr:
             return variants_re
         destr_re = f"^{base_name}{dp_re}{dmg_re}_destr\\.lod00\\.dag$"  # destr is always ".lod00"

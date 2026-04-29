@@ -2,7 +2,7 @@
 
 #include <sqrat.h>
 #include <bindQuirrelEx/bindQuirrelEx.h>
-#include <sqModules/sqModules.h>
+#include <sqmodules/sqmodules.h>
 #include "sqRegExp.h"
 #include "sqUtf8.h"
 
@@ -44,7 +44,7 @@ void register_reg_exp(SqModules *module_mgr)
     .Func("match", &RegExp::match)
     .Func("fullmatch", &RegExp::fullMatch)
     .Func("replace", &RegExp::replace)
-    .SquirrelFunc("multiExtract", &RegExp::sqMultiExtract, 3, nullptr)
+    .SquirrelFuncDeclString(&RegExp::sqMultiExtract, "instance.multiExtract(templateStr: string, text: string): array")
     .Func("pattern", &RegExp::pattern)
     /**/;
 
@@ -63,8 +63,10 @@ void register_utf8(SqModules *module_mgr)
     .Func("str", &Utf8::str)
     .Func("charCount", &Utf8::charCount)
     .Func("strtr", &Utf8::strtr)
-    .SquirrelFunc("slice", utf8_slice, -2, nullptr)
-    .SquirrelFunc("indexof", utf8_indexof, -2, nullptr)
+    .Func("toLower", &Utf8::toLower)
+    .Func("toUpper", &Utf8::toUpper)
+    .SquirrelFuncDeclString(utf8_slice, "instance.slice(from: int, [to: int]): string")
+    .SquirrelFuncDeclString(utf8_indexof, "instance.indexof(substring: string, [startIndex: int]): int|null")
     /**/;
 
   module_mgr->addNativeModule("utf8", Sqrat::Object(utf8.GetObject(), vm));

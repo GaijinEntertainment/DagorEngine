@@ -6,6 +6,13 @@
 
 #include <debug/dag_debug.h>
 #include <osApiWrappers/dag_dynLib.h>
+#include <osApiWrappers/dag_direct.h>
+
+#include <cstdio>
+
+#if _TARGET_PC_WIN
+#include <windows.h>
+#endif
 
 namespace drv3d_vulkan
 {
@@ -17,6 +24,33 @@ void RenderDocCaptureModule::shutdown()
   if (docLib)
     os_dll_close(docLib);
   docLib = nullptr;
+}
+
+void RenderDocCaptureModule::setCapturePathTemplate(const wchar_t *name)
+{
+  if (!docAPI || !name)
+    return;
+
+#if _TARGET_PC_WIN
+  char path[MAX_PATH];
+  GetCurrentDirectoryA(sizeof(path), path);
+  strcat_s(path, "\\GpuCaptures\\");
+  CreateDirectoryA(path, nullptr);
+  size_t pathLen = strlen(path);
+  WideCharToMultiByte(CP_UTF8, 0, name, -1, path + pathLen, sizeof(path) - (int)pathLen, nullptr, nullptr);
+#else
+  char path[512];
+  snprintf(path, sizeof(path), "GpuCaptures/");
+  dd_mkdir(path);
+  size_t pathLen = strlen(path);
+  // wchar_t to UTF-8 for non-Windows
+  for (size_t i = 0; name[i] && pathLen < sizeof(path) - 1; ++i)
+    path[pathLen++] = static_cast<char>(name[i]);
+  path[pathLen] = '\0';
+#endif
+
+  debug("vulkan: RenderDoc capture path template: %s", path);
+  docAPI->SetCaptureFilePathTemplate(path);
 }
 
 void RenderDocCaptureModule::triggerCapture(uint32_t count)

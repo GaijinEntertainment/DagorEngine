@@ -2,6 +2,7 @@
 
 #include "daScript/ast/ast.h"
 #include "daScript/ast/ast_visitor.h"
+#include "daScript/simulate/debug_info.h"
 #include "daScript/das_common.h"
 #include "daScript/daScriptModule.h"
 
@@ -65,6 +66,13 @@ namespace das {
         return arg ? uint64_t(arg->iValue) : def;
     }
 
+    uint64_t AnnotationArgumentList::getUInt64OptionEx(const string & name, const string & name2, uint64_t def) const {
+        auto arg = find(name, Type::tInt);
+        if (arg) return uint64_t(arg->iValue);
+        arg = find(name2, Type::tInt);
+        return arg ? uint64_t(arg->iValue) : def;
+    }
+
     // MODULE
 
     void Module::addDependency ( Module * mod, bool pub ) {
@@ -82,6 +90,7 @@ namespace das {
     }
 
     void Module::addBuiltinDependency ( ModuleLibrary & lib, Module * m, bool pub ) {
+        DAS_ASSERTF(m, "Trying to add nullptr module.");
         lib.addModule(m);
         requireModule[m] = pub;
     }
@@ -96,7 +105,8 @@ namespace das {
         }
         intptr_t ann = (intptr_t) (info->annotation_or_name);
         if ( ann & 1 ) {
-            DAS_VERIFYF(*daScriptEnvironment::bound && (*daScriptEnvironment::bound)->modules,"missing bound environment");
+            auto bound = daScriptEnvironment::getBound();
+            DAS_VERIFYF(bound && bound->modules,"missing bound environment");
             // we add ~ at the beginning of the name for padding
             // if name is allocated by the compiler, it does not guarantee that it is aligned
             // we check if there is a ~ at the beginning of the name, and if it is - we skip it
@@ -106,7 +116,7 @@ namespace das {
             string moduleName, annName;
             splitTypeName(cvtbuf, moduleName, annName);
             TypeAnnotation * resolve = nullptr;
-            for ( auto pm = (*daScriptEnvironment::bound)->modules; pm!=nullptr; pm=pm->next ) {
+            for ( auto pm = bound->modules; pm!=nullptr; pm=pm->next ) {
                 if ( pm->name == moduleName ) {
                     if ( auto annT = pm->findAnnotation(annName) ) {
                         resolve = (TypeAnnotation *) annT.get();
@@ -114,7 +124,7 @@ namespace das {
                     break;
                 }
             }
-            if ( (*daScriptEnvironment::bound)->g_resolve_annotations ) {
+            if ( bound->g_resolve_annotations ) {
                 info->annotation_or_name = resolve;
             }
             return resolve;
@@ -130,19 +140,51 @@ namespace das {
     void Module::Initialize() {
         daScriptEnvironment::ensure();
         g_envTotal ++;
+
+        if (daScriptEnvironment::getBound()->modules == nullptr) {
+            DAS_FATAL_ERROR("No modules founds. You should add modules before call that function.");
+        }
+
+        // InitDependencies do not add new modules.
+        vector<bool> mod_state;
+        bool any = true;
         bool all = false;
-        while ( !all ) {
+        while ( !all && any ) {
             all = true;
-            for ( auto m = (*daScriptEnvironment::bound)->modules; m ; m = m->next ) {
-                all &= m->initDependencies();
+            any = false;
+            size_t i = 0;
+            for ( auto m = daScriptEnvironment::getBound()->modules; m ; m = m->next, i++ ) {
+                auto result = m->initDependencies();
+                all &= result;
+                if (i >= mod_state.size()) {
+                    // init
+                    mod_state.emplace_back(false);
+                    DAS_ASSERT(mod_state.size() == i + 1);
+                }
+                if (result && !mod_state.at(i)) {
+                    mod_state.at(i) = true;
+                    any = true;
+                }
             }
+        }
+        if (!any) {
+            // Some modules was not initialized!
+            size_t i = 0;
+            string error = "";
+            for ( auto m = daScriptEnvironment::getBound()->modules; m ; m = m->next, i++ ) {
+                DAS_ASSERT(mod_state.size() == i);
+                if (!mod_state.at(i)) {
+                    error += " " + m->name;
+                }
+            }
+            DAS_FATAL_ERROR("Unable to initialize some modules:%s\n", error.c_str());
         }
     }
 
     void Module::CollectFileInfo(das::vector<FileInfoPtr> &finfos) {
-        DAS_ASSERT(*daScriptEnvironment::owned!=nullptr);
-        DAS_ASSERT(*daScriptEnvironment::bound!=nullptr);
-        auto m = (*daScriptEnvironment::bound)->modules;
+        DAS_ASSERT(daScriptEnvironment::getOwned()!=nullptr);
+        DAS_ASSERT(daScriptEnvironment::getBound()!=nullptr);
+        auto m = daScriptEnvironment::getBound()->modules;
         while ( m ) {
             finfos.emplace_back(das::move(m->ownFileInfo));
             m = m->next;
@@ -150,30 +192,33 @@ namespace das {
     }
 
     void Module::Shutdown() {
-        DAS_ASSERT(*daScriptEnvironment::owned!=nullptr);
-        DAS_ASSERT(*daScriptEnvironment::bound!=nullptr);
+        DAS_ASSERT(daScriptEnvironment::getOwned()!=nullptr);
+        DAS_ASSERT(daScriptEnvironment::getBound()!=nullptr);
         g_envTotal --;
         if ( g_envTotal==0 ) {
             shutdownDebugAgent();
         }
-        auto m = (*daScriptEnvironment::bound)->modules;
+        auto m = daScriptEnvironment::getBound()->modules;
         while ( m ) {
             auto pM = m;
             m = m->next;
             delete pM;
         }
+        // Free allocated structures for dynamic modules.
+        delete daScriptEnvironment::getBound()->g_dyn_modules_resolve;
+
         clearGlobalAotLibrary();
         resetFusionEngine();
-        *daScriptEnvironment::bound = nullptr;
-        if ( *daScriptEnvironment::owned ) {
-            delete *daScriptEnvironment::owned;
-            *daScriptEnvironment::owned = nullptr;
+        daScriptEnvironment::setBound(nullptr);
+        if ( daScriptEnvironment::getOwned() ) {
+            delete daScriptEnvironment::getOwned();
+            daScriptEnvironment::setOwned(nullptr);
         }
     }
 
     void Module::Reset(bool debAg) {
         if ( debAg ) shutdownDebugAgent();
-        auto m = (*daScriptEnvironment::bound)->modules;
+        auto m = daScriptEnvironment::getBound()->modules;
         while ( m ) {
             auto pM = m;
             m = m->next;
@@ -182,14 +227,14 @@ namespace das {
     }
 
     void Module::foreach ( const callable<bool (Module * module)> & func ) {
-        for (auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; m = m->next) {
+        for (auto m = daScriptEnvironment::getBound()->modules; m != nullptr; m = m->next) {
             if (!func(m)) break;
         }
     }
 
     Module * Module::require ( const string & name ) {
-        if ( !*daScriptEnvironment::bound ) return nullptr;
-        for ( auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; m = m->next ) {
+        if ( !daScriptEnvironment::getBound() ) return nullptr;
+        for ( auto m = daScriptEnvironment::getBound()->modules; m != nullptr; m = m->next ) {
             if ( m->name == name ) {
                 return m;
             }
@@ -198,8 +243,8 @@ namespace das {
     }
 
     Module * Module::requireEx ( const string & name, bool allowPromoted ) {
-        if ( !*daScriptEnvironment::bound ) return nullptr;
-        for ( auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; m = m->next ) {
+        if ( !daScriptEnvironment::getBound() ) return nullptr;
+        for ( auto m = daScriptEnvironment::getBound()->modules; m != nullptr; m = m->next ) {
             if ( allowPromoted || !m->promoted ) {
                 if ( m->name == name ) {
                     return m;
@@ -220,7 +265,7 @@ namespace das {
 
     Type Module::findOption ( const string & name ) {
         Type optT = Type::none;
-        for ( auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; m = m->next ) {
+        for ( auto m = daScriptEnvironment::getBound()->modules; m != nullptr; m = m->next ) {
             auto tt = m->getOptionType(name);
             if ( tt != Type::none ) {
                 DAS_ASSERTF(optT==Type::none, "duplicate module option %s", name.c_str());
@@ -233,7 +278,7 @@ namespace das {
     Module::Module ( const string & n ) {
         setModuleName(n);
         if ( !name.empty() ) {
-            auto first = (*daScriptEnvironment::bound)->modules;
+            auto first = daScriptEnvironment::getBound()->modules;
             while (first != nullptr)
             {
                 if (first->name == n) {
@@ -241,8 +286,8 @@ namespace das {
                 }
                 first = first->next;
             }
-            next = (*daScriptEnvironment::bound)->modules;
-            (*daScriptEnvironment::bound)->modules = this;
+            next = daScriptEnvironment::getBound()->modules;
+            daScriptEnvironment::getBound()->modules = this;
             builtIn = true;
         }
         if ( n != "$" ) {
@@ -256,8 +301,8 @@ namespace das {
 
     void Module::promoteToBuiltin(const FileAccessPtr & access) {
         DAS_ASSERTF(!builtIn, "failed to promote. already builtin");
-        next = (*daScriptEnvironment::bound)->modules;
-        (*daScriptEnvironment::bound)->modules = this;
+        next = daScriptEnvironment::getBound()->modules;
+        daScriptEnvironment::getBound()->modules = this;
         builtIn = true;
         promoted = true;
         promotedAccess = access;
@@ -265,8 +310,8 @@ namespace das {
 
     Module::~Module() {
         if ( builtIn ) {
-            Module ** p = &(*daScriptEnvironment::bound)->modules;
-            for ( auto m = (*daScriptEnvironment::bound)->modules; m != nullptr; p = &m->next, m = m->next ) {
+            Module ** p = &daScriptEnvironment::getBound()->modules;
+            for ( auto m = daScriptEnvironment::getBound()->modules; m != nullptr; p = &m->next, m = m->next ) {
                 if ( m == this ) {
                     *p = m->next;
                     return;
@@ -564,83 +609,85 @@ namespace das {
         return it != callThis.end() ? &it->second : nullptr;
     }
 
-    bool Module::compileBuiltinModule ( const string & modName, unsigned char * str, unsigned int str_len ) {
+    static bool appendBuiltinModuleContent ( Module * target, ProgramPtr program, const string & modName ) {
+        if ( !program ) {
+            DAS_FATAL_ERROR("builtin module did not parse %s\n", modName.c_str());
+            return false;
+        }
+        if (program->failed()) {
+            TextWriter issues;
+            for (auto & err : program->errors) {
+                issues << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
+            }
+            DAS_FATAL_ERROR("%s\nbuiltin module did not compile %s\n", issues.str().c_str(), modName.c_str());
+            return false;
+        }
+        // append content into target module
+        program->thisModule->aliasTypes.foreach([&](auto aliasTypePtr){
+            target->addAlias(aliasTypePtr);
+        });
+        program->thisModule->enumerations.foreach([&](auto penum){
+            target->addEnumeration(penum);
+        });
+        program->thisModule->structures.foreach([&](auto pst){
+            target->addStructure(pst);
+        });
+        program->thisModule->generics.foreach([&](auto fn){
+            target->addGeneric(fn);
+        });
+        program->thisModule->globals.foreach([&](auto gvar){
+            target->addVariable(gvar);
+        });
+        program->thisModule->functions.foreach([&](auto fn){
+            target->addFunction(fn);
+        });
+        for (auto & rqm : program->thisModule->requireModule) {
+            if ( rqm.first != target ) {
+                target->requireModule[rqm.first] |= rqm.second;
+            }
+        }
+        // macros
+        auto ptm = program->thisModule.get();
+        if ( ptm->macroContext ) {
+            swap ( target->macroContext, ptm->macroContext );
+            ptm->handleTypes.foreach([&](auto fna){
+                target->addAnnotation(fna);
+            });
+        }
+        target->simulateMacros.insert(target->simulateMacros.end(), ptm->simulateMacros.begin(), ptm->simulateMacros.end());
+        target->captureMacros.insert(target->captureMacros.end(), ptm->captureMacros.begin(), ptm->captureMacros.end());
+        target->forLoopMacros.insert(target->forLoopMacros.end(), ptm->forLoopMacros.begin(), ptm->forLoopMacros.end());
+        target->variantMacros.insert(target->variantMacros.end(), ptm->variantMacros.begin(), ptm->variantMacros.end());
+        target->macros.insert(target->macros.end(), ptm->macros.begin(), ptm->macros.end());
+        target->inferMacros.insert(target->inferMacros.end(), ptm->inferMacros.begin(), ptm->inferMacros.end());
+        target->optimizationMacros.insert(target->optimizationMacros.end(), ptm->optimizationMacros.begin(), ptm->optimizationMacros.end());
+        target->lintMacros.insert(target->lintMacros.end(), ptm->lintMacros.begin(), ptm->lintMacros.end());
+        target->globalLintMacros.insert(target->globalLintMacros.end(), ptm->globalLintMacros.begin(), ptm->globalLintMacros.end());
+        for ( auto & rm : ptm->readMacros ) {
+            target->addReaderMacro(rm.second);
+        }
+        for ( auto & tm : ptm->typeMacros ) {
+            target->addTypeMacro(tm.second);
+        }
+        target->commentReader = ptm->commentReader;
+        for ( auto & op : ptm->options) {
+            DAS_ASSERTF(target->options.find(op.first)==target->options.end(),"duplicate option %s", op.first.c_str());
+            target->options[op.first] = op.second;
+        }
+        SubstituteBuiltinModuleRefs( program, program->thisModule.get(), target );
+        return true;
+    }
+
+    bool Module::compileBuiltinModule ( const string & modName, const unsigned char * const str, unsigned int str_len ) {
         TextWriter issues;
         auto access = make_smart<FileAccess>();
         auto fileInfo = make_unique<TextFileInfo>((char *) str, uint32_t(str_len), false);
         access->setFileInfo(modName, das::move(fileInfo));
         ModuleGroup dummyLibGroup;
-        CodeOfPolicies builtinPolicies;
-        builtinPolicies.version_2_syntax = false;   // NOTE: no version 2 syntax in builtin modules (yet)
         auto program = parseDaScript(modName, "", access, issues, dummyLibGroup, true);
         ownFileInfo = access->letGoOfFileInfo(modName);
         DAS_ASSERTF(ownFileInfo,"something went wrong and FileInfo for builtin module can not be obtained");
-        if ( program ) {
-            if (program->failed()) {
-                for (auto & err : program->errors) {
-                    issues << reportError(err.at, err.what, err.extra, err.fixme, err.cerr);
-                }
-                DAS_FATAL_ERROR("%s\nbuiltin module did not compile %s\n", issues.str().c_str(), modName.c_str());
-                return false;
-            }
-            // ok, now let's rip content
-            program->thisModule->aliasTypes.foreach([&](auto aliasTypePtr){
-                addAlias(aliasTypePtr);
-            });
-            program->thisModule->enumerations.foreach([&](auto penum){
-                addEnumeration(penum);
-            });
-            program->thisModule->structures.foreach([&](auto pst){
-                addStructure(pst);
-            });
-            program->thisModule->generics.foreach([&](auto fn){
-                addGeneric(fn);
-            });
-            program->thisModule->globals.foreach([&](auto gvar){
-                addVariable(gvar);
-            });
-            program->thisModule->functions.foreach([&](auto fn){
-                addFunction(fn);
-            });
-            for (auto & rqm : program->thisModule->requireModule) {
-                if ( rqm.first != this ) {
-                    requireModule[rqm.first] |= rqm.second;
-                }
-            }
-            // macros
-            auto ptm = program->thisModule.get();
-            if ( ptm->macroContext ) {
-                swap ( macroContext, ptm->macroContext );
-                ptm->handleTypes.foreach([&](auto fna){
-                    addAnnotation(fna);
-                });
-            }
-            simulateMacros.insert(simulateMacros.end(), ptm->simulateMacros.begin(), ptm->simulateMacros.end());
-            captureMacros.insert(captureMacros.end(), ptm->captureMacros.begin(), ptm->captureMacros.end());
-            forLoopMacros.insert(forLoopMacros.end(), ptm->forLoopMacros.begin(), ptm->forLoopMacros.end());
-            variantMacros.insert(variantMacros.end(), ptm->variantMacros.begin(), ptm->variantMacros.end());
-            macros.insert(macros.end(), ptm->macros.begin(), ptm->macros.end());
-            inferMacros.insert(inferMacros.end(), ptm->inferMacros.begin(), ptm->inferMacros.end());
-            optimizationMacros.insert(optimizationMacros.end(), ptm->optimizationMacros.begin(), ptm->optimizationMacros.end());
-            lintMacros.insert(lintMacros.end(), ptm->lintMacros.begin(), ptm->lintMacros.end());
-            globalLintMacros.insert(globalLintMacros.end(), ptm->globalLintMacros.begin(), ptm->globalLintMacros.end());
-            for ( auto & rm : ptm->readMacros ) {
-                addReaderMacro(rm.second);
-            }
-            for ( auto & tm : ptm->typeMacros ) {
-                addTypeMacro(tm.second);
-            }
-            commentReader = ptm->commentReader;
-            for ( auto & op : ptm->options) {
-                DAS_ASSERTF(options.find(op.first)==options.end(),"duplicate option %s", op.first.c_str());
-                options[op.first] = op.second;
-            }
-            SubstituteBuiltinModuleRefs( program, program->thisModule.get(), this );
-            return true;
-        } else {
-            DAS_FATAL_ERROR("builtin module did not parse %s\n", modName.c_str());
-            return false;
-        }
+        return appendBuiltinModuleContent(this, program, modName);
     }
 
     bool isValidBuiltinName ( const string & name, bool canPunkt ) {
@@ -814,7 +861,12 @@ namespace das {
             }
         } else {
             if ( auto pm = findModule(moduleName) ) {
-                func(pm);
+                if ( !func(pm) ) return;
+                for ( auto & dep : pm->requireModule ) {
+                    if ( dep.second ) {  // public dependency
+                        if ( !func(dep.first) ) return;
+                    }
+                }
             }
         }
     }
@@ -864,11 +916,13 @@ namespace das {
         vector<AnnotationPtr> ptr;
         string moduleName, annName;
         splitTypeName(name, moduleName, annName);
-        foreach([&](Module * pm) -> bool {
-            if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) )
-                findAnnotation(ptr, pm, annName, inWhichModule);
-            return true;
-        }, moduleName);
+        if ( moduleName!="_" && moduleName!="__") {
+            foreach([&](Module * pm) -> bool {
+                if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) )
+                    findAnnotation(ptr, pm, annName, inWhichModule);
+                return true;
+            }, moduleName);
+        }
         return ptr;
     }
 
@@ -876,12 +930,14 @@ namespace das {
         vector<TypeInfoMacroPtr> ptr;
         string moduleName, annName;
         splitTypeName(name, moduleName, annName);
-        foreach([&](Module * pm) -> bool {
-            if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) )
-                if ( auto pp = pm->findTypeInfoMacro(annName) )
-                    ptr.push_back(pp);
-            return true;
-        }, moduleName);
+        if ( moduleName!="_" && moduleName!="__") {
+            foreach([&](Module * pm) -> bool {
+                if ( !inWhichModule || inWhichModule->isVisibleDirectly(pm) )
+                    if ( auto pp = pm->findTypeInfoMacro(annName) )
+                        ptr.push_back(pp);
+                return true;
+            }, moduleName);
+        }
         return ptr;
     }
 

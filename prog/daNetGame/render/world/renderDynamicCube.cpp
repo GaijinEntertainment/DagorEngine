@@ -13,7 +13,9 @@
 #include <math/dag_cube_matrix.h>
 #include "global_vars.h"
 #include "render/renderEvent.h"
-#include <ecs/core/entityManager.h>
+#include <daECS/core/entityManager.h>
+#include <daECS/core/entitySystem.h>
+#include <daECS/core/componentTypes.h>
 #include <drv/3d/dag_renderTarget.h>
 #include <drv/3d/dag_matricesAndPerspective.h>
 #include <drv/3d/dag_texture.h>
@@ -60,13 +62,7 @@ void RenderDynamicCube::init(int cube_size)
   uint32_t cube_gbuf_cnt = 0;
   const char *resolveShader = nullptr;
   auto worldRenderer = static_cast<WorldRenderer *>(get_world_renderer());
-  if (worldRenderer->isForwardRender())
-  {
-    resolveShader = nullptr;
-    cube_gbuf_cnt = 1;
-    cube_gbuf_fmts[0] = TEXFMT_A8R8G8B8 | TEXCF_SRGBREAD | TEXCF_SRGBWRITE | TEXCF_ESRAM_ONLY;
-  }
-  else if (!worldRenderer->isThinGBuffer())
+  if (!worldRenderer->isThinGBuffer())
   {
     resolveShader = NO_MOTION_GBUFFER_RESOLVE_SHADER;
     cube_gbuf_cnt = NO_MOTION_GBUFFER_RT_COUNT;
@@ -104,20 +100,15 @@ void RenderDynamicCube::update(const ManagedTex *cubeTarget, const Point3 &pos, 
 
   SCOPE_VIEW_PROJ_MATRIX;
   SCOPE_RENDER_TARGET;
-  ShaderGlobal::set_color4(world_view_posVarId, pos.x, pos.y, pos.z, 1);
+  ShaderGlobal::set_float4(world_view_posVarId, pos.x, pos.y, pos.z, 1);
   Driver3dPerspective persp = Driver3dPerspective(1, 1, z_near, z_far, 0, 0);
   TMatrix4 projTm;
   d3d::setpersp(persp, &projTm);
-  ShaderGlobal::set_color4(zn_zfarVarId, z_near, z_far, 0, 0);
+  ShaderGlobal::set_float4(zn_zfarVarId, z_near, z_far, 0, 0);
   const int faceBegin = face_num == -1 ? 0 : face_num;
   const int faceEnd = face_num == -1 ? 6 : face_num + 1;
   WorldRenderer &cb = *((WorldRenderer *)get_world_renderer());
   ScopedNoExposure noExposure;
-
-  if (cb.hasFeature(FeatureRenderFlags::FORWARD_RENDERING))
-  {
-    ShaderGlobal::set_int(tonemap_onVarId, 0);
-  }
 
   // Calculate the first face for reprojection calculation in cb.startRenderLightProbe/useFogNoScattering
   TMatrix cameraMatrixFirstSide = cube_matrix(TMatrix::IDENT, faceBegin);
@@ -153,26 +144,21 @@ void RenderDynamicCube::update(const ManagedTex *cubeTarget, const Point3 &pos, 
       target->resolve(shadedTarget.getTex2D(), view, projTm);
     }
 
-    d3d::set_render_target(shadedTarget.getTex2D(), 0); // because of cube depth
-    d3d::set_depth(target->getDepth(), DepthAccess::SampledRO);
+    d3d::set_render_target({target->getDepth(), 0, 0}, DepthAccess::SampledRO, // because of cube depth
+      {{shadedTarget.getTex2D(), 0, 0}});
 
     // d3d::clearview(CLEAR_ZBUFFER|CLEAR_STENCIL, 0, 0, 0);
     d3d::resource_barrier({target->getDepth(), RB_RO_CONSTANT_DEPTH_STENCIL_TARGET | RB_STAGE_PIXEL | RB_STAGE_VERTEX, 0, 0});
     cb.renderLightProbeEnvi(view, projTm, persp);
     // save_rt_image_as_tga(shadedTarget.getTex2D(), String(128, "cube%s.tga", i));
 
-    d3d::set_render_target(cubeTarget->getCubeTex(), i, 0);
+    d3d::set_render_target({}, DepthAccess::RW, {{cubeTarget->getCubeTex(), 0, static_cast<uint32_t>(i)}});
     d3d::settex(2, shadedTarget.getTex2D());
     d3d::set_sampler(STAGE_PS, 2, d3d::request_sampler({}));
     d3d::resource_barrier({shadedTarget.getTex2D(), RB_RO_SRV | RB_STAGE_PIXEL, 0, 0});
     copy.render();
   }
   cb.endRenderLightProbe();
-
-  if (cb.hasFeature(FeatureRenderFlags::FORWARD_RENDERING))
-  {
-    ShaderGlobal::set_int(tonemap_onVarId, 1);
-  }
 
   ::grs_cur_view.itm = itm;
 }

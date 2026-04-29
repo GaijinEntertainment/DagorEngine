@@ -1,0 +1,52 @@
+diff --git a/prog/3rdPartyLibs/webrtc-apm/webrtc/common_audio/resampler/sinc_resampler.cc b/prog/3rdPartyLibs/webrtc-apm/webrtc/common_audio/resampler/sinc_resampler.cc
+index 66a99b6190be..250f5bc1a095 100644
+--- a/prog/3rdPartyLibs/webrtc-apm/webrtc/common_audio/resampler/sinc_resampler.cc
++++ b/prog/3rdPartyLibs/webrtc-apm/webrtc/common_audio/resampler/sinc_resampler.cc
+@@ -83,7 +83,9 @@
+ // `virtual_source_idx_`, etc.
+ 
+ // MSVC++ requires this to be set before any other includes to get M_PI.
++#ifndef _USE_MATH_DEFINES
+ #define _USE_MATH_DEFINES
++#endif
+ 
+ #include "common_audio/resampler/sinc_resampler.h"
+ 
+diff --git a/prog/3rdPartyLibs/webrtc-apm/webrtc/modules/audio_processing/aec3/matched_filter_avx2.cc b/prog/3rdPartyLibs/webrtc-apm/webrtc/modules/audio_processing/aec3/matched_filter_avx2.cc
+index 65a1b763d11d..4f2bb5bf046b 100644
+--- a/prog/3rdPartyLibs/webrtc-apm/webrtc/modules/audio_processing/aec3/matched_filter_avx2.cc
++++ b/prog/3rdPartyLibs/webrtc-apm/webrtc/modules/audio_processing/aec3/matched_filter_avx2.cc
+@@ -13,7 +13,7 @@
+ #include "modules/audio_processing/aec3/matched_filter.h"
+ #include "rtc_base/checks.h"
+ 
+-#ifdef _MSC_VER
++#if defined(_MSC_VER) && !defined(__clang__) 
+ // Visual Studio
+ #define LOOKUP_M128(v, i) v.m128_f32[i]
+ #define LOOKUP_M256(v, i) v.m256_f32[i]
+
+ 
+diff --git a/prog/3rdPartyLibs/webrtc-apm/webrtc/rtc_base/logging.cc b/prog/3rdPartyLibs/webrtc-apm/webrtc/rtc_base/logging.cc
+index 825c68670fb4..2013c3e08718 100644
+--- a/prog/3rdPartyLibs/webrtc-apm/webrtc/rtc_base/logging.cc
++++ b/prog/3rdPartyLibs/webrtc-apm/webrtc/rtc_base/logging.cc
+@@ -41,6 +41,7 @@ static const int kMaxLogLineSize = 1024 - 60;
+ #include <algorithm>
+ #include <cstdarg>
+ #include <vector>
++#include <memory>
+ 
+ #include "absl/base/attributes.h"
+ #include "absl/strings/string_view.h"
+@@ -80,8 +81,8 @@ const char* FilenameFromPath(const char* file) {
+ 
+ // Global lock for log subsystem, only needed to serialize access to streams_.
+ webrtc::Mutex& GetLoggingLock() {
+-  static webrtc::Mutex& mutex = *new webrtc::Mutex();
+-  return mutex;
++  static std::unique_ptr<webrtc::Mutex> mutex = std::make_unique<webrtc::Mutex>();
++  return *mutex;
+ }
+ 
+ }  // namespace

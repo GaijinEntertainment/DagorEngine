@@ -134,7 +134,6 @@
 
 #include <stddef.h>
 #include <string.h>
-#include <setjmp.h>
 #include <limits.h>
 #define FT_CHAR_BIT   CHAR_BIT
 #define FT_UINT_MAX   UINT_MAX
@@ -142,10 +141,6 @@
 #define FT_ULONG_MAX  ULONG_MAX
 
 #define ft_memset   memset
-
-#define ft_setjmp   setjmp
-#define ft_longjmp  longjmp
-#define ft_jmp_buf  jmp_buf
 
 typedef ptrdiff_t  FT_PtrDist;
 
@@ -434,8 +429,6 @@ typedef ptrdiff_t  FT_PtrDist;
 
   typedef struct  gray_TWorker_
   {
-    ft_jmp_buf  jump_buffer;
-
     TCoord  ex, ey;
     TCoord  min_ex, max_ex;
     TCoord  min_ey, max_ey;
@@ -511,7 +504,7 @@ typedef ptrdiff_t  FT_PtrDist;
   /*                                                                       */
   /* Record the current cell in the table.                                 */
   /*                                                                       */
-  static void
+  static int
   gray_record_cell( RAS_ARG )
   {
     PCell  *pcell, cell;
@@ -535,7 +528,7 @@ typedef ptrdiff_t  FT_PtrDist;
     {
       if (freetype_logerr)
         freetype_logerr("max_cells overflow");
-      ft_longjmp( ras.jump_buffer, 1 );
+      return ErrRaster_Memory_Overflow;
     }
 
     /* insert new cell */
@@ -547,12 +540,13 @@ typedef ptrdiff_t  FT_PtrDist;
     cell->next  = *pcell;
     *pcell      = cell;
 
-    return;
+    return 0;
 
   Found:
     /* update old cell */
     cell->area  += ras.area;
     cell->cover += ras.cover;
+    return 0;
   }
 
 
@@ -560,7 +554,7 @@ typedef ptrdiff_t  FT_PtrDist;
   /*                                                                       */
   /* Set the current cell to a new position.                               */
   /*                                                                       */
-  static void
+  static int
   gray_set_cell( RAS_ARG_ TCoord  ex,
                           TCoord  ey )
   {
@@ -579,7 +573,11 @@ typedef ptrdiff_t  FT_PtrDist;
 
     /* record the current one if it is valid */
     if ( !ras.invalid )
-      gray_record_cell( RAS_VAR );
+    {
+      int  err = gray_record_cell( RAS_VAR );
+      if ( err )
+        return err;
+    }
 
     ras.area  = 0;
     ras.cover = 0;
@@ -588,6 +586,7 @@ typedef ptrdiff_t  FT_PtrDist;
 
     ras.invalid = ( ey >= ras.max_ey || ey < ras.min_ey ||
                     ex >= ras.max_ex );
+    return 0;
   }
 
 
@@ -597,7 +596,7 @@ typedef ptrdiff_t  FT_PtrDist;
   /*                                                                       */
   /* Render a scanline as one or more cells.                               */
   /*                                                                       */
-  static void
+  static int
   gray_render_scanline( RAS_ARG_ TCoord  ey,
                                  TPos    x1,
                                  TCoord  y1,
@@ -614,10 +613,8 @@ typedef ptrdiff_t  FT_PtrDist;
 
     /* trivial case.  Happens often */
     if ( y1 == y2 )
-    {
-      gray_set_cell( RAS_VAR_ ex2, ey );
-      return;
-    }
+      return gray_set_cell( RAS_VAR_ ex2, ey );
+
 
     fx1   = (TCoord)( x1 - SUBPIXELS( ex1 ) );
     fx2   = (TCoord)( x2 - SUBPIXELS( ex2 ) );
@@ -653,7 +650,8 @@ typedef ptrdiff_t  FT_PtrDist;
     ras.cover += delta;
     y1        += delta;
     ex1       += incr;
-    gray_set_cell( RAS_VAR_ ex1, ey );
+    if ( gray_set_cell( RAS_VAR_ ex1, ey ) )
+      return ErrRaster_Memory_Overflow;
 
     if ( ex1 != ex2 )
     {
@@ -677,7 +675,8 @@ typedef ptrdiff_t  FT_PtrDist;
         ras.cover += delta;
         y1        += delta;
         ex1       += incr;
-        gray_set_cell( RAS_VAR_ ex1, ey );
+        if ( gray_set_cell( RAS_VAR_ ex1, ey ) )
+          return ErrRaster_Memory_Overflow;
       } while ( ex1 != ex2 );
     }
 
@@ -688,6 +687,8 @@ typedef ptrdiff_t  FT_PtrDist;
 
     ras.area  += (TArea)( ( fx1 + fx2 ) * dy );
     ras.cover += dy;
+
+    return 0;
   }
 
 
@@ -695,7 +696,7 @@ typedef ptrdiff_t  FT_PtrDist;
   /*                                                                       */
   /* Render a given line as a series of scanlines.                         */
   /*                                                                       */
-  static void
+  static int
   gray_render_line( RAS_ARG_ TPos  to_x,
                              TPos  to_y )
   {
@@ -718,7 +719,8 @@ typedef ptrdiff_t  FT_PtrDist;
     /* everything is on a single scanline */
     if ( ey1 == ey2 )
     {
-      gray_render_scanline( RAS_VAR_ ey1, ras.x, fy1, to_x, fy2 );
+      if ( gray_render_scanline( RAS_VAR_ ey1, ras.x, fy1, to_x, fy2 ) )
+        return ErrRaster_Memory_Overflow;
       goto End;
     }
 
@@ -749,7 +751,8 @@ typedef ptrdiff_t  FT_PtrDist;
       ras.cover += delta;
       ey1       += incr;
 
-      gray_set_cell( RAS_VAR_ ex, ey1 );
+      if ( gray_set_cell( RAS_VAR_ ex, ey1 ) )
+        return ErrRaster_Memory_Overflow;
 
       delta = first + first - ONE_PIXEL;
       area  = (TArea)two_fx * delta;
@@ -759,7 +762,8 @@ typedef ptrdiff_t  FT_PtrDist;
         ras.cover += delta;
         ey1       += incr;
 
-        gray_set_cell( RAS_VAR_ ex, ey1 );
+        if ( gray_set_cell( RAS_VAR_ ex, ey1 ) )
+          return ErrRaster_Memory_Overflow;
       }
 
       delta      = fy2 - ONE_PIXEL + first;
@@ -787,10 +791,12 @@ typedef ptrdiff_t  FT_PtrDist;
     FT_DIV_MOD( TCoord, p, dy, delta, mod );
 
     x = ras.x + delta;
-    gray_render_scanline( RAS_VAR_ ey1, ras.x, fy1, x, first );
+    if ( gray_render_scanline( RAS_VAR_ ey1, ras.x, fy1, x, first ) )
+      return ErrRaster_Memory_Overflow;
 
     ey1 += incr;
-    gray_set_cell( RAS_VAR_ TRUNC( x ), ey1 );
+    if ( gray_set_cell( RAS_VAR_ TRUNC( x ), ey1 ) )
+      return ErrRaster_Memory_Overflow;
 
     if ( ey1 != ey2 )
     {
@@ -811,23 +817,24 @@ typedef ptrdiff_t  FT_PtrDist;
         }
 
         x2 = x + delta;
-        gray_render_scanline( RAS_VAR_ ey1,
-                                       x, ONE_PIXEL - first,
-                                       x2, first );
+        if ( gray_render_scanline( RAS_VAR_ ey1, x, ONE_PIXEL - first, x2, first ) )
+          return ErrRaster_Memory_Overflow;
         x = x2;
 
         ey1 += incr;
-        gray_set_cell( RAS_VAR_ TRUNC( x ), ey1 );
+        if ( gray_set_cell( RAS_VAR_ TRUNC( x ), ey1 ) )
+          return ErrRaster_Memory_Overflow;
       } while ( ey1 != ey2 );
     }
 
-    gray_render_scanline( RAS_VAR_ ey1,
-                                   x, ONE_PIXEL - first,
-                                   to_x, fy2 );
+    if ( gray_render_scanline( RAS_VAR_ ey1, x, ONE_PIXEL - first, to_x, fy2 ) )
+      return ErrRaster_Memory_Overflow;
+
 
   End:
     ras.x       = to_x;
     ras.y       = to_y;
+    return 0;
   }
 
 #else
@@ -836,7 +843,7 @@ typedef ptrdiff_t  FT_PtrDist;
   /*                                                                       */
   /* Render a straight line across multiple cells in any direction.        */
   /*                                                                       */
-  static void
+  static int
   gray_render_line( RAS_ARG_ TPos  to_x,
                              TPos  to_y )
   {
@@ -866,7 +873,8 @@ typedef ptrdiff_t  FT_PtrDist;
     else if ( dy == 0 ) /* ex1 != ex2 */  /* any horizontal line */
     {
       ex1 = ex2;
-      gray_set_cell( RAS_VAR_ ex1, ey1 );
+      if ( gray_set_cell( RAS_VAR_ ex1, ey1 ) )
+        return ErrRaster_Memory_Overflow;
     }
     else if ( dx == 0 )
     {
@@ -878,7 +886,8 @@ typedef ptrdiff_t  FT_PtrDist;
           ras.area  += ( fy2 - fy1 ) * fx1 * 2;
           fy1 = 0;
           ey1++;
-          gray_set_cell( RAS_VAR_ ex1, ey1 );
+          if ( gray_set_cell( RAS_VAR_ ex1, ey1 ) )
+            return ErrRaster_Memory_Overflow;
         } while ( ey1 != ey2 );
       else                                /* vertical line down */
         do
@@ -888,7 +897,8 @@ typedef ptrdiff_t  FT_PtrDist;
           ras.area  += ( fy2 - fy1 ) * fx1 * 2;
           fy1 = ONE_PIXEL;
           ey1--;
-          gray_set_cell( RAS_VAR_ ex1, ey1 );
+          if ( gray_set_cell( RAS_VAR_ ex1, ey1 ) )
+            return ErrRaster_Memory_Overflow;
         } while ( ey1 != ey2 );
     }
     else                                  /* any other line */
@@ -952,7 +962,8 @@ typedef ptrdiff_t  FT_PtrDist;
           ey1--;
         }
 
-        gray_set_cell( RAS_VAR_ ex1, ey1 );
+        if ( gray_set_cell( RAS_VAR_ ex1, ey1 ) )
+          return ErrRaster_Memory_Overflow;
       } while ( ex1 != ex2 || ey1 != ey2 );
     }
 
@@ -965,6 +976,7 @@ typedef ptrdiff_t  FT_PtrDist;
   End:
     ras.x       = to_x;
     ras.y       = to_y;
+    return 0;
   }
 
 #endif
@@ -989,7 +1001,7 @@ typedef ptrdiff_t  FT_PtrDist;
   }
 
 
-  static void
+  static int
   gray_render_conic( RAS_ARG_ const FT_Vector*  control,
                               const FT_Vector*  to )
   {
@@ -1016,7 +1028,7 @@ typedef ptrdiff_t  FT_PtrDist;
     {
       ras.x = arc[0].x;
       ras.y = arc[0].y;
-      return;
+      return 0;
     }
 
     dx = FT_ABS( arc[2].x + arc[0].x - 2 * arc[1].x );
@@ -1047,10 +1059,12 @@ typedef ptrdiff_t  FT_PtrDist;
         split <<= 1;
       }
 
-      gray_render_line( RAS_VAR_ arc[0].x, arc[0].y );
+      if ( gray_render_line( RAS_VAR_ arc[0].x, arc[0].y ) )
+        return ErrRaster_Memory_Overflow;
       arc -= 2;
 
     } while ( --draw );
+    return 0;
   }
 
 
@@ -1082,7 +1096,7 @@ typedef ptrdiff_t  FT_PtrDist;
   }
 
 
-  static void
+  static int
   gray_render_cubic( RAS_ARG_ const FT_Vector*  control1,
                               const FT_Vector*  control2,
                               const FT_Vector*  to )
@@ -1115,7 +1129,7 @@ typedef ptrdiff_t  FT_PtrDist;
     {
       ras.x = arc[0].x;
       ras.y = arc[0].y;
-      return;
+      return 0;
     }
 
     for (;;)
@@ -1161,10 +1175,11 @@ typedef ptrdiff_t  FT_PtrDist;
            dx2 * ( dx2 - dx ) + dy2 * ( dy2 - dy ) > 0 )
         goto Split;
 
-      gray_render_line( RAS_VAR_ arc[0].x, arc[0].y );
+      if ( gray_render_line( RAS_VAR_ arc[0].x, arc[0].y ) )
+        return ErrRaster_Memory_Overflow;
 
       if ( arc == bez_stack )
-        return;
+        return 0;
 
       arc -= 3;
       continue;
@@ -1173,6 +1188,7 @@ typedef ptrdiff_t  FT_PtrDist;
       gray_split_cubic( arc );
       arc += 3;
     }
+    return 0;
   }
 
 
@@ -1187,7 +1203,8 @@ typedef ptrdiff_t  FT_PtrDist;
     x = UPSCALE( to->x );
     y = UPSCALE( to->y );
 
-    gray_set_cell( RAS_VAR_ TRUNC( x ), TRUNC( y ) );
+    if ( gray_set_cell( RAS_VAR_ TRUNC( x ), TRUNC( y ) ) )
+      return ErrRaster_Memory_Overflow;
 
     ras.x = x;
     ras.y = y;
@@ -1199,8 +1216,7 @@ typedef ptrdiff_t  FT_PtrDist;
   gray_line_to( const FT_Vector*  to,
                 gray_PWorker      worker )
   {
-    gray_render_line( RAS_VAR_ UPSCALE( to->x ), UPSCALE( to->y ) );
-    return 0;
+    return gray_render_line( RAS_VAR_ UPSCALE( to->x ), UPSCALE( to->y ) );
   }
 
 
@@ -1209,8 +1225,7 @@ typedef ptrdiff_t  FT_PtrDist;
                  const FT_Vector*  to,
                  gray_PWorker      worker )
   {
-    gray_render_conic( RAS_VAR_ control, to );
-    return 0;
+    return gray_render_conic( RAS_VAR_ control, to );
   }
 
 
@@ -1220,8 +1235,7 @@ typedef ptrdiff_t  FT_PtrDist;
                  const FT_Vector*  to,
                  gray_PWorker      worker )
   {
-    gray_render_cubic( RAS_VAR_ control1, control2, to );
-    return 0;
+    return gray_render_cubic( RAS_VAR_ control1, control2, to );
   }
 
 
@@ -1704,31 +1718,28 @@ typedef ptrdiff_t  FT_PtrDist;
   gray_convert_glyph_inner( RAS_ARG )
   {
 
-    volatile int  error = 0;
+    int  error;
 
 #ifdef FT_CONFIG_OPTION_PIC
       FT_Outline_Funcs func_interface;
       Init_Class_func_interface(&func_interface);
 #endif
 
-    if ( ft_setjmp( ras.jump_buffer ) == 0 )
-    {
-      error = FT_Outline_Decompose( &ras.outline, &func_interface, &ras );
-      if ( !ras.invalid )
-        gray_record_cell( RAS_VAR );
+    error = FT_Outline_Decompose( &ras.outline, &func_interface, &ras );
+    if ( !error && !ras.invalid )
+      error = gray_record_cell( RAS_VAR );
 
-      FT_TRACE7(( "band [%d..%d]: %d cells\n",
-                  ras.min_ey, ras.max_ey, ras.num_cells ));
-    }
-    else
+    if ( error )
     {
-      error = FT_THROW( Memory_Overflow );
-
       FT_TRACE7(( "band [%d..%d]: to be bisected\n",
                   ras.min_ey, ras.max_ey ));
+      return FT_THROW( Memory_Overflow );
     }
 
-    return error;
+    FT_TRACE7(( "band [%d..%d]: %d cells\n",
+                ras.min_ey, ras.max_ey, ras.num_cells ));
+
+    return 0;
   }
 
 

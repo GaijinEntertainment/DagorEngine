@@ -8,6 +8,16 @@ namespace AnimV20
 int addEnumValue(const char *) { G_ASSERT_RETURN(false, 0); }
 int getEnumValueByName(const char *) { G_ASSERT_RETURN(false, 0); }
 const char *getEnumName(int) { G_ASSERT_RETURN(false, ""); }
+AnimV20::AnimCommonStateHolder::AnimCommonStateHolder(const AnimCommonStateHolder &st) :
+  graph(st.graph),
+  paramNames(st.paramNames),
+  paramTypes(st.paramTypes),
+  val(st.val),
+  valTimeInd(st.valTimeInd),
+  valFifo3Ind(st.valFifo3Ind)
+{
+  G_ASSERT(0);
+}
 void AnimcharBaseComponent::act(float, bool) { G_ASSERT(0); }
 void AnimcharBaseComponent::recalcWtm() { G_ASSERT(0); }
 void AnimcharBaseComponent::getTm(mat44f &) const { G_ASSERT(0); }
@@ -17,9 +27,10 @@ void AnimcharBaseComponent::setTm(const Point3 &, const Point3 &, const Point3 &
 void AnimcharBaseComponent::setPostController(IAnimCharPostController *) { G_ASSERT(0); }
 void AnimcharBaseComponent::calcAnimWtm(bool) { G_ASSERT(0); }
 bool AnimcharBaseComponent::initAttachmentTmAndNodeWtm(int, mat44f &) const { G_ASSERT_RETURN(false, false); }
+dag::Index16 AnimcharBaseComponent::getSlotNodeIdx(int) const { G_ASSERT_RETURN(false, dag::Index16()); }
 const mat44f *AnimcharBaseComponent::getSlotNodeWtm(int) const { G_ASSERT_RETURN(false, nullptr); }
 const mat44f *AnimcharBaseComponent::getAttachmentTm(int) const { G_ASSERT_RETURN(false, nullptr); }
-int AnimcharBaseComponent::setAttachedChar(int, attachment_uid_t, AnimcharBaseComponent *, bool) { G_ASSERT_RETURN(false, 0); }
+int AnimcharBaseComponent::setAttachedChar(int, attachment_uid_t, AnimcharBaseComponent &, bool) { G_ASSERT_RETURN(false, 0); }
 int AnimcharBaseComponent::getAttachmentSlotsCount() const { G_ASSERT_RETURN(false, 0); }
 int AnimcharBaseComponent::getAttachmentSlotId(const int) const { G_ASSERT_RETURN(false, 0); }
 AnimcharBaseComponent *AnimcharBaseComponent::getAttachedChar(const int) const { G_ASSERT_RETURN(false, nullptr); }
@@ -28,8 +39,20 @@ void AnimcharBaseComponent::reset() { G_ASSERT(0); }
 void AnimcharBaseComponent::resetFastPhysWtmOfs(const vec3f) { G_ASSERT(0); }
 void AnimcharBaseComponent::setFastPhysSystemGravityDirection(const Point3 &) { G_ASSERT(0); }
 void AnimcharBaseComponent::updateFastPhys(const float) { G_ASSERT(0); }
+AnimV20::AnimcharDebugContext *AnimV20::AnimcharBaseComponent::createOrReturnExistingDebugContext()
+{
+  G_ASSERT_RETURN(false, nullptr);
+}
+void AnimV20::AnimcharDebugContext::disablePbcOverride(int) { G_ASSERT(0); }
+void AnimV20::AnimcharDebugContext::setPbcOverride(int, float) { G_ASSERT(0); }
+bool AnimV20::AnimcharDebugContext::getPbcOverrideEnabled(int) { G_ASSERT_RETURN(false, false); }
+float AnimV20::AnimcharDebugContext::getPbcOverrideValue(int) { G_ASSERT_RETURN(false, 0); }
 bool AnimV20::AnimcharRendComponent::calcWorldBox(bbox3f &, const AnimcharFinalMat44 &, bool) const { G_ASSERT_RETURN(false, false); }
 vec4f AnimV20::AnimcharRendComponent::prepareSphere(const AnimcharFinalMat44 &) const { G_ASSERT_RETURN(false, vec4f()); }
+vec4f AnimV20::AnimcharRendComponent::prepareSphereAndCalcBox(bbox3f &, const AnimcharFinalMat44 &) const
+{
+  G_ASSERT_RETURN(false, vec4f());
+}
 const DataBlock *AnimcharBaseComponent::getDebugBlenderState(bool) { G_ASSERT_RETURN(false, nullptr); }
 AnimV20::AnimBlender::TlsContext &AnimV20::AnimBlender::selectCtx(intptr_t (*)(int, intptr_t, intptr_t, intptr_t, void *), void *)
 {
@@ -45,7 +68,7 @@ void AnimationGraph::setStateSpeed(IPureAnimStateHolder &, dag::ConstSpan<StateR
 int AnimationGraph::getParamId(const char *, int) const { G_ASSERT_RETURN(false, 0); }
 
 bool AnimBlendCtrl_Fifo3::isEnqueued(IPureAnimStateHolder &, IAnimBlendNode *) { G_ASSERT_RETURN(false, false); }
-void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &, IAnimBlendNode *, real, real) { G_ASSERT(0); }
+void AnimBlendCtrl_Fifo3::enqueueState(IPureAnimStateHolder &, IAnimBlendNode *, real) { G_ASSERT(0); }
 int AnimBlendCtrl_ParametricSwitcher::getAnimForRange(real) { G_ASSERT_RETURN(false, 0); }
 
 int AnimCommonStateHolder::getParamInt(int) const { G_ASSERT_RETURN(false, 0); }
@@ -57,11 +80,21 @@ int AnimCommonStateHolder::getTimeScaleParamId(int) const { G_ASSERT_RETURN(fals
 void AnimCommonStateHolder::setTimeScaleParamId(int, int) { G_ASSERT(0); }
 void AnimCommonStateHolder::advance(float) { G_ASSERT(0); }
 void AnimCommonStateHolder::term() { G_ASSERT(0); }
+void AnimCommonStateHolder::init() { G_ASSERT(0); }
 
 void AnimBlender::buildNodeList() { G_ASSERT(0); }
+void AnimCommonStateHolder::dumpStateText(String &) const { G_ASSERT(0); }
 } // namespace AnimV20
 
 void Animate2ndPass::release() { G_ASSERT(0); }
+
+namespace AnimResManagerV20
+{
+void add_bnl(AnimationGraph &, const DataBlock &, AnimData *, bool, bool, const char *) { G_ASSERT(0); }
+
+void add_bn(AnimationGraph &, const DataBlock &, const char *) { G_ASSERT(0); }
+
+} // namespace AnimResManagerV20
 
 namespace AnimCharV20
 {

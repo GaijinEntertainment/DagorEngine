@@ -1,0 +1,8 @@
+WARNING: w239 (named-like-return-bool) Function name 'returnBoolFunctionName' implies a return boolean type but not all control paths return boolean.
+testData/static_analyzer/w239_sqconfig.nut:3:9
+
+function returnBoolFunctionName() { //-declared-never-used
+         ^---------------------
+  if (::serverName == "")
+
+

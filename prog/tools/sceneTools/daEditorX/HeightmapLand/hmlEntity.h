@@ -3,6 +3,7 @@
 
 #include <EditorCore/ec_rendEdObject.h>
 #include <de3_composit.h>
+#include <rendInst/rendInstConsts.h>
 #include <util/dag_simpleString.h>
 #include "hmlLayers.h"
 
@@ -109,7 +110,7 @@ public:
   void setCollisionIgnored() override
   {
     oldPerInstSeed = perInstSeed;
-    setPerInstSeed(0xBAD);
+    setPerInstSeed(rendinst::RI_SEED_COLLISION_IGNORE);
   }
   void resetCollisionIgnored() override { setPerInstSeed(oldPerInstSeed); }
 

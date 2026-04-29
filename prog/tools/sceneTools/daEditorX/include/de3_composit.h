@@ -30,6 +30,9 @@ public:
 
   virtual int getCompositSubEntityCount() = 0;
   virtual IObjEntity *getCompositSubEntity(int idx) = 0;
+  // This can be significantly faster for huge composites than using getCompositSubEntityCount() and
+  // getCompositSubEntity() if you iterate over everything.
+  virtual dag::Span<IObjEntity *> getCompositSubEntities() = 0;
   virtual const Props &getCompositSubEntityProps(int idx) = 0;
   virtual int getCompositSubEntityIdxByLabel(const char *label) = 0;
 

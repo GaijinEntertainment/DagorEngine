@@ -71,16 +71,20 @@ struct ExecutionSyncCapture
     uint32_t x;
     uint32_t y;
   };
+
 #if EXECUTION_SYNC_DEBUG_CAPTURE > 0
   void addSyncStep();
   void addOp(SyncOpUid uid, LogicAddress laddr, Resource *res, SyncOpCaller caller);
   void addOpPrevStep(SyncOpUid uid, LogicAddress laddr, Resource *res, SyncOpCaller caller)
   {
+    size_t i = ops.size();
     addOp(uid, laddr, res, caller);
-    --ops.back().step;
+    if (i != ops.size())
+      --ops.back().step;
   }
   void addLink(SyncOpUid src_op_uid, SyncOpUid dst_op_uid);
   void reset();
+  void onBackendReplayStart();
 
   Tab<SyncOp> ops;
   Tab<SyncStep> steps;
@@ -92,12 +96,14 @@ struct ExecutionSyncCapture
   uint32_t currentVisNode = 1;
   uint32_t currentLocalSyncStepOpIdx = 0;
   uint32_t currentVisPin = 1;
+  String resNameFilter;
 #else
   void addSyncStep() {}
   void addOp(SyncOpUid, LogicAddress, Resource *, SyncOpCaller) {}
   void addOpPrevStep(SyncOpUid, LogicAddress, Resource *, SyncOpCaller) {}
   void addLink(SyncOpUid, SyncOpUid) {}
   void reset() {}
+  void onBackendReplayStart() {}
 #endif
 };
 

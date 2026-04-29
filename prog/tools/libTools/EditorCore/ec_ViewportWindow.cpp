@@ -4,9 +4,12 @@
 
 #include "ec_cachedRender.h"
 #include "ec_stat3d.h"
+#include "ec_ViewportWindowGridSettingsDialogController.h"
+#include "ec_ViewportWindowStatSettingsDialogController.h"
 
 #include <EditorCore/ec_ViewportWindow.h>
 #include <EditorCore/ec_ViewportWindowStatSettingsDialog.h>
+#include <EditorCore/ec_editorCommandSystem.h>
 #include <EditorCore/ec_GizmoSettingsDialog.h>
 #include <EditorCore/ec_gizmofilter.h>
 #include <EditorCore/ec_camera_dlg.h>
@@ -15,11 +18,15 @@
 #include <EditorCore/ec_interface_ex.h>
 #include <EditorCore/ec_interface.h>
 #include <EditorCore/ec_gridobject.h>
+#include <EditorCore/ec_menu.h>
+#include <EditorCore/ec_modelessDialogWindowController.h>
+#include <EditorCore/ec_modelessWindowControllerList.h>
 #include <EditorCore/captureCursor.h>
 #include <EditorCore/ec_cm.h>
 #include <EditorCore/ec_wndPublic.h>
 #include "ec_viewportAxis.h"
 
+#include <gui/dag_imguiUtil.h>
 #include <gui/dag_stdGuiRenderEx.h>
 
 #include <libTools/renderViewports/renderViewport.h>
@@ -58,13 +65,7 @@
 #if _TARGET_PC_WIN
 #include <windows.h>
 #else
-#include <X11/Xlib.h>
-#undef None
-
-namespace workcycle_internal
-{
-const XWindowAttributes &get_window_attrib(Window w, bool translated);
-}
+#include <osApiWrappers/dag_linuxGUI.h>
 #endif
 
 using hdpi::_pxActual;
@@ -73,13 +74,14 @@ using PropPanel::ROOT_MENU_ITEM;
 
 static real def_viewport_zn = 0.1f, def_viewport_zf = 1000.f;
 static real def_viewport_fov = 1.57f;
-static eastl::unique_ptr<CamerasConfigDlg> camera_config_dialog;
 
 static const real FALLBACK_DIST_CAM_PAN = 750.f;
+static const real MOUSE_SENSITIVITY = 0.01f;
 
 bool camera_objects_config_changed = false;
 
 bool ViewportWindow::showDagorUiCursor = true;
+bool ViewportWindow::needsOrthoCameraAdjustment = false;
 
 static void render_viewport_frame_stub(ViewportWindow *) {}
 void (*ViewportWindow::render_viewport_frame)(ViewportWindow *vpw) = &render_viewport_frame_stub;
@@ -264,14 +266,10 @@ enum
 
 
 unsigned ViewportWindow::restoreFlags = 0;
-GridEditDialog *ViewportWindow::gridSettingsDialog = nullptr;
-GizmoSettingsDialog *ViewportWindow::gizmoSettingsDialog = nullptr;
 
 
 ViewportWindow::ViewportWindow()
 {
-  showStats = false;
-  calcStat3d = true;
   opaqueStat3d = false;
   curEH = NULL;
   curMEH = nullptr;
@@ -294,14 +292,6 @@ ViewportWindow::ViewportWindow()
   popupMenu = nullptr;
   selectionMenu = nullptr;
   allowPopupMenu = false;
-  mIsCursorVisible = true;
-  showCameraStats = true;
-  showCameraPos = true;
-  showCameraDist = false;
-  showCameraFov = false;
-  showCameraSpeed = false;
-  showCameraTurboSpeed = false;
-  statSettingsDialog = nullptr;
   wireframeOverlay = false;
   showViewportAxis = true;
   highlightedViewportAxisId = ViewportAxisId::None;
@@ -317,6 +307,9 @@ ViewportWindow::ViewportWindow()
     ec_cached_viewports = new (inimem) CachedRenderViewports;
 
   vpId = ec_cached_viewports->addViewport(viewport, this, false);
+
+  grid_settings_dialog_controller = new ViewportWindowGridSettingsDialogController(vpId);
+  stat_settings_dialog_controller = new ViewportWindowStatSettingsDialogController(*this, vpId);
 }
 
 
@@ -325,11 +318,20 @@ ViewportWindow::~ViewportWindow()
   PropPanel::remove_delayed_callback(*this);
   clear_all_ptr_items(delayedMouseEvents);
 
+  if (grid_settings_dialog_controller)
+  {
+    grid_settings_dialog_controller->releaseWindow();
+    del_it(grid_settings_dialog_controller);
+  }
+
+  if (stat_settings_dialog_controller)
+  {
+    stat_settings_dialog_controller->releaseWindow();
+    del_it(stat_settings_dialog_controller);
+  }
+
   del_it(popupMenu);
   del_it(selectionMenu);
-  del_it(statSettingsDialog);
-  del_it(gridSettingsDialog);
-  del_it(gizmoSettingsDialog);
   if (ec_cached_viewports)
     ec_cached_viewports->removeViewport(vpId);
   del_it(viewport);
@@ -356,16 +358,19 @@ void ViewportWindow::getMenuAreaSize(hdpi::Px &w, hdpi::Px &h)
 
 void ViewportWindow::fillPopupMenu(PropPanel::IMenu &menu)
 {
+  IEditorCommandSystem *commandSystem = EDITORCORE->queryEditorInterface<IEditorCommandSystem>();
+  G_ASSERT(commandSystem);
+
   menu.clearMenu(ROOT_MENU_ITEM);
   menu.setEventHandler(this);
 
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_PERSPECTIVE, "Perspective\tShift+P");
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_FRONT, "Front\tShift+F");
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_BACK, "Back\tShift+K");
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_TOP, "Top\tShift+T");
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_BOTTOM, "Bottom\tShift+B");
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_LEFT, "Left\tShift+L");
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_RIGHT, "Right\tShift+R");
+  commandSystem->addMenuItem(menu, ROOT_MENU_ITEM, CM_VIEW_PERSPECTIVE, EditorCommandIds::VIEW_PERSPECTIVE, "Perspective");
+  commandSystem->addMenuItem(menu, ROOT_MENU_ITEM, CM_VIEW_FRONT, EditorCommandIds::VIEW_FRONT, "Front");
+  commandSystem->addMenuItem(menu, ROOT_MENU_ITEM, CM_VIEW_BACK, EditorCommandIds::VIEW_BACK, "Back");
+  commandSystem->addMenuItem(menu, ROOT_MENU_ITEM, CM_VIEW_TOP, EditorCommandIds::VIEW_TOP, "Top");
+  commandSystem->addMenuItem(menu, ROOT_MENU_ITEM, CM_VIEW_BOTTOM, EditorCommandIds::VIEW_BOTTOM, "Bottom");
+  commandSystem->addMenuItem(menu, ROOT_MENU_ITEM, CM_VIEW_LEFT, EditorCommandIds::VIEW_LEFT, "Left");
+  commandSystem->addMenuItem(menu, ROOT_MENU_ITEM, CM_VIEW_RIGHT, EditorCommandIds::VIEW_RIGHT, "Right");
   menu.setCheckById(currentProjection);
 
 
@@ -380,13 +385,13 @@ void ViewportWindow::fillPopupMenu(PropPanel::IMenu &menu)
   //   menu.checkItem(currentProjection, true, false);
 
   menu.addSeparator(ROOT_MENU_ITEM);
-  menu.addItem(ROOT_MENU_ITEM, CM_VIEW_WIREFRAME, "Wireframe, Edged faces\tF3");
+  commandSystem->addMenuItem(menu, ROOT_MENU_ITEM, CM_VIEW_WIREFRAME, EditorCommandIds::VIEW_WIREFRAME, "Wireframe, Edged faces");
   menu.setCheckById(CM_VIEW_WIREFRAME, viewport && (viewport->wireframe || wireframeOverlay));
 
   {
     menu.addSubMenu(ROOT_MENU_ITEM, CM_GROUP_GRID, "Grid");
 
-    menu.addItem(CM_GROUP_GRID, CM_VIEW_GRID_SHOW, "Show grid\tG");
+    commandSystem->addMenuItem(menu, CM_GROUP_GRID, CM_VIEW_GRID_SHOW, EditorCommandIds::VIEW_GRID_SHOW, "Show grid");
     menu.addItem(CM_GROUP_GRID, CM_OPTIONS_GRID, "Grid settings...");
 
     menu.setCheckById(CM_VIEW_GRID_SHOW, EDITORCORE->getGrid().isVisible(vpId));
@@ -403,7 +408,7 @@ void ViewportWindow::fillPopupMenu(PropPanel::IMenu &menu)
     menu.addSubMenu(ROOT_MENU_ITEM, CM_GROUP_STATS, "Stats");
 
     menu.addItem(CM_GROUP_STATS, CM_VIEW_SHOW_STATS, "Show stats");
-    menu.setCheckById(CM_VIEW_SHOW_STATS, showStats);
+    menu.setCheckById(CM_VIEW_SHOW_STATS, shownStats.rootStats);
 
     menu.addItem(CM_GROUP_STATS, CM_OPTIONS_STAT_DISPLAY_SETTINGS, "Stats settings...");
 
@@ -539,11 +544,12 @@ void ViewportWindow::processMaxCameraMouseMove(int mouse_x, int mouse_y, bool m_
     real deltaX, deltaY;
 
     processMouseMoveInfluence(deltaX, deltaY, mouse_x, mouse_y);
-    deltaX *= ::dagor_game_act_time;
-    deltaY *= ::dagor_game_act_time;
 
     if (altPressed)
     {
+      deltaX *= MOUSE_SENSITIVITY;
+      deltaY *= MOUSE_SENSITIVITY;
+
       if (ctrlPressed)
       {
         if (!orthogonalProjection)
@@ -573,8 +579,8 @@ void ViewportWindow::processMaxCameraMouseMove(int mouse_x, int mouse_y, bool m_
       if (orthogonalProjection)
       {
         real moveStepX, moveStepY;
-        moveStepX = 2.f / orthogonalZoom / ::dagor_game_act_time;
-        moveStepY = 2.f / orthogonalZoom / ::dagor_game_act_time;
+        moveStepX = 2.f / orthogonalZoom;
+        moveStepY = 2.f / orthogonalZoom;
         maxCameraElem->strife(moveStepX * deltaX, moveStepY * deltaY, false, false);
       }
       else
@@ -583,9 +589,6 @@ void ViewportWindow::processMaxCameraMouseMove(int mouse_x, int mouse_y, bool m_
         const Point3 pos = getCameraPanAnchorPoint();
         real sx = sqrtf(getLinearSizeSq(pos, 1, 0));
         real sy = sqrtf(getLinearSizeSq(pos, 1, 1));
-
-        deltaX /= ::dagor_game_act_time;
-        deltaY /= ::dagor_game_act_time;
 
         deltaX /= sx;
         deltaY /= sy;
@@ -729,7 +732,7 @@ void ViewportWindow::processMouseRButtonRelease(int mouse_x, int mouse_y)
 
   if (CCameraElem::getCamera() == CCameraElem::MAX_CAMERA && allowPopupMenu && !popupMenu && pointInMenuArea(this, mouse_x, mouse_y))
   {
-    popupMenu = PropPanel::create_context_menu();
+    popupMenu = ec_create_context_menu();
     fillPopupMenu(*popupMenu);
     allowPopupMenu = false; // Prevent opening the selection context menu.
   }
@@ -739,7 +742,7 @@ void ViewportWindow::processMouseRButtonRelease(int mouse_x, int mouse_y)
 
   if (!selectionMenu && allowPopupMenu)
   {
-    selectionMenu = PropPanel::create_context_menu();
+    selectionMenu = ec_create_context_menu();
     selectionMenu->setEventHandler(this);
   }
 
@@ -794,6 +797,10 @@ void ViewportWindow::processMouseMove(int mouse_x, int mouse_y)
 
 void ViewportWindow::processMouseWheel(int mouse_x, int mouse_y, int multiplied_delta)
 {
+  if (canRouteMessagesToExternalEventHandler())
+    if (curEH->handleMouseWheel(this, multiplied_delta / EC_WHEEL_DELTA, mouse_x, mouse_y, get_modifier_keys_for_window_messages()))
+      return;
+
   switch (CCameraElem::getCamera())
   {
     case CCameraElem::FPS_CAMERA: processCameraMouseWheel(fpsCameraElem, multiplied_delta / EC_WHEEL_DELTA); break;
@@ -812,9 +819,6 @@ void ViewportWindow::processMouseWheel(int mouse_x, int mouse_y, int multiplied_
       processMaxCameraMouseWheel(multiplied_delta);
     }
   }
-
-  if (canRouteMessagesToExternalEventHandler())
-    curEH->handleMouseWheel(this, multiplied_delta / EC_WHEEL_DELTA, mouse_x, mouse_y, get_modifier_keys_for_window_messages());
 }
 
 
@@ -933,14 +937,13 @@ int ViewportWindow::onMenuItemClick(unsigned id)
     {
       bool is_visible = EDITORCORE->getGrid().isVisible(vpId);
       EDITORCORE->getGrid().setVisible(!is_visible, vpId);
-      if (gridSettingsDialog)
-        gridSettingsDialog->onGridVisibilityChanged(vpId);
+      ViewportWindowGridSettingsDialogController::onGridVisibilityChanged(vpId);
     }
       return 0;
 
     case CM_VIEW_GIZMO: showGizmoSettingsDialog(); return 0;
 
-    case CM_VIEW_SHOW_STATS: showStats = !showStats; return 0;
+    case CM_VIEW_SHOW_STATS: shownStats.rootStats = !shownStats.rootStats; return 0;
 
     case CM_VIEW_STAT3D_OPAQUE: opaqueStat3d = !opaqueStat3d; return 0;
 
@@ -983,8 +986,8 @@ int ViewportWindow::onMenuItemClick(unsigned id)
 
 int ViewportWindow::handleCommand(int p1, int p2, int p3)
 {
-  bool ctrlPressed = ec_is_ctrl_key_down();
-  bool shiftPressed = ec_is_shift_key_down();
+  bool ctrlPressed = false;
+  bool shiftPressed = false;
 
   switch (p1)
   {
@@ -1041,20 +1044,18 @@ int ViewportWindow::handleCommand(int p1, int p2, int p3)
           }
 
           capture_cursor(getMainHwnd());
-          if (mIsCursorVisible)
+          if (ec_is_cursor_visible())
           {
             ec_show_cursor(false);
-            mIsCursorVisible = false;
           }
         }
         break;
 
         case CCameraElem::MAX_CAMERA:
           release_cursor();
-          if (!mIsCursorVisible)
+          if (!ec_is_cursor_visible())
           {
             ec_show_cursor(true);
-            mIsCursorVisible = true;
           }
           ec_set_cursor_pos(restoreCursorAt);
           break;
@@ -1068,20 +1069,46 @@ int ViewportWindow::handleCommand(int p1, int p2, int p3)
   return 0;
 }
 
+void ViewportWindow::registerEditorCommands(IEditorCommandSystem &command_system)
+{
+  // There could be multiple viewports but commands need only a single registration.
+  static bool registered = false;
+  if (registered)
+    return;
+  registered = true;
+
+  command_system.addCommand(EditorCommandIds::VIEW_GRID_SHOW, ImGuiKey_G);
+  command_system.addCommand(EditorCommandIds::VIEW_WIREFRAME, ImGuiKey_F3);
+  command_system.addCommand(EditorCommandIds::VIEW_PERSPECTIVE, ImGuiMod_Shift | ImGuiKey_P);
+  command_system.addCommand(EditorCommandIds::VIEW_FRONT, ImGuiMod_Shift | ImGuiKey_F);
+  command_system.addCommand(EditorCommandIds::VIEW_BACK, ImGuiMod_Shift | ImGuiKey_K);
+  command_system.addCommand(EditorCommandIds::VIEW_TOP, ImGuiMod_Shift | ImGuiKey_T);
+  command_system.addCommand(EditorCommandIds::VIEW_BOTTOM, ImGuiMod_Shift | ImGuiKey_B);
+  command_system.addCommand(EditorCommandIds::VIEW_LEFT, ImGuiMod_Shift | ImGuiKey_L);
+  command_system.addCommand(EditorCommandIds::VIEW_RIGHT, ImGuiMod_Shift | ImGuiKey_R);
+}
+
 void ViewportWindow::registerViewportAccelerators(IWndManager &wnd_manager)
 {
-  wnd_manager.addViewportAccelerator(CM_VIEW_GRID_SHOW, ImGuiKey_G);
-  wnd_manager.addViewportAccelerator(CM_VIEW_WIREFRAME, ImGuiKey_F3);
-  wnd_manager.addViewportAccelerator(CM_VIEW_PERSPECTIVE, ImGuiMod_Shift | ImGuiKey_P);
-  wnd_manager.addViewportAccelerator(CM_VIEW_FRONT, ImGuiMod_Shift | ImGuiKey_F);
-  wnd_manager.addViewportAccelerator(CM_VIEW_BACK, ImGuiMod_Shift | ImGuiKey_K);
-  wnd_manager.addViewportAccelerator(CM_VIEW_TOP, ImGuiMod_Shift | ImGuiKey_T);
-  wnd_manager.addViewportAccelerator(CM_VIEW_BOTTOM, ImGuiMod_Shift | ImGuiKey_B);
-  wnd_manager.addViewportAccelerator(CM_VIEW_LEFT, ImGuiMod_Shift | ImGuiKey_L);
-  wnd_manager.addViewportAccelerator(CM_VIEW_RIGHT, ImGuiMod_Shift | ImGuiKey_R);
+  wnd_manager.addViewportAccelerator(CM_VIEW_GRID_SHOW, EditorCommandIds::VIEW_GRID_SHOW);
+  wnd_manager.addViewportAccelerator(CM_VIEW_WIREFRAME, EditorCommandIds::VIEW_WIREFRAME);
+  wnd_manager.addViewportAccelerator(CM_VIEW_PERSPECTIVE, EditorCommandIds::VIEW_PERSPECTIVE);
+  wnd_manager.addViewportAccelerator(CM_VIEW_FRONT, EditorCommandIds::VIEW_FRONT);
+  wnd_manager.addViewportAccelerator(CM_VIEW_BACK, EditorCommandIds::VIEW_BACK);
+  wnd_manager.addViewportAccelerator(CM_VIEW_TOP, EditorCommandIds::VIEW_TOP);
+  wnd_manager.addViewportAccelerator(CM_VIEW_BOTTOM, EditorCommandIds::VIEW_BOTTOM);
+  wnd_manager.addViewportAccelerator(CM_VIEW_LEFT, EditorCommandIds::VIEW_LEFT);
+  wnd_manager.addViewportAccelerator(CM_VIEW_RIGHT, EditorCommandIds::VIEW_RIGHT);
 }
 
 bool ViewportWindow::handleViewportAcceleratorCommand(unsigned id) { return onMenuItemClick(id) == 0; }
+
+void ViewportWindow::getModelessWindowControllers(ModelessWindowControllerList &controllers)
+{
+  controllers.addWindowController(*grid_settings_dialog_controller);
+  controllers.addWindowController(*stat_settings_dialog_controller);
+  controllers.addWindowController(*get_gizmo_settings_dialog_controller());
+}
 
 void ViewportWindow::OnChangePosition()
 {
@@ -1111,8 +1138,7 @@ void ViewportWindow::OnChangePosition()
     viewport->setPersp(wk, hk, projectionNearPlane, projectionFarPlane);
   }
 
-  viewport->setlt(Point2(clientRect.l, clientRect.t));
-  viewport->setrb(Point2(clientRect.r, clientRect.b));
+  viewport->setViewportRect(Point2(clientRect.l, clientRect.t), Point2(clientRect.r, clientRect.b));
 }
 
 
@@ -1252,12 +1278,27 @@ void ViewportWindow::setProjection(bool orthogonal, real fov, real near_plane, r
   OnChangePosition();
 }
 
+Driver3dPerspective ViewportWindow::getPerspective() const
+{
+  const TMatrix4 &pm = viewport->getProjectionMatrix();
+  Driver3dPerspective persp;
+  persp.zn = projectionNearPlane;
+  persp.zf = projectionFarPlane;
+  persp.ox = 0;
+  persp.oy = 0;
+  persp.wk = pm.m[0][0];
+  persp.hk = pm.m[1][1];
+  return persp;
+}
+
 
 void ViewportWindow::setCameraDirection(const Point3 &forward, const Point3 &up)
 {
   TMatrix viewMatrix = createViewMatrix(forward, up);
   viewMatrix.setcol(3, viewport->getViewMatrix().getcol(3));
   viewport->setViewMatrix(viewMatrix);
+  if (orthogonalProjection && needsOrthoCameraAdjustment)
+    adjustCameraForOrthoProjection();
 
   currentProjection = CM_VIEW_CUSTOM_CAMERA;
   setCameraViewText();
@@ -1273,6 +1314,8 @@ void ViewportWindow::setCameraPos(const Point3 &pos)
   temp.setcol(3, pos);
   viewport->setViewMatrix(inverse(temp));
   //  viewport->viewMatrix.orthonormalize();
+  if (orthogonalProjection && needsOrthoCameraAdjustment)
+    adjustCameraForOrthoProjection();
 
   redrawClientRect();
   updatePluginCamera = true;
@@ -1684,10 +1727,10 @@ void ViewportWindow::clientToScreen(int &x, int &y)
   // too! Also use mousePosInCanvas to have proper screen coordinates (in the Windows version too).
   G_ASSERT((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) == 0);
 
-  Window window = (intptr_t)win32_get_main_wnd(); // see getWindowFromPtrHandle()
-  const XWindowAttributes &attributes = workcycle_internal::get_window_attrib(window, true);
-  x += attributes.x;
-  y += attributes.y;
+  int wx, wy;
+  linux_GUI::get_window_position(win32_get_main_wnd(), wx, wy);
+  x += wx;
+  y += wy;
 #endif
 }
 
@@ -1705,10 +1748,10 @@ void ViewportWindow::screenToClient(int &x, int &y)
   // too! Also use mousePosInCanvas to have proper screen coordinates (in the Windows version too).
   G_ASSERT((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) == 0);
 
-  Window window = (intptr_t)win32_get_main_wnd(); // see getWindowFromPtrHandle()
-  const XWindowAttributes &attributes = workcycle_internal::get_window_attrib(window, true);
-  x -= attributes.x;
-  y -= attributes.y;
+  int wx, wy;
+  linux_GUI::get_window_position(win32_get_main_wnd(), wx, wy);
+  x -= wx;
+  y -= wy;
 #endif
 }
 
@@ -1797,7 +1840,7 @@ void ViewportWindow::paintRect()
 
   hdpi::Px rx, ry;
   getMenuAreaSize(rx, ry);
-  StdGuiRender::set_color(isActive() ? COLOR_YELLOW : COLOR_BLACK);
+  StdGuiRender::set_color(isActive() ? COLOR_YELLOW : E3DCOLOR_MAKE(100, 100, 100, 255));
   StdGuiRender::render_box(0, 0, _px(rx), _px(ry));
 
   StdGuiRender::set_font(0);
@@ -1885,65 +1928,71 @@ void ViewportWindow::paint(int w, int h)
 
   paintRect();
 
-  if (showStats && showCameraStats)
+  if (shownStats.rootStats && (shownStats.cameraStats || shownStats.flyCameraStats))
   {
-    TMatrix tm;
     int _w, _h;
-    getCameraTransform(tm);
     getViewportSize(_w, _h);
-
     hdpi::Px cTextPosX = _pxScaled(5), cTextPosY = _pxActual(_h) - _pxScaled(15); // lower left corner
-    const Point3 pos = tm.getcol(3);
 
-    CCameraElem *cameraElem = nullptr;
-    switch (CCameraElem::getCamera())
+    if (shownStats.flyCameraStats)
     {
-      case CCameraElem::FPS_CAMERA: cameraElem = fpsCameraElem; break;
-      case CCameraElem::TPS_CAMERA: cameraElem = tpsCameraElem; break;
-      case CCameraElem::CAR_CAMERA: cameraElem = carCameraElem; break;
-      case CCameraElem::FREE_CAMERA: cameraElem = freeCameraElem; break;
+      CCameraElem *cameraElem = nullptr;
+      switch (CCameraElem::getCamera())
+      {
+        case CCameraElem::FPS_CAMERA: cameraElem = fpsCameraElem; break;
+        case CCameraElem::TPS_CAMERA: cameraElem = tpsCameraElem; break;
+        case CCameraElem::CAR_CAMERA: cameraElem = carCameraElem; break;
+        case CCameraElem::FREE_CAMERA: cameraElem = freeCameraElem; break;
+      }
+
+      if (shownStats.flyCameraTurboSpeed && cameraElem)
+      {
+        const float turboSpeed = cameraElem->getConfig()->moveStep * cameraElem->getConfig()->controlMultiplier;
+        const String cameraTurboSpeed(32, "Camera turbo speed: %.2f", turboSpeed);
+        drawText(cTextPosX, cTextPosY, cameraTurboSpeed);
+
+        cTextPosY -= _pxScaled(20);
+      }
+
+      if (shownStats.flyCameraSpeed && cameraElem)
+      {
+        const float speed = cameraElem->getConfig()->moveStep;
+        const String cameraSpeed(32, "Camera speed: %.2f", speed);
+        drawText(cTextPosX, cTextPosY, cameraSpeed);
+
+        cTextPosY -= _pxScaled(20);
+      }
     }
 
-    if (showCameraTurboSpeed && cameraElem)
+    if (shownStats.cameraStats)
     {
-      const float turboSpeed = cameraElem->getConfig()->moveStep * cameraElem->getConfig()->controlMultiplier;
-      const String cameraTurboSpeed(32, "Camera turbo speed: %.2f", turboSpeed);
-      drawText(cTextPosX, cTextPosY, cameraTurboSpeed);
+      TMatrix tm;
+      getCameraTransform(tm);
+      const Point3 pos = tm.getcol(3);
 
-      cTextPosY -= _pxScaled(20);
-    }
+      if (shownStats.cameraFov)
+      {
+        const float fov = getFov() * RAD_TO_DEG;
+        const String cameraFov(32, "Camera FOV: %.1f", fov);
+        drawText(cTextPosX, cTextPosY, cameraFov);
 
-    if (showCameraSpeed && cameraElem)
-    {
-      const float speed = cameraElem->getConfig()->moveStep;
-      const String cameraSpeed(32, "Camera speed: %.2f", speed);
-      drawText(cTextPosX, cTextPosY, cameraSpeed);
+        cTextPosY -= _pxScaled(20);
+      }
 
-      cTextPosY -= _pxScaled(20);
-    }
+      if (shownStats.cameraDist)
+      {
+        const float distance = pos.length();
+        const String cameraDistance(32, "Camera dist: %.2f", distance);
+        drawText(cTextPosX, cTextPosY, cameraDistance);
 
-    if (showCameraFov)
-    {
-      const float fov = getFov() * RAD_TO_DEG;
-      const String cameraFov(32, "Camera FOV: %.1f", fov);
-      drawText(cTextPosX, cTextPosY, cameraFov);
+        cTextPosY -= _pxScaled(20);
+      }
 
-      cTextPosY -= _pxScaled(20);
-    }
-
-    if (showCameraDist)
-    {
-      const float distance = pos.length();
-      const String cameraDistance(32, "Camera dist: %.2f", distance);
-      drawText(cTextPosX, cTextPosY, cameraDistance);
-
-      cTextPosY -= _pxScaled(20);
-    }
-
-    if (showCameraPos)
-    {
-      const String cameraPos(32, "Camera pos: %.2f, %.2f, %.2f", pos.x, pos.y, pos.z);
-      drawText(cTextPosX, cTextPosY, cameraPos);
+      if (shownStats.cameraPos)
+      {
+        const String cameraPos(32, "Camera pos: %.2f, %.2f, %.2f", pos.x, pos.y, pos.z);
+        drawText(cTextPosX, cTextPosY, cameraPos);
+      }
     }
   }
 
@@ -2060,15 +2109,16 @@ void ViewportWindow::load(const DataBlock &blk)
   ::grs_cur_view.itm = inverse(::grs_cur_view.tm);
   ::grs_cur_view.pos = ::grs_cur_view.itm.getcol(3);
 
-  showStats = blk.getBool("show_stats", false);
-  calcStat3d = blk.getBool("stat3d", true);
+  shownStats.rootStats = blk.getBool("show_stats", shownStats.rootStats);
+  shownStats._3dStats = blk.getBool("stat3d", shownStats._3dStats);
   opaqueStat3d = blk.getBool("stat3d_opaque", false);
-  showCameraStats = blk.getBool("show_camera_stats", true);
-  showCameraPos = blk.getBool("show_camera_pos", true);
-  showCameraDist = blk.getBool("show_camera_dist", false);
-  showCameraFov = blk.getBool("show_camera_fov", false);
-  showCameraSpeed = blk.getBool("show_camera_speed", false);
-  showCameraTurboSpeed = blk.getBool("show_camera_turbo_speed", false);
+  shownStats.cameraStats = blk.getBool("show_camera_stats", shownStats.cameraStats);
+  shownStats.cameraPos = blk.getBool("show_camera_pos", shownStats.cameraPos);
+  shownStats.cameraDist = blk.getBool("show_camera_dist", shownStats.cameraDist);
+  shownStats.cameraFov = blk.getBool("show_camera_fov", shownStats.cameraFov);
+  shownStats.flyCameraStats = blk.getBool("show_fly_camera_stats", shownStats.flyCameraStats);
+  shownStats.flyCameraSpeed = blk.getBool("show_fly_camera_speed", shownStats.flyCameraSpeed);
+  shownStats.flyCameraTurboSpeed = blk.getBool("show_fly_camera_turbo_speed", shownStats.flyCameraTurboSpeed);
   ec_stat3d_load_enabled_graphs(vpId, blk.getBlockByName("displayed_stat3d_list"));
 }
 
@@ -2092,15 +2142,16 @@ void ViewportWindow::save(DataBlock &blk) const
   blk.setBool("wireframe", viewport->wireframe);
   blk.setBool("viewportAxis", showViewportAxis);
 
-  blk.setBool("show_stats", showStats);
-  blk.setBool("stat3d", calcStat3d);
+  blk.setBool("show_stats", shownStats.rootStats);
+  blk.setBool("stat3d", shownStats._3dStats);
   blk.setBool("stat3d_opaque", opaqueStat3d);
-  blk.setBool("show_camera_stats", showCameraStats);
-  blk.setBool("show_camera_pos", showCameraPos);
-  blk.setBool("show_camera_dist", showCameraDist);
-  blk.setBool("show_camera_fov", showCameraFov);
-  blk.setBool("show_camera_speed", showCameraSpeed);
-  blk.setBool("show_camera_turbo_speed", showCameraTurboSpeed);
+  blk.setBool("show_camera_stats", shownStats.cameraStats);
+  blk.setBool("show_camera_pos", shownStats.cameraPos);
+  blk.setBool("show_camera_dist", shownStats.cameraDist);
+  blk.setBool("show_camera_fov", shownStats.cameraFov);
+  blk.setBool("show_fly_camera_stats", shownStats.flyCameraStats);
+  blk.setBool("show_fly_camera_speed", shownStats.flyCameraSpeed);
+  blk.setBool("show_fly_camera_turbo_speed", shownStats.flyCameraTurboSpeed);
   ec_stat3d_save_enabled_graphs(*blk.addBlock("displayed_stat3d_list"));
 }
 
@@ -2240,66 +2291,68 @@ bool ViewportWindow::onDropFiles(const dag::Vector<String> &files) { return fals
 
 void ViewportWindow::showStatSettingsDialog()
 {
-  if (!statSettingsDialog)
-  {
-    statSettingsDialog = new ViewportWindowStatSettingsDialog(*this, &showStats, _pxScaled(300), _pxScaled(480));
-    fillStatSettingsDialog(*statSettingsDialog);
-  }
-
-  if (statSettingsDialog->isVisible())
-    statSettingsDialog->hide();
-  else
-    statSettingsDialog->show();
+  stat_settings_dialog_controller->showWindow(!stat_settings_dialog_controller->isWindowShown());
 }
 
 
-void ViewportWindow::showGridSettingsDialog()
-{
-  if (!gridSettingsDialog)
-    gridSettingsDialog = new GridEditDialog(nullptr, EDITORCORE->getGrid(), "Viewport grid settings");
+void ViewportWindow::showGridSettingsDialog() { grid_settings_dialog_controller->showWindow(); }
 
-  gridSettingsDialog->showGridEditDialog(vpId);
+void ViewportWindow::showGizmoSettingsDialog() { get_gizmo_settings_dialog_controller()->showWindow(); }
+
+ViewportWindowStatSettingsDialog *ViewportWindow::createStatSettingsDialog()
+{
+  ViewportWindow::ShownStats defaults;
+  ViewportWindowStatSettingsDialog *dialog =
+    new ViewportWindowStatSettingsDialog(*this, &shownStats.rootStats, defaults.rootStats, hdpi::_pxScaled(300), hdpi::_pxScaled(480));
+  fillStatSettingsDialog(*dialog);
+  return dialog;
 }
 
-void ViewportWindow::showGizmoSettingsDialog()
+void ViewportWindow::fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog, bool include_camera_distance)
 {
-  if (!gizmoSettingsDialog)
-    gizmoSettingsDialog = new GizmoSettingsDialog();
-  gizmoSettingsDialog->show();
-}
+  ShownStats defaults;
 
-void ViewportWindow::fillStatSettingsDialog(ViewportWindowStatSettingsDialog &dialog)
-{
-  fillStat3dStatSettings(dialog);
+  fillStat3dStatSettings(dialog, defaults._3dStats);
 
-  PropPanel::TLeafHandle cameraGroup = dialog.addGroup(CM_STATS_SETTINGS_CAMERA_GROUP, "Camera", showCameraStats);
-  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_POS, "camera pos", showCameraPos);
-  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_DIST, "camera dist", showCameraDist);
-  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_FOV, "camera FOV", showCameraFov);
-  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_SPEED, "camera speed", showCameraSpeed);
-  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_TURBO_SPEED, "camera turbo speed", showCameraTurboSpeed);
+  PropPanel::TLeafHandle cameraGroup =
+    dialog.addGroup(CM_STATS_SETTINGS_CAMERA_GROUP, "Camera", shownStats.cameraStats, defaults.cameraStats);
+  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_POS, "camera pos", shownStats.cameraPos, defaults.cameraPos);
+  if (include_camera_distance)
+    dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_DIST, "camera dist", shownStats.cameraDist, defaults.cameraDist);
+  dialog.addOption(cameraGroup, CM_STATS_SETTINGS_CAMERA_FOV, "camera FOV", shownStats.cameraFov, defaults.cameraFov);
+
+  PropPanel::TLeafHandle flyCameraGroup =
+    dialog.addGroup(CM_STATS_SETTINGS_FLY_CAMERA_GROUP, "Fly camera", shownStats.flyCameraStats, defaults.flyCameraStats);
+  dialog.addOption(flyCameraGroup, CM_STATS_SETTINGS_FLY_CAMERA_SPEED, "camera speed", shownStats.flyCameraSpeed,
+    defaults.flyCameraSpeed);
+  dialog.addOption(flyCameraGroup, CM_STATS_SETTINGS_FLY_CAMERA_TURBO_SPEED, "camera turbo speed", shownStats.flyCameraTurboSpeed,
+    defaults.flyCameraTurboSpeed);
 }
 
 
 void ViewportWindow::handleStatSettingsDialogChange(int pcb_id, bool value)
 {
   if (pcb_id == CM_STATS_SETTINGS_STAT3D_GROUP)
-    calcStat3d = value;
+    shownStats._3dStats = value;
   else if (pcb_id == CM_STATS_SETTINGS_CAMERA_GROUP)
-    showCameraStats = value;
+    shownStats.cameraStats = value;
   else if (pcb_id == CM_STATS_SETTINGS_CAMERA_POS)
-    showCameraPos = value;
+    shownStats.cameraPos = value;
   else if (pcb_id == CM_STATS_SETTINGS_CAMERA_DIST)
-    showCameraDist = value;
+    shownStats.cameraDist = value;
   else if (pcb_id == CM_STATS_SETTINGS_CAMERA_FOV)
-    showCameraFov = value;
-  else if (pcb_id == CM_STATS_SETTINGS_CAMERA_SPEED)
-    showCameraSpeed = value;
-  else if (pcb_id == CM_STATS_SETTINGS_CAMERA_TURBO_SPEED)
-    showCameraTurboSpeed = value;
+    shownStats.cameraFov = value;
+  else if (pcb_id == CM_STATS_SETTINGS_FLY_CAMERA_GROUP)
+    shownStats.flyCameraStats = value;
+  else if (pcb_id == CM_STATS_SETTINGS_FLY_CAMERA_SPEED)
+    shownStats.flyCameraSpeed = value;
+  else if (pcb_id == CM_STATS_SETTINGS_FLY_CAMERA_TURBO_SPEED)
+    shownStats.flyCameraTurboSpeed = value;
   else
     handleStat3dStatSettingsDialogChange(pcb_id, value);
 }
+
+void ViewportWindow::onSnapSettingChanged() { ViewportWindowGridSettingsDialogController::onSnapSettingChanged(); }
 
 bool ViewportWindow::canStartInteractionWithViewport()
 {
@@ -2323,10 +2376,9 @@ void ViewportWindow::handleViewportAxisMouseLButtonDown()
   {
     restoreCursorAt = ec_get_cursor_pos();
 
-    if (mIsCursorVisible)
+    if (ec_is_cursor_visible())
     {
       ec_show_cursor(false);
-      mIsCursorVisible = false;
     }
   }
 }
@@ -2337,10 +2389,9 @@ void ViewportWindow::handleViewportAxisMouseLButtonUp()
 
   if (mouseDownOnViewportAxis == ViewportAxisId::RotatorCircle)
   {
-    if (!mIsCursorVisible)
+    if (!ec_is_cursor_visible())
     {
       ec_show_cursor(true);
-      mIsCursorVisible = true;
     }
 
     ec_set_cursor_pos(restoreCursorAt);
@@ -2372,8 +2423,8 @@ void ViewportWindow::processViewportAxisCameraRotation(int mouse_x, int mouse_y)
 
   real deltaX, deltaY;
   processMouseMoveInfluence(deltaX, deltaY, mouse_x, mouse_y);
-  deltaX *= ::dagor_game_act_time * speedUp;
-  deltaY *= ::dagor_game_act_time * speedUp;
+  deltaX *= MOUSE_SENSITIVITY * speedUp;
+  deltaY *= MOUSE_SENSITIVITY * speedUp;
 
   G_ASSERT(maxCameraElem);
   maxCameraElem->rotate(-deltaX, -deltaY, true, true);
@@ -2383,6 +2434,8 @@ void ViewportWindow::processViewportAxisCameraRotation(int mouse_x, int mouse_y)
     currentProjection = CM_VIEW_CUSTOM_CAMERA;
     setCameraViewText();
   }
+  if (orthogonalProjection && needsOrthoCameraAdjustment)
+    adjustCameraForOrthoProjection();
 
   updatePluginCamera = true;
 
@@ -2402,6 +2455,23 @@ void ViewportWindow::setViewportAxisTransitionEndDirection(const Point3 &forward
   currentProjection = CM_VIEW_CUSTOM_CAMERA;
   setCameraViewText();
   redrawClientRect();
+}
+
+void ViewportWindow::adjustCameraForOrthoProjection()
+{
+  BBox3 box;
+  if (!IEditorCoreEngine::get()->getGlobalBox(box))
+    return;
+
+  TMatrix cameraTm;
+  getCameraTransform(cameraTm);
+  float rad = length(box.width()) * 0.5f + 1.0f;
+  Point3 anchor = box.center();
+  Point3 dir = cameraTm.getcol(2);
+  Point3 toPos = cameraTm.getcol(3) - anchor;
+  Point3 offset = toPos - dir * (toPos * dir);
+  cameraTm.setcol(3, anchor - dir * rad + offset);
+  setCameraTransform(cameraTm);
 }
 
 TMatrix ViewportWindow::getViewTm() const { return viewport->getViewMatrix(); }
@@ -2476,11 +2546,13 @@ void ViewportWindow::updateImgui(ImGuiID canvas_id, const Point2 &size, float it
   const TEXTUREID viewportTextureId = viewportTexture.getId();
   if (viewportTextureSize.x > 0 && viewportTextureSize.y > 0 && viewportTextureId != BAD_TEXTUREID)
   {
+    processCameraStateOnFocusChange();
+
     PropPanel::focus_helper.setFocusToNextImGuiControlIfRequested(this);
 
     ImGuiWindow *currentWindow = ImGui::GetCurrentWindow();
     const ImVec2 mousePosInCanvas = ImGui::GetMousePos() - ImGui::GetCursorScreenPos();
-    const bool itemMouseButtonHeld = add_viewport_canvas_item(canvas_id, (ImTextureID)((uintptr_t)((unsigned)viewportTextureId)),
+    const bool itemMouseButtonHeld = add_viewport_canvas_item(canvas_id, ImGuiDagor::EncodeTexturePtr(viewportTexture.getTex()),
       ImVec2(viewportTextureSize.x, viewportTextureSize.y), item_spacing, vr_mode);
     const bool itemHovered = ImGui::IsItemHovered();
     const bool wasActive = active;
@@ -2514,46 +2586,49 @@ void ViewportWindow::updateImgui(ImGuiID canvas_id, const Point2 &size, float it
     }
     else if (active)
     {
-      // Prevent the hidden mouse from interacting with other controls while in fly mode.
-      const bool flyModeActive = isFlyMode();
-      if (flyModeActive)
+      if (!cameraStateOnFocusLost) // disable input if we lost focus and have camera state saved
       {
-        ImGui::SetActiveID(canvas_id, currentWindow);
-        ImGui::SetKeyOwner(ImGuiKey_MouseWheelX, canvas_id);
-        ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, canvas_id);
-
-        G_STATIC_ASSERT(sizeof(canvas_id) == sizeof(unsigned));
-        switch (CCameraElem::getCamera())
+        // Prevent the hidden mouse from interacting with other controls while in fly mode.
+        const bool flyModeActive = isFlyMode();
+        if (flyModeActive)
         {
-          case CCameraElem::FREE_CAMERA: ec_camera_elem::freeCameraElem->handleKeyboardInput(canvas_id); break;
-          case CCameraElem::FPS_CAMERA: ec_camera_elem::fpsCameraElem->handleKeyboardInput(canvas_id); break;
-          case CCameraElem::TPS_CAMERA: ec_camera_elem::tpsCameraElem->handleKeyboardInput(canvas_id); break;
-          case CCameraElem::CAR_CAMERA: ec_camera_elem::carCameraElem->handleKeyboardInput(canvas_id); break;
-        }
-      }
+          ImGui::SetActiveID(canvas_id, currentWindow);
+          ImGui::SetKeyOwner(ImGuiKey_MouseWheelX, canvas_id);
+          ImGui::SetKeyOwner(ImGuiKey_MouseWheelY, canvas_id);
 
-      if (itemHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
-        processMouseLButtonDoubleClick(pt.x, pt.y);
-      else if (itemHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-        processMouseLButtonPress(pt.x, pt.y);
-      else if (itemHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-        processMouseRButtonPress(pt.x, pt.y);
-      else if (itemHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
-        processMouseMButtonPress(pt.x, pt.y);
-      else if (mouseButtonDown[ImGuiMouseButton_Left] && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-        processMouseLButtonRelease(pt.x, pt.y);
-      else if (mouseButtonDown[ImGuiMouseButton_Right] && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
-        processMouseRButtonRelease(pt.x, pt.y);
-      else if (mouseButtonDown[ImGuiMouseButton_Middle] && ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
-        processMouseMButtonRelease(pt.x, pt.y);
-      else if (itemHovered && ImGui::GetIO().MouseWheel != 0.0f)
-        processMouseWheel(pt.x, pt.y, ImGui::GetIO().MouseWheel * EC_WHEEL_DELTA);
-      // In fly mode mouse capture is used so we have to ignore boundaries to make mouse cursor wrapping work. (We could
-      // also check GetCapture instead.)
-      else if ((itemHovered || itemMouseButtonHeld || flyModeActive) && (pt.x != lastMousePosition.x || pt.y != lastMousePosition.y))
-      {
-        lastMousePosition = IPoint2(pt.x, pt.y);
-        processMouseMove(pt.x, pt.y);
+          G_STATIC_ASSERT(sizeof(canvas_id) == sizeof(unsigned));
+          switch (CCameraElem::getCamera())
+          {
+            case CCameraElem::FREE_CAMERA: ec_camera_elem::freeCameraElem->handleKeyboardInput(canvas_id); break;
+            case CCameraElem::FPS_CAMERA: ec_camera_elem::fpsCameraElem->handleKeyboardInput(canvas_id); break;
+            case CCameraElem::TPS_CAMERA: ec_camera_elem::tpsCameraElem->handleKeyboardInput(canvas_id); break;
+            case CCameraElem::CAR_CAMERA: ec_camera_elem::carCameraElem->handleKeyboardInput(canvas_id); break;
+          }
+        }
+
+        if (itemHovered && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+          processMouseLButtonDoubleClick(pt.x, pt.y);
+        else if (itemHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+          processMouseLButtonPress(pt.x, pt.y);
+        else if (itemHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+          processMouseRButtonPress(pt.x, pt.y);
+        else if (itemHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Middle))
+          processMouseMButtonPress(pt.x, pt.y);
+        else if (mouseButtonDown[ImGuiMouseButton_Left] && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+          processMouseLButtonRelease(pt.x, pt.y);
+        else if (mouseButtonDown[ImGuiMouseButton_Right] && ImGui::IsMouseReleased(ImGuiMouseButton_Right))
+          processMouseRButtonRelease(pt.x, pt.y);
+        else if (mouseButtonDown[ImGuiMouseButton_Middle] && ImGui::IsMouseReleased(ImGuiMouseButton_Middle))
+          processMouseMButtonRelease(pt.x, pt.y);
+        else if (itemHovered && ImGui::GetIO().MouseWheel != 0.0f)
+          processMouseWheel(pt.x, pt.y, ImGui::GetIO().MouseWheel * EC_WHEEL_DELTA);
+        // In fly mode mouse capture is used so we have to ignore boundaries to make mouse cursor wrapping work. (We could
+        // also check GetCapture instead.)
+        else if ((itemHovered || itemMouseButtonHeld || flyModeActive) && (pt.x != lastMousePosition.x || pt.y != lastMousePosition.y))
+        {
+          lastMousePosition = IPoint2(pt.x, pt.y);
+          processMouseMove(pt.x, pt.y);
+        }
       }
     }
     else if (itemHovered)
@@ -2581,7 +2656,7 @@ void ViewportWindow::updateImgui(ImGuiID canvas_id, const Point2 &size, float it
 
   if (selectionMenu)
   {
-    const bool open = selectionMenu->getItemCount(ROOT_MENU_ITEM) > 0 && PropPanel::render_context_menu(*selectionMenu);
+    const bool open = PropPanel::render_context_menu(*selectionMenu);
     if (!open)
     {
       setMenuEventHandler(nullptr);
@@ -2658,6 +2733,53 @@ Point3 ViewportWindow::getCameraPanAnchorPoint()
   return cameraPanAnchorPoint.value();
 }
 
+void ViewportWindow::processCameraStateOnFocusChange()
+{
+  const ImGuiViewport *imguiViewport = ImGui::GetMainViewport();
+
+#if _TARGET_PC_WIN
+  const bool focused = imguiViewport->Flags & ImGuiViewportFlags_IsFocused;
+#else
+  // ImGuiViewportFlags_IsFocused is only set if viewports are enabled.
+  const bool focused = true;
+  G_ASSERT((ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) == 0);
+#endif
+
+  if (!focused && !cameraStateOnFocusLost)
+  {
+    if (CCameraElem::getCamera() != CCameraElem::MAX_CAMERA)
+    {
+      cameraStateOnFocusLost = CameraSaveState{
+        .hasCapture = get_capture() == getMainHwnd(),
+        .isCursorVisible = ec_is_cursor_visible(),
+        .lastPosition = ec_get_cursor_pos(),
+      };
+
+      release_cursor();
+      ec_show_cursor(true);
+    }
+  }
+  else if (focused && cameraStateOnFocusLost)
+  {
+    if (cameraStateOnFocusLost->hasCapture)
+    {
+      capture_cursor(getMainHwnd());
+    }
+
+    if (!cameraStateOnFocusLost->isCursorVisible)
+    {
+      ec_set_cursor_pos(cameraStateOnFocusLost->lastPosition);
+
+      // prevent camera movement
+      ImGui::TeleportMousePos(ImVec2(cameraStateOnFocusLost->lastPosition.x, cameraStateOnFocusLost->lastPosition.y));
+    }
+
+    ec_show_cursor(cameraStateOnFocusLost->isCursorVisible);
+
+    cameraStateOnFocusLost.reset();
+  }
+}
+
 void save_camera_objects(DataBlock &blk)
 {
   freeCameraElem->save(*blk.addBlock("freeCamera"));
@@ -2677,33 +2799,37 @@ void load_camera_objects(const DataBlock &blk)
   carCameraElem->load(*blk.getBlockByNameEx("carCamera"));
 }
 
-void show_camera_objects_config_dialog(void *parent)
+CachedRenderViewports *ec_cached_viewports = NULL;
+
+class CameraObjectConfigModelessDialogHandler : public ModelessDialogWindowController<CamerasConfigDlg>
 {
-  if (!camera_config_dialog)
+public:
+  const char *getWindowId() const override { return WindowIds::MAIN_SETTINGS_CAMERA; }
+
+  CamerasConfigDlg *getDialog() { return dialog.get(); }
+
+private:
+  void createDialog() override
   {
-    camera_config_dialog.reset(new CamerasConfigDlg(parent, maxCameraElem->getConfig(), freeCameraElem->getConfig(),
-      fpsCameraElem->getConfig(), tpsCameraElem->getConfig()));
+    dialog.reset(new CamerasConfigDlg(nullptr, maxCameraElem->getConfig(), freeCameraElem->getConfig(), fpsCameraElem->getConfig(),
+      tpsCameraElem->getConfig()));
 
-    camera_config_dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Close");
-    camera_config_dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
-    camera_config_dialog->fill();
+    dialog->setDialogButtonText(PropPanel::DIALOG_ID_OK, "Close");
+    dialog->removeDialogButton(PropPanel::DIALOG_ID_CANCEL);
+    dialog->fill();
   }
+};
 
-  if (camera_config_dialog->isVisible())
-    camera_config_dialog->hide();
-  else
-    camera_config_dialog->show();
-}
+static CameraObjectConfigModelessDialogHandler camera_object_config_modeless_dialog_handler;
 
-void close_camera_objects_config_dialog() { camera_config_dialog.reset(); }
+IModelessWindowController *get_camera_object_config_modeless_dialog_handler() { return &camera_object_config_modeless_dialog_handler; }
 
 void act_camera_objects_config_dialog()
 {
-  if (camera_config_dialog && camera_objects_config_changed)
+  CamerasConfigDlg *dialog = camera_object_config_modeless_dialog_handler.getDialog();
+  if (dialog && camera_objects_config_changed)
   {
     camera_objects_config_changed = false;
-    camera_config_dialog->fill();
+    dialog->fill();
   }
 }
-
-CachedRenderViewports *ec_cached_viewports = NULL;

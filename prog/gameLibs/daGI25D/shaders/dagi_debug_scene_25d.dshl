@@ -22,7 +22,6 @@ shader ssgi_debug_rasterize_voxels_25d
   RAY_CAST_VOXELS_25D(ps)
   USE_AND_INIT_VIEW_VEC_VS()
   INIT_ZNZFAR()
-  ENABLE_ASSERT(ps)
 
   hlsl {
     struct VsOutput

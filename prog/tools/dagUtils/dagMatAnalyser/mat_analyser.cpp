@@ -79,6 +79,7 @@ static bool is_quiet = false;
 static bool is_exact = false;
 static const char *exact_shdump = nullptr;
 static const char *specific_shader = nullptr;
+static const char *proxymat_path = nullptr;
 static bool class_name = false;
 static const char *class_builtin = "__builtin__";
 static bool force_defaults = false;
@@ -112,7 +113,8 @@ static int proxymat_ext_len = strlen(EXT_PROXYMAT);
 #define N_POWER        "power"
 #define N_TEX16SUPPORT "tex16support"
 
-static void find_asset_files(eastl::vector<eastl::string> &filenames, ska::flat_hash_map<eastl::string, String> &proxymats,
+static void find_asset_files(eastl::vector<eastl::string> &filenames, const bool find_dags,
+  ska::flat_hash_map<eastl::string, String> &proxymats, const bool find_proxymats,
   eastl::vector<std::filesystem::path> &subfolder_paths, const std::filesystem::path &folder_path)
 {
   for (const auto &entry : std::filesystem::directory_iterator(folder_path))
@@ -129,11 +131,11 @@ static void find_asset_files(eastl::vector<eastl::string> &filenames, ska::flat_
     else
     {
       const std::filesystem::path &ext = path.extension();
-      if (::dd_stricmp(ext.generic_string().c_str(), ".dag") == 0)
+      if (find_dags && ::dd_stricmp(ext.generic_string().c_str(), ".dag") == 0)
       {
         filenames.push_back(path.generic_string().c_str());
       }
-      else
+      else if (find_proxymats)
       {
         const auto &filename = path.filename().generic_string();
         const size_t f_size = filename.size();
@@ -231,6 +233,8 @@ static void process_script(const eastl::string &filename, const String &shader_n
   if (at != eastl::string::npos)
   {
     eastl::string scrname = variable.substr(0, at);
+    while (!scrname.empty() && scrname.back() == ' ')
+      scrname.pop_back();
     eastl_size_t var_at = at + 1;
     material_data.emplace(scrname, String(variable.substr(var_at, variable.length() - var_at).c_str()));
     DEBUG_LOG("  script '%s' = %s (%s)", scrname.c_str(), material_data[scrname].c_str(), variable.c_str());
@@ -302,12 +306,6 @@ static bool process_asset(const eastl::string &filename, const ska::flat_hash_ma
         continue;
       }
 
-      if (specific_shader != nullptr && key != specific_shader)
-      {
-        DEBUG_LOG("Non-specific shader found: %s", key.c_str());
-        continue;
-      }
-
       auto proxymat_it = proxymats_cache.find(it->first);
       if (proxymat_it == proxymats_cache.end())
       {
@@ -318,6 +316,13 @@ static bool process_asset(const eastl::string &filename, const ska::flat_hash_ma
 
       shader_name = proxymat_block.getStr(N_CLASS, class_builtin);
       DEBUG_LOG("  class shader_name = %s", shader_name.c_str());
+
+      key = shader_name;
+      if (specific_shader != nullptr && key != specific_shader)
+      {
+        DEBUG_LOG("Non-specific shader found: %s", key.c_str());
+        continue;
+      }
 
       const char *name = nullptr;
       name = proxymat_block.getStr(N_NAME, name);
@@ -415,11 +420,18 @@ static bool process_asset(const eastl::string &filename, const ska::flat_hash_ma
       String texname(0, "tex%d", ti);
       if (mater.texid[ti] != DAGBADMATID && (ti < 8 || tex_16_support))
       {
-        const char *tex = ::dd_get_fname(data.texlist[mater.texid[ti]].c_str());
-        if (tex)
+        if (mater.texid[ti] < data.texlist.size())
         {
-          material_data.emplace(texname.c_str(), String(tex));
-          DEBUG_LOG("tex%d = '%s' (%s)", ti, tex, data.texlist[mater.texid[ti]].c_str());
+          const char *tex = ::dd_get_fname(data.texlist[mater.texid[ti]].c_str());
+          if (tex)
+          {
+            material_data.emplace(texname.c_str(), String(tex));
+            DEBUG_LOG("tex%d = '%s' (%s)", ti, tex, data.texlist[mater.texid[ti]].c_str());
+          }
+        }
+        else
+        {
+          PRINT("Invalid texid %d for material \"%s\" in asset \"%s\"", mater.texid[ti], shader_name.c_str(), filename.c_str());
         }
       }
     }
@@ -501,18 +513,20 @@ static void process_def_shader_vars(MatLibrary &local_library, DefShaderVarsLib 
 struct FindAssetsJob : cpujobs::IJob
 {
   const std::filesystem::path folder_path;
+  const bool find_dags;
+  const bool find_proxymats;
 
   eastl::vector<eastl::string> local_filenames;
   ska::flat_hash_map<eastl::string, String> local_proxymats;
 
   eastl::vector<std::filesystem::path> subfolder_paths;
 
-  FindAssetsJob(const std::filesystem::path &_f) : folder_path(_f) {}
+  FindAssetsJob(const std::filesystem::path &_f, bool _f_d, bool _f_p) : folder_path(_f), find_dags(_f_d), find_proxymats(_f_p) {}
 
   void doJob() override
   {
     DEBUG_BEGIN_JOB("Job searching for assets under \"%s\"", folder_path.c_str());
-    find_asset_files(local_filenames, local_proxymats, subfolder_paths, folder_path);
+    find_asset_files(local_filenames, find_dags, local_proxymats, find_proxymats, subfolder_paths, folder_path);
     DEBUG_END_JOB("Job searching for assets finished");
   }
 
@@ -769,6 +783,35 @@ static bool look_for_assets_path(const String &folder_path, String &assets_path)
   return dd_dir_exists(assets_path.c_str());
 }
 
+static void look_for_root_path(String &folder_path, String &root_path)
+{
+  String assets_path;
+  if (folder_path.suffix("/develop/"))
+  {
+    String base_path(folder_path, strlen(folder_path) - 8);
+    if (look_for_assets_path(base_path, assets_path))
+    {
+      root_path = base_path;
+      folder_path = assets_path;
+    }
+    else if (look_for_assets_path(folder_path, assets_path))
+    {
+      folder_path = assets_path;
+    }
+  }
+  else if (!folder_path.suffix("/develop/assets/"))
+  {
+    if (look_for_assets_path(folder_path, assets_path))
+    {
+      folder_path = assets_path;
+    }
+  }
+  else
+  {
+    root_path = String(folder_path, strlen(folder_path) - 15);
+  }
+}
+
 static void print_progress(float percentage);
 
 int DagorWinMain(bool debugmode)
@@ -797,6 +840,8 @@ int DagorWinMain(bool debugmode)
       force_defaults = true;
     else if (::dd_strnicmp("-shader:", __argv[i], 8) == 0)
       specific_shader = (__argv[i] + 8);
+    else if (::dd_strnicmp("-proxymat:", __argv[i], 8) == 0)
+      proxymat_path = (__argv[i] + 10);
     else if (::dd_strnicmp("-output:", __argv[i], 8) == 0)
       output = (__argv[i] + 8);
     else if (::dd_strnicmp("-unique:", __argv[i], 8) == 0)
@@ -829,36 +874,14 @@ int DagorWinMain(bool debugmode)
   simplify_fname(folder_path);
   // making sure we have the absolute folder path
   std::filesystem::path abs_folder_path(folder_path.c_str());
+  if (folder_path.empty())
+    abs_folder_path = std::filesystem::current_path();
   abs_folder_path = std::filesystem::absolute(abs_folder_path);
   folder_path.setStr(abs_folder_path.generic_string().c_str());
   String root_path = folder_path;
   if (!is_exact)
   {
-    String assets_path;
-    if (folder_path.suffix("/develop/"))
-    {
-      String base_path(folder_path, strlen(folder_path) - 8);
-      if (look_for_assets_path(base_path, assets_path))
-      {
-        root_path = base_path;
-        folder_path = assets_path;
-      }
-      else if (look_for_assets_path(folder_path, assets_path))
-      {
-        folder_path = assets_path;
-      }
-    }
-    else if (!folder_path.suffix("/develop/assets/"))
-    {
-      if (look_for_assets_path(folder_path, assets_path))
-      {
-        folder_path = assets_path;
-      }
-    }
-    else
-    {
-      root_path = String(folder_path, strlen(folder_path) - 15);
-    }
+    look_for_root_path(folder_path, root_path);
   }
 
   std::filesystem::path assets_path(folder_path.c_str());
@@ -867,6 +890,29 @@ int DagorWinMain(bool debugmode)
     PRINT("Could not find assets directory: %s", folder_path.c_str());
     ::show_usage();
     return 1;
+  }
+
+  String proxymat_abs_path("");
+  String proxymat_root_path("");
+  if (proxymat_path != nullptr)
+  {
+    proxymat_abs_path = proxymat_path;
+    append_slash(proxymat_abs_path);
+    simplify_fname(proxymat_abs_path);
+    std::filesystem::path abs_path(proxymat_abs_path.c_str());
+    if (proxymat_abs_path.empty())
+      abs_path = std::filesystem::current_path();
+    abs_path = std::filesystem::absolute(abs_path);
+    proxymat_abs_path.setStr(abs_path.generic_string().c_str());
+    if (!std::filesystem::is_directory(abs_path))
+    {
+      PRINT("Could not find separate proxymat directory: %s", proxymat_path);
+      ::show_usage();
+      return 1;
+    }
+
+    proxymat_root_path = proxymat_abs_path;
+    look_for_root_path(proxymat_abs_path, proxymat_root_path);
   }
 
   String shdump;
@@ -886,7 +932,7 @@ int DagorWinMain(bool debugmode)
       PRINT("Could not detect tools shdump under: %s", root_path.c_str());
     }
   }
-  else if (!shBinDumpOwner().load(crd, df_length(crd.fileHandle)))
+  else if (!shBinDumpOwner().loadFromFile(crd, df_length(crd.fileHandle)))
   {
     PRINT("Failed to load shdump: %s", shdump.c_str());
   }
@@ -894,12 +940,27 @@ int DagorWinMain(bool debugmode)
   DataBlock::setRootIncludeResolver(root_path.c_str());
   dd_add_base_path(root_path.c_str(), true);
   dd_add_base_path(folder_path.c_str());
-  PRINT("Searching for dag files and proxymats under: \"%s\"", folder_path.c_str());
+  if (proxymat_path)
+  {
+    DataBlock::setRootIncludeResolver(proxymat_root_path.c_str());
+    dd_add_base_path(proxymat_root_path.c_str());
+    dd_add_base_path(proxymat_abs_path.c_str());
+
+    PRINT("Searching for dag files under: \"%s\"", folder_path.c_str());
+    PRINT("Searching for proxymats under: \"%s\"", proxymat_abs_path.c_str());
+  }
+  else
+  {
+    PRINT("Searching for dag files and proxymats under: \"%s\"", folder_path.c_str());
+  }
   std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 
   dag::Vector<FindAssetsJob> files_jobs{};
   files_jobs.reserve(1000);
-  files_jobs.emplace_back(std::filesystem::path(folder_path.c_str()));
+  const bool find_proxymats_sep = (proxymat_path != nullptr);
+  files_jobs.emplace_back(std::filesystem::path(folder_path.c_str()), true, !find_proxymats_sep);
+  if (find_proxymats_sep)
+    files_jobs.emplace_back(std::filesystem::path(proxymat_abs_path.c_str()), false, find_proxymats_sep);
   int folderIdx = 0;
   while (folderIdx < files_jobs.size())
   {
@@ -917,7 +978,7 @@ int DagorWinMain(bool debugmode)
         proxymats.insert_or_assign(proxymat.first, proxymat.second);
 
       for (const auto &folder_path : job.subfolder_paths)
-        files_jobs.emplace_back(folder_path);
+        files_jobs.emplace_back(folder_path, job.find_dags, job.find_proxymats);
     }
     folderIdx = nextFolderIdx;
   }
@@ -994,6 +1055,8 @@ int DagorWinMain(bool debugmode)
 
   dd_remove_base_path(root_path.c_str());
   dd_remove_base_path(folder_path.c_str());
+  if (proxymat_path)
+    dd_remove_base_path(proxymat_abs_path.c_str());
 
   if (!unique_only)
   {
@@ -1070,6 +1133,7 @@ static void show_usage()
          "  -builtin:<cname> change built-in shader class name from \"__builtin__\"\n"
          "  -forcedef        force writing of default params (power, amb, etc...)\n"
          "  -shader:<sname>  optionally limit analysis to one specific shader\n"
+         "  -proxymat:<path> separate path to scan for proxymat.blk files\n"
          "  -output:<fname>  set output file (default is \"output.csv\")\n"
          "  -unique          output only unique shader usages for materials\n"
          "  -unique:<fname>  output unique shader usages to target file\n"
